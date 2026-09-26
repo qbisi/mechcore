@@ -14,13 +14,11 @@ byte for byte, so the two directions are one mapping and not two
 approximations of it. `record_replay_round` fights any of a battle replay's
 rounds.
 
-A battle replay holds no reinforcement pool log. The game deals a replayed
-round's offers again, from its own pool and the match stream, and the round's
-recorded choice takes the card at its index; the pool is rebuilt from the log a
-round's snapshot carries (`MatchSnapshotData.poolOPs`). A battle does not state
-that log, so from the first round whose offers an earlier choice changed, the
-game deals other offers than the match did, the recorded choice takes another
-card, and that round is not the match's fight.
+The game deals a replayed round's offers again, from the pool a round's
+snapshot restores and the match stream, and the round's recorded choice takes
+the card at its index. So a battle replay carries the pool as well as the
+stream, and both are what the battle's own rounds make: a battle states no pool,
+and needs none.
 
 This document defines what a battle replay holds and which battles cannot be
 written as one. The file's framing and the snapshot members are the game's and
@@ -61,6 +59,23 @@ is what conversion checks:
   earlier round's officers drew.
 
 A round that deals offers lists them, as dealt, in its `reinforceItems`.
+
+## The reinforcement pool
+
+Each round's snapshot holds the pool as the round opened, which is where the
+battle's deal leaves it ([reinforcements.md](../../rules/reinforcements.md)):
+
+- `poolOPs` is the pool's log since the match began: each refresh's removals,
+  each followed by the replacement drawn for it, and each nonrepeatable card an
+  earlier round took, with the other variants of its group the pool still held;
+- `RoundExcludeReinforce` holds every round a level-4 commander skill offered
+  the round before excludes them from, each with every level-4 commander skill
+  in the build's order.
+
+A round's two choices are logged blue before red. The match logged them in the
+order they were made, which a battle does not keep; restoring a round sorts the
+pool again, so the order decides nothing, and conversion accepts either
+([battle.md](battle.md#converting-a-replay)).
 
 ## Round 0
 
@@ -138,7 +153,6 @@ round's decisions come in the battle's order.
 | `PlayerRecord.name`, `id`, `ad`, `data.style` | Account identity and skins |
 | `BattleInfo.BattleID`, `CreateTime` | Provenance, which a battle does not carry |
 | `NewUnitData.RoundCount` | No reading of the replay uses it |
-| `matchDatas.poolOPs`, `RoundExcludeReinforce` | A battle does not state the reinforcement pool; see Scope |
 
 ## Unresolved
 

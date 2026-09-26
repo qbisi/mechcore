@@ -355,6 +355,49 @@ pub struct MatchRound {
     /// combinations were; `crate::opening` says how.
     #[serde(default, rename = "randomStateData")]
     pub random_state: RandomStateData,
+    /// The reinforcement pool's log as the round opened, which a restored
+    /// round replays onto the pool the seed initializes. The converter checks
+    /// it against the deal the battle's own rounds make.
+    #[serde(default, rename = "poolOPs")]
+    pub pool_operations: PoolOperations,
+    /// The rounds excluding the level-4 commander skills, each with them.
+    #[serde(default, rename = "RoundExcludeReinforce")]
+    pub excluded_rounds: ExcludedRounds,
+}
+
+#[derive(Debug, Default, Deserialize)]
+pub struct PoolOperations {
+    #[serde(default, rename = "ValueTupleOfInt32Int32")]
+    pub entries: Vec<PoolOperation>,
+}
+
+/// `(0, id)` removes a card from the pool and `(1, id)` adds one.
+#[derive(Debug, Deserialize)]
+pub struct PoolOperation {
+    #[serde(rename = "Item1")]
+    pub operation: i32,
+    #[serde(rename = "Item2")]
+    pub id: i32,
+}
+
+#[derive(Debug, Default, Deserialize)]
+pub struct ExcludedRounds {
+    #[serde(default, rename = "DictItem")]
+    pub entries: Vec<ExcludedRound>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ExcludedRound {
+    #[serde(rename = "Key")]
+    pub round: i32,
+    #[serde(default, rename = "Values")]
+    pub ids: ExcludedIds,
+}
+
+#[derive(Debug, Default, Deserialize)]
+pub struct ExcludedIds {
+    #[serde(default, rename = "Value")]
+    pub values: Vec<i32>,
 }
 
 #[derive(Debug, Default, Deserialize)]

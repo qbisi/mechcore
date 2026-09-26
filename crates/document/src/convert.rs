@@ -296,7 +296,7 @@ pub fn document(economy: &Economy, grbr: &[u8]) -> Result<Converted, String> {
                 .into(),
         );
     }
-    stream_lands_on_the_recorded_states(economy, &record::read(grbr)?, &stated)?;
+    deal_lands_on_the_record(economy, &record::read(grbr)?, &stated)?;
     Ok(Converted {
         battle,
         yaml,
@@ -304,11 +304,12 @@ pub fn document(economy: &Economy, grbr: &[u8]) -> Result<Converted, String> {
     })
 }
 
-/// Refuses a replay whose recorded random states the seeded stream misses.
+/// Refuses a replay whose recorded random states the seeded stream misses,
+/// or whose recorded pool the battle's deal does not make.
 ///
 /// The generator is Lua's and a state is 256 bits, so a near miss does not
 /// land: equal states are the whole of the claim that the stream is modelled.
-fn stream_lands_on_the_recorded_states(
+fn deal_lands_on_the_record(
     economy: &Economy,
     native: &record::BattleRecord,
     stated: &opening::Stated,
@@ -345,6 +346,73 @@ fn stream_lands_on_the_recorded_states(
                 "round {}'s deal ends on a random state round {} did not record",
                 round.round,
                 round.round + 1
+            ));
+        }
+    }
+    pool_lands_on_the_recorded_log(&native.match_rounds.entries, &deal.pools)
+}
+
+/// Refuses a replay whose rounds open on another pool than the battle's deal
+/// leaves: each round's log, and the rounds it excludes the level-4 commander
+/// skills from, must be the deal's. The one freedom is the order of a round's
+/// choices, which the log keeps as the players chose and a battle does not.
+fn pool_lands_on_the_recorded_log(
+    recorded_rounds: &[record::MatchRound],
+    pools: &[crate::reinforcement::Pool],
+) -> Result<(), String> {
+    let level_four_skills = crate::reinforcement::level_four_skills()?;
+    let unordered = |log: &[(i32, i32)], choices: &[std::ops::Range<usize>]| {
+        let mut log = log.to_vec();
+        for choice in choices {
+            if let Some(entries) = log.get_mut(choice.clone()) {
+                entries.sort_unstable();
+            }
+        }
+        log
+    };
+    for entry in recorded_rounds {
+        let pool = usize::try_from(entry.round - 1)
+            .ok()
+            .and_then(|at| pools.get(at));
+        // Round 0 opens on the pool the seed initializes, and a round past
+        // the deal's has nothing to be compared with.
+        let (log, choices, excluded) = match (pool, entry.round) {
+            (Some(pool), _) => (
+                pool.log.as_slice(),
+                pool.choices.as_slice(),
+                pool.excluded.as_slice(),
+            ),
+            (None, 0) => (&[][..], &[][..], &[][..]),
+            (None, _) => continue,
+        };
+        let recorded: Vec<(i32, i32)> = entry
+            .pool_operations
+            .entries
+            .iter()
+            .map(|operation| (operation.operation, operation.id))
+            .collect();
+        if unordered(&recorded, choices) != unordered(log, choices) {
+            return Err(format!(
+                "round {} opens on a reinforcement pool log the deal does not make",
+                entry.round
+            ));
+        }
+        let recorded: Vec<i32> = entry
+            .excluded_rounds
+            .entries
+            .iter()
+            .map(|excluded| excluded.round)
+            .collect();
+        if recorded != excluded
+            || entry
+                .excluded_rounds
+                .entries
+                .iter()
+                .any(|excluded| excluded.ids.values != level_four_skills)
+        {
+            return Err(format!(
+                "round {} excludes other reinforcements than the deal does",
+                entry.round
             ));
         }
     }
@@ -1277,6 +1345,60 @@ mod tests {
                 ("PAD_ReleaseCommanderSkill", Some(0)),
             ]
         );
+    }
+
+    /// A round's log is the deal's but for the order of its choices: the
+    /// players' own order is kept, and a battle does not state it. Anything
+    /// else another pool would restore is refused.
+    #[test]
+    fn a_pool_log_may_order_only_its_choices_otherwise() {
+        use crate::reinforcement::{Pool, level_four_skills};
+        let skills = level_four_skills().unwrap();
+        let rounds = |log: &[(i32, i32)], excluded: &[i32]| {
+            let log: String = log
+                .iter()
+                .map(|(operation, id)| {
+                    format!(
+                        "<ValueTupleOfInt32Int32><Item1>{operation}</Item1><Item2>{id}</Item2>\
+                         </ValueTupleOfInt32Int32>"
+                    )
+                })
+                .collect();
+            let values: String = skills
+                .iter()
+                .map(|id| format!("<Value>{id}</Value>"))
+                .collect();
+            let excluded: String = excluded
+                .iter()
+                .map(|round| {
+                    format!("<DictItem><Key>{round}</Key><Values>{values}</Values></DictItem>")
+                })
+                .collect();
+            let xml = format!(
+                "<matchDatas><MatchSnapshotData><round>0</round></MatchSnapshotData>\
+                 <MatchSnapshotData><round>1</round><poolOPs>{log}</poolOPs>\
+                 <RoundExcludeReinforce>{excluded}</RoundExcludeReinforce></MatchSnapshotData>\
+                 </matchDatas>"
+            );
+            quick_xml::de::from_str::<crate::record::MatchRounds>(&xml)
+                .unwrap()
+                .entries
+        };
+        // A refresh removes 30703 and adds 30701 in its place, then both
+        // players choose.
+        let pools = [Pool {
+            log: vec![(0, 30703), (1, 30701), (0, 31801), (0, 32103)],
+            choices: vec![2..4],
+            excluded: vec![6],
+        }];
+        let check = |log: &[(i32, i32)], excluded: &[i32]| {
+            super::pool_lands_on_the_recorded_log(&rounds(log, excluded), &pools)
+        };
+        assert!(check(&pools[0].log, &[6]).is_ok());
+        assert!(check(&[(0, 30703), (1, 30701), (0, 32103), (0, 31801)], &[6]).is_ok());
+        assert!(check(&[(1, 30701), (0, 30703), (0, 31801), (0, 32103)], &[6]).is_err());
+        assert!(check(&[(0, 30703), (0, 31801), (0, 32103)], &[6]).is_err());
+        assert!(check(&pools[0].log, &[]).is_err());
     }
 
     /// A formation that begins its moves in the main half keeps only its

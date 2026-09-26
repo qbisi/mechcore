@@ -38,12 +38,16 @@ def extract(structure):
         card = dict(level=row['level'], group=row.get('typeID', 0),
                     earliest=row['earliestRound'], latest=row['latestRound'],
                     repeated=row['canRepeated'],
-                    cooldown=row['kind'] == 'skill' and row['level'] == 4,
                     absent_units=row.get('unitID', []) if condition == 1 else [])
         if condition == 2:
             low, high = row['appearConditionParameter']
             card['supply_share'] = dict(low=low, high=high, units=row['unitID'])
         cards[row['id']] = card
+    # A deal that offers a level-4 commander skill excludes every one of them
+    # from the next round, eligible or not, and a replay's
+    # `RoundExcludeReinforce` lists them in the build's order.
+    level_four_skills = [row['id'] for row in catalogue('CommanderSkillGroupData', 'skill')
+                         if row['level'] == 4]
     units = {}
     for row in structure['unitReinforceDatas']:
         if not eligible(row):
@@ -76,7 +80,8 @@ def extract(structure):
     quantity = int(next(row['value'] for row in structure['commonParms']
                         if row['key'] == 'unit_reinforcement_quantity'))
     return dict(ordinary_count=config_numbers(structure)['reinforce_item_count'],
-                unit_count=quantity, cards=dict(sorted(cards.items())),
+                unit_count=quantity, level_four_skills=level_four_skills,
+                cards=dict(sorted(cards.items())),
                 units=dict(sorted(units.items())), pools=pools, weights=weights,
                 prevented=prevented, unit_costs=unit_costs)
 

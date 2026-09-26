@@ -583,7 +583,9 @@ matters anyway to an installer, which is where the supply section names it.
 
 `poolOPs` and `RoundExcludeReinforce` are the reinforcement pool's bookkeeping,
 and both are excluded on one argument: they decide what a *later* round may be
-offered, while this round's offer is already stated by `reinforce_offers`.
+offered, while this round's offer is already stated by `reinforce_offers`. A
+battle does not lose them either: the deal that checks its offers makes them
+again ([battle-replay.md](battle-replay.md#the-reinforcement-pool)).
 
 They differ in kind, and neither can stand in for the other. `poolOPs` is a log
 of removals and promotions that changes pool membership permanently, undone only
