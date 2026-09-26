@@ -12,7 +12,9 @@ recordings is compared tick for tick, physics and content.
 
 A battle is recorded in one game session; a round the game refuses is reported
 and the battle's remaining rounds carry on in a new session. A recording on
-disk is kept, so an interrupted run resumes where it stopped.
+disk is kept, so an interrupted run resumes where it stopped. Each session's
+game log is kept beside the recordings as ``player-<n>.log``, since the game
+names every decision it refused there.
 
 Run from anywhere inside the checkout, with the game installed:
 
@@ -32,6 +34,7 @@ import argparse
 import json
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 
@@ -86,16 +89,19 @@ def record(mechcore: Path, steps: list[dict], folder: Path) -> dict[int, str]:
     failed: dict[int, str] = {}
     pending = [index for index, step in enumerate(steps) if not Path(step["output"]).exists()]
     while pending:
+        # A JSON string is a YAML scalar only while it escapes nothing outside
+        # the Basic Multilingual Plane, which a player's name can hold.
         script = "game: launch\n\nsteps:\n" + "".join(
             "  - game.record_replay_round:\n"
-            f"      grbr: {json.dumps(steps[index]['grbr'])}\n"
+            f"      grbr: {json.dumps(steps[index]['grbr'], ensure_ascii=False)}\n"
             f"      round: {steps[index]['round']}\n"
-            f"      output: {json.dumps(steps[index]['output'])}\n"
+            f"      output: {json.dumps(steps[index]['output'], ensure_ascii=False)}\n"
             for index in pending
         )
         path = folder / "session.mcscript"
         path.write_text(script, encoding="utf-8")
         result = run([str(mechcore), "run", str(path)])
+        keep_game_log(folder)
         remaining = [index for index in pending if not Path(steps[index]["output"]).exists()]
         if result.returncode == 0 or not remaining:
             for index in remaining:
@@ -105,6 +111,16 @@ def record(mechcore: Path, steps: list[dict], folder: Path) -> dict[int, str]:
         failed[remaining[0]] = reason(result.stdout + result.stderr)
         pending = remaining[1:]
     return failed
+
+
+def keep_game_log(folder: Path) -> None:
+    """Keeps the log of the game session just run beside its recordings: the
+    game names each decision it refused there, and the next launch rotates it
+    away."""
+    log = Path.home() / "Library/Logs/GameRiver/Mechabellum/Player.log"
+    if log.exists():
+        sessions = len(list(folder.glob("player-*.log")))
+        shutil.copy(log, folder / f"player-{sessions}.log")
 
 
 def compare(mechcore: Path, left: str, right: str) -> dict:
