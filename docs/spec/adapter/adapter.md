@@ -559,6 +559,10 @@ published. The existing fighting-to-over edge terminates MCFR recording. The
 headless call runs on the main thread from a thread of its own, and the queue is
 drained into the writer while it runs, so writing overlaps the fight; the
 operation waits for the call to return before it answers or stops the capture.
+The call returns once the fight is over. A fight that runs out of time ends
+outside `FightController.Update`, so the capture never sees its fighting-to-over
+edge; the tick last captured before the call returns is then the terminal one.
+Two corpus rounds that ran out of time both end at tick 2360.
 
 Replay formations remain ordered by and export their stable native unit index,
 but those indices may contain gaps left by units removed in earlier rounds.
@@ -572,9 +576,9 @@ non-release abilities are outside that layout field.
 
 The writer verifies the MCFR before publishing it, and the operation returns at
 the main menu it started from. It never quits the game process. Invalid input, an unavailable
-round and a capture failure publish nothing. A replay whose match runs out
-before the requested round's fight ends is a `capture_failed` refusal as soon as
-the headless call returns, since nothing more can arrive.
+round and a capture failure publish nothing. A replay whose match ends before
+the requested round's fight, so that the call returns with no tick captured, is
+a `capture_failed` refusal as soon as it does, since nothing more can arrive.
 
 ### record_watch_replay
 
