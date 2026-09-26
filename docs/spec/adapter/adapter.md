@@ -103,6 +103,12 @@ DYLD_INSERT_LIBRARIES="$PWD/target/release/libmechcore_adapter.dylib" \
   "$HOME/Library/Application Support/Steam/steamapps/common/Mechabellum/Mechabellum.app/Contents/MacOS/Mechabellum"
 ```
 
+A headless game is the same command with Unity's `-batchmode -nographics`
+after the executable. The Adapter reads those two switches off the game's own
+command line: `-batchmode` keeps the process out of the Dock, and
+`-nographics` refuses a video
+([session.md](../mechcore/session.md#headless)).
+
 [session.md](../mechcore/session.md) defines which of the two applies, what each verb
 refuses, and where the launched game's output is written. Both sides resolve
 `MECHCORE_ADAPTER_SOCKET` the same way, so an override moves the endpoint for
@@ -339,7 +345,9 @@ per tick: the Crawler swarm takes about 4 ms a tick at 50x and at 100x alike. Th
 does not vote for the game's speed-up (`RequestSpeedUp`), which the separate `speed_up` operation
 still does. `record_replay_round` has no such field: it fights without a scene, so no frame paces it.
 
-The optional path must be absolute, non-existing, distinct from `output`, and use `.mov`. With no
+The optional path must be absolute, non-existing, distinct from `output`, and use `.mov`. A game
+started with `-nographics` renders no frame, so it refuses a `video_output` with
+`invalid_game_state` before arming anything. With no
 `video_output`, no screenshot metadata is resolved, the camera is untouched, and no visual encoding
 work occurs. With it enabled, the adapter uses the deterministic `calibration_topdown` view: native
 Cinemachine and mouse/keyboard pan, orbit, and zoom controllers are suspended; the main camera is

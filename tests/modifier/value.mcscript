@@ -24,6 +24,7 @@
 # existed.
 
 game: launch
+headless: true
 
 vars:
   out: /tmp/mechcore/modifier/value

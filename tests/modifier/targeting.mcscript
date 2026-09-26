@@ -12,6 +12,7 @@
 # skill modifier set for a unit whose set is empty.
 
 game: launch
+headless: true
 
 vars:
   out: /tmp/mechcore/modifier/targeting

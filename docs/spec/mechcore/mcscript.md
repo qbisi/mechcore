@@ -24,11 +24,12 @@ open is [adapter.md](../adapter/adapter.md). A layout a step applies is
 
 ## Document shape
 
-Four top-level keys, all others rejected:
+Five top-level keys, all others rejected:
 
 ```yaml
 game: launch        # optional: launch | attach; omitted means offline
 level: 1            # optional: 0..4, needs a game; higher takes it from lower
+headless: true      # optional: needs game: launch; no window, no graphics device
 vars:               # optional
   grbr: work/replay/replays/<version>/example.grbr
   out: /tmp/mechcore/example
@@ -74,6 +75,13 @@ main menu, and closes the connection; the run reports
 `{"operation":"evicted","completed":false}` and exits successfully, leaving the
 game to whoever claimed it. That is the one exit path where a launched game is
 not shut down: the Adapter is holding it for the next client.
+
+`headless: true` launches the game with no window and no graphics device, and
+is rejected unless the script declares `game: launch`: a game that is attached
+to runs as whoever started it chose. A recording does not depend on it, since
+the fight never reads what is drawn, and the ones compared hash the same; only
+a video, which needs rendered frames, is refused. [session.md](session.md#headless) says what
+changes.
 
 The acquisition states, their failure codes and what evicts what are in
 [session.md](session.md).

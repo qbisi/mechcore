@@ -31,16 +31,22 @@ const GAME_ENV: &str = "MECHCORE_GAME";
 const DEFAULT_GAME_SUFFIX: &str = "Library/Application Support/Steam/steamapps/common/Mechabellum/Mechabellum.app/Contents/MacOS/Mechabellum";
 
 /// Which acquisition the caller declared.
+///
+/// Only a launch chooses how the game runs: a game that is attached to was
+/// started by somebody else, with whatever window it has.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Mode {
-    Launch,
+    /// Start the game. A headless one opens no window and no graphics device.
+    Launch {
+        headless: bool,
+    },
     Attach,
 }
 
 impl Mode {
     pub(crate) const fn as_str(self) -> &'static str {
         match self {
-            Self::Launch => "launch",
+            Self::Launch { .. } => "launch",
             Self::Attach => "attach",
         }
     }
@@ -207,12 +213,25 @@ pub(crate) async fn acquire(
                 }
             ),
         ))),
-        (Mode::Launch, None, Probe::NoListener) => launch(endpoint, level).await,
+        (Mode::Launch { headless }, None, Probe::NoListener) => {
+            launch(endpoint, level, headless).await
+        }
     }
 }
 
+/// Unity's own switches for a game with no window and no graphics device.
+///
+/// `-batchmode` opens no window, and the Adapter reads it to keep the game out
+/// of the Dock; `-nographics` creates the null graphics device, and the Adapter
+/// reads it to refuse what needs a rendered frame.
+const HEADLESS_ARGUMENTS: [&str; 2] = ["-batchmode", "-nographics"];
+
 /// Start the game with the sibling Adapter and wait for its endpoint.
-async fn launch(endpoint: &Path, level: u8) -> Result<(Client, Ownership), Box<Failure>> {
+async fn launch(
+    endpoint: &Path,
+    level: u8,
+    headless: bool,
+) -> Result<(Client, Ownership), Box<Failure>> {
     let dylib = adapter_dylib()?;
     let game = game_executable()?;
     // Discarding this stream hid every Adapter diagnostic, which are written to
@@ -231,6 +250,11 @@ async fn launch(endpoint: &Path, level: u8) -> Result<(Client, Ownership), Box<F
         ))
     })?;
     let child = Command::new(&game)
+        .args(if headless {
+            &HEADLESS_ARGUMENTS[..]
+        } else {
+            &[]
+        })
         .env("DYLD_INSERT_LIBRARIES", &dylib)
         .env("MECHCORE_ADAPTER_SOCKET", endpoint)
         .stdin(Stdio::null())
@@ -489,7 +513,8 @@ mod tests {
 
     #[test]
     fn mode_names_are_the_declaration_spellings() {
-        assert_eq!(Mode::Launch.as_str(), "launch");
+        assert_eq!(Mode::Launch { headless: false }.as_str(), "launch");
+        assert_eq!(Mode::Launch { headless: true }.as_str(), "launch");
         assert_eq!(Mode::Attach.as_str(), "attach");
     }
 }

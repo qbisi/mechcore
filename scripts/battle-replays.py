@@ -12,9 +12,9 @@ recordings is compared tick for tick, physics and content.
 
 A battle is recorded in one game session; a round the game refuses is reported
 and the battle's remaining rounds carry on in a new session. A recording on
-disk is kept, so an interrupted run resumes where it stopped. Each session's
-game log is kept beside the recordings as ``player-<n>.log``, since the game
-names every decision it refused there.
+disk is kept, so an interrupted run resumes where it stopped. The game runs
+headless, and each session's game log is kept beside the recordings as
+``game-<n>.log``, since the game names every decision it refused there.
 
 Run from anywhere inside the checkout, with the game installed:
 
@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import re
 import shutil
@@ -101,7 +102,7 @@ def record(mechcore: Path, steps: list[dict], folder: Path) -> dict[int, str]:
     while pending:
         # A JSON string is a YAML scalar only while it escapes nothing outside
         # the Basic Multilingual Plane, which a player's name can hold.
-        script = "game: launch\n\nsteps:\n" + "".join(
+        script = "game: launch\nheadless: true\n\nsteps:\n" + "".join(
             "  - game.record_replay_round:\n"
             f"      grbr: {json.dumps(steps[index]['grbr'], ensure_ascii=False)}\n"
             f"      round: {steps[index]['round']}\n"
@@ -125,12 +126,13 @@ def record(mechcore: Path, steps: list[dict], folder: Path) -> dict[int, str]:
 
 def keep_game_log(folder: Path) -> None:
     """Keeps the log of the game session just run beside its recordings: the
-    game names each decision it refused there, and the next launch rotates it
-    away."""
-    log = Path.home() / "Library/Logs/GameRiver/Mechabellum/Player.log"
+    game names each decision it refused there, and the next launch truncates
+    it. A headless game writes Unity's log to its standard output, which
+    mechcore sends to its launch log."""
+    log = Path(f"/tmp/mechcore-game-{os.getuid()}.log")
     if log.exists():
-        sessions = len(list(folder.glob("player-*.log")))
-        shutil.copy(log, folder / f"player-{sessions}.log")
+        sessions = len(list(folder.glob("game-*.log")))
+        shutil.copy(log, folder / f"game-{sessions}.log")
 
 
 def compare(mechcore: Path, left: str, right: str) -> dict:

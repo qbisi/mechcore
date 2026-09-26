@@ -22,6 +22,7 @@
 # produces new values after an intended change.
 
 game: launch
+headless: true
 
 vars:
   out: /tmp/mechcore/regression/refresh

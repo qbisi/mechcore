@@ -1327,6 +1327,14 @@ fn execute_recording_series(
         );
     }
     if let Some(video_output) = &arguments.video_output {
+        if crate::headless::without_graphics() {
+            return Response::failure(
+                request.id,
+                "invalid_game_state",
+                "record_battle video_output needs rendered frames, and this game was \
+                 started with -nographics; launch it with a window to record video",
+            );
+        }
         if !video_output.is_absolute() {
             return Response::failure(
                 request.id,

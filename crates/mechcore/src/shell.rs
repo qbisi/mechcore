@@ -21,7 +21,8 @@ A line is a command with `mechcore` dropped, so `doc verify x.yaml` here and
 `mechcore doc verify x.yaml` outside are the same command.
 
 the game
-  game launch [--level 0-4]       start a game and own it
+  game launch [--level 0-4] [--headless]
+                                  start a game and own it; headless opens no window
   game attach [--level 0-4]       join a running game, leaving it to its owner
   game detach                     release an attached game
   game status                     current status snapshot
@@ -165,7 +166,10 @@ async fn game(
                 Err(failure) => return failure.write(&format!("game.{verb}")),
             };
             let mode = if verb == "launch" {
-                Mode::Launch
+                match arguments.flag("--headless") {
+                    Ok(headless) => Mode::Launch { headless },
+                    Err(failure) => return failure.write("game.launch"),
+                }
             } else {
                 Mode::Attach
             };
