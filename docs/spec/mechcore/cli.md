@@ -551,6 +551,12 @@ source names, with `--force` to replace an existing destination.
 the battle document it records. It answers what it wrote and how much of each
 transition the rules predict.
 
+`replay convert <battle.yaml> <replay.grbr>` writes a battle back as the replay
+it converts from, which converts to the same battle again byte for byte, and
+whose rounds the game fights ([battle-replay.md](../document/battle-replay.md)
+says where such a fight parts from the match's). A battle it cannot write is
+refused, naming why. It answers the replay's path, map, seed and rounds.
+
 `replay convert <layout.yaml> <replay.grbr>` writes a layout as a replay the
 game fights: one deployment round, the layout's, opened from a snapshot that
 holds the layout and carries no action. `--seed` overrides the layout's seed,

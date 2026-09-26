@@ -63,7 +63,7 @@ pub fn layout_replay(plan: &Plan, game_build: &str) -> Result<Vec<u8>, String> {
     let version = build_number(game_build)?;
     let mut xml = String::from("\u{feff}");
     write_record(&mut xml, plan, &deployments, seed, map_id, version);
-    Ok(binary_formatter(version, map_id, xml.as_bytes()))
+    Ok(binary_formatter(BATTLE_ID, version, map_id, xml.as_bytes()))
 }
 
 fn side_refusals(name: &str, side: &SidePlan) -> Vec<String> {
@@ -89,7 +89,7 @@ fn side_refusals(name: &str, side: &SidePlan) -> Vec<String> {
 }
 
 /// The replay format's version: the build's last component.
-fn build_number(game_build: &str) -> Result<i32, String> {
+pub(crate) fn build_number(game_build: &str) -> Result<i32, String> {
     game_build
         .rsplit('.')
         .next()
@@ -273,7 +273,7 @@ fn write_side(xml: &mut String, side: &SidePlan, deployment: &Deployment, sign: 
     );
 }
 
-fn write_ints(xml: &mut String, tag: &str, values: &[i32]) {
+pub(crate) fn write_ints(xml: &mut String, tag: &str, values: &[i32]) {
     if values.is_empty() {
         let _ = write!(xml, "<{tag} />");
         return;
@@ -290,7 +290,7 @@ fn write_technologies(xml: &mut String, technologies: &[i32]) {
 }
 
 /// Technologies, one row per unit type that owns some.
-fn write_technology_rows(xml: &mut String, tag: &str, row: &str, technologies: &[i32]) {
+pub(crate) fn write_technology_rows(xml: &mut String, tag: &str, row: &str, technologies: &[i32]) {
     let mut rows: Vec<(i32, Vec<i32>)> = Vec::new();
     for technology in technologies {
         let unit = crate::names::technology_owner(*technology)
@@ -439,16 +439,11 @@ fn write_battle_skill_panel(xml: &mut String, side: &SidePlan, sign: i32, round:
         .map(|skill| (skill.commander_skill_id, String::from("<rangeItems />")))
         .collect();
     for center in &side.airdrop_shields {
-        // A shield has one point, always whole, and no lifetime.
         slots.push((
             SHIELD_AIRDROP_SKILL,
             format!(
-                "<rangeItems><CommanderSkillRangeItemData><positions><Vector2Int><x>{}</x>\
-                 <y>{}</y></Vector2Int></positions><activeState>{}</activeState><gridInfo>\
-                 <int>0</int></gridInfo><round>0</round></CommanderSkillRangeItemData></rangeItems>",
-                sign * center.x,
-                sign * center.y,
-                byte_mask(&[true])
+                "<rangeItems>{}</rangeItems>",
+                shield_range_data(*center, sign)
             ),
         ));
     }
@@ -473,7 +468,7 @@ fn write_battle_skill_panel(xml: &mut String, side: &SidePlan, sign: i32, round:
     xml.push_str("</commanderSkills>");
 }
 
-const SHIELD_AIRDROP_SKILL: i32 = 800_001;
+pub(crate) const SHIELD_AIRDROP_SKILL: i32 = 800_001;
 /// The points a Sticky Oil Bomb's line expands into.
 const TERRAIN_POINTS: u32 = 7;
 /// The rounds a retained oil terrain has left as the round opens: it lasts
@@ -484,6 +479,14 @@ const TERRAIN_ROUNDS_LEFT: i32 = 1;
 /// points still standing, and the clipped grid of each that is not whole,
 /// turned half a turn for red as its coordinates are.
 fn terrain_range_item(terrain: &crate::layout::Terrain, sign: i32) -> String {
+    format!(
+        "<rangeItems>{}</rangeItems>",
+        terrain_range_data(terrain, sign)
+    )
+}
+
+/// One retained terrain's `CommanderSkillRangeItemData`.
+pub(crate) fn terrain_range_data(terrain: &crate::layout::Terrain, sign: i32) -> String {
     let active: Vec<bool> = (0..TERRAIN_POINTS)
         .map(|point| terrain.grid_rows.is_empty() || terrain.grid_rows.contains_key(&point))
         .collect();
@@ -519,10 +522,23 @@ fn terrain_range_item(terrain: &crate::layout::Terrain, sign: i32) -> String {
         );
     }
     format!(
-        "<rangeItems><CommanderSkillRangeItemData><positions>{positions}</positions>\
+        "<CommanderSkillRangeItemData><positions>{positions}</positions>\
          <activeState>{}</activeState><gridInfo>{grids}</gridInfo><round>{TERRAIN_ROUNDS_LEFT}</round>\
-         </CommanderSkillRangeItemData></rangeItems>",
+         </CommanderSkillRangeItemData>",
         byte_mask(&active)
+    )
+}
+
+/// One retained Shield Airdrop's `CommanderSkillRangeItemData`: one point,
+/// always whole, and no lifetime.
+pub(crate) fn shield_range_data(center: crate::layout::Position, sign: i32) -> String {
+    format!(
+        "<CommanderSkillRangeItemData><positions><Vector2Int><x>{}</x><y>{}</y></Vector2Int>\
+         </positions><activeState>{}</activeState><gridInfo><int>0</int></gridInfo>\
+         <round>0</round></CommanderSkillRangeItemData>",
+        sign * center.x,
+        sign * center.y,
+        byte_mask(&[true])
     )
 }
 
@@ -848,7 +864,7 @@ const PLAYER_DATA: &str = "GameRiver.Replay+PlayerData";
 
 /// The `BinaryFormatter` stream of one `GameRiver.Replay` holding `xml`, with
 /// the two players the record names.
-fn binary_formatter(version: i32, map_id: i32, xml: &[u8]) -> Vec<u8> {
+pub(crate) fn binary_formatter(battle_id: &str, version: i32, map_id: i32, xml: &[u8]) -> Vec<u8> {
     let list = format!("System.Collections.Generic.List`1[[{PLAYER_DATA}, {LIBRARY}]]");
     let mut out = Nrbf::default();
     // SerializationHeaderRecord: root object 1, header -1, format 1.0.
@@ -873,7 +889,7 @@ fn binary_formatter(version: i32, map_id: i32, xml: &[u8]) -> Vec<u8> {
         .string(&list)
         .byte(0x0d)
         .i32(2);
-    out.byte(0x06).i32(3).string(BATTLE_ID);
+    out.byte(0x06).i32(3).string(battle_id);
     out.i32(version).i32(0).i32(map_id);
     out.byte(0x09).i32(4);
     out.byte(0x06).i32(5).length(xml.len()).bytes(xml);

@@ -10,6 +10,11 @@ documents; they are generated where they are read. A replay the converter
 refuses is reported and makes the run fail, so a version the converter no
 longer reads cannot pass unnoticed.
 
+Conversion is idempotent across the battle format: each battle is written back
+as a replay (``mechcore replay convert <battle.yaml> <replay.grbr>``) and
+converted again, and the second document has to be the first byte for byte. A
+battle that does not come back the same fails the run too.
+
 Run from anywhere inside the checkout, after a release build:
 
     cargo build --release -p mechcore
@@ -25,6 +30,7 @@ import argparse
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 
 import build_data
 
@@ -43,6 +49,24 @@ def parse_arguments(root: Path) -> argparse.Namespace:
         help="where the documents go (default: work/battle/<version>)",
     )
     return parser.parse_args()
+
+
+def round_trip(executable: Path, root: Path, battle: Path) -> str | None:
+    """Writes a battle back as a replay and converts that again; answers what
+    went wrong, or nothing when the second document is the first."""
+    with tempfile.TemporaryDirectory() as scratch:
+        replay = Path(scratch) / "written.grbr"
+        again = Path(scratch) / "again.yaml"
+        for command in (
+            [str(executable), "replay", "convert", str(battle), str(replay), "--force"],
+            [str(executable), "replay", "convert", str(replay), str(again), "--force"],
+        ):
+            step = subprocess.run(command, cwd=root, text=True, capture_output=True, check=False)
+            if step.returncode != 0:
+                return step.stderr.strip() or step.stdout.strip()
+        if again.read_bytes() != battle.read_bytes():
+            return "the battle converted back differs from the battle written"
+    return None
 
 
 def main() -> int:
@@ -75,8 +99,13 @@ def main() -> int:
         if converted.returncode != 0 or not battle.is_file():
             refused.append(source.name)
             print(f"  refused: {converted.stderr.strip() or converted.stdout.strip()}", flush=True)
+            continue
+        problem = round_trip(executable, root, battle)
+        if problem:
+            refused.append(source.name)
+            print(f"  does not round-trip: {problem}", flush=True)
 
-    print(f"{len(sources) - len(refused)}/{len(sources)} replays converted")
+    print(f"{len(sources) - len(refused)}/{len(sources)} replays converted and round-trip")
     return 1 if refused else 0
 
 

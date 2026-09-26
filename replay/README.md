@@ -17,7 +17,10 @@ game's own replay directory, and publishing is a separate step.
 The version this checkout describes selects its directory, and
 `scripts/export-replay-corpus.py` converts those replays into
 `work/battle/<version>/`, where `scripts/verify-battles.py` and
-`scripts/fight-coverage.py` read them. Neither the test suite nor CI reads a
+`scripts/fight-coverage.py` read them. It also writes each battle back as a
+replay and converts it again, and fails on one that does not come back the
+same; `scripts/battle-replays.py` fights every round of both replays in the game
+and compares the two. Neither the test suite nor CI reads a
 replay: the converter is not bound to read every version the corpus holds, and
 a replay added there must not turn this repository's CI red.
 

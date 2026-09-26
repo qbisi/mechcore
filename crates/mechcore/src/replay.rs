@@ -51,7 +51,7 @@ fn convert(mut arguments: Args) -> Outcome {
     let format = arguments.format()?;
     let force = arguments.flag("--force")?;
     let seed = arguments.parsed::<i32>("--seed", "a signed 32-bit integer")?;
-    let source = arguments.path("a replay or a layout to read")?;
+    let source = arguments.path("a replay, a battle or a layout to read")?;
     let destination = arguments.path("a battle document or a replay to write")?;
     arguments.finish()?;
     if !force && destination.exists() {
@@ -71,10 +71,11 @@ fn convert(mut arguments: Args) -> Outcome {
                 "--seed belongs to a layout; a replay carries its own",
             ));
         }
-        (false, true) => return layout_to_replay(format, seed, &source, &destination),
+        (false, true) => return document_to_replay(format, seed, &source, &destination),
         _ => {
             return Err(Failure::usage(
-                "convert reads a .grbr replay into a battle document, or a layout into a .grbr replay",
+                "convert reads a .grbr replay into a battle document, or a battle or a layout \
+                 into a .grbr replay",
             ));
         }
     }
@@ -155,6 +156,62 @@ struct LayoutReplayReport {
 /// snapshot is the layout, which `game record_replay_round` records at that
 /// round. The layout is compiled first, so a layout the Training Ground
 /// would refuse is refused here too.
+/// Writes a battle or a layout as a replay, as the document's own `kind`
+/// says it is.
+fn document_to_replay(
+    format: Format,
+    seed: Option<i32>,
+    source: &std::path::Path,
+    destination: &std::path::Path,
+) -> Outcome {
+    let bytes = fs::read(source)
+        .map_err(|error| Failure::failed(format!("cannot read {}: {error}", source.display())))?;
+    let Some(stated) = mechcore_document::opening::stated(&bytes).map_err(Failure::refused)? else {
+        return layout_to_replay(format, seed, source, destination);
+    };
+    if seed.is_some() {
+        return Err(Failure::usage(
+            "--seed belongs to a layout; a battle states its own",
+        ));
+    }
+    let economy = mechcore_document::economy::Economy::embedded().map_err(Failure::failed)?;
+    let replay = mechcore_document::battle_replay::battle_replay(
+        &economy,
+        &stated,
+        mechcore_document::game_build(),
+    )
+    .map_err(Failure::refused)?;
+    fs::write(destination, replay).map_err(|error| {
+        Failure::failed(format!("cannot write {}: {error}", destination.display()))
+    })?;
+    let report = BattleReplayReport {
+        schema: "mechcore.replay-convert-battle-result.v1",
+        replay: destination.display().to_string(),
+        map_id: stated.map_id,
+        seed: stated.seed,
+        rounds: stated.turns.len(),
+    };
+    if format == Format::Text {
+        println!(
+            "{} map {} seed {} rounds {}",
+            report.replay, report.map_id, report.seed, report.rounds
+        );
+    } else {
+        crate::cli::emit(&report, format)?;
+    }
+    Ok(Verdict::Yes)
+}
+
+/// What a battle was written as.
+#[derive(Serialize)]
+struct BattleReplayReport {
+    schema: &'static str,
+    replay: String,
+    map_id: i32,
+    seed: i32,
+    rounds: usize,
+}
+
 fn layout_to_replay(
     format: Format,
     seed: Option<i32>,

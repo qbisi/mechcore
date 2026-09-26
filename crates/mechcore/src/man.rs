@@ -122,6 +122,10 @@ static TOPICS: &[(&str, &str)] = &[
         include_str!("../../../docs/spec/document/layout-replay.md"),
     ),
     (
+        "spec/document/battle-replay",
+        include_str!("../../../docs/spec/document/battle-replay.md"),
+    ),
+    (
         "spec/document/state",
         include_str!("../../../docs/spec/document/state.md"),
     ),
