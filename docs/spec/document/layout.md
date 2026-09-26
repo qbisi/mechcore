@@ -1018,7 +1018,7 @@ the same pair of releases at the same two positions and differ only in which is
 declared first, over a twelve-Crawler block that both circles cover.
 `tests/skill-order/release-order.mcscript` records three battles from them. Under
 seed `20260907` the two orders part at tick 63 and end at 416 and 415 ticks,
-and the same order recorded twice gave byte-identical hashes. They are not in the regression manifest, because its offline
+and the same order recorded twice gave byte-identical hashes. They are not in the regression manifest, because its gameless
 reader simulates every case and the Simulator has no battle-skill feature slice
 yet.
 

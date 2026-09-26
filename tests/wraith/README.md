@@ -49,5 +49,5 @@ cargo test -p mechcore-simulation grouped_checker_matches_every_captured_call --
 
 The replay checks the sidecar's physics binding and profile and rejects missing
 calls. Observed targets are never used to advance the simulation checked by the
-offline hashes. The ordinary Rust tests retain the distinguishing allocation
-and child-range cases without needing recordings.
+gameless regressions. The ordinary Rust tests retain the distinguishing
+allocation and child-range cases without needing recordings.

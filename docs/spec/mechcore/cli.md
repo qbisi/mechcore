@@ -602,7 +602,7 @@ dropped, so a line in the shell and a command in a script are the same text.
 Options: `--json`, and a match document to open with the `--side` to play it
 as. The game is not among them: a prompt is a session, and a session acquires
 by saying so, with `game launch --level 3` or `game attach`. A shell opens
-offline and refuses the game's operations until it holds one.
+without a game and refuses the game's operations until it holds one.
 
 A shell that opens a match holds both the document and the side. `mechcore
 shell m.yaml --side blue` binds them, and so does the first line that opens a

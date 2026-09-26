@@ -5,7 +5,7 @@
 //! results to names so later steps can consume them, which is what separates
 //! this from a flat command list.
 //!
-//! A script that omits `game:` is offline and may not use a native operation.
+//! A script that omits `game:` is gameless and may not use a native operation.
 //! That is a static rule, checked before anything runs, so `--check` answers
 //! "does this need the game?" without touching it.
 
@@ -39,7 +39,7 @@ const NATIVE: &[&str] = &[
 ];
 
 /// Operations that run without a game.
-const OFFLINE: &[&str] = &[
+const GAMELESS: &[&str] = &[
     "let",
     "fight.compare",
     "fight.stats",
@@ -266,7 +266,7 @@ impl Script {
     /// Reject a script before it runs, without probing or launching anything.
     fn check(&self) -> Result<(), String> {
         for operation in self.steps.iter().flat_map(Step::operations) {
-            if !NATIVE.contains(&operation) && !OFFLINE.contains(&operation) {
+            if !NATIVE.contains(&operation) && !GAMELESS.contains(&operation) {
                 return Err(format!("unknown operation {operation}"));
             }
             if self.game.is_none() && NATIVE.contains(&operation) {
@@ -360,7 +360,7 @@ impl Step {
     }
 
     /// Every operation this step can reach, loop bodies included, so the
-    /// offline rule cannot be evaded by hiding a native call in a loop.
+    /// gameless rule cannot be evaded by hiding a native call in a loop.
     fn operations(&self) -> Vec<&str> {
         match self {
             Self::Call(call) => vec![call.operation.as_str()],
@@ -1247,7 +1247,7 @@ mod tests {
     }
 
     #[test]
-    fn offline_scripts_may_not_use_native_operations() {
+    fn gameless_scripts_may_not_use_native_operations() {
         let script = Script::parse("steps:\n  - game.start_test: {}\n").unwrap();
         let error = script.check().unwrap_err();
         assert!(error.contains("game.start_test"), "{error}");
@@ -1255,7 +1255,7 @@ mod tests {
     }
 
     #[test]
-    fn offline_scripts_accept_offline_operations() {
+    fn gameless_scripts_accept_gameless_operations() {
         let script =
             Script::parse("steps:\n  - fight.compare: {left: a.mcfr, right: b.mcfr}\n").unwrap();
         assert!(script.check().is_ok());
@@ -1352,7 +1352,7 @@ mod tests {
     }
 
     #[test]
-    fn a_loop_body_cannot_smuggle_a_native_operation_past_the_offline_rule() {
+    fn a_loop_body_cannot_smuggle_a_native_operation_past_the_gameless_rule() {
         let script = Script::parse(
             "steps:\n  - foreach: {case: $cases}\n    steps:\n      - game.record_battle: {output: a}\n",
         )

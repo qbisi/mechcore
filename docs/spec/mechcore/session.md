@@ -173,7 +173,7 @@ where a launched game's output goes.
 ### mechcore run
 
 The optional top-level `game:` key declares acquisition. It accepts exactly
-`launch` or `attach`. Omitting it means the script is **offline** and touches
+`launch` or `attach`. Omitting it means the script is **gameless** and touches
 no game. The optional `level:` key declares what the run outranks, `0..=4`,
 defaulting to `1`, and is rejected without a `game:`. The optional
 `headless: true` starts the game without a window (see [Headless](#headless)),
@@ -188,7 +188,7 @@ steps:
   - record_replay_round: {grbr: $grbr, round: 2, output: $out/replay.mcfr}
 ```
 
-An offline script is the normal case for comparison work:
+A gameless script is the normal case for comparison work:
 
 ```yaml
 steps:
@@ -201,8 +201,8 @@ each mode admits.
 
 **Static rule.** A script that omits `game:` and uses any native operation is
 rejected before execution, without probing or launching anything. `mechcore run
---check` performs this validation offline, so whether a script needs the game
-is answerable without holding it.
+--check` performs this validation, so whether a script needs the game is
+answerable without holding it.
 
 ### mechcore shell
 
@@ -215,15 +215,15 @@ mechcore shell
 > game detach
 ```
 
-A shell opens offline and reports how to acquire when a game operation is
+A shell opens without a game and reports how to acquire when a game operation is
 asked for. Acquiring is an operation and not an option: the prompt is a
 session, and a session says so in a line rather than in the command that
 started it. `--level` rides on the line that claims, defaulting to `1`, so
 what a session outranks is stated where it is claimed and nowhere else.
 
-A session may therefore start offline, run a comparison, and take the game
-only when it needs one. `game detach` and `quit` leave the game as any exit
-does ([Leaving the game](#leaving-the-game)).
+A session may therefore start without a game, run a comparison, and take
+the game only when it needs one. `game detach` and `quit` leave the game as
+any exit does ([Leaving the game](#leaving-the-game)).
 
 ### mechcore game
 

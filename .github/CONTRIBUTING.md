@@ -237,7 +237,7 @@ that started them, not through GitHub.
    way `plan.md` says a mechanism lands: the rule and its scope in
    `docs/rules/`, the number's source stated, a refusal in the code for what
    the scope does not cover, and under `tests/<topic>/` the fixtures and
-   record script the answer used, with the offline `regressions.mcscript`
+   record script the answer used, with the gameless `regressions.mcscript`
    pinning each fight, physics and content hash both.
    `work/research/README.md`'s two gates decide what a rule may claim. Every
    pin that held before holds after; a pin that moves is a finding to
@@ -278,7 +278,7 @@ placing a question decides. Two or three is the usual depth.
 ### Acceptance
 
 CI runs every check that can be written down without the game: the test
-suite and the offline scripts with every pin. A pin's recording is checked
+suite and the gameless scripts with every pin. A pin's recording is checked
 where the game runs, by recording the pin's fixture again; a check CI can run
 and does not is a gap in CI, not a step for anyone to stand in for.
 

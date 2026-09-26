@@ -45,7 +45,7 @@ The workspace defaults to the CLI; use `--workspace` for workspace-wide checks.
 
 Packaging the Adapter is the CLI's default `adapter` feature, and the only part
 of the workspace that needs macOS. Everything that needs no game — the
-simulator, the readers, an offline `.mcscript` — builds anywhere without it:
+simulator, the readers, a gameless `.mcscript` — builds anywhere without it:
 
 ```sh
 cargo build -p mechcore --release --no-default-features

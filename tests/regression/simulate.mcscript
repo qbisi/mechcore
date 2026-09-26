@@ -5,7 +5,7 @@
 # natively. This one only replays them through the simulator and compares the
 # recorded tick count and physics hash, so it needs no game and no MCFR output.
 #
-#   mechcore run tests/regression/simulate.mcscript --check   validate offline
+#   mechcore run tests/regression/simulate.mcscript --check   validate without the game
 #   mechcore run tests/regression/simulate.mcscript           run the smoke tier
 #
 # The modifier fixtures are not in this manifest: they carry their own table,

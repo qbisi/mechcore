@@ -533,7 +533,7 @@ The check is what a sentinel entry in the list itself would buy, without making
 a typed collection carry an element of a second shape that a layout would then
 also have to admit.
 
-## Rebuilding a state offline
+## Rebuilding a state without the game
 
 Most of a round's state can be read out of a replay without running the game.
 Three fields cannot be copied. Two are stale, because the snapshot precedes the

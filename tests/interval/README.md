@@ -28,9 +28,9 @@ the redraw.
 
 **Each one is predicted before it is read.** `GRRandom` is implemented in
 `crates/simulation/src/fight/random.rs` and its first draws are pinned by a test
-there, so every number above is recomputed offline from the seed and compared
-with what the game stored. A fixture whose reading cannot be recomputed that
-way does not belong here.
+there, so every number above is recomputed from the seed without the game and
+compared with what the game stored. A fixture whose reading cannot be
+recomputed that way does not belong here.
 
 The three fixtures do different work and none of them is redundant. The
 singles fix the walk order with nothing to interleave; the three Marksmen hold

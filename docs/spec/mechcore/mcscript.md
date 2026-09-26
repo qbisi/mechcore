@@ -27,7 +27,7 @@ open is [adapter.md](../adapter/adapter.md). A layout a step applies is
 Six top-level keys, all others rejected:
 
 ```yaml
-game: launch        # optional: launch | attach; omitted means offline
+game: launch        # optional: launch | attach; omitted means gameless
 level: 1            # optional: 0..4, needs a game; higher takes it from lower
 headless: true      # optional: needs game: launch; no window, no graphics device
 offline: true       # optional: needs game: launch; no network, Steam's included
@@ -54,7 +54,7 @@ is the script that regenerates it and the readings it asserts.
 
 `game:` accepts exactly `launch` or `attach`, with the ownership and failure
 semantics defined in [session.md](session.md). Omitting it makes the script
-**offline**.
+**gameless**.
 
 **A script that omits `game:` and uses a native operation is rejected before
 execution.** Nothing is probed and no game is started, so `--check` answers
@@ -184,8 +184,8 @@ against it; `tests/modifier/composition.mcscript` is the worked example.
 object `mechcore fight run` prints, so `expect` can assert `seed_source`, `steps`, or
 a dotted path like `hashes.physics_result_hash`. It needs no game, which is
 what lets `tests/regression/simulate.mcscript` drive the whole regression
-manifest offline. Omit `output` unless the run should also publish an MCFR;
-an existing one is replaced as a recording's is.
+manifest. Omit `output` unless the run should also publish an MCFR; an
+existing one is replaced as a recording's is.
 
 `game.apply_layout` owns the whole transaction from the main menu: it creates the
 Training Ground itself and brings it to the layout's activation round. A layout
@@ -294,7 +294,7 @@ loop needs no stopping condition of its own: a higher claim ends the whole run
 wherever it is.
 
 The static rule reaches into loop bodies, so a native operation cannot be
-hidden inside a loop to evade an offline script's `game:` requirement.
+hidden inside a loop to evade a gameless script's `game:` requirement.
 
 ### Unattended standard 1v1 corpus recording
 
@@ -385,11 +385,11 @@ cost.
 
 **Rejected before anything runs.** A document that does not parse, an unknown
 top-level key, a step without exactly one operation key, a `level:` with no
-`game:`, a native operation in an offline script, a loop inside a loop, `steps`
+`game:`, a native operation in a gameless script, a loop inside a loop, `steps`
 or `where` on a plain operation, `expect` on a loop itself, or a `force` field
 on a step. `--check` finds all of these, nothing is probed, and no game starts.
 The static rules reach into loop bodies, so a native operation cannot hide in
-one to evade an offline script's `game:` requirement.
+one to evade a gameless script's `game:` requirement.
 
 **Acquisition failed.** The codes are [session.md](session.md)'s: `no_game`,
 `foreign_game`, `adapter_busy`, `adapter_unresponsive`, `protocol_mismatch`,
@@ -448,7 +448,7 @@ steps:
 ## Regression re-recording
 
 `tests/regression/mcfr-regressions.yaml` stays a data table. `tests/regression/simulate.mcscript`
-reads it for the offline simulator regression, which CI runs, and
+reads it for the gameless simulator regression, which CI runs, and
 `crates/simulation/replay/battle.rs` reads it for the content-layer fields the
 physics hash leaves out. Re-recording is one more reader of that same table,
 not a copy of it:
