@@ -159,7 +159,9 @@ result of every `mechcore run` execution.
 The optional top-level `game:` key declares acquisition. It accepts exactly
 `launch` or `attach`. Omitting it means the script is **offline** and touches
 no game. The optional `level:` key declares what the run outranks, `0..=4`,
-defaulting to `1`, and is rejected without a `game:`.
+defaulting to `1`, and is rejected without a `game:`. The optional
+`headless: true` starts the game without a window (see [Headless](#headless))
+and is rejected unless the script declares `game: launch`.
 
 ```yaml
 game: launch
@@ -189,6 +191,7 @@ is answerable without holding it.
 ```sh
 mechcore shell
 > game launch
+> game launch --headless
 > game attach --level 3
 > game detach
 ```
@@ -222,6 +225,34 @@ refused as verbs for the same reason.
 
 `--level` is the one acquisition option a command takes, because a command
 claims like any other client.
+
+## Headless
+
+A headless launch starts the game with Unity's `-batchmode -nographics`: no
+window, and the null graphics device in place of Metal. Nothing about a fight
+changes, since the fight is fixed-point code that never reads what is drawn: a
+Rhino mirror, a replay round of 1251 ticks and the same Rhino mirror recorded
+in the Training Ground hash the same headless as with a window. It saves time
+where the game draws, not where it fights: in the runs compared, the main menu
+was up in about 11 s rather than 23 s and a layout applied in 3.6 s rather than
+7.8 s, while a replay round, which is fought without a scene, took 3 s either
+way.
+
+The Adapter reads the same two switches off the game's command line, whoever
+started it:
+
+- `-batchmode` keeps the game out of the Dock. A process is filed as a Dock
+  application or a background one from its bundle's `Info.plist` when it checks
+  in, so the Adapter marks the in-memory copy `LSBackgroundOnly` from its
+  initializer, before that happens; the bundle on disk is untouched.
+- `-nographics` refuses `record_battle` with a `video_output`, since no frame
+  is ever rendered ([adapter.md](../adapter/adapter.md#record_battle)).
+
+Watching the server's matches, `record_watch_replay`, has not been tried
+headless.
+
+A launch that finds an idle Adapter joins that game as it is, window or not,
+as it would for any other launch (state **D**).
 
 ## Error taxonomy
 
@@ -261,7 +292,10 @@ is investigated.
 | Log | Written by | Contains |
 | --- | --- | --- |
 | `/tmp/mechcore-game-<uid>.log` | this tool, per launch | the game process's stdout and stderr, including every Adapter `eprintln!` |
-| `~/Library/Logs/GameRiver/Mechabellum/Player.log` | Unity, always | engine startup, IL2CPP, and game-side exceptions |
+| `~/Library/Logs/GameRiver/Mechabellum/Player.log` | Unity, unless headless | engine startup, IL2CPP, and game-side exceptions |
+
+A headless game writes Unity's log to its standard output instead of
+`Player.log`, so both channels land in the launch log.
 
 **These do not overlap.** Unity writes `Player.log` through its own file
 handle, not through file descriptor 2, so Adapter diagnostics never reach it;
