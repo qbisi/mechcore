@@ -6,6 +6,7 @@
 
 use crate::adapter::{Client, ConnectError};
 use mechcore_protocol::{GameIdentity, MAX_LEVEL, Operation};
+use std::ffi::OsString;
 #[cfg(target_os = "macos")]
 use std::ffi::c_void;
 use std::path::{Path, PathBuf};
@@ -42,20 +43,26 @@ const DEFAULT_GAME_SUFFIX: &str = "Library/Application Support/Steam/steamapps/c
 /// Which acquisition the caller declared.
 ///
 /// Only a launch chooses how the game runs: a game that is attached to was
-/// started by somebody else, with whatever window it has.
+/// started by somebody else, with whatever window and network it has.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Mode {
-    /// Start the game. A headless one opens no window and no graphics device.
-    Launch {
-        headless: bool,
-    },
+    Launch(Launch),
     Attach,
+}
+
+/// How a launched game runs.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct Launch {
+    /// No window and no graphics device.
+    pub(crate) headless: bool,
+    /// No network at all, Steam's included.
+    pub(crate) offline: bool,
 }
 
 impl Mode {
     pub(crate) const fn as_str(self) -> &'static str {
         match self {
-            Self::Launch { .. } => "launch",
+            Self::Launch(_) => "launch",
             Self::Attach => "attach",
         }
     }
@@ -172,7 +179,7 @@ pub(crate) async fn acquire(
     // only if it can do the work; otherwise it is retired and a new one
     // started, as if it had already quit.
     let probe = match (mode, probe) {
-        (Mode::Launch { headless }, Probe::Idle(client)) => match unfit(client.game(), headless)? {
+        (Mode::Launch(how), Probe::Idle(client)) => match unfit(client.game(), how)? {
             Some(reason) => retire(*client, endpoint, &reason).await?,
             None => Probe::Idle(client),
         },
@@ -232,9 +239,7 @@ pub(crate) async fn acquire(
                 }
             ),
         ))),
-        (Mode::Launch { headless }, None, Probe::NoListener) => {
-            launch(endpoint, level, headless).await
-        }
+        (Mode::Launch(how), None, Probe::NoListener) => launch(endpoint, level, how).await,
     }
 }
 
@@ -245,11 +250,21 @@ pub(crate) async fn acquire(
 /// reads it to refuse what needs a rendered frame.
 const HEADLESS_ARGUMENTS: [&str; 2] = ["-batchmode", "-nographics"];
 
+/// Where an offline game is started from, and the rules it runs under.
+///
+/// Every IP connection is refused, the loopback included, which is where
+/// Steam's client talks to the game: Steam's initialisation fails and so does
+/// every request to the game's servers, and the game still reaches its main
+/// menu. The Adapter's endpoint is a Unix socket, which the rules leave alone.
+const SANDBOX: &str = "/usr/bin/sandbox-exec";
+const OFFLINE_RULES: &str = "(version 1)(allow default)\
+    (deny network-outbound (remote ip))(deny network-inbound (local ip))";
+
 /// Start the game with the sibling Adapter and wait for its endpoint.
 async fn launch(
     endpoint: &Path,
     level: u8,
-    headless: bool,
+    how: Launch,
 ) -> Result<(Client, Ownership), Box<Failure>> {
     let dylib = adapter_dylib()?;
     let game = game_executable()?;
@@ -268,15 +283,31 @@ async fn launch(
             format!("cannot open {} for stderr: {error}", log.display()),
         ))
     })?;
+    // An offline game is started inside the sandbox. dyld drops `DYLD_`
+    // variables on its way into a system binary such as `sandbox-exec`, so
+    // `env` sets the Adapter's inside it, where the game is started.
+    let mut command = if how.offline {
+        let mut insert = OsString::from("DYLD_INSERT_LIBRARIES=");
+        insert.push(&dylib);
+        let mut command = Command::new(SANDBOX);
+        command
+            .args(["-p", OFFLINE_RULES, "/usr/bin/env"])
+            .arg(insert)
+            .arg(&game);
+        command
+    } else {
+        let mut command = Command::new(&game);
+        command.env("DYLD_INSERT_LIBRARIES", &dylib);
+        command
+    };
     // The game quits itself once nobody has claimed it for the linger, so the
     // process is not kept: nothing here waits for it or ends it.
-    Command::new(&game)
-        .args(if headless {
+    command
+        .args(if how.headless {
             &HEADLESS_ARGUMENTS[..]
         } else {
             &[]
         })
-        .env("DYLD_INSERT_LIBRARIES", &dylib)
         .env(LINGER_ENV, LINGER.as_secs().to_string())
         .env("MECHCORE_ADAPTER_SOCKET", endpoint)
         .stdin(Stdio::null())
@@ -327,7 +358,7 @@ async fn launch(
 ///
 /// Only a game that lingers is ever judged: that is a game `mechcore`
 /// launched and nobody holds. A game started any other way is joined as it is.
-fn unfit(game: Option<&GameIdentity>, headless: bool) -> Result<Option<String>, Box<Failure>> {
+fn unfit(game: Option<&GameIdentity>, how: Launch) -> Result<Option<String>, Box<Failure>> {
     let Some(game) = game.filter(|game| game.linger_seconds.is_some()) else {
         return Ok(None);
     };
@@ -336,10 +367,20 @@ fn unfit(game: Option<&GameIdentity>, headless: bool) -> Result<Option<String>, 
             "it runs an Adapter other than the one beside this executable".into(),
         ));
     }
-    if game.headless && !headless {
+    if game.headless && !how.headless {
         return Ok(Some(
             "it runs headless, and this launch wants a window".into(),
         ));
+    }
+    // Offline is a promise about the whole run, so a game with the network
+    // does not serve an offline launch, nor an offline game one that may
+    // watch the server's matches.
+    if game.offline != how.offline {
+        return Ok(Some(if how.offline {
+            "it has the network, and this launch is offline".into()
+        } else {
+            "it is offline, and this launch has the network".into()
+        }));
     }
     Ok(None)
 }
@@ -601,8 +642,7 @@ mod tests {
 
     #[test]
     fn mode_names_are_the_declaration_spellings() {
-        assert_eq!(Mode::Launch { headless: false }.as_str(), "launch");
-        assert_eq!(Mode::Launch { headless: true }.as_str(), "launch");
+        assert_eq!(Mode::Launch(Launch::default()).as_str(), "launch");
         assert_eq!(Mode::Attach.as_str(), "attach");
     }
 }

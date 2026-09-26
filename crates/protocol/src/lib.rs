@@ -8,7 +8,7 @@ use std::path::PathBuf;
 /// A running game keeps the Adapter it was started with, so a rebuilt Adapter
 /// and a running game can differ. Naming the contract is what turns that into
 /// one clear refusal at connect time instead of a desynchronised stream.
-pub const PROTOCOL: &str = "mechcore.adapter.v6";
+pub const PROTOCOL: &str = "mechcore.adapter.v7";
 /// Highest round `apply_layout` will stage.
 ///
 /// This is the executor's timeout budget for advancing through every earlier
@@ -125,6 +125,9 @@ pub struct GameIdentity {
     pub adapter: String,
     /// Whether the game was started with `-nographics`, and renders nothing.
     pub headless: bool,
+    /// Whether the game runs in a sandbox, which is how `mechcore` takes its
+    /// network away, Steam's included.
+    pub offline: bool,
     /// How long the game waits for its next client before it quits itself, or
     /// `None` for a game that waits for ever. Only a game `mechcore` launched
     /// waits a bounded time.
@@ -445,12 +448,13 @@ mod tests {
             serde_json::to_value(Hello::current(GameIdentity {
                 adapter: "ab".into(),
                 headless: true,
+                offline: true,
                 linger_seconds: Some(30),
             }))
             .unwrap(),
             serde_json::json!({
                 "kind": "hello",
-                "protocol": "mechcore.adapter.v6",
+                "protocol": "mechcore.adapter.v7",
                 "capabilities": [
                     "status",
                     "start_test",
@@ -463,7 +467,7 @@ mod tests {
                     "quit_match",
                     "quit_game",
                 ],
-                "game": {"adapter": "ab", "headless": true, "linger_seconds": 30},
+                "game": {"adapter": "ab", "headless": true, "offline": true, "linger_seconds": 30},
             })
         );
     }
@@ -474,7 +478,7 @@ mod tests {
             serde_json::to_value(Claim::current(DEFAULT_LEVEL)).unwrap(),
             serde_json::json!({
                 "kind": "claim",
-                "protocol": "mechcore.adapter.v6",
+                "protocol": "mechcore.adapter.v7",
                 "level": 1,
             })
         );
@@ -482,7 +486,7 @@ mod tests {
             serde_json::to_value(Busy::current(3, true)).unwrap(),
             serde_json::json!({
                 "kind": "busy",
-                "protocol": "mechcore.adapter.v6",
+                "protocol": "mechcore.adapter.v7",
                 "holder_level": 3,
                 "evicting": true,
             })
@@ -491,7 +495,7 @@ mod tests {
             serde_json::to_value(Evicted::current(4)).unwrap(),
             serde_json::json!({
                 "kind": "evicted",
-                "protocol": "mechcore.adapter.v6",
+                "protocol": "mechcore.adapter.v7",
                 "by_level": 4,
             })
         );

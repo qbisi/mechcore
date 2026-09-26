@@ -427,6 +427,7 @@ fn run() -> Result<(), RuntimeError> {
     let identity = GameIdentity {
         adapter: adapter_digest()?,
         headless: crate::headless::without_graphics(),
+        offline: crate::offline::sandboxed(),
         linger_seconds: linger.map(|linger| linger.as_secs()),
     };
     let endpoint = socket_path()?;
@@ -810,6 +811,14 @@ struct ReplayFileState {
 /// another client from interleaving operations with a long unattended capture.
 #[allow(clippy::too_many_lines)]
 fn execute_watch_replay_series(runtime: &mut Runtime, request: &Request) -> Response<Value> {
+    if crate::offline::sandboxed() {
+        return Response::failure(
+            request.id,
+            "invalid_game_state",
+            "record_watch_replay watches the server's matches, and this game was started \
+             offline; launch it with the network to watch",
+        );
+    }
     let arguments: RecordWatchReplayArguments =
         match serde_json::from_value(request.arguments.clone()) {
             Ok(arguments) => arguments,

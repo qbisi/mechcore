@@ -6,6 +6,7 @@
 mod capture;
 mod headless;
 mod il2cpp;
+mod offline;
 mod operations;
 mod runtime;
 mod video;

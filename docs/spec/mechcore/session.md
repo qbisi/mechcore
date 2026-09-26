@@ -63,8 +63,8 @@ an already-occupied endpoint explicitly rather than leaving the caller to infer
 occupancy from a timeout:
 
 ```json
-{"kind":"hello","protocol":"mechcore.adapter.v6","capabilities":["status", "..."],"game":{"adapter":"…","headless":true,"linger_seconds":30}}
-{"kind":"busy","protocol":"mechcore.adapter.v6","holder_level":1,"evicting":false}
+{"kind":"hello","protocol":"mechcore.adapter.v7","capabilities":["status", "..."],"game":{"adapter":"…","headless":true,"offline":true,"linger_seconds":30}}
+{"kind":"busy","protocol":"mechcore.adapter.v7","holder_level":1,"evicting":false}
 ```
 
 A `busy` answer is peer-verified like any other connection and is followed by
@@ -104,8 +104,9 @@ In state **D** a launch looks at the game it found. A game `mechcore` launched
 and nobody holds is [lingering](#leaving-the-game), and a launch reuses it when
 it can do the work, which is the point of lingering: a batch of scripts pays
 for one game start. It cannot when it loaded an Adapter other than the one
-beside this `mechcore`, as it does after a rebuild, or when it runs headless
-and the launch wants a window. The launch then asks it to quit, waits until
+beside this `mechcore`, as it does after a rebuild, when it runs headless and
+the launch wants a window, or when it is offline and the launch is not, or the
+other way round. The launch then asks it to quit, waits until
 the process and its endpoint are gone, and starts a new game as in state
 **A**. A game started any other way is joined as it is, window or not, stale
 Adapter or not.
@@ -175,8 +176,10 @@ The optional top-level `game:` key declares acquisition. It accepts exactly
 `launch` or `attach`. Omitting it means the script is **offline** and touches
 no game. The optional `level:` key declares what the run outranks, `0..=4`,
 defaulting to `1`, and is rejected without a `game:`. The optional
-`headless: true` starts the game without a window (see [Headless](#headless))
-and is rejected unless the script declares `game: launch`.
+`headless: true` starts the game without a window (see [Headless](#headless)),
+and the optional `offline: true` without a network ([Offline](#offline)); each
+is rejected unless the script declares `game: launch`. A script with no `game:`
+at all is also called offline, and means something else: it touches no game.
 
 ```yaml
 game: launch
@@ -207,6 +210,7 @@ is answerable without holding it.
 mechcore shell
 > game launch
 > game launch --headless
+> game launch --headless --offline
 > game attach --level 3
 > game detach
 ```
@@ -276,6 +280,36 @@ Ground launch with a window. The sceneless path did not fail:
 
 A launch that finds an idle Adapter joins that game as it is, window or not,
 as it would for any other launch (state **D**).
+
+## Offline
+
+An offline launch takes the game's network away, Steam's included. The game
+is started as `sandbox-exec -p <rules> /usr/bin/env DYLD_INSERT_LIBRARIES=<Adapter>
+<game>`, and the rules refuse every IP connection in either direction, the
+loopback included. `env` is there because dyld drops `DYLD_` variables on the
+way into a system binary, so the Adapter has to be named inside the sandbox.
+The Adapter's endpoint is a Unix socket, which the rules leave alone.
+
+Steam's client talks to the game over the loopback, so its initialisation
+fails ("Cannot create IPC pipe to Steam client process"). The game then shows
+a popup that only quits, never logs in and sends no request to its servers,
+and stays in its menu scene with no match. That is all `main_menu` means
+([adapter.md](../adapter/adapter.md#status)), and every operation except
+watching works from it. A Rhino mirror recorded through `record_layout`, round
+4 of a corpus replay (1251 ticks), and the same Rhino mirror applied and
+recorded in the Training Ground hash the same offline as online, headless and
+with a window. A game offline idles at about 2% of a core, where a headless
+one online, logged in, takes 20% to 26%. Steam does not have to be running,
+or signed in, for an offline game.
+
+The Adapter reads whether its process is sandboxed, which no other launch
+does, and refuses `record_watch_replay` in one with `invalid_game_state`.
+
+Keeping Steam and taking only the game's servers away also reaches the menu
+and records the same: rules that let the loopback through leave Steam's
+initialisation intact, and the game's requests to its servers fail, 17 of
+them, without retrying. No launch offers it, since nothing recorded needs
+Steam.
 
 ## Error taxonomy
 
