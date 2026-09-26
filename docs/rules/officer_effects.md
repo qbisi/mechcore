@@ -202,7 +202,7 @@ gaining any, so the field's name is not what it does.
 
 - **That a value joins before a rate.** It was measured on a Sledgehammer's
   attack interval in another version, with a script that needs the game, and
-  no offline test pins it.
+  no gameless test pins it.
 - **What a correction does once it lands**, for the odd fields above: no
   mechanism here reads a tower's life, a mine, a shield device or a deployment
   clock yet.

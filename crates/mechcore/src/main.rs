@@ -49,7 +49,7 @@ fn usage(program: &str) {
     eprintln!();
     eprintln!("Every command takes --format json|yaml|text and answers on standard output.");
     eprintln!("The contract is docs/spec/mechcore/cli.md, which `mechcore man cli` reads back;");
-    eprintln!("run --check validates a script offline, without touching the game;");
+    eprintln!("run --check validates a script without touching the game;");
     eprintln!("--force replaces every file a step would write instead of asking.");
 }
 
@@ -81,7 +81,7 @@ fn run_script(arguments: Args) -> Outcome {
         .map(Verdict::from)
 }
 
-/// Opens the prompt, which starts offline.
+/// Opens the prompt, which starts without a game.
 ///
 /// Acquiring the game is an operation rather than an option, so a shell takes
 /// one with `game launch` or `game attach` once it is open.

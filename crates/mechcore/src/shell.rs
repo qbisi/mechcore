@@ -5,7 +5,7 @@
 //! one it launched quits itself once nobody has claimed it for the linger.
 //!
 //! Acquiring the game is an operation rather than an option: a shell opens
-//! offline and takes the game with `game launch` or `game attach`, each
+//! without a game and takes the game with `game launch` or `game attach`, each
 //! carrying the level it claims at. A prompt is a session, and a session
 //! acquires by saying so. See `docs/spec/mechcore/session.md`.
 
@@ -36,7 +36,7 @@ the game
   game speed_up                   request battle speed-up
   game quit_match                 leave the active test, replay or watch
   game quit_game                  shut the game down
-offline
+without the game
   doc verify | format | diff      documents on disk
   replay convert                  a native replay, or a layout as one
   fight run | compare | verify    one fight
@@ -61,7 +61,7 @@ async fn run_async() -> Result<(), String> {
     let mut out = tokio::io::stdout();
     write(
         &mut out,
-        "offline shell; `game launch` or `game attach` to acquire one, `help` for commands\n",
+        "shell without a game; `game launch` or `game attach` to acquire one, `help` for commands\n",
     )
     .await;
 
@@ -231,7 +231,7 @@ fn left(session: &Arc<Session>) -> String {
 /// The prompt doubles as the status display, so no polling command is needed.
 fn prompt(ownership: Option<&Ownership>, session: &Arc<Session>) -> String {
     let Some(ownership) = ownership else {
-        return "offline> ".into();
+        return "no game> ".into();
     };
     let status = session.current_status();
     let state = status
@@ -271,9 +271,9 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn offline_prompt_does_not_claim_a_game() {
+    fn a_prompt_without_a_game_claims_none() {
         let session = Session::new();
-        assert_eq!(prompt(None, &session), "offline> ");
+        assert_eq!(prompt(None, &session), "no game> ");
     }
 
     #[test]
@@ -297,7 +297,7 @@ mod tests {
         );
     }
 
-    /// Help lists what a line may say: every game operation, every offline
+    /// Help lists what a line may say: every game operation, every gameless
     /// namespace, and the shell's own two words.
     #[test]
     fn help_lists_every_command_a_line_may_be() {

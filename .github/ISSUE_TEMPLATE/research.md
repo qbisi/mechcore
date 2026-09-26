@@ -65,7 +65,7 @@ mechcore run <topic>/<script>.mcscript
 ```
 
 **Accept.** <What the pull request has to show, as observations, beside the standing
-conditions: every existing pin unchanged, the topic's offline
+conditions: every existing pin unchanged, the topic's gameless
 `regressions.mcscript` pinning each fight the simulator can run, recorded on a
 machine with the game, the rule in `docs/rules/` with its scope, a refusal for
 what is outside it.>

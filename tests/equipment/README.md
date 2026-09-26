@@ -2,7 +2,7 @@
 
 Seed 1787720817. `stats.mcscript` records the nine
 fixtures, then checks the native unit and skill channels. It needs the
-game. `regressions.mcscript` is offline.
+game. `regressions.mcscript` is gameless.
 The layouts use round one and level-one units.
 
 | Fixture | What it separates | Ticks |

@@ -499,7 +499,7 @@ income arrives after.
 mechcore replay convert <replay.grbr> <battle.yaml> [--force]
 ```
 
-Conversion is offline. It reads the replay and nothing else, and it simulates
+Conversion needs no game. It reads the replay and nothing else, and it simulates
 no fight. It is also idempotent across this format: a battle written back as a
 replay ([battle-replay.md](battle-replay.md)) converts to the same battle, byte
 for byte.

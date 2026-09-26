@@ -3,7 +3,7 @@
 
 The corpus is https://github.com/qbisi/mechcore-replay, fetched to
 ``work/replay`` by ``scripts/replay.py sync``: the replays of a version sit
-directly under ``replays/<version>/``. Each is converted offline with
+directly under ``replays/<version>/``. Each is converted without the game by
 ``mechcore replay convert`` into the battle YAML of the same basename under
 ``work/battle/<version>/``, replacing what is there. The corpus holds no
 documents; they are generated where they are read. A replay the converter

@@ -109,7 +109,7 @@ jobs:
         run: cargo test --workspace --exclude mechcore-adapter --no-default-features
 
   # Does the release binary still answer what the repository claims: every
-  # fixture and every offline script. A different question from the test
+  # fixture and every gameless script. A different question from the test
   # suite's, so it runs beside it. The replay corpus is not read here: it only
   # grows, and a converter need not read every version it holds.
   scripts:
@@ -137,7 +137,7 @@ jobs:
       # measurements under `tests/modifier/` are checked here, against
       # the simulator, while the scripts that recorded them stay a thing only a
       # machine with the game can do.
-      - name: Every script parses, and the offline ones pass
+      - name: Every script parses, and the gameless ones pass
         run: scripts/check-scripts.sh
 
 

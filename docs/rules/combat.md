@@ -424,7 +424,7 @@ not the game's native attack-type enum.
   consume it, and what else consumes from it once the fight is running.
 - **A disabled technology's interval.** That the current interval drops the
   correction while the technology is disabled was measured by a script that
-  needs the game, `tests/modifier/disable.mcscript`, and no offline test pins
+  needs the game, `tests/modifier/disable.mcscript`, and no gameless test pins
   it; how long a disable lasts is not recorded.
 - **The skill state machine** beyond first entry into Attack.
 - **Base facing's arithmetic**: `Normalize -> Angle -> RawAcos` over all
