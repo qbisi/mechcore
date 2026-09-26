@@ -376,7 +376,11 @@ removal hook additionally records position and the native `intercepted` argument
 `FightController.OnActorHitted(HitDamageInfo)` then records one actor target and its positive
 `damageReal`; `FightActor.ReduceLife(HitDamageInfo)` scopes that same attribution around synchronous
 death processing. Battlefield Shield damage is recorded per actual Shield result. The same native
-chain attaches the Shield reference to the subsequent projectile removal as `absorbed_by`.
+chain attaches the Shield reference to the subsequent projectile removal as `absorbed_by`. A target
+no snapshot has numbered yet, a unit or shield that joined the fight within the tick, such as a
+Rhino Assault's rhinos, is held by its native object and resolved once the tick's snapshot has
+numbered it; a target that snapshot does not hold fails the recording. A unit that stands alive
+again after its death, as a Phoenix does, may die again.
 
 The native snapshot closure directly reads units, projectiles, the alive `FightCrystal` union
 from every FightTeam's towers, buildings, and constructions, battlefield shields from
@@ -414,6 +418,10 @@ reordered from S(1).
 The same shield collection also holds retained Shield Airdrops. Those are
 commander-skill objects, so export splits them out of `contraptions` into the
 side's `airdrop_shields`, keeping their native full-list order.
+
+Units are numbered afresh by every snapshot before S(1), because units can join as the fight
+starts and the initial numbering is S(1)'s scene; the numbering S(1) writes is final, references the
+first combat tick cached are carried over to it, and later units append IDs.
 
 Native hooks use temporary Shield IDs before S(1). At the first advancing combat
 snapshot, initial IDs are assigned once in `(team_id, active_order)` order, with

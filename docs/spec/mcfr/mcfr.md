@@ -240,7 +240,9 @@ their aggregate effect through `buff_modifiers` instead.
 The buff channels come from the aggregate getters on
 `FightMech.GetBuffManager()`. Each Rate field holds Q32.32 raw as
 `{ add: i64, reduce: i64 }` and each Value field holds `{ add: i32, reduce: i32 }`.
-The neutral value is 0 throughout, and both components are non-negative.
+The neutral value is 0 throughout. A Rate's components are non-negative. A
+Value's are the native signed aggregates, which can be negative: a recorded
+round has shown `GetAttackRangeReduceValue` at -20.
 
 The adapter reads the complete getter set every frame. In Parquet each modifier
 field and each numeric leaf is nullable, and null reads as 0; when everything is
