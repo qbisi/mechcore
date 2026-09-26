@@ -16,7 +16,7 @@
 # Each fight is compared with the simulator afterwards, every field of every
 # tick.
 #
-# `out` must not already exist: record_battle refuses to overwrite.
+# `out` must not already exist: a recording refuses to overwrite.
 
 game: launch
 
@@ -36,10 +36,9 @@ steps:
 
   # A shot at block 5 at tick 47 takes two Crawlers standing on it and the
   # block, 365, the block's damage event between theirs: 17 of 1112 are left.
-  - game.apply_layout:
+  - game.record_layout:
       layout: $splash
       seed: $seed
-  - game.record_battle:
       output: ${out}/splash.mcfr
     expect:
       operation.tick_count: 158
@@ -50,19 +49,17 @@ steps:
       sides.blue.constructions.0.parts.2.id: 5
       sides.blue.constructions.0.parts.2.life.current: 17
 
-  - game.apply_layout:
+  - game.record_layout:
       layout: $line
       seed: $seed
-  - game.record_battle:
       output: ${out}/line.mcfr
     expect:
       operation.tick_count: 161
 
   # A shot aimed at Crawler 24 at tick 77 takes block 5 behind it for 365.
-  - game.apply_layout:
+  - game.record_layout:
       layout: $behind
       seed: $seed
-  - game.record_battle:
       output: ${out}/behind.mcfr
     expect:
       operation.tick_count: 176

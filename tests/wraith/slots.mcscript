@@ -17,7 +17,7 @@
 #                  tick and the fourth does not take the unit a sibling holds
 #   two-targets    two units for four slots
 #
-# `out` must not already exist: record_battle refuses to overwrite.
+# `out` must not already exist: a recording refuses to overwrite.
 
 game: launch
 
@@ -38,10 +38,9 @@ steps:
     steps:
       - let:
           layout: read_yaml(${recording.layout})
-      - game.apply_layout:
+      - game.record_layout:
           layout: $layout
           seed: $seed
-      - game.record_battle:
           output: ${out}/${recording.name}.mcfr
           instrumentation:
             output: ${out}/${recording.name}.h5

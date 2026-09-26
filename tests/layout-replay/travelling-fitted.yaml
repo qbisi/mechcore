@@ -1,0 +1,13 @@
+# Travelling units upgraded, fitted and turned before their move, on both
+# sides.
+
+kind: layout
+round: 2
+blue:
+  units:
+    - {name: marksman, index: 0, position: {x: 0, y: -50}}
+    - {name: marksman, index: 1, travelling: true, level: 2, equipment: [heavy_armor], rotated: true, position: {x: -330, y: 100}}
+red:
+  units:
+    - {name: arclight, index: 0, position: {x: 0, y: -50}}
+    - {name: arclight, index: 1, travelling: true, position: {x: 330, y: 150}}

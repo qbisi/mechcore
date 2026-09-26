@@ -34,7 +34,7 @@
 # the simulator has to reproduce, and the tick-exact check is
 # `fight verify` once `FightConstructionSystem` places one.
 #
-# `out` must not already exist: record_battle refuses to overwrite.
+# `out` must not already exist: a recording refuses to overwrite.
 
 game: launch
 
@@ -49,10 +49,9 @@ steps:
 
   # The side that placed it. Twenty-four Crawlers cross the line the wall
   # stands on and not one block loses a point of life.
-  - game.apply_layout:
+  - game.record_layout:
       layout: $passage
       seed: $seed
-  - game.record_battle:
       output: ${out}/passage.mcfr
     expect:
       operation.tick_count: 341
@@ -75,10 +74,9 @@ steps:
 
   # The other side. The same unit against the same wall, and now it is a
   # target: four blocks destroyed and the fifth at 401.
-  - game.apply_layout:
+  - game.record_layout:
       layout: $block
       seed: $seed
-  - game.record_battle:
       output: ${out}/block.mcfr
     expect:
       operation.tick_count: 209

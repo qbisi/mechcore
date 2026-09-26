@@ -1,0 +1,13 @@
+# A unit that travels: moved onto its flank this round. A replay can only buy
+# it this round, since a unit the round opens with may not move.
+
+kind: layout
+round: 3
+blue:
+  units:
+    - {name: marksman, index: 0, position: {x: 0, y: -50}}
+    - {name: marksman, index: 1, travelling: true, position: {x: -330, y: 100}}
+red:
+  units:
+    - {name: arclight, index: 0, position: {x: 0, y: -50}}
+    - {name: arclight, index: 1, position: {x: 330, y: 100}}

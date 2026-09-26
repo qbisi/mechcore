@@ -22,7 +22,7 @@
 #
 # `README.md` says what each fixture separates.
 #
-# `out` must not already exist: record_battle refuses to overwrite.
+# `out` must not already exist: a recording refuses to overwrite.
 
 game: launch
 
@@ -39,10 +39,9 @@ steps:
   # The walk order, with nothing to interleave. The layout declares these in
   # the opposite order to the one the stream takes them in, which is how the
   # fixture shows that the order is the recording's and not the document's.
-  - game.apply_layout:
+  - game.record_layout:
       layout: $singles
       seed: $seed
-  - game.record_battle:
       output: ${out}/singles.mcfr
   - fight.stats:
       recording: ${out}/singles.mcfr
@@ -59,10 +58,9 @@ steps:
       sides.red.0.derived.current_attack_interval: 18
 
   # One type, one row, and a draw that comes out positive.
-  - game.apply_layout:
+  - game.record_layout:
       layout: $marksmen
       seed: $seed
-  - game.record_battle:
       output: ${out}/three-marksmen.mcfr
   - fight.stats:
       recording: ${out}/three-marksmen.mcfr
@@ -83,10 +81,9 @@ steps:
   # Twelve members in front of one Marksman. A draw per member puts the
   # Marksman thirteenth and answers 72; a draw per formation puts it second
   # and answers 55.
-  - game.apply_layout:
+  - game.record_layout:
       layout: $members
       seed: $seed
-  - game.record_battle:
       output: ${out}/mustang-then-marksman.mcfr
   - fight.stats:
       recording: ${out}/mustang-then-marksman.mcfr

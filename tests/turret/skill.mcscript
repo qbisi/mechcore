@@ -22,7 +22,7 @@
 # so it says when a Crawler locks the turret; the turret's own skill state
 # is not in it, because the profile reads `FightMech` fields.
 #
-# `out` must not already exist: record_battle refuses to overwrite.
+# `out` must not already exist: a recording refuses to overwrite.
 
 game: launch
 
@@ -41,10 +41,9 @@ steps:
     steps:
       - let:
           layout: read_yaml(${fight.layout})
-      - game.apply_layout:
+      - game.record_layout:
           layout: $layout
           seed: $seed
-      - game.record_battle:
           output: ${out}/${fight.name}.mcfr
           instrumentation:
             output: ${out}/${fight.name}.h5
@@ -54,10 +53,9 @@ steps:
   # difference read below it means nothing.
   - let:
       layout: read_yaml(tests/turret/rapid-fire-head-on.yaml)
-  - game.apply_layout:
+  - game.record_layout:
       layout: $layout
       seed: $seed
-  - game.record_battle:
       output: ${out}/control.mcfr
   - fight.compare:
       left: ${out}/rapid-fire-head-on.mcfr

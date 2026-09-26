@@ -27,7 +27,7 @@
 # and normalization must never sort battle_skills. True across both `equal` and
 # `content_equal` means the order is free within this test's sensitivity.
 #
-# `out` must not already exist: record_battle refuses to overwrite.
+# `out` must not already exist: a recording refuses to overwrite.
 
 game: launch
 
@@ -40,22 +40,19 @@ steps:
       orbital_first: read_yaml(tests/skill-order/orbital-first.yaml)
       lightning_first: read_yaml(tests/skill-order/lightning-first.yaml)
 
-  - game.apply_layout:
+  - game.record_layout:
       layout: $orbital_first
       seed: $seed
-  - game.record_battle:
       output: ${out}/ab-1.mcfr
 
-  - game.apply_layout:
+  - game.record_layout:
       layout: $orbital_first
       seed: $seed
-  - game.record_battle:
       output: ${out}/ab-2.mcfr
 
-  - game.apply_layout:
+  - game.record_layout:
       layout: $lightning_first
       seed: $seed
-  - game.record_battle:
       output: ${out}/ba.mcfr
 
   - fight.compare:

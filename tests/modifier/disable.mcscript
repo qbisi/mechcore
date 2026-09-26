@@ -13,7 +13,7 @@
 # of life. Both matter: a Stormcaller and a Marksman were tried first and the
 # shot never reached either.
 #
-# `out` must not already exist: record_battle refuses to overwrite.
+# `out` must not already exist: a recording refuses to overwrite.
 
 game: launch
 
@@ -25,10 +25,9 @@ steps:
   - let:
       disabled: read_yaml(tests/modifier/technology-disabled.yaml)
 
-  - game.apply_layout:
+  - game.record_layout:
       layout: $disabled
       seed: $seed
-  - game.record_battle:
       output: ${out}/disabled.mcfr
 
   # Before the shot: the technology is in force and the interval is the

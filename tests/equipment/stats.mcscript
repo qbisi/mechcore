@@ -19,7 +19,7 @@
 # alone is the control's fight tick for tick, both units inside 140 from
 # the start.
 #
-# `out` must not already exist: record_battle refuses to overwrite.
+# `out` must not already exist: a recording refuses to overwrite.
 
 game: launch
 
@@ -44,10 +44,9 @@ steps:
     steps:
       - let:
           layout: read_yaml(${fight.layout})
-      - game.apply_layout:
+      - game.record_layout:
           layout: $layout
           seed: $seed
-      - game.record_battle:
           output: ${out}/${fight.name}.mcfr
 
   - fight.stats:

@@ -491,7 +491,6 @@ impl Session {
         grbr: PathBuf,
         round: i32,
         output: PathBuf,
-        speed_up: Option<bool>,
         force: bool,
         instrumentation: Option<RecordBattleInstrumentation>,
     ) -> Result<Value, String> {
@@ -530,7 +529,6 @@ impl Session {
                     grbr: grbr.clone(),
                     round,
                     output: output.clone(),
-                    speed_up,
                     instrumentation,
                 })?,
             )
@@ -547,6 +545,59 @@ impl Session {
             ));
         }
         Ok(json!({"operation": result, "status": status}))
+    }
+
+    /// Fight a layout in the game without a scene and record it.
+    ///
+    /// The layout is written as a replay whose one deployment round is the
+    /// layout, and that round is recorded as `record_replay_round` records
+    /// one: the game fights it headlessly from the snapshot. `seed` overrides
+    /// the layout's own, as it does for `apply_layout`.
+    pub(crate) async fn record_layout(
+        &self,
+        layout: Value,
+        seed: Option<i32>,
+        output: PathBuf,
+        force: bool,
+        instrumentation: Option<RecordBattleInstrumentation>,
+    ) -> Result<Value, String> {
+        let mut plan = mechcore_document::compile(&layout)?;
+        plan.seed = seed.or(plan.seed);
+        let replay = mechcore_document::layout_replay::layout_replay(
+            &plan,
+            mechcore_document::game_build(),
+        )?;
+        let file = tempfile::Builder::new()
+            .prefix("mechcore-layout-")
+            .suffix(".grbr")
+            .tempfile()
+            .map_err(|error| format!("cannot create the layout replay: {error}"))?;
+        std::fs::write(file.path(), replay)
+            .map_err(|error| format!("cannot write the layout replay: {error}"))?;
+        let sidecar = instrumentation.as_ref().map(|value| value.output.clone());
+        let mut result = self
+            .record_replay_round(
+                file.path().to_path_buf(),
+                plan.round,
+                output.clone(),
+                force,
+                instrumentation,
+            )
+            .await?;
+        // A decision the replay records can be refused by the game, which
+        // plays on without it, so the recording is held to the layout the
+        // game read back as the fight began, as a staged layout is.
+        if let Err(error) = fought_as_given(&layout, &plan, &output) {
+            for path in std::iter::once(&output).chain(sidecar.as_ref()) {
+                let _ = std::fs::remove_file(path);
+            }
+            return Err(error);
+        }
+        if let Some(operation) = result.get_mut("operation").and_then(Value::as_object_mut) {
+            operation.remove("grbr");
+        }
+        result["layout_input"] = layout;
+        Ok(result)
     }
 
     /// Watch one live round-one matchmaking battle and publish its native GRBR.
@@ -874,6 +925,63 @@ pub(crate) fn validate_record_outputs(
     )
     .map_err(error_body)
 }
+/// Whether the recording at `output` fought `layout`: the layout the game
+/// read back as the fight began, against the one given, with the seed and
+/// map the replay was written with.
+fn fought_as_given(
+    layout: &Value,
+    plan: &mechcore_document::Plan,
+    output: &std::path::Path,
+) -> Result<(), String> {
+    let reader = mechcore_mcfr::McfrReader::open(output)
+        .map_err(|error| format!("cannot reopen {}: {error}", output.display()))?;
+    let fought = mechcore_document::parse_yaml(reader.layout_yaml().as_bytes())?;
+    layout_as_fought(layout, plan, fought)
+}
+
+fn layout_as_fought(
+    layout: &Value,
+    plan: &mechcore_document::Plan,
+    fought: mechcore_document::Layout,
+) -> Result<(), String> {
+    let mut given: mechcore_document::Layout = serde_json::from_value(layout.clone())
+        .map_err(|error| format!("invalid layout: {error}"))?;
+    given.seed = plan.seed;
+    given.map_id = Some(
+        plan.map_id
+            .unwrap_or(mechcore_document::layout_replay::DEFAULT_MAP_ID),
+    );
+    mechcore_document::game_build().clone_into(&mut given.game_build);
+    let differences = crate::doc::layout_differences(given, fought)?;
+    if differences.is_empty() {
+        return Ok(());
+    }
+    let named: Vec<String> = differences
+        .iter()
+        .take(5)
+        .map(|difference| {
+            format!(
+                "{} given {} and fought {}",
+                difference.path,
+                difference
+                    .left
+                    .as_ref()
+                    .map_or_else(|| "nothing".to_owned(), Value::to_string),
+                difference
+                    .right
+                    .as_ref()
+                    .map_or_else(|| "nothing".to_owned(), Value::to_string),
+            )
+        })
+        .collect();
+    Err(format!(
+        "record_layout discarded its recording: the game fought another layout than the one \
+         given ({} field(s) differ: {})",
+        differences.len(),
+        named.join("; ")
+    ))
+}
+
 pub(crate) fn record_battle_failure(
     error: &str,
     operation: &Value,
@@ -980,6 +1088,39 @@ pub(crate) fn is_training_state(
 
 #[cfg(test)]
 mod tests {
+    /// A recording holds the layout the game read back, stated with the
+    /// seed, map and build it was fought on; one the game fought as given
+    /// passes, and one it fought with a unit the layout does not hold, as an
+    /// officer's delivery would add, names that unit.
+    #[test]
+    fn a_layout_fought_otherwise_is_named() {
+        let layout = json!({
+            "kind": "layout",
+            "round": 2,
+            "blue": {"officers": ["marksman_specialist"], "units": [
+                {"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}},
+            ]},
+            "red": {"units": [{"name": "arclight", "index": 0, "position": {"x": 0, "y": -50}}]},
+        });
+        let mut plan = mechcore_document::compile(&layout).unwrap();
+        plan.seed = Some(4242);
+        let read_back = |extra: bool| {
+            let mut fought = layout.clone();
+            fought["seed"] = json!(4242);
+            fought["map_id"] = json!(1021);
+            if extra {
+                fought["blue"]["units"].as_array_mut().unwrap().push(json!(
+                    {"name": "marksman", "index": 1, "level": 3, "position": {"x": 0, "y": -160}}
+                ));
+            }
+            serde_json::from_value::<mechcore_document::Layout>(fought).unwrap()
+        };
+        assert_eq!(layout_as_fought(&layout, &plan, read_back(false)), Ok(()));
+        let error = layout_as_fought(&layout, &plan, read_back(true)).unwrap_err();
+        assert!(error.contains("/blue/units/index=1"), "{error}");
+        assert!(error.contains("given nothing"), "{error}");
+    }
+
     use super::*;
 
     #[test]

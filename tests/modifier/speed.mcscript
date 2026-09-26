@@ -29,7 +29,7 @@
 #
 # Both hashes are the simulator's, computed before the recording existed.
 #
-# `out` must not already exist: record_battle refuses to overwrite.
+# `out` must not already exist: a recording refuses to overwrite.
 
 game: launch
 
@@ -42,10 +42,9 @@ steps:
       once: read_yaml(tests/modifier/officer-speed-once.yaml)
       twice: read_yaml(tests/modifier/officer-speed-twice.yaml)
 
-  - game.apply_layout:
+  - game.record_layout:
       layout: $once
       seed: $seed
-  - game.record_battle:
       output: ${out}/speed-once.mcfr
     expect:
       operation.tick_count: 104
@@ -56,10 +55,9 @@ steps:
       sides.red.0.unit.move_speed_value: 3
       sides.red.0.derived.move_speed: 81604378624
 
-  - game.apply_layout:
+  - game.record_layout:
       layout: $twice
       seed: $seed
-  - game.record_battle:
       output: ${out}/speed-twice.mcfr
     expect:
       operation.tick_count: 92

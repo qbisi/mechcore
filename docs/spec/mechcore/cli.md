@@ -421,6 +421,19 @@ under the names that protocol gives them: `status`, `start_test`,
 `toggle_fight`, `speed_up`, `quit_match` and `quit_game`. Each takes the
 argument object that protocol defines and answers what it answers.
 
+`record_layout <layout.yaml> <out.mcfr>` is the one verb the protocol does not
+name. It writes the layout as a replay, as `replay convert` does, and records
+that replay's round with `record_replay_round`, so a layout is fought and
+recorded without a Training Ground: the game fights it without a scene, from
+the main menu and back to it. `--seed` overrides the layout's own seed, which a
+replay needs. It answers what `record_replay_round` answers, with the layout it
+was given as `layout_input`. The game can refuse a decision the replay records
+and fight on without it, so the recording is held to the layout the game read
+back as the fight began, as a staged layout is: when the two differ in any
+field, once both are in normal form, the recording and its sidecar are removed
+and the refusal names the fields. `apply_layout` and `record_battle` remain the way
+to fight a layout the replay cannot state and to record a video.
+
 Three more belong to the session rather than the game:
 [session.md](session.md) defines `launch`, `attach` and `detach`, their
 `--level` and what each refuses. **Acquiring the game is an operation, not an
@@ -531,9 +544,20 @@ them equal.
 
 ## `replay`
 
+`replay convert` converts between a replay and a document, in the direction its
+source names, with `--force` to replace an existing destination.
+
 `replay convert <replay.grbr> <battle.yaml>` reads a native replay and writes
-the battle document it records, with `--force` to replace an existing document.
-It answers what it wrote and how much of each transition the rules predict.
+the battle document it records. It answers what it wrote and how much of each
+transition the rules predict.
+
+`replay convert <layout.yaml> <replay.grbr>` writes a layout as a replay the
+game fights: one deployment round, the layout's, opened from a snapshot that
+holds the layout and carries no action. `--seed` overrides the layout's seed,
+and one of the two has to name it. The layout is compiled first, so a layout
+`apply_layout` would refuse is refused here too, and so is one a replay cannot
+open or play: [layout-replay.md](../document/layout-replay.md) says what it
+states and what it refuses. It answers the replay's path, map, seed and round.
 
 A replay this converter does not read is refused rather than partly converted,
 and the refusal names which of the replay's properties it stands on.

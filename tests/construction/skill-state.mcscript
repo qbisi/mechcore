@@ -25,7 +25,7 @@
 # The recordings are the same fights the regressions pin, and are compared with
 # the simulator afterwards. The sidecar is research evidence and is not hashed.
 #
-# `out` must not already exist: record_battle refuses to overwrite.
+# `out` must not already exist: a recording refuses to overwrite.
 
 game: launch
 
@@ -50,10 +50,9 @@ steps:
     steps:
       - let:
           layout: read_yaml(${fight.layout})
-      - game.apply_layout:
+      - game.record_layout:
           layout: $layout
           seed: $seed
-      - game.record_battle:
           output: ${out}/${fight.name}.mcfr
           instrumentation:
             output: ${out}/${fight.name}.h5

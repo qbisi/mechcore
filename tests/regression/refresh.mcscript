@@ -9,10 +9,9 @@
 #   mechcore run tests/regression/refresh.mcscript           record
 #
 # Scope: smoke cases only, which is what battle.rs treats as the native tier.
-# Delete the `where` line to cover every case in the manifest instead; that is
-# far longer, because each case records a full battle.
+# Delete the `where` line to cover every case in the manifest instead.
 #
-# To verify rather than refresh, add an expect block to record_battle:
+# To verify rather than refresh, add an expect block to record_layout:
 #
 #     expect:
 #       operation.tick_count: ${case.tick_count}
@@ -36,8 +35,7 @@ steps:
     steps:
       - let:
           layout: read_yaml(${case.layout})
-      - game.apply_layout:
+      - game.record_layout:
           layout: $layout
           seed: ${case.seed}
-      - game.record_battle:
           output: $out/${case.name}.mcfr

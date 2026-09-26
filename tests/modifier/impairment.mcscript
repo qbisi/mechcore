@@ -37,7 +37,7 @@
 # Every expectation below is the simulator's own answer, computed before any
 # recording existed. A failure here is the rule being wrong, not the fixture.
 #
-# `out` must not already exist: record_battle refuses to overwrite.
+# `out` must not already exist: a recording refuses to overwrite.
 
 game: launch
 
@@ -52,10 +52,9 @@ steps:
 
   # One impairment. The two rules agree here, so a disagreement is the
   # pipeline rather than the arithmetic, and the run should stop.
-  - game.apply_layout:
+  - game.record_layout:
       layout: $once
       seed: $seed
-  - game.record_battle:
       output: ${out}/impair-once.mcfr
     expect:
       operation.tick_count: 120
@@ -72,10 +71,9 @@ steps:
       sides.red.0.unit.life_rate.add: 0
 
   # Two impairments. This is the measurement.
-  - game.apply_layout:
+  - game.record_layout:
       layout: $twice
       seed: $seed
-  - game.record_battle:
       output: ${out}/impair-twice.mcfr
     expect:
       operation.tick_count: 120

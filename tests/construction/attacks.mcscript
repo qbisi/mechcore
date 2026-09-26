@@ -12,7 +12,7 @@
 #   wall-rhino.yaml   a Rhino charging a Marksman behind the middle block
 #   wall-laser.yaml   four Steel Balls against the same Marksman
 #
-# `out` must not already exist: record_battle refuses to overwrite.
+# `out` must not already exist: a recording refuses to overwrite.
 
 game: launch
 
@@ -34,10 +34,9 @@ steps:
   # over; reads idle with no lock and no weapon target for one tick; and then
   # takes the next thing in its way — block 4 the first time, the Marksman,
   # through the gap, the second.
-  - game.apply_layout:
+  - game.record_layout:
       layout: $rhino
       seed: $seed
-  - game.record_battle:
       output: ${out}/rhino.mcfr
     expect:
       operation.tick_count: 189
@@ -80,10 +79,9 @@ steps:
   # own collider layer, where to the side that did it is not there at all.
   #
   # A beam's damage reads as its ramp's first step on every tick, 2 and not 55.
-  - game.apply_layout:
+  - game.record_layout:
       layout: $laser
       seed: $seed
-  - game.record_battle:
       output: ${out}/laser.mcfr
     expect:
       operation.tick_count: 243

@@ -1,0 +1,13 @@
+# Both enhancement chains, one at each level, which the game applies as the
+# officers they hand out.
+
+kind: layout
+round: 1
+blue:
+  blueprints: [attack_enhancement]
+  units:
+    - {name: marksman, index: 0, position: {x: 0, y: -50}}
+red:
+  blueprints: [defense_enhancement_ii]
+  units:
+    - {name: arclight, index: 0, position: {x: 0, y: -50}}

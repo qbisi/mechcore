@@ -1,0 +1,17 @@
+# Contraptions on both sides, with the gaps in their indices a real round
+# leaves.
+
+kind: layout
+round: 1
+blue:
+  units:
+    - {name: marksman, index: 0, position: {x: 0, y: -50}}
+  contraptions:
+    - {name: interceptor, index: 0, position: {x: 5, y: -95}}
+    - {name: shield, index: 3, position: {x: -150, y: -200}}
+    - {name: missile, index: 4, position: {x: 150, y: -200}}
+red:
+  units:
+    - {name: arclight, index: 0, position: {x: 0, y: -50}}
+  contraptions:
+    - {name: shield, index: 0, position: {x: 150, y: -200}}

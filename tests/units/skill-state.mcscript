@@ -14,7 +14,7 @@
 # Crawler its weapons already face. The fights are pinned in
 # `regressions.mcscript`; the sidecar is research evidence and is not hashed.
 #
-# `out` must not already exist: record_battle refuses to overwrite.
+# `out` must not already exist: a recording refuses to overwrite.
 
 game: launch
 
@@ -33,10 +33,9 @@ steps:
     steps:
       - let:
           layout: read_yaml(tests/units/${fight.unit}/${fight.name}.yaml)
-      - game.apply_layout:
+      - game.record_layout:
           layout: $layout
           seed: ${fight.seed}
-      - game.record_battle:
           output: ${out}/${fight.unit}-${fight.name}-${fight.seed}.mcfr
           instrumentation:
             output: ${out}/${fight.unit}-${fight.name}-${fight.seed}.h5

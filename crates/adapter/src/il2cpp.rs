@@ -51,6 +51,7 @@ type ClassGetNamespace = unsafe extern "C" fn(*mut Class) -> *const c_char;
 type ClassGetType = unsafe extern "C" fn(*mut Class) -> *const Type;
 type ClassGetFieldFromName = unsafe extern "C" fn(*mut Class, *const c_char) -> *mut FieldInfo;
 type FieldGetValue = unsafe extern "C" fn(*mut Object, *mut FieldInfo, *mut c_void);
+type FieldSetValue = unsafe extern "C" fn(*mut Object, *mut FieldInfo, *mut c_void);
 type FieldStaticGetValue = unsafe extern "C" fn(*mut FieldInfo, *mut c_void);
 type ClassGetMethodFromName =
     unsafe extern "C" fn(*mut Class, *const c_char, c_int) -> *const MethodInfo;
@@ -514,6 +515,33 @@ impl Api {
         unsafe { (self.field_get_value)(object, field, value.as_mut_ptr().cast()) };
         // SAFETY: IL2CPP initialized the complete field value above.
         Ok(unsafe { value.assume_init() })
+    }
+
+    /// Writes an instance field. Resolved on first use rather than held in
+    /// `Api`, which is passed by value everywhere and is kept small.
+    pub fn set_field_value<T: Copy>(
+        object: *mut Object,
+        field: *mut FieldInfo,
+        value: T,
+    ) -> Result<(), Error> {
+        static FIELD_SET_VALUE: std::sync::OnceLock<usize> = std::sync::OnceLock::new();
+        if object.is_null() || field.is_null() {
+            return Err(Error::NullResult("field value".into()));
+        }
+        let pointer = *FIELD_SET_VALUE.get_or_init(|| {
+            // SAFETY: dlsym is called with a valid C string.
+            unsafe { libc::dlsym(libc::RTLD_DEFAULT, c"il2cpp_field_set_value".as_ptr()) as usize }
+        });
+        if pointer == 0 {
+            return Err(Error::MissingExport("field_set_value"));
+        }
+        // SAFETY: the export has the IL2CPP C API's field_set_value signature.
+        let set: FieldSetValue = unsafe { mem::transmute::<usize, FieldSetValue>(pointer) };
+        let mut value = value;
+        // SAFETY: object and field belong to the current runtime; the caller
+        // supplies the field's ABI-compatible value type.
+        unsafe { set(object, field, (&raw mut value).cast()) };
+        Ok(())
     }
 
     pub fn method(

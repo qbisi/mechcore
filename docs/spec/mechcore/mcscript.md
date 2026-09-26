@@ -100,7 +100,8 @@ than redefining them.
 | `game.start_test` | yes | optional `seed`, `map_id`; rarely needed, see `game.apply_layout` |
 | `game.apply_layout` | yes | the layout object, or `{layout, seed}` |
 | `game.record_battle` | yes | `output`, optional `video_output`, `speed_up`, `instrumentation` |
-| `game.record_replay_round` | yes | `grbr`, `round`, `output`, optional `speed_up`, `instrumentation` |
+| `game.record_replay_round` | yes | `grbr`, `round`, `output`, optional `instrumentation` |
+| `game.record_layout` | yes | `layout`, `output`, optional `seed`, `instrumentation`; fights the layout without a scene |
 | `game.record_watch_replay` | yes | optional `output_dir`, `wait_for_scene_seconds`, `match_timeout_seconds`; records one live standard 1v1 |
 | `game.toggle_fight` | yes | |
 | `game.speed_up` | yes | standalone operation, distinct from the recording field |
@@ -109,8 +110,8 @@ than redefining them.
 
 A step that writes a file refuses to overwrite it, and a script does not
 declare otherwise. The destinations are every path `game.record_battle`,
-`game.record_replay_round` and `fight.run` publish: `output`, `video_output`
-and the instrumentation sidecar. Whether to replace
+`game.record_replay_round`, `game.record_layout` and `fight.run` publish:
+`output`, `video_output` and the instrumentation sidecar. Whether to replace
 an existing one is a property of the run,
 not of the script: the same document is run once to produce its outputs and
 again to replace them. `mechcore run --force` answers yes for the whole run.
@@ -123,7 +124,7 @@ leaves the others as they were. The Adapter and the MCFR writer still refuse
 to write over anything; the caller removes the file before asking, so the
 fail-closed rule keeps protecting a recording in flight.
 
-`game.record_battle` and `game.record_replay_round` accept a research-only HDF5 sidecar request:
+The three recording operations accept a research-only HDF5 sidecar request:
 
 ```yaml
 instrumentation:

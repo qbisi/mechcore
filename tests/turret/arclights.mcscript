@@ -10,7 +10,7 @@
 # two shots each, so the six-round magazine empties and reloads before the
 # last one dies. It is recorded twice, and the two have to be one recording.
 #
-# `out` must not already exist: record_battle refuses to overwrite.
+# `out` must not already exist: a recording refuses to overwrite.
 
 game: launch
 
@@ -21,18 +21,16 @@ vars:
 steps:
   - let:
       layout: read_yaml(tests/turret/anti-armor-arclights.yaml)
-  - game.apply_layout:
+  - game.record_layout:
       layout: $layout
       seed: $seed
-  - game.record_battle:
       output: ${out}/anti-armor-arclights.mcfr
       instrumentation:
         output: ${out}/anti-armor-arclights.h5
         profile: target_refs_v1
-  - game.apply_layout:
+  - game.record_layout:
       layout: $layout
       seed: $seed
-  - game.record_battle:
       output: ${out}/control.mcfr
   - fight.compare:
       left: ${out}/anti-armor-arclights.mcfr

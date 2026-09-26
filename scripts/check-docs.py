@@ -24,6 +24,7 @@ DOCUMENT_FORMAT = {
     "docs/spec/document/state.md",
     "docs/spec/document/battle.md",
     "docs/spec/document/action.md",
+    "docs/spec/document/layout-replay.md",
     "docs/spec/mcfr/mcfr.md",
     "docs/spec/simulation/unit-rules.md",
 }

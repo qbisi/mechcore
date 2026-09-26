@@ -30,6 +30,7 @@ const NATIVE: &[&str] = &[
     "game.apply_layout",
     "game.record_battle",
     "game.record_replay_round",
+    "game.record_layout",
     "game.record_watch_replay",
     "game.toggle_fight",
     "game.speed_up",
@@ -814,8 +815,6 @@ async fn perform(
                 .and_then(Value::as_i64)
                 .and_then(|value| i32::try_from(value).ok())
                 .ok_or("record_replay_round needs an integer round")?;
-            let speed_up =
-                optional_flag(fields.get("speed_up"), "game.record_replay_round speed_up")?;
             if fields.contains_key("force") {
                 return Err("force is not a script field; pass --force to mechcore run".to_string());
             }
@@ -828,14 +827,50 @@ async fn perform(
             );
             let force = confirm_overwrite(scope, &destinations).await?;
             session
-                .record_replay_round(
-                    grbr,
-                    round,
-                    output.clone(),
-                    speed_up,
-                    force,
-                    instrumentation,
-                )
+                .record_replay_round(grbr, round, output.clone(), force, instrumentation)
+                .await
+        }
+        "game.record_layout" => {
+            let fields = arguments
+                .as_object()
+                .ok_or("record_layout takes a mapping")?;
+            for key in fields.keys() {
+                if !matches!(
+                    key.as_str(),
+                    "layout" | "seed" | "output" | "instrumentation"
+                ) {
+                    return Err(format!(
+                        "record_layout accepts layout, seed, output and instrumentation, got {key}"
+                    ));
+                }
+            }
+            let layout = fields
+                .get("layout")
+                .ok_or("record_layout needs layout")?
+                .clone();
+            let seed = fields
+                .get("seed")
+                .map(|value| {
+                    value
+                        .as_i64()
+                        .and_then(|seed| i32::try_from(seed).ok())
+                        .ok_or("record_layout seed must be a signed 32-bit integer")
+                })
+                .transpose()?;
+            let output = scope.path(
+                fields.get("output").ok_or("record_layout needs output")?,
+                "record_layout output",
+            )?;
+            let instrumentation = instrumentation(fields.get("instrumentation"), scope)?;
+            let mut destinations = vec![output.as_path()];
+            destinations.extend(
+                instrumentation
+                    .as_ref()
+                    .map(|sidecar| sidecar.output.as_path()),
+            );
+            let force = confirm_overwrite(scope, &destinations).await?;
+            session
+                .record_layout(layout, seed, output.clone(), force, instrumentation)
                 .await
         }
         "game.record_watch_replay" => {

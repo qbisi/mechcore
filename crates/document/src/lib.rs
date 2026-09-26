@@ -27,6 +27,7 @@ pub mod experience;
 mod grbr;
 pub mod landing;
 pub mod layout;
+pub mod layout_replay;
 pub mod ledger;
 pub mod mobility;
 pub mod names;

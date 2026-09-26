@@ -32,7 +32,7 @@
 # Every expectation below was computed from the three calibration readings
 # before the fourth recording was read.
 #
-# `out` must not already exist: record_battle refuses to overwrite.
+# `out` must not already exist: a recording refuses to overwrite.
 
 game: launch
 
@@ -47,10 +47,9 @@ steps:
       rate: read_yaml(tests/modifier/technology-interval-rate.yaml)
       both: read_yaml(tests/modifier/technology-interval.yaml)
 
-  - game.apply_layout:
+  - game.record_layout:
       layout: $base
       seed: $seed
-  - game.record_battle:
       output: ${out}/base.mcfr
   - fight.stats:
       recording: ${out}/base.mcfr
@@ -58,10 +57,9 @@ steps:
       sides.blue.0.derived.current_attack_interval: 83
       sides.blue.0.derived.attack_damage: 608
 
-  - game.apply_layout:
+  - game.record_layout:
       layout: $value
       seed: $seed
-  - game.record_battle:
       output: ${out}/value.mcfr
   - fight.stats:
       recording: ${out}/value.mcfr
@@ -70,10 +68,9 @@ steps:
       sides.blue.0.derived.current_attack_interval: 63
       sides.blue.0.derived.attack_damage: 608
 
-  - game.apply_layout:
+  - game.record_layout:
       layout: $rate
       seed: $seed
-  - game.record_battle:
       output: ${out}/rate.mcfr
   - fight.stats:
       recording: ${out}/rate.mcfr
@@ -83,10 +80,9 @@ steps:
       # 608 x 3.5, the rate on the other number this technology carries.
       sides.blue.0.derived.attack_damage: 2128
 
-  - game.apply_layout:
+  - game.record_layout:
       layout: $both
       seed: $seed
-  - game.record_battle:
       output: ${out}/both.mcfr
   - fight.stats:
       recording: ${out}/both.mcfr
