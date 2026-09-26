@@ -148,16 +148,16 @@ unit's own damage or motion:
 Every other unit but the three that cost 800 (War Factory, Abyss, Mountain)
 was released to the simulator at once, and recorded in its six layouts with
 both seeds before any of it was fixed: 216 recordings. Sandworm is not among
-them, as its configuration cannot state a unit that burrows. Five units are
-refused by name, for a main skill the kernel has no way to fire: Hacker's
-control beam, Raiden's and Vortex's grouped fusillade, and the Farseer's and
-Overlord's projectiles, which climb before they fly.
+them, as its configuration cannot state a unit that burrows. Two units are
+still refused by name, for a main skill the kernel has no way to fire:
+Hacker's control beam, and Raiden's fusillade of three grouped weapons.
 
-Of the other 156 fights, 151 play back exactly and are pinned:
+Of the other 192 fights, 185 play back exactly and are pinned:
 
 | Unit | Pinned of 12 |
 | --- | ---: |
 | centurion | 12 |
+| farseer | 12 |
 | fortress | 12 |
 | melting_point | 12 |
 | sabertooth | 12 |
@@ -166,25 +166,26 @@ Of the other 156 fights, 151 play back exactly and are pinned:
 | tarantula | 12 |
 | typhoon | 12 |
 | void_eye | 12 |
+| vortex | 12 |
 | vulcan | 12 |
 | fire_badger | 11 |
 | hound | 10 |
+| overlord | 10 |
 | phantom_ray | 10 |
 
-Seven mechanisms the recordings exposed were fixed on the way, each named in
-[`combat.md`](../../docs/rules/combat.md): a weapon is named by its index, a
-projectile that follows its target keeps its offset, a single weapon lands its
-offsets last drawn first, a projectile in simulated motion that lands on a dead
-unit does nothing, a beam with a splash strikes everything in it, leaving the
-idle state waits a tick before the blow, and an idle skill keeps its lock only
-while it can fire at it. The last two were read off
+Each mechanism the recordings exposed is named in
+[`combat.md`](../../docs/rules/combat.md). Two of them were read off
 [`skill-state.mcscript`](skill-state.mcscript), which records four of the
 fights with each skill's state beside the turret's rotation, which the MCFR
-now carries as `turret_rotation`: the attack angle is measured from it, and it
+carries as `turret_rotation`: the attack angle is measured from it, and it
 showed the game turning exactly as the simulator did and parting only on the
 state change.
 
-The five that part:
+The Overlord's M3 fields five formations in a row and its M6 two side by side:
+with three in a column, or two one behind the other, the Crawlers felled a
+tower before the Overlords could stop them.
+
+The seven that part:
 
 | Unit | Layout | Seed | Parts at | On |
 | --- | --- | ---: | ---: | --- |
@@ -192,4 +193,6 @@ The five that part:
 | hound | `m6-formations` | 4242 | 9 | facing a target dead ahead |
 | fire_badger | `m6-formations` | 1787720817 | 9 | facing a target dead ahead |
 | phantom_ray | `m3-crawler` | 1787720817 | 1 | facing a target dead ahead |
-| phantom_ray | `m3-crawler` | 4242 | 176, content only | a weapon's attack target, not read |
+| phantom_ray | `m3-crawler` | 4242 | 176, content only | the dead last enemy named through a cooling, not read |
+| overlord | `m3-crawler` | 1787720817 | 256 | a climbing projectile's height by a few raw units, not read |
+| overlord | `m6-formations` | 1787720817 | 344 | a unit that stops in the game and moves on in the simulator, not read |

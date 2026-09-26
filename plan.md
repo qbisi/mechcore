@@ -10,11 +10,31 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 ## 离真实对局还有多远
 
 `scripts/fight-coverage.py` 把语料的每一回合投影成它开打时的 layout 交给 `fight run`，
-模拟器一次报出这份 layout 被拒的全部理由。2.0 语料 287 回合，接受 12 回合。挡得最多的是
-模块（物件 `InterceptSystem` 142 回合、战场技能 `CommanderSkillSystem` 116、能量塔技能
-`BuildingSystem` 84、空投中的单位 43）、vortex 的分组齐射（112）、炮塔技能与军官科技的关系、
-装备过了第 1 回合的耐久，以及几个单独的军官、科技、装备字段。按清除后放行最多的顺序，第一个
-是 vortex 的分组齐射。
+模拟器一次报出这份 layout 被拒的全部理由。2.0 语料 287 回合，接受 16 回合。单位已不再是挡得
+最多的：前面是模块（物件 `InterceptSystem` 142 回合、战场技能 `CommanderSkillSystem` 116、
+能量塔技能 `BuildingSystem` 84、空投中的单位 43）、炮塔技能与军官科技的关系、装备过了第 1
+回合的耐久，以及几个单独的军官、科技、装备字段。
+
+## 下一步：从游戏更快地取得回归
+
+录像成了瓶颈：MCFR 格式一升级、游戏一换版本、`tests/` 一增长，全部钉子就要重录；401 场
+重录一遍要两个多小时。一场的中位数是摆阵 8.9 秒加录制 10.3 秒（约 253 tick）。反编译里有
+两条更快的路（只读分析，未试）：
+
+1. **时间倍率。** 游戏自己的加速是 `TimeSystem.ChangePlaySpeed`，即 Unity 的
+   `Time.timeScale`；`Match.Update` 每调一次走一个逻辑步，adapter 的采集挂在
+   `FightController.Update` 上、按逻辑 tick 而不是按帧，所以倍率调大仍然得到完整的 MCFR。
+   战斗段可望从 10 秒降到 1 秒左右，每帧能追的步数受 `Time.maximumDeltaTime` 限制。验收：同一
+   布阵同一种子，常速与高倍速录出的两层哈希相同。
+2. **游戏自带的无头模拟。** `MatchUtility.StartFastBattleSimulation(BattleSetting)` →
+   `SimpleSimulator.Run`：`FastSimulationMatch` 不建场景，由 `ReplayAIController` 按
+   `PlayerRecord` 逐回合重放，`GRWhile` 同步跑完，`GetFightResult()` 出结果；服务器端的
+   `FightAuth.Main.SimpleAuth` 也调它，应当就是官方结算。要解决的：由 layout 构造
+   `BattleSetting`，让 adapter 的逐 tick 采集指向这个对局，以及 `Config.SetFastBattleSimulationData`
+   打开的 `IFightSetting.IsFastBattleSimulation` 是否改动战斗逻辑。它能同时给出语料每一回合的
+   游戏结果。
+
+先做 1（改动小，立刻减半），再把 2 作为一个研究问题。
 
 ## 主线：单位的无科技模拟
 
@@ -50,31 +70,30 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 ### 现状
 
 分支目标：除 hacker、sandworm 和三个 800 费用的单位（war_factory、abyss、mountain）之外，
-所有单位达到无科技基本支持。
+所有单位达到无科技基本支持。第一轮已合并；Raiden 未完成。
 
-2.0 上 29 个单位有全套布阵，271 场钉住（`tests/units/regressions.mcscript`）：
+2.0 上 29 个单位有全套布阵，305 场钉住（`tests/units/regressions.mcscript`），MCFR 格式
+0.7.0：单位带 `turret_rotation`（有身体单位的炮塔朝向，进物理层），全部钉子随之重录重钉。
 
 - 四个参照单位 44 场全部钉住；arclight、fang、mustang、steel_ball、wraith、stormcaller、
   phoenix 84 场钉住 76 场。
-- 批量放行的 18 个单位 216 场：hacker（控制光束）、raiden 和 vortex（分组齐射）、farseer
-  和 overlord（先爬升再飞的弹丸）按名拒绝；其余 156 场钉住 151 场。centurion、fortress、
-  melting_point、sabertooth、scorpion、sledgehammer、tarantula、typhoon、void_eye、vulcan
-  12 场全对。
-- 修好的七条机制写在 `docs/rules/combat.md`：武器按原生下标命名；跟随目标的弹丸保留随机
-  偏移；单武器的偏移后抽先落；模拟运动的弹丸落在已死单位上什么也不做；带溅射的光束打溅射
-  范围内所有目标；离开空闲状态的出手等一 tick；空闲技能只在能打到时保留锁定。后两条靠
-  MCFR 新增的 `turret_rotation`（有身体单位的炮塔朝向，进物理层）读出；所有钉住的哈希
-  随之重录重钉。
+- 批量放行的 18 个单位 216 场：hacker（控制光束）、raiden（三件分组武器齐射）按名拒绝；其余
+  192 场钉住 185 场。centurion、farseer、fortress、melting_point、sabertooth、scorpion、
+  sledgehammer、tarantula、typhoon、void_eye、vortex、vulcan 12 场全对。
+- 修好的机制写在 `docs/rules/combat.md`。
 
 剩下的，由易到难：
 
-1. **phantom_ray m3 一场**只差内容层（第 176 tick 一件武器的攻击目标），未读。
-2. **正前方目标的朝向正负号。** hound 两场、fire_badger 一场、phantom_ray 一场，加上
+1. **overlord 两场**（新布阵、种子 1787720817）：m3 一发爬升弹丸的高度差几个 raw 单位，
+   m6 一个单位游戏里停下、模拟器里继续走。未读。
+2. **phantom_ray m3 一场**只差内容层：战斗结束后冷却里仍点名已死的最后一个敌人。
+3. **正前方目标的朝向正负号。** hound 两场、fire_badger 一场、phantom_ray 一场，加上
    steel_ball、stormcaller 各一场。`FightUtility.ConvertToAngle` 的符号规则与模拟器相同，
-   差在预搜索时取方向的两个位置。
-3. **wraith 的分组搜索**（6 场）。2.0 录像不在本机，要重录。
-4. **被拒的主技能形状**：分组齐射（raiden、vortex）、先爬升的弹丸（farseer、overlord）。
-   hacker 的控制光束不在本分支目标内。
+   差在预搜索时取方向的两个位置，要一段采到预搜索时位置的录制。
+4. **wraith 的分组搜索**（6 场）。
+5. **Raiden。** 构建按单位数据 27 给它的每件武器一个固定在机身上的变换
+   （`FightWeapon` 构造器），三件分组武器齐射；子槽位在没有别的单位可选时锁敌方的塔、
+   不在射程就不开火，子武器的朝向在交战时滞后机身一 tick、否则冻结。要单独研究。
 
 ### 换版本留下的尾巴
 

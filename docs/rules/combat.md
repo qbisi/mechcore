@@ -200,6 +200,30 @@ from where a charging Rhino stands by then. A target already dead when the
 projectile is released is not followed: the projectile goes to the point the
 burst aimed it at when it began.
 
+**A projectile leaves for where its burst aimed it.** Every projectile of a
+burst is released toward the target's position when the burst began plus its
+offset; one that follows its target takes the target's position up again from
+its first update, which is why the rule above reads as the live position.
+
+**Two weapons split a burst's offsets in three dimensions.** Each weapon takes
+the half of the offsets on its side of the line from the weapon to the target,
+ordered by the angle it sees, and the angle and the side are measured from the
+weapon's height to the target's: an Overlord shooting down at a Crawler, and
+two Overlords shooting at each other at the same height, order them so.
+
+**A projectile may climb before it flies.** A skill with a pre-flight height
+sends its projectiles straight up at their speed, neither following the target
+nor landing, until they stand at or above the height, the last step taken whole:
+a Farseer's shot climbs 7 metres a tick to 63 for its 60. The height is the
+pre-flight height times the distance to the target over the attack range, at
+the range and beyond the whole of it, measured once for the burst to where the
+target stood when the tick began (`ProjectileSystem.Create`).
+
+**A burst goes on after its target leaves reach.** A skill is not checked
+between the projectiles of a burst, so a bodyless unit whose target walks out
+of reach mid-burst moves after it and fires the rest: an Overlord follows its
+Crawler and fires its fourth shot before it goes idle.
+
 **A single weapon lands its offsets last drawn first.** A Phantom Ray's first
 projectile lands the second offset its burst drew, and its second the first.
 
@@ -258,6 +282,17 @@ its attack area, even while its motion attacks: a Melting Point whose weapons
 are still turning onto one Crawler takes the Crawler they already face and
 prepares against it.
 
+**A turret does not turn on the tick its skill retargets after a kill.** When
+the target a skill attacked dies during a tick and the skill's own search
+answers a new one, the skill's update that tick tracked the dead target: a
+Melting Point whose Crawler an ally kills sets off for the next one with its
+turret still.
+
+**A group of one weapon is fired as one weapon.** A Vortex's grouped skill has
+a single direct weapon, so its fusillade is one blow; its target scoring reads
+the root's rotation, because a grouped weapon turns on its own only at a speed
+of its own, as a Wraith's does.
+
 ## Ordinary synchronous direct-attack backswing
 
 A Rhino's ordinary direct attack enters its backswing on the effect tick. The
@@ -270,6 +305,10 @@ re-initiate. `TryPerformAttack` is re-entered on the tick after.
 A Rhino that kills its current target with its own synchronous direct attack
 keeps the dead target and stays Idle until that after-wait ends. It acquires a
 new target and re-enters Move only afterwards.
+
+**A direct kill holds its target through the tick even with no backswing.** A
+Vortex reads idle on the tick its blow kills its target, still on the dead
+unit, and attacks the next one the tick after.
 
 ## Main-skill aim command
 
@@ -339,6 +378,11 @@ not the game's native attack-type enum.
   splashing beam, in the standard fights of the Phantom Ray, Fire Badger,
   Typhoon, Hound, Sabertooth and Melting Point:
   `tests/units/regressions.mcscript`.
+- A burst's aim, a climbing projectile, two weapons' offsets in three
+  dimensions, a burst that goes on after its target leaves reach, a turret on a
+  retarget, and a Vortex's single grouped weapon and its kill, in the standard
+  fights of the Farseer, Overlord, Melting Point and Vortex:
+  `tests/units/regressions.mcscript`.
 - The blow waiting a tick after the idle state is left, and an idle skill
   giving up a lock it cannot fire at, in the standard fights of the Fortress,
   Sledgehammer, Typhoon and Melting Point: `tests/units/regressions.mcscript`.
@@ -396,9 +440,12 @@ not the game's native attack-type enum.
 - **Target scoring**: a split quadtree, tied candidates, a building winning,
   moving candidates being reinserted, and other selector modes.
 - **Projectiles**: why a projectile in simulated motion spares a dead unit's
-  neighbours, which is recorded and not read; a projectile that climbs before
-  it flies (`preFlyHeight`), which the simulator refuses; interception; and
-  every other projectile type.
+  neighbours, which is recorded and not read; interception; and every other
+  projectile type.
+- **Raiden.** `FightWeapon`'s constructor gives each weapon of the unit whose
+  data is 27 a transform of its own, fixed to the body, and its three grouped
+  weapons fire as a fusillade; which slots fire, what they hold and how their
+  transforms turn is recorded and not reproduced, so the unit is refused.
 - **Damage**: building splash, area boundary and ordering, modifier chains,
   shields, and other providers or target domains.
 - **A personal shield's** activation, absorption and destruction.
