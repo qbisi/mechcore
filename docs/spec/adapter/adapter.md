@@ -221,8 +221,8 @@ The adapter returns after the native call or readback completes. `apply_layout`
 also waits until the requested activation-round deployment is stable.
 `record_battle` remains active through the complete logic-tick capture and
 atomic MCFR publication. `record_replay_round` additionally owns replay
-loading, round selection, accelerated deployment, capture, and return to the
-main menu.
+loading and round selection; it fights the replay without a scene, so it starts
+and ends at the main menu.
 `record_watch_replay` owns live matchmaking-scene selection, the complete
 spectated match, native GRBR publication, and return to the main menu; a higher
 claim ends it early and without a recording.
@@ -337,7 +337,7 @@ arming, not at the first fighting tick, because the transition into fighting run
 and took two of a recording's seconds unscaled. Above 50 a recording is bound by the game's own work
 per tick: the Crawler swarm takes about 4 ms a tick at 50x and at 100x alike. The recording
 does not vote for the game's speed-up (`RequestSpeedUp`), which the separate `speed_up` operation
-still does. `record_replay_round` accepts the same field.
+still does. `record_replay_round` has no such field: it fights without a scene, so no frame paces it.
 
 The optional path must be absolute, non-existing, distinct from `output`, and use `.mov`. With no
 `video_output`, no screenshot metadata is resolved, the camera is untouched, and no visual encoding
@@ -445,7 +445,9 @@ application lists referenced the affected enemy units. Oil populated the sparse
 
 Input identifies an existing native replay, a one-based combat round, and a new
 MCFR destination. The round has no upper bound: reading round `N` out of a
-replay is decoding, not staging, so `MAX_STAGED_ROUND` does not apply here.
+replay is decoding, not staging, so `MAX_STAGED_ROUND` does not apply here. The
+replay may be one the game saved or a layout that `mechcore replay convert`
+wrote as one.
 
 ```json
 {
@@ -511,17 +513,36 @@ with its arguments and result untouched; the reads on either side are field
 reads, with no managed call. A recording made with it is byte-identical to one
 made without it.
 
-The Adapter requires `main_menu` and passes the requested round unchanged to
-the native `PlayReplayCommand.Execute(IReplay, startRound)` argument. Replay
-`Match.get_RoundCount()` must read back the same value before capture is armed.
-`ReplayMatchBase.SetReplayTime(false, 0)` then removes recorded deployment
-delays. The capture hook reads the embedded layout at entry to the
+The Adapter requires `main_menu`, and the fight never leaves it: the replay is
+fought the way the game's own `SimpleSimulator` fights one, in a
+`FastSimulationMatch` that builds no scene and runs to its end inside one
+main-thread call. `MatchUtility.LoadReplay` reads the file and
+`BattleRecord.IsValid` and `BattleRecord.IsAvaliableRound` must accept it and the
+round. Every `PlayerRoundRecord` after the round is dropped, which is where the
+match reads the round it ends on. The Adapter then builds the `BattleSetting`
+that `PlayReplayCommand.StartReplay` builds for a replay (`MatchType.Replay`, the
+record's map, both players replayed, the requested start round) and hands it to
+`MatchUtility.StartFastBattleSimulation` rather than to `ClientAgent.CreateHost`.
+That call sets `ExternalConfig.fastBattleSimulation` and clears
+`fastFightSimulation` and never puts them back; while the first is set,
+`CreateHost` refuses every match that is not a replay, so the Adapter restores
+both before it returns.
+
+A round opens from its `PlayerRoundRecord` snapshot, not from the actions of the
+rounds before it. The fight draws only from streams the game derives from the
+record's `SystemSeed` and the round, so a round fought this way is the round a
+scene replay of the same file fights.
+
+Capture is armed before the match exists. It reaches the match through the
+current `FightController`'s `match`, since a `FastSimulationMatch` is not a
+`MatchClient`, and it ignores every update until `Match.get_RoundCount()` reads
+the requested round. The capture hook reads the embedded layout at entry to the
 final player's `PlayerController.FinishDeploy()`, before the native transition
-can initialize fighting, but does not persist that pre-update state. `S(1)` is the first state row. Earlier players are rejected unless every other
-player has already completed deployment, so a partially replayed deployment
-cannot be published. Time is scaled as for
-`record_battle`, from arming through the replayed deployment; the existing
-fighting-to-over edge terminates MCFR recording.
+can initialize fighting, but does not persist that pre-update state. `S(1)` is
+the first state row. Earlier players are rejected unless every other player has
+already completed deployment, so a partially replayed deployment cannot be
+published. The existing fighting-to-over edge terminates MCFR recording; the
+queue is drained into the writer once the match has run out.
 
 Replay formations remain ordered by and export their stable native unit index,
 but those indices may contain gaps left by units removed in earlier rounds.
@@ -533,11 +554,9 @@ abilities enter `battle_skills` only when native
 `TryGetReleaseCommanderSkillData` supplies positional release data; active
 non-release abilities are outside that layout field.
 
-The operation reopens and verifies the MCFR, exits the replay through the native
-match quit path, and returns success only after stable `main_menu` status. It
-never quits the game process. Invalid input, unavailable rounds, capture
-failure, and timeout paths also attempt replay cleanup before returning an
-error.
+The operation reopens and verifies the MCFR and returns at the main menu it
+started from. It never quits the game process. Invalid input, an unavailable
+round and a capture failure publish nothing.
 
 ### record_watch_replay
 

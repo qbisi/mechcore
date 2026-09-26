@@ -29,6 +29,7 @@ the game
   game apply_layout <layout.yaml> [--seed s]
   game record_battle <out.mcfr> [--video <out.mov>] [--no-speed-up] [-f]
   game record_replay_round <in.grbr> <round> <out.mcfr> [-f]
+  game record_layout <layout.yaml> <out.mcfr> [--seed s] [-f]
   game record_watch_replay [--output-dir <dir>]
   game toggle_fight               start the current fight
   game speed_up                   request battle speed-up
@@ -36,7 +37,7 @@ the game
   game quit_game                  shut the game down
 offline
   doc verify | format | diff      documents on disk
-  replay convert                  a native replay
+  replay convert                  a native replay, or a layout as one
   fight run | compare | verify    one fight
   man [<topic>]                   the manual this binary carries
 shell

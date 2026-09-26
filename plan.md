@@ -15,21 +15,29 @@ state。一局比赛就是一份 battle 文档，平台一边下一边把它写�
 能量塔技能 `BuildingSystem` 84、空投中的单位 43）、炮塔技能与军官科技的关系、装备过了第 1
 回合的耐久，以及几个单独的军官、科技、装备字段。
 
-## 下一步：从游戏更快地取得回归
+## 从游戏取得回归：无头对战
 
-录像是瓶颈：MCFR 格式一升级、游戏一换版本、`tests/` 一增长，全部钉子就要重录。
+录像曾是瓶颈。现在一场录制不再需要训练场：
 
-1. **时间倍率（已做）。** 不带视频的录制从布防起到终止 tick 把 `Time.timeScale` 定在 50，结束时放回
-   原值；逐 tick 采集不变，两层哈希与常速相同。`record_battle` 从约 10 秒降到 1.3–2.5 秒，一个
-   2289 tick 的回放回合从 130 秒降到 21 秒。一场现在的大头是 `apply_layout` 的 5–8 秒，其中
-   `start_test` 建对局约 5 秒是真实加载，倍率管不到；反编译里没找到原地重开对局的方法。
-2. **游戏自带的无头模拟。** `MatchUtility.StartFastBattleSimulation(BattleSetting)` →
-   `SimpleSimulator.Run`：`FastSimulationMatch` 不建场景，由 `ReplayAIController` 按
-   `PlayerRecord` 逐回合重放，`GRWhile` 同步跑完，`GetFightResult()` 出结果；服务器端的
-   `FightAuth.Main.SimpleAuth` 也调它，应当就是官方结算。它正好省掉建对局那 5 秒。要解决的：由
-   layout 构造 `BattleSetting`，让 adapter 的逐 tick 采集指向这个对局，以及
-   `Config.SetFastBattleSimulationData` 打开的 `IFightSetting.IsFastBattleSimulation` 是否改动战斗
-   逻辑。它能同时给出语料每一回合的游戏结果。
+1. **时间倍率。** 训练场录制把 `Time.timeScale` 定在 50，`record_battle` 从约 10 秒降到 1–3 秒。
+2. **无头对战（已做）。** 游戏回放的每一回合从它的 `PlayerRoundRecord` 快照开局，不依赖之前的动作；
+   战斗只从 `SystemSeed` 和回合派生随机流。所以一份 layout 写成只有一个部署回合的回放
+   （`replay convert <layout.yaml> <replay.grbr>`，[layout-replay.md](docs/spec/document/layout-replay.md)），
+   adapter 用游戏自己的 `StartFastBattleSimulation` 不建场景地打完，逐 tick 采集照旧。
+   `game.record_layout` 一步完成。`tests/units` 的 305 个钉子这样录出来两层哈希全部相同，一场中位
+   0.4 秒，全部约 3 分钟（原来一个多小时）；语料 3 份回放各 3 个回合，无头与场景回放逐一相同，
+   `record_replay_round` 因此只保留无头一条路。
+
+剩下的，按收益：
+
+- **layout 回放写得下的字段。** 现在只写 1 回合、1 级无经验无装备的单位，其余按名拒绝。要扩到军官、
+  科技、装备、建筑、物件、战场技能、等级经验和更高回合；快照是回合开局之前的状态，军官交付、收入会被
+  游戏再执行一次，要想清楚怎么写（见该 spec 的 Unresolved）。每扩一个字段，拿已钉的训练场录像对哈希。
+- **其余 `tests/` 改走无头。** 各目录的录制脚本仍用训练场，字段够了就换；`skill-state.mcscript`
+  这类带 instrumentation 的录制在无头下未验证。
+- **语料成为不依赖模拟器的游戏 oracle。** battle 的每一回合 `doc project` 成 layout，无头打完，对照
+  battle 下一回合记录的状态。依赖上一条。
+- **完整对局的 grbr。** battle 丢了动作时间、undo、奖励池记账，整局反写要另立研究。
 
 ## 主线：单位的无科技模拟
 

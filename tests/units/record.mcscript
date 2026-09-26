@@ -7,7 +7,10 @@
 # each, both hash layers. A unit that is its own opponent in a cell does not
 # record it twice, so the Rhino has no M2 and the Crawler no M3.
 #
-# `out` must not already exist: record_battle refuses to overwrite.
+# Each fight is fought without a scene, from a replay whose one round is the
+# layout, and recorded as the Training Ground records it: the two hash the same.
+#
+# `out` must not already exist: a recording refuses to overwrite.
 
 game: launch
 
@@ -366,8 +369,7 @@ steps:
     steps:
       - let:
           layout: read_yaml(${fight.layout})
-      - game.apply_layout:
+      - game.record_layout:
           layout: $layout
           seed: ${fight.seed}
-      - game.record_battle:
           output: ${out}/${fight.unit}/${fight.name}-${fight.seed}.mcfr

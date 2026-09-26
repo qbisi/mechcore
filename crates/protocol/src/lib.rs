@@ -303,7 +303,6 @@ pub struct RecordReplayRoundArguments {
     pub round: i32,
     /// Absolute destination for the new MCFR recording.
     pub output: PathBuf,
-    pub speed_up: Option<bool>,
     pub instrumentation: Option<RecordBattleInstrumentation>,
 }
 
@@ -500,7 +499,6 @@ mod tests {
             grbr: PathBuf::from("/tmp/a.grbr"),
             round: 2,
             output: PathBuf::from("/tmp/a.mcfr"),
-            speed_up: None,
             instrumentation: None,
         })
         .unwrap();
@@ -510,7 +508,6 @@ mod tests {
                 "grbr": "/tmp/a.grbr",
                 "round": 2,
                 "output": "/tmp/a.mcfr",
-                "speed_up": null,
                 "instrumentation": null
             })
         );

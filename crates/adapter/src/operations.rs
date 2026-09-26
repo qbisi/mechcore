@@ -142,7 +142,6 @@ pub(crate) enum InternalOperation {
         rvo_scope: Option<crate::capture::RvoCaptureScope>,
     },
     StopCapture,
-    ReplayFastDeployment,
     ExpireDeployment(i32),
     ResetDeployment(i32),
     FinishPreparation(i32),
@@ -181,7 +180,6 @@ pub(crate) fn execute_internal(
         InternalOperation::StopCapture => crate::capture::stop(runtime.api)
             .map(|()| json!({"stopped": true}))
             .map_err(OperationError::Rejected),
-        InternalOperation::ReplayFastDeployment => replay_fast_deployment(runtime),
         InternalOperation::ExpireDeployment(round) => expire_deployment(runtime, round),
         InternalOperation::ResetDeployment(round) => reset_deployment(runtime, round),
         InternalOperation::FinishPreparation(round) => finish_preparation(runtime, round),
@@ -800,23 +798,28 @@ fn require_match(runtime: &Runtime) -> Result<*mut Object, OperationError> {
     }
 }
 
-pub(crate) fn load_replay(
+pub(crate) fn fight_replay(
     runtime: &Runtime,
     request_id: u64,
     path: &Path,
-    native_start_round: i32,
+    round: i32,
 ) -> Response<Value> {
-    operation_response(
-        request_id,
-        load_replay_inner(runtime, path, native_start_round),
-    )
+    operation_response(request_id, fight_replay_inner(runtime, path, round))
 }
 
-fn load_replay_inner(
-    runtime: &Runtime,
-    path: &Path,
-    native_start_round: i32,
-) -> Result<Value, OperationError> {
+/// Fights a replay up to `round` headlessly, as the game's own
+/// `SimpleSimulator` does: a `FastSimulationMatch` with no scene, whose sides
+/// replay their records, run to its end inside this call.
+///
+/// This is `PlayReplayCommand.StartReplay`'s `BattleSetting` handed to
+/// `MatchUtility.StartFastBattleSimulation` rather than to
+/// `ClientAgent.CreateHost`. The rounds after `round` are dropped from the
+/// record first, so the match ends with the round asked for.
+/// `StartFastBattleSimulation` sets `ExternalConfig.fastBattleSimulation`
+/// and clears `fastFightSimulation` for good, and while the first is set
+/// `CreateHost` refuses every match that is not a replay, so both are put
+/// back.
+fn fight_replay_inner(runtime: &Runtime, path: &Path, round: i32) -> Result<Value, OperationError> {
     if !runtime.current_match().is_null() {
         return Err(OperationError::InvalidState(
             "record_replay_round requires main_menu with no active match".into(),
@@ -826,36 +829,145 @@ fn load_replay_inner(
         .to_str()
         .ok_or_else(|| OperationError::InvalidArguments("grbr path is not valid UTF-8".into()))?;
     let api = runtime.api;
-    let managed_path = api.string(path)?;
-    let utility = api.class("GRCore.dll", "GameRiver", "MatchUtility")?;
-    let load = api.class_method_with_parameter_types(utility, "LoadReplay", &["System.String"])?;
+    let core_utility = api.class("GRCore.dll", "GameRiver", "MatchUtility")?;
+    let load =
+        api.class_method_with_parameter_types(core_utility, "LoadReplay", &["System.String"])?;
     let replay = api.invoke_raw(
         load,
         std::ptr::null_mut(),
-        &mut [object_argument(managed_path)],
+        &mut [object_argument(api.string(path)?)],
     )?;
     if replay.is_null() {
         return Err(OperationError::Rejected(format!(
             "the game could not load replay {path}"
         )));
     }
-    let command_class = api.class("GRClient.dll", "GameRiver.Client", "PlayReplayCommand")?;
-    let command = api.new_object(command_class)?;
-    let execute = api.method_with_parameter_types(
-        command,
-        "Execute",
-        &["GameRiver.IReplay", "System.Int32"],
+    api.invoke_void(replay, "LoadBattleRecord", &mut [])?;
+    let record = api.invoke(replay, "GetBattleRecord", &mut [])?;
+    if record.is_null() || !api.invoke_value::<bool>(record, "IsValid", &mut [])? {
+        return Err(OperationError::Rejected(format!(
+            "replay {path} holds no valid battle record"
+        )));
+    }
+    let mut requested = round;
+    if !api.invoke_value::<bool>(record, "IsAvaliableRound", &mut [argument(&mut requested)])? {
+        return Err(OperationError::InvalidArguments(format!(
+            "replay {path} cannot start at round {round}"
+        )));
+    }
+    drop_rounds_after(api, record, round)?;
+    let config = config_instance(runtime)?;
+    let setting = replay_battle_setting(api, config, record, round, path)?;
+    let extra = api.invoke(config, "get_extraSettings", &mut [])?;
+    let extra_class = api.object_class(extra).ok_or_else(|| {
+        OperationError::InvalidState("ExternalConfig has no runtime class".into())
+    })?;
+    let fast_battle = api.field(extra_class, "fastBattleSimulation")?;
+    let fast_fight = api.field(extra_class, "fastFightSimulation")?;
+    let saved_battle = api.field_value::<bool>(extra, fast_battle)?;
+    let saved_fight = api.field_value::<bool>(extra, fast_fight)?;
+    let client_utility = api.class("GRClient.dll", "GameRiver.Client", "MatchUtility")?;
+    let fought = api.invoke_static(
+        client_utility,
+        "StartFastBattleSimulation",
+        &mut [object_argument(setting)],
+    );
+    Api::set_field_value(extra, fast_battle, saved_battle)?;
+    Api::set_field_value(extra, fast_fight, saved_fight)?;
+    fought?;
+    Ok(json!({"fought": true, "round": round}))
+}
+
+/// The `BattleSetting` `PlayReplayCommand.StartReplay` builds for a replay:
+/// `MatchType.Replay`, the record's map, both players replayed, starting at
+/// `round`.
+fn replay_battle_setting(
+    api: Api,
+    config: *mut Object,
+    record: *mut Object,
+    round: i32,
+    path: &str,
+) -> Result<*mut Object, OperationError> {
+    let info = api.invoke(record, "get_BattleInfo", &mut [])?;
+    let mut map_id = api.invoke_value::<i32>(info, "get_MapID", &mut [])?;
+    let config_class = api
+        .object_class(config)
+        .ok_or_else(|| OperationError::InvalidState("Config has no runtime class".into()))?;
+    let get_match_setting =
+        api.class_method_with_parameter_types(config_class, "GetMatchSetting", &["System.Int32"])?;
+    let match_setting = api.invoke_raw(
+        get_match_setting,
+        config.cast(),
+        &mut [argument(&mut map_id)],
     )?;
-    let mut start_round = native_start_round;
+    if match_setting.is_null() {
+        return Err(OperationError::InvalidArguments(format!(
+            "replay {path} names unknown map_id {map_id}"
+        )));
+    }
+    let setting_class = api.class("GRCore.dll", "GameRiver", "BattleSetting")?;
+    let setting = api.allocate_object(setting_class)?;
+    let constructor = api.class_method_with_parameter_types(
+        setting_class,
+        ".ctor",
+        &[
+            "GameRiver.MatchType",
+            "GameRiver.MatchSetting",
+            "GameRiver.BattleRecord",
+            "System.Boolean",
+            "System.Int32",
+            "System.Int32",
+            "GameRiver.PlayerBaseInfo",
+        ],
+    )?;
+    // MatchType.Replay, both players replayed, starting at `round`.
+    let mut match_type = 2_i32;
+    let mut single_player = false;
+    let mut player_record_index = -1_i32;
+    let mut start_round = round;
     api.invoke_raw(
-        execute,
-        command.cast(),
-        &mut [object_argument(replay), argument(&mut start_round)],
+        constructor,
+        setting.cast(),
+        &mut [
+            argument(&mut match_type),
+            object_argument(match_setting),
+            object_argument(record),
+            argument(&mut single_player),
+            argument(&mut player_record_index),
+            argument(&mut start_round),
+            std::ptr::null_mut(),
+        ],
     )?;
-    Ok(json!({
-        "loaded": true,
-        "native_start_round": native_start_round,
-    }))
+    Ok(setting)
+}
+
+/// Drops every round after `round` from each side's record, which is where
+/// `FastSimulationMatch` reads the round it ends on.
+fn drop_rounds_after(api: Api, record: *mut Object, round: i32) -> Result<(), OperationError> {
+    let record_class = api
+        .object_class(record)
+        .ok_or_else(|| OperationError::InvalidState("BattleRecord has no runtime class".into()))?;
+    let players =
+        api.field_value::<*mut Object>(record, api.field(record_class, "playerRecords")?)?;
+    for player_index in 0..list_count(api, players)? {
+        let player = list_item(api, players, player_index)?;
+        let player_class = api.object_class(player).ok_or_else(|| {
+            OperationError::InvalidState("PlayerRecord has no runtime class".into())
+        })?;
+        let rounds =
+            api.field_value::<*mut Object>(player, api.field(player_class, "playerRoundRecords")?)?;
+        for index in (0..list_count(api, rounds)?).rev() {
+            let entry = list_item(api, rounds, index)?;
+            let entry_class = api.object_class(entry).ok_or_else(|| {
+                OperationError::InvalidState("PlayerRoundRecord has no runtime class".into())
+            })?;
+            if api.field_value::<i32>(entry, api.field(entry_class, "round")?)? > round {
+                let mut index = index;
+                api.invoke_void(rounds, "RemoveAt", &mut [argument(&mut index)])?;
+            }
+        }
+    }
+    Ok(())
 }
 
 fn player_controller(
@@ -973,44 +1085,6 @@ fn speed_up(runtime: &Runtime) -> Result<Value, OperationError> {
         .api
         .invoke_void(controller, "RequestSpeedUp", &mut [])?;
     Ok(json!({"requested": true}))
-}
-
-fn replay_fast_deployment(runtime: &Runtime) -> Result<Value, OperationError> {
-    let current = require_match(runtime)?;
-    if classify_replay(runtime.api, current) != Some(true) {
-        return Err(OperationError::InvalidState(
-            "fast deployment requires an active replay".into(),
-        ));
-    }
-    let method = runtime.api.method_with_parameter_types(
-        current,
-        "SetReplayTime",
-        &["System.Boolean", "System.Single"],
-    )?;
-    let mut is_real_time = false;
-    let mut step_time = 0.0_f32;
-    // SetReplayTime refreshes replay AI controllers. Avoid redundant refreshes
-    // when continuing a replay whose requested playback settings already hold.
-    if runtime
-        .api
-        .invoke_value::<bool>(current, "get_IsRealTime", &mut [])?
-        || runtime
-            .api
-            .invoke_value::<f32>(current, "get_StepTime", &mut [])?
-            .to_bits()
-            != step_time.to_bits()
-    {
-        runtime.api.invoke_raw(
-            method,
-            current.cast(),
-            &mut [argument(&mut is_real_time), argument(&mut step_time)],
-        )?;
-    }
-    Ok(json!({
-        "enabled": true,
-        "is_real_time": false,
-        "step_time": 0.0,
-    }))
 }
 
 fn quit_match(runtime: &Runtime) -> Result<Value, OperationError> {

@@ -174,11 +174,11 @@ struct RuntimeLoadInvocation {
     result: Option<Result<Box<Runtime>, RuntimeError>>,
 }
 
-struct ReplayLoadInvocation {
+struct ReplayFightInvocation {
     runtime: *mut Runtime,
     request_id: u64,
     path: *const PathBuf,
-    native_start_round: i32,
+    round: i32,
     response: Option<Response<Value>>,
 }
 
@@ -193,17 +193,17 @@ extern "C" fn load_runtime_on_main(context: *mut c_void) {
     }));
 }
 
-extern "C" fn load_replay_on_main(context: *mut c_void) {
+extern "C" fn fight_replay_on_main(context: *mut c_void) {
     // SAFETY: dispatch_sync_f invokes this callback before returning, while the
     // stack-owned invocation, runtime and path remain alive.
-    let invocation = unsafe { &mut *context.cast::<ReplayLoadInvocation>() };
+    let invocation = unsafe { &mut *context.cast::<ReplayFightInvocation>() };
     let runtime = unsafe { &mut *invocation.runtime };
     let path = unsafe { &*invocation.path };
-    invocation.response = Some(operations::load_replay(
+    invocation.response = Some(operations::fight_replay(
         runtime,
         invocation.request_id,
         path,
-        invocation.native_start_round,
+        invocation.round,
     ));
 }
 
@@ -271,17 +271,17 @@ fn execute_layout_stage_on_main(
     )
 }
 
-fn execute_replay_load_on_main(
+fn execute_replay_fight_on_main(
     runtime: &mut Runtime,
     request_id: u64,
     path: &PathBuf,
-    native_start_round: i32,
+    round: i32,
 ) -> Response<Value> {
-    let mut invocation = ReplayLoadInvocation {
+    let mut invocation = ReplayFightInvocation {
         runtime,
         request_id,
         path,
-        native_start_round,
+        round,
         response: None,
     };
     #[cfg(target_os = "macos")]
@@ -292,18 +292,18 @@ fn execute_replay_load_on_main(
             dispatch_sync_f(
                 (&raw const _dispatch_main_q).cast_mut(),
                 std::ptr::from_mut(&mut invocation).cast(),
-                load_replay_on_main,
+                fight_replay_on_main,
             );
         }
     }
     #[cfg(not(target_os = "macos"))]
-    load_replay_on_main(std::ptr::from_mut(&mut invocation).cast());
+    fight_replay_on_main(std::ptr::from_mut(&mut invocation).cast());
 
     invocation.response.unwrap_or_else(|| {
         Response::failure(
             request_id,
             "main_thread_dispatch_failed",
-            "main-thread replay load returned no response",
+            "main-thread replay fight returned no response",
         )
     })
 }
@@ -625,6 +625,7 @@ fn serve_client(runtime: &mut Runtime, mut stream: UnixStream) -> io::Result<()>
                 runtime,
                 &request,
                 capture::CaptureStartMode::TrainingGround,
+                None,
             ),
             Operation::RecordReplayRound => execute_replay_recording_series(runtime, &request),
             Operation::RecordWatchReplay => execute_watch_replay_series(runtime, &request),
@@ -1241,134 +1242,28 @@ fn execute_replay_recording_series(runtime: &mut Runtime, request: &Request) -> 
         );
     }
 
-    let native_start_round = arguments.round;
-    if let Err(response) = successful_result(execute_replay_load_on_main(
-        runtime,
-        request.id,
-        &arguments.grbr,
-        native_start_round,
-    )) {
-        return replay_failure_after_cleanup(runtime, request.id, &response);
-    }
-    let load_deadline = Instant::now() + REPLAY_LOAD_TIMEOUT;
-    if let Err(response) = wait_layout_status(
-        runtime,
-        request.id,
-        load_deadline,
-        &format!("replay round {} deployment", arguments.round),
-        LAYOUT_DEPLOYMENT_STABLE_SAMPLES,
-        |status| is_replay_state(status, arguments.round, true, false),
-    ) {
-        return replay_failure_after_cleanup(runtime, request.id, &response);
-    }
-
+    // The fight runs to its end inside one main-thread call, and the capture
+    // armed before it records the requested round from the queue afterwards.
     let capture_request = Request {
         id: request.id,
         operation: Operation::RecordBattle,
         arguments: serde_json::json!({
             "output": arguments.output,
-            "speed_up": arguments.speed_up,
+            "speed_up": false,
             "instrumentation": arguments.instrumentation,
         }),
     };
-    let mut capture_response =
-        execute_recording_series(runtime, &capture_request, capture::CaptureStartMode::Replay);
-    if !capture_response.ok {
-        return replay_failure_after_cleanup(runtime, request.id, &capture_response);
-    }
-    let cleanup = match finish_replay_to_main_menu(runtime, request.id) {
-        Ok(status) => status,
-        Err(response) => {
-            let output = arguments.output.display();
-            let message = response
-                .error
-                .as_ref()
-                .map_or("unknown cleanup error", |error| error.message.as_str());
-            return Response::failure(
-                request.id,
-                "replay_cleanup_failed",
-                format!("recorded {output}, but could not return replay to main_menu: {message}"),
-            );
-        }
-    };
-    let mut result = capture_response
-        .result
-        .take()
-        .and_then(|value| value.as_object().cloned())
-        .unwrap_or_default();
-    result.insert("grbr".into(), serde_json::json!(arguments.grbr));
-    result.insert("round".into(), serde_json::json!(arguments.round));
-    result.insert(
-        "fast_deployment".into(),
-        serde_json::json!({"is_real_time": false, "step_time": 0.0}),
-    );
-    result.insert("cleanup".into(), serde_json::json!({"match_exited": true}));
-    result.insert("status".into(), cleanup);
-    Response::success(request.id, Value::Object(result))
-}
-
-fn replay_failure_after_cleanup(
-    runtime: &mut Runtime,
-    request_id: u64,
-    response: &Response<Value>,
-) -> Response<Value> {
-    let code = response.error.as_ref().map_or_else(
-        || "record_replay_round_failed".into(),
-        |error| error.code.clone(),
-    );
-    let message = response.error.as_ref().map_or_else(
-        || "record_replay_round failed without an error body".into(),
-        |error| error.message.clone(),
-    );
-    match finish_replay_to_main_menu(runtime, request_id) {
-        Ok(_) => Response::failure(request_id, code, message),
-        Err(cleanup) => {
-            let cleanup = cleanup
-                .error
-                .as_ref()
-                .map_or("unknown cleanup error", |error| error.message.as_str());
-            Response::failure(
-                request_id,
-                code,
-                format!("{message}; replay cleanup also failed: {cleanup}"),
-            )
-        }
-    }
-}
-
-fn finish_replay_to_main_menu(
-    runtime: &mut Runtime,
-    request_id: u64,
-) -> Result<Value, Response<Value>> {
-    let status = successful_result(execute_internal_on_main(
+    let mut response = execute_recording_series(
         runtime,
-        request_id,
-        operations::InternalOperation::Status,
-    ))?;
-    if status.get("status").and_then(Value::as_str) == Some("main_menu") {
-        return Ok(status);
+        &capture_request,
+        capture::CaptureStartMode::Replay(arguments.round),
+        Some(&arguments.grbr),
+    );
+    if let Some(result) = response.result.as_mut().and_then(Value::as_object_mut) {
+        result.insert("grbr".into(), serde_json::json!(arguments.grbr));
+        result.insert("round".into(), serde_json::json!(arguments.round));
     }
-    if status.get("status").and_then(Value::as_str) != Some("replay") {
-        return Err(Response::failure(
-            request_id,
-            "replay_cleanup_failed",
-            format!("cannot exit replay from status {status}"),
-        ));
-    }
-    let quit = Request {
-        id: request_id,
-        operation: Operation::QuitMatch,
-        arguments: serde_json::json!({}),
-    };
-    successful_result(execute_on_main(runtime, &quit))?;
-    wait_layout_status(
-        runtime,
-        request_id,
-        Instant::now() + REPLAY_LOAD_TIMEOUT,
-        "main_menu after replay exit",
-        LAYOUT_DEPLOYMENT_STABLE_SAMPLES,
-        |value| value.get("status").and_then(Value::as_str) == Some("main_menu"),
-    )
+    response
 }
 
 #[allow(clippy::too_many_lines)]
@@ -1376,6 +1271,7 @@ fn execute_recording_series(
     runtime: &mut Runtime,
     request: &Request,
     mode: capture::CaptureStartMode,
+    replay: Option<&PathBuf>,
 ) -> Response<Value> {
     let arguments: RecordBattleArguments = match serde_json::from_value(request.arguments.clone()) {
         Ok(arguments) => arguments,
@@ -1467,11 +1363,9 @@ fn execute_recording_series(
     )) {
         return response;
     }
-    if mode == capture::CaptureStartMode::Replay
-        && let Err(response) = successful_result(execute_internal_on_main(
-            runtime,
-            request.id,
-            operations::InternalOperation::ReplayFastDeployment,
+    if let (capture::CaptureStartMode::Replay(round), Some(grbr)) = (mode, replay)
+        && let Err(response) = successful_result(execute_replay_fight_on_main(
+            runtime, request.id, grbr, round,
         ))
     {
         stop_capture_after_failure(runtime, request.id);
@@ -2090,13 +1984,6 @@ fn wait_status(
 
 fn is_training_state(status: &Value, round: i32, deploying: bool, fighting: bool) -> bool {
     status.get("status").and_then(Value::as_str) == Some("training_ground")
-        && status.get("round_count").and_then(Value::as_i64) == Some(i64::from(round))
-        && status.get("deploying").and_then(Value::as_bool) == Some(deploying)
-        && status.get("fighting").and_then(Value::as_bool) == Some(fighting)
-}
-
-fn is_replay_state(status: &Value, round: i32, deploying: bool, fighting: bool) -> bool {
-    status.get("status").and_then(Value::as_str) == Some("replay")
         && status.get("round_count").and_then(Value::as_i64) == Some(i64::from(round))
         && status.get("deploying").and_then(Value::as_bool) == Some(deploying)
         && status.get("fighting").and_then(Value::as_bool) == Some(fighting)

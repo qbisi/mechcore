@@ -491,7 +491,8 @@ pub(crate) enum CaptureMessage {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum CaptureStartMode {
     TrainingGround,
-    Replay,
+    /// Armed before a headless replay is fought; records this round of it.
+    Replay(i32),
 }
 
 enum PendingVisualMessage {
@@ -729,8 +730,8 @@ struct CaptureState {
     /// The `Time.timeScale` found when a sped-up recording was armed, put
     /// back when it ends; `None` when this recording does not scale time.
     restore_time_scale: Option<f32>,
+    replay_round: Option<i32>,
     await_replay_deployment: bool,
-    replay_playback: bool,
     last_native_tick: Option<u64>,
     native_tick_step: Option<u64>,
     deployment_layout_yaml: Option<String>,
@@ -791,8 +792,8 @@ impl CaptureState {
         self.initialized = false;
         self.entered_fighting = false;
         self.restore_time_scale = None;
+        self.replay_round = None;
         self.await_replay_deployment = false;
-        self.replay_playback = false;
         self.last_native_tick = None;
         self.native_tick_step = None;
         self.deployment_layout_yaml = None;
@@ -2170,23 +2171,12 @@ pub(crate) fn start(
     validate_rvo_profile_availability(instrumentation_profile, &state.metadata)?;
     validate_selector_score_profile_availability(instrumentation_profile, &state.metadata)?;
     validate_checker_profile_availability(instrumentation_profile, &state.metadata)?;
-    let fight = runtime.current_fight();
-    if fight.is_null() {
-        return Err("fight controller is unavailable".into());
-    }
-    let deploying = runtime
-        .api
-        .invoke_value::<bool>(fight, "IsDeploying", &mut [])
-        .map_err(|error| error.to_string())?;
-    let fighting = runtime
-        .api
-        .invoke_value::<bool>(fight, "IsFighting", &mut [])
-        .map_err(|error| error.to_string())?;
-    if !deploying || fighting {
-        return Err("recording requires deployment before fighting".into());
+    // A replay is armed from the main menu, before its match exists.
+    if mode == CaptureStartMode::TrainingGround {
+        require_deployment(runtime)?;
     }
     let current_match = runtime.current_match();
-    if current_match.is_null() {
+    if current_match.is_null() && mode == CaptureStartMode::TrainingGround {
         return Err("active match disappeared before recording started".into());
     }
     let layout_yaml = match mode {
@@ -2194,15 +2184,18 @@ pub(crate) fn start(
             let (_, context) = recording_context(runtime)?;
             Some(read_native_layout(runtime, &context, &state.metadata)?)
         }
-        CaptureStartMode::Replay => None,
+        CaptureStartMode::Replay(_) => None,
     };
     state.reset_session();
     state.deployment_layout_yaml = layout_yaml;
     if speed_up && !visual {
         state.restore_time_scale = Some(time_scale(runtime.api)?);
     }
-    state.await_replay_deployment = mode == CaptureStartMode::Replay;
-    state.replay_playback = mode == CaptureStartMode::Replay;
+    state.await_replay_deployment = mode != CaptureStartMode::TrainingGround;
+    state.replay_round = match mode {
+        CaptureStartMode::Replay(round) => Some(round),
+        CaptureStartMode::TrainingGround => None,
+    };
     RVO_UPDATE_ORDINAL.store(0, Ordering::Release);
     RVO_SOURCE_CALL_ORDINAL.store(0, Ordering::Release);
     RVO_VO_CALL_ORDINAL.store(0, Ordering::Release);
@@ -2243,6 +2236,25 @@ pub(crate) fn start(
             return Err(format!("{message}; cannot restore camera: {restore_error}"));
         }
         return Err(message);
+    }
+    Ok(())
+}
+
+fn require_deployment(runtime: &Runtime) -> Result<(), String> {
+    let fight = runtime.current_fight();
+    if fight.is_null() {
+        return Err("fight controller is unavailable".into());
+    }
+    let deploying = runtime
+        .api
+        .invoke_value::<bool>(fight, "IsDeploying", &mut [])
+        .map_err(|error| error.to_string())?;
+    let fighting = runtime
+        .api
+        .invoke_value::<bool>(fight, "IsFighting", &mut [])
+        .map_err(|error| error.to_string())?;
+    if !deploying || fighting {
+        return Err("recording requires deployment before fighting".into());
     }
     Ok(())
 }
@@ -2305,6 +2317,53 @@ fn validate_selector_score_profile_availability(
     } else {
         Ok(())
     }
+}
+
+/// The match capture reads: the client's, or else the one the current fight
+/// belongs to, which is how a headless `FastSimulationMatch` is reached.
+fn capture_match(runtime: &Runtime) -> *mut Object {
+    let current = runtime.current_match();
+    if !current.is_null() {
+        return current;
+    }
+    let fight = runtime.current_fight();
+    if fight.is_null() {
+        return ptr::null_mut();
+    }
+    let Ok(class) = runtime
+        .api
+        .class("GRFight.dll", "GameRiver.Fight", "FightController")
+    else {
+        return ptr::null_mut();
+    };
+    let Ok(field) = runtime.api.field(class, "match") else {
+        return ptr::null_mut();
+    };
+    runtime
+        .api
+        .field_value::<*mut Object>(fight, field)
+        .unwrap_or(ptr::null_mut())
+}
+
+/// Whether a replay's capture is still before the round it records: the
+/// headless match fights every round up to it, and only that one is
+/// recorded.
+fn replay_round_pending(runtime: &Runtime, state: &CaptureState) -> Result<bool, String> {
+    let Some(round) = state.replay_round else {
+        return Ok(false);
+    };
+    if state.initialized {
+        return Ok(false);
+    }
+    let current = capture_match(runtime);
+    if current.is_null() {
+        return Ok(true);
+    }
+    let current_round = runtime
+        .api
+        .invoke_value::<i32>(current, "get_RoundCount", &mut [])
+        .map_err(|error| error.to_string())?;
+    Ok(current_round != round)
 }
 
 fn time_scale(api: Api) -> Result<f32, String> {
@@ -3784,6 +3843,18 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
         if !state.armed || state.initialized {
             return;
         }
+        match replay_round_pending(runtime, &state) {
+            Ok(false) => {}
+            Ok(true) => {
+                state.in_update = false;
+                return;
+            }
+            Err(error) => {
+                state.in_update = false;
+                state.fail(error);
+                return;
+            }
+        }
         let result = (|| {
             if state.await_replay_deployment {
                 let fight = runtime.current_fight();
@@ -3800,7 +3871,7 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
                             .into(),
                     );
                 }
-                let current = runtime.current_match();
+                let current = capture_match(runtime);
                 if current.is_null() {
                     return Err("active replay disappeared during deployment".into());
                 }
@@ -3858,6 +3929,17 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
         state.in_update = false;
         if !state.armed {
             return;
+        }
+        match replay_round_pending(runtime, &state) {
+            Ok(false) => {}
+            Ok(true) => {
+                state.traces.clear();
+                return;
+            }
+            Err(error) => {
+                state.fail(error);
+                return;
+            }
         }
         let result = (|| {
             let fighting = runtime
@@ -4040,6 +4122,14 @@ unsafe extern "C" fn player_finish_deploy_hook(player: *mut Object, method: *con
         if !state.armed || !state.await_replay_deployment {
             return;
         }
+        match replay_round_pending(runtime, &state) {
+            Ok(false) => {}
+            Ok(true) => return,
+            Err(error) => {
+                state.fail(error);
+                return;
+            }
+        }
         let result = capture_replay_initial_before_final_deploy(runtime, &mut state, player);
         if let Err(error) = result {
             state.fail(error);
@@ -4083,7 +4173,7 @@ fn is_final_player_finish_deploy(runtime: &Runtime, player: *mut Object) -> Resu
     if player.is_null() {
         return Err("PlayerController.FinishDeploy received a null player".into());
     }
-    let current = runtime.current_match();
+    let current = capture_match(runtime);
     if current.is_null() {
         return Err("active replay disappeared while finishing deployment".into());
     }
@@ -4784,7 +4874,7 @@ fn record_damage(
 }
 
 fn recording_context(runtime: &Runtime) -> Result<(String, DurableContext), String> {
-    let current_match = runtime.current_match();
+    let current_match = capture_match(runtime);
     let round = runtime
         .api
         .invoke_value::<i32>(current_match, "get_RoundCount", &mut [])
@@ -4922,7 +5012,7 @@ fn read_native_layout_inner(
     seed: i32,
     metadata: &Metadata,
 ) -> Result<Layout, String> {
-    let current = runtime.current_match();
+    let current = capture_match(runtime);
     if current.is_null() {
         return Err("active match disappeared while reading the embedded layout".into());
     }

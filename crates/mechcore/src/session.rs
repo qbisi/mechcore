@@ -491,7 +491,6 @@ impl Session {
         grbr: PathBuf,
         round: i32,
         output: PathBuf,
-        speed_up: Option<bool>,
         force: bool,
         instrumentation: Option<RecordBattleInstrumentation>,
     ) -> Result<Value, String> {
@@ -530,7 +529,6 @@ impl Session {
                     grbr: grbr.clone(),
                     round,
                     output: output.clone(),
-                    speed_up,
                     instrumentation,
                 })?,
             )
@@ -547,6 +545,49 @@ impl Session {
             ));
         }
         Ok(json!({"operation": result, "status": status}))
+    }
+
+    /// Fight a layout in the game without a scene and record it.
+    ///
+    /// The layout is written as a replay whose one deployment round is the
+    /// layout, and that round is recorded as `record_replay_round` records
+    /// one: the game fights it headlessly from the snapshot. `seed` overrides
+    /// the layout's own, as it does for `apply_layout`.
+    pub(crate) async fn record_layout(
+        &self,
+        layout: Value,
+        seed: Option<i32>,
+        output: PathBuf,
+        force: bool,
+        instrumentation: Option<RecordBattleInstrumentation>,
+    ) -> Result<Value, String> {
+        let mut plan = mechcore_document::compile(&layout)?;
+        plan.seed = seed.or(plan.seed);
+        let replay = mechcore_document::layout_replay::layout_replay(
+            &plan,
+            mechcore_document::game_build(),
+        )?;
+        let file = tempfile::Builder::new()
+            .prefix("mechcore-layout-")
+            .suffix(".grbr")
+            .tempfile()
+            .map_err(|error| format!("cannot create the layout replay: {error}"))?;
+        std::fs::write(file.path(), replay)
+            .map_err(|error| format!("cannot write the layout replay: {error}"))?;
+        let mut result = self
+            .record_replay_round(
+                file.path().to_path_buf(),
+                plan.round,
+                output,
+                force,
+                instrumentation,
+            )
+            .await?;
+        if let Some(operation) = result.get_mut("operation").and_then(Value::as_object_mut) {
+            operation.remove("grbr");
+        }
+        result["layout_input"] = layout;
+        Ok(result)
     }
 
     /// Watch one live round-one matchmaking battle and publish its native GRBR.

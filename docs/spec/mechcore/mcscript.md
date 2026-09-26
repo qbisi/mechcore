@@ -100,14 +100,15 @@ than redefining them.
 | `game.start_test` | yes | optional `seed`, `map_id`; rarely needed, see `game.apply_layout` |
 | `game.apply_layout` | yes | the layout object, or `{layout, seed}` |
 | `game.record_battle` | yes | `output`, optional `video_output`, `speed_up`, `instrumentation` |
-| `game.record_replay_round` | yes | `grbr`, `round`, `output`, optional `speed_up`, `instrumentation` |
+| `game.record_replay_round` | yes | `grbr`, `round`, `output`, optional `instrumentation` |
+| `game.record_layout` | yes | `layout`, `output`, optional `seed`, `instrumentation`; fights the layout without a scene |
 | `game.record_watch_replay` | yes | optional `output_dir`, `wait_for_scene_seconds`, `match_timeout_seconds`; records one live standard 1v1 |
 | `game.toggle_fight` | yes | |
 | `game.speed_up` | yes | standalone operation, distinct from the recording field |
 | `game.quit_match` | yes | |
 | `game.quit_game` | yes | |
 
-For `game.record_battle` and `game.record_replay_round`, a recording refuses to overwrite
+For `game.record_battle`, `game.record_replay_round` and `game.record_layout`, a recording refuses to overwrite
 its destination, and a script does not declare otherwise. Whether to replace
 an existing recording is a property of the run,
 not of the script: the same document is run once to produce its outputs and
@@ -119,7 +120,7 @@ The deletion happens in the client either way. The Adapter still refuses to
 write over anything; the caller removes the file before asking, so the
 fail-closed rule keeps protecting a recording in flight.
 
-`game.record_battle` and `game.record_replay_round` accept a research-only HDF5 sidecar request:
+The three recording operations accept a research-only HDF5 sidecar request:
 
 ```yaml
 instrumentation:

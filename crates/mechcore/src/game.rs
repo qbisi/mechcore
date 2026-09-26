@@ -20,6 +20,7 @@ pub(crate) const OPERATIONS: &[&str] = &[
     "apply_layout",
     "record_battle",
     "record_replay_round",
+    "record_layout",
     "record_watch_replay",
     "toggle_fight",
     "speed_up",
@@ -96,6 +97,13 @@ async fn attached(verb: &str, arguments: Args, level: u8) -> Outcome {
 /// Returns a usage failure for a verb this namespace does not hold or
 /// arguments it cannot read, and a refusal for an operation the game does not
 /// carry out.
+fn read_layout(path: &std::path::Path) -> Result<Value, Failure> {
+    let text = std::fs::read_to_string(path)
+        .map_err(|error| Failure::failed(format!("cannot read {}: {error}", path.display())))?;
+    serde_yaml::from_str(&text)
+        .map_err(|error| Failure::refused(format!("cannot parse {}: {error}", path.display())))
+}
+
 pub(crate) async fn operate(
     verb: &str,
     mut arguments: Args,
@@ -116,12 +124,7 @@ pub(crate) async fn operate(
             let path = arguments.path("a layout to apply")?;
             let seed = seed(&mut arguments)?;
             arguments.finish()?;
-            let text = std::fs::read_to_string(&path).map_err(|error| {
-                Failure::failed(format!("cannot read {}: {error}", path.display()))
-            })?;
-            let layout: Value = serde_yaml::from_str(&text).map_err(|error| {
-                Failure::refused(format!("cannot parse {}: {error}", path.display()))
-            })?;
+            let layout = read_layout(&path)?;
             session.apply_layout(layout, seed).await.map_err(refusal)
         }
         "record_battle" => {
@@ -145,7 +148,19 @@ pub(crate) async fn operate(
             let output = arguments.path("a recording to write")?;
             arguments.finish()?;
             session
-                .record_replay_round(grbr, round, output, None, force, None)
+                .record_replay_round(grbr, round, output, force, None)
+                .await
+                .map_err(refusal)
+        }
+        "record_layout" => {
+            let force = force(&mut arguments)?;
+            let seed = seed(&mut arguments)?;
+            let path = arguments.path("a layout to fight")?;
+            let output = arguments.path("a recording to write")?;
+            arguments.finish()?;
+            let layout = read_layout(&path)?;
+            session
+                .record_layout(layout, seed, output, force, None)
                 .await
                 .map_err(refusal)
         }
