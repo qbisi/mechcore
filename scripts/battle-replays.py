@@ -24,7 +24,10 @@ Run from anywhere inside the checkout, with the game installed:
     python3 scripts/battle-replays.py
     python3 scripts/battle-replays.py --only Chemtrails --json
 
-The exit status is 0 only when every round records both ways and compares
+A round in which a side concedes is listed and not compared: a concession made
+during the fight ends it at a moment the battle does not record.
+
+The exit status is 0 only when every other round records both ways and compares
 equal.
 """
 
@@ -58,14 +61,21 @@ def parse_arguments(root: Path) -> argparse.Namespace:
     return parser.parse_args()
 
 
-def rounds_of(battle: Path) -> list[int]:
-    """The rounds a battle decides, which are the ones fought."""
+def rounds_of(battle: Path) -> tuple[list[int], set[int]]:
+    """The rounds a battle decides, and those of them in which a side concedes.
+
+    A concession is kept as its round's last decision, but one made during the
+    fight ends it at a moment the battle does not record, so such a round is not
+    compared."""
     text = battle.read_text(encoding="utf-8")
-    return sorted(
-        int(found)
-        for found in re.findall(r"^kind: action\nround: (\d+)$", text, flags=re.MULTILINE)
-        if int(found) >= 1
-    )
+    rounds, conceded = [], set()
+    for segment in re.split(r"^---$", text, flags=re.MULTILINE):
+        found = re.match(r"\s*kind: action\nround: (\d+)$", segment, flags=re.MULTILINE)
+        if found and int(found.group(1)) >= 1:
+            rounds.append(int(found.group(1)))
+            if re.search(r"^- \{type: concede\}$", segment, flags=re.MULTILINE):
+                conceded.add(int(found.group(1)))
+    return sorted(rounds), conceded
 
 
 def run(command: list[str]) -> subprocess.CompletedProcess[str]:
@@ -146,6 +156,8 @@ def compare(mechcore: Path, left: str, right: str) -> dict:
 def verdict(entry: dict) -> str:
     if entry.get("equal"):
         return "equal"
+    if entry.get("conceded"):
+        return "conceded, not compared"
     if "refused" in entry:
         return f"refused: {entry['refused']}"
     if "failed" in entry:
@@ -175,7 +187,15 @@ def main() -> int:
         converted = run(
             [str(arguments.mechcore), "replay", "convert", str(battle), str(written), "--force"]
         )
-        entries = [{"battle": battle.stem, "round": number} for number in rounds_of(battle)]
+        numbers, conceded = rounds_of(battle)
+        skipped = [
+            {"battle": battle.stem, "round": number, "conceded": True} for number in conceded
+        ]
+        entries = [
+            {"battle": battle.stem, "round": number}
+            for number in numbers
+            if number not in conceded
+        ]
         if converted.returncode != 0:
             for entry in entries:
                 entry["refused"] = reason(converted.stdout + converted.stderr)
@@ -199,20 +219,21 @@ def main() -> int:
                     entry.update(
                         compare(arguments.mechcore, steps[left]["output"], steps[right]["output"])
                     )
-        for entry in entries:
+        for entry in sorted(entries + skipped, key=lambda entry: entry["round"]):
             results.append(entry)
             if arguments.json:
                 print(json.dumps(entry, ensure_ascii=False), flush=True)
             else:
                 print(f"{entry['battle']} round {entry['round']}: {verdict(entry)}", flush=True)
 
-    equal = sum(1 for entry in results if entry.get("equal"))
+    compared = [entry for entry in results if not entry.get("conceded")]
+    equal = sum(1 for entry in compared if entry.get("equal"))
     print(
-        f"{equal} of {len(results)} rounds fight the same from the battle's replay as from "
-        "the match's own",
+        f"{equal} of {len(compared)} rounds fight the same from the battle's replay as from "
+        f"the match's own; {len(results) - len(compared)} conceded, not compared",
         file=sys.stderr,
     )
-    return 0 if equal == len(results) else 1
+    return 0 if equal == len(compared) else 1
 
 
 if __name__ == "__main__":
