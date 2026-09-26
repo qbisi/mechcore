@@ -1353,27 +1353,28 @@ mod tests {
     #[test]
     fn a_pool_log_may_order_only_its_choices_otherwise() {
         use crate::reinforcement::{Pool, level_four_skills};
+        use std::fmt::Write as _;
         let skills = level_four_skills().unwrap();
         let rounds = |log: &[(i32, i32)], excluded: &[i32]| {
-            let log: String = log
-                .iter()
-                .map(|(operation, id)| {
-                    format!(
-                        "<ValueTupleOfInt32Int32><Item1>{operation}</Item1><Item2>{id}</Item2>\
-                         </ValueTupleOfInt32Int32>"
-                    )
-                })
-                .collect();
-            let values: String = skills
-                .iter()
-                .map(|id| format!("<Value>{id}</Value>"))
-                .collect();
-            let excluded: String = excluded
-                .iter()
-                .map(|round| {
-                    format!("<DictItem><Key>{round}</Key><Values>{values}</Values></DictItem>")
-                })
-                .collect();
+            let log = log.iter().fold(String::new(), |mut all, (operation, id)| {
+                let _ = write!(
+                    all,
+                    "<ValueTupleOfInt32Int32><Item1>{operation}</Item1><Item2>{id}</Item2>\
+                     </ValueTupleOfInt32Int32>"
+                );
+                all
+            });
+            let values = skills.iter().fold(String::new(), |mut all, id| {
+                let _ = write!(all, "<Value>{id}</Value>");
+                all
+            });
+            let excluded = excluded.iter().fold(String::new(), |mut all, round| {
+                let _ = write!(
+                    all,
+                    "<DictItem><Key>{round}</Key><Values>{values}</Values></DictItem>"
+                );
+                all
+            });
             let xml = format!(
                 "<matchDatas><MatchSnapshotData><round>0</round></MatchSnapshotData>\
                  <MatchSnapshotData><round>1</round><poolOPs>{log}</poolOPs>\
@@ -1388,7 +1389,7 @@ mod tests {
         // players choose.
         let pools = [Pool {
             log: vec![(0, 30703), (1, 30701), (0, 31801), (0, 32103)],
-            choices: vec![2..4],
+            choices: std::iter::once(2..4).collect(),
             excluded: vec![6],
         }];
         let check = |log: &[(i32, i32)], excluded: &[i32]| {
