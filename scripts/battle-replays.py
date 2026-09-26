@@ -38,7 +38,6 @@ import json
 import os
 from pathlib import Path
 import re
-import shutil
 import subprocess
 import sys
 
@@ -111,8 +110,9 @@ def record(mechcore: Path, steps: list[dict], folder: Path) -> dict[int, str]:
         )
         path = folder / "session.mcscript"
         path.write_text(script, encoding="utf-8")
+        start = GAME_LOG.stat().st_size if game_running() and GAME_LOG.exists() else 0
         result = run([str(mechcore), "run", str(path)])
-        keep_game_log(folder)
+        keep_game_log(folder, start)
         remaining = [index for index in pending if not Path(steps[index]["output"]).exists()]
         if result.returncode == 0 or not remaining:
             for index in remaining:
@@ -124,15 +124,30 @@ def record(mechcore: Path, steps: list[dict], folder: Path) -> dict[int, str]:
     return failed
 
 
-def keep_game_log(folder: Path) -> None:
-    """Keeps the log of the game session just run beside its recordings: the
-    game names each decision it refused there, and the next launch truncates
-    it. A headless game writes Unity's log to its standard output, which
-    mechcore sends to its launch log."""
-    log = Path(f"/tmp/mechcore-game-{os.getuid()}.log")
-    if log.exists():
-        sessions = len(list(folder.glob("game-*.log")))
-        shutil.copy(log, folder / f"game-{sessions}.log")
+GAME_LOG = Path(f"/tmp/mechcore-game-{os.getuid()}.log")
+"""Where mechcore sends a launched game's output. A headless game writes
+Unity's log there too, and a launch truncates it."""
+
+
+def game_running() -> bool:
+    """Whether a game is running, which the next session will reuse rather
+    than launch."""
+    return run(["pgrep", "-f", "Mechabellum.app/Contents/MacOS/Mechabellum"]).returncode == 0
+
+
+def keep_game_log(folder: Path, start: int) -> None:
+    """Keeps what the game logged during the session just run beside its
+    recordings: the game names each decision it refused there. A session that
+    reused the game left running by the previous one continues its log from
+    ``start``; one that launched a new game began it again."""
+    if not GAME_LOG.exists():
+        return
+    with GAME_LOG.open("rb") as log:
+        size = log.seek(0, 2)
+        log.seek(start if start <= size else 0)
+        session = log.read()
+    sessions = len(list(folder.glob("game-*.log")))
+    (folder / f"game-{sessions}.log").write_bytes(session)
 
 
 def compare(mechcore: Path, left: str, right: str) -> dict:

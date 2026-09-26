@@ -222,39 +222,14 @@ impl Session {
         Ok(ownership)
     }
 
-    /// Release the game according to ownership.
+    /// Leave the game.
     ///
-    /// An attached game is left to its owner. An owned game is asked to quit
-    /// and then awaited; if the request itself failed the game was never told
-    /// to exit, so awaiting it would hang and it is terminated instead.
-    ///
-    /// An evicted session releases nothing. The adapter took the game and is
-    /// keeping that process at the main menu for the client that claimed it,
-    /// so quitting or terminating it here would destroy someone else's game.
-    pub(crate) async fn release(&self, ownership: Option<Ownership>) -> Result<(), String> {
-        let Some(Ownership::Owned { mut child, .. }) = ownership else {
-            return Ok(());
-        };
-        if self.was_evicted() {
-            return Ok(());
-        }
-        match self.quit_game().await {
-            Ok(_) => match child.wait().await {
-                Ok(status) if status.success() => Ok(()),
-                Ok(status) => Err(format!("game exited with {status}")),
-                Err(error) => Err(format!("cannot await the game process: {error}")),
-            },
-            Err(error) => {
-                let killed = child.kill().await;
-                Err(format!(
-                    "quit_game failed ({error}); the launched game was terminated{}",
-                    match killed {
-                        Ok(()) => String::new(),
-                        Err(problem) => format!(" unsuccessfully: {problem}"),
-                    }
-                ))
-            }
-        }
+    /// Nothing is shut down on the way out. A game this tool launched quits
+    /// itself once no client has claimed it for the linger, which is what lets
+    /// the next launch reuse it, and any other game belongs to whoever started
+    /// it. An evicted session has already lost the connection.
+    pub(crate) async fn release(&self) {
+        self.disconnect_adapter().await;
     }
 
     /// Adopt a client that acquisition already connected and greeted.

@@ -1,5 +1,5 @@
 use mechcore_protocol::{
-    Busy, Claim, EVICTED_CODE, Evicted, Hello, Operation, PROTOCOL, Request, Response,
+    Busy, Claim, EVICTED_CODE, Evicted, GameIdentity, Hello, Operation, PROTOCOL, Request, Response,
 };
 use serde::Deserialize;
 use serde_json::Value;
@@ -13,6 +13,7 @@ pub struct Client {
     reader: BufReader<tokio::net::unix::OwnedReadHalf>,
     writer: OwnedWriteHalf,
     next_id: u64,
+    game: Option<GameIdentity>,
 }
 
 /// Why an endpoint could not be turned into a live client.
@@ -127,6 +128,7 @@ impl Client {
             reader: BufReader::new(reader),
             writer,
             next_id: 1,
+            game: None,
         };
         let mut claim = serde_json::to_vec(&Claim::current(level))
             .map_err(|error| ConnectError::Protocol(format!("cannot encode the claim: {error}")))?;
@@ -179,7 +181,13 @@ impl Client {
                 hello.capabilities
             )));
         }
+        client.game = Some(hello.game);
         Ok(client)
+    }
+
+    /// The game this client was admitted to, as its greeting described it.
+    pub fn game(&self) -> Option<&GameIdentity> {
+        self.game.as_ref()
     }
 
     pub async fn request(

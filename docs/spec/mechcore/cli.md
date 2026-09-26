@@ -439,9 +439,9 @@ Three more belong to the session rather than the game:
 `--level` and what each refuses. **Acquiring the game is an operation, not an
 option.** A caller that holds a session takes the game by naming one of those
 three, and a caller that holds none — a command, which is one operation and
-then an exit — joins a game somebody else is keeping alive as it runs, because
-there is nothing else it could do: a launched game is owned, and a command that
-launched one would shut it down as it exits. So a command takes `--level
+then an exit — joins a game somebody else started, including one a run or a
+shell launched and left to linger. Launching is declared by the two frontends
+that hold a session, and nowhere else. So a command takes `--level
 <0-4>`, which orders it against other clients, and nothing else; one that
 reaches no game refuses with `unavailable` rather than starting one, and
 `--launch` names where launching belongs.

@@ -1,8 +1,8 @@
 //! Interactive REPL frontend.
 //!
 //! A line is a command with the program name dropped, so what works here works
-//! on a command line and in a run document. The shell owns the game process
-//! when it launched one, and never when it attached to one.
+//! on a command line and in a run document. Leaving the shell leaves the game:
+//! one it launched quits itself once nobody has claimed it for the linger.
 //!
 //! Acquiring the game is an operation rather than an option: a shell opens
 //! offline and takes the game with `game launch` or `game attach`, each
@@ -24,7 +24,7 @@ the game
   game launch [--level 0-4] [--headless]
                                   start a game and own it; headless opens no window
   game attach [--level 0-4]       join a running game, leaving it to its owner
-  game detach                     release an attached game
+  game detach                     leave the game, which a launched one outlives by 30s
   game status                     current status snapshot
   game start_test [--seed s] [--map-id id]
   game apply_layout <layout.yaml> [--seed s]
@@ -65,12 +65,10 @@ async fn run_async() -> Result<(), String> {
     )
     .await;
 
-    // Never leave this function without running shut_down: an owned game is
-    // only shut down here, and a dropped Child does not terminate it.
     let looped = repl(&session, &mut ownership, &mut out).await;
-    let closed = session.release(ownership).await;
+    session.release().await;
     monitor.abort();
-    looped.and(closed)
+    looped
 }
 
 async fn repl(
@@ -185,24 +183,14 @@ async fn game(
                 Err(failure) => write(out, &format!("{failure}\n")).await,
             }
         }
-        "detach" => match ownership.take() {
-            None => write(out, "not holding a game\n").await,
-            Some(owned @ Ownership::Owned { .. }) => {
-                // Refuse silently dropping a game we started: quitting is
-                // the explicit path, so the user cannot orphan it here.
-                *ownership = Some(owned);
-                write(
-                    out,
-                    "this shell owns the game; use game quit_game then quit, \
-                     or quit to shut it down\n",
-                )
-                .await;
+        "detach" => {
+            if ownership.take().is_some() {
+                session.release().await;
+                write(out, &left(session)).await;
+            } else {
+                write(out, "not holding a game\n").await;
             }
-            Some(Ownership::Attached) => {
-                session.disconnect_adapter().await;
-                write(out, "detached; the game keeps running\n").await;
-            }
-        },
+        }
         _ if ownership.is_none() => {
             write(
                 out,
@@ -221,12 +209,23 @@ fn banner(ownership: &Ownership, session: &Arc<Session>) -> String {
     let endpoint = session.endpoint().display();
     match ownership.log() {
         Some(log) => format!(
-            "launched game at {endpoint} (owned); quit will shut it down\n\
+            "launched game at {endpoint}; it quits {}s after its last client leaves\n\
              game output: {}\n",
+            crate::acquire::LINGER.as_secs(),
             log.display()
         ),
-        None => format!("attached at {endpoint} (not owned); quit leaves it running\n"),
+        None => format!("joined the game at {endpoint}; leaving does not shut it down\n"),
     }
+}
+
+/// What leaving a game does to it, which the shell cannot know: a game that
+/// was left running by an earlier launch is joined, and still lingers.
+fn left(session: &Arc<Session>) -> String {
+    format!(
+        "left the game at {}; one mechcore launched quits {}s after its last client\n",
+        session.endpoint().display(),
+        crate::acquire::LINGER.as_secs()
+    )
 }
 
 /// The prompt doubles as the status display, so no polling command is needed.
@@ -251,7 +250,7 @@ fn prompt(ownership: Option<&Ownership>, session: &Arc<Session>) -> String {
             label.push_str(" deploy");
         }
     }
-    if !ownership.is_owned() {
+    if !ownership.is_launched() {
         label.push('*');
     }
     format!("{label}> ")

@@ -8,7 +8,7 @@ use std::path::PathBuf;
 /// A running game keeps the Adapter it was started with, so a rebuilt Adapter
 /// and a running game can differ. Naming the contract is what turns that into
 /// one clear refusal at connect time instead of a desynchronised stream.
-pub const PROTOCOL: &str = "mechcore.adapter.v5";
+pub const PROTOCOL: &str = "mechcore.adapter.v6";
 /// Highest round `apply_layout` will stage.
 ///
 /// This is the executor's timeout budget for advancing through every earlier
@@ -99,17 +99,36 @@ pub struct Hello {
     pub kind: String,
     pub protocol: String,
     pub capabilities: Vec<Operation>,
+    /// The game the client was admitted to, which is how a launch decides
+    /// whether a game left running can do its work.
+    pub game: GameIdentity,
 }
 
 impl Hello {
     #[must_use]
-    pub fn current() -> Self {
+    pub fn current(game: GameIdentity) -> Self {
         Self {
             kind: "hello".into(),
             protocol: PROTOCOL.into(),
             capabilities: Operation::ALL.to_vec(),
+            game,
         }
     }
+}
+
+/// What a running game is, beyond the operations it answers.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct GameIdentity {
+    /// BLAKE3 of the Adapter library the game loaded, in hex. A game keeps the
+    /// Adapter it started with, so this is what tells a rebuilt one apart.
+    pub adapter: String,
+    /// Whether the game was started with `-nographics`, and renders nothing.
+    pub headless: bool,
+    /// How long the game waits for its next client before it quits itself, or
+    /// `None` for a game that waits for ever. Only a game `mechcore` launched
+    /// waits a bounded time.
+    pub linger_seconds: Option<u64>,
 }
 
 /// The first message a client sends, before it is greeted or refused.
@@ -421,12 +440,17 @@ mod tests {
     }
 
     #[test]
-    fn hello_is_minimal_compatibility_handshake() {
+    fn hello_names_the_contract_and_the_game() {
         assert_eq!(
-            serde_json::to_value(Hello::current()).unwrap(),
+            serde_json::to_value(Hello::current(GameIdentity {
+                adapter: "ab".into(),
+                headless: true,
+                linger_seconds: Some(30),
+            }))
+            .unwrap(),
             serde_json::json!({
                 "kind": "hello",
-                "protocol": "mechcore.adapter.v5",
+                "protocol": "mechcore.adapter.v6",
                 "capabilities": [
                     "status",
                     "start_test",
@@ -439,6 +463,7 @@ mod tests {
                     "quit_match",
                     "quit_game",
                 ],
+                "game": {"adapter": "ab", "headless": true, "linger_seconds": 30},
             })
         );
     }
@@ -449,7 +474,7 @@ mod tests {
             serde_json::to_value(Claim::current(DEFAULT_LEVEL)).unwrap(),
             serde_json::json!({
                 "kind": "claim",
-                "protocol": "mechcore.adapter.v5",
+                "protocol": "mechcore.adapter.v6",
                 "level": 1,
             })
         );
@@ -457,7 +482,7 @@ mod tests {
             serde_json::to_value(Busy::current(3, true)).unwrap(),
             serde_json::json!({
                 "kind": "busy",
-                "protocol": "mechcore.adapter.v5",
+                "protocol": "mechcore.adapter.v6",
                 "holder_level": 3,
                 "evicting": true,
             })
@@ -466,7 +491,7 @@ mod tests {
             serde_json::to_value(Evicted::current(4)).unwrap(),
             serde_json::json!({
                 "kind": "evicted",
-                "protocol": "mechcore.adapter.v5",
+                "protocol": "mechcore.adapter.v6",
                 "by_level": 4,
             })
         );

@@ -63,8 +63,8 @@ an already-occupied endpoint explicitly rather than leaving the caller to infer
 occupancy from a timeout:
 
 ```json
-{"kind":"hello","protocol":"mechcore.adapter.v5","capabilities":["status", "..."]}
-{"kind":"busy","protocol":"mechcore.adapter.v5","holder_level":1,"evicting":false}
+{"kind":"hello","protocol":"mechcore.adapter.v6","capabilities":["status", "..."],"game":{"adapter":"…","headless":true,"linger_seconds":30}}
+{"kind":"busy","protocol":"mechcore.adapter.v6","holder_level":1,"evicting":false}
 ```
 
 A `busy` answer is peer-verified like any other connection and is followed by
@@ -83,11 +83,11 @@ than a latched state.
 
 | Process | Endpoint | Probe | State | `launch` | `attach` |
 | --- | --- | --- | --- | --- | --- |
-| absent | absent | — | **A** clean | launch, **owned** | fail `no_game` |
-| absent | present | connect refused | **B** stale endpoint | launch, **owned** | fail `no_game` |
+| absent | absent | — | **A** clean | launch | fail `no_game` |
+| absent | present | connect refused | **B** stale endpoint | launch | fail `no_game` |
 | present | absent | — | **C** foreign game | fail `foreign_game` | fail `foreign_game` |
-| present | present | `hello` | **D** adapter idle | take over, **not owned** | take over, **not owned** |
-| present | present | `busy`, `evicting` | **E1** outranked holder | wait, then take over, **not owned** | same |
+| present | present | `hello` | **D** adapter idle | join, or retire and launch | join |
+| present | present | `busy`, `evicting` | **E1** outranked holder, or a game quitting | wait, then as found | same |
 | present | present | `busy` | **E2** adapter occupied | fail `adapter_busy` | fail `adapter_busy` |
 | present | present | no greeting | **F** adapter unresponsive | fail `adapter_unresponsive` | fail `adapter_unresponsive` |
 
@@ -95,12 +95,20 @@ State **C** is the player's own game. The Adapter cannot be injected into a
 live process, and starting a second instance would corrupt both. Both verbs
 fail closed and name the running PID.
 
-The two verbs differ only in states **A** and **B**: `launch` starts a game
-where there is none, `attach` refuses to. Everywhere else both mean "give me
-the game", and what decides is the level, not the verb. A script that takes
-over a game it did not start is **not owned**: ownership follows who started
-the process, so taking the game over never makes a session responsible for
-shutting a stranger's game down.
+The two verbs differ in states **A** and **B**, where `launch` starts a game
+and `attach` refuses to, and in **D**, where only a launch judges the game it
+found. Everywhere else both mean "give me
+the game", and what decides is the level, not the verb.
+
+In state **D** a launch looks at the game it found. A game `mechcore` launched
+and nobody holds is [lingering](#leaving-the-game), and a launch reuses it when
+it can do the work, which is the point of lingering: a batch of scripts pays
+for one game start. It cannot when it loaded an Adapter other than the one
+beside this `mechcore`, as it does after a rebuild, or when it runs headless
+and the launch wants a window. The launch then asks it to quit, waits until
+the process and its endpoint are gone, and starts a new game as in state
+**A**. A game started any other way is joined as it is, window or not, stale
+Adapter or not.
 
 State **B** does not unlink anything. The Adapter clears the stale endpoint
 when the newly launched game binds.
@@ -124,33 +132,40 @@ at its next polling point, a capture included: the recording in flight is torn
 down and published nowhere. Leaving the match and settling at the main menu is
 the only part of a hand-over that still takes time.
 
-An evicted client releases nothing, whatever its ownership: the game process it
-started is being kept at the main menu for the client that claimed it, so
-shutting it down there would destroy someone else's game. Its run ends where it
-was interrupted, reports `{"operation":"evicted","completed":false}`, and exits
+An evicted client has nothing left to release: the game is being kept at the
+main menu for the client that claimed it. Its run ends where it was
+interrupted, reports `{"operation":"evicted","completed":false}`, and exits
 successfully.
+
+A lingering game that has started to quit answers every claim `evicting`,
+whatever its level, and then goes. Its endpoint is removed as the process
+exits, so for that moment the process is there with no endpoint, which a claim
+that was told to wait reads as the game on its way out rather than as state
+**C**; it then finds state **A**.
 
 Nothing else evicts. A client that is refused waits, retries or gives up, and
 no client can take the game by any means other than outranking its holder.
 
-## Ownership
+## Leaving the game
 
-Ownership decides shutdown, and it is never inferred:
+No session shuts the game down on its way out, whether it launched the game or
+joined it. A game `mechcore` launched **lingers**: `mechcore` starts it with
+`MECHCORE_ADAPTER_LINGER_SECONDS=30`, and once its last client has left, the
+Adapter takes it back to the main menu and waits 30 s for the next one. A
+claim in that time is served at once, by the same process. A game nobody
+claims quits itself from the main menu; if the process has not exited 30 s
+after asking Unity to quit, the Adapter ends it.
 
-- Starting the process sets **owned**. Normal exit shuts the game down through
-  `quit_game`.
-- Finding a game already running sets **not owned**, for both verbs. Exit
-  closes the connection and leaves the game running. A not-owned session must
-  never terminate the process, because the process belongs to another session
-  or to the user.
-- Being evicted releases nothing at all, owned or not.
+A game started any other way, with the Adapter injected by hand, has no linger
+and waits for ever. It belongs to whoever started it.
 
-`quit_game` is an operation, not a property of ownership: any client may shut
-the game down deliberately, which is what makes a rebuilt Adapter loadable. A
-running game keeps the Adapter it started with.
+`quit_game` is an operation any client may call to end the game now. A running
+game keeps the Adapter it started with, and a launch retires a lingering game
+whose Adapter is not the one beside it, so a rebuilt Adapter is loaded by the
+next launch without quitting anything by hand.
 
-Ownership is visible in the shell banner, in `status`, and in the structured
-result of every `mechcore run` execution.
+The shell banner says whether a session launched the game or joined it, and
+where a launched game's output goes.
 
 ## Declaration
 
@@ -203,8 +218,8 @@ started it. `--level` rides on the line that claims, defaulting to `1`, so
 what a session outranks is stated where it is claimed and nowhere else.
 
 A session may therefore start offline, run a comparison, and take the game
-only when it needs one. `game detach` on an owned session requires
-confirmation, or `quit`.
+only when it needs one. `game detach` and `quit` leave the game as any exit
+does ([Leaving the game](#leaving-the-game)).
 
 ### mechcore game
 
@@ -216,12 +231,10 @@ mechcore game status
 mechcore game apply_layout layout.yaml --level 3
 ```
 
-There is nothing else a command could do, so it does not declare it. A launched
-game is **owned**, and ownership is what shuts it down, so a command that
-launched one would take it down as it exits; a session that outlives one
-operation, which is the shell and a run document, is where launching belongs.
-`--launch` is refused with that, and `launch`, `attach` and `detach` are
-refused as verbs for the same reason.
+There is nothing else a command could do, so it does not declare it. A
+session that outlives one operation, which is the shell and a run document, is
+where launching belongs. `--launch` is refused with that, and `launch`,
+`attach` and `detach` are refused as verbs for the same reason.
 
 `--level` is the one acquisition option a command takes, because a command
 claims like any other client.
@@ -315,7 +328,8 @@ been followed by another launch. Its directory is the Unity company and product
 name, chosen by the game rather than by this tool, so an update may move it.
 
 The launch log sits beside the endpoint, user-scoped for the same reason and
-truncated on each launch. Its path is reported
+truncated on each launch. A game reused by the next launch keeps writing to
+the log it was started with, so a batch's sessions share one. Its path is reported
 in the shell banner. An **attached** session has no launch log: whoever started
 that game chose where its output went.
 
@@ -325,15 +339,6 @@ the default one is indistinguishable from state **C**; pass the same override to
 both sides.
 
 ## Unresolved
-
-**Who shuts down a game whose owner was evicted?** A launching session is
-**owned** and shuts the game down on exit. If a higher claim takes that game,
-the evicted session releases nothing, and the claimant is **not owned** and so
-leaves the game running too. The process then outlives every session that
-touched it. Either ownership should transfer with the game, or eviction should
-be allowed to end a process the claimant did not start, or the outcome is
-correct and a human closing the window is the intended end. Nothing decides
-which.
 
 **Should a custom endpoint be discoverable?** A game launched with
 `MECHCORE_ADAPTER_SOCKET` set, probed by a client using the default, reads

@@ -476,15 +476,11 @@ impl Scope {
 async fn execute(script: Script, base: PathBuf, overwrite: Overwrite) -> Result<bool, String> {
     let session = Session::new();
     let monitor = tokio::spawn(Session::monitor_status(session.clone()));
-    let mut ownership = None;
-    if let Some(mode) = script.game {
-        match session.acquire(mode, script.level).await {
-            Ok(owned) => ownership = Some(owned),
-            Err(failure) => {
-                monitor.abort();
-                return Err(failure);
-            }
-        }
+    if let Some(mode) = script.game
+        && let Err(failure) = session.acquire(mode, script.level).await
+    {
+        monitor.abort();
+        return Err(failure);
     }
 
     let mut scope = Scope {
@@ -493,17 +489,15 @@ async fn execute(script: Script, base: PathBuf, overwrite: Overwrite) -> Result<
         overwrite,
     };
     let outcome = run_steps(&script, &mut scope, &session).await;
-    let closed = session.release(ownership).await;
+    session.release().await;
     monitor.abort();
     // Losing the game to a higher claim is not a failed script. The run ends
     // where it was interrupted, says so, and leaves the game to its claimant.
     if session.was_evicted() {
         println!("{}", json!({"operation": "evicted", "completed": false}));
-        closed?;
         return Ok(true);
     }
     outcome?;
-    closed?;
     Ok(true)
 }
 

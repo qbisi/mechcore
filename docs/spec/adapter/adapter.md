@@ -66,16 +66,17 @@ target/release/libmechcore_adapter.dylib
 ```
 
 Debug builds, custom target directories and explicit target triples use their
-corresponding output directory. Distribute both files together. After changing
-the Adapter, start a new game with `game: launch` (or `game launch` in a shell): an
-already running game keeps its loaded Adapter, including when using `attach`.
-That is why `quit_game` stays a plain operation any client can call: shutting
-the running game down is the only way to load a rebuilt Adapter, and a client
-that took the game over can do it without having started the process. When the
-wire contract itself changed, the running game answers with the old `protocol`
-name and every new client is refused with `protocol_mismatch`; quit that game
-from the session that still holds it, or from the game's own menu, and launch
-again.
+corresponding output directory. Distribute both files together. A running game
+keeps the Adapter it loaded, including when using `attach`. A game `mechcore`
+launched lingers after its last client, and the next `game: launch` (or
+`game launch` in a shell) retires it and starts a new one when the Adapter it
+loaded is not the one beside `mechcore`, so a rebuilt Adapter is loaded without
+quitting anything by hand. A game started any other way is joined with the
+Adapter it has; `quit_game` is a plain operation any client can call for that
+reason. When the wire contract itself changed, the running game answers with
+the old `protocol` name and every new client is refused with
+`protocol_mismatch`; a lingering game quits itself within 30 s, and any other
+is quit from the game's own menu, before launching again.
 
 `python3 scripts/check-adapter-packaging.py` exercises the real packaging build
 script with a small test dylib: source changes, no-op builds, a removed copy,
@@ -132,7 +133,7 @@ Messages are UTF-8 JSON, one object per line, with a maximum encoded size of
 1 MiB. A new connection speaks first, and says what it is worth:
 
 ```json
-{"kind":"claim","protocol":"mechcore.adapter.v5","level":1}
+{"kind":"claim","protocol":"mechcore.adapter.v6","level":1}
 ```
 
 The level is `0..=4`. It orders clients and nothing else: a claim strictly
@@ -148,7 +149,7 @@ An admitted claim receives:
 ```json
 {
   "kind": "hello",
-  "protocol": "mechcore.adapter.v5",
+  "protocol": "mechcore.adapter.v6",
   "capabilities": [
     "status",
     "start_test",
@@ -160,14 +161,35 @@ An admitted claim receives:
     "speed_up",
     "quit_match",
     "quit_game"
-  ]
+  ],
+  "game": {
+    "adapter": "9f2c…",
+    "headless": true,
+    "linger_seconds": 30
+  }
 }
 ```
+
+`game` is what the claim was admitted to. `adapter` is the BLAKE3 of the
+Adapter library the game loaded, read when the Adapter started; `headless` is
+whether the game was started with `-nographics`; `linger_seconds` is how long
+the game waits for its next client before it quits itself, and is `null` for a
+game that waits for ever. A launch reads it to decide whether a game left
+running can do its work
+([session.md](../mechcore/session.md#leaving-the-game)).
+
+A game lingers only when it was started with `MECHCORE_ADAPTER_LINGER_SECONDS`,
+a positive number of seconds, which `mechcore` sets on every game it launches;
+any other value stops the Adapter from starting. Once a lingering game's client
+leaves, the Adapter takes the game back to the main menu, since nobody else is
+left to. When no claim arrives for that long, it quits the game from the main
+menu, answers every claim that arrives meanwhile `evicting`, and ends the
+process itself if it has not exited 30 s later.
 
 A claim that does not win is answered instead:
 
 ```json
-{"kind":"busy","protocol":"mechcore.adapter.v5","holder_level":1,"evicting":true}
+{"kind":"busy","protocol":"mechcore.adapter.v6","holder_level":1,"evicting":true}
 ```
 
 `holder_level` is what the claim lost to, or is taking the game from.
@@ -180,7 +202,7 @@ connection immediately.
 The client being served is told before its connection closes:
 
 ```json
-{"kind":"evicted","protocol":"mechcore.adapter.v5","by_level":3}
+{"kind":"evicted","protocol":"mechcore.adapter.v6","by_level":3}
 ```
 
 That notice is the difference between a taken game and a crashed one. A client
@@ -310,8 +332,8 @@ Typical output:
 
 The operation invokes Unity application shutdown. It refuses with
 `invalid_game_state` unless the game is at the main menu with no current match.
-The adapter confirms the request; the MCP layer additionally waits for the
-owned process to exit.
+The adapter confirms the request; the session additionally waits for the
+Adapter to disconnect.
 
 ### record_battle
 

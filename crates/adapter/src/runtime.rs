@@ -3,7 +3,7 @@ use crate::il2cpp::{Api, Class, Error as Il2CppError, FieldInfo, Object};
 use crate::layout::{self, Plan};
 use crate::operations;
 use mechcore_protocol::{
-    Busy, Claim, EVICTED_CODE, Evicted, Hello, MAX_LEVEL, MAX_STAGED_ROUND,
+    Busy, Claim, EVICTED_CODE, Evicted, GameIdentity, Hello, MAX_LEVEL, MAX_STAGED_ROUND,
     MAX_WATCH_MATCH_TIMEOUT_SECONDS, MAX_WATCH_SCENE_WAIT_SECONDS, Operation, PROTOCOL,
     RecordBattleArguments, RecordBattleInstrumentation, RecordReplayRoundArguments,
     RecordWatchReplayArguments, Refused, Request, Response,
@@ -15,15 +15,24 @@ use std::ffi::{CString, c_void};
 use std::fs;
 use std::io::{self, BufRead, BufReader, Read, Write};
 use std::os::fd::AsRawFd;
+use std::os::unix::ffi::OsStrExt;
 use std::os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt};
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
+use std::sync::mpsc::RecvTimeoutError;
 use std::sync::{Arc, OnceLock, mpsc};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime};
 
 const SOCKET_ENV: &str = "MECHCORE_ADAPTER_SOCKET";
+/// Seconds a game waits for its next client before it quits itself. `mechcore`
+/// sets it on the games it launches; a game started any other way waits for
+/// ever.
+const LINGER_ENV: &str = "MECHCORE_ADAPTER_LINGER_SECONDS";
+/// How long a game that asked Unity to quit is given to exit before the
+/// Adapter ends the process itself.
+const QUIT_GRACE: Duration = Duration::from_secs(30);
 const MAX_MESSAGE_BYTES: usize = 1024 * 1024;
 /// How long a new connection has to state its level.
 const CLAIM_DEADLINE: Duration = Duration::from_secs(3);
@@ -414,6 +423,12 @@ fn run() -> Result<(), RuntimeError> {
         }
     };
     let mut runtime = load_runtime_on_main_thread(api)?;
+    let linger = linger()?;
+    let identity = GameIdentity {
+        adapter: adapter_digest()?,
+        headless: crate::headless::without_graphics(),
+        linger_seconds: linger.map(|linger| linger.as_secs()),
+    };
     let endpoint = socket_path()?;
     let listener = bind_listener(&endpoint)?;
     arm_endpoint_cleanup(&endpoint);
@@ -426,19 +441,43 @@ fn run() -> Result<(), RuntimeError> {
         move || greet_clients(&listener, &serving, &sender)
     });
 
-    for stream in receiver {
-        let result = serve_client(&mut runtime, stream);
+    loop {
+        let stream = match linger {
+            None => match receiver.recv() {
+                Ok(stream) => stream,
+                Err(_) => break,
+            },
+            Some(linger) => match receiver.recv_timeout(linger) {
+                Ok(stream) => stream,
+                // A claim that is being handed over holds the slot already;
+                // it is taken on the next turn instead of quitting under it.
+                Err(RecvTimeoutError::Timeout) => {
+                    if serving
+                        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+                        .is_ok()
+                    {
+                        quit_after_linger(&mut runtime, linger);
+                    }
+                    continue;
+                }
+                Err(RecvTimeoutError::Disconnected) => break,
+            },
+        };
+        let result = serve_client(&mut runtime, stream, &identity);
         // An evicted client leaves the game wherever its last operation
         // stopped. The adapter owes the next client a main menu, and only
         // then is the slot free: admitting anyone earlier would hand over a
-        // half-finished match.
-        if evicting() {
+        // half-finished match. A game that lingers owes it the same to
+        // whoever comes next, since nobody is left to take the game back.
+        if evicting() || linger.is_some() {
             if let Err(response) = return_to_main_menu(&mut runtime, 0) {
                 let detail = response
                     .error
                     .as_ref()
                     .map_or("unknown error", |error| error.message.as_str());
-                eprintln!("mechcore-adapter: cannot reach the main menu after eviction: {detail}");
+                eprintln!(
+                    "mechcore-adapter: cannot reach the main menu for the next client: {detail}"
+                );
             }
             EVICTING_FOR.store(NO_CLAIM, Ordering::SeqCst);
         }
@@ -448,6 +487,82 @@ fn run() -> Result<(), RuntimeError> {
         }
     }
     Ok(())
+}
+
+/// How long this game waits for its next client, from [`LINGER_ENV`].
+fn linger() -> Result<Option<Duration>, RuntimeError> {
+    let Some(value) = env::var_os(LINGER_ENV) else {
+        return Ok(None);
+    };
+    value
+        .to_str()
+        .and_then(|value| value.parse::<u64>().ok())
+        .filter(|seconds| *seconds > 0)
+        .map(|seconds| Some(Duration::from_secs(seconds)))
+        .ok_or_else(|| {
+            RuntimeError::Configuration(format!(
+                "{LINGER_ENV} must be a positive number of seconds"
+            ))
+        })
+}
+
+/// BLAKE3 of the library this code was loaded from.
+///
+/// The file is read once, as the Adapter starts: a build that replaces it
+/// afterwards is exactly what the digest has to tell apart.
+fn adapter_digest() -> Result<String, RuntimeError> {
+    let mut info = libc::Dl_info {
+        dli_fname: std::ptr::null(),
+        dli_fbase: std::ptr::null_mut(),
+        dli_sname: std::ptr::null(),
+        dli_saddr: std::ptr::null_mut(),
+    };
+    // SAFETY: dladdr only reads the loader's image list, and `info` is a
+    // valid out-parameter for the call.
+    let found = unsafe { libc::dladdr(adapter_digest as *const c_void, &raw mut info) };
+    if found == 0 || info.dli_fname.is_null() {
+        return Err(RuntimeError::Configuration(
+            "cannot find the Adapter library's own path".into(),
+        ));
+    }
+    // SAFETY: the loader returns a NUL-terminated path that lives as long as
+    // the image, which is the process.
+    let path = unsafe { std::ffi::CStr::from_ptr(info.dli_fname) };
+    let bytes = fs::read(Path::new(std::ffi::OsStr::from_bytes(path.to_bytes())))?;
+    Ok(blake3::hash(&bytes).to_hex().to_string())
+}
+
+/// End a game nobody claimed within its linger.
+///
+/// Unity is asked to quit from the main menu, as `quit_game` would be. The
+/// process is ended here only if that does not happen, so that a game whose
+/// main thread no longer answers still goes away.
+fn quit_after_linger(runtime: &mut Runtime, linger: Duration) -> ! {
+    QUITTING.store(true, Ordering::SeqCst);
+    eprintln!(
+        "mechcore-adapter: no client for {}s; quitting",
+        linger.as_secs()
+    );
+    let quit = Request {
+        id: 0,
+        operation: Operation::QuitGame,
+        arguments: serde_json::json!({}),
+    };
+    let quit = return_to_main_menu(runtime, 0)
+        .and_then(|_| successful_result(execute_on_main(runtime, &quit)));
+    if let Err(response) = quit {
+        let detail = response
+            .error
+            .as_ref()
+            .map_or("unknown error", |error| error.message.as_str());
+        eprintln!("mechcore-adapter: cannot quit the game: {detail}");
+    }
+    thread::sleep(QUIT_GRACE);
+    eprintln!(
+        "mechcore-adapter: the game did not exit within {}s; ending it",
+        QUIT_GRACE.as_secs()
+    );
+    std::process::exit(1);
 }
 
 /// Accepts connections and hands the single serving slot to the worker loop.
@@ -484,9 +599,12 @@ fn greet_clients(
         if serving.swap(true, Ordering::SeqCst) {
             let holder = HOLDER_LEVEL.load(Ordering::SeqCst);
             // Equal levels do not preempt: two clients that matter the same
-            // amount cannot each decide the other should stop.
-            let evicting = level > holder;
-            if evicting {
+            // amount cannot each decide the other should stop. A game that is
+            // quitting is on its way to every claim alike: each is told to
+            // wait, and finds the game gone.
+            let quitting = QUITTING.load(Ordering::SeqCst);
+            let evicting = quitting || level > holder;
+            if evicting && !quitting {
                 claim_eviction(level);
             }
             if let Err(error) = write_json_line(&mut stream, &Busy::current(holder, evicting)) {
@@ -586,14 +704,18 @@ fn bind_listener(path: &Path) -> Result<UnixListener, RuntimeError> {
     Ok(listener)
 }
 
-fn serve_client(runtime: &mut Runtime, mut stream: UnixStream) -> io::Result<()> {
+fn serve_client(
+    runtime: &mut Runtime,
+    mut stream: UnixStream,
+    identity: &GameIdentity,
+) -> io::Result<()> {
     verify_peer(&stream)?;
     // Short reads rather than one long one: a client that is between steps is
     // still holding the game, and a higher claim must not have to wait for it
     // to speak before the game can be taken back.
     stream.set_read_timeout(Some(CLIENT_POLL_INTERVAL))?;
     stream.set_write_timeout(Some(Duration::from_secs(30)))?;
-    let hello = Hello::current();
+    let hello = Hello::current(identity.clone());
     write_json_line(&mut stream, &hello)?;
     let mut reader = BufReader::new(stream.try_clone()?);
     let mut bytes = Vec::new();
@@ -2119,6 +2241,9 @@ static HOLDER_LEVEL: AtomicU8 = AtomicU8::new(0);
 /// gap between two of them, and is cleared once the game is back at the main
 /// menu and the slot is free.
 static EVICTING_FOR: AtomicU8 = AtomicU8::new(NO_CLAIM);
+
+/// Set once a lingering game has started to quit.
+static QUITTING: AtomicBool = AtomicBool::new(false);
 
 /// Whether a higher claim is taking the game from the serving client.
 fn evicting() -> bool {

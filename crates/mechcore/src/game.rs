@@ -56,9 +56,8 @@ fn one(verb: &str, mut arguments: Args) -> Outcome {
     let level = crate::acquire::level(&mut arguments)?;
     if arguments.flag("--launch")? {
         return Err(Failure::usage(
-            "a command cannot outlive the game it launches; run it against a game \
-             somebody is keeping alive, or launch one in `mechcore shell` or a run \
-             document",
+            "a command joins a game somebody started; launch one in `mechcore shell` \
+             or a run document, and it lingers for 30 s after each client leaves",
         ));
     }
     tokio::runtime::Builder::new_multi_thread()
@@ -72,17 +71,13 @@ fn one(verb: &str, mut arguments: Args) -> Outcome {
 async fn attached(verb: &str, arguments: Args, level: u8) -> Outcome {
     let session = Session::new();
     let monitor = tokio::spawn(Session::monitor_status(session.clone()));
-    let ownership = session
-        .acquire(Mode::Attach, level)
-        .await
-        .map_err(Failure::unavailable);
-    let answered = match ownership {
-        Ok(ownership) => {
+    let answered = match session.acquire(Mode::Attach, level).await {
+        Ok(_) => {
             let answer = operate(verb, arguments, &session).await;
-            let released = session.release(Some(ownership)).await;
-            answer.and_then(|value| released.map_err(Failure::failed).map(|()| value))
+            session.release().await;
+            answer
         }
-        Err(failure) => Err(failure),
+        Err(failure) => Err(Failure::unavailable(failure)),
     };
     monitor.abort();
     let value = answered?;
