@@ -198,6 +198,9 @@ pub struct CommanderSkills {
 pub struct CommanderSkill {
     pub index: i32,
     pub id: i32,
+    /// Whether the previous round spent the slot, for the opening to restart.
+    #[serde(rename = "isActive")]
+    pub active: bool,
     #[serde(rename = "coolingRound")]
     pub cooling_round: i32,
 }

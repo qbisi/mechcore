@@ -508,7 +508,8 @@ fn side_state(
 
     // The snapshot is taken before the round opens, so its cooldowns are the
     // previous round's, and the slots the previous round spent are marked
-    // here for the opening to restart. The actions say which were spent.
+    // for the opening to restart. The actions say which were spent, and the
+    // snapshot marks the same ones active.
     let spent: Vec<i32> = position
         .checked_sub(1)
         .map(|previous| {
@@ -523,14 +524,26 @@ fn side_state(
         .commander_skills
         .entries
         .iter()
-        .map(|skill| PanelSkill {
-            index: skill.index,
-            id: skill.id,
-            cooldown: skill.cooling_round,
-            used: spent.contains(&skill.index),
-            release: None,
+        .map(|skill| {
+            let used = spent.contains(&skill.index);
+            if skill.active != used {
+                return Err(format!(
+                    "round {round} {} marks slot {} {}, and the round before {} it",
+                    seat.name(),
+                    skill.index,
+                    if skill.active { "active" } else { "inactive" },
+                    if used { "spent" } else { "did not spend" },
+                ));
+            }
+            Ok(PanelSkill {
+                index: skill.index,
+                id: skill.id,
+                cooldown: skill.cooling_round,
+                used,
+                release: None,
+            })
         })
-        .collect();
+        .collect::<Result<_, String>>()?;
     battle_skills.sort_by_key(|skill| skill.index);
 
     let retained = retained_from_grbr_round(grbr, u32::try_from(round).unwrap_or(0))?;
