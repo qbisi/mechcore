@@ -80,8 +80,9 @@ the opening undone:
   unit allocator moved back by as many, and the units they unlock;
 - the round's income, what the equipment on the board pays and what the
   previous round's Rapid Resupply still owes are taken back out of the supply;
-- a slot the previous round released restarts as it opens, and every other
-  slot counts down, so a slot on cooldown is written one round higher;
+- a slot the previous round released is written active, which restarts it as
+  the round opens, and every other slot counts down, so a slot on cooldown is
+  written one round higher;
 - the previous round's Rapid Resupply is the snapshot's `energyTowerSkills`;
 - the inventory holds every item, the fitted ones among them.
 

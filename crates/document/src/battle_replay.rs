@@ -622,9 +622,9 @@ fn write_panel(xml: &mut String, side: &SideState, sign: i32, round: i32) -> Res
     for slot in &side.battle_skills {
         let _ = write!(
             xml,
-            "<CommanderSkillData><index>{}</index><id>{}</id><isActive>true</isActive>\
+            "<CommanderSkillData><index>{}</index><id>{}</id><isActive>{}</isActive>\
              <coolingRound>{}</coolingRound><getRound>{round}</getRound>",
-            slot.index, slot.id, slot.cooldown
+            slot.index, slot.id, slot.used, slot.cooldown
         );
         let mut mine: Vec<&String> = Vec::new();
         for (at, (skill, item)) in retained.iter().enumerate() {

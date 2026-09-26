@@ -17,7 +17,13 @@ slot the same way. A skill whose `cooldown` is 0, such as Field Recovery or
 Mobile Beacon, can be spent every round.
 
 A replay's snapshot of a round is taken before that round's count-down, so the
-cooldowns it records are the previous round's.
+cooldowns it records are the previous round's, and it marks active exactly the
+slots the previous round spent, which is what the opening restarts.
+
+Releasing a skill at a unit or a construction is refused while its slot is
+active or cooling down; releasing one at an area is not checked. So a round
+that opened with a slot still active cannot aim that skill at a unit, though
+it can still drop it on an area.
 
 Some skills join the panel already cooling down, with an `initial_cooldown`
 above 0, and one, Unit Recycle, has a `cooldown` of -1. The getter is inlined
@@ -32,6 +38,9 @@ stated for it.
   drops by one, and a slot joins at its `initial_cooldown`, Nuke's and Ion
   Blast's 1 among them: every panel of this version's corpus:
   `scripts/verify-battles.py`.
+- A snapshot marks active exactly the slots the previous round's actions spent;
+  conversion refuses a replay otherwise, so every battle
+  `scripts/verify-battles.py` reads has them.
 
 ### Read
 
@@ -41,6 +50,11 @@ stated for it.
 - A skill is in its initial cooldown while its `initialCoolDown` is above 0
   and fewer rounds than that have passed since the round it joined the panel:
   `CommanderSkillBase.IsInInitialCoolDown`.
+- Releasing marks the slot active: `CommanderSkillManager.ReleaseCommanderSkill`.
+- A release aimed at a unit or a construction is checked for an active or
+  cooling slot, and one aimed at an area is not:
+  `PAP_ReleaseCommanderSkill.Check`,
+  `CommanderSkillManager.CanReleaseCommanderSkill`.
 
 ### Not established
 
