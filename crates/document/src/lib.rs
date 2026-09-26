@@ -16,6 +16,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 pub mod battle;
+pub mod battle_replay;
 mod board;
 pub mod catalog;
 pub mod compile;
