@@ -1368,6 +1368,22 @@ fn recorded_actions(
     seat: Seat,
     offers: Option<&Offers>,
 ) -> Result<Vec<Recorded>, String> {
+    // A battle's concession follows the side's finished deployment, the one
+    // way the corpus records one: the round is fought, then the match ends.
+    let kinds: Vec<&str> = round
+        .actions
+        .entries
+        .iter()
+        .map(|action| action.kind.as_str())
+        .collect();
+    if let Some(at) = kinds.iter().position(|kind| *kind == "PAD_GiveUp")
+        && !kinds[..at].contains(&"PAD_FinishDeploy")
+    {
+        return Err(format!(
+            "{} concedes before finishing its deployment, which a battle does not hold",
+            seat.name()
+        ));
+    }
     let mut converted = Vec::new();
     for action in net_actions(&round.actions.entries) {
         let field = |name: &'static str, value: Option<i32>| {

@@ -421,8 +421,12 @@ missile take no part in deployment collisions and are never refused for it.
 - {type: concede}
 ```
 
-Gives up the match. It carries no operand and writes no field: the round is not
-fought, so no position follows it.
+Gives up the match once the side has finished deploying. It carries no operand
+and writes no field. The round is still fought, and the match ends after it,
+so no position follows it. The corpus's one concession is recorded after its
+side's `FinishDeploy`, and its round's fight replays in full; a concession
+recorded before `FinishDeploy`, which would leave the round unfought, is one
+this format does not hold.
 
 It is the last decision its side takes, and the segment that holds it is the
 last one its battle holds. What the side decided earlier in the round stands in

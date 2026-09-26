@@ -110,7 +110,8 @@ is written under a panel slot of the skill that leaves it.
 ## The decisions
 
 A round's decisions are written in order, each side's ending with
-`PAD_FinishDeploy` unless it concedes:
+`PAD_FinishDeploy`; a side that concedes finishes its deployment first, so its
+round is fought before the match ends:
 
 | Decision | Recorded as |
 | --- | --- |
@@ -119,7 +120,7 @@ A round's decisions are written in order, each side's ending with
 | `upgrade_unit`, `unlock_unit`, `upgrade_technology`, `active_blueprint`, `active_energy_tower_skill`, `strengthen_tower`, `use_equipment`, `release_contraption` | their own action |
 | `move_unit` | `PAD_MoveUnit` of one formation |
 | `release_commander_skill` | `PAD_ReleaseCommanderSkill` from its slot, at its positions or naming its unit or construction |
-| `concede` | `PAD_GiveUp` |
+| `concede` | `PAD_GiveUp`, after the side's `PAD_FinishDeploy` |
 
 The game places a purchase itself, where the deployment area is free, and a
 battle states where the formation ends up, so a purchase is followed by the
