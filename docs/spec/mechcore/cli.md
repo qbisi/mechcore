@@ -427,7 +427,11 @@ that replay's round with `record_replay_round`, so a layout is fought and
 recorded without a Training Ground: the game fights it without a scene, from
 the main menu and back to it. `--seed` overrides the layout's own seed, which a
 replay needs. It answers what `record_replay_round` answers, with the layout it
-was given as `layout_input`. `apply_layout` and `record_battle` remain the way
+was given as `layout_input`. The game can refuse a decision the replay records
+and fight on without it, so the recording is held to the layout the game read
+back as the fight began, as a staged layout is: when the two differ in any
+field, once both are in normal form, the recording and its sidecar are removed
+and the refusal names the fields. `apply_layout` and `record_battle` remain the way
 to fight a layout the replay cannot state and to record a video.
 
 Three more belong to the session rather than the game:

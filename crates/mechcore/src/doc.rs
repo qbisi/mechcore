@@ -354,19 +354,9 @@ fn diff(mut arguments: Args) -> Outcome {
     let left_path = arguments.path("the document on the left")?;
     let right_path = arguments.path("the document on the right")?;
     arguments.finish()?;
-    let left = read_layout(&left_path)?.normalized();
-    let right = read_layout(&right_path)?.normalized();
-    let left_value = serde_json::to_value(left).map_err(|error| {
-        Failure::failed(format!("cannot normalize {}: {error}", left_path.display()))
-    })?;
-    let right_value = serde_json::to_value(right).map_err(|error| {
-        Failure::failed(format!(
-            "cannot normalize {}: {error}",
-            right_path.display()
-        ))
-    })?;
-    let mut differences = Vec::new();
-    collect_differences("", Some(&left_value), Some(&right_value), &mut differences);
+    let left = read_layout(&left_path)?;
+    let right = read_layout(&right_path)?;
+    let differences = layout_differences(left, right).map_err(Failure::failed)?;
     let equal = differences.is_empty();
     let report = DiffReport {
         schema: "mechcore.layout-diff-result.v2",
@@ -377,6 +367,24 @@ fn diff(mut arguments: Args) -> Outcome {
     };
     crate::cli::emit(&report, format)?;
     Ok(equal.into())
+}
+
+/// Every field two layouts differ in, once both are in normal form.
+///
+/// # Errors
+///
+/// Returns an error when a layout cannot be serialized.
+pub(crate) fn layout_differences(
+    left: mechcore_document::Layout,
+    right: mechcore_document::Layout,
+) -> Result<Vec<FieldDifference>, String> {
+    let left = serde_json::to_value(left.normalized())
+        .map_err(|error| format!("cannot normalize a layout: {error}"))?;
+    let right = serde_json::to_value(right.normalized())
+        .map_err(|error| format!("cannot normalize a layout: {error}"))?;
+    let mut differences = Vec::new();
+    collect_differences("", Some(&left), Some(&right), &mut differences);
+    Ok(differences)
 }
 
 fn read_layout(path: &PathBuf) -> Result<mechcore_document::Layout, Failure> {
@@ -479,12 +487,12 @@ struct DiffReport {
 }
 
 #[derive(Serialize)]
-struct FieldDifference {
-    path: String,
+pub(crate) struct FieldDifference {
+    pub(crate) path: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    left: Option<Value>,
+    pub(crate) left: Option<Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    right: Option<Value>,
+    pub(crate) right: Option<Value>,
 }
 
 #[cfg(test)]
