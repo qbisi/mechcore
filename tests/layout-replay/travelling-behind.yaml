@@ -1,0 +1,14 @@
+# A travelling unit bought before another unit of the round, behind one the
+# round opens with: a purchase takes the allocator's next index, so the round
+# buys index 1 and index 2 in turn and moves each into place.
+
+kind: layout
+round: 3
+blue:
+  units:
+    - {name: marksman, index: 0, position: {x: 0, y: -50}}
+    - {name: marksman, index: 1, travelling: true, position: {x: -330, y: 100}}
+    - {name: marksman, index: 2, position: {x: 100, y: -60}}
+red:
+  units:
+    - {name: arclight, index: 0, position: {x: 0, y: -50}}

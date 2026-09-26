@@ -563,6 +563,8 @@ struct Deployment {
     /// The unit allocator the round opens with, which names what the
     /// officers deliver.
     next_unit: i32,
+    /// Whether the purchases need Mass Recruitment's extra one.
+    recruits: bool,
 }
 
 impl Deployment {
@@ -613,49 +615,103 @@ fn deployment(
     }
     let delivered = delivered.unwrap_or_default();
     let is_delivered = |at: usize| delivered.iter().any(|(unit, _)| *unit == at);
-    let buying: Vec<usize> = (0..side.units.len())
-        .filter(|at| side.units[*at].travelling && !is_delivered(*at))
-        .collect();
-    for at in &buying {
-        let unit = &side.units[*at];
-        if unit.exp.is_some_and(|exp| exp != 0) {
-            reasons.push(format!(
-                "unit {} at ({}, {}) exp: a travelling unit is bought this round, and a \
-                 round's decisions cannot hand out experience",
-                unit.type_name, unit.position.x, unit.position.y
-            ));
-        }
-    }
+    let (buying, recruits) = purchases(side, &delivered, &mut reasons);
     let settled: Vec<usize> = (0..side.units.len())
         .filter(|at| !is_delivered(*at) && !buying.contains(at))
         .collect();
     let bought = departures(side, &settled, &buying);
     if bought.is_none() {
         reasons.push(
-            "travelling units, for which the deployment area has no free place to set out \
-             from"
-                .to_owned(),
+            "travelling units, for which the deployment area has no free place to be bought \
+             at"
+            .to_owned(),
         );
     }
     if !reasons.is_empty() {
         return Err(reasons);
     }
-    let next_unit = delivered.first().map_or_else(
-        || {
+    let next_unit = delivered
+        .first()
+        .map(|(at, _)| index(&side.units[*at]))
+        .or_else(|| buying.first().map(|at| index(&side.units[*at])))
+        .unwrap_or_else(|| {
             settled
                 .iter()
                 .map(|at| index(&side.units[*at]) + 1)
                 .max()
                 .unwrap_or(0)
-        },
-        |(at, _)| index(&side.units[*at]),
-    );
+        });
     Ok(Deployment {
         settled,
         delivered,
         bought: bought.unwrap_or_default(),
         next_unit,
+        recruits,
     })
+}
+
+/// Which units the round buys, in the order it buys them, and whether that
+/// needs Mass Recruitment. A purchase takes the allocator's next index, so a
+/// travelling unit is bought in index order with every unit created after the
+/// deliveries and up to it: they were all bought this round, and a gap among
+/// them is an index the round spent on something the layout does not hold.
+fn purchases(
+    side: &SidePlan,
+    delivered: &[(usize, i32)],
+    reasons: &mut Vec<String>,
+) -> (Vec<usize>, bool) {
+    let is_delivered = |at: usize| delivered.iter().any(|(unit, _)| *unit == at);
+    let after_deliveries = delivered.last().map(|(at, _)| index(&side.units[*at]) + 1);
+    let travelling: Vec<i32> = (0..side.units.len())
+        .filter(|at| side.units[*at].travelling && !is_delivered(*at))
+        .map(|at| index(&side.units[at]))
+        .collect();
+    let mut buying: Vec<usize> = Vec::new();
+    if let Some(last) = travelling.iter().max() {
+        let first = after_deliveries.unwrap_or_else(|| *travelling.iter().min().expect("one"));
+        for wanted in first..=*last {
+            match (0..side.units.len()).find(|at| index(&side.units[*at]) == wanted) {
+                Some(at) if !is_delivered(at) => buying.push(at),
+                _ => {
+                    reasons.push(format!(
+                        "travelling units, bought this round from index {first} through {last}, \
+                         with index {wanted} among them held by no unit the round buys"
+                    ));
+                    break;
+                }
+            }
+        }
+    }
+    for at in &buying {
+        let unit = &side.units[*at];
+        if unit.exp.is_some_and(|exp| exp != 0) {
+            reasons.push(format!(
+                "unit {} at ({}, {}) exp: it is bought this round, for a travelling unit, and \
+                 a round's decisions cannot hand out experience",
+                unit.type_name, unit.position.x, unit.position.y
+            ));
+        }
+    }
+    // A round allows two purchases, one more for every Additional
+    // Deployment Slot, and one more when Mass Recruitment is activated,
+    // which changes nothing a fight sees.
+    let slots = side
+        .techs
+        .officers
+        .iter()
+        .filter(|officer| **officer == crate::transition::EXTRA_DEPLOYMENT_CARD)
+        .count();
+    let allowance = usize::try_from(crate::transition::BUY_COUNT_PER_ROUND).unwrap_or(0) + slots;
+    let extra = usize::try_from(crate::transition::EXTRA_BUYS).unwrap_or(0);
+    if buying.len() > allowance + extra {
+        reasons.push(format!(
+            "travelling units, for which the round buys {} units, and it allows {}",
+            buying.len(),
+            allowance + extra
+        ));
+    }
+    let recruits = buying.len() > allowance;
+    (buying, recruits)
 }
 
 /// Which of the side's units each delivered squad becomes. The allocator
@@ -703,6 +759,15 @@ fn write_actions(xml: &mut String, side: &SidePlan, deployment: &Deployment, sig
         // Where the board landed the squad is the game's; the move only
         // needs where it goes.
         move_unit(&mut actions, unit, Position { x: 0, y: 0 }, sign);
+    }
+    if deployment.recruits {
+        actions.push((
+            "PAD_ActiveEnergyTowerSkill",
+            format!(
+                "<SkillID>{}</SkillID>",
+                crate::transition::MASS_RECRUIT_SKILL
+            ),
+        ));
     }
     for (at, from) in &deployment.bought {
         let unit = &side.units[*at];
@@ -1071,6 +1136,42 @@ mod tests {
         assert!(xml.contains("<unitIndex>1</unitIndex>"));
         assert!(xml.contains("xsi:type=\"PAD_UpgradeUnit\""));
         assert!(xml.contains("<position><x>-100</x><y>-100</y></position>"));
+    }
+
+    #[test]
+    fn a_round_buys_in_the_order_its_allocator_names() {
+        let travelling = |index: i32, x: i32, y: i32| json!({"name": "marksman", "index": index, "travelling": true, "position": {"x": x, "y": y}});
+        let layout = |units: serde_json::Value| {
+            json!({
+                "kind": "layout", "seed": 4242, "round": 3,
+                "blue": {"units": units},
+                "red": {"units": [{"name": "arclight", "index": 0, "position": {"x": 0, "y": -50}}]},
+            })
+        };
+        // Index 2 was bought after the travelling index 1, so it is bought
+        // too, and the allocator opens at 1.
+        let three = layout(json!([
+            {"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}},
+            travelling(1, -330, 100),
+            {"name": "marksman", "index": 2, "position": {"x": 100, "y": -60}},
+            travelling(3, 330, 100),
+        ]));
+        let replay = layout_replay(&plan(&three), crate::game_build()).unwrap();
+        let xml = embedded_xml(&replay);
+        assert!(xml.contains("<unitIndex>1</unitIndex>"));
+        let recruit = xml
+            .find("<SkillID>3</SkillID>")
+            .expect("a third purchase recruits");
+        assert!(recruit < xml.find("PAD_BuyUnit").unwrap());
+        assert_eq!(xml.matches("PAD_BuyUnit").count(), 3);
+        let four = layout(json!([
+            travelling(0, -330, 100),
+            travelling(1, -330, 150),
+            travelling(2, 330, 100),
+            travelling(3, 330, 150),
+        ]));
+        let error = layout_replay(&plan(&four), crate::game_build()).unwrap_err();
+        assert!(error.contains("buys 4 units, and it allows 3"), "{error}");
     }
 
     #[test]

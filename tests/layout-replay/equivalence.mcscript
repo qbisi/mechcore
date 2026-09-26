@@ -28,6 +28,7 @@ steps:
         - {name: energy-tower, layout: tests/layout-replay/energy-tower.yaml}
         - {name: travelling, layout: tests/layout-replay/travelling.yaml}
         - {name: travelling-fitted, layout: tests/layout-replay/travelling-fitted.yaml}
+        - {name: travelling-behind, layout: tests/layout-replay/travelling-behind.yaml}
         - {name: delivered-squad, layout: tests/layout-replay/delivered-squad.yaml}
         - {name: airdrop-shields, layout: tests/layout-replay/airdrop-shields.yaml}
         - {name: oil, layout: tests/layout-replay/oil.yaml}
