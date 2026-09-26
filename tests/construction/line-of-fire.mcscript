@@ -25,7 +25,7 @@
 # reader answers; the attack target itself is in the recording and no verb
 # reports it.
 #
-# `out` must not already exist: record_battle refuses to overwrite.
+# `out` must not already exist: a recording refuses to overwrite.
 
 game: launch
 
@@ -49,10 +49,9 @@ steps:
   # the nearest wall nor the one closest to the line. It is the nearest of the
   # walls the line reaches, which is what `SortByDistance` and the first
   # overlap answer.
-  - game.apply_layout:
+  - game.record_layout:
       layout: $line
       seed: $seed
-  - game.record_battle:
       output: ${out}/line-of-fire.mcfr
     expect:
       operation.tick_count: 20
@@ -77,10 +76,9 @@ steps:
   #
   # Blocks 5 and 7 come down and 3, 4 and 6 stand, so the width is at least
   # 10.41 and under 12.59 metres. Nothing here scales with the Marksman.
-  - game.apply_layout:
+  - game.record_layout:
       layout: $tolerance
       seed: $seed
-  - game.record_battle:
       output: ${out}/line-tolerance.mcfr
     expect:
       operation.tick_count: 19
@@ -101,10 +99,9 @@ steps:
   #
   # The Marksman is the control and destroys block 5 again. The Fang's members
   # take block 7 to 167 and block 6 to 986, 63 a hit.
-  - game.apply_layout:
+  - game.record_layout:
       layout: $width
       seed: $seed
-  - game.record_battle:
       output: ${out}/line-width.mcfr
     expect:
       operation.tick_count: 41
@@ -137,10 +134,9 @@ steps:
   #
   # The readings are the blocks that fall and when: 3 by tick 60 from
   # 381 + 381 + 350, then 4 and 5 together at tick 101, and 6 and 7 stand.
-  - game.apply_layout:
+  - game.record_layout:
       layout: $group
       seed: $seed
-  - game.record_battle:
       output: ${out}/weapon-group.mcfr
     expect:
       operation.tick_count: 242

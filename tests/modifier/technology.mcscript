@@ -25,7 +25,7 @@
 # Both expectations below are the simulator's, computed before the recording
 # existed.
 #
-# `out` must not already exist: record_battle refuses to overwrite.
+# `out` must not already exist: a recording refuses to overwrite.
 
 game: launch
 
@@ -37,10 +37,9 @@ steps:
   - let:
       ranged: read_yaml(tests/modifier/technology-range.yaml)
 
-  - game.apply_layout:
+  - game.record_layout:
       layout: $ranged
       seed: $seed
-  - game.record_battle:
       output: ${out}/technology-range.mcfr
     expect:
       operation.tick_count: 137

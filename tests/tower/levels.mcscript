@@ -5,7 +5,7 @@
 #
 # One fight per strengthen level, 0 to 4: red's Steel Balls take blue's
 # Energy Tower, and blue's Fangs at the back carry what the loss writes.
-# `out` must not already exist: record_battle refuses to overwrite.
+# `out` must not already exist: a recording refuses to overwrite.
 
 game: launch
 
@@ -20,8 +20,7 @@ steps:
     steps:
       - let:
           layout: read_yaml(tests/tower/tower-level-${level}.yaml)
-      - game.apply_layout:
+      - game.record_layout:
           layout: $layout
           seed: $seed
-      - game.record_battle:
           output: ${out}/tower-level-${level}.mcfr

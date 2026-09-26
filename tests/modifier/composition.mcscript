@@ -36,7 +36,7 @@
 # one layout would make every later difference meaningless. They carry an
 # expect, so the run stops there rather than producing numbers nobody can read.
 #
-# `out` must not already exist: record_battle refuses to overwrite.
+# `out` must not already exist: a recording refuses to overwrite.
 
 game: launch
 
@@ -50,16 +50,14 @@ steps:
       once: read_yaml(tests/modifier/officer-composition-once.yaml)
       twice: read_yaml(tests/modifier/officer-composition-twice.yaml)
 
-  - game.apply_layout:
+  - game.record_layout:
       layout: $none
       seed: $seed
-  - game.record_battle:
       output: ${out}/none-1.mcfr
 
-  - game.apply_layout:
+  - game.record_layout:
       layout: $none
       seed: $seed
-  - game.record_battle:
       output: ${out}/none-2.mcfr
 
   - fight.compare:
@@ -69,16 +67,14 @@ steps:
       equal: true
       content_equal: true
 
-  - game.apply_layout:
+  - game.record_layout:
       layout: $once
       seed: $seed
-  - game.record_battle:
       output: ${out}/once.mcfr
 
-  - game.apply_layout:
+  - game.record_layout:
       layout: $twice
       seed: $seed
-  - game.record_battle:
       output: ${out}/twice.mcfr
 
   # The measurement has two halves, and a verb each.

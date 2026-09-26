@@ -32,11 +32,12 @@ layout 的全部字段都写得进回放：单位的等级、经验、装备、�
 蓝图、能量塔技能、塔强化、建筑、物件、战场技能、留存的空投护盾与油区，以及任意回合。`tests/` 里全部
 357 个训练场钉子无头录出来都相同；钉子没覆盖的字段在
 [`tests/layout-replay/`](tests/layout-replay/README.md) 各有一份 layout，训练场与无头两边逐字段相等。
+`tests/` 的录制脚本都已改走无头（`target_refs_v1`、`skill_attackable_checker_v1` 两种 instrumentation
+在无头下录出的 sidecar 与训练场逐数据集相同）；只有检验 adapter 摆阵本身的 `tests/adapter/smoke.mcscript`
+和作对照的 `tests/layout-replay/equivalence.mcscript` 仍用训练场。
 
 剩下的，按收益：
 
-- **其余 `tests/` 改走无头。** 各目录的录制脚本仍用训练场；`skill-state.mcscript` 这类带
-  instrumentation 的录制在无头下未验证。
 - **语料成为不依赖模拟器的游戏 oracle。** battle 的每一回合 `doc project` 成 layout，无头打完，对照
   battle 下一回合记录的状态。
 - **被拦截裁剪的油区网格**只由单元测试对着回放读取器验证过，没有对局验证（2.0 语料没有这样的油区）。

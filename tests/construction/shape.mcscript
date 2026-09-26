@@ -24,12 +24,11 @@
 # measured and not predicted, and `docs/rules/constructions.md` says what that
 # leaves open.
 #
-# Red places nothing and is the control: the Training Ground's own opening
-# carries a wall and a rapid-fire turret, so a red side that reads back two
-# towers and no construction is what says the reconciliation removed them
-# rather than leaving them under the measurement.
+# Red places nothing and is the control: a red side that reads back two towers
+# and no construction is what says nothing but the blue wall stands under the
+# measurement.
 #
-# `out` must not already exist: record_battle refuses to overwrite.
+# `out` must not already exist: a recording refuses to overwrite.
 
 game: launch
 
@@ -41,10 +40,9 @@ steps:
   - let:
       shape: read_yaml(tests/construction/shape.yaml)
 
-  - game.apply_layout:
+  - game.record_layout:
       layout: $shape
       seed: $seed
-  - game.record_battle:
       output: ${out}/shape.mcfr
     expect:
       operation.tick_count: 210

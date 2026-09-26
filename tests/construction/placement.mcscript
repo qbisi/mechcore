@@ -22,7 +22,7 @@
 # own constructions is not established, which is why this fixture sits where it
 # does rather than out of the way.
 #
-# `out` must not already exist: record_battle refuses to overwrite.
+# `out` must not already exist: a recording refuses to overwrite.
 
 game: launch
 
@@ -34,10 +34,9 @@ steps:
   - let:
       aside: read_yaml(tests/construction/wall-aside.yaml)
 
-  - game.apply_layout:
+  - game.record_layout:
       layout: $aside
       seed: $seed
-  - game.record_battle:
       output: ${out}/aside.mcfr
     expect:
       operation.tick_count: 91
