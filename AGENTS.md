@@ -97,38 +97,38 @@ commit 标题是 PR 标题加 `(#N)`，正文是 PR 正文，和 openai/codex �
 # 研究管线
 
 模拟器的机制研究按 `.github/CONTRIBUTING.md` 的 Research 一节推进：一个问题一条
-issue。持有游戏的会话（维护 `plan.md` 的主 agent，即 keeper）切问题、录像、发
-oracle，再把问题交给自己起的子代理去做，子代理各用一个工作树，直接向 keeper 汇报，
-不经过 GitHub 的标签和评论。
+issue，验证一律在有游戏本体的机器上做。持有游戏的会话切问题、录像，再把问题交给自己
+起的子代理去做，子代理各用一个工作树，直接向这个会话汇报，不经过 GitHub 的标签和评论。
 
+- **issue 只带可复现的夹具。** 布阵（layout）、对局（battle）或原生回放（grbr）加上录它们
+  的脚本，内联在 issue 里或已在仓库、语料里；不上传录像，也不引用反编译索引。谁有游戏，
+  谁就能照着 `Reproduce` 重新录。
 - **切问题先排依赖。** 答案会改同一个模块的两个问题先后做，不并行；issue 只写问题、
-  假设、预测和可观测的验收，不规定答案走哪个模块、加什么表。`Touches` 是 keeper 的
-  预估，不是禁区。
+  假设、预测和可观测的验收，不规定答案走哪个模块、加什么表。`Touches` 是预估，不是禁区。
 - **先定结构再写代码。** 一个只读子代理读反编译，交回结构图：答案对应 build 的哪些
-  方法、build 在哪里按什么分支、模拟器里哪些函数已经对应它们。keeper 按 Acceptance
-  的四个问题定下改什么、复用什么、不许新增什么，再交给实现子代理。
+  方法、build 在哪里按什么分支、模拟器里哪些函数已经对应它们。按 Acceptance 的四个问题
+  定下改什么、复用什么、不许新增什么，再交给实现子代理。
 - **录像按需、串行。** 实现子代理缺录像时不绕过去（不用模拟器算哈希、不特判恰好录过
-  的那个单位），而是交回录制请求；keeper 录完发到同一个 release，再让同一个子代理继续。
-  钉住的哈希一律来自录像。
-- **阻塞当场决定。** 撞上问题以外的机制时，keeper 在同一个会话里决定：切成新问题、
-  换布阵重录，或接受已钉住的部分。
-- **另一个子代理审查**，然后 keeper 自己读，再给 committer 发一张变更确认单：行为
-  前后（带数字）、结构增删、钉住的哈希及其来源录像、新增或解除的拒绝、未验证的部分。
+  的那个单位），而是交回录制请求；持有游戏的会话录完把哈希交回，再让同一个子代理继续。
+  钉住的哈希一律来自在有游戏的机器上录的录像。
+- **阻塞当场决定。** 撞上问题以外的机制时，在同一个会话里决定：切成新问题、换夹具重录，
+  或接受已钉住的部分。
+- **另一个子代理审查**，然后自己读，再给 committer 发一张变更确认单：行为前后（带数字）、
+  结构增删、钉住的哈希及其夹具、新增或解除的拒绝、未验证的部分。
 - **committer approve 才合并。** committer 在 GitHub 上 approve，或者在对话里明确授权
-  keeper 对那一个 PR 执行 `gh pr review <n> --approve`；授权只对那一个 PR、那一个
-  commit 有效。GitHub 不允许作者 approve 自己的 PR，所以只要 agent 还用 committer 的
-  账号开 PR，就没有 review 能生效，这时由 committer 看过确认单后手动合并。
+  对那一个 PR 执行 `gh pr review <n> --approve`；授权只对那一个 PR、那一个 commit
+  有效。GitHub 不允许作者 approve 自己的 PR，所以只要 agent 还用 committer 的账号开 PR，
+  就没有 review 能生效，这时由 committer 看过确认单后手动合并。
 
-**游戏只有一个进程，只有 keeper 持有它。** 其它 agent 永远不跑带 `game:` 的脚本，
+**游戏只有一个进程，只有持有它的会话录像。** 其它 agent 永远不跑带 `game:` 的脚本，
 `mechcore run <script> --check` 会说一份脚本要不要游戏。
 
 证据在三处，都不在这个仓库的历史里：反编译在私有的 `mechcore-decomp`，
 `scripts/decomp.py sync` 放到 `work/decomp/<build>/`（dump 在 `cpp2il/`，索引
-`index.sqlite` 在同一目录，本机已有的不重下）；录像语料在公开的 `mechcore-replay`
-（`scripts/replay.py sync` 取 master 到 `work/replay/`）；每个问题的
-录像和 sidecar 在它自己的 release（`scripts/oracle.py fetch <n>` 回到 `/tmp/mechcore/`），
-issue 关闭后 release 仍保留，因为它是钉住的哈希的证据。仓库里固定下来的只有
-`tests/<topic>/` 的布阵、脚本和它钉住的哈希。
+`index.sqlite` 由 `sync` 从 dump 在本机生成，本机已有的不重建）；录像语料在公开的
+`mechcore-replay`（`scripts/replay.py sync` 取 master 到 `work/replay/`）；问题要对照的
+录像只在录它的机器上，从夹具重新录，不上传。仓库里固定下来的只有 `tests/<topic>/` 的
+夹具、脚本和它钉住的哈希。
 
 **仓库描述哪一版游戏，只写在根目录的 `GAME_VERSION` 里**，一行游戏自己的版本字符串
 （`Application.version`）。服务器按它匹配对局、放行观战，同一局所有客户端跑同一套模拟，
@@ -144,10 +144,6 @@ crate 编译时嵌入它，抽取脚本经 `scripts/build_data.py` 读它，语�
 `work/tools/`，产出和已有 build 同一种形状；`scripts/decomp.py publish <build>` 推进
 `mechcore-decomp`，别的机器照常 `sync`。两个 build 之间改了什么，
 `scripts/decomp-diff.py <旧> <新>` 逐个声明比，加 `--config` 比两份配置表。
-
-keeper 会话之外的 agent（云端会话、别的机器）仍可以认领带 `claimable` 的 issue：
-开草稿 PR 认领，要录像就提交布阵和脚本并打 `capture`，被挡住就开 finding 写
-`Blocked by #m`，做完转正式，由 keeper 从审查那一步接手。
 
 **编号只写依赖。** issue、PR、提交里写别的编号会在 GitHub 上双向挂链接，没有依赖的链接只会
 把真正的依赖淹掉。所以只在 `Closes #n`、`Blocked by #n` 或推动另一项的决定里写编号；来历用

@@ -28,8 +28,9 @@ python3 scripts/decomp.py publish <build>
   a directory whose `game-manifest.json` was made from other files, and
   `--force all` replaces it. The manifest records Steam's `buildid` as the
   directory's provenance.
-- `publish` commits the build directory to `qbisi/mechcore-decomp`, pushes,
-  and releases `index.sqlite.gz` as `index/<build>`. Rerun it if a push fails.
+- `publish` commits the build directory to `qbisi/mechcore-decomp` and
+  pushes. Rerun it if a push fails. The index is not published: `sync`
+  builds it from the dump on each machine.
 
 Do not change the fixed choices the script's docstring lists (the x86_64
 slice, the Cpp2IL processors, the stripped attribute lines, loading the
