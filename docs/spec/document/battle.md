@@ -570,7 +570,8 @@ rather than restating it: it reads the snapshot as it stands before the round
 opens, marks the slots the previous round's actions spent and the Rapid Supply
 it still owes for, and opens the round on it with the same rule a transition's
 prediction ends with. A converted opening and a predicted one therefore cannot
-follow two sets of rules. The opening pays the income schedule every versus map
+follow two sets of rules. The snapshot marks those same slots active, and one
+that marks another is refused. The opening pays the income schedule every versus map
 shares, so a record whose map pays a different one is refused.
 
 The energy tower debt is the one quantity two readings produce, and the two have
