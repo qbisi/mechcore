@@ -365,8 +365,9 @@ dimensions so a renderer can reconstruct the same world-to-screen calibration.
 The operation is valid only after layout completion in Training Ground deployment. It arms native
 capture, starts combat, and records from `S(1)` after the first combat update through every subsequent
 `FightController.Update` boundary through the unique fighting-to-over transition. When video capture
-is disabled, time is scaled as `speed_up` describes. It calls `mechcore-mcfr::McfrWriter` directly, publishes atomically, reopens the file
-structurally, and returns the state/transition counts and all formal hashes.
+is disabled, time is scaled as `speed_up` describes. It calls `mechcore-mcfr::McfrWriter` directly, whose `finish` reads the
+packaged file back and checks its hashes before publishing it atomically, and returns the
+state/transition counts and all formal hashes.
 
 Projectile release/removal and damage use narrow native hooks so objects created and removed inside
 one logic step remain in `E`. The release hook records the native projectile, owner and target; the
@@ -541,8 +542,10 @@ final player's `PlayerController.FinishDeploy()`, before the native transition
 can initialize fighting, but does not persist that pre-update state. `S(1)` is
 the first state row. Earlier players are rejected unless every other player has
 already completed deployment, so a partially replayed deployment cannot be
-published. The existing fighting-to-over edge terminates MCFR recording; the
-queue is drained into the writer once the match has run out.
+published. The existing fighting-to-over edge terminates MCFR recording. The
+headless call runs on the main thread from a thread of its own, and the queue is
+drained into the writer while it runs, so writing overlaps the fight; the
+operation waits for the call to return before it answers or stops the capture.
 
 Replay formations remain ordered by and export their stable native unit index,
 but those indices may contain gaps left by units removed in earlier rounds.
@@ -554,8 +557,8 @@ abilities enter `battle_skills` only when native
 `TryGetReleaseCommanderSkillData` supplies positional release data; active
 non-release abilities are outside that layout field.
 
-The operation reopens and verifies the MCFR and returns at the main menu it
-started from. It never quits the game process. Invalid input, an unavailable
+The writer verifies the MCFR before publishing it, and the operation returns at
+the main menu it started from. It never quits the game process. Invalid input, an unavailable
 round and a capture failure publish nothing. A replay whose match runs out
 before the requested round's fight ends is a `capture_failed` refusal as soon as
 the headless call returns, since nothing more can arrive.
@@ -748,7 +751,7 @@ cause is addressed.
 | `deployment_capture_failed`, `deployment_capture_timeout` | a named round's readback failed or did not reach its opening/finish boundaries |
 | `battle_capture_failed` | round/source coverage, state continuity or battle writing failed, or the whole-battle resource budget expired |
 | `battle_publication_failed` | destination creation, source identity recheck, syncing or no-clobber publication failed |
-| `mcfr_error`, `mcfr_reopen_failed` | the recording could not be written, or could not be read back |
+| `mcfr_error` | the recording could not be written, or did not read back as written |
 | `video_error`, `video_verification_failed` | the optional video output could not be written or did not verify |
 | `instrumentation_error`, `instrumentation_verification_failed` | the optional sidecar could not be written or did not verify |
 | `native_replay_directory` | the native replay directory could not be resolved |
