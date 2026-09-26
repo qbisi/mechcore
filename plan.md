@@ -4,44 +4,31 @@
 state。一局比赛就是一份 battle 文档，平台一边下一边把它写出来。平台那一半已经能跑，
 卡在模拟器打不了真实对局的仗；这条主线没有变。
 
-仓库已经整体换到 2.0（build `2.0.0.1.2324`，提交 `0e3891d`），不再兼容 1.11。换版本的
-计划全文和做完的状态在那个提交的 `plan.md`。
+这份文件只写方向和先后：要做什么、为什么先做它、做到什么算完。量出来的数和做到了哪一步
+不写在这里，写在它们各自的出处：一次改动的前后数字在那个 PR 的正文，一个课题的录像、钉子和
+分叉在 `tests/<topic>/README.md`，一条规则在 `docs/rules/`。PR 只在方向或先后变了时改这份
+文件。
 
 ## 离真实对局还有多远
 
 `scripts/fight-coverage.py` 把语料的每一回合投影成它开打时的 layout 交给 `fight run`，
-模拟器一次报出这份 layout 被拒的全部理由。2.0 语料 287 回合，接受 16 回合。单位已不再是挡得
-最多的：前面是模块（物件 `InterceptSystem` 142 回合、战场技能 `CommanderSkillSystem` 116、
-能量塔技能 `BuildingSystem` 84、空投中的单位 43）、炮塔技能与军官科技的关系、装备过了第 1
-回合的耐久，以及几个单独的军官、科技、装备字段。
+模拟器一次报出这份 layout 被拒的全部理由，它的输出就是这一节的答案。挡得最多的是模块
+（物件 `InterceptSystem`、战场技能 `CommanderSkillSystem`、能量塔技能 `BuildingSystem`、
+空投中的单位），然后是炮塔技能与军官科技的关系、装备过了第 1 回合的耐久，以及几个单独的
+军官、科技、装备字段。
 
-## 从游戏取得回归：无头对战
+## 下一步：battle 转 grbr，语料成为游戏 oracle
 
-录像曾是瓶颈。现在一场录制不再需要训练场：
+游戏能不建场景地打一份回放的任意回合（`record_replay_round`），一份 layout 也能写成回放来打
+（`replay convert <layout.yaml> <replay.grbr>`，[layout-replay.md](docs/spec/document/layout-replay.md)）。
+下一个 PR 把这两件事接到语料上：battle 的每一回合写成回放，由游戏无头打完。
 
-1. **时间倍率。** 训练场录制把 `Time.timeScale` 定在 50，`record_battle` 从约 10 秒降到 1–3 秒。
-2. **无头对战（已做）。** 游戏回放的每一回合从它的 `PlayerRoundRecord` 快照开局，不依赖之前的动作；
-   战斗只从 `SystemSeed` 和回合派生随机流。所以一份 layout 写成只有一个部署回合的回放
-   （`replay convert <layout.yaml> <replay.grbr>`，[layout-replay.md](docs/spec/document/layout-replay.md)），
-   adapter 用游戏自己的 `StartFastBattleSimulation` 不建场景地打完，逐 tick 采集照旧。
-   `game.record_layout` 一步完成。`tests/units` 的 305 个钉子这样录出来两层哈希全部相同，一场中位
-   0.4 秒，全部约 3 分钟（原来一个多小时）；语料 3 份回放各 3 个回合，无头与场景回放逐一相同，
-   `record_replay_round` 因此只保留无头一条路。
-
-layout 的全部字段都写得进回放：单位的等级、经验、装备、朝向、行进，军官（含开局交付小队的）、科技、
-蓝图、能量塔技能、塔强化、建筑、物件、战场技能、留存的空投护盾与油区，以及任意回合。`tests/` 里全部
-357 个训练场钉子无头录出来都相同；钉子没覆盖的字段在
-[`tests/layout-replay/`](tests/layout-replay/README.md) 各有一份 layout，训练场与无头两边逐字段相等。
-`tests/` 的录制脚本都已改走无头（`target_refs_v1`、`skill_attackable_checker_v1` 两种 instrumentation
-在无头下录出的 sidecar 与训练场逐数据集相同）；只有检验 adapter 摆阵本身的 `tests/adapter/smoke.mcscript`
-和作对照的 `tests/layout-replay/equivalence.mcscript` 仍用训练场。
-
-剩下的，按收益：
-
-- **语料成为不依赖模拟器的游戏 oracle。** battle 的每一回合 `doc project` 成 layout，无头打完，对照
-  battle 下一回合记录的状态。
-- **被拦截裁剪的油区网格**只由单元测试对着回放读取器验证过，没有对局验证（2.0 语料没有这样的油区）。
-- **完整对局的 grbr。** battle 丢了动作时间、undo、奖励池记账，整局反写要另立研究。
+- **对照。** 同一回合，真实回放与由 battle 写出的回放各打一遍，两份录像应当相等；不相等的地方
+  要么是投影丢了战斗读的状态，要么是写入器的错。
+- **oracle。** 无头打完的结果对照 battle 下一回合记录的状态，语料的每一回合因此都有游戏给的
+  答案，不依赖模拟器。
+- **还没在对局里验过的**：被拦截裁剪的油区网格，只由单元测试对着回放读取器验证。
+- **完整对局的 grbr** 另立研究：battle 丢了动作时间、undo、奖励池记账。
 
 ## 主线：单位的无科技模拟
 
@@ -65,7 +52,8 @@ layout 的全部字段都写得进回放：单位的等级、经验、装备、�
 2. 反编译里 U 不带科技就有的每个技能，要么被某个布阵复现，要么按名拒绝。
 3. 对手的单位——rhino、crawler、wasp、marksman——先满足这个定义。
 
-达标的单位把全套布阵落在 [`tests/units/`](tests/units/README.md)。
+达标的单位把全套布阵落在 [`tests/units/`](tests/units/README.md)，哪些单位达标、哪几场
+在哪里分叉，那份 README 说。
 
 ### 做法：一起放行，批量录，看缺口
 
@@ -74,38 +62,22 @@ layout 的全部字段都写得进回放：单位的等级、经验、装备、�
 所有卡在它上面的单位一起前进；每修一个，重跑全部录像，对上的钉进
 `tests/units/regressions.mcscript`，已有的钉子一直要过。
 
-### 现状
+目标范围：除 hacker、sandworm 和三个 800 费用的单位（war_factory、abyss、mountain）之外的
+所有单位。剩下的机制，由易到难（各自卡住哪几场见 `tests/units/README.md`）：
 
-分支目标：除 hacker、sandworm 和三个 800 费用的单位（war_factory、abyss、mountain）之外，
-所有单位达到无科技基本支持。第一轮已合并；Raiden 未完成。
-
-2.0 上 29 个单位有全套布阵，305 场钉住（`tests/units/regressions.mcscript`），MCFR 格式
-0.7.0：单位带 `turret_rotation`（有身体单位的炮塔朝向，进物理层），全部钉子随之重录重钉。
-
-- 四个参照单位 44 场全部钉住；arclight、fang、mustang、steel_ball、wraith、stormcaller、
-  phoenix 84 场钉住 76 场。
-- 批量放行的 18 个单位 216 场：hacker（控制光束）、raiden（三件分组武器齐射）按名拒绝；其余
-  192 场钉住 185 场。centurion、farseer、fortress、melting_point、sabertooth、scorpion、
-  sledgehammer、tarantula、typhoon、void_eye、vortex、vulcan 12 场全对。
-- 修好的机制写在 `docs/rules/combat.md`。
-
-剩下的，由易到难：
-
-1. **overlord 两场**（新布阵、种子 1787720817）：m3 一发爬升弹丸的高度差几个 raw 单位，
-   m6 一个单位游戏里停下、模拟器里继续走。未读。
-2. **phantom_ray m3 一场**只差内容层：战斗结束后冷却里仍点名已死的最后一个敌人。
-3. **正前方目标的朝向正负号。** hound 两场、fire_badger 一场、phantom_ray 一场，加上
-   steel_ball、stormcaller 各一场。`FightUtility.ConvertToAngle` 的符号规则与模拟器相同，
-   差在预搜索时取方向的两个位置，要一段采到预搜索时位置的录制。
-4. **wraith 的分组搜索**（6 场）。
+1. **overlord**：一发爬升弹丸的高度差几个 raw 单位；一个单位游戏里停下、模拟器里继续走。
+2. **phantom_ray 的内容层**：战斗结束后冷却里仍点名已死的最后一个敌人。
+3. **正前方目标的朝向正负号。** `FightUtility.ConvertToAngle` 的符号规则与模拟器相同，差在
+   预搜索时取方向的两个位置，要一段采到预搜索时位置的录制。
+4. **wraith 的分组搜索。**
 5. **Raiden。** 构建按单位数据 27 给它的每件武器一个固定在机身上的变换
    （`FightWeapon` 构造器），三件分组武器齐射；子槽位在没有别的单位可选时锁敌方的塔、
    不在射程就不开火，子武器的朝向在交战时滞后机身一 tick、否则冻结。要单独研究。
 
 ### 换版本留下的尾巴
 
-- **只读、未录的规则。** 各需一段训练场录制：重型导弹打击的一次释放、一个编队戴两个强化
-  模块升级、第 9 个物件被拒、训练场里次级装备专家用的玩家种子。
+- **只读、未录的规则。** 各需一段录制：重型导弹打击的一次释放、一个编队戴两个强化模块升级、
+  第 9 个物件被拒、次级装备专家用的玩家种子。
 - **语料的自动核对。** 现在只在本地跑（`replay.py sync`、`export-replay-corpus.py`、
   `verify-battles.py`）。语料独立增长，不宜挡 PR；待定的做法是一个 master 推送和每日触发
   的 workflow，只核 `replays/<GAME_VERSION>/`。
