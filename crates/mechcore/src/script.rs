@@ -675,7 +675,7 @@ async fn perform(
             let (_, report) = fight::compare(&left, &right, &selection, tick)?;
             Ok(report)
         }
-        "fight.run" => simulate(arguments, scope),
+        "fight.run" => simulate(arguments, scope).await,
         "fight.outcome" => {
             let recording = scope.path(
                 arguments
@@ -776,8 +776,14 @@ async fn perform(
             if fields.contains_key("force") {
                 return Err("force is not a script field; pass --force to mechcore run".to_string());
             }
+            let instrumentation = instrumentation(fields.get("instrumentation"), scope)?;
             let mut destinations = vec![output.as_path()];
             destinations.extend(video.as_deref());
+            destinations.extend(
+                instrumentation
+                    .as_ref()
+                    .map(|sidecar| sidecar.output.as_path()),
+            );
             let force = confirm_overwrite(scope, &destinations).await?;
             session
                 .record_battle(
@@ -785,7 +791,7 @@ async fn perform(
                     video.clone(),
                     speed_up,
                     force,
-                    instrumentation(fields.get("instrumentation"), scope)?,
+                    instrumentation,
                 )
                 .await
                 .map_err(|value| value.to_string())
@@ -812,15 +818,16 @@ async fn perform(
             if fields.contains_key("force") {
                 return Err("force is not a script field; pass --force to mechcore run".to_string());
             }
-            let force = confirm_overwrite(scope, &[output.as_path()]).await?;
+            let instrumentation = instrumentation(fields.get("instrumentation"), scope)?;
+            let mut destinations = vec![output.as_path()];
+            destinations.extend(
+                instrumentation
+                    .as_ref()
+                    .map(|sidecar| sidecar.output.as_path()),
+            );
+            let force = confirm_overwrite(scope, &destinations).await?;
             session
-                .record_replay_round(
-                    grbr,
-                    round,
-                    output.clone(),
-                    force,
-                    instrumentation(fields.get("instrumentation"), scope)?,
-                )
+                .record_replay_round(grbr, round, output.clone(), force, instrumentation)
                 .await
         }
         "game.record_layout" => {
@@ -854,15 +861,16 @@ async fn perform(
                 fields.get("output").ok_or("record_layout needs output")?,
                 "record_layout output",
             )?;
-            let force = confirm_overwrite(scope, &[output.as_path()]).await?;
+            let instrumentation = instrumentation(fields.get("instrumentation"), scope)?;
+            let mut destinations = vec![output.as_path()];
+            destinations.extend(
+                instrumentation
+                    .as_ref()
+                    .map(|sidecar| sidecar.output.as_path()),
+            );
+            let force = confirm_overwrite(scope, &destinations).await?;
             session
-                .record_layout(
-                    layout,
-                    seed,
-                    output.clone(),
-                    force,
-                    instrumentation(fields.get("instrumentation"), scope)?,
-                )
+                .record_layout(layout, seed, output.clone(), force, instrumentation)
                 .await
         }
         "game.record_watch_replay" => {
@@ -1046,7 +1054,11 @@ fn evaluate(value: &Value, scope: &Scope) -> Result<Value, String> {
 
 /// Runs the deterministic simulator without a game, returning the same result
 /// object `mechcore fight run` prints so `expect` can assert any of its fields.
-fn simulate(arguments: &Value, scope: &Scope) -> Result<Value, String> {
+///
+/// An existing `output` is a destination like a recording's: the run replaces
+/// it only when `confirm_overwrite` says so, and the simulator, which refuses
+/// to overwrite, is handed a path that no longer exists.
+async fn simulate(arguments: &Value, scope: &Scope) -> Result<Value, String> {
     let fields = arguments
         .as_object()
         .ok_or("fight.run takes a mapping with layout and optional seed and output")?;
@@ -1074,6 +1086,10 @@ fn simulate(arguments: &Value, scope: &Scope) -> Result<Value, String> {
         None | Some(Value::Null) => None,
         Some(value) => Some(scope.path(value, "fight.run output")?),
     };
+    if let Some(output) = &output {
+        let force = confirm_overwrite(scope, &[output.as_path()]).await?;
+        crate::session::remove_existing_outputs(&[(output.as_path(), "fight.run output")], force)?;
+    }
     let result = mechcore_simulation::simulate_layout(&layout, output.as_deref(), seed)
         .map_err(|error| format!("{}: {error}", layout.display()))?;
     serde_json::to_value(result)
@@ -1121,6 +1137,27 @@ mod tests {
         let mut invalid = value;
         invalid["unknown"] = json!(true);
         assert!(instrumentation(Some(&invalid), &scope).is_err());
+    }
+
+    #[tokio::test]
+    async fn fight_run_replaces_an_existing_output_under_force() {
+        let directory = tempfile::tempdir().unwrap();
+        let output = directory.path().join("simulated.mcfr");
+        std::fs::write(&output, b"existing").unwrap();
+        let scope = Scope {
+            overwrite: Overwrite::Always,
+            values: BTreeMap::new(),
+            base: PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../.."),
+        };
+        let arguments = json!({
+            "layout": "tests/regression/crawlers-vs-crawlers.yaml",
+            "seed": 1_787_778_788,
+            "output": output.display().to_string(),
+        });
+
+        let result = simulate(&arguments, &scope).await.unwrap();
+        assert_eq!(result["steps"], json!(351), "{result}");
+        mechcore_mcfr::McfrReader::open(&output).expect("the output is the new recording");
     }
 
     fn scope_with(values: &[(&str, Value)]) -> Scope {

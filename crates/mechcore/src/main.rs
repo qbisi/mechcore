@@ -50,7 +50,7 @@ fn usage(program: &str) {
     eprintln!("Every command takes --format json|yaml|text and answers on standard output.");
     eprintln!("The contract is docs/spec/mechcore/cli.md, which `mechcore man cli` reads back;");
     eprintln!("run --check validates a script offline, without touching the game;");
-    eprintln!("--force replaces existing recordings instead of asking about each.");
+    eprintln!("--force replaces every file a step would write instead of asking.");
 }
 
 fn main() -> ExitCode {

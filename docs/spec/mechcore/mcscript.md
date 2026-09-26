@@ -108,16 +108,20 @@ than redefining them.
 | `game.quit_match` | yes | |
 | `game.quit_game` | yes | |
 
-For `game.record_battle`, `game.record_replay_round` and `game.record_layout`, a recording refuses to overwrite
-its destination, and a script does not declare otherwise. Whether to replace
-an existing recording is a property of the run,
+A step that writes a file refuses to overwrite it, and a script does not
+declare otherwise. The destinations are every path `game.record_battle`,
+`game.record_replay_round`, `game.record_layout` and `fight.run` publish:
+`output`, `video_output` and the instrumentation sidecar. Whether to replace
+an existing one is a property of the run,
 not of the script: the same document is run once to produce its outputs and
 again to replace them. `mechcore run --force` answers yes for the whole run.
-Without it, an existing destination is asked about once, naming every file at
-stake, and a run with no terminal to ask on refuses as before.
+Without it, a step's existing destinations are asked about once, naming every
+file at stake, and a run with no terminal to ask on refuses.
 
-The deletion happens in the client either way. The Adapter still refuses to
-write over anything; the caller removes the file before asking, so the
+The deletion happens in the client either way, and only after every
+destination of the step has been checked, so a step refused for one file
+leaves the others as they were. The Adapter and the MCFR writer still refuse
+to write over anything; the caller removes the file before asking, so the
 fail-closed rule keeps protecting a recording in flight.
 
 The three recording operations accept a research-only HDF5 sidecar request:
@@ -129,9 +133,9 @@ instrumentation:
   rvo_scope: {start_tick: 4, end_tick: 12, unit_ids: [72, 117, 257, 405]}
 ```
 
-The sidecar path resolves like the recording output and must be new, which
-`--force` does not change; `force` is not a script field at all, and a step that
-carries one is rejected. RVO scope selects 1–8 unique positive MCFR unit IDs and at most
+The sidecar path resolves like the recording output and is replaced like it,
+under `--force` or a yes to the question; `force` is not a script field at all,
+and a step that carries one is rejected. RVO scope selects 1–8 unique positive MCFR unit IDs and at most
 64 ticks of update starts; delayed publications can appear after `end_tick`.
 This instrumentation is separate from MCFR and does not participate in its hash.
 
@@ -165,7 +169,8 @@ against it; `tests/modifier/composition.mcscript` is the worked example.
 object `mechcore fight run` prints, so `expect` can assert `seed_source`, `steps`, or
 a dotted path like `hashes.physics_result_hash`. It needs no game, which is
 what lets `tests/regression/simulate.mcscript` drive the whole regression
-manifest offline. Omit `output` unless the run should also publish an MCFR.
+manifest offline. Omit `output` unless the run should also publish an MCFR;
+an existing one is replaced as a recording's is.
 
 `game.apply_layout` owns the whole transaction from the main menu: it creates the
 Training Ground itself and brings it to the layout's activation round. A layout
@@ -382,7 +387,7 @@ releases the game. Inside a loop the iteration is the unit that fails: nothing
 later in that body runs and no further iteration starts. Whatever earlier steps
 published stays on disk.
 
-**A destination already exists.** A recording refuses to overwrite. With
+**A destination already exists.** A step refuses to overwrite. With
 `--force` the client removes the file first; without it the run asks once,
 naming every file at stake, and a run with no terminal to ask on refuses. The
 adapter itself never overwrites either way, so a recording in flight stays
@@ -479,12 +484,6 @@ For a refresh run over a long corpus it throws away the rest of an expensive
 session to report something already known. Either the loop grows a way to say
 which it is, or the two uses stay distinguished only by the presence of
 `expect`, as they are now.
-
-**Should the instrumentation sidecar honour `--force`?** A recording can be
-replaced and its sidecar cannot, so re-running a script that requests one fails
-on the sidecar after the recording has already been overwritten. Either the
-sidecar follows the recording's rule, or the recording should refuse alongside
-it, but the present split leaves a half-applied run.
 
 **Should a loop be allowed inside a loop?** Rejecting it keeps the output shape
 flat, since a line carries one `iteration` and a `step` within one body. Nesting

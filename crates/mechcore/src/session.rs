@@ -788,25 +788,39 @@ fn prepare_watch_output(
     Ok(Some(output_dir))
 }
 
-/// Refuse an existing destination, or remove it when the caller asked to.
-fn remove_existing_output(path: &Path, force: bool, what: &str) -> Result<(), Value> {
-    if !path.exists() {
-        return Ok(());
+/// Refuse existing destinations, or remove them when the caller asked to.
+///
+/// Each `(path, what)` names a destination and the field it came from. Every
+/// one is checked before any is removed, so a refusal leaves all of them as
+/// they were.
+pub(crate) fn remove_existing_outputs(
+    destinations: &[(&Path, &str)],
+    force: bool,
+) -> Result<(), String> {
+    for (path, what) in destinations {
+        if !path.exists() {
+            continue;
+        }
+        if !force {
+            return Err(format!(
+                "{what} refuses to overwrite {}; pass force to replace it",
+                path.display()
+            ));
+        }
+        if !path.is_file() {
+            return Err(format!(
+                "{what} {} exists and is not a file",
+                path.display()
+            ));
+        }
     }
-    if !force {
-        return Err(error_body(format!(
-            "{what} refuses to overwrite {}; pass force to replace it",
-            path.display()
-        )));
+    for (path, _) in destinations {
+        if path.exists() {
+            std::fs::remove_file(path)
+                .map_err(|error| format!("cannot replace {}: {error}", path.display()))?;
+        }
     }
-    if !path.is_file() {
-        return Err(error_body(format!(
-            "{what} {} exists and is not a file",
-            path.display()
-        )));
-    }
-    std::fs::remove_file(path)
-        .map_err(|error| error_body(format!("cannot replace {}: {error}", path.display())))
+    Ok(())
 }
 
 /// Validate the destinations a recording will publish.
@@ -814,6 +828,9 @@ fn remove_existing_output(path: &Path, force: bool, what: &str) -> Result<(), Va
 /// `force` removes an existing destination here rather than relaxing the
 /// Adapter, which keeps refusing to overwrite. Deleting is the caller's
 /// declared intent; overwriting would be the Adapter deciding on its own.
+///
+/// Every destination is checked before any is removed, so a request refused
+/// for one of them leaves all of them as they were.
 pub(crate) fn validate_record_outputs(
     operation: &str,
     output: &Path,
@@ -831,7 +848,6 @@ pub(crate) fn validate_record_outputs(
             "{operation} output must use the .mcfr extension"
         )));
     }
-    remove_existing_output(output, force, &format!("{operation} output"))?;
     if let Some(video_output) = video_output {
         if !video_output.is_absolute() {
             return Err(error_body(format!(
@@ -848,7 +864,6 @@ pub(crate) fn validate_record_outputs(
                 "{operation} output and video_output must differ"
             )));
         }
-        remove_existing_output(video_output, force, &format!("{operation} video_output"))?;
     }
     if let Some(instrumentation) = instrumentation {
         if let Some(scope) = &instrumentation.rvo_scope
@@ -890,14 +905,25 @@ pub(crate) fn validate_record_outputs(
         {
             return Err(error_body("record_battle output paths must differ"));
         }
-        if instrumentation.output.exists() {
-            return Err(error_body(format!(
-                "record_battle refuses to overwrite {}",
-                instrumentation.output.display()
-            )));
-        }
     }
-    Ok(())
+    let output_field = format!("{operation} output");
+    let video_field = format!("{operation} video_output");
+    let instrumentation_field = format!("{operation} instrumentation output");
+    let destinations = [
+        Some((output, output_field.as_str())),
+        video_output.map(|path| (path, video_field.as_str())),
+        instrumentation.map(|instrumentation| {
+            (
+                instrumentation.output.as_path(),
+                instrumentation_field.as_str(),
+            )
+        }),
+    ];
+    remove_existing_outputs(
+        &destinations.into_iter().flatten().collect::<Vec<_>>(),
+        force,
+    )
+    .map_err(error_body)
 }
 /// Whether the recording at `output` fought `layout`: the layout the game
 /// read back as the fight began, against the one given, with the seed and
@@ -1152,6 +1178,60 @@ mod tests {
 
         validate_record_outputs("record_battle", &output, None, None, true).unwrap();
         assert!(!output.exists(), "force removes the destination up front");
+    }
+
+    #[test]
+    fn force_replaces_the_instrumentation_sidecar_with_the_recording() {
+        let directory = tempfile::tempdir().unwrap();
+        let output = directory.path().join("battle.mcfr");
+        let sidecar = RecordBattleInstrumentation {
+            output: directory.path().join("rvo.h5"),
+            profile: CaptureInstrumentationProfile::TargetRefsV1,
+            rvo_scope: None,
+        };
+        std::fs::write(&output, b"existing").unwrap();
+        std::fs::write(&sidecar.output, b"existing").unwrap();
+
+        let refused =
+            validate_record_outputs("record_replay_round", &output, None, Some(&sidecar), false)
+                .unwrap_err();
+        assert!(
+            refused["error"]
+                .as_str()
+                .unwrap()
+                .contains("refuses to overwrite"),
+            "{refused}"
+        );
+        assert!(output.exists() && sidecar.output.exists());
+
+        validate_record_outputs("record_replay_round", &output, None, Some(&sidecar), true)
+            .unwrap();
+        assert!(!output.exists(), "force removes the recording");
+        assert!(!sidecar.output.exists(), "and its sidecar with it");
+    }
+
+    #[test]
+    fn a_refused_destination_leaves_every_other_one_in_place() {
+        let directory = tempfile::tempdir().unwrap();
+        let output = directory.path().join("battle.mcfr");
+        let sidecar = RecordBattleInstrumentation {
+            output: directory.path().join("rvo.h5"),
+            profile: CaptureInstrumentationProfile::TargetRefsV1,
+            rvo_scope: None,
+        };
+        std::fs::write(&output, b"existing").unwrap();
+        std::fs::create_dir(&sidecar.output).unwrap();
+
+        let refused = validate_record_outputs("record_battle", &output, None, Some(&sidecar), true)
+            .unwrap_err();
+        assert!(
+            refused["error"].as_str().unwrap().contains("is not a file"),
+            "{refused}"
+        );
+        assert!(
+            output.exists(),
+            "the recording must survive a sidecar that cannot be replaced"
+        );
     }
 
     #[tokio::test]
