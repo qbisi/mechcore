@@ -537,6 +537,7 @@ struct Metadata {
     advanced_energy_shield_system_class: usize,
     energy_shield_contraption_class: usize,
     commander_energy_shield_class: usize,
+    fight_energy_shield_class: usize,
     owner_advanced_shield_class: usize,
     spawned_temporary_shield_class: usize,
     fight_team_buildings: usize,
@@ -559,6 +560,7 @@ struct Metadata {
     motion_move_state_class: usize,
     motion_attack_state_class: usize,
     motion_stop_state_class: usize,
+    motion_transition_state_class: usize,
     fight_mech_lock_target: usize,
     fight_mech_body: usize,
     fight_skill_class: Option<usize>,
@@ -741,6 +743,10 @@ struct CaptureState {
     projectile_ids: BTreeMap<usize, u64>,
     shield_ids: BTreeMap<usize, u64>,
     shield_ids_finalized: bool,
+    /// Whether S(1) has been written, after which unit identities are final.
+    unit_ids_finalized: bool,
+    /// Units numbered only for the tick's events, released after them.
+    fleeting_unit_pointers: Vec<usize>,
     terrain_ids: BTreeMap<usize, u64>,
     live_shield_pointers: BTreeSet<usize>,
     retired_shield_pointers: BTreeSet<usize>,
@@ -749,6 +755,9 @@ struct CaptureState {
     retired_terrain_pointers: BTreeSet<usize>,
     terrain_last_states: BTreeMap<usize, TerrainState>,
     pending_projectile_absorptions: BTreeMap<u64, ObjectRef>,
+    /// Absorptions by a shield that took damage before any snapshot saw it,
+    /// by the shield's native pointer.
+    pending_projectile_absorption_pointers: BTreeMap<u64, usize>,
     original_unit_teams: BTreeMap<usize, u32>,
     object_teams: BTreeMap<ObjectRef, u32>,
     emitted_deaths: BTreeSet<ObjectRef>,
@@ -806,6 +815,8 @@ impl CaptureState {
         self.projectile_ids.clear();
         self.shield_ids.clear();
         self.shield_ids_finalized = false;
+        self.unit_ids_finalized = false;
+        self.fleeting_unit_pointers.clear();
         self.terrain_ids.clear();
         self.live_shield_pointers.clear();
         self.retired_shield_pointers.clear();
@@ -814,6 +825,7 @@ impl CaptureState {
         self.retired_terrain_pointers.clear();
         self.terrain_last_states.clear();
         self.pending_projectile_absorptions.clear();
+        self.pending_projectile_absorption_pointers.clear();
         self.original_unit_teams.clear();
         self.object_teams.clear();
         self.emitted_deaths.clear();
@@ -1510,11 +1522,21 @@ enum NativeTrace {
         position: QVec3,
         intercepted: bool,
         absorbed_by: Option<ObjectRef>,
+        /// A shield no snapshot had seen when it absorbed the projectile.
+        absorbed_by_pointer: Option<usize>,
     },
     Damage {
         source: Option<ObjectRef>,
         source_team_id: Option<u32>,
         target: ObjectRef,
+        amount: i32,
+    },
+    /// Damage to an object that joined the fight this tick, before any
+    /// snapshot numbered it, resolved once the tick's snapshot has.
+    DamageUnresolved {
+        source: Option<ObjectRef>,
+        source_team_id: Option<u32>,
+        target: usize,
         amount: i32,
     },
     ShieldCreated {
@@ -1540,6 +1562,14 @@ enum NativeTrace {
     },
     UnitDied {
         unit_id: u64,
+        position: QVec3,
+        source: Option<ObjectRef>,
+        source_team_id: Option<u32>,
+    },
+    /// The death of a unit no snapshot has numbered, which joined the fight
+    /// and left it within one tick.
+    UnitDiedUnresolved {
+        unit: usize,
         position: QVec3,
         source: Option<ObjectRef>,
         source_team_id: Option<u32>,
@@ -1636,6 +1666,9 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
         let commander_energy_shield = api
             .class("GRCore.dll", "GameRiver", "CS_EnergyShield")
             .map_err(|error| error.to_string())?;
+        let fight_energy_shield = api
+            .class("GRFight.dll", "GameRiver.Fight", "FightEnergyShield")
+            .map_err(|error| error.to_string())?;
         let owner_advanced_shield = api
             .class(
                 "GRFight.dll",
@@ -1716,6 +1749,9 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             .map_err(|error| error.to_string())?;
         let motion_stop_state = api
             .class("GRFight.dll", "GameRiver.Fight", "MotionStopState")
+            .map_err(|error| error.to_string())?;
+        let motion_transition_state = api
+            .class("GRFight.dll", "GameRiver.Fight", "TransitionState")
             .map_err(|error| error.to_string())?;
         let fight_mech_lock_target = api
             .class("GRFight.dll", "GameRiver.Fight", "FightMech")
@@ -1830,6 +1866,7 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             advanced_energy_shield_system_class: advanced_energy_shield_system as usize,
             energy_shield_contraption_class: energy_shield_contraption as usize,
             commander_energy_shield_class: commander_energy_shield as usize,
+            fight_energy_shield_class: fight_energy_shield as usize,
             owner_advanced_shield_class: owner_advanced_shield as usize,
             spawned_temporary_shield_class: spawned_temporary_shield as usize,
             fight_team_buildings: fight_team_buildings as usize,
@@ -1852,6 +1889,7 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             motion_move_state_class: motion_move_state as usize,
             motion_attack_state_class: motion_attack_state as usize,
             motion_stop_state_class: motion_stop_state as usize,
+            motion_transition_state_class: motion_transition_state as usize,
             fight_mech_lock_target,
             fight_mech_body,
             fight_skill_class: fight_skill.map(|class| class as usize),
@@ -4042,8 +4080,13 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
             if !state.shield_ids_finalized {
                 return Err("combat snapshot preceded final shield identity assignment".into());
             }
+            // This snapshot is S(1) or later, and its numbering is written.
+            state.unit_ids_finalized = true;
             let traces = std::mem::take(&mut state.traces);
-            let events = transition_events(&traces, &state);
+            let events = transition_events(&traces, &state)?;
+            for pointer in std::mem::take(&mut state.fleeting_unit_pointers) {
+                state.unit_ids.remove(&pointer);
+            }
             if let Some(visual) = state.visual.as_ref() {
                 visual.apply_calibration()?;
                 state.render_completed = false;
@@ -4603,15 +4646,39 @@ fn record_actor_death(actor: *mut Object, kind: ObjectKind) {
         if kind == ObjectKind::Building {
             return;
         }
-        state.fail(format!(
-            "{kind:?}.OnDead referenced an unallocated MCFR object"
-        ));
+        // A unit that joined the fight and dies within the same tick has no
+        // number yet; the tick's snapshot gives it one.
+        let attribution = active_damage_context
+            .map(|context| DamageAttribution {
+                source: context.source,
+                source_team_id: context.source_team_id,
+            })
+            .unwrap_or_default();
+        let result = (|| {
+            let transform = invoke_object(runtime.api, actor, "GetFightTransform")?;
+            let position = vec3(invoke_value::<FixedVec3>(
+                runtime.api,
+                transform,
+                "GetPositionInt3D",
+            )?);
+            state.traces.push(NativeTrace::UnitDiedUnresolved {
+                unit: pointer,
+                position,
+                source: attribution.source,
+                source_team_id: attribution.source_team_id,
+            });
+            Ok::<(), String>(())
+        })();
+        if let Err(error) = result {
+            state.fail(format!("{kind:?}.OnDead trace failed: {error}"));
+        }
         return;
     };
     if !state.emitted_deaths.insert(reference) {
         state.fail(format!(
-            "{kind:?} {} emitted OnDead more than once",
-            reference.id
+            "{kind:?} {} emitted OnDead more than once, the second time as a {} at 0x{pointer:x}",
+            reference.id,
+            native_class_name(pointer)
         ));
         return;
     }
@@ -4802,7 +4869,8 @@ fn record_projectile_removal(controller: *mut Object, intercepted: bool) {
             "GetPositionInt3D",
         )?);
         let absorbed_by = state.pending_projectile_absorptions.remove(&id);
-        if intercepted && absorbed_by.is_some() {
+        let absorbed_by_pointer = state.pending_projectile_absorption_pointers.remove(&id);
+        if intercepted && (absorbed_by.is_some() || absorbed_by_pointer.is_some()) {
             return Err("intercepted projectile also has a pending shield absorption".into());
         }
         state.traces.push(NativeTrace::ProjectileRemoved {
@@ -4812,6 +4880,7 @@ fn record_projectile_removal(controller: *mut Object, intercepted: bool) {
             position,
             intercepted,
             absorbed_by,
+            absorbed_by_pointer,
         });
         state.projectile_ids.remove(&pointer);
         Ok::<(), String>(())
@@ -4839,9 +4908,28 @@ fn record_damage(
         } else {
             advanced_shield as usize
         };
-        let target = object_ref_from_pointer(target_pointer, &state).ok_or_else(|| {
-            format!("damage target 0x{target_pointer:x} is absent from the MCFR identity map")
-        })?;
+        // A unit or shield that joins the fight takes damage within the tick
+        // it arrives, before the tick's snapshot has numbered it.
+        let Some(target) = object_ref_from_pointer(target_pointer, &state) else {
+            let shield =
+                !advanced_shield.is_null() || is_native_shield(target_pointer, &state.metadata);
+            if shield
+                && let Some(projectile) = context
+                    .provider
+                    .filter(|value| value.kind == ObjectKind::Projectile)
+            {
+                state
+                    .pending_projectile_absorption_pointers
+                    .insert(projectile.id, target_pointer);
+            }
+            state.traces.push(NativeTrace::DamageUnresolved {
+                source: context.source,
+                source_team_id: context.source_team_id,
+                target: target_pointer,
+                amount: result,
+            });
+            return Ok(());
+        };
         if target.kind == ObjectKind::Unit && !state.emitted_deaths.contains(&target) {
             state.last_damage_sources.insert(
                 target,
@@ -6104,7 +6192,9 @@ fn finalize_initial_shield_ids(
             NativeTrace::ProjectileRemoved { absorbed_by, .. } => {
                 *absorbed_by = absorbed_by.map(map_ref).transpose()?;
             }
-            NativeTrace::UnitDied { source, .. } => {
+            NativeTrace::DamageUnresolved { source, .. }
+            | NativeTrace::UnitDied { source, .. }
+            | NativeTrace::UnitDiedUnresolved { source, .. } => {
                 *source = source.map(map_ref).transpose()?;
             }
             NativeTrace::ShieldCreated { shield_id, .. }
@@ -6128,8 +6218,9 @@ fn read_native_battle_skills(
 ) -> Result<Vec<BattleSkillDefinition>, String> {
     let manager = invoke_object(api, controller, "GetCommanderSkillManager")?;
     let skills = invoke_object(api, manager, "GetCommanderSkills")?;
+    // A side may hold one skill twice and release both, so the panel's order,
+    // not the skill's ID, tells two releases apart.
     let mut result = Vec::new();
-    let mut seen = BTreeSet::new();
     for index in 0..list_count(api, skills, 10_000)? {
         let skill = list_item(api, skills, index)?;
         if !invoke_value::<bool>(api, skill, "get_IsActive")? {
@@ -6146,9 +6237,6 @@ fn read_native_battle_skills(
             .map_err(|error| error.to_string())?;
         if !found || release_data.is_null() {
             continue;
-        }
-        if !seen.insert(id) {
-            return Err(format!("duplicate released commander skill ID {id}"));
         }
         let type_name = battle_skill_type_from_id(id)
             .ok_or_else(|| format!("unknown released commander skill ID {id}"))?;
@@ -6340,7 +6428,12 @@ fn snapshot(
             unit.pointer,
         )
     });
-    if initial {
+    // Units can join as the fight starts, and the initial numbering is the
+    // scene S(1) holds, so until S(1) is written each snapshot numbers the
+    // units, and their formations, afresh from its own scene.
+    let renumbered = if capture.unit_ids_finalized {
+        None
+    } else {
         for pair in raw_units.windows(2) {
             if pair[0].state.team_id == pair[1].state.team_id
                 && pair[0].state.position.x == pair[1].state.position.x
@@ -6349,7 +6442,14 @@ fn snapshot(
                 return Err("two initial same-team units have equal world coordinates".into());
             }
         }
-    }
+        capture.next_unit_id = 1;
+        capture.next_formation_id = 1;
+        capture.formation_ids.clear();
+        capture
+            .object_teams
+            .retain(|reference, _| reference.kind != ObjectKind::Unit);
+        Some(std::mem::take(&mut capture.unit_ids))
+    };
     let mut units = Vec::with_capacity(raw_units.len());
     let mut raw_mech_lock_targets = Vec::with_capacity(raw_units.len());
     let mut raw_weapon_targets = Vec::new();
@@ -6360,6 +6460,13 @@ fn snapshot(
             None => allocate(&mut capture.next_unit_id, "unit")?,
         };
         capture.unit_ids.entry(unit.pointer).or_insert(unit_id);
+        // A Phoenix rises from its death and can die again, so a unit standing
+        // alive after its death may emit another.
+        if unit.state.active {
+            capture
+                .emitted_deaths
+                .remove(&ObjectRef::new(ObjectKind::Unit, unit_id));
+        }
         let original_team_id = *capture
             .original_unit_teams
             .entry(unit.pointer)
@@ -6401,6 +6508,10 @@ fn snapshot(
         }
         units.push(unit.state);
     }
+    if let Some(previous) = renumbered {
+        renumber_unit_references(capture, &previous)?;
+    }
+    number_fleeting_units(capture)?;
 
     sort_buildings(&mut raw_buildings)?;
     let mut buildings = Vec::with_capacity(raw_buildings.len());
@@ -6444,17 +6555,14 @@ fn snapshot(
                 shield.pointer
             ));
         }
-        if capture.retired_shield_pointers.contains(&shield.pointer) {
-            return Err(format!(
-                "retired FightEnergyShield pointer 0x{:x} was reused",
-                shield.pointer
-            ));
-        }
+        // As with a terrain, a pointer that has left the board and comes back
+        // is a new shield.
+        let reused = capture.retired_shield_pointers.remove(&shield.pointer);
         let id = match capture.shield_ids.get(&shield.pointer) {
-            Some(id) => *id,
-            None => allocate(&mut capture.next_shield_id, "shield")?,
+            Some(id) if !reused => *id,
+            _ => allocate(&mut capture.next_shield_id, "shield")?,
         };
-        capture.shield_ids.entry(shield.pointer).or_insert(id);
+        capture.shield_ids.insert(shield.pointer, id);
         shield.state.shield_id = id;
         shield.state.owner = resolve_target_ref(
             runtime.api,
@@ -6582,10 +6690,11 @@ fn snapshot(
         Some(_) => unreachable!("all capture instrumentation profiles are handled"),
     };
     let projectiles = read_projectiles(runtime, capture)?;
-    if !capture.pending_projectile_absorptions.is_empty() {
+    let pending = capture.pending_projectile_absorptions.len()
+        + capture.pending_projectile_absorption_pointers.len();
+    if pending != 0 {
         return Err(format!(
-            "{} projectile shield absorptions were not followed by projectile removal",
-            capture.pending_projectile_absorptions.len()
+            "{pending} projectile shield absorptions were not followed by projectile removal"
         ));
     }
     let tick_after = runtime
@@ -6665,11 +6774,6 @@ fn read_terrains(
             if !current_pointers.insert(pointer) {
                 return Err(format!("RangeItem at 0x{pointer:x} appears more than once"));
             }
-            if capture.retired_terrain_pointers.contains(&pointer) {
-                return Err(format!(
-                    "retired RangeItem pointer 0x{pointer:x} was reused"
-                ));
-            }
             let item_type =
                 invoke_value::<i32>(api, item, "GetRangeItemType").map_err(|error| {
                     format!("terrain controller {type_tag} item {index} GetRangeItemType: {error}")
@@ -6679,11 +6783,15 @@ fn read_terrains(
                     "RangeItem at 0x{pointer:x} type {item_type} disagrees with controller {type_tag}"
                 ));
             }
+            // A released RangeItem's address can be handed to a later object,
+            // so a pointer that has left the board and comes back is a new
+            // terrain, not the old one returning.
+            let reused = capture.retired_terrain_pointers.remove(&pointer);
             let id = match capture.terrain_ids.get(&pointer) {
-                Some(id) => *id,
-                None => allocate(&mut capture.next_terrain_id, "terrain")?,
+                Some(id) if !reused => *id,
+                _ => allocate(&mut capture.next_terrain_id, "terrain")?,
             };
-            capture.terrain_ids.entry(pointer).or_insert(id);
+            capture.terrain_ids.insert(pointer, id);
             let team_controller = api
                 .invoke(item, "GetTeamController", &mut [])
                 .map_err(|error| format!("terrain {id} item {index} GetTeamController: {error}"))?;
@@ -7045,6 +7153,8 @@ fn read_unit(
         MotionState::Attacking
     } else if current_motion_class == metadata.motion_stop_state_class {
         MotionState::Stopped
+    } else if current_motion_class == metadata.motion_transition_state_class {
+        MotionState::Transitioning
     } else {
         return Err("unsupported native MotionFSM current state".into());
     };
@@ -7473,11 +7583,9 @@ fn named_value(
     add: &str,
     reduce: &str,
 ) -> Result<ValueModifier, String> {
+    // The native aggregates are signed, and a round has shown one negative.
     let add = invoke_value::<i32>(api, object, add)?;
     let reduce = invoke_value::<i32>(api, object, reduce)?;
-    if add < 0 || reduce < 0 {
-        return Err("native value add/reduce aggregate is negative".to_owned());
-    }
     Ok(ValueModifier { add, reduce })
 }
 
@@ -8224,7 +8332,10 @@ fn read_projectile(
 }
 
 #[allow(clippy::too_many_lines)]
-fn transition_events(traces: &[NativeTrace], capture: &CaptureState) -> TransitionEvents {
+fn transition_events(
+    traces: &[NativeTrace],
+    capture: &CaptureState,
+) -> Result<TransitionEvents, String> {
     let mut events = Vec::new();
     for trace in traces {
         match *trace {
@@ -8254,7 +8365,16 @@ fn transition_events(traces: &[NativeTrace], capture: &CaptureState) -> Transiti
                 position,
                 intercepted,
                 absorbed_by,
+                absorbed_by_pointer,
             } => {
+                let absorbed_by = match absorbed_by_pointer {
+                    Some(pointer) => {
+                        Some(object_ref_from_pointer(pointer, capture).ok_or_else(|| {
+                            format!("absorbing shield 0x{pointer:x} was never numbered")
+                        })?)
+                    }
+                    None => absorbed_by,
+                };
                 let subject = Some(ObjectRef::new(ObjectKind::Projectile, projectile_id));
                 let source = object_ref_from_pointer(owner, capture);
                 events.push(event(
@@ -8283,6 +8403,46 @@ fn transition_events(traces: &[NativeTrace], capture: &CaptureState) -> Transiti
                     }),
                     Some(target),
                     EventPayload::Damage { amount },
+                ));
+            }
+            NativeTrace::DamageUnresolved {
+                source,
+                source_team_id,
+                target,
+                amount,
+            } => {
+                let target = object_ref_from_pointer(target, capture).ok_or_else(|| {
+                    format!(
+                        "damage target 0x{target:x}, a {}, is absent from the MCFR identity map",
+                        native_class_name(target)
+                    )
+                })?;
+                events.push(event(
+                    None,
+                    source,
+                    source_team_id.or_else(|| {
+                        source.and_then(|value| capture.object_teams.get(&value).copied())
+                    }),
+                    Some(target),
+                    EventPayload::Damage { amount },
+                ));
+            }
+            NativeTrace::UnitDiedUnresolved {
+                unit,
+                position,
+                source,
+                source_team_id,
+            } => {
+                let subject = object_ref_from_pointer(unit, capture)
+                    .ok_or_else(|| format!("dead unit 0x{unit:x} was never numbered"))?;
+                events.push(event(
+                    Some(subject),
+                    source,
+                    source_team_id.or_else(|| {
+                        source.and_then(|value| capture.object_teams.get(&value).copied())
+                    }),
+                    None,
+                    EventPayload::UnitDied { position },
                 ));
             }
             NativeTrace::UnitDied {
@@ -8383,7 +8543,133 @@ fn transition_events(traces: &[NativeTrace], capture: &CaptureState) -> Transiti
             }
         }
     }
-    TransitionEvents { events }
+    Ok(TransitionEvents { events })
+}
+
+/// Numbers the units the tick's events name but its snapshot does not hold,
+/// which joined the fight and left it within the tick, after every unit the
+/// snapshot holds and in the order the events name them. Their pointers are
+/// released once the tick's events are written, since the object behind them
+/// is gone.
+fn number_fleeting_units(capture: &mut CaptureState) -> Result<(), String> {
+    let named = capture
+        .traces
+        .iter()
+        .filter_map(|trace| match trace {
+            NativeTrace::UnitDiedUnresolved { unit, .. } => Some(*unit),
+            NativeTrace::DamageUnresolved { target, .. }
+                if !is_native_shield(*target, &capture.metadata) =>
+            {
+                Some(*target)
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    for pointer in named {
+        if capture.unit_ids.contains_key(&pointer) {
+            continue;
+        }
+        let id = allocate(&mut capture.next_unit_id, "unit")?;
+        capture.unit_ids.insert(pointer, id);
+        capture.fleeting_unit_pointers.push(pointer);
+    }
+    Ok(())
+}
+
+/// Carries every unit reference a capture holds from an earlier numbering of
+/// the units, `previous` by native pointer, to the current one. Before S(1)
+/// only the tick in progress can have recorded any.
+fn renumber_unit_references(
+    capture: &mut CaptureState,
+    previous: &BTreeMap<usize, u64>,
+) -> Result<(), String> {
+    let remap = previous
+        .iter()
+        .filter_map(|(pointer, old)| capture.unit_ids.get(pointer).map(|new| (*old, *new)))
+        .collect::<BTreeMap<_, _>>();
+    let map_id = |old: u64| {
+        remap
+            .get(&old)
+            .copied()
+            .ok_or_else(|| format!("unit {old} left the board before the first combat tick"))
+    };
+    let map_ref = |mut reference: ObjectRef| -> Result<ObjectRef, String> {
+        if reference.kind == ObjectKind::Unit {
+            reference.id = map_id(reference.id)?;
+        }
+        Ok(reference)
+    };
+    capture.emitted_deaths = std::mem::take(&mut capture.emitted_deaths)
+        .into_iter()
+        .map(map_ref)
+        .collect::<Result<_, _>>()?;
+    capture.last_damage_sources = std::mem::take(&mut capture.last_damage_sources)
+        .into_iter()
+        .map(|(reference, mut attribution)| {
+            attribution.source = attribution.source.map(map_ref).transpose()?;
+            Ok((map_ref(reference)?, attribution))
+        })
+        .collect::<Result<_, String>>()?;
+    for trace in &mut capture.traces {
+        match trace {
+            NativeTrace::Damage { source, target, .. } => {
+                *source = source.map(map_ref).transpose()?;
+                *target = map_ref(*target)?;
+            }
+            NativeTrace::DamageUnresolved { source, .. }
+            | NativeTrace::UnitDiedUnresolved { source, .. } => {
+                *source = source.map(map_ref).transpose()?;
+            }
+            NativeTrace::UnitDied {
+                unit_id, source, ..
+            } => {
+                *unit_id = map_id(*unit_id)?;
+                *source = source.map(map_ref).transpose()?;
+            }
+            NativeTrace::ProjectileReleased { .. }
+            | NativeTrace::ProjectileRemoved { .. }
+            | NativeTrace::ShieldCreated { .. }
+            | NativeTrace::ShieldDestroyed { .. }
+            | NativeTrace::TerrainCreated { .. }
+            | NativeTrace::TerrainRemoved { .. }
+            | NativeTrace::BuildingDestroyed { .. } => {}
+        }
+    }
+    Ok(())
+}
+
+/// Whether a native object is a battlefield shield, `FightEnergyShield` or a
+/// class derived from it.
+fn is_native_shield(pointer: usize, metadata: &Metadata) -> bool {
+    let runtime = RUNTIME.load(Ordering::Acquire);
+    if runtime.is_null() || pointer == 0 {
+        return false;
+    }
+    // SAFETY: runtime is boxed for the adapter process lifetime.
+    let api = unsafe { &*runtime }.api;
+    api.object_class(pointer as *mut Object)
+        .is_some_and(|class| {
+            api.class_is_or_inherits(class, metadata.fight_energy_shield_class as *mut Class)
+        })
+}
+
+/// The runtime class of a native object, for a refusal to name what it met.
+fn native_class_name(pointer: usize) -> String {
+    let runtime = RUNTIME.load(Ordering::Acquire);
+    if runtime.is_null() || pointer == 0 {
+        return "<unknown>".into();
+    }
+    // SAFETY: runtime is boxed for the adapter process lifetime.
+    let runtime = unsafe { &*runtime };
+    let api = runtime.api;
+    let Some(class) = api.object_class(pointer as *mut Object) else {
+        return "<classless>".into();
+    };
+    let name = format!("{}.{}", api.class_namespace(class), api.class_name(class));
+    match api.invoke_value::<i32>(pointer as *mut Object, "GetMechID", &mut []) {
+        Ok(mech) => format!("{name} of unit type {mech}"),
+        Err(_) => name,
+    }
 }
 
 fn object_ref_from_pointer(pointer: usize, capture: &CaptureState) -> Option<ObjectRef> {
@@ -9764,6 +10050,7 @@ mod tests {
                 position: QVec3 { x: 0, y: 0, z: 0 },
                 intercepted: false,
                 absorbed_by: Some(shield(1)),
+                absorbed_by_pointer: None,
             },
             NativeTrace::ShieldDestroyed {
                 shield_id: 1,
@@ -9804,7 +10091,7 @@ mod tests {
         assert_eq!(capture.pending_projectile_absorptions[&8], shield(4));
         assert_eq!(capture.rvo_agent_refs[&99], shield(4));
         assert_eq!(capture.last_damage_sources[&unit].source, Some(shield(4)));
-        let events = transition_events(&capture.traces, &capture).events;
+        let events = transition_events(&capture.traces, &capture).unwrap().events;
         assert_eq!(events[0].target, Some(shield(4)));
         assert_eq!(events[1].target, Some(shield(4)));
         assert!(
@@ -11018,9 +11305,10 @@ mod tests {
                 position: QVec3 { x: 1, y: 2, z: 0 },
                 intercepted: false,
                 absorbed_by: None,
+                absorbed_by_pointer: None,
             },
         ];
-        let events = transition_events(&traces, &capture);
+        let events = transition_events(&traces, &capture).unwrap();
         let context = DurableContext {
             logic_step: Rational {
                 numerator: 1,
@@ -11071,7 +11359,7 @@ mod tests {
             source_team_id: Some(0),
         }];
 
-        let events = transition_events(&traces, &capture);
+        let events = transition_events(&traces, &capture).unwrap();
 
         assert_eq!(events.events.len(), 1);
         assert_eq!(events.events[0].source, Some(source));

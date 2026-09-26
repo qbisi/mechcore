@@ -157,7 +157,7 @@ death survives as a `unit_died` event.
 | `body_rotation` | `INT64 required` | body facing, Q32.32 raw | FightTransform `GetRotationInt()` |
 | `turret_rotation` | `INT64 nullable` | turret facing, Q32.32 raw; null for a unit without a body | `FightMech.mechBody`'s FightTransform `GetRotationInt()` |
 | `velocity` | `QVec3 required` | current velocity | MotionController native velocity |
-| `motion_state` | `UINT8 required` | idle, moving, attacking, stopped; [below](#what-a-unit-is-directed-at) | native motion state machine mapping |
+| `motion_state` | `UINT8 required` | idle, moving, attacking, stopped, transitioning; [below](#what-a-unit-is-directed-at) | native motion state machine mapping |
 | `mech_lock_target` | nullable `ObjectRef` | what the unit's body is directed at; [below](#what-a-unit-is-directed-at) | `FightMech.lockTarget` |
 | `collision_radius` | `INT64 required` | collision radius, Q32.32 raw | `FightMech.GetRadius()` |
 | `life` | `GaugeI32 required` | current and maximum life | `GetLife()` / `GetMaxLife()` |
@@ -240,7 +240,9 @@ their aggregate effect through `buff_modifiers` instead.
 The buff channels come from the aggregate getters on
 `FightMech.GetBuffManager()`. Each Rate field holds Q32.32 raw as
 `{ add: i64, reduce: i64 }` and each Value field holds `{ add: i32, reduce: i32 }`.
-The neutral value is 0 throughout, and both components are non-negative.
+The neutral value is 0 throughout. A Rate's components are non-negative. A
+Value's are the native signed aggregates, which can be negative: a recorded
+round has shown `GetAttackRangeReduceValue` at -20.
 
 The adapter reads the complete getter set every frame. In Parquet each modifier
 field and each numeric leaf is nullable, and null reads as 0; when everything is
@@ -360,7 +362,7 @@ reader who takes any one of them for another misreads the fight.
 | --- | --- | --- |
 | `mech_lock_target` | what the unit's **body** is directed at | the mech |
 | `weapon_aims[].attack_target` | what each **weapon channel** fires at | the skill that owns the channel |
-| `motion_state` | whether the body is travelling, holding to attack, idle or stopped | the mech's motion state machine |
+| `motion_state` | whether the body is travelling, holding to attack, idle or stopped, or between two of those while a move ability runs | the mech's motion state machine |
 
 **`mech_lock_target` is the body's target.** It is what the mech's own search
 found, or for a grouped skill the target it most recently allocated to one of
@@ -757,7 +759,7 @@ recording's lifetime.
 | --- | --- |
 | `ObjectKind` | `0=unit`, `1=projectile`, `2=building`, `3=shield`, `4=terrain` |
 | `Domain` | `0=ground`, `1=air` |
-| `MotionState` | `0=idle`, `1=moving`, `2=attacking`, `3=stopped` |
+| `MotionState` | `0=idle`, `1=moving`, `2=attacking`, `3=stopped`, `4=transitioning` |
 | `Visibility` | `0=normal`, `1=disappear`, `2=stealth`, `3=hide` |
 | `ShieldSourceKind` | `0=contraption`, `1=commander_skill`, `2=owner_advanced`, `3=spawned_temporary` |
 | `ShieldRoundPolicy` | `0=destroy_at_round_end`, `1=reset_to_max`, `2=retain_state` |

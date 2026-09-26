@@ -1,6 +1,9 @@
+use std::collections::HashMap;
 use std::ffi::{CStr, CString, c_char, c_int, c_void};
+use std::hash::Hash;
 use std::mem;
 use std::ptr;
+use std::sync::{Mutex, OnceLock};
 
 #[repr(C)]
 pub struct Domain {
@@ -83,6 +86,35 @@ type StringLength = unsafe extern "C" fn(*mut StringObject) -> i32;
 type ThreadAttach = unsafe extern "C" fn(*mut Domain) -> *mut c_void;
 #[cfg(not(target_os = "macos"))]
 type ThreadDetach = unsafe extern "C" fn(*mut c_void);
+
+/// Runtime metadata resolved by name, as addresses. IL2CPP keeps every image,
+/// class, field and method for the life of the process, so a name resolves to
+/// the same address each time it is asked, and is resolved once: a capture
+/// asks for the same methods of every unit on every tick.
+type Resolved<K> = OnceLock<Mutex<HashMap<K, usize>>>;
+
+/// The address `key` resolved to, resolving it on first use. A failure is not
+/// kept, so a name the runtime has not loaded yet is asked again.
+fn resolved<K: Eq + Hash>(
+    cache: &Resolved<K>,
+    key: K,
+    resolve: impl FnOnce() -> Result<usize, Error>,
+) -> Result<usize, Error> {
+    let cache = cache.get_or_init(|| Mutex::new(HashMap::new()));
+    if let Some(&address) = cache
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .get(&key)
+    {
+        return Ok(address);
+    }
+    let address = resolve()?;
+    cache
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .insert(key, address);
+    Ok(address)
+}
 
 #[derive(Clone, Copy)]
 pub struct Api {
@@ -255,6 +287,14 @@ impl Api {
     }
 
     pub fn image(self, wanted: &str) -> Result<*const Image, Error> {
+        static IMAGES: Resolved<String> = OnceLock::new();
+        resolved(&IMAGES, wanted.to_owned(), || {
+            self.find_image(wanted).map(|image| image as usize)
+        })
+        .map(|image| image as *const Image)
+    }
+
+    fn find_image(self, wanted: &str) -> Result<*const Image, Error> {
         let domain = self.domain()?;
         let mut count = 0;
         // SAFETY: domain is live; IL2CPP owns the returned array.
@@ -285,6 +325,16 @@ impl Api {
     }
 
     pub fn class(self, image: &str, namespace: &str, name: &str) -> Result<*mut Class, Error> {
+        static CLASSES: Resolved<(String, String, String)> = OnceLock::new();
+        let key = (image.to_owned(), namespace.to_owned(), name.to_owned());
+        resolved(&CLASSES, key, || {
+            self.find_class(image, namespace, name)
+                .map(|class| class as usize)
+        })
+        .map(|class| class as *mut Class)
+    }
+
+    fn find_class(self, image: &str, namespace: &str, name: &str) -> Result<*mut Class, Error> {
         let image_ptr = self.image(image)?;
         let namespace_c = CString::new(namespace).map_err(|_| Error::InvalidCString)?;
         let name_c = CString::new(name).map_err(|_| Error::InvalidCString)?;
@@ -466,6 +516,14 @@ impl Api {
     }
 
     pub fn field(self, class: *mut Class, name: &str) -> Result<*mut FieldInfo, Error> {
+        static FIELDS: Resolved<(usize, String)> = OnceLock::new();
+        resolved(&FIELDS, (class as usize, name.to_owned()), || {
+            self.find_field(class, name).map(|field| field as usize)
+        })
+        .map(|field| field as *mut FieldInfo)
+    }
+
+    fn find_field(self, class: *mut Class, name: &str) -> Result<*mut FieldInfo, Error> {
         let name_c = CString::new(name).map_err(|_| Error::InvalidCString)?;
         let mut current = class;
         while !current.is_null() {
@@ -546,11 +604,25 @@ impl Api {
 
     pub fn method(
         self,
+        class: *mut Class,
+        name: &str,
+        argc: i32,
+    ) -> Result<*const MethodInfo, Error> {
+        static METHODS: Resolved<(usize, String, i32)> = OnceLock::new();
+        resolved(&METHODS, (class as usize, name.to_owned(), argc), || {
+            self.find_method(class, name, argc)
+                .map(|method| method as usize)
+        })
+        .map(|method| method as *const MethodInfo)
+    }
+
+    fn find_method(
+        self,
         mut class: *mut Class,
         name: &str,
         argc: i32,
     ) -> Result<*const MethodInfo, Error> {
-        let original = self.class_name(class);
+        let original = class;
         let name_c = CString::new(name).map_err(|_| Error::InvalidCString)?;
         while !class.is_null() {
             // SAFETY: class is a runtime class and name_c is a valid C string.
@@ -562,7 +634,7 @@ impl Api {
             class = unsafe { (self.class_get_parent)(class) };
         }
         Err(Error::MissingMethod {
-            class: original,
+            class: self.class_name(original),
             method: name.into(),
             argc,
         })
@@ -618,11 +690,33 @@ impl Api {
 
     pub fn class_method_with_parameter_types(
         self,
+        class: *mut Class,
+        name: &str,
+        parameter_types: &[&str],
+    ) -> Result<*const MethodInfo, Error> {
+        static METHODS: Resolved<(usize, String, Vec<String>)> = OnceLock::new();
+        let key = (
+            class as usize,
+            name.to_owned(),
+            parameter_types
+                .iter()
+                .map(|&parameter| parameter.to_owned())
+                .collect(),
+        );
+        resolved(&METHODS, key, || {
+            self.find_method_with_parameter_types(class, name, parameter_types)
+                .map(|method| method as usize)
+        })
+        .map(|method| method as *const MethodInfo)
+    }
+
+    fn find_method_with_parameter_types(
+        self,
         mut class: *mut Class,
         name: &str,
         parameter_types: &[&str],
     ) -> Result<*const MethodInfo, Error> {
-        let original = self.class_name(class);
+        let original = class;
         while !class.is_null() {
             let mut iterator = ptr::null_mut();
             loop {
@@ -675,7 +769,7 @@ impl Api {
             class = unsafe { (self.class_get_parent)(class) };
         }
         Err(Error::MissingMethod {
-            class: original,
+            class: self.class_name(original),
             method: format!("{name}({})", parameter_types.join(", ")),
             argc: i32::try_from(parameter_types.len()).unwrap_or(i32::MAX),
         })

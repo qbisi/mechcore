@@ -197,7 +197,9 @@ extern "C" fn fight_replay_on_main(context: *mut c_void) {
     // SAFETY: dispatch_sync_f invokes this callback before returning, while the
     // stack-owned invocation, runtime and path remain alive.
     let invocation = unsafe { &mut *context.cast::<ReplayFightInvocation>() };
-    let runtime = unsafe { &mut *invocation.runtime };
+    // SAFETY: the recording that started this fight leaves the runtime alone
+    // until it has joined the fight's thread, so only a shared view exists.
+    let runtime = unsafe { &*invocation.runtime };
     let path = unsafe { &*invocation.path };
     invocation.response = Some(operations::fight_replay(
         runtime,
@@ -271,40 +273,61 @@ fn execute_layout_stage_on_main(
     )
 }
 
-fn execute_replay_fight_on_main(
-    runtime: &mut Runtime,
-    request_id: u64,
-    path: &PathBuf,
-    round: i32,
-) -> Response<Value> {
-    let mut invocation = ReplayFightInvocation {
-        runtime,
-        request_id,
-        path,
-        round,
-        response: None,
-    };
-    #[cfg(target_os = "macos")]
-    {
-        // SAFETY: queue is the process main queue and the callback/context obey
-        // dispatch_sync_f's synchronous lifetime contract.
-        unsafe {
-            dispatch_sync_f(
-                (&raw const _dispatch_main_q).cast_mut(),
-                std::ptr::from_mut(&mut invocation).cast(),
-                fight_replay_on_main,
-            );
-        }
-    }
-    #[cfg(not(target_os = "macos"))]
-    fight_replay_on_main(std::ptr::from_mut(&mut invocation).cast());
+/// The runtime's address, carried to the thread that hands a fight to the
+/// main thread.
+struct RuntimeAddress(*mut Runtime);
 
-    invocation.response.unwrap_or_else(|| {
-        Response::failure(
+// SAFETY: the address is dereferenced only on the main thread, inside the
+// synchronous dispatch, while the recording that started the fight leaves the
+// runtime alone until the fight's thread has been joined.
+unsafe impl Send for RuntimeAddress {}
+
+impl RuntimeAddress {
+    const fn get(self) -> *mut Runtime {
+        self.0
+    }
+}
+
+/// Fights replay round `round` on the main thread from a thread of its own,
+/// so the caller can read the capture while it runs. The caller joins the
+/// returned thread before it uses the runtime again.
+fn start_replay_fight(
+    runtime: *mut Runtime,
+    request_id: u64,
+    path: PathBuf,
+    round: i32,
+) -> thread::JoinHandle<Response<Value>> {
+    let address = RuntimeAddress(runtime);
+    thread::spawn(move || {
+        let mut invocation = ReplayFightInvocation {
+            runtime: address.get(),
             request_id,
-            "main_thread_dispatch_failed",
-            "main-thread replay fight returned no response",
-        )
+            path: &raw const path,
+            round,
+            response: None,
+        };
+        #[cfg(target_os = "macos")]
+        {
+            // SAFETY: queue is the process main queue and the callback/context
+            // obey dispatch_sync_f's synchronous lifetime contract.
+            unsafe {
+                dispatch_sync_f(
+                    (&raw const _dispatch_main_q).cast_mut(),
+                    std::ptr::from_mut(&mut invocation).cast(),
+                    fight_replay_on_main,
+                );
+            }
+        }
+        #[cfg(not(target_os = "macos"))]
+        fight_replay_on_main(std::ptr::from_mut(&mut invocation).cast());
+
+        invocation.response.unwrap_or_else(|| {
+            Response::failure(
+                request_id,
+                "main_thread_dispatch_failed",
+                "main-thread replay fight returned no response",
+            )
+        })
     })
 }
 
@@ -1363,15 +1386,72 @@ fn execute_recording_series(
     )) {
         return response;
     }
-    if let (capture::CaptureStartMode::Replay(round), Some(grbr)) = (mode, replay)
-        && let Err(response) = successful_result(execute_replay_fight_on_main(
-            runtime, request.id, grbr, round,
-        ))
-    {
-        stop_capture_after_failure(runtime, request.id);
-        return response;
+    // A replay is fought on the main thread while this one writes the ticks
+    // it captures, so the fight and the file overlap rather than one waiting
+    // for the other. Until the fight returns, the main thread holds the
+    // runtime, so everything below that uses it waits for the fight first.
+    let replayed = replay.is_some();
+    let fight = match (mode, replay) {
+        (capture::CaptureStartMode::Replay(round), Some(grbr)) => Some(start_replay_fight(
+            std::ptr::from_mut(runtime),
+            request.id,
+            grbr.clone(),
+            round,
+        )),
+        _ => None,
+    };
+    let drained = drain_recording(request, &arguments, fight.as_ref());
+    // A failed recording stops capturing before it waits for the fight, which
+    // then runs out without being snapshotted.
+    if let Drained::Failed(_, message) = &drained {
+        capture::abort(message);
     }
+    let fought = fight.map(|fight| {
+        fight.join().unwrap_or_else(|_| {
+            Response::failure(
+                request.id,
+                "main_thread_dispatch_failed",
+                "the replay fight's thread panicked",
+            )
+        })
+    });
+    if let Some(fought) = fought
+        && !fought.ok
+    {
+        capture::abort("the replay fight failed");
+        stop_capture(runtime, request.id);
+        return fought;
+    }
+    match drained {
+        Drained::Published(response) => {
+            // A fight that ran out of time leaves the capture armed.
+            if replayed {
+                stop_capture(runtime, request.id);
+            }
+            response
+        }
+        Drained::Failed(code, message) => recording_failure(runtime, request.id, code, message),
+    }
+}
+
+/// How reading a capture into its recording ended.
+enum Drained {
+    Published(Response<Value>),
+    /// A failure, which stopping the capture has still to follow.
+    Failed(&'static str, String),
+}
+
+/// Reads a capture's ticks into its recording until the terminal tick
+/// publishes it. It never touches the runtime, which a replay's fight may be
+/// holding on the main thread meanwhile.
+#[allow(clippy::too_many_lines)] // One message loop, each arm short.
+fn drain_recording(
+    request: &Request,
+    arguments: &RecordBattleArguments,
+    fight: Option<&thread::JoinHandle<Response<Value>>>,
+) -> Drained {
     let deadline = Instant::now() + RECORDING_TIMEOUT;
+    let mut pending = None;
     let mut writer = None;
     let mut video = None;
     let mut instrumentation_records = Vec::new();
@@ -1381,31 +1461,26 @@ fn execute_recording_series(
         // published, the sidecar and video are torn down with it, and the
         // claim is answered now rather than up to three minutes from now.
         if evicting() {
-            return recording_failure(
-                runtime,
-                request.id,
+            return Drained::Failed(
                 EVICTED_CODE,
                 format!("level {} claimed the game", evicting_level()),
             );
         }
         if Instant::now() >= deadline {
-            return recording_failure(
-                runtime,
-                request.id,
+            return Drained::Failed(
                 "operation_timeout",
                 "recording timed out before fighting-to-over boundary".into(),
             );
         }
-        match capture::poll() {
+        let message = pending.take().or_else(capture::poll);
+        let finished = match message {
             Some(CaptureMessage::Initial {
                 game_build,
                 context,
                 layout_yaml,
             }) => {
                 if writer.is_some() {
-                    return recording_failure(
-                        runtime,
-                        request.id,
+                    return Drained::Failed(
                         "capture_failed",
                         "capture emitted more than one recording header".into(),
                     );
@@ -1415,12 +1490,7 @@ fn execute_recording_series(
                         match crate::video::MovWriter::create(video_output, context.logic_step) {
                             Ok(created) => created,
                             Err(error) => {
-                                return recording_failure(
-                                    runtime,
-                                    request.id,
-                                    "video_error",
-                                    error,
-                                );
+                                return Drained::Failed("video_error", error);
                             }
                         };
                     video = Some(created);
@@ -1433,14 +1503,10 @@ fn execute_recording_series(
                 ) {
                     Ok(created) => writer = Some(created),
                     Err(error) => {
-                        return recording_failure(
-                            runtime,
-                            request.id,
-                            "mcfr_error",
-                            error.to_string(),
-                        );
+                        return Drained::Failed("mcfr_error", error.to_string());
                     }
                 }
+                false
             }
             Some(CaptureMessage::Transition {
                 events,
@@ -1450,15 +1516,13 @@ fn execute_recording_series(
                 frame,
             }) => {
                 let Some(active) = writer.as_mut() else {
-                    return recording_failure(
-                        runtime,
-                        request.id,
+                    return Drained::Failed(
                         "capture_failed",
                         "capture tick preceded its recording header".into(),
                     );
                 };
                 if let Err(error) = active.append_tick(state, &events) {
-                    return recording_failure(runtime, request.id, "mcfr_error", error.to_string());
+                    return Drained::Failed("mcfr_error", error.to_string());
                 }
                 recorded_tick += 1;
                 match (&arguments.instrumentation, instrumentation) {
@@ -1468,17 +1532,13 @@ fn execute_recording_series(
                     (None, None) => {}
                     (Some(config), None) if config.rvo_scope.is_some() => {}
                     (Some(_), None) => {
-                        return recording_failure(
-                            runtime,
-                            request.id,
+                        return Drained::Failed(
                             "capture_failed",
                             "capture omitted requested instrumentation".into(),
                         );
                     }
                     (None, Some(_)) => {
-                        return recording_failure(
-                            runtime,
-                            request.id,
+                        return Drained::Failed(
                             "capture_failed",
                             "capture produced unrequested instrumentation".into(),
                         );
@@ -1491,237 +1551,226 @@ fn execute_recording_series(
                         let jpeg = match frame.encode_jpeg() {
                             Ok(jpeg) => jpeg,
                             Err(error) => {
-                                return recording_failure(
-                                    runtime,
-                                    request.id,
-                                    "video_error",
-                                    error,
-                                );
+                                return Drained::Failed("video_error", error);
                             }
                         };
                         if let Err(error) = active.append_jpeg(&jpeg) {
-                            return recording_failure(runtime, request.id, "video_error", error);
+                            return Drained::Failed("video_error", error);
                         }
                     }
                     (Some(_), None) => {
-                        return recording_failure(
-                            runtime,
-                            request.id,
+                        return Drained::Failed(
                             "capture_failed",
                             "visual capture omitted a logic frame".into(),
                         );
                     }
                     (None, Some(_)) => {
-                        return recording_failure(
-                            runtime,
-                            request.id,
+                        return Drained::Failed(
                             "capture_failed",
                             "visual capture produced a frame without video_output".into(),
                         );
                     }
                     (None, None) => {}
                 }
-                if terminal {
-                    let video_summary = match video.take() {
-                        Some(video) => match video.finish() {
-                            Ok(summary) => Some(summary),
-                            Err(error) => {
-                                return recording_failure(
-                                    runtime,
-                                    request.id,
-                                    "video_error",
-                                    error,
-                                );
-                            }
-                        },
-                        None => None,
-                    };
-                    let hashes = match writer.take().expect("writer checked above").finish() {
-                        Ok(hashes) => hashes,
-                        Err(error) => {
-                            remove_published(arguments.video_output.as_deref());
-                            return Response::failure(request.id, "mcfr_error", error.to_string());
-                        }
-                    };
-                    let published = match mechcore_mcfr::McfrReader::open(&arguments.output) {
-                        Ok(reader) => reader,
-                        Err(error) => {
-                            remove_published(Some(&arguments.output));
-                            remove_published(arguments.video_output.as_deref());
-                            return Response::failure(
-                                request.id,
-                                "mcfr_reopen_failed",
-                                error.to_string(),
-                            );
-                        }
-                    };
-                    if published.hashes() != &hashes {
-                        remove_published(Some(&arguments.output));
-                        remove_published(arguments.video_output.as_deref());
-                        return Response::failure(
-                            request.id,
-                            "mcfr_reopen_failed",
-                            "published MCFR hashes changed after reopening",
-                        );
+                terminal
+            }
+            Some(CaptureMessage::Failure(error)) => {
+                return Drained::Failed("capture_failed", error);
+            }
+            // The headless call returns once the fight is over, having
+            // captured each of its ticks. A fight that runs out of time ends
+            // outside `FightController.Update`, where the capture never sees
+            // it end, so the tick last captured is its terminal one; with none
+            // captured, the round never reached the fight.
+            None if fight.is_some_and(thread::JoinHandle::is_finished) => {
+                if let Some(message) = capture::poll() {
+                    pending = Some(message);
+                    continue;
+                }
+                if writer.is_none() || recorded_tick == 0 {
+                    return Drained::Failed(
+                        "capture_failed",
+                        "the replay ended without fighting the requested round".into(),
+                    );
+                }
+                true
+            }
+            None => {
+                thread::sleep(RECORDING_POLL_INTERVAL);
+                false
+            }
+        };
+        if finished {
+            let video_summary = match video.take() {
+                Some(video) => match video.finish() {
+                    Ok(summary) => Some(summary),
+                    Err(error) => {
+                        return Drained::Failed("video_error", error);
                     }
-                    if let Some(summary) = &video_summary
-                        && summary.frame_count != u64::from(published.tick_count())
+                },
+                None => None,
+            };
+            let hashes = match writer.take().expect("writer checked above").finish() {
+                Ok(hashes) => hashes,
+                Err(error) => {
+                    remove_published(arguments.video_output.as_deref());
+                    return Drained::Published(Response::failure(
+                        request.id,
+                        "mcfr_error",
+                        error.to_string(),
+                    ));
+                }
+            };
+            // `finish` has read the packaged file back and matched its hashes
+            // before publishing it, and a recording's terminal tick is its last.
+            let Ok(tick_count) = u32::try_from(recorded_tick) else {
+                remove_published(Some(&arguments.output));
+                remove_published(arguments.video_output.as_deref());
+                return Drained::Published(Response::failure(
+                    request.id,
+                    "mcfr_error",
+                    "the recording holds more ticks than an MCFR counts",
+                ));
+            };
+            if let Some(summary) = &video_summary
+                && summary.frame_count != u64::from(tick_count)
+            {
+                remove_published(Some(&arguments.output));
+                remove_published(arguments.video_output.as_deref());
+                return Drained::Published(Response::failure(
+                    request.id,
+                    "video_verification_failed",
+                    format!(
+                        "video frame count {} does not match MCFR state count {}",
+                        summary.frame_count,
+                        u64::from(tick_count)
+                    ),
+                ));
+            }
+            let instrumentation_result = match &arguments.instrumentation {
+                Some(instrumentation) => {
+                    if instrumentation_records.is_empty()
+                        || (instrumentation.rvo_scope.is_none()
+                            && instrumentation_records.len() != tick_count as usize)
                     {
                         remove_published(Some(&arguments.output));
                         remove_published(arguments.video_output.as_deref());
-                        return Response::failure(
+                        return Drained::Published(Response::failure(
                             request.id,
-                            "video_verification_failed",
+                            "instrumentation_verification_failed",
                             format!(
-                                "video frame count {} does not match MCFR state count {}",
-                                summary.frame_count,
-                                u64::from(published.tick_count())
+                                "instrumentation record count {} does not match MCFR state count {}",
+                                instrumentation_records.len(),
+                                tick_count
                             ),
-                        );
+                        ));
                     }
-                    let instrumentation_result = match &arguments.instrumentation {
-                        Some(instrumentation) => {
-                            if instrumentation_records.is_empty()
-                                || (instrumentation.rvo_scope.is_none()
-                                    && instrumentation_records.len()
-                                        != published.tick_count() as usize)
-                            {
-                                remove_published(Some(&arguments.output));
-                                remove_published(arguments.video_output.as_deref());
-                                return Response::failure(
-                                    request.id,
-                                    "instrumentation_verification_failed",
-                                    format!(
-                                        "instrumentation record count {} does not match MCFR state count {}",
-                                        instrumentation_records.len(),
-                                        published.tick_count()
-                                    ),
-                                );
-                            }
-                            let write_result = (|| {
-                                let mut sidecar = mechcore_mcfr::InstrumentationWriter::create(
-                                    &instrumentation.output,
-                                    &hashes.physics_result_hash,
-                                    instrumentation.profile.as_str(),
-                                    "adapter",
-                                )?;
-                                for (tick, observation) in &instrumentation_records {
-                                    sidecar.record_json(
-                                        *tick,
-                                        instrumentation.profile.channel(),
-                                        observation,
-                                    )?;
-                                }
-                                sidecar.finish()
-                            })();
-                            if let Err(error) = write_result {
-                                remove_published(Some(&arguments.output));
-                                remove_published(arguments.video_output.as_deref());
-                                remove_published(Some(&instrumentation.output));
-                                return Response::failure(
-                                    request.id,
-                                    "instrumentation_error",
-                                    error.to_string(),
-                                );
-                            }
-                            let sidecar = match mechcore_mcfr::InstrumentationReader::open(
-                                &instrumentation.output,
-                            ) {
-                                Ok(sidecar) => sidecar,
-                                Err(error) => {
-                                    remove_published(Some(&arguments.output));
-                                    remove_published(arguments.video_output.as_deref());
-                                    remove_published(Some(&instrumentation.output));
-                                    return Response::failure(
-                                        request.id,
-                                        "instrumentation_verification_failed",
-                                        error.to_string(),
-                                    );
-                                }
-                            };
-                            let valid = sidecar.physics_result_hash() == hashes.physics_result_hash
-                                && sidecar.profile() == instrumentation.profile.as_str()
-                                && sidecar.producer() == "adapter"
-                                && sidecar.len() == instrumentation_records.len()
-                                && (0..sidecar.len()).all(|index| {
-                                    sidecar.entry(index).is_ok_and(|entry| {
-                                        entry.step == instrumentation_records[index].0
-                                            && entry.channel == instrumentation.profile.channel()
-                                            && entry.content_type == "application/json"
-                                    })
-                                });
-                            if !valid {
-                                remove_published(Some(&arguments.output));
-                                remove_published(arguments.video_output.as_deref());
-                                remove_published(Some(&instrumentation.output));
-                                return Response::failure(
-                                    request.id,
-                                    "instrumentation_verification_failed",
-                                    "published instrumentation metadata or records changed during verification",
-                                );
-                            }
-                            Some(serde_json::json!({
-                                "output": instrumentation.output,
-                                "profile": instrumentation.profile.as_str(),
-                                "producer": "adapter",
-                                "physics_result_hash": sidecar.physics_result_hash(),
-                                "record_count": sidecar.len(),
-                                "rvo_scope": instrumentation.rvo_scope,
-                            }))
+                    let write_result = (|| {
+                        let mut sidecar = mechcore_mcfr::InstrumentationWriter::create(
+                            &instrumentation.output,
+                            &hashes.physics_result_hash,
+                            instrumentation.profile.as_str(),
+                            "adapter",
+                        )?;
+                        for (tick, observation) in &instrumentation_records {
+                            sidecar.record_json(
+                                *tick,
+                                instrumentation.profile.channel(),
+                                observation,
+                            )?;
                         }
-                        None => None,
-                    };
-                    let video_result = video_summary.map(|summary| {
-                        serde_json::json!({
-                            "output": arguments.video_output,
-                            "format": "quicktime_mjpeg",
-                            "frame_count": summary.frame_count,
-                            "width": summary.width,
-                            "height": summary.height,
-                            "view": capture::CALIBRATION_VIEW,
-                            "projection": "perspective",
-                            "camera_position": [
-                                0.0,
-                                capture::CALIBRATION_CAMERA_HEIGHT,
-                                capture::CALIBRATION_CAMERA_Z,
-                            ],
-                            "camera_euler_degrees": [
-                                capture::CALIBRATION_CAMERA_PITCH_DEGREES,
-                                0.0,
-                                0.0,
-                            ],
-                            "field_of_view_degrees": capture::CALIBRATION_FIELD_OF_VIEW_DEGREES,
-                        })
-                    });
-                    return Response::success(
-                        request.id,
-                        serde_json::json!({
-                            "recorded": true,
-                            "output": arguments.output,
-                            "tick_count": published.tick_count(),
-                            "terminal_tick": published.terminal_tick(),
-                            "hashes": hashes,
-                            "video": video_result,
-                            "instrumentation": instrumentation_result,
-                        }),
-                    );
+                        sidecar.finish()
+                    })();
+                    if let Err(error) = write_result {
+                        remove_published(Some(&arguments.output));
+                        remove_published(arguments.video_output.as_deref());
+                        remove_published(Some(&instrumentation.output));
+                        return Drained::Published(Response::failure(
+                            request.id,
+                            "instrumentation_error",
+                            error.to_string(),
+                        ));
+                    }
+                    let sidecar =
+                        match mechcore_mcfr::InstrumentationReader::open(&instrumentation.output) {
+                            Ok(sidecar) => sidecar,
+                            Err(error) => {
+                                remove_published(Some(&arguments.output));
+                                remove_published(arguments.video_output.as_deref());
+                                remove_published(Some(&instrumentation.output));
+                                return Drained::Published(Response::failure(
+                                    request.id,
+                                    "instrumentation_verification_failed",
+                                    error.to_string(),
+                                ));
+                            }
+                        };
+                    let valid = sidecar.physics_result_hash() == hashes.physics_result_hash
+                        && sidecar.profile() == instrumentation.profile.as_str()
+                        && sidecar.producer() == "adapter"
+                        && sidecar.len() == instrumentation_records.len()
+                        && (0..sidecar.len()).all(|index| {
+                            sidecar.entry(index).is_ok_and(|entry| {
+                                entry.step == instrumentation_records[index].0
+                                    && entry.channel == instrumentation.profile.channel()
+                                    && entry.content_type == "application/json"
+                            })
+                        });
+                    if !valid {
+                        remove_published(Some(&arguments.output));
+                        remove_published(arguments.video_output.as_deref());
+                        remove_published(Some(&instrumentation.output));
+                        return Drained::Published(Response::failure(
+                            request.id,
+                            "instrumentation_verification_failed",
+                            "published instrumentation metadata or records changed during verification",
+                        ));
+                    }
+                    Some(serde_json::json!({
+                        "output": instrumentation.output,
+                        "profile": instrumentation.profile.as_str(),
+                        "producer": "adapter",
+                        "physics_result_hash": sidecar.physics_result_hash(),
+                        "record_count": sidecar.len(),
+                        "rvo_scope": instrumentation.rvo_scope,
+                    }))
                 }
-            }
-            Some(CaptureMessage::Failure(error)) => {
-                return recording_failure(runtime, request.id, "capture_failed", error);
-            }
-            // A replay is fought to its end before the queue is read, so an
-            // empty queue before the terminal tick means the round never
-            // reached the fight.
-            None if matches!(mode, capture::CaptureStartMode::Replay(_)) => {
-                return recording_failure(
-                    runtime,
-                    request.id,
-                    "capture_failed",
-                    "the replay ended without fighting the requested round".into(),
-                );
-            }
-            None => thread::sleep(RECORDING_POLL_INTERVAL),
+                None => None,
+            };
+            let video_result = video_summary.map(|summary| {
+                serde_json::json!({
+                    "output": arguments.video_output,
+                    "format": "quicktime_mjpeg",
+                    "frame_count": summary.frame_count,
+                    "width": summary.width,
+                    "height": summary.height,
+                    "view": capture::CALIBRATION_VIEW,
+                    "projection": "perspective",
+                    "camera_position": [
+                        0.0,
+                        capture::CALIBRATION_CAMERA_HEIGHT,
+                        capture::CALIBRATION_CAMERA_Z,
+                    ],
+                    "camera_euler_degrees": [
+                        capture::CALIBRATION_CAMERA_PITCH_DEGREES,
+                        0.0,
+                        0.0,
+                    ],
+                    "field_of_view_degrees": capture::CALIBRATION_FIELD_OF_VIEW_DEGREES,
+                })
+            });
+            return Drained::Published(Response::success(
+                request.id,
+                serde_json::json!({
+                    "recorded": true,
+                    "output": arguments.output,
+                    "tick_count": tick_count,
+                    "terminal_tick": tick_count,
+                    "hashes": hashes,
+                    "video": video_result,
+                    "instrumentation": instrumentation_result,
+                }),
+            ));
         }
     }
 }
@@ -1733,11 +1782,11 @@ fn recording_failure(
     message: String,
 ) -> Response<Value> {
     capture::abort(&message);
-    stop_capture_after_failure(runtime, request_id);
+    stop_capture(runtime, request_id);
     Response::failure(request_id, code, message)
 }
 
-fn stop_capture_after_failure(runtime: &mut Runtime, request_id: u64) {
+fn stop_capture(runtime: &mut Runtime, request_id: u64) {
     let response = execute_internal_on_main(
         runtime,
         request_id,

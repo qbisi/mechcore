@@ -523,6 +523,9 @@ pub enum MotionState {
     Moving,
     Attacking,
     Stopped,
+    /// Between two states while a move ability runs: `MotionFSM` holds its
+    /// `TransitionState` until the ability hands it the next one.
+    Transitioning,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -629,9 +632,21 @@ fn validate_initial_unit_order(snapshot: &WorldSnapshot) -> Result<()> {
             &pair[1].position,
         );
         if ordering != Ordering::Less {
-            return Err(Error::invalid(
-                "initial unit identities must follow ascending team, world z, then world x",
-            ));
+            let [left, right] = [&pair[0], &pair[1]].map(|unit| {
+                format!(
+                    "unit {} (type {}, formation {}, team {}) at world x {} z {}",
+                    unit.unit_id,
+                    unit.unit_type_id,
+                    unit.formation_id,
+                    unit.team_id,
+                    unit.position.x,
+                    unit.position.z
+                )
+            });
+            return Err(Error::invalid(format!(
+                "initial unit identities must follow ascending team, world z, then world x: \
+                 {left} comes before {right}"
+            )));
         }
     }
     Ok(())
@@ -745,19 +760,8 @@ impl BuffModifierSet {
                 "{label} rate add/reduce values must be nonnegative"
             )));
         }
-        let values = [
-            self.move_speed_value,
-            self.attack_range_value,
-            self.extra_attack_range_value,
-        ];
-        if values
-            .iter()
-            .any(|modifier| modifier.add < 0 || modifier.reduce < 0)
-        {
-            return Err(Error::invalid(format!(
-                "{label} value add/reduce values must be nonnegative"
-            )));
-        }
+        // A Value field is the native signed aggregate, which a round has
+        // shown negative.
         Ok(())
     }
 }
