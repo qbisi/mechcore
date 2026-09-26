@@ -25,6 +25,7 @@
 # `out` must not already exist: a recording refuses to overwrite.
 
 game: launch
+headless: true
 
 vars:
   out: /tmp/mechcore/interval/stagger
