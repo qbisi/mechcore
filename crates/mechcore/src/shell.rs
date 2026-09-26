@@ -9,7 +9,7 @@
 //! carrying the level it claims at. A prompt is a session, and a session
 //! acquires by saying so. See `docs/spec/mechcore/session.md`.
 
-use crate::acquire::{Mode, Ownership};
+use crate::acquire::{Launch, Mode, Ownership};
 use crate::cli::Args;
 use crate::session::Session;
 use serde_json::Value;
@@ -21,8 +21,9 @@ A line is a command with `mechcore` dropped, so `doc verify x.yaml` here and
 `mechcore doc verify x.yaml` outside are the same command.
 
 the game
-  game launch [--level 0-4] [--headless]
-                                  start a game and own it; headless opens no window
+  game launch [--level 0-4] [--headless] [--offline]
+                                  start a game; headless opens no window, offline
+                                  has no network, Steam's included
   game attach [--level 0-4]       join a running game, leaving it to its owner
   game detach                     leave the game, which a launched one outlives by 30s
   game status                     current status snapshot
@@ -164,8 +165,14 @@ async fn game(
                 Err(failure) => return failure.write(&format!("game.{verb}")),
             };
             let mode = if verb == "launch" {
-                match arguments.flag("--headless") {
-                    Ok(headless) => Mode::Launch { headless },
+                let how = arguments.flag("--headless").and_then(|headless| {
+                    Ok(Launch {
+                        headless,
+                        offline: arguments.flag("--offline")?,
+                    })
+                });
+                match how {
+                    Ok(how) => Mode::Launch(how),
                     Err(failure) => return failure.write("game.launch"),
                 }
             } else {

@@ -24,12 +24,13 @@ open is [adapter.md](../adapter/adapter.md). A layout a step applies is
 
 ## Document shape
 
-Five top-level keys, all others rejected:
+Six top-level keys, all others rejected:
 
 ```yaml
 game: launch        # optional: launch | attach; omitted means gameless
 level: 1            # optional: 0..4, needs a game; higher takes it from lower
 headless: true      # optional: needs game: launch; no window, no graphics device
+offline: true       # optional: needs game: launch; no network, Steam's included
 vars:               # optional
   grbr: work/replay/replays/<version>/example.grbr
   out: /tmp/mechcore/example
@@ -83,6 +84,10 @@ to runs as whoever started it chose. A recording does not depend on it, since
 the fight never reads what is drawn, and the ones compared hash the same; only
 a video, which needs rendered frames, is refused. [session.md](session.md#headless) says what
 changes.
+
+`offline: true` launches the game with no network, Steam's included, under the
+same rule; watching the server's matches is refused, and nothing else changes
+([session.md](session.md#offline)).
 
 The acquisition states, their failure codes and what evicts what are in
 [session.md](session.md).

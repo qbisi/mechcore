@@ -9,7 +9,7 @@
 //! That is a static rule, checked before anything runs, so `--check` answers
 //! "does this need the game?" without touching it.
 
-use crate::acquire::Mode;
+use crate::acquire::{Launch, Mode};
 use crate::fight;
 use crate::session::Session;
 use mechcore_protocol::{
@@ -65,7 +65,8 @@ pub(crate) fn run(arguments: impl Iterator<Item = String>) -> Result<bool, Strin
                 "script": options.script.display().to_string(),
                 "game": script.game.map(Mode::as_str),
                 "level": script.game.map(|_| script.level),
-                "headless": matches!(script.game, Some(Mode::Launch { headless: true })),
+                "headless": matches!(script.game, Some(Mode::Launch(how)) if how.headless),
+                "offline": matches!(script.game, Some(Mode::Launch(how)) if how.offline),
                 "steps": script.steps.len(),
                 "valid": true,
             })
@@ -179,7 +180,7 @@ impl Script {
         for key in document.keys() {
             if !matches!(
                 key.as_str(),
-                "game" | "level" | "headless" | "vars" | "steps"
+                "game" | "level" | "headless" | "offline" | "vars" | "steps"
             ) {
                 return Err(format!("unknown top-level key {key}"));
             }
@@ -187,14 +188,18 @@ impl Script {
 
         // Only a launch decides how the game runs; a game that is attached to
         // keeps the window it was started with.
-        let headless = match document.get("headless") {
-            None => false,
-            Some(Value::Bool(headless)) => *headless,
-            Some(other) => return Err(format!("headless must be true or false, got {other}")),
+        let switch = |key: &str| match document.get(key) {
+            None => Ok(false),
+            Some(Value::Bool(on)) => Ok(*on),
+            Some(other) => Err(format!("{key} must be true or false, got {other}")),
+        };
+        let how = Launch {
+            headless: switch("headless")?,
+            offline: switch("offline")?,
         };
         let game = match document.get("game") {
             None => None,
-            Some(Value::String(value)) if value == "launch" => Some(Mode::Launch { headless }),
+            Some(Value::String(value)) if value == "launch" => Some(Mode::Launch(how)),
             Some(Value::String(value)) if value == "attach" => Some(Mode::Attach),
             Some(other) => {
                 return Err(format!("game must be launch or attach, got {other}"));
@@ -215,12 +220,13 @@ impl Script {
             }
             Some(other) => return Err(format!("level must be 0..={MAX_LEVEL}, got {other}")),
         };
-        if document.contains_key("headless") && !matches!(game, Some(Mode::Launch { .. })) {
-            return Err(
-                "headless says how a launched game runs, but the script does not declare \
-                 `game: launch`"
-                    .into(),
-            );
+        for key in ["headless", "offline"] {
+            if document.contains_key(key) && !matches!(game, Some(Mode::Launch(_))) {
+                return Err(format!(
+                    "{key} says how a launched game runs, but the script does not declare \
+                     `game: launch`"
+                ));
+            }
         }
         if document.contains_key("level") && game.is_none() {
             return Err(
@@ -1264,7 +1270,7 @@ mod tests {
     fn a_declared_game_admits_native_operations() {
         let script = Script::parse("game: launch\nsteps:\n  - game.start_test: {}\n").unwrap();
         assert!(script.check().is_ok());
-        assert_eq!(script.game, Some(Mode::Launch { headless: false }));
+        assert_eq!(script.game, Some(Mode::Launch(Launch::default())));
     }
 
     #[test]
@@ -1461,24 +1467,37 @@ mod tests {
     }
 
     #[test]
-    fn headless_belongs_to_a_launch() {
-        let script =
-            Script::parse("game: launch\nheadless: true\nsteps:\n  - game.status: {}\n").unwrap();
-        assert_eq!(script.game, Some(Mode::Launch { headless: true }));
-        let script = Script::parse("game: launch\nsteps:\n  - game.status: {}\n").unwrap();
-        assert_eq!(script.game, Some(Mode::Launch { headless: false }));
-
-        assert!(
-            Script::parse("game: launch\nheadless: yes please\nsteps:\n  - game.status: {}\n")
-                .is_err()
+    fn headless_and_offline_belong_to_a_launch() {
+        let script = Script::parse(
+            "game: launch\nheadless: true\noffline: true\nsteps:\n  - game.status: {}\n",
+        )
+        .unwrap();
+        assert_eq!(
+            script.game,
+            Some(Mode::Launch(Launch {
+                headless: true,
+                offline: true
+            }))
         );
-        // An attached game was started by somebody else, window and all.
-        for header in ["game: attach\n", ""] {
-            let error = Script::parse(&format!(
-                "{header}headless: true\nsteps:\n  - fight.compare: {{left: a, right: b}}\n"
-            ))
-            .unwrap_err();
-            assert!(error.contains("game: launch"), "{error}");
+        let script = Script::parse("game: launch\nsteps:\n  - game.status: {}\n").unwrap();
+        assert_eq!(script.game, Some(Mode::Launch(Launch::default())));
+
+        for key in ["headless", "offline"] {
+            assert!(
+                Script::parse(&format!(
+                    "game: launch\n{key}: yes please\nsteps:\n  - game.status: {{}}\n"
+                ))
+                .is_err()
+            );
+            // An attached game was started by somebody else, window, network
+            // and all.
+            for header in ["game: attach\n", ""] {
+                let error = Script::parse(&format!(
+                    "{header}{key}: true\nsteps:\n  - fight.compare: {{left: a, right: b}}\n"
+                ))
+                .unwrap_err();
+                assert!(error.contains("game: launch"), "{error}");
+            }
         }
     }
 

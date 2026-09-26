@@ -108,7 +108,10 @@ A headless game is the same command with Unity's `-batchmode -nographics`
 after the executable. The Adapter reads those two switches off the game's own
 command line: `-batchmode` keeps the process out of the Dock, and
 `-nographics` refuses a video
-([session.md](../mechcore/session.md#headless)).
+([session.md](../mechcore/session.md#headless)). An offline game is started
+inside `sandbox-exec` with rules that refuse every IP connection, and the
+Adapter refuses `record_watch_replay` in a sandboxed process
+([session.md](../mechcore/session.md#offline)).
 
 [session.md](../mechcore/session.md) defines which of the two applies, what each verb
 refuses, and where the launched game's output is written. Both sides resolve
@@ -133,7 +136,7 @@ Messages are UTF-8 JSON, one object per line, with a maximum encoded size of
 1 MiB. A new connection speaks first, and says what it is worth:
 
 ```json
-{"kind":"claim","protocol":"mechcore.adapter.v6","level":1}
+{"kind":"claim","protocol":"mechcore.adapter.v7","level":1}
 ```
 
 The level is `0..=4`. It orders clients and nothing else: a claim strictly
@@ -149,7 +152,7 @@ An admitted claim receives:
 ```json
 {
   "kind": "hello",
-  "protocol": "mechcore.adapter.v6",
+  "protocol": "mechcore.adapter.v7",
   "capabilities": [
     "status",
     "start_test",
@@ -165,6 +168,7 @@ An admitted claim receives:
   "game": {
     "adapter": "9f2c…",
     "headless": true,
+    "offline": true,
     "linger_seconds": 30
   }
 }
@@ -172,7 +176,9 @@ An admitted claim receives:
 
 `game` is what the claim was admitted to. `adapter` is the BLAKE3 of the
 Adapter library the game loaded, read when the Adapter started; `headless` is
-whether the game was started with `-nographics`; `linger_seconds` is how long
+whether the game was started with `-nographics`; `offline` is whether the
+process runs in a sandbox, which is how `mechcore` takes the network away and
+nothing else puts the game in one; `linger_seconds` is how long
 the game waits for its next client before it quits itself, and is `null` for a
 game that waits for ever. A launch reads it to decide whether a game left
 running can do its work
@@ -189,7 +195,7 @@ process itself if it has not exited 30 s later.
 A claim that does not win is answered instead:
 
 ```json
-{"kind":"busy","protocol":"mechcore.adapter.v6","holder_level":1,"evicting":true}
+{"kind":"busy","protocol":"mechcore.adapter.v7","holder_level":1,"evicting":true}
 ```
 
 `holder_level` is what the claim lost to, or is taking the game from.
@@ -202,7 +208,7 @@ connection immediately.
 The client being served is told before its connection closes:
 
 ```json
-{"kind":"evicted","protocol":"mechcore.adapter.v6","by_level":3}
+{"kind":"evicted","protocol":"mechcore.adapter.v7","by_level":3}
 ```
 
 That notice is the difference between a taken game and a crashed one. A client
@@ -736,6 +742,12 @@ unavailable native detail is `null`. `fight_ready` is whether the match already
 owns a `FightController`, so `deploying` and `fighting` are `null` exactly while
 it is `false`. `spectating` also reports `finished` from
 `Match.get_IsFinished`.
+
+`main_menu` is the menu scene, `MainMenu` at build index 0, with no current
+match. That scene is the active one from the game's start, at its login window
+and at the popup an offline game stops on, so `main_menu` does not say the
+game has logged in or shown its own main menu, only that no match is in the
+way of the next operation.
 
 `status` refuses nothing. It reports `unknown` rather than failing, so a caller
 may use it to decide what to do about any other operation's
