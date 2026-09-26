@@ -65,6 +65,7 @@ type MethodGetParam = unsafe extern "C" fn(*const MethodInfo, u32) -> *const Typ
 type TypeGetName = unsafe extern "C" fn(*const Type) -> *mut c_char;
 type TypeGetObject = unsafe extern "C" fn(*const Type) -> *mut Object;
 type Free = unsafe extern "C" fn(*mut c_void);
+type FormatStackTrace = unsafe extern "C" fn(*const Object, *mut c_char, i32);
 type RuntimeInvoke = unsafe extern "C" fn(
     *const MethodInfo,
     *mut c_void,
@@ -775,6 +776,46 @@ impl Api {
         })
     }
 
+    /// An exception's class and the managed frames it was thrown through.
+    ///
+    /// The class alone does not say which of the game's methods threw, and a
+    /// `NullReferenceException` from a whole layout series is otherwise one
+    /// line for every cause.
+    fn describe_exception(self, exception: *mut Object) -> String {
+        static FORMAT: OnceLock<Option<FormatStackTrace>> = OnceLock::new();
+        let kind = self.object_class_name(exception);
+        let Some(format) = *FORMAT.get_or_init(|| {
+            // SAFETY: dlsym takes a NUL-terminated name, and the export, when
+            // present, has the IL2CPP C API signature.
+            let pointer =
+                unsafe { libc::dlsym(libc::RTLD_DEFAULT, c"il2cpp_format_stack_trace".as_ptr()) };
+            (!pointer.is_null()).then(|| {
+                // SAFETY: a non-null export is a C function pointer.
+                unsafe { mem::transmute_copy::<*mut c_void, FormatStackTrace>(&pointer) }
+            })
+        }) else {
+            return kind;
+        };
+        let mut buffer = vec![0 as c_char; 8192];
+        // SAFETY: the exception is a live managed object, and the buffer's
+        // length is what the call is told it may write, terminator included.
+        unsafe {
+            format(
+                exception,
+                buffer.as_mut_ptr(),
+                i32::try_from(buffer.len()).unwrap_or(i32::MAX),
+            );
+        }
+        // SAFETY: the call NUL-terminates what it wrote within the buffer.
+        let trace = unsafe { CStr::from_ptr(buffer.as_ptr()) }.to_string_lossy();
+        let trace = trace.trim();
+        if trace.is_empty() {
+            kind
+        } else {
+            format!("{kind} {trace}")
+        }
+    }
+
     pub fn invoke_raw(
         self,
         method: *const MethodInfo,
@@ -791,7 +832,7 @@ impl Api {
         // to ABI-compatible value slots for the selected method.
         let result = unsafe { (self.runtime_invoke)(method, this, args, &raw mut exception) };
         if !exception.is_null() {
-            return Err(Error::ManagedException(self.object_class_name(exception)));
+            return Err(Error::ManagedException(self.describe_exception(exception)));
         }
         Ok(result)
     }

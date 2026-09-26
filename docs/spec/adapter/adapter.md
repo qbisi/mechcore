@@ -776,6 +776,7 @@ the same game state fails the same way. Something has to move the game first.
 | --- | --- |
 | `invalid_game_state` | the operation requires a scene or phase the game is not in |
 | `game_rejected_operation` | the game was in the right state and refused the native action anyway |
+| `il2cpp_error` | a call into the game failed; a managed exception is named by its class and the managed frames it was thrown through |
 
 **The game was taken.** `evicted` means a higher claim arrived. It is the one
 failure that asks the caller to come back: the adapter holds the game at the
