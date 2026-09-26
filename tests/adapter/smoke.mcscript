@@ -14,7 +14,6 @@
 # `out` must not already exist: record_battle refuses to overwrite.
 
 game: launch
-headless: true
 
 vars:
   out: /tmp/mechcore/adapter/smoke

@@ -248,8 +248,15 @@ started it:
 - `-nographics` refuses `record_battle` with a `video_output`, since no frame
   is ever rendered ([adapter.md](../adapter/adapter.md#record_battle)).
 
-Watching the server's matches, `record_watch_replay`, has not been tried
-headless.
+Not everything the Training Ground applies survives it. `apply_layout` fails
+headless with a managed `NullReferenceException` on a Marksman with two items
+under Equipment Expansion and on the layout that sets formation experience,
+both of which apply with a window; a bare Rhino mirror applies and records.
+Where the exception is thrown was not read. The sceneless path is not
+affected as far as it was run: `tests/equipment/stats.mcscript` records its
+equipment through `record_layout` headless. The scripts that apply layouts in
+the Training Ground still launch with a window. Watching the server's matches,
+`record_watch_replay`, has not been tried headless.
 
 A launch that finds an idle Adapter joins that game as it is, window or not,
 as it would for any other launch (state **D**).
