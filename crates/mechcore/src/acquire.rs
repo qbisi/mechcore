@@ -5,13 +5,13 @@
 //! native operation reaches this module on its own.
 
 use crate::adapter::{Client, ConnectError};
-use mechcore_protocol::MAX_LEVEL;
+use mechcore_protocol::{GameIdentity, MAX_LEVEL, Operation};
 #[cfg(target_os = "macos")]
 use std::ffi::c_void;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::time::Duration;
-use tokio::process::{Child, Command};
+use tokio::process::Command;
 
 /// `PROC_ALL_PIDS` from `sys/proc_info.h`; not re-exported by the `libc` crate.
 #[cfg(target_os = "macos")]
@@ -26,6 +26,15 @@ const LAUNCH_POLL_INTERVAL: Duration = Duration::from_millis(200);
 /// take time, leaving the match and settling at the main menu.
 const EVICTION_TIMEOUT: Duration = Duration::from_secs(120);
 const EVICTION_POLL_INTERVAL: Duration = Duration::from_millis(500);
+/// How long a launched game waits for its next client before it quits itself.
+///
+/// Long enough to carry a game from one script to the next in a batch, short
+/// enough that a game nobody is using is gone before anyone wants the machine.
+pub(crate) const LINGER: Duration = Duration::from_secs(30);
+const LINGER_ENV: &str = "MECHCORE_ADAPTER_LINGER_SECONDS";
+/// How long a game asked to quit is given to go away: the Adapter's own grace
+/// before it ends the process, and some.
+const RETIRE_TIMEOUT: Duration = Duration::from_secs(45);
 const ADAPTER_DYLIB: &str = "libmechcore_adapter.dylib";
 const GAME_ENV: &str = "MECHCORE_GAME";
 const DEFAULT_GAME_SUFFIX: &str = "Library/Application Support/Steam/steamapps/common/Mechabellum/Mechabellum.app/Contents/MacOS/Mechabellum";
@@ -52,26 +61,27 @@ impl Mode {
     }
 }
 
-/// Whether this process is responsible for shutting the game down.
+/// Whether this session started the game or joined one.
 ///
-/// Never inferred: `launch` owns the process it started, `attach` never owns
-/// the process it found. A launched game also carries the log its output was
-/// redirected to; an attached one does not, because another launcher chose
-/// where that went.
+/// Neither shuts the game down on the way out. A game `mechcore` launched quits
+/// itself once no client has claimed it for [`LINGER`], and any other game
+/// belongs to whoever started it. A launched game carries the log its output
+/// was redirected to; a joined one does not, because its launcher chose where
+/// that went.
 pub(crate) enum Ownership {
-    Owned { child: Child, log: PathBuf },
+    Launched { log: PathBuf },
     Attached,
 }
 
 impl Ownership {
-    pub(crate) const fn is_owned(&self) -> bool {
-        matches!(self, Self::Owned { .. })
+    pub(crate) const fn is_launched(&self) -> bool {
+        matches!(self, Self::Launched { .. })
     }
 
     /// Where a launched game's own output was sent.
     pub(crate) fn log(&self) -> Option<&Path> {
         match self {
-            Self::Owned { log, .. } => Some(log),
+            Self::Launched { log } => Some(log),
             Self::Attached => None,
         }
     }
@@ -154,11 +164,21 @@ pub(crate) async fn acquire(
     level: u8,
     endpoint: &Path,
 ) -> Result<(Client, Ownership), Box<Failure>> {
-    let running = game_processes();
     let mut probe = probe_endpoint(endpoint, level).await;
     if let Probe::Busy { evicting: true, .. } = probe {
         probe = wait_for_the_game(endpoint, level).await;
     }
+    // A game left running by an earlier launch is this launch's to reuse, but
+    // only if it can do the work; otherwise it is retired and a new one
+    // started, as if it had already quit.
+    let probe = match (mode, probe) {
+        (Mode::Launch { headless }, Probe::Idle(client)) => match unfit(client.game(), headless)? {
+            Some(reason) => retire(*client, endpoint, &reason).await?,
+            None => Probe::Idle(client),
+        },
+        (_, probe) => probe,
+    };
+    let running = game_processes();
 
     match (mode, running.first(), probe) {
         // E and F apply to both verbs: something outranks this client, or the
@@ -194,8 +214,7 @@ pub(crate) async fn acquire(
         ))),
 
         // D: an adapter is available, either because it was idle or because
-        // this claim just took the game. Both verbs use it, and neither owns
-        // the process it did not start.
+        // this claim just took the game. Both verbs use it, whoever started it.
         (_, _, Probe::Idle(client)) => Ok((*client, Ownership::Attached)),
 
         // A and B: nothing to join.
@@ -249,13 +268,16 @@ async fn launch(
             format!("cannot open {} for stderr: {error}", log.display()),
         ))
     })?;
-    let child = Command::new(&game)
+    // The game quits itself once nobody has claimed it for the linger, so the
+    // process is not kept: nothing here waits for it or ends it.
+    Command::new(&game)
         .args(if headless {
             &HEADLESS_ARGUMENTS[..]
         } else {
             &[]
         })
         .env("DYLD_INSERT_LIBRARIES", &dylib)
+        .env(LINGER_ENV, LINGER.as_secs().to_string())
         .env("MECHCORE_ADAPTER_SOCKET", endpoint)
         .stdin(Stdio::null())
         .stdout(Stdio::from(file))
@@ -271,7 +293,7 @@ async fn launch(
     let deadline = tokio::time::Instant::now() + LAUNCH_TIMEOUT;
     loop {
         match probe_endpoint(endpoint, level).await {
-            Probe::Idle(client) => return Ok((*client, Ownership::Owned { child, log })),
+            Probe::Idle(client) => return Ok((*client, Ownership::Launched { log })),
             Probe::Protocol(detail) => {
                 return Err(Box::new(Failure::new("protocol_mismatch", detail)));
             }
@@ -301,19 +323,85 @@ async fn launch(
     }
 }
 
-/// One connection attempt, bounded by the greeting deadline.
+/// Why a game an earlier launch left running cannot do this launch's work.
+///
+/// Only a game that lingers is ever judged: that is a game `mechcore`
+/// launched and nobody holds. A game started any other way is joined as it is.
+fn unfit(game: Option<&GameIdentity>, headless: bool) -> Result<Option<String>, Box<Failure>> {
+    let Some(game) = game.filter(|game| game.linger_seconds.is_some()) else {
+        return Ok(None);
+    };
+    if game.adapter != adapter_digest(&adapter_dylib()?)? {
+        return Ok(Some(
+            "it runs an Adapter other than the one beside this executable".into(),
+        ));
+    }
+    if game.headless && !headless {
+        return Ok(Some(
+            "it runs headless, and this launch wants a window".into(),
+        ));
+    }
+    Ok(None)
+}
+
+/// Ask a lingering game to quit, and wait until it has gone.
+async fn retire(mut client: Client, endpoint: &Path, reason: &str) -> Result<Probe, Box<Failure>> {
+    client
+        .request(Operation::QuitGame, serde_json::json!({}))
+        .await
+        .map_err(|error| {
+            Box::new(Failure::new(
+                "launch_failed",
+                format!("the game left running cannot be reused, as {reason}, and refused to quit: {error}"),
+            ))
+        })?;
+    drop(client);
+    let deadline = tokio::time::Instant::now() + RETIRE_TIMEOUT;
+    loop {
+        tokio::time::sleep(EVICTION_POLL_INTERVAL).await;
+        if game_processes().is_empty() && !endpoint.exists() {
+            return Ok(Probe::NoListener);
+        }
+        if tokio::time::Instant::now() >= deadline {
+            return Err(Box::new(Failure::new(
+                "launch_failed",
+                format!(
+                    "the game left running cannot be reused, as {reason}, and did not exit within {}s",
+                    RETIRE_TIMEOUT.as_secs()
+                ),
+            )));
+        }
+    }
+}
+
+/// BLAKE3 of the Adapter this executable would inject, to compare with the one
+/// a running game loaded.
+fn adapter_digest(dylib: &Path) -> Result<String, Box<Failure>> {
+    let bytes = std::fs::read(dylib).map_err(|error| {
+        Box::new(Failure::new(
+            "launch_failed",
+            format!("cannot read {}: {error}", dylib.display()),
+        ))
+    })?;
+    Ok(blake3::hash(&bytes).to_hex().to_string())
+}
+
 /// Keep claiming until the adapter hands the game over, or gives up on it.
 ///
 /// The winning claim is told the game is coming back, not given it: the
 /// adapter admits its next client only once the match it interrupted has been
 /// left and the main menu is up. Waiting here is what turns that into one
-/// acquisition from the caller's side.
+/// acquisition from the caller's side. A game that is quitting tells every
+/// claim to wait the same way, and then goes: its endpoint is removed as the
+/// process exits, so an endpoint gone with the process still there is the
+/// game on its way out, not a game without the Adapter.
 async fn wait_for_the_game(endpoint: &Path, level: u8) -> Probe {
     let deadline = tokio::time::Instant::now() + EVICTION_TIMEOUT;
     loop {
         tokio::time::sleep(EVICTION_POLL_INTERVAL).await;
         let probe = probe_endpoint(endpoint, level).await;
-        if !matches!(probe, Probe::Busy { .. }) {
+        let leaving = matches!(probe, Probe::NoListener) && !game_processes().is_empty();
+        if !matches!(probe, Probe::Busy { .. }) && !leaving {
             return probe;
         }
         if tokio::time::Instant::now() >= deadline {

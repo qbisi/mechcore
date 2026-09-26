@@ -60,8 +60,10 @@ execution.** Nothing is probed and no game is started, so `--check` answers
 "does this need the game?" without holding it. This is what lets simulator and
 recording-comparison work share the same runner as native capture.
 
-An acquired game is released on every exit path. A game this run started is
-shut down through `game.quit_game`; a game it found already running is left running.
+An acquired game is left on every exit path and never shut down on the way out.
+A game a launch started lingers for 30 s and quits itself if no other run
+claims it, so consecutive runs that launch share one game
+([session.md](session.md#leaving-the-game)).
 
 `level:` is what this run outranks, in `0..=4`, defaulting to `1`. A script
 whose level is strictly above the level of the client currently holding the
@@ -73,8 +75,7 @@ Being taken over is not a failure, and nothing is waited for. The Adapter
 abandons the operation in flight, a recording included, returns the game to the
 main menu, and closes the connection; the run reports
 `{"operation":"evicted","completed":false}` and exits successfully, leaving the
-game to whoever claimed it. That is the one exit path where a launched game is
-not shut down: the Adapter is holding it for the next client.
+game to whoever claimed it.
 
 `headless: true` launches the game with no window and no graphics device, and
 is rejected unless the script declares `game: launch`: a game that is attached
