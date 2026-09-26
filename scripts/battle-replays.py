@@ -12,7 +12,9 @@ recordings is compared tick for tick, physics and content.
 
 A battle is recorded in one game session; a round the game refuses is reported
 and the battle's remaining rounds carry on in a new session. A recording on
-disk is kept, so an interrupted run resumes where it stopped.
+disk is kept, so an interrupted run resumes where it stopped. Each session's
+game log is kept beside the recordings as ``player-<n>.log``, since the game
+names every decision it refused there.
 
 Run from anywhere inside the checkout, with the game installed:
 
@@ -22,7 +24,10 @@ Run from anywhere inside the checkout, with the game installed:
     python3 scripts/battle-replays.py
     python3 scripts/battle-replays.py --only Chemtrails --json
 
-The exit status is 0 only when every round records both ways and compares
+A round in which a side concedes is listed and not compared: a concession made
+during the fight ends it at a moment the battle does not record.
+
+The exit status is 0 only when every other round records both ways and compares
 equal.
 """
 
@@ -32,6 +37,7 @@ import argparse
 import json
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 
@@ -55,14 +61,21 @@ def parse_arguments(root: Path) -> argparse.Namespace:
     return parser.parse_args()
 
 
-def rounds_of(battle: Path) -> list[int]:
-    """The rounds a battle decides, which are the ones fought."""
+def rounds_of(battle: Path) -> tuple[list[int], set[int]]:
+    """The rounds a battle decides, and those of them in which a side concedes.
+
+    A concession is kept as its round's last decision, but one made during the
+    fight ends it at a moment the battle does not record, so such a round is not
+    compared."""
     text = battle.read_text(encoding="utf-8")
-    return sorted(
-        int(found)
-        for found in re.findall(r"^kind: action\nround: (\d+)$", text, flags=re.MULTILINE)
-        if int(found) >= 1
-    )
+    rounds, conceded = [], set()
+    for segment in re.split(r"^---$", text, flags=re.MULTILINE):
+        found = re.match(r"\s*kind: action\nround: (\d+)$", segment, flags=re.MULTILINE)
+        if found and int(found.group(1)) >= 1:
+            rounds.append(int(found.group(1)))
+            if re.search(r"^- \{type: concede\}$", segment, flags=re.MULTILINE):
+                conceded.add(int(found.group(1)))
+    return sorted(rounds), conceded
 
 
 def run(command: list[str]) -> subprocess.CompletedProcess[str]:
@@ -86,16 +99,19 @@ def record(mechcore: Path, steps: list[dict], folder: Path) -> dict[int, str]:
     failed: dict[int, str] = {}
     pending = [index for index, step in enumerate(steps) if not Path(step["output"]).exists()]
     while pending:
+        # A JSON string is a YAML scalar only while it escapes nothing outside
+        # the Basic Multilingual Plane, which a player's name can hold.
         script = "game: launch\n\nsteps:\n" + "".join(
             "  - game.record_replay_round:\n"
-            f"      grbr: {json.dumps(steps[index]['grbr'])}\n"
+            f"      grbr: {json.dumps(steps[index]['grbr'], ensure_ascii=False)}\n"
             f"      round: {steps[index]['round']}\n"
-            f"      output: {json.dumps(steps[index]['output'])}\n"
+            f"      output: {json.dumps(steps[index]['output'], ensure_ascii=False)}\n"
             for index in pending
         )
         path = folder / "session.mcscript"
         path.write_text(script, encoding="utf-8")
         result = run([str(mechcore), "run", str(path)])
+        keep_game_log(folder)
         remaining = [index for index in pending if not Path(steps[index]["output"]).exists()]
         if result.returncode == 0 or not remaining:
             for index in remaining:
@@ -105,6 +121,16 @@ def record(mechcore: Path, steps: list[dict], folder: Path) -> dict[int, str]:
         failed[remaining[0]] = reason(result.stdout + result.stderr)
         pending = remaining[1:]
     return failed
+
+
+def keep_game_log(folder: Path) -> None:
+    """Keeps the log of the game session just run beside its recordings: the
+    game names each decision it refused there, and the next launch rotates it
+    away."""
+    log = Path.home() / "Library/Logs/GameRiver/Mechabellum/Player.log"
+    if log.exists():
+        sessions = len(list(folder.glob("player-*.log")))
+        shutil.copy(log, folder / f"player-{sessions}.log")
 
 
 def compare(mechcore: Path, left: str, right: str) -> dict:
@@ -130,6 +156,8 @@ def compare(mechcore: Path, left: str, right: str) -> dict:
 def verdict(entry: dict) -> str:
     if entry.get("equal"):
         return "equal"
+    if entry.get("conceded"):
+        return "conceded, not compared"
     if "refused" in entry:
         return f"refused: {entry['refused']}"
     if "failed" in entry:
@@ -159,7 +187,15 @@ def main() -> int:
         converted = run(
             [str(arguments.mechcore), "replay", "convert", str(battle), str(written), "--force"]
         )
-        entries = [{"battle": battle.stem, "round": number} for number in rounds_of(battle)]
+        numbers, conceded = rounds_of(battle)
+        skipped = [
+            {"battle": battle.stem, "round": number, "conceded": True} for number in conceded
+        ]
+        entries = [
+            {"battle": battle.stem, "round": number}
+            for number in numbers
+            if number not in conceded
+        ]
         if converted.returncode != 0:
             for entry in entries:
                 entry["refused"] = reason(converted.stdout + converted.stderr)
@@ -183,20 +219,21 @@ def main() -> int:
                     entry.update(
                         compare(arguments.mechcore, steps[left]["output"], steps[right]["output"])
                     )
-        for entry in entries:
+        for entry in sorted(entries + skipped, key=lambda entry: entry["round"]):
             results.append(entry)
             if arguments.json:
                 print(json.dumps(entry, ensure_ascii=False), flush=True)
             else:
                 print(f"{entry['battle']} round {entry['round']}: {verdict(entry)}", flush=True)
 
-    equal = sum(1 for entry in results if entry.get("equal"))
+    compared = [entry for entry in results if not entry.get("conceded")]
+    equal = sum(1 for entry in compared if entry.get("equal"))
     print(
-        f"{equal} of {len(results)} rounds fight the same from the battle's replay as from "
-        "the match's own",
+        f"{equal} of {len(compared)} rounds fight the same from the battle's replay as from "
+        f"the match's own; {len(results) - len(compared)} conceded, not compared",
         file=sys.stderr,
     )
-    return 0 if equal == len(results) else 1
+    return 0 if equal == len(compared) else 1
 
 
 if __name__ == "__main__":

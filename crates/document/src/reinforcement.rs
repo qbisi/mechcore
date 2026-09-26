@@ -11,6 +11,9 @@ use std::collections::{BTreeMap, BTreeSet};
 struct Config {
     ordinary_count: usize,
     unit_count: usize,
+    /// Every level-4 commander skill, in the build's order: what a deal that
+    /// offers one of them excludes from the next round.
+    level_four_skills: Vec<i32>,
     cards: BTreeMap<i32, Card>,
     units: BTreeMap<i32, UnitCard>,
     pools: BTreeMap<i32, UnitPool>,
@@ -26,7 +29,6 @@ struct Card {
     earliest: i32,
     latest: i32,
     repeated: bool,
-    cooldown: bool,
     absent_units: Vec<i32>,
     /// `EAppearCondition.SupplyPercent`: the card is offered only while its
     /// units hold a share of every player's investment inside these bounds.
@@ -203,6 +205,36 @@ pub struct Round {
 pub struct Verified {
     pub rounds: Vec<Round>,
     pub offers_checked: usize,
+    /// The pool as each stated round opened, from round 1.
+    #[serde(skip)]
+    pub pools: Vec<Pool>,
+}
+
+/// The pool as a round opens, in the terms a replay's `MatchSnapshotData`
+/// restores it from: `ReinforcePool.ApplayOperation` replays the log onto the
+/// pool the seed initializes, and `RoundExcludeReinforce` names the rounds
+/// that exclude the level-4 commander skills.
+#[derive(Debug, Clone)]
+pub struct Pool {
+    /// `poolOPs`: every removal `(0, id)` and addition `(1, id)` since the
+    /// match began, in order.
+    pub log: Vec<(i32, i32)>,
+    /// Where each earlier round's choices sit in `log`. Both players choose in
+    /// one round, and the log keeps the order they chose in, which a battle
+    /// does not state; no reading of the pool depends on it.
+    pub choices: Vec<std::ops::Range<usize>>,
+    /// The rounds a level-4 commander skill was offered before, each one
+    /// round after the offer.
+    pub excluded: Vec<i32>,
+}
+
+/// Every level-4 commander skill, in the order a replay's
+/// `RoundExcludeReinforce` lists them under each round it excludes them from.
+///
+/// # Errors
+/// Refuses a reinforcement configuration that does not parse.
+pub fn level_four_skills() -> Result<Vec<i32>, String> {
+    Config::embedded().map(|config| config.level_four_skills)
 }
 
 struct Dealer {
@@ -212,7 +244,11 @@ struct Dealer {
     pool_id: i32,
     pools: BTreeMap<i32, Vec<i32>>,
     groups: BTreeMap<i32, Vec<i32>>,
-    cooldown_rounds: BTreeSet<i32>,
+    excluded_rounds: BTreeSet<i32>,
+    /// `Pool::log` so far.
+    log: Vec<(i32, i32)>,
+    /// `Pool::choices` so far.
+    choices: Vec<std::ops::Range<usize>>,
 }
 
 impl Dealer {
@@ -245,7 +281,9 @@ impl Dealer {
             pool_id: opening.initialization.unit_round_pool,
             pools,
             groups,
-            cooldown_rounds: BTreeSet::new(),
+            excluded_rounds: BTreeSet::new(),
+            log: Vec::new(),
+            choices: Vec::new(),
         })
     }
 
@@ -253,12 +291,14 @@ impl Dealer {
         let mut additions: BTreeMap<i32, Vec<i32>> = BTreeMap::new();
         // Native OnNewRound visits levels, then sorted IDs. Replacements are
         // appended only after the original pools have all been visited.
+        let log = &mut self.log;
         for pool in self.pools.values_mut() {
             pool.retain(|id| {
                 let card = &self.config.cards[id];
                 if card.condition(context) {
                     return true;
                 }
+                log.push((0, *id));
                 let eligible: Vec<i32> = self
                     .groups
                     .get(&card.group)
@@ -269,6 +309,8 @@ impl Dealer {
                     .collect();
                 if !eligible.is_empty() {
                     let replacement = eligible[self.stream.pick(0, eligible.len())];
+                    // The addition is logged beside the removal it replaces.
+                    log.push((1, replacement));
                     additions
                         .entry(self.config.cards[&replacement].level)
                         .or_default()
@@ -298,7 +340,8 @@ impl Dealer {
             let card = &self.config.cards[id];
             card.earliest <= round
                 && (card.latest <= 0 || round <= card.latest)
-                && !(card.cooldown && self.cooldown_rounds.contains(&round))
+                && !(self.excluded_rounds.contains(&round)
+                    && self.config.level_four_skills.contains(id))
         };
         let mut weights: Vec<usize> = weights
             .iter()
@@ -369,8 +412,11 @@ impl Dealer {
         for pool in self.pools.values_mut() {
             pool.sort_unstable();
         }
-        if offers.iter().any(|id| self.config.cards[id].cooldown) {
-            self.cooldown_rounds.insert(round + 1);
+        if offers
+            .iter()
+            .any(|id| self.config.level_four_skills.contains(id))
+        {
+            self.excluded_rounds.insert(round + 1);
         }
         Ok(offers)
     }
@@ -453,8 +499,16 @@ impl Dealer {
         if card.repeated {
             return;
         }
-        for pool in self.pools.values_mut() {
-            pool.retain(|candidate| *candidate != id);
+        // `SelectReinforce` takes the card and then every other variant of its
+        // group, logging each one the pool held.
+        let variants = self.groups.get(&card.group).cloned().unwrap_or_default();
+        for taken in std::iter::once(id).chain(variants.into_iter().filter(|other| *other != id)) {
+            for pool in self.pools.values_mut() {
+                if let Some(at) = pool.iter().position(|candidate| *candidate == taken) {
+                    pool.remove(at);
+                    self.log.push((0, taken));
+                }
+            }
         }
         if let Some(group) = self.groups.get_mut(&card.group) {
             group.clear();
@@ -462,6 +516,7 @@ impl Dealer {
     }
 
     fn apply_choices(&mut self, turn: &Turn, offers: &[i32], terminal: bool) -> Result<(), String> {
+        let from = self.log.len();
         for (name, actions) in [("blue", &turn.actions.blue), ("red", &turn.actions.red)] {
             let choices: Vec<_> = actions
                 .iter()
@@ -506,6 +561,9 @@ impl Dealer {
                 }
                 self.choose(predicted.ok_or("reinforcement choice is missing")?);
             }
+        }
+        if self.log.len() > from {
+            self.choices.push(from..self.log.len());
         }
         Ok(())
     }
@@ -690,6 +748,7 @@ fn walk(
             verified: Verified {
                 rounds: Vec::new(),
                 offers_checked: 0,
+                pools: Vec::new(),
             },
             dealt: None,
         });
@@ -698,6 +757,7 @@ fn walk(
     let mut dealer = Dealer::new(opening)?;
     let mut rounds = Vec::new();
     let mut offers_checked = 0;
+    let mut pools = Vec::new();
     for (at, turn) in stated.turns.iter().enumerate() {
         let expected = i32::try_from(at + 1).map_err(|error| error.to_string())?;
         if turn.round != expected {
@@ -706,6 +766,11 @@ fn walk(
                 turn.round
             ));
         }
+        pools.push(Pool {
+            log: dealer.log.clone(),
+            choices: dealer.choices.clone(),
+            excluded: dealer.excluded_rounds.iter().copied().collect(),
+        });
         let context = dealer
             .context(economy, stated, turn)
             .map_err(|error| format!("round {} reinforcement: {error}", turn.round))?;
@@ -762,6 +827,7 @@ fn walk(
         verified: Verified {
             rounds,
             offers_checked,
+            pools,
         },
         dealt,
     })

@@ -743,6 +743,10 @@ impl Game {
         )
         .map_err(|unsettled| Failure::refused(unsettled.to_string()))?;
         self.deployable(side, &after)?;
+        // Where the position it leaves may stand is the layout's to say; a
+        // place that is free only once another unit has moved is the board's.
+        transition::check_place(&before, decision)
+            .map_err(|unsettled| Failure::refused(unsettled.to_string()))?;
         Ok(events(&before, &after))
     }
 

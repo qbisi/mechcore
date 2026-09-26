@@ -24,6 +24,16 @@ Choosing a nonrepeatable card removes it from the pool and clears its positive
 type group's remaining replacement variants. Declining and choosing a
 repeatable card leave the pools intact. These operations consume no randomness.
 
+The pool keeps a log of what changes it, from the start of the match: `(0, id)`
+for a card removed and `(1, id)` for a card added. A refresh logs each card it
+removes, levels then IDs, each followed by the replacement drawn for it. A
+choice logs the card and every other variant of its group the pool still held,
+and the two players' choices come in the order they were made. Initialization,
+dealing and declining log nothing. A round's snapshot copies the whole log as
+the round opens, before its refresh. Restoring a round replays the log onto the
+pool the seed initializes and sorts the pools again, so the order the players
+chose in is kept without deciding anything.
+
 ## Ordinary reinforcement
 
 `ReinforcePool.OnNewRound` asks `CheckReinforeCondition` of every officer card
@@ -57,7 +67,9 @@ Exhausting a level zeros its weight. Pools are sorted again after the deal.
 If a deal contains a level-4 `CommanderSkillBase`, all level-4 commander skills
 are excluded on the next numeric round. This depends on what was offered,
 regardless of what was chosen. A unit round does not defer this exclusion to a
-later ordinary round.
+later ordinary round. The exclusion names every level-4 commander skill of the
+build, those no standard deal offers among them, and a snapshot records it
+beside the log: each excluded round, with those skills in the build's order.
 
 ## Investment share
 
@@ -158,7 +170,8 @@ unit card, round pool, probability and card rows of `ConfigDataContainer`, the
 commander skill and equipment cards of `CommanderSkillGroupData` and
 `EquipmentGroupData`, and `Config.reinforceItemCount`. Every value is an
 integer or a flag of the build; there are no fitted weights, stream offsets or
-score coefficients. A card's `supply_share` is its `appearConditionParameter`
+score coefficients. `level_four_skills` is every level-4 row of
+`CommanderSkillGroupData`, in the build's order. A card's `supply_share` is its `appearConditionParameter`
 and its `unitID` when its condition is `SupplyPercent`, and a unit's `upgrade`
 is its one level price, which the extraction refuses to write when a row's
 levels differ.
@@ -172,6 +185,9 @@ levels differ.
   `scripts/verify-battles.py`.
 - Every officer with the investment share is dealt, or replaced from its group,
   as the corpus recorded: `scripts/verify-battles.py`.
+- Every round opens on the pool log and the exclusions its battle's deal
+  leaves, but for the order of a round's two choices; conversion refuses a
+  replay otherwise, so every battle `scripts/verify-battles.py` reads has them.
 - A decline in an ordinary round and in each of the first three unit rounds
   pays what the next round's supply records: `scripts/verify-battles.py`.
 
@@ -189,6 +205,12 @@ levels differ.
   `ReinforcePool.CheckReinforeCondition`.
 - Choosing removes a nonrepeatable card and clears its group:
   `ReinforcePool.SelectReinforce`.
+- The pool logs each removal and addition, a snapshot copies the log whole,
+  and a restored round replays it and sorts the pools:
+  `ReinforcePool.m_ReinforceOperation`, `ReinforcePool.OnNewRound`,
+  `ReinforcePool.SelectReinforce`, `ReinforcePool.ApplayOperation`,
+  `ReinforcementSystem.TakeRefinforcePoolSnapshot`,
+  `ReinforcementSystem.ApplyRefinforcePoolSnapshot`.
 - The level weights are the last row reached, zeroed for an empty level:
   `ReinforcementRandomObject_Common.GetCurrentReinforceItemProbabilityData`,
   `ReinforcePool.GenLvProbs`.
@@ -217,6 +239,8 @@ levels differ.
 
 ### Not established
 
+- **Where a round's snapshot is taken.** The call was not traced; that the log
+  is copied before the round's refresh is what every corpus round shows.
 - **A last recorded round's outgoing stream.** It has no following snapshot to
   check it against.
 - **Which formations the investment walks.** The enumeration goes through an

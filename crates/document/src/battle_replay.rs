@@ -22,6 +22,7 @@ use crate::layout_replay::{
     write_ints, write_technology_rows,
 };
 use crate::opening::{Stated, StatedSide, Stream};
+use crate::reinforcement::Pool;
 use std::fmt::Write as _;
 
 /// Energy tower skill `1`, whose price the next round's income repays.
@@ -51,7 +52,8 @@ pub fn battle_replay(
         );
     }
     let version = build_number(game_build)?;
-    let match_states = match_states(economy, stated)?;
+    let (match_states, pools) = match_states(economy, stated)?;
+    let level_four_skills = crate::reinforcement::level_four_skills()?;
     let mut xml = String::from("\u{feff}");
     xml.push_str(
         "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<BattleRecord \
@@ -77,9 +79,11 @@ pub fn battle_replay(
             None => xml.push_str("<reinforceItems />"),
         }
         xml.push_str(
-            "<teamRanks><int>0</int><int>1</int></teamRanks><useConstruction>false</useConstruction>\
-             <poolOPs /><deadCount>0</deadCount><RoundExcludeReinforce /></MatchSnapshotData>",
+            "<teamRanks><int>0</int><int>1</int></teamRanks><useConstruction>false</useConstruction>",
         );
+        let pool = usize::checked_sub(round, 1).and_then(|at| pools.get(at));
+        write_pool(&mut xml, pool, &level_four_skills);
+        xml.push_str("</MatchSnapshotData>");
     }
     let _ = write!(
         xml,
@@ -104,11 +108,12 @@ pub fn battle_replay(
     ))
 }
 
-/// The match's reinforcement stream as each round opened. Round 0 holds the
-/// seed's own state, from which the opening is dealt; a round that deals
-/// offers holds the state its deal starts from, and the round after it the
-/// state the deal ends on. A round that deals nothing holds the one before it.
-fn match_states(economy: &Economy, stated: &Stated) -> Result<Vec<[u64; 4]>, String> {
+/// The match's reinforcement stream as each round opened, and the pool as
+/// each round from 1 opened. Round 0 holds the seed's own state, from which
+/// the opening is dealt; a round that deals offers holds the state its deal
+/// starts from, and the round after it the state the deal ends on. A round
+/// that deals nothing holds the one before it.
+fn match_states(economy: &Economy, stated: &Stated) -> Result<(Vec<[u64; 4]>, Vec<Pool>), String> {
     let seeded = crate::opening::initialize(stated.seed)?.stream.state();
     let deal = crate::opening::verify(economy, stated)
         .and_then(|opening| crate::reinforcement::verify(economy, stated, &opening))
@@ -126,7 +131,43 @@ fn match_states(economy: &Economy, stated: &Stated) -> Result<Vec<[u64; 4]>, Str
         );
         recorded.push(state);
     }
-    Ok(recorded)
+    Ok((recorded, deal.map(|deal| deal.pools).unwrap_or_default()))
+}
+
+/// The pool's log and the rounds excluding the level-4 commander skills, each
+/// listing them in the build's order. A round without a pool, round 0 or a
+/// match whose deal is not modelled, restores the one the seed initializes.
+fn write_pool(xml: &mut String, pool: Option<&Pool>, level_four_skills: &[i32]) {
+    let (log, excluded) = pool.map_or((&[][..], &[][..]), |pool| {
+        (pool.log.as_slice(), pool.excluded.as_slice())
+    });
+    if log.is_empty() {
+        xml.push_str("<poolOPs />");
+    } else {
+        xml.push_str("<poolOPs>");
+        for (operation, id) in log {
+            let _ = write!(
+                xml,
+                "<ValueTupleOfInt32Int32><Item1>{operation}</Item1><Item2>{id}</Item2>\
+                 </ValueTupleOfInt32Int32>"
+            );
+        }
+        xml.push_str("</poolOPs>");
+    }
+    xml.push_str("<deadCount>0</deadCount>");
+    if excluded.is_empty() {
+        xml.push_str("<RoundExcludeReinforce />");
+        return;
+    }
+    xml.push_str("<RoundExcludeReinforce>");
+    for round in excluded {
+        let _ = write!(xml, "<DictItem><Key>{round}</Key><Values>");
+        for id in level_four_skills {
+            let _ = write!(xml, "<Value>{id}</Value>");
+        }
+        xml.push_str("</Values></DictItem>");
+    }
+    xml.push_str("</RoundExcludeReinforce>");
 }
 
 fn write_random(xml: &mut String, tag: &str, state: Option<&[u64; 4]>) {
@@ -663,7 +704,9 @@ fn write_actions(
     let offers = turn.state.reinforce_offers.as_ref();
     let declined = offers.map(|offers| offers.refund);
     // Each decision is stepped as conversion steps it, which is what names
-    // the formation a purchase creates and the type a move carries.
+    // the formation a purchase creates and the type a move carries. A battle
+    // holds only decisions the board allows in its order, so each is recorded
+    // where it stands.
     let mut position = opened.clone();
     for action in actions {
         let moved = match action {
@@ -681,6 +724,12 @@ fn write_actions(
             offers,
             sign,
         };
+        crate::transition::check_place(&position, action).map_err(|reason| {
+            format!(
+                "round {} decision {action:?} is not one the board allows: {reason:?}",
+                turn.round
+            )
+        })?;
         records.extend(
             action_records(action, &context)
                 .map_err(|error| format!("round {}: {error}", turn.round))?,

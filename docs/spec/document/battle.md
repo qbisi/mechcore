@@ -526,7 +526,11 @@ round's reinforcement deal on the state that round recorded before it and the
 state the next round recorded after it. Those states are not written into the
 document, so once it is written nothing else can compare them. A deal the rules
 cannot reproduce at all is reported rather than refused, and `doc verify`
-fails the document for it. Each side's own stream is held to the same test:
+fails the document for it. The deal also leaves a pool, and every round has to
+open on it: the log a round's snapshot recorded has to be the deal's, up to the
+order of each round's two choices, and so do the rounds it excludes the level-4
+commander skills from ([battle-replay.md](battle-replay.md#the-reinforcement-pool)).
+Each side's own stream is held to the same test:
 the stream every round's snapshot records has to be where the side's seed,
 advanced once for every hand-out an earlier round drew, puts it, and the
 round's hand-out is drawn from it.

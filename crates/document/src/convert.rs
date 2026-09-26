@@ -19,7 +19,7 @@ use crate::layout::{
 use crate::opening::{self, Stream};
 use crate::record::{self, ActionRecord, PlayerData, PlayerRoundRecord};
 use crate::retained_from_grbr_round;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 /// The version a replay's header names: the last component of the game
 /// version `GAME_VERSION` pins, which is how a GRBR carries it (`2324`).
@@ -296,7 +296,7 @@ pub fn document(economy: &Economy, grbr: &[u8]) -> Result<Converted, String> {
                 .into(),
         );
     }
-    stream_lands_on_the_recorded_states(economy, &record::read(grbr)?, &stated)?;
+    deal_lands_on_the_record(economy, &record::read(grbr)?, &stated)?;
     Ok(Converted {
         battle,
         yaml,
@@ -304,11 +304,12 @@ pub fn document(economy: &Economy, grbr: &[u8]) -> Result<Converted, String> {
     })
 }
 
-/// Refuses a replay whose recorded random states the seeded stream misses.
+/// Refuses a replay whose recorded random states the seeded stream misses,
+/// or whose recorded pool the battle's deal does not make.
 ///
 /// The generator is Lua's and a state is 256 bits, so a near miss does not
 /// land: equal states are the whole of the claim that the stream is modelled.
-fn stream_lands_on_the_recorded_states(
+fn deal_lands_on_the_record(
     economy: &Economy,
     native: &record::BattleRecord,
     stated: &opening::Stated,
@@ -345,6 +346,73 @@ fn stream_lands_on_the_recorded_states(
                 "round {}'s deal ends on a random state round {} did not record",
                 round.round,
                 round.round + 1
+            ));
+        }
+    }
+    pool_lands_on_the_recorded_log(&native.match_rounds.entries, &deal.pools)
+}
+
+/// Refuses a replay whose rounds open on another pool than the battle's deal
+/// leaves: each round's log, and the rounds it excludes the level-4 commander
+/// skills from, must be the deal's. The one freedom is the order of a round's
+/// choices, which the log keeps as the players chose and a battle does not.
+fn pool_lands_on_the_recorded_log(
+    recorded_rounds: &[record::MatchRound],
+    pools: &[crate::reinforcement::Pool],
+) -> Result<(), String> {
+    let level_four_skills = crate::reinforcement::level_four_skills()?;
+    let unordered = |log: &[(i32, i32)], choices: &[std::ops::Range<usize>]| {
+        let mut log = log.to_vec();
+        for choice in choices {
+            if let Some(entries) = log.get_mut(choice.clone()) {
+                entries.sort_unstable();
+            }
+        }
+        log
+    };
+    for entry in recorded_rounds {
+        let pool = usize::try_from(entry.round - 1)
+            .ok()
+            .and_then(|at| pools.get(at));
+        // Round 0 opens on the pool the seed initializes, and a round past
+        // the deal's has nothing to be compared with.
+        let (log, choices, excluded) = match (pool, entry.round) {
+            (Some(pool), _) => (
+                pool.log.as_slice(),
+                pool.choices.as_slice(),
+                pool.excluded.as_slice(),
+            ),
+            (None, 0) => (&[][..], &[][..], &[][..]),
+            (None, _) => continue,
+        };
+        let recorded: Vec<(i32, i32)> = entry
+            .pool_operations
+            .entries
+            .iter()
+            .map(|operation| (operation.operation, operation.id))
+            .collect();
+        if unordered(&recorded, choices) != unordered(log, choices) {
+            return Err(format!(
+                "round {} opens on a reinforcement pool log the deal does not make",
+                entry.round
+            ));
+        }
+        let recorded: Vec<i32> = entry
+            .excluded_rounds
+            .entries
+            .iter()
+            .map(|excluded| excluded.round)
+            .collect();
+        if recorded != excluded
+            || entry
+                .excluded_rounds
+                .entries
+                .iter()
+                .any(|excluded| excluded.ids.values != level_four_skills)
+        {
+            return Err(format!(
+                "round {} excludes other reinforcements than the deal does",
+                entry.round
             ));
         }
     }
@@ -1012,7 +1080,15 @@ fn actions(
         position = step(&position, &action, at)?;
         taken.push((action, placed));
     }
-    let collapsed = collapse_moves(taken);
+    let collapsed = settle(
+        economy,
+        opened,
+        collapse_moves(taken),
+        &position,
+        red,
+        declined,
+    )
+    .map_err(|error| format!("{} {error}", seat.name()))?;
     let mut replayed = opened.clone();
     for (at, action) in collapsed.iter().enumerate() {
         replayed = step(&replayed, action, at)?;
@@ -1112,6 +1188,175 @@ fn collapse_moves(taken: Vec<(Action, Placed)>) -> Vec<Action> {
         kept.push(Some(action));
     }
     kept.into_iter().flatten().collect()
+}
+
+/// Orders a side's decisions so that the board allows each one where it
+/// stands, the same way whatever route the recording took.
+///
+/// A move states where a unit ends up, and when it was made changes nothing
+/// else the side decides: a move needs its unit free to move, which the
+/// decision that freed it has done by then, and a unit gone by the round's
+/// end ends up nowhere, so its moves are dropped. The moves therefore follow
+/// the side's other decisions, ascending by unit, a unit's own in the order
+/// it made them. But a place a move, a purchase or a contraption goes to can
+/// still be taken where it stands: by a unit whose own move comes later, or
+/// one a later release takes off the board. So each decision in turn is taken
+/// at the first point [`crate::transition::check_place`] and the step allow
+/// it, the ones that hand out an index keeping their order, as a unit's moves
+/// and the contraptions do. When nothing left can go, the moves wait on one
+/// another, as two units trading places do, and one of them first steps aside
+/// within its own region to a place nothing left goes: that move is part of
+/// the battle, as legal as the rest.
+fn settle(
+    economy: &Economy,
+    opened: &SideState,
+    collapsed: Vec<Action>,
+    ended: &SideState,
+    red: bool,
+    declined: Option<i32>,
+) -> Result<Vec<Action>, String> {
+    let step = |position: &SideState, action: &Action| {
+        crate::transition::check_place(position, action)?;
+        crate::transition::step_placing(
+            economy,
+            position,
+            action,
+            declined,
+            &mut crate::landing::placement(red),
+        )
+    };
+    let (mut moves, mut pending): (Vec<Action>, Vec<Action>) = collapsed
+        .into_iter()
+        .partition(|action| matches!(action, Action::MoveUnit { .. }));
+    moves.retain(|action| {
+        moved_unit(action)
+            .is_some_and(|index| ended.units.iter().any(|entry| entry.unit.index == index))
+    });
+    moves.sort_by_key(|action| moved_unit(action).unwrap_or(i32::MIN));
+    pending.extend(moves);
+
+    let mut settled = Vec::with_capacity(pending.len());
+    let mut position = opened.clone();
+    let mut stepped_aside = BTreeSet::new();
+    while !pending.is_empty() {
+        let ready = (0..pending.len()).find_map(|at| {
+            let action = &pending[at];
+            if pending[..at]
+                .iter()
+                .any(|earlier| waits_behind(action, earlier))
+            {
+                return None;
+            }
+            step(&position, action).ok().map(|next| (at, next))
+        });
+        if let Some((at, next)) = ready {
+            settled.push(pending.remove(at));
+            position = next;
+            continue;
+        }
+        let aside = step_aside(&position, &pending, &stepped_aside, red).ok_or_else(|| {
+            format!("decisions {pending:?} cannot be ordered so the board allows each one")
+        })?;
+        if let Action::MoveUnit { index, .. } = aside {
+            stepped_aside.insert(index);
+        }
+        position = step(&position, &aside)
+            .map_err(|reason| format!("steps a unit aside where it cannot: {reason:?}"))?;
+        settled.push(aside);
+    }
+    Ok(settled)
+}
+
+/// The unit a move moves.
+const fn moved_unit(action: &Action) -> Option<i32> {
+    match action {
+        Action::MoveUnit { index, .. } => Some(*index),
+        _ => None,
+    }
+}
+
+/// Whether `action` has to wait for `earlier`: the decisions that hand out a
+/// unit's index keep their order, as the contraptions, which the game numbers
+/// as they are placed, and a unit's own moves do.
+fn waits_behind(action: &Action, earlier: &Action) -> bool {
+    let hands_out = |action: &Action| {
+        matches!(
+            action,
+            Action::BuyUnit { .. } | Action::ChooseReinforceItem { .. }
+        )
+    };
+    match (action, earlier) {
+        (Action::ReleaseContraption { .. }, Action::ReleaseContraption { .. }) => true,
+        (Action::MoveUnit { index, .. }, Action::MoveUnit { index: other, .. }) => index == other,
+        _ => hands_out(action) && hands_out(earlier),
+    }
+}
+
+/// A move that takes a unit whose move waits to a free place of the region it
+/// stands in, clear of every place a waiting decision goes, for the first such
+/// unit that has one and has not stepped aside already.
+fn step_aside(
+    position: &SideState,
+    pending: &[Action],
+    stepped_aside: &BTreeSet<i32>,
+    red: bool,
+) -> Option<Action> {
+    let needed: Vec<_> = pending
+        .iter()
+        .filter_map(|action| match action {
+            Action::MoveUnit {
+                index,
+                position: to,
+                rotated,
+            } => position
+                .units
+                .iter()
+                .find(|entry| entry.unit.index == *index)
+                .and_then(|entry| crate::landing::unit_rect(&entry.unit.type_name, *to, *rotated)),
+            Action::BuyUnit {
+                unit,
+                position: to,
+                rotated,
+            } => unit_type_from_id(*unit)
+                .and_then(|(type_name, _)| crate::landing::unit_rect(type_name, *to, *rotated)),
+            Action::ReleaseContraption {
+                contraption,
+                position: to,
+                ..
+            } => contraption_type_from_id(*contraption)
+                .and_then(|type_name| crate::landing::contraption_rect(type_name, *to)),
+            _ => None,
+        })
+        .collect();
+    pending.iter().enumerate().find_map(|(at, action)| {
+        let index = moved_unit(action)?;
+        if stepped_aside.contains(&index)
+            || pending[..at]
+                .iter()
+                .any(|earlier| waits_behind(action, earlier))
+        {
+            return None;
+        }
+        let standing = position
+            .units
+            .iter()
+            .find(|entry| entry.unit.index == index)?;
+        let rotated = standing.unit.rotated == Some(true);
+        crate::landing::free_spot(
+            position,
+            &standing.unit.type_name,
+            rotated,
+            Region::of(standing.unit.position),
+            red,
+            Some(index),
+            &needed,
+        )
+        .map(|spot| Action::MoveUnit {
+            index,
+            position: spot,
+            rotated,
+        })
+    })
 }
 
 /// The `Index` the game records a decline at, which is no position in the
@@ -1290,6 +1535,137 @@ mod tests {
                 ("PAD_ReleaseCommanderSkill", Some(0)),
             ]
         );
+    }
+
+    /// A round's log is the deal's but for the order of its choices: the
+    /// players' own order is kept, and a battle does not state it. Anything
+    /// else another pool would restore is refused.
+    #[test]
+    fn a_pool_log_may_order_only_its_choices_otherwise() {
+        use crate::reinforcement::{Pool, level_four_skills};
+        use std::fmt::Write as _;
+        let skills = level_four_skills().unwrap();
+        let rounds = |log: &[(i32, i32)], excluded: &[i32]| {
+            let log = log.iter().fold(String::new(), |mut all, (operation, id)| {
+                let _ = write!(
+                    all,
+                    "<ValueTupleOfInt32Int32><Item1>{operation}</Item1><Item2>{id}</Item2>\
+                     </ValueTupleOfInt32Int32>"
+                );
+                all
+            });
+            let values = skills.iter().fold(String::new(), |mut all, id| {
+                let _ = write!(all, "<Value>{id}</Value>");
+                all
+            });
+            let excluded = excluded.iter().fold(String::new(), |mut all, round| {
+                let _ = write!(
+                    all,
+                    "<DictItem><Key>{round}</Key><Values>{values}</Values></DictItem>"
+                );
+                all
+            });
+            let xml = format!(
+                "<matchDatas><MatchSnapshotData><round>0</round></MatchSnapshotData>\
+                 <MatchSnapshotData><round>1</round><poolOPs>{log}</poolOPs>\
+                 <RoundExcludeReinforce>{excluded}</RoundExcludeReinforce></MatchSnapshotData>\
+                 </matchDatas>"
+            );
+            quick_xml::de::from_str::<crate::record::MatchRounds>(&xml)
+                .unwrap()
+                .entries
+        };
+        // A refresh removes 30703 and adds 30701 in its place, then both
+        // players choose.
+        let pools = [Pool {
+            log: vec![(0, 30703), (1, 30701), (0, 31801), (0, 32103)],
+            choices: std::iter::once(2..4).collect(),
+            excluded: vec![6],
+        }];
+        let check = |log: &[(i32, i32)], excluded: &[i32]| {
+            super::pool_lands_on_the_recorded_log(&rounds(log, excluded), &pools)
+        };
+        assert!(check(&pools[0].log, &[6]).is_ok());
+        assert!(check(&[(0, 30703), (1, 30701), (0, 32103), (0, 31801)], &[6]).is_ok());
+        assert!(check(&[(1, 30701), (0, 30703), (0, 31801), (0, 32103)], &[6]).is_err());
+        assert!(check(&[(0, 30703), (0, 31801), (0, 32103)], &[6]).is_err());
+        assert!(check(&pools[0].log, &[]).is_err());
+    }
+
+    /// Two marksmen standing side by side, each free to move.
+    fn two_marksmen() -> crate::battle::SideState {
+        let marksman = |index, x| crate::battle::StateUnit {
+            unit: crate::layout::UnitPlacement {
+                type_name: "marksman".into(),
+                index,
+                position: Position { x, y: -160 },
+                level: None,
+                exp: None,
+                rotated: None,
+                equipment: Vec::new(),
+                travelling: None,
+            },
+            value: None,
+            movable: true,
+        };
+        crate::battle::SideState {
+            supply: 100_000,
+            unlocked_units: (1..=31).collect(),
+            shop: crate::battle::Allowances {
+                buys_remaining: 9,
+                unlocks_remaining: 9,
+                contraptions_remaining: 9,
+            },
+            units: vec![marksman(0, 0), marksman(1, 20)],
+            next_index: crate::battle::NextIndex {
+                unit: 2,
+                contraption: 0,
+            },
+            ..crate::battle::SideState::default()
+        }
+    }
+
+    /// Settles a side's decisions and steps them, refusing any the board
+    /// would not allow where it stands.
+    fn settled(opened: &crate::battle::SideState, taken: Vec<Action>) -> Vec<Action> {
+        let economy = crate::economy::Economy::embedded().unwrap();
+        let settled = super::settle(&economy, opened, taken, opened, false, None).unwrap();
+        crate::transition::deployed(&economy, opened, &settled, false, None).unwrap();
+        settled
+    }
+
+    /// Two units trading places wait on each other, so one steps aside first,
+    /// within its region, and that step is a decision of the battle.
+    #[test]
+    fn units_trading_places_step_aside() {
+        let moved = |index, x| Action::MoveUnit {
+            index,
+            position: Position { x, y: -160 },
+            rotated: false,
+        };
+        let settled = settled(&two_marksmen(), vec![moved(1, 0), moved(0, 20)]);
+        assert_eq!(settled.len(), 3);
+        assert!(matches!(settled[0], Action::MoveUnit { index: 0, .. }));
+        assert_eq!(settled[1..], [moved(1, 0), moved(0, 20)]);
+    }
+
+    /// A purchase whose place a unit still holds waits for that unit's move,
+    /// and a later purchase keeps its turn behind it, so both get the indices
+    /// they were bought with.
+    #[test]
+    fn a_purchase_waits_for_its_place() {
+        let bought = |x| Action::BuyUnit {
+            unit: 2,
+            position: Position { x, y: -160 },
+            rotated: false,
+        };
+        let moved = Action::MoveUnit {
+            index: 0,
+            position: Position { x: -100, y: -160 },
+            rotated: false,
+        };
+        let settled = settled(&two_marksmen(), vec![bought(0), bought(100), moved.clone()]);
+        assert_eq!(settled, [moved, bought(0), bought(100)]);
     }
 
     /// A formation that begins its moves in the main half keeps only its
