@@ -87,8 +87,7 @@ changes.
 
 `offline: true` launches the game with no network, Steam's included, under the
 same rule; watching the server's matches is refused, and nothing else changes
-([session.md](session.md#offline)). It is a property of the game a script
-launches, not the offline script above, which launches none.
+([session.md](session.md#offline)).
 
 The acquisition states, their failure codes and what evicts what are in
 [session.md](session.md).

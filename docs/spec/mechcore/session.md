@@ -178,8 +178,7 @@ no game. The optional `level:` key declares what the run outranks, `0..=4`,
 defaulting to `1`, and is rejected without a `game:`. The optional
 `headless: true` starts the game without a window (see [Headless](#headless)),
 and the optional `offline: true` without a network ([Offline](#offline)); each
-is rejected unless the script declares `game: launch`. A script with no `game:`
-at all is also called offline, and means something else: it touches no game.
+is rejected unless the script declares `game: launch`.
 
 ```yaml
 game: launch
