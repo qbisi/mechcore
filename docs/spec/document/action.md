@@ -182,7 +182,9 @@ the player moves it from there, and a purchase states where those moves end
 rather than where it landed: the round's moves of the unit it creates are
 written into it, and not again as moves. A position on a flank therefore means
 the unit was moved there, so the purchase sets its `travelling`, which a
-move from the main half would have set.
+move from the main half would have set. The purchase is refused where its
+position is taken, as the move it stands for would be; the landing itself
+always finds room or the round holds no purchase at all.
 
 The unit arrives at the shop's level for its type, which an officer or an
 Energy Tower skill can raise. Costs the unit's price plus one upgrade for each
@@ -317,7 +319,10 @@ Moves the unit at `index` to `position`. `rotated` defaults to false and
 faces the unit the other way. Free, and writes nothing but the board.
 
 Only a unit whose `movable` is true may move, and a move of any other is
-refused rather than applied. A unit is free to move in the round it
+refused rather than applied. A move is refused too where its place is taken:
+the unit's footprint has to lie inside the region `position` lies in and
+overlap nothing standing there but the unit itself, the rule
+[landing.md](../../rules/landing.md#moving-and-placing) states. A unit is free to move in the round it
 arrives. In a later round, what frees it is a decision of this document: fitting
 a Deployment Module, researching its unit's Jump Drive, or releasing Redeploy at
 it.
@@ -406,6 +411,9 @@ and places it at `position`. Advances
 index. Costs the contraption's own price.
 
 `extra_position` is an optional second point, for a contraption that spans two.
+
+A contraption is refused where its place is taken, as a move is. A shield and a
+missile take no part in deployment collisions and are never refused for it.
 
 ### `concede`
 
@@ -498,9 +506,10 @@ is what `id` states.
 
 `MoveUnit` is recorded as a batch carrying one or more units. A sequence holds
 one move per unit: the collapse has already run by then, so the batch no longer has
-to stay whole for an undo to pop it, and order is all that survives either way.
-It keeps only the resulting position and rotation, since the recorded
-before-state restates what the state segment already holds.
+to stay whole for an undo to pop it. It keeps only the resulting position and
+rotation, since the recorded before-state restates what the state segment
+already holds. Not even the moves' order survives: a sequence holds them in
+the order [settling](#settling-a-round) gives them.
 
 A unit's moves keep what they amount to, not the route. A move settles
 `travelling` by the region it arrives in, and a round's opening holds no
@@ -519,6 +528,33 @@ travels exactly when its last move ends on a flank, whichever way it went:
 The conversion steps the collapsed round from the position the round opened
 with and refuses a replay where it does not end exactly where the recorded
 round does.
+
+### Settling a round
+
+A sequence holds its decisions in an order the board allows each one in where
+it stands, and the same order however the round was recorded, so conversion
+settles the collapsed round before writing it:
+
+1. The moves follow the side's other decisions, ascending by unit, a unit's own
+   in the order it made them. A move of a unit that the round then takes off
+   the board is dropped, since it ends up nowhere.
+2. Each decision is then taken at the first point the position allows it and
+   it steps. A purchase whose place a unit still holds waits until that unit
+   has moved or left; a contraption waits the same way. Decisions that hand out
+   a unit's index, purchases and reinforcement choices, keep their order, as
+   the contraptions, which the game numbers as it places them, and a unit's own
+   moves do.
+3. When nothing left can be taken, the moves are waiting on one another, as two
+   units trading places do. The first waiting unit with room first steps
+   aside, within the region it stands in, to the free grid position nearest
+   the region's centre that no waiting decision needs, found as
+   [landing](../../rules/landing.md) finds one; that move is a decision of the
+   sequence like any other.
+
+A sequence settled this way is its own settling, so a battle written as a
+replay and converted back settles to itself. Applying a round refuses a
+decision whose place is taken, so every decision a battle holds is one the
+game takes where it stands.
 
 `GiveUp` is kept, as `concede`, and nothing it recorded besides its type
 survives.
@@ -545,7 +581,7 @@ where the two frames differ.
 
 | Collection | Order |
 | --- | --- |
-| `blue`, `red` | as taken |
+| `blue`, `red` | as [settled](#settling-a-round) |
 
 `kind` comes first in a segment and `round` second, and `blue` precedes `red`.
 Each action is written on one line as a flow mapping, by the spelling rules

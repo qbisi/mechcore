@@ -1,10 +1,16 @@
-//! Where the board puts a formation no decision placed.
+//! Where the board puts a formation no decision placed, and where it lets a
+//! decision put one.
 //!
 //! A card's squads, an officer's delivery and an opening's force arrive without
 //! a position, and the game chooses one. `docs/rules/landing.md` states the
 //! rule, which is `TerritoryManager.GetAvailiblePositionForNewActor` and
 //! `MapRegion.GetAvailiblePositionForElement`: the main deployment region's
 //! centre, aligned to the ten-metre grid, or the free grid position nearest it.
+//!
+//! A move and a contraption placed are asked what the landing avoids, in the
+//! region they go to: `TerritoryManager.CanMoveUnitToPosition` refuses a
+//! footprint outside it or on anything standing there. `docs/rules/landing.md`
+//! states both.
 //!
 //! The game works in world coordinates, and the answer depends on it: the grid
 //! aligns in the world frame, and the search walks it in ascending world `x`

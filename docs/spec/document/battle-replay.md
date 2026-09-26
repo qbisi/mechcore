@@ -127,6 +127,11 @@ move that puts it there; conversion folds the move back into the purchase. The
 formation a purchase creates is the one the round's position, stepped decision
 by decision, allocates next.
 
+A battle holds its decisions in an order the board allows each one in
+([action.md](action.md#settling-a-round)), so each is recorded where it stands
+and none is held back or reordered. A move that clears another's way is one the
+battle states.
+
 ## What a battle replay refuses
 
 A battle is refused when a replay cannot hold it, and the refusal names why:
@@ -135,7 +140,8 @@ A battle is refused when a replay cannot hold it, and the refusal names why:
 - a position after its last decisions, which no replay records;
 - a side without an opening or without a seed;
 - a round whose undone position does not open onto the battle's, or whose
-  decisions do not step;
+  decisions do not step, or put something where the board already has
+  something, which the game would refuse;
 - an object left standing whose skill the panel holds no slot of.
 
 ## Normal form

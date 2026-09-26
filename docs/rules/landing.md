@@ -3,7 +3,8 @@
 Where the board puts a unit that no decision places: a purchase, a
 reinforcement card's squads, an opening's force, and an officer's delivery. A
 battle states where a purchase's moves end, so it reads this rule only for the
-other three. [`action.md`](../spec/document/action.md) and the round-opening
+other three. And where the board lets a decision put one: a move, and a
+contraption placed. [`action.md`](../spec/document/action.md) and the round-opening
 deliveries of [`battle.md`](../spec/document/battle.md) rest on it.
 
 ## The rule
@@ -33,7 +34,22 @@ placement on it is refused as `RegionLimit`. A unit's footprint exchanges width
 and height when it is rotated. Squads handed out together land one at a time,
 each clear of the ones before it.
 
-## What the game does
+## Moving and placing
+
+A move is refused unless the unit's footprint, at its new position and facing,
+lies inside the region the position lies in and overlaps nothing standing in
+that region but the unit itself; the refusal is `RegionLimit`. A region is one
+of three: the main deployment region and the two flanks, and a flank faces the
+other way, so a rotation there exchanges width and height the other way round.
+Only the target region is asked: a unit may move between any two regions
+directly, and where it came from does not matter. What stands in a region is
+what the landing rule avoids there, in the same terms: the side's units,
+constructions and contraptions, a shield and a missile excepted, and in the
+main region its two towers. A contraption is placed under the same test.
+
+One move may carry several units, and each ignores the others it carries, so
+a batch can trade two units' places where two single moves cannot.
+
 
 `TerritoryManager.GetAvailiblePositionForNewActor` takes the region's centre,
 builds the element's rectangle around it, aligns the rectangle's minimum corner
@@ -54,6 +70,9 @@ touching rectangles do not overlap.
 - Every arrival of this version's corpus lands where the rule puts it: a unit
   card's squads, a side's opening force, and the squads a specialist delivers as
   a round opens: `scripts/verify-battles.py`.
+- Every round of this version's corpus settles into an order in which the rule
+  allows each move, purchase and contraption where it stands, and verification
+  applies each under it: `scripts/verify-battles.py`.
 
 ### Read
 
@@ -65,7 +84,19 @@ touching rectangles do not overlap.
   first found winning a tie: `MapRegion.GetAvailiblePositionForElement`,
   `MapRegion.IsAvailible`.
 - Touching rectangles do not overlap: `MapRect.Overlaps`.
+- A move is refused unless each unit's footprint lies inside the region its
+  target lies in and overlaps nothing of that region the move does not carry:
+  `PAP_MoveUnit.Check`, `TerritoryManager.CanMoveUnits`,
+  `TerritoryManager.CanMoveUnitToPosition`, `MapRegion.IsAvailible`.
+- A contraption is placed under the same test:
+  `ContraptionManager.CanRelease`.
 
 ### Not established
 
 - **A full region.** No recording has shown a region with no free position.
+- **A flank's own bounds and the round it opens.** The build keeps both in the
+  map asset; the flank rectangles are this repository's, and no recorded move
+  has fallen outside them.
+- **Inactive grid cells.** `MapRegion.IsAvailible` also asks whether the grid
+  cells under two rectangles are active, and which cells a deployment leaves
+  inactive was not read.
