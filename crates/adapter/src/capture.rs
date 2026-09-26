@@ -559,6 +559,7 @@ struct Metadata {
     motion_move_state_class: usize,
     motion_attack_state_class: usize,
     motion_stop_state_class: usize,
+    motion_transition_state_class: usize,
     fight_mech_lock_target: usize,
     fight_mech_body: usize,
     fight_skill_class: Option<usize>,
@@ -1717,6 +1718,9 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
         let motion_stop_state = api
             .class("GRFight.dll", "GameRiver.Fight", "MotionStopState")
             .map_err(|error| error.to_string())?;
+        let motion_transition_state = api
+            .class("GRFight.dll", "GameRiver.Fight", "TransitionState")
+            .map_err(|error| error.to_string())?;
         let fight_mech_lock_target = api
             .class("GRFight.dll", "GameRiver.Fight", "FightMech")
             .and_then(|class| api.field(class, "lockTarget"))
@@ -1852,6 +1856,7 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             motion_move_state_class: motion_move_state as usize,
             motion_attack_state_class: motion_attack_state as usize,
             motion_stop_state_class: motion_stop_state as usize,
+            motion_transition_state_class: motion_transition_state as usize,
             fight_mech_lock_target,
             fight_mech_body,
             fight_skill_class: fight_skill.map(|class| class as usize),
@@ -4840,7 +4845,10 @@ fn record_damage(
             advanced_shield as usize
         };
         let target = object_ref_from_pointer(target_pointer, &state).ok_or_else(|| {
-            format!("damage target 0x{target_pointer:x} is absent from the MCFR identity map")
+            format!(
+                "damage target 0x{target_pointer:x}, a {}, is absent from the MCFR identity map",
+                native_class_name(target_pointer)
+            )
         })?;
         if target.kind == ObjectKind::Unit && !state.emitted_deaths.contains(&target) {
             state.last_damage_sources.insert(
@@ -6128,8 +6136,9 @@ fn read_native_battle_skills(
 ) -> Result<Vec<BattleSkillDefinition>, String> {
     let manager = invoke_object(api, controller, "GetCommanderSkillManager")?;
     let skills = invoke_object(api, manager, "GetCommanderSkills")?;
+    // A side may hold one skill twice and release both, so the panel's order,
+    // not the skill's ID, tells two releases apart.
     let mut result = Vec::new();
-    let mut seen = BTreeSet::new();
     for index in 0..list_count(api, skills, 10_000)? {
         let skill = list_item(api, skills, index)?;
         if !invoke_value::<bool>(api, skill, "get_IsActive")? {
@@ -6146,9 +6155,6 @@ fn read_native_battle_skills(
             .map_err(|error| error.to_string())?;
         if !found || release_data.is_null() {
             continue;
-        }
-        if !seen.insert(id) {
-            return Err(format!("duplicate released commander skill ID {id}"));
         }
         let type_name = battle_skill_type_from_id(id)
             .ok_or_else(|| format!("unknown released commander skill ID {id}"))?;
@@ -6444,17 +6450,14 @@ fn snapshot(
                 shield.pointer
             ));
         }
-        if capture.retired_shield_pointers.contains(&shield.pointer) {
-            return Err(format!(
-                "retired FightEnergyShield pointer 0x{:x} was reused",
-                shield.pointer
-            ));
-        }
+        // As with a terrain, a pointer that has left the board and comes back
+        // is a new shield.
+        let reused = capture.retired_shield_pointers.remove(&shield.pointer);
         let id = match capture.shield_ids.get(&shield.pointer) {
-            Some(id) => *id,
-            None => allocate(&mut capture.next_shield_id, "shield")?,
+            Some(id) if !reused => *id,
+            _ => allocate(&mut capture.next_shield_id, "shield")?,
         };
-        capture.shield_ids.entry(shield.pointer).or_insert(id);
+        capture.shield_ids.insert(shield.pointer, id);
         shield.state.shield_id = id;
         shield.state.owner = resolve_target_ref(
             runtime.api,
@@ -6665,11 +6668,6 @@ fn read_terrains(
             if !current_pointers.insert(pointer) {
                 return Err(format!("RangeItem at 0x{pointer:x} appears more than once"));
             }
-            if capture.retired_terrain_pointers.contains(&pointer) {
-                return Err(format!(
-                    "retired RangeItem pointer 0x{pointer:x} was reused"
-                ));
-            }
             let item_type =
                 invoke_value::<i32>(api, item, "GetRangeItemType").map_err(|error| {
                     format!("terrain controller {type_tag} item {index} GetRangeItemType: {error}")
@@ -6679,11 +6677,15 @@ fn read_terrains(
                     "RangeItem at 0x{pointer:x} type {item_type} disagrees with controller {type_tag}"
                 ));
             }
+            // A released RangeItem's address can be handed to a later object,
+            // so a pointer that has left the board and comes back is a new
+            // terrain, not the old one returning.
+            let reused = capture.retired_terrain_pointers.remove(&pointer);
             let id = match capture.terrain_ids.get(&pointer) {
-                Some(id) => *id,
-                None => allocate(&mut capture.next_terrain_id, "terrain")?,
+                Some(id) if !reused => *id,
+                _ => allocate(&mut capture.next_terrain_id, "terrain")?,
             };
-            capture.terrain_ids.entry(pointer).or_insert(id);
+            capture.terrain_ids.insert(pointer, id);
             let team_controller = api
                 .invoke(item, "GetTeamController", &mut [])
                 .map_err(|error| format!("terrain {id} item {index} GetTeamController: {error}"))?;
@@ -7045,6 +7047,8 @@ fn read_unit(
         MotionState::Attacking
     } else if current_motion_class == metadata.motion_stop_state_class {
         MotionState::Stopped
+    } else if current_motion_class == metadata.motion_transition_state_class {
+        MotionState::Transitioning
     } else {
         return Err("unsupported native MotionFSM current state".into());
     };
@@ -8384,6 +8388,21 @@ fn transition_events(traces: &[NativeTrace], capture: &CaptureState) -> Transiti
         }
     }
     TransitionEvents { events }
+}
+
+/// The runtime class of a native object, for a refusal to name what it met.
+fn native_class_name(pointer: usize) -> String {
+    let runtime = RUNTIME.load(Ordering::Acquire);
+    if runtime.is_null() || pointer == 0 {
+        return "<unknown>".into();
+    }
+    // SAFETY: runtime is boxed for the adapter process lifetime.
+    let runtime = unsafe { &*runtime };
+    let api = runtime.api;
+    let Some(class) = api.object_class(pointer as *mut Object) else {
+        return "<classless>".into();
+    };
+    format!("{}.{}", api.class_namespace(class), api.class_name(class))
 }
 
 fn object_ref_from_pointer(pointer: usize, capture: &CaptureState) -> Option<ObjectRef> {

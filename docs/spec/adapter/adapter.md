@@ -393,8 +393,11 @@ component of its Unit row. The Adapter obtains each Training Ground side's `IFig
 `FightTeam.GetFightGroup()` and reads both the full shield list and the active list. It persists
 `active` and the nullable active-list index `active_order`, because runtime
 reactivation appends an object and can change the interception order independently of Shield ID.
-Unknown shield data-source classes, inconsistent active-list membership, dangling projectile birth
-containment references, and reused retired shield pointers fail the recording. Shield lifecycle
+Unknown shield data-source classes, inconsistent active-list membership and dangling projectile birth
+containment references fail the recording. A destroyed shield's address can be handed to a later
+object, so a pointer that has left the full list and appears again is a new shield with a new
+Shield ID, as a terrain's is. Whether the game pools the objects or the collector reuses the
+memory was not read. Shield lifecycle
 events are generated from authoritative changes in full-list membership at consecutive native
 snapshot boundaries; the removal source proves destruction but not a narrower cause, so
 `shield_destroyed.reason` is `unknown`.
@@ -426,7 +429,9 @@ The layout still uses only `type`, `x`, `y` and ordinary placement bounds.
 
 Dynamic terrain is enumerated by the six native `RangeItemType` controllers. A controller or item
 list that has not been instantiated contributes an empty collection; each member returned by
-`RangeItemController.GetItems()` is active and receives a stable Terrain ID. The Adapter reads its
+`RangeItemController.GetItems()` is active and receives a stable Terrain ID. A pointer that has
+left the lists and appears again is a new terrain with a new Terrain ID, since a released item's
+address can be handed to a later object. The Adapter reads its
 team, type, position, radius, optional grid mask, optional cross-round remainder, optional logic
 lifetime, and the controller's direct unit applications. `affectedUnits` is joined to Unit IDs;
 `affectedUnitTimes` and positive `effectTimeDuration` provide an optional periodic clock.

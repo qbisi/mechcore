@@ -3339,6 +3339,7 @@ const fn encode_motion(value: MotionState) -> u8 {
         MotionState::Moving => 1,
         MotionState::Attacking => 2,
         MotionState::Stopped => 3,
+        MotionState::Transitioning => 4,
     }
 }
 
@@ -3348,6 +3349,7 @@ fn decode_motion(value: u8) -> Result<MotionState> {
         1 => Ok(MotionState::Moving),
         2 => Ok(MotionState::Attacking),
         3 => Ok(MotionState::Stopped),
+        4 => Ok(MotionState::Transitioning),
         _ => Err(Error::invalid(format!("invalid MotionState tag {value}"))),
     }
 }

@@ -523,6 +523,9 @@ pub enum MotionState {
     Moving,
     Attacking,
     Stopped,
+    /// Between two states while a move ability runs: `MotionFSM` holds its
+    /// `TransitionState` until the ability hands it the next one.
+    Transitioning,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
