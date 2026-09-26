@@ -158,8 +158,4 @@ the order above.
 
 ## Unresolved
 
-**Whether a battle's round is written as a layout replay or as the battle's
-own replay.** A battle round's fight starts from what `doc project` writes, and
-a layout replay of that projection fights it. A replay holding the battle's
-whole stream would also carry its decisions, which the battle states in order
-without the times, undos and pool bookkeeping the game's replay records.
+None.

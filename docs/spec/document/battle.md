@@ -500,7 +500,9 @@ mechcore replay convert <replay.grbr> <battle.yaml> [--force]
 ```
 
 Conversion is offline. It reads the replay and nothing else, and it simulates
-no fight.
+no fight. It is also idempotent across this format: a battle written back as a
+replay ([battle-replay.md](battle-replay.md)) converts to the same battle, byte
+for byte.
 
 The converter refuses rather than guesses. A replay from another build, a
 downloaded one, a match mode other than `VS_1_1`, a `Test` match, a match
