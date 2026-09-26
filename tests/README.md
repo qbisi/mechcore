@@ -19,11 +19,11 @@ says what was measured:
 | [`turret/`](turret/README.md) | when a turret fires, at what, and how often |
 | [`units/`](units/README.md) | each unit's standard layouts, the definition of basic support |
 | [`wraith/`](wraith/README.md) | how a Wraith's four slots choose their targets, given what the others hold |
-| `regression/` | the native regression table, its layouts, and the three scripts that read it: offline, re-recorded, and re-recorded with each unit's skill state |
+| `regression/` | the native regression table, its layouts, and the three scripts that read it: gameless, re-recorded, and re-recorded with each unit's skill state |
 
 A script that needs no game is run by CI; one that needs the game is only
 parsed there. `regressions.mcscript` in a topic directory, and
-`regression/simulate.mcscript`, are the offline ones: they hold the simulator
+`regression/simulate.mcscript`, are the gameless ones: they hold the simulator
 to the physics hash the game recorded. Recordings never enter the repository,
 and are not published anywhere else: what the repository keeps is what
 reproduces them, the layouts and the scripts, which any machine with the game

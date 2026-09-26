@@ -56,11 +56,11 @@ Adapter 是 `mechcore` 的默认 feature `adapter`；只有它需要 macOS，关
 （`--no-default-features`）整个 CLI 在任何平台都能构建和测试。所以新代码若只在
 macOS 上成立，要用 `cfg(target_os = "macos")` 隔开，不然 Linux 上的 job 会失败。
 
-跑离线脚本那条意味着一份离线脚本里的断言和一份测试同等有效，
+跑不需要游戏的脚本那条意味着这样一份脚本里的断言和一份测试同等有效，
 `tests/modifier/regressions.mcscript` 就是靠它守住的。`docs.yml` 另跑 `scripts/check-docs.py`。
 
 一份 `.mcscript` 要么需要游戏、要么不需要，`run --check` 的 `game` 字段就是答案：
-需要游戏的只被解析，不需要的会被跑起来。新增一份离线脚本不用改 CI。
+需要游戏的只被解析，不需要的会被跑起来。新增一份不需要游戏的脚本不用改 CI。
 
 格式这一条曾经不在 CI 里，因为仓库本来就不符合当前 rustfmt 的输出。那次全仓
 格式化已经做过了，所以现在它是 CI 的一条硬检查：**提交前跑 `cargo fmt --all`**，

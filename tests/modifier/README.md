@@ -20,7 +20,7 @@ exactly one clause of that formula on one unit.
 opens fire at the same moment either way, so its physics hash repeats
 `officer-range-value.yaml`'s exactly. What separates them is the number the
 build computed, which a recording has carried since MCFR 0.4.0 — the fixture is
-measurable at all only because of that, and the offline table pins its content
+measurable at all only because of that, and the gameless table pins its content
 hash for the same reason.
 
 **A fixture in this directory changes one thing.** Most of them are the same

@@ -4,7 +4,7 @@
 layouts, each recorded by the game with two seeds and played back by the
 simulator tick for tick, physics and content. This directory holds those
 layouts, one directory per unit, the script that records them, and the
-offline `regressions.mcscript` that pins every recording the simulator
+gameless `regressions.mcscript` that pins every recording the simulator
 reproduces. CI runs the regressions; the record script needs the game. It
 fights each layout without a scene, as a
 [layout replay](../../docs/spec/document/layout-replay.md), and every pin

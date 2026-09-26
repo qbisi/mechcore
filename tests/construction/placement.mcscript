@@ -12,7 +12,7 @@
 # 256 metres away against reaches of 140 and 95. So the two recordings have to
 # hold the same fight and differ only in their buildings, and the simulator has
 # to reproduce the one with the wall exactly — which
-# `regressions.mcscript` asserts offline, against the physics hash below.
+# `regressions.mcscript` asserts, against the physics hash below.
 #
 # **A release is not free.** The wall is at `(-140, -55)` because the opening
 # this seed deals already stands there, so the executor retains it. The same

@@ -2,7 +2,7 @@
 
 Seed 1787720817. `stats.mcscript` records the control
 and the three layouts here. It needs the game; `regressions.mcscript` runs
-all four offline and pins both native hash layers.
+all four without the game and pins both native hash layers.
 
 | Layout | What it separates | Damage | Life |
 | --- | --- | ---: | ---: |
@@ -18,6 +18,6 @@ These observations distinguish the channels, not just the final damage.
 
 The rule, and why the level is its own multiplier and not a correction, are
 in [unit_levels.md](../../docs/rules/unit_levels.md). `data.rs`'s tests check
-the same numbers offline: a level multiplies base life and damage and nothing
-else, and it is applied before the overlays. A level outside one to nine is
-refused by the layout, by name.
+the same numbers without the game: a level multiplies base life and damage
+and nothing else, and it is applied before the overlays. A level outside one
+to nine is refused by the layout, by name.
