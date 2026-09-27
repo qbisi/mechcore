@@ -32,7 +32,7 @@ released it.
 `attacks.mcscript` and `splash.mcscript` record them and carry every number
 as an `expect`, so a fixture and the measurement that reads it are one file to
 rerun. `skill-state.mcscript` records the wall fights once more with the
-`target_refs_v1` instrumentation, whose sidecar says which state each unit's
+`target_refs` instrument channel, which says which state each unit's
 skill is in and which attack phase it is in, tick by tick; that, not the
 recording, is where the rules read when a unit meets a block and how an attack
 on one ends.

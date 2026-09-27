@@ -339,12 +339,12 @@ property 的输入恰好就是录像记的那些列，所以**一个机制在算
 
 **这里没有一处是关于墙的。** 墙和单位的差别只在于它是 `SearchAttackTarget` 可能给出的一个答案，以及
 攻击状态对已死亡目标做的那个建筑类判断；两者都是游戏自己的。检查在哪些技能状态里跑，是从每个单位
-`SkillStateController` 状态和 `SkillAttackController` 阶段的采集里读出来的（`target_refs_v1`
-instrumentation profile），和 `tests/construction/` 下的录像一起。
+`SkillStateController` 状态和 `SkillAttackController` 阶段的采集里读出来的（`target_refs`
+instrument 通道），和 `tests/construction/` 下的录像一起。
 
 **怎么对齐到游戏的。** 两份整个回归清单的采集是对照：每个单位逐 tick 的技能状态和攻击阶段
 （`tests/regression/skill-state.mcscript`），以及每一次 `Check` 调用前后技能的锁定和攻击目标
-（`skill_attackable_checker_v1` profile）。成组技能逐槽调用同一个检查器，带入兄弟槽位的锁定
+（`skill_attackable_checker` 通道）。成组技能逐槽调用同一个检查器，带入兄弟槽位的锁定
 和槽位自己的射程。[Wraith fixtures](../../../tests/wraith/README.md) 说明独立逐调用复验及
 物理、内容两层检查。除检查器本身外，还需要：
 

@@ -128,7 +128,7 @@ pub(crate) enum LayoutExecutionStage {
     Activation,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub(crate) enum InternalOperation {
     Status,
     RefreshWatchScenes,
@@ -138,8 +138,7 @@ pub(crate) enum InternalOperation {
         mode: crate::capture::CaptureStartMode,
         visual: bool,
         speed_up: bool,
-        instrumentation_profile: Option<crate::capture::CaptureInstrumentationProfile>,
-        rvo_scope: Option<crate::capture::RvoCaptureScope>,
+        instruments: crate::capture::Instruments,
     },
     StopCapture,
     ExpireDeployment(i32),
@@ -165,18 +164,10 @@ pub(crate) fn execute_internal(
             mode,
             visual,
             speed_up,
-            instrumentation_profile,
-            rvo_scope,
-        } => crate::capture::start(
-            runtime,
-            mode,
-            visual,
-            speed_up,
-            instrumentation_profile,
-            rvo_scope,
-        )
-        .map(|()| json!({"started": true}))
-        .map_err(OperationError::InvalidState),
+            instruments,
+        } => crate::capture::start(runtime, mode, visual, speed_up, instruments)
+            .map(|()| json!({"started": true}))
+            .map_err(OperationError::InvalidState),
         InternalOperation::StopCapture => crate::capture::stop(runtime.api)
             .map(|()| json!({"stopped": true}))
             .map_err(OperationError::Rejected),

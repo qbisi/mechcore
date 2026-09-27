@@ -4,15 +4,15 @@
 #   mechcore run tests/units/skill-state.mcscript --check   parse without the game
 #   mechcore run tests/units/skill-state.mcscript           record
 #
-# Re-records four standard fights with the `target_refs_v1` instrumentation,
-# whose sidecar holds, per unit and tick, the main skill's state, beside the
+# Re-records four standard fights with the `target_refs` instrument channel,
+# which holds, per unit and tick, the main skill's state, beside the
 # turret's rotation the recording itself carries. They are the
 # fights that showed that leaving `SkillIdleState` waits a tick before the
 # blow, and that an idle skill keeps its lock only while it can fire at it:
 # the Fortress's weapons turning onto a Crawler, a Sledgehammer and a Typhoon
 # locking a new target after a kill, and a Melting Point switching to the
 # Crawler its weapons already face. The fights are pinned in
-# `regressions.mcscript`; the sidecar is research evidence and is not hashed.
+# `regressions.mcscript`; the channel is research evidence, outside both hashes.
 #
 # `out` must not already exist: a recording refuses to overwrite.
 
@@ -38,6 +38,4 @@ steps:
           layout: $layout
           seed: ${fight.seed}
           output: ${out}/${fight.unit}-${fight.name}-${fight.seed}.mcfr
-          instrumentation:
-            output: ${out}/${fight.unit}-${fight.name}-${fight.seed}.h5
-            profile: target_refs_v1
+          instrument: [target_refs]

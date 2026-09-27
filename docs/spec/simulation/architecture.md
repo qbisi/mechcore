@@ -406,14 +406,14 @@ with its targets cleared.
 answer `SearchAttackTarget` can give, and in the building test the attack state
 applies to a dead target; both are the build's. The skill states the checks run
 in were read from a capture of each unit's `SkillStateController` state and
-`SkillAttackController` phase (the `target_refs_v1` instrumentation profile),
+`SkillAttackController` phase (the `target_refs` instrument channel),
 beside the recordings under `tests/construction/`.
 
 **How it was held to the game.** Two captures of the whole regression
 manifest are the oracle: each unit's skill state and attack phase per tick
 (`tests/regression/skill-state.mcscript`), and every `Check` call with the
 skill's lock and attack target on either side of it (the
-`skill_attackable_checker_v1` profile). Grouped skills use the same checker
+`skill_attackable_checker` channel). Grouped skills use the same checker
 per slot, with the siblings' lock holdings and each slot's own range. The
 [Wraith fixtures](../../../tests/wraith/README.md) describe the independent
 per-call replay and the physics/content checks. Beyond the checker itself:

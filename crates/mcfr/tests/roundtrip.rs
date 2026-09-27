@@ -2,15 +2,14 @@ use std::io::{Read, Write};
 
 use bytes::Bytes;
 use mechcore_mcfr::{
-    BuffModifierSet, BuildingState, CONTENT_HASH_PROFILE, DerivedStats, Domain, DurableContext,
-    Event, EventPayload, GaugeI32, Hashes, InstrumentationReader, InstrumentationRecord,
-    InstrumentationSink, InstrumentationWriter, LiveUnitState, MCFR_FORMAT, McfrReader, McfrWriter,
-    MotionState, ObjectKind, ObjectRef, PHYSICS_HASH_PROFILE, PersonalShieldState, QVec3,
-    RateModifier, Rational, ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind,
-    ShieldState, SkillDynamicModifierSet, SkillNumericModifierState, TerrainApplicationState,
-    TerrainEffectClock, TerrainGridState, TerrainLogicLifetime, TerrainRemovedReason, TerrainState,
-    TerrainType, TransitionEvents, UnitDynamicModifierSet, Visibility, WeaponAimState,
-    WorldSnapshot,
+    BuffModifierSet, BuildingState, CONTENT_HASH_PROFILE, CheckedSkill, DerivedStats, Domain,
+    DurableContext, Event, EventPayload, GaugeI32, Hashes, LiveUnitState, MCFR_FORMAT, McfrReader,
+    McfrWriter, MotionState, ObjectKind, ObjectRef, PHYSICS_HASH_PROFILE, PersonalShieldState,
+    QVec3, RateModifier, Rational, SelectorScore, ShieldDestroyedReason, ShieldRoundPolicy,
+    ShieldSourceKind, ShieldState, SkillAttackableCheck, SkillDynamicModifierSet,
+    SkillNumericModifierState, TargetRefs, TerrainApplicationState, TerrainEffectClock,
+    TerrainGridState, TerrainLogicLifetime, TerrainRemovedReason, TerrainState, TerrainType,
+    TransitionEvents, UnitDynamicModifierSet, Visibility, WeaponAimState, WorldSnapshot,
 };
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use serde_json::json;
@@ -48,7 +47,7 @@ fn writes_and_reads_v7_tracks() {
     );
 
     let reader = McfrReader::open(&path).unwrap();
-    assert_eq!(MCFR_FORMAT, "0.7.0");
+    assert_eq!(MCFR_FORMAT, "0.8.0");
     assert_eq!(reader.tick_count(), 1);
     assert_eq!(reader.terminal_tick(), 1);
     assert_eq!(reader.game_build(), "build-a");
@@ -653,41 +652,78 @@ fn writer_rejects_non_shield_projectile_containment_reference() {
 }
 
 #[test]
-fn instrumentation_sidecar_supports_json_and_binary_channels() {
+fn instrument_channels_ride_in_the_recording_outside_both_hashes() {
     let directory = tempfile::tempdir().unwrap();
-    let hashes = write_battle(
-        &directory.path().join("battle.mcfr"),
+    let plain = write_battle(
+        &directory.path().join("plain.mcfr"),
         "build-a",
         &context(),
         state(100),
         state(75),
         &damage_events(),
     );
-    let sidecar = directory.path().join("battle.targeting.mcfr-i");
-    let mut writer = InstrumentationWriter::create(
-        &sidecar,
-        &hashes.physics_result_hash,
-        "targeting-v1",
-        "adapter",
-    )
-    .unwrap();
-    writer
-        .record_json(0, "target_candidates", &json!({"ids": [2, 1]}))
-        .unwrap();
-    writer
-        .record(InstrumentationRecord {
-            step: 1,
-            channel: "rvo_solver",
-            content_type: "application/octet-stream",
-            payload: &[1, 2, 3, 4],
-        })
-        .unwrap();
-    writer.finish().unwrap();
 
-    let reader = InstrumentationReader::open(&sidecar).unwrap();
-    assert_eq!(reader.physics_result_hash(), hashes.physics_result_hash);
-    assert_eq!(reader.len(), 2);
-    assert_eq!(reader.entry(1).unwrap().payload, [1, 2, 3, 4]);
+    let path = directory.path().join("instrumented.mcfr");
+    let mut writer = McfrWriter::create(&path, "build-a", &context(), LAYOUT_YAML).unwrap();
+    assert!(writer.append_instrument::<TargetRefs>(&[]).is_err());
+    writer.append_tick(state(75), &damage_events()).unwrap();
+    let refs = TargetRefs {
+        unit: ObjectRef::new(ObjectKind::Unit, 1),
+        mech_lock_target: Some(ObjectRef::new(ObjectKind::Unit, 2)),
+        normal_skill_fields_available: true,
+        skill_lock_target: None,
+        skill_attack_target: Some(ObjectRef::new(ObjectKind::Building, 1)),
+        skill_state: Some("SkillAttackState".into()),
+        skill_attack_phase: Some("attacking".into()),
+        skill_is_idle: Some(false),
+    };
+    writer
+        .append_instrument(std::slice::from_ref(&refs))
+        .unwrap();
+    let check = SkillAttackableCheck {
+        invocation_ordinal: 7,
+        source_actor: ObjectRef::new(ObjectKind::Unit, 1),
+        is_attacking_check: true,
+        before: CheckedSkill {
+            lock_target: None,
+            attack_target: None,
+            skill_state: None,
+            skill_attack_phase: None,
+        },
+        after: CheckedSkill {
+            lock_target: Some(ObjectRef::new(ObjectKind::Unit, 2)),
+            attack_target: None,
+            skill_state: Some("SkillPrepareState".into()),
+            skill_attack_phase: None,
+        },
+        check_return: true,
+    };
+    writer
+        .append_instrument(std::slice::from_ref(&check))
+        .unwrap();
+    // Asked for and never filled: the channel is published empty.
+    writer.append_instrument::<SelectorScore>(&[]).unwrap();
+    assert_eq!(writer.finish().unwrap(), plain);
+
+    let reader = McfrReader::open(&path).unwrap();
+    assert_eq!(
+        reader.instrument_channels().collect::<Vec<_>>(),
+        ["selector_score", "skill_attackable_checker", "target_refs"]
+    );
+    assert_eq!(
+        reader.instrument::<TargetRefs>().unwrap(),
+        Some(vec![(1, refs)])
+    );
+    assert_eq!(
+        reader.instrument::<SkillAttackableCheck>().unwrap(),
+        Some(vec![(1, check)])
+    );
+    assert_eq!(
+        reader.instrument::<SelectorScore>().unwrap(),
+        Some(Vec::new())
+    );
+    let plain = McfrReader::open(directory.path().join("plain.mcfr")).unwrap();
+    assert_eq!(plain.instrument::<TargetRefs>().unwrap(), None);
 }
 
 fn write_battle(

@@ -9,13 +9,13 @@ separate.
 
 | Fixture | What it separates | Reading |
 | --- | --- | --- |
-| [`../regression/wraith-group-attack.yaml`](../regression/wraith-group-attack.yaml) | a slot re-searching while its siblings hold three of the units in reach | the checker sidecar's per-slot calls |
+| [`../regression/wraith-group-attack.yaml`](../regression/wraith-group-attack.yaml) | a slot re-searching while its siblings hold three of the units in reach | the checker channel's per-slot calls |
 | `two-targets.yaml` | two units for four slots: whether a slot doubles up, and on which | the slots' first allocation |
 
-`slots.mcscript` records each layout twice, once under
-`skill_attackable_checker_v1`, which holds every `Check` call with the slot's
-lock before and after it, and once under `target_refs_v1`, which holds every
-other unit's lock and attack target and nothing for the Wraith's slots. The
+`slots.mcscript` records each layout once with two channels:
+`skill_attackable_checker`, which holds every `Check` call with the slot's
+lock before and after it, and `target_refs`, which holds every other unit's
+lock and attack target and nothing for the Wraith's slots. The
 regression layout is recorded under the seed the manifest pins it with, so
 the recording is the pinned fight.
 
@@ -36,18 +36,18 @@ The original simulator matched the regression fight's physics while its mech
 lock differed on 60 ticks beginning at tick 206. Checking only physics would
 miss it, which is why both layers are pinned here.
 
-The optional checker replay reads the native sidecar and restores each call's
+The optional checker replay reads the recording's checker channel and restores each call's
 before-targets on a shadow skill at the kernel's checker site, then restores
 the simulated skill before execution continues. It compares the return value,
 lock and attack target on every grouped call: 4,188 in the regression capture
-and 344 in two targets. It requires the oracle files under the paths written
-by `slots.mcscript`; after fetching them, run:
+and 344 in two targets. It requires the recordings `slots.mcscript` makes where
+the game runs; with them in place, run:
 
 ```sh
 cargo test -p mechcore-simulation grouped_checker_matches_every_captured_call -- --ignored --nocapture
 ```
 
-The replay checks the sidecar's physics binding and profile and rejects missing
-calls. Observed targets are never used to advance the simulation checked by the
+The replay requires the recording to carry the checker channel and rejects
+missing calls. Observed targets are never used to advance the simulation checked by the
 gameless regressions. The ordinary Rust tests retain the distinguishing
 allocation and child-range cases without needing recordings.

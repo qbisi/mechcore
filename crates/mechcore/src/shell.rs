@@ -29,9 +29,9 @@ the game
   game status                     current status snapshot
   game start_test [--seed s] [--map-id id]
   game apply_layout <layout.yaml> [--seed s]
-  game record_battle <out.mcfr> [--video <out.mov>] [--no-speed-up] [-f]
-  game record_replay_round <in.grbr> <round> <out.mcfr> [-f]
-  game record_layout <layout.yaml> <out.mcfr> [--seed s] [-f]
+  game record_battle <out.mcfr> [--video <out.mov>] [--no-speed-up] [--instrument c,..] [-f]
+  game record_replay_round <in.grbr> <round> <out.mcfr> [--instrument c,..] [-f]
+  game record_layout <layout.yaml> <out.mcfr> [--seed s] [--instrument c,..] [-f]
   game record_watch_replay [--output-dir <dir>]
   game toggle_fight               start the current fight
   game speed_up                   request battle speed-up

@@ -349,7 +349,7 @@ Input contains one absolute, non-existing destination with a `.mcfr` suffix:
 {"output":"/absolute/path/battle.mcfr"}
 ```
 
-An optional `video_output` enables the logic-frame visual sidecar, and an optional `speed_up`
+An optional `video_output` enables the logic-frame visual recording, and an optional `speed_up`
 selects whether the recording runs on scaled time:
 
 ```json
@@ -466,7 +466,7 @@ shields follow all S(1) rows, grouped by team, keeping persisted IDs contiguous.
 Those fallback groups sort by source kind, owner reference, position X/Y/Z,
 radius, round policy, maximum energy and current energy; indistinguishable keys
 fail closed. Cached references and first-tick traces are remapped before state,
-projectile, instrumentation and event references are finalized. Removed objects
+projectile, instrument and event references are finalized. Removed objects
 retain identities for E(1). After that boundary, IDs remain pointer-stable even
 when active order changes; later new shields append IDs without reuse.
 The layout still uses only `type`, `x`, `y` and ordinary placement bounds.
@@ -507,61 +507,43 @@ wrote as one.
 }
 ```
 
-Both `record_replay_round` and `record_battle` accept an optional research-only
-`instrumentation` object. A bounded RVO request is:
+Both `record_replay_round` and `record_battle` take an optional `instrument`
+list, the channels to record into the MCFR beside its tables:
 
 ```json
-{
-  "output": "/absolute/path/round-7-rvo.h5",
-  "profile": "target_refs_rvo_v1",
-  "rvo_scope": {
-    "start_tick": 8,
-    "end_tick": 14,
-    "unit_ids": [124, 282, 363, 246]
-  }
-}
+{"instrument": ["target_refs", "skill_attackable_checker", "selector_score"]}
 ```
 
-`rvo_scope` requires 1–8 unique positive **MCFR unit IDs**, not formation indices,
-and an inclusive window of at most 64 positive **MCFR combat ticks**.
-The build advances `FightController.get_Tick` by 100 per combat tick; the
-Adapter converts the window accordingly (8–14 selects native 800–1400).
-It filters RVO detail before reading agent state, neighbours, or VO buffers.
-Only selected sources are captured; their full neighbour lists may reference
-other units/buildings/internal agents. Agent `ordinal` remains the original
-simulator-list index, not the index in the filtered result. Updates are selected
-by their start tick; publication after the window is still drained and
-identified by `publish_native_tick`. Observation `start_native_tick` and
-`publish_native_tick` retain native counter values. `agents` holds the pre-solve snapshot,
-`published_agents` the state at the native publication boundary; both retain
-raw Q32.32 integers. Internal-agent ordinals are capture-local, not normalized
-cross-recording identities.
+A channel is a view of the fight's inside that a study asks for. Channels
+combine freely, every requested channel is written as the fight is, one member
+`instrument/<channel>.parquet` each, and neither hash reads them, so a
+recording with channels hashes the same as one without
+([mcfr.md](../mcfr/mcfr.md#instrument-channels)). A tick whose captured rows
+do not answer exactly the requested channels fails the recording with
+`capture_failed`. A channel whose hooks could not be resolved is refused before
+arming, naming the channel and why.
 
-Scoped sidecars are sparse: `records.steps` holds actual MCFR ticks and must not
-be replaced by row number. They remain `physics_result_hash`-bound, non-hashed research
-evidence; formal MCFR still records the complete battle. Omitting `rvo_scope`
-retains the existing full instrumentation profile. Invalid scope/output is
-rejected before replay loading. No Simulator closure is implied.
-
-The `target_refs` profiles record, per unit and tick, the mech's lock and the
-main skill's `lockTarget` and `attackTarget`. Beside them, `skill_state` names
-the class of the skill's current `SkillStateController` state
-(`SkillIdleState`, `SkillPrepareState`, `SkillAttackState`, `SkillCoolingState`,
-…), `skill_attack_phase` says which `SkillAttackController` phase is current —
+`target_refs` records, per unit and tick, the mech's lock and the main skill's
+`lockTarget` and `attackTarget`. Beside them, `skill_state` names the class of
+the skill's current `SkillStateController` state (`SkillIdleState`,
+`SkillPrepareState`, `SkillAttackState`, `SkillCoolingState`, …),
+`skill_attack_phase` says which `SkillAttackController` phase is current —
 `before`, `attacking`, `after`, or null between blows — and `skill_is_idle`
 reads `FightSkillBase.IsIdle`. All three are plain field reads at the snapshot
 boundary; they are null for a skill that is not a `FightSkill`.
 
-The `skill_attackable_checker_v1` profile records every call of
+`skill_attackable_checker` records every call of
 `SkillAttackableChecker.Check(bool isAttackingCheck)` made during the update a
 row closes, in call order: the skill's owner, `is_attacking_check`, the skill's
 lock, attack target, state and attack phase read just `before` the call and
-just `after` it, and what it returned. The method is hooked the way the RVO and
-selector methods are — its first four arm64 instructions, `sub sp` and three
+just `after` it, and what it returned. The method is hooked the way the
+selector method is — its first four arm64 instructions, `sub sp` and three
 `stp`, are stack-only and move to a trampoline unchanged — and is forwarded
 with its arguments and result untouched; the reads on either side are field
-reads, with no managed call. A recording made with it is byte-identical to one
-made without it.
+reads, with no managed call.
+
+`selector_score` records every `ScoreRatingTargetSelector.CalculateScore` call
+of the update: its raw arguments and the score it returned.
 
 The Adapter requires `main_menu`, and the fight never leaves it: the replay is
 fought the way the game's own `SimpleSimulator` fights one, in a
@@ -813,7 +795,6 @@ cause is addressed.
 | `battle_publication_failed` | destination creation, source identity recheck, syncing or no-clobber publication failed |
 | `mcfr_error` | the recording could not be written, or did not read back as written |
 | `video_error`, `video_verification_failed` | the optional video output could not be written or did not verify |
-| `instrumentation_error`, `instrumentation_verification_failed` | the optional sidecar could not be written or did not verify |
 | `native_replay_directory` | the native replay directory could not be resolved |
 
 **The teardown failed.** `replay_cleanup_failed` and `watch_cleanup_failed`

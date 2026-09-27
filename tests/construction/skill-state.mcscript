@@ -5,7 +5,7 @@
 #
 # A recording says what a unit's weapons fire at, not which state its skill is
 # in when it decides. This records the wall fights again with the
-# `target_refs_v1` instrumentation profile, whose sidecar holds, per unit and
+# `target_refs` instrument channel, which holds, per unit and
 # tick, the main skill's `SkillStateController` state (`SkillIdleState`,
 # `SkillPrepareState`, `SkillAttackState`, `SkillCoolingState`), its
 # `SkillAttackController` phase (`before`, `attacking`, `after`, or none
@@ -23,7 +23,7 @@
 #                 with no replacement in reach cools like a fallen block
 #
 # The recordings are the same fights the regressions pin, and are compared with
-# the simulator afterwards. The sidecar is research evidence and is not hashed.
+# the simulator afterwards. The channel is research evidence, outside both hashes.
 #
 # `out` must not already exist: a recording refuses to overwrite.
 
@@ -55,9 +55,7 @@ steps:
           layout: $layout
           seed: $seed
           output: ${out}/${fight.name}.mcfr
-          instrumentation:
-            output: ${out}/${fight.name}.h5
-            profile: target_refs_v1
+          instrument: [target_refs]
       - fight.run:
           layout: ${fight.layout}
           seed: $seed

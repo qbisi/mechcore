@@ -37,6 +37,7 @@ use crate::{
     TerrainEffectClock, TerrainGridState, TerrainLogicLifetime, TerrainRemovedReason, TerrainState,
     TerrainType, TransitionEvents, UnitDynamicModifierSet, ValueModifier, Visibility,
     WeaponAimState, WorldSnapshot, canonical,
+    instrument::{self, ChannelSchema, InstrumentRow},
 };
 
 pub(crate) const MEMBER_NAMES: [&str; 8] = [
@@ -49,6 +50,9 @@ pub(crate) const MEMBER_NAMES: [&str; 8] = [
     "terrains.parquet",
     "events.jsonl",
 ];
+
+/// Where a recording's instrument channels sit inside the container.
+const INSTRUMENT_DIRECTORY: &str = "instrument";
 
 const TICKS_PER_ROW_GROUP: u64 = 128;
 const ROWS_PER_TICK_GROUP: usize = 128;
@@ -94,8 +98,15 @@ pub(crate) struct StorageWriter {
     shield_rows: Vec<(u32, ShieldState)>,
     terrain_rows: Vec<(u32, TerrainState)>,
     event_rows: Vec<(u32, u32, Event)>,
+    channels: BTreeMap<&'static str, ChannelWriter>,
     physics_tick_hashes: Vec<[u8; canonical::HASH_BYTES]>,
     content_tick_hashes: Vec<[u8; canonical::HASH_BYTES]>,
+}
+
+/// One instrument channel's member, open while the fight is recorded.
+struct ChannelWriter {
+    schema: ChannelSchema,
+    writer: Option<ArrowWriter<File>>,
 }
 
 impl StorageWriter {
@@ -141,9 +152,52 @@ impl StorageWriter {
             shield_rows: Vec::new(),
             terrain_rows: Vec::new(),
             event_rows: Vec::new(),
+            channels: BTreeMap::new(),
             physics_tick_hashes: Vec::new(),
             content_tick_hashes: Vec::new(),
         })
+    }
+
+    /// Appends one tick's rows of a channel, opening its member on first use.
+    ///
+    /// A channel opened with no rows is still published, empty: a study that
+    /// asked for it and saw nothing is told so, not left to guess.
+    pub(crate) fn append_instrument<R: InstrumentRow>(
+        &mut self,
+        tick: u32,
+        rows: &[R],
+    ) -> Result<()> {
+        if !self.channels.contains_key(R::CHANNEL) {
+            let schema = ChannelSchema::of::<R>()?;
+            let directory = self.directory.path().join(INSTRUMENT_DIRECTORY);
+            std::fs::create_dir_all(&directory)?;
+            let writer = create_member(
+                directory.join(format!("{}.parquet", R::CHANNEL)),
+                Arc::clone(&schema.schema),
+                Track::Instrument,
+            )?;
+            self.channels.insert(
+                R::CHANNEL,
+                ChannelWriter {
+                    schema,
+                    writer: Some(writer),
+                },
+            );
+        }
+        if rows.is_empty() {
+            return Ok(());
+        }
+        let channel = self
+            .channels
+            .get_mut(R::CHANNEL)
+            .ok_or_else(|| Error::invalid("instrument channel was not opened"))?;
+        let batch = channel.schema.batch(tick, rows)?;
+        channel
+            .writer
+            .as_mut()
+            .ok_or_else(|| Error::invalid("instrument channel writer is closed"))?
+            .write(&batch)?;
+        Ok(())
     }
 
     fn append_state(&mut self, tick: u32, state: &WorldSnapshot) {
@@ -192,6 +246,13 @@ impl StorageWriter {
         write_buffer(&mut self.buildings, building_batch(&self.building_rows)?)?;
         write_buffer(&mut self.shields, shield_batch(&self.shield_rows)?)?;
         write_buffer(&mut self.terrains, terrain_batch(&self.terrain_rows)?)?;
+        for channel in self.channels.values_mut() {
+            channel
+                .writer
+                .as_mut()
+                .ok_or_else(|| Error::invalid("instrument channel writer is closed"))?
+                .flush()?;
+        }
         self.unit_rows.clear();
         self.projectile_rows.clear();
         self.building_rows.clear();
@@ -213,6 +274,9 @@ impl StorageWriter {
         close_writer(&mut self.buildings)?;
         close_writer(&mut self.shields)?;
         close_writer(&mut self.terrains)?;
+        for channel in self.channels.values_mut() {
+            close_writer(&mut channel.writer)?;
+        }
         write_events_jsonl(
             &self.directory.path().join("events.jsonl"),
             &self.event_rows,
@@ -304,6 +368,7 @@ enum Track {
     Buildings,
     Shields,
     Terrains,
+    Instrument,
 }
 
 fn create_member(path: PathBuf, schema: SchemaRef, track: Track) -> Result<ArrowWriter<File>> {
@@ -331,7 +396,7 @@ fn writer_properties(track: Track) -> Result<WriterProperties> {
 
 fn dictionary_paths(track: Track) -> &'static [&'static str] {
     match track {
-        Track::Ticks => &[],
+        Track::Ticks | Track::Instrument => &[],
         Track::Units => &[
             "team_id",
             "original_team_id",
@@ -372,7 +437,8 @@ fn delta_paths(track: Track) -> &'static [&'static str] {
         | Track::Projectiles
         | Track::Buildings
         | Track::Shields
-        | Track::Terrains => &["tick"],
+        | Track::Terrains
+        | Track::Instrument => &["tick"],
     }
 }
 
@@ -2096,13 +2162,42 @@ pub(crate) fn package_members(directory: &Path, output: &Path) -> Result<()> {
         .compression_method(CompressionMethod::Stored)
         .large_file(true)
         .last_modified_time(zip::DateTime::default());
-    for name in MEMBER_NAMES {
-        archive.start_file(name, options)?;
-        let mut member = File::open(directory.join(name))?;
+    let mut names = MEMBER_NAMES.map(str::to_owned).to_vec();
+    names.extend(instrument_member_names(directory)?);
+    for name in names {
+        archive.start_file(name.as_str(), options)?;
+        let mut member = File::open(directory.join(&name))?;
         io::copy(&mut member, &mut archive)?;
     }
     archive.finish()?.sync_all()?;
     Ok(())
+}
+
+/// The channel members a finished recording directory holds, in name order.
+fn instrument_member_names(directory: &Path) -> Result<Vec<String>> {
+    let channels = directory.join(INSTRUMENT_DIRECTORY);
+    if !channels.exists() {
+        return Ok(Vec::new());
+    }
+    let mut names = Vec::new();
+    for entry in std::fs::read_dir(channels)? {
+        let name = entry?.file_name();
+        let name = name
+            .to_str()
+            .ok_or_else(|| Error::invalid("instrument member name is not UTF-8"))?;
+        names.push(format!("{INSTRUMENT_DIRECTORY}/{name}"));
+    }
+    names.sort();
+    Ok(names)
+}
+
+/// The channel an `instrument/<channel>.parquet` member holds.
+fn instrument_channel(member: &str) -> Option<&str> {
+    member
+        .strip_prefix(INSTRUMENT_DIRECTORY)?
+        .strip_prefix('/')?
+        .strip_suffix(".parquet")
+        .filter(|channel| instrument::valid_channel_name(channel))
 }
 
 pub(crate) struct StoredMetadata {
@@ -2133,6 +2228,7 @@ pub(crate) struct StorageReader {
     shields: Vec<Vec<ShieldState>>,
     terrains: Vec<Vec<TerrainState>>,
     events: Vec<Vec<Event>>,
+    instrument: BTreeMap<String, MemberSlice>,
 }
 
 impl StorageReader {
@@ -2192,6 +2288,12 @@ impl StorageReader {
             read_events_jsonl(&member(&members, "events.jsonl")?)?,
             tick_count,
         )?;
+        let instrument = members
+            .iter()
+            .filter_map(|(name, slice)| {
+                instrument_channel(name).map(|channel| (channel.to_owned(), slice.clone()))
+            })
+            .collect();
         Ok(Self {
             metadata,
             layout_yaml,
@@ -2204,7 +2306,34 @@ impl StorageReader {
             shields,
             terrains,
             events,
+            instrument,
         })
+    }
+
+    /// The instrument channels the recording holds, in name order.
+    pub(crate) fn instrument_channels(&self) -> impl Iterator<Item = &str> {
+        self.instrument.keys().map(String::as_str)
+    }
+
+    /// Every row of one channel with its tick, or `None` if it was not recorded.
+    pub(crate) fn instrument<R: InstrumentRow>(&self) -> Result<Option<Vec<(u32, R)>>> {
+        let Some(slice) = self.instrument.get(R::CHANNEL) else {
+            return Ok(None);
+        };
+        let tick_count = self.metadata.tick_count;
+        let mut rows = Vec::new();
+        for batch in ParquetRecordBatchReaderBuilder::try_new(slice.clone())?.build()? {
+            for (tick, row) in instrument::batch_rows::<R>(&batch?)? {
+                if tick == 0 || tick > tick_count {
+                    return Err(Error::invalid(format!(
+                        "channel {} has a row at tick {tick}, outside 1..={tick_count}",
+                        R::CHANNEL
+                    )));
+                }
+                rows.push((tick, row));
+            }
+        }
+        Ok(Some(rows))
     }
 
     pub(crate) const fn metadata(&self) -> &StoredMetadata {
@@ -3097,12 +3226,6 @@ fn checked_builder(
 fn open_members(path: &Path) -> Result<BTreeMap<String, MemberSlice>> {
     let archive_file = File::open(path)?;
     let mut archive = ZipArchive::new(archive_file)?;
-    if archive.len() != MEMBER_NAMES.len() {
-        return Err(Error::invalid(format!(
-            "MCFR must contain exactly {} members",
-            MEMBER_NAMES.len()
-        )));
-    }
     let expected = MEMBER_NAMES
         .into_iter()
         .map(str::to_owned)
@@ -3112,7 +3235,8 @@ fn open_members(path: &Path) -> Result<BTreeMap<String, MemberSlice>> {
     for index in 0..archive.len() {
         let mut entry = archive.by_index(index)?;
         let name = entry.name().to_owned();
-        if !expected.contains(&name) || !seen.insert(name.clone()) {
+        let known = expected.contains(&name) || instrument_channel(&name).is_some();
+        if !known || !seen.insert(name.clone()) {
             return Err(Error::invalid(format!(
                 "unexpected or duplicate MCFR member {name:?}"
             )));
@@ -3130,7 +3254,7 @@ fn open_members(path: &Path) -> Result<BTreeMap<String, MemberSlice>> {
         io::copy(&mut entry, &mut io::sink())?;
         ranges.insert(name, (data_start, size));
     }
-    if seen != expected {
+    if !expected.is_subset(&seen) {
         return Err(Error::invalid("MCFR member set is incomplete"));
     }
 

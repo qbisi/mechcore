@@ -6,8 +6,8 @@ use std::{
 use tempfile::TempPath;
 
 use crate::{
-    DurableContext, Error, Hashes, McfrReader, Result, TickHashes, TransitionEvents, WorldSnapshot,
-    canonical,
+    DurableContext, Error, Hashes, InstrumentRow, McfrReader, Result, TickHashes, TransitionEvents,
+    WorldSnapshot, canonical,
     model::IdentityAllocator,
     parquet_storage::{self, StorageWriter},
 };
@@ -156,6 +156,32 @@ impl McfrWriter {
             physics_tick_hash: canonical::hex(&physics_hash),
             content_tick_hash: canonical::hex(&content_hash),
         })
+    }
+
+    /// Adds rows of an instrument channel to the tick last appended.
+    ///
+    /// A channel is published once it has been appended to, rows or not, and
+    /// neither hash reads it. A hash-only writer keeps nothing.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error before the first tick, for a channel whose rows cannot be
+    /// stored, or if the backing storage cannot append them.
+    pub fn append_instrument<R: InstrumentRow>(&mut self, rows: &[R]) -> Result<()> {
+        let tick = u32::try_from(self.physics_tick_hashes.len())
+            .map_err(|_| Error::invalid("tick count overflow"))?;
+        if tick == 0 {
+            return Err(Error::invalid(
+                "an instrument row belongs to a tick, and none has been appended",
+            ));
+        }
+        let Some(storage) = &mut self.storage else {
+            return Ok(());
+        };
+        self.poisoned = true;
+        storage.append_instrument(tick, rows)?;
+        self.poisoned = false;
+        Ok(())
     }
 
     /// Finalizes the timeline hash and atomically publishes the container.

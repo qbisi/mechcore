@@ -7,16 +7,16 @@
 
 mod canonical;
 mod error;
-mod instrumentation;
+mod instrument;
 mod model;
 mod parquet_storage;
 mod reader;
 mod writer;
 
 pub use error::{Error, Result};
-pub use instrumentation::{
-    InstrumentationEntry, InstrumentationReader, InstrumentationRecord, InstrumentationSink,
-    InstrumentationWriter, NoInstrumentation,
+pub use instrument::{
+    CheckedSkill, INSTRUMENT_TICK_COLUMN, InstrumentRow, SelectorScore, SkillAttackableCheck,
+    TargetRefs, valid_channel_name,
 };
 pub use model::*;
 pub use reader::McfrReader;

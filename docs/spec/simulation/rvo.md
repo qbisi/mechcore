@@ -148,7 +148,7 @@ nothing itself, while a unit's query can still be matched by a high-priority
 building layer. A candidate marked `passable_by_own_group` is still selected by
 a query of its own group, and takes one of the twenty places; it is dropped
 only when velocity obstacles are built, which is how a wall lets its own side
-through. The native sidecar shows it: a Crawler crossing its own wall lists
+through. A native RVO capture showed it: a Crawler crossing its own wall lists
 three of the wall's blocks among twenty neighbours and builds seventeen
 obstacles.
 
@@ -330,9 +330,9 @@ Not covered:
 A claim about any of those is unverified, however natural an extension of a
 covered one it looks.
 
-The local native RVO sidecar exists for research and for locating a divergence.
-Its fields and scope are [adapter.md](../adapter/adapter.md)'s. It does not
-substitute for a full MCFR battle hash and it is not a layout field.
+Instrument channels exist for research and for locating a divergence
+([mcfr.md](../mcfr/mcfr.md#instrument-channels)). None substitutes for a full
+MCFR battle hash, and none is a layout field.
 
 ## Unresolved
 

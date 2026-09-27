@@ -126,15 +126,17 @@ pub(crate) async fn operate(
             let video = arguments.value("--video")?.map(PathBuf::from);
             let force = force(&mut arguments)?;
             let speed_up = arguments.flag("--no-speed-up")?.then_some(false);
+            let instrument = instrument(&mut arguments)?;
             let output = arguments.path("a recording to write")?;
             arguments.finish()?;
             session
-                .record_battle(output, video, speed_up, force, None)
+                .record_battle(output, video, speed_up, force, instrument)
                 .await
                 .map_err(|value| Failure::refused(crate::shell::render(&value)))
         }
         "record_replay_round" => {
             let force = force(&mut arguments)?;
+            let instrument = instrument(&mut arguments)?;
             let grbr = arguments.path("a replay to read")?;
             let round = arguments
                 .operand("the round to record")?
@@ -143,19 +145,20 @@ pub(crate) async fn operate(
             let output = arguments.path("a recording to write")?;
             arguments.finish()?;
             session
-                .record_replay_round(grbr, round, output, force, None)
+                .record_replay_round(grbr, round, output, force, instrument)
                 .await
                 .map_err(refusal)
         }
         "record_layout" => {
             let force = force(&mut arguments)?;
             let seed = seed(&mut arguments)?;
+            let instrument = instrument(&mut arguments)?;
             let path = arguments.path("a layout to fight")?;
             let output = arguments.path("a recording to write")?;
             arguments.finish()?;
             let layout = read_layout(&path)?;
             session
-                .record_layout(layout, seed, output, force, None)
+                .record_layout(layout, seed, output, force, instrument)
                 .await
                 .map_err(refusal)
         }
@@ -199,6 +202,29 @@ pub(crate) async fn operate(
 /// A seed is an operand of its own, so `--seed` names it rather than position.
 fn seed(arguments: &mut Args) -> Result<Option<i32>, Failure> {
     arguments.parsed::<i32>("--seed", "a signed 32-bit integer")
+}
+
+/// `--instrument a,b`: the instrument channels a recording carries.
+fn instrument(arguments: &mut Args) -> Result<Vec<mechcore_protocol::InstrumentChannel>, Failure> {
+    let Some(list) = arguments.value("--instrument")? else {
+        return Ok(Vec::new());
+    };
+    let mut channels = list
+        .split(',')
+        .map(|name| {
+            serde_json::from_value(Value::String(name.trim().to_owned())).map_err(|_| {
+                Failure::usage(format!(
+                    "{name:?} is not an instrument channel; the channels are {}",
+                    mechcore_protocol::InstrumentChannel::ALL
+                        .map(mechcore_protocol::InstrumentChannel::as_str)
+                        .join(", ")
+                ))
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    channels.sort_unstable();
+    channels.dedup();
+    Ok(channels)
 }
 
 fn force(arguments: &mut Args) -> Result<bool, Failure> {

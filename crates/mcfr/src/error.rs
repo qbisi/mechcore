@@ -3,7 +3,7 @@ use std::{fmt, io};
 #[derive(Debug)]
 pub enum Error {
     Io(io::Error),
-    Hdf5(rust_hdf5::Hdf5Error),
+    SerdeArrow(serde_arrow::Error),
     Json(serde_json::Error),
     Arrow(arrow_schema::ArrowError),
     Parquet(parquet::errors::ParquetError),
@@ -21,7 +21,7 @@ impl fmt::Display for Error {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Io(error) => write!(formatter, "I/O error: {error}"),
-            Self::Hdf5(error) => write!(formatter, "HDF5 error: {error}"),
+            Self::SerdeArrow(error) => write!(formatter, "instrument channel error: {error}"),
             Self::Json(error) => write!(formatter, "JSON error: {error}"),
             Self::Arrow(error) => write!(formatter, "Arrow error: {error}"),
             Self::Parquet(error) => write!(formatter, "Parquet error: {error}"),
@@ -39,9 +39,9 @@ impl From<io::Error> for Error {
     }
 }
 
-impl From<rust_hdf5::Hdf5Error> for Error {
-    fn from(error: rust_hdf5::Hdf5Error) -> Self {
-        Self::Hdf5(error)
+impl From<serde_arrow::Error> for Error {
+    fn from(error: serde_arrow::Error) -> Self {
+        Self::SerdeArrow(error)
     }
 }
 

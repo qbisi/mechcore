@@ -130,7 +130,7 @@ Simulator 用 `rvo_first_tree_pending` 显式复现这一点：
 1. 排除自身 key；
 2. 排除不同 `main_layer`；
 3. 排除未被查询方 collision mask 接受的 layer（标了 `passable_by_own_group` 的工事
-   对同组查询方照样入选、占 20 个名额之一，只在生成速度障碍时才被跳过——原生 sidecar
+   对同组查询方照样入选、占 20 个名额之一，只在生成速度障碍时才被跳过——一次原生 RVO 采集
    里一只穿过自己墙的爬虫，20 个邻居里有 3 块墙，速度障碍只有 17 个）；
 4. 要求当前坐标距离平方严格小于查询范围平方；
 5. 按距离升序插入并截断到 20 个。
@@ -246,5 +246,5 @@ cargo test -p mechcore-simulation rvo
 cargo test -p mechcore-simulation --test battle native_regression_smoke_hashes_match
 ```
 
-局部 native RVO sidecar 只用于研究和定位，字段与范围见 [Adapter 文档](../adapter/adapter.md)；它不
+instrument 通道只用于研究和定位，见 [MCFR 文档](../mcfr/mcfr.md#instrument-channels)；它们都不
 替代正式 MCFR 的完整战斗 hash，也不构成 Layout 新字段。

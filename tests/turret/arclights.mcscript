@@ -26,9 +26,7 @@ steps:
       layout: $layout
       seed: $seed
       output: ${out}/anti-armor-arclights.mcfr
-      instrumentation:
-        output: ${out}/anti-armor-arclights.h5
-        profile: target_refs_v1
+      instrument: [target_refs]
   - game.record_layout:
       layout: $layout
       seed: $seed

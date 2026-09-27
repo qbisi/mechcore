@@ -12,7 +12,7 @@ fires, at what, and how often. That is the half of a construction
 | `anti-armor-head-on.yaml` | whether the other turret is the same machine with other numbers, and how a unit holds a turret that falls in its swing | as head-on, on the Anti-Armor Turret |
 | `anti-armor-arclights.yaml` | the same, through a reload, in a fight no tower falls in | four Arclights down the Anti-Armor Turret's column, two shots each |
 
-`skill.mcscript` records them with the `target_refs_v1` sidecar and records
+`skill.mcscript` records them with the `target_refs` channel and records
 the head-on fight twice, requiring the two to be one recording.
 `arclights.mcscript` records the Arclight fight twice, requiring the two to be
 one recording. `regressions.mcscript` needs no game: it runs all four fights
