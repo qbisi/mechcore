@@ -1774,6 +1774,9 @@ fn append_instrument(
             InstrumentChannel::TargetRefs => rows.target_refs.is_some(),
             InstrumentChannel::SkillAttackableChecker => rows.skill_attackable_checker.is_some(),
             InstrumentChannel::SelectorScore => rows.selector_score.is_some(),
+            InstrumentChannel::RvoSolve => rows.rvo_solve.is_some(),
+            InstrumentChannel::RvoNeighbour => rows.rvo_neighbour.is_some(),
+            InstrumentChannel::RvoVo => rows.rvo_vo.is_some(),
         };
         if present != asked.contains(&channel) {
             return Err((
@@ -1798,6 +1801,15 @@ fn append_instrument(
         writer.append_instrument(rows.as_slice()).map_err(mcfr)?;
     }
     if let Some(rows) = rows.selector_score {
+        writer.append_instrument(rows.as_slice()).map_err(mcfr)?;
+    }
+    if let Some(rows) = rows.rvo_solve {
+        writer.append_instrument(rows.as_slice()).map_err(mcfr)?;
+    }
+    if let Some(rows) = rows.rvo_neighbour {
+        writer.append_instrument(rows.as_slice()).map_err(mcfr)?;
+    }
+    if let Some(rows) = rows.rvo_vo {
         writer.append_instrument(rows.as_slice()).map_err(mcfr)?;
     }
     Ok(())

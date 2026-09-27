@@ -17,7 +17,7 @@ layout, and whether every instrument channel's hooks still install.
 | readback | round two with constructions, contraptions and energy tower skills |
 | ambush | travelling units in the ambush zones |
 | replay-round | a round-seven board taken from a replay, 48 units |
-| instrumented | one fight with every channel: `target_refs`, `skill_attackable_checker`, `selector_score` |
+| instrumented | one fight with every channel: `target_refs`, `skill_attackable_checker`, `selector_score`, `rvo_solve`, `rvo_neighbour`, `rvo_vo` |
 
 It pins no hash. What a fight does belongs to the topic that asks it; a
 layout here that some topic also records is recorded again, not compared.

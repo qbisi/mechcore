@@ -171,3 +171,142 @@ pub struct SelectorScore {
 impl InstrumentRow for SelectorScore {
     const CHANNEL: &'static str = "selector_score";
 }
+
+/// A horizontal vector in RVO space, raw Q32.32 on each axis.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RvoVec {
+    pub x: i64,
+    pub y: i64,
+}
+
+/// How an RVO solve ended.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RvoExit {
+    /// `locked`: speed 0, target the agent's own position; no neighbour is read.
+    Locked,
+    /// `manuallyControlled`: the solve returns before writing anything.
+    Manual,
+    /// The desired velocity lies outside every VO and is kept, biased.
+    Free,
+    /// The desired velocity lies inside a VO, and two gradient traces avoid it.
+    Avoided,
+}
+
+/// One `RVOAgentFixed.CalculateVelocity`: what the agent brought to the solve
+/// and what it left with. Its neighbours are `rvo_neighbour` rows.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RvoSolve {
+    pub agent: ObjectRef,
+    pub exit: RvoExit,
+    pub position: RvoVec,
+    pub elevation_raw: i64,
+    pub height_raw: i64,
+    pub current_velocity: RvoVec,
+    /// `sync_desiredVelocity`, which the bias and both traces read.
+    pub desired_velocity: RvoVec,
+    /// `desiredTargetPointInVelocitySpace`.
+    pub desired_target: RvoVec,
+    pub desired_speed_raw: i64,
+    pub max_speed_raw: i64,
+    pub radius_outer_raw: i64,
+    pub radius_inner_raw: i64,
+    pub size: i32,
+    pub priority_raw: i64,
+    pub layer: i32,
+    pub collides_with: i32,
+    pub group: i32,
+    pub ignore_same_group: bool,
+    pub team_id: i32,
+    pub team_radius_raw: i64,
+    pub max_neighbours: i32,
+    pub neighbour_count: u32,
+    /// The desired velocity and target after `BiasDesiredVelocity`; absent
+    /// for a locked or manual exit.
+    pub biased_velocity: Option<RvoVec>,
+    pub biased_target: Option<RvoVec>,
+    /// The two `Trace`s of an avoided solve, each its best point and score.
+    /// The first starts from the current velocity, the second from the biased
+    /// desired one; the solve keeps the first only when it scores lower.
+    pub first_trace_point: Option<RvoVec>,
+    pub first_trace_score_raw: Option<i64>,
+    pub second_trace_point: Option<RvoVec>,
+    pub second_trace_score_raw: Option<i64>,
+    /// `calculatedTargetPoint` and `calculatedSpeed` after the solve; absent
+    /// for a manual exit, which writes neither.
+    pub output_target: Option<RvoVec>,
+    pub output_speed_raw: Option<i64>,
+}
+
+impl InstrumentRow for RvoSolve {
+    const CHANNEL: &'static str = "rvo_solve";
+}
+
+/// What `GenerateNeighbourAgentVOs` made of one neighbour.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RvoNeighbourKind {
+    /// Another RVO group: `GenerateOpponentVOs`.
+    Opponent,
+    /// The same group, both in one positive RVO team: the team radii summed.
+    TeamRadius,
+    /// The same group otherwise: inner or outer radii summed by size.
+    SameGroup,
+    /// The same group, and the neighbour lets it pass: no VO.
+    IgnoredSameGroup,
+    /// The vertical ranges do not overlap: no VO.
+    OtherElevation,
+}
+
+/// One entry of an agent's neighbour list at a solve, at most
+/// `max_neighbours` of them per solve.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RvoNeighbour {
+    pub agent: ObjectRef,
+    /// Position in the neighbour list, nearest first.
+    pub slot: u32,
+    /// Null for an agent the recording does not hold: a map `FightCrystal`
+    /// in neither side's building lists.
+    pub neighbour: Option<ObjectRef>,
+    pub distance_sq_raw: i64,
+    pub kind: RvoNeighbourKind,
+    /// The VO's index in the agent's buffer, for a kind that makes one.
+    pub vo: Option<u32>,
+    pub radius_raw: Option<i64>,
+    pub colliding: Option<bool>,
+    /// `VO.Gradient`'s weight at the desired velocity before the bias: how
+    /// far it lies inside this VO. The largest positive one sets the bias.
+    pub penetration_raw: Option<i64>,
+    /// `VO.ScaledGradient`'s weight at the solve's output velocity, for an
+    /// avoided solve. The largest is the VO that bound the solution.
+    pub weight_raw: Option<i64>,
+}
+
+impl InstrumentRow for RvoNeighbour {
+    const CHANNEL: &'static str = "rvo_neighbour";
+}
+
+/// One VO of an agent's buffer at a solve, field by field.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RvoVo {
+    pub agent: ObjectRef,
+    pub vo: u32,
+    pub line1: RvoVec,
+    pub line2: RvoVec,
+    pub dir1: RvoVec,
+    pub dir2: RvoVec,
+    pub cutoff_line: RvoVec,
+    pub cutoff_dir: RvoVec,
+    pub circle_center: RvoVec,
+    pub colliding: bool,
+    pub radius_raw: i64,
+    pub weight_factor_raw: i64,
+    pub weight_bonus_raw: i64,
+    pub segment_start: RvoVec,
+    pub segment_end: RvoVec,
+    pub segment: bool,
+}
+
+impl InstrumentRow for RvoVo {
+    const CHANNEL: &'static str = "rvo_vo";
+}

@@ -364,13 +364,22 @@ pub enum InstrumentChannel {
     SkillAttackableChecker,
     /// Every `ScoreRatingTargetSelector.CalculateScore` call.
     SelectorScore,
+    /// One row per RVO solve: the agent's inputs, bias, traces and output.
+    RvoSolve,
+    /// Each solve's neighbour list, at most `maxNeighbours` rows per solve.
+    RvoNeighbour,
+    /// Each solve's VOs, field by field.
+    RvoVo,
 }
 
 impl InstrumentChannel {
-    pub const ALL: [Self; 3] = [
+    pub const ALL: [Self; 6] = [
         Self::TargetRefs,
         Self::SkillAttackableChecker,
         Self::SelectorScore,
+        Self::RvoSolve,
+        Self::RvoNeighbour,
+        Self::RvoVo,
     ];
 
     /// The channel's name, which is also its member's file stem in the MCFR.
@@ -380,6 +389,9 @@ impl InstrumentChannel {
             Self::TargetRefs => "target_refs",
             Self::SkillAttackableChecker => "skill_attackable_checker",
             Self::SelectorScore => "selector_score",
+            Self::RvoSolve => "rvo_solve",
+            Self::RvoNeighbour => "rvo_neighbour",
+            Self::RvoVo => "rvo_vo",
         }
     }
 }
