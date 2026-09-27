@@ -567,8 +567,9 @@ agents, not with its square.
   the VO it made, the VO's `Gradient` weight at the unbiased desired velocity
   (how far inside it that velocity lay) and, for an avoided solve, its
   `ScaledGradient` weight at the output velocity; the largest of those is the VO
-  that bound the solution. A neighbour the recording does not hold, such as a
-  neutral crystal of the map, has a null identity.
+  that bound the solution. A neighbour the recording does not hold, a map
+  `FightCrystal` in neither side's building lists (map 1032 has them, map 1021
+  none), has a null identity.
 - `rvo_vo`, one row per VO of the solve's buffer, every field of `Agent.VO`. It
   is the one to leave off: it is about six times the other two together,
   in a fight of a few dozen units and in a round of a few hundred alike.

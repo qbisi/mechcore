@@ -793,8 +793,9 @@ pub(crate) fn drain(api: Api, capture: &mut CaptureState) -> Result<RvoRows, Str
     for solve in solves {
         match capture.rvo_agent_owners.get(&solve.agent) {
             Some(agent) => named.push((*agent, solve)),
-            // An agent the MCFR does not record, such as a neutral crystal
-            // of the map, holds its place: its solve is left out.
+            // An agent the MCFR does not record, a map `FightCrystal` in
+            // neither side's building lists, holds its place: its solve is
+            // left out.
             None if solve.exit == RvoExit::Locked => {}
             None => {
                 return Err(format!(

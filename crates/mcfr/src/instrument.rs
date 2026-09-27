@@ -265,8 +265,8 @@ pub struct RvoNeighbour {
     pub agent: ObjectRef,
     /// Position in the neighbour list, nearest first.
     pub slot: u32,
-    /// Null for an agent the recording does not hold, such as a neutral
-    /// crystal of the map.
+    /// Null for an agent the recording does not hold: a map `FightCrystal`
+    /// in neither side's building lists.
     pub neighbour: Option<ObjectRef>,
     pub distance_sq_raw: i64,
     pub kind: RvoNeighbourKind,
