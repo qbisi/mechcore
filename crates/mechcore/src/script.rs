@@ -35,6 +35,9 @@ const NATIVE: &[&str] = &[
     "game.toggle_fight",
     "game.speed_up",
     "game.quit_match",
+    "game.watch_scenes",
+    "game.watch_scene",
+    "game.save_replay",
     "game.quit_game",
 ];
 
@@ -901,6 +904,42 @@ async fn perform(
         "game.toggle_fight" => session.toggle_fight().await,
         "game.speed_up" => session.speed_up().await,
         "game.quit_match" => session.quit_match().await,
+        "game.watch_scenes" => {
+            let fields = arguments.as_object().cloned().unwrap_or_default();
+            if let Some(key) = fields.keys().find(|key| key.as_str() != "refresh") {
+                return Err(format!("watch_scenes accepts only refresh, got {key}"));
+            }
+            let refresh = match fields.get("refresh") {
+                None => true,
+                Some(value) => value
+                    .as_bool()
+                    .ok_or("watch_scenes refresh must be a boolean")?,
+            };
+            session.watch_scenes(refresh).await
+        }
+        "game.watch_scene" => {
+            let fields = arguments.as_object().ok_or("watch_scene takes a mapping")?;
+            if let Some(key) = fields.keys().find(|key| key.as_str() != "scene_id") {
+                return Err(format!("watch_scene accepts only scene_id, got {key}"));
+            }
+            let scene_id = fields
+                .get("scene_id")
+                .and_then(Value::as_i64)
+                .and_then(|id| i32::try_from(id).ok())
+                .ok_or("watch_scene scene_id must be an i32")?;
+            session.watch_scene(scene_id).await
+        }
+        "game.save_replay" => {
+            let fields = arguments.as_object().cloned().unwrap_or_default();
+            if let Some(key) = fields.keys().find(|key| key.as_str() != "output") {
+                return Err(format!("save_replay accepts only output, got {key}"));
+            }
+            let output = fields
+                .get("output")
+                .map(|value| scope.path(value, "save_replay output"))
+                .transpose()?;
+            session.save_replay(output).await
+        }
         "game.quit_game" => session.quit_game().await,
         other => Err(format!("unknown operation {other}")),
     }

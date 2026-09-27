@@ -13,6 +13,7 @@ mod rvo;
 mod selector;
 mod statistics;
 mod video;
+mod watch;
 
 use mechcore_document as layout;
 

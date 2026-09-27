@@ -134,6 +134,7 @@ pub(crate) enum InternalOperation {
     RefreshWatchScenes,
     StartEligibleWatch,
     SaveCurrentReplay,
+    SaveWatchReplay,
     StartCapture {
         mode: crate::capture::CaptureStartMode,
         visual: bool,
@@ -160,6 +161,7 @@ pub(crate) fn execute_internal(
         InternalOperation::RefreshWatchScenes => refresh_watch_scenes(runtime),
         InternalOperation::StartEligibleWatch => start_eligible_watch(runtime),
         InternalOperation::SaveCurrentReplay => save_current_replay(runtime),
+        InternalOperation::SaveWatchReplay => save_replay(runtime),
         InternalOperation::StartCapture {
             mode,
             visual,
@@ -266,6 +268,11 @@ fn execute_inner(runtime: &mut Runtime, request: &Request) -> Result<Value, Oper
         Operation::SpeedUp => speed_up(runtime),
         Operation::QuitMatch => quit_match(runtime),
         Operation::QuitGame => quit_game(runtime),
+        Operation::WatchScenes => watch_scenes(runtime, &request.arguments),
+        Operation::WatchScene => watch_scene(runtime, &request.arguments),
+        Operation::SaveReplay => Err(OperationError::InvalidState(
+            "save_replay requires the runtime watch coordinator".into(),
+        )),
         Operation::ApplyLayout => Err(OperationError::InvalidState(
             "apply_layout requires the runtime round-series coordinator".into(),
         )),
@@ -337,6 +344,21 @@ fn match_status(runtime: &Runtime, current_match: *mut Object, status: GameStatu
             .invoke_value::<bool>(current_match, "get_IsFinished", &mut [])
             .ok()
             .map_or(Value::Null, Value::Bool);
+        // What the server said the match was doing when this spectator joined.
+        let server = find_proxy(runtime, "ServerProxy", "GameRiver.Client.ServerProxy")
+            .ok()
+            .flatten();
+        result["live"] = crate::watch::live(api, server);
+        // `BattleInfo.WatchDelay`, seconds the spectator runs behind.
+        result["watch_delay"] = api
+            .invoke(current_match, "GetBattleInfo", &mut [])
+            .ok()
+            .filter(|info| !info.is_null())
+            .and_then(|info| {
+                api.invoke_value::<i32>(info, "get_WatchDelay", &mut [])
+                    .ok()
+            })
+            .map_or(Value::Null, Value::from);
     }
     result
 }
@@ -417,6 +439,7 @@ fn start_eligible_watch(runtime: &Runtime) -> Result<Value, OperationError> {
         }));
     };
     let mut selected_scene_id = scene_id;
+    crate::watch::forget();
     api.invoke_void(lobby, "WatchScene", &mut [argument(&mut selected_scene_id)])?;
     Ok(json!({
         "started": true,
@@ -431,10 +454,65 @@ fn start_eligible_watch(runtime: &Runtime) -> Result<Value, OperationError> {
     }))
 }
 
+/// One scene of the lobby's cached page, with the subtype of its rules when
+/// it is a standard 1v1: standard rules on a map whose setting is the
+/// standard game and match mode.
+#[derive(Clone, Copy)]
+struct ScannedScene {
+    scene_id: i32,
+    map_id: i32,
+    round: i32,
+    watcher_num: i32,
+    standard_subtype: Option<i32>,
+}
+
 fn scan_watch_scenes(
     runtime: &Runtime,
     scenes: *mut Object,
 ) -> Result<(Vec<EligibleWatchScene>, Value), OperationError> {
+    let (scanned, first_round_one) = scan_scenes(runtime, scenes)?;
+    let valid = |scene: &&ScannedScene| {
+        scene.scene_id > 0
+            && scene.map_id > 0
+            && (0..MAX_WATCHERS_PER_SCENE).contains(&scene.watcher_num)
+    };
+    let round_one = scanned
+        .iter()
+        .filter(valid)
+        .filter(|scene| scene.round == 1)
+        .collect::<Vec<_>>();
+    let eligible = round_one
+        .iter()
+        .filter_map(|scene| {
+            scene.standard_subtype.map(|subtype| {
+                (
+                    scene.watcher_num,
+                    scene.scene_id,
+                    scene.map_id,
+                    scene.round,
+                    subtype,
+                )
+            })
+        })
+        .collect::<Vec<_>>();
+    Ok((
+        eligible.clone(),
+        json!({
+            "total": list_count(runtime.api, scenes)?,
+            "typed": scanned.len(),
+            "round_one": round_one.len(),
+            "standard": eligible.len(),
+            "first_round_one": first_round_one,
+        }),
+    ))
+}
+
+/// Every `WatchScene` of the page, with whether it is a standard 1v1, and the
+/// rule diagnostic of the first round-one scene for a refusal to show.
+fn scan_scenes(
+    runtime: &Runtime,
+    scenes: *mut Object,
+) -> Result<(Vec<ScannedScene>, Option<Value>), OperationError> {
     let api = runtime.api;
     let watch_scene_class = api.class("GRClient.dll", "GameRiver.Client", "WatchScene")?;
     let scene_id_field = api.field(watch_scene_class, "SceneID")?;
@@ -452,14 +530,9 @@ fn scan_watch_scenes(
         deploy_time: api.field(custom_info_class, "DeployTime")?,
     };
     let config = config_instance(runtime)?;
-    let total_scenes = list_count(api, scenes)?;
-    let mut typed_scenes = 0;
-    let mut round_one_scenes = 0;
-    let mut standard_rule_scenes = 0;
-    let mut standard_map_scenes = 0;
     let mut first_round_one = None;
-    let mut eligible = Vec::new();
-    for index in 0..total_scenes {
+    let mut scanned = Vec::new();
+    for index in 0..list_count(api, scenes)? {
         let scene = list_item(api, scenes, index)?;
         let Some(class) = api.object_class(scene) else {
             continue;
@@ -467,7 +540,6 @@ fn scan_watch_scenes(
         if !api.class_is_or_inherits(class, watch_scene_class) {
             continue;
         }
-        typed_scenes += 1;
         let scene_id: i32 = api.field_value(scene, scene_id_field)?;
         let map_id: i32 = api.field_value(scene, map_id_field)?;
         let round: i32 = api.field_value(scene, round_field)?;
@@ -475,61 +547,48 @@ fn scan_watch_scenes(
         let custom_info: *mut Object = api.field_value(scene, custom_info_field)?;
         let members: *mut Object = api.field_value(scene, members_field)?;
         let match_info = api.invoke(scene, "get_matchInfo", &mut [])?;
-        if scene_id <= 0
-            || map_id <= 0
-            || round != 1
-            || !(0..MAX_WATCHERS_PER_SCENE).contains(&watcher_num)
-        {
-            continue;
-        }
-        round_one_scenes += 1;
         let rule_observation =
             observe_watch_rules(api, custom_info, match_info, members, &rule_fields)?;
         let mut diagnostic = rule_observation.diagnostic();
         diagnostic["scene_id"] = json!(scene_id);
         diagnostic["map_id"] = json!(map_id);
         diagnostic["watcher_num"] = json!(watcher_num);
-        let Some(subtype) = rule_observation.standard_subtype() else {
-            first_round_one.get_or_insert(diagnostic);
-            continue;
-        };
-        standard_rule_scenes += 1;
-        let mut requested_map = map_id;
-        let setting = api.invoke(
-            config,
-            "GetMatchSettingOrNull",
-            &mut [argument(&mut requested_map)],
-        )?;
-        if setting.is_null() {
-            diagnostic["map_setting_present"] = json!(false);
-            first_round_one.get_or_insert(diagnostic);
-            continue;
+        let mut standard_subtype = rule_observation.standard_subtype();
+        if standard_subtype.is_some() {
+            let mut requested_map = map_id;
+            let setting = api.invoke(
+                config,
+                "GetMatchSettingOrNull",
+                &mut [argument(&mut requested_map)],
+            )?;
+            if setting.is_null() {
+                diagnostic["map_setting_present"] = json!(false);
+                standard_subtype = None;
+            } else {
+                let game_mode = api.invoke_value::<i32>(setting, "get_GameMode", &mut [])?;
+                let match_mode = api.invoke_value::<i32>(setting, "get_MatchMode", &mut [])?;
+                diagnostic["map_setting_present"] = json!(true);
+                diagnostic["game_mode"] = json!(game_mode);
+                diagnostic["match_mode"] = json!(match_mode);
+                if game_mode != STANDARD_ONE_V_ONE_GAME_MODE
+                    || match_mode != STANDARD_ONE_V_ONE_MATCH_MODE
+                {
+                    standard_subtype = None;
+                }
+            }
         }
-        let game_mode = api.invoke_value::<i32>(setting, "get_GameMode", &mut [])?;
-        let match_mode = api.invoke_value::<i32>(setting, "get_MatchMode", &mut [])?;
-        diagnostic["map_setting_present"] = json!(true);
-        diagnostic["game_mode"] = json!(game_mode);
-        diagnostic["match_mode"] = json!(match_mode);
-        first_round_one.get_or_insert(diagnostic);
-        if game_mode != STANDARD_ONE_V_ONE_GAME_MODE || match_mode != STANDARD_ONE_V_ONE_MATCH_MODE
-        {
-            continue;
+        if round == 1 {
+            first_round_one.get_or_insert(diagnostic);
         }
-        standard_map_scenes += 1;
-        eligible.push((watcher_num, scene_id, map_id, round, subtype));
+        scanned.push(ScannedScene {
+            scene_id,
+            map_id,
+            round,
+            watcher_num,
+            standard_subtype,
+        });
     }
-
-    Ok((
-        eligible,
-        json!({
-            "total": total_scenes,
-            "typed": typed_scenes,
-            "round_one": round_one_scenes,
-            "standard_rules": standard_rule_scenes,
-            "standard_maps": standard_map_scenes,
-            "first_round_one": first_round_one,
-        }),
-    ))
+    Ok((scanned, first_round_one))
 }
 
 fn observe_watch_rules(
@@ -567,6 +626,94 @@ fn observe_watch_rules(
             .transpose()?,
         deploy_time: Some(api.field_value(custom_info, fields.deploy_time)?),
     })
+}
+
+/// Every scene the lobby's cached first page of match-made scenes holds, at
+/// any round. With `refresh` (the default) the lobby is first asked for a new
+/// page, which empties the cache until the server answers, some seconds later.
+fn watch_scenes(runtime: &Runtime, arguments: &Value) -> Result<Value, OperationError> {
+    let refresh = arguments
+        .get("refresh")
+        .and_then(Value::as_bool)
+        .unwrap_or(true);
+    if refresh {
+        refresh_watch_scenes(runtime)?;
+    }
+    let api = runtime.api;
+    let Some(lobby) = find_proxy(runtime, "LobbyProxy", "GameRiver.Client.LobbyProxy")? else {
+        return Ok(json!({"ready": false, "scenes": []}));
+    };
+    let mut filter = MATCH_FIRST_ROOM_FILTER;
+    let data = api.invoke(
+        lobby,
+        "GetRoomFilterDataByType",
+        &mut [argument(&mut filter)],
+    )?;
+    let scenes = if data.is_null() {
+        std::ptr::null_mut()
+    } else {
+        api.invoke(data, "GetWatchScenes", &mut [])?
+    };
+    let listed = if scenes.is_null() {
+        Vec::new()
+    } else {
+        scan_scenes(runtime, scenes)?
+            .0
+            .into_iter()
+            .map(|scene| {
+                json!({
+                    "scene_id": scene.scene_id,
+                    "map_id": scene.map_id,
+                    "round": scene.round,
+                    "watcher_num": scene.watcher_num,
+                    "standard": scene.standard_subtype.is_some(),
+                })
+            })
+            .collect()
+    };
+    Ok(json!({"ready": true, "refreshed": refresh, "scenes": listed}))
+}
+
+/// Enter one scene as a spectator, `LobbyProxy.WatchScene(sceneId)`.
+fn watch_scene(runtime: &Runtime, arguments: &Value) -> Result<Value, OperationError> {
+    if !runtime.current_match().is_null() {
+        return Err(OperationError::InvalidState(
+            "watch_scene requires main_menu with no active match".into(),
+        ));
+    }
+    let mut scene_id = arguments
+        .get("scene_id")
+        .and_then(Value::as_i64)
+        .and_then(|id| i32::try_from(id).ok())
+        .ok_or_else(|| OperationError::InvalidArguments("scene_id must be an i32".into()))?;
+    let lobby =
+        find_proxy(runtime, "LobbyProxy", "GameRiver.Client.LobbyProxy")?.ok_or_else(|| {
+            OperationError::InvalidState("LobbyProxy is not registered in GameFacade".into())
+        })?;
+    crate::watch::forget();
+    runtime
+        .api
+        .invoke_void(lobby, "WatchScene", &mut [argument(&mut scene_id)])?;
+    Ok(json!({"started": true, "scene_id": scene_id}))
+}
+
+/// `MatchProxy.SaveReplay` on the match being watched, finished or not: the
+/// replay holds every round the spectator was present for.
+fn save_replay(runtime: &Runtime) -> Result<Value, OperationError> {
+    let current = require_match(runtime)?;
+    let api = runtime.api;
+    if !api.invoke_value::<bool>(current, "IsWatchMode", &mut [])? {
+        return Err(OperationError::InvalidState(
+            "save_replay requires a watch match".into(),
+        ));
+    }
+    let proxy =
+        find_proxy(runtime, "MatchProxy", "GameRiver.Client.MatchProxy")?.ok_or_else(|| {
+            OperationError::InvalidState("MatchProxy is not registered in GameFacade".into())
+        })?;
+    let callback: *mut Object = std::ptr::null_mut();
+    api.invoke_void(proxy, "SaveReplay", &mut [object_argument(callback)])?;
+    Ok(json!({"requested": true}))
 }
 
 fn save_current_replay(runtime: &Runtime) -> Result<Value, OperationError> {
@@ -1080,6 +1227,7 @@ fn speed_up(runtime: &Runtime) -> Result<Value, OperationError> {
 
 fn quit_match(runtime: &Runtime) -> Result<Value, OperationError> {
     let current = require_match(runtime)?;
+    crate::watch::forget();
     let mut quit_game = false;
     runtime
         .api

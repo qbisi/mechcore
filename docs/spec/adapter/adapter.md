@@ -711,6 +711,36 @@ file `mechcore replay convert` can open carrying the build and a non-negative se
 no managed exception in either log. That decode is the reviewer's check on a new
 build, not a step the collector performs per match.
 
+### save_replay
+
+Input may name an absolute path the replay is copied to:
+
+```json
+{"output":"/tmp/slices/scene-round-4.grbr"}
+```
+
+Typical output:
+
+```json
+{"saved":true,"native_source":".../ProjectDatas/Replay/2324_20260928--861_[a]VS[b].grbr","output":"/tmp/slices/scene-round-4.grbr"}
+```
+
+The operation calls `MatchProxy.SaveReplay` on the match being watched,
+finished or not, waits up to 30 seconds for the file it writes under
+`Mechabellum.app/ProjectDatas/Replay` to settle, and copies it to `output`
+without overwriting. It refuses with `invalid_game_state` when there is no
+match or the match is not watched. The game names a replay after its match,
+so a second save of one match rewrites `native_source`; `output` is where a
+copy that must survive the next save goes.
+
+A replay saved mid-match holds every round the spectator was present for, from
+the round it joined in, and an empty round-0 record ahead of them when it
+joined after round one. A round's record is complete once the spectator has
+entered that round's fight. Joined before round two, the spectator builds the
+battle from its start and the replay also holds round 0, the opening
+specialist choice. `BattleRecord.GetAvaliableStartRound` makes the joined round
+the one a replay of it starts from.
+
 ### quit_match
 
 Input is an empty object.
@@ -797,7 +827,26 @@ Training Ground output:
 unavailable native detail is `null`. `fight_ready` is whether the match already
 owns a `FightController`, so `deploying` and `fighting` are `null` exactly while
 it is `false`. `spectating` also reports `finished` from
-`Match.get_IsFinished`.
+`Match.get_IsFinished`, `watch_delay` from `BattleInfo.WatchDelay`, and `live`.
+
+`live` is what the fight server said the match was doing when the spectator
+joined, `null` until the server has answered the join. A spectator runs about
+`watch_delay` seconds behind the match, so its own `round_count`, `deploying`
+and `fighting` say where the match was; `live` is copied from the
+`MatchStageInfo` answering the join, in `MH_MatchStageInfo.DoProcess`, since
+the client keeps none of it:
+
+```json
+{"round":7,"state":"deploy","state_elapsed_seconds":61.0,"since_start_seconds":852.0,"deploy_time_seconds":100,"deploy_remaining_seconds":39.0}
+```
+
+`state` is one of `zero`, `loading`, `prepare`, `deploy`, `fighting` or
+`ending` (`EFightState`). The two elapsed times are measured by the server's
+clock, `ServerProxy.GetTimeSpanToCurrentServerTime`, from when the state and the
+battle began, and are read afresh at each `status`. `deploy_remaining_seconds`
+is set in `deploy` only: `BattleInfo.DeployTime` less the time spent, the
+latest the fight can begin, since both players may finish sooner. Deployments
+have been seen to run a few seconds past it.
 
 `main_menu` is the menu scene, `MainMenu` at build index 0, with no current
 match. That scene is the active one from the game's start, at its login window
@@ -822,6 +871,50 @@ Typical output:
 The operation changes the Training Ground process state from deployment to
 battle. The MCP layer additionally observes the battle transition before
 returning.
+
+### watch_scene
+
+Input names a scene of the lobby's page:
+
+```json
+{"scene_id":201458701}
+```
+
+Typical output:
+
+```json
+{"started":true,"scene_id":201458701}
+```
+
+The operation calls `LobbyProxy.WatchScene` from `main_menu` and returns at
+once. The spectator is in once `status` reports `spectating` with `live` set,
+which took 2.5 to 8.4 seconds whenever the server answered. Some listed scenes,
+taken to have ended, were never answered. It refuses with
+`invalid_game_state` in a match or when the lobby is not registered.
+
+### watch_scenes
+
+Input may set `refresh`, `true` by default:
+
+```json
+{"refresh":false}
+```
+
+Typical output:
+
+```json
+{"ready":true,"refreshed":false,"scenes":[{"scene_id":201458701,"map_id":1021,"round":7,"watcher_num":0,"standard":true}]}
+```
+
+The operation reads the lobby's cached first page of match-made scenes,
+`LobbyProxy.GetRoomFilterDataByType(MatchFirst).GetWatchScenes()`, at most 20
+scenes. With `refresh` it first asks the lobby for a new page
+(`SwitchToRoomListFilter`), which empties the cache until the server answers
+some seconds later, so a caller refreshes once and then reads without
+refreshing. `standard` applies the rules `record_watch_replay` admits a scene
+by, at any round. `round` is the lobby's, which has differed by one from the
+round `live` reported on joining. `ready` is `false` until login has
+registered the lobby.
 
 ## Errors
 
