@@ -53,6 +53,10 @@ pub(crate) struct ConstructionBuilding {
     /// Half the box a recording reports, which is the row's own `radius`.
     pub(crate) radius: i64,
     pub(crate) life: i32,
+    /// Which of its side's constructions this block belongs to: the blocks
+    /// of one construction are one `FightConstructionCombination`, which
+    /// the build's damage statistics count together.
+    pub(crate) group: usize,
     /// Whether a unit looking for something to shoot may find this one.
     ///
     /// A Defensive Wall may not: its row answers `IsEnableSearchTarget` with
@@ -249,6 +253,7 @@ impl Constructions {
                 z: centre_z * SPACE,
                 radius: fixed_to_space(row.radius),
                 life: row.max_life,
+                group: 0,
                 searchable: row.enable_search_target,
                 collider_priority: row.pathfinding_collider_priority,
                 skill: skill.clone(),

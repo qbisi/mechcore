@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result, canonical};
 
-pub const MCFR_FORMAT: &str = "0.12.0";
-pub const PHYSICS_HASH_PROFILE: &str = "battle-physics-v3";
-pub const CONTENT_HASH_PROFILE: &str = "mcfr-content-0.12.0";
+pub const MCFR_FORMAT: &str = "0.13.0";
+pub const PHYSICS_HASH_PROFILE: &str = "battle-physics-v4";
+pub const CONTENT_HASH_PROFILE: &str = "mcfr-content-0.13.0";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -112,6 +112,54 @@ pub struct WorldSnapshot {
     pub shields: Vec<ShieldState>,
     #[serde(default)]
     pub terrains: Vec<TerrainState>,
+    /// The build's own damage and kill counters for the fight so far.
+    #[serde(default)]
+    pub statistics: Vec<DamageStatistics>,
+}
+
+/// Whose counters a row of the build's damage statistics is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RecorderKind {
+    /// A formation, `MechTeam`: every unit of it counts together.
+    Formation,
+    /// A construction group, `FightConstructionCombination`, or a
+    /// construction outside one.
+    Construction,
+    /// A mind-controlled unit, which counts alone while it serves the other
+    /// side.
+    Unit,
+}
+
+/// One entry of `BattleStatisticManager`'s current round, as the build keeps
+/// it inside the logic tick: what a formation or construction group dealt,
+/// killed and took in this fight.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DamageStatistics {
+    pub team_id: u32,
+    pub recorder: RecorderKind,
+    /// The formation's `formation_id`; for a construction group, the lowest
+    /// `building_id` among its constructions; for a unit, its `unit_id`.
+    pub recorder_id: u64,
+    /// `DamageMax`: the sum of each hit's damage after every mitigation, before
+    /// it is held to what the target had left.
+    pub damage: i32,
+    /// `DamageReal`: the life, or personal shield energy, the hits took.
+    pub damage_real: i32,
+    /// `KillCount`: hits after which their target was no longer alive.
+    pub kills: i32,
+    /// `DamageTaken`: what the recorder's own members were hit for, raised
+    /// by what increases damage taken and before anything reduces it.
+    pub damage_taken: i32,
+}
+
+impl DamageStatistics {
+    /// The row's place in its tick: team, recorder kind, recorder.
+    #[must_use]
+    pub fn key(&self) -> (u32, RecorderKind, u64) {
+        (self.team_id, self.recorder, self.recorder_id)
+    }
 }
 
 impl WorldSnapshot {
@@ -125,6 +173,7 @@ impl WorldSnapshot {
         self.buildings.sort_by_key(|value| value.building_id);
         self.shields.sort_by_key(|value| value.shield_id);
         self.terrains.sort_by_key(|value| value.terrain_id);
+        self.statistics.sort_by_key(DamageStatistics::key);
     }
 
     /// Returns all top-level object identities in the snapshot.
@@ -300,6 +349,30 @@ impl WorldSnapshot {
                 return Err(Error::invalid(format!(
                     "terrain {} logic lifetime must have non-negative elapsed and positive limit",
                     terrain.terrain_id
+                )));
+            }
+        }
+        if self
+            .statistics
+            .windows(2)
+            .any(|pair| pair[0].key() >= pair[1].key())
+        {
+            return Err(Error::invalid(
+                "statistics are not strictly ordered by team, recorder kind and recorder",
+            ));
+        }
+        for row in &self.statistics {
+            if row.recorder_id == 0
+                || row.recorder_id >= 1 << 48
+                || row.team_id >= 1 << 8
+                || row.damage < 0
+                || row.damage_real < 0
+                || row.kills < 0
+                || row.damage_taken < 0
+            {
+                return Err(Error::invalid(format!(
+                    "statistics row {:?} {} of team {} is out of range",
+                    row.recorder, row.recorder_id, row.team_id
                 )));
             }
         }

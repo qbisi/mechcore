@@ -1,5 +1,6 @@
 use crate::rvo::{self, RawSolve, RvoChannels, RvoMetadata, RvoRows};
 use crate::selector::{self, RawSearch, SelectorMetadata, TargetChannels};
+use crate::statistics::{self, StatisticsMetadata};
 use crate::{
     il2cpp::{Api, Class, FieldInfo, MethodInfo, Object, argument, object_argument},
     runtime::Runtime,
@@ -314,6 +315,7 @@ pub(crate) struct Metadata {
     checker_error: Option<String>,
     pub(crate) selector: Option<SelectorMetadata>,
     modifier_enums: ModifierEnums,
+    statistics: Option<StatisticsMetadata>,
     selector_error: Option<String>,
     pub(crate) rvo: Option<RvoMetadata>,
     rvo_error: Option<String>,
@@ -388,10 +390,10 @@ pub(crate) struct CaptureState {
     /// by the shield's native pointer.
     pending_projectile_absorption_pointers: BTreeMap<u64, usize>,
     original_unit_teams: BTreeMap<usize, u32>,
-    object_teams: BTreeMap<ObjectRef, u32>,
+    pub(crate) object_teams: BTreeMap<ObjectRef, u32>,
     pub(crate) emitted_deaths: BTreeSet<ObjectRef>,
     last_damage_sources: BTreeMap<ObjectRef, DamageAttribution>,
-    formation_ids: BTreeMap<usize, u64>,
+    pub(crate) formation_ids: BTreeMap<usize, u64>,
     next_unit_id: u64,
     next_building_id: u64,
     next_projectile_id: u64,
@@ -1493,6 +1495,7 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             selector,
             selector_error,
             modifier_enums: ModifierEnums::resolve(api)?,
+            statistics: Some(statistics::initialize(api)?),
             checker,
             checker_error,
             rvo,
@@ -4897,6 +4900,17 @@ fn snapshot(
             "logic tick changed during snapshot ({tick_before} -> {tick_after})"
         ));
     }
+    let statistics = statistics::read(
+        runtime.api,
+        fight,
+        capture
+            .metadata
+            .statistics
+            .as_ref()
+            .ok_or("statistics metadata is unavailable")?,
+        capture,
+    )
+    .map_err(|error| format!("battle statistics: {error}"))?;
     Ok(CapturedSnapshot {
         native_tick,
         world: WorldSnapshot {
@@ -4905,6 +4919,7 @@ fn snapshot(
             buildings,
             shields,
             terrains,
+            statistics,
         },
         instrument,
     })

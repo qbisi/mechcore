@@ -31,13 +31,13 @@ use tempfile::TempDir;
 use zip::{CompressionMethod, ZipArchive, ZipWriter, write::SimpleFileOptions};
 
 use crate::{
-    BuildingState, CONTENT_HASH_PROFILE, DerivedStats, Domain, DurableContext, Error, Event,
-    EventPayload, GaugeI32, Hashes, LiveUnitState, MCFR_FORMAT, Modifier, ModifierChannel,
-    ModifierPart, MotionState, ObjectKind, ObjectRef, PHYSICS_HASH_PROFILE, PersonalShieldState,
-    ProjectileState, QPlanar, QPose, QVec3, Result, ShieldRoundPolicy, ShieldSourceKind,
-    ShieldState, TerrainApplicationState, TerrainEffectClock, TerrainGridState,
-    TerrainLogicLifetime, TerrainState, TerrainType, TransitionEvents, Visibility, WeaponAimState,
-    WorldSnapshot, canonical,
+    BuildingState, CONTENT_HASH_PROFILE, DamageStatistics, DerivedStats, Domain, DurableContext,
+    Error, Event, EventPayload, GaugeI32, Hashes, LiveUnitState, MCFR_FORMAT, Modifier,
+    ModifierChannel, ModifierPart, MotionState, ObjectKind, ObjectRef, PHYSICS_HASH_PROFILE,
+    PersonalShieldState, ProjectileState, QPlanar, QPose, QVec3, RecorderKind, Result,
+    ShieldRoundPolicy, ShieldSourceKind, ShieldState, TerrainApplicationState, TerrainEffectClock,
+    TerrainGridState, TerrainLogicLifetime, TerrainState, TerrainType, TransitionEvents,
+    Visibility, WeaponAimState, WorldSnapshot, canonical,
     event_table::{batch_events, event_batch, event_schema},
     instrument::{self, ChannelSchema, InstrumentRow},
 };
@@ -47,12 +47,13 @@ const REQUIRED_MEMBERS: [&str; 2] = ["layout.yaml", "ticks.parquet"];
 
 /// The per-tick tables, in container order. A table no row was written to is
 /// left out, and reads as having none.
-const TABLE_MEMBERS: [&str; 6] = [
+const TABLE_MEMBERS: [&str; 7] = [
     "units.parquet",
     "projectiles.parquet",
     "buildings.parquet",
     "shields.parquet",
     "terrains.parquet",
+    "statistics.parquet",
     "events.parquet",
 ];
 
@@ -96,11 +97,13 @@ pub(crate) struct StorageWriter {
     projectiles: Option<ArrowWriter<File>>,
     buildings: Option<ArrowWriter<File>>,
     shields: Option<ArrowWriter<File>>,
+    statistics: Option<ArrowWriter<File>>,
     terrains: Option<ArrowWriter<File>>,
     unit_rows: Vec<(u32, LiveUnitState)>,
     projectile_rows: Vec<(u32, ProjectileState)>,
     building_rows: Vec<(u32, BuildingState)>,
     shield_rows: Vec<(u32, ShieldState)>,
+    statistic_rows: Vec<(u32, DamageStatistics)>,
     terrain_rows: Vec<(u32, TerrainState)>,
     event_rows: Vec<(u32, u32, Event)>,
     events: Option<ArrowWriter<File>>,
@@ -125,11 +128,13 @@ impl StorageWriter {
             projectiles: None,
             buildings: None,
             shields: None,
+            statistics: None,
             terrains: None,
             unit_rows: Vec::new(),
             projectile_rows: Vec::new(),
             building_rows: Vec::new(),
             shield_rows: Vec::new(),
+            statistic_rows: Vec::new(),
             terrain_rows: Vec::new(),
             event_rows: Vec::new(),
             events: None,
@@ -191,6 +196,8 @@ impl StorageWriter {
             .extend(state.shields.iter().cloned().map(|row| (tick, row)));
         self.terrain_rows
             .extend(state.terrains.iter().cloned().map(|row| (tick, row)));
+        self.statistic_rows
+            .extend(state.statistics.iter().copied().map(|row| (tick, row)));
     }
 
     pub(crate) fn append_tick(
@@ -252,6 +259,12 @@ impl StorageWriter {
         )?;
         write_buffer(
             directory,
+            &mut self.statistics,
+            Track::Statistics,
+            statistic_batch(&self.statistic_rows)?,
+        )?;
+        write_buffer(
+            directory,
             &mut self.events,
             Track::Events,
             event_batch(&self.event_rows)?,
@@ -267,6 +280,7 @@ impl StorageWriter {
         self.projectile_rows.clear();
         self.building_rows.clear();
         self.shield_rows.clear();
+        self.statistic_rows.clear();
         self.terrain_rows.clear();
         self.event_rows.clear();
         Ok(())
@@ -287,6 +301,7 @@ impl StorageWriter {
             &mut self.buildings,
             &mut self.shields,
             &mut self.terrains,
+            &mut self.statistics,
             &mut self.events,
         ] {
             if let Some(writer) = table.take() {
@@ -388,6 +403,7 @@ enum Track {
     Buildings,
     Shields,
     Terrains,
+    Statistics,
     Events,
     Instrument,
 }
@@ -402,6 +418,7 @@ impl Track {
             Self::Buildings => Some(("buildings.parquet", building_schema())),
             Self::Shields => Some(("shields.parquet", shield_schema())),
             Self::Terrains => Some(("terrains.parquet", terrain_schema())),
+            Self::Statistics => Some(("statistics.parquet", statistic_schema())),
             Self::Events => Some(("events.parquet", event_schema())),
             Self::Ticks | Self::Instrument => None,
         }
@@ -490,6 +507,7 @@ fn dictionary_paths(track: Track) -> &'static [&'static str] {
         ],
         Track::Shields => &["team_id", "source_kind", "energy.maximum", "round_policy"],
         Track::Terrains => &["team_id", "terrain_type", "remaining_rounds"],
+        Track::Statistics => &["team_id", "recorder"],
     }
 }
 
@@ -501,6 +519,7 @@ fn delta_paths(track: Track) -> &'static [&'static str] {
         | Track::Buildings
         | Track::Shields
         | Track::Terrains
+        | Track::Statistics
         | Track::Events
         | Track::Instrument => &["tick"],
     }
@@ -583,6 +602,47 @@ fn projectile_batch(rows: &[(u32, ProjectileState)]) -> Result<Option<RecordBatc
             object_ref_list_values(values.iter().map(|row| &row.spawn_containing_shields))?,
         ],
     )?))
+}
+
+fn statistic_batch(rows: &[(u32, DamageStatistics)]) -> Result<Option<RecordBatch>> {
+    if rows.is_empty() {
+        return Ok(None);
+    }
+    let values = rows.iter().map(|(_, row)| row).collect::<Vec<_>>();
+    Ok(Some(RecordBatch::try_new(
+        statistic_schema(),
+        vec![
+            u32_values(rows.iter().map(|(tick, _)| *tick)),
+            u32_values(values.iter().map(|row| row.team_id)),
+            u8_values(values.iter().map(|row| encode_recorder(row.recorder))),
+            u64_values(values.iter().map(|row| row.recorder_id)),
+            i32_values(values.iter().map(|row| row.damage)),
+            i32_values(values.iter().map(|row| row.damage_real)),
+            i32_values(values.iter().map(|row| row.kills)),
+            i32_values(values.iter().map(|row| row.damage_taken)),
+        ],
+    )?))
+}
+
+const RECORDER_KINDS: [RecorderKind; 3] = [
+    RecorderKind::Formation,
+    RecorderKind::Construction,
+    RecorderKind::Unit,
+];
+
+fn encode_recorder(kind: RecorderKind) -> u8 {
+    RECORDER_KINDS
+        .iter()
+        .position(|candidate| *candidate == kind)
+        .and_then(|index| u8::try_from(index).ok())
+        .expect("every recorder kind has a tag")
+}
+
+/// A statistics row's identity within its tick, for the ordering check.
+fn statistic_identity(row: &DamageStatistics) -> u64 {
+    (u64::from(row.team_id) << 56)
+        | (u64::from(encode_recorder(row.recorder)) << 48)
+        | row.recorder_id
 }
 
 fn shield_batch(rows: &[(u32, ShieldState)]) -> Result<Option<RecordBatch>> {
@@ -1103,6 +1163,19 @@ fn unit_schema() -> SchemaRef {
     ]))
 }
 
+fn statistic_schema() -> SchemaRef {
+    Arc::new(Schema::new(vec![
+        Field::new("tick", DataType::UInt32, false),
+        Field::new("team_id", DataType::UInt32, false),
+        Field::new("recorder", DataType::UInt8, false),
+        Field::new("recorder_id", DataType::UInt64, false),
+        Field::new("damage", DataType::Int32, false),
+        Field::new("damage_real", DataType::Int32, false),
+        Field::new("kills", DataType::Int32, false),
+        Field::new("damage_taken", DataType::Int32, false),
+    ]))
+}
+
 fn shield_schema() -> SchemaRef {
     Arc::new(Schema::new(vec![
         Field::new("tick", DataType::UInt32, false),
@@ -1517,6 +1590,7 @@ pub(crate) struct StorageReader {
     buildings: Vec<Vec<BuildingState>>,
     shields: Vec<Vec<ShieldState>>,
     terrains: Vec<Vec<TerrainState>>,
+    statistics: Vec<Vec<DamageStatistics>>,
     events: Vec<Vec<Event>>,
     instrument: BTreeMap<String, MemberSlice>,
 }
@@ -1574,6 +1648,12 @@ impl StorageReader {
             |row| row.terrain_id,
             "terrain",
         )?;
+        let statistics = group_state_rows(
+            table(&members, "statistics.parquet", read_statistics)?,
+            tick_count,
+            statistic_identity,
+            "statistics",
+        )?;
         let events = group_event_rows(table(&members, "events.parquet", read_events)?, tick_count)?;
         let instrument = members
             .iter()
@@ -1591,6 +1671,7 @@ impl StorageReader {
             buildings,
             shields,
             terrains,
+            statistics,
             events,
             instrument,
         })
@@ -1656,6 +1737,7 @@ impl StorageReader {
             buildings: self.buildings[index].clone(),
             shields: self.shields[index].clone(),
             terrains: self.terrains[index].clone(),
+            statistics: self.statistics[index].clone(),
         })
     }
 
@@ -1908,6 +1990,40 @@ fn read_units(member: MemberSlice) -> Result<Vec<(u32, LiveUnitState)>> {
                     personal_shield: read_shield(shield, index)?,
                     derived: read_derived(derived, index)?,
                     weapon_aims: read_weapon_aim_list(weapon_aims, index)?,
+                },
+            ));
+        }
+    }
+    Ok(rows)
+}
+
+fn read_statistics(member: MemberSlice) -> Result<Vec<(u32, DamageStatistics)>> {
+    let mut rows = Vec::new();
+    for batch in checked_builder(member, statistic_schema().as_ref(), "statistics")?.build()? {
+        let batch = batch?;
+        let tick = column::<UInt32Array>(&batch, "tick")?;
+        let team = column::<UInt32Array>(&batch, "team_id")?;
+        let recorder = column::<UInt8Array>(&batch, "recorder")?;
+        let recorder_id = column::<UInt64Array>(&batch, "recorder_id")?;
+        let damage = column::<Int32Array>(&batch, "damage")?;
+        let damage_real = column::<Int32Array>(&batch, "damage_real")?;
+        let kills = column::<Int32Array>(&batch, "kills")?;
+        let damage_taken = column::<Int32Array>(&batch, "damage_taken")?;
+        for index in 0..batch.num_rows() {
+            rows.push((
+                tick.value(index),
+                DamageStatistics {
+                    team_id: team.value(index),
+                    recorder: *RECORDER_KINDS
+                        .get(usize::from(recorder.value(index)))
+                        .ok_or_else(|| {
+                            Error::invalid(format!("recorder tag {}", recorder.value(index)))
+                        })?,
+                    recorder_id: recorder_id.value(index),
+                    damage: damage.value(index),
+                    damage_real: damage_real.value(index),
+                    kills: kills.value(index),
+                    damage_taken: damage_taken.value(index),
                 },
             ));
         }
