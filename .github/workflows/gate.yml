@@ -69,8 +69,12 @@ jobs:
           # once `changes` finishes. Counting checks alone, docs finishing
           # first could find every check that exists green, answer success
           # and let a pull request merge before its tests had run.
+          # Only each workflow's latest run on the commit and event counts:
+          # one it superseded, cancelled by ci's concurrency group, says
+          # nothing about the commit.
           runs=$(gh api "repos/$REPOSITORY/actions/runs?head_sha=$HEAD_SHA&per_page=100" \
-            --jq '[.workflow_runs[] | select(.name != "gate")]')
+            --jq '[.workflow_runs[] | select(.name != "gate")]
+                  | group_by([.name, .event]) | map(max_by(.created_at))')
           unfinished=$(jq -r '[.[] | select(.status != "completed")] | length' <<<"$runs")
           broken=$(jq -r \
             '[.[] | select(.status == "completed")
