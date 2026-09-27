@@ -234,9 +234,8 @@ impl Actor {
             position,
             body_rotation: self.body_rotation_q32,
             turret_rotation: self.turret_rotation(),
-            velocity: QVec3 {
+            velocity: QPlanar {
                 x: self.motion.current_velocity_x_q32,
-                y: 0,
                 z: self.motion.current_velocity_z_q32,
             },
             motion_state: self.motion.state,

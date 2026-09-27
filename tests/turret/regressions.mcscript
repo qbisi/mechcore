@@ -35,8 +35,8 @@ steps:
       steps: 237
       winner: blue
       teams.0.remaining_life: 1622
-      hashes.physics_result_hash: a8354829bdecec0edc27bf52ddfe3d1db5322c2c4a6ad3dd31021eca0aac84c6
-      hashes.content_result_hash: 81d56dd91855a7d154b58e5d0883839c14e2b48337464f3c04d8a7777c917a0a
+      hashes.physics_result_hash: 6e77f450621ab3360e05a26fe6e5cc50197358eb40849817931056c334cb6644
+      hashes.content_result_hash: 37bb080509a2912221d6ecccb9f20560d53b43459473dbb43dde45bf5eb1561f
 
   # The same Crawlers 36.6 degrees off the turret's column. The weapon has
   # turned onto its lock before the lock is in reach, so the first shot is as
@@ -48,8 +48,8 @@ steps:
       steps: 234
       winner: blue
       teams.0.remaining_life: 1622
-      hashes.physics_result_hash: 4dd9d40c90bcbdd137eaeea10420e042a31f8ac40ab84f769b672fa6d0e92145
-      hashes.content_result_hash: 9cea5f499bbc035385edda2e4624e9a452ea96deaca35c3442ebeb3f7dc12603
+      hashes.physics_result_hash: 2ac226a51836e68bf3ffe426406f413ed1b219bc66e161b62a9d65492399f219
+      hashes.content_result_hash: 29aaf9fb372dc44ca303b384b6b51ab2fe5aa0c50e1d2e7d9ca5ec01a167fb8f
 
   # Four Arclights down the Anti-Armor Turret's column, two shots each. The
   # sixth shot empties the magazine at 574, the reload runs to 776, and the
@@ -61,8 +61,8 @@ steps:
       steps: 836
       winner: blue
       teams.0.remaining_life: 1622
-      hashes.physics_result_hash: c27a0e744b8da5c0e8b91ea50546b4b39e38a4d3e550c5b4eebf881705915aed
-      hashes.content_result_hash: dcfa4c6d7d828707d75b8624c05ed63306e81098ac10103221d927bea7a8b80a
+      hashes.physics_result_hash: d88ce537016925c66d3cdd08c8f5b4cbba923bfbd536f74b55e1c4862230f1ce
+      hashes.content_result_hash: f417b5afd18befb130b17d8736e7aa22efce2d561502fd858d4f82861bd6616a
 
   # The Anti-Armor Turret against a Crawler, the Marksman behind. Blue loses
   # a tower at 509 and red at 771, and at 1027 the Marksman ends its attack
@@ -72,5 +72,5 @@ steps:
       seed: 4242
     expect:
       steps: 1397
-      hashes.physics_result_hash: 4ee3e9f04ed6285ea8134cb82fd51b20c52e5b8bbf2c94012c26db8221a59dda
-      hashes.content_result_hash: 8fa98d317a6edeadc6ef5bc93bb39bd87412d38729e88b517d4be488d1ec19fa
+      hashes.physics_result_hash: 1d25f3977ce765eeae00cb00bfffd2d6851d9b014128bf0428aa5defbd17ce62
+      hashes.content_result_hash: 6f3eef9fc944e2879ba75d2baa8fd5887f57495fd9fd855e33dd54aacb1eedcf

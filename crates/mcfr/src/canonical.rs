@@ -97,14 +97,15 @@ pub(crate) fn physics_tick_hash(
 }
 
 fn kinematics_hash(state: &WorldSnapshot) -> [u8; HASH_BYTES] {
-    let mut hasher = PhysicsHasher::new("battle-physics-kinematics-v2");
+    let mut hasher = PhysicsHasher::new("battle-physics-kinematics-v3");
     hasher.len(state.live_units.len());
     for unit in &state.live_units {
         hasher.u64(unit.unit_id);
         hasher.qvec3(unit.position);
         hasher.angle(unit.body_rotation);
         hasher.optional_angle(unit.turret_rotation);
-        hasher.qvec3(unit.velocity);
+        hasher.i64(unit.velocity.x);
+        hasher.i64(unit.velocity.z);
         hasher.len(
             unit.weapon_aims
                 .iter()
@@ -123,7 +124,6 @@ fn kinematics_hash(state: &WorldSnapshot) -> [u8; HASH_BYTES] {
     for projectile in &state.projectiles {
         hasher.u64(projectile.projectile_id);
         hasher.qvec3(projectile.position);
-        hasher.angle(projectile.orientation);
     }
     hasher.len(state.buildings.len());
     for building in &state.buildings {
@@ -147,7 +147,7 @@ fn kinematics_hash(state: &WorldSnapshot) -> [u8; HASH_BYTES] {
 }
 
 fn vitals_hash(state: &WorldSnapshot) -> [u8; HASH_BYTES] {
-    let mut hasher = PhysicsHasher::new("battle-physics-vitals-v1");
+    let mut hasher = PhysicsHasher::new("battle-physics-vitals-v2");
     hasher.len(state.live_units.len());
     for unit in &state.live_units {
         hasher.u64(unit.unit_id);
@@ -166,7 +166,6 @@ fn vitals_hash(state: &WorldSnapshot) -> [u8; HASH_BYTES] {
         hasher.u64(projectile.projectile_id);
         hasher.u32(projectile.team_id);
         hasher.optional_ref(projectile.owner);
-        hasher.boolean(projectile.released);
         hasher.i32(projectile.life.current);
         hasher.i32(projectile.life.maximum);
     }

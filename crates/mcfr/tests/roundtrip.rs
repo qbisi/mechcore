@@ -5,8 +5,8 @@ use mechcore_mcfr::{
     BuffModifierSet, BuildingState, CONTENT_HASH_PROFILE, CheckedSkill, DerivedStats, Domain,
     DurableContext, Event, EventPayload, GaugeI32, Hashes, LiveUnitState, MCFR_FORMAT, McfrReader,
     McfrWriter, MotionState, ObjectKind, ObjectRef, PHYSICS_HASH_PROFILE, PersonalShieldState,
-    QVec3, RateModifier, Rational, RvoExit, RvoNeighbour, RvoNeighbourKind, RvoSolve, RvoVec,
-    RvoVo, ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind, ShieldState,
+    QPlanar, QVec3, RateModifier, Rational, RvoExit, RvoNeighbour, RvoNeighbourKind, RvoSolve,
+    RvoVec, RvoVo, ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind, ShieldState,
     SkillAttackableCheck, SkillDynamicModifierSet, SkillNumericModifierState, TargetCandidate,
     TargetRefs, TargetSearch, TargetSearchPath, TerrainApplicationState, TerrainEffectClock,
     TerrainGridState, TerrainLogicLifetime, TerrainRemovedReason, TerrainState, TerrainType,
@@ -48,7 +48,7 @@ fn writes_and_reads_every_table() {
     );
 
     let reader = McfrReader::open(&path).unwrap();
-    assert_eq!(MCFR_FORMAT, "0.9.0");
+    assert_eq!(MCFR_FORMAT, "0.10.0");
     assert_eq!(reader.tick_count(), 1);
     assert_eq!(reader.terminal_tick(), 1);
     assert_eq!(reader.game_build(), "build-a");
@@ -289,11 +289,11 @@ fn physics_hash_ignores_nonphysical_details_while_content_hash_detects_them() {
 }
 
 #[test]
-fn battle_physics_v2_has_a_golden_result_hash() {
+fn battle_physics_v3_has_a_golden_result_hash() {
     let hashes = hash_tick(&context(), state(75), &damage_events());
     assert_eq!(
         hashes.physics_result_hash,
-        "264eb2cb64f7d0db2873861ef0eb65af1d2d820310b8325b565af20f4ac2b6f6"
+        "3ce73382ef599501ba87edeb171ec60599c4fb3cda081be79440ad026a33a539"
     );
 }
 
@@ -671,11 +671,9 @@ fn writer_rejects_non_shield_projectile_containment_reference() {
         team_id: 1,
         owner: Some(ObjectRef::new(ObjectKind::Unit, 1)),
         position: QVec3 { x: 0, y: 0, z: 0 },
-        orientation: 0,
         target: None,
         cached_target_position: QVec3 { x: 0, y: 0, z: 0 },
         cached_target_radius: 0,
-        released: false,
         life: GaugeI32 {
             current: 1,
             maximum: 1,
@@ -1002,7 +1000,7 @@ fn unit(id: u64, team: u32, x: i64, life: i32, with_secondary: bool) -> LiveUnit
         position: QVec3 { x, y: 0, z: 0 },
         body_rotation: 0,
         turret_rotation: Some(7 << 32),
-        velocity: QVec3 { x: 0, y: 0, z: 0 },
+        velocity: QPlanar { x: 0, z: 0 },
         motion_state: MotionState::Idle,
         mech_lock_target: None,
         collision_radius: 5,

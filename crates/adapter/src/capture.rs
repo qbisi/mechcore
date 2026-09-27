@@ -15,7 +15,7 @@ use mechcore_document::{
 use mechcore_mcfr::{
     BuffModifierSet, BuildingState, DerivedStats, Domain, DurableContext, Event, EventPayload,
     GaugeI32, LiveUnitState, MotionState, ObjectKind, ObjectRef, PersonalShieldState,
-    ProjectileState, QPose, QVec3, RateModifier, Rational, ShieldDestroyedReason,
+    ProjectileState, QPlanar, QPose, QVec3, RateModifier, Rational, ShieldDestroyedReason,
     ShieldRoundPolicy, ShieldSourceKind, ShieldState, SkillDynamicModifierSet,
     SkillNumericModifierState, TerrainApplicationState, TerrainEffectClock, TerrainGridState,
     TerrainLogicLifetime, TerrainRemovedReason, TerrainState, TerrainType, TransitionEvents,
@@ -5206,6 +5206,14 @@ fn read_unit(
     let fixed_rotation = invoke_value::<FixedPoint>(api, transform, "GetRotationInt")?;
     let motion = invoke_object(api, unit, "GetMotionController")?;
     let velocity = invoke_value::<FixedVec3>(api, motion, "GetCurrentVelocity")?;
+    // `RVOControllerFixed.GetVelocity` builds `(x, 0, z)`; the recording keeps
+    // the plane and refuses a build that moves a unit vertically.
+    if velocity.y.raw != 0 {
+        return Err(format!(
+            "a unit's velocity has a vertical part {}",
+            velocity.y.raw
+        ));
+    }
     let active = invoke_value::<bool>(api, unit, "get_IsActive")?;
     let fsm: *mut Object = api
         .field_value(motion, metadata.motion_fsm as *mut FieldInfo)
@@ -5365,7 +5373,10 @@ fn read_unit(
             position,
             body_rotation,
             turret_rotation,
-            velocity: vec3(velocity),
+            velocity: QPlanar {
+                x: velocity.x.raw,
+                z: velocity.z.raw,
+            },
             motion_state,
             mech_lock_target: None,
             collision_radius: invoke_value::<FixedPoint>(api, unit, "GetRadius")?.raw,
@@ -6004,7 +6015,15 @@ fn read_projectile(
         transform,
         "GetPositionInt3D",
     )?);
+    // A live projectile never rotates and is released only on its way back to
+    // the pool; the recording leaves both out and refuses a build that sets
+    // either.
     let orientation = invoke_value::<FixedPoint>(api, transform, "GetRotationInt")?.raw;
+    if orientation != 0 || invoke_value::<bool>(api, projectile, "IsRelease")? {
+        return Err(format!(
+            "projectile {id} has orientation {orientation} or is already released"
+        ));
+    }
     let target_info = invoke_object(api, projectile, "GetTargetInfo")?;
     let cached_target_position = vec3(invoke_value::<FixedVec3>(api, target_info, "GetPosition")?);
     let cached_target_radius = invoke_value::<FixedPoint>(api, target_info, "GetRadius")?.raw;
@@ -6034,11 +6053,9 @@ fn read_projectile(
         team_id,
         owner: owner_ref,
         position,
-        orientation,
         target: target_ref,
         cached_target_position,
         cached_target_radius,
-        released: invoke_value::<bool>(api, projectile, "IsRelease")?,
         life: GaugeI32 {
             current: life,
             maximum: max_life,
@@ -7272,7 +7289,7 @@ mod tests {
             },
             body_rotation: 0,
             turret_rotation: None,
-            velocity: QVec3 { x: 0, y: 0, z: 0 },
+            velocity: QPlanar { x: 0, z: 0 },
             motion_state: MotionState::Idle,
             mech_lock_target: None,
             collision_radius: 100,

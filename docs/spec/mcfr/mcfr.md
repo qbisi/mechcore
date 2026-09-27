@@ -123,12 +123,12 @@ Parquet key-value metadata keys and values are both UTF-8 strings.
 
 | Key | Data | Meaning |
 | --- | --- | --- |
-| `format` | exactly `0.9.0` | the logical and physical contract version |
+| `format` | exactly `0.10.0` | the logical and physical contract version |
 | `game_build` | non-empty UTF-8 | capture provenance; the adapter reads `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | the context `D` that holds steady for one round |
-| `physics_hash_profile` | exactly `battle-physics-v2` | the stable physics projection version |
+| `physics_hash_profile` | exactly `battle-physics-v3` | the stable physics projection version |
 | `physics_result_hash` | 64 lowercase hex digits | ordered digest of every `physics_tick_hash`; what regression compares |
-| `content_hash_profile` | exactly `mcfr-content-0.7.0` | the full content digest version |
+| `content_hash_profile` | exactly `mcfr-content-0.10.0` | the full content digest version |
 | `content_result_hash` | 64 lowercase hex digits | ordered digest of every `content_tick_hash`; an in-format diagnostic |
 | `tick_count` | canonical decimal `u32` | logical ticks recorded, counting from `S(1)` |
 | `terminal_tick` | canonical decimal `u32` | the confirmed final logical boundary, equal to `tick_count` on a continuous timeline |
@@ -165,7 +165,7 @@ death survives as a `unit_died` event.
 | `position` | `QVec3 required` | world coordinates | FightTransform `GetPositionInt3D()` |
 | `body_rotation` | `INT64 required` | body facing, Q32.32 raw | FightTransform `GetRotationInt()` |
 | `turret_rotation` | `INT64 nullable` | turret facing, Q32.32 raw; null for a unit without a body | `FightMech.mechBody`'s FightTransform `GetRotationInt()` |
-| `velocity` | `QVec3 required` | current velocity | MotionController native velocity |
+| `velocity` | `QPlanar required` | current velocity on the ground plane, world `x` and `z` | MotionController native velocity, whose vertical part the build always sets to 0 (the capture refuses anything else) |
 | `motion_state` | `UINT8 required` | idle, moving, attacking, stopped, transitioning; [below](#what-a-unit-is-directed-at) | native motion state machine mapping |
 | `mech_lock_target` | nullable `ObjectRef` | what the unit's body is directed at; [below](#what-a-unit-is-directed-at) | `FightMech.lockTarget` |
 | `collision_radius` | `INT64 required` | collision radius, Q32.32 raw | `FightMech.GetRadius()` |
@@ -404,7 +404,7 @@ reach, whenever something it can shoot stands in reach in front of it.
 A capture records all three as the native objects report them and derives none
 from another, which is what lets a reader compare them. They are content-layer
 fields: the physics layer excludes them (see
-[the physics layer](#the-stable-physics-layer-battle-physics-v2)), so a fight
+[the physics layer](#the-stable-physics-layer-battle-physics-v3)), so a fight
 whose physics matches can still disagree in them.
 
 ## Projectiles
@@ -421,22 +421,20 @@ the complete set the system enumerates.
 | `team_id` | `UINT32 required` | the owning team | controller `GetTeamController().GetTeamIndex()` |
 | `owner` | nullable `ObjectRef` | what fired it | `FightProjectile.GetOwner()` |
 | `position` | `QVec3 required` | world coordinates | FightTransform `GetPositionInt3D()` |
-| `orientation` | `INT64 required` | facing, Q32.32 raw | FightTransform `GetRotationInt()` |
 | `target` | nullable `ObjectRef` | the current target | `FightProjectile.GetTarget()` |
 | `cached_target_position` | `QVec3 required` | the target position the projectile cached | `GetTargetInfo().GetPosition()` |
 | `cached_target_radius` | `INT64 required` | the target radius it cached | `GetTargetInfo().GetRadius()` |
-| `released` | `BOOLEAN required` | the native pool release flag | `FightProjectile.IsRelease()`, returning `isReleased` |
 | `life` | `GaugeI32 required` | current and maximum life | `GetLife()` / `GetMaxLife()` |
 | `spawn_containing_shields` | required `list<ObjectRef>` | the live battlefield shields already containing it at creation, by Shield ID | `ProjectileController.inEnergyShields` |
 
 `owner` and `target` may reference objects that have already left the current
 snapshot. A reference identity stays valid for the whole recording.
 
-`released` belongs to the object pool's lifecycle, not to firing.
-`FightProjectile.Init()` clears `isReleased`, and the controller's pool reset
-path sets it after calling `FightProjectile.ResetData()`. A live projectile in
-this table is therefore normally false, and the fact of firing is the
-`projectile_released` event instead.
+A live projectile has no facing and no release flag here. It never rotates
+(`GetRotationInt()` is always 0), and `isReleased` is set only by the pool's
+reset on the way back, so a live projectile always reads false; the capture
+refuses a build where either is otherwise. The fact of firing is the
+`projectile_released` event.
 
 `spawn_containing_shields` is the native intersection algorithm's birth
 exemption set: a projectile fired from inside a shield skips that shield until
@@ -788,8 +786,9 @@ real_value = raw / 2^32
 ```
 
 `QVec3 = { x: i64, y: i64, z: i64 }`, three required `INT64` children in
-Parquet. Position, radius and bounds are metres,
-velocity metres per second, and rotation and orientation degrees.
+Parquet, and `QPlanar = { x: i64, z: i64 }` the same on the ground plane.
+Position, radius and bounds are metres, velocity metres per second, and
+rotation degrees.
 
 ```text
 GaugeI32 = { current: i32, maximum: i32 }
@@ -888,14 +887,15 @@ byte, an `Option<T>` a presence byte followed by `T` when present, and a list's
 length an `LE_u64`. Every public digest is 64 lowercase hex digits, and the
 Parquet tick columns hold the raw 32 bytes.
 
-### The stable physics layer, `battle-physics-v2`
+### The stable physics layer, `battle-physics-v3`
 
 `physics_tick_hash` digests a version-frozen combat physics projection rather
 than the whole MCFR schema. Adding an observation field does not change the
 projection. If a projection field, unit, precision, order or encoding must
-change, that is a new profile: `battle-physics-v2` is never edited in place.
-`battle-physics-v1` projected no turret; `v2` adds `turret_rotation` to the
-kinematics lane.
+change, that is a new profile: `battle-physics-v3` is never edited in place.
+`battle-physics-v1` projected no turret; `v2` added `turret_rotation` to the
+kinematics lane; `v3` drops the vertical velocity and the projectile's
+orientation and release flag, which the build never sets.
 
 The WorldSnapshot is canonicalised before hashing. Object lists stay in stable
 ID order, events in native `ordinal` order, weapon poses in `(skill_slot,
@@ -907,13 +907,13 @@ Each tick is three independent lane digests:
 
 | Lane | Fields |
 | --- | --- |
-| `battle-physics-kinematics-v2` | Unit: `unit_id, position, body_rotation, turret_rotation, velocity`, plus `skill_slot, weapon_index, pose.position, pose.rotation` for channels that have a pose. Projectile: `projectile_id, position, orientation`. Building: `building_id, position`. Shield: `shield_id, position, radius`. Terrain: `terrain_id, position, radius, grid(origin_x, origin_y, size_x, size_y, rows)` |
-| `battle-physics-vitals-v1` | Unit: `unit_id, unit_type_id, team_id, domain, collision_radius, life, personal_shield.active/energy`. Projectile: `projectile_id, team_id, owner, released, life`. Building: `building_id, building_type_id, team_id, bounds_width, bounds_height, life, available, targetable, collision_enabled`. Shield: `shield_id, team_id, owner, radius, energy, active`. Terrain: `terrain_id, team_id, terrain_type, radius` |
+| `battle-physics-kinematics-v3` | Unit: `unit_id, position, body_rotation, turret_rotation, velocity`, plus `skill_slot, weapon_index, pose.position, pose.rotation` for channels that have a pose. Projectile: `projectile_id, position`. Building: `building_id, position`. Shield: `shield_id, position, radius`. Terrain: `terrain_id, position, radius, grid(origin_x, origin_y, size_x, size_y, rows)` |
+| `battle-physics-vitals-v2` | Unit: `unit_id, unit_type_id, team_id, domain, collision_radius, life, personal_shield.active/energy`. Projectile: `projectile_id, team_id, owner, life`. Building: `building_id, building_type_id, team_id, bounds_width, bounds_height, life, available, targetable, collision_enabled`. Shield: `shield_id, team_id, owner, radius, energy, active`. Terrain: `terrain_id, team_id, terrain_type, radius` |
 | `battle-physics-interactions-v1` | each event contributes `ordinal, subject, source, source_team_id, target` first, then its type and physical payload: the release channel; a removal's position, interception and absorbing shield; a damage amount; a unit creation's team, type and position; a unit death position; a building destruction position; a team change; a shield creation's team and position; a shield destruction position; a terrain creation's team, type, position and radius; a terrain removal or conversion position; a healing amount |
 
 ```text
-K(t) = H_battle-physics-kinematics-v2(kinematics projection)
-V(t) = H_battle-physics-vitals-v1(vitals projection)
+K(t) = H_battle-physics-kinematics-v3(kinematics projection)
+V(t) = H_battle-physics-vitals-v2(vitals projection)
 I(t) = H_battle-physics-interactions-v1(interactions projection)
 
 physics_tick_hash(t) = H_battle-physics-tick-v1(
@@ -934,7 +934,7 @@ A physics regression therefore still pins logical time, Q32.32 position,
 rotation and velocity, life and shields, and the interactions including damage,
 while a new purely diagnostic field never forces a re-record.
 
-### The full content layer, `mcfr-content-0.7.0`
+### The full content layer, `mcfr-content-0.10.0`
 
 State and events are first encoded as canonical JSON: UTF-8, object keys sorted
 recursively, compact encoding, and the array order the schema defines. It covers
