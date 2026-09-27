@@ -235,6 +235,14 @@ impl Simulation {
                     changed.3,
                     changed.4,
                 );
+            if let Some(tree) = self.mech_quadtrees.get_mut(&changed.1) {
+                tree.position_changed(
+                    FightActorRef::Unit(actor_id),
+                    changed.2,
+                    changed.3,
+                    changed.4,
+                );
+            }
         }
     }
 

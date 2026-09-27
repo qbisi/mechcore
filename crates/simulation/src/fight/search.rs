@@ -280,6 +280,42 @@ impl TargetActorQuadtree {
             .insert(candidate, &self.ranges);
     }
 
+    /// `FightQuadtree.Query` for a square of full width `size` around a
+    /// point, all Q32.32: the root's elements always, then every element of
+    /// each node whose rect overlaps the square, strictly on both axes, with
+    /// no test of the elements themselves.
+    pub(in crate::fight) fn query_square(
+        &self,
+        center_x_q32: i64,
+        center_z_q32: i64,
+        size_q32: i64,
+    ) -> Vec<FightActorRef> {
+        let overlaps = |rect: TargetActorRect| {
+            let axis = |min: i64, max: i64, center: i64| {
+                let twice_delta =
+                    (i128::from(min) + i128::from(max) - 2 * i128::from(center)).abs();
+                twice_delta < i128::from(max) - i128::from(min) + i128::from(size_q32)
+            };
+            axis(rect.min_x, rect.max_x, center_x_q32) && axis(rect.min_z, rect.max_z, center_z_q32)
+        };
+        let mut found = self.root.elements.clone();
+        if overlaps(self.root.rect) {
+            let mut pending = self
+                .root
+                .children
+                .iter()
+                .flat_map(|children| children.iter())
+                .collect::<Vec<_>>();
+            while let Some(node) = pending.pop() {
+                if overlaps(node.rect) {
+                    found.extend(node.elements.iter().copied());
+                    pending.extend(node.children.iter().flat_map(|children| children.iter()));
+                }
+            }
+        }
+        found
+    }
+
     pub(in crate::fight) fn query_order(&self) -> Vec<FightActorRef> {
         let mut output = Vec::with_capacity(self.ranges.len());
         self.root.append_query_order(&mut output);
@@ -292,6 +328,26 @@ impl TargetActorQuadtree {
 /// A building nobody searches for is left out of them rather than scored and
 /// rejected: a Defensive Wall answers `IsEnableSearchTarget` with false, and
 /// the game's Crawlers lock onto the unit behind one at tick one.
+/// Each side's `FightTeam.mechQuadtree`: its units alone, in the order the
+/// target trees take them.
+pub(in crate::fight) fn initialize_mech_quadtrees(
+    actors: &BTreeMap<u64, Actor>,
+) -> BTreeMap<u32, TargetActorQuadtree> {
+    let mut trees = BTreeMap::<u32, TargetActorQuadtree>::new();
+    for (&actor_id, actor) in actors {
+        trees
+            .entry(actor.placement.team)
+            .or_insert_with(TargetActorQuadtree::new)
+            .insert(
+                FightActorRef::Unit(actor_id),
+                actor.x_q32,
+                actor.z_q32,
+                actor.rules.collision_radius(),
+            );
+    }
+    trees
+}
+
 pub(in crate::fight) fn initialize_target_quadtrees(
     actors: &BTreeMap<u64, Actor>,
     buildings: &[BuildingState],

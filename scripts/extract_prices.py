@@ -207,6 +207,9 @@ def write_unit_experience(names, levels):
     The table is read verbatim. The formula is only checked, so a row that
     breaks it is still written as the build has it, and named here.
     """
+    config = build_data.level0("Config")
+    assist_rate = config["assistKillExpRate"]["m_rawValue"]
+    assist_range = config["assistExpRange"]
     from decimal import Decimal, ROUND_HALF_UP
 
     factors = [Decimal(factor) for factor in EXPERIENCE_FACTORS]
@@ -214,7 +217,15 @@ def write_unit_experience(names, levels):
              "# `upgrade_exp` is `mechExpDatas.upgradeLv2` through `upgradeLv9`. Its",
              "# n-th entry fills the bar of a formation at level n; level 9 fills",
              "# at the last entry. docs/rules/unit_experience.md states why, and the",
-             "# formula the rows follow.",
+             "# formula the rows follow. `loot_exp` is `lootExpLv1` through",
+             "# `lootExpLv9`: what one unit of the row hands out when it is killed",
+             "# at that level.",
+             "",
+             "# `Config.assistKillExpRate`, FPoint raw, and `Config.assistExpRange`",
+             "# in metres: how a kill's shared pool is sized, and how near the kill",
+             "# a unit stands to share it.",
+             f"assist_kill_exp_rate: {assist_rate}",
+             f"assist_exp_range: {assist_range}",
              "", "units:"]
     breaking = []
     for unit_id in sorted(names):
@@ -227,8 +238,9 @@ def write_unit_experience(names, levels):
         if predicted != table:
             breaking.append(names[unit_id])
         values = ", ".join(str(value) for value in table)
+        loot = ", ".join(str(row[f"lootExpLv{level}"]) for level in range(1, 10))
         lines.append(f"  - {{type: {names[unit_id]}, unit_id: {unit_id}, "
-                     f"upgrade_exp: [{values}]}}")
+                     f"upgrade_exp: [{values}], loot_exp: [{loot}]}}")
     UNIT_EXPERIENCE.write_text("\n".join(lines) + "\n")
     print(f"units whose experience breaks the formula: {breaking}")
 

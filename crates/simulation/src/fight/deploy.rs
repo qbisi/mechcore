@@ -13,6 +13,8 @@ pub(in crate::fight) struct InitialBuildings {
     pub(in crate::fight) tower_buffed_constructions: BTreeSet<u64>,
     /// Each construction's side and group, by building.
     pub(in crate::fight) construction_groups: BTreeMap<u64, (u32, usize)>,
+    /// The experience each building's destruction hands out, by building.
+    pub(in crate::fight) building_exp: BTreeMap<u64, i64>,
 }
 
 /// One building before it is given an identity, from either source.
@@ -34,16 +36,33 @@ pub(in crate::fight) struct RawBuilding {
     pub(in crate::fight) tower_buff: bool,
     /// The construction a block belongs to; none for a tower.
     pub(in crate::fight) group: Option<usize>,
+    /// The experience its destruction hands out.
+    pub(in crate::fight) exp: i64,
 }
 
-/// Each construction block's side and construction, by building.
-fn construction_groups(
-    raw: &[RawBuilding],
-    id_of: impl Fn(&RawBuilding) -> u64,
-) -> BTreeMap<u64, (u32, usize)> {
-    raw.iter()
-        .filter_map(|building| Some((id_of(building), (building.team_id, building.group?))))
-        .collect()
+/// Construction groups, building experience and tower-buffed constructions.
+type BuildingGroups = (
+    BTreeMap<u64, (u32, usize)>,
+    BTreeMap<u64, i64>,
+    BTreeSet<u64>,
+);
+
+/// Each construction block's side and construction, what each building's
+/// destruction hands out, and the constructions a tower's loss reaches, by
+/// building.
+fn construction_groups(raw: &[RawBuilding], id_of: impl Fn(&RawBuilding) -> u64) -> BuildingGroups {
+    (
+        raw.iter()
+            .filter_map(|building| Some((id_of(building), (building.team_id, building.group?))))
+            .collect(),
+        raw.iter()
+            .map(|building| (id_of(building), building.exp))
+            .collect(),
+        raw.iter()
+            .filter(|building| building.tower_buff)
+            .map(&id_of)
+            .collect(),
+    )
 }
 
 pub(in crate::fight) fn generate_formation_positions(
@@ -217,6 +236,7 @@ fn map_buildings(
                 loss_ticks: Some(towers.loss_ticks(level)?),
                 tower_buff: false,
                 group: None,
+                exp: building.exp,
             })
         })
         .collect()
@@ -257,6 +277,7 @@ pub(in crate::fight) fn initialize_buildings(
         loss_ticks: None,
         tower_buff: building.tower_buff,
         group: Some(building.group),
+        exp: i64::from(building.exp),
     }));
 
     let building_key = |building: &RawBuilding| {
@@ -328,12 +349,7 @@ pub(in crate::fight) fn initialize_buildings(
             })
         })
         .collect();
-    let tower_buffed_constructions = raw
-        .iter()
-        .filter(|building| building.tower_buff)
-        .map(|building| normalized_ids[&building_key(building)])
-        .collect();
-    let construction_groups =
+    let (construction_groups, building_exp, tower_buffed_constructions) =
         construction_groups(&raw, |building| normalized_ids[&building_key(building)]);
     Ok(InitialBuildings {
         states,
@@ -342,6 +358,7 @@ pub(in crate::fight) fn initialize_buildings(
         tower_losses,
         tower_buffed_constructions,
         construction_groups,
+        building_exp,
     })
 }
 

@@ -39,6 +39,7 @@ fn sim_command_writes_mcfr_and_prints_the_result() {
         [
             "buildings.parquet",
             "events.parquet",
+            "formations.parquet",
             "layout.yaml",
             "projectiles.parquet",
             "statistics.parquet",

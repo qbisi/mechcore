@@ -10,7 +10,7 @@
 
 use crate::capture::{CaptureState, list_count, list_item};
 use crate::il2cpp::{Api, Class, FieldInfo, Object};
-use mechcore_mcfr::{DamageStatistics, RecorderKind};
+use mechcore_mcfr::{DamageStatistics, FormationState, RecorderKind};
 
 /// A `Dictionary<IDamageRecorder, UnitDamageStatisticData>` entry.
 #[repr(C)]
@@ -38,6 +38,8 @@ pub(crate) struct StatisticsMetadata {
     combination: usize,
     construction: usize,
     mech: usize,
+    experience: usize,
+    max_experience: usize,
 }
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
@@ -55,6 +57,7 @@ pub(crate) fn initialize(api: Api) -> Result<StatisticsMetadata, String> {
     let round = class("GameRiver", "RoundStatisticData")?;
     let data = class("GameRiver", "UnitDamageStatisticData")?;
     let combination = class("GameRiver.Fight", "FightConstructionCombination")?;
+    let mech_team = class("GameRiver.Fight", "MechTeam")?;
     Ok(StatisticsMetadata {
         manager: field(fight, "battleStatisticManager")?,
         round: field(manager, "roundStatisticData")?,
@@ -65,10 +68,12 @@ pub(crate) fn initialize(api: Api) -> Result<StatisticsMetadata, String> {
         kill_count: field(data, "<KillCount>k__BackingField")?,
         damage_taken: field(data, "<DamageTaken>k__BackingField")?,
         combination_constructions: field(combination, "constructions")?,
-        mech_team: class("GameRiver.Fight", "MechTeam")? as usize,
+        mech_team: mech_team as usize,
         combination: combination as usize,
         construction: class("GameRiver.Fight", "FightConstruction")? as usize,
         mech: class("GameRiver.Fight", "FightMech")? as usize,
+        experience: field(mech_team, "expFloat")?,
+        max_experience: field(mech_team, "maxExpFloat")?,
     })
 }
 
@@ -228,4 +233,42 @@ fn row(
         kills: value(api, data, metadata.kill_count, "KillCount")?,
         damage_taken: value(api, data, metadata.damage_taken, "DamageTaken")?,
     })
+}
+
+/// Every formation's experience, `MechTeam.expFloat`, and its full bar,
+/// `maxExpFloat`, both `FPoint` raw, in `formation_id` order.
+pub(crate) fn read_formations(
+    api: Api,
+    metadata: &StatisticsMetadata,
+    capture: &CaptureState,
+) -> Result<Vec<FormationState>, String> {
+    let mut rows = Vec::new();
+    for (pointer, formation_id) in &capture.formation_ids {
+        let team = *pointer as *mut Object;
+        // A unit with no formation is keyed by its own pointer.
+        let is_team = api
+            .object_class(team)
+            .is_some_and(|class| api.class_is_or_inherits(class, metadata.mech_team as *mut Class));
+        if !is_team {
+            continue;
+        }
+        let team_id = capture
+            .formation_teams
+            .get(formation_id)
+            .copied()
+            .ok_or("a formation has no team")?;
+        rows.push(FormationState {
+            formation_id: *formation_id,
+            team_id,
+            experience: value::<i64>(api, team, metadata.experience, "MechTeam.expFloat")?,
+            max_experience: value::<i64>(
+                api,
+                team,
+                metadata.max_experience,
+                "MechTeam.maxExpFloat",
+            )?,
+        });
+    }
+    rows.sort_by_key(|row| row.formation_id);
+    Ok(rows)
 }

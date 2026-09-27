@@ -6,12 +6,12 @@ steps:
       seed: 1787857041
     expect:
       steps: 647
-      hashes.physics_result_hash: 67fadd51d4c7a8ffde3f3a9a75704f9f73267d658b0fdcbf18fa360ae427bd75
-      hashes.content_result_hash: e4fe0df3d063ab9ddde1b1ab52c358f6a45bf79fadbb9b3e32980a5733c8fa1a
+      hashes.physics_result_hash: 7b7b9fd36dc796354233093d41f1e2f8451b75dd15f4f0d1047849fc7f425428
+      hashes.content_result_hash: 8782500b2d1f0769e185f02ce66a9b390631b48c4beab1ad41de83fea057d039
   - fight.run:
       layout: tests/wraith/two-targets.yaml
       seed: 1787857041
     expect:
       steps: 96
-      hashes.physics_result_hash: 21a2385f89302bb22948e68ab1959d1cbf3e22f624c8a99002082c9713123e7f
-      hashes.content_result_hash: c943400b5e20d98df045745c52b636d7fbd2e4379cb5e7ef89ac11f58ce74046
+      hashes.physics_result_hash: 1ae329d98a35d0ee78794bb726b41475fa7484d56cd6fac80baecf848947a9bb
+      hashes.content_result_hash: 726c4c784f12fe4173194799b3b0fd283d60ffda667b6d5e87908f35beefd687

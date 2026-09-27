@@ -32,12 +32,13 @@ use zip::{CompressionMethod, ZipArchive, ZipWriter, write::SimpleFileOptions};
 
 use crate::{
     BuildingState, CONTENT_HASH_PROFILE, DamageStatistics, DerivedStats, Domain, DurableContext,
-    Error, Event, EventPayload, GaugeI32, Hashes, LiveUnitState, MCFR_FORMAT, Modifier,
-    ModifierChannel, ModifierPart, MotionState, ObjectKind, ObjectRef, PHYSICS_HASH_PROFILE,
-    PersonalShieldState, ProjectileState, QPlanar, QPose, QVec3, RecorderKind, Result,
-    ShieldRoundPolicy, ShieldSourceKind, ShieldState, TerrainApplicationState, TerrainEffectClock,
-    TerrainGridState, TerrainLogicLifetime, TerrainState, TerrainType, TransitionEvents,
-    Visibility, WeaponAimState, WorldSnapshot, canonical,
+    Error, Event, EventPayload, FormationState, GaugeI32, Hashes, LiveUnitState, MCFR_FORMAT,
+    Modifier, ModifierChannel, ModifierPart, MotionState, ObjectKind, ObjectRef,
+    PHYSICS_HASH_PROFILE, PersonalShieldState, ProjectileState, QPlanar, QPose, QVec3,
+    RecorderKind, Result, ShieldRoundPolicy, ShieldSourceKind, ShieldState,
+    TerrainApplicationState, TerrainEffectClock, TerrainGridState, TerrainLogicLifetime,
+    TerrainState, TerrainType, TransitionEvents, Visibility, WeaponAimState, WorldSnapshot,
+    canonical,
     event_table::{batch_events, event_batch, event_schema},
     instrument::{self, ChannelSchema, InstrumentRow},
 };
@@ -47,13 +48,14 @@ const REQUIRED_MEMBERS: [&str; 2] = ["layout.yaml", "ticks.parquet"];
 
 /// The per-tick tables, in container order. A table no row was written to is
 /// left out, and reads as having none.
-const TABLE_MEMBERS: [&str; 7] = [
+const TABLE_MEMBERS: [&str; 8] = [
     "units.parquet",
     "projectiles.parquet",
     "buildings.parquet",
     "shields.parquet",
     "terrains.parquet",
     "statistics.parquet",
+    "formations.parquet",
     "events.parquet",
 ];
 
@@ -98,12 +100,14 @@ pub(crate) struct StorageWriter {
     buildings: Option<ArrowWriter<File>>,
     shields: Option<ArrowWriter<File>>,
     statistics: Option<ArrowWriter<File>>,
+    formations: Option<ArrowWriter<File>>,
     terrains: Option<ArrowWriter<File>>,
     unit_rows: Vec<(u32, LiveUnitState)>,
     projectile_rows: Vec<(u32, ProjectileState)>,
     building_rows: Vec<(u32, BuildingState)>,
     shield_rows: Vec<(u32, ShieldState)>,
     statistic_rows: Vec<(u32, DamageStatistics)>,
+    formation_rows: Vec<(u32, FormationState)>,
     terrain_rows: Vec<(u32, TerrainState)>,
     event_rows: Vec<(u32, u32, Event)>,
     events: Option<ArrowWriter<File>>,
@@ -129,12 +133,14 @@ impl StorageWriter {
             buildings: None,
             shields: None,
             statistics: None,
+            formations: None,
             terrains: None,
             unit_rows: Vec::new(),
             projectile_rows: Vec::new(),
             building_rows: Vec::new(),
             shield_rows: Vec::new(),
             statistic_rows: Vec::new(),
+            formation_rows: Vec::new(),
             terrain_rows: Vec::new(),
             event_rows: Vec::new(),
             events: None,
@@ -198,6 +204,8 @@ impl StorageWriter {
             .extend(state.terrains.iter().cloned().map(|row| (tick, row)));
         self.statistic_rows
             .extend(state.statistics.iter().copied().map(|row| (tick, row)));
+        self.formation_rows
+            .extend(state.formations.iter().copied().map(|row| (tick, row)));
     }
 
     pub(crate) fn append_tick(
@@ -265,6 +273,12 @@ impl StorageWriter {
         )?;
         write_buffer(
             directory,
+            &mut self.formations,
+            Track::Formations,
+            formation_batch(&self.formation_rows)?,
+        )?;
+        write_buffer(
+            directory,
             &mut self.events,
             Track::Events,
             event_batch(&self.event_rows)?,
@@ -281,6 +295,7 @@ impl StorageWriter {
         self.building_rows.clear();
         self.shield_rows.clear();
         self.statistic_rows.clear();
+        self.formation_rows.clear();
         self.terrain_rows.clear();
         self.event_rows.clear();
         Ok(())
@@ -302,6 +317,7 @@ impl StorageWriter {
             &mut self.shields,
             &mut self.terrains,
             &mut self.statistics,
+            &mut self.formations,
             &mut self.events,
         ] {
             if let Some(writer) = table.take() {
@@ -404,6 +420,7 @@ enum Track {
     Shields,
     Terrains,
     Statistics,
+    Formations,
     Events,
     Instrument,
 }
@@ -419,6 +436,7 @@ impl Track {
             Self::Shields => Some(("shields.parquet", shield_schema())),
             Self::Terrains => Some(("terrains.parquet", terrain_schema())),
             Self::Statistics => Some(("statistics.parquet", statistic_schema())),
+            Self::Formations => Some(("formations.parquet", formation_schema())),
             Self::Events => Some(("events.parquet", event_schema())),
             Self::Ticks | Self::Instrument => None,
         }
@@ -508,6 +526,7 @@ fn dictionary_paths(track: Track) -> &'static [&'static str] {
         Track::Shields => &["team_id", "source_kind", "energy.maximum", "round_policy"],
         Track::Terrains => &["team_id", "terrain_type", "remaining_rounds"],
         Track::Statistics => &["team_id", "recorder"],
+        Track::Formations => &["team_id", "max_experience"],
     }
 }
 
@@ -520,6 +539,7 @@ fn delta_paths(track: Track) -> &'static [&'static str] {
         | Track::Shields
         | Track::Terrains
         | Track::Statistics
+        | Track::Formations
         | Track::Events
         | Track::Instrument => &["tick"],
     }
@@ -643,6 +663,23 @@ fn statistic_identity(row: &DamageStatistics) -> u64 {
     (u64::from(row.team_id) << 56)
         | (u64::from(encode_recorder(row.recorder)) << 48)
         | row.recorder_id
+}
+
+fn formation_batch(rows: &[(u32, FormationState)]) -> Result<Option<RecordBatch>> {
+    if rows.is_empty() {
+        return Ok(None);
+    }
+    let values = rows.iter().map(|(_, row)| row).collect::<Vec<_>>();
+    Ok(Some(RecordBatch::try_new(
+        formation_schema(),
+        vec![
+            u32_values(rows.iter().map(|(tick, _)| *tick)),
+            u64_values(values.iter().map(|row| row.formation_id)),
+            u32_values(values.iter().map(|row| row.team_id)),
+            i64_values(values.iter().map(|row| row.experience)),
+            i64_values(values.iter().map(|row| row.max_experience)),
+        ],
+    )?))
 }
 
 fn shield_batch(rows: &[(u32, ShieldState)]) -> Result<Option<RecordBatch>> {
@@ -1176,6 +1213,16 @@ fn statistic_schema() -> SchemaRef {
     ]))
 }
 
+fn formation_schema() -> SchemaRef {
+    Arc::new(Schema::new(vec![
+        Field::new("tick", DataType::UInt32, false),
+        Field::new("formation_id", DataType::UInt64, false),
+        Field::new("team_id", DataType::UInt32, false),
+        Field::new("experience", DataType::Int64, false),
+        Field::new("max_experience", DataType::Int64, false),
+    ]))
+}
+
 fn shield_schema() -> SchemaRef {
     Arc::new(Schema::new(vec![
         Field::new("tick", DataType::UInt32, false),
@@ -1591,6 +1638,7 @@ pub(crate) struct StorageReader {
     shields: Vec<Vec<ShieldState>>,
     terrains: Vec<Vec<TerrainState>>,
     statistics: Vec<Vec<DamageStatistics>>,
+    formations: Vec<Vec<FormationState>>,
     events: Vec<Vec<Event>>,
     instrument: BTreeMap<String, MemberSlice>,
 }
@@ -1654,6 +1702,12 @@ impl StorageReader {
             statistic_identity,
             "statistics",
         )?;
+        let formations = group_state_rows(
+            table(&members, "formations.parquet", read_formations)?,
+            tick_count,
+            |row| row.formation_id,
+            "formation",
+        )?;
         let events = group_event_rows(table(&members, "events.parquet", read_events)?, tick_count)?;
         let instrument = members
             .iter()
@@ -1672,6 +1726,7 @@ impl StorageReader {
             shields,
             terrains,
             statistics,
+            formations,
             events,
             instrument,
         })
@@ -1738,6 +1793,7 @@ impl StorageReader {
             shields: self.shields[index].clone(),
             terrains: self.terrains[index].clone(),
             statistics: self.statistics[index].clone(),
+            formations: self.formations[index].clone(),
         })
     }
 
@@ -2024,6 +2080,30 @@ fn read_statistics(member: MemberSlice) -> Result<Vec<(u32, DamageStatistics)>> 
                     damage_real: damage_real.value(index),
                     kills: kills.value(index),
                     damage_taken: damage_taken.value(index),
+                },
+            ));
+        }
+    }
+    Ok(rows)
+}
+
+fn read_formations(member: MemberSlice) -> Result<Vec<(u32, FormationState)>> {
+    let mut rows = Vec::new();
+    for batch in checked_builder(member, formation_schema().as_ref(), "formations")?.build()? {
+        let batch = batch?;
+        let tick = column::<UInt32Array>(&batch, "tick")?;
+        let id = column::<UInt64Array>(&batch, "formation_id")?;
+        let team = column::<UInt32Array>(&batch, "team_id")?;
+        let experience = column::<Int64Array>(&batch, "experience")?;
+        let max_experience = column::<Int64Array>(&batch, "max_experience")?;
+        for index in 0..batch.num_rows() {
+            rows.push((
+                tick.value(index),
+                FormationState {
+                    formation_id: id.value(index),
+                    team_id: team.value(index),
+                    experience: experience.value(index),
+                    max_experience: max_experience.value(index),
                 },
             ));
         }

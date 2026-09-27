@@ -59,7 +59,7 @@ steps:
       output: ${out}/impair-once.mcfr
     expect:
       operation.tick_count: 120
-      operation.hashes.physics_result_hash: c2009f4f148dfa01c8d5b3f7f87dd688b3792204bbd49650ff3e7aa7a6394ec6
+      operation.hashes.physics_result_hash: d7f998cc386431d71a852b9a036b4a573f41d3f6f25db15631c3f6dccb2cf046
   - fight.outcome:
       recording: ${out}/impair-once.mcfr
     expect:
@@ -77,7 +77,7 @@ steps:
       output: ${out}/impair-twice.mcfr
     expect:
       operation.tick_count: 120
-      operation.hashes.physics_result_hash: 5c4386af8c4f0212d877759b3421efff38dd8e1903ff5ece0e1052d4adf9ace9
+      operation.hashes.physics_result_hash: 338546b779379aedb1205b835a79bf50df4d9dc2677bf3c9eb0f23021ffbd920
   - fight.outcome:
       recording: ${out}/impair-twice.mcfr
     expect:

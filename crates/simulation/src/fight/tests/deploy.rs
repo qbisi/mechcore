@@ -104,6 +104,7 @@ fn multi_formation_initial_state_and_target_search_entry_match_the_build() {
             tower_losses,
             tower_buffed_constructions,
             construction_groups: _,
+            building_exp,
         } = initialize_buildings(&config.towers, &[], &BTreeMap::new()).unwrap();
         let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
         Simulation {
@@ -112,6 +113,7 @@ fn multi_formation_initial_state_and_target_search_entry_match_the_build() {
             projectiles: Vec::new(),
             buildings,
             target_quadtrees,
+            mech_quadtrees: BTreeMap::new(),
             identities: IdentityAllocator::new(),
             rvo_counter: 0,
             rvo_first_tree_pending: true,
@@ -126,6 +128,10 @@ fn multi_formation_initial_state_and_target_search_entry_match_the_build() {
             tower_buffed_constructions,
             statistics: BTreeMap::new(),
             construction_recorders: BTreeMap::new(),
+            formations: BTreeMap::new(),
+            attackers: BTreeMap::new(),
+            building_exp,
+            experience: super::experience::ExperienceTable::load().unwrap(),
         }
     };
     let mut simulation = make_simulation();

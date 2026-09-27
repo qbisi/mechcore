@@ -138,6 +138,7 @@ fn normal_selector_split_query_remains_order_independent_for_a_unique_best() {
         tower_losses,
         tower_buffed_constructions,
         construction_groups: _,
+        building_exp,
     } = initialize_buildings(&config.towers, &[], &BTreeMap::new()).unwrap();
     let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
     let simulation = Simulation {
@@ -146,6 +147,7 @@ fn normal_selector_split_query_remains_order_independent_for_a_unique_best() {
         projectiles: Vec::new(),
         buildings,
         target_quadtrees,
+        mech_quadtrees: BTreeMap::new(),
         identities: IdentityAllocator::new(),
         rvo_counter: 0,
         rvo_first_tree_pending: true,
@@ -160,6 +162,10 @@ fn normal_selector_split_query_remains_order_independent_for_a_unique_best() {
         tower_buffed_constructions,
         statistics: BTreeMap::new(),
         construction_recorders: BTreeMap::new(),
+        formations: BTreeMap::new(),
+        attackers: BTreeMap::new(),
+        building_exp,
+        experience: super::experience::ExperienceTable::load().unwrap(),
     };
     assert_eq!(simulation.select_normal_unit_target(1).unwrap(), Some(10));
 }

@@ -57,6 +57,8 @@ pub(crate) struct ConstructionBuilding {
     /// of one construction are one `FightConstructionCombination`, which
     /// the build's damage statistics count together.
     pub(crate) group: usize,
+    /// The experience its destruction hands out.
+    pub(crate) exp: i32,
     /// Whether a unit looking for something to shoot may find this one.
     ///
     /// A Defensive Wall may not: its row answers `IsEnableSearchTarget` with
@@ -254,6 +256,7 @@ impl Constructions {
                 radius: fixed_to_space(row.radius),
                 life: row.max_life,
                 group: 0,
+                exp: row.exp,
                 searchable: row.enable_search_target,
                 collider_priority: row.pathfinding_collider_priority,
                 skill: skill.clone(),

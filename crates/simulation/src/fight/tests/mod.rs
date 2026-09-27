@@ -53,6 +53,7 @@ pub(super) fn raw_test_simulation(
         tower_losses,
         tower_buffed_constructions,
         construction_groups: _,
+        building_exp,
     } = initialize_buildings(&config.towers, &[], &BTreeMap::new()).unwrap();
     let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
     Simulation {
@@ -61,6 +62,7 @@ pub(super) fn raw_test_simulation(
         projectiles: Vec::new(),
         buildings,
         target_quadtrees,
+        mech_quadtrees: BTreeMap::new(),
         identities: IdentityAllocator::new(),
         rvo_counter: 0,
         rvo_first_tree_pending: true,
@@ -75,6 +77,10 @@ pub(super) fn raw_test_simulation(
         tower_buffed_constructions,
         statistics: BTreeMap::new(),
         construction_recorders: BTreeMap::new(),
+        formations: BTreeMap::new(),
+        attackers: BTreeMap::new(),
+        building_exp,
+        experience: super::experience::ExperienceTable::load().unwrap(),
     }
 }
 

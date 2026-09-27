@@ -394,6 +394,8 @@ pub(crate) struct CaptureState {
     pub(crate) emitted_deaths: BTreeSet<ObjectRef>,
     last_damage_sources: BTreeMap<ObjectRef, DamageAttribution>,
     pub(crate) formation_ids: BTreeMap<usize, u64>,
+    /// Each formation's side, from its first unit's original team.
+    pub(crate) formation_teams: BTreeMap<u64, u32>,
     next_unit_id: u64,
     next_building_id: u64,
     next_projectile_id: u64,
@@ -453,6 +455,7 @@ impl CaptureState {
         self.emitted_deaths.clear();
         self.last_damage_sources.clear();
         self.formation_ids.clear();
+        self.formation_teams.clear();
         self.next_unit_id = 1;
         self.next_building_id = 1;
         self.next_projectile_id = 1;
@@ -4666,6 +4669,7 @@ fn snapshot(
         capture.next_unit_id = 1;
         capture.next_formation_id = 1;
         capture.formation_ids.clear();
+        capture.formation_teams.clear();
         capture
             .object_teams
             .retain(|reference, _| reference.kind != ObjectKind::Unit);
@@ -4705,6 +4709,10 @@ fn snapshot(
             .formation_ids
             .entry(formation_key)
             .or_insert(formation_id);
+        capture
+            .formation_teams
+            .entry(formation_id)
+            .or_insert(original_team_id);
         unit.state.unit_id = unit_id;
         unit.state.original_team_id = original_team_id;
         capture.object_teams.insert(
@@ -4911,6 +4919,16 @@ fn snapshot(
         capture,
     )
     .map_err(|error| format!("battle statistics: {error}"))?;
+    let formations = statistics::read_formations(
+        runtime.api,
+        capture
+            .metadata
+            .statistics
+            .as_ref()
+            .ok_or("statistics metadata is unavailable")?,
+        capture,
+    )
+    .map_err(|error| format!("formation experience: {error}"))?;
     Ok(CapturedSnapshot {
         native_tick,
         world: WorldSnapshot {
@@ -4920,6 +4938,7 @@ fn snapshot(
             shields,
             terrains,
             statistics,
+            formations,
         },
         instrument,
     })

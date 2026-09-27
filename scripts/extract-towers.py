@@ -96,7 +96,8 @@ def render(structure):
         "",
         f"# The four towers of {setting['mapData']}, the Training Ground's map:",
         "# team, building type (1 the Energy Tower, 2 the Research Center),",
-        "# centre in metres, life from towerDefaultDatas, half-width.",
+        "# centre in metres, life from towerDefaultDatas, half-width, and the",
+        "# experience its destruction hands out (towerDefaultDatas `exp`).",
         "buildings:",
     ]
     for tower in towers:
@@ -105,6 +106,7 @@ def render(structure):
             f"    building_type_id: {tower['buildingType']}",
             f"    position: {{x: {metres(tower['position']['x'])}, z: {metres(tower['position']['y'])}}}",
             f"    life: {default['life']}",
+            f"    exp: {default['exp']}",
             f"    radius: {metres(tower['radius'])}",
             f"    collision_enabled: {str(tower['enablePathfinding']).lower()}",
         ]
