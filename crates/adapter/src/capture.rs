@@ -14,12 +14,13 @@ use mechcore_document::{
     contraption_type_from_id, unit_type_from_id,
 };
 use mechcore_mcfr::{
-    BuildingState, DerivedStats, Domain, DurableContext, Event, EventPayload, GaugeI32,
-    LiveUnitState, Modifier, ModifierChannel, ModifierPart, MotionState, ObjectKind, ObjectRef,
-    PersonalShieldState, ProjectileState, QPlanar, QPose, QVec3, Rational, ShieldDestroyedReason,
-    ShieldRoundPolicy, ShieldSourceKind, ShieldState, TerrainApplicationState, TerrainEffectClock,
-    TerrainGridState, TerrainLogicLifetime, TerrainRemovedReason, TerrainState, TerrainType,
-    TransitionEvents, Visibility, WeaponAimState, WorldSnapshot,
+    BuffRemovedReason, BuildingState, DerivedStats, Domain, DurableContext, Event, EventPayload,
+    GaugeI32, LiveUnitState, Modifier, ModifierChannel, ModifierPart, MotionState, ObjectKind,
+    ObjectRef, PersonalShieldState, ProjectileState, QPlanar, QPose, QVec3, Rational,
+    ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind, ShieldState,
+    TerrainApplicationState, TerrainEffectClock, TerrainGridState, TerrainLogicLifetime,
+    TerrainRemovedReason, TerrainState, TerrainType, TransitionEvents, Visibility, WeaponAimState,
+    WorldSnapshot,
 };
 use mechcore_mcfr::{
     CheckedSkill, RvoNeighbour, RvoSolve, RvoVo, SkillAttackableCheck, TargetCandidate, TargetRefs,
@@ -1087,6 +1088,13 @@ static ORIGINAL_SHIELD_MANAGER_DESTROY: AtomicPtr<c_void> = AtomicPtr::new(ptr::
 static ORIGINAL_RANGE_ITEM_REMOVE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_RANGE_ITEM_CONTROLLER_EXIT_FIGHT: AtomicPtr<c_void> =
     AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_BUFF_MANAGER_ADD: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_BUFF_RESET: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_BUFF_MANAGER_REMOVE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_BUFF_MANAGER_REMOVE_DATA: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_BUFF_MANAGER_REMOVE_EFFECT: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_BUFF_MANAGER_CLEAR_DISABLED: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_BUFF_MANAGER_CLEAR: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_CHECKER_CHECK: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 thread_local! {
     static ACTIVE_PROJECTILE_CHANNEL: Cell<Option<(usize, i32)>> = const { Cell::new(None) };
@@ -1094,6 +1102,8 @@ thread_local! {
     /// Inside `RangeItemController.OnExitFight`, where terrain leaves as its
     /// rounds run out.
     static EXITING_FIGHT: Cell<bool> = const { Cell::new(false) };
+    /// The `BuffManager` method, if any, a buff is being removed under.
+    static BUFF_REMOVAL_SCOPE: Cell<Option<BuffRemovedReason>> = const { Cell::new(None) };
 }
 
 #[derive(Clone, Copy, Default)]
@@ -1210,6 +1220,18 @@ enum NativeTrace {
     Healing {
         target: usize,
         amount: i32,
+    },
+    BuffApplied {
+        target: usize,
+        source: usize,
+        source_team_id: Option<u32>,
+        buff_id: u32,
+        duration: i32,
+    },
+    BuffRemoved {
+        target: usize,
+        buff_id: u32,
+        reason: BuffRemovedReason,
     },
 }
 
@@ -1529,6 +1551,7 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             .class("GRFight.dll", "GameRiver.Fight", "RangeItemController")
             .and_then(|class| api.method(class, "OnExitFight", 0))
             .map_err(|error| error.to_string())?;
+        install_buff_hooks(api)?;
         install_inline_hook(
             api,
             range_item_controller_exit_fight,
@@ -1956,6 +1979,8 @@ type CreateMechFn = unsafe extern "C" fn(
 type AddLifeFn = unsafe extern "C" fn(*mut Object, i32, bool, *const MethodInfo);
 type ShieldManagerDestroyFn = unsafe extern "C" fn(*mut Object, *mut Object, *const MethodInfo);
 type RangeItemRemoveFn = unsafe extern "C" fn(*mut Object, *const MethodInfo);
+type ObjectArgumentFn = unsafe extern "C" fn(*mut Object, *mut Object, *const MethodInfo);
+type BuffResetFn = unsafe extern "C" fn(*mut Object, *mut Object, *mut Object, *const MethodInfo);
 type CheckerCheckFn = unsafe extern "C" fn(*mut Object, bool, *const MethodInfo) -> bool;
 
 /// `SkillAttackableChecker.Check(bool isAttackingCheck)`, forwarded unchanged.
@@ -3268,6 +3293,275 @@ unsafe extern "C" fn range_item_controller_exit_fight_hook(
     // SAFETY: IL2CPP arguments are forwarded unchanged.
     unsafe { original(controller, method) };
     EXITING_FIGHT.with(|exiting| exiting.set(previous));
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn install_buff_hooks(api: Api) -> Result<(), String> {
+    let error = |error: crate::il2cpp::Error| error.to_string();
+    let manager = api
+        .class("GRFight.dll", "GameRiver.Fight", "BuffManager")
+        .map_err(error)?;
+    let buff = api
+        .class("GRFight.dll", "GameRiver.Fight", "Buff")
+        .map_err(error)?;
+    let typed = |name: &str, parameter: &str| {
+        api.class_method_with_parameter_types(manager, name, &[parameter])
+            .map_err(error)
+    };
+    let hooks: [(*const MethodInfo, *const c_void, &AtomicPtr<c_void>, &str); 7] = [
+        (
+            typed("AddBuff", "GameRiver.Fight.Buff")?,
+            buff_manager_add_hook as *const c_void,
+            &ORIGINAL_BUFF_MANAGER_ADD,
+            "BuffManager.AddBuff(Buff)",
+        ),
+        (
+            api.method(buff, "Reset", 2).map_err(error)?,
+            buff_reset_hook as *const c_void,
+            &ORIGINAL_BUFF_RESET,
+            "Buff.Reset",
+        ),
+        (
+            typed("RemoveBuff", "GameRiver.Fight.Buff")?,
+            buff_manager_remove_hook as *const c_void,
+            &ORIGINAL_BUFF_MANAGER_REMOVE,
+            "BuffManager.RemoveBuff(Buff)",
+        ),
+        (
+            typed("RemoveBuff", "GameRiver.Fight.IBuffData")?,
+            buff_manager_remove_data_hook as *const c_void,
+            &ORIGINAL_BUFF_MANAGER_REMOVE_DATA,
+            "BuffManager.RemoveBuff(IBuffData)",
+        ),
+        (
+            api.method(manager, "RemoveBuffEffect", 1).map_err(error)?,
+            buff_manager_remove_effect_hook as *const c_void,
+            &ORIGINAL_BUFF_MANAGER_REMOVE_EFFECT,
+            "BuffManager.RemoveBuffEffect",
+        ),
+        (
+            api.method(manager, "ClearSelfResourceBuffByDisableTech", 1)
+                .map_err(error)?,
+            buff_manager_clear_disabled_hook as *const c_void,
+            &ORIGINAL_BUFF_MANAGER_CLEAR_DISABLED,
+            "BuffManager.ClearSelfResourceBuffByDisableTech",
+        ),
+        (
+            api.method(manager, "Clear", 0).map_err(error)?,
+            buff_manager_clear_hook as *const c_void,
+            &ORIGINAL_BUFF_MANAGER_CLEAR,
+            "BuffManager.Clear",
+        ),
+    ];
+    for (method, replacement, slot, label) in hooks {
+        install_inline_hook(api, method, replacement, slot, label)?;
+    }
+    Ok(())
+}
+
+/// `BuffManager.AddBuff(Buff)`, the private method every new buff joins its
+/// actor's list through, once `Buff.Init` has filled it. A buff put on again
+/// is not added a second time: see `buff_reset_hook`.
+unsafe extern "C" fn buff_manager_add_hook(
+    manager: *mut Object,
+    buff: *mut Object,
+    method: *const MethodInfo,
+) {
+    let original = ORIGINAL_BUFF_MANAGER_ADD.load(Ordering::Acquire);
+    if original.is_null() {
+        return;
+    }
+    // SAFETY: hook installer stored the trampoline for this exact method ABI.
+    let original: ObjectArgumentFn = unsafe { std::mem::transmute(original) };
+    // SAFETY: IL2CPP arguments are forwarded unchanged.
+    unsafe { original(manager, buff, method) };
+    let _ = catch_unwind(AssertUnwindSafe(|| record_buff_applied(buff)));
+}
+
+/// `Buff.Reset(newSource, data)`: the same buff put on an actor that already
+/// has it, which restarts or extends its time instead of adding another.
+unsafe extern "C" fn buff_reset_hook(
+    buff: *mut Object,
+    source: *mut Object,
+    data: *mut Object,
+    method: *const MethodInfo,
+) {
+    let original = ORIGINAL_BUFF_RESET.load(Ordering::Acquire);
+    if original.is_null() {
+        return;
+    }
+    // SAFETY: hook installer stored the trampoline for this exact method ABI.
+    let original: BuffResetFn = unsafe { std::mem::transmute(original) };
+    // SAFETY: IL2CPP arguments are forwarded unchanged.
+    unsafe { original(buff, source, data, method) };
+    let _ = catch_unwind(AssertUnwindSafe(|| record_buff_applied(buff)));
+}
+
+/// `BuffManager.RemoveBuff(Buff)`, the private method every buff leaves
+/// through, read before it runs and returns the buff to its pool. Why is the
+/// caller: one of the scopes below, or else `BuffManager.Update` finding its
+/// time run out.
+unsafe extern "C" fn buff_manager_remove_hook(
+    manager: *mut Object,
+    buff: *mut Object,
+    method: *const MethodInfo,
+) {
+    let original = ORIGINAL_BUFF_MANAGER_REMOVE.load(Ordering::Acquire);
+    if original.is_null() {
+        return;
+    }
+    let _ = catch_unwind(AssertUnwindSafe(|| record_buff_removed(buff)));
+    // SAFETY: hook installer stored the trampoline for this exact method ABI.
+    let original: ObjectArgumentFn = unsafe { std::mem::transmute(original) };
+    // SAFETY: IL2CPP arguments are forwarded unchanged.
+    unsafe { original(manager, buff, method) };
+}
+
+/// Runs `call` with `reason` as the scope any buff removed inside it leaves
+/// under.
+fn in_buff_removal_scope(reason: BuffRemovedReason, call: impl FnOnce()) {
+    let previous = BUFF_REMOVAL_SCOPE.with(|scope| scope.replace(Some(reason)));
+    call();
+    BUFF_REMOVAL_SCOPE.with(|scope| scope.set(previous));
+}
+
+/// `BuffManager.RemoveBuff(IBuffData)`: a skill or technology taking a buff
+/// off by its data.
+unsafe extern "C" fn buff_manager_remove_data_hook(
+    manager: *mut Object,
+    data: *mut Object,
+    method: *const MethodInfo,
+) {
+    let original = ORIGINAL_BUFF_MANAGER_REMOVE_DATA.load(Ordering::Acquire);
+    if original.is_null() {
+        return;
+    }
+    // SAFETY: hook installer stored the trampoline for this exact method ABI.
+    let original: ObjectArgumentFn = unsafe { std::mem::transmute(original) };
+    in_buff_removal_scope(BuffRemovedReason::Removed, || {
+        // SAFETY: IL2CPP arguments are forwarded unchanged.
+        unsafe { original(manager, data, method) };
+    });
+}
+
+/// `BuffManager.RemoveBuffEffect`, which `TeamTranslationSystem.ChangeTeam`
+/// calls on an actor changing side.
+unsafe extern "C" fn buff_manager_remove_effect_hook(
+    manager: *mut Object,
+    ignored: *mut Object,
+    method: *const MethodInfo,
+) {
+    let original = ORIGINAL_BUFF_MANAGER_REMOVE_EFFECT.load(Ordering::Acquire);
+    if original.is_null() {
+        return;
+    }
+    // SAFETY: hook installer stored the trampoline for this exact method ABI.
+    let original: ObjectArgumentFn = unsafe { std::mem::transmute(original) };
+    in_buff_removal_scope(BuffRemovedReason::TeamChanged, || {
+        // SAFETY: IL2CPP arguments are forwarded unchanged.
+        unsafe { original(manager, ignored, method) };
+    });
+}
+
+/// `BuffManager.ClearSelfResourceBuffByDisableTech`, run when an actor's
+/// technologies are disabled.
+unsafe extern "C" fn buff_manager_clear_disabled_hook(
+    manager: *mut Object,
+    mech: *mut Object,
+    method: *const MethodInfo,
+) {
+    let original = ORIGINAL_BUFF_MANAGER_CLEAR_DISABLED.load(Ordering::Acquire);
+    if original.is_null() {
+        return;
+    }
+    // SAFETY: hook installer stored the trampoline for this exact method ABI.
+    let original: ObjectArgumentFn = unsafe { std::mem::transmute(original) };
+    in_buff_removal_scope(BuffRemovedReason::TechnologyDisabled, || {
+        // SAFETY: IL2CPP arguments are forwarded unchanged.
+        unsafe { original(manager, mech, method) };
+    });
+}
+
+/// `BuffManager.Clear`, an actor's teardown.
+unsafe extern "C" fn buff_manager_clear_hook(manager: *mut Object, method: *const MethodInfo) {
+    let original = ORIGINAL_BUFF_MANAGER_CLEAR.load(Ordering::Acquire);
+    if original.is_null() {
+        return;
+    }
+    // SAFETY: hook installer stored the trampoline for this exact method ABI.
+    let original: RangeItemRemoveFn = unsafe { std::mem::transmute(original) };
+    in_buff_removal_scope(BuffRemovedReason::Cleared, || {
+        // SAFETY: IL2CPP arguments are forwarded unchanged.
+        unsafe { original(manager, method) };
+    });
+}
+
+/// A buff's field, by name.
+fn buff_field<T: Copy>(api: Api, buff: *mut Object, name: &str) -> Result<T, String> {
+    let class = api.object_class(buff).ok_or("a buff has no class")?;
+    let field = api.field(class, name).map_err(|error| error.to_string())?;
+    api.field_value(buff, field)
+        .map_err(|error| format!("Buff.{name}: {error}"))
+}
+
+/// Runs `read` under the capture lock while a capture records the logic
+/// tick, and fails the capture, naming `label`, if it errs.
+fn record_buff_trace(label: &str, read: impl FnOnce(Api) -> Result<NativeTrace, String>) {
+    let runtime = RUNTIME.load(Ordering::Acquire);
+    if runtime.is_null() {
+        return;
+    }
+    // SAFETY: runtime is boxed for the adapter process lifetime.
+    let runtime = unsafe { &*runtime };
+    let mut state = capture_state()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    if !state.armed || !state.in_update {
+        return;
+    }
+    match read(runtime.api) {
+        Ok(trace) => state.traces.push(trace),
+        Err(error) => state.fail(format!("{label} trace failed: {error}")),
+    }
+}
+
+fn record_buff_applied(buff: *mut Object) {
+    record_buff_trace("BuffManager.AddBuff", |api| {
+        let buff_id = invoke_value::<i32>(api, buff, "GetBuffID")?;
+        let team_controller: *mut Object = buff_field(api, buff, "sourceTeamController")?;
+        let source_team_id = if team_controller.is_null() {
+            None
+        } else {
+            let index = invoke_value::<i32>(api, team_controller, "GetTeamIndex")?;
+            Some(u32::try_from(index).map_err(|_| format!("invalid team index {index}"))?)
+        };
+        let elapsed: i32 = buff_field(api, buff, "durationTime")?;
+        let limit: i32 = buff_field(api, buff, "maxDurationtime")?;
+        Ok(NativeTrace::BuffApplied {
+            target: buff_field::<*mut Object>(api, buff, "owner")? as usize,
+            source: buff_field::<*mut Object>(api, buff, "source")? as usize,
+            source_team_id,
+            buff_id: u32::try_from(buff_id).map_err(|_| format!("invalid buff id {buff_id}"))?,
+            duration: limit.saturating_sub(elapsed),
+        })
+    });
+}
+
+fn record_buff_removed(buff: *mut Object) {
+    let scope = BUFF_REMOVAL_SCOPE.with(Cell::get);
+    record_buff_trace("BuffManager.RemoveBuff", |api| {
+        let buff_id = invoke_value::<i32>(api, buff, "GetBuffID")?;
+        let reason = match scope {
+            Some(reason) => reason,
+            None if invoke_value::<bool>(api, buff, "IsFinish")? => BuffRemovedReason::Expired,
+            None => BuffRemovedReason::Unknown,
+        };
+        Ok(NativeTrace::BuffRemoved {
+            target: buff_field::<*mut Object>(api, buff, "owner")? as usize,
+            buff_id: u32::try_from(buff_id).map_err(|_| format!("invalid buff id {buff_id}"))?,
+            reason,
+        })
+    });
 }
 
 enum RemovalReason {
@@ -4894,7 +5188,9 @@ fn finalize_initial_shield_ids(
             | NativeTrace::TerrainCreated { .. }
             | NativeTrace::TerrainRemoved { .. }
             | NativeTrace::UnitCreated { .. }
-            | NativeTrace::Healing { .. } => {}
+            | NativeTrace::Healing { .. }
+            | NativeTrace::BuffApplied { .. }
+            | NativeTrace::BuffRemoved { .. } => {}
         }
     }
     capture.shield_ids = ids;
@@ -7019,6 +7315,37 @@ fn transition_events(
                     },
                 ));
             }
+            NativeTrace::BuffApplied {
+                target,
+                source,
+                source_team_id,
+                buff_id,
+                duration,
+            } => {
+                let source = object_ref_from_pointer(source, capture);
+                events.push(event(
+                    None,
+                    source,
+                    source_team_id.or_else(|| {
+                        source.and_then(|value| capture.object_teams.get(&value).copied())
+                    }),
+                    Some(buff_target(target, capture)?),
+                    EventPayload::BuffApplied { buff_id, duration },
+                ));
+            }
+            NativeTrace::BuffRemoved {
+                target,
+                buff_id,
+                reason,
+            } => {
+                events.push(event(
+                    None,
+                    None,
+                    None,
+                    Some(buff_target(target, capture)?),
+                    EventPayload::BuffRemoved { buff_id, reason },
+                ));
+            }
             NativeTrace::Healing { target, amount } => {
                 let target = object_ref_from_pointer(target, capture).ok_or_else(|| {
                     format!(
@@ -7044,6 +7371,15 @@ fn transition_events(
 /// snapshot holds and in the order the events name them. Their pointers are
 /// released once the tick's events are written, since the object behind them
 /// is gone.
+fn buff_target(target: usize, capture: &CaptureState) -> Result<ObjectRef, String> {
+    object_ref_from_pointer(target, capture).ok_or_else(|| {
+        format!(
+            "buff target 0x{target:x}, a {}, is absent from the MCFR identity map",
+            native_class_name(target)
+        )
+    })
+}
+
 fn number_fleeting_units(capture: &mut CaptureState) -> Result<(), String> {
     let named = capture
         .traces
@@ -7056,7 +7392,11 @@ fn number_fleeting_units(capture: &mut CaptureState) -> Result<(), String> {
             {
                 Some(*target)
             }
-            NativeTrace::Healing { target, .. } if !capture.building_ids.contains_key(target) => {
+            NativeTrace::Healing { target, .. }
+            | NativeTrace::BuffApplied { target, .. }
+            | NativeTrace::BuffRemoved { target, .. }
+                if !capture.building_ids.contains_key(target) =>
+            {
                 Some(*target)
             }
             _ => None,
@@ -7155,7 +7495,9 @@ fn renumber_unit_references(
             | NativeTrace::TerrainRemoved { .. }
             | NativeTrace::BuildingDestroyed { .. }
             | NativeTrace::UnitCreated { .. }
-            | NativeTrace::Healing { .. } => {}
+            | NativeTrace::Healing { .. }
+            | NativeTrace::BuffApplied { .. }
+            | NativeTrace::BuffRemoved { .. } => {}
         }
     }
     Ok(())

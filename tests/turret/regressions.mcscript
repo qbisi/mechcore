@@ -35,7 +35,7 @@ steps:
       steps: 237
       winner: blue
       teams.0.remaining_life: 1622
-      hashes.physics_result_hash: 7c6210a1f6d7b867e78f06dcba3f8499137a7f91f1a7c659f6fbdab781548141
+      hashes.physics_result_hash: 6d27c1b1c3de62b178d6b13c749bb432673e3b31aab5b09a9a8d092fe95d3255
       hashes.content_result_hash: df2922fb4ecb1680fd2346bdb898bd7ec379d51e619ef434cee58f27fc2b7c92
 
   # The same Crawlers 36.6 degrees off the turret's column. The weapon has
@@ -48,7 +48,7 @@ steps:
       steps: 234
       winner: blue
       teams.0.remaining_life: 1622
-      hashes.physics_result_hash: 10d0b89ff96a03054b5082726b26ef0a59faa524a156af85e478d183bdb82766
+      hashes.physics_result_hash: f73282ba2d47a3d6b8e609aa28c64e1203483b5d7083aa9dd063f632e1e85420
       hashes.content_result_hash: e727c90d4d84233eb351478efc38860c15ad951945193141ee23156add60c561
 
   # Four Arclights down the Anti-Armor Turret's column, two shots each. The
@@ -61,7 +61,7 @@ steps:
       steps: 836
       winner: blue
       teams.0.remaining_life: 1622
-      hashes.physics_result_hash: 83e42cc78cd00d58131d9065034e49e2e43c5c93897a1fc9b32e7646d658021e
+      hashes.physics_result_hash: 4e2dd3f811589e351bd38e9ac50023c0414d21dc6ba68271a016f85d28cd1681
       hashes.content_result_hash: e9d48b2c100876b3396695f6cdcfe90bff3cb4902e44945df99190b62cd48cc5
 
   # The Anti-Armor Turret against a Crawler, the Marksman behind. Blue loses
@@ -72,5 +72,5 @@ steps:
       seed: 4242
     expect:
       steps: 1397
-      hashes.physics_result_hash: caeb2db223bd8ce67ab0ac9090e92dd76b948a9b2daddbb076136ef6bc29851d
-      hashes.content_result_hash: 710fba06f962a45304f7e0cd1633840c952230710de4d9eccaf01a5b46fa96fb
+      hashes.physics_result_hash: d56b0947c6ab16d970eb3ac3b9da3c54aa2c4e5fd2c496d02f09d155b4dbe403
+      hashes.content_result_hash: 6fab5e00c3ea3e080f91bcc370608d1bc377087da6a653cc0b001e8024ab531b

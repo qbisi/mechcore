@@ -15,6 +15,11 @@
 //! duration in additive mode, and restarts it otherwise. `BuffManager.Update`
 //! runs last in `FightMech.Update`, after the skill and the motion, and a buff
 //! ends on the update its elapsed ticks reach its duration.
+//!
+//! Each of these is an event: `buff_applied` for every unit the loss reaches,
+//! after the tower's `building_destroyed`, naming the running buff's row and
+//! the ticks left on it; `buff_removed` when its time is up, and, `cleared`,
+//! right after the `unit_died` of a unit that dies with it.
 
 use crate::{
     Error, Result,
@@ -22,7 +27,8 @@ use crate::{
     rules::{TowerLevel, TowersConfig},
 };
 
-use super::{LOGIC_TICK_TIME_UNITS, Simulation, TIME_UNITS_PER_SECOND};
+use super::{LOGIC_TICK_TIME_UNITS, Simulation, TIME_UNITS_PER_SECOND, event};
+use mechcore_mcfr::{BuffRemovedReason, Event, EventPayload, ObjectKind, ObjectRef};
 
 /// The module that tags what a buff writes, so that its end takes it away.
 pub(in crate::fight) const SOURCE: &str = "BuffSystem";
@@ -31,6 +37,9 @@ pub(in crate::fight) const SOURCE: &str = "BuffSystem";
 /// both in ticks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::fight) struct RunningBuff {
+    /// The `buffDatas` row it was added with, which a later one it merges
+    /// into does not change.
+    buff_id: u32,
     divide: i32,
     additive: bool,
     elapsed: u32,
@@ -41,6 +50,7 @@ pub(in crate::fight) struct RunningBuff {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::fight) struct TowerLoss {
     pub(in crate::fight) team: u32,
+    pub(in crate::fight) buff_id: u32,
     pub(in crate::fight) ticks: u32,
 }
 
@@ -66,6 +76,11 @@ impl TowersConfig {
         let seconds = u64::from(self.level(level)?.duration);
         u32::try_from(seconds * TIME_UNITS_PER_SECOND / LOGIC_TICK_TIME_UNITS)
             .map_err(|_| Error::new("a tower's loss lasts longer than a fight holds"))
+    }
+
+    /// The `buffDatas` row the loss of a tower of this level writes.
+    pub(in crate::fight) fn loss_buff(&self, level: u8) -> Result<u32> {
+        Ok(self.level(level)?.buff)
     }
 
     /// Whether the buff reaches a construction whose row lets a tower's buff
@@ -143,6 +158,7 @@ impl Simulation {
             }
         }
         let entries = self.towers.entries();
+        let mut applied = Vec::new();
         let divide = self.towers.destroyed_buff.buff_divide;
         let additive = self.towers.destroyed_buff.additive;
         let actor_ids = self
@@ -169,14 +185,18 @@ impl Simulation {
                 } else {
                     running.elapsed = 0;
                 }
+                applied.push(buff_applied(actor_id, loss.team, running));
                 continue;
             }
-            actor.buffs.push(RunningBuff {
+            let running = RunningBuff {
+                buff_id: loss.buff_id,
                 divide,
                 additive,
                 elapsed: 0,
                 duration: loss.ticks,
-            });
+            };
+            applied.push(buff_applied(actor_id, loss.team, &running));
+            actor.buffs.push(running);
             for entry in &entries {
                 actor
                     .stats
@@ -186,7 +206,30 @@ impl Simulation {
             }
             actor.stats.refresh(&actor.rules)?;
         }
+        self.tower_buff_events.insert(building_id, applied);
         Ok(())
+    }
+
+    /// The buffs a unit that died this tick had, `cleared`, to follow its
+    /// `unit_died`: the ones it still runs, or the ones its update already
+    /// dropped.
+    pub(in crate::fight) fn buffs_cleared_by_death(&mut self, actor_id: u64) -> Vec<Event> {
+        let running = self
+            .actors
+            .get(&actor_id)
+            .map(|actor| {
+                actor
+                    .buffs
+                    .iter()
+                    .map(|buff| buff.buff_id)
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        let dropped = self.dropped_buffs.remove(&actor_id).unwrap_or_default();
+        let ids = if running.is_empty() { dropped } else { running };
+        ids.into_iter()
+            .map(|buff_id| buff_removed(actor_id, buff_id, BuffRemovedReason::Cleared))
+            .collect()
     }
 
     /// `BuffManager.Update` on a unit that is no longer alive: its buffs go.
@@ -203,6 +246,10 @@ impl Simulation {
         if actor.buffs.is_empty() {
             return Ok(());
         }
+        self.dropped_buffs.insert(
+            actor_id,
+            actor.buffs.iter().map(|buff| buff.buff_id).collect(),
+        );
         actor.buffs.clear();
         actor.stats.overlays.channel(Channel::Buff).withdraw(SOURCE);
         actor.stats.refresh(&actor.rules)
@@ -210,7 +257,11 @@ impl Simulation {
 
     /// `BuffManager.Update`: every running buff one tick older, and those
     /// whose time is up taken away.
-    pub(in crate::fight) fn update_buffs(&mut self, actor_id: u64) -> Result<()> {
+    pub(in crate::fight) fn update_buffs(
+        &mut self,
+        actor_id: u64,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
         let actor = self
             .actors
             .get_mut(&actor_id)
@@ -222,6 +273,15 @@ impl Simulation {
             running.elapsed = running.elapsed.saturating_add(1);
         }
         let before = actor.buffs.len();
+        for running in &actor.buffs {
+            if running.elapsed >= running.duration {
+                events.push(buff_removed(
+                    actor_id,
+                    running.buff_id,
+                    BuffRemovedReason::Expired,
+                ));
+            }
+        }
         actor
             .buffs
             .retain(|running| running.elapsed < running.duration);
@@ -233,6 +293,30 @@ impl Simulation {
         }
         Ok(())
     }
+}
+
+fn buff_applied(actor_id: u64, team: u32, running: &RunningBuff) -> Event {
+    event(
+        None,
+        None,
+        Some(team),
+        Some(ObjectRef::new(ObjectKind::Unit, actor_id)),
+        EventPayload::BuffApplied {
+            buff_id: running.buff_id,
+            duration: i32::try_from(running.duration.saturating_sub(running.elapsed))
+                .unwrap_or(i32::MAX),
+        },
+    )
+}
+
+fn buff_removed(actor_id: u64, buff_id: u32, reason: BuffRemovedReason) -> Event {
+    event(
+        None,
+        None,
+        None,
+        Some(ObjectRef::new(ObjectKind::Unit, actor_id)),
+        EventPayload::BuffRemoved { buff_id, reason },
+    )
 }
 
 #[cfg(test)]

@@ -45,7 +45,7 @@ steps:
     expect:
       operation.tick_count: 137
       # The same fight the officer alone fights, to the tick.
-      operation.hashes.physics_result_hash: 93f441c9ea7753987271027777027160d95bf83e79520c6c752dbbedd68183aa
+      operation.hashes.physics_result_hash: afba2abea29793ff43a1eb2a1096da32cf2d435476e828038a0e8861c0193b07
   - fight.stats:
       recording: ${out}/technology-range.mcfr
     expect:

@@ -15,8 +15,8 @@ use arrow_buffer::NullBuffer;
 use arrow_schema::{DataType, Field, Fields, Schema, SchemaRef};
 
 use crate::{
-    Error, Event, EventKind, EventPayload, ObjectRef, QVec3, Result, ShieldDestroyedReason,
-    TerrainRemovedReason,
+    BuffRemovedReason, Error, Event, EventKind, EventPayload, ObjectRef, QVec3, Result,
+    ShieldDestroyedReason, TerrainRemovedReason,
     parquet_storage::{
         decode_kind as decode_object_kind, decode_shield_source, decode_terrain_type,
         encode_kind as encode_object_kind, encode_shield_source, encode_terrain_type,
@@ -58,6 +58,8 @@ pub(crate) fn event_schema() -> SchemaRef {
         Field::new("reason", DataType::UInt8, true),
         Field::new("terrain_type", DataType::UInt8, true),
         Field::new("radius", DataType::Int64, true),
+        Field::new("buff_id", DataType::UInt32, true),
+        Field::new("duration", DataType::Int32, true),
     ]))
 }
 
@@ -79,6 +81,8 @@ struct Payload {
     reason: Option<u8>,
     terrain_type: Option<u8>,
     radius: Option<i64>,
+    buff_id: Option<u32>,
+    duration: Option<i32>,
 }
 
 impl Payload {
@@ -157,6 +161,14 @@ impl Payload {
                 flat.position = Some(position);
                 flat.reason = Some(encode_terrain_reason(reason));
             }
+            EventPayload::BuffApplied { buff_id, duration } => {
+                flat.buff_id = Some(buff_id);
+                flat.duration = Some(duration);
+            }
+            EventPayload::BuffRemoved { buff_id, reason } => {
+                flat.buff_id = Some(buff_id);
+                flat.reason = Some(encode_buff_reason(reason));
+            }
         }
         flat
     }
@@ -232,7 +244,21 @@ impl Payload {
                 position: required(self.position.take(), label, "position")?,
                 reason: decode_terrain_reason(required(self.reason.take(), label, "reason")?)?,
             },
+            EventKind::BuffApplied => EventPayload::BuffApplied {
+                buff_id: required(self.buff_id.take(), label, "buff_id")?,
+                duration: required(self.duration.take(), label, "duration")?,
+            },
+            EventKind::BuffRemoved => EventPayload::BuffRemoved {
+                buff_id: required(self.buff_id.take(), label, "buff_id")?,
+                reason: decode_buff_reason(required(self.reason.take(), label, "reason")?)?,
+            },
         };
+        self.refuse_stray(label)?;
+        Ok(payload)
+    }
+
+    /// Refuses a field left set once the kind has taken its own.
+    fn refuse_stray(&self, label: &str) -> Result<()> {
         let stray = [
             ("skill_slot", self.skill_slot.is_some()),
             ("weapon_index", self.weapon_index.is_some()),
@@ -249,13 +275,15 @@ impl Payload {
             ("reason", self.reason.is_some()),
             ("terrain_type", self.terrain_type.is_some()),
             ("radius", self.radius.is_some()),
+            ("buff_id", self.buff_id.is_some()),
+            ("duration", self.duration.is_some()),
         ];
         if let Some((field, _)) = stray.iter().find(|(_, set)| *set) {
             return Err(Error::invalid(format!(
                 "a {label} event does not carry {field}"
             )));
         }
-        Ok(payload)
+        Ok(())
     }
 }
 
@@ -320,6 +348,8 @@ pub(crate) fn event_batch(rows: &[(u32, u32, Event)]) -> Result<Option<RecordBat
             payloads.iter().map(|p| p.terrain_type),
         )),
         Arc::new(Int64Array::from_iter(payloads.iter().map(|p| p.radius))),
+        Arc::new(UInt32Array::from_iter(payloads.iter().map(|p| p.buff_id))),
+        Arc::new(Int32Array::from_iter(payloads.iter().map(|p| p.duration))),
     ];
     Ok(Some(RecordBatch::try_new(event_schema(), columns)?))
 }
@@ -348,6 +378,8 @@ pub(crate) fn batch_events(batch: &RecordBatch) -> Result<Vec<(u32, u32, Event)>
     let reason = primitive::<UInt8Array>(batch, "reason")?;
     let terrain_type = primitive::<UInt8Array>(batch, "terrain_type")?;
     let radius = primitive::<Int64Array>(batch, "radius")?;
+    let buff_id = primitive::<UInt32Array>(batch, "buff_id")?;
+    let duration = primitive::<Int32Array>(batch, "duration")?;
     let mut rows = Vec::with_capacity(batch.num_rows());
     for index in 0..batch.num_rows() {
         if tick.is_null(index) || ordinal.is_null(index) || kind.is_null(index) {
@@ -373,6 +405,8 @@ pub(crate) fn batch_events(batch: &RecordBatch) -> Result<Vec<(u32, u32, Event)>
             reason: value(reason, index),
             terrain_type: value(terrain_type, index),
             radius: value(radius, index),
+            buff_id: value(buff_id, index),
+            duration: value(duration, index),
         }
         .into_payload(decode_kind_tag(kind.value(index))?)?;
         rows.push((
@@ -474,7 +508,7 @@ fn vec3(array: &StructArray, index: usize) -> Result<Option<QVec3>> {
     }))
 }
 
-const KINDS: [EventKind; 13] = [
+const KINDS: [EventKind; 15] = [
     EventKind::ProjectileReleased,
     EventKind::ProjectileRemoved,
     EventKind::Damage,
@@ -488,6 +522,8 @@ const KINDS: [EventKind; 13] = [
     EventKind::TerrainRemoved,
     EventKind::TerrainConverted,
     EventKind::Healing,
+    EventKind::BuffApplied,
+    EventKind::BuffRemoved,
 ];
 
 fn encode_kind_tag(kind: EventKind) -> u8 {
@@ -520,6 +556,8 @@ fn kind_name(kind: EventKind) -> &'static str {
         EventKind::TerrainRemoved => "terrain_removed",
         EventKind::TerrainConverted => "terrain_converted",
         EventKind::Healing => "healing",
+        EventKind::BuffApplied => "buff_applied",
+        EventKind::BuffRemoved => "buff_removed",
     }
 }
 
@@ -565,6 +603,31 @@ fn decode_terrain_reason(tag: u8) -> Result<TerrainRemovedReason> {
         4 => Ok(TerrainRemovedReason::Unknown),
         _ => Err(Error::invalid(format!(
             "invalid TerrainRemovedReason tag {tag}"
+        ))),
+    }
+}
+
+const fn encode_buff_reason(reason: BuffRemovedReason) -> u8 {
+    match reason {
+        BuffRemovedReason::Expired => 0,
+        BuffRemovedReason::Removed => 1,
+        BuffRemovedReason::TeamChanged => 2,
+        BuffRemovedReason::TechnologyDisabled => 3,
+        BuffRemovedReason::Cleared => 4,
+        BuffRemovedReason::Unknown => 5,
+    }
+}
+
+fn decode_buff_reason(tag: u8) -> Result<BuffRemovedReason> {
+    match tag {
+        0 => Ok(BuffRemovedReason::Expired),
+        1 => Ok(BuffRemovedReason::Removed),
+        2 => Ok(BuffRemovedReason::TeamChanged),
+        3 => Ok(BuffRemovedReason::TechnologyDisabled),
+        4 => Ok(BuffRemovedReason::Cleared),
+        5 => Ok(BuffRemovedReason::Unknown),
+        _ => Err(Error::invalid(format!(
+            "invalid BuffRemovedReason tag {tag}"
         ))),
     }
 }

@@ -1517,6 +1517,8 @@ fn validate_event_refs(event: &Event) -> Result<()> {
         EventPayload::Damage { .. }
             | EventPayload::Healing { .. }
             | EventPayload::TerrainConverted { .. }
+            | EventPayload::BuffApplied { .. }
+            | EventPayload::BuffRemoved { .. }
     );
     if required_target && event.target.is_none() {
         return Err(Error::invalid(format!(
@@ -1553,6 +1555,8 @@ fn event_type_name(kind: crate::EventKind) -> &'static str {
         crate::EventKind::TerrainRemoved => "terrain_removed",
         crate::EventKind::TerrainConverted => "terrain_converted",
         crate::EventKind::Healing => "healing",
+        crate::EventKind::BuffApplied => "buff_applied",
+        crate::EventKind::BuffRemoved => "buff_removed",
     }
 }
 

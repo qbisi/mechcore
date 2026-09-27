@@ -69,6 +69,8 @@ pub(super) fn raw_test_simulation(
         terminal_drain_pending: false,
         late_building_events_pending: false,
         fallen_buildings: Vec::new(),
+        tower_buff_events: BTreeMap::new(),
+        dropped_buffs: BTreeMap::new(),
         construction_colliders: construction_colliders.clone(),
         unsearchable_buildings: unsearchable.clone(),
         constructions: BTreeMap::new(),

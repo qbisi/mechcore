@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result, canonical};
 
-pub const MCFR_FORMAT: &str = "0.14.0";
-pub const PHYSICS_HASH_PROFILE: &str = "battle-physics-v5";
-pub const CONTENT_HASH_PROFILE: &str = "mcfr-content-0.14.0";
+pub const MCFR_FORMAT: &str = "0.15.0";
+pub const PHYSICS_HASH_PROFILE: &str = "battle-physics-v6";
+pub const CONTENT_HASH_PROFILE: &str = "mcfr-content-0.15.0";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -981,6 +981,26 @@ pub enum TerrainRemovedReason {
     Unknown,
 }
 
+/// Why a buff left the actor it was on: the caller of
+/// `BuffManager.RemoveBuff(Buff)`, the one method a buff leaves through.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BuffRemovedReason {
+    /// Its time ran out, in `BuffManager.Update`.
+    Expired,
+    /// A skill or a technology took it off by its data,
+    /// `RemoveBuff(IBuffData)`.
+    Removed,
+    /// Its actor changed side, `RemoveBuffEffect`.
+    TeamChanged,
+    /// Its actor's technologies were disabled,
+    /// `ClearSelfResourceBuffByDisableTech`.
+    TechnologyDisabled,
+    /// Its actor was torn down, `Clear`.
+    Cleared,
+    Unknown,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ShieldState {
@@ -1104,6 +1124,8 @@ pub enum EventKind {
     TerrainRemoved,
     TerrainConverted,
     Healing,
+    BuffApplied,
+    BuffRemoved,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -1168,6 +1190,16 @@ pub enum EventPayload {
     Healing {
         amount: i32,
     },
+    /// A buff put on, or put on again, the target. `buff_id` is its data's
+    /// `GetID()`; `duration` is the ticks left on it once applied.
+    BuffApplied {
+        buff_id: u32,
+        duration: i32,
+    },
+    BuffRemoved {
+        buff_id: u32,
+        reason: BuffRemovedReason,
+    },
 }
 
 impl EventPayload {
@@ -1187,6 +1219,8 @@ impl EventPayload {
             Self::TerrainRemoved { .. } => EventKind::TerrainRemoved,
             Self::TerrainConverted { .. } => EventKind::TerrainConverted,
             Self::Healing { .. } => EventKind::Healing,
+            Self::BuffApplied { .. } => EventKind::BuffApplied,
+            Self::BuffRemoved { .. } => EventKind::BuffRemoved,
         }
     }
 }
