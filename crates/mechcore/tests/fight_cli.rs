@@ -28,12 +28,22 @@ fn sim_command_writes_mcfr_and_prints_the_result() {
     assert_eq!(report["output"], output.to_str().unwrap());
     assert!(report["winner"].is_string());
     assert!(report["profiling"]["file_size_bytes"].is_number());
+    // No shield or terrain appears in this fight, so their tables are left out.
     assert_eq!(
         report["profiling"]["member_sizes_bytes"]
             .as_object()
             .unwrap()
-            .len(),
-        8
+            .keys()
+            .map(String::as_str)
+            .collect::<Vec<_>>(),
+        [
+            "buildings.parquet",
+            "events.parquet",
+            "layout.yaml",
+            "projectiles.parquet",
+            "ticks.parquet",
+            "units.parquet",
+        ]
     );
     McfrReader::open(output).unwrap();
 }
