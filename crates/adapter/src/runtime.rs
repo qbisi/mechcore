@@ -169,6 +169,10 @@ extern "C" fn load_runtime_on_main(context: *mut c_void) {
     // SAFETY: dispatch_sync_f invokes this callback before returning, while the
     // stack-owned invocation remains alive.
     let invocation = unsafe { &mut *context.cast::<RuntimeLoadInvocation>() };
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    if let Err(error) = crate::headless::skip_the_resolution_check(invocation.api) {
+        eprintln!("mechcore-adapter: {error}");
+    }
     invocation.result = Some(Runtime::load(invocation.api).map(|runtime| {
         let mut runtime = Box::new(runtime);
         capture::initialize(&mut runtime);

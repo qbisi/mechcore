@@ -107,7 +107,8 @@ DYLD_INSERT_LIBRARIES="$PWD/target/release/libmechcore_adapter.dylib" \
 A headless game is the same command with Unity's `-batchmode -nographics`
 after the executable. The Adapter reads those two switches off the game's own
 command line: `-batchmode` keeps the process out of the Dock, and
-`-nographics` refuses a video
+`-nographics` refuses a video and lets the game past the resolution check
+that would stop it before logging in
 ([session.md](../mechcore/session.md#headless)). An offline game is started
 inside `sandbox-exec` with rules that refuse every IP connection, and the
 Adapter refuses `record_watch_replay` in a sandboxed process

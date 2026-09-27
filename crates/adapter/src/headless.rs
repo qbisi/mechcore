@@ -68,3 +68,42 @@ pub fn keep_out_of_the_dock() {
         CFRelease(key);
     }
 }
+
+/// Let a game without graphics log in.
+///
+/// With `-nographics` the screen reads 640x480, below the smallest resolution
+/// the game supports, and `StartUpCommand.OnPlatformInitCb` then takes the
+/// branch of `VideoSetting.TryFixResolution()` returning true: it asks for a
+/// restart in a popup and returns without opening the login window, so the
+/// lobby's proxies are never registered and nothing can be watched. The
+/// method is answered `false`, as a game whose screen is large enough gets,
+/// and the boot goes on unchanged; `-screen-width` and `-screen-height` are
+/// not honoured without graphics.
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+pub(crate) fn skip_the_resolution_check(api: crate::il2cpp::Api) -> Result<(), String> {
+    use std::sync::atomic::AtomicPtr;
+
+    static ORIGINAL: AtomicPtr<std::ffi::c_void> = AtomicPtr::new(std::ptr::null_mut());
+
+    unsafe extern "C" fn resolution_is_fine(
+        _setting: *mut crate::il2cpp::Object,
+        _method: *const crate::il2cpp::MethodInfo,
+    ) -> bool {
+        false
+    }
+
+    if !without_graphics() {
+        return Ok(());
+    }
+    let method = api
+        .class("GRCore.dll", "GameRiver", "VideoSetting")
+        .and_then(|class| api.method(class, "TryFixResolution", 0))
+        .map_err(|error| error.to_string())?;
+    crate::capture::install_inline_hook(
+        api,
+        method,
+        resolution_is_fine as *const std::ffi::c_void,
+        &ORIGINAL,
+        "VideoSetting.TryFixResolution",
+    )
+}
