@@ -963,6 +963,111 @@ impl Api {
         self.invoke_raw(method, ptr::null_mut(), arguments)
     }
 
+    /// A method's native entry for this object's class, resolved once per
+    /// call site: the site's name and parameter type are keyed by address, so
+    /// a hit neither allocates nor searches. `None` for a value type, whose
+    /// methods take an unboxed `this` and are left to `runtime_invoke`.
+    fn direct(
+        self,
+        class: *mut Class,
+        name: &str,
+        parameter_type: Option<&str>,
+        resolve: impl FnOnce() -> Result<*const MethodInfo, Error>,
+    ) -> Result<Option<(usize, usize)>, Error> {
+        type ClassIsValueType = unsafe extern "C" fn(*const Class) -> bool;
+        type Key = (usize, usize, usize, usize);
+        thread_local! {
+            static DIRECT: std::cell::RefCell<HashMap<Key, Option<(usize, usize)>>> =
+                std::cell::RefCell::new(HashMap::new());
+        }
+        static IS_VALUE_TYPE: OnceLock<usize> = OnceLock::new();
+        let key = (
+            class as usize,
+            name.as_ptr() as usize,
+            name.len(),
+            parameter_type.map_or(0, |parameter| parameter.as_ptr() as usize),
+        );
+        if let Some(found) = DIRECT.with(|direct| direct.borrow().get(&key).copied()) {
+            return Ok(found);
+        }
+        let is_value_type = *IS_VALUE_TYPE.get_or_init(|| {
+            // SAFETY: dlsym is called with a valid C string.
+            unsafe {
+                libc::dlsym(libc::RTLD_DEFAULT, c"il2cpp_class_is_valuetype".as_ptr()) as usize
+            }
+        });
+        let value_type = is_value_type == 0 || {
+            // SAFETY: the export has the IL2CPP C API's signature; class is a runtime class.
+            unsafe { mem::transmute::<usize, ClassIsValueType>(is_value_type)(class) }
+        };
+        let found = if value_type {
+            None
+        } else {
+            let method = resolve()?;
+            Some((self.method_pointer(method)? as usize, method as usize))
+        };
+        DIRECT.with(|direct| direct.borrow_mut().insert(key, found));
+        Ok(found)
+    }
+
+    /// A parameterless instance method's result, called through its native
+    /// entry rather than `runtime_invoke`: no boxing, no lookup by name after
+    /// the first call. It must not throw.
+    pub fn call0<T: Copy>(self, object: *mut Object, name: &str) -> Result<T, Error> {
+        if object.is_null() {
+            return Err(Error::NullResult(name.into()));
+        }
+        let class = self
+            .object_class(object)
+            .ok_or_else(|| Error::NullResult(name.into()))?;
+        let Some((entry, method)) =
+            self.direct(class, name, None, || self.method(class, name, 0))?
+        else {
+            return self.invoke_value(object, name, &mut []);
+        };
+        // SAFETY: the entry is this class's native method taking only `this`
+        // and its MethodInfo, and T is its return type.
+        let function = unsafe {
+            mem::transmute::<usize, unsafe extern "C" fn(*mut Object, *const MethodInfo) -> T>(
+                entry,
+            )
+        };
+        // SAFETY: see above.
+        Ok(unsafe { function(object, method as *const MethodInfo) })
+    }
+
+    /// An instance method taking one enum's value, called through its native
+    /// entry, as [`Self::call0`].
+    pub fn call_enum<T: Copy>(
+        self,
+        object: *mut Object,
+        name: &str,
+        parameter_type: &str,
+        value: i32,
+    ) -> Result<T, Error> {
+        if object.is_null() {
+            return Err(Error::NullResult(name.into()));
+        }
+        let class = self
+            .object_class(object)
+            .ok_or_else(|| Error::NullResult(name.into()))?;
+        let resolve = || self.class_method_with_parameter_types(class, name, &[parameter_type]);
+        let Some((entry, method)) = self.direct(class, name, Some(parameter_type), resolve)? else {
+            let mut value = value;
+            let boxed = self.invoke_raw(resolve()?, object.cast(), &mut [argument(&mut value)])?;
+            return self.unbox(boxed, name);
+        };
+        // SAFETY: the entry takes `this`, the enum's underlying int and its
+        // MethodInfo, and T is its return type.
+        let function = unsafe {
+            mem::transmute::<usize, unsafe extern "C" fn(*mut Object, i32, *const MethodInfo) -> T>(
+                entry,
+            )
+        };
+        // SAFETY: see above.
+        Ok(unsafe { function(object, value, method as *const MethodInfo) })
+    }
+
     pub fn invoke_value<T: Copy>(
         self,
         object: *mut Object,

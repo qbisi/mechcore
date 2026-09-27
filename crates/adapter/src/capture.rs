@@ -5946,15 +5946,9 @@ fn invoke_enum_value<T: Copy>(
     object: *mut Object,
     method_name: &str,
     parameter_type: &str,
-    mut index: i32,
+    index: i32,
 ) -> Result<T, String> {
-    let method = api
-        .method_with_parameter_types(object, method_name, &[parameter_type])
-        .map_err(|error| error.to_string())?;
-    let boxed = api
-        .invoke_raw(method, object.cast(), &mut [argument(&mut index)])
-        .map_err(|error| error.to_string())?;
-    api.unbox(boxed, method_name)
+    api.call_enum(object, method_name, parameter_type, index)
         .map_err(|error| error.to_string())
 }
 
@@ -6852,7 +6846,7 @@ fn list_i32_item(api: Api, list: *mut Object, mut index: i32) -> Result<i32, Str
 
 fn invoke_object(api: Api, object: *mut Object, method: &str) -> Result<*mut Object, String> {
     let value = api
-        .invoke(object, method, &mut [])
+        .call0::<*mut Object>(object, method)
         .map_err(|error| error.to_string())?;
     if value.is_null() {
         Err(format!("{method} returned null"))
@@ -6862,8 +6856,7 @@ fn invoke_object(api: Api, object: *mut Object, method: &str) -> Result<*mut Obj
 }
 
 fn invoke_value<T: Copy>(api: Api, object: *mut Object, method: &str) -> Result<T, String> {
-    api.invoke_value(object, method, &mut [])
-        .map_err(|error| error.to_string())
+    api.call0(object, method).map_err(|error| error.to_string())
 }
 
 const fn vec3(value: FixedVec3) -> QVec3 {
