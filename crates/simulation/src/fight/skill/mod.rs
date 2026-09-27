@@ -640,7 +640,7 @@ impl Simulation {
             return self.drop_buffs_of_the_dead(actor_id);
         }
         self.step_actor_skill_and_motion(actor_id, step, target_search_order, events)?;
-        self.update_buffs(actor_id)
+        self.update_buffs(actor_id, events)
     }
 
     fn step_actor_skill_and_motion(

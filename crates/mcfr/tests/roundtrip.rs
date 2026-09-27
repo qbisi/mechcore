@@ -48,7 +48,7 @@ fn writes_and_reads_every_table() {
     );
 
     let reader = McfrReader::open(&path).unwrap();
-    assert_eq!(MCFR_FORMAT, "0.14.0");
+    assert_eq!(MCFR_FORMAT, "0.15.0");
     assert_eq!(reader.tick_count(), 1);
     assert_eq!(reader.terminal_tick(), 1);
     assert_eq!(reader.game_build(), "build-a");
@@ -292,7 +292,7 @@ fn physics_hash_ignores_nonphysical_details_while_content_hash_detects_them() {
 }
 
 #[test]
-fn battle_physics_v5_has_a_golden_result_hash() {
+fn battle_physics_v6_has_a_golden_result_hash() {
     let hashes = hash_tick(&context(), state(75), &damage_events());
     assert_eq!(
         hashes.physics_result_hash,

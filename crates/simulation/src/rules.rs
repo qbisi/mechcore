@@ -290,11 +290,8 @@ pub(crate) struct DestroyedBuff {
 pub(crate) struct TowerLevel {
     pub(crate) level: u8,
     pub(crate) life: i64,
-    #[allow(
-        dead_code,
-        reason = "which row it is; the duration is what the fight reads"
-    )]
-    pub(crate) buff: i32,
+    /// The `buffDatas` row its loss writes, which the buff's events name.
+    pub(crate) buff: u32,
     /// Seconds.
     pub(crate) duration: u32,
 }

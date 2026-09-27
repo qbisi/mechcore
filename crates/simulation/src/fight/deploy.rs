@@ -30,8 +30,9 @@ pub(in crate::fight) struct RawBuilding {
     pub(in crate::fight) searchable: bool,
     /// A construction's `pathfinding_collider_priority`; none for a tower.
     pub(in crate::fight) collider_priority: Option<i32>,
-    /// A tower's loss, in ticks of its buff; none for a construction.
-    pub(in crate::fight) loss_ticks: Option<u32>,
+    /// A tower's loss, its buff and how many ticks it lasts; none for a
+    /// construction.
+    pub(in crate::fight) loss: Option<(u32, u32)>,
     /// Whether a tower's loss reaches this construction.
     pub(in crate::fight) tower_buff: bool,
     /// The construction a block belongs to; none for a tower.
@@ -233,7 +234,7 @@ fn map_buildings(
                 collision_enabled: building.collision_enabled,
                 searchable: true,
                 collider_priority: None,
-                loss_ticks: Some(towers.loss_ticks(level)?),
+                loss: Some((towers.loss_buff(level)?, towers.loss_ticks(level)?)),
                 tower_buff: false,
                 group: None,
                 exp: building.exp,
@@ -274,7 +275,7 @@ pub(in crate::fight) fn initialize_buildings(
         collision_enabled: true,
         searchable: building.searchable,
         collider_priority: Some(building.collider_priority),
-        loss_ticks: None,
+        loss: None,
         tower_buff: building.tower_buff,
         group: Some(building.group),
         exp: i64::from(building.exp),
@@ -338,11 +339,12 @@ pub(in crate::fight) fn initialize_buildings(
     let tower_losses = raw
         .iter()
         .filter_map(|building| {
-            building.loss_ticks.map(|ticks| {
+            building.loss.map(|(buff_id, ticks)| {
                 (
                     normalized_ids[&building_key(building)],
                     TowerLoss {
                         team: building.team_id,
+                        buff_id,
                         ticks,
                     },
                 )

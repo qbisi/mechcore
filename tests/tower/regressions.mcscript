@@ -14,53 +14,53 @@ steps:
       seed: 4242
     expect:
       steps: 870
-      hashes.physics_result_hash: 294fca5e484c3a002af4d36181a18be9a878e0f31c020cefe131cb53c258b0c4
-      hashes.content_result_hash: c691b2aae981311282e4406cea30fa2c6942a9eb6d2e08726d82d280b24f62db
+      hashes.physics_result_hash: 26a0c34043ca65a306071e010959a7baebc9b622e63788b7ef25a75f938ad181
+      hashes.content_result_hash: 380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef
   # Level 1: 23400 life, buff 2, 140 ticks.
   - fight.run:
       layout: tests/tower/tower-level-1.yaml
       seed: 4242
     expect:
       steps: 925
-      hashes.physics_result_hash: a7fb2f783941066a06b2a0bb5b04a33baaaab13871009457264465849044b026
-      hashes.content_result_hash: 6c91ef2a2b429af3d52b61c6a08f0cf6da913ba08496a65a06bae8478681f0dc
+      hashes.physics_result_hash: 32b469ea0451d7195187c32f29e7b1e58049e5fa4fe930d9dee4be745859a533
+      hashes.content_result_hash: 0c322396fa3a49b031760c50b21fd04c511f85b5152719d616f9bc00ae169bd4
   # Level 2: 59400 life, buff 3, 100 ticks.
   - fight.run:
       layout: tests/tower/tower-level-2.yaml
       seed: 4242
     expect:
       steps: 928
-      hashes.physics_result_hash: 3fc27be90c7777b4539ee9a42e70bd81b0a7120b111acb64fccfc16d8b16cd56
-      hashes.content_result_hash: 3194b85fb73af2e44717389f101f66b033f89f1aac4e18f4282084d867e49941
+      hashes.physics_result_hash: 63f015e8411b3bd79644a50213585e36e799720439ff16ef3d1cc448517c37c4
+      hashes.content_result_hash: 9cbe8fedcb637c051d984abd8f497dfd0a10feea2d655b645fd2825a60463d66
   # Level 3: 131400 life, buff 4, 60 ticks.
   - fight.run:
       layout: tests/tower/tower-level-3.yaml
       seed: 4242
     expect:
       steps: 964
-      hashes.physics_result_hash: 8ab310a48757ebde4675de0aa39f6a477f3434f1a53a4139664fc35dd8b595ad
-      hashes.content_result_hash: a44c4d0e2d7b771c6be3c2e53851f5c615a72ed60635d2feed88233672e8f9c7
+      hashes.physics_result_hash: 73301ee994563eb8eb52e47a6b6248b676882aeef93be5c68b9bbfab47c6937c
+      hashes.content_result_hash: 4f36aa35d78f73aa3d69def0f1364305d3692289a26a99e96a59604b6b948cb3
   # Level 4: 235400 life, buff 5, 20 ticks.
   - fight.run:
       layout: tests/tower/tower-level-4.yaml
       seed: 4242
     expect:
       steps: 959
-      hashes.physics_result_hash: 573dd6fda460f6c121ef6ba38caf0b6e1ed8a0f60b4b4d3f96e853f9bada4f67
-      hashes.content_result_hash: 61c2c4156d370ec235b4715553ad85285065f584d3210512f3c287bba8b067d7
+      hashes.physics_result_hash: 1b60216787c34dcdd808952d76f92c6d28ecab4681ae6ca9672f60b1a61e6f90
+      hashes.content_result_hash: 0b355797b24b297bbab7d63b9c3236a241a5837c48078e5a5cfe1dd86fc04705
   # A second level-0 loss inside the first: the debuff lasts 180 ticks longer.
   - fight.run:
       layout: tests/tower/both-towers-0-0.yaml
       seed: 4242
     expect:
       steps: 581
-      hashes.physics_result_hash: e6315bc7b391a96bee3883652a1de4ba6332801c6329a01ecd7935a2d3bc8e53
-      hashes.content_result_hash: 9250b587177b8ab0076f9922b82957325933698d2b3bf6fe70be20f46b5ed6df
+      hashes.physics_result_hash: b7b5409d61112f1aeb57a6fda75f31b85424801f536bd956063d00055cb07ea6
+      hashes.content_result_hash: cd73fdc16bc6af905c810fa8e02ab3179377c8b039856c3a51937e47262460e6
   # A level-4 loss inside a level-0 one: 180 + 20, gone at tick 431.
   - fight.run:
       layout: tests/tower/both-towers-0-4.yaml
       seed: 4242
     expect:
       steps: 641
-      hashes.physics_result_hash: 1941e2b23c16b5b027a4fbcf84def6999cf50bae2275052e5aa5c7b17da6d3c0
-      hashes.content_result_hash: 22cd1a2b8bb9d4ba5655d956430131fc3e71a779881c1b3f4aa5dd929c184fba
+      hashes.physics_result_hash: e3fdaff274c7ab123a0495758260ca4b0dbda7dcf285bfd1aa197491d7c7f65c
+      hashes.content_result_hash: 71e81843f5d75c414126fd83c8434ee251c7ee6ae0baaaf8bfe93f2a60f2ebeb

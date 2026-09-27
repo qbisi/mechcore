@@ -215,6 +215,12 @@ struct Simulation {
     /// Buildings a projectile destroyed this tick, held until every projectile
     /// has resolved so their events follow all of the tick's shots.
     fallen_buildings: Vec<Event>,
+    /// The `buff_applied` events a tower's loss wrote this tick, by tower, to
+    /// follow its `building_destroyed`.
+    tower_buff_events: BTreeMap<u64, Vec<Event>>,
+    /// The buffs `BuffManager.Update` dropped from a unit dead this tick, to
+    /// name in the `cleared` that follows its `unit_died`.
+    dropped_buffs: BTreeMap<u64, Vec<u32>>,
     /// The RVO collider layer of every construction, by building.
     ///
     /// A construction is an obstacle only to the other side: the wall's own
@@ -303,6 +309,8 @@ impl Simulation {
             terminal_drain_pending: false,
             late_building_events_pending: false,
             fallen_buildings: Vec::new(),
+            tower_buff_events: BTreeMap::new(),
+            dropped_buffs: BTreeMap::new(),
             construction_colliders: construction_colliders.clone(),
             unsearchable_buildings: unsearchable.clone(),
             constructions,
@@ -735,11 +743,37 @@ impl Simulation {
         let (mut events, deaths): (Vec<_>, Vec<_>) = events
             .into_iter()
             .partition(|event| !matches!(&event.payload, EventPayload::UnitDied { .. }));
-        events.extend(deaths);
+        // `BuffManager.Clear` takes a dying unit's buffs as it dies.
+        for death in deaths {
+            let dead_id = death
+                .subject
+                .filter(|subject| subject.kind == ObjectKind::Unit)
+                .map(|subject| subject.id);
+            events.push(death);
+            if let Some(dead_id) = dead_id {
+                events.extend(self.buffs_cleared_by_death(dead_id));
+            }
+        }
+        self.dropped_buffs.clear();
         // What the tick's hits killed and felled comes last, in the order they
         // struck: a block a shot fells reads between the deaths its splash
-        // caused, and after every removal the tick resolved.
-        events.append(&mut self.fallen_buildings);
+        // caused, and after every removal the tick resolved. A fallen tower's
+        // buff follows it.
+        for fallen in std::mem::take(&mut self.fallen_buildings) {
+            let building_id = fallen
+                .subject
+                .filter(|subject| subject.kind == ObjectKind::Building)
+                .map(|subject| subject.id);
+            events.push(fallen);
+            if let Some(applied) = building_id.and_then(|id| self.tower_buff_events.remove(&id)) {
+                events.extend(applied);
+            }
+        }
+        if !self.tower_buff_events.is_empty() {
+            return Err(Error::new(
+                "a tower's loss wrote its buff on a tick that records no building_destroyed for it",
+            ));
+        }
         // A unit that died leaves its team's target tree, which keeps the
         // rest in their order but changes when a node next splits: a splash
         // that kills a crowd reads the next crowd in the order the game does

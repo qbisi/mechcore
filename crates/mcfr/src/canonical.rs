@@ -243,7 +243,7 @@ fn vitals_hash(state: &WorldSnapshot) -> [u8; HASH_BYTES] {
 
 #[allow(clippy::too_many_lines)]
 fn interactions_hash(events: &TransitionEvents) -> [u8; HASH_BYTES] {
-    let mut hasher = PhysicsHasher::new("battle-physics-interactions-v1");
+    let mut hasher = PhysicsHasher::new("battle-physics-interactions-v2");
     hasher.len(events.events.len());
     for (ordinal, event) in events.events.iter().enumerate() {
         hasher.len(ordinal);
@@ -343,6 +343,15 @@ fn interactions_hash(events: &TransitionEvents) -> [u8; HASH_BYTES] {
             EventPayload::Healing { amount } => {
                 hasher.u8(12);
                 hasher.i32(*amount);
+            }
+            EventPayload::BuffApplied { buff_id, duration } => {
+                hasher.u8(13);
+                hasher.u32(*buff_id);
+                hasher.i32(*duration);
+            }
+            EventPayload::BuffRemoved { buff_id, reason: _ } => {
+                hasher.u8(14);
+                hasher.u32(*buff_id);
             }
         }
     }

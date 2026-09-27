@@ -16,7 +16,7 @@ steps:
       seed: 1787720817
     expect:
       steps: 91
-      hashes.physics_result_hash: b858a472474fcff9cd8bfab2cd60d47d08e84294da14d3c899964d77cf3533d2
+      hashes.physics_result_hash: 615ce96945bc8314e2514fd9b7c35ec1f0b036f7ad77b50b0f0aaf178487e926
       hashes.content_result_hash: a13716e2e17d0ca5c5cfbaea8c770a98b9c4f892b38f6bfbc6c83338ccdc82b4
   # Heavy Armor alone: +0.75 of life in the unit channel, 2838.
   - fight.run:
@@ -24,7 +24,7 @@ steps:
       seed: 1787720817
     expect:
       steps: 139
-      hashes.physics_result_hash: 72c32822f83eeb6266f7cae5af013baa9b66b4cd7cccf1e77f13597f4b22dba7
+      hashes.physics_result_hash: fba6633f9c2867fd7946151f960b8eb1839aee27203f775c16a12458e9ed626f
       hashes.content_result_hash: 286eb767c78308758a9b4cb6b8e6bf9bd7dcd33a1c8f95b8bad690a7336fde89
   # With Advanced Defensive Tactics: the two rates sum, 3325.
   - fight.run:
@@ -32,7 +32,7 @@ steps:
       seed: 1787720817
     expect:
       steps: 139
-      hashes.physics_result_hash: 9c866a9a16fbed692845d6953f4738ff1e0ccfc20c54cfa3cfbc97195fd1ef87
+      hashes.physics_result_hash: 299178051606cb9754070da65629617178afd60aaec0387e103da475da8d4234
       hashes.content_result_hash: 368b54043674eb07394771990d55bec9e42d844d8da7696f327b733882fcc0e2
   # Improved Firepower Control System: +0.65 of damage in the skill channel, 3842.
   - fight.run:
@@ -40,7 +40,7 @@ steps:
       seed: 1787720817
     expect:
       steps: 83
-      hashes.physics_result_hash: ab263a3131d7ebe516622904447f3d54efae76d688330c1a52515af5be313a95
+      hashes.physics_result_hash: cb891bc8b4b488e82d1d0d8c18fc01c189d6684bd313e8143c342c02a55541b2
       hashes.content_result_hash: e39dd7a71d4dbe6c278f493b02b0b7b70d3f298c54916ab14fc722850f7013b4
   # With Advanced Offensive Tactics: the two rates sum, 4541.
   - fight.run:
@@ -48,7 +48,7 @@ steps:
       seed: 1787720817
     expect:
       steps: 83
-      hashes.physics_result_hash: cf74dbfbd1491a1d651e385c429489d7394d3498aee123b2501f8ad070f2fe7d
+      hashes.physics_result_hash: af38175805e9f025f394af3c36d546df8b57a7863c75f6be9fd8119ba872adf6
       hashes.content_result_hash: 6b85af16ca94b702788d2d39aeb253ff4ed8624a11a897ec564eedce47eac6d2
   # Laser Sights: +20 m of range. The target starts in reach, so the fight is
   # the control's and only the content hash tells them apart.
@@ -57,7 +57,7 @@ steps:
       seed: 1787720817
     expect:
       steps: 91
-      hashes.physics_result_hash: b858a472474fcff9cd8bfab2cd60d47d08e84294da14d3c899964d77cf3533d2
+      hashes.physics_result_hash: 615ce96945bc8314e2514fd9b7c35ec1f0b036f7ad77b50b0f0aaf178487e926
       hashes.content_result_hash: 4d40b05b9ecdab8f6b63bef4d7fe79aeab0964891be3437ae7850de2eb33aba6
   # The far control: 170 m apart, the Marksman walks before it fires.
   - fight.run:
@@ -65,7 +65,7 @@ steps:
       seed: 1787720817
     expect:
       steps: 165
-      hashes.physics_result_hash: c30e74fa8e7c53eee114bd64d4d4bce622d98278d1202679dcb73537d0b097d2
+      hashes.physics_result_hash: a3dd08e10facfd5548d3c292312bc59bd3a0a1f5e762e16f20b79c1ffb760cc3
       hashes.content_result_hash: 6d2a65598d395ed6d9c0ad238b664332fe82676aabcaa25ba11e4c79a211ff81
   # Laser Sights at 170 m: the range acts, and the first shot comes sooner.
   - fight.run:
@@ -73,7 +73,7 @@ steps:
       seed: 1787720817
     expect:
       steps: 140
-      hashes.physics_result_hash: 80d7556d964e8a969b0c87d1e5dcfaa428b954e2a3d24c6e79bbf899ed86685b
+      hashes.physics_result_hash: fb6571a42663a78a56d0b9c2a96f8242cc5d3afc1398eec373918b204d5fe903
       hashes.content_result_hash: 885538becfc2f454b5658a108e16055aea440713b4968e1e4ebf1f941a06e784
   # Two items under Equipment Expansion: Heavy Armor's life and the Firepower
   # Control System's damage both land, 2838 of life and shots of 3842.
@@ -82,5 +82,5 @@ steps:
       seed: 1787720817
     expect:
       steps: 83
-      hashes.physics_result_hash: b2a70aa6129ff53a4e7dd1839e36921715c49d4cdf0bf2424ac286ae3a4c939e
+      hashes.physics_result_hash: 5cdaf6a12a4d79c99fa36121193bc4d0bfe759ea5b86a00e7ab0cca361f1bd49
       hashes.content_result_hash: aee51d0bc7308f13aa68b52a7b383a7203ebaf232f0f25571cf577eb693fe6cc

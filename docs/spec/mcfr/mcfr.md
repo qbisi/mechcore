@@ -127,12 +127,12 @@ Parquet key-value metadata keys and values are both UTF-8 strings.
 
 | Key | Data | Meaning |
 | --- | --- | --- |
-| `format` | exactly `0.14.0` | the logical and physical contract version |
+| `format` | exactly `0.15.0` | the logical and physical contract version |
 | `game_build` | non-empty UTF-8 | capture provenance; the adapter reads `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | the context `D` that holds steady for one round |
-| `physics_hash_profile` | exactly `battle-physics-v5` | the stable physics projection version |
+| `physics_hash_profile` | exactly `battle-physics-v6` | the stable physics projection version |
 | `physics_result_hash` | 64 lowercase hex digits | ordered digest of every `physics_tick_hash`; what regression compares |
-| `content_hash_profile` | exactly `mcfr-content-0.14.0` | the full content digest version |
+| `content_hash_profile` | exactly `mcfr-content-0.15.0` | the full content digest version |
 | `content_result_hash` | 64 lowercase hex digits | ordered digest of every `content_tick_hash`; an in-format diagnostic |
 | `tick_count` | canonical decimal `u32` | logical ticks recorded, counting from `S(1)` |
 | `terminal_tick` | canonical decimal `u32` | the confirmed final logical boundary, equal to `tick_count` on a continuous timeline |
@@ -389,7 +389,7 @@ reach, whenever something it can shoot stands in reach in front of it.
 A capture records all three as the native objects report them and derives none
 from another, which is what lets a reader compare them. They are content-layer
 fields: the physics layer excludes them (see
-[the physics layer](#the-stable-physics-layer-battle-physics-v5)), so a fight
+[the physics layer](#the-stable-physics-layer-battle-physics-v6)), so a fight
 whose physics matches can still disagree in them.
 
 ## Projectiles
@@ -667,7 +667,7 @@ contiguously from 0. The whole table is strictly ascending by
 | --- | --- | --- |
 | `tick` | `UINT32` required | the advance this event belongs to |
 | `ordinal` | `UINT32` required | observation order within the tick |
-| `type` | `UINT8` required | the event kind tag, the row number of the table below counting from 0 (`0=projectile_released` … `12=healing`) |
+| `type` | `UINT8` required | the event kind tag, the row number of the table below counting from 0 (`0=projectile_released` … `14=buff_removed`) |
 | `object` | `ObjectRef` nullable | the subject |
 | `source` | `ObjectRef` nullable | the direct source |
 | `source_team_id` | `UINT32` nullable | the team of the source or subject at the event boundary |
@@ -678,8 +678,8 @@ field's type: `skill_slot` `UINT16`, `weapon_index` `INT32`, `position`
 `QVec3`, `intercepted` `BOOLEAN`, `absorbed_by` `ObjectRef`, `amount` `INT32`,
 `team_id` `UINT32`, `formation_id` `UINT64`, `unit_type_id` `UINT32`,
 `previous_team_id` and `new_team_id` `UINT32`, `source_kind` `UINT8`
-(`ShieldSourceKind`), `reason` `UINT8`, `terrain_type` `UINT8` (`TerrainType`)
-and `radius` `INT64` Q32.32. A row sets exactly the fields its type carries and
+(`ShieldSourceKind`), `reason` `UINT8`, `terrain_type` `UINT8` (`TerrainType`),
+`radius` `INT64` Q32.32, `buff_id` `UINT32` and `duration` `INT32`. A row sets exactly the fields its type carries and
 leaves every other payload column null; a reader refuses a row that sets a
 field its type does not carry or lacks one it requires.
 
@@ -698,6 +698,8 @@ field its type does not carry or lacks one it requires.
 | `terrain_removed` | `object` | `position: QVec3`, `reason: TerrainRemovedReason` | it left the controller item set, ending its lifecycle |
 | `terrain_converted` | `object` | `position: QVec3` | one terrain changed native type or ownership |
 | `healing` | `target` | `amount: i32` | one positive recovery result |
+| `buff_applied` | `target`; `source` is the actor that put it on, if one did, and `source_team_id` its side's | `buff_id: u32`, `duration: i32` | a buff put on the target, or put on again; `buff_id` is its data's `GetID()`, `duration` the ticks left on it once applied |
+| `buff_removed` | `target` | `buff_id: u32`, `reason: BuffRemovedReason` | a buff taken off the target |
 
 `projectile_removed` admits exactly three combinations. Native interception is
 `intercepted=true, absorbed_by=null`. Absorption by a battlefield shield is
@@ -710,6 +712,11 @@ where the native destruction entry point determines the cause.
 
 `terrain_removed.reason` is one of `0=time_expired`, `1=round_expired`,
 `2=grid_depleted`, `3=cleared` or `4=unknown`, under the same rule.
+
+`buff_removed.reason` is one of `0=expired`, `1=removed` (a skill or
+technology took it off by its data), `2=team_changed`, `3=technology_disabled`,
+`4=cleared` (its actor was torn down, as a unit is when it dies) or
+`5=unknown`.
 
 A `terrain_created` object is fully determined by the terrain's identity, team,
 type, position and radius. Causation from a projectile is observed jointly, from
@@ -744,9 +751,22 @@ them: no pinned fight creates a unit inside the tick or heals one, and which
 summons and heals reach the two entry points is checked as each mechanism is
 researched.
 
-Buffs are not events. Their observation lives on the unit state track: boolean
-state in `status_mask`, aggregate numeric corrections in the `buff` modifiers, and a
-buff's evolution is the change in those fields between adjacent snapshots.
+A buff enters and leaves through three `BuffManager` methods, and the adapter
+hooks each. `buff_applied` comes from `AddBuff(Buff)`, the private method a new
+buff joins its actor's list through once `Buff.Init` has filled it, and from
+`Buff.Reset`, which the same buff put on again runs instead of adding a second;
+the event names the running buff's row, which a merge does not change.
+`buff_removed` comes from `RemoveBuff(Buff)`, read before it returns the buff
+to its pool. Its reason is the method it runs under: `RemoveBuff(IBuffData)`,
+`RemoveBuffEffect`, `ClearSelfResourceBuffByDisableTech` or `Clear`, or else
+`BuffManager.Update` finding the buff's time run out. Buffs a fight starts
+with, put on before its first tick, have no event.
+
+What a buff does is still on the unit state track: boolean state in
+`status_mask` and aggregate numeric corrections in the `buff` modifiers. The
+pinned fights exercise the buff a tower's loss writes, and nothing else; which
+other buffs reach these methods, and whether each removal reason is the one
+the build means, is checked as each mechanism is researched.
 
 ## Instrument channels
 
@@ -942,16 +962,17 @@ byte, an `Option<T>` a presence byte followed by `T` when present, and a list's
 length an `LE_u64`. Every public digest is 64 lowercase hex digits, and the
 Parquet tick columns hold the raw 32 bytes.
 
-### The stable physics layer, `battle-physics-v5`
+### The stable physics layer, `battle-physics-v6`
 
 `physics_tick_hash` digests a version-frozen combat physics projection rather
 than the whole MCFR schema. Adding an observation field does not change the
 projection. If a projection field, unit, precision, order or encoding must
-change, that is a new profile: `battle-physics-v5` is never edited in place.
+change, that is a new profile: `battle-physics-v6` is never edited in place.
 `battle-physics-v1` projected no turret; `v2` added `turret_rotation` to the
 kinematics lane; `v3` dropped the vertical velocity and the projectile's
 orientation and release flag, which the build never sets; `v4` added the
-statistics lane; `v5` adds the formations lane.
+statistics lane; `v5` added the formations lane; `v6` adds the buff events to
+the interactions lane.
 
 The WorldSnapshot is canonicalised before hashing. Object lists stay in stable
 ID order, events in native `ordinal` order, weapon poses in `(skill_slot,
@@ -965,14 +986,14 @@ Each tick is five independent lane digests:
 | --- | --- |
 | `battle-physics-kinematics-v3` | Unit: `unit_id, position, body_rotation, turret_rotation, velocity`, plus `skill_slot, weapon_index, pose.position, pose.rotation` for channels that have a pose. Projectile: `projectile_id, position`. Building: `building_id, position`. Shield: `shield_id, position, radius`. Terrain: `terrain_id, position, radius, grid(origin_x, origin_y, size_x, size_y, rows)` |
 | `battle-physics-vitals-v2` | Unit: `unit_id, unit_type_id, team_id, domain, collision_radius, life, personal_shield.active/energy`. Projectile: `projectile_id, team_id, owner, life`. Building: `building_id, building_type_id, team_id, bounds_width, bounds_height, life, available, targetable, collision_enabled`. Shield: `shield_id, team_id, owner, radius, energy, active`. Terrain: `terrain_id, team_id, terrain_type, radius` |
-| `battle-physics-interactions-v1` | each event contributes `ordinal, subject, source, source_team_id, target` first, then its type and physical payload: the release channel; a removal's position, interception and absorbing shield; a damage amount; a unit creation's team, type and position; a unit death position; a building destruction position; a team change; a shield creation's team and position; a shield destruction position; a terrain creation's team, type, position and radius; a terrain removal or conversion position; a healing amount |
+| `battle-physics-interactions-v2` | each event contributes `ordinal, subject, source, source_team_id, target` first, then its type and physical payload: the release channel; a removal's position, interception and absorbing shield; a damage amount; a unit creation's team, type and position; a unit death position; a building destruction position; a team change; a shield creation's team and position; a shield destruction position; a terrain creation's team, type, position and radius; a terrain removal or conversion position; a healing amount; a buff application's row and ticks left; a buff removal's row |
 | `battle-physics-statistics-v1` | each row of `statistics` in stored order: `team_id, recorder, recorder_id, damage, damage_real, kills, damage_taken` |
 | `battle-physics-formations-v1` | each row of `formations` in stored order: `formation_id, team_id, experience, max_experience` |
 
 ```text
 K(t) = H_battle-physics-kinematics-v3(kinematics projection)
 V(t) = H_battle-physics-vitals-v2(vitals projection)
-I(t) = H_battle-physics-interactions-v1(interactions projection)
+I(t) = H_battle-physics-interactions-v2(interactions projection)
 C(t) = H_battle-physics-statistics-v1(statistics projection)
 F(t) = H_battle-physics-formations-v1(formations projection)
 
@@ -995,7 +1016,7 @@ rotation and velocity, life and shields, the interactions including damage,
 and the build's own account of who dealt, took and killed what, while a new
 purely diagnostic field never forces a re-record.
 
-### The full content layer, `mcfr-content-0.14.0`
+### The full content layer, `mcfr-content-0.15.0`
 
 State and events are first encoded as canonical JSON: UTF-8, object keys sorted
 recursively, compact encoding, and the array order the schema defines. It covers
@@ -1092,19 +1113,11 @@ a weapon's `attack_target` and every channel without a pose; a projectile's
 `target`, cached target position and radius, and spawn-containing shields; a
 shield's `source_kind`, `round_policy` and `active_order`; a terrain's remaining
 rounds, logic lifetime and per-unit application clocks; an event's
-`formation_id`, shield source kind, and shield or terrain removal reason. These
+`formation_id`, shield source kind, and shield, terrain or buff removal reason. These
 are excluded from regression identity, not from the file, and
 `content_*_hash` still detects every one of them.
 
 ## Unresolved
-
-**Should a removal reason exist when nothing can produce one?**
-`shield_destroyed.reason` and `terrain_removed.reason` each define a five-value
-vocabulary, and a producer that determines the cause only from a collection
-membership diff can write exactly one of those values. Either the format expects
-producers with native lifecycle hooks, in which case the vocabulary is right and
-the diff is a degraded mode, or it does not, in which case the field is a
-boolean wearing five names.
 
 **Should `status_mask` bits be named after predicates or after effects?** Bits 0
 and 1 carry the native predicate names `invincible` and `frozen`, and what each

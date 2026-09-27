@@ -49,7 +49,7 @@ steps:
       output: ${out}/speed-once.mcfr
     expect:
       operation.tick_count: 104
-      operation.hashes.physics_result_hash: 884a238d5b40ffae90ddd15015c8771a3fbbce1cfdd2eee2cd7122f7534e886c
+      operation.hashes.physics_result_hash: cd7ce5dc1fcec24e6321ad1eaed222a19f9423cef86278076312ea7617abb76b
   - fight.stats:
       recording: ${out}/speed-once.mcfr
     expect:
@@ -62,7 +62,7 @@ steps:
       output: ${out}/speed-twice.mcfr
     expect:
       operation.tick_count: 92
-      operation.hashes.physics_result_hash: df742b56238b5bfde8a5b3f6e27d06431905fee2fe177c617b86ea117c2b6c55
+      operation.hashes.physics_result_hash: 3b667fc6d2dd6fbfda6980fe2dd8df9ab3f50f5b48fa38dbbf8fc96baac3769b
   - fight.outcome:
       recording: ${out}/speed-twice.mcfr
     expect:
