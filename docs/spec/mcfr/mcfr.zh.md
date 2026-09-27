@@ -347,13 +347,13 @@ Adapter 遍历 `FightMech.GetSkills()`，覆盖主技能与子技能，再遍历
 | `cached_target_position` | `QVec3 required` | 弹体缓存的目标坐标 | `GetTargetInfo().GetPosition()` |
 | `cached_target_radius` | `INT64 required` | 弹体缓存的目标半径 | `GetTargetInfo().GetRadius()` |
 | `life` | `GaugeI32 required` | 弹体当前/最大生命 | `GetLife()` / `GetMaxLife()` |
-| `spawn_containing_shields` | required `list<ObjectRef>` | 弹体创建时已经包含它的活跃战场盾，按 Shield ID 排序 | `ProjectileController.inEnergyShields` |
+| `spawn_containing_shields` | required `list<ObjectRef>` | 弹体自身命中检测会看的、创建时已包含它的盾，按 Shield ID 排序 | `ProjectileController.inEnergyShields` |
 
 `owner` 和 `target` 可引用已经退出当前快照的历史对象。引用身份在整份录像内保持稳定。
 
 活跃弹体在这里没有朝向和释放标记：它从不旋转（`GetRotationInt()` 恒为 0），`isReleased` 只在回收进对象池时由重置路径置位，活跃弹体读到的总是 false；采集遇到其它值即拒绝。发射事实由 `projectile_released` event 表达。
 
-`spawn_containing_shields` 保存原生投射物相交算法的出生豁免集合：从盾内发射的弹体会跳过该盾，直到离开后再次穿越。空列表表示出生时不在任何活跃战场盾内；列表元素必须是 `ObjectKind::Shield`。
+`spawn_containing_shields` 是弹体的出生豁免：它出生时就在其中、因此永远不会命中的那些盾。`ProjectileController.Init` 在弹体有了炮口位置之后用 `GetInEnergyShields` 填一次：按弹体 `GetEffectTargetType()` 所指的阵营（`Self` 为本队，`Opponent` 为对手，`Both` 为全部）取出半径包含该位置的盾。命中检测 `IsProjectileHitEnergyShield` 重新求出此刻包含弹体的盾，取第一个不在列表里的；弹体回收进对象池之前没有任何地方修改这个列表，所以豁免持续弹体的整个寿命，而不是离开盾之后就结束。因此只有从自身命中检测会看的盾内发射时列表才非空，对伤害弹体而言就是射手站在敌方护盾里；几乎每一行都为空。列表元素必须是 `ObjectKind::Shield`。
 
 ---
 
