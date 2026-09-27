@@ -425,7 +425,7 @@ the complete set the system enumerates.
 | `cached_target_position` | `QVec3 required` | the target position the projectile cached | `GetTargetInfo().GetPosition()` |
 | `cached_target_radius` | `INT64 required` | the target radius it cached | `GetTargetInfo().GetRadius()` |
 | `life` | `GaugeI32 required` | current and maximum life | `GetLife()` / `GetMaxLife()` |
-| `spawn_containing_shields` | required `list<ObjectRef>` | the live battlefield shields already containing it at creation, by Shield ID | `ProjectileController.inEnergyShields` |
+| `spawn_containing_shields` | required `list<ObjectRef>` | the shields its own hit test considers that already contained it at creation, by Shield ID | `ProjectileController.inEnergyShields` |
 
 `owner` and `target` may reference objects that have already left the current
 snapshot. A reference identity stays valid for the whole recording.
@@ -436,10 +436,21 @@ reset on the way back, so a live projectile always reads false; the capture
 refuses a build where either is otherwise. The fact of firing is the
 `projectile_released` event.
 
-`spawn_containing_shields` is the native intersection algorithm's birth
-exemption set: a projectile fired from inside a shield skips that shield until
-it leaves and crosses again. An empty list means it was born inside no live
-battlefield shield. Every element must be `ObjectKind::Shield`.
+`spawn_containing_shields` is the projectile's birth exemption: the shields it
+can never hit because it was born inside them. `ProjectileController.Init`
+fills it once, after the projectile has its muzzle position, with
+`GetInEnergyShields`: the shields of the groups the projectile's
+`GetEffectTargetType()` names (its own team for `Self`, the opponents for
+`Opponent`, all for `Both`) whose radius contains that position. The hit test,
+`IsProjectileHitEnergyShield`, rebuilds the shields containing the projectile
+now and takes the first one not in the list, and nothing edits the list until
+the projectile returns to the pool: the exemption lasts its whole life, not
+until it leaves the shield.
+
+So the list is non-empty only when a projectile is fired from inside a shield
+its own hit test looks at, which for a damaging shot means a shooter standing
+inside an enemy's dome. It is empty in nearly every row. Every element must be
+`ObjectKind::Shield`.
 
 ## Buildings
 
