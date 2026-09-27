@@ -6,26 +6,26 @@ steps:
       seed: 1787720817
     expect:
       steps: 91
-      hashes.physics_result_hash: 4277bde999f9a4ab9cdda0bff3c61f643f41486d46642fb6c46869f3448f0914
-      hashes.content_result_hash: d54c7c7e1fee9b67a02a749c86df56b9985e2440831cb8273c486de8d4accf3e
+      hashes.physics_result_hash: b858a472474fcff9cd8bfab2cd60d47d08e84294da14d3c899964d77cf3533d2
+      hashes.content_result_hash: a13716e2e17d0ca5c5cfbaea8c770a98b9c4f892b38f6bfbc6c83338ccdc82b4
   - fight.run:
       layout: tests/level/marksman-2.yaml
       seed: 1787720817
     expect:
       steps: 83
-      hashes.physics_result_hash: 0dcc4bc0718dcc7918399ec4ff98f8bc516c70d350513b63e920fdddf92c9918
-      hashes.content_result_hash: 44f938a8d4159ce099172e75c8e163e2f497e097e6e4edbf80392b01bc3887a2
+      hashes.physics_result_hash: 99a7291d7b1afa71e7435a295b1847e28ce3bc05387ca0b70c8851b905f902fe
+      hashes.content_result_hash: ed2f7990d409c5f3befe67635cc730f2a544fb443292a45983713b56adefa94f
   - fight.run:
       layout: tests/level/marksman-3.yaml
       seed: 1787720817
     expect:
       steps: 18
-      hashes.physics_result_hash: 785bbb873dc15b68da7da58c7d190a57686e8ca43d55912d6dc2b460592b6dc7
-      hashes.content_result_hash: ae003f46fd1dd047fb6e8c143b47996657a7bea204d904832600f0724a11004c
+      hashes.physics_result_hash: c5b0ee785070a1b0e2757c9051240dc32bd615eafe064af10d0a487e071367fe
+      hashes.content_result_hash: 77153ce4f4427404d478ed5bc639983e16bf33f4018a485809031ee3a4e8ed88
   - fight.run:
       layout: tests/level/marksman-2-rate.yaml
       seed: 1787720817
     expect:
       steps: 18
-      hashes.physics_result_hash: 6290fe78645c5355dc9ea1395e0892d84650a30f98e4a5e61a612967fdb0b176
-      hashes.content_result_hash: 60afa00a8e105c550a25975c28b295ad31761bb6f68956920a3bb3a679aad264
+      hashes.physics_result_hash: 87c58f6bf56a941d366068d06dc29f1a966fb87e5451bccbee83627ca7deebea
+      hashes.content_result_hash: bcd1db8f61e9b9b942237eb6a2a9bb167b33731fa5ed41c49469c3467c0e89a7

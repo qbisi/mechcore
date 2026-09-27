@@ -84,6 +84,7 @@ impl Simulation {
         if !stroke.reached_alive {
             return Ok(());
         }
+        self.count_experience(source, target, stroke.killed)?;
         let narrow =
             |value: i64| i32::try_from(value).map_err(|_| Error::new("a counted hit exceeds i32"));
         if let Some(key) = self.recorder(source) {

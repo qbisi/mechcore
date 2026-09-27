@@ -15,9 +15,9 @@ use std::{
 
 use mechcore_mcfr::{
     BuildingState, DamageStatistics, DerivedStats, Domain, DurableContext, Event, EventPayload,
-    GaugeI32, Hashes, IdentityAllocator, LiveUnitState, McfrReader, McfrWriter, MotionState,
-    ObjectKind, ObjectRef, PersonalShieldState, ProjectileState, QPlanar, QVec3, Rational,
-    RecorderKind, TickSlice, TransitionEvents, Visibility, WeaponAimState, WorldSnapshot,
+    FormationState, GaugeI32, Hashes, IdentityAllocator, LiveUnitState, McfrReader, McfrWriter,
+    MotionState, ObjectKind, ObjectRef, PersonalShieldState, ProjectileState, QPlanar, QVec3,
+    Rational, RecorderKind, TickSlice, TransitionEvents, Visibility, WeaponAimState, WorldSnapshot,
 };
 
 use serde::Serialize;
@@ -35,6 +35,7 @@ mod attacker;
 mod construction;
 mod damage;
 mod deploy;
+mod experience;
 mod math;
 mod mech;
 mod motion;
@@ -200,6 +201,9 @@ struct Simulation {
     projectiles: Vec<Projectile>,
     buildings: Vec<BuildingState>,
     target_quadtrees: BTreeMap<u32, TargetActorQuadtree>,
+    /// Each side's units alone, `FightTeam.mechQuadtree`, which the
+    /// experience a kill shares out is looked for in.
+    mech_quadtrees: BTreeMap<u32, TargetActorQuadtree>,
     identities: IdentityAllocator,
     rvo_counter: u8,
     // Native Agent::.ctor stores its initial position in the public backing
@@ -236,6 +240,14 @@ struct Simulation {
     statistics: BTreeMap<statistics::RecorderKey, DamageStatistics>,
     /// Each construction block's recorder, by building.
     construction_recorders: BTreeMap<u64, statistics::RecorderKey>,
+    /// Each formation's experience, by formation.
+    formations: BTreeMap<u64, experience::FormationExperience>,
+    /// Who has hit each target, first hit first.
+    attackers: BTreeMap<ObjectRef, Vec<ObjectRef>>,
+    /// What each building's destruction hands out, by building.
+    building_exp: BTreeMap<u64, i64>,
+    /// The bars and loot of every unit type.
+    experience: experience::ExperienceTable,
 }
 
 impl Simulation {
@@ -273,15 +285,18 @@ impl Simulation {
             tower_losses,
             tower_buffed_constructions,
             construction_groups,
+            building_exp,
         } = initialize_buildings(towers, &layout.constructions, &layout.tower_levels)?;
         let constructions = initialize_constructions(&buildings, &layout.constructions)?;
         let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
+        let mech_quadtrees = initialize_mech_quadtrees(&actors);
         let mut simulation = Self {
             actors,
             team_random: BTreeMap::new(),
             projectiles: Vec::new(),
             buildings,
             target_quadtrees,
+            mech_quadtrees,
             identities: IdentityAllocator::new(),
             rvo_counter: 0,
             rvo_first_tree_pending: true,
@@ -296,8 +311,13 @@ impl Simulation {
             tower_buffed_constructions,
             statistics: BTreeMap::new(),
             construction_recorders: BTreeMap::new(),
+            formations: BTreeMap::new(),
+            attackers: BTreeMap::new(),
+            building_exp,
+            experience: experience::ExperienceTable::load()?,
         };
         simulation.seed_statistics(&construction_groups);
+        simulation.seed_experience()?;
         simulation.deploy_attack_intervals(layout.round)?;
         Ok(simulation)
     }
@@ -318,6 +338,7 @@ impl Simulation {
                 .cloned()
                 .collect(),
             statistics: self.statistics.values().copied().collect(),
+            formations: self.formation_states(),
             ..WorldSnapshot::default()
         }
     }
@@ -733,6 +754,9 @@ impl Simulation {
             if let Some(tree) = self.target_quadtrees.get_mut(&team) {
                 tree.remove(FightActorRef::Unit(actor_id));
             }
+            if let Some(tree) = self.mech_quadtrees.get_mut(&team) {
+                tree.remove(FightActorRef::Unit(actor_id));
+            }
         }
         Ok(TransitionEvents { events })
     }
@@ -806,6 +830,16 @@ impl Simulation {
             .map(|actor| actor.placement.team)
             .collect::<std::collections::BTreeSet<_>>();
         living_teams.len() < 2 && self.projectiles.is_empty()
+    }
+
+    /// What happens between a tick's work and its snapshot: intervals settle
+    /// as the fight finishes, and `BattleSystem.OnFightOver` prunes each
+    /// formation's experience to a whole number before the last state is read.
+    fn close_tick(&mut self, out_of_time: bool) {
+        self.settle_intervals_if_finishing();
+        if self.ready_to_finish() || out_of_time {
+            self.prune_experience();
+        }
     }
 
     fn ready_to_finish(&self) -> bool {

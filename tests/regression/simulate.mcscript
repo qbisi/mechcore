@@ -49,4 +49,4 @@ steps:
     expect:
       steps: 321
       winner: blue
-      hashes.physics_result_hash: c3b5f6094c1d384a4fbf65ff36bea0f8d7b68a9d51c1c42addee6fe619b539bb
+      hashes.physics_result_hash: d8739a690944af1eed8e3e900bd110ae60434897ccfea5f22e3c7f21e1d1b26d

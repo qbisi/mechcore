@@ -93,7 +93,48 @@ state a position holds rather than a trace of the skill. When a full bar turns
 into a level, and what a fight does with experience past it, belong to the
 fight and are not established here.
 
+## What a kill hands out
+
+A fight hands experience out as it goes, one kill at a time, and every
+formation keeps its own. The table's `loot_exp` is what one unit hands out when
+it is killed at its level; a tower hands out 100, and a construction its row's
+`exp`.
+
+A formation starts a round's fight at -1.0, which is not a debt: its first gain
+starts from zero. A kill hands out its amount twice over:
+
+- **The killer's formation takes the whole amount**, when the killer is a unit
+  that may take experience: alive, not summoned, not controlled by the other
+  side, and not already at a full bar. A kill no unit made, by a turret say,
+  adds the amount to the pool below instead.
+- **A pool of the same amount is split evenly.** It goes to every formation
+  that hit the target during the fight and may take experience, and to every
+  formation of the killer's side with a unit standing within 65 metres of the
+  target, edge to centre. Each formation takes one share, however many of its
+  units qualify, and the killer's formation takes a share as well as the whole.
+  A kill no unit made with no one to share it goes to every formation of the
+  killer's side that may take experience.
+
+"Within 65 metres" is asked of the side's unit quadtree first, for a square 65
+metres wide around the target. The tree answers with whole nodes, so a unit is
+found or missed depending on how the side's tree has split: once a side has
+twenty units, one standing well within 65 metres can be missed. A unit found is
+then held to the circle, and a unit found need not be alive, only still in the
+tree.
+
+No gain carries a formation past its bar, and a full formation takes no share,
+though a share is still set aside for it when it stands near. As the fight
+ends, each formation's experience is cut to a whole number.
+
 ## Evidence
+
+### Recorded
+
+- What a kill hands out and to whom, as the section above states it: every
+  formation's experience is in each recording's physics hash, and the
+  simulator reproduces it tick by tick in every fight the topics pin, which
+  `tests/units/regressions.mcscript` and the other topics'
+  `regressions.mcscript` replay.
 
 ### Read
 
@@ -108,6 +149,17 @@ fight and are not established here.
 - A unit's bar is the table's entry unless its data set holds an
   `UpgradeExp`, which then replaces it: `CardElement.GetNextLevelExp`.
 - A full unit takes no share of a fight's experience: `ExpSystem.IsValidOwner`.
+- A kill's experience, the killer's whole and the shared pool:
+  `ExpSystem.OnActorHitted`, `ExpSystem.DoCalculateExp`, `Config.assistKillExpRate`.
+- Who shares it, by attack and by distance: `ExpSystem.AddAttackData`,
+  `ExpSystem.AddRangeUnit`, `Config.assistExpRange`, `RectRange.Overlaps`,
+  `FightTeam.CreateQuadtree`.
+- A gain starts from zero and stops at the bar: `MechTeam.AddExp`.
+- What a unit, a tower and a construction hand out: `MechExpData.lootExpLv1`,
+  `FightMech.GetProvideExp`, `FightCrystal.GetProvideExp`,
+  `towerDefaultDatas.exp`.
+- A fight's end cuts experience to a whole number: `BattleSystem.OnFightOver`,
+  `MechTeam.PruneExp`.
 - Intensive Training refuses a full unit: `CS_AddExp.CheckAvaliable`.
 - Every row but Vulcan's follows the formula; `scripts/extract_prices.py`
   checks it on every row it writes, which it did on this version's table:
@@ -123,8 +175,9 @@ fight and are not established here.
   corpus holds releases of it, but its replay leaves a unit's experience to the
   fight and compares none: `scripts/verify-battles.py`. Levels 5 through 8
   are unobserved.
-- **When a full bar becomes a level**, and what a fight does with experience
-  past it.
+- **When a full bar becomes a level.** A fight stops a formation's gains at
+  its bar; what turns a full bar into the next level after the fight is not
+  read.
 - **What writes a unit's `UpgradeExp`.** An officer's `expChangeRate` is the one
   table field that touches experience; whether it reaches the bar through this
   value is not read, and no recording has a bar changed.

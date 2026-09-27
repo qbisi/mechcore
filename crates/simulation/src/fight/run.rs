@@ -265,7 +265,7 @@ pub(in crate::fight) fn execute(
         let events = simulation.step(steps)?;
         steps += 1;
         let tick = u32::try_from(steps).map_err(|_| Error::new("tick index exceeds u32"))?;
-        simulation.settle_intervals_if_finishing();
+        simulation.close_tick(steps >= max_steps);
         let mut state = simulation.snapshot();
         state.canonicalize();
         let tick_hashes = writer.append_tick(state.clone(), &events)?;

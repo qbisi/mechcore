@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result, canonical};
 
-pub const MCFR_FORMAT: &str = "0.13.0";
-pub const PHYSICS_HASH_PROFILE: &str = "battle-physics-v4";
-pub const CONTENT_HASH_PROFILE: &str = "mcfr-content-0.13.0";
+pub const MCFR_FORMAT: &str = "0.14.0";
+pub const PHYSICS_HASH_PROFILE: &str = "battle-physics-v5";
+pub const CONTENT_HASH_PROFILE: &str = "mcfr-content-0.14.0";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -115,6 +115,23 @@ pub struct WorldSnapshot {
     /// The build's own damage and kill counters for the fight so far.
     #[serde(default)]
     pub statistics: Vec<DamageStatistics>,
+    /// Every formation's experience, which kills add to inside the tick.
+    #[serde(default)]
+    pub formations: Vec<FormationState>,
+}
+
+/// A formation's experience, `MechTeam`'s own: what `ExpSystem` hands it for
+/// kills during the fight, and the bar it stops at.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FormationState {
+    pub formation_id: u64,
+    pub team_id: u32,
+    /// `MechTeam.expFloat`, `FPoint` raw. A formation that has never gained
+    /// any holds -1.0, the build's reset value.
+    pub experience: i64,
+    /// `MechTeam.maxExpFloat`, `FPoint` raw: the full bar, where gains stop.
+    pub max_experience: i64,
 }
 
 /// Whose counters a row of the build's damage statistics is.
@@ -174,6 +191,8 @@ impl WorldSnapshot {
         self.shields.sort_by_key(|value| value.shield_id);
         self.terrains.sort_by_key(|value| value.terrain_id);
         self.statistics.sort_by_key(DamageStatistics::key);
+        self.formations
+            .sort_by_key(|formation| formation.formation_id);
     }
 
     /// Returns all top-level object identities in the snapshot.
@@ -351,6 +370,15 @@ impl WorldSnapshot {
                     terrain.terrain_id
                 )));
             }
+        }
+        if self
+            .formations
+            .windows(2)
+            .any(|pair| pair[0].formation_id >= pair[1].formation_id)
+        {
+            return Err(Error::invalid(
+                "formations are not strictly ordered by formation_id",
+            ));
         }
         if self
             .statistics

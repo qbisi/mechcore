@@ -48,7 +48,7 @@ fn writes_and_reads_every_table() {
     );
 
     let reader = McfrReader::open(&path).unwrap();
-    assert_eq!(MCFR_FORMAT, "0.13.0");
+    assert_eq!(MCFR_FORMAT, "0.14.0");
     assert_eq!(reader.tick_count(), 1);
     assert_eq!(reader.terminal_tick(), 1);
     assert_eq!(reader.game_build(), "build-a");
@@ -1069,6 +1069,7 @@ fn state(enemy_life: i32) -> WorldSnapshot {
             }],
         }],
         statistics: Vec::new(),
+        formations: Vec::new(),
     }
 }
 

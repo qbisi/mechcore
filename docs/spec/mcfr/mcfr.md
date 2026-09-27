@@ -41,11 +41,12 @@ recording.mcfr
 ├── shields.parquet
 ├── terrains.parquet
 ├── statistics.parquet
+├── formations.parquet
 ├── events.parquet
 └── instrument/<channel>.parquet   zero or more
 ```
 
-The seven tables from `units.parquet` to `events.parquet` are present only when
+The eight tables from `units.parquet` to `events.parquet` are present only when
 they hold a row: a recording with no projectile has no `projectiles.parquet`,
 and a reader reads a missing table as empty.
 
@@ -59,6 +60,7 @@ and a reader reads a missing table as empty.
 | `shields.parquet` | battlefield shields still present in AdvancedEnergyShieldSystem | `S(1)..S(n)` | Parquet + Zstd level 6 |
 | `terrains.parquet` | dynamic battlefield terrain in RangeItemSystem, with its unit applications | `S(1)..S(n)` | Parquet + Zstd level 6 |
 | `statistics.parquet` | the build's damage and kill counters for the fight so far | `S(1)..S(n)` | Parquet + Zstd level 6 |
+| `formations.parquet` | every formation's experience | `S(1)..S(n)` | Parquet + Zstd level 6 |
 | `events.parquet` | ordered discrete events between adjacent snapshots | `E(1)..E(n)` | Parquet + Zstd level 6 |
 | `instrument/<channel>.parquet` | one [instrument channel](#instrument-channels), outside both hashes | the ticks it has rows for | Parquet + Zstd level 6 |
 
@@ -125,12 +127,12 @@ Parquet key-value metadata keys and values are both UTF-8 strings.
 
 | Key | Data | Meaning |
 | --- | --- | --- |
-| `format` | exactly `0.13.0` | the logical and physical contract version |
+| `format` | exactly `0.14.0` | the logical and physical contract version |
 | `game_build` | non-empty UTF-8 | capture provenance; the adapter reads `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | the context `D` that holds steady for one round |
-| `physics_hash_profile` | exactly `battle-physics-v4` | the stable physics projection version |
+| `physics_hash_profile` | exactly `battle-physics-v5` | the stable physics projection version |
 | `physics_result_hash` | 64 lowercase hex digits | ordered digest of every `physics_tick_hash`; what regression compares |
-| `content_hash_profile` | exactly `mcfr-content-0.13.0` | the full content digest version |
+| `content_hash_profile` | exactly `mcfr-content-0.14.0` | the full content digest version |
 | `content_result_hash` | 64 lowercase hex digits | ordered digest of every `content_tick_hash`; an in-format diagnostic |
 | `tick_count` | canonical decimal `u32` | logical ticks recorded, counting from `S(1)` |
 | `terminal_tick` | canonical decimal `u32` | the confirmed final logical boundary, equal to `tick_count` on a continuous timeline |
@@ -387,7 +389,7 @@ reach, whenever something it can shoot stands in reach in front of it.
 A capture records all three as the native objects report them and derives none
 from another, which is what lets a reader compare them. They are content-layer
 fields: the physics layer excludes them (see
-[the physics layer](#the-stable-physics-layer-battle-physics-v4)), so a fight
+[the physics layer](#the-stable-physics-layer-battle-physics-v5)), so a fight
 whose physics matches can still disagree in them.
 
 ## Projectiles
@@ -634,6 +636,26 @@ counted alone, in the round's temporary dictionary, under the side it serves.
 
 The counters are the build's `int`, and each row restarts at zero with each
 fight.
+
+## Formations
+
+`formations.parquet` holds every formation's experience at each snapshot, one
+row per `MechTeam` the recording has numbered, dead or alive, strictly
+ascending by `(tick, formation_id)`.
+
+| Column | Parquet type | Meaning |
+| --- | --- | --- |
+| `tick` | `UINT32` required | the snapshot |
+| `formation_id` | `UINT64` required | the formation, as `units.parquet` numbers it |
+| `team_id` | `UINT32` required | its side, its first unit's original team |
+| `experience` | `INT64` required | `MechTeam.expFloat`, FPoint raw; -1.0 until the formation first gains any |
+| `max_experience` | `INT64` required | `MechTeam.maxExpFloat`, FPoint raw: the full bar gains stop at |
+
+`ExpSystem` hands experience out inside the tick, as a kill happens, so it is
+fight state and belongs to the physics layer. What a kill hands out and to whom
+is [`docs/rules/unit_experience.md`](../../rules/unit_experience.md#what-a-kill-hands-out).
+As the fight ends, `BattleSystem.OnFightOver` prunes each gain to a whole
+number, which the last snapshot already holds.
 
 ## Events
 
@@ -913,16 +935,16 @@ byte, an `Option<T>` a presence byte followed by `T` when present, and a list's
 length an `LE_u64`. Every public digest is 64 lowercase hex digits, and the
 Parquet tick columns hold the raw 32 bytes.
 
-### The stable physics layer, `battle-physics-v4`
+### The stable physics layer, `battle-physics-v5`
 
 `physics_tick_hash` digests a version-frozen combat physics projection rather
 than the whole MCFR schema. Adding an observation field does not change the
 projection. If a projection field, unit, precision, order or encoding must
-change, that is a new profile: `battle-physics-v4` is never edited in place.
+change, that is a new profile: `battle-physics-v5` is never edited in place.
 `battle-physics-v1` projected no turret; `v2` added `turret_rotation` to the
 kinematics lane; `v3` dropped the vertical velocity and the projectile's
-orientation and release flag, which the build never sets; `v4` adds the
-statistics lane.
+orientation and release flag, which the build never sets; `v4` added the
+statistics lane; `v5` adds the formations lane.
 
 The WorldSnapshot is canonicalised before hashing. Object lists stay in stable
 ID order, events in native `ordinal` order, weapon poses in `(skill_slot,
@@ -930,7 +952,7 @@ weapon_index)` order. Q32.32 keeps its `i64` raw bits. Angles are reduced
 modulo `360 << 32` with a Euclidean remainder before hashing, so two angles a
 whole number of turns apart are equal. `logic_step` is reduced first.
 
-Each tick is four independent lane digests:
+Each tick is five independent lane digests:
 
 | Lane | Fields |
 | --- | --- |
@@ -938,19 +960,21 @@ Each tick is four independent lane digests:
 | `battle-physics-vitals-v2` | Unit: `unit_id, unit_type_id, team_id, domain, collision_radius, life, personal_shield.active/energy`. Projectile: `projectile_id, team_id, owner, life`. Building: `building_id, building_type_id, team_id, bounds_width, bounds_height, life, available, targetable, collision_enabled`. Shield: `shield_id, team_id, owner, radius, energy, active`. Terrain: `terrain_id, team_id, terrain_type, radius` |
 | `battle-physics-interactions-v1` | each event contributes `ordinal, subject, source, source_team_id, target` first, then its type and physical payload: the release channel; a removal's position, interception and absorbing shield; a damage amount; a unit creation's team, type and position; a unit death position; a building destruction position; a team change; a shield creation's team and position; a shield destruction position; a terrain creation's team, type, position and radius; a terrain removal or conversion position; a healing amount |
 | `battle-physics-statistics-v1` | each row of `statistics` in stored order: `team_id, recorder, recorder_id, damage, damage_real, kills, damage_taken` |
+| `battle-physics-formations-v1` | each row of `formations` in stored order: `formation_id, team_id, experience, max_experience` |
 
 ```text
 K(t) = H_battle-physics-kinematics-v3(kinematics projection)
 V(t) = H_battle-physics-vitals-v2(vitals projection)
 I(t) = H_battle-physics-interactions-v1(interactions projection)
 C(t) = H_battle-physics-statistics-v1(statistics projection)
+F(t) = H_battle-physics-formations-v1(formations projection)
 
-physics_tick_hash(t) = H_battle-physics-tick-v2(
+physics_tick_hash(t) = H_battle-physics-tick-v3(
     LE_u32(reduced_logic_step_numerator),
     LE_u32(reduced_logic_step_denominator),
     LE_u32(time_units_per_second),
     LE_u32(t),
-    K(t), V(t), I(t), C(t)
+    K(t), V(t), I(t), C(t), F(t)
 )
 
 physics_result_hash = H_battle-physics-result-v1(
@@ -964,7 +988,7 @@ rotation and velocity, life and shields, the interactions including damage,
 and the build's own account of who dealt, took and killed what, while a new
 purely diagnostic field never forces a re-record.
 
-### The full content layer, `mcfr-content-0.13.0`
+### The full content layer, `mcfr-content-0.14.0`
 
 State and events are first encoded as canonical JSON: UTF-8, object keys sorted
 recursively, compact encoding, and the array order the schema defines. It covers

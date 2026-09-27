@@ -85,8 +85,9 @@ pub(crate) fn physics_tick_hash(
     let vitals = vitals_hash(state);
     let interactions = interactions_hash(events);
     let statistics = statistics_hash(state);
+    let formations = formations_hash(state);
     let divisor = gcd(context.logic_step.numerator, context.logic_step.denominator);
-    let mut hasher = PhysicsHasher::new("battle-physics-tick-v2");
+    let mut hasher = PhysicsHasher::new("battle-physics-tick-v3");
     hasher.u32(context.logic_step.numerator / divisor);
     hasher.u32(context.logic_step.denominator / divisor);
     hasher.u32(context.time_units_per_second);
@@ -95,6 +96,21 @@ pub(crate) fn physics_tick_hash(
     hasher.bytes(&vitals);
     hasher.bytes(&interactions);
     hasher.bytes(&statistics);
+    hasher.bytes(&formations);
+    hasher.finish()
+}
+
+/// Each formation's experience, which the build keeps inside the logic tick
+/// and which decides the levels its units are bought at next.
+fn formations_hash(state: &WorldSnapshot) -> [u8; HASH_BYTES] {
+    let mut hasher = PhysicsHasher::new("battle-physics-formations-v1");
+    hasher.len(state.formations.len());
+    for formation in &state.formations {
+        hasher.u64(formation.formation_id);
+        hasher.u32(formation.team_id);
+        hasher.i64(formation.experience);
+        hasher.i64(formation.max_experience);
+    }
     hasher.finish()
 }
 

@@ -104,14 +104,15 @@ pub(crate) fn of(reader: &McfrReader) -> Result<Outcome, Failure> {
     let started = members(&formations, &opened);
     let survived = members(&formations, &ended);
 
-    // Two of the five fields are decided by rules nobody has. The recording
-    // holds what they would be computed from and not what they are.
+    // Two of the five fields are not answered here: one by a rule nobody has,
+    // one by a mapping this command does not make yet.
     let mut unresolved = vec![
         "reactor_core: no rule turns a fight's survivors into the damage the \
          losing side's reactor core takes"
             .to_owned(),
-        "units.exp: an MCFR recording carries no experience, so what a fight \
-         hands out is not observed either"
+        "units.exp: the recording holds each formation's experience \
+         (formations.parquet), and this command does not yet carry it onto \
+         the layout's units"
             .to_owned(),
     ];
     let mut answered = Vec::new();

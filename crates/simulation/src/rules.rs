@@ -306,6 +306,8 @@ pub(crate) struct BuildingConfig {
     pub(crate) building_type_id: u32,
     pub(crate) position: BuildingPosition,
     pub(crate) life: i64,
+    /// The experience its destruction hands out, `towerDefaultDatas.exp`.
+    pub(crate) exp: i64,
     radius: f64,
     pub(crate) collision_enabled: bool,
 }

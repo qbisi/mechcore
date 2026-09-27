@@ -7,30 +7,35 @@ schema: mechcore.towers
 
 # The four towers of map_1V1MilitaryBase, the Training Ground's map:
 # team, building type (1 the Energy Tower, 2 the Research Center),
-# centre in metres, life from towerDefaultDatas, half-width.
+# centre in metres, life from towerDefaultDatas, half-width, and the
+# experience its destruction hands out (towerDefaultDatas `exp`).
 buildings:
   - team_id: 0
     building_type_id: 1
     position: {x: -140, z: -170}
     life: 3400
+    exp: 100
     radius: 10
     collision_enabled: true
   - team_id: 0
     building_type_id: 2
     position: {x: 140, z: -170}
     life: 3400
+    exp: 100
     radius: 10
     collision_enabled: true
   - team_id: 1
     building_type_id: 2
     position: {x: -140, z: 170}
     life: 3400
+    exp: 100
     radius: 10
     collision_enabled: true
   - team_id: 1
     building_type_id: 1
     position: {x: 140, z: 170}
     life: 3400
+    exp: 100
     radius: 10
     collision_enabled: true
 

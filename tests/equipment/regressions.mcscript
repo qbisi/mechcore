@@ -16,40 +16,40 @@ steps:
       seed: 1787720817
     expect:
       steps: 91
-      hashes.physics_result_hash: 4277bde999f9a4ab9cdda0bff3c61f643f41486d46642fb6c46869f3448f0914
-      hashes.content_result_hash: d54c7c7e1fee9b67a02a749c86df56b9985e2440831cb8273c486de8d4accf3e
+      hashes.physics_result_hash: b858a472474fcff9cd8bfab2cd60d47d08e84294da14d3c899964d77cf3533d2
+      hashes.content_result_hash: a13716e2e17d0ca5c5cfbaea8c770a98b9c4f892b38f6bfbc6c83338ccdc82b4
   # Heavy Armor alone: +0.75 of life in the unit channel, 2838.
   - fight.run:
       layout: tests/equipment/heavy-armor.yaml
       seed: 1787720817
     expect:
       steps: 139
-      hashes.physics_result_hash: d4fefc6b1702a2e3b433192dcb26e7486ab6ca98ea9dfe65c4ce3c3db01b0500
-      hashes.content_result_hash: b1fce02ad05adbc927ee647e922fe7a1de8cf50af62c42aebf81bb04c43d0a7f
+      hashes.physics_result_hash: 72c32822f83eeb6266f7cae5af013baa9b66b4cd7cccf1e77f13597f4b22dba7
+      hashes.content_result_hash: 286eb767c78308758a9b4cb6b8e6bf9bd7dcd33a1c8f95b8bad690a7336fde89
   # With Advanced Defensive Tactics: the two rates sum, 3325.
   - fight.run:
       layout: tests/equipment/heavy-armor-officer.yaml
       seed: 1787720817
     expect:
       steps: 139
-      hashes.physics_result_hash: 819bfc04a63ee3821b9b93c3211a7dec65174ea006ae0f895c077ca81920ff59
-      hashes.content_result_hash: 8878ce2cd1b642be7098f18adf90290cc1d8023082bd52872239fdefbd2ba50f
+      hashes.physics_result_hash: 9c866a9a16fbed692845d6953f4738ff1e0ccfc20c54cfa3cfbc97195fd1ef87
+      hashes.content_result_hash: 368b54043674eb07394771990d55bec9e42d844d8da7696f327b733882fcc0e2
   # Improved Firepower Control System: +0.65 of damage in the skill channel, 3842.
   - fight.run:
       layout: tests/equipment/firepower.yaml
       seed: 1787720817
     expect:
       steps: 83
-      hashes.physics_result_hash: aa773b1b964b5457c975b8775950a79433dea41348657acd64c1c6b96f0c8cb5
-      hashes.content_result_hash: b6304c910d6abe399d9800d2d6d1a86c2a521a2e4123a99613c71d10ae5db6c2
+      hashes.physics_result_hash: ab263a3131d7ebe516622904447f3d54efae76d688330c1a52515af5be313a95
+      hashes.content_result_hash: e39dd7a71d4dbe6c278f493b02b0b7b70d3f298c54916ab14fc722850f7013b4
   # With Advanced Offensive Tactics: the two rates sum, 4541.
   - fight.run:
       layout: tests/equipment/firepower-officer.yaml
       seed: 1787720817
     expect:
       steps: 83
-      hashes.physics_result_hash: b935261a18eaba5bfac13f6fce0e6ded0e7cc02635a044fb622d8ac99d47b0ca
-      hashes.content_result_hash: eacd46ab8052f0fc6460635ff428801f9d33839e49cf3bf65844bed40b995f2d
+      hashes.physics_result_hash: cf74dbfbd1491a1d651e385c429489d7394d3498aee123b2501f8ad070f2fe7d
+      hashes.content_result_hash: 6b85af16ca94b702788d2d39aeb253ff4ed8624a11a897ec564eedce47eac6d2
   # Laser Sights: +20 m of range. The target starts in reach, so the fight is
   # the control's and only the content hash tells them apart.
   - fight.run:
@@ -57,24 +57,24 @@ steps:
       seed: 1787720817
     expect:
       steps: 91
-      hashes.physics_result_hash: 4277bde999f9a4ab9cdda0bff3c61f643f41486d46642fb6c46869f3448f0914
-      hashes.content_result_hash: 6f57b7ca6c7fb23a82949441bdc995ceb0249b38b58f435b2a43e0e77f5cc9b8
+      hashes.physics_result_hash: b858a472474fcff9cd8bfab2cd60d47d08e84294da14d3c899964d77cf3533d2
+      hashes.content_result_hash: 4d40b05b9ecdab8f6b63bef4d7fe79aeab0964891be3437ae7850de2eb33aba6
   # The far control: 170 m apart, the Marksman walks before it fires.
   - fight.run:
       layout: tests/equipment/far-control.yaml
       seed: 1787720817
     expect:
       steps: 165
-      hashes.physics_result_hash: 458a64173201c8483e9dbc6a45da443c9b97bb8e9c61bc0822a5ab2db1b34350
-      hashes.content_result_hash: 35386936d24d7c440db5767b93d33626d820011588440b3796f036a8038b1a28
+      hashes.physics_result_hash: c30e74fa8e7c53eee114bd64d4d4bce622d98278d1202679dcb73537d0b097d2
+      hashes.content_result_hash: 6d2a65598d395ed6d9c0ad238b664332fe82676aabcaa25ba11e4c79a211ff81
   # Laser Sights at 170 m: the range acts, and the first shot comes sooner.
   - fight.run:
       layout: tests/equipment/laser-sights-far.yaml
       seed: 1787720817
     expect:
       steps: 140
-      hashes.physics_result_hash: 94ebb1a8320beb3127785a74a3cb7aa8b344fa2db9d914b1688162ff612bca6f
-      hashes.content_result_hash: 523dc1d75f8b6ba336897a9f556091caca39fad06215e7b357d3de495a374598
+      hashes.physics_result_hash: 80d7556d964e8a969b0c87d1e5dcfaa428b954e2a3d24c6e79bbf899ed86685b
+      hashes.content_result_hash: 885538becfc2f454b5658a108e16055aea440713b4968e1e4ebf1f941a06e784
   # Two items under Equipment Expansion: Heavy Armor's life and the Firepower
   # Control System's damage both land, 2838 of life and shots of 3842.
   - fight.run:
@@ -82,5 +82,5 @@ steps:
       seed: 1787720817
     expect:
       steps: 83
-      hashes.physics_result_hash: f0bbc9196f1fe22ef8eceb8bd1155639aa66d5e2021f48a18db33fb9f46445e2
-      hashes.content_result_hash: de0e94cf69110bcfe1b309539c82cb7e84ca0d5737647576f7c06fcc76e0159b
+      hashes.physics_result_hash: b2a70aa6129ff53a4e7dd1839e36921715c49d4cdf0bf2424ac286ae3a4c939e
+      hashes.content_result_hash: aee51d0bc7308f13aa68b52a7b383a7203ebaf232f0f25571cf577eb693fe6cc
