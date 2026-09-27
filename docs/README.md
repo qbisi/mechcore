@@ -142,7 +142,7 @@ cannot be told apart from a question nobody asked.
 
 Unresolved is for decisions, never for work. "Whether a battle records how the
 match ended" is a decision. "The deployment executor does not exist" is work,
-and work belongs in `plan.md`.
+and work belongs in the plan (`plan.md` and `plan/`).
 
 A third case is neither. Something observed disagrees with this spec, and nobody
 has yet decided whether the spec is wrong or the reading was. That is an issue,
@@ -159,7 +159,7 @@ Four things are banned from every spec:
   wrong.
 
 None of that is worthless. The evidence belongs in `rules/`, in the form the
-section above allows; the rest in `plan.md` or in the commit that made the
+section above allows; the rest in the plan or in the commit that made the
 change.
 
 ## Three kinds of spec
@@ -205,7 +205,7 @@ the most work.
 
 A boundary is a property of the contract. It stays true until the contract
 changes, and it belongs in Scope. Progress is a property of the code. It is
-stale the day it is written, and it belongs in `plan.md`.
+stale the day it is written, and it belongs in the plan.
 
 The test is to rewrite the sentence in the present tense with no *current*,
 *yet*, *still*, or *not implemented*. If it survives, it is a boundary. If it
@@ -213,9 +213,9 @@ collapses into nothing, it was progress.
 
 | Written as | Reads as | Belongs in |
 | --- | --- | --- |
-| "the simulator does not yet load map objects" | nothing survives | `plan.md` |
+| "the simulator does not yet load map objects" | nothing survives | the plan |
 | "a layout carries no map objects" | a rule a reader can act on | Scope |
-| "the adapter cannot capture a full state today" | nothing survives | `plan.md` |
+| "the adapter cannot capture a full state today" | nothing survives | the plan |
 | "a capture covers the layout projection" | the contract's edge | Scope |
 
 The same test catches a section title. `Current adapter compiler` and

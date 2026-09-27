@@ -30,7 +30,7 @@ it leaves.
 
 | Destination | Holds | Why an issue is not this |
 | --- | --- | --- |
-| `plan.md` | intent | nobody has decided to act on an issue yet |
+| the plan (`plan.md`, `plan/`) | intent | nobody has decided to act on an issue yet |
 | a spec's `Unresolved` | a design choice nobody has made | an issue is an observation, not a choice |
 | `docs/rules/` | a mechanism the build decides, with its evidence | a rule is understood; an issue is not |
 | `work/research/` | a question someone set out to answer | an issue was not sought |
@@ -88,7 +88,8 @@ Paste the numbers, the command and the output.
 
 An issue leaves in exactly six ways. Five are promotions, one is a death.
 
-1. **To `plan.md`**, when someone decides to act. The issue becomes intent.
+1. **To the plan**, when someone decides to act: a node on a lane's stack or
+   in its parking lot under `plan/`. The issue becomes intent.
 2. **To a spec's `Unresolved`**, when the discrepancy turns out to be a design
    choice nobody made rather than a defect.
 3. **To `docs/rules/`**, when the game turns out to work that way and the
@@ -121,7 +122,7 @@ definition not understood: nobody has decided whether the document is wrong or
 the reading was. A rules document or a spec that cites an issue is telling its
 reader to go and find out, which is the one thing a document may not do. The six
 exits are how a finding becomes citable: an issue that matters enough to
-reference from `plan.md`, a spec or a rules document has, by that fact, already
+reference from the plan, a spec or a rules document has, by that fact, already
 earned its promotion.
 
 A commit message may name an issue, and the pull request that lands exit 5
@@ -133,7 +134,7 @@ moment is still open.
 
 A research question is sought, which is exactly what a finding is not. It has
 an owner once it is worked, it has a size, and it has a definition of done
-written before anyone starts. `plan.md` describes the loop a mechanism is
+written before anyone starts. `plan/units.md` describes the loop a mechanism is
 studied by; this section is how that loop runs on the machine that has the
 game, which is where every question is verified.
 
@@ -234,7 +235,7 @@ that started them, not through GitHub.
 2. **Implement**, on `research/<n>-<slug>`, from the issue's fixtures, the
    recordings made from them and the structure decision. It iterates on
    `mechcore fight verify` until the ticks agree, then lands the answer the
-   way `plan.md` says a mechanism lands: the rule and its scope in
+   way `plan/units.md` says a mechanism lands: the rule and its scope in
    `docs/rules/`, the number's source stated, a refusal in the code for what
    the scope does not cover, and under `tests/<topic>/` the fixtures and
    record script the answer used, with the gameless `regressions.mcscript`

@@ -266,9 +266,10 @@ def check_rules_evidence_sections(fail):
 
 # The game version is written once, in GAME_VERSION; everything else reads it.
 # A five-part version string, or a build named by number, anywhere else is a
-# second pin that nothing keeps in step. plan.md is the migration's own record.
+# second pin that nothing keeps in step. The migration lane is the migration's
+# own record.
 VERSION_PIN = re.compile(r"\b[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\b|\b[Bb]uild[- ][0-9]{3,}\b")
-VERSION_WRITERS = {"GAME_VERSION", "plan.md"}
+VERSION_WRITERS = {"GAME_VERSION", "plan/migration.md"}
 
 
 def check_version_pins(fail):
