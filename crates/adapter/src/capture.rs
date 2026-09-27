@@ -2624,6 +2624,13 @@ fn resolve_damage_context(provider: *mut Object) -> DamageContext {
     }
 }
 
+/// Each damaging skill's last known slot, by pointer. Checked before use, so
+/// an address a freed skill hands on cannot mislead it.
+fn skill_slot_cache() -> &'static Mutex<BTreeMap<usize, u16>> {
+    static CACHE: OnceLock<Mutex<BTreeMap<usize, u16>>> = OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(BTreeMap::new()))
+}
+
 /// The index, in its owner's `GetSkills()`, of the skill a damage provider
 /// deals for: a `SkillDamageProvider`'s or a `HitEffectControl`'s
 /// `fightSkill`, or the skill a `FightProjectile` was fired from (its
@@ -2667,13 +2674,29 @@ fn damage_skill_slot(api: Api, provider: *mut Object) -> Result<Option<u16>, Str
     }
     let skills = invoke_object(api, owner, "GetSkills")?;
     let count = list_count(api, skills, i32::from(u16::MAX))?;
+    // A skill keeps its slot, so the last answer is checked with one read
+    // rather than found again by a walk over every skill.
+    let cached = skill_slot_cache()
+        .lock()
+        .ok()
+        .and_then(|cache| cache.get(&(skill as usize)).copied());
+    if let Some(slot) = cached
+        && i32::from(slot) < count
+        && list_item(api, skills, i32::from(slot))? == skill
+    {
+        return Ok(Some(slot));
+    }
     let mut wanted = skill;
     for _ in 0..2 {
         for slot in 0..count {
             if list_item(api, skills, slot)? == wanted {
-                return u16::try_from(slot)
-                    .map(Some)
-                    .map_err(|_| "skill slot overflow".to_owned());
+                let slot = u16::try_from(slot).map_err(|_| "skill slot overflow".to_owned())?;
+                if wanted == skill
+                    && let Ok(mut cache) = skill_slot_cache().lock()
+                {
+                    cache.insert(skill as usize, slot);
+                }
+                return Ok(Some(slot));
             }
         }
         wanted = field(wanted, fight_skill, "<ParentSkill>k__BackingField")?;
