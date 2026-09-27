@@ -511,7 +511,7 @@ Both `record_replay_round` and `record_battle` take an optional `instrument`
 list, the channels to record into the MCFR beside its tables:
 
 ```json
-{"instrument": ["target_refs", "skill_attackable_checker", "selector_score"]}
+{"instrument": ["target_refs", "skill_attackable_checker", "target_search"]}
 ```
 
 A channel is a view of the fight's inside that a study asks for. Channels
@@ -542,8 +542,40 @@ selector method is — its first four arm64 instructions, `sub sp` and three
 with its arguments and result untouched; the reads on either side are field
 reads, with no managed call.
 
-`selector_score` records every `ScoreRatingTargetSelector.CalculateScore` call
-of the update: its raw arguments and the score it returned.
+`target_search` records every target search of the update, one row each in
+the order the searches returned: the unit or construction that searched, the
+skill's index in its `GetSkills()` (null when it searched for itself), the
+path the build took, how many candidates it scored, what it returned and the
+nearest actor. `target_candidate` holds a search's five lowest scores, which
+the build calls best, with the candidate and, where they are seen,
+`CalculateScore`'s per-candidate arguments: distance, distance score, angle,
+angle score and side. Rows grow with the number of searches, not with
+searches times candidates.
+
+The build scores targets three ways, and the Adapter names a candidate in each:
+
+- `select`: `ScoreRatingTargetSelector.Select` over fewer than 51 actors
+  scores on the main thread, calling `CalculateScore` and then
+  `Selector.CheckResultTarget(score, candidate)` for each candidate. The terms
+  are kept from the first and the candidate taken from the second.
+- `select_job`: `Select` over 51 or more actors scores on worker threads in
+  `ScoreRatingTargetSelectJob` and calls `CheckResultTarget` on the main
+  thread afterwards, so the candidate and its score are seen and the terms are
+  null.
+- `team`: a main skill without a skill group whose selector is a score
+  selector is searched for its whole team at once by
+  `TeamScoreRatingTargetSelectJob` on worker threads, which keeps only each
+  source's winners. After `TrySelect` reads them back, the Adapter scores the
+  source's candidates again from the job's `SourceData` and `TargetData`, with
+  the job's own native functions (`DistanceCalculator.Calculate`,
+  `FPoint.op_GreaterThanOrEqual` for the minimum range,
+  `DistanceScoreCalculator.Calculate`, `FightUtility.CalculateAngle`,
+  `AngleScoreCalculator.Calculate`, `CalculateScore`), and the winner the job
+  kept must be the lowest score within `FPoint.op_LessThan`'s tolerance, or
+  the recording fails.
+
+A search that falls back from `TrySelect` to `Select` is two rows. What a
+search returned is the second best when the best is not visible.
 
 The three RVO channels record each `RVOAgentFixed.CalculateVelocity` of the
 update, read on either side of the call. A solve sees only its agent's

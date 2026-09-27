@@ -6,11 +6,11 @@ use mechcore_mcfr::{
     DurableContext, Event, EventPayload, GaugeI32, Hashes, LiveUnitState, MCFR_FORMAT, McfrReader,
     McfrWriter, MotionState, ObjectKind, ObjectRef, PHYSICS_HASH_PROFILE, PersonalShieldState,
     QVec3, RateModifier, Rational, RvoExit, RvoNeighbour, RvoNeighbourKind, RvoSolve, RvoVec,
-    RvoVo, SelectorScore, ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind, ShieldState,
-    SkillAttackableCheck, SkillDynamicModifierSet, SkillNumericModifierState, TargetRefs,
-    TerrainApplicationState, TerrainEffectClock, TerrainGridState, TerrainLogicLifetime,
-    TerrainRemovedReason, TerrainState, TerrainType, TransitionEvents, UnitDynamicModifierSet,
-    Visibility, WeaponAimState, WorldSnapshot,
+    RvoVo, ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind, ShieldState,
+    SkillAttackableCheck, SkillDynamicModifierSet, SkillNumericModifierState, TargetCandidate,
+    TargetRefs, TargetSearch, TargetSearchPath, TerrainApplicationState, TerrainEffectClock,
+    TerrainGridState, TerrainLogicLifetime, TerrainRemovedReason, TerrainState, TerrainType,
+    TransitionEvents, UnitDynamicModifierSet, Visibility, WeaponAimState, WorldSnapshot,
 };
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use serde_json::json;
@@ -742,13 +742,13 @@ fn instrument_channels_ride_in_the_recording_outside_both_hashes() {
         .append_instrument(std::slice::from_ref(&check))
         .unwrap();
     // Asked for and never filled: the channel is published empty.
-    writer.append_instrument::<SelectorScore>(&[]).unwrap();
+    writer.append_instrument::<TargetSearch>(&[]).unwrap();
     assert_eq!(writer.finish().unwrap(), plain);
 
     let reader = McfrReader::open(&path).unwrap();
     assert_eq!(
         reader.instrument_channels().collect::<Vec<_>>(),
-        ["selector_score", "skill_attackable_checker", "target_refs"]
+        ["skill_attackable_checker", "target_refs", "target_search"]
     );
     assert_eq!(
         reader.instrument::<TargetRefs>().unwrap(),
@@ -759,7 +759,7 @@ fn instrument_channels_ride_in_the_recording_outside_both_hashes() {
         Some(vec![(1, check)])
     );
     assert_eq!(
-        reader.instrument::<SelectorScore>().unwrap(),
+        reader.instrument::<TargetSearch>().unwrap(),
         Some(Vec::new())
     );
     let plain = McfrReader::open(directory.path().join("plain.mcfr")).unwrap();
@@ -849,6 +849,51 @@ fn rvo_channels_round_trip_with_their_nulls_and_kinds() {
         Some(neighbours.into_iter().map(|row| (1, row)).collect())
     );
     assert_eq!(reader.instrument::<RvoVo>().unwrap(), None);
+}
+
+#[test]
+fn target_channels_round_trip_with_unseen_terms() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("targets.mcfr");
+    let mut writer = McfrWriter::create(&path, "build-a", &context(), LAYOUT_YAML).unwrap();
+    writer.append_tick(state(75), &damage_events()).unwrap();
+    let search = TargetSearch {
+        search: 0,
+        source: Some(ObjectRef::new(ObjectKind::Unit, 1)),
+        skill_slot: Some(0),
+        path: TargetSearchPath::SelectJob,
+        candidates: 60,
+        target: Some(ObjectRef::new(ObjectKind::Unit, 2)),
+        nearest: None,
+    };
+    let candidate = TargetCandidate {
+        search: 0,
+        rank: 0,
+        candidate: Some(ObjectRef::new(ObjectKind::Unit, 2)),
+        score_raw: -7,
+        distance_raw: None,
+        distance_score_raw: None,
+        angle_raw: None,
+        angle_score_raw: None,
+        is_left_side: None,
+    };
+    writer
+        .append_instrument(std::slice::from_ref(&search))
+        .unwrap();
+    writer
+        .append_instrument(std::slice::from_ref(&candidate))
+        .unwrap();
+    writer.finish().unwrap();
+
+    let reader = McfrReader::open(&path).unwrap();
+    assert_eq!(
+        reader.instrument::<TargetSearch>().unwrap(),
+        Some(vec![(1, search)])
+    );
+    assert_eq!(
+        reader.instrument::<TargetCandidate>().unwrap(),
+        Some(vec![(1, candidate)])
+    );
 }
 
 fn write_battle(

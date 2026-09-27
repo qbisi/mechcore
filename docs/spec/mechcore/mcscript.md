@@ -144,7 +144,7 @@ The three recording operations take the instrument channels to record into the
 MCFR, by name, in any combination:
 
 ```yaml
-instrument: [target_refs, skill_attackable_checker, selector_score]
+instrument: [target_refs, skill_attackable_checker, target_search]
 ```
 
 A channel lives inside the recording, outside both of its hashes

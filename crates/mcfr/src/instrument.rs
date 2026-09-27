@@ -151,26 +151,70 @@ pub struct CheckedSkill {
     pub skill_attack_phase: Option<String>,
 }
 
-/// One `ScoreRatingTargetSelector.CalculateScore` call: its arguments, raw, and
-/// the score it returned.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SelectorScore {
-    pub invocation_ordinal: u64,
-    pub distance_raw: i64,
-    pub distance_score_raw: i64,
-    pub angle_raw: i64,
-    pub angle_score_raw: i64,
-    pub max_attack_range_raw: i64,
-    pub source_rotation_raw: i64,
-    pub min_rotation_raw: i64,
-    pub max_rotation_raw: i64,
-    pub is_left_side: bool,
-    pub score_raw: i64,
+/// Which of the build's three ways a target search took.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TargetSearchPath {
+    /// `ScoreRatingTargetSelector.Select` scoring on the main thread.
+    Select,
+    /// `Select` over 51 or more actors, scored by `ScoreRatingTargetSelectJob`
+    /// on worker threads: the score terms are not seen, only the scores.
+    SelectJob,
+    /// A main skill's search batched for its whole team by
+    /// `TeamScoreRatingTargetSelectJob` and read back by `TrySelect`.
+    Team,
 }
 
-impl InstrumentRow for SelectorScore {
-    const CHANNEL: &'static str = "selector_score";
+/// One target search: who searched, how, and what it chose. Its best
+/// candidates are `target_candidate` rows with the same `search`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TargetSearch {
+    /// The search's ordinal within its tick, in the order searches returned.
+    pub search: u32,
+    /// The unit or building that searched; null for an attacker the
+    /// recording does not hold.
+    pub source: Option<ObjectRef>,
+    /// The searching skill's index in its owner's `GetSkills()`; null when the
+    /// unit or construction searched for itself.
+    pub skill_slot: Option<u16>,
+    pub path: TargetSearchPath,
+    /// How many candidates were scored.
+    pub candidates: u32,
+    /// What the search returned, which may be the second best when the best
+    /// is not visible.
+    pub target: Option<ObjectRef>,
+    pub nearest: Option<ObjectRef>,
 }
+
+impl InstrumentRow for TargetSearch {
+    const CHANNEL: &'static str = "target_search";
+}
+
+/// One of a search's best-scored candidates, lowest score first; at most
+/// [`TARGET_CANDIDATES`] of them per search.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TargetCandidate {
+    pub search: u32,
+    /// 0 for the lowest score, which the build calls best.
+    pub rank: u32,
+    /// Null for an actor the recording does not hold.
+    pub candidate: Option<ObjectRef>,
+    pub score_raw: i64,
+    /// `CalculateScore`'s per-candidate arguments; null on the `select_job`
+    /// path, whose worker threads compute them unseen.
+    pub distance_raw: Option<i64>,
+    pub distance_score_raw: Option<i64>,
+    pub angle_raw: Option<i64>,
+    pub angle_score_raw: Option<i64>,
+    pub is_left_side: Option<bool>,
+}
+
+impl InstrumentRow for TargetCandidate {
+    const CHANNEL: &'static str = "target_candidate";
+}
+
+/// How many of a search's candidates `target_candidate` keeps.
+pub const TARGET_CANDIDATES: usize = 5;
 
 /// A horizontal vector in RVO space, raw Q32.32 on each axis.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

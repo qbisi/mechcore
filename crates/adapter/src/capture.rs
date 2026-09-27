@@ -1,4 +1,5 @@
 use crate::rvo::{self, RawSolve, RvoChannels, RvoMetadata, RvoRows};
+use crate::selector::{self, RawSearch, SelectorMetadata, TargetChannels};
 use crate::{
     il2cpp::{Api, Class, FieldInfo, MethodInfo, Object, argument, object_argument},
     runtime::Runtime,
@@ -21,7 +22,8 @@ use mechcore_mcfr::{
     UnitDynamicModifierSet, ValueModifier, Visibility, WeaponAimState, WorldSnapshot,
 };
 use mechcore_mcfr::{
-    CheckedSkill, RvoNeighbour, RvoSolve, RvoVo, SelectorScore, SkillAttackableCheck, TargetRefs,
+    CheckedSkill, RvoNeighbour, RvoSolve, RvoVo, SkillAttackableCheck, TargetCandidate, TargetRefs,
+    TargetSearch,
 };
 use mechcore_protocol::InstrumentChannel;
 use std::{
@@ -175,7 +177,7 @@ impl RawFrame {
 pub(crate) struct Instruments {
     target_refs: bool,
     skill_attackable_checker: bool,
-    selector_score: bool,
+    pub(crate) target: TargetChannels,
     pub(crate) rvo: RvoChannels,
 }
 
@@ -184,7 +186,10 @@ impl Instruments {
         Self {
             target_refs: channels.contains(&InstrumentChannel::TargetRefs),
             skill_attackable_checker: channels.contains(&InstrumentChannel::SkillAttackableChecker),
-            selector_score: channels.contains(&InstrumentChannel::SelectorScore),
+            target: TargetChannels {
+                search: channels.contains(&InstrumentChannel::TargetSearch),
+                candidate: channels.contains(&InstrumentChannel::TargetCandidate),
+            },
             rvo: RvoChannels {
                 solve: channels.contains(&InstrumentChannel::RvoSolve),
                 neighbour: channels.contains(&InstrumentChannel::RvoNeighbour),
@@ -200,7 +205,8 @@ impl Instruments {
 pub(crate) struct InstrumentRows {
     pub(crate) target_refs: Option<Vec<TargetRefs>>,
     pub(crate) skill_attackable_checker: Option<Vec<SkillAttackableCheck>>,
-    pub(crate) selector_score: Option<Vec<SelectorScore>>,
+    pub(crate) target_search: Option<Vec<TargetSearch>>,
+    pub(crate) target_candidate: Option<Vec<TargetCandidate>>,
     pub(crate) rvo_solve: Option<Vec<RvoSolve>>,
     pub(crate) rvo_neighbour: Option<Vec<RvoNeighbour>>,
     pub(crate) rvo_vo: Option<Vec<RvoVo>>,
@@ -305,27 +311,12 @@ pub(crate) struct Metadata {
     fight_skill_lock_target: Option<usize>,
     fight_skill_attack_target: Option<usize>,
     skill_state_fields: Option<SkillStateFields>,
-    selector_score_available: bool,
     checker: Option<CheckerMetadata>,
     checker_error: Option<String>,
-    selector_score_error: Option<String>,
+    pub(crate) selector: Option<SelectorMetadata>,
+    selector_error: Option<String>,
     pub(crate) rvo: Option<RvoMetadata>,
     rvo_error: Option<String>,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-struct RawSelectorScoreCalculation {
-    invocation_ordinal: u64,
-    distance_raw: i64,
-    distance_score_raw: i64,
-    angle_raw: i64,
-    angle_score_raw: i64,
-    max_attack_range_raw: i64,
-    source_rotation_raw: i64,
-    min_rotation_raw: i64,
-    max_rotation_raw: i64,
-    is_left_side: bool,
-    score_raw: i64,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -408,8 +399,8 @@ pub(crate) struct CaptureState {
     next_terrain_id: u64,
     next_formation_id: u64,
     next_checker_invocation_ordinal: u64,
-    next_selector_invocation_ordinal: u64,
-    selector_score_calculations: Vec<RawSelectorScoreCalculation>,
+    /// This tick's target searches, in the order they returned.
+    pub(crate) target_searches: Vec<RawSearch>,
     pub(crate) in_update: bool,
     traces: Vec<NativeTrace>,
     /// This tick's RVO solves, and the unit or building behind each RVO
@@ -467,8 +458,8 @@ impl CaptureState {
         self.next_terrain_id = 1;
         self.next_formation_id = 1;
         self.next_checker_invocation_ordinal = 0;
-        self.next_selector_invocation_ordinal = 0;
-        self.selector_score_calculations.clear();
+        selector::arm(TargetChannels::default());
+        self.target_searches.clear();
         self.in_update = false;
         self.traces.clear();
         self.open_checker_calls.clear();
@@ -1077,7 +1068,6 @@ static ORIGINAL_FIGHT_CONTROLLER_ON_ACTOR_HITTED: AtomicPtr<c_void> =
 static ORIGINAL_ADVANCED_SHIELD_DAMAGE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_FIGHT_MECH_ON_DEAD: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_FIGHT_CRYSTAL_ON_DEAD: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
-static ORIGINAL_SELECTOR_CALCULATE_SCORE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_CHECKER_CHECK: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 thread_local! {
     static ACTIVE_PROJECTILE_CHANNEL: Cell<Option<(usize, i32)>> = const { Cell::new(None) };
@@ -1437,11 +1427,10 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
         install_match_update_hook(api, match_update)?;
         install_player_finish_deploy_hook(api, player_finish_deploy)?;
         install_post_render_hook(api, post_render)?;
-        let (selector_score_available, selector_score_error) =
-            match initialize_selector_score_instrumentation(api) {
-                Ok(()) => (true, None),
-                Err(error) => (false, Some(error)),
-            };
+        let (selector, selector_error) = match selector::initialize(api) {
+            Ok(selector) => (Some(selector), None),
+            Err(error) => (None, Some(error)),
+        };
         let (checker, checker_error) = match initialize_checker_instrumentation(api) {
             Ok(checker) => (Some(checker), None),
             Err(error) => (None, Some(error)),
@@ -1487,8 +1476,8 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             fight_skill_lock_target,
             fight_skill_attack_target,
             skill_state_fields,
-            selector_score_available,
-            selector_score_error,
+            selector,
+            selector_error,
             checker,
             checker_error,
             rvo,
@@ -1527,21 +1516,6 @@ fn initialize_checker_instrumentation(api: Api) -> Result<CheckerMetadata, Strin
     })
 }
 
-#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-fn initialize_selector_score_instrumentation(api: Api) -> Result<(), String> {
-    let score_selector = api
-        .class(
-            "GRFight.dll",
-            "GameRiver.Fight",
-            "ScoreRatingTargetSelector",
-        )
-        .map_err(|error| error.to_string())?;
-    let calculate_score = api
-        .method(score_selector, "CalculateScore", 9)
-        .map_err(|error| error.to_string())?;
-    install_selector_calculate_score_hook(api, calculate_score)
-}
-
 pub(crate) fn start(
     runtime: &Runtime,
     mode: CaptureStartMode,
@@ -1568,7 +1542,7 @@ pub(crate) fn start(
                 .into(),
         );
     }
-    validate_selector_score_availability(instruments, &state.metadata)?;
+    validate_target_availability(instruments, &state.metadata)?;
     validate_checker_availability(instruments, &state.metadata)?;
     if instruments.rvo.any() && state.metadata.rvo.is_none() {
         return Err(format!(
@@ -1611,6 +1585,7 @@ pub(crate) fn start(
     }
     state.armed = true;
     rvo::arm(instruments.rvo);
+    selector::arm(instruments.target);
     let scaled = state.restore_time_scale.is_some();
     drop(state);
     // Scaled from arming, not from the first fighting tick: the transition
@@ -1657,6 +1632,23 @@ fn require_deployment(runtime: &Runtime) -> Result<(), String> {
     Ok(())
 }
 
+fn validate_target_availability(
+    instruments: Instruments,
+    metadata: &Metadata,
+) -> Result<(), String> {
+    if instruments.target.any() && metadata.selector.is_none() {
+        Err(format!(
+            "the target search channels are unavailable: {}",
+            metadata
+                .selector_error
+                .as_deref()
+                .unwrap_or("native selector methods or hooks could not be resolved")
+        ))
+    } else {
+        Ok(())
+    }
+}
+
 fn validate_checker_availability(
     instruments: Instruments,
     metadata: &Metadata,
@@ -1669,24 +1661,6 @@ fn validate_checker_availability(
                 .checker_error
                 .as_deref()
                 .unwrap_or("native checker method or hook could not be resolved")
-        ))
-    } else {
-        Ok(())
-    }
-}
-
-fn validate_selector_score_availability(
-    instruments: Instruments,
-    metadata: &Metadata,
-) -> Result<(), String> {
-    if instruments.selector_score && !metadata.selector_score_available {
-        Err(format!(
-            "{} is unavailable: {}",
-            InstrumentChannel::SelectorScore.as_str(),
-            metadata
-                .selector_score_error
-                .as_deref()
-                .unwrap_or("native selector method or hook could not be resolved")
         ))
     } else {
         Ok(())
@@ -1839,19 +1813,6 @@ type FightControllerOnActorHittedFn =
 type AdvancedShieldDamageFn =
     unsafe extern "C" fn(*mut Object, *mut Object, i32, FixedVec3, bool, *const MethodInfo) -> i32;
 type ActorOnDeadFn = unsafe extern "C" fn(*mut Object, *const MethodInfo);
-type SelectorCalculateScoreFn = unsafe extern "C" fn(
-    FixedPoint,
-    FixedPoint,
-    FixedPoint,
-    FixedPoint,
-    FixedPoint,
-    FixedPoint,
-    FixedPoint,
-    FixedPoint,
-    bool,
-    *const MethodInfo,
-) -> FixedPoint;
-
 type CheckerCheckFn = unsafe extern "C" fn(*mut Object, bool, *const MethodInfo) -> bool;
 
 /// `SkillAttackableChecker.Check(bool isAttackingCheck)`, forwarded unchanged.
@@ -1981,72 +1942,6 @@ fn complete_native_checker_call(ordinal: u64, skill: usize, check_return: bool) 
         }),
         Err(error) => state.fail(format!("checker return: {error}")),
     }
-}
-
-#[allow(clippy::too_many_arguments)]
-unsafe extern "C" fn selector_calculate_score_hook(
-    distance: FixedPoint,
-    distance_score: FixedPoint,
-    angle: FixedPoint,
-    angle_score: FixedPoint,
-    max_attack_range: FixedPoint,
-    source_rotation: FixedPoint,
-    min_rotation: FixedPoint,
-    max_rotation: FixedPoint,
-    is_left_side: bool,
-    method: *const MethodInfo,
-) -> FixedPoint {
-    let original = ORIGINAL_SELECTOR_CALCULATE_SCORE.load(Ordering::Acquire);
-    if original.is_null() {
-        return FixedPoint::default();
-    }
-    // SAFETY: the installer stores the trampoline for this exact IL2CPP method ABI.
-    let original: SelectorCalculateScoreFn = unsafe { std::mem::transmute(original) };
-    // SAFETY: all arguments are forwarded unchanged to the native method.
-    let score = unsafe {
-        original(
-            distance,
-            distance_score,
-            angle,
-            angle_score,
-            max_attack_range,
-            source_rotation,
-            min_rotation,
-            max_rotation,
-            is_left_side,
-            method,
-        )
-    };
-    let _ = catch_unwind(AssertUnwindSafe(|| {
-        let mut state = capture_state()
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        if !state.armed || !state.in_update || !state.instruments.selector_score {
-            return;
-        }
-        let invocation_ordinal = state.next_selector_invocation_ordinal;
-        let Some(next) = invocation_ordinal.checked_add(1) else {
-            state.fail("selector invocation ordinal overflow".into());
-            return;
-        };
-        state.next_selector_invocation_ordinal = next;
-        state
-            .selector_score_calculations
-            .push(RawSelectorScoreCalculation {
-                invocation_ordinal,
-                distance_raw: distance.raw,
-                distance_score_raw: distance_score.raw,
-                angle_raw: angle.raw,
-                angle_score_raw: angle_score.raw,
-                max_attack_range_raw: max_attack_range.raw,
-                source_rotation_raw: source_rotation.raw,
-                min_rotation_raw: min_rotation.raw,
-                max_rotation_raw: max_rotation.raw,
-                is_left_side,
-                score_raw: score.raw,
-            });
-    }));
-    score
 }
 
 #[allow(clippy::too_many_lines)]
@@ -4845,6 +4740,7 @@ fn snapshot(
     } else {
         None
     };
+    let (target_search, target_candidate) = selector::drain(capture);
     let RvoRows {
         solve: rvo_solve,
         neighbour: rvo_neighbour,
@@ -4857,10 +4753,8 @@ fn snapshot(
         } else {
             None
         },
-        selector_score: capture
-            .instruments
-            .selector_score
-            .then(|| drain_selector_score_calls(capture)),
+        target_search,
+        target_candidate,
         rvo_solve,
         rvo_neighbour,
         rvo_vo,
@@ -6547,25 +6441,6 @@ fn resolve_target_ref(
         })
 }
 
-fn drain_selector_score_calls(capture: &mut CaptureState) -> Vec<SelectorScore> {
-    std::mem::take(&mut capture.selector_score_calculations)
-        .into_iter()
-        .map(|calculation| SelectorScore {
-            invocation_ordinal: calculation.invocation_ordinal,
-            distance_raw: calculation.distance_raw,
-            distance_score_raw: calculation.distance_score_raw,
-            angle_raw: calculation.angle_raw,
-            angle_score_raw: calculation.angle_score_raw,
-            max_attack_range_raw: calculation.max_attack_range_raw,
-            source_rotation_raw: calculation.source_rotation_raw,
-            min_rotation_raw: calculation.min_rotation_raw,
-            max_rotation_raw: calculation.max_rotation_raw,
-            is_left_side: calculation.is_left_side,
-            score_raw: calculation.score_raw,
-        })
-        .collect()
-}
-
 /// The main skill's state machine state, its attack phase, and `IsIdle`.
 type SkillStateReading = (Option<String>, Option<&'static str>, Option<bool>);
 
@@ -6757,20 +6632,6 @@ fn allocate(next: &mut u64, label: &str) -> Result<u64, String> {
         .checked_add(1)
         .ok_or_else(|| format!("{label} identity overflow"))?;
     Ok(id)
-}
-
-#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-fn install_selector_calculate_score_hook(
-    api: Api,
-    method: *const MethodInfo,
-) -> Result<(), String> {
-    install_inline_hook(
-        api,
-        method,
-        selector_calculate_score_hook as *const c_void,
-        &ORIGINAL_SELECTOR_CALCULATE_SCORE,
-        "ScoreRatingTargetSelector.CalculateScore",
-    )
 }
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
@@ -7857,10 +7718,12 @@ mod tests {
 
         assert_eq!(CaptureState::default().instruments, Instruments::default());
         let all = Instruments::of(&InstrumentChannel::ALL);
-        assert!(all.target_refs && all.skill_attackable_checker && all.selector_score);
+        assert!(all.target_refs && all.skill_attackable_checker && all.target.any());
+        assert!(all.target.search && all.target.candidate);
         assert!(all.rvo.solve && all.rvo.neighbour && all.rvo.vo);
-        let one = Instruments::of(&[InstrumentChannel::SelectorScore]);
-        assert!(one.selector_score && !one.target_refs && !one.skill_attackable_checker);
+        let one = Instruments::of(&[InstrumentChannel::TargetSearch]);
+        assert!(one.target.search && !one.target.candidate && !one.target_refs);
+        assert!(!one.skill_attackable_checker && !one.rvo.any());
         // A channel is asked for by the name its rows are stored under.
         assert_eq!(InstrumentChannel::TargetRefs.as_str(), TargetRefs::CHANNEL);
         assert_eq!(
@@ -7868,8 +7731,12 @@ mod tests {
             SkillAttackableCheck::CHANNEL
         );
         assert_eq!(
-            InstrumentChannel::SelectorScore.as_str(),
-            SelectorScore::CHANNEL
+            InstrumentChannel::TargetSearch.as_str(),
+            TargetSearch::CHANNEL
+        );
+        assert_eq!(
+            InstrumentChannel::TargetCandidate.as_str(),
+            TargetCandidate::CHANNEL
         );
         assert_eq!(InstrumentChannel::RvoSolve.as_str(), RvoSolve::CHANNEL);
         assert_eq!(
@@ -7883,66 +7750,26 @@ mod tests {
 
         let unavailable = Metadata {
             checker_error: Some("hook refused".into()),
-            selector_score_error: Some("forced selector hook failure".into()),
+            selector_error: Some("forced selector hook failure".into()),
             ..Metadata::default()
         };
         let others = Instruments::of(&[InstrumentChannel::TargetRefs]);
         assert!(validate_checker_availability(others, &unavailable).is_ok());
-        assert!(validate_selector_score_availability(others, &unavailable).is_ok());
+        assert!(validate_target_availability(others, &unavailable).is_ok());
         let error = validate_checker_availability(all, &unavailable).unwrap_err();
         assert!(error.contains("skill_attackable_checker is unavailable: hook refused"));
-        let error = validate_selector_score_availability(all, &unavailable).unwrap_err();
-        assert!(error.contains("selector_score is unavailable: forced selector hook failure"));
+        let error = validate_target_availability(all, &unavailable).unwrap_err();
+        assert!(error.contains("channels are unavailable: forced selector hook failure"));
 
         let available = Metadata {
             checker: Some(CheckerMetadata {
                 checker_skill: 1,
                 skill_owner: 2,
             }),
-            selector_score_available: true,
             ..Metadata::default()
         };
         assert!(validate_checker_availability(all, &available).is_ok());
-        assert!(validate_selector_score_availability(all, &available).is_ok());
-    }
-
-    #[test]
-    fn selector_score_drain_preserves_raw_values_and_clears_tick_buffer() {
-        let expected = RawSelectorScoreCalculation {
-            invocation_ordinal: 7,
-            distance_raw: 11,
-            distance_score_raw: 13,
-            angle_raw: 17,
-            angle_score_raw: 19,
-            max_attack_range_raw: 23,
-            source_rotation_raw: 29,
-            min_rotation_raw: 31,
-            max_rotation_raw: 37,
-            is_left_side: true,
-            score_raw: 41,
-        };
-        let mut capture = CaptureState::default();
-        capture.selector_score_calculations.push(expected);
-
-        let drained = drain_selector_score_calls(&mut capture);
-        assert_eq!(
-            drained,
-            vec![SelectorScore {
-                invocation_ordinal: expected.invocation_ordinal,
-                distance_raw: expected.distance_raw,
-                distance_score_raw: expected.distance_score_raw,
-                angle_raw: expected.angle_raw,
-                angle_score_raw: expected.angle_score_raw,
-                max_attack_range_raw: expected.max_attack_range_raw,
-                source_rotation_raw: expected.source_rotation_raw,
-                min_rotation_raw: expected.min_rotation_raw,
-                max_rotation_raw: expected.max_rotation_raw,
-                is_left_side: expected.is_left_side,
-                score_raw: expected.score_raw,
-            }]
-        );
-        assert!(capture.selector_score_calculations.is_empty());
-        assert!(drain_selector_score_calls(&mut capture).is_empty());
+        assert!(validate_checker_availability(others, &available).is_ok());
     }
 
     #[test]

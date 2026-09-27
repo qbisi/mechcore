@@ -362,8 +362,10 @@ pub enum InstrumentChannel {
     TargetRefs,
     /// Every `SkillAttackableChecker.Check` call, with the skill before and after.
     SkillAttackableChecker,
-    /// Every `ScoreRatingTargetSelector.CalculateScore` call.
-    SelectorScore,
+    /// Every target search: its source, path and choice.
+    TargetSearch,
+    /// Each target search's best-scored candidates, a bounded few per search.
+    TargetCandidate,
     /// One row per RVO solve: the agent's inputs, bias, traces and output.
     RvoSolve,
     /// Each solve's neighbour list, at most `maxNeighbours` rows per solve.
@@ -373,10 +375,11 @@ pub enum InstrumentChannel {
 }
 
 impl InstrumentChannel {
-    pub const ALL: [Self; 6] = [
+    pub const ALL: [Self; 7] = [
         Self::TargetRefs,
         Self::SkillAttackableChecker,
-        Self::SelectorScore,
+        Self::TargetSearch,
+        Self::TargetCandidate,
         Self::RvoSolve,
         Self::RvoNeighbour,
         Self::RvoVo,
@@ -388,7 +391,8 @@ impl InstrumentChannel {
         match self {
             Self::TargetRefs => "target_refs",
             Self::SkillAttackableChecker => "skill_attackable_checker",
-            Self::SelectorScore => "selector_score",
+            Self::TargetSearch => "target_search",
+            Self::TargetCandidate => "target_candidate",
             Self::RvoSolve => "rvo_solve",
             Self::RvoNeighbour => "rvo_neighbour",
             Self::RvoVo => "rvo_vo",
