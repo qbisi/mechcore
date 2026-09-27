@@ -384,6 +384,11 @@ pub(crate) struct CaptureState {
     shield_last_states: BTreeMap<usize, ShieldState>,
     live_terrain_pointers: BTreeSet<usize>,
     retired_terrain_pointers: BTreeSet<usize>,
+    /// Why each shield left the build's collection, by pointer, as its
+    /// destruction entry point saw it; read when a snapshot finds it gone.
+    shield_removal_reasons: BTreeMap<usize, ShieldDestroyedReason>,
+    /// The same for each terrain, from `RangeItem.Remove`.
+    terrain_removal_reasons: BTreeMap<usize, TerrainRemovedReason>,
     terrain_last_states: BTreeMap<usize, TerrainState>,
     pending_projectile_absorptions: BTreeMap<u64, ObjectRef>,
     /// Absorptions by a shield that took damage before any snapshot saw it,
@@ -447,6 +452,8 @@ impl CaptureState {
         self.shield_last_states.clear();
         self.live_terrain_pointers.clear();
         self.retired_terrain_pointers.clear();
+        self.shield_removal_reasons.clear();
+        self.terrain_removal_reasons.clear();
         self.terrain_last_states.clear();
         self.pending_projectile_absorptions.clear();
         self.pending_projectile_absorption_pointers.clear();
@@ -1076,10 +1083,17 @@ static ORIGINAL_FIGHT_CRYSTAL_ON_DEAD: AtomicPtr<c_void> = AtomicPtr::new(ptr::n
 static ORIGINAL_FIGHT_CONTROLLER_CREATE_MECH: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_FIGHT_ACTOR_ADD_LIFE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_FIGHT_CONSTRUCTION_ADD_LIFE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_SHIELD_MANAGER_DESTROY: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_RANGE_ITEM_REMOVE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_RANGE_ITEM_CONTROLLER_EXIT_FIGHT: AtomicPtr<c_void> =
+    AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_CHECKER_CHECK: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 thread_local! {
     static ACTIVE_PROJECTILE_CHANNEL: Cell<Option<(usize, i32)>> = const { Cell::new(None) };
     static ACTIVE_DAMAGE_CONTEXT: Cell<Option<DamageContext>> = const { Cell::new(None) };
+    /// Inside `RangeItemController.OnExitFight`, where terrain leaves as its
+    /// rounds run out.
+    static EXITING_FIGHT: Cell<bool> = const { Cell::new(false) };
 }
 
 #[derive(Clone, Copy, Default)]
@@ -1150,6 +1164,7 @@ enum NativeTrace {
     ShieldDestroyed {
         shield_id: u64,
         position: QVec3,
+        reason: ShieldDestroyedReason,
     },
     TerrainCreated {
         terrain_id: u64,
@@ -1161,6 +1176,7 @@ enum NativeTrace {
     TerrainRemoved {
         terrain_id: u64,
         position: QVec3,
+        reason: TerrainRemovedReason,
     },
     UnitDied {
         unit_id: u64,
@@ -1490,6 +1506,49 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             fight_construction_add_life_hook as *const c_void,
             &ORIGINAL_FIGHT_CONSTRUCTION_ADD_LIFE,
             "FightConstruction.AddLife",
+        )?;
+        let shield_manager_destroy = api
+            .class(
+                "GRFight.dll",
+                "GameRiver.Fight",
+                "GroupAdvancedEnergyShieldManager",
+            )
+            .and_then(|class| {
+                api.class_method_with_parameter_types(
+                    class,
+                    "Destroy",
+                    &["GameRiver.Fight.FightEnergyShield"],
+                )
+            })
+            .map_err(|error| error.to_string())?;
+        let range_item_remove = api
+            .class("GRFight.dll", "GameRiver.Fight", "RangeItem")
+            .and_then(|class| api.method(class, "Remove", 0))
+            .map_err(|error| error.to_string())?;
+        let range_item_controller_exit_fight = api
+            .class("GRFight.dll", "GameRiver.Fight", "RangeItemController")
+            .and_then(|class| api.method(class, "OnExitFight", 0))
+            .map_err(|error| error.to_string())?;
+        install_inline_hook(
+            api,
+            range_item_controller_exit_fight,
+            range_item_controller_exit_fight_hook as *const c_void,
+            &ORIGINAL_RANGE_ITEM_CONTROLLER_EXIT_FIGHT,
+            "RangeItemController.OnExitFight",
+        )?;
+        install_inline_hook(
+            api,
+            shield_manager_destroy,
+            shield_manager_destroy_hook as *const c_void,
+            &ORIGINAL_SHIELD_MANAGER_DESTROY,
+            "GroupAdvancedEnergyShieldManager.Destroy",
+        )?;
+        install_inline_hook(
+            api,
+            range_item_remove,
+            range_item_remove_hook as *const c_void,
+            &ORIGINAL_RANGE_ITEM_REMOVE,
+            "RangeItem.Remove",
         )?;
         install_update_hook(api, update)?;
         install_match_update_hook(api, match_update)?;
@@ -1895,6 +1954,8 @@ type CreateMechFn = unsafe extern "C" fn(
     *const MethodInfo,
 );
 type AddLifeFn = unsafe extern "C" fn(*mut Object, i32, bool, *const MethodInfo);
+type ShieldManagerDestroyFn = unsafe extern "C" fn(*mut Object, *mut Object, *const MethodInfo);
+type RangeItemRemoveFn = unsafe extern "C" fn(*mut Object, *const MethodInfo);
 type CheckerCheckFn = unsafe extern "C" fn(*mut Object, bool, *const MethodInfo) -> bool;
 
 /// `SkillAttackableChecker.Check(bool isAttackingCheck)`, forwarded unchanged.
@@ -3113,6 +3174,135 @@ fn record_healing(actor: *mut Object, before: i32) {
             }
         }
         Err(error) => state.fail(format!("AddLife: reading the life after: {error}")),
+    }
+}
+
+/// `GroupAdvancedEnergyShieldManager.Destroy(FightEnergyShield)`, the one
+/// method that takes a shield out of the build's full collection. Why is read
+/// before it runs: a shield whose energy is spent was broken by damage, which
+/// is the only path that empties it first; one with an owner went with that
+/// owner; any other was removed by a skill or a player. A shield leaving as
+/// the round ends is destroyed after the fight's last tick, outside any
+/// recording.
+unsafe extern "C" fn shield_manager_destroy_hook(
+    manager: *mut Object,
+    shield: *mut Object,
+    method: *const MethodInfo,
+) {
+    let original = ORIGINAL_SHIELD_MANAGER_DESTROY.load(Ordering::Acquire);
+    if original.is_null() {
+        return;
+    }
+    let _ = catch_unwind(AssertUnwindSafe(|| {
+        record_removal_reason(shield, |api, shield| {
+            let class = api
+                .object_class(shield)
+                .ok_or("a destroyed shield has no class")?;
+            let field = |name: &str| api.field(class, name).map_err(|error| error.to_string());
+            let energy: i32 = api
+                .field_value(shield, field("energy")?)
+                .map_err(|error| error.to_string())?;
+            let owner: *mut Object = api
+                .field_value(shield, field("owner")?)
+                .map_err(|error| error.to_string())?;
+            Ok(RemovalReason::Shield(if energy <= 0 {
+                ShieldDestroyedReason::EnergyDepleted
+            } else if owner.is_null() {
+                ShieldDestroyedReason::Scripted
+            } else {
+                ShieldDestroyedReason::OwnerDestroyed
+            }))
+        });
+    }));
+    // SAFETY: hook installer stored the trampoline for this exact method ABI.
+    let original: ShieldManagerDestroyFn = unsafe { std::mem::transmute(original) };
+    // SAFETY: IL2CPP arguments are forwarded unchanged.
+    unsafe { original(manager, shield, method) };
+}
+
+/// `RangeItem.Remove()`, which every path that takes a terrain away ends in.
+/// Why is read before it runs: inside `RangeItemController.OnExitFight` its
+/// rounds are over, a fire's included, whose controller ignores the round
+/// count and ends it with the fight; otherwise its time is over
+/// (`UpdateItemStatus`) or its grid cells are all cleared (`RemoveGrids`).
+/// Oil burnt into fire and oil cleared by a skill are removed with neither,
+/// and stay `unknown`.
+unsafe extern "C" fn range_item_remove_hook(item: *mut Object, method: *const MethodInfo) {
+    let original = ORIGINAL_RANGE_ITEM_REMOVE.load(Ordering::Acquire);
+    if original.is_null() {
+        return;
+    }
+    let _ = catch_unwind(AssertUnwindSafe(|| {
+        record_removal_reason(item, |api, item| {
+            let reason = if EXITING_FIGHT.with(Cell::get) {
+                TerrainRemovedReason::RoundExpired
+            } else if invoke_value::<bool>(api, item, "IsTimeOver")? {
+                TerrainRemovedReason::TimeExpired
+            } else if invoke_value::<bool>(api, item, "IsGridMode")?
+                && invoke_value::<bool>(api, item, "IsDeactiveInGridMode")?
+            {
+                TerrainRemovedReason::GridDepleted
+            } else {
+                TerrainRemovedReason::Unknown
+            };
+            Ok(RemovalReason::Terrain(reason))
+        });
+    }));
+    // SAFETY: hook installer stored the trampoline for this exact method ABI.
+    let original: RangeItemRemoveFn = unsafe { std::mem::transmute(original) };
+    // SAFETY: IL2CPP arguments are forwarded unchanged.
+    unsafe { original(item, method) };
+}
+
+unsafe extern "C" fn range_item_controller_exit_fight_hook(
+    controller: *mut Object,
+    method: *const MethodInfo,
+) {
+    let original = ORIGINAL_RANGE_ITEM_CONTROLLER_EXIT_FIGHT.load(Ordering::Acquire);
+    if original.is_null() {
+        return;
+    }
+    // SAFETY: hook installer stored the trampoline for this exact method ABI.
+    let original: RangeItemRemoveFn = unsafe { std::mem::transmute(original) };
+    let previous = EXITING_FIGHT.with(|exiting| exiting.replace(true));
+    // SAFETY: IL2CPP arguments are forwarded unchanged.
+    unsafe { original(controller, method) };
+    EXITING_FIGHT.with(|exiting| exiting.set(previous));
+}
+
+enum RemovalReason {
+    Shield(ShieldDestroyedReason),
+    Terrain(TerrainRemovedReason),
+}
+
+/// Keeps why `object` is being removed, while a capture records the tick,
+/// for the snapshot that finds it gone.
+fn record_removal_reason(
+    object: *mut Object,
+    read: impl FnOnce(Api, *mut Object) -> Result<RemovalReason, String>,
+) {
+    let runtime = RUNTIME.load(Ordering::Acquire);
+    if runtime.is_null() || object.is_null() {
+        return;
+    }
+    // SAFETY: runtime is boxed for the adapter process lifetime.
+    let runtime = unsafe { &*runtime };
+    let mut state = capture_state()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    if !state.armed || !state.in_update {
+        return;
+    }
+    match read(runtime.api, object) {
+        Ok(RemovalReason::Shield(reason)) => {
+            state.shield_removal_reasons.insert(object as usize, reason);
+        }
+        Ok(RemovalReason::Terrain(reason)) => {
+            state
+                .terrain_removal_reasons
+                .insert(object as usize, reason);
+        }
+        Err(error) => state.fail(format!("removal reason trace failed: {error}")),
     }
 }
 
@@ -5092,10 +5282,17 @@ fn snapshot(
             capture.traces.push(NativeTrace::ShieldDestroyed {
                 shield_id: state.shield_id,
                 position: state.position,
+                reason: capture
+                    .shield_removal_reasons
+                    .remove(pointer)
+                    .unwrap_or(ShieldDestroyedReason::Unknown),
             });
             capture.retired_shield_pointers.insert(*pointer);
         }
     }
+    // A shield made and destroyed between two snapshots never joins the
+    // collection they see; its reason goes with it.
+    capture.shield_removal_reasons.clear();
     capture.live_shield_pointers = current_shield_pointers;
     let terrains = read_terrains(runtime.api, range_item_system, capture, initial)
         .map_err(|error| format!("dynamic terrain snapshot failed: {error}"))?;
@@ -5435,9 +5632,14 @@ fn record_terrain_lifecycle(
             capture.traces.push(NativeTrace::TerrainRemoved {
                 terrain_id: state.terrain_id,
                 position: state.position,
+                reason: capture
+                    .terrain_removal_reasons
+                    .remove(&pointer)
+                    .unwrap_or(TerrainRemovedReason::Unknown),
             });
             capture.retired_terrain_pointers.insert(pointer);
         }
+        capture.terrain_removal_reasons.clear();
         capture.live_terrain_pointers = current_pointers;
     }
     Ok(())
@@ -6743,16 +6945,14 @@ fn transition_events(
             NativeTrace::ShieldDestroyed {
                 shield_id,
                 position,
+                reason,
             } => {
                 events.push(event(
                     Some(ObjectRef::new(ObjectKind::Shield, shield_id)),
                     None,
                     None,
                     None,
-                    EventPayload::ShieldDestroyed {
-                        position,
-                        reason: ShieldDestroyedReason::Unknown,
-                    },
+                    EventPayload::ShieldDestroyed { position, reason },
                 ));
             }
             NativeTrace::TerrainCreated {
@@ -6778,16 +6978,14 @@ fn transition_events(
             NativeTrace::TerrainRemoved {
                 terrain_id,
                 position,
+                reason,
             } => {
                 events.push(event(
                     Some(ObjectRef::new(ObjectKind::Terrain, terrain_id)),
                     None,
                     None,
                     None,
-                    EventPayload::TerrainRemoved {
-                        position,
-                        reason: TerrainRemovedReason::Unknown,
-                    },
+                    EventPayload::TerrainRemoved { position, reason },
                 ));
             }
             NativeTrace::UnitCreated {
@@ -7742,6 +7940,7 @@ mod tests {
             capture.traces.push(NativeTrace::TerrainRemoved {
                 terrain_id: 99,
                 position: lifecycle_terrain(99).position,
+                reason: TerrainRemovedReason::Unknown,
             });
             let current = BTreeSet::from([pointers[2], pointers[3], pointers[4]]);
             record_terrain_lifecycle(&mut capture, current.clone(), false).unwrap();
@@ -7764,6 +7963,7 @@ mod tests {
                     NativeTrace::TerrainRemoved {
                         terrain_id,
                         position,
+                        ..
                     } => ("removed", *terrain_id, *position),
                     _ => panic!("unexpected trace"),
                 })
@@ -8226,6 +8426,7 @@ mod tests {
             NativeTrace::ShieldDestroyed {
                 shield_id: 1,
                 position: QVec3 { x: 0, y: 0, z: 0 },
+                reason: ShieldDestroyedReason::EnergyDepleted,
             },
             NativeTrace::ShieldCreated {
                 shield_id: 2,

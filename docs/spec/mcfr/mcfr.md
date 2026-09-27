@@ -731,9 +731,9 @@ producer can actually observe is narrower, and the adapter covers:
 | `building_destroyed` | the `FightCrystal.OnDead` trace |
 | `healing` | `FightActor.AddLife(value, isShowLifeBar)`, which units, towers and crystals heal through, and `FightConstruction.AddLife`. The amount is the life read after the call less the life read before it, since the gauge clamps at full life and the call returns nothing. Every heal shows the life bar; the two refills that do not, a unit rising from its death and one landing from a super deployment, are not recorded. No `source`: the call does not carry one |
 | `shield_created` | first entry into the full `GetEnergyShields(fightGroup)` collection between adjacent sampling boundaries |
-| `shield_destroyed` | disappearance from that collection, so the reason is `unknown` |
+| `shield_destroyed` | disappearance from that collection. The reason is read as `GroupAdvancedEnergyShieldManager.Destroy(FightEnergyShield)`, the one method that takes a shield out of it, begins: spent energy is `energy_depleted`, since only damage empties a shield before destroying it; a shield with an owner is `owner_destroyed`; any other is `scripted`. A shield leaving as the round ends goes after the last recorded tick, so `round_end` is not written |
 | `terrain_created` | first entry into the owning `RangeItemController.GetItems()` collection between adjacent boundaries |
-| `terrain_removed` | disappearance from that collection, so the reason is `unknown` |
+| `terrain_removed` | disappearance from that collection. The reason is read as `RangeItem.Remove()` begins: inside `RangeItemController.OnExitFight` it is `round_expired`, fire included, whose controller ends it with the fight whatever its round count; otherwise `IsTimeOver()` is `time_expired`, and a grid whose cells are all cleared is `grid_depleted`. Oil burnt into fire and oil cleared by a skill are `unknown`, and `cleared` is not written |
 
 `unit_team_changed` and `terrain_converted` have a shared schema, a canonical
 form and reader and writer support, for a producer able to observe the

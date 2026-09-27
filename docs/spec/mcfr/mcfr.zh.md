@@ -515,9 +515,9 @@ null。时钟中的两个整数都以逻辑步为单位，并通过 `DurableCont
 
 `projectile_removed` 的合法原因组合为：原生拦截系统移除使用 `intercepted=true, absorbed_by=null`；战场盾吸收使用 `intercepted=false, absorbed_by=ShieldRef`；其他移除使用两者均为空/false。`absorbed_by` 只能引用 Shield。
 
-`shield_destroyed.reason` 使用 `energy_depleted`、`owner_destroyed`、`round_end`、`scripted` 或 `unknown`。Producer 只在原生销毁入口能确定原因时写具体值；当前 Adapter 由全量集合消失确认生命周期结束，因此写 `unknown`。
+`shield_destroyed.reason` 使用 `energy_depleted`、`owner_destroyed`、`round_end`、`scripted` 或 `unknown`。Producer 只在原生销毁入口能确定原因时写具体值，Adapter 怎么读见 8.4。
 
-`terrain_removed.reason` 使用 `time_expired`、`round_expired`、`grid_depleted`、`cleared` 或 `unknown`。当前 Adapter 由 controller item 集合消失确认生命周期结束，因此写 `unknown`。
+`terrain_removed.reason` 使用 `time_expired`、`round_expired`、`grid_depleted`、`cleared` 或 `unknown`，同一规则。
 
 `terrain_created` 表达 controller 集合成员的生命周期起点，其 JSON object 由 Terrain 身份、队伍、类型、位置和半径完整确定。投射物因果关系通过同 tick、同位置的 `projectile_removed` 与 Terrain 状态变化联合观察。
 
@@ -535,9 +535,9 @@ null。时钟中的两个整数都以逻辑步为单位，并通过 `DurableCont
 | `building_destroyed` | `FightCrystal.OnDead` trace |
 | `healing` | `FightActor.AddLife(value, isShowLifeBar)`（单位、塔与水晶都经它回血）与 `FightConstruction.AddLife`。量是调用后读到的生命减去调用前的：满血截断，调用本身不返回实际加了多少。回血都显示血条；不显示的两处回满——单位死后复活、超级部署落地——不是回血，不记。没有 `source`，调用本身不带 |
 | `shield_created` | 相邻采样边界间首次进入 `GetEnergyShields(fightGroup)` 全量集合 |
-| `shield_destroyed` | 相邻采样边界间从全量集合消失，当前 reason 为 `unknown` |
+| `shield_destroyed` | 相邻采样边界间从全量集合消失。原因在 `GroupAdvancedEnergyShieldManager.Destroy(FightEnergyShield)`（唯一把护盾移出集合的方法）开始时读：能量耗尽为 `energy_depleted`，只有伤害会在销毁前清空能量；有 owner 为 `owner_destroyed`；其余为 `scripted`。回合结束时的销毁在最后一个记录的 tick 之后，不写 `round_end` |
 | `terrain_created` | 相邻采样边界间首次进入所属 `RangeItemController.GetItems()` 集合 |
-| `terrain_removed` | 相邻采样边界间从所属 controller item 集合消失，当前 reason 为 `unknown` |
+| `terrain_removed` | 相邻采样边界间从所属 controller item 集合消失。原因在 `RangeItem.Remove()` 开始时读：处在 `RangeItemController.OnExitFight` 内为 `round_expired`，火焰也是，其控制器不看回合数、随战斗结束移除；否则 `IsTimeOver()` 为 `time_expired`，网格全部清空为 `grid_depleted`。油被点成火、被技能清除为 `unknown`，不写 `cleared` |
 
 `unit_team_changed` 与 `terrain_converted` 具备共享 schema、canonical 表达和 Reader/Writer 支持，供能够直接观测对应演化来源的 Producer 写入。
 
