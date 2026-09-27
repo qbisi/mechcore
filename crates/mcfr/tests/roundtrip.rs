@@ -514,8 +514,8 @@ fn writer_rejects_partial_projectile_channel() {
             },
         }],
     };
-    writer.append_tick(state(100), &events).unwrap();
-    assert!(writer.finish().is_err());
+    assert!(writer.append_tick(state(100), &events).is_err());
+    assert!(!path.exists());
 }
 
 #[test]
@@ -583,8 +583,8 @@ fn writer_rejects_terrain_created_source() {
             },
         }],
     };
-    writer.append_tick(state(75), &events).unwrap();
-    assert!(writer.finish().is_err());
+    assert!(writer.append_tick(state(75), &events).is_err());
+    assert!(!path.exists());
 }
 
 #[test]
