@@ -101,7 +101,11 @@ impl Payload {
                 flat.intercepted = Some(intercepted);
                 flat.absorbed_by = absorbed_by;
             }
-            EventPayload::Damage { amount } | EventPayload::Healing { amount } => {
+            EventPayload::Damage { amount, skill_slot } => {
+                flat.amount = Some(amount);
+                flat.skill_slot = skill_slot;
+            }
+            EventPayload::Healing { amount } => {
                 flat.amount = Some(amount);
             }
             EventPayload::UnitCreated {
@@ -173,6 +177,7 @@ impl Payload {
             },
             EventKind::Damage => EventPayload::Damage {
                 amount: required(self.amount.take(), label, "amount")?,
+                skill_slot: self.skill_slot.take(),
             },
             EventKind::Healing => EventPayload::Healing {
                 amount: required(self.amount.take(), label, "amount")?,

@@ -453,10 +453,13 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let projectile_id = self.identities.allocate_object(ObjectKind::Projectile)?.id;
+        let skill_slot =
+            u16::try_from(skill_slot).map_err(|_| Error::new("skill slot exceeds u16"))?;
         let projectile = Projectile {
             id: projectile_id,
             team: source.team,
             owner: source.owner,
+            skill_slot,
             target_kind,
             target: target_id,
             x: source.x,
@@ -486,7 +489,7 @@ impl Simulation {
             Some(source.team),
             Some(ObjectRef::new(target_kind, target_id)),
             EventPayload::ProjectileReleased {
-                skill_slot: Some(u16::try_from(skill_slot).expect("skill slot fits u16")),
+                skill_slot: Some(skill_slot),
                 weapon_index: Some(weapon),
             },
         ));

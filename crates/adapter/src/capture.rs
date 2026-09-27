@@ -1079,6 +1079,16 @@ struct DamageContext {
     source: Option<ObjectRef>,
     source_team_id: Option<u32>,
     provider: Option<ObjectRef>,
+    /// The index of the skill that dealt the hit in its owner's skills.
+    skill_slot: Option<u16>,
+}
+
+impl DamageContext {
+    /// The projectile that carried the hit, if one did.
+    fn projectile(self) -> Option<ObjectRef> {
+        self.provider
+            .filter(|provider| provider.kind == ObjectKind::Projectile)
+    }
 }
 
 #[derive(Clone, Copy, Default)]
@@ -1110,6 +1120,8 @@ enum NativeTrace {
         source_team_id: Option<u32>,
         target: ObjectRef,
         amount: i32,
+        projectile: Option<ObjectRef>,
+        skill_slot: Option<u16>,
     },
     /// Damage to an object that joined the fight this tick, before any
     /// snapshot numbered it, resolved once the tick's snapshot has.
@@ -1118,6 +1130,8 @@ enum NativeTrace {
         source_team_id: Option<u32>,
         target: usize,
         amount: i32,
+        projectile: Option<ObjectRef>,
+        skill_slot: Option<u16>,
     },
     ShieldCreated {
         shield_id: u64,
@@ -2584,12 +2598,90 @@ fn resolve_damage_context(provider: *mut Object) -> DamageContext {
     let source = object_ref_from_pointer(owner as usize, &state)
         .or_else(|| object_ref_from_pointer(owner_actor as usize, &state))
         .or(provider_reference);
+    let source_team_id =
+        native_team_id.or_else(|| source.and_then(|value| state.object_teams.get(&value).copied()));
+    drop(state);
+    let skill_slot = match damage_skill_slot(runtime.api, provider) {
+        Ok(slot) => slot,
+        Err(error) => {
+            let mut state = capture_state()
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            if state.armed {
+                state.fail(format!("damage skill: {error}"));
+            }
+            None
+        }
+    };
     DamageContext {
         source,
-        source_team_id: native_team_id
-            .or_else(|| source.and_then(|value| state.object_teams.get(&value).copied())),
+        source_team_id,
         provider: provider_reference,
+        skill_slot,
     }
+}
+
+/// The index, in its owner's `GetSkills()`, of the skill a damage provider
+/// deals for: a `SkillDamageProvider`'s or a `HitEffectControl`'s
+/// `fightSkill`, or the skill a `FightProjectile` was fired from (its
+/// `dataSource`, unless that is a land mine). Every other provider — a death
+/// explosion, a kill explosion, a commander skill, an air drop — deals for no
+/// skill. A skill its owner's list lacks, such as a child weapon skill,
+/// answers for the parent it belongs to.
+fn damage_skill_slot(api: Api, provider: *mut Object) -> Result<Option<u16>, String> {
+    let class = |name: &str| {
+        api.class("GRFight.dll", "GameRiver.Fight", name)
+            .map_err(|error| error.to_string())
+    };
+    let field = |object: *mut Object, class: *mut Class, name: &str| {
+        api.field(class, name)
+            .and_then(|field| api.field_value::<*mut Object>(object, field))
+            .map_err(|error| format!("{name}: {error}"))
+    };
+    let Some(provider_class) = api.object_class(provider) else {
+        return Ok(None);
+    };
+    let fight_skill = class("FightSkill")?;
+    let skill = if api.class_is_or_inherits(provider_class, class("FightProjectile")?) {
+        field(provider, provider_class, "dataSource")?
+    } else if api.class_is_or_inherits(provider_class, class("SkillDamageProvider")?)
+        || api.class_is_or_inherits(provider_class, class("HitEffectControl")?)
+    {
+        field(provider, provider_class, "fightSkill")?
+    } else {
+        return Ok(None);
+    };
+    if skill.is_null()
+        || !api
+            .object_class(skill)
+            .is_some_and(|skill_class| api.class_is_or_inherits(skill_class, fight_skill))
+    {
+        return Ok(None);
+    }
+    let owner = field(skill, fight_skill, "skillOwner")?;
+    if owner.is_null() {
+        return Err("a damaging skill has no owner".into());
+    }
+    let skills = invoke_object(api, owner, "GetSkills")?;
+    let count = list_count(api, skills, i32::from(u16::MAX))?;
+    let mut wanted = skill;
+    for _ in 0..2 {
+        for slot in 0..count {
+            if list_item(api, skills, slot)? == wanted {
+                return u16::try_from(slot)
+                    .map(Some)
+                    .map_err(|_| "skill slot overflow".to_owned());
+            }
+        }
+        wanted = field(wanted, fight_skill, "<ParentSkill>k__BackingField")?;
+        if wanted.is_null() {
+            break;
+        }
+    }
+    Err(format!(
+        "a {} deals for a skill its owner's GetSkills does not hold",
+        api.object_class_name(provider)
+    ))
 }
 
 fn resolve_hit_damage_context(hit: NativeHitDamageInfo) -> DamageContext {
@@ -2627,6 +2719,7 @@ fn resolve_hit_damage_context(hit: NativeHitDamageInfo) -> DamageContext {
             .or(provider_context.source_team_id)
             .or_else(|| source.and_then(|value| state.object_teams.get(&value).copied())),
         provider: provider_context.provider,
+        skill_slot: provider_context.skill_slot,
     }
 }
 
@@ -3037,6 +3130,8 @@ fn record_damage(
                 source_team_id: context.source_team_id,
                 target: target_pointer,
                 amount: result,
+                projectile: context.projectile(),
+                skill_slot: context.skill_slot,
             });
             return Ok(());
         };
@@ -3063,6 +3158,8 @@ fn record_damage(
             source_team_id: context.source_team_id,
             target,
             amount: result,
+            projectile: context.projectile(),
+            skill_slot: context.skill_slot,
         });
         Ok::<(), String>(())
     })();
@@ -6219,15 +6316,17 @@ fn transition_events(
                 source_team_id,
                 target,
                 amount,
+                projectile,
+                skill_slot,
             } => {
                 events.push(event(
-                    None,
+                    projectile,
                     source,
                     source_team_id.or_else(|| {
                         source.and_then(|value| capture.object_teams.get(&value).copied())
                     }),
                     Some(target),
-                    EventPayload::Damage { amount },
+                    EventPayload::Damage { amount, skill_slot },
                 ));
             }
             NativeTrace::DamageUnresolved {
@@ -6235,6 +6334,8 @@ fn transition_events(
                 source_team_id,
                 target,
                 amount,
+                projectile,
+                skill_slot,
             } => {
                 let target = object_ref_from_pointer(target, capture).ok_or_else(|| {
                     format!(
@@ -6243,13 +6344,13 @@ fn transition_events(
                     )
                 })?;
                 events.push(event(
-                    None,
+                    projectile,
                     source,
                     source_team_id.or_else(|| {
                         source.and_then(|value| capture.object_teams.get(&value).copied())
                     }),
                     Some(target),
-                    EventPayload::Damage { amount },
+                    EventPayload::Damage { amount, skill_slot },
                 ));
             }
             NativeTrace::UnitDiedUnresolved {
@@ -7637,6 +7738,8 @@ mod tests {
                 source_team_id: Some(0),
                 target: shield(1),
                 amount: 100,
+                projectile: None,
+                skill_slot: None,
             },
             NativeTrace::ProjectileRemoved {
                 projectile_id: 8,
@@ -7912,6 +8015,8 @@ mod tests {
                 source_team_id: Some(0),
                 target: ObjectRef::new(ObjectKind::Unit, 2),
                 amount: 10,
+                projectile: None,
+                skill_slot: None,
             },
             NativeTrace::ProjectileRemoved {
                 projectile_id: 1,
@@ -7954,7 +8059,7 @@ mod tests {
         );
         assert!(matches!(
             events.events[1].payload,
-            EventPayload::Damage { amount: 10 }
+            EventPayload::Damage { amount: 10, .. }
         ));
         assert!(matches!(
             events.events[2].payload,

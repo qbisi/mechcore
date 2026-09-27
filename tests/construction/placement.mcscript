@@ -42,7 +42,7 @@ steps:
     expect:
       operation.tick_count: 91
       # The hash `regressions.mcscript` holds the simulator to.
-      operation.hashes.physics_result_hash: 21a210c7995129dd6de781c4db56b2a370541838adb6aa2d87dfc30ab8d2f18e
+      operation.hashes.physics_result_hash: e63ddd13e31a6110539cb7a178e3b7a09a384d083dfdc1b91948a29437d8ba1e
   - fight.buildings:
       recording: ${out}/aside.mcfr
     expect:

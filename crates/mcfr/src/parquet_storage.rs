@@ -1404,6 +1404,14 @@ fn validate_event_refs(event: &Event) -> Result<()> {
             event_type_name(event.payload.kind())
         )));
     }
+    // A damage event's subject is the projectile that carried it, if one did.
+    if matches!(event.payload, EventPayload::Damage { .. })
+        && event
+            .subject
+            .is_some_and(|subject| subject.kind != ObjectKind::Projectile)
+    {
+        return Err(Error::invalid("damage object must be a projectile"));
+    }
     if matches!(event.payload, EventPayload::Healing { amount } if amount <= 0) {
         return Err(Error::invalid("healing amount must be positive"));
     }

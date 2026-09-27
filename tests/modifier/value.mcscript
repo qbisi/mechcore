@@ -41,7 +41,7 @@ steps:
       output: ${out}/range-none.mcfr
     expect:
       operation.tick_count: 137
-      operation.hashes.physics_result_hash: 68da07877e6bfce571deae59c56bbe3e73ff6540461f709d366c511230f64d6d
+      operation.hashes.physics_result_hash: 538223a3055086caefc1beab67e63075b4a351759f1a85dcc356ce21790d0746
   - fight.outcome:
       recording: ${out}/range-none.mcfr
     expect:
@@ -53,7 +53,7 @@ steps:
       output: ${out}/range-value.mcfr
     expect:
       operation.tick_count: 137
-      operation.hashes.physics_result_hash: bf5db25f1f546633db4e63665bbb0e4d3cf01943881c6e5c651a659ee35cdbfd
+      operation.hashes.physics_result_hash: 33d25bf9dcd8d84f5c133134dc735f867c2435a4f5a4d02eab981097828f059b
   - fight.outcome:
       recording: ${out}/range-value.mcfr
     expect:

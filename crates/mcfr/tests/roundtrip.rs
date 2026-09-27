@@ -48,7 +48,7 @@ fn writes_and_reads_every_table() {
     );
 
     let reader = McfrReader::open(&path).unwrap();
-    assert_eq!(MCFR_FORMAT, "0.11.0");
+    assert_eq!(MCFR_FORMAT, "0.12.0");
     assert_eq!(reader.tick_count(), 1);
     assert_eq!(reader.terminal_tick(), 1);
     assert_eq!(reader.game_build(), "build-a");
@@ -191,7 +191,10 @@ fn reader_open_and_comparison_trust_persisted_hashes() {
     // The events of another fight, one damage point apart, swapped in.
     let other_path = directory.path().join("other.mcfr");
     let mut other_events = damage_events();
-    other_events.events[0].payload = EventPayload::Damage { amount: 24 };
+    other_events.events[0].payload = EventPayload::Damage {
+        amount: 24,
+        skill_slot: Some(0),
+    };
     write_battle(
         &other_path,
         "build-a",
@@ -329,7 +332,10 @@ fn physics_hash_is_sensitive_to_time_motion_vitals_and_damage() {
     }
 
     let mut changed_events = baseline_events.clone();
-    changed_events.events[0].payload = EventPayload::Damage { amount: 24 };
+    changed_events.events[0].payload = EventPayload::Damage {
+        amount: 24,
+        skill_slot: Some(0),
+    };
     assert_ne!(
         baseline.physics_result_hash,
         hash_tick(&context(), baseline_state.clone(), &changed_events).physics_result_hash
@@ -1122,7 +1128,10 @@ fn damage_events() -> TransitionEvents {
             source: Some(ObjectRef::new(ObjectKind::Unit, 1)),
             source_team_id: Some(1),
             target: Some(ObjectRef::new(ObjectKind::Unit, 2)),
-            payload: EventPayload::Damage { amount: 25 },
+            payload: EventPayload::Damage {
+                amount: 25,
+                skill_slot: Some(0),
+            },
         }],
     }
 }
