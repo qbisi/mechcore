@@ -530,14 +530,18 @@ null。时钟中的两个整数都以逻辑步为单位，并通过 `DurableCont
 | `projectile_released` | `ProjectileSystem.Create` 到 `AddProjectile` 的嵌套 trace；同时解析 owner、target、skill slot、weapon index |
 | `projectile_removed` | ProjectileSystem 销毁路径 trace，采集末位置与 intercepted；同一伤害链命中 Shield 时补充 `absorbed_by` |
 | `damage` | `DamagePerformer.Perform` 提供 provider 归因作用域；每次 `FightController.OnActorHitted(HitDamageInfo)` 提供 Actor target 与 `damageReal`；战场盾伤害 helper 提供逐 Shield 实际结果。provider 给出造成伤害的技能：`SkillDamageProvider` 或 `HitEffectControl` 的 `fightSkill`，或 `FightProjectile` 的 `dataSource`；`GetSkills()` 中没有的技能按其 `ParentSkill` 记。死亡爆炸、击杀爆炸、指挥官技能、空投、地面火与 buff 持续伤害没有技能 |
+| `unit_created` | `FightController.CreateMech(team, mech, position, rotation, createType, mechTeam, isRebirth)`，部署、召唤、死亡生成、生产与空投都经过这个入口。只记逻辑 tick 内的调用，部署因此不记；单位死后复活会带 `isRebirth` 再经过一次，也不记。位置取调用返回后单位的位置 |
 | `unit_died` | `FightMech.OnDead` trace |
 | `building_destroyed` | `FightCrystal.OnDead` trace |
+| `healing` | `FightActor.AddLife(value, isShowLifeBar)`（单位、塔与水晶都经它回血）与 `FightConstruction.AddLife`。量是调用后读到的生命减去调用前的：满血截断，调用本身不返回实际加了多少。回血都显示血条；不显示的两处回满——单位死后复活、超级部署落地——不是回血，不记。没有 `source`，调用本身不带 |
 | `shield_created` | 相邻采样边界间首次进入 `GetEnergyShields(fightGroup)` 全量集合 |
 | `shield_destroyed` | 相邻采样边界间从全量集合消失，当前 reason 为 `unknown` |
 | `terrain_created` | 相邻采样边界间首次进入所属 `RangeItemController.GetItems()` 集合 |
 | `terrain_removed` | 相邻采样边界间从所属 controller item 集合消失，当前 reason 为 `unknown` |
 
-`unit_created`、`unit_team_changed`、`terrain_converted` 与 `healing` 具备共享 schema、canonical 表达和 Reader/Writer 支持，供能够直接观测对应演化来源的 Producer 写入。
+`unit_team_changed` 与 `terrain_converted` 具备共享 schema、canonical 表达和 Reader/Writer 支持，供能够直接观测对应演化来源的 Producer 写入。
+
+`unit_created` 与 `healing` 的记录没有夹具覆盖：钉住的对局里没有 tick 内生成的单位，也没有回血；哪些召唤、哪些回血经过这两个入口，在研究对应机制时逐一核对。
 
 Buff 观测位于 Unit 状态轨道：布尔状态进入 `status_mask`，综合数值修正进入 `modifiers` 的 `buff` 通道。相邻快照的字段变化构成 Buff 状态演化证据。
 
