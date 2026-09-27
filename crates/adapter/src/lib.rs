@@ -11,6 +11,7 @@ mod operations;
 mod runtime;
 mod rvo;
 mod selector;
+mod statistics;
 mod video;
 
 use mechcore_document as layout;

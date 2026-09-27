@@ -291,6 +291,23 @@ impl Overlays {
         self.resolve_scaled(index, base, |value| value)
     }
 
+    /// [`Overlays::resolve`] with the enhancements alone: what a number
+    /// comes to before anything reduces it.
+    fn resolve_raised(&self, index: Index, base: i64) -> Result<i64> {
+        let enhance = [&self.unit, &self.skill, &self.buff]
+            .into_iter()
+            .filter_map(|overlay| overlay.aggregate(index))
+            .map(|aggregate| aggregate.enhance)
+            .sum::<i128>();
+        let scaled = i128::from(base) * (ONE + enhance) / ONE;
+        i64::try_from(scaled).map_err(|_| {
+            Error::new(format!(
+                "{} raised is outside the signed range",
+                index.name()
+            ))
+        })
+    }
+
     /// [`Overlays::resolve`] for a base held in other units than its values:
     /// `value_scale` carries a summed value into the base's units.
     fn resolve_scaled(
@@ -686,6 +703,16 @@ impl Stats {
     /// Returns an error when the scaled hit leaves the signed range.
     pub(crate) fn damage_taken(&self, amount: i64) -> Result<i64> {
         self.overlays.resolve(Index::AmplifyDamage, amount)
+    }
+
+    /// A hit raised by what increases this unit's damage taken, before
+    /// anything reduces it: `PerformHitTargetEffect`'s `damageTaken`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the raised hit leaves the signed range.
+    pub(crate) fn damage_taken_raised(&self, amount: i64) -> Result<i64> {
+        self.overlays.resolve_raised(Index::AmplifyDamage, amount)
     }
 
     pub(crate) const fn attack_interval(&self) -> u64 {

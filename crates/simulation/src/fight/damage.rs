@@ -52,6 +52,17 @@ pub(in crate::fight) enum Reach {
 pub(in crate::fight) struct Stroke {
     /// The life it actually lost, which is what a `damage` event records.
     pub(in crate::fight) actual: i64,
+    /// The hit after every mitigation, before it is held to the life left:
+    /// what the attacker's `DamageMax` counts.
+    pub(in crate::fight) dealt: i64,
+    /// The hit raised by what increases the target's damage taken, before
+    /// anything reduces it: what the target's `DamageTaken` counts.
+    pub(in crate::fight) taken: i64,
+    /// Whether the target was no longer alive after it.
+    pub(in crate::fight) killed: bool,
+    /// Whether the target was alive when the hit reached it: the build skips
+    /// a dead one before anything counts the hit.
+    pub(in crate::fight) reached_alive: bool,
     /// Where a unit died, when this stroke killed it.
     pub(in crate::fight) death: Option<QVec3>,
     /// Where a building fell, when this stroke destroyed it.
@@ -221,7 +232,9 @@ impl Simulation {
                     .get_mut(&unit_id)
                     .ok_or_else(|| Error::new("damage target unit is absent"))?;
                 // `PerformHitTargetEffect` scales the hit by the unit's rate on
-                // damage taken before it takes any life.
+                // damage taken before it takes any life, and counts it as taken
+                // with the rate's increases alone.
+                let taken = unit.stats.damage_taken_raised(amount)?;
                 let amount = unit.stats.damage_taken(amount)?;
                 let previous_life = unit.life;
                 unit.life = unit.life.saturating_sub(amount).max(0);
@@ -240,6 +253,10 @@ impl Simulation {
                 });
                 Ok(Stroke {
                     actual,
+                    dealt: amount,
+                    taken,
+                    killed: death.is_some(),
+                    reached_alive: previous_life > 0,
                     death,
                     fallen: None,
                 })
@@ -260,6 +277,10 @@ impl Simulation {
                 }
                 let stroke = Stroke {
                     actual: i64::from(previous_life - building.life.current),
+                    dealt: amount,
+                    taken: amount,
+                    killed: building.life.current == 0,
+                    reached_alive: previous_life > 0,
                     death: None,
                     fallen: destroyed.then_some(building.position),
                 };
@@ -287,6 +308,7 @@ impl Simulation {
         let mut struck = Struck::default();
         for target in self.damage_targets(&hit)? {
             let stroke = self.strike(target, hit.source, hit.source_team, hit.amount)?;
+            self.count_hit(hit.source, target, &stroke)?;
             if stroke.actual > 0 {
                 events.push(event(
                     hit.projectile,
@@ -459,6 +481,7 @@ impl Simulation {
         // Balls of `wall-laser.yaml` read `damage` and then
         // `building_destroyed`. Damage is recorded even when none was dealt.
         let stroke = self.strike(target, attacker_ref, attacker_team, damage)?;
+        self.count_hit(attacker_ref, target, &stroke)?;
         if let Some(position) = stroke.death {
             events.push(event(
                 Some(target.object_ref()),

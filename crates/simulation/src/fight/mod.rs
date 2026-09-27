@@ -14,10 +14,10 @@ use std::{
 };
 
 use mechcore_mcfr::{
-    BuildingState, DerivedStats, Domain, DurableContext, Event, EventPayload, GaugeI32, Hashes,
-    IdentityAllocator, LiveUnitState, McfrReader, McfrWriter, MotionState, ObjectKind, ObjectRef,
-    PersonalShieldState, ProjectileState, QPlanar, QVec3, Rational, TickSlice, TransitionEvents,
-    Visibility, WeaponAimState, WorldSnapshot,
+    BuildingState, DamageStatistics, DerivedStats, Domain, DurableContext, Event, EventPayload,
+    GaugeI32, Hashes, IdentityAllocator, LiveUnitState, McfrReader, McfrWriter, MotionState,
+    ObjectKind, ObjectRef, PersonalShieldState, ProjectileState, QPlanar, QVec3, Rational,
+    RecorderKind, TickSlice, TransitionEvents, Visibility, WeaponAimState, WorldSnapshot,
 };
 
 use serde::Serialize;
@@ -44,6 +44,7 @@ mod run;
 mod rvo;
 mod search;
 mod skill;
+mod statistics;
 #[cfg(test)]
 mod tests;
 mod tower;
@@ -231,6 +232,10 @@ struct Simulation {
     tower_losses: BTreeMap<u64, TowerLoss>,
     /// The constructions a tower's loss would reach, by building.
     tower_buffed_constructions: BTreeSet<u64>,
+    /// The build's damage and kill counters, by recorder.
+    statistics: BTreeMap<statistics::RecorderKey, DamageStatistics>,
+    /// Each construction block's recorder, by building.
+    construction_recorders: BTreeMap<u64, statistics::RecorderKey>,
 }
 
 impl Simulation {
@@ -267,6 +272,7 @@ impl Simulation {
             colliders: construction_colliders,
             tower_losses,
             tower_buffed_constructions,
+            construction_groups,
         } = initialize_buildings(towers, &layout.constructions, &layout.tower_levels)?;
         let constructions = initialize_constructions(&buildings, &layout.constructions)?;
         let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
@@ -288,7 +294,10 @@ impl Simulation {
             towers: towers.clone(),
             tower_losses,
             tower_buffed_constructions,
+            statistics: BTreeMap::new(),
+            construction_recorders: BTreeMap::new(),
         };
+        simulation.seed_statistics(&construction_groups);
         simulation.deploy_attack_intervals(layout.round)?;
         Ok(simulation)
     }
@@ -308,6 +317,7 @@ impl Simulation {
                 .filter(|building| building_alive(building))
                 .cloned()
                 .collect(),
+            statistics: self.statistics.values().copied().collect(),
             ..WorldSnapshot::default()
         }
     }

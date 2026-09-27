@@ -225,8 +225,8 @@ fn compile_constructions(
     refused: &mut Refusals,
 ) -> Vec<ConstructionBuilding> {
     let mut built = Vec::new();
-    for placement in &side.constructions {
-        let Some(buildings) = refused.hold(
+    for (group, placement) in side.constructions.iter().enumerate() {
+        let Some(mut buildings) = refused.hold(
             table
                 .buildings(team, placement)
                 .map_err(|error| Error::new(format!("side {name}: {error}"))),
@@ -246,6 +246,9 @@ fn compile_constructions(
                 placement.type_name
             ));
             continue;
+        }
+        for building in &mut buildings {
+            building.group = group;
         }
         built.extend(buildings);
     }

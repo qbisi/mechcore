@@ -11,6 +11,8 @@ pub(in crate::fight) struct InitialBuildings {
     pub(in crate::fight) tower_losses: BTreeMap<u64, TowerLoss>,
     /// The constructions a tower's loss reaches.
     pub(in crate::fight) tower_buffed_constructions: BTreeSet<u64>,
+    /// Each construction's side and group, by building.
+    pub(in crate::fight) construction_groups: BTreeMap<u64, (u32, usize)>,
 }
 
 /// One building before it is given an identity, from either source.
@@ -30,6 +32,18 @@ pub(in crate::fight) struct RawBuilding {
     pub(in crate::fight) loss_ticks: Option<u32>,
     /// Whether a tower's loss reaches this construction.
     pub(in crate::fight) tower_buff: bool,
+    /// The construction a block belongs to; none for a tower.
+    pub(in crate::fight) group: Option<usize>,
+}
+
+/// Each construction block's side and construction, by building.
+fn construction_groups(
+    raw: &[RawBuilding],
+    id_of: impl Fn(&RawBuilding) -> u64,
+) -> BTreeMap<u64, (u32, usize)> {
+    raw.iter()
+        .filter_map(|building| Some((id_of(building), (building.team_id, building.group?))))
+        .collect()
 }
 
 pub(in crate::fight) fn generate_formation_positions(
@@ -202,6 +216,7 @@ fn map_buildings(
                 collider_priority: None,
                 loss_ticks: Some(towers.loss_ticks(level)?),
                 tower_buff: false,
+                group: None,
             })
         })
         .collect()
@@ -241,6 +256,7 @@ pub(in crate::fight) fn initialize_buildings(
         collider_priority: Some(building.collider_priority),
         loss_ticks: None,
         tower_buff: building.tower_buff,
+        group: Some(building.group),
     }));
 
     let building_key = |building: &RawBuilding| {
@@ -317,12 +333,15 @@ pub(in crate::fight) fn initialize_buildings(
         .filter(|building| building.tower_buff)
         .map(|building| normalized_ids[&building_key(building)])
         .collect();
+    let construction_groups =
+        construction_groups(&raw, |building| normalized_ids[&building_key(building)]);
     Ok(InitialBuildings {
         states,
         unsearchable,
         colliders,
         tower_losses,
         tower_buffed_constructions,
+        construction_groups,
     })
 }
 
