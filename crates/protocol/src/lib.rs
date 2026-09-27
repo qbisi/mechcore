@@ -485,6 +485,9 @@ mod tests {
                     "speed_up",
                     "quit_match",
                     "quit_game",
+                    "watch_scenes",
+                    "watch_scene",
+                    "save_replay",
                 ],
                 "game": {"adapter": "ab", "headless": true, "offline": true, "linger_seconds": 30},
             })
