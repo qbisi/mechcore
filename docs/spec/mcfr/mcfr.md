@@ -726,16 +726,23 @@ producer can actually observe is narrower, and the adapter covers:
 | `projectile_released` | the nested trace from `ProjectileSystem.Create` to `AddProjectile`, which also resolves owner, target, skill slot and weapon index |
 | `projectile_removed` | the ProjectileSystem destruction path, capturing final position and interception; `absorbed_by` is added when the same damage chain hits a shield |
 | `damage` | `DamagePerformer.Perform` gives the provider attribution scope, each `FightController.OnActorHitted(HitDamageInfo)` gives the Actor target and `damageReal`, and the battlefield shield damage helper gives the per-shield actual result. The provider names the dealing skill: a `SkillDamageProvider`'s or `HitEffectControl`'s `fightSkill`, or a `FightProjectile`'s `dataSource`; a skill `GetSkills()` lacks answers for its `ParentSkill`. A death explosion, a kill explosion, a commander skill, an air drop, ground fire and buff damage over time deal for no skill |
+| `unit_created` | `FightController.CreateMech(team, mech, position, rotation, createType, mechTeam, isRebirth)`, the funnel deployment, summons, spawns on death, production and air drops all pass. Only calls inside the logic tick are recorded, which leaves deployment out, and a unit rising from its death passes it again with `isRebirth` set and is not recorded. The position is the unit's once the call returns |
 | `unit_died` | the `FightMech.OnDead` trace |
 | `building_destroyed` | the `FightCrystal.OnDead` trace |
+| `healing` | `FightActor.AddLife(value, isShowLifeBar)`, which units, towers and crystals heal through, and `FightConstruction.AddLife`. The amount is the life read after the call less the life read before it, since the gauge clamps at full life and the call returns nothing. Every heal shows the life bar; the two refills that do not, a unit rising from its death and one landing from a super deployment, are not recorded. No `source`: the call does not carry one |
 | `shield_created` | first entry into the full `GetEnergyShields(fightGroup)` collection between adjacent sampling boundaries |
 | `shield_destroyed` | disappearance from that collection, so the reason is `unknown` |
 | `terrain_created` | first entry into the owning `RangeItemController.GetItems()` collection between adjacent boundaries |
 | `terrain_removed` | disappearance from that collection, so the reason is `unknown` |
 
-`unit_created`, `unit_team_changed`, `terrain_converted` and `healing` have a
-shared schema, a canonical form and reader and writer support, for a producer
-able to observe the evolution directly.
+`unit_team_changed` and `terrain_converted` have a shared schema, a canonical
+form and reader and writer support, for a producer able to observe the
+evolution directly.
+
+`unit_created` and `healing` are recorded without a fixture that exercises
+them: no pinned fight creates a unit inside the tick or heals one, and which
+summons and heals reach the two entry points is checked as each mechanism is
+researched.
 
 Buffs are not events. Their observation lives on the unit state track: boolean
 state in `status_mask`, aggregate numeric corrections in the `buff` modifiers, and a
@@ -1112,9 +1119,9 @@ derived field in the format, it is sparse, and a reader cannot recover the
 inputs from it. Storing both operands instead would be uniform with the rest of
 the format at the cost of a column.
 
-**Should the format define events no producer emits?** `unit_created`,
-`unit_team_changed`, `terrain_converted` and `healing` have schema, canonical
-form, and reader and writer support, and no producer observes them today.
+**Should the format define events no producer emits?** `unit_team_changed`
+and `terrain_converted` have schema, canonical form, and reader and writer
+support, and no producer observes them today.
 Defining them keeps a later producer from inventing an incompatible shape;
 defining them also means a reader cannot tell an event that never happened from
 one nobody can see.

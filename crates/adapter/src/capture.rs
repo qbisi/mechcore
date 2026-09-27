@@ -1073,6 +1073,9 @@ static ORIGINAL_FIGHT_CONTROLLER_ON_ACTOR_HITTED: AtomicPtr<c_void> =
 static ORIGINAL_ADVANCED_SHIELD_DAMAGE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_FIGHT_MECH_ON_DEAD: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_FIGHT_CRYSTAL_ON_DEAD: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_FIGHT_CONTROLLER_CREATE_MECH: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_FIGHT_ACTOR_ADD_LIFE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_FIGHT_CONSTRUCTION_ADD_LIFE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_CHECKER_CHECK: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 thread_local! {
     static ACTIVE_PROJECTILE_CHANNEL: Cell<Option<(usize, i32)>> = const { Cell::new(None) };
@@ -1176,6 +1179,21 @@ enum NativeTrace {
     BuildingDestroyed {
         building_id: u64,
         position: QVec3,
+    },
+    /// A unit that joined the fight within the tick, numbered by the tick's
+    /// snapshot, or with the fleeting units when it left again.
+    UnitCreated {
+        unit: usize,
+        team_id: u32,
+        unit_type_id: u32,
+        /// Its `MechTeam`, or zero for a unit with no formation.
+        formation: usize,
+        position: QVec3,
+    },
+    /// Life an actor gained, clamped at its full life.
+    Healing {
+        target: usize,
+        amount: i32,
     },
 }
 
@@ -1442,6 +1460,37 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
         install_advanced_shield_damage_hook(api, advanced_shield_damage)?;
         install_fight_mech_on_dead_hook(api, fight_mech_on_dead)?;
         install_fight_crystal_on_dead_hook(api, fight_crystal_on_dead)?;
+        let create_mech = api
+            .method(fight, "CreateMech", 7)
+            .map_err(|error| error.to_string())?;
+        let fight_actor_add_life = api
+            .method(fight_actor, "AddLife", 2)
+            .map_err(|error| error.to_string())?;
+        let fight_construction_add_life = api
+            .class("GRFight.dll", "GameRiver.Fight", "FightConstruction")
+            .and_then(|class| api.method(class, "AddLife", 2))
+            .map_err(|error| error.to_string())?;
+        install_inline_hook(
+            api,
+            create_mech,
+            create_mech_hook as *const c_void,
+            &ORIGINAL_FIGHT_CONTROLLER_CREATE_MECH,
+            "FightController.CreateMech",
+        )?;
+        install_inline_hook(
+            api,
+            fight_actor_add_life,
+            fight_actor_add_life_hook as *const c_void,
+            &ORIGINAL_FIGHT_ACTOR_ADD_LIFE,
+            "FightActor.AddLife",
+        )?;
+        install_inline_hook(
+            api,
+            fight_construction_add_life,
+            fight_construction_add_life_hook as *const c_void,
+            &ORIGINAL_FIGHT_CONSTRUCTION_ADD_LIFE,
+            "FightConstruction.AddLife",
+        )?;
         install_update_hook(api, update)?;
         install_match_update_hook(api, match_update)?;
         install_player_finish_deploy_hook(api, player_finish_deploy)?;
@@ -1834,6 +1883,18 @@ type FightControllerOnActorHittedFn =
 type AdvancedShieldDamageFn =
     unsafe extern "C" fn(*mut Object, *mut Object, i32, FixedVec3, bool, *const MethodInfo) -> i32;
 type ActorOnDeadFn = unsafe extern "C" fn(*mut Object, *const MethodInfo);
+type CreateMechFn = unsafe extern "C" fn(
+    *mut Object,
+    *mut Object,
+    *mut Object,
+    FixedVec3,
+    FixedPoint,
+    i32,
+    *mut Object,
+    bool,
+    *const MethodInfo,
+);
+type AddLifeFn = unsafe extern "C" fn(*mut Object, i32, bool, *const MethodInfo);
 type CheckerCheckFn = unsafe extern "C" fn(*mut Object, bool, *const MethodInfo) -> bool;
 
 /// `SkillAttackableChecker.Check(bool isAttackingCheck)`, forwarded unchanged.
@@ -2216,6 +2277,7 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
             let events = transition_events(&traces, &state)?;
             for pointer in std::mem::take(&mut state.fleeting_unit_pointers) {
                 state.unit_ids.remove(&pointer);
+                state.formation_ids.remove(&pointer);
             }
             if let Some(visual) = state.visual.as_ref() {
                 visual.apply_calibration()?;
@@ -2844,6 +2906,214 @@ unsafe extern "C" fn fight_crystal_on_dead_hook(actor: *mut Object, method: *con
     let original: ActorOnDeadFn = unsafe { std::mem::transmute(original) };
     // SAFETY: IL2CPP arguments are forwarded unchanged.
     unsafe { original(actor, method) };
+}
+
+/// `FightController.CreateMech(team, mech, position, rotation, createType,
+/// mechTeam, isRebirth)`, the funnel every unit joining a fight passes:
+/// deployment, summons, spawns on death, production and air drops. A unit
+/// that rises from its death passes it again with `isRebirth` set, and
+/// deployment passes it outside the logic tick; neither joins the fight.
+#[allow(clippy::too_many_arguments)]
+unsafe extern "C" fn create_mech_hook(
+    controller: *mut Object,
+    team_controller: *mut Object,
+    mech: *mut Object,
+    position: FixedVec3,
+    rotation: FixedPoint,
+    create_type: i32,
+    mech_team: *mut Object,
+    is_rebirth: bool,
+    method: *const MethodInfo,
+) {
+    let original = ORIGINAL_FIGHT_CONTROLLER_CREATE_MECH.load(Ordering::Acquire);
+    if original.is_null() {
+        return;
+    }
+    // SAFETY: hook installer stored the trampoline for this exact method ABI.
+    let original: CreateMechFn = unsafe { std::mem::transmute(original) };
+    // SAFETY: IL2CPP arguments are forwarded unchanged.
+    unsafe {
+        original(
+            controller,
+            team_controller,
+            mech,
+            position,
+            rotation,
+            create_type,
+            mech_team,
+            is_rebirth,
+            method,
+        );
+    };
+    if is_rebirth {
+        return;
+    }
+    let _ = catch_unwind(AssertUnwindSafe(|| {
+        record_unit_created(team_controller, mech, mech_team);
+    }));
+}
+
+fn record_unit_created(team_controller: *mut Object, mech: *mut Object, mech_team: *mut Object) {
+    let runtime = RUNTIME.load(Ordering::Acquire);
+    if runtime.is_null() {
+        return;
+    }
+    // SAFETY: runtime is boxed for the adapter process lifetime.
+    let runtime = unsafe { &*runtime };
+    let mut state = capture_state()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    if !state.armed || !state.in_update {
+        return;
+    }
+    let result = (|| {
+        let api = runtime.api;
+        let team_index = invoke_value::<i32>(api, team_controller, "GetTeamIndex")?;
+        let unit_type = invoke_value::<i32>(api, mech, "GetMechID")?;
+        let transform = invoke_object(api, mech, "GetFightTransform")?;
+        let position = vec3(invoke_value::<FixedVec3>(
+            api,
+            transform,
+            "GetPositionInt3D",
+        )?);
+        state.traces.push(NativeTrace::UnitCreated {
+            unit: mech as usize,
+            team_id: u32::try_from(team_index)
+                .map_err(|_| format!("invalid native team index {team_index}"))?,
+            unit_type_id: u32::try_from(unit_type)
+                .map_err(|_| format!("invalid unit type {unit_type}"))?,
+            formation: mech_team as usize,
+            position,
+        });
+        Ok::<(), String>(())
+    })();
+    if let Err(error) = result {
+        state.fail(format!("FightController.CreateMech trace failed: {error}"));
+    }
+}
+
+/// `FightActor.AddLife(value, isShowLifeBar)`, which units, towers and
+/// crystals heal through. Every heal shows the life bar; the two refills that
+/// do not, a unit rising from its death and one landing from a super
+/// deployment, are not heals and are not recorded.
+unsafe extern "C" fn fight_actor_add_life_hook(
+    actor: *mut Object,
+    value: i32,
+    show_life_bar: bool,
+    method: *const MethodInfo,
+) {
+    // SAFETY: the slot holds the trampoline for FightActor.AddLife.
+    unsafe {
+        forward_add_life(
+            &ORIGINAL_FIGHT_ACTOR_ADD_LIFE,
+            actor,
+            value,
+            show_life_bar,
+            method,
+        );
+    }
+}
+
+/// `FightConstruction.AddLife`, which fills its gauge itself rather than
+/// through `FightActor.AddLife`.
+unsafe extern "C" fn fight_construction_add_life_hook(
+    actor: *mut Object,
+    value: i32,
+    show_life_bar: bool,
+    method: *const MethodInfo,
+) {
+    // SAFETY: the slot holds the trampoline for FightConstruction.AddLife.
+    unsafe {
+        forward_add_life(
+            &ORIGINAL_FIGHT_CONSTRUCTION_ADD_LIFE,
+            actor,
+            value,
+            show_life_bar,
+            method,
+        );
+    }
+}
+
+/// Forwards an `AddLife` call, and records the life it actually added,
+/// which the full gauge clamps and the call does not return.
+unsafe fn forward_add_life(
+    slot: &AtomicPtr<c_void>,
+    actor: *mut Object,
+    value: i32,
+    show_life_bar: bool,
+    method: *const MethodInfo,
+) {
+    let original = slot.load(Ordering::Acquire);
+    if original.is_null() {
+        return;
+    }
+    // SAFETY: hook installer stored the trampoline for this exact method ABI.
+    let original: AddLifeFn = unsafe { std::mem::transmute(original) };
+    let before = if show_life_bar {
+        catch_unwind(AssertUnwindSafe(|| life_while_recording(actor)))
+            .ok()
+            .flatten()
+    } else {
+        None
+    };
+    // SAFETY: IL2CPP arguments are forwarded unchanged.
+    unsafe { original(actor, value, show_life_bar, method) };
+    let Some(before) = before else {
+        return;
+    };
+    let _ = catch_unwind(AssertUnwindSafe(|| {
+        record_healing(actor, before);
+    }));
+}
+
+/// The actor's life, when a capture is recording the logic tick.
+fn life_while_recording(actor: *mut Object) -> Option<i32> {
+    let runtime = RUNTIME.load(Ordering::Acquire);
+    if runtime.is_null() {
+        return None;
+    }
+    // SAFETY: runtime is boxed for the adapter process lifetime.
+    let runtime = unsafe { &*runtime };
+    let mut state = capture_state()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    if !state.armed || !state.in_update {
+        return None;
+    }
+    match invoke_value::<i32>(runtime.api, actor, "GetLife") {
+        Ok(life) => Some(life),
+        Err(error) => {
+            state.fail(format!("AddLife: reading the life before: {error}"));
+            None
+        }
+    }
+}
+
+fn record_healing(actor: *mut Object, before: i32) {
+    let runtime = RUNTIME.load(Ordering::Acquire);
+    if runtime.is_null() {
+        return;
+    }
+    // SAFETY: runtime is boxed for the adapter process lifetime.
+    let runtime = unsafe { &*runtime };
+    let mut state = capture_state()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    if !state.armed || !state.in_update {
+        return;
+    }
+    match invoke_value::<i32>(runtime.api, actor, "GetLife") {
+        Ok(after) => {
+            let amount = after.saturating_sub(before);
+            if amount > 0 {
+                state.traces.push(NativeTrace::Healing {
+                    target: actor as usize,
+                    amount,
+                });
+            }
+        }
+        Err(error) => state.fail(format!("AddLife: reading the life after: {error}")),
+    }
 }
 
 fn record_actor_death(actor: *mut Object, kind: ObjectKind) {
@@ -4432,7 +4702,9 @@ fn finalize_initial_shield_ids(
             NativeTrace::ProjectileReleased { .. }
             | NativeTrace::BuildingDestroyed { .. }
             | NativeTrace::TerrainCreated { .. }
-            | NativeTrace::TerrainRemoved { .. } => {}
+            | NativeTrace::TerrainRemoved { .. }
+            | NativeTrace::UnitCreated { .. }
+            | NativeTrace::Healing { .. } => {}
         }
     }
     capture.shield_ids = ids;
@@ -6518,6 +6790,52 @@ fn transition_events(
                     },
                 ));
             }
+            NativeTrace::UnitCreated {
+                unit,
+                team_id,
+                unit_type_id,
+                formation,
+                position,
+            } => {
+                let unit_id = capture
+                    .unit_ids
+                    .get(&unit)
+                    .copied()
+                    .ok_or_else(|| format!("created unit 0x{unit:x} was never numbered"))?;
+                let formation_key = if formation == 0 { unit } else { formation };
+                let formation_id = capture
+                    .formation_ids
+                    .get(&formation_key)
+                    .copied()
+                    .ok_or_else(|| format!("created unit {unit_id} has no formation_id"))?;
+                events.push(event(
+                    Some(ObjectRef::new(ObjectKind::Unit, unit_id)),
+                    None,
+                    None,
+                    None,
+                    EventPayload::UnitCreated {
+                        team_id,
+                        formation_id,
+                        unit_type_id,
+                        position,
+                    },
+                ));
+            }
+            NativeTrace::Healing { target, amount } => {
+                let target = object_ref_from_pointer(target, capture).ok_or_else(|| {
+                    format!(
+                        "healed 0x{target:x}, a {}, is absent from the MCFR identity map",
+                        native_class_name(target)
+                    )
+                })?;
+                events.push(event(
+                    None,
+                    None,
+                    None,
+                    Some(target),
+                    EventPayload::Healing { amount },
+                ));
+            }
         }
     }
     Ok(TransitionEvents { events })
@@ -6533,10 +6851,14 @@ fn number_fleeting_units(capture: &mut CaptureState) -> Result<(), String> {
         .traces
         .iter()
         .filter_map(|trace| match trace {
-            NativeTrace::UnitDiedUnresolved { unit, .. } => Some(*unit),
+            NativeTrace::UnitDiedUnresolved { unit, .. }
+            | NativeTrace::UnitCreated { unit, .. } => Some(*unit),
             NativeTrace::DamageUnresolved { target, .. }
                 if !is_native_shield(*target, &capture.metadata) =>
             {
+                Some(*target)
+            }
+            NativeTrace::Healing { target, .. } if !capture.building_ids.contains_key(target) => {
                 Some(*target)
             }
             _ => None,
@@ -6549,6 +6871,30 @@ fn number_fleeting_units(capture: &mut CaptureState) -> Result<(), String> {
         let id = allocate(&mut capture.next_unit_id, "unit")?;
         capture.unit_ids.insert(pointer, id);
         capture.fleeting_unit_pointers.push(pointer);
+    }
+    // A fleeting unit's formation is numbered after the snapshot's. One with
+    // no `MechTeam` is keyed by the unit's own pointer, which is released
+    // with the unit.
+    let created = capture
+        .traces
+        .iter()
+        .filter_map(|trace| match trace {
+            NativeTrace::UnitCreated {
+                unit,
+                team_id,
+                formation,
+                ..
+            } => Some((if *formation == 0 { *unit } else { *formation }, *team_id)),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    for (formation_key, team_id) in created {
+        if capture.formation_ids.contains_key(&formation_key) {
+            continue;
+        }
+        let id = allocate(&mut capture.next_formation_id, "formation")?;
+        capture.formation_ids.insert(formation_key, id);
+        capture.formation_teams.insert(id, team_id);
     }
     Ok(())
 }
@@ -6609,7 +6955,9 @@ fn renumber_unit_references(
             | NativeTrace::ShieldDestroyed { .. }
             | NativeTrace::TerrainCreated { .. }
             | NativeTrace::TerrainRemoved { .. }
-            | NativeTrace::BuildingDestroyed { .. } => {}
+            | NativeTrace::BuildingDestroyed { .. }
+            | NativeTrace::UnitCreated { .. }
+            | NativeTrace::Healing { .. } => {}
         }
     }
     Ok(())
@@ -7053,7 +7401,7 @@ pub(crate) fn install_inline_hook(
         .map_err(|error| error.to_string())?;
     // SAFETY: target points to at least the generated method prologue.
     let actual = unsafe { std::slice::from_raw_parts(target.cast::<u8>(), 16) };
-    verify_relocatable_prologue(actual, label)?;
+    let (copied, resume) = verify_relocatable_prologue(actual, label)?;
     // SAFETY: anonymous mapping is checked before use.
     let trampoline = unsafe {
         libc::mmap(
@@ -7069,9 +7417,9 @@ pub(crate) fn install_inline_hook(
         return Err(format!("cannot allocate {label} trampoline"));
     }
     // SAFETY: both source and destination are valid for the fixed lengths.
-    unsafe { ptr::copy_nonoverlapping(target.cast::<u8>(), trampoline.cast::<u8>(), 16) };
-    write_absolute_jump(unsafe { trampoline.cast::<u8>().add(16) }, unsafe {
-        target.cast::<u8>().add(16).cast()
+    unsafe { ptr::copy_nonoverlapping(target.cast::<u8>(), trampoline.cast::<u8>(), copied) };
+    write_absolute_jump(unsafe { trampoline.cast::<u8>().add(copied) }, unsafe {
+        target.cast::<u8>().offset(resume).cast()
     });
     // SAFETY: trampoline is the mapping created above.
     if unsafe { libc::mprotect(trampoline, 32, libc::PROT_READ | libc::PROT_EXEC) } != 0 {
@@ -7079,35 +7427,89 @@ pub(crate) fn install_inline_hook(
         unsafe { libc::munmap(trampoline, 32) };
         return Err(format!("cannot make {label} trampoline executable"));
     }
-    let mut jump = [0_u8; 16];
-    write_absolute_jump(jump.as_mut_ptr(), replacement);
+    // A method that ends in a tail branch within the four instructions is
+    // only as long as that branch reaches, and the bytes after it are the next
+    // method's.
+    let room = copied + 4;
+    let jump = if room >= 16 {
+        let mut jump = [0_u8; 16];
+        write_absolute_jump(jump.as_mut_ptr(), replacement);
+        jump.to_vec()
+    } else {
+        page_jump(target as usize, replacement as usize)
+            .ok_or_else(|| format!("{label} is more than 4 GiB from its hook"))?
+            .iter()
+            .flat_map(|word| word.to_le_bytes())
+            .collect()
+    };
+    if jump.len() > room {
+        return Err(format!(
+            "{label} is {room} bytes long, too short for a jump to its hook"
+        ));
+    }
     set_code_bytes(target, &jump)?;
     original_slot.store(trampoline, Ordering::Release);
     Ok(())
 }
 
-/// Whether the four instructions a hook displaces can run from its trampoline.
+/// `ADRP x16`, `ADD x16`, `BR x16`: a jump from `from` to `to` in the 12 bytes
+/// a method ending in a tail branch after two instructions leaves, when the
+/// two are within 4 GiB of each other.
+#[cfg(any(test, all(target_os = "macos", target_arch = "aarch64")))]
+fn page_jump(from: usize, to: usize) -> Option<[u32; 3]> {
+    let pages = i64::try_from(to >> 12).ok()? - i64::try_from(from >> 12).ok()?;
+    if !(-(1 << 20)..1 << 20).contains(&pages) {
+        return None;
+    }
+    let pages = u32::try_from(pages & 0x1f_ffff).ok()?;
+    let page_offset = u32::try_from(to & 0xfff).ok()?;
+    Some([
+        0x9000_0010 | ((pages & 3) << 29) | ((pages >> 2) << 5),
+        0x9100_0210 | (page_offset << 10),
+        0xd61f_0200,
+    ])
+}
+
+/// Whether the four instructions a hook displaces can run from its trampoline,
+/// and if so how many bytes the trampoline copies and where, relative to the
+/// method, it jumps after them.
 ///
 /// The trampoline executes them at another address and then jumps back through
 /// x16, so each must be one of the forms a generated prologue opens with, none
-/// of which reads the PC, and none may leave a value in x16 or x17. Anything
-/// else is refused by name rather than relocated, whatever the build.
+/// of which reads the PC, and none may leave a value in x16 or x17. A method
+/// short enough to end within them ends in a tail branch, `B` to another
+/// method; the trampoline then copies the instructions before it and jumps to
+/// that branch's destination instead. Anything else is refused by name rather than
+/// relocated, whatever the build.
 #[cfg(any(test, all(target_os = "macos", target_arch = "aarch64")))]
-fn verify_relocatable_prologue(actual: &[u8], label: &str) -> Result<(), String> {
-    let relocatable = actual.len() == 16
-        && actual
-            .as_chunks::<4>()
-            .0
-            .iter()
-            .all(|word| relocatable_instruction(u32::from_le_bytes(*word)));
-    if relocatable {
-        Ok(())
-    } else {
-        Err(format!(
-            "{label} prologue is not relocatable: {}",
-            bytes_hex(actual)
-        ))
+fn verify_relocatable_prologue(actual: &[u8], label: &str) -> Result<(usize, isize), String> {
+    let words = actual
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .map(|word| u32::from_le_bytes(*word))
+        .collect::<Vec<_>>();
+    let refuse = || format!("{label} prologue is not relocatable: {}", bytes_hex(actual));
+    if words.len() != 4 {
+        return Err(refuse());
     }
+    for (index, word) in words.into_iter().enumerate() {
+        if relocatable_instruction(word) {
+            continue;
+        }
+        if word & 0xfc00_0000 != 0x1400_0000 {
+            return Err(refuse());
+        }
+        // The jump to the hook needs at least three instructions of room.
+        if index < 2 {
+            return Err(refuse());
+        }
+        // The branch's 26-bit word offset, sign-extended, from where it stands.
+        let at = index * 4;
+        let offset = (((word << 6).cast_signed()) >> 6) as isize * 4;
+        return Ok((at, at.cast_signed() + offset));
+    }
+    Ok((16, 16))
 }
 
 #[cfg(any(test, all(target_os = "macos", target_arch = "aarch64")))]
@@ -7124,8 +7526,11 @@ const fn relocatable_instruction(instruction: u32) -> bool {
     {
         return !base_is_scratch;
     }
-    // ADD or SUB immediate on 64-bit registers, and MOV (ORR Xd, XZR, Xm).
-    if matches!(instruction >> 23, 0x122 | 0x1a2) || instruction & 0xffe0_ffe0 == 0xaa00_03e0 {
+    // ADD or SUB immediate on 64-bit registers, MOV (ORR Xd, XZR, Xm), and
+    // MOVZ of a W or X register.
+    if matches!(instruction >> 23, 0x122 | 0x1a2 | 0x0a5 | 0x1a5)
+        || instruction & 0xffe0_ffe0 == 0xaa00_03e0
+    {
         return !writes_scratch;
     }
     false
@@ -7260,8 +7665,26 @@ mod tests {
             ],
         ];
         for prologue in prologues {
-            verify_relocatable_prologue(&prologue, "fixture").unwrap();
+            assert_eq!(
+                verify_relocatable_prologue(&prologue, "fixture").unwrap(),
+                (16, 16)
+            );
         }
+        // FightActor.AddLife: ADD x0, x0, #0x18; MOVZ x2, #0; a tail branch
+        // 0x89dff words on; and the next method's first instruction.
+        let tail = [
+            0x00, 0x60, 0x00, 0x91, 0x02, 0x00, 0x80, 0xd2, 0xff, 0x9d, 0x08, 0x14, 0x00, 0x84,
+            0x40, 0xf9,
+        ];
+        assert_eq!(
+            verify_relocatable_prologue(&tail, "fixture").unwrap(),
+            (8, 8 + 0x89dff * 4)
+        );
+        assert_eq!(
+            page_jump(0x1_0000_1ff0, 0x1_0000_3456),
+            Some([0xd000_0010, 0x9111_5a10, 0xd61f_0200])
+        );
+        assert_eq!(page_jump(0x1000, 0x1_0000_1000), None);
         let stack = 0xd101_03ff_u32.to_le_bytes();
         let with = |word: u32| {
             let mut bytes = [0_u8; 16];
