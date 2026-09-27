@@ -545,6 +545,46 @@ reads, with no managed call.
 `selector_score` records every `ScoreRatingTargetSelector.CalculateScore` call
 of the update: its raw arguments and the score it returned.
 
+The three RVO channels record each `RVOAgentFixed.CalculateVelocity` of the
+update, read on either side of the call. A solve sees only its agent's
+neighbour list, at most `maxNeighbours` agents (20 in every recording so far),
+and makes at most one VO from each, so the channels grow with the number of
+agents, not with its square.
+
+- `rvo_solve`, one row per solve: the agent's position, elevation and height,
+  current and desired velocity (`sync_desiredVelocity`), desired target and
+  speed, maximum speed, radii, size, priority, layers, `sync_group`,
+  `sync_ignoreSameGroup`, `sync_team`, `maxNeighbours` and the neighbour count;
+  how the solve ended (`locked`, `manual`, `free`, `avoided`); the velocity and
+  target `BiasDesiredVelocity` left; the best point and score of each of the two
+  `Trace`s of an avoided solve; and the `calculatedTargetPoint` and
+  `calculatedSpeed` it wrote.
+- `rvo_neighbour`, one row per entry of the neighbour list, nearest first: the
+  neighbour, its squared distance, what `GenerateNeighbourAgentVOs` made of it
+  (`opponent` for another RVO group, `team_radius`, `same_group`,
+  `ignored_same_group` when the neighbour lets its group pass, `other_elevation`
+  when the vertical ranges do not overlap), the index, radius and `colliding` of
+  the VO it made, the VO's `Gradient` weight at the unbiased desired velocity
+  (how far inside it that velocity lay) and, for an avoided solve, its
+  `ScaledGradient` weight at the output velocity; the largest of those is the VO
+  that bound the solution. A neighbour the recording does not hold, such as a
+  neutral crystal of the map, has a null identity.
+- `rvo_vo`, one row per VO of the solve's buffer, every field of `Agent.VO`. It
+  is the one to leave off: it is about six times the other two together,
+  in a fight of a few dozen units and in a round of a few hundred alike.
+
+The kind of each neighbour is decided the way the build's loop decides it, and
+the VOs it counts must equal the buffer's length, or the recording fails. The
+weights come from the build's own `VO.Gradient` and `VO.ScaledGradient`, called
+on a copy of each VO. A multithreaded simulator solves on worker threads and
+joins them at the next update, four ticks later; while an RVO channel is
+armed, the Adapter joins them before the tick that started them ends, with the
+simulator's own `BlockUntilSimulationStepIsDone`, so every solve belongs to that
+tick. The solves read only the buffers the update synchronised, and the physics
+hash of every fight recorded with the channels equals the one recorded
+without. A solve of an agent the recording does not hold is left out, and
+must be a locked one.
+
 The Adapter requires `main_menu`, and the fight never leaves it: the replay is
 fought the way the game's own `SimpleSimulator` fights one, in a
 `FastSimulationMatch` that builds no scene and runs to its end inside one

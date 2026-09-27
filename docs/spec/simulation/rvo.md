@@ -25,8 +25,10 @@ construction is one only to the other side: it sinks for its own, whose units
 still count it among their neighbours and build no velocity obstacle from it.
 
 RVO's private double buffers, neighbour lists and VO lists are inputs to
-nothing. They appear in no layout and no recording, and a simulator recomputes
-them from the publicly restorable unit, building and movement state.
+nothing. They appear in no layout and in no hashed table of a recording, and a
+simulator recomputes them from the publicly restorable unit, building and
+movement state. The RVO instrument channels observe them
+([adapter.md](../adapter/adapter.md#record_replay_round)).
 
 Whether an unaligned `FightCrystal` joins the fight is the map's decision, not a
 Training Ground artefact to be deleted. A replay and a Training Ground scene

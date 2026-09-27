@@ -56,7 +56,7 @@ steps:
       seed: $seed
   - game.record_battle:
       output: ${out}/instrumented.mcfr
-      instrument: [target_refs, skill_attackable_checker, selector_score]
+      instrument: [target_refs, skill_attackable_checker, selector_score, rvo_solve, rvo_neighbour, rvo_vo]
     expect:
       operation.recorded: true
-      operation.instrument: [target_refs, skill_attackable_checker, selector_score]
+      operation.instrument: [target_refs, skill_attackable_checker, selector_score, rvo_solve, rvo_neighbour, rvo_vo]

@@ -5,11 +5,12 @@ use mechcore_mcfr::{
     BuffModifierSet, BuildingState, CONTENT_HASH_PROFILE, CheckedSkill, DerivedStats, Domain,
     DurableContext, Event, EventPayload, GaugeI32, Hashes, LiveUnitState, MCFR_FORMAT, McfrReader,
     McfrWriter, MotionState, ObjectKind, ObjectRef, PHYSICS_HASH_PROFILE, PersonalShieldState,
-    QVec3, RateModifier, Rational, SelectorScore, ShieldDestroyedReason, ShieldRoundPolicy,
-    ShieldSourceKind, ShieldState, SkillAttackableCheck, SkillDynamicModifierSet,
-    SkillNumericModifierState, TargetRefs, TerrainApplicationState, TerrainEffectClock,
-    TerrainGridState, TerrainLogicLifetime, TerrainRemovedReason, TerrainState, TerrainType,
-    TransitionEvents, UnitDynamicModifierSet, Visibility, WeaponAimState, WorldSnapshot,
+    QVec3, RateModifier, Rational, RvoExit, RvoNeighbour, RvoNeighbourKind, RvoSolve, RvoVec,
+    RvoVo, SelectorScore, ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind, ShieldState,
+    SkillAttackableCheck, SkillDynamicModifierSet, SkillNumericModifierState, TargetRefs,
+    TerrainApplicationState, TerrainEffectClock, TerrainGridState, TerrainLogicLifetime,
+    TerrainRemovedReason, TerrainState, TerrainType, TransitionEvents, UnitDynamicModifierSet,
+    Visibility, WeaponAimState, WorldSnapshot,
 };
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use serde_json::json;
@@ -763,6 +764,91 @@ fn instrument_channels_ride_in_the_recording_outside_both_hashes() {
     );
     let plain = McfrReader::open(directory.path().join("plain.mcfr")).unwrap();
     assert_eq!(plain.instrument::<TargetRefs>().unwrap(), None);
+}
+
+#[test]
+fn rvo_channels_round_trip_with_their_nulls_and_kinds() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("rvo.mcfr");
+    let mut writer = McfrWriter::create(&path, "build-a", &context(), LAYOUT_YAML).unwrap();
+    writer.append_tick(state(75), &damage_events()).unwrap();
+    let agent = ObjectRef::new(ObjectKind::Unit, 1);
+    let at = |x, y| RvoVec { x, y };
+    let solve = RvoSolve {
+        agent,
+        exit: RvoExit::Avoided,
+        position: at(1 << 40, 2 << 40),
+        elevation_raw: 1 << 32,
+        height_raw: 0,
+        current_velocity: at(0, 0),
+        desired_velocity: at(-3, 1 << 34),
+        desired_target: at(5, 6),
+        desired_speed_raw: 1 << 34,
+        max_speed_raw: 1 << 34,
+        radius_outer_raw: 2 << 32,
+        radius_inner_raw: 3 << 31,
+        size: 0,
+        priority_raw: 8_589_934,
+        layer: 16,
+        collides_with: 2_147_483_632,
+        group: 0,
+        ignore_same_group: false,
+        team_id: 0,
+        team_radius_raw: 0,
+        max_neighbours: 20,
+        neighbour_count: 2,
+        biased_velocity: Some(at(-2, 1 << 34)),
+        biased_target: Some(at(5, 7)),
+        first_trace_point: Some(at(1, 2)),
+        first_trace_score_raw: Some(-40),
+        second_trace_point: Some(at(3, 4)),
+        second_trace_score_raw: Some(900),
+        output_target: Some(at(1 << 40, (2 << 40) + 2)),
+        output_speed_raw: Some(1 << 33),
+    };
+    let neighbours = [
+        RvoNeighbour {
+            agent,
+            slot: 0,
+            neighbour: Some(ObjectRef::new(ObjectKind::Building, 3)),
+            distance_sq_raw: 1 << 36,
+            kind: RvoNeighbourKind::Opponent,
+            vo: Some(0),
+            radius_raw: Some(1 << 30),
+            colliding: Some(false),
+            penetration_raw: Some(0),
+            weight_raw: Some(12),
+        },
+        // A map object the recording does not hold makes no VO here.
+        RvoNeighbour {
+            agent,
+            slot: 1,
+            neighbour: None,
+            distance_sq_raw: 1 << 38,
+            kind: RvoNeighbourKind::IgnoredSameGroup,
+            vo: None,
+            radius_raw: None,
+            colliding: None,
+            penetration_raw: None,
+            weight_raw: None,
+        },
+    ];
+    writer
+        .append_instrument(std::slice::from_ref(&solve))
+        .unwrap();
+    writer.append_instrument(&neighbours).unwrap();
+    writer.finish().unwrap();
+
+    let reader = McfrReader::open(&path).unwrap();
+    assert_eq!(
+        reader.instrument::<RvoSolve>().unwrap(),
+        Some(vec![(1, solve)])
+    );
+    assert_eq!(
+        reader.instrument::<RvoNeighbour>().unwrap(),
+        Some(neighbours.into_iter().map(|row| (1, row)).collect())
+    );
+    assert_eq!(reader.instrument::<RvoVo>().unwrap(), None);
 }
 
 fn write_battle(

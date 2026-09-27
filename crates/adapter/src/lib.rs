@@ -9,6 +9,7 @@ mod il2cpp;
 mod offline;
 mod operations;
 mod runtime;
+mod rvo;
 mod video;
 
 use mechcore_document as layout;

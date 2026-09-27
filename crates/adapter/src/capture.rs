@@ -1,3 +1,4 @@
+use crate::rvo::{self, RawSolve, RvoChannels, RvoMetadata, RvoRows};
 use crate::{
     il2cpp::{Api, Class, FieldInfo, MethodInfo, Object, argument, object_argument},
     runtime::Runtime,
@@ -19,7 +20,9 @@ use mechcore_mcfr::{
     TerrainLogicLifetime, TerrainRemovedReason, TerrainState, TerrainType, TransitionEvents,
     UnitDynamicModifierSet, ValueModifier, Visibility, WeaponAimState, WorldSnapshot,
 };
-use mechcore_mcfr::{CheckedSkill, SelectorScore, SkillAttackableCheck, TargetRefs};
+use mechcore_mcfr::{
+    CheckedSkill, RvoNeighbour, RvoSolve, RvoVo, SelectorScore, SkillAttackableCheck, TargetRefs,
+};
 use mechcore_protocol::InstrumentChannel;
 use std::{
     cell::Cell,
@@ -61,16 +64,16 @@ pub(crate) const CALIBRATION_CAMERA_PITCH_DEGREES: f32 = 45.0;
 pub(crate) const CALIBRATION_FIELD_OF_VIEW_DEGREES: f32 = 20.0;
 
 #[repr(C)]
-#[derive(Clone, Copy, Default)]
-struct FixedPoint {
-    raw: i64,
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub(crate) struct FixedPoint {
+    pub(crate) raw: i64,
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, Default)]
-struct FixedVec2 {
-    x: FixedPoint,
-    y: FixedPoint,
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub(crate) struct FixedVec2 {
+    pub(crate) x: FixedPoint,
+    pub(crate) y: FixedPoint,
 }
 
 #[repr(C)]
@@ -173,6 +176,7 @@ pub(crate) struct Instruments {
     target_refs: bool,
     skill_attackable_checker: bool,
     selector_score: bool,
+    pub(crate) rvo: RvoChannels,
 }
 
 impl Instruments {
@@ -181,6 +185,11 @@ impl Instruments {
             target_refs: channels.contains(&InstrumentChannel::TargetRefs),
             skill_attackable_checker: channels.contains(&InstrumentChannel::SkillAttackableChecker),
             selector_score: channels.contains(&InstrumentChannel::SelectorScore),
+            rvo: RvoChannels {
+                solve: channels.contains(&InstrumentChannel::RvoSolve),
+                neighbour: channels.contains(&InstrumentChannel::RvoNeighbour),
+                vo: channels.contains(&InstrumentChannel::RvoVo),
+            },
         }
     }
 }
@@ -192,8 +201,15 @@ pub(crate) struct InstrumentRows {
     pub(crate) target_refs: Option<Vec<TargetRefs>>,
     pub(crate) skill_attackable_checker: Option<Vec<SkillAttackableCheck>>,
     pub(crate) selector_score: Option<Vec<SelectorScore>>,
+    pub(crate) rvo_solve: Option<Vec<RvoSolve>>,
+    pub(crate) rvo_neighbour: Option<Vec<RvoNeighbour>>,
+    pub(crate) rvo_vo: Option<Vec<RvoVo>>,
 }
 
+#[allow(
+    clippy::large_enum_variant,
+    reason = "a transition is sent every tick, the initial message once"
+)]
 pub(crate) enum CaptureMessage {
     Initial {
         game_build: String,
@@ -252,7 +268,7 @@ struct VisualCapture {
 }
 
 #[derive(Default)]
-struct Metadata {
+pub(crate) struct Metadata {
     projectile_system_class: usize,
     range_item_system_class: usize,
     fight_ground_fire_class: usize,
@@ -293,6 +309,8 @@ struct Metadata {
     checker: Option<CheckerMetadata>,
     checker_error: Option<String>,
     selector_score_error: Option<String>,
+    pub(crate) rvo: Option<RvoMetadata>,
+    rvo_error: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -342,11 +360,11 @@ struct CheckerMetadata {
 
 #[derive(Default)]
 #[allow(clippy::struct_excessive_bools)] // The booleans mirror independent native hook boundaries.
-struct CaptureState {
+pub(crate) struct CaptureState {
     availability: Option<String>,
-    metadata: Metadata,
-    instruments: Instruments,
-    armed: bool,
+    pub(crate) metadata: Metadata,
+    pub(crate) instruments: Instruments,
+    pub(crate) armed: bool,
     initialized: bool,
     entered_fighting: bool,
     /// The `Time.timeScale` found when a sped-up recording was armed, put
@@ -358,8 +376,8 @@ struct CaptureState {
     native_tick_step: Option<u64>,
     deployment_layout_yaml: Option<String>,
     queue: VecDeque<CaptureMessage>,
-    unit_ids: BTreeMap<usize, u64>,
-    building_ids: BTreeMap<usize, u64>,
+    pub(crate) unit_ids: BTreeMap<usize, u64>,
+    pub(crate) building_ids: BTreeMap<usize, u64>,
     projectile_ids: BTreeMap<usize, u64>,
     shield_ids: BTreeMap<usize, u64>,
     shield_ids_finalized: bool,
@@ -380,7 +398,7 @@ struct CaptureState {
     pending_projectile_absorption_pointers: BTreeMap<u64, usize>,
     original_unit_teams: BTreeMap<usize, u32>,
     object_teams: BTreeMap<ObjectRef, u32>,
-    emitted_deaths: BTreeSet<ObjectRef>,
+    pub(crate) emitted_deaths: BTreeSet<ObjectRef>,
     last_damage_sources: BTreeMap<ObjectRef, DamageAttribution>,
     formation_ids: BTreeMap<usize, u64>,
     next_unit_id: u64,
@@ -392,8 +410,12 @@ struct CaptureState {
     next_checker_invocation_ordinal: u64,
     next_selector_invocation_ordinal: u64,
     selector_score_calculations: Vec<RawSelectorScoreCalculation>,
-    in_update: bool,
+    pub(crate) in_update: bool,
     traces: Vec<NativeTrace>,
+    /// This tick's RVO solves, and the unit or building behind each RVO
+    /// agent a solve has named.
+    pub(crate) rvo_solves: Vec<RawSolve>,
+    pub(crate) rvo_agent_owners: BTreeMap<usize, ObjectRef>,
     open_checker_calls: BTreeMap<u64, OpenCheckerCall>,
     completed_checker_calls: Vec<CompletedCheckerCall>,
     visual: Option<VisualCapture>,
@@ -413,6 +435,9 @@ impl CaptureState {
         self.native_tick_step = None;
         self.deployment_layout_yaml = None;
         self.instruments = Instruments::default();
+        rvo::arm(RvoChannels::default());
+        self.rvo_solves.clear();
+        self.rvo_agent_owners.clear();
         self.queue.clear();
         self.unit_ids.clear();
         self.building_ids.clear();
@@ -462,7 +487,7 @@ impl CaptureState {
         Ok(())
     }
 
-    fn fail(&mut self, reason: String) {
+    pub(crate) fn fail(&mut self, reason: String) {
         self.armed = false;
         if self.queue.len() < QUEUE_CAPACITY {
             self.queue.push_back(CaptureMessage::Failure(reason));
@@ -1145,7 +1170,14 @@ enum NativeTrace {
     },
 }
 
-fn capture_state() -> &'static Mutex<CaptureState> {
+/// The IL2CPP API of the running adapter, once it has one.
+pub(crate) fn runtime_api() -> Option<Api> {
+    let runtime = RUNTIME.load(Ordering::Acquire);
+    // SAFETY: the runtime is boxed for the adapter process lifetime.
+    (!runtime.is_null()).then(|| unsafe { (*runtime).api })
+}
+
+pub(crate) fn capture_state() -> &'static Mutex<CaptureState> {
     CAPTURE.get_or_init(|| Mutex::new(CaptureState::default()))
 }
 
@@ -1414,6 +1446,10 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             Ok(checker) => (Some(checker), None),
             Err(error) => (None, Some(error)),
         };
+        let (rvo, rvo_error) = match rvo::initialize(api) {
+            Ok(rvo) => (Some(rvo), None),
+            Err(error) => (None, Some(error)),
+        };
         Ok(Metadata {
             projectile_system_class: projectile_system as usize,
             range_item_system_class: range_item_system as usize,
@@ -1455,6 +1491,8 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             selector_score_error,
             checker,
             checker_error,
+            rvo,
+            rvo_error,
         })
     }
 }
@@ -1532,6 +1570,16 @@ pub(crate) fn start(
     }
     validate_selector_score_availability(instruments, &state.metadata)?;
     validate_checker_availability(instruments, &state.metadata)?;
+    if instruments.rvo.any() && state.metadata.rvo.is_none() {
+        return Err(format!(
+            "the RVO channels are unavailable: {}",
+            state
+                .metadata
+                .rvo_error
+                .as_deref()
+                .unwrap_or("native RVO methods or hooks could not be resolved")
+        ));
+    }
     // A replay is armed from the main menu, before its match exists.
     if mode == CaptureStartMode::TrainingGround {
         require_deployment(runtime)?;
@@ -1562,6 +1610,7 @@ pub(crate) fn start(
         state.visual = Some(VisualCapture::new(runtime)?);
     }
     state.armed = true;
+    rvo::arm(instruments.rvo);
     let scaled = state.restore_time_scale.is_some();
     drop(state);
     // Scaled from arming, not from the first fighting tick: the transition
@@ -4796,6 +4845,11 @@ fn snapshot(
     } else {
         None
     };
+    let RvoRows {
+        solve: rvo_solve,
+        neighbour: rvo_neighbour,
+        vo: rvo_vo,
+    } = rvo::drain(runtime.api, capture)?;
     let instrument = InstrumentRows {
         target_refs,
         skill_attackable_checker: if capture.instruments.skill_attackable_checker {
@@ -4807,6 +4861,9 @@ fn snapshot(
             .instruments
             .selector_score
             .then(|| drain_selector_score_calls(capture)),
+        rvo_solve,
+        rvo_neighbour,
+        rvo_vo,
     };
     let projectiles = read_projectiles(runtime, capture)?;
     let pending = capture.pending_projectile_absorptions.len()
@@ -6437,7 +6494,7 @@ fn native_class_name(pointer: usize) -> String {
     }
 }
 
-fn object_ref_from_pointer(pointer: usize, capture: &CaptureState) -> Option<ObjectRef> {
+pub(crate) fn object_ref_from_pointer(pointer: usize, capture: &CaptureState) -> Option<ObjectRef> {
     if pointer == 0 {
         return None;
     }
@@ -6644,7 +6701,7 @@ const fn event(
     }
 }
 
-fn list_count(api: Api, list: *mut Object, maximum: i32) -> Result<i32, String> {
+pub(crate) fn list_count(api: Api, list: *mut Object, maximum: i32) -> Result<i32, String> {
     if list.is_null() {
         return Err("managed list is null".into());
     }
@@ -6656,7 +6713,11 @@ fn list_count(api: Api, list: *mut Object, maximum: i32) -> Result<i32, String> 
     }
 }
 
-fn list_item(api: Api, list: *mut Object, mut index: i32) -> Result<*mut Object, String> {
+pub(crate) fn list_item(
+    api: Api,
+    list: *mut Object,
+    mut index: i32,
+) -> Result<*mut Object, String> {
     api.invoke(list, "get_Item", &mut [argument(&mut index)])
         .map_err(|error| error.to_string())
 }
@@ -7797,6 +7858,7 @@ mod tests {
         assert_eq!(CaptureState::default().instruments, Instruments::default());
         let all = Instruments::of(&InstrumentChannel::ALL);
         assert!(all.target_refs && all.skill_attackable_checker && all.selector_score);
+        assert!(all.rvo.solve && all.rvo.neighbour && all.rvo.vo);
         let one = Instruments::of(&[InstrumentChannel::SelectorScore]);
         assert!(one.selector_score && !one.target_refs && !one.skill_attackable_checker);
         // A channel is asked for by the name its rows are stored under.
@@ -7809,6 +7871,15 @@ mod tests {
             InstrumentChannel::SelectorScore.as_str(),
             SelectorScore::CHANNEL
         );
+        assert_eq!(InstrumentChannel::RvoSolve.as_str(), RvoSolve::CHANNEL);
+        assert_eq!(
+            InstrumentChannel::RvoNeighbour.as_str(),
+            RvoNeighbour::CHANNEL
+        );
+        assert_eq!(InstrumentChannel::RvoVo.as_str(), RvoVo::CHANNEL);
+        let rvo = Instruments::of(&[InstrumentChannel::RvoNeighbour]).rvo;
+        assert!(rvo.neighbour && !rvo.solve && !rvo.vo && rvo.any());
+        assert!(!Instruments::default().rvo.any());
 
         let unavailable = Metadata {
             checker_error: Some("hook refused".into()),
