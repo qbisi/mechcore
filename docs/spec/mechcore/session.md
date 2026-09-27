@@ -263,6 +263,14 @@ started it:
   initializer, before that happens; the bundle on disk is untouched.
 - `-nographics` refuses `record_battle` with a `video_output`, since no frame
   is ever rendered ([adapter.md](../adapter/adapter.md#record_battle)).
+- `-nographics` also answers `VideoSetting.TryFixResolution()` false. Without
+  graphics the screen reads 640x480, below the smallest resolution the game
+  supports, and `StartUpCommand.OnPlatformInitCb` then asks for a restart in a
+  popup and returns without opening the login window: the game never logs in,
+  and the lobby and the proxies login registers, `LobbyProxy` among them, do
+  not exist. `-screen-width` and `-screen-height` are not honoured without
+  graphics, so the Adapter hooks the method instead, from its initializer,
+  and the boot goes on as it does with a window.
 
 The Training Ground is not yet reliable headless. `apply_layout` failed with a
 managed `NullReferenceException` on five of the runs made on 2026-09-27
@@ -274,8 +282,10 @@ managed exception's error now names the frames it was thrown through, so the
 next one does. Until then the scripts that apply layouts in the Training
 Ground launch with a window. The sceneless path did not fail:
 `tests/equipment/stats.mcscript` records its equipment through
-`record_layout` headless. Watching the server's matches,
-`record_watch_replay`, has not been tried headless.
+`record_layout` headless. Since the resolution check is answered, the Adapter
+smoke has passed headless online and offline, the layout-replay equivalence
+headless offline, and `record_watch_replay` enters a round-one match
+headless.
 
 A launch that finds an idle Adapter joins that game as it is, window or not,
 as it would for any other launch (state **D**).
@@ -298,7 +308,7 @@ watching works from it. A Rhino mirror recorded through `record_layout`, round
 4 of a corpus replay (1251 ticks), and the same Rhino mirror applied and
 recorded in the Training Ground hash the same offline as online, headless and
 with a window. A game offline idles at about 2% of a core, where a headless
-one online, logged in, takes 20% to 26%. Steam does not have to be running,
+one online took 20% to 26%, measured before a headless game could log in. Steam does not have to be running,
 or signed in, for an offline game.
 
 The Adapter reads whether its process is sandboxed, which no other launch
