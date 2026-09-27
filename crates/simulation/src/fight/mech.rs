@@ -249,17 +249,9 @@ impl Actor {
             targetable: true,
             visibility: Visibility::Normal,
             status_mask: 0,
-            buff_modifiers: self
+            modifiers: self
                 .stats
-                .buff_modifiers()
-                .expect("only the tower's loss writes a buff, and it is recordable"),
-            unit_dynamic_modifiers: self
-                .stats
-                .unit_dynamic_modifiers()
-                .expect("the layout refused every correction a snapshot cannot record"),
-            skill_dynamic_modifiers: self
-                .stats
-                .skill_dynamic_modifiers(self.skill.group_skill_targets.len().max(1))
+                .modifiers(self.skill.group_skill_targets.len().max(1))
                 .expect("the layout refused every correction a snapshot cannot record"),
             personal_shield: PersonalShieldState {
                 active: false,

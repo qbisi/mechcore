@@ -69,7 +69,6 @@ steps:
       recording: ${out}/impair-once.mcfr
     expect:
       sides.red.0.unit.life_rate.reduce: 472446402
-      sides.red.0.unit.life_rate.add: 0
 
   # Two impairments. This is the measurement.
   - game.record_layout:

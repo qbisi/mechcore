@@ -2,15 +2,15 @@ use std::io::Read;
 
 use bytes::Bytes;
 use mechcore_mcfr::{
-    BuffModifierSet, BuildingState, CONTENT_HASH_PROFILE, CheckedSkill, DerivedStats, Domain,
-    DurableContext, Event, EventPayload, GaugeI32, Hashes, LiveUnitState, MCFR_FORMAT, McfrReader,
-    McfrWriter, MotionState, ObjectKind, ObjectRef, PHYSICS_HASH_PROFILE, PersonalShieldState,
-    QPlanar, QVec3, RateModifier, Rational, RvoExit, RvoNeighbour, RvoNeighbourKind, RvoSolve,
-    RvoVec, RvoVo, ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind, ShieldState,
-    SkillAttackableCheck, SkillDynamicModifierSet, SkillNumericModifierState, TargetCandidate,
-    TargetRefs, TargetSearch, TargetSearchPath, TerrainApplicationState, TerrainEffectClock,
-    TerrainGridState, TerrainLogicLifetime, TerrainRemovedReason, TerrainState, TerrainType,
-    TransitionEvents, UnitDynamicModifierSet, Visibility, WeaponAimState, WorldSnapshot,
+    BuildingState, CONTENT_HASH_PROFILE, CheckedSkill, DerivedStats, Domain, DurableContext, Event,
+    EventPayload, GaugeI32, Hashes, LiveUnitState, MCFR_FORMAT, McfrReader, McfrWriter, Modifier,
+    ModifierChannel, ModifierPart, MotionState, ObjectKind, ObjectRef, PHYSICS_HASH_PROFILE,
+    PersonalShieldState, QPlanar, QVec3, Rational, RvoExit, RvoNeighbour, RvoNeighbourKind,
+    RvoSolve, RvoVec, RvoVo, ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind,
+    ShieldState, SkillAttackableCheck, TargetCandidate, TargetRefs, TargetSearch, TargetSearchPath,
+    TerrainApplicationState, TerrainEffectClock, TerrainGridState, TerrainLogicLifetime,
+    TerrainRemovedReason, TerrainState, TerrainType, TransitionEvents, Visibility, WeaponAimState,
+    WorldSnapshot, sort_modifiers,
 };
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use serde_json::json;
@@ -48,7 +48,7 @@ fn writes_and_reads_every_table() {
     );
 
     let reader = McfrReader::open(&path).unwrap();
-    assert_eq!(MCFR_FORMAT, "0.10.0");
+    assert_eq!(MCFR_FORMAT, "0.11.0");
     assert_eq!(reader.tick_count(), 1);
     assert_eq!(reader.terminal_tick(), 1);
     assert_eq!(reader.game_build(), "build-a");
@@ -281,7 +281,7 @@ fn physics_hash_ignores_nonphysical_details_while_content_hash_detects_them() {
     changed.live_units[0].motion_state = MotionState::Attacking;
     changed.live_units[0].mech_lock_target = Some(ObjectRef::new(ObjectKind::Unit, 2));
     changed.live_units[0].status_mask = 1;
-    changed.live_units[0].unit_dynamic_modifiers.gf_range_value += 1;
+    changed.live_units[0].modifiers[0].value += 1;
     changed.live_units[0].weapon_aims[0].attack_target = Some(ObjectRef::new(ObjectKind::Unit, 2));
     let changed = hash_tick(&context(), changed, &events);
     assert_eq!(baseline.physics_result_hash, changed.physics_result_hash);
@@ -894,6 +894,83 @@ fn target_channels_round_trip_with_unseen_terms() {
     );
 }
 
+fn unit_modifiers(skill_count: u16) -> Vec<Modifier> {
+    let mut modifiers = vec![
+        modifier(
+            ModifierChannel::MechFloat,
+            None,
+            "gf_range_value",
+            ModifierPart::Value,
+            1,
+        ),
+        modifier(
+            ModifierChannel::MechFloatRate,
+            None,
+            "life_rate",
+            ModifierPart::Add,
+            4,
+        ),
+        modifier(
+            ModifierChannel::MechFloatRate,
+            None,
+            "life_rate",
+            ModifierPart::Reduce,
+            5,
+        ),
+        modifier(
+            ModifierChannel::MechInt,
+            None,
+            "move_speed_value",
+            ModifierPart::Value,
+            -10,
+        ),
+        modifier(
+            ModifierChannel::Buff,
+            None,
+            "damage_rate",
+            ModifierPart::Reduce,
+            9,
+        ),
+    ];
+    modifiers.extend((0..skill_count).flat_map(|skill_slot| {
+        let base = i64::from(skill_slot) * 100;
+        [
+            modifier(
+                ModifierChannel::SkillFloat,
+                Some(skill_slot),
+                "attack_range_value",
+                ModifierPart::Value,
+                base + 1,
+            ),
+            modifier(
+                ModifierChannel::SkillInt,
+                Some(skill_slot),
+                "is_lock_target",
+                ModifierPart::Value,
+                base + 2,
+            ),
+        ]
+    }));
+    sort_modifiers(&mut modifiers);
+    modifiers
+}
+
+fn modifier(
+    channel: ModifierChannel,
+    skill_slot: Option<u16>,
+    field: &str,
+    part: ModifierPart,
+    value: i64,
+) -> Modifier {
+    Modifier {
+        channel,
+        skill_slot,
+        field: field.to_owned(),
+        part,
+        value,
+    }
+}
+
 fn write_battle(
     path: &std::path::Path,
     game_build: &str,
@@ -1012,27 +1089,7 @@ fn unit(id: u64, team: u32, x: i64, life: i32, with_secondary: bool) -> LiveUnit
         targetable: true,
         visibility: Visibility::Normal,
         status_mask: 0,
-        buff_modifiers: BuffModifierSet::default(),
-        unit_dynamic_modifiers: UnitDynamicModifierSet {
-            gf_range_value: 1,
-            gf_life_time_value: 2,
-            mech_group_distance: 3,
-            life_rate: rate(4),
-            life_rate_by_kill_count: rate(5),
-            reduce_damage_from_remote: rate(6),
-            move_ability_exit_time_change_rate: rate(7),
-            move_speed_change_rate: rate(8),
-            amplify_damage_rate: rate(9),
-            move_speed_value: 10,
-            reduce_damage_value: 11,
-            child_inherit_technology_effect: 12,
-        },
-        skill_dynamic_modifiers: (0..skill_count)
-            .map(|skill_slot| SkillNumericModifierState {
-                skill_slot,
-                modifiers: skill_modifiers(i64::from(skill_slot) * 100),
-            })
-            .collect(),
+        modifiers: unit_modifiers(skill_count),
         personal_shield: PersonalShieldState {
             active: false,
             enabled: false,
@@ -1055,44 +1112,6 @@ fn unit(id: u64, team: u32, x: i64, life: i32, with_secondary: bool) -> LiveUnit
             attack_damage: 2329,
             current_attack_interval: 62,
         },
-    }
-}
-
-fn rate(value: i64) -> RateModifier {
-    RateModifier {
-        add: value,
-        reduce: value + 1,
-    }
-}
-
-fn skill_modifiers(base: i64) -> SkillDynamicModifierSet {
-    SkillDynamicModifierSet {
-        min_attack_range_value: base + 1,
-        attack_range_value: base + 2,
-        attack_air_range_add_value: base + 3,
-        attack_ground_range_add_value: base + 4,
-        attack_interval_value: base + 5,
-        damage_change_rate_ground: base + 6,
-        damage_change_rate_air: base + 7,
-        splash_range_value: base + 8,
-        cb_life_recovery_rate: base + 9,
-        projectile_speed_value: base + 10,
-        attack_point_change_value: base + 11,
-        projectile_duration_value: base + 12,
-        projectile_random_range: base + 13,
-        additional_damage_by_target_life: base + 14,
-        damage_rate: rate(base + 15),
-        damage_rate_by_kill_count: rate(base + 16),
-        attack_range_rate: rate(base + 17),
-        attack_interval_rate: rate(base + 18),
-        damage_reduce_rate_base: rate(base + 19),
-        projectile_life_rate: rate(base + 20),
-        projectile_count_value: i32::try_from(base + 21).unwrap(),
-        air_attack_value: i32::try_from(base + 22).unwrap(),
-        ground_attack_value: i32::try_from(base + 23).unwrap(),
-        attack_range_value_air: i32::try_from(base + 24).unwrap(),
-        attack_range_value_ground: i32::try_from(base + 25).unwrap(),
-        is_lock_target: i32::try_from(base + 26).unwrap(),
     }
 }
 

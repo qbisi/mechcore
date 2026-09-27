@@ -21,10 +21,10 @@
 use std::{collections::BTreeMap, path::Path};
 
 use mechcore_mcfr::{
-    BuffModifierSet, DerivedStats, LiveUnitState, McfrReader, SkillNumericModifierState,
-    UnitDynamicModifierSet, WorldSnapshot,
+    DerivedStats, LiveUnitState, McfrReader, ModifierChannel, ModifierPart, WorldSnapshot,
 };
 use serde::Serialize;
+use serde_json::{Map, Value};
 
 use crate::{
     cli::Failure,
@@ -76,46 +76,69 @@ struct Formation {
     held: Modifiers,
 }
 
-/// What a mechanism wrote onto a unit, as the recording holds it.
+/// What a mechanism wrote onto a unit, as the recording holds it: its
+/// modifiers grouped by where they are written, each field a number for a
+/// value and its non-zero `add` and `reduce` for a rate.
 ///
 /// A neutral channel is left out rather than printed as zeroes, so what a
 /// reading says is what was written.
-#[derive(Serialize)]
+#[derive(Serialize, Clone, Default)]
 struct Modifiers {
-    #[serde(skip_serializing_if = "neutral_buff")]
-    buff: BuffModifierSet,
-    #[serde(skip_serializing_if = "neutral_unit")]
-    unit: UnitDynamicModifierSet,
+    #[serde(skip_serializing_if = "Map::is_empty")]
+    buff: Map<String, Value>,
+    #[serde(skip_serializing_if = "Map::is_empty")]
+    unit: Map<String, Value>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    skill: Vec<SkillNumericModifierState>,
+    skill: Vec<SkillModifiers>,
 }
 
-fn neutral_buff(held: &BuffModifierSet) -> bool {
-    held.is_zero()
-}
-
-fn neutral_unit(held: &UnitDynamicModifierSet) -> bool {
-    held.is_zero()
+#[derive(Serialize, Clone)]
+struct SkillModifiers {
+    skill_slot: u16,
+    modifiers: Map<String, Value>,
 }
 
 impl Modifiers {
-    /// Nothing written, which is what a control answers.
-    fn neutral() -> Self {
-        Self {
-            buff: BuffModifierSet::default(),
-            unit: UnitDynamicModifierSet::default(),
-            skill: Vec::new(),
-        }
-    }
-
     fn of(unit: &LiveUnitState) -> Option<Self> {
-        let held = Self {
-            buff: unit.buff_modifiers,
-            unit: unit.unit_dynamic_modifiers,
-            skill: unit.skill_dynamic_modifiers.clone(),
-        };
-        let neutral = held.buff.is_zero() && held.unit.is_zero() && held.skill.is_empty();
-        (!neutral).then_some(held)
+        let mut held = Self::default();
+        for modifier in &unit.modifiers {
+            let fields = match (modifier.channel, modifier.skill_slot) {
+                (ModifierChannel::Buff, _) => &mut held.buff,
+                (channel, Some(slot)) if channel.is_skill() => {
+                    if held
+                        .skill
+                        .last()
+                        .is_none_or(|skill| skill.skill_slot != slot)
+                    {
+                        held.skill.push(SkillModifiers {
+                            skill_slot: slot,
+                            modifiers: Map::new(),
+                        });
+                    }
+                    &mut held.skill.last_mut().expect("just pushed").modifiers
+                }
+                _ => &mut held.unit,
+            };
+            match modifier.part {
+                ModifierPart::Value => {
+                    fields.insert(modifier.field.clone(), Value::from(modifier.value));
+                }
+                ModifierPart::Add | ModifierPart::Reduce => {
+                    let part = if modifier.part == ModifierPart::Add {
+                        "add"
+                    } else {
+                        "reduce"
+                    };
+                    if let Value::Object(parts) = fields
+                        .entry(modifier.field.clone())
+                        .or_insert_with(|| Value::Object(Map::new()))
+                    {
+                        parts.insert(part.to_owned(), Value::from(modifier.value));
+                    }
+                }
+            }
+        }
+        (!held.buff.is_empty() || !held.unit.is_empty() || !held.skill.is_empty()).then_some(held)
     }
 }
 
@@ -152,13 +175,7 @@ pub(crate) fn read(path: &Path, tick: Option<u32>) -> Result<Written, Failure> {
                         name: placement.type_name.clone(),
                         technologies_disabled: *disabled,
                         derived: *derived,
-                        held: modifiers.as_ref().map_or_else(Modifiers::neutral, |held| {
-                            Modifiers {
-                                buff: held.buff,
-                                unit: held.unit,
-                                skill: held.skill.clone(),
-                            }
-                        }),
+                        held: modifiers.clone().unwrap_or_default(),
                     })
                 })
                 .collect(),

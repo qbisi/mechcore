@@ -123,12 +123,12 @@ Parquet key-value metadata keys and values are both UTF-8 strings.
 
 | Key | Data | Meaning |
 | --- | --- | --- |
-| `format` | exactly `0.10.0` | the logical and physical contract version |
+| `format` | exactly `0.11.0` | the logical and physical contract version |
 | `game_build` | non-empty UTF-8 | capture provenance; the adapter reads `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | the context `D` that holds steady for one round |
 | `physics_hash_profile` | exactly `battle-physics-v3` | the stable physics projection version |
 | `physics_result_hash` | 64 lowercase hex digits | ordered digest of every `physics_tick_hash`; what regression compares |
-| `content_hash_profile` | exactly `mcfr-content-0.10.0` | the full content digest version |
+| `content_hash_profile` | exactly `mcfr-content-0.11.0` | the full content digest version |
 | `content_result_hash` | 64 lowercase hex digits | ordered digest of every `content_tick_hash`; an in-format diagnostic |
 | `tick_count` | canonical decimal `u32` | logical ticks recorded, counting from `S(1)` |
 | `terminal_tick` | canonical decimal `u32` | the confirmed final logical boundary, equal to `tick_count` on a continuous timeline |
@@ -174,16 +174,14 @@ death survives as a `unit_died` event.
 | `targetable` | `BOOLEAN required` | whether it is a legal target now | `IsValidTarget(visibility=0)` |
 | `visibility` | `UINT8 required` | native visibility state | `GetVisibility()` |
 | `status_mask` | `UINT64 required` | four native booleans | below |
-| `buff_modifiers` | nullable struct | non-zero aggregate numeric corrections from BuffManager | below |
-| `unit_dynamic_modifiers` | nullable struct | non-zero unit-level dynamic corrections on FightMech | below |
-| `skill_dynamic_modifiers` | required sparse list | per-skill non-zero dynamic corrections | below |
+| `modifiers` | required sparse list | every non-zero correction on the unit, its skills and its buffs | below |
 | `personal_shield` | required struct | the unit's own energy shield | below |
 | `weapon_aims` | required list | per-weapon channel state across main and sub skills | below |
 | `derived` | required struct | the numbers the fight reads, after every correction | below |
 
 ### `derived`
 
-The modifier structs above say what was **written onto** a unit; this says what
+The modifiers above say what was **written onto** a unit; this says what
 the build then **computed** from them. The two together are what a capture
 measuring a composition rule reads, and carrying both means the reading is one
 tick of one recording rather than a fight arranged so that its outcome
@@ -242,90 +240,73 @@ These four record the present value of native boolean state. `invincible` and
 `frozen` keep the native predicates' names, and the names are the safest thing
 to call them: what each does in combat is read from build-bound native branches
 and controlled observation rather than from the word. Numeric buffs express
-their aggregate effect through `buff_modifiers` instead.
+their aggregate effect through the `buff` modifiers instead.
 
-### `buff_modifiers`
+### `modifiers`
 
-The buff channels come from the aggregate getters on
-`FightMech.GetBuffManager()`. Each Rate field holds Q32.32 raw as
-`{ add: i64, reduce: i64 }` and each Value field holds `{ add: i32, reduce: i32 }`.
-The neutral value is 0 throughout. A Rate's components are non-negative. A
-Value's are the native signed aggregates, which can be negative: a recorded
-round has shown `GetAttackRangeReduceValue` at -20.
+```text
+channel    : UINT8 required    (0=buff, 1=mech_float, 2=mech_float_rate, 3=mech_int,
+                                4=skill_float, 5=skill_float_rate, 6=skill_int)
+skill_slot : UINT16 nullable   the skill's index in GetSkills(), on a skill channel only
+field      : UTF8 required     the native member in snake_case, as the build spells it
+part       : UINT8 required    (0=value, 1=add, 2=reduce)
+value      : INT64 required    Q32.32 raw for a float or rate, the integer for an int
+```
 
-The adapter reads the complete getter set every frame. In Parquet each modifier
-field and each numeric leaf is nullable, and null reads as 0; when everything is
-0, the root struct is null. An absent field means the capture succeeded and
-found no correction. It does not mean the capture was unavailable.
+A unit's modifiers are one sparse list of what the build holds as non-zero,
+strictly ascending by `(channel, skill_slot, field, part)`. A field no content
+sets costs nothing, and a member the build adds is recorded without a change to
+the format.
 
-The native reduce getters return the remaining multiplier, and MCFR stores the
-reduction instead:
+The six `DataSet` channels are keyed by the build's own enums, and the adapter
+reads every member they define, found by enumerating each enum when it starts:
+
+| Channel | Native enum | Read with |
+| --- | --- | --- |
+| `mech_float` | `MechDataChangeFloat` | `FightMech.GetDataFloat` |
+| `mech_float_rate` | `MechDataChangeFloatRate` | `GetDataFloatAddRate` / `GetDataFloatReduceRate` |
+| `mech_int` | `MechDataChangeInt` | `FightMech.GetDataInt` |
+| `skill_float` | `SkillDataChangeFloat` | `FightSkill.GetData` |
+| `skill_float_rate` | `SkillDataChangeFloatRate` | `GetDataFloatAddRate` / `GetDataFloatReduceRate` |
+| `skill_int` | `SkillDataChangeInt` | `FightSkill.GetData` |
+
+A member's name is the enum member's in `snake_case`, spelled as the build
+spells it: `CBLifeRecoveryRate` is `cb_life_recovery_rate`, and
+`DamageChagneRateGround` keeps its typo. The skill channels are read for every
+skill `FightMech.GetSkills()` returns.
+
+A rate is two parts. `add` is the sum of the enhancements, and `reduce` is what
+the impairments take off: the native reduce getters return the remaining
+multiplier, and MCFR stores
 
 ```text
 reduce = 1.0_q32_32 - native_reduce_factor
 ```
 
-| Field | Type | Native source |
+Both are non-negative. A float or an int is one signed `value`.
+
+The `buff` channel is the aggregate getters on `FightMech.GetBuffManager()`,
+over every live buff, kept apart from the `DataSet` channels so which store an
+effect came from stays attributable:
+
+| Field | Parts | Native source |
 | --- | --- | --- |
-| `move_speed_rate` | Rate | `GetMoveSpeedChangeAddRate/ReduceRate` |
-| `move_speed_value` | Value | `GetMoveSpeedChangeValue`, split by sign |
-| `damage_rate` | Rate | `GetDamageChangeAddRate/ReduceRate` |
-| `attack_interval_rate` | Rate | `GetAttackIntervalChangeAddRate/ReduceRate` |
-| `extra_attack_interval_rate` | Rate | `GetExtraAttackIntervalChangeAddRate/ReduceRate` |
-| `amplify_damage_rate` | Rate | `GetAmplifyDamageAddRate/ReduceRate` |
-| `attack_range_value` | Value | `GetAttackRangeAddValue/ReduceValue` |
-| `extra_attack_range_value` | Value | `GetExtraAttackRangeAddValue/ReduceValue` |
-| `attack_range_rate` | Rate | `GetAttackRangeAddRate/ReduceRate` |
-| `extra_attack_range_rate` | Rate | `GetExtraAttackRangeAddRate/ReduceRate` |
+| `move_speed_rate` | add, reduce | `GetMoveSpeedChangeAddRate/ReduceRate` |
+| `damage_rate` | add, reduce | `GetDamageChangeAddRate/ReduceRate` |
+| `attack_interval_rate` | add, reduce | `GetAttackIntervalChangeAddRate/ReduceRate` |
+| `extra_attack_interval_rate` | add, reduce | `GetExtraAttackIntervalChangeAddRate/ReduceRate` |
+| `amplify_damage_rate` | add, reduce | `GetAmplifyDamageAddRate/ReduceRate` |
+| `attack_range_rate` | add, reduce | `GetAttackRangeAddRate/ReduceRate` |
+| `extra_attack_range_rate` | add, reduce | `GetExtraAttackRangeAddRate/ReduceRate` |
+| `move_speed_value` | value | `GetMoveSpeedChangeValue` |
+| `attack_range_add_value`, `attack_range_reduce_value` | value | `GetAttackRangeAddValue`, `GetAttackRangeReduceValue` |
+| `extra_attack_range_add_value`, `extra_attack_range_reduce_value` | value | `GetExtraAttackRangeAddValue`, `GetExtraAttackRangeReduceValue` |
 
-`amplify_damage_rate` is the incoming-damage multiplier applied to this unit. A
-buff's application, duration and expiry are observed as changes to
-`status_mask` and `buff_modifiers` across consecutive snapshots, because the
-format records state rather than buff objects.
-
-### `unit_dynamic_modifiers`
-
-The unit channel reads the complete `MechDataChange*` set FightMech supports.
-`i64` fields hold native fixed-point raw, Rate fields use `{add, reduce}`, and
-`i32` fields hold native integers.
-
-Modifier fields and numeric leaves are nullable and null reads as 0; when
-everything is 0 the root struct is null. The adapter still calls the complete
-enum and getter set, and the MCFR write layer encodes only the non-zero results.
-
-| Group | Fields |
-| --- | --- |
-| `MechDataChangeFloat` / `i64` | `gf_range_value`, `gf_life_time_value`, `mech_group_distance` |
-| `MechDataChangeFloatRate` / Rate | `life_rate`, `life_rate_by_kill_count`, `reduce_damage_from_remote`, `move_ability_exit_time_change_rate`, `move_speed_change_rate`, `amplify_damage_rate` |
-| `MechDataChangeInt` / `i32` | `move_speed_value`, `reduce_damage_value`, `child_inherit_technology_effect` |
-
-This channel stays independent of the BuffManager aggregate, so the two remain
-separately attributable.
-
-### `skill_dynamic_modifiers`
-
-```text
-skill_slot : UINT16 required
-modifiers  : SkillDynamicModifierSet required
-```
-
-The adapter walks `FightMech.GetSkills()`, orders by skill slot, and reads the
-complete `SkillDataChange*` set each skill supports.
-
-All 26 modifier fields of `SkillDynamicModifierSet` and their numeric leaves are
-nullable, null reading as 0. The list keeps only skills with at least one
-non-zero field, and is empty when nothing is modified. An omitted slot means
-that slot currently carries no dynamic correction. It does not mean the unit
-lacks the skill.
-
-| Group | Fields |
-| --- | --- |
-| `SkillDataChangeFloat` / `i64` | `min_attack_range_value`, `attack_range_value`, `attack_air_range_add_value`, `attack_ground_range_add_value`, `attack_interval_value`, `damage_change_rate_ground`, `damage_change_rate_air`, `splash_range_value`, `cb_life_recovery_rate`, `projectile_speed_value`, `attack_point_change_value`, `projectile_duration_value`, `projectile_random_range`, `additional_damage_by_target_life` |
-| `SkillDataChangeFloatRate` / Rate | `damage_rate`, `damage_rate_by_kill_count`, `attack_range_rate`, `attack_interval_rate`, `damage_reduce_rate_base`, `projectile_life_rate` |
-| `SkillDataChangeInt` / `i32` | `projectile_count_value`, `air_attack_value`, `ground_attack_value`, `attack_range_value_air`, `attack_range_value_ground`, `is_lock_target` |
-
-This is where a technology, an equipment or a round bonus lands when it changes
-native skill data, which is what makes those attributable after the fact.
+The buff's value getters are signed: a recorded round has shown
+`GetAttackRangeReduceValue` at -20. `amplify_damage_rate` is the incoming-damage
+multiplier applied to this unit. A buff's application, duration and expiry are
+observed as changes to `status_mask` and the `buff` channel across consecutive
+snapshots, because the format records state rather than buff objects.
 
 ### `personal_shield`
 
@@ -360,7 +341,7 @@ null position and null rotation together, never one of the two.
 
 The list is strictly ascending by `(skill_slot, weapon_index)`. It enumerates
 weapon channels independently, so it may carry a skill slot that the sparse
-`skill_dynamic_modifiers` omits.
+modifiers leave out.
 
 ### What a unit is directed at
 
@@ -690,7 +671,7 @@ shared schema, a canonical form and reader and writer support, for a producer
 able to observe the evolution directly.
 
 Buffs are not events. Their observation lives on the unit state track: boolean
-state in `status_mask`, aggregate numeric corrections in `buff_modifiers`, and a
+state in `status_mask`, aggregate numeric corrections in the `buff` modifiers, and a
 buff's evolution is the change in those fields between adjacent snapshots.
 
 ## Instrument channels
@@ -862,7 +843,7 @@ Once a shield or terrain leaves its authoritative collection, its native pointer
 is tombstoned so that the historical ID stays unique.
 
 **Ordering inside a snapshot.** State snapshots sort by object ID.
-`skill_dynamic_modifiers` sorts by `skill_slot`, `weapon_aims` by
+`modifiers` sort by `(channel, skill_slot, field, part)`, `weapon_aims` by
 `(skill_slot, weapon_index)`, and a projectile's `spawn_containing_shields` by
 Shield ObjectRef.
 
@@ -934,7 +915,7 @@ A physics regression therefore still pins logical time, Q32.32 position,
 rotation and velocity, life and shields, and the interactions including damage,
 while a new purely diagnostic field never forces a re-record.
 
-### The full content layer, `mcfr-content-0.10.0`
+### The full content layer, `mcfr-content-0.11.0`
 
 State and events are first encoded as canonical JSON: UTF-8, object keys sorted
 recursively, compact encoding, and the array order the schema defines. It covers
@@ -990,7 +971,7 @@ Sticky oil's slow lands in BuffManager's aggregate `move_speed_rate`. The
 incoming-damage change from a photon projection lands in `amplify_damage_rate`,
 while the present value of `IsInvincible()` lands in `status_mask.invincible`. A
 sub-skill such as the Sabertooth technology's secondary cannon uses its own
-`skill_slot` in both `skill_dynamic_modifiers` and `weapon_aims`, and a round's
+`skill_slot` in both `modifiers` and `weapon_aims`, and a round's
 `+15` range bonus stays in that skill's modifier field.
 
 The point of the examples is the attribution boundary. A BuffManager aggregate,
@@ -1020,7 +1001,7 @@ than an omission.
   nor `content_*_hash`. It is the scene's input, not its outcome, and a
   recording's identity is what happened rather than what was asked for.
 - **Buff objects.** There is no buff track. A buff is observable as the change
-  in `status_mask` and `buff_modifiers` between adjacent snapshots, so the
+  in `status_mask` and the `buff` modifiers between adjacent snapshots, so the
   format stores state rather than the engine's internal buff instances.
 
 The physics layer additionally excludes a long list of fields from

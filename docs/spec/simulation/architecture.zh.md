@@ -223,11 +223,11 @@ value composes with a description is not measured
 那些下标就是 `MechDataChange{Float,FloatRate,Int}` 和
 `SkillDataChange{Float,FloatRate,Int}` 这几个枚举，技能自身的改动入口是
 `FightSkill.AddData(SkillDataChangeFloat, IDataModifier, value)`。这些枚举正好就是
-MCFR 记作 `unit_dynamic_modifiers` 和 `skill_dynamic_modifiers` 的那两组字段。
+MCFR 逐成员记入单位 `modifiers` 的那些通道。
 
 **Buff 单独聚合。** `BuffManager` 把一个拥有者身上生效的 `Buff` 加总，通过 getter
 暴露总量——`GetAmplifyDamageAddRate`、`GetAttackIntervalChangeAddRate`，以及 MCFR
-记作 `buff_modifiers` 的其余那些。它**不是**一个 `DataSet`，这正是要点：一个 buff 和
+记作单位 `modifiers` 中 `buff` 通道的其余那些。它**不是**一个 `DataSet`，这正是要点：一个 buff 和
 一条数据改动即使产生同一个数字，也仍然可以区分。
 
 所以一个单位的状态是**一份共享描述加三层覆盖**，而录像每一 tick 把三层都 dump 下来。

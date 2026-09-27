@@ -36,7 +36,7 @@ steps:
       winner: blue
       teams.0.remaining_life: 1622
       hashes.physics_result_hash: 6e77f450621ab3360e05a26fe6e5cc50197358eb40849817931056c334cb6644
-      hashes.content_result_hash: 37bb080509a2912221d6ecccb9f20560d53b43459473dbb43dde45bf5eb1561f
+      hashes.content_result_hash: 88c1a3c45791c442ce179bb6ed9f11daa226136b98997b00909682277c8dbd06
 
   # The same Crawlers 36.6 degrees off the turret's column. The weapon has
   # turned onto its lock before the lock is in reach, so the first shot is as
@@ -49,7 +49,7 @@ steps:
       winner: blue
       teams.0.remaining_life: 1622
       hashes.physics_result_hash: 2ac226a51836e68bf3ffe426406f413ed1b219bc66e161b62a9d65492399f219
-      hashes.content_result_hash: 29aaf9fb372dc44ca303b384b6b51ab2fe5aa0c50e1d2e7d9ca5ec01a167fb8f
+      hashes.content_result_hash: 09b079fcc27f5dc97620a385143e59202e690499399a12392e44213a4a33f820
 
   # Four Arclights down the Anti-Armor Turret's column, two shots each. The
   # sixth shot empties the magazine at 574, the reload runs to 776, and the
@@ -62,7 +62,7 @@ steps:
       winner: blue
       teams.0.remaining_life: 1622
       hashes.physics_result_hash: d88ce537016925c66d3cdd08c8f5b4cbba923bfbd536f74b55e1c4862230f1ce
-      hashes.content_result_hash: f417b5afd18befb130b17d8736e7aa22efce2d561502fd858d4f82861bd6616a
+      hashes.content_result_hash: c183efa6ec88344752864aaaae0b1ed37979c9ef0f425cff07e3d667c51c118f
 
   # The Anti-Armor Turret against a Crawler, the Marksman behind. Blue loses
   # a tower at 509 and red at 771, and at 1027 the Marksman ends its attack
@@ -73,4 +73,4 @@ steps:
     expect:
       steps: 1397
       hashes.physics_result_hash: 1d25f3977ce765eeae00cb00bfffd2d6851d9b014128bf0428aa5defbd17ce62
-      hashes.content_result_hash: 6f3eef9fc944e2879ba75d2baa8fd5887f57495fd9fd855e33dd54aacb1eedcf
+      hashes.content_result_hash: 03736a2cfd045ae2ba80b25a04ea571d05f1cd32690183773380da600764c02b

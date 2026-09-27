@@ -1,11 +1,11 @@
-# MCFR 格式规范（format 0.10.0）
+# MCFR 格式规范（format 0.11.0）
 
 [English](mcfr.md)
 
 本文描述仓库当前实现的 MCFR 逻辑模型、物理容器、Adapter 原生采集来源和 Reader/Writer 校验契约。统一格式标识为：
 
 ```text
-format = "0.10.0"
+format = "0.11.0"
 ```
 
 当前 Adapter 原生字段映射绑定仓库在 `GAME_VERSION` 钉住的游戏版本。其他版本可以生成同格式录像，前提是 Producer 已验证所用原生接口与本文语义一致。
@@ -95,12 +95,12 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 
 | key | 数据规范 | 含义 |
 | --- | --- | --- |
-| `format` | 精确值 `0.10.0` | MCFR 逻辑与物理契约版本 |
+| `format` | 精确值 `0.11.0` | MCFR 逻辑与物理契约版本 |
 | `game_build` | 非空 UTF-8 | 采集构建 provenance；Adapter 来自 `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | 单回合保持稳定的上下文 `D` |
 | `physics_hash_profile` | 精确值 `battle-physics-v3` | 稳定物理投影版本 |
 | `physics_result_hash` | 64 位小写十六进制 | 全部 `physics_tick_hash` 的有序摘要；回归判断依据 |
-| `content_hash_profile` | 精确值 `mcfr-content-0.10.0` | 完整内容摘要版本 |
+| `content_hash_profile` | 精确值 `mcfr-content-0.11.0` | 完整内容摘要版本 |
 | `content_result_hash` | 64 位小写十六进制 | 全部 `content_tick_hash` 的有序摘要；格式内诊断依据 |
 | `tick_count` | `u32` 规范十进制 | 从 `S(1)` 开始记录的逻辑 tick 数 |
 | `terminal_tick` | `u32` 规范十进制 | 已确认的最终逻辑边界；当前连续时间线中等于 `tick_count` |
@@ -128,7 +128,7 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 | 字段 | Parquet 类型 | 含义 | Adapter 原生来源 |
 | --- | --- | --- | --- |
 | `tick` | `UINT32 required` | 状态所属逻辑时刻 | Adapter 逻辑帧计数 |
-| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.10.0 身份规则，见附录 B |
+| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.11.0 身份规则，见附录 B |
 | `team_id` | `UINT32 required` | 当前所属队伍 | `FightTeam` controller index |
 | `original_team_id` | `UINT32 required` | 首次出现时的队伍 | 首次采样的 `team_id` |
 | `formation_id` | `UINT64 required` | 编队身份 | `FightMech.GetMechTeam()` 指针映射 |
@@ -138,22 +138,20 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 | `body_rotation` | `INT64 required` | 机体朝向，Q32.32 raw | FightTransform `GetRotationInt()` |
 | `turret_rotation` | `INT64 nullable` | 炮塔朝向，Q32.32 raw；没有身体的单位为 null | `FightMech.mechBody` 的 FightTransform `GetRotationInt()` |
 | `velocity` | `QPlanar required` | 地面上的当前速度，世界 `x` 与 `z` | MotionController 原生速度；本版本垂直分量恒为 0，采集遇到非 0 即拒绝 |
-| `motion_state` | `UINT8 required` | idle/moving/attacking/stopped，见 2.10 | 原生运动状态机映射 |
-| `mech_lock_target` | nullable `ObjectRef` | 单位**本体**指向的对象，见 2.10 | `FightMech.lockTarget` |
+| `motion_state` | `UINT8 required` | idle/moving/attacking/stopped，见 2.8 | 原生运动状态机映射 |
+| `mech_lock_target` | nullable `ObjectRef` | 单位**本体**指向的对象，见 2.8 | `FightMech.lockTarget` |
 | `collision_radius` | `INT64 required` | 碰撞半径，Q32.32 raw | `FightMech.GetRadius()` |
 | `life` | `GaugeI32 required` | 当前/最大生命 | `GetLife()` / `GetMaxLife()` |
 | `active` | `BOOLEAN required` | 当前激活状态 | `get_IsActive()` |
 | `targetable` | `BOOLEAN required` | 当前目标合法性 | `IsValidTarget(visibility=0)` |
 | `visibility` | `UINT8 required` | 原生可见性状态 | `GetVisibility()` |
 | `status_mask` | `UINT64 required` | 四个原生布尔状态 | 见 2.3 |
-| `buff_modifiers` | nullable struct | BuffManager 非零综合数值修正 | 见 2.4 |
-| `unit_dynamic_modifiers` | nullable struct | FightMech 非零单位级动态修正 | 见 2.5 |
-| `skill_dynamic_modifiers` | required sparse list | 各技能的非零动态修正 | 见 2.6 |
-| `personal_shield` | required struct | 单位个人能量盾状态 | 见 2.7 |
-| `weapon_aims` | required list | 主技能与子技能的各武器通道状态 | 见 2.8 |
-| `derived` | required struct | 战斗实际读取的那几个数，即所有修正作用之后的结果 | 见 2.9 |
+| `modifiers` | required sparse list | 单位、其技能与其 buff 上的全部非零修正 | 见 2.4 |
+| `personal_shield` | required struct | 单位个人能量盾状态 | 见 2.5 |
+| `weapon_aims` | required list | 主技能与子技能的各武器通道状态 | 见 2.6 |
+| `derived` | required struct | 战斗实际读取的那几个数，即所有修正作用之后的结果 | 见 2.7 |
 
-## 2.9 `derived`
+## 2.7 `derived`
 
 上面那几个 modifier 结构说的是**写到**单位身上的东西；这一个说的是 build 由它们**算出来**
 的东西。测量一条合成规则时要读的正是这两半，而把两半都记下来意味着读数是"一份录像的一个
@@ -199,71 +197,28 @@ tick"，而不是"一场被设计成结果能区分候选假设的战斗"。
 | 2 | `technology_disabled` | `FightMech.IsTechnologyDisabled()` | 单位科技效果禁用 |
 | 3 | `recovery_disabled` | `FightMech.IsRecoverDisabled()` | 单位恢复能力禁用 |
 
-这四个 bit 表达 BuffDataInt/单位原生布尔状态的当前值。`invincible` 和 `frozen` 的名称沿用原生 predicate；战斗效果解释采用 build-bound 原生分支证据与受控场景观察。当前研究假设将 `invincible` 指向电磁干扰免疫，`frozen` 的效果映射继续通过运动、攻击、索敌和技能执行观察收敛。数值 Buff 的当前综合效果由 `buff_modifiers` 表达。
+这四个 bit 表达 BuffDataInt/单位原生布尔状态的当前值。`invincible` 和 `frozen` 的名称沿用原生 predicate；战斗效果解释采用 build-bound 原生分支证据与受控场景观察。当前研究假设将 `invincible` 指向电磁干扰免疫，`frozen` 的效果映射继续通过运动、攻击、索敌和技能执行观察收敛。数值 Buff 的当前综合效果由 `modifiers` 的 `buff` 通道表达。
 
-## 2.4 `buff_modifiers`
-
-Buff 通道来自 `FightMech.GetBuffManager()` 的综合 getter。每个 Rate 字段保存 Q32.32 raw 的 `{ add: i64, reduce: i64 }`，每个 Value 字段保存 `{ add: i32, reduce: i32 }`。中性值统一为 0，add/reduce 分量均为非负数。
-
-Adapter 每帧读取表中的完整 getter 集合。Parquet 中各 modifier 字段以及 add/reduce 数值叶均为 nullable；null 按 0 读取。全部字段为 0 时，`buff_modifiers` 根 struct 为 null。字段缺失表示已成功采集且当前无对应修正，不表示采集不可用。
-
-原生 reduce getter 返回剩余倍率 `native_reduce_factor`；MCFR 保存其减少量：
+## 2.4 `modifiers`
 
 ```text
-reduce = 1.0_q32_32 - native_reduce_factor
+channel    : UINT8 required    (0=buff, 1=mech_float, 2=mech_float_rate, 3=mech_int,
+                                4=skill_float, 5=skill_float_rate, 6=skill_int)
+skill_slot : UINT16 nullable   技能在 GetSkills() 中的下标，仅技能通道有
+field      : UTF8 required     原生枚举成员名的 snake_case，拼写照原生
+part       : UINT8 required    (0=value, 1=add, 2=reduce)
+value      : INT64 required    float/rate 为 Q32.32 raw，int 为整数本身
 ```
 
-| 字段 | 类型 | Adapter 原生来源 |
-| --- | --- | --- |
-| `move_speed_rate` | Rate | `GetMoveSpeedChangeAddRate/ReduceRate` |
-| `move_speed_value` | Value | `GetMoveSpeedChangeValue`，按符号拆分 |
-| `damage_rate` | Rate | `GetDamageChangeAddRate/ReduceRate` |
-| `attack_interval_rate` | Rate | `GetAttackIntervalChangeAddRate/ReduceRate` |
-| `extra_attack_interval_rate` | Rate | `GetExtraAttackIntervalChangeAddRate/ReduceRate` |
-| `amplify_damage_rate` | Rate | `GetAmplifyDamageAddRate/ReduceRate` |
-| `attack_range_value` | Value | `GetAttackRangeAddValue/ReduceValue` |
-| `extra_attack_range_value` | Value | `GetExtraAttackRangeAddValue/ReduceValue` |
-| `attack_range_rate` | Rate | `GetAttackRangeAddRate/ReduceRate` |
-| `extra_attack_range_rate` | Rate | `GetExtraAttackRangeAddRate/ReduceRate` |
+一个单位的修正是一张稀疏列表，只记原生为非零的项，按 `(channel, skill_slot, field, part)` 严格升序。没有内容设置的字段不占任何空间，原生新增的成员不改格式即可记录。
 
-`amplify_damage_rate` 表示作用于该单位的承伤倍率修正。Buff 的应用、持续与消退通过连续快照中 `status_mask` 和 `buff_modifiers` 的变化观察。
+六个 `DataSet` 通道以原生枚举为键，Adapter 启动时枚举每个枚举的全部成员并逐一读取：`mech_float`（`MechDataChangeFloat`，`GetDataFloat`）、`mech_float_rate`（`MechDataChangeFloatRate`，`GetDataFloatAddRate/ReduceRate`）、`mech_int`（`MechDataChangeInt`，`GetDataInt`）、`skill_float`（`SkillDataChangeFloat`，`FightSkill.GetData`）、`skill_float_rate`（`SkillDataChangeFloatRate`）、`skill_int`（`SkillDataChangeInt`）。成员名按原生拼写转 snake_case：`CBLifeRecoveryRate` 为 `cb_life_recovery_rate`，`DamageChagneRateGround` 保留原生拼写错误。技能通道对 `GetSkills()` 返回的每个技能读取。
 
-## 2.5 `unit_dynamic_modifiers`
+rate 分两部分：`add` 为增益之和，`reduce` 为减益扣掉的部分；原生 reduce getter 返回剩余倍率，MCFR 存 `reduce = 1.0_q32_32 - native_reduce_factor`。两者都非负。float 与 int 为一个有符号 `value`。
 
-单位动态通道读取 FightMech 支持的完整 `MechDataChange*` 集合。`i64` 字段保存原生定点 raw，Rate 字段使用 `{add, reduce}`，`i32` 字段保存原生整数。
+`buff` 通道为 `FightMech.GetBuffManager()` 上对全部生效 buff 的综合 getter，与 `DataSet` 通道分开保存，效果来自哪一处存储因此可以区分。字段：rate 类 `move_speed_rate`、`damage_rate`、`attack_interval_rate`、`extra_attack_interval_rate`、`amplify_damage_rate`、`attack_range_rate`、`extra_attack_range_rate`（add、reduce）；value 类 `move_speed_value`、`attack_range_add_value`、`attack_range_reduce_value`、`extra_attack_range_add_value`、`extra_attack_range_reduce_value`，均为原生有符号值（录像中出现过 `GetAttackRangeReduceValue` 为 -20）。`amplify_damage_rate` 表示作用于该单位的承伤倍率修正。Buff 的应用、持续与消退通过连续快照中 `status_mask` 与 `buff` 通道的变化观察。
 
-表内 modifier 字段与数值叶均为 nullable，null 按 0 读取；全部字段为 0 时，`unit_dynamic_modifiers` 根 struct 为 null。Adapter 仍调用完整 enum/getter 集合，再由 MCFR 写入层稀疏编码非零结果。
-
-| 字段组 | 字段 |
-| --- | --- |
-| `MechDataChangeFloat` / `i64` | `gf_range_value`, `gf_life_time_value`, `mech_group_distance` |
-| `MechDataChangeFloatRate` / Rate | `life_rate`, `life_rate_by_kill_count`, `reduce_damage_from_remote`, `move_ability_exit_time_change_rate`, `move_speed_change_rate`, `amplify_damage_rate` |
-| `MechDataChangeInt` / `i32` | `move_speed_value`, `reduce_damage_value`, `child_inherit_technology_effect` |
-
-该通道记录单位级运行时变化，与 BuffManager 综合修正保持独立。
-
-## 2.6 `skill_dynamic_modifiers`
-
-列表项 schema：
-
-```text
-skill_slot : UINT16 required
-modifiers  : SkillDynamicModifierSet required
-```
-
-Adapter 遍历 `FightMech.GetSkills()`，以技能槽位排序并读取每个技能支持的完整 `SkillDataChange*` 集合。
-
-`SkillDynamicModifierSet` 的 26 个 modifier 字段及其数值叶均为 nullable，null 按 0 读取。列表只保留至少一个字段非零的 skill；当前没有技能级动态修正时使用空列表。省略的 skill slot 表示该槽位当前无动态修正，不表示单位缺少该技能。
-
-| 字段组 | 字段 |
-| --- | --- |
-| `SkillDataChangeFloat` / `i64` | `min_attack_range_value`, `attack_range_value`, `attack_air_range_add_value`, `attack_ground_range_add_value`, `attack_interval_value`, `damage_change_rate_ground`, `damage_change_rate_air`, `splash_range_value`, `cb_life_recovery_rate`, `projectile_speed_value`, `attack_point_change_value`, `projectile_duration_value`, `projectile_random_range`, `additional_damage_by_target_life` |
-| `SkillDataChangeFloatRate` / Rate | `damage_rate`, `damage_rate_by_kill_count`, `attack_range_rate`, `attack_interval_rate`, `damage_reduce_rate_base`, `projectile_life_rate` |
-| `SkillDataChangeInt` / `i32` | `projectile_count_value`, `air_attack_value`, `ground_attack_value`, `attack_range_value_air`, `attack_range_value_ground`, `is_lock_target` |
-
-该通道记录技能/武器级运行时变化。科技、装备和回合增益在原生技能数据中形成的动态变化可由此通道归因。
-
-## 2.7 `personal_shield`
+## 2.5 `personal_shield`
 
 ```text
 personal_shield = {
@@ -275,7 +230,7 @@ personal_shield = {
 
 Adapter 通过 `GetEnergyShieldController()` 读取 `IsActive()`、`IsEnable()`、`GetEnergy()` 和 `GetMaxEnergy()`。
 
-## 2.8 `weapon_aims`
+## 2.6 `weapon_aims`
 
 列表项 schema：
 
@@ -289,9 +244,9 @@ rotation     : INT64 nullable
 
 Adapter 遍历 `FightMech.GetSkills()`，覆盖主技能与子技能，再遍历各技能的 `GetWeapons()`。`skill_slot` 表示技能通道；`weapon_index` 来自 `WeaponData.get_Index()`，表示该技能内的原生武器通道编号。`attack_target` 来自技能的 `GetAttackTarget()`；姿态来自武器 `GetFightTransform()`。武器缺少 FightTransform 时，position 与 rotation 同时为 null。
 
-列表按 `(skill_slot, weapon_index)` 严格升序。`weapon_aims` 独立枚举当前武器通道，因此可以包含未出现在稀疏 `skill_dynamic_modifiers` 中的 skill slot。
+列表按 `(skill_slot, weapon_index)` 严格升序。`weapon_aims` 独立枚举当前武器通道，因此可以包含 `modifiers` 中没有出现的 skill slot。
 
-## 2.10 单位指向什么
+## 2.8 单位指向什么
 
 三个字段回答关于单位意图的三个不同问题，把其中一个当成另一个，就会读错这场仗。
 
@@ -559,7 +514,7 @@ null。时钟中的两个整数都以逻辑步为单位，并通过 `DurableCont
 
 `unit_created`、`unit_team_changed`、`terrain_converted` 与 `healing` 具备共享 schema、canonical 表达和 Reader/Writer 支持，供能够直接观测对应演化来源的 Producer 写入。
 
-Buff 观测位于 Unit 状态轨道：布尔状态进入 `status_mask`，综合数值修正进入 `buff_modifiers`。相邻快照的字段变化构成 Buff 状态演化证据。
+Buff 观测位于 Unit 状态轨道：布尔状态进入 `status_mask`，综合数值修正进入 `modifiers` 的 `buff` 通道。相邻快照的字段变化构成 Buff 状态演化证据。
 
 ---
 
@@ -642,9 +597,9 @@ ObjectRef = { kind: ObjectKind, id: u64 }
 
 # 附录 B — 身份与排序约定
 
-## B.1 format 0.10.0 身份规则
+## B.1 format 0.11.0 身份规则
 
-format `0.10.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
+format `0.11.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
 
 战斗期间首次出现的 Unit 按首次观察顺序取得当前 Unit namespace 的下一个连续编号。Unit namespace 从 1 开始单调递增；历史引用持续使用对象首次取得的编号。
 
@@ -664,7 +619,7 @@ format `0.10.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, posi
 
 初始 Shield 在 S(1) 按队伍分组：活跃盾按 `active_order` 升序，同队 inactive 盾随后。首 tick 已移除但事件仍可能引用的盾排在全部 S(1) 对象之后，再按队伍分组，确保初始状态中的 ID 从 1 连续。inactive/已移除组内按 `(source_kind, owner, position.x/y/z, radius, round_policy, energy.maximum, energy.current)` 排序，已移除项使用最后观测状态；无法区分的相同键使采集失败。编号仅规范化一次，并同步转换 E(1) 与缓存引用，不能每 tick 用 active_order 重新编号。此后新盾按首次观察顺序追加，ID 不因失活、重激活或 active_order 变化而改变。初始 Terrain 按 `(terrain_type, native controller item index)` 分配，动态 Terrain 按首次观察顺序追加。Shield 与 Terrain 从各自权威集合移除后，原生指针进入 tombstone 并保持历史 ID 唯一。
 
-状态快照最终统一按对象 ID 排序；`skill_dynamic_modifiers` 按 `skill_slot`，`weapon_aims` 按 `(skill_slot, weapon_index)`，投射物 `spawn_containing_shields` 按 Shield ObjectRef 排序。
+状态快照最终统一按对象 ID 排序；`modifiers` 按 `(channel, skill_slot, field, part)`，`weapon_aims` 按 `(skill_slot, weapon_index)`，投射物 `spawn_containing_shields` 按 Shield ObjectRef 排序。
 
 ## B.2 状态与事件的同帧约定
 
@@ -721,7 +676,7 @@ physics_result_hash = H_battle-physics-result-v1(
 
 因此物理回归仍精确引用逻辑时间、Q32.32 位置/角度/速度、生命与护盾以及伤害等相互作用，但不会因增加纯诊断字段而要求重录。
 
-## C.3 完整内容层 `mcfr-content-0.10.0`
+## C.3 完整内容层 `mcfr-content-0.11.0`
 
 完整状态和事件先编码为 canonical JSON：UTF-8、递归字典序排列 object key、紧凑编码和 schema 定义的数组顺序。它覆盖 format 0.7.0 的全部 `S(t)`/`E(t)` 字段，用于同格式内的捕获完整性诊断；它不包含布局、DurableContext 或其他文件元数据。
 
@@ -749,6 +704,6 @@ content_result_hash  = H_content-result-0.7.0(
 
 # 附录 E — 原生 modifier 映射示例
 
-粘油减速进入 BuffManager 的 `move_speed_rate` 综合值。光子投射产生的承伤变化进入 `amplify_damage_rate`，其 `IsInvincible()` 当前值进入 `status_mask.invincible`。剑齿虎科技副炮等子技能在 `skill_dynamic_modifiers` 和 `weapon_aims` 中使用各自 `skill_slot`；回合 `+15` 射程增益形成的技能级动态变化保留在对应 skill modifier 字段。
+粘油减速进入 BuffManager 的 `move_speed_rate` 综合值。光子投射产生的承伤变化进入 `amplify_damage_rate`，其 `IsInvincible()` 当前值进入 `status_mask.invincible`。剑齿虎科技副炮等子技能在 `modifiers` 和 `weapon_aims` 中使用各自 `skill_slot`；回合 `+15` 射程增益形成的技能级动态变化保留在对应 skill modifier 字段。
 
 这些例子说明三个采集通道的归因边界：BuffManager 综合效果、FightMech 单位级动态修正、FightSkill 技能级动态修正分别持久化，原生字段归属保持可观察。
