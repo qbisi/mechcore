@@ -745,7 +745,7 @@ fn laser_own_kill_retains_then_clears_the_dead_target() {
     assert!(matches!(events[0].payload, EventPayload::UnitDied { .. }));
     assert!(matches!(
         events[1].payload,
-        EventPayload::Damage { amount: 1 }
+        EventPayload::Damage { amount: 1, .. }
     ));
 
     simulation.step_actor(1, 11, &mut Vec::new()).unwrap();

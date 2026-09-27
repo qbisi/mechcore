@@ -231,7 +231,7 @@ fn interactions_hash(events: &TransitionEvents) -> [u8; HASH_BYTES] {
                 hasher.boolean(*intercepted);
                 hasher.optional_ref(*absorbed_by);
             }
-            EventPayload::Damage { amount } => {
+            EventPayload::Damage { amount, .. } => {
                 hasher.u8(2);
                 hasher.i32(*amount);
             }

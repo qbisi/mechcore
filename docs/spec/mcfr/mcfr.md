@@ -123,12 +123,12 @@ Parquet key-value metadata keys and values are both UTF-8 strings.
 
 | Key | Data | Meaning |
 | --- | --- | --- |
-| `format` | exactly `0.11.0` | the logical and physical contract version |
+| `format` | exactly `0.12.0` | the logical and physical contract version |
 | `game_build` | non-empty UTF-8 | capture provenance; the adapter reads `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | the context `D` that holds steady for one round |
 | `physics_hash_profile` | exactly `battle-physics-v3` | the stable physics projection version |
 | `physics_result_hash` | 64 lowercase hex digits | ordered digest of every `physics_tick_hash`; what regression compares |
-| `content_hash_profile` | exactly `mcfr-content-0.11.0` | the full content digest version |
+| `content_hash_profile` | exactly `mcfr-content-0.12.0` | the full content digest version |
 | `content_result_hash` | 64 lowercase hex digits | ordered digest of every `content_tick_hash`; an in-format diagnostic |
 | `tick_count` | canonical decimal `u32` | logical ticks recorded, counting from `S(1)` |
 | `terminal_tick` | canonical decimal `u32` | the confirmed final logical boundary, equal to `tick_count` on a continuous timeline |
@@ -631,7 +631,7 @@ field its type does not carry or lacks one it requires.
 | --- | --- | --- | --- |
 | `projectile_released` | `object` | `skill_slot: u16\|null`, `weapon_index: i32\|null` | a projectile was created and joined ProjectileSystem, with its weapon channel; the two channel fields are both present or both null |
 | `projectile_removed` | `object` | `position: QVec3`, `intercepted: bool`, `absorbed_by: ObjectRef\|null` | it left the system; `absorbed_by` names the battlefield shield that took it |
-| `damage` | `target` | `amount: i32` | one positive damage result on one actual target; an Actor uses the native `damageReal` |
+| `damage` | `target`; `object` is the projectile that carried it, if one did | `amount: i32`, `skill_slot: u16\|null` | one positive damage result on one actual target; an Actor uses the native `damageReal`. `skill_slot` is the dealing skill's index in the source's `GetSkills()`, null when no skill deals it |
 | `unit_created` | `object` | `team_id: u32`, `formation_id: u64`, `unit_type_id: u32`, `position: QVec3` | a unit's lifecycle start |
 | `unit_died` | `object` | `position: QVec3` | a unit's death boundary |
 | `building_destroyed` | `object` | `position: QVec3` | a building's destruction boundary |
@@ -669,7 +669,7 @@ producer can actually observe is narrower, and the adapter covers:
 | --- | --- |
 | `projectile_released` | the nested trace from `ProjectileSystem.Create` to `AddProjectile`, which also resolves owner, target, skill slot and weapon index |
 | `projectile_removed` | the ProjectileSystem destruction path, capturing final position and interception; `absorbed_by` is added when the same damage chain hits a shield |
-| `damage` | `DamagePerformer.Perform` gives the provider attribution scope, each `FightController.OnActorHitted(HitDamageInfo)` gives the Actor target and `damageReal`, and the battlefield shield damage helper gives the per-shield actual result |
+| `damage` | `DamagePerformer.Perform` gives the provider attribution scope, each `FightController.OnActorHitted(HitDamageInfo)` gives the Actor target and `damageReal`, and the battlefield shield damage helper gives the per-shield actual result. The provider names the dealing skill: a `SkillDamageProvider`'s or `HitEffectControl`'s `fightSkill`, or a `FightProjectile`'s `dataSource`; a skill `GetSkills()` lacks answers for its `ParentSkill`. A death explosion, a kill explosion, a commander skill, an air drop, ground fire and buff damage over time deal for no skill |
 | `unit_died` | the `FightMech.OnDead` trace |
 | `building_destroyed` | the `FightCrystal.OnDead` trace |
 | `shield_created` | first entry into the full `GetEnergyShields(fightGroup)` collection between adjacent sampling boundaries |
@@ -926,7 +926,7 @@ A physics regression therefore still pins logical time, Q32.32 position,
 rotation and velocity, life and shields, and the interactions including damage,
 while a new purely diagnostic field never forces a re-record.
 
-### The full content layer, `mcfr-content-0.11.0`
+### The full content layer, `mcfr-content-0.12.0`
 
 State and events are first encoded as canonical JSON: UTF-8, object keys sorted
 recursively, compact encoding, and the array order the schema defines. It covers

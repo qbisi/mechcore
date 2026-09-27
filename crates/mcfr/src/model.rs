@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result, canonical};
 
-pub const MCFR_FORMAT: &str = "0.11.0";
+pub const MCFR_FORMAT: &str = "0.12.0";
 pub const PHYSICS_HASH_PROFILE: &str = "battle-physics-v3";
-pub const CONTENT_HASH_PROFILE: &str = "mcfr-content-0.11.0";
+pub const CONTENT_HASH_PROFILE: &str = "mcfr-content-0.12.0";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -1020,6 +1020,11 @@ pub enum EventPayload {
     },
     Damage {
         amount: i32,
+        /// The index in the source's `GetSkills()` of the skill that dealt
+        /// it; null for damage no skill deals, such as a death explosion, a
+        /// commander skill, an air drop or ground fire.
+        #[serde(default)]
+        skill_slot: Option<u16>,
     },
     UnitCreated {
         team_id: u32,

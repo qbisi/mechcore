@@ -29,9 +29,21 @@ fn direct_splash_emits_one_damage_event_per_actual_target() {
     assert_eq!(events[0].source, Some(ObjectRef::new(ObjectKind::Unit, 1)));
     assert_eq!(events[0].source_team_id, Some(0));
     assert_eq!(events[0].target, Some(ObjectRef::new(ObjectKind::Unit, 2)));
-    assert_eq!(events[0].payload, EventPayload::Damage { amount: 3_560 });
+    assert_eq!(
+        events[0].payload,
+        EventPayload::Damage {
+            amount: 3_560,
+            skill_slot: Some(0)
+        }
+    );
     assert_eq!(events[1].target, Some(ObjectRef::new(ObjectKind::Unit, 3)));
-    assert_eq!(events[1].payload, EventPayload::Damage { amount: 3_560 });
+    assert_eq!(
+        events[1].payload,
+        EventPayload::Damage {
+            amount: 3_560,
+            skill_slot: Some(0)
+        }
+    );
     assert_eq!(
         [
             simulation.actors[&2].last_damage_source,
@@ -74,7 +86,13 @@ fn direct_kill_emits_damage_before_death_with_raw_target_position() {
         .unwrap();
 
     assert_eq!(events.len(), 2);
-    assert_eq!(events[0].payload, EventPayload::Damage { amount: 1 });
+    assert_eq!(
+        events[0].payload,
+        EventPayload::Damage {
+            amount: 1,
+            skill_slot: Some(0)
+        }
+    );
     assert_eq!(
         events[1].payload,
         EventPayload::UnitDied {
@@ -114,7 +132,13 @@ fn zero_radius_direct_attack_does_not_damage_an_overlapping_secondary_target() {
     assert_eq!(simulation.actors[&3].life, secondary_life);
     assert_eq!(events.len(), 1);
     assert_eq!(events[0].target, Some(ObjectRef::new(ObjectKind::Unit, 2)));
-    assert_eq!(events[0].payload, EventPayload::Damage { amount: 79 });
+    assert_eq!(
+        events[0].payload,
+        EventPayload::Damage {
+            amount: 79,
+            skill_slot: Some(0)
+        }
+    );
 }
 
 #[test]
@@ -182,6 +206,7 @@ fn projectile_splash_emits_one_damage_event_per_actual_target() {
         id: 1,
         team: 0,
         owner: FightActorRef::Unit(1),
+        skill_slot: 0,
         target_kind: ObjectKind::Unit,
         target: 2,
         x: 0,
@@ -214,9 +239,21 @@ fn projectile_splash_emits_one_damage_event_per_actual_target() {
     assert_eq!(events.len(), 3);
     assert_eq!(events[0].source, Some(ObjectRef::new(ObjectKind::Unit, 1)));
     assert_eq!(events[0].target, Some(ObjectRef::new(ObjectKind::Unit, 2)));
-    assert_eq!(events[0].payload, EventPayload::Damage { amount: 365 });
+    assert_eq!(
+        events[0].payload,
+        EventPayload::Damage {
+            amount: 365,
+            skill_slot: Some(0)
+        }
+    );
     assert_eq!(events[1].target, Some(ObjectRef::new(ObjectKind::Unit, 3)));
-    assert_eq!(events[1].payload, EventPayload::Damage { amount: 365 });
+    assert_eq!(
+        events[1].payload,
+        EventPayload::Damage {
+            amount: 365,
+            skill_slot: Some(0)
+        }
+    );
     assert!(matches!(
         events[2].payload,
         EventPayload::ProjectileRemoved { .. }
@@ -260,6 +297,7 @@ fn dual_domain_projectile_splash_uses_the_main_targets_domain() {
         id: 1,
         team: 0,
         owner: FightActorRef::Unit(1),
+        skill_slot: 0,
         target_kind: ObjectKind::Unit,
         target: 2,
         x: 0,
@@ -304,6 +342,7 @@ fn projectile_drain_does_not_late_teardown_the_defeated_teams_buildings() {
         id: 1,
         team: 0,
         owner: FightActorRef::Unit(1),
+        skill_slot: 0,
         target_kind: ObjectKind::Unit,
         target: 2,
         x: 0,
@@ -365,6 +404,7 @@ fn projectile_splash_takes_a_building_beside_its_target() {
         id: 1,
         team: 0,
         owner: FightActorRef::Unit(1),
+        skill_slot: 0,
         target_kind: ObjectKind::Unit,
         target: 2,
         x: 0,

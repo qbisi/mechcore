@@ -20,6 +20,10 @@ pub(in crate::fight) struct DamageHit {
     /// team it was released under.
     pub(in crate::fight) team: u32,
     pub(in crate::fight) amount: i64,
+    /// The projectile that carried the hit, if one did.
+    pub(in crate::fight) projectile: Option<ObjectRef>,
+    /// The index of the skill that dealt it in its owner's skills.
+    pub(in crate::fight) skill_slot: Option<u16>,
     /// What the attack was aimed at.
     pub(in crate::fight) aimed: FightActorRef,
     /// Whether the aimed-at object is struck wherever it stands, rather than
@@ -285,13 +289,14 @@ impl Simulation {
             let stroke = self.strike(target, hit.source, hit.source_team, hit.amount)?;
             if stroke.actual > 0 {
                 events.push(event(
-                    None,
+                    hit.projectile,
                     Some(hit.source),
                     Some(hit.source_team),
                     Some(target.object_ref()),
                     EventPayload::Damage {
                         amount: i32::try_from(stroke.actual)
                             .map_err(|_| Error::new("damage exceeds i32"))?,
+                        skill_slot: hit.skill_slot,
                     },
                 ));
             }
@@ -356,6 +361,9 @@ impl Simulation {
             source_team: attacker.placement.team,
             team: attacker.placement.team,
             amount: attacker.stats.attack_damage(),
+            // A blow is `SkillDamageProvider`'s, of the unit's one skill.
+            projectile: None,
+            skill_slot: Some(0),
             aimed: target,
             hits_aimed: true,
             center,
@@ -424,6 +432,8 @@ impl Simulation {
                 source_team: attacker_team,
                 team: attacker_team,
                 amount: damage,
+                projectile: None,
+                skill_slot: Some(0),
                 aimed: target,
                 hits_aimed: true,
                 center,
@@ -466,6 +476,7 @@ impl Simulation {
             EventPayload::Damage {
                 amount: i32::try_from(stroke.actual)
                     .map_err(|_| Error::new("laser damage exceeds i32"))?,
+                skill_slot: Some(0),
             },
         ));
         // A building the beam fells is recorded at the end of the tick, as a

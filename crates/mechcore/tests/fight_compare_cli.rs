@@ -224,7 +224,10 @@ fn write_recording(path: &Path, seed: i32, damages: &[i32]) {
                         source: None,
                         source_team_id: None,
                         target: Some(ObjectRef::new(ObjectKind::Unit, 1)),
-                        payload: EventPayload::Damage { amount: damage },
+                        payload: EventPayload::Damage {
+                            amount: damage,
+                            skill_slot: None,
+                        },
                     }],
                 },
             )

@@ -1,11 +1,11 @@
-# MCFR 格式规范（format 0.11.0）
+# MCFR 格式规范（format 0.12.0）
 
 [English](mcfr.md)
 
 本文描述仓库当前实现的 MCFR 逻辑模型、物理容器、Adapter 原生采集来源和 Reader/Writer 校验契约。统一格式标识为：
 
 ```text
-format = "0.11.0"
+format = "0.12.0"
 ```
 
 当前 Adapter 原生字段映射绑定仓库在 `GAME_VERSION` 钉住的游戏版本。其他版本可以生成同格式录像，前提是 Producer 已验证所用原生接口与本文语义一致。
@@ -95,12 +95,12 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 
 | key | 数据规范 | 含义 |
 | --- | --- | --- |
-| `format` | 精确值 `0.11.0` | MCFR 逻辑与物理契约版本 |
+| `format` | 精确值 `0.12.0` | MCFR 逻辑与物理契约版本 |
 | `game_build` | 非空 UTF-8 | 采集构建 provenance；Adapter 来自 `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | 单回合保持稳定的上下文 `D` |
 | `physics_hash_profile` | 精确值 `battle-physics-v3` | 稳定物理投影版本 |
 | `physics_result_hash` | 64 位小写十六进制 | 全部 `physics_tick_hash` 的有序摘要；回归判断依据 |
-| `content_hash_profile` | 精确值 `mcfr-content-0.11.0` | 完整内容摘要版本 |
+| `content_hash_profile` | 精确值 `mcfr-content-0.12.0` | 完整内容摘要版本 |
 | `content_result_hash` | 64 位小写十六进制 | 全部 `content_tick_hash` 的有序摘要；格式内诊断依据 |
 | `tick_count` | `u32` 规范十进制 | 从 `S(1)` 开始记录的逻辑 tick 数 |
 | `terminal_tick` | `u32` 规范十进制 | 已确认的最终逻辑边界；当前连续时间线中等于 `tick_count` |
@@ -128,7 +128,7 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 | 字段 | Parquet 类型 | 含义 | Adapter 原生来源 |
 | --- | --- | --- | --- |
 | `tick` | `UINT32 required` | 状态所属逻辑时刻 | Adapter 逻辑帧计数 |
-| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.11.0 身份规则，见附录 B |
+| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.12.0 身份规则，见附录 B |
 | `team_id` | `UINT32 required` | 当前所属队伍 | `FightTeam` controller index |
 | `original_team_id` | `UINT32 required` | 首次出现时的队伍 | 首次采样的 `team_id` |
 | `formation_id` | `UINT64 required` | 编队身份 | `FightMech.GetMechTeam()` 指针映射 |
@@ -476,7 +476,7 @@ null。时钟中的两个整数都以逻辑步为单位，并通过 `DurableCont
 | --- | --- | --- | --- |
 | `projectile_released` | `object` | `skill_slot: u16|null`, `weapon_index: i32|null` | 弹体创建并加入 ProjectileSystem 的发射事实及其武器通道；两个通道字段同时有值或同时为 null |
 | `projectile_removed` | `object` | `position: QVec3`, `intercepted: bool`, `absorbed_by: ObjectRef|null` | 弹体从系统移除；`absorbed_by` 指明直接吸收它的战场盾 |
-| `damage` | `target` | `amount: i32` | 单个实际 target 的一次正数伤害结果；Actor 使用原生 `damageReal` |
+| `damage` | `target`；有弹体时 `object` 为该弹体 | `amount: i32`, `skill_slot: u16\|null` | 单个实际 target 的一次正数伤害结果；Actor 使用原生 `damageReal`。`skill_slot` 为造成伤害的技能在 source 的 `GetSkills()` 中的下标，没有技能时为 null |
 | `unit_created` | `object` | `team_id: u32`, `formation_id: u64`, `unit_type_id: u32`, `position: QVec3` | Unit 生命周期起点 |
 | `unit_died` | `object` | `position: QVec3` | Unit 死亡边界 |
 | `building_destroyed` | `object` | `position: QVec3` | Building 摧毁边界 |
@@ -504,7 +504,7 @@ null。时钟中的两个整数都以逻辑步为单位，并通过 `DurableCont
 | --- | --- |
 | `projectile_released` | `ProjectileSystem.Create` 到 `AddProjectile` 的嵌套 trace；同时解析 owner、target、skill slot、weapon index |
 | `projectile_removed` | ProjectileSystem 销毁路径 trace，采集末位置与 intercepted；同一伤害链命中 Shield 时补充 `absorbed_by` |
-| `damage` | `DamagePerformer.Perform` 提供 provider 归因作用域；每次 `FightController.OnActorHitted(HitDamageInfo)` 提供 Actor target 与 `damageReal`；战场盾伤害 helper 提供逐 Shield 实际结果 |
+| `damage` | `DamagePerformer.Perform` 提供 provider 归因作用域；每次 `FightController.OnActorHitted(HitDamageInfo)` 提供 Actor target 与 `damageReal`；战场盾伤害 helper 提供逐 Shield 实际结果。provider 给出造成伤害的技能：`SkillDamageProvider` 或 `HitEffectControl` 的 `fightSkill`，或 `FightProjectile` 的 `dataSource`；`GetSkills()` 中没有的技能按其 `ParentSkill` 记。死亡爆炸、击杀爆炸、指挥官技能、空投、地面火与 buff 持续伤害没有技能 |
 | `unit_died` | `FightMech.OnDead` trace |
 | `building_destroyed` | `FightCrystal.OnDead` trace |
 | `shield_created` | 相邻采样边界间首次进入 `GetEnergyShields(fightGroup)` 全量集合 |
@@ -597,9 +597,9 @@ ObjectRef = { kind: ObjectKind, id: u64 }
 
 # 附录 B — 身份与排序约定
 
-## B.1 format 0.11.0 身份规则
+## B.1 format 0.12.0 身份规则
 
-format `0.11.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
+format `0.12.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
 
 战斗期间首次出现的 Unit 按首次观察顺序取得当前 Unit namespace 的下一个连续编号。Unit namespace 从 1 开始单调递增；历史引用持续使用对象首次取得的编号。
 
@@ -676,7 +676,7 @@ physics_result_hash = H_battle-physics-result-v1(
 
 因此物理回归仍精确引用逻辑时间、Q32.32 位置/角度/速度、生命与护盾以及伤害等相互作用，但不会因增加纯诊断字段而要求重录。
 
-## C.3 完整内容层 `mcfr-content-0.11.0`
+## C.3 完整内容层 `mcfr-content-0.12.0`
 
 完整状态和事件先编码为 canonical JSON：UTF-8、递归字典序排列 object key、紧凑编码和 schema 定义的数组顺序。它覆盖 format 0.7.0 的全部 `S(t)`/`E(t)` 字段，用于同格式内的捕获完整性诊断；它不包含布局、DurableContext 或其他文件元数据。
 

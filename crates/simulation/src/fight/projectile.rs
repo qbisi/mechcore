@@ -6,6 +6,8 @@ pub(in crate::fight) struct Projectile {
     pub(in crate::fight) team: u32,
     /// Who released it: a unit, or a construction whose skill fires.
     pub(in crate::fight) owner: FightActorRef,
+    /// The owner's skill that released it.
+    pub(in crate::fight) skill_slot: u16,
     pub(in crate::fight) target_kind: ObjectKind,
     pub(in crate::fight) target: u64,
     pub(in crate::fight) x: i64,
@@ -199,6 +201,8 @@ impl Simulation {
             source_team: projectile.team,
             team: owner_team,
             amount,
+            projectile: Some(projectile.object_ref()),
+            skill_slot: Some(projectile.skill_slot),
             aimed,
             hits_aimed: projectile.lock_target,
             center: (projectile.x, projectile.z),
