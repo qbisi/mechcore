@@ -1123,7 +1123,7 @@ mod tests {
     fn a_recording_asks_for_channels_by_name() {
         assert!(instrument(None).unwrap().is_empty());
         let channels = instrument(Some(&json!([
-            "selector_score",
+            "target_search",
             "target_refs",
             "target_refs"
         ])))
@@ -1132,10 +1132,11 @@ mod tests {
             channels,
             [
                 InstrumentChannel::TargetRefs,
-                InstrumentChannel::SelectorScore
+                InstrumentChannel::TargetSearch
             ]
         );
         assert!(instrument(Some(&json!(["rvo"]))).is_err());
+        assert!(instrument(Some(&json!(["selector_score"]))).is_err());
         assert!(instrument(Some(&json!({"output": "local.h5"}))).is_err());
     }
 

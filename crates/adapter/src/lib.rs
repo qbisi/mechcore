@@ -10,6 +10,7 @@ mod offline;
 mod operations;
 mod runtime;
 mod rvo;
+mod selector;
 mod video;
 
 use mechcore_document as layout;

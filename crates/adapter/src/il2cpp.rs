@@ -454,6 +454,47 @@ impl Api {
         Ok(values.to_vec())
     }
 
+    /// Elements `start..start + count` of a managed value-type array, without
+    /// copying the rest.
+    pub fn value_array_range<T: Copy>(
+        self,
+        array: *mut Object,
+        start: usize,
+        count: usize,
+    ) -> Result<Vec<T>, Error> {
+        if array.is_null() {
+            return Err(Error::NullResult("value array".into()));
+        }
+        // SAFETY: array is a managed one-dimensional value-type array returned by IL2CPP.
+        let length = unsafe { (self.array_length)(array) };
+        if start.checked_add(count).is_none_or(|end| end > length) {
+            return Err(Error::InvalidValue(format!(
+                "elements {start}..+{count} lie outside a managed array of {length}"
+            )));
+        }
+        // SAFETY: the runtime reports the byte offset from the object to the first element.
+        let offset = unsafe { (self.array_object_header_size)() };
+        if !(std::mem::size_of::<usize>() * 3..=256).contains(&offset) {
+            return Err(Error::InvalidValue(format!(
+                "invalid managed array header size {offset}"
+            )));
+        }
+        // SAFETY: the caller binds T to the element type, and the range was
+        // checked against the array's length.
+        let values = unsafe {
+            std::slice::from_raw_parts(array.cast::<u8>().add(offset).cast::<T>().add(start), count)
+        };
+        Ok(values.to_vec())
+    }
+
+    /// A static field's value.
+    pub fn static_value<T: Copy + Default>(self, field: *mut FieldInfo) -> T {
+        let mut value = T::default();
+        // SAFETY: the caller binds T to the field's value type.
+        unsafe { (self.field_static_get_value)(field, (&raw mut value).cast()) };
+        value
+    }
+
     pub fn overwrite_value_array<T: Copy>(
         self,
         array: *mut Object,

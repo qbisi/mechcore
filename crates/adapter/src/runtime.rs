@@ -1773,7 +1773,8 @@ fn append_instrument(
         let present = match channel {
             InstrumentChannel::TargetRefs => rows.target_refs.is_some(),
             InstrumentChannel::SkillAttackableChecker => rows.skill_attackable_checker.is_some(),
-            InstrumentChannel::SelectorScore => rows.selector_score.is_some(),
+            InstrumentChannel::TargetSearch => rows.target_search.is_some(),
+            InstrumentChannel::TargetCandidate => rows.target_candidate.is_some(),
             InstrumentChannel::RvoSolve => rows.rvo_solve.is_some(),
             InstrumentChannel::RvoNeighbour => rows.rvo_neighbour.is_some(),
             InstrumentChannel::RvoVo => rows.rvo_vo.is_some(),
@@ -1800,7 +1801,10 @@ fn append_instrument(
     if let Some(rows) = rows.skill_attackable_checker {
         writer.append_instrument(rows.as_slice()).map_err(mcfr)?;
     }
-    if let Some(rows) = rows.selector_score {
+    if let Some(rows) = rows.target_search {
+        writer.append_instrument(rows.as_slice()).map_err(mcfr)?;
+    }
+    if let Some(rows) = rows.target_candidate {
         writer.append_instrument(rows.as_slice()).map_err(mcfr)?;
     }
     if let Some(rows) = rows.rvo_solve {
@@ -2293,12 +2297,12 @@ mod tests {
             "{error}"
         );
         let unrequested = InstrumentRows {
-            selector_score: Some(Vec::new()),
+            target_search: Some(Vec::new()),
             ..InstrumentRows::default()
         };
         let (_, error) = append_instrument(&mut writer, &[], unrequested).unwrap_err();
         assert!(
-            error.contains("produced unrequested channel selector_score"),
+            error.contains("produced unrequested channel target_search"),
             "{error}"
         );
         let asked = InstrumentRows {
