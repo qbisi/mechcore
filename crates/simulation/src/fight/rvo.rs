@@ -669,7 +669,7 @@ pub(crate) fn solve_agents(
             let neighbours = nearest_neighbours(agent, inputs);
             // A construction of the agent's own group is still one of its
             // neighbours — it takes one of the twenty places, as the native
-            // sidecar shows for a Crawler crossing its own wall — and yields
+            // capture showed for a Crawler crossing its own wall — and yields
             // no velocity obstacle: twenty neighbours, seventeen obstacles.
             let obstacles = neighbours
                 .into_iter()

@@ -306,33 +306,25 @@ mod oracle {
         let config = SimulationConfig::load().unwrap();
         for (name, expected_count) in [("group-attack", 4188), ("two-targets", 344)] {
             let root = Path::new("/tmp/mechcore/wraith/slots");
-            let recording = McfrReader::open(root.join(format!("{name}-checker.mcfr"))).unwrap();
-            let capture =
-                mechcore_mcfr::InstrumentationReader::open(root.join(format!("{name}-checker.h5")))
-                    .unwrap();
-            assert_eq!(capture.profile(), "skill_attackable_checker_v1");
-            assert_eq!(
-                capture.physics_result_hash(),
-                recording.hashes().physics_result_hash
-            );
+            let recording = McfrReader::open(root.join(format!("{name}.mcfr"))).unwrap();
+            let calls = recording
+                .instrument::<mechcore_mcfr::SkillAttackableCheck>()
+                .unwrap()
+                .expect("the recording carries the skill_attackable_checker channel");
             let (_, layout) =
                 crate::layout::compile_with_seed(recording.layout_yaml().as_bytes(), &config.units)
                     .unwrap();
             let mut sim =
                 Simulation::new(&layout, &config.units, &config.towers, 1_787_857_041).unwrap();
             let mut replay = Replay::default();
-            for index in 0..capture.len() {
-                let entry = capture.entry(index).unwrap();
-                let payload: Value = serde_json::from_slice(&entry.payload).unwrap();
-                for call in payload["checker_calls"].as_array().unwrap() {
-                    let actor = call["source_actor"]["id"].as_u64().unwrap();
-                    if sim.actors[&actor].rules.attack.weapons.mode == WeaponMode::Group {
-                        replay
-                            .calls
-                            .entry((entry.step, actor))
-                            .or_default()
-                            .push(call.clone());
-                    }
+            for (tick, call) in calls {
+                let actor = call.source_actor.id;
+                if sim.actors[&actor].rules.attack.weapons.mode == WeaponMode::Group {
+                    replay
+                        .calls
+                        .entry((u64::from(tick), actor))
+                        .or_default()
+                        .push(serde_json::to_value(call).unwrap());
                 }
             }
             REPLAY.with(|cell| *cell.borrow_mut() = Some(replay));

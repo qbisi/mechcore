@@ -420,6 +420,8 @@ under the names that protocol gives them: `status`, `start_test`,
 `apply_layout`, `record_battle`, `record_replay_round`, `record_watch_replay`,
 `toggle_fight`, `speed_up`, `quit_match` and `quit_game`. Each takes the
 argument object that protocol defines and answers what it answers.
+The recording verbs take `--instrument a,b`, the instrument channels to record
+into the MCFR by name ([mcfr.md](../mcfr/mcfr.md#instrument-channels)).
 
 `record_layout <layout.yaml> <out.mcfr>` is the one verb the protocol does not
 name. It writes the layout as a replay, as `replay convert` does, and records
@@ -430,7 +432,7 @@ replay needs. It answers what `record_replay_round` answers, with the layout it
 was given as `layout_input`. The game can refuse a decision the replay records
 and fight on without it, so the recording is held to the layout the game read
 back as the fight began, as a staged layout is: when the two differ in any
-field, once both are in normal form, the recording and its sidecar are removed
+field, once both are in normal form, the recording is removed
 and the refusal names the fields. `apply_layout` and `record_battle` remain the way
 to fight a layout the replay cannot state and to record a video.
 

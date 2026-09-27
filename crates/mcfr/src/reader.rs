@@ -1,8 +1,8 @@
 use std::{collections::BTreeMap, fs, path::Path};
 
 use crate::{
-    DurableContext, Error, Hashes, Result, TickSlice, TransitionEvents, WorldSnapshot, canonical,
-    model::IdentityAllocator, parquet_storage::StorageReader,
+    DurableContext, Error, Hashes, InstrumentRow, Result, TickSlice, TransitionEvents,
+    WorldSnapshot, canonical, model::IdentityAllocator, parquet_storage::StorageReader,
 };
 
 pub struct McfrReader {
@@ -74,6 +74,22 @@ impl McfrReader {
     #[must_use]
     pub const fn terminal_tick(&self) -> u32 {
         self.terminal_tick
+    }
+
+    /// The instrument channels the recording holds, in name order.
+    pub fn instrument_channels(&self) -> impl Iterator<Item = &str> {
+        self.storage.instrument_channels()
+    }
+
+    /// Every row of one instrument channel with the tick it was observed on,
+    /// or `None` when the recording did not ask for the channel.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the channel's member does not decode as its rows,
+    /// or holds a row outside the recording's ticks.
+    pub fn instrument<R: InstrumentRow>(&self) -> Result<Option<Vec<(u32, R)>>> {
+        self.storage.instrument()
     }
 
     #[must_use]

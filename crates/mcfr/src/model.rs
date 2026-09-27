@@ -4,11 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result, canonical};
 
-pub const MCFR_FORMAT: &str = "0.7.0";
+pub const MCFR_FORMAT: &str = "0.8.0";
 pub const PHYSICS_HASH_PROFILE: &str = "battle-physics-v2";
 pub const CONTENT_HASH_PROFILE: &str = "mcfr-content-0.7.0";
-pub const INSTRUMENTATION_FORMAT: &str = "mechcore.mcfr.instrumentation";
-pub const INSTRUMENTATION_CONTAINER_VERSION: u32 = 3;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

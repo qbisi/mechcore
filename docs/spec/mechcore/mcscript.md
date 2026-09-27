@@ -113,9 +113,9 @@ than redefining them.
 | `game.status` | yes | current status snapshot |
 | `game.start_test` | yes | optional `seed`, `map_id`; rarely needed, see `game.apply_layout` |
 | `game.apply_layout` | yes | the layout object, or `{layout, seed}` |
-| `game.record_battle` | yes | `output`, optional `video_output`, `speed_up`, `instrumentation` |
-| `game.record_replay_round` | yes | `grbr`, `round`, `output`, optional `instrumentation` |
-| `game.record_layout` | yes | `layout`, `output`, optional `seed`, `instrumentation`; fights the layout without a scene |
+| `game.record_battle` | yes | `output`, optional `video_output`, `speed_up`, `instrument` |
+| `game.record_replay_round` | yes | `grbr`, `round`, `output`, optional `instrument` |
+| `game.record_layout` | yes | `layout`, `output`, optional `seed`, `instrument`; fights the layout without a scene |
 | `game.record_watch_replay` | yes | optional `output_dir`, `wait_for_scene_seconds`, `match_timeout_seconds`; records one live standard 1v1 |
 | `game.toggle_fight` | yes | |
 | `game.speed_up` | yes | standalone operation, distinct from the recording field |
@@ -125,7 +125,7 @@ than redefining them.
 A step that writes a file refuses to overwrite it, and a script does not
 declare otherwise. The destinations are every path `game.record_battle`,
 `game.record_replay_round`, `game.record_layout` and `fight.run` publish:
-`output`, `video_output` and the instrumentation sidecar. Whether to replace
+`output` and `video_output`. Whether to replace
 an existing one is a property of the run,
 not of the script: the same document is run once to produce its outputs and
 again to replace them. `mechcore run --force` answers yes for the whole run.
@@ -138,20 +138,18 @@ leaves the others as they were. The Adapter and the MCFR writer still refuse
 to write over anything; the caller removes the file before asking, so the
 fail-closed rule keeps protecting a recording in flight.
 
-The three recording operations accept a research-only HDF5 sidecar request:
+`force` is not a script field at all, and a step that carries one is rejected.
+
+The three recording operations take the instrument channels to record into the
+MCFR, by name, in any combination:
 
 ```yaml
-instrumentation:
-  output: $out/rvo.h5
-  profile: target_refs_rvo_v1
-  rvo_scope: {start_tick: 4, end_tick: 12, unit_ids: [72, 117, 257, 405]}
+instrument: [target_refs, skill_attackable_checker, selector_score]
 ```
 
-The sidecar path resolves like the recording output and is replaced like it,
-under `--force` or a yes to the question; `force` is not a script field at all,
-and a step that carries one is rejected. RVO scope selects 1–8 unique positive MCFR unit IDs and at most
-64 ticks of update starts; delayed publications can appear after `end_tick`.
-This instrumentation is separate from MCFR and does not participate in its hash.
+A channel lives inside the recording, outside both of its hashes
+([mcfr.md](../mcfr/mcfr.md#instrument-channels)); what each channel holds is
+[adapter.md](../adapter/adapter.md#record_replay_round).
 
 `fight.compare` returns the report `mechcore fight compare` prints: the physics
 verdict, the field groups that differ with the ticks they differ on, and one

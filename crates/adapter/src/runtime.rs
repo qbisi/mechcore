@@ -1,12 +1,12 @@
-use crate::capture::{self, CaptureMessage, CaptureProfile as _, ValidateRvoScope as _};
+use crate::capture::{self, CaptureMessage, InstrumentRows};
 use crate::il2cpp::{Api, Class, Error as Il2CppError, FieldInfo, Object};
 use crate::layout::{self, Plan};
 use crate::operations;
 use mechcore_protocol::{
-    Busy, Claim, EVICTED_CODE, Evicted, GameIdentity, Hello, MAX_LEVEL, MAX_STAGED_ROUND,
-    MAX_WATCH_MATCH_TIMEOUT_SECONDS, MAX_WATCH_SCENE_WAIT_SECONDS, Operation, PROTOCOL,
-    RecordBattleArguments, RecordBattleInstrumentation, RecordReplayRoundArguments,
-    RecordWatchReplayArguments, Refused, Request, Response,
+    Busy, Claim, EVICTED_CODE, Evicted, GameIdentity, Hello, InstrumentChannel, MAX_LEVEL,
+    MAX_STAGED_ROUND, MAX_WATCH_MATCH_TIMEOUT_SECONDS, MAX_WATCH_SCENE_WAIT_SECONDS, Operation,
+    PROTOCOL, RecordBattleArguments, RecordReplayRoundArguments, RecordWatchReplayArguments,
+    Refused, Request, Response,
 };
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -54,32 +54,6 @@ const WATCH_FILE_POLL_INTERVAL: Duration = Duration::from_millis(250);
 const WATCH_AUTOSAVE_GRACE: Duration = Duration::from_secs(10);
 const WATCH_EXPLICIT_SAVE_TIMEOUT: Duration = Duration::from_secs(30);
 const WATCH_REPLAY_STABLE_SAMPLES: usize = 3;
-
-fn validate_instrumentation_arguments(
-    instrumentation: Option<&RecordBattleInstrumentation>,
-    output: &Path,
-    video_output: Option<&Path>,
-) -> Result<(), String> {
-    let Some(instrumentation) = instrumentation else {
-        return Ok(());
-    };
-    if let Some(scope) = &instrumentation.rvo_scope {
-        scope.validate(instrumentation.profile)?;
-    }
-    if !instrumentation.output.is_absolute()
-        || instrumentation
-            .output
-            .extension()
-            .and_then(|value| value.to_str())
-            != Some("h5")
-        || instrumentation.output.exists()
-        || instrumentation.output == output
-        || video_output == Some(instrumentation.output.as_path())
-    {
-        return Err("instrumentation output must be a new, distinct absolute .h5 path".into());
-    }
-    Ok(())
-}
 
 #[derive(Debug)]
 pub enum RuntimeError {
@@ -1331,13 +1305,6 @@ fn execute_replay_recording_series(runtime: &mut Runtime, request: &Request) -> 
                 return Response::failure(request.id, "invalid_arguments", error.to_string());
             }
         };
-    if let Err(error) = validate_instrumentation_arguments(
-        arguments.instrumentation.as_ref(),
-        &arguments.output,
-        None,
-    ) {
-        return Response::failure(request.id, "invalid_arguments", error);
-    }
     if !arguments.grbr.is_absolute() {
         return Response::failure(
             request.id,
@@ -1404,7 +1371,7 @@ fn execute_replay_recording_series(runtime: &mut Runtime, request: &Request) -> 
         arguments: serde_json::json!({
             "output": arguments.output,
             "speed_up": false,
-            "instrumentation": arguments.instrumentation,
+            "instrument": arguments.instrument,
         }),
     };
     let mut response = execute_recording_series(
@@ -1495,13 +1462,6 @@ fn execute_recording_series(
             );
         }
     }
-    if let Err(error) = validate_instrumentation_arguments(
-        arguments.instrumentation.as_ref(),
-        &arguments.output,
-        arguments.video_output.as_deref(),
-    ) {
-        return Response::failure(request.id, "invalid_arguments", error);
-    }
     let visual = arguments.video_output.is_some();
     // A recording with video is paced by its render barrier, not by scaled
     // time, so capture scales time only without it.
@@ -1513,14 +1473,7 @@ fn execute_recording_series(
             mode,
             visual,
             speed_up,
-            instrumentation_profile: arguments
-                .instrumentation
-                .as_ref()
-                .map(|value| value.profile),
-            rvo_scope: arguments
-                .instrumentation
-                .as_ref()
-                .and_then(|value| value.rvo_scope.clone()),
+            instruments: capture::Instruments::of(&arguments.instrument),
         },
     )) {
         return response;
@@ -1593,11 +1546,10 @@ fn drain_recording(
     let mut pending = None;
     let mut writer = None;
     let mut video = None;
-    let mut instrumentation_records = Vec::new();
     let mut recorded_tick = 0_u64;
     loop {
         // A capture in flight is abandoned like any other wait. Nothing is
-        // published, the sidecar and video are torn down with it, and the
+        // published, the video is torn down with it, and the
         // claim is answered now rather than up to three minutes from now.
         if evicting() {
             return Drained::Failed(
@@ -1650,7 +1602,7 @@ fn drain_recording(
             Some(CaptureMessage::Transition {
                 events,
                 state,
-                instrumentation,
+                instrument,
                 terminal,
                 frame,
             }) => {
@@ -1664,24 +1616,10 @@ fn drain_recording(
                     return Drained::Failed("mcfr_error", error.to_string());
                 }
                 recorded_tick += 1;
-                match (&arguments.instrumentation, instrumentation) {
-                    (Some(_), Some(observation)) => {
-                        instrumentation_records.push((recorded_tick, observation));
-                    }
-                    (None, None) => {}
-                    (Some(config), None) if config.rvo_scope.is_some() => {}
-                    (Some(_), None) => {
-                        return Drained::Failed(
-                            "capture_failed",
-                            "capture omitted requested instrumentation".into(),
-                        );
-                    }
-                    (None, Some(_)) => {
-                        return Drained::Failed(
-                            "capture_failed",
-                            "capture produced unrequested instrumentation".into(),
-                        );
-                    }
+                if let Err((code, error)) =
+                    append_instrument(active, &arguments.instrument, instrument)
+                {
+                    return Drained::Failed(code, error);
                 }
                 match (video.as_mut(), frame.as_ref()) {
                     (Some(active), Some(frame)) => {
@@ -1786,96 +1724,6 @@ fn drain_recording(
                     ),
                 ));
             }
-            let instrumentation_result = match &arguments.instrumentation {
-                Some(instrumentation) => {
-                    if instrumentation_records.is_empty()
-                        || (instrumentation.rvo_scope.is_none()
-                            && instrumentation_records.len() != tick_count as usize)
-                    {
-                        remove_published(Some(&arguments.output));
-                        remove_published(arguments.video_output.as_deref());
-                        return Drained::Published(Response::failure(
-                            request.id,
-                            "instrumentation_verification_failed",
-                            format!(
-                                "instrumentation record count {} does not match MCFR state count {}",
-                                instrumentation_records.len(),
-                                tick_count
-                            ),
-                        ));
-                    }
-                    let write_result = (|| {
-                        let mut sidecar = mechcore_mcfr::InstrumentationWriter::create(
-                            &instrumentation.output,
-                            &hashes.physics_result_hash,
-                            instrumentation.profile.as_str(),
-                            "adapter",
-                        )?;
-                        for (tick, observation) in &instrumentation_records {
-                            sidecar.record_json(
-                                *tick,
-                                instrumentation.profile.channel(),
-                                observation,
-                            )?;
-                        }
-                        sidecar.finish()
-                    })();
-                    if let Err(error) = write_result {
-                        remove_published(Some(&arguments.output));
-                        remove_published(arguments.video_output.as_deref());
-                        remove_published(Some(&instrumentation.output));
-                        return Drained::Published(Response::failure(
-                            request.id,
-                            "instrumentation_error",
-                            error.to_string(),
-                        ));
-                    }
-                    let sidecar =
-                        match mechcore_mcfr::InstrumentationReader::open(&instrumentation.output) {
-                            Ok(sidecar) => sidecar,
-                            Err(error) => {
-                                remove_published(Some(&arguments.output));
-                                remove_published(arguments.video_output.as_deref());
-                                remove_published(Some(&instrumentation.output));
-                                return Drained::Published(Response::failure(
-                                    request.id,
-                                    "instrumentation_verification_failed",
-                                    error.to_string(),
-                                ));
-                            }
-                        };
-                    let valid = sidecar.physics_result_hash() == hashes.physics_result_hash
-                        && sidecar.profile() == instrumentation.profile.as_str()
-                        && sidecar.producer() == "adapter"
-                        && sidecar.len() == instrumentation_records.len()
-                        && (0..sidecar.len()).all(|index| {
-                            sidecar.entry(index).is_ok_and(|entry| {
-                                entry.step == instrumentation_records[index].0
-                                    && entry.channel == instrumentation.profile.channel()
-                                    && entry.content_type == "application/json"
-                            })
-                        });
-                    if !valid {
-                        remove_published(Some(&arguments.output));
-                        remove_published(arguments.video_output.as_deref());
-                        remove_published(Some(&instrumentation.output));
-                        return Drained::Published(Response::failure(
-                            request.id,
-                            "instrumentation_verification_failed",
-                            "published instrumentation metadata or records changed during verification",
-                        ));
-                    }
-                    Some(serde_json::json!({
-                        "output": instrumentation.output,
-                        "profile": instrumentation.profile.as_str(),
-                        "producer": "adapter",
-                        "physics_result_hash": sidecar.physics_result_hash(),
-                        "record_count": sidecar.len(),
-                        "rvo_scope": instrumentation.rvo_scope,
-                    }))
-                }
-                None => None,
-            };
             let video_result = video_summary.map(|summary| {
                 serde_json::json!({
                     "output": arguments.video_output,
@@ -1907,11 +1755,52 @@ fn drain_recording(
                     "terminal_tick": tick_count,
                     "hashes": hashes,
                     "video": video_result,
-                    "instrumentation": instrumentation_result,
+                    "instrument": arguments.instrument,
                 }),
             ));
         }
     }
+}
+
+/// Writes one tick's instrument rows, refusing a tick whose rows do not answer
+/// exactly the channels the recording asked for.
+fn append_instrument(
+    writer: &mut mechcore_mcfr::McfrWriter,
+    asked: &[InstrumentChannel],
+    rows: InstrumentRows,
+) -> Result<(), (&'static str, String)> {
+    for channel in InstrumentChannel::ALL {
+        let present = match channel {
+            InstrumentChannel::TargetRefs => rows.target_refs.is_some(),
+            InstrumentChannel::SkillAttackableChecker => rows.skill_attackable_checker.is_some(),
+            InstrumentChannel::SelectorScore => rows.selector_score.is_some(),
+        };
+        if present != asked.contains(&channel) {
+            return Err((
+                "capture_failed",
+                format!(
+                    "capture {} channel {}",
+                    if present {
+                        "produced unrequested"
+                    } else {
+                        "omitted requested"
+                    },
+                    channel.as_str()
+                ),
+            ));
+        }
+    }
+    let mcfr = |error: mechcore_mcfr::Error| ("mcfr_error", error.to_string());
+    if let Some(rows) = rows.target_refs {
+        writer.append_instrument(rows.as_slice()).map_err(mcfr)?;
+    }
+    if let Some(rows) = rows.skill_attackable_checker {
+        writer.append_instrument(rows.as_slice()).map_err(mcfr)?;
+    }
+    if let Some(rows) = rows.selector_score {
+        writer.append_instrument(rows.as_slice()).map_err(mcfr)?;
+    }
+    Ok(())
 }
 
 fn recording_failure(
@@ -2359,6 +2248,59 @@ mod tests {
         assert!(started.elapsed() >= grace, "returned before the deadline");
     }
 
+    /// A tick's rows answer exactly the channels asked for: a capture that
+    /// drops one, or adds one nobody asked for, fails the recording rather
+    /// than publishing a channel that means something else.
+    #[test]
+    fn instrument_rows_answer_exactly_the_channels_asked_for() {
+        let context = mechcore_mcfr::DurableContext {
+            logic_step: mechcore_mcfr::Rational {
+                numerator: 1,
+                denominator: 10,
+            },
+            time_units_per_second: 10,
+            combat_round: 1,
+            match_seed: 1,
+        };
+        let mut writer = mechcore_mcfr::McfrWriter::hash_only(&context).unwrap();
+        writer
+            .append_tick(
+                mechcore_mcfr::WorldSnapshot::default(),
+                &mechcore_mcfr::TransitionEvents { events: Vec::new() },
+            )
+            .unwrap();
+        let (code, error) = append_instrument(
+            &mut writer,
+            &[InstrumentChannel::TargetRefs],
+            InstrumentRows::default(),
+        )
+        .unwrap_err();
+        assert_eq!(code, "capture_failed");
+        assert!(
+            error.contains("omitted requested channel target_refs"),
+            "{error}"
+        );
+        let unrequested = InstrumentRows {
+            selector_score: Some(Vec::new()),
+            ..InstrumentRows::default()
+        };
+        let (_, error) = append_instrument(&mut writer, &[], unrequested).unwrap_err();
+        assert!(
+            error.contains("produced unrequested channel selector_score"),
+            "{error}"
+        );
+        let asked = InstrumentRows {
+            skill_attackable_checker: Some(Vec::new()),
+            ..InstrumentRows::default()
+        };
+        append_instrument(
+            &mut writer,
+            &[InstrumentChannel::SkillAttackableChecker],
+            asked,
+        )
+        .unwrap();
+    }
+
     #[test]
     fn replay_publication_is_create_new() {
         let root = tempfile::tempdir().unwrap();
@@ -2369,34 +2311,6 @@ mod tests {
         assert_eq!(fs::read(&output).unwrap(), b"native recording");
         assert!(copy_new_file(&source, &output).is_err());
         assert_eq!(fs::read(&output).unwrap(), b"native recording");
-    }
-
-    #[test]
-    fn replay_instrumentation_scope_is_validated_before_loading() {
-        let arguments: RecordReplayRoundArguments = serde_json::from_value(serde_json::json!({
-            "grbr": "/tmp/source.grbr", "round": 7, "output": "/tmp/scoped-rvo.mcfr",
-            "instrumentation": {"output": "/tmp/scoped-rvo.h5", "profile": "target_refs_rvo_v1",
-                "rvo_scope": {"start_tick": 8, "end_tick": 14, "unit_ids": [124, 246]}}
-        }))
-        .unwrap();
-        assert!(
-            validate_instrumentation_arguments(
-                arguments.instrumentation.as_ref(),
-                &arguments.output,
-                None
-            )
-            .is_ok()
-        );
-        let mut config = arguments.instrumentation.unwrap();
-        config.rvo_scope.as_mut().unwrap().unit_ids.clear();
-        assert!(
-            validate_instrumentation_arguments(Some(&config), &arguments.output, None).is_err()
-        );
-        config.rvo_scope = None;
-        config.output = "relative.h5".into();
-        assert!(
-            validate_instrumentation_arguments(Some(&config), &arguments.output, None).is_err()
-        );
     }
 
     #[test]

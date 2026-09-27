@@ -4,16 +4,16 @@
 #   mechcore run tests/regression/skill-state.mcscript           record
 #
 # Re-records every case of tests/regression/mcfr-regressions.yaml with the
-# `target_refs_v1` instrumentation, whose sidecar holds, per unit and tick,
+# `target_refs` instrument channel, which holds, per unit and tick,
 # the main skill's `SkillStateController` state, its `SkillAttackController`
 # phase, and its lock and attack target. It is the oracle the simulator's
 # attack state is held to while it is being made a mirror of the build's:
-# a recording shows where a unit goes and whom it hits, the sidecar shows the
+# a recording shows where a unit goes and whom it hits, the channel shows the
 # state that decided it. Across the manifest the kernel's states match it on
 # 99% of unit-ticks; `docs/spec/simulation/architecture.md` says what is left.
 #
 # Every case, not only the smoke tier: a state that differs on one fight is
-# the point. The sidecar is research evidence and is not hashed.
+# the point. The channel is research evidence, outside both hashes.
 #
 # `out` must not already exist: a recording refuses to overwrite.
 
@@ -35,6 +35,4 @@ steps:
           layout: $layout
           seed: ${case.seed}
           output: ${out}/${case.name}.mcfr
-          instrumentation:
-            output: ${out}/${case.name}.h5
-            profile: target_refs_v1
+          instrument: [target_refs]

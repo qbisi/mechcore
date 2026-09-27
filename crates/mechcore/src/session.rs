@@ -8,9 +8,9 @@
 use crate::acquire::{self, Mode, Ownership};
 use crate::adapter;
 use mechcore_protocol::{
-    CaptureInstrumentationProfile, MAX_WATCH_MATCH_TIMEOUT_SECONDS, MAX_WATCH_SCENE_WAIT_SECONDS,
-    Operation, RecordBattleArguments, RecordBattleInstrumentation, RecordReplayRoundArguments,
-    RecordWatchReplayArguments, StartTestArguments,
+    InstrumentChannel, MAX_WATCH_MATCH_TIMEOUT_SECONDS, MAX_WATCH_SCENE_WAIT_SECONDS, Operation,
+    RecordBattleArguments, RecordReplayRoundArguments, RecordWatchReplayArguments,
+    StartTestArguments,
 };
 use serde::Serialize;
 use serde_json::{Value, json};
@@ -349,7 +349,7 @@ impl Session {
         video_output: Option<PathBuf>,
         speed_up: Option<bool>,
         force: bool,
-        instrumentation: Option<RecordBattleInstrumentation>,
+        instrument: Vec<InstrumentChannel>,
     ) -> Result<Value, Value> {
         let _operation = self.operation.lock().await;
         let before = self.refresh_status().await.map_err(error_body)?;
@@ -358,13 +358,7 @@ impl Session {
                 "record_battle requires completed Training Ground deployment: {before}"
             )));
         }
-        validate_record_outputs(
-            "record_battle",
-            &output,
-            video_output.as_deref(),
-            instrumentation.as_ref(),
-            force,
-        )?;
+        validate_record_outputs("record_battle", &output, video_output.as_deref(), force)?;
         let layout_input = self
             .last_applied_layout
             .lock()
@@ -382,7 +376,7 @@ impl Session {
                     output: output.clone(),
                     video_output: video_output.clone(),
                     speed_up,
-                    instrumentation,
+                    instrument,
                 })?,
             )
             .await
@@ -467,7 +461,7 @@ impl Session {
         round: i32,
         output: PathBuf,
         force: bool,
-        instrumentation: Option<RecordBattleInstrumentation>,
+        instrument: Vec<InstrumentChannel>,
     ) -> Result<Value, String> {
         let _operation = self.operation.lock().await;
         self.require_status("main_menu").await?;
@@ -489,14 +483,8 @@ impl Session {
             return Err("record_replay_round output must be an absolute .mcfr path".into());
         }
         *self.last_applied_layout.lock().await = None;
-        validate_record_outputs(
-            "record_replay_round",
-            &output,
-            None,
-            instrumentation.as_ref(),
-            force,
-        )
-        .map_err(|error| error.to_string())?;
+        validate_record_outputs("record_replay_round", &output, None, force)
+            .map_err(|error| error.to_string())?;
         let result = self
             .adapter_request(
                 Operation::RecordReplayRound,
@@ -504,7 +492,7 @@ impl Session {
                     grbr: grbr.clone(),
                     round,
                     output: output.clone(),
-                    instrumentation,
+                    instrument,
                 })?,
             )
             .await?;
@@ -534,7 +522,7 @@ impl Session {
         seed: Option<i32>,
         output: PathBuf,
         force: bool,
-        instrumentation: Option<RecordBattleInstrumentation>,
+        instrument: Vec<InstrumentChannel>,
     ) -> Result<Value, String> {
         let mut plan = mechcore_document::compile(&layout)?;
         plan.seed = seed.or(plan.seed);
@@ -549,23 +537,20 @@ impl Session {
             .map_err(|error| format!("cannot create the layout replay: {error}"))?;
         std::fs::write(file.path(), replay)
             .map_err(|error| format!("cannot write the layout replay: {error}"))?;
-        let sidecar = instrumentation.as_ref().map(|value| value.output.clone());
         let mut result = self
             .record_replay_round(
                 file.path().to_path_buf(),
                 plan.round,
                 output.clone(),
                 force,
-                instrumentation,
+                instrument,
             )
             .await?;
         // A decision the replay records can be refused by the game, which
         // plays on without it, so the recording is held to the layout the
         // game read back as the fight began, as a staged layout is.
         if let Err(error) = fought_as_given(&layout, &plan, &output) {
-            for path in std::iter::once(&output).chain(sidecar.as_ref()) {
-                let _ = std::fs::remove_file(path);
-            }
+            let _ = std::fs::remove_file(&output);
             return Err(error);
         }
         if let Some(operation) = result.get_mut("operation").and_then(Value::as_object_mut) {
@@ -810,7 +795,6 @@ pub(crate) fn validate_record_outputs(
     operation: &str,
     output: &Path,
     video_output: Option<&Path>,
-    instrumentation: Option<&RecordBattleInstrumentation>,
     force: bool,
 ) -> Result<(), Value> {
     if !output.is_absolute() {
@@ -840,59 +824,11 @@ pub(crate) fn validate_record_outputs(
             )));
         }
     }
-    if let Some(instrumentation) = instrumentation {
-        if let Some(scope) = &instrumentation.rvo_scope
-            && (instrumentation.profile != CaptureInstrumentationProfile::TargetRefsRvoV1
-                || scope.start_tick == 0
-                || scope.start_tick > scope.end_tick
-                || scope.end_tick - scope.start_tick >= 64
-                || scope.unit_ids.is_empty()
-                || scope.unit_ids.len() > 8
-                || scope.unit_ids.contains(&0)
-                || scope
-                    .unit_ids
-                    .iter()
-                    .collect::<std::collections::BTreeSet<_>>()
-                    .len()
-                    != scope.unit_ids.len())
-        {
-            return Err(error_body(
-                "rvo_scope requires target_refs_rvo_v1, 1..=8 unique positive MCFR unit_ids, and 1..=64 inclusive positive MCFR ticks",
-            ));
-        }
-        if !instrumentation.output.is_absolute() {
-            return Err(error_body(
-                "record_battle instrumentation output must be absolute",
-            ));
-        }
-        if instrumentation
-            .output
-            .extension()
-            .and_then(|value| value.to_str())
-            != Some("h5")
-        {
-            return Err(error_body(
-                "record_battle instrumentation output must use the .h5 extension",
-            ));
-        }
-        if instrumentation.output == output
-            || video_output == Some(instrumentation.output.as_path())
-        {
-            return Err(error_body("record_battle output paths must differ"));
-        }
-    }
     let output_field = format!("{operation} output");
     let video_field = format!("{operation} video_output");
-    let instrumentation_field = format!("{operation} instrumentation output");
     let destinations = [
         Some((output, output_field.as_str())),
         video_output.map(|path| (path, video_field.as_str())),
-        instrumentation.map(|instrumentation| {
-            (
-                instrumentation.output.as_path(),
-                instrumentation_field.as_str(),
-            )
-        }),
     ];
     remove_existing_outputs(
         &destinations.into_iter().flatten().collect::<Vec<_>>(),
@@ -1140,8 +1076,7 @@ mod tests {
         let output = directory.path().join("battle.mcfr");
         std::fs::write(&output, b"existing").unwrap();
 
-        let refused =
-            validate_record_outputs("record_battle", &output, None, None, false).unwrap_err();
+        let refused = validate_record_outputs("record_battle", &output, None, false).unwrap_err();
         assert!(
             refused["error"]
                 .as_str()
@@ -1151,61 +1086,27 @@ mod tests {
         );
         assert!(output.exists(), "a refusal must leave the file alone");
 
-        validate_record_outputs("record_battle", &output, None, None, true).unwrap();
+        validate_record_outputs("record_battle", &output, None, true).unwrap();
         assert!(!output.exists(), "force removes the destination up front");
-    }
-
-    #[test]
-    fn force_replaces_the_instrumentation_sidecar_with_the_recording() {
-        let directory = tempfile::tempdir().unwrap();
-        let output = directory.path().join("battle.mcfr");
-        let sidecar = RecordBattleInstrumentation {
-            output: directory.path().join("rvo.h5"),
-            profile: CaptureInstrumentationProfile::TargetRefsV1,
-            rvo_scope: None,
-        };
-        std::fs::write(&output, b"existing").unwrap();
-        std::fs::write(&sidecar.output, b"existing").unwrap();
-
-        let refused =
-            validate_record_outputs("record_replay_round", &output, None, Some(&sidecar), false)
-                .unwrap_err();
-        assert!(
-            refused["error"]
-                .as_str()
-                .unwrap()
-                .contains("refuses to overwrite"),
-            "{refused}"
-        );
-        assert!(output.exists() && sidecar.output.exists());
-
-        validate_record_outputs("record_replay_round", &output, None, Some(&sidecar), true)
-            .unwrap();
-        assert!(!output.exists(), "force removes the recording");
-        assert!(!sidecar.output.exists(), "and its sidecar with it");
     }
 
     #[test]
     fn a_refused_destination_leaves_every_other_one_in_place() {
         let directory = tempfile::tempdir().unwrap();
         let output = directory.path().join("battle.mcfr");
-        let sidecar = RecordBattleInstrumentation {
-            output: directory.path().join("rvo.h5"),
-            profile: CaptureInstrumentationProfile::TargetRefsV1,
-            rvo_scope: None,
-        };
+        let video = directory.path().join("battle.mov");
         std::fs::write(&output, b"existing").unwrap();
-        std::fs::create_dir(&sidecar.output).unwrap();
+        std::fs::create_dir(&video).unwrap();
 
-        let refused = validate_record_outputs("record_battle", &output, None, Some(&sidecar), true)
-            .unwrap_err();
+        let refused =
+            validate_record_outputs("record_battle", &output, Some(&video), true).unwrap_err();
         assert!(
             refused["error"].as_str().unwrap().contains("is not a file"),
             "{refused}"
         );
         assert!(
             output.exists(),
-            "the recording must survive a sidecar that cannot be replaced"
+            "the recording must survive a video that cannot be replaced"
         );
     }
 

@@ -14,7 +14,7 @@ use crate::fight;
 use crate::session::Session;
 use mechcore_protocol::{
     DEFAULT_LEVEL, DEFAULT_WATCH_MATCH_TIMEOUT_SECONDS, DEFAULT_WATCH_SCENE_WAIT_SECONDS,
-    MAX_LEVEL, RecordBattleInstrumentation,
+    InstrumentChannel, MAX_LEVEL,
 };
 use serde_json::{Map, Value, json};
 use std::collections::BTreeMap;
@@ -794,23 +794,12 @@ async fn perform(
             if fields.contains_key("force") {
                 return Err("force is not a script field; pass --force to mechcore run".to_string());
             }
-            let instrumentation = instrumentation(fields.get("instrumentation"), scope)?;
+            let instrument = instrument(fields.get("instrument"))?;
             let mut destinations = vec![output.as_path()];
             destinations.extend(video.as_deref());
-            destinations.extend(
-                instrumentation
-                    .as_ref()
-                    .map(|sidecar| sidecar.output.as_path()),
-            );
             let force = confirm_overwrite(scope, &destinations).await?;
             session
-                .record_battle(
-                    output.clone(),
-                    video.clone(),
-                    speed_up,
-                    force,
-                    instrumentation,
-                )
+                .record_battle(output.clone(), video.clone(), speed_up, force, instrument)
                 .await
                 .map_err(|value| value.to_string())
         }
@@ -836,16 +825,10 @@ async fn perform(
             if fields.contains_key("force") {
                 return Err("force is not a script field; pass --force to mechcore run".to_string());
             }
-            let instrumentation = instrumentation(fields.get("instrumentation"), scope)?;
-            let mut destinations = vec![output.as_path()];
-            destinations.extend(
-                instrumentation
-                    .as_ref()
-                    .map(|sidecar| sidecar.output.as_path()),
-            );
-            let force = confirm_overwrite(scope, &destinations).await?;
+            let instrument = instrument(fields.get("instrument"))?;
+            let force = confirm_overwrite(scope, &[output.as_path()]).await?;
             session
-                .record_replay_round(grbr, round, output.clone(), force, instrumentation)
+                .record_replay_round(grbr, round, output.clone(), force, instrument)
                 .await
         }
         "game.record_layout" => {
@@ -853,12 +836,9 @@ async fn perform(
                 .as_object()
                 .ok_or("record_layout takes a mapping")?;
             for key in fields.keys() {
-                if !matches!(
-                    key.as_str(),
-                    "layout" | "seed" | "output" | "instrumentation"
-                ) {
+                if !matches!(key.as_str(), "layout" | "seed" | "output" | "instrument") {
                     return Err(format!(
-                        "record_layout accepts layout, seed, output and instrumentation, got {key}"
+                        "record_layout accepts layout, seed, output and instrument, got {key}"
                     ));
                 }
             }
@@ -879,16 +859,10 @@ async fn perform(
                 fields.get("output").ok_or("record_layout needs output")?,
                 "record_layout output",
             )?;
-            let instrumentation = instrumentation(fields.get("instrumentation"), scope)?;
-            let mut destinations = vec![output.as_path()];
-            destinations.extend(
-                instrumentation
-                    .as_ref()
-                    .map(|sidecar| sidecar.output.as_path()),
-            );
-            let force = confirm_overwrite(scope, &destinations).await?;
+            let instrument = instrument(fields.get("instrument"))?;
+            let force = confirm_overwrite(scope, &[output.as_path()]).await?;
             session
-                .record_layout(layout, seed, output.clone(), force, instrumentation)
+                .record_layout(layout, seed, output.clone(), force, instrument)
                 .await
         }
         "game.record_watch_replay" => {
@@ -965,15 +939,17 @@ async fn confirm_overwrite(scope: &Scope, destinations: &[&Path]) -> Result<bool
     Ok(matches!(answer.trim(), "y" | "Y" | "yes"))
 }
 
-fn instrumentation(
-    value: Option<&Value>,
-    scope: &Scope,
-) -> Result<Option<RecordBattleInstrumentation>, String> {
-    let Some(value) = value else { return Ok(None) };
-    let mut parameters: RecordBattleInstrumentation = serde_json::from_value(value.clone())
-        .map_err(|error| format!("invalid instrumentation: {error}"))?;
-    parameters.output = scope.path(&json!(parameters.output), "instrumentation output")?;
-    Ok(Some(parameters))
+/// The instrument channels a recording step asks for: a list of channel names,
+/// recorded into the step's own MCFR.
+fn instrument(value: Option<&Value>) -> Result<Vec<InstrumentChannel>, String> {
+    let Some(value) = value else {
+        return Ok(Vec::new());
+    };
+    let mut channels: Vec<InstrumentChannel> = serde_json::from_value(value.clone())
+        .map_err(|error| format!("instrument must be a list of channel names: {error}"))?;
+    channels.sort_unstable();
+    channels.dedup();
+    Ok(channels)
 }
 
 /// Split `apply_layout` arguments into the layout and an optional seed override.
@@ -1144,17 +1120,23 @@ mod tests {
     use super::*;
 
     #[test]
-    fn recording_instrumentation_resolves_paths_and_preserves_scope() {
-        let scope = scope_with(&[]);
-        assert!(instrumentation(None, &scope).unwrap().is_none());
-        let value = json!({"output":"local.h5", "profile":"target_refs_rvo_v1",
-            "rvo_scope":{"start_tick":4,"end_tick":12,"unit_ids":[72,117]}});
-        let parsed = instrumentation(Some(&value), &scope).unwrap().unwrap();
-        assert_eq!(parsed.output, PathBuf::from("/base/local.h5"));
-        assert_eq!(parsed.rvo_scope.unwrap().unit_ids, vec![72, 117]);
-        let mut invalid = value;
-        invalid["unknown"] = json!(true);
-        assert!(instrumentation(Some(&invalid), &scope).is_err());
+    fn a_recording_asks_for_channels_by_name() {
+        assert!(instrument(None).unwrap().is_empty());
+        let channels = instrument(Some(&json!([
+            "selector_score",
+            "target_refs",
+            "target_refs"
+        ])))
+        .unwrap();
+        assert_eq!(
+            channels,
+            [
+                InstrumentChannel::TargetRefs,
+                InstrumentChannel::SelectorScore
+            ]
+        );
+        assert!(instrument(Some(&json!(["rvo"]))).is_err());
+        assert!(instrument(Some(&json!({"output": "local.h5"}))).is_err());
     }
 
     #[tokio::test]

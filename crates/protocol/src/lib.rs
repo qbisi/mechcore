@@ -8,7 +8,7 @@ use std::path::PathBuf;
 /// A running game keeps the Adapter it was started with, so a rebuilt Adapter
 /// and a running game can differ. Naming the contract is what turns that into
 /// one clear refusal at connect time instead of a desynchronised stream.
-pub const PROTOCOL: &str = "mechcore.adapter.v7";
+pub const PROTOCOL: &str = "mechcore.adapter.v8";
 /// Highest round `apply_layout` will stage.
 ///
 /// This is the executor's timeout budget for advancing through every earlier
@@ -312,7 +312,9 @@ pub struct RecordBattleArguments {
     /// Request native combat speed-up. `None` leaves the adapter default, which
     /// is on with or without a visual recording.
     pub speed_up: Option<bool>,
-    pub instrumentation: Option<RecordBattleInstrumentation>,
+    /// Instrument channels to record into the MCFR, outside both hashes.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub instrument: Vec<InstrumentChannel>,
 }
 
 /// Arguments for [`Operation::RecordReplayRound`].
@@ -325,7 +327,9 @@ pub struct RecordReplayRoundArguments {
     pub round: i32,
     /// Absolute destination for the new MCFR recording.
     pub output: PathBuf,
-    pub instrumentation: Option<RecordBattleInstrumentation>,
+    /// Instrument channels to record into the MCFR, outside both hashes.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub instrument: Vec<InstrumentChannel>,
 }
 
 /// Arguments for [`Operation::RecordWatchReplay`].
@@ -348,49 +352,36 @@ pub struct RecordWatchReplayArguments {
     pub match_timeout_seconds: u64,
 }
 
-/// Research-only instrumentation request accepted by the recording operations.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct RecordBattleInstrumentation {
-    /// Absolute destination for the new HDF5 instrumentation sidecar.
-    pub output: PathBuf,
-    pub profile: CaptureInstrumentationProfile,
-    /// Bound RVO detail to selected MCFR units and combat update-start ticks.
-    pub rvo_scope: Option<RvoCaptureScope>,
-}
-
-/// Temporary research profile selecting which instrumentation channels record.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+/// An instrument channel a recording can carry: a view of the fight's inside,
+/// stored in the MCFR beside its tables and read by neither hash. Channels
+/// combine freely, so one recording answers every question asked of it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum CaptureInstrumentationProfile {
-    TargetRefsV1,
-    TargetRefsRvoV1,
-    SkillAttackableCheckerV1,
-    SelectorScoreV1,
-    SelectorScoreRvoV1,
+pub enum InstrumentChannel {
+    /// Each unit's lock and its main skill's targets and state, every tick.
+    TargetRefs,
+    /// Every `SkillAttackableChecker.Check` call, with the skill before and after.
+    SkillAttackableChecker,
+    /// Every `ScoreRatingTargetSelector.CalculateScore` call.
+    SelectorScore,
 }
 
-impl CaptureInstrumentationProfile {
+impl InstrumentChannel {
+    pub const ALL: [Self; 3] = [
+        Self::TargetRefs,
+        Self::SkillAttackableChecker,
+        Self::SelectorScore,
+    ];
+
+    /// The channel's name, which is also its member's file stem in the MCFR.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::TargetRefsV1 => "target_refs_v1",
-            Self::TargetRefsRvoV1 => "target_refs_rvo_v1",
-            Self::SkillAttackableCheckerV1 => "skill_attackable_checker_v1",
-            Self::SelectorScoreV1 => "selector_score_v1",
-            Self::SelectorScoreRvoV1 => "selector_score_rvo_v1",
+            Self::TargetRefs => "target_refs",
+            Self::SkillAttackableChecker => "skill_attackable_checker",
+            Self::SelectorScore => "selector_score",
         }
     }
-}
-
-/// Research-only filter using one-based MCFR combat ticks. In the build,
-/// `FightController.Update` advances the native time counter by 100 per tick.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct RvoCaptureScope {
-    pub start_tick: u64,
-    pub end_tick: u64,
-    pub unit_ids: Vec<u64>,
 }
 
 #[cfg(test)]
@@ -454,7 +445,7 @@ mod tests {
             .unwrap(),
             serde_json::json!({
                 "kind": "hello",
-                "protocol": "mechcore.adapter.v7",
+                "protocol": "mechcore.adapter.v8",
                 "capabilities": [
                     "status",
                     "start_test",
@@ -478,7 +469,7 @@ mod tests {
             serde_json::to_value(Claim::current(DEFAULT_LEVEL)).unwrap(),
             serde_json::json!({
                 "kind": "claim",
-                "protocol": "mechcore.adapter.v7",
+                "protocol": "mechcore.adapter.v8",
                 "level": 1,
             })
         );
@@ -486,7 +477,7 @@ mod tests {
             serde_json::to_value(Busy::current(3, true)).unwrap(),
             serde_json::json!({
                 "kind": "busy",
-                "protocol": "mechcore.adapter.v7",
+                "protocol": "mechcore.adapter.v8",
                 "holder_level": 3,
                 "evicting": true,
             })
@@ -495,7 +486,7 @@ mod tests {
             serde_json::to_value(Evicted::current(4)).unwrap(),
             serde_json::json!({
                 "kind": "evicted",
-                "protocol": "mechcore.adapter.v7",
+                "protocol": "mechcore.adapter.v8",
                 "by_level": 4,
             })
         );
@@ -528,7 +519,7 @@ mod tests {
             grbr: PathBuf::from("/tmp/a.grbr"),
             round: 2,
             output: PathBuf::from("/tmp/a.mcfr"),
-            instrumentation: None,
+            instrument: Vec::new(),
         })
         .unwrap();
         assert_eq!(
@@ -536,8 +527,7 @@ mod tests {
             serde_json::json!({
                 "grbr": "/tmp/a.grbr",
                 "round": 2,
-                "output": "/tmp/a.mcfr",
-                "instrumentation": null
+                "output": "/tmp/a.mcfr"
             })
         );
 
@@ -545,15 +535,10 @@ mod tests {
             output: PathBuf::from("/tmp/b.mcfr"),
             video_output: None,
             speed_up: Some(true),
-            instrumentation: Some(RecordBattleInstrumentation {
-                output: PathBuf::from("/tmp/b.h5"),
-                profile: CaptureInstrumentationProfile::TargetRefsRvoV1,
-                rvo_scope: Some(RvoCaptureScope {
-                    start_tick: 1,
-                    end_tick: 2,
-                    unit_ids: vec![7],
-                }),
-            }),
+            instrument: vec![
+                InstrumentChannel::TargetRefs,
+                InstrumentChannel::SkillAttackableChecker,
+            ],
         })
         .unwrap();
         assert_eq!(
@@ -562,11 +547,7 @@ mod tests {
                 "output": "/tmp/b.mcfr",
                 "video_output": null,
                 "speed_up": true,
-                "instrumentation": {
-                    "output": "/tmp/b.h5",
-                    "profile": "target_refs_rvo_v1",
-                    "rvo_scope": {"start_tick": 1, "end_tick": 2, "unit_ids": [7]}
-                }
+                "instrument": ["target_refs", "skill_attackable_checker"]
             })
         );
 

@@ -1,18 +1,18 @@
-# MCFR v7 格式规范（format 0.7.0）
+# MCFR 格式规范（format 0.8.0）
 
 [English](mcfr.md)
 
-本文描述仓库当前实现的 MCFR v6 逻辑模型、物理容器、Adapter 原生采集来源和 Reader/Writer 校验契约。统一格式标识为：
+本文描述仓库当前实现的 MCFR 逻辑模型、物理容器、Adapter 原生采集来源和 Reader/Writer 校验契约。统一格式标识为：
 
 ```text
-format = "0.7.0"
+format = "0.8.0"
 ```
 
 当前 Adapter 原生字段映射绑定仓库在 `GAME_VERSION` 钉住的游戏版本。其他版本可以生成同格式录像，前提是 Producer 已验证所用原生接口与本文语义一致。
 
 ## 文件结构
 
-一份 `.mcfr` 是 STORE-only ZIP64，成员集合固定为：
+一份 `.mcfr` 是 STORE-only ZIP64，成员集合固定，另加录像请求过的 instrument 通道：
 
 ```text
 recording.mcfr
@@ -23,8 +23,16 @@ recording.mcfr
 ├── buildings.parquet
 ├── shields.parquet
 ├── terrains.parquet
-└── events.jsonl
+├── events.jsonl
+└── instrument/<channel>.parquet   零个或多个
 ```
+
+instrument 通道是研究要看的战斗内部过程（技能状态机、一次决策方法的每次调用），
+每个通道一个成员 `instrument/<channel>.parquet`，两层哈希都不读它，所以要不要通道
+不影响任何钉子。通道的行是一个 Rust 类型，Arrow schema 从类型推出；第一列是
+`tick`（`u32`），其后是类型自己的字段。请求了但没观测到行的通道也会发布为空成员；
+没请求的通道不存在，读者得到 `None`。每个通道每 tick 的量不超过实体数的常数倍。
+字段定义以 [English](mcfr.md#instrument-channels) 为准。
 
 | 成员 | 逻辑内容 | 时间覆盖 | 物理编码 |
 | --- | --- | --- | --- |
@@ -86,7 +94,7 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 
 | key | 数据规范 | 含义 |
 | --- | --- | --- |
-| `format` | 精确值 `0.7.0` | MCFR 逻辑与物理契约版本 |
+| `format` | 精确值 `0.8.0` | MCFR 逻辑与物理契约版本 |
 | `game_build` | 非空 UTF-8 | 采集构建 provenance；Adapter 来自 `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | 单回合保持稳定的上下文 `D` |
 | `physics_hash_profile` | 精确值 `battle-physics-v2` | 稳定物理投影版本 |
@@ -119,7 +127,7 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 | 字段 | Parquet 类型 | 含义 | Adapter 原生来源 |
 | --- | --- | --- | --- |
 | `tick` | `UINT32 required` | 状态所属逻辑时刻 | Adapter 逻辑帧计数 |
-| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.7.0 身份规则，见附录 B |
+| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.8.0 身份规则，见附录 B |
 | `team_id` | `UINT32 required` | 当前所属队伍 | `FightTeam` controller index |
 | `original_team_id` | `UINT32 required` | 首次出现时的队伍 | 首次采样的 `team_id` |
 | `formation_id` | `UINT64 required` | 编队身份 | `FightMech.GetMechTeam()` 指针映射 |
@@ -637,9 +645,9 @@ ObjectRef = { kind: ObjectKind, id: u64 }
 
 # 附录 B — 身份与排序约定
 
-## B.1 format 0.7.0 身份规则
+## B.1 format 0.8.0 身份规则
 
-format `0.7.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
+format `0.8.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
 
 战斗期间首次出现的 Unit 按首次观察顺序取得当前 Unit namespace 的下一个连续编号。Unit namespace 从 1 开始单调递增；历史引用持续使用对象首次取得的编号。
 

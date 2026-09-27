@@ -1,15 +1,15 @@
-# MCFR v7, format 0.7.0
+# MCFR, format 0.8.0
 
 [简体中文](mcfr.zh.md)
 
 ## Scope
 
-This contract defines the MCFR v6 logical model: the container's members, the
+This contract defines the MCFR logical model: the container's members, the
 schema of each, the identity and ordering rules that make two recordings of one
 battle the same recording, and what a reader must validate before trusting one.
 
 ```text
-format = "0.7.0"
+format = "0.8.0"
 ```
 
 The native field mapping is bound to the game version the repository pins in
@@ -28,7 +28,8 @@ everything else, so the added field is still not invisible.
 
 ## Container shape
 
-An `.mcfr` is a STORE-only ZIP64 whose member set is fixed:
+An `.mcfr` is a STORE-only ZIP64 whose member set is fixed, apart from the
+instrument channels a recording asked for:
 
 ```text
 recording.mcfr
@@ -39,7 +40,8 @@ recording.mcfr
 ├── buildings.parquet
 ├── shields.parquet
 ├── terrains.parquet
-└── events.jsonl
+├── events.jsonl
+└── instrument/<channel>.parquet   zero or more
 ```
 
 | Member | Logical content | Time covered | Physical encoding |
@@ -52,6 +54,7 @@ recording.mcfr
 | `shields.parquet` | battlefield shields still present in AdvancedEnergyShieldSystem | `S(1)..S(n)` | Parquet + Zstd level 6 |
 | `terrains.parquet` | dynamic battlefield terrain in RangeItemSystem, with its unit applications | `S(1)..S(n)` | Parquet + Zstd level 6 |
 | `events.jsonl` | ordered discrete events between adjacent snapshots | `E(1)..E(n)` | UTF-8 JSON Lines, LF endings |
+| `instrument/<channel>.parquet` | one [instrument channel](#instrument-channels), outside both hashes | the ticks it has rows for | Parquet + Zstd level 6 |
 
 The ZIP layer stores; compression is the Parquet pages' Zstd. The six Parquet
 members flush a row group every 128 logical ticks, with at most 1,000,000 rows
@@ -114,7 +117,7 @@ Parquet key-value metadata keys and values are both UTF-8 strings.
 
 | Key | Data | Meaning |
 | --- | --- | --- |
-| `format` | exactly `0.7.0` | the logical and physical contract version |
+| `format` | exactly `0.8.0` | the logical and physical contract version |
 | `game_build` | non-empty UTF-8 | capture provenance; the adapter reads `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | the context `D` that holds steady for one round |
 | `physics_hash_profile` | exactly `battle-physics-v2` | the stable physics projection version |
@@ -683,6 +686,31 @@ Buffs are not events. Their observation lives on the unit state track: boolean
 state in `status_mask`, aggregate numeric corrections in `buff_modifiers`, and a
 buff's evolution is the change in those fields between adjacent snapshots.
 
+## Instrument channels
+
+A channel is what a study asked to see of how the fight did what the
+recording says it did: a skill's state machine, every call of a decision
+method. It rides in the recording as `instrument/<channel>.parquet`, and
+neither hash reads it, so asking for a channel never changes a pin and a
+channel's schema can change without a format version.
+
+- A channel's rows are one Rust type, and its Arrow schema is traced from that
+  type (`serde_arrow`, enums without data as strings). The member's first
+  column is `tick`, `u32`, the tick the row was observed on; the type's own
+  fields follow and never include `tick`.
+- A channel a recording asked for is published even if it observed nothing, as
+  a member with no rows. A channel it did not ask for is absent, and a reader
+  answers `None` for it rather than an empty list.
+- Rows are written as the fight is, in the row groups of the state tables, not
+  held until the recording finishes.
+- A channel's volume per tick is bounded by a constant times the number of
+  entities: what it records per entity has an upper bound, and pairs of
+  entities are not recorded.
+
+The channels the Adapter records are `target_refs`,
+`skill_attackable_checker` and `selector_score`
+([adapter.md](../adapter/adapter.md#record_replay_round)).
+
 ## Writing, reading and validation
 
 The writer's public lifecycle is:
@@ -694,6 +722,9 @@ append_tick(S(1), E(1))
 append_tick(S(n), E(n))
 finish()
 ```
+
+`append_instrument(rows)` may follow any `append_tick`, and adds rows of one
+channel to the tick last appended.
 
 It creates temporary members and a `.zip.part` beside the target, completes the
 Parquet footers, the JSONL and the ZIP envelope, reopens the result with
@@ -711,6 +742,8 @@ a successful `finish()` publishes a file.
 On opening a container, a reader verifies:
 
 - the ZIP member set, the STORE method, ZIP64 readability and member uniqueness;
+  a member outside the fixed set is admitted only as `instrument/<channel>.parquet`
+  with a channel name of lowercase letters, digits and underscores;
 - `layout.yaml` as UTF-8, its shared structure, its canonical representation,
   and its round's agreement with the DurableContext;
 - the six Parquet schemas, their required and nullable structure, and Zstd
@@ -732,6 +765,10 @@ has located a divergence can then read that tick's full content and
 
 A legal recording has at least `T(1)`, no tick 0 state or event, and ends
 completely at `terminal_tick`.
+
+A channel is decoded when it is read, not when the recording is opened: its
+rows are checked against the row type the reader asks for, and each tick
+against `1..=tick_count`.
 
 ## Common types and enum tags
 
@@ -771,7 +808,7 @@ Identity is what makes two recordings of one battle the same recording, so
 every namespace numbers its objects by a rule that depends on the scene rather
 than on the pointer that happened to be observed first.
 
-Format `0.7.0` uses `team_zx_sequential_v1`.
+Format `0.8.0` uses `team_zx_sequential_v1`.
 
 **Units.** Initial units sort strictly ascending by `(team_id, position.z,
 position.x)` and take `unit_id = 1..N` in that order. Initial units on one team
@@ -892,7 +929,7 @@ while a new purely diagnostic field never forces a re-record.
 
 State and events are first encoded as canonical JSON: UTF-8, object keys sorted
 recursively, compact encoding, and the array order the schema defines. It covers
-every `S(t)` and `E(t)` field of format 0.7.0 and diagnoses capture
+every `S(t)` and `E(t)` field and diagnoses capture
 completeness within one format. It carries neither the layout, nor the
 DurableContext, nor any other file metadata.
 
@@ -913,8 +950,9 @@ also says where two recordings differ field by field, which a hash cannot:
 
 ## Physical encoding
 
-- ZIP member order is fixed: `ticks`, `units`, `projectiles`, `buildings`,
-  `shields`, `terrains`, `events`.
+- ZIP member order is fixed: `layout`, `ticks`, `units`, `projectiles`,
+  `buildings`, `shields`, `terrains`, `events`, then the instrument channels by
+  name.
 - ZIP members use STORE with a fixed timestamp; Parquet column chunks use Zstd
   level 6.
 - The Parquet global dictionary is off. Low-cardinality columns enable a
