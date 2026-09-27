@@ -173,6 +173,10 @@ extern "C" fn load_runtime_on_main(context: *mut c_void) {
     if let Err(error) = crate::headless::skip_the_resolution_check(invocation.api) {
         eprintln!("mechcore-adapter: {error}");
     }
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    if let Err(error) = crate::watch::initialize(invocation.api) {
+        eprintln!("mechcore-adapter: {error}");
+    }
     invocation.result = Some(Runtime::load(invocation.api).map(|runtime| {
         let mut runtime = Box::new(runtime);
         capture::initialize(&mut runtime);
@@ -753,6 +757,7 @@ fn serve_client(
             ),
             Operation::RecordReplayRound => execute_replay_recording_series(runtime, &request),
             Operation::RecordWatchReplay => execute_watch_replay_series(runtime, &request),
+            Operation::SaveReplay => execute_save_replay(runtime, &request),
             _ => execute_on_main(runtime, &request),
         };
         write_json_line(&mut stream, &response)?;
@@ -1089,6 +1094,86 @@ fn execute_watch_replay_series(runtime: &mut Runtime, request: &Request) -> Resp
             "scene": scene,
             "cleanup": {"match_exited": true},
             "status": cleanup,
+        }),
+    )
+}
+
+/// `save_replay`: the match being watched saved as it stands, finished or
+/// not, and the file the game wrote, once it has settled. The game names a
+/// replay after its match, so a second save of one match rewrites the same
+/// file; `output`, when given, is a new file the replay is copied to.
+fn execute_save_replay(runtime: &mut Runtime, request: &Request) -> Response<Value> {
+    let output = match request.arguments.get("output") {
+        None | Some(Value::Null) => None,
+        Some(Value::String(path)) if Path::new(path).is_absolute() => Some(PathBuf::from(path)),
+        Some(_) => {
+            return Response::failure(
+                request.id,
+                "invalid_arguments",
+                "output must be an absolute path",
+            );
+        }
+    };
+    let replay_dir = match native_replay_directory() {
+        Ok(directory) => directory,
+        Err(error) => return Response::failure(request.id, "native_replay_io", error),
+    };
+    let baseline = match replay_snapshot(&replay_dir) {
+        Ok(snapshot) => snapshot,
+        Err(error) => {
+            return Response::failure(
+                request.id,
+                "native_replay_io",
+                format!("cannot read {}: {error}", replay_dir.display()),
+            );
+        }
+    };
+    if let Err(response) = successful_result(execute_internal_on_main(
+        runtime,
+        request.id,
+        operations::InternalOperation::SaveWatchReplay,
+    )) {
+        return response;
+    }
+    let source = match wait_for_stable_replay(
+        &replay_dir,
+        &baseline,
+        Instant::now() + WATCH_EXPLICIT_SAVE_TIMEOUT,
+        evicting,
+    ) {
+        Ok(Some(path)) => path,
+        Ok(None) if evicting() => return evicted_response(request.id),
+        Ok(None) => {
+            return Response::failure(
+                request.id,
+                "native_replay_missing",
+                format!(
+                    "the save produced no stable .grbr in {}",
+                    replay_dir.display()
+                ),
+            );
+        }
+        Err(error) => return Response::failure(request.id, "native_replay_io", error),
+    };
+    if let Some(output) = &output
+        && let Err(error) = copy_new_file(&source, output)
+    {
+        return Response::failure(
+            request.id,
+            "publish_replay_failed",
+            format!(
+                "cannot copy {} to {}: {error}",
+                source.display(),
+                output.display()
+            ),
+        );
+    }
+    Response::success(
+        request.id,
+        serde_json::json!({
+            "saved": true,
+            "native_source": source,
+            "output": output,
         }),
     )
 }

@@ -120,6 +120,9 @@ than redefining them.
 | `game.toggle_fight` | yes | |
 | `game.speed_up` | yes | standalone operation, distinct from the recording field |
 | `game.quit_match` | yes | |
+| `game.watch_scenes` | yes | optional `refresh`, `true` by default; the lobby's page of match-made scenes, waiting for a refreshed page |
+| `game.watch_scene` | yes | `scene_id`; joins as a spectator and waits for the server's `live` stage, or leaves again and reports `joined: false` |
+| `game.save_replay` | yes | optional `output`; saves the match being watched as it stands |
 | `game.quit_game` | yes | |
 
 A step that writes a file refuses to overwrite it, and a script does not
