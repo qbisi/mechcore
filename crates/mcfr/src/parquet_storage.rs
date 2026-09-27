@@ -33,8 +33,8 @@ use zip::{CompressionMethod, ZipArchive, ZipWriter, write::SimpleFileOptions};
 use crate::{
     BuffModifierSet, BuildingState, CONTENT_HASH_PROFILE, DerivedStats, Domain, DurableContext,
     Error, Event, EventPayload, GaugeI32, Hashes, LiveUnitState, MCFR_FORMAT, MotionState,
-    ObjectKind, ObjectRef, PHYSICS_HASH_PROFILE, PersonalShieldState, ProjectileState, QPose,
-    QVec3, RateModifier, Result, ShieldRoundPolicy, ShieldSourceKind, ShieldState,
+    ObjectKind, ObjectRef, PHYSICS_HASH_PROFILE, PersonalShieldState, ProjectileState, QPlanar,
+    QPose, QVec3, RateModifier, Result, ShieldRoundPolicy, ShieldSourceKind, ShieldState,
     SkillDynamicModifierSet, SkillNumericModifierState, TerrainApplicationState,
     TerrainEffectClock, TerrainGridState, TerrainLogicLifetime, TerrainState, TerrainType,
     TransitionEvents, UnitDynamicModifierSet, ValueModifier, Visibility, WeaponAimState,
@@ -477,7 +477,6 @@ fn dictionary_paths(track: Track) -> &'static [&'static str] {
         Track::Projectiles => &[
             "team_id",
             "owner.kind",
-            "orientation",
             "target.kind",
             "cached_target_radius",
             "life.maximum",
@@ -548,7 +547,7 @@ fn unit_batch(rows: &[(u32, LiveUnitState)]) -> Result<Option<RecordBatch>> {
             vec3_values(units.iter().map(|row| row.position)),
             i64_values(units.iter().map(|row| row.body_rotation)),
             optional_i64_values(units.iter().map(|row| row.turret_rotation)),
-            vec3_values(units.iter().map(|row| row.velocity)),
+            planar_values(units.iter().map(|row| row.velocity)),
             u8_values(units.iter().map(|row| encode_motion(row.motion_state))),
             object_ref_values(units.iter().map(|row| row.mech_lock_target)),
             i64_values(units.iter().map(|row| row.collision_radius)),
@@ -580,11 +579,9 @@ fn projectile_batch(rows: &[(u32, ProjectileState)]) -> Result<Option<RecordBatc
             u32_values(values.iter().map(|row| row.team_id)),
             object_ref_values(values.iter().map(|row| row.owner)),
             vec3_values(values.iter().map(|row| row.position)),
-            i64_values(values.iter().map(|row| row.orientation)),
             object_ref_values(values.iter().map(|row| row.target)),
             vec3_values(values.iter().map(|row| row.cached_target_position)),
             i64_values(values.iter().map(|row| row.cached_target_radius)),
-            bool_values(values.iter().map(|row| row.released)),
             gauge_values(values.iter().map(|row| row.life)),
             object_ref_list_values(values.iter().map(|row| &row.spawn_containing_shields))?,
         ],
@@ -734,6 +731,18 @@ fn vec3_values(values: impl IntoIterator<Item = QVec3>) -> ArrayRef {
         vec![
             i64_values(values.iter().map(|value| value.x)),
             i64_values(values.iter().map(|value| value.y)),
+            i64_values(values.iter().map(|value| value.z)),
+        ],
+        None,
+    ))
+}
+
+fn planar_values(values: impl IntoIterator<Item = QPlanar>) -> ArrayRef {
+    let values = values.into_iter().collect::<Vec<_>>();
+    Arc::new(StructArray::new(
+        planar_fields(),
+        vec![
+            i64_values(values.iter().map(|value| value.x)),
             i64_values(values.iter().map(|value| value.z)),
         ],
         None,
@@ -1227,7 +1236,7 @@ fn unit_schema() -> SchemaRef {
         struct_field("position", vec3_fields(), false),
         Field::new("body_rotation", DataType::Int64, false),
         Field::new("turret_rotation", DataType::Int64, true),
-        struct_field("velocity", vec3_fields(), false),
+        struct_field("velocity", planar_fields(), false),
         Field::new("motion_state", DataType::UInt8, false),
         struct_field("mech_lock_target", object_ref_fields(), true),
         Field::new("collision_radius", DataType::Int64, false),
@@ -1283,11 +1292,9 @@ fn projectile_schema() -> SchemaRef {
         Field::new("team_id", DataType::UInt32, false),
         struct_field("owner", object_ref_fields(), true),
         struct_field("position", vec3_fields(), false),
-        Field::new("orientation", DataType::Int64, false),
         struct_field("target", object_ref_fields(), true),
         struct_field("cached_target_position", vec3_fields(), false),
         Field::new("cached_target_radius", DataType::Int64, false),
-        Field::new("released", DataType::Boolean, false),
         struct_field("life", gauge_fields(), false),
         list_field("spawn_containing_shields", object_ref_fields()),
     ]))
@@ -1313,6 +1320,14 @@ fn vec3_fields() -> Fields {
     vec![
         Field::new("x", DataType::Int64, false),
         Field::new("y", DataType::Int64, false),
+        Field::new("z", DataType::Int64, false),
+    ]
+    .into()
+}
+
+fn planar_fields() -> Fields {
+    vec![
+        Field::new("x", DataType::Int64, false),
         Field::new("z", DataType::Int64, false),
     ]
     .into()
@@ -2108,7 +2123,7 @@ fn read_units(member: MemberSlice) -> Result<Vec<(u32, LiveUnitState)>> {
                     turret_rotation: turret_rotation
                         .is_valid(index)
                         .then(|| turret_rotation.value(index)),
-                    velocity: read_vec3(velocity, index)?,
+                    velocity: read_planar(velocity, index)?,
                     motion_state: decode_motion(motion.value(index))?,
                     mech_lock_target: read_optional_ref(target, index)?,
                     collision_radius: radius.value(index),
@@ -2281,11 +2296,9 @@ fn read_projectiles(member: MemberSlice) -> Result<Vec<(u32, ProjectileState)>> 
         let team = column::<UInt32Array>(&batch, "team_id")?;
         let owner = struct_column(&batch, "owner")?;
         let position = struct_column(&batch, "position")?;
-        let orientation = column::<Int64Array>(&batch, "orientation")?;
         let target = struct_column(&batch, "target")?;
         let cached = struct_column(&batch, "cached_target_position")?;
         let radius = column::<Int64Array>(&batch, "cached_target_radius")?;
-        let released = column::<BooleanArray>(&batch, "released")?;
         let life = struct_column(&batch, "life")?;
         let spawn_containing_shields = column::<ListArray>(&batch, "spawn_containing_shields")?;
         for index in 0..batch.num_rows() {
@@ -2296,11 +2309,9 @@ fn read_projectiles(member: MemberSlice) -> Result<Vec<(u32, ProjectileState)>> 
                     team_id: team.value(index),
                     owner: read_optional_ref(owner, index)?,
                     position: read_vec3(position, index)?,
-                    orientation: orientation.value(index),
                     target: read_optional_ref(target, index)?,
                     cached_target_position: read_vec3(cached, index)?,
                     cached_target_radius: radius.value(index),
-                    released: released.value(index),
                     life: read_gauge(life, index)?,
                     spawn_containing_shields: read_object_ref_list(
                         spawn_containing_shields,
@@ -2354,6 +2365,13 @@ fn read_vec3(array: &StructArray, index: usize) -> Result<QVec3> {
     Ok(QVec3 {
         x: struct_child::<Int64Array>(array, "x")?.value(index),
         y: struct_child::<Int64Array>(array, "y")?.value(index),
+        z: struct_child::<Int64Array>(array, "z")?.value(index),
+    })
+}
+
+fn read_planar(array: &StructArray, index: usize) -> Result<QPlanar> {
+    Ok(QPlanar {
+        x: struct_child::<Int64Array>(array, "x")?.value(index),
         z: struct_child::<Int64Array>(array, "z")?.value(index),
     })
 }

@@ -16,8 +16,8 @@ use std::{
 use mechcore_mcfr::{
     BuildingState, DerivedStats, Domain, DurableContext, Event, EventPayload, GaugeI32, Hashes,
     IdentityAllocator, LiveUnitState, McfrReader, McfrWriter, MotionState, ObjectKind, ObjectRef,
-    PersonalShieldState, ProjectileState, QVec3, Rational, TickSlice, TransitionEvents, Visibility,
-    WeaponAimState, WorldSnapshot,
+    PersonalShieldState, ProjectileState, QPlanar, QVec3, Rational, TickSlice, TransitionEvents,
+    Visibility, WeaponAimState, WorldSnapshot,
 };
 
 use serde::Serialize;

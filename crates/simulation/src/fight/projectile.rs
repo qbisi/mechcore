@@ -47,7 +47,6 @@ impl Projectile {
                 y: self.y_q32,
                 z: self.z_q32,
             },
-            orientation: 0,
             target: Some(ObjectRef::new(self.target_kind, self.target)),
             cached_target_position: QVec3 {
                 x: self.cached_target_x_q32,
@@ -55,7 +54,6 @@ impl Projectile {
                 z: self.cached_target_z_q32,
             },
             cached_target_radius: space_to_q32(self.cached_target_radius),
-            released: false,
             life: GaugeI32 {
                 current: i32::try_from(self.life).expect("projectile life fits i32"),
                 maximum: i32::try_from(self.life).expect("projectile life fits i32"),

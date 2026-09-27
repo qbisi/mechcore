@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result, canonical};
 
-pub const MCFR_FORMAT: &str = "0.9.0";
-pub const PHYSICS_HASH_PROFILE: &str = "battle-physics-v2";
-pub const CONTENT_HASH_PROFILE: &str = "mcfr-content-0.7.0";
+pub const MCFR_FORMAT: &str = "0.10.0";
+pub const PHYSICS_HASH_PROFILE: &str = "battle-physics-v3";
+pub const CONTENT_HASH_PROFILE: &str = "mcfr-content-0.10.0";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -500,6 +500,15 @@ pub struct QVec3 {
     pub z: i64,
 }
 
+/// A vector on the ground plane, raw Q32.32: world `x` and `z`. Movement has
+/// no vertical part in this build.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(deny_unknown_fields)]
+pub struct QPlanar {
+    pub x: i64,
+    pub z: i64,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct QPose {
@@ -551,7 +560,7 @@ pub struct LiveUnitState {
     /// target and measures its attack angle from, while `body_rotation`
     /// keeps the chassis. Null for a unit without a body.
     pub turret_rotation: Option<i64>,
-    pub velocity: QVec3,
+    pub velocity: QPlanar,
     pub motion_state: MotionState,
     pub mech_lock_target: Option<ObjectRef>,
     pub collision_radius: i64,
@@ -881,12 +890,10 @@ pub struct ProjectileState {
     #[serde(default)]
     pub owner: Option<ObjectRef>,
     pub position: QVec3,
-    pub orientation: i64,
     #[serde(default)]
     pub target: Option<ObjectRef>,
     pub cached_target_position: QVec3,
     pub cached_target_radius: i64,
-    pub released: bool,
     pub life: GaugeI32,
     #[serde(default)]
     pub spawn_containing_shields: Vec<ObjectRef>,
