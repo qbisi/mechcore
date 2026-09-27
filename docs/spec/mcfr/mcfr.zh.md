@@ -1,11 +1,11 @@
-# MCFR 格式规范（format 0.8.0）
+# MCFR 格式规范（format 0.9.0）
 
 [English](mcfr.md)
 
 本文描述仓库当前实现的 MCFR 逻辑模型、物理容器、Adapter 原生采集来源和 Reader/Writer 校验契约。统一格式标识为：
 
 ```text
-format = "0.8.0"
+format = "0.9.0"
 ```
 
 当前 Adapter 原生字段映射绑定仓库在 `GAME_VERSION` 钉住的游戏版本。其他版本可以生成同格式录像，前提是 Producer 已验证所用原生接口与本文语义一致。
@@ -23,7 +23,7 @@ recording.mcfr
 ├── buildings.parquet
 ├── shields.parquet
 ├── terrains.parquet
-├── events.jsonl
+├── events.parquet
 └── instrument/<channel>.parquet   零个或多个
 ```
 
@@ -43,9 +43,11 @@ instrument 通道是研究要看的战斗内部过程（技能状态机、一次
 | `buildings.parquet` | 各 FightTeam 当前存活的 Crystal/Construction 状态 | `S(1)..S(n)` | Parquet + Zstd level 6 |
 | `shields.parquet` | AdvancedEnergyShieldSystem 中仍存在的战场护盾状态 | `S(1)..S(n)` | Parquet + Zstd level 6 |
 | `terrains.parquet` | RangeItemSystem 中当前存在的动态战场地形及单位作用关系 | `S(1)..S(n)` | Parquet + Zstd level 6 |
-| `events.jsonl` | 相邻快照之间的有序离散事件 | `E(1)..E(n)` | UTF-8 JSON Lines，LF 结尾 |
+| `events.parquet` | 相邻快照之间的有序离散事件 | `E(1)..E(n)` | Parquet + Zstd level 6 |
 
-ZIP 层采用 STORE，数据压缩由 Parquet page 的 Zstd 完成。六个 Parquet 成员的 row group 按 128 个逻辑 tick 刷新，单个 row group 的行数上限为 1,000,000。状态表按 `(tick, object_id)` 排序，事件按 `(tick, ordinal)` 排序。
+从 `units.parquet` 到 `events.parquet` 的六张表只在有行时才写入，缺失的表按空表读取。成员都不内嵌 Arrow schema；`ticks.parquet` 的元数据是 Parquet 文件的 key/value 元数据；列统计只按 column chunk 记录，不写页级统计和页索引。
+
+ZIP 层采用 STORE，数据压缩由 Parquet page 的 Zstd 完成。逐 tick 的表 row group 按 1024 个逻辑 tick 刷新，单个 row group 的行数上限为 1,000,000。状态表按 `(tick, object_id)` 排序，事件按 `(tick, ordinal)` 排序。
 
 `layout.yaml` 由 Adapter 在 `StartCapture` 的部署期读取游戏对象并缓存，随后进入战斗采样。
 两侧来自 `PlayerManager.GetPlayerControllers()`。单位读取 `UnitManager.GetUnits()` 中
@@ -64,7 +66,7 @@ ZIP 层采用 STORE，数据压缩由 Parquet page 的 Zstd 完成。六个 Parq
 逻辑时间线为：
 
 ```text
-T(t)     = { S(t), E(t), physics_tick_hash(t), content_tick_hash(t) }, 1 <= t <= n
+T(t)     = { S(t), E(t), physics_tick_hash(t) }, 1 <= t <= n
 S(1)     = 第一次原生逻辑更新完成后的状态
 ```
 
@@ -83,10 +85,9 @@ S(1)     = 第一次原生逻辑更新完成后的状态
 ```text
 tick               : UINT32 required
 physics_tick_hash  : FIXED_LEN_BYTE_ARRAY(32) required
-content_tick_hash  : FIXED_LEN_BYTE_ARRAY(32) required
 ```
 
-`tick` 的合法序列精确为 `1..=tick_count`。`physics_tick_hash` 覆盖同 tick 的稳定战斗物理投影，`content_tick_hash` 覆盖完整 `S(t)` 和 `E(t)`；精确定义见附录 C。
+`tick` 的合法序列精确为 `1..=tick_count`。`physics_tick_hash` 覆盖同 tick 的稳定战斗物理投影。覆盖完整 `S(t)` 和 `E(t)` 的 `content_tick_hash` 不存储，Reader 按需从该 tick 的状态和事件重算，整条时间线由 `content_result_hash` 担保；精确定义见附录 C。
 
 ## 1.3 文件元数据
 
@@ -94,7 +95,7 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 
 | key | 数据规范 | 含义 |
 | --- | --- | --- |
-| `format` | 精确值 `0.8.0` | MCFR 逻辑与物理契约版本 |
+| `format` | 精确值 `0.9.0` | MCFR 逻辑与物理契约版本 |
 | `game_build` | 非空 UTF-8 | 采集构建 provenance；Adapter 来自 `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | 单回合保持稳定的上下文 `D` |
 | `physics_hash_profile` | 精确值 `battle-physics-v2` | 稳定物理投影版本 |
@@ -127,7 +128,7 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 | 字段 | Parquet 类型 | 含义 | Adapter 原生来源 |
 | --- | --- | --- | --- |
 | `tick` | `UINT32 required` | 状态所属逻辑时刻 | Adapter 逻辑帧计数 |
-| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.8.0 身份规则，见附录 B |
+| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.9.0 身份规则，见附录 B |
 | `team_id` | `UINT32 required` | 当前所属队伍 | `FightTeam` controller index |
 | `original_team_id` | `UINT32 required` | 首次出现时的队伍 | 首次采样的 `team_id` |
 | `formation_id` | `UINT64 required` | 编队身份 | `FightMech.GetMechTeam()` 指针映射 |
@@ -496,44 +497,42 @@ null。时钟中的两个整数都以逻辑步为单位，并通过 `DurableCont
 
 ---
 
-# Part VII — `events.jsonl`
+# Part VII — `events.parquet`
 
-## 7.1 文件与排序规范
+## 7.1 表与排序规范
 
-`events.jsonl` 使用 UTF-8、LF 行尾和每行一个 JSON object。空事件流对应零字节文件。每行字段按 Writer 固定顺序和紧凑 JSON 编码输出。
+`events.parquet` 每个事件一行。同一 tick 的 `ordinal` 从 0 连续递增。全表按 `(tick, ordinal)` 严格升序，tick 合法范围为 `1..=tick_count`。
 
-同一 tick 的 `ordinal` 从 0 连续递增。全文件按 `(tick, ordinal)` 严格升序，tick 合法范围为 `1..=tick_count`。
+## 7.2 公共列
 
-## 7.2 公共字段
-
-| 字段 | JSON 类型 | 含义 |
+| 列 | Parquet 类型 | 含义 |
 | --- | --- | --- |
-| `tick` | number (`u32`) | 事件归属的推进时刻 |
-| `ordinal` | number (`u32`) | 同 tick 内的观测顺序 |
-| `type` | string | 事件种类 tag |
-| `object` | `ObjectRef` 或 null | 事件主体 |
-| `source` | `ObjectRef` 或 null | 直接来源对象；记录该引用的事件类型固定包含此字段 |
-| `source_team_id` | number (`u32`) 或 null | 事件来源或归属对象在事件边界的队伍快照 |
-| `target` | `ObjectRef` 或 null | 直接目标对象 |
+| `tick` | `UINT32` required | 事件归属的推进时刻 |
+| `ordinal` | `UINT32` required | 同 tick 内的观测顺序 |
+| `type` | `UINT8` required | 事件种类 tag，按下表行序从 0 编号 |
+| `object` | `ObjectRef` nullable | 事件主体 |
+| `source` | `ObjectRef` nullable | 直接来源对象 |
+| `source_team_id` | `UINT32` nullable | 事件来源或归属对象在事件边界的队伍快照 |
+| `target` | `ObjectRef` nullable | 直接目标对象 |
 
-JSON 中的 `ObjectRef.id`、`formation_id` 和 Q32.32 raw 均使用规范十进制字符串，确保跨语言精确读取。`ObjectRef.kind` 使用 `unit`、`projectile`、`building`、`shield`、`terrain` 字符串。
+下表每个 payload 字段各有一列可空列，类型与字段相同；一行只设置其事件类型携带的字段，其余 payload 列为 null。Reader 拒绝设置了本类型不携带字段、或缺少必需字段的行。列名与类型以 [English](mcfr.md#events) 为准。
 
 ## 7.3 事件种类与 payload
 
 | `type` | 必要引用 | payload 字段 | 语义 |
 | --- | --- | --- | --- |
 | `projectile_released` | `object` | `skill_slot: u16|null`, `weapon_index: i32|null` | 弹体创建并加入 ProjectileSystem 的发射事实及其武器通道；两个通道字段同时有值或同时为 null |
-| `projectile_removed` | `object` | `position_q32_32: QVec3`, `intercepted: bool`, `absorbed_by: ObjectRef|null` | 弹体从系统移除；`absorbed_by` 指明直接吸收它的战场盾 |
+| `projectile_removed` | `object` | `position: QVec3`, `intercepted: bool`, `absorbed_by: ObjectRef|null` | 弹体从系统移除；`absorbed_by` 指明直接吸收它的战场盾 |
 | `damage` | `target` | `amount: i32` | 单个实际 target 的一次正数伤害结果；Actor 使用原生 `damageReal` |
-| `unit_created` | `object` | `team_id: u32`, `formation_id: u64`, `unit_type_id: u32`, `position_q32_32: QVec3` | Unit 生命周期起点 |
-| `unit_died` | `object` | `position_q32_32: QVec3` | Unit 死亡边界 |
-| `building_destroyed` | `object` | `position_q32_32: QVec3` | Building 摧毁边界 |
+| `unit_created` | `object` | `team_id: u32`, `formation_id: u64`, `unit_type_id: u32`, `position: QVec3` | Unit 生命周期起点 |
+| `unit_died` | `object` | `position: QVec3` | Unit 死亡边界 |
+| `building_destroyed` | `object` | `position: QVec3` | Building 摧毁边界 |
 | `unit_team_changed` | `object` | `previous_team_id: u32`, `new_team_id: u32` | Unit 当前阵营变化 |
-| `shield_created` | `object` | `team_id: u32`, `source_kind: string`, `position_q32_32: QVec3` | Shield 加入全量集合并取得身份 |
-| `shield_destroyed` | `object` | `position_q32_32: QVec3`, `reason: string` | Shield 从全量集合移除，生命周期结束 |
-| `terrain_created` | `object`；省略 `source` | `team_id: u32|null`, `terrain_type: string`, `position_q32_32: QVec3`, `radius_q32_32: i64` | Terrain 加入 controller item 集合并取得身份 |
-| `terrain_removed` | `object` | `position_q32_32: QVec3`, `reason: string` | Terrain 退出 controller item 集合，生命周期结束 |
-| `terrain_converted` | `object` | `position_q32_32: QVec3` | 同一 Terrain 发生原生类型/归属转换 |
+| `shield_created` | `object` | `team_id: u32`, `source_kind: ShieldSourceKind`, `position: QVec3` | Shield 加入全量集合并取得身份 |
+| `shield_destroyed` | `object` | `position: QVec3`, `reason: ShieldDestroyedReason` | Shield 从全量集合移除，生命周期结束 |
+| `terrain_created` | `object`；省略 `source` | `team_id: u32|null`, `terrain_type: TerrainType`, `position: QVec3`, `radius: i64` | Terrain 加入 controller item 集合并取得身份 |
+| `terrain_removed` | `object` | `position: QVec3`, `reason: TerrainRemovedReason` | Terrain 退出 controller item 集合，生命周期结束 |
+| `terrain_converted` | `object` | `position: QVec3` | 同一 Terrain 发生原生类型/归属转换 |
 | `healing` | `target` | `amount: i32` | 一次正数恢复结果 |
 
 `projectile_removed` 的合法原因组合为：原生拦截系统移除使用 `intercepted=true, absorbed_by=null`；战场盾吸收使用 `intercepted=false, absorbed_by=ShieldRef`；其他移除使用两者均为空/false。`absorbed_by` 只能引用 Shield。
@@ -546,7 +545,7 @@ JSON 中的 `ObjectRef.id`、`formation_id` 和 Q32.32 raw 均使用规范十进
 
 ## 7.4 当前 Adapter 原生事件来源
 
-共享 MCFR model 与 JSONL codec 实现上表事件。Adapter 当前事件 producer 覆盖下列原生观测：
+共享 MCFR model 与事件表实现上表事件。Adapter 当前事件 producer 覆盖下列原生观测：
 
 | 事件 | 当前原生来源 |
 | --- | --- |
@@ -580,7 +579,7 @@ append_tick(S(n), E(n))
 finish()
 ```
 
-Writer 在目标同目录创建临时成员和 `.zip.part`，完成 Parquet footer、JSONL、ZIP 封装后，以 `McfrReader` 重新打开并复核结构及持久化哈希元数据，最后通过 `persist_noclobber` 发布目标文件。目标路径在创建时保持空闲，发布具有防覆盖语义。
+Writer 在目标同目录创建临时成员和 `.zip.part`，完成 Parquet footer 和 ZIP 封装后，以 `McfrReader` 重新打开并复核结构及持久化哈希元数据，最后通过 `persist_noclobber` 发布目标文件。目标路径在创建时保持空闲，发布具有防覆盖语义。
 
 每次写入前，WorldSnapshot 先按规范顺序 canonicalize，再执行对象 ID、列表顺序、状态 bit 和 modifier 约束校验。一次局部写入失败会使 Writer 进入 poisoned 状态，完整文件只由成功的 `finish()` 发布。
 
@@ -612,7 +611,7 @@ Reader 信任 MCFR 自身持久化的两类 tick/result hash。`McfrReader::open
 real_value = raw / 2^32
 ```
 
-`QVec3 = { x: i64, y: i64, z: i64 }`。Parquet 使用三个 required `INT64` 子字段；JSONL 使用十进制字符串。position、radius 和 bounds 的量纲为米，velocity 为米/秒，rotation/orientation 为度。
+`QVec3 = { x: i64, y: i64, z: i64 }`。Parquet 使用三个 required `INT64` 子字段。position、radius 和 bounds 的量纲为米，velocity 为米/秒，rotation/orientation 为度。
 
 ## A.2 Gauge 与 Rational
 
@@ -645,9 +644,9 @@ ObjectRef = { kind: ObjectKind, id: u64 }
 
 # 附录 B — 身份与排序约定
 
-## B.1 format 0.8.0 身份规则
+## B.1 format 0.9.0 身份规则
 
-format `0.8.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
+format `0.9.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
 
 战斗期间首次出现的 Unit 按首次观察顺序取得当前 Unit namespace 的下一个连续编号。Unit namespace 从 1 开始单调递增；历史引用持续使用对象首次取得的编号。
 
@@ -748,7 +747,7 @@ content_result_hash  = H_content-result-0.7.0(
 - modifier 数值叶为 nullable，null 的规范值为 0；Buff 和单位动态根 struct 全零时为 null，技能动态列表只保存非零 skill slot。
 - 状态哈希使用展开后的零默认值；skill 全零项在 canonicalize 时移除，因此稀疏物理编码可重建相同的规范状态。
 - 状态表每个 tick 保存完整当前集合，读取任一 tick 可直接重建 `S(t)`。
-- JSONL 字段集合由事件 type 精确确定；Reader 逐行执行 canonical 类型、必要引用与字段集合校验。
+- 事件字段集合由事件 type 精确确定；Reader 逐行校验必要引用与字段集合。
 
 # 附录 E — 原生 modifier 映射示例
 

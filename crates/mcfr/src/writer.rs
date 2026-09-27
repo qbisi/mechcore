@@ -147,7 +147,7 @@ impl McfrWriter {
         let content_hash = canonical::content_tick_hash(tick, &state_bytes, &event_bytes);
         self.poisoned = true;
         if let Some(storage) = &mut self.storage {
-            storage.append_tick(tick, &state, events, physics_hash, content_hash)?;
+            storage.append_tick(tick, &state, events, physics_hash)?;
         }
         self.physics_tick_hashes.push(physics_hash);
         self.content_tick_hashes.push(content_hash);

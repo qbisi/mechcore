@@ -7,6 +7,7 @@
 
 mod canonical;
 mod error;
+mod event_table;
 mod instrument;
 mod model;
 mod parquet_storage;
