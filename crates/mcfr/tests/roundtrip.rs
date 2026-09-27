@@ -292,11 +292,11 @@ fn physics_hash_ignores_nonphysical_details_while_content_hash_detects_them() {
 }
 
 #[test]
-fn battle_physics_v4_has_a_golden_result_hash() {
+fn battle_physics_v5_has_a_golden_result_hash() {
     let hashes = hash_tick(&context(), state(75), &damage_events());
     assert_eq!(
         hashes.physics_result_hash,
-        "1d4feaf407e4dbfa968c846271007d558e909f7a1a4fb3a329e33a781d2f12ef"
+        "ae9880c19c628bed2b136edcc21dce7e707f7b448a1fd431714a8a09e0297525"
     );
 }
 
