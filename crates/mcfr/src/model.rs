@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result, canonical};
 
-pub const MCFR_FORMAT: &str = "0.8.0";
+pub const MCFR_FORMAT: &str = "0.9.0";
 pub const PHYSICS_HASH_PROFILE: &str = "battle-physics-v2";
 pub const CONTENT_HASH_PROFILE: &str = "mcfr-content-0.7.0";
 

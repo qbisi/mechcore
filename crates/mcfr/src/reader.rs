@@ -113,11 +113,19 @@ impl McfrReader {
 
     /// Returns one format-scoped complete-content tick hash as canonical lowercase hexadecimal.
     ///
+    /// A recording does not store it: it is recomputed from the tick's state
+    /// and events, as the writer computed it. The persisted content result
+    /// hash is what vouches for the whole timeline.
+    ///
     /// # Errors
     ///
-    /// Returns an error when `tick` is out of range.
+    /// Returns an error when `tick` is out of range or its data is malformed.
     pub fn content_tick_hash(&self, tick: u32) -> Result<String> {
-        Ok(canonical::hex(&self.storage.content_tick_hash(tick)?))
+        let state = canonical::encode(&self.state(tick)?)?;
+        let events = canonical::encode(&self.events(tick)?)?;
+        Ok(canonical::hex(&canonical::content_tick_hash(
+            tick, &state, &events,
+        )))
     }
 
     /// Reads one authoritative snapshot.

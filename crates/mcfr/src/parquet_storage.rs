@@ -1,4 +1,3 @@
-use std::fmt::Write as _;
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap},
     fs::File,
@@ -15,16 +14,19 @@ use arrow_buffer::{NullBuffer, OffsetBuffer, ScalarBuffer};
 use arrow_schema::{DataType, Field, Fields, Schema, SchemaRef};
 use bytes::Bytes;
 use parquet::{
-    arrow::{ArrowWriter, arrow_reader::ParquetRecordBatchReaderBuilder},
+    arrow::{
+        ArrowWriter, arrow_reader::ParquetRecordBatchReaderBuilder,
+        arrow_writer::ArrowWriterOptions,
+    },
     basic::{Compression, Encoding, ZstdLevel},
     file::{
-        properties::WriterProperties,
+        metadata::KeyValue,
+        properties::{EnabledStatistics, WriterProperties},
         reader::{ChunkReader, Length},
     },
     schema::types::ColumnPath,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
 use tempfile::TempDir;
 use zip::{CompressionMethod, ZipArchive, ZipWriter, write::SimpleFileOptions};
 
@@ -32,30 +34,34 @@ use crate::{
     BuffModifierSet, BuildingState, CONTENT_HASH_PROFILE, DerivedStats, Domain, DurableContext,
     Error, Event, EventPayload, GaugeI32, Hashes, LiveUnitState, MCFR_FORMAT, MotionState,
     ObjectKind, ObjectRef, PHYSICS_HASH_PROFILE, PersonalShieldState, ProjectileState, QPose,
-    QVec3, RateModifier, Result, ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind,
-    ShieldState, SkillDynamicModifierSet, SkillNumericModifierState, TerrainApplicationState,
-    TerrainEffectClock, TerrainGridState, TerrainLogicLifetime, TerrainRemovedReason, TerrainState,
-    TerrainType, TransitionEvents, UnitDynamicModifierSet, ValueModifier, Visibility,
-    WeaponAimState, WorldSnapshot, canonical,
+    QVec3, RateModifier, Result, ShieldRoundPolicy, ShieldSourceKind, ShieldState,
+    SkillDynamicModifierSet, SkillNumericModifierState, TerrainApplicationState,
+    TerrainEffectClock, TerrainGridState, TerrainLogicLifetime, TerrainState, TerrainType,
+    TransitionEvents, UnitDynamicModifierSet, ValueModifier, Visibility, WeaponAimState,
+    WorldSnapshot, canonical,
+    event_table::{batch_events, event_batch, event_schema},
     instrument::{self, ChannelSchema, InstrumentRow},
 };
 
-pub(crate) const MEMBER_NAMES: [&str; 8] = [
-    "layout.yaml",
-    "ticks.parquet",
+/// The members every recording holds.
+const REQUIRED_MEMBERS: [&str; 2] = ["layout.yaml", "ticks.parquet"];
+
+/// The per-tick tables, in container order. A table no row was written to is
+/// left out, and reads as having none.
+const TABLE_MEMBERS: [&str; 6] = [
     "units.parquet",
     "projectiles.parquet",
     "buildings.parquet",
     "shields.parquet",
     "terrains.parquet",
-    "events.jsonl",
+    "events.parquet",
 ];
 
 /// Where a recording's instrument channels sit inside the container.
 const INSTRUMENT_DIRECTORY: &str = "instrument";
 
-const TICKS_PER_ROW_GROUP: u64 = 128;
-const ROWS_PER_TICK_GROUP: usize = 128;
+const TICKS_PER_ROW_GROUP: u64 = 1024;
+const ROWS_PER_TICK_GROUP: usize = 1024;
 const MAX_LAYOUT_BYTES: u64 = 1024 * 1024;
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -98,9 +104,9 @@ pub(crate) struct StorageWriter {
     shield_rows: Vec<(u32, ShieldState)>,
     terrain_rows: Vec<(u32, TerrainState)>,
     event_rows: Vec<(u32, u32, Event)>,
+    events: Option<ArrowWriter<File>>,
     channels: BTreeMap<&'static str, ChannelWriter>,
     physics_tick_hashes: Vec<[u8; canonical::HASH_BYTES]>,
-    content_tick_hashes: Vec<[u8; canonical::HASH_BYTES]>,
 }
 
 /// One instrument channel's member, open while the fight is recorded.
@@ -114,47 +120,22 @@ impl StorageWriter {
         let directory = tempfile::Builder::new()
             .prefix(".mcfr-members-")
             .tempdir_in(parent)?;
-        let units = create_member(
-            directory.path().join("units.parquet"),
-            unit_schema(),
-            Track::Units,
-        )?;
-        let projectiles = create_member(
-            directory.path().join("projectiles.parquet"),
-            projectile_schema(),
-            Track::Projectiles,
-        )?;
-        let buildings = create_member(
-            directory.path().join("buildings.parquet"),
-            building_schema(),
-            Track::Buildings,
-        )?;
-        let shields = create_member(
-            directory.path().join("shields.parquet"),
-            shield_schema(),
-            Track::Shields,
-        )?;
-        let terrains = create_member(
-            directory.path().join("terrains.parquet"),
-            terrain_schema(),
-            Track::Terrains,
-        )?;
         Ok(Self {
             directory,
-            units: Some(units),
-            projectiles: Some(projectiles),
-            buildings: Some(buildings),
-            shields: Some(shields),
-            terrains: Some(terrains),
+            units: None,
+            projectiles: None,
+            buildings: None,
+            shields: None,
+            terrains: None,
             unit_rows: Vec::new(),
             projectile_rows: Vec::new(),
             building_rows: Vec::new(),
             shield_rows: Vec::new(),
             terrain_rows: Vec::new(),
             event_rows: Vec::new(),
+            events: None,
             channels: BTreeMap::new(),
             physics_tick_hashes: Vec::new(),
-            content_tick_hashes: Vec::new(),
         })
     }
 
@@ -219,9 +200,11 @@ impl StorageWriter {
         state: &WorldSnapshot,
         events: &TransitionEvents,
         physics_tick_hash: [u8; canonical::HASH_BYTES],
-        content_tick_hash: [u8; canonical::HASH_BYTES],
     ) -> Result<()> {
         self.append_state(tick, state);
+        for event in &events.events {
+            validate_event_refs(event)?;
+        }
         for (ordinal, event) in events.events.iter().cloned().enumerate() {
             self.event_rows.push((
                 tick,
@@ -230,7 +213,6 @@ impl StorageWriter {
             ));
         }
         self.physics_tick_hashes.push(physics_tick_hash);
-        self.content_tick_hashes.push(content_tick_hash);
         if u64::from(tick).is_multiple_of(TICKS_PER_ROW_GROUP) {
             self.flush()?;
         }
@@ -238,14 +220,43 @@ impl StorageWriter {
     }
 
     fn flush(&mut self) -> Result<()> {
-        write_buffer(&mut self.units, unit_batch(&self.unit_rows)?)?;
+        let directory = self.directory.path();
         write_buffer(
+            directory,
+            &mut self.units,
+            Track::Units,
+            unit_batch(&self.unit_rows)?,
+        )?;
+        write_buffer(
+            directory,
             &mut self.projectiles,
+            Track::Projectiles,
             projectile_batch(&self.projectile_rows)?,
         )?;
-        write_buffer(&mut self.buildings, building_batch(&self.building_rows)?)?;
-        write_buffer(&mut self.shields, shield_batch(&self.shield_rows)?)?;
-        write_buffer(&mut self.terrains, terrain_batch(&self.terrain_rows)?)?;
+        write_buffer(
+            directory,
+            &mut self.buildings,
+            Track::Buildings,
+            building_batch(&self.building_rows)?,
+        )?;
+        write_buffer(
+            directory,
+            &mut self.shields,
+            Track::Shields,
+            shield_batch(&self.shield_rows)?,
+        )?;
+        write_buffer(
+            directory,
+            &mut self.terrains,
+            Track::Terrains,
+            terrain_batch(&self.terrain_rows)?,
+        )?;
+        write_buffer(
+            directory,
+            &mut self.events,
+            Track::Events,
+            event_batch(&self.event_rows)?,
+        )?;
         for channel in self.channels.values_mut() {
             channel
                 .writer
@@ -258,6 +269,7 @@ impl StorageWriter {
         self.building_rows.clear();
         self.shield_rows.clear();
         self.terrain_rows.clear();
+        self.event_rows.clear();
         Ok(())
     }
 
@@ -269,26 +281,26 @@ impl StorageWriter {
         hashes: &Hashes,
     ) -> Result<TempDir> {
         self.flush()?;
-        close_writer(&mut self.units)?;
-        close_writer(&mut self.projectiles)?;
-        close_writer(&mut self.buildings)?;
-        close_writer(&mut self.shields)?;
-        close_writer(&mut self.terrains)?;
+        // A table nothing was written to is left out of the container.
+        for table in [
+            &mut self.units,
+            &mut self.projectiles,
+            &mut self.buildings,
+            &mut self.shields,
+            &mut self.terrains,
+            &mut self.events,
+        ] {
+            if let Some(writer) = table.take() {
+                writer.close()?;
+            }
+        }
         for channel in self.channels.values_mut() {
             close_writer(&mut channel.writer)?;
         }
-        write_events_jsonl(
-            &self.directory.path().join("events.jsonl"),
-            &self.event_rows,
-        )?;
         let mut layout = File::create(self.directory.path().join("layout.yaml"))?;
         layout.write_all(layout_yaml.as_bytes())?;
         layout.sync_all()?;
 
-        debug_assert_eq!(
-            self.physics_tick_hashes.len(),
-            self.content_tick_hashes.len()
-        );
         let tick_count = u32::try_from(self.physics_tick_hashes.len())
             .map_err(|_| Error::invalid("tick count overflow"))?;
         if tick_count == 0 {
@@ -320,19 +332,15 @@ impl StorageWriter {
             ("tick_count".to_owned(), tick_count.to_string()),
             ("terminal_tick".to_owned(), terminal_tick.to_string()),
         ]);
-        let schema = Arc::new(Schema::new(tick_fields()).with_metadata(metadata));
-        let mut ticks = create_member(
+        let mut ticks = create_member_with_metadata(
             self.directory.path().join("ticks.parquet"),
-            schema,
+            Arc::new(Schema::new(tick_fields())),
             Track::Ticks,
+            metadata,
         )?;
         for start in (0..self.physics_tick_hashes.len()).step_by(ROWS_PER_TICK_GROUP) {
             let end = (start + ROWS_PER_TICK_GROUP).min(self.physics_tick_hashes.len());
-            let batch = tick_batch(
-                start,
-                &self.physics_tick_hashes[start..end],
-                &self.content_tick_hashes[start..end],
-            )?;
+            let batch = tick_batch(start, &self.physics_tick_hashes[start..end])?;
             ticks.write(&batch)?;
             ticks.flush()?;
         }
@@ -341,14 +349,27 @@ impl StorageWriter {
     }
 }
 
-fn write_buffer(writer: &mut Option<ArrowWriter<File>>, batch: Option<RecordBatch>) -> Result<()> {
-    if let Some(batch) = batch {
-        let writer = writer
-            .as_mut()
-            .ok_or_else(|| Error::invalid("Parquet member writer is closed"))?;
-        writer.write(&batch)?;
-        writer.flush()?;
+/// Writes one row group of a table, opening its member on the first rows.
+fn write_buffer(
+    directory: &Path,
+    writer: &mut Option<ArrowWriter<File>>,
+    track: Track,
+    batch: Option<RecordBatch>,
+) -> Result<()> {
+    let Some(batch) = batch else {
+        return Ok(());
+    };
+    if writer.is_none() {
+        let (name, schema) = track
+            .table()
+            .ok_or_else(|| Error::invalid("a row group was written to a non-table member"))?;
+        *writer = Some(create_member(directory.join(name), schema, track)?);
     }
+    let writer = writer
+        .as_mut()
+        .ok_or_else(|| Error::invalid("Parquet member writer is closed"))?;
+    writer.write(&batch)?;
+    writer.flush()?;
     Ok(())
 }
 
@@ -368,22 +389,65 @@ enum Track {
     Buildings,
     Shields,
     Terrains,
+    Events,
     Instrument,
 }
 
+impl Track {
+    /// The member a table is stored in and its schema; `None` for the members
+    /// that are not a per-tick table.
+    fn table(self) -> Option<(&'static str, SchemaRef)> {
+        match self {
+            Self::Units => Some(("units.parquet", unit_schema())),
+            Self::Projectiles => Some(("projectiles.parquet", projectile_schema())),
+            Self::Buildings => Some(("buildings.parquet", building_schema())),
+            Self::Shields => Some(("shields.parquet", shield_schema())),
+            Self::Terrains => Some(("terrains.parquet", terrain_schema())),
+            Self::Events => Some(("events.parquet", event_schema())),
+            Self::Ticks | Self::Instrument => None,
+        }
+    }
+}
+
 fn create_member(path: PathBuf, schema: SchemaRef, track: Track) -> Result<ArrowWriter<File>> {
-    Ok(ArrowWriter::try_new(
+    create_member_with_metadata(path, schema, track, HashMap::new())
+}
+
+/// Opens a member. The Arrow schema is not embedded: every reader knows each
+/// table's schema, and in a short recording the embedded copy outweighed the
+/// data. File metadata, which `ticks.parquet` carries, is Parquet key/value
+/// metadata instead.
+fn create_member_with_metadata(
+    path: PathBuf,
+    schema: SchemaRef,
+    track: Track,
+    metadata: HashMap<String, String>,
+) -> Result<ArrowWriter<File>> {
+    let mut metadata = metadata
+        .into_iter()
+        .map(|(key, value)| KeyValue::new(key, value))
+        .collect::<Vec<_>>();
+    metadata.sort_by(|left, right| left.key.cmp(&right.key));
+    let properties = writer_properties(track, metadata)?;
+    Ok(ArrowWriter::try_new_with_options(
         File::create(path)?,
         schema,
-        Some(writer_properties(track)?),
+        ArrowWriterOptions::new()
+            .with_properties(properties)
+            .with_skip_arrow_metadata(true),
     )?)
 }
 
-fn writer_properties(track: Track) -> Result<WriterProperties> {
+fn writer_properties(track: Track, metadata: Vec<KeyValue>) -> Result<WriterProperties> {
     let mut builder = WriterProperties::builder()
         .set_compression(Compression::ZSTD(ZstdLevel::try_new(6)?))
         .set_dictionary_enabled(false)
-        .set_max_row_group_row_count(Some(1_000_000));
+        .set_max_row_group_row_count(Some(1_000_000))
+        // Statistics per column chunk, not per page: no reader seeks by page,
+        // and the page index repeated in every row group of a short recording.
+        .set_statistics_enabled(EnabledStatistics::Chunk)
+        .set_offset_index_disabled(true)
+        .set_key_value_metadata((!metadata.is_empty()).then_some(metadata));
     for path in dictionary_paths(track) {
         builder = builder.set_column_dictionary_enabled(ColumnPath::from(*path), true);
     }
@@ -397,6 +461,7 @@ fn writer_properties(track: Track) -> Result<WriterProperties> {
 fn dictionary_paths(track: Track) -> &'static [&'static str] {
     match track {
         Track::Ticks | Track::Instrument => &[],
+        Track::Events => &["type", "object.kind", "source.kind", "target.kind"],
         Track::Units => &[
             "team_id",
             "original_team_id",
@@ -438,16 +503,12 @@ fn delta_paths(track: Track) -> &'static [&'static str] {
         | Track::Buildings
         | Track::Shields
         | Track::Terrains
+        | Track::Events
         | Track::Instrument => &["tick"],
     }
 }
 
-fn tick_batch(
-    start: usize,
-    physics_hashes: &[[u8; canonical::HASH_BYTES]],
-    content_hashes: &[[u8; canonical::HASH_BYTES]],
-) -> Result<RecordBatch> {
-    debug_assert_eq!(physics_hashes.len(), content_hashes.len());
+fn tick_batch(start: usize, physics_hashes: &[[u8; canonical::HASH_BYTES]]) -> Result<RecordBatch> {
     let start_tick = u32::try_from(start)
         .map_err(|_| Error::invalid("tick row offset exceeds u32"))?
         .checked_add(1)
@@ -463,18 +524,9 @@ fn tick_batch(
             .iter()
             .map(<[u8; canonical::HASH_BYTES]>::as_slice),
     )?;
-    let content_hashes = FixedSizeBinaryArray::try_from_iter(
-        content_hashes
-            .iter()
-            .map(<[u8; canonical::HASH_BYTES]>::as_slice),
-    )?;
     Ok(RecordBatch::try_new(
         Arc::new(Schema::new(tick_fields())),
-        vec![
-            Arc::new(ticks),
-            Arc::new(physics_hashes),
-            Arc::new(content_hashes),
-        ],
+        vec![Arc::new(ticks), Arc::new(physics_hashes)],
     )?)
 }
 
@@ -1160,7 +1212,6 @@ fn tick_fields() -> Vec<Field> {
     vec![
         Field::new("tick", DataType::UInt32, false),
         Field::new("physics_tick_hash", DataType::FixedSizeBinary(32), false),
-        Field::new("content_tick_hash", DataType::FixedSizeBinary(32), false),
     ]
 }
 
@@ -1462,19 +1513,6 @@ fn list_field(name: &str, fields: Fields) -> Field {
     )
 }
 
-fn write_events_jsonl(path: &Path, rows: &[(u32, u32, Event)]) -> Result<()> {
-    let mut file = File::create(path)?;
-    for (tick, ordinal, event) in rows {
-        if *tick == 0 {
-            return Err(Error::invalid("events.jsonl cannot contain E(0)"));
-        }
-        file.write_all(event_json_line(*tick, *ordinal, event)?.as_bytes())?;
-        file.write_all(b"\n")?;
-    }
-    file.sync_all()?;
-    Ok(())
-}
-
 fn read_layout_yaml(member: &MemberSlice, combat_round: u32) -> Result<(String, i32)> {
     if member.len() == 0 || member.len() > MAX_LAYOUT_BYTES {
         return Err(Error::invalid(format!(
@@ -1507,163 +1545,21 @@ fn read_layout_yaml(member: &MemberSlice, combat_round: u32) -> Result<(String, 
     Ok((canonical, match_seed))
 }
 
-fn read_events_jsonl(member: &MemberSlice) -> Result<Vec<(u32, u32, Event)>> {
-    let mut bytes = Vec::new();
-    member.get_read(0)?.read_to_end(&mut bytes)?;
-    if bytes.starts_with(&[0xef, 0xbb, 0xbf]) {
-        return Err(Error::invalid("events.jsonl must not contain a UTF-8 BOM"));
+fn read_events(member: MemberSlice) -> Result<Vec<(u32, u32, Event)>> {
+    let mut rows = Vec::new();
+    for batch in checked_builder(member, event_schema().as_ref(), "events")?.build()? {
+        for row in batch_events(&batch?)? {
+            validate_event_refs(&row.2)?;
+            rows.push(row);
+        }
     }
-    if bytes.contains(&b'\r') {
-        return Err(Error::invalid("events.jsonl must use LF line endings"));
-    }
-    if !bytes.is_empty() && !bytes.ends_with(b"\n") {
-        return Err(Error::invalid("events.jsonl final line must end with LF"));
-    }
-    let text = std::str::from_utf8(&bytes)
-        .map_err(|_| Error::invalid("events.jsonl is not valid UTF-8"))?;
-    text.split_terminator('\n')
-        .enumerate()
-        .map(|(line_index, line)| {
-            if line.is_empty() || line.trim() != line {
-                return Err(Error::invalid(format!(
-                    "events.jsonl line {} is empty or has surrounding whitespace",
-                    line_index + 1
-                )));
-            }
-            parse_event_json_line(line)
-        })
-        .collect()
+    Ok(rows)
 }
 
 #[allow(
     clippy::match_same_arms,
     reason = "the payload arms stay in variant order so each event's JSON shape reads in one place"
 )]
-#[allow(clippy::too_many_lines)]
-fn event_json_line(tick: u32, ordinal: u32, event: &Event) -> Result<String> {
-    validate_event_refs(event)?;
-    let mut line = format!(
-        "{{\"tick\":{tick},\"ordinal\":{ordinal},\"type\":\"{}\",\"object\":{}",
-        event_type_name(event.payload.kind()),
-        object_ref_json(event.subject),
-    );
-    if !matches!(event.payload, EventPayload::TerrainCreated { .. }) {
-        write!(line, ",\"source\":{}", object_ref_json(event.source))
-            .expect("writing to String cannot fail");
-    }
-    write!(
-        line,
-        ",\"source_team_id\":{},\"target\":{}",
-        event
-            .source_team_id
-            .map_or_else(|| "null".to_owned(), |value| value.to_string()),
-        object_ref_json(event.target),
-    )
-    .expect("writing to String cannot fail");
-    match &event.payload {
-        EventPayload::ProjectileReleased {
-            skill_slot,
-            weapon_index,
-        } => write!(
-            line,
-            ",\"skill_slot\":{},\"weapon_index\":{}",
-            option_u16_json(*skill_slot),
-            option_i32_json(*weapon_index)
-        )
-        .expect("writing to String cannot fail"),
-        EventPayload::ProjectileRemoved {
-            position,
-            intercepted,
-            absorbed_by,
-        } => write!(
-            line,
-            ",\"position_q32_32\":{},\"intercepted\":{},\"absorbed_by\":{}",
-            qvec3_json(*position),
-            intercepted,
-            object_ref_json(*absorbed_by),
-        )
-        .expect("writing to String cannot fail"),
-        EventPayload::Damage { amount } => {
-            write!(line, ",\"amount\":{amount}").expect("writing to String cannot fail");
-        }
-        EventPayload::UnitCreated {
-            team_id,
-            formation_id,
-            unit_type_id,
-            position,
-        } => write!(
-            line,
-            ",\"team_id\":{team_id},\"formation_id\":\"{formation_id}\",\"unit_type_id\":{unit_type_id},\"position_q32_32\":{}",
-            qvec3_json(*position)
-        )
-        .expect("writing to String cannot fail"),
-        EventPayload::UnitDied { position } | EventPayload::BuildingDestroyed { position } => {
-            write!(line, ",\"position_q32_32\":{}", qvec3_json(*position))
-                .expect("writing to String cannot fail");
-        }
-        EventPayload::UnitTeamChanged {
-            previous_team_id,
-            new_team_id,
-        } => write!(
-            line,
-            ",\"previous_team_id\":{previous_team_id},\"new_team_id\":{new_team_id}"
-        )
-        .expect("writing to String cannot fail"),
-        EventPayload::ShieldCreated {
-            team_id,
-            source_kind,
-            position,
-        } => write!(
-            line,
-            ",\"team_id\":{team_id},\"source_kind\":\"{}\",\"position_q32_32\":{}",
-            shield_source_name(*source_kind),
-            qvec3_json(*position)
-        )
-        .expect("writing to String cannot fail"),
-        EventPayload::ShieldDestroyed { position, reason } => {
-            write!(
-                line,
-                ",\"position_q32_32\":{},\"reason\":\"{}\"",
-                qvec3_json(*position),
-                shield_destroyed_reason_name(*reason)
-            )
-            .expect("writing to String cannot fail");
-        }
-        EventPayload::TerrainCreated {
-            team_id,
-            terrain_type,
-            position,
-            radius,
-        } => write!(
-            line,
-            ",\"team_id\":{},\"terrain_type\":\"{}\",\"position_q32_32\":{},\"radius_q32_32\":\"{}\"",
-            team_id.map_or_else(|| "null".to_owned(), |value| value.to_string()),
-            terrain_type_name(*terrain_type),
-            qvec3_json(*position),
-            radius,
-        )
-        .expect("writing to String cannot fail"),
-        EventPayload::TerrainRemoved { position, reason } => write!(
-            line,
-            ",\"position_q32_32\":{},\"reason\":\"{}\"",
-            qvec3_json(*position),
-            terrain_removed_reason_name(*reason),
-        )
-        .expect("writing to String cannot fail"),
-        EventPayload::TerrainConverted { position } => write!(
-            line,
-            ",\"position_q32_32\":{}",
-            qvec3_json(*position),
-        )
-        .expect("writing to String cannot fail"),
-        EventPayload::Healing { amount } => {
-            write!(line, ",\"amount\":{amount}").expect("writing to String cannot fail");
-        }
-    }
-    line.push('}');
-    Ok(line)
-}
-
 fn validate_event_refs(event: &Event) -> Result<()> {
     if matches!(event.payload, EventPayload::TerrainCreated { .. }) && event.source.is_some() {
         return Err(Error::invalid("terrain_created does not record source"));
@@ -1751,410 +1647,10 @@ fn event_type_name(kind: crate::EventKind) -> &'static str {
     }
 }
 
-fn object_ref_json(value: Option<ObjectRef>) -> String {
-    value.map_or_else(
-        || "null".to_owned(),
-        |value| {
-            format!(
-                "{{\"kind\":\"{}\",\"id\":\"{}\"}}",
-                object_kind_name(value.kind),
-                value.id
-            )
-        },
-    )
-}
-
-fn object_kind_name(kind: ObjectKind) -> &'static str {
-    match kind {
-        ObjectKind::Unit => "unit",
-        ObjectKind::Projectile => "projectile",
-        ObjectKind::Building => "building",
-        ObjectKind::Shield => "shield",
-        ObjectKind::Terrain => "terrain",
-    }
-}
-
-fn qvec3_json(value: QVec3) -> String {
-    format!(
-        "{{\"x\":\"{}\",\"y\":\"{}\",\"z\":\"{}\"}}",
-        value.x, value.y, value.z
-    )
-}
-
-fn option_i32_json(value: Option<i32>) -> String {
-    value.map_or_else(|| "null".to_owned(), |value| value.to_string())
-}
-
-fn option_u16_json(value: Option<u16>) -> String {
-    value.map_or_else(|| "null".to_owned(), |value| value.to_string())
-}
-
-#[allow(clippy::too_many_lines)]
-fn parse_event_json_line(line: &str) -> Result<(u32, u32, Event)> {
-    let value: Value = serde_json::from_str(line)
-        .map_err(|error| Error::invalid(format!("invalid events.jsonl line: {error}")))?;
-    let object = value
-        .as_object()
-        .ok_or_else(|| Error::invalid("events.jsonl line must be a JSON object"))?;
-    let event_type = json_string(object, "type")?;
-    let expected = event_field_names(event_type)?;
-    let actual = object.keys().map(String::as_str).collect::<BTreeSet<_>>();
-    if actual != expected {
-        return Err(Error::invalid(format!(
-            "{event_type} event field set is not canonical"
-        )));
-    }
-    let tick = json_u32(object, "tick")?;
-    if tick == 0 {
-        return Err(Error::invalid("events.jsonl cannot contain E(0)"));
-    }
-    let ordinal = json_u32(object, "ordinal")?;
-    let subject = parse_object_ref(object.get("object").expect("checked field set"))?;
-    let source = if event_type == "terrain_created" {
-        None
-    } else {
-        parse_object_ref(object.get("source").expect("checked field set"))?
-    };
-    let source_team_id = parse_optional_u32(
-        object.get("source_team_id").expect("checked field set"),
-        "source_team_id",
-    )?;
-    let target = parse_object_ref(object.get("target").expect("checked field set"))?;
-    let payload = match event_type {
-        "projectile_released" => EventPayload::ProjectileReleased {
-            skill_slot: parse_optional_u16(
-                object.get("skill_slot").expect("checked field set"),
-                "skill_slot",
-            )?,
-            weapon_index: parse_optional_i32(
-                object.get("weapon_index").expect("checked field set"),
-                "weapon_index",
-            )?,
-        },
-        "projectile_removed" => EventPayload::ProjectileRemoved {
-            position: parse_qvec3(object, "position_q32_32")?,
-            intercepted: json_bool(object, "intercepted")?,
-            absorbed_by: parse_object_ref(object.get("absorbed_by").expect("checked field set"))?,
-        },
-        "damage" => EventPayload::Damage {
-            amount: json_i32(object, "amount")?,
-        },
-        "unit_created" => EventPayload::UnitCreated {
-            team_id: json_u32(object, "team_id")?,
-            formation_id: parse_canonical_u64(json_string(object, "formation_id")?)?,
-            unit_type_id: json_u32(object, "unit_type_id")?,
-            position: parse_qvec3(object, "position_q32_32")?,
-        },
-        "unit_died" => EventPayload::UnitDied {
-            position: parse_qvec3(object, "position_q32_32")?,
-        },
-        "building_destroyed" => EventPayload::BuildingDestroyed {
-            position: parse_qvec3(object, "position_q32_32")?,
-        },
-        "unit_team_changed" => EventPayload::UnitTeamChanged {
-            previous_team_id: json_u32(object, "previous_team_id")?,
-            new_team_id: json_u32(object, "new_team_id")?,
-        },
-        "shield_created" => EventPayload::ShieldCreated {
-            team_id: json_u32(object, "team_id")?,
-            source_kind: parse_shield_source(json_string(object, "source_kind")?)?,
-            position: parse_qvec3(object, "position_q32_32")?,
-        },
-        "shield_destroyed" => EventPayload::ShieldDestroyed {
-            position: parse_qvec3(object, "position_q32_32")?,
-            reason: parse_shield_destroyed_reason(json_string(object, "reason")?)?,
-        },
-        "terrain_created" => EventPayload::TerrainCreated {
-            team_id: parse_optional_u32(
-                object.get("team_id").expect("checked field set"),
-                "team_id",
-            )?,
-            terrain_type: parse_terrain_type(json_string(object, "terrain_type")?)?,
-            position: parse_qvec3(object, "position_q32_32")?,
-            radius: parse_canonical_i64(json_string(object, "radius_q32_32")?)?,
-        },
-        "terrain_removed" => EventPayload::TerrainRemoved {
-            position: parse_qvec3(object, "position_q32_32")?,
-            reason: parse_terrain_removed_reason(json_string(object, "reason")?)?,
-        },
-        "terrain_converted" => EventPayload::TerrainConverted {
-            position: parse_qvec3(object, "position_q32_32")?,
-        },
-        "healing" => EventPayload::Healing {
-            amount: json_i32(object, "amount")?,
-        },
-        _ => unreachable!("validated event type"),
-    };
-    let event = Event {
-        subject,
-        source,
-        source_team_id,
-        target,
-        payload,
-    };
-    validate_event_refs(&event)?;
-    Ok((tick, ordinal, event))
-}
-
 #[allow(
     clippy::match_same_arms,
     reason = "the event-type table stays in schema order so each event's columns read in one place"
 )]
-fn event_field_names(event_type: &str) -> Result<BTreeSet<&'static str>> {
-    let mut fields = [
-        "tick",
-        "ordinal",
-        "type",
-        "object",
-        "source_team_id",
-        "target",
-    ]
-    .into_iter()
-    .collect::<BTreeSet<_>>();
-    let extra: &[&str] = match event_type {
-        "projectile_released" => &["skill_slot", "weapon_index"],
-        "projectile_removed" => &["position_q32_32", "intercepted", "absorbed_by"],
-        "damage" => &["amount"],
-        "unit_created" => &["team_id", "formation_id", "unit_type_id", "position_q32_32"],
-        "unit_died" | "building_destroyed" => &["position_q32_32"],
-        "unit_team_changed" => &["previous_team_id", "new_team_id"],
-        "shield_created" => &["team_id", "source_kind", "position_q32_32"],
-        "shield_destroyed" => &["position_q32_32", "reason"],
-        "terrain_created" => &[
-            "team_id",
-            "terrain_type",
-            "position_q32_32",
-            "radius_q32_32",
-        ],
-        "terrain_removed" => &["position_q32_32", "reason"],
-        "terrain_converted" => &["position_q32_32"],
-        "healing" => &["amount"],
-        _ => return Err(Error::invalid(format!("unknown event type {event_type:?}"))),
-    };
-    if event_type != "terrain_created" {
-        fields.insert("source");
-    }
-    fields.extend(extra.iter().copied());
-    Ok(fields)
-}
-
-fn json_string<'a>(object: &'a Map<String, Value>, name: &str) -> Result<&'a str> {
-    object
-        .get(name)
-        .and_then(Value::as_str)
-        .ok_or_else(|| Error::invalid(format!("event field {name} is not a string")))
-}
-
-fn json_u32(object: &Map<String, Value>, name: &str) -> Result<u32> {
-    let value = object
-        .get(name)
-        .and_then(Value::as_u64)
-        .ok_or_else(|| Error::invalid(format!("event field {name} is not a u32")))?;
-    u32::try_from(value).map_err(|_| Error::invalid(format!("event field {name} is not a u32")))
-}
-
-fn json_i32(object: &Map<String, Value>, name: &str) -> Result<i32> {
-    let value = object
-        .get(name)
-        .and_then(Value::as_i64)
-        .ok_or_else(|| Error::invalid(format!("event field {name} is not an i32")))?;
-    i32::try_from(value).map_err(|_| Error::invalid(format!("event field {name} is not an i32")))
-}
-
-fn json_bool(object: &Map<String, Value>, name: &str) -> Result<bool> {
-    object
-        .get(name)
-        .and_then(Value::as_bool)
-        .ok_or_else(|| Error::invalid(format!("event field {name} is not a bool")))
-}
-
-fn parse_object_ref(value: &Value) -> Result<Option<ObjectRef>> {
-    if value.is_null() {
-        return Ok(None);
-    }
-    let object = value
-        .as_object()
-        .ok_or_else(|| Error::invalid("event ObjectRef is not an object or null"))?;
-    let keys = object.keys().map(String::as_str).collect::<BTreeSet<_>>();
-    if keys != ["kind", "id"].into_iter().collect() {
-        return Err(Error::invalid("event ObjectRef field set is not canonical"));
-    }
-    let kind = match json_string(object, "kind")? {
-        "unit" => ObjectKind::Unit,
-        "projectile" => ObjectKind::Projectile,
-        "building" => ObjectKind::Building,
-        "shield" => ObjectKind::Shield,
-        "terrain" => ObjectKind::Terrain,
-        value => return Err(Error::invalid(format!("invalid ObjectRef kind {value:?}"))),
-    };
-    let id = parse_canonical_u64(json_string(object, "id")?)?;
-    if id == 0 {
-        return Err(Error::invalid("event ObjectRef id must be positive"));
-    }
-    Ok(Some(ObjectRef::new(kind, id)))
-}
-
-const fn shield_source_name(value: ShieldSourceKind) -> &'static str {
-    match value {
-        ShieldSourceKind::Contraption => "contraption",
-        ShieldSourceKind::CommanderSkill => "commander_skill",
-        ShieldSourceKind::OwnerAdvanced => "owner_advanced",
-        ShieldSourceKind::SpawnedTemporary => "spawned_temporary",
-    }
-}
-
-fn parse_shield_source(value: &str) -> Result<ShieldSourceKind> {
-    match value {
-        "contraption" => Ok(ShieldSourceKind::Contraption),
-        "commander_skill" => Ok(ShieldSourceKind::CommanderSkill),
-        "owner_advanced" => Ok(ShieldSourceKind::OwnerAdvanced),
-        "spawned_temporary" => Ok(ShieldSourceKind::SpawnedTemporary),
-        _ => Err(Error::invalid(format!(
-            "invalid shield source kind {value:?}"
-        ))),
-    }
-}
-
-const fn shield_destroyed_reason_name(value: ShieldDestroyedReason) -> &'static str {
-    match value {
-        ShieldDestroyedReason::EnergyDepleted => "energy_depleted",
-        ShieldDestroyedReason::OwnerDestroyed => "owner_destroyed",
-        ShieldDestroyedReason::RoundEnd => "round_end",
-        ShieldDestroyedReason::Scripted => "scripted",
-        ShieldDestroyedReason::Unknown => "unknown",
-    }
-}
-
-fn parse_shield_destroyed_reason(value: &str) -> Result<ShieldDestroyedReason> {
-    match value {
-        "energy_depleted" => Ok(ShieldDestroyedReason::EnergyDepleted),
-        "owner_destroyed" => Ok(ShieldDestroyedReason::OwnerDestroyed),
-        "round_end" => Ok(ShieldDestroyedReason::RoundEnd),
-        "scripted" => Ok(ShieldDestroyedReason::Scripted),
-        "unknown" => Ok(ShieldDestroyedReason::Unknown),
-        _ => Err(Error::invalid(format!(
-            "invalid shield destroyed reason {value:?}"
-        ))),
-    }
-}
-
-const fn terrain_type_name(value: TerrainType) -> &'static str {
-    match value {
-        TerrainType::Fire => "fire",
-        TerrainType::Oil => "oil",
-        TerrainType::Fog => "fog",
-        TerrainType::Acid => "acid",
-        TerrainType::RecoveryZone => "recovery_zone",
-        TerrainType::FogSand => "fog_sand",
-    }
-}
-
-fn parse_terrain_type(value: &str) -> Result<TerrainType> {
-    match value {
-        "fire" => Ok(TerrainType::Fire),
-        "oil" => Ok(TerrainType::Oil),
-        "fog" => Ok(TerrainType::Fog),
-        "acid" => Ok(TerrainType::Acid),
-        "recovery_zone" => Ok(TerrainType::RecoveryZone),
-        "fog_sand" => Ok(TerrainType::FogSand),
-        _ => Err(Error::invalid(format!("invalid terrain type {value:?}"))),
-    }
-}
-
-const fn terrain_removed_reason_name(value: TerrainRemovedReason) -> &'static str {
-    match value {
-        TerrainRemovedReason::TimeExpired => "time_expired",
-        TerrainRemovedReason::RoundExpired => "round_expired",
-        TerrainRemovedReason::GridDepleted => "grid_depleted",
-        TerrainRemovedReason::Cleared => "cleared",
-        TerrainRemovedReason::Unknown => "unknown",
-    }
-}
-
-fn parse_terrain_removed_reason(value: &str) -> Result<TerrainRemovedReason> {
-    match value {
-        "time_expired" => Ok(TerrainRemovedReason::TimeExpired),
-        "round_expired" => Ok(TerrainRemovedReason::RoundExpired),
-        "grid_depleted" => Ok(TerrainRemovedReason::GridDepleted),
-        "cleared" => Ok(TerrainRemovedReason::Cleared),
-        "unknown" => Ok(TerrainRemovedReason::Unknown),
-        _ => Err(Error::invalid(format!(
-            "invalid terrain removed reason {value:?}"
-        ))),
-    }
-}
-
-fn parse_qvec3(object: &Map<String, Value>, name: &str) -> Result<QVec3> {
-    let value = object
-        .get(name)
-        .and_then(Value::as_object)
-        .ok_or_else(|| Error::invalid(format!("event field {name} is not a QVec3 object")))?;
-    let keys = value.keys().map(String::as_str).collect::<BTreeSet<_>>();
-    if keys != ["x", "y", "z"].into_iter().collect() {
-        return Err(Error::invalid(format!(
-            "event field {name} is not canonical"
-        )));
-    }
-    Ok(QVec3 {
-        x: parse_canonical_i64(json_string(value, "x")?)?,
-        y: parse_canonical_i64(json_string(value, "y")?)?,
-        z: parse_canonical_i64(json_string(value, "z")?)?,
-    })
-}
-
-fn parse_canonical_u64(value: &str) -> Result<u64> {
-    let parsed = value
-        .parse::<u64>()
-        .map_err(|_| Error::invalid("event u64 string is invalid"))?;
-    if parsed.to_string() != value {
-        return Err(Error::invalid("event u64 string is not canonical"));
-    }
-    Ok(parsed)
-}
-
-fn parse_canonical_i64(value: &str) -> Result<i64> {
-    let parsed = value
-        .parse::<i64>()
-        .map_err(|_| Error::invalid("event i64 string is invalid"))?;
-    if parsed.to_string() != value {
-        return Err(Error::invalid("event i64 string is not canonical"));
-    }
-    Ok(parsed)
-}
-
-fn parse_optional_u32(value: &Value, label: &str) -> Result<Option<u32>> {
-    if value.is_null() {
-        return Ok(None);
-    }
-    let parsed = value
-        .as_u64()
-        .and_then(|value| u32::try_from(value).ok())
-        .ok_or_else(|| Error::invalid(format!("event field {label} is not a u32 or null")))?;
-    Ok(Some(parsed))
-}
-
-fn parse_optional_u16(value: &Value, label: &str) -> Result<Option<u16>> {
-    if value.is_null() {
-        return Ok(None);
-    }
-    let parsed = value
-        .as_u64()
-        .and_then(|value| u16::try_from(value).ok())
-        .ok_or_else(|| Error::invalid(format!("event field {label} is not a u16 or null")))?;
-    Ok(Some(parsed))
-}
-
-fn parse_optional_i32(value: &Value, label: &str) -> Result<Option<i32>> {
-    if value.is_null() {
-        return Ok(None);
-    }
-    let parsed = value
-        .as_i64()
-        .and_then(|value| i32::try_from(value).ok())
-        .ok_or_else(|| Error::invalid(format!("event field {label} is not an i32 or null")))?;
-    Ok(Some(parsed))
-}
-
 pub(crate) fn package_members(directory: &Path, output: &Path) -> Result<()> {
     let file = File::create(output)?;
     let mut archive = ZipWriter::new(file);
@@ -2162,7 +1658,13 @@ pub(crate) fn package_members(directory: &Path, output: &Path) -> Result<()> {
         .compression_method(CompressionMethod::Stored)
         .large_file(true)
         .last_modified_time(zip::DateTime::default());
-    let mut names = MEMBER_NAMES.map(str::to_owned).to_vec();
+    let mut names = REQUIRED_MEMBERS.map(str::to_owned).to_vec();
+    names.extend(
+        TABLE_MEMBERS
+            .iter()
+            .filter(|name| directory.join(name).exists())
+            .map(|name| (*name).to_owned()),
+    );
     names.extend(instrument_member_names(directory)?);
     for name in names {
         archive.start_file(name.as_str(), options)?;
@@ -2221,7 +1723,6 @@ pub(crate) struct StorageReader {
     layout_yaml: String,
     member_sizes: BTreeMap<String, u64>,
     physics_tick_hashes: Vec<[u8; canonical::HASH_BYTES]>,
-    content_tick_hashes: Vec<[u8; canonical::HASH_BYTES]>,
     units: Vec<Vec<LiveUnitState>>,
     projectiles: Vec<Vec<ProjectileState>>,
     buildings: Vec<Vec<BuildingState>>,
@@ -2241,7 +1742,7 @@ impl StorageReader {
         let ticks = members
             .get("ticks.parquet")
             .ok_or_else(|| Error::invalid("missing ticks.parquet"))?;
-        let (tick_metadata, physics_tick_hashes, content_tick_hashes) = read_ticks(ticks.clone())?;
+        let (tick_metadata, physics_tick_hashes) = read_ticks(ticks.clone())?;
         let (layout_yaml, match_seed) = read_layout_yaml(
             &member(&members, "layout.yaml")?,
             tick_metadata.context.combat_round,
@@ -2255,39 +1756,36 @@ impl StorageReader {
             hashes: tick_metadata.hashes,
         };
         let units = group_state_rows(
-            read_units(member(&members, "units.parquet")?)?,
+            table(&members, "units.parquet", read_units)?,
             tick_count,
             |row| row.unit_id,
             "unit",
         )?;
         let projectiles = group_state_rows(
-            read_projectiles(member(&members, "projectiles.parquet")?)?,
+            table(&members, "projectiles.parquet", read_projectiles)?,
             tick_count,
             |row| row.projectile_id,
             "projectile",
         )?;
         let buildings = group_state_rows(
-            read_buildings(member(&members, "buildings.parquet")?)?,
+            table(&members, "buildings.parquet", read_buildings)?,
             tick_count,
             |row| row.building_id,
             "building",
         )?;
         let shields = group_state_rows(
-            read_shields(member(&members, "shields.parquet")?)?,
+            table(&members, "shields.parquet", read_shields)?,
             tick_count,
             |row| row.shield_id,
             "shield",
         )?;
         let terrains = group_state_rows(
-            read_terrains(member(&members, "terrains.parquet")?)?,
+            table(&members, "terrains.parquet", read_terrains)?,
             tick_count,
             |row| row.terrain_id,
             "terrain",
         )?;
-        let events = group_event_rows(
-            read_events_jsonl(&member(&members, "events.jsonl")?)?,
-            tick_count,
-        )?;
+        let events = group_event_rows(table(&members, "events.parquet", read_events)?, tick_count)?;
         let instrument = members
             .iter()
             .filter_map(|(name, slice)| {
@@ -2299,7 +1797,6 @@ impl StorageReader {
             layout_yaml,
             member_sizes,
             physics_tick_hashes,
-            content_tick_hashes,
             units,
             projectiles,
             buildings,
@@ -2358,16 +1855,6 @@ impl StorageReader {
             .ok_or_else(|| Error::invalid(format!("tick {tick} is out of range")))
     }
 
-    pub(crate) fn content_tick_hash(&self, tick: u32) -> Result<[u8; canonical::HASH_BYTES]> {
-        if tick == 0 || tick > self.metadata.tick_count {
-            return Err(Error::invalid(format!("tick {tick} is out of range")));
-        }
-        self.content_tick_hashes
-            .get(usize::try_from(tick - 1).map_err(|_| Error::invalid("tick is too large"))?)
-            .copied()
-            .ok_or_else(|| Error::invalid(format!("tick {tick} is out of range")))
-    }
-
     pub(crate) fn physics_tick_hashes(&self) -> &[[u8; canonical::HASH_BYTES]] {
         &self.physics_tick_hashes
     }
@@ -2394,6 +1881,18 @@ impl StorageReader {
     }
 }
 
+/// The rows of a per-tick table, none when the recording left it out.
+fn table<T>(
+    members: &BTreeMap<String, MemberSlice>,
+    name: &str,
+    read: impl FnOnce(MemberSlice) -> Result<Vec<T>>,
+) -> Result<Vec<T>> {
+    members
+        .get(name)
+        .cloned()
+        .map_or_else(|| Ok(Vec::new()), read)
+}
+
 fn member(members: &BTreeMap<String, MemberSlice>, name: &str) -> Result<MemberSlice> {
     members
         .get(name)
@@ -2409,11 +1908,7 @@ fn state_tick_index(tick: u32, tick_count: u32) -> Result<usize> {
 }
 
 /// Tick metadata paired with the per-tick state and trace hash columns.
-type TickColumns = (
-    TickMetadata,
-    Vec<[u8; canonical::HASH_BYTES]>,
-    Vec<[u8; canonical::HASH_BYTES]>,
-);
+type TickColumns = (TickMetadata, Vec<[u8; canonical::HASH_BYTES]>);
 
 fn read_ticks(member: MemberSlice) -> Result<TickColumns> {
     let builder = checked_builder(member, &Schema::new(tick_fields()), "ticks")?;
@@ -2457,13 +1952,11 @@ fn read_ticks(member: MemberSlice) -> Result<TickColumns> {
         ));
     }
     let mut physics_hashes_out = Vec::new();
-    let mut content_hashes_out = Vec::new();
     let mut expected_tick = 1_u32;
     for batch in builder.build()? {
         let batch = batch?;
         let ticks = column::<UInt32Array>(&batch, "tick")?;
         let physics_hashes = column::<FixedSizeBinaryArray>(&batch, "physics_tick_hash")?;
-        let content_hashes = column::<FixedSizeBinaryArray>(&batch, "content_tick_hash")?;
         for index in 0..batch.num_rows() {
             if ticks.value(index) != expected_tick {
                 return Err(Error::invalid(format!(
@@ -2475,12 +1968,7 @@ fn read_ticks(member: MemberSlice) -> Result<TickColumns> {
                 .value(index)
                 .try_into()
                 .map_err(|_| Error::invalid("physics_tick_hash is not 32 bytes"))?;
-            let content_value: [u8; canonical::HASH_BYTES] = content_hashes
-                .value(index)
-                .try_into()
-                .map_err(|_| Error::invalid("content_tick_hash is not 32 bytes"))?;
             physics_hashes_out.push(physics_value);
-            content_hashes_out.push(content_value);
             expected_tick += 1;
         }
     }
@@ -2499,7 +1987,6 @@ fn read_ticks(member: MemberSlice) -> Result<TickColumns> {
             hashes,
         },
         physics_hashes_out,
-        content_hashes_out,
     ))
 }
 
@@ -3226,7 +2713,7 @@ fn checked_builder(
 fn open_members(path: &Path) -> Result<BTreeMap<String, MemberSlice>> {
     let archive_file = File::open(path)?;
     let mut archive = ZipArchive::new(archive_file)?;
-    let expected = MEMBER_NAMES
+    let expected = REQUIRED_MEMBERS
         .into_iter()
         .map(str::to_owned)
         .collect::<BTreeSet<_>>();
@@ -3235,7 +2722,9 @@ fn open_members(path: &Path) -> Result<BTreeMap<String, MemberSlice>> {
     for index in 0..archive.len() {
         let mut entry = archive.by_index(index)?;
         let name = entry.name().to_owned();
-        let known = expected.contains(&name) || instrument_channel(&name).is_some();
+        let known = expected.contains(&name)
+            || TABLE_MEMBERS.contains(&name.as_str())
+            || instrument_channel(&name).is_some();
         if !known || !seen.insert(name.clone()) {
             return Err(Error::invalid(format!(
                 "unexpected or duplicate MCFR member {name:?}"
@@ -3358,7 +2847,7 @@ fn read_exact_at(file: &Arc<Mutex<File>>, offset: u64, buffer: &mut [u8]) -> io:
     file.read_exact(buffer)
 }
 
-const fn encode_kind(value: ObjectKind) -> u8 {
+pub(crate) const fn encode_kind(value: ObjectKind) -> u8 {
     match value {
         ObjectKind::Unit => 0,
         ObjectKind::Projectile => 1,
@@ -3368,7 +2857,7 @@ const fn encode_kind(value: ObjectKind) -> u8 {
     }
 }
 
-fn decode_kind(value: u8) -> Result<ObjectKind> {
+pub(crate) fn decode_kind(value: u8) -> Result<ObjectKind> {
     match value {
         0 => Ok(ObjectKind::Unit),
         1 => Ok(ObjectKind::Projectile),
@@ -3379,7 +2868,7 @@ fn decode_kind(value: u8) -> Result<ObjectKind> {
     }
 }
 
-const fn encode_terrain_type(value: TerrainType) -> u8 {
+pub(crate) const fn encode_terrain_type(value: TerrainType) -> u8 {
     match value {
         TerrainType::Fire => 0,
         TerrainType::Oil => 1,
@@ -3390,7 +2879,7 @@ const fn encode_terrain_type(value: TerrainType) -> u8 {
     }
 }
 
-fn decode_terrain_type(value: u8) -> Result<TerrainType> {
+pub(crate) fn decode_terrain_type(value: u8) -> Result<TerrainType> {
     match value {
         0 => Ok(TerrainType::Fire),
         1 => Ok(TerrainType::Oil),
@@ -3402,7 +2891,7 @@ fn decode_terrain_type(value: u8) -> Result<TerrainType> {
     }
 }
 
-const fn encode_shield_source(value: ShieldSourceKind) -> u8 {
+pub(crate) const fn encode_shield_source(value: ShieldSourceKind) -> u8 {
     match value {
         ShieldSourceKind::Contraption => 0,
         ShieldSourceKind::CommanderSkill => 1,
@@ -3411,7 +2900,7 @@ const fn encode_shield_source(value: ShieldSourceKind) -> u8 {
     }
 }
 
-fn decode_shield_source(value: u8) -> Result<ShieldSourceKind> {
+pub(crate) fn decode_shield_source(value: u8) -> Result<ShieldSourceKind> {
     match value {
         0 => Ok(ShieldSourceKind::Contraption),
         1 => Ok(ShieldSourceKind::CommanderSkill),

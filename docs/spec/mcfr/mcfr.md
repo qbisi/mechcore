@@ -40,9 +40,13 @@ recording.mcfr
 ├── buildings.parquet
 ├── shields.parquet
 ├── terrains.parquet
-├── events.jsonl
+├── events.parquet
 └── instrument/<channel>.parquet   zero or more
 ```
+
+The six tables from `units.parquet` to `events.parquet` are present only when
+they hold a row: a recording with no projectile has no `projectiles.parquet`,
+and a reader reads a missing table as empty.
 
 | Member | Logical content | Time covered | Physical encoding |
 | --- | --- | --- | --- |
@@ -53,18 +57,18 @@ recording.mcfr
 | `buildings.parquet` | each FightTeam's live Crystal and Construction state | `S(1)..S(n)` | Parquet + Zstd level 6 |
 | `shields.parquet` | battlefield shields still present in AdvancedEnergyShieldSystem | `S(1)..S(n)` | Parquet + Zstd level 6 |
 | `terrains.parquet` | dynamic battlefield terrain in RangeItemSystem, with its unit applications | `S(1)..S(n)` | Parquet + Zstd level 6 |
-| `events.jsonl` | ordered discrete events between adjacent snapshots | `E(1)..E(n)` | UTF-8 JSON Lines, LF endings |
+| `events.parquet` | ordered discrete events between adjacent snapshots | `E(1)..E(n)` | Parquet + Zstd level 6 |
 | `instrument/<channel>.parquet` | one [instrument channel](#instrument-channels), outside both hashes | the ticks it has rows for | Parquet + Zstd level 6 |
 
-The ZIP layer stores; compression is the Parquet pages' Zstd. The six Parquet
-members flush a row group every 128 logical ticks, with at most 1,000,000 rows
+The ZIP layer stores; compression is the Parquet pages' Zstd. The per-tick
+tables flush a row group every 1024 logical ticks, with at most 1,000,000 rows
 in one row group. State tables sort by `(tick, object_id)` and events by
 `(tick, ordinal)`.
 
 The timeline is:
 
 ```text
-T(t) = { S(t), E(t), physics_tick_hash(t), content_tick_hash(t) }, 1 <= t <= n
+T(t) = { S(t), E(t), physics_tick_hash(t) }, 1 <= t <= n
 S(1) = the state after the first native logic update completes
 ```
 
@@ -98,17 +102,19 @@ replay and `mechcore fight verify`. It does not enter `physics_*_hash` or
 ## Ticks and scene context
 
 `ticks.parquet` is the container index. It carries the format identifier, the
-DurableContext, the overall digests, and the per-tick hashes from `T(1)`.
+DurableContext, the overall digests, and the per-tick physics hashes from
+`T(1)`.
 
 ```text
 tick               : UINT32 required
 physics_tick_hash  : FIXED_LEN_BYTE_ARRAY(32) required
-content_tick_hash  : FIXED_LEN_BYTE_ARRAY(32) required
 ```
 
 The legal `tick` sequence is exactly `1..=tick_count`. `physics_tick_hash`
-covers that tick's stable combat physics projection and `content_tick_hash`
-covers the complete `S(t)` and `E(t)`; both are defined under
+covers that tick's stable combat physics projection. `content_tick_hash`,
+which covers the complete `S(t)` and `E(t)`, is not stored: a reader
+recomputes it from the tick's state and events, and `content_result_hash`
+vouches for the whole timeline. Both are defined under
 [Layered hashes](#layered-hashes).
 
 ### File metadata
@@ -117,7 +123,7 @@ Parquet key-value metadata keys and values are both UTF-8 strings.
 
 | Key | Data | Meaning |
 | --- | --- | --- |
-| `format` | exactly `0.8.0` | the logical and physical contract version |
+| `format` | exactly `0.9.0` | the logical and physical contract version |
 | `game_build` | non-empty UTF-8 | capture provenance; the adapter reads `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | the context `D` that holds steady for one round |
 | `physics_hash_profile` | exactly `battle-physics-v2` | the stable physics projection version |
@@ -607,41 +613,44 @@ one logic advance, which a diff cannot see.
 
 ## Events
 
-`events.jsonl` is UTF-8 with LF endings and one JSON object per line. An empty
-event stream is a zero-byte file. Each line is written in the writer's fixed
-field order with compact JSON.
+`events.parquet` holds one row per event. Within one tick, `ordinal` increases
+contiguously from 0. The whole table is strictly ascending by
+`(tick, ordinal)`, and `tick` lies in `1..=tick_count`.
 
-Within one tick, `ordinal` increases contiguously from 0. The whole file is
-strictly ascending by `(tick, ordinal)`, and `tick` lies in `1..=tick_count`.
-
-| Field | JSON type | Meaning |
+| Column | Parquet type | Meaning |
 | --- | --- | --- |
-| `tick` | number (`u32`) | the advance this event belongs to |
-| `ordinal` | number (`u32`) | observation order within the tick |
-| `type` | string | the event kind tag |
-| `object` | `ObjectRef` or null | the subject |
-| `source` | `ObjectRef` or null | the direct source; an event type that records this reference always carries the field |
-| `source_team_id` | number (`u32`) or null | the team of the source or subject at the event boundary |
-| `target` | `ObjectRef` or null | the direct target |
+| `tick` | `UINT32` required | the advance this event belongs to |
+| `ordinal` | `UINT32` required | observation order within the tick |
+| `type` | `UINT8` required | the event kind tag, the row number of the table below counting from 0 (`0=projectile_released` … `12=healing`) |
+| `object` | `ObjectRef` nullable | the subject |
+| `source` | `ObjectRef` nullable | the direct source |
+| `source_team_id` | `UINT32` nullable | the team of the source or subject at the event boundary |
+| `target` | `ObjectRef` nullable | the direct target |
 
-In JSON, `ObjectRef.id`, `formation_id` and Q32.32 raw are canonical decimal
-strings, so every language reads them exactly. `ObjectRef.kind` is one of
-`unit`, `projectile`, `building`, `shield`, `terrain`.
+Every payload field below has a nullable column of its own, of the payload
+field's type: `skill_slot` `UINT16`, `weapon_index` `INT32`, `position`
+`QVec3`, `intercepted` `BOOLEAN`, `absorbed_by` `ObjectRef`, `amount` `INT32`,
+`team_id` `UINT32`, `formation_id` `UINT64`, `unit_type_id` `UINT32`,
+`previous_team_id` and `new_team_id` `UINT32`, `source_kind` `UINT8`
+(`ShieldSourceKind`), `reason` `UINT8`, `terrain_type` `UINT8` (`TerrainType`)
+and `radius` `INT64` Q32.32. A row sets exactly the fields its type carries and
+leaves every other payload column null; a reader refuses a row that sets a
+field its type does not carry or lacks one it requires.
 
 | `type` | Required reference | Payload | Meaning |
 | --- | --- | --- | --- |
 | `projectile_released` | `object` | `skill_slot: u16\|null`, `weapon_index: i32\|null` | a projectile was created and joined ProjectileSystem, with its weapon channel; the two channel fields are both present or both null |
-| `projectile_removed` | `object` | `position_q32_32: QVec3`, `intercepted: bool`, `absorbed_by: ObjectRef\|null` | it left the system; `absorbed_by` names the battlefield shield that took it |
+| `projectile_removed` | `object` | `position: QVec3`, `intercepted: bool`, `absorbed_by: ObjectRef\|null` | it left the system; `absorbed_by` names the battlefield shield that took it |
 | `damage` | `target` | `amount: i32` | one positive damage result on one actual target; an Actor uses the native `damageReal` |
-| `unit_created` | `object` | `team_id: u32`, `formation_id: u64`, `unit_type_id: u32`, `position_q32_32: QVec3` | a unit's lifecycle start |
-| `unit_died` | `object` | `position_q32_32: QVec3` | a unit's death boundary |
-| `building_destroyed` | `object` | `position_q32_32: QVec3` | a building's destruction boundary |
+| `unit_created` | `object` | `team_id: u32`, `formation_id: u64`, `unit_type_id: u32`, `position: QVec3` | a unit's lifecycle start |
+| `unit_died` | `object` | `position: QVec3` | a unit's death boundary |
+| `building_destroyed` | `object` | `position: QVec3` | a building's destruction boundary |
 | `unit_team_changed` | `object` | `previous_team_id: u32`, `new_team_id: u32` | a unit changed side |
-| `shield_created` | `object` | `team_id: u32`, `source_kind: string`, `position_q32_32: QVec3` | a shield joined the full collection and took an identity |
-| `shield_destroyed` | `object` | `position_q32_32: QVec3`, `reason: string` | it left the full collection, ending its lifecycle |
-| `terrain_created` | `object`, no `source` | `team_id: u32\|null`, `terrain_type: string`, `position_q32_32: QVec3`, `radius_q32_32: i64` | a terrain joined a controller item set and took an identity |
-| `terrain_removed` | `object` | `position_q32_32: QVec3`, `reason: string` | it left the controller item set, ending its lifecycle |
-| `terrain_converted` | `object` | `position_q32_32: QVec3` | one terrain changed native type or ownership |
+| `shield_created` | `object` | `team_id: u32`, `source_kind: ShieldSourceKind`, `position: QVec3` | a shield joined the full collection and took an identity |
+| `shield_destroyed` | `object` | `position: QVec3`, `reason: ShieldDestroyedReason` | it left the full collection, ending its lifecycle |
+| `terrain_created` | `object`, no `source` | `team_id: u32\|null`, `terrain_type: TerrainType`, `position: QVec3`, `radius: i64` | a terrain joined a controller item set and took an identity |
+| `terrain_removed` | `object` | `position: QVec3`, `reason: TerrainRemovedReason` | it left the controller item set, ending its lifecycle |
+| `terrain_converted` | `object` | `position: QVec3` | one terrain changed native type or ownership |
 | `healing` | `target` | `amount: i32` | one positive recovery result |
 
 `projectile_removed` admits exactly three combinations. Native interception is
@@ -649,12 +658,12 @@ strings, so every language reads them exactly. `ObjectRef.kind` is one of
 `intercepted=false, absorbed_by=ShieldRef`. Any other removal has neither.
 `absorbed_by` may only reference a Shield.
 
-`shield_destroyed.reason` is one of `energy_depleted`, `owner_destroyed`,
-`round_end`, `scripted` or `unknown`. A producer writes a specific value only
+`shield_destroyed.reason` is one of `0=energy_depleted`, `1=owner_destroyed`,
+`2=round_end`, `3=scripted` or `4=unknown`. A producer writes a specific value only
 where the native destruction entry point determines the cause.
 
-`terrain_removed.reason` is one of `time_expired`, `round_expired`,
-`grid_depleted`, `cleared` or `unknown`, under the same rule.
+`terrain_removed.reason` is one of `0=time_expired`, `1=round_expired`,
+`2=grid_depleted`, `3=cleared` or `4=unknown`, under the same rule.
 
 A `terrain_created` object is fully determined by the terrain's identity, team,
 type, position and radius. Causation from a projectile is observed jointly, from
@@ -663,7 +672,7 @@ state change.
 
 ### Which events a producer can emit
 
-The MCFR model and the JSONL codec implement every event above. What a given
+The MCFR model and the event table implement every event above. What a given
 producer can actually observe is narrower, and the adapter covers:
 
 | Event | Native source |
@@ -727,7 +736,7 @@ finish()
 channel to the tick last appended.
 
 It creates temporary members and a `.zip.part` beside the target, completes the
-Parquet footers, the JSONL and the ZIP envelope, reopens the result with
+Parquet footers and the ZIP envelope, reopens the result with
 `McfrReader` to re-check its structure and persisted hash metadata, and
 publishes through `persist_noclobber`. The target path is required to be free at
 creation, and publication refuses to overwrite.
@@ -753,7 +762,7 @@ On opening a container, a reader verifies:
 - tick contiguity, state table ordering, event ordering and ordinal contiguity;
 - ObjectRefs, enum tags, initial identity order, list order, `status_mask`
   reserved bits and modifier components;
-- the contiguity, width and encoding of both tick hash columns, and the encoding
+- the contiguity, width and encoding of the tick hash column, and the encoding
   of both result hashes and their profiles.
 
 A reader trusts the tick and result hashes the recording persisted.
@@ -779,7 +788,7 @@ real_value = raw / 2^32
 ```
 
 `QVec3 = { x: i64, y: i64, z: i64 }`, three required `INT64` children in
-Parquet and decimal strings in JSONL. Position, radius and bounds are metres,
+Parquet. Position, radius and bounds are metres,
 velocity metres per second, and rotation and orientation degrees.
 
 ```text
@@ -952,7 +961,11 @@ also says where two recordings differ field by field, which a hash cannot:
 
 - ZIP member order is fixed: `layout`, `ticks`, `units`, `projectiles`,
   `buildings`, `shields`, `terrains`, `events`, then the instrument channels by
-  name.
+  name; a table without rows is left out of the order.
+- No Parquet member embeds its Arrow schema: every table's schema is this
+  document's. `ticks.parquet`'s metadata is Parquet file key/value metadata.
+- Column statistics are kept per column chunk; no page statistics or page
+  index is written.
 - ZIP members use STORE with a fixed timestamp; Parquet column chunks use Zstd
   level 6.
 - The Parquet global dictionary is off. Low-cardinality columns enable a
@@ -969,7 +982,7 @@ also says where two recordings differ field by field, which a hash cannot:
 - Each state table stores the complete current set every tick, so reading any
   one tick rebuilds `S(t)` without replaying the ones before it.
 - An event's field set is determined exactly by its type, and a reader checks
-  canonical types, required references and field set line by line.
+  required references and the field set row by row.
 
 ### Native modifier mapping, by example
 

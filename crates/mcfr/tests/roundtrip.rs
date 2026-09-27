@@ -1,4 +1,4 @@
-use std::io::{Read, Write};
+use std::io::Read;
 
 use bytes::Bytes;
 use mechcore_mcfr::{
@@ -31,7 +31,7 @@ fn stated(layout: &str) -> String {
 
 #[test]
 #[allow(clippy::too_many_lines)]
-fn writes_and_reads_v7_tracks() {
+fn writes_and_reads_every_table() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("battle.mcfr");
     let initial = state(100);
@@ -47,7 +47,7 @@ fn writes_and_reads_v7_tracks() {
     );
 
     let reader = McfrReader::open(&path).unwrap();
-    assert_eq!(MCFR_FORMAT, "0.8.0");
+    assert_eq!(MCFR_FORMAT, "0.9.0");
     assert_eq!(reader.tick_count(), 1);
     assert_eq!(reader.terminal_tick(), 1);
     assert_eq!(reader.game_build(), "build-a");
@@ -58,14 +58,27 @@ fn writes_and_reads_v7_tracks() {
         reader.file_size_bytes(),
         std::fs::metadata(&path).unwrap().len()
     );
-    assert_eq!(reader.member_sizes_bytes().len(), 8);
+    // The state has no projectile, so its table is left out.
+    assert_eq!(
+        reader.member_sizes_bytes().keys().collect::<Vec<_>>(),
+        [
+            "buildings.parquet",
+            "events.parquet",
+            "layout.yaml",
+            "shields.parquet",
+            "terrains.parquet",
+            "ticks.parquet",
+            "units.parquet",
+        ]
+    );
     assert!(reader.member_sizes_bytes().values().all(|size| *size > 0));
     assert!(reader.state(0).is_err());
     assert_eq!(reader.state(1).unwrap(), final_state);
     assert_eq!(reader.events(1).unwrap(), events);
 
     let mut archive = zip::ZipArchive::new(std::fs::File::open(&path).unwrap()).unwrap();
-    assert_eq!(archive.len(), 8);
+    assert_eq!(archive.len(), 7);
+    assert!(archive.by_name("projectiles.parquet").is_err());
     {
         let mut entry = archive.by_name("layout.yaml").unwrap();
         assert_eq!(entry.compression(), zip::CompressionMethod::Stored);
@@ -76,10 +89,10 @@ fn writes_and_reads_v7_tracks() {
     for name in [
         "ticks.parquet",
         "units.parquet",
-        "projectiles.parquet",
         "buildings.parquet",
         "shields.parquet",
         "terrains.parquet",
+        "events.parquet",
     ] {
         let mut entry = archive.by_name(name).unwrap();
         assert_eq!(entry.compression(), zip::CompressionMethod::Stored);
@@ -87,8 +100,22 @@ fn writes_and_reads_v7_tracks() {
         entry.read_to_end(&mut bytes).unwrap();
         assert_eq!(&bytes[..4], b"PAR1");
         assert_eq!(&bytes[bytes.len() - 4..], b"PAR1");
+        let builder = ParquetRecordBatchReaderBuilder::try_new(Bytes::from(bytes)).unwrap();
+        // No member embeds the Arrow schema; readers know each table's.
+        assert!(
+            builder
+                .metadata()
+                .file_metadata()
+                .key_value_metadata()
+                .is_none_or(|entries| entries.iter().all(|entry| entry.key != "ARROW:schema"))
+        );
         if name == "ticks.parquet" {
-            let builder = ParquetRecordBatchReaderBuilder::try_new(Bytes::from(bytes)).unwrap();
+            assert!(
+                builder
+                    .schema()
+                    .field_with_name("content_tick_hash")
+                    .is_err()
+            );
             let metadata = builder.schema().metadata();
             assert_eq!(
                 metadata.get("game_build").map(String::as_str),
@@ -121,21 +148,23 @@ fn writes_and_reads_v7_tracks() {
             assert!(!metadata.contains_key("result_hash"));
             assert!(!metadata.contains_key("scenario_hash"));
         } else if name == "buildings.parquet" {
-            let builder = ParquetRecordBatchReaderBuilder::try_new(Bytes::from(bytes)).unwrap();
             assert!(builder.schema().field_with_name("rotation").is_err());
         } else if name == "terrains.parquet" {
-            let builder = ParquetRecordBatchReaderBuilder::try_new(Bytes::from(bytes)).unwrap();
             assert!(builder.schema().field_with_name("active").is_err());
+        } else if name == "events.parquet" {
+            let batch = builder.build().unwrap().next().unwrap().unwrap();
+            assert_eq!(batch.num_rows(), 1);
+            let amount = batch
+                .column_by_name("amount")
+                .unwrap()
+                .as_any()
+                .downcast_ref::<arrow_array::Int32Array>()
+                .unwrap();
+            assert_eq!(amount.value(0), 25);
+            // A damage carries no position.
+            assert!(batch.column_by_name("position").unwrap().is_null(0));
         }
     }
-    let mut events_jsonl = String::new();
-    archive
-        .by_name("events.jsonl")
-        .unwrap()
-        .read_to_string(&mut events_jsonl)
-        .unwrap();
-    assert!(events_jsonl.ends_with('\n'));
-    assert!(events_jsonl.contains("\"damage\""));
 }
 
 #[test]
@@ -158,25 +187,28 @@ fn reader_open_and_comparison_trust_persisted_hashes() {
         state(75),
         &damage_events(),
     );
+    // The events of another fight, one damage point apart, swapped in.
+    let other_path = directory.path().join("other.mcfr");
+    let mut other_events = damage_events();
+    other_events.events[0].payload = EventPayload::Damage { amount: 24 };
+    write_battle(
+        &other_path,
+        "build-a",
+        &context(),
+        state(100),
+        state(75),
+        &other_events,
+    );
     let changed_path = directory.path().join("changed-events.mcfr");
     let mut original = zip::ZipArchive::new(std::fs::File::open(&original_path).unwrap()).unwrap();
+    let mut other = zip::ZipArchive::new(std::fs::File::open(&other_path).unwrap()).unwrap();
     let mut changed = zip::ZipWriter::new(std::fs::File::create(&changed_path).unwrap());
     for index in 0..original.len() {
-        let mut member = original.by_index(index).unwrap();
-        if member.name() == "events.jsonl" {
-            let mut events = String::new();
-            member.read_to_string(&mut events).unwrap();
-            assert!(events.contains("\"amount\":25"));
+        let member = original.by_index(index).unwrap();
+        if member.name() == "events.parquet" {
+            drop(member);
             changed
-                .start_file(
-                    "events.jsonl",
-                    zip::write::SimpleFileOptions::default()
-                        .compression_method(zip::CompressionMethod::Stored)
-                        .large_file(true),
-                )
-                .unwrap();
-            changed
-                .write_all(events.replace("\"amount\":25", "\"amount\":24").as_bytes())
+                .raw_copy_file(other.by_name("events.parquet").unwrap())
                 .unwrap();
         } else {
             changed.raw_copy_file(member).unwrap();
@@ -192,7 +224,9 @@ fn reader_open_and_comparison_trust_persisted_hashes() {
         original.physics_tick_hash(1).unwrap(),
         changed.physics_tick_hash(1).unwrap()
     );
-    assert_eq!(
+    // The tick's content hash is recomputed from what the tick holds, so it
+    // sees the swap the persisted result hash does not.
+    assert_ne!(
         original.content_tick_hash(1).unwrap(),
         changed.content_tick_hash(1).unwrap()
     );
@@ -480,8 +514,8 @@ fn writer_rejects_partial_projectile_channel() {
             },
         }],
     };
-    writer.append_tick(state(100), &events).unwrap();
-    assert!(writer.finish().is_err());
+    assert!(writer.append_tick(state(100), &events).is_err());
+    assert!(!path.exists());
 }
 
 #[test]
@@ -549,8 +583,8 @@ fn writer_rejects_terrain_created_source() {
             },
         }],
     };
-    writer.append_tick(state(75), &events).unwrap();
-    assert!(writer.finish().is_err());
+    assert!(writer.append_tick(state(75), &events).is_err());
+    assert!(!path.exists());
 }
 
 #[test]
@@ -595,15 +629,20 @@ fn terrain_events_round_trip() {
     assert_eq!(McfrReader::open(&path).unwrap().events(1).unwrap(), events);
 
     let mut archive = zip::ZipArchive::new(std::fs::File::open(&path).unwrap()).unwrap();
-    let mut events_jsonl = String::new();
+    let mut bytes = Vec::new();
     archive
-        .by_name("events.jsonl")
+        .by_name("events.parquet")
         .unwrap()
-        .read_to_string(&mut events_jsonl)
+        .read_to_end(&mut bytes)
         .unwrap();
-    let first =
-        serde_json::from_str::<serde_json::Value>(events_jsonl.lines().next().unwrap()).unwrap();
-    assert!(!first.as_object().unwrap().contains_key("source"));
+    let batch = ParquetRecordBatchReaderBuilder::try_new(Bytes::from(bytes))
+        .unwrap()
+        .build()
+        .unwrap()
+        .next()
+        .unwrap()
+        .unwrap();
+    assert!(batch.column_by_name("source").unwrap().is_null(0));
 }
 
 #[test]
