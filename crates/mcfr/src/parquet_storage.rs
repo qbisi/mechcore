@@ -8,7 +8,7 @@ use std::{
 
 use arrow_array::{
     Array, ArrayRef, BooleanArray, FixedSizeBinaryArray, Int32Array, Int64Array, ListArray,
-    RecordBatch, StructArray, UInt8Array, UInt16Array, UInt32Array, UInt64Array,
+    RecordBatch, StringArray, StructArray, UInt8Array, UInt16Array, UInt32Array, UInt64Array,
 };
 use arrow_buffer::{NullBuffer, OffsetBuffer, ScalarBuffer};
 use arrow_schema::{DataType, Field, Fields, Schema, SchemaRef};
@@ -31,13 +31,12 @@ use tempfile::TempDir;
 use zip::{CompressionMethod, ZipArchive, ZipWriter, write::SimpleFileOptions};
 
 use crate::{
-    BuffModifierSet, BuildingState, CONTENT_HASH_PROFILE, DerivedStats, Domain, DurableContext,
-    Error, Event, EventPayload, GaugeI32, Hashes, LiveUnitState, MCFR_FORMAT, MotionState,
-    ObjectKind, ObjectRef, PHYSICS_HASH_PROFILE, PersonalShieldState, ProjectileState, QPlanar,
-    QPose, QVec3, RateModifier, Result, ShieldRoundPolicy, ShieldSourceKind, ShieldState,
-    SkillDynamicModifierSet, SkillNumericModifierState, TerrainApplicationState,
-    TerrainEffectClock, TerrainGridState, TerrainLogicLifetime, TerrainState, TerrainType,
-    TransitionEvents, UnitDynamicModifierSet, ValueModifier, Visibility, WeaponAimState,
+    BuildingState, CONTENT_HASH_PROFILE, DerivedStats, Domain, DurableContext, Error, Event,
+    EventPayload, GaugeI32, Hashes, LiveUnitState, MCFR_FORMAT, Modifier, ModifierChannel,
+    ModifierPart, MotionState, ObjectKind, ObjectRef, PHYSICS_HASH_PROFILE, PersonalShieldState,
+    ProjectileState, QPlanar, QPose, QVec3, Result, ShieldRoundPolicy, ShieldSourceKind,
+    ShieldState, TerrainApplicationState, TerrainEffectClock, TerrainGridState,
+    TerrainLogicLifetime, TerrainState, TerrainType, TransitionEvents, Visibility, WeaponAimState,
     WorldSnapshot, canonical,
     event_table::{batch_events, event_batch, event_schema},
     instrument::{self, ChannelSchema, InstrumentRow},
@@ -556,9 +555,7 @@ fn unit_batch(rows: &[(u32, LiveUnitState)]) -> Result<Option<RecordBatch>> {
             bool_values(units.iter().map(|row| row.targetable)),
             u8_values(units.iter().map(|row| encode_visibility(row.visibility))),
             u64_values(units.iter().map(|row| row.status_mask)),
-            modifier_set_values(units.iter().map(|row| row.buff_modifiers)),
-            unit_modifier_values(units.iter().map(|row| row.unit_dynamic_modifiers)),
-            skill_modifier_list_values(units.iter().map(|row| &row.skill_dynamic_modifiers))?,
+            modifier_list_values(units.iter().map(|row| &row.modifiers))?,
             shield_values(units.iter().map(|row| row.personal_shield)),
             weapon_aim_list_values(units.iter().map(|row| &row.weapon_aims))?,
             derived_values(units.iter().map(|row| row.derived)),
@@ -698,26 +695,6 @@ fn i64_values(values: impl IntoIterator<Item = i64>) -> ArrayRef {
 
 fn optional_i64_values(values: impl IntoIterator<Item = Option<i64>>) -> ArrayRef {
     Arc::new(Int64Array::from_iter(values))
-}
-
-fn optional_i32_values(values: impl IntoIterator<Item = Option<i32>>) -> ArrayRef {
-    Arc::new(Int32Array::from_iter(values))
-}
-
-fn sparse_i64_values(values: impl IntoIterator<Item = i64>) -> ArrayRef {
-    optional_i64_values(
-        values
-            .into_iter()
-            .map(|value| (value != 0).then_some(value)),
-    )
-}
-
-fn sparse_i32_values(values: impl IntoIterator<Item = i32>) -> ArrayRef {
-    optional_i32_values(
-        values
-            .into_iter()
-            .map(|value| (value != 0).then_some(value)),
-    )
 }
 
 fn bool_values(values: impl IntoIterator<Item = bool>) -> ArrayRef {
@@ -969,175 +946,6 @@ fn terrain_effect_clock_values(
     ))
 }
 
-fn rate_modifier_values(values: impl IntoIterator<Item = RateModifier>) -> ArrayRef {
-    let values = values.into_iter().collect::<Vec<_>>();
-    Arc::new(StructArray::new(
-        rate_modifier_fields(),
-        vec![
-            optional_i64_values(
-                values
-                    .iter()
-                    .map(|value| (value.add != 0).then_some(value.add)),
-            ),
-            optional_i64_values(
-                values
-                    .iter()
-                    .map(|value| (value.reduce != 0).then_some(value.reduce)),
-            ),
-        ],
-        Some(
-            values
-                .iter()
-                .map(|value| !value.is_zero())
-                .collect::<NullBuffer>(),
-        ),
-    ))
-}
-
-fn value_modifier_values(values: impl IntoIterator<Item = ValueModifier>) -> ArrayRef {
-    let values = values.into_iter().collect::<Vec<_>>();
-    Arc::new(StructArray::new(
-        value_modifier_fields(),
-        vec![
-            optional_i32_values(
-                values
-                    .iter()
-                    .map(|value| (value.add != 0).then_some(value.add)),
-            ),
-            optional_i32_values(
-                values
-                    .iter()
-                    .map(|value| (value.reduce != 0).then_some(value.reduce)),
-            ),
-        ],
-        Some(
-            values
-                .iter()
-                .map(|value| !value.is_zero())
-                .collect::<NullBuffer>(),
-        ),
-    ))
-}
-
-fn modifier_set_values(values: impl IntoIterator<Item = BuffModifierSet>) -> ArrayRef {
-    let values = values.into_iter().collect::<Vec<_>>();
-    Arc::new(StructArray::new(
-        modifier_set_fields(),
-        vec![
-            rate_modifier_values(values.iter().map(|value| value.move_speed_rate)),
-            value_modifier_values(values.iter().map(|value| value.move_speed_value)),
-            rate_modifier_values(values.iter().map(|value| value.damage_rate)),
-            rate_modifier_values(values.iter().map(|value| value.attack_interval_rate)),
-            rate_modifier_values(values.iter().map(|value| value.extra_attack_interval_rate)),
-            rate_modifier_values(values.iter().map(|value| value.amplify_damage_rate)),
-            value_modifier_values(values.iter().map(|value| value.attack_range_value)),
-            value_modifier_values(values.iter().map(|value| value.extra_attack_range_value)),
-            rate_modifier_values(values.iter().map(|value| value.attack_range_rate)),
-            rate_modifier_values(values.iter().map(|value| value.extra_attack_range_rate)),
-        ],
-        Some(
-            values
-                .iter()
-                .map(|value| !value.is_zero())
-                .collect::<NullBuffer>(),
-        ),
-    ))
-}
-
-fn unit_modifier_values(values: impl IntoIterator<Item = UnitDynamicModifierSet>) -> ArrayRef {
-    let values = values.into_iter().collect::<Vec<_>>();
-    Arc::new(StructArray::new(
-        unit_modifier_fields(),
-        vec![
-            optional_i64_values(
-                values
-                    .iter()
-                    .map(|value| (value.gf_range_value != 0).then_some(value.gf_range_value)),
-            ),
-            optional_i64_values(
-                values.iter().map(|value| {
-                    (value.gf_life_time_value != 0).then_some(value.gf_life_time_value)
-                }),
-            ),
-            optional_i64_values(values.iter().map(|value| {
-                (value.mech_group_distance != 0).then_some(value.mech_group_distance)
-            })),
-            rate_modifier_values(values.iter().map(|value| value.life_rate)),
-            rate_modifier_values(values.iter().map(|value| value.life_rate_by_kill_count)),
-            rate_modifier_values(values.iter().map(|value| value.reduce_damage_from_remote)),
-            rate_modifier_values(
-                values
-                    .iter()
-                    .map(|value| value.move_ability_exit_time_change_rate),
-            ),
-            rate_modifier_values(values.iter().map(|value| value.move_speed_change_rate)),
-            rate_modifier_values(values.iter().map(|value| value.amplify_damage_rate)),
-            optional_i32_values(
-                values
-                    .iter()
-                    .map(|value| (value.move_speed_value != 0).then_some(value.move_speed_value)),
-            ),
-            optional_i32_values(values.iter().map(|value| {
-                (value.reduce_damage_value != 0).then_some(value.reduce_damage_value)
-            })),
-            optional_i32_values(values.iter().map(|value| {
-                (value.child_inherit_technology_effect != 0)
-                    .then_some(value.child_inherit_technology_effect)
-            })),
-        ],
-        Some(
-            values
-                .iter()
-                .map(|value| !value.is_zero())
-                .collect::<NullBuffer>(),
-        ),
-    ))
-}
-
-fn skill_modifier_values(values: impl IntoIterator<Item = SkillDynamicModifierSet>) -> ArrayRef {
-    let values = values.into_iter().collect::<Vec<_>>();
-    Arc::new(StructArray::new(
-        skill_dynamic_modifier_fields(),
-        vec![
-            sparse_i64_values(values.iter().map(|value| value.min_attack_range_value)),
-            sparse_i64_values(values.iter().map(|value| value.attack_range_value)),
-            sparse_i64_values(values.iter().map(|value| value.attack_air_range_add_value)),
-            sparse_i64_values(
-                values
-                    .iter()
-                    .map(|value| value.attack_ground_range_add_value),
-            ),
-            sparse_i64_values(values.iter().map(|value| value.attack_interval_value)),
-            sparse_i64_values(values.iter().map(|value| value.damage_change_rate_ground)),
-            sparse_i64_values(values.iter().map(|value| value.damage_change_rate_air)),
-            sparse_i64_values(values.iter().map(|value| value.splash_range_value)),
-            sparse_i64_values(values.iter().map(|value| value.cb_life_recovery_rate)),
-            sparse_i64_values(values.iter().map(|value| value.projectile_speed_value)),
-            sparse_i64_values(values.iter().map(|value| value.attack_point_change_value)),
-            sparse_i64_values(values.iter().map(|value| value.projectile_duration_value)),
-            sparse_i64_values(values.iter().map(|value| value.projectile_random_range)),
-            sparse_i64_values(
-                values
-                    .iter()
-                    .map(|value| value.additional_damage_by_target_life),
-            ),
-            rate_modifier_values(values.iter().map(|value| value.damage_rate)),
-            rate_modifier_values(values.iter().map(|value| value.damage_rate_by_kill_count)),
-            rate_modifier_values(values.iter().map(|value| value.attack_range_rate)),
-            rate_modifier_values(values.iter().map(|value| value.attack_interval_rate)),
-            rate_modifier_values(values.iter().map(|value| value.damage_reduce_rate_base)),
-            rate_modifier_values(values.iter().map(|value| value.projectile_life_rate)),
-            sparse_i32_values(values.iter().map(|value| value.projectile_count_value)),
-            sparse_i32_values(values.iter().map(|value| value.air_attack_value)),
-            sparse_i32_values(values.iter().map(|value| value.ground_attack_value)),
-            sparse_i32_values(values.iter().map(|value| value.attack_range_value_air)),
-            sparse_i32_values(values.iter().map(|value| value.attack_range_value_ground)),
-            sparse_i32_values(values.iter().map(|value| value.is_lock_target)),
-        ],
-        None,
-    ))
-}
-
 fn list_offsets(lengths: impl IntoIterator<Item = usize>) -> Result<OffsetBuffer<i32>> {
     let mut offsets = vec![0_i32];
     for length in lengths {
@@ -1152,8 +960,8 @@ fn list_offsets(lengths: impl IntoIterator<Item = usize>) -> Result<OffsetBuffer
     Ok(OffsetBuffer::new(ScalarBuffer::from(offsets)))
 }
 
-fn skill_modifier_list_values<'a>(
-    values: impl IntoIterator<Item = &'a Vec<SkillNumericModifierState>>,
+fn modifier_list_values<'a>(
+    values: impl IntoIterator<Item = &'a Vec<Modifier>>,
 ) -> Result<ArrayRef> {
     let values = values.into_iter().collect::<Vec<_>>();
     let flat = values
@@ -1161,23 +969,66 @@ fn skill_modifier_list_values<'a>(
         .flat_map(|value| value.iter())
         .collect::<Vec<_>>();
     let items = StructArray::new(
-        skill_modifier_fields(),
+        modifier_fields(),
         vec![
-            u16_values(flat.iter().map(|value| value.skill_slot)),
-            skill_modifier_values(flat.iter().map(|value| value.modifiers)),
+            u8_values(
+                flat.iter()
+                    .map(|value| encode_modifier_channel(value.channel)),
+            ),
+            Arc::new(UInt16Array::from(
+                flat.iter()
+                    .map(|value| value.skill_slot)
+                    .collect::<Vec<_>>(),
+            )),
+            Arc::new(StringArray::from(
+                flat.iter()
+                    .map(|value| value.field.as_str())
+                    .collect::<Vec<_>>(),
+            )),
+            u8_values(flat.iter().map(|value| encode_modifier_part(value.part))),
+            i64_values(flat.iter().map(|value| value.value)),
         ],
         None,
     );
     Ok(Arc::new(ListArray::new(
         Arc::new(Field::new(
             "item",
-            DataType::Struct(skill_modifier_fields()),
+            DataType::Struct(modifier_fields()),
             false,
         )),
         list_offsets(values.iter().map(|value| value.len()))?,
         Arc::new(items),
         None,
     )))
+}
+
+const MODIFIER_CHANNELS: [ModifierChannel; 7] = [
+    ModifierChannel::Buff,
+    ModifierChannel::MechFloat,
+    ModifierChannel::MechFloatRate,
+    ModifierChannel::MechInt,
+    ModifierChannel::SkillFloat,
+    ModifierChannel::SkillFloatRate,
+    ModifierChannel::SkillInt,
+];
+
+const MODIFIER_PARTS: [ModifierPart; 3] =
+    [ModifierPart::Value, ModifierPart::Add, ModifierPart::Reduce];
+
+fn encode_modifier_channel(channel: ModifierChannel) -> u8 {
+    MODIFIER_CHANNELS
+        .iter()
+        .position(|candidate| *candidate == channel)
+        .and_then(|index| u8::try_from(index).ok())
+        .expect("every modifier channel has a tag")
+}
+
+fn encode_modifier_part(part: ModifierPart) -> u8 {
+    MODIFIER_PARTS
+        .iter()
+        .position(|candidate| *candidate == part)
+        .and_then(|index| u8::try_from(index).ok())
+        .expect("every modifier part has a tag")
 }
 
 fn weapon_aim_list_values<'a>(
@@ -1245,9 +1096,7 @@ fn unit_schema() -> SchemaRef {
         Field::new("targetable", DataType::Boolean, false),
         Field::new("visibility", DataType::UInt8, false),
         Field::new("status_mask", DataType::UInt64, false),
-        struct_field("buff_modifiers", modifier_set_fields(), true),
-        struct_field("unit_dynamic_modifiers", unit_modifier_fields(), true),
-        list_field("skill_dynamic_modifiers", skill_modifier_fields()),
+        list_field("modifiers", modifier_fields()),
         struct_field("personal_shield", shield_fields(), false),
         list_field("weapon_aims", weapon_aim_fields()),
         struct_field("derived", derived_fields(), false),
@@ -1407,96 +1256,13 @@ fn terrain_effect_clock_fields() -> Fields {
     .into()
 }
 
-fn rate_modifier_fields() -> Fields {
+fn modifier_fields() -> Fields {
     vec![
-        Field::new("add", DataType::Int64, true),
-        Field::new("reduce", DataType::Int64, true),
-    ]
-    .into()
-}
-
-fn value_modifier_fields() -> Fields {
-    vec![
-        Field::new("add", DataType::Int32, true),
-        Field::new("reduce", DataType::Int32, true),
-    ]
-    .into()
-}
-
-fn modifier_set_fields() -> Fields {
-    vec![
-        struct_field("move_speed_rate", rate_modifier_fields(), true),
-        struct_field("move_speed_value", value_modifier_fields(), true),
-        struct_field("damage_rate", rate_modifier_fields(), true),
-        struct_field("attack_interval_rate", rate_modifier_fields(), true),
-        struct_field("extra_attack_interval_rate", rate_modifier_fields(), true),
-        struct_field("amplify_damage_rate", rate_modifier_fields(), true),
-        struct_field("attack_range_value", value_modifier_fields(), true),
-        struct_field("extra_attack_range_value", value_modifier_fields(), true),
-        struct_field("attack_range_rate", rate_modifier_fields(), true),
-        struct_field("extra_attack_range_rate", rate_modifier_fields(), true),
-    ]
-    .into()
-}
-
-fn unit_modifier_fields() -> Fields {
-    vec![
-        Field::new("gf_range_value", DataType::Int64, true),
-        Field::new("gf_life_time_value", DataType::Int64, true),
-        Field::new("mech_group_distance", DataType::Int64, true),
-        struct_field("life_rate", rate_modifier_fields(), true),
-        struct_field("life_rate_by_kill_count", rate_modifier_fields(), true),
-        struct_field("reduce_damage_from_remote", rate_modifier_fields(), true),
-        struct_field(
-            "move_ability_exit_time_change_rate",
-            rate_modifier_fields(),
-            true,
-        ),
-        struct_field("move_speed_change_rate", rate_modifier_fields(), true),
-        struct_field("amplify_damage_rate", rate_modifier_fields(), true),
-        Field::new("move_speed_value", DataType::Int32, true),
-        Field::new("reduce_damage_value", DataType::Int32, true),
-        Field::new("child_inherit_technology_effect", DataType::Int32, true),
-    ]
-    .into()
-}
-
-fn skill_dynamic_modifier_fields() -> Fields {
-    vec![
-        Field::new("min_attack_range_value", DataType::Int64, true),
-        Field::new("attack_range_value", DataType::Int64, true),
-        Field::new("attack_air_range_add_value", DataType::Int64, true),
-        Field::new("attack_ground_range_add_value", DataType::Int64, true),
-        Field::new("attack_interval_value", DataType::Int64, true),
-        Field::new("damage_change_rate_ground", DataType::Int64, true),
-        Field::new("damage_change_rate_air", DataType::Int64, true),
-        Field::new("splash_range_value", DataType::Int64, true),
-        Field::new("cb_life_recovery_rate", DataType::Int64, true),
-        Field::new("projectile_speed_value", DataType::Int64, true),
-        Field::new("attack_point_change_value", DataType::Int64, true),
-        Field::new("projectile_duration_value", DataType::Int64, true),
-        Field::new("projectile_random_range", DataType::Int64, true),
-        Field::new("additional_damage_by_target_life", DataType::Int64, true),
-        struct_field("damage_rate", rate_modifier_fields(), true),
-        struct_field("damage_rate_by_kill_count", rate_modifier_fields(), true),
-        struct_field("attack_range_rate", rate_modifier_fields(), true),
-        struct_field("attack_interval_rate", rate_modifier_fields(), true),
-        struct_field("damage_reduce_rate_base", rate_modifier_fields(), true),
-        struct_field("projectile_life_rate", rate_modifier_fields(), true),
-        Field::new("projectile_count_value", DataType::Int32, true),
-        Field::new("air_attack_value", DataType::Int32, true),
-        Field::new("ground_attack_value", DataType::Int32, true),
-        Field::new("attack_range_value_air", DataType::Int32, true),
-        Field::new("attack_range_value_ground", DataType::Int32, true),
-        Field::new("is_lock_target", DataType::Int32, true),
-    ]
-    .into()
-}
-
-fn skill_modifier_fields() -> Fields {
-    vec![
-        Field::new("skill_slot", DataType::UInt16, false),
-        struct_field("modifiers", skill_dynamic_modifier_fields(), false),
+        Field::new("channel", DataType::UInt8, false),
+        Field::new("skill_slot", DataType::UInt16, true),
+        Field::new("field", DataType::Utf8, false),
+        Field::new("part", DataType::UInt8, false),
+        Field::new("value", DataType::Int64, false),
     ]
     .into()
 }
@@ -2102,9 +1868,7 @@ fn read_units(member: MemberSlice) -> Result<Vec<(u32, LiveUnitState)>> {
         let targetable = column::<BooleanArray>(&batch, "targetable")?;
         let visibility = column::<UInt8Array>(&batch, "visibility")?;
         let status_mask = column::<UInt64Array>(&batch, "status_mask")?;
-        let buff_modifiers = struct_column(&batch, "buff_modifiers")?;
-        let unit_dynamic_modifiers = struct_column(&batch, "unit_dynamic_modifiers")?;
-        let skill_dynamic_modifiers = column::<ListArray>(&batch, "skill_dynamic_modifiers")?;
+        let modifiers = column::<ListArray>(&batch, "modifiers")?;
         let shield = struct_column(&batch, "personal_shield")?;
         let weapon_aims = column::<ListArray>(&batch, "weapon_aims")?;
         let derived = struct_column(&batch, "derived")?;
@@ -2132,12 +1896,7 @@ fn read_units(member: MemberSlice) -> Result<Vec<(u32, LiveUnitState)>> {
                     targetable: targetable.value(index),
                     visibility: decode_visibility(visibility.value(index))?,
                     status_mask: status_mask.value(index),
-                    buff_modifiers: read_modifier_set(buff_modifiers, index)?,
-                    unit_dynamic_modifiers: read_unit_modifier_set(unit_dynamic_modifiers, index)?,
-                    skill_dynamic_modifiers: read_skill_modifier_list(
-                        skill_dynamic_modifiers,
-                        index,
-                    )?,
+                    modifiers: read_modifier_list(modifiers, index)?,
                     personal_shield: read_shield(shield, index)?,
                     derived: read_derived(derived, index)?,
                     weapon_aims: read_weapon_aim_list(weapon_aims, index)?,
@@ -2401,213 +2160,28 @@ fn read_gauge(array: &StructArray, index: usize) -> Result<GaugeI32> {
     })
 }
 
-fn read_i64_or_zero(array: &Int64Array, index: usize) -> i64 {
-    if array.is_null(index) {
-        0
-    } else {
-        array.value(index)
-    }
-}
-
-fn read_i32_or_zero(array: &Int32Array, index: usize) -> i32 {
-    if array.is_null(index) {
-        0
-    } else {
-        array.value(index)
-    }
-}
-
-fn read_rate_modifier(array: &StructArray, index: usize) -> Result<RateModifier> {
-    if array.is_null(index) {
-        return Ok(RateModifier::default());
-    }
-    Ok(RateModifier {
-        add: read_i64_or_zero(struct_child(array, "add")?, index),
-        reduce: read_i64_or_zero(struct_child(array, "reduce")?, index),
-    })
-}
-
-fn read_value_modifier(array: &StructArray, index: usize) -> Result<ValueModifier> {
-    if array.is_null(index) {
-        return Ok(ValueModifier::default());
-    }
-    Ok(ValueModifier {
-        add: read_i32_or_zero(struct_child(array, "add")?, index),
-        reduce: read_i32_or_zero(struct_child(array, "reduce")?, index),
-    })
-}
-
-fn read_modifier_set(array: &StructArray, index: usize) -> Result<BuffModifierSet> {
-    if array.is_null(index) {
-        return Ok(BuffModifierSet::default());
-    }
-    Ok(BuffModifierSet {
-        move_speed_rate: read_rate_modifier(struct_child(array, "move_speed_rate")?, index)?,
-        move_speed_value: read_value_modifier(struct_child(array, "move_speed_value")?, index)?,
-        damage_rate: read_rate_modifier(struct_child(array, "damage_rate")?, index)?,
-        attack_interval_rate: read_rate_modifier(
-            struct_child(array, "attack_interval_rate")?,
-            index,
-        )?,
-        extra_attack_interval_rate: read_rate_modifier(
-            struct_child(array, "extra_attack_interval_rate")?,
-            index,
-        )?,
-        amplify_damage_rate: read_rate_modifier(
-            struct_child(array, "amplify_damage_rate")?,
-            index,
-        )?,
-        attack_range_value: read_value_modifier(struct_child(array, "attack_range_value")?, index)?,
-        extra_attack_range_value: read_value_modifier(
-            struct_child(array, "extra_attack_range_value")?,
-            index,
-        )?,
-        attack_range_rate: read_rate_modifier(struct_child(array, "attack_range_rate")?, index)?,
-        extra_attack_range_rate: read_rate_modifier(
-            struct_child(array, "extra_attack_range_rate")?,
-            index,
-        )?,
-    })
-}
-
-fn read_unit_modifier_set(array: &StructArray, index: usize) -> Result<UnitDynamicModifierSet> {
-    if array.is_null(index) {
-        return Ok(UnitDynamicModifierSet::default());
-    }
-    Ok(UnitDynamicModifierSet {
-        gf_range_value: read_i64_or_zero(struct_child(array, "gf_range_value")?, index),
-        gf_life_time_value: read_i64_or_zero(struct_child(array, "gf_life_time_value")?, index),
-        mech_group_distance: read_i64_or_zero(struct_child(array, "mech_group_distance")?, index),
-        life_rate: read_rate_modifier(struct_child(array, "life_rate")?, index)?,
-        life_rate_by_kill_count: read_rate_modifier(
-            struct_child(array, "life_rate_by_kill_count")?,
-            index,
-        )?,
-        reduce_damage_from_remote: read_rate_modifier(
-            struct_child(array, "reduce_damage_from_remote")?,
-            index,
-        )?,
-        move_ability_exit_time_change_rate: read_rate_modifier(
-            struct_child(array, "move_ability_exit_time_change_rate")?,
-            index,
-        )?,
-        move_speed_change_rate: read_rate_modifier(
-            struct_child(array, "move_speed_change_rate")?,
-            index,
-        )?,
-        amplify_damage_rate: read_rate_modifier(
-            struct_child(array, "amplify_damage_rate")?,
-            index,
-        )?,
-        move_speed_value: read_i32_or_zero(struct_child(array, "move_speed_value")?, index),
-        reduce_damage_value: read_i32_or_zero(struct_child(array, "reduce_damage_value")?, index),
-        child_inherit_technology_effect: read_i32_or_zero(
-            struct_child(array, "child_inherit_technology_effect")?,
-            index,
-        ),
-    })
-}
-
-fn read_skill_modifier_set(array: &StructArray, index: usize) -> Result<SkillDynamicModifierSet> {
-    Ok(SkillDynamicModifierSet {
-        min_attack_range_value: read_i64_or_zero(
-            struct_child(array, "min_attack_range_value")?,
-            index,
-        ),
-        attack_range_value: read_i64_or_zero(struct_child(array, "attack_range_value")?, index),
-        attack_air_range_add_value: read_i64_or_zero(
-            struct_child(array, "attack_air_range_add_value")?,
-            index,
-        ),
-        attack_ground_range_add_value: read_i64_or_zero(
-            struct_child(array, "attack_ground_range_add_value")?,
-            index,
-        ),
-        attack_interval_value: read_i64_or_zero(
-            struct_child(array, "attack_interval_value")?,
-            index,
-        ),
-        damage_change_rate_ground: read_i64_or_zero(
-            struct_child(array, "damage_change_rate_ground")?,
-            index,
-        ),
-        damage_change_rate_air: read_i64_or_zero(
-            struct_child(array, "damage_change_rate_air")?,
-            index,
-        ),
-        splash_range_value: read_i64_or_zero(struct_child(array, "splash_range_value")?, index),
-        cb_life_recovery_rate: read_i64_or_zero(
-            struct_child(array, "cb_life_recovery_rate")?,
-            index,
-        ),
-        projectile_speed_value: read_i64_or_zero(
-            struct_child(array, "projectile_speed_value")?,
-            index,
-        ),
-        attack_point_change_value: read_i64_or_zero(
-            struct_child(array, "attack_point_change_value")?,
-            index,
-        ),
-        projectile_duration_value: read_i64_or_zero(
-            struct_child(array, "projectile_duration_value")?,
-            index,
-        ),
-        projectile_random_range: read_i64_or_zero(
-            struct_child(array, "projectile_random_range")?,
-            index,
-        ),
-        additional_damage_by_target_life: read_i64_or_zero(
-            struct_child(array, "additional_damage_by_target_life")?,
-            index,
-        ),
-        damage_rate: read_rate_modifier(struct_child(array, "damage_rate")?, index)?,
-        damage_rate_by_kill_count: read_rate_modifier(
-            struct_child(array, "damage_rate_by_kill_count")?,
-            index,
-        )?,
-        attack_range_rate: read_rate_modifier(struct_child(array, "attack_range_rate")?, index)?,
-        attack_interval_rate: read_rate_modifier(
-            struct_child(array, "attack_interval_rate")?,
-            index,
-        )?,
-        damage_reduce_rate_base: read_rate_modifier(
-            struct_child(array, "damage_reduce_rate_base")?,
-            index,
-        )?,
-        projectile_life_rate: read_rate_modifier(
-            struct_child(array, "projectile_life_rate")?,
-            index,
-        )?,
-        projectile_count_value: read_i32_or_zero(
-            struct_child(array, "projectile_count_value")?,
-            index,
-        ),
-        air_attack_value: read_i32_or_zero(struct_child(array, "air_attack_value")?, index),
-        ground_attack_value: read_i32_or_zero(struct_child(array, "ground_attack_value")?, index),
-        attack_range_value_air: read_i32_or_zero(
-            struct_child(array, "attack_range_value_air")?,
-            index,
-        ),
-        attack_range_value_ground: read_i32_or_zero(
-            struct_child(array, "attack_range_value_ground")?,
-            index,
-        ),
-        is_lock_target: read_i32_or_zero(struct_child(array, "is_lock_target")?, index),
-    })
-}
-
-fn read_skill_modifier_list(
-    array: &ListArray,
-    index: usize,
-) -> Result<Vec<SkillNumericModifierState>> {
-    let items = list_struct_items(array, index, "skill_dynamic_modifiers")?;
+fn read_modifier_list(array: &ListArray, index: usize) -> Result<Vec<Modifier>> {
+    let items = list_struct_items(array, index, "modifiers")?;
+    let channels = struct_child::<UInt8Array>(&items, "channel")?;
     let slots = struct_child::<UInt16Array>(&items, "skill_slot")?;
-    let modifiers = struct_child::<StructArray>(&items, "modifiers")?;
+    let fields = struct_child::<StringArray>(&items, "field")?;
+    let parts = struct_child::<UInt8Array>(&items, "part")?;
+    let values = struct_child::<Int64Array>(&items, "value")?;
     (0..items.len())
         .map(|item| {
-            Ok(SkillNumericModifierState {
-                skill_slot: slots.value(item),
-                modifiers: read_skill_modifier_set(modifiers, item)?,
+            let tag = |tags: &UInt8Array, what: &str| {
+                Error::invalid(format!("modifier {what} tag {}", tags.value(item)))
+            };
+            Ok(Modifier {
+                channel: *MODIFIER_CHANNELS
+                    .get(usize::from(channels.value(item)))
+                    .ok_or_else(|| tag(channels, "channel"))?,
+                skill_slot: (!slots.is_null(item)).then(|| slots.value(item)),
+                field: fields.value(item).to_owned(),
+                part: *MODIFIER_PARTS
+                    .get(usize::from(parts.value(item)))
+                    .ok_or_else(|| tag(parts, "part"))?,
+                value: values.value(item),
             })
         })
         .collect()

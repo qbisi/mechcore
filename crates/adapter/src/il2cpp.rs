@@ -617,6 +617,60 @@ impl Api {
         Ok(unsafe { value.assume_init() })
     }
 
+    /// An enum's members, name and value, in declaration order. Resolved on
+    /// first use, like [`Self::set_field_value`].
+    pub fn enum_members(self, class: *mut Class) -> Result<Vec<(String, i32)>, Error> {
+        type ClassGetFields = unsafe extern "C" fn(*mut Class, *mut *mut c_void) -> *mut FieldInfo;
+        type FieldGetName = unsafe extern "C" fn(*mut FieldInfo) -> *const c_char;
+        type FieldGetFlags = unsafe extern "C" fn(*mut FieldInfo) -> c_int;
+        const STATIC: c_int = 0x10;
+        const LITERAL: c_int = 0x40;
+        static SYMBOLS: std::sync::OnceLock<[usize; 3]> = std::sync::OnceLock::new();
+        let symbols = *SYMBOLS.get_or_init(|| {
+            [
+                c"il2cpp_class_get_fields",
+                c"il2cpp_field_get_name",
+                c"il2cpp_field_get_flags",
+            ]
+            // SAFETY: dlsym is called with valid C strings.
+            .map(|name| unsafe { libc::dlsym(libc::RTLD_DEFAULT, name.as_ptr()) as usize })
+        });
+        if symbols.contains(&0) || class.is_null() {
+            return Err(Error::MissingExport("class_get_fields"));
+        }
+        // SAFETY: the exports have the IL2CPP C API's signatures.
+        let (get_fields, get_name, get_flags) = unsafe {
+            (
+                mem::transmute::<usize, ClassGetFields>(symbols[0]),
+                mem::transmute::<usize, FieldGetName>(symbols[1]),
+                mem::transmute::<usize, FieldGetFlags>(symbols[2]),
+            )
+        };
+        let mut members = Vec::new();
+        let mut iterator: *mut c_void = ptr::null_mut();
+        loop {
+            // SAFETY: the iterator starts null and is advanced only by the runtime.
+            let field = unsafe { get_fields(class, &raw mut iterator) };
+            if field.is_null() {
+                break;
+            }
+            // SAFETY: field is a live FieldInfo of this class.
+            let flags = unsafe { get_flags(field) };
+            if flags & STATIC == 0 || flags & LITERAL == 0 {
+                continue;
+            }
+            // SAFETY: as above; the name is a NUL-terminated runtime string.
+            let name = unsafe { std::ffi::CStr::from_ptr(get_name(field)) }
+                .to_string_lossy()
+                .into_owned();
+            let mut value = 0_i32;
+            // SAFETY: an enum's literal fields hold its underlying int.
+            unsafe { (self.field_static_get_value)(field, (&raw mut value).cast()) };
+            members.push((name, value));
+        }
+        Ok(members)
+    }
+
     /// Writes an instance field. Resolved on first use rather than held in
     /// `Api`, which is passed by value everywhere and is kept small.
     pub fn set_field_value<T: Copy>(

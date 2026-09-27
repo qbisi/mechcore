@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result, canonical};
 
-pub const MCFR_FORMAT: &str = "0.10.0";
+pub const MCFR_FORMAT: &str = "0.11.0";
 pub const PHYSICS_HASH_PROFILE: &str = "battle-physics-v3";
-pub const CONTENT_HASH_PROFILE: &str = "mcfr-content-0.10.0";
+pub const CONTENT_HASH_PROFILE: &str = "mcfr-content-0.11.0";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -117,8 +117,8 @@ pub struct WorldSnapshot {
 impl WorldSnapshot {
     pub fn canonicalize(&mut self) {
         for unit in &mut self.live_units {
-            unit.skill_dynamic_modifiers
-                .retain(|skill| !skill.modifiers.is_zero());
+            unit.modifiers.retain(|modifier| modifier.value != 0);
+            sort_modifiers(&mut unit.modifiers);
         }
         self.live_units.sort_by_key(|value| value.unit_id);
         self.projectiles.sort_by_key(|value| value.projectile_id);
@@ -156,25 +156,7 @@ impl WorldSnapshot {
                     unit.unit_id
                 )));
             }
-            unit.buff_modifiers.validate("buff_modifiers")?;
-            unit.unit_dynamic_modifiers.validate()?;
-            let mut previous_slot = None;
-            for skill in &unit.skill_dynamic_modifiers {
-                if skill.modifiers.is_zero() {
-                    return Err(Error::invalid(format!(
-                        "unit {} zero skill modifiers must be omitted",
-                        unit.unit_id
-                    )));
-                }
-                if previous_slot.is_some_and(|previous| skill.skill_slot <= previous) {
-                    return Err(Error::invalid(format!(
-                        "unit {} skill modifiers are not strictly ordered by skill_slot",
-                        unit.unit_id
-                    )));
-                }
-                skill.modifiers.validate()?;
-                previous_slot = Some(skill.skill_slot);
-            }
+            validate_modifiers(unit.unit_id, &unit.modifiers)?;
             let mut previous_weapon = None;
             for weapon in &unit.weapon_aims {
                 let key = (weapon.skill_slot, weapon.weapon_index);
@@ -569,10 +551,9 @@ pub struct LiveUnitState {
     pub targetable: bool,
     pub visibility: Visibility,
     pub status_mask: u64,
-    pub buff_modifiers: BuffModifierSet,
-    pub unit_dynamic_modifiers: UnitDynamicModifierSet,
+    /// Every non-zero correction on the unit and its skills.
     #[serde(default)]
-    pub skill_dynamic_modifiers: Vec<SkillNumericModifierState>,
+    pub modifiers: Vec<Modifier>,
     pub personal_shield: PersonalShieldState,
     #[serde(default)]
     pub weapon_aims: Vec<WeaponAimState>,
@@ -700,186 +681,127 @@ pub struct WeaponAimState {
     pub pose: Option<QPose>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
-#[serde(deny_unknown_fields)]
-pub struct RateModifier {
-    pub add: i64,
-    pub reduce: i64,
+/// Which native store a modifier lives in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ModifierChannel {
+    /// `BuffManager`'s aggregate getters over the unit's live buffs.
+    Buff,
+    /// The unit's `DataSet`, keyed by `MechDataChangeFloat`.
+    MechFloat,
+    /// Keyed by `MechDataChangeFloatRate`.
+    MechFloatRate,
+    /// Keyed by `MechDataChangeInt`.
+    MechInt,
+    /// A skill's `DataSet`, keyed by `SkillDataChangeFloat`.
+    SkillFloat,
+    /// Keyed by `SkillDataChangeFloatRate`.
+    SkillFloatRate,
+    /// Keyed by `SkillDataChangeInt`.
+    SkillInt,
 }
 
-impl RateModifier {
+impl ModifierChannel {
+    /// Whether the channel belongs to one of the unit's skills.
     #[must_use]
-    pub fn is_zero(self) -> bool {
-        self == Self::default()
+    pub const fn is_skill(self) -> bool {
+        matches!(
+            self,
+            Self::SkillFloat | Self::SkillFloatRate | Self::SkillInt
+        )
+    }
+
+    /// Whether the channel's fields are rates, kept as enhancements and
+    /// impairments apart.
+    #[must_use]
+    pub const fn is_rate(self) -> bool {
+        matches!(self, Self::MechFloatRate | Self::SkillFloatRate)
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
-#[serde(deny_unknown_fields)]
-pub struct ValueModifier {
-    pub add: i32,
-    pub reduce: i32,
+/// Which part of a field a modifier is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ModifierPart {
+    /// A signed value: an int, a fixed-point value, or a buff's signed sum.
+    Value,
+    /// The sum of the enhancements of a rate or split value, nonnegative.
+    Add,
+    /// What the impairments take off, nonnegative: for a rate, one minus the
+    /// product of what each keeps.
+    Reduce,
 }
 
-impl ValueModifier {
-    #[must_use]
-    pub fn is_zero(self) -> bool {
-        self == Self::default()
+/// One non-zero correction written onto a unit or one of its skills.
+///
+/// A unit's modifiers are a sparse list: what the build holds as zero is not
+/// written, so a field any content can set costs nothing where none sets it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Modifier {
+    pub channel: ModifierChannel,
+    /// The skill's index in the unit's `GetSkills()`, for a skill channel.
+    #[serde(default)]
+    pub skill_slot: Option<u16>,
+    /// The native enum member in `snake_case`, spelled as the build spells
+    /// it; for the buff channel, the aggregate the getters name.
+    pub field: String,
+    pub part: ModifierPart,
+    /// Raw: Q32.32 for a float or rate, the integer itself for an int.
+    pub value: i64,
+}
+
+impl Modifier {
+    fn order(&self) -> (ModifierChannel, Option<u16>, &str, ModifierPart) {
+        (self.channel, self.skill_slot, &self.field, self.part)
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
-#[serde(deny_unknown_fields)]
-pub struct BuffModifierSet {
-    pub move_speed_rate: RateModifier,
-    pub move_speed_value: ValueModifier,
-    pub damage_rate: RateModifier,
-    pub attack_interval_rate: RateModifier,
-    pub extra_attack_interval_rate: RateModifier,
-    pub amplify_damage_rate: RateModifier,
-    pub attack_range_value: ValueModifier,
-    pub extra_attack_range_value: ValueModifier,
-    pub attack_range_rate: RateModifier,
-    pub extra_attack_range_rate: RateModifier,
+/// Puts a unit's modifiers in their stored order: by channel, skill slot,
+/// field and part.
+pub fn sort_modifiers(modifiers: &mut [Modifier]) {
+    modifiers.sort_by(|left, right| left.order().cmp(&right.order()));
 }
 
-impl BuffModifierSet {
-    #[must_use]
-    pub fn is_zero(self) -> bool {
-        self == Self::default()
-    }
-
-    fn validate(self, label: &str) -> Result<()> {
-        let rates = [
-            self.move_speed_rate,
-            self.damage_rate,
-            self.attack_interval_rate,
-            self.extra_attack_interval_rate,
-            self.amplify_damage_rate,
-            self.attack_range_rate,
-            self.extra_attack_range_rate,
-        ];
-        if rates
-            .iter()
-            .any(|modifier| modifier.add < 0 || modifier.reduce < 0)
+/// Checks a unit's modifiers: non-zero, rates nonnegative, a skill slot on
+/// exactly the skill channels, and strictly ordered by channel, slot, field
+/// and part.
+fn validate_modifiers(unit_id: u64, modifiers: &[Modifier]) -> Result<()> {
+    for modifier in modifiers {
+        let bad = if modifier.value == 0 {
+            Some("is zero and must be omitted")
+        } else if modifier.part != ModifierPart::Value && modifier.value < 0 {
+            Some("is a negative add or reduce")
+        } else if modifier.channel.is_skill() != modifier.skill_slot.is_some() {
+            Some("has a skill slot on the wrong channel")
+        } else if modifier.channel.is_rate() && modifier.part == ModifierPart::Value {
+            Some("is a rate without add or reduce")
+        } else if modifier.field.is_empty()
+            || !modifier
+                .field
+                .chars()
+                .all(|next| next.is_ascii_lowercase() || next.is_ascii_digit() || next == '_')
         {
+            Some("has a field that is not a snake_case name")
+        } else {
+            None
+        };
+        if let Some(bad) = bad {
             return Err(Error::invalid(format!(
-                "{label} rate add/reduce values must be nonnegative"
+                "unit {unit_id} modifier {:?} {:?} {} {bad}",
+                modifier.channel, modifier.skill_slot, modifier.field
             )));
         }
-        // A Value field is the native signed aggregate, which a round has
-        // shown negative.
-        Ok(())
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
-#[serde(deny_unknown_fields)]
-pub struct UnitDynamicModifierSet {
-    pub gf_range_value: i64,
-    pub gf_life_time_value: i64,
-    pub mech_group_distance: i64,
-    pub life_rate: RateModifier,
-    pub life_rate_by_kill_count: RateModifier,
-    pub reduce_damage_from_remote: RateModifier,
-    pub move_ability_exit_time_change_rate: RateModifier,
-    pub move_speed_change_rate: RateModifier,
-    pub amplify_damage_rate: RateModifier,
-    pub move_speed_value: i32,
-    pub reduce_damage_value: i32,
-    pub child_inherit_technology_effect: i32,
-}
-
-impl UnitDynamicModifierSet {
-    #[must_use]
-    pub fn is_zero(self) -> bool {
-        self == Self::default()
-    }
-
-    fn validate(self) -> Result<()> {
-        validate_rates(
-            &[
-                self.life_rate,
-                self.life_rate_by_kill_count,
-                self.reduce_damage_from_remote,
-                self.move_ability_exit_time_change_rate,
-                self.move_speed_change_rate,
-                self.amplify_damage_rate,
-            ],
-            "unit_dynamic_modifiers",
-        )
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
-#[serde(deny_unknown_fields)]
-pub struct SkillDynamicModifierSet {
-    pub min_attack_range_value: i64,
-    pub attack_range_value: i64,
-    pub attack_air_range_add_value: i64,
-    pub attack_ground_range_add_value: i64,
-    pub attack_interval_value: i64,
-    pub damage_change_rate_ground: i64,
-    pub damage_change_rate_air: i64,
-    pub splash_range_value: i64,
-    pub cb_life_recovery_rate: i64,
-    pub projectile_speed_value: i64,
-    pub attack_point_change_value: i64,
-    pub projectile_duration_value: i64,
-    pub projectile_random_range: i64,
-    pub additional_damage_by_target_life: i64,
-    pub damage_rate: RateModifier,
-    pub damage_rate_by_kill_count: RateModifier,
-    pub attack_range_rate: RateModifier,
-    pub attack_interval_rate: RateModifier,
-    pub damage_reduce_rate_base: RateModifier,
-    pub projectile_life_rate: RateModifier,
-    pub projectile_count_value: i32,
-    pub air_attack_value: i32,
-    pub ground_attack_value: i32,
-    pub attack_range_value_air: i32,
-    pub attack_range_value_ground: i32,
-    pub is_lock_target: i32,
-}
-
-impl SkillDynamicModifierSet {
-    #[must_use]
-    pub fn is_zero(self) -> bool {
-        self == Self::default()
-    }
-
-    fn validate(self) -> Result<()> {
-        validate_rates(
-            &[
-                self.damage_rate,
-                self.damage_rate_by_kill_count,
-                self.attack_range_rate,
-                self.attack_interval_rate,
-                self.damage_reduce_rate_base,
-                self.projectile_life_rate,
-            ],
-            "skill_dynamic_modifiers",
-        )
-    }
-}
-
-fn validate_rates(rates: &[RateModifier], label: &str) -> Result<()> {
-    if rates
-        .iter()
-        .any(|modifier| modifier.add < 0 || modifier.reduce < 0)
+    if modifiers
+        .windows(2)
+        .any(|pair| pair[0].order() >= pair[1].order())
     {
         return Err(Error::invalid(format!(
-            "{label} rate add/reduce values must be nonnegative"
+            "unit {unit_id} modifiers are not strictly ordered by channel, skill slot, field and part"
         )));
     }
     Ok(())
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct SkillNumericModifierState {
-    pub skill_slot: u16,
-    pub modifiers: SkillDynamicModifierSet,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

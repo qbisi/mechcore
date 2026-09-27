@@ -17,7 +17,7 @@ steps:
     expect:
       steps: 91
       hashes.physics_result_hash: e8c1853ce824ab26652d8a5a76908ba9569486d77dc7c91cacd756fb131566b7
-      hashes.content_result_hash: 6a58e9eaebf4c6bb72dc8c4ac16627422d29099bd9b04f66d76b671df67a708c
+      hashes.content_result_hash: b86089bbe9c12df68b464bb66aac049b00e2646969bb4440fe2dc79634504e37
   # Heavy Armor alone: +0.75 of life in the unit channel, 2838.
   - fight.run:
       layout: tests/equipment/heavy-armor.yaml
@@ -25,7 +25,7 @@ steps:
     expect:
       steps: 139
       hashes.physics_result_hash: 5fe4711b3f29af08cb20e1848f7ecacee3b01984efe00e6373c1e39721c31c2b
-      hashes.content_result_hash: 433ccfa269e5f6665c6e077c47e9bfd9767ad3ba9b7b725507a9a03886e9681b
+      hashes.content_result_hash: 5cf60d72cec0a753df66e43e90b7b11c6e6e1e9ba994219d835b6a2f7bd80f6c
   # With Advanced Defensive Tactics: the two rates sum, 3325.
   - fight.run:
       layout: tests/equipment/heavy-armor-officer.yaml
@@ -33,7 +33,7 @@ steps:
     expect:
       steps: 139
       hashes.physics_result_hash: ebad60a892a6662b30019fc13d8e2af8e8663922aaf4dc329e67f9cb4164538e
-      hashes.content_result_hash: 6bd60751a1ae057786d02198cd7ab4acb6ba01dd75b1267e7075b7b64024d692
+      hashes.content_result_hash: 7b2ed0c5375cf034aea460b404ebbc837b2801327fb8c5284aaff61835e17070
   # Improved Firepower Control System: +0.65 of damage in the skill channel, 3842.
   - fight.run:
       layout: tests/equipment/firepower.yaml
@@ -41,7 +41,7 @@ steps:
     expect:
       steps: 83
       hashes.physics_result_hash: 3f579c74dcf145f7b144160c3e67bfa01fb390cac9b577ffafb54b2da9952dd0
-      hashes.content_result_hash: eb6feadc06a6ea2ff4ef5763e4e17aceace93dbd73c75deb9021824b768389b4
+      hashes.content_result_hash: b595c1bd1b5fa3d6a60972f0e3455e51427896cd7dbb83165a68a73f77540111
   # With Advanced Offensive Tactics: the two rates sum, 4541.
   - fight.run:
       layout: tests/equipment/firepower-officer.yaml
@@ -49,7 +49,7 @@ steps:
     expect:
       steps: 83
       hashes.physics_result_hash: 3a001377ae4b14db7b15661b7cfc5b2d9cb9ce0e3f57e5321f9c9ee2de1b8048
-      hashes.content_result_hash: f60416ae0314e892c20cf9cf917e2cc41529e15b620cf1b0baf274d5b06ed800
+      hashes.content_result_hash: 8ac5b6dbf132283f0d0e79bddb48084baec3d3590a989d946ffe20bc1ba0d31d
   # Laser Sights: +20 m of range. The target starts in reach, so the fight is
   # the control's and only the content hash tells them apart.
   - fight.run:
@@ -58,7 +58,7 @@ steps:
     expect:
       steps: 91
       hashes.physics_result_hash: e8c1853ce824ab26652d8a5a76908ba9569486d77dc7c91cacd756fb131566b7
-      hashes.content_result_hash: 20a1a4b0c9715ad1cdcf956fcd18d6bd0af4ec96ac9933dc5fbb15fa9dc8ee5b
+      hashes.content_result_hash: 5b131c9d102fffba7397a5cd5d790914d4541d58192632af4d8b544946c31c25
   # The far control: 170 m apart, the Marksman walks before it fires.
   - fight.run:
       layout: tests/equipment/far-control.yaml
@@ -66,7 +66,7 @@ steps:
     expect:
       steps: 165
       hashes.physics_result_hash: cf18349b7ae445772905cbe9fbf95d228b6a7c7f53b05ab22c511376b7e2f2e0
-      hashes.content_result_hash: 47c5556c5491df4859170e49d7621c9294e6154b5ea79f7bb161cc7f9597bf2f
+      hashes.content_result_hash: 290d0c7f4ae7445d0257d1d1bbdc2c731b3bcfee11a86f701a8b499a4b455faf
   # Laser Sights at 170 m: the range acts, and the first shot comes sooner.
   - fight.run:
       layout: tests/equipment/laser-sights-far.yaml
@@ -74,7 +74,7 @@ steps:
     expect:
       steps: 140
       hashes.physics_result_hash: 42a98912fedf91211fd93b2d4d75202f703c338a3c9ef08628ffc2644e1f1934
-      hashes.content_result_hash: 892efd8b0821341005f47c81b3f820957a389c3a555eef9835f1b6df154c4d01
+      hashes.content_result_hash: d78c9f85c19cdd782a5059400d520f25a5eb415ebc9c62979c31e4bb64ed1091
   # Two items under Equipment Expansion: Heavy Armor's life and the Firepower
   # Control System's damage both land, 2838 of life and shots of 3842.
   - fight.run:
@@ -83,4 +83,4 @@ steps:
     expect:
       steps: 83
       hashes.physics_result_hash: 94e2b75d957405fb437828f3b43c662d2f8b0087e0c9620e9ec31b7a5a1cab8c
-      hashes.content_result_hash: 3fbc542fcd56586ce4987c82a45f3c9be34cfb3c03b3f8f11447433b9623f6d2
+      hashes.content_result_hash: 9bb2223e1343a0ba959cbe716efdd9ba5d037739a319c98fb77ee47d2a5ecff9

@@ -391,8 +391,7 @@ fn loadout(
     let stats = refused.hold(Stats::corrected(rules, level, &corrections).map_err(refusal))?;
     // A snapshot carries each `DataSet`'s aggregate; one this build cannot
     // record is refused here, where the side and the officer can be named.
-    refused.hold(stats.unit_dynamic_modifiers().map_err(refusal))?;
-    refused.hold(stats.skill_dynamic_modifiers(1).map_err(refusal))?;
+    refused.hold(stats.modifiers(1).map_err(refusal))?;
     Some(corrections)
 }
 

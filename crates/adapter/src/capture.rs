@@ -13,13 +13,12 @@ use mechcore_document::{
     contraption_type_from_id, unit_type_from_id,
 };
 use mechcore_mcfr::{
-    BuffModifierSet, BuildingState, DerivedStats, Domain, DurableContext, Event, EventPayload,
-    GaugeI32, LiveUnitState, MotionState, ObjectKind, ObjectRef, PersonalShieldState,
-    ProjectileState, QPlanar, QPose, QVec3, RateModifier, Rational, ShieldDestroyedReason,
-    ShieldRoundPolicy, ShieldSourceKind, ShieldState, SkillDynamicModifierSet,
-    SkillNumericModifierState, TerrainApplicationState, TerrainEffectClock, TerrainGridState,
-    TerrainLogicLifetime, TerrainRemovedReason, TerrainState, TerrainType, TransitionEvents,
-    UnitDynamicModifierSet, ValueModifier, Visibility, WeaponAimState, WorldSnapshot,
+    BuildingState, DerivedStats, Domain, DurableContext, Event, EventPayload, GaugeI32,
+    LiveUnitState, Modifier, ModifierChannel, ModifierPart, MotionState, ObjectKind, ObjectRef,
+    PersonalShieldState, ProjectileState, QPlanar, QPose, QVec3, Rational, ShieldDestroyedReason,
+    ShieldRoundPolicy, ShieldSourceKind, ShieldState, TerrainApplicationState, TerrainEffectClock,
+    TerrainGridState, TerrainLogicLifetime, TerrainRemovedReason, TerrainState, TerrainType,
+    TransitionEvents, Visibility, WeaponAimState, WorldSnapshot,
 };
 use mechcore_mcfr::{
     CheckedSkill, RvoNeighbour, RvoSolve, RvoVo, SkillAttackableCheck, TargetCandidate, TargetRefs,
@@ -314,6 +313,7 @@ pub(crate) struct Metadata {
     checker: Option<CheckerMetadata>,
     checker_error: Option<String>,
     pub(crate) selector: Option<SelectorMetadata>,
+    modifier_enums: ModifierEnums,
     selector_error: Option<String>,
     pub(crate) rvo: Option<RvoMetadata>,
     rvo_error: Option<String>,
@@ -1478,6 +1478,7 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             skill_state_fields,
             selector,
             selector_error,
+            modifier_enums: ModifierEnums::resolve(api)?,
             checker,
             checker_error,
             rvo,
@@ -5334,10 +5335,8 @@ fn read_unit(
         | (u64::from(invoke_value::<bool>(api, buff_manager, "IsFreeze")?) << 1)
         | (u64::from(invoke_value::<bool>(api, unit, "IsTechnologyDisabled")?) << 2)
         | (u64::from(invoke_value::<bool>(api, unit, "IsRecoverDisabled")?) << 3);
-    let buff_modifiers = read_buff_modifiers(api, buff_manager)?;
-    let unit_dynamic_modifiers = read_unit_modifiers(api, unit)?;
-    let (skill_dynamic_modifiers, weapon_aims, weapon_targets, skill_derived) =
-        read_skill_state(api, unit)?;
+    let (skills, weapon_aims, weapon_targets, skill_derived) = read_skill_state(api, unit)?;
+    let modifiers = read_modifiers(api, unit, buff_manager, &skills, &metadata.modifier_enums)?;
     // The numbers the fight reads, from the build's own properties. A
     // recording that carries these answers how a correction composes without
     // a fight being arranged to distinguish the candidates.
@@ -5388,9 +5387,7 @@ fn read_unit(
             targetable,
             visibility,
             status_mask,
-            buff_modifiers,
-            unit_dynamic_modifiers,
-            skill_dynamic_modifiers,
+            modifiers,
             personal_shield,
             weapon_aims,
             derived,
@@ -5399,118 +5396,8 @@ fn read_unit(
     })
 }
 
-fn read_buff_modifiers(api: Api, manager: *mut Object) -> Result<BuffModifierSet, String> {
-    Ok(BuffModifierSet {
-        move_speed_rate: named_rate(
-            api,
-            manager,
-            "GetMoveSpeedChangeAddRate",
-            "GetMoveSpeedChangeReduceRate",
-        )?,
-        move_speed_value: split_signed(invoke_value::<i32>(
-            api,
-            manager,
-            "GetMoveSpeedChangeValue",
-        )?)?,
-        damage_rate: named_rate(
-            api,
-            manager,
-            "GetDamageChangeAddRate",
-            "GetDamageChangeReduceRate",
-        )?,
-        attack_interval_rate: named_rate(
-            api,
-            manager,
-            "GetAttackIntervalChangeAddRate",
-            "GetAttackIntervalChangeReduceRate",
-        )?,
-        extra_attack_interval_rate: named_rate(
-            api,
-            manager,
-            "GetExtraAttackIntervalChangeAddRate",
-            "GetExtraAttackIntervalChangeReduceRate",
-        )?,
-        amplify_damage_rate: named_rate(
-            api,
-            manager,
-            "GetAmplifyDamageAddRate",
-            "GetAmplifyDamageReduceRate",
-        )?,
-        attack_range_value: named_value(
-            api,
-            manager,
-            "GetAttackRangeAddValue",
-            "GetAttackRangeReduceValue",
-        )?,
-        extra_attack_range_value: named_value(
-            api,
-            manager,
-            "GetExtraAttackRangeAddValue",
-            "GetExtraAttackRangeReduceValue",
-        )?,
-        attack_range_rate: named_rate(
-            api,
-            manager,
-            "GetAttackRangeAddRate",
-            "GetAttackRangeReduceRate",
-        )?,
-        extra_attack_range_rate: named_rate(
-            api,
-            manager,
-            "GetExtraAttackRangeAddRate",
-            "GetExtraAttackRangeReduceRate",
-        )?,
-    })
-}
-
-fn read_unit_modifiers(api: Api, unit: *mut Object) -> Result<UnitDynamicModifierSet, String> {
-    Ok(UnitDynamicModifierSet {
-        gf_range_value: enum_fixed(
-            api,
-            unit,
-            "GetDataFloat",
-            "GameRiver.MechDataChangeFloat",
-            0,
-        )?,
-        gf_life_time_value: enum_fixed(
-            api,
-            unit,
-            "GetDataFloat",
-            "GameRiver.MechDataChangeFloat",
-            1,
-        )?,
-        mech_group_distance: enum_fixed(
-            api,
-            unit,
-            "GetDataFloat",
-            "GameRiver.MechDataChangeFloat",
-            2,
-        )?,
-        life_rate: enum_rate(api, unit, "GameRiver.MechDataChangeFloatRate", 0)?,
-        life_rate_by_kill_count: enum_rate(api, unit, "GameRiver.MechDataChangeFloatRate", 1)?,
-        reduce_damage_from_remote: enum_rate(api, unit, "GameRiver.MechDataChangeFloatRate", 2)?,
-        move_ability_exit_time_change_rate: enum_rate(
-            api,
-            unit,
-            "GameRiver.MechDataChangeFloatRate",
-            3,
-        )?,
-        move_speed_change_rate: enum_rate(api, unit, "GameRiver.MechDataChangeFloatRate", 4)?,
-        amplify_damage_rate: enum_rate(api, unit, "GameRiver.MechDataChangeFloatRate", 5)?,
-        move_speed_value: enum_int(api, unit, "GetDataInt", "GameRiver.MechDataChangeInt", 0)?,
-        reduce_damage_value: enum_int(api, unit, "GetDataInt", "GameRiver.MechDataChangeInt", 1)?,
-        child_inherit_technology_effect: enum_int(
-            api,
-            unit,
-            "GetDataInt",
-            "GameRiver.MechDataChangeInt",
-            2,
-        )?,
-    })
-}
-
 type SkillState = (
-    Vec<SkillNumericModifierState>,
+    Vec<*mut Object>,
     Vec<WeaponAimState>,
     Vec<usize>,
     SkillDerived,
@@ -5529,7 +5416,7 @@ fn read_skill_state(api: Api, unit: *mut Object) -> Result<SkillState, String> {
     let all_skills = invoke_object(api, unit, "GetSkills")?;
     let count = list_count(api, all_skills, i32::from(u16::MAX))?;
     let capacity = usize::try_from(count).map_err(|_| "skill count is negative".to_owned())?;
-    let mut modifiers = Vec::with_capacity(capacity);
+    let mut skills = Vec::with_capacity(capacity);
     let mut aims = Vec::new();
     let mut targets = Vec::new();
     let mut derived = SkillDerived::default();
@@ -5543,10 +5430,7 @@ fn read_skill_state(api: Api, unit: *mut Object) -> Result<SkillState, String> {
                 interval: invoke_value::<i32>(api, skill, "GetCurrentAttackInterval")?,
             };
         }
-        modifiers.push(SkillNumericModifierState {
-            skill_slot,
-            modifiers: read_skill_modifiers(api, skill)?,
-        });
+        skills.push(skill);
         let target = api
             .invoke(skill, "GetAttackTarget", &mut [])
             .map_err(|error| error.to_string())? as usize;
@@ -5582,7 +5466,7 @@ fn read_skill_state(api: Api, unit: *mut Object) -> Result<SkillState, String> {
     let mut paired = aims.into_iter().zip(targets).collect::<Vec<_>>();
     paired.sort_by_key(|(aim, _)| (aim.skill_slot, aim.weapon_index));
     let (aims, targets) = paired.into_iter().unzip();
-    Ok((modifiers, aims, targets, derived))
+    Ok((skills, aims, targets, derived))
 }
 
 /// Calls a method that takes one `System.Int32` and answers one.
@@ -5601,85 +5485,293 @@ fn invoke_int_value(
     .map_err(|error| error.to_string())
 }
 
-fn read_skill_modifiers(api: Api, skill: *mut Object) -> Result<SkillDynamicModifierSet, String> {
-    const FLOAT_TYPE: &str = "GameRiver.SkillDataChangeFloat";
-    const RATE_TYPE: &str = "GameRiver.SkillDataChangeFloatRate";
-    const INT_TYPE: &str = "GameRiver.SkillDataChangeInt";
-    Ok(SkillDynamicModifierSet {
-        min_attack_range_value: enum_fixed(api, skill, "GetData", FLOAT_TYPE, 0)?,
-        attack_range_value: enum_fixed(api, skill, "GetData", FLOAT_TYPE, 1)?,
-        attack_air_range_add_value: enum_fixed(api, skill, "GetData", FLOAT_TYPE, 2)?,
-        attack_ground_range_add_value: enum_fixed(api, skill, "GetData", FLOAT_TYPE, 3)?,
-        attack_interval_value: enum_fixed(api, skill, "GetData", FLOAT_TYPE, 4)?,
-        damage_change_rate_ground: enum_fixed(api, skill, "GetData", FLOAT_TYPE, 5)?,
-        damage_change_rate_air: enum_fixed(api, skill, "GetData", FLOAT_TYPE, 6)?,
-        splash_range_value: enum_fixed(api, skill, "GetData", FLOAT_TYPE, 7)?,
-        cb_life_recovery_rate: enum_fixed(api, skill, "GetData", FLOAT_TYPE, 8)?,
-        projectile_speed_value: enum_fixed(api, skill, "GetData", FLOAT_TYPE, 9)?,
-        attack_point_change_value: enum_fixed(api, skill, "GetData", FLOAT_TYPE, 10)?,
-        projectile_duration_value: enum_fixed(api, skill, "GetData", FLOAT_TYPE, 11)?,
-        projectile_random_range: enum_fixed(api, skill, "GetData", FLOAT_TYPE, 12)?,
-        additional_damage_by_target_life: enum_fixed(api, skill, "GetData", FLOAT_TYPE, 13)?,
-        damage_rate: enum_rate(api, skill, RATE_TYPE, 0)?,
-        damage_rate_by_kill_count: enum_rate(api, skill, RATE_TYPE, 1)?,
-        attack_range_rate: enum_rate(api, skill, RATE_TYPE, 2)?,
-        attack_interval_rate: enum_rate(api, skill, RATE_TYPE, 3)?,
-        damage_reduce_rate_base: enum_rate(api, skill, RATE_TYPE, 4)?,
-        projectile_life_rate: enum_rate(api, skill, RATE_TYPE, 5)?,
-        projectile_count_value: enum_int(api, skill, "GetData", INT_TYPE, 0)?,
-        air_attack_value: enum_int(api, skill, "GetData", INT_TYPE, 1)?,
-        ground_attack_value: enum_int(api, skill, "GetData", INT_TYPE, 2)?,
-        attack_range_value_air: enum_int(api, skill, "GetData", INT_TYPE, 3)?,
-        attack_range_value_ground: enum_int(api, skill, "GetData", INT_TYPE, 4)?,
-        is_lock_target: enum_int(api, skill, "GetData", INT_TYPE, 5)?,
-    })
+/// The native enums a unit's and a skill's `DataSet` are keyed by, member by
+/// member, resolved once: every member the build defines is read, so none is
+/// skipped and none is misnamed.
+#[derive(Clone, Default)]
+pub(crate) struct ModifierEnums {
+    mech_float: Vec<(String, i32)>,
+    mech_float_rate: Vec<(String, i32)>,
+    mech_int: Vec<(String, i32)>,
+    skill_float: Vec<(String, i32)>,
+    skill_float_rate: Vec<(String, i32)>,
+    skill_int: Vec<(String, i32)>,
 }
 
-fn named_rate(
+const MECH_FLOAT: &str = "GameRiver.MechDataChangeFloat";
+const MECH_FLOAT_RATE: &str = "GameRiver.MechDataChangeFloatRate";
+const MECH_INT: &str = "GameRiver.MechDataChangeInt";
+const SKILL_FLOAT: &str = "GameRiver.SkillDataChangeFloat";
+const SKILL_FLOAT_RATE: &str = "GameRiver.SkillDataChangeFloatRate";
+const SKILL_INT: &str = "GameRiver.SkillDataChangeInt";
+
+impl ModifierEnums {
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    fn resolve(api: Api) -> Result<Self, String> {
+        let members = |qualified: &str| {
+            let (namespace, name) = qualified.rsplit_once('.').expect("qualified enum name");
+            let class = api
+                .class("GRFight.dll", namespace, name)
+                .map_err(|error| error.to_string())?;
+            let members = api
+                .enum_members(class)
+                .map_err(|error| format!("{name} members: {error}"))?;
+            if members.is_empty() {
+                return Err(format!("{name} has no members"));
+            }
+            Ok::<_, String>(
+                members
+                    .into_iter()
+                    .map(|(member, value)| (native_snake_case(&member), value))
+                    .collect(),
+            )
+        };
+        Ok(Self {
+            mech_float: members(MECH_FLOAT)?,
+            mech_float_rate: members(MECH_FLOAT_RATE)?,
+            mech_int: members(MECH_INT)?,
+            skill_float: members(SKILL_FLOAT)?,
+            skill_float_rate: members(SKILL_FLOAT_RATE)?,
+            skill_int: members(SKILL_INT)?,
+        })
+    }
+}
+
+/// A native member name in `snake_case`, spelled as the build spells it:
+/// `CBLifeRecoveryRate` is `cb_life_recovery_rate`.
+fn native_snake_case(name: &str) -> String {
+    let characters = name.chars().collect::<Vec<_>>();
+    let mut snake = String::with_capacity(name.len() + 4);
+    for (index, character) in characters.iter().enumerate() {
+        if character.is_ascii_uppercase() && index > 0 {
+            let previous = characters[index - 1];
+            let next_is_lower = characters
+                .get(index + 1)
+                .is_some_and(char::is_ascii_lowercase);
+            if previous.is_ascii_lowercase()
+                || previous.is_ascii_digit()
+                || (previous.is_ascii_uppercase() && next_is_lower)
+            {
+                snake.push('_');
+            }
+        }
+        snake.push(character.to_ascii_lowercase());
+    }
+    snake
+}
+
+/// Every non-zero correction on a unit and its skills, in stored order.
+fn read_modifiers(
     api: Api,
-    object: *mut Object,
-    add: &str,
-    reduce: &str,
-) -> Result<RateModifier, String> {
-    let add = invoke_value::<FixedPoint>(api, object, add)?.raw;
-    let native_reduce_factor = invoke_value::<FixedPoint>(api, object, reduce)?.raw;
-    normalize_native_rate(add, native_reduce_factor)
+    unit: *mut Object,
+    buff_manager: *mut Object,
+    skills: &[*mut Object],
+    enums: &ModifierEnums,
+) -> Result<Vec<Modifier>, String> {
+    let mut modifiers = Vec::new();
+    read_buff_modifiers(api, buff_manager, &mut modifiers)?;
+    for (field, index) in &enums.mech_float {
+        let value = enum_fixed(api, unit, "GetDataFloat", MECH_FLOAT, *index)?;
+        push_modifier(
+            &mut modifiers,
+            ModifierChannel::MechFloat,
+            None,
+            field,
+            ModifierPart::Value,
+            value,
+        );
+    }
+    for (field, index) in &enums.mech_float_rate {
+        let (add, reduce) = enum_rate(api, unit, MECH_FLOAT_RATE, *index)?;
+        push_rate(
+            &mut modifiers,
+            ModifierChannel::MechFloatRate,
+            None,
+            field,
+            add,
+            reduce,
+        );
+    }
+    for (field, index) in &enums.mech_int {
+        let value = enum_int(api, unit, "GetDataInt", MECH_INT, *index)?;
+        push_modifier(
+            &mut modifiers,
+            ModifierChannel::MechInt,
+            None,
+            field,
+            ModifierPart::Value,
+            i64::from(value),
+        );
+    }
+    for (slot, skill) in skills.iter().enumerate() {
+        let slot = Some(u16::try_from(slot).map_err(|_| "skill slot overflow".to_owned())?);
+        for (field, index) in &enums.skill_float {
+            let value = enum_fixed(api, *skill, "GetData", SKILL_FLOAT, *index)?;
+            push_modifier(
+                &mut modifiers,
+                ModifierChannel::SkillFloat,
+                slot,
+                field,
+                ModifierPart::Value,
+                value,
+            );
+        }
+        for (field, index) in &enums.skill_float_rate {
+            let (add, reduce) = enum_rate(api, *skill, SKILL_FLOAT_RATE, *index)?;
+            push_rate(
+                &mut modifiers,
+                ModifierChannel::SkillFloatRate,
+                slot,
+                field,
+                add,
+                reduce,
+            );
+        }
+        for (field, index) in &enums.skill_int {
+            let value = enum_int(api, *skill, "GetData", SKILL_INT, *index)?;
+            push_modifier(
+                &mut modifiers,
+                ModifierChannel::SkillInt,
+                slot,
+                field,
+                ModifierPart::Value,
+                i64::from(value),
+            );
+        }
+    }
+    mechcore_mcfr::sort_modifiers(&mut modifiers);
+    Ok(modifiers)
 }
 
-fn normalize_native_rate(add: i64, native_reduce_factor: i64) -> Result<RateModifier, String> {
+/// `BuffManager`'s aggregates over the unit's live buffs: each rate from its
+/// add and reduce getters, and each signed value as the getters answer it.
+fn read_buff_modifiers(
+    api: Api,
+    manager: *mut Object,
+    modifiers: &mut Vec<Modifier>,
+) -> Result<(), String> {
+    for (field, add, reduce) in [
+        (
+            "move_speed_rate",
+            "GetMoveSpeedChangeAddRate",
+            "GetMoveSpeedChangeReduceRate",
+        ),
+        (
+            "damage_rate",
+            "GetDamageChangeAddRate",
+            "GetDamageChangeReduceRate",
+        ),
+        (
+            "attack_interval_rate",
+            "GetAttackIntervalChangeAddRate",
+            "GetAttackIntervalChangeReduceRate",
+        ),
+        (
+            "extra_attack_interval_rate",
+            "GetExtraAttackIntervalChangeAddRate",
+            "GetExtraAttackIntervalChangeReduceRate",
+        ),
+        (
+            "amplify_damage_rate",
+            "GetAmplifyDamageAddRate",
+            "GetAmplifyDamageReduceRate",
+        ),
+        (
+            "attack_range_rate",
+            "GetAttackRangeAddRate",
+            "GetAttackRangeReduceRate",
+        ),
+        (
+            "extra_attack_range_rate",
+            "GetExtraAttackRangeAddRate",
+            "GetExtraAttackRangeReduceRate",
+        ),
+    ] {
+        let (add, reduce) = normalize_native_rate(
+            invoke_value::<FixedPoint>(api, manager, add)?.raw,
+            invoke_value::<FixedPoint>(api, manager, reduce)?.raw,
+        )?;
+        push_rate(modifiers, ModifierChannel::Buff, None, field, add, reduce);
+    }
+    // The value aggregates are signed, and a round has shown one negative.
+    for (field, getter) in [
+        ("move_speed_value", "GetMoveSpeedChangeValue"),
+        ("attack_range_add_value", "GetAttackRangeAddValue"),
+        ("attack_range_reduce_value", "GetAttackRangeReduceValue"),
+        (
+            "extra_attack_range_add_value",
+            "GetExtraAttackRangeAddValue",
+        ),
+        (
+            "extra_attack_range_reduce_value",
+            "GetExtraAttackRangeReduceValue",
+        ),
+    ] {
+        let value = invoke_value::<i32>(api, manager, getter)?;
+        push_modifier(
+            modifiers,
+            ModifierChannel::Buff,
+            None,
+            field,
+            ModifierPart::Value,
+            i64::from(value),
+        );
+    }
+    Ok(())
+}
+
+fn push_modifier(
+    modifiers: &mut Vec<Modifier>,
+    channel: ModifierChannel,
+    skill_slot: Option<u16>,
+    field: &str,
+    part: ModifierPart,
+    value: i64,
+) {
+    if value != 0 {
+        modifiers.push(Modifier {
+            channel,
+            skill_slot,
+            field: field.to_owned(),
+            part,
+            value,
+        });
+    }
+}
+
+fn push_rate(
+    modifiers: &mut Vec<Modifier>,
+    channel: ModifierChannel,
+    skill_slot: Option<u16>,
+    field: &str,
+    add: i64,
+    reduce: i64,
+) {
+    push_modifier(
+        modifiers,
+        channel,
+        skill_slot,
+        field,
+        ModifierPart::Add,
+        add,
+    );
+    push_modifier(
+        modifiers,
+        channel,
+        skill_slot,
+        field,
+        ModifierPart::Reduce,
+        reduce,
+    );
+}
+
+/// A native rate aggregate as stored: the enhancements' sum, and one less
+/// the factor the impairments leave.
+fn normalize_native_rate(add: i64, native_reduce_factor: i64) -> Result<(i64, i64), String> {
     if add < 0 || !(0..=FIXED_ONE_RAW).contains(&native_reduce_factor) {
         return Err("native rate aggregate is outside the supported range".to_owned());
     }
-    let reduce = FIXED_ONE_RAW - native_reduce_factor;
-    Ok(RateModifier { add, reduce })
-}
-
-fn named_value(
-    api: Api,
-    object: *mut Object,
-    add: &str,
-    reduce: &str,
-) -> Result<ValueModifier, String> {
-    // The native aggregates are signed, and a round has shown one negative.
-    let add = invoke_value::<i32>(api, object, add)?;
-    let reduce = invoke_value::<i32>(api, object, reduce)?;
-    Ok(ValueModifier { add, reduce })
-}
-
-fn split_signed(value: i32) -> Result<ValueModifier, String> {
-    if value >= 0 {
-        Ok(ValueModifier {
-            add: value,
-            reduce: 0,
-        })
-    } else {
-        Ok(ValueModifier {
-            add: 0,
-            reduce: value
-                .checked_abs()
-                .ok_or_else(|| "i32 modifier magnitude overflow".to_owned())?,
-        })
-    }
+    Ok((add, FIXED_ONE_RAW - native_reduce_factor))
 }
 
 fn enum_rate(
@@ -5687,7 +5779,7 @@ fn enum_rate(
     object: *mut Object,
     parameter_type: &str,
     index: i32,
-) -> Result<RateModifier, String> {
+) -> Result<(i64, i64), String> {
     let add = enum_fixed(api, object, "GetDataFloatAddRate", parameter_type, index)?;
     let native_reduce_factor =
         enum_fixed(api, object, "GetDataFloatReduceRate", parameter_type, index)?;
@@ -7256,21 +7348,30 @@ mod tests {
     }
 
     #[test]
-    fn native_rate_neutral_factor_normalizes_to_zero() {
+    fn native_member_names_become_snake_case_as_spelled() {
         assert_eq!(
-            normalize_native_rate(0, FIXED_ONE_RAW).unwrap(),
-            RateModifier::default()
+            native_snake_case("CBLifeRecoveryRate"),
+            "cb_life_recovery_rate"
         );
+        assert_eq!(native_snake_case("GFRangeValue"), "gf_range_value");
+        assert_eq!(native_snake_case("ExpChangeRate"), "exp_change_rate");
+        assert_eq!(
+            native_snake_case("DamageChagneRateGround"),
+            "damage_chagne_rate_ground"
+        );
+        assert_eq!(native_snake_case("AddHp"), "add_hp");
+    }
+
+    #[test]
+    fn native_rate_neutral_factor_normalizes_to_zero() {
+        assert_eq!(normalize_native_rate(0, FIXED_ONE_RAW).unwrap(), (0, 0));
     }
 
     #[test]
     fn native_rate_reduction_preserves_q32_delta() {
         assert_eq!(
             normalize_native_rate(0, FIXED_ONE_RAW - 123).unwrap(),
-            RateModifier {
-                add: 0,
-                reduce: 123,
-            }
+            (0, 123)
         );
     }
 
@@ -7301,9 +7402,7 @@ mod tests {
             targetable: true,
             visibility: Visibility::Normal,
             status_mask: 0,
-            buff_modifiers: BuffModifierSet::default(),
-            unit_dynamic_modifiers: UnitDynamicModifierSet::default(),
-            skill_dynamic_modifiers: Vec::new(),
+            modifiers: Vec::new(),
             personal_shield: PersonalShieldState {
                 active: false,
                 enabled: false,

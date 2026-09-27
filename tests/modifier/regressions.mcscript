@@ -35,7 +35,7 @@ steps:
       steps: 120
       teams.1.remaining_life: 14639
       hashes.physics_result_hash: 067ea40ac5331e416606fc6dd283db9422ca0c07d49f5b933b1dd66f69102fea
-      hashes.content_result_hash: ac9b5af1f3c6a45166f0e6b2c52250ffd8d064b47e2a9e7be1299970ce69184f
+      hashes.content_result_hash: 22967c88fd154dfaf24612c050f636c27d855016e9386c7673c7c561f75d5ee1
 
   # One enhancement, and two of them summing: 2329 x 1.3 and x 1.6.
   - fight.run:
@@ -45,7 +45,7 @@ steps:
       steps: 120
       teams.1.remaining_life: 13243
       hashes.physics_result_hash: d37babd2137d29b9580ed2ecfada5789e8765fb02f0b2a6e8ee0db249cfee8dd
-      hashes.content_result_hash: bc4c1fd4f94e5f3aae2976f110855c42744f1e23f171754317d5ff91dfd71c50
+      hashes.content_result_hash: 9930f58de9ed05a4010f55ab94e3a788e27ce895d5b480de01a1d31d73d68f45
   - fight.run:
       layout: tests/modifier/officer-composition-twice.yaml
       seed: 4242
@@ -53,7 +53,7 @@ steps:
       steps: 120
       teams.1.remaining_life: 11845
       hashes.physics_result_hash: d98b1c293c489eabfa7350e0460259f0a536b308cb83a1018e66ead866e4a864
-      hashes.content_result_hash: 91bd493e1a1c4a5fe47e47f618e897aae8930bedee7b5846e8a7e9cf8ec810ff
+      hashes.content_result_hash: 37c777c80a38d01963a5adf6368ce23a14f8d7f3cf2cf1af65365363e73e07fe
 
   # An enhancement in the unit channel instead of a skill's: life, not damage.
   - fight.run:
@@ -64,7 +64,7 @@ steps:
       teams.1.remaining_life: 20428
       teams.1.max_life: 25086
       hashes.physics_result_hash: bedd0321b34711b41bd92c601dc34e7bfeb5ef3c891a1559554dda1583412740
-      hashes.content_result_hash: a1ea292b7dcd02c4fd77d36bc73b4d55f19f81ce286f44bcefe70c6ff2a753a9
+      hashes.content_result_hash: c9c90b75092dd201ac3358ff9b32e5f956ac22ce8536fbf2374f94bd49bce725
 
   # One impairment, which both candidate rules agree about, and two, which
   # separate them: 0.89 x 0.89 leaves 15285 whole, and 1 - 0.22 leaves 15051.
@@ -76,7 +76,7 @@ steps:
       teams.1.remaining_life: 12516
       teams.1.max_life: 17174
       hashes.physics_result_hash: 2f7a6aad9c560b409b4bbfb476b43b482b20681c7f9d1afe7dd8122d0f751e1a
-      hashes.content_result_hash: 7a00d0749aa21b4d0ca3cdffdf7b03627a85253176fa8d9719130b486194fd0b
+      hashes.content_result_hash: 2d5173210c89c70ffcc986fa8d70a82a336cdb66db6a1c31a506c93761e65631
   - fight.run:
       layout: tests/modifier/officer-impair-twice.yaml
       seed: 4242
@@ -85,7 +85,7 @@ steps:
       teams.1.remaining_life: 10627
       teams.1.max_life: 15285
       hashes.physics_result_hash: b218aecb6a059190433fe4e9672010778e7dd0ee8290a84aea712efc907e1c03
-      hashes.content_result_hash: 8bb9fafc38b2ca4abd39c1c8fc1cab53459b9000b47eda36dd28a3089734c86c
+      hashes.content_result_hash: 0cf1945b3ac7bee077e2aaf876b594b3a1d1d30631f983eca1ed2c244aef74d3
 
   # A value and an impairment in one fight, against the same fight without
   # them. Twenty metres of range moves every tick after the first shot.
@@ -96,7 +96,7 @@ steps:
       steps: 137
       teams.1.remaining_life: 16377
       hashes.physics_result_hash: 68da07877e6bfce571deae59c56bbe3e73ff6540461f709d366c511230f64d6d
-      hashes.content_result_hash: b32e3f566fc70e23dd1f4b11195f0985355a082b63ce58e4befbc82558e0f014
+      hashes.content_result_hash: a105bbafd6dd6ba908ee0756b4963ba9ef5a1a94ce4079bf479d258fac7419bf
   - fight.run:
       layout: tests/modifier/officer-range-value.yaml
       seed: 4242
@@ -104,7 +104,7 @@ steps:
       steps: 137
       teams.1.remaining_life: 16961
       hashes.physics_result_hash: bf5db25f1f546633db4e63665bbb0e4d3cf01943881c6e5c651a659ee35cdbfd
-      hashes.content_result_hash: bdd76b4eba39f7a16ac2eb1a6e3eb572c977b54bee5bd5a2c66fcce370edffce
+      hashes.content_result_hash: 23c51f329a17041d28fa88ce5c76397017d5d2ddfc0bc69428cae920e3985975
 
   # A plain integer, summed: 16 m/s becomes 19 and then 22, and the walk to
   # the Marksman is the whole clock. The life left is the same in all three
@@ -117,7 +117,7 @@ steps:
       steps: 104
       teams.1.remaining_life: 14639
       hashes.physics_result_hash: 1f2144f73f563c8bee5aa2d592f0c3a3b277078ec490994a1ac21ab6f799eedc
-      hashes.content_result_hash: 4378170465bd256bce263fd4cc7153746f9aeab9d30cc6d57cd0c6a4a851760f
+      hashes.content_result_hash: f92ba8d02c85e68f17b2c2307d5527e4592963bee82170024f8c699a4590fdc0
   - fight.run:
       layout: tests/modifier/officer-speed-twice.yaml
       seed: 4242
@@ -125,7 +125,7 @@ steps:
       steps: 92
       teams.1.remaining_life: 14639
       hashes.physics_result_hash: 2d88309239667e7acc0f0db8208b4c39cc5cce3ca01b082bf2a38e782bafee4b
-      hashes.content_result_hash: 5a3f1d87d662838baf2ff3875350047c59a70dde0149b807e41afaaf893caadf
+      hashes.content_result_hash: 9a4c737bb97ac254abfec81c49af7d28631ab67aa166596126adbf8a92995ccf
 
   # Two sources on one number: an officer's `+20` of range and a technology's
   # `+40`. The fight is the one above to the tick — the Arclight was already in
@@ -138,7 +138,7 @@ steps:
       steps: 137
       teams.1.remaining_life: 16961
       hashes.physics_result_hash: bf5db25f1f546633db4e63665bbb0e4d3cf01943881c6e5c651a659ee35cdbfd
-      hashes.content_result_hash: 7aaa9bd829a7f70294aee689ce804cbab2f1e5838985be296e4f0b6346373767
+      hashes.content_result_hash: 6feba5e7a637a4c93373119bad1211c3639559a84d1b33953782fa9497ac9f45
 
   # A technology's three corrections at once, on a unit that draws no stagger:
   # a rate on the interval, a value on the range and a plain integer on the
@@ -150,7 +150,7 @@ steps:
     expect:
       steps: 274
       hashes.physics_result_hash: 6f759ee7feeb5d87018e94bd65a819c817ae0badd82aac92cbb7bffd1b3603f9
-      hashes.content_result_hash: 9fd4db2ff94733ff79fcef0495e36b4c8adb1dcbb7ac62679c7ab745c2a4c6b4
+      hashes.content_result_hash: b1593cc9e28b5f374adedd57c9b08be1f0d2254a3d29484b1f04b67709b268a4
 
 
   # Which units a Ranged row reaches. The control is six formations with no
@@ -163,11 +163,11 @@ steps:
     expect:
       steps: 144
       hashes.physics_result_hash: 89a0c82aacfaa16873fd1dad8c6933373d175679a93a456eee28c0bd6a750f19
-      hashes.content_result_hash: ed5ca531246e363011fb9c631a3bc804a02909720e9720439e805afa07563431
+      hashes.content_result_hash: 6d6fa41f174e9abdf7f105685cb303fd0d1ad3eacd775ae627f9504534004ad9
   - fight.run:
       layout: tests/modifier/targeting-ranged.yaml
       seed: 4242
     expect:
       steps: 138
       hashes.physics_result_hash: 8da7421500c1185f8835c7a71434f1eb1e74cb53b849f63d50c2f2dfdc8c2949
-      hashes.content_result_hash: 884841ac06d0db76cf1806bf4a45fb4b4aaa1148744c876ae833f288cdc12f11
+      hashes.content_result_hash: 0800d6a48eafbf17da5d08e614571d28dd9d2d649a331b824c74db78ed1ebf5e

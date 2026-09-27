@@ -25,6 +25,7 @@ use crate::{
     Error, Result,
     rules::{AttackPath, UnitConfig},
 };
+use mechcore_mcfr::{Modifier, ModifierChannel, ModifierPart};
 
 /// One, in the Q32.32 fixed point a rate is stored in.
 const ONE: i128 = 1 << 32;
@@ -232,13 +233,13 @@ impl Default for Aggregate {
 impl Aggregate {
     /// The rate half as a recording stores it: the enhancements' sum, and one
     /// less the compounded remainder.
-    fn rate(self) -> Result<mechcore_mcfr::RateModifier> {
-        Ok(mechcore_mcfr::RateModifier {
-            add: i64::try_from(self.enhance)
+    fn rate(self) -> Result<(i64, i64)> {
+        Ok((
+            i64::try_from(self.enhance)
                 .map_err(|_| Error::new("an enhancement is outside the signed range"))?,
-            reduce: i64::try_from(ONE - self.remaining)
+            i64::try_from(ONE - self.remaining)
                 .map_err(|_| Error::new("an impairment is outside the signed range"))?,
-        })
+        ))
     }
 }
 
@@ -489,21 +490,42 @@ impl Stats {
             .expect("the layout verified the damage corrections")
     }
 
-    /// The unit's own `DataSet` as a recording stores it: life's rate, move
-    /// speed's value in whole metres, and move speed's rate, each the
-    /// aggregate its field keeps.
+    /// Every correction on the unit, its skills and its buffs, as a recording
+    /// stores it: the sparse list of native fields, the skill's repeated for
+    /// each of `slots` skill slots.
+    ///
+    /// Each number a channel corrects lands in the field the build keeps its
+    /// aggregate in. A value is the number's own units here and, in the
+    /// recording, Q32.32 metres or seconds for a skill float and whole metres
+    /// for the unit's move-speed int. Level ratings are in the base channel
+    /// and never appear here.
     ///
     /// # Errors
     ///
-    /// Returns an error for a correction the unit `DataSet` has no field for.
-    pub(crate) fn unit_dynamic_modifiers(&self) -> Result<mechcore_mcfr::UnitDynamicModifierSet> {
+    /// Returns an error for a correction the build has no field for, rather
+    /// than dropping it from what the recording is compared with.
+    pub(crate) fn modifiers(&self, slots: usize) -> Result<Vec<Modifier>> {
+        let mut modifiers = Vec::new();
+        self.unit_modifiers(&mut modifiers)?;
+        self.skill_modifiers(slots, &mut modifiers)?;
+        self.buff_modifiers(&mut modifiers)?;
+        mechcore_mcfr::sort_modifiers(&mut modifiers);
+        Ok(modifiers)
+    }
+
+    fn unit_modifiers(&self, modifiers: &mut Vec<Modifier>) -> Result<()> {
         let unit = &self.overlays.unit;
-        let mut set = mechcore_mcfr::UnitDynamicModifierSet::default();
         if let Some(life) = unit.aggregate(Index::MaxLife) {
             if life.value != 0 {
                 return Err(Error::new("the unit DataSet has no field for a life value"));
             }
-            set.life_rate = life.rate()?;
+            push_rate(
+                modifiers,
+                ModifierChannel::MechFloatRate,
+                None,
+                "life_rate",
+                life,
+            )?;
         }
         if let Some(speed) = unit.aggregate(Index::MoveSpeed) {
             // `DataSet.intDatas`: whole metres, which is how the officer's
@@ -515,9 +537,22 @@ impl Stats {
                     "a unit's move-speed value is a whole number of metres",
                 ));
             }
-            set.move_speed_value = i32::try_from(speed.value / metres)
-                .map_err(|_| Error::new("a unit's move-speed value is outside i32"))?;
-            set.move_speed_change_rate = speed.rate()?;
+            push(
+                modifiers,
+                ModifierChannel::MechInt,
+                None,
+                "move_speed_value",
+                ModifierPart::Value,
+                i64::try_from(speed.value / metres)
+                    .map_err(|_| Error::new("a unit's move-speed value is outside i64"))?,
+            );
+            push_rate(
+                modifiers,
+                ModifierChannel::MechFloatRate,
+                None,
+                "move_speed_change_rate",
+                speed,
+            )?;
         }
         for index in [
             Index::AttackDamage,
@@ -532,54 +567,15 @@ impl Stats {
                 )));
             }
         }
-        Ok(set)
+        Ok(())
     }
 
-    /// The skill's `DataSet` as a recording stores it, one entry per skill
-    /// slot, or none when the skill channel holds nothing.
-    ///
-    /// Each number the skill channel corrects lands in the field the build
-    /// keeps its aggregate in: damage's rate, the attack range's value and
-    /// rate, the attack interval's value and rate. A value is the number's own
-    /// units here and Q32.32 metres or seconds in the recording. Level ratings
-    /// are in the base channel and never appear here.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error for a correction the skill `DataSet` has no field
-    /// for, rather than dropping it from what the recording is compared with.
-    pub(crate) fn skill_dynamic_modifiers(
-        &self,
-        slots: usize,
-    ) -> Result<Vec<mechcore_mcfr::SkillNumericModifierState>> {
+    fn skill_modifiers(&self, slots: usize, modifiers: &mut Vec<Modifier>) -> Result<()> {
         let skill = &self.overlays.skill;
-        let mut set = mechcore_mcfr::SkillDynamicModifierSet::default();
         let q32 = |value: i128, units_per_one: i128| {
             i64::try_from(value * ONE / units_per_one)
                 .map_err(|_| Error::new("a skill value is outside the signed range"))
         };
-        if let Some(damage) = skill.aggregate(Index::AttackDamage) {
-            if damage.value != 0 {
-                return Err(Error::new(
-                    "the skill DataSet has no field for a damage value",
-                ));
-            }
-            set.damage_rate = damage.rate()?;
-        }
-        if let Some(range) = skill.aggregate(Index::AttackRange) {
-            set.attack_range_value = q32(
-                range.value,
-                i128::from(crate::rules::SPACE_UNITS_PER_METER_SCALE),
-            )?;
-            set.attack_range_rate = range.rate()?;
-        }
-        if let Some(interval) = skill.aggregate(Index::AttackInterval) {
-            set.attack_interval_value = q32(
-                interval.value,
-                i128::from(crate::rules::TIME_UNITS_PER_SECOND_SCALE),
-            )?;
-            set.attack_interval_rate = interval.rate()?;
-        }
         for index in [Index::MoveSpeed, Index::MaxLife, Index::AmplifyDamage] {
             if skill.aggregate(index).is_some() {
                 return Err(Error::new(format!(
@@ -588,31 +584,77 @@ impl Stats {
                 )));
             }
         }
-        if set.is_zero() {
-            return Ok(Vec::new());
+        if let Some(damage) = skill.aggregate(Index::AttackDamage)
+            && damage.value != 0
+        {
+            return Err(Error::new(
+                "the skill DataSet has no field for a damage value",
+            ));
         }
-        Ok((0..slots)
-            .map(|slot| mechcore_mcfr::SkillNumericModifierState {
-                skill_slot: u16::try_from(slot).expect("validated skill count fits u16"),
-                modifiers: set,
-            })
-            .collect())
+        for slot in 0..slots {
+            let slot =
+                Some(u16::try_from(slot).map_err(|_| Error::new("a skill slot is outside u16"))?);
+            if let Some(damage) = skill.aggregate(Index::AttackDamage) {
+                push_rate(
+                    modifiers,
+                    ModifierChannel::SkillFloatRate,
+                    slot,
+                    "damage_rate",
+                    damage,
+                )?;
+            }
+            if let Some(range) = skill.aggregate(Index::AttackRange) {
+                push(
+                    modifiers,
+                    ModifierChannel::SkillFloat,
+                    slot,
+                    "attack_range_value",
+                    ModifierPart::Value,
+                    q32(
+                        range.value,
+                        i128::from(crate::rules::SPACE_UNITS_PER_METER_SCALE),
+                    )?,
+                );
+                push_rate(
+                    modifiers,
+                    ModifierChannel::SkillFloatRate,
+                    slot,
+                    "attack_range_rate",
+                    range,
+                )?;
+            }
+            if let Some(interval) = skill.aggregate(Index::AttackInterval) {
+                push(
+                    modifiers,
+                    ModifierChannel::SkillFloat,
+                    slot,
+                    "attack_interval_value",
+                    ModifierPart::Value,
+                    q32(
+                        interval.value,
+                        i128::from(crate::rules::TIME_UNITS_PER_SECOND_SCALE),
+                    )?,
+                );
+                push_rate(
+                    modifiers,
+                    ModifierChannel::SkillFloatRate,
+                    slot,
+                    "attack_interval_rate",
+                    interval,
+                )?;
+            }
+        }
+        Ok(())
     }
 
-    /// The buffs' aggregate as a recording stores it: move speed's rate,
-    /// damage's rate and the rate on damage taken.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error for a buff correction the recording has no field
-    /// for, rather than dropping it from what the recording is compared with.
-    pub(crate) fn buff_modifiers(&self) -> Result<mechcore_mcfr::BuffModifierSet> {
+    /// The buffs' aggregate: move speed's rate, damage's rate and the rate on
+    /// damage taken.
+    fn buff_modifiers(&self, modifiers: &mut Vec<Modifier>) -> Result<()> {
         let buff = &self.overlays.buff;
-        let mut set = mechcore_mcfr::BuffModifierSet::default();
         for (index, field) in [
-            (Index::MoveSpeed, &mut set.move_speed_rate),
-            (Index::AttackDamage, &mut set.damage_rate),
-            (Index::AmplifyDamage, &mut set.amplify_damage_rate),
+            (Index::MoveSpeed, "move_speed_rate"),
+            (Index::AttackDamage, "damage_rate"),
+            (Index::AmplifyDamage, "amplify_damage_rate"),
         ] {
             if let Some(aggregate) = buff.aggregate(index) {
                 if aggregate.value != 0 {
@@ -621,7 +663,7 @@ impl Stats {
                         index.name()
                     )));
                 }
-                *field = aggregate.rate()?;
+                push_rate(modifiers, ModifierChannel::Buff, None, field, aggregate)?;
             }
         }
         for index in [Index::MaxLife, Index::AttackInterval, Index::AttackRange] {
@@ -632,7 +674,7 @@ impl Stats {
                 )));
             }
         }
-        Ok(set)
+        Ok(())
     }
 
     /// What one hit of `amount` takes off this unit: the amount scaled by
@@ -653,6 +695,54 @@ impl Stats {
     pub(crate) const fn attack_range(&self) -> i64 {
         self.attack_range
     }
+}
+
+/// Adds one non-zero modifier.
+fn push(
+    modifiers: &mut Vec<Modifier>,
+    channel: ModifierChannel,
+    skill_slot: Option<u16>,
+    field: &str,
+    part: ModifierPart,
+    value: i64,
+) {
+    if value != 0 {
+        modifiers.push(Modifier {
+            channel,
+            skill_slot,
+            field: field.to_owned(),
+            part,
+            value,
+        });
+    }
+}
+
+/// Adds a rate's enhancement and impairment, each when non-zero.
+fn push_rate(
+    modifiers: &mut Vec<Modifier>,
+    channel: ModifierChannel,
+    skill_slot: Option<u16>,
+    field: &str,
+    aggregate: Aggregate,
+) -> Result<()> {
+    let (add, reduce) = aggregate.rate()?;
+    push(
+        modifiers,
+        channel,
+        skill_slot,
+        field,
+        ModifierPart::Add,
+        add,
+    );
+    push(
+        modifiers,
+        channel,
+        skill_slot,
+        field,
+        ModifierPart::Reduce,
+        reduce,
+    );
+    Ok(())
 }
 
 #[cfg(test)]
