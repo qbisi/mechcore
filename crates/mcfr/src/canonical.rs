@@ -1,8 +1,8 @@
 use serde::{Serialize, de::DeserializeOwned};
 
 use crate::{
-    Domain, DurableContext, Error, EventPayload, ObjectKind, ObjectRef, QPose, QVec3, Result,
-    TerrainGridState, TerrainType, TransitionEvents, WorldSnapshot,
+    Domain, DurableContext, Error, EventPayload, ObjectKind, ObjectRef, QPose, QVec3, RecorderKind,
+    Result, TerrainGridState, TerrainType, TransitionEvents, WorldSnapshot,
 };
 
 pub(crate) const HASH_BYTES: usize = 32;
@@ -84,8 +84,9 @@ pub(crate) fn physics_tick_hash(
     let kinematics = kinematics_hash(state);
     let vitals = vitals_hash(state);
     let interactions = interactions_hash(events);
+    let statistics = statistics_hash(state);
     let divisor = gcd(context.logic_step.numerator, context.logic_step.denominator);
-    let mut hasher = PhysicsHasher::new("battle-physics-tick-v1");
+    let mut hasher = PhysicsHasher::new("battle-physics-tick-v2");
     hasher.u32(context.logic_step.numerator / divisor);
     hasher.u32(context.logic_step.denominator / divisor);
     hasher.u32(context.time_units_per_second);
@@ -93,6 +94,28 @@ pub(crate) fn physics_tick_hash(
     hasher.bytes(&kinematics);
     hasher.bytes(&vitals);
     hasher.bytes(&interactions);
+    hasher.bytes(&statistics);
+    hasher.finish()
+}
+
+/// The build's damage and kill counters, which decide nothing in the fight
+/// but are the build's own account of it, kept inside the logic tick.
+fn statistics_hash(state: &WorldSnapshot) -> [u8; HASH_BYTES] {
+    let mut hasher = PhysicsHasher::new("battle-physics-statistics-v1");
+    hasher.len(state.statistics.len());
+    for row in &state.statistics {
+        hasher.u32(row.team_id);
+        hasher.u8(match row.recorder {
+            RecorderKind::Formation => 0,
+            RecorderKind::Construction => 1,
+            RecorderKind::Unit => 2,
+        });
+        hasher.u64(row.recorder_id);
+        hasher.i32(row.damage);
+        hasher.i32(row.damage_real);
+        hasher.i32(row.kills);
+        hasher.i32(row.damage_taken);
+    }
     hasher.finish()
 }
 

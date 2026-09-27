@@ -52,6 +52,7 @@ pub(super) fn raw_test_simulation(
         colliders: construction_colliders,
         tower_losses,
         tower_buffed_constructions,
+        construction_groups: _,
     } = initialize_buildings(&config.towers, &[], &BTreeMap::new()).unwrap();
     let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
     Simulation {
@@ -72,6 +73,8 @@ pub(super) fn raw_test_simulation(
         towers: config.towers.clone(),
         tower_losses,
         tower_buffed_constructions,
+        statistics: BTreeMap::new(),
+        construction_recorders: BTreeMap::new(),
     }
 }
 

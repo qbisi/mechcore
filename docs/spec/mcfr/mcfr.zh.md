@@ -1,11 +1,11 @@
-# MCFR 格式规范（format 0.12.0）
+# MCFR 格式规范（format 0.13.0）
 
 [English](mcfr.md)
 
 本文描述仓库当前实现的 MCFR 逻辑模型、物理容器、Adapter 原生采集来源和 Reader/Writer 校验契约。统一格式标识为：
 
 ```text
-format = "0.12.0"
+format = "0.13.0"
 ```
 
 当前 Adapter 原生字段映射绑定仓库在 `GAME_VERSION` 钉住的游戏版本。其他版本可以生成同格式录像，前提是 Producer 已验证所用原生接口与本文语义一致。
@@ -23,6 +23,7 @@ recording.mcfr
 ├── buildings.parquet
 ├── shields.parquet
 ├── terrains.parquet
+├── statistics.parquet
 ├── events.parquet
 └── instrument/<channel>.parquet   零个或多个
 ```
@@ -43,9 +44,10 @@ instrument 通道是研究要看的战斗内部过程（技能状态机、一次
 | `buildings.parquet` | 各 FightTeam 当前存活的 Crystal/Construction 状态 | `S(1)..S(n)` | Parquet + Zstd level 6 |
 | `shields.parquet` | AdvancedEnergyShieldSystem 中仍存在的战场护盾状态 | `S(1)..S(n)` | Parquet + Zstd level 6 |
 | `terrains.parquet` | RangeItemSystem 中当前存在的动态战场地形及单位作用关系 | `S(1)..S(n)` | Parquet + Zstd level 6 |
+| `statistics.parquet` | 本场战斗到目前为止的原生伤害与击杀计数 | `S(1)..S(n)` | Parquet + Zstd level 6 |
 | `events.parquet` | 相邻快照之间的有序离散事件 | `E(1)..E(n)` | Parquet + Zstd level 6 |
 
-从 `units.parquet` 到 `events.parquet` 的六张表只在有行时才写入，缺失的表按空表读取。成员都不内嵌 Arrow schema；`ticks.parquet` 的元数据是 Parquet 文件的 key/value 元数据；列统计只按 column chunk 记录，不写页级统计和页索引。
+从 `units.parquet` 到 `events.parquet` 的七张表只在有行时才写入，缺失的表按空表读取。成员都不内嵌 Arrow schema；`ticks.parquet` 的元数据是 Parquet 文件的 key/value 元数据；列统计只按 column chunk 记录，不写页级统计和页索引。
 
 ZIP 层采用 STORE，数据压缩由 Parquet page 的 Zstd 完成。逐 tick 的表 row group 按 1024 个逻辑 tick 刷新，单个 row group 的行数上限为 1,000,000。状态表按 `(tick, object_id)` 排序，事件按 `(tick, ordinal)` 排序。
 
@@ -95,12 +97,12 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 
 | key | 数据规范 | 含义 |
 | --- | --- | --- |
-| `format` | 精确值 `0.12.0` | MCFR 逻辑与物理契约版本 |
+| `format` | 精确值 `0.13.0` | MCFR 逻辑与物理契约版本 |
 | `game_build` | 非空 UTF-8 | 采集构建 provenance；Adapter 来自 `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | 单回合保持稳定的上下文 `D` |
-| `physics_hash_profile` | 精确值 `battle-physics-v3` | 稳定物理投影版本 |
+| `physics_hash_profile` | 精确值 `battle-physics-v4` | 稳定物理投影版本 |
 | `physics_result_hash` | 64 位小写十六进制 | 全部 `physics_tick_hash` 的有序摘要；回归判断依据 |
-| `content_hash_profile` | 精确值 `mcfr-content-0.12.0` | 完整内容摘要版本 |
+| `content_hash_profile` | 精确值 `mcfr-content-0.13.0` | 完整内容摘要版本 |
 | `content_result_hash` | 64 位小写十六进制 | 全部 `content_tick_hash` 的有序摘要；格式内诊断依据 |
 | `tick_count` | `u32` 规范十进制 | 从 `S(1)` 开始记录的逻辑 tick 数 |
 | `terminal_tick` | `u32` 规范十进制 | 已确认的最终逻辑边界；当前连续时间线中等于 `tick_count` |
@@ -128,7 +130,7 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 | 字段 | Parquet 类型 | 含义 | Adapter 原生来源 |
 | --- | --- | --- | --- |
 | `tick` | `UINT32 required` | 状态所属逻辑时刻 | Adapter 逻辑帧计数 |
-| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.12.0 身份规则，见附录 B |
+| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.13.0 身份规则，见附录 B |
 | `team_id` | `UINT32 required` | 当前所属队伍 | `FightTeam` controller index |
 | `original_team_id` | `UINT32 required` | 首次出现时的队伍 | 首次采样的 `team_id` |
 | `formation_id` | `UINT64 required` | 编队身份 | `FightMech.GetMechTeam()` 指针映射 |
@@ -450,13 +452,30 @@ null。时钟中的两个整数都以逻辑步为单位，并通过 `DurableCont
 
 ---
 
-# Part VII — `events.parquet`
+# Part VII — `statistics.parquet`
 
-## 7.1 表与排序规范
+每个快照一份 `BattleStatisticManager` 当前回合的计数：每个记录者一行，按 `(tick, team_id, recorder, recorder_id)` 严格升序。`FightController.OnActorHitted` 在逻辑 tick 内更新它，所以它是战斗状态、属于物理层，尽管战斗里没有任何地方回读它。
+
+| 列 | Parquet 类型 | 含义 |
+| --- | --- | --- |
+| `tick` | `UINT32` required | 快照 |
+| `team_id` | `UINT32` required | 持有该项的队伍字典；单独计数的单位为它此刻效力的一方 |
+| `recorder` | `UINT8` required | `0=formation`（`MechTeam`）、`1=construction`（`FightConstructionCombination`，或不属于组合的单个建造物）、`2=unit`（被精神控制的单位） |
+| `recorder_id` | `UINT64` required | 编队的 `formation_id`；建造物组合中最小的 `building_id`；单位的 `unit_id` |
+| `damage` | `INT32` required | `DamageMax`：每一下伤害经过全部减免之后、按目标剩余生命截断之前的值之和 |
+| `damage_real` | `INT32` required | `DamageReal`：这些伤害实际扣掉的生命或个人护盾能量 |
+| `kills` | `INT32` required | `KillCount`：打完之后目标不再存活的次数 |
+| `damage_taken` | `INT32` required | `DamageTaken`：记录者成员受到的伤害，只计入增伤、未经任何减伤 |
+
+一下伤害记给 `HitDamageInfo.sourceSkillOwner` 的记录者，并记入目标的记录者。单位的记录者是它的编队；建造物的是它的组合；防御塔不是记录者，打它的一方照样记分，它自己不记承伤。没有技能拥有者的伤害（地面火、buff 持续伤害、指挥官技能、空投）不记给任何人。已经死亡的目标在计数之前就被跳过。每个编队和建造物组合从部署起就有一行，初值为零，编队全灭后仍保留；被精神控制的单位在回合的临时字典里单独计数，记在它此刻效力的一方。计数是原生的 `int`，每场战斗从零开始。
+
+# Part VIII — `events.parquet`
+
+## 8.1 表与排序规范
 
 `events.parquet` 每个事件一行。同一 tick 的 `ordinal` 从 0 连续递增。全表按 `(tick, ordinal)` 严格升序，tick 合法范围为 `1..=tick_count`。
 
-## 7.2 公共列
+## 8.2 公共列
 
 | 列 | Parquet 类型 | 含义 |
 | --- | --- | --- |
@@ -470,7 +489,7 @@ null。时钟中的两个整数都以逻辑步为单位，并通过 `DurableCont
 
 下表每个 payload 字段各有一列可空列，类型与字段相同；一行只设置其事件类型携带的字段，其余 payload 列为 null。Reader 拒绝设置了本类型不携带字段、或缺少必需字段的行。列名与类型以 [English](mcfr.md#events) 为准。
 
-## 7.3 事件种类与 payload
+## 8.3 事件种类与 payload
 
 | `type` | 必要引用 | payload 字段 | 语义 |
 | --- | --- | --- | --- |
@@ -496,7 +515,7 @@ null。时钟中的两个整数都以逻辑步为单位，并通过 `DurableCont
 
 `terrain_created` 表达 controller 集合成员的生命周期起点，其 JSON object 由 Terrain 身份、队伍、类型、位置和半径完整确定。投射物因果关系通过同 tick、同位置的 `projectile_removed` 与 Terrain 状态变化联合观察。
 
-## 7.4 当前 Adapter 原生事件来源
+## 8.4 当前 Adapter 原生事件来源
 
 共享 MCFR model 与事件表实现上表事件。Adapter 当前事件 producer 覆盖下列原生观测：
 
@@ -518,9 +537,9 @@ Buff 观测位于 Unit 状态轨道：布尔状态进入 `status_mask`，综合�
 
 ---
 
-# Part VIII — 写入、读取与验证
+# Part IX — 写入、读取与验证
 
-## 8.1 Writer 生命周期
+## 9.1 Writer 生命周期
 
 Writer 的公开生命周期为：
 
@@ -536,7 +555,7 @@ Writer 在目标同目录创建临时成员和 `.zip.part`，完成 Parquet foot
 
 每次写入前，WorldSnapshot 先按规范顺序 canonicalize，再执行对象 ID、列表顺序、状态 bit 和 modifier 约束校验。一次局部写入失败会使 Writer 进入 poisoned 状态，完整文件只由成功的 `finish()` 发布。
 
-## 8.2 Reader 验证
+## 9.2 Reader 验证
 
 Reader 在打开容器时验证：
 
@@ -597,9 +616,9 @@ ObjectRef = { kind: ObjectKind, id: u64 }
 
 # 附录 B — 身份与排序约定
 
-## B.1 format 0.12.0 身份规则
+## B.1 format 0.13.0 身份规则
 
-format `0.12.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
+format `0.13.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
 
 战斗期间首次出现的 Unit 按首次观察顺序取得当前 Unit namespace 的下一个连续编号。Unit namespace 从 1 开始单调递增；历史引用持续使用对象首次取得的编号。
 
@@ -637,19 +656,20 @@ LE_u64(byte_length) || bytes
 
 固定前缀为 `mechcore.mcfr.canonical\0`。整数均按指明宽度使用小端补码原始位；布尔值使用单字节 `0/1`；`Option<T>` 先写单字节存在位，再在存在时写 `T`；列表长度使用 `LE_u64`。所有公开摘要均编码为 64 位小写十六进制，Parquet tick 列保存原始 32 bytes。
 
-## C.2 稳定物理层 `battle-physics-v3`
+## C.2 稳定物理层 `battle-physics-v4`
 
-`physics_tick_hash` 不对完整 MCFR schema 做摘要，而只对版本冻结的战斗物理投影做摘要。新增 MCFR 观测字段不会改变该投影；若投影字段、单位、精度、顺序或编码语义必须改变，应发布新的 profile，不能就地修改 `battle-physics-v3`。`v3` 去掉了垂直速度以及弹体的朝向与释放标记，这三者本版本从不写入。
+`physics_tick_hash` 不对完整 MCFR schema 做摘要，而只对版本冻结的战斗物理投影做摘要。新增 MCFR 观测字段不会改变该投影；若投影字段、单位、精度、顺序或编码语义必须改变，应发布新的 profile，不能就地修改 `battle-physics-v4`。`v3` 去掉了垂直速度以及弹体的朝向与释放标记，这三者本版本从不写入；`v4` 加入统计 lane。
 
 WorldSnapshot 在哈希前按附录 B 规范化。对象列表保持按稳定 ID 的顺序，事件保持原生 `ordinal` 顺序，武器姿态保持 `(skill_slot, weapon_index)` 顺序。Q32.32 保留 `i64` raw bits；角度在哈希前按 `360 << 32` 取欧几里得模，使相差整数圈的角度等价。`logic_step` 先约分。
 
-每个 tick 由三个独立 lane 摘要组成：
+每个 tick 由四个独立 lane 摘要组成：
 
 | lane/domain | 纳入字段 |
 | --- | --- |
 | `battle-physics-kinematics-v3` | Unit：`unit_id, position, body_rotation, turret_rotation, velocity`，以及仅含有效 `pose` 的 `skill_slot, weapon_index, pose.position, pose.rotation`；Projectile：`projectile_id, position`；Building：`building_id, position`；Shield：`shield_id, position, radius`；Terrain：`terrain_id, position, radius, grid(origin_x, origin_y, size_x, size_y, rows)` |
 | `battle-physics-vitals-v2` | Unit：`unit_id, unit_type_id, team_id, domain, collision_radius, life, personal_shield.active/energy`；Projectile：`projectile_id, team_id, owner, life`；Building：`building_id, building_type_id, team_id, bounds_width, bounds_height, life, available, targetable, collision_enabled`；Shield：`shield_id, team_id, owner, radius, energy, active`；Terrain：`terrain_id, team_id, terrain_type, radius` |
 | `battle-physics-interactions-v1` | 每项先纳入 `ordinal, subject, source, source_team_id, target`，再纳入事件类型及其物理 payload：弹体释放通道；弹体移除位置/拦截/吸收盾；伤害量；单位生成的队伍/类型/位置；单位死亡位置；建筑摧毁位置；单位换队；护盾生成队伍/位置；护盾摧毁位置；地形生成队伍/类型/位置/半径；地形移除或转换位置；治疗量 |
+| `battle-physics-statistics-v1` | `statistics` 的每一行按存储顺序：`team_id, recorder, recorder_id, damage, damage_real, kills, damage_taken` |
 
 显式不纳入的内容包括：`game_build`、布局文本、seed、回合号和其他文件元数据；Unit 的 `original_team_id, formation_id, motion_state, mech_lock_target, active, targetable, visibility, status_mask`、所有 modifier、个人盾 `enabled`、武器 `attack_target` 和无姿态通道；Projectile 的 `target`、缓存目标位置/半径和生成时包含盾列表；Shield 的 `source_kind, round_policy, active_order`；Terrain 的剩余回合、逻辑寿命和单位应用内部时钟；事件的 `formation_id`、护盾来源类别、护盾/地形移除原因。这些字段仍由 `content_*_hash` 检测。
 
@@ -659,13 +679,14 @@ WorldSnapshot 在哈希前按附录 B 规范化。对象列表保持按稳定 ID
 K(t) = H_battle-physics-kinematics-v3(kinematics projection)
 V(t) = H_battle-physics-vitals-v2(vitals projection)
 I(t) = H_battle-physics-interactions-v1(interactions projection)
+C(t) = H_battle-physics-statistics-v1(statistics projection)
 
-physics_tick_hash(t) = H_battle-physics-tick-v1(
+physics_tick_hash(t) = H_battle-physics-tick-v2(
     LE_u32(reduced_logic_step_numerator),
     LE_u32(reduced_logic_step_denominator),
     LE_u32(time_units_per_second),
     LE_u32(t),
-    K(t), V(t), I(t)
+    K(t), V(t), I(t), C(t)
 )
 
 physics_result_hash = H_battle-physics-result-v1(
@@ -676,7 +697,7 @@ physics_result_hash = H_battle-physics-result-v1(
 
 因此物理回归仍精确引用逻辑时间、Q32.32 位置/角度/速度、生命与护盾以及伤害等相互作用，但不会因增加纯诊断字段而要求重录。
 
-## C.3 完整内容层 `mcfr-content-0.12.0`
+## C.3 完整内容层 `mcfr-content-0.13.0`
 
 完整状态和事件先编码为 canonical JSON：UTF-8、递归字典序排列 object key、紧凑编码和 schema 定义的数组顺序。它覆盖 format 0.7.0 的全部 `S(t)`/`E(t)` 字段，用于同格式内的捕获完整性诊断；它不包含布局、DurableContext 或其他文件元数据。
 

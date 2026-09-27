@@ -94,7 +94,9 @@ git config core.hooksPath .githooks
 
 `.github/workflows/gate.yml` 只回答能不能合并，自己不合并。它在 ci、docs 跑完或有人
 提交 review（`review.yml`）后运行，在 PR 的 head 上写一个名为 `gate` 的 commit status：
-该 commit 上的检查全绿时是 success，还有检查在跑时是 pending，有检查失败时是 failure。
+该 commit 上的工作流都跑完、检查全绿时是 success，还有工作流或检查在跑时是 pending，
+有失败时是 failure。只看检查不够：ci 的 test 等 job 要等 `changes` 跑完才成为检查，
+在那之前 docs 先跑完就会把一个测试还没跑的 PR 判绿。
 解决 issue 的 PR（分支名以 `research/` 开头，或正文带 `Closes #n`）还要有 committer 在
 当前 head 上的 approve，没有之前 `gate` 停在 pending，见下一节。master 的 ruleset 要求
 `gate` 绿才能合并。
