@@ -23,8 +23,7 @@
 
 ## 栈
 
-1. **钉子迁成 fight 夹具。** `tests/<topic>/regressions.mcscript` 里的布阵、种子和 hash 变成
-   一份份 fight 文档，result 在有游戏的机器上重录读出，脚本只剩对目录跑 `verify`。
+空。
 
 ## 停车场
 
