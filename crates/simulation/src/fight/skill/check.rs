@@ -72,12 +72,9 @@ impl Simulation {
         if let Some(actor_id) = owner.unit_id() {
             self.replay_group_checker_calls(actor_id);
         }
-        let skill = self.skill(owner);
-        let slot = skill
-            .slots
-            .iter()
-            .any(|slot| slot.lock.is_some())
-            .then_some(0);
+        // A grouped core searches as its group's slot 0, around what its
+        // siblings hold.
+        let slot = self.skill(owner).is_grouped().then_some(0);
         self.check_attackable_slot(owner, slot, target_search_order)
     }
 
@@ -196,10 +193,7 @@ impl Simulation {
     }
 
     fn slot_lock_target(&self, owner: FightActorRef, slot: Option<usize>) -> Option<FightActorRef> {
-        let skill = self.skill(owner);
-        slot.map_or(skill.lock_target, |slot| {
-            skill.slots[slot].lock.map(FightActorRef::Unit)
-        })
+        self.skill(owner).slot_lock(slot.unwrap_or(0))
     }
 
     fn slot_attack_target(
@@ -207,15 +201,11 @@ impl Simulation {
         owner: FightActorRef,
         slot: Option<usize>,
     ) -> Option<FightActorRef> {
-        let skill = self.skill(owner);
-        slot.map_or_else(
-            || skill.attack_target(),
-            |slot| skill.group_attack_target(slot),
-        )
+        self.skill(owner).group_attack_target(slot.unwrap_or(0))
     }
 
     fn search_slot_attack_target(&mut self, owner: FightActorRef, slot: Option<usize>) {
-        if slot.is_some() {
+        if slot.is_some_and(|slot| slot > 0) {
             self.refresh_group_walls(owner.unit_id().expect("only a unit's skill is grouped"));
         } else {
             self.search_attack_target(owner);
@@ -234,9 +224,13 @@ impl Simulation {
         let actor_id = owner.unit_id().expect("only a unit's skill is grouped");
         let selected = self.select_group_lock_replacement(actor_id, slot, target_search_order)?;
         let actor = self.actors.get_mut(&actor_id).expect("actor exists");
-        actor.skill.slots[slot].lock = selected.and_then(FightActorRef::unit_id);
-        actor.skill.lock_target = selected;
-        self.refresh_group_walls(actor_id);
+        if slot == 0 {
+            actor.skill.lock_target = selected;
+            self.search_attack_target(FightActorRef::Unit(actor_id));
+        } else {
+            actor.skill.sibling_mut(slot).lock = selected.and_then(FightActorRef::unit_id);
+            self.refresh_group_walls(actor_id);
+        }
         Ok(selected.is_some())
     }
 
@@ -326,7 +320,7 @@ impl Simulation {
     ) -> Result<Option<FightActorRef>> {
         let died_this_tick = self
             .skill(owner)
-            .mechanical_attack_target()
+            .attack_target()
             .and_then(|target| self.fight_actor(target))
             .is_some_and(|target| target.query_alive && !target.alive);
         let selected =

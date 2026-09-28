@@ -9,13 +9,18 @@
 # channel records every one of those calls with the slot that made it and
 # the slot's lock before and after it, which is where a slot's choice is
 # read; `group_slots` records each slot's lock, attack target and state on
-# every tick. Each layout is recorded once with both channels, under the
-# seed the regression manifest pins.
+# every tick. Each layout is recorded once with both channels.
 #
 #   group-attack   tests/regression/wraith-group-attack.yaml, the pinned fight
 #                  where three of one Wraith's four slots change lock on one
-#                  tick and the fourth does not take the unit a sibling holds
-#   two-targets    two units for four slots
+#                  tick and the fourth does not take the unit a sibling holds,
+#                  under the seed the regression manifest pins it with
+#   two-targets    two units for four slots, under the same seed
+#   m2, m3, m6     the Wraith's standard fights against a Rhino, Crawlers,
+#                  and Crawlers with a Marksman, with both standard seeds:
+#                  a core losing reach while its siblings attack, a sibling
+#                  leaving and preparing again on a unit of its own, and a
+#                  live lock redistributed
 #
 # `out` must not already exist: a recording refuses to overwrite.
 
@@ -24,14 +29,20 @@ headless: true
 
 vars:
   out: /tmp/mechcore/wraith/slots
-  # The seed tests/regression/mcfr-regressions.yaml pins wraith-group-attack-01 with.
-  seed: 1787857041
 
 steps:
   - let:
       recordings:
-        - {name: group-attack, layout: tests/regression/wraith-group-attack.yaml}
-        - {name: two-targets, layout: tests/wraith/two-targets.yaml}
+        # The seed tests/regression/mcfr-regressions.yaml pins
+        # wraith-group-attack-01 with.
+        - {name: group-attack, layout: tests/regression/wraith-group-attack.yaml, seed: 1787857041}
+        - {name: two-targets, layout: tests/wraith/two-targets.yaml, seed: 1787857041}
+        - {name: m2-rhino-4242, layout: tests/units/wraith/m2-rhino.yaml, seed: 4242}
+        - {name: m2-rhino-1787720817, layout: tests/units/wraith/m2-rhino.yaml, seed: 1787720817}
+        - {name: m3-crawler-4242, layout: tests/units/wraith/m3-crawler.yaml, seed: 4242}
+        - {name: m3-crawler-1787720817, layout: tests/units/wraith/m3-crawler.yaml, seed: 1787720817}
+        - {name: m6-formations-4242, layout: tests/units/wraith/m6-formations.yaml, seed: 4242}
+        - {name: m6-formations-1787720817, layout: tests/units/wraith/m6-formations.yaml, seed: 1787720817}
 
   - foreach: {recording: $recordings}
     steps:
@@ -39,6 +50,6 @@ steps:
           layout: read_yaml(${recording.layout})
       - game.record_layout:
           layout: $layout
-          seed: $seed
+          seed: ${recording.seed}
           output: ${out}/${recording.name}.mcfr
           instrument: [skill_attackable_checker, group_slots]

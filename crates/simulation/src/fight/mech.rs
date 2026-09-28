@@ -192,11 +192,7 @@ impl Actor {
             .map(|weapon_index| {
                 let group_mode = self.rules.attack.weapons.mode == WeaponMode::Group;
                 let attack_target = if group_mode {
-                    self.skill.group_attack_target(weapon_index).or_else(|| {
-                        (weapon_index == 0)
-                            .then_some(self.skill.attack_target())
-                            .flatten()
-                    })
+                    self.skill.group_attack_target(weapon_index)
                 } else {
                     self.skill.attack_target().or_else(|| {
                         self.skill
@@ -235,7 +231,7 @@ impl Actor {
                 z: self.motion.current_velocity_z_q32,
             },
             motion_state: self.motion.state,
-            mech_lock_target: self.skill.lock_target.map(FightActorRef::object_ref),
+            mech_lock_target: self.skill.unit_lock().map(FightActorRef::object_ref),
             collision_radius: space_to_q32(self.rules.collision_radius()),
             life: GaugeI32 {
                 current: i32::try_from(self.life).expect("unit life fits i32"),
@@ -247,7 +243,7 @@ impl Actor {
             status_mask: 0,
             modifiers: self
                 .stats
-                .modifiers(self.skill.slots.len().max(1))
+                .modifiers(self.skill.group_size.max(1))
                 .expect("the layout refused every correction a snapshot cannot record"),
             personal_shield: PersonalShieldState {
                 active: false,
