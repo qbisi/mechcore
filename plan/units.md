@@ -35,7 +35,27 @@
 
 ## 栈
 
-目标范围内的单位都已达标，栈空。
+目标范围内的单位都已达标。栈上是让下一批机制变便宜的内核整理。
+
+- **读清三个没有 build 名字的技能字段**（栈顶）。`laser_attack_count` 是不是
+  `SkillAttackController.attackCount`；`retarget_after_own_direct_kill` 和
+  `lock_is_terminal_handoff` 各代表 build 的哪一次状态转移。每一项要么折进 build 的结构，
+  要么写明它是模拟器自己的、为什么要有。它挡住下面节点里统一攻击计数、抽出激光这两步：
+  不先读清就拆，只是把拟合出来的标志挪个地方。
+- **技能的形状对上 build。** 一个单位的独特攻击逻辑现在是 `Skill` 上只对某条路径或某种
+  模式有意义的字段，和共享代码里按 `AttackPath`、`fusillade` 的分支。build 把它们分在
+  `FightSkill` 的子类、`AttackPerformer` 的子类和 `SkillGroup` 的攻击行为里，模拟器照这个
+  分法收拢：
+  1. 组就是一列 `Skill`，core 是第一个，`SlotSkill` 消失；
+  2. 攻击计数只有一份，在攻击控制器上；
+  3. 执行器是一个枚举，连发的待释放弹丸归它；
+  4. 技能种类是一个枚举，激光的状态归它，未实现的种类按名拒绝；
+  5. 齐射是组的一种攻击行为，它的起手步归它。
+
+  做完的判据：`Skill` 上只剩 `FightSkill` 基类自己有的字段，`struct_excessive_bools`
+  的豁免删掉；`skill/` 里不再直接判断路径或齐射。每一步都不改行为：所有钉住的哈希不变，
+  哪一步动了哈希就不是整理。`motion.rs` 里按机身和近战的分支是 `MotionController` 的事，
+  不在这一个节点里。
 
 
 ## 停车场
