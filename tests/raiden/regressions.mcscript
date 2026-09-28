@@ -1,10 +1,9 @@
 # The game's recording of the fixture here, simulated without the game or the
-# recording. Both hashes come from the capture slots.mcscript makes.
+# recording. The hash comes from the capture slots.mcscript makes.
 steps:
   - fight.run:
       layout: tests/raiden/fang-in-reach.yaml
       seed: 4242
     expect:
       steps: 99
-      hashes.physics_result_hash: efbaa301c14595c27d90655110a2b1a215fc5176202af440c450c0de8e345826
-      hashes.content_result_hash: 01e7dce3f21c90003117e67f9d96cd729efefbdb14edc16f94b41c2e148e606a
+      hashes.result_hash: 01e7dce3f21c90003117e67f9d96cd729efefbdb14edc16f94b41c2e148e606a

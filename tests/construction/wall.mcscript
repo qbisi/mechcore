@@ -116,4 +116,3 @@ steps:
       right: ${out}/simulated-block.mcfr
     expect:
       equal: true
-      content_equal: true

@@ -300,9 +300,9 @@ Three layers of test hold this:
   construction at raw values;
 - kernel tests cover building collision, Q32.32 distance boundaries, the tree's
   coarse reachable range, and the behaviour at the edge of stopping;
-- the native smoke samples in `tests/regression/mcfr-regressions.yaml` compare the stable
-  physics projection's per-tick `physics_result_hash`, the Steel Ball fight
-  sample included.
+- the native samples in `tests/regression/mcfr-regressions.yaml` compare the
+  recording's `result_hash`, over every field of every tick, the Steel Ball
+  fight sample included.
 
 ```text
 cargo test -p mechcore-simulation rvo

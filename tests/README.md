@@ -24,7 +24,7 @@ says what was measured:
 A script that needs no game is run by CI; one that needs the game is only
 parsed there. `regressions.mcscript` in a topic directory, and
 `regression/simulate.mcscript`, are the gameless ones: they hold the simulator
-to the physics hash the game recorded. Recordings never enter the repository,
+to the hash the game recorded. Recordings never enter the repository,
 and are not published anywhere else: what the repository keeps is what
 reproduces them, the layouts and the scripts, which any machine with the game
 records again. The Research section of [`AGENTS.md`](../AGENTS.md) says who

@@ -403,8 +403,8 @@ The operation is valid only after layout completion in Training Ground deploymen
 capture, starts combat, and records from `S(1)` after the first combat update through every subsequent
 `FightController.Update` boundary through the unique fighting-to-over transition. When video capture
 is disabled, time is scaled as `speed_up` describes. It calls `mechcore-mcfr::McfrWriter` directly, whose `finish` reads the
-packaged file back and checks its hashes before publishing it atomically, and returns the
-state/transition counts and all formal hashes.
+packaged file back and checks its hash before publishing it atomically, and returns the
+state/transition counts and `hashes.result_hash`.
 
 Projectile release/removal and damage use narrow native hooks so objects created and removed inside
 one logic step remain in `E`. The release hook records the native projectile, owner and target; the
@@ -517,7 +517,7 @@ list, the channels to record into the MCFR beside its tables:
 
 A channel is a view of the fight's inside that a study asks for. Channels
 combine freely, every requested channel is written as the fight is, one member
-`instrument/<channel>.parquet` each, and neither hash reads them, so a
+`instrument/<channel>.parquet` each, and the hash does not read them, so a
 recording with channels hashes the same as one without
 ([mcfr.md](../mcfr/mcfr.md#instrument-channels)). A tick whose captured rows
 do not answer exactly the requested channels fails the recording with

@@ -2,7 +2,7 @@
 
 [`plan/units.md`](../../plan/units.md) defines when a unit is supported
 without technology: six standard layouts, each recorded by the game with two
-seeds and played back by the simulator tick for tick, physics and content. This directory holds those
+seeds and played back by the simulator tick for tick, in every field. This directory holds those
 layouts, one directory per unit, the script that records them, and the
 gameless `regressions.mcscript` that pins every recording the simulator
 reproduces. CI runs the regressions; the record script needs the game. It

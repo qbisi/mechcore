@@ -19,7 +19,7 @@ first loss runs.
 | --- | --- | --- |
 | `levels.mcscript` | yes | records the five level fights |
 | `both.mcscript` | yes | records the two two-tower fights |
-| `regressions.mcscript` | **no** | replays all seven through the simulator and asserts both hash layers |
+| `regressions.mcscript` | **no** | replays all seven through the simulator and asserts their hashes |
 
 The fights pinned more than the buff. A tower is an actor of its own: the Steel
 Ball whose beam fells it reads idle on that tick, and its `building_destroyed`

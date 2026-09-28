@@ -4,10 +4,9 @@
 #
 # This needs no game, which is why CI runs it: each hash below is the one the
 # game recorded for the fixture in `skill.mcscript`, and the simulator has to
-# reproduce it tick for tick from the layout and the seed alone. Both layers
-# are pinned, and both are the game's: the physics hash holds where every
-# Crawler and every shot is and what each shot hit, the content hash holds the
-# rest — every lock, every motion state, the numbers derived for each unit.
+# reproduce it tick for tick from the layout and the seed alone. The hash
+# holds where every Crawler and every shot is and what each shot hit, and the
+# rest too — every lock, every motion state, the numbers derived for each unit.
 #
 # A Rapid-Fire Turret fires ten shots, reloads, and fires again. What these
 # two fights pin, `docs/rules/constructions.md` states as rules: the skill
@@ -35,8 +34,7 @@ steps:
       steps: 237
       winner: blue
       teams.0.remaining_life: 1622
-      hashes.physics_result_hash: 6d27c1b1c3de62b178d6b13c749bb432673e3b31aab5b09a9a8d092fe95d3255
-      hashes.content_result_hash: df2922fb4ecb1680fd2346bdb898bd7ec379d51e619ef434cee58f27fc2b7c92
+      hashes.result_hash: df2922fb4ecb1680fd2346bdb898bd7ec379d51e619ef434cee58f27fc2b7c92
 
   # The same Crawlers 36.6 degrees off the turret's column. The weapon has
   # turned onto its lock before the lock is in reach, so the first shot is as
@@ -48,8 +46,7 @@ steps:
       steps: 234
       winner: blue
       teams.0.remaining_life: 1622
-      hashes.physics_result_hash: f73282ba2d47a3d6b8e609aa28c64e1203483b5d7083aa9dd063f632e1e85420
-      hashes.content_result_hash: e727c90d4d84233eb351478efc38860c15ad951945193141ee23156add60c561
+      hashes.result_hash: e727c90d4d84233eb351478efc38860c15ad951945193141ee23156add60c561
 
   # Four Arclights down the Anti-Armor Turret's column, two shots each. The
   # sixth shot empties the magazine at 574, the reload runs to 776, and the
@@ -61,8 +58,7 @@ steps:
       steps: 836
       winner: blue
       teams.0.remaining_life: 1622
-      hashes.physics_result_hash: 4e2dd3f811589e351bd38e9ac50023c0414d21dc6ba68271a016f85d28cd1681
-      hashes.content_result_hash: e9d48b2c100876b3396695f6cdcfe90bff3cb4902e44945df99190b62cd48cc5
+      hashes.result_hash: e9d48b2c100876b3396695f6cdcfe90bff3cb4902e44945df99190b62cd48cc5
 
   # The Anti-Armor Turret against a Crawler, the Marksman behind. Blue loses
   # a tower at 509 and red at 771, and at 1027 the Marksman ends its attack
@@ -72,5 +68,4 @@ steps:
       seed: 4242
     expect:
       steps: 1397
-      hashes.physics_result_hash: d56b0947c6ab16d970eb3ac3b9da3c54aa2c4e5fd2c496d02f09d155b4dbe403
-      hashes.content_result_hash: 6fab5e00c3ea3e080f91bcc370608d1bc377087da6a653cc0b001e8024ab531b
+      hashes.result_hash: 6fab5e00c3ea3e080f91bcc370608d1bc377087da6a653cc0b001e8024ab531b

@@ -7,7 +7,7 @@ use super::*;
 /// The game reads it on tick 19 as idle, with no lock, and with its weapon
 /// still on block 6 — not on block 7, the next one in its line, and not on
 /// the Marksman behind the wall. `tests/construction/line-of-fire.mcscript`
-/// recorded it; the physics hash cannot see any of the three fields.
+/// recorded it, and this names the three fields without the game.
 #[test]
 fn a_fallen_block_leaves_its_attacker_idle_and_still_aimed_at_it() {
     let config = SimulationConfig::load().unwrap();
@@ -144,8 +144,7 @@ fn crawlers_change_blocks_between_blows_and_only_a_striker_idles() {
 /// block 6, which stands in its line of fire: `docs/rules/combat.md`
 /// measured the lock staying on the unit while the weapon holds the block,
 /// and `tests/construction/line-of-fire.mcscript` recorded this
-/// exact fight. The physics hash cannot see either field, which is why
-/// this pins them here.
+/// exact fight. This pins the two fields by name, without the game.
 #[test]
 fn a_wall_in_the_way_takes_the_weapon_and_leaves_the_lock() {
     let config = SimulationConfig::load().unwrap();

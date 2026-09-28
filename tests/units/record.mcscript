@@ -4,7 +4,7 @@
 #   mechcore run tests/units/record.mcscript           record
 #
 # `plan/units.md` defines basic support: six standard layouts per unit, two seeds
-# each, both hash layers. A unit that is its own opponent in a cell does not
+# each, each pinned by its hash. A unit that is its own opponent in a cell does not
 # record it twice, so the Rhino has no M2 and the Crawler no M3.
 #
 # Each fight is fought without a scene, from a replay whose one round is the

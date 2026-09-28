@@ -17,11 +17,11 @@ one reset to one, routing each entry by its sign. Each fixture here puts
 exactly one clause of that formula on one unit.
 
 `technology-range.yaml` is the one fixture the fight cannot read: its Arclight
-opens fire at the same moment either way, so its physics hash repeats
-`officer-range-value.yaml`'s exactly. What separates them is the number the
-build computed, which a recording has carried since MCFR 0.4.0 — the fixture is
-measurable at all only because of that, and the gameless table pins its content
-hash for the same reason.
+opens fire at the same moment either way, so every unit moves and hits as in
+`officer-range-value.yaml`. What separates them is the number the build
+computed, which a recording has carried since MCFR 0.4.0 — the fixture is
+measurable at all only because of that, and the gameless table pins its hash
+for the same reason.
 
 **A fixture in this directory changes one thing.** Most of them are the same
 fight — one Marksman shooting one Rhino, the shooter at `(0, -50)` and the
@@ -89,7 +89,7 @@ the end.
 | `interval-order.mcscript` | yes | records the four Sledgehammer fixtures |
 | `disable.mcscript` | yes | records the Raiden shooting the Rhino |
 | `targeting.mcscript` | yes | records the two targeting fixtures |
-| `regressions.mcscript` | **no** | replays every fixture through the simulator and asserts both hash layers |
+| `regressions.mcscript` | **no** | replays every fixture through the simulator and asserts its hash |
 
 The three recording scripts are this directory's experiments: each one writes
 its expected numbers down before the game is started, records, and asserts

@@ -61,4 +61,3 @@ steps:
       right: ${out}/control.mcfr
     expect:
       equal: true
-      content_equal: true

@@ -6,8 +6,8 @@
 # Every wall measured before this was taken by projectiles. A blow and a beam
 # reach a block by other paths — no flight, no splash for a beam, a ramp of
 # damage that restarts — so each is recorded against the same wall and read
-# back against the simulator, which reproduces both on every tick, in physics
-# and in content.
+# back against the simulator, which reproduces both on every tick, in every
+# field.
 #
 #   wall-rhino.yaml   a Rhino charging a Marksman behind the middle block
 #   wall-laser.yaml   four Steel Balls against the same Marksman
@@ -53,13 +53,12 @@ steps:
       layout: tests/construction/wall-rhino.yaml
       seed: $seed
       output: ${out}/simulated-rhino.mcfr
-  # Every field of every tick, the content layer included.
+  # Every field of every tick.
   - fight.compare:
       left: ${out}/rhino.mcfr
       right: ${out}/simulated-rhino.mcfr
     expect:
       equal: true
-      content_equal: true
 
   # A beam takes a block with its ramp: 2, 3, 8, 17, 31, 51, 77, 109, 148,
   # 193, 245, each Steel Ball on the block in its own line, the last hit
@@ -103,10 +102,9 @@ steps:
       layout: tests/construction/wall-laser.yaml
       seed: $seed
       output: ${out}/simulated-laser.mcfr
-  # Every field of every tick, the content layer included.
+  # Every field of every tick.
   - fight.compare:
       left: ${out}/laser.mcfr
       right: ${out}/simulated-laser.mcfr
     expect:
       equal: true
-      content_equal: true

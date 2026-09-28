@@ -31,14 +31,13 @@ use tempfile::TempDir;
 use zip::{CompressionMethod, ZipArchive, ZipWriter, write::SimpleFileOptions};
 
 use crate::{
-    BuildingState, CONTENT_HASH_PROFILE, DamageStatistics, DerivedStats, Domain, DurableContext,
-    Error, Event, EventPayload, FormationState, GaugeI32, Hashes, LiveUnitState, MCFR_FORMAT,
+    BuildingState, DamageStatistics, DerivedStats, Domain, DurableContext, Error, Event,
+    EventPayload, FormationState, GaugeI32, HASH_PROFILE, Hashes, LiveUnitState, MCFR_FORMAT,
     Modifier, ModifierChannel, ModifierPart, MotionState, ObjectKind, ObjectRef,
-    PHYSICS_HASH_PROFILE, PersonalShieldState, ProjectileState, QPlanar, QPose, QVec3,
-    RecorderKind, Result, ShieldRoundPolicy, ShieldSourceKind, ShieldState,
-    TerrainApplicationState, TerrainEffectClock, TerrainGridState, TerrainLogicLifetime,
-    TerrainState, TerrainType, TransitionEvents, Visibility, WeaponAimState, WorldSnapshot,
-    canonical,
+    PersonalShieldState, ProjectileState, QPlanar, QPose, QVec3, RecorderKind, Result,
+    ShieldRoundPolicy, ShieldSourceKind, ShieldState, TerrainApplicationState, TerrainEffectClock,
+    TerrainGridState, TerrainLogicLifetime, TerrainState, TerrainType, TransitionEvents,
+    Visibility, WeaponAimState, WorldSnapshot, canonical,
     event_table::{batch_events, event_batch, event_schema},
     instrument::{self, ChannelSchema, InstrumentRow},
 };
@@ -112,7 +111,7 @@ pub(crate) struct StorageWriter {
     event_rows: Vec<(u32, u32, Event)>,
     events: Option<ArrowWriter<File>>,
     channels: BTreeMap<&'static str, ChannelWriter>,
-    physics_tick_hashes: Vec<[u8; canonical::HASH_BYTES]>,
+    tick_hashes: Vec<[u8; canonical::HASH_BYTES]>,
 }
 
 /// One instrument channel's member, open while the fight is recorded.
@@ -145,7 +144,7 @@ impl StorageWriter {
             event_rows: Vec::new(),
             events: None,
             channels: BTreeMap::new(),
-            physics_tick_hashes: Vec::new(),
+            tick_hashes: Vec::new(),
         })
     }
 
@@ -213,7 +212,7 @@ impl StorageWriter {
         tick: u32,
         state: &WorldSnapshot,
         events: &TransitionEvents,
-        physics_tick_hash: [u8; canonical::HASH_BYTES],
+        tick_hash: [u8; canonical::HASH_BYTES],
     ) -> Result<()> {
         self.append_state(tick, state);
         for event in &events.events {
@@ -226,7 +225,7 @@ impl StorageWriter {
                 event,
             ));
         }
-        self.physics_tick_hashes.push(physics_tick_hash);
+        self.tick_hashes.push(tick_hash);
         if u64::from(tick).is_multiple_of(TICKS_PER_ROW_GROUP) {
             self.flush()?;
         }
@@ -331,7 +330,7 @@ impl StorageWriter {
         layout.write_all(layout_yaml.as_bytes())?;
         layout.sync_all()?;
 
-        let tick_count = u32::try_from(self.physics_tick_hashes.len())
+        let tick_count = u32::try_from(self.tick_hashes.len())
             .map_err(|_| Error::invalid("tick count overflow"))?;
         if tick_count == 0 {
             return Err(Error::invalid("an MCFR must contain at least T(1)"));
@@ -343,22 +342,8 @@ impl StorageWriter {
             ("format".to_owned(), MCFR_FORMAT.to_owned()),
             ("game_build".to_owned(), game_build.to_owned()),
             ("durable_context".to_owned(), context_json.to_owned()),
-            (
-                "physics_hash_profile".to_owned(),
-                PHYSICS_HASH_PROFILE.to_owned(),
-            ),
-            (
-                "physics_result_hash".to_owned(),
-                hashes.physics_result_hash.clone(),
-            ),
-            (
-                "content_hash_profile".to_owned(),
-                CONTENT_HASH_PROFILE.to_owned(),
-            ),
-            (
-                "content_result_hash".to_owned(),
-                hashes.content_result_hash.clone(),
-            ),
+            ("hash_profile".to_owned(), HASH_PROFILE.to_owned()),
+            ("result_hash".to_owned(), hashes.result_hash.clone()),
             ("tick_count".to_owned(), tick_count.to_string()),
             ("terminal_tick".to_owned(), terminal_tick.to_string()),
         ]);
@@ -368,9 +353,9 @@ impl StorageWriter {
             Track::Ticks,
             metadata,
         )?;
-        for start in (0..self.physics_tick_hashes.len()).step_by(ROWS_PER_TICK_GROUP) {
-            let end = (start + ROWS_PER_TICK_GROUP).min(self.physics_tick_hashes.len());
-            let batch = tick_batch(start, &self.physics_tick_hashes[start..end])?;
+        for start in (0..self.tick_hashes.len()).step_by(ROWS_PER_TICK_GROUP) {
+            let end = (start + ROWS_PER_TICK_GROUP).min(self.tick_hashes.len());
+            let batch = tick_batch(start, &self.tick_hashes[start..end])?;
             ticks.write(&batch)?;
             ticks.flush()?;
         }
@@ -545,25 +530,25 @@ fn delta_paths(track: Track) -> &'static [&'static str] {
     }
 }
 
-fn tick_batch(start: usize, physics_hashes: &[[u8; canonical::HASH_BYTES]]) -> Result<RecordBatch> {
+fn tick_batch(start: usize, tick_hashes: &[[u8; canonical::HASH_BYTES]]) -> Result<RecordBatch> {
     let start_tick = u32::try_from(start)
         .map_err(|_| Error::invalid("tick row offset exceeds u32"))?
         .checked_add(1)
         .ok_or_else(|| Error::invalid("tick row offset exceeds u32"))?;
-    let tick_count = u32::try_from(physics_hashes.len())
+    let tick_count = u32::try_from(tick_hashes.len())
         .map_err(|_| Error::invalid("tick batch length exceeds u32"))?;
     let end_tick = start_tick
         .checked_add(tick_count)
         .ok_or_else(|| Error::invalid("tick batch range exceeds u32"))?;
     let ticks = UInt32Array::from_iter_values(start_tick..end_tick);
-    let physics_hashes = FixedSizeBinaryArray::try_from_iter(
-        physics_hashes
+    let tick_hashes = FixedSizeBinaryArray::try_from_iter(
+        tick_hashes
             .iter()
             .map(<[u8; canonical::HASH_BYTES]>::as_slice),
     )?;
     Ok(RecordBatch::try_new(
         Arc::new(Schema::new(tick_fields())),
-        vec![Arc::new(ticks), Arc::new(physics_hashes)],
+        vec![Arc::new(ticks), Arc::new(tick_hashes)],
     )?)
 }
 
@@ -1168,7 +1153,7 @@ fn weapon_aim_list_values<'a>(
 fn tick_fields() -> Vec<Field> {
     vec![
         Field::new("tick", DataType::UInt32, false),
-        Field::new("physics_tick_hash", DataType::FixedSizeBinary(32), false),
+        Field::new("tick_hash", DataType::FixedSizeBinary(32), false),
     ]
 }
 
@@ -1635,7 +1620,7 @@ pub(crate) struct StorageReader {
     metadata: StoredMetadata,
     layout_yaml: String,
     member_sizes: BTreeMap<String, u64>,
-    physics_tick_hashes: Vec<[u8; canonical::HASH_BYTES]>,
+    tick_hashes: Vec<[u8; canonical::HASH_BYTES]>,
     units: Vec<Vec<LiveUnitState>>,
     projectiles: Vec<Vec<ProjectileState>>,
     buildings: Vec<Vec<BuildingState>>,
@@ -1657,7 +1642,7 @@ impl StorageReader {
         let ticks = members
             .get("ticks.parquet")
             .ok_or_else(|| Error::invalid("missing ticks.parquet"))?;
-        let (tick_metadata, physics_tick_hashes) = read_ticks(ticks.clone())?;
+        let (tick_metadata, tick_hashes) = read_ticks(ticks.clone())?;
         let (layout_yaml, match_seed) = read_layout_yaml(
             &member(&members, "layout.yaml")?,
             tick_metadata.context.combat_round,
@@ -1723,7 +1708,7 @@ impl StorageReader {
             metadata,
             layout_yaml,
             member_sizes,
-            physics_tick_hashes,
+            tick_hashes,
             units,
             projectiles,
             buildings,
@@ -1774,18 +1759,18 @@ impl StorageReader {
         &self.member_sizes
     }
 
-    pub(crate) fn physics_tick_hash(&self, tick: u32) -> Result<[u8; canonical::HASH_BYTES]> {
+    pub(crate) fn tick_hash(&self, tick: u32) -> Result<[u8; canonical::HASH_BYTES]> {
         if tick == 0 || tick > self.metadata.tick_count {
             return Err(Error::invalid(format!("tick {tick} is out of range")));
         }
-        self.physics_tick_hashes
+        self.tick_hashes
             .get(usize::try_from(tick - 1).map_err(|_| Error::invalid("tick is too large"))?)
             .copied()
             .ok_or_else(|| Error::invalid(format!("tick {tick} is out of range")))
     }
 
-    pub(crate) fn physics_tick_hashes(&self) -> &[[u8; canonical::HASH_BYTES]] {
-        &self.physics_tick_hashes
+    pub(crate) fn tick_hashes(&self) -> &[[u8; canonical::HASH_BYTES]] {
+        &self.tick_hashes
     }
 
     pub(crate) fn state(&self, tick: u32) -> Result<WorldSnapshot> {
@@ -1864,15 +1849,11 @@ fn read_ticks(member: MemberSlice) -> Result<TickColumns> {
             "ticks.parquet metadata game_build must not be empty",
         ));
     }
-    if required_metadata(metadata, "physics_hash_profile")? != PHYSICS_HASH_PROFILE {
-        return Err(Error::invalid("unsupported physics hash profile"));
-    }
-    if required_metadata(metadata, "content_hash_profile")? != CONTENT_HASH_PROFILE {
-        return Err(Error::invalid("unsupported content hash profile"));
+    if required_metadata(metadata, "hash_profile")? != HASH_PROFILE {
+        return Err(Error::invalid("unsupported hash profile"));
     }
     let hashes = Hashes {
-        physics_result_hash: required_metadata(metadata, "physics_result_hash")?.to_owned(),
-        content_result_hash: required_metadata(metadata, "content_result_hash")?.to_owned(),
+        result_hash: required_metadata(metadata, "result_hash")?.to_owned(),
     };
     hashes.validate_encoding()?;
     let tick_count = parse_metadata_u32(metadata, "tick_count")?;
@@ -1882,12 +1863,12 @@ fn read_ticks(member: MemberSlice) -> Result<TickColumns> {
             "MCFR must contain T(1) and terminal_tick must equal tick_count",
         ));
     }
-    let mut physics_hashes_out = Vec::new();
+    let mut tick_hashes_out = Vec::new();
     let mut expected_tick = 1_u32;
     for batch in builder.build()? {
         let batch = batch?;
         let ticks = column::<UInt32Array>(&batch, "tick")?;
-        let physics_hashes = column::<FixedSizeBinaryArray>(&batch, "physics_tick_hash")?;
+        let tick_hashes = column::<FixedSizeBinaryArray>(&batch, "tick_hash")?;
         for index in 0..batch.num_rows() {
             if ticks.value(index) != expected_tick {
                 return Err(Error::invalid(format!(
@@ -1895,11 +1876,11 @@ fn read_ticks(member: MemberSlice) -> Result<TickColumns> {
                     ticks.value(index)
                 )));
             }
-            let physics_value: [u8; canonical::HASH_BYTES] = physics_hashes
+            let value: [u8; canonical::HASH_BYTES] = tick_hashes
                 .value(index)
                 .try_into()
-                .map_err(|_| Error::invalid("physics_tick_hash is not 32 bytes"))?;
-            physics_hashes_out.push(physics_value);
+                .map_err(|_| Error::invalid("tick_hash is not 32 bytes"))?;
+            tick_hashes_out.push(value);
             expected_tick += 1;
         }
     }
@@ -1909,6 +1890,11 @@ fn read_ticks(member: MemberSlice) -> Result<TickColumns> {
             expected_tick.saturating_sub(1)
         )));
     }
+    if canonical::hex(&canonical::result_hash(&tick_hashes_out)) != hashes.result_hash {
+        return Err(Error::invalid(
+            "result_hash metadata is not the hash of the tick_hash column",
+        ));
+    }
     Ok((
         TickMetadata {
             game_build,
@@ -1917,7 +1903,7 @@ fn read_ticks(member: MemberSlice) -> Result<TickColumns> {
             terminal_tick,
             hashes,
         },
-        physics_hashes_out,
+        tick_hashes_out,
     ))
 }
 

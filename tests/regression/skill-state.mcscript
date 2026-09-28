@@ -13,7 +13,7 @@
 # 99% of unit-ticks; `docs/spec/simulation/architecture.md` says what is left.
 #
 # Every case, not only the smoke tier: a state that differs on one fight is
-# the point. The channel is research evidence, outside both hashes.
+# the point. The channel is research evidence, outside the hash.
 #
 # `out` must not already exist: a recording refuses to overwrite.
 

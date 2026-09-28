@@ -24,17 +24,18 @@ The Wraith's skill (`config/units/wraith.yaml`, row 18001 of `level0`'s
 skill each, weapon mode 1, range 60, interval 1.6 s ± 0.2, prepare 0.4,
 `canAttackSameTarget` true, `isEvenlyAllocated` false, quick switch on.
 
-`regressions.mcscript` simulates both layouts without the game and pins both
-native physics and content hashes: 647 ticks for the regression fight and 96
+`regressions.mcscript` simulates both layouts without the game and pins their
+native hashes: 647 ticks for the regression fight and 96
 for two targets, seed 1787857041. The two-target capture assigns u3, u2, u3,
 u3; sharing is not even allocation. In the regression capture, u30's fourth
 slot switches to u21 at tick 131, excluding u25 held by its sibling. At tick
 205, u29's fourth slot takes u55 at an edge distance of 60.9585 m: a main child
 skill has its parent's range plus 10 m. The core keeps 60 m.
 
-The original simulator matched the regression fight's physics while its mech
-lock differed on 60 ticks beginning at tick 206. Checking only physics would
-miss it, which is why both layers are pinned here.
+The original simulator matched the regression fight's positions, life and
+events while its mech lock differed on 60 ticks beginning at tick 206. A check
+of those alone would miss it, which is why the hash pinned here covers every
+field.
 
 The optional checker replay reads the recording's checker channel and restores each call's
 before-targets on the slot the call names, on a shadow skill at the kernel's checker site, then restores

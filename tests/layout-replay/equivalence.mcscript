@@ -6,7 +6,7 @@
 # Each layout holds one field no pinned fight of another directory holds.
 # It is fought twice with one seed: staged in the Training Ground and
 # recorded there, and written as a layout replay and recorded headlessly.
-# The two recordings must be equal in every field, physics and content.
+# The two recordings must be equal in every field.
 #
 # `out` must not already exist: a recording refuses to overwrite.
 
@@ -52,5 +52,4 @@ steps:
           right: ${out}/${case.name}-headless.mcfr
         expect:
           equal: true
-          content_equal: true
           fields_equal: true

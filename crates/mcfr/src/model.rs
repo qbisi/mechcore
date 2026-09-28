@@ -4,31 +4,26 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result, canonical};
 
-pub const MCFR_FORMAT: &str = "0.15.0";
-pub const PHYSICS_HASH_PROFILE: &str = "battle-physics-v6";
-pub const CONTENT_HASH_PROFILE: &str = "mcfr-content-0.15.0";
+pub const MCFR_FORMAT: &str = "0.16.0";
+/// Names the hash definition, which is older than the format: the domain
+/// strings and canonical inputs have not moved since format 0.7.0.
+pub const HASH_PROFILE: &str = "mcfr-content-0.7.0";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Hashes {
-    pub physics_result_hash: String,
-    pub content_result_hash: String,
+    pub result_hash: String,
 }
 
 impl Hashes {
-    pub(crate) fn from_raw(
-        physics: [u8; canonical::HASH_BYTES],
-        content: [u8; canonical::HASH_BYTES],
-    ) -> Self {
+    pub(crate) fn from_raw(result: [u8; canonical::HASH_BYTES]) -> Self {
         Self {
-            physics_result_hash: canonical::hex(&physics),
-            content_result_hash: canonical::hex(&content),
+            result_hash: canonical::hex(&result),
         }
     }
 
     pub(crate) fn validate_encoding(&self) -> Result<()> {
-        canonical::parse_hex(&self.physics_result_hash, "physics_result_hash")?;
-        canonical::parse_hex(&self.content_result_hash, "content_result_hash")?;
+        canonical::parse_hex(&self.result_hash, "result_hash")?;
         Ok(())
     }
 }
@@ -43,15 +38,13 @@ pub struct TickSlice {
     pub tick: u32,
     pub state: WorldSnapshot,
     pub events: TransitionEvents,
-    pub physics_tick_hash: String,
-    pub content_tick_hash: String,
+    pub tick_hash: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TickHashes {
-    pub physics_tick_hash: String,
-    pub content_tick_hash: String,
+    pub tick_hash: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

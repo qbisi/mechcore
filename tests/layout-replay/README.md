@@ -9,7 +9,7 @@ directory holds the evidence that the two recordings are the same fight.
 
 Most of it is elsewhere. Every fight pinned in another directory's
 `regressions.mcscript` was recorded in the Training Ground, and each one
-recorded headlessly from its layout hashes the same, physics and content:
+recorded headlessly from its layout hashes the same:
 the units' standard layouts, constructions, equipment, officers, unit
 levels, technologies and tower strengthening. The fields no pinned fight
 holds are here, one layout each, and

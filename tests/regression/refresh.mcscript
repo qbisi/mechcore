@@ -15,7 +15,7 @@
 #
 #     expect:
 #       operation.tick_count: ${case.tick_count}
-#       operation.hashes.physics_result_hash: ${case.physics_result_hash}
+#       operation.hashes.result_hash: ${case.result_hash}
 #
 # With it the run stops at the first case that no longer matches, which is the
 # drift check. Without it every case is recorded and reported, which is what

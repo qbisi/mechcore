@@ -154,11 +154,11 @@ A channel lives inside the recording, outside both of its hashes
 ([mcfr.md](../mcfr/mcfr.md#instrument-channels)); what each channel holds is
 [adapter.md](../adapter/adapter.md#record_replay_round).
 
-`fight.compare` returns the report `mechcore fight compare` prints: the physics
+`fight.compare` returns the report `mechcore fight compare` prints: the hash
 verdict, the field groups that differ with the ticks they differ on, and one
 tick explained. `fields` names the groups a step is about, and makes
 `fields_equal` their verdict, so a script can hold a unit's lock or motion
-state to a recording where the physics hash cannot:
+state to a recording while other fields still differ, which the hash cannot:
 
 ```yaml
 - fight.compare:
@@ -182,7 +182,7 @@ against it; `tests/modifier/composition.mcscript` is the worked example.
 
 `fight.run` runs the deterministic simulator on a layout and returns the same result
 object `mechcore fight run` prints, so `expect` can assert `seed_source`, `steps`, or
-a dotted path like `hashes.physics_result_hash`. It needs no game, which is
+a dotted path like `hashes.result_hash`. It needs no game, which is
 what lets `tests/regression/simulate.mcscript` drive the whole regression
 manifest. Omit `output` unless the run should also publish an MCFR; an
 existing one is replaced as a recording's is.
@@ -261,7 +261,6 @@ recording reports `operation.tick_count`, not `tick_count`.
     right: $out/training.mcfr
   expect:
     equal: true
-    content_equal: true
 ```
 
 ## Loops
@@ -442,15 +441,14 @@ steps:
       right: $out/training.mcfr
     expect:
       equal: true
-      content_equal: true
 ```
 
 ## Regression re-recording
 
 `tests/regression/mcfr-regressions.yaml` stays a data table. `tests/regression/simulate.mcscript`
 reads it for the gameless simulator regression, which CI runs, and
-`crates/simulation/tests/fight.rs` reads it for the content-layer fields the
-physics hash leaves out. Re-recording is one more reader of that same table,
+`crates/simulation/tests/fight.rs` reads it to name a few fields — a unit's
+lock and motion state — so that a failure says which one moved. Re-recording is one more reader of that same table,
 not a copy of it:
 
 ```yaml
@@ -474,7 +472,7 @@ steps:
           output: $out/${case.name}.mcfr
         expect:
           operation.tick_count: ${case.tick_count}
-          operation.hashes.physics_result_hash: ${case.physics_result_hash}
+          operation.hashes.result_hash: ${case.result_hash}
 ```
 
 The two uses of this shape differ only by the `expect` block, and confusing

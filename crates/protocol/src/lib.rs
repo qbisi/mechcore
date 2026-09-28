@@ -8,7 +8,7 @@ use std::path::PathBuf;
 /// A running game keeps the Adapter it was started with, so a rebuilt Adapter
 /// and a running game can differ. Naming the contract is what turns that into
 /// one clear refusal at connect time instead of a desynchronised stream.
-pub const PROTOCOL: &str = "mechcore.adapter.v9";
+pub const PROTOCOL: &str = "mechcore.adapter.v10";
 /// Highest round `apply_layout` will stage.
 ///
 /// This is the executor's timeout budget for advancing through every earlier
@@ -321,7 +321,7 @@ pub struct RecordFightArguments {
     /// Request native combat speed-up. `None` leaves the adapter default, which
     /// is on with or without a visual recording.
     pub speed_up: Option<bool>,
-    /// Instrument channels to record into the MCFR, outside both hashes.
+    /// Instrument channels to record into the MCFR, outside the hash.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub instrument: Vec<InstrumentChannel>,
 }
@@ -336,7 +336,7 @@ pub struct RecordReplayRoundArguments {
     pub round: i32,
     /// Absolute destination for the new MCFR recording.
     pub output: PathBuf,
-    /// Instrument channels to record into the MCFR, outside both hashes.
+    /// Instrument channels to record into the MCFR, outside the hash.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub instrument: Vec<InstrumentChannel>,
 }
@@ -362,7 +362,7 @@ pub struct RecordWatchReplayArguments {
 }
 
 /// An instrument channel a recording can carry: a view of the fight's inside,
-/// stored in the MCFR beside its tables and read by neither hash. Channels
+/// stored in the MCFR beside its tables and not read by the hash. Channels
 /// combine freely, so one recording answers every question asked of it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -477,7 +477,7 @@ mod tests {
             .unwrap(),
             serde_json::json!({
                 "kind": "hello",
-                "protocol": "mechcore.adapter.v9",
+                "protocol": "mechcore.adapter.v10",
                 "capabilities": [
                     "status",
                     "start_test",
@@ -504,7 +504,7 @@ mod tests {
             serde_json::to_value(Claim::current(DEFAULT_LEVEL)).unwrap(),
             serde_json::json!({
                 "kind": "claim",
-                "protocol": "mechcore.adapter.v9",
+                "protocol": "mechcore.adapter.v10",
                 "level": 1,
             })
         );
@@ -512,7 +512,7 @@ mod tests {
             serde_json::to_value(Busy::current(3, true)).unwrap(),
             serde_json::json!({
                 "kind": "busy",
-                "protocol": "mechcore.adapter.v9",
+                "protocol": "mechcore.adapter.v10",
                 "holder_level": 3,
                 "evicting": true,
             })
@@ -521,7 +521,7 @@ mod tests {
             serde_json::to_value(Evicted::current(4)).unwrap(),
             serde_json::json!({
                 "kind": "evicted",
-                "protocol": "mechcore.adapter.v9",
+                "protocol": "mechcore.adapter.v10",
                 "by_level": 4,
             })
         );
