@@ -1,11 +1,11 @@
-# MCFR 格式规范（format 0.16.0）
+# MCFR 格式规范（format 0.17.0）
 
 [English](mcfr.md)
 
 本文描述仓库当前实现的 MCFR 逻辑模型、物理容器、Adapter 原生采集来源和 Reader/Writer 校验契约。统一格式标识为：
 
 ```text
-format = "0.16.0"
+format = "0.17.0"
 ```
 
 当前 Adapter 原生字段映射绑定仓库在 `GAME_VERSION` 钉住的游戏版本。其他版本可以生成同格式录像，前提是 Producer 已验证所用原生接口与本文语义一致。
@@ -101,7 +101,8 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 
 | key | 数据规范 | 含义 |
 | --- | --- | --- |
-| `format` | 精确值 `0.16.0` | MCFR 逻辑与物理契约版本 |
+| `format` | 精确值 `0.17.0` | MCFR 逻辑与物理契约版本 |
+| `producer` | `game` 或 `simulator` | 录像由谁写出：经 Adapter 的游戏，或模拟器 |
 | `game_build` | 非空 UTF-8 | 采集构建 provenance；Adapter 来自 `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | 单回合保持稳定的上下文 `D` |
 | `hash_profile` | 精确值 `mcfr-content-0.7.0` | 哈希定义，以其 domain 字符串的版本命名 |
@@ -119,6 +120,8 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 
 `match_seed` 不写入 `ticks.parquet`。Writer 仍用调用方提供的 seed 校验嵌入布局，Reader 则从规范化 `layout.yaml.seed` 恢复公开 `DurableContext.match_seed`。`game_build` 作为独立文件 metadata 描述采集来源。
 
+`producer` 是录像关于其来源的唯一说明：Adapter 采集的为 `game`，模拟器写出的为 `simulator`。两者对同一场战斗写出相同时间线，因此它与 `game_build` 一样不进哈希，同一场战斗的两种来源录像共享全部哈希。读者据此区分游戏行为的证据与模拟器的计算结果。
+
 ---
 
 # Part II — `units.parquet`
@@ -132,7 +135,7 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 | 字段 | Parquet 类型 | 含义 | Adapter 原生来源 |
 | --- | --- | --- | --- |
 | `tick` | `UINT32 required` | 状态所属逻辑时刻 | Adapter 逻辑帧计数 |
-| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.16.0 身份规则，见附录 B |
+| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.17.0 身份规则，见附录 B |
 | `team_id` | `UINT32 required` | 当前所属队伍 | `FightTeam` controller index |
 | `original_team_id` | `UINT32 required` | 首次出现时的队伍 | 首次采样的 `team_id` |
 | `formation_id` | `UINT64 required` | 编队身份 | `FightMech.GetMechTeam()` 指针映射 |
@@ -557,7 +560,7 @@ buff 的作用仍在 Unit 状态轨道上：布尔状态进入 `status_mask`，�
 Writer 的公开生命周期为：
 
 ```text
-create(game_build, context, layout_yaml)
+create(producer, game_build, context, layout_yaml)
 append_tick(S(1), E(1))
 ...
 append_tick(S(n), E(n))
@@ -575,7 +578,7 @@ Reader 在打开容器时验证：
 - ZIP 成员集合、STORE method、ZIP64 可读性与成员唯一性；
 - `layout.yaml` 的 UTF-8、共享结构、规范化表示以及 round 与 DurableContext 一致性；
 - 六个 Parquet schema、required/nullable 结构及 Zstd column compression；
-- `game_build`、DurableContext canonical JSON、元数据类型和格式标识；
+- `producer`、`game_build`、DurableContext canonical JSON、元数据类型和格式标识；
 - tick 连续性、状态表排序、事件排序与 ordinal 连续性；
 - ObjectRef、enum tag、初始身份顺序、列表顺序、`status_mask` 保留位和 modifier 分量；
 - tick hash 列的连续性、宽度和编码，result hash 及其 profile 的编码，以及 result hash 是 tick hash 列的摘要。
@@ -629,9 +632,9 @@ ObjectRef = { kind: ObjectKind, id: u64 }
 
 # 附录 B — 身份与排序约定
 
-## B.1 format 0.16.0 身份规则
+## B.1 format 0.17.0 身份规则
 
-format `0.16.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
+format `0.17.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
 
 战斗期间首次出现的 Unit 按首次观察顺序取得当前 Unit namespace 的下一个连续编号。Unit namespace 从 1 开始单调递增；历史引用持续使用对象首次取得的编号。
 

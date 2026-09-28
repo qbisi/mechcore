@@ -4,10 +4,44 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result, canonical};
 
-pub const MCFR_FORMAT: &str = "0.16.0";
+pub const MCFR_FORMAT: &str = "0.17.0";
 /// Names the hash definition, which is older than the format: the domain
 /// strings and canonical inputs have not moved since format 0.7.0.
 pub const HASH_PROFILE: &str = "mcfr-content-0.7.0";
+
+/// What wrote a recording: the game, through the Adapter, or the simulator.
+///
+/// Two recordings of one fight are the same fight whoever wrote them, so the
+/// producer is provenance beside the timeline and outside the hash. It is what
+/// says whether a recording is evidence of what the game does or a statement
+/// of what the simulator computed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Producer {
+    Game,
+    Simulator,
+}
+
+impl Producer {
+    /// The name the file metadata writes.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Game => "game",
+            Self::Simulator => "simulator",
+        }
+    }
+
+    pub(crate) fn parse(name: &str) -> Result<Self> {
+        match name {
+            "game" => Ok(Self::Game),
+            "simulator" => Ok(Self::Simulator),
+            other => Err(Error::invalid(format!(
+                "ticks.parquet metadata producer {other:?} is neither game nor simulator"
+            ))),
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

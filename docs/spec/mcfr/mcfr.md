@@ -1,4 +1,4 @@
-# MCFR, format 0.16.0
+# MCFR, format 0.17.0
 
 [简体中文](mcfr.zh.md)
 
@@ -9,7 +9,7 @@ schema of each, the identity and ordering rules that make two recordings of one
 fight the same recording, and what a reader must validate before trusting one.
 
 ```text
-format = "0.16.0"
+format = "0.17.0"
 ```
 
 The native field mapping is bound to the game version the repository pins in
@@ -122,7 +122,8 @@ Parquet key-value metadata keys and values are both UTF-8 strings.
 
 | Key | Data | Meaning |
 | --- | --- | --- |
-| `format` | exactly `0.16.0` | the logical and physical contract version |
+| `format` | exactly `0.17.0` | the logical and physical contract version |
+| `producer` | `game` or `simulator` | what wrote the recording: the game, through the adapter, or the simulator |
 | `game_build` | non-empty UTF-8 | capture provenance; the adapter reads `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | the context `D` that holds steady for one round |
 | `hash_profile` | exactly `mcfr-content-0.7.0` | the hash definition, named for the domain strings it uses |
@@ -142,6 +143,13 @@ Parquet key-value metadata keys and values are both UTF-8 strings.
 embedded layout against the caller's seed, and the reader recovers the public
 `DurableContext.match_seed` from the canonical `layout.yaml.seed`. `game_build`
 describes the capture source as its own file metadata.
+
+`producer` is the one thing a recording says about who made it: `game` for
+a recording the adapter captured, `simulator` for one the simulator wrote.
+Both write the same timeline for the same fight, so it stays outside the hash,
+as `game_build` does, and two recordings of one fight from the two producers
+share every hash. A reader uses it to tell evidence of what the game does from
+a statement of what the simulator computed.
 
 ## Units
 
@@ -787,7 +795,7 @@ The channels the Adapter records are `target_refs`,
 The writer's public lifecycle is:
 
 ```text
-create(game_build, context, layout_yaml)
+create(producer, game_build, context, layout_yaml)
 append_tick(S(1), E(1))
 ...
 append_tick(S(n), E(n))
@@ -819,8 +827,8 @@ On opening a container, a reader verifies:
   and its round's agreement with the DurableContext;
 - the six Parquet schemas, their required and nullable structure, and Zstd
   column compression;
-- `game_build`, the DurableContext canonical JSON, metadata types and the format
-  identifier;
+- `producer`, `game_build`, the DurableContext canonical JSON, metadata types
+  and the format identifier;
 - tick contiguity, state table ordering, event ordering and ordinal contiguity;
 - ObjectRefs, enum tags, initial identity order, list order, `status_mask`
   reserved bits and modifier components;
@@ -882,7 +890,7 @@ Identity is what makes two recordings of one fight the same recording, so
 every namespace numbers its objects by a rule that depends on the scene rather
 than on the pointer that happened to be observed first.
 
-Format `0.16.0` uses `team_zx_sequential_v1`.
+Format `0.17.0` uses `team_zx_sequential_v1`.
 
 **Units.** Initial units sort strictly ascending by `(team_id, position.z,
 position.x)` and take `unit_id = 1..N` in that order. Initial units on one team

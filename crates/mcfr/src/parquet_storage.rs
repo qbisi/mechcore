@@ -34,7 +34,7 @@ use crate::{
     BuildingState, DamageStatistics, DerivedStats, Domain, DurableContext, Error, Event,
     EventPayload, FormationState, GaugeI32, HASH_PROFILE, Hashes, LiveUnitState, MCFR_FORMAT,
     Modifier, ModifierChannel, ModifierPart, MotionState, ObjectKind, ObjectRef,
-    PersonalShieldState, ProjectileState, QPlanar, QPose, QVec3, RecorderKind, Result,
+    PersonalShieldState, Producer, ProjectileState, QPlanar, QPose, QVec3, RecorderKind, Result,
     ShieldRoundPolicy, ShieldSourceKind, ShieldState, TerrainApplicationState, TerrainEffectClock,
     TerrainGridState, TerrainLogicLifetime, TerrainState, TerrainType, TransitionEvents,
     Visibility, WeaponAimState, WorldSnapshot, canonical,
@@ -302,6 +302,7 @@ impl StorageWriter {
 
     pub(crate) fn finish(
         mut self,
+        producer: Producer,
         game_build: &str,
         context_bytes: &[u8],
         layout_yaml: &str,
@@ -340,6 +341,7 @@ impl StorageWriter {
             .map_err(|_| Error::invalid("canonical durable context is not UTF-8"))?;
         let metadata = HashMap::from([
             ("format".to_owned(), MCFR_FORMAT.to_owned()),
+            ("producer".to_owned(), producer.as_str().to_owned()),
             ("game_build".to_owned(), game_build.to_owned()),
             ("durable_context".to_owned(), context_json.to_owned()),
             ("hash_profile".to_owned(), HASH_PROFILE.to_owned()),
@@ -1601,6 +1603,7 @@ fn instrument_channel(member: &str) -> Option<&str> {
 }
 
 pub(crate) struct StoredMetadata {
+    pub(crate) producer: Producer,
     pub(crate) game_build: String,
     pub(crate) context: DurableContext,
     pub(crate) tick_count: u32,
@@ -1609,6 +1612,7 @@ pub(crate) struct StoredMetadata {
 }
 
 struct TickMetadata {
+    producer: Producer,
     game_build: String,
     context: StoredDurableContext,
     tick_count: u32,
@@ -1649,6 +1653,7 @@ impl StorageReader {
         )?;
         let tick_count = tick_metadata.tick_count;
         let metadata = StoredMetadata {
+            producer: tick_metadata.producer,
             game_build: tick_metadata.game_build,
             context: tick_metadata.context.with_match_seed(match_seed),
             tick_count,
@@ -1843,6 +1848,7 @@ fn read_ticks(member: MemberSlice) -> Result<TickColumns> {
     let context_bytes = required_metadata(metadata, "durable_context")?.as_bytes();
     let context: StoredDurableContext = canonical::decode(context_bytes, "durable context")?;
     context.clone().with_match_seed(0).validate()?;
+    let producer = Producer::parse(required_metadata(metadata, "producer")?)?;
     let game_build = required_metadata(metadata, "game_build")?.to_owned();
     if game_build.trim().is_empty() {
         return Err(Error::invalid(
@@ -1897,6 +1903,7 @@ fn read_ticks(member: MemberSlice) -> Result<TickColumns> {
     }
     Ok((
         TickMetadata {
+            producer,
             game_build,
             context,
             tick_count,

@@ -1,8 +1,8 @@
 use std::{path::Path, process::Command};
 
 use mechcore_mcfr::{
-    DurableContext, Event, EventPayload, McfrWriter, ObjectKind, ObjectRef, QVec3, Rational,
-    ShieldSourceKind, TransitionEvents, WorldSnapshot,
+    DurableContext, Event, EventPayload, McfrWriter, ObjectKind, ObjectRef, Producer, QVec3,
+    Rational, ShieldSourceKind, TransitionEvents, WorldSnapshot,
 };
 
 #[test]
@@ -206,7 +206,8 @@ fn write_recording(path: &Path, seed: i32, damages: &[i32]) {
     let layout = format!(
         "kind: layout\nseed: {seed}\nround: 1\nblue:\n  units:\n  - name: marksman\n    index: 0\n    position: {{x: 0, y: -50}}\nred:\n  units:\n  - name: arclight\n    index: 0\n    position: {{x: 0, y: -50}}\n"
     );
-    let mut writer = McfrWriter::create(path, "test-build", &context, &layout).unwrap();
+    let mut writer =
+        McfrWriter::create(path, Producer::Simulator, "test-build", &context, &layout).unwrap();
     for &damage in damages {
         writer
             .append_tick(
@@ -240,7 +241,8 @@ fn write_shield_recording(path: &Path, source_kind: ShieldSourceKind) {
         match_seed: 42,
     };
     let layout = "kind: layout\nseed: 42\nround: 1\nblue:\n  units:\n  - {name: marksman, index: 0, position: {x: 0, y: -50}}\nred:\n  units:\n  - {name: arclight, index: 0, position: {x: 0, y: -50}}\n";
-    let mut writer = McfrWriter::create(path, "build-test", &context, layout).unwrap();
+    let mut writer =
+        McfrWriter::create(path, Producer::Simulator, "build-test", &context, layout).unwrap();
     writer
         .append_tick(
             WorldSnapshot::default(),

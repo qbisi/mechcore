@@ -107,6 +107,7 @@ fn verify_reports_the_first_divergent_tick_of_each_recording() {
     let recording = McfrReader::open(&recording_path).unwrap();
     let mut writer = McfrWriter::create(
         &divergent_path,
+        recording.producer(),
         recording.game_build(),
         recording.context(),
         recording.layout_yaml(),

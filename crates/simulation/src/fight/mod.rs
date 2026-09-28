@@ -16,8 +16,8 @@ use std::{
 use mechcore_mcfr::{
     BuildingState, DamageStatistics, DerivedStats, Domain, DurableContext, Event, EventPayload,
     FormationState, GaugeI32, Hashes, IdentityAllocator, LiveUnitState, McfrReader, McfrWriter,
-    MotionState, ObjectKind, ObjectRef, PersonalShieldState, ProjectileState, QPlanar, QPose,
-    QVec3, Rational, RecorderKind, TickSlice, TransitionEvents, Visibility, WeaponAimState,
+    MotionState, ObjectKind, ObjectRef, PersonalShieldState, Producer, ProjectileState, QPlanar,
+    QPose, QVec3, Rational, RecorderKind, TickSlice, TransitionEvents, Visibility, WeaponAimState,
     WorldSnapshot,
 };
 

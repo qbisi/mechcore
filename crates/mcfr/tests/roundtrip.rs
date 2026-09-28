@@ -5,12 +5,12 @@ use mechcore_mcfr::{
     BuildingState, CheckedSkill, DerivedStats, Domain, DurableContext, Event, EventPayload,
     GaugeI32, GroupSlot, HASH_PROFILE, Hashes, LiveUnitState, MCFR_FORMAT, McfrReader, McfrWriter,
     Modifier, ModifierChannel, ModifierPart, MotionState, ObjectKind, ObjectRef,
-    PersonalShieldState, QPlanar, QVec3, Rational, RvoExit, RvoNeighbour, RvoNeighbourKind,
-    RvoSolve, RvoVec, RvoVo, ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind,
-    ShieldState, SkillAttackableCheck, TargetCandidate, TargetRefs, TargetSearch, TargetSearchPath,
-    TerrainApplicationState, TerrainEffectClock, TerrainGridState, TerrainLogicLifetime,
-    TerrainRemovedReason, TerrainState, TerrainType, TransitionEvents, Visibility, WeaponAimState,
-    WorldSnapshot, sort_modifiers,
+    PersonalShieldState, Producer, QPlanar, QVec3, Rational, RvoExit, RvoNeighbour,
+    RvoNeighbourKind, RvoSolve, RvoVec, RvoVo, ShieldDestroyedReason, ShieldRoundPolicy,
+    ShieldSourceKind, ShieldState, SkillAttackableCheck, TargetCandidate, TargetRefs, TargetSearch,
+    TargetSearchPath, TerrainApplicationState, TerrainEffectClock, TerrainGridState,
+    TerrainLogicLifetime, TerrainRemovedReason, TerrainState, TerrainType, TransitionEvents,
+    Visibility, WeaponAimState, WorldSnapshot, sort_modifiers,
 };
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use serde_json::json;
@@ -48,7 +48,8 @@ fn writes_and_reads_every_table() {
     );
 
     let reader = McfrReader::open(&path).unwrap();
-    assert_eq!(MCFR_FORMAT, "0.16.0");
+    assert_eq!(MCFR_FORMAT, "0.17.0");
+    assert_eq!(reader.producer(), Producer::Game);
     assert_eq!(reader.tick_count(), 1);
     assert_eq!(reader.terminal_tick(), 1);
     assert_eq!(reader.game_build(), "build-a");
@@ -349,7 +350,8 @@ fn embedded_layout_is_not_a_hash_input() {
         &events,
     );
     let path = directory.path().join("right.mcfr");
-    let mut writer = McfrWriter::create(&path, "build-a", &context(), OTHER_LAYOUT).unwrap();
+    let mut writer =
+        McfrWriter::create(&path, Producer::Game, "build-a", &context(), OTHER_LAYOUT).unwrap();
     writer.append_tick(state(75), &events).unwrap();
     let right = writer.finish().unwrap();
     assert_eq!(left, right);
@@ -366,7 +368,8 @@ fn embedded_layout_preserves_adapter_state_outside_public_legality() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("partial-layout.mcfr");
     let context = context();
-    let mut writer = McfrWriter::create(&path, "build-a", &context, PARTIAL_LAYOUT).unwrap();
+    let mut writer =
+        McfrWriter::create(&path, Producer::Game, "build-a", &context, PARTIAL_LAYOUT).unwrap();
     writer
         .append_tick(state(75), &TransitionEvents { events: Vec::new() })
         .unwrap();
@@ -384,7 +387,8 @@ fn writer_rejects_initial_formation_ids_outside_zx_first_appearance_order() {
     let mut invalid = state(100);
     invalid.live_units[0].formation_id = 2;
     invalid.live_units[1].formation_id = 1;
-    let mut writer = McfrWriter::create(&path, "build-a", &context(), LAYOUT_YAML).unwrap();
+    let mut writer =
+        McfrWriter::create(&path, Producer::Game, "build-a", &context(), LAYOUT_YAML).unwrap();
     let error = writer
         .append_tick(invalid, &TransitionEvents { events: Vec::new() })
         .unwrap_err();
@@ -402,7 +406,8 @@ fn writer_rejects_reserved_status_bits() {
     let path = directory.path().join("invalid.mcfr");
     let mut invalid = state(100);
     invalid.live_units[0].status_mask = 1 << 4;
-    let mut writer = McfrWriter::create(&path, "build-a", &context(), LAYOUT_YAML).unwrap();
+    let mut writer =
+        McfrWriter::create(&path, Producer::Game, "build-a", &context(), LAYOUT_YAML).unwrap();
     assert!(
         writer
             .append_tick(invalid, &TransitionEvents { events: Vec::new() })
@@ -415,7 +420,8 @@ fn writer_rejects_reserved_status_bits() {
 fn writer_rejects_partial_projectile_channel() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("invalid-event.mcfr");
-    let mut writer = McfrWriter::create(&path, "build-a", &context(), LAYOUT_YAML).unwrap();
+    let mut writer =
+        McfrWriter::create(&path, Producer::Game, "build-a", &context(), LAYOUT_YAML).unwrap();
     let events = TransitionEvents {
         events: vec![Event {
             subject: Some(ObjectRef::new(ObjectKind::Projectile, 1)),
@@ -482,7 +488,8 @@ fn shield_events_and_projectile_absorption_round_trip() {
 fn writer_rejects_terrain_created_source() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("invalid-terrain-source.mcfr");
-    let mut writer = McfrWriter::create(&path, "build-a", &context(), LAYOUT_YAML).unwrap();
+    let mut writer =
+        McfrWriter::create(&path, Producer::Game, "build-a", &context(), LAYOUT_YAML).unwrap();
     let events = TransitionEvents {
         events: vec![Event {
             subject: Some(ObjectRef::new(ObjectKind::Terrain, 1)),
@@ -565,7 +572,8 @@ fn writer_rejects_inconsistent_shield_active_order() {
     let path = directory.path().join("invalid-shield.mcfr");
     let mut invalid = state(100);
     invalid.shields[0].active_order = None;
-    let mut writer = McfrWriter::create(&path, "build-a", &context(), LAYOUT_YAML).unwrap();
+    let mut writer =
+        McfrWriter::create(&path, Producer::Game, "build-a", &context(), LAYOUT_YAML).unwrap();
     assert!(
         writer
             .append_tick(invalid, &TransitionEvents { events: Vec::new() })
@@ -593,7 +601,8 @@ fn writer_rejects_non_shield_projectile_containment_reference() {
         },
         spawn_containing_shields: vec![ObjectRef::new(ObjectKind::Building, 1)],
     });
-    let mut writer = McfrWriter::create(&path, "build-a", &context(), LAYOUT_YAML).unwrap();
+    let mut writer =
+        McfrWriter::create(&path, Producer::Game, "build-a", &context(), LAYOUT_YAML).unwrap();
     assert!(
         writer
             .append_tick(invalid, &TransitionEvents { events: Vec::new() })
@@ -615,7 +624,8 @@ fn instrument_channels_ride_in_the_recording_outside_the_hash() {
     );
 
     let path = directory.path().join("instrumented.mcfr");
-    let mut writer = McfrWriter::create(&path, "build-a", &context(), LAYOUT_YAML).unwrap();
+    let mut writer =
+        McfrWriter::create(&path, Producer::Game, "build-a", &context(), LAYOUT_YAML).unwrap();
     assert!(writer.append_instrument::<TargetRefs>(&[]).is_err());
     writer.append_tick(state(75), &damage_events()).unwrap();
     let refs = TargetRefs {
@@ -703,7 +713,8 @@ fn instrument_channels_ride_in_the_recording_outside_the_hash() {
 fn rvo_channels_round_trip_with_their_nulls_and_kinds() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("rvo.mcfr");
-    let mut writer = McfrWriter::create(&path, "build-a", &context(), LAYOUT_YAML).unwrap();
+    let mut writer =
+        McfrWriter::create(&path, Producer::Game, "build-a", &context(), LAYOUT_YAML).unwrap();
     writer.append_tick(state(75), &damage_events()).unwrap();
     let agent = ObjectRef::new(ObjectKind::Unit, 1);
     let at = |x, y| RvoVec { x, y };
@@ -788,7 +799,8 @@ fn rvo_channels_round_trip_with_their_nulls_and_kinds() {
 fn target_channels_round_trip_with_unseen_terms() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("targets.mcfr");
-    let mut writer = McfrWriter::create(&path, "build-a", &context(), LAYOUT_YAML).unwrap();
+    let mut writer =
+        McfrWriter::create(&path, Producer::Game, "build-a", &context(), LAYOUT_YAML).unwrap();
     writer.append_tick(state(75), &damage_events()).unwrap();
     let search = TargetSearch {
         search: 0,
@@ -914,7 +926,8 @@ fn write_fight(
     final_state: WorldSnapshot,
     events: &TransitionEvents,
 ) -> Hashes {
-    let mut writer = McfrWriter::create(path, game_build, context, LAYOUT_YAML).unwrap();
+    let mut writer =
+        McfrWriter::create(path, Producer::Game, game_build, context, LAYOUT_YAML).unwrap();
     writer.append_tick(final_state, events).unwrap();
     writer.finish().unwrap()
 }
