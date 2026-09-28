@@ -702,13 +702,15 @@ because what differs between them is what is recorded, and that is its input:
 | --- | --- | --- |
 | `game record <out.mcfr>` | the fight staged in the current scene | `record_fight` |
 | `game record <layout> <out.mcfr>` | a layout, fought without a scene | `record_replay_round`, over the layout as a replay |
+| `game record <fight> <out.mcfr>` | a fight's projection, with its seed, as a layout is | `record_replay_round`, over the projection as a replay |
 | `game record <replay.grbr> <out.mcfr> --round <n>` | one round of a replay | `record_replay_round` |
 | `game record --watch` | a live standard 1v1 the server makes | `record_watch_replay` |
 
 The input's kind is read from what it holds, as a file verb reads it, and an
 input of another kind is refused. Each form takes the options of the operation
 it reaches and refuses the others: the current scene takes `--video <file>` and
-`--no-speed-up`, a layout takes `--seed`, a replay requires `--round`, and a
+`--no-speed-up`, a layout takes `--seed`, a fight takes none, since its result
+is its own seed's, a replay requires `--round`, and a
 watch takes `--output-dir`, `--wait-for-scene-seconds` and
 `--match-timeout-seconds`. Every form but the watch takes `--instrument a,b`,
 the instrument channels to record into the MCFR by name
@@ -726,6 +728,11 @@ as the fight began, as a staged layout is: when the two differ in any field,
 once both are in normal form, the recording is removed and the refusal names
 the fields. `apply_layout` and a recording of the current scene remain the way
 to fight a layout the replay cannot state and to record a video.
+
+A [fight](../document/fight.md) document is recorded as its projection is,
+with the seed it states, so one file both records a fight and, once its result
+is read from that recording, is what [`verify`](#verify) checks the simulator
+against. Its `layout_input` is the projection.
 
 Three more belong to the session rather than the game:
 [session.md](session.md) defines `launch`, `attach` and `detach`, their

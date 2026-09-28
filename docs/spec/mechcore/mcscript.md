@@ -131,11 +131,13 @@ reaches, which its input decides:
 | --- | --- |
 | `output`, optional `video_output`, `speed_up`, `instrument` | the fight staged in the current scene |
 | `input` a layout, `output`, optional `seed`, `instrument` | the layout, fought without a scene |
+| `input` a fight, `output`, optional `instrument` | the fight's projection, with its seed, as a layout is |
 | `input` a replay, `round`, `output`, optional `instrument` | one round of the replay |
 | `watch: true`, optional `output_dir`, `wait_for_scene_seconds`, `match_timeout_seconds` | one live standard 1v1 |
 
-`input` is a path, whose kind the file itself says, or a layout given whole, as
-`read_yaml` and `embedded_layout` bind one.
+`input` is a path, whose kind the file itself says, or a layout or a fight
+given whole, as `read_yaml` and `embedded_layout` bind one; a document given
+whole is a fight when its `kind` says so.
 
 A step that writes a file refuses to overwrite it, and a script does not
 declare otherwise. The destinations are every path `game.record` and `convert`
