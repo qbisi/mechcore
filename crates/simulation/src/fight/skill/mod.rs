@@ -138,7 +138,7 @@ pub(in crate::fight) struct Skill {
     pub(in crate::fight) group_size: usize,
     /// A grouped skill's other slots, the core's siblings: slot 1 first.
     /// The core is this skill itself.
-    pub(in crate::fight) slots: Vec<SlotSkill>,
+    pub(in crate::fight) slots: Vec<Skill>,
     /// The rotation of each sibling's weapon, slot 1 first, where the
     /// weapons are fixed to the body: the weapon's own transform, which
     /// outlives what its skill does.
@@ -164,70 +164,12 @@ pub(in crate::fight) struct Skill {
     /// The rounds left in a skill that fires from a magazine
     /// (`SkillData.isLoadingType`), and none for one that does not.
     pub(in crate::fight) rounds: Option<u32>,
-}
-
-/// One slot of a grouped skill: a Wraith's weapon and the `FightSkill` that
-/// fires it.
-#[derive(Debug, Clone)]
-pub(in crate::fight) struct SlotSkill {
-    /// What the slot was allocated: a unit, or an enemy tower where no unit
-    /// is left to it.
-    pub(in crate::fight) lock: Option<FightActorRef>,
-    /// The enemy construction in the slot's line of fire, with the unit the
-    /// slot was allocated.
-    ///
-    /// The same pairing as [`Actor::in_the_way`], slot by slot: a Wraith's four
-    /// slots each take the block standing between it and the unit they were
-    /// given, and a slot given another unit no longer answers with it.
-    pub(in crate::fight) in_the_way: Option<(u64, FightActorRef)>,
-    pub(in crate::fight) next_attack_step: u64,
-    /// The slot's `SkillStateController` state.
-    pub(in crate::fight) state: SkillState,
-    /// The slot's own search timer (`SearchTargetController.searchTargetTime`):
-    /// an idle slot holding a live lock searches again when it runs out,
-    /// leaving idle sets it to ten, and each attacking update counts it down.
-    pub(in crate::fight) search_target_time: i32,
-    /// The slot's `SkillAttackController.attackCount`, as
-    /// [`Skill::attack_count`] is the core's.
-    pub(in crate::fight) attack_count: i32,
-    /// What the weapon still fires at after the core took the slot's lock:
-    /// `ChangeLockTarget(null)` drops the lock and leaves the attack target
-    /// until the slot searches again.
+    /// What the weapon still fires at once its lock is gone:
+    /// `FightSkill.attackTarget` is kept apart from `lockTarget`, and a
+    /// grouped core taking a sibling's unit calls the sibling's
+    /// `ChangeLockTarget(null)`, which leaves it until the sibling searches
+    /// again. Nothing else clears a lock that way, so only a sibling holds one.
     pub(in crate::fight) attack_target_left: Option<FightActorRef>,
-}
-
-impl Default for SlotSkill {
-    fn default() -> Self {
-        Self {
-            lock: None,
-            in_the_way: None,
-            next_attack_step: 0,
-            state: SkillState::Idle { ready_step: None },
-            search_target_time: 0,
-            attack_count: ATTACK_COUNT_RESET,
-            attack_target_left: None,
-        }
-    }
-}
-
-impl SlotSkill {
-    /// What the slot fires at: the construction in its way if one stands
-    /// there for the unit it was allocated, and that unit otherwise.
-    pub(in crate::fight) fn attack_target(&self) -> Option<FightActorRef> {
-        let Some(lock) = self.lock else {
-            // A cooling slot's weapon still names what it last turned to.
-            return match self.state {
-                SkillState::Cooling { candidate, .. } => candidate,
-                _ => self.attack_target_left,
-            };
-        };
-        match self.in_the_way {
-            Some((building, found_for)) if found_for == lock => {
-                Some(FightActorRef::Building(building))
-            }
-            _ => Some(lock),
-        }
-    }
 }
 
 impl Skill {
@@ -250,13 +192,26 @@ impl Skill {
             blow_started_step: None,
             state: SkillState::Idle { ready_step: None },
             group_size: group_skill_count,
-            slots: vec![SlotSkill::default(); group_skill_count.saturating_sub(1)],
+            slots: (1..group_skill_count)
+                .map(|_| Self::sibling_entering())
+                .collect(),
             slot_weapon_rotations_q32: vec![0; group_skill_count.saturating_sub(1)],
             mech_lock: None,
             lock_written: false,
             projectile_pending_releases: Vec::new(),
             attack_count: ATTACK_COUNT_RESET,
             rounds: magazine.map(|magazine| magazine.capacity),
+            attack_target_left: None,
+        }
+    }
+
+    /// A grouped core's sibling as it enters the fight, and as leaving the
+    /// fight or failing a check leaves it: idle, with no lock and nothing
+    /// scheduled. Its weapon's pose and its group live on the core.
+    pub(in crate::fight) fn sibling_entering() -> Self {
+        Self {
+            search_target_time: 0,
+            ..Self::new(Vec::new(), 0, None)
         }
     }
 
@@ -464,7 +419,7 @@ impl Skill {
     /// Every sibling slot left idle, with no allocation and nothing
     /// scheduled, as leaving the fight leaves them.
     pub(in crate::fight) fn clear_slots(&mut self) {
-        self.slots.fill(SlotSkill::default());
+        self.slots.fill_with(Self::sibling_entering);
     }
 
     /// `FightSkill.ChangeLockTarget`.
@@ -486,34 +441,53 @@ impl Skill {
         }
     }
 
-    /// A slot of the group, the core's siblings only.
-    pub(in crate::fight) fn sibling(&self, slot: usize) -> &SlotSkill {
-        &self.slots[slot - 1]
-    }
-
-    pub(in crate::fight) fn sibling_mut(&mut self, slot: usize) -> &mut SlotSkill {
-        &mut self.slots[slot - 1]
-    }
-
-    /// What a slot has locked: the core's own lock for slot 0.
-    pub(in crate::fight) fn slot_lock(&self, slot: usize) -> Option<FightActorRef> {
+    /// A skill of the group, `SkillGroup.skills`: the core is the first,
+    /// its siblings follow.
+    pub(in crate::fight) fn group_skill(&self, slot: usize) -> &Self {
         if slot == 0 {
-            self.lock_target
+            self
         } else {
-            self.slots.get(slot - 1).and_then(|slot| slot.lock)
+            &self.slots[slot - 1]
         }
     }
 
-    /// What a slot fires at: the core's own attack target for slot 0.
-    pub(in crate::fight) fn group_attack_target(&self, slot: usize) -> Option<FightActorRef> {
-        if slot == 0 {
-            self.attack_target().or_else(|| {
-                self.cooling()
-                    .and_then(|(_, candidate)| candidate)
-                    .filter(|_| self.lock_target.is_none())
-            })
+    /// A slot of the group, the core's siblings only.
+    pub(in crate::fight) fn sibling(&self, slot: usize) -> &Self {
+        &self.slots[slot - 1]
+    }
+
+    pub(in crate::fight) fn sibling_mut(&mut self, slot: usize) -> &mut Self {
+        &mut self.slots[slot - 1]
+    }
+
+    /// What a slot has locked.
+    pub(in crate::fight) fn slot_lock(&self, slot: usize) -> Option<FightActorRef> {
+        if slot < self.group_size.max(1) {
+            self.group_skill(slot).lock_target
         } else {
-            self.slots.get(slot - 1).and_then(SlotSkill::attack_target)
+            None
+        }
+    }
+
+    /// What a slot's weapon names.
+    pub(in crate::fight) fn group_attack_target(&self, slot: usize) -> Option<FightActorRef> {
+        if slot < self.group_size.max(1) {
+            self.group_skill(slot).weapon_target()
+        } else {
+            None
+        }
+    }
+
+    /// What the weapon names: the attack target while the skill holds a
+    /// lock, and once it holds none, what a cooling still names or what
+    /// the lock's loss left it firing at.
+    pub(in crate::fight) fn weapon_target(&self) -> Option<FightActorRef> {
+        if self.lock_target.is_some() {
+            return self.attack_target();
+        }
+        match self.state {
+            SkillState::Cooling { candidate, .. } => candidate,
+            _ => self.attack_target_left,
         }
     }
 
@@ -662,7 +636,7 @@ impl Simulation {
                     .skill(owner)
                     .slots
                     .iter()
-                    .any(|slot| slot.lock.is_some())
+                    .any(|slot| slot.lock_target.is_some())
         });
         let mut selected_candidate = if let Some(actor_id) = grouped_core {
             // A grouped core's search is `PerformGroupedSkillSearch` as its

@@ -244,7 +244,7 @@ impl Simulation {
             self.search_attack_target(FightActorRef::Unit(actor_id));
         } else {
             let sibling = actor.skill.sibling_mut(slot);
-            sibling.lock = selected;
+            sibling.lock_target = selected;
             sibling.attack_target_left = None;
             self.refresh_group_walls(actor_id);
         }

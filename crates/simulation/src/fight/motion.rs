@@ -466,7 +466,11 @@ impl Simulation {
         if actor.rules.attack.weapons.mode == WeaponMode::Group
             && actor.motion.state == MotionState::Attacking
             && actor.skill.lock_target.is_none()
-            && actor.skill.slots.iter().any(|slot| slot.lock.is_some())
+            && actor
+                .skill
+                .slots
+                .iter()
+                .any(|slot| slot.lock_target.is_some())
         {
             actor.rotate_body_towards(mdeg_to_degrees_q32(actor.placement.rotation));
             actor.aim_rotation = actor.body_rotation;
@@ -886,7 +890,11 @@ impl Simulation {
             .expect("actor identity is stable");
         if actor.rules.attack.weapons.mode == WeaponMode::Group
             && actor.motion.state == MotionState::Attacking
-            && actor.skill.slots.iter().any(|slot| slot.lock.is_some())
+            && actor
+                .skill
+                .slots
+                .iter()
+                .any(|slot| slot.lock_target.is_some())
         {
             // GroupedSkillAttackBehaviour keeps the group attacking while any
             // child FightSkill remains in SkillAttackState. When the core

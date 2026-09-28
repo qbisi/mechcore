@@ -135,6 +135,11 @@ fn grouped_child_range_is_parent_range_plus_ten_metres() {
     assert!(!sim.slot_target_in_attack_range(FightActorRef::Unit(1), Some(1), unit_target(2)));
 }
 
+/// A Wraith's sibling slot, to set up and read in place.
+fn slot(sim: &mut Simulation, slot: usize) -> &mut Skill {
+    sim.actors.get_mut(&1).unwrap().skill.sibling_mut(slot)
+}
+
 /// An attacking sibling gives up a unit it shares when every other sharer but
 /// the core has struck more blows, its search timer is up, and a search
 /// finds a unit no slot holds; a unit it holds alone, a group with a slot
@@ -160,79 +165,41 @@ fn an_attacking_sibling_gives_up_a_shared_unit_by_its_blows() {
     let skill = &mut sim.actors.get_mut(&1).unwrap().skill;
     skill.lock_target = Some(unit_target(2));
     for (slot, unit) in [(1, 2), (2, 3), (3, 4)] {
-        skill.sibling_mut(slot).lock = Some(unit_target(unit));
+        skill.sibling_mut(slot).lock_target = Some(unit_target(unit));
     }
     skill.sibling_mut(1).search_target_time = 1;
     sim.refresh_target_query_snapshot();
     let order = sim.target_search_order();
 
     assert!(!sim.sibling_yields(1, 1, &order).unwrap(), "timer not up");
-    sim.actors
-        .get_mut(&1)
-        .unwrap()
-        .skill
-        .sibling_mut(1)
-        .search_target_time = 0;
+    slot(&mut sim, 1).search_target_time = 0;
     assert!(
         sim.sibling_yields(1, 1, &order).unwrap(),
         "shared with the core"
     );
-    assert_eq!(
-        sim.actors
-            .get_mut(&1)
-            .unwrap()
-            .skill
-            .sibling(1)
-            .search_target_time,
-        10
-    );
+    assert_eq!(slot(&mut sim, 1).search_target_time, 10);
 
-    sim.actors
-        .get_mut(&1)
-        .unwrap()
-        .skill
-        .sibling_mut(1)
-        .search_target_time = 0;
+    slot(&mut sim, 1).search_target_time = 0;
     assert!(!sim.sibling_yields(1, 2, &order).unwrap(), "held alone");
 
-    sim.actors
-        .get_mut(&1)
-        .unwrap()
-        .skill
-        .sibling_mut(1)
-        .attack_count = 0;
-    sim.actors.get_mut(&1).unwrap().skill.sibling_mut(2).lock = Some(unit_target(2));
+    slot(&mut sim, 1).attack_count = 0;
+    slot(&mut sim, 2).lock_target = Some(unit_target(2));
     assert!(
         !sim.sibling_yields(1, 1, &order).unwrap(),
         "a sharer with fewer blows"
     );
-    sim.actors
-        .get_mut(&1)
-        .unwrap()
-        .skill
-        .sibling_mut(2)
-        .attack_count = 0;
+    slot(&mut sim, 2).attack_count = 0;
     assert!(
         !sim.sibling_yields(1, 1, &order).unwrap(),
         "a sharer with as many"
     );
-    sim.actors
-        .get_mut(&1)
-        .unwrap()
-        .skill
-        .sibling_mut(2)
-        .attack_count = 1;
+    slot(&mut sim, 2).attack_count = 1;
     assert!(
         sim.sibling_yields(1, 1, &order).unwrap(),
         "every sharer has more"
     );
 
-    sim.actors
-        .get_mut(&1)
-        .unwrap()
-        .skill
-        .sibling_mut(1)
-        .search_target_time = 0;
+    slot(&mut sim, 1).search_target_time = 0;
     for unit in [3, 5] {
         sim.actors.get_mut(&unit).unwrap().life = 0;
     }
@@ -240,7 +207,7 @@ fn an_attacking_sibling_gives_up_a_shared_unit_by_its_blows() {
         !sim.sibling_yields(1, 1, &order).unwrap(),
         "nothing unheld to find"
     );
-    sim.actors.get_mut(&1).unwrap().skill.sibling_mut(3).lock = None;
+    slot(&mut sim, 3).lock_target = None;
     assert!(
         !sim.sibling_yields(1, 1, &order).unwrap(),
         "a slot holds nothing"
@@ -359,7 +326,7 @@ mod oracle {
                     if slot == 0 {
                         skill.lock_target = lock;
                     } else {
-                        skill.sibling_mut(slot).lock = lock;
+                        skill.sibling_mut(slot).lock_target = lock;
                     }
                 }
                 let order = self.target_search_order();
@@ -380,7 +347,7 @@ mod oracle {
                         skill.in_the_way = in_the_way;
                     } else {
                         let sibling = skill.sibling_mut(slot);
-                        sibling.lock = lock;
+                        sibling.lock_target = lock;
                         sibling.in_the_way = in_the_way;
                     }
                     let result = self
@@ -551,7 +518,7 @@ mod slots {
                 } else {
                     let held = actor.skill.sibling(slot);
                     (
-                        object(held.lock),
+                        object(held.lock_target),
                         object(held.attack_target()),
                         state_name(held.state),
                     )

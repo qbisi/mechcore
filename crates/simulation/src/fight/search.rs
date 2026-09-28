@@ -628,9 +628,9 @@ impl Simulation {
             return;
         };
         for sibling in &mut actor.skill.slots {
-            if sibling.lock == Some(found) {
+            if sibling.lock_target == Some(found) {
                 sibling.attack_target_left = sibling.attack_target();
-                sibling.lock = None;
+                sibling.lock_target = None;
                 actor.skill.mech_lock = None;
             }
         }
