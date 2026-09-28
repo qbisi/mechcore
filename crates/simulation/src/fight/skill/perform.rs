@@ -49,7 +49,6 @@ impl Simulation {
             .expect("skill owner identity is stable")
             .attack;
         let backswing_steps = native_time_units_to_steps(attack.backswing_time_units());
-        let quick_switch_target = attack.quick_switch_target;
         let strikes = matches!(attack.path, AttackPath::Direct);
         let beams = matches!(attack.path, AttackPath::Laser { .. });
         let skill = self.skill_mut(owner);
@@ -66,13 +65,9 @@ impl Simulation {
                 .saturating_add(backswing_steps)
                 .min(next_attack_step)
         }));
-        skill.set_phase(
-            if skill.backswing_finish_step().is_none() && !quick_switch_target && !beams {
-                FightSkillPhase::Idle
-            } else {
-                FightSkillPhase::Attack
-            },
-        );
+        // The skill stays in `SkillAttackState` after the blow, until a check
+        // fails or the attack finishes.
+        skill.set_phase(FightSkillPhase::Attack);
         if strikes {
             let actor_id = owner.unit_id().ok_or_else(|| {
                 Error::new("a construction's skill that strikes is not supported")

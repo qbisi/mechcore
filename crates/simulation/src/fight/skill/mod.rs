@@ -977,7 +977,7 @@ impl Simulation {
         if let Flow::Done = self.update_skill_checks(owner, step, target_search_order)? {
             return Ok(None);
         }
-        if let Flow::Done = self.finish_laser_at_dead_target(owner) {
+        if let Flow::Done = self.finish_attack_at_dead_target(owner, step) {
             return Ok(None);
         }
         self.start_bodyless_skill(owner, step);
@@ -1220,33 +1220,33 @@ impl Simulation {
         Flow::Done
     }
 
-    /// A laser in its attack state whose target is dead ends its attack:
-    /// `SkillAttackState.Update` asks `CheckAttackable` before the beam
-    /// fires, and a skill that cannot switch quickly fails it on a dead lock.
-    /// Nothing clears a lock when its target dies, and the skill updates
-    /// before the motion, so a beam's own kill is seen here the update after
-    /// it, while the motion has already gone idle on it.
+    /// A skill in its attack state whose target is dead ends its attack.
+    /// `SkillAttackState.Update` asks `CheckAttackable` before the next
+    /// blow, except through a backswing, whose wait is built with
+    /// `isEnableCheckTarget` off. `SkillAttackableChecker.Check` searches
+    /// again for a dead lock, and a skill that cannot switch quickly fails
+    /// the check when that changes its target, so it finishes. A skill that
+    /// can switch quickly takes the new target in place, which the checker
+    /// answers.
     ///
-    /// Only a laser is asked: the simulator takes every other path out of
-    /// its attack state after each blow, where the build stays in it.
-    fn finish_laser_at_dead_target(&mut self, owner: FightActorRef) -> Flow {
-        let beams = matches!(
-            self.attacker(owner)
-                .expect("skill owner identity is stable")
-                .attack
-                .path,
-            AttackPath::Laser { .. }
-        );
+    /// Nothing clears a lock when its target dies, and the skill updates
+    /// before the motion, so a skill's own kill is seen here the update
+    /// after it, while the motion has already gone idle on it.
+    fn finish_attack_at_dead_target(&mut self, owner: FightActorRef, step: u64) -> Flow {
+        let quick_switch_target = self
+            .attacker(owner)
+            .expect("skill owner identity is stable")
+            .attack
+            .quick_switch_target;
         let skill = self.skill(owner);
-        let dead_target = beams
+        let dead_target = !quick_switch_target
             && skill.phase() == FightSkillPhase::Attack
+            && skill.backswing_finish_step().is_none()
             && skill
                 .attack_target()
                 .is_some_and(|target| !self.fight_actor_is_alive(target));
         if dead_target {
-            let skill = self.skill_mut(owner);
-            skill.drop_lock();
-            skill.set_phase(FightSkillPhase::Idle);
+            self.finish_attack(owner, step);
             return Flow::Done;
         }
         Flow::Next
