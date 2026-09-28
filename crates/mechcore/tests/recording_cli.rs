@@ -213,11 +213,11 @@ red:
         .arg(&recording)
         .output()
         .unwrap();
-    // The answer is no, because two of the five fields have no rule: the fight
-    // was read and it does not settle a round.
+    // The answer is no, because units' experience is not carried yet: the
+    // fight was read and it does not settle a round.
     assert_eq!(read.status.code(), Some(1));
     let outcome: serde_json::Value = serde_json::from_slice(&read.stdout).unwrap();
-    assert_eq!(outcome["schema"], "mechcore.fight-outcome.v2");
+    assert_eq!(outcome["schema"], "mechcore.fight-outcome.v3");
     assert!(outcome["ticks"].as_u64().unwrap() > 0);
 
     let blue = &outcome["sides"]["blue"]["survivors"];
@@ -250,10 +250,13 @@ red:
             );
         }
     }
+    // Blue alone stands, so red's core takes the three deployed level 1
+    // Marksmen's scores and blue's takes nothing.
+    assert_eq!(outcome["sides"]["blue"]["core_damage"], 0, "{outcome}");
+    assert_eq!(outcome["sides"]["red"]["core_damage"], 300, "{outcome}");
     let unresolved = outcome["unresolved"].as_array().unwrap();
-    assert_eq!(unresolved.len(), 2, "{outcome}");
-    assert!(unresolved[0].as_str().unwrap().starts_with("reactor_core:"));
-    assert!(unresolved[1].as_str().unwrap().starts_with("units.exp:"));
+    assert_eq!(unresolved.len(), 1, "{outcome}");
+    assert!(unresolved[0].as_str().unwrap().starts_with("units.exp:"));
 }
 
 /// What was written onto a fight's units, which is not what the fight decided.

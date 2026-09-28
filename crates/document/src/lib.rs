@@ -36,6 +36,7 @@ pub mod mobility;
 pub mod names;
 pub mod opening;
 pub mod project;
+pub mod reactor_damage;
 #[cfg(feature = "convert")]
 pub mod record;
 pub mod reinforcement;

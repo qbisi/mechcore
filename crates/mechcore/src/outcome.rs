@@ -10,10 +10,16 @@
 //! a fight the game played are the same MCFR, so what turns one into the next
 //! position is written once, here.
 
-use std::{collections::BTreeMap, path::Path};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    path::Path,
+};
 
-use mechcore_document::{BattleSkillEntry, UnitPlacement};
-use mechcore_mcfr::{McfrReader, WorldSnapshot};
+use mechcore_document::{
+    BattleSkillEntry, Layout, UnitPlacement,
+    reactor_damage::{self, Survivor as Scored},
+};
+use mechcore_mcfr::{EventPayload, McfrReader, ObjectKind, WorldSnapshot};
 use serde::Serialize;
 
 use crate::{
@@ -22,7 +28,7 @@ use crate::{
     turn::Side,
 };
 
-pub(crate) const SCHEMA: &str = "mechcore.fight-outcome.v2";
+pub(crate) const SCHEMA: &str = "mechcore.fight-outcome.v3";
 
 /// A fight's four fields, as far as a recording decides them.
 #[derive(Serialize)]
@@ -47,6 +53,11 @@ struct Sides {
 /// One side's share of what the fight decided.
 #[derive(Serialize)]
 struct SideOutcome {
+    /// What the fight took off the side's reactor core: the other side's
+    /// score. Absent when a unit's score cannot be answered, which
+    /// `unresolved` names.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    core_damage: Option<i64>,
     /// The formations still standing when the fight ended, by the index the
     /// document knows them under.
     survivors: Vec<Survivor>,
@@ -104,22 +115,35 @@ pub(crate) fn of(reader: &McfrReader) -> Result<Outcome, Failure> {
     let started = members(&formations, &opened);
     let survived = members(&formations, &ended);
 
-    // Two of the four fields are not answered here: one by a rule nobody has,
-    // one by a mapping this command does not make yet.
+    // One of the four fields is not answered here, by a mapping this command
+    // does not make yet.
     let mut unresolved = vec![
-        "reactor_core: no rule turns a fight's survivors into the damage the \
-         losing side's reactor core takes"
-            .to_owned(),
         "units.exp: the recording holds each formation's experience \
          (formations.parquet), and this command does not yet carry it onto \
          the layout's units"
             .to_owned(),
     ];
+    let scores = scores(
+        reader,
+        &layout,
+        &formations,
+        &opened,
+        &ended,
+        &mut unresolved,
+    )?;
+    let damage = match scores {
+        [Some(blue), Some(red)] => {
+            let (blue, red) = reactor_damage::damage(blue, red);
+            [Some(blue), Some(red)]
+        }
+        _ => [None, None],
+    };
     let mut answered = Vec::new();
     for side in Side::BOTH {
         let placed = scene::units_of(&layout, side);
         let carried = scene::side_of(&layout, side);
         answered.push(SideOutcome {
+            core_damage: damage[side.seat()],
             survivors: survivors(side, &started, &survived, placed),
             contraptions: thinned(
                 carried.contraptions.len(),
@@ -148,6 +172,121 @@ pub(crate) fn of(reader: &McfrReader) -> Result<Outcome, Failure> {
         sides: Sides { blue, red },
         unresolved,
     })
+}
+
+/// Each side's score, `TeamScoreCalculator.CalculateTeamScore`: what the
+/// units alive at the fight's end score for the side they then serve.
+///
+/// A unit is classified by what the recording shows of it. It came from its
+/// side's formations when it opened the fight in a formation a placement
+/// takes and the fight did not create it; any other unit was summoned,
+/// produced or spawned. It changed sides when its team is not the one it
+/// started on. A rebirth leaves no event of its own, so a unit that died and
+/// stands at the end may have been reborn: its side's score is named in
+/// `unresolved` rather than guessed.
+fn scores(
+    reader: &McfrReader,
+    layout: &Layout,
+    formations: &BTreeMap<u64, (Side, i32)>,
+    opened: &WorldSnapshot,
+    ended: &WorldSnapshot,
+    unresolved: &mut Vec<String>,
+) -> Result<[Option<i64>; 2], Failure> {
+    let mut created = BTreeSet::new();
+    let mut died = BTreeSet::new();
+    for tick in FIRST_TICK..=reader.terminal_tick() {
+        let events = reader.events(tick).map_err(|error| {
+            Failure::refused(format!("recording has no events at tick {tick}: {error}"))
+        })?;
+        for event in events.events {
+            let Some(subject) = event
+                .subject
+                .filter(|subject| subject.kind == ObjectKind::Unit)
+            else {
+                continue;
+            };
+            match event.payload {
+                EventPayload::UnitCreated { .. } => {
+                    created.insert(subject.id);
+                }
+                EventPayload::UnitDied { .. } => {
+                    died.insert(subject.id);
+                }
+                _ => {}
+            }
+        }
+    }
+    let opened_in: BTreeMap<u64, u64> = opened
+        .live_units
+        .iter()
+        .map(|unit| (unit.unit_id, unit.formation_id))
+        .collect();
+    let mut scores = [Some(0_i64), Some(0_i64)];
+    for unit in ended
+        .live_units
+        .iter()
+        .filter(|unit| unit.life.current > 0 && unit.active)
+    {
+        let side = match unit.team_id {
+            0 => Side::Blue,
+            1 => Side::Red,
+            other => {
+                return Err(Failure::refused(format!(
+                    "recording holds team {other}, and a match has two"
+                )));
+            }
+        };
+        let name = mechcore_document::unit_type_from_id(
+            i32::try_from(unit.unit_type_id).unwrap_or(i32::MAX),
+        )
+        .map_or_else(
+            || unit.unit_type_id.to_string(),
+            |(name, _)| name.to_owned(),
+        );
+        if died.contains(&unit.unit_id) {
+            unresolved.push(format!(
+                "reactor_core: unit {} of {name} on {} died and stands at the end, \
+                 and whether it was reborn, which cuts its score, is not recorded",
+                unit.unit_id,
+                side.name(),
+            ));
+            scores[side.seat()] = None;
+            continue;
+        }
+        // A unit that changes sides joins a formation of the side it serves, so
+        // where it came from is the formation it opened the fight in.
+        let placement = opened_in
+            .get(&unit.unit_id)
+            .and_then(|formation| formations.get(formation))
+            .and_then(|(owner, index)| {
+                scene::units_of(layout, *owner)
+                    .iter()
+                    .find(|placement| placement.index == *index)
+            });
+        let survivor = Scored {
+            unit_type: unit.unit_type_id,
+            level: placement.map(|placement| placement.level.unwrap_or(1)),
+            support: created.contains(&unit.unit_id) || placement.is_none(),
+            reborn: false,
+            team_changed: unit.team_id != unit.original_team_id,
+        };
+        match reactor_damage::score(survivor) {
+            Ok(score) => {
+                if let Some(total) = &mut scores[side.seat()] {
+                    *total += score;
+                }
+            }
+            Err(reason) => {
+                unresolved.push(format!(
+                    "reactor_core: unit {} of {name} on {}: {reason}",
+                    unit.unit_id,
+                    side.name()
+                ));
+                scores[side.seat()] = None;
+            }
+        }
+    }
+    Ok(scores)
 }
 
 /// What remains of a collection the fight thins out.
