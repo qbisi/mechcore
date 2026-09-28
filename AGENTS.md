@@ -92,14 +92,11 @@ git config core.hooksPath .githooks
 用仓库级设置，是因为全局 `core.hooksPath`（Nix 或 home-manager 常设）会盖过
 `.git/hooks`。
 
-`.github/workflows/gate.yml` 只回答能不能合并，自己不合并。它在 ci、docs 跑完或有人
-提交 review（`review.yml`）后运行，在 PR 的 head 上写一个名为 `gate` 的 commit status：
+`.github/workflows/gate.yml` 只回答能不能合并，自己不合并。它在 ci、docs 跑完后运行，在 PR 的 head 上写一个名为 `gate` 的 commit status：
 该 commit 上的工作流都跑完、检查全绿时是 success，还有工作流或检查在跑时是 pending，
 有失败时是 failure。只看检查不够：ci 的 test 等 job 要等 `changes` 跑完才成为检查，
 在那之前 docs 先跑完就会把一个测试还没跑的 PR 判绿。
-解决 issue 的 PR（分支名以 `research/` 开头，或正文带 `Closes #n`）还要有 committer 在
-当前 head 上的 approve，没有之前 `gate` 停在 pending，见下一节。master 的 ruleset 要求
-`gate` 绿才能合并。
+解决 issue 的 PR 和别的 PR 一样，CI 绿就放行。master 的 ruleset 要求 `gate` 绿才能合并。
 
 合并由 agent 或人来发起，不由 workflow 发起：`gh pr merge <n> --auto --squash`，GitHub
 在 `gate` 变绿时合并并删除分支。草稿不能设自动合并；一个 PR 还会再推提交时先别设，
@@ -133,12 +130,9 @@ issue，验证一律在有游戏本体的机器上做。持有游戏的会话切
   钉住的哈希一律来自在有游戏的机器上录的录像。
 - **阻塞当场决定。** 撞上问题以外的机制时，在同一个会话里决定：切成新问题、换夹具重录，
   或接受已钉住的部分。
-- **另一个子代理审查**，然后自己读，再给 committer 发一张变更确认单：行为前后（带数字）、
-  结构增删、钉住的哈希及其夹具、新增或解除的拒绝、未验证的部分。
-- **committer approve 才合并。** committer 在 GitHub 上 approve，或者在对话里明确授权
-  对那一个 PR 执行 `gh pr review <n> --approve`；授权只对那一个 PR、那一个 commit
-  有效。GitHub 不允许作者 approve 自己的 PR，所以只要 agent 还用 committer 的账号开 PR，
-  就没有 review 能生效，这时由 committer 看过确认单后手动合并。
+- **另一个子代理审查**，然后自己读，再写一张变更确认单进 PR 正文、也交给 committer：
+  行为前后（带数字）、结构增删、钉住的哈希及其夹具、新增或解除的拒绝、未验证的部分。
+  合并不等 approve，`gate` 绿就合。
 
 **游戏只有一个进程，只有持有它的会话录像。** 其它 agent 永远不跑带 `game:` 的脚本，
 `mechcore run <script> --check` 会说一份脚本要不要游戏。
