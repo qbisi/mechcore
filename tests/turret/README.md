@@ -1,22 +1,34 @@
 # Turret fixtures
 
-Every layout here exists to measure **what a turret's skill does**: when it
+Every fight here exists to measure **what a turret's skill does**: when it
 fires, at what, and how often. That is the half of a construction
 [`constructions.md`](../../docs/rules/constructions.md) leaves out, and
 [`turrets.md`](../../docs/rules/turrets.md) states what these fights settled.
 
 | Fixture | What it separates | Approach |
 | --- | --- | --- |
-| `rapid-fire-head-on.yaml` | the search cadence and the first shot from the tick a target is in reach | 200 m straight down the turret's column |
-| `rapid-fire-flank.yaml` | whether the turret turns before it fires, and what the turn costs | the same Crawlers, 40 degrees off that line |
-| `anti-armor-head-on.yaml` | whether the other turret is the same machine with other numbers, and how a unit holds a turret that falls in its swing | as head-on, on the Anti-Armor Turret |
-| `anti-armor-arclights.yaml` | the same, through a reload, in a fight no tower falls in | four Arclights down the Anti-Armor Turret's column, two shots each |
+| `fights/rapid-fire-head-on.yaml` | the search cadence and the first shot from the tick a target is in reach | 200 m straight down the turret's column |
+| `fights/rapid-fire-flank.yaml` | whether the turret turns before it fires, and what the turn costs | the same Crawlers, 40 degrees off that line |
+| `fights/anti-armor-head-on.yaml` | whether the other turret is the same machine with other numbers, and how a unit holds a turret that falls in its swing | as head-on, on the Anti-Armor Turret |
+| `fights/anti-armor-arclights.yaml` | the same, through a reload, in a fight no tower falls in | four Arclights down the Anti-Armor Turret's column, two shots each |
 
-`skill.mcscript` records them with the `target_refs` channel and records
-the head-on fight twice, requiring the two to be one recording.
-`arclights.mcscript` records the Arclight fight twice, requiring the two to be
-one recording. `regressions.mcscript` needs no game: it runs all four fights
-through the simulator and holds them to the game's hashes.
+Each is a fight document, holding its layout, the seed 4242 and what the game
+recorded. `skill.mcscript` records the first three from them with the
+`target_refs` channel and records the head-on fight twice, requiring the two
+to be one recording. `arclights.mcscript` records the Arclight fight twice,
+requiring the two to be one recording. `regressions.mcscript` needs no game:
+it verifies all four fights through the simulator, holding each to the game's
+hash, which holds where every Crawler and every shot is and what each shot
+hit, and every lock, every motion state and the numbers derived for each unit
+besides.
+
+A Rapid-Fire Turret fires ten shots, reloads, and fires again. What its two
+fights pin, `turrets.md` states as rules: the skill locks and enters its
+attack on the first tick a Crawler is in reach edge to edge, fires on the tick
+after, draws every interval from its side's stream after the Marksman's and
+its own deployment draw, turns its weapon at 120 degrees a second and scores
+its next target from where it points, and after the tenth shot spends 53
+ticks reloading before the eleventh.
 The Anti-Armor Crawler fight runs through blue's tower lost at 509 and red's at
 771 ([`towers.md`](../../docs/rules/towers.md)), and at 1027 its Marksman ends
 its attack when its Crawler walks out of reach.

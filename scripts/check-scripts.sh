@@ -3,7 +3,7 @@
 #
 # This is the loop `.github/workflows/ci.yml` runs, given to a checkout, so a
 # branch is held to the same pins before it is pushed: the native regression
-# manifest, each topic's `regressions.mcscript`, and every other gameless
+# fights, each topic's `regressions.mcscript`, and every other gameless
 # assertion. A script that declares `game:` is only parsed, because a machine
 # without the game cannot run it; `run --check` is what says which it is.
 #

@@ -1,0 +1,19 @@
+# The control for `officer-range-value.yaml`: the same fight with no officer.
+#
+# A value and an impairment in one fight, against the same fight without
+# them. Twenty metres of range moves every tick after the first shot.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 137
+hash: {profile: mcfr-content-0.7.0, result: 04c16d7a8a96e0dd3cb42ec42c02cef63ffb9ddfff039e1909ed7a2f60dbcb0d}
+blue:
+  core_damage: 200
+  units:
+  - {name: arclight, index: 0, position: {x: 0, y: -50}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150}

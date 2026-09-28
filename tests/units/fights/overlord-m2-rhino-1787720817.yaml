@@ -1,0 +1,21 @@
+# M2: a single large ground target, which cannot hit back.
+# A standard layout ends before any tower falls: a tower's loss is a
+# mechanism of its own. The side that cannot hit the other walks to the
+# towers, so the side that can fields three formations.
+
+kind: fight
+map_id: 1021
+seed: 1787720817
+round: 1
+source: recording
+ticks: 186
+hash: {profile: mcfr-content-0.7.0, result: 29ae34a0f0213e8f4b5ab885148e7bfed8224a52a459e7eb1cc5f01334de0c36}
+blue:
+  units:
+  - {name: overlord, index: 0, position: {x: -5, y: -225}}
+  - {name: overlord, index: 1, position: {x: -5, y: -165}, exp: 0/100/1750}
+  - {name: overlord, index: 2, position: {x: -5, y: -105}, exp: 0/300/1750}
+red:
+  core_damage: 1200
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}

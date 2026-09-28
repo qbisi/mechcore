@@ -29,32 +29,25 @@ headless: true
 
 vars:
   out: /tmp/mechcore/turret/skill
-  seed: 4242
 
 steps:
   - let:
       fights:
-        - {name: rapid-fire-head-on, layout: tests/turret/rapid-fire-head-on.yaml}
-        - {name: rapid-fire-flank, layout: tests/turret/rapid-fire-flank.yaml}
-        - {name: anti-armor-head-on, layout: tests/turret/anti-armor-head-on.yaml}
+        - {name: rapid-fire-head-on, fight: tests/turret/fights/rapid-fire-head-on.yaml}
+        - {name: rapid-fire-flank, fight: tests/turret/fights/rapid-fire-flank.yaml}
+        - {name: anti-armor-head-on, fight: tests/turret/fights/anti-armor-head-on.yaml}
 
   - foreach: {fight: $fights}
     steps:
-      - let:
-          layout: read_yaml(${fight.layout})
       - game.record:
-          input: $layout
-          seed: $seed
+          input: ${fight.fight}
           output: ${out}/${fight.name}.mcfr
           instrument: [target_refs]
 
   # The control: the same fight twice has to be the same recording, or every
   # difference read below it means nothing.
-  - let:
-      layout: read_yaml(tests/turret/rapid-fire-head-on.yaml)
   - game.record:
-      input: $layout
-      seed: $seed
+      input: tests/turret/fights/rapid-fire-head-on.yaml
       output: ${out}/control.mcfr
   - diff:
       left: ${out}/rapid-fire-head-on.mcfr

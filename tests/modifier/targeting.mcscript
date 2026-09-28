@@ -16,23 +16,20 @@ headless: true
 
 vars:
   out: /tmp/mechcore/modifier/targeting
-  seed: 4242
 
 steps:
   - let:
-      none: read_yaml(tests/modifier/targeting-ranged-none.yaml)
-      ranged: read_yaml(tests/modifier/targeting-ranged.yaml)
+      none: tests/modifier/fights/targeting-ranged-none.yaml
+      ranged: tests/modifier/fights/targeting-ranged.yaml
 
   - game.record:
       input: $none
-      seed: $seed
       output: ${out}/ranged-none.mcfr
     expect:
       operation.tick_count: 144
 
   - game.record:
       input: $ranged
-      seed: $seed
       output: ${out}/ranged.mcfr
     expect:
       operation.tick_count: 138

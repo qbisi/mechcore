@@ -1,0 +1,14 @@
+kind: fight
+map_id: 1021
+seed: 1787758281
+round: 1
+source: recording
+ticks: 279
+hash: {profile: mcfr-content-0.7.0, result: 64cc63cc42e5fad05fd41d6987cdbb31c5015b3d7bb77e109f02e0d17f734089}
+blue:
+  core_damage: 200
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -105}, exp: 0/192/1150}

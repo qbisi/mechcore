@@ -1,42 +1,20 @@
-# Check the simulator against tests/regression/mcfr-regressions.yaml without the game.
-#
-# The manifest stays the data; this script is one of its readers. The other is
-# tests/regression/refresh.mcscript, which re-records the same cases
-# natively. This one only replays them through the simulator and compares the
-# recorded tick count and hash, so it needs no game and no MCFR output.
+# Every native regression fight, fought again by the simulator.
 #
 #   mechcore run tests/regression/simulate.mcscript --check   validate without the game
-#   mechcore run tests/regression/simulate.mcscript           run the smoke tier
+#   mechcore run tests/regression/simulate.mcscript           run
 #
-# The modifier fixtures are not in this manifest: they carry their own table,
-# `tests/modifier/regressions.mcscript`, beside the fixtures and the
-# capture scripts that produced them.
+# This needs no game, which is why CI runs it. Each file under `fights/` is a
+# fight the game recorded, and `verify` holds the simulator to its tick count,
+# its hash and every result it states. `refresh.mcscript` records the same
+# fights again with the game and holds the game to them.
 #
-# Scope: every case in the manifest. The whole table replays in about fifteen
-# seconds, so there is no tier to save; `smoke` on a case is what the native
-# refresh script reads, because recording one takes a full fight.
-#
-# The last step is not from the manifest: it is a fight the game never
+# The last step is not a recorded fight: it is a fight the game never
 # recorded, pinned as the simulator plays it, and it says so where it stands.
-#
-# A case that no longer matches stops the run at that case and names the field,
-# which is the drift check. Re-recording after an intended change is the other
-# script's job; updating the table stays a deliberate, reviewable edit.
 
 steps:
-  - let:
-      cases: read_yaml(tests/regression/mcfr-regressions.yaml)
-
-  - foreach: {case: $cases}
-    steps:
-      - convert:
-          input: ${case.layout}
-          to: mcfr
-          seed: ${case.seed}
-        expect:
-          seed_source: external
-          steps: ${case.tick_count}
-          hashes.result_hash: ${case.result_hash}
+  - let: {fights: glob(tests/regression/fights/*.yaml)}
+  - verify: {input: $fights}
+    expect: {invalid: []}
 
   # One fight the game never recorded, pinned as the simulator plays it. When
   # sampled RVO movement was modelled, its 321 ticks were reviewed by hand —

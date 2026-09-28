@@ -1,0 +1,23 @@
+# Does an equipment's damage rate sum with an officer's?
+#
+# `firepower.yaml` with Advanced Offensive Tactics, +0.3 of damage rate. One
+# channel: `damage_rate` +0.95 and a shot of 2329 × 1.95 = 4541. Two channels:
+# 2329 × 1.65 × 1.3 = 4995, and the +0.3 alone in the skill's overlay.
+#
+# With Advanced Offensive Tactics: the two rates sum, 4541.
+
+kind: fight
+map_id: 1021
+seed: 1787720817
+round: 1
+source: recording
+ticks: 83
+hash: {profile: mcfr-content-0.7.0, result: 6b85af16ca94b702788d2d39aeb253ff4ed8624a11a897ec564eedce47eac6d2}
+blue:
+  officers: [advanced_offensive_tactics]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 0/200/650, equipment: [improved_firepower_control_system]}
+red:
+  core_damage: 100
+  units:
+  - {name: arclight, index: 0, position: {x: 0, y: -50}}

@@ -360,7 +360,7 @@ property 的输入恰好就是录像记的那些列，所以**一个机制在算
 `SkillStateController` 状态和 `SkillAttackController` 阶段的采集里读出来的（`target_refs`
 instrument 通道），和 `tests/construction/` 下的录像一起。
 
-**怎么对齐到游戏的。** 两份整个回归清单的采集是对照：每个单位逐 tick 的技能状态和攻击阶段
+**怎么对齐到游戏的。** 两份 `tests/regression/fights/` 全部战斗的采集是对照：每个单位逐 tick 的技能状态和攻击阶段
 （`tests/regression/skill-state.mcscript`），以及每一次 `Check` 调用前后技能的锁定和攻击目标
 （`skill_attackable_checker` 通道）。成组技能逐槽调用同一个检查器，带入兄弟槽位的锁定
 和槽位自己的射程。[Wraith fixtures](../../../tests/wraith/README.md) 说明独立逐调用复验及
@@ -373,7 +373,7 @@ instrument 通道），和 `tests/construction/` 下的录像一起。
   准备结束后，第一下要等到下一个 tick；
 - 已经处在攻击状态的技能，间隔一到就开始下一下，不管移动状态怎样：后摇期间被挤出射程、下一 tick
   回来的爬虫，在回来的那一 tick 就开始下一下，游戏对犀牛编队那场的技能状态采集就是这样读的
-  （`tests/units/rhino/m6-formations.yaml`，种子 1787720817）。只有从空闲进入攻击状态才等一个 tick。
+  （`tests/units/fights/rhino-m6-formations-1787720817.yaml`）。只有从空闲进入攻击状态才等一个 tick。
 
 有了这些，原来回答"锁定死了或走远了"的失效目标、快速切换出界、失效替换三条路径都删了，全部由检查器
 回答。

@@ -12,16 +12,12 @@ headless: true
 
 vars:
   out: /tmp/mechcore/tower/levels
-  seed: 4242
 
 steps:
   - let:
       levels: [0, 1, 2, 3, 4]
   - foreach: {level: $levels}
     steps:
-      - let:
-          layout: read_yaml(tests/tower/tower-level-${level}.yaml)
       - game.record:
-          input: $layout
-          seed: $seed
+          input: tests/tower/fights/tower-level-${level}.yaml
           output: ${out}/tower-level-${level}.mcfr

@@ -1,0 +1,21 @@
+# M3: a swarm of ground targets, which cannot hit back.
+# A standard layout ends before any tower falls: a tower's loss is a
+# mechanism of its own. The side that cannot hit the other walks to the
+# towers, so the side that can fields three formations.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 463
+hash: {profile: mcfr-content-0.7.0, result: ff698404328c8bc8609fadfb75783f79eb5922f1fb43684964163167bf2fd1d5}
+blue:
+  units:
+  - {name: phoenix, index: 0, position: {x: 0, y: -180}, exp: 0/59/1300}
+  - {name: phoenix, index: 1, position: {x: 0, y: -140}, exp: 0/53/1300}
+  - {name: phoenix, index: 2, position: {x: 0, y: -100}, exp: 0/79/1300}
+red:
+  core_damage: 600
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}}

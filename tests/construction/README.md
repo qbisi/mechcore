@@ -15,18 +15,18 @@ released it.
 | --- | --- | --- |
 | `shape.yaml` | one placement against the objects it owns | wall **5**, each turret **1** |
 | `shape.yaml` (red) | the layout's constructions against the opening's | two towers, no construction |
-| `wall-passage.yaml` | a wall against the side that placed it | crosses it, all five at full life |
-| `wall-block.yaml` | a wall against the other side | stops and attacks, four down |
-| `wall-aside.yaml` | a wall against a fight it cannot reach | the same fight, five more buildings |
-| `wall-line-of-fire.yaml` | the nearest wall against the wall in the way | the one in the way, **block 6** |
-| `wall-line-tolerance.yaml` | how far off the line a block may be | between **10.41** and **12.59** metres |
+| `fights/wall-passage.yaml` | a wall against the side that placed it | crosses it, all five at full life |
+| `fights/wall-block.yaml` | a wall against the other side | stops and attacks, four down |
+| `fights/wall-aside.yaml` | a wall against a fight it cannot reach | the same fight, five more buildings |
+| `fights/wall-line-of-fire.yaml` | the nearest wall against the wall in the way | the one in the way, **block 6** |
+| `fights/wall-line-tolerance.yaml` | how far off the line a block may be | between **10.41** and **12.59** metres |
 | `wall-line-width.yaml` | whether that width is the attacker's | it is not: Fang, Marksman and Farseer share it |
-| `wall-weapon-group.yaml` | an air unit with four weapon slots | every slot takes the wall, the lock follows none, a shot splashes the next block |
-| `wall-rhino.yaml` | a blow against a shot | the same rule, one hit a block, the swing held on a fallen block |
-| `wall-splash.yaml` | a splash against what it was aimed at | a shot at a block takes the Crawlers on it |
-| `wall-splash-line.yaml` | the same, with blocks entering and leaving the line | the order the target trees hold them |
-| `wall-splash-behind.yaml` | a shot at a unit against a block out of reach | the block takes the full shot, **747** |
-| `wall-laser.yaml` | a beam against a shot, the line's width at the centimetre, a block in the way of a unit's movement | the same rule; the line is **11.5** metres; asked while an attack is prepared; a block is an obstacle to the other side |
+| `fights/wall-weapon-group.yaml` | an air unit with four weapon slots | every slot takes the wall, the lock follows none, a shot splashes the next block |
+| `fights/wall-rhino.yaml` | a blow against a shot | the same rule, one hit a block, the swing held on a fallen block |
+| `fights/wall-splash.yaml` | a splash against what it was aimed at | a shot at a block takes the Crawlers on it |
+| `fights/wall-splash-line.yaml` | the same, with blocks entering and leaving the line | the order the target trees hold them |
+| `fights/wall-splash-behind.yaml` | a shot at a unit against a block out of reach | the block takes the full shot, **747** |
+| `fights/wall-laser.yaml` | a beam against a shot, the line's width at the centimetre, a block in the way of a unit's movement | the same rule; the line is **11.5** metres; asked while an attack is prepared; a block is an obstacle to the other side |
 
 `shape.mcscript`, `wall.mcscript`, `placement.mcscript`, `line-of-fire.mcscript`,
 `attacks.mcscript` and `splash.mcscript` record them and carry every number
@@ -36,19 +36,22 @@ rerun. `skill-state.mcscript` records the wall fights once more with the
 skill is in and which attack phase it is in, tick by tick; that, not the
 recording, is where the rules read when a unit meets a block and how an attack
 on one ends.
-`regressions.mcscript` needs no game and is what CI runs: it holds the
-simulator to the hash the game produced for `wall-aside.yaml`,
-`wall-line-of-fire.yaml`, `wall-line-tolerance.yaml`, `wall-weapon-group.yaml`,
-`wall-rhino.yaml`, `wall-laser.yaml`, `wall-passage.yaml`, `wall-block.yaml`
-and the three `wall-splash*.yaml` — every wall fight here the simulator can
-run, each over every one of its ticks.
+The eleven wall fights the simulator can run are pinned as fight documents in
+`fights/`, each holding the layout, the seed 4242 and what the game recorded,
+and a comment saying what it measures; `shape.yaml` and `wall-line-width.yaml`
+stay layouts, read and not pinned. `regressions.mcscript` needs no game and
+is what CI runs: it verifies every fight in `fights/`, holding the simulator
+to each one's hash over every one of its ticks.
 
 The hash covers everything a recording carries, a unit's lock, its weapons'
 targets and its motion state included, so the simulator carries the same
-content as the game on every tick of all eleven. The measurement scripts also compare
-each fight they record with the simulator after recording it.
+content as the game on every tick of all eleven. The measurement scripts
+record their fights from those documents, and also compare each recording
+with the simulator after making it: `placement.mcscript` and
+`line-of-fire.mcscript` assert against the recording the numbers the fight
+documents hold the simulator to.
 
-The three `wall-line-*` layouts are read by which block ends up destroyed,
+The three `wall-line-*` fixtures are read by which block ends up destroyed,
 because that is what a reader answers. The decision itself — a unit whose lock
 target stays a unit while its attack target becomes a block — is in the
 recording, and no verb reports it.
@@ -60,7 +63,7 @@ never obstructs anyone. It never obstructs anyone: a Crawler ends up 0.567
 metres from a block's centre on the side that placed it and 0.711 on the other,
 against a block radius of 4.
 
-`wall-passage.yaml` keeps red's Marksman out of reach of the wall on purpose.
+`fights/wall-passage.yaml` keeps red's Marksman out of reach of the wall on purpose.
 The first version of it put the Marksman opposite the wall, and the Marksman
 destroyed a block outright before the Crawlers arrived — one shot of 2329
 against a block's 1112 — which measured a different thing.

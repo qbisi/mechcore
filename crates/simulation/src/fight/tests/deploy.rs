@@ -527,11 +527,10 @@ fn deployment_raw_and_per_tick_target_direction_round_tick_twenty_two_down() {
 #[test]
 fn first_rvo_solve_avoids_same_formation_at_tick_eight() {
     let config = SimulationConfig::load().unwrap();
-    let (_, layout) = crate::layout::compile_with_seed(
-        include_bytes!("../../../../../tests/regression/steel-balls-vs-steel-balls.yaml"),
+    let layout = pinned_layout(
+        include_bytes!("../../../../../tests/regression/fights/steel-balls-vs-steel-balls-01.yaml"),
         &config.units,
-    )
-    .unwrap();
+    );
     let mut simulation =
         Simulation::new(&layout, &config.units, &config.towers, 1_787_831_322).unwrap();
 

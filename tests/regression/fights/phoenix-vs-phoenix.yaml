@@ -1,0 +1,14 @@
+kind: fight
+map_id: 1021
+seed: 1788397284
+round: 1
+source: recording
+ticks: 146
+hash: {profile: mcfr-content-0.7.0, result: a02c6bbff4e133c12b76cee7bdc8165013ae46f1c2dcc48e2453c35827d93366}
+blue:
+  units:
+  - {name: phoenix, index: 0, position: {x: 10, y: -100}, exp: 0/200/1300}
+red:
+  core_damage: 100
+  units:
+  - {name: phoenix, index: 0, position: {x: 10, y: -100}, exp: 0/200/1300}

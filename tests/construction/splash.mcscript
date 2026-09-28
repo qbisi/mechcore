@@ -6,12 +6,15 @@
 # Everything of the other side within reach: units and buildings alike, in
 # both directions, in the order the target trees hold them.
 #
-#   wall-splash.yaml         Crawlers crossing their wall into an Arclight's
-#                            fire; its shots at a block take the Crawlers on it
-#   wall-splash-line.yaml    the same, with the Arclight turning onto blocks
-#                            and off them as they enter and leave its line
-#   wall-splash-behind.yaml  a shot at a Crawler, with a block behind it beyond
-#                            the Arclight's reach, takes the block
+#   fights/wall-splash.yaml         Crawlers crossing their wall into an
+#                                   Arclight's fire; its shots at a block take
+#                                   the Crawlers on it
+#   fights/wall-splash-line.yaml    the same, with the Arclight turning onto
+#                                   blocks and off them as they enter and
+#                                   leave its line
+#   fights/wall-splash-behind.yaml  a shot at a Crawler, with a block behind
+#                                   it beyond the Arclight's reach, takes the
+#                                   block
 #
 # Each fight is compared with the simulator afterwards, every field of every
 # tick.
@@ -23,23 +26,12 @@ headless: true
 
 vars:
   out: /tmp/mechcore/construction/splash
-  seed: 4242
 
 steps:
-  - let:
-      splash: read_yaml(tests/construction/wall-splash.yaml)
-      line: read_yaml(tests/construction/wall-splash-line.yaml)
-      behind: read_yaml(tests/construction/wall-splash-behind.yaml)
-      cases:
-        - {name: splash, layout: tests/construction/wall-splash.yaml}
-        - {name: line, layout: tests/construction/wall-splash-line.yaml}
-        - {name: behind, layout: tests/construction/wall-splash-behind.yaml}
-
   # A shot at block 5 at tick 47 takes two Crawlers standing on it and the
   # block, 365, the block's damage event between theirs: 17 of 1112 are left.
   - game.record:
-      input: $splash
-      seed: $seed
+      input: tests/construction/fights/wall-splash.yaml
       output: ${out}/splash.mcfr
     expect:
       operation.tick_count: 158
@@ -52,16 +44,14 @@ steps:
       sides.blue.constructions.0.parts.2.life.current: 17
 
   - game.record:
-      input: $line
-      seed: $seed
+      input: tests/construction/fights/wall-splash-line.yaml
       output: ${out}/line.mcfr
     expect:
       operation.tick_count: 161
 
   # A shot aimed at Crawler 24 at tick 77 takes block 5 behind it for 365.
   - game.record:
-      input: $behind
-      seed: $seed
+      input: tests/construction/fights/wall-splash-behind.yaml
       output: ${out}/behind.mcfr
     expect:
       operation.tick_count: 176
@@ -73,15 +63,9 @@ steps:
       sides.blue.constructions.0.parts.2.id: 5
       sides.blue.constructions.0.parts.2.life.current: 747
 
-  - foreach: {case: $cases}
-    steps:
-      - convert:
-          input: ${case.layout}
-          to: mcfr
-          seed: $seed
-          output: ${out}/simulated-${case.name}.mcfr
-      - diff:
-          left: ${out}/${case.name}.mcfr
-          right: ${out}/simulated-${case.name}.mcfr
-        expect:
-          equal: true
+  - verify:
+      input:
+        - ${out}/splash.mcfr
+        - ${out}/line.mcfr
+        - ${out}/behind.mcfr
+    expect: {invalid: []}

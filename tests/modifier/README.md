@@ -16,11 +16,11 @@ sums too — a unit's are `DataIntGroup`, clamped across the whole `Int32` range
 one reset to one, routing each entry by its sign. Each fixture here puts
 exactly one clause of that formula on one unit.
 
-`technology-range.yaml` is the one fixture the fight cannot read: its Arclight
-opens fire at the same moment either way, so every unit moves and hits as in
-`officer-range-value.yaml`. What separates them is the number the build
-computed, which a recording has carried since MCFR 0.4.0 — the fixture is
-measurable at all only because of that, and the gameless table pins its hash
+`fights/technology-range.yaml` is the one fixture the fight cannot read: its
+Arclight opens fire at the same moment either way, so every unit moves and
+hits as in `fights/officer-range-value.yaml`. What separates them is the
+number the build computed, which a recording has carried since MCFR 0.4.0 —
+the fixture is measurable at all only because of that, and its hash is pinned
 for the same reason.
 
 **A fixture in this directory changes one thing.** Most of them are the same
@@ -34,7 +34,7 @@ work as a set. Three calibrate the reading and the fourth is read against them,
 which is how the order was measured without anybody knowing where the build's
 integer interval counts from. They are also the only fixtures this simulator
 cannot fight — its kernel has no Sledgehammer — so they are recorded and read
-rather than simulated, and they are not in `regressions.mcscript`. That is what
+rather than simulated, and they stay layouts, not fights in `fights/`. That is what
 makes the difference between two of them attributable: the Rhino outlives every
 one of these fights, so the reading is the life it has left of its 19297, and
 nothing else in the layout can have moved it.
@@ -49,25 +49,25 @@ Normal selector takes the Rhino rather than a building.
 
 | Fixture | Clause it measures | What the game answered |
 | --- | --- | ---: |
-| `officer-composition-none.yaml` | none: the control | 14639 left |
-| `officer-composition-once.yaml` | one enhance, `+0.3` damage | 13243 |
-| `officer-composition-twice.yaml` | two enhances sum | 11845 |
-| `officer-life-rate.yaml` | an enhance in the unit channel, on life | 20428 of 25086 |
-| `officer-impair-once.yaml` | one impair, `−0.11` | see below |
-| `officer-impair-twice.yaml` | **two impairs compound, not sum** | see below |
-| `officer-range-none.yaml` | the control for the value fixture | 16377 left, 137 ticks |
-| `officer-range-value.yaml` | a value is added in the number's own unit | 16961 left |
-| `officer-speed-once.yaml` | a plain integer, in `DataSet.intDatas` | ends at tick 104 |
-| `officer-speed-twice.yaml` | **two integers sum, rather than the larger winning** | ends at tick 92 |
-| `technology-range.yaml` | a technology and an officer on one number | 155 m of the description's 95 |
-| `technology-interval-clean.yaml` | three corrections at once, on a unit with no stagger | interval 12, range 140, speed 11 |
+| `fights/officer-composition-none.yaml` | none: the control | 14639 left |
+| `fights/officer-composition-once.yaml` | one enhance, `+0.3` damage | 13243 |
+| `fights/officer-composition-twice.yaml` | two enhances sum | 11845 |
+| `fights/officer-life-rate.yaml` | an enhance in the unit channel, on life | 20428 of 25086 |
+| `fights/officer-impair-once.yaml` | one impair, `−0.11` | see below |
+| `fights/officer-impair-twice.yaml` | **two impairs compound, not sum** | see below |
+| `fights/officer-range-none.yaml` | the control for the value fixture | 16377 left, 137 ticks |
+| `fights/officer-range-value.yaml` | a value is added in the number's own unit | 16961 left |
+| `fights/officer-speed-once.yaml` | a plain integer, in `DataSet.intDatas` | ends at tick 104 |
+| `fights/officer-speed-twice.yaml` | **two integers sum, rather than the larger winning** | ends at tick 92 |
+| `fights/technology-range.yaml` | a technology and an officer on one number | 155 m of the description's 95 |
+| `fights/technology-interval-clean.yaml` | three corrections at once, on a unit with no stagger | interval 12, range 140, speed 11 |
 | `technology-disabled.yaml` | **a correction leaving**: the technology is switched off | 12 before the shot, 18 after |
 | `technology-interval-base.yaml` | the Sledgehammer alone: the line's intercept | interval reads 83 |
 | `technology-interval-value.yaml` | one second of value | 63 |
 | `technology-interval-rate.yaml` | one rate of `+0.3` | 110 |
 | `technology-interval.yaml` | **a value and a rate on one number** | 84, so the value applies first |
-| `targeting-ranged-none.yaml` | none: the control for the targeting fixture | 144 ticks |
-| `targeting-ranged.yaml` | **which units a Ranged row reaches** | `+10` on four ranged formations, nothing on two melee ones |
+| `fights/targeting-ranged-none.yaml` | none: the control for the targeting fixture | 144 ticks |
+| `fights/targeting-ranged.yaml` | **which units a Ranged row reaches** | `+10` on four ranged formations, nothing on two melee ones |
 
 `officer-impair-once.yaml` cannot separate the two rules — one impairment is
 `0.89` either way — which is what makes it this experiment's control.
@@ -89,19 +89,24 @@ the end.
 | `interval-order.mcscript` | yes | records the four Sledgehammer fixtures |
 | `disable.mcscript` | yes | records the Raiden shooting the Rhino |
 | `targeting.mcscript` | yes | records the two targeting fixtures |
-| `regressions.mcscript` | **no** | replays every fixture through the simulator and asserts its hash |
+| `regressions.mcscript` | **no** | verifies every fight in `fights/` through the simulator |
 
 The three recording scripts are this directory's experiments: each one writes
 its expected numbers down before the game is started, records, and asserts
 both halves against the recording — what the build stored, and what it then
-computed. `regressions.mcscript` is the other side of the same table, and it
-is what CI runs: the simulator has to reproduce each recording tick for tick
-from the layout and the seed alone, on a machine that has no game at all.
+computed. A pinned fixture is a fight document in `fights/`, holding the
+layout, the seed and what the game recorded, so the recording scripts record
+it from that file. `regressions.mcscript` is the other side of the same
+fights, and it is what CI runs: the simulator has to reproduce each recording
+tick for tick from the layout and the seed alone, on a machine that has no
+game at all. Each hash covers the derived numbers a recording carries, each
+skill's and each unit's `DataSet` aggregate among them, so a composition rule
+that resolved to the wrong number fails there even when the fight's outcome
+would have looked the same.
 
-These fixtures are deliberately **not** in `tests/regression/mcfr-regressions.yaml`. The
-table that holds them lives here, beside them and beside the scripts that
-produced them, so that a fixture, its measurement and its regression are one
-thing to read and one thing to move.
+These fixtures are deliberately **not** in `tests/regression/`. They live
+here, beside the scripts that produced them, so that a fixture, its
+measurement and its regression are one thing to read and one thing to move.
 
 ## Which units a row reaches
 

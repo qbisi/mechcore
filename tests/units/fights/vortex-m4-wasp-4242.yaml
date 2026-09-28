@@ -1,0 +1,22 @@
+# M4: a ground unit that cannot hit air, against wasps: what it does when
+# it can target nothing.
+# A standard layout ends before any tower falls: a tower's loss is a
+# mechanism of its own. The side that cannot hit the other walks to the
+# towers, so the side that can fields three formations.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 205
+hash: {profile: mcfr-content-0.7.0, result: dc3737b7cf68c106f7cb9258b84ac716e50823805323e1c08bbfe1641e21c525}
+blue:
+  core_damage: 612
+  units:
+  - {name: vortex, index: 0, position: {x: 0, y: -100}}
+red:
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/50/900}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/150/900}
+  - {name: wasp, index: 2, position: {x: 5, y: -180}}

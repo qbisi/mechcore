@@ -2,13 +2,15 @@
 
 What losing a tower writes on its side, and what strengthening one does to
 it. [`docs/rules/towers.md`](../../docs/rules/towers.md) is the rule; these are
-the fights it was read from, recorded by the game with seed 4242.
+the fights it was read from, recorded by the game with seed 4242. Each is a
+fight document in `fights/`, holding its layout, its seed and what the game
+recorded; a comment at its top says what the loss writes.
 
 | Fixture | What it separates | Ticks |
 | --- | --- | ---: |
-| `tower-level-0.yaml` .. `tower-level-4.yaml` | one level each: the tower's life, and how long its loss lasts, 180 to 20 ticks | 870, 925, 928, 964, 959 |
-| `both-towers-0-0.yaml` | a second level-0 loss inside the first: whether it refreshes, stacks, is ignored or lengthens | 581 |
-| `both-towers-0-4.yaml` | a level-4 loss inside a level-0 one: the lengthening is the second row's 20 ticks | 641 |
+| `fights/tower-level-0.yaml` .. `fights/tower-level-4.yaml` | one level each: the tower's life, and how long its loss lasts, 180 to 20 ticks | 870, 925, 928, 964, 959 |
+| `fights/both-towers-0-0.yaml` | a second level-0 loss inside the first: whether it refreshes, stacks, is ignored or lengthens | 581 |
+| `fights/both-towers-0-4.yaml` | a level-4 loss inside a level-0 one: the lengthening is the second row's 20 ticks | 641 |
 
 Red's Steel Balls take blue's towers; blue's Fangs stand at the back, out of
 the fight until a tower falls, and carry what the loss writes. In the two-tower
@@ -19,7 +21,7 @@ first loss runs.
 | --- | --- | --- |
 | `levels.mcscript` | yes | records the five level fights |
 | `both.mcscript` | yes | records the two two-tower fights |
-| `regressions.mcscript` | **no** | replays all seven through the simulator and asserts their hashes |
+| `regressions.mcscript` | **no** | verifies all seven through the simulator |
 
 The fights pinned more than the buff. A tower is an actor of its own: the Steel
 Ball whose beam fells it reads idle on that tick, and its `building_destroyed`

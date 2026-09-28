@@ -1,0 +1,22 @@
+# M6: two formations against a Crawler swarm and a Marksman:
+# target distribution and avoidance between allies.
+# The Crawlers cannot hit an Overlord and walk to the towers; two formations
+# one behind the other let them fell one, side by side they are stopped
+# before any falls.
+
+kind: fight
+map_id: 1021
+seed: 1787720817
+round: 1
+source: recording
+ticks: 352
+hash: {profile: mcfr-content-0.7.0, result: 0fb1ea908a040e5b699d8b9ff103d8a0bd1e4c0cb5d78f6ea125b6c3ce269d89}
+blue:
+  units:
+  - {name: overlord, index: 0, position: {x: -75, y: -105}, exp: 0/320/1750}
+  - {name: overlord, index: 1, position: {x: 65, y: -105}, exp: 0/72/1750}
+red:
+  core_damage: 800
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -70}}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}}

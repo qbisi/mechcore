@@ -43,22 +43,19 @@ headless: true
 
 vars:
   out: /tmp/mechcore/modifier/composition
-  seed: 4242
 
 steps:
   - let:
-      none: read_yaml(tests/modifier/officer-composition-none.yaml)
-      once: read_yaml(tests/modifier/officer-composition-once.yaml)
-      twice: read_yaml(tests/modifier/officer-composition-twice.yaml)
+      none: tests/modifier/fights/officer-composition-none.yaml
+      once: tests/modifier/fights/officer-composition-once.yaml
+      twice: tests/modifier/fights/officer-composition-twice.yaml
 
   - game.record:
       input: $none
-      seed: $seed
       output: ${out}/none-1.mcfr
 
   - game.record:
       input: $none
-      seed: $seed
       output: ${out}/none-2.mcfr
 
   - diff:
@@ -69,12 +66,10 @@ steps:
 
   - game.record:
       input: $once
-      seed: $seed
       output: ${out}/once.mcfr
 
   - game.record:
       input: $twice
-      seed: $seed
       output: ${out}/twice.mcfr
 
   # The measurement has two halves, and a verb each.

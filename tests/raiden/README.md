@@ -9,22 +9,23 @@ fixed to the body. The rules are in
 
 | Fixture | What it separates | Reading |
 | --- | --- | --- |
-| `fang-in-reach.yaml` | three Raidens with a Fang formation already in reach: whether Raidens avoid one another's targets | the first volley's nine blows |
+| `fights/fang-in-reach.yaml` | three Raidens with a Fang formation already in reach: whether Raidens avoid one another's targets | the first volley's nine blows |
 
 `slots.mcscript` records the fixture and the Raiden's twelve standard fights
-([`../units/raiden/`](../units/README.md)) with two channels:
+(`raiden-*.yaml` in [`../units/fights/`](../units/README.md)), each from its
+fight document, with two channels:
 `skill_attackable_checker`, which holds every `Check` call with the slot that
 made it and its lock before and after, and `group_slots`, which holds each
 slot's lock, attack target and state on every tick.
 
-`regressions.mcscript` simulates the fixture without the game and pins its
-hash: 99 ticks, seed 4242. In it the three Raidens fire their first
+`regressions.mcscript` verifies the fixture without the game against the hash
+the game recorded when `slots.mcscript` captured it: 99 ticks, seed 4242. In it the three Raidens fire their first
 volley on tick 2 at nine different Fangs, and not because they avoid one
 another: the first to update kills the three it holds, and the next finds
 them dead and searches again. Raidens do not share out targets across units;
 in the Raiden's M3 with seed 4242 one Raiden locks, at tick 164, the three
 Crawlers another has held since tick 114. The twelve standard fights are
-pinned with the other units' in `../units/regressions.mcscript`.
+pinned with the other units' in `../units/fights/`.
 
 A second ignored test reads every recording `slots.mcscript` makes, beside the
 Wraith's: it simulates each fight and compares, tick by tick, every slot's

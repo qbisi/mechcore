@@ -28,26 +28,23 @@ vars:
 steps:
   - let:
       recordings:
-        - {name: fang-in-reach-4242, layout: tests/raiden/fang-in-reach.yaml, seed: 4242}
-        - {name: m1-mirror-4242, layout: tests/units/raiden/m1-mirror.yaml, seed: 4242}
-        - {name: m1-mirror-1787720817, layout: tests/units/raiden/m1-mirror.yaml, seed: 1787720817}
-        - {name: m2-rhino-4242, layout: tests/units/raiden/m2-rhino.yaml, seed: 4242}
-        - {name: m2-rhino-1787720817, layout: tests/units/raiden/m2-rhino.yaml, seed: 1787720817}
-        - {name: m3-crawler-4242, layout: tests/units/raiden/m3-crawler.yaml, seed: 4242}
-        - {name: m3-crawler-1787720817, layout: tests/units/raiden/m3-crawler.yaml, seed: 1787720817}
-        - {name: m4-marksman-4242, layout: tests/units/raiden/m4-marksman.yaml, seed: 4242}
-        - {name: m4-marksman-1787720817, layout: tests/units/raiden/m4-marksman.yaml, seed: 1787720817}
-        - {name: m5-rotated-4242, layout: tests/units/raiden/m5-rotated.yaml, seed: 4242}
-        - {name: m5-rotated-1787720817, layout: tests/units/raiden/m5-rotated.yaml, seed: 1787720817}
-        - {name: m6-formations-4242, layout: tests/units/raiden/m6-formations.yaml, seed: 4242}
-        - {name: m6-formations-1787720817, layout: tests/units/raiden/m6-formations.yaml, seed: 1787720817}
+        - {name: fang-in-reach-4242, fight: tests/raiden/fights/fang-in-reach.yaml}
+        - {name: m1-mirror-4242, fight: tests/units/fights/raiden-m1-mirror-4242.yaml}
+        - {name: m1-mirror-1787720817, fight: tests/units/fights/raiden-m1-mirror-1787720817.yaml}
+        - {name: m2-rhino-4242, fight: tests/units/fights/raiden-m2-rhino-4242.yaml}
+        - {name: m2-rhino-1787720817, fight: tests/units/fights/raiden-m2-rhino-1787720817.yaml}
+        - {name: m3-crawler-4242, fight: tests/units/fights/raiden-m3-crawler-4242.yaml}
+        - {name: m3-crawler-1787720817, fight: tests/units/fights/raiden-m3-crawler-1787720817.yaml}
+        - {name: m4-marksman-4242, fight: tests/units/fights/raiden-m4-marksman-4242.yaml}
+        - {name: m4-marksman-1787720817, fight: tests/units/fights/raiden-m4-marksman-1787720817.yaml}
+        - {name: m5-rotated-4242, fight: tests/units/fights/raiden-m5-rotated-4242.yaml}
+        - {name: m5-rotated-1787720817, fight: tests/units/fights/raiden-m5-rotated-1787720817.yaml}
+        - {name: m6-formations-4242, fight: tests/units/fights/raiden-m6-formations-4242.yaml}
+        - {name: m6-formations-1787720817, fight: tests/units/fights/raiden-m6-formations-1787720817.yaml}
 
   - foreach: {recording: $recordings}
     steps:
-      - let:
-          layout: read_yaml(${recording.layout})
       - game.record:
-          input: $layout
-          seed: ${recording.seed}
+          input: ${recording.fight}
           output: ${out}/${recording.name}.mcfr
           instrument: [skill_attackable_checker, group_slots]

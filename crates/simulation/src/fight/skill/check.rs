@@ -54,7 +54,7 @@ impl Simulation {
     /// The Stormcaller, the one unit with a minimum range (70 m), is the one
     /// whose lock walking inside it takes the next target in reach; a Crawler
     /// or a Marksman whose live lock walks out of reach ends its attack
-    /// (`tests/turret/anti-armor-head-on.yaml`, tick 1027).
+    /// (`tests/turret/fights/anti-armor-head-on.yaml`, tick 1027).
     ///
     /// The build reads the quick-switch flag (`ISkillData` slot 24) in one
     /// place, the research branch above. An earlier stand-in let a
@@ -256,8 +256,8 @@ impl Simulation {
     /// It asks while no attack phase runs between two blows, through the wait
     /// before a blow, and on the update the blow lands, before it is
     /// performed; not through a burst after its first shot, nor during the
-    /// backswing. Every `Check` call the game made across the 82 manifest
-    /// fights falls on one of these updates.
+    /// backswing. Every `Check` call the game made across the 82 fights of
+    /// `tests/regression/fights/` falls on one of these updates.
     pub(in crate::fight) fn between_blows(&self, owner: FightActorRef, step: u64) -> bool {
         let skill = self.skill(owner);
         let waiting = skill.pending().is_none()

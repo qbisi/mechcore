@@ -1,0 +1,24 @@
+# M2: a single large ground target, which cannot hit back.
+# A standard layout ends before any tower falls: a tower's loss is a
+# mechanism of its own. The side that cannot hit the other walks to the
+# towers, so the side that can fields enough formations to win first.
+# Against a Rhino that is five Wraiths: with three, a tower fell.
+
+kind: fight
+map_id: 1021
+seed: 1787720817
+round: 1
+source: recording
+ticks: 286
+hash: {profile: mcfr-content-0.7.0, result: e9b8444a47d03a715a15690582e0d94510574f559b78e68c90d32f6347ca0bc1}
+blue:
+  units:
+  - {name: wraith, index: 0, position: {x: 5, y: -255}}
+  - {name: wraith, index: 1, position: {x: 5, y: -215}, exp: 0/50/2250}
+  - {name: wraith, index: 2, position: {x: 5, y: -175}, exp: 0/250/2250}
+  - {name: wraith, index: 3, position: {x: 5, y: -135}, exp: 0/50/2250}
+  - {name: wraith, index: 4, position: {x: 5, y: -95}, exp: 0/50/2250}
+red:
+  core_damage: 1250
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}

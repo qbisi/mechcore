@@ -1,0 +1,31 @@
+# Does a Defensive Wall stop the other side?
+#
+# `wall-passage.yaml` asks the same question of the side that placed it. This
+# is the other half: red's Crawlers start at world `(-145, 20)` and blue's
+# Marksman stands at world `(-140, -100)`, directly behind the middle block of
+# blue's wall, so the shortest path between them runs through the wall and a
+# Crawler that goes around it went around it on purpose.
+#
+# Nothing else is within reach of either.
+#
+# The other side, stopped by the wall and taking it down. Twenty-four
+# Crawlers pushed along the wall as they strike it change blocks between
+# blows, go straight on when a block they had not yet struck falls, and take
+# four of the five before the fight ends. 209 ticks, the game's hash.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 209
+hash: {profile: mcfr-content-0.7.0, result: 5cc4ee87e2843b55bd6cf825de6837254ee23b9623d8a627a6bb384a1140f38f}
+blue:
+  core_damage: 84
+  units:
+  - {name: marksman, index: 0, position: {x: -140, y: -100}, exp: 0/24/650}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+red:
+  units:
+  - {name: crawler, index: 0, position: {x: 145, y: -20}, exp: 0/248/450}

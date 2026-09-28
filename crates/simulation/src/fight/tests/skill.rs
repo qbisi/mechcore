@@ -993,11 +993,10 @@ fn rhino_backswing_remains_active_through_its_ninth_wait_update() {
 #[test]
 fn a_marksman_holds_through_its_cooling_after_a_kill_it_cannot_follow() {
     let config = SimulationConfig::load().unwrap();
-    let (_, layout) = crate::layout::compile_with_seed(
-        include_bytes!("../../../../../tests/regression/crawlers-vs-marksman.yaml"),
+    let layout = pinned_layout(
+        include_bytes!("../../../../../tests/regression/fights/crawlers-vs-marksman.yaml"),
         &config.units,
-    )
-    .unwrap();
+    );
     let mut simulation = Simulation::new(&layout, &config.units, &config.towers, 4242).unwrap();
     let mut states = BTreeMap::new();
     for step in 0..142u64 {

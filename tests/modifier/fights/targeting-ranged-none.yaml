@@ -1,0 +1,30 @@
+# The control for `targeting-ranged.yaml`: the same six formations with no
+# officer. Four ranged units across three attack paths (Marksman and Arclight
+# projectile, Fang projectile, Steel Ball laser) and two melee ones (Crawler,
+# Rhino), in one column so that every formation's identities sort by world z
+# in the order they are declared.
+#
+# Which units a Ranged row reaches. The control is six formations with no
+# officer; with Advanced Targeting System the four ranged ones reach 10 m
+# further and the Crawler and the Rhino carry nothing, which only the content
+# hash can tell from a row that reached every unit.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 144
+hash: {profile: mcfr-content-0.7.0, result: 5c8ac359f6404e1851c3a773d9e2c7f74d12403b98bac3225f7716735c1b6d72}
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -210}}
+  - {name: arclight, index: 1, position: {x: 0, y: -180}}
+  - {name: fang, index: 2, position: {x: 5, y: -150}}
+  - {name: steel_ball, index: 3, position: {x: 5, y: -120}, exp: 0/66/1000}
+  - {name: crawler, index: 4, position: {x: 5, y: -90}, exp: 0/66/450}
+  - {name: rhino, index: 5, position: {x: 5, y: -55}, exp: 0/266/1150}
+red:
+  core_damage: 768
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/72/1150}

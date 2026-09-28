@@ -434,8 +434,8 @@ in were read from a capture of each unit's `SkillStateController` state and
 `SkillAttackController` phase (the `target_refs` instrument channel),
 beside the recordings under `tests/construction/`.
 
-**How it was held to the game.** Two captures of the whole regression
-manifest are the oracle: each unit's skill state and attack phase per tick
+**How it was held to the game.** Two captures of every fight in
+`tests/regression/fights/` are the oracle: each unit's skill state and attack phase per tick
 (`tests/regression/skill-state.mcscript`), and every `Check` call with the
 skill's lock and attack target on either side of it (the
 `skill_attackable_checker` channel). Grouped skills use the same checker
@@ -456,7 +456,7 @@ per-call replay and the physics/content checks. Beyond the checker itself:
   is up, whatever its motion does: a Crawler pushed out of reach during its
   backswing and back on the next tick starts its next blow on the tick it
   returns, as the game's skill-state capture of the Rhino's formation fight
-  reads (`tests/units/rhino/m6-formations.yaml`, seed 1787720817). Only
+  reads (`tests/units/fights/rhino-m6-formations-1787720817.yaml`). Only
   entering the attack state from idle waits a tick.
 
 With those, the stale-target, quick-switch-out-of-range and stale-replacement

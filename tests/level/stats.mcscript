@@ -23,23 +23,19 @@ headless: true
 
 vars:
   out: /tmp/mechcore/level/stats
-  seed: 1787720817
 
 steps:
   - let:
       fights:
-        - {name: marksman-1, layout: tests/regression/marksman-vs-arclight.yaml, damage: 2329}
-        - {name: marksman-2, layout: tests/level/marksman-2.yaml, damage: 4658}
-        - {name: marksman-3, layout: tests/level/marksman-3.yaml, damage: 6987}
-        - {name: marksman-2-rate, layout: tests/level/marksman-2-rate.yaml, damage: 6055}
+        - {name: marksman-1, fight: tests/regression/fights/marksman-vs-arclight.yaml, damage: 2329}
+        - {name: marksman-2, fight: tests/level/fights/marksman-2.yaml, damage: 4658}
+        - {name: marksman-3, fight: tests/level/fights/marksman-3.yaml, damage: 6987}
+        - {name: marksman-2-rate, fight: tests/level/fights/marksman-2-rate.yaml, damage: 6055}
 
   - foreach: {fight: $fights}
     steps:
-      - let:
-          layout: read_yaml(${fight.layout})
       - game.record:
-          input: $layout
-          seed: $seed
+          input: ${fight.fight}
           output: ${out}/${fight.name}.mcfr
       - show:
           input: ${out}/${fight.name}.mcfr
@@ -49,8 +45,8 @@ steps:
           sides.blue.0.derived.attack_range: 601295421440
           sides.blue.0.derived.move_speed: 34359738368
 
-  # The level-1 fight is the manifest's marksman-vs-arclight; recorded again it
-  # is the control, and has to be the pinned recording.
+  # The level-1 fight is `tests/regression/fights/marksman-vs-arclight.yaml`;
+  # recorded again it is the control, and has to be the pinned recording.
   - show:
       input: ${out}/marksman-2-rate.mcfr
       view: stats

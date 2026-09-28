@@ -23,14 +23,14 @@ vars:
 steps:
   - let:
       fights:
-        - {name: equipment, layout: tests/equipment/two-items.yaml}
+        - {name: equipment, layout: tests/adapter/two-items.yaml}
         - {name: constructions, layout: layouts/construction-battle.yaml}
-        - {name: turret, layout: tests/turret/rapid-fire-head-on.yaml}
+        - {name: turret, layout: tests/adapter/rapid-fire-head-on.yaml}
         - {name: contraptions, layout: layouts/shield-missile-battle.yaml}
         - {name: interceptor, layout: layouts/interceptor-battle.yaml}
         - {name: terrain-oil, layout: layouts/terrain-sticky-oil.yaml}
         - {name: terrain-fire, layout: layouts/terrain-hound-incendiary.yaml}
-        - {name: towers, layout: tests/tower/both-towers-0-4.yaml}
+        - {name: towers, layout: tests/adapter/both-towers-0-4.yaml}
         - {name: battle-skills, layout: tests/skill-order/lightning-first.yaml}
         - {name: readback, layout: layouts/layout-readback-p0-p1.yaml}
         - {name: ambush, layout: layouts/upper-right-ambush-3v3.yaml}
@@ -51,7 +51,7 @@ steps:
           operation.recorded: true
 
   - let:
-      layout: read_yaml(tests/regression/crawlers-vs-marksman.yaml)
+      layout: read_yaml(tests/adapter/crawlers-vs-marksman.yaml)
   - game.apply_layout:
       layout: $layout
       seed: $seed

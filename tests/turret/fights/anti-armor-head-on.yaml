@@ -1,0 +1,28 @@
+# Is the Anti-Armor Turret the same skill machine with other numbers?
+#
+# The Anti-Armor Turret at world (-140, -100), where the opening group places
+# it, and red's Crawlers at world (-145, 100) walking straight down its
+# column, as in `rapid-fire-head-on.yaml`. One shot kills a Crawler, so every
+# shot is a death and the interval between deaths is the interval between
+# shots.
+#
+# The Anti-Armor Turret against a Crawler, the Marksman behind. Blue loses
+# a tower at 509 and red at 771, and at 1027 the Marksman ends its attack
+# when its live lock walks out of reach, as every skill does.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 1397
+hash: {profile: mcfr-content-0.7.0, result: 6fab5e00c3ea3e080f91bcc370608d1bc377087da6a653cc0b001e8024ab531b}
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: 290, y: -150}, exp: 0/392/650}
+  constructions:
+  - {name: anti_armor_turret, index: 2, position: {x: -140, y: -100}}
+red:
+  core_damage: 100
+  units:
+  - {name: crawler, index: 0, position: {x: 145, y: -100}, exp: 0/450/450}

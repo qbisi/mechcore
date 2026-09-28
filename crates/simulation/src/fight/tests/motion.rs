@@ -297,11 +297,10 @@ fn rvo_pipeline_publishes_before_movement_consumes_velocity() {
 #[test]
 fn first_split_rvo_tree_uses_the_zero_position_buffer() {
     let config = SimulationConfig::load().unwrap();
-    let (_, layout) = crate::layout::compile_with_seed(
-        include_bytes!("../../../../../tests/regression/rhino-vs-crawlers.yaml"),
+    let layout = pinned_layout(
+        include_bytes!("../../../../../tests/regression/fights/rhino-vs-crawlers-01.yaml"),
         &config.units,
-    )
-    .unwrap();
+    );
     let mut simulation =
         Simulation::new(&layout, &config.units, &config.towers, 1_787_748_319).unwrap();
 

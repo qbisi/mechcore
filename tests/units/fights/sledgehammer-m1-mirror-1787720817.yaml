@@ -1,0 +1,16 @@
+# M1: the mirror. One formation each, 200 m apart.
+
+kind: fight
+map_id: 1021
+seed: 1787720817
+round: 1
+source: recording
+ticks: 885
+hash: {profile: mcfr-content-0.7.0, result: 1771d001cd2c5f7869802d741f2fb8b071ee19bbf3743e77df811b81ddadfa80}
+blue:
+  core_damage: 40
+  units:
+  - {name: sledgehammer, index: 0, position: {x: -5, y: -100}, exp: 0/320/1300}
+red:
+  units:
+  - {name: sledgehammer, index: 0, position: {x: -5, y: -100}, exp: 0/400/1300}

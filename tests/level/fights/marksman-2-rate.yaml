@@ -1,0 +1,23 @@
+# Where does the level sit against a rate correction?
+#
+# `marksman-2.yaml` with Advanced Offensive Tactics, +0.3 of damage rate,
+# on blue. The level and the rate multiply, so their order does not show in
+# the damage; what shows is which channel each is written in: the officer's
+# +0.3 lands in the skill's overlay, and whether the level is an entry there
+# too, or is folded into the base the overlay corrects, is the reading.
+
+kind: fight
+map_id: 1021
+seed: 1787720817
+round: 1
+source: recording
+ticks: 18
+hash: {profile: mcfr-content-0.7.0, result: bcd1db8f61e9b9b942237eb6a2a9bb167b33731fa5ed41c49469c3467c0e89a7}
+blue:
+  officers: [advanced_offensive_tactics]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, level: 2, exp: 0/200/1465}
+red:
+  core_damage: 100
+  units:
+  - {name: arclight, index: 0, position: {x: 0, y: -50}}

@@ -1,0 +1,17 @@
+# M4: a ground unit against air units: what it targets, and what it does
+# when it can target nothing.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 195
+hash: {profile: mcfr-content-0.7.0, result: 2858d7a1b7666346796e377cc1b51faa42596270216c155d2f1a0a44439c4fce}
+blue:
+  core_damage: 153
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -100}, exp: 0/102/650}
+red:
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/200/900}

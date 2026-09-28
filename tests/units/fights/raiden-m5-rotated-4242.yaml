@@ -1,0 +1,17 @@
+# M5: the formation rotated, its target off to one side: attack angle and
+# turning. An air unit's target is a Marksman, which shoots back.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 98
+hash: {profile: mcfr-content-0.7.0, result: 15aed80ff3da14f348cd9e62aa63d3a2eeefe716f2410c3bb3b99ce7a02d3db8}
+blue:
+  units:
+  - {name: raiden, index: 0, position: {x: -60, y: -60}, exp: 0/200/2400, rotated: true}
+red:
+  core_damage: 350
+  units:
+  - {name: marksman, index: 0, position: {x: -40, y: -100}}

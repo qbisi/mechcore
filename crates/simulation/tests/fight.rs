@@ -1,48 +1,21 @@
 use std::{fs, path::PathBuf};
 
 use mechcore_mcfr::{EventKind, McfrReader};
-use mechcore_simulation::simulate_layout;
-use serde::Deserialize;
-
-/// Deserialized strictly, so a manifest field added without a reader fails here
-/// rather than being silently ignored. `smoke` and the hash are what the
-/// mcscript readers check, and have no consumer in this file.
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct NativeRegression {
-    name: String,
-    #[allow(dead_code)]
-    smoke: bool,
-    layout: PathBuf,
-    seed: i32,
-    tick_count: u32,
-    #[allow(dead_code)]
-    result_hash: String,
-}
+use mechcore_simulation::{simulate_document, simulate_layout};
 
 fn repository() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
 
-fn native_regressions() -> Vec<NativeRegression> {
-    let manifest = repository().join("tests/regression/mcfr-regressions.yaml");
-    serde_yaml::from_slice(&fs::read(manifest).unwrap()).unwrap()
-}
-
-fn native_regression(name: &str) -> NativeRegression {
-    native_regressions()
-        .into_iter()
-        .find(|regression| regression.name == name)
-        .unwrap_or_else(|| panic!("missing native MCFR regression {name}"))
-}
-
-fn regression_layout(regression: &NativeRegression) -> PathBuf {
-    repository().join(&regression.layout)
+/// A native regression fight: `tests/regression/fights/<name>.yaml`.
+fn native_regression(name: &str) -> mechcore_document::Fight {
+    let path = repository().join(format!("tests/regression/fights/{name}.yaml"));
+    mechcore_document::fight::parse_yaml(&fs::read(&path).unwrap())
+        .unwrap_or_else(|error| panic!("{}: {error}", path.display()))
 }
 
 fn fixture() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tests/regression/marksman-vs-arclight.yaml")
+    repository().join("layouts/marksman-vs-arclight.yaml")
 }
 
 #[test]
@@ -83,24 +56,26 @@ fn marksman_vs_arclight_runs_to_a_readable_terminal_result() {
     assert!(event_kinds.contains(&EventKind::ProjectileRemoved));
 }
 
-/// Runs a native regression case through the simulator and opens what it
-/// wrote.
+/// Fights a native regression fight's layout with its seed through the
+/// simulator, and opens what it wrote.
 ///
-/// Its hash is not checked here: `tests/regression/simulate.mcscript` holds
-/// every case to it. What these tests check is a few named fields — a unit's
-/// lock and its motion state — so that a failure says which one moved.
+/// `tests/regression/simulate.mcscript` verifies every fight document there;
+/// what these tests check is a few named fields — a unit's lock and its
+/// motion state — so that a failure says which one moved. The ticks and the
+/// hash are checked too, so a field read here is read on the game's fight.
 fn recorded(name: &str) -> (tempfile::TempDir, McfrReader) {
-    let regression = native_regression(name);
+    let fight = native_regression(name);
+    let layout =
+        mechcore_document::canonical_yaml(mechcore_document::fight::project(&fight)).unwrap();
     let directory = tempfile::tempdir().unwrap();
     let output = directory.path().join("fight.mcfr");
-    simulate_layout(
-        regression_layout(&regression),
-        Some(&output),
-        Some(regression.seed),
-    )
-    .unwrap();
+    simulate_document(layout.as_bytes(), Some(&output), Some(fight.seed)).unwrap();
     let reader = McfrReader::open(output).unwrap();
-    assert_eq!(reader.tick_count(), regression.tick_count);
+    assert_eq!(Some(reader.tick_count()), fight.ticks);
+    assert_eq!(
+        Some(reader.hashes().result_hash.as_str()),
+        fight.hash.as_ref().map(|hash| hash.result.as_str())
+    );
     (directory, reader)
 }
 

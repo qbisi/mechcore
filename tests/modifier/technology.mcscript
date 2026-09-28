@@ -32,15 +32,13 @@ headless: true
 
 vars:
   out: /tmp/mechcore/modifier/technology
-  seed: 4242
 
 steps:
   - let:
-      ranged: read_yaml(tests/modifier/technology-range.yaml)
+      ranged: tests/modifier/fights/technology-range.yaml
 
   - game.record:
       input: $ranged
-      seed: $seed
       output: ${out}/technology-range.mcfr
     expect:
       operation.tick_count: 137

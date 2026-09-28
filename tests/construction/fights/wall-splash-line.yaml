@@ -1,0 +1,26 @@
+# Crawlers crossing their own wall toward an Arclight that is shooting blocks
+# for the Crawlers behind them. The Arclight turns from a block to the Crawler
+# behind it the tick the block leaves its line, and onto a block the tick one
+# enters it, and its splash reads blocks and Crawlers in the order the target
+# trees hold them.
+#
+# The same, with the Arclight turning onto blocks and off them as they enter
+# and leave its line, and re-locking when its splash kills its lock. 161
+# ticks, the game's hashes.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 161
+hash: {profile: mcfr-content-0.7.0, result: f50d3a0e3ab55402b58d176ac1a75bb97038780a28bdc3bbb8bf214b32206d0a}
+blue:
+  core_damage: 100
+  units:
+  - {name: crawler, index: 0, position: {x: -145, y: -100}}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+red:
+  units:
+  - {name: arclight, index: 0, position: {x: 40, y: -20}, exp: 0/192/750}

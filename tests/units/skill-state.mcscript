@@ -14,8 +14,8 @@
 # Crawler its weapons already face. The Phantom Ray's two M3 fights showed
 # what a won fight does to a skill before it ends: one already cooling goes
 # on cooling at its dead target, and one attacking goes idle. The fights are
-# pinned in `regressions.mcscript`; the channel is research evidence, outside
-# the hash.
+# pinned under `fights/`, and each recording lands under `out` at its
+# fixture's own path; the channel is research evidence, outside the hash.
 #
 # `out` must not already exist: a recording refuses to overwrite.
 
@@ -28,19 +28,16 @@ vars:
 steps:
   - let:
       fights:
-        - {unit: fortress, name: m3-crawler, seed: 1787720817}
-        - {unit: sledgehammer, name: m3-crawler, seed: 1787720817}
-        - {unit: typhoon, name: m6-formations, seed: 4242}
-        - {unit: melting_point, name: m6-formations, seed: 1787720817}
-        - {unit: phantom_ray, name: m3-crawler, seed: 4242}
-        - {unit: phantom_ray, name: m3-crawler, seed: 1787720817}
+        - tests/units/fights/fortress-m3-crawler-1787720817.yaml
+        - tests/units/fights/sledgehammer-m3-crawler-1787720817.yaml
+        - tests/units/fights/typhoon-m6-formations-4242.yaml
+        - tests/units/fights/melting_point-m6-formations-1787720817.yaml
+        - tests/units/fights/phantom_ray-m3-crawler-4242.yaml
+        - tests/units/fights/phantom_ray-m3-crawler-1787720817.yaml
 
   - foreach: {fight: $fights}
     steps:
-      - let:
-          layout: read_yaml(tests/units/${fight.unit}/${fight.name}.yaml)
       - game.record:
-          input: $layout
-          seed: ${fight.seed}
-          output: ${out}/${fight.unit}-${fight.name}-${fight.seed}.mcfr
+          input: $fight
+          output: ${out}/${fight}.mcfr
           instrument: [target_refs]

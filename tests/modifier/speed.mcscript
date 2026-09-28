@@ -36,16 +36,14 @@ headless: true
 
 vars:
   out: /tmp/mechcore/modifier/speed
-  seed: 4242
 
 steps:
   - let:
-      once: read_yaml(tests/modifier/officer-speed-once.yaml)
-      twice: read_yaml(tests/modifier/officer-speed-twice.yaml)
+      once: tests/modifier/fights/officer-speed-once.yaml
+      twice: tests/modifier/fights/officer-speed-twice.yaml
 
   - game.record:
       input: $once
-      seed: $seed
       output: ${out}/speed-once.mcfr
     expect:
       operation.tick_count: 104
@@ -59,7 +57,6 @@ steps:
 
   - game.record:
       input: $twice
-      seed: $seed
       output: ${out}/speed-twice.mcfr
     expect:
       operation.tick_count: 92

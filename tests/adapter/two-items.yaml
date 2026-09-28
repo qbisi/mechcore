@@ -1,0 +1,19 @@
+kind: layout
+round: 1
+
+# The layout of `../equipment/fights/two-items.yaml`: two items on one
+# formation, which `smoke.mcscript` stages to install equipment.
+
+blue:
+  officers: [equipment_expansion]
+  units:
+    - name: marksman
+      index: 0
+      equipment: [heavy_armor, improved_firepower_control_system]
+      position: {x: 0, y: -50}
+
+red:
+  units:
+    - name: arclight
+      index: 0
+      position: {x: 0, y: -50}

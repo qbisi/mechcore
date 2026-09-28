@@ -1,25 +1,20 @@
-# Re-record the native regression samples in tests/regression/mcfr-regressions.yaml.
-#
-# The manifest stays the data; this script is one of its two readers. The other
-# is tests/regression/simulate.mcscript, which replays the same table through
-# the simulator. Nothing here writes the manifest back: a refresh
-# produces values, and updating the table is a deliberate, reviewable edit.
+# Record every native regression fight again, and hold the game to it.
 #
 #   mechcore run tests/regression/refresh.mcscript --check   validate without the game
-#   mechcore run tests/regression/refresh.mcscript           record
+#   mechcore run tests/regression/refresh.mcscript           record and compare
 #
-# Scope: smoke cases only, which is what fight.rs treats as the native tier.
-# Delete the `where` line to cover every case in the manifest instead.
+# Each fight under `fights/` is recorded from its own layout and seed, the
+# recording is read back as a fight document, and that document has to state
+# exactly what the fixture states: the same ticks, the same hash, the same
+# result. `simulate.mcscript` holds the simulator to the same files; this
+# holds the game to them, so a build that changed a fight shows here first.
 #
-# To verify rather than refresh, add an expect block to game.record:
+# The run stops at the first fight that differs, and what the game recorded
+# is left beside it under `out`, at the fixture's own path. Nothing here
+# writes a fixture back: replacing one with what a new recording says is a
+# deliberate, reviewable edit, and a pin that moves is a finding to explain.
 #
-#     expect:
-#       operation.tick_count: ${case.tick_count}
-#       operation.hashes.result_hash: ${case.result_hash}
-#
-# With it the run stops at the first case that no longer matches, which is the
-# drift check. Without it every case is recorded and reported, which is what
-# produces new values after an intended change.
+# `out` must not already exist: a recording refuses to overwrite.
 
 game: launch
 headless: true
@@ -28,15 +23,19 @@ vars:
   out: /tmp/mechcore/regression/refresh
 
 steps:
-  - let:
-      cases: read_yaml(tests/regression/mcfr-regressions.yaml)
+  - let: {fights: glob(tests/regression/fights/*.yaml)}
 
-  - foreach: {case: $cases}
-    where: {smoke: true}
+  - foreach: {fight: $fights}
     steps:
-      - let:
-          layout: read_yaml(${case.layout})
       - game.record:
-          input: $layout
-          seed: ${case.seed}
-          output: $out/${case.name}.mcfr
+          input: $fight
+          output: $out/${fight}.mcfr
+      - convert:
+          input: $out/${fight}.mcfr
+          to: fight
+          output: $out/$fight
+      - diff:
+          left: $fight
+          right: $out/$fight
+        expect:
+          equal: true

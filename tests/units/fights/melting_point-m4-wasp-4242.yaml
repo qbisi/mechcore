@@ -1,0 +1,16 @@
+# M4: a ground unit that shoots air, against wasps.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 420
+hash: {profile: mcfr-content-0.7.0, result: b2f9cfdd7792e8333f8b0901594d9d3c9b749dd20836e5e8c960d29c40bfb515}
+blue:
+  units:
+  - {name: melting_point, index: 0, position: {x: 0, y: -100}, exp: 0/408/1400}
+red:
+  core_damage: 350
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -100}}

@@ -1,0 +1,23 @@
+# What does losing a tower of strengthen level 0 write on its side? Level 0
+# is the default, so the layout names no levels.
+#
+# Red's Steel Balls come down blue's Energy Tower column and take the tower;
+# blue's Fangs stand at the back under the Research Center, out of the fight
+# until the tower has fallen, and carry what the loss writes on blue's units.
+#
+# Level 0: the loss writes buff 1, 180 ticks; the tower has 3400 life.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 870
+hash: {profile: mcfr-content-0.7.0, result: 380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef}
+blue:
+  core_damage: 150
+  units:
+  - {name: fang, index: 0, position: {x: 145, y: -300}, exp: 0/100/600}
+red:
+  units:
+  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/416/1000}

@@ -1,0 +1,16 @@
+# M4: an air unit against a ground unit that shoots air.
+
+kind: fight
+map_id: 1021
+seed: 1787720817
+round: 1
+source: recording
+ticks: 96
+hash: {profile: mcfr-content-0.7.0, result: e05b88fb312047e8a8d7400edf751426cc1479de9d749287cf103abcb113eefe}
+blue:
+  units:
+  - {name: phoenix, index: 0, position: {x: 0, y: -100}, exp: 0/200/1300}
+red:
+  core_damage: 100
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -100}, exp: 0/200/650}

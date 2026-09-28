@@ -1,0 +1,24 @@
+# A Rhino charging a Marksman who stands behind the middle block. The Rhino
+# attacks in melee, so this is how a direct attack takes a wall.
+#
+# A blow, and not a shot. The Rhino takes the block in its line one hit at a
+# time, stays on each until its swing is over, reads idle for a tick, and
+# takes the next thing in its way. 189 ticks, the game's hash; its content
+# hash agrees as well, which `attacks.mcscript` checks against the game.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 189
+hash: {profile: mcfr-content-0.7.0, result: 73b51d5db67d80f2dc5e90f5e98aa6dea27b2b863343106f5e620a5388ac289d}
+blue:
+  core_damage: 200
+  units:
+  - {name: marksman, index: 0, position: {x: -140, y: -100}}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 145, y: -25}, exp: 0/224/1150}

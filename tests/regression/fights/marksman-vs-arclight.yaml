@@ -1,0 +1,14 @@
+kind: fight
+map_id: 1021
+seed: 1787720817
+round: 1
+source: recording
+ticks: 91
+hash: {profile: mcfr-content-0.7.0, result: a13716e2e17d0ca5c5cfbaea8c770a98b9c4f892b38f6bfbc6c83338ccdc82b4}
+blue:
+  core_damage: 100
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -50}}
+red:
+  units:
+  - {name: arclight, index: 0, position: {x: 0, y: -50}, exp: 0/200/750}

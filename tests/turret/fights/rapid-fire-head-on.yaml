@@ -1,0 +1,31 @@
+# When does a Rapid-Fire Turret fire its first shot, and how often after?
+#
+# Blue's turret stands at world (140, -100), where the opening group places
+# it and the game is known to accept it, under the index the Training
+# Ground's own opening gives it, which a retained construction keeps. Red's Crawlers start at world
+# (145, 100), 200 metres up the turret's own column, so they walk in along
+# one line and reach the turret's range about 90 ticks in; the turret's
+# first shot needs no turn beyond what its resting rotation gives it. Blue's
+# Marksman is in the far corner, out of everyone's reach, so the fight has a
+# blue unit and still ends: the Crawlers take the turret and then walk to the
+# Marksman.
+#
+# Crawlers straight down the turret's column. 24 fall to the turret, which
+# nothing reaches, and the fight ends when the last does: 237 ticks.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 237
+hash: {profile: mcfr-content-0.7.0, result: df2922fb4ecb1680fd2346bdb898bd7ec379d51e619ef434cee58f27fc2b7c92}
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: -290, y: -150}, exp: 0/192/650}
+  constructions:
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+red:
+  core_damage: 100
+  units:
+  - {name: crawler, index: 0, position: {x: -145, y: -100}}

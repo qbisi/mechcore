@@ -1,0 +1,14 @@
+kind: fight
+map_id: 1021
+seed: 1787829131
+round: 1
+source: recording
+ticks: 196
+hash: {profile: mcfr-content-0.7.0, result: c1050f703df29175d16f82a5217ac9a834c2a9cc10b27ecb99234c7b76541928}
+blue:
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/408/900}
+red:
+  core_damage: 51
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/289/900}

@@ -6,8 +6,8 @@ use mechcore_mcfr::{McfrReader, McfrWriter};
 fn converting_a_layout_to_mcfr_writes_it_and_prints_the_result() {
     let directory = tempfile::tempdir().unwrap();
     let output = directory.path().join("fight.mcfr");
-    let layout = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tests/regression/marksman-vs-arclight.yaml");
+    let layout =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../layouts/marksman-vs-arclight.yaml");
     let command = Command::new(env!("CARGO_BIN_EXE_mechcore"))
         .args(["convert", "--to", "mcfr"])
         .arg(layout)
@@ -53,8 +53,7 @@ fn converting_without_an_output_answers_the_result_and_writes_nothing() {
     let directory = tempfile::tempdir().unwrap();
     let layout = directory.path().join("layout.yaml");
     fs::copy(
-        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../tests/regression/marksman-vs-arclight.yaml"),
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../layouts/marksman-vs-arclight.yaml"),
         &layout,
     )
     .unwrap();
@@ -88,8 +87,8 @@ fn verify_reports_the_first_divergent_tick_of_each_recording() {
     let directory = tempfile::tempdir().unwrap();
     let recording_path = directory.path().join("equal.mcfr");
     let divergent_path = directory.path().join("divergent.mcfr");
-    let layout = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tests/regression/marksman-vs-arclight.yaml");
+    let layout =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../layouts/marksman-vs-arclight.yaml");
     let generated = Command::new(env!("CARGO_BIN_EXE_mechcore"))
         .args(["convert", "--to", "mcfr"])
         .arg(&layout)
@@ -513,8 +512,8 @@ fn verify_compares_a_replay_on_its_result_and_answers_a_refusal() {
 fn stats_read_a_tick_and_answer_both_halves() {
     let directory = tempfile::tempdir().unwrap();
     let recording = directory.path().join("fight.mcfr");
-    let layout = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tests/regression/marksman-vs-arclight.yaml");
+    let layout =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../layouts/marksman-vs-arclight.yaml");
     let run = Command::new(env!("CARGO_BIN_EXE_mechcore"))
         .args(["convert", "--to", "mcfr"])
         .arg(&layout)
@@ -583,8 +582,8 @@ fn stats_read_a_tick_and_answer_both_halves() {
 fn buildings_read_the_towers_a_map_gives_each_side() {
     let directory = tempfile::tempdir().unwrap();
     let recording = directory.path().join("fight.mcfr");
-    let layout = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tests/regression/marksman-vs-arclight.yaml");
+    let layout =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../layouts/marksman-vs-arclight.yaml");
     let run = Command::new(env!("CARGO_BIN_EXE_mechcore"))
         .args(["convert", "--to", "mcfr"])
         .arg(&layout)

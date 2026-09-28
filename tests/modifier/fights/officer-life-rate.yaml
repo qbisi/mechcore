@@ -1,0 +1,27 @@
+# One copy of Advanced Defensive Tactics on red, which
+# `config/officer_effects.yaml` gives a `life_rate` of `+0.3` over every unit.
+# Everything else is `officer-composition-none.yaml`.
+#
+# The damage capture measured a rate in the skill channel. A life rate is the
+# other channel — MCFR keeps `life_rate` in the unit's own modifier set and
+# `damage_rate` in its skill's — so this is what says the same arithmetic holds
+# there. The Rhino outlives the fight either way, so the reading is its life:
+# `19297 * 1.3 = 25086` whole, less the Marksman's two hits of 2329.
+#
+# An enhancement in the unit channel instead of a skill's: life, not damage.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 120
+hash: {profile: mcfr-content-0.7.0, result: fc5ea14cb5c7964a5db551ef78858298e46506a54953586b9a6ea6e16319400c}
+blue:
+  core_damage: 200
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -50}}
+red:
+  officers: [advanced_defensive_tactics]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150}

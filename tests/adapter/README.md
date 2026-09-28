@@ -22,3 +22,13 @@ layout, and whether every instrument channel's hooks still install.
 It pins no hash. What a fight does belongs to the topic that asks it; a
 layout here that some topic also records is recorded again, not compared.
 Recordings are not tracked.
+
+Four of the layouts it stages are kept here as layouts because
+`game.apply_layout` takes a layout and a topic keeps its fights as fight
+documents: `two-items.yaml`, `rapid-fire-head-on.yaml`, `both-towers-0-4.yaml`
+and `crawlers-vs-marksman.yaml` are the layouts of the pinned fights of the
+same names in [`../equipment/`](../equipment/README.md),
+[`../turret/`](../turret/README.md), [`../tower/`](../tower/README.md) and
+[`../regression/`](../regression/README.md). The fight documents say what each
+fight measures. The rest come from [`../../layouts/`](../../layouts/README.md)
+and from [`../skill-order/`](../skill-order/).

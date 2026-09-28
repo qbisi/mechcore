@@ -1,31 +1,15 @@
-# The game's recordings from stats.mcscript, replayed without the game.
-# Every fight is pinned by its hash, including the level-one manifest control.
+# Every fight this directory pins, fought again by the simulator.
+#
+#   mechcore run tests/level/regressions.mcscript
+#
+# This needs no game, which is why CI runs it. Each file under `fights/` is
+# a fight the game recorded, holding its layout, its seed and what the
+# recording decided, the tick count and the hash among it. `verify` fights
+# the layout with the seed and holds the simulator to all of it, and the
+# hash covers every field of every tick. `README.md` says what each fight
+# measures.
+
 steps:
-  - convert:
-      input: tests/regression/marksman-vs-arclight.yaml
-      to: mcfr
-      seed: 1787720817
-    expect:
-      steps: 91
-      hashes.result_hash: a13716e2e17d0ca5c5cfbaea8c770a98b9c4f892b38f6bfbc6c83338ccdc82b4
-  - convert:
-      input: tests/level/marksman-2.yaml
-      to: mcfr
-      seed: 1787720817
-    expect:
-      steps: 83
-      hashes.result_hash: ed2f7990d409c5f3befe67635cc730f2a544fb443292a45983713b56adefa94f
-  - convert:
-      input: tests/level/marksman-3.yaml
-      to: mcfr
-      seed: 1787720817
-    expect:
-      steps: 18
-      hashes.result_hash: 77153ce4f4427404d478ed5bc639983e16bf33f4018a485809031ee3a4e8ed88
-  - convert:
-      input: tests/level/marksman-2-rate.yaml
-      to: mcfr
-      seed: 1787720817
-    expect:
-      steps: 18
-      hashes.result_hash: bcd1db8f61e9b9b942237eb6a2a9bb167b33731fa5ed41c49469c3467c0e89a7
+  - let: {fights: glob(tests/level/fights/*.yaml)}
+  - verify: {input: $fights}
+    expect: {invalid: []}

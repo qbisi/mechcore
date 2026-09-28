@@ -44,18 +44,16 @@ headless: true
 
 vars:
   out: /tmp/mechcore/modifier/impairment
-  seed: 4242
 
 steps:
   - let:
-      once: read_yaml(tests/modifier/officer-impair-once.yaml)
-      twice: read_yaml(tests/modifier/officer-impair-twice.yaml)
+      once: tests/modifier/fights/officer-impair-once.yaml
+      twice: tests/modifier/fights/officer-impair-twice.yaml
 
   # One impairment. The two rules agree here, so a disagreement is the
   # pipeline rather than the arithmetic, and the run should stop.
   - game.record:
       input: $once
-      seed: $seed
       output: ${out}/impair-once.mcfr
     expect:
       operation.tick_count: 120
@@ -75,7 +73,6 @@ steps:
   # Two impairments. This is the measurement.
   - game.record:
       input: $twice
-      seed: $seed
       output: ${out}/impair-twice.mcfr
     expect:
       operation.tick_count: 120
