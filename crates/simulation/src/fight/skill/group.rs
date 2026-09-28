@@ -12,7 +12,7 @@ fn may_start_group_slot(fusillade: bool, skill: &Skill) -> bool {
     } else {
         skill.phase() == FightSkillPhase::Attack
             || skill
-                .slots
+                .siblings()
                 .iter()
                 .any(|slot| matches!(slot.state, SkillState::Attack(_)))
     }
@@ -31,7 +31,7 @@ impl Simulation {
     pub(in crate::fight) fn refresh_group_walls(&mut self, actor_id: u64) {
         let siblings = self.actors[&actor_id]
             .skill
-            .slots
+            .siblings()
             .iter()
             .map(|slot| slot.lock_target)
             .collect::<Vec<_>>();
@@ -49,7 +49,7 @@ impl Simulation {
             .get_mut(&actor_id)
             .expect("actor identity is stable")
             .skill
-            .slots
+            .siblings_mut()
             .iter_mut()
             .zip(found)
         {
@@ -153,10 +153,14 @@ impl Simulation {
         self.replay_group_checker_calls(actor_id);
         let prepare_steps =
             native_time_units_to_steps(self.actors[&actor_id].rules.attack.prepare_time_units());
-        let fusillade = self.actors[&actor_id].rules.attack.weapons.fusillade == Some(true);
+        let fusillade = self.actors[&actor_id].skill.fusillade();
         let cooling_steps =
             native_time_units_to_steps(self.actors[&actor_id].rules.attack.cooling_time_units());
-        let core_blew = self.actors[&actor_id].skill.blow_started_step == Some(step);
+        let core_blew = self.actors[&actor_id]
+            .skill
+            .group
+            .as_ref()
+            .is_some_and(|group| group.core_blow_step == Some(step));
         let skill = &mut self
             .actors
             .get_mut(&actor_id)
@@ -165,7 +169,7 @@ impl Simulation {
         if fusillade && core_entered_attack {
             skill.align_slots_to_core();
         }
-        for slot in 1..self.actors[&actor_id].skill.group_size {
+        for slot in 1..self.actors[&actor_id].skill.group_size() {
             let before = self.actors[&actor_id].skill.sibling(slot).lock_target;
             match self.actors[&actor_id].skill.sibling(slot).state {
                 SkillState::Idle { .. } => {
@@ -268,7 +272,7 @@ impl Simulation {
             .expect("actor identity is stable");
         let after = actor.skill.sibling(slot).lock_target;
         if after != before {
-            actor.skill.mech_lock = after;
+            actor.skill.set_mech_lock(after);
         }
         // `FightSkill.Update` turns a skill's weapons toward its lock
         // after its state has updated, and a weapon fixed to the body
@@ -278,8 +282,9 @@ impl Simulation {
         if actor.rules.attack.weapons.fixed_to_body
             && after.is_some()
             && self.stop_step != Some(step)
+            && let Some(group) = &mut actor.skill.group
         {
-            actor.skill.slot_weapon_rotations_q32[slot - 1] = body_rotation_q32;
+            group.sibling_weapon_rotations_q32[slot - 1] = body_rotation_q32;
         }
     }
 
@@ -294,7 +299,7 @@ impl Simulation {
             .get_mut(&actor_id)
             .expect("actor identity is stable")
             .skill
-            .mech_lock = None;
+            .set_mech_lock(None);
         if cooling_steps > 0 {
             self.actors
                 .get_mut(&actor_id)
@@ -440,7 +445,9 @@ impl Simulation {
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
             actor.skill.next_attack_step = next_attack_step;
-            actor.skill.blow_started_step = Some(step);
+            if let Some(group) = &mut actor.skill.group {
+                group.core_blow_step = Some(step);
+            }
             actor.skill.set_pending(Some(PendingRelease {
                 step,
                 target: target_id,

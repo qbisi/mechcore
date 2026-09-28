@@ -31,7 +31,7 @@ impl Simulation {
             _ => None,
         };
         self.skill_mut(owner).in_the_way = found;
-        if !self.skill(owner).slots.is_empty() {
+        if !self.skill(owner).siblings().is_empty() {
             self.refresh_group_walls(owner.unit_id().expect("only a unit's skill is grouped"));
         }
     }

@@ -59,7 +59,7 @@ impl Construction {
                 } else {
                     180_i64 << 32
                 }],
-                0,
+                None,
                 magazine,
                 performer,
             ),

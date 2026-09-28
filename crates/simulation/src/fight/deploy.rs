@@ -423,9 +423,7 @@ impl Simulation {
                 .get_mut(&actor_id)
                 .expect("initial actor identity is stable");
             actor.skill.lock_target = Some(target);
-            if actor.skill.is_grouped() {
-                actor.skill.mech_lock = Some(target);
-            }
+            actor.skill.set_mech_lock(Some(target));
             actor.set_body_rotation(target_rotation_q32);
             actor.aim_rotation = actor.body_rotation;
             actor.set_weapon_rotation(target_rotation_q32);
@@ -435,7 +433,9 @@ impl Simulation {
         // rotation.
         for actor in self.actors.values_mut() {
             let rotation_q32 = actor.body_rotation_q32;
-            actor.skill.slot_weapon_rotations_q32.fill(rotation_q32);
+            if let Some(group) = &mut actor.skill.group {
+                group.sibling_weapon_rotations_q32.fill(rotation_q32);
+            }
         }
         Ok(())
     }
