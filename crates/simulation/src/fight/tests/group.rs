@@ -1,7 +1,11 @@
 use super::*;
 
 #[test]
-fn grouped_bodyless_selector_scores_the_first_weapon_rotation() {
+fn grouped_bodyless_selector_scores_the_root_rotation() {
+    // A Wraith's weapons turn on their own but carry no transform, so its
+    // search scores from the root: facing 2.68°, the unit at 3 m to the
+    // right is nearer the line than the one 8 m to the left, which its
+    // first weapon, turned to 358.9°, would have chosen.
     let config = SimulationConfig::load().unwrap();
     let layout = CompiledLayout::of_units(
         1,
@@ -24,7 +28,7 @@ fn grouped_bodyless_selector_scores_the_first_weapon_rotation() {
 
     simulation.refresh_target_query_snapshot();
 
-    assert_eq!(simulation.select_normal_unit_target(1).unwrap(), Some(2));
+    assert_eq!(simulation.select_normal_unit_target(1).unwrap(), Some(3));
 }
 
 #[test]
