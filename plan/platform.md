@@ -8,5 +8,5 @@ fight-coverage 挡得最多的理由重排。
 1. **模块广度。** `Modifier` 的等级与装备、`CommanderSkillSystem`、`InterceptSystem`、
    `BuildingSystem`。
 2. **效果表。** 装备、能量塔技能。
-3. **语料层的稀疏验收**，与反应堆伤害、经验两条规则。
+3. **语料层的稀疏验收**，与经验规则。
 4. **平台。** `arena`、`shell --json` 和 `game` 后端。
