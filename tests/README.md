@@ -44,7 +44,7 @@ To pin a fight, record it where the game runs, read the recording back as a
 fight, and put the document under its topic's `fights/`:
 
 ```sh
-mechcore game record <layout> /tmp/mechcore/<topic>/<name>.mcfr --seed <seed>
+mechcore convert <layout> --to mcfr --backend game /tmp/mechcore/<topic>/<name>.mcfr --seed <seed>
 mechcore convert /tmp/mechcore/<topic>/<name>.mcfr --to fight tests/<topic>/fights/<name>.yaml
 ```
 

@@ -184,7 +184,7 @@ is rejected unless the script declares `game: launch`.
 game: launch
 level: 0
 steps:
-  - game.record: {input: $grbr, round: 2, output: $out/replay.mcfr}
+  - convert: {input: $grbr, to: mcfr, backend: game, round: 2, output: $out/replay.mcfr}
 ```
 
 A gameless script is the normal case for comparison work:

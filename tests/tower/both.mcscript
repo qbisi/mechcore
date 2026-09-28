@@ -16,6 +16,8 @@ steps:
       fights: [both-towers-0-0, both-towers-0-4]
   - foreach: {fight: $fights}
     steps:
-      - game.record:
+      - convert:
+          to: mcfr
+          backend: game
           input: tests/tower/fights/${fight}.yaml
           output: ${out}/${fight}.mcfr

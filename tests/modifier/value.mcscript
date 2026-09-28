@@ -34,7 +34,9 @@ steps:
       none: tests/modifier/fights/officer-range-none.yaml
       ranged: tests/modifier/fights/officer-range-value.yaml
 
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: $none
       output: ${out}/range-none.mcfr
     expect:
@@ -46,7 +48,9 @@ steps:
     expect:
       sides.red.survivors.0.life: 16377
 
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: $ranged
       output: ${out}/range-value.mcfr
     expect:

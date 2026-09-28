@@ -43,7 +43,9 @@ steps:
           seed: $seed
       - game.record:
           output: ${out}/${case.name}-training-ground.mcfr
-      - game.record:
+      - convert:
+          to: mcfr
+          backend: game
           input: $layout
           seed: $seed
           output: ${out}/${case.name}-headless.mcfr

@@ -52,7 +52,9 @@ steps:
 
   # One impairment. The two rules agree here, so a disagreement is the
   # pipeline rather than the arithmetic, and the run should stop.
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: $once
       output: ${out}/impair-once.mcfr
     expect:
@@ -71,7 +73,9 @@ steps:
       sides.red.0.unit.life_rate.reduce: 472446402
 
   # Two impairments. This is the measurement.
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: $twice
       output: ${out}/impair-twice.mcfr
     expect:

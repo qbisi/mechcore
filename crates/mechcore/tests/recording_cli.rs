@@ -627,3 +627,80 @@ fn buildings_read_the_towers_a_map_gives_each_side() {
         );
     }
 }
+
+/// A fight document converts to the recording of the fight it states: its
+/// projection, fought with its own seed, lands on the hash it pins.
+#[test]
+fn a_fight_converts_to_the_recording_it_pins() {
+    let fight = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/regression/fights/marksman-vs-arclight.yaml");
+    let command = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .args(["convert", "--to", "mcfr"])
+        .arg(&fight)
+        .output()
+        .unwrap();
+    assert!(
+        command.status.success(),
+        "{}",
+        String::from_utf8_lossy(&command.stdout)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&command.stdout).unwrap();
+    let document: serde_yaml::Value =
+        serde_yaml::from_str(&fs::read_to_string(&fight).unwrap()).unwrap();
+    assert_eq!(
+        report["hashes"]["result_hash"].as_str(),
+        document["hash"]["result"].as_str()
+    );
+    let seeded = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .args(["convert", "--to", "mcfr", "--seed", "7"])
+        .arg(&fight)
+        .output()
+        .unwrap();
+    assert!(!seeded.status.success(), "a fight states its own seed");
+}
+
+/// What the game fights is a recording to write, and what the simulator does
+/// not open is refused rather than attempted; none of these reaches a game.
+#[test]
+fn the_game_backend_fights_into_a_recording_only() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let layout = root.join("layouts/marksman-vs-arclight.yaml");
+    let refused = |arguments: &[&str]| {
+        let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+            .args(arguments)
+            .output()
+            .unwrap();
+        assert!(!output.status.success(), "{arguments:?}");
+        format!(
+            "{}{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        )
+    };
+    let layout = layout.to_str().unwrap();
+    assert!(
+        refused(&[
+            "convert",
+            layout,
+            "--to",
+            "grbr",
+            "--backend",
+            "game",
+            "/tmp/x.grbr"
+        ])
+        .contains("--to mcfr")
+    );
+    assert!(refused(&["convert", layout, "--to", "mcfr", "--backend", "game"]).contains("name it"));
+    assert!(
+        refused(&[
+            "convert",
+            layout,
+            "--to",
+            "mcfr",
+            "--instrument",
+            "target_refs"
+        ])
+        .contains("--backend game")
+    );
+    assert!(refused(&["game", "record", layout, "/tmp/x.mcfr"]).contains("--backend game"));
+}

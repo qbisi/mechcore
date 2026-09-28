@@ -21,11 +21,15 @@ vars:
 steps:
   - let:
       fight: tests/turret/fights/anti-armor-arclights.yaml
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: $fight
       output: ${out}/anti-armor-arclights.mcfr
       instrument: [target_refs]
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: $fight
       output: ${out}/control.mcfr
   - diff:

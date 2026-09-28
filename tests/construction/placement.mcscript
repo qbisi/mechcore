@@ -31,7 +31,9 @@ vars:
   out: /tmp/mechcore/construction/placement
 
 steps:
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: tests/construction/fights/wall-aside.yaml
       output: ${out}/aside.mcfr
     expect:

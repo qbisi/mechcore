@@ -37,7 +37,9 @@ steps:
 
   - foreach: {fight: $fights}
     steps:
-      - game.record:
+      - convert:
+          to: mcfr
+          backend: game
           input: $fight
           output: ${out}/${fight}.mcfr
           instrument: [target_refs]

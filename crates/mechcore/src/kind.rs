@@ -144,8 +144,7 @@ impl Kind {
     /// reaches.
     pub(crate) const fn verbs(self) -> &'static [&'static str] {
         match self {
-            Self::Layout => &["verify", "convert", "diff", "format"],
-            Self::Fight => &["verify", "diff", "format"],
+            Self::Layout | Self::Fight => &["verify", "convert", "diff", "format"],
             Self::Match => &["verify", "convert"],
             Self::State | Self::Action => &[],
             Self::Mcfr => &["verify", "convert", "diff", "show"],
@@ -165,11 +164,18 @@ impl Kind {
                 (Self::Grbr, Conversion::Rewrite),
                 (Self::Layout, Conversion::Rewrite),
             ],
-            Self::Grbr => &[(Self::Match, Conversion::Rewrite)],
+            // A replay's round is fought by the game alone; the simulator does
+            // not open a replay.
+            Self::Grbr => &[
+                (Self::Match, Conversion::Rewrite),
+                (Self::Mcfr, Conversion::Computation),
+            ],
             // What a recording holds of its fight, written onto the layout it
             // embeds: read, not computed.
             Self::Mcfr => &[(Self::Fight, Conversion::Rewrite)],
-            Self::State | Self::Action | Self::Fight => &[],
+            // A fight is fought again from its projection and its own seed.
+            Self::Fight => &[(Self::Mcfr, Conversion::Computation)],
+            Self::State | Self::Action => &[],
         }
     }
 
@@ -256,6 +262,14 @@ mod tests {
         );
         assert_eq!(
             Kind::Layout.conversion(Kind::Fight),
+            Some(Conversion::Computation)
+        );
+        assert_eq!(
+            Kind::Fight.conversion(Kind::Mcfr),
+            Some(Conversion::Computation)
+        );
+        assert_eq!(
+            Kind::Grbr.conversion(Kind::Mcfr),
             Some(Conversion::Computation)
         );
         assert!(Kind::Fight.require("verify").is_ok());

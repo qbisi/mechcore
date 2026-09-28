@@ -2,7 +2,7 @@
 
 Does a layout fought without a scene fight as the Training Ground fights it?
 `mechcore convert <layout.yaml> --to grbr <replay.grbr>` writes a layout as a
-replay whose round is the layout, and `game.record` with a layout records the game
+replay whose round is the layout, and `convert --to mcfr --backend game` records the game
 fighting that round headlessly
 ([layout-replay.md](../../docs/spec/document/layout-replay.md)). This
 directory holds the evidence that the two recordings are the same fight.

@@ -30,6 +30,36 @@ pub(crate) struct Request {
     pub(crate) round: Option<i32>,
     /// Whether an existing output is replaced rather than refused.
     pub(crate) force: bool,
+    /// Who fights a computation into a recording.
+    pub(crate) backend: Backend,
+    /// The instrument channels the game records into it.
+    pub(crate) instrument: Vec<mechcore_protocol::InstrumentChannel>,
+}
+
+/// Who fights a file into a recording: the simulator this binary carries, or
+/// the game, headless, through the Adapter.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum Backend {
+    #[default]
+    Simulator,
+    Game,
+}
+
+impl Backend {
+    /// The backend `--backend` names.
+    ///
+    /// # Errors
+    ///
+    /// Returns a usage failure for a name that is no backend.
+    pub(crate) fn parse(name: &str) -> Result<Self, Failure> {
+        match name {
+            "simulator" => Ok(Self::Simulator),
+            "game" => Ok(Self::Game),
+            other => Err(Failure::usage(format!(
+                "no backend is called {other:?}; the backends are simulator and game"
+            ))),
+        }
+    }
 }
 
 /// What a conversion answers.
@@ -52,6 +82,11 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
     let force = arguments.flag("--force")?;
     let seed = arguments.parsed::<i32>("--seed", "a signed 32-bit integer")?;
     let round = arguments.parsed::<i32>("--round", "a round number")?;
+    let backend = arguments
+        .value("--backend")?
+        .map_or(Ok(Backend::Simulator), |name| Backend::parse(&name))?;
+    let instrument = crate::game::instrument(&mut arguments)?;
+    let level = crate::acquire::level(&mut arguments)?;
     let to = arguments
         .value("--to")?
         .ok_or_else(|| Failure::usage("expected --to <kind>: the kind to convert to"))?;
@@ -63,14 +98,20 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
         Some(arguments.path("the file to write")?)
     };
     arguments.finish()?;
-    let answer = convert(&Request {
+    let request = Request {
         input,
         to,
         output,
         seed,
         round,
         force,
-    })?;
+        backend,
+        instrument,
+    };
+    if backend == Backend::Game {
+        return crate::game::record_attached(recorded(&request)?, force, level);
+    }
+    let answer = convert(&request)?;
     match answer {
         Answer::Document(text) => print!("{text}"),
         Answer::Report {
@@ -103,6 +144,16 @@ pub(crate) fn parse_kind(name: &str) -> Result<Kind, Failure> {
 /// pair does not take, an existing destination without `force`, and whatever
 /// the conversion itself refuses.
 pub(crate) fn convert(request: &Request) -> Result<Answer, Failure> {
+    if request.backend == Backend::Game {
+        return Err(Failure::usage(
+            "the game fights a file into a recording in a session; see recorded()",
+        ));
+    }
+    if !request.instrument.is_empty() {
+        return Err(Failure::usage(
+            "--instrument records what the game did; it takes --backend game",
+        ));
+    }
     let (from, bytes) = Kind::read(&request.input)?;
     let how = from.conversion(request.to).ok_or_else(|| {
         let reaches = from
@@ -122,7 +173,10 @@ pub(crate) fn convert(request: &Request) -> Result<Answer, Failure> {
         })
     })?;
     let takes_seed = from == Kind::Layout;
-    let takes_round = (from, request.to) == (Kind::Match, Kind::Layout);
+    let takes_round = matches!(
+        (from, request.to),
+        (Kind::Match, Kind::Layout) | (Kind::Grbr, Kind::Mcfr)
+    );
     if request.seed.is_some() && !takes_seed {
         return Err(Failure::usage(format!(
             "--seed belongs to a layout; a {} states its own",
@@ -170,6 +224,11 @@ pub(crate) fn convert(request: &Request) -> Result<Answer, Failure> {
         (Kind::Layout, Kind::Mcfr) => simulate(&request.input, request.seed, output),
         (Kind::Mcfr, Kind::Fight) => written(crate::outcome::fight(&request.input)?, output),
         (Kind::Layout, Kind::Fight) => fight(&request.input, request.seed, output),
+        (Kind::Fight, Kind::Mcfr) => simulate_fight(&bytes, output),
+        (Kind::Grbr, Kind::Mcfr) => Err(Failure::refused(
+            "the simulator does not open a replay; the game fights its round with \
+             --backend game --round <n>",
+        )),
         _ => unreachable!("every pair the kind table names is converted here"),
     }
 }
@@ -466,6 +525,57 @@ fn fight(layout: &Path, seed: Option<i32>, output: Option<&Path>) -> Result<Answ
         fought(|record| mechcore_simulation::simulate_layout(layout, record, seed))?,
         output,
     )
+}
+
+/// A fight document fought again by the simulator, from its projection and
+/// the seed it states.
+fn simulate_fight(bytes: &[u8], output: Option<&Path>) -> Result<Answer, Failure> {
+    let fight = mechcore_document::fight::parse_yaml(bytes).map_err(Failure::refused)?;
+    let layout = mechcore_document::canonical_yaml(mechcore_document::fight::project(&fight))
+        .map_err(Failure::failed)?;
+    let staged = tempfile::Builder::new()
+        .suffix(".yaml")
+        .tempfile()
+        .map_err(|error| Failure::failed(format!("cannot stage the fight's layout: {error}")))?;
+    write(staged.path(), layout)?;
+    simulate(staged.path(), None, output)
+}
+
+/// What the game records of a file `--backend game` names: the same pairs
+/// the simulator converts into a recording, and a replay's round, which only
+/// the game opens.
+///
+/// # Errors
+///
+/// Returns a usage failure for anything but a recording to write, and
+/// whatever the recording request refuses.
+pub(crate) fn recorded(request: &Request) -> Result<crate::game::Record, Failure> {
+    if request.to != Kind::Mcfr {
+        return Err(Failure::usage(format!(
+            "the game fights a file into a recording: --to mcfr, not --to {}",
+            request.to.name()
+        )));
+    }
+    let output = request
+        .output
+        .clone()
+        .ok_or_else(|| Failure::usage("the game writes its recording to a file; name it"))?;
+    let (from, _) = Kind::read(&request.input)?;
+    if from.conversion(Kind::Mcfr).is_none() {
+        return Err(Failure::refused(format!(
+            "a {} file is not fought into a recording",
+            from.name()
+        )));
+    }
+    crate::game::RecordRequest {
+        input: Some(request.input.clone()),
+        output: Some(output),
+        seed: request.seed,
+        round: request.round,
+        instrument: request.instrument.clone(),
+        ..crate::game::RecordRequest::default()
+    }
+    .decide()
 }
 
 /// The fight document the simulator fights a layout into: `simulate` keeps

@@ -63,7 +63,8 @@ does not hold by running the fight. Without `<out>` a conversion to a
 document, a layout or a fight, answers the document on standard output, and a
 computation to a recording answers its result and writes nothing. Every other
 rewrite requires `<out>`, because what it answers is a report of the file it
-wrote.
+wrote. A computation into a recording is fought by the simulator this binary
+carries, or with `--backend game` by the game.
 
 **`man <kind>` lists the verbs a kind takes**, from the same table the verbs
 are refused by, ahead of the document that describes the kind.
@@ -90,12 +91,12 @@ refused rather than guessed at.
 | Kind | `verify` | `convert --to` | `diff` | `show --view` | `format` |
 | --- | --- | --- | --- | --- | --- |
 | `layout` | yes | `grbr` (rewrite), `mcfr` (computation), `fight` (computation) | yes | — | yes |
-| `fight` | yes | — | yes | — | yes |
+| `fight` | yes | `mcfr` (computation) | yes | — | yes |
 | `match` | yes | `grbr` (rewrite), `layout` (rewrite) | — | — | — |
 | `state` | — | — | — | — | — |
 | `action` | — | — | — | — | — |
 | `mcfr` | yes | `fight` (rewrite) | yes | `outcome`, `stats`, `buildings` | — |
-| `grbr` | — | `match` (rewrite) | — | — | — |
+| `grbr` | — | `match` (rewrite), `mcfr` (computation, the game alone) | — | — | — |
 
 A state and an action are read inside a match, which is what verifies them.
 `schema` names a
@@ -251,6 +252,36 @@ answers its path and round.
 the terminal structure of the fight, its hashes and its profiling. With
 `<out>` it also writes the recording there, which [mcfr.md](../mcfr/mcfr.md)
 defines.
+
+**`fight` to `mcfr`, a computation.** Fights a fight document's projection
+with the seed the document states, which is why it takes no `--seed`: the
+fight whose result the document is.
+
+**`grbr` to `mcfr`, a computation the game alone makes.** Fights one round of
+a replay, `--round <n>`. The simulator does not open a replay, so without
+`--backend game` it is refused.
+
+**Who fights a computation into a recording.** `--backend simulator`, the
+default, fights with the simulator this binary carries. `--backend game`
+fights in the game, headless, through the Adapter, and writes what the game
+recorded; it requires `<out>`, takes `--instrument a,b`, the instrument
+channels to record into the MCFR by name
+([mcfr.md](../mcfr/mcfr.md#instrument-channels)), and, as a command, joins a
+game somebody started, with the `--level` the [`game`](#game) namespace's
+commands take. A run step names it `backend: game`, and the run declares a
+game for it as it does for `game.*`. A client that finds the game served
+waits a moment for the holder to go before it is refused, so a pipeline of
+commands records one fight after another.
+
+A layout fought in the game is written as a replay, as `convert --to grbr`
+writes it, and that replay's round is recorded as a replay's round is, so it
+is fought and recorded without a Training Ground: the game fights it without a
+scene, from the main menu and back to it. It answers what a replay's round
+answers, with the layout it was given as `layout_input`. The game can refuse a
+decision the replay records and fight on without it, so the recording is held
+to the layout the game read back as the fight began: when the two differ in
+any field, once both are in normal form, the recording is removed and the
+refusal names the fields.
 
 **`mcfr` to `fight`, a rewrite.** Reads a recording for what its fight decided
 and writes it onto the layout the recording embeds, as the
@@ -695,39 +726,20 @@ under the names that protocol gives them: `status`, `start_test`,
 `apply_layout`, `toggle_fight`, `speed_up`, `quit_match` and `quit_game`. Each
 takes the argument object that protocol defines and answers what it answers.
 
-The protocol's four recording operations are one verb here, `game record`,
-because what differs between them is what is recorded, and that is its input:
+`game record` records what is not a file: the scene or a match the server
+makes. A layout, a fight or a replay's round is a file, and it is fought into a
+recording by [`convert --to mcfr --backend game`](#convert); `game record`
+given one refuses and says so.
 
 | Command | What it records | Protocol operation |
 | --- | --- | --- |
 | `game record <out.mcfr>` | the fight staged in the current scene | `record_fight` |
-| `game record <layout> <out.mcfr>` | a layout, fought without a scene | `record_replay_round`, over the layout as a replay |
-| `game record <fight> <out.mcfr>` | a fight's projection, with its seed, as a layout is | `record_replay_round`, over the projection as a replay |
-| `game record <replay.grbr> <out.mcfr> --round <n>` | one round of a replay | `record_replay_round` |
 | `game record --watch` | a live standard 1v1 the server makes | `record_watch_replay` |
 
-The input's kind is read from what it holds, as a file verb reads it, and an
-input of another kind is refused. Each form takes the options of the operation
-it reaches and refuses the others: the current scene takes `--video <file>` and
-`--no-speed-up`, a layout takes `--seed`, a fight takes none, since its result
-is its own seed's, a replay requires `--round`, and a
-watch takes `--output-dir`, `--wait-for-scene-seconds` and
-`--match-timeout-seconds`. Every form but the watch takes `--instrument a,b`,
-the instrument channels to record into the MCFR by name
-([mcfr.md](../mcfr/mcfr.md#instrument-channels)), and `--force` to replace an
-existing recording.
-
-A layout is written as a replay, as `convert --to grbr` writes it, and that
-replay's round is recorded as a replay's round is, so a layout is fought and
-recorded without a Training Ground: the game fights it without a scene, from
-the main menu and back to it. `--seed` overrides the layout's own seed, which a
-replay needs. It answers what a replay's round answers, with the layout it was
-given as `layout_input`. The game can refuse a decision the replay records and
-fight on without it, so the recording is held to the layout the game read back
-as the fight began, as a staged layout is: when the two differ in any field,
-once both are in normal form, the recording is removed and the refusal names
-the fields. `apply_layout` and a recording of the current scene remain the way
-to fight a layout the replay cannot state and to record a video.
+The scene takes `--video <file>`, `--no-speed-up`, `--instrument a,b` and
+`--force`; a watch takes `--output-dir`, `--wait-for-scene-seconds` and
+`--match-timeout-seconds`. `apply_layout` and a recording of the scene remain
+the way to fight a layout a replay cannot state and to record a video.
 
 A [fight](../document/fight.md) document is recorded as its projection is,
 with the seed it states, so one file both records a fight and, once its result

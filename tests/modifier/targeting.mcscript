@@ -22,13 +22,17 @@ steps:
       none: tests/modifier/fights/targeting-ranged-none.yaml
       ranged: tests/modifier/fights/targeting-ranged.yaml
 
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: $none
       output: ${out}/ranged-none.mcfr
     expect:
       operation.tick_count: 144
 
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: $ranged
       output: ${out}/ranged.mcfr
     expect:

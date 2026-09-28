@@ -30,7 +30,9 @@ vars:
 steps:
   # A shot at block 5 at tick 47 takes two Crawlers standing on it and the
   # block, 365, the block's damage event between theirs: 17 of 1112 are left.
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: tests/construction/fights/wall-splash.yaml
       output: ${out}/splash.mcfr
     expect:
@@ -43,14 +45,18 @@ steps:
       sides.blue.constructions.0.parts.2.id: 5
       sides.blue.constructions.0.parts.2.life.current: 17
 
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: tests/construction/fights/wall-splash-line.yaml
       output: ${out}/line.mcfr
     expect:
       operation.tick_count: 161
 
   # A shot aimed at Crawler 24 at tick 77 takes block 5 behind it for 365.
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: tests/construction/fights/wall-splash-behind.yaml
       output: ${out}/behind.mcfr
     expect:

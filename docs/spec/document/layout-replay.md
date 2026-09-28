@@ -4,7 +4,7 @@
 
 A layout replay is a `.grbr` file that states one [layout](layout.md) as a
 replay the game fights. `mechcore convert <layout.yaml> --to grbr <replay.grbr>`
-writes it, `game record <layout.yaml> <out.mcfr>` writes one and records it, and the Adapter's
+writes it, `convert <layout.yaml> --to mcfr --backend game <out.mcfr>` writes one and records it, and the Adapter's
 `record_replay_round` fights it as it fights any replay
 ([adapter.md](../adapter/adapter.md#record_replay_round)).
 

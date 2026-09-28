@@ -41,7 +41,9 @@ steps:
   - let:
       shape: read_yaml(tests/construction/shape.yaml)
 
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: $shape
       seed: $seed
       output: ${out}/shape.mcfr

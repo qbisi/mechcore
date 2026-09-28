@@ -35,8 +35,10 @@ vars:               # optional
   grbr: work/replay/replays/<version>/example.grbr
   out: /tmp/mechcore/example
 steps:              # required, at least one
-  - game.record:
+  - convert:
       input: $grbr
+      to: mcfr
+      backend: game
       round: 2
       output: $out/replay.mcfr
 ```
@@ -109,13 +111,13 @@ than redefining them.
 | --- | --- | --- |
 | `let` | no | binds names; see built-ins below |
 | `verify` | no | `input`, a file or a list of files; every report `mechcore verify` writes, in one result |
-| `convert` | no | `input`, `to`, optional `output`, `seed`, `round`; the same result as `mechcore convert` |
+| `convert` | no, yes with `backend: game` | `input`, `to`, optional `output`, `seed`, `round`, `backend`, `instrument`; the same result as `mechcore convert` |
 | `diff` | no | `left`, `right`, optional `fields` (a group or a list of groups) and `tick`; the same report as `mechcore diff` |
 | `show` | no | `input`, `view`, optional `tick`; the same answer as `mechcore show` |
 | `game.status` | yes | current status snapshot |
 | `game.start_test` | yes | optional `seed`, `map_id`; rarely needed, see `game.apply_layout` |
 | `game.apply_layout` | yes | the layout object, or `{layout, seed}` |
-| `game.record` | yes | what `game record` records, by its input; see below |
+| `game.record` | yes | the scene or a watched match, as `game record` records them; see below |
 | `game.toggle_fight` | yes | |
 | `game.speed_up` | yes | standalone operation, distinct from the recording field |
 | `game.quit_match` | yes | |
@@ -125,19 +127,17 @@ than redefining them.
 | `game.quit_game` | yes | |
 
 `game.record` takes the fields of the form of [`game record`](cli.md#game) it
-reaches, which its input decides:
+reaches:
 
 | Fields | What it records |
 | --- | --- |
 | `output`, optional `video_output`, `speed_up`, `instrument` | the fight staged in the current scene |
-| `input` a layout, `output`, optional `seed`, `instrument` | the layout, fought without a scene |
-| `input` a fight, `output`, optional `instrument` | the fight's projection, with its seed, as a layout is |
-| `input` a replay, `round`, `output`, optional `instrument` | one round of the replay |
 | `watch: true`, optional `output_dir`, `wait_for_scene_seconds`, `match_timeout_seconds` | one live standard 1v1 |
 
-`input` is a path, whose kind the file itself says, or a layout or a fight
-given whole, as `read_yaml` and `embedded_layout` bind one; a document given
-whole is a fight when its `kind` says so.
+A layout, a fight or a replay's round is a file, and a `convert` step with
+`to: mcfr` and `backend: game` fights it in the run's game, as
+[`convert --backend game`](cli.md#convert) does; `game.record` given an
+`input` refuses and says so.
 
 A step that writes a file refuses to overwrite it, and a script does not
 declare otherwise. The destinations are every path `game.record` and `convert`
@@ -281,7 +281,7 @@ empty list.
 without a separate conversion step:
 
 ```yaml
-- game.record: {input: $grbr, round: 2, output: $out/replay.mcfr}
+- convert: {input: $grbr, to: mcfr, backend: game, round: 2, output: $out/replay.mcfr}
 - let:
     layout: embedded_layout($out/replay.mcfr)
 - game.start_test: {seed: $layout.seed}
@@ -470,8 +470,10 @@ vars:
   out: /tmp/mechcore/tuff-replay-vs-training
 
 steps:
-  - game.record:
+  - convert:
       input: $grbr
+      to: mcfr
+      backend: game
       round: 2
       output: $out/replay.mcfr
   - let:
@@ -508,8 +510,10 @@ steps:
   - let: {fights: glob(tests/regression/fights/*.yaml)}
   - foreach: {fight: $fights}
     steps:
-      - game.record:
+      - convert:
           input: $fight
+          to: mcfr
+          backend: game
           output: $out/${fight}.mcfr
       - convert:
           input: $out/${fight}.mcfr
@@ -522,7 +526,7 @@ steps:
           equal: true
 ```
 
-A fight states its own seed, so `game.record` takes none, and the recording
+A fight states its own seed, so the recording `convert` takes none, and the recording
 read back by `convert --to fight` is a document of the same kind as the
 fixture, which `diff` compares field by field. `glob` answers paths a script
 cannot take apart, so each output lands under `out` at its fixture's own

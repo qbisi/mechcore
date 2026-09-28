@@ -42,7 +42,9 @@ steps:
 
   - foreach: {fight: $fights}
     steps:
-      - game.record:
+      - convert:
+          to: mcfr
+          backend: game
           input: $fight
           output: ${out}/${fight}.mcfr
 
@@ -50,7 +52,9 @@ steps:
     steps:
       - let:
           layout: read_yaml(${fight.layout})
-      - game.record:
+      - convert:
+          to: mcfr
+          backend: game
           input: $layout
           seed: ${fight.seed}
           output: ${out}/${fight.unit}/${fight.name}-${fight.seed}.mcfr

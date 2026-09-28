@@ -37,7 +37,9 @@ steps:
   - let:
       ranged: tests/modifier/fights/technology-range.yaml
 
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: $ranged
       output: ${out}/technology-range.mcfr
     expect:
