@@ -492,35 +492,45 @@ fn compile_standing_oil(side_name: &str, areas: &[OilArea]) -> Result<(), String
         {
             return Err(format!("{at} path does not overlap the battlefield"));
         }
-        for (&point_index, rows) in &area.grid_rows {
-            if point_index >= OIL_TERRAIN_POINT_COUNT {
+        validate_grid_rows(&at, &area.grid_rows)?;
+    }
+    Ok(())
+}
+
+/// Checks a Sticky Oil Bomb area's `grid_rows`: which of the seven generated
+/// points survive, and each one's shield-clipped mask when it is not whole.
+pub(crate) fn validate_grid_rows(
+    at: &str,
+    grid_rows: &std::collections::BTreeMap<u32, Vec<u32>>,
+) -> Result<(), String> {
+    for (&point_index, rows) in grid_rows {
+        if point_index >= OIL_TERRAIN_POINT_COUNT {
+            return Err(format!(
+                "{at} grid_rows point index {point_index} must be within 0..{}",
+                OIL_TERRAIN_POINT_COUNT - 1
+            ));
+        }
+        if rows.is_empty() {
+            continue;
+        }
+        if rows.len() != OIL_TERRAIN_GRID_SIZE {
+            return Err(format!(
+                "{at} grid_rows[{point_index}] must be empty or contain exactly \
+                 {OIL_TERRAIN_GRID_SIZE} rows"
+            ));
+        }
+        for (row_index, &row) in rows.iter().enumerate() {
+            if row & !OIL_TERRAIN_GRID_MASK != 0 {
                 return Err(format!(
-                    "{at} grid_rows point index {point_index} must be within 0..{}",
-                    OIL_TERRAIN_POINT_COUNT - 1
+                    "{at} grid_rows[{point_index}][{row_index}] uses bits outside width \
+                     {OIL_TERRAIN_GRID_SIZE}"
                 ));
             }
-            if rows.is_empty() {
-                continue;
-            }
-            if rows.len() != OIL_TERRAIN_GRID_SIZE {
-                return Err(format!(
-                    "{at} grid_rows[{point_index}] must be empty or contain exactly \
-                     {OIL_TERRAIN_GRID_SIZE} rows"
-                ));
-            }
-            for (row_index, &row) in rows.iter().enumerate() {
-                if row & !OIL_TERRAIN_GRID_MASK != 0 {
-                    return Err(format!(
-                        "{at} grid_rows[{point_index}][{row_index}] uses bits outside width \
-                         {OIL_TERRAIN_GRID_SIZE}"
-                    ));
-                }
-            }
-            if rows.iter().all(|&row| row == 0) {
-                return Err(format!(
-                    "{at} grid_rows[{point_index}] must activate at least one cell"
-                ));
-            }
+        }
+        if rows.iter().all(|&row| row == 0) {
+            return Err(format!(
+                "{at} grid_rows[{point_index}] must activate at least one cell"
+            ));
         }
     }
     Ok(())

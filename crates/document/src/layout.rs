@@ -312,12 +312,18 @@ impl OilArea {
     /// Drops a `grid_rows` that says every point survives whole, which is what
     /// an absent one says.
     pub(crate) fn normalize_grid_rows(&mut self) {
-        if self.grid_rows.len() == OIL_TERRAIN_POINT_COUNT as usize
-            && (0..OIL_TERRAIN_POINT_COUNT)
-                .all(|index| self.grid_rows.get(&index).is_some_and(Vec::is_empty))
-        {
-            self.grid_rows.clear();
-        }
+        normalize_grid_rows(&mut self.grid_rows);
+    }
+}
+
+/// Drops a Sticky Oil Bomb's `grid_rows` that says every point survives
+/// whole, which is what an absent one says.
+pub(crate) fn normalize_grid_rows(grid_rows: &mut BTreeMap<u32, Vec<u32>>) {
+    if grid_rows.len() == OIL_TERRAIN_POINT_COUNT as usize
+        && (0..OIL_TERRAIN_POINT_COUNT)
+            .all(|index| grid_rows.get(&index).is_some_and(Vec::is_empty))
+    {
+        grid_rows.clear();
     }
 }
 
@@ -388,14 +394,14 @@ impl Standing {
 /// How a `battle_skills` entry is written.
 #[derive(Clone, Deserialize, Serialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
-struct BattleSkillFields {
-    name: String,
+pub(crate) struct BattleSkillFields {
+    pub(crate) name: String,
     /// This round's release, at these positions in order.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    positions: Option<Vec<Position>>,
+    pub(crate) positions: Option<Vec<Position>>,
     /// What an earlier round's release left standing.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    standing: Option<Standing>,
+    pub(crate) standing: Option<Standing>,
 }
 
 impl TryFrom<BattleSkillFields> for BattleSkillEntry {
