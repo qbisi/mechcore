@@ -78,6 +78,7 @@ pub(in crate::fight) fn rvo_position(x_q32: i64, z_q32: i64) -> FixedVec2 {
 
 pub(in crate::fight) fn turn_limited_move_speed_q32(
     base_speed_q32: i64,
+    free_move: bool,
     rotate_speed_mdeg_per_second: i64,
     body_rotation_q32: i64,
     velocity_x_q32: i64,
@@ -87,7 +88,9 @@ pub(in crate::fight) fn turn_limited_move_speed_q32(
     const HALF_ROTATION_Q32: i64 = 180_i64 << 32;
     const MIN_SPEED_FACTOR_Q32: i64 = 0x028f_5c28;
 
-    if base_speed_q32 <= 0 || rotate_speed_mdeg_per_second >= 180_000 {
+    // `MotionController.CalculateMoveSpeed` answers a free-moving unit's
+    // full speed before it looks at the turn.
+    if free_move || base_speed_q32 <= 0 || rotate_speed_mdeg_per_second >= 180_000 {
         return base_speed_q32.max(0);
     }
     if velocity_x_q32 == 0 && velocity_z_q32 == 0 {
@@ -1028,6 +1031,7 @@ impl Simulation {
         }
         actor.motion.next_speed_q32 = turn_limited_move_speed_q32(
             actor.stats.move_speed_q32(),
+            actor.rules.free_move,
             actor.rules.rotate_speed_mdeg_per_second(),
             actor.body_rotation_q32,
             actor.motion.current_velocity_x_q32,

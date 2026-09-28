@@ -65,6 +65,10 @@ pub(crate) struct UnitConfig {
     pub(crate) move_speed: f64,
     pub(crate) rotate_speed: f64,
     pub(crate) has_body: bool,
+    /// `FightMech.isFreeMove`, which `MechData.PreProcess` sets for a few
+    /// ids: such a unit moves at its full speed whichever way it faces.
+    #[serde(default)]
+    pub(crate) free_move: bool,
     pub(crate) independent_aim: Option<bool>,
     pub(crate) rvo: RvoConfig,
     pub(crate) attack: AttackConfig,

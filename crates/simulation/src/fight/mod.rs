@@ -662,6 +662,7 @@ impl Simulation {
                     actor.motion.next_target_z_q32 = move_target_z_q32;
                     actor.motion.next_speed_q32 = turn_limited_move_speed_q32(
                         actor.stats.move_speed_q32(),
+                        actor.rules.free_move,
                         actor.rules.rotate_speed_mdeg_per_second(),
                         actor.body_rotation_q32,
                         actor.motion.current_velocity_x_q32,

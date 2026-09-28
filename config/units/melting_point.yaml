@@ -13,6 +13,7 @@ collision_radius: 13
 move_speed: 6
 rotate_speed: 60
 has_body: true
+free_move: true
 independent_aim: false
 rvo: {outer_radius: 16, inner_radius: 8, size: xl, collider_priority: 9, priority: 0.009}
 

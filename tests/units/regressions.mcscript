@@ -698,6 +698,13 @@ steps:
       hashes.physics_result_hash: b67f520f4a36fe31a51cb448fa19012de6e413a5b2a401d9e3e1c15eda4febbc
       hashes.content_result_hash: d50b2964c4cc90fc9709b032e980535e67ce08dc9d683912a40591f926133e34
   - fight.run:
+      layout: tests/units/wraith/m3-crawler.yaml
+      seed: 1787720817
+    expect:
+      steps: 201
+      hashes.physics_result_hash: f5fe28b49d0552696cb69e4abaa82a32cc46f3fc78f0069745c6f8e710048f32
+      hashes.content_result_hash: d547c9e1fd4dc60651ff541fd8fa5edaa5e20094f76823c197238edf0c72890d
+  - fight.run:
       layout: tests/units/wraith/m4-marksman.yaml
       seed: 4242
     expect:

@@ -8,6 +8,8 @@ A unit's configuration joins four of the build's tables, as
 
 * `ConfigDataContainer.mechDatas`: life, damage, collision radius, move and
   rotate speed, whether it flies and whether it has a body, and `mainSkillID`.
+  `isFreeMove` is not read from the table, where it is false for every unit:
+  `MechData.PreProcess` sets it on load for the ids in `FREE_MOVE_IDS`.
 * `ConfigDataContainer.cardDatas`, the row whose `mechID` is the unit: how many
   members a formation has, their slot size and the formation's footprint.
 * `MechSkillGroupData`, the main skill's row, and the list it is in, which is
@@ -35,6 +37,14 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 UNITS = ROOT / "config" / "units"
 ONE = 1 << 32
 SIZES = {0: "xs", 1: "s", 2: "m", 3: "l", 4: "xl", 5: "xxl"}
+# `MechData.PreProcess` sets `isFreeMove` for an id of at most 54 whose bit is
+# set in the literal 0x40000000040010: the Melting Point, the Wraith and the
+# id 54 unit. The table's own column is false for every unit.
+FREE_MOVE_MASK = 0x40000000040010
+
+
+def free_move(unit):
+    return unit <= 54 and bool(FREE_MOVE_MASK >> unit & 1)
 
 
 def raw(value):
@@ -122,6 +132,8 @@ def render(mech, card, kind, skill, rvo, type_name):
         f"rotate_speed: {grid(mech['rotateSpeed'], 1000)}",
         f"has_body: {boolean(mech['isHaveBody'])}",
     ]
+    if free_move(unit):
+        lines.append("free_move: true")
     if mech["isHaveBody"]:
         lines.append("independent_aim: false")
     lines += [
