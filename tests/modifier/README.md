@@ -61,11 +61,11 @@ Normal selector takes the Rhino rather than a building.
 | `fights/officer-speed-twice.yaml` | **two integers sum, rather than the larger winning** | ends at tick 92 |
 | `fights/technology-range.yaml` | a technology and an officer on one number | 155 m of the description's 95 |
 | `fights/technology-interval-clean.yaml` | three corrections at once, on a unit with no stagger | interval 12, range 140, speed 11 |
-| `technology-disabled.yaml` | **a correction leaving**: the technology is switched off | 12 before the shot, 18 after |
-| `technology-interval-base.yaml` | the Sledgehammer alone: the line's intercept | interval reads 83 |
-| `technology-interval-value.yaml` | one second of value | 63 |
-| `technology-interval-rate.yaml` | one rate of `+0.3` | 110 |
-| `technology-interval.yaml` | **a value and a rate on one number** | 84, so the value applies first |
+| [`technology-disabled.yaml`](../../layouts/technology-disabled.yaml) | **a correction leaving**: the technology is switched off | 12 before the shot, 18 after |
+| [`technology-interval-base.yaml`](../../layouts/technology-interval-base.yaml) | the Sledgehammer alone: the line's intercept | interval reads 83 |
+| [`technology-interval-value.yaml`](../../layouts/technology-interval-value.yaml) | one second of value | 63 |
+| [`technology-interval-rate.yaml`](../../layouts/technology-interval-rate.yaml) | one rate of `+0.3` | 110 |
+| [`technology-interval.yaml`](../../layouts/technology-interval.yaml) | **a value and a rate on one number** | 84, so the value applies first |
 | `fights/targeting-ranged-none.yaml` | none: the control for the targeting fixture | 144 ticks |
 | `fights/targeting-ranged.yaml` | **which units a Ranged row reaches** | `+10` on four ranged formations, nothing on two melee ones |
 
@@ -77,35 +77,17 @@ leave `0.89 × 0.89 = 0.7921` of the number under the rule above, and
 19297 that is **15285 against 15051**, and the fight carries the difference to
 the end.
 
-## The scripts beside them
+## Fights and probes
 
-| Script | Needs the game | What it does |
-| --- | --- | --- |
-| `composition.mcscript` | yes | records the control and the two enhancement fixtures |
-| `impairment.mcscript` | yes | records the two impairment fixtures |
-| `value.mcscript` | yes | records the range control and the value fixture |
-| `speed.mcscript` | yes | records the two movement fixtures |
-| `technology.mcscript` | yes | records the technology fixture |
-| `interval-order.mcscript` | yes | records the four Sledgehammer fixtures |
-| `disable.mcscript` | yes | records the Raiden shooting the Rhino |
-| `targeting.mcscript` | yes | records the two targeting fixtures |
-
-The three recording scripts are this directory's experiments: each one writes
-its expected numbers down before the game is started, records, and asserts
-both halves against the recording — what the build stored, and what it then
-computed. A pinned fixture is a fight document in `fights/`, holding the
-layout, the seed and what the game recorded, so the recording scripts record
-it from that file. CI verifies the same fights from the other side: the
-simulator has to reproduce each recording
-tick for tick from the layout and the seed alone, on a machine that has no
-game at all. Each hash covers the derived numbers a recording carries, each
-skill's and each unit's `DataSet` aggregate among them, so a composition rule
-that resolved to the wrong number fails there even when the fight's outcome
-would have looked the same.
-
-These fixtures are deliberately **not** in `tests/regression/`. They live
-here, beside the scripts that produced them, so that a fixture, its
-measurement and its regression are one thing to read and one thing to move.
+A pinned fixture is a fight document in `fights/`, holding the layout, the
+seed and what the game recorded. CI verifies each from the other side: the
+simulator has to reproduce each recording tick for tick from the layout and the
+seed alone, on a machine that has no game at all. Each hash covers the derived
+numbers a recording carries, each skill's and each unit's `DataSet` aggregate
+among them, so a composition rule that resolved to the wrong number fails
+there even when the fight's outcome would have looked the same. The five
+probes the simulator does not fight, the disabled technology and the four
+Sledgehammer intervals, are layouts in [`../../layouts/`](../../layouts/README.md).
 
 ## Which units a row reaches
 

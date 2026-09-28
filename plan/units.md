@@ -54,7 +54,7 @@
 
 ## 一个机制怎么研究：循环
 
-[`tests/modifier/composition.mcscript`](../tests/modifier/composition.mcscript) 是范本：
+[`tests/modifier/`](../tests/modifier/README.md) 的 composition 那组是范本：
 
 1. **把问题收成一个数。** 收不成一个数的问题，做不成实验。
 2. **先读能读的，并写下它答不了什么。**

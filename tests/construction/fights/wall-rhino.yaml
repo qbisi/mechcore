@@ -4,7 +4,7 @@
 # A blow, and not a shot. The Rhino takes the block in its line one hit at a
 # time, stays on each until its swing is over, reads idle for a tick, and
 # takes the next thing in its way. 189 ticks, the game's hash; its content
-# hash agrees as well, which `attacks.mcscript` checks against the game.
+# hash agrees as well, which CI checks against the game's.
 
 kind: fight
 map_id: 1021

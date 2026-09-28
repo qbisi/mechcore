@@ -433,7 +433,7 @@ build 只在 `Check` 的重搜分支里读快速切换标志。
 ## Unresolved
 
 - **一个 value 怎么合成，以及两条通道按什么顺序作用。** 比率已经定了：
-  `tests/modifier/composition.mcscript` 测出的是同一条通道内
+  `tests/modifier/fights/officer-composition-*.yaml` 钉住的是同一条通道内
   `base × (1 + Σ add − Σ reduce)`、向零截断，
   [`officer_effects.md`](../../rules/officer_effects.md) 记录了那次捕获。但那次捕获
   把两条修正放在同一条通道里、而且两条都是比率，所以同一下标上 Float 与 FloatRate 并存

@@ -13,7 +13,7 @@
 //! Nothing in the fight reads a description directly.
 //!
 //! **A rate composes by summing within its channel and multiplying once**,
-//! which `tests/modifier/composition.mcscript` measured against the game and
+//! which `tests/modifier/fights/officer-composition-*.yaml` pin from the game and
 //! `docs/rules/officer_effects.md` records. Across channels a number composes
 //! as its own property reads them: `DamageProperty.CalculateDamage` and
 //! `MoveSpeedProperty.Refresh` sum every channel's values and enhancements and
@@ -846,7 +846,7 @@ mod tests {
 
     /// The capture, replayed against this layer.
     ///
-    /// `tests/modifier/composition.mcscript` recorded one Marksman shooting
+    /// `tests/modifier/fights/officer-composition-*.yaml` hold one Marksman shooting
     /// one Rhino under no officer, one and two, and the game's own damage was
     /// 2329, 3027 and 3726. Two officers of one kind reach the recording as a
     /// single `+0.6`, so they sum and multiply once rather than compounding —

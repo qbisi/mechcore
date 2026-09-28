@@ -6,21 +6,20 @@ fight**, and nothing else. The rule they measure is
 placed once and arrives as `count` objects, each with its own life, its own
 box and its own place in the row.
 
-They are read, not fought. What each one answers is `show --view buildings`, which
-matches a recording's building rows back to the placements the layout declares,
-because a recording says a row's `BuildingType` and not which construction
-released it.
+They were read with `show --view buildings`, which matches a recording's
+building rows back to the placements the layout declares, because a recording
+says a row's `BuildingType` and not which construction released it.
 
 | Fixture | What it separates | Reading |
 | --- | --- | --- |
-| `shape.yaml` | one placement against the objects it owns | wall **5**, each turret **1** |
-| `shape.yaml` (red) | the layout's constructions against the opening's | two towers, no construction |
+| [`construction-shape.yaml`](../../layouts/construction-shape.yaml) | one placement against the objects it owns | wall **5**, each turret **1** |
+| [`construction-shape.yaml`](../../layouts/construction-shape.yaml) (red) | the layout's constructions against the opening's | two towers, no construction |
 | `fights/wall-passage.yaml` | a wall against the side that placed it | crosses it, all five at full life |
 | `fights/wall-block.yaml` | a wall against the other side | stops and attacks, four down |
 | `fights/wall-aside.yaml` | a wall against a fight it cannot reach | the same fight, five more buildings |
 | `fights/wall-line-of-fire.yaml` | the nearest wall against the wall in the way | the one in the way, **block 6** |
 | `fights/wall-line-tolerance.yaml` | how far off the line a block may be | between **10.41** and **12.59** metres |
-| `wall-line-width.yaml` | whether that width is the attacker's | it is not: Fang, Marksman and Farseer share it |
+| [`wall-line-width.yaml`](../../layouts/wall-line-width.yaml) | whether that width is the attacker's | it is not: Fang, Marksman and Farseer share it |
 | `fights/wall-weapon-group.yaml` | an air unit with four weapon slots | every slot takes the wall, the lock follows none, a shot splashes the next block |
 | `fights/wall-rhino.yaml` | a blow against a shot | the same rule, one hit a block, the swing held on a fallen block |
 | `fights/wall-splash.yaml` | a splash against what it was aimed at | a shot at a block takes the Crawlers on it |
@@ -28,10 +27,7 @@ released it.
 | `fights/wall-splash-behind.yaml` | a shot at a unit against a block out of reach | the block takes the full shot, **747** |
 | `fights/wall-laser.yaml` | a beam against a shot, the line's width at the centimetre, a block in the way of a unit's movement | the same rule; the line is **11.5** metres; asked while an attack is prepared; a block is an obstacle to the other side |
 
-`shape.mcscript`, `wall.mcscript`, `placement.mcscript`, `line-of-fire.mcscript`,
-`attacks.mcscript` and `splash.mcscript` record them and carry every number
-as an `expect`, so a fixture and the measurement that reads it are one file to
-rerun. Recording the wall fights once more with the `target_refs` instrument
+Recording the wall fights once more with the `target_refs` instrument
 channel, `scripts/record-fights.py --instrument target_refs --out
 /tmp/mechcore/construction/skill-state tests/construction/fights/*.yaml`, says
 which state each unit's skill is in and which attack phase it is in, tick by
@@ -39,17 +35,15 @@ tick; that, not the recording, is where the rules read when a unit meets a
 block and how an attack on one ends.
 The eleven wall fights the simulator can run are pinned as fight documents in
 `fights/`, each holding the layout, the seed 4242 and what the game recorded,
-and a comment saying what it measures; `shape.yaml` and `wall-line-width.yaml`
-stay layouts, read and not pinned. CI verifies every fight in `fights/`,
-holding the simulator to each one's hash over every one of its ticks.
+and a comment saying what it measures; the two probes that are not fights are
+in [`../../layouts/`](../../layouts/README.md). CI verifies every fight in
+`fights/`, holding the simulator to each one's hash over every one of its
+ticks.
 
 The hash covers everything a recording carries, a unit's lock, its weapons'
 targets and its motion state included, so the simulator carries the same
-content as the game on every tick of all eleven. The measurement scripts
-record their fights from those documents, and also compare each recording
-with the simulator after making it: `placement.mcscript` and
-`line-of-fire.mcscript` assert against the recording the numbers the fight
-documents hold the simulator to.
+content as the game on every tick of all eleven, and every reading in the
+table above is in that content.
 
 The three `wall-line-*` fixtures are read by which block ends up destroyed,
 because that is what a reader answers. The decision itself — a unit whose lock
@@ -68,8 +62,8 @@ The first version of it put the Marksman opposite the wall, and the Marksman
 destroyed a block outright before the Crawlers arrived — one shot of 2329
 against a block's 1112 — which measured a different thing.
 
-**Half of each reading was predicted and half was measured**, and the script
-says which is which beside each line. `config/constructions.yaml` gave the
+**Half of each reading was predicted and half was measured.**
+`config/constructions.yaml` gave the
 counts, the lives and the boxes before the recording existed; where the five
 blocks of a wall stand did not come from it, because the two fields that look
 like they should say — `block_width` and `space` — span 83 metres across a
@@ -87,8 +81,8 @@ row.
 
 **A construction anywhere but where the opening put it.** Every fixture here
 places what the seed's opening deals, at the position it deals it, because that
-is the only release this build has got to work. `placement.mcscript` records
-the three positions that were refused.
+is the only release this build has got to work; three other positions were
+refused.
 
 **What a construction does on its own.** A turret carries a `skill_id` and
 2748 or 82 of damage, and a Magnetic Barrier slows what comes near it. Neither

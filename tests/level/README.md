@@ -1,8 +1,8 @@
 # Unit levels
 
-Seed 1787720817. `stats.mcscript` records the control and the three fights
-in `fights/`. It needs the game. CI verifies the three and the control
-without it, against the native hash of each.
+Seed 1787720817. The control and the three fights in `fights/` are fight
+documents, and CI verifies them without the game, against the native hash of
+each.
 
 | Fight | What it separates | Damage | Life |
 | --- | --- | ---: | ---: |

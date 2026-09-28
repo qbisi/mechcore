@@ -365,7 +365,7 @@ mod tests {
 
     /// A Ranged row reaches every unit whose main skill is not a melee
     /// attack, whatever its attack path, and no melee unit:
-    /// `tests/modifier/targeting.mcscript` recorded Advanced Targeting System
+    /// `tests/modifier/fights/targeting-ranged.yaml` pins Advanced Targeting System
     /// on all six of these.
     #[test]
     fn a_ranged_officer_reaches_every_unit_that_is_not_melee() {

@@ -691,8 +691,8 @@ not the game's native attack-type enum.
 - **The interval stream.** The order in which one member's several skills
   consume it, and what else consumes from it once the fight is running.
 - **A disabled technology's interval.** That the current interval drops the
-  correction while the technology is disabled was measured by a script that
-  needs the game, `tests/modifier/disable.mcscript`, and no gameless test pins
+  correction while the technology is disabled was measured with the game from
+  `layouts/technology-disabled.yaml`, and no pinned fight holds
   it; how long a disable lasts is not recorded.
 - **The skill state machine** beyond first entry into Attack.
 - **Base facing's angle**: `FVector3.Angle` over all directions, and its
