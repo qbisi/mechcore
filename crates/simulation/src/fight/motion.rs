@@ -527,8 +527,7 @@ impl Simulation {
                 // idle on the tick it fell, still on it, until their swing is
                 // over.
                 let holds_a_block = matches!(target, FightActorRef::Building(_))
-                    && (self.actors[&actor_id].skill.lock_target != Some(target)
-                        || self.actors[&actor_id].skill.lock_is_terminal_handoff);
+                    && self.actors[&actor_id].skill.lock_target != Some(target);
                 // And keeps turning through its swing, as it did while the
                 // block stood. A tower the match's end tears down is not
                 // turned to.

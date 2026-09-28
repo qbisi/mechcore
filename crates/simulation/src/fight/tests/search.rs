@@ -234,7 +234,6 @@ fn fight_skill_adopts_a_selected_building_and_enters_moving() {
         source.skill.lock_target,
         Some(FightActorRef::Building(building_id))
     );
-    assert!(!source.skill.lock_is_terminal_handoff);
     assert_eq!(
         source.snapshot().mech_lock_target,
         Some(ObjectRef::new(ObjectKind::Building, building_id))

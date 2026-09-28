@@ -96,7 +96,6 @@ impl Actor {
         self.motion.state = MotionState::Idle;
         self.skill.set_pending(None);
         self.skill.lock_target = None;
-        self.skill.lock_is_terminal_handoff = false;
         self.skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
         self.skill.set_phase(FightSkillPhase::Idle);
         self.skill.clear_slots();

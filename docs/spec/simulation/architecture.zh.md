@@ -182,6 +182,24 @@ value composes with a description is not measured
 字段，以及放行的字段里每一个接不住的单位、军官、科技、装备和建造，各占一句，用 `; ` 隔开。
 一个会落到好几个编队上的拒绝（比如一方的军官）只报一次。
 
+### 一次推进，以及战斗怎么结束
+
+这里的内容读自 dump 的指令，不是索引，索引里没有方法体。`FightingState.Update` 驱动一次推进：
+先跑每个模块的 `Update`，再跑 `FightCoreSystem.TryDstroyTower`，然后问每个模块的
+`IsStepFinish`。全部报告结束，战斗就结束；否则 `FightCoreSystem.PreCalculate` 准备下一次推进
+的搜索，`RVOSimulatorFixed.DoFixedUpdate` 求解运动。
+
+`FightCoreSystem.Update` 调用 `GroupUpdate`，`GroupUpdate` 对每个队伍调用 `TeamUpdate`。
+`TeamUpdate` 走到每个单位时先数进本队存活数、再让它更新，跑的是 `FightMech.Update`：先是 mech
+的搜索，然后 `SkillManager.Update`，然后 `MotionController.Update`。所以同一个单位里技能先于
+运动做决定，一个单位看得到这一 tick 排在它前面的单位做了什么。
+
+胜负在 `FightCoreSystem.IsStepFinish` 里决出：至多一方还有活着的单位时它报告结束，从下一次推进
+起 `TeamUpdate` 让每个单位在"战斗已停"的状态下更新。这时 `SkillManager.Update` 不跑任何技能的
+状态机：持有锁定的技能退出战斗（`FightSkill.ExitFight`），其余的不更新。模拟器里对应这一 tick
+的是 `exit_fight_when_over`。没有什么把塔交给单位：找到塔的就是普通的那次搜索
+（[combat](../../rules/combat.md)）。
+
 ## 对象
 
 | 原生 | 是什么 |
@@ -423,10 +441,10 @@ build 只在 `Check` 的重搜分支里读快速切换标志。
   `DamageProperty.CalculateDamage` 与 `MoveSpeedProperty.Refresh` 把各通道的 value 与加成
   相加、剩余倍率相乘，和单通道内的形状相同，`tests/tower/` 的输塔对局守着 buff 通道这一半；
   攻击间隔的属性有自己的算法、没有读，`data.rs` 对两条通道同时修正攻击间隔仍然拒绝。
-- **模块被驱动的顺序，以及一次推进内部的工作顺序。** `FightCoreSystem.Update` 调用
-  `TeamUpdate` 再调用 `GroupUpdate`，`PreCalculate` 和 `Update` 并列存在，但方法体内的
-  调用顺序不在索引里。这一条靠对着录像测量关掉。
+- **模块之间按什么顺序更新。** `FightController.AddModules` 先构造 `FightCoreSystem` 再构造
+  `ProjectileSystem`，弹丸命中落在所有单位更新之后需要的正是这个顺序；构造顺序就是更新顺序
+  这一点没有读到。
 - **哪个枚举下标对应哪个字段。** `MechDataChange*` 和 `SkillDataChange*` 的名字是已知的，
   录像的字段名也是；它们背后的数字下标还没有读出来。
-- **`IsStepFinish` 判的是什么。** 每个模块都有一个，而战斗现在结束所依据的终止条件是
-  模拟器自己的。
+- **其它模块的 `IsStepFinish` 判的是什么。** `FightCoreSystem` 的已经读了。塔倒下之后战斗
+  还多跑的那一 tick 属于另一个模块的 `IsStepFinish`，模拟器把它当作自己的收尾保留着。

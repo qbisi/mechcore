@@ -123,7 +123,6 @@ pub(in crate::fight) struct Skill {
     /// `lock_target` is anything but the lock it was found for, the block no
     /// longer answers, without anyone having to clear it.
     pub(in crate::fight) in_the_way: Option<(u64, FightActorRef)>,
-    pub(in crate::fight) lock_is_terminal_handoff: bool,
     pub(in crate::fight) search_target_time: i32,
     pub(in crate::fight) searched_this_tick: bool,
     /// The update a grouped core last started a blow on:
@@ -244,7 +243,6 @@ impl Skill {
             current_attack_interval: 0,
             lock_target: None,
             in_the_way: None,
-            lock_is_terminal_handoff: false,
             // FightSkill owns a second SearchTargetController. FightPrepareState
             // replaces this constructor value with the presearch batch ordinal.
             search_target_time: SEARCH_TARGET_RESET_TICKS,
@@ -652,17 +650,10 @@ impl Simulation {
 
         self.skill_mut(owner).searched_this_tick = true;
 
-        // With no enemy unit left, the idle search is the match's end: the
-        // selector would answer the defeated team's `FightCrystal`, and
-        // `Simulation::step` stands in for that tick (the terminal handoff).
-        let source_team = self
-            .attacker(owner)
-            .expect("skill owner identity is stable")
-            .team;
-        let match_over = !self
-            .actors
-            .values()
-            .any(|candidate| candidate.placement.team != source_team && candidate.alive());
+        // With no enemy unit left the selector answers the defeated side's
+        // towers, as any search does: nothing in target selection asks
+        // `FightCrystal.IsTower`. A unit that updates after the last enemy
+        // died takes one on the tick the fight is decided.
         let located =
             |error: Error| Error::new(format!("logic step {step} actor {}: {error}", owner.id()));
         let grouped_core = owner.unit_id().filter(|_| {
@@ -673,9 +664,7 @@ impl Simulation {
                     .iter()
                     .any(|slot| slot.lock.is_some())
         });
-        let mut selected_candidate = if match_over {
-            None
-        } else if let Some(actor_id) = grouped_core {
+        let mut selected_candidate = if let Some(actor_id) = grouped_core {
             // A grouped core's search is `PerformGroupedSkillSearch` as its
             // siblings' is: around what they hold, and among it when
             // nothing else answers in reach.
@@ -689,8 +678,7 @@ impl Simulation {
             )
             .map_err(located)?
         };
-        if !match_over
-            && !target_died_during_tick
+        if !target_died_during_tick
             && selected_candidate
                 .and_then(|candidate| self.fight_actor(candidate))
                 .is_some_and(|target| target.query_alive && !target.alive)
@@ -705,7 +693,6 @@ impl Simulation {
         if let Some(FightActorRef::Building(building_id)) = selected_candidate {
             let skill = self.skill_mut(owner);
             skill.lock_target = Some(FightActorRef::Building(building_id));
-            skill.lock_is_terminal_handoff = false;
             skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
             skill.set_phase(FightSkillPhase::Idle);
             return Ok(());
@@ -741,7 +728,6 @@ impl Simulation {
             selected
         };
         let skill = self.skill_mut(owner);
-        skill.lock_is_terminal_handoff = false;
         skill.write_lock(selected);
         skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
         self.search_attack_target(owner);
@@ -882,13 +868,13 @@ impl Simulation {
             .skill(owner)
             .backswing_finish_step()
             .is_some_and(|finish_step| finish_step < step);
+        if let Flow::Done = self.exit_fight_when_over(owner) {
+            return Ok(None);
+        }
         if let Flow::Done = self.update_reload(owner, step) {
             return Ok(None);
         }
         if let Flow::Done = self.update_skill_checks(owner, step, target_search_order)? {
-            return Ok(None);
-        }
-        if let Flow::Done = self.release_terminal_handoff(owner) {
             return Ok(None);
         }
         if let Flow::Done = self.finish_laser_at_dead_target(owner) {
@@ -1106,23 +1092,23 @@ impl Simulation {
         Ok(Flow::Next)
     }
 
-    /// The match's end hands a unit one of the defeated team's towers
-    /// (`FightCrystal.IsTower`: its `EnergyTower` or `ResearchCenter`) for one
-    /// tick, and takes it back the tick after.
-    fn release_terminal_handoff(&mut self, owner: FightActorRef) -> Flow {
-        let skill = self.skill(owner);
-        if matches!(skill.lock_target, Some(FightActorRef::Building(_)))
-            && skill.lock_is_terminal_handoff
-        {
-            // The native terminal handoff exposes one of the defeated team's
-            // towers for one tick. The following update consumes the already
-            // published displacement, then `FightCoreSystem.TryDstroyTower` clears
-            // the transient lock before the terminal snapshot is written.
+    /// `SkillManager.Update` with `isFighting` false: from the tick after a
+    /// side is decided, `FightCoreSystem.IsStepFinish` has set `isFightOver`
+    /// and `TeamUpdate` runs every mech's update with the fight off. No skill
+    /// runs its state machine. One that holds a lock exits the fight
+    /// (`FightSkill.ExitFight`): `StopAttack`, which also ends a burst still
+    /// firing, its idle state and its lock cleared. The rest are left as they
+    /// are, a cooling one still cooling.
+    fn exit_fight_when_over(&mut self, owner: FightActorRef) -> Flow {
+        if self.stop_step.is_none() {
+            return Flow::Next;
+        }
+        if self.skill(owner).lock_target.is_some() {
             let clear_velocity = self.terminal_drain_pending;
             let skill = self.skill_mut(owner);
             skill.drop_lock();
-            skill.lock_is_terminal_handoff = false;
             skill.set_phase(FightSkillPhase::Idle);
+            skill.projectile_pending_releases.clear();
             if let Some(actor) = self.moving_mut(owner) {
                 if clear_velocity {
                     actor.motion.current_velocity_x_q32 = 0;
@@ -1130,9 +1116,8 @@ impl Simulation {
                 }
                 actor.stop_in_place(true);
             }
-            return Flow::Done;
         }
-        Flow::Next
+        Flow::Done
     }
 
     /// A laser in its attack state whose target is dead ends its attack:
