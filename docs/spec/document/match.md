@@ -398,10 +398,11 @@ field.
 | `contraptions` | Which survive |
 | `battle_skills.standing` | Which remain, and what this round's releases leave |
 
-The fight decides which of these survive, not what they may be. A fight
-destroys shields and never places one, so a panel slot's `standing` leaf
-holding a shield the slot neither opened with nor released this round is
-`unequal`, predicted as the most that could stand.
+A [fight](fight.md) document writes what one fight did to these fields onto
+the layout the fight starts from. The fight decides which of these survive,
+not what they may be. A fight destroys shields and never places one, so a
+panel slot's `standing` leaf holding a shield the slot neither opened with nor
+released this round is `unequal`, predicted as the most that could stand.
 
 A leaf outside those fields is `unimplemented` when no rule produces it, even
 where the unchanged value happens to agree; which fields those are changes as
