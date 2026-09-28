@@ -1018,6 +1018,159 @@ pub fn predict(
     open_round(economy, &position, round + 1, &mut placement, stream)
 }
 
+/// The position a side opens `round + 1` with after a fight: the position
+/// its decisions deployed, with what the fight decided written onto it, and
+/// the next round opened on the result.
+///
+/// It is [`predict`] with the fight's result in: the travelling set emptied,
+/// [`fought`] applied, and [`open_round`] as the round opens. `position` is
+/// the deployed position the fight was fought from, and `fight` the fight
+/// document's side for it.
+///
+/// # Errors
+///
+/// Returns [`Unsettled`] when the fight names what the position does not
+/// hold, or the next round's opening cannot be settled.
+pub fn settle(
+    economy: &Economy,
+    round: i32,
+    position: &SideState,
+    fight: &crate::fight::FightSide,
+    red: bool,
+    stream: Option<Stream>,
+) -> Result<SideState, Unsettled> {
+    let mut position = fought(position, fight)?;
+    for entry in &mut position.units {
+        entry.unit.travelling = None;
+    }
+    let mut placement = crate::landing::placement(red);
+    open_round(economy, &position, round + 1, &mut placement, stream)
+}
+
+/// Writes what a fight decided onto the position it was fought from.
+///
+/// `docs/spec/document/match.md` names the four fields a fight decides, and
+/// `docs/spec/document/fight.md` how a fight document states them. The
+/// reactor core falls by the side's `core_damage`; each formation ends on its
+/// `exp`'s `after`; a contraption the fight destroyed is gone; a standing
+/// shield it destroyed leaves its slot, and every standing oil area, which is
+/// in its last round, leaves too; a Shield Airdrop this round released that
+/// is retained, and a Sticky Oil Bomb that leaves any of its area, join their
+/// slot's standing objects.
+///
+/// The fight's entries are this position's own projection, so each is found
+/// by what the projection keeps: a formation and a contraption by `index`, a
+/// standing object by what it is, and a release by its place in the round's
+/// release order.
+///
+/// # Errors
+///
+/// Returns [`Unsettled::Missing`] when the fight states an entry the position
+/// does not hold, or holds one the fight does not state.
+pub fn fought(
+    position: &SideState,
+    fight: &crate::fight::FightSide,
+) -> Result<SideState, Unsettled> {
+    use crate::fight::FightBattleSkill;
+    use crate::layout::{OilArea, SHIELD_AIRDROP_SKILL, STICKY_OIL_BOMB_SKILL, Standing};
+    let mut next = position.clone();
+    next.reactor_core -= fight.core_damage;
+    if next.units.len() != fight.units.len() {
+        return Err(Unsettled::Missing("formation of the fight"));
+    }
+    for entry in &mut next.units {
+        let unit = fight
+            .units
+            .iter()
+            .find(|unit| unit.index == entry.unit.index)
+            .ok_or(Unsettled::Missing("formation of the fight"))?;
+        entry.unit.exp = unit.exp.filter(|exp| exp.after != 0).map(|exp| Experience {
+            current: exp.after,
+            maximum: exp.maximum,
+        });
+    }
+    if next.contraptions.len() != fight.contraptions.len() {
+        return Err(Unsettled::Missing("contraption of the fight"));
+    }
+    let mut kept = Vec::new();
+    for contraption in &next.contraptions {
+        let fought = fight
+            .contraptions
+            .iter()
+            .find(|fought| fought.index == contraption.index)
+            .ok_or(Unsettled::Missing("contraption of the fight"))?;
+        if fought.retained {
+            kept.push(contraption.clone());
+        }
+    }
+    next.contraptions = kept;
+
+    // What stood before the fight: a shield stays when it is retained, and an
+    // oil area is in its last round whatever the fight did.
+    let mut standing = Vec::new();
+    let mut fought_releases = Vec::new();
+    for entry in &fight.battle_skills {
+        match entry {
+            FightBattleSkill::Standing(object) => standing.push(object),
+            FightBattleSkill::Release(release) => fought_releases.push(release),
+        }
+    }
+    for slot in &mut next.battle_skills {
+        let mut remaining = Vec::new();
+        for object in std::mem::take(&mut slot.standing) {
+            let at = standing
+                .iter()
+                .position(|fought| fought.standing == object)
+                .ok_or(Unsettled::Missing("standing object of the fight"))?;
+            let fought = standing.remove(at);
+            if matches!(object, Standing::Shield { .. }) && fought.retained {
+                remaining.push(object);
+            }
+        }
+        slot.standing = remaining;
+    }
+    if !standing.is_empty() {
+        return Err(Unsettled::Missing("standing object of the fight"));
+    }
+    // What this round released, in the order the projection lists it.
+    let mut slots: Vec<&mut PanelSkill> = next
+        .battle_skills
+        .iter_mut()
+        .filter(|slot| slot.release.is_some() && !crate::ledger::RECOVERY_SKILLS.contains(&slot.id))
+        .collect();
+    slots.sort_by_key(|slot| slot.release.as_ref().map(|release| release.order));
+    if slots.len() != fought_releases.len() {
+        return Err(Unsettled::Missing("release of the fight"));
+    }
+    for (slot, fought) in slots.into_iter().zip(fought_releases) {
+        let name = crate::catalog::battle_skill_type_from_id(slot.id);
+        if name != Some(fought.release.type_name.as_str()) {
+            return Err(Unsettled::Missing("release of the fight"));
+        }
+        if !fought.retained {
+            continue;
+        }
+        let positions = fought.release.positions.clone();
+        let left = match slot.id {
+            SHIELD_AIRDROP_SKILL => match positions[..] {
+                [position] => Standing::Shield { position },
+                _ => return Err(Unsettled::Missing("release of the fight")),
+            },
+            STICKY_OIL_BOMB_SKILL => Standing::Oil(OilArea {
+                control_points: positions,
+                grid_rows: fought.grid_rows.clone(),
+            }),
+            _ => continue,
+        };
+        slot.standing.push(left);
+    }
+    // A slot lists what stands in the order a match writes it.
+    for slot in &mut next.battle_skills {
+        slot.standing.sort_by_cached_key(Standing::sort_key);
+    }
+    Ok(next)
+}
+
 #[cfg(test)]
 mod tests {
     use super::{EXTRA_DEPLOYMENT_CARD, Stream, Unsettled, step_placing};
@@ -1103,6 +1256,177 @@ mod tests {
                 .collect(),
             ..solvent()
         }
+    }
+
+    /// The position [`fought_fixture`]'s fight is blue's projection of.
+    fn fixture_position() -> SideState {
+        let unit = |type_name: &str, index, x, exp| StateUnit {
+            unit: UnitPlacement {
+                type_name: type_name.into(),
+                index,
+                position: Position { x, y: -50 },
+                level: None,
+                exp,
+                rotated: None,
+                equipment: Vec::new(),
+                travelling: None,
+            },
+            value: None,
+            movable: false,
+        };
+        let contraption = |type_name: &str, index, x| crate::layout::ContraptionPlacement {
+            type_name: type_name.into(),
+            index,
+            position: Position { x, y: -95 },
+        };
+        let shield = |x| crate::layout::Standing::Shield {
+            position: Position { x, y: -150 },
+        };
+        let area = |target: &[(i32, i32)]| {
+            target
+                .iter()
+                .map(|(x, y)| Position { x: *x, y: *y })
+                .collect::<Vec<_>>()
+        };
+        SideState {
+            reactor_core: 3000,
+            units: vec![
+                unit(
+                    "marksman",
+                    0,
+                    0,
+                    Some(Experience {
+                        current: 12,
+                        maximum: 650,
+                    }),
+                ),
+                unit("arclight", 1, 60, None),
+                unit("arclight", 2, -60, None),
+            ],
+            contraptions: vec![
+                contraption("interceptor", 0, 5),
+                contraption("missile", 1, -95),
+            ],
+            battle_skills: vec![
+                PanelSkill {
+                    index: 0,
+                    id: 800_001,
+                    cooldown: 0,
+                    used: false,
+                    standing: vec![shield(-150), shield(150)],
+                    release: Some(Release {
+                        order: 0,
+                        target: SkillTarget::Area(area(&[(0, -150)])),
+                    }),
+                },
+                PanelSkill {
+                    index: 1,
+                    id: 400_002,
+                    cooldown: 0,
+                    used: false,
+                    standing: vec![crate::layout::Standing::Oil(crate::layout::OilArea {
+                        control_points: area(&[(-24, 11), (80, 1)]),
+                        grid_rows: std::collections::BTreeMap::new(),
+                    })],
+                    release: Some(Release {
+                        order: 1,
+                        target: SkillTarget::Area(area(&[(-30, 150), (60, 150)])),
+                    }),
+                },
+            ],
+            ..SideState::default()
+        }
+    }
+
+    /// A fight whose blue side carries every kind of result, and the position
+    /// blue deployed that it was fought from.
+    fn fought_fixture() -> (crate::fight::FightSide, SideState) {
+        let fight = crate::fight::parse_yaml(
+            b"\
+kind: fight
+seed: 4242
+round: 3
+source: replay
+blue:
+  core_damage: 37
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 12/170/650}
+  - {name: arclight, index: 1, position: {x: 60, y: -50}, exp: 0/40/750}
+  - {name: arclight, index: 2, position: {x: -60, y: -50}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 5, y: -95}, retained: false}
+  - {name: missile, index: 1, position: {x: -95, y: -95}}
+  battle_skills:
+  - {name: shield_airdrop, standing: {position: {x: -150, y: -150}}, retained: false}
+  - {name: shield_airdrop, standing: {position: {x: 150, y: -150}}}
+  - {name: sticky_oil_bomb, standing: {control_points: [{x: -24, y: 11}, {x: 80, y: 1}]}}
+  - {name: shield_airdrop, positions: [{x: 0, y: -150}]}
+  - {name: sticky_oil_bomb, positions: [{x: -30, y: 150}, {x: 60, y: 150}], grid_rows: {2: [], 3: [], 4: []}}
+red:
+  units:
+  - {name: arclight, index: 0, position: {x: 0, y: -100}}
+",
+        )
+        .unwrap();
+        let position = fixture_position();
+        // The fixture is what the position projects to.
+        assert_eq!(
+            crate::project::project_side(&position, "blue").unwrap(),
+            crate::fight::project(&fight).blue
+        );
+        (fight.blue, position)
+    }
+
+    /// Each field a fight decides is written back onto the position it was
+    /// fought from.
+    #[test]
+    fn a_fight_writes_what_it_decided_onto_its_position() {
+        let (fight, position) = fought_fixture();
+        let next = super::fought(&position, &fight).unwrap();
+        assert_eq!(next.reactor_core, 2963);
+        let exp: Vec<Option<(i32, i32)>> = next
+            .units
+            .iter()
+            .map(|entry| entry.unit.exp.map(|exp| (exp.current, exp.maximum)))
+            .collect();
+        assert_eq!(exp, [Some((170, 650)), Some((40, 750)), None]);
+        let kept: Vec<i32> = next.contraptions.iter().map(|entry| entry.index).collect();
+        assert_eq!(kept, [1]);
+        // The destroyed shield is gone, the airdrop joins what stands, and the
+        // oil in its last round gives way to this round's.
+        let shield = |x| crate::layout::Standing::Shield {
+            position: Position { x, y: -150 },
+        };
+        assert_eq!(next.battle_skills[0].standing, [shield(0), shield(150)]);
+        let [crate::layout::Standing::Oil(oil)] = &next.battle_skills[1].standing[..] else {
+            panic!("{:?}", next.battle_skills[1].standing)
+        };
+        assert_eq!(oil.control_points[0], Position { x: -30, y: 150 });
+        assert_eq!(oil.grid_rows.keys().copied().collect::<Vec<_>>(), [2, 3, 4]);
+    }
+
+    /// A fight is read back onto the position it was fought from, and one
+    /// that states what the position does not hold is refused.
+    #[test]
+    fn a_fight_of_another_position_is_refused() {
+        let (fight, mut position) = fought_fixture();
+        position.units.pop();
+        assert_eq!(
+            super::fought(&position, &fight),
+            Err(Unsettled::Missing("formation of the fight"))
+        );
+        let (fight, mut position) = fought_fixture();
+        position.battle_skills[0].standing.pop();
+        assert_eq!(
+            super::fought(&position, &fight),
+            Err(Unsettled::Missing("standing object of the fight"))
+        );
+        let (fight, mut position) = fought_fixture();
+        position.battle_skills[1].release = None;
+        assert_eq!(
+            super::fought(&position, &fight),
+            Err(Unsettled::Missing("release of the fight"))
+        );
     }
 
     /// A round lets a side release eight contraptions, and refuses a ninth.
