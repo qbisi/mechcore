@@ -311,6 +311,9 @@ pub struct ActionRecord {
     pub positions: Option<MapVectors>,
     #[serde(default, rename = "moveUnitDatas")]
     pub moves: Option<MoveUnitDatas>,
+    /// Seconds into the round's deployment the action was made at.
+    #[serde(default, rename = "LocalTime")]
+    pub local_time: Option<f64>,
 }
 
 #[derive(Debug, Default, Deserialize)]

@@ -56,6 +56,19 @@ struct Timing {
     opening_poll: f64,
     /// How long a capture waits for the spectator to enter the fight.
     capture_timeout: f64,
+    /// How far behind the match a spectator runs: every action reaches it
+    /// 101 s after it was made, measured on 33 actions of one match.
+    delay: f64,
+    /// A room's own deployments, as short as they have been, are captured this
+    /// long before their shortest end.
+    deploy_margin: f64,
+    /// Idle time a capture must leave before another room falls due.
+    idle_margin: f64,
+    /// The longest wait a capture is taken early for. An early capture sees
+    /// only the visits already planned, and waits of a minute or two blocked
+    /// rooms admitted or falling due meanwhile: 22 of 36 rounds missed in a
+    /// half-hour run were missed during another room's capture of over 30 s.
+    idle_wait: f64,
 }
 
 const TIMING: Timing = Timing {
@@ -66,6 +79,10 @@ const TIMING: Timing = Timing {
     min_fight: 20.0,
     opening_poll: 20.0,
     capture_timeout: 200.0,
+    delay: 101.0,
+    deploy_margin: 15.0,
+    idle_margin: 10.0,
+    idle_wait: 20.0,
 };
 
 fn seconds(value: f64) -> Duration {
@@ -99,6 +116,88 @@ struct Seen {
     stage: Stage,
 }
 
+/// How long each round's deployment has lasted in the corpus: for every round,
+/// a low quantile of the moment the later player finished deploying
+/// (`PAD_FinishDeploy`'s `LocalTime`), seconds into the deployment.
+type DeployTable = BTreeMap<i32, f64>;
+
+/// The quantile of a round's deployments a capture plans around: one in ten
+/// ended sooner.
+const DEPLOY_QUANTILE: f64 = 0.1;
+
+/// Reads every replay under `corpus` and tabulates its rounds' deployments.
+fn deploy_table(corpus: &Path) -> Result<DeployTable, String> {
+    let mut ends: BTreeMap<i32, Vec<f64>> = BTreeMap::new();
+    let entries = std::fs::read_dir(corpus)
+        .map_err(|error| format!("cannot read {}: {error}", corpus.display()))?;
+    for entry in entries {
+        let path = entry.map_err(|error| error.to_string())?.path();
+        if path.extension().and_then(|value| value.to_str()) != Some("grbr") {
+            continue;
+        }
+        let bytes = std::fs::read(&path)
+            .map_err(|error| format!("cannot read {}: {error}", path.display()))?;
+        let Ok(record) = mechcore_document::record::read(&bytes) else {
+            continue;
+        };
+        let players = &record.players.entries;
+        if players.len() != 2 {
+            continue;
+        }
+        let mut finished: BTreeMap<i32, Vec<f64>> = BTreeMap::new();
+        for player in players {
+            for round in &player.rounds.entries {
+                if let Some(at) = round
+                    .actions
+                    .entries
+                    .iter()
+                    .filter(|action| action.kind == "PAD_FinishDeploy")
+                    .filter_map(|action| action.local_time)
+                    .reduce(f64::max)
+                {
+                    finished.entry(round.round).or_default().push(at);
+                }
+            }
+        }
+        for (round, times) in finished {
+            if round >= 1 && times.len() == 2 {
+                ends.entry(round)
+                    .or_default()
+                    .push(times.into_iter().fold(0.0, f64::max));
+            }
+        }
+    }
+    Ok(ends
+        .into_iter()
+        .map(|(round, mut times)| {
+            times.sort_by(f64::total_cmp);
+            #[allow(
+                clippy::cast_possible_truncation,
+                clippy::cast_sign_loss,
+                clippy::cast_precision_loss,
+                reason = "an index into a short list"
+            )]
+            let index = ((times.len() as f64) * DEPLOY_QUANTILE) as usize;
+            (round, times[index.min(times.len() - 1)])
+        })
+        .collect())
+}
+
+/// The early end of `round`'s deployment, seconds in: the table's, or the full
+/// time for a round the corpus has none of.
+fn early_end(table: &DeployTable, round: i32) -> f64 {
+    table.get(&round).copied().unwrap_or(100.0)
+}
+
+/// How far into `round`'s deployment the round before it is captured: late
+/// enough that its actions have aged, and before that deployment's early end.
+fn capture_from(timing: &Timing, table: &DeployTable, round: i32) -> f64 {
+    timing
+        .capture_from
+        .min(early_end(table, round) - timing.deploy_margin)
+        .max(0.0)
+}
+
 #[derive(Debug)]
 struct Room {
     scene_id: i32,
@@ -125,8 +224,20 @@ impl Room {
         }
     }
 
+    /// The longest a capture started now would wait, from what was seen.
+    fn capture_wait(seen: Seen, timing: &Timing) -> f64 {
+        match seen.stage {
+            // The round's last action was made before this deployment began,
+            // and its fight lasted at least the shortest fight.
+            Stage::Deploy { elapsed, .. } => timing.delay - timing.min_fight - elapsed,
+            Stage::Fighting { elapsed } => timing.delay - elapsed,
+            Stage::Before | Stage::Ending => 0.0,
+        }
+        .max(0.0)
+    }
+
     /// When this room should next be visited.
-    fn due(&self, timing: &Timing) -> Instant {
+    fn due(&self, timing: &Timing, table: &DeployTable) -> Instant {
         let planned = match self.seen {
             None => self.admitted,
             Some(Seen { at, round, stage }) => {
@@ -134,21 +245,31 @@ impl Room {
                 match stage {
                     Stage::Before => at + seconds(timing.opening_poll),
                     // Round `round` can still be captured: come back late in
-                    // this deployment, and before its time is up.
+                    // this deployment of round + 1, before its early end.
                     Stage::Deploy { elapsed, remaining } if open => {
                         at + seconds(
-                            (timing.capture_from - elapsed).min(remaining - timing.capture_last),
+                            (capture_from(timing, table, round + 1) - elapsed)
+                                .min(remaining - timing.capture_last),
                         )
                     }
                     // The next round is captured in the deployment after its
-                    // fight.
-                    Stage::Deploy { remaining, .. } => {
-                        at + seconds(remaining + timing.min_fight + timing.capture_from)
+                    // fight: this deployment ends by its early end at the
+                    // soonest, then a fight, then the next deployment.
+                    Stage::Deploy { elapsed, remaining } => {
+                        at + seconds(
+                            (early_end(table, round + 1) - elapsed)
+                                .min(remaining)
+                                .max(0.0)
+                                + timing.min_fight
+                                + capture_from(timing, table, round + 2),
+                        )
                     }
                     // This fight's round is captured in the deployment after
-                    // it; one already captured, a deployment later still.
+                    // it.
                     Stage::Fighting { elapsed } => {
-                        at + seconds(timing.min_fight - elapsed + timing.capture_from)
+                        at + seconds(
+                            timing.min_fight - elapsed + capture_from(timing, table, round + 1),
+                        )
                     }
                     Stage::Ending => at + Duration::from_secs(3600),
                 }
@@ -161,8 +282,16 @@ impl Room {
     }
 
     /// Takes what a visit saw, marks the rounds the match has gone past
-    /// unrecorded, and answers the round to capture now, if any.
-    fn observe(&mut self, seen: Seen, timing: &Timing) -> Option<i32> {
+    /// unrecorded, and answers the round to capture now, if any. A round that
+    /// can be captured is captured now when it is late enough in its window,
+    /// or when the wait fits before `free_until`, the next other room's visit.
+    fn observe(
+        &mut self,
+        seen: Seen,
+        timing: &Timing,
+        table: &DeployTable,
+        free_until: Option<Instant>,
+    ) -> Option<i32> {
         let first = self.seen.is_none();
         self.seen = Some(seen);
         self.last_visit = Some(seen.at);
@@ -184,16 +313,23 @@ impl Room {
                 self.missed.insert(round);
             }
         }
-        match seen.stage {
-            Stage::Deploy { elapsed, remaining }
-                if seen.round >= 1
-                    && !self.captured.contains(&seen.round)
-                    && (elapsed >= timing.capture_from || remaining <= timing.capture_last) =>
-            {
-                Some(seen.round)
-            }
-            _ => None,
+        let capturable = seen.round >= 1
+            && !self.captured.contains(&seen.round)
+            && matches!(seen.stage, Stage::Deploy { .. } | Stage::Fighting { .. });
+        if !capturable {
+            return None;
         }
+        let late = match seen.stage {
+            Stage::Deploy { elapsed, remaining } => {
+                elapsed >= capture_from(timing, table, seen.round + 1)
+                    || remaining <= timing.capture_last
+            }
+            _ => false,
+        };
+        let wait = Self::capture_wait(seen, timing);
+        let idle = wait <= timing.idle_wait
+            && free_until.is_none_or(|free| seen.at + seconds(wait + timing.idle_margin) <= free);
+        (late || idle).then_some(seen.round)
     }
 }
 
@@ -205,6 +341,10 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
         .ok_or_else(|| Failure::usage("watch needs --out <directory>"))?;
     let duration = number(&mut arguments, "--duration", 3600)?;
     let rooms = number(&mut arguments, "--rooms", 4)?;
+    let table = match arguments.value("--corpus")? {
+        Some(corpus) => deploy_table(Path::new(&corpus)).map_err(Failure::failed)?,
+        None => DeployTable::new(),
+    };
     let window = arguments.flag("--window")?;
     let level = crate::acquire::level(&mut arguments)?;
     arguments.finish()?;
@@ -232,6 +372,7 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
                 session.clone(),
                 out,
                 usize::try_from(rooms).unwrap_or(usize::MAX),
+                table,
             )?;
             let outcome = watcher.run(Duration::from_secs(duration)).await;
             session.release().await;
@@ -257,10 +398,16 @@ struct Watcher {
     capacity: usize,
     rooms: BTreeMap<i32, Room>,
     visits: u64,
+    table: DeployTable,
 }
 
 impl Watcher {
-    fn new(session: Arc<Session>, out: PathBuf, capacity: usize) -> Result<Self, Failure> {
+    fn new(
+        session: Arc<Session>,
+        out: PathBuf,
+        capacity: usize,
+        table: DeployTable,
+    ) -> Result<Self, Failure> {
         let path = out.join("watch.jsonl");
         let journal = std::fs::OpenOptions::new()
             .create(true)
@@ -274,6 +421,7 @@ impl Watcher {
             capacity,
             rooms: BTreeMap::new(),
             visits: 0,
+            table,
         })
     }
 
@@ -289,6 +437,8 @@ impl Watcher {
     async fn run(&mut self, duration: Duration) -> Result<Value, String> {
         let start = Instant::now();
         let deadline = start + duration;
+        let table = self.table.clone();
+        self.note(json!({"event": "start", "deploy_table": table}));
         let mut listed: Option<Instant> = None;
         while Instant::now() < deadline {
             let now = Instant::now();
@@ -300,7 +450,7 @@ impl Watcher {
                 .rooms
                 .values()
                 .filter(|room| room.ended.is_none())
-                .map(|room| (room.due(&TIMING), room.scene_id))
+                .map(|room| (room.due(&TIMING, &self.table), room.scene_id))
                 .min();
             match next {
                 Some((due, scene_id)) if due <= Instant::now() => {
@@ -393,7 +543,16 @@ impl Watcher {
         let status = joined.get("status").cloned().unwrap_or(Value::Null);
         let live = status.get("live").cloned().unwrap_or(Value::Null);
         let seen = seen(&live, started);
-        let capture = self.room(scene_id).observe(seen, &TIMING);
+        let free_until = self
+            .rooms
+            .values()
+            .filter(|room| room.ended.is_none() && room.scene_id != scene_id)
+            .map(|room| room.due(&TIMING, &self.table))
+            .min();
+        let table = self.table.clone();
+        let capture = self
+            .room(scene_id)
+            .observe(seen, &TIMING, &table, free_until);
         let join_seconds = started.elapsed().as_secs_f64();
         let mut event = json!({
             "event": if capture.is_some() { "capture" } else { "probe" },
@@ -545,29 +704,42 @@ mod tests {
         }
     }
 
+    fn none() -> DeployTable {
+        DeployTable::new()
+    }
+
     #[test]
     fn a_new_room_is_due_at_once() {
         let start = Instant::now();
-        assert_eq!(Room::new(1, start).due(&TIMING), start);
+        assert_eq!(Room::new(1, start).due(&TIMING, &none()), start);
     }
 
     #[test]
     fn a_young_deployment_is_left_until_late_in_it() {
         let start = Instant::now();
         let mut room = Room::new(1, start);
-        assert_eq!(room.observe(deploy(start, 3, 20.0), &TIMING), None);
-        assert_eq!(room.due(&TIMING), at(start, 35.0));
+        let seen = deploy(start, 3, 20.0);
+        assert_eq!(room.observe(seen, &TIMING, &none(), Some(start)), None);
+        assert_eq!(room.due(&TIMING, &none()), at(start, 35.0));
+    }
+
+    #[test]
+    fn a_round_that_deploys_quickly_is_captured_sooner() {
+        let start = Instant::now();
+        let table = DeployTable::from([(4, 33.0)]);
+        let mut room = Room::new(1, start);
+        room.observe(deploy(start, 3, 5.0), &TIMING, &table, Some(start));
+        // Round 4 deploys by 33 s one time in ten: come back at 18 s in.
+        assert_eq!(room.due(&TIMING, &table), at(start, 13.0));
     }
 
     #[test]
     fn a_late_deployment_captures_the_round_last_fought() {
         let start = Instant::now();
         let mut room = Room::new(1, start);
-        room.observe(deploy(start, 1, 10.0), &TIMING);
-        assert_eq!(
-            room.observe(deploy(at(start, 50.0), 1, 60.0), &TIMING),
-            Some(1)
-        );
+        room.observe(deploy(start, 1, 10.0), &TIMING, &none(), Some(start));
+        let seen = deploy(at(start, 50.0), 1, 60.0);
+        assert_eq!(room.observe(seen, &TIMING, &none(), Some(start)), Some(1));
     }
 
     #[test]
@@ -582,31 +754,56 @@ mod tests {
                 remaining: 15.0,
             },
         };
-        assert_eq!(room.observe(seen, &TIMING), Some(1));
+        assert_eq!(room.observe(seen, &TIMING, &none(), Some(start)), Some(1));
+    }
+
+    #[test]
+    fn a_capture_that_fits_before_the_next_visit_is_taken_now() {
+        let start = Instant::now();
+        let mut room = Room::new(1, start);
+        room.observe(deploy(start, 1, 5.0), &TIMING, &none(), Some(start));
+        // Deployed 20 s: waits up to 101 - 20 - 20 = 61 s, too long to take early.
+        let young = deploy(at(start, 15.0), 1, 20.0);
+        assert_eq!(room.observe(young, &TIMING, &none(), None), None);
+        // Fought 85 s: waits up to 16 s, taken when 26 s are free.
+        let fighting = Seen {
+            at: at(start, 15.0),
+            round: 1,
+            stage: Stage::Fighting { elapsed: 85.0 },
+        };
+        assert_eq!(
+            room.observe(fighting, &TIMING, &none(), Some(at(start, 35.0))),
+            None
+        );
+        assert_eq!(
+            room.observe(fighting, &TIMING, &none(), Some(at(start, 45.0))),
+            Some(1)
+        );
     }
 
     #[test]
     fn a_captured_round_waits_for_the_deployment_after_the_next_fight() {
         let start = Instant::now();
+        let table = DeployTable::from([(3, 50.0), (4, 60.0)]);
         let mut room = Room::new(1, start);
-        room.observe(deploy(start, 2, 60.0), &TIMING);
+        room.observe(deploy(start, 2, 20.0), &TIMING, &table, Some(start));
         room.captured.insert(2);
-        assert_eq!(room.due(&TIMING), at(start, 40.0 + 20.0 + 55.0));
+        // Round 3's deployment ends by 50 s at the soonest, a 20 s fight, and
+        // round 4's is entered 45 s in.
+        assert_eq!(room.due(&TIMING, &table), at(start, 30.0 + 20.0 + 45.0));
     }
 
     #[test]
     fn rounds_gone_past_are_missed() {
         let start = Instant::now();
         let mut room = Room::new(1, start);
-        room.observe(deploy(start, 1, 10.0), &TIMING);
-        room.observe(
-            Seen {
-                at: at(start, 300.0),
-                round: 3,
-                stage: Stage::Fighting { elapsed: 5.0 },
-            },
-            &TIMING,
-        );
+        room.observe(deploy(start, 1, 10.0), &TIMING, &none(), Some(start));
+        let seen = Seen {
+            at: at(start, 300.0),
+            round: 3,
+            stage: Stage::Fighting { elapsed: 5.0 },
+        };
+        room.observe(seen, &TIMING, &none(), Some(start));
         assert_eq!(room.missed, BTreeSet::from([1, 2]));
     }
 
@@ -614,7 +811,10 @@ mod tests {
     fn a_room_first_seen_past_round_one_is_dropped() {
         let start = Instant::now();
         let mut room = Room::new(1, start);
-        assert_eq!(room.observe(deploy(start, 2, 30.0), &TIMING), None);
+        assert_eq!(
+            room.observe(deploy(start, 2, 30.0), &TIMING, &none(), None),
+            None
+        );
         assert_eq!(room.ended, Some("admitted after round 1"));
     }
 
@@ -622,7 +822,10 @@ mod tests {
     fn round_one_deploying_after_round_zero_is_not_yet_capturable() {
         let start = Instant::now();
         let mut room = Room::new(1, start);
-        assert_eq!(room.observe(deploy(start, 0, 90.0), &TIMING), None);
+        assert_eq!(
+            room.observe(deploy(start, 0, 90.0), &TIMING, &none(), None),
+            None
+        );
         assert!(room.missed.is_empty());
     }
 
@@ -630,7 +833,7 @@ mod tests {
     fn visits_keep_their_distance() {
         let start = Instant::now();
         let mut room = Room::new(1, start);
-        room.observe(deploy(start, 1, 50.0), &TIMING);
-        assert_eq!(room.due(&TIMING), at(start, 10.0));
+        room.observe(deploy(start, 1, 50.0), &TIMING, &none(), Some(start));
+        assert_eq!(room.due(&TIMING, &none()), at(start, 10.0));
     }
 }
