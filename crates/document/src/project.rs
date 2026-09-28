@@ -39,7 +39,7 @@ pub fn project(state: &State, round: i32, map_id: i32, seed: i32) -> Result<Layo
 /// Projects every round of a match both ways and compiles each layout.
 ///
 /// A round is projected from the position it opens with, and from the
-/// position its decisions deploy onto, which is the layout `doc project`
+/// position its decisions deploy onto, which is the layout `convert --to layout`
 /// writes and a fight is run over. The opening puts every formation the round
 /// inherited through the layout rules; the deployment puts what the round
 /// itself did through them, releases included, which no opening carries.

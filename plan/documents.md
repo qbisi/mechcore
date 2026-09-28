@@ -23,20 +23,16 @@
 
 ## 栈
 
-1. **命令行改版。** `docs/spec/mechcore/cli.md` 与 `mcscript.md` 按上面的划分重写，代码、
-   脚本里的操作名、测试一起迁；`doc`、`fight`、`replay` 三个命名空间消失。改到所有脚本，
-   趁单位 lane 不动时先做。
-2. **fight 文档类型。** `docs/spec/document/fight.md` 与 document crate 里的类型、标准型、
-   `project(fight)`、静态校验。只动 document crate，和 1 并行；接进命令行留给 1 之后。
-3. **outcome 补完。** 从录像读出单位经验、contraption 与 standing 是否留存、本回合释放的
-   结果，输出 fight 文档的 result。blocks 5、6。
-4. **反应堆伤害规则。** 战后存活单位怎么换成对方反应堆掉的血，读 build、录像验证，进
-   `docs/rules/` 并由模拟器复现。blocks 6：夹具的 `core_damage` 等它。
-5. **fight 文档的校验。** `verify` 读 fight 文档：模拟一遍，比 result 与 hash。
-6. **钉子迁成 fight 夹具。** `tests/<topic>/regressions.mcscript` 里的布阵、种子和 hash 变成
+1. **outcome 补完。** 从录像读出单位经验、contraption 与 standing 是否留存、本回合释放的
+   结果，写成 fight 文档的 result：`convert <mcfr> --to fight`，`show --view outcome` 让位给它。
+   fight 接进 `format`、`schema`、`diff`。blocks 3、4。
+2. **反应堆伤害规则。** 战后存活单位怎么换成对方反应堆掉的血，读 build、录像验证，进
+   `docs/rules/` 并由 outcome 算出。blocks 4：夹具的 `core_damage` 等它。
+3. **fight 文档的校验。** `verify` 读 fight 文档：模拟一遍，比 result 与 hash。
+4. **钉子迁成 fight 夹具。** `tests/<topic>/regressions.mcscript` 里的布阵、种子和 hash 变成
    一份份 fight 文档，result 在有游戏的机器上重录读出，脚本只剩对目录跑 `verify`。
 
 ## 停车场
 
 - **语料按回合出 fight 夹具。** 转换器从原生回放的每一回合写出 `source: replay` 的 fight 文档，
-  只有结转字段、没有 hash，放在 `work/` 下不进仓库。reopen_when：fight 文档类型与 outcome 补完都合并。
+  只有结转字段、没有 hash，放在 `work/` 下不进仓库。reopen_when：outcome 补完合并。

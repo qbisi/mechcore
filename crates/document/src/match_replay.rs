@@ -1,6 +1,6 @@
 //! A match written back as the replay it converts from.
 //!
-//! `mechcore replay convert` reads a replay into a match; this writes a
+//! `mechcore convert --to match` reads a replay into a match; this writes a
 //! match into a replay that the same conversion reads back as that match.
 //! Each of a replay's rounds holds the position a side opens the round with,
 //! taken before the round's own opening, and the decisions it takes from
@@ -29,7 +29,7 @@ use std::fmt::Write as _;
 const RAPID_SUPPLY_SKILL: i32 = 1;
 const BATTLE_ID: &str = "battle";
 
-/// Writes `stated` as a replay `replay convert` reads back as the same match.
+/// Writes `stated` as a replay `convert --to match` reads back as the same match.
 ///
 /// # Errors
 ///

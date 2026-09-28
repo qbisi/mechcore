@@ -257,8 +257,8 @@ fn turn(
     })
 }
 
-/// A replay converted into the document `replay convert` writes, and that
-/// document read back the way `doc verify` reads it.
+/// A replay converted into the document `convert --to match` writes, and that
+/// document read back the way `verify` reads it.
 pub struct Converted {
     pub r#match: Match,
     pub yaml: String,
@@ -277,7 +277,7 @@ pub struct Converted {
 /// round and the next one recorded. Those states are not in the document, so
 /// once it is written nothing else can compare them.
 ///
-/// A deal the rules cannot reproduce at all is not refused here: `doc verify`
+/// A deal the rules cannot reproduce at all is not refused here: `verify`
 /// reports it against the document, and the conversion report carries it.
 ///
 /// # Errors
