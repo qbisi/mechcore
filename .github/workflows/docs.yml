@@ -1,11 +1,15 @@
 name: docs
 
 on:
+  # As in ci: a branch is checked through its pull request, and only the
+  # mainline needs the push trigger. A branch's own push run would put a
+  # `docs` check on the head before its pull request's run exists.
   push:
+    branches: [master]
   pull_request:
 
 jobs:
-  check:
+  docs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
