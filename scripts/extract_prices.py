@@ -15,11 +15,11 @@ Everything is read through `scripts/build_data.py`, the build's typed export:
   two cooldowns.
 * `ContraptionGroupData`: what releasing each contraption costs.
 * `Config`: the step a technology's price rises by per technology already
-  researched.
+  researched, and the rates a surviving unit's score is cut by.
 
-It writes `unit_techs`, `unit_prices`, `unit_experience`, `commander_skills`,
-`reinforce_items`, `unit_reinforcements`, `advance_teams`, `officers` and
-`economy`, all under `config/`.
+It writes `unit_techs`, `unit_prices`, `unit_experience`, `reactor_damage`,
+`commander_skills`, `reinforce_items`, `unit_reinforcements`, `advance_teams`,
+`officers` and `economy`, all under `config/`.
 """
 import pathlib
 import re
@@ -50,6 +50,7 @@ ADVANCE_TEAMS = ROOT / "config/advance_teams.yaml"
 ECONOMY = ROOT / "config/economy.yaml"
 UNIT_PRICES = ROOT / "config/unit_prices.yaml"
 UNIT_EXPERIENCE = ROOT / "config/unit_experience.yaml"
+REACTOR_DAMAGE = ROOT / "config/reactor_damage.yaml"
 COMMANDER_SKILLS = ROOT / "config/commander_skills.yaml"
 
 
@@ -243,6 +244,37 @@ def write_unit_experience(names, levels):
                      f"upgrade_exp: [{values}], loot_exp: [{loot}]}}")
     UNIT_EXPERIENCE.write_text("\n".join(lines) + "\n")
     print(f"units whose experience breaks the formula: {breaking}")
+
+
+def write_reactor_damage(names, levels):
+    """Writes every unit's score per level, and the rates that cut it.
+
+    Every row of `mechExpDatas` is written, named or not: a fight can hold a
+    unit no shop sells, such as one a skill summons, and its score counts as
+    any other's.
+    """
+    config = build_data.level0("Config")
+    lines = ["schema: mechcore.reactor_damage", "",
+             "# `score` is `mechExpDatas.scoreLv1` through `scoreLv9`: what one",
+             "# unit of the row alive at a fight's end takes off the other side's",
+             "# reactor core, at that level. `type` is the name a document gives",
+             "# the unit, where it has one. docs/rules/reactor_damage.md states",
+             "# the rule.",
+             "",
+             "# `Config.supportUnitScoreRate`, `Config.rebirthUnitScoreRate` and",
+             "# `Config.teamChangedUnitScoreRate`, FPoint raw: what a summoned, a",
+             "# reborn and a controlled unit's score is multiplied by.",
+             f"support_unit_score_rate: {config['supportUnitScoreRate']['m_rawValue']}",
+             f"rebirth_unit_score_rate: {config['rebirthUnitScoreRate']['m_rawValue']}",
+             "team_changed_unit_score_rate: "
+             f"{config['teamChangedUnitScoreRate']['m_rawValue']}",
+             "", "units:"]
+    for unit_id in sorted(levels):
+        row = levels[unit_id]
+        score = ", ".join(str(row[f"scoreLv{level}"]) for level in range(1, 10))
+        named = f"type: {names[unit_id]}, " if unit_id in names else ""
+        lines.append(f"  - {{{named}unit_id: {unit_id}, score: [{score}]}}")
+    REACTOR_DAMAGE.write_text("\n".join(lines) + "\n")
 
 
 def write_unit_reinforcements(structure, by_level):
@@ -577,8 +609,9 @@ def main():
     sold = {row["id"] for row in structure["cardDatas"]}
     write_unit_experience({unit: name for unit, name in names.items() if unit in sold},
                           levels)
-    for path in (UNIT_TECHS, UNIT_PRICES, UNIT_EXPERIENCE, COMMANDER_SKILLS, REINFORCE,
-                 UNIT_REINFORCEMENTS, ADVANCE_TEAMS, OFFICERS, ECONOMY):
+    write_reactor_damage(names, levels)
+    for path in (UNIT_TECHS, UNIT_PRICES, UNIT_EXPERIENCE, REACTOR_DAMAGE, COMMANDER_SKILLS,
+                 REINFORCE, UNIT_REINFORCEMENTS, ADVANCE_TEAMS, OFFICERS, ECONOMY):
         print(f"wrote {path.relative_to(ROOT)}")
 
 
