@@ -104,11 +104,9 @@ Something found by accident rather than pursued is not research. It becomes a
 GitHub issue, and [CONTRIBUTING.md](../../.github/CONTRIBUTING.md) says what
 qualifies.
 
-A question published as an issue keeps its record elsewhere: the issue and
-the pull request that answers it hold the hypotheses, the first divergences
-and the ticks that decided, because an agent's worktree dies with its
-session. The same file's Research section says how such a question
-is opened, answered and accepted. The gates above apply to it unchanged.
+A question's record that must outlive the session, the hypotheses, the first
+divergences and the ticks that decided, goes in the pull request that answers
+it, because a worktree dies with its session.
 
 ## Tracking
 
