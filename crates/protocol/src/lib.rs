@@ -381,10 +381,12 @@ pub enum InstrumentChannel {
     RvoNeighbour,
     /// Each solve's VOs, field by field.
     RvoVo,
+    /// Each grouped unit's skills, one row per slot: lock, attack target and state.
+    GroupSlots,
 }
 
 impl InstrumentChannel {
-    pub const ALL: [Self; 7] = [
+    pub const ALL: [Self; 8] = [
         Self::TargetRefs,
         Self::SkillAttackableChecker,
         Self::TargetSearch,
@@ -392,6 +394,7 @@ impl InstrumentChannel {
         Self::RvoSolve,
         Self::RvoNeighbour,
         Self::RvoVo,
+        Self::GroupSlots,
     ];
 
     /// The channel's name, which is also its member's file stem in the MCFR.
@@ -405,6 +408,7 @@ impl InstrumentChannel {
             Self::RvoSolve => "rvo_solve",
             Self::RvoNeighbour => "rvo_neighbour",
             Self::RvoVo => "rvo_vo",
+            Self::GroupSlots => "group_slots",
         }
     }
 }

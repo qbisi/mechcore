@@ -533,15 +533,27 @@ the skill's current `SkillStateController` state (`SkillIdleState`,
 reads `FightSkillBase.IsIdle`. All three are plain field reads at the snapshot
 boundary; they are null for a skill that is not a `FightSkill`.
 
+`group_slots` shows what `target_refs` cannot for a grouped unit, whose main
+skill is a `SkillGroup` rather than a `FightSkill`: a Wraith's four slots are
+four `FightSkill`s, each with its own lock, attack target and state machine.
+For every unit whose main skill is not a `FightSkill`, it records one row per
+`FightSkill` in the unit's `GetSkills()`: the skill's index there, its
+`lockTarget` and `attackTarget`, and the same `skill_state`,
+`skill_attack_phase` and `skill_is_idle` reads. A unit with an ordinary main
+skill has no rows.
+
 `skill_attackable_checker` records every call of
 `SkillAttackableChecker.Check(bool isAttackingCheck)` made during the update a
-row closes, in call order: the skill's owner, `is_attacking_check`, the skill's
+row closes, in call order: the skill's owner, the skill's index in the
+owner's `GetSkills()` (or its parent's, for a child skill the list does not
+hold; null when neither is listed), `is_attacking_check`, the skill's
 lock, attack target, state and attack phase read just `before` the call and
 just `after` it, and what it returned. The method is hooked the way the
 selector method is — its first four arm64 instructions, `sub sp` and three
 `stp`, are stack-only and move to a trampoline unchanged — and is forwarded
 with its arguments and result untouched; the reads on either side are field
-reads, with no managed call.
+reads, with no managed call. The skill's index is found at the snapshot
+boundary, where `GetSkills()` may be called.
 
 `target_search` records every target search of the update, one row each in
 the order the searches returned: the unit or construction that searched, the

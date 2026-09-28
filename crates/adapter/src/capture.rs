@@ -23,8 +23,8 @@ use mechcore_mcfr::{
     WorldSnapshot,
 };
 use mechcore_mcfr::{
-    CheckedSkill, RvoNeighbour, RvoSolve, RvoVo, SkillAttackableCheck, TargetCandidate, TargetRefs,
-    TargetSearch,
+    CheckedSkill, GroupSlot, RvoNeighbour, RvoSolve, RvoVo, SkillAttackableCheck, TargetCandidate,
+    TargetRefs, TargetSearch,
 };
 use mechcore_protocol::InstrumentChannel;
 use std::{
@@ -178,6 +178,7 @@ impl RawFrame {
 pub(crate) struct Instruments {
     target_refs: bool,
     skill_attackable_checker: bool,
+    group_slots: bool,
     pub(crate) target: TargetChannels,
     pub(crate) rvo: RvoChannels,
 }
@@ -187,6 +188,7 @@ impl Instruments {
         Self {
             target_refs: channels.contains(&InstrumentChannel::TargetRefs),
             skill_attackable_checker: channels.contains(&InstrumentChannel::SkillAttackableChecker),
+            group_slots: channels.contains(&InstrumentChannel::GroupSlots),
             target: TargetChannels {
                 search: channels.contains(&InstrumentChannel::TargetSearch),
                 candidate: channels.contains(&InstrumentChannel::TargetCandidate),
@@ -211,6 +213,7 @@ pub(crate) struct InstrumentRows {
     pub(crate) rvo_solve: Option<Vec<RvoSolve>>,
     pub(crate) rvo_neighbour: Option<Vec<RvoNeighbour>>,
     pub(crate) rvo_vo: Option<Vec<RvoVo>>,
+    pub(crate) group_slots: Option<Vec<GroupSlot>>,
 }
 
 #[allow(
@@ -334,6 +337,7 @@ struct RawCheckerSkillView {
 struct OpenCheckerCall {
     invocation_ordinal: u64,
     source_actor: usize,
+    skill: usize,
     is_attacking_check: bool,
     before: RawCheckerSkillView,
 }
@@ -1684,7 +1688,7 @@ pub(crate) fn start(
     if state.armed {
         return Err("a battle recording is already active".into());
     }
-    if (instruments.target_refs || instruments.skill_attackable_checker)
+    if (instruments.target_refs || instruments.skill_attackable_checker || instruments.group_slots)
         && (state.metadata.fight_skill_class.is_none()
             || state.metadata.fight_skill_lock_target.is_none()
             || state.metadata.fight_skill_attack_target.is_none())
@@ -2082,6 +2086,7 @@ fn open_native_checker_call(
         OpenCheckerCall {
             invocation_ordinal: ordinal,
             source_actor: owner as usize,
+            skill: skill as usize,
             is_attacking_check,
             before,
         },
@@ -2823,6 +2828,27 @@ fn damage_skill_slot(api: Api, provider: *mut Object) -> Result<Option<u16>, Str
     if owner.is_null() {
         return Err("a damaging skill has no owner".into());
     }
+    skill_slot_in_owner(api, skill, owner)?
+        .map(Some)
+        .ok_or_else(|| {
+            format!(
+                "a {} deals for a skill its owner's GetSkills does not hold",
+                api.object_class_name(provider)
+            )
+        })
+}
+
+/// The index of `skill` in `owner.GetSkills()`, or of the parent it belongs
+/// to when the list does not hold it, as a child weapon skill's does not.
+/// `None` when neither is listed.
+fn skill_slot_in_owner(
+    api: Api,
+    skill: *mut Object,
+    owner: *mut Object,
+) -> Result<Option<u16>, String> {
+    let fight_skill = api
+        .class("GRFight.dll", "GameRiver.Fight", "FightSkill")
+        .map_err(|error| error.to_string())?;
     let skills = invoke_object(api, owner, "GetSkills")?;
     let count = list_count(api, skills, i32::from(u16::MAX))?;
     // A skill keeps its slot, so the last answer is checked with one read
@@ -2850,15 +2876,15 @@ fn damage_skill_slot(api: Api, provider: *mut Object) -> Result<Option<u16>, Str
                 return Ok(Some(slot));
             }
         }
-        wanted = field(wanted, fight_skill, "<ParentSkill>k__BackingField")?;
+        wanted = api
+            .field(fight_skill, "<ParentSkill>k__BackingField")
+            .and_then(|field| api.field_value::<*mut Object>(wanted, field))
+            .map_err(|error| format!("<ParentSkill>k__BackingField: {error}"))?;
         if wanted.is_null() {
             break;
         }
     }
-    Err(format!(
-        "a {} deals for a skill its owner's GetSkills does not hold",
-        api.object_class_name(provider)
-    ))
+    Ok(None)
 }
 
 fn resolve_hit_damage_context(hit: NativeHitDamageInfo) -> DamageContext {
@@ -3992,6 +4018,17 @@ struct RawUnit {
     weapon_targets: Vec<usize>,
     state: LiveUnitState,
     target_refs: Option<RawTargetRefs>,
+    group_slots: Vec<RawGroupSlot>,
+}
+
+/// One skill of a grouped unit, before its targets are named.
+struct RawGroupSlot {
+    skill_slot: u16,
+    lock_target: usize,
+    attack_target: usize,
+    skill_state: Option<String>,
+    skill_attack_phase: Option<&'static str>,
+    skill_is_idle: Option<bool>,
 }
 
 struct RawTargetRefs {
@@ -5437,6 +5474,7 @@ fn snapshot(
     let mut raw_mech_lock_targets = Vec::with_capacity(raw_units.len());
     let mut raw_weapon_targets = Vec::new();
     let mut raw_target_refs = Vec::new();
+    let mut raw_group_slots = Vec::new();
     for mut unit in raw_units {
         let unit_id = match capture.unit_ids.get(&unit.pointer) {
             Some(id) => *id,
@@ -5488,6 +5526,7 @@ fn snapshot(
         if let Some(target_refs) = unit.target_refs {
             raw_target_refs.push((unit_id, target_refs));
         }
+        raw_group_slots.extend(unit.group_slots.into_iter().map(|slot| (unit_id, slot)));
         units.push(unit.state);
     }
     if let Some(previous) = renumbered {
@@ -5637,6 +5676,33 @@ fn snapshot(
     } else {
         None
     };
+    let group_slots = if capture.instruments.group_slots {
+        let mut rows = Vec::with_capacity(raw_group_slots.len());
+        for (unit_id, slot) in raw_group_slots {
+            rows.push(GroupSlot {
+                unit: ObjectRef::new(ObjectKind::Unit, unit_id),
+                skill_slot: slot.skill_slot,
+                lock_target: resolve_target_ref(
+                    runtime.api,
+                    slot.lock_target,
+                    "FightSkill.lockTarget",
+                    capture,
+                )?,
+                attack_target: resolve_target_ref(
+                    runtime.api,
+                    slot.attack_target,
+                    "FightSkill.attackTarget",
+                    capture,
+                )?,
+                skill_state: slot.skill_state,
+                skill_attack_phase: slot.skill_attack_phase.map(str::to_owned),
+                skill_is_idle: slot.skill_is_idle,
+            });
+        }
+        Some(rows)
+    } else {
+        None
+    };
     let (target_search, target_candidate) = selector::drain(capture);
     let RvoRows {
         solve: rvo_solve,
@@ -5646,7 +5712,11 @@ fn snapshot(
     let instrument = InstrumentRows {
         target_refs,
         skill_attackable_checker: if capture.instruments.skill_attackable_checker {
-            Some(drain_skill_attackable_checker_calls(native_tick, capture)?)
+            Some(drain_skill_attackable_checker_calls(
+                runtime.api,
+                native_tick,
+                capture,
+            )?)
         } else {
             None
         },
@@ -5655,6 +5725,7 @@ fn snapshot(
         rvo_solve,
         rvo_neighbour,
         rvo_vo,
+        group_slots,
     };
     let projectiles = read_projectiles(runtime, capture)?;
     let pending = capture.pending_projectile_absorptions.len()
@@ -6244,6 +6315,19 @@ fn read_unit(
     } else {
         None
     };
+    // A unit whose main skill is not a `FightSkill` is a grouped one: its
+    // slots are the `FightSkill`s its `GetSkills()` holds.
+    let group_slots = if instruments.group_slots
+        && !api.class_is_or_inherits(
+            api.object_class(main_skill).unwrap_or(ptr::null_mut()),
+            metadata
+                .fight_skill_class
+                .expect("profile fields checked at capture start") as *mut _,
+        ) {
+        read_group_slots(api, metadata, unit)?
+    } else {
+        Vec::new()
+    };
     let shield = invoke_object(api, unit, "GetEnergyShieldController")?;
     let max_energy = invoke_value::<i32>(api, shield, "GetMaxEnergy")?;
     let personal_shield = PersonalShieldState {
@@ -6317,6 +6401,7 @@ fn read_unit(
             derived,
         },
         target_refs,
+        group_slots,
     })
 }
 
@@ -7593,6 +7678,51 @@ fn resolve_target_ref(
 /// The main skill's state machine state, its attack phase, and `IsIdle`.
 type SkillStateReading = (Option<String>, Option<&'static str>, Option<bool>);
 
+/// Each `FightSkill` of a grouped unit's `GetSkills()`, field by field.
+fn read_group_slots(
+    api: Api,
+    metadata: &Metadata,
+    unit: *mut Object,
+) -> Result<Vec<RawGroupSlot>, String> {
+    let fight_skill = metadata
+        .fight_skill_class
+        .expect("profile fields checked at capture start") as *mut _;
+    let field = |skill: *mut Object, field: Option<usize>| {
+        api.field_value::<*mut Object>(
+            skill,
+            field.expect("profile fields checked at capture start") as *mut FieldInfo,
+        )
+        .map(|pointer| pointer as usize)
+        .map_err(|error| error.to_string())
+    };
+    let skills = invoke_object(api, unit, "GetSkills")?;
+    let count = list_count(api, skills, i32::from(u16::MAX))?;
+    let mut slots = Vec::new();
+    for index in 0..count {
+        let skill = list_item(api, skills, index)?;
+        if skill.is_null()
+            || !api
+                .object_class(skill)
+                .is_some_and(|class| api.class_is_or_inherits(class, fight_skill))
+        {
+            continue;
+        }
+        let (skill_state, skill_attack_phase, skill_is_idle) = match metadata.skill_state_fields {
+            Some(fields) => read_skill_fsm_state(api, skill, fields)?,
+            None => (None, None, None),
+        };
+        slots.push(RawGroupSlot {
+            skill_slot: u16::try_from(index).map_err(|_| "skill slot overflow".to_owned())?,
+            lock_target: field(skill, metadata.fight_skill_lock_target)?,
+            attack_target: field(skill, metadata.fight_skill_attack_target)?,
+            skill_state,
+            skill_attack_phase,
+            skill_is_idle,
+        });
+    }
+    Ok(slots)
+}
+
 fn read_skill_fsm_state(
     api: Api,
     skill: *mut Object,
@@ -7642,6 +7772,7 @@ fn read_skill_fsm_state(
 /// A call is made inside the update the snapshot closes, so the calls since
 /// the previous snapshot are this tick's.
 fn drain_skill_attackable_checker_calls(
+    api: Api,
     snapshot_native_tick: u64,
     capture: &mut CaptureState,
 ) -> Result<Vec<SkillAttackableCheck>, String> {
@@ -7662,6 +7793,11 @@ fn drain_skill_attackable_checker_calls(
                 call.entry.source_actor,
                 "checker source actor",
                 capture,
+            )?,
+            skill_slot: skill_slot_in_owner(
+                api,
+                call.entry.skill as *mut Object,
+                call.entry.source_actor as *mut Object,
             )?,
             is_attacking_check: call.entry.is_attacking_check,
             before: resolve_checker_skill_view(call.entry.before, "before", capture)?,

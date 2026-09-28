@@ -132,6 +132,9 @@ impl InstrumentRow for TargetRefs {
 pub struct SkillAttackableCheck {
     pub invocation_ordinal: u64,
     pub source_actor: ObjectRef,
+    /// The checked skill's index in its owner's `GetSkills()`: which of a
+    /// grouped unit's slots made the call.
+    pub skill_slot: Option<u16>,
     pub is_attacking_check: bool,
     pub before: CheckedSkill,
     pub after: CheckedSkill,
@@ -140,6 +143,29 @@ pub struct SkillAttackableCheck {
 
 impl InstrumentRow for SkillAttackableCheck {
     const CHANNEL: &'static str = "skill_attackable_checker";
+}
+
+/// One skill of a grouped unit at a snapshot: a Wraith's four slots are four
+/// `FightSkill`s, each with its own lock, attack target and state machine,
+/// which `target_refs` cannot show because the unit's main skill is their
+/// `SkillGroup`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GroupSlot {
+    pub unit: ObjectRef,
+    /// The skill's index in the unit's `GetSkills()`.
+    pub skill_slot: u16,
+    pub lock_target: Option<ObjectRef>,
+    pub attack_target: Option<ObjectRef>,
+    /// The skill's `SkillStateController` state, by class name.
+    pub skill_state: Option<String>,
+    /// Which of `SkillAttackController`'s phases is current.
+    pub skill_attack_phase: Option<String>,
+    /// `FightSkillBase.IsIdle`.
+    pub skill_is_idle: Option<bool>,
+}
+
+impl InstrumentRow for GroupSlot {
+    const CHANNEL: &'static str = "group_slots";
 }
 
 /// A skill's lock, attack target, state and attack phase, read field by field.
