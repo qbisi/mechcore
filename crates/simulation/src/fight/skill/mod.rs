@@ -162,7 +162,6 @@ pub(in crate::fight) struct Skill {
     /// blow reads its own index: a laser's damage multiplier is the one at
     /// that index.
     pub(in crate::fight) attack_count: i32,
-    pub(in crate::fight) retarget_after_own_direct_kill: bool,
     /// The rounds left in a skill that fires from a magazine
     /// (`SkillData.isLoadingType`), and none for one that does not.
     pub(in crate::fight) rounds: Option<u32>,
@@ -259,7 +258,6 @@ impl Skill {
             lock_written: false,
             projectile_pending_releases: Vec::new(),
             attack_count: ATTACK_COUNT_RESET,
-            retarget_after_own_direct_kill: false,
             rounds: magazine.map(|magazine| magazine.capacity),
         }
     }
@@ -710,7 +708,6 @@ impl Simulation {
             skill.lock_is_terminal_handoff = false;
             skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
             skill.set_phase(FightSkillPhase::Idle);
-            skill.retarget_after_own_direct_kill = false;
             return Ok(());
         }
         let selected = selected_candidate;
@@ -747,7 +744,6 @@ impl Simulation {
         skill.lock_is_terminal_handoff = false;
         skill.write_lock(selected);
         skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
-        skill.retarget_after_own_direct_kill = false;
         self.search_attack_target(owner);
         Ok(())
     }
@@ -895,7 +891,7 @@ impl Simulation {
         if let Flow::Done = self.release_terminal_handoff(owner) {
             return Ok(None);
         }
-        if let Flow::Done = self.finish_laser_own_kill(owner) {
+        if let Flow::Done = self.finish_laser_at_dead_target(owner) {
             return Ok(None);
         }
         self.start_bodyless_skill(owner, step);
@@ -1139,9 +1135,16 @@ impl Simulation {
         Flow::Next
     }
 
-    /// A laser whose own beam killed its target ends its attack the update
-    /// after.
-    fn finish_laser_own_kill(&mut self, owner: FightActorRef) -> Flow {
+    /// A laser in its attack state whose target is dead ends its attack:
+    /// `SkillAttackState.Update` asks `CheckAttackable` before the beam
+    /// fires, and a skill that cannot switch quickly fails it on a dead lock.
+    /// Nothing clears a lock when its target dies, and the skill updates
+    /// before the motion, so a beam's own kill is seen here the update after
+    /// it, while the motion has already gone idle on it.
+    ///
+    /// Only a laser is asked: the simulator takes every other path out of
+    /// its attack state after each blow, where the build stays in it.
+    fn finish_laser_at_dead_target(&mut self, owner: FightActorRef) -> Flow {
         let beams = matches!(
             self.attacker(owner)
                 .expect("skill owner identity is stable")
@@ -1150,16 +1153,15 @@ impl Simulation {
             AttackPath::Laser { .. }
         );
         let skill = self.skill(owner);
-        let completed_laser_kill = skill.retarget_after_own_direct_kill
-            && beams
+        let dead_target = beams
+            && skill.phase() == FightSkillPhase::Attack
             && skill
                 .attack_target()
                 .is_some_and(|target| !self.fight_actor_is_alive(target));
-        if completed_laser_kill {
+        if dead_target {
             let skill = self.skill_mut(owner);
             skill.drop_lock();
             skill.set_phase(FightSkillPhase::Idle);
-            skill.retarget_after_own_direct_kill = false;
             return Flow::Done;
         }
         Flow::Next

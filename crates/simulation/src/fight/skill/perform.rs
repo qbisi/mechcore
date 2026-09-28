@@ -77,19 +77,7 @@ impl Simulation {
             let actor_id = owner.unit_id().ok_or_else(|| {
                 Error::new("a construction's skill that strikes is not supported")
             })?;
-            let target = pending.target;
-            let target_was_alive = self.fight_actor_is_alive(target);
-            self.direct_effect(actor_id, target, 0, events)?;
-            // A block felled by a blow is left to the backswing and then to
-            // the fallen-block rule: the Rhino of `wall-rhino.yaml` stays on
-            // the block it felled until its swing is over, where a unit it
-            // kills hands it straight to the retarget.
-            if target_was_alive
-                && !self.fight_actor_is_alive(target)
-                && matches!(target, FightActorRef::Unit(_))
-            {
-                self.skill_mut(owner).retarget_after_own_direct_kill = true;
-            }
+            self.direct_effect(actor_id, pending.target, 0, events)?;
             return Ok(false);
         }
         if beams {
@@ -114,7 +102,6 @@ impl Simulation {
                     .get_mut(&actor_id)
                     .expect("actor identity is stable");
                 actor.motion.state = MotionState::Idle;
-                actor.skill.retarget_after_own_direct_kill = true;
             }
             return Ok(false);
         }
