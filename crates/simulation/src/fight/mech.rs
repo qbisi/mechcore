@@ -99,11 +99,7 @@ impl Actor {
         self.skill.lock_is_terminal_handoff = false;
         self.skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
         self.skill.set_phase(FightSkillPhase::Idle);
-        self.skill.group_skill_targets.fill(None);
-        self.skill.group_in_the_way.fill(None);
-        self.skill.group_skill_next_attack_steps.fill(0);
-        self.skill.group_skill_prepare_ready_steps.fill(0);
-        self.skill.group_pending_releases.clear();
+        self.skill.clear_slots();
         self.skill.projectile_pending_releases.clear();
         self.skill.laser_attack_count = 0;
         self.skill.retarget_after_own_direct_kill = false;
@@ -251,7 +247,7 @@ impl Actor {
             status_mask: 0,
             modifiers: self
                 .stats
-                .modifiers(self.skill.group_skill_targets.len().max(1))
+                .modifiers(self.skill.slots.len().max(1))
                 .expect("the layout refused every correction a snapshot cannot record"),
             personal_shield: PersonalShieldState {
                 active: false,

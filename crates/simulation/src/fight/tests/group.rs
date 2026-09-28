@@ -78,19 +78,19 @@ fn grouped_slots_follow_the_native_exclusion_and_fallback() {
             sim.step(step).unwrap();
             if ticks == 10 && step == 9 {
                 assert_eq!(
-                    sim.actors[&1].skill.group_skill_targets,
+                    sim.actors[&1].skill.slot_locks(),
                     [Some(3), Some(2), Some(3), Some(3)]
                 );
             }
             if ticks == 206 && step == 130 {
                 assert_eq!(
-                    sim.actors[&30].skill.group_skill_targets,
+                    sim.actors[&30].skill.slot_locks(),
                     [Some(23), Some(19), Some(25), Some(21)]
                 );
             }
             if ticks == 206 && step == 205 {
                 assert_eq!(
-                    sim.actors[&29].skill.group_skill_targets,
+                    sim.actors[&29].skill.slot_locks(),
                     [Some(41), Some(30), Some(48), Some(55)]
                 );
                 assert_eq!(sim.actors[&29].skill.lock_target, Some(unit_target(55)));
@@ -147,7 +147,9 @@ fn live_shared_lock_redistribution_is_refused_when_a_new_target_is_available() {
         ],
     );
     let mut sim = raw_test_simulation(&layout, &config, 7);
-    sim.actors.get_mut(&1).unwrap().skill.group_skill_targets = vec![Some(2); 4];
+    for slot in &mut sim.actors.get_mut(&1).unwrap().skill.slots {
+        slot.lock = Some(2);
+    }
     sim.refresh_target_query_snapshot();
     let order = sim.target_search_order();
     assert!(sim.check_group_redistribution_scope(1, 1, &order).is_err());
@@ -247,30 +249,33 @@ mod oracle {
                 return;
             };
             if let Some(calls) = replay.calls.remove(&(replay.tick, actor_id)) {
-                assert!(
-                    matches!(calls.len(), 1 | 4),
-                    "capture does not identify slots"
-                );
                 let saved = self.actors[&actor_id].skill.clone();
-                // The captures visit slots in their group order. Each before
-                // snapshot restores only that slot, preserving the previous
-                // shadow call's changes to its siblings.
-                for (slot, call) in calls.iter().enumerate() {
-                    self.actors
-                        .get_mut(&actor_id)
-                        .unwrap()
-                        .skill
-                        .group_skill_targets[slot] =
+                // Each call names its slot. The captures visit slots in their
+                // group order, and each before snapshot restores only that
+                // slot, preserving the previous shadow call's changes to its
+                // siblings.
+                let slot_of = |call: &Value| {
+                    usize::try_from(
+                        call["skill_slot"]
+                            .as_u64()
+                            .expect("a grouped call names its slot"),
+                    )
+                    .unwrap()
+                };
+                for call in &calls {
+                    let slot = slot_of(call);
+                    self.actors.get_mut(&actor_id).unwrap().skill.slots[slot].lock =
                         target(&call["before"]["lock_target"]).and_then(FightActorRef::unit_id);
                 }
                 let order = self.target_search_order();
-                for (slot, call) in calls.iter().enumerate() {
+                for call in &calls {
+                    let slot = slot_of(call);
                     let before = &call["before"];
                     let lock = target(&before["lock_target"]);
                     let attack = target(&before["attack_target"]);
                     let skill = &mut self.actors.get_mut(&actor_id).unwrap().skill;
-                    skill.group_skill_targets[slot] = lock.and_then(FightActorRef::unit_id);
-                    skill.group_in_the_way[slot] = match (attack, lock) {
+                    skill.slots[slot].lock = lock.and_then(FightActorRef::unit_id);
+                    skill.slots[slot].in_the_way = match (attack, lock) {
                         (Some(FightActorRef::Building(b)), Some(FightActorRef::Unit(u))) => {
                             Some((b, u))
                         }
@@ -281,7 +286,8 @@ mod oracle {
                         .unwrap();
                     let actual = (
                         result,
-                        self.actors[&actor_id].skill.group_skill_targets[slot]
+                        self.actors[&actor_id].skill.slots[slot]
+                            .lock
                             .map(FightActorRef::Unit),
                         self.actors[&actor_id].skill.group_attack_target(slot),
                     );
