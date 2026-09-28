@@ -3,17 +3,19 @@
 //! `docs/spec/document/state.md` defines the projection: what a fight cannot observe is
 //! dropped, most of what it can is copied, and three fields are translated.
 //! A supply, a shop, a reinforcement offer and the two allocators do not
-//! survive; formations, constructions, contraptions, retained shields, terrain
-//! and the tower levels do.
+//! survive; formations, constructions, contraptions and the tower levels do.
 //!
 //! The three that are neither dropped nor copied are the Research Center's
 //! blueprints, of which a layout keeps only the two enhancement chains, the
 //! Energy Tower's skills, of which it keeps only the two a fight can see, and
-//! the skill panel, of which it keeps only what this round released.
+//! the skill panel, of which it keeps what earlier releases left standing and
+//! what this round released.
 
 use crate::DocumentKind;
 use crate::catalog::battle_skill_type_from_id;
-use crate::layout::{BattleSkillDefinition, FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Layout, Side};
+use crate::layout::{
+    BattleSkillEntry, BattleSkillRelease, FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Layout, Side,
+};
 use crate::r#match::{Release, SideState, SkillTarget, State};
 
 /// Projects one round's position onto a layout.
@@ -105,9 +107,7 @@ pub fn project_side(state: &SideState, side_name: &str) -> Result<Side, String> 
             .collect(),
         constructions: state.constructions.clone(),
         contraptions: state.contraptions.clone(),
-        airdrop_shields: state.airdrop_shields.clone(),
-        terrains: state.terrains.clone(),
-        battle_skills: project_releases(state, side_name)?,
+        battle_skills: project_battle_skills(state, side_name)?,
     })
 }
 
@@ -157,11 +157,35 @@ pub fn tower_strengthen_levels(levels: &[i32]) -> Vec<i32> {
     }
 }
 
-/// Keeps the panel entries this round released, in release order.
-fn project_releases(
+/// The panel's battle skills a layout carries: one standing entry per object
+/// a slot's earlier releases left standing, in normal-form order, then the
+/// slots this round released, in release order.
+fn project_battle_skills(
     state: &SideState,
     side_name: &str,
-) -> Result<Vec<BattleSkillDefinition>, String> {
+) -> Result<Vec<BattleSkillEntry>, String> {
+    let mut standing = Vec::new();
+    for slot in &state.battle_skills {
+        for object in &slot.standing {
+            object.require_skill(slot.id)?;
+            standing.push(object.clone());
+        }
+    }
+    standing.sort_by_cached_key(crate::layout::Standing::sort_key);
+    let mut entries: Vec<BattleSkillEntry> = standing
+        .into_iter()
+        .map(BattleSkillEntry::Standing)
+        .collect();
+    entries.extend(
+        project_releases(state, side_name)?
+            .into_iter()
+            .map(BattleSkillEntry::Release),
+    );
+    Ok(entries)
+}
+
+/// Keeps the panel entries this round released, in release order.
+fn project_releases(state: &SideState, side_name: &str) -> Result<Vec<BattleSkillRelease>, String> {
     let mut released: Vec<(&Release, i32)> = state
         .battle_skills
         .iter()
@@ -186,7 +210,7 @@ fn project_releases(
                      cannot state"
                 ));
             };
-            Ok(BattleSkillDefinition {
+            Ok(BattleSkillRelease {
                 type_name: type_name.to_owned(),
                 positions: positions.clone(),
             })

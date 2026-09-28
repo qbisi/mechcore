@@ -119,12 +119,10 @@ pub struct Side {
     pub constructions: Vec<StaticPlacement>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub contraptions: Vec<ContraptionPlacement>,
+    /// The side's battle skills: what earlier releases left standing, then
+    /// this round's releases in release order.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub airdrop_shields: Vec<Position>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub terrains: Vec<Terrain>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub battle_skills: Vec<BattleSkillDefinition>,
+    pub battle_skills: Vec<BattleSkillEntry>,
 }
 
 /// What a compiled side holds of officers and technologies, as the adapter and
@@ -265,48 +263,248 @@ pub struct ContraptionPlacement {
     pub position: Position,
 }
 
+/// One `battle_skills` entry: a release this round, or an object an earlier
+/// round's release left standing.
+///
+/// The two are told apart by which field the entry carries, `positions` or
+/// `standing`, and an entry carrying both or neither is refused. A standing
+/// entry names its skill, which is the one its [`Standing`] payload belongs
+/// to, so the payload is all the entry holds.
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
-pub struct BattleSkillDefinition {
-    #[serde(rename = "name")]
+#[serde(try_from = "BattleSkillFields", into = "BattleSkillFields")]
+pub enum BattleSkillEntry {
+    Release(BattleSkillRelease),
+    Standing(Standing),
+}
+
+/// A battle skill released this round.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BattleSkillRelease {
     pub type_name: String,
     pub positions: Vec<Position>,
 }
 
-#[derive(
-    Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq, PartialOrd, Ord,
-)]
-
-/// A battlefield area a commander skill leaves behind.
+/// An object an earlier round's release of a battle skill left standing.
 ///
-/// These are the build's own `RangeItemType` names, less `FogSand`, which a
-/// unit technology makes rather than a skill and which no side's skill panel
-/// therefore retains. One name is one substance, not one skill: a skill is what
-/// produced the area and [`crate::catalog::terrain_type_from_skill`] is the
-/// mapping, so a build that gave a second skill the same substance would not
-/// need a second name here.
-///
-/// Under the standard 1v1 rules only `Oil` is ever read back, because
-/// only the Sticky Oil Bomb lasts two rounds and every other area is gone
-/// before the round that would record it opens. The rest are carried so that a
-/// recording holding one is described rather than refused.
-#[serde(rename_all = "snake_case")]
-pub enum TerrainType {
-    Fire,
-    Oil,
-    Fog,
-    Acid,
-    RecoveryZone,
+/// Under standard 1v1 only two skills leave one that outlives its round: a
+/// Shield Airdrop, which is not time-limited and stands until it is
+/// destroyed, and a Sticky Oil Bomb, whose area lasts into the next round.
+/// Every other skill's release is gone before the round that would carry it
+/// opens, so no other payload exists.
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[serde(try_from = "StandingFields", into = "StandingFields")]
+pub enum Standing {
+    /// A Shield Airdrop, at its centre.
+    Shield { position: Position },
+    /// What is left of a Sticky Oil Bomb's area.
+    Oil(OilArea),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
-pub struct Terrain {
-    #[serde(rename = "name")]
-    pub terrain_type: TerrainType,
+/// A Sticky Oil Bomb's area: the release's two control points, and which of
+/// the seven points they expand into survive, and how much of each.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct OilArea {
     pub control_points: Vec<Position>,
-    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub grid_rows: BTreeMap<u32, Vec<u32>>,
+}
+
+impl OilArea {
+    /// Drops a `grid_rows` that says every point survives whole, which is what
+    /// an absent one says.
+    pub(crate) fn normalize_grid_rows(&mut self) {
+        if self.grid_rows.len() == OIL_TERRAIN_POINT_COUNT as usize
+            && (0..OIL_TERRAIN_POINT_COUNT)
+                .all(|index| self.grid_rows.get(&index).is_some_and(Vec::is_empty))
+        {
+            self.grid_rows.clear();
+        }
+    }
+}
+
+/// The Shield Airdrop commander skill.
+pub(crate) const SHIELD_AIRDROP_SKILL: i32 = 800_001;
+/// The Sticky Oil Bomb commander skill.
+pub(crate) const STICKY_OIL_BOMB_SKILL: i32 = 400_002;
+
+impl Standing {
+    /// The commander skill whose release leaves this object.
+    #[must_use]
+    pub const fn skill(&self) -> i32 {
+        match self {
+            Self::Shield { .. } => SHIELD_AIRDROP_SKILL,
+            Self::Oil(_) => STICKY_OIL_BOMB_SKILL,
+        }
+    }
+
+    /// The layout name of that skill, which the battle-skill catalogue
+    /// gives [`Self::skill`].
+    #[must_use]
+    pub const fn skill_name(&self) -> &'static str {
+        match self {
+            Self::Shield { .. } => "shield_airdrop",
+            Self::Oil(_) => "sticky_oil_bomb",
+        }
+    }
+
+    /// Refuses a standing object on a skill it does not belong to.
+    ///
+    /// # Errors
+    ///
+    /// Names the skill, and says which skills leave a standing object.
+    pub fn require_skill(&self, skill: i32) -> Result<(), String> {
+        if self.skill() == skill {
+            return Ok(());
+        }
+        let name = crate::catalog::battle_skill_type_from_id(skill)
+            .map_or_else(|| skill.to_string(), str::to_owned);
+        if matches!(skill, SHIELD_AIRDROP_SKILL | STICKY_OIL_BOMB_SKILL) {
+            Err(format!(
+                "battle skill {name} carries a {}'s standing object",
+                self.skill_name()
+            ))
+        } else {
+            Err(format!(
+                "battle skill {name} leaves nothing standing: only shield_airdrop and \
+                 sticky_oil_bomb leave an object that outlives its round"
+            ))
+        }
+    }
+
+    /// The order standing entries take in normal form: by skill name, then a
+    /// shield by its centre and an oil area by its control points.
+    pub(crate) fn sort_key(&self) -> (&'static str, Vec<(i32, i32)>) {
+        let points = match self {
+            Self::Shield { position } => vec![(position.x, position.y)],
+            Self::Oil(area) => area
+                .control_points
+                .iter()
+                .map(|position| (position.x, position.y))
+                .collect(),
+        };
+        (self.skill_name(), points)
+    }
+}
+
+/// How a `battle_skills` entry is written.
+#[derive(Clone, Deserialize, Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+struct BattleSkillFields {
+    name: String,
+    /// This round's release, at these positions in order.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    positions: Option<Vec<Position>>,
+    /// What an earlier round's release left standing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    standing: Option<Standing>,
+}
+
+impl TryFrom<BattleSkillFields> for BattleSkillEntry {
+    type Error = String;
+
+    fn try_from(fields: BattleSkillFields) -> Result<Self, String> {
+        let BattleSkillFields {
+            name,
+            positions,
+            standing,
+        } = fields;
+        match (positions, standing) {
+            (Some(positions), None) => Ok(Self::Release(BattleSkillRelease {
+                type_name: name,
+                positions,
+            })),
+            (None, Some(standing)) => {
+                let skill = crate::catalog::resolve_battle_skill_type(&name)
+                    .ok_or_else(|| format!("battle skill type {name:?} is unknown"))?
+                    .commander_skill_id;
+                standing.require_skill(skill)?;
+                Ok(Self::Standing(standing))
+            }
+            (Some(_), Some(_)) => Err(format!(
+                "battle skill {name} states both positions and standing: an entry is either \
+                 this round's release or an object an earlier release left standing"
+            )),
+            (None, None) => Err(format!(
+                "battle skill {name} states neither positions nor standing"
+            )),
+        }
+    }
+}
+
+impl From<BattleSkillEntry> for BattleSkillFields {
+    fn from(entry: BattleSkillEntry) -> Self {
+        match entry {
+            BattleSkillEntry::Release(release) => Self {
+                name: release.type_name,
+                positions: Some(release.positions),
+                standing: None,
+            },
+            BattleSkillEntry::Standing(standing) => Self {
+                name: standing.skill_name().to_owned(),
+                positions: None,
+                standing: Some(standing),
+            },
+        }
+    }
+}
+
+/// How a standing object is written: a shield's `position`, or an oil
+/// area's `control_points` and `grid_rows`.
+#[derive(Clone, Deserialize, Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+struct StandingFields {
+    /// A Shield Airdrop's centre.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    position: Option<Position>,
+    /// A Sticky Oil Bomb's two control points.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    control_points: Option<Vec<Position>>,
+    /// A Sticky Oil Bomb's surviving points, keyed by generated-point index.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    grid_rows: BTreeMap<u32, Vec<u32>>,
+}
+
+impl TryFrom<StandingFields> for Standing {
+    type Error = String;
+
+    fn try_from(fields: StandingFields) -> Result<Self, String> {
+        match fields {
+            StandingFields {
+                position: Some(position),
+                control_points: None,
+                grid_rows,
+            } if grid_rows.is_empty() => Ok(Self::Shield { position }),
+            StandingFields {
+                position: None,
+                control_points: Some(control_points),
+                grid_rows,
+            } => Ok(Self::Oil(OilArea {
+                control_points,
+                grid_rows,
+            })),
+            _ => Err(
+                "a standing object is a shield's {position} or an oil area's \
+                 {control_points, grid_rows}"
+                    .to_owned(),
+            ),
+        }
+    }
+}
+
+impl From<Standing> for StandingFields {
+    fn from(standing: Standing) -> Self {
+        match standing {
+            Standing::Shield { position } => Self {
+                position: Some(position),
+                control_points: None,
+                grid_rows: BTreeMap::new(),
+            },
+            Standing::Oil(area) => Self {
+                position: None,
+                control_points: Some(area.control_points),
+                grid_rows: area.grid_rows,
+            },
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -381,10 +579,10 @@ impl Layout {
     /// Two rules make up the normal form. Syntax equivalent to a public default
     /// is dropped, and every collection whose order carries no meaning is put in
     /// its defined order: indexed placements by deployment identity, technology
-    /// and Officer IDs and Energy Tower skills and retained airdrop shields
-    /// ascending, and retained terrain by type and control points.
-    /// `battle_skills` is the one exception, because release order is what it
-    /// records, and `tower_strengthen_levels` is not a collection whose order is
+    /// and Officer IDs and Energy Tower skills ascending, and the standing
+    /// `battle_skills` entries first, by skill name and then by where they
+    /// stand. The releases after them are the one exception, because release
+    /// order is what they record, and `tower_strengthen_levels` is not a collection whose order is
     /// free: it is keyed by building-manager position, so an all-zero list is
     /// dropped as a default rather than sorted.
     ///
@@ -404,18 +602,17 @@ impl Layout {
                 .sort_by_key(|construction| construction.index);
             side.contraptions
                 .sort_by_key(|contraption| contraption.index);
-            side.airdrop_shields
-                .sort_unstable_by_key(|position| (position.x, position.y));
-            side.terrains.sort_by_key(|terrain| {
-                (
-                    terrain.terrain_type,
-                    terrain
-                        .control_points
-                        .iter()
-                        .map(|position| (position.x, position.y))
-                        .collect::<Vec<_>>(),
-                )
+            // Standing entries come first, in their defined order; the
+            // releases follow in the order written, which is release order.
+            let (mut standing, releases): (Vec<_>, Vec<_>) =
+                std::mem::take(&mut side.battle_skills)
+                    .into_iter()
+                    .partition(|entry| matches!(entry, BattleSkillEntry::Standing(_)));
+            standing.sort_by_cached_key(|entry| match entry {
+                BattleSkillEntry::Standing(standing) => standing.sort_key(),
+                BattleSkillEntry::Release(_) => unreachable!("partitioned out"),
             });
+            side.battle_skills = standing.into_iter().chain(releases).collect();
             for formation in &mut side.units {
                 if formation.level == Some(1) {
                     formation.level = None;
@@ -430,12 +627,9 @@ impl Layout {
                     formation.travelling = None;
                 }
             }
-            for terrain in &mut side.terrains {
-                if terrain.grid_rows.len() == OIL_TERRAIN_POINT_COUNT as usize
-                    && (0..OIL_TERRAIN_POINT_COUNT)
-                        .all(|index| terrain.grid_rows.get(&index).is_some_and(Vec::is_empty))
-                {
-                    terrain.grid_rows.clear();
+            for entry in &mut side.battle_skills {
+                if let BattleSkillEntry::Standing(Standing::Oil(area)) = entry {
+                    area.normalize_grid_rows();
                 }
             }
         }
@@ -547,7 +741,8 @@ fn validate_embedded_categories(layout: &Layout) -> Result<(), String> {
 /// Canonical layout YAML omits an unspecified `seed`, omits default-valued
 /// optional syntax, puts every collection in the order [`Layout::normalized`]
 /// defines, and ends with one newline. It does not preserve declaration order:
-/// only `battle_skills`, whose order is its content, survives as written.
+/// only the `battle_skills` releases, whose order is their content, survive as
+/// written.
 ///
 /// # Errors
 ///

@@ -67,9 +67,9 @@ group each action touches.
 
 | Group | Fields |
 | --- | --- |
-| Settled | `next_index.unit`, `next_index.contraption`, `unlocked_units`, `techs`, `officers`, `blueprints`, `tower_strengthen_levels`, `battle_skills`, `equipment` |
+| Settled | `next_index.unit`, `next_index.contraption`, `unlocked_units`, `techs`, `officers`, `blueprints`, `tower_strengthen_levels`, `battle_skills` less each slot's `standing`, `equipment` |
 | Supply | `supply` |
-| Board | `units`, `constructions`, `contraptions`, `airdrop_shields`, `terrains` |
+| Board | `units`, `constructions`, `contraptions`, `battle_skills.standing` |
 
 Settled is the group no fight can touch, so a round's decisions determine it
 outright. The board is what the decisions arrange and the fight then consumes.
@@ -371,8 +371,8 @@ The key names the kind of target, as the list the index points into is named,
 and the form is plain YAML rather than a tag such as `!unit 4`, so any YAML or
 JSON reader takes a match as it is.
 
-What a release writes depends on the skill. It may put a construction, a
-retained airdrop shield or a terrain on the board, or take one of the side's own
+What a release writes depends on the skill. It may put a construction on the
+board, leave a shield or an area standing on its panel slot, or take one of the side's own
 units or constructions away. Taking a unit away returns what it wore
 to `equipment`, where the same round can fit it to another unit. Releasing is free, except a skill that
 recovers an object, which pays back what that object cost: for a unit, its

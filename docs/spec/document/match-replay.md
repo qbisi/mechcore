@@ -104,8 +104,8 @@ the opening undone:
 Each undone position is opened again with conversion's own rule, and a
 position that does not open onto the match's state is refused rather than
 written. A chain blueprint's officer is written beside the blueprint, as the
-game snapshots it. A Shield Airdrop or an area an earlier round left standing
-is written under a panel slot of the skill that leaves it.
+game snapshots it. A panel slot's `standing` objects, the Shield Airdrops and
+areas its earlier releases left, are written in that slot's `rangeItems`.
 
 ## The decisions
 

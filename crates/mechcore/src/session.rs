@@ -1208,7 +1208,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn apply_layout_accepts_nonempty_terrains_before_game_state_checks() {
+    async fn apply_layout_accepts_standing_oil_before_game_state_checks() {
         let error = Session::new()
             .apply_layout(
                 json!({
@@ -1216,9 +1216,11 @@ mod tests {
                     "round": 1,
                     "blue": {
                         "units": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}}],
-                        "terrains": [{
-                            "name": "oil",
-                            "control_points": [{"x": -60, "y": 40}, {"x": 60, "y": 40}]
+                        "battle_skills": [{
+                            "name": "sticky_oil_bomb",
+                            "standing": {
+                                "control_points": [{"x": -60, "y": 40}, {"x": 60, "y": 40}]
+                            }
                         }]
                     },
                     "red": {"units": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}}]}
@@ -1228,8 +1230,8 @@ mod tests {
             .await
             .unwrap_err();
 
-        // Reaching the game-state check is the point: a non-empty terrain list
-        // is compiled, not rejected as unsupported.
+        // Reaching the game-state check is the point: a standing oil area is
+        // compiled, not rejected as unsupported.
         assert!(
             error.contains("starts from the main menu"),
             "expected the state precondition, got {error}"

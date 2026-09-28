@@ -77,10 +77,8 @@ blue:
   contraptions:
   - {name: interceptor, index: 0, position: {x: 5, y: -95}}
 
-  airdrop_shields: []
-  terrains: []
-
   battle_skills:
+  - {name: shield_airdrop, standing: {position: {x: -285, y: -22}}}
   - {name: mobile_beacon, positions: [{x: -100, y: -150}, {x: 0, y: -100}, {x: 100, y: -50}]}
 
 red:
@@ -93,8 +91,6 @@ red:
   - {name: marksman, index: 0, position: {x: 0, y: -100}}
 
   contraptions: []
-  airdrop_shields: []
-  terrains: []
   battle_skills: []
 ```
 
@@ -112,20 +108,20 @@ in its defined order:
 | `units`, `constructions`, `contraptions` | ascending `index` |
 | `officers`, `blueprints`, `energy_tower_skills` | ascending ID; `officers` may repeat one |
 | `techs` | ascending unit ID, each unit's technologies ascending ID |
-| `airdrop_shields` | ascending `(x, y)` |
-| `terrains` | ascending `name`, then control points |
-| `battle_skills` | as written: release order is what it records |
+| `battle_skills` | standing entries first, ascending skill `name`, then a shield's `(x, y)` or an oil area's control points; then the releases as written: release order is what they record |
 
 `tower_strengthen_levels` is absent from that table because its order is its
 meaning: it is keyed by tower position. An all-zero list is equivalent to
 omitting it, and normal form omits it.
 
-`airdrop_shields` can be reordered because the game sorts both of its shield
-lists by position at fight start, so a retained shield's position in the list is
-not observable during the fight. `terrains` can be reordered because under
-current 1v1 rules the collection holds at most one entry, so there is no order
-to observe; the sort is what keeps the rule total over the shape the schema
-admits rather than over the states today's rules can reach.
+The standing entries can be reordered because none of them is a release: they
+are installed before any release, shields before oil areas whatever their
+order, and the order within each kind is not observable. The game sorts both of
+its shield lists by position at fight start, so a standing shield's place is
+not observable during the fight, and under standard 1v1 a side holds at most
+one standing oil area, so there is no order to observe; the sort is what keeps
+the rule total over the shape the schema admits rather than over the states the
+rules can reach. The releases after them are never reordered.
 
 `mechcore doc format` writes this form and `mechcore doc diff` compares it,
 so two documents that denote the same state compare equal. Normalizing an
@@ -137,8 +133,8 @@ it is holding before any of it means anything.
 
 Every coordinate pair in the schema is one `{x, y}` value rather than two
 sibling fields. `units`, `constructions` and `contraptions` carry it as
-`position`; `airdrop_shields`, `terrains.control_points` and
-`battle_skills.positions` are lists of the same value.
+`position`, and so does a standing shield; `battle_skills.positions` and a
+standing oil area's `control_points` are lists of the same value.
 
 The canonical writer spells a layout by the three rules a
 [match](match.md#normal-form) is spelled by, and none of them names a field:
@@ -148,7 +144,7 @@ The canonical writer spells a layout by the three rules a
   on its key's line;
 - every other value is written in block style.
 
-So every unit, placement, shield, terrain and released skill is one line,
+So every unit, placement and battle-skill entry is one line,
 every name list and coordinate pair sits on its key's line, and a side and its
 `techs` stay blocks. One line per item keeps a layout on a screen and makes a
 diff name the item that changed. The spelling is part of the canonical form,
@@ -165,7 +161,8 @@ Runtime catalog availability and native readback remain Adapter-owned.
 `mechcore doc verify layout.yaml` runs this shared static compiler without
 starting the game or Simulator. It prints one JSON object per input, and a
 layout's carries `kind: layout` beside the normalized seed, round, unit
-count, construction count, contraption count, and airdrop shield count.
+count, construction count, contraption count, standing shield count, and
+standing oil area count.
 
 The command is not the layout's alone. It checks each file against the contract
 that file names for itself, so a match is checked against its seed and its
@@ -317,8 +314,9 @@ normalized to the Unity world battlefield axis: `layout.x -> world.x` and
 mapping is outside the layout schema and does not rename its fields.
 
 The same transform applies independently to every coordinate in
-`battle_skills.positions` and every `terrains.control_points` entry. Terrain `grid_rows` are
-also expressed in the owning side's local frame: rows advance along local `+y`
+`battle_skills.positions` and every standing `position` and `control_points`
+entry. A standing oil area's `grid_rows` are also expressed in the owning side's
+local frame: rows advance along local `+y`
 and low-order bits advance along local `+x`. The native terrain executor
 therefore rotates both row order and bit order for the red side. A
 180-degree transform does not change a unit's `rotated` boolean.
@@ -340,8 +338,6 @@ when omitted:
   `0`.
 - `constructions` defaults to `[]`.
 - `contraptions` defaults to `[]`.
-- `airdrop_shields` defaults to `[]`.
-- `terrains` defaults to `[]`.
 - `battle_skills` defaults to `[]`.
 - A unit's `index` is required and has no default.
 - A unit's `level` defaults to `1`.
@@ -808,128 +804,14 @@ gap is reproduced. It performs the native placement check, releases the
 contraption once, and verifies its type, exact position, and resulting index
 through authoritative recorder readback.
 
-### `airdrop_shields`
-
-```yaml
-airdrop_shields:
-  - {x: -285, y: -22}
-```
-
-`airdrop_shields` records the Shield Airdrop objects an earlier round's release
-left standing at the start of this fight. It defaults to `[]` and holds bare
-side-local centers, because the object carries no other layout-visible state.
-
-A Shield Airdrop is a commander-skill object, not a contraption. It has no
-contraption index, it does not consume the contraption count, and it is created
-through the commander-skill path rather than a contraption release. That is why
-it is its own collection rather than a flag on a `contraptions` entry, even
-though native export finds it in the same shield collection as contraption
-shields.
-
-An entry here always means a shield already present before this fight. A Shield
-Airdrop released during the requested round is a `battle_skills` entry instead,
-so one shield is never recorded in both places. The retained object uses
-`CS_EnergyShield` (ID 800001), which is not short-lived and resets to
-maximum energy between rounds.
-
-A replay records it, in the releasing skill's own `rangeItems` rather than in
-any object list, and the entry survives as long as the shield does. Direct GRBR
-decoding is exposed as `mechcore_document::retained_from_grbr_round`, which
-reads the retained oil terrain from the same place.
-
-Because a retained airdrop is an existing world object rather than a new
-release, it only has to stand on the battlefield: its center must be inside
-`x=[-400,400], y=[-350,350]` in side-local coordinates, and its radius-70 body
-may extend outside the deployment area.
-
-During the requested round's deployment, the executor constructs the data source
-without adding commander inventory or a release record, then invokes
-`AdvancedEnergyShieldSystem.Create(data, FVector3, teamController)` in layout
-declaration order, after contraptions and before `terrains`. It verifies
-full/active-list insertion, source, team, exact position, radius, energy, and
-round policy. MCFR shield IDs remain normalized at S(1); no MCFR schema or hash
-field changes.
-
-### `terrains`
-
-`terrains` records the active cross-round battlefield terrain owned by one side
-at the start of this single fight. It defaults to `[]`. One entry represents one
-original release, rather than one surviving circle of what it left. Under
-current 1v1 rules a side holds at most one entry: the Sticky Oil Bomb is the
-only release that survives its round, and it is unlocked once through the
-research center. Entry order therefore carries nothing, and canonical layouts
-sort it:
-
-```yaml
-terrains:
-  - name: oil
-    control_points:
-      - {x: -24, y: 11}
-      - {x: 80, y: 1}
-    grid_rows:
-      0: [240, 1020, 2046, 2046, 4095, 4095, 1023, 511, 254, 126, 60, 48]
-      1: [240, 1020, 1022, 510, 255, 127, 63, 63, 30, 30, 12, 0]
-      5: [16, 28, 30, 30, 63, 63, 127, 127, 254, 510, 1020, 240]
-      6: [48, 124, 126, 254, 255, 511, 1023, 2047, 2046, 2046, 1020, 240]
-```
-
-- `name` names the substance, not the skill that made it. The names are the
-  build's own: `fire`, `oil`, `fog`, `acid` and `recovery_zone`, which are its
-  range-item types less the one a unit technology makes rather than a skill.
-  Which skill produces which is a catalogue entry rather than a rule of this
-  format, so a build that gave a second skill the same substance would need no
-  new name here.
-
-  A document may carry any of them; a plan can be built from `oil` alone. The
-  geometry below is the producing skill's rather than the terrain's, and only
-  the Sticky Oil Bomb's is measured: `docs/rules/battle_skill.md` carries every
-  skill's point radius and no skill's point count. A layout naming any other
-  substance is refused by name, which is a stated boundary rather than a
-  silently wrong bound. That the refusal has never fired is a property of the
-  rules rather than of the format: oil lasts two rounds and every other area
-  lasts one, so every other area is gone before the round that would record it
-  opens.
-- `control_points` contains exactly two ordered integer points in the owning
-  side's local frame. The first is the skill start point and the second fixes the
-  release direction. It is named apart from `positions` because `grid_rows` is
-  keyed over a different sequence: the seven generated centers, not these two.
-  The build's `CalculateAttackPositions` line branch expands them into seven oil
-  centers. Only these two endpoints are integers. The step length divides the
-  path magnitude by six through a fixed-point square root, so the five
-  intermediate centers land on fractional Q32.32 values and cannot be written as
-  layout coordinates. Reusing the same native `FixedMath` primitives restores
-  them exactly instead.
-- `grid_rows` is an optional map keyed by the native zero-based generated-point
-  index, which for oil is `0..=6`. If the map is omitted or empty, all seven points are active as
-  complete 30 m circles. If it is non-empty, its key set is the complete set of
-  surviving points: an absent key means that point was intercepted or otherwise
-  inactive.
-- A mapped empty list means that point is active as a complete circle. A mapped
-  non-empty list is the final shield-clipped `12 x 12` occupancy mask and must
-  contain exactly 12 unsigned integer rows. Within each row the low 12 bits
-  represent cells in increasing local x order, and rows appear in increasing
-  local y order. Bits above bit 11 are rejected, and at least one cell must be
-  active.
-
-The control-point path, expanded by the 30 m radius, must overlap the battlefield
-rectangle `x=[-400,400], y=[-350,350]`; edge contact is accepted. The compiler
-validates this bound, the two-point arity, native index range and grid shape. It
-does not accept `active_sub_effects` or `remaining_rounds`: the non-empty map's
-keys already encode the active set, while remaining lifetime is not meaningful
-inside a single-fight layout.
-
-The Simulator rejects layouts with non-empty `terrains` before constructing a
-simulated fight. Adapter execution reproduces the build's line branch with
-native `FVector3`/`FPoint` operations, adds only the declared active indexes through
-`RangeItemSystem.AddItem`, then overwrites and reads back each optional
-`GridBlockInt` mask. Direct GRBR decoding is exposed as
-`mechcore_document::retained_from_grbr_round`; replay recording uses the
-independent live `RangeItemSystem` enumeration path and groups items by provider.
-
 ### `battle_skills`
 
-`battle_skills` describes the battle skills owned and released by one side in
-the current round. “Battle skill” is the public layout term; native runtime
+`battle_skills` describes one side's battle skills as the fight sees them: the
+objects earlier rounds' releases left standing, and the releases of the current
+round. An entry is one or the other, told apart by which field it carries:
+`positions` for a release this round, `standing` for an object an earlier
+release left, described under [Standing entries](#standing-entries). An entry
+carrying both, or neither, is refused. “Battle skill” is the public layout term; native runtime
 objects and operations may continue to use `CommanderSkillData` and
 “commander skill”. The supported catalog is limited to position-targeted
 skills that affect combat and can occur in standard 1v1 matches:
@@ -954,7 +836,7 @@ battle_skills:
         y: -50
 ```
 
-Each entry has exactly two fields:
+A release entry has exactly two fields:
 
 - `name` is the lower `snake_case` form of the skill's English in-game name;
   the adapter resolves it to the canonical native `CommanderSkillData` ID in
@@ -978,8 +860,8 @@ release both in a round — the Missile Specialist hands out two Missile Strikes
 and the tracked set records rounds that release both — so the list is the
 round's releases in order and not a set of the types it used.
 
-The order of the entries themselves is also semantic, and a normalizing
-consumer must never sort `battle_skills`. One side's skills draw from a single
+The order of the release entries themselves is also semantic, and a
+normalizing consumer must never sort them. One side's skills draw from a single
 `GRRandom` that `FightTeam` holds at field offset `0x68`, reached from the
 fight-side `CommanderSkillManager` through `teamController.fightTeam.random`
 and consumed by `CalculateAttackPositions`, so scattering skills take their
@@ -1011,7 +893,8 @@ Distinguishing them by experiment would need an Adapter that can order
 provisioning and release independently, which is not worth building for this
 question alone. The consequence for the schema is that this array's order is
 the release order, and that acquisition order is not layout state: a skill slot
-or acquisition index would record something no outcome depends on.
+or acquisition index would record something no outcome depends on. The
+standing entries are not releases and take no place in this order.
 
 `tests/skill-order/orbital-first.yaml` and `lightning-first.yaml` beside it hold
 the same pair of releases at the same two positions and differ only in which is
@@ -1043,6 +926,108 @@ with the native `CanReleaseCommanderSkill` path, releases the skill once through
 `PAD_ReleaseCommanderSkill`, and verifies the resulting skill state and exact
 ordered positions through authoritative readback.
 
+#### Standing entries
+
+```yaml
+battle_skills:
+  - name: shield_airdrop
+    standing: {position: {x: -285, y: -22}}
+  - name: sticky_oil_bomb
+    standing:
+      control_points:
+        - {x: -24, y: 11}
+        - {x: 80, y: 1}
+      grid_rows:
+        0: [240, 1020, 2046, 2046, 4095, 4095, 1023, 511, 254, 126, 60, 48]
+        1: [240, 1020, 1022, 510, 255, 127, 63, 63, 30, 30, 12, 0]
+        5: [16, 28, 30, 30, 63, 63, 127, 127, 254, 510, 1020, 240]
+        6: [48, 124, 126, 254, 255, 511, 1023, 2047, 2046, 2046, 1020, 240]
+```
+
+A standing entry records one object an earlier round's release of the named
+skill left on the battlefield at the start of this fight, one entry per object.
+It is a battle-skill entry because that is where the build keeps it: the
+releasing panel skill holds the object in its own `rangeItems`, and a replay
+records it there rather than in any object list. It is re-enacted before the
+fight rather than released: it adds no commander inventory and no release
+record, and it takes no place in the release order.
+
+Under standard 1v1 only two skills leave an object that outlives its round, and
+`standing` is accepted on those two alone; any other skill carrying it is
+refused by name. The payload is the skill's:
+
+- `shield_airdrop`: `standing: {position: {x, y}}`, the shield's side-local
+  centre. A Shield Airdrop is not time-limited and stands until it is
+  destroyed, so a side may hold several, one entry each. The object carries no
+  other layout-visible state: the retained object uses `CS_EnergyShield`
+  (ID 800001), which is not short-lived and resets to maximum energy between
+  rounds.
+- `sticky_oil_bomb`: `standing: {control_points, grid_rows}`, one entry per
+  original release rather than per surviving circle. The substance follows from
+  the skill, so the entry names none. Oil lasts two rounds and every other area
+  one, so every other area is gone before the round that would record it opens.
+
+A Shield Airdrop is a commander-skill object, not a contraption. It has no
+contraption index, does not consume the contraption count, and is created
+through the commander-skill path rather than a contraption release, although
+native export finds it in the same shield collection as contraption shields.
+One released during the requested round is a release entry instead, so one
+shield is never recorded twice.
+
+Because a standing shield is an existing world object rather than a new
+release, it only has to stand on the battlefield: its centre must be inside
+`x=[-400,400], y=[-350,350]` in side-local coordinates, and its radius-70 body
+may extend outside the deployment area.
+
+A standing oil area's fields:
+
+- `control_points` contains exactly two ordered integer points in the owning
+  side's local frame. The first is the skill start point and the second fixes the
+  release direction. It is named apart from `positions` because `grid_rows` is
+  keyed over a different sequence: the seven generated centers, not these two.
+  The build's `CalculateAttackPositions` line branch expands them into seven oil
+  centers. Only these two endpoints are integers. The step length divides the
+  path magnitude by six through a fixed-point square root, so the five
+  intermediate centers land on fractional Q32.32 values and cannot be written as
+  layout coordinates. Reusing the same native `FixedMath` primitives restores
+  them exactly instead.
+- `grid_rows` is an optional map keyed by the native zero-based generated-point
+  index, `0..=6`. If the map is omitted or empty, all seven points are active as
+  complete 30 m circles. If it is non-empty, its key set is the complete set of
+  surviving points: an absent key means that point was intercepted or otherwise
+  inactive.
+- A mapped empty list means that point is active as a complete circle. A mapped
+  non-empty list is the final shield-clipped `12 x 12` occupancy mask and must
+  contain exactly 12 unsigned integer rows. Within each row the low 12 bits
+  represent cells in increasing local x order, and rows appear in increasing
+  local y order. Bits above bit 11 are rejected, and at least one cell must be
+  active.
+
+The control-point path, expanded by the 30 m radius, must overlap the battlefield
+rectangle `x=[-400,400], y=[-350,350]`; edge contact is accepted. The compiler
+validates this bound, the two-point arity, native index range and grid shape. It
+does not accept `active_sub_effects` or `remaining_rounds`: the non-empty map's
+keys already encode the active set, while remaining lifetime is not meaningful
+inside a single-fight layout.
+
+During the requested round's deployment, after contraptions and before any
+release, the executor installs every standing shield and then every standing
+oil area, each kind in declaration order. For a shield it constructs the data
+source and invokes `AdvancedEnergyShieldSystem.Create(data, FVector3,
+teamController)`, then verifies full/active-list insertion, source, team, exact
+position, radius, energy, and round policy. MCFR shield IDs remain normalized
+at S(1). For an oil area it reproduces the build's line branch with native
+`FVector3`/`FPoint` operations, adds only the declared active indexes through
+`RangeItemSystem.AddItem`, then overwrites and reads back each optional
+`GridBlockInt` mask. The Simulator rejects a layout carrying any standing entry
+before constructing a simulated fight.
+
+Direct GRBR decoding of the standing objects a replay round holds, each with the
+panel slot it is recorded under, is exposed as
+`mechcore_document::retained_from_grbr_round`; replay recording uses the
+independent live `RangeItemSystem` enumeration path and names each oil area by
+its provider skill.
+
 ## What applying a layout must guarantee
 
 These are obligations on any executor, not a description of one.
@@ -1060,12 +1045,15 @@ Applying a layout is fail-closed:
    alignment, and applicable deployment collisions are validated before
    mutation. After provisioning a battle skill, its runtime position count and
    every target position are checked natively before that skill is released.
-4. Mutations are executed in document order within each array.
+4. Mutations are executed in document order within each array. Standing
+   `battle_skills` entries are installed after contraptions and before any
+   release, standing shields before standing oil areas.
 5. Every mutation is followed by authoritative native readback.
 6. A rejected action, missing catalog entry, ambiguous tower, transport error,
    or readback mismatch stops the application. Unit failures identify the
    declared `name` and `position`; battle-skill failures identify the declared
-   `name` and ordered `positions`. Mutations are never retried automatically.
+   `name` and ordered `positions`, or the standing object. Mutations are
+   never retried automatically.
 7. Success means that the game is in the requested activation-round deployment
    and both sides match all state defined in this document; an accepted native
    action alone is insufficient.
@@ -1084,6 +1072,12 @@ The following names are intentionally absent:
 - `research_blueprints`: an enhancement chain is in `blueprints`, and a
   blueprint that grants a skill reaches a fight only as that skill's release.
 - `reactor_core` and `supply`: resource provisioning is an executor concern.
+- A collection of standing objects beside `battle_skills`: the build keeps a
+  shield or an area an earlier release left under the releasing panel skill, so
+  a layout states it as that skill's standing entry, and it follows the skill
+  wherever the skill goes.
+- A terrain substance name: which substance an area is follows from the skill
+  that left it, so a standing entry names the skill and nothing else.
 - `opening_techs` and `reinforcement_techs`: a layout states the state that
   holds, never the route taken to reach it, and Officer acquisition source does
   not change the resulting state in `officers`. For the same reason

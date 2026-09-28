@@ -15,10 +15,10 @@
 //! `docs/spec/document/match-replay.md` states what the file holds.
 
 use crate::economy::Economy;
-use crate::layout::Position;
+use crate::layout::{Position, Standing};
 use crate::layout_replay::{
-    SHIELD_AIRDROP_SKILL, binary_formatter, build_number, shield_range_data, terrain_range_data,
-    write_ints, write_technology_rows,
+    binary_formatter, build_number, oil_range_data, shield_range_data, write_ints,
+    write_technology_rows,
 };
 use crate::r#match::{Action, SideState, SkillTarget, Turn};
 use crate::opening::{Stated, StatedSide, Stream};
@@ -466,7 +466,7 @@ fn write_snapshot(
     officers.sort_unstable();
     write_ints(xml, "officers", &officers);
     xml.push_str("<mainEffects /><lastRoundSupply>0</lastRoundSupply><reinforceShopStrengthens />");
-    write_panel(xml, side, sign, round)?;
+    write_panel(xml, side, sign, round);
     write_technology_rows(xml, "activeTechnologies", "UnitData", &side.techs);
     write_inventory(xml, side);
     xml.push_str("<shop>");
@@ -633,33 +633,14 @@ fn native_id(spec: Option<crate::catalog::FormationSpec>) -> Option<i32> {
     }
 }
 
-/// The panel, each slot with the objects its earlier releases left standing:
-/// a retained Shield Airdrop under the Shield Airdrop slot, a retained area
-/// under the slot of the skill that leaves it.
-fn write_panel(xml: &mut String, side: &SideState, sign: i32, round: i32) -> Result<(), String> {
-    let mut retained: Vec<(i32, String)> = side
-        .airdrop_shields
-        .iter()
-        .map(|center| (SHIELD_AIRDROP_SKILL, shield_range_data(*center, sign)))
-        .collect();
-    for terrain in &side.terrains {
-        let skill = crate::catalog::terrain_skill_from_type(terrain.terrain_type)
-            .ok_or_else(|| format!("terrain {:?} is left by no skill", terrain.terrain_type))?;
-        retained.push((skill, terrain_range_data(terrain, sign)));
-    }
-    for (skill, _) in &retained {
-        if !side.battle_skills.iter().any(|slot| slot.id == *skill) {
-            return Err(format!(
-                "an object skill {skill} left stands, and the panel holds no slot of it"
-            ));
-        }
-    }
+/// The panel, each slot with the objects its earlier releases left standing
+/// in its `rangeItems`.
+fn write_panel(xml: &mut String, side: &SideState, sign: i32, round: i32) {
     if side.battle_skills.is_empty() {
         xml.push_str("<commanderSkills />");
-        return Ok(());
+        return;
     }
     xml.push_str("<commanderSkills>");
-    let mut placed = vec![false; retained.len()];
     for slot in &side.battle_skills {
         let _ = write!(
             xml,
@@ -667,26 +648,21 @@ fn write_panel(xml: &mut String, side: &SideState, sign: i32, round: i32) -> Res
              <coolingRound>{}</coolingRound><getRound>{round}</getRound>",
             slot.index, slot.id, slot.used, slot.cooldown
         );
-        let mut mine: Vec<&String> = Vec::new();
-        for (at, (skill, item)) in retained.iter().enumerate() {
-            if *skill == slot.id && !placed[at] {
-                placed[at] = true;
-                mine.push(item);
-            }
-        }
-        if mine.is_empty() {
+        if slot.standing.is_empty() {
             xml.push_str("<rangeItems />");
         } else {
             xml.push_str("<rangeItems>");
-            for item in mine {
-                xml.push_str(item);
+            for standing in &slot.standing {
+                xml.push_str(&match standing {
+                    Standing::Shield { position } => shield_range_data(*position, sign),
+                    Standing::Oil(area) => oil_range_data(area, sign),
+                });
             }
             xml.push_str("</rangeItems>");
         }
         xml.push_str("</CommanderSkillData>");
     }
     xml.push_str("</commanderSkills>");
-    Ok(())
 }
 
 /// A round's decisions as the replay records them, each side ending its

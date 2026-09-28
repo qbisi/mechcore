@@ -396,13 +396,12 @@ field.
 | `reactor_core` | Damage |
 | `units.exp` | Experience from the fight |
 | `contraptions` | Which survive |
-| `terrains` | Which remain |
-| `airdrop_shields` | Which remain |
+| `battle_skills.standing` | Which remain, and what this round's releases leave |
 
 The fight decides which of these survive, not what they may be. A fight
-destroys shields and never places one, so an `airdrop_shields` leaf holding a
-shield the round neither opened with nor released is `unequal`, predicted as
-the most that could stand.
+destroys shields and never places one, so a panel slot's `standing` leaf
+holding a shield the slot neither opened with nor released this round is
+`unequal`, predicted as the most that could stand.
 
 A leaf outside those fields is `unimplemented` when no rule produces it, even
 where the unchanged value happens to agree; which fields those are changes as
@@ -583,19 +582,19 @@ nothing where the round before activated one, is refused rather than converted
 under whichever reading happens to be consulted. An activation in the last round
 is never compared: no snapshot follows it.
 
-`airdrop_shields` and `terrains` are read out of the panel rather than out of
-the object lists. A skill that leaves an object standing keeps it in that
-skill's `rangeItems`, and the snapshot opens the round, so an entry there is an
-object that outlived the round which made it. The two kinds differ in what they
-do with the entry's `round`: an oil terrain counts its remaining lifetime down
-and is dropped at zero, while a Shield Airdrop is not time-limited, always
-records zero, and simply loses its entry once the shield is gone. A `rangeItems`
-entry belonging to any other skill is an error, since this format has not been
-measured against it.
+A panel slot's `standing` is read out of the panel rather than out of the
+object lists. A skill that leaves an object standing keeps it in that skill's
+`rangeItems`, and the snapshot opens the round, so an entry there is an object
+that outlived the round which made it, and it goes on the slot it is recorded
+under. The two kinds differ in what they do with the entry's `round`: an oil
+area counts its remaining lifetime down and is dropped at zero, while a Shield
+Airdrop is not time-limited, always records zero, and simply loses its entry
+once the shield is gone. A live `rangeItems` entry belonging to any other skill
+is an error, since this format has not been measured against it.
 
 A shield the requested round releases is a decision in that round's action
-segment, not an `airdrop_shields` entry, and the two never name the same object:
-the state segment is taken before the round's own decisions.
+segment, not a `standing` entry, and the two never name the same object: the
+state segment is taken before the round's own decisions.
 
 `travelling` has no recorded source and needs none. The fight empties the
 travelling set before the round it opens, so no state segment carries a

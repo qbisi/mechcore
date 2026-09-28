@@ -318,9 +318,11 @@ coordinates; duplicate keys fail closed. Native construction/building counters
 and layout order do not determine these IDs. Existing IDs and target/event
 references remain stable after allocation, including after object removal.
 
-A structurally valid layout may contain retained Sticky Oil Bomb
-state in `sides.<side>.terrains`. During activation the Adapter expands each
-entry's two ordered control points with the native fixed-point primitives,
+A structurally valid layout may contain a standing Sticky Oil Bomb area as a
+`sticky_oil_bomb` entry of a side's `battle_skills` carrying `standing`. During
+activation the Adapter installs every standing shield, then every standing oil
+area, after the contraptions and before any release. It expands each oil
+area's two ordered control points with the native fixed-point primitives,
 creates only the mapped active indexes through `RangeItemSystem.AddItem`, and
 restores any final clipped grids with immediate native readback. The mechanism
 it restores is [terrain.md](../../rules/terrain.md); which sources
@@ -452,9 +454,11 @@ interceptors. Unit interception sources are not layout contraptions. Layout
 retains native full-list shield order at deployment and is not delayed or
 reordered from S(1).
 
-The same shield collection also holds retained Shield Airdrops. Those are
-commander-skill objects, so export splits them out of `contraptions` into the
-side's `airdrop_shields`, keeping their native full-list order.
+The same shield collection also holds standing Shield Airdrops. Those are
+commander-skill objects, so export splits them out of `contraptions` into
+standing `shield_airdrop` entries of the side's `battle_skills`. Each standing
+Sticky Oil Bomb area, read from `RangeItemSystem` and grouped by its provider,
+is exported as a standing entry named by that provider's skill.
 
 Units are numbered afresh by every snapshot before S(1), because units can join as the fight
 starts and the initial numbering is S(1)'s scene; the numbering S(1) writes is final, references the

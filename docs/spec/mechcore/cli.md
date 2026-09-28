@@ -265,9 +265,9 @@ consequence stands on the board and one whose consequence is only an option:
 
 Everything else a committed round reached is visible: the units with their
 levels, experience, equipment and facing, the reactor core, the towers, the
-constructions, contraptions, terrains and airdrop shields, the officers, the
+constructions and contraptions, the officers, the
 technologies, the blueprints, the Energy Tower skills, the commander skill
-panel, the equipment a side holds unfitted, and the allocator in `next_index`,
+panel with what its earlier releases left standing, the equipment a side holds unfitted, and the allocator in `next_index`,
 which the units and the reinforcements a side took already account for. The
 round's `reinforce_offers` are the same array for both sides and stay whole.
 
@@ -348,9 +348,10 @@ time.
 
 ### The fight
 
-A fight answers the five fields [match.md](../document/match.md) says it
+A fight answers the four fields [match.md](../document/match.md) says it
 decides: the damage each reactor core takes, the experience each unit gains,
-and which contraptions, terrains and airdrop shields remain. Everything else in
+which contraptions survive, and which objects earlier releases left standing
+remain. Everything else in
 the next position is the transition's, and is predicted rather than fought.
 
 The simulator fights it, over the layout the deployment-end position projects
@@ -491,9 +492,11 @@ was destroyed at. `--fields <group>,...` restricts all of this to the named
 groups and everything under them, and makes their agreement the verdict, so
 `--fields units.motion_state` exits 0 on recordings that differ elsewhere. `--format text` prints the same report for a person.
 
-`fight outcome` reads a recording for [the five fields a fight
+`fight outcome` reads a recording for [the four fields a fight
 decides](#the-fight): which formations came out of it, under the indices the
-document knows them by, and what remains of the collections a fight thins out.
+document knows them by, and what remains of what a fight thins out: each
+side's `contraptions`, and its `battle_skills`, the standing entries of the
+round's `battle_skills` that remain, each by its place in that list.
 What no rule and no recording answers is named in `unresolved` and never
 approximated, and the verdict is no while anything is — the fight was read, and
 the answer is that it does not settle a round. It is the one reader both

@@ -82,8 +82,10 @@ equipment it wears, `Level` counted from 0 where a layout counts from 1, and
 `Exp`, the experience within its level.
 
 The panel holds one slot per battle skill the layout releases, in release
-order, each ready this round. After them it holds one slot per object an
-earlier release left standing, whose `rangeItems` entry the game restores: a
+order, each ready this round. After them it holds one slot per standing
+`battle_skills` entry, standing shields before standing oil areas, each of the
+entry's skill and holding the object in its `rangeItems` for the game to
+restore: a
 Shield Airdrop as one centre with no lifetime, and an oil area as the release's
 two control points, the points still standing as a `ByteMask`, each standing
 point's `12 x 12` grid or nothing for a whole one, and one round left. Red's
@@ -137,7 +139,7 @@ and the refusal names each part:
 - an index among the units the round buys that no such unit holds;
 - more purchases than the round allows;
 - a travelling unit the deployment area has no free place to be bought at;
-- a terrain no skill leaves, or a technology no unit owns.
+- a technology no unit owns.
 
 ## Normal form
 

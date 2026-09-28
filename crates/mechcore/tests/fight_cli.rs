@@ -209,7 +209,7 @@ red:
     // was read and it does not settle a round.
     assert_eq!(read.status.code(), Some(1));
     let outcome: serde_json::Value = serde_json::from_slice(&read.stdout).unwrap();
-    assert_eq!(outcome["schema"], "mechcore.fight-outcome.v1");
+    assert_eq!(outcome["schema"], "mechcore.fight-outcome.v2");
     assert!(outcome["ticks"].as_u64().unwrap() > 0);
 
     let blue = &outcome["sides"]["blue"]["survivors"];
@@ -231,10 +231,10 @@ red:
             .is_empty()
     );
 
-    // A round that carried no contraption, terrain or shield into the fight
-    // has none left, and that is the only one of the three this reader closes.
+    // A round that carried no contraption and nothing standing into the fight
+    // has none left, and that is the only answer this reader closes.
     for side in ["blue", "red"] {
-        for field in ["contraptions", "terrains", "airdrop_shields"] {
+        for field in ["contraptions", "battle_skills"] {
             assert_eq!(
                 outcome["sides"][side][field].as_array().unwrap().len(),
                 0,

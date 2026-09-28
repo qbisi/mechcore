@@ -203,8 +203,8 @@ fn verify_one(path: &Path) -> Result<VerifyReport, String> {
             "unit_count": plan.unit_count(),
             "construction_count": plan.construction_count(),
             "contraption_count": plan.contraption_count(),
-            "airdrop_shield_count": plan.airdrop_shield_count(),
-            "terrain_count": plan.terrain_count(),
+            "standing_shield_count": plan.standing_shield_count(),
+            "standing_oil_count": plan.standing_oil_count(),
         }),
     })
 }

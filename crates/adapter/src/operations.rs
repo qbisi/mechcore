@@ -1,7 +1,7 @@
 use crate::il2cpp::{Api, Error as Il2CppError, FieldInfo, Object, argument, object_argument};
 use crate::layout::{
-    self, BattleSkill, NativeFormation, Placement, Position as LayoutPosition, SidePlan, Techs,
-    Terrain,
+    self, BattleSkill, NativeFormation, OilArea, Placement, Position as LayoutPosition, SidePlan,
+    Techs,
 };
 use crate::runtime::Runtime;
 use mechcore_document::{
@@ -1792,17 +1792,17 @@ fn validate_layout_positions(plan: &layout::Plan) -> Result<(), OperationError> 
     for placement in &plan.red.contraptions {
         layout_world_position(placement, true)?;
     }
-    for &position in &plan.blue.airdrop_shields {
-        position_to_world(position, false, "airdrop shield center")?;
+    for &position in &plan.blue.standing_shields {
+        position_to_world(position, false, "standing shield center")?;
     }
-    for &position in &plan.red.airdrop_shields {
-        position_to_world(position, true, "airdrop shield center")?;
+    for &position in &plan.red.standing_shields {
+        position_to_world(position, true, "standing shield center")?;
     }
-    for terrain in &plan.blue.terrains {
-        terrain_world_positions(terrain, false)?;
+    for area in &plan.blue.standing_oil {
+        oil_world_positions(area, false)?;
     }
-    for terrain in &plan.red.terrains {
-        terrain_world_positions(terrain, true)?;
+    for area in &plan.red.standing_oil {
+        oil_world_positions(area, true)?;
     }
     for skill in &plan.blue.battle_skills {
         battle_skill_world_positions(skill, false)?;
@@ -1844,12 +1844,12 @@ fn apply_side_layout_stage(
             "units": formations,
             "constructions": constructions,
             "contraptions": contraptions,
-            "airdrop_shields": apply_airdrop_shields(
+            "standing_shields": apply_standing_shields(
                 runtime,
-                &side.airdrop_shields,
+                &side.standing_shields,
                 rotate_to_world,
             )?,
-            "terrains": apply_terrains(runtime, &side.terrains, rotate_to_world)?,
+            "standing_oil": apply_standing_oil(runtime, &side.standing_oil, rotate_to_world)?,
             "battle_skills": apply_battle_skills(
                 runtime,
                 &side.battle_skills,
@@ -1868,7 +1868,7 @@ fn apply_side_layout_stage(
 /// Restores the Shield Airdrops earlier rounds left standing, in declaration
 /// order. They are existing world objects, so this adds no commander inventory
 /// and no release record.
-fn apply_airdrop_shields(
+fn apply_standing_shields(
     runtime: &Runtime,
     shields: &[LayoutPosition],
     rotate_to_world: bool,
@@ -1876,7 +1876,7 @@ fn apply_airdrop_shields(
     shields
         .iter()
         .map(|&position| {
-            let world = position_to_world(position, rotate_to_world, "airdrop shield center")?;
+            let world = position_to_world(position, rotate_to_world, "standing shield center")?;
             let order = restore_airdrop_shield(runtime, world)?;
             Ok(json!({
                 "native_shield_order": order,
@@ -1886,33 +1886,34 @@ fn apply_airdrop_shields(
         .collect()
 }
 
-fn apply_terrains(
+/// Restores the Sticky Oil Bomb areas earlier rounds left, in declaration
+/// order, after the standing shields.
+fn apply_standing_oil(
     runtime: &Runtime,
-    terrains: &[Terrain],
+    areas: &[OilArea],
     rotate_to_world: bool,
 ) -> Result<Vec<Value>, OperationError> {
-    if terrains.is_empty() {
+    if areas.is_empty() {
         return Ok(Vec::new());
     }
 
-    terrains
+    areas
         .iter()
-        .map(|terrain| {
+        .map(|area| {
             let source = oil_terrain_source(runtime.api)?;
             let handle = runtime.api.gc_handle(source)?;
-            let result = restore_oil_terrain(runtime, terrain, rotate_to_world, source);
+            let result = restore_oil_terrain(runtime, area, rotate_to_world, source);
             runtime.api.free_gc_handle(handle);
             result
         })
         .collect()
 }
 
-fn terrain_world_positions(
-    terrain: &Terrain,
+fn oil_world_positions(
+    area: &OilArea,
     rotate_to_world: bool,
 ) -> Result<Vec<MapVector>, OperationError> {
-    terrain
-        .control_points
+    area.control_points
         .iter()
         .copied()
         .map(|position| position_to_world(position, rotate_to_world, "terrain control point"))
@@ -1929,20 +1930,15 @@ pub(crate) fn rotate_terrain_grid_rows(rows: &[u32]) -> Vec<u32> {
 #[allow(clippy::too_many_lines)]
 fn restore_oil_terrain(
     runtime: &Runtime,
-    terrain: &Terrain,
+    terrain: &OilArea,
     rotate_to_world: bool,
     source: *mut Object,
 ) -> Result<Value, OperationError> {
-    if terrain.terrain_type != layout::TerrainType::Oil {
-        return Err(OperationError::InvalidArguments(
-            "only oil terrain is supported by native restoration".into(),
-        ));
-    }
     let current = require_training_deploying(runtime)?;
     let api = runtime.api;
     let player = player_controller(runtime, current)?;
     let team_controller = api.invoke(player, "GetFightTeamController", &mut [])?;
-    let control_points = terrain_world_positions(terrain, rotate_to_world)?;
+    let control_points = oil_world_positions(terrain, rotate_to_world)?;
     let centers = calculate_oil_terrain_positions(api, &control_points, source)?;
     let point_count = api.invoke_value::<i32>(source, "GetSubEffectCount", &mut [])?;
     if point_count != 7 || centers.len() != usize::try_from(point_count).unwrap_or_default() {

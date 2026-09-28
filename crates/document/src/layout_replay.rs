@@ -20,7 +20,7 @@
 
 use crate::catalog::NativeFormation;
 use crate::compile::{Placement, Plan, SidePlan};
-use crate::layout::Position;
+use crate::layout::{OilArea, Position, SHIELD_AIRDROP_SKILL, STICKY_OIL_BOMB_SKILL};
 use std::fmt::Write as _;
 
 /// The map a layout that names none is fought on, the Training Ground's.
@@ -73,12 +73,6 @@ fn side_refusals(name: &str, side: &SidePlan) -> Vec<String> {
             refusals.push(format!("side {name} {what}"));
         }
     };
-    for terrain in &side.terrains {
-        refuse(
-            crate::catalog::terrain_skill_from_type(terrain.terrain_type).is_none(),
-            &format!("terrain {:?}, which no skill leaves", terrain.terrain_type),
-        );
-    }
     for technology in &side.techs.units {
         refuse(
             crate::names::technology_owner(*technology).is_none(),
@@ -438,7 +432,7 @@ fn write_battle_skill_panel(xml: &mut String, side: &SidePlan, sign: i32, round:
         .iter()
         .map(|skill| (skill.commander_skill_id, String::from("<rangeItems />")))
         .collect();
-    for center in &side.airdrop_shields {
+    for center in &side.standing_shields {
         slots.push((
             SHIELD_AIRDROP_SKILL,
             format!(
@@ -447,10 +441,8 @@ fn write_battle_skill_panel(xml: &mut String, side: &SidePlan, sign: i32, round:
             ),
         ));
     }
-    for terrain in &side.terrains {
-        let skill = crate::catalog::terrain_skill_from_type(terrain.terrain_type)
-            .expect("a refused terrain never reaches the writer");
-        slots.push((skill, terrain_range_item(terrain, sign)));
+    for area in &side.standing_oil {
+        slots.push((STICKY_OIL_BOMB_SKILL, oil_range_item(area, sign)));
     }
     if slots.is_empty() {
         xml.push_str("<commanderSkills />");
@@ -468,35 +460,27 @@ fn write_battle_skill_panel(xml: &mut String, side: &SidePlan, sign: i32, round:
     xml.push_str("</commanderSkills>");
 }
 
-pub(crate) const SHIELD_AIRDROP_SKILL: i32 = 800_001;
 /// The points a Sticky Oil Bomb's line expands into.
 const TERRAIN_POINTS: u32 = 7;
-/// The rounds a retained oil terrain has left as the round opens: it lasts
-/// two, and the one that released it is over.
+/// The rounds a standing oil area has left as the round opens: it lasts two,
+/// and the one that released it is over.
 const TERRAIN_ROUNDS_LEFT: i32 = 1;
 
-/// A retained terrain as its skill's range item: the two control points, the
+/// A standing oil area as its skill's range item: the two control points, the
 /// points still standing, and the clipped grid of each that is not whole,
 /// turned half a turn for red as its coordinates are.
-fn terrain_range_item(terrain: &crate::layout::Terrain, sign: i32) -> String {
-    format!(
-        "<rangeItems>{}</rangeItems>",
-        terrain_range_data(terrain, sign)
-    )
+fn oil_range_item(area: &OilArea, sign: i32) -> String {
+    format!("<rangeItems>{}</rangeItems>", oil_range_data(area, sign))
 }
 
-/// One retained terrain's `CommanderSkillRangeItemData`.
-pub(crate) fn terrain_range_data(terrain: &crate::layout::Terrain, sign: i32) -> String {
+/// One standing oil area's `CommanderSkillRangeItemData`.
+pub(crate) fn oil_range_data(area: &OilArea, sign: i32) -> String {
     let active: Vec<bool> = (0..TERRAIN_POINTS)
-        .map(|point| terrain.grid_rows.is_empty() || terrain.grid_rows.contains_key(&point))
+        .map(|point| area.grid_rows.is_empty() || area.grid_rows.contains_key(&point))
         .collect();
     let mut grids = String::new();
     for point in (0..TERRAIN_POINTS).filter(|point| active[*point as usize]) {
-        match terrain
-            .grid_rows
-            .get(&point)
-            .filter(|rows| !rows.is_empty())
-        {
+        match area.grid_rows.get(&point).filter(|rows| !rows.is_empty()) {
             None => grids.push_str("<int>0</int>"),
             Some(rows) => {
                 let rows = if sign < 0 {
@@ -513,7 +497,7 @@ pub(crate) fn terrain_range_data(terrain: &crate::layout::Terrain, sign: i32) ->
         }
     }
     let mut positions = String::new();
-    for point in &terrain.control_points {
+    for point in &area.control_points {
         let _ = write!(
             positions,
             "<Vector2Int><x>{}</x><y>{}</y></Vector2Int>",
