@@ -7,6 +7,9 @@
 # slots hold from one that does not. The Marksmen shoot back and outrange
 # the Wraith, so the fight is short; the slots' first allocation is the
 # reading.
+#
+# The slots take u3, u2, u3, u3: a slot that finds every unit held doubles
+# up, so sharing is not even allocation.
 
 kind: fight
 map_id: 1021

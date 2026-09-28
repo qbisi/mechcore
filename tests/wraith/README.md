@@ -1,21 +1,16 @@
 # Wraith fixtures
 
-Every fight here exists to measure **how a Wraith's slots choose their
-targets**. A Wraith's core is a `SkillGroup` of four `FightSkill`s, one per
-weapon slot, each running the same `SkillAttackableChecker.Check` a unit's
-skill runs, with a `GroupedSkillAttackBehaviour` over them; what a slot's
-search does with the units its siblings already hold is what these fixtures
-separate.
+How a Wraith's four slots choose their targets, given what the others hold:
+the grouped search
+[`combat.md`](../../docs/rules/combat.md#a-grouped-slot-searches-around-its-siblings-locks)
+describes. `fights/two-targets.yaml` and the regression fight
+[`wraith-group-attack-01.yaml`](../regression/fights/wraith-group-attack-01.yaml)
+ask it; the other twelve fights are the Wraith's
+[standard fights](../README.md#standard-unit-layouts).
 
-| Fixture | What it separates | Reading |
-| --- | --- | --- |
-| [`../regression/fights/wraith-group-attack-01.yaml`](../regression/fights/wraith-group-attack-01.yaml) | a slot re-searching while its siblings hold three of the units in reach | the checker channel's per-slot calls |
-| `fights/two-targets.yaml` | two units for four slots: whether a slot doubles up, and on which | the slots' first allocation |
-
-Each fight is recorded once, from its fight document, with two channels,
-beside the Wraith's twelve standard fights, the six
-[standard layouts](../README.md#standard-unit-layouts) under two seeds, also
-in `fights/`:
+All fourteen are recorded with two channels: `skill_attackable_checker`, every
+`Check` call with the slot that made it and its lock before and after, and
+`group_slots`, each slot's lock, attack target and state on every tick.
 
 ```sh
 scripts/record-fights.py --instrument skill_attackable_checker,group_slots \
@@ -23,58 +18,16 @@ scripts/record-fights.py --instrument skill_attackable_checker,group_slots \
     tests/wraith/fights/*.yaml
 ```
 
-`skill_attackable_checker`, which holds every `Check` call with the slot that
-made it and the slot's lock before and after it, and `group_slots`, which holds
-each slot's lock, attack target and state on every tick. A fight
-document states its own seed, so each recording is the pinned fight.
-
-The Wraith's skill (`config/units/wraith.yaml`, row 18001 of `level0`'s
-`MechSkillGroupData` by `scripts/extract-skills.py`): four weapons, one
-skill each, weapon mode 1, range 60, interval 1.6 s ± 0.2, prepare 0.4,
-`canAttackSameTarget` true, `isEvenlyAllocated` false, quick switch on.
-
-CI verifies both without the game against their native hashes: 647 ticks for the
-regression fight and 96 for two targets, seed 1787857041. The two-target capture assigns u3, u2, u3,
-u3; sharing is not even allocation. In the regression capture, u30's fourth
-slot switches to u21 at tick 131, excluding u25 held by its sibling. At tick
-205, u29's fourth slot takes u55 at an edge distance of 60.9585 m: a main child
-skill has its parent's range plus 10 m. The core keeps 60 m.
-
-The original simulator matched the regression fight's positions, life and
-events while its mech lock differed on 60 ticks beginning at tick 206. A check
-of those alone would miss it, which is why the hash pinned here covers every
-field.
-
-The optional checker replay reads the recording's checker channel and restores each call's
-before-targets on the slot the call names, on a shadow skill at the kernel's checker site, then restores
-the simulated skill before execution continues. It compares the return value,
-lock and attack target on every grouped call: 4,188 in the regression capture
-and 344 in two targets. It requires the recordings that command makes where
-the game runs; with them in place, run:
+Two ignored tests read those recordings. The first replays the checker
+channel: before each grouped call it restores the targets the slot held, on a
+shadow skill at the kernel's checker site, and compares the call's answer,
+lock and attack target, 4,188 calls in the regression fight and 344 in two
+targets. Observed targets never advance the simulation itself. The second
+simulates each fight and compares every slot's lock, attack target and state
+with `group_slots` on every tick, beside the unit's lock and motion, and names
+the first tick a fight parts on. Both fixtures and every standard fight agree.
 
 ```sh
 cargo test -p mechcore-simulation grouped_checker_matches_every_captured_call -- --ignored --nocapture
-```
-
-A second ignored test reads every recording that command makes. It simulates each fight
-and compares, tick by tick, every slot's lock, attack target and state with
-the recording's `group_slots`, and the unit's lock and motion beside them, and
-names the first tick a fight parts on:
-
-```sh
 cargo test -p mechcore-simulation grouped_slots_match_every_recorded_tick -- --ignored --nocapture
 ```
-
-The two fixtures here and every standard fight agree on every tick.
-
-The replay requires the recording to carry the checker channel and rejects
-missing calls. Observed targets are never used to advance the simulation checked by the
-gameless regressions. The ordinary Rust tests retain the distinguishing
-allocation and child-range cases without needing recordings.
-
-The Wraith's M3 with seed 1787720817 was the last standard fight to play
-back. Its Wraith drifted 100° off its facing at tick 168 and the game still
-published its full 10 m/s: the Wraith is one of the units
-`MechData.PreProcess` marks free-moving, which never slow for their facing.
-Behind it, at tick 178, its core took a Crawler three of its siblings held,
-and the sibling the simulator moved off it kept it in the game.

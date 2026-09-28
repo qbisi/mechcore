@@ -2,8 +2,7 @@
 
 A fixture lives with the research question it answers. Each question is one
 directory directly under `tests/`, named for what it studies, holding its
-fights, any layouts a probe still reads, and a readme that says what was
-measured:
+fights and, where a fight's own comment cannot say it, a readme:
 
 | Directory | What it holds |
 | --- | --- |
@@ -13,10 +12,17 @@ measured:
 | [`modifier/`](modifier/README.md) | how officers and technologies correct a unit's numbers |
 | [`tower/`](tower/README.md) | what losing a tower writes on its side, and what strengthening one adds |
 | [`turret/`](turret/README.md) | when a turret fires, at what, and how often |
-| one directory per unit, `arclight/` to `wraith/` | that unit's [standard fights](#standard-unit-layouts), and whatever else its study pinned |
-| [`hacker/`](hacker/README.md) | the Hacker's standard layouts, which no fight pins yet |
-| [`wraith/`](wraith/README.md) | how a Wraith's four slots choose their targets, given what the others hold |
+| [`raiden/`](raiden/README.md) | how a Raiden's three weapons choose targets and fire together, beside its standard fights |
+| [`wraith/`](wraith/README.md) | how a Wraith's four slots choose their targets, beside its standard fights |
 | [`regression/`](regression/README.md) | fights that exercise the kernel rather than one rule |
+| every other unit, `arclight/` to `wasp/` | that unit's [standard fights](#standard-unit-layouts) |
+| `hacker/` | the Hacker's standard layouts, which no fight pins yet |
+
+A fight's comment says what it measures and what the game answered, and a
+topic's readme says only what no one fight can: the question, the rule it
+settled, and the commands that record it with instrument channels or read
+those recordings. A rule lands in [`docs/rules/`](../docs/rules/), never in a
+readme here.
 
 **A pinned fight is a [fight document](../docs/spec/document/fight.md)** in its
 topic's `fights/` directory: the layout, the seed, and what the game's
