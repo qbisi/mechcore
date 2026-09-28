@@ -312,7 +312,7 @@ impl Skill {
     /// Moves to a coarse phase, carrying a running backswing across, as the
     /// fields this replaces did.
     pub(in crate::fight) fn set_phase(&mut self, phase: FightSkillPhase) {
-        self.state = match (phase, self.state) {
+        self.enter(match (phase, self.state) {
             (FightSkillPhase::Idle, SkillState::Attack(Blow::After { finish_step })) => {
                 SkillState::Idle {
                     ready_step: Some(finish_step),
@@ -349,7 +349,18 @@ impl Skill {
                 );
                 SkillState::Attack(Blow::Waiting)
             }
-        };
+        });
+    }
+
+    /// Moves `SkillStateController` to a state. Leaving the attack state is
+    /// `SkillAttackState.Exit`, which runs `SkillAttackController.Exit`: the
+    /// attack count goes back to [`ATTACK_COUNT_RESET`], whatever took the
+    /// skill out of its attack.
+    pub(in crate::fight) fn enter(&mut self, state: SkillState) {
+        if matches!(self.state, SkillState::Attack(_)) && !matches!(state, SkillState::Attack(_)) {
+            self.attack_count = ATTACK_COUNT_RESET;
+        }
+        self.state = state;
     }
 
     /// The blow being wound up, if one is.
@@ -393,7 +404,7 @@ impl Skill {
     }
 
     pub(in crate::fight) fn set_backswing_finish_step(&mut self, finish_step: Option<u64>) {
-        self.state = match (finish_step, self.state) {
+        self.enter(match (finish_step, self.state) {
             (Some(finish_step), SkillState::Attack(_)) => {
                 SkillState::Attack(Blow::After { finish_step })
             }
@@ -404,7 +415,7 @@ impl Skill {
             (None, SkillState::Attack(Blow::After { .. })) => SkillState::Attack(Blow::Waiting),
             (None, SkillState::Idle { .. }) => SkillState::Idle { ready_step: None },
             (None, state) => state,
-        };
+        });
     }
 
     /// When the cooling began, and what the weapons name through it.
@@ -417,11 +428,11 @@ impl Skill {
 
     /// Starts, updates or ends a cooling; ending it leaves the skill idle.
     pub(in crate::fight) fn set_cooling(&mut self, cooling: Option<(u64, Option<FightActorRef>)>) {
-        self.state = match (cooling, self.state) {
+        self.enter(match (cooling, self.state) {
             (Some((started, candidate)), _) => SkillState::Cooling { started, candidate },
             (None, SkillState::Cooling { .. }) => SkillState::Idle { ready_step: None },
             (None, state) => state,
-        };
+        });
     }
 }
 
@@ -700,7 +711,6 @@ impl Simulation {
             skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
             skill.set_phase(FightSkillPhase::Idle);
             skill.retarget_after_own_direct_kill = false;
-            skill.attack_count = ATTACK_COUNT_RESET;
             return Ok(());
         }
         let selected = selected_candidate;
@@ -735,13 +745,6 @@ impl Simulation {
         };
         let skill = self.skill_mut(owner);
         skill.lock_is_terminal_handoff = false;
-        if skill.attack_target() != selected {
-            // The build's `ChangeAttackTarget` leaves the attack count alone,
-            // so an attack that changes its target in place counts on. This
-            // reset is the simulator's, kept until a recording of a laser
-            // that changes its target mid-attack decides it.
-            skill.attack_count = ATTACK_COUNT_RESET;
-        }
         skill.write_lock(selected);
         skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
         skill.retarget_after_own_direct_kill = false;
@@ -969,16 +972,16 @@ impl Simulation {
                     // a search from its weapon would have taken another: the
                     // idle the reload hands the lock to keeps it.
                     skill.rounds = Some(magazine.capacity);
-                    skill.state = SkillState::Idle { ready_step: None };
+                    skill.enter(SkillState::Idle { ready_step: None });
                     skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
                 }
                 Flow::Done
             }
             _ if skill.rounds == Some(0) => {
-                skill.state = SkillState::Reloading {
+                skill.enter(SkillState::Reloading {
                     finish_step: step
                         .saturating_add(native_time_units_to_steps(magazine.reload_time_units())),
-                };
+                });
                 Flow::Done
             }
             _ => Flow::Next,
@@ -1156,7 +1159,6 @@ impl Simulation {
             let skill = self.skill_mut(owner);
             skill.drop_lock();
             skill.set_phase(FightSkillPhase::Idle);
-            skill.attack_count = ATTACK_COUNT_RESET;
             skill.retarget_after_own_direct_kill = false;
             return Flow::Done;
         }
