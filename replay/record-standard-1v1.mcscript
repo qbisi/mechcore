@@ -1,4 +1,5 @@
 game: launch
+headless: true
 level: 0
 
 steps:
