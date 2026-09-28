@@ -55,7 +55,7 @@ readme 的效力高于你自己的判断。和你想做的事冲突时按它做�
 
 `.github/workflows/ci.yml` 分三个并行的 job，各答一个问题，每次改动都全跑，不按改动
 范围挑：按范围挑时一个检查要等范围算完才出现，gate 就得去猜还有哪些检查没来。没改到的
-东西靠各 job 的构建缓存跑得便宜。三个 job 是：
+东西靠各 job 的构建缓存跑得便宜；缓存只由 master 写，PR 只读。三个 job 是：
 
 - `test`（Linux）：代码本身对不对——`cargo fmt --all -- --check`、
   `cargo clippy -D warnings`、`cargo test`，都是

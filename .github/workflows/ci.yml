@@ -34,7 +34,12 @@ jobs:
       - name: Show the toolchain the checkout pins
         run: cargo --version && cargo clippy --version
 
-      - uses: actions/cache@v4
+      # A cache is written from master alone and read everywhere. A pull
+      # request that wrote its own would store the same gigabyte again under
+      # its own ref, where nothing else can read it, and push master's out of
+      # the repository's 10 GB.
+      - uses: actions/cache/restore@v4
+        id: cache
         with:
           path: |
             ~/.cargo/registry/index
@@ -56,6 +61,18 @@ jobs:
       - name: Tests
         run: cargo test --workspace --exclude mechcore-adapter --no-default-features
 
+      # Saved only on master, and only when the exact key missed: a key
+      # already stored cannot be written again.
+      - uses: actions/cache/save@v4
+        if: github.ref == 'refs/heads/master' && steps.cache.outputs.cache-hit != 'true'
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ steps.cache.outputs.cache-primary-key }}
+
   # Does the release binary still answer what the repository claims: every
   # fixture and every gameless script. A different question from the test
   # suite's, so it runs beside it. The replay corpus is not read here: it only
@@ -65,7 +82,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/cache@v4
+      - uses: actions/cache/restore@v4
+        id: cache
         with:
           path: |
             ~/.cargo/registry/index
@@ -86,6 +104,15 @@ jobs:
       - name: Every script parses, and the gameless ones pass
         run: scripts/check-scripts.sh
 
+      - uses: actions/cache/save@v4
+        if: github.ref == 'refs/heads/master' && steps.cache.outputs.cache-hit != 'true'
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ steps.cache.outputs.cache-primary-key }}
 
   # The Adapter is a macOS `cdylib` that patches code through `vm_protect`, and
   # `mechcore` packages it beside its executable by default. This is the one
@@ -97,7 +124,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/cache@v4
+      - uses: actions/cache/restore@v4
+        id: cache
         with:
           path: |
             ~/.cargo/registry/index
@@ -119,3 +147,13 @@ jobs:
         run: |
           cargo build -p mechcore
           test -f target/debug/libmechcore_adapter.dylib
+
+      - uses: actions/cache/save@v4
+        if: github.ref == 'refs/heads/master' && steps.cache.outputs.cache-hit != 'true'
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ steps.cache.outputs.cache-primary-key }}
