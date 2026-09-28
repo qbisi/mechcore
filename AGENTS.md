@@ -1,263 +1,141 @@
-# 项目设计规范
-- 项目处于敏捷开发阶段，重构时不考虑后向兼容，不保留历史代码
+# Design
 
-# 目录规范
+The project is in agile development: a refactor does not keep backward
+compatibility and does not keep old code around.
 
-改动或新建一个文件之前，先从它所在目录逐层往上找最近的一份 `README.md`，找
-到就读完再动手；一直找到仓库根还没有，才是真的没有约束。本仓库的 readme 一
-律大写命名。
+# Directory rules
 
-这些 readme 写的是所在目录的准入规则，从文件本身看不出来，而且往往正好禁止
-了 agent 默认会做的事。例如：
+Before changing or creating a file, find the nearest `README.md` walking up
+from its directory and read it; only when none exists up to the root is there
+no rule. Readmes here are always upper case. They state what the directory
+admits, which the files themselves do not show and which often forbids exactly
+what an agent would do by default. A readme outranks your own judgment: follow
+it, or say why it should change, but do not route around it. A change that
+makes the nearest readme untrue updates the readme in the same pull request.
 
-- `replay/README.md`：录像不在这个仓库里，在 `mechcore-replay`，按游戏版本分目录、只增
-  不减，读它的 master，`scripts/replay.py sync` 取到 `work/replay/`；录像不许重写，对局
-  文档只在本地由转换器生成到 `work/battle/`，值不对改 `crates/document/src/convert.rs`；
-- `docs/README.md`：一份新文档算 rules 还是 spec，spec 归到哪个 crate 名下，
-  必须写哪几节；
-- `work/research/README.md`：一个数值要拿什么才算有据，什么看着像证据其实
-  不是，以及"能复现录像不等于证明了机制"。
+Issues are GitHub issues, not files. [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md)
+says what qualifies as one; read it before opening one.
 
-issue 不在仓库里，它是 GitHub issue。什么够格成为一条 issue、它必须写明哪
-几件事、它以什么方式离开，由 `.github/CONTRIBUTING.md` 规定，开 issue 前先
-读它。
+# Plan
 
-readme 的效力高于你自己的判断。和你想做的事冲突时按它做，或者先说清楚它为
-什么该改，不要绕过去。
+The plan is a task graph, kept in Chinese. Its structure is in `plan.md`: the
+goal, the metric of how far off it is, the lanes (one per sub-goal), their
+order, and the edges between them. Each lane's stack and parking lot are in
+`plan/<lane>.md`, and `plan/README.md` says what goes there.
 
-反过来同样成立：改动让最近那份 readme 不再成立时，同一次提交里把 readme 一
-起改。它描述的是当前状态，不是历史。
+- **Three kinds of edge.** blocks: B cannot finish before A, and only this
+  kind forms a stack. conflicts: both change the same module or both need
+  the game, so they do not run at once, in either order. enables: A makes B
+  cheaper, and only affects order.
+- **Depth-first along blocks within a lane.** A discovery is pushed on the
+  stack only when it blocks the current node; when it is done, return to the
+  parent explicitly or write why the parent is void. One that does not block
+  goes to the parking lot with a decidable `reopen_when`. A bottleneck with no
+  blocks or conflicts edge to the lane is another lane.
+- **Lanes are reordered only after a merge**, by which lane the metric is
+  stuck on and by what the enables edges point at. A lane is not switched
+  mid-node; a stopped lane stops on a merged node with its stack intact.
+- **State is derived, not written.** A node in progress is its open pull
+  request, a finished one is its merge commit, numbers live in pull request
+  bodies and `tests/<topic>/README.md`, and a block is `Blocked by #n`.
+  Neither `plan.md` nor a lane file says how far along anything is.
+- **One writer for structure.** Edges and lane order are changed by the main
+  session after a merge. A parallel session that finds a cross-lane relation
+  writes it in its own pull request body. A lane file is changed only by that
+  lane's pull requests. Two pull requests that conflict on the plan reveal a
+  missing conflicts edge: serialize them, do not auto-resolve.
 
-# 计划
+# Building and CI
 
-计划是一张任务图。架构还没定下来的时候，执行中冒出新瓶颈是常态，这张图要让转向便宜、又不丢
-东西：转向只是换一条 lane 或压一层栈，不是推翻计划。
+The Adapter is `mechcore`'s default feature `adapter` and the only macOS code.
+Everything else builds and tests on any platform with `--no-default-features`,
+which is how CI's Linux jobs build; code that only holds on macOS goes behind
+`cfg(target_os = "macos")`. What each CI job checks is in the comments of
+`.github/workflows/ci.yml`.
 
-- **结构在 `plan.md`**：目标、衡量离目标多远的指标、各条 lane（一个子目标一条）的先后、lane
-  之间的边。**每条 lane 的栈和停车场在 `plan/<lane>.md`**，那个目录的 README 说写什么。
-- **边分三种。** blocks：B 在 A 之前做不完，只有它构成栈；conflicts：两件事改同一个模块或都要
-  游戏进程，不能同时做，谁先都行；enables：A 让 B 更便宜，只影响先后。
-- **lane 内沿 blocks 深度优先。** 执行中的发现挡住了当前节点，才压栈，做完明确回到父节点，
-  或者写明父节点为什么作废；不挡的进停车场，带一个能判定的 `reopen_when`。和当前 lane 没有
-  blocks、没有 conflicts 的瓶颈是另一条 lane，不压进这条的栈。
-- **lane 之间只在合并之后重排。** 依据是离目标的指标卡在哪条 lane，以及 enables 边指向多少、
-  多贵的节点。执行中途不切 lane；切的时候，被停下的 lane 停在一个合并过的节点上，它的栈原样
-  留着。
-- **状态不写，推导。** 正在做的节点是它开着的 PR，做完的是合并它的 merge commit，量出来的数在 PR 正文
-  和 `tests/<topic>/README.md`，阻塞写成 `Blocked by #n`。`plan.md` 和 lane 文件里不写"做到
-  哪一步"。
-- **结构只有一个写者。** 边和 lane 的先后由主会话在 PR 合并之后改；并行干活的会话发现新的跨
-  lane 关系，写在自己 PR 的正文里，不改 `plan.md`。一个 lane 文件只由那条 lane 的 PR 改，并行
-  的 PR 因此落在不同文件上。两个 PR 在同一处计划上冲突，说明图上漏了一条 conflicts 边：串行化，
-  不要把冲突自动合过去。
-
-# CI 与合并
-
-`.github/workflows/ci.yml` 分三个并行的 job，各答一个问题，每次改动都全跑，不按改动
-范围挑：按范围挑时一个检查要等范围算完才出现，gate 就得去猜还有哪些检查没来。没改到的
-东西靠各 job 的构建缓存跑得便宜；缓存只由 master 写，PR 只读。三个 job 是：
-
-- `test`（Linux）：代码本身对不对——`cargo fmt --all -- --check`、
-  `cargo clippy -D warnings`、`cargo test`，都是
-  `--workspace --exclude mechcore-adapter --no-default-features`。
-- `scripts`（Linux）：release 版二进制还答不答得出仓库声称的东西——把每一份被跟踪的
-  `.mcscript` 过一遍 `--check` 并**实际运行其中不需要游戏的那些**。CI 不读回放语料：
-  语料只增不减，转换器不必读得了它收的每个版本。
-- `adapter`（macOS）：只查别处查不了的——Adapter 自己的 clippy 和测试、默认
-  feature 下 `mechcore` 把 dylib 打包到可执行文件旁边、以及找游戏进程的那段 macOS
-  代码。
-
-Adapter 是 `mechcore` 的默认 feature `adapter`；只有它需要 macOS，关掉它
-（`--no-default-features`）整个 CLI 在任何平台都能构建和测试。所以新代码若只在
-macOS 上成立，要用 `cfg(target_os = "macos")` 隔开，不然 Linux 上的 job 会失败。
-
-跑不需要游戏的脚本那条意味着这样一份脚本里的断言和一份测试同等有效，
-`tests/modifier/regressions.mcscript` 就是靠它守住的。`docs.yml` 另跑 `scripts/check-docs.py`。
-
-一份 `.mcscript` 要么需要游戏、要么不需要，`run --check` 的 `game` 字段就是答案：
-需要游戏的只被解析，不需要的会被跑起来。新增一份不需要游戏的脚本不用改 CI。
-
-格式这一条曾经不在 CI 里，因为仓库本来就不符合当前 rustfmt 的输出。那次全仓
-格式化已经做过了，所以现在它是 CI 的一条硬检查：**提交前跑 `cargo fmt --all`**，
-不要再手工比对单个文件。`.githooks/pre-commit` 把同一条检查提前到提交那一刻，
-每个 clone 装一次：
+Run `cargo fmt --all` before committing; CI checks it. Install the pre-commit
+hook once per clone, as a repository setting because a global
+`core.hooksPath` would override `.git/hooks`:
 
 ```
 git config core.hooksPath .githooks
 ```
 
-用仓库级设置，是因为全局 `core.hooksPath`（Nix 或 home-manager 常设）会盖过
-`.git/hooks`。
+Master requires the `gate` status, which `.github/workflows/gate.yml` posts
+when every check is green. Pull requests merge as merge commits, the only
+method allowed: `gh pr merge <n> --auto --merge`, set only after the last
+push. Branch commits land on master as they are, so tidy them before opening
+the pull request, and catch a branch up with master by rebase, not by merging
+master into it.
 
-`.github/workflows/gate.yml` 只回答能不能合并，自己不合并。它在 ci、docs 跑完后运行，在 PR 的 head 上写一个名为 `gate` 的 commit status：
-它预期一份固定的检查清单——ci 的 `test`、`scripts`、`adapter` 和 docs 的 `docs`——全部
-跑完且成功时是 success，有一个失败时是 failure，还有没出现或没跑完的时是 pending。清单是
-预期的，不是从 commit 上现有的检查里发现的：一个还没出现的检查是还没来，不是被跳过了。
-加一个 job 就要把它加进这份清单。
-解决 issue 的 PR 和别的 PR 一样，CI 绿就放行。master 的 ruleset 要求 `gate` 绿才能合并。
+# Research
 
-合并由 agent 或人来发起，不由 workflow 发起：`gh pr merge <n> --auto --merge`，GitHub
-在 `gate` 变绿时合并并删除分支。草稿不能设自动合并；一个 PR 还会再推提交时先别设，
-推完再设。
+Research runs in the session that holds the game, one question at a time,
+on a branch of this repository. These rules hold whoever does it:
 
-**主线上一个 PR 是一个 merge commit，加上它带进来的提交。** 仓库只允许 merge
-commit 合并，和 NixOS/nixpkgs 一样：merge commit 的标题是 PR 标题加 `(#N)`，正文是
-PR 正文，这两样由仓库设置取，合并时不用另传。分支上的提交原样进主线，
-`git log --first-parent master` 每个 PR 一行，`git log` 看得到每一步。所以下面"提交
-规范"约束两层：PR 标题和正文按标题、正文规则写，它们就是 merge commit；分支上的每一
-条提交也永久留在主线，同样按标题规则写、带落款，正文写它自己那一步 diff 里看不见的
-东西。
+- **One game, one recorder.** Only the session that holds the game runs a
+  script that declares `game:`; `mechcore run <script> --check` says whether
+  one does. A gameless script is run by CI, and its assertions count as tests.
+- **A pinned hash comes from a recording made where the game runs**, never
+  from the simulator. A pin that moves is a finding to explain, not a number
+  to edit. The repository keeps what reproduces a recording, the fixtures and
+  scripts under `tests/<topic>/` and the hashes they pin, never the recording.
+- **Mirror the build.** Each new function mirrors a build method, and two
+  functions mirroring one method are a divergence. What differs between two
+  owners reaches shared code only through the interface the build uses
+  (`ISkillOwner`, `IAttacker`). A branch on a kind of object in shared code
+  points to where the build branches: an override or a type test. A new
+  variant of a shared type is handled by shared code or refused by name, not
+  handled only on the new kind's path. A divergence the build does not have is
+  a step back even when every recording agrees.
+- **What counts as evidence** is `work/research/README.md`'s to say, and a
+  rule lands in `docs/rules/` as `docs/README.md` says.
 
-分支上的提交在开 PR 之前整理好：修上一条的零碎改动用 `git commit --fixup <sha>`，
-再 `GIT_SEQUENCE_EDITOR=true git rebase -i --autosquash origin/master` 并进去。不要求
-每一条提交都能编译、都过测试，要求的是 PR 头上的那一条；二分查找用
-`git bisect --first-parent`。
+The evidence lives outside this repository's history. The decompilation is in
+the private `mechcore-decomp`, put under `work/decomp/<build>/` by
+`scripts/decomp.py sync`, which builds `index.sqlite` from the dump locally.
+The native replays are in the public `mechcore-replay`, fetched at master to
+`work/replay/` by `scripts/replay.py sync`. Recordings exist only on the
+machine that made them.
 
-分支跟上 master 用 rebase，不用 merge：`git rebase origin/master` 然后
-`git push --force-with-lease`。把 master merge 进分支，会把一条"Merge master into"
-带进主线。一个 PR 可以开在另一个 PR 的分支上：父 PR 的提交原样进主线，子分支天然
-对得上，父 PR 合并后把子 PR 的 base 改回 master 即可。
+**The game version is written only in `GAME_VERSION`**, one line, the game's
+own `Application.version`. The server matches games and spectators by it, so
+one version is one rule set; a Steam update that keeps the version (a new
+buildid) is not a new version. Crates embed it, `scripts/build_data.py` reads
+it, and the corpus and decompilation directories are named by it; `config/`,
+tests and docs never write a version of their own. Changing version is
+changing this line on a branch and moving the decompilation, the extraction,
+the recordings and pins in `tests/`, and the corpus to it, then merging when
+all is green. `scripts/rules-anchors.py --since <old>` lists the rules whose
+anchors moved, each reread on the new version (see `docs/README.md`).
 
-# 研究管线
+For a new version, the session with the game runs `scripts/decompile.py`,
+which reads the build from the installed game and fetches its pinned tools
+into `work/tools/`, then `scripts/decomp.py publish <build>`.
+`scripts/decomp-diff.py <old> <new>` compares two builds, and `--config`
+their tables.
 
-模拟器的机制研究按 `.github/CONTRIBUTING.md` 的 Research 一节推进：一个问题一条
-issue，验证一律在有游戏本体的机器上做。持有游戏的会话切问题、录像，再把问题交给自己
-起的子代理去做，子代理各用一个工作树，直接向这个会话汇报，不经过 GitHub 的标签和评论。
+# Commits
 
-- **issue 只带可复现的夹具。** 布阵（layout）、对局（battle）或原生回放（grbr）加上录它们
-  的脚本，内联在 issue 里或已在仓库、语料里；不上传录像，也不引用反编译索引。谁有游戏，
-  谁就能照着 `Reproduce` 重新录。
-- **切问题先排依赖。** 答案会改同一个模块的两个问题先后做，不并行；issue 只写问题、
-  假设、预测和可观测的验收，不规定答案走哪个模块、加什么表。`Touches` 是预估，不是禁区。
-- **先定结构再写代码。** 一个只读子代理读反编译，交回结构图：答案对应 build 的哪些
-  方法、build 在哪里按什么分支、模拟器里哪些函数已经对应它们。按 Acceptance 的四个问题
-  定下改什么、复用什么、不许新增什么，再交给实现子代理。
-- **录像按需、串行。** 实现子代理缺录像时不绕过去（不用模拟器算哈希、不特判恰好录过
-  的那个单位），而是交回录制请求；持有游戏的会话录完把哈希交回，再让同一个子代理继续。
-  钉住的哈希一律来自在有游戏的机器上录的录像。
-- **阻塞当场决定。** 撞上问题以外的机制时，在同一个会话里决定：切成新问题、换夹具重录，
-  或接受已钉住的部分。
-- **另一个子代理审查**，然后自己读，再写一张变更确认单进 PR 正文、也交给 committer：
-  行为前后（带数字）、结构增删、钉住的哈希及其夹具、新增或解除的拒绝、未验证的部分。
-  合并不等 approve，`gate` 绿就合。
+Follow [Conventional Commits](https://www.conventionalcommits.org/), in
+English. A pull request's title and body become its merge commit; its branch
+commits land too, and each follows the same form. One pull request is one
+purpose: split by what caused a change, not by layer or by what happened to
+be found together, and land a mechanical move on its own.
 
-**游戏只有一个进程，只有持有它的会话录像。** 其它 agent 永远不跑带 `game:` 的脚本，
-`mechcore run <script> --check` 会说一份脚本要不要游戏。
+The body says what the diff cannot: before and after, with numbers; what
+disproved the old belief and what evidence did; which numbers were read from
+the game and which were measured; what was verified and how, and what was
+not. Every sentence will later be quoted as fact.
 
-证据在三处，都不在这个仓库的历史里：反编译在私有的 `mechcore-decomp`，
-`scripts/decomp.py sync` 放到 `work/decomp/<build>/`（dump 在 `cpp2il/`，索引
-`index.sqlite` 由 `sync` 从 dump 在本机生成，本机已有的不重建）；录像语料在公开的
-`mechcore-replay`（`scripts/replay.py sync` 取 master 到 `work/replay/`）；问题要对照的
-录像只在录它的机器上，从夹具重新录，不上传。仓库里固定下来的只有 `tests/<topic>/` 的
-夹具、脚本和它钉住的哈希。
+Write an issue or pull request number only for a dependency: `Closes #n`,
+`Blocked by #n`, or a decision that moves another item. A tracked file never
+carries an issue number.
 
-**仓库描述哪一版游戏，只写在根目录的 `GAME_VERSION` 里**，一行游戏自己的版本字符串
-（`Application.version`）。服务器按它匹配对局、放行观战，同一局所有客户端跑同一套模拟，
-所以一个版本就是一套规则；Steam 可以在版本不变时更新文件（buildid 变），那不算换版本。
-crate 编译时嵌入它，抽取脚本经 `scripts/build_data.py` 读它，语料目录、反编译目录都以它
-命名；`config/` 的表、测试、文档都不另写版本号。换版本就是在分支上改这一行，然后把反编译、
-抽取、`tests/` 的录像和钉子、语料都迁到新版本，全绿再合回主线。rules 文档里读出来的结论靠
-锚点跟版本：`scripts/rules-anchors.py --since <旧版本>` 列出锚点变了的结论，逐条在新版本上
-重读再合（见 `docs/README.md`）。
-
-游戏换了版本，持有游戏的会话用 `scripts/decompile.py` 反编译本机装的那一版：它从游戏
-本身读出 build 号，缺的工具（Cpp2IL、AssetRipper，版本和 SHA-256 钉在脚本里）自己下到
-`work/tools/`，产出和已有 build 同一种形状；`scripts/decomp.py publish <build>` 推进
-`mechcore-decomp`，别的机器照常 `sync`。两个 build 之间改了什么，
-`scripts/decomp-diff.py <旧> <新>` 逐个声明比，加 `--config` 比两份配置表。
-
-**编号只写依赖。** issue、PR、提交里写别的编号会在 GitHub 上双向挂链接，没有依赖的链接只会
-把真正的依赖淹掉。所以只在 `Closes #n`、`Blocked by #n` 或推动另一项的决定里写编号；来历用
-机制、夹具或文件名交代。被跟踪的文件（文档、脚本、布阵、README）一律不写 issue 编号。
-
-# 提交规范
-
-这里的"提交"有两层：一个 PR，也就是它合并时的 merge commit，标题是 PR 标题，正文是
-PR 正文；以及 PR 带进主线的每一条分支提交。下面的标题、正文规则两层都适用，拆分判据
-约束的是 PR。提交信息用英文写，仓库现有日志是英文。
-
-## 智能体署名
-
-智能体或模型创建的每一条提交，以及它开的 PR 的正文，都必须在末尾用
-`Co-Authored-By` 署上自己的真实模型名称；知道具体型号时写明型号，不冒用其它
-模型的署名。落款是正文的最后一段，后面不再有别的行，git 才把它认成 trailer。
-GPT（包括通过 Codex 工作的 GPT）使用以 `GPT` 开头的模型名称，Claude 使用
-以 `Claude` 开头的模型名称，例如：
+Every commit and pull request an agent writes ends with a `Co-Authored-By`
+trailer naming its real model, as the last paragraph with nothing after it:
 
 ```text
 Co-Authored-By: GPT-6 <noreply@openai.com>
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ```
-
-只添加实际参与该提交的模型署名；其它模型同样如实署名，但不因此获得自动
-合并资格。修改或压缩提交时也必须保留真实的贡献者署名。
-
-## 标题
-
-形如 `type(scope): 一句小写的话，说这次提交换来了什么`。写读者因此得到了
-什么，不写你动过哪些文件。不超过 72 字符，结尾不加句号。
-
-| 不要 | 要 |
-| --- | --- |
-| `Update replay script paths` | `fix(adapter): let a side order its own towers` |
-| `Add issue directory` | `docs(issue): give findings a holding pen between discovery and the plan` |
-| `Refactor ledger code` | `feat(battle): close the supply ledger` |
-
-左边那些 diff 自己会说，不需要你再说一遍。
-
-## 正文的组成
-
-正文唯一不可替代的用处，是记住 diff 里看不见的东西。半年后有人 `git blame`
-到某一行，他看得到代码，看不到你当时知道的事。按顺序写三部分。
-
-**一、之前是什么样、现在是什么样。** 一段，有数字就给数字。
-
-> The ledger closed 314 of 531 decidable round transitions and left 19
-> unpriced. It now closes all 550, and none is left unpriced.
-
-**二、每个发现一段，段首第一句要能单独成立。** 例如 `A position does not name
-a tower.`、`Releasing a contraption is a purchase.`。读者只扫首句，也能知道这
-次提交推翻了哪些原有认识。这部分必须交代：
-
-- 旧做法错在哪，以及是什么证据推翻的：读到的反汇编、实机读数、语料统计；
-- 干活过程中撞坏了什么、怎么修的，尤其是只有真跑一次才会暴露的；
-- 哪些数字是从游戏数据里读出来的，哪些是量出来的。
-
-**三、验证。** 跑了什么、证明了什么、证据留在哪个目录。"对得上的 tick 数"
-"逐字节一致的重新生成"是证明，"测试通过"不是。
-
-没验证的写明没验证，量出来而不是读出来的写明出处不明，只做了一半的写明另一
-半没做。提交信息里的每句话以后都会被当成事实引用，包括被你自己引用。
-
-不要罗列改动文件清单，也不要写"改进了""优化了""重构了代码结构"这类不带内容
-的话：这两样 diff 都已经说过，而且说得比你准。
-
-正文按 72 字符折行，与标题之间空一行。
-
-## 拆分判据
-
-**一个 PR 是让标题成立所需的最小改动集合。** 下面说的"一次提交"都读作"一个 PR"；
-PR 里的分支提交是走到这个标题的各步，每一步自己的标题同样要成立。拿掉其中任何一部分，标题就不再
-成立或变成夸大；能拿掉而标题照样成立的部分，属于另一次提交。
-
-标题写不出来就是拆分信号。需要用逗号罗列、需要 "and also"、需要 "various"，
-那不是标题的问题，是这次提交的问题。
-
-**一起被发现不是理由，一起被引起才是。** `fix(adapter): let a side order its
-own towers, and find its hidden officers` 用 and 连了两个 bug，因为两个都由同
-一次 layout 重构引入、同一次实机运行暴露。只是碰巧在同一个下午撞见的两件事，
-分开提交。
-
-**机械改动单独一次，除非它自己引出了修复。** 搬迁、重命名、批量改路径这类
-零语义的大 diff，混进去会让真正的改动没法审。`docs: split into rules and
-spec` 改了 40 个文件，全是搬迁与重新归类，没有一行新规则；写下那份规范的提
-交紧跟在它后面，单独一次。反过来，把脚本搬进 `scripts/` 时修掉搬迁自己弄坏
-的两处路径，属于同一次，因为不搬就不会坏。
-
-**不要按层拆。** `docs(action): define the action space` 一次改了 4 个 crate
-源文件和 2 份 spec，因为 spec 是代码要满足的契约，拆开之后任一半都不自洽。
-`feat(battle): close the supply ledger` 同样横跨 config、crate、docs 六个文件。
-文件数、行数、目录、"代码/文档/配置"都不是拆分依据。
-
-**每个 PR 都要能独立编译、独立通过测试。** 拆分点不能落在"改了函数没改调用
-方""加了行为没加断言"的位置。这条也排除了把测试单独拆成一个 PR 的做法。

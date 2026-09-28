@@ -8,7 +8,7 @@ assignees: ""
 
 <!--
 Four admission tests, all of which have to pass. .github/CONTRIBUTING.md states
-them in full.
+them, and how an issue leaves.
 
   It was found, not sought.       Went looking? That is work/research/.
   It is a discrepancy.            Names what it disagrees with.

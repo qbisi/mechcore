@@ -27,8 +27,8 @@ parsed there. `regressions.mcscript` in a topic directory, and
 to the physics hash the game recorded. Recordings never enter the repository,
 and are not published anywhere else: what the repository keeps is what
 reproduces them, the layouts and the scripts, which any machine with the game
-records again. [`.github/CONTRIBUTING.md`](../.github/CONTRIBUTING.md) says
-how a research question is answered against them.
+records again. The Research section of [`AGENTS.md`](../AGENTS.md) says who
+records them and where a pinned hash may come from.
 
 Two kinds of fixture live outside `tests/` because no topic owns them. The
 native replays, and everything converted from them, are in the corpus

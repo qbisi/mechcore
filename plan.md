@@ -7,7 +7,7 @@
 这份文件是任务图的结构：目标、衡量离目标多远的指标、各条 lane 的先后、lane 之间的边。每条
 lane 的栈和停车场在 [`plan/`](plan/README.md) 下各自的文件里。做到了哪一步不写在任何一处，
 从 PR、commit、`tests/<topic>/README.md` 和 issue 读出来；怎么维护这张图见 `AGENTS.md` 的
-"计划"一节。
+Plan 一节。
 
 ## 离目标多远
 
