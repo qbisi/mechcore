@@ -98,6 +98,11 @@ After the layout's own root fields, `kind` apart, a fight states:
 - `replay`: read from a native replay's next round, which states what the
   fight left behind but not how it went.
 
+A recording says which of the first two it is: its `producer` is `game` or
+`simulator` ([mcfr.md](../mcfr/mcfr.md#file-metadata)), and a document read
+from it takes `recording` or `simulator` accordingly. The hash cannot say it,
+since both producers write the same timeline for the same fight.
+
 `ticks` and `hash` are present exactly when `source` is `recording` or
 `simulator`, and absent for `replay`. `ticks` is at least `1`; `hash.result`
 is 64 lowercase hex digits, and `hash.profile` names the definition that
@@ -133,7 +138,9 @@ gauge.
 `before <= after <= maximum`. A fight only adds experience, and a full bar
 takes no further share of what a fight hands out
 ([unit_experience.md](../../rules/unit_experience.md#what-a-full-bar-means)),
-so a bar filled during the fight ends it at `maximum`. `exp` is absent only
+so a bar filled during the fight ends it at `maximum`. `after` is a whole
+number, since the fight's end cuts each formation's experience to one
+([unit_experience.md](../../rules/unit_experience.md#what-a-kill-hands-out)). `exp` is absent only
 when `before` and `after` are both `0`.
 
 ### What is left standing

@@ -59,10 +59,11 @@ which verbs take it.
 **`convert <in> --to <kind> [<out>]` derives a file of another kind.** `--to`
 is required. Each pair is either a **rewrite**, the same content in another
 form, lossless or refused, or a **computation**, which derives facts the input
-does not hold by running the fight. Without `<out>` a computation answers its
-result and writes nothing. A rewrite to a layout answers the layout on
-standard output, and every other rewrite requires `<out>`, because what it
-answers is a report of the file it wrote.
+does not hold by running the fight. Without `<out>` a conversion to a
+document, a layout or a fight, answers the document on standard output, and a
+computation to a recording answers its result and writes nothing. Every other
+rewrite requires `<out>`, because what it answers is a report of the file it
+wrote.
 
 **`man <kind>` lists the verbs a kind takes**, from the same table the verbs
 are refused by, ahead of the document that describes the kind.
@@ -76,6 +77,7 @@ answers with the manual the binary carries.
 | Kind | Recognised by |
 | --- | --- |
 | `layout` | a YAML document whose first document states `kind: layout` |
+| `fight` | a YAML document stating `kind: fight` |
 | `match` | a YAML stream whose first document states `kind: match` |
 | `state` | a YAML document stating `kind: state` |
 | `action` | a YAML document stating `kind: action` |
@@ -87,16 +89,19 @@ refused rather than guessed at.
 
 | Kind | `verify` | `convert --to` | `diff` | `show --view` | `format` |
 | --- | --- | --- | --- | --- | --- |
-| `layout` | yes | `grbr` (rewrite), `mcfr` (computation) | yes | — | yes |
+| `layout` | yes | `grbr` (rewrite), `mcfr` (computation), `fight` (computation) | yes | — | yes |
+| `fight` | — | — | yes | — | yes |
 | `match` | yes | `grbr` (rewrite), `layout` (rewrite) | — | — | — |
 | `state` | — | — | — | — | — |
 | `action` | — | — | — | — | — |
-| `mcfr` | yes | — | yes | `outcome`, `stats`, `buildings` | — |
+| `mcfr` | yes | `fight` (rewrite) | yes | `outcome`, `stats`, `buildings` | — |
 | `grbr` | — | `match` (rewrite) | — | — | — |
 
 A state and an action are read inside a match, which is what verifies them.
-`schema` names a kind rather than a file, and answers the shape of `layout`,
-`match`, `state` and `action`.
+Checking a [fight](../document/fight.md) document against a fight run again is
+not this build's yet, so `verify` refuses one by its kind. `schema` names a
+kind rather than a file, and answers the shape of `layout`, `fight`, `match`,
+`state` and `action`.
 
 ## One operation, four callers
 
@@ -237,13 +242,47 @@ the terminal structure of the fight, its hashes and its profiling. With
 `<out>` it also writes the recording there, which [mcfr.md](../mcfr/mcfr.md)
 defines.
 
+**`mcfr` to `fight`, a rewrite.** Reads a recording for what its fight decided
+and writes it onto the layout the recording embeds, as the
+[fight](../document/fight.md) document it records: `source` is `recording`
+for a recording the game made and `simulator` for one the simulator wrote, as
+the recording's `producer` says, and `ticks` and `hash` are the recording's.
+Every result is read from the recording and none is computed; a recording that
+does not answer one is refused, naming all it does not answer, and no document
+is written. Without `<out>` it answers the document; with one it writes it
+there and answers its path, round and source.
+
+The recording holds the fight's objects under its own identities, so each
+layout entry is found by what the two share. A formation is paired with its
+placement as [`show --view outcome`](#show) pairs it, and its `after` is the
+formation's experience at the last tick, cut to a whole number as the fight's
+end cuts it; the formation has to open the fight holding the layout's
+`before`, and its bar has to be the table's. `core_damage` is what
+[reactor_damage.md](../../rules/reactor_damage.md) states, from the units
+standing at the last tick. A shield contraption, a standing Shield Airdrop and
+an interceptor are the shield, or the building, of the side standing exactly
+at the entry's position when the fight opens, and each is retained when the
+recording still holds it at the last tick. A missile is retained unless a
+projectile nobody owns, of its side, is first recorded beside it, which is how
+a missile fires ([contraptions.md](../../rules/contraptions.md)). A Shield
+Airdrop released this round is retained when a commander-skill shield of the
+side stands at its position at the last tick. A Sticky Oil Bomb released this
+round leaves each of its seven points where an oil area of the side the fight
+created still stands at the last tick with a round left to run, as its grid
+when it holds one. Two recorded objects that could each be one entry, or one
+that could be two, are refused rather than chosen between.
+
+**`layout` to `fight`, a computation.** Simulates one fight from a layout, as
+`convert --to mcfr` does and with the same `--seed`, and reads the recording it
+makes as `mcfr` to `fight` does. Its `source` is `simulator`.
+
 ## `diff`
 
 `diff <left> <right>` reports what two files of one kind differ in, and exits 1
 when they differ. Two files of different kinds are refused.
 
-Two **layouts** are normalized and every field they differ in is reported, as
-a JSON pointer with both sides' values. A unit, construction or contraption is
+Two **layouts**, or two **fights**, are normalized and every field they differ
+in is reported, as a JSON pointer with both sides' values. A unit, construction or contraption is
 matched by its `index` rather than its place in the list, so an inserted entry
 reads as one addition rather than a change to every entry after it.
 
@@ -275,23 +314,23 @@ them equal.
 `show <file> --view <view>` answers one view of what a file holds. A recording
 has three, and `--view` names one of them.
 
-**`outcome`** reads a recording for [the four fields a fight
-decides](#the-fight): which formations came out of it, under the indices the
-document knows them by, each side's `core_damage`, what the fight took off its
-reactor core as [reactor_damage.md](../../rules/reactor_damage.md) states it,
-and what remains of what a fight thins out: each side's `contraptions`, and
-its `battle_skills`, the standing entries of the round's `battle_skills` that
-remain, each by its place in that list. A unit counts as deployed from its
-side's formations when it opened the fight in a formation a placement takes
-and the fight did not create it; a formation no placement takes, such as one an
-officer hands a side as the fight is built, is no placement's and is not among
-the survivors. A unit that died in the fight and stands at its end was
-reborn, and scores as one.
-What no rule and no recording answers is named in `unresolved` and never
+**`outcome`** reads a recording as [`convert --to fight`](#convert) reads it,
+and answers what a fight document leaves out: the formations that came out of
+the fight, under the indices the document knows them by, with how many
+members each took in and brought out and the life they have left, which a
+fight document does not carry because a unit comes back whole next round; and
+`unresolved`, everything the fight decided that the recording does not answer,
+which is what keeps the recording from converting. A unit counts as deployed
+from its side's formations when it opened the fight in a formation a placement
+takes and the fight did not create it; a formation no placement takes, such as
+one an officer hands a side as the fight is built, is no placement's and is not
+among the survivors. A unit that died in the fight and stands at its end was
+reborn, and scores as one. What the recording does not answer is never
 approximated, and the verdict is no while anything is — the fight was read, and
-the answer is that it does not settle a round. It is the one reader both
-backends feed, because a fight the simulator ran and a fight the game played
-are the same recording.
+the answer is that it converts to no fight document and settles no round.
+What the fight decided is the fight document itself; the view stays because a
+recording's survivors are what a capture of a mechanism is commonly read for,
+and a fight document has no place for them.
 
 **`stats`** reads the same recording for a unit's numbers at one tick, in
 both halves: the corrections **written onto** it, in the three channels the
@@ -340,10 +379,10 @@ in play: what one side is shown of it.
 ## `format` and `schema`
 
 `format <document>` writes the document in its normal form, in place with
-`--write`. A layout is the kind it takes.
+`--write`. A layout and a fight are the kinds it takes.
 
 `schema <kind>...` takes the kinds a document declares in its own `kind` field:
-`layout`, `state`, `match` and `action`. It answers the shape of the document,
+`layout`, `fight`, `state`, `match` and `action`. It answers the shape of the document,
 which is what a reader validates against and what a writer generates from; it
 says nothing about what the fields mean, which is the document's own spec. A
 kind this contract does not name is refused.
@@ -580,11 +619,12 @@ the next position is the transition's, and is predicted rather than fought.
 The simulator fights it, over the layout the deployment-end position projects
 onto. That layout carries the match's seed and the round, which is everything
 the fight is drawn from, so a fight is the same fight whenever it is run again
-and nothing has to be derived for it. What the fight decided is read back with
-[`show --view outcome`](#show), so the reading is one piece of work rather than
-one per backend. Nothing else answers a fight: a caller cannot hand a match an
-outcome it did not fight, because a document that reads like a played match has
-to be one.
+and nothing has to be derived for it. What the fight decided is read back as
+the fight document [`convert --to fight`](#convert) writes, so the reading is
+one piece of work rather than one per backend, and the document's result is
+written onto the position each side deployed before the next round opens on
+it. Nothing else answers a fight: a caller cannot hand a match an outcome it did
+not fight, because a document that reads like a played match has to be one.
 
 A fight nothing can resolve is answered rather than refused: the match stays in
 the `fight` phase with both sides' decisions standing, and the answer's

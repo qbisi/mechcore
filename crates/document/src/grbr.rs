@@ -355,7 +355,10 @@ pub(crate) fn decode_grbr_grid_groups(values: &[i32]) -> Result<Vec<Vec<u32>>, S
     Ok(grids)
 }
 
-pub(crate) fn rotate_oil_grid_rows(rows: &[u32]) -> Vec<u32> {
+/// A Sticky Oil Bomb point's grid rows turned half a turn, which is how red's own frame
+/// holds what the world frame does.
+#[must_use]
+pub fn rotate_oil_grid_rows(rows: &[u32]) -> Vec<u32> {
     rows.iter()
         .rev()
         .map(|row| (row & 0x0fff).reverse_bits() >> 20)

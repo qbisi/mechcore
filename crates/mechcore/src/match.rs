@@ -536,37 +536,61 @@ impl Game {
     ///
     /// Round zero is the one round with none: the opening is not fought, and
     /// what it chose arrives as the first round opens, so this is where a
-    /// match crosses from the opening into deployment.
+    /// match crosses from the opening into deployment. Every later round is
+    /// fought, and what the fight decided is written onto the position each
+    /// side deployed before the next round opens on it.
     fn fight(&mut self, held: &mut Held) -> Result<(), String> {
         let round = self.round();
-        if round > 0 {
-            // A fight that ran and a fight that could not run end the same way
-            // here: the round is not settled, and the answer says why.
-            return Err(self.fought(round).unwrap_or_else(|reason| reason));
-        }
+        let fight = if round > 0 {
+            Some(self.fought(round)?)
+        } else {
+            None
+        };
         let mut states = Vec::new();
         for side in Side::BOTH {
-            let opened = self
-                .opened(side)
-                .map_err(|failure| failure.reason().to_owned())?;
-            let actions = self.committed_actions(side);
-            // Nothing is declined in round zero, which deals no reinforcement,
-            // and nothing has drawn from the side's own stream before it.
-            let stream = self.match_side(side).seed.map(Stream::seeded);
-            states.push(
-                transition::predict(
-                    &self.economy,
-                    round,
-                    &opened,
-                    &actions,
-                    side.red(),
-                    None,
-                    stream,
-                )
-                .map_err(|unsettled| {
-                    format!("round {round} {} is not settled: {unsettled}", side.name())
-                })?,
-            );
+            let unsettled =
+                |unsettled| format!("round {round} {} is not settled: {unsettled}", side.name());
+            let next = match &fight {
+                None => {
+                    let opened = self
+                        .opened(side)
+                        .map_err(|failure| failure.reason().to_owned())?;
+                    let actions = self.committed_actions(side);
+                    // Nothing is declined in round zero, which deals no
+                    // reinforcement, and nothing has drawn from the side's own
+                    // stream before it.
+                    let stream = self.match_side(side).seed.map(Stream::seeded);
+                    transition::predict(
+                        &self.economy,
+                        round,
+                        &opened,
+                        &actions,
+                        side.red(),
+                        None,
+                        stream,
+                    )
+                    .map_err(unsettled)?
+                }
+                Some(fight) => {
+                    let position = self
+                        .position(side)
+                        .map_err(|failure| failure.reason().to_owned())?;
+                    let fought = match side {
+                        Side::Blue => &fight.blue,
+                        Side::Red => &fight.red,
+                    };
+                    transition::settle(
+                        &self.economy,
+                        round,
+                        &position,
+                        fought,
+                        side.red(),
+                        self.stream(side, round),
+                    )
+                    .map_err(unsettled)?
+                }
+            };
+            states.push(next);
         }
         let [blue, red] = [states.remove(0), states.remove(0)];
         self.r#match.turns.push(MatchTurn {
@@ -587,6 +611,29 @@ impl Game {
             .map_err(|failure| failure.reason().to_owned())
     }
 
+    /// A side's own stream as `round + 1` opens: seeded by the header, and one
+    /// value on for every draw an officer made as each round up to `round`
+    /// opened, which is how `verify` reads a match's stream.
+    fn stream(&self, side: Side, round: i32) -> Option<Stream> {
+        let seed = self.match_side(side).seed?;
+        let draws = self
+            .r#match
+            .turns
+            .iter()
+            .filter(|turn| (1..=round).contains(&turn.round))
+            .map(|turn| {
+                transition::player_draws(
+                    &self.economy,
+                    &state_of(&turn.state, side).officers,
+                    turn.round,
+                )
+            })
+            .sum();
+        let mut stream = Stream::seeded(seed);
+        stream.skip(draws);
+        Some(stream)
+    }
+
     /// Deals the reinforcement offers of the round the match has just opened.
     ///
     /// The deal is stateful and the stream it runs on is the header's, so the
@@ -604,18 +651,17 @@ impl Game {
     /// Runs the round's fight and reads what it decided.
     ///
     /// The simulator fights it, over the layout the deployment-end position
-    /// projects onto, and [`crate::outcome`] reads the recording for the five
-    /// fields `match.md` says a fight decides. Nothing here writes them into
-    /// the next position yet: two of the five have no rule, so every fight
-    /// ends at a named gap rather than at a guess. The recording is thrown
-    /// away with the directory it was written in, because the same fight is
-    /// run again from the match itself.
+    /// projects onto, and the recording is read as `convert --to fight` reads
+    /// one: the fight document is the one reader of what a fight decided,
+    /// whichever backend fought it. The recording is thrown away with the
+    /// directory it was written in, because the same fight is run again from
+    /// the match itself.
     ///
     /// # Errors
     ///
-    /// Both halves of the answer are the same sentence to a caller: what came
-    /// back settles nothing, and what went wrong stopped it earlier.
-    fn fought(&self, round: i32) -> Result<String, String> {
+    /// Answers why the round is not settled: the fight could not run, or the
+    /// recording does not answer everything it decided.
+    fn fought(&self, round: i32) -> Result<mechcore_document::Fight, String> {
         // Both sides have committed, so each one's position is the one its
         // decisions reached: the same position `show` answers with.
         let mut positions = Vec::new();
@@ -643,16 +689,12 @@ impl Game {
         let recording = directory.path().join("fight.mcfr");
         mechcore_simulation::simulate_document(yaml.as_bytes(), Some(&recording), None)
             .map_err(|error| format!("round {round} is not fought: {error}"))?;
-        let outcome = crate::outcome::read(&recording).map_err(|failure| {
+        crate::outcome::fight(&recording).map_err(|failure| {
             format!(
-                "round {round} was fought and not read: {}",
+                "round {round} is fought and not settled: {}",
                 failure.reason()
             )
-        })?;
-        Ok(format!(
-            "round {round} is fought and not settled: {}",
-            outcome.unresolved.join("; ")
-        ))
+        })
     }
 
     /// The position the round in progress opened with, before any decision.

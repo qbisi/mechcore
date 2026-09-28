@@ -15,19 +15,20 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
     let kinds = arguments.operands()?;
     if kinds.is_empty() {
         return Err(Failure::usage(
-            "expected <kind>...: layout, match, state or action",
+            "expected <kind>...: layout, fight, match, state or action",
         ));
     }
     for kind in kinds {
         let schema = match kind.as_str() {
             "layout" => schemars::schema_for!(mechcore_document::Layout),
+            "fight" => schemars::schema_for!(mechcore_document::Fight),
             "match" => schemars::schema_for!(mechcore_document::r#match::schema::Match),
             "state" => schemars::schema_for!(mechcore_document::r#match::schema::State),
             "action" => schemars::schema_for!(mechcore_document::r#match::schema::Actions),
             other => {
                 return Err(Failure::usage(format!(
                     "no document is of kind {other:?}; a document names itself \
-                     layout, match, state or action"
+                     layout, fight, match, state or action"
                 )));
             }
         };

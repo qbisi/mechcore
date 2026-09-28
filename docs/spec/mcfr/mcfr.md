@@ -652,7 +652,10 @@ ascending by `(tick, formation_id)`.
 fight state. What a kill hands out and to whom
 is [`docs/rules/unit_experience.md`](../../rules/unit_experience.md#what-a-kill-hands-out).
 As the fight ends, `BattleSystem.OnFightOver` prunes each gain to a whole
-number, which the last snapshot already holds.
+number. A fight that ends before its time runs out is pruned inside its last
+logic tick, so its last snapshot holds whole numbers; one that runs out of
+time is pruned after its last tick, so its last snapshot holds the fractions
+the cut removes.
 
 ## Events
 

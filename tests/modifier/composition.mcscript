@@ -79,7 +79,7 @@ steps:
 
   # The measurement has two halves, and a verb each.
   #
-  # `show --view outcome` answers what the fight decided: the survivors and the life
+  # `show --view outcome` answers what the fight left: the survivors and the life
   # they have left. The three numbers are the experiment — `none` fixes the
   # description, `once` fixes the arithmetic of one rate, `twice` fixes what
   # two do. The game answered 14639, 13243 and 11845, which is

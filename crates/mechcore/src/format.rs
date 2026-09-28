@@ -18,8 +18,12 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
     arguments.finish()?;
     let (kind, bytes) = Kind::read(&path)?;
     kind.require("format")?;
-    let layout = mechcore_document::parse_yaml(&bytes).map_err(Failure::refused)?;
-    let canonical = mechcore_document::canonical_yaml(layout).map_err(Failure::refused)?;
+    let canonical = match kind {
+        Kind::Fight => mechcore_document::fight::parse_yaml(&bytes)
+            .and_then(mechcore_document::fight::canonical_yaml),
+        _ => mechcore_document::parse_yaml(&bytes).and_then(mechcore_document::canonical_yaml),
+    }
+    .map_err(Failure::refused)?;
     if write {
         fs::write(&path, canonical).map_err(|error| {
             Failure::failed(format!("cannot write {}: {error}", path.display()))

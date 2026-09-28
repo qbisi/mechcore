@@ -136,7 +136,8 @@ pub(crate) fn convert(request: &Request) -> Result<Answer, Failure> {
     let output = request.output.as_deref();
     // A rewrite that has no document form to answer with writes a file, and
     // answering with a binary file on standard output is not answering.
-    if output.is_none() && how == Conversion::Rewrite && request.to != Kind::Layout {
+    let document = matches!(request.to, Kind::Layout | Kind::Fight);
+    if output.is_none() && how == Conversion::Rewrite && !document {
         return Err(Failure::usage(format!(
             "converting to {} writes a file; name it after the input",
             request.to.name()
@@ -166,6 +167,8 @@ pub(crate) fn convert(request: &Request) -> Result<Answer, Failure> {
         }
         (Kind::Match, Kind::Layout) => project(&bytes, request.round, output),
         (Kind::Layout, Kind::Mcfr) => simulate(&request.input, request.seed, output),
+        (Kind::Mcfr, Kind::Fight) => written(crate::outcome::fight(&request.input)?, output),
+        (Kind::Layout, Kind::Fight) => fight(&request.input, request.seed, output),
         _ => unreachable!("every pair the kind table names is converted here"),
     }
 }
@@ -452,4 +455,39 @@ fn simulate(layout: &Path, seed: Option<i32>, output: Option<&Path>) -> Result<A
     std::fs::rename(&staged, output).map_err(unwritable)?;
     result.output = Some(output.display().to_string());
     report(&result, None)
+}
+
+/// Fights a layout in the simulator and reads the recording it makes, which
+/// is `convert --to mcfr` followed by `convert --to fight`: the document's
+/// `source` is the simulator, because the simulator wrote the recording.
+fn fight(layout: &Path, seed: Option<i32>, output: Option<&Path>) -> Result<Answer, Failure> {
+    let directory = tempfile::tempdir()
+        .map_err(|error| Failure::failed(format!("cannot make room for the fight: {error}")))?;
+    let recording = directory.path().join("fight.mcfr");
+    mechcore_simulation::simulate_layout(layout, Some(&recording), seed)
+        .map_err(|error| Failure::refused(error.to_string()))?;
+    written(crate::outcome::fight(&recording)?, output)
+}
+
+/// A fight document on standard output, or written to `output` and reported.
+fn written(fight: mechcore_document::Fight, output: Option<&Path>) -> Result<Answer, Failure> {
+    let source = fight.source.as_str();
+    let round = fight.round;
+    let yaml = mechcore_document::fight::canonical_yaml(fight).map_err(Failure::failed)?;
+    let Some(output) = output else {
+        return Ok(Answer::Document(yaml));
+    };
+    write(output, &yaml)?;
+    report(
+        &serde_json::json!({
+            "schema": "mechcore.convert-fight-result.v1",
+            "fight": output.display().to_string(),
+            "round": round,
+            "source": source,
+        }),
+        Some(format!(
+            "{} round {round} source {source}",
+            output.display()
+        )),
+    )
 }
