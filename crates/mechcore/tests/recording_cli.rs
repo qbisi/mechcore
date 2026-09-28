@@ -340,15 +340,163 @@ red:
     assert_eq!(report["differences"][0]["path"], "/red/core_damage");
     let schema = mechcore(&["schema".as_ref(), "fight".as_ref()]);
     assert!(schema.status.success());
+}
 
-    // Checking a fight document is not this build's yet, and says so by kind.
-    let checked = mechcore(&["verify".as_ref(), written.as_os_str()]);
-    assert_eq!(checked.status.code(), Some(1));
-    let report: serde_json::Value = serde_json::from_slice(&checked.stdout).unwrap();
+/// The fight document the simulator fights a small layout into, written by
+/// `convert --to fight`.
+fn simulated_fight(directory: &std::path::Path) -> String {
+    let layout = directory.join("deployment.yaml");
+    fs::write(
+        &layout,
+        r"
+kind: layout
+round: 1
+seed: 4242
+blue:
+  units:
+    - {name: marksman, index: 0, position: {x: -60, y: -100}}
+    - {name: marksman, index: 3, position: {x: 0, y: -100}}
+red:
+  units:
+    - {name: arclight, index: 2, position: {x: 0, y: -60}}
+",
+    )
+    .unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .args([
+            "convert".as_ref(),
+            layout.as_os_str(),
+            "--to".as_ref(),
+            "fight".as_ref(),
+        ])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    String::from_utf8(output.stdout).unwrap()
+}
+
+/// Writes `text` as `name` and verifies it: the exit code and the report.
+fn verify_text(
+    directory: &std::path::Path,
+    name: &str,
+    text: &str,
+) -> (Option<i32>, serde_json::Value) {
+    let path = directory.join(name);
+    fs::write(&path, text).unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .arg("verify")
+        .arg(&path)
+        .output()
+        .unwrap();
+    (
+        output.status.code(),
+        serde_json::from_slice(&output.stdout).unwrap(),
+    )
+}
+
+/// A fight document is checked by fighting its projection with its seed and
+/// comparing the result it states with the one the simulator arrives at.
+#[test]
+fn verify_fights_a_fight_document_again_and_names_what_differs() {
+    let directory = tempfile::tempdir().unwrap();
+    let document = simulated_fight(directory.path());
+    let verify = |name: &str, text: &str| verify_text(directory.path(), name, text);
+
+    // What the simulator wrote, it arrives at again.
+    let (code, report) = verify("fight.yaml", &document);
+    assert_eq!(code, Some(0), "{report}");
+    assert_eq!(report["schema"], "mechcore.verify-result.v1");
+    assert_eq!(report["kind"], "fight");
+    assert_eq!(report["valid"], true);
+    assert_eq!(
+        report["compared"],
+        serde_json::json!(["result", "trajectory"])
+    );
+    assert_eq!(report["differences"], serde_json::json!([]));
+
+    // One unit's experience moved: that path, both values.
+    let exp = document.find("exp: 0/").unwrap() + "exp: 0/".len();
+    let after = &document[exp..document[exp..].find('/').unwrap() + exp];
+    let moved = format!(
+        "{}{}{}",
+        &document[..exp],
+        after.parse::<u32>().unwrap() + 1,
+        &document[exp + after.len()..]
+    );
+    let (code, report) = verify("exp.yaml", &moved);
+    assert_eq!(code, Some(1), "{report}");
+    assert_eq!(report["valid"], false);
+    let differences = report["differences"].as_array().unwrap();
+    assert_eq!(differences.len(), 1, "{report}");
+    let path = differences[0]["path"].as_str().unwrap();
+    assert!(path.starts_with("/blue/units/index="), "{path}");
+    assert!(path.ends_with("/exp"), "{path}");
+    assert_ne!(differences[0]["expected"], differences[0]["actual"]);
+    assert!(report["error"].as_str().unwrap().contains(path), "{report}");
+
+    // The trajectory's hash moved: the hash, and nothing else.
+    let hash = document.find("result: ").unwrap() + "result: ".len();
+    let flipped = if &document[hash..=hash] == "0" {
+        "1"
+    } else {
+        "0"
+    };
+    let rehashed = format!("{}{flipped}{}", &document[..hash], &document[hash + 1..]);
+    let (code, report) = verify("hash.yaml", &rehashed);
+    assert_eq!(code, Some(1), "{report}");
+    assert_eq!(report["differences"][0]["path"], "/hash/result");
+    assert_eq!(report["differences"].as_array().unwrap().len(), 1);
+}
+
+/// A replay states no trajectory, so its result fields alone are compared;
+/// and a fight the simulator does not fight is answered with why.
+#[test]
+fn verify_compares_a_replay_on_its_result_and_answers_a_refusal() {
+    let directory = tempfile::tempdir().unwrap();
+    let replay = simulated_fight(directory.path())
+        .lines()
+        .filter(|line| !line.starts_with("ticks:") && !line.starts_with("hash:"))
+        .map(|line| {
+            if line == "source: simulator" {
+                "source: replay"
+            } else {
+                line
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+        + "\n";
+    let verify = |name: &str, text: &str| verify_text(directory.path(), name, text);
+
+    let (code, report) = verify("replay.yaml", &replay);
+    assert_eq!(code, Some(0), "{report}");
+    assert_eq!(report["source"], "replay");
+    assert_eq!(report["compared"], serde_json::json!(["result"]));
+    let (code, report) = verify(
+        "replay-damage.yaml",
+        &replay.replace("core_damage: ", "core_damage: 1"),
+    );
+    assert_eq!(code, Some(1), "{report}");
     assert!(
-        report["error"].as_str().unwrap().contains("fight"),
+        report["differences"][0]["path"]
+            .as_str()
+            .unwrap()
+            .ends_with("/core_damage"),
         "{report}"
     );
+
+    let (code, report) = verify(
+        "refused.yaml",
+        &replay.replace("blue:\n", "blue:\n  officers: [berserk_rhino]\n"),
+    );
+    assert_eq!(code, Some(1), "{report}");
+    assert_eq!(report["kind"], "fight");
+    let error = report["error"].as_str().unwrap();
+    assert!(
+        error.starts_with("the simulator does not fight it"),
+        "{error}"
+    );
+    assert!(error.contains("30502"), "{error}");
 }
 
 /// What was written onto a fight's units, which is not what the fight decided.

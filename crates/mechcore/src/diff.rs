@@ -131,7 +131,10 @@ pub(crate) fn layout_differences(
 /// # Errors
 ///
 /// Returns an error when a document cannot be serialized.
-fn document_differences<T: Serialize>(left: &T, right: &T) -> Result<Vec<FieldDifference>, String> {
+pub(crate) fn document_differences<T: Serialize>(
+    left: &T,
+    right: &T,
+) -> Result<Vec<FieldDifference>, String> {
     let left = serde_json::to_value(left)
         .map_err(|error| format!("cannot normalize a document: {error}"))?;
     let right = serde_json::to_value(right)

@@ -90,7 +90,7 @@ refused rather than guessed at.
 | Kind | `verify` | `convert --to` | `diff` | `show --view` | `format` |
 | --- | --- | --- | --- | --- | --- |
 | `layout` | yes | `grbr` (rewrite), `mcfr` (computation), `fight` (computation) | yes | — | yes |
-| `fight` | — | — | yes | — | yes |
+| `fight` | yes | — | yes | — | yes |
 | `match` | yes | `grbr` (rewrite), `layout` (rewrite) | — | — | — |
 | `state` | — | — | — | — | — |
 | `action` | — | — | — | — | — |
@@ -98,8 +98,7 @@ refused rather than guessed at.
 | `grbr` | — | `match` (rewrite) | — | — | — |
 
 A state and an action are read inside a match, which is what verifies them.
-Checking a [fight](../document/fight.md) document against a fight run again is
-not this build's yet, so `verify` refuses one by its kind. `schema` names a
+`schema` names a
 kind rather than a file, and answers the shape of `layout`, `fight`, `match`,
 `state` and `action`.
 
@@ -196,6 +195,17 @@ batch still runs.
 - A **recording** is checked by simulating the layout it embeds again and
   comparing the result with what it holds. The report's `comparison` carries
   both timelines, the first tick they part at, and that tick explained.
+- A **fight** is fought again as [`convert --to fight`](#convert) fights a
+  layout: its projection, with its seed, through the simulator and the one
+  reader. It verifies when the simulator's document states what it states, as
+  [fight.md](../document/fight.md#root-fields) says a fight is checked: every
+  result field, and `ticks` and `hash` too unless the source is `replay`.
+  `compared` names which of the two were, and `differences` lists each path
+  they part on, as `diff` spells one, with the document's value as `expected`
+  and the simulator's as `actual`. A document holds no tick of its fight, so a
+  hash that differs names no tick; `verify` over the recording it was read
+  from does. A fight the simulator does not fight, or whose recording its
+  reader does not answer, does not verify, and the refusal is the reason.
 
 ## `convert`
 
