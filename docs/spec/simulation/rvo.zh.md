@@ -236,13 +236,14 @@ point    += normalize(gradient) * step
 - `rvo.rs` 单元测试固定游戏的同组 pair 解和 VO 构造 raw 值；
 - kernel 测试覆盖建筑碰撞、Q32.32 距离边界、树的粗可达范围和停止移动的边界行为；
 - `tests/regression/mcfr-regressions.yaml` 的 native 样本比较录像覆盖每个 tick 每个字段的
-  `result_hash`，包括 Steel Ball 对战样本。
+  `result_hash`，包括 Steel Ball 对战样本；`tests/regression/simulate.mcscript` 不需要游戏，
+  用模拟器重放其中每个样本。
 
 常用检查命令：
 
 ```text
 cargo test -p mechcore-simulation rvo
-cargo test -p mechcore-simulation --test fight native_regression_smoke_hashes_match
+cargo run --release -p mechcore --no-default-features -- run tests/regression/simulate.mcscript
 ```
 
 instrument 通道只用于研究和定位，见 [MCFR 文档](../mcfr/mcfr.md#instrument-channels)；它们都不

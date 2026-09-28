@@ -302,11 +302,12 @@ Three layers of test hold this:
   coarse reachable range, and the behaviour at the edge of stopping;
 - the native samples in `tests/regression/mcfr-regressions.yaml` compare the
   recording's `result_hash`, over every field of every tick, the Steel Ball
-  fight sample included.
+  fight sample included; `tests/regression/simulate.mcscript` replays every
+  case through the simulator and needs no game.
 
 ```text
 cargo test -p mechcore-simulation rvo
-cargo test -p mechcore-simulation --test fight native_regression_smoke_hashes_match
+cargo run --release -p mechcore --no-default-features -- run tests/regression/simulate.mcscript
 ```
 
 ## Fidelity boundary
