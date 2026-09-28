@@ -19,6 +19,7 @@ REPO = Path(__file__).resolve().parents[1]
 # Kinds from docs/README.md. A spec must appear in exactly one set, so adding a
 # spec without classifying it fails rather than being silently unchecked.
 DOCUMENT_FORMAT = {
+    "docs/spec/document/fight.md",
     "docs/spec/document/layout.md",
     "docs/spec/mechcore/turn.md",
     "docs/spec/document/state.md",

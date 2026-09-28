@@ -1,11 +1,12 @@
-//! The document format: layout, state, action and match.
+//! The document format: layout, fight, state, action and match.
 //!
-//! One type system carries all four kinds, because they are one another's
+//! One type system carries every kind, because they are one another's
 //! parts. A match is a stream of state and action segments, and a layout is
-//! the projection of a state onto what a fight simulates.
+//! the projection of a state onto what a fight simulates, and a fight is a
+//! layout with its result written in.
 //! `docs/spec/document/match.md`, `docs/spec/document/state.md`,
-//! `docs/spec/document/action.md` and `docs/spec/document/layout.md` define
-//! them.
+//! `docs/spec/document/action.md`, `docs/spec/document/layout.md` and
+//! `docs/spec/document/fight.md` define them.
 //!
 //! The modules are layered. [`layout`] and [`r#match`] define documents,
 //! [`catalog`] pins the names they use to one build, [`compile`] turns a
@@ -23,6 +24,7 @@ pub mod convert;
 pub mod coverage;
 pub mod economy;
 pub mod experience;
+pub mod fight;
 mod grbr;
 pub mod landing;
 pub mod layout;
@@ -46,6 +48,10 @@ pub use catalog::{
 };
 pub use compile::{BattleSkill, Placement, Plan, SidePlan, compile, compile_layout};
 pub use economy::game_build;
+pub use fight::{
+    Fight, FightBattleSkill, FightContraption, FightExperience, FightHash, FightKind, FightRelease,
+    FightSide, FightStanding, FightUnit, Source,
+};
 pub use grbr::{GrbrRoundRetained, GrbrStanding, retained_from_grbr_round};
 pub use layout::{
     BattleSkillEntry, BattleSkillRelease, ContraptionPlacement, Experience,
