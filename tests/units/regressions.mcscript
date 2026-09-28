@@ -2220,3 +2220,10 @@ steps:
       steps: 362
       hashes.physics_result_hash: 23a7e280377df98f0a0d9c2d9658524c4e57b12c9c2c2cb74d0972e595045c4a
       hashes.content_result_hash: 524d9b22d073cfe55248532b0d43ca1c527a0d6b70260ee3d06b796ef097133e
+  - fight.run:
+      layout: tests/units/overlord/m6-formations.yaml
+      seed: 1787720817
+    expect:
+      steps: 352
+      hashes.physics_result_hash: d0b42164634acbd216482c5ab95d4d9f3039ffece68255a79707edc2eff4fa17
+      hashes.content_result_hash: 0fb1ea908a040e5b699d8b9ff103d8a0bd1e4c0cb5d78f6ea125b6c3ce269d89

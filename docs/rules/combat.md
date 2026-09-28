@@ -353,6 +353,13 @@ last units were attacking does not decide whether that happens. Which of the
 winner's units are handed a tower is the simulator's `natural_finish_handoff`,
 not read from the build.
 
+**When the fight stops, every unit's motion enters idle, and a unit that was
+moving stops.** `MotionIdleState.Enter` calls `RVOControllerFixed.StopMove`,
+which asks for no speed at the point the unit stands on, so the next solve
+publishes none: an Overlord handed a tower on the tick the last enemy died,
+and idle from the next, stays where it stood rather than walking on at the
+next publish.
+
 ## Reference unit fields
 
 [`config/units/marksman.yaml`](../../config/units/marksman.yaml) and
@@ -399,8 +406,8 @@ not the game's native attack-type enum.
 - The blow waiting a tick after the idle state is left, and an idle skill
   giving up a lock it cannot fire at, in the standard fights of the Fortress,
   Sledgehammer, Typhoon and Melting Point: `tests/units/regressions.mcscript`.
-- A projectile's climb measured as it is created, in the Overlord's standard
-  fights:
+- A projectile's climb measured as it is created, and a moving unit stopped
+  when the fight stops, in the Overlord's standard fights:
   `tests/units/regressions.mcscript`.
 - A presearched target a few raw units left of straight ahead faced at
   +0.245°, in the standard fights of the Steel Ball, Stormcaller, Hound, Fire
@@ -411,6 +418,8 @@ not the game's native attack-type enum.
 - A projectile's climb is scaled by the distance from where it leaves, as it
   is created: `ProjectileSystem.Create`, `IProjectileSkillData.GetPreFlyHeight`,
   `ProjectileFlyData.GetPosition`.
+- Entering idle stops a moving unit: `MotionIdleState.Enter`,
+  `RVOControllerFixed.StopMove`.
 - The presearch faces a unit by the direction to its target, and a facing is
   mirrored only past `FPoint`'s tolerance: `PresearchTargetController.SearchTarget`,
   `FightUtility.ConvertToAngle`, `FightMech.UpdateRotation`,
