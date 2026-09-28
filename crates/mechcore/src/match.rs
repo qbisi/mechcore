@@ -684,17 +684,22 @@ impl Game {
             self.r#match.seed,
         )?;
         let yaml = mechcore_document::canonical_yaml(layout)?;
-        let directory = tempfile::tempdir()
-            .map_err(|error| format!("cannot make room for the fight: {error}"))?;
-        let recording = directory.path().join("fight.mcfr");
-        mechcore_simulation::simulate_document(yaml.as_bytes(), Some(&recording), None)
-            .map_err(|error| format!("round {round} is not fought: {error}"))?;
-        crate::outcome::fight(&recording).map_err(|failure| {
-            format!(
-                "round {round} is fought and not settled: {}",
-                failure.reason()
-            )
-        })
+        let recording = mechcore_simulation::simulate_document(
+            yaml.as_bytes(),
+            mechcore_simulation::Record::Memory,
+            None,
+        )
+        .map_err(|error| format!("round {round} is not fought: {error}"))?
+        .recording
+        .ok_or_else(|| format!("round {round} is fought and its recording was not kept"))?;
+        crate::outcome::read(&recording)
+            .and_then(crate::outcome::Reading::fight)
+            .map_err(|failure| {
+                format!(
+                    "round {round} is fought and not settled: {}",
+                    failure.reason()
+                )
+            })
     }
 
     /// The position the round in progress opened with, before any decision.

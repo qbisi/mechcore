@@ -6,8 +6,8 @@ use std::{
 use tempfile::TempPath;
 
 use crate::{
-    DurableContext, Error, Hashes, InstrumentRow, McfrReader, Producer, Result, TickHashes,
-    TransitionEvents, WorldSnapshot, canonical,
+    DurableContext, Error, Hashes, InstrumentRow, McfrReader, MemoryRecording, Producer, Result,
+    TickHashes, TransitionEvents, WorldSnapshot, canonical,
     model::IdentityAllocator,
     parquet_storage::{self, StorageWriter},
 };
@@ -21,6 +21,8 @@ pub struct McfrWriter {
     layout_yaml: Option<String>,
     context_bytes: Vec<u8>,
     identity_initialized: bool,
+    /// Every tick appended, for a writer that keeps the timeline in memory.
+    memory: Option<Vec<(WorldSnapshot, TransitionEvents)>>,
     tick_hashes: Vec<[u8; canonical::HASH_BYTES]>,
     poisoned: bool,
 }
@@ -48,34 +50,7 @@ impl McfrWriter {
         }
         let parent = target.parent().unwrap_or_else(|| Path::new("."));
         fs::create_dir_all(parent)?;
-        if game_build.trim().is_empty() {
-            return Err(Error::invalid("game_build must not be empty"));
-        }
-        context.validate()?;
-        let layout = mechcore_document::parse_embedded_yaml(layout_yaml.as_bytes())
-            .map_err(Error::invalid)?;
-        match layout.seed {
-            None => {
-                return Err(Error::invalid(
-                    "layout has no seed; a recording embeds the resolved match seed",
-                ));
-            }
-            Some(seed) if seed != context.match_seed => {
-                return Err(Error::invalid(format!(
-                    "layout seed {seed} differs from durable context match_seed {}",
-                    context.match_seed
-                )));
-            }
-            Some(_) => {}
-        }
-        if u32::try_from(layout.round).ok() != Some(context.combat_round) {
-            return Err(Error::invalid(format!(
-                "layout round {} differs from durable context combat_round {}",
-                layout.round, context.combat_round
-            )));
-        }
-        let layout_yaml =
-            mechcore_document::canonical_embedded_yaml(layout).map_err(Error::invalid)?;
+        let layout_yaml = embedded_layout(game_build, context, layout_yaml)?;
         let context_bytes = parquet_storage::encode_durable_context(context)?;
         let temporary = tempfile::Builder::new()
             .prefix(".mcfr-")
@@ -92,6 +67,7 @@ impl McfrWriter {
             layout_yaml: Some(layout_yaml),
             context_bytes,
             identity_initialized: false,
+            memory: None,
             tick_hashes: Vec::new(),
             poisoned: false,
         })
@@ -113,6 +89,36 @@ impl McfrWriter {
             layout_yaml: None,
             context_bytes: parquet_storage::encode_durable_context(context)?,
             identity_initialized: false,
+            memory: None,
+            tick_hashes: Vec::new(),
+            poisoned: false,
+        })
+    }
+
+    /// Starts a timeline kept in memory: what [`Self::create`] would write,
+    /// checked the same way, handed back by [`Self::finish_in_memory`] for a
+    /// reader that has no use for the file.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for invalid context or layout.
+    pub fn in_memory(
+        producer: Producer,
+        game_build: &str,
+        context: &DurableContext,
+        layout_yaml: &str,
+    ) -> Result<Self> {
+        let layout_yaml = embedded_layout(game_build, context, layout_yaml)?;
+        Ok(Self {
+            target: None,
+            temporary: None,
+            storage: None,
+            producer: Some(producer),
+            game_build: Some(game_build.to_owned()),
+            layout_yaml: Some(layout_yaml),
+            context_bytes: parquet_storage::encode_durable_context(context)?,
+            identity_initialized: false,
+            memory: Some(Vec::new()),
             tick_hashes: Vec::new(),
             poisoned: false,
         })
@@ -146,6 +152,9 @@ impl McfrWriter {
         if let Some(storage) = &mut self.storage {
             storage.append_tick(tick, &state, events, tick_hash)?;
         }
+        if let Some(memory) = &mut self.memory {
+            memory.push((state, events.clone()));
+        }
         self.tick_hashes.push(tick_hash);
         self.poisoned = false;
         Ok(TickHashes {
@@ -177,6 +186,34 @@ impl McfrWriter {
         storage.append_instrument(tick, rows)?;
         self.poisoned = false;
         Ok(())
+    }
+
+    /// Finalizes the timeline hash and hands back the timeline a writer made
+    /// by [`Self::in_memory`] kept.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for a writer that keeps no timeline, when no tick was
+    /// written, and after a partial append failure.
+    pub fn finish_in_memory(mut self) -> Result<MemoryRecording> {
+        let ticks = self
+            .memory
+            .take()
+            .ok_or_else(|| Error::invalid("this writer does not keep its timeline in memory"))?;
+        let producer = self
+            .producer
+            .ok_or_else(|| Error::invalid("writer producer is unavailable"))?;
+        let layout_yaml = self
+            .layout_yaml
+            .take()
+            .ok_or_else(|| Error::invalid("writer layout is unavailable"))?;
+        let hashes = self.finish()?;
+        Ok(MemoryRecording {
+            producer,
+            layout_yaml,
+            hashes,
+            ticks,
+        })
     }
 
     /// Finalizes the timeline hash and atomically publishes the container.
@@ -239,4 +276,41 @@ impl McfrWriter {
             .map_err(|error| Error::Io(error.error))?;
         Ok(hashes)
     }
+}
+
+/// The layout a recording embeds, in canonical form, once it is checked
+/// against the build and the durable context: its seed is the match seed and
+/// its round the combat round.
+fn embedded_layout(
+    game_build: &str,
+    context: &DurableContext,
+    layout_yaml: &str,
+) -> Result<String> {
+    if game_build.trim().is_empty() {
+        return Err(Error::invalid("game_build must not be empty"));
+    }
+    context.validate()?;
+    let layout =
+        mechcore_document::parse_embedded_yaml(layout_yaml.as_bytes()).map_err(Error::invalid)?;
+    match layout.seed {
+        None => {
+            return Err(Error::invalid(
+                "layout has no seed; a recording embeds the resolved match seed",
+            ));
+        }
+        Some(seed) if seed != context.match_seed => {
+            return Err(Error::invalid(format!(
+                "layout seed {seed} differs from durable context match_seed {}",
+                context.match_seed
+            )));
+        }
+        Some(_) => {}
+    }
+    if u32::try_from(layout.round).ok() != Some(context.combat_round) {
+        return Err(Error::invalid(format!(
+            "layout round {} differs from durable context combat_round {}",
+            layout.round, context.combat_round
+        )));
+    }
+    mechcore_document::canonical_embedded_yaml(layout).map_err(Error::invalid)
 }

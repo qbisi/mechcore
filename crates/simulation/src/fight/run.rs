@@ -9,7 +9,7 @@ pub struct TeamResult {
     pub max_life: i64,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Serialize)]
 pub struct SimulationResult {
     pub schema: &'static str,
     pub game_build: String,
@@ -25,6 +25,9 @@ pub struct SimulationResult {
     pub teams: Vec<TeamResult>,
     pub hashes: Hashes,
     pub profiling: SimulationProfile,
+    /// The timeline, when it was asked to be kept in memory.
+    #[serde(skip)]
+    pub recording: Option<MemoryRecording>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -78,11 +81,11 @@ pub(crate) fn run(
     config: &SimulationConfig,
     seed: i32,
     seed_source: &'static str,
-    output: Option<&Path>,
+    record: Record<'_>,
     replay_layout: &str,
 ) -> Result<SimulationResult> {
     let generation_started = Instant::now();
-    let execution = execute(layout, config, seed, output, None, Some(replay_layout))?;
+    let execution = execute(layout, config, seed, record, None, Some(replay_layout))?;
     let Execution {
         simulation,
         writer,
@@ -92,7 +95,17 @@ pub(crate) fn run(
         ..
     } = execution;
     debug_assert!(first_divergence.is_none());
-    let hashes = writer.finish()?;
+    let (hashes, recording) = match record {
+        Record::Memory => {
+            let recording = writer.finish_in_memory()?;
+            (recording.hashes().clone(), Some(recording))
+        }
+        Record::Hash | Record::File(_) => (writer.finish()?, None),
+    };
+    let output = match record {
+        Record::File(path) => Some(path),
+        Record::Hash | Record::Memory => None,
+    };
     let (file_size_bytes, member_sizes_bytes) = if let Some(path) = output {
         let published = mechcore_mcfr::McfrReader::open(path)?;
         if published.hashes() != &hashes {
@@ -146,6 +159,7 @@ pub(crate) fn run(
             file_size_bytes,
             member_sizes_bytes,
         },
+        recording,
     })
 }
 
@@ -162,7 +176,7 @@ pub(crate) fn compare(
             config.game_build
         )));
     }
-    let execution = execute(layout, config, seed, None, Some(recording), None)?;
+    let execution = execute(layout, config, seed, Record::Hash, Some(recording), None)?;
     let Execution {
         writer,
         steps,
@@ -207,7 +221,7 @@ pub(in crate::fight) fn execute(
     layout: &CompiledLayout,
     config: &SimulationConfig,
     seed: i32,
-    output: Option<&Path>,
+    record: Record<'_>,
     recording: Option<&McfrReader>,
     replay_layout: Option<&str>,
 ) -> Result<Execution> {
@@ -225,7 +239,7 @@ pub(in crate::fight) fn execute(
         match_seed: seed,
     };
     let mut simulation = Simulation::new_unprepared(layout, &config.units, &config.towers, seed)?;
-    let mut writer = writer(output, replay_layout, seed, config, &context)?;
+    let mut writer = writer(record, replay_layout, seed, config, &context)?;
     simulation.initialize_presearch_targets()?;
     let mut steps = 0;
     let mut first_divergence = None;
@@ -297,32 +311,43 @@ pub(in crate::fight) fn execute(
     })
 }
 
-/// The writer a fight records into: a recording at `output`, which embeds
-/// the replay layout under the seed the fight ran with, or only the hash.
+/// The writer a fight records into: a recording at a path or in memory,
+/// which embeds the replay layout under the seed the fight ran with, or only
+/// the hash.
 fn writer(
-    output: Option<&Path>,
+    record: Record<'_>,
     replay_layout: Option<&str>,
     seed: i32,
     config: &SimulationConfig,
     context: &DurableContext,
 ) -> Result<McfrWriter> {
-    let Some(path) = output else {
-        return McfrWriter::hash_only(context).map_err(Into::into);
+    let path = match record {
+        Record::Hash => return McfrWriter::hash_only(context).map_err(Into::into),
+        Record::File(path) => Some(path),
+        Record::Memory => None,
     };
     let mut replay_layout = mechcore_document::parse_yaml(
         replay_layout
-            .ok_or_else(|| Error::new("output MCFR requires a replay layout"))?
+            .ok_or_else(|| Error::new("a recorded fight requires a replay layout"))?
             .as_bytes(),
     )
     .map_err(Error::new)?;
     replay_layout.seed = Some(seed);
     let replay_layout = mechcore_document::canonical_yaml(replay_layout).map_err(Error::new)?;
-    McfrWriter::create(
-        path,
-        Producer::Simulator,
-        &config.game_build,
-        context,
-        &replay_layout,
-    )
+    match path {
+        Some(path) => McfrWriter::create(
+            path,
+            Producer::Simulator,
+            &config.game_build,
+            context,
+            &replay_layout,
+        ),
+        None => McfrWriter::in_memory(
+            Producer::Simulator,
+            &config.game_build,
+            context,
+            &replay_layout,
+        ),
+    }
     .map_err(Into::into)
 }

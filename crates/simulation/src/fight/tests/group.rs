@@ -275,7 +275,7 @@ fn grouped_slots_take_the_wall_and_are_dropped_with_the_lock() {
 mod oracle {
     use super::*;
     use serde_json::Value;
-    use std::cell::RefCell;
+    use std::{cell::RefCell, path::Path};
 
     #[derive(Default)]
     struct Replay {
@@ -443,6 +443,7 @@ mod slots {
     use super::*;
     use crate::fight::skill::SkillState;
     use mechcore_mcfr::{GroupSlot, McfrReader, ObjectRef};
+    use std::path::Path;
 
     fn object(target: Option<FightActorRef>) -> Option<ObjectRef> {
         target.map(FightActorRef::object_ref)

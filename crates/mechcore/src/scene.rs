@@ -11,7 +11,7 @@
 use std::collections::BTreeMap;
 
 use mechcore_document::{Layout, Position, UnitPlacement};
-use mechcore_mcfr::{LiveUnitState, McfrReader, WorldSnapshot};
+use mechcore_mcfr::{LiveUnitState, Recording, WorldSnapshot};
 
 use crate::{cli::Failure, turn::Side};
 
@@ -20,12 +20,12 @@ pub(crate) const FIRST_TICK: u32 = 1;
 
 /// The layout a recording embeds, which is the document its formations are
 /// matched against.
-pub(crate) fn layout(reader: &McfrReader) -> Result<Layout, Failure> {
+pub(crate) fn layout(reader: &dyn Recording) -> Result<Layout, Failure> {
     mechcore_document::parse_yaml(reader.layout_yaml().as_bytes())
         .map_err(|error| Failure::refused(format!("recording embeds no layout: {error}")))
 }
 
-pub(crate) fn snapshot(reader: &McfrReader, tick: u32) -> Result<WorldSnapshot, Failure> {
+pub(crate) fn snapshot(reader: &dyn Recording, tick: u32) -> Result<WorldSnapshot, Failure> {
     reader
         .state(tick)
         .map_err(|error| Failure::refused(format!("recording has no tick {tick}: {error}")))

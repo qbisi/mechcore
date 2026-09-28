@@ -814,6 +814,15 @@ Parquet footers and the ZIP envelope, reopens the result with
 publishes through `persist_noclobber`. The target path is required to be free at
 creation, and publication refuses to overwrite.
 
+`in_memory(producer, game_build, context, layout_yaml)` takes the same checks
+and keeps each canonicalised tick instead of storing it, and
+`finish_in_memory()` hands the timeline back with its hashes and no file. A
+reader of one fight reads it through `Recording`, which `McfrReader` and that
+timeline both answer: the embedded layout, the producer, the hashes, the
+terminal tick, and each tick's state and events. The simulator keeps a fight
+this way when its reader is the only use it has, as `verify` and
+`convert --to fight` read a layout's fight.
+
 Before each write, the WorldSnapshot is canonicalised into the order under
 [Normal form](#normal-form), then checked for object IDs, list order, state bits
 and modifier constraints. One failed partial write poisons the writer, and only

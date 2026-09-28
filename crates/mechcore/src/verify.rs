@@ -195,8 +195,8 @@ fn verify_fight(path: &Path, bytes: &[u8]) -> Result<Report, String> {
         }),
     };
     let layout = mechcore_document::canonical_yaml(mechcore_document::fight::project(&document))?;
-    let simulated = match crate::convert::fought(|recording| {
-        mechcore_simulation::simulate_document(layout.as_bytes(), Some(recording), None)
+    let simulated = match crate::convert::fought(|record| {
+        mechcore_simulation::simulate_document(layout.as_bytes(), record, None)
     }) {
         Ok(simulated) => simulated.normalized(),
         Err(refused) => {

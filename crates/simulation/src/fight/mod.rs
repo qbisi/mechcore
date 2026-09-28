@@ -9,22 +9,21 @@
 use std::{
     cmp::Ordering,
     collections::{BTreeMap, BTreeSet},
-    path::Path,
     time::Instant,
 };
 
 use mechcore_mcfr::{
     BuildingState, DamageStatistics, DerivedStats, Domain, DurableContext, Event, EventPayload,
     FormationState, GaugeI32, Hashes, IdentityAllocator, LiveUnitState, McfrReader, McfrWriter,
-    MotionState, ObjectKind, ObjectRef, PersonalShieldState, Producer, ProjectileState, QPlanar,
-    QPose, QVec3, Rational, RecorderKind, TickSlice, TransitionEvents, Visibility, WeaponAimState,
-    WorldSnapshot,
+    MemoryRecording, MotionState, ObjectKind, ObjectRef, PersonalShieldState, Producer,
+    ProjectileState, QPlanar, QPose, QVec3, Rational, RecorderKind, Recording, TickSlice,
+    TransitionEvents, Visibility, WeaponAimState, WorldSnapshot,
 };
 
 use serde::Serialize;
 
 use crate::{
-    Error, Result,
+    Error, Record, Result,
     layout::{CompiledLayout, ConstructionBuilding, Placement},
     rules::{
         AttackConfig, AttackPath, AttackTargets, Magazine, RvoSize, SimulationConfig, TowersConfig,
