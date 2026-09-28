@@ -308,7 +308,7 @@ impl Simulation {
         let skill = self.skill_mut(owner);
         let fired_at = skill.attack_target();
         skill.drop_lock();
-        skill.laser_attack_count = 0;
+        skill.attack_count = ATTACK_COUNT_RESET;
         skill.retarget_after_own_direct_kill = false;
         skill.set_phase(FightSkillPhase::Idle);
         skill.set_backswing_finish_step(None);

@@ -55,6 +55,8 @@ impl Simulation {
         let skill = self.skill_mut(owner);
         skill.set_pending(None);
         skill.fire_round();
+        // `SkillAttackController.PerformAttack` counts the blow as it starts.
+        skill.attack_count += 1;
         // The backswing is cut short by the next blow: a Wasp's 1.5-second
         // backswing reads 27 ticks, its interval, in the game's own states.
         let next_attack_step = skill.next_attack_step;

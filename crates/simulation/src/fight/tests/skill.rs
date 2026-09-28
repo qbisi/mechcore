@@ -741,7 +741,7 @@ fn laser_own_kill_retains_then_clears_the_dead_target() {
     assert_eq!(source.motion.state, MotionState::Idle);
     assert_eq!(source.skill.lock_target, Some(unit_target(2)));
     assert!(source.skill.retarget_after_own_direct_kill);
-    assert_eq!(source.skill.laser_attack_count, 1);
+    assert_eq!(source.skill.attack_count, 0);
     assert!(matches!(events[0].payload, EventPayload::UnitDied { .. }));
     assert!(matches!(
         events[1].payload,
@@ -753,7 +753,7 @@ fn laser_own_kill_retains_then_clears_the_dead_target() {
     assert_eq!(source.motion.state, MotionState::Idle);
     assert_eq!(source.skill.lock_target, None);
     assert!(!source.skill.retarget_after_own_direct_kill);
-    assert_eq!(source.skill.laser_attack_count, 0);
+    assert_eq!(source.skill.attack_count, ATTACK_COUNT_RESET);
 }
 
 #[test]

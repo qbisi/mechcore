@@ -64,7 +64,7 @@ pub(crate) use run::*;
 pub use run::{DivergentTick, SimulationComparison, SimulationResult, TimelineSummary};
 use rvo::{AgentInput as RvoAgentInput, AgentKey as RvoAgentKey, AgentSizeType, FixedVec2};
 use search::*;
-use skill::{FightSkillPhase, Launch, Skill, SkillUpdate};
+use skill::{ATTACK_COUNT_RESET, FightSkillPhase, Launch, Skill, SkillUpdate};
 use tower::{RunningBuff, TowerLoss};
 
 const SPACE_UNITS_PER_METER: i64 = 1_000;

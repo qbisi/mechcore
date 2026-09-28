@@ -6,6 +6,10 @@ pub(in crate::fight) use perform::Launch;
 
 use super::*;
 
+/// What `SkillAttackController` holds as its attack count while no attack
+/// has begun: its constructor's and `Exit`'s value.
+pub(in crate::fight) const ATTACK_COUNT_RESET: i32 = -1;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::fight) struct PendingRelease {
     pub(in crate::fight) step: u64,
@@ -151,7 +155,13 @@ pub(in crate::fight) struct Skill {
     /// owner.
     pub(in crate::fight) lock_written: bool,
     pub(in crate::fight) projectile_pending_releases: Vec<PendingProjectileRelease>,
-    pub(in crate::fight) laser_attack_count: usize,
+    /// `SkillAttackController.attackCount`: the blows started since the
+    /// skill entered its attack state, less one. The constructor and
+    /// leaving the attack state set it to [`ATTACK_COUNT_RESET`], and each
+    /// blow the attack point lets through adds one before it lands, so a
+    /// blow reads its own index: a laser's damage multiplier is the one at
+    /// that index.
+    pub(in crate::fight) attack_count: i32,
     pub(in crate::fight) retarget_after_own_direct_kill: bool,
     /// The rounds left in a skill that fires from a magazine
     /// (`SkillData.isLoadingType`), and none for one that does not.
@@ -179,9 +189,9 @@ pub(in crate::fight) struct SlotSkill {
     /// an idle slot holding a live lock searches again when it runs out,
     /// leaving idle sets it to ten, and each attacking update counts it down.
     pub(in crate::fight) search_target_time: i32,
-    /// The blows the slot has struck since it entered its attack state:
-    /// `SkillAttackController.attackCount`, which leaving the state resets.
-    pub(in crate::fight) blows: u32,
+    /// The slot's `SkillAttackController.attackCount`, as
+    /// [`Skill::attack_count`] is the core's.
+    pub(in crate::fight) attack_count: i32,
     /// What the weapon still fires at after the core took the slot's lock:
     /// `ChangeLockTarget(null)` drops the lock and leaves the attack target
     /// until the slot searches again.
@@ -196,7 +206,7 @@ impl Default for SlotSkill {
             next_attack_step: 0,
             state: SkillState::Idle { ready_step: None },
             search_target_time: 0,
-            blows: 0,
+            attack_count: ATTACK_COUNT_RESET,
             attack_target_left: None,
         }
     }
@@ -248,7 +258,7 @@ impl Skill {
             mech_lock: None,
             lock_written: false,
             projectile_pending_releases: Vec::new(),
-            laser_attack_count: 0,
+            attack_count: ATTACK_COUNT_RESET,
             retarget_after_own_direct_kill: false,
             rounds: magazine.map(|magazine| magazine.capacity),
         }
@@ -690,7 +700,7 @@ impl Simulation {
             skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
             skill.set_phase(FightSkillPhase::Idle);
             skill.retarget_after_own_direct_kill = false;
-            skill.laser_attack_count = 0;
+            skill.attack_count = ATTACK_COUNT_RESET;
             return Ok(());
         }
         let selected = selected_candidate;
@@ -726,7 +736,11 @@ impl Simulation {
         let skill = self.skill_mut(owner);
         skill.lock_is_terminal_handoff = false;
         if skill.attack_target() != selected {
-            skill.laser_attack_count = 0;
+            // The build's `ChangeAttackTarget` leaves the attack count alone,
+            // so an attack that changes its target in place counts on. This
+            // reset is the simulator's, kept until a recording of a laser
+            // that changes its target mid-attack decides it.
+            skill.attack_count = ATTACK_COUNT_RESET;
         }
         skill.write_lock(selected);
         skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
@@ -1142,7 +1156,7 @@ impl Simulation {
             let skill = self.skill_mut(owner);
             skill.drop_lock();
             skill.set_phase(FightSkillPhase::Idle);
-            skill.laser_attack_count = 0;
+            skill.attack_count = ATTACK_COUNT_RESET;
             skill.retarget_after_own_direct_kill = false;
             return Flow::Done;
         }
