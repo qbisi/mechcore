@@ -99,6 +99,15 @@ After a unit first enters Attack, the next update is the earliest release.
 There is no `aim_tolerance` turn deadzone. A value like 20 is not a threshold
 the build applies.
 
+**A direction is mirrored to the left half only when it is clearly left.** A
+direction becomes a facing through `FightUtility.ConvertToAngle`: the angle
+from forward, and `360` less that angle when the angle is above zero and the
+direction's `x` is below zero. Both tests are `FPoint`'s, which count a
+difference of up to 43 raw Q32.32 units as equal, so an `x` of −43 raw or more
+is not below zero. `AcosFastest(1)` is not zero, so a target straight ahead is
+faced at +0.245°, and so is one a few raw units to the left, where a
+formation's jittered slots can put it, rather than at −0.245°.
+
 ## The body follows the lock, the weapons follow the attack target
 
 A unit has two targets and the build keeps them apart: the mech's lock
@@ -386,9 +395,16 @@ not the game's native attack-type enum.
 - The blow waiting a tick after the idle state is left, and an idle skill
   giving up a lock it cannot fire at, in the standard fights of the Fortress,
   Sledgehammer, Typhoon and Melting Point: `tests/units/regressions.mcscript`.
+- A presearched target a few raw units left of straight ahead faced at
+  +0.245°, in the standard fights of the Steel Ball, Stormcaller, Hound, Fire
+  Badger and Phantom Ray: `tests/units/regressions.mcscript`.
 
 ### Read
 
+- The presearch faces a unit by the direction to its target, and a facing is
+  mirrored only past `FPoint`'s tolerance: `PresearchTargetController.SearchTarget`,
+  `FightUtility.ConvertToAngle`, `FightMech.UpdateRotation`,
+  `FPoint.op_LessThan`, `FPoint.op_GreaterThan`.
 - The team's interval stream is seeded by round and team:
   `FightTeam.RefreshRandomData`.
 - The interval is converted by the logical step, truncated and floored at a
@@ -427,8 +443,8 @@ not the game's native attack-type enum.
   needs the game, `tests/modifier/disable.mcscript`, and no gameless test pins
   it; how long a disable lasts is not recorded.
 - **The skill state machine** beyond first entry into Attack.
-- **Base facing's arithmetic**: `Normalize -> Angle -> RawAcos` over all
-  directions, and boundary rounding.
+- **Base facing's angle**: `FVector3.Angle` over all directions, and its
+  rounding away from straight ahead. Only the mirroring test is read.
 - **Which interface slot `MotionMoveState.Update` asks before it enters
   attack.** The dispatch goes through slots the dump does not name, so "the
   attack target in reach" is what the recordings and the shape of `IAttacker`,

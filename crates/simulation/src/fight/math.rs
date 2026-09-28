@@ -374,6 +374,10 @@ pub(in crate::fight) fn direction_mdeg_q32_raw(dx: i64, dz: i64) -> i64 {
     degrees_q32_to_mdeg(direction_degrees_q32_raw(dx, dz))
 }
 
+/// `FightUtility.ConvertToAngle`: the angle from forward, mirrored to the left
+/// half only when it and `-dx` both exceed zero by more than the 43 raw units
+/// `FPoint`'s comparisons count as equal. A target 6 raw units left of dead
+/// ahead is therefore faced at +0.245°, as `AcosFastest(1)` reads it.
 pub(in crate::fight) fn direction_degrees_q32_raw(dx: i64, dz: i64) -> i64 {
     if dx == 0 && dz == 0 {
         return 0;
@@ -385,7 +389,7 @@ pub(in crate::fight) fn direction_degrees_q32_raw(dx: i64, dz: i64) -> i64 {
     let cosine = q32_div(dz, magnitude).clamp(-Q32_ONE, Q32_ONE);
     let radians = fpcs_acos_fastest(cosine);
     let degrees = q32_mul(radians, 0x0039_4BB8_34C8);
-    let degrees = if dx < 0 {
+    let degrees = if rvo::fpoint_less_than(0, degrees) && rvo::fpoint_less_than(dx, 0) {
         (360_i64 << 32).saturating_sub(degrees)
     } else {
         degrees
