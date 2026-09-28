@@ -406,11 +406,6 @@ impl Simulation {
         let fight_was_finished = self.naturally_finished();
         let winner_was_decided = self.winner().is_some();
         self.stop_step = winner_was_decided.then_some(step);
-        let actor_motion_at_start = self
-            .actors
-            .iter()
-            .map(|(&actor_id, actor)| (actor_id, actor.motion.state))
-            .collect::<BTreeMap<_, _>>();
         self.refresh_target_query_snapshot();
         let mut events = Vec::new();
         if publish_late_building_events && let Some(winning_team) = self.winner() {
@@ -475,218 +470,9 @@ impl Simulation {
             }
         }
         let naturally_finished_before_projectiles = self.naturally_finished();
-        let actors_alive_before_projectiles = self
-            .actors
-            .iter()
-            .filter_map(|(&actor_id, actor)| actor.alive().then_some(actor_id))
-            .collect::<Vec<_>>();
         self.step_projectiles(&mut events)?;
-        if let Some(winning_team) = self.winner() {
-            let winning_actors_killed_by_projectiles = actors_alive_before_projectiles
-                .into_iter()
-                .filter(|actor_id| {
-                    let actor = &self.actors[actor_id];
-                    !actor.alive() && actor.placement.team == winning_team
-                })
-                .collect::<Vec<_>>();
-            for actor_id in winning_actors_killed_by_projectiles {
-                let actor = &self.actors[&actor_id];
-                if actor_motion_at_start.get(&actor_id) != Some(&MotionState::Moving)
-                    || !actor.rules.has_body
-                    || !matches!(actor.rules.attack.path, AttackPath::Projectile { .. })
-                {
-                    continue;
-                }
-                let Some(enemy_team) = self
-                    .buildings
-                    .iter()
-                    .find(|building| {
-                        building.team_id != actor.placement.team && building_alive(building)
-                    })
-                    .map(|building| building.team_id)
-                else {
-                    continue;
-                };
-                let Some(building_id) = self.select_normal_building_target(actor_id, enemy_team)
-                else {
-                    continue;
-                };
-                let building = self
-                    .buildings
-                    .iter()
-                    .find(|building| building.building_id == building_id)
-                    .expect("selected building exists");
-                let target_x_q32 = building.position.x;
-                let target_z_q32 = building.position.z;
-                let actor = self
-                    .actors
-                    .get_mut(&actor_id)
-                    .expect("actor identity is stable");
-                actor.rotate_weapons_towards(direction_degrees_q32_raw(
-                    target_x_q32.saturating_sub(actor.x_q32),
-                    target_z_q32.saturating_sub(actor.z_q32),
-                ));
-                actor.aim_rotation = degrees_q32_to_mdeg(
-                    actor
-                        .skill
-                        .weapon_rotations_q32
-                        .first()
-                        .copied()
-                        .unwrap_or(actor.body_rotation_q32),
-                );
-            }
-        }
         let projectile_finished_fight =
             !naturally_finished_before_projectiles && self.naturally_finished();
-        let natural_finish_handoff = !fight_was_finished && self.naturally_finished();
-        let early_projectile_handoff = !winner_was_decided && !self.naturally_finished();
-        if (natural_finish_handoff || early_projectile_handoff)
-            && let Some(winning_team) = self.winner()
-            && let Some(losing_team) = self
-                .buildings
-                .iter()
-                .find(|building| building.team_id != winning_team && building_alive(building))
-                .map(|building| building.team_id)
-        {
-            let mut queued_direct_own_kill_handoff = false;
-            let actor_ids = self
-                .actors
-                .iter()
-                .filter_map(|(&actor_id, actor)| actor.alive().then_some(actor_id))
-                .collect::<Vec<_>>();
-            for actor_id in actor_ids {
-                let Some(&motion_at_start) = actor_motion_at_start.get(&actor_id) else {
-                    continue;
-                };
-                let actor = &self.actors[&actor_id];
-                let team_has_bodyful_projectile = self.actors.values().any(|candidate| {
-                    candidate.placement.team == actor.placement.team
-                        && candidate.alive()
-                        && candidate.rules.has_body
-                        && matches!(candidate.rules.attack.path, AttackPath::Projectile { .. })
-                });
-                let moving_direct = motion_at_start == MotionState::Moving
-                    && matches!(actor.rules.attack.path, AttackPath::Direct)
-                    && team_has_bodyful_projectile
-                    && (actor.motion.current_velocity_x_q32 != 0
-                        || actor.motion.current_velocity_z_q32 != 0)
-                    && actor.skill.pending().is_none()
-                    && actor.skill.backswing_finish_step().is_none()
-                    && actor.skill.phase() == FightSkillPhase::Idle
-                    && !actor.motion.attack_hold_fire
-                    && actor.skill.searched_this_tick
-                    && actor.skill.attack_target().is_none();
-                let moving_bodyful_projectile = motion_at_start == MotionState::Moving
-                    && actor.rules.has_body
-                    && matches!(actor.rules.attack.path, AttackPath::Projectile { .. })
-                    && actor.skill.searched_this_tick
-                    && actor.skill.attack_target().is_none();
-                let ineligible = if natural_finish_handoff {
-                    !moving_direct
-                        && (actor.skill.attack_target().is_some()
-                            || !actor.skill.searched_this_tick)
-                } else {
-                    (!moving_direct && !moving_bodyful_projectile)
-                        || actor
-                            .skill
-                            .attack_target()
-                            .is_some_and(|target| self.fight_actor_is_alive(target))
-                };
-                if ineligible {
-                    continue;
-                }
-                let Some(building_id) = self.select_normal_building_target(actor_id, losing_team)
-                else {
-                    continue;
-                };
-                let building = self
-                    .buildings
-                    .iter()
-                    .find(|building| building.building_id == building_id)
-                    .expect("selected building exists");
-                let target_x_q32 = building.position.x;
-                let target_z_q32 = building.position.z;
-                let target_radius = building_radius(building);
-                let actor = self
-                    .actors
-                    .get_mut(&actor_id)
-                    .expect("actor identity is stable");
-                if natural_finish_handoff {
-                    if motion_at_start == MotionState::Moving
-                        && (actor.motion.current_velocity_x_q32 != 0
-                            || actor.motion.current_velocity_z_q32 != 0)
-                    {
-                        actor.rotate_body_towards(direction_degrees_q32_raw(
-                            actor.motion.current_velocity_x_q32,
-                            actor.motion.current_velocity_z_q32,
-                        ));
-                        actor.aim_rotation = actor.body_rotation;
-                    }
-                } else {
-                    if actor.motion.current_velocity_x_q32 != 0
-                        || actor.motion.current_velocity_z_q32 != 0
-                    {
-                        actor.rotate_body_towards(direction_degrees_q32_raw(
-                            actor.motion.current_velocity_x_q32,
-                            actor.motion.current_velocity_z_q32,
-                        ));
-                    }
-                    if moving_direct {
-                        actor.aim_rotation = actor.body_rotation;
-                    } else {
-                        actor.rotate_weapons_towards(direction_degrees_q32_raw(
-                            target_x_q32.saturating_sub(actor.x_q32),
-                            target_z_q32.saturating_sub(actor.z_q32),
-                        ));
-                        actor.aim_rotation = degrees_q32_to_mdeg(
-                            actor
-                                .skill
-                                .weapon_rotations_q32
-                                .first()
-                                .copied()
-                                .unwrap_or(actor.body_rotation_q32),
-                        );
-                    }
-                }
-                actor.skill.lock_target = Some(FightActorRef::Building(building_id));
-                // The core's `ChangeLockTarget` reaches the owner.
-                if actor.skill.is_grouped() {
-                    actor.skill.mech_lock = actor.skill.lock_target;
-                }
-                actor.skill.lock_is_terminal_handoff = true;
-                actor.motion.state = MotionState::Moving;
-                if natural_finish_handoff {
-                    actor.motion.next_target_x_q32 = target_x_q32;
-                    actor.motion.next_target_z_q32 = target_z_q32;
-                    actor.motion.next_speed_q32 = actor.stats.move_speed_q32();
-                } else {
-                    let (move_target_x_q32, move_target_z_q32) = native_auto_move_target_point(
-                        actor.x_q32,
-                        actor.z_q32,
-                        actor.rules.collision_radius(),
-                        target_x_q32,
-                        target_z_q32,
-                        target_radius,
-                        actor.stats.attack_range(),
-                    );
-                    actor.motion.next_target_x_q32 = move_target_x_q32;
-                    actor.motion.next_target_z_q32 = move_target_z_q32;
-                    actor.motion.next_speed_q32 = turn_limited_move_speed_q32(
-                        actor.stats.move_speed_q32(),
-                        actor.rules.free_move,
-                        actor.rules.rotate_speed_mdeg_per_second(),
-                        actor.body_rotation_q32,
-                        actor.motion.current_velocity_x_q32,
-                        actor.motion.current_velocity_z_q32,
-                    );
-                }
-                actor.motion.next_max_speed_q32 = actor.motion.next_speed_q32;
-                queued_direct_own_kill_handoff |= natural_finish_handoff && moving_direct;
-            }
-            if queued_direct_own_kill_handoff {
-                self.terminal_drain_pending = true;
-            }
-        }
         // `FightingState.Update` runs `FightCoreSystem.TryDstroyTower` after
         // every module has updated: a side that has lost its last unit loses
         // its towers on that tick, whatever dealt the last blow, and their
@@ -717,13 +503,12 @@ impl Simulation {
         if stop_fight {
             for actor in self.actors.values_mut() {
                 // Every motion enters `MotionIdleState`, whose `Enter` asks
-                // `StopMove`: a unit handed a tower on the last kill's tick
+                // `StopMove`: a unit that took a tower on the last kill's tick
                 // publishes no speed at the next solve.
                 let entered_idle = actor.motion.state != MotionState::Idle;
                 actor.stop_in_place(entered_idle);
                 actor.skill.drop_lock();
                 actor.skill.clear_slots();
-                actor.skill.lock_is_terminal_handoff = false;
                 // A won fight runs on without `FightSkill.ExitFight` until it
                 // ends: a skill already cooling goes on cooling at what it
                 // named, and only the end of the fight ends it. A cooling

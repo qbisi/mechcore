@@ -504,11 +504,18 @@ and it does not ask what dealt the last blow. A laser kill takes the loser's
 towers down the same way: gone on the kill's tick, their `building_destroyed`
 on the next, which is the fight's last.
 
-On the tick a side loses its last unit, the winner's units may be handed one
-of the loser's towers for that tick, and turn toward it. What the loser's own
-last units were attacking does not decide whether that happens. Which of the
-winner's units are handed a tower is the simulator's `natural_finish_handoff`,
-not read from the build.
+**On the tick a side loses its last unit, a winner's unit that updates after
+that death takes one of the loser's towers.** It searches as it would on any
+tick, and a tower is an ordinary candidate: nothing in target selection asks
+whether an actor is a tower. With no enemy unit left, a tower is what the
+search finds, and the unit turns toward it. A unit that updated before the
+last death has already searched this tick and holds what it held.
+
+**From the next tick the fight is off.** Once at most one side has a live
+unit, every unit updates with the fight off, and no skill runs its state
+machine. A skill that holds a lock leaves the fight: its attack stops, a
+burst still firing included, it goes idle, and its lock is cleared. A skill
+that holds none is not updated at all.
 
 **When the fight stops, every unit's motion enters idle, and a unit that was
 moving stops.** `MotionIdleState.Enter` calls `RVOControllerFixed.StopMove`,
@@ -517,15 +524,13 @@ publishes none: an Overlord handed a tower on the tick the last enemy died,
 and idle from the next, stays where it stood rather than walking on at the
 next publish.
 
-**A won fight runs on without ending its skills' coolings.** Between the
-tick a side loses its last unit and the fight's end, a skill that was
-already cooling goes on cooling and goes on naming what it named, the dead
-last enemy included: three Phantom Rays cooling on a Crawler that died with
-the fight still name it for the five ticks after. A skill that was attacking
-goes idle and names nothing. `FightSkill.ExitFight`, which ends a cooling
-through `SkillStateController.ChangeToIdleState`, is therefore not what the
-won fight's first tick calls, and a cooling the simulator would begin on
-that very tick is not one the game shows.
+**A won fight runs on without ending its skills' coolings.** A skill that
+was already cooling has no lock left, since finishing its attack cleared it,
+so the fight's end does not reach it. It goes on cooling and goes on naming
+what it named, the dead last enemy included: three Phantom Rays cooling on a
+Crawler that died with the fight still name it for the five ticks after. A
+skill that was attacking still holds its lock, leaves the fight, and names
+nothing.
 
 ## Reference unit fields
 
@@ -585,6 +590,10 @@ not the game's native attack-type enum.
   `tests/units/regressions.mcscript`.
 - A cooling that goes on through a won fight, and an attack that goes idle,
   in the Phantom Ray's standard fights: `tests/units/regressions.mcscript`.
+- A winner's unit that updates after the last death taking a tower, and
+  letting it go the tick after, in the Stormcaller mirrors:
+  `tests/regression/simulate.mcscript`; a burst the fight's end stops, in the
+  Phantom Ray's M2 fight: `tests/units/regressions.mcscript`.
 - The Raiden's fusillade, its siblings' towers, a core taking a sibling's unit,
   siblings cooling and searching on their timers, and its weapons' poses, in
   the Raiden's standard fights: `tests/units/regressions.mcscript`, and nine
@@ -670,6 +679,12 @@ not the game's native attack-type enum.
 - The alive count is cached per team, and towers fall once per tick after every
   module: `FightCoreSystem.TeamUpdate`, `FightCoreSystem.TryDstroyTower`,
   `FightingState.Update`, `DeadEffectSystem.Update`.
+- A tower is an ordinary search candidate: `FightTeam.AddTower`,
+  `FightTeam.AddActor`, `MechSearchTargetController.SearchLockTarget`.
+- Once at most one side has a live unit the fight is off, and only a skill
+  holding a lock is reached, to leave it: `FightCoreSystem.IsStepFinish`,
+  `FightCoreSystem.TeamUpdate`, `FightMech.Update`, `SkillManager.Update`,
+  `FightSkill.ExitFight`, `FightSkill.StopAttack`.
 
 ### Not established
 
@@ -718,11 +733,7 @@ not the game's native attack-type enum.
 - **A tower's own update.** `FightCoreSystem.TeamUpdate` now updates each live
   tower of the team; what that update does is not read, and the recorded fights
   match without modelling it.
-- **When `FightSkill.ExitFight` runs** in a won fight, and why a cooling the
-  simulator would begin on the won fight's first tick is not one the game
-  shows; the recordings fix what is seen, not the call that makes it.
 - **The unit whose id is 54** is free-moving by the same literal; no recorded
   fight fields it.
 - **The endgame** with several members or groups, summons, respawns,
-  constructions, shields, and mixed damage inside one tick; and which of the
-  winner's units the build hands a tower.
+  constructions, shields, and mixed damage inside one tick.

@@ -37,14 +37,8 @@
 
 目标范围内的单位都已达标。栈上是让下一批机制变便宜的内核整理，自顶向下做。
 
-- **分出胜负之后的那一 tick**（栈顶）。build 没有"交接"：分出胜负那一 tick，最后一个敌人
-  死后才更新的单位照常搜索，只搜得到塔；塔在这一 tick 末尾倒下，下一 tick 起战斗不再进行，
-  持锁的技能退出战斗。`lock_is_terminal_handoff` 和挑出交接单位的那串条件（开始时的运动、
-  速度、机身、路径）都在搜索路径上没有对应，照 build 去掉。
-  `docs/spec/simulation/architecture.md` 的 Unresolved 里模块顺序和 `IsStepFinish` 两条随它
-  关掉。它挡住下面节点做完的判据。
-- **技能的形状对上 build。** 一个单位的独特攻击逻辑现在是 `Skill` 上只对某条路径或某种
-  模式有意义的字段，和共享代码里按 `AttackPath`、`fusillade` 的分支。build 把它们分在
+- **技能的形状对上 build**（栈顶）。一个单位的独特攻击逻辑现在是 `Skill` 上只对某条路径
+  或某种模式有意义的字段，和共享代码里按 `AttackPath`、`fusillade` 的分支。build 把它们分在
   `FightSkill` 的子类、`AttackPerformer` 的子类和 `SkillGroup` 的攻击行为里，模拟器照这个
   分法收拢：
   1. 组就是一列 `Skill`，core 是第一个，`SlotSkill` 消失；
@@ -56,9 +50,8 @@
 
   做完的判据：`Skill` 上只剩 `FightSkill` 基类自己有的字段，`struct_excessive_bools`
   的豁免删掉；`skill/` 里不再直接判断路径或齐射。整理的每一步都不改行为：所有钉住的哈希
-  不变，哪一步动了哈希就不是整理。上面那个对齐机制的节点同样要让钉子全过，动了哪一颗，
-  就是拟合里还藏着别的机制，从那场的第一处分叉查。`motion.rs` 里按机身和近战的分支是
-  `MotionController` 的事，不在这一个节点里。
+  不变，哪一步动了哈希就不是整理。`motion.rs` 里按机身和近战的分支是 `MotionController`
+  的事，不在这一个节点里。
 
 
 ## 停车场

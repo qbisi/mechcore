@@ -216,6 +216,31 @@ officer, technology, equipment and construction the fields it lets through
 cannot take, each as a clause of its own after a `; `. A refusal that reaches
 several formations, such as an officer of the side, is named once.
 
+### One advance, and how a fight ends
+
+These were read from the dump's instructions, not the index, which has no
+method bodies. `FightingState.Update` drives one advance: every module's
+`Update`, then `FightCoreSystem.TryDstroyTower`, then every module's
+`IsStepFinish`. The fight ends once all of them report finished. Otherwise
+`FightCoreSystem.PreCalculate` prepares the next advance's searches and
+`RVOSimulatorFixed.DoFixedUpdate` solves the motion.
+
+`FightCoreSystem.Update` calls `GroupUpdate`, which calls `TeamUpdate` for
+each team. `TeamUpdate` counts the team's live units as it reaches each one,
+before that unit updates, and runs `FightMech.Update`. That update runs the
+mech's search, then `SkillManager.Update`, then `MotionController.Update`.
+So within one unit the skill decides before the motion, and a unit sees what
+the units before it did this tick.
+
+`FightCoreSystem.IsStepFinish` is where a fight is decided. It reports
+finished once at most one side has a live unit, and from the next advance
+`TeamUpdate` runs every unit with the fight off. `SkillManager.Update` then
+runs no skill's state machine: a skill holding a lock leaves the fight
+(`FightSkill.ExitFight`), and the others are not updated. The simulator
+mirrors that tick as `exit_fight_when_over`. Nothing hands a unit a tower:
+the search that finds one is the ordinary one
+([combat](../../rules/combat.md)).
+
 ## Objects
 
 | Native | What it is |
@@ -517,12 +542,13 @@ contract says. Three things are deliberately not claimed:
   `tests/tower/` hold the buff channel's half. The interval's property has its
   own arithmetic, which is not read, so `data.rs` still refuses an interval
   corrected in two channels at once.
-- **The order the modules are driven in, and the order of work inside one
-  advance.** `FightCoreSystem.Update` calls `TeamUpdate` then `GroupUpdate`, and
-  `PreCalculate` exists beside `Update`, but a body's call order is not in the
-  index. It closes by measurement against a recording.
+- **The order the modules update in among themselves.** `FightController
+  .AddModules` constructs `FightCoreSystem` before `ProjectileSystem`, which
+  is what a projectile's hit landing after every unit has updated needs. That
+  the construction order is the update order is not read.
 - **Which enum index is which field.** The `MechDataChange*` and
   `SkillDataChange*` names are known and so are the recorded field names; the
   numeric indices behind them are not read yet.
-- **What `IsStepFinish` decides.** Every module has one, and the terminal
-  condition a fight ends by is currently the simulator's own.
+- **What the other modules' `IsStepFinish` decide.** `FightCoreSystem`'s is
+  read. The tick a fight runs on after its towers fall belongs to another
+  module's, and the simulator keeps it as its own drain.

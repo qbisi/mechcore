@@ -497,39 +497,6 @@ impl Simulation {
             .collect()
     }
 
-    pub(in crate::fight) fn select_normal_building_target(
-        &self,
-        actor_id: u64,
-        team_id: u32,
-    ) -> Option<u64> {
-        let source = self.actors.get(&actor_id)?;
-        if !source.rules.attack.targets.ground {
-            return None;
-        }
-        let mut best: Option<(u64, i64)> = None;
-        for building in self.buildings.iter().filter(|building| {
-            building.team_id == team_id && building_alive(building) && building.targetable
-        }) {
-            let Some(score) = normal_visible_full_rotation_target_score_q32(
-                source.target_query_x_q32,
-                source.target_query_z_q32,
-                source.rules.collision_radius(),
-                source.target_query_source_rotation_q32,
-                building.position.x,
-                building.position.z,
-                building_radius(building),
-                source.rules.attack.min_range(),
-                source.stats.attack_range(),
-            ) else {
-                continue;
-            };
-            if best.is_none_or(|(_, best_score)| score < best_score) {
-                best = Some((building.building_id, score));
-            }
-        }
-        best.map(|(building_id, _)| building_id)
-    }
-
     /// The selector, restricted to units. A test asks for one; the fight
     /// itself takes whatever stands nearest, buildings included.
     #[cfg(test)]
