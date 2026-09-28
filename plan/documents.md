@@ -26,6 +26,21 @@
 1. **fight 从内存读出。** `verify` 与 `convert --to fight` 每一仗都先把模拟器的时间线写成临时
    MCFR 再读回来给读取器，读取器改为直接读模拟器内存里的时间线，录像的读取仍走 MCFR。只省
    这一写一读，结果不变：全部夹具照样有效。
+2. **用游戏打一份文档。** `convert <fight|layout> --to mcfr --backend game [--instrument ...]` 用
+   游戏无头打完并写出录像，`game record` 的这一用法并进来；`--backend` 默认模拟器。管道逐份
+   重录与一个 run 内连续重录的耗时差多少，量出来写进 PR。
+3. **回归与重录的脚本退休。** CI 用管道对全部 fight 文档跑 `verify`，各 topic 的
+   `regressions.mcscript` 删掉；重录改为 `scripts/` 下对夹具目录跑 `convert --backend game`
+   的脚本，`units/record`、`tower/*`、各 `slots`、`skill-state`、`regression/refresh` 与两份
+   重复录制比对的脚本删掉；`tests/regression/fights/` 只留 smoke 那 16 场。
+4. **校验脚本退休。** 只断言 hash 以外数值的脚本（construction、`equipment/stats`、
+   `level/stats`、modifier 的各探针、`interval/stagger`）连同 `adapter/smoke`、
+   `layout-replay/equivalence` 与 `simulate.mcscript` 最后那一场模拟器自钉的仗一起删掉：
+   它们的仗已是 fight 夹具，丢掉的只是 hash 之外的断言。
+5. **观战录制改成 Python。** `replay/record-standard-1v1.mcscript` 改写为 `scripts/` 下的脚本，
+   观战录制的命令行入口保留。
+
+mcscript 的执行器、`run` 与它的规格保留，只是不再有被跟踪的脚本。
 
 ## 停车场
 
