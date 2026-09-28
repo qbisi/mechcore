@@ -1,3 +1,9 @@
+# Wraiths among a crowd, read with the `skill_attackable_checker` and
+# `group_slots` channels (`tests/wraith/README.md`). At tick 131 u30's fourth
+# slot switches to u21, leaving out u25, which a sibling holds. At tick 205
+# u29's fourth slot takes u55 at an edge distance of 60.9585 m, past the
+# core's 60: a main child skill reaches its parent's range plus 10 m.
+
 kind: fight
 map_id: 1021
 seed: 1787857041

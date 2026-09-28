@@ -2,6 +2,9 @@
 # A standard layout ends before any tower falls: a tower's loss is a
 # mechanism of its own. The side that cannot hit the other walks to the
 # towers, so the side that can fields three formations.
+#
+# Raidens do not share out targets across units: at tick 164 one Raiden
+# locks the three Crawlers another has held since tick 114.
 
 kind: fight
 map_id: 1021
