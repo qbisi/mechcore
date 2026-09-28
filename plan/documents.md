@@ -23,10 +23,11 @@
 
 ## 栈
 
-1. **观战录制改成 Python。** `replay/record-standard-1v1.mcscript` 改写为 `scripts/` 下的脚本，
-   观战录制的命令行入口保留。
+1. **夹具按单位分目录。** `tests/units/fights/` 按单位拆到 `tests/<unit>/fights/`，与 `raiden`、
+   `wraith` 并列，文件名去掉单位前缀；Hacker 未钉的布阵去 `tests/hacker/`；`tests/units/`
+   删掉，支持判据留在 `plan/units.md`，各单位的发现进各自的 readme。纯搬迁，单独一个 PR。
 
-mcscript 的执行器、`run` 与它的规格保留，只是不再有被跟踪的脚本。
+mcscript 的执行器、`run` 与它的规格保留，不再有被跟踪的脚本。
 
 ## 停车场
 

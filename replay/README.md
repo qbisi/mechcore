@@ -8,7 +8,7 @@ them, so it is read at `master`: nothing here pins a commit of it.
 
 | File | What it is |
 | --- | --- |
-| `record-standard-1v1.mcscript` | how new replays are made: it watches live standard 1v1 matches unattended and keeps each one; it needs the game, so CI only parses it |
+| [`../scripts/collect-replays.py`](../scripts/collect-replays.py) | how new replays are made: it watches live standard 1v1 matches unattended and keeps each one; it needs the game |
 
 `scripts/replay.py sync` fetches the corpus into the untracked `work/replay/`,
 and `scripts/replay.py publish` adds the replays this machine's game recorded
