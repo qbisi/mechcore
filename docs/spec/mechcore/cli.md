@@ -179,7 +179,7 @@ was, and a refused operation writes no file.
 
 ## `verify`
 
-`verify <file>...` checks each file against the contract its kind defines. It
+`verify [--backend game [--update]] <file>...` checks each file against the contract its kind defines. It
 takes its paths as operands, or one per line on standard input when it has
 none, and answers one report per file, in order. A file that does not verify is
 an answer, not an error: the reports are written and the command exits 1. A
@@ -207,6 +207,24 @@ batch still runs.
   hash that differs names no tick; `verify` over the recording it was read
   from does. A fight the simulator does not fight, or whose recording its
   reader does not answer, does not verify, and the refusal is the reason.
+
+`--backend game` has the game fight instead of the simulator, in a game
+somebody started, attached once for the whole batch, as
+[`convert --backend game`](#convert) joins one. A fight is recorded from its
+projection with its seed, and a recording from the layout it embeds with its
+seed and the instrument channels it holds; each recording is read back as a
+fight and compared as above, the game's fight as `actual`. A layout or a
+match holds no fight and is checked as without it. No game answering is
+`unavailable`, and stops the batch.
+
+`--update`, only with `--backend game`, writes the game's fight back to each
+file it differs from: a fight document becomes what `convert --to fight`
+reads from the new recording, with its leading comment kept and no
+`game_build` where it stated none, and a recording is replaced by the new one.
+A recording that no longer reads as a fight, one of an older MCFR format, is
+recorded again from its layout all the same. The report says `updated`, still
+lists the `differences` it wrote over, and is valid. The simulator never
+updates a file: a pinned result comes from the game.
 
 ## `convert`
 

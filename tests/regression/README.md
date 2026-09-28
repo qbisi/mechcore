@@ -17,7 +17,7 @@ again and held to their fixtures, and recorded with the `target_refs` channel
 for each skill's state tick by tick:
 
 ```sh
-scripts/record-fights.py --check tests/regression/fights/*.yaml
+mechcore verify --backend game tests/regression/fights/*.yaml
 scripts/record-fights.py --instrument target_refs --out /tmp/mechcore/regression/skill-state tests/regression/fights/*.yaml
 ```
 

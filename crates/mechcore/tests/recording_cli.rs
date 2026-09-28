@@ -703,4 +703,6 @@ fn the_game_backend_fights_into_a_recording_only() {
         .contains("--backend game")
     );
     assert!(refused(&["game", "record", layout, "/tmp/x.mcfr"]).contains("--backend game"));
+    // The simulator never writes a pin, so only the game's fight updates one.
+    assert!(refused(&["verify", "--update", layout]).contains("--backend game"));
 }
