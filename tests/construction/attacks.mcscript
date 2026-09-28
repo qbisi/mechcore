@@ -86,7 +86,7 @@ steps:
       seed: $seed
       output: ${out}/laser.mcfr
     expect:
-      operation.tick_count: 243
+      operation.tick_count: 242
   - show:
       input: ${out}/laser.mcfr
       view: buildings
@@ -98,7 +98,7 @@ steps:
   - show:
       input: ${out}/laser.mcfr
       view: buildings
-      tick: 243
+      tick: 242
     expect:
       sides.blue.constructions.0.standing: 1
       sides.blue.constructions.0.parts.0.id: 7
