@@ -456,7 +456,7 @@ per-call replay and the physics/content checks. Beyond the checker itself:
   is up, whatever its motion does: a Crawler pushed out of reach during its
   backswing and back on the next tick starts its next blow on the tick it
   returns, as the game's skill-state capture of the Rhino's formation fight
-  reads (`tests/units/fights/rhino-m6-formations-1787720817.yaml`). Only
+  reads (`tests/rhino/fights/m6-formations-1787720817.yaml`). Only
   entering the attack state from idle waits a tick.
 
 With those, the stale-target, quick-switch-out-of-range and stale-replacement

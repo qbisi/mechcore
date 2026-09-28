@@ -551,17 +551,17 @@ not the game's native attack-type enum.
 ### Recorded
 
 - Every unit's current interval, its stagger and the three readings that
-  complete it, on every tick of the standard unit fights:
-  `tests/units/fights/`.
+  complete it, on every tick of the standard unit fights, one directory per
+  unit, `tests/marksman/fights/` among them.
 - A grouped skill's slots, their locks and their reach, and a grouped unit's
   core interval: `tests/wraith/fights/`.
 - Each slot's own states, the core leaving its attack while its siblings go
   on, the unit's lock following the latest slot, a sibling giving up a unit
   it shares with the core, and a slot's interval outliving its attack,
-  in the Wraith's M2, M3 and M6 fights: `tests/units/fights/`.
+  in the Wraith's M2, M3 and M6 fights: `tests/wraith/fights/`.
 - A sibling that has struck keeping a unit it shares with siblings still
   preparing, and a free-moving Wraith at full speed off its facing, in the Wraith's M3 with
-  seed 1787720817: `tests/units/fights/`.
+  seed 1787720817: `tests/wraith/fights/`.
 - Where a charging Crawler is sent, and a Marksman's quick switch that cannot
   follow a kill: `tests/regression/fights/`.
 - The body travelling toward the lock, attacking without moving, and the
@@ -570,37 +570,43 @@ not the game's native attack-type enum.
 - Target scoring, ordinary projectiles, damage clamping, the first-attack
   delay, the backswing, dead-target retention and the endgame ordering, in the
   ordinary fights: `tests/regression/fights/`.
-- A unit's personal shield enabled with no shield of its own:
-  `tests/units/fights/`.
+- A unit's personal shield enabled with no shield of its own, in every unit's
+  standard fights, `tests/rhino/fights/` among them.
 - A following projectile's offset, the order a single weapon lands its
   offsets, a simulated-motion shot at a dead unit, a weapon's index, and a
   splashing beam, in the standard fights of the Phantom Ray, Fire Badger,
-  Typhoon, Hound, Sabertooth and Melting Point:
-  `tests/units/fights/`.
+  Typhoon, Hound, Sabertooth and Melting Point: `tests/phantom_ray/fights/`,
+  `tests/fire_badger/fights/`, `tests/typhoon/fights/`, `tests/hound/fights/`,
+  `tests/sabertooth/fights/`, `tests/melting_point/fights/`.
 - A burst's aim, a climbing projectile, two weapons' offsets in three
   dimensions, a burst that goes on after its target leaves reach, a turret on a
   retarget, and a Vortex's single grouped weapon and its kill, in the standard
   fights of the Farseer, Overlord, Melting Point and Vortex:
-  `tests/units/fights/`.
+  `tests/farseer/fights/`, `tests/overlord/fights/`,
+  `tests/melting_point/fights/`, `tests/vortex/fights/`.
 - The blow waiting a tick after the idle state is left, and an idle skill
   giving up a lock it cannot fire at, in the standard fights of the Fortress,
-  Sledgehammer, Typhoon and Melting Point: `tests/units/fights/`.
+  Sledgehammer, Typhoon and Melting Point: `tests/fortress/fights/`,
+  `tests/sledgehammer/fights/`, `tests/typhoon/fights/`,
+  `tests/melting_point/fights/`.
 - A projectile's climb measured as it is created, and a moving unit stopped
   when the fight stops, in the Overlord's standard fights:
-  `tests/units/fights/`.
+  `tests/overlord/fights/`.
 - A cooling that goes on through a won fight, and an attack that goes idle,
-  in the Phantom Ray's standard fights: `tests/units/fights/`.
+  in the Phantom Ray's standard fights: `tests/phantom_ray/fights/`.
 - A winner's unit that updates after the last death taking a tower, and
   letting it go the tick after, in the Stormcaller mirrors:
   `tests/regression/fights/`; a burst the fight's end stops, in the
-  Phantom Ray's M2 fight: `tests/units/fights/`.
+  Phantom Ray's M2 fight: `tests/phantom_ray/fights/`.
 - The Raiden's fusillade, its siblings' towers, a core taking a sibling's unit,
   siblings cooling and searching on their timers, and its weapons' poses, in
-  the Raiden's standard fights: `tests/units/fights/`, and nine
+  the Raiden's standard fights: `tests/raiden/fights/`, and nine
   Raidens' blows landing on nine Fangs: `tests/raiden/fights/`.
 - A presearched target a few raw units left of straight ahead faced at
   +0.245°, in the standard fights of the Steel Ball, Stormcaller, Hound, Fire
-  Badger and Phantom Ray: `tests/units/fights/`.
+  Badger and Phantom Ray: `tests/steel_ball/fights/`,
+  `tests/stormcaller/fights/`, `tests/hound/fights/`,
+  `tests/fire_badger/fights/`, `tests/phantom_ray/fights/`.
 
 ### Read
 

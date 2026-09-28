@@ -13,12 +13,14 @@ separate.
 | `fights/two-targets.yaml` | two units for four slots: whether a slot doubles up, and on which | the slots' first allocation |
 
 Each fight is recorded once, from its fight document, with two channels,
-beside the Wraith's M2, M3 and M6 standard fights:
+beside the Wraith's twelve standard fights, the six
+[standard layouts](../README.md#standard-unit-layouts) under two seeds, also
+in `fights/`:
 
 ```sh
 scripts/record-fights.py --instrument skill_attackable_checker,group_slots \
     --out /tmp/mechcore/wraith/slots tests/regression/fights/wraith-group-attack-01.yaml \
-    tests/wraith/fights/*.yaml tests/units/fights/wraith-*.yaml
+    tests/wraith/fights/*.yaml
 ```
 
 `skill_attackable_checker`, which holds every `Check` call with the slot that
@@ -69,3 +71,10 @@ The replay requires the recording to carry the checker channel and rejects
 missing calls. Observed targets are never used to advance the simulation checked by the
 gameless regressions. The ordinary Rust tests retain the distinguishing
 allocation and child-range cases without needing recordings.
+
+The Wraith's M3 with seed 1787720817 was the last standard fight to play
+back. Its Wraith drifted 100° off its facing at tick 168 and the game still
+published its full 10 m/s: the Wraith is one of the units
+`MechData.PreProcess` marks free-moving, which never slow for their facing.
+Behind it, at tick 178, its core took a Crawler three of its siblings held,
+and the sibling the simulator moved off it kept it in the game.

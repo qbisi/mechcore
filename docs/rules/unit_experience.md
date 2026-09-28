@@ -134,7 +134,8 @@ what the formation carries into the next round.
 - What a kill hands out and to whom, as the section above states it: every
   formation's experience is in each recording's hash, and the
   simulator reproduces it tick by tick in every fight the topics pin, which
-  `tests/units/fights/` and the other topics' `fights/` hold.
+  every unit's `fights/`, `tests/marksman/fights/` among them, and the other
+  topics' hold.
 
 ### Replayed
 
