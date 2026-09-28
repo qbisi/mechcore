@@ -203,27 +203,27 @@ The map's own buildings are the exception and are named: each side gets one
 ### Recorded
 
 - A Defensive Wall aside from a fight is five blocks at their spacing and
-  changes nothing else: `tests/construction/regressions.mcscript`.
+  changes nothing else: `tests/construction/fights/`.
 - A unit shoots the nearest of the blocks its line reaches, within the width
-  and its reach: `tests/construction/regressions.mcscript`.
+  and its reach: `tests/construction/fights/`.
 - A tick that lands two shots reports the fallen block after both:
-  `tests/construction/regressions.mcscript`.
+  `tests/construction/fights/`.
 - A unit with four weapon slots takes the block in its way with every slot,
   splashes the next block, and drops its slots with the lock when a block falls:
-  `tests/construction/regressions.mcscript`.
+  `tests/construction/fights/`.
 - A blow takes the block in its line, and the unit reads idle for a tick before
-  the next: `tests/construction/regressions.mcscript`.
+  the next: `tests/construction/fights/`.
 - A beam takes the block in its line, a block holds off a unit of the other
   side, and a unit whose beam fells a block turns onto its lock that tick:
-  `tests/construction/regressions.mcscript`.
+  `tests/construction/fights/`.
 - The side that placed a wall walks through it, and the blocks still take
-  places among its neighbours: `tests/construction/regressions.mcscript`.
+  places among its neighbours: `tests/construction/fights/`.
 - The other side stops at a wall and takes it down, changing blocks between
   blows and going on when a block it had not struck falls:
-  `tests/construction/regressions.mcscript`.
+  `tests/construction/fights/`.
 - A splash takes the units on a block it hits and a block behind a unit it
   hits, in target-tree order, and a unit re-locks when its splash kills its
-  lock: `tests/construction/regressions.mcscript`.
+  lock: `tests/construction/fights/`.
 
 ### Read
 

@@ -106,8 +106,8 @@ reader can tell what holds on the version `GAME_VERSION` pins from what may have
 moved. It has up to four parts, in this order, and leaves out one it has
 nothing for:
 
-- `### Recorded`: each claim a fight shows, citing the gameless script under
-  `tests/` that pins it. CI replays it on every change, and the pin is
+- `### Recorded`: each claim a fight shows, citing the fight documents under
+  `tests/` that pin it. CI verifies them on every change, and they are
   re-recorded whenever the version moves, so these claims move with it.
 - `### Replayed`: each claim the replay corpus of the pinned version shows,
   citing `scripts/verify-matches.py`, which replays every round of the match
@@ -126,7 +126,7 @@ When the version moves, `scripts/rules-anchors.py --since <old version>` lists
 the read claims whose anchors changed, a method's instructions or a member's
 declaration; each is read again on the new version before the move is merged.
 A claim whose anchors stand still carries over. `scripts/check-docs.py` holds
-the section's shape: a recorded claim that cites no gameless pin, or a read
+the section's shape: a recorded claim that cites no pinned fight, or a read
 claim that names no anchor, fails.
 
 ## A spec's shared spine

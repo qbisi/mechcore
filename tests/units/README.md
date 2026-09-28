@@ -6,9 +6,10 @@ seeds and played back by the simulator tick for tick, in every field. Every
 recording the simulator reproduces is pinned as a fight document in `fights/`,
 `<unit>-<layout>-<seed>.yaml`, which holds the layout, the seed and what the
 game recorded, with the layout's own comment at its top.
-`regressions.mcscript` verifies every one of them without the game, and CI
-runs it; `record.mcscript` needs the game, and records each fight from its
-document. It fights each layout without a scene, as a
+CI verifies every one of them without the game; where the game runs,
+`scripts/record-fights.py --check tests/units/fights/*.yaml` records each fight
+from its document and holds it to its fixture. It fights each layout without a
+scene, as a
 [layout replay](../../docs/spec/document/layout-replay.md), and every pin
 hashes the same recorded that way as in the Training Ground. The Hacker's
 layouts are not pinned, so they are still layouts, in `hacker/`.
@@ -171,8 +172,9 @@ All 204 of the other fights play back exactly and are pinned:
 
 Each mechanism the recordings exposed is named in
 [`combat.md`](../../docs/rules/combat.md). Two of them were read off
-[`skill-state.mcscript`](skill-state.mcscript), which records five of the
-fights with each skill's state beside the turret's rotation, which the MCFR
+five of the fights recorded with the `target_refs` channel,
+`scripts/record-fights.py --instrument target_refs`, each skill's state beside
+the turret's rotation, which the MCFR
 carries as `turret_rotation`: the attack angle is measured from it, and it
 showed the game turning exactly as the simulator did and parting only on the
 state change. The fifth, the Phantom Ray's M3 with seed 4242, showed three

@@ -31,17 +31,17 @@ released it.
 `shape.mcscript`, `wall.mcscript`, `placement.mcscript`, `line-of-fire.mcscript`,
 `attacks.mcscript` and `splash.mcscript` record them and carry every number
 as an `expect`, so a fixture and the measurement that reads it are one file to
-rerun. `skill-state.mcscript` records the wall fights once more with the
-`target_refs` instrument channel, which says which state each unit's
-skill is in and which attack phase it is in, tick by tick; that, not the
-recording, is where the rules read when a unit meets a block and how an attack
-on one ends.
+rerun. Recording the wall fights once more with the `target_refs` instrument
+channel, `scripts/record-fights.py --instrument target_refs --out
+/tmp/mechcore/construction/skill-state tests/construction/fights/*.yaml`, says
+which state each unit's skill is in and which attack phase it is in, tick by
+tick; that, not the recording, is where the rules read when a unit meets a
+block and how an attack on one ends.
 The eleven wall fights the simulator can run are pinned as fight documents in
 `fights/`, each holding the layout, the seed 4242 and what the game recorded,
 and a comment saying what it measures; `shape.yaml` and `wall-line-width.yaml`
-stay layouts, read and not pinned. `regressions.mcscript` needs no game and
-is what CI runs: it verifies every fight in `fights/`, holding the simulator
-to each one's hash over every one of its ticks.
+stay layouts, read and not pinned. CI verifies every fight in `fights/`,
+holding the simulator to each one's hash over every one of its ticks.
 
 The hash covers everything a recording carries, a unit's lock, its weapons'
 targets and its motion state included, so the simulator carries the same

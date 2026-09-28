@@ -72,16 +72,16 @@ carries:
 ### Recorded
 
 - Heavy Armor's life rate lands in the unit's channel, and sums with an
-  officer's life rate in one aggregate: `tests/equipment/regressions.mcscript`.
+  officer's life rate in one aggregate: `tests/equipment/fights/`.
 - Improved Firepower Control System's damage rate lands in the skill's channel,
   and sums with an officer's damage rate in one aggregate:
-  `tests/equipment/regressions.mcscript`.
+  `tests/equipment/fights/`.
 - Laser Sights' range value lands in the skill's channel, and the fight uses it:
-  `tests/equipment/regressions.mcscript`.
+  `tests/equipment/fights/`.
 - Two items on one formation each write in their own channel:
-  `tests/equipment/regressions.mcscript`.
+  `tests/equipment/fights/`.
 - A `Ranged` row reaches the ranged units of a side and not its melee ones, as an
-  officer's does: `tests/modifier/regressions.mcscript`.
+  officer's does: `tests/modifier/fights/`.
 
 ### Read
 

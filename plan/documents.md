@@ -23,15 +23,11 @@
 
 ## 栈
 
-1. **回归与重录的脚本退休。** CI 用管道对全部 fight 文档跑 `verify`，各 topic 的
-   `regressions.mcscript` 删掉；重录改为 `scripts/` 下对夹具目录跑 `convert --backend game`
-   的脚本，`units/record`、`tower/*`、各 `slots`、`skill-state`、`regression/refresh` 与两份
-   重复录制比对的脚本删掉；`tests/regression/fights/` 只留 smoke 那 16 场。
-2. **校验脚本退休。** 只断言 hash 以外数值的脚本（construction、`equipment/stats`、
+1. **校验脚本退休。** 只断言 hash 以外数值的脚本（construction、`equipment/stats`、
    `level/stats`、modifier 的各探针、`interval/stagger`）连同 `adapter/smoke`、
-   `layout-replay/equivalence` 与 `simulate.mcscript` 最后那一场模拟器自钉的仗一起删掉：
+   `layout-replay/equivalence` 一起删掉：
    它们的仗已是 fight 夹具，丢掉的只是 hash 之外的断言。
-3. **观战录制改成 Python。** `replay/record-standard-1v1.mcscript` 改写为 `scripts/` 下的脚本，
+2. **观战录制改成 Python。** `replay/record-standard-1v1.mcscript` 改写为 `scripts/` 下的脚本，
    观战录制的命令行入口保留。
 
 mcscript 的执行器、`run` 与它的规格保留，只是不再有被跟踪的脚本。

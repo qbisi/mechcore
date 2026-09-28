@@ -361,7 +361,7 @@ property 的输入恰好就是录像记的那些列，所以**一个机制在算
 instrument 通道），和 `tests/construction/` 下的录像一起。
 
 **怎么对齐到游戏的。** 两份 `tests/regression/fights/` 全部战斗的采集是对照：每个单位逐 tick 的技能状态和攻击阶段
-（`tests/regression/skill-state.mcscript`），以及每一次 `Check` 调用前后技能的锁定和攻击目标
+（`scripts/record-fights.py --instrument target_refs`），以及每一次 `Check` 调用前后技能的锁定和攻击目标
 （`skill_attackable_checker` 通道）。成组技能逐槽调用同一个检查器，带入兄弟槽位的锁定
 和槽位自己的射程。[Wraith fixtures](../../../tests/wraith/README.md) 说明独立逐调用复验及
 物理、内容两层检查。除检查器本身外，还需要：

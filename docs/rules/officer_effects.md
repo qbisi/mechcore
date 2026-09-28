@@ -168,18 +168,18 @@ gaining any, so the field's name is not what it does.
 ### Recorded
 
 - One enhancement multiplies the description once, and two on one number sum
-  into one stored entry: `tests/modifier/regressions.mcscript`.
+  into one stored entry: `tests/modifier/fights/`.
 - An officer's damage rate lands in the skill channel, and its life rate in the
-  unit channel: `tests/modifier/regressions.mcscript`.
+  unit channel: `tests/modifier/fights/`.
 - Two impairments compound into one stored reduction:
-  `tests/modifier/regressions.mcscript`.
+  `tests/modifier/fights/`.
 - A range value is added in metres, beside an impairment on the same unit:
-  `tests/modifier/regressions.mcscript`.
+  `tests/modifier/fights/`.
 - A technology's range value and an officer's sum into one stored entry:
-  `tests/modifier/regressions.mcscript`.
-- Two speed values sum: `tests/modifier/regressions.mcscript`.
+  `tests/modifier/fights/`.
+- Two speed values sum: `tests/modifier/fights/`.
 - A `Ranged` row reaches the ranged units of a side and not its melee ones:
-  `tests/modifier/regressions.mcscript`.
+  `tests/modifier/fights/`.
 
 ### Read
 

@@ -2,8 +2,8 @@
 
 Seed 1787720817. Each fight is a fight document in `fights/`, and
 `stats.mcscript` records the nine fights from them, then checks the native
-unit and skill channels. It needs the game. `regressions.mcscript` is
-gameless. The layouts use round one and level-one units.
+unit and skill channels. It needs the game. CI verifies the fights without
+it. The layouts use round one and level-one units.
 
 | Fixture | What it separates | Ticks |
 | --- | --- | ---: |
@@ -22,9 +22,8 @@ near Laser Sights fight moves as the control does because the
 target is already in range. Life is read from the first tick; damage and
 range are also exposed by `show --view stats`.
 
-`regressions.mcscript` verifies the eight fights in `fights/`, and
-`../regression/simulate.mcscript` the control, against the hashes the game
-recorded; the simulator reproduces each tick for tick. The hash covers the
+CI verifies the eight fights in `fights/` and the control against the hashes
+the game recorded; the simulator reproduces each tick for tick. The hash covers the
 unit and skill `DataSet` aggregates, so an equipment written into the wrong
 channel fails there even where no unit would move differently.
 

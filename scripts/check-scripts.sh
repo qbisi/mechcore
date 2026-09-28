@@ -1,17 +1,20 @@
 #!/bin/sh
-# Every tracked .mcscript parses, and every one that needs no game runs.
+# Every pinned fight verifies, and every tracked .mcscript parses.
 #
-# This is the loop `.github/workflows/ci.yml` runs, given to a checkout, so a
-# branch is held to the same pins before it is pushed: the native regression
-# fights, each topic's `regressions.mcscript`, and every other gameless
-# assertion. A script that declares `game:` is only parsed, because a machine
-# without the game cannot run it; `run --check` is what says which it is.
+# This is what `.github/workflows/ci.yml` runs, given to a checkout, so a
+# branch is held to the same pins before it is pushed. The pins are the fight
+# documents under `tests/*/fights/`, each fought again by the simulator and
+# compared with what the game recorded; `verify` reads them from standard
+# input, one path a line, and answers every invalid one. A run script is only
+# parsed: none that is tracked needs no game, and a machine without the game
+# cannot run the others; `run --check` is what says which it is.
 #
 #     scripts/check-scripts.sh                 against target/release/mechcore
 #     MECHCORE=target/debug/mechcore scripts/check-scripts.sh
 set -eu
 cd "$(dirname "$0")/.."
 bin=${MECHCORE:-target/release/mechcore}
+git ls-files 'tests/*/fights/*.yaml' | "$bin" verify >/dev/null
 for script in $(git ls-files '*.mcscript'); do
     checked=$("$bin" run "$script" --check)
     echo "$checked"

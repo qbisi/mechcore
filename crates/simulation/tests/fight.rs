@@ -59,7 +59,7 @@ fn marksman_vs_arclight_runs_to_a_readable_terminal_result() {
 /// Fights a native regression fight's layout with its seed through the
 /// simulator, and opens what it wrote.
 ///
-/// `tests/regression/simulate.mcscript` verifies every fight document there;
+/// CI verifies every fight document there;
 /// what these tests check is a few named fields — a unit's lock and its
 /// motion state — so that a failure says which one moved. The ticks and the
 /// hash are checked too, so a field read here is read on the game's fight.

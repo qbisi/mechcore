@@ -15,11 +15,10 @@ and the Anti-Armor Turret, the two a layout can place, every prepare, attack
 point, backswing, cooling and initial cooldown is zero, and both target ground
 only.
 
-The fights are in `tests/turret/`. `rapid-fire-head-on.yaml`,
-`rapid-fire-flank.yaml` and `anti-armor-head-on.yaml` are recorded by
-`skill.mcscript`, with a control recording that repeats the head-on fight
-exactly. `anti-armor-arclights.yaml`, recorded by `arclights.mcscript`, puts the
-Anti-Armor Turret through a reload in a fight no tower falls in.
+The fights are in `tests/turret/fights/`: `rapid-fire-head-on.yaml`,
+`rapid-fire-flank.yaml` and `anti-armor-head-on.yaml`, and
+`anti-armor-arclights.yaml`, which puts the Anti-Armor Turret through a reload
+in a fight no tower falls in. The same fight recorded twice is one recording.
 
 ## A turret is a building that owns a unit's skill
 
@@ -148,27 +147,27 @@ place firing at ground units, every timing the rows carry at zero.
 ### Recorded
 
 Each holds in both Rapid-Fire fights and both Anti-Armor fights, physics and
-content, as `tests/turret/regressions.mcscript` replays them.
+content, as `tests/turret/fights/` replays them.
 
 - A turret locks through its skill's search before anything is in reach, and
-  turns its weapon onto the lock: `tests/turret/regressions.mcscript`.
+  turns its weapon onto the lock: `tests/turret/fights/`.
 - A dead target is replaced by the one the selector scores from the weapon's
-  rotation, not the nearest: `tests/turret/regressions.mcscript`.
-- A reload keeps the lock, and the next shot goes to it: `tests/turret/regressions.mcscript`.
+  rotation, not the nearest: `tests/turret/fights/`.
+- A reload keeps the lock, and the next shot goes to it: `tests/turret/fights/`.
 - The first shot leaves on the tick after a target starts within reach, reach
-  measured edge to edge: `tests/turret/regressions.mcscript`.
+  measured edge to edge: `tests/turret/fights/`.
 - The weapon turns at the construction's rotate speed after the state has
-  updated: `tests/turret/regressions.mcscript`.
+  updated: `tests/turret/fights/`.
 - Each shot draws its interval from the owning side's stream, after every unit
   of the side, including the top bit of a power-of-two range:
-  `tests/turret/regressions.mcscript`.
+  `tests/turret/fights/`.
 - The gap across a reload is the reload's ticks plus three:
-  `tests/turret/regressions.mcscript`.
+  `tests/turret/fights/`.
 - The shot is a projectile from the turret's centre, at the bullet speed, with
   the construction's damage and the skill's splash, and the building is its
-  source: `tests/turret/regressions.mcscript`.
+  source: `tests/turret/fights/`.
 - A unit whose lock was the fallen turret stays on it through its swing and
-  then looks for the next target: `tests/turret/regressions.mcscript`.
+  then looks for the next target: `tests/turret/fights/`.
 
 ### Read
 

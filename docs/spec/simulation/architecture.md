@@ -436,7 +436,7 @@ beside the recordings under `tests/construction/`.
 
 **How it was held to the game.** Two captures of every fight in
 `tests/regression/fights/` are the oracle: each unit's skill state and attack phase per tick
-(`tests/regression/skill-state.mcscript`), and every `Check` call with the
+(`scripts/record-fights.py --instrument target_refs`), and every `Check` call with the
 skill's lock and attack target on either side of it (the
 `skill_attackable_checker` channel). Grouped skills use the same checker
 per slot, with the siblings' lock holdings and each slot's own range. The

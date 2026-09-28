@@ -302,12 +302,12 @@ Three layers of test hold this:
   coarse reachable range, and the behaviour at the edge of stopping;
 - the native samples in `tests/regression/fights/` are fight documents
   holding the recording's `result_hash`, over every field of every tick, the
-  Steel Ball fight sample included; `tests/regression/simulate.mcscript`
-  verifies every one through the simulator and needs no game.
+  Steel Ball fight sample included; `verify` holds the simulator to every one
+  and needs no game.
 
 ```text
 cargo test -p mechcore-simulation rvo
-cargo run --release -p mechcore --no-default-features -- run tests/regression/simulate.mcscript
+cargo run --release -p mechcore --no-default-features -- verify tests/regression/fights/*.yaml
 ```
 
 ## Fidelity boundary

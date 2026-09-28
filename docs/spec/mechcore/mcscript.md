@@ -217,8 +217,7 @@ against it; `tests/modifier/composition.mcscript` is the worked example.
 `convert` with `to: mcfr` runs the deterministic simulator on a layout and
 returns the same result object `mechcore convert --to mcfr` prints, so `expect`
 can assert `seed_source`, `steps`, or a dotted path like `hashes.result_hash`.
-It needs no game, which is what lets `tests/regression/simulate.mcscript` hold
-the simulator to a fight the game never recorded. Omit `output` unless the run should also publish
+It needs no game unless the step names `backend: game`. Omit `output` unless the run should also publish
 an MCFR; an existing one is replaced as a recording's is. A rewrite to a layout
 without `output` answers the layout it would have written.
 
@@ -492,12 +491,11 @@ steps:
 
 A pinned fight is a [fight](../document/fight.md) document under
 `tests/<topic>/fights/`, and the directory is the table: no other file lists
-the fights. Each topic's `regressions.mcscript`, and
-`tests/regression/simulate.mcscript`, `verify` them without the game, which CI
-runs, and `crates/simulation/tests/fight.rs` reads three of
-`tests/regression/fights/` to name a few fields — a unit's lock and motion
-state — so that a failure says which one moved. Re-recording is one more
-reader of the same files, not a copy of them:
+the fights. CI hands every one to `verify`, and `crates/simulation/tests/fight.rs`
+reads three of `tests/regression/fights/` to name a few fields — a unit's lock
+and motion state — so that a failure says which one moved. Re-recording is one
+more reader of the same files, not a copy of them, and a run expresses it as a
+loop over a directory:
 
 ```yaml
 game: launch
@@ -526,26 +524,12 @@ steps:
           equal: true
 ```
 
-A fight states its own seed, so the recording `convert` takes none, and the recording
-read back by `convert --to fight` is a document of the same kind as the
-fixture, which `diff` compares field by field. `glob` answers paths a script
-cannot take apart, so each output lands under `out` at its fixture's own
-path.
-
-The two uses of this shape differ only by the `diff`, and confusing them
-wastes a capture run:
-
-- **Verify.** With the `diff`, the run fails on the first fight the game no
-  longer records as its fixture states it. This is the check that nothing
-  drifted.
-- **Refresh.** Without it, the run records and converts every fight, which is
-  what produces the new documents after an intended change. Nothing is
-  written back automatically; a fixture is replaced deliberately, so a
-  refresh is a reviewable diff rather than a side effect.
-
-A fight is recorded without a scene, from the main menu and back to it, so
-the fights run one after another in a single game process. Only the first
-pays the cold start.
+A fight states its own seed, so the recording `convert` takes none, and the
+recording read back by `convert --to fight` is a document of the same kind as
+the fixture, which `diff` compares field by field. `glob` answers paths a
+script cannot take apart, so each output lands under `out` at its fixture's own
+path. The repository's own re-recording, `scripts/record-fights.py`, is the
+same loop as commands, one per fight.
 
 ## Unresolved
 

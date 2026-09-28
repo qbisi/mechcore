@@ -383,10 +383,10 @@ mod oracle {
     }
 
     #[test]
-    #[ignore = "requires the recordings tests/wraith/slots.mcscript makes where the game runs"]
+    #[ignore = "requires the recordings tests/wraith/README.md records where the game runs"]
     fn grouped_checker_matches_every_captured_call() {
         let config = SimulationConfig::load().unwrap();
-        for (name, expected_count) in [("group-attack", 4188), ("two-targets", 344)] {
+        for (name, expected_count) in [("wraith-group-attack-01", 4188), ("two-targets", 344)] {
             let root = Path::new("/tmp/mechcore/wraith/slots");
             let recording = McfrReader::open(root.join(format!("{name}.mcfr"))).unwrap();
             let calls = recording
@@ -565,7 +565,7 @@ mod slots {
     }
 
     #[test]
-    #[ignore = "requires the recordings tests/wraith/slots.mcscript and tests/raiden/slots.mcscript make where the game runs"]
+    #[ignore = "requires the recordings tests/wraith/README.md and tests/raiden/README.md record where the game runs"]
     fn grouped_slots_match_every_recorded_tick() {
         let mut parted = Vec::new();
         let mut paths = ["/tmp/mechcore/wraith/slots", "/tmp/mechcore/raiden/slots"]
