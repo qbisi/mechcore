@@ -72,3 +72,80 @@ Blue releases `missile_strike` at world `(55,60)`, the centre of red's local
 `(-105,-90)` and `(-105,20)`, compiling to world `(55,60)`, `(105,90)` and
 `(105,-20)`, so the selected Fang first retreats briefly away from the adjacent
 Wasp and the strike point, then advances on the displaced line.
+
+## Probes a topic reads
+
+Some layouts were read by a topic's measurement and are not fights the
+simulator reproduces, so they are layouts rather than fight documents. The
+topic's readme says what each reading was:
+`construction-shape.yaml` and `wall-line-width.yaml` in
+[`../tests/construction/`](../tests/construction/README.md), and
+`technology-disabled.yaml` and the four `technology-interval*.yaml` in
+[`../tests/modifier/`](../tests/modifier/README.md).
+
+`orbital-first.yaml` and `lightning-first.yaml` hold the same pair of battle
+skill releases at the same two positions over a twelve-Crawler block and
+differ only in which is declared first; [layout.md](../docs/spec/document/layout.md#battle_skills)
+says what the game recorded of them.
+
+## The attack interval's stagger
+
+The three `stagger-*.yaml` measure **the random stagger on a unit's first
+attack interval**, the rule
+[`combat.md`](../docs/rules/combat.md#the-current-interval-carries-a-per-cycle-stagger)
+states: one draw per member, in the order the recording numbers the
+deployment, ascending world `z` then `x`, in that member's own
+`interval_offset`, and no draw when the offset is zero. Each was read at tick
+one, `derived.current_attack_interval`, and every reading is recomputed from
+the seed without the game by `crates/simulation/src/fight/random.rs`:
+
+| Layout | What it separates | Reading, seed 1787720817 |
+| --- | --- | --- |
+| `stagger-singles.yaml` | the order and the per-unit range | 55, 23, 56, 32 by ascending `z` |
+| `stagger-three-marksmen.yaml` | a signed draw, one type held constant | 55, **65**, 56 against a description of 62 |
+| `stagger-mustang-then-marksman.yaml` | a draw per member against one per formation | Marksman **72**, where per formation would be 55 |
+
+The Rhino is red's unit in each: its offset is zero, so it reads its
+description, and red draws from its own stream. How many draws the rest of a
+fight takes from the stream is not measured.
+
+## Layout replay coverage
+
+A layout fought without a scene, as a
+[layout replay](../docs/spec/document/layout-replay.md), fights as the Training
+Ground fights it: every pinned fight under `tests/` hashes the same recorded
+both ways. The fields no pinned fight holds were each recorded both ways once,
+with one seed, and compared equal field by field:
+
+| Layout | Field |
+| --- | --- |
+| `experience.yaml` | experience within a level |
+| `contraptions.yaml` | contraptions, with gaps in their indices |
+| `blueprints.yaml` | both enhancement chains |
+| `magnetic-barrier.yaml` | the construction no corpus snapshot holds |
+| `round-3.yaml` | a later round, with a settled flank unit |
+| `orbital-first.yaml` | two battle skills released in order |
+| `energy-tower.yaml` | Energy Tower skills |
+| `travelling.yaml` | a travelling unit |
+| `travelling-fitted.yaml` | travelling units upgraded, fitted and turned |
+| `travelling-behind.yaml` | a travelling unit bought before another unit of the round |
+| `delivered-squad.yaml` | a squad an officer hands out as the round opens |
+| `airdrop-shields.yaml` | Shield Airdrops left standing |
+| `oil.yaml` | an oil area left standing |
+
+**A travelling unit is bought.** A unit the round opens with may not move from
+round 2 on, and moving onto a flank from another region is what makes a unit
+travel, so the replay buys it during the round and moves it. A purchase takes
+the allocator's next index, whatever the record asks for, so the round buys
+every unit from its first new index through the last travelling one, in order.
+
+**A delivered squad is the layout's unit.** The snapshot is the side before
+its round opens, so an officer whose schedule hands out a squad that round
+hands it out again; the replay lets the delivery be the layout's unit, and
+upgrades and moves it.
+
+**An oil area's grid is not measured.** The Training Ground rebuilds an oil
+line only from control points a release produced, and the corpus holds no oil
+area an interception clipped, so `oil.yaml` is whole. A clipped grid is written
+the way the replay reader decodes it, and a unit test holds the two to each
+other; no fight has checked it.

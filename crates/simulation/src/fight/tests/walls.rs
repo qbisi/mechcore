@@ -6,8 +6,8 @@ use super::*;
 /// Red's Marksman of `wall-line-of-fire.yaml` fells block 6 on tick 18.
 /// The game reads it on tick 19 as idle, with no lock, and with its weapon
 /// still on block 6 — not on block 7, the next one in its line, and not on
-/// the Marksman behind the wall. `tests/construction/line-of-fire.mcscript`
-/// recorded it, and this names the three fields without the game.
+/// the Marksman behind the wall. `tests/construction/fights/wall-line-of-fire.yaml`
+/// pins it, and this names the three fields without the game.
 #[test]
 fn a_fallen_block_leaves_its_attacker_idle_and_still_aimed_at_it() {
     let config = SimulationConfig::load().unwrap();
@@ -56,7 +56,7 @@ fn a_fallen_block_leaves_its_attacker_idle_and_still_aimed_at_it() {
 /// tick 144 and 11.447 at 145, inside the 11.5 the line is wide: on tick
 /// 146 the game reads it idle, with no lock and no weapon target, and on
 /// 147 on block 3 with its lock back on the Marksman.
-/// `tests/construction/attacks.mcscript` recorded it.
+/// `tests/construction/fights/wall-laser.yaml` pins it.
 #[test]
 fn a_block_that_comes_into_the_way_ends_a_prepared_attack() {
     let config = SimulationConfig::load().unwrap();
@@ -99,7 +99,7 @@ fn a_block_that_comes_into_the_way_ends_a_prepared_attack() {
 /// its line, and it reads idle with no lock before turning on block 3 at
 /// 97. Crawlers 7 and 23 are closing on block 4 without having struck it
 /// when another fells it at 118, and they go straight on to the Marksman
-/// at 119. `tests/construction/wall.mcscript` recorded the fight.
+/// at 119. `tests/construction/fights/wall-block.yaml` pins the fight.
 #[test]
 fn crawlers_change_blocks_between_blows_and_only_a_striker_idles() {
     let config = SimulationConfig::load().unwrap();
@@ -140,7 +140,7 @@ fn crawlers_change_blocks_between_blows_and_only_a_striker_idles() {
 /// Red's Marksman locks onto the Marksman behind blue's wall and shoots
 /// block 6, which stands in its line of fire: `docs/rules/combat.md`
 /// measured the lock staying on the unit while the weapon holds the block,
-/// and `tests/construction/line-of-fire.mcscript` recorded this
+/// and `tests/construction/fights/wall-line-of-fire.yaml` pins this
 /// exact fight. This pins the two fields by name, without the game.
 #[test]
 fn a_wall_in_the_way_takes_the_weapon_and_leaves_the_lock() {

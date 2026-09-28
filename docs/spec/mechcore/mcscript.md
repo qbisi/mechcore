@@ -212,7 +212,7 @@ written onto them before it moved them. Both answer the same object the command
 prints, so `expect` asserts a measurement directly — `sides.red.survivors.0.life` for
 the one, `sides.blue.0.skill.0.modifiers.damage_rate.add` for the other. That
 is what turns a capture script from a probe of the build into a regression
-against it; `tests/modifier/composition.mcscript` is the worked example.
+against it.
 
 `convert` with `to: mcfr` runs the deterministic simulator on a layout and
 returns the same result object `mechcore convert --to mcfr` prints, so `expect`

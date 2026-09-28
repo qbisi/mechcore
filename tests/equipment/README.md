@@ -1,9 +1,8 @@
 # Equipment corrections
 
-Seed 1787720817. Each fight is a fight document in `fights/`, and
-`stats.mcscript` records the nine fights from them, then checks the native
-unit and skill channels. It needs the game. CI verifies the fights without
-it. The layouts use round one and level-one units.
+Seed 1787720817. Each fight is a fight document in `fights/`, and CI
+verifies them without the game. The layouts use round one and level-one
+units.
 
 | Fixture | What it separates | Ticks |
 | --- | --- | ---: |

@@ -896,7 +896,7 @@ the release order, and that acquisition order is not layout state: a skill slot
 or acquisition index would record something no outcome depends on. The
 standing entries are not releases and take no place in this order.
 
-`tests/skill-order/orbital-first.yaml` and `lightning-first.yaml` beside it hold
+`layouts/orbital-first.yaml` and `lightning-first.yaml` beside it hold
 the same pair of releases at the same two positions and differ only in which is
 declared first, over a twelve-Crawler block that both circles cover. Recorded
 with the game under seed `20260907`, the two orders part at tick 63 and end at

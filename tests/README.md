@@ -7,14 +7,10 @@ measured:
 
 | Directory | What it holds |
 | --- | --- |
-| [`adapter/`](adapter/README.md) | whether the Adapter still installs, reads back and records every part of a layout, and every instrumentation profile |
 | [`construction/`](construction/README.md) | what a construction becomes in a fight, and what attacks it |
 | [`equipment/`](equipment/README.md) | where equipment corrections land and how they compose with officers |
-| [`interval/`](interval/README.md) | how an attack interval is staggered |
-| [`layout-replay/`](layout-replay/README.md) | whether a layout fought without a scene fights as the Training Ground fights it |
 | [`level/`](level/README.md) | how a unit level scales base life and damage before overlays |
 | [`modifier/`](modifier/README.md) | how officers and technologies correct a unit's numbers |
-| `skill-order/` | two battle skills released in either order, which the game fights apart |
 | [`tower/`](tower/README.md) | what losing a tower writes on its side, and what strengthening one adds |
 | [`turret/`](turret/README.md) | when a turret fires, at what, and how often |
 | [`units/`](units/README.md) | each unit's standard layouts, the definition of basic support |

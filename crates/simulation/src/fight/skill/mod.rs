@@ -670,7 +670,7 @@ impl Simulation {
     /// cooling for four ticks and idle, emptied, for one more, and prepares
     /// on the next — after a kill whose replacement is out of reach
     /// (`crawlers-vs-marksman.yaml`) as after a fallen block
-    /// (`wall-line-width.yaml`).
+    /// (`layouts/wall-line-width.yaml`).
     pub(in crate::fight) fn hold_through_cooling(
         &mut self,
         owner: FightActorRef,

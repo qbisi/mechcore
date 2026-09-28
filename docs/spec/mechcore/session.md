@@ -279,12 +279,10 @@ runs after: the Adapter smoke then passed headless in full, and the equipment
 layout it had failed on applied four times in a row. The same layouts applied
 with a window every time. Where the exception was thrown was not caught, and a
 managed exception's error now names the frames it was thrown through, so the
-next one does. The sceneless path did not fail:
-`tests/equipment/stats.mcscript` records its equipment layouts with
-`game record` headless. Since the resolution check is answered, the Adapter
-smoke has passed headless online and offline, the layout-replay equivalence
-headless offline, and `record_watch_replay` enters a round-one match
-headless, so every tracked script now launches headless.
+next one does. The sceneless path did not fail: the equipment fights record
+headless. Since the resolution check is answered, the scene path has passed
+headless online and offline, and `record_watch_replay` enters a round-one match
+headless, so every recording launches headless.
 
 A launch that finds an idle Adapter joins that game as it is, window or not,
 as it would for any other launch (state **D**).

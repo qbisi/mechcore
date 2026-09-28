@@ -576,8 +576,8 @@ fn stats_read_a_tick_and_answer_both_halves() {
 /// is unimplemented and the closure refuses one — so what this reads is the
 /// other half of the answer: the two towers a map gives each side, named by
 /// the build's own `BuildingType`, and an empty construction list beside them.
-/// What a construction becomes is measured against the game by
-/// `tests/construction/shape.mcscript`.
+/// What a construction becomes was measured against the game from
+/// `layouts/construction-shape.yaml`.
 #[test]
 fn buildings_read_the_towers_a_map_gives_each_side() {
     let directory = tempfile::tempdir().unwrap();

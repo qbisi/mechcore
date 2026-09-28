@@ -23,11 +23,7 @@
 
 ## 栈
 
-1. **校验脚本退休。** 只断言 hash 以外数值的脚本（construction、`equipment/stats`、
-   `level/stats`、modifier 的各探针、`interval/stagger`）连同 `adapter/smoke`、
-   `layout-replay/equivalence` 一起删掉：
-   它们的仗已是 fight 夹具，丢掉的只是 hash 之外的断言。
-2. **观战录制改成 Python。** `replay/record-standard-1v1.mcscript` 改写为 `scripts/` 下的脚本，
+1. **观战录制改成 Python。** `replay/record-standard-1v1.mcscript` 改写为 `scripts/` 下的脚本，
    观战录制的命令行入口保留。
 
 mcscript 的执行器、`run` 与它的规格保留，只是不再有被跟踪的脚本。
