@@ -268,8 +268,8 @@ that started them, not through GitHub.
    config table where the build's rows are a plain regularity, every earlier
    pin unchanged. The real findings go back to the implementing agent.
 6. **The pull request is opened** from `research/<n>-<slug>`, its title and
-   body the commit master will hold, ending with `Closes #<n>` before the
-   `Co-Authored-By` trailers, and the change sheet
+   body the merge commit master will hold, ending with `Closes #<n>` before
+   the `Co-Authored-By` trailers, and the change sheet
    [Acceptance](#acceptance) asks for.
 
 How many questions run at once is bounded by two things: the captures, which
@@ -306,9 +306,10 @@ means:
 
   A divergence the build does not have is a step back even when every
   recording agrees. It is sent back, or the branch is taken over and folded;
-- checking that the pull request's title and body are the commit master
-  will hold, and that the documents say what the build does and not what
-  the simulator does.
+- checking that the pull request's title and body are the merge commit
+  master will hold, that each commit on the branch is a step worth keeping,
+  and that the documents say what the build does and not what the simulator
+  does.
 
 **The change sheet.** The reading ends with a change sheet, in the pull
 request's body and handed to the committer, which says in a few lines what

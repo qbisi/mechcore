@@ -43,7 +43,7 @@ readme 的效力高于你自己的判断。和你想做的事冲突时按它做�
 - **lane 之间只在合并之后重排。** 依据是离目标的指标卡在哪条 lane，以及 enables 边指向多少、
   多贵的节点。执行中途不切 lane；切的时候，被停下的 lane 停在一个合并过的节点上，它的栈原样
   留着。
-- **状态不写，推导。** 正在做的节点是它开着的 PR，做完的是合并的 commit，量出来的数在 PR 正文
+- **状态不写，推导。** 正在做的节点是它开着的 PR，做完的是合并它的 merge commit，量出来的数在 PR 正文
   和 `tests/<topic>/README.md`，阻塞写成 `Blocked by #n`。`plan.md` 和 lane 文件里不写"做到
   哪一步"。
 - **结构只有一个写者。** 边和 lane 的先后由主会话在 PR 合并之后改；并行干活的会话发现新的跨
@@ -98,18 +98,27 @@ git config core.hooksPath .githooks
 在那之前 docs 先跑完就会把一个测试还没跑的 PR 判绿。
 解决 issue 的 PR 和别的 PR 一样，CI 绿就放行。master 的 ruleset 要求 `gate` 绿才能合并。
 
-合并由 agent 或人来发起，不由 workflow 发起：`gh pr merge <n> --auto --squash`，GitHub
+合并由 agent 或人来发起，不由 workflow 发起：`gh pr merge <n> --auto --merge`，GitHub
 在 `gate` 变绿时合并并删除分支。草稿不能设自动合并；一个 PR 还会再推提交时先别设，
 推完再设。
 
-**主线上一个 PR 就是一个 commit。** 仓库只允许 squash 合并：落到 master 的
-commit 标题是 PR 标题加 `(#N)`，正文是 PR 正文，和 openai/codex 一样。仓库的 squash
-默认只取标题，所以合并时把正文一并交给 GitHub：
-`gh pr merge <n> --auto --squash --subject "<标题> (#<n>)" --body-file <正文>`。所以下面
-"提交规范"约束的对象是 PR：PR 标题按标题规则写，PR 正文按正文规则写，落款是
-正文的最后一段。分支上的提交是工作记录，会被压掉，但每一条仍要带落款：署名说的是谁写了它，
-和能不能合并无关。不要在别的 PR 的分支上再开 PR：父 PR 压成一个 commit 后子
-分支的提交对不上，要 `git rebase --onto origin/master <父分支>` 才能合。
+**主线上一个 PR 是一个 merge commit，加上它带进来的提交。** 仓库只允许 merge
+commit 合并，和 NixOS/nixpkgs 一样：merge commit 的标题是 PR 标题加 `(#N)`，正文是
+PR 正文，这两样由仓库设置取，合并时不用另传。分支上的提交原样进主线，
+`git log --first-parent master` 每个 PR 一行，`git log` 看得到每一步。所以下面"提交
+规范"约束两层：PR 标题和正文按标题、正文规则写，它们就是 merge commit；分支上的每一
+条提交也永久留在主线，同样按标题规则写、带落款，正文写它自己那一步 diff 里看不见的
+东西。
+
+分支上的提交在开 PR 之前整理好：修上一条的零碎改动用 `git commit --fixup <sha>`，
+再 `GIT_SEQUENCE_EDITOR=true git rebase -i --autosquash origin/master` 并进去。不要求
+每一条提交都能编译、都过测试，要求的是 PR 头上的那一条；二分查找用
+`git bisect --first-parent`。
+
+分支跟上 master 用 rebase，不用 merge：`git rebase origin/master` 然后
+`git push --force-with-lease`。把 master merge 进分支，会把一条"Merge master into"
+带进主线。一个 PR 可以开在另一个 PR 的分支上：父 PR 的提交原样进主线，子分支天然
+对得上，父 PR 合并后把子 PR 的 base 改回 master 即可。
 
 # 研究管线
 
@@ -165,8 +174,9 @@ crate 编译时嵌入它，抽取脚本经 `scripts/build_data.py` 读它，语�
 
 # 提交规范
 
-这里的"提交"指落到主线的那个 commit，也就是一个 PR：标题是 PR 标题，正文是
-PR 正文。提交信息用英文写，仓库现有日志是英文。
+这里的"提交"有两层：一个 PR，也就是它合并时的 merge commit，标题是 PR 标题，正文是
+PR 正文；以及 PR 带进主线的每一条分支提交。下面的标题、正文规则两层都适用，拆分判据
+约束的是 PR。提交信息用英文写，仓库现有日志是英文。
 
 ## 智能体署名
 
@@ -228,8 +238,8 @@ a tower.`、`Releasing a contraption is a purchase.`。读者只扫首句，也�
 
 ## 拆分判据
 
-**一个 PR 是让标题成立所需的最小改动集合。** 分支上怎么分提交无所谓，压掉之后
-只剩标题和正文；下面说的"一次提交"都读作"一个 PR"。 拿掉其中任何一部分，标题就不再
+**一个 PR 是让标题成立所需的最小改动集合。** 下面说的"一次提交"都读作"一个 PR"；
+PR 里的分支提交是走到这个标题的各步，每一步自己的标题同样要成立。拿掉其中任何一部分，标题就不再
 成立或变成夸大；能拿掉而标题照样成立的部分，属于另一次提交。
 
 标题写不出来就是拆分信号。需要用逗号罗列、需要 "and also"、需要 "various"，
