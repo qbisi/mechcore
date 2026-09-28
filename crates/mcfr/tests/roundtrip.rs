@@ -3,14 +3,14 @@ use std::io::Read;
 use bytes::Bytes;
 use mechcore_mcfr::{
     BuildingState, CONTENT_HASH_PROFILE, CheckedSkill, DerivedStats, Domain, DurableContext, Event,
-    EventPayload, GaugeI32, Hashes, LiveUnitState, MCFR_FORMAT, McfrReader, McfrWriter, Modifier,
-    ModifierChannel, ModifierPart, MotionState, ObjectKind, ObjectRef, PHYSICS_HASH_PROFILE,
-    PersonalShieldState, QPlanar, QVec3, Rational, RvoExit, RvoNeighbour, RvoNeighbourKind,
-    RvoSolve, RvoVec, RvoVo, ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind,
-    ShieldState, SkillAttackableCheck, TargetCandidate, TargetRefs, TargetSearch, TargetSearchPath,
-    TerrainApplicationState, TerrainEffectClock, TerrainGridState, TerrainLogicLifetime,
-    TerrainRemovedReason, TerrainState, TerrainType, TransitionEvents, Visibility, WeaponAimState,
-    WorldSnapshot, sort_modifiers,
+    EventPayload, GaugeI32, GroupSlot, Hashes, LiveUnitState, MCFR_FORMAT, McfrReader, McfrWriter,
+    Modifier, ModifierChannel, ModifierPart, MotionState, ObjectKind, ObjectRef,
+    PHYSICS_HASH_PROFILE, PersonalShieldState, QPlanar, QVec3, Rational, RvoExit, RvoNeighbour,
+    RvoNeighbourKind, RvoSolve, RvoVec, RvoVo, ShieldDestroyedReason, ShieldRoundPolicy,
+    ShieldSourceKind, ShieldState, SkillAttackableCheck, TargetCandidate, TargetRefs, TargetSearch,
+    TargetSearchPath, TerrainApplicationState, TerrainEffectClock, TerrainGridState,
+    TerrainLogicLifetime, TerrainRemovedReason, TerrainState, TerrainType, TransitionEvents,
+    Visibility, WeaponAimState, WorldSnapshot, sort_modifiers,
 };
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use serde_json::json;
@@ -727,6 +727,7 @@ fn instrument_channels_ride_in_the_recording_outside_both_hashes() {
     let check = SkillAttackableCheck {
         invocation_ordinal: 7,
         source_actor: ObjectRef::new(ObjectKind::Unit, 1),
+        skill_slot: Some(2),
         is_attacking_check: true,
         before: CheckedSkill {
             lock_target: None,
@@ -745,6 +746,18 @@ fn instrument_channels_ride_in_the_recording_outside_both_hashes() {
     writer
         .append_instrument(std::slice::from_ref(&check))
         .unwrap();
+    let slot = GroupSlot {
+        unit: ObjectRef::new(ObjectKind::Unit, 1),
+        skill_slot: 2,
+        lock_target: Some(ObjectRef::new(ObjectKind::Unit, 2)),
+        attack_target: Some(ObjectRef::new(ObjectKind::Unit, 2)),
+        skill_state: Some("SkillPrepareState".into()),
+        skill_attack_phase: None,
+        skill_is_idle: Some(false),
+    };
+    writer
+        .append_instrument(std::slice::from_ref(&slot))
+        .unwrap();
     // Asked for and never filled: the channel is published empty.
     writer.append_instrument::<TargetSearch>(&[]).unwrap();
     assert_eq!(writer.finish().unwrap(), plain);
@@ -752,7 +765,12 @@ fn instrument_channels_ride_in_the_recording_outside_both_hashes() {
     let reader = McfrReader::open(&path).unwrap();
     assert_eq!(
         reader.instrument_channels().collect::<Vec<_>>(),
-        ["skill_attackable_checker", "target_refs", "target_search"]
+        [
+            "group_slots",
+            "skill_attackable_checker",
+            "target_refs",
+            "target_search"
+        ]
     );
     assert_eq!(
         reader.instrument::<TargetRefs>().unwrap(),
@@ -761,6 +779,10 @@ fn instrument_channels_ride_in_the_recording_outside_both_hashes() {
     assert_eq!(
         reader.instrument::<SkillAttackableCheck>().unwrap(),
         Some(vec![(1, check)])
+    );
+    assert_eq!(
+        reader.instrument::<GroupSlot>().unwrap(),
+        Some(vec![(1, slot)])
     );
     assert_eq!(
         reader.instrument::<TargetSearch>().unwrap(),
