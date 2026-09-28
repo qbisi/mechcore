@@ -9,9 +9,6 @@
 # about 20 m earlier, which moves every tick of the fight after it. The whole
 # recording is the reading here rather than one number: nothing but the range
 # could have shifted the first shot.
-#
-# A value and an impairment in one fight, against the same fight without
-# them. Twenty metres of range moves every tick after the first shot.
 
 kind: fight
 map_id: 1021

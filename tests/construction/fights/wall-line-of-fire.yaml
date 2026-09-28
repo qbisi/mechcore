@@ -20,11 +20,9 @@
 # Blue's wall is the one this seed's opening already stands, because a release
 # anywhere else is refused.
 #
-# A wall in the way. One Marksman shoots past the wall at the unit behind
-# it, and the block it destroys is neither the nearest block nor the one its
-# line passes closest to — it is the nearest of the blocks the line reaches.
-# `docs/rules/constructions.md` measured that and this holds the simulator
-# to it: 20 ticks, block 6 down, everything else standing.
+# The block the Marksman destroys is neither the nearest block nor the one
+# its line passes closest to: it is the nearest of the blocks the line
+# reaches, block 6, and everything else stands.
 
 kind: fight
 map_id: 1021

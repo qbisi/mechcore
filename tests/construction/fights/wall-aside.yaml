@@ -14,9 +14,9 @@
 # The wall's position is not free: the game refuses a release anywhere but the
 # map's own construction slots, so `(-140, -55)` is chosen because it is one.
 #
-# A Defensive Wall, 256 metres from either unit, changes nothing about the
-# fight and everything about what is standing in it. The hash covers both:
-# it is the game's, and it holds the five blocks as well as the two units.
+# The wall changes nothing about the fight and everything about what is
+# standing in it, and the hash holds the five blocks as well as the two
+# units.
 
 kind: fight
 map_id: 1021

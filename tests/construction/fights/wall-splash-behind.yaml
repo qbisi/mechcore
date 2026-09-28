@@ -2,10 +2,6 @@
 # behind it — beyond the Arclight's reach, so not in its line of fire, and
 # inside its splash. The shot at the Crawler takes the block too, for the
 # shot's full damage, between the Crawlers around it.
-#
-# A splash across a wall, from a shot at a unit: the block behind the Crawler
-# it hit, out of the Arclight's reach, takes the shot's full damage. 176
-# ticks, the game's hashes.
 
 kind: fight
 map_id: 1021

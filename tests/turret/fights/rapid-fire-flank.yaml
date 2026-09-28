@@ -7,9 +7,9 @@
 # fight's first shot and the head-on one's, once both are measured from the
 # tick the nearest Crawler enters range, is what turning costs.
 #
-# The same Crawlers 36.6 degrees off the turret's column. The weapon has
+# The Crawlers come in 36.6 degrees off the turret's column. The weapon has
 # turned onto its lock before the lock is in reach, so the first shot is as
-# early, counted from reach, as the head-on one: 234 ticks.
+# early, counted from reach, as the head-on one.
 
 kind: fight
 map_id: 1021

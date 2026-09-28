@@ -1,10 +1,9 @@
 # A Rhino charging a Marksman who stands behind the middle block. The Rhino
 # attacks in melee, so this is how a direct attack takes a wall.
 #
-# A blow, and not a shot. The Rhino takes the block in its line one hit at a
-# time, stays on each until its swing is over, reads idle for a tick, and
-# takes the next thing in its way. 189 ticks, the game's hash; its content
-# hash agrees as well, which CI checks against the game's.
+# The Rhino takes the block in its line one hit at a time, stays on each
+# until its swing is over, reads idle for a tick, and takes the next thing in
+# its way.
 
 kind: fight
 map_id: 1021

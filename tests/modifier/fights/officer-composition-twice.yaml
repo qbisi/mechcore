@@ -1,9 +1,7 @@
 # Two copies of the same officer, which a side may hold: `layout.md` keeps
-# `officers` a multiset for exactly this. Additive composition makes the
-# Marksman's damage 1.6 times its description and multiplicative makes it
-# 1.69, which one recording tells apart.
-#
-# One enhancement, and two of them summing: 2329 x 1.3 and x 1.6.
+# `officers` a multiset for exactly this. The two enhancements sum, 2329 x
+# 1.6; multiplied they would make it 1.69 times the description, which one
+# recording tells apart.
 
 kind: fight
 map_id: 1021

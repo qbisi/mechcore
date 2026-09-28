@@ -3,11 +3,6 @@
 # projectile, Fang projectile, Steel Ball laser) and two melee ones (Crawler,
 # Rhino), in one column so that every formation's identities sort by world z
 # in the order they are declared.
-#
-# Which units a Ranged row reaches. The control is six formations with no
-# officer; with Advanced Targeting System the four ranged ones reach 10 m
-# further and the Crawler and the Rhino carry nothing, which only the content
-# hash can tell from a row that reached every unit.
 
 kind: fight
 map_id: 1021

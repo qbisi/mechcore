@@ -8,10 +8,9 @@
 #
 # Nothing else is within reach of either.
 #
-# The other side, stopped by the wall and taking it down. Twenty-four
-# Crawlers pushed along the wall as they strike it change blocks between
-# blows, go straight on when a block they had not yet struck falls, and take
-# four of the five before the fight ends. 209 ticks, the game's hash.
+# Twenty-four Crawlers pushed along the wall as they strike it change blocks
+# between blows, go straight on when a block they had not yet struck falls,
+# and take four of the five before the fight ends.
 
 kind: fight
 map_id: 1021
