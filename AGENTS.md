@@ -53,12 +53,9 @@ readme 的效力高于你自己的判断。和你想做的事冲突时按它做�
 
 # CI 与合并
 
-`.github/workflows/ci.yml` 先由 `changes` 算改动范围，再分三个并行的 job，各答一个问题。
-只动 `docs/` 的 PR 三个 job 都跳过（跳过算绿，gate 照样放行）；动了 `scripts/`、`tests/`、
-`replay/`、`layouts/` 或任何 `.mcscript` 跑 `scripts`；动了 `crates/`、`config/`、`GAME_VERSION`、Cargo 文件
-跑 `test` 和 `scripts`；动了 `crates/adapter/`、`crates/mechcore/`、`crates/protocol/`、`GAME_VERSION` 或
-Cargo 文件再跑 `adapter`；动了 workflow 文件全跑。要跑什么由改动决定，不由人决定：想让一个检查
-跑，就改它读的东西。三个 job 是：
+`.github/workflows/ci.yml` 分三个并行的 job，各答一个问题，每次改动都全跑，不按改动
+范围挑：按范围挑时一个检查要等范围算完才出现，gate 就得去猜还有哪些检查没来。没改到的
+东西靠各 job 的构建缓存跑得便宜。三个 job 是：
 
 - `test`（Linux）：代码本身对不对——`cargo fmt --all -- --check`、
   `cargo clippy -D warnings`、`cargo test`，都是
@@ -93,9 +90,10 @@ git config core.hooksPath .githooks
 `.git/hooks`。
 
 `.github/workflows/gate.yml` 只回答能不能合并，自己不合并。它在 ci、docs 跑完后运行，在 PR 的 head 上写一个名为 `gate` 的 commit status：
-该 commit 上的工作流都跑完、检查全绿时是 success，还有工作流或检查在跑时是 pending，
-有失败时是 failure。只看检查不够：ci 的 test 等 job 要等 `changes` 跑完才成为检查，
-在那之前 docs 先跑完就会把一个测试还没跑的 PR 判绿。
+它预期一份固定的检查清单——ci 的 `test`、`scripts`、`adapter` 和 docs 的 `docs`——全部
+跑完且成功时是 success，有一个失败时是 failure，还有没出现或没跑完的时是 pending。清单是
+预期的，不是从 commit 上现有的检查里发现的：一个还没出现的检查是还没来，不是被跳过了。
+加一个 job 就要把它加进这份清单。
 解决 issue 的 PR 和别的 PR 一样，CI 绿就放行。master 的 ruleset 要求 `gate` 绿才能合并。
 
 合并由 agent 或人来发起，不由 workflow 发起：`gh pr merge <n> --auto --merge`，GitHub
