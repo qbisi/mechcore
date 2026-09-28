@@ -386,8 +386,9 @@ already collected is untouched, and the abandoned one produces no recording.
 The loop fails closed on the first unsuccessful match and emits one JSON result
 line per recording. Add `output_dir` only when a separate corpus copy is wanted.
 Redirect stdout to a JSONL file when the per-file path, publication mode and
-selected scene metadata should travel with the corpus. A ready-to-run batch
-lives at `replay/record-standard-1v1.mcscript`.
+selected scene metadata should travel with the corpus.
+`scripts/collect-replays.py` is the repository's collector, the same loop as
+commands at level 0.
 
 The native replay is never deleted, and neither is a copy that reached the
 corpus directory. A published copy survives even when only the match-exit check
