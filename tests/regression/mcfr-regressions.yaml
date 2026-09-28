@@ -1,655 +1,573 @@
 - name: marksman-vs-arclight
   smoke: true
   layout: tests/regression/marksman-vs-arclight.yaml
-  format: 0.7.0
   seed: 1787720817
   tick_count: 91
-  physics_result_hash: 615ce96945bc8314e2514fd9b7c35ec1f0b036f7ad77b50b0f0aaf178487e926
+  result_hash: a13716e2e17d0ca5c5cfbaea8c770a98b9c4f892b38f6bfbc6c83338ccdc82b4
 
 - name: rhino-vs-arclight
   smoke: true
   layout: tests/regression/rhino-vs-arclight.yaml
-  format: 0.7.0
   seed: 1787720897
   tick_count: 235
-  physics_result_hash: c73954757f8746624398b43b6fb632deaedd91c69870bd3be41393f46f5d5873
+  result_hash: 134ee3ffa4b54b9becb7c9d5d3a1af1674a7aa723cba26fd36c9cbfe80462804
 
 - name: rhino-retarget
   smoke: true
   layout: tests/regression/rhino-retarget-vs-arclights.yaml
-  format: 0.7.0
   seed: 1787720956
   tick_count: 336
-  physics_result_hash: 2e5a442588f786ceb8835b6a7a4889e75ec12a6170bfca5524affab57b747332
+  result_hash: 0d9c80f39efed68359ae4c2381c1c275cfaf5ddbaaa2d41a403c9962d88b3275
 
 - name: rhino-vs-crawlers-01
   smoke: true
   layout: tests/regression/rhino-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787748319
   tick_count: 377
-  physics_result_hash: 4db29a13e5dd0e1ab145197cccdb9d4045523010f9c1eb8372106ebc2db45d5a
+  result_hash: e61a92526c21ff6f1bb4f84c9b13288d239a21e358d70261e1ce46bdb248e66f
 
 - name: rhino-vs-crawlers-02
   smoke: false
   layout: tests/regression/rhino-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787748346
   tick_count: 312
-  physics_result_hash: 280c4b33da225987074d1b694522ab95791b9d69e516cee55b2f40f23f45077e
+  result_hash: f6dafc4dc78440cb974bdd02f42d74fc976b3598fbc30455f1ace0be969ecec9
 
 - name: rhino-vs-crawlers-03
   smoke: false
   layout: tests/regression/rhino-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787748375
   tick_count: 278
-  physics_result_hash: 204be4f539642fcfd477a251fcf0557e68d2e878b8d54a80fc16a46729a42791
+  result_hash: 0d047ee49831b7932af886c43fcdc7b965ac9e48f0d602e0cf5599411f14542c
 
 - name: rhino-vs-crawlers-04
   smoke: false
   layout: tests/regression/rhino-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787748402
   tick_count: 360
-  physics_result_hash: d13ee36729a432e30d0da94f6b7ecc2a34d281dc71e19edd3368fd3da2cc3946
+  result_hash: 16a0c61292f777b03354a7f6cc9f738133af8abfffbdc04fadf6057b21125b65
 
 - name: rhino-vs-crawlers-05
   smoke: false
   layout: tests/regression/rhino-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787748432
   tick_count: 325
-  physics_result_hash: c2ab286344e6c3d0056f628c606b5e98ded3cafb6164deadb77fe24592728653
+  result_hash: 6c5f9ed3b6985321723285d47bfda4484949b9a2470d04db7316daecbed72040
 
 - name: rhino-vs-crawlers-06
   smoke: false
   layout: tests/regression/rhino-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787748486
   tick_count: 382
-  physics_result_hash: b90de0b40e70164672a715c67166fd8a62d0e470118393a5dbc39d34d544aadc
+  result_hash: bb68375c85fd842148e81d174a1727aeddd89a0b3cf24781546bd4b1216da5a1
 
 - name: rhino-vs-crawlers-07
   smoke: false
   layout: tests/regression/rhino-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787748526
   tick_count: 317
-  physics_result_hash: 4adf26b852772142223b9b23b948fba74a31f28433492c7560894363931e69e2
+  result_hash: d52fcac2afba137010b8725f47293eadff35e42421d5eec728bc17f18fc9c168
 
 - name: rhino-vs-crawlers-08
   smoke: false
   layout: tests/regression/rhino-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787748558
   tick_count: 325
-  physics_result_hash: c55c8aa98939c17b309ca29dec32a14ccaf36352cdf6c430df5b9003044e95cc
+  result_hash: 3d4daf7dff3b0352299ba52e8ed59d85849d435b7ea2ddb1d8841f879aaf2c2c
 
 - name: rhino-vs-crawlers-09
   smoke: false
   layout: tests/regression/rhino-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787748599
   tick_count: 360
-  physics_result_hash: 115e3cb7d0559033321b44fcd91a7892ec1b6d4b286e44db5a78b8356d721141
+  result_hash: 9673d3336fb5301fa9712f709fbe68c126de099130d3259b195987f38f9a07b2
 
 - name: rhino-vs-crawlers-10
   smoke: false
   layout: tests/regression/rhino-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787748638
   tick_count: 236
-  physics_result_hash: 050b2f257ed6c37a0f9c21c9f68ae22f47758b9ceed6228f8b55cc4f17622559
+  result_hash: b12d61b783f6ff3feb27419e2399c5456343672cd4b3c3fdeb238c2f4b4bb436
 
 - name: crawlers-vs-rhino-01
   smoke: true
   layout: tests/regression/crawlers-vs-rhino.yaml
-  format: 0.7.0
   seed: 1787757964
   tick_count: 280
-  physics_result_hash: 3ae4af68940eef97f993f6b19ab8943df67f9a55071603516ad61dd03a82a001
+  result_hash: 3cd3464baa410ec4f3a5bae12ae9af34e26fd4e38a1d6c26b60f5f729e26bf8f
 
 - name: crawlers-vs-rhino-02
   smoke: false
   layout: tests/regression/crawlers-vs-rhino.yaml
-  format: 0.7.0
   seed: 1787758008
   tick_count: 301
-  physics_result_hash: 004bc5ace97cd6063a98776c585e615ad6acafb4815f0f167300d7c1a62b6164
+  result_hash: fa2b77680bf73cd1f83ca14761fad6fcb4b044ee9b008c82f3955c05f1254bf9
 
 - name: crawlers-vs-rhino-03
   smoke: false
   layout: tests/regression/crawlers-vs-rhino.yaml
-  format: 0.7.0
   seed: 1787758042
   tick_count: 308
-  physics_result_hash: 3ee3233aa57cf7940ba3220aa4be20ffb5e496ed33015fc2421e491572430450
+  result_hash: bb29ff292fbe87168dc171b469a17ad21b10e307327b77effed8693ca21a2f5c
 
 - name: crawlers-vs-rhino-04
   smoke: false
   layout: tests/regression/crawlers-vs-rhino.yaml
-  format: 0.7.0
   seed: 1787758104
   tick_count: 364
-  physics_result_hash: d53bb4fc7486c6dec32722efe8f99a4a62082c0233c497cefdec0a8a1872ac1e
+  result_hash: 47d8fffc3ed621d1c813455123dd48ea6e98669dc15088151a5f8686b8a011b3
 
 - name: crawlers-vs-rhino-05
   smoke: false
   layout: tests/regression/crawlers-vs-rhino.yaml
-  format: 0.7.0
   seed: 1787758157
   tick_count: 321
-  physics_result_hash: e0ec602478f96e20d5921ac477b3d3f59f02b259eb3d050f7b380fbbd3037219
+  result_hash: ac7ce22bd64cf15585624b478536ba1ba5933f5229ea84bc8ca2be02e28df0a8
 
 - name: crawlers-vs-rhino-06
   smoke: false
   layout: tests/regression/crawlers-vs-rhino.yaml
-  format: 0.7.0
   seed: 1787758202
   tick_count: 264
-  physics_result_hash: 67a2f10da6e6469304e8197cfa4b3de0cab10fe45e722b517fd69605063d53e3
+  result_hash: 42b064ed615988081bc7e03b70a33c97a50d630236fa5d96d924a132d4d4b142
 
 - name: crawlers-vs-rhino-07
   smoke: false
   layout: tests/regression/crawlers-vs-rhino.yaml
-  format: 0.7.0
   seed: 1787758244
   tick_count: 298
-  physics_result_hash: 4660f7304463b9e673a4282e7affe657a6e6ceebcf9a6ef41bc2f6b416b211d7
+  result_hash: a83aa227c1c05f1e23bd3c179973396cd43f2ffeb147f77fd9858ab22c2cb03e
 
 - name: crawlers-vs-rhino-08
   smoke: false
   layout: tests/regression/crawlers-vs-rhino.yaml
-  format: 0.7.0
   seed: 1787758281
   tick_count: 279
-  physics_result_hash: 1130b24aad7d8b1d91b30a9a41f35c3a8899ef5fed7e60f8a8f59d3f111667b6
+  result_hash: 64cc63cc42e5fad05fd41d6987cdbb31c5015b3d7bb77e109f02e0d17f734089
 
 - name: crawlers-vs-rhino-09
   smoke: false
   layout: tests/regression/crawlers-vs-rhino.yaml
-  format: 0.7.0
   seed: 1787758328
   tick_count: 295
-  physics_result_hash: d8a9a3ed1a606d29dedae43e803ffc6362df5053265b513b693b5c09b297f52f
+  result_hash: 34478350a20410c427c4cdfe7ff1a033365c34c0081665e15595b56e20565bb8
 
 - name: crawlers-vs-rhino-10
   smoke: false
   layout: tests/regression/crawlers-vs-rhino.yaml
-  format: 0.7.0
   seed: 1787758384
   tick_count: 307
-  physics_result_hash: 018d78445054ab05c52d2de6228bbb84979f3d937f2778027968ae7f57c8ce62
+  result_hash: 5d7100a9e1be37a1567d8dedc39d4e2e061841ba1283cc39aca28929e5b44586
 
 - name: crawlers-vs-crawlers-01
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787778788
   tick_count: 351
-  physics_result_hash: 3516f81efb6321df545198a8b246d48c8ed61de97cedb2c2637e5301b1a03479
+  result_hash: f59131850ca6bd6661847b1847b9234d39a53f8af4f5730138a26108113a2ba1
 
 - name: crawlers-vs-crawlers-05
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787778960
   tick_count: 371
-  physics_result_hash: 6d11d035d70d369a0c44971d20d5ba92e58d3da9061b4136dfffda45d601328b
+  result_hash: d50da75dbf4cadf57dfe89bc8885c6d03899dd2311fe4f381aec20f74166e961
 
 - name: crawlers-vs-crawlers-09
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787791755
   tick_count: 403
-  physics_result_hash: 02ea27ac24c25042ec8883069f13ff6ff49337829721d9f0a8f190681a852639
+  result_hash: 02b29efb0f6ab8380d84ff70d938210ce5b52e18a3429dffcd6c521d126e1b4c
 
 - name: crawlers-vs-crawlers-13
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787799499
   tick_count: 379
-  physics_result_hash: a4ed732c468cc8cf52ac1b19f0f9304c9a73be2da62ee5cc906309d115e597e2
+  result_hash: 8a4bc4530f1a594fac71745c21001f158787cad062794a46e29e72d4b05fdf4f
 
 - name: crawlers-vs-crawlers-17
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787799748
   tick_count: 381
-  physics_result_hash: 0a16083f27d04e134abefedfd64b3fbbd067a5cc5fd42652e4920d92f6613125
+  result_hash: eb921854701cb2b2cea2eaa55680886c1921c134b4f50d2a1bade3eed300079a
 
 - name: crawlers-vs-crawlers-21
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787800633
   tick_count: 377
-  physics_result_hash: 4b5eadff5768811dc5585280ee2af84e5e708c61d1a23876079cf3f4e7bfbb86
+  result_hash: 4c5cbe5ddfe5d34b2021e59aacfef7249a4186b18831d91eec380b1ab8dbc69e
 
 - name: crawlers-vs-crawlers-25
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787800781
   tick_count: 366
-  physics_result_hash: a2707e54f87fb597b17128efb75bbbf075bb545ed2acd062e86cf21bfbbcea24
+  result_hash: 1049df10437a9a1cd658f8db4b6f6c12c06608cc493795d674751061be87cd2a
 
 - name: crawlers-vs-crawlers-29
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787801010
   tick_count: 317
-  physics_result_hash: a1db19be6ba0df7fb042bed0022ad3ee61e035b94907253fa9a414c6f2735ef8
+  result_hash: 553ef8047694dd071d37522e62b830c9230caf3fd602139080c325a27fd565df
 
 - name: crawlers-vs-crawlers-33
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787802518
   tick_count: 439
-  physics_result_hash: bd7a35bf58ece30532775df0be8b462514c4c5ae653624b74912f415092ee226
+  result_hash: 5494989c1c797b23a3d1b9c54ba0c3aaceb719b97353af36869dc6cbf1db1c21
 
 - name: crawlers-vs-crawlers-37
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787803517
   tick_count: 356
-  physics_result_hash: 9c3a53c3307ddc98133c0737fc2c21ffec40d459fc41377be527afb23c54cf85
+  result_hash: 67d3b32d4a7e7d36f915ad141a43feea69454e001e33d02156b8e65a79aecc26
 
 - name: crawlers-vs-crawlers-41
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787803732
   tick_count: 351
-  physics_result_hash: 108e965776424fdc07ff07738fe27869c6ab5bb7343712cb9fe10a7503e0827b
+  result_hash: c6b16e59b0b9148894db68a0cd03c3ba4f05bd19a509748fb0d532fba4baa301
 
 - name: crawlers-vs-crawlers-45
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787803881
   tick_count: 300
-  physics_result_hash: b98fa895f2f1dacb452a4c94a107f240960a32ed73967a802d5c800243af6692
+  result_hash: c5358fc48fa4a688e1a0bcd5243fe1692a83e1b93e97f37cbf67c0d88f8c204e
 
 - name: crawlers-vs-crawlers-49
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787804531
   tick_count: 389
-  physics_result_hash: f90291ec39d66d6ca4fd6ee6fbcc2ea1d30b507fbc97138be3ce74ccd57fec08
+  result_hash: a492a013b8db920d6dfd31ffdb0aa17c3ec64b77c04f42e27c339b1ca1cfccd9
 
 - name: crawlers-vs-crawlers-53
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787805016
   tick_count: 350
-  physics_result_hash: 176c6ffe738fc2a18fadaee68253c7e54d2bbbcf57b98eb639a0e8dd1e0bb480
+  result_hash: 25a049bf680ba01a9aeedb6b57ec50739ea53957c004b127eebcdd9d75f57371
 
 - name: crawlers-vs-crawlers-54
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787805051
   tick_count: 349
-  physics_result_hash: 92fee9ae207a65c99edbb071afa0797432536fc9a66e813d7a332082f05dfcf0
+  result_hash: 1ed45304c24ce468696fb59016313fc6d492678e4256f8372850393d16a9f5e1
 
 - name: crawlers-vs-crawlers-55
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787805107
   tick_count: 368
-  physics_result_hash: b450f25475de1442a08cf2bc5456f71826330cbd83dd0032badc000aef849b91
+  result_hash: 84d22126c7e44701a4562ce766e2b90a00547c08e2ef193081bb42cfb44205e2
 
 - name: crawlers-vs-crawlers-60
   smoke: true
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787805959
   tick_count: 342
-  physics_result_hash: 9d7181efa74580fdc64240d8921de4801188404128bba76af70652ab42174bf1
+  result_hash: d56d70eaa62f09ce273e5ad3762fab77f6cad4ba0cf6c8759225737452d65d45
 
 - name: crawlers-vs-crawlers-65
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787806536
   tick_count: 334
-  physics_result_hash: 81a2262e71bc538fad5e33d115d00eb9ed3a6b533da2dfad4c857ba953caa6b3
+  result_hash: 7784512d56b34e11b67e72dd27335e109720e23d7de31e05fc78ab5cbf8e9caf
 
 - name: crawlers-vs-crawlers-68
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787806713
   tick_count: 404
-  physics_result_hash: 7e751f2b3156beca356766541a16f93e9c9a7dad451bfebe82e6a652abe7390f
+  result_hash: 1c4bfef77b981f3efd1aaa68246cdf9f20678f69bb966b88cbbecdf3f0ac022c
 
 - name: crawlers-vs-crawlers-70
   smoke: false
   layout: tests/regression/crawlers-vs-crawlers.yaml
-  format: 0.7.0
   seed: 1787806795
   tick_count: 295
-  physics_result_hash: e7ea1a4a0a2f872d81d8d3994cda384e6963b22d1b176b510336911e96a67d03
+  result_hash: eefc42fc05c2800ad3dfa4545e6dfdf70f40a1549cd6c5769fab81c254ed11dc
 
 - name: fangs-vs-fangs-01
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  format: 0.7.0
   seed: 1787808873
   tick_count: 344
-  physics_result_hash: bd3947a78126fb6a42bca4012cc7c4c09e3413cd05eccf92357f906e5a497c2b
+  result_hash: f77c685064a6565b312afa6ef47fbc773fa8ccc34ac2afc05906e440903fe117
 
 - name: fangs-vs-fangs-02
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  format: 0.7.0
   seed: 1787808906
   tick_count: 392
-  physics_result_hash: 8ddc6a54fde90ac2c5e9a8e34355d358110ddb69998a99efe65ac5ea594acddd
+  result_hash: 1070ff87faa7b6710f9edb68aa7a13dd238b8db93fe32718b04ad81347171dc3
 
 - name: fangs-vs-fangs-03
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  format: 0.7.0
   seed: 1787808949
   tick_count: 350
-  physics_result_hash: 207b17880b6289b6f43ac6fdbb6ac523048e0c45784f940e8db2e26faa0133cf
+  result_hash: 1d34c1f3b82b25ab33899f0988e6a523a338b75c81209efe10b7f6516a515ba2
 
 - name: fangs-vs-fangs-04
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  format: 0.7.0
   seed: 1787808985
   tick_count: 337
-  physics_result_hash: ce190e889a436c28c7ca930470bb13f5a457dd171c48eac731f84f9ce7470022
+  result_hash: a0e2062b6ccbb7af5efe8f8fecb0488882ace6db575da9b357c6a00d237359d1
 
 - name: fangs-vs-fangs-05
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  format: 0.7.0
   seed: 1787809018
   tick_count: 366
-  physics_result_hash: 972dd2b409f6e87d2df337239f49b87b6e7da7ceade66b743b4ae227d52dfe77
+  result_hash: 7cb0641ff8fa1d95ade62199bfd3f5900767b8de77f55e64ed46549a11f06b1b
 
 - name: fangs-vs-fangs-06
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  format: 0.7.0
   seed: 1787816186
   tick_count: 363
-  physics_result_hash: 69caf1d45833d4fc728967a029936d901c978f84a1eb84617f36a26cb4a78151
+  result_hash: 8dd1c814539626bb7c8051178c40edf53d1db777f88a71923f197f415a6f4107
 
 - name: fangs-vs-fangs-07
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  format: 0.7.0
   seed: 1787816925
   tick_count: 347
-  physics_result_hash: 054b121c3717674486f43e04abb264c87ea5592884085f366c5efb7cd4bf0ede
+  result_hash: 3b414f4ff842532a63e26657da3dfe18d0408d21eafeee70b6f7c5e65332abed
 
 - name: fangs-vs-fangs-08
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  format: 0.7.0
   seed: 1787817059
   tick_count: 348
-  physics_result_hash: ddf6a7e6c7dedbcc7f386126bb6acf1606d4193fc37502411a690dab47c3b504
+  result_hash: 2571468a593cbc435a072e758f8541386acb3996fcf72fc3c27006e5f100141f
 
 - name: fangs-vs-fangs-09
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  format: 0.7.0
   seed: 1787818397
   tick_count: 343
-  physics_result_hash: 0f8f9ae58721f95e83bb9fc369203b04e8768707f7abd983fcf8f56da25034e8
+  result_hash: bc30e34a1e96268cee35f8b325100ad5a5104a7c761e47babfd7d37b6cba94d8
 
 - name: fangs-vs-fangs-10
   smoke: false
   layout: tests/regression/fangs-vs-fangs.yaml
-  format: 0.7.0
   seed: 1787818488
   tick_count: 337
-  physics_result_hash: 9ec96388439c225812c4c00529f42da590aa72dc1940bb239e7be87bc96f9653
+  result_hash: bc2c804fc29ebd28606b4aea109194fcd01b2746636be46c332d6045b570f9a5
 
 - name: fangs-vs-fangs-11
   smoke: true
   layout: tests/regression/fangs-vs-fangs.yaml
-  format: 0.7.0
   seed: 1787819220
   tick_count: 329
-  physics_result_hash: 88ee6286f4091b4b8cfcb951d80ebeecd1ce7264f612eb864866faae16a69875
+  result_hash: 3089f6093a069a30eb3cb53dd819c08a3a1e32dabed22607614f2142ea6684f1
 
 - name: mustangs-vs-mustangs-01
   smoke: true
   layout: tests/regression/mustangs-vs-mustangs.yaml
-  format: 0.7.0
   seed: 1787823221
   tick_count: 254
-  physics_result_hash: d7140f6374c2854ef60fa20afe83763b4fd148b68914df3077f59c3d476907d0
+  result_hash: 2baca37a32f893114e80ff21be9e690b5500781335ac5e598d166a7739468dbe
 
 - name: wasps-vs-wasps-01
   smoke: true
   layout: tests/regression/wasps-vs-wasps.yaml
-  format: 0.7.0
   seed: 1787829131
   tick_count: 196
-  physics_result_hash: 67be5aace885e7fec091ef02df807c0f0505febe8b1c77c01083704fe35d6161
+  result_hash: c1050f703df29175d16f82a5217ac9a834c2a9cc10b27ecb99234c7b76541928
 
 - name: steel-balls-vs-steel-balls-01
   smoke: true
   layout: tests/regression/steel-balls-vs-steel-balls.yaml
-  format: 0.7.0
   seed: 1787831322
   tick_count: 300
-  physics_result_hash: 79c931fc6821653475dc1e33f251b423f4f7be2fa0851a11588ae17274cbdd63
+  result_hash: b48055117eff61d5a016bba7caf8f3704a5d11499d9a03a5b0f316964e9395b5
 
 - name: crawler-vs-rotated-01
   smoke: true
   layout: tests/regression/crawler-vs-rotated.yaml
-  format: 0.7.0
   seed: 1787833929
   tick_count: 271
-  physics_result_hash: 97a11aa5c973831222e0cb2c5cc5e8aa83b566c646a9c3b7be2ed7acc78d3a56
+  result_hash: adb418d792cf624deb634fdf22e64f4aa7e354a6433fffb9c9549090d02ac17c
 
 - name: arclight-splash-01
   smoke: true
   layout: tests/regression/arclight-splash.yaml
-  format: 0.7.0
   seed: 1787837829
   tick_count: 497
-  physics_result_hash: 4217f06cbfd82517cc1a002ade33933b0ac4ccc30ccd7192e2d45c9cbfc10e25
+  result_hash: 97a88c5f7ba1b774c6d8572c500e0a4c9e691a3a1a8013f34d9dc6fad1e84089
 
 - name: wraith-group-attack-01
   smoke: true
   layout: tests/regression/wraith-group-attack.yaml
-  format: 0.7.0
   seed: 1787857041
   tick_count: 647
-  physics_result_hash: 40bfd915ecd39fc23d09469c73ed15e626eaa441f29362ab9133e7952f585bc6
+  result_hash: 8782500b2d1f0769e185f02ce66a9b390631b48c4beab1ad41de83fea057d039
 
 - name: stormcaller-vs-self-01
   smoke: true
   layout: tests/regression/stormcaller-vs-self.yaml
-  format: 0.7.0
   seed: 1787887280
   tick_count: 763
-  physics_result_hash: d10121854c984cdaecad6e29f518cc84a40f0668ce7f7d9794bb8d44c8988d3d
+  result_hash: 6a33bb94b94552cd8b315e5c02d54e522fb77ef3330258ca53de0db775992645
 
 - name: stormcaller-vs-self-02
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  format: 0.7.0
   seed: 1787863348
   tick_count: 498
-  physics_result_hash: 3dbdb6d2006daf490c47bd2ba46fe45f583ca31da5761d935a1df50e98522f33
+  result_hash: 6a18a86524ba04f0caf2cb4a821928a1a8e5184d38bfa5f489adb24af234a16e
 
 - name: stormcaller-vs-self-03
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  format: 0.7.0
   seed: 1787863396
   tick_count: 502
-  physics_result_hash: 77bcf5c771d8d71c67b7efc320cf5d3b2687bd006cff5d8f05816c3c73a1cb8b
+  result_hash: 3a253b04318c0ceb7fb31f0ac63ee20f1184aadad39d6efbdc8c07cd407fb0e8
 
 - name: stormcaller-vs-self-04
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  format: 0.7.0
   seed: 1787863436
   tick_count: 514
-  physics_result_hash: db2c80cb4307c6d143ea9265803d643b12b04b5f29f8318756aa863ce53a08c8
+  result_hash: e5019c47c7d43f7a59ad07340eb436df1cde2f2c4e34f8174b1f58f4097ca2ef
 
 - name: stormcaller-vs-self-05
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  format: 0.7.0
   seed: 1787863478
   tick_count: 595
-  physics_result_hash: e830ebb12a497a2d66f74f19a07d98d294cc894c49fce97ccd115bd030ac56df
+  result_hash: a0c34245b50f12cdc15fbd6f9d16cde7ae1173d0804c7229d03d048f02f5587a
 
 - name: stormcaller-vs-self-06
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  format: 0.7.0
   seed: 1787863515
   tick_count: 630
-  physics_result_hash: f8c1a32055def79b55611c1acb6cdf30d011c7c0e6ae75a50fc6d31ab7098a40
+  result_hash: 70a42cff6f7e1342c30e8e48bd4339eb95cff602ea01a741347f0200444fc2f0
 
 - name: stormcaller-vs-self-07
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  format: 0.7.0
   seed: 1787887111
   tick_count: 609
-  physics_result_hash: 38aa998e89caaa8d3316bfd6f9190d3192e4ffa58e24f27338bde3feb7128ea3
+  result_hash: b8b7e000afeb25c3f4ca1b15c18fe66df5802b14abbe24afe9024601a7bf231b
 
 - name: stormcaller-vs-self-08
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  format: 0.7.0
   seed: 1787887134
   tick_count: 503
-  physics_result_hash: ce41a7fe767b390c260179808db90a0e370f8c1445d1535f230a42e51dcc6b81
+  result_hash: e11780f4c3d273060e6f518b68465203db4db2101f3ce51c44a34eb5c612a0e9
 
 - name: stormcaller-vs-self-09
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  format: 0.7.0
   seed: 1787887155
   tick_count: 596
-  physics_result_hash: f979ffe4bfd366fd56c39f0528e4d13a09a2a58c96d29150a346543e4c66f1be
+  result_hash: 65aa67ae3573844fe23a62416e558d8c9fb945110671c9ad361538d389c29840
 
 - name: stormcaller-vs-self-10
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  format: 0.7.0
   seed: 1787887178
   tick_count: 614
-  physics_result_hash: 7095e56795d4cd9bd945b4425444d2e1e84c350c8fd55069c57ad451387034d9
+  result_hash: 057ad49ad54c9abc5d65886daba873c09aa7f49db5e992f3c2428790be793c86
 
 - name: stormcaller-vs-self-11
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  format: 0.7.0
   seed: 1787887201
   tick_count: 634
-  physics_result_hash: 49a4bdef5f33c0eb08eb45f7e763fcf78a9845f678bd5b91f311058bd8d70572
+  result_hash: ef258a860bf5c216639d73c53ada5b877c898b4c71d495b112dc91e30be55aec
 
 - name: stormcaller-vs-self-12
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  format: 0.7.0
   seed: 1787887304
   tick_count: 430
-  physics_result_hash: 301006d7349b321052e5fbe98e5397cd17b7b18f7da69f30ecf499be54b22e99
+  result_hash: 63531bc103f23980e8531255e4b6d33cf51d3c2b5ec2ce79ec2b9516f735651b
 
 - name: stormcaller-vs-self-13
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  format: 0.7.0
   seed: 1787887323
   tick_count: 547
-  physics_result_hash: ed6908cdbe9a58127a449f5b5e387445c9cdba8bb439f27c9b71acacaad06013
+  result_hash: 59b5ba9492deee7e4ae49c37ce0e281b2c06e8de2eec9a5597b13ed45b4c4c9f
 
 - name: stormcaller-vs-self-14
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  format: 0.7.0
   seed: 1787887345
   tick_count: 627
-  physics_result_hash: 7cda12972381613f61eeb220352e19e2db72829e2a1bcdb1f99f3ba9bed781af
+  result_hash: a778ca05f94dd7b469c10649e62ee8696afecc334bd4254492d279cc528618f6
 
 - name: stormcaller-vs-self-15
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  format: 0.7.0
   seed: 1787887368
   tick_count: 503
-  physics_result_hash: 42411e154ce789d0aa8742909128fb801dde3d97f1f2a81b30f546ad6cc98af4
+  result_hash: 59bf763cc0ead79b31d95de61ad671a7298c97ba3797131a7ea5eae974b99a48
 
 - name: stormcaller-vs-self-16
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  format: 0.7.0
   seed: 1787884975
   tick_count: 518
-  physics_result_hash: a741d83b39f463e53254987f91ccf700b279cc2cfe0db11b71bc282d53d5f329
+  result_hash: a1e8396f0c0eb787f225767e9c56a3849501fc32846e4de777a1dc55d471de7b
 
 - name: stormcaller-vs-self-17
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  format: 0.7.0
   seed: 1787882500
   tick_count: 637
-  physics_result_hash: 41046f3766b3c16242b09ba480a56f24f7006f46e1964b4825d072586ea475a2
+  result_hash: bc78476dd1b48bee0636a2a3880d11ed911a5b0017bb9cfb5367eda504b64afc
 
 - name: stormcaller-vs-self-18
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  format: 0.7.0
   seed: 1787881295
   tick_count: 992
-  physics_result_hash: 56c967b97c0b04930b09d4cd6cede4a1a81d1f887de9c4cd15cf5d564318b9d5
+  result_hash: ac15cbfd3f7a57769596c2b7e3733e5e0054beb78bdde85b828b3f61657a54ae
 
 - name: stormcaller-vs-self-19
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  format: 0.7.0
   seed: 1787880738
   tick_count: 571
-  physics_result_hash: 121f52130fac65f3d267ff39ca020ab0a3cb929a0e816c4173d36abfef4bf2a8
+  result_hash: 0fbdc3d86031da3e539fc646978f946e3dfe4421ba647cf7cc406c9439289e39
 
 - name: stormcaller-vs-self-20
   smoke: false
   layout: tests/regression/stormcaller-vs-self.yaml
-  format: 0.7.0
   seed: 1787869558
   tick_count: 599
-  physics_result_hash: af53fcdd2807a1860ce8cc201bc5bf1587327293ebda506370498491edba179c
+  result_hash: c6a01440f5a7cec88da27024961725dcca92afafbd9a78e8f9200ab30b40466f
 
 - name: phoenix-vs-phoenix
   smoke: true
   layout: tests/regression/phoenix-vs-phoenix.yaml
-  format: 0.7.0
   seed: 1788397284
   tick_count: 146
-  physics_result_hash: 3c6e948a2009b603e8b355d569443a3515dc6b05be57b09027b03f341d5ff564
+  result_hash: a02c6bbff4e133c12b76cee7bdc8165013ae46f1c2dcc48e2453c35827d93366
 
 - name: crawlers-vs-marksman
   smoke: true
   layout: tests/regression/crawlers-vs-marksman.yaml
-  format: 0.7.0
   seed: 4242
   tick_count: 161
-  physics_result_hash: aa54ce301f3838e0e3dfe0cae55c5ddd65ada64f7e86205c4f4fb7e33c0b7030
+  result_hash: 881e07f93cc14a8867b0ef9c5e251d897badf167afc0875464962071aa995d08

@@ -2,7 +2,7 @@
 
 Seed 1787720817. `stats.mcscript` records the control
 and the three layouts here. It needs the game; `regressions.mcscript` runs
-all four without the game and pins both native hash layers.
+all four without the game and pins the native hash of each.
 
 | Layout | What it separates | Damage | Life |
 | --- | --- | ---: | ---: |

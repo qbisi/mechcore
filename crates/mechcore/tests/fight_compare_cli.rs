@@ -6,7 +6,7 @@ use mechcore_mcfr::{
 };
 
 #[test]
-fn compare_reports_equal_physics_result_hashes() {
+fn compare_reports_equal_result_hashes() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("fight.mcfr");
     write_recording(&path, 42, &[1]);
@@ -14,7 +14,7 @@ fn compare_reports_equal_physics_result_hashes() {
     let output = compare(&path, &path);
     assert!(output.status.success());
     let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(report["schema"], "mechcore.fight-compare-result.v2");
+    assert_eq!(report["schema"], "mechcore.fight-compare-result.v3");
     assert_eq!(report["equal"], true);
     assert!(report["first_divergence"].is_null());
     assert_eq!(report["compared_ticks"], 1);
@@ -22,14 +22,13 @@ fn compare_reports_equal_physics_result_hashes() {
     assert_eq!(report["fields"], serde_json::json!({}));
     assert!(report.get("at").is_none());
     assert_eq!(
-        report["left"]["physics_result_hash"],
-        report["right"]["physics_result_hash"]
+        report["left"]["result_hash"],
+        report["right"]["result_hash"]
     );
-    assert_eq!(report["content_equal"], true);
 }
 
 #[test]
-fn compare_reports_content_differences_outside_the_physics_projection() {
+fn compare_names_a_difference_in_an_event_annotation() {
     let directory = tempfile::tempdir().unwrap();
     let left = directory.path().join("left.mcfr");
     let right = directory.path().join("right.mcfr");
@@ -37,21 +36,16 @@ fn compare_reports_content_differences_outside_the_physics_projection() {
     write_shield_recording(&right, ShieldSourceKind::SpawnedTemporary);
 
     let output = compare(&left, &right);
-    assert!(output.status.success());
+    assert_eq!(output.status.code(), Some(1));
     let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(report["equal"], true);
-    assert_eq!(report["content_equal"], false);
-    assert!(report["first_divergence"].is_null());
-    assert_eq!(
-        report["left"]["physics_result_hash"],
-        report["right"]["physics_result_hash"]
-    );
+    assert_eq!(report["equal"], false);
+    assert_eq!(report["first_divergence"], 1);
     assert_ne!(
-        report["left"]["content_result_hash"],
-        report["right"]["content_result_hash"]
+        report["left"]["result_hash"],
+        report["right"]["result_hash"]
     );
-    // The content difference is named: the shield's creation event, at the
-    // one tick it happens.
+    // The difference is named: the shield's creation event, at the one tick
+    // it happens.
     assert_eq!(report["fields"]["events"]["first_divergence"], 1);
     assert_eq!(report["fields"]["events"]["divergent_ticks"], 1);
     assert_eq!(report["at"]["tick"], 1);
@@ -89,8 +83,8 @@ fn compare_reports_the_first_divergent_tick_and_fails() {
     );
     assert_eq!(report["at"]["references"]["unit 1"]["left"], "absent");
     assert_ne!(
-        report["left"]["physics_result_hash"],
-        report["right"]["physics_result_hash"]
+        report["left"]["result_hash"],
+        report["right"]["result_hash"]
     );
 }
 
@@ -113,8 +107,8 @@ fn compare_reports_the_first_missing_tick() {
     assert_eq!(report["fields_equal"], true);
 }
 
-/// Naming field groups makes them the verdict: two recordings whose physics
-/// differs in an event agree on every unit field.
+/// Naming field groups makes them the verdict: two recordings that differ in
+/// an event agree on every unit field.
 #[test]
 fn a_selection_of_fields_is_the_verdict() {
     let directory = tempfile::tempdir().unwrap();
@@ -165,7 +159,7 @@ fn the_text_rendering_names_the_verdict_and_the_groups() {
 
     let output = compare_with(&left, &right, &["--format", "text"]);
     let text = String::from_utf8(output.stdout).unwrap();
-    assert!(text.starts_with("physics different from t1"), "{text}");
+    assert!(text.starts_with("hashes different from t1"), "{text}");
     assert!(text.contains("events"), "{text}");
     assert!(text.contains("at t1:"), "{text}");
 }

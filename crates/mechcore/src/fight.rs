@@ -146,7 +146,7 @@ fn verify(mut arguments: Args) -> Outcome {
         .iter()
         .all(|comparison| comparison.comparison.equal);
     let report = VerifyReport {
-        schema: "mechcore.fight-verify-result.v1",
+        schema: "mechcore.fight-verify-result.v2",
         equal,
         comparisons,
     };
@@ -171,12 +171,12 @@ struct CaseComparison {
 /// Compare two recordings, returning the verdict and the structured report.
 ///
 /// Shared with `mechcore run`, whose `fight.compare` step asserts on the same
-/// fields `fight compare` prints. The physics verdict comes from the stored
-/// tick hashes, as it always has; `fields` then says, group by group, where
+/// fields `fight compare` prints. The verdict comes from the stored tick
+/// hashes; `fields` then says, group by group, where
 /// the two recordings differ, and `at` explains one tick of it: the first
 /// divergence of the selected groups, or the tick asked for.
 ///
-/// The verdict is the physics layer's unless groups are selected, in which
+/// The verdict is the hashes' unless groups are selected, in which
 /// case it is whether those groups agree on every tick both recordings hold.
 pub(crate) fn compare(
     left_path: &Path,
@@ -189,12 +189,8 @@ pub(crate) fn compare(
     let first_divergence = left
         .first_divergence(&right)
         .map_err(|error| error.to_string())?;
-    if first_divergence.is_none()
-        && left.hashes().physics_result_hash != right.hashes().physics_result_hash
-    {
-        return Err(
-            "physics result hashes differ although every stored physics tick hash matches".into(),
-        );
+    if first_divergence.is_none() && left.hashes().result_hash != right.hashes().result_hash {
+        return Err("result hashes differ although every stored tick hash matches".into());
     }
     let fields = difference::fields(&left, &right, selection)?;
     let at = tick
@@ -208,17 +204,14 @@ pub(crate) fn compare(
         fields.equal()
     };
     let report = CompareReport {
-        schema: "mechcore.fight-compare-result.v2",
+        schema: "mechcore.fight-compare-result.v3",
         equal,
-        content_equal: left.hashes().content_result_hash == right.hashes().content_result_hash,
         left: RecordingSummary {
-            physics_result_hash: &left.hashes().physics_result_hash,
-            content_result_hash: &left.hashes().content_result_hash,
+            result_hash: &left.hashes().result_hash,
             tick_count: left.tick_count(),
         },
         right: RecordingSummary {
-            physics_result_hash: &right.hashes().physics_result_hash,
-            content_result_hash: &right.hashes().content_result_hash,
+            result_hash: &right.hashes().result_hash,
             tick_count: right.tick_count(),
         },
         first_divergence,
@@ -243,12 +236,11 @@ fn print_comparison(report: &serde_json::Value) {
         }
     };
     println!(
-        "physics {}{}, content {}, {} ticks compared ({} left, {} right)",
+        "hashes {}{}, {} ticks compared ({} left, {} right)",
         agreed(&report["equal"]),
         report["first_divergence"]
             .as_u64()
             .map_or(String::new(), |tick| format!(" from t{tick}")),
-        agreed(&report["content_equal"]),
         report["compared_ticks"],
         report["left"]["tick_count"],
         report["right"]["tick_count"],
@@ -339,7 +331,6 @@ fn collect_groups(path: &str, node: &serde_json::Value, out: &mut Vec<(String, u
 struct CompareReport<'a> {
     schema: &'static str,
     equal: bool,
-    content_equal: bool,
     left: RecordingSummary<'a>,
     right: RecordingSummary<'a>,
     first_divergence: Option<u32>,
@@ -352,7 +343,6 @@ struct CompareReport<'a> {
 
 #[derive(Serialize)]
 struct RecordingSummary<'a> {
-    physics_result_hash: &'a str,
-    content_result_hash: &'a str,
+    result_hash: &'a str,
     tick_count: u32,
 }

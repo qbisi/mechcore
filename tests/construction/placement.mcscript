@@ -12,7 +12,7 @@
 # 256 metres away against reaches of 140 and 95. So the two recordings have to
 # hold the same fight and differ only in their buildings, and the simulator has
 # to reproduce the one with the wall exactly — which
-# `regressions.mcscript` asserts, against the physics hash below.
+# `regressions.mcscript` asserts, against the hash below.
 #
 # **A release is not free.** The wall is at `(-140, -55)` because the opening
 # this seed deals already stands there, so the executor retains it. The same
@@ -42,7 +42,7 @@ steps:
     expect:
       operation.tick_count: 91
       # The hash `regressions.mcscript` holds the simulator to.
-      operation.hashes.physics_result_hash: 57063971dce215674fb698d6f012580076f4198bf224e98674d8cd25a8e5d450
+      operation.hashes.result_hash: 05561863ee5514e720cd5b29d9c8b6e5f3d44218e7b08f9687fd8f111e92d4f5
   - fight.buildings:
       recording: ${out}/aside.mcfr
     expect:

@@ -27,7 +27,7 @@
 # `move_speed_value` reads 6 was written by a build that summed, and one that
 # reads 3 by a build that took the larger.
 #
-# Both hashes are the simulator's, computed before the recording existed.
+# Both hashes are the game's, recorded by this script, never the simulator's.
 #
 # `out` must not already exist: a recording refuses to overwrite.
 
@@ -49,7 +49,7 @@ steps:
       output: ${out}/speed-once.mcfr
     expect:
       operation.tick_count: 104
-      operation.hashes.physics_result_hash: cd7ce5dc1fcec24e6321ad1eaed222a19f9423cef86278076312ea7617abb76b
+      operation.hashes.result_hash: e0026baa1aca87725bdb3c141a108be71c8c77783cfbeef3867159a09bffc986
   - fight.stats:
       recording: ${out}/speed-once.mcfr
     expect:
@@ -62,7 +62,7 @@ steps:
       output: ${out}/speed-twice.mcfr
     expect:
       operation.tick_count: 92
-      operation.hashes.physics_result_hash: 3b667fc6d2dd6fbfda6980fe2dd8df9ab3f50f5b48fa38dbbf8fc96baac3769b
+      operation.hashes.result_hash: 7d287f64aba6090fea57249ee5251783784c4142e7ff84e78c79eaafd920c207
   - fight.outcome:
       recording: ${out}/speed-twice.mcfr
     expect:

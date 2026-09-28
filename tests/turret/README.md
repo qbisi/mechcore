@@ -16,7 +16,7 @@ fires, at what, and how often. That is the half of a construction
 the head-on fight twice, requiring the two to be one recording.
 `arclights.mcscript` records the Arclight fight twice, requiring the two to be
 one recording. `regressions.mcscript` needs no game: it runs all four fights
-through the simulator and holds them to the game's physics and content hashes.
+through the simulator and holds them to the game's hashes.
 The Anti-Armor Crawler fight runs through blue's tower lost at 509 and red's at
 771 ([`towers.md`](../../docs/rules/towers.md)), and at 1027 its Marksman ends
 its attack when its Crawler walks out of reach.

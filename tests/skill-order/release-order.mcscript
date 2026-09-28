@@ -24,8 +24,8 @@
 # non-reproducible pipeline would make the third recording meaningless. The
 # decisive comparison carries no expect: the script succeeds either way and the
 # answer is the `equal` field it prints. False means release order is semantic
-# and normalization must never sort battle_skills. True across both `equal` and
-# `content_equal` means the order is free within this test's sensitivity.
+# and normalization must never sort battle_skills. True means the order is free
+# within this test's sensitivity: every field of every tick agrees.
 #
 # `out` must not already exist: a recording refuses to overwrite.
 
@@ -61,7 +61,6 @@ steps:
       right: ${out}/ab-2.mcfr
     expect:
       equal: true
-      content_equal: true
 
   - fight.compare:
       left: ${out}/ab-1.mcfr

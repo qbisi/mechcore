@@ -1,14 +1,16 @@
-# MCFR 格式规范（format 0.15.0）
+# MCFR 格式规范（format 0.16.0）
 
 [English](mcfr.md)
 
 本文描述仓库当前实现的 MCFR 逻辑模型、物理容器、Adapter 原生采集来源和 Reader/Writer 校验契约。统一格式标识为：
 
 ```text
-format = "0.15.0"
+format = "0.16.0"
 ```
 
 当前 Adapter 原生字段映射绑定仓库在 `GAME_VERSION` 钉住的游戏版本。其他版本可以生成同格式录像，前提是 Producer 已验证所用原生接口与本文语义一致。
+
+本文只规定一个哈希，覆盖时间线里的全部内容。两份录像当且仅当每个 tick 的每个字段都一致时才是同一场仗，所以格式新增一个字段会移动所有钉子：哈希不会为了省一次重录而放过任何差异。
 
 ## 文件结构
 
@@ -30,7 +32,7 @@ recording.mcfr
 ```
 
 instrument 通道是研究要看的战斗内部过程（技能状态机、一次决策方法的每次调用），
-每个通道一个成员 `instrument/<channel>.parquet`，两层哈希都不读它，所以要不要通道
+每个通道一个成员 `instrument/<channel>.parquet`，哈希不读它，所以要不要通道
 不影响任何钉子。通道的行是一个 Rust 类型，Arrow schema 从类型推出；第一列是
 `tick`（`u32`），其后是类型自己的字段。请求了但没观测到行的通道也会发布为空成员；
 没请求的通道不存在，读者得到 `None`。每个通道每 tick 的量不超过实体数的常数倍。
@@ -65,12 +67,12 @@ ZIP 层采用 STORE，数据压缩由 Parquet page 的 Zstd 完成。逐 tick �
 布局采用规范 YAML：显式记录 `seed`，省略原生值为格式默认值的字段，并按原生 Unit index
 保留 `formations` 声明顺序；四种初始防御建筑按 manager 顺序记录在同级
 `constructions`。`mechcore doc verify/format` 和 Simulator 在执行前应用完整布局合法性校验。该成员用于自包含重放和
-`mechcore fight verify`，不直接进入 `physics_*_hash` 或 `content_*_hash`。
+`mechcore fight verify`，不进入哈希。
 
 逻辑时间线为：
 
 ```text
-T(t)     = { S(t), E(t), physics_tick_hash(t) }, 1 <= t <= n
+T(t)     = { S(t), E(t), tick_hash(t) }, 1 <= t <= n
 S(1)     = 第一次原生逻辑更新完成后的状态
 ```
 
@@ -82,16 +84,16 @@ S(1)     = 第一次原生逻辑更新完成后的状态
 
 ## 1.1 作用
 
-`ticks.parquet` 是容器索引。它保存格式标识、DurableContext、整体摘要以及从 `T(1)` 开始的逐帧哈希。
+`ticks.parquet` 是容器索引。它保存格式标识、DurableContext、result hash 以及从 `T(1)` 开始的逐帧哈希。
 
 ## 1.2 Parquet schema
 
 ```text
-tick               : UINT32 required
-physics_tick_hash  : FIXED_LEN_BYTE_ARRAY(32) required
+tick       : UINT32 required
+tick_hash  : FIXED_LEN_BYTE_ARRAY(32) required
 ```
 
-`tick` 的合法序列精确为 `1..=tick_count`。`physics_tick_hash` 覆盖同 tick 的稳定战斗物理投影。覆盖完整 `S(t)` 和 `E(t)` 的 `content_tick_hash` 不存储，Reader 按需从该 tick 的状态和事件重算，整条时间线由 `content_result_hash` 担保；精确定义见附录 C。
+`tick` 的合法序列精确为 `1..=tick_count`。`tick_hash` 覆盖同 tick 的完整 `S(t)` 和 `E(t)`，`result_hash` 按顺序覆盖全部 `tick_hash`；精确定义见附录 C。
 
 ## 1.3 文件元数据
 
@@ -99,13 +101,11 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 
 | key | 数据规范 | 含义 |
 | --- | --- | --- |
-| `format` | 精确值 `0.15.0` | MCFR 逻辑与物理契约版本 |
+| `format` | 精确值 `0.16.0` | MCFR 逻辑与物理契约版本 |
 | `game_build` | 非空 UTF-8 | 采集构建 provenance；Adapter 来自 `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | 单回合保持稳定的上下文 `D` |
-| `physics_hash_profile` | 精确值 `battle-physics-v6` | 稳定物理投影版本 |
-| `physics_result_hash` | 64 位小写十六进制 | 全部 `physics_tick_hash` 的有序摘要；回归判断依据 |
-| `content_hash_profile` | 精确值 `mcfr-content-0.15.0` | 完整内容摘要版本 |
-| `content_result_hash` | 64 位小写十六进制 | 全部 `content_tick_hash` 的有序摘要；格式内诊断依据 |
+| `hash_profile` | 精确值 `mcfr-content-0.7.0` | 哈希定义，以其 domain 字符串的版本命名 |
+| `result_hash` | 64 位小写十六进制 | 全部 `tick_hash` 的有序摘要；回归判断依据 |
 | `tick_count` | `u32` 规范十进制 | 从 `S(1)` 开始记录的逻辑 tick 数 |
 | `terminal_tick` | `u32` 规范十进制 | 已确认的最终逻辑边界；当前连续时间线中等于 `tick_count` |
 
@@ -132,7 +132,7 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 | 字段 | Parquet 类型 | 含义 | Adapter 原生来源 |
 | --- | --- | --- | --- |
 | `tick` | `UINT32 required` | 状态所属逻辑时刻 | Adapter 逻辑帧计数 |
-| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.15.0 身份规则，见附录 B |
+| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.16.0 身份规则，见附录 B |
 | `team_id` | `UINT32 required` | 当前所属队伍 | `FightTeam` controller index |
 | `original_team_id` | `UINT32 required` | 首次出现时的队伍 | 首次采样的 `team_id` |
 | `formation_id` | `UINT64 required` | 编队身份 | `FightMech.GetMechTeam()` 指针映射 |
@@ -169,7 +169,7 @@ tick"，而不是"一场被设计成结果能区分候选假设的战斗"。
 | `current_attack_interval` | `INT32 required` | 0 号技能槽的 `FightSkill.GetCurrentAttackInterval()` |
 
 0 号槽就是模拟器所建模的那个技能。各槽不同的单位目前不在闭包内；等它进来时这里会长成
-按槽的列表，而分歧会先在内容层暴露出来——那正是这一层的用途。
+按槽的列表，而分歧会先在这些字段上暴露出来——那正是它们的用途。
 
 **攻击间隔记的是 build 自己的整数**，不是它的 property 给出的 `FPoint` 秒——
 `RefreshAttackInterval` 就是把 property 除以步长再截断，而整数是两边都能持有、又不必裁定
@@ -186,9 +186,6 @@ tick"，而不是"一场被设计成结果能区分候选假设的战斗"。
 
 `tests/modifier/interval-order.mcscript` 正是**在没有定位那个零点的情况下**，用这个
 字段量出了合成规则里的顺序：三份 fixture 把那条直线钉死，第四份对着它读。
-
-这些都是内容层字段。物理层不哈希它们，所以加上它们之后，所有已录制的
-`physics_result_hash` 一个都没变。
 
 ## 2.3 `status_mask`
 
@@ -282,8 +279,8 @@ Adapter 遍历 `FightMech.GetSkills()`，覆盖主技能与子技能，再遍历
 情况下处于 `attacking`。
 
 采集按原生对象的报告原样记录这三项，不由其中一个推出另一个，这样读者才能拿它们互
-相比较。它们都是内容层字段：物理层不纳入它们（见 C.2），所以物理层一致的两场仗，
-仍可能在这三项上不同。
+相比较。哈希读这三项，所以单位移动和命中都一致、却在这三项上不同的两场仗，是两场
+不同的仗。
 
 ---
 
@@ -456,7 +453,7 @@ null。时钟中的两个整数都以逻辑步为单位，并通过 `DurableCont
 
 # Part VII — `statistics.parquet`
 
-每个快照一份 `BattleStatisticManager` 当前回合的计数：每个记录者一行，按 `(tick, team_id, recorder, recorder_id)` 严格升序。`FightController.OnActorHitted` 在逻辑 tick 内更新它，所以它是战斗状态、属于物理层，尽管战斗里没有任何地方回读它。
+每个快照一份 `BattleStatisticManager` 当前回合的计数：每个记录者一行，按 `(tick, team_id, recorder, recorder_id)` 严格升序。`FightController.OnActorHitted` 在逻辑 tick 内更新它，所以它是战斗状态，尽管战斗里没有任何地方回读它。
 
 | 列 | Parquet 类型 | 含义 |
 | --- | --- | --- |
@@ -473,7 +470,7 @@ null。时钟中的两个整数都以逻辑步为单位，并通过 `DurableCont
 
 ## 7.1 `formations.parquet`
 
-每个快照一份每个编队的经验：录像编过号的每个 `MechTeam` 一行，存活与否都在，按 `(tick, formation_id)` 严格升序。列为 `tick`、`formation_id`、`team_id`（首个单位的原始队伍）、`experience`（`MechTeam.expFloat`，FPoint raw，首次获得经验之前为 -1.0）、`max_experience`（`MechTeam.maxExpFloat`，FPoint raw，经验到此为止）。`ExpSystem` 在逻辑 tick 内、击杀当时分配经验，所以它属于物理层；一次击杀给出多少、给谁，见 [`docs/rules/unit_experience.md`](../../rules/unit_experience.md#what-a-kill-hands-out)。战斗结束时 `BattleSystem.OnFightOver` 把每个编队的经验截为整数，最后一个快照已经是截断后的值。
+每个快照一份每个编队的经验：录像编过号的每个 `MechTeam` 一行，存活与否都在，按 `(tick, formation_id)` 严格升序。列为 `tick`、`formation_id`、`team_id`（首个单位的原始队伍）、`experience`（`MechTeam.expFloat`，FPoint raw，首次获得经验之前为 -1.0）、`max_experience`（`MechTeam.maxExpFloat`，FPoint raw，经验到此为止）。`ExpSystem` 在逻辑 tick 内、击杀当时分配经验，所以它是战斗状态；一次击杀给出多少、给谁，见 [`docs/rules/unit_experience.md`](../../rules/unit_experience.md#what-a-kill-hands-out)。战斗结束时 `BattleSystem.OnFightOver` 把每个编队的经验截为整数，最后一个快照已经是截断后的值。
 
 # Part VIII — `events.parquet`
 
@@ -581,9 +578,9 @@ Reader 在打开容器时验证：
 - `game_build`、DurableContext canonical JSON、元数据类型和格式标识；
 - tick 连续性、状态表排序、事件排序与 ordinal 连续性；
 - ObjectRef、enum tag、初始身份顺序、列表顺序、`status_mask` 保留位和 modifier 分量；
-- 两类 tick hash 行的连续性、宽度和编码，两类 result hash 及 profile 的编码。
+- tick hash 列的连续性、宽度和编码，result hash 及其 profile 的编码，以及 result hash 是 tick hash 列的摘要。
 
-Reader 信任 MCFR 自身持久化的两类 tick/result hash。`McfrReader::open()` 不会为了校验哈希而逐 tick 重建 `S(t)`/`E(t)`，也不重新计算整条时间线的哈希；`first_divergence()` 直接比较持久化的 `physics_tick_hash`。定位差异后，调用方可按需读取对应 tick 的完整内容和 `content_tick_hash`。
+Reader 信任 MCFR 自身持久化的 tick hash。`McfrReader::open()` 不会为了校验哈希而逐 tick 重建 `S(t)`/`E(t)`，也不重新计算整条时间线；`first_divergence()` 直接比较持久化的 `tick_hash`。完整读取一个 tick 的 `tick(t)` 会重算它的状态和事件的哈希，存储的 `tick_hash` 对不上就拒绝，所以定位差异后读到的内容是哈希担保过的。
 
 合法录像至少具有一个 `T(1)`，不存在 tick 0 状态或事件，并在 `terminal_tick` 处完整结束。
 
@@ -632,9 +629,9 @@ ObjectRef = { kind: ObjectKind, id: u64 }
 
 # 附录 B — 身份与排序约定
 
-## B.1 format 0.15.0 身份规则
+## B.1 format 0.16.0 身份规则
 
-format `0.15.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
+format `0.16.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
 
 战斗期间首次出现的 Unit 按首次观察顺序取得当前 Unit namespace 的下一个连续编号。Unit namespace 从 1 开始单调递增；历史引用持续使用对象首次取得的编号。
 
@@ -660,7 +657,7 @@ format `0.15.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, posi
 
 `E(t)` 表示从 `S(t-1)` 推进到 `S(t)` 期间由 hook 直接观测的事件。`S(t)` 是该次推进结束后的权威完整状态。因而同一 tick 的死亡/摧毁事件可以与对象退出 `S(t)` 同时出现。
 
-# 附录 C — 分层哈希规范
+# 附录 C — 哈希规范
 
 ## C.1 公共编码
 
@@ -670,64 +667,23 @@ Hasher 为 BLAKE3。每个摘要先输入固定前缀和 domain；前缀、domai
 LE_u64(byte_length) || bytes
 ```
 
-固定前缀为 `mechcore.mcfr.canonical\0`。整数均按指明宽度使用小端补码原始位；布尔值使用单字节 `0/1`；`Option<T>` 先写单字节存在位，再在存在时写 `T`；列表长度使用 `LE_u64`。所有公开摘要均编码为 64 位小写十六进制，Parquet tick 列保存原始 32 bytes。
+固定前缀为 `mechcore.mcfr.canonical\0`。整数均按指明宽度使用小端补码原始位。所有公开摘要均编码为 64 位小写十六进制，Parquet tick 列保存原始 32 bytes。
 
-## C.2 稳定物理层 `battle-physics-v6`
+## C.2 定义
 
-`physics_tick_hash` 不对完整 MCFR schema 做摘要，而只对版本冻结的战斗物理投影做摘要。新增 MCFR 观测字段不会改变该投影；若投影字段、单位、精度、顺序或编码语义必须改变，应发布新的 profile，不能就地修改 `battle-physics-v6`。`v3` 去掉了垂直速度以及弹体的朝向与释放标记，这三者本版本从不写入；`v4` 加入统计 lane；`v5` 加入编队 lane；`v6` 把 buff 事件纳入交互 lane。
-
-WorldSnapshot 在哈希前按附录 B 规范化。对象列表保持按稳定 ID 的顺序，事件保持原生 `ordinal` 顺序，武器姿态保持 `(skill_slot, weapon_index)` 顺序。Q32.32 保留 `i64` raw bits；角度在哈希前按 `360 << 32` 取欧几里得模，使相差整数圈的角度等价。`logic_step` 先约分。
-
-每个 tick 由五个独立 lane 摘要组成：
-
-| lane/domain | 纳入字段 |
-| --- | --- |
-| `battle-physics-kinematics-v3` | Unit：`unit_id, position, body_rotation, turret_rotation, velocity`，以及仅含有效 `pose` 的 `skill_slot, weapon_index, pose.position, pose.rotation`；Projectile：`projectile_id, position`；Building：`building_id, position`；Shield：`shield_id, position, radius`；Terrain：`terrain_id, position, radius, grid(origin_x, origin_y, size_x, size_y, rows)` |
-| `battle-physics-vitals-v2` | Unit：`unit_id, unit_type_id, team_id, domain, collision_radius, life, personal_shield.active/energy`；Projectile：`projectile_id, team_id, owner, life`；Building：`building_id, building_type_id, team_id, bounds_width, bounds_height, life, available, targetable, collision_enabled`；Shield：`shield_id, team_id, owner, radius, energy, active`；Terrain：`terrain_id, team_id, terrain_type, radius` |
-| `battle-physics-interactions-v2` | 每项先纳入 `ordinal, subject, source, source_team_id, target`，再纳入事件类型及其物理 payload：弹体释放通道；弹体移除位置/拦截/吸收盾；伤害量；单位生成的队伍/类型/位置；单位死亡位置；建筑摧毁位置；单位换队；护盾生成队伍/位置；护盾摧毁位置；地形生成队伍/类型/位置/半径；地形移除或转换位置；治疗量；buff 施加的行号与剩余 tick；buff 移除的行号 |
-| `battle-physics-statistics-v1` | `statistics` 的每一行按存储顺序：`team_id, recorder, recorder_id, damage, damage_real, kills, damage_taken` |
-| `battle-physics-formations-v1` | `formations` 的每一行按存储顺序：`formation_id, team_id, experience, max_experience` |
-
-显式不纳入的内容包括：`game_build`、布局文本、seed、回合号和其他文件元数据；Unit 的 `original_team_id, formation_id, motion_state, mech_lock_target, active, targetable, visibility, status_mask`、所有 modifier、个人盾 `enabled`、武器 `attack_target` 和无姿态通道；Projectile 的 `target`、缓存目标位置/半径和生成时包含盾列表；Shield 的 `source_kind, round_policy, active_order`；Terrain 的剩余回合、逻辑寿命和单位应用内部时钟；事件的 `formation_id`、护盾来源类别、护盾/地形/buff 移除原因。这些字段仍由 `content_*_hash` 检测。
-
-定义：
+完整状态和事件先编码为 canonical JSON：UTF-8、递归字典序排列 object key、紧凑编码和 schema 定义的数组顺序。哈希覆盖全部 `S(t)`/`E(t)` 字段；它不包含布局、DurableContext 或其他文件元数据。
 
 ```text
-K(t) = H_battle-physics-kinematics-v3(kinematics projection)
-V(t) = H_battle-physics-vitals-v2(vitals projection)
-I(t) = H_battle-physics-interactions-v2(interactions projection)
-C(t) = H_battle-physics-statistics-v1(statistics projection)
-F(t) = H_battle-physics-formations-v1(formations projection)
-
-physics_tick_hash(t) = H_battle-physics-tick-v3(
-    LE_u32(reduced_logic_step_numerator),
-    LE_u32(reduced_logic_step_denominator),
-    LE_u32(time_units_per_second),
-    LE_u32(t),
-    K(t), V(t), I(t), C(t), F(t)
-)
-
-physics_result_hash = H_battle-physics-result-v1(
+tick_hash(t) = H_content-tick-0.7.0(LE_u32(t), JSON(S(t)), JSON(E(t)))
+result_hash  = H_content-result-0.7.0(
     LE_u32(tick_count),
-    physics_tick_hash(1)..physics_tick_hash(n)
+    tick_hash(1)..tick_hash(n)
 )
 ```
 
-因此物理回归仍精确引用逻辑时间、Q32.32 位置/角度/速度、生命与护盾以及伤害等相互作用，但不会因增加纯诊断字段而要求重录。
+这个定义比格式老：它的 domain 字符串和公式自 format 0.7.0 起没有变过，`hash_profile` 的值 `mcfr-content-0.7.0` 就以这个版本命名。格式变了而 `S(t)`、`E(t)` 的编码不变，所有哈希就都不动；定义本身要变，就是新的 profile 和新的 domain 字符串，不能就地修改。
 
-## C.3 完整内容层 `mcfr-content-0.15.0`
-
-完整状态和事件先编码为 canonical JSON：UTF-8、递归字典序排列 object key、紧凑编码和 schema 定义的数组顺序。它覆盖 format 0.7.0 的全部 `S(t)`/`E(t)` 字段，用于同格式内的捕获完整性诊断；它不包含布局、DurableContext 或其他文件元数据。
-
-```text
-content_tick_hash(t) = H_content-tick-0.7.0(LE_u32(t), JSON(S(t)), JSON(E(t)))
-content_result_hash  = H_content-result-0.7.0(
-    LE_u32(tick_count),
-    content_tick_hash(1)..content_tick_hash(n)
-)
-```
-
-`mechcore fight compare` 与 `mechcore fight verify` 以物理层决定 `equal` 和首个分歧，同时单独返回 `content_equal`。这允许格式增加观测能力后保持物理回归身份，又不会掩盖同格式中的完整内容差异。`fight compare` 还会逐字段说明两份录像在哪里不同，这是哈希做不到的：字段组的定义见 [cli.md](../mechcore/cli.md#fight)。
+`mechcore fight compare` 与 `mechcore fight verify` 以这个哈希决定 `equal` 和首个分歧。`fight compare` 还会逐字段说明两份录像在哪里不同，这是哈希做不到的：字段组的定义见 [cli.md](../mechcore/cli.md#fight)。
 
 # 附录 D — 物理编码约定
 

@@ -17,7 +17,9 @@ pub struct McfrReader {
 
 impl McfrReader {
     /// Opens an MCFR and validates its ZIP64/Parquet structure and metadata.
-    /// Persisted hashes are trusted; timeline content is not rehashed.
+    /// The result hash is checked against the stored tick hashes; the tick
+    /// hashes are trusted, and timeline content is not rehashed until
+    /// [`Self::tick`] reads it.
     ///
     /// # Errors
     ///
@@ -102,30 +104,16 @@ impl McfrReader {
         self.storage.member_sizes()
     }
 
-    /// Returns one stable battle-physics tick hash as canonical lowercase hexadecimal.
+    /// Returns one stored tick hash as canonical lowercase hexadecimal.
+    ///
+    /// The value is read from `ticks.parquet`, not recomputed; [`Self::tick`]
+    /// is what checks it against the tick's state and events.
     ///
     /// # Errors
     ///
     /// Returns an error when `tick` is out of range.
-    pub fn physics_tick_hash(&self, tick: u32) -> Result<String> {
-        Ok(canonical::hex(&self.storage.physics_tick_hash(tick)?))
-    }
-
-    /// Returns one format-scoped complete-content tick hash as canonical lowercase hexadecimal.
-    ///
-    /// A recording does not store it: it is recomputed from the tick's state
-    /// and events, as the writer computed it. The persisted content result
-    /// hash is what vouches for the whole timeline.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when `tick` is out of range or its data is malformed.
-    pub fn content_tick_hash(&self, tick: u32) -> Result<String> {
-        let state = canonical::encode(&self.state(tick)?)?;
-        let events = canonical::encode(&self.events(tick)?)?;
-        Ok(canonical::hex(&canonical::content_tick_hash(
-            tick, &state, &events,
-        )))
+    pub fn tick_hash(&self, tick: u32) -> Result<String> {
+        Ok(canonical::hex(&self.storage.tick_hash(tick)?))
     }
 
     /// Reads one authoritative snapshot.
@@ -157,22 +145,36 @@ impl McfrReader {
         self.storage.events(tick)
     }
 
-    /// Reads the state, events, and hash for one logical tick.
+    /// Reads the state, events, and hash for one logical tick, and checks
+    /// that the stored hash is the hash of that state and those events.
     ///
     /// # Errors
     ///
-    /// Returns an error when `tick` is out of range or its data is malformed.
+    /// Returns an error when `tick` is out of range, its data is malformed, or
+    /// its stored hash does not match its content.
     pub fn tick(&self, tick: u32) -> Result<TickSlice> {
+        let state = self.state(tick)?;
+        let events = self.events(tick)?;
+        let stored = self.storage.tick_hash(tick)?;
+        let computed = canonical::tick_hash(
+            tick,
+            &canonical::encode(&state)?,
+            &canonical::encode(&events)?,
+        );
+        if stored != computed {
+            return Err(Error::invalid(format!(
+                "tick {tick} stored tick_hash does not match its state and events"
+            )));
+        }
         Ok(TickSlice {
             tick,
-            state: self.state(tick)?,
-            events: self.events(tick)?,
-            physics_tick_hash: self.physics_tick_hash(tick)?,
-            content_tick_hash: self.content_tick_hash(tick)?,
+            state,
+            events,
+            tick_hash: canonical::hex(&stored),
         })
     }
 
-    /// Returns the first unequal stable battle-physics tick hash. A prefix-only length difference
+    /// Returns the first tick whose stored hashes differ. A prefix-only length difference
     /// diverges at the first missing tick.
     ///
     /// # Errors
@@ -181,9 +183,9 @@ impl McfrReader {
     pub fn first_divergence(&self, other: &Self) -> Result<Option<u32>> {
         for (index, (left, right)) in self
             .storage
-            .physics_tick_hashes()
+            .tick_hashes()
             .iter()
-            .zip(other.storage.physics_tick_hashes())
+            .zip(other.storage.tick_hashes())
             .enumerate()
         {
             if left != right {

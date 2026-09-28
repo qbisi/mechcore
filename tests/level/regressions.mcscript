@@ -1,31 +1,27 @@
 # The game's recordings from stats.mcscript, replayed without the game.
-# Both layers are pinned, including the level-one manifest control.
+# Every fight is pinned by its hash, including the level-one manifest control.
 steps:
   - fight.run:
       layout: tests/regression/marksman-vs-arclight.yaml
       seed: 1787720817
     expect:
       steps: 91
-      hashes.physics_result_hash: 615ce96945bc8314e2514fd9b7c35ec1f0b036f7ad77b50b0f0aaf178487e926
-      hashes.content_result_hash: a13716e2e17d0ca5c5cfbaea8c770a98b9c4f892b38f6bfbc6c83338ccdc82b4
+      hashes.result_hash: a13716e2e17d0ca5c5cfbaea8c770a98b9c4f892b38f6bfbc6c83338ccdc82b4
   - fight.run:
       layout: tests/level/marksman-2.yaml
       seed: 1787720817
     expect:
       steps: 83
-      hashes.physics_result_hash: cbd1a5e8ccb2019b1f185afcf9dcccdc881e6b7599f0d188cde5290bca5131de
-      hashes.content_result_hash: ed2f7990d409c5f3befe67635cc730f2a544fb443292a45983713b56adefa94f
+      hashes.result_hash: ed2f7990d409c5f3befe67635cc730f2a544fb443292a45983713b56adefa94f
   - fight.run:
       layout: tests/level/marksman-3.yaml
       seed: 1787720817
     expect:
       steps: 18
-      hashes.physics_result_hash: db827ce20ae8152c7ac112d907b3237bb2fe1e4ee74e876cd539e57451696ea6
-      hashes.content_result_hash: 77153ce4f4427404d478ed5bc639983e16bf33f4018a485809031ee3a4e8ed88
+      hashes.result_hash: 77153ce4f4427404d478ed5bc639983e16bf33f4018a485809031ee3a4e8ed88
   - fight.run:
       layout: tests/level/marksman-2-rate.yaml
       seed: 1787720817
     expect:
       steps: 18
-      hashes.physics_result_hash: e43bda76431658eacebf6c946d5be8895b849bcb6210142898a9d964e6649120
-      hashes.content_result_hash: bcd1db8f61e9b9b942237eb6a2a9bb167b33731fa5ed41c49469c3467c0e89a7
+      hashes.result_hash: bcd1db8f61e9b9b942237eb6a2a9bb167b33731fa5ed41c49469c3467c0e89a7

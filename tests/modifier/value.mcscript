@@ -20,8 +20,8 @@
 # moving every tick after it — which is why the whole recording, not one
 # number, is the reading. The control is the same fight with no officer.
 #
-# Both hashes below are the simulator's, computed before the recording
-# existed.
+# Both hashes below are the game's, recorded by this script, never the
+# simulator's.
 
 game: launch
 headless: true
@@ -41,7 +41,7 @@ steps:
       output: ${out}/range-none.mcfr
     expect:
       operation.tick_count: 137
-      operation.hashes.physics_result_hash: aa0419326605cde9599a3b28e277ec0a02bd16d35290f02a199fdcea2819ee25
+      operation.hashes.result_hash: 04c16d7a8a96e0dd3cb42ec42c02cef63ffb9ddfff039e1909ed7a2f60dbcb0d
   - fight.outcome:
       recording: ${out}/range-none.mcfr
     expect:
@@ -53,7 +53,7 @@ steps:
       output: ${out}/range-value.mcfr
     expect:
       operation.tick_count: 137
-      operation.hashes.physics_result_hash: afba2abea29793ff43a1eb2a1096da32cf2d435476e828038a0e8861c0193b07
+      operation.hashes.result_hash: 974c22a7aa6b1199507a4e25888afc8bd7c312e70b2b3132063e8f16f3140187
   - fight.outcome:
       recording: ${out}/range-value.mcfr
     expect:

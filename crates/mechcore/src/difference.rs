@@ -9,10 +9,9 @@
 //! under `units.weapon_aims.attack_target`: one group answers for that field
 //! across every object and every tick.
 //!
-//! The groups are what make a content difference readable. The content hash
-//! differs between the game and the simulator on every recording, for fields
-//! nobody here is looking at, so a verdict on the whole layer says nothing; a
-//! group that differs on one tick of one unit says exactly where to look.
+//! The groups are what make a difference readable. The hash says only that
+//! two recordings part from some tick on, over every field at once; a group
+//! that differs on one tick of one unit says exactly where to look.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;

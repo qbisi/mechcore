@@ -37,16 +37,15 @@ skill is in and which attack phase it is in, tick by tick; that, not the
 recording, is where the rules read when a unit meets a block and how an attack
 on one ends.
 `regressions.mcscript` needs no game and is what CI runs: it holds the
-simulator to the physics hash the game produced for `wall-aside.yaml`,
+simulator to the hash the game produced for `wall-aside.yaml`,
 `wall-line-of-fire.yaml`, `wall-line-tolerance.yaml`, `wall-weapon-group.yaml`,
 `wall-rhino.yaml`, `wall-laser.yaml`, `wall-passage.yaml`, `wall-block.yaml`
 and the three `wall-splash*.yaml` — every wall fight here the simulator can
 run, each over every one of its ticks.
 
-A physics hash does not cover a unit's lock, its weapons' targets or its motion
-state, which are content-layer fields, so every fight above is pinned by its
-content hash as well, the game's too: the simulator carries the same content
-as the game on every tick of all eleven. The measurement scripts also compare
+The hash covers everything a recording carries, a unit's lock, its weapons'
+targets and its motion state included, so the simulator carries the same
+content as the game on every tick of all eleven. The measurement scripts also compare
 each fight they record with the simulator after recording it.
 
 The three `wall-line-*` layouts are read by which block ends up destroyed,

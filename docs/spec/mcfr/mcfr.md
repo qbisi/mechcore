@@ -1,4 +1,4 @@
-# MCFR, format 0.8.0
+# MCFR, format 0.16.0
 
 [简体中文](mcfr.zh.md)
 
@@ -9,7 +9,7 @@ schema of each, the identity and ordering rules that make two recordings of one
 fight the same recording, and what a reader must validate before trusting one.
 
 ```text
-format = "0.8.0"
+format = "0.16.0"
 ```
 
 The native field mapping is bound to the game version the repository pins in
@@ -21,10 +21,10 @@ restated here. The operation that captures a recording is
 [adapter.md](../adapter/adapter.md). What this document owns is what ends up
 inside the file.
 
-Two hashes are specified rather than one, and the separation is the point. A
-stable physics projection decides regression identity, so adding an observation
-field does not invalidate every existing recording. A full content hash covers
-everything else, so the added field is still not invisible.
+One hash is specified, over everything the timeline holds. Two recordings are
+the same fight when every field of every tick agrees, so a field added to the
+format moves every pin: the hash never lets a difference go
+unseen to spare a re-record.
 
 ## Container shape
 
@@ -62,7 +62,7 @@ and a reader reads a missing table as empty.
 | `statistics.parquet` | the build's damage and kill counters for the fight so far | `S(1)..S(n)` | Parquet + Zstd level 6 |
 | `formations.parquet` | every formation's experience | `S(1)..S(n)` | Parquet + Zstd level 6 |
 | `events.parquet` | ordered discrete events between adjacent snapshots | `E(1)..E(n)` | Parquet + Zstd level 6 |
-| `instrument/<channel>.parquet` | one [instrument channel](#instrument-channels), outside both hashes | the ticks it has rows for | Parquet + Zstd level 6 |
+| `instrument/<channel>.parquet` | one [instrument channel](#instrument-channels), outside the hash | the ticks it has rows for | Parquet + Zstd level 6 |
 
 The ZIP layer stores; compression is the Parquet pages' Zstd. The per-tick
 tables flush a row group every 1024 logical ticks, with at most 1,000,000 rows
@@ -72,7 +72,7 @@ in one row group. State tables sort by `(tick, object_id)` and events by
 The timeline is:
 
 ```text
-T(t) = { S(t), E(t), physics_tick_hash(t) }, 1 <= t <= n
+T(t) = { S(t), E(t), tick_hash(t) }, 1 <= t <= n
 S(1) = the state after the first native logic update completes
 ```
 
@@ -100,26 +100,21 @@ The layout is canonical YAML: `seed` is explicit, a field whose native value is
 the format default is omitted, and `formations` keeps declaration order by
 native Unit index. The four opening defensive buildings are recorded in manager
 order under a sibling `constructions`. This member exists for self-contained
-replay and `mechcore fight verify`. It does not enter `physics_*_hash` or
-`content_*_hash`.
+replay and `mechcore fight verify`. It does not enter the hash.
 
 ## Ticks and scene context
 
 `ticks.parquet` is the container index. It carries the format identifier, the
-DurableContext, the overall digests, and the per-tick physics hashes from
-`T(1)`.
+DurableContext, the result hash, and the per-tick hashes from `T(1)`.
 
 ```text
-tick               : UINT32 required
-physics_tick_hash  : FIXED_LEN_BYTE_ARRAY(32) required
+tick       : UINT32 required
+tick_hash  : FIXED_LEN_BYTE_ARRAY(32) required
 ```
 
-The legal `tick` sequence is exactly `1..=tick_count`. `physics_tick_hash`
-covers that tick's stable combat physics projection. `content_tick_hash`,
-which covers the complete `S(t)` and `E(t)`, is not stored: a reader
-recomputes it from the tick's state and events, and `content_result_hash`
-vouches for the whole timeline. Both are defined under
-[Layered hashes](#layered-hashes).
+The legal `tick` sequence is exactly `1..=tick_count`. `tick_hash` covers that
+tick's complete `S(t)` and `E(t)`, and `result_hash` covers every `tick_hash` in
+order. Both are defined under [The hash](#the-hash).
 
 ### File metadata
 
@@ -127,13 +122,11 @@ Parquet key-value metadata keys and values are both UTF-8 strings.
 
 | Key | Data | Meaning |
 | --- | --- | --- |
-| `format` | exactly `0.15.0` | the logical and physical contract version |
+| `format` | exactly `0.16.0` | the logical and physical contract version |
 | `game_build` | non-empty UTF-8 | capture provenance; the adapter reads `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | the context `D` that holds steady for one round |
-| `physics_hash_profile` | exactly `battle-physics-v6` | the stable physics projection version |
-| `physics_result_hash` | 64 lowercase hex digits | ordered digest of every `physics_tick_hash`; what regression compares |
-| `content_hash_profile` | exactly `mcfr-content-0.15.0` | the full content digest version |
-| `content_result_hash` | 64 lowercase hex digits | ordered digest of every `content_tick_hash`; an in-format diagnostic |
+| `hash_profile` | exactly `mcfr-content-0.7.0` | the hash definition, named for the domain strings it uses |
+| `result_hash` | 64 lowercase hex digits | ordered digest of every `tick_hash`; what regression compares |
 | `tick_count` | canonical decimal `u32` | logical ticks recorded, counting from `S(1)` |
 | `terminal_tick` | canonical decimal `u32` | the confirmed final logical boundary, equal to `tick_count` on a continuous timeline |
 
@@ -199,8 +192,8 @@ distinguishes the candidates.
 
 Slot 0 is the skill the simulator models. A unit whose skills differ per slot
 is outside the closure today; when one enters it, this grows a per-slot list
-and the divergence shows up in the content layer first, which is what that
-layer is for.
+and the divergence shows up in these fields first, which is what they are
+for.
 
 An attack interval is the build's own integer rather than the `FPoint` seconds
 its property answers, because `RefreshAttackInterval` divides the property by
@@ -224,9 +217,6 @@ explain.
 `tests/modifier/interval-order.mcscript` measured the composition
 rule's order through this field without ever locating that zero: three fixtures
 pin the line and the fourth is read against it.
-
-These are content-layer fields. The physics layer does not hash them, so
-adding them left every recorded `physics_result_hash` unchanged.
 
 ### `status_mask`
 
@@ -387,10 +377,9 @@ is the only state in which the body travels, and it travels toward
 reach, whenever something it can shoot stands in reach in front of it.
 
 A capture records all three as the native objects report them and derives none
-from another, which is what lets a reader compare them. They are content-layer
-fields: the physics layer excludes them (see
-[the physics layer](#the-stable-physics-layer-battle-physics-v6)), so a fight
-whose physics matches can still disagree in them.
+from another, which is what lets a reader compare them. The hash reads all
+three, so a fight whose units move and hit alike but disagree in them is a
+different fight.
 
 ## Projectiles
 
@@ -610,8 +599,8 @@ one logic advance, which a diff cannot see.
 `statistics.parquet` holds `BattleStatisticManager`'s current round at each
 snapshot: one row per recorder, strictly ascending by
 `(tick, team_id, recorder, recorder_id)`. `FightController.OnActorHitted`
-updates it inside the logic tick, so it is fight state and belongs to the
-physics layer, though nothing in the fight reads it back.
+updates it inside the logic tick, so it is fight state, though nothing in the
+fight reads it back.
 
 | Column | Parquet type | Meaning |
 | --- | --- | --- |
@@ -652,7 +641,7 @@ ascending by `(tick, formation_id)`.
 | `max_experience` | `INT64` required | `MechTeam.maxExpFloat`, FPoint raw: the full bar gains stop at |
 
 `ExpSystem` hands experience out inside the tick, as a kill happens, so it is
-fight state and belongs to the physics layer. What a kill hands out and to whom
+fight state. What a kill hands out and to whom
 is [`docs/rules/unit_experience.md`](../../rules/unit_experience.md#what-a-kill-hands-out).
 As the fight ends, `BattleSystem.OnFightOver` prunes each gain to a whole
 number, which the last snapshot already holds.
@@ -773,7 +762,7 @@ the build means, is checked as each mechanism is researched.
 A channel is what a study asked to see of how the fight did what the
 recording says it did: a skill's state machine, every call of a decision
 method. It rides in the recording as `instrument/<channel>.parquet`, and
-neither hash reads it, so asking for a channel never changes a pin and a
+the hash does not read it, so asking for a channel never changes a pin and a
 channel's schema can change without a format version.
 
 - A channel's rows are one Rust type, and its Arrow schema is traced from that
@@ -835,15 +824,17 @@ On opening a container, a reader verifies:
 - tick contiguity, state table ordering, event ordering and ordinal contiguity;
 - ObjectRefs, enum tags, initial identity order, list order, `status_mask`
   reserved bits and modifier components;
-- the contiguity, width and encoding of the tick hash column, and the encoding
-  of both result hashes and their profiles.
+- the contiguity, width and encoding of the tick hash column, the encoding of
+  the result hash and its profile, and that the result hash is the digest of
+  the tick hash column.
 
-A reader trusts the tick and result hashes the recording persisted.
+A reader trusts the tick hashes the recording persisted.
 `McfrReader::open()` does not rebuild `S(t)` and `E(t)` tick by tick to
 re-derive them, and does not recompute the timeline. `first_divergence()`
-compares the persisted `physics_tick_hash` values directly, and a caller that
-has located a divergence can then read that tick's full content and
-`content_tick_hash`.
+compares the persisted `tick_hash` values directly. Reading one tick whole,
+`tick(t)`, rehashes its state and events and refuses a tick whose stored
+`tick_hash` does not match them, so a caller that has located a divergence
+reads content the hash vouches for.
 
 A legal recording has at least `T(1)`, no tick 0 state or event, and ends
 completely at `terminal_tick`.
@@ -891,7 +882,7 @@ Identity is what makes two recordings of one fight the same recording, so
 every namespace numbers its objects by a rule that depends on the scene rather
 than on the pointer that happened to be observed first.
 
-Format `0.8.0` uses `team_zx_sequential_v1`.
+Format `0.16.0` uses `team_zx_sequential_v1`.
 
 **Units.** Initial units sort strictly ascending by `(team_id, position.z,
 position.x)` and take `unit_id = 1..N` in that order. Initial units on one team
@@ -947,7 +938,7 @@ complete state after that advance finishes. A death or destruction event may
 therefore share a tick with the object's absence from `S(t)`, and that is not a
 contradiction.
 
-## Layered hashes
+## The hash
 
 BLAKE3 throughout. Every digest begins with a fixed prefix and a domain, and the
 prefix, the domain and each later input segment are encoded as:
@@ -957,86 +948,31 @@ LE_u64(byte_length) || bytes
 ```
 
 The fixed prefix is `mechcore.mcfr.canonical\0`. Integers are little-endian
-two's complement raw bits at the stated width, booleans a single `0` or `1`
-byte, an `Option<T>` a presence byte followed by `T` when present, and a list's
-length an `LE_u64`. Every public digest is 64 lowercase hex digits, and the
-Parquet tick columns hold the raw 32 bytes.
-
-### The stable physics layer, `battle-physics-v6`
-
-`physics_tick_hash` digests a version-frozen combat physics projection rather
-than the whole MCFR schema. Adding an observation field does not change the
-projection. If a projection field, unit, precision, order or encoding must
-change, that is a new profile: `battle-physics-v6` is never edited in place.
-`battle-physics-v1` projected no turret; `v2` added `turret_rotation` to the
-kinematics lane; `v3` dropped the vertical velocity and the projectile's
-orientation and release flag, which the build never sets; `v4` added the
-statistics lane; `v5` added the formations lane; `v6` adds the buff events to
-the interactions lane.
-
-The WorldSnapshot is canonicalised before hashing. Object lists stay in stable
-ID order, events in native `ordinal` order, weapon poses in `(skill_slot,
-weapon_index)` order. Q32.32 keeps its `i64` raw bits. Angles are reduced
-modulo `360 << 32` with a Euclidean remainder before hashing, so two angles a
-whole number of turns apart are equal. `logic_step` is reduced first.
-
-Each tick is five independent lane digests:
-
-| Lane | Fields |
-| --- | --- |
-| `battle-physics-kinematics-v3` | Unit: `unit_id, position, body_rotation, turret_rotation, velocity`, plus `skill_slot, weapon_index, pose.position, pose.rotation` for channels that have a pose. Projectile: `projectile_id, position`. Building: `building_id, position`. Shield: `shield_id, position, radius`. Terrain: `terrain_id, position, radius, grid(origin_x, origin_y, size_x, size_y, rows)` |
-| `battle-physics-vitals-v2` | Unit: `unit_id, unit_type_id, team_id, domain, collision_radius, life, personal_shield.active/energy`. Projectile: `projectile_id, team_id, owner, life`. Building: `building_id, building_type_id, team_id, bounds_width, bounds_height, life, available, targetable, collision_enabled`. Shield: `shield_id, team_id, owner, radius, energy, active`. Terrain: `terrain_id, team_id, terrain_type, radius` |
-| `battle-physics-interactions-v2` | each event contributes `ordinal, subject, source, source_team_id, target` first, then its type and physical payload: the release channel; a removal's position, interception and absorbing shield; a damage amount; a unit creation's team, type and position; a unit death position; a building destruction position; a team change; a shield creation's team and position; a shield destruction position; a terrain creation's team, type, position and radius; a terrain removal or conversion position; a healing amount; a buff application's row and ticks left; a buff removal's row |
-| `battle-physics-statistics-v1` | each row of `statistics` in stored order: `team_id, recorder, recorder_id, damage, damage_real, kills, damage_taken` |
-| `battle-physics-formations-v1` | each row of `formations` in stored order: `formation_id, team_id, experience, max_experience` |
-
-```text
-K(t) = H_battle-physics-kinematics-v3(kinematics projection)
-V(t) = H_battle-physics-vitals-v2(vitals projection)
-I(t) = H_battle-physics-interactions-v2(interactions projection)
-C(t) = H_battle-physics-statistics-v1(statistics projection)
-F(t) = H_battle-physics-formations-v1(formations projection)
-
-physics_tick_hash(t) = H_battle-physics-tick-v3(
-    LE_u32(reduced_logic_step_numerator),
-    LE_u32(reduced_logic_step_denominator),
-    LE_u32(time_units_per_second),
-    LE_u32(t),
-    K(t), V(t), I(t), C(t), F(t)
-)
-
-physics_result_hash = H_battle-physics-result-v1(
-    LE_u32(tick_count),
-    physics_tick_hash(1)..physics_tick_hash(n)
-)
-```
-
-A physics regression therefore still pins logical time, Q32.32 position,
-rotation and velocity, life and shields, the interactions including damage,
-and the build's own account of who dealt, took and killed what, while a new
-purely diagnostic field never forces a re-record.
-
-### The full content layer, `mcfr-content-0.15.0`
+two's complement raw bits at the stated width. Every public digest is 64
+lowercase hex digits, and the Parquet tick column holds the raw 32 bytes.
 
 State and events are first encoded as canonical JSON: UTF-8, object keys sorted
-recursively, compact encoding, and the array order the schema defines. It covers
-every `S(t)` and `E(t)` field and diagnoses capture
-completeness within one format. It carries neither the layout, nor the
+recursively, compact encoding, and the array order the schema defines. The hash
+covers every `S(t)` and `E(t)` field. It carries neither the layout, nor the
 DurableContext, nor any other file metadata.
 
 ```text
-content_tick_hash(t) = H_content-tick-0.7.0(LE_u32(t), JSON(S(t)), JSON(E(t)))
-content_result_hash  = H_content-result-0.7.0(
+tick_hash(t) = H_content-tick-0.7.0(LE_u32(t), JSON(S(t)), JSON(E(t)))
+result_hash  = H_content-result-0.7.0(
     LE_u32(tick_count),
-    content_tick_hash(1)..content_tick_hash(n)
+    tick_hash(1)..tick_hash(n)
 )
 ```
 
-`mechcore fight compare` and `mechcore fight verify` decide `equal` and the first
-divergence from the physics layer, and return `content_equal` separately. That
-is how the format gains observation without losing regression identity, and
-without hiding a genuine content difference inside one format. `fight compare`
-also says where two recordings differ field by field, which a hash cannot:
+The definition is older than the format: its domain strings and formula have
+not changed since format 0.7.0, and `hash_profile`, `mcfr-content-0.7.0`, names
+it by that version. A format change that leaves `S(t)` and `E(t)` encoding the
+same leaves every hash where it was. A change to the definition itself is a new
+profile and new domain strings, never an edit in place.
+
+`mechcore fight compare` and `mechcore fight verify` decide `equal` and the
+first divergence from this hash. `fight compare` also says where two recordings
+differ field by field, which a hash cannot:
 [cli.md](../mechcore/cli.md#fight) defines its field groups.
 
 ## Physical encoding
@@ -1092,30 +1028,18 @@ than an omission.
   layout, and storing it twice invites two answers. A reader recovers the public
   `DurableContext.match_seed` from the canonical `layout.yaml.seed`.
 - **A building `rotation`.** Buildings carry no rotation field in the JSON
-  state, in the Parquet schema, or in either hash. A unit's `body_rotation` and
+  state, in the Parquet schema, or in the hash. A unit's `body_rotation` and
   a weapon pose's `rotation` are unaffected.
 - **`system_order` for shields.** The native full-collection index is used for
   initial ID assignment and the adapter's consistency check and never reaches
   the file, because `shield_id` and `active_order` already carry everything a
   reader needs.
-- **The layout in either hash.** `layout.yaml` enters neither `physics_*_hash`
-  nor `content_*_hash`. It is the scene's input, not its outcome, and a
+- **The layout in the hash.** `layout.yaml` does not enter the hash. It is the
+  scene's input, not its outcome, and a
   recording's identity is what happened rather than what was asked for.
 - **Buff objects.** There is no buff track. A buff is observable as the change
   in `status_mask` and the `buff` modifiers between adjacent snapshots, so the
   format stores state rather than the engine's internal buff instances.
-
-The physics layer additionally excludes a long list of fields from
-`physics_tick_hash` while still storing them: a unit's `original_team_id`,
-`formation_id`, `motion_state`, `mech_lock_target`, `active`, `targetable`,
-`visibility` and `status_mask`, every modifier, the personal shield's `enabled`,
-a weapon's `attack_target` and every channel without a pose; a projectile's
-`target`, cached target position and radius, and spawn-containing shields; a
-shield's `source_kind`, `round_policy` and `active_order`; a terrain's remaining
-rounds, logic lifetime and per-unit application clocks; an event's
-`formation_id`, shield source kind, and shield, terrain or buff removal reason. These
-are excluded from regression identity, not from the file, and
-`content_*_hash` still detects every one of them.
 
 ## Unresolved
 

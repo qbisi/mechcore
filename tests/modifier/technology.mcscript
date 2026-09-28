@@ -15,8 +15,8 @@
 # answer is 155 and its damage is the 292 the officer alone already gave.
 #
 # **The fight cannot tell.** The Arclight opens fire at 115 metres either way,
-# because the Rhino starts 105 metres off, so the physics hash of this
-# recording is the same one `officer-range-value.yaml` produced. What separates
+# because the Rhino starts 105 metres off, so every unit moves and hits as in
+# the recording `officer-range-value.yaml` produced. What separates
 # 115 from 155 is the number the build computed, which a recording has carried
 # since MCFR 0.4.0 — this fixture is measurable at all only because of that.
 #
@@ -44,8 +44,9 @@ steps:
       output: ${out}/technology-range.mcfr
     expect:
       operation.tick_count: 137
-      # The same fight the officer alone fights, to the tick.
-      operation.hashes.physics_result_hash: afba2abea29793ff43a1eb2a1096da32cf2d435476e828038a0e8861c0193b07
+      # The officer alone fights this fight to the tick; the hash differs
+      # only because the modifiers record where the range came from.
+      operation.hashes.result_hash: 0e00f9d8f782010a8c951d6ef127751b0f72a3755e156ec60e98d5fea2f0b4c4
   - fight.stats:
       recording: ${out}/technology-range.mcfr
     expect:

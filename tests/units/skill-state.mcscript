@@ -15,7 +15,7 @@
 # what a won fight does to a skill before it ends: one already cooling goes
 # on cooling at its dead target, and one attacking goes idle. The fights are
 # pinned in `regressions.mcscript`; the channel is research evidence, outside
-# both hashes.
+# the hash.
 #
 # `out` must not already exist: a recording refuses to overwrite.
 

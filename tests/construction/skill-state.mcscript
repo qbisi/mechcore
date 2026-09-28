@@ -23,7 +23,7 @@
 #                 with no replacement in reach cools like a fallen block
 #
 # The recordings are the same fights the regressions pin, and are compared with
-# the simulator afterwards. The channel is research evidence, outside both hashes.
+# the simulator afterwards. The channel is research evidence, outside the hash.
 #
 # `out` must not already exist: a recording refuses to overwrite.
 
@@ -65,4 +65,3 @@ steps:
           right: ${out}/simulated-${fight.name}.mcfr
         expect:
           equal: true
-          content_equal: true

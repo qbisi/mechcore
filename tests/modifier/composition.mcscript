@@ -66,7 +66,6 @@ steps:
       right: ${out}/none-2.mcfr
     expect:
       equal: true
-      content_equal: true
 
   - game.record_layout:
       layout: $once

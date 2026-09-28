@@ -131,7 +131,7 @@ ends, each formation's experience is cut to a whole number.
 ### Recorded
 
 - What a kill hands out and to whom, as the section above states it: every
-  formation's experience is in each recording's physics hash, and the
+  formation's experience is in each recording's hash, and the
   simulator reproduces it tick by tick in every fight the topics pin, which
   `tests/units/regressions.mcscript` and the other topics'
   `regressions.mcscript` replay.

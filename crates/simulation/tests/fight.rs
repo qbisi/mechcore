@@ -5,8 +5,8 @@ use mechcore_simulation::simulate_layout;
 use serde::Deserialize;
 
 /// Deserialized strictly, so a manifest field added without a reader fails here
-/// rather than being silently ignored. `smoke`, `format` and the hash are what
-/// the mcscript readers check, and have no consumer in this file.
+/// rather than being silently ignored. `smoke` and the hash are what the
+/// mcscript readers check, and have no consumer in this file.
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct NativeRegression {
@@ -14,12 +14,10 @@ struct NativeRegression {
     #[allow(dead_code)]
     smoke: bool,
     layout: PathBuf,
-    #[allow(dead_code)]
-    format: String,
     seed: i32,
     tick_count: u32,
     #[allow(dead_code)]
-    physics_result_hash: String,
+    result_hash: String,
 }
 
 fn repository() -> PathBuf {
@@ -88,10 +86,9 @@ fn marksman_vs_arclight_runs_to_a_readable_terminal_result() {
 /// Runs a native regression case through the simulator and opens what it
 /// wrote.
 ///
-/// Its physics hash is not checked here: `tests/regression/simulate.mcscript`
-/// holds every smoke case to it, and the hash already covers positions, life
-/// and every event, damage included. What these tests check is the content
-/// layer the hash leaves out — a unit's lock and its motion state.
+/// Its hash is not checked here: `tests/regression/simulate.mcscript` holds
+/// every case to it. What these tests check is a few named fields — a unit's
+/// lock and its motion state — so that a failure says which one moved.
 fn recorded(name: &str) -> (tempfile::TempDir, McfrReader) {
     let regression = native_regression(name);
     let directory = tempfile::tempdir().unwrap();

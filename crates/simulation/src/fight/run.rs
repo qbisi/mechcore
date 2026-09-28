@@ -43,7 +43,6 @@ pub struct SimulationComparison {
     pub game_build: String,
     pub seed: i32,
     pub equal: bool,
-    pub content_equal: bool,
     pub recording: TimelineSummary,
     pub simulation: TimelineSummary,
     pub first_divergence: Option<u32>,
@@ -54,9 +53,7 @@ pub struct SimulationComparison {
 #[derive(Debug, Clone, Serialize)]
 pub struct TimelineSummary {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub physics_result_hash: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub content_result_hash: Option<String>,
+    pub result_hash: Option<String>,
     pub tick_count: u32,
     pub complete: bool,
 }
@@ -121,7 +118,7 @@ pub(crate) fn run(
         simulated_duration_milliseconds as f64 / generation_duration.as_secs_f64() / 1_000.0;
     let winner = simulation.winner().map(team_name);
     Ok(SimulationResult {
-        schema: "mechcore.simulation-result.v3",
+        schema: "mechcore.simulation-result.v4",
         game_build: config.game_build.clone(),
         seed,
         seed_source,
@@ -179,32 +176,24 @@ pub(crate) fn compare(
         None
     };
     if let Some(hashes) = &simulation_hashes
-        && hashes.physics_result_hash != recording.hashes().physics_result_hash
+        && hashes.result_hash != recording.hashes().result_hash
     {
         return Err(Error::new(
-            "physics result hashes differ although every compared physics tick hash matches",
+            "result hashes differ although every compared tick hash matches",
         ));
     }
-    let content_equal = simulation_hashes
-        .as_ref()
-        .is_some_and(|hashes| hashes.content_result_hash == recording.hashes().content_result_hash);
     Ok(SimulationComparison {
-        schema: "mechcore.sim-compare-result.v2",
+        schema: "mechcore.sim-compare-result.v3",
         game_build: config.game_build.clone(),
         seed,
         equal: first_divergence.is_none(),
-        content_equal,
         recording: TimelineSummary {
-            physics_result_hash: Some(recording.hashes().physics_result_hash.clone()),
-            content_result_hash: Some(recording.hashes().content_result_hash.clone()),
+            result_hash: Some(recording.hashes().result_hash.clone()),
             tick_count: recording.tick_count(),
             complete: true,
         },
         simulation: TimelineSummary {
-            physics_result_hash: simulation_hashes
-                .as_ref()
-                .map(|hashes| hashes.physics_result_hash.clone()),
-            content_result_hash: simulation_hashes.map(|hashes| hashes.content_result_hash),
+            result_hash: simulation_hashes.map(|hashes| hashes.result_hash),
             tick_count: u32::try_from(steps)
                 .map_err(|_| Error::new("simulation tick count exceeds u32"))?,
             complete: first_divergence.is_none(),
@@ -271,11 +260,11 @@ pub(in crate::fight) fn execute(
         let tick_hashes = writer.append_tick(state.clone(), &events)?;
         if let Some(recording) = recording {
             let expected_hash = if tick <= recording.tick_count() {
-                Some(recording.physics_tick_hash(tick)?)
+                Some(recording.tick_hash(tick)?)
             } else {
                 None
             };
-            if expected_hash.as_deref() != Some(&tick_hashes.physics_tick_hash) {
+            if expected_hash.as_deref() != Some(&tick_hashes.tick_hash) {
                 first_divergence = Some(tick);
                 divergent_tick = Some(DivergentTick {
                     recording: if expected_hash.is_some() {
@@ -287,8 +276,7 @@ pub(in crate::fight) fn execute(
                         tick,
                         state,
                         events,
-                        physics_tick_hash: tick_hashes.physics_tick_hash,
-                        content_tick_hash: tick_hashes.content_tick_hash,
+                        tick_hash: tick_hashes.tick_hash,
                     }),
                 });
                 break "first_divergence";

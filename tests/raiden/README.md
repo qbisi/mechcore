@@ -17,8 +17,8 @@ fixed to the body. The rules are in
 made it and its lock before and after, and `group_slots`, which holds each
 slot's lock, attack target and state on every tick.
 
-`regressions.mcscript` simulates the fixture without the game and pins both
-hash layers: 99 ticks, seed 4242. In it the three Raidens fire their first
+`regressions.mcscript` simulates the fixture without the game and pins its
+hash: 99 ticks, seed 4242. In it the three Raidens fire their first
 volley on tick 2 at nine different Fangs, and not because they avoid one
 another: the first to update kills the three it holds, and the next finds
 them dead and searches again. Raidens do not share out targets across units;

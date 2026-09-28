@@ -82,4 +82,3 @@ steps:
           right: ${out}/simulated-${case.name}.mcfr
         expect:
           equal: true
-          content_equal: true

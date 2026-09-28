@@ -2,7 +2,7 @@
 //!
 //! A channel is one Parquet member, `instrument/<channel>.parquet`, beside the
 //! recording's own tables. Its rows are a Rust type, whose Arrow schema is traced
-//! from the type, and every row carries the tick it was observed on. Neither hash
+//! from the type, and every row carries the tick it was observed on. The hash never
 //! reads a channel: what the fight did is the recording, and a channel is what a
 //! study asked to see of how it did it, so asking for one never changes a pin.
 

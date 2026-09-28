@@ -3,7 +3,7 @@
 # The manifest stays the data; this script is one of its readers. The other is
 # tests/regression/refresh.mcscript, which re-records the same cases
 # natively. This one only replays them through the simulator and compares the
-# recorded tick count and physics hash, so it needs no game and no MCFR output.
+# recorded tick count and hash, so it needs no game and no MCFR output.
 #
 #   mechcore run tests/regression/simulate.mcscript --check   validate without the game
 #   mechcore run tests/regression/simulate.mcscript           run the smoke tier
@@ -35,7 +35,7 @@ steps:
         expect:
           seed_source: external
           steps: ${case.tick_count}
-          hashes.physics_result_hash: ${case.physics_result_hash}
+          hashes.result_hash: ${case.result_hash}
 
   # One fight the game never recorded, pinned as the simulator plays it. When
   # sampled RVO movement was modelled, its 321 ticks were reviewed by hand —
@@ -49,4 +49,4 @@ steps:
     expect:
       steps: 321
       winner: blue
-      hashes.physics_result_hash: 15923e6a61fae3c7a57fe68b9c94ce7f40b162281ec78c6a7bc6b8d5418d1c1f
+      hashes.result_hash: 47f2be55830719a24542f76b1cf8c720f43e45afdb8b881fb4cf392784ecc41a
