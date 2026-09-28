@@ -423,6 +423,9 @@ impl Simulation {
                 .get_mut(&actor_id)
                 .expect("initial actor identity is stable");
             actor.skill.lock_target = Some(target);
+            if actor.skill.is_grouped() {
+                actor.skill.mech_lock = Some(target);
+            }
             actor.set_body_rotation(target_rotation_q32);
             actor.aim_rotation = actor.body_rotation;
             actor.set_weapon_rotation(target_rotation_q32);

@@ -138,7 +138,7 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let skill = self.skill(owner);
-        let Some(target) = skill.mechanical_attack_target() else {
+        let Some(target) = skill.attack_target() else {
             return Ok(());
         };
         if !self.target_in_attack_range(owner, target) {

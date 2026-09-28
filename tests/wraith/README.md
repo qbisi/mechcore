@@ -47,6 +47,20 @@ the game runs; with them in place, run:
 cargo test -p mechcore-simulation grouped_checker_matches_every_captured_call -- --ignored --nocapture
 ```
 
+`slots.mcscript` also records the Wraith's M2, M3 and M6 standard fights, and
+a second ignored test reads every recording it makes. It simulates each fight
+and compares, tick by tick, every slot's lock, attack target and state with
+the recording's `group_slots`, and the unit's lock and motion beside them, and
+names the first tick a fight parts on:
+
+```sh
+cargo test -p mechcore-simulation grouped_slots_match_every_recorded_tick -- --ignored --nocapture
+```
+
+The two fixtures here and both M2 fights agree on every tick. The M3 and M6
+fights reach a live lock that a slot's check redistributes by attack count,
+and the simulator refuses them there.
+
 The replay requires the recording to carry the checker channel and rejects
 missing calls. Observed targets are never used to advance the simulation checked by the
 gameless regressions. The ordinary Rust tests retain the distinguishing

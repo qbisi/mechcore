@@ -416,7 +416,7 @@ impl Simulation {
         if let Flow::Done = self.hold_dead_target(actor_id, backswing_just_finished) {
             return Ok(());
         }
-        let target = self.actors[&actor_id].skill.mechanical_attack_target();
+        let target = self.actors[&actor_id].skill.attack_target();
         let Some(target) = target else {
             let actor = self
                 .actors
@@ -439,7 +439,7 @@ impl Simulation {
         // reach. The two coincide in every fight without one.
         let (body_x_q32, body_z_q32, body_radius) = self.actors[&actor_id]
             .skill
-            .mechanical_lock_target()
+            .lock_target
             .and_then(|lock| self.fight_actor(lock))
             .map_or((target_x_q32, target_z_q32, target_radius), |view| {
                 (view.x_q32, view.z_q32, view.radius)
@@ -462,17 +462,8 @@ impl Simulation {
             .max(0);
         if actor.rules.attack.weapons.mode == WeaponMode::Group
             && actor.motion.state == MotionState::Attacking
-            && actor
-                .skill
-                .slots
-                .first()
-                .is_some_and(|slot| slot.lock.is_none())
-            && actor
-                .skill
-                .slots
-                .iter()
-                .skip(1)
-                .any(|slot| slot.lock.is_some())
+            && actor.skill.lock_target.is_none()
+            && actor.skill.slots.iter().any(|slot| slot.lock.is_some())
         {
             actor.rotate_body_towards(mdeg_to_degrees_q32(actor.placement.rotation));
             actor.aim_rotation = actor.body_rotation;
@@ -510,7 +501,7 @@ impl Simulation {
     /// idle with it through its backswing, a felled block keeps it attacking
     /// and turning to it, and a unit whose backswing just ended drops it.
     fn hold_dead_target(&mut self, actor_id: u64, backswing_just_finished: bool) -> Flow {
-        let lock_target = self.actors[&actor_id].skill.mechanical_attack_target();
+        let lock_target = self.actors[&actor_id].skill.attack_target();
         if let Some(target) = lock_target {
             let target_alive = self.fight_actor_is_alive(target);
             if !target_alive
@@ -901,12 +892,7 @@ impl Simulation {
             .expect("actor identity is stable");
         if actor.rules.attack.weapons.mode == WeaponMode::Group
             && actor.motion.state == MotionState::Attacking
-            && actor
-                .skill
-                .slots
-                .iter()
-                .skip(1)
-                .any(|slot| slot.lock.is_some())
+            && actor.skill.slots.iter().any(|slot| slot.lock.is_some())
         {
             // GroupedSkillAttackBehaviour keeps the group attacking while any
             // child FightSkill remains in SkillAttackState. When the core

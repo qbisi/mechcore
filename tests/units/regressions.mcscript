@@ -677,6 +677,20 @@ steps:
       hashes.physics_result_hash: 16944efe95ce1df51b6ecc360b4d341e5ca161f23034fbf9ac63f29da6f5f886
       hashes.content_result_hash: 805482843ef6f2883cb2d99b85996639ed0686c5d388ebd9c054cb28983c2491
   - fight.run:
+      layout: tests/units/wraith/m2-rhino.yaml
+      seed: 4242
+    expect:
+      steps: 287
+      hashes.physics_result_hash: 9fd0a8b8ae34708ad159a2d6446970d76ea7508afd39e0f16d7f6aa9aeaad10f
+      hashes.content_result_hash: 8fa91bc43341ce6d8e3955e7f45ff48e26e4ef024e4eb744737a2d4b3afec418
+  - fight.run:
+      layout: tests/units/wraith/m2-rhino.yaml
+      seed: 1787720817
+    expect:
+      steps: 286
+      hashes.physics_result_hash: f37b63e8d41bf6b6a8fcc2ea71150732844c5f9d360e497cfae4978b33cea327
+      hashes.content_result_hash: e9b8444a47d03a715a15690582e0d94510574f559b78e68c90d32f6347ca0bc1
+  - fight.run:
       layout: tests/units/wraith/m4-marksman.yaml
       seed: 4242
     expect:

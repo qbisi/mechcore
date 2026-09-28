@@ -125,9 +125,18 @@ pub(in crate::fight) struct Skill {
     /// Which `SkillStateController` state the skill is in, with what that
     /// state carries.
     pub(in crate::fight) state: SkillState,
-    /// A grouped skill's slots, one per `FightSkill` of its `SkillGroup`, the
-    /// core first; empty for a skill that is not grouped.
+    /// How many `FightSkill`s the skill's `SkillGroup` holds, the core among
+    /// them; zero for a skill that is not grouped. A Vortex's group is its
+    /// core alone.
+    pub(in crate::fight) group_size: usize,
+    /// A grouped skill's other slots, the core's siblings: slot 1 first.
+    /// The core is this skill itself.
     pub(in crate::fight) slots: Vec<SlotSkill>,
+    /// What a grouped unit's body is directed at: `FightSkill.ChangeLockTarget`
+    /// hands the owner every lock a slot takes or drops, so it is the latest,
+    /// the core's or a sibling's. A skill that is not grouped reads its own
+    /// lock instead.
+    pub(in crate::fight) mech_lock: Option<FightActorRef>,
     pub(in crate::fight) projectile_pending_releases: Vec<PendingProjectileRelease>,
     pub(in crate::fight) laser_attack_count: usize,
     pub(in crate::fight) retarget_after_own_direct_kill: bool,
@@ -138,7 +147,7 @@ pub(in crate::fight) struct Skill {
 
 /// One slot of a grouped skill: a Wraith's weapon and the `FightSkill` that
 /// fires it.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub(in crate::fight) struct SlotSkill {
     /// The unit the slot was allocated.
     pub(in crate::fight) lock: Option<u64>,
@@ -150,8 +159,19 @@ pub(in crate::fight) struct SlotSkill {
     /// given, and a slot given another unit no longer answers with it.
     pub(in crate::fight) in_the_way: Option<(u64, u64)>,
     pub(in crate::fight) next_attack_step: u64,
-    /// Releases queued when the slot was allocated, in the order queued.
-    pub(in crate::fight) pending_releases: Vec<PendingRelease>,
+    /// The slot's `SkillStateController` state.
+    pub(in crate::fight) state: SkillState,
+}
+
+impl Default for SlotSkill {
+    fn default() -> Self {
+        Self {
+            lock: None,
+            in_the_way: None,
+            next_attack_step: 0,
+            state: SkillState::Idle { ready_step: None },
+        }
+    }
 }
 
 impl SlotSkill {
@@ -187,7 +207,9 @@ impl Skill {
             search_target_time: SEARCH_TARGET_RESET_TICKS,
             searched_this_tick: false,
             state: SkillState::Idle { ready_step: None },
-            slots: vec![SlotSkill::default(); group_skill_count],
+            group_size: group_skill_count,
+            slots: vec![SlotSkill::default(); group_skill_count.saturating_sub(1)],
+            mech_lock: None,
             projectile_pending_releases: Vec::new(),
             laser_attack_count: 0,
             retarget_after_own_direct_kill: false,
@@ -381,43 +403,64 @@ impl Skill {
     /// group, whose slot lists are empty.
     pub(in crate::fight) fn drop_lock(&mut self) {
         self.lock_target = None;
-        self.clear_slots();
+        self.mech_lock = None;
     }
 
-    /// Every slot left with no allocation and nothing scheduled.
+    /// Every sibling slot left idle, with no allocation and nothing
+    /// scheduled, as leaving the fight leaves them.
     pub(in crate::fight) fn clear_slots(&mut self) {
         self.slots.fill(SlotSkill::default());
     }
 
-    /// Each slot's allocation, the core first.
-    pub(in crate::fight) fn slot_locks(&self) -> Vec<Option<u64>> {
-        self.slots.iter().map(|slot| slot.lock).collect()
+    pub(in crate::fight) const fn is_grouped(&self) -> bool {
+        self.group_size > 0
     }
 
-    /// What one grouped slot fires at.
+    /// A slot of the group, the core's siblings only.
+    pub(in crate::fight) fn sibling(&self, slot: usize) -> &SlotSkill {
+        &self.slots[slot - 1]
+    }
+
+    pub(in crate::fight) fn sibling_mut(&mut self, slot: usize) -> &mut SlotSkill {
+        &mut self.slots[slot - 1]
+    }
+
+    /// What a slot has locked: the core's own lock for slot 0.
+    pub(in crate::fight) fn slot_lock(&self, slot: usize) -> Option<FightActorRef> {
+        if slot == 0 {
+            self.lock_target
+        } else {
+            self.slots
+                .get(slot - 1)
+                .and_then(|slot| slot.lock)
+                .map(FightActorRef::Unit)
+        }
+    }
+
+    /// What a slot fires at: the core's own attack target for slot 0.
     pub(in crate::fight) fn group_attack_target(&self, slot: usize) -> Option<FightActorRef> {
-        self.slots.get(slot).and_then(SlotSkill::attack_target)
+        if slot == 0 {
+            self.attack_target()
+        } else {
+            self.slots.get(slot - 1).and_then(SlotSkill::attack_target)
+        }
     }
 
-    /// What a grouped skill's core fires at, or the weapons' target when the
-    /// group has none.
-    pub(in crate::fight) fn mechanical_attack_target(&self) -> Option<FightActorRef> {
-        self.group_attack_target(0)
-            .or_else(|| {
-                (0..self.slots.len())
-                    .rev()
-                    .find_map(|slot| self.group_attack_target(slot))
-            })
-            .or(self.attack_target())
+    /// Each slot's locked unit, the core first.
+    pub(in crate::fight) fn slot_locks(&self) -> Vec<Option<u64>> {
+        (0..self.group_size)
+            .map(|slot| self.slot_lock(slot).and_then(FightActorRef::unit_id))
+            .collect()
     }
 
-    pub(in crate::fight) fn mechanical_lock_target(&self) -> Option<FightActorRef> {
-        self.slots
-            .first()
-            .and_then(|slot| slot.lock)
-            .or_else(|| self.slots.iter().rev().find_map(|slot| slot.lock))
-            .map(FightActorRef::Unit)
-            .or(self.lock_target)
+    /// The lock a recording reads as the unit's: a grouped unit's latest
+    /// slot lock, and any other skill's own.
+    pub(in crate::fight) const fn unit_lock(&self) -> Option<FightActorRef> {
+        if self.is_grouped() {
+            self.mech_lock
+        } else {
+            self.lock_target
+        }
     }
 }
 
@@ -502,7 +545,7 @@ impl Simulation {
             .quick_switch_target;
         let skill = self.skill(owner);
         let target = skill
-            .mechanical_attack_target()
+            .attack_target()
             .and_then(|target| self.fight_actor(target));
         let target_alive = target.is_some_and(|target| target.alive && target.targetable);
         let target_died_during_tick =
@@ -662,13 +705,27 @@ impl Simulation {
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let Some(update) = self.update_skill(
+        let core_lock = self.actors[&actor_id].skill.lock_target;
+        let update = self.update_skill(
             FightActorRef::Unit(actor_id),
             step,
             target_search_order,
             events,
-        )?
-        else {
+        )?;
+        if self.actors[&actor_id].skill.is_grouped() {
+            // The core's `ChangeLockTarget` reaches the owner first; its
+            // siblings update after it and may overwrite it.
+            let skill = &mut self
+                .actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable")
+                .skill;
+            if skill.lock_target != core_lock {
+                skill.mech_lock = skill.lock_target;
+            }
+            self.update_group_slots(actor_id, step, target_search_order, events)?;
+        }
+        let Some(update) = update else {
             return Ok(());
         };
         self.update_motion(
@@ -708,18 +765,6 @@ impl Simulation {
         }
         if let Flow::Done = self.release_terminal_handoff(owner) {
             return Ok(None);
-        }
-        let grouped = self
-            .attacker(owner)
-            .expect("skill owner identity is stable")
-            .attack
-            .weapons
-            .mode
-            == WeaponMode::Group;
-        if grouped {
-            let actor_id = owner.unit_id().expect("only a unit's skill is grouped");
-            self.update_group_skill_targets(actor_id, step, target_search_order)?;
-            self.refresh_group_walls(actor_id);
         }
         if let Flow::Done = self.finish_laser_own_kill(owner) {
             return Ok(None);
@@ -762,7 +807,8 @@ impl Simulation {
         if let Flow::Done = self.retarget_pending_blow(owner) {
             return Ok(None);
         }
-        let (flow, attack_point_rejected) = self.perform_due_blows(owner, step, events)?;
+        let (flow, attack_point_rejected) =
+            self.perform_due_blows(owner, step, prepare_finished, events)?;
         if let Flow::Done = flow {
             return Ok(None);
         }
@@ -851,16 +897,8 @@ impl Simulation {
             && skill.backswing_finish_step().is_none()
             && skill.phase() == FightSkillPhase::Idle
         {
-            // A grouped skill's core is a `GroupedSkillAttackBehaviour`,
-            // not a `FightSkill`, and prepares from the tick after its
-            // motion starts attacking; nothing has captured its states
-            // yet to say why.
             let from_idle_state = matches!(skill.state, SkillState::Idle { ready_step: None });
-            let from = if entered_attack && !skill.slots.is_empty() {
-                step + 1
-            } else {
-                step
-            };
+            let from = step;
             skill.set_phase(if prepare_steps == 0 {
                 FightSkillPhase::Attack
             } else {
@@ -933,7 +971,7 @@ impl Simulation {
             // The blow being wound up is performed on the skill's attack
             // target, which the check may just have changed.
             let skill = self.skill_mut(owner);
-            if skill.slots.is_empty()
+            if !skill.is_grouped()
                 && let Some(target) = skill.attack_target()
                 && let Some(pending) = skill.pending_mut()
             {
@@ -1154,6 +1192,7 @@ impl Simulation {
         &mut self,
         owner: FightActorRef,
         step: u64,
+        entered_attack: bool,
         events: &mut Vec<Event>,
     ) -> Result<(Flow, bool)> {
         let released_this_step = self
@@ -1191,7 +1230,7 @@ impl Simulation {
             == WeaponMode::Group;
         if grouped {
             let actor_id = owner.unit_id().expect("only a unit's skill is grouped");
-            self.perform_group_blows(actor_id, step, events)?;
+            self.perform_group_blows(actor_id, step, entered_attack, events)?;
         }
         Ok((Flow::Next, attack_point_rejected))
     }

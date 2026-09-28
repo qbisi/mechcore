@@ -37,7 +37,8 @@
 
 剩下的机制，由易到难，第一个在栈顶（各自卡住哪几场见 `tests/units/README.md`）：
 
-1. **wraith 的分组搜索。**
+1. **wraith 按攻击次数重分配共享的锁定**（`SkillAttackableChecker.TrySearchGroupSkillLockTarget`）。
+   M3、M6 两个种子都在这里被按名拒绝。
 2. **Raiden。** 构建按单位数据 27 给它的每件武器一个固定在机身上的变换
    （`FightWeapon` 构造器），三件分组武器齐射；子槽位在没有别的单位可选时锁敌方的塔、
    不在射程就不开火，子武器的朝向在交战时滞后机身一 tick、否则冻结。要单独研究。

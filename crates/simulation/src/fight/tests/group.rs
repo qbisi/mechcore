@@ -93,7 +93,10 @@ fn grouped_slots_follow_the_native_exclusion_and_fallback() {
                     sim.actors[&29].skill.slot_locks(),
                     [Some(41), Some(30), Some(48), Some(55)]
                 );
-                assert_eq!(sim.actors[&29].skill.lock_target, Some(unit_target(55)));
+                // The core keeps its own lock; the unit's is the latest a
+                // slot took, the fourth's.
+                assert_eq!(sim.actors[&29].skill.lock_target, Some(unit_target(41)));
+                assert_eq!(sim.actors[&29].skill.unit_lock(), Some(unit_target(55)));
                 assert!(!sim.slot_target_in_attack_range(
                     FightActorRef::Unit(29),
                     Some(0),
@@ -147,7 +150,9 @@ fn live_shared_lock_redistribution_is_refused_when_a_new_target_is_available() {
         ],
     );
     let mut sim = raw_test_simulation(&layout, &config, 7);
-    for slot in &mut sim.actors.get_mut(&1).unwrap().skill.slots {
+    let skill = &mut sim.actors.get_mut(&1).unwrap().skill;
+    skill.lock_target = Some(FightActorRef::Unit(2));
+    for slot in &mut skill.slots {
         slot.lock = Some(2);
     }
     sim.refresh_target_query_snapshot();
@@ -264,8 +269,13 @@ mod oracle {
                 };
                 for call in &calls {
                     let slot = slot_of(call);
-                    self.actors.get_mut(&actor_id).unwrap().skill.slots[slot].lock =
-                        target(&call["before"]["lock_target"]).and_then(FightActorRef::unit_id);
+                    let lock = target(&call["before"]["lock_target"]);
+                    let skill = &mut self.actors.get_mut(&actor_id).unwrap().skill;
+                    if slot == 0 {
+                        skill.lock_target = lock;
+                    } else {
+                        skill.sibling_mut(slot).lock = lock.and_then(FightActorRef::unit_id);
+                    }
                 }
                 let order = self.target_search_order();
                 for call in &calls {
@@ -274,21 +284,26 @@ mod oracle {
                     let lock = target(&before["lock_target"]);
                     let attack = target(&before["attack_target"]);
                     let skill = &mut self.actors.get_mut(&actor_id).unwrap().skill;
-                    skill.slots[slot].lock = lock.and_then(FightActorRef::unit_id);
-                    skill.slots[slot].in_the_way = match (attack, lock) {
+                    let in_the_way = match (attack, lock) {
                         (Some(FightActorRef::Building(b)), Some(FightActorRef::Unit(u))) => {
                             Some((b, u))
                         }
                         _ => None,
                     };
+                    if slot == 0 {
+                        skill.lock_target = lock;
+                        skill.in_the_way = in_the_way.map(|(b, u)| (b, FightActorRef::Unit(u)));
+                    } else {
+                        let sibling = skill.sibling_mut(slot);
+                        sibling.lock = lock.and_then(FightActorRef::unit_id);
+                        sibling.in_the_way = in_the_way;
+                    }
                     let result = self
                         .check_attackable_slot(FightActorRef::Unit(actor_id), Some(slot), &order)
                         .unwrap();
                     let actual = (
                         result,
-                        self.actors[&actor_id].skill.slots[slot]
-                            .lock
-                            .map(FightActorRef::Unit),
+                        self.actors[&actor_id].skill.slot_lock(slot),
                         self.actors[&actor_id].skill.group_attack_target(slot),
                     );
                     let expected = (
@@ -361,5 +376,154 @@ mod oracle {
                 &replay.differences[..replay.differences.len().min(20)]
             );
         }
+    }
+}
+
+/// Every grouped unit's slots, tick by tick, against a recording's
+/// `group_slots` channel: the lock, the attack target and the state of each
+/// slot, with the unit's lock and motion beside them.
+mod slots {
+    use super::*;
+    use crate::fight::skill::SkillState;
+    use mechcore_mcfr::{GroupSlot, McfrReader, ObjectKind, ObjectRef};
+
+    fn object(target: Option<FightActorRef>) -> Option<ObjectRef> {
+        target.map(FightActorRef::object_ref)
+    }
+
+    fn state_name(state: SkillState) -> &'static str {
+        match state {
+            SkillState::Idle { .. } => "SkillIdleState",
+            SkillState::Prepare { .. } => "SkillPrepareState",
+            SkillState::Attack(_) => "SkillAttackState",
+            SkillState::Cooling { .. } => "SkillCoolingState",
+            SkillState::Reloading { .. } => "SkillReloadingState",
+        }
+    }
+
+    /// The first tick a recording's slots and the simulator's part, and how.
+    fn first_difference(path: &Path) -> Option<String> {
+        let config = SimulationConfig::load().unwrap();
+        let recording = McfrReader::open(path).unwrap();
+        let rows = recording
+            .instrument::<GroupSlot>()
+            .unwrap()
+            .expect("the recording carries the group_slots channel");
+        let (_, layout) =
+            crate::layout::compile_with_seed(recording.layout_yaml().as_bytes(), &config.units)
+                .unwrap();
+        let mut sim = Simulation::new(
+            &layout,
+            &config.units,
+            &config.towers,
+            recording.context().match_seed,
+        )
+        .unwrap();
+        let mut by_tick: BTreeMap<u32, Vec<GroupSlot>> = BTreeMap::new();
+        for (tick, row) in rows {
+            by_tick.entry(tick).or_default().push(row);
+        }
+        for tick in 1..=recording.tick_count() {
+            if let Err(error) = sim.step(u64::from(tick) - 1) {
+                return Some(format!("tick {tick}: the simulator refused: {error}"));
+            }
+            let game = recording.state(tick).unwrap();
+            let mut differences = Vec::new();
+            for row in by_tick.get(&tick).into_iter().flatten() {
+                let Some(actor) = sim.actors.get(&row.unit.id).filter(|actor| actor.alive()) else {
+                    differences.push(format!("u{} is gone", row.unit.id));
+                    continue;
+                };
+                let slot = usize::from(row.skill_slot);
+                if slot >= actor.skill.group_size {
+                    differences.push(format!("u{} has no slot {slot}", row.unit.id));
+                    continue;
+                }
+                // The core is the unit's own skill.
+                let (lock, attack, state) = if slot == 0 {
+                    (
+                        object(actor.skill.lock_target),
+                        object(actor.skill.attack_target()),
+                        state_name(actor.skill.state),
+                    )
+                } else {
+                    let held = actor.skill.sibling(slot);
+                    (
+                        held.lock.map(|unit| ObjectRef::new(ObjectKind::Unit, unit)),
+                        object(held.attack_target()),
+                        state_name(held.state),
+                    )
+                };
+                let recorded_state = row.skill_state.as_deref().unwrap_or("-");
+                if lock != row.lock_target || attack != row.attack_target || state != recorded_state
+                {
+                    differences.push(format!(
+                        "u{} s{slot}: game {:?}/{:?} {recorded_state}, sim {lock:?}/{attack:?} {state}",
+                        row.unit.id, row.lock_target, row.attack_target
+                    ));
+                }
+            }
+            let ours = sim.snapshot();
+            for unit in &game.live_units {
+                if !by_tick
+                    .get(&tick)
+                    .is_some_and(|rows| rows.iter().any(|row| row.unit.id == unit.unit_id))
+                {
+                    continue;
+                }
+                let Some(mine) = ours.live_units.iter().find(|u| u.unit_id == unit.unit_id) else {
+                    continue;
+                };
+                if mine.mech_lock_target != unit.mech_lock_target
+                    || mine.motion_state != unit.motion_state
+                {
+                    differences.push(format!(
+                        "u{} unit: game lock {:?} {:?}, sim lock {:?} {:?}",
+                        unit.unit_id,
+                        unit.mech_lock_target,
+                        unit.motion_state,
+                        mine.mech_lock_target,
+                        mine.motion_state
+                    ));
+                }
+            }
+            if !differences.is_empty() {
+                return Some(format!("tick {tick}: {}", differences.join("; ")));
+            }
+        }
+        None
+    }
+
+    #[test]
+    #[ignore = "requires the Wraith recordings tests/wraith/slots.mcscript makes where the game runs"]
+    fn grouped_slots_match_every_recorded_tick() {
+        let root = Path::new("/tmp/mechcore/wraith/slots");
+        let mut parted = Vec::new();
+        let mut paths = std::fs::read_dir(root)
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .filter(|path| {
+                path.extension()
+                    .is_some_and(|extension| extension == "mcfr")
+            })
+            .collect::<Vec<_>>();
+        paths.sort();
+        if let Ok(only) = std::env::var("SLOT_ONLY") {
+            paths.retain(|path| {
+                path.file_stem()
+                    .is_some_and(|stem| stem.to_string_lossy() == only)
+            });
+        }
+        for path in paths {
+            let name = path.file_stem().unwrap().to_string_lossy().into_owned();
+            match first_difference(&path) {
+                None => eprintln!("{name}: every tick agrees"),
+                Some(difference) => {
+                    eprintln!("{name}: {difference}");
+                    parted.push(name);
+                }
+            }
+        }
+        assert!(parted.is_empty(), "parted: {parted:?}");
     }
 }

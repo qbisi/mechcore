@@ -710,6 +710,7 @@ impl Simulation {
                 let entered_idle = actor.motion.state != MotionState::Idle;
                 actor.stop_in_place(entered_idle);
                 actor.skill.drop_lock();
+                actor.skill.clear_slots();
                 actor.skill.lock_is_terminal_handoff = false;
                 // A won fight runs on without `FightSkill.ExitFight` until it
                 // ends: a skill already cooling goes on cooling at what it

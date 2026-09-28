@@ -134,14 +134,37 @@ body staying on its lock. A unit without a body, a Fang, a Crawler or a Wraith,
 turns its root toward the attack target. A unit with a body loses it while its
 data set holds a positive `MechDataChangeInt.DisableBody`.
 
-**A grouped skill's lock is its latest allocation, and a construction is never
-allocated.** A unit with several weapon slots locks the unit most recently
-allocated to one of them. A construction in a slot's way replaces what that
-slot fires at, not what it was allocated, so every slot can be firing at a
-block while the lock reads the unit behind it. The slots are dropped with the
-lock: the tick a block the unit was shooting falls, and the tick its last enemy
-dies, every slot reads empty, and the children are allocated again only when
-the group allocates them after the core is next attacking.
+**A grouped unit's lock is the latest any slot took or dropped, and a
+construction is never allocated.** `FightSkill.ChangeLockTarget` hands the
+owner every lock a slot of the group takes or drops, the core's and its
+siblings' alike, in the order the slots update, the core first. So a unit
+with several weapon slots reads the unit most recently allocated to one of
+them, and reads nothing on the tick a sibling that updates after the core
+drops its lock. A construction in a slot's way replaces what that slot fires
+at, not what it was allocated, so every slot can be firing at a block while
+the lock reads the unit behind it.
+
+**Each slot of a group runs its own skill states.** A Wraith's four slots are
+four `FightSkill`s, and each prepares, attacks and goes idle by itself:
+
+- A sibling starts only while the group attacks:
+  `GroupedSkillAttackBehaviour.CanStartAttackCheck` is `SkillGroup.IsAttacking`,
+  any skill of the group in `SkillAttackState`. An idle sibling then searches
+  around what the others hold and prepares for the unit it finds if it is in
+  reach. The core's own attack is what first sets its siblings going: on the
+  tick the core enters `SkillAttackState`, the siblings, updating after it,
+  allocate and prepare.
+- Preparing and attacking slots ask `SkillAttackableChecker.Check` every
+  update, and a slot whose check fails goes idle and drops its lock, whatever
+  its siblings do. The core leaving its attack, because its target is beyond
+  its range, leaves its siblings attacking with their extra 10 metres, and
+  the unit's motion follows the core: a Wraith whose core has lost reach walks
+  on toward its lock while its other weapons keep firing.
+- A slot that is already preparing goes on into its attack even when no
+  sibling attacks any more; only starting waits for the group.
+- A slot enters its attack when its prepare is over and fires on the update
+  after, then at its own interval; the core does the same.
+- Leaving the fight leaves every slot idle.
 
 `crates/simulation/src/fight/mech.rs` implements the split as `lock_target`
 and `Actor::attack_target`.
@@ -399,6 +422,9 @@ not the game's native attack-type enum.
   `tests/units/regressions.mcscript`.
 - A grouped skill's slots, their locks and their reach, and a grouped unit's
   core interval: `tests/wraith/regressions.mcscript`.
+- Each slot's own states, the core leaving its attack while its siblings go
+  on, and the unit's lock following the latest slot, in the Wraith's M2
+  fights: `tests/units/regressions.mcscript`.
 - Where a charging Crawler is sent, and a Marksman's quick switch that cannot
   follow a kill: `tests/regression/simulate.mcscript`.
 - The body travelling toward the lock, attacking without moving, and the
@@ -468,6 +494,12 @@ not the game's native attack-type enum.
   `FightSkill.GetAttackRange`.
 - The group's attack hooks are empty: `GroupedSkillAttackBehaviour.Update`,
   `GroupedSkillAttackBehaviour.OnStartAttack`.
+- A sibling starts only while the group attacks, and every slot's lock
+  reaches the owner: `GroupedSkillAttackBehaviour.CanStartAttackCheck`,
+  `SkillGroup.IsAttacking`, `SkillGroup.IsCoreSkill`,
+  `FightSkill.ChangeLockTarget`, `FightSkillBase.IsMainSearcher`.
+- A failed check ends a slot's attack: `SkillAttackState.CheckAttackable`,
+  `SkillAttackState.Finish`.
 - The first acquisition happens before the first state: `FightPrepareState.Enter`.
 - Life lost is clamped to life left: `FightActor.ReduceLife`,
   `FightSkill.GetDamage`.
@@ -492,8 +524,9 @@ not the game's native attack-type enum.
   `IsAttackTargetInAttackRange` beside `GetLockTarget`, say. A Marksman's
   weapon has no pose in a recording, so its aim angle is not observed.
 - **Grouped slots**: live-sharing redistribution when an unheld target becomes
-  available, a child leaving its attack area, grouped fusillade, redistribution
-  of wall blockers, and the derivation of the group's prepare offset.
+  available, which the simulator refuses by name; grouped fusillade;
+  redistribution of wall blockers; and whether an idle slot that finds a unit
+  beyond its reach keeps it as its lock, which no recorded sibling has done.
 - **Target scoring**: a split quadtree, tied candidates, a building winning,
   moving candidates being reinserted, and other selector modes.
 - **Projectiles**: why a projectile in simulated motion spares a dead unit's

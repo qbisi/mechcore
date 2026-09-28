@@ -653,10 +653,10 @@ impl Simulation {
         let source = &self.actors[&actor_id];
         let held = source
             .skill
-            .slots
-            .iter()
+            .slot_locks()
+            .into_iter()
             .enumerate()
-            .filter_map(|(index, target)| (index != slot).then_some(target.lock).flatten())
+            .filter_map(|(index, target)| (index != slot).then_some(target).flatten())
             .collect::<Vec<_>>();
         if held.is_empty() {
             return self
