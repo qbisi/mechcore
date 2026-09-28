@@ -49,8 +49,3 @@
 - **实体表。** 每个实体不变的字段从逐 tick 表挪到一张"变化才记一行"的实体表，读取时按 tick
   合并回完整状态。它省下的比存储一步的其余几项小一个量级，而 `team_id`、`domain` 会被精神控制、
   钻地改变，读写两端都要处理变化。reopen_when：录像体积成了语料同步或分析的瓶颈。
-
-- **headless 下 Training Ground 偶发的托管 `NullReferenceException`。** 在线时 `main_menu`
-  早于登录完成，建主机读的本地玩家 ID 由登录设置，可能与摆阵撞上；未证实。托管异常现在带调用栈。
-  reopen_when：再出现一次，或 offline 的 headless 录制跑满 Adapter smoke 与 layout-replay
-  等价性而没有出现，那时把这两份脚本也改成 headless。
