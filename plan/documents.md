@@ -23,11 +23,8 @@
 
 ## 栈
 
-1. **outcome 补完。** 从录像读出单位经验、contraption 与 standing 是否留存、本回合释放的
-   结果，连同已经算得出的反应堆伤害写成 fight 文档的 result：`convert <mcfr> --to fight`，
-   `show --view outcome` 让位给它。fight 接进 `format`、`schema`、`diff`。blocks 2、3。
-2. **fight 文档的校验。** `verify` 读 fight 文档：模拟一遍，比 result 与 hash。
-3. **钉子迁成 fight 夹具。** `tests/<topic>/regressions.mcscript` 里的布阵、种子和 hash 变成
+1. **fight 文档的校验。** `verify` 读 fight 文档：模拟一遍，比 result 与 hash。
+2. **钉子迁成 fight 夹具。** `tests/<topic>/regressions.mcscript` 里的布阵、种子和 hash 变成
    一份份 fight 文档，result 在有游戏的机器上重录读出，脚本只剩对目录跑 `verify`。
 
 ## 停车场
