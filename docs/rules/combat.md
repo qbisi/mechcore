@@ -187,6 +187,12 @@ with a unique optimum, the build picks by Q32 edge distance, strict
 minimum-range exclusion, an angle factor, an out-of-range penalty and a strict
 minimum score.
 
+**The angle is measured from the searcher's main transform.** That is its
+first weapon's when the weapon has a transform, and the mech's root when it
+has none, whether or not the weapons turn at a speed of their own: a
+Wraith, whose four weapons turn at 90° a second but carry no transform,
+scores from its root's facing, not from where its first weapon points.
+
 `FightPrepareState` completes the first acquisition and syncs initial facing
 before the first persisted state S(1).
 
@@ -427,6 +433,8 @@ not the game's native attack-type enum.
 
 ### Read
 
+- A search's angle is measured from the skill's main transform, a weapon's
+  or the root's: `FightSkill.GetMainTransform`.
 - A projectile's climb is scaled by the distance from where it leaves, as it
   is created: `ProjectileSystem.Create`, `IProjectileSkillData.GetPreFlyHeight`,
   `ProjectileFlyData.GetPosition`.
@@ -512,6 +520,11 @@ not the game's native attack-type enum.
 - **When `FightSkill.ExitFight` runs** in a won fight, and why a cooling the
   simulator would begin on the won fight's first tick is not one the game
   shows; the recordings fix what is seen, not the call that makes it.
+- **A Wraith's search angle from its root** is measured, not pinned: the
+  angles one recorded search gave three candidates, in the Wraith's M3 with
+  seed 1787720817, all put the facing it was measured from at its root's to
+  within 0.03°, and 1.9° from its first weapon's. No Wraith fight that
+  reaches that search plays back yet.
 - **The endgame** with several members or groups, summons, respawns,
   constructions, shields, and mixed damage inside one tick; and which of the
   winner's units the build hands a tower.
