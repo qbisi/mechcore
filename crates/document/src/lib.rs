@@ -46,13 +46,13 @@ pub use catalog::{
 };
 pub use compile::{BattleSkill, Placement, Plan, SidePlan, compile, compile_layout};
 pub use economy::game_build;
-pub use grbr::{GrbrRoundRetained, GrbrSideRetained, retained_from_grbr_round};
+pub use grbr::{GrbrRoundRetained, GrbrStanding, retained_from_grbr_round};
 pub use layout::{
-    BattleSkillDefinition, ContraptionPlacement, Experience, FIGHT_VISIBLE_ENERGY_TOWER_SKILLS,
-    Layout, MAX_TOWER_STRENGTHEN_LEVEL, MOVEMENT_ENHANCEMENT_SKILL, Position,
-    RANGE_ENHANCEMENT_SKILL, Region, Side, StaticPlacement, TOWER_COUNT, Techs, Terrain,
-    TerrainType, UnitPlacement, canonical_embedded_yaml, canonical_yaml, parse_embedded_yaml,
-    parse_yaml,
+    BattleSkillEntry, BattleSkillRelease, ContraptionPlacement, Experience,
+    FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Layout, MAX_TOWER_STRENGTHEN_LEVEL,
+    MOVEMENT_ENHANCEMENT_SKILL, OilArea, Position, RANGE_ENHANCEMENT_SKILL, Region, Side, Standing,
+    StaticPlacement, TOWER_COUNT, Techs, UnitPlacement, canonical_embedded_yaml, canonical_yaml,
+    parse_embedded_yaml, parse_yaml,
 };
 
 /// Names the kind of document a file carries.
@@ -98,13 +98,20 @@ mod tests {
         })
     }
 
-    fn layout_with_blue_terrains(terrains: &Value) -> Value {
+    /// A layout whose blue side holds these standing Sticky Oil Bomb areas.
+    fn layout_with_blue_oil(areas: &Value) -> Value {
+        let entries: Vec<Value> = areas
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|area| json!({"name": "sticky_oil_bomb", "standing": area}))
+            .collect();
         json!({
             "kind": "layout",
             "round": 1,
             "blue": {
                 "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}],
-                "terrains": terrains
+                "battle_skills": entries
             },
             "red": {
                 "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
@@ -237,12 +244,11 @@ red:
                 "units": [
                     {"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}
                 ],
-                "airdrop_shields": [{"x": -200, "y": -20}],
-                "terrains": [
-                    {"name": "oil", "control_points": [{"x": 100, "y": 0}, {"x": 120, "y": 0}]}
-                ],
                 "battle_skills": [
-                    {"name": "lightning_storm", "positions": [{"x": 20, "y": -150}]}
+                    {"name": "lightning_storm", "positions": [{"x": 20, "y": -150}]},
+                    {"name": "shield_airdrop", "standing": {"position": {"x": -200, "y": -20}}},
+                    {"name": "sticky_oil_bomb",
+                     "standing": {"control_points": [{"x": 100, "y": 0}, {"x": 120, "y": 0}]}}
                 ]
             },
             "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
@@ -252,8 +258,8 @@ red:
         let yaml = canonical_yaml(layout).unwrap();
         for line in [
             "  units:\n  - {name: marksman, index: 0, position: {x: 0, y: -50}}\n",
-            "  airdrop_shields:\n  - {x: -200, y: -20}\n",
-            "  - {name: oil, control_points: [{x: 100, y: 0}, {x: 120, y: 0}]}\n",
+            "  battle_skills:\n  - {name: shield_airdrop, standing: {position: {x: -200, y: -20}}}\n",
+            "  - {name: sticky_oil_bomb, standing: {control_points: [{x: 100, y: 0}, {x: 120, y: 0}]}}\n",
             "  - {name: lightning_storm, positions: [{x: 20, y: -150}]}\n",
         ] {
             assert!(yaml.contains(line), "{line:?} is not one line: {yaml}");
@@ -286,10 +292,15 @@ red:
                     {"index": 3, "name": "shield", "position": {"x": 0, "y": -120}},
                     {"index": 2, "name": "shield", "position": {"x": 100, "y": -120}}
                 ],
-                "airdrop_shields": [{"x": 200, "y": 20}, {"x": -200, "y": 20}],
-                "terrains": [
-                    {"name": "oil", "control_points": [{"x": 100, "y": 0}, {"x": 120, "y": 0}]},
-                    {"name": "oil", "control_points": [{"x": -100, "y": 0}, {"x": -80, "y": 0}]}
+                "battle_skills": [
+                    {"name": "missile_strike", "positions": [{"x": 0, "y": 40}]},
+                    {"name": "sticky_oil_bomb",
+                     "standing": {"control_points": [{"x": 100, "y": 0}, {"x": 120, "y": 0}]}},
+                    {"name": "shield_airdrop", "standing": {"position": {"x": 200, "y": 20}}},
+                    {"name": "lightning_storm", "positions": [{"x": 20, "y": -150}]},
+                    {"name": "sticky_oil_bomb",
+                     "standing": {"control_points": [{"x": -100, "y": 0}, {"x": -80, "y": 0}]}},
+                    {"name": "shield_airdrop", "standing": {"position": {"x": -200, "y": 20}}}
                 ]
             },
             "red": {"units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]}
@@ -315,17 +326,34 @@ red:
                 .collect::<Vec<_>>(),
             [2, 3]
         );
+        // Standing entries come first, by skill and then by where they
+        // stand; the releases keep the order they were written in.
+        let summary: Vec<(String, i32)> = once
+            .blue
+            .battle_skills
+            .iter()
+            .map(|entry| match entry {
+                BattleSkillEntry::Standing(Standing::Shield { position }) => {
+                    ("shield_airdrop".to_owned(), position.x)
+                }
+                BattleSkillEntry::Standing(Standing::Oil(area)) => {
+                    ("sticky_oil_bomb".to_owned(), area.control_points[0].x)
+                }
+                BattleSkillEntry::Release(release) => {
+                    (release.type_name.clone(), release.positions[0].x)
+                }
+            })
+            .collect();
         assert_eq!(
-            once.blue.airdrop_shields,
-            [Position { x: -200, y: 20 }, Position { x: 200, y: 20 }]
-        );
-        assert_eq!(
-            once.blue
-                .terrains
-                .iter()
-                .map(|terrain| terrain.control_points[0].x)
-                .collect::<Vec<_>>(),
-            [-100, 100]
+            summary,
+            [
+                ("shield_airdrop".to_owned(), -200),
+                ("shield_airdrop".to_owned(), 200),
+                ("sticky_oil_bomb".to_owned(), -100),
+                ("sticky_oil_bomb".to_owned(), 100),
+                ("missile_strike".to_owned(), 0),
+                ("lightning_storm".to_owned(), 20),
+            ]
         );
         assert!(once.blue.units[0].level.is_none());
         assert!(once.blue.units[0].exp.is_none());
@@ -438,74 +466,96 @@ red:
     }
 
     #[test]
-    fn compiles_and_counts_valid_oil_terrain_state() {
-        let plan = compile(&layout_with_blue_terrains(&json!([
-            {"name": "oil", "control_points": [{"x": -60, "y": 40}, {"x": 60, "y": 40}]},
-            {"name": "oil", "control_points": [{"x": -60, "y": 40}, {"x": 60, "y": 40}], "grid_rows": {"0": [], "1": vec![0x0fff_u32; 12]}}
+    fn compiles_and_counts_valid_standing_oil() {
+        let plan = compile(&layout_with_blue_oil(&json!([
+            {"control_points": [{"x": -60, "y": 40}, {"x": 60, "y": 40}]},
+            {"control_points": [{"x": -60, "y": 40}, {"x": 60, "y": 40}], "grid_rows": {"0": [], "1": vec![0x0fff_u32; 12]}}
         ])))
         .unwrap();
 
-        assert_eq!(plan.terrain_count(), 2);
-        assert_eq!(plan.blue.terrains[0].terrain_type, TerrainType::Oil);
-        assert!(plan.blue.terrains[0].grid_rows.is_empty());
-        assert!(plan.blue.terrains[1].grid_rows[&0].is_empty());
-        assert_eq!(plan.blue.terrains[1].grid_rows[&1], vec![0x0fff; 12]);
-        assert!(plan.red.terrains.is_empty());
+        assert_eq!(plan.standing_oil_count(), 2);
+        assert!(plan.blue.standing_oil[0].grid_rows.is_empty());
+        assert!(plan.blue.standing_oil[1].grid_rows[&0].is_empty());
+        assert_eq!(plan.blue.standing_oil[1].grid_rows[&1], vec![0x0fff; 12]);
+        assert!(plan.red.standing_oil.is_empty());
+        assert!(plan.blue.battle_skills.is_empty());
     }
 
     #[test]
-    fn terrain_fields_and_grid_shape_are_fail_closed() {
-        // A substance the build makes but this one has no measured geometry
-        // for parses and is then refused by name, so a recording holding one
-        // can be described even though no plan can be built from it.
-        let unmeasured = compile(&layout_with_blue_terrains(&json!([
-            {"name": "fire", "control_points": [{"x": 0, "y": 0}, {"x": 60, "y": 0}]}
-        ])))
-        .unwrap_err();
+    fn standing_oil_fields_and_grid_shape_are_fail_closed() {
+        // Only two skills leave anything standing, and any other is refused by
+        // name.
+        let mut fire = layout_with_blue_oil(&json!([
+            {"control_points": [{"x": 0, "y": 0}, {"x": 60, "y": 0}]}
+        ]));
+        fire["blue"]["battle_skills"][0]["name"] = json!("incendiary_bomb");
+        let fire = compile(&fire).unwrap_err();
         assert!(
-            unmeasured.contains("has no measured point radius or count"),
-            "{unmeasured}"
+            fire.contains("battle skill incendiary_bomb leaves nothing standing"),
+            "{fire}"
         );
 
-        // A substance the build does not make at all is still a parse error.
-        let unknown = compile(&layout_with_blue_terrains(&json!([
-            {"name": "tar", "control_points": [{"x": 0, "y": 0}, {"x": 60, "y": 0}]}
-        ])))
-        .unwrap_err();
-        assert!(unknown.contains("unknown variant `tar`"), "{unknown}");
+        // A standing object carries its own skill's payload.
+        let mut crossed = layout_with_blue_oil(&json!([{"position": {"x": 0, "y": 0}}]));
+        let error = compile(&crossed).unwrap_err();
+        assert!(
+            error.contains("sticky_oil_bomb carries a shield_airdrop's standing object"),
+            "{error}"
+        );
+        crossed["blue"]["battle_skills"][0]["standing"] =
+            json!({"position": {"x": 0, "y": 0}, "control_points": []});
+        let error = compile(&crossed).unwrap_err();
+        assert!(error.contains("a standing object is a shield's"), "{error}");
 
-        let outside = compile(&layout_with_blue_terrains(&json!([
-            {"name": "oil", "control_points": [{"x": 431, "y": 0}, {"x": 500, "y": 0}]}
+        // An entry is a release or a standing object, never both or neither.
+        let mut both = layout_with_blue_oil(&json!([
+            {"control_points": [{"x": 0, "y": 0}, {"x": 60, "y": 0}]}
+        ]));
+        both["blue"]["battle_skills"][0]["positions"] = json!([{"x": 0, "y": 0}]);
+        let error = compile(&both).unwrap_err();
+        assert!(
+            error.contains("states both positions and standing"),
+            "{error}"
+        );
+        both["blue"]["battle_skills"][0] = json!({"name": "sticky_oil_bomb"});
+        let error = compile(&both).unwrap_err();
+        assert!(
+            error.contains("states neither positions nor standing"),
+            "{error}"
+        );
+
+        let outside = compile(&layout_with_blue_oil(&json!([
+            {"control_points": [{"x": 431, "y": 0}, {"x": 500, "y": 0}]}
         ])))
         .unwrap_err();
         assert!(outside.contains("does not overlap the battlefield"));
 
-        let wrong_count = compile(&layout_with_blue_terrains(&json!([
-            {"name": "oil", "control_points": [{"x": 0, "y": 0}]}
+        let wrong_count = compile(&layout_with_blue_oil(&json!([
+            {"control_points": [{"x": 0, "y": 0}]}
         ])))
         .unwrap_err();
         assert!(wrong_count.contains("control_points must contain exactly two points"));
 
-        let wrong_height = compile(&layout_with_blue_terrains(&json!([
-            {"name": "oil", "control_points": [{"x": 0, "y": 0}, {"x": 60, "y": 0}], "grid_rows": {"1": vec![1_u32; 11]}}
+        let wrong_height = compile(&layout_with_blue_oil(&json!([
+            {"control_points": [{"x": 0, "y": 0}, {"x": 60, "y": 0}], "grid_rows": {"1": vec![1_u32; 11]}}
         ])))
         .unwrap_err();
         assert!(wrong_height.contains("exactly 12 rows"));
 
-        let outside_width = compile(&layout_with_blue_terrains(&json!([
-            {"name": "oil", "control_points": [{"x": 0, "y": 0}, {"x": 60, "y": 0}], "grid_rows": {"1": vec![0x1000_u32; 12]}}
+        let outside_width = compile(&layout_with_blue_oil(&json!([
+            {"control_points": [{"x": 0, "y": 0}, {"x": 60, "y": 0}], "grid_rows": {"1": vec![0x1000_u32; 12]}}
         ])))
         .unwrap_err();
         assert!(outside_width.contains("uses bits outside width 12"));
 
-        let empty_grid = compile(&layout_with_blue_terrains(&json!([
-            {"name": "oil", "control_points": [{"x": 0, "y": 0}, {"x": 60, "y": 0}], "grid_rows": {"1": vec![0_u32; 12]}}
+        let empty_grid = compile(&layout_with_blue_oil(&json!([
+            {"control_points": [{"x": 0, "y": 0}, {"x": 60, "y": 0}], "grid_rows": {"1": vec![0_u32; 12]}}
         ])))
         .unwrap_err();
         assert!(empty_grid.contains("must activate at least one cell"));
 
-        let outside_index = compile(&layout_with_blue_terrains(&json!([
-            {"name": "oil", "control_points": [{"x": 0, "y": 0}, {"x": 60, "y": 0}], "grid_rows": {"7": []}}
+        let outside_index = compile(&layout_with_blue_oil(&json!([
+            {"control_points": [{"x": 0, "y": 0}, {"x": 60, "y": 0}], "grid_rows": {"7": []}}
         ])))
         .unwrap_err();
         assert!(outside_index.contains("point index 7 must be within 0..6"));
@@ -1324,27 +1374,52 @@ red:
         );
     }
 
+    /// A standing object's skill is named as the battle-skill catalogue names
+    /// it, so a written entry reads back as the same skill.
     #[test]
-    fn retained_airdrop_shields_are_their_own_collection() {
+    fn a_standing_object_names_its_skill_as_the_catalogue_does() {
+        for standing in [
+            Standing::Shield {
+                position: Position { x: 0, y: 0 },
+            },
+            Standing::Oil(OilArea {
+                control_points: Vec::new(),
+                grid_rows: std::collections::BTreeMap::new(),
+            }),
+        ] {
+            assert_eq!(
+                battle_skill_type_from_id(standing.skill()),
+                Some(standing.skill_name())
+            );
+        }
+    }
+
+    #[test]
+    fn standing_shields_are_not_contraptions() {
         let mut value = json!({"kind": "layout", "round": 2, "blue": {"units": [{"index": 0, "name":"marksman","position": {"x": 0, "y": -150}}],
             "contraptions": [{"index": 0, "name":"shield","position": {"x": 0, "y": -120}}],
-            "airdrop_shields": [{"x":300,"y":20}, {"x":-300,"y":20}]},
+            "battle_skills": [
+                {"name": "shield_airdrop", "standing": {"position": {"x":300,"y":20}}},
+                {"name": "shield_airdrop", "standing": {"position": {"x":-300,"y":20}}}
+            ]},
         "red": {"units": [{"index": 0, "name":"marksman","position": {"x": 0, "y": -150}}]}});
         let plan = compile(&value).unwrap();
         assert_eq!(plan.blue.contraptions.len(), 1);
-        assert_eq!(plan.airdrop_shield_count(), 2);
+        assert_eq!(plan.standing_shield_count(), 2);
         assert_eq!(
-            plan.blue.airdrop_shields,
+            plan.blue.standing_shields,
             [Position { x: 300, y: 20 }, Position { x: -300, y: 20 }]
         );
+        assert!(plan.blue.battle_skills.is_empty());
 
-        // A retained airdrop stands where it was released, not where a new
-        // contraption could be placed, so only the battlefield bounds apply.
-        value["blue"]["airdrop_shields"][0]["x"] = json!(401);
+        // A standing airdrop stands where it was released, not where a new
+        // release could land, so only the battlefield bounds apply.
+        value["blue"]["battle_skills"][0]["standing"]["position"]["x"] = json!(401);
+        let error = compile(&value).unwrap_err();
         assert!(
-            compile(&value)
-                .unwrap_err()
-                .contains("airdrop_shields[0] center (401, 20) is outside the battlefield")
+            error
+                .contains("standing shield_airdrop[0] center (401, 20) is outside the battlefield"),
+            "{error}"
         );
     }
 

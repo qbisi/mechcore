@@ -13,6 +13,7 @@
 //! a leaf, so a formation missing from the prediction counts against it.
 
 use crate::economy::Economy;
+use crate::layout::{Position, SHIELD_AIRDROP_SKILL, Standing};
 use crate::r#match::{Action, Offers, SideState, SkillTarget, Turn};
 use crate::opening::{Stated, Stream};
 use crate::reinforcement::Verified;
@@ -29,8 +30,7 @@ pub const FIGHT: &[&str] = &[
     "reactor_core",
     "units.exp",
     "contraptions",
-    "terrains",
-    "airdrop_shields",
+    "battle_skills.standing",
 ];
 
 /// Field groups whose opening rule [`crate::transition::open_round`] does not
@@ -417,35 +417,60 @@ fn compare(predicted: &SideState, recorded: &SideState, fought: bool) -> Vec<Lea
 
 /// The class a leaf has whatever its value: the fight's, when one was
 /// `fought`, or not yet predicted.
-/// Marks the shield leaf unequal when the fight left standing a shield it
-/// could not have: one this round neither released nor opened with.
+/// Marks a panel slot's standing leaf unequal when the fight left a shield
+/// standing on it that it could not have: one the slot neither held as the
+/// round opened nor released this round.
 ///
-/// Which shields survive is the fight's to decide, so the leaf is otherwise
-/// the fight's. But a fight destroys shields and never places one, so what
-/// stands after it is bounded by what stood before it and what this round
-/// released, and a shield outside that is the record contradicting the rules.
+/// Which standing objects survive is the fight's to decide, so the leaf is
+/// otherwise the fight's. But a fight destroys shields and never places one,
+/// so what stands on a slot after it is bounded by what stood there before it
+/// and what the slot released, and a shield outside that is the record
+/// contradicting the rules.
 fn stray_shields(state: &SideState, actions: &[Action], recorded: &SideState, leaves: &mut [Leaf]) {
-    let mut possible = state.airdrop_shields.clone();
-    for action in actions {
-        if let Action::ReleaseCommanderSkill {
-            id: crate::grbr::SHIELD_AIRDROP_SKILL,
-            target: SkillTarget::Area(points),
-            ..
-        } = action
+    for slot in &recorded.battle_skills {
+        let mut possible: Vec<Position> = state
+            .battle_skills
+            .iter()
+            .filter(|held| held.index == slot.index && held.id == slot.id)
+            .flat_map(|held| &held.standing)
+            .filter_map(shield_center)
+            .collect();
+        for action in actions {
+            if let Action::ReleaseCommanderSkill {
+                index,
+                id,
+                target: SkillTarget::Area(points),
+            } = action
+                && *index == slot.index
+                && *id == SHIELD_AIRDROP_SKILL
+            {
+                possible.extend(points.iter().copied());
+            }
+        }
+        if slot
+            .standing
+            .iter()
+            .filter_map(shield_center)
+            .all(|center| possible.contains(&center))
         {
-            possible.extend(points.iter().copied());
+            continue;
+        }
+        let path = format!("battle_skills[{}].standing", slot.index);
+        for leaf in leaves.iter_mut().filter(|leaf| leaf.0 == path) {
+            leaf.1 = Class::Unequal;
+            let possible: Vec<Standing> = possible
+                .iter()
+                .map(|&position| Standing::Shield { position })
+                .collect();
+            leaf.2 = Some(format!("at most {}", render(&to_value(&possible))));
         }
     }
-    if recorded
-        .airdrop_shields
-        .iter()
-        .all(|center| possible.contains(center))
-    {
-        return;
-    }
-    for leaf in leaves.iter_mut().filter(|leaf| leaf.0 == "airdrop_shields") {
-        leaf.1 = Class::Unequal;
-        leaf.2 = Some(format!("at most {}", render(&to_value(&possible))));
+}
+
+const fn shield_center(standing: &Standing) -> Option<Position> {
+    match standing {
+        Standing::Shield { position } => Some(*position),
+        Standing::Oil(_) => None,
     }
 }
 

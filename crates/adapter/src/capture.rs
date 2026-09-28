@@ -7,11 +7,10 @@ use crate::{
 };
 use jpeg_encoder::{ColorType, Encoder};
 use mechcore_document::{
-    BattleSkillDefinition, ContraptionPlacement, DocumentKind, Experience,
-    FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Layout, Position, Side, StaticPlacement, TOWER_COUNT,
-    Terrain as LayoutTerrain, TerrainType as LayoutTerrainType, UnitPlacement,
-    battle_skill_type_from_id, canonical_embedded_yaml, chain_blueprint, construction_type_from_id,
-    contraption_type_from_id, unit_type_from_id,
+    BattleSkillEntry, BattleSkillRelease, ContraptionPlacement, DocumentKind, Experience,
+    FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Layout, OilArea, Position, Side, Standing, StaticPlacement,
+    TOWER_COUNT, UnitPlacement, battle_skill_type_from_id, canonical_embedded_yaml,
+    chain_blueprint, construction_type_from_id, contraption_type_from_id, unit_type_from_id,
 };
 use mechcore_mcfr::{
     BuffRemovedReason, BuildingState, DerivedStats, Domain, DurableContext, Event, EventPayload,
@@ -4261,8 +4260,24 @@ fn read_native_side(
         .collect::<Vec<_>>();
 
     let constructions = read_native_constructions(api, controller, team)?;
-    let (contraptions, airdrop_shields) =
+    let (contraptions, standing_shields) =
         read_native_contraptions(api, controller, team, shield_system, metadata)?;
+    // What earlier releases left standing comes first, shields before oil,
+    // and this round's releases follow in release order.
+    let mut battle_skills: Vec<BattleSkillEntry> = standing_shields
+        .into_iter()
+        .map(|position| BattleSkillEntry::Standing(Standing::Shield { position }))
+        .collect();
+    battle_skills.extend(
+        read_native_standing_oil(api, controller, range_item_system, team, metadata)?
+            .into_iter()
+            .map(|area| BattleSkillEntry::Standing(Standing::Oil(area))),
+    );
+    battle_skills.extend(
+        read_native_battle_skills(api, controller, team)?
+            .into_iter()
+            .map(BattleSkillEntry::Release),
+    );
     let officers = read_native_officers(api, controller)?;
     Ok(Side {
         officers: officers
@@ -4281,20 +4296,18 @@ fn read_native_side(
         units: formations,
         constructions,
         contraptions,
-        airdrop_shields,
-        terrains: read_native_terrains(api, controller, range_item_system, team, metadata)?,
-        battle_skills: read_native_battle_skills(api, controller, team)?,
+        battle_skills,
     })
 }
 
 #[allow(clippy::too_many_lines)]
-fn read_native_terrains(
+fn read_native_standing_oil(
     api: Api,
     player_controller: *mut Object,
     range_item_system: *mut Object,
     team: usize,
     metadata: &Metadata,
-) -> Result<Vec<LayoutTerrain>, String> {
+) -> Result<Vec<OilArea>, String> {
     struct TerrainGroup {
         point_count: usize,
         centers: BTreeMap<u32, [i64; 3]>,
@@ -4411,7 +4424,7 @@ fn read_native_terrains(
     }
     groups
         .into_iter()
-        .map(|mut group| -> Result<LayoutTerrain, String> {
+        .map(|mut group| -> Result<OilArea, String> {
             let start = group.centers.get(&0).ok_or_else(|| {
                 "live retained-oil export requires surviving native endpoint index 0".to_owned()
             })?;
@@ -4459,8 +4472,7 @@ fn read_native_terrains(
             {
                 group.grid_rows.clear();
             }
-            Ok(LayoutTerrain {
-                terrain_type: LayoutTerrainType::Oil,
+            Ok(OilArea {
                 control_points,
                 grid_rows: group.grid_rows,
             })
@@ -4916,7 +4928,7 @@ fn read_native_contraptions(
 ) -> Result<(Vec<ContraptionPlacement>, Vec<Position>), String> {
     let fight_controller = invoke_object(api, controller, "GetFightTeamController")?;
     let record_indices = read_contraption_record_indices(api, controller)?;
-    let (mut result, airdrop_shields) = read_native_shields(
+    let (mut result, standing_shields) = read_native_shields(
         api,
         controller,
         team,
@@ -4999,7 +5011,7 @@ fn read_native_contraptions(
             .map(|contraption| contraption.index)
             .collect::<Vec<_>>(),
     )?;
-    Ok((result, airdrop_shields))
+    Ok((result, standing_shields))
 }
 
 fn layout_shield_placements(
@@ -5240,7 +5252,7 @@ fn read_native_battle_skills(
     api: Api,
     controller: *mut Object,
     team: usize,
-) -> Result<Vec<BattleSkillDefinition>, String> {
+) -> Result<Vec<BattleSkillRelease>, String> {
     let manager = invoke_object(api, controller, "GetCommanderSkillManager")?;
     let skills = invoke_object(api, manager, "GetCommanderSkills")?;
     // A side may hold one skill twice and release both, so the panel's order,
@@ -5302,7 +5314,7 @@ fn read_native_battle_skills(
             let (x, y) = side_local_position(position, team)?;
             local_positions.push(Position { x, y });
         }
-        result.push(BattleSkillDefinition {
+        result.push(BattleSkillRelease {
             type_name: type_name.to_owned(),
             positions: local_positions,
         });

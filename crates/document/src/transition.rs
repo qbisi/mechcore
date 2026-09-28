@@ -631,6 +631,7 @@ fn panel_add(next: &mut SideState, id: i32) {
         id,
         cooldown: 0,
         used: false,
+        standing: Vec::new(),
         release: None,
     });
     next.battle_skills.sort_by_key(|skill| skill.index);
@@ -1262,6 +1263,7 @@ mod tests {
             id,
             cooldown,
             used: false,
+            standing: Vec::new(),
             release: None,
         }
     }
@@ -1579,6 +1581,7 @@ mod tests {
                 id: 900_001,
                 cooldown: 0,
                 used: false,
+                standing: Vec::new(),
                 release: None,
             }],
             units: vec![crate::r#match::StateUnit {
@@ -1849,6 +1852,7 @@ mod tests {
             id: 900_001,
             cooldown: 0,
             used: false,
+            standing: Vec::new(),
             release: None,
         }];
         let released = Action::ReleaseCommanderSkill {
@@ -1872,6 +1876,7 @@ mod tests {
             id: 900_001,
             cooldown: 0,
             used: false,
+            standing: Vec::new(),
             release: None,
         }];
         state.units[0].value = Some(400);
@@ -1909,6 +1914,7 @@ mod tests {
             id: 1_100_001,
             cooldown: 0,
             used: false,
+            standing: Vec::new(),
             release: None,
         }];
         let train = Action::ReleaseCommanderSkill {
@@ -1998,6 +2004,7 @@ mod tests {
             id: crate::mobility::REDEPLOY_SKILLS[0],
             cooldown: 0,
             used: false,
+            standing: Vec::new(),
             release: None,
         }];
         let redeployed = step(

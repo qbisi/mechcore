@@ -51,12 +51,11 @@ finer failure signal than comparing a round's endpoints alone.
 
 What the projection drops is everything the fight cannot observe: supply, the
 unlocked units, the reinforcement offer, the allocators, and the parts of the skill panel
-that were not released this round.
+that neither stand on the battlefield nor were released this round.
 
-Eight side fields project unchanged: `officers`, `techs`, `units`,
-`constructions`, `contraptions`, `airdrop_shields`, `terrains` and
-`tower_strengthen_levels`. Two more reach a layout filtered rather than copied
-straight:
+Six side fields project unchanged: `officers`, `techs`, `units`,
+`constructions`, `contraptions` and `tower_strengthen_levels`. Two more reach a
+layout filtered rather than copied straight:
 
 | State source | Layout target | Projection |
 | --- | --- | --- |
@@ -69,11 +68,18 @@ Tower skill IDs `1`, `3` and `4`, reach no layout field: their fight-visible
 consequences are already carried by the skill panel or by units, while
 their economic consequences are not part of a layout.
 
-`battle_skills` is projected rather than copied. The projection keeps only
-entries with `release`, sorts them by `release.order`, resolves each native `id`
-to the layout's semantic `type`, and maps an area target to `positions`. A unit
-or construction target has no representation in the layout contract, so
-projecting one is refused rather than dropped.
+`battle_skills` is projected rather than copied:
+
+| Panel source | Layout `battle_skills` entry |
+| --- | --- |
+| each object in a slot's `standing` | one standing entry, `{name, standing}`, named by the slot's skill; all of them first, in the layout's normal-form order |
+| each slot with `release` | one release entry, `{name, positions}`, after the standing entries, sorted by `release.order` |
+| every other slot | nothing |
+
+A release entry resolves the slot's native `id` to the layout's semantic name
+and maps an area target to `positions`. A unit or construction target has no
+representation in the layout contract, so projecting one is refused rather
+than dropped.
 
 A round's opening position carries no release at all, since a state is defined
 after each action and a round opens before its first. The releases of a round
@@ -177,13 +183,11 @@ reach a layout transformed, and the fields a layout has no reason to hold.
       units: [ ... ]
       constructions: [ ... ]
       contraptions: [ ... ]
-      airdrop_shields: [ ... ]
-      terrains: [ ... ]
 ```
 
-The last six keys are the layout fields that project unchanged, elided here
+The last four keys are layout fields that project unchanged, elided here
 because [the layout document](layout.md) already defines them. A side always
-writes all six, empty where it holds nothing.
+writes `units`, and leaves out the other three where it holds nothing.
 
 ### A unit carries two fields a layout does not
 
@@ -434,15 +438,21 @@ whose flag is missing gives the next round too much supply.
 
 ## The skill panel
 
-A layout lists released skills only, and its list order is the release order. A
-state lists the whole panel, because an action references a skill by its panel
-slot and a slot the state does not carry cannot be resolved.
+A layout lists only what a fight sees of the panel: the objects earlier releases
+left standing, and this round's releases, in release order. A state lists the
+whole panel, because an action references a skill by its panel slot and a slot
+the state does not carry cannot be resolved.
 
 ```yaml
       battle_skills:
         - index: 0
           name: intensive_training
           cooldown: 1
+        - index: 1
+          name: shield_airdrop
+          cooldown: 2
+          standing:
+            - {position: {x: -285, y: -22}}
         - index: 2
           name: lightning_storm
           cooldown: 0
@@ -475,6 +485,15 @@ the release sequence it falls. Moving release order into an explicit field is
 what lets the collection be sorted at all: in a layout the array position *is*
 the order, which is why `battle_skills` is the one collection a layout leaves as
 written.
+
+`standing` lists the objects the slot's earlier releases left on the
+battlefield, in the payload [the layout](layout.md#standing-entries) gives the
+slot's skill, and is absent when there are none. Only a `shield_airdrop` or a
+`sticky_oil_bomb` slot carries it; any other skill carrying it is refused by
+name. A slot may carry more than one, since a Shield Airdrop is not
+time-limited and the slot may release again while an earlier shield stands,
+and a slot may carry `standing` and `release` together. Order within the list
+carries nothing.
 
 `used: true` marks a deployment skill this round spent. Such a skill does its
 work on the position before the fight, as [`action.md`](action.md#release_commander_skill)
@@ -516,8 +535,7 @@ absent when its `current` is `0`.
 | `techs` | ascending unit ID, each unit's technologies ascending ID |
 | `unlocked_units` | ascending unit ID |
 | `blueprints`, `energy_tower_skills` | ascending ID |
-| `airdrop_shields` | ascending `(x, y)` |
-| `terrains` | ascending `type`, then control points |
+| a slot's `standing` | a shield by ascending `(x, y)`, an oil area by its control points |
 | `reinforce_offers` | as dealt, then the decline; a choice names a position in it |
 | `tower_strengthen_levels` | by building-manager position |
 
@@ -552,10 +570,10 @@ recorded landing, and lands where [the board puts it](../../rules/landing.md).
 `movable` has no recorded source either, and is rebuilt as
 [`match.md`](match.md#what-conversion-rebuilds) states.
 
-`airdrop_shields` and `terrains` are the two fields that are copied from
-somewhere other than an object list. A skill that leaves an object standing
-keeps it in that skill's `rangeItems`, so both are read out of the recorded
-skill panel; [the match document](match.md) states the rule.
+A slot's `standing` is copied from somewhere other than an object list. A
+skill that leaves an object standing keeps it in that skill's `rangeItems`, so
+it is read out of the recorded skill panel, onto the slot it is recorded under;
+[the match document](match.md) states the rule.
 
 ## Excluded fields
 

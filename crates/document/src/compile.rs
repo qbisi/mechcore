@@ -11,10 +11,10 @@ use crate::catalog::{
 };
 use crate::layout::{
     AMBUSH_LEFT_MAX_X, AMBUSH_LEFT_MIN_X, AMBUSH_MAX_Y, AMBUSH_MIN_Y, AMBUSH_RIGHT_MAX_X,
-    AMBUSH_RIGHT_MIN_X, BattleSkillDefinition, ContraptionPlacement,
+    AMBUSH_RIGHT_MIN_X, BattleSkillEntry, BattleSkillRelease, ContraptionPlacement,
     FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Layout, MAX_TOWER_STRENGTHEN_LEVEL, OIL_TERRAIN_GRID_MASK,
-    OIL_TERRAIN_GRID_SIZE, OIL_TERRAIN_POINT_COUNT, Position, Region, Side, StaticPlacement,
-    TOWER_COUNT, Techs, Terrain, TerrainType, UnitPlacement, require_layout_kind,
+    OIL_TERRAIN_GRID_SIZE, OIL_TERRAIN_POINT_COUNT, OilArea, Position, Region, Side, Standing,
+    StaticPlacement, TOWER_COUNT, Techs, UnitPlacement, require_layout_kind,
 };
 use serde_json::Value;
 #[derive(Debug, PartialEq, Eq)]
@@ -46,8 +46,13 @@ pub struct SidePlan {
     pub units: Vec<Placement>,
     pub constructions: Vec<Placement>,
     pub contraptions: Vec<Placement>,
-    pub airdrop_shields: Vec<Position>,
-    pub terrains: Vec<Terrain>,
+    /// The Shield Airdrops earlier releases left standing, installed after
+    /// the contraptions.
+    pub standing_shields: Vec<Position>,
+    /// The Sticky Oil Bomb areas earlier releases left, installed after the
+    /// standing shields.
+    pub standing_oil: Vec<OilArea>,
+    /// This round's releases, in release order, installed last.
     pub battle_skills: Vec<BattleSkill>,
 }
 
@@ -91,13 +96,13 @@ impl Plan {
     }
 
     #[must_use]
-    pub fn airdrop_shield_count(&self) -> usize {
-        self.blue.airdrop_shields.len() + self.red.airdrop_shields.len()
+    pub fn standing_shield_count(&self) -> usize {
+        self.blue.standing_shields.len() + self.red.standing_shields.len()
     }
 
     #[must_use]
-    pub fn terrain_count(&self) -> usize {
-        self.blue.terrains.len() + self.red.terrains.len()
+    pub fn standing_oil_count(&self) -> usize {
+        self.blue.standing_oil.len() + self.red.standing_oil.len()
     }
 }
 
@@ -168,8 +173,6 @@ fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, Str
         units,
         constructions,
         contraptions,
-        airdrop_shields,
-        terrains,
         battle_skills,
     } = side;
     // A chain blueprint is applied as the officer it hands out, which is what
@@ -185,9 +188,21 @@ fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, Str
     let units = compile_units(side_name, units, round, slots)?;
     let constructions = compile_constructions(side_name, constructions)?;
     let contraptions = compile_contraptions(side_name, contraptions)?;
-    let airdrop_shields = compile_airdrop_shields(side_name, airdrop_shields)?;
-    let terrains = compile_terrains(side_name, terrains)?;
-    let battle_skills = compile_battle_skills(side_name, battle_skills)?;
+    let mut standing_shields = Vec::new();
+    let mut standing_oil = Vec::new();
+    let mut releases = Vec::new();
+    for entry in battle_skills {
+        match entry {
+            BattleSkillEntry::Standing(Standing::Shield { position }) => {
+                standing_shields.push(position);
+            }
+            BattleSkillEntry::Standing(Standing::Oil(area)) => standing_oil.push(area),
+            BattleSkillEntry::Release(release) => releases.push(release),
+        }
+    }
+    compile_standing_shields(side_name, &standing_shields)?;
+    compile_standing_oil(side_name, &standing_oil)?;
+    let battle_skills = compile_battle_skills(side_name, releases)?;
     Ok(SidePlan {
         techs: Techs {
             officers,
@@ -198,8 +213,8 @@ fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, Str
         units,
         constructions,
         contraptions,
-        airdrop_shields,
-        terrains,
+        standing_shields,
+        standing_oil,
         battle_skills,
     })
 }
@@ -427,12 +442,9 @@ fn compile_contraptions(
         })
 }
 
-/// A retained Shield Airdrop is an existing world object, not a contraption
-/// release, so it only has to stand on the battlefield.
-fn compile_airdrop_shields(
-    side_name: &str,
-    shields: Vec<Position>,
-) -> Result<Vec<Position>, String> {
+/// A standing Shield Airdrop is an existing world object, not a release, so it
+/// only has to stand on the battlefield.
+fn compile_standing_shields(side_name: &str, shields: &[Position]) -> Result<(), String> {
     for (shield_index, &position) in shields.iter().enumerate() {
         if !position_within(
             position,
@@ -442,74 +454,48 @@ fn compile_airdrop_shields(
             BATTLEFIELD_MAX_Y,
         ) {
             return Err(format!(
-                "side {side_name} airdrop_shields[{shield_index}] center ({}, {}) is outside the battlefield",
+                "side {side_name} standing shield_airdrop[{shield_index}] center ({}, {}) is \
+                 outside the battlefield",
                 position.x, position.y
             ));
         }
     }
-    Ok(shields)
+    Ok(())
 }
 
-fn compile_terrains(side_name: &str, terrains: Vec<Terrain>) -> Result<Vec<Terrain>, String> {
-    for (terrain_index, terrain) in terrains.iter().enumerate() {
-        let type_name = terrain_type_name(terrain.terrain_type);
-        // A terrain's own document says where it is and how much of it is
-        // left. How wide each point is and how many points a release expands
-        // into belong to the skill that made it, and only one of them is
-        // measured, so the rest are refused here rather than checked against
-        // the wrong numbers. A state may still carry one: a recording that
-        // holds it is described, and a plan is what cannot be built from it.
-        let Some(radius) = terrain_radius(terrain.terrain_type) else {
+/// A standing Sticky Oil Bomb area says where it is and how much of it is
+/// left; how wide each point is and how many points a release expands into
+/// are the skill's, which `docs/rules/battle_skill.md` carries.
+fn compile_standing_oil(side_name: &str, areas: &[OilArea]) -> Result<(), String> {
+    let radius = OIL_TERRAIN_RADIUS;
+    for (area_index, area) in areas.iter().enumerate() {
+        let at = format!("side {side_name} standing sticky_oil_bomb[{area_index}]");
+        if area.control_points.len() != 2 {
             return Err(format!(
-                "side {side_name} terrain[{terrain_index}] type {type_name:?} has no measured \
-                 point radius or count in this build, so it cannot be compiled into a plan"
-            ));
-        };
-        if terrain.control_points.len() != 2 {
-            return Err(format!(
-                "side {side_name} terrain[{terrain_index}] type {type_name:?} control_points must contain exactly two points"
+                "{at} control_points must contain exactly two points"
             ));
         }
-        let min_x = terrain
+        let xs = area
             .control_points
             .iter()
-            .map(|position| i64::from(position.x))
-            .min()
-            .expect("two control points");
-        let max_x = terrain
+            .map(|position| i64::from(position.x));
+        let ys = area
             .control_points
             .iter()
-            .map(|position| i64::from(position.x))
-            .max()
-            .expect("two control points");
-        let min_y = terrain
-            .control_points
-            .iter()
-            .map(|position| i64::from(position.y))
-            .min()
-            .expect("two control points");
-        let max_y = terrain
-            .control_points
-            .iter()
-            .map(|position| i64::from(position.y))
-            .max()
-            .expect("two control points");
+            .map(|position| i64::from(position.y));
+        let (min_x, max_x) = (xs.clone().min().expect("two"), xs.max().expect("two"));
+        let (min_y, max_y) = (ys.clone().min().expect("two"), ys.max().expect("two"));
         if max_x + radius < BATTLEFIELD_MIN_X
             || min_x - radius > BATTLEFIELD_MAX_X
             || max_y + radius < BATTLEFIELD_MIN_Y
             || min_y - radius > BATTLEFIELD_MAX_Y
         {
-            return Err(format!(
-                "side {side_name} terrain[{terrain_index}] type {type_name:?} path does not overlap the battlefield"
-            ));
+            return Err(format!("{at} path does not overlap the battlefield"));
         }
-        if terrain.grid_rows.is_empty() {
-            continue;
-        }
-        for (&point_index, rows) in &terrain.grid_rows {
+        for (&point_index, rows) in &area.grid_rows {
             if point_index >= OIL_TERRAIN_POINT_COUNT {
                 return Err(format!(
-                    "side {side_name} terrain[{terrain_index}] type {type_name:?} grid_rows point index {point_index} must be within 0..{}",
+                    "{at} grid_rows point index {point_index} must be within 0..{}",
                     OIL_TERRAIN_POINT_COUNT - 1
                 ));
             }
@@ -518,58 +504,35 @@ fn compile_terrains(side_name: &str, terrains: Vec<Terrain>) -> Result<Vec<Terra
             }
             if rows.len() != OIL_TERRAIN_GRID_SIZE {
                 return Err(format!(
-                    "side {side_name} terrain[{terrain_index}] type {type_name:?} grid_rows[{point_index}] must be empty or contain exactly {OIL_TERRAIN_GRID_SIZE} rows"
+                    "{at} grid_rows[{point_index}] must be empty or contain exactly \
+                     {OIL_TERRAIN_GRID_SIZE} rows"
                 ));
             }
             for (row_index, &row) in rows.iter().enumerate() {
                 if row & !OIL_TERRAIN_GRID_MASK != 0 {
                     return Err(format!(
-                        "side {side_name} terrain[{terrain_index}] type {type_name:?} grid_rows[{point_index}][{row_index}] uses bits outside width {OIL_TERRAIN_GRID_SIZE}"
+                        "{at} grid_rows[{point_index}][{row_index}] uses bits outside width \
+                         {OIL_TERRAIN_GRID_SIZE}"
                     ));
                 }
             }
             if rows.iter().all(|&row| row == 0) {
                 return Err(format!(
-                    "side {side_name} terrain[{terrain_index}] type {type_name:?} grid_rows[{point_index}] must activate at least one cell"
+                    "{at} grid_rows[{point_index}] must activate at least one cell"
                 ));
             }
         }
     }
-    Ok(terrains)
-}
-
-/// The public word for one terrain.
-pub(crate) const fn terrain_type_name(terrain: TerrainType) -> &'static str {
-    match terrain {
-        TerrainType::Fire => "fire",
-        TerrainType::Oil => "oil",
-        TerrainType::Fog => "fog",
-        TerrainType::Acid => "acid",
-        TerrainType::RecoveryZone => "recovery_zone",
-    }
-}
-
-/// How wide one of a terrain's points is, when this build has been measured
-/// for it.
-///
-/// The radius is the producing skill's `subEffectRange`, and the point count
-/// its `subEffectCount`. `docs/rules/battle_skill.md` carries the first for
-/// every skill and the second for none, so only the terrain whose count was
-/// read out of a snapshot can be bounded, which is Sticky Oil Bomb's.
-const fn terrain_radius(terrain: TerrainType) -> Option<i64> {
-    match terrain {
-        TerrainType::Oil => Some(OIL_TERRAIN_RADIUS),
-        _ => None,
-    }
+    Ok(())
 }
 
 fn compile_battle_skills(
     side_name: &str,
-    definitions: Vec<BattleSkillDefinition>,
+    definitions: Vec<BattleSkillRelease>,
 ) -> Result<Vec<BattleSkill>, String> {
     let mut skills = Vec::with_capacity(definitions.len());
     for definition in definitions {
-        let BattleSkillDefinition {
+        let BattleSkillRelease {
             type_name,
             positions,
         } = definition;

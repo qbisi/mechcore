@@ -6,7 +6,7 @@
 //! and `docs/spec/document/action.md` define the two segment shapes. Filling
 //! one from a replay is [`crate::convert`].
 
-use crate::layout::{ContraptionPlacement, Position, StaticPlacement, Terrain, UnitPlacement};
+use crate::layout::{ContraptionPlacement, Position, Standing, StaticPlacement, UnitPlacement};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
@@ -239,10 +239,6 @@ pub struct SideState {
     pub constructions: Vec<StaticPlacement>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub contraptions: Vec<ContraptionPlacement>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub airdrop_shields: Vec<Position>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub terrains: Vec<Terrain>,
 }
 
 /// A round's allowances, as [`crate::transition::open_round`] sets them and
@@ -291,7 +287,7 @@ pub struct EquipmentItem {
 
 /// One commander skill panel slot.
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
+#[serde(try_from = "PanelSkillFields")]
 pub struct PanelSkill {
     pub index: i32,
     #[serde(rename = "name", with = "crate::names::commander_skill::one")]
@@ -306,11 +302,52 @@ pub struct PanelSkill {
     /// round's opening position carries none.
     #[serde(default, skip_serializing_if = "is_false")]
     pub used: bool,
+    /// What the slot's earlier releases left standing, in the payload the
+    /// slot's skill leaves. Only a Shield Airdrop's and a Sticky Oil Bomb's
+    /// outlive their round.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub standing: Vec<Standing>,
     /// Present on a skill this round released. A state is defined after each
     /// action, so a round's opening position carries none and a deployment's
     /// closing position carries one per release.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub release: Option<Release>,
+}
+
+/// How a panel slot is read, before its standing objects are checked to be
+/// its skill's.
+#[derive(Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+struct PanelSkillFields {
+    index: i32,
+    #[serde(rename = "name", with = "crate::names::commander_skill::one")]
+    #[schemars(with = "String")]
+    id: i32,
+    cooldown: i32,
+    #[serde(default)]
+    used: bool,
+    #[serde(default)]
+    standing: Vec<Standing>,
+    #[serde(default)]
+    release: Option<Release>,
+}
+
+impl TryFrom<PanelSkillFields> for PanelSkill {
+    type Error = String;
+
+    fn try_from(fields: PanelSkillFields) -> Result<Self, String> {
+        for standing in &fields.standing {
+            standing.require_skill(fields.id)?;
+        }
+        Ok(Self {
+            index: fields.index,
+            id: fields.id,
+            cooldown: fields.cooldown,
+            used: fields.used,
+            standing: fields.standing,
+            release: fields.release,
+        })
+    }
 }
 
 /// Where in a round's release sequence a skill went off, and at what.

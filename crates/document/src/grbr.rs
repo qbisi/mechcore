@@ -1,32 +1,31 @@
-use super::{Position, Terrain, TerrainType};
-use crate::catalog::terrain_type_from_skill;
+use crate::layout::{OilArea, Position, SHIELD_AIRDROP_SKILL, STICKY_OIL_BOMB_SKILL, Standing};
 use std::collections::BTreeMap;
 
-/// Shield Airdrop, whose range item is one shield still standing on the board.
-pub(crate) const SHIELD_AIRDROP_SKILL: i32 = 800_001;
-
-/// The retained commander-skill objects one GRBR round snapshot holds.
+/// The objects earlier releases left standing, as one GRBR round snapshot
+/// holds them, each side's in that side's own frame.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct GrbrRoundRetained {
-    pub blue: GrbrSideRetained,
-    pub red: GrbrSideRetained,
+    pub blue: Vec<GrbrStanding>,
+    pub red: Vec<GrbrStanding>,
 }
 
-/// One side's share of them, in that side's own frame.
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct GrbrSideRetained {
-    pub terrains: Vec<Terrain>,
-    pub airdrop_shields: Vec<Position>,
+/// One standing object, and the panel slot whose skill's release left it.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct GrbrStanding {
+    /// The panel slot's index.
+    pub index: i32,
+    pub standing: Standing,
 }
 
-/// Read the retained Sticky Oil Bomb terrains and Shield Airdrops from the
+/// Read the standing Sticky Oil Bomb areas and Shield Airdrops from the
 /// BinaryFormatter-embedded `BattleRecord` XML in a GRBR.
 ///
-/// Both live in the same place, a panel skill's `rangeItems`, and the snapshot
-/// is taken at the round's start, so an entry is an object that outlived the
-/// round that made it. What the two kinds do with `round` differs: an oil
-/// terrain counts its remaining lifetime down, while a shield is not
-/// time-limited and its entry simply disappears once the object is gone.
+/// Both live in the same place, the `rangeItems` of the panel slot whose skill
+/// released them, and the snapshot is taken at the round's start, so an entry
+/// is an object that outlived the round that made it. What the two kinds do
+/// with `round` differs: an oil area counts its remaining lifetime down, while
+/// a shield is not time-limited and its entry simply disappears once the
+/// object is gone.
 ///
 /// This is deliberately independent from the Adapter's live `RangeItemSystem`
 /// enumeration. A future `mechcore grbr layout` command can compose this narrow
@@ -36,8 +35,8 @@ pub struct GrbrSideRetained {
 ///
 /// Returns an error when the GRBR carries no embedded `BattleRecord` XML, when
 /// that XML does not describe exactly two players, when the requested round is
-/// missing, or when a retained entry is malformed or belongs to a skill this
-/// reader has not been measured against.
+/// missing, or when a retained entry is malformed or belongs to a skill that
+/// leaves nothing standing.
 pub fn retained_from_grbr_round(grbr: &[u8], round: u32) -> Result<GrbrRoundRetained, String> {
     let xml = embedded_battle_record_xml(grbr)?;
     let player_records = xml_element(xml, "playerRecords")?;
@@ -48,7 +47,7 @@ pub fn retained_from_grbr_round(grbr: &[u8], round: u32) -> Result<GrbrRoundReta
             players.len()
         ));
     }
-    let mut sides: [GrbrSideRetained; 2] = Default::default();
+    let mut sides: [Vec<GrbrStanding>; 2] = Default::default();
     for (team, player) in players.into_iter().enumerate() {
         let records = xml_element(player, "playerRoundRecords")?;
         let selected = xml_elements(records, "PlayerRoundRecord")?
@@ -60,34 +59,34 @@ pub fn retained_from_grbr_round(grbr: &[u8], round: u32) -> Result<GrbrRoundReta
             continue;
         };
         for skill in xml_elements(skills, "CommanderSkillData")? {
+            let index = xml_i32(skill, "index")?;
             let id = xml_i32(skill, "id")?;
             let Some(range_items) = xml_optional_element(skill, "rangeItems")? else {
                 continue;
             };
             for item in xml_elements(range_items, "CommanderSkillRangeItemData")? {
-                if id == SHIELD_AIRDROP_SKILL {
-                    sides[team]
-                        .airdrop_shields
-                        .push(airdrop_shield_center(item, team)?);
-                    continue;
-                }
-                // Any skill that leaves a battlefield area behind leaves one of
-                // these, and which substance it is the catalogue says. Only one
-                // of them lasts long enough to be snapshotted under standard
-                // rules, and the reader does not need to know which.
-                let Some(terrain_type) = terrain_type_from_skill(id) else {
-                    return Err(format!(
-                        "GRBR round {round} contains unsupported retained commander-skill object {id}"
-                    ));
+                let standing = if id == SHIELD_AIRDROP_SKILL {
+                    Standing::Shield {
+                        position: airdrop_shield_center(item, team)?,
+                    }
+                } else {
+                    // An area counts its remaining lifetime down and is gone
+                    // at zero, unlike a shield, which carries none.
+                    if xml_i32(item, "round")? <= 0 {
+                        continue;
+                    }
+                    if id != STICKY_OIL_BOMB_SKILL {
+                        return Err(format!(
+                            "GRBR round {round} contains unsupported retained commander-skill \
+                             object {id}"
+                        ));
+                    }
+                    let Some(area) = range_item_oil(item, team)? else {
+                        continue;
+                    };
+                    Standing::Oil(area)
                 };
-                // An area counts its remaining lifetime down and is gone at
-                // zero, unlike a shield, which carries none.
-                if xml_i32(item, "round")? <= 0 {
-                    continue;
-                }
-                if let Some(terrain) = range_item_terrain(item, terrain_type, team)? {
-                    sides[team].terrains.push(terrain);
-                }
+                sides[team].push(GrbrStanding { index, standing });
             }
         }
     }
@@ -95,24 +94,20 @@ pub fn retained_from_grbr_round(grbr: &[u8], round: u32) -> Result<GrbrRoundReta
     Ok(GrbrRoundRetained { blue, red })
 }
 
-/// One retained battlefield area, or nothing when no point of it is still
+/// One standing Sticky Oil Bomb area, or nothing when no point of it is still
 /// active.
-fn range_item_terrain(
-    item: &str,
-    terrain_type: TerrainType,
-    team: usize,
-) -> Result<Option<Terrain>, String> {
+fn range_item_oil(item: &str, team: usize) -> Result<Option<OilArea>, String> {
     let positions = item_positions(item)?;
     if positions.len() != 2 {
         return Err(format!(
-            "retained-terrain GRBR snapshot requires two line endpoints, got {}",
+            "retained oil GRBR snapshot requires two line endpoints, got {}",
             positions.len()
         ));
     }
     let active = decode_grbr_byte_mask(xml_i32(item, "activeState")?)?;
     if active.len() != 7 {
         return Err(format!(
-            "retained-terrain GRBR activeState has {} points, expected seven",
+            "retained oil GRBR activeState has {} points, expected seven",
             active.len()
         ));
     }
@@ -124,7 +119,7 @@ fn range_item_terrain(
     }
     if grids.len() != active_count {
         return Err(format!(
-            "retained-terrain GRBR snapshot has {active_count} active points but {} grids",
+            "retained oil GRBR snapshot has {active_count} active points but {} grids",
             grids.len()
         ));
     }
@@ -141,7 +136,7 @@ fn range_item_terrain(
         }
         grid_rows.insert(
             u32::try_from(point_index)
-                .map_err(|_| "retained-terrain point index exceeds u32".to_owned())?,
+                .map_err(|_| "retained oil point index exceeds u32".to_owned())?,
             rows,
         );
     }
@@ -152,8 +147,7 @@ fn range_item_terrain(
     if grid_rows.len() == point_count && grid_rows.values().all(Vec::is_empty) {
         grid_rows.clear();
     }
-    Ok(Some(Terrain {
-        terrain_type,
+    Ok(Some(OilArea {
         control_points,
         grid_rows,
     }))
@@ -161,7 +155,7 @@ fn range_item_terrain(
 
 /// The centre of one retained Shield Airdrop.
 ///
-/// A shield carries no lifetime and no grid, so the three fields an oil terrain
+/// A shield carries no lifetime and no grid, so the three fields an oil area
 /// uses to say how much of itself is left are checked to be their empty forms
 /// rather than read. Presence in the snapshot is the whole statement: the object
 /// stands, at full energy, since a retained airdrop resets between rounds.
@@ -393,11 +387,11 @@ mod tests {
         );
     }
 
-    /// The three fields that say how much of an oil terrain is left are the
+    /// The three fields that say how much of an oil area is left are the
     /// three a shield has no use for, so each is required to be its empty form
     /// rather than read past.
     #[test]
-    fn a_shield_carrying_an_oil_terrains_fields_is_refused() {
+    fn a_shield_carrying_an_oil_areas_fields_is_refused() {
         let lifetime = shield_item(1, 2).replace("<round>0</round>", "<round>1</round>");
         assert!(
             airdrop_shield_center(&lifetime, 0)

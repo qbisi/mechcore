@@ -40,8 +40,8 @@ pub(crate) enum Field {
     BattleSkills,
     Constructions,
     Contraptions,
-    AirdropShields,
-    Terrains,
+    StandingShields,
+    StandingOil,
     UnitEquipment,
     Travelling,
 }
@@ -58,8 +58,8 @@ impl Field {
             Self::BattleSkills => "battle skills",
             Self::Constructions => "constructions",
             Self::Contraptions => "contraptions",
-            Self::AirdropShields => "airdrop shields",
-            Self::Terrains => "terrains",
+            Self::StandingShields => "standing shield_airdrop",
+            Self::StandingOil => "standing sticky_oil_bomb",
             Self::UnitEquipment => "unit equipment",
             Self::Travelling => "travelling units",
         }
@@ -77,8 +77,8 @@ impl Field {
             Self::BattleSkills => !side.battle_skills.is_empty(),
             Self::Constructions => !side.constructions.is_empty(),
             Self::Contraptions => !side.contraptions.is_empty(),
-            Self::AirdropShields => !side.airdrop_shields.is_empty(),
-            Self::Terrains => !side.terrains.is_empty(),
+            Self::StandingShields => !side.standing_shields.is_empty(),
+            Self::StandingOil => !side.standing_oil.is_empty(),
             Self::UnitEquipment => side.units.iter().any(|unit| !unit.equipment.is_empty()),
             Self::Travelling => side.units.iter().any(|unit| unit.travelling),
         }
@@ -137,7 +137,7 @@ pub(crate) static MODULES: &[Module] = &[
     },
     Module {
         native: "AdvancedEnergyShieldSystem",
-        claims: &[Field::AirdropShields],
+        claims: &[Field::StandingShields],
         understood: &[],
         implemented: false,
     },
@@ -283,7 +283,7 @@ pub(crate) static MODULES: &[Module] = &[
     },
     Module {
         native: "RangeItemSystem",
-        claims: &[Field::Terrains],
+        claims: &[Field::StandingOil],
         understood: &[],
         implemented: false,
     },
@@ -402,8 +402,8 @@ mod tests {
             Field::BattleSkills,
             Field::Constructions,
             Field::Contraptions,
-            Field::AirdropShields,
-            Field::Terrains,
+            Field::StandingShields,
+            Field::StandingOil,
             Field::UnitEquipment,
             Field::Travelling,
         ];

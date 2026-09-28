@@ -96,7 +96,8 @@ same position, with two separate identities, rather than as a conversion of one.
 
 ## Two ways to read a retained terrain
 
-A cross-round terrain in a layout can be recovered from the replay file alone or
+A cross-round terrain, which a layout states as a standing `sticky_oil_bomb`
+entry of its `battle_skills`, can be recovered from the replay file alone or
 from the game, and the two check each other without depending on each other.
 
 The file path extracts the `BattleRecord` XML from the GRBR's BinaryFormatter

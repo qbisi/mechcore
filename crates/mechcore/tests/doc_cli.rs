@@ -14,7 +14,8 @@ blue:
   units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]
   constructions: [{name: defensive_wall, index: 0, position: {x: 140, y: -105}}]
   contraptions: [{name: interceptor, index: 0, position: {x: 35, y: -85}}]
-  terrains: [{name: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}]
+  battle_skills:
+  - {name: sticky_oil_bomb, standing: {control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}}
 red:
   units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]
 ",
@@ -40,7 +41,8 @@ red:
     assert_eq!(report["unit_count"], 2);
     assert_eq!(report["construction_count"], 1);
     assert_eq!(report["contraption_count"], 1);
-    assert_eq!(report["terrain_count"], 1);
+    assert_eq!(report["standing_shield_count"], 0);
+    assert_eq!(report["standing_oil_count"], 1);
 }
 
 #[test]
@@ -191,7 +193,8 @@ kind: layout
 round: 1
 blue:
   units: [{name: marksman, index: 0, position: {x: 0, y: -50}, level: 1, rotated: false}]
-  terrains: [{name: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}]
+  battle_skills:
+  - {name: sticky_oil_bomb, standing: {control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}}
 red:
   units: [{name: arclight, index: 0, position: {x: 0, y: -50}, travelling: false}]
 ",
@@ -215,7 +218,7 @@ red:
     assert!(!canonical.contains("rotated:"));
     assert!(!canonical.contains("travelling:"));
     assert!(canonical.contains(
-        "terrains:\n  - {name: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}\n"
+        "battle_skills:\n  - {name: sticky_oil_bomb, standing: {control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}}\n"
     ));
     assert!(
         canonical.contains("  - {name: marksman, index: 0, position: {x: 0, y: -50}}\n"),

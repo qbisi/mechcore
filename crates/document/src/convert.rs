@@ -18,7 +18,7 @@ use crate::r#match::{
 };
 use crate::opening::{self, Stream};
 use crate::record::{self, ActionRecord, PlayerData, PlayerRoundRecord};
-use crate::retained_from_grbr_round;
+use crate::{GrbrStanding, retained_from_grbr_round};
 use std::collections::{BTreeMap, BTreeSet};
 
 /// The version a replay's header names: the last component of the game
@@ -608,20 +608,14 @@ fn side_state(
                 id: skill.id,
                 cooldown: skill.cooling_round,
                 used,
+                standing: Vec::new(),
                 release: None,
             })
         })
         .collect::<Result<_, String>>()?;
     battle_skills.sort_by_key(|skill| skill.index);
 
-    let retained = retained_from_grbr_round(grbr, u32::try_from(round).unwrap_or(0))?;
-    let mut retained = match seat {
-        Seat::Blue => retained.blue,
-        Seat::Red => retained.red,
-    };
-    retained
-        .airdrop_shields
-        .sort_unstable_by_key(|position| (position.x, position.y));
+    stand_on_panel(grbr, round, seat, &mut battle_skills)?;
 
     let mut blueprints = data.blueprints.values.clone();
     blueprints.sort_unstable();
@@ -673,8 +667,6 @@ fn side_state(
         units: formations,
         constructions,
         contraptions,
-        airdrop_shields: retained.airdrop_shields,
-        terrains: retained.terrains,
     };
 
     // The snapshot is taken before the round opens: before its resets, and
@@ -685,6 +677,40 @@ fn side_state(
     let stream = player_stream(economy, player, position, seat)?;
     crate::transition::open_round(economy, &snapshot, round, &mut placement, Some(stream))
         .map_err(|reason| format!("round {round} {} delivery: {reason:?}", seat.name()))
+}
+
+/// Puts what earlier releases left standing, as the round's snapshot lists
+/// it, on the panel slot whose skill released each, in normal-form order.
+fn stand_on_panel(
+    grbr: &[u8],
+    round: i32,
+    seat: Seat,
+    panel: &mut [PanelSkill],
+) -> Result<(), String> {
+    let retained = retained_from_grbr_round(grbr, u32::try_from(round).unwrap_or(0))?;
+    let retained = match seat {
+        Seat::Blue => retained.blue,
+        Seat::Red => retained.red,
+    };
+    for GrbrStanding { index, standing } in retained {
+        let slot = panel
+            .iter_mut()
+            .find(|slot| slot.index == index)
+            .ok_or_else(|| {
+                format!(
+                    "round {round} {} lists a standing object under panel slot {index}, which \
+                     it does not hold",
+                    seat.name()
+                )
+            })?;
+        standing.require_skill(slot.id)?;
+        slot.standing.push(standing);
+    }
+    for slot in panel {
+        slot.standing
+            .sort_by_cached_key(crate::layout::Standing::sort_key);
+    }
+    Ok(())
 }
 
 /// The side's own stream as round `position` opens, which is the snapshot's.

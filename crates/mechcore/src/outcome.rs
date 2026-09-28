@@ -1,8 +1,8 @@
 //! What a fight decided, read out of a recording of it.
 //!
-//! `docs/spec/document/match.md` names five fields as the fight's: the damage
+//! `docs/spec/document/match.md` names four fields as the fight's: the damage
 //! each reactor core takes, the experience each unit gains, and which
-//! contraptions, terrains and airdrop shields remain. This reads a recording
+//! contraptions and which objects earlier releases left standing remain. This reads a recording
 //! for as much of that as the recording holds, and names the rest rather than
 //! approximating it.
 //!
@@ -12,7 +12,7 @@
 
 use std::{collections::BTreeMap, path::Path};
 
-use mechcore_document::UnitPlacement;
+use mechcore_document::{BattleSkillEntry, UnitPlacement};
 use mechcore_mcfr::{McfrReader, WorldSnapshot};
 use serde::Serialize;
 
@@ -22,9 +22,9 @@ use crate::{
     turn::Side,
 };
 
-pub(crate) const SCHEMA: &str = "mechcore.fight-outcome.v1";
+pub(crate) const SCHEMA: &str = "mechcore.fight-outcome.v2";
 
-/// A fight's five fields, as far as a recording decides them.
+/// A fight's four fields, as far as a recording decides them.
 #[derive(Serialize)]
 pub(crate) struct Outcome {
     schema: &'static str,
@@ -54,10 +54,10 @@ struct SideOutcome {
     /// round's own list. Absent when this reader cannot say.
     #[serde(skip_serializing_if = "Option::is_none")]
     contraptions: Option<Vec<usize>>,
+    /// Which standing `battle_skills` entries remain, by their place in the
+    /// round's `battle_skills` list.
     #[serde(skip_serializing_if = "Option::is_none")]
-    terrains: Option<Vec<usize>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    airdrop_shields: Option<Vec<usize>>,
+    battle_skills: Option<Vec<usize>>,
 }
 
 /// One formation that survived, and how much of it did.
@@ -104,7 +104,7 @@ pub(crate) fn of(reader: &McfrReader) -> Result<Outcome, Failure> {
     let started = members(&formations, &opened);
     let survived = members(&formations, &ended);
 
-    // Two of the five fields are not answered here: one by a rule nobody has,
+    // Two of the four fields are not answered here: one by a rule nobody has,
     // one by a mapping this command does not make yet.
     let mut unresolved = vec![
         "reactor_core: no rule turns a fight's survivors into the damage the \
@@ -127,11 +127,14 @@ pub(crate) fn of(reader: &McfrReader) -> Result<Outcome, Failure> {
                 "contraptions",
                 &mut unresolved,
             ),
-            terrains: thinned(carried.terrains.len(), side, "terrains", &mut unresolved),
-            airdrop_shields: thinned(
-                carried.airdrop_shields.len(),
+            battle_skills: thinned(
+                carried
+                    .battle_skills
+                    .iter()
+                    .filter(|entry| matches!(entry, BattleSkillEntry::Standing(_)))
+                    .count(),
                 side,
-                "airdrop_shields",
+                "battle_skills.standing",
                 &mut unresolved,
             ),
         });

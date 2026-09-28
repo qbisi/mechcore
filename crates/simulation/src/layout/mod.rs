@@ -592,7 +592,7 @@ red:
         let value = LAYOUT
             .replace(
                 "blue:\n  units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
-                "blue:\n  officers: [berserk_rhino]\n  units:\n  - {name: marksman, index: 0, position: {x: 0, y: -50}}\n  - {name: marksman, index: 1, position: {x: 20, y: -50}}\n  terrains: [{name: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}]",
+                "blue:\n  officers: [berserk_rhino]\n  units:\n  - {name: marksman, index: 0, position: {x: 0, y: -50}}\n  - {name: marksman, index: 1, position: {x: 20, y: -50}}\n  battle_skills: [{name: sticky_oil_bomb, standing: {control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}}]",
             )
             .replace(
                 "units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]",
@@ -602,7 +602,7 @@ red:
         let clauses: Vec<&str> = refused.split("; ").collect();
         assert_eq!(clauses.len(), 4, "{refused}");
         assert!(
-            clauses[0].contains("terrains (RangeItemSystem)"),
+            clauses[0].contains("standing sticky_oil_bomb (RangeItemSystem)"),
             "{refused}"
         );
         assert!(clauses[1].contains("30502"), "{refused}");
@@ -617,15 +617,15 @@ red:
     }
 
     #[test]
-    fn rejects_persistent_terrains_outside_simulator_closure() {
+    fn rejects_standing_oil_outside_simulator_closure() {
         let value = LAYOUT.replace(
             "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
-            "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\n  terrains: [{name: oil, control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}]",
+            "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\n  battle_skills: [{name: sticky_oil_bomb, standing: {control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}}]",
         );
         assert_eq!(
             compile_default(&value).unwrap_err().to_string(),
             "side blue needs modules this build has not implemented: \
-             terrains (RangeItemSystem)"
+             standing sticky_oil_bomb (RangeItemSystem)"
         );
     }
 
