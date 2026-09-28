@@ -12,7 +12,7 @@
 # 4866, and Advanced Offensive Tactics on a level-2 one 6055, the rate on top
 # of the doubled base and truncated toward zero. What the reading does not
 # say is whether the level is written into the unit's overlay as a rate, or
-# folded into the base the overlay corrects; `fight stats` shows which.
+# folded into the base the overlay corrects; `show --view stats` shows which.
 #
 # Every `expect` below is the prediction, written before the recording.
 #
@@ -37,12 +37,13 @@ steps:
     steps:
       - let:
           layout: read_yaml(${fight.layout})
-      - game.record_layout:
-          layout: $layout
+      - game.record:
+          input: $layout
           seed: $seed
           output: ${out}/${fight.name}.mcfr
-      - fight.stats:
-          recording: ${out}/${fight.name}.mcfr
+      - show:
+          input: ${out}/${fight.name}.mcfr
+          view: stats
         expect:
           sides.blue.0.derived.attack_damage: ${fight.damage}
           sides.blue.0.derived.attack_range: 601295421440
@@ -50,7 +51,8 @@ steps:
 
   # The level-1 fight is the manifest's marksman-vs-arclight; recorded again it
   # is the control, and has to be the pinned recording.
-  - fight.stats:
-      recording: ${out}/marksman-2-rate.mcfr
+  - show:
+      input: ${out}/marksman-2-rate.mcfr
+      view: stats
     expect:
       sides.blue.0.skill.0.modifiers.damage_rate.add: 1288490188

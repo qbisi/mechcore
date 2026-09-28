@@ -4,14 +4,14 @@
 The corpus is https://github.com/qbisi/mechcore-replay, fetched to
 ``work/replay`` by ``scripts/replay.py sync``: the replays of a version sit
 directly under ``replays/<version>/``. Each is converted without the game by
-``mechcore replay convert`` into the match YAML of the same basename under
+``mechcore convert --to match`` into the match YAML of the same basename under
 ``work/match/<version>/``, replacing what is there. The corpus holds no
 documents; they are generated where they are read. A replay the converter
 refuses is reported and makes the run fail, so a version the converter no
 longer reads cannot pass unnoticed.
 
 Conversion is idempotent across the match format: each match is written back
-as a replay (``mechcore replay convert <match.yaml> <replay.grbr>``) and
+as a replay (``mechcore convert <match.yaml> --to grbr <replay.grbr>``) and
 converted again, and the second document has to be the first byte for byte. A
 match that does not come back the same fails the run too.
 
@@ -58,8 +58,8 @@ def round_trip(executable: Path, root: Path, match_doc: Path) -> str | None:
         replay = Path(scratch) / "written.grbr"
         again = Path(scratch) / "again.yaml"
         for command in (
-            [str(executable), "replay", "convert", str(match_doc), str(replay), "--force"],
-            [str(executable), "replay", "convert", str(replay), str(again), "--force"],
+            [str(executable), "convert", str(match_doc), "--to", "grbr", str(replay), "--force"],
+            [str(executable), "convert", str(replay), "--to", "match", str(again), "--force"],
         ):
             step = subprocess.run(command, cwd=root, text=True, capture_output=True, check=False)
             if step.returncode != 0:
@@ -90,7 +90,7 @@ def main() -> int:
         print(f"[{index}/{len(sources)}] {source.name}", flush=True)
         match_doc = match_dir / f"{source.stem}.yaml"
         converted = subprocess.run(
-            [str(executable), "replay", "convert", str(source), str(match_doc), "--force"],
+            [str(executable), "convert", str(source), "--to", "match", str(match_doc), "--force"],
             cwd=root,
             text=True,
             capture_output=True,

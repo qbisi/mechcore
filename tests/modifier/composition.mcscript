@@ -16,7 +16,7 @@
 # leaves `19297 - n * d`, and nothing else in the layout moves. The three
 # layouts differ only in blue's `officers`.
 #
-# The simulator's own answer for the control, from `fight run` with no officer,
+# The simulator's own answer for the control, from `convert --to mcfr` with no officer,
 # is 14639 left of 19297: two hits of 2329, which is the Marksman's description
 # unchanged. So the control also says whether the game and this build agree
 # before any officer is involved.
@@ -51,42 +51,42 @@ steps:
       once: read_yaml(tests/modifier/officer-composition-once.yaml)
       twice: read_yaml(tests/modifier/officer-composition-twice.yaml)
 
-  - game.record_layout:
-      layout: $none
+  - game.record:
+      input: $none
       seed: $seed
       output: ${out}/none-1.mcfr
 
-  - game.record_layout:
-      layout: $none
+  - game.record:
+      input: $none
       seed: $seed
       output: ${out}/none-2.mcfr
 
-  - fight.compare:
+  - diff:
       left: ${out}/none-1.mcfr
       right: ${out}/none-2.mcfr
     expect:
       equal: true
 
-  - game.record_layout:
-      layout: $once
+  - game.record:
+      input: $once
       seed: $seed
       output: ${out}/once.mcfr
 
-  - game.record_layout:
-      layout: $twice
+  - game.record:
+      input: $twice
       seed: $seed
       output: ${out}/twice.mcfr
 
   # The measurement has two halves, and a verb each.
   #
-  # `fight outcome` answers what the fight decided: the survivors and the life
+  # `show --view outcome` answers what the fight decided: the survivors and the life
   # they have left. The three numbers are the experiment — `none` fixes the
   # description, `once` fixes the arithmetic of one rate, `twice` fixes what
   # two do. The game answered 14639, 13243 and 11845, which is
   # `trunc(2329 * 1.3)` and `trunc(2329 * 1.6)` over two hits: added, not
   # compounded, and truncated rather than rounded.
   #
-  # `fight stats` answers the other half, which is not an outcome at all
+  # `show --view stats` answers the other half, which is not an outcome at all
   # but what the build *stored* when the officer was applied: which channel the
   # correction landed in — the unit's overlay, its skill's, or the buff
   # aggregate — and what it holds there. The `twice` recording holds one
@@ -97,29 +97,35 @@ steps:
   #
   # Both halves are asserted, which is what makes this script a regression
   # against the build rather than a probe of it.
-  - fight.outcome:
-      recording: ${out}/none-1.mcfr
+  - show:
+      input: ${out}/none-1.mcfr
+      view: outcome
     expect:
       sides.red.survivors.0.life: 14639
-  - fight.stats:
-      recording: ${out}/none-1.mcfr
+  - show:
+      input: ${out}/none-1.mcfr
+      view: stats
     expect:
       sides.blue.0.derived.attack_damage: 2329
-  - fight.outcome:
-      recording: ${out}/once.mcfr
+  - show:
+      input: ${out}/once.mcfr
+      view: outcome
     expect:
       sides.red.survivors.0.life: 13243
-  - fight.stats:
-      recording: ${out}/once.mcfr
+  - show:
+      input: ${out}/once.mcfr
+      view: stats
     expect:
       sides.blue.0.skill.0.modifiers.damage_rate.add: 1288490188
       sides.blue.0.derived.attack_damage: 3027
-  - fight.outcome:
-      recording: ${out}/twice.mcfr
+  - show:
+      input: ${out}/twice.mcfr
+      view: outcome
     expect:
       sides.red.survivors.0.life: 11845
-  - fight.stats:
-      recording: ${out}/twice.mcfr
+  - show:
+      input: ${out}/twice.mcfr
+      view: stats
     expect:
       sides.blue.0.skill.0.modifiers.damage_rate.add: 2576980376
       sides.blue.0.derived.attack_damage: 3726

@@ -184,7 +184,7 @@ is rejected unless the script declares `game: launch`.
 game: launch
 level: 0
 steps:
-  - record_replay_round: {grbr: $grbr, round: 2, output: $out/replay.mcfr}
+  - game.record: {input: $grbr, round: 2, output: $out/replay.mcfr}
 ```
 
 A gameless script is the normal case for comparison work:
@@ -280,8 +280,8 @@ layout it had failed on applied four times in a row. The same layouts applied
 with a window every time. Where the exception was thrown was not caught, and a
 managed exception's error now names the frames it was thrown through, so the
 next one does. The sceneless path did not fail:
-`tests/equipment/stats.mcscript` records its equipment through
-`record_layout` headless. Since the resolution check is answered, the Adapter
+`tests/equipment/stats.mcscript` records its equipment layouts with
+`game record` headless. Since the resolution check is answered, the Adapter
 smoke has passed headless online and offline, the layout-replay equivalence
 headless offline, and `record_watch_replay` enters a round-one match
 headless, so every tracked script now launches headless.
@@ -303,7 +303,7 @@ fails ("Cannot create IPC pipe to Steam client process"). The game then shows
 a popup that only quits, never logs in and sends no request to its servers,
 and stays in its menu scene with no match. That is all `main_menu` means
 ([adapter.md](../adapter/adapter.md#status)), and every operation except
-watching works from it. A Rhino mirror recorded through `record_layout`, round
+watching works from it. A Rhino mirror recorded from its layout by `game record`, round
 4 of a corpus replay (1251 ticks), and the same Rhino mirror applied and
 recorded in the Training Ground hash the same offline as online, headless and
 with a window. A game offline idles at about 2% of a core, where a headless

@@ -100,7 +100,7 @@ The layout is canonical YAML: `seed` is explicit, a field whose native value is
 the format default is omitted, and `formations` keeps declaration order by
 native Unit index. The four opening defensive buildings are recorded in manager
 order under a sibling `constructions`. This member exists for self-contained
-replay and `mechcore fight verify`. It does not enter the hash.
+replay and `mechcore verify`. It does not enter the hash.
 
 ## Ticks and scene context
 
@@ -970,10 +970,10 @@ it by that version. A format change that leaves `S(t)` and `E(t)` encoding the
 same leaves every hash where it was. A change to the definition itself is a new
 profile and new domain strings, never an edit in place.
 
-`mechcore fight compare` and `mechcore fight verify` decide `equal` and the
-first divergence from this hash. `fight compare` also says where two recordings
+`mechcore diff` and `mechcore verify` decide `equal` and the
+first divergence from this hash. `diff` also says where two recordings
 differ field by field, which a hash cannot:
-[cli.md](../mechcore/cli.md#fight) defines its field groups.
+[cli.md](../mechcore/cli.md#diff) defines its field groups.
 
 ## Physical encoding
 

@@ -50,14 +50,15 @@ steps:
   # the nearest wall nor the one closest to the line. It is the nearest of the
   # walls the line reaches, which is what `SortByDistance` and the first
   # overlap answer.
-  - game.record_layout:
-      layout: $line
+  - game.record:
+      input: $line
       seed: $seed
       output: ${out}/line-of-fire.mcfr
     expect:
       operation.tick_count: 20
-  - fight.buildings:
-      recording: ${out}/line-of-fire.mcfr
+  - show:
+      input: ${out}/line-of-fire.mcfr
+      view: buildings
       tick: 20
     expect:
       sides.blue.constructions.0.standing: 4
@@ -77,14 +78,15 @@ steps:
   #
   # Blocks 5 and 7 come down and 3, 4 and 6 stand, so the width is at least
   # 10.41 and under 12.59 metres. Nothing here scales with the Marksman.
-  - game.record_layout:
-      layout: $tolerance
+  - game.record:
+      input: $tolerance
       seed: $seed
       output: ${out}/line-tolerance.mcfr
     expect:
       operation.tick_count: 19
-  - fight.buildings:
-      recording: ${out}/line-tolerance.mcfr
+  - show:
+      input: ${out}/line-tolerance.mcfr
+      view: buildings
       tick: 19
     expect:
       sides.blue.constructions.0.standing: 3
@@ -100,14 +102,15 @@ steps:
   #
   # The Marksman is the control and destroys block 5 again. The Fang's members
   # take block 7 to 167 and block 6 to 986, 63 a hit.
-  - game.record_layout:
-      layout: $width
+  - game.record:
+      input: $width
       seed: $seed
       output: ${out}/line-width.mcfr
     expect:
       operation.tick_count: 41
-  - fight.buildings:
-      recording: ${out}/line-width.mcfr
+  - show:
+      input: ${out}/line-width.mcfr
+      view: buildings
       tick: 41
     expect:
       sides.blue.constructions.0.standing: 4
@@ -135,25 +138,28 @@ steps:
   #
   # The readings are the blocks that fall and when: 3 by tick 60 from
   # 381 + 381 + 350, then 4 and 5 together at tick 101, and 6 and 7 stand.
-  - game.record_layout:
-      layout: $group
+  - game.record:
+      input: $group
       seed: $seed
       output: ${out}/weapon-group.mcfr
     expect:
       operation.tick_count: 242
-  - fight.buildings:
-      recording: ${out}/weapon-group.mcfr
+  - show:
+      input: ${out}/weapon-group.mcfr
+      view: buildings
       tick: 31
     expect:
       sides.blue.constructions.0.standing: 5
-  - fight.buildings:
-      recording: ${out}/weapon-group.mcfr
+  - show:
+      input: ${out}/weapon-group.mcfr
+      view: buildings
       tick: 60
     expect:
       sides.blue.constructions.0.standing: 4
       sides.blue.constructions.0.parts.0.id: 4
-  - fight.buildings:
-      recording: ${out}/weapon-group.mcfr
+  - show:
+      input: ${out}/weapon-group.mcfr
+      view: buildings
       tick: 242
     expect:
       sides.blue.constructions.0.standing: 2
@@ -176,11 +182,12 @@ steps:
         - {name: weapon-group, layout: tests/construction/wall-weapon-group.yaml}
   - foreach: {case: $simulated}
     steps:
-      - fight.run:
-          layout: ${case.layout}
+      - convert:
+          input: ${case.layout}
+          to: mcfr
           seed: $seed
           output: ${out}/simulated-${case.name}.mcfr
-      - fight.compare:
+      - diff:
           left: ${out}/${case.name}.mcfr
           right: ${out}/simulated-${case.name}.mcfr
           fields: [units.mech_lock_target, units.motion_state, units.weapon_aims.attack_target]

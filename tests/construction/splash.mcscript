@@ -37,35 +37,37 @@ steps:
 
   # A shot at block 5 at tick 47 takes two Crawlers standing on it and the
   # block, 365, the block's damage event between theirs: 17 of 1112 are left.
-  - game.record_layout:
-      layout: $splash
+  - game.record:
+      input: $splash
       seed: $seed
       output: ${out}/splash.mcfr
     expect:
       operation.tick_count: 158
-  - fight.buildings:
-      recording: ${out}/splash.mcfr
+  - show:
+      input: ${out}/splash.mcfr
+      view: buildings
       tick: 47
     expect:
       sides.blue.constructions.0.parts.2.id: 5
       sides.blue.constructions.0.parts.2.life.current: 17
 
-  - game.record_layout:
-      layout: $line
+  - game.record:
+      input: $line
       seed: $seed
       output: ${out}/line.mcfr
     expect:
       operation.tick_count: 161
 
   # A shot aimed at Crawler 24 at tick 77 takes block 5 behind it for 365.
-  - game.record_layout:
-      layout: $behind
+  - game.record:
+      input: $behind
       seed: $seed
       output: ${out}/behind.mcfr
     expect:
       operation.tick_count: 176
-  - fight.buildings:
-      recording: ${out}/behind.mcfr
+  - show:
+      input: ${out}/behind.mcfr
+      view: buildings
       tick: 77
     expect:
       sides.blue.constructions.0.parts.2.id: 5
@@ -73,11 +75,12 @@ steps:
 
   - foreach: {case: $cases}
     steps:
-      - fight.run:
-          layout: ${case.layout}
+      - convert:
+          input: ${case.layout}
+          to: mcfr
           seed: $seed
           output: ${out}/simulated-${case.name}.mcfr
-      - fight.compare:
+      - diff:
           left: ${out}/${case.name}.mcfr
           right: ${out}/simulated-${case.name}.mcfr
         expect:

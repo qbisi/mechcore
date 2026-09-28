@@ -35,26 +35,28 @@ steps:
   # over; reads idle with no lock and no weapon target for one tick; and then
   # takes the next thing in its way — block 4 the first time, the Marksman,
   # through the gap, the second.
-  - game.record_layout:
-      layout: $rhino
+  - game.record:
+      input: $rhino
       seed: $seed
       output: ${out}/rhino.mcfr
     expect:
       operation.tick_count: 189
-  - fight.buildings:
-      recording: ${out}/rhino.mcfr
+  - show:
+      input: ${out}/rhino.mcfr
+      view: buildings
       tick: 189
     expect:
       sides.blue.constructions.0.standing: 3
       sides.blue.constructions.0.parts.0.id: 3
       sides.blue.constructions.0.parts.1.id: 6
       sides.blue.constructions.0.parts.2.id: 7
-  - fight.run:
-      layout: tests/construction/wall-rhino.yaml
+  - convert:
+      input: tests/construction/wall-rhino.yaml
+      to: mcfr
       seed: $seed
       output: ${out}/simulated-rhino.mcfr
   # Every field of every tick.
-  - fight.compare:
+  - diff:
       left: ${out}/rhino.mcfr
       right: ${out}/simulated-rhino.mcfr
     expect:
@@ -79,31 +81,34 @@ steps:
   # own collider layer, where to the side that did it is not there at all.
   #
   # A beam's damage reads as its ramp's first step on every tick, 2 and not 55.
-  - game.record_layout:
-      layout: $laser
+  - game.record:
+      input: $laser
       seed: $seed
       output: ${out}/laser.mcfr
     expect:
       operation.tick_count: 243
-  - fight.buildings:
-      recording: ${out}/laser.mcfr
+  - show:
+      input: ${out}/laser.mcfr
+      view: buildings
       tick: 128
     expect:
       sides.blue.constructions.0.standing: 2
       sides.blue.constructions.0.parts.0.id: 3
       sides.blue.constructions.0.parts.1.id: 7
-  - fight.buildings:
-      recording: ${out}/laser.mcfr
+  - show:
+      input: ${out}/laser.mcfr
+      view: buildings
       tick: 243
     expect:
       sides.blue.constructions.0.standing: 1
       sides.blue.constructions.0.parts.0.id: 7
-  - fight.run:
-      layout: tests/construction/wall-laser.yaml
+  - convert:
+      input: tests/construction/wall-laser.yaml
+      to: mcfr
       seed: $seed
       output: ${out}/simulated-laser.mcfr
   # Every field of every tick.
-  - fight.compare:
+  - diff:
       left: ${out}/laser.mcfr
       right: ${out}/simulated-laser.mcfr
     expect:

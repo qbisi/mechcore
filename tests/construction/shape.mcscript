@@ -41,15 +41,16 @@ steps:
   - let:
       shape: read_yaml(tests/construction/shape.yaml)
 
-  - game.record_layout:
-      layout: $shape
+  - game.record:
+      input: $shape
       seed: $seed
       output: ${out}/shape.mcfr
     expect:
       operation.tick_count: 210
 
-  - fight.buildings:
-      recording: ${out}/shape.mcfr
+  - show:
+      input: ${out}/shape.mcfr
+      view: buildings
     expect:
       # The map's own two, which no layout places and which the control reads
       # back as well. 3400 of life and a 20 m box, at `(-140, -170)`.
@@ -102,8 +103,9 @@ steps:
   # Every object is a target of its own: each carries its own life, and the
   # wall's five are destroyed one at a time. Nothing reaches them in this
   # fight, so the last tick reads what the first did.
-  - fight.buildings:
-      recording: ${out}/shape.mcfr
+  - show:
+      input: ${out}/shape.mcfr
+      view: buildings
       tick: 210
     expect:
       sides.blue.constructions.0.standing: 5

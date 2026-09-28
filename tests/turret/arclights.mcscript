@@ -22,16 +22,16 @@ vars:
 steps:
   - let:
       layout: read_yaml(tests/turret/anti-armor-arclights.yaml)
-  - game.record_layout:
-      layout: $layout
+  - game.record:
+      input: $layout
       seed: $seed
       output: ${out}/anti-armor-arclights.mcfr
       instrument: [target_refs]
-  - game.record_layout:
-      layout: $layout
+  - game.record:
+      input: $layout
       seed: $seed
       output: ${out}/control.mcfr
-  - fight.compare:
+  - diff:
       left: ${out}/anti-armor-arclights.mcfr
       right: ${out}/control.mcfr
     expect:

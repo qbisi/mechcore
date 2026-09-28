@@ -39,8 +39,8 @@ steps:
     steps:
       - let:
           layout: read_yaml(tests/units/${fight.unit}/${fight.name}.yaml)
-      - game.record_layout:
-          layout: $layout
+      - game.record:
+          input: $layout
           seed: ${fight.seed}
           output: ${out}/${fight.unit}-${fight.name}-${fight.seed}.mcfr
           instrument: [target_refs]

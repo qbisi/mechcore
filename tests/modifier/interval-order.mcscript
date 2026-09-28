@@ -48,45 +48,49 @@ steps:
       rate: read_yaml(tests/modifier/technology-interval-rate.yaml)
       both: read_yaml(tests/modifier/technology-interval.yaml)
 
-  - game.record_layout:
-      layout: $base
+  - game.record:
+      input: $base
       seed: $seed
       output: ${out}/base.mcfr
-  - fight.stats:
-      recording: ${out}/base.mcfr
+  - show:
+      input: ${out}/base.mcfr
+      view: stats
     expect:
       sides.blue.0.derived.current_attack_interval: 83
       sides.blue.0.derived.attack_damage: 608
 
-  - game.record_layout:
-      layout: $value
+  - game.record:
+      input: $value
       seed: $seed
       output: ${out}/value.mcfr
-  - fight.stats:
-      recording: ${out}/value.mcfr
+  - show:
+      input: ${out}/value.mcfr
+      view: stats
     expect:
       # One second of value is twenty ticks, whatever the zero is.
       sides.blue.0.derived.current_attack_interval: 63
       sides.blue.0.derived.attack_damage: 608
 
-  - game.record_layout:
-      layout: $rate
+  - game.record:
+      input: $rate
       seed: $seed
       output: ${out}/rate.mcfr
-  - fight.stats:
-      recording: ${out}/rate.mcfr
+  - show:
+      input: ${out}/rate.mcfr
+      view: stats
     expect:
       # (83 + 7) x 1.3 - 7, which is what locates the zero at seven ticks.
       sides.blue.0.derived.current_attack_interval: 110
       # 608 x 3.5, the rate on the other number this technology carries.
       sides.blue.0.derived.attack_damage: 2128
 
-  - game.record_layout:
-      layout: $both
+  - game.record:
+      input: $both
       seed: $seed
       output: ${out}/both.mcfr
-  - fight.stats:
-      recording: ${out}/both.mcfr
+  - show:
+      input: ${out}/both.mcfr
+      view: stats
     expect:
       # The measurement. 84 is the value applied first; a rate applied first
       # would read 90.

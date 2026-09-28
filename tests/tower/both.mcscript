@@ -19,7 +19,7 @@ steps:
     steps:
       - let:
           layout: read_yaml(tests/tower/${fight}.yaml)
-      - game.record_layout:
-          layout: $layout
+      - game.record:
+          input: $layout
           seed: $seed
           output: ${out}/${fight}.mcfr

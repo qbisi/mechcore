@@ -23,22 +23,23 @@ steps:
       none: read_yaml(tests/modifier/targeting-ranged-none.yaml)
       ranged: read_yaml(tests/modifier/targeting-ranged.yaml)
 
-  - game.record_layout:
-      layout: $none
+  - game.record:
+      input: $none
       seed: $seed
       output: ${out}/ranged-none.mcfr
     expect:
       operation.tick_count: 144
 
-  - game.record_layout:
-      layout: $ranged
+  - game.record:
+      input: $ranged
       seed: $seed
       output: ${out}/ranged.mcfr
     expect:
       operation.tick_count: 138
 
-  - fight.stats:
-      recording: ${out}/ranged.mcfr
+  - show:
+      input: ${out}/ranged.mcfr
+      view: stats
     expect:
       sides.blue.0.skill.0.modifiers.attack_range_value: 42949672960
       sides.blue.1.skill.0.modifiers.attack_range_value: 42949672960

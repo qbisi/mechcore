@@ -1,14 +1,16 @@
 # The game's recordings of these fights, simulated without the game or the recordings.
 # The hashes come from the native checker/target captures made by slots.mcscript.
 steps:
-  - fight.run:
-      layout: tests/regression/wraith-group-attack.yaml
+  - convert:
+      input: tests/regression/wraith-group-attack.yaml
+      to: mcfr
       seed: 1787857041
     expect:
       steps: 647
       hashes.result_hash: 8782500b2d1f0769e185f02ce66a9b390631b48c4beab1ad41de83fea057d039
-  - fight.run:
-      layout: tests/wraith/two-targets.yaml
+  - convert:
+      input: tests/wraith/two-targets.yaml
+      to: mcfr
       seed: 1787857041
     expect:
       steps: 96

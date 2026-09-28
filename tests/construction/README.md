@@ -6,7 +6,7 @@ fight**, and nothing else. The rule they measure is
 placed once and arrives as `count` objects, each with its own life, its own
 box and its own place in the row.
 
-They are read, not fought. What each one answers is `fight buildings`, which
+They are read, not fought. What each one answers is `show --view buildings`, which
 matches a recording's building rows back to the placements the layout declares,
 because a recording says a row's `BuildingType` and not which construction
 released it.

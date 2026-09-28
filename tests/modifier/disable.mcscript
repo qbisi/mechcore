@@ -26,23 +26,25 @@ steps:
   - let:
       disabled: read_yaml(tests/modifier/technology-disabled.yaml)
 
-  - game.record_layout:
-      layout: $disabled
+  - game.record:
+      input: $disabled
       seed: $seed
       output: ${out}/disabled.mcfr
 
   # Before the shot: the technology is in force and the interval is the
   # description's 18 ticks less its 0.3 seconds.
-  - fight.stats:
-      recording: ${out}/disabled.mcfr
+  - show:
+      input: ${out}/disabled.mcfr
+      view: stats
       tick: 33
     expect:
       sides.red.0.derived.current_attack_interval: 12
 
   # The tick the shot lands. The flag and the number move together: the
   # correction is gone and the interval is the description's again.
-  - fight.stats:
-      recording: ${out}/disabled.mcfr
+  - show:
+      input: ${out}/disabled.mcfr
+      view: stats
       tick: 34
     expect:
       sides.red.0.technologies_disabled: true
@@ -50,8 +52,9 @@ steps:
 
   # It does not come back. The Raiden fires every 92 ticks, so the Rhino is
   # disabled again before the effect can lapse.
-  - fight.stats:
-      recording: ${out}/disabled.mcfr
+  - show:
+      input: ${out}/disabled.mcfr
+      view: stats
       tick: 280
     expect:
       sides.red.0.technologies_disabled: true

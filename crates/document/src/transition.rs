@@ -687,7 +687,7 @@ pub(crate) const CONTRAPTION_RELEASES_PER_ROUND: i32 = 8;
 ///
 /// It is the first half of [`predict`]: every decision applied in the order
 /// the side took them, and nothing of the round after. A fight is run over
-/// this, and `doc project` writes the layout of it.
+/// this, and `convert --to layout` writes the layout of it.
 ///
 /// # Errors
 ///

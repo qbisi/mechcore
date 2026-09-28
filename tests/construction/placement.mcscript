@@ -35,16 +35,17 @@ steps:
   - let:
       aside: read_yaml(tests/construction/wall-aside.yaml)
 
-  - game.record_layout:
-      layout: $aside
+  - game.record:
+      input: $aside
       seed: $seed
       output: ${out}/aside.mcfr
     expect:
       operation.tick_count: 91
       # The hash `regressions.mcscript` holds the simulator to.
       operation.hashes.result_hash: 05561863ee5514e720cd5b29d9c8b6e5f3d44218e7b08f9687fd8f111e92d4f5
-  - fight.buildings:
-      recording: ${out}/aside.mcfr
+  - show:
+      input: ${out}/aside.mcfr
+      view: buildings
     expect:
       # Nine buildings, numbered `(team, type, x, z)` as the capture numbers
       # them: blue's two towers, then its five blocks, then red's two.
@@ -59,8 +60,9 @@ steps:
       sides.red.towers.0.id: 8
       sides.red.towers.1.id: 9
   # Nothing reached it: five blocks at full life when the fight ends.
-  - fight.buildings:
-      recording: ${out}/aside.mcfr
+  - show:
+      input: ${out}/aside.mcfr
+      view: buildings
       tick: 91
     expect:
       sides.blue.constructions.0.standing: 5

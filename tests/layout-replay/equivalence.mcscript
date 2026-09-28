@@ -41,13 +41,13 @@ steps:
       - game.apply_layout:
           layout: $layout
           seed: $seed
-      - game.record_fight:
+      - game.record:
           output: ${out}/${case.name}-training-ground.mcfr
-      - game.record_layout:
-          layout: $layout
+      - game.record:
+          input: $layout
           seed: $seed
           output: ${out}/${case.name}-headless.mcfr
-      - fight.compare:
+      - diff:
           left: ${out}/${case.name}-training-ground.mcfr
           right: ${out}/${case.name}-headless.mcfr
         expect:

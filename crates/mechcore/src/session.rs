@@ -936,7 +936,7 @@ fn layout_as_fought(
             .unwrap_or(mechcore_document::layout_replay::DEFAULT_MAP_ID),
     );
     mechcore_document::game_build().clone_into(&mut given.game_build);
-    let differences = crate::doc::layout_differences(given, fought)?;
+    let differences = crate::diff::layout_differences(given, fought)?;
     if differences.is_empty() {
         return Ok(());
     }
@@ -959,7 +959,7 @@ fn layout_as_fought(
         })
         .collect();
     Err(format!(
-        "record_layout discarded its recording: the game fought another layout than the one \
+        "game record discarded its recording: the game fought another layout than the one \
          given ({} field(s) differ: {})",
         differences.len(),
         named.join("; ")

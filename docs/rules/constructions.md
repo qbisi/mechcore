@@ -188,7 +188,7 @@ A building row carries `GameRiver.BuildingType`: `Normal`, `EnergyTower`,
 recording does not say which construction a row came from**. Two things follow.
 
 - A row is named by matching it back to the layout the recording embeds, which
-  is what `fight buildings` does and why it refuses a row that matches no
+  is what `show --view buildings` does and why it refuses a row that matches no
   single placement.
 - A wall block and a turret are told apart by their life and their box, not by
   a type. Nothing in a recording distinguishes two of the build's rows where

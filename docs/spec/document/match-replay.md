@@ -5,7 +5,7 @@
 A match replay is the `.grbr` file a [match](match.md) is written back as:
 
 ```bash
-mechcore replay convert <match.yaml> <replay.grbr> [--force]
+mechcore convert <match.yaml> --to grbr <replay.grbr> [--force]
 ```
 
 Conversion is idempotent across the match format. A match written as a replay

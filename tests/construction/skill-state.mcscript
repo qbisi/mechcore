@@ -51,16 +51,17 @@ steps:
     steps:
       - let:
           layout: read_yaml(${fight.layout})
-      - game.record_layout:
-          layout: $layout
+      - game.record:
+          input: $layout
           seed: $seed
           output: ${out}/${fight.name}.mcfr
           instrument: [target_refs]
-      - fight.run:
-          layout: ${fight.layout}
+      - convert:
+          input: ${fight.layout}
+          to: mcfr
           seed: $seed
           output: ${out}/simulated-${fight.name}.mcfr
-      - fight.compare:
+      - diff:
           left: ${out}/${fight.name}.mcfr
           right: ${out}/simulated-${fight.name}.mcfr
         expect:

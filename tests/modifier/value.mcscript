@@ -35,31 +35,34 @@ steps:
       none: read_yaml(tests/modifier/officer-range-none.yaml)
       ranged: read_yaml(tests/modifier/officer-range-value.yaml)
 
-  - game.record_layout:
-      layout: $none
+  - game.record:
+      input: $none
       seed: $seed
       output: ${out}/range-none.mcfr
     expect:
       operation.tick_count: 137
       operation.hashes.result_hash: 04c16d7a8a96e0dd3cb42ec42c02cef63ffb9ddfff039e1909ed7a2f60dbcb0d
-  - fight.outcome:
-      recording: ${out}/range-none.mcfr
+  - show:
+      input: ${out}/range-none.mcfr
+      view: outcome
     expect:
       sides.red.survivors.0.life: 16377
 
-  - game.record_layout:
-      layout: $ranged
+  - game.record:
+      input: $ranged
       seed: $seed
       output: ${out}/range-value.mcfr
     expect:
       operation.tick_count: 137
       operation.hashes.result_hash: 974c22a7aa6b1199507a4e25888afc8bd7c312e70b2b3132063e8f16f3140187
-  - fight.outcome:
-      recording: ${out}/range-value.mcfr
+  - show:
+      input: ${out}/range-value.mcfr
+      view: outcome
     expect:
       sides.red.survivors.0.life: 16961
-  - fight.stats:
-      recording: ${out}/range-value.mcfr
+  - show:
+      input: ${out}/range-value.mcfr
+      view: stats
     expect:
       sides.blue.0.skill.0.modifiers.attack_range_value: 85899345920
       sides.blue.0.skill.0.modifiers.damage_rate.reduce: 858993459

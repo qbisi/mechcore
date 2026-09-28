@@ -370,7 +370,7 @@ steps:
     steps:
       - let:
           layout: read_yaml(${fight.layout})
-      - game.record_layout:
-          layout: $layout
+      - game.record:
+          input: $layout
           seed: ${fight.seed}
           output: ${out}/${fight.unit}/${fight.name}-${fight.seed}.mcfr

@@ -35,8 +35,8 @@ vars:               # optional
   grbr: work/replay/replays/<version>/example.grbr
   out: /tmp/mechcore/example
 steps:              # required, at least one
-  - game.record_replay_round:
-      grbr: $grbr
+  - game.record:
+      input: $grbr
       round: 2
       output: $out/replay.mcfr
 ```
@@ -94,9 +94,11 @@ The acquisition states, their failure codes and what evicts what are in
 
 ## Operations
 
-A step names an operation of [cli.md](cli.md) as `<namespace>.<verb>`, so a
-step and a command say the same thing. `let` is the exception: it binds names
-and belongs to this document alone.
+A step names an operation of [cli.md](cli.md) as the command line does: a verb
+over files by itself, `convert` or `diff`, and a namespace's verb as
+`<namespace>.<verb>`, `game.record`. A step and a command say the same thing,
+and a step's fields are the command's operands and options by name. `let` is
+the exception: it binds names and belongs to this document alone.
 
 This table says which operations need a game and what the script layer adds to
 each. A game operation's own arguments, result and refusals are
@@ -106,17 +108,13 @@ than redefining them.
 | Operation | Needs a game | Notes |
 | --- | --- | --- |
 | `let` | no | binds names; see built-ins below |
-| `fight.compare` | no | `left`, `right`, optional `fields` (a group or a list of groups) and `tick`; the same report as `mechcore fight compare` |
-| `fight.stats` | no | `recording`, optional `tick`; what was written onto each formation, per channel |
-| `fight.outcome` | no | `recording`; what the recorded fight decided |
-| `fight.run` | no | `layout`, optional `seed`, `output`; same report as `mechcore fight run` |
+| `convert` | no | `input`, `to`, optional `output`, `seed`, `round`; the same result as `mechcore convert` |
+| `diff` | no | `left`, `right`, optional `fields` (a group or a list of groups) and `tick`; the same report as `mechcore diff` |
+| `show` | no | `input`, `view`, optional `tick`; the same answer as `mechcore show` |
 | `game.status` | yes | current status snapshot |
 | `game.start_test` | yes | optional `seed`, `map_id`; rarely needed, see `game.apply_layout` |
 | `game.apply_layout` | yes | the layout object, or `{layout, seed}` |
-| `game.record_fight` | yes | `output`, optional `video_output`, `speed_up`, `instrument` |
-| `game.record_replay_round` | yes | `grbr`, `round`, `output`, optional `instrument` |
-| `game.record_layout` | yes | `layout`, `output`, optional `seed`, `instrument`; fights the layout without a scene |
-| `game.record_watch_replay` | yes | optional `output_dir`, `wait_for_scene_seconds`, `match_timeout_seconds`; records one live standard 1v1 |
+| `game.record` | yes | what `game record` records, by its input; see below |
 | `game.toggle_fight` | yes | |
 | `game.speed_up` | yes | standalone operation, distinct from the recording field |
 | `game.quit_match` | yes | |
@@ -125,10 +123,22 @@ than redefining them.
 | `game.save_replay` | yes | optional `output`; saves the match being watched as it stands |
 | `game.quit_game` | yes | |
 
+`game.record` takes the fields of the form of [`game record`](cli.md#game) it
+reaches, which its input decides:
+
+| Fields | What it records |
+| --- | --- |
+| `output`, optional `video_output`, `speed_up`, `instrument` | the fight staged in the current scene |
+| `input` a layout, `output`, optional `seed`, `instrument` | the layout, fought without a scene |
+| `input` a replay, `round`, `output`, optional `instrument` | one round of the replay |
+| `watch: true`, optional `output_dir`, `wait_for_scene_seconds`, `match_timeout_seconds` | one live standard 1v1 |
+
+`input` is a path, whose kind the file itself says, or a layout given whole, as
+`read_yaml` and `embedded_layout` bind one.
+
 A step that writes a file refuses to overwrite it, and a script does not
-declare otherwise. The destinations are every path `game.record_fight`,
-`game.record_replay_round`, `game.record_layout` and `fight.run` publish:
-`output` and `video_output`. Whether to replace
+declare otherwise. The destinations are every path `game.record` and `convert`
+publish: `output` and `video_output`. Whether to replace
 an existing one is a property of the run,
 not of the script: the same document is run once to produce its outputs and
 again to replace them. `mechcore run --force` answers yes for the whole run.
@@ -143,8 +153,8 @@ fail-closed rule keeps protecting a recording in flight.
 
 `force` is not a script field at all, and a step that carries one is rejected.
 
-The three recording operations take the instrument channels to record into the
-MCFR, by name, in any combination:
+A recording other than a watch takes the instrument channels to record into
+the MCFR, by name, in any combination:
 
 ```yaml
 instrument: [target_refs, skill_attackable_checker, target_search]
@@ -154,14 +164,14 @@ A channel lives inside the recording, outside both of its hashes
 ([mcfr.md](../mcfr/mcfr.md#instrument-channels)); what each channel holds is
 [adapter.md](../adapter/adapter.md#record_replay_round).
 
-`fight.compare` returns the report `mechcore fight compare` prints: the hash
+`diff` over two recordings returns the report `mechcore diff` prints: the hash
 verdict, the field groups that differ with the ticks they differ on, and one
 tick explained. `fields` names the groups a step is about, and makes
 `fields_equal` their verdict, so a script can hold a unit's lock or motion
 state to a recording while other fields still differ, which the hash cannot:
 
 ```yaml
-- fight.compare:
+- diff:
     left: $out/game.mcfr
     right: $out/simulated.mcfr
     fields: [units.mech_lock_target, units.motion_state, units.weapon_aims]
@@ -172,20 +182,21 @@ state to a recording while other fields still differ, which the hash cannot:
 A group that differs is reached by its dotted path, as
 `fields.units.motion_state.first_divergence`.
 
-`fight.outcome` and `fight.stats` read a recording for the two halves a
-capture is taken for: what the fight decided, and what was written onto its
-units before it moved them. Both answer the same object their commands print,
-so `expect` asserts a measurement directly — `sides.red.survivors.0.life` for
+`show` with `view: outcome` and `view: stats` reads a recording for the two
+halves a capture is taken for: what the fight decided, and what was written
+onto its units before it moved them. Both answer the same object the command
+prints, so `expect` asserts a measurement directly — `sides.red.survivors.0.life` for
 the one, `sides.blue.0.skill.0.modifiers.damage_rate.add` for the other. That
 is what turns a capture script from a probe of the build into a regression
 against it; `tests/modifier/composition.mcscript` is the worked example.
 
-`fight.run` runs the deterministic simulator on a layout and returns the same result
-object `mechcore fight run` prints, so `expect` can assert `seed_source`, `steps`, or
-a dotted path like `hashes.result_hash`. It needs no game, which is
-what lets `tests/regression/simulate.mcscript` drive the whole regression
-manifest. Omit `output` unless the run should also publish an MCFR; an
-existing one is replaced as a recording's is.
+`convert` with `to: mcfr` runs the deterministic simulator on a layout and
+returns the same result object `mechcore convert --to mcfr` prints, so `expect`
+can assert `seed_source`, `steps`, or a dotted path like `hashes.result_hash`.
+It needs no game, which is what lets `tests/regression/simulate.mcscript` drive
+the whole regression manifest. Omit `output` unless the run should also publish
+an MCFR; an existing one is replaced as a recording's is. A rewrite to a layout
+without `output` answers the layout it would have written.
 
 `game.apply_layout` owns the whole transaction from the main menu: it creates the
 Training Ground itself and brings it to the layout's activation round. A layout
@@ -216,7 +227,7 @@ reference embedded in longer text is stringified and spliced:
 
 ```yaml
 - game.apply_layout: {layout: $layout, seed: $case.seed}  # stays a number
-- game.record_fight: {output: $out/fight.mcfr}          # becomes a path string
+- game.record: {output: $out/fight.mcfr}                # becomes a path string
 ```
 
 `${name.field}` delimits the reference explicitly. A bare reference runs to
@@ -239,7 +250,7 @@ Only inside a `let` value.
 without a separate conversion step:
 
 ```yaml
-- game.record_replay_round: {grbr: $grbr, round: 2, output: $out/replay.mcfr}
+- game.record: {input: $grbr, round: 2, output: $out/replay.mcfr}
 - let:
     layout: embedded_layout($out/replay.mcfr)
 - game.start_test: {seed: $layout.seed}
@@ -256,7 +267,7 @@ A key may be a dotted path, because the values worth asserting are nested: a
 recording reports `operation.tick_count`, not `tick_count`.
 
 ```yaml
-- fight.compare:
+- diff:
     left: $out/replay.mcfr
     right: $out/training.mcfr
   expect:
@@ -297,7 +308,7 @@ hidden inside a loop to evade a gameless script's `game:` requirement.
 
 ### Unattended standard 1v1 corpus recording
 
-`game.record_watch_replay` is one long, atomic native transaction. It refreshes the
+`game.record` with `watch: true` is one long, atomic native transaction. It refreshes the
 server matchmaking watch list, selects an eligible scene at round one, watches
 through the result, and returns to the main menu. By default the result is the
 file already saved in the game's own `ProjectDatas/Replay` directory. Setting
@@ -331,7 +342,8 @@ steps:
       captures: range(10000)
   - foreach: {capture: $captures}
     steps:
-      - game.record_watch_replay:
+      - game.record:
+          watch: true
           wait_for_scene_seconds: 900
           match_timeout_seconds: 7200
 ```
@@ -357,7 +369,7 @@ until someone looks at it.
 One JSON object per completed step, on stdout:
 
 ```json
-{"step": 4, "operation": "record_fight", "elapsed_ms": 10787, "result": {...}}
+{"step": 4, "operation": "game.record", "elapsed_ms": 10787, "result": {...}}
 ```
 
 `elapsed_ms` measures the operation alone, which is what makes capture cost
@@ -427,16 +439,16 @@ vars:
   out: /tmp/mechcore/tuff-replay-vs-training
 
 steps:
-  - game.record_replay_round:
-      grbr: $grbr
+  - game.record:
+      input: $grbr
       round: 2
       output: $out/replay.mcfr
   - let:
       layout: embedded_layout($out/replay.mcfr)
   - game.apply_layout: $layout
-  - game.record_fight:
+  - game.record:
       output: $out/training.mcfr
-  - fight.compare:
+  - diff:
       left: $out/replay.mcfr
       right: $out/training.mcfr
     expect:
@@ -468,7 +480,7 @@ steps:
       - game.apply_layout:
           layout: $layout
           seed: ${case.seed}
-      - game.record_fight:
+      - game.record:
           output: $out/${case.name}.mcfr
         expect:
           operation.tick_count: ${case.tick_count}

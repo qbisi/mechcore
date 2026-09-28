@@ -42,8 +42,8 @@ steps:
     steps:
       - let:
           layout: read_yaml(${fight.layout})
-      - game.record_layout:
-          layout: $layout
+      - game.record:
+          input: $layout
           seed: $seed
           output: ${out}/${fight.name}.mcfr
           instrument: [target_refs]
@@ -52,11 +52,11 @@ steps:
   # difference read below it means nothing.
   - let:
       layout: read_yaml(tests/turret/rapid-fire-head-on.yaml)
-  - game.record_layout:
-      layout: $layout
+  - game.record:
+      input: $layout
       seed: $seed
       output: ${out}/control.mcfr
-  - fight.compare:
+  - diff:
       left: ${out}/rapid-fire-head-on.mcfr
       right: ${out}/control.mcfr
     expect:
