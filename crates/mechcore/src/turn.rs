@@ -2,7 +2,7 @@
 //!
 //! `docs/spec/mechcore/turn.md` is the contract: what `<match>.turn` holds,
 //! how two processes share it, and what is lost when it is. It is coordination
-//! and not record — the rounds that have been played are the battle document's
+//! and not record — the rounds that have been played are the match document's
 //! — so everything here belongs to the round in progress.
 
 use std::{
@@ -11,7 +11,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use mechcore_document::battle::Action;
+use mechcore_document::r#match::Action;
 use serde::{Deserialize, Serialize};
 
 use crate::cli::Failure;

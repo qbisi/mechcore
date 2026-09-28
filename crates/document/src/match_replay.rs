@@ -1,26 +1,26 @@
-//! A battle written back as the replay it converts from.
+//! A match written back as the replay it converts from.
 //!
-//! `mechcore replay convert` reads a replay into a battle; this writes a
-//! battle into a replay that the same conversion reads back as that battle.
+//! `mechcore replay convert` reads a replay into a match; this writes a
+//! match into a replay that the same conversion reads back as that match.
 //! Each of a replay's rounds holds the position a side opens the round with,
 //! taken before the round's own opening, and the decisions it takes from
-//! there. A battle's state segment is the position after the opening, so a
+//! there. A match's state segment is the position after the opening, so a
 //! round is written by undoing the opening: taking back what the round's
 //! officers deliver, the round's income and cooldown count-down, and the
 //! energy tower debt the previous round owes. Each undone position is opened
 //! again with the conversion's own rule, and a position that does not open
-//! onto the battle's is refused rather than written.
+//! onto the match's is refused rather than written.
 //!
-//! The random streams a replay records are where the battle's seeds put them.
-//! `docs/spec/document/battle-replay.md` states what the file holds.
+//! The random streams a replay records are where the match's seeds put them.
+//! `docs/spec/document/match-replay.md` states what the file holds.
 
-use crate::battle::{Action, SideState, SkillTarget, Turn};
 use crate::economy::Economy;
 use crate::layout::Position;
 use crate::layout_replay::{
     SHIELD_AIRDROP_SKILL, binary_formatter, build_number, shield_range_data, terrain_range_data,
     write_ints, write_technology_rows,
 };
+use crate::r#match::{Action, SideState, SkillTarget, Turn};
 use crate::opening::{Stated, StatedSide, Stream};
 use crate::reinforcement::Pool;
 use std::fmt::Write as _;
@@ -29,25 +29,25 @@ use std::fmt::Write as _;
 const RAPID_SUPPLY_SKILL: i32 = 1;
 const BATTLE_ID: &str = "battle";
 
-/// Writes `stated` as a replay `replay convert` reads back as the same battle.
+/// Writes `stated` as a replay `replay convert` reads back as the same match.
 ///
 /// # Errors
 ///
-/// Returns an error when the battle holds what a replay cannot record: a
+/// Returns an error when the match holds what a replay cannot record: a
 /// deployment clock, a position after its last decisions, a side without an
 /// opening or a seed, or a round whose opening cannot be undone onto a
-/// position that opens back onto the battle's.
-pub fn battle_replay(
+/// position that opens back onto the match's.
+pub fn match_replay(
     economy: &Economy,
     stated: &Stated,
     game_build: &str,
 ) -> Result<Vec<u8>, String> {
     if stated.deploy_time.is_some() {
-        return Err("a replay records no deployment clock, and this battle states one".into());
+        return Err("a replay records no deployment clock, and this match states one".into());
     }
     if !stated.ends_on_actions {
         return Err(
-            "a replay records no position after its last decisions, and this battle states one"
+            "a replay records no position after its last decisions, and this match states one"
                 .into(),
         );
     }
@@ -280,7 +280,7 @@ fn write_player(
         write_snapshot(xml, &snapshot, &chains, sign, turn.round, &stream.state())?;
         xml.push_str("</playerData>");
         // The round's decisions are taken from the position it opened with,
-        // deliveries and all, which is the battle's.
+        // deliveries and all, which is the match's.
         write_actions(xml, economy, state, turn, actions, sign)?;
         xml.push_str("</PlayerRoundRecord>");
         earlier_officers.clone_from(&snapshot.officers);
@@ -302,13 +302,13 @@ fn unopen(
 ) -> Result<SideState, String> {
     let mut snapshot = take_back_deliveries(economy, state, round, stream)?;
     undo_reset(economy, &mut snapshot, round, previous);
-    // The conversion's own opening has to make the battle's position of it.
+    // The conversion's own opening has to make the match's position of it.
     let mut placement = crate::landing::placement(red);
     let opened =
         crate::transition::open_round(economy, &snapshot, round, &mut placement, Some(stream))
             .map_err(|reason| format!("the undone position does not open: {reason:?}"))?;
     if &opened != state {
-        return Err("the undone position does not open onto the battle's".into());
+        return Err("the undone position does not open onto the match's".into());
     }
     Ok(snapshot)
 }
@@ -425,7 +425,7 @@ fn undo_reset(economy: &Economy, snapshot: &mut SideState, round: i32, previous:
     let income =
         crate::ledger::round_income(economy, round, &snapshot.officers, economy.round_supply());
     snapshot.supply -= income + worn - debt;
-    snapshot.shop = crate::battle::Allowances::default();
+    snapshot.shop = crate::r#match::Allowances::default();
     for entry in &mut snapshot.units {
         entry.movable = false;
     }
@@ -691,7 +691,7 @@ fn write_panel(xml: &mut String, side: &SideState, sign: i32, round: i32) -> Res
 
 /// A round's decisions as the replay records them, each side ending its
 /// deployment. A purchase is recorded as the purchase and a move that puts the
-/// formation it creates where the battle does, which conversion folds back.
+/// formation it creates where the match does, which conversion folds back.
 fn write_actions(
     xml: &mut String,
     economy: &Economy,
@@ -704,7 +704,7 @@ fn write_actions(
     let offers = turn.state.reinforce_offers.as_ref();
     let declined = offers.map(|offers| offers.refund);
     // Each decision is stepped as conversion steps it, which is what names
-    // the formation a purchase creates and the type a move carries. A battle
+    // the formation a purchase creates and the type a move carries. A match
     // holds only decisions the board allows in its order, so each is recorded
     // where it stands.
     let mut position = opened.clone();
@@ -770,7 +770,7 @@ struct Context<'a> {
     created: i32,
     /// The unit type a move carries.
     moved: i32,
-    offers: Option<&'a crate::battle::Offers>,
+    offers: Option<&'a crate::r#match::Offers>,
     sign: i32,
 }
 
@@ -799,7 +799,7 @@ fn action_records(
             return Err("a deployment round takes an opening, and only round 0 does".into());
         }
         // The game places a purchase itself, where the deployment area is
-        // free, so a move puts it where the battle does; conversion folds the
+        // free, so a move puts it where the match does; conversion folds the
         // move back into the purchase.
         Action::BuyUnit {
             unit,

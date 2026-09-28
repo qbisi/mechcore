@@ -14,7 +14,7 @@
 #
 # Scope: every case in the manifest. The whole table replays in about fifteen
 # seconds, so there is no tier to save; `smoke` on a case is what the native
-# refresh script reads, because recording one takes a full battle.
+# refresh script reads, because recording one takes a full fight.
 #
 # The last step is not from the manifest: it is a fight the game never
 # recorded, pinned as the simulator plays it, and it says so where it stands.

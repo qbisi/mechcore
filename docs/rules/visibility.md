@@ -48,7 +48,7 @@ a reading of the binary.
 
 ## Why this matters to a document
 
-A battle document records an ordered list of decisions. A player never saw one:
+A match document records an ordered list of decisions. A player never saw one:
 the game shows boards, and a human infers what happened by comparing the board
 before a round with the board after it. Two different decision lists can leave
 one board, so an ordered list says more than any interface could:
@@ -69,7 +69,7 @@ and the difference is the platform's to decide rather than the game's.
 
 - Every locally recorded replay carries both sides whole: every replay of this
   version's corpus converts with both sides' snapshots in every round, whether a
-  spectator recorded it or either player: `scripts/verify-battles.py`.
+  spectator recorded it or either player: `scripts/verify-matches.py`.
 
 ### Read
 

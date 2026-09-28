@@ -38,7 +38,7 @@ pub enum Operation {
     Status,
     StartTest,
     ApplyLayout,
-    RecordBattle,
+    RecordFight,
     RecordReplayRound,
     RecordWatchReplay,
     ToggleFight,
@@ -55,7 +55,7 @@ impl Operation {
         Self::Status,
         Self::StartTest,
         Self::ApplyLayout,
-        Self::RecordBattle,
+        Self::RecordFight,
         Self::RecordReplayRound,
         Self::RecordWatchReplay,
         Self::ToggleFight,
@@ -73,7 +73,7 @@ impl Operation {
             Self::Status => "status",
             Self::StartTest => "start_test",
             Self::ApplyLayout => "apply_layout",
-            Self::RecordBattle => "record_battle",
+            Self::RecordFight => "record_fight",
             Self::RecordReplayRound => "record_replay_round",
             Self::RecordWatchReplay => "record_watch_replay",
             Self::ToggleFight => "toggle_fight",
@@ -311,10 +311,10 @@ pub struct StartTestArguments {
 /// this is the same type both sides already validate with `mechcore-document`.
 pub type ApplyLayoutArguments = Layout;
 
-/// Arguments for [`Operation::RecordBattle`].
+/// Arguments for [`Operation::RecordFight`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct RecordBattleArguments {
+pub struct RecordFightArguments {
     /// Absolute destination for the new MCFR recording.
     pub output: PathBuf,
     pub video_output: Option<PathBuf>,
@@ -425,7 +425,7 @@ mod tests {
                 "status",
                 "start_test",
                 "apply_layout",
-                "record_battle",
+                "record_fight",
                 "record_replay_round",
                 "record_watch_replay",
                 "toggle_fight",
@@ -482,7 +482,7 @@ mod tests {
                     "status",
                     "start_test",
                     "apply_layout",
-                    "record_battle",
+                    "record_fight",
                     "record_replay_round",
                     "record_watch_replay",
                     "toggle_fight",
@@ -566,7 +566,7 @@ mod tests {
             })
         );
 
-        let battle = serde_json::to_value(RecordBattleArguments {
+        let fight = serde_json::to_value(RecordFightArguments {
             output: PathBuf::from("/tmp/b.mcfr"),
             video_output: None,
             speed_up: Some(true),
@@ -577,7 +577,7 @@ mod tests {
         })
         .unwrap();
         assert_eq!(
-            battle,
+            fight,
             serde_json::json!({
                 "output": "/tmp/b.mcfr",
                 "video_output": null,

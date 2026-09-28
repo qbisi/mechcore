@@ -2,10 +2,10 @@
 
 Where the board puts a unit that no decision places: a purchase, a
 reinforcement card's squads, an opening's force, and an officer's delivery. A
-battle states where a purchase's moves end, so it reads this rule only for the
+match states where a purchase's moves end, so it reads this rule only for the
 other three. And where the board lets a decision put one: a move, and a
 contraption placed. [`action.md`](../spec/document/action.md) and the round-opening
-deliveries of [`battle.md`](../spec/document/battle.md) rest on it.
+deliveries of [`match.md`](../spec/document/match.md) rest on it.
 
 ## The rule
 
@@ -69,10 +69,10 @@ touching rectangles do not overlap.
 
 - Every arrival of this version's corpus lands where the rule puts it: a unit
   card's squads, a side's opening force, and the squads a specialist delivers as
-  a round opens: `scripts/verify-battles.py`.
+  a round opens: `scripts/verify-matches.py`.
 - Every round of this version's corpus settles into an order in which the rule
   allows each move, purchase and contraption where it stands, and verification
-  applies each under it: `scripts/verify-battles.py`.
+  applies each under it: `scripts/verify-matches.py`.
 
 ### Read
 

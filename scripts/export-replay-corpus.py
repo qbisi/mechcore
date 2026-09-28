@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
-"""Convert every replay of one game version into its battle document.
+"""Convert every replay of one game version into its match document.
 
 The corpus is https://github.com/qbisi/mechcore-replay, fetched to
 ``work/replay`` by ``scripts/replay.py sync``: the replays of a version sit
 directly under ``replays/<version>/``. Each is converted without the game by
-``mechcore replay convert`` into the battle YAML of the same basename under
-``work/battle/<version>/``, replacing what is there. The corpus holds no
+``mechcore replay convert`` into the match YAML of the same basename under
+``work/match/<version>/``, replacing what is there. The corpus holds no
 documents; they are generated where they are read. A replay the converter
 refuses is reported and makes the run fail, so a version the converter no
 longer reads cannot pass unnoticed.
 
-Conversion is idempotent across the battle format: each battle is written back
-as a replay (``mechcore replay convert <battle.yaml> <replay.grbr>``) and
+Conversion is idempotent across the match format: each match is written back
+as a replay (``mechcore replay convert <match.yaml> <replay.grbr>``) and
 converted again, and the second document has to be the first byte for byte. A
-battle that does not come back the same fails the run too.
+match that does not come back the same fails the run too.
 
 Run from anywhere inside the checkout, after a release build:
 
@@ -44,28 +44,28 @@ def parse_arguments(root: Path) -> argparse.Namespace:
     parser.add_argument("--mechcore", type=Path, default=root / "target/release/mechcore")
     parser.add_argument("--version", help="the game version to convert (default: this checkout's)")
     parser.add_argument(
-        "--battle-dir",
+        "--match-dir",
         type=Path,
-        help="where the documents go (default: work/battle/<version>)",
+        help="where the documents go (default: work/match/<version>)",
     )
     return parser.parse_args()
 
 
-def round_trip(executable: Path, root: Path, battle: Path) -> str | None:
-    """Writes a battle back as a replay and converts that again; answers what
+def round_trip(executable: Path, root: Path, match_doc: Path) -> str | None:
+    """Writes a match back as a replay and converts that again; answers what
     went wrong, or nothing when the second document is the first."""
     with tempfile.TemporaryDirectory() as scratch:
         replay = Path(scratch) / "written.grbr"
         again = Path(scratch) / "again.yaml"
         for command in (
-            [str(executable), "replay", "convert", str(battle), str(replay), "--force"],
+            [str(executable), "replay", "convert", str(match_doc), str(replay), "--force"],
             [str(executable), "replay", "convert", str(replay), str(again), "--force"],
         ):
             step = subprocess.run(command, cwd=root, text=True, capture_output=True, check=False)
             if step.returncode != 0:
                 return step.stderr.strip() or step.stdout.strip()
-        if again.read_bytes() != battle.read_bytes():
-            return "the battle converted back differs from the battle written"
+        if again.read_bytes() != match_doc.read_bytes():
+            return "the match converted back differs from the match written"
     return None
 
 
@@ -75,7 +75,7 @@ def main() -> int:
     executable = args.mechcore.resolve()
     version = args.version or build_data.build()
     corpus = root / "work" / "replay" / "replays" / version
-    battle_dir = (args.battle_dir or root / "work" / "battle" / version).resolve()
+    match_dir = (args.match_dir or root / "work" / "match" / version).resolve()
     if not executable.is_file():
         print(f"mechcore executable does not exist: {executable}", file=sys.stderr)
         return 2
@@ -84,23 +84,23 @@ def main() -> int:
         print(f"no replays of {version} in {corpus}; run scripts/replay.py sync", file=sys.stderr)
         return 2
 
-    battle_dir.mkdir(parents=True, exist_ok=True)
+    match_dir.mkdir(parents=True, exist_ok=True)
     refused = []
     for index, source in enumerate(sources, 1):
         print(f"[{index}/{len(sources)}] {source.name}", flush=True)
-        battle = battle_dir / f"{source.stem}.yaml"
+        match_doc = match_dir / f"{source.stem}.yaml"
         converted = subprocess.run(
-            [str(executable), "replay", "convert", str(source), str(battle), "--force"],
+            [str(executable), "replay", "convert", str(source), str(match_doc), "--force"],
             cwd=root,
             text=True,
             capture_output=True,
             check=False,
         )
-        if converted.returncode != 0 or not battle.is_file():
+        if converted.returncode != 0 or not match_doc.is_file():
             refused.append(source.name)
             print(f"  refused: {converted.stderr.strip() or converted.stdout.strip()}", flush=True)
             continue
-        problem = round_trip(executable, root, battle)
+        problem = round_trip(executable, root, match_doc)
         if problem:
             refused.append(source.name)
             print(f"  does not round-trip: {problem}", flush=True)

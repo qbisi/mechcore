@@ -28,7 +28,7 @@ const NATIVE: &[&str] = &[
     "game.status",
     "game.start_test",
     "game.apply_layout",
-    "game.record_battle",
+    "game.record_fight",
     "game.record_replay_round",
     "game.record_layout",
     "game.record_watch_replay",
@@ -781,19 +781,19 @@ async fn perform(
             let (layout, seed) = split_layout_arguments(arguments)?;
             session.apply_layout(layout, seed).await
         }
-        "game.record_battle" => {
+        "game.record_fight" => {
             let fields = arguments
                 .as_object()
-                .ok_or("record_battle takes a mapping")?;
+                .ok_or("record_fight takes a mapping")?;
             let output = scope.path(
-                fields.get("output").ok_or("record_battle needs output")?,
-                "record_battle output",
+                fields.get("output").ok_or("record_fight needs output")?,
+                "record_fight output",
             )?;
             let video = fields
                 .get("video_output")
-                .map(|value| scope.path(value, "record_battle video_output"))
+                .map(|value| scope.path(value, "record_fight video_output"))
                 .transpose()?;
-            let speed_up = optional_flag(fields.get("speed_up"), "game.record_battle speed_up")?;
+            let speed_up = optional_flag(fields.get("speed_up"), "game.record_fight speed_up")?;
             if fields.contains_key("force") {
                 return Err("force is not a script field; pass --force to mechcore run".to_string());
             }
@@ -802,7 +802,7 @@ async fn perform(
             destinations.extend(video.as_deref());
             let force = confirm_overwrite(scope, &destinations).await?;
             session
-                .record_battle(output.clone(), video.clone(), speed_up, force, instrument)
+                .record_fight(output.clone(), video.clone(), speed_up, force, instrument)
                 .await
                 .map_err(|value| value.to_string())
         }
@@ -1258,7 +1258,7 @@ mod tests {
         let session = Session::new();
         let mut scope = scope_with(&[]);
         let call = Call {
-            operation: "game.record_battle".into(),
+            operation: "game.record_fight".into(),
             arguments: json!({"output": "/tmp/a.mcfr", "force": true}),
             expect: None,
         };
@@ -1376,11 +1376,11 @@ mod tests {
     #[test]
     fn a_loop_body_cannot_smuggle_a_native_operation_past_the_gameless_rule() {
         let script = Script::parse(
-            "steps:\n  - foreach: {case: $cases}\n    steps:\n      - game.record_battle: {output: a}\n",
+            "steps:\n  - foreach: {case: $cases}\n    steps:\n      - game.record_fight: {output: a}\n",
         )
         .unwrap();
         let error = script.check().unwrap_err();
-        assert!(error.contains("game.record_battle"), "{error}");
+        assert!(error.contains("game.record_fight"), "{error}");
         assert!(error.contains("game:"), "{error}");
     }
 
@@ -1425,7 +1425,7 @@ mod tests {
         assert_eq!(optional_flag(Some(&json!(true)), "x").unwrap(), Some(true));
         // A multiplier is not a thing the native vote can express, so a number
         // must be refused rather than silently treated as "on".
-        let error = optional_flag(Some(&json!(3)), "game.record_battle speed_up").unwrap_err();
+        let error = optional_flag(Some(&json!(3)), "game.record_fight speed_up").unwrap_err();
         assert!(error.contains("true or false"), "{error}");
     }
 

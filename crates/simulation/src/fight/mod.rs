@@ -479,7 +479,7 @@ impl Simulation {
         // every module has updated: a side that has lost its last unit loses
         // its towers on that tick, whatever dealt the last blow, and their
         // `OnDead` lands on the next. Projectile drain reaches the same round
-        // result without mutating buildings (observed in Fang mirror battles).
+        // result without mutating buildings (observed in Fang mirror fights).
         let towers_fall = !fight_was_finished
             && !winner_was_decided
             && !projectile_finished_fight

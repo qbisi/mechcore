@@ -14,11 +14,11 @@ not contain `reactor_core`, `supply`, capture settings, or exit behavior.
 The same layout is also the input to the bounded deterministic simulator:
 
 ```text
-mechcore fight run layout.yaml [--seed <i32>] [--output battle.mcfr]
+mechcore fight run layout.yaml [--seed <i32>] [--output fight.mcfr]
 mechcore doc verify layout.yaml
 ```
 
-`mechcore fight run` returns hashes, terminal battle structure, and generation profiling
+`mechcore fight run` returns hashes, terminal fight structure, and generation profiling
 without generating MCFR storage by default. `--output` additionally serializes,
 validates, and publishes an MCFR at the requested path.
 
@@ -31,7 +31,7 @@ begins rather than recording an approximation.
 ## Document shape
 
 A layout contains exactly two player sides, and each is a top-level key,
-`blue` and `red`, as a battle's actions are. A side lists its Officers, its
+`blue` and `red`, as a match's actions are. A side lists its Officers, its
 unit technologies grouped by unit, and its enhancement-chain blueprints, then
 what stands on its board.
 
@@ -141,7 +141,7 @@ sibling fields. `units`, `constructions` and `contraptions` carry it as
 `battle_skills.positions` are lists of the same value.
 
 The canonical writer spells a layout by the three rules a
-[battle](battle.md#normal-form) is spelled by, and none of them names a field:
+[match](match.md#normal-form) is spelled by, and none of them names a field:
 
 - a sequence item is written on one line, in flow style;
 - a mapping or sequence whose members are all scalars is written in flow style
@@ -168,8 +168,8 @@ layout's carries `kind: layout` beside the normalized seed, round, unit
 count, construction count, contraption count, and airdrop shield count.
 
 The command is not the layout's alone. It checks each file against the contract
-that file names for itself, so a battle is checked against its seed and its
-transitions instead, as [`battle.md`](battle.md) states. A layout is routed here
+that file names for itself, so a match is checked against its seed and its
+transitions instead, as [`match.md`](match.md) states. A layout is routed here
 by the `kind` at its root, never by its extension.
 
 A batch is a pipe rather than a flag. Paths come from the arguments, or from
@@ -214,7 +214,7 @@ once rather than one, and no recorded match seed can equal it. Absence already
 expresses that request, and it expresses it without pretending to be a value.
 
 A seed is therefore not a state field with a baseline. It is an argument of the
-battle, and the layout only supplies a default for it. The call site holds the
+fight, and the layout only supplies a default for it. The call site holds the
 real parameter, which is why one layout can be recorded under many seeds:
 
 - `mechcore fight run` resolves `--seed`, then `layout.seed`, then a generated seed,
@@ -276,7 +276,7 @@ so both values are accepted there.
 call rather than by replaying the arrival. The Adapter explicitly changes and
 verifies that membership. A layout can therefore still describe a settled
 ambush unit in a round where a real match could not have produced one, for
-example a round 3 unit that no round 2 deployment placed. Reproducing a battle
+example a round 3 unit that no round 2 deployment placed. Reproducing a fight
 does not require that its deployment be reachable by play, and the sandbox
 deliberately keeps that freedom. A consumer that needs reachability rather than
 reproducibility must check it against the preceding state, outside this schema.
@@ -354,7 +354,7 @@ names another kind, and a name the build does not carry.
 
 ### Names
 
-A layout names what it holds rather than numbering it, as a battle's
+A layout names what it holds rather than numbering it, as a match's
 [state](state.md#names) does, and writes the key `name` for a placement and a
 released skill. A unit, construction or contraption type is the catalog's name,
 and an officer, a technology, a blueprint, an Energy Tower skill, a commander
@@ -444,7 +444,7 @@ does to a fight.
 
 A blueprint that grants a commander skill, `sticky_oil_bomb`, `field_recovery`
 or `mobile_beacon`, is refused here: a fight sees it only as that skill's
-release in `battle_skills`. A battle's [state](state.md) lists every blueprint,
+release in `battle_skills`. A match's [state](state.md) lists every blueprint,
 and a projection keeps the chains alone.
 
 ### `energy_tower_skills`
@@ -826,7 +826,7 @@ it is its own collection rather than a flag on a `contraptions` entry, even
 though native export finds it in the same shield collection as contraption
 shields.
 
-An entry here always means a shield already present before this battle. A Shield
+An entry here always means a shield already present before this fight. A Shield
 Airdrop released during the requested round is a `battle_skills` entry instead,
 so one shield is never recorded in both places. The retained object uses
 `CS_EnergyShield` (ID 800001), which is not short-lived and resets to
@@ -919,7 +919,7 @@ keys already encode the active set, while remaining lifetime is not meaningful
 inside a single-fight layout.
 
 The Simulator rejects layouts with non-empty `terrains` before constructing a
-simulated battle. Adapter execution reproduces the build's line branch with
+simulated fight. Adapter execution reproduces the build's line branch with
 native `FVector3`/`FPoint` operations, adds only the declared active indexes through
 `RangeItemSystem.AddItem`, then overwrites and reads back each optional
 `GridBlockInt` mask. Direct GRBR decoding is exposed as
@@ -986,7 +986,7 @@ and consumed by `CalculateAttackPositions`, so scattering skills take their
 values in release order. Two properties bound the effect: the stream belongs to
 one team, so blue's order and red's order are independent, and
 `BattleSystem.OnEnterDeployment` resets it every deployment, so nothing carries
-across rounds and a single-round layout still reproduces the battle. Unit
+across rounds and a single-round layout still reproduces the fight. Unit
 placement is the deliberate contrast: `MechPositionManager` builds a fresh
 `GRRandom` per call, so declaration order does not affect where a unit
 lands.
@@ -1016,7 +1016,7 @@ or acquisition index would record something no outcome depends on.
 `tests/skill-order/orbital-first.yaml` and `lightning-first.yaml` beside it hold
 the same pair of releases at the same two positions and differ only in which is
 declared first, over a twelve-Crawler block that both circles cover.
-`tests/skill-order/release-order.mcscript` records three battles from them. Under
+`tests/skill-order/release-order.mcscript` records three fights from them. Under
 seed `20260907` the two orders part at tick 63 and end at 416 and 415 ticks,
 and the same order recorded twice gave byte-identical hashes. They are not in the regression manifest, because its gameless
 reader simulates every case and the Simulator has no battle-skill feature slice
@@ -1105,7 +1105,7 @@ moment. Whether a mid-fight position is the same document carrying more fields,
 or a different document, is open.
 
 **Do `seed` and `map_id` belong in a state document?** This document already
-argues that a seed is an argument of the battle rather than a state field, and
+argues that a seed is an argument of the fight rather than a state field, and
 that the layout only supplies a default the call site may override. The same
 argument fits `map_id`, which is currently an ordinary field. Either both are
 arguments that a layout may default, or the reasoning about the seed needs

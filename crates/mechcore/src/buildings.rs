@@ -9,7 +9,7 @@
 //! layout the recording embeds rather than reading a type out of them.
 //!
 //! This is neither of the other two readers' job. [`crate::outcome`] answers
-//! what a fight decided and a building is not among `battle.md`'s five fields;
+//! what a fight decided and a building is not among `match.md`'s five fields;
 //! [`crate::stats`] answers a unit's numbers and a building is not a unit.
 //!
 //! Positions, bounds and every other length are the recording's own fixed

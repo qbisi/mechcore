@@ -3,7 +3,7 @@
 //! `Purse` prices a decision at the prices the side's officers make, and
 //! [`round_income`] is the income a round opens with. The transition applies
 //! both: [`crate::transition::step`] charges each decision as it is taken, and
-//! [`crate::transition::open_round`] pays the income. Whether a battle's supply
+//! [`crate::transition::open_round`] pays the income. Whether a match's supply
 //! adds up is then one of the leaves [`crate::coverage`] compares.
 
 use crate::economy::{Economy, Officer, RoundSupply};

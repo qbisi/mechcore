@@ -6,7 +6,7 @@
 
 This contract defines the MCFR logical model: the container's members, the
 schema of each, the identity and ordering rules that make two recordings of one
-battle the same recording, and what a reader must validate before trusting one.
+fight the same recording, and what a reader must validate before trusting one.
 
 ```text
 format = "0.8.0"
@@ -887,7 +887,7 @@ recording's lifetime.
 
 ## Normal form
 
-Identity is what makes two recordings of one battle the same recording, so
+Identity is what makes two recordings of one fight the same recording, so
 every namespace numbers its objects by a rule that depends on the scene rather
 than on the pointer that happened to be observed first.
 

@@ -110,7 +110,7 @@ nothing for:
   `tests/` that pins it. CI replays it on every change, and the pin is
   re-recorded whenever the version moves, so these claims move with it.
 - `### Replayed`: each claim the replay corpus of the pinned version shows,
-  citing `scripts/verify-battles.py`, which replays every round of the battle
+  citing `scripts/verify-matches.py`, which replays every round of the match
   documents `scripts/export-replay-corpus.py` converts from that corpus. It
   needs the corpus fetched, so it runs where the corpus is, not in CI. A claim the corpus of another version showed is not established here
   until this version's corpus shows it too.
@@ -140,7 +140,7 @@ yet, each one stated as the question it is. A spec with nothing open writes
 `None.` under the heading rather than dropping it, because an absent section
 cannot be told apart from a question nobody asked.
 
-Unresolved is for decisions, never for work. "Whether a battle records how the
+Unresolved is for decisions, never for work. "Whether a match document records how the
 match ended" is a decision. "The deployment executor does not exist" is work,
 and work belongs in the plan (`plan.md` and `plan/`).
 
@@ -169,7 +169,7 @@ being specified.
 
 | Kind | Documents | Required sections |
 | --- | --- | --- |
-| Document format | [layout](spec/document/layout.md), [state](spec/document/state.md), [battle](spec/document/battle.md), [action](spec/document/action.md), [layout replay](spec/document/layout-replay.md), [battle replay](spec/document/battle-replay.md), [turn](spec/mechcore/turn.md), [mcfr](spec/mcfr/mcfr.md), [unit-rules](spec/simulation/unit-rules.md) | the shape of the document, `Normal form`, `Excluded fields` |
+| Document format | [layout](spec/document/layout.md), [state](spec/document/state.md), [match](spec/document/match.md), [action](spec/document/action.md), [layout replay](spec/document/layout-replay.md), [match replay](spec/document/match-replay.md), [turn](spec/mechcore/turn.md), [mcfr](spec/mcfr/mcfr.md), [unit-rules](spec/simulation/unit-rules.md) | the shape of the document, `Normal form`, `Excluded fields` |
 | Interface contract | [adapter](spec/adapter/adapter.md), [cli](spec/mechcore/cli.md), [mcscript](spec/mechcore/mcscript.md), [session](spec/mechcore/session.md) | each operation with its arguments, its result and what it refuses; an error taxonomy |
 | Algorithm contract | [architecture](spec/simulation/architecture.md), [rvo](spec/simulation/rvo.md), [quadtree](spec/simulation/quadtree.md) | the determinism invariants; the fidelity boundary |
 
@@ -183,7 +183,7 @@ and why, so a reader who expected a field learns it was considered.
 
 The shape may be one section called `Document shape`, as in
 [layout.md](spec/document/layout.md), or a run of named sections that between
-them account for every field, as in [battle.md](spec/document/battle.md) and
+them account for every field, as in [match.md](spec/document/match.md) and
 [state.md](spec/document/state.md). What matters is that no field is
 undescribed, not which heading describes it. Prefer named sections once one
 `Document shape` would run long enough that a reader cannot find a field in it.
@@ -259,7 +259,7 @@ is written for.
 ## Worked examples
 
 Every spec follows this convention, so any of them answers a question about
-form. For a document format copy [battle.md](spec/document/battle.md) or
+form. For a document format copy [match.md](spec/document/match.md) or
 [state.md](spec/document/state.md); for an interface contract
 [adapter.md](spec/adapter/adapter.md), whose error taxonomy is the fullest; for
 an algorithm contract [rvo.md](spec/simulation/rvo.md), whose fidelity boundary

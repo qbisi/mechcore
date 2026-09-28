@@ -190,14 +190,14 @@ raises every formation's equipment slots from one to two
 
 - A Mass-produced equipment officer's three items are in the inventory from the
   decision that took it, and can be fitted in the same round:
-  `scripts/verify-battles.py`.
+  `scripts/verify-matches.py`.
 - Secondary Equipment Expert hands out one item a round, the one its side's
-  stream draws: `scripts/verify-battles.py`.
+  stream draws: `scripts/verify-matches.py`.
 - A side's own stream is where its seed puts it, advanced once for every
   hand-out an earlier round drew, on every round of every replay; conversion
-  refuses a replay where it is not: `scripts/verify-battles.py`.
+  refuses a replay where it is not: `scripts/verify-matches.py`.
 - An officer card taken puts its own ID into the side's officers:
-  `scripts/verify-battles.py`.
+  `scripts/verify-matches.py`.
 
 ### Read
 

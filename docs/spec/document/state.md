@@ -30,10 +30,10 @@ and it is not dealt: it is the map's figure, or in a unit round the schedule's.
 Writing it lets a position price its decline without replaying the deal.
 
 A state is defined after each action, not only at a round's ends. A
-[battle](battle.md) writes the position each round opens with as a state
+[match](match.md) writes the position each round opens with as a state
 segment, followed by the [decisions](action.md) taken from it. A state segment
 carries `kind: state` and `round`, and leaves `map_id` and `seed` to the
-battle's header, which states them once for every round.
+match's header, which states them once for every round.
 
 ## Relation to a layout
 
@@ -96,7 +96,7 @@ player sees the other's, so it could never be `reinforce_offers`, which the two
 sides share precisely because both choose from one array.
 
 It is not under a side's state either, because the position it is dealt in is
-not a round worth stating. A battle's [header](battle.md#the-opening-offers)
+not a round worth stating. A match's [header](match.md#the-opening-offers)
 holds the four combinations under each side.
 
 ## Random state
@@ -114,7 +114,7 @@ The two recorded streams are excluded on the argument the reinforcement pool
 follows: they decide what a later round is offered or handed, and this round's
 offer is already stated by `reinforce_offers`, as this round's hand-out is by
 the side's `equipment`. `Player.random` is what an officer that hands out one
-of its items draws from; a [battle](battle.md) states each side's seed in its
+of its items draws from; a [match](match.md) states each side's seed in its
 header, and nothing else in a standard match draws from it. Neither is read by
 a fight, so neither changes anything a layout can express. The two derived streams are computed from
 the round, the team index and the match seed, all of which a document already
@@ -291,8 +291,8 @@ sale since has already been applied. It is the number a purchase's legality is
 tested against and the number an installer writes.
 
 That is deliberately not the number the replay stores, which is the residue from
-before the round's income arrived. A converter rebuilds it; [the battle
-document](battle.md) says how.
+before the round's income arrived. A converter rebuilds it; [the match
+document](match.md) says how.
 
 Installing a state is where the definition bites. Because the field already
 includes the round's income, writing it directly leaves the game free to add
@@ -325,7 +325,7 @@ no contraption counter at all.
 
 `officers` lists the officers the side holds. An officer card that may be
 taken again appears once per copy. `techs` holds unit technologies alone, grouped under the unit type they
-belong to, as the replay groups them and as a battle's `tech_loadout` does. A
+belong to, as the replay groups them and as a match's `tech_loadout` does. A
 unit that has researched nothing has no row.
 
 The state of being unlocked but not active does not arise under standard 1v1
@@ -550,12 +550,12 @@ those deliveries are made on top of it: the squads, skills, equipment and
 unlocks each officer's schedule names for the round. A delivered squad has no
 recorded landing, and lands where [the board puts it](../../rules/landing.md).
 `movable` has no recorded source either, and is rebuilt as
-[`battle.md`](battle.md#what-conversion-rebuilds) states.
+[`match.md`](match.md#what-conversion-rebuilds) states.
 
 `airdrop_shields` and `terrains` are the two fields that are copied from
 somewhere other than an object list. A skill that leaves an object standing
 keeps it in that skill's `rangeItems`, so both are read out of the recorded
-skill panel; [the battle document](battle.md) states the rule.
+skill panel; [the match document](match.md) states the rule.
 
 ## Excluded fields
 
@@ -584,8 +584,8 @@ matters anyway to an installer, which is where the supply section names it.
 `poolOPs` and `RoundExcludeReinforce` are the reinforcement pool's bookkeeping,
 and both are excluded on one argument: they decide what a *later* round may be
 offered, while this round's offer is already stated by `reinforce_offers`. A
-battle does not lose them either: the deal that checks its offers makes them
-again ([battle-replay.md](battle-replay.md#the-reinforcement-pool)).
+match does not lose them either: the deal that checks its offers makes them
+again ([match-replay.md](match-replay.md#the-reinforcement-pool)).
 
 They differ in kind, and neither can stand in for the other. `poolOPs` is a log
 of removals and promotions that changes pool membership permanently, undone only

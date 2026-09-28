@@ -1,7 +1,7 @@
 //! Typed reader for the `BattleRecord` XML embedded in a GRBR.
 //!
 //! The file is a .NET `BinaryFormatter` graph wrapping one XML document. This
-//! module locates that document and deserializes the parts the battle, turn and
+//! module locates that document and deserializes the parts the match, turn and
 //! state documents are built from. Fields those documents exclude are simply not
 //! declared here; `serde` ignores what it is not asked for.
 //!
@@ -272,7 +272,7 @@ pub struct ActionRecords {
 ///
 /// The record distinguishes the sixteen kinds by an `xsi:type` attribute rather
 /// than by element name, so one struct with optional fields reads them all and
-/// [`crate::battle`] resolves the kind.
+/// [`crate::r#match`] resolves the kind.
 #[derive(Debug, Deserialize)]
 pub struct ActionRecord {
     #[serde(rename = "@type", alias = "@xsi:type")]
@@ -360,7 +360,7 @@ pub struct MatchRound {
     pub random_state: RandomStateData,
     /// The reinforcement pool's log as the round opened, which a restored
     /// round replays onto the pool the seed initializes. The converter checks
-    /// it against the deal the battle's own rounds make.
+    /// it against the deal the match's own rounds make.
     #[serde(default, rename = "poolOPs")]
     pub pool_operations: PoolOperations,
     /// The rounds excluding the level-4 commander skills, each with them.

@@ -5,7 +5,7 @@ use mechcore_mcfr::{McfrReader, McfrWriter};
 #[test]
 fn sim_command_writes_mcfr_and_prints_the_result() {
     let directory = tempfile::tempdir().unwrap();
-    let output = directory.path().join("battle.mcfr");
+    let output = directory.path().join("fight.mcfr");
     let layout = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../tests/regression/marksman-vs-arclight.yaml");
     let command = Command::new(env!("CARGO_BIN_EXE_mechcore"))
@@ -53,7 +53,7 @@ fn sim_command_writes_mcfr_and_prints_the_result() {
 #[test]
 fn sim_command_defaults_to_a_structured_result_without_persisting_mcfr() {
     let directory = tempfile::tempdir().unwrap();
-    let layout = directory.path().join("battle.yaml");
+    let layout = directory.path().join("layout.yaml");
     fs::copy(
         PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("../../tests/regression/marksman-vs-arclight.yaml"),

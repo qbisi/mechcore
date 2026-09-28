@@ -17,12 +17,12 @@
 //! and `y`. Red's frame is the world turned half a turn, so red's landings are
 //! not blue's mirrored and the side has to be named.
 
-use crate::battle::SideState;
 use crate::catalog::{resolve_construction_type, resolve_contraption_type, resolve_unit_type};
 use crate::layout::{
     AMBUSH_LEFT_MAX_X, AMBUSH_LEFT_MIN_X, AMBUSH_MAX_Y, AMBUSH_MIN_Y, AMBUSH_RIGHT_MAX_X,
     AMBUSH_RIGHT_MIN_X, Position, Region,
 };
+use crate::r#match::SideState;
 
 /// The grid a position aligns to, in metres.
 const GRID: i64 = 10;

@@ -1,22 +1,20 @@
-//! The document format: layout, state, action and battle.
+//! The document format: layout, state, action and match.
 //!
 //! One type system carries all four kinds, because they are one another's
-//! parts. A battle is a stream of state and action segments, and a layout is
+//! parts. A match is a stream of state and action segments, and a layout is
 //! the projection of a state onto what a fight simulates.
-//! `docs/spec/document/battle.md`, `docs/spec/document/state.md`,
+//! `docs/spec/document/match.md`, `docs/spec/document/state.md`,
 //! `docs/spec/document/action.md` and `docs/spec/document/layout.md` define
 //! them.
 //!
-//! The modules are layered. [`layout`] and [`battle`] define documents,
+//! The modules are layered. [`layout`] and [`r#match`] define documents,
 //! [`catalog`] pins the names they use to one build, [`compile`] turns a
 //! layout into a plan a scene can install, and [`record`] with [`convert`]
-//! reads a replay into a battle behind the `convert` feature.
+//! reads a replay into a match behind the `convert` feature.
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-pub mod battle;
-pub mod battle_replay;
 mod board;
 pub mod catalog;
 pub mod compile;
@@ -30,6 +28,8 @@ pub mod landing;
 pub mod layout;
 pub mod layout_replay;
 pub mod ledger;
+pub mod r#match;
+pub mod match_replay;
 pub mod mobility;
 pub mod names;
 pub mod opening;
@@ -58,7 +58,7 @@ pub use layout::{
 /// Names the kind of document a file carries.
 ///
 /// The four kinds share most of their shape, since they are one another's
-/// parts: a battle carries states beside their actions, and a state carries
+/// parts: a match carries states beside their actions, and a state carries
 /// what a layout projects. Structure alone cannot say which one a file holds, so every
 /// document names itself. The tag is a constant, not a version: it never needs
 /// maintaining, and because it takes one value within a kind it cannot split
@@ -67,7 +67,7 @@ pub use layout::{
 #[serde(rename_all = "snake_case")]
 pub enum DocumentKind {
     Layout,
-    Battle,
+    Match,
 }
 
 #[cfg(test)]
@@ -1239,7 +1239,7 @@ red:
             1_200_004, 1_200_005, 1_500_001, 1_500_002,
         ] {
             let type_name = battle_skill_type_from_id(id).unwrap();
-            // A layout's release and a battle's panel name a skill alike.
+            // A layout's release and a match's panel name a skill alike.
             assert_eq!(
                 <names::CommanderSkill as names::Kind>::name(id),
                 Some(type_name),

@@ -1,6 +1,6 @@
 # Dynamic terrain
 
-How the build creates, shapes and ends the in-battle area effects that
+How the build creates, shapes and ends the in-fight area effects that
 `RangeItemSystem` manages.
 
 Map decoration, deployment footprints and unit movement collision are not area
@@ -105,7 +105,7 @@ flat `gridInfo/ByteMask` into zero-based active indices and canonical grids,
 keeping the original control points.
 
 The game path enumerates the restored objects from
-`RangeItemController.GetItems()` before the battle, groups them by shared
+`RangeItemController.GetItems()` before the fight, groups them by shared
 provider, recovers the control points from the surviving endpoints, and exports
 the grids by `RangeItem.Index`. After a replay restore the manager no longer
 holds the provider's release data, so this path fails closed when an endpoint is

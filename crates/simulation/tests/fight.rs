@@ -50,7 +50,7 @@ fn fixture() -> PathBuf {
 #[test]
 fn marksman_vs_arclight_runs_to_a_readable_terminal_result() {
     let directory = tempfile::tempdir().unwrap();
-    let output = directory.path().join("battle.mcfr");
+    let output = directory.path().join("fight.mcfr");
     let result = simulate_layout(fixture(), Some(&output), Some(7)).unwrap();
     assert_eq!(result.game_build, mechcore_document::game_build());
     assert_eq!(result.seed, 7);
@@ -95,7 +95,7 @@ fn marksman_vs_arclight_runs_to_a_readable_terminal_result() {
 fn recorded(name: &str) -> (tempfile::TempDir, McfrReader) {
     let regression = native_regression(name);
     let directory = tempfile::tempdir().unwrap();
-    let output = directory.path().join("battle.mcfr");
+    let output = directory.path().join("fight.mcfr");
     simulate_layout(
         regression_layout(&regression),
         Some(&output),

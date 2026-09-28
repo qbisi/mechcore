@@ -1,9 +1,9 @@
 //! The `doc` namespace: what a command does to a document on disk.
 //!
 //! Its verbs are named for what they do rather than for one kind of document.
-//! `format` and `diff` accept a layout, and a battle stream is refused by the
+//! `format` and `diff` accept a layout, and a match stream is refused by the
 //! parser until those two verbs learn it. `verify` also checks deployment
-//! recordings through the transition and battle opening and reinforcement
+//! recordings through the transition and match opening and reinforcement
 //! offers against the seeded random stream.
 
 use std::{
@@ -47,23 +47,23 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
 fn project(mut arguments: Args) -> Outcome {
     let round = arguments
         .parsed::<i32>("--round", "a round number")?
-        .ok_or_else(|| Failure::usage("expected --round <n>: a battle holds several"))?;
+        .ok_or_else(|| Failure::usage("expected --round <n>: a match holds several"))?;
     let output = arguments.value("--output")?.map(PathBuf::from);
-    let path = arguments.path("a battle document")?;
+    let path = arguments.path("a match document")?;
     arguments.finish()?;
 
     let bytes = fs::read(&path)
         .map_err(|error| Failure::failed(format!("cannot read {}: {error}", path.display())))?;
     let stated = mechcore_document::opening::stated(&bytes)
         .map_err(Failure::refused)?
-        .ok_or_else(|| Failure::refused(format!("{} is not a battle document", path.display())))?;
+        .ok_or_else(|| Failure::refused(format!("{} is not a match document", path.display())))?;
     let turn = stated
         .turns
         .iter()
         .find(|turn| turn.round == round)
         .ok_or_else(|| {
             Failure::refused(format!(
-                "this battle holds no round {round}; it holds {} of them",
+                "this match holds no round {round}; it holds {} of them",
                 stated.turns.len()
             ))
         })?;
@@ -82,7 +82,7 @@ fn project(mut arguments: Args) -> Outcome {
             |unsettled| Failure::refused(format!("round {round} is not settled: {unsettled}")),
         )
     };
-    let state = mechcore_document::battle::State {
+    let state = mechcore_document::r#match::State {
         reinforce_offers: None,
         blue: deployed(&turn.state.blue, &turn.actions.blue, false)?,
         red: deployed(&turn.state.red, &turn.actions.red, true)?,
@@ -102,7 +102,7 @@ fn project(mut arguments: Args) -> Outcome {
 /// Checks each named file against the contract its own kind defines.
 ///
 /// A file says which kind it is, so nothing is inferred from an extension. A
-/// layout is checked by the shared static compiler. A battle is checked against
+/// layout is checked by the shared static compiler. A match is checked against
 /// its seed and by predicting each round's next opening from the one before.
 ///
 /// Paths come from the arguments, or from standard input one per line when
@@ -110,7 +110,7 @@ fn project(mut arguments: Args) -> Outcome {
 ///
 /// ```text
 /// mechcore doc verify layout.yaml
-/// ls work/battle/*/*.yaml | mechcore doc verify
+/// ls work/match/*/*.yaml | mechcore doc verify
 /// ```
 ///
 /// One report per input goes to standard output, one JSON object per line, a
@@ -187,7 +187,7 @@ fn verify_one(path: &Path) -> Result<VerifyReport, String> {
     let bytes =
         fs::read(path).map_err(|error| format!("cannot read {}: {error}", path.display()))?;
     if let Some(stated) = mechcore_document::opening::stated(&bytes)? {
-        return verify_battle(path, &stated);
+        return verify_match(path, &stated);
     }
     let plan = mechcore_document::compile_layout(mechcore_document::parse_yaml(&bytes)?)?;
     Ok(VerifyReport {
@@ -213,9 +213,9 @@ fn verify_one(path: &Path) -> Result<VerifyReport, String> {
 /// then measures how much of each next opening the transition predicts.
 /// Choices must name predicted offers; the source replay authenticates them.
 ///
-/// A battle verifies only when every leaf outside the fight is predicted and
+/// A match verifies only when every leaf outside the fight is predicted and
 /// agrees: a field no rule predicts yet fails it as surely as a wrong one.
-fn verify_battle(
+fn verify_match(
     path: &Path,
     stated: &mechcore_document::opening::Stated,
 ) -> Result<VerifyReport, String> {
@@ -233,8 +233,8 @@ fn verify_battle(
         },
     );
     // Every round, projected from where it opens and from where it deploys,
-    // has to be a layout the compiler takes: a battle is what fights are run
-    // from, so a round that cannot become one is not a battle this build reads.
+    // has to be a layout the compiler takes: a match is what fights are run
+    // from, so a round that cannot become one is not a match this build reads.
     let projected = checked
         .as_ref()
         .ok()
@@ -252,7 +252,7 @@ fn verify_battle(
     Ok(VerifyReport {
         schema: VERIFY_SCHEMA,
         valid: error.is_none(),
-        kind: "battle",
+        kind: "match",
         path: path.display().to_string(),
         error,
         detail: serde_json::json!({
@@ -308,19 +308,19 @@ fn schema(mut arguments: Args) -> Outcome {
     let kinds = arguments.operands()?;
     if kinds.is_empty() {
         return Err(Failure::usage(
-            "expected <kind>...: layout, battle, state or action",
+            "expected <kind>...: layout, match, state or action",
         ));
     }
     for kind in kinds {
         let schema = match kind.as_str() {
             "layout" => schemars::schema_for!(mechcore_document::Layout),
-            "battle" => schemars::schema_for!(mechcore_document::battle::schema::Battle),
-            "state" => schemars::schema_for!(mechcore_document::battle::schema::State),
-            "action" => schemars::schema_for!(mechcore_document::battle::schema::Actions),
+            "match" => schemars::schema_for!(mechcore_document::r#match::schema::Match),
+            "state" => schemars::schema_for!(mechcore_document::r#match::schema::State),
+            "action" => schemars::schema_for!(mechcore_document::r#match::schema::Actions),
             other => {
                 return Err(Failure::usage(format!(
                     "no document is of kind {other:?}; a document names itself \
-                     layout, battle, state or action"
+                     layout, match, state or action"
                 )));
             }
         };

@@ -110,7 +110,7 @@ sides' investment, which [reinforcements.md](reinforcements.md) states.
 ### Replayed
 
 - A card taken puts its own ID into the side's equipment, panel or officers:
-  `scripts/verify-battles.py`.
+  `scripts/verify-matches.py`.
 
 ### Read
 

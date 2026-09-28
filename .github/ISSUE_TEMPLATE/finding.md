@@ -29,7 +29,7 @@ An issue has no owner and no priority. Leave labels and assignees empty.
 <the command, and enough of its output to read>
 ```
 
-<!-- Reproduce from what anyone can run: a layout, a battle or a replay
+<!-- Reproduce from what anyone can run: a layout, a match or a replay
 (.grbr) in the repository, in the corpus or inline here, and the command. A
 recording is not attached; one that needs the game is made again where the
 game runs. -->

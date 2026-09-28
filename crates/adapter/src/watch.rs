@@ -23,7 +23,7 @@ struct Stage {
     state: i32,
     /// When that state began, server Unix seconds.
     state_time: i32,
-    /// When the battle began, server Unix seconds.
+    /// When the match began, server Unix seconds.
     start_time: i32,
     /// `BattleInfo.DeployTime`, seconds.
     deploy_time: i32,
@@ -116,7 +116,7 @@ fn read_stage(api: Api, data: *mut Object) -> Result<Stage, String> {
 }
 
 /// The stage last joined, with how long ago, by the server's clock, the state
-/// and the battle began, through `ServerProxy.GetTimeSpanToCurrentServerTime`.
+/// and the match began, through `ServerProxy.GetTimeSpanToCurrentServerTime`.
 /// `null` until a join has been answered.
 pub(crate) fn live(api: Api, server: Option<*mut Object>) -> Value {
     let Some(stage) = *STAGE

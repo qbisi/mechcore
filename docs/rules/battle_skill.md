@@ -160,7 +160,7 @@ synthesize coordinates.
 ### Replayed
 
 - Missile Specialist hands out Heavy Missile Strike as round 3 opens, and a
-  side releases it at one position: `scripts/verify-battles.py`.
+  side releases it at one position: `scripts/verify-matches.py`.
 
 ### Read
 

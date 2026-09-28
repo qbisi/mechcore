@@ -5,7 +5,7 @@ use crate::operations;
 use mechcore_protocol::{
     Busy, Claim, EVICTED_CODE, Evicted, GameIdentity, Hello, InstrumentChannel, MAX_LEVEL,
     MAX_STAGED_ROUND, MAX_WATCH_MATCH_TIMEOUT_SECONDS, MAX_WATCH_SCENE_WAIT_SECONDS, Operation,
-    PROTOCOL, RecordBattleArguments, RecordReplayRoundArguments, RecordWatchReplayArguments,
+    PROTOCOL, RecordFightArguments, RecordReplayRoundArguments, RecordWatchReplayArguments,
     Refused, Request, Response,
 };
 use serde_json::Value;
@@ -749,7 +749,7 @@ fn serve_client(
         };
         let response = match request.operation {
             Operation::ApplyLayout => execute_layout_series(runtime, &request),
-            Operation::RecordBattle => execute_recording_series(
+            Operation::RecordFight => execute_recording_series(
                 runtime,
                 &request,
                 capture::CaptureStartMode::TrainingGround,
@@ -1456,7 +1456,7 @@ fn execute_replay_recording_series(runtime: &mut Runtime, request: &Request) -> 
     // armed before it records the requested round from the queue afterwards.
     let capture_request = Request {
         id: request.id,
-        operation: Operation::RecordBattle,
+        operation: Operation::RecordFight,
         arguments: serde_json::json!({
             "output": arguments.output,
             "speed_up": false,
@@ -1483,7 +1483,7 @@ fn execute_recording_series(
     mode: capture::CaptureStartMode,
     replay: Option<&PathBuf>,
 ) -> Response<Value> {
-    let arguments: RecordBattleArguments = match serde_json::from_value(request.arguments.clone()) {
+    let arguments: RecordFightArguments = match serde_json::from_value(request.arguments.clone()) {
         Ok(arguments) => arguments,
         Err(error) => return Response::failure(request.id, "invalid_arguments", error.to_string()),
     };
@@ -1491,7 +1491,7 @@ fn execute_recording_series(
         return Response::failure(
             request.id,
             "invalid_arguments",
-            "record_battle output must be absolute",
+            "record_fight output must be absolute",
         );
     }
     if arguments
@@ -1503,7 +1503,7 @@ fn execute_recording_series(
         return Response::failure(
             request.id,
             "invalid_arguments",
-            "record_battle output must use the .mcfr extension",
+            "record_fight output must use the .mcfr extension",
         );
     }
     if arguments.output.exists() {
@@ -1518,7 +1518,7 @@ fn execute_recording_series(
             return Response::failure(
                 request.id,
                 "invalid_game_state",
-                "record_battle video_output needs rendered frames, and this game was \
+                "record_fight video_output needs rendered frames, and this game was \
                  started with -nographics; launch it with a window to record video",
             );
         }
@@ -1526,21 +1526,21 @@ fn execute_recording_series(
             return Response::failure(
                 request.id,
                 "invalid_arguments",
-                "record_battle video_output must be absolute",
+                "record_fight video_output must be absolute",
             );
         }
         if video_output.extension().and_then(|value| value.to_str()) != Some("mov") {
             return Response::failure(
                 request.id,
                 "invalid_arguments",
-                "record_battle video_output must use the .mov extension",
+                "record_fight video_output must use the .mov extension",
             );
         }
         if video_output == &arguments.output {
             return Response::failure(
                 request.id,
                 "invalid_arguments",
-                "record_battle output and video_output must differ",
+                "record_fight output and video_output must differ",
             );
         }
         if video_output.exists() {
@@ -1628,7 +1628,7 @@ enum Drained {
 #[allow(clippy::too_many_lines)] // One message loop, each arm short.
 fn drain_recording(
     request: &Request,
-    arguments: &RecordBattleArguments,
+    arguments: &RecordFightArguments,
     fight: Option<&thread::JoinHandle<Response<Value>>>,
 ) -> Drained {
     let deadline = Instant::now() + RECORDING_TIMEOUT;

@@ -255,8 +255,8 @@ fn execute_inner(runtime: &mut Runtime, request: &Request) -> Result<Value, Oper
     match request.operation {
         Operation::Status => Ok(status(runtime)),
         Operation::StartTest => start_test(runtime, &request.arguments),
-        Operation::RecordBattle => Err(OperationError::InvalidState(
-            "record_battle requires the runtime capture coordinator".into(),
+        Operation::RecordFight => Err(OperationError::InvalidState(
+            "record_fight requires the runtime capture coordinator".into(),
         )),
         Operation::RecordReplayRound => Err(OperationError::InvalidState(
             "record_replay_round requires the runtime capture coordinator".into(),

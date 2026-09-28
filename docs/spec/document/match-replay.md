@@ -1,30 +1,30 @@
-# Battle replay
+# Match replay
 
 ## Scope
 
-A battle replay is the `.grbr` file a [battle](battle.md) is written back as:
+A match replay is the `.grbr` file a [match](match.md) is written back as:
 
 ```bash
-mechcore replay convert <battle.yaml> <replay.grbr> [--force]
+mechcore replay convert <match.yaml> <replay.grbr> [--force]
 ```
 
-Conversion is idempotent across the battle format. A battle written as a replay
-converts back ([battle.md](battle.md#converting-a-replay)) to the same battle,
+Conversion is idempotent across the match format. A match written as a replay
+converts back ([match.md](match.md#converting-a-replay)) to the same match,
 byte for byte, so the two directions are one mapping and not two
-approximations of it. `record_replay_round` fights any of a battle replay's
+approximations of it. `record_replay_round` fights any of a match replay's
 rounds.
 
 The game deals a replayed round's offers again, from the pool a round's
 snapshot restores and the match stream, and the round's recorded choice takes
-the card at its index. So a battle replay carries the pool as well as the
-stream, and both are what the battle's own rounds make: a battle states no pool,
+the card at its index. So a match replay carries the pool as well as the
+stream, and both are what the match's own rounds make: a match states no pool,
 and needs none.
 
-This document defines what a battle replay holds and which battles cannot be
+This document defines what a match replay holds and which matches cannot be
 written as one. The file's framing and the snapshot members are the game's and
 are shared with the [layout replay](layout-replay.md), which writes one fight
 rather than a match. What conversion reads, and so what this has to write, is
-[battle.md](battle.md#converting-a-replay) together with
+[match.md](match.md#converting-a-replay) together with
 `crates/document/src/convert.rs`.
 
 ## The file
@@ -32,23 +32,23 @@ rather than a match. What conversion reads, and so what this has to write, is
 The framing is the layout replay's
 ([layout-replay.md](layout-replay.md#the-file)): a `BinaryFormatter` stream of
 one `GameRiver.Replay` holding the record as XML, with `battleID` `battle`, the
-battle's map, and the two players `{id: 1, name: blue}` and `{id: 2, name: red}`.
+match's map, and the two players `{id: 1, name: blue}` and `{id: 2, name: red}`.
 
 ## The battle record
 
-`BattleInfo` holds the battle's `seed` as `SystemSeed`, its map, `VS_1_1` and the
+`BattleInfo` holds the match's `seed` as `SystemSeed`, its map, `VS_1_1` and the
 standard 1v1 constants, with advance teams, reinforcement, unit reinforcement
 and construction on, and no game rules and no match type. `Version` is the build
 number and `Seat` is 0, a locally recorded replay.
 
 Each `PlayerRecord`, blue first, holds the side's `seed`, the map's reactor core,
 the round income every versus map shares, and its tech loadout as `unitDatas`.
-Its rounds run from 0 to the battle's last, one `PlayerRoundRecord` each, and
+Its rounds run from 0 to the match's last, one `PlayerRoundRecord` each, and
 `matchDatas` holds one `MatchSnapshotData` per round.
 
 ## The random streams
 
-The random states a replay records are where the battle's seeds put them, which
+The random states a replay records are where the match's seeds put them, which
 is what conversion checks:
 
 - the match stream: round 0 holds the state `SystemSeed` seeds, from which the
@@ -63,7 +63,7 @@ A round that deals offers lists them, as dealt, in its `reinforceItems`.
 ## The reinforcement pool
 
 Each round's snapshot holds the pool as the round opened, which is where the
-battle's deal leaves it ([reinforcements.md](../../rules/reinforcements.md)):
+match's deal leaves it ([reinforcements.md](../../rules/reinforcements.md)):
 
 - `poolOPs` is the pool's log since the match began: each refresh's removals,
   each followed by the replacement drawn for it, and each nonrepeatable card an
@@ -73,9 +73,9 @@ battle's deal leaves it ([reinforcements.md](../../rules/reinforcements.md)):
   in the build's order.
 
 A round's two choices are logged blue before red. The match logged them in the
-order they were made, which a battle does not keep; restoring a round sorts the
+order they were made, which a match does not keep; restoring a round sorts the
 pool again, so the order decides nothing, and conversion accepts either
-([battle.md](battle.md#converting-a-replay)).
+([match.md](match.md#converting-a-replay)).
 
 ## Round 0
 
@@ -85,7 +85,7 @@ naming that offer's team; the specialist is read back from round 1's officers.
 
 ## Every later round
 
-A battle's state segment is the position after the round's opening, and a
+A match's state segment is the position after the round's opening, and a
 replay's snapshot is the position before it, so each snapshot is the state with
 the opening undone:
 
@@ -102,7 +102,7 @@ the opening undone:
 - the inventory holds every item, the fitted ones among them.
 
 Each undone position is opened again with conversion's own rule, and a
-position that does not open onto the battle's state is refused rather than
+position that does not open onto the match's state is refused rather than
 written. A chain blueprint's officer is written beside the blueprint, as the
 game snapshots it. A Shield Airdrop or an area an earlier round left standing
 is written under a panel slot of the skill that leaves it.
@@ -122,43 +122,43 @@ A round's decisions are written in order, each side's ending with
 | `concede` | `PAD_GiveUp` |
 
 The game places a purchase itself, where the deployment area is free, and a
-battle states where the formation ends up, so a purchase is followed by the
+match states where the formation ends up, so a purchase is followed by the
 move that puts it there; conversion folds the move back into the purchase. The
 formation a purchase creates is the one the round's position, stepped decision
 by decision, allocates next.
 
-A battle holds its decisions in an order the board allows each one in
+A match holds its decisions in an order the board allows each one in
 ([action.md](action.md#settling-a-round)), so each is recorded where it stands
 and none is held back or reordered. A move that clears another's way is one the
-battle states.
+match states.
 
-## What a battle replay refuses
+## What a match replay refuses
 
-A battle is refused when a replay cannot hold it, and the refusal names why:
+A match is refused when a replay cannot hold it, and the refusal names why:
 
 - a deployment clock, which only a match played on this platform states;
 - a position after its last decisions, which no replay records;
 - a side without an opening or without a seed;
-- a round whose undone position does not open onto the battle's, or whose
+- a round whose undone position does not open onto the match's, or whose
   decisions do not step, or put something where the board already has
   something, which the game would refuse;
 - an object left standing whose skill the panel holds no slot of.
 
 ## Normal form
 
-A battle replay is a function of its battle and the build: the same two always
+A match replay is a function of its match and the build: the same two always
 write the same bytes. Players come blue then red, rounds ascend, and each
-round's decisions come in the battle's order.
+round's decisions come in the match's order.
 
 ## Excluded fields
 
 | Field | Why it is not written |
 | --- | --- |
-| `MatchActionData.Time`, `LocalTime` | Decisions are numbered in order; a battle keeps no clock |
-| `PAD_Undo`, `PAD_Redo`, `PAD_CancelReleaseCommanderSkill` | A battle holds the net decisions they leave |
+| `MatchActionData.Time`, `LocalTime` | Decisions are numbered in order; a match keeps no clock |
+| `PAD_Undo`, `PAD_Redo`, `PAD_CancelReleaseCommanderSkill` | A match holds the net decisions they leave |
 | `PAD_MoveUnit.positionRecord`, `rotateRecord`, `superDeployRecord` | They restate the position before the move |
 | `PlayerRecord.name`, `id`, `ad`, `data.style` | Account identity and skins |
-| `BattleInfo.BattleID`, `CreateTime` | Provenance, which a battle does not carry |
+| `BattleInfo.BattleID`, `CreateTime` | Provenance, which a match does not carry |
 | `NewUnitData.RoundCount` | No reading of the replay uses it |
 
 ## Unresolved

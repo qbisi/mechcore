@@ -41,7 +41,7 @@ steps:
       - game.apply_layout:
           layout: $layout
           seed: $seed
-      - game.record_battle:
+      - game.record_fight:
           output: ${out}/${case.name}-training-ground.mcfr
       - game.record_layout:
           layout: $layout

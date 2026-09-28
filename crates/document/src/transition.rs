@@ -8,16 +8,16 @@
 //! and the next round opened on the result, which is the position the next
 //! round opens with in everything the fight does not decide.
 //!
-//! `docs/spec/document/battle.md` states what a transition reproduces, and
-//! [`crate::coverage`] measures it against a battle's recorded positions.
+//! `docs/spec/document/match.md` states what a transition reproduces, and
+//! [`crate::coverage`] measures it against a match's recorded positions.
 
-use crate::battle::{
-    Action, EquipmentItem, PanelSkill, Release, SideState, SkillTarget, StateUnit,
-};
 use crate::catalog::{contraption_type_from_id, unit_id_from_type, unit_type_from_id};
 use crate::economy::{CardKind, Economy, OpeningKind};
 use crate::layout::{ContraptionPlacement, Experience, Position, Region, StaticPlacement};
 use crate::ledger::Purse;
+use crate::r#match::{
+    Action, EquipmentItem, PanelSkill, Release, SideState, SkillTarget, StateUnit,
+};
 use crate::opening::Stream;
 
 /// What one decision's application could not settle.
@@ -660,7 +660,7 @@ fn clone_target(target: &SkillTarget) -> SkillTarget {
 
 /// The position an opening is taken from.
 ///
-/// A battle states the opening under `sides` rather than as a round, so the
+/// A match states the opening under `sides` rather than as a round, so the
 /// position it moves is not a document field. It is the same for every side of
 /// every match: nothing bought, nothing researched, and two towers at level
 /// zero. [`before_opening`] adds what the header deals to it.
@@ -868,7 +868,7 @@ pub fn player_draws(economy: &Economy, officers: &[i32], round: i32) -> u32 {
 /// Sets the allowances a round opens with: two purchases and one more for
 /// every Additional Deployment Slot the side holds, one unlock, and eight
 /// contraption releases. They follow from the officers alone, which is why a
-/// battle does not write them and a reader sets them this way.
+/// match does not write them and a reader sets them this way.
 pub fn open_allowances(next: &mut SideState) {
     let extra = next
         .officers
@@ -1020,11 +1020,11 @@ pub fn predict(
 #[cfg(test)]
 mod tests {
     use super::{EXTRA_DEPLOYMENT_CARD, Stream, Unsettled, step_placing};
-    use crate::battle::{
-        Action, EquipmentItem, PanelSkill, Release, SideState, SkillTarget, StateUnit,
-    };
     use crate::economy::Economy;
     use crate::layout::{Experience, Position, UnitPlacement};
+    use crate::r#match::{
+        Action, EquipmentItem, PanelSkill, Release, SideState, SkillTarget, StateUnit,
+    };
 
     /// [`super::step`] in an ordinary round, where a decline pays the ordinary
     /// figure.
@@ -1044,7 +1044,7 @@ mod tests {
         SideState {
             supply: 100_000,
             unlocked_units: (1..=31).chain([2002]).collect(),
-            shop: crate::battle::Allowances {
+            shop: crate::r#match::Allowances {
                 buys_remaining: 99,
                 unlocks_remaining: 99,
                 contraptions_remaining: 99,
@@ -1225,7 +1225,7 @@ mod tests {
         let next = fold(&economy, &solvent(), &taken).unwrap();
         assert_eq!(
             next.equipment,
-            vec![crate::battle::EquipmentItem {
+            vec![crate::r#match::EquipmentItem {
                 id: 13_030_001,
                 durability: None,
             }]
@@ -1306,7 +1306,7 @@ mod tests {
         let economy = Economy::embedded().unwrap();
         let state = SideState {
             unlocked_units: Vec::new(),
-            shop: crate::battle::Allowances {
+            shop: crate::r#match::Allowances {
                 buys_remaining: 0,
                 unlocks_remaining: 0,
                 contraptions_remaining: 0,
@@ -1574,14 +1574,14 @@ mod tests {
     fn recovering_a_formation_returns_what_it_wore() {
         let economy = Economy::embedded().unwrap();
         let state = SideState {
-            battle_skills: vec![crate::battle::PanelSkill {
+            battle_skills: vec![crate::r#match::PanelSkill {
                 index: 0,
                 id: 900_001,
                 cooldown: 0,
                 used: false,
                 release: None,
             }],
-            units: vec![crate::battle::StateUnit {
+            units: vec![crate::r#match::StateUnit {
                 unit: crate::layout::UnitPlacement {
                     type_name: "marksman".into(),
                     index: 5,
@@ -1604,7 +1604,7 @@ mod tests {
         let recovered = [Action::ReleaseCommanderSkill {
             index: 0,
             id: 900_001,
-            target: crate::battle::SkillTarget::Unit(5),
+            target: crate::r#match::SkillTarget::Unit(5),
         }];
         assert_eq!(
             fold(&economy, &state, &recovered)
@@ -1619,7 +1619,7 @@ mod tests {
             Action::ReleaseCommanderSkill {
                 index: 0,
                 id: 900_001,
-                target: crate::battle::SkillTarget::Unit(5),
+                target: crate::r#match::SkillTarget::Unit(5),
             },
             Action::UseEquipment {
                 equipment: 13_030_004,
@@ -1660,7 +1660,7 @@ mod tests {
     fn releasing_a_contraption_advances_its_allocator() {
         let economy = Economy::embedded().unwrap();
         let state = SideState {
-            next_index: crate::battle::NextIndex {
+            next_index: crate::r#match::NextIndex {
                 unit: 7,
                 contraption: 3,
             },
@@ -1695,12 +1695,12 @@ mod tests {
         let state = SideState {
             supply: 1000,
             unlocked_units: vec![9],
-            shop: crate::battle::Allowances {
+            shop: crate::r#match::Allowances {
                 buys_remaining: 2,
                 unlocks_remaining: 1,
                 contraptions_remaining: 8,
             },
-            next_index: crate::battle::NextIndex {
+            next_index: crate::r#match::NextIndex {
                 unit: 7,
                 contraption: 0,
             },
@@ -1750,7 +1750,7 @@ mod tests {
         let economy = Economy::embedded().unwrap();
         let state = SideState {
             supply: 1000,
-            next_index: crate::battle::NextIndex {
+            next_index: crate::r#match::NextIndex {
                 unit: 4,
                 contraption: 0,
             },
@@ -1844,7 +1844,7 @@ mod tests {
     fn a_release_naming_another_skill_is_refused() {
         let economy = Economy::embedded().unwrap();
         let mut state = side_holding(&[(5, Position { x: 0, y: -160 })]);
-        state.battle_skills = vec![crate::battle::PanelSkill {
+        state.battle_skills = vec![crate::r#match::PanelSkill {
             index: 0,
             id: 900_001,
             cooldown: 0,
@@ -1854,7 +1854,7 @@ mod tests {
         let released = Action::ReleaseCommanderSkill {
             index: 0,
             id: 1_100_001,
-            target: crate::battle::SkillTarget::Unit(5),
+            target: crate::r#match::SkillTarget::Unit(5),
         };
         assert_eq!(
             step(&economy, &state, &released),
@@ -1867,7 +1867,7 @@ mod tests {
     fn recovering_a_formation_pays_and_returns() {
         let economy = Economy::embedded().unwrap();
         let mut state = side_holding(&[(5, Position { x: 0, y: -160 })]);
-        state.battle_skills = vec![crate::battle::PanelSkill {
+        state.battle_skills = vec![crate::r#match::PanelSkill {
             index: 0,
             id: 900_001,
             cooldown: 0,
@@ -1879,7 +1879,7 @@ mod tests {
         let released = Action::ReleaseCommanderSkill {
             index: 0,
             id: 900_001,
-            target: crate::battle::SkillTarget::Unit(5),
+            target: crate::r#match::SkillTarget::Unit(5),
         };
         let next = step(&economy, &state, &released).unwrap();
         assert!(next.units.is_empty());
@@ -1904,7 +1904,7 @@ mod tests {
             current: 54,
             maximum: 650,
         });
-        state.battle_skills = vec![crate::battle::PanelSkill {
+        state.battle_skills = vec![crate::r#match::PanelSkill {
             index: 0,
             id: 1_100_001,
             cooldown: 0,
@@ -1914,7 +1914,7 @@ mod tests {
         let train = Action::ReleaseCommanderSkill {
             index: 0,
             id: 1_100_001,
-            target: crate::battle::SkillTarget::Unit(0),
+            target: crate::r#match::SkillTarget::Unit(0),
         };
         let next = step(&economy, &state, &train).unwrap();
         assert_eq!(
@@ -1993,7 +1993,7 @@ mod tests {
 
         // Redeploy frees its target and spends its slot without a release.
         let mut panel = fixed.clone();
-        panel.battle_skills = vec![crate::battle::PanelSkill {
+        panel.battle_skills = vec![crate::r#match::PanelSkill {
             index: 0,
             id: crate::mobility::REDEPLOY_SKILLS[0],
             cooldown: 0,
@@ -2006,7 +2006,7 @@ mod tests {
             &Action::ReleaseCommanderSkill {
                 index: 0,
                 id: crate::mobility::REDEPLOY_SKILLS[0],
-                target: crate::battle::SkillTarget::Unit(0),
+                target: crate::r#match::SkillTarget::Unit(0),
             },
         )
         .unwrap();

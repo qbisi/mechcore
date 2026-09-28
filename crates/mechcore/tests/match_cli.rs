@@ -86,11 +86,11 @@ fn a_match_is_dealt_once_joined_once_and_refuses_a_third() {
     let third = run(&["match", "new", &path]).refused();
     assert!(third.contains("both sides"), "{third}");
 
-    // A dealt match is a battle document from the first operation, so the
+    // A dealt match is a match document from the first operation, so the
     // checker reads it before a single decision is taken.
     let report = verify(&path);
     assert_eq!(report["valid"], true, "{report}");
-    assert_eq!(report["kind"], "battle");
+    assert_eq!(report["kind"], "match");
     assert_eq!(report["map_id"], 1011);
 }
 

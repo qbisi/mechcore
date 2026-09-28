@@ -1,7 +1,7 @@
 schema: mechcore.localization
 
 # The game's official English and Simplified Chinese names of what a
-# battle document names, for a reader to find it in the game. Generated
+# match document names, for a reader to find it in the game. Generated
 # by scripts/extract_names.py; config/names.yaml holds the snake-case
 # names a document writes. scripts/name-tables.py turns this into the
 # name tables of docs/rules/.

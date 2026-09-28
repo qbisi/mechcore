@@ -22,10 +22,10 @@ DOCUMENT_FORMAT = {
     "docs/spec/document/layout.md",
     "docs/spec/mechcore/turn.md",
     "docs/spec/document/state.md",
-    "docs/spec/document/battle.md",
+    "docs/spec/document/match.md",
     "docs/spec/document/action.md",
     "docs/spec/document/layout-replay.md",
-    "docs/spec/document/battle-replay.md",
+    "docs/spec/document/match-replay.md",
     "docs/spec/mcfr/mcfr.md",
     "docs/spec/simulation/unit-rules.md",
 }
@@ -247,8 +247,8 @@ def check_rules_evidence_sections(fail):
                  "in that order, none of them empty")
             continue
         for item in parts.get("Replayed", []):
-            if "`scripts/verify-battles.py`" not in item:
-                fail(f"{name}: a replayed claim cites scripts/verify-battles.py: {item[:80]}")
+            if "`scripts/verify-matches.py`" not in item:
+                fail(f"{name}: a replayed claim cites scripts/verify-matches.py: {item[:80]}")
         for item in parts.get("Recorded", []):
             cited = TESTS_PATH.findall(item)
             if not cited:

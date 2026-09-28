@@ -12,9 +12,9 @@
 //! the skill panel, of which it keeps only what this round released.
 
 use crate::DocumentKind;
-use crate::battle::{Release, SideState, SkillTarget, State};
 use crate::catalog::battle_skill_type_from_id;
 use crate::layout::{BattleSkillDefinition, FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Layout, Side};
+use crate::r#match::{Release, SideState, SkillTarget, State};
 
 /// Projects one round's position onto a layout.
 ///
@@ -34,7 +34,7 @@ pub fn project(state: &State, round: i32, map_id: i32, seed: i32) -> Result<Layo
     })
 }
 
-/// Projects every round of a battle both ways and compiles each layout.
+/// Projects every round of a match both ways and compiles each layout.
 ///
 /// A round is projected from the position it opens with, and from the
 /// position its decisions deploy onto, which is the layout `doc project`

@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Verify every tracked battle's transitions and summarize the coverage.
+"""Verify every tracked match's transitions and summarize the coverage.
 
-Runs ``mechcore doc verify`` over each battle YAML in one batch. Each battle's
+Runs ``mechcore doc verify`` over each match YAML in one batch. Each match's
 report holds the opening and reinforcement checks and the transition coverage
-that ``docs/spec/document/battle.md`` defines: every leaf of each next opening
+that ``docs/spec/document/match.md`` defines: every leaf of each next opening
 is equal, unequal, unimplemented or decided by the fight. This script adds the
 reports up by field group and lists every unequal leaf.
 The documents are the ones `scripts/export-replay-corpus.py` converts from the
 corpus's replays of this checkout's version.
 
-The exit status is 0 only when every battle verifies, which needs no unequal
+The exit status is 0 only when every match verifies, which needs no unequal
 and no unimplemented leaf anywhere.
 
 Run from anywhere inside the checkout, after a release build and a corpus
@@ -18,8 +18,8 @@ fetch:
     cargo build --release -p mechcore
     python3 scripts/replay.py sync
     python3 scripts/export-replay-corpus.py
-    python3 scripts/verify-battles.py
-    python3 scripts/verify-battles.py --json > coverage.json
+    python3 scripts/verify-matches.py
+    python3 scripts/verify-matches.py --json > coverage.json
 """
 
 from __future__ import annotations
@@ -44,9 +44,9 @@ def parse_arguments(root: Path) -> argparse.Namespace:
     )
     parser.add_argument("--mechcore", type=Path, default=root / "target/release/mechcore")
     parser.add_argument(
-        "--battle-dir",
+        "--match-dir",
         type=Path,
-        help="the battle documents (default: work/battle/<version>, as "
+        help="the match documents (default: work/match/<version>, as "
         "scripts/export-replay-corpus.py writes them)",
     )
     parser.add_argument(
@@ -63,18 +63,18 @@ def parse_arguments(root: Path) -> argparse.Namespace:
     return parser.parse_args()
 
 
-def verify(executable: Path, battles: list[Path]) -> list[dict[str, Any]]:
-    """One report per battle, in the order named."""
+def verify(executable: Path, matches: list[Path]) -> list[dict[str, Any]]:
+    """One report per match, in the order named."""
     result = subprocess.run(
-        [str(executable), "doc", "verify", *map(str, battles)],
+        [str(executable), "doc", "verify", *map(str, matches)],
         text=True,
         capture_output=True,
         check=False,
     )
     reports = [json.loads(line) for line in result.stdout.splitlines() if line.strip()]
-    if len(reports) != len(battles):
+    if len(reports) != len(matches):
         raise RuntimeError(
-            f"mechcore doc verify printed {len(reports)} reports for {len(battles)} battles:\n"
+            f"mechcore doc verify printed {len(reports)} reports for {len(matches)} matches:\n"
             f"{result.stderr}"
         )
     return reports
@@ -85,29 +85,29 @@ def add(total: dict[str, int], counts: dict[str, Any]) -> None:
         total[name] = total.get(name, 0) + int(counts.get(name, 0))
 
 
-def summarize(battles: list[Path], reports: list[dict[str, Any]]) -> dict[str, Any]:
+def summarize(matches: list[Path], reports: list[dict[str, Any]]) -> dict[str, Any]:
     total: dict[str, int] = {}
     fields: dict[str, dict[str, int]] = {}
     files = []
     unequal = []
-    for path, report in zip(battles, reports):
+    for path, report in zip(matches, reports):
         coverage = report.get("coverage") or {}
         counts = coverage.get("total") or {}
         add(total, counts)
         for group, group_counts in (coverage.get("fields") or {}).items():
             add(fields.setdefault(group, {}), group_counts)
         for difference in coverage.get("unequal") or []:
-            unequal.append({"battle": path.name, **difference})
+            unequal.append({"match": path.name, **difference})
         files.append(
             {
-                "battle": path.name,
+                "match": path.name,
                 "valid": bool(report.get("valid")),
                 "error": report.get("error"),
                 **{name: int(counts.get(name, 0)) for name in CLASSES},
             }
         )
     return {
-        "battles": len(battles),
+        "matches": len(matches),
         "valid": sum(file["valid"] for file in files),
         "total": {name: total.get(name, 0) for name in CLASSES},
         "fields": dict(sorted(fields.items())),
@@ -150,20 +150,20 @@ def print_summary(summary: dict[str, Any], limit: int) -> None:
     print(table(rows, numbers))
     print()
 
-    rows = [["battle", *CLASSES, "error"]]
+    rows = [["match", *CLASSES, "error"]]
     for file in summary["files"]:
-        rows.append([*counted(file["battle"], file), "" if file["valid"] else file["error"] or ""])
+        rows.append([*counted(file["match"], file), "" if file["valid"] else file["error"] or ""])
     print(table(rows, numbers))
     print()
 
     unequal = summary["unequal"]
     if unequal:
         shown = unequal if limit == 0 else unequal[:limit]
-        rows = [["battle", "round", "side", "path", "predicted", "recorded"]]
+        rows = [["match", "round", "side", "path", "predicted", "recorded"]]
         for difference in shown:
             rows.append(
                 [
-                    difference["battle"],
+                    difference["match"],
                     str(difference["round"]),
                     difference["side"],
                     difference["path"],
@@ -176,7 +176,7 @@ def print_summary(summary: dict[str, Any], limit: int) -> None:
             print(f"... {len(unequal) - len(shown)} more unequal leaves; --limit 0 lists all")
         print()
 
-    print(f"{summary['valid']}/{summary['battles']} battles verify")
+    print(f"{summary['valid']}/{summary['matches']} matches verify")
 
 
 def main() -> int:
@@ -190,18 +190,18 @@ def main() -> int:
             file=sys.stderr,
         )
         return 2
-    battle_dir = args.battle_dir or root / "work" / "battle" / build_data.build()
-    battles = sorted(battle_dir.resolve().glob("*.yaml"))
-    if not battles:
-        print(f"no battle YAML in {battle_dir}; run scripts/export-replay-corpus.py", file=sys.stderr)
+    match_dir = args.match_dir or root / "work" / "match" / build_data.build()
+    matches = sorted(match_dir.resolve().glob("*.yaml"))
+    if not matches:
+        print(f"no match YAML in {match_dir}; run scripts/export-replay-corpus.py", file=sys.stderr)
         return 2
 
-    summary = summarize(battles, verify(executable, battles))
+    summary = summarize(matches, verify(executable, matches))
     if args.json:
         print(json.dumps(summary, ensure_ascii=False, indent=2))
     else:
         print_summary(summary, args.limit)
-    return 0 if summary["valid"] == summary["battles"] else 1
+    return 0 if summary["valid"] == summary["matches"] else 1
 
 
 if __name__ == "__main__":
