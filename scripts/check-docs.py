@@ -214,6 +214,9 @@ def check_rules_evidence(fail):
 # shows, what was read from the build and the members it rests on, and what is
 # not established. docs/README.md says why.
 EVIDENCE_PARTS = ("Recorded", "Replayed", "Read", "Not established")
+# What replays the corpus: the simulator over its match documents, and the game
+# over its rounds.
+REPLAY_SCRIPTS = ("verify-matches.py", "match-replays.py")
 ANCHOR = re.compile(r"`[A-Z][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_]*`")
 TESTS_PATH = re.compile(r"`(tests/[^`]+)`")
 
@@ -248,8 +251,9 @@ def check_rules_evidence_sections(fail):
                  "in that order, none of them empty")
             continue
         for item in parts.get("Replayed", []):
-            if "`scripts/verify-matches.py`" not in item:
-                fail(f"{name}: a replayed claim cites scripts/verify-matches.py: {item[:80]}")
+            if not any(f"`scripts/{script}`" in item for script in REPLAY_SCRIPTS):
+                fail(f"{name}: a replayed claim cites scripts/verify-matches.py or "
+                     f"scripts/match-replays.py: {item[:80]}")
         for item in parts.get("Recorded", []):
             cited = TESTS_PATH.findall(item)
             if not cited:

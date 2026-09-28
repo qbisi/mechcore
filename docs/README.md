@@ -111,9 +111,11 @@ nothing for:
   re-recorded whenever the version moves, so these claims move with it.
 - `### Replayed`: each claim the replay corpus of the pinned version shows,
   citing `scripts/verify-matches.py`, which replays every round of the match
-  documents `scripts/export-replay-corpus.py` converts from that corpus. It
-  needs the corpus fetched, so it runs where the corpus is, not in CI. A claim the corpus of another version showed is not established here
-  until this version's corpus shows it too.
+  documents `scripts/export-replay-corpus.py` converts from that corpus, or
+  `scripts/match-replays.py`, which fights every round of them with the game.
+  It needs the corpus fetched, so it runs where the corpus is, not in CI. A
+  claim the corpus of another version showed is not established here until
+  this version's corpus shows it too.
 - `### Read`: each claim read from the build, naming in backticks the members
   it rests on, `Class.member`, as the class declares them. They are the
   document's anchors.
