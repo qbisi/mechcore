@@ -6,11 +6,11 @@
 # A Wraith's core is a `SkillGroup`: four `FightSkill`s, one per slot, each
 # calling `SkillAttackableChecker.Check` by itself, with a
 # `GroupedSkillAttackBehaviour` over them. The `skill_attackable_checker`
-# channel records every one of those calls with the slot's lock before and
-# after it, which is where a slot's choice is read; `target_refs` records
-# what every other unit locks and attacks, and nothing for the Wraith's
-# slots, because its core is not a `FightSkill`. Each layout is recorded
-# once with both channels, under the seed the regression manifest pins.
+# channel records every one of those calls with the slot that made it and
+# the slot's lock before and after it, which is where a slot's choice is
+# read; `group_slots` records each slot's lock, attack target and state on
+# every tick. Each layout is recorded once with both channels, under the
+# seed the regression manifest pins.
 #
 #   group-attack   tests/regression/wraith-group-attack.yaml, the pinned fight
 #                  where three of one Wraith's four slots change lock on one
@@ -41,4 +41,4 @@ steps:
           layout: $layout
           seed: $seed
           output: ${out}/${recording.name}.mcfr
-          instrument: [skill_attackable_checker, target_refs]
+          instrument: [skill_attackable_checker, group_slots]

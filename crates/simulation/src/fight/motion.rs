@@ -464,15 +464,15 @@ impl Simulation {
             && actor.motion.state == MotionState::Attacking
             && actor
                 .skill
-                .group_skill_targets
+                .slots
                 .first()
-                .is_some_and(Option::is_none)
+                .is_some_and(|slot| slot.lock.is_none())
             && actor
                 .skill
-                .group_skill_targets
+                .slots
                 .iter()
                 .skip(1)
-                .any(Option::is_some)
+                .any(|slot| slot.lock.is_some())
         {
             actor.rotate_body_towards(mdeg_to_degrees_q32(actor.placement.rotation));
             actor.aim_rotation = actor.body_rotation;
@@ -903,10 +903,10 @@ impl Simulation {
             && actor.motion.state == MotionState::Attacking
             && actor
                 .skill
-                .group_skill_targets
+                .slots
                 .iter()
                 .skip(1)
-                .any(Option::is_some)
+                .any(|slot| slot.lock.is_some())
         {
             // GroupedSkillAttackBehaviour keeps the group attacking while any
             // child FightSkill remains in SkillAttackState. When the core

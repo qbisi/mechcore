@@ -13,9 +13,9 @@ separate.
 | `two-targets.yaml` | two units for four slots: whether a slot doubles up, and on which | the slots' first allocation |
 
 `slots.mcscript` records each layout once with two channels:
-`skill_attackable_checker`, which holds every `Check` call with the slot's
-lock before and after it, and `target_refs`, which holds every other unit's
-lock and attack target and nothing for the Wraith's slots. The
+`skill_attackable_checker`, which holds every `Check` call with the slot that
+made it and the slot's lock before and after it, and `group_slots`, which holds
+each slot's lock, attack target and state on every tick. The
 regression layout is recorded under the seed the manifest pins it with, so
 the recording is the pinned fight.
 
@@ -37,7 +37,7 @@ lock differed on 60 ticks beginning at tick 206. Checking only physics would
 miss it, which is why both layers are pinned here.
 
 The optional checker replay reads the recording's checker channel and restores each call's
-before-targets on a shadow skill at the kernel's checker site, then restores
+before-targets on the slot the call names, on a shadow skill at the kernel's checker site, then restores
 the simulated skill before execution continues. It compares the return value,
 lock and attack target on every grouped call: 4,188 in the regression capture
 and 344 in two targets. It requires the recordings `slots.mcscript` makes where

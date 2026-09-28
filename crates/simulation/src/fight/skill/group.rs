@@ -11,7 +11,7 @@ impl Simulation {
     /// the build's `CheckWallConstructionForGroupedSkill` keeps a list of walls
     /// already checked, which suggests it might, and nothing here assumes so.
     pub(in crate::fight) fn refresh_group_walls(&mut self, actor_id: u64) {
-        let slots = self.actors[&actor_id].skill.group_skill_targets.clone();
+        let slots = self.actors[&actor_id].skill.slot_locks();
         if slots.is_empty() {
             return;
         }
@@ -24,11 +24,17 @@ impl Simulation {
                 })
             })
             .collect::<Vec<_>>();
-        self.actors
+        for (slot, in_the_way) in self
+            .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable")
             .skill
-            .group_in_the_way = found;
+            .slots
+            .iter_mut()
+            .zip(found)
+        {
+            slot.in_the_way = in_the_way;
+        }
     }
 
     /// The ordinary grouped search is closed here; the separate checker
@@ -42,7 +48,7 @@ impl Simulation {
         slot: usize,
         order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<()> {
-        let slots = &self.actors[&actor_id].skill.group_skill_targets;
+        let slots = &self.actors[&actor_id].skill.slot_locks();
         if slots.iter().any(Option::is_none)
             || slots
                 .iter()
@@ -88,18 +94,19 @@ impl Simulation {
         if !ready {
             return Ok(());
         }
-        let count = actor.skill.group_skill_targets.len();
+        let count = actor.skill.slots.len();
         let prepare_steps = native_time_units_to_steps(actor.rules.attack.prepare_time_units());
-        if actor.skill.group_skill_targets.iter().all(Option::is_none) {
+        if actor.skill.slots.iter().all(|slot| slot.lock.is_none()) {
             let core = actor.skill.lock_target.and_then(FightActorRef::unit_id);
             self.actors
                 .get_mut(&actor_id)
                 .expect("actor exists")
                 .skill
-                .group_skill_targets[0] = core;
+                .slots[0]
+                .lock = core;
         }
         for slot in 0..count {
-            let before = self.actors[&actor_id].skill.group_skill_targets[slot];
+            let before = self.actors[&actor_id].skill.slots[slot].lock;
             if self.check_attackable_slot(
                 FightActorRef::Unit(actor_id),
                 Some(slot),
@@ -111,13 +118,12 @@ impl Simulation {
                         .skill
                         .group_attack_target(slot)
                         .expect("checked target");
-                    actor.skill.group_pending_releases.push((
-                        slot,
-                        PendingRelease {
+                    actor.skill.slots[slot]
+                        .pending_releases
+                        .push(PendingRelease {
                             step: step.saturating_add(prepare_steps).saturating_add(1),
                             target,
-                        },
-                    ));
+                        });
                 }
             } else {
                 return Err(Error::new(
@@ -145,12 +151,12 @@ impl Simulation {
         if skill_index != 0 {
             actor.skill.current_attack_interval = core_interval;
         }
-        let next_attack_step = actor
+        actor
             .skill
-            .group_skill_next_attack_steps
+            .slots
             .get_mut(skill_index)
-            .ok_or_else(|| Error::new("group skill index is absent"))?;
-        *next_attack_step = sampled_step;
+            .ok_or_else(|| Error::new("group skill index is absent"))?
+            .next_attack_step = sampled_step;
         Ok(())
     }
 
@@ -170,11 +176,6 @@ impl Simulation {
                 && actor.skill.pending().is_none()
                 && actor.skill.backswing_finish_step().is_none()
                 && actor.skill.phase() == FightSkillPhase::Attack
-                && actor
-                    .skill
-                    .group_skill_prepare_ready_steps
-                    .first()
-                    .is_none_or(|ready_step| *ready_step <= step)
                 && step >= actor.skill.next_attack_step)
                 .then(|| actor.skill.mechanical_attack_target())
                 .flatten()
@@ -209,11 +210,11 @@ impl Simulation {
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
+            // Each slot's queued releases that are due, in the order queued,
+            // then the blow its interval has brought round.
             let mut due = Vec::new();
-            actor
-                .skill
-                .group_pending_releases
-                .retain(|&(skill_index, pending)| {
+            for (skill_index, slot) in actor.skill.slots.iter_mut().enumerate() {
+                slot.pending_releases.retain(|&pending| {
                     if pending.step <= step {
                         due.push((skill_index, pending));
                         false
@@ -221,13 +222,10 @@ impl Simulation {
                         true
                     }
                 });
-            for skill_index in 1..actor.skill.group_skill_targets.len() {
-                let next_attack_step = actor.skill.group_skill_next_attack_steps[skill_index];
-                let prepare_ready_step = actor.skill.group_skill_prepare_ready_steps[skill_index];
-                if next_attack_step > 0
-                    && next_attack_step <= step
-                    && prepare_ready_step <= step
-                    && let Some(target) = actor.skill.group_attack_target(skill_index)
+                if skill_index > 0
+                    && slot.next_attack_step > 0
+                    && slot.next_attack_step <= step
+                    && let Some(target) = slot.attack_target()
                 {
                     due.push((skill_index, PendingRelease { step, target }));
                 }
@@ -237,19 +235,13 @@ impl Simulation {
             // a construction in its way if one has been found since: the slot
             // still holds the same unit, and only what it shoots has changed.
             for (skill_index, pending) in &mut due {
-                if pending.target.unit_id()
-                    == actor
-                        .skill
-                        .group_skill_targets
-                        .get(*skill_index)
-                        .copied()
-                        .flatten()
-                    && let Some(target) = actor.skill.group_attack_target(*skill_index)
+                let slot = &actor.skill.slots[*skill_index];
+                if pending.target.unit_id() == slot.lock
+                    && let Some(target) = slot.attack_target()
                 {
                     pending.target = target;
                 }
             }
-            due.sort_by_key(|&(skill_index, _)| skill_index);
             due
         };
         for (skill_index, pending) in group_releases {

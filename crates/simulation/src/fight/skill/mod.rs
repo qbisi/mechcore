@@ -125,23 +125,47 @@ pub(in crate::fight) struct Skill {
     /// Which `SkillStateController` state the skill is in, with what that
     /// state carries.
     pub(in crate::fight) state: SkillState,
-    pub(in crate::fight) group_skill_targets: Vec<Option<u64>>,
-    /// The enemy construction in each grouped slot's line of fire, with the
-    /// unit that slot was allocated.
-    ///
-    /// The same pairing as [`Actor::in_the_way`], slot by slot: a Wraith's four
-    /// slots each take the block standing between it and the unit they were
-    /// given, and a slot given another unit no longer answers with it.
-    pub(in crate::fight) group_in_the_way: Vec<Option<(u64, u64)>>,
-    pub(in crate::fight) group_skill_next_attack_steps: Vec<u64>,
-    pub(in crate::fight) group_skill_prepare_ready_steps: Vec<u64>,
-    pub(in crate::fight) group_pending_releases: Vec<(usize, PendingRelease)>,
+    /// A grouped skill's slots, one per `FightSkill` of its `SkillGroup`, the
+    /// core first; empty for a skill that is not grouped.
+    pub(in crate::fight) slots: Vec<SlotSkill>,
     pub(in crate::fight) projectile_pending_releases: Vec<PendingProjectileRelease>,
     pub(in crate::fight) laser_attack_count: usize,
     pub(in crate::fight) retarget_after_own_direct_kill: bool,
     /// The rounds left in a skill that fires from a magazine
     /// (`SkillData.isLoadingType`), and none for one that does not.
     pub(in crate::fight) rounds: Option<u32>,
+}
+
+/// One slot of a grouped skill: a Wraith's weapon and the `FightSkill` that
+/// fires it.
+#[derive(Debug, Clone, Default)]
+pub(in crate::fight) struct SlotSkill {
+    /// The unit the slot was allocated.
+    pub(in crate::fight) lock: Option<u64>,
+    /// The enemy construction in the slot's line of fire, with the unit the
+    /// slot was allocated.
+    ///
+    /// The same pairing as [`Actor::in_the_way`], slot by slot: a Wraith's four
+    /// slots each take the block standing between it and the unit they were
+    /// given, and a slot given another unit no longer answers with it.
+    pub(in crate::fight) in_the_way: Option<(u64, u64)>,
+    pub(in crate::fight) next_attack_step: u64,
+    /// Releases queued when the slot was allocated, in the order queued.
+    pub(in crate::fight) pending_releases: Vec<PendingRelease>,
+}
+
+impl SlotSkill {
+    /// What the slot fires at: the construction in its way if one stands
+    /// there for the unit it was allocated, and that unit otherwise.
+    pub(in crate::fight) fn attack_target(&self) -> Option<FightActorRef> {
+        let unit = self.lock?;
+        match self.in_the_way {
+            Some((building, found_for)) if found_for == unit => {
+                Some(FightActorRef::Building(building))
+            }
+            _ => Some(FightActorRef::Unit(unit)),
+        }
+    }
 }
 
 impl Skill {
@@ -163,11 +187,7 @@ impl Skill {
             search_target_time: SEARCH_TARGET_RESET_TICKS,
             searched_this_tick: false,
             state: SkillState::Idle { ready_step: None },
-            group_skill_targets: vec![None; group_skill_count],
-            group_in_the_way: vec![None; group_skill_count],
-            group_skill_next_attack_steps: vec![0; group_skill_count],
-            group_skill_prepare_ready_steps: vec![0; group_skill_count],
-            group_pending_releases: Vec::new(),
+            slots: vec![SlotSkill::default(); group_skill_count],
             projectile_pending_releases: Vec::new(),
             laser_attack_count: 0,
             retarget_after_own_direct_kill: false,
@@ -361,23 +381,22 @@ impl Skill {
     /// group, whose slot lists are empty.
     pub(in crate::fight) fn drop_lock(&mut self) {
         self.lock_target = None;
-        self.group_skill_targets.fill(None);
-        self.group_in_the_way.fill(None);
-        self.group_skill_next_attack_steps.fill(0);
-        self.group_skill_prepare_ready_steps.fill(0);
-        self.group_pending_releases.clear();
+        self.clear_slots();
     }
 
-    /// What one grouped slot fires at: the construction in its way if one
-    /// stands there for the unit it was allocated, and that unit otherwise.
+    /// Every slot left with no allocation and nothing scheduled.
+    pub(in crate::fight) fn clear_slots(&mut self) {
+        self.slots.fill(SlotSkill::default());
+    }
+
+    /// Each slot's allocation, the core first.
+    pub(in crate::fight) fn slot_locks(&self) -> Vec<Option<u64>> {
+        self.slots.iter().map(|slot| slot.lock).collect()
+    }
+
+    /// What one grouped slot fires at.
     pub(in crate::fight) fn group_attack_target(&self, slot: usize) -> Option<FightActorRef> {
-        let unit = self.group_skill_targets.get(slot).copied().flatten()?;
-        match self.group_in_the_way.get(slot).copied().flatten() {
-            Some((building, found_for)) if found_for == unit => {
-                Some(FightActorRef::Building(building))
-            }
-            _ => Some(FightActorRef::Unit(unit)),
-        }
+        self.slots.get(slot).and_then(SlotSkill::attack_target)
     }
 
     /// What a grouped skill's core fires at, or the weapons' target when the
@@ -385,7 +404,7 @@ impl Skill {
     pub(in crate::fight) fn mechanical_attack_target(&self) -> Option<FightActorRef> {
         self.group_attack_target(0)
             .or_else(|| {
-                (0..self.group_skill_targets.len())
+                (0..self.slots.len())
                     .rev()
                     .find_map(|slot| self.group_attack_target(slot))
             })
@@ -393,18 +412,10 @@ impl Skill {
     }
 
     pub(in crate::fight) fn mechanical_lock_target(&self) -> Option<FightActorRef> {
-        self.group_skill_targets
+        self.slots
             .first()
-            .copied()
-            .flatten()
-            .or_else(|| {
-                self.group_skill_targets
-                    .iter()
-                    .rev()
-                    .flatten()
-                    .copied()
-                    .next()
-            })
+            .and_then(|slot| slot.lock)
+            .or_else(|| self.slots.iter().rev().find_map(|slot| slot.lock))
             .map(FightActorRef::Unit)
             .or(self.lock_target)
     }
@@ -845,7 +856,7 @@ impl Simulation {
             // motion starts attacking; nothing has captured its states
             // yet to say why.
             let from_idle_state = matches!(skill.state, SkillState::Idle { ready_step: None });
-            let from = if entered_attack && !skill.group_skill_targets.is_empty() {
+            let from = if entered_attack && !skill.slots.is_empty() {
                 step + 1
             } else {
                 step
@@ -922,7 +933,7 @@ impl Simulation {
             // The blow being wound up is performed on the skill's attack
             // target, which the check may just have changed.
             let skill = self.skill_mut(owner);
-            if skill.group_skill_targets.is_empty()
+            if skill.slots.is_empty()
                 && let Some(target) = skill.attack_target()
                 && let Some(pending) = skill.pending_mut()
             {
