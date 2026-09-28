@@ -75,7 +75,7 @@ fn open_the_match(path: &str) {
 }
 
 fn verify(path: &str) -> Value {
-    run(&["doc", "verify", path]).ok()
+    run(&["verify", path]).ok()
 }
 
 #[test]

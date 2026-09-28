@@ -21,7 +21,7 @@ steps:
     steps:
       - let:
           layout: read_yaml(tests/tower/tower-level-${level}.yaml)
-      - game.record_layout:
-          layout: $layout
+      - game.record:
+          input: $layout
           seed: $seed
           output: ${out}/tower-level-${level}.mcfr

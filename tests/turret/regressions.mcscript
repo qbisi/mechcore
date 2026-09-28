@@ -27,8 +27,9 @@
 steps:
   # Crawlers straight down the turret's column. 24 fall to the turret, which
   # nothing reaches, and the fight ends when the last does: 237 ticks.
-  - fight.run:
-      layout: tests/turret/rapid-fire-head-on.yaml
+  - convert:
+      input: tests/turret/rapid-fire-head-on.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 237
@@ -39,8 +40,9 @@ steps:
   # The same Crawlers 36.6 degrees off the turret's column. The weapon has
   # turned onto its lock before the lock is in reach, so the first shot is as
   # early, counted from reach, as the head-on one: 234 ticks.
-  - fight.run:
-      layout: tests/turret/rapid-fire-flank.yaml
+  - convert:
+      input: tests/turret/rapid-fire-flank.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 234
@@ -51,8 +53,9 @@ steps:
   # Four Arclights down the Anti-Armor Turret's column, two shots each. The
   # sixth shot empties the magazine at 574, the reload runs to 776, and the
   # seventh and eighth kill the last at 836. No tower falls.
-  - fight.run:
-      layout: tests/turret/anti-armor-arclights.yaml
+  - convert:
+      input: tests/turret/anti-armor-arclights.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 836
@@ -63,8 +66,9 @@ steps:
   # The Anti-Armor Turret against a Crawler, the Marksman behind. Blue loses
   # a tower at 509 and red at 771, and at 1027 the Marksman ends its attack
   # when its live lock walks out of reach, as every skill does.
-  - fight.run:
-      layout: tests/turret/anti-armor-head-on.yaml
+  - convert:
+      input: tests/turret/anti-armor-head-on.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 1397

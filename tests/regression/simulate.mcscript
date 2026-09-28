@@ -29,8 +29,9 @@ steps:
 
   - foreach: {case: $cases}
     steps:
-      - fight.run:
-          layout: ${case.layout}
+      - convert:
+          input: ${case.layout}
+          to: mcfr
           seed: ${case.seed}
         expect:
           seed_source: external
@@ -43,8 +44,9 @@ steps:
   # land in one tick — and this holds the simulator to that reviewed run. The
   # hash is the simulator's own, not the game's, so a change that moves it has
   # to say why the new run is the right one.
-  - fight.run:
-      layout: tests/regression/rhino-vs-two-arclights.yaml
+  - convert:
+      input: tests/regression/rhino-vs-two-arclights.yaml
+      to: mcfr
       seed: 1787634176
     expect:
       steps: 321

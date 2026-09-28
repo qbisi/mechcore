@@ -66,8 +66,8 @@ ZIP 层采用 STORE，数据压缩由 Parquet page 的 Zstd 完成。逐 tick �
 
 布局采用规范 YAML：显式记录 `seed`，省略原生值为格式默认值的字段，并按原生 Unit index
 保留 `formations` 声明顺序；四种初始防御建筑按 manager 顺序记录在同级
-`constructions`。`mechcore doc verify/format` 和 Simulator 在执行前应用完整布局合法性校验。该成员用于自包含重放和
-`mechcore fight verify`，不进入哈希。
+`constructions`。`mechcore verify/format` 和 Simulator 在执行前应用完整布局合法性校验。该成员用于自包含重放和
+`mechcore verify`，不进入哈希。
 
 逻辑时间线为：
 
@@ -683,7 +683,7 @@ result_hash  = H_content-result-0.7.0(
 
 这个定义比格式老：它的 domain 字符串和公式自 format 0.7.0 起没有变过，`hash_profile` 的值 `mcfr-content-0.7.0` 就以这个版本命名。格式变了而 `S(t)`、`E(t)` 的编码不变，所有哈希就都不动；定义本身要变，就是新的 profile 和新的 domain 字符串，不能就地修改。
 
-`mechcore fight compare` 与 `mechcore fight verify` 以这个哈希决定 `equal` 和首个分歧。`fight compare` 还会逐字段说明两份录像在哪里不同，这是哈希做不到的：字段组的定义见 [cli.md](../mechcore/cli.md#fight)。
+`mechcore diff` 与 `mechcore verify` 以这个哈希决定 `equal` 和首个分歧。`diff` 还会逐字段说明两份录像在哪里不同，这是哈希做不到的：字段组的定义见 [cli.md](../mechcore/cli.md#diff)。
 
 # 附录 D — 物理编码约定
 

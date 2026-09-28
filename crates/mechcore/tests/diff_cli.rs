@@ -185,8 +185,7 @@ fn compare(left: &Path, right: &Path) -> std::process::Output {
 
 fn compare_with(left: &Path, right: &Path, options: &[&str]) -> std::process::Output {
     Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .arg("fight")
-        .arg("compare")
+        .arg("diff")
         .arg(left)
         .arg(right)
         .args(options)

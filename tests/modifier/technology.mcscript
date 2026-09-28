@@ -38,8 +38,8 @@ steps:
   - let:
       ranged: read_yaml(tests/modifier/technology-range.yaml)
 
-  - game.record_layout:
-      layout: $ranged
+  - game.record:
+      input: $ranged
       seed: $seed
       output: ${out}/technology-range.mcfr
     expect:
@@ -47,8 +47,9 @@ steps:
       # The officer alone fights this fight to the tick; the hash differs
       # only because the modifiers record where the range came from.
       operation.hashes.result_hash: 0e00f9d8f782010a8c951d6ef127751b0f72a3755e156ec60e98d5fea2f0b4c4
-  - fight.stats:
-      recording: ${out}/technology-range.mcfr
+  - show:
+      input: ${out}/technology-range.mcfr
+      view: stats
     expect:
       # 95 + 40 + 20, and the officer's impairment on a number the technology
       # does not touch.

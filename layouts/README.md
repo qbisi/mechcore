@@ -2,7 +2,7 @@
 
 Each file is a layout document as [layout.md](../docs/spec/document/layout.md)
 defines it, used as input to `apply_layout` against the live game, to
-`mechcore fight run`, or to both. A fixture is a scenario someone chose, so the
+`mechcore convert --to mcfr`, or to both. A fixture is a scenario someone chose, so the
 reason it exists belongs with it.
 
 These are the layouts built by hand that no script uses, and one captured live.

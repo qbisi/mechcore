@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Fight every corpus round from its replay and from the replay its match writes.
 
-``mechcore replay convert <match.yaml> <replay.grbr>`` writes a match back as
+``mechcore convert <match.yaml> --to grbr <replay.grbr>`` writes a match back as
 a replay that converts to the same match again. This asks the other half:
 whether the game plays that replay as it plays the match's own. For every
 match ``scripts/export-replay-corpus.py`` writes under
 ``work/match/<version>/``, the replay of the same basename in
 ``work/replay/replays/<version>/`` and the replay the match writes are fought
-round by round headlessly (``record_replay_round``), and each pair of
+round by round headlessly (``game record --round``), and each pair of
 recordings is compared tick for tick, physics and content.
 
 A match is recorded in one game session; a round the game refuses is reported
@@ -102,8 +102,8 @@ def record(mechcore: Path, steps: list[dict], folder: Path) -> dict[int, str]:
         # A JSON string is a YAML scalar only while it escapes nothing outside
         # the Basic Multilingual Plane, which a player's name can hold.
         script = "game: launch\nheadless: true\n\nsteps:\n" + "".join(
-            "  - game.record_replay_round:\n"
-            f"      grbr: {json.dumps(steps[index]['grbr'], ensure_ascii=False)}\n"
+            "  - game.record:\n"
+            f"      input: {json.dumps(steps[index]['grbr'], ensure_ascii=False)}\n"
             f"      round: {steps[index]['round']}\n"
             f"      output: {json.dumps(steps[index]['output'], ensure_ascii=False)}\n"
             for index in pending
@@ -151,7 +151,7 @@ def keep_game_log(folder: Path, start: int) -> None:
 
 
 def compare(mechcore: Path, left: str, right: str) -> dict:
-    result = run([str(mechcore), "fight", "compare", left, right, "--format", "json"])
+    result = run([str(mechcore), "diff", left, right, "--format", "json"])
     try:
         report = json.loads(result.stdout)
     except json.JSONDecodeError:
@@ -202,7 +202,15 @@ def main() -> int:
         folder.mkdir(parents=True, exist_ok=True)
         written = folder / "written.grbr"
         converted = run(
-            [str(arguments.mechcore), "replay", "convert", str(match_doc), str(written), "--force"]
+            [
+                str(arguments.mechcore),
+                "convert",
+                str(match_doc),
+                "--to",
+                "grbr",
+                str(written),
+                "--force",
+            ]
         )
         numbers, conceded = rounds_of(match_doc)
         skipped = [

@@ -40,12 +40,13 @@ steps:
   # The walk order, with nothing to interleave. The layout declares these in
   # the opposite order to the one the stream takes them in, which is how the
   # fixture shows that the order is the recording's and not the document's.
-  - game.record_layout:
-      layout: $singles
+  - game.record:
+      input: $singles
       seed: $seed
       output: ${out}/singles.mcfr
-  - fight.stats:
-      recording: ${out}/singles.mcfr
+  - show:
+      input: ${out}/singles.mcfr
+      view: stats
     expect:
       # z = -200, the first draw: 62 - 7
       sides.blue.3.derived.current_attack_interval: 55
@@ -59,20 +60,22 @@ steps:
       sides.red.0.derived.current_attack_interval: 18
 
   # One type, one row, and a draw that comes out positive.
-  - game.record_layout:
-      layout: $marksmen
+  - game.record:
+      input: $marksmen
       seed: $seed
       output: ${out}/three-marksmen.mcfr
-  - fight.stats:
-      recording: ${out}/three-marksmen.mcfr
+  - show:
+      input: ${out}/three-marksmen.mcfr
+      view: stats
     expect:
       sides.blue.0.derived.current_attack_interval: 55
       sides.blue.1.derived.current_attack_interval: 65
       sides.blue.2.derived.current_attack_interval: 56
   # The same three once their first shot has gone: every cycle draws again, so
   # the number is the cycle's and not the fight's.
-  - fight.stats:
-      recording: ${out}/three-marksmen.mcfr
+  - show:
+      input: ${out}/three-marksmen.mcfr
+      view: stats
       tick: 100
     expect:
       sides.blue.0.derived.current_attack_interval: 72
@@ -82,12 +85,13 @@ steps:
   # Twelve members in front of one Marksman. A draw per member puts the
   # Marksman thirteenth and answers 72; a draw per formation puts it second
   # and answers 55.
-  - game.record_layout:
-      layout: $members
+  - game.record:
+      input: $members
       seed: $seed
       output: ${out}/mustang-then-marksman.mcfr
-  - fight.stats:
-      recording: ${out}/mustang-then-marksman.mcfr
+  - show:
+      input: ${out}/mustang-then-marksman.mcfr
+      view: stats
     expect:
       sides.blue.0.derived.current_attack_interval: 7
       sides.blue.1.derived.current_attack_interval: 72

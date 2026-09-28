@@ -269,7 +269,7 @@ Every offer a match states is drawn from the match's seed, so a match can be
 checked for having been dealt what it says without the replay it came from.
 
 ```bash
-mechcore doc verify <match.yaml>
+mechcore verify <match.yaml>
 ```
 
 Before checking the deal, verification reads every state field and every
@@ -366,7 +366,7 @@ so the opening's third step delivers it.
 
 ### Transition coverage
 
-`mechcore doc verify <match.yaml>` measures each transition against the whole next
+`mechcore verify <match.yaml>` measures each transition against the whole next
 position, not only the nine fields above. A transition starts from a round's
 state and that round's decisions, steps the decisions in order, and opens the
 next round on the result. Every leaf of the recorded next state is then put in
@@ -436,7 +436,7 @@ leaf is `unequal` or `unimplemented`.
 
 A match is what fights are run from, so it also verifies only when every
 round becomes a layout: the position a round opens with, and the position its
-decisions deploy onto, which is what `doc project` writes, are each projected
+decisions deploy onto, which is what `convert --to layout` writes, are each projected
 and put through the layout compiler. The report's `projected_layouts` counts
 the layouts that compiled, two per round, and a round that does not project,
 deploy or compile fails the match with its round and which position it was.
@@ -496,7 +496,7 @@ income arrives after.
 ## Converting a replay
 
 ```bash
-mechcore replay convert <replay.grbr> <match.yaml> [--force]
+mechcore convert <replay.grbr> --to match <match.yaml> [--force]
 ```
 
 Conversion needs no game. It reads the replay and nothing else, and it simulates
@@ -525,7 +525,7 @@ land on every state the replay recorded: the match seed on round 0's, and each
 round's reinforcement deal on the state that round recorded before it and the
 state the next round recorded after it. Those states are not written into the
 document, so once it is written nothing else can compare them. A deal the rules
-cannot reproduce at all is reported rather than refused, and `doc verify`
+cannot reproduce at all is reported rather than refused, and `verify`
 fails the document for it. The deal also leaves a pool, and every round has to
 open on it: the log a round's snapshot recorded has to be the deal's, up to the
 order of each round's two choices, and so do the rounds it excludes the level-4

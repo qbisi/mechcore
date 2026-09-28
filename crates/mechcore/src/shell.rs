@@ -17,8 +17,8 @@ use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
 const HELP: &str = "\
-A line is a command with `mechcore` dropped, so `doc verify x.yaml` here and
-`mechcore doc verify x.yaml` outside are the same command.
+A line is a command with `mechcore` dropped, so `verify x.yaml` here and
+`mechcore verify x.yaml` outside are the same command.
 
 the game
   game launch [--level 0-4] [--headless] [--offline]
@@ -29,22 +29,30 @@ the game
   game status                     current status snapshot
   game start_test [--seed s] [--map-id id]
   game apply_layout <layout.yaml> [--seed s]
-  game record_fight <out.mcfr> [--video <out.mov>] [--no-speed-up] [--instrument c,..] [-f]
-  game record_replay_round <in.grbr> <round> <out.mcfr> [--instrument c,..] [-f]
-  game record_layout <layout.yaml> <out.mcfr> [--seed s] [--instrument c,..] [-f]
-  game record_watch_replay [--output-dir <dir>]
+  game record <out.mcfr> [--video <out.mov>] [--no-speed-up] [--instrument c,..] [-f]
+                                  the fight staged in the current scene
+  game record <layout.yaml> <out.mcfr> [--seed s] [--instrument c,..] [-f]
+                                  a layout, fought without a scene
+  game record <replay.grbr> <out.mcfr> --round n [--instrument c,..] [-f]
+                                  one round of a replay
+  game record --watch [--output-dir <dir>]
+                                  a live match the server makes
   game toggle_fight               start the current fight
   game speed_up                   request fight speed-up
   game quit_match                 leave the active test, replay or watch
   game quit_game                  shut the game down
 without the game
-  doc verify | format | diff      documents on disk
-  replay convert                  a native replay, or a layout as one
-  fight run | compare | verify    one fight
-  man [<topic>]                   the manual this binary carries
+  verify | convert | diff | show  files, whose kind is read from what they hold
+  format | schema                 documents
+  man [<topic>|<kind>]            the manual this binary carries
 shell
   help                            this list
   quit | exit                     leave the shell";
+
+/// The commands a line may name beside the game's, which need no session.
+const SESSIONLESS: &[&str] = &[
+    "verify", "convert", "diff", "show", "format", "schema", "man",
+];
 
 pub(crate) fn run() -> Result<(), String> {
     tokio::runtime::Builder::new_multi_thread()
@@ -123,15 +131,9 @@ async fn dispatch(
             game(session, ownership, out, arguments).await;
             Flow::Continue
         }
-        "doc" | "replay" | "fight" | "man" => {
-            let outcome = match namespace.as_str() {
-                "doc" => crate::doc::run(arguments),
-                "replay" => crate::replay::run(arguments),
-                "fight" => crate::fight::run(arguments),
-                _ => crate::man::run(arguments),
-            };
-            if let Err(failure) = outcome {
-                failure.write(&namespace);
+        command if SESSIONLESS.contains(&command) => {
+            if let Some(Err(failure)) = crate::dispatch(command, arguments) {
+                failure.write(command);
             }
             Flow::Continue
         }
@@ -304,24 +306,20 @@ mod tests {
         );
     }
 
-    /// Help lists what a line may say: every game operation, every gameless
-    /// namespace, and the shell's own two words.
+    /// Help lists what a line may say: every game operation, every command
+    /// that needs no game, and the shell's own two words.
     #[test]
     fn help_lists_every_command_a_line_may_be() {
         for command in crate::game::OPERATIONS {
             assert!(HELP.contains(command), "{command} missing from help");
         }
-        for command in [
+        for command in SESSIONLESS.iter().copied().chain([
             "game launch",
             "game attach",
             "game detach",
-            "doc",
-            "replay",
-            "fight",
-            "man",
             "help",
             "quit",
-        ] {
+        ]) {
             assert!(HELP.contains(command), "{command} missing from help");
         }
     }

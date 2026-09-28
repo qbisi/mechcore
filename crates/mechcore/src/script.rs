@@ -10,12 +10,8 @@
 //! "does this need the game?" without touching it.
 
 use crate::acquire::{Launch, Mode};
-use crate::fight;
 use crate::session::Session;
-use mechcore_protocol::{
-    DEFAULT_LEVEL, DEFAULT_WATCH_MATCH_TIMEOUT_SECONDS, DEFAULT_WATCH_SCENE_WAIT_SECONDS,
-    InstrumentChannel, MAX_LEVEL,
-};
+use mechcore_protocol::{DEFAULT_LEVEL, InstrumentChannel, MAX_LEVEL};
 use serde_json::{Map, Value, json};
 use std::collections::BTreeMap;
 use std::io::IsTerminal;
@@ -28,10 +24,7 @@ const NATIVE: &[&str] = &[
     "game.status",
     "game.start_test",
     "game.apply_layout",
-    "game.record_fight",
-    "game.record_replay_round",
-    "game.record_layout",
-    "game.record_watch_replay",
+    "game.record",
     "game.toggle_fight",
     "game.speed_up",
     "game.quit_match",
@@ -42,14 +35,7 @@ const NATIVE: &[&str] = &[
 ];
 
 /// Operations that run without a game.
-const GAMELESS: &[&str] = &[
-    "let",
-    "fight.compare",
-    "fight.stats",
-    "fight.buildings",
-    "fight.outcome",
-    "fight.run",
-];
+const GAMELESS: &[&str] = &["let", "convert", "diff", "show"];
 
 /// Step keys that are structure rather than an operation name.
 const RESERVED: &[&str] = &["expect", "steps", "where"];
@@ -646,115 +632,53 @@ async fn perform(
             }
             Ok(Value::Object(bound))
         }
-        "fight.compare" => {
-            let fields = arguments
-                .as_object()
-                .ok_or("fight.compare takes left and right paths")?;
-            let left = scope.path(
-                fields.get("left").ok_or("fight.compare needs left")?,
-                "fight.compare left",
-            )?;
-            let right = scope.path(
-                fields.get("right").ok_or("fight.compare needs right")?,
-                "fight.compare right",
-            )?;
-            if let Some(key) = fields
-                .keys()
-                .find(|key| !matches!(key.as_str(), "left" | "right" | "fields" | "tick"))
-            {
-                return Err(format!(
-                    "fight.compare accepts only left, right, fields and tick, got {key}"
-                ));
-            }
+        "diff" => {
+            let fields = closed(arguments, "diff", &["left", "right", "fields", "tick"])?;
+            let left = scope.path(fields.get("left").ok_or("diff needs left")?, "diff left")?;
+            let right = scope.path(fields.get("right").ok_or("diff needs right")?, "diff right")?;
             // A selection is a list of field groups, or one group by itself.
-            let selection = match fields
-                .get("fields")
-                .map(|value| scope.resolve(value))
-                .transpose()?
-            {
-                None => crate::difference::Selection::default(),
-                Some(Value::String(group)) => crate::difference::Selection::of([group]),
-                Some(Value::Array(groups)) => crate::difference::Selection::of(
+            let selection = match fields.get("fields") {
+                None => None,
+                Some(Value::String(group)) => Some(vec![group.clone()]),
+                Some(Value::Array(groups)) => Some(
                     groups
                         .iter()
                         .map(|group| {
-                            group.as_str().map(str::to_owned).ok_or_else(|| {
-                                format!("fight.compare fields names groups, got {group}")
-                            })
+                            group
+                                .as_str()
+                                .map(str::to_owned)
+                                .ok_or_else(|| format!("diff fields names groups, got {group}"))
                         })
                         .collect::<Result<Vec<_>, _>>()?,
                 ),
                 Some(other) => {
                     return Err(format!(
-                        "fight.compare fields is a group or a list of groups, got {other}"
+                        "diff fields is a group or a list of groups, got {other}"
                     ));
                 }
             };
-            let tick = optional_u64(fields.get("tick"), "fight.compare tick")?
-                .map(|tick| u32::try_from(tick).map_err(|_| "fight.compare tick is too large"))
+            let tick = optional_u64(fields.get("tick"), "diff tick")?
+                .map(|tick| u32::try_from(tick).map_err(|_| "diff tick is too large"))
                 .transpose()?;
-            let (_, report) = fight::compare(&left, &right, &selection, tick)?;
+            let (_, report) = crate::diff::diff(&left, &right, selection, tick).map_err(reason)?;
             Ok(report)
         }
-        "fight.run" => simulate(arguments, scope).await,
-        "fight.outcome" => {
-            let recording = scope.path(
-                arguments
-                    .as_object()
-                    .and_then(|fields| fields.get("recording"))
-                    .ok_or("fight.outcome takes a recording")?,
-                "fight.outcome recording",
-            )?;
+        "convert" => convert(arguments, scope).await,
+        "show" => {
+            let fields = closed(arguments, "show", &["input", "view", "tick"])?;
+            let input = scope.path(fields.get("input").ok_or("show needs input")?, "show input")?;
+            let view = fields
+                .get("view")
+                .and_then(Value::as_str)
+                .ok_or("show needs a view, one of outcome, stats and buildings")?;
+            let tick = optional_u64(fields.get("tick"), "show tick")?
+                .map(|tick| u32::try_from(tick).map_err(|_| "show tick is too large"))
+                .transpose()?;
             // A fight nothing can settle is still a fight worth reading: the
             // survivors and their life are the measurement a capture is taken
             // for, and `unresolved` says what the reading does not cover.
-            let outcome =
-                crate::outcome::read(&recording).map_err(|failure| failure.reason().to_owned())?;
-            serde_json::to_value(&outcome).map_err(|error| error.to_string())
-        }
-        "fight.buildings" => {
-            let fields = arguments.as_object();
-            let recording = scope.path(
-                fields
-                    .and_then(|fields| fields.get("recording"))
-                    .ok_or("fight.buildings takes a recording")?,
-                "fight.buildings recording",
-            )?;
-            let tick = match fields.and_then(|fields| fields.get("tick")) {
-                None => None,
-                Some(value) => Some(
-                    scope
-                        .resolve(value)?
-                        .as_u64()
-                        .and_then(|tick| u32::try_from(tick).ok())
-                        .ok_or("fight.buildings tick must be a tick the recording holds")?,
-                ),
-            };
-            let standing = crate::buildings::read(&recording, tick)
-                .map_err(|failure| failure.reason().to_owned())?;
-            serde_json::to_value(&standing).map_err(|error| error.to_string())
-        }
-        "fight.stats" => {
-            let fields = arguments.as_object();
-            let recording = scope.path(
-                fields
-                    .and_then(|fields| fields.get("recording"))
-                    .ok_or("fight.stats takes a recording")?,
-                "fight.stats recording",
-            )?;
-            let tick = match fields.and_then(|fields| fields.get("tick")) {
-                None => None,
-                Some(value) => Some(
-                    scope
-                        .resolve(value)?
-                        .as_u64()
-                        .and_then(|tick| u32::try_from(tick).ok())
-                        .ok_or("fight.stats tick must be a tick the recording holds")?,
-                ),
-            };
-            let written = crate::stats::read(&recording, tick)
-                .map_err(|failure| failure.reason().to_owned())?;
-            serde_json::to_value(&written).map_err(|error| error.to_string())
+            let (_, shown) = crate::show::show(&input, view, tick).map_err(reason)?;
+            Ok(shown)
         }
         "game.status" => Ok(session.current_status()),
         "game.start_test" => {
@@ -781,125 +705,11 @@ async fn perform(
             let (layout, seed) = split_layout_arguments(arguments)?;
             session.apply_layout(layout, seed).await
         }
-        "game.record_fight" => {
-            let fields = arguments
-                .as_object()
-                .ok_or("record_fight takes a mapping")?;
-            let output = scope.path(
-                fields.get("output").ok_or("record_fight needs output")?,
-                "record_fight output",
-            )?;
-            let video = fields
-                .get("video_output")
-                .map(|value| scope.path(value, "record_fight video_output"))
-                .transpose()?;
-            let speed_up = optional_flag(fields.get("speed_up"), "game.record_fight speed_up")?;
-            if fields.contains_key("force") {
-                return Err("force is not a script field; pass --force to mechcore run".to_string());
-            }
-            let instrument = instrument(fields.get("instrument"))?;
-            let mut destinations = vec![output.as_path()];
-            destinations.extend(video.as_deref());
+        "game.record" => {
+            let record = record(arguments, scope)?;
+            let destinations = record.destinations();
             let force = confirm_overwrite(scope, &destinations).await?;
-            session
-                .record_fight(output.clone(), video.clone(), speed_up, force, instrument)
-                .await
-                .map_err(|value| value.to_string())
-        }
-        "game.record_replay_round" => {
-            let fields = arguments
-                .as_object()
-                .ok_or("record_replay_round takes a mapping")?;
-            let grbr = scope.path(
-                fields.get("grbr").ok_or("record_replay_round needs grbr")?,
-                "record_replay_round grbr",
-            )?;
-            let output = scope.path(
-                fields
-                    .get("output")
-                    .ok_or("record_replay_round needs output")?,
-                "record_replay_round output",
-            )?;
-            let round = fields
-                .get("round")
-                .and_then(Value::as_i64)
-                .and_then(|value| i32::try_from(value).ok())
-                .ok_or("record_replay_round needs an integer round")?;
-            if fields.contains_key("force") {
-                return Err("force is not a script field; pass --force to mechcore run".to_string());
-            }
-            let instrument = instrument(fields.get("instrument"))?;
-            let force = confirm_overwrite(scope, &[output.as_path()]).await?;
-            session
-                .record_replay_round(grbr, round, output.clone(), force, instrument)
-                .await
-        }
-        "game.record_layout" => {
-            let fields = arguments
-                .as_object()
-                .ok_or("record_layout takes a mapping")?;
-            for key in fields.keys() {
-                if !matches!(key.as_str(), "layout" | "seed" | "output" | "instrument") {
-                    return Err(format!(
-                        "record_layout accepts layout, seed, output and instrument, got {key}"
-                    ));
-                }
-            }
-            let layout = fields
-                .get("layout")
-                .ok_or("record_layout needs layout")?
-                .clone();
-            let seed = fields
-                .get("seed")
-                .map(|value| {
-                    value
-                        .as_i64()
-                        .and_then(|seed| i32::try_from(seed).ok())
-                        .ok_or("record_layout seed must be a signed 32-bit integer")
-                })
-                .transpose()?;
-            let output = scope.path(
-                fields.get("output").ok_or("record_layout needs output")?,
-                "record_layout output",
-            )?;
-            let instrument = instrument(fields.get("instrument"))?;
-            let force = confirm_overwrite(scope, &[output.as_path()]).await?;
-            session
-                .record_layout(layout, seed, output.clone(), force, instrument)
-                .await
-        }
-        "game.record_watch_replay" => {
-            let fields = arguments
-                .as_object()
-                .ok_or("record_watch_replay takes a mapping")?;
-            for key in fields.keys() {
-                if !matches!(
-                    key.as_str(),
-                    "output_dir" | "wait_for_scene_seconds" | "match_timeout_seconds"
-                ) {
-                    return Err(format!(
-                        "record_watch_replay accepts only output_dir, wait_for_scene_seconds and \
-                         match_timeout_seconds, got {key}"
-                    ));
-                }
-            }
-            let output_dir = fields
-                .get("output_dir")
-                .map(|value| scope.path(value, "record_watch_replay output_dir"))
-                .transpose()?;
-            let wait_for_scene_seconds = optional_u64(
-                fields.get("wait_for_scene_seconds"),
-                "record_watch_replay wait_for_scene_seconds",
-            )?
-            .unwrap_or(DEFAULT_WATCH_SCENE_WAIT_SECONDS);
-            let match_timeout_seconds = optional_u64(
-                fields.get("match_timeout_seconds"),
-                "record_watch_replay match_timeout_seconds",
-            )?
-            .unwrap_or(DEFAULT_WATCH_MATCH_TIMEOUT_SECONDS);
-            session
-                .record_watch_replay(output_dir, wait_for_scene_seconds, match_timeout_seconds)
-                .await
+            record.run(session, force).await.map_err(reason)
         }
         "game.toggle_fight" => session.toggle_fight().await,
         "game.speed_up" => session.speed_up().await,
@@ -1085,48 +895,147 @@ fn evaluate(value: &Value, scope: &Scope) -> Result<Value, String> {
     }
 }
 
-/// Runs the deterministic simulator without a game, returning the same result
-/// object `mechcore fight run` prints so `expect` can assert any of its fields.
+/// Converts a file as `mechcore convert` does, returning the same result
+/// object it prints so `expect` can assert any of its fields.
 ///
 /// An existing `output` is a destination like a recording's: the run replaces
-/// it only when `confirm_overwrite` says so, and the simulator, which refuses
-/// to overwrite, is handed a path that no longer exists.
-async fn simulate(arguments: &Value, scope: &Scope) -> Result<Value, String> {
-    let fields = arguments
-        .as_object()
-        .ok_or("fight.run takes a mapping with layout and optional seed and output")?;
-    for key in fields.keys() {
-        if !matches!(key.as_str(), "layout" | "seed" | "output") {
-            return Err(format!(
-                "fight.run accepts only layout, seed and output, got {key}"
-            ));
-        }
-    }
-    let layout = scope.path(
-        fields.get("layout").ok_or("fight.run needs layout")?,
-        "fight.run layout",
+/// it only when `confirm_overwrite` says so. A rewrite answered without a
+/// destination answers the document it would have written.
+async fn convert(arguments: &Value, scope: &Scope) -> Result<Value, String> {
+    let fields = closed(
+        arguments,
+        "convert",
+        &["input", "to", "output", "seed", "round"],
     )?;
-    let seed = match fields.get("seed") {
-        None | Some(Value::Null) => None,
-        Some(value) => Some(
-            value
-                .as_i64()
-                .and_then(|seed| i32::try_from(seed).ok())
-                .ok_or("fight.run seed must be a signed 32-bit integer")?,
-        ),
-    };
+    let input = scope.path(
+        fields.get("input").ok_or("convert needs input")?,
+        "convert input",
+    )?;
+    let to = fields
+        .get("to")
+        .and_then(Value::as_str)
+        .ok_or("convert needs to, the kind to convert to")?;
+    let to = crate::convert::parse_kind(to).map_err(reason)?;
     let output = match fields.get("output") {
         None | Some(Value::Null) => None,
-        Some(value) => Some(scope.path(value, "fight.run output")?),
+        Some(value) => Some(scope.path(value, "convert output")?),
     };
-    if let Some(output) = &output {
-        let force = confirm_overwrite(scope, &[output.as_path()]).await?;
-        crate::session::remove_existing_outputs(&[(output.as_path(), "fight.run output")], force)?;
+    let force = match &output {
+        Some(output) => confirm_overwrite(scope, &[output.as_path()]).await?,
+        None => false,
+    };
+    let answer = crate::convert::convert(&crate::convert::Request {
+        input,
+        to,
+        output,
+        seed: optional_i32(fields.get("seed"), "convert seed")?,
+        round: optional_i32(fields.get("round"), "convert round")?,
+        force,
+    })
+    .map_err(reason)?;
+    match answer {
+        crate::convert::Answer::Report { value, .. } => Ok(value),
+        crate::convert::Answer::Document(text) => serde_yaml::from_str(&text)
+            .map_err(|error| format!("cannot read the converted document back: {error}")),
     }
-    let result = mechcore_simulation::simulate_layout(&layout, output.as_deref(), seed)
-        .map_err(|error| format!("{}: {error}", layout.display()))?;
-    serde_json::to_value(result)
-        .map_err(|error| format!("cannot serialize the simulation result: {error}"))
+}
+
+/// Reads a `game.record` step into what it records.
+///
+/// `input` is a layout given whole, or a path whose kind the file itself says.
+fn record(arguments: &Value, scope: &Scope) -> Result<crate::game::Record, String> {
+    let fields = closed(
+        arguments,
+        "game.record",
+        &[
+            "input",
+            "output",
+            "seed",
+            "round",
+            "video_output",
+            "speed_up",
+            "instrument",
+            "watch",
+            "output_dir",
+            "wait_for_scene_seconds",
+            "match_timeout_seconds",
+        ],
+    )?;
+    let path = |key: &str| {
+        fields
+            .get(key)
+            .map(|value| scope.path(value, &format!("game.record {key}")))
+            .transpose()
+    };
+    let (layout, input) = match fields.get("input") {
+        None => (None, None),
+        Some(Value::Object(layout)) => (Some(Value::Object(layout.clone())), None),
+        Some(value) => (None, Some(scope.path(value, "game.record input")?)),
+    };
+    crate::game::RecordRequest {
+        layout,
+        input,
+        output: path("output")?,
+        seed: optional_i32(fields.get("seed"), "game.record seed")?,
+        round: optional_i32(fields.get("round"), "game.record round")?,
+        video: path("video_output")?,
+        speed_up: optional_flag(fields.get("speed_up"), "game.record speed_up")?,
+        instrument: instrument(fields.get("instrument"))?,
+        watch: optional_flag(fields.get("watch"), "game.record watch")?.unwrap_or(false),
+        output_dir: path("output_dir")?,
+        wait_for_scene_seconds: optional_u64(
+            fields.get("wait_for_scene_seconds"),
+            "game.record wait_for_scene_seconds",
+        )?,
+        match_timeout_seconds: optional_u64(
+            fields.get("match_timeout_seconds"),
+            "game.record match_timeout_seconds",
+        )?,
+    }
+    .decide()
+    .map_err(reason)
+}
+
+/// A step's argument mapping, refusing a field the operation does not take.
+///
+/// `force` is named apart: replacing a file is the run's decision, not the
+/// script's.
+fn closed<'a>(
+    arguments: &'a Value,
+    operation: &str,
+    accepted: &[&str],
+) -> Result<&'a Map<String, Value>, String> {
+    let fields = arguments
+        .as_object()
+        .ok_or_else(|| format!("{operation} takes a mapping"))?;
+    if fields.contains_key("force") {
+        return Err("force is not a script field; pass --force to mechcore run".to_string());
+    }
+    if let Some(key) = fields.keys().find(|key| !accepted.contains(&key.as_str())) {
+        return Err(format!(
+            "{operation} accepts only {}, got {key}",
+            accepted.join(", ")
+        ));
+    }
+    Ok(fields)
+}
+
+/// What a failed operation says, as a step's error.
+#[allow(clippy::needless_pass_by_value)]
+fn reason(failure: crate::cli::Failure) -> String {
+    failure.reason().to_owned()
+}
+
+/// Read an optional signed 32-bit integer field.
+fn optional_i32(value: Option<&Value>, what: &str) -> Result<Option<i32>, String> {
+    match value {
+        None | Some(Value::Null) => Ok(None),
+        Some(value) => value
+            .as_i64()
+            .and_then(|number| i32::try_from(number).ok())
+            .map(Some)
+            .ok_or_else(|| format!("{what} must be a signed 32-bit integer, got {value}")),
+    }
 }
 
 /// Every declared field must be present and equal; extra result fields are fine.
@@ -1180,7 +1089,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn fight_run_replaces_an_existing_output_under_force() {
+    async fn convert_replaces_an_existing_output_under_force() {
         let directory = tempfile::tempdir().unwrap();
         let output = directory.path().join("simulated.mcfr");
         std::fs::write(&output, b"existing").unwrap();
@@ -1190,12 +1099,13 @@ mod tests {
             base: PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../.."),
         };
         let arguments = json!({
-            "layout": "tests/regression/crawlers-vs-crawlers.yaml",
+            "input": "tests/regression/crawlers-vs-crawlers.yaml",
+            "to": "mcfr",
             "seed": 1_787_778_788,
             "output": output.display().to_string(),
         });
 
-        let result = simulate(&arguments, &scope).await.unwrap();
+        let result = convert(&arguments, &scope).await.unwrap();
         assert_eq!(result["steps"], json!(351), "{result}");
         mechcore_mcfr::McfrReader::open(&output).expect("the output is the new recording");
     }
@@ -1258,7 +1168,7 @@ mod tests {
         let session = Session::new();
         let mut scope = scope_with(&[]);
         let call = Call {
-            operation: "game.record_fight".into(),
+            operation: "game.record".into(),
             arguments: json!({"output": "/tmp/a.mcfr", "force": true}),
             expect: None,
         };
@@ -1278,12 +1188,12 @@ mod tests {
 
     #[test]
     fn gameless_scripts_accept_gameless_operations() {
-        let script =
-            Script::parse("steps:\n  - fight.compare: {left: a.mcfr, right: b.mcfr}\n").unwrap();
+        let script = Script::parse("steps:\n  - diff: {left: a.mcfr, right: b.mcfr}\n").unwrap();
         assert!(script.check().is_ok());
         assert!(script.game.is_none());
 
-        let script = Script::parse("steps:\n  - fight.run: {layout: a.yaml, seed: 7}\n").unwrap();
+        let script =
+            Script::parse("steps:\n  - convert: {input: a.yaml, to: mcfr, seed: 7}\n").unwrap();
         assert!(script.check().is_ok());
         assert!(script.game.is_none());
     }
@@ -1376,11 +1286,11 @@ mod tests {
     #[test]
     fn a_loop_body_cannot_smuggle_a_native_operation_past_the_gameless_rule() {
         let script = Script::parse(
-            "steps:\n  - foreach: {case: $cases}\n    steps:\n      - game.record_fight: {output: a}\n",
+            "steps:\n  - foreach: {case: $cases}\n    steps:\n      - game.record: {output: a}\n",
         )
         .unwrap();
         let error = script.check().unwrap_err();
-        assert!(error.contains("game.record_fight"), "{error}");
+        assert!(error.contains("game.record"), "{error}");
         assert!(error.contains("game:"), "{error}");
     }
 
@@ -1402,7 +1312,7 @@ mod tests {
     #[test]
     fn nested_loops_are_refused() {
         let error = Script::parse(
-            "steps:\n  - foreach: {a: $x}\n    steps:\n      - foreach: {b: $y}\n        steps:\n          - fight.compare: {left: a, right: b}\n",
+            "steps:\n  - foreach: {a: $x}\n    steps:\n      - foreach: {b: $y}\n        steps:\n          - diff: {left: a, right: b}\n",
         )
         .unwrap_err();
         assert!(error.contains("a loop inside foreach"), "{error}");
@@ -1425,7 +1335,7 @@ mod tests {
         assert_eq!(optional_flag(Some(&json!(true)), "x").unwrap(), Some(true));
         // A multiplier is not a thing the native vote can express, so a number
         // must be refused rather than silently treated as "on".
-        let error = optional_flag(Some(&json!(3)), "game.record_fight speed_up").unwrap_err();
+        let error = optional_flag(Some(&json!(3)), "game.record speed_up").unwrap_err();
         assert!(error.contains("true or false"), "{error}");
     }
 
@@ -1444,14 +1354,15 @@ mod tests {
     #[test]
     fn watch_recording_is_native_and_its_timeouts_are_unsigned() {
         let script =
-            Script::parse("game: launch\nsteps:\n  - game.record_watch_replay: {}\n").unwrap();
+            Script::parse("game: launch\nsteps:\n  - game.record: {watch: true}\n").unwrap();
         assert!(script.check().is_ok());
 
         let session = Session::new();
         let mut scope = scope_with(&[]);
         let call = Call {
-            operation: "game.record_watch_replay".into(),
+            operation: "game.record".into(),
             arguments: json!({
+                "watch": true,
                 "output_dir": "/tmp/corpus",
                 "wait_for_scene_seconds": -1,
             }),
@@ -1483,8 +1394,7 @@ mod tests {
         assert!(Script::parse("game: attach\nlevel: -1\nsteps:\n  - game.status: {}\n").is_err());
         assert!(Script::parse("game: attach\nlevel: high\nsteps:\n  - game.status: {}\n").is_err());
         // A level with nothing to order is a mistake worth naming.
-        let error = Script::parse("level: 2\nsteps:\n  - fight.compare: {left: a, right: b}\n")
-            .unwrap_err();
+        let error = Script::parse("level: 2\nsteps:\n  - diff: {left: a, right: b}\n").unwrap_err();
         assert!(error.contains("game:"), "{error}");
     }
 
@@ -1515,7 +1425,7 @@ mod tests {
             // and all.
             for header in ["game: attach\n", ""] {
                 let error = Script::parse(&format!(
-                    "{header}{key}: true\nsteps:\n  - fight.compare: {{left: a, right: b}}\n"
+                    "{header}{key}: true\nsteps:\n  - diff: {{left: a, right: b}}\n"
                 ))
                 .unwrap_err();
                 assert!(error.contains("game: launch"), "{error}");

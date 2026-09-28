@@ -1,4 +1,4 @@
-use std::{fs, process::Command};
+use std::{fs, path::PathBuf, process::Command};
 
 #[test]
 fn verify_reports_shared_compiler_summary() {
@@ -23,7 +23,6 @@ red:
     .unwrap();
 
     let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .arg("doc")
         .arg("verify")
         .arg(&layout)
         .output()
@@ -56,7 +55,6 @@ fn verify_rejects_the_zero_seed_sentinel() {
     .unwrap();
 
     let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .arg("doc")
         .arg("verify")
         .arg(&layout)
         .output()
@@ -96,7 +94,6 @@ red:
     .unwrap();
 
     let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .arg("doc")
         .arg("verify")
         .arg(&layout)
         .output()
@@ -135,7 +132,6 @@ red:
     let missing = directory.path().join("absent.yaml");
 
     let mut child = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .arg("doc")
         .arg("verify")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -169,7 +165,6 @@ red:
 fn verify_refuses_a_directory_by_saying_what_to_name() {
     let directory = tempfile::tempdir().unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .arg("doc")
         .arg("verify")
         .arg(directory.path())
         .output()
@@ -202,7 +197,6 @@ red:
     .unwrap();
 
     let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .arg("doc")
         .arg("format")
         .arg(&layout)
         .output()
@@ -227,7 +221,6 @@ red:
     assert!(!canonical.contains("grid_rows:"));
 
     let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .arg("doc")
         .arg("format")
         .arg(&layout)
         .arg("--write")
@@ -254,7 +247,6 @@ fn diff_compares_normalized_fields() {
     .unwrap();
 
     let equal = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .arg("doc")
         .arg("diff")
         .arg(&left)
         .arg(&right)
@@ -272,7 +264,6 @@ fn diff_compares_normalized_fields() {
     )
     .unwrap();
     let different = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .arg("doc")
         .arg("diff")
         .arg(&left)
         .arg(&right)
@@ -283,5 +274,107 @@ fn diff_compares_normalized_fields() {
     assert_eq!(
         report["differences"][0]["path"],
         "/blue/units/index=0/position/x"
+    );
+}
+
+fn mechcore(arguments: &[&std::ffi::OsStr]) -> (Option<i32>, serde_json::Value, serde_json::Value) {
+    let output = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .args(arguments)
+        .output()
+        .unwrap();
+    let parse = |bytes: &[u8]| serde_json::from_slice(bytes).unwrap_or(serde_json::Value::Null);
+    (
+        output.status.code(),
+        parse(&output.stdout),
+        parse(&output.stderr),
+    )
+}
+
+/// A file's kind is what it holds, not what it is called: a replay written
+/// under a `.yaml` name is still a replay, and a verb or a conversion its kind
+/// does not take is refused by naming the kind.
+#[test]
+fn the_kind_is_read_from_the_content_and_an_unsupported_pair_names_it() {
+    let directory = tempfile::tempdir().unwrap();
+    let layout = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/regression/marksman-vs-arclight.yaml");
+    let replay = directory.path().join("replay.yaml");
+    let os = |text: &'static str| std::ffi::OsStr::new(text);
+
+    // A rewrite to a binary kind writes a file, so it needs one.
+    let (code, _, error) = mechcore(&[os("convert"), layout.as_os_str(), os("--to"), os("grbr")]);
+    assert_eq!(code, Some(2), "{error}");
+
+    let (code, written, error) = mechcore(&[
+        os("convert"),
+        layout.as_os_str(),
+        os("--to"),
+        os("grbr"),
+        replay.as_os_str(),
+        os("--seed"),
+        os("7"),
+    ]);
+    assert_eq!(code, Some(0), "{error}");
+    assert_eq!(
+        written["schema"],
+        "mechcore.replay-convert-layout-result.v1"
+    );
+    assert_eq!(written["seed"], 7);
+
+    // An existing destination is replaced only when asked to.
+    let again = [
+        os("convert"),
+        layout.as_os_str(),
+        os("--to"),
+        os("grbr"),
+        replay.as_os_str(),
+        os("--seed"),
+        os("7"),
+    ];
+    let (code, _, error) = mechcore(&again);
+    assert_eq!(code, Some(3), "{error}");
+    assert!(
+        error["reason"].as_str().unwrap().contains("--force"),
+        "{error}"
+    );
+    let (code, _, error) = mechcore(&[&again[..], &[os("--force")]].concat());
+    assert_eq!(code, Some(0), "{error}");
+
+    let (code, _, error) = mechcore(&[os("convert"), replay.as_os_str(), os("--to"), os("layout")]);
+    assert_eq!(code, Some(3), "{error}");
+    let reason = error["reason"].as_str().unwrap();
+    assert!(
+        reason.contains("a grbr file does not convert to layout; it converts to match"),
+        "{error}"
+    );
+
+    let (code, _, error) = mechcore(&[os("diff"), layout.as_os_str(), replay.as_os_str()]);
+    assert_eq!(code, Some(3), "{error}");
+    assert!(
+        error["reason"].as_str().unwrap().contains("grbr"),
+        "{error}"
+    );
+
+    let (code, _, error) = mechcore(&[os("show"), layout.as_os_str(), os("--view"), os("outcome")]);
+    assert_eq!(code, Some(3), "{error}");
+    assert!(
+        error["reason"]
+            .as_str()
+            .unwrap()
+            .contains("show does not take a layout file"),
+        "{error}"
+    );
+    assert_eq!(error["operation"], "show");
+
+    let state = directory.path().join("state.yaml");
+    fs::write(&state, "kind: state\nround: 1\n").unwrap();
+    let (code, report, _) = mechcore(&[os("verify"), state.as_os_str()]);
+    assert_eq!(code, Some(1));
+    assert!(
+        report["error"]
+            .as_str()
+            .unwrap()
+            .contains("verify does not take a state file"),
+        "{report}"
     );
 }

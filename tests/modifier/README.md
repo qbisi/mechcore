@@ -132,7 +132,7 @@ or the stagger rides on the same number and there is nothing clean to read.
 ## Reading a clause directly
 
 Since MCFR 0.4.0 a recording carries each unit's **derived** numbers beside the
-corrections written onto it, so `mechcore fight stats <recording>` answers both
+corrections written onto it, so `mechcore show <recording> --view stats` answers both
 halves of a measurement at one tick: `+0.6` in the skill channel *and* the 3726
 of damage the build computed from it. The fixtures here predate that and were
 designed so that the *fight's outcome* would distinguish the candidates — which

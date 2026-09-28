@@ -43,32 +43,35 @@ steps:
       once: read_yaml(tests/modifier/officer-speed-once.yaml)
       twice: read_yaml(tests/modifier/officer-speed-twice.yaml)
 
-  - game.record_layout:
-      layout: $once
+  - game.record:
+      input: $once
       seed: $seed
       output: ${out}/speed-once.mcfr
     expect:
       operation.tick_count: 104
       operation.hashes.result_hash: e0026baa1aca87725bdb3c141a108be71c8c77783cfbeef3867159a09bffc986
-  - fight.stats:
-      recording: ${out}/speed-once.mcfr
+  - show:
+      input: ${out}/speed-once.mcfr
+      view: stats
     expect:
       sides.red.0.unit.move_speed_value: 3
       sides.red.0.derived.move_speed: 81604378624
 
-  - game.record_layout:
-      layout: $twice
+  - game.record:
+      input: $twice
       seed: $seed
       output: ${out}/speed-twice.mcfr
     expect:
       operation.tick_count: 92
       operation.hashes.result_hash: 7d287f64aba6090fea57249ee5251783784c4142e7ff84e78c79eaafd920c207
-  - fight.outcome:
-      recording: ${out}/speed-twice.mcfr
+  - show:
+      input: ${out}/speed-twice.mcfr
+      view: outcome
     expect:
       sides.red.survivors.0.life: 14639
-  - fight.stats:
-      recording: ${out}/speed-twice.mcfr
+  - show:
+      input: ${out}/speed-twice.mcfr
+      view: stats
     expect:
       sides.red.0.unit.move_speed_value: 6
       # 16 m/s and two officers of three: the clock reading the tick count

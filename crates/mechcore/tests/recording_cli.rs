@@ -3,18 +3,16 @@ use std::{fs, path::PathBuf, process::Command};
 use mechcore_mcfr::{McfrReader, McfrWriter};
 
 #[test]
-fn sim_command_writes_mcfr_and_prints_the_result() {
+fn converting_a_layout_to_mcfr_writes_it_and_prints_the_result() {
     let directory = tempfile::tempdir().unwrap();
     let output = directory.path().join("fight.mcfr");
     let layout = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../tests/regression/marksman-vs-arclight.yaml");
     let command = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .arg("fight")
-        .arg("run")
+        .args(["convert", "--to", "mcfr"])
         .arg(layout)
         .arg("--seed")
         .arg("7")
-        .arg("--output")
         .arg(&output)
         .output()
         .unwrap();
@@ -51,7 +49,7 @@ fn sim_command_writes_mcfr_and_prints_the_result() {
 }
 
 #[test]
-fn sim_command_defaults_to_a_structured_result_without_persisting_mcfr() {
+fn converting_without_an_output_answers_the_result_and_writes_nothing() {
     let directory = tempfile::tempdir().unwrap();
     let layout = directory.path().join("layout.yaml");
     fs::copy(
@@ -61,8 +59,7 @@ fn sim_command_defaults_to_a_structured_result_without_persisting_mcfr() {
     )
     .unwrap();
     let command = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .arg("fight")
-        .arg("run")
+        .args(["convert", "--to", "mcfr"])
         .arg(&layout)
         .arg("--seed")
         .arg("7")
@@ -87,19 +84,17 @@ fn sim_command_defaults_to_a_structured_result_without_persisting_mcfr() {
 }
 
 #[test]
-fn sim_compare_reports_the_first_divergent_tick_without_an_output_recording() {
+fn verify_reports_the_first_divergent_tick_of_each_recording() {
     let directory = tempfile::tempdir().unwrap();
     let recording_path = directory.path().join("equal.mcfr");
     let divergent_path = directory.path().join("divergent.mcfr");
     let layout = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../tests/regression/marksman-vs-arclight.yaml");
     let generated = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .arg("fight")
-        .arg("run")
+        .args(["convert", "--to", "mcfr"])
         .arg(&layout)
         .arg("--seed")
         .arg("7")
-        .arg("--output")
         .arg(&recording_path)
         .output()
         .unwrap();
@@ -130,7 +125,6 @@ fn sim_compare_reports_the_first_divergent_tick_without_an_output_recording() {
     drop(recording);
 
     let compared = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .arg("fight")
         .arg("verify")
         .arg(&recording_path)
         .arg(&divergent_path)
@@ -138,23 +132,38 @@ fn sim_compare_reports_the_first_divergent_tick_without_an_output_recording() {
         .unwrap();
     assert!(!compared.status.success());
     assert!(compared.stderr.is_empty());
-    let report: serde_json::Value = serde_json::from_slice(&compared.stdout).unwrap();
-    assert_eq!(report["schema"], "mechcore.fight-verify-result.v2");
-    assert_eq!(report["equal"], false);
+    // One report per recording, in the order they were named.
+    let reports: Vec<serde_json::Value> = String::from_utf8(compared.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    assert_eq!(reports.len(), 2);
+    let [equal, divergent] = &reports[..] else {
+        unreachable!()
+    };
+    assert_eq!(equal["schema"], "mechcore.verify-result.v1");
+    assert_eq!(equal["kind"], "mcfr");
+    assert_eq!(equal["valid"], true);
+    assert!(equal.get("error").is_none());
     assert_eq!(
-        report["comparisons"][0]["schema"],
+        equal["comparison"]["schema"],
         "mechcore.sim-compare-result.v3"
     );
-    assert_eq!(report["comparisons"][0]["equal"], true);
-    assert!(report["comparisons"][0]["first_divergence"].is_null());
-    assert_eq!(report["comparisons"][1]["equal"], false);
-    assert_eq!(report["comparisons"][1]["first_divergence"], 1);
+    assert!(equal["comparison"]["first_divergence"].is_null());
+    assert_eq!(divergent["valid"], false);
+    assert!(
+        divergent["error"].as_str().unwrap().contains("tick 1"),
+        "{divergent}"
+    );
+    assert_eq!(divergent["comparison"]["equal"], false);
+    assert_eq!(divergent["comparison"]["first_divergence"], 1);
     assert_eq!(
-        report["comparisons"][1]["divergent_tick"]["recording"]["tick"],
+        divergent["comparison"]["divergent_tick"]["recording"]["tick"],
         1
     );
     assert_eq!(
-        report["comparisons"][1]["divergent_tick"]["simulation"]["tick"],
+        divergent["comparison"]["divergent_tick"]["simulation"]["tick"],
         1
     );
 }
@@ -188,9 +197,8 @@ red:
     )
     .unwrap();
     let run = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .args(["fight", "run"])
+        .args(["convert", "--to", "mcfr"])
         .arg(&layout)
-        .arg("--output")
         .arg(&recording)
         .output()
         .unwrap();
@@ -201,7 +209,7 @@ red:
     );
 
     let read = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .args(["fight", "outcome"])
+        .args(["show", "--view", "outcome"])
         .arg(&recording)
         .output()
         .unwrap();
@@ -265,9 +273,8 @@ fn stats_read_a_tick_and_answer_both_halves() {
     let layout = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../tests/regression/marksman-vs-arclight.yaml");
     let run = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .args(["fight", "run"])
+        .args(["convert", "--to", "mcfr"])
         .arg(&layout)
-        .arg("--output")
         .arg(&recording)
         .output()
         .unwrap();
@@ -278,7 +285,7 @@ fn stats_read_a_tick_and_answer_both_halves() {
     );
 
     let read = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .args(["fight", "stats"])
+        .args(["show", "--view", "stats"])
         .arg(&recording)
         .output()
         .unwrap();
@@ -304,7 +311,7 @@ fn stats_read_a_tick_and_answer_both_halves() {
     // the nearest one it does.
     let beyond = written["ticks"].as_u64().unwrap() + 1_000;
     let refused = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .args(["fight", "stats"])
+        .args(["show", "--view", "stats"])
         .arg(&recording)
         .arg("--tick")
         .arg(beyond.to_string())
@@ -336,9 +343,8 @@ fn buildings_read_the_towers_a_map_gives_each_side() {
     let layout = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../tests/regression/marksman-vs-arclight.yaml");
     let run = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .args(["fight", "run"])
+        .args(["convert", "--to", "mcfr"])
         .arg(&layout)
-        .arg("--output")
         .arg(&recording)
         .output()
         .unwrap();
@@ -349,7 +355,7 @@ fn buildings_read_the_towers_a_map_gives_each_side() {
     );
 
     let read = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .args(["fight", "buildings"])
+        .args(["show", "--view", "buildings"])
         .arg(&recording)
         .output()
         .unwrap();

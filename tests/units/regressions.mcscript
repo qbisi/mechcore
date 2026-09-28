@@ -10,2021 +10,2353 @@
 
 steps:
   # rhino
-  - fight.run:
-      layout: tests/units/rhino/m1-mirror.yaml
+  - convert:
+      input: tests/units/rhino/m1-mirror.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 210
       hashes.result_hash: f705c4ddf884015046c50b4c411658757d68c2a06be7104860478f247008cf6a
-  - fight.run:
-      layout: tests/units/rhino/m1-mirror.yaml
+  - convert:
+      input: tests/units/rhino/m1-mirror.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 209
       hashes.result_hash: 6d1eec0731a2bdc82864c55e3c5796e440c1f10dd7c17cc4c4023f8311ff0313
-  - fight.run:
-      layout: tests/units/rhino/m3-crawler.yaml
+  - convert:
+      input: tests/units/rhino/m3-crawler.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 276
       hashes.result_hash: 7f58cef03547778b297af00ab5ba53392f6bd6ea3f24cb50b68e4b516148cf7f
-  - fight.run:
-      layout: tests/units/rhino/m3-crawler.yaml
+  - convert:
+      input: tests/units/rhino/m3-crawler.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 293
       hashes.result_hash: 21b0ca7312e6c366876e2cf5551e42b923497470619778267dec21692c7e13fd
-  - fight.run:
-      layout: tests/units/rhino/m4-wasp.yaml
+  - convert:
+      input: tests/units/rhino/m4-wasp.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 239
       hashes.result_hash: 1ca72a7638bb34191220681abe0f340b9c4952e7bf329c491bcc08ae3af421f5
-  - fight.run:
-      layout: tests/units/rhino/m4-wasp.yaml
+  - convert:
+      input: tests/units/rhino/m4-wasp.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 258
       hashes.result_hash: 110c1be09d1389036c7729103739d78dd0d9e1c595f03728cdaf376982f77d96
-  - fight.run:
-      layout: tests/units/rhino/m5-rotated.yaml
+  - convert:
+      input: tests/units/rhino/m5-rotated.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 202
       hashes.result_hash: 2318fd4fe9513dbacb149e7b390900d3287d348e13f8731010971e637f04b4c6
-  - fight.run:
-      layout: tests/units/rhino/m5-rotated.yaml
+  - convert:
+      input: tests/units/rhino/m5-rotated.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 199
       hashes.result_hash: a42a1f6ba3dcacfb4907fdc2d700474ece1a8fbdfc4fb0071418ad07d952e54c
-  - fight.run:
-      layout: tests/units/rhino/m6-formations.yaml
+  - convert:
+      input: tests/units/rhino/m6-formations.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 377
       hashes.result_hash: d282d91d19f616e04b1cf0134294b0bb58a162f3c319e4729ee5cef490b3544e
-  - fight.run:
-      layout: tests/units/rhino/m6-formations.yaml
+  - convert:
+      input: tests/units/rhino/m6-formations.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 386
       hashes.result_hash: 55469b2ed6ab9a177a5cb757bb4c68be857a3c9f4ce124809c35ffd1cae7bf7a
   # crawler
-  - fight.run:
-      layout: tests/units/crawler/m1-mirror.yaml
+  - convert:
+      input: tests/units/crawler/m1-mirror.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 368
       hashes.result_hash: baf7f4c4c246c3a53bc1cc6c639df5ec39e556c23300bb234a353b15d813c9df
-  - fight.run:
-      layout: tests/units/crawler/m1-mirror.yaml
+  - convert:
+      input: tests/units/crawler/m1-mirror.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 345
       hashes.result_hash: 1ce84392e9d7bedb089a1b096c5c80c1ecce056b376749819e1b53721bb9ed0d
-  - fight.run:
-      layout: tests/units/crawler/m2-rhino.yaml
+  - convert:
+      input: tests/units/crawler/m2-rhino.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 313
       hashes.result_hash: f3ae0cf248c381a27a2c3cd5430b1c92ee6b4bdfd122d37e97df87430d655fb2
-  - fight.run:
-      layout: tests/units/crawler/m2-rhino.yaml
+  - convert:
+      input: tests/units/crawler/m2-rhino.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 304
       hashes.result_hash: 413a3c26751552862277769094e15fcd874147b8ee50c1996b2ea58349038225
-  - fight.run:
-      layout: tests/units/crawler/m4-wasp.yaml
+  - convert:
+      input: tests/units/crawler/m4-wasp.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 417
       hashes.result_hash: dd947cc22994775925cb164861b3ccf5515ac9f092e0013b65f0c262cc850299
-  - fight.run:
-      layout: tests/units/crawler/m4-wasp.yaml
+  - convert:
+      input: tests/units/crawler/m4-wasp.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 404
       hashes.result_hash: cba93c5e4251aabdc52db0e018a08d5f790bba22221089c639f0c4dd1d1b86b8
-  - fight.run:
-      layout: tests/units/crawler/m5-rotated.yaml
+  - convert:
+      input: tests/units/crawler/m5-rotated.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 295
       hashes.result_hash: 8e347016c2fcfa3421e1eb442d6219dece4c9d6742a91bdcf3e545f8be792bb7
-  - fight.run:
-      layout: tests/units/crawler/m5-rotated.yaml
+  - convert:
+      input: tests/units/crawler/m5-rotated.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 294
       hashes.result_hash: adeb423b457b9f0bdb591817f6599da837e594bf789e852bd1e3ae77a77602d2
-  - fight.run:
-      layout: tests/units/crawler/m6-formations.yaml
+  - convert:
+      input: tests/units/crawler/m6-formations.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 375
       hashes.result_hash: f62c80401c5155d46f0954450009bdb54633c8a6f750cd8240d30506177849b3
-  - fight.run:
-      layout: tests/units/crawler/m6-formations.yaml
+  - convert:
+      input: tests/units/crawler/m6-formations.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 400
       hashes.result_hash: dc1c8f99bc0dbe4963c165d7f9fc5821ae2e8123c7db7ccc3b70c47f6cfc3150
   # wasp
-  - fight.run:
-      layout: tests/units/wasp/m1-mirror.yaml
+  - convert:
+      input: tests/units/wasp/m1-mirror.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 217
       hashes.result_hash: b0609ed5d873256de7dd5b01c3dbc0d40dc298df4ceaeb01edf943d5ea5911f0
-  - fight.run:
-      layout: tests/units/wasp/m1-mirror.yaml
+  - convert:
+      input: tests/units/wasp/m1-mirror.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 219
       hashes.result_hash: 618ddb5835879bf40dd8320cc089dc4d2a2f65f4d6d7d08168f205037e1b4a9a
-  - fight.run:
-      layout: tests/units/wasp/m2-rhino.yaml
+  - convert:
+      input: tests/units/wasp/m2-rhino.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 244
       hashes.result_hash: 09ec0bc390a926e91fa22569a57ef64e1f3b3812acc470642b7662e9229a0ac6
-  - fight.run:
-      layout: tests/units/wasp/m2-rhino.yaml
+  - convert:
+      input: tests/units/wasp/m2-rhino.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 304
       hashes.result_hash: ba2e41157399d89a1a54d945d16deae7c74e3b7e96093348f0462ae11b2a6a0a
-  - fight.run:
-      layout: tests/units/wasp/m3-crawler.yaml
+  - convert:
+      input: tests/units/wasp/m3-crawler.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 397
       hashes.result_hash: c3c71946dfa93ecd7904d44c045f761ea48cf52f3e0a422ed7a9954b3caec8a1
-  - fight.run:
-      layout: tests/units/wasp/m3-crawler.yaml
+  - convert:
+      input: tests/units/wasp/m3-crawler.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 388
       hashes.result_hash: 71c7548a925f622e68d4631a61b91d89dfc61b0b282a73c5514a3486465d0e5b
-  - fight.run:
-      layout: tests/units/wasp/m4-marksman.yaml
+  - convert:
+      input: tests/units/wasp/m4-marksman.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 195
       hashes.result_hash: 260027e8dc5ebe56522609051e0128c0ab2b842063b319b40f2701c2c69336ab
-  - fight.run:
-      layout: tests/units/wasp/m4-marksman.yaml
+  - convert:
+      input: tests/units/wasp/m4-marksman.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 195
       hashes.result_hash: 549e33a81fa5f3d7fa15ae1e4d5a41bad647fd7de218141fa7ae08555bd56b8a
-  - fight.run:
-      layout: tests/units/wasp/m5-rotated.yaml
+  - convert:
+      input: tests/units/wasp/m5-rotated.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 189
       hashes.result_hash: 9d235043ff96ee5260bc53cecb0787bb6cefa49ee8dbcca3a6563bcac1e44967
-  - fight.run:
-      layout: tests/units/wasp/m5-rotated.yaml
+  - convert:
+      input: tests/units/wasp/m5-rotated.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 187
       hashes.result_hash: 0a14ce62ad3a402e4a85f1b40b8598e2db4974c4357613c28d8edc7bf99bbf32
-  - fight.run:
-      layout: tests/units/wasp/m6-formations.yaml
+  - convert:
+      input: tests/units/wasp/m6-formations.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 433
       hashes.result_hash: 99964ea3a258f3954ad2bbf4b751b286d46ee28e7f3c97f50c851435c953947c
-  - fight.run:
-      layout: tests/units/wasp/m6-formations.yaml
+  - convert:
+      input: tests/units/wasp/m6-formations.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 398
       hashes.result_hash: 55f433743cd8c94e0a31d47a25cb0126689ad17bc48af039b1619591a255c456
   # marksman
-  - fight.run:
-      layout: tests/units/marksman/m1-mirror.yaml
+  - convert:
+      input: tests/units/marksman/m1-mirror.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 85
       hashes.result_hash: af0e56af0144fc12477330e80127964b008b769afed7a810f533d4d9e0e22af0
-  - fight.run:
-      layout: tests/units/marksman/m1-mirror.yaml
+  - convert:
+      input: tests/units/marksman/m1-mirror.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 83
       hashes.result_hash: 51bdf6bac66474c695327981cea2c5d8628845972750b48ea253cf37cb96f653
-  - fight.run:
-      layout: tests/units/marksman/m2-rhino.yaml
+  - convert:
+      input: tests/units/marksman/m2-rhino.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 213
       hashes.result_hash: c5e10343c33a83e91b7ef2688d7ebe1db8ffc9a86609435998124d2fe2ca355a
-  - fight.run:
-      layout: tests/units/marksman/m2-rhino.yaml
+  - convert:
+      input: tests/units/marksman/m2-rhino.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 212
       hashes.result_hash: 3a74ae4c0ea30b3357a3e1c55d4875d25d8ddc2ab1629effc11866420fe81efb
-  - fight.run:
-      layout: tests/units/marksman/m3-crawler.yaml
+  - convert:
+      input: tests/units/marksman/m3-crawler.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 239
       hashes.result_hash: 20fe8af7a2384d25a7abb09c6a5d750ec519520ef40db44ddc5a5e340a6ab715
-  - fight.run:
-      layout: tests/units/marksman/m3-crawler.yaml
+  - convert:
+      input: tests/units/marksman/m3-crawler.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 239
       hashes.result_hash: 23746545eb232d15ff14889d1ce456f72fb35c5025390e00908f899460df94f0
-  - fight.run:
-      layout: tests/units/marksman/m4-wasp.yaml
+  - convert:
+      input: tests/units/marksman/m4-wasp.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 195
       hashes.result_hash: 2858d7a1b7666346796e377cc1b51faa42596270216c155d2f1a0a44439c4fce
-  - fight.run:
-      layout: tests/units/marksman/m4-wasp.yaml
+  - convert:
+      input: tests/units/marksman/m4-wasp.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 187
       hashes.result_hash: 4f34f055c9f23dd9803ec1bf0421d40290308dd1cc74a656d79c676660942481
-  - fight.run:
-      layout: tests/units/marksman/m5-rotated.yaml
+  - convert:
+      input: tests/units/marksman/m5-rotated.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 203
       hashes.result_hash: e2186cba5eaf420d7030c8af5f20b389200ca9cb616763ddddb0c76d8822b200
-  - fight.run:
-      layout: tests/units/marksman/m5-rotated.yaml
+  - convert:
+      input: tests/units/marksman/m5-rotated.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 201
       hashes.result_hash: daad0a559780aff60e7380f8dc347fcde0ebdfef470299311bc714d9e83b3ad0
-  - fight.run:
-      layout: tests/units/marksman/m6-formations.yaml
+  - convert:
+      input: tests/units/marksman/m6-formations.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 243
       hashes.result_hash: ea24a09e103f1ccf389627461aba781b0e14a9ed169da367da6452d05aba2937
-  - fight.run:
-      layout: tests/units/marksman/m6-formations.yaml
+  - convert:
+      input: tests/units/marksman/m6-formations.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 238
       hashes.result_hash: 7244acd89b5caa153f2a12b3dd8d269ba5b1b132897cedfbf5d46a0b4313dbc3
   # arclight
-  - fight.run:
-      layout: tests/units/arclight/m1-mirror.yaml
+  - convert:
+      input: tests/units/arclight/m1-mirror.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 389
       hashes.result_hash: db840be2411101fcc55b1297dc6839dbdb838227eec312a0c7922e59db121237
-  - fight.run:
-      layout: tests/units/arclight/m1-mirror.yaml
+  - convert:
+      input: tests/units/arclight/m1-mirror.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 386
       hashes.result_hash: 83b00b2666bc578bde8856050a09230494971b239faf14b837cc486280d893a9
-  - fight.run:
-      layout: tests/units/arclight/m2-rhino.yaml
+  - convert:
+      input: tests/units/arclight/m2-rhino.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 216
       hashes.result_hash: 2bd4ac286bc150a9342e7bdcc6b250dc86a0af701997af82f5a91f016784f590
-  - fight.run:
-      layout: tests/units/arclight/m2-rhino.yaml
+  - convert:
+      input: tests/units/arclight/m2-rhino.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 214
       hashes.result_hash: 8e0dab1fbc8d3a1473ff56906fbc4632278e0b9e8073a859ed96de2f6418138d
-  - fight.run:
-      layout: tests/units/arclight/m3-crawler.yaml
+  - convert:
+      input: tests/units/arclight/m3-crawler.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 199
       hashes.result_hash: aeec334360d95b685de09b39e35aa5f4d111ea3d780c82eebf96149321a18e3e
-  - fight.run:
-      layout: tests/units/arclight/m3-crawler.yaml
+  - convert:
+      input: tests/units/arclight/m3-crawler.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 185
       hashes.result_hash: b6cfe4a580eb719c5ce7459bc351a36c5affb94ecce7c1160b1b71da115631ee
-  - fight.run:
-      layout: tests/units/arclight/m4-wasp.yaml
+  - convert:
+      input: tests/units/arclight/m4-wasp.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 187
       hashes.result_hash: ba2b9b5cdfaec7979343ebb54f69e25b3c9bc6fcb7a4c9db37f46a06da0a9fcb
-  - fight.run:
-      layout: tests/units/arclight/m4-wasp.yaml
+  - convert:
+      input: tests/units/arclight/m4-wasp.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 186
       hashes.result_hash: 1cf2250468d3a9b3c27a912f8baa92c983d9c42f8f6f34b41bbdec5a04246657
-  - fight.run:
-      layout: tests/units/arclight/m5-rotated.yaml
+  - convert:
+      input: tests/units/arclight/m5-rotated.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 204
       hashes.result_hash: dfa871ee0c8b8f21804f7cf2b90ea919e246f4a571a34dc0e9968af7ef360270
-  - fight.run:
-      layout: tests/units/arclight/m5-rotated.yaml
+  - convert:
+      input: tests/units/arclight/m5-rotated.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 202
       hashes.result_hash: b4a1175d79e6605521c18f2c0f4fbf4a8505ba8851818258347dd08a432e9c29
-  - fight.run:
-      layout: tests/units/arclight/m6-formations.yaml
+  - convert:
+      input: tests/units/arclight/m6-formations.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 373
       hashes.result_hash: 72ee32f305eb41fa390d26b3afb7ef40d9de44b7c9eb6e71b00cdee29214a0a3
-  - fight.run:
-      layout: tests/units/arclight/m6-formations.yaml
+  - convert:
+      input: tests/units/arclight/m6-formations.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 377
       hashes.result_hash: e3c3fd0bdc117d021cdac6b8b9d2030db737b8009c8e57a48a45a232bb0f8864
   # fang
-  - fight.run:
-      layout: tests/units/fang/m1-mirror.yaml
+  - convert:
+      input: tests/units/fang/m1-mirror.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 340
       hashes.result_hash: ae6d388ab988618313053f3839e10d803b3691eb1f05ff5ce8f744c0231a85e1
-  - fight.run:
-      layout: tests/units/fang/m1-mirror.yaml
+  - convert:
+      input: tests/units/fang/m1-mirror.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 399
       hashes.result_hash: 2e07cb1e89904109c3018afb971be64648c2338ac7d0277e74103ee1fa716b01
-  - fight.run:
-      layout: tests/units/fang/m2-rhino.yaml
+  - convert:
+      input: tests/units/fang/m2-rhino.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 358
       hashes.result_hash: 36970aed111c50dec78786d61677203df6cc9edd716281ca1d021ba4da60996a
-  - fight.run:
-      layout: tests/units/fang/m2-rhino.yaml
+  - convert:
+      input: tests/units/fang/m2-rhino.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 352
       hashes.result_hash: bc44100991e8617b437d4329e9e3efc690264ce3262119bb74c5ac198f007c71
-  - fight.run:
-      layout: tests/units/fang/m3-crawler.yaml
+  - convert:
+      input: tests/units/fang/m3-crawler.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 353
       hashes.result_hash: 8ff69431f4986eae5dd4b17752338ab593e2018c12b0f5f3491b60a64cab4aaf
-  - fight.run:
-      layout: tests/units/fang/m3-crawler.yaml
+  - convert:
+      input: tests/units/fang/m3-crawler.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 318
       hashes.result_hash: 6c60669fcb09f421684659b9d87c088e494990b25a52ac99ed075d11c136952c
-  - fight.run:
-      layout: tests/units/fang/m4-wasp.yaml
+  - convert:
+      input: tests/units/fang/m4-wasp.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 251
       hashes.result_hash: f0f832834c327838abc7447b9f9d50956738d10f659a06206b0c6388d3ef2561
-  - fight.run:
-      layout: tests/units/fang/m4-wasp.yaml
+  - convert:
+      input: tests/units/fang/m4-wasp.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 247
       hashes.result_hash: b8475264633c1ce4c31998343c81f588973e53efc430217a3cef705e29d4b7df
-  - fight.run:
-      layout: tests/units/fang/m5-rotated.yaml
+  - convert:
+      input: tests/units/fang/m5-rotated.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 365
       hashes.result_hash: c810b2603f004f34081b6bbec1467652bb7c81a51506c3246562b1b1bafb8945
-  - fight.run:
-      layout: tests/units/fang/m5-rotated.yaml
+  - convert:
+      input: tests/units/fang/m5-rotated.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 328
       hashes.result_hash: 6d95a569bba66cb831e802d6ff821a13b1aa99dc721f5600f7478b88eed83c94
-  - fight.run:
-      layout: tests/units/fang/m6-formations.yaml
+  - convert:
+      input: tests/units/fang/m6-formations.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 552
       hashes.result_hash: afdd55474f87e8daf32cc72452911323d3e24af712ecc07d8dd33281f6918ee7
-  - fight.run:
-      layout: tests/units/fang/m6-formations.yaml
+  - convert:
+      input: tests/units/fang/m6-formations.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 585
       hashes.result_hash: 6eeaa99c99c26c22cbfd4b66229b7f3f2576b8ad9a5e1413bf750729da902356
   # mustang
-  - fight.run:
-      layout: tests/units/mustang/m1-mirror.yaml
+  - convert:
+      input: tests/units/mustang/m1-mirror.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 238
       hashes.result_hash: acad6de6ae1cea48c62c5ff10318a2d9bf1fb74ad3337128596de46f6f6045ff
-  - fight.run:
-      layout: tests/units/mustang/m1-mirror.yaml
+  - convert:
+      input: tests/units/mustang/m1-mirror.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 280
       hashes.result_hash: e47bc499abe44e4b81bd1c233c6a96127d1efcc79484305f23973243b09211e4
-  - fight.run:
-      layout: tests/units/mustang/m2-rhino.yaml
+  - convert:
+      input: tests/units/mustang/m2-rhino.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 337
       hashes.result_hash: 67d767e4c8fdda00c89d9672cf7aeee68f7530045dde92772d4b18a1e523fd9f
-  - fight.run:
-      layout: tests/units/mustang/m2-rhino.yaml
+  - convert:
+      input: tests/units/mustang/m2-rhino.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 282
       hashes.result_hash: fef72963033b177090ff9e62e943890f2066c5215cf360239ae1d29b8a9ee205
-  - fight.run:
-      layout: tests/units/mustang/m3-crawler.yaml
+  - convert:
+      input: tests/units/mustang/m3-crawler.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 210
       hashes.result_hash: 4a53fe3173946848de6934b8368a75e0deb0ca7b24cfea5383b0a0f5e9a9e705
-  - fight.run:
-      layout: tests/units/mustang/m3-crawler.yaml
+  - convert:
+      input: tests/units/mustang/m3-crawler.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 203
       hashes.result_hash: 73d1587b168a4e0d0bacf4a11f640186005ec09976d76acef107ddc5b6cb1d34
-  - fight.run:
-      layout: tests/units/mustang/m4-wasp.yaml
+  - convert:
+      input: tests/units/mustang/m4-wasp.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 183
       hashes.result_hash: d3a5d5aea8e7261c104657fac23667ccba387c70111384ef7f869197d7177d26
-  - fight.run:
-      layout: tests/units/mustang/m4-wasp.yaml
+  - convert:
+      input: tests/units/mustang/m4-wasp.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 181
       hashes.result_hash: dc1ac9897610978f4f054e5aeefbf474edd2bbb09eaab787d1618f068ce024f7
-  - fight.run:
-      layout: tests/units/mustang/m5-rotated.yaml
+  - convert:
+      input: tests/units/mustang/m5-rotated.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 378
       hashes.result_hash: a6c6f901f81ab9c7a383bc7f7808d722c63845a3931b56079f34a1bcea0af010
-  - fight.run:
-      layout: tests/units/mustang/m5-rotated.yaml
+  - convert:
+      input: tests/units/mustang/m5-rotated.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 439
       hashes.result_hash: a02669f47c00038ba2a56a8ce7f2db2bedf2886af95caa1bd4b944c52bf525dc
-  - fight.run:
-      layout: tests/units/mustang/m6-formations.yaml
+  - convert:
+      input: tests/units/mustang/m6-formations.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 255
       hashes.result_hash: 336be9f55ff108b39fd9710cd8aa940b64a32e7d29e6bc95e3f8c8b0b062a0a6
-  - fight.run:
-      layout: tests/units/mustang/m6-formations.yaml
+  - convert:
+      input: tests/units/mustang/m6-formations.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 260
       hashes.result_hash: dec10e427ed6fd8d4e4c217b8e1937145fb4c04495f4f7154875aedd7e12fa1c
   # steel_ball
-  - fight.run:
-      layout: tests/units/steel_ball/m1-mirror.yaml
+  - convert:
+      input: tests/units/steel_ball/m1-mirror.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 314
       hashes.result_hash: 94784e4e290f9224f18385820fe575a2a528038235248cbae035428b751b7bf7
-  - fight.run:
-      layout: tests/units/steel_ball/m1-mirror.yaml
+  - convert:
+      input: tests/units/steel_ball/m1-mirror.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 318
       hashes.result_hash: 4c5293ac17e639507a85e6f8e5197459041a97944ec2ad8a73ec60e4eee26bb3
-  - fight.run:
-      layout: tests/units/steel_ball/m2-rhino.yaml
+  - convert:
+      input: tests/units/steel_ball/m2-rhino.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 180
       hashes.result_hash: 6fdc3df2c4f24d1c15c176c01039f64f0983d37b6e4caebda1c6fb2ee533db29
-  - fight.run:
-      layout: tests/units/steel_ball/m2-rhino.yaml
+  - convert:
+      input: tests/units/steel_ball/m2-rhino.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 182
       hashes.result_hash: 64d5a02cf61058a950c7accdc72a4b543e5fc1fd691c983e721f619c685c944d
-  - fight.run:
-      layout: tests/units/steel_ball/m3-crawler.yaml
+  - convert:
+      input: tests/units/steel_ball/m3-crawler.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 454
       hashes.result_hash: d96b6ad0bd532e181816a7f06dac81dbfee4d64945c14632d645e39da4563331
-  - fight.run:
-      layout: tests/units/steel_ball/m3-crawler.yaml
+  - convert:
+      input: tests/units/steel_ball/m3-crawler.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 445
       hashes.result_hash: 7b29a8a07aeb2f81341f56b18862b54f0a3e499e3bba8f5f2bd30d472e7ab010
-  - fight.run:
-      layout: tests/units/steel_ball/m4-wasp.yaml
+  - convert:
+      input: tests/units/steel_ball/m4-wasp.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 355
       hashes.result_hash: 4a6c37bf8707f79d9f0edbb7343d74d9bccb9bf0ea102f7442709a2408296a88
-  - fight.run:
-      layout: tests/units/steel_ball/m4-wasp.yaml
+  - convert:
+      input: tests/units/steel_ball/m4-wasp.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 338
       hashes.result_hash: 0dd90e311127b9784815ff1088a1b83013e59c6fbbf980bab9e8fbd5a00e8c41
-  - fight.run:
-      layout: tests/units/steel_ball/m5-rotated.yaml
+  - convert:
+      input: tests/units/steel_ball/m5-rotated.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 173
       hashes.result_hash: a2388988af39f4c4175858fe9303193d9d0da4412f6be4fb33bc74d5c2e1d414
-  - fight.run:
-      layout: tests/units/steel_ball/m5-rotated.yaml
+  - convert:
+      input: tests/units/steel_ball/m5-rotated.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 171
       hashes.result_hash: be81491d29284ca1ab80d5aa0a3bd0a4314f6ae19bfb36556ef86927f9566cd9
-  - fight.run:
-      layout: tests/units/steel_ball/m6-formations.yaml
+  - convert:
+      input: tests/units/steel_ball/m6-formations.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 530
       hashes.result_hash: 0a44846910db7db94f177dee9cf87b3b13fb8a083796a240245f919aba1d7161
-  - fight.run:
-      layout: tests/units/steel_ball/m6-formations.yaml
+  - convert:
+      input: tests/units/steel_ball/m6-formations.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 507
       hashes.result_hash: 9d13e39b9b5296dc98299d3bddcca5219743eaf91326eee04888bfa2f0469f86
   # wraith
-  - fight.run:
-      layout: tests/units/wraith/m1-mirror.yaml
+  - convert:
+      input: tests/units/wraith/m1-mirror.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 430
       hashes.result_hash: 27f62acdd03b52457c812534020218d454b4ed26a1d3103a764c36ae7f28b6d7
-  - fight.run:
-      layout: tests/units/wraith/m1-mirror.yaml
+  - convert:
+      input: tests/units/wraith/m1-mirror.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 429
       hashes.result_hash: 805482843ef6f2883cb2d99b85996639ed0686c5d388ebd9c054cb28983c2491
-  - fight.run:
-      layout: tests/units/wraith/m2-rhino.yaml
+  - convert:
+      input: tests/units/wraith/m2-rhino.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 287
       hashes.result_hash: 8fa91bc43341ce6d8e3955e7f45ff48e26e4ef024e4eb744737a2d4b3afec418
-  - fight.run:
-      layout: tests/units/wraith/m2-rhino.yaml
+  - convert:
+      input: tests/units/wraith/m2-rhino.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 286
       hashes.result_hash: e9b8444a47d03a715a15690582e0d94510574f559b78e68c90d32f6347ca0bc1
-  - fight.run:
-      layout: tests/units/wraith/m3-crawler.yaml
+  - convert:
+      input: tests/units/wraith/m3-crawler.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 247
       hashes.result_hash: d50b2964c4cc90fc9709b032e980535e67ce08dc9d683912a40591f926133e34
-  - fight.run:
-      layout: tests/units/wraith/m3-crawler.yaml
+  - convert:
+      input: tests/units/wraith/m3-crawler.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 201
       hashes.result_hash: d547c9e1fd4dc60651ff541fd8fa5edaa5e20094f76823c197238edf0c72890d
-  - fight.run:
-      layout: tests/units/wraith/m4-marksman.yaml
+  - convert:
+      input: tests/units/wraith/m4-marksman.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 265
       hashes.result_hash: 9fce3f9bad8a15cab7b50a53aa5699041c4ab186f8b2744eb6c2abcda19dab26
-  - fight.run:
-      layout: tests/units/wraith/m4-marksman.yaml
+  - convert:
+      input: tests/units/wraith/m4-marksman.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 264
       hashes.result_hash: b42574edc0737467e0822c2fa582200a3b45b4b98c718107a15409fdfc98efc6
-  - fight.run:
-      layout: tests/units/wraith/m5-rotated.yaml
+  - convert:
+      input: tests/units/wraith/m5-rotated.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 252
       hashes.result_hash: 0e3fce7a09af980b314fafb32c18bb2745c4d97c78279fa302125187f6b83a98
-  - fight.run:
-      layout: tests/units/wraith/m5-rotated.yaml
+  - convert:
+      input: tests/units/wraith/m5-rotated.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 247
       hashes.result_hash: 16b5069f959306b87efebd93d5d3fd271475a33533310413248f8b36eba51862
-  - fight.run:
-      layout: tests/units/wraith/m6-formations.yaml
+  - convert:
+      input: tests/units/wraith/m6-formations.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 312
       hashes.result_hash: c40d8e8f83f10ac0e5fdee502e09b5510719c3dbca6cff779279043cea0c2313
-  - fight.run:
-      layout: tests/units/wraith/m6-formations.yaml
+  - convert:
+      input: tests/units/wraith/m6-formations.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 330
       hashes.result_hash: aec03e32f7abbb1a332c387b15a9e341809963a1a1a64f2ef33d412c7b263a79
   # stormcaller
-  - fight.run:
-      layout: tests/units/stormcaller/m1-mirror.yaml
+  - convert:
+      input: tests/units/stormcaller/m1-mirror.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 120
       hashes.result_hash: 907bf620dc0744dc31db68c8c69a5bb819e3f80584ba57e61ca6100d5cda9368
-  - fight.run:
-      layout: tests/units/stormcaller/m1-mirror.yaml
+  - convert:
+      input: tests/units/stormcaller/m1-mirror.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 248
       hashes.result_hash: 8274c36e1117a3773742237980c65f485c9cf0409ea958acd401c81608dc3413
-  - fight.run:
-      layout: tests/units/stormcaller/m2-rhino.yaml
+  - convert:
+      input: tests/units/stormcaller/m2-rhino.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 315
       hashes.result_hash: a27ae7e7fb5b37e53badff786c05396120022b7bbfd786b19a3d8dda6ae0a318
-  - fight.run:
-      layout: tests/units/stormcaller/m2-rhino.yaml
+  - convert:
+      input: tests/units/stormcaller/m2-rhino.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 291
       hashes.result_hash: f2d91abd393b88acea1ccc2513dc64284d53cb715912543b1de8148a209e7384
-  - fight.run:
-      layout: tests/units/stormcaller/m3-crawler.yaml
+  - convert:
+      input: tests/units/stormcaller/m3-crawler.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 352
       hashes.result_hash: 06135ffd43219344dae840ec6922308094a5a79c6bd11f8275392dc513fcc296
-  - fight.run:
-      layout: tests/units/stormcaller/m3-crawler.yaml
+  - convert:
+      input: tests/units/stormcaller/m3-crawler.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 301
       hashes.result_hash: f15687c49d1ea8e739a30e508a660f703491ef8c2e4bc525a97b35dcd6db0546
-  - fight.run:
-      layout: tests/units/stormcaller/m4-wasp.yaml
+  - convert:
+      input: tests/units/stormcaller/m4-wasp.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 213
       hashes.result_hash: 1a6706b1a15223e6ef65e916ba10a416d3f865b0ff69a6ce36bb54856071c40b
-  - fight.run:
-      layout: tests/units/stormcaller/m4-wasp.yaml
+  - convert:
+      input: tests/units/stormcaller/m4-wasp.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 211
       hashes.result_hash: 2252363d78a18d585d6f9f6fda5a404c5e8c64b564416ac86bd365f51aaf1a69
-  - fight.run:
-      layout: tests/units/stormcaller/m5-rotated.yaml
+  - convert:
+      input: tests/units/stormcaller/m5-rotated.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 273
       hashes.result_hash: 799d9859f712d7fab6c4debe1ba8a801e47083d8e8cafadf78dfe0313a711d6a
-  - fight.run:
-      layout: tests/units/stormcaller/m5-rotated.yaml
+  - convert:
+      input: tests/units/stormcaller/m5-rotated.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 272
       hashes.result_hash: 52601521ae495227dfaf957eeebdcc2ed4a85a07c77f6c8f7eaa90257f708c29
-  - fight.run:
-      layout: tests/units/stormcaller/m6-formations.yaml
+  - convert:
+      input: tests/units/stormcaller/m6-formations.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 462
       hashes.result_hash: 43143c4847fb0173f695edd11a425cd97478aeb2f5446ebaf5e4c869d0e0a46a
-  - fight.run:
-      layout: tests/units/stormcaller/m6-formations.yaml
+  - convert:
+      input: tests/units/stormcaller/m6-formations.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 449
       hashes.result_hash: ea180680b73eb797cd80d4ee825b068d68a2e08bbb81451e81b63e1506c06300
   # phoenix
-  - fight.run:
-      layout: tests/units/phoenix/m1-mirror.yaml
+  - convert:
+      input: tests/units/phoenix/m1-mirror.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 77
       hashes.result_hash: bdef65e479d597b958cd487ea43e71777d6d70f47796bde3eae90baf70ea5af6
-  - fight.run:
-      layout: tests/units/phoenix/m1-mirror.yaml
+  - convert:
+      input: tests/units/phoenix/m1-mirror.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 76
       hashes.result_hash: b76d3c4f74447283cd42653c572e979b11fc4e9ff18572703b60234b24d89b22
-  - fight.run:
-      layout: tests/units/phoenix/m2-rhino.yaml
+  - convert:
+      input: tests/units/phoenix/m2-rhino.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 139
       hashes.result_hash: b6c75117ea29bb46e34526bce4b7549fb5e1ad1ad3742a29c1bf557a33d3781b
-  - fight.run:
-      layout: tests/units/phoenix/m2-rhino.yaml
+  - convert:
+      input: tests/units/phoenix/m2-rhino.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 147
       hashes.result_hash: c4f21260890e161fd4d6d118ce5f55058da199f2754c8f847c8e2ecf1666ef5b
-  - fight.run:
-      layout: tests/units/phoenix/m3-crawler.yaml
+  - convert:
+      input: tests/units/phoenix/m3-crawler.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 463
       hashes.result_hash: ff698404328c8bc8609fadfb75783f79eb5922f1fb43684964163167bf2fd1d5
-  - fight.run:
-      layout: tests/units/phoenix/m3-crawler.yaml
+  - convert:
+      input: tests/units/phoenix/m3-crawler.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 462
       hashes.result_hash: 7f9cdb4d24fd16df787998e9668cfae7faca4ac7525fd9a83aa90add32ab58f9
-  - fight.run:
-      layout: tests/units/phoenix/m4-marksman.yaml
+  - convert:
+      input: tests/units/phoenix/m4-marksman.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 100
       hashes.result_hash: 597c2d80317294e1eae93ab0ccba19bbdffac60566bf4fa5742ec941e3af7976
-  - fight.run:
-      layout: tests/units/phoenix/m4-marksman.yaml
+  - convert:
+      input: tests/units/phoenix/m4-marksman.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 96
       hashes.result_hash: e05b88fb312047e8a8d7400edf751426cc1479de9d749287cf103abcb113eefe
-  - fight.run:
-      layout: tests/units/phoenix/m5-rotated.yaml
+  - convert:
+      input: tests/units/phoenix/m5-rotated.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 105
       hashes.result_hash: b385ce77ba1e8b7b26bcb14ee451492991d0c4a8b9f5e96d53b7f2d47e1881b8
-  - fight.run:
-      layout: tests/units/phoenix/m5-rotated.yaml
+  - convert:
+      input: tests/units/phoenix/m5-rotated.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 103
       hashes.result_hash: ac273343ebee54d063a8700eda2300cf52cbaa4117b578a2826328bf08f18556
-  - fight.run:
-      layout: tests/units/phoenix/m6-formations.yaml
+  - convert:
+      input: tests/units/phoenix/m6-formations.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 301
       hashes.result_hash: 632d2243b8495f3eacd48c8100aae09bcab5f9442ad242a097abe3c8b64376c6
-  - fight.run:
-      layout: tests/units/phoenix/m6-formations.yaml
+  - convert:
+      input: tests/units/phoenix/m6-formations.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 296
       hashes.result_hash: 4b74e0d45133c263cd5bf8d1b0f6a6ea54813ea1756d8a369a79cd382394a539
   # hound
-  - fight.run:
-      layout: tests/units/hound/m1-mirror.yaml
+  - convert:
+      input: tests/units/hound/m1-mirror.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 477
       hashes.result_hash: 5abd09d3ef5e4fb857778dc8c8d5c28dd9ea1605dc6803c51603fca6a56dfd38
-  - fight.run:
-      layout: tests/units/hound/m1-mirror.yaml
+  - convert:
+      input: tests/units/hound/m1-mirror.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 395
       hashes.result_hash: b8c07dc9bcb9f8df2bfae7ec9559dd491b015d2ac4bebd2567ad3df8967c18ff
-  - fight.run:
-      layout: tests/units/hound/m2-rhino.yaml
+  - convert:
+      input: tests/units/hound/m2-rhino.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 272
       hashes.result_hash: da328ade767804e567640ea7b3d0ee0085d8ab94bd2a109a0ccc6a5e9a99fe12
-  - fight.run:
-      layout: tests/units/hound/m2-rhino.yaml
+  - convert:
+      input: tests/units/hound/m2-rhino.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 267
       hashes.result_hash: 635cd243cf87d1c530883d4f5912e6598bf98e721ef9904114f3f14fa8a53b5b
-  - fight.run:
-      layout: tests/units/hound/m3-crawler.yaml
+  - convert:
+      input: tests/units/hound/m3-crawler.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 251
       hashes.result_hash: 8fc439cd149eed3fd5d882cb9bb2f4df64d024b7387c2a375a8984e9188e48fe
-  - fight.run:
-      layout: tests/units/hound/m3-crawler.yaml
+  - convert:
+      input: tests/units/hound/m3-crawler.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 255
       hashes.result_hash: 0975c272459cde385af127eef9f7858c7599b67510b1030d7ced98cb542054aa
-  - fight.run:
-      layout: tests/units/hound/m4-wasp.yaml
+  - convert:
+      input: tests/units/hound/m4-wasp.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 188
       hashes.result_hash: 45536421c027c9374dc009642b60f7cac34895d37ccebd74e4533ab06507d26b
-  - fight.run:
-      layout: tests/units/hound/m4-wasp.yaml
+  - convert:
+      input: tests/units/hound/m4-wasp.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 184
       hashes.result_hash: fca4589bddcd37c49292ddc6fe5c8e0c4a6626599aeda202be192d2eab94d778
-  - fight.run:
-      layout: tests/units/hound/m5-rotated.yaml
+  - convert:
+      input: tests/units/hound/m5-rotated.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 267
       hashes.result_hash: b36981ebbcc2b5900f1d2363b1dcc3e4d760bccf880662659abbfc5ea91d6038
-  - fight.run:
-      layout: tests/units/hound/m5-rotated.yaml
+  - convert:
+      input: tests/units/hound/m5-rotated.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 263
       hashes.result_hash: ea0ba48bf89150efabd08300637b998cfd38a53bfc6db37e690d59f29fe379e3
-  - fight.run:
-      layout: tests/units/hound/m6-formations.yaml
+  - convert:
+      input: tests/units/hound/m6-formations.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 381
       hashes.result_hash: 13afeb561955ac9c52bbfbfc5ad19d3a6f8b7b8c393fa4f60acc5629fa51f88c
-  - fight.run:
-      layout: tests/units/hound/m6-formations.yaml
+  - convert:
+      input: tests/units/hound/m6-formations.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 394
       hashes.result_hash: 398c1793c1f96f9570cb7ec995ce7809f5d20577ac233c2d0ab41d3e11b52ede
   # sabertooth
-  - fight.run:
-      layout: tests/units/sabertooth/m1-mirror.yaml
+  - convert:
+      input: tests/units/sabertooth/m1-mirror.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 253
       hashes.result_hash: a743c890a4f29cbbbd84bad12d367729f601f2469ba6bed08ec942b42c3a9308
-  - fight.run:
-      layout: tests/units/sabertooth/m1-mirror.yaml
+  - convert:
+      input: tests/units/sabertooth/m1-mirror.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 258
       hashes.result_hash: f0c3a091d9fecd33f96320136e0513db04bb054d03ee3c6743b7877861cb6d00
-  - fight.run:
-      layout: tests/units/sabertooth/m2-rhino.yaml
+  - convert:
+      input: tests/units/sabertooth/m2-rhino.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 207
       hashes.result_hash: b5cad503ecddd85cce2a20b1c335c535f8fb8e55baab6889cf290a7c3274d862
-  - fight.run:
-      layout: tests/units/sabertooth/m2-rhino.yaml
+  - convert:
+      input: tests/units/sabertooth/m2-rhino.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 205
       hashes.result_hash: feca468d110830743d52166f89eebe60fbd837508c33039f108336bcdcc9589b
-  - fight.run:
-      layout: tests/units/sabertooth/m3-crawler.yaml
+  - convert:
+      input: tests/units/sabertooth/m3-crawler.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 392
       hashes.result_hash: 032293c155e2179f413f06de9a7d807868ab288938da57d8bbef90786a48debc
-  - fight.run:
-      layout: tests/units/sabertooth/m3-crawler.yaml
+  - convert:
+      input: tests/units/sabertooth/m3-crawler.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 383
       hashes.result_hash: 5cbcc91089c05f79318a613fe43be44172b033c4b8965ba54b0b34b9a606b987
-  - fight.run:
-      layout: tests/units/sabertooth/m4-wasp.yaml
+  - convert:
+      input: tests/units/sabertooth/m4-wasp.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 233
       hashes.result_hash: 213b1ba7562e21d7d9bd290a89d1391852015108a4d68bac8642ea1adc1b2cc8
-  - fight.run:
-      layout: tests/units/sabertooth/m4-wasp.yaml
+  - convert:
+      input: tests/units/sabertooth/m4-wasp.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 231
       hashes.result_hash: b8644ec6d32f885b7abee69b846334e37c893f69f5c91374667d7d675d1a1f15
-  - fight.run:
-      layout: tests/units/sabertooth/m5-rotated.yaml
+  - convert:
+      input: tests/units/sabertooth/m5-rotated.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 198
       hashes.result_hash: d69c9ee4e4b690d68fe58f8c46c5884d4e2092c148b15f1e28f2dc4f6dabe249
-  - fight.run:
-      layout: tests/units/sabertooth/m5-rotated.yaml
+  - convert:
+      input: tests/units/sabertooth/m5-rotated.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 195
       hashes.result_hash: 03c4b2908c6f51c9f8b33c916964b01c7caefc35ee105efede0f554096986154
-  - fight.run:
-      layout: tests/units/sabertooth/m6-formations.yaml
+  - convert:
+      input: tests/units/sabertooth/m6-formations.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 473
       hashes.result_hash: 84bb4c4a183553ac6928808cade9c49875fc79e87ed1ba2a2ad17804eeaa5b96
-  - fight.run:
-      layout: tests/units/sabertooth/m6-formations.yaml
+  - convert:
+      input: tests/units/sabertooth/m6-formations.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 475
       hashes.result_hash: 5104f78fdfdd5820c5210fee3c40d110f27ca9bbb202ecee979c9bca59e32c35
   # void_eye
-  - fight.run:
-      layout: tests/units/void_eye/m1-mirror.yaml
+  - convert:
+      input: tests/units/void_eye/m1-mirror.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 209
       hashes.result_hash: c2ab76a2ee087c9c0f8f417a96f9ecfdedaf1756040716ea1c5f0b738073c8a6
-  - fight.run:
-      layout: tests/units/void_eye/m1-mirror.yaml
+  - convert:
+      input: tests/units/void_eye/m1-mirror.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 209
       hashes.result_hash: 032d9d1a5d255d817e5ef9353644783fc65f357632b5dc5a30addb9c200a763e
-  - fight.run:
-      layout: tests/units/void_eye/m2-rhino.yaml
+  - convert:
+      input: tests/units/void_eye/m2-rhino.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 249
       hashes.result_hash: 62ccccc44e1369668be9b49a3e6eb7fea722af116fcdec58d7a2df3836e52a5b
-  - fight.run:
-      layout: tests/units/void_eye/m2-rhino.yaml
+  - convert:
+      input: tests/units/void_eye/m2-rhino.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 247
       hashes.result_hash: 5fede51fc79a94c4501a8f49ad7de8d15c81fe0d127f74ce2b87fc1b62e26f70
-  - fight.run:
-      layout: tests/units/void_eye/m3-crawler.yaml
+  - convert:
+      input: tests/units/void_eye/m3-crawler.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 281
       hashes.result_hash: 279a9743868417263dc1cc326d8a90dc5c821f7a087ffd43dcadbad2e6596b31
-  - fight.run:
-      layout: tests/units/void_eye/m3-crawler.yaml
+  - convert:
+      input: tests/units/void_eye/m3-crawler.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 267
       hashes.result_hash: bd8c4c95a8c22c003447a9e852e995b90247c12993f38f4869bd06aa130ee2fd
-  - fight.run:
-      layout: tests/units/void_eye/m4-wasp.yaml
+  - convert:
+      input: tests/units/void_eye/m4-wasp.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 187
       hashes.result_hash: aa6a01ddf0e115ca9700427edbc9981c41a8a9a14c9e6f35c73b861717c09100
-  - fight.run:
-      layout: tests/units/void_eye/m4-wasp.yaml
+  - convert:
+      input: tests/units/void_eye/m4-wasp.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 182
       hashes.result_hash: 14f24caf8ddb59ce7ce4d9752a5ae6252ddac0d5d9040beec232a72170c28ab0
-  - fight.run:
-      layout: tests/units/void_eye/m5-rotated.yaml
+  - convert:
+      input: tests/units/void_eye/m5-rotated.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 245
       hashes.result_hash: 3b849ea7b10858b4810cf1d84785dc0c680b2fa7e0bc83de71479c04bbe276d2
-  - fight.run:
-      layout: tests/units/void_eye/m5-rotated.yaml
+  - convert:
+      input: tests/units/void_eye/m5-rotated.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 244
       hashes.result_hash: e272212ab4b1b437735713fe4116d1efa8ed65c5262d9d455c1d60330a51dac5
-  - fight.run:
-      layout: tests/units/void_eye/m6-formations.yaml
+  - convert:
+      input: tests/units/void_eye/m6-formations.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 346
       hashes.result_hash: df0078cbd33e92d4aae4d30a57714e689c642e47a316dbf0d006204ca376c391
-  - fight.run:
-      layout: tests/units/void_eye/m6-formations.yaml
+  - convert:
+      input: tests/units/void_eye/m6-formations.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 337
       hashes.result_hash: 7d1c2af7dd5c35c3ff8d3459ea1d52fc0a2b93e3907c7e2e3686b07680e0100a
   # tarantula
-  - fight.run:
-      layout: tests/units/tarantula/m1-mirror.yaml
+  - convert:
+      input: tests/units/tarantula/m1-mirror.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 486
       hashes.result_hash: f97bd3c7b0687810eb7919e783862bb8c8b17f85c03b8541b4a78ed338a67edc
-  - fight.run:
-      layout: tests/units/tarantula/m1-mirror.yaml
+  - convert:
+      input: tests/units/tarantula/m1-mirror.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 484
       hashes.result_hash: 6dc338eadcd528baa9f10ac9f73a65e4d3416246b56262031260094320bef5fc
-  - fight.run:
-      layout: tests/units/tarantula/m2-rhino.yaml
+  - convert:
+      input: tests/units/tarantula/m2-rhino.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 244
       hashes.result_hash: d4d9d69991b6d41fabfdba15401ff5f5bf321169cdf376cb17d5b7b122cb6682
-  - fight.run:
-      layout: tests/units/tarantula/m2-rhino.yaml
+  - convert:
+      input: tests/units/tarantula/m2-rhino.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 241
       hashes.result_hash: 60105918394fa3f6e82424b095266ef12b9c254a6d995819b6072572590751ef
-  - fight.run:
-      layout: tests/units/tarantula/m3-crawler.yaml
+  - convert:
+      input: tests/units/tarantula/m3-crawler.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 184
       hashes.result_hash: 0d3013ad7caf34faf86b92a7516ff996b68f6667c94af253032c0cc6f5d8d8ee
-  - fight.run:
-      layout: tests/units/tarantula/m3-crawler.yaml
+  - convert:
+      input: tests/units/tarantula/m3-crawler.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 184
       hashes.result_hash: 5b67ff08863b9cc0294546fa6571f8c9aca4066ecb90c0d25691a8ac1a963dfc
-  - fight.run:
-      layout: tests/units/tarantula/m4-wasp.yaml
+  - convert:
+      input: tests/units/tarantula/m4-wasp.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 230
       hashes.result_hash: ddf4d28a1050b41af7764a83480e68fb562ff70deff930da68a94175d27e15fc
-  - fight.run:
-      layout: tests/units/tarantula/m4-wasp.yaml
+  - convert:
+      input: tests/units/tarantula/m4-wasp.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 230
       hashes.result_hash: f74feeb34e93a60793b2dc5eeb16355c3eabcae8ef728ee300770c1503d1e2e0
-  - fight.run:
-      layout: tests/units/tarantula/m5-rotated.yaml
+  - convert:
+      input: tests/units/tarantula/m5-rotated.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 234
       hashes.result_hash: 0e3bedea5b60da122e5351d4e0071579282ccfc8c0bb15956358cb5d1a970a9b
-  - fight.run:
-      layout: tests/units/tarantula/m5-rotated.yaml
+  - convert:
+      input: tests/units/tarantula/m5-rotated.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 233
       hashes.result_hash: fe1df6a028522f418be9b4ef25136e43529a3c707db9f48615407c63f0b3cafa
-  - fight.run:
-      layout: tests/units/tarantula/m6-formations.yaml
+  - convert:
+      input: tests/units/tarantula/m6-formations.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 306
       hashes.result_hash: 7a2c803e25e50caff99da36414fa0ce03c0e267c5cf8572b78abc1c5589fb454
-  - fight.run:
-      layout: tests/units/tarantula/m6-formations.yaml
+  - convert:
+      input: tests/units/tarantula/m6-formations.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 315
       hashes.result_hash: 6f30d2e37d5d60b9b9a77787f058850c88eb0fc46f9b91a27ba0fd2d04153022
   # sledgehammer
-  - fight.run:
-      layout: tests/units/sledgehammer/m1-mirror.yaml
+  - convert:
+      input: tests/units/sledgehammer/m1-mirror.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 1130
       hashes.result_hash: e7a186480ba09091b7919fa2879240e270b81bd98d15a825a67ee7a8241b546a
-  - fight.run:
-      layout: tests/units/sledgehammer/m1-mirror.yaml
+  - convert:
+      input: tests/units/sledgehammer/m1-mirror.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 885
       hashes.result_hash: 1771d001cd2c5f7869802d741f2fb8b071ee19bbf3743e77df811b81ddadfa80
-  - fight.run:
-      layout: tests/units/sledgehammer/m2-rhino.yaml
+  - convert:
+      input: tests/units/sledgehammer/m2-rhino.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 329
       hashes.result_hash: 44d194c597b3e73021cf80ac9ae5827debd53b0cbda3beeb0ce0beeffd5c7d35
-  - fight.run:
-      layout: tests/units/sledgehammer/m2-rhino.yaml
+  - convert:
+      input: tests/units/sledgehammer/m2-rhino.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 323
       hashes.result_hash: ddcfbae8cb13a2aec574582fae09f6c27a63a41a2e2c829fbc20505f2665567f
-  - fight.run:
-      layout: tests/units/sledgehammer/m3-crawler.yaml
+  - convert:
+      input: tests/units/sledgehammer/m3-crawler.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 193
       hashes.result_hash: 6a018fcb16a3b3ebb9ccfd613ad27084e068335478c771adf6926cc8e82129bd
-  - fight.run:
-      layout: tests/units/sledgehammer/m4-wasp.yaml
+  - convert:
+      input: tests/units/sledgehammer/m4-wasp.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 262
       hashes.result_hash: a211a76a2185671ed6b8ce2736a195b12029eeb528e0be8eef78072b4fd76384
-  - fight.run:
-      layout: tests/units/sledgehammer/m4-wasp.yaml
+  - convert:
+      input: tests/units/sledgehammer/m4-wasp.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 266
       hashes.result_hash: 7eaf6ec1862065e3976737884f39b95eaf9ea26d43609e1247d1b1049b583cab
-  - fight.run:
-      layout: tests/units/sledgehammer/m5-rotated.yaml
+  - convert:
+      input: tests/units/sledgehammer/m5-rotated.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 302
       hashes.result_hash: 9bfc003757e9ba8095704c3936e91770d372e8fc0a8199053b6e13742cfe161d
-  - fight.run:
-      layout: tests/units/sledgehammer/m5-rotated.yaml
+  - convert:
+      input: tests/units/sledgehammer/m5-rotated.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 303
       hashes.result_hash: 6d5ecb0f3817d5de10f5be36909629a68e4af0b4f5c9b4d73560f23af6317e44
-  - fight.run:
-      layout: tests/units/sledgehammer/m6-formations.yaml
+  - convert:
+      input: tests/units/sledgehammer/m6-formations.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 305
       hashes.result_hash: 9fa66f951d6d7908dfbee7943ed77b944bc8f8bce5d1e9fdc47ddcef25d567bf
-  - fight.run:
-      layout: tests/units/sledgehammer/m6-formations.yaml
+  - convert:
+      input: tests/units/sledgehammer/m6-formations.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 293
       hashes.result_hash: 771ccbace08c48ed68f216add1632fce8acf66eedf58f295e8adaf53703a341d
-  - fight.run:
-      layout: tests/units/sledgehammer/m3-crawler.yaml
+  - convert:
+      input: tests/units/sledgehammer/m3-crawler.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 211
       hashes.result_hash: 6024d3f73c4b89c18f96e9d6c9b9ecbd00e6cf4344d03e0497f35ee932be1b83
   # fire_badger
-  - fight.run:
-      layout: tests/units/fire_badger/m1-mirror.yaml
+  - convert:
+      input: tests/units/fire_badger/m1-mirror.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 708
       hashes.result_hash: ee213fd7a4db082d44116eda5a0c01f3aa9fbdf63139a728c8c3e71e2a4e150c
-  - fight.run:
-      layout: tests/units/fire_badger/m1-mirror.yaml
+  - convert:
+      input: tests/units/fire_badger/m1-mirror.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 458
       hashes.result_hash: 769dad28077ba5400a3340dc8e32678c507f04df671d7a2fa2487429156950c6
-  - fight.run:
-      layout: tests/units/fire_badger/m2-rhino.yaml
+  - convert:
+      input: tests/units/fire_badger/m2-rhino.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 298
       hashes.result_hash: 15ed7a6306d3561467a665e1a9a96d8b978f0356649949f2de00f3f5718433c7
-  - fight.run:
-      layout: tests/units/fire_badger/m2-rhino.yaml
+  - convert:
+      input: tests/units/fire_badger/m2-rhino.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 293
       hashes.result_hash: 0e75bcf70c4eb58528f4bd1121f245488051f77332a6d85a7a90c0b00be413d0
-  - fight.run:
-      layout: tests/units/fire_badger/m3-crawler.yaml
+  - convert:
+      input: tests/units/fire_badger/m3-crawler.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 144
       hashes.result_hash: 6027ddc3acd5c799634e6bbd3e0db3f7d866a96fc53e72c566ff70c6dfcc6753
-  - fight.run:
-      layout: tests/units/fire_badger/m3-crawler.yaml
+  - convert:
+      input: tests/units/fire_badger/m3-crawler.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 169
       hashes.result_hash: 714744c2af38065db8391ba6187715baf6ab78f482fdaf92e001a8eee132a484
-  - fight.run:
-      layout: tests/units/fire_badger/m4-wasp.yaml
+  - convert:
+      input: tests/units/fire_badger/m4-wasp.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 224
       hashes.result_hash: 628645864bbf3dbf971b74f85b628b3179d67743d8c36ad1337f4a906da21e8c
-  - fight.run:
-      layout: tests/units/fire_badger/m4-wasp.yaml
+  - convert:
+      input: tests/units/fire_badger/m4-wasp.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 220
       hashes.result_hash: 3c0046491cf3e47a78591596a6cd07c0a2f9e715ea6daf63073f1090531b089c
-  - fight.run:
-      layout: tests/units/fire_badger/m5-rotated.yaml
+  - convert:
+      input: tests/units/fire_badger/m5-rotated.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 296
       hashes.result_hash: bc411a381d115c9cca5202b74f8195e78869782a1d950d2fa29aa4d2477accd9
-  - fight.run:
-      layout: tests/units/fire_badger/m5-rotated.yaml
+  - convert:
+      input: tests/units/fire_badger/m5-rotated.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 293
       hashes.result_hash: 2825480820c4d57c4840510c68ef8672c141b550b1d2ddd523e36a0b165fe8ca
-  - fight.run:
-      layout: tests/units/fire_badger/m6-formations.yaml
+  - convert:
+      input: tests/units/fire_badger/m6-formations.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 350
       hashes.result_hash: 449324c90002124d3998a66b6637ad1a5a5b8df7b1e0ea0f7135e65e17d708d9
-  - fight.run:
-      layout: tests/units/fire_badger/m6-formations.yaml
+  - convert:
+      input: tests/units/fire_badger/m6-formations.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 351
       hashes.result_hash: 2508b7584d4cf5540688771792abc70de1bc18808d4d1a067aecbc0ff60eae4e
   # phantom_ray
-  - fight.run:
-      layout: tests/units/phantom_ray/m1-mirror.yaml
+  - convert:
+      input: tests/units/phantom_ray/m1-mirror.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 284
       hashes.result_hash: d89e176f97d09a2c370a5d32d51d36d6c97b8852368067778362f6b813a66965
-  - fight.run:
-      layout: tests/units/phantom_ray/m1-mirror.yaml
+  - convert:
+      input: tests/units/phantom_ray/m1-mirror.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 164
       hashes.result_hash: d2ee9dc4305679fccedaf93965fc9c148d8867be74c258fb53bcebb064c3d587
-  - fight.run:
-      layout: tests/units/phantom_ray/m2-rhino.yaml
+  - convert:
+      input: tests/units/phantom_ray/m2-rhino.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 175
       hashes.result_hash: 4a6ba9b08ea0ff71154e6f5774c070bc0561817870c5ea353db268387beafd47
-  - fight.run:
-      layout: tests/units/phantom_ray/m2-rhino.yaml
+  - convert:
+      input: tests/units/phantom_ray/m2-rhino.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 174
       hashes.result_hash: 6fc660b2a850f3bd51db319be160741d02ff05ef3b20b7e7ba27e0fce1c053c6
-  - fight.run:
-      layout: tests/units/phantom_ray/m3-crawler.yaml
+  - convert:
+      input: tests/units/phantom_ray/m3-crawler.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 181
       hashes.result_hash: 85e759753353553697e43a40a6e4ac73e25a7968b16041e2bb148487eb47ec85
-  - fight.run:
-      layout: tests/units/phantom_ray/m3-crawler.yaml
+  - convert:
+      input: tests/units/phantom_ray/m3-crawler.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 201
       hashes.result_hash: 90e77162d3d6251621274c8ce82a851c15ebbc632811e6075e492d03a80dfc63
-  - fight.run:
-      layout: tests/units/phantom_ray/m4-marksman.yaml
+  - convert:
+      input: tests/units/phantom_ray/m4-marksman.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 176
       hashes.result_hash: 561ff37d71bf8723d160e4baba0e2b0ce9ff44924da255cb230109086e69aa78
-  - fight.run:
-      layout: tests/units/phantom_ray/m4-marksman.yaml
+  - convert:
+      input: tests/units/phantom_ray/m4-marksman.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 163
       hashes.result_hash: d1454d0494468ae6b9eea30dae930cae7d0068a9d76b6fe3abb760edab770588
-  - fight.run:
-      layout: tests/units/phantom_ray/m5-rotated.yaml
+  - convert:
+      input: tests/units/phantom_ray/m5-rotated.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 162
       hashes.result_hash: 13d29862fbc078eac4a908d8d3f0ef18519e8cb5b8963c7d87709e723129e79f
-  - fight.run:
-      layout: tests/units/phantom_ray/m5-rotated.yaml
+  - convert:
+      input: tests/units/phantom_ray/m5-rotated.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 165
       hashes.result_hash: a3ef56ea8a45cfb393cf0bc57aab42cd190d34a776389dfa0d76901aa2df93b9
-  - fight.run:
-      layout: tests/units/phantom_ray/m6-formations.yaml
+  - convert:
+      input: tests/units/phantom_ray/m6-formations.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 322
       hashes.result_hash: fdd2bcf1e77d879a4bd61f75edde6945315c19c2730e3b7ffd212d69f82da6d4
-  - fight.run:
-      layout: tests/units/phantom_ray/m6-formations.yaml
+  - convert:
+      input: tests/units/phantom_ray/m6-formations.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 302
       hashes.result_hash: e2c2ff1568991bd861fe219e72eca19767179885b20a72fd4ee22464a2d0150c
   # scorpion
-  - fight.run:
-      layout: tests/units/scorpion/m1-mirror.yaml
+  - convert:
+      input: tests/units/scorpion/m1-mirror.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 237
       hashes.result_hash: e104a43cea4bfa64a9bca93c18814836b937df45ef698321d27b179963dae085
-  - fight.run:
-      layout: tests/units/scorpion/m1-mirror.yaml
+  - convert:
+      input: tests/units/scorpion/m1-mirror.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 234
       hashes.result_hash: 7c759d9ab014c138fb7e2bebca3d0b6aa962bb4777d02130feb2c5303c531cab
-  - fight.run:
-      layout: tests/units/scorpion/m2-rhino.yaml
+  - convert:
+      input: tests/units/scorpion/m2-rhino.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 183
       hashes.result_hash: 82c5a1351e215013c4b370116c0fdaaf2acf06c4bf50523a2c97f267740d7588
-  - fight.run:
-      layout: tests/units/scorpion/m2-rhino.yaml
+  - convert:
+      input: tests/units/scorpion/m2-rhino.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 182
       hashes.result_hash: 224f06456a94427fb5f05a2a4b86d5e56c70cdba136aebf496d3143a7dc81bf6
-  - fight.run:
-      layout: tests/units/scorpion/m3-crawler.yaml
+  - convert:
+      input: tests/units/scorpion/m3-crawler.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 191
       hashes.result_hash: 9f3c52c8735d9668216e9cd65e88b4033cef5c6541e4c7e2231d29c0842cbbd9
-  - fight.run:
-      layout: tests/units/scorpion/m3-crawler.yaml
+  - convert:
+      input: tests/units/scorpion/m3-crawler.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 190
       hashes.result_hash: 361dd77eb7c89e206256ca014bf5bfeb055d7fcb37fed31cb13f2764134408fb
-  - fight.run:
-      layout: tests/units/scorpion/m4-wasp.yaml
+  - convert:
+      input: tests/units/scorpion/m4-wasp.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 252
       hashes.result_hash: 5a23dfd407320feff8d9e632f89d963af21c61af8b64009aede3af5f0c8f797e
-  - fight.run:
-      layout: tests/units/scorpion/m4-wasp.yaml
+  - convert:
+      input: tests/units/scorpion/m4-wasp.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 244
       hashes.result_hash: 3ce2897fb92de18ea833581427c8e26ddf66e5f5a25483f118347d1d574e54f4
-  - fight.run:
-      layout: tests/units/scorpion/m5-rotated.yaml
+  - convert:
+      input: tests/units/scorpion/m5-rotated.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 174
       hashes.result_hash: 32f04bc5ffca612186c978262d4ddb4e450622c38a175f15e6cb8fbfb62fac6b
-  - fight.run:
-      layout: tests/units/scorpion/m5-rotated.yaml
+  - convert:
+      input: tests/units/scorpion/m5-rotated.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 172
       hashes.result_hash: 09664e8eaa615e716f0778f5113e5d64f30d7d7e71b480e394c50accae6f5a40
-  - fight.run:
-      layout: tests/units/scorpion/m6-formations.yaml
+  - convert:
+      input: tests/units/scorpion/m6-formations.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 275
       hashes.result_hash: 4744332b7ab771e5e2b0ddd5d4f7a3e7048e3317c225b5ab1f97273d91d6406e
-  - fight.run:
-      layout: tests/units/scorpion/m6-formations.yaml
+  - convert:
+      input: tests/units/scorpion/m6-formations.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 272
       hashes.result_hash: 78ae2b4b0598f8ff05d91625978f6cfb2926fafc7e40c7f2b2fb37b6ed557634
   # typhoon
-  - fight.run:
-      layout: tests/units/typhoon/m1-mirror.yaml
+  - convert:
+      input: tests/units/typhoon/m1-mirror.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 544
       hashes.result_hash: e39e8cfa44b640b1a09b91d173289e8d58e03399aba47398216bd8c331a98bf8
-  - fight.run:
-      layout: tests/units/typhoon/m1-mirror.yaml
+  - convert:
+      input: tests/units/typhoon/m1-mirror.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 543
       hashes.result_hash: 013d6069fb5d0e5f38b7a849de9aadcb0b04d088c29194770c0db2f2e0221d86
-  - fight.run:
-      layout: tests/units/typhoon/m2-rhino.yaml
+  - convert:
+      input: tests/units/typhoon/m2-rhino.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 298
       hashes.result_hash: c511e41461263727ba2a0cfad180c173cc30842f9111bc39d6734386bccc5f4f
-  - fight.run:
-      layout: tests/units/typhoon/m2-rhino.yaml
+  - convert:
+      input: tests/units/typhoon/m2-rhino.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 293
       hashes.result_hash: 884ef4c81bbec7c290bf4a23cd9fdd980f2117e3a6ea4f3ad36ffa7ded28d9f5
-  - fight.run:
-      layout: tests/units/typhoon/m3-crawler.yaml
+  - convert:
+      input: tests/units/typhoon/m3-crawler.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 144
       hashes.result_hash: a721c7277b8ab8fe2d87f09d4ffbe5e880799230bf35e29b7873c2e653b81d6c
-  - fight.run:
-      layout: tests/units/typhoon/m4-wasp.yaml
+  - convert:
+      input: tests/units/typhoon/m4-wasp.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 157
       hashes.result_hash: 508b9da39368d3387ab61b18ca27826bba6abc389b52e5c92f180680dccb80b8
-  - fight.run:
-      layout: tests/units/typhoon/m4-wasp.yaml
+  - convert:
+      input: tests/units/typhoon/m4-wasp.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 146
       hashes.result_hash: 24bc26aa29fd9ef2cc8f295b794899be17240282f6178127615eec43f217729e
-  - fight.run:
-      layout: tests/units/typhoon/m5-rotated.yaml
+  - convert:
+      input: tests/units/typhoon/m5-rotated.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 291
       hashes.result_hash: b35eddeef4fc932c7273955a66838bad4d8208157b8303abe68627e90219caca
-  - fight.run:
-      layout: tests/units/typhoon/m5-rotated.yaml
+  - convert:
+      input: tests/units/typhoon/m5-rotated.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 285
       hashes.result_hash: 370a2033ea54c3c3d5f04a327e8f718aad16ad5a51c81d0ebef60a714018332d
-  - fight.run:
-      layout: tests/units/typhoon/m6-formations.yaml
+  - convert:
+      input: tests/units/typhoon/m6-formations.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 239
       hashes.result_hash: 5810836f2abb8c66e7fa05aec3193e4fc62c4e6f178232d4b25df8015809ece7
-  - fight.run:
-      layout: tests/units/typhoon/m3-crawler.yaml
+  - convert:
+      input: tests/units/typhoon/m3-crawler.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 155
       hashes.result_hash: 2b5824b2eac3e2375b91fba9038e4dff1f134d587a90b1e1623ba21989aa48d4
-  - fight.run:
-      layout: tests/units/typhoon/m6-formations.yaml
+  - convert:
+      input: tests/units/typhoon/m6-formations.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 252
       hashes.result_hash: 38faa01925cbb9f3b8d03c7db651caea28716e4ef88a5f3049a1688b41728d4a
   # fortress
-  - fight.run:
-      layout: tests/units/fortress/m1-mirror.yaml
+  - convert:
+      input: tests/units/fortress/m1-mirror.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 369
       hashes.result_hash: 35c79985bf48da6309dbab6cecee7e77541c27ef675abcd7769eabcae4d429fe
-  - fight.run:
-      layout: tests/units/fortress/m1-mirror.yaml
+  - convert:
+      input: tests/units/fortress/m1-mirror.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 366
       hashes.result_hash: b596375003ec2521a0ce3b95f374f506c527b00e6dcef1395ccbfdca786e49fd
-  - fight.run:
-      layout: tests/units/fortress/m2-rhino.yaml
+  - convert:
+      input: tests/units/fortress/m2-rhino.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 156
       hashes.result_hash: 16c5c9ac642dbc301b6b4301eb032b296ecb7f956f0b85360f44134828e42ca2
-  - fight.run:
-      layout: tests/units/fortress/m2-rhino.yaml
+  - convert:
+      input: tests/units/fortress/m2-rhino.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 155
       hashes.result_hash: 9427dd80838b95329386b65d52706af20eb1567cfd6f605f18a37e0e6ddf9511
-  - fight.run:
-      layout: tests/units/fortress/m3-crawler.yaml
+  - convert:
+      input: tests/units/fortress/m3-crawler.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 376
       hashes.result_hash: b24eaa2b6a6520e31b99a79931f1f693858c3209db9025d739d5ce1604b50ecc
-  - fight.run:
-      layout: tests/units/fortress/m4-wasp.yaml
+  - convert:
+      input: tests/units/fortress/m4-wasp.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 358
       hashes.result_hash: 6e53d277b66d340907b10d1cad5287ceb8d1fba2d2852f9ae7d4027c22e8bcda
-  - fight.run:
-      layout: tests/units/fortress/m4-wasp.yaml
+  - convert:
+      input: tests/units/fortress/m4-wasp.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 364
       hashes.result_hash: 9b6b35ab2b08a6d57b16a59c0ddb4c26a9b28509c04410d68cf21cb7a5ee30d6
-  - fight.run:
-      layout: tests/units/fortress/m5-rotated.yaml
+  - convert:
+      input: tests/units/fortress/m5-rotated.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 145
       hashes.result_hash: 3a2dea1862fe4d393058e71f13e60b9d173ccad19ffdfc2274b393ce89291a35
-  - fight.run:
-      layout: tests/units/fortress/m5-rotated.yaml
+  - convert:
+      input: tests/units/fortress/m5-rotated.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 142
       hashes.result_hash: 00f2d712b8ef81658ed3d59a7e4c97c0f9d4e47453f61487169db4892fefc430
-  - fight.run:
-      layout: tests/units/fortress/m6-formations.yaml
+  - convert:
+      input: tests/units/fortress/m6-formations.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 380
       hashes.result_hash: 50d7da07422fe30281b4cc2908d4eb243bb5741d658d341528b4a442c87e963c
-  - fight.run:
-      layout: tests/units/fortress/m6-formations.yaml
+  - convert:
+      input: tests/units/fortress/m6-formations.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 407
       hashes.result_hash: 71211138fa1fd0f8832405ebb15774148defeb388445d65a02366f9130c11245
-  - fight.run:
-      layout: tests/units/fortress/m3-crawler.yaml
+  - convert:
+      input: tests/units/fortress/m3-crawler.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 463
       hashes.result_hash: 21fa266ef16801d9ef9210e9d02f369f7dba97687218e7cb0d29e32ddc875e72
   # vulcan
-  - fight.run:
-      layout: tests/units/vulcan/m1-mirror.yaml
+  - convert:
+      input: tests/units/vulcan/m1-mirror.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 959
       hashes.result_hash: b68056dbf69060230d738729388be9ae307e8e8bbfeea5ff1b5743be313bdcbf
-  - fight.run:
-      layout: tests/units/vulcan/m1-mirror.yaml
+  - convert:
+      input: tests/units/vulcan/m1-mirror.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 956
       hashes.result_hash: d3177fdba4cfbf4797db8ec6abe561306485cb094c9062a338fa2a7fe03e35c3
-  - fight.run:
-      layout: tests/units/vulcan/m2-rhino.yaml
+  - convert:
+      input: tests/units/vulcan/m2-rhino.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 342
       hashes.result_hash: e7553fb42efa5b50964ee01bc4b75865daf9cfb840a3f2ebc830a89fc71643ac
-  - fight.run:
-      layout: tests/units/vulcan/m2-rhino.yaml
+  - convert:
+      input: tests/units/vulcan/m2-rhino.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 340
       hashes.result_hash: b26472813a22cc7c5bc4efde7bddfd13b58532687da088116935e29bb48643e5
-  - fight.run:
-      layout: tests/units/vulcan/m3-crawler.yaml
+  - convert:
+      input: tests/units/vulcan/m3-crawler.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 119
       hashes.result_hash: 609b29bd48757084c01915c699c37457e119b52c41b34f7cf15432f94defa403
-  - fight.run:
-      layout: tests/units/vulcan/m3-crawler.yaml
+  - convert:
+      input: tests/units/vulcan/m3-crawler.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 128
       hashes.result_hash: 85db3dd446a476b433dbebf786bea2bfa336afa8a945b7991e85f752407fb9fb
-  - fight.run:
-      layout: tests/units/vulcan/m4-wasp.yaml
+  - convert:
+      input: tests/units/vulcan/m4-wasp.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 301
       hashes.result_hash: 6aa3f3157959d575f2b603cd9df3607712a8d5374d9f675f9be33882b485ce9c
-  - fight.run:
-      layout: tests/units/vulcan/m4-wasp.yaml
+  - convert:
+      input: tests/units/vulcan/m4-wasp.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 307
       hashes.result_hash: 157c471f8e8b9c66cf3aa1aabc9d38772257ac4db898b2cb9eb00004f9b82e31
-  - fight.run:
-      layout: tests/units/vulcan/m5-rotated.yaml
+  - convert:
+      input: tests/units/vulcan/m5-rotated.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 330
       hashes.result_hash: 299f2cca1a44d679453de98bf76033da92fdd8d44d5f3fa16ebf3e7e1501a8a9
-  - fight.run:
-      layout: tests/units/vulcan/m5-rotated.yaml
+  - convert:
+      input: tests/units/vulcan/m5-rotated.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 328
       hashes.result_hash: 65db2eec7988fb0ab29fddf69b85814b64b5d0583ef92623b3aa2ed7e8c5c1cb
-  - fight.run:
-      layout: tests/units/vulcan/m6-formations.yaml
+  - convert:
+      input: tests/units/vulcan/m6-formations.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 263
       hashes.result_hash: d425c1f23624b8c3da04e72ecebe012f98c39566d1883dd49440a77a9873e563
-  - fight.run:
-      layout: tests/units/vulcan/m6-formations.yaml
+  - convert:
+      input: tests/units/vulcan/m6-formations.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 264
       hashes.result_hash: 3de8cf971998f96717977ea959c32cd3b02c06855ee43262fba60924175b0510
   # melting_point
-  - fight.run:
-      layout: tests/units/melting_point/m1-mirror.yaml
+  - convert:
+      input: tests/units/melting_point/m1-mirror.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 204
       hashes.result_hash: f6f461ad925b2e0a822fb9d3f69aebe9a05eaf5cc3ae1c07786416a810ddeed4
-  - fight.run:
-      layout: tests/units/melting_point/m1-mirror.yaml
+  - convert:
+      input: tests/units/melting_point/m1-mirror.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 201
       hashes.result_hash: 7e449d761297c04623b098f006272d9dc1eef6119b7fec6892219e771f0127c6
-  - fight.run:
-      layout: tests/units/melting_point/m2-rhino.yaml
+  - convert:
+      input: tests/units/melting_point/m2-rhino.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 146
       hashes.result_hash: 8128f7cba08e72df034e802a3bbf29c18f69b8b6555e4171c8132526ce148d66
-  - fight.run:
-      layout: tests/units/melting_point/m2-rhino.yaml
+  - convert:
+      input: tests/units/melting_point/m2-rhino.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 144
       hashes.result_hash: ff51cd7d5b72dcb3ec3674c03ba3b0275f05234a6611f3009078ab6feafbf189
-  - fight.run:
-      layout: tests/units/melting_point/m3-crawler.yaml
+  - convert:
+      input: tests/units/melting_point/m3-crawler.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 533
       hashes.result_hash: fc24297ab0f1f7dd87cae6aaf6477927417166432e279c5baad097b98ad5ffce
-  - fight.run:
-      layout: tests/units/melting_point/m3-crawler.yaml
+  - convert:
+      input: tests/units/melting_point/m3-crawler.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 487
       hashes.result_hash: 69db31602122a91873ac90a6dcf3b4f2b9e1e198c23829a106624f57169d60cc
-  - fight.run:
-      layout: tests/units/melting_point/m4-wasp.yaml
+  - convert:
+      input: tests/units/melting_point/m4-wasp.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 420
       hashes.result_hash: b2f9cfdd7792e8333f8b0901594d9d3c9b749dd20836e5e8c960d29c40bfb515
-  - fight.run:
-      layout: tests/units/melting_point/m4-wasp.yaml
+  - convert:
+      input: tests/units/melting_point/m4-wasp.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 414
       hashes.result_hash: a1ee3f7104b1cc4ee68e949530828e5e9c44f8e061be38b1099fdd8916119e8e
-  - fight.run:
-      layout: tests/units/melting_point/m5-rotated.yaml
+  - convert:
+      input: tests/units/melting_point/m5-rotated.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 134
       hashes.result_hash: fe8250292fc98ca3f6197ea6d69fa2e443a6aae2576a478e4397196bcfd521a6
-  - fight.run:
-      layout: tests/units/melting_point/m5-rotated.yaml
+  - convert:
+      input: tests/units/melting_point/m5-rotated.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 132
       hashes.result_hash: 15eed9caed7e2e81970bd476d05e20a0c6ded0519f3cdd3a78ef20a7355b60a7
-  - fight.run:
-      layout: tests/units/melting_point/m6-formations.yaml
+  - convert:
+      input: tests/units/melting_point/m6-formations.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 454
       hashes.result_hash: e2ad329009966f196cca36ed4864567378a8f23eff423721b4cbffc5dcaba558
-  - fight.run:
-      layout: tests/units/melting_point/m6-formations.yaml
+  - convert:
+      input: tests/units/melting_point/m6-formations.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 467
       hashes.result_hash: d957f0de088067aa2fe568651b6fcec2b5b17d012aa9dcc1280900dc40692600
   # centurion
-  - fight.run:
-      layout: tests/units/centurion/m1-mirror.yaml
+  - convert:
+      input: tests/units/centurion/m1-mirror.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 243
       hashes.result_hash: 4aa83697ad370c26aed7451fc39ea4adc170e72f3285ede1e583802a7d201b3f
-  - fight.run:
-      layout: tests/units/centurion/m1-mirror.yaml
+  - convert:
+      input: tests/units/centurion/m1-mirror.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 241
       hashes.result_hash: 68dfc6ff7f79ec05ca7422bf402b622859c6891cd4066fdc329006846067e6c8
-  - fight.run:
-      layout: tests/units/centurion/m2-rhino.yaml
+  - convert:
+      input: tests/units/centurion/m2-rhino.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 261
       hashes.result_hash: 757c0f9f41e571e1645fc3816200279445eabc61e991237cccda1ac4a480f050
-  - fight.run:
-      layout: tests/units/centurion/m2-rhino.yaml
+  - convert:
+      input: tests/units/centurion/m2-rhino.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 259
       hashes.result_hash: b9dd33edce4ec2d928890b2661f29a639aeb9e999c75b2eae986b153c9e6d079
-  - fight.run:
-      layout: tests/units/centurion/m3-crawler.yaml
+  - convert:
+      input: tests/units/centurion/m3-crawler.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 449
       hashes.result_hash: 1cbfdf67958e404ee1efd4ff1d2545cf3b3c5960259970d52911ea4f798913a4
-  - fight.run:
-      layout: tests/units/centurion/m3-crawler.yaml
+  - convert:
+      input: tests/units/centurion/m3-crawler.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 441
       hashes.result_hash: 7d5385db264a721777058b5ae9e29c9ca34051fccb072b85988b6c481d717218
-  - fight.run:
-      layout: tests/units/centurion/m4-wasp.yaml
+  - convert:
+      input: tests/units/centurion/m4-wasp.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 254
       hashes.result_hash: c23cc848eaaf285738758fe21accfdbc8002d68d402b89bb2ed070303c9fe594
-  - fight.run:
-      layout: tests/units/centurion/m4-wasp.yaml
+  - convert:
+      input: tests/units/centurion/m4-wasp.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 253
       hashes.result_hash: 2fe5e579852a75911ba85e23000bdb7a4d5decff6fa5d28423ddc3b37285b028
-  - fight.run:
-      layout: tests/units/centurion/m5-rotated.yaml
+  - convert:
+      input: tests/units/centurion/m5-rotated.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 252
       hashes.result_hash: da7789113c63c0e8e43d3bad9fc4eeb356176c81c688a68ce9f4a2197d6da4a2
-  - fight.run:
-      layout: tests/units/centurion/m5-rotated.yaml
+  - convert:
+      input: tests/units/centurion/m5-rotated.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 250
       hashes.result_hash: eadcdc93e89f9e0521f8a4ca3b6935a754e00cc6c054e67c96f1c689f94c550a
-  - fight.run:
-      layout: tests/units/centurion/m6-formations.yaml
+  - convert:
+      input: tests/units/centurion/m6-formations.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 413
       hashes.result_hash: a757356aeade69a73d45fcb53b0b14f0a7cddd8208dea95470c5f115b9066125
-  - fight.run:
-      layout: tests/units/centurion/m6-formations.yaml
+  - convert:
+      input: tests/units/centurion/m6-formations.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 421
       hashes.result_hash: 9a679e7202fcca563c10bb1257da3a122637569a162fea9e3e2086253bd66620
   # vortex
-  - fight.run:
-      layout: tests/units/vortex/m1-mirror.yaml
+  - convert:
+      input: tests/units/vortex/m1-mirror.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 314
       hashes.result_hash: 80229f96e5fc66d86a67f7caee4a8cbda12e77ce5a77fc1cb0ad819d8d39e73d
-  - fight.run:
-      layout: tests/units/vortex/m1-mirror.yaml
+  - convert:
+      input: tests/units/vortex/m1-mirror.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 312
       hashes.result_hash: efc7f1e09eb7204770a99582871cec540e3c4a409ee6d46ad5f2bf1caf873821
-  - fight.run:
-      layout: tests/units/vortex/m2-rhino.yaml
+  - convert:
+      input: tests/units/vortex/m2-rhino.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 225
       hashes.result_hash: 049fa9625d477c0ede2cc1d0e798233ee8b0cb7185d935381957afc6f9ad853d
-  - fight.run:
-      layout: tests/units/vortex/m2-rhino.yaml
+  - convert:
+      input: tests/units/vortex/m2-rhino.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 225
       hashes.result_hash: 5559acb06a92fa0000556095e7811154e523f274ede827088f7999d8fef0a7a4
-  - fight.run:
-      layout: tests/units/vortex/m3-crawler.yaml
+  - convert:
+      input: tests/units/vortex/m3-crawler.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 285
       hashes.result_hash: 9307b81c97710d8b8541f1384f8979b63d1a732bd349c3ae2cae9065ea3a5d62
-  - fight.run:
-      layout: tests/units/vortex/m3-crawler.yaml
+  - convert:
+      input: tests/units/vortex/m3-crawler.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 284
       hashes.result_hash: f3c297191b87661ed7364829ebb4bc299a8c2ce5f7483b9522cc937eb2c3053b
-  - fight.run:
-      layout: tests/units/vortex/m4-wasp.yaml
+  - convert:
+      input: tests/units/vortex/m4-wasp.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 205
       hashes.result_hash: dc3737b7cf68c106f7cb9258b84ac716e50823805323e1c08bbfe1641e21c525
-  - fight.run:
-      layout: tests/units/vortex/m4-wasp.yaml
+  - convert:
+      input: tests/units/vortex/m4-wasp.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 205
       hashes.result_hash: 69ca4e7737763f69814e5a71071b5045c2df75f90f44800bbe1d23091b57f5d6
-  - fight.run:
-      layout: tests/units/vortex/m5-rotated.yaml
+  - convert:
+      input: tests/units/vortex/m5-rotated.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 215
       hashes.result_hash: bae34db13529c61dfeb2af7a6bf068c8fc740e94530dad6b7249431f1b1d23c9
-  - fight.run:
-      layout: tests/units/vortex/m5-rotated.yaml
+  - convert:
+      input: tests/units/vortex/m5-rotated.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 212
       hashes.result_hash: 194c3f1e6f992cb252bec8bf85045ef58559dda7350c2cee9910c96e718cd97c
-  - fight.run:
-      layout: tests/units/vortex/m6-formations.yaml
+  - convert:
+      input: tests/units/vortex/m6-formations.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 300
       hashes.result_hash: df913a79bf2907608fe7f2d53a9dc6c908c3ced475c7e7f1557eb492a0ac5a08
-  - fight.run:
-      layout: tests/units/vortex/m6-formations.yaml
+  - convert:
+      input: tests/units/vortex/m6-formations.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 302
       hashes.result_hash: a530beb4f9f5ef549e193869481b64c561aa91997386046dcbf9f64950593f65
   # farseer
-  - fight.run:
-      layout: tests/units/farseer/m1-mirror.yaml
+  - convert:
+      input: tests/units/farseer/m1-mirror.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 244
       hashes.result_hash: 56fd1cbfd922b0eef737e0d34e6cb7acc422191180d28097c429799413f5888f
-  - fight.run:
-      layout: tests/units/farseer/m1-mirror.yaml
+  - convert:
+      input: tests/units/farseer/m1-mirror.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 243
       hashes.result_hash: 3fe931649f3bd25421ccc4de2db20ecfb3d789e0d843761a0d36135d6ff81ea2
-  - fight.run:
-      layout: tests/units/farseer/m2-rhino.yaml
+  - convert:
+      input: tests/units/farseer/m2-rhino.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 253
       hashes.result_hash: 4260458a306ce46b405a8e239d15c490f1e63f3547b49bb653e50c8dc411bdf5
-  - fight.run:
-      layout: tests/units/farseer/m2-rhino.yaml
+  - convert:
+      input: tests/units/farseer/m2-rhino.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 252
       hashes.result_hash: 87fd30a0f2915285f443129b9c1b18f40dad9988a0911d842e63abca8e16cea3
-  - fight.run:
-      layout: tests/units/farseer/m3-crawler.yaml
+  - convert:
+      input: tests/units/farseer/m3-crawler.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 219
       hashes.result_hash: 8f24dbe8899a394fc5e7a55edef0efce8801f48376e6fb4282a6ecb36285feaa
-  - fight.run:
-      layout: tests/units/farseer/m3-crawler.yaml
+  - convert:
+      input: tests/units/farseer/m3-crawler.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 217
       hashes.result_hash: 63f81c83903876ac3128134f9151152990ea9f78daf8fa84b646558837553a7d
-  - fight.run:
-      layout: tests/units/farseer/m4-wasp.yaml
+  - convert:
+      input: tests/units/farseer/m4-wasp.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 228
       hashes.result_hash: f7a7b1a5a844234e956bf0926fe0f39b14ffca9ca7a48799e750bd8e7f93bd23
-  - fight.run:
-      layout: tests/units/farseer/m4-wasp.yaml
+  - convert:
+      input: tests/units/farseer/m4-wasp.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 150
       hashes.result_hash: a5061f9dcc2d68bad0c0b1a902e8c65045e8e8ff1ef08eaaef37169c3526dede
-  - fight.run:
-      layout: tests/units/farseer/m5-rotated.yaml
+  - convert:
+      input: tests/units/farseer/m5-rotated.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 243
       hashes.result_hash: 8d4bd0e287b9e77e19b38a4a3c2bd60565d2781ba6c7c280b48fe0a50ab8b626
-  - fight.run:
-      layout: tests/units/farseer/m5-rotated.yaml
+  - convert:
+      input: tests/units/farseer/m5-rotated.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 244
       hashes.result_hash: 7ab2737bf1faf2658bc23504bf155c38412c3ca15efcfa7bc4f8540c3da0e81a
-  - fight.run:
-      layout: tests/units/farseer/m6-formations.yaml
+  - convert:
+      input: tests/units/farseer/m6-formations.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 211
       hashes.result_hash: 61143418331b1fb5f4daad4f62d529578eba9b76f85cbb7b29da3dfd7d637da0
-  - fight.run:
-      layout: tests/units/farseer/m6-formations.yaml
+  - convert:
+      input: tests/units/farseer/m6-formations.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 204
       hashes.result_hash: ef6b38738f78a7aee8d1373f6b4abe16e44ca5f23ed91767ae19bd6feef126ad
   # overlord
-  - fight.run:
-      layout: tests/units/overlord/m1-mirror.yaml
+  - convert:
+      input: tests/units/overlord/m1-mirror.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 197
       hashes.result_hash: c11fae3b0d176c2f4e99a47741e12944aa5e6d3b3824584415ac03606217a504
-  - fight.run:
-      layout: tests/units/overlord/m1-mirror.yaml
+  - convert:
+      input: tests/units/overlord/m1-mirror.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 195
       hashes.result_hash: 3a6ea25ec6850f3af00789c8eaf72175fd7178b87ac1ccfc59cd5c88bda3c1c2
-  - fight.run:
-      layout: tests/units/overlord/m2-rhino.yaml
+  - convert:
+      input: tests/units/overlord/m2-rhino.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 188
       hashes.result_hash: 5b0865cd41c8dc2860efb967913926d58a1543523609ad211c8901a3a7efe4d3
-  - fight.run:
-      layout: tests/units/overlord/m2-rhino.yaml
+  - convert:
+      input: tests/units/overlord/m2-rhino.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 186
       hashes.result_hash: 29ae34a0f0213e8f4b5ab885148e7bfed8224a52a459e7eb1cc5f01334de0c36
-  - fight.run:
-      layout: tests/units/overlord/m3-crawler.yaml
+  - convert:
+      input: tests/units/overlord/m3-crawler.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 281
       hashes.result_hash: dc765160335424d607582a61e4628cfe2cd5e13020824cdc379d2e8ddfa7538d
-  - fight.run:
-      layout: tests/units/overlord/m3-crawler.yaml
+  - convert:
+      input: tests/units/overlord/m3-crawler.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 374
       hashes.result_hash: 9c795948b32852b87ce2e9d1384a4c8f41514da47d70b9ffa847e8d2f71a3807
-  - fight.run:
-      layout: tests/units/overlord/m4-marksman.yaml
+  - convert:
+      input: tests/units/overlord/m4-marksman.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 127
       hashes.result_hash: e4a1e04fe16e6ffa26aa4ca61e8dde0fd90411d03bac907da00be36f9d44a9eb
-  - fight.run:
-      layout: tests/units/overlord/m4-marksman.yaml
+  - convert:
+      input: tests/units/overlord/m4-marksman.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 127
       hashes.result_hash: 08ee32e26605fdd47b7a9961f897cca4202c8cef2aa46196e47f50c103ea864a
-  - fight.run:
-      layout: tests/units/overlord/m5-rotated.yaml
+  - convert:
+      input: tests/units/overlord/m5-rotated.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 119
       hashes.result_hash: 7df8b6d9517eaf4204c70f31ad753adba77d8f12c3e9150e86598e4cd456fe18
-  - fight.run:
-      layout: tests/units/overlord/m5-rotated.yaml
+  - convert:
+      input: tests/units/overlord/m5-rotated.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 117
       hashes.result_hash: 0e972ddc72dd9c0aab963b87832f2c4993f30ee053656d0a576990bed975f88d
-  - fight.run:
-      layout: tests/units/overlord/m6-formations.yaml
+  - convert:
+      input: tests/units/overlord/m6-formations.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 362
       hashes.result_hash: 524d9b22d073cfe55248532b0d43ca1c527a0d6b70260ee3d06b796ef097133e
-  - fight.run:
-      layout: tests/units/overlord/m6-formations.yaml
+  - convert:
+      input: tests/units/overlord/m6-formations.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 352
       hashes.result_hash: 0fb1ea908a040e5b699d8b9ff103d8a0bd1e4c0cb5d78f6ea125b6c3ce269d89
   # raiden
-  - fight.run:
-      layout: tests/units/raiden/m1-mirror.yaml
+  - convert:
+      input: tests/units/raiden/m1-mirror.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 351
       hashes.result_hash: 79fb959769616c9970ae03f6d2aeebca066364d6628a36ce0ddf978a9f62e166
-  - fight.run:
-      layout: tests/units/raiden/m1-mirror.yaml
+  - convert:
+      input: tests/units/raiden/m1-mirror.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 349
       hashes.result_hash: ca2b372524e8be7149d8e89b16b762036f4e697c0c454a063aceb1530b4d6b83
-  - fight.run:
-      layout: tests/units/raiden/m2-rhino.yaml
+  - convert:
+      input: tests/units/raiden/m2-rhino.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 155
       hashes.result_hash: 2175b137db3987485e1ee1851be470d912f5676b4aa0186af1ceea75191c2730
-  - fight.run:
-      layout: tests/units/raiden/m2-rhino.yaml
+  - convert:
+      input: tests/units/raiden/m2-rhino.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 155
       hashes.result_hash: 3537974989b8345dbd05e8b903bdb49a4e74c76ce45d10fb3448cac2d11f4e96
-  - fight.run:
-      layout: tests/units/raiden/m3-crawler.yaml
+  - convert:
+      input: tests/units/raiden/m3-crawler.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 366
       hashes.result_hash: a4d20cc480729e29935c4b61f3e8e3bc98c5f42e0a7b2ef2b136c16e17d0e36a
-  - fight.run:
-      layout: tests/units/raiden/m3-crawler.yaml
+  - convert:
+      input: tests/units/raiden/m3-crawler.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 395
       hashes.result_hash: 581c468e7ca9422f33aeb3b7cf4418d13f0c829e3f7f7cc5bb987f5fb131e868
-  - fight.run:
-      layout: tests/units/raiden/m4-marksman.yaml
+  - convert:
+      input: tests/units/raiden/m4-marksman.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 110
       hashes.result_hash: 945666e87947e819df2825c03ee1f92534f81d2efdc23366489dc79774421a84
-  - fight.run:
-      layout: tests/units/raiden/m4-marksman.yaml
+  - convert:
+      input: tests/units/raiden/m4-marksman.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 110
       hashes.result_hash: d52628afd22fbe98c49d0b3a30abfd7fc277ac8864f04cbb8c364db1ae252a67
-  - fight.run:
-      layout: tests/units/raiden/m5-rotated.yaml
+  - convert:
+      input: tests/units/raiden/m5-rotated.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 98
       hashes.result_hash: 15aed80ff3da14f348cd9e62aa63d3a2eeefe716f2410c3bb3b99ce7a02d3db8
-  - fight.run:
-      layout: tests/units/raiden/m5-rotated.yaml
+  - convert:
+      input: tests/units/raiden/m5-rotated.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 96
       hashes.result_hash: 1f85fbfb471782d9ceb50228a15813e0b648b03a9771b6da03c95ffc5e1df8b4
-  - fight.run:
-      layout: tests/units/raiden/m6-formations.yaml
+  - convert:
+      input: tests/units/raiden/m6-formations.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 557
       hashes.result_hash: 38ab6b27de3af7c39f7f4050481597ae1891c29583ac0a2ced9dc4dc704d5ed0
-  - fight.run:
-      layout: tests/units/raiden/m6-formations.yaml
+  - convert:
+      input: tests/units/raiden/m6-formations.yaml
+      to: mcfr
       seed: 1787720817
     expect:
       steps: 552

@@ -45,37 +45,43 @@ steps:
     steps:
       - let:
           layout: read_yaml(${fight.layout})
-      - game.record_layout:
-          layout: $layout
+      - game.record:
+          input: $layout
           seed: $seed
           output: ${out}/${fight.name}.mcfr
 
-  - fight.stats:
-      recording: ${out}/heavy-armor.mcfr
+  - show:
+      input: ${out}/heavy-armor.mcfr
+      view: stats
     expect:
       sides.blue.0.unit.life_rate.add: 3221225472
       sides.blue.0.derived.attack_damage: 2329
-  - fight.stats:
-      recording: ${out}/heavy-armor-officer.mcfr
+  - show:
+      input: ${out}/heavy-armor-officer.mcfr
+      view: stats
     expect:
       sides.blue.0.unit.life_rate.add: 4509715660
-  - fight.stats:
-      recording: ${out}/firepower.mcfr
+  - show:
+      input: ${out}/firepower.mcfr
+      view: stats
     expect:
       sides.blue.0.skill.0.modifiers.damage_rate.add: 2791728742
       sides.blue.0.derived.attack_damage: 3842
-  - fight.stats:
-      recording: ${out}/firepower-officer.mcfr
+  - show:
+      input: ${out}/firepower-officer.mcfr
+      view: stats
     expect:
       sides.blue.0.skill.0.modifiers.damage_rate.add: 4080218930
       sides.blue.0.derived.attack_damage: 4541
-  - fight.stats:
-      recording: ${out}/laser-sights.mcfr
+  - show:
+      input: ${out}/laser-sights.mcfr
+      view: stats
     expect:
       sides.blue.0.skill.0.modifiers.attack_range_value: 85899345920
       sides.blue.0.derived.attack_range: 687194767360
-  - fight.stats:
-      recording: ${out}/two-items.mcfr
+  - show:
+      input: ${out}/two-items.mcfr
+      view: stats
     expect:
       sides.blue.0.unit.life_rate.add: 3221225472
       sides.blue.0.skill.0.modifiers.damage_rate.add: 2791728742

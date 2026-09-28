@@ -2,10 +2,13 @@
 //!
 //! A binary is distributed on its own, so what it knows travels with it. The
 //! documents are compiled in, and `mechcore man <topic>` reads one back.
+//! `mechcore man <kind>` also says which verbs a file of that kind takes, from
+//! the same table the verbs are refused by.
 
 use serde::Serialize;
 
 use crate::cli::{Args, Failure, Format, Outcome, Verdict};
+use crate::kind::Kind;
 
 /// Every topic, as `(topic, text)`.
 ///
@@ -209,21 +212,86 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
         None | Some("en") => topic.clone(),
         Some(code) => format!("{topic}.{code}"),
     };
-    let (name, text) = find(&wanted).ok_or_else(|| missing(&wanted, language.as_deref()))?;
+    let kind = Kind::parse(&topic).map(Verbs::of);
+    let page = match (find(&wanted), &kind) {
+        (Some((name, text)), _) => (name, title(text), text),
+        // A kind no document describes still takes verbs.
+        (None, Some(verbs)) if language.is_none() => (verbs.kind, "", ""),
+        (None, _) => return Err(missing(&wanted, language.as_deref())),
+    };
+    let (name, title, text) = page;
     if format == Format::Text {
+        if let Some(verbs) = &kind {
+            println!("{}", verbs.text());
+            if !text.is_empty() {
+                println!();
+            }
+        }
         print!("{text}");
     } else {
         crate::cli::emit(
             &Page {
                 schema: "mechcore.man-page.v1",
                 topic: name,
-                title: title(text),
+                title,
                 text,
+                verbs: kind,
             },
             format,
         )?;
     }
     Ok(Verdict::Yes)
+}
+
+/// What a file of one kind takes: the verbs, and the kinds `convert` reaches
+/// from it.
+// `verbs` is what the page's JSON calls the list, beside `kind`.
+#[allow(clippy::struct_field_names)]
+#[derive(Serialize)]
+struct Verbs {
+    kind: &'static str,
+    verbs: &'static [&'static str],
+    converts_to: Vec<Reach>,
+}
+
+#[derive(Serialize)]
+struct Reach {
+    kind: &'static str,
+    conversion: &'static str,
+}
+
+impl Verbs {
+    fn of(kind: Kind) -> Self {
+        Self {
+            kind: kind.name(),
+            verbs: kind.verbs(),
+            converts_to: kind
+                .conversions()
+                .iter()
+                .map(|(to, how)| Reach {
+                    kind: to.name(),
+                    conversion: how.name(),
+                })
+                .collect(),
+        }
+    }
+
+    fn text(&self) -> String {
+        use std::fmt::Write;
+        let mut text = if self.verbs.is_empty() {
+            format!("a {} file takes no verb", self.kind)
+        } else {
+            format!("a {} file takes {}", self.kind, self.verbs.join(", "))
+        };
+        for reach in &self.converts_to {
+            let _ = write!(
+                text,
+                "\n  convert --to {:<8}{}",
+                reach.kind, reach.conversion
+            );
+        }
+        text
+    }
 }
 
 /// The topic list, which is what `man` answers with no topic.
@@ -236,15 +304,21 @@ fn list(arguments: Args, format: Format) -> Outcome {
             title: title(text),
         })
         .collect();
+    let kinds = Kind::ALL.map(Kind::name);
     if format == Format::Text {
         for topic in &topics {
             println!("{:<32}{}", topic.topic, topic.title);
         }
+        println!(
+            "\nfile kinds, each `man <kind>` with the verbs it takes: {}",
+            kinds.join(", ")
+        );
     } else {
         crate::cli::emit(
             &Listing {
                 schema: "mechcore.man-topics.v1",
                 topics,
+                kinds,
             },
             format,
         )?;
@@ -289,12 +363,15 @@ struct Page {
     topic: &'static str,
     title: &'static str,
     text: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    verbs: Option<Verbs>,
 }
 
 #[derive(Serialize)]
 struct Listing {
     schema: &'static str,
     topics: Vec<Topic>,
+    kinds: [&'static str; 6],
 }
 
 #[derive(Serialize)]
@@ -305,7 +382,8 @@ struct Topic {
 
 #[cfg(test)]
 mod tests {
-    use super::{TOPICS, find, title};
+    use super::{TOPICS, Verbs, find, title};
+    use crate::kind::Kind;
 
     /// Every document under `docs/` is a topic, so a document added without a
     /// line here is a document the binary does not carry.
@@ -351,5 +429,21 @@ mod tests {
         );
         assert!(find("nothing").is_none());
         assert_eq!(title("# The title\n\nbody\n"), "The title");
+    }
+
+    /// A kind's page opens with the verbs it takes, and a document kind is
+    /// also the topic that describes it.
+    #[test]
+    fn a_kind_names_the_verbs_it_takes() {
+        let layout = Verbs::of(Kind::Layout).text();
+        assert!(
+            layout.starts_with("a layout file takes verify, convert"),
+            "{layout}"
+        );
+        assert!(layout.contains("--to mcfr    computation"), "{layout}");
+        assert!(Verbs::of(Kind::State).text().contains("no verb"));
+        for kind in ["layout", "match", "state", "action", "mcfr"] {
+            assert!(find(kind).is_some(), "{kind}");
+        }
     }
 }

@@ -501,7 +501,7 @@ application lists referenced the affected enemy units. Oil populated the sparse
 Input identifies an existing native replay, a one-based combat round, and a new
 MCFR destination. The round has no upper bound: reading round `N` out of a
 replay is decoding, not staging, so `MAX_STAGED_ROUND` does not apply here. The
-replay may be one the game saved or a layout that `mechcore replay convert`
+replay may be one the game saved or a layout that `mechcore convert --to grbr`
 wrote as one.
 
 ```json
@@ -723,7 +723,7 @@ states the scene admission rules, which a script cannot widen.
 Requalifying this path after a game update means running a batch and accepting
 it only when one result has `operation.recorded` and
 `operation.cleanup.match_exited` true, a final status of `main_menu`, an output
-file `mechcore replay convert` can open carrying the build and a non-negative seat, and
+file `mechcore convert --to match` can open carrying the build and a non-negative seat, and
 no managed exception in either log. That decode is the reviewer's check on a new
 build, not a step the collector performs per match.
 

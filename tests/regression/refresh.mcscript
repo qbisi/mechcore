@@ -11,7 +11,7 @@
 # Scope: smoke cases only, which is what fight.rs treats as the native tier.
 # Delete the `where` line to cover every case in the manifest instead.
 #
-# To verify rather than refresh, add an expect block to record_layout:
+# To verify rather than refresh, add an expect block to game.record:
 #
 #     expect:
 #       operation.tick_count: ${case.tick_count}
@@ -36,7 +36,7 @@ steps:
     steps:
       - let:
           layout: read_yaml(${case.layout})
-      - game.record_layout:
-          layout: $layout
+      - game.record:
+          input: $layout
           seed: ${case.seed}
           output: $out/${case.name}.mcfr

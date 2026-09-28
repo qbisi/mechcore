@@ -4,7 +4,7 @@
 Two numbers, and they measure different things.
 
 *What the simulator accepts* is the progress bar: every tracked round projected
-onto the layout its fight starts from and handed to `fight run`, counting the
+onto the layout its fight starts from and handed to `convert --to mcfr`, counting the
 ones it does not refuse. It is zero today and is meant only to go up.
 
 *What the corpus asks for* is the work order: the same refusals, read for what
@@ -93,8 +93,8 @@ def main() -> int:
         for match_doc in sorted(matches.glob("*.yaml")):
             for round_number in range(1, rounds_of(match_doc) + 1):
                 projected = subprocess.run(
-                    [binary, "doc", "project", match_doc, "--round", str(round_number),
-                     "--output", layout],
+                    [binary, "convert", match_doc, "--to", "layout", "--round", str(round_number),
+                     layout, "--force"],
                     capture_output=True,
                 )
                 if projected.returncode != 0:
@@ -103,7 +103,7 @@ def main() -> int:
                     )
                     continue
                 fought = subprocess.run(
-                    [binary, "fight", "run", layout], capture_output=True
+                    [binary, "convert", layout, "--to", "mcfr"], capture_output=True
                 )
                 if fought.returncode == 0:
                     accepted += 1

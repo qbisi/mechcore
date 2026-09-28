@@ -1,8 +1,9 @@
 # The game's recording of the fixture here, simulated without the game or the
 # recording. The hash comes from the capture slots.mcscript makes.
 steps:
-  - fight.run:
-      layout: tests/raiden/fang-in-reach.yaml
+  - convert:
+      input: tests/raiden/fang-in-reach.yaml
+      to: mcfr
       seed: 4242
     expect:
       steps: 99

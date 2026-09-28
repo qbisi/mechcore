@@ -46,8 +46,8 @@ steps:
     steps:
       - let:
           layout: read_yaml(${recording.layout})
-      - game.record_layout:
-          layout: $layout
+      - game.record:
+          input: $layout
           seed: ${recording.seed}
           output: ${out}/${recording.name}.mcfr
           instrument: [skill_attackable_checker, group_slots]

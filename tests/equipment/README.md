@@ -20,7 +20,7 @@ The layouts use round one and level-one units.
 The far pair starts 170 metres centre to centre, 153 edge to edge. The
 near Laser Sights fight moves as the control does because the
 target is already in range. Life is read from the first tick; damage and
-range are also exposed by `fight stats`.
+range are also exposed by `show --view stats`.
 
 `regressions.mcscript` pins all nine fights with the hashes the game
 recorded; the simulator reproduces each tick for tick.

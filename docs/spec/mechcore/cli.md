@@ -4,11 +4,11 @@
 
 ## Scope
 
-This contract defines the surface of the `mechcore` binary: the namespaces it
-holds, the operations in each, what each operation takes and answers, how a
-result is written, and what an exit code means. It is the shared contract
-behind the four ways an operation is called, so a caller that learns one way
-can use the others.
+This contract defines the surface of the `mechcore` binary: the verbs it holds
+over files, the namespaces it holds for what outlives one command, what each
+operation takes and answers, how a result is written, and what an exit code
+means. It is the shared contract behind the four ways an operation is called,
+so a caller that learns one way can use the others.
 
 What an operation means is not here. A decision's effect on a position is the
 [action](../document/action.md) and [state](../document/state.md) specs, a
@@ -35,28 +35,75 @@ file rather than a service.
 ## The shape of a command
 
 ```sh
+mechcore <verb> <file>... [--options]
 mechcore <namespace> <verb> [operands] [--options]
 ```
 
-Six namespaces hold the operations:
+Four rules decide which of the two a command is and what it means.
+
+**A namespace exists only for something whose state outlives a command.**
+Three do:
 
 | Namespace | Its object |
 | --- | --- |
-| `match` | one match being played |
-| `arena` | players, and the matches they are put through |
-| `game` | the running game process |
-| `fight` | one fight: simulating it, and comparing recordings of it |
-| `replay` | a native replay file |
-| `doc` | a document on disk |
+| `match` | one match being played, whose turn file carries a round between commands |
+| `arena` | players, and the matches it runs them through |
+| `game` | the running game process, and the session that holds it |
 
-Three commands stand outside them, because their object is not one of those:
-`shell` opens a prompt, `run` executes a run document, and `man` answers with
-the manual the binary carries.
+**An operation on files is a top-level verb, and a verb has one meaning across
+every kind it takes.** The kind is read from the content, never from a flag or
+an extension, and a verb given a kind it does not take is refused, naming the
+kind. [Kinds and verbs](#kinds-and-verbs) says how each kind is recognised and
+which verbs take it.
+
+**`convert <in> --to <kind> [<out>]` derives a file of another kind.** `--to`
+is required. Each pair is either a **rewrite**, the same content in another
+form, lossless or refused, or a **computation**, which derives facts the input
+does not hold by running the fight. Without `<out>` a computation answers its
+result and writes nothing. A rewrite to a layout answers the layout on
+standard output, and every other rewrite requires `<out>`, because what it
+answers is a report of the file it wrote.
+
+**`man <kind>` lists the verbs a kind takes**, from the same table the verbs
+are refused by, ahead of the document that describes the kind.
+
+Three commands stand outside both, because their object is neither a file nor
+a state: `shell` opens a prompt, `run` executes a run document, and `man`
+answers with the manual the binary carries.
+
+## Kinds and verbs
+
+| Kind | Recognised by |
+| --- | --- |
+| `layout` | a YAML document whose first document states `kind: layout` |
+| `match` | a YAML stream whose first document states `kind: match` |
+| `state` | a YAML document stating `kind: state` |
+| `action` | a YAML document stating `kind: action` |
+| `mcfr` | the ZIP local file header an [MCFR](../mcfr/mcfr.md) opens with |
+| `grbr` | the serialization header .NET's `BinaryFormatter` writes, which a native replay opens with |
+
+A YAML document that names no kind, or one this binary does not read, is
+refused rather than guessed at.
+
+| Kind | `verify` | `convert --to` | `diff` | `show --view` | `format` |
+| --- | --- | --- | --- | --- | --- |
+| `layout` | yes | `grbr` (rewrite), `mcfr` (computation) | yes | — | yes |
+| `match` | yes | `grbr` (rewrite), `layout` (rewrite) | — | — | — |
+| `state` | — | — | — | — | — |
+| `action` | — | — | — | — | — |
+| `mcfr` | yes | — | yes | `outcome`, `stats`, `buildings` | — |
+| `grbr` | — | `match` (rewrite) | — | — | — |
+
+A state and an action are read inside a match, which is what verifies them.
+`schema` names a kind rather than a file, and answers the shape of `layout`,
+`match`, `state` and `action`.
 
 ## One operation, four callers
 
-An operation is a name, `<namespace>.<verb>`, an argument object, and a result
-object. Four callers name the same operation and pass the same object:
+An operation is a name, an argument object, and a result object. A top-level
+verb is named by the verb alone, `verify` or `convert`, and a namespace's verb
+as `<namespace>.<verb>`, `match.act` or `game.record`. Four callers name the
+same operation and pass the same object:
 
 | Caller | How it names the operation |
 | --- | --- |
@@ -112,9 +159,9 @@ A failure is one JSON object on standard error and an exit code:
 | Exit | Kind | What it means | Who fixes it |
 | --- | --- | --- | --- |
 | 0 | — | The operation happened | — |
-| 1 | — | The operation happened and the answer is no: a document does not verify, two recordings differ | the caller's inputs |
+| 1 | — | The operation happened and the answer is no: a file does not verify, two files differ | the caller's inputs |
 | 2 | `usage` | The command is not one this contract defines | the caller's command line |
-| 3 | `refused` | The rules do not allow what was asked: an illegal decision, a layout that does not compile, a fight outside what the chosen backend resolves | the caller's request |
+| 3 | `refused` | The rules do not allow what was asked: an illegal decision, a layout that does not compile, a kind the verb does not take, a fight outside what the chosen backend resolves | the caller's request |
 | 4 | `unavailable` | The game is absent, busy or unresponsive, as [session.md](session.md) classifies it | the environment |
 | 5 | `failed` | The operation could not be carried out: unreadable input, unwritable output, a broken file | the environment |
 
@@ -125,11 +172,180 @@ decision it should not repeat (3) from a platform it should wait for (4).
 A refusal never half-applies: a refused decision leaves the match exactly as it
 was, and a refused operation writes no file.
 
+## `verify`
+
+`verify <file>...` checks each file against the contract its kind defines. It
+takes its paths as operands, or one per line on standard input when it has
+none, and answers one report per file, in order. A file that does not verify is
+an answer, not an error: the reports are written and the command exits 1. A
+file that cannot be read, names no kind, or is of a kind `verify` does not take
+is a report like any other, whose `kind` is `unreadable`, so the rest of a
+batch still runs.
+
+- A **layout** is compiled as `game apply_layout` would compile it, and the
+  report carries the counts of what it places.
+- A **match** is checked against its seed, and each round's next opening is
+  predicted from the one before. It verifies only when every leaf outside the
+  fight is predicted and agrees, and every round projects onto a layout the
+  compiler takes.
+- A **recording** is checked by simulating the layout it embeds again and
+  comparing the result with what it holds. The report's `comparison` carries
+  both timelines, the first tick they part at, and that tick explained.
+
+## `convert`
+
+`convert <in> --to <kind> [<out>]` derives a file of another kind, with
+`--force` to replace an existing `<out>`. Without `--force` an existing
+destination is refused, because a conversion that silently replaced a file
+would make a document's provenance unrecoverable; the input is read, never
+written. A pair [the table](#kinds-and-verbs) does not name is refused, naming
+both kinds.
+
+**`grbr` to `match`, a rewrite.** Reads a native replay and writes the match
+document it records to `<out>`. It answers what it wrote and how much of each
+transition the rules predict. A replay this converter does not read is refused
+rather than partly converted, and the refusal names which of the replay's
+properties it stands on.
+
+**`match` to `grbr`, a rewrite.** Writes a match back to `<out>` as the replay
+it converts from, which converts to the same match again byte for byte, and
+whose rounds the game fights ([match-replay.md](../document/match-replay.md)
+says where such a fight parts from the match's). A match it cannot write is
+refused, naming why. It answers the replay's path, map, seed and rounds.
+
+**`layout` to `grbr`, a rewrite.** Writes a layout to `<out>` as a replay the
+game fights: one deployment round, the layout's, opened from a snapshot that
+holds the layout and carries no action. `--seed` overrides the layout's seed,
+and one of the two has to name it. The layout is compiled first, so a layout
+`game apply_layout` would refuse is refused here too, and so is one a replay
+cannot open or play: [layout-replay.md](../document/layout-replay.md) says what
+it states and what it refuses. It answers the replay's path, map, seed and
+round.
+
+**`match` to `layout`, a rewrite of one round.** `--round <n>` names the round,
+and the layout is the one that round's fight starts from: the round's
+decisions applied to the position it opened with, and that position projected.
+It holds what the match states about that fight and nothing the match does
+not, and a round whose decisions the rules do not settle is refused. It is how
+a fight is run again without a recording being kept of it. Without `<out>` it
+answers the layout on standard output; with one it writes the layout there and
+answers its path and round.
+
+**`layout` to `mcfr`, a computation.** Simulates one fight from a layout, with
+`--seed <i32>` overriding the layout's own. It answers the simulation result:
+the terminal structure of the fight, its hashes and its profiling. With
+`<out>` it also writes the recording there, which [mcfr.md](../mcfr/mcfr.md)
+defines.
+
+## `diff`
+
+`diff <left> <right>` reports what two files of one kind differ in, and exits 1
+when they differ. Two files of different kinds are refused.
+
+Two **layouts** are normalized and every field they differ in is reported, as
+a JSON pointer with both sides' values. A unit, construction or contraption is
+matched by its `index` rather than its place in the list, so an inserted entry
+reads as one addition rather than a change to every entry after it.
+
+Two **recordings** are compared for more than whether they agree. The verdict
+and its first divergent tick come from the stored tick hashes, which cover
+every field, as `equal` and `first_divergence`; `left` and `right` carry each
+recording's `result_hash` and tick count. Then every tick both recordings hold is
+compared **field by field**: each object is flattened into its leaves, and a
+leaf's field group is its path with the object and any list position removed,
+so `unit 2`'s `weapon_aims[0].attack_target` counts under
+`units.weapon_aims.attack_target`. An object only one side holds differs in
+`<collection>.present`, and a tick's event list in `events`. `fields` holds
+every group that differs, nested by its dotted path, with the first and last
+tick it differs on and how many; `fields_equal` says none does.
+
+`at` explains one tick: the first divergence of the selected groups, or the
+tick `--tick <n>` names. It lists each differing leaf with both sides' values,
+each side's events on that tick and the one before, and every object a
+difference names as each side has it then — its life, or the tick it died or
+was destroyed at. `--fields <group>,...` restricts all of this to the named
+groups and everything under them, and makes their agreement the verdict, so
+`--fields units.motion_state` exits 0 on recordings that differ elsewhere. `--format text` prints the same report for a person.
+
+[mcfr.md](../mcfr/mcfr.md) defines what a recording holds and what makes two of
+them equal.
+
+## `show`
+
+`show <file> --view <view>` answers one view of what a file holds. A recording
+has three, and `--view` names one of them.
+
+**`outcome`** reads a recording for [the four fields a fight
+decides](#the-fight): which formations came out of it, under the indices the
+document knows them by, and what remains of what a fight thins out: each
+side's `contraptions`, and its `battle_skills`, the standing entries of the
+round's `battle_skills` that remain, each by its place in that list.
+What no rule and no recording answers is named in `unresolved` and never
+approximated, and the verdict is no while anything is — the fight was read, and
+the answer is that it does not settle a round. It is the one reader both
+backends feed, because a fight the simulator ran and a fight the game played
+are the same recording.
+
+**`stats`** reads the same recording for a unit's numbers at one tick, in
+both halves: the corrections **written onto** it, in the three channels the
+recording keeps apart — the unit's own overlay, its skills', and the buff
+aggregate — and the numbers the build then **computed** from them, which
+`derived` carries. Neither is something the fight decided, which is why neither
+belongs in the outcome, and they are one view because a capture reads them
+together: a rate of `+0.6` beside a damage of 1.6 times the description is one
+fact seen twice. [officer_effects.md](../../rules/officer_effects.md) is what
+reads them that way.
+
+Every formation answers, whether or not it carries a correction: a unit with
+nothing written onto it still has numbers, and that is what a control is read
+for. A formation whose technologies are switched off says so with
+`technologies_disabled`, which is the state a correction's absence is
+explained by rather than a correction of its own.
+
+`--tick <n>` picks the tick to read; the default is the first, where a
+correction applied as the fight is built has landed and nothing the fight does
+has moved it yet. A mechanism that writes during the fight is read at the tick
+it is expected at. A formation answers whether or not it survives, because the
+side that spends a correction attacking is commonly the side that loses the
+unit carrying it.
+
+**`buildings`** reads the same recording for the objects standing in it, and
+takes the same `--tick <n>`. A side answers its `towers` — the buildings the
+map gives it, which no layout places — and its `constructions`, one entry per
+layout placement in index order.
+
+**A construction is not one object.** `FightConstructionSystem.Create` answers
+a list of them, so a placement owns as many buildings as its description says
+and each of them is its own row with its own life; `parts` is those rows. A
+recording records a building's `BuildingType` and not the construction that
+released it, so the rows are matched back to the layout the recording embeds by
+the one thing the two share, where a thing stands. A building that belongs to
+no single placement is refused rather than assigned. An empty `parts` is a
+reading: every object that placement owned is gone.
+
+Positions, bounds and every other length are the recording's own fixed point,
+`1 << 32` to the metre, as `stats` reports a derived number in.
+[constructions.md](../../rules/constructions.md) is what reads them that way.
+
+`match show` shares the verb because it is the same question asked of a match
+in play: what one side is shown of it.
+
+## `format` and `schema`
+
+`format <document>` writes the document in its normal form, in place with
+`--write`. A layout is the kind it takes.
+
+`schema <kind>...` takes the kinds a document declares in its own `kind` field:
+`layout`, `state`, `match` and `action`. It answers the shape of the document,
+which is what a reader validates against and what a writer generates from; it
+says nothing about what the fields mean, which is the document's own spec. A
+kind this contract does not name is refused.
+
 ## `match`
 
 A match is a [match](../document/match.md) document and a turn file beside
 it. `<match>.yaml` holds the rounds that have been played, and it is a valid
-match document between operations, so `doc verify` reads it at any point.
+match document between operations, so `verify` reads it at any point.
 `<match>.turn` holds what the round in progress has not settled yet: which side
 each player was given, each side's decisions before they are committed, when
 the round opened, and whether each side has committed. It is the match's
@@ -358,8 +574,8 @@ The simulator fights it, over the layout the deployment-end position projects
 onto. That layout carries the match's seed and the round, which is everything
 the fight is drawn from, so a fight is the same fight whenever it is run again
 and nothing has to be derived for it. What the fight decided is read back with
-[`fight outcome`](#fight), so the reading is one piece of work rather than one
-per backend. Nothing else answers a fight: a caller cannot hand a match an
+[`show --view outcome`](#show), so the reading is one piece of work rather than
+one per backend. Nothing else answers a fight: a caller cannot hand a match an
 outcome it did not fight, because a document that reads like a played match has
 to be one.
 
@@ -370,7 +586,8 @@ reached it stand — a commit cannot be taken back — and because every later
 operation takes the lock and tries the fight again, so a match stopped by a gap
 carries on by itself once the gap closes. Nothing approximates a fight it
 cannot resolve. No recording is kept: a round's fight
-is run again from the match itself, which `doc project` writes the layout for.
+is run again from the match itself, which `convert --to layout` writes the
+layout for.
 
 ## `arena`
 
@@ -418,23 +635,39 @@ ranking them.
 
 The `game` namespace carries the operations of [adapter.md](../adapter/adapter.md)
 under the names that protocol gives them: `status`, `start_test`,
-`apply_layout`, `record_fight`, `record_replay_round`, `record_watch_replay`,
-`toggle_fight`, `speed_up`, `quit_match` and `quit_game`. Each takes the
-argument object that protocol defines and answers what it answers.
-The recording verbs take `--instrument a,b`, the instrument channels to record
-into the MCFR by name ([mcfr.md](../mcfr/mcfr.md#instrument-channels)).
+`apply_layout`, `toggle_fight`, `speed_up`, `quit_match` and `quit_game`. Each
+takes the argument object that protocol defines and answers what it answers.
 
-`record_layout <layout.yaml> <out.mcfr>` is the one verb the protocol does not
-name. It writes the layout as a replay, as `replay convert` does, and records
-that replay's round with `record_replay_round`, so a layout is fought and
+The protocol's four recording operations are one verb here, `game record`,
+because what differs between them is what is recorded, and that is its input:
+
+| Command | What it records | Protocol operation |
+| --- | --- | --- |
+| `game record <out.mcfr>` | the fight staged in the current scene | `record_fight` |
+| `game record <layout> <out.mcfr>` | a layout, fought without a scene | `record_replay_round`, over the layout as a replay |
+| `game record <replay.grbr> <out.mcfr> --round <n>` | one round of a replay | `record_replay_round` |
+| `game record --watch` | a live standard 1v1 the server makes | `record_watch_replay` |
+
+The input's kind is read from what it holds, as a file verb reads it, and an
+input of another kind is refused. Each form takes the options of the operation
+it reaches and refuses the others: the current scene takes `--video <file>` and
+`--no-speed-up`, a layout takes `--seed`, a replay requires `--round`, and a
+watch takes `--output-dir`, `--wait-for-scene-seconds` and
+`--match-timeout-seconds`. Every form but the watch takes `--instrument a,b`,
+the instrument channels to record into the MCFR by name
+([mcfr.md](../mcfr/mcfr.md#instrument-channels)), and `--force` to replace an
+existing recording.
+
+A layout is written as a replay, as `convert --to grbr` writes it, and that
+replay's round is recorded as a replay's round is, so a layout is fought and
 recorded without a Training Ground: the game fights it without a scene, from
 the main menu and back to it. `--seed` overrides the layout's own seed, which a
-replay needs. It answers what `record_replay_round` answers, with the layout it
-was given as `layout_input`. The game can refuse a decision the replay records
-and fight on without it, so the recording is held to the layout the game read
-back as the fight began, as a staged layout is: when the two differ in any
-field, once both are in normal form, the recording is removed
-and the refusal names the fields. `apply_layout` and `record_fight` remain the way
+replay needs. It answers what a replay's round answers, with the layout it was
+given as `layout_input`. The game can refuse a decision the replay records and
+fight on without it, so the recording is held to the layout the game read back
+as the fight began, as a staged layout is: when the two differ in any field,
+once both are in normal form, the recording is removed and the refusal names
+the fields. `apply_layout` and a recording of the current scene remain the way
 to fight a layout the replay cannot state and to record a video.
 
 Three more belong to the session rather than the game:
@@ -456,150 +689,6 @@ whether the caller lives long enough to hold it.
 This namespace is the one place the running game is driven. Everything that
 reaches the game reaches it here, rather than around it.
 
-## `fight`
-
-| Verb | What it does |
-| --- | --- |
-| `fight run <layout.yaml>` | simulates one fight from a layout, optionally writing a recording |
-| `fight outcome <recording.mcfr>` | answers what a recorded fight decided |
-| `fight stats <recording.mcfr>` | answers a unit's numbers and the corrections behind them |
-| `fight buildings <recording.mcfr>` | answers what is standing: the map's towers, and what each construction became |
-| `fight compare <left.mcfr> <right.mcfr>` | compares two recordings and names the first tick they differ at |
-| `fight verify <recording.mcfr>...` | simulates each recording's own layout again and compares the result with the recording |
-
-`fight run` takes `--seed <i32>` and `--output <recording.mcfr>`, and answers
-the simulation result: the terminal structure of the
-fight, its hashes and its profiling. `fight compare` and `fight verify` answer
-the verdict and the divergence, and exit 1 when the verdict is no.
-
-`fight compare` answers more than whether two recordings agree. The verdict
-and its first divergent tick come from the stored tick hashes, which cover
-every field, as `equal` and `first_divergence`; `left` and `right` carry each
-recording's `result_hash` and tick count. Then every tick both recordings hold is
-compared **field by field**: each object is flattened into its leaves, and a
-leaf's field group is its path with the object and any list position removed,
-so `unit 2`'s `weapon_aims[0].attack_target` counts under
-`units.weapon_aims.attack_target`. An object only one side holds differs in
-`<collection>.present`, and a tick's event list in `events`. `fields` holds
-every group that differs, nested by its dotted path, with the first and last
-tick it differs on and how many; `fields_equal` says none does.
-
-`at` explains one tick: the first divergence of the selected groups, or the
-tick `--tick <n>` names. It lists each differing leaf with both sides' values,
-each side's events on that tick and the one before, and every object a
-difference names as each side has it then — its life, or the tick it died or
-was destroyed at. `--fields <group>,...` restricts all of this to the named
-groups and everything under them, and makes their agreement the verdict, so
-`--fields units.motion_state` exits 0 on recordings that differ elsewhere. `--format text` prints the same report for a person.
-
-`fight outcome` reads a recording for [the four fields a fight
-decides](#the-fight): which formations came out of it, under the indices the
-document knows them by, and what remains of what a fight thins out: each
-side's `contraptions`, and its `battle_skills`, the standing entries of the
-round's `battle_skills` that remain, each by its place in that list.
-What no rule and no recording answers is named in `unresolved` and never
-approximated, and the verdict is no while anything is — the fight was read, and
-the answer is that it does not settle a round. It is the one reader both
-backends feed, because a fight the simulator ran and a fight the game played
-are the same recording.
-
-`fight stats` reads the same recording for a unit's numbers at one tick, in
-both halves: the corrections **written onto** it, in the three channels the
-recording keeps apart — the unit's own overlay, its skills', and the buff
-aggregate — and the numbers the build then **computed** from them, which
-`derived` carries. Neither is something the fight decided, which is why neither
-belongs in the outcome, and they are one verb because a capture reads them
-together: a rate of `+0.6` beside a damage of 1.6 times the description is one
-fact seen twice. [officer_effects.md](../../rules/officer_effects.md) is what
-reads them that way.
-
-Every formation answers, whether or not it carries a correction: a unit with
-nothing written onto it still has numbers, and that is what a control is read
-for. A formation whose technologies are switched off says so with
-`technologies_disabled`, which is the state a correction's absence is
-explained by rather than a correction of its own.
-
-`--tick <n>` picks the tick to read; the default is the first, where a
-correction applied as the fight is built has landed and nothing the fight does
-has moved it yet. A mechanism that writes during the fight is read at the tick
-it is expected at. A formation answers whether or not it survives, because the
-side that spends a correction attacking is commonly the side that loses the
-unit carrying it.
-
-`fight buildings` reads the same recording for the objects standing in it, and
-takes the same `--tick <n>`. A side answers its `towers` — the buildings the
-map gives it, which no layout places — and its `constructions`, one entry per
-layout placement in index order.
-
-**A construction is not one object.** `FightConstructionSystem.Create` answers
-a list of them, so a placement owns as many buildings as its description says
-and each of them is its own row with its own life; `parts` is those rows. A
-recording records a building's `BuildingType` and not the construction that
-released it, so the rows are matched back to the layout the recording embeds by
-the one thing the two share, where a thing stands. A building that belongs to
-no single placement is refused rather than assigned. An empty `parts` is a
-reading: every object that placement owned is gone.
-
-Positions, bounds and every other length are the recording's own fixed point,
-`1 << 32` to the metre, as `fight stats` reports a derived number in.
-[constructions.md](../../rules/constructions.md) is what reads them that way.
-
-[mcfr.md](../mcfr/mcfr.md) defines what a recording holds and what makes two of
-them equal.
-
-## `replay`
-
-`replay convert` converts between a replay and a document, in the direction its
-source names, with `--force` to replace an existing destination.
-
-`replay convert <replay.grbr> <match.yaml>` reads a native replay and writes
-the match document it records. It answers what it wrote and how much of each
-transition the rules predict.
-
-`replay convert <match.yaml> <replay.grbr>` writes a match back as the replay
-it converts from, which converts to the same match again byte for byte, and
-whose rounds the game fights ([match-replay.md](../document/match-replay.md)
-says where such a fight parts from the match's). A match it cannot write is
-refused, naming why. It answers the replay's path, map, seed and rounds.
-
-`replay convert <layout.yaml> <replay.grbr>` writes a layout as a replay the
-game fights: one deployment round, the layout's, opened from a snapshot that
-holds the layout and carries no action. `--seed` overrides the layout's seed,
-and one of the two has to name it. The layout is compiled first, so a layout
-`apply_layout` would refuse is refused here too, and so is one a replay cannot
-open or play: [layout-replay.md](../document/layout-replay.md) says what it
-states and what it refuses. It answers the replay's path, map, seed and round.
-
-A replay this converter does not read is refused rather than partly converted,
-and the refusal names which of the replay's properties it stands on.
-
-## `doc`
-
-| Verb | What it does |
-| --- | --- |
-| `doc verify <document>...` | checks each document against the contract its `kind` names |
-| `doc format <document.yaml>` | writes the document in its normal form, in place with `--write` |
-| `doc diff <left.yaml> <right.yaml>` | normalizes both and reports every field they differ in |
-| `doc project <match.yaml>` | writes the layout a round's fight starts from |
-| `doc schema <kind>...` | answers the JSON Schema of a document kind |
-
-`doc verify` takes its paths as operands, or one per line on standard input
-when it has none, and answers one report per document. A document that does not
-verify is an answer, not an error: the reports are written and the command
-exits 1.
-
-`doc project` takes `--round <n>` and writes the layout that round's fight
-starts from: the round's decisions applied to the position it opened with, and
-that position projected. It is how a fight is run again without a recording
-being kept of it, and `--output <layout.yaml>` writes the layout rather than
-answering with it.
-
-`doc schema` takes the kinds a document declares in its own `kind` field:
-`layout`, `state`, `match` and `action`. It answers the shape of the document,
-which is what a reader validates against and what a writer generates from; it
-says nothing about what the fields mean, which is the document's own spec. A
-kind this contract does not name is refused.
-
 ## `shell`
 
 `shell` opens a prompt whose every line is a command with the program name
@@ -615,7 +704,9 @@ match: `match new m.yaml` binds the side it was handed, and `match show m.yaml
 --side red` binds the side it names. That match's verbs are then written
 without their namespace, without the document and without the side:
 `act {type: buy_unit, name: marksman}`, `show`, `commit`. Every other line
-keeps its namespace.
+keeps its own spelling. A `show` that names no file is the bound match's, and
+`show <file> --view <view>` stays the file verb, since the operand says which
+is meant.
 
 Naming a side once is the session's version of naming it every time. A process
 that lives for one operation has nowhere to carry a side, so each command
@@ -660,8 +751,15 @@ repository can still follow them. A link to something the binary does not
 carry, a configuration table among them, is left as the document wrote it
 rather than rewritten into a topic that does not exist.
 
+A kind is named by itself, `mechcore man layout`, and its page opens with the
+verbs a file of that kind takes and the kinds `convert` reaches from it, as
+[kinds and verbs](#kinds-and-verbs) states them, before the document that
+describes the kind. A kind no document describes, `grbr`, answers its verbs
+alone. `mechcore man` lists the kinds after the topics.
+
 `--format json` answers `{topic, title, game_build, text}` rather than the text
-alone, for a caller that stores what it reads. `--lang <code>` answers a
+alone, for a caller that stores what it reads, with `verbs` beside them for a
+kind. `--lang <code>` answers a
 translation, and a topic with no translation in that language is refused rather
 than answered in another one.
 
