@@ -181,6 +181,31 @@ impl Actor {
             .flatten()
     }
 
+    /// `FightSkill.GetMainTransform`'s rotation for a slot's search: a weapon
+    /// with a transform of its own, which `CanRotate` answers for, is
+    /// measured from; a slot without one is measured from the root.
+    pub(in crate::fight) fn slot_main_rotation_q32(&self, slot: usize) -> i64 {
+        if self.rules.attack.weapons.fixed_to_body && slot > 0 {
+            self.skill.slot_weapon_rotations_q32[slot - 1]
+        } else {
+            self.body_rotation_q32
+        }
+    }
+
+    /// A weapon fixed to the body stands where the unit stands; the core's
+    /// takes the body's rotation whenever the body turns, a sibling's only
+    /// when its own skill updates holding a lock. Any other weapon has no
+    /// transform of its own.
+    fn fixed_weapon_pose(&self, weapon_index: usize, position: QVec3) -> Option<QPose> {
+        self.rules.attack.weapons.fixed_to_body.then(|| QPose {
+            position,
+            rotation: match weapon_index {
+                0 => self.body_rotation_q32,
+                slot => self.skill.slot_weapon_rotations_q32[slot - 1],
+            },
+        })
+    }
+
     pub(in crate::fight) fn snapshot(&self) -> LiveUnitState {
         let height = unit_height(self.rules.domain);
         let position = QVec3 {
@@ -209,7 +234,7 @@ impl Actor {
                     },
                     weapon_index: self.rules.attack.weapons.index(weapon_index),
                     attack_target: attack_target.map(FightActorRef::object_ref),
-                    pose: None,
+                    pose: self.fixed_weapon_pose(weapon_index, position),
                 }
             })
             .collect();

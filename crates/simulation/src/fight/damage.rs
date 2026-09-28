@@ -363,6 +363,7 @@ impl Simulation {
         &mut self,
         actor_id: u64,
         target: FightActorRef,
+        skill_slot: usize,
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let attacker = &self.actors[&actor_id];
@@ -383,9 +384,9 @@ impl Simulation {
             source_team: attacker.placement.team,
             team: attacker.placement.team,
             amount: attacker.stats.attack_damage(),
-            // A blow is `SkillDamageProvider`'s, of the unit's one skill.
+            // A blow is `SkillDamageProvider`'s, of the skill that struck.
             projectile: None,
-            skill_slot: Some(0),
+            skill_slot: Some(u16::try_from(skill_slot).expect("skill slot fits u16")),
             aimed: target,
             hits_aimed: true,
             center,

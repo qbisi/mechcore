@@ -16,8 +16,9 @@ use std::{
 use mechcore_mcfr::{
     BuildingState, DamageStatistics, DerivedStats, Domain, DurableContext, Event, EventPayload,
     FormationState, GaugeI32, Hashes, IdentityAllocator, LiveUnitState, McfrReader, McfrWriter,
-    MotionState, ObjectKind, ObjectRef, PersonalShieldState, ProjectileState, QPlanar, QVec3,
-    Rational, RecorderKind, TickSlice, TransitionEvents, Visibility, WeaponAimState, WorldSnapshot,
+    MotionState, ObjectKind, ObjectRef, PersonalShieldState, ProjectileState, QPlanar, QPose,
+    QVec3, Rational, RecorderKind, TickSlice, TransitionEvents, Visibility, WeaponAimState,
+    WorldSnapshot,
 };
 
 use serde::Serialize;
@@ -211,6 +212,9 @@ struct Simulation {
     // zero until the subsequent BufferSwitch.
     rvo_first_tree_pending: bool,
     terminal_drain_pending: bool,
+    /// The step the fight stops on: a side had already won when it began,
+    /// and no skill updates on it.
+    stop_step: Option<u64>,
     late_building_events_pending: bool,
     /// Buildings a projectile destroyed this tick, held until every projectile
     /// has resolved so their events follow all of the tick's shots.
@@ -307,6 +311,7 @@ impl Simulation {
             rvo_counter: 0,
             rvo_first_tree_pending: true,
             terminal_drain_pending: false,
+            stop_step: None,
             late_building_events_pending: false,
             fallen_buildings: Vec::new(),
             tower_buff_events: BTreeMap::new(),
@@ -398,6 +403,7 @@ impl Simulation {
         }
         let fight_was_finished = self.naturally_finished();
         let winner_was_decided = self.winner().is_some();
+        self.stop_step = winner_was_decided.then_some(step);
         let actor_motion_at_start = self
             .actors
             .iter()
@@ -642,6 +648,10 @@ impl Simulation {
                     }
                 }
                 actor.skill.lock_target = Some(FightActorRef::Building(building_id));
+                // The core's `ChangeLockTarget` reaches the owner.
+                if actor.skill.is_grouped() {
+                    actor.skill.mech_lock = actor.skill.lock_target;
+                }
                 actor.skill.lock_is_terminal_handoff = true;
                 actor.motion.state = MotionState::Moving;
                 if natural_finish_handoff {

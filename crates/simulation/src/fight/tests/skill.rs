@@ -434,7 +434,7 @@ fn bodyless_in_range_turn_barrier_preserves_attack_timing() {
     source.skill.next_attack_step = 20;
     simulation.actors.get_mut(&2).unwrap().life = 0;
     assert!(simulation.target_in_attack_range(FightActorRef::Unit(1), unit_target(3)));
-    assert!(!simulation.bodyless_target_in_attack_angle(1, unit_target(3)));
+    assert!(!simulation.target_in_attack_angle(FightActorRef::Unit(1), unit_target(3)));
 
     simulation.step_actor(1, 10, &mut Vec::new()).unwrap();
 

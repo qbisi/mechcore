@@ -124,6 +124,10 @@ Weapon scheduling is orthogonal to the effect path:
 - `rotation_speed` is present only when the native skill supplies a weapon
   rotation speed distinct from the member body; Wraith stores `90` while its
   body-level `rotate_speed` is `120`.
+- `fixed_to_body` is `true` only for the unit whose data is 27, the Raiden:
+  `FightWeapon`'s constructor gives each of its weapons a transform of its
+  own fixed to the body. The table has no column for it; the extraction
+  script writes it from the id, and it defaults to `false`.
 
 The `path` tagged union has four variants:
 

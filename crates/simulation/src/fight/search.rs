@@ -641,6 +641,35 @@ impl Simulation {
 }
 
 impl Simulation {
+    /// `PerformGroupedSkillSearch` for a fusillade's core that fell back on
+    /// what its siblings hold: every skill of the group whose lock is what
+    /// the core found drops it (`ChangeLockTarget(null)`), before the core
+    /// takes it.
+    pub(in crate::fight) fn take_from_siblings(
+        &mut self,
+        actor_id: u64,
+        found: Option<FightActorRef>,
+    ) {
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        if actor.rules.attack.weapons.fusillade != Some(true) {
+            return;
+        }
+        let Some(found) = found else {
+            return;
+        };
+        for sibling in &mut actor.skill.slots {
+            if sibling.lock == Some(found) {
+                sibling.attack_target_left = sibling.attack_target();
+                sibling.lock = None;
+                sibling.lock_written = true;
+                actor.skill.mech_lock = None;
+            }
+        }
+    }
+
     /// `PerformGroupedSkillSearch` excludes the other slots' locks before
     /// scoring opponents. If sharing is allowed and that answer cannot be
     /// attacked, the same selector is asked about the held targets instead.
@@ -663,19 +692,23 @@ impl Simulation {
                 .select_lock_replacement(FightActorRef::Unit(actor_id), target_search_order);
         }
         let select = |shared: bool| {
-            let mut best: Option<(i64, u64)> = None;
+            let mut best: Option<(i64, FightActorRef)> = None;
             for (&team, candidates) in target_search_order {
                 if team == source.placement.team {
                     continue;
                 }
-                for candidate in candidates {
-                    let FightActorRef::Unit(id) = candidate else {
+                for &candidate in candidates {
+                    // An enemy tower is an opponent too: a slot with no unit
+                    // left to it is allocated one.
+                    let Some(target) = self.fight_actor(candidate) else {
                         continue;
                     };
-                    let target = &self.actors[id];
-                    if held.contains(id) != shared
-                        || !target.alive()
-                        || !source.rules.attack.accepts(target.rules.domain)
+                    if held.contains(&candidate) != shared
+                        || !target.alive
+                        || !target.targetable
+                        || matches!(candidate, FightActorRef::Building(id)
+                            if self.unsearchable_buildings.contains(&id))
+                        || !source.rules.attack.accepts(target.domain)
                     {
                         continue;
                     }
@@ -683,24 +716,28 @@ impl Simulation {
                         source.target_query_x_q32,
                         source.target_query_z_q32,
                         source.rules.collision_radius(),
-                        source.body_rotation_q32,
+                        source.slot_main_rotation_q32(slot),
                         target.x_q32,
                         target.z_q32,
-                        target.rules.collision_radius(),
+                        target.radius,
                         source.rules.attack.min_range(),
                         self.slot_attack_range(actor_id, Some(slot)),
                     ) else {
                         continue;
                     };
                     if best.is_none_or(|(previous, _)| score < previous) {
-                        best = Some((score, *id));
+                        best = Some((score, candidate));
                     }
                 }
             }
-            best.map(|(_, id)| FightActorRef::Unit(id))
+            best.map(|(_, candidate)| candidate)
         };
+        // A fusillade's core falls back on what its siblings hold as a
+        // group that shares does, and takes what it finds from them
+        // (`take_from_siblings`).
+        let fusillade_core = slot == 0 && source.rules.attack.weapons.fusillade == Some(true);
         let selected = select(false);
-        if source.rules.attack.weapons.allow_same_target == Some(true)
+        if (source.rules.attack.weapons.allow_same_target == Some(true) || fusillade_core)
             && selected.is_none_or(|target| {
                 !self.slot_target_in_attack_range(FightActorRef::Unit(actor_id), Some(slot), target)
             })

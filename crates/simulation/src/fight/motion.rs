@@ -739,13 +739,7 @@ impl Simulation {
                 // FightSkill while the root transform is outside the
                 // attack cone. MotionController clears this hold only
                 // after it has observed and corrected the facing.
-                actor.motion.attack_hold_fire = !actor.rules.has_body
-                    && !in_attack_angle
-                    && (actor.rules.attack.melee
-                        || matches!(
-                            actor.rules.attack.path,
-                            AttackPath::Projectile { .. } | AttackPath::Laser { .. }
-                        ));
+                actor.motion.attack_hold_fire = !actor.rules.has_body && !in_attack_angle;
             }
             let invalid_attack_angle_barrier = !actor.rules.has_body
                 && !entered_attack

@@ -79,19 +79,19 @@ fn grouped_slots_follow_the_native_exclusion_and_fallback() {
             if ticks == 10 && step == 9 {
                 assert_eq!(
                     sim.actors[&1].skill.slot_locks(),
-                    [Some(3), Some(2), Some(3), Some(3)]
+                    [3, 2, 3, 3].map(|unit| Some(unit_target(unit)))
                 );
             }
             if ticks == 206 && step == 130 {
                 assert_eq!(
                     sim.actors[&30].skill.slot_locks(),
-                    [Some(23), Some(19), Some(25), Some(21)]
+                    [23, 19, 25, 21].map(|unit| Some(unit_target(unit)))
                 );
             }
             if ticks == 206 && step == 205 {
                 assert_eq!(
                     sim.actors[&29].skill.slot_locks(),
-                    [Some(41), Some(30), Some(48), Some(55)]
+                    [41, 30, 48, 55].map(|unit| Some(unit_target(unit)))
                 );
                 // The core keeps its own lock; the unit's is the latest a
                 // slot took, the fourth's.
@@ -156,7 +156,7 @@ fn an_attacking_sibling_gives_up_the_unit_the_core_just_took() {
     let mut sim = raw_test_simulation(&layout, &config, 7);
     let skill = &mut sim.actors.get_mut(&1).unwrap().skill;
     skill.lock_target = Some(FightActorRef::Unit(2));
-    skill.sibling_mut(1).lock = Some(2);
+    skill.sibling_mut(1).lock = Some(unit_target(2));
     sim.refresh_target_query_snapshot();
     let order = sim.target_search_order();
     assert!(
@@ -169,7 +169,7 @@ fn an_attacking_sibling_gives_up_the_unit_the_core_just_took() {
         "the core took it now"
     );
     let sibling = sim.actors.get_mut(&1).unwrap().skill.sibling_mut(2);
-    sibling.lock = Some(2);
+    sibling.lock = Some(unit_target(2));
     sibling.lock_written = true;
     assert!(
         sim.sibling_yields(1, 1, &order).is_err(),
@@ -294,7 +294,7 @@ mod oracle {
                     if slot == 0 {
                         skill.lock_target = lock;
                     } else {
-                        skill.sibling_mut(slot).lock = lock.and_then(FightActorRef::unit_id);
+                        skill.sibling_mut(slot).lock = lock;
                     }
                 }
                 let order = self.target_search_order();
@@ -305,17 +305,17 @@ mod oracle {
                     let attack = target(&before["attack_target"]);
                     let skill = &mut self.actors.get_mut(&actor_id).unwrap().skill;
                     let in_the_way = match (attack, lock) {
-                        (Some(FightActorRef::Building(b)), Some(FightActorRef::Unit(u))) => {
-                            Some((b, u))
+                        (Some(FightActorRef::Building(b)), Some(lock @ FightActorRef::Unit(_))) => {
+                            Some((b, lock))
                         }
                         _ => None,
                     };
                     if slot == 0 {
                         skill.lock_target = lock;
-                        skill.in_the_way = in_the_way.map(|(b, u)| (b, FightActorRef::Unit(u)));
+                        skill.in_the_way = in_the_way;
                     } else {
                         let sibling = skill.sibling_mut(slot);
-                        sibling.lock = lock.and_then(FightActorRef::unit_id);
+                        sibling.lock = lock;
                         sibling.in_the_way = in_the_way;
                     }
                     let result = self
@@ -410,7 +410,7 @@ mod oracle {
 mod slots {
     use super::*;
     use crate::fight::skill::SkillState;
-    use mechcore_mcfr::{GroupSlot, McfrReader, ObjectKind, ObjectRef};
+    use mechcore_mcfr::{GroupSlot, McfrReader, ObjectRef};
 
     fn object(target: Option<FightActorRef>) -> Option<ObjectRef> {
         target.map(FightActorRef::object_ref)
@@ -468,13 +468,25 @@ mod slots {
                 let (lock, attack, state) = if slot == 0 {
                     (
                         object(actor.skill.lock_target),
-                        object(actor.skill.attack_target()),
-                        state_name(actor.skill.state),
+                        object(actor.skill.group_attack_target(0)),
+                        // A cooling's last step reads idle, its weapon
+                        // cleared, as a sibling's does.
+                        match actor.skill.state {
+                            SkillState::Cooling { started, .. }
+                                if u64::from(tick)
+                                    > started.saturating_add(native_time_units_to_steps(
+                                        actor.rules.attack.cooling_time_units(),
+                                    )) =>
+                            {
+                                "SkillIdleState"
+                            }
+                            state => state_name(state),
+                        },
                     )
                 } else {
                     let held = actor.skill.sibling(slot);
                     (
-                        held.lock.map(|unit| ObjectRef::new(ObjectKind::Unit, unit)),
+                        object(held.lock),
                         object(held.attack_target()),
                         state_name(held.state),
                     )
@@ -520,12 +532,12 @@ mod slots {
     }
 
     #[test]
-    #[ignore = "requires the Wraith recordings tests/wraith/slots.mcscript makes where the game runs"]
+    #[ignore = "requires the recordings tests/wraith/slots.mcscript and tests/raiden/slots.mcscript make where the game runs"]
     fn grouped_slots_match_every_recorded_tick() {
-        let root = Path::new("/tmp/mechcore/wraith/slots");
         let mut parted = Vec::new();
-        let mut paths = std::fs::read_dir(root)
-            .unwrap()
+        let mut paths = ["/tmp/mechcore/wraith/slots", "/tmp/mechcore/raiden/slots"]
+            .into_iter()
+            .flat_map(|root| std::fs::read_dir(root).unwrap())
             .map(|entry| entry.unwrap().path())
             .filter(|path| {
                 path.extension()

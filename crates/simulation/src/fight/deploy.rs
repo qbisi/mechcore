@@ -431,6 +431,12 @@ impl Simulation {
             actor.set_weapon_rotation(target_rotation_q32);
             self.search_attack_target(FightActorRef::Unit(actor_id));
         }
+        // A weapon fixed to the body enters the fight with the body's
+        // rotation.
+        for actor in self.actors.values_mut() {
+            let rotation_q32 = actor.body_rotation_q32;
+            actor.skill.slot_weapon_rotations_q32.fill(rotation_q32);
+        }
         Ok(())
     }
 }

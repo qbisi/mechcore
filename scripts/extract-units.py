@@ -47,6 +47,12 @@ def free_move(unit):
     return unit <= 54 and bool(FREE_MOVE_MASK >> unit & 1)
 
 
+# `FightWeapon`'s constructor gives each weapon of the unit whose data is 27,
+# the Raiden, a transform of its own of `RotateType.Fixed`, parented to the
+# unit's own. No table column says so.
+FIXED_TO_BODY_UNIT = 27
+
+
 def raw(value):
     return value["m_rawValue"] if isinstance(value, dict) else value
 
@@ -169,6 +175,8 @@ def render(mech, card, kind, skill, rvo, type_name):
         ]
     if raw(skill["extraWeaponRotateSpeed"]):
         lines.append(f"    rotation_speed: {grid(skill['extraWeaponRotateSpeed'], 1000)}")
+    if unit == FIXED_TO_BODY_UNIT:
+        lines.append("    fixed_to_body: true")
     lines += [f"  melee: {boolean(skill['isMeleeAttack'])}", "  path:"]
     if kind == "projectileSkillDatas":
         life = skill["maxLife"] or [0]
