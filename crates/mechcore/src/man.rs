@@ -375,7 +375,7 @@ struct Page {
 struct Listing {
     schema: &'static str,
     topics: Vec<Topic>,
-    kinds: [&'static str; 6],
+    kinds: [&'static str; Kind::ALL.len()],
 }
 
 #[derive(Serialize)]

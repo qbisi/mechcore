@@ -225,21 +225,7 @@ pub(in crate::fight) fn execute(
         match_seed: seed,
     };
     let mut simulation = Simulation::new_unprepared(layout, &config.units, &config.towers, seed)?;
-    let mut writer = match output {
-        Some(path) => {
-            let mut replay_layout = mechcore_document::parse_yaml(
-                replay_layout
-                    .ok_or_else(|| Error::new("output MCFR requires a replay layout"))?
-                    .as_bytes(),
-            )
-            .map_err(Error::new)?;
-            replay_layout.seed = Some(seed);
-            let replay_layout =
-                mechcore_document::canonical_yaml(replay_layout).map_err(Error::new)?;
-            McfrWriter::create(path, &config.game_build, &context, &replay_layout)?
-        }
-        None => McfrWriter::hash_only(&context)?,
-    };
+    let mut writer = writer(output, replay_layout, seed, config, &context)?;
     simulation.initialize_presearch_targets()?;
     let mut steps = 0;
     let mut first_divergence = None;
@@ -309,4 +295,34 @@ pub(in crate::fight) fn execute(
         first_divergence,
         divergent_tick,
     })
+}
+
+/// The writer a fight records into: a recording at `output`, which embeds
+/// the replay layout under the seed the fight ran with, or only the hash.
+fn writer(
+    output: Option<&Path>,
+    replay_layout: Option<&str>,
+    seed: i32,
+    config: &SimulationConfig,
+    context: &DurableContext,
+) -> Result<McfrWriter> {
+    let Some(path) = output else {
+        return McfrWriter::hash_only(context).map_err(Into::into);
+    };
+    let mut replay_layout = mechcore_document::parse_yaml(
+        replay_layout
+            .ok_or_else(|| Error::new("output MCFR requires a replay layout"))?
+            .as_bytes(),
+    )
+    .map_err(Error::new)?;
+    replay_layout.seed = Some(seed);
+    let replay_layout = mechcore_document::canonical_yaml(replay_layout).map_err(Error::new)?;
+    McfrWriter::create(
+        path,
+        Producer::Simulator,
+        &config.game_build,
+        context,
+        &replay_layout,
+    )
+    .map_err(Into::into)
 }

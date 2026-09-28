@@ -82,12 +82,28 @@ pub(crate) fn diff(
             "--fields and --tick select the groups of a recording; a document has none",
         ));
     }
-    let parse = |bytes: &[u8]| mechcore_document::parse_yaml(bytes).map_err(Failure::refused);
-    let differences =
-        layout_differences(parse(&left_bytes)?, parse(&right_bytes)?).map_err(Failure::failed)?;
+    let (schema, differences) = if kind == Kind::Fight {
+        let parse = |bytes: &[u8]| {
+            mechcore_document::fight::parse_yaml(bytes)
+                .map(mechcore_document::Fight::normalized)
+                .map_err(Failure::refused)
+        };
+        (
+            "mechcore.fight-diff-result.v1",
+            document_differences(&parse(&left_bytes)?, &parse(&right_bytes)?)
+                .map_err(Failure::failed)?,
+        )
+    } else {
+        let parse = |bytes: &[u8]| mechcore_document::parse_yaml(bytes).map_err(Failure::refused);
+        (
+            "mechcore.layout-diff-result.v2",
+            layout_differences(parse(&left_bytes)?, parse(&right_bytes)?)
+                .map_err(Failure::failed)?,
+        )
+    };
     let equal = differences.is_empty();
     let report = DiffReport {
-        schema: "mechcore.layout-diff-result.v2",
+        schema,
         equal,
         left: left.display().to_string(),
         right: right.display().to_string(),
@@ -107,10 +123,19 @@ pub(crate) fn layout_differences(
     left: mechcore_document::Layout,
     right: mechcore_document::Layout,
 ) -> Result<Vec<FieldDifference>, String> {
-    let left = serde_json::to_value(left.normalized())
-        .map_err(|error| format!("cannot normalize a layout: {error}"))?;
-    let right = serde_json::to_value(right.normalized())
-        .map_err(|error| format!("cannot normalize a layout: {error}"))?;
+    document_differences(&left.normalized(), &right.normalized())
+}
+
+/// Every field two documents in normal form differ in.
+///
+/// # Errors
+///
+/// Returns an error when a document cannot be serialized.
+fn document_differences<T: Serialize>(left: &T, right: &T) -> Result<Vec<FieldDifference>, String> {
+    let left = serde_json::to_value(left)
+        .map_err(|error| format!("cannot normalize a document: {error}"))?;
+    let right = serde_json::to_value(right)
+        .map_err(|error| format!("cannot normalize a document: {error}"))?;
     let mut differences = Vec::new();
     collect_differences("", Some(&left), Some(&right), &mut differences);
     Ok(differences)

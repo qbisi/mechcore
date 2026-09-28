@@ -107,6 +107,7 @@ fn verify_reports_the_first_divergent_tick_of_each_recording() {
     let recording = McfrReader::open(&recording_path).unwrap();
     let mut writer = McfrWriter::create(
         &divergent_path,
+        recording.producer(),
         recording.game_build(),
         recording.context(),
         recording.layout_yaml(),
@@ -213,12 +214,12 @@ red:
         .arg(&recording)
         .output()
         .unwrap();
-    // The answer is no, because units' experience is not carried yet: the
-    // fight was read and it does not settle a round.
-    assert_eq!(read.status.code(), Some(1));
+    // The answer is yes: the recording answers everything its fight decided.
+    assert_eq!(read.status.code(), Some(0));
     let outcome: serde_json::Value = serde_json::from_slice(&read.stdout).unwrap();
-    assert_eq!(outcome["schema"], "mechcore.fight-outcome.v3");
+    assert_eq!(outcome["schema"], "mechcore.fight-outcome.v4");
     assert!(outcome["ticks"].as_u64().unwrap() > 0);
+    assert_eq!(outcome["unresolved"], serde_json::json!([]), "{outcome}");
 
     let blue = &outcome["sides"]["blue"]["survivors"];
     let indices: Vec<i64> = blue
@@ -238,25 +239,116 @@ red:
             .unwrap()
             .is_empty()
     );
+}
 
-    // A round that carried no contraption and nothing standing into the fight
-    // has none left, and that is the only answer this reader closes.
-    for side in ["blue", "red"] {
-        for field in ["contraptions", "battle_skills"] {
-            assert_eq!(
-                outcome["sides"][side][field].as_array().unwrap().len(),
-                0,
-                "{side} {field}"
-            );
-        }
-    }
+/// A recording converts to the fight document it records, and a layout to
+/// the one the simulator fights it into: the same document, since the
+/// simulator wrote the recording.
+#[test]
+fn a_recording_and_its_layout_convert_to_one_fight_document() {
+    let directory = tempfile::tempdir().unwrap();
+    let layout = directory.path().join("deployment.yaml");
+    let recording = directory.path().join("fight.mcfr");
+    let written = directory.path().join("fight.yaml");
+    fs::write(
+        &layout,
+        r"
+kind: layout
+round: 1
+seed: 4242
+blue:
+  units:
+    - {name: marksman, index: 0, position: {x: -60, y: -100}}
+    - {name: marksman, index: 3, position: {x: 0, y: -100}}
+    - {name: marksman, index: 7, position: {x: 60, y: -100}}
+red:
+  units:
+    - {name: arclight, index: 2, position: {x: 0, y: -60}}
+",
+    )
+    .unwrap();
+    let mechcore = |arguments: &[&std::ffi::OsStr]| {
+        Command::new(env!("CARGO_BIN_EXE_mechcore"))
+            .args(arguments)
+            .output()
+            .unwrap()
+    };
+    let recorded = mechcore(&[
+        "convert".as_ref(),
+        layout.as_os_str(),
+        "--to".as_ref(),
+        "mcfr".as_ref(),
+        recording.as_os_str(),
+    ]);
+    assert!(recorded.status.success());
+
+    let from_recording = mechcore(&[
+        "convert".as_ref(),
+        recording.as_os_str(),
+        "--to".as_ref(),
+        "fight".as_ref(),
+    ]);
+    assert!(
+        from_recording.status.success(),
+        "{}",
+        String::from_utf8_lossy(&from_recording.stderr)
+    );
+    let document = String::from_utf8(from_recording.stdout).unwrap();
+    // The simulator wrote the recording, so the document says so.
+    assert!(document.contains("\nsource: simulator\n"), "{document}");
+    assert!(document.contains("\nticks: "), "{document}");
+    assert!(document.contains("\nhash: {profile: mcfr-content-0.7.0, result: "));
     // Blue alone stands, so red's core takes the three deployed level 1
     // Marksmen's scores and blue's takes nothing.
-    assert_eq!(outcome["sides"]["blue"]["core_damage"], 0, "{outcome}");
-    assert_eq!(outcome["sides"]["red"]["core_damage"], 300, "{outcome}");
-    let unresolved = outcome["unresolved"].as_array().unwrap();
-    assert_eq!(unresolved.len(), 1, "{outcome}");
-    assert!(unresolved[0].as_str().unwrap().starts_with("units.exp:"));
+    assert!(
+        document.contains("\nred:\n  core_damage: 300\n"),
+        "{document}"
+    );
+    assert!(!document.contains("blue:\n  core_damage"), "{document}");
+    // The Arclight fell to the Marksmen, and its experience went to them.
+    assert!(document.contains("exp: 0/"), "{document}");
+
+    let from_layout = mechcore(&[
+        "convert".as_ref(),
+        layout.as_os_str(),
+        "--to".as_ref(),
+        "fight".as_ref(),
+        written.as_os_str(),
+    ]);
+    assert!(from_layout.status.success());
+    let report: serde_json::Value = serde_json::from_slice(&from_layout.stdout).unwrap();
+    assert_eq!(report["schema"], "mechcore.convert-fight-result.v1");
+    assert_eq!(report["source"], "simulator");
+    assert_eq!(fs::read_to_string(&written).unwrap(), document);
+
+    // The document is in normal form, equal to itself, and has a shape.
+    let formatted = mechcore(&["format".as_ref(), written.as_os_str()]);
+    assert_eq!(String::from_utf8(formatted.stdout).unwrap(), document);
+    let compared = mechcore(&["diff".as_ref(), written.as_os_str(), written.as_os_str()]);
+    assert_eq!(compared.status.code(), Some(0));
+    let report: serde_json::Value = serde_json::from_slice(&compared.stdout).unwrap();
+    assert_eq!(report["schema"], "mechcore.fight-diff-result.v1");
+    let changed = directory.path().join("changed.yaml");
+    fs::write(
+        &changed,
+        document.replace("core_damage: 300", "core_damage: 299"),
+    )
+    .unwrap();
+    let compared = mechcore(&["diff".as_ref(), written.as_os_str(), changed.as_os_str()]);
+    assert_eq!(compared.status.code(), Some(1));
+    let report: serde_json::Value = serde_json::from_slice(&compared.stdout).unwrap();
+    assert_eq!(report["differences"][0]["path"], "/red/core_damage");
+    let schema = mechcore(&["schema".as_ref(), "fight".as_ref()]);
+    assert!(schema.status.success());
+
+    // Checking a fight document is not this build's yet, and says so by kind.
+    let checked = mechcore(&["verify".as_ref(), written.as_os_str()]);
+    assert_eq!(checked.status.code(), Some(1));
+    let report: serde_json::Value = serde_json::from_slice(&checked.stdout).unwrap();
+    assert!(
+        report["error"].as_str().unwrap().contains("fight"),
+        "{report}"
+    );
 }
 
 /// What was written onto a fight's units, which is not what the fight decided.

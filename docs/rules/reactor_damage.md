@@ -33,7 +33,9 @@ score(unit) = floor(score_at_level(unit) × Π rates that apply)
   hands the side as the fight is built are all summoned, even when a formation
   of the same type stands on the board.
 - **Reborn**, the `rebirth_unit_score_rate`: a unit that died in this fight
-  and was brought back.
+  and was brought back. Rebirth is a unit technology's, and it revives the
+  unit that died rather than making another, so a unit that falls and stands
+  at the end is a reborn one. A summoned unit that is reborn takes both rates.
 - **Changed sides**, the `team_changed_unit_score_rate`: a unit fighting for a
   side other than the one it started on. It scores for the side it serves at
   the end, not the side that deployed it.
@@ -71,8 +73,8 @@ and taken out again before the score is compared, so it does not count either.
 ### Replayed
 
 - Each core falls, round by round, by exactly what the rule above answers from
-  the round's recording, classified as `mechcore show <recording> --view
-  outcome` classifies it: `scripts/match-replays.py` records every round of
+  the round's recording, classified as `mechcore convert <recording> --to
+  fight` classifies it: `scripts/match-replays.py` records every round of
   the corpus with the game and compares its answer with the fall between the
   round's state and the next in the match document, and `--recordings` repeats
   the comparison over recordings already made. The fights of the corpus
@@ -96,9 +98,15 @@ and taken out again before the score is compared, so it does not count either.
 - The rate for a unit not deployed from its formations applies to any creation
   type but the default: `FightMech.mechCreateType`,
   `Config.supportUnitScoreRate`.
+- Rebirth is a unit technology's, which says how many times a unit is
+  brought back: `RebirthTech.GetRebirthCount`, `RebirthTech.GetUnitID`.
+- A rebirth revives the unit that died, and it is the one place a unit's
+  rebirth count grows, so a unit that died in the fight and stands at its end
+  has been reborn: `DeadRebirthController.PerformDeadEffect`, `RebirthTask.RebirthMech`,
+  `FightMech.AddRebirthCount`.
 - The rate for a reborn unit applies once it has been reborn:
-  `FightMech.rebirthCount`, `FightMech.AddRebirthCount`,
-  `RebirthTask.RebirthMech`, `Config.rebirthUnitScoreRate`.
+  `FightMech.rebirthCount`, `FightMech.GetScore`,
+  `Config.rebirthUnitScoreRate`.
 - The rate for a unit on another side: `Config.teamChangedUnitScoreRate`.
 - Every side that scores takes its score off every other side's core, with no
   clamp: `TeamScoreCalculatorReduce.Perform`, `TeamScoreGaugeReduce.ChangeScore`,
@@ -110,13 +118,11 @@ and taken out again before the score is compared, so it does not count either.
 
 ### Not established
 
-- **A reborn unit's rate in play.** A recording holds no event for a rebirth:
-  the unit that dies and is brought back is the same unit. So
-  `show --view outcome` does not score a side with a unit that died and stands
-  at the end; it names that unit in `unresolved`. No fight of the corpus leaves
-  a reborn unit standing. The fixture that would settle it is a Phoenix that
-  dies, is reborn and survives, which should score its row times
-  `rebirth_unit_score_rate`.
+- **A reborn unit in play.** No recorded fight has left a reborn unit
+  standing, so the reading above, a unit with a death in the fight that
+  stands at its end scored at `rebirth_unit_score_rate`, has not been checked
+  against a core's fall. The fixture that would check it is a Phoenix with
+  Quantum Reassembly that dies, is reborn and survives.
 - **Which units count as active.** The reader counts a unit that is alive and
   active in the recording's last tick, which is how a recording states a
   unit's membership of its team's active units; the two have not been told

@@ -1677,6 +1677,7 @@ fn drain_recording(
                 }
                 match mechcore_mcfr::McfrWriter::create(
                     &arguments.output,
+                    mechcore_mcfr::Producer::Game,
                     &game_build,
                     &context,
                     &layout_yaml,

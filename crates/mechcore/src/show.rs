@@ -1,9 +1,10 @@
 //! `show`: answers one view of what a file holds.
 //!
-//! A recording has three: `outcome`, what the fight decided; `stats`, a unit's
+//! A recording has three: `outcome`, the survivors a fight document leaves out
+//! and what keeps the recording from converting to one; `stats`, a unit's
 //! numbers and the corrections behind them; and `buildings`, what is standing.
-//! Each is its own reader, because what a fight decided, what was written onto
-//! its units and what stands on its board are three different questions.
+//! What the fight decided is `convert --to fight`, which reads the recording
+//! the same way `outcome` does.
 
 use std::path::Path;
 
@@ -38,7 +39,7 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
 ///
 /// Only `outcome` has a verdict of its own: it is no while anything the fight
 /// decided is unresolved, because the fight was read and the answer is that it
-/// does not settle a round.
+/// converts to no fight document and settles no round.
 ///
 /// # Errors
 ///
@@ -58,7 +59,8 @@ pub(crate) fn show(input: &Path, view: &str, tick: Option<u32>) -> Result<(bool,
                     "the outcome is the whole fight's; --tick belongs to stats and buildings",
                 ));
             }
-            let outcome = crate::outcome::read(input)?;
+            let reader = crate::outcome::open(input)?;
+            let outcome = crate::outcome::read(&reader)?.outcome(Some(input.display().to_string()));
             let settled = outcome.unresolved.is_empty();
             Ok((settled, written(serde_json::to_value(&outcome))?))
         }

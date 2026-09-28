@@ -1,12 +1,13 @@
 use std::{collections::BTreeMap, fs, path::Path};
 
 use crate::{
-    DurableContext, Error, Hashes, InstrumentRow, Result, TickSlice, TransitionEvents,
+    DurableContext, Error, Hashes, InstrumentRow, Producer, Result, TickSlice, TransitionEvents,
     WorldSnapshot, canonical, model::IdentityAllocator, parquet_storage::StorageReader,
 };
 
 pub struct McfrReader {
     file_size_bytes: u64,
+    producer: Producer,
     game_build: String,
     context: DurableContext,
     tick_count: u32,
@@ -29,6 +30,7 @@ impl McfrReader {
         let path = path.as_ref();
         let file_size_bytes = fs::metadata(path)?.len();
         let storage = StorageReader::open(path)?;
+        let producer = storage.metadata().producer;
         let game_build = storage.metadata().game_build.clone();
         let context = storage.metadata().context.clone();
         let tick_count = storage.metadata().tick_count;
@@ -36,6 +38,7 @@ impl McfrReader {
         let hashes = storage.metadata().hashes.clone();
         let reader = Self {
             file_size_bytes,
+            producer,
             game_build,
             context,
             tick_count,
@@ -45,6 +48,12 @@ impl McfrReader {
         };
         IdentityAllocator::from_initial(&reader.state(1)?)?;
         Ok(reader)
+    }
+
+    /// What wrote the recording: the game or the simulator.
+    #[must_use]
+    pub const fn producer(&self) -> Producer {
+        self.producer
     }
 
     #[must_use]

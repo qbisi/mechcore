@@ -124,7 +124,8 @@ tree.
 
 No gain carries a formation past its bar, and a full formation takes no share,
 though a share is still set aside for it when it stands near. As the fight
-ends, each formation's experience is cut to a whole number.
+ends, each formation's experience is cut down to a whole number, and that is
+what the formation carries into the next round.
 
 ## Evidence
 
@@ -135,6 +136,15 @@ ends, each formation's experience is cut to a whole number.
   simulator reproduces it tick by tick in every fight the topics pin, which
   `tests/units/regressions.mcscript` and the other topics'
   `regressions.mcscript` replay.
+
+### Replayed
+
+- A formation ends the fight on its experience cut down to a whole number, and
+  opens the next round holding it: `scripts/match-replays.py` with `--recordings`
+  converts every recorded round of the corpus to its fight document and
+  compares each unit's `exp` with the next state in the match document. The
+  corpus includes fights that ran out of time, whose recordings end before the
+  cut, and the fractions they end on are cut down.
 
 ### Read
 

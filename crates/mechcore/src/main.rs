@@ -34,7 +34,7 @@ fn usage(program: &str) {
     eprintln!("       {program} diff <left> <right> [--fields <group>,...] [--tick <n>]");
     eprintln!("       {program} show <recording.mcfr> --view outcome|stats|buildings [--tick <n>]");
     eprintln!("       {program} format <document.yaml> [--write]");
-    eprintln!("       {program} schema <layout|match|state|action>...");
+    eprintln!("       {program} schema <layout|fight|match|state|action>...");
     eprintln!("       {program} match new <match.yaml> [--seed <i32>] [--map <i32>]");
     eprintln!("       {program} match show <match.yaml> --side blue|red [--wait [<seconds>]]");
     eprintln!("       {program} match act <match.yaml> --side blue|red <decision> [--dry-run]");

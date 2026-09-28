@@ -27,16 +27,18 @@ Run from anywhere inside the checkout, with the game installed:
 A round in which a side concedes is listed and not compared: a concession made
 during the fight ends it at a moment the match does not record.
 
-Each round's recording from the corpus replay is also read for what the fight
-took off each reactor core (``mechcore show <recording> --view outcome``), and
-that is compared with how far the side's ``reactor_core`` falls from the
-round's state to the next one in the match document, which is the game's own
-answer. ``--recordings <dir>`` makes only that comparison, gamelessly, over
-recordings already made, named ``mNN-rRR.mcfr``: the round ``RR`` of the
-``NN``-th match document in name order.
+Each round's recording from the corpus replay is also converted to the fight
+document it records (``mechcore convert <recording> --to fight``), and every
+leaf the fight decides is compared with the next state in the match document,
+which is the game's own answer: how far each ``reactor_core`` falls, each
+unit's ``exp`` by its index, which ``contraptions`` remain, and what the panel
+slots' ``standing`` objects are. ``--recordings <dir>`` makes only that
+comparison, gamelessly, over recordings already made, named ``mNN-rRR.mcfr``:
+the round ``RR`` of the ``NN``-th match document in name order, and reports
+it per field.
 
 The exit status is 0 only when every other round records both ways, compares
-equal, and takes off each reactor core what the match document says it did.
+equal, and states every leaf the fight decides as the match document does.
 """
 
 from __future__ import annotations
@@ -69,7 +71,7 @@ def parse_arguments(root: Path) -> argparse.Namespace:
     parser.add_argument(
         "--recordings",
         type=Path,
-        help="compare only the reactor core damage, over the recordings already in this "
+        help="compare only what each fight decided, over the recordings already in this "
         "directory, named mNN-rRR.mcfr",
     )
     return parser.parse_args()
@@ -92,67 +94,223 @@ def rounds_of(match_doc: Path) -> tuple[list[int], set[int]]:
     return sorted(rounds), conceded
 
 
-def reactor_cores(match_doc: Path) -> dict[int, tuple[int, int]]:
-    """Each state's reactor cores, blue's and red's, by the round it opens."""
+FIELDS = ("core_damage", "exp", "contraptions", "standing")
+"""The leaves a fight decides, as ``match.md`` names them."""
+
+
+def states(match_doc: Path) -> dict[int, dict]:
+    """Each state segment of a match document, by the round it opens."""
     text = match_doc.read_text(encoding="utf-8")
-    cores = {}
+    found = {}
     for segment in re.split(r"^---$", text, flags=re.MULTILINE):
-        found = re.match(r"\s*kind: state\nround: (\d+)$", segment, flags=re.MULTILINE)
-        if not found:
-            continue
-        sides = [
-            re.search(rf"^{side}:\n  reactor_core: (-?\d+)$", segment, flags=re.MULTILINE)
-            for side in ("blue", "red")
-        ]
-        if all(sides):
-            cores[int(found.group(1))] = (int(sides[0].group(1)), int(sides[1].group(1)))
-    return cores
+        if re.match(r"\s*kind: state\n", segment):
+            state = parse_yaml(segment)
+            found[state["round"]] = state
+    return found
 
 
-def core_damage(mechcore: Path, recording: str, cores: dict, number: int) -> dict:
-    """What the fight recorded took off each reactor core, against what the match
-    document's states say it did: the fall from the round's state to the next."""
+def fight_leaves(mechcore: Path, recording: str, cores: dict, number: int) -> dict:
+    """What the fight recorded decided, against what the match document's next
+    state says it did, field by field. A field is ``equal`` or says how the two
+    differ."""
     if number not in cores or number + 1 not in cores:
-        return {"core_damage": f"the match holds no state for round {number} and the next"}
-    expected = [before - after for before, after in zip(cores[number], cores[number + 1])]
-    result = run([str(mechcore), "show", recording, "--view", "outcome", "--format", "json"])
-    try:
-        outcome = json.loads(result.stdout)
-    except json.JSONDecodeError:
-        return {"core_damage": reason(result.stdout + result.stderr)}
-    if "sides" not in outcome:
-        return {"core_damage": reason(result.stdout + result.stderr)}
-    answered = [outcome["sides"][side].get("core_damage") for side in ("blue", "red")]
-    if None in answered:
-        return {
-            "core_damage": "not answered: "
-            + "; ".join(item for item in outcome["unresolved"] if item.startswith("reactor_core"))
-        }
-    if answered != expected:
-        return {"core_damage": f"blue and red take {answered}, the match says {expected}"}
-    return {"core_damage": "equal"}
+        missing = f"the match holds no state for round {number} and the next"
+        return {field: missing for field in FIELDS}
+    result = run([str(mechcore), "convert", recording, "--to", "fight"])
+    if result.returncode != 0:
+        refused = "not converted: " + reason(result.stdout + result.stderr)
+        return {field: refused for field in FIELDS}
+    fight = parse_yaml(result.stdout)
+    before, after = cores[number], cores[number + 1]
+    compared = {field: [] for field in FIELDS}
+    for side in ("blue", "red"):
+        fought, was, now = fight[side], before[side], after[side]
+        fell = was["reactor_core"] - now["reactor_core"]
+        if fought.get("core_damage", 0) != fell:
+            compared["core_damage"].append(
+                f"{side} takes {fought.get('core_damage', 0)}, the match says {fell}"
+            )
+        units = {unit["index"]: unit for unit in now.get("units", [])}
+        for unit in fought.get("units", []):
+            ended = int(str(unit.get("exp", "0/0/0")).split("/")[1])
+            if unit["index"] not in units:
+                compared["exp"].append(f"{side} unit {unit['index']} is not in the next state")
+                continue
+            stated = units[unit["index"]].get("exp")
+            holds = int(str(stated).split("/")[0]) if stated else 0
+            if ended != holds:
+                compared["exp"].append(
+                    f"{side} unit {unit['index']} {unit['name']} ends on {ended}, "
+                    f"the match says {stated or 0}"
+                )
+        kept = sorted(
+            entry["index"] for entry in fought.get("contraptions", []) if entry.get("retained", True)
+        )
+        fought_indices = {entry["index"] for entry in fought.get("contraptions", [])}
+        remain = sorted(
+            entry["index"]
+            for entry in now.get("contraptions", [])
+            if entry["index"] in fought_indices
+        )
+        if kept != remain:
+            compared["contraptions"].append(f"{side} keeps {kept}, the match says {remain}")
+        left = []
+        for entry in fought.get("battle_skills", []):
+            if entry.get("retained", True) is False:
+                continue
+            if "standing" in entry:
+                if "position" in entry["standing"]:
+                    left.append(entry["standing"])
+            elif entry["name"] == "shield_airdrop":
+                left.append({"position": entry["positions"][0]})
+            elif entry["name"] == "sticky_oil_bomb":
+                area = {"control_points": entry["positions"]}
+                if entry.get("grid_rows"):
+                    area["grid_rows"] = entry["grid_rows"]
+                left.append(area)
+        standing = [
+            standing
+            for slot in now.get("battle_skills", [])
+            for standing in slot.get("standing", [])
+        ]
+        key = lambda value: json.dumps(value, sort_keys=True)
+        if sorted(map(key, left)) != sorted(map(key, standing)):
+            compared["standing"].append(
+                f"{side} leaves {sorted(map(key, left))}, the match says "
+                f"{sorted(map(key, standing))}"
+            )
+    return {field: "; ".join(found) or "equal" for field, found in compared.items()}
+
+
+def parse_yaml(text: str):
+    """The YAML subset mechcore's canonical writer spells a document in: block
+    mappings and sequences, flow collections and plain scalars. A match
+    document's header, which can quote a player's name, is not read."""
+    lines = [
+        line.rstrip()
+        for line in text.splitlines()
+        if line.strip() and line.strip() != "---" and not line.lstrip().startswith("#")
+    ]
+    value, _ = parse_block(lines, 0, 0)
+    return value
+
+
+def parse_block(lines: list[str], at: int, indent: int):
+    if at < len(lines) and lines[at][indent:].startswith("- "):
+        items = []
+        while at < len(lines) and indent_of(lines[at]) == indent and lines[at][indent:].startswith("- "):
+            rest = lines[at][indent + 2 :]
+            if re.match(r"^[\w]+:( |$)", rest) and not rest.startswith("{"):
+                # A block mapping inside a sequence item.
+                item, at = parse_block([" " * (indent + 2) + rest] + lines[at + 1 :], 0, indent + 2)
+                items.append(item)
+                continue
+            items.append(parse_flow(rest))
+            at += 1
+        return items, at
+    mapping = {}
+    while at < len(lines) and indent_of(lines[at]) == indent:
+        key, _, rest = lines[at][indent:].partition(":")
+        rest = rest.strip()
+        at += 1
+        if rest:
+            mapping[scalar(key)] = parse_flow(rest)
+        elif at < len(lines) and indent_of(lines[at]) == indent and lines[at][indent:].startswith("- "):
+            mapping[scalar(key)], at = parse_block(lines, at, indent)
+        elif at < len(lines) and indent_of(lines[at]) > indent:
+            mapping[scalar(key)], at = parse_block(lines, at, indent_of(lines[at]))
+        else:
+            mapping[scalar(key)] = None
+    return mapping, at
+
+
+def indent_of(line: str) -> int:
+    return len(line) - len(line.lstrip(" "))
+
+
+def parse_flow(text: str):
+    """One value written on one line: a flow collection or a plain scalar."""
+    if not text.startswith(("{", "[")):
+        return scalar(text)
+    value, at = flow_at(text, 0)
+    if text[at:].strip():
+        raise ValueError(f"unread YAML after {text[:at]!r}")
+    return value
+
+
+def flow_at(text: str, at: int):
+    """The flow value starting at ``at``, and where it ends."""
+    while text[at] == " ":
+        at += 1
+    opener = text[at]
+    if opener in "{[":
+        closer = "}" if opener == "{" else "]"
+        collection = {} if opener == "{" else []
+        at += 1
+        while True:
+            while text[at] in " ,":
+                at += 1
+            if text[at] == closer:
+                return collection, at + 1
+            if opener == "{":
+                colon = text.index(":", at)
+                key = scalar(text[at:colon])
+                collection[key], at = flow_at(text, colon + 1)
+            else:
+                item, at = flow_at(text, at)
+                collection.append(item)
+    if opener in "'\"":
+        end = text.index(opener, at + 1)
+        return text[at + 1 : end], end + 1
+    end = at
+    while end < len(text) and text[end] not in ",]}":
+        end += 1
+    return scalar(text[at:end]), end
+
+
+def scalar(text: str):
+    text = text.strip()
+    if re.fullmatch(r"-?\d+", text):
+        return int(text)
+    if text in ("true", "false"):
+        return text == "true"
+    if text in ("null", "~"):
+        return None
+    if len(text) >= 2 and text[0] == text[-1] and text[0] in "'\"":
+        return text[1:-1]
+    return text
 
 
 def check_recordings(arguments: argparse.Namespace, matches: list[Path]) -> int:
-    """The reactor core comparison alone, over recordings already made."""
-    compared = equal = 0
+    """The comparison of what each fight decided alone, over recordings
+    already made, reported per field."""
+    compared = 0
+    equal = {field: 0 for field in FIELDS}
+    whole = 0
     for recording in sorted(arguments.recordings.glob("m*-r*.mcfr")):
         found = re.fullmatch(r"m(\d+)-r(\d+)", recording.stem)
         if not found or int(found.group(1)) >= len(matches):
             continue
         match_doc, number = matches[int(found.group(1))], int(found.group(2))
         entry = {"match": match_doc.stem, "round": number}
-        entry.update(core_damage(arguments.mechcore, str(recording), reactor_cores(match_doc), number))
+        entry.update(fight_leaves(arguments.mechcore, str(recording), states(match_doc), number))
         compared += 1
-        equal += entry["core_damage"] == "equal"
+        for field in FIELDS:
+            equal[field] += entry[field] == "equal"
+        whole += all(entry[field] == "equal" for field in FIELDS)
         if arguments.json:
             print(json.dumps(entry, ensure_ascii=False), flush=True)
-        elif entry["core_damage"] != "equal":
-            print(f"{recording.stem} {entry['match']} round {number}: {entry['core_damage']}",
-                  flush=True)
-    print(f"{equal} of {compared} recorded rounds take off each reactor core what the match "
-          "says they did", file=sys.stderr)
-    return 0 if compared and equal == compared else 1
+        else:
+            for field in FIELDS:
+                if entry[field] != "equal":
+                    print(f"{recording.stem} {entry['match']} round {number} {field}: "
+                          f"{entry[field]}", flush=True)
+    for field in FIELDS:
+        print(f"{field}: {equal[field]} of {compared} recorded rounds state what the match says",
+              file=sys.stderr)
+    print(f"{whole} of {compared} recorded rounds state every leaf the fight decides as the "
+          "match says", file=sys.stderr)
+    return 0 if compared and whole == compared else 1
 
 
 def run(command: list[str]) -> subprocess.CompletedProcess[str]:
@@ -248,9 +406,11 @@ def compare(mechcore: Path, left: str, right: str) -> dict:
 
 
 def verdict(entry: dict) -> str:
-    damage = entry.get("core_damage", "equal")
+    decided = "; ".join(
+        f"{field} {entry[field]}" for field in FIELDS if entry.get(field, "equal") != "equal"
+    )
     if entry.get("equal"):
-        return "equal" if damage == "equal" else f"equal; reactor core {damage}"
+        return "equal" if not decided else f"equal; {decided}"
     if entry.get("conceded"):
         return "conceded, not compared"
     if "refused" in entry:
@@ -317,7 +477,7 @@ def main() -> int:
                         }
                     )
             failed = record(arguments.mechcore, steps, folder)
-            cores = reactor_cores(match_doc)
+            cores = states(match_doc)
             for at, entry in enumerate(entries):
                 left, right = 2 * at, 2 * at + 1
                 if left in failed or right in failed:
@@ -327,7 +487,7 @@ def main() -> int:
                         compare(arguments.mechcore, steps[left]["output"], steps[right]["output"])
                     )
                     entry.update(
-                        core_damage(arguments.mechcore, steps[left]["output"], cores, entry["round"])
+                        fight_leaves(arguments.mechcore, steps[left]["output"], cores, entry["round"])
                     )
         for entry in sorted(entries + skipped, key=lambda entry: entry["round"]):
             results.append(entry)
@@ -338,14 +498,16 @@ def main() -> int:
 
     compared = [entry for entry in results if not entry.get("conceded")]
     equal = sum(1 for entry in compared if entry.get("equal"))
-    damaged = sum(1 for entry in compared if entry.get("core_damage") == "equal")
+    decided = sum(
+        1 for entry in compared if all(entry.get(field) == "equal" for field in FIELDS)
+    )
     print(
         f"{equal} of {len(compared)} rounds fight the same from the match's replay as from "
-        f"the match's own; {damaged} take off each reactor core what the match says; "
+        f"the match's own; {decided} state every leaf the fight decides as the match says; "
         f"{len(results) - len(compared)} conceded, not compared",
         file=sys.stderr,
     )
-    return 0 if equal == len(compared) and damaged == len(compared) else 1
+    return 0 if equal == len(compared) and decided == len(compared) else 1
 
 
 if __name__ == "__main__":

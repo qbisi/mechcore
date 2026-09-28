@@ -53,7 +53,7 @@ pub use fight::{
     Fight, FightBattleSkill, FightContraption, FightExperience, FightHash, FightKind, FightRelease,
     FightSide, FightStanding, FightUnit, Source,
 };
-pub use grbr::{GrbrRoundRetained, GrbrStanding, retained_from_grbr_round};
+pub use grbr::{GrbrRoundRetained, GrbrStanding, retained_from_grbr_round, rotate_oil_grid_rows};
 pub use layout::{
     BattleSkillEntry, BattleSkillRelease, ContraptionPlacement, Experience,
     FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Layout, MAX_TOWER_STRENGTHEN_LEVEL,

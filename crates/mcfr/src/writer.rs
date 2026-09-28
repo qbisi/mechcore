@@ -6,8 +6,8 @@ use std::{
 use tempfile::TempPath;
 
 use crate::{
-    DurableContext, Error, Hashes, InstrumentRow, McfrReader, Result, TickHashes, TransitionEvents,
-    WorldSnapshot, canonical,
+    DurableContext, Error, Hashes, InstrumentRow, McfrReader, Producer, Result, TickHashes,
+    TransitionEvents, WorldSnapshot, canonical,
     model::IdentityAllocator,
     parquet_storage::{self, StorageWriter},
 };
@@ -16,6 +16,7 @@ pub struct McfrWriter {
     target: Option<PathBuf>,
     temporary: Option<TempPath>,
     storage: Option<StorageWriter>,
+    producer: Option<Producer>,
     game_build: Option<String>,
     layout_yaml: Option<String>,
     context_bytes: Vec<u8>,
@@ -33,6 +34,7 @@ impl McfrWriter {
     /// failure.
     pub fn create(
         path: impl AsRef<Path>,
+        producer: Producer,
         game_build: &str,
         context: &DurableContext,
         layout_yaml: &str,
@@ -85,6 +87,7 @@ impl McfrWriter {
             target: Some(target),
             temporary: Some(temporary),
             storage: Some(storage),
+            producer: Some(producer),
             game_build: Some(game_build.to_owned()),
             layout_yaml: Some(layout_yaml),
             context_bytes,
@@ -105,6 +108,7 @@ impl McfrWriter {
             target: None,
             temporary: None,
             storage: None,
+            producer: None,
             game_build: None,
             layout_yaml: None,
             context_bytes: parquet_storage::encode_durable_context(context)?,
@@ -194,6 +198,9 @@ impl McfrWriter {
         let Some(storage) = self.storage.take() else {
             return Ok(hashes);
         };
+        let producer = self
+            .producer
+            .ok_or_else(|| Error::invalid("writer producer is unavailable"))?;
         let game_build = self
             .game_build
             .as_deref()
@@ -206,7 +213,13 @@ impl McfrWriter {
             .temporary
             .as_ref()
             .ok_or_else(|| Error::invalid("writer temporary output is unavailable"))?;
-        let directory = storage.finish(game_build, &self.context_bytes, layout_yaml, &hashes)?;
+        let directory = storage.finish(
+            producer,
+            game_build,
+            &self.context_bytes,
+            layout_yaml,
+            &hashes,
+        )?;
         parquet_storage::package_members(directory.path(), temporary)?;
         let verified = McfrReader::open(temporary)?;
         if verified.hashes() != &hashes {

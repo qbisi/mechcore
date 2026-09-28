@@ -9203,8 +9203,14 @@ mod tests {
             match_seed: 0,
         };
         let layout = "kind: layout\nseed: 0\nround: 1\nblue:\n  units:\n  - {name: marksman, index: 0, position: {x: 0, y: -50}}\nred:\n  units:\n  - {name: arclight, index: 0, position: {x: 0, y: -50}}\n";
-        let mut writer =
-            mechcore_mcfr::McfrWriter::create(&path, "test", &context, layout).unwrap();
+        let mut writer = mechcore_mcfr::McfrWriter::create(
+            &path,
+            mechcore_mcfr::Producer::Game,
+            "test",
+            &context,
+            layout,
+        )
+        .unwrap();
         writer.append_tick(state, &events).unwrap();
         writer.finish().unwrap();
         let reader = mechcore_mcfr::McfrReader::open(path).unwrap();

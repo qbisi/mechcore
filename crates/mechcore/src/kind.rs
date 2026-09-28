@@ -14,6 +14,7 @@ use crate::cli::Failure;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Kind {
     Layout,
+    Fight,
     Match,
     State,
     Action,
@@ -50,8 +51,9 @@ const GRBR_HEADER: [u8; 17] = [
 const MCFR_HEADER: [u8; 4] = *b"PK\x03\x04";
 
 impl Kind {
-    pub(crate) const ALL: [Self; 6] = [
+    pub(crate) const ALL: [Self; 7] = [
         Self::Layout,
+        Self::Fight,
         Self::Match,
         Self::State,
         Self::Action,
@@ -62,6 +64,7 @@ impl Kind {
     pub(crate) const fn name(self) -> &'static str {
         match self {
             Self::Layout => "layout",
+            Self::Fight => "fight",
             Self::Match => "match",
             Self::State => "state",
             Self::Action => "action",
@@ -142,9 +145,10 @@ impl Kind {
     pub(crate) const fn verbs(self) -> &'static [&'static str] {
         match self {
             Self::Layout => &["verify", "convert", "diff", "format"],
+            Self::Fight => &["diff", "format"],
             Self::Match => &["verify", "convert"],
             Self::State | Self::Action => &[],
-            Self::Mcfr => &["verify", "diff", "show"],
+            Self::Mcfr => &["verify", "convert", "diff", "show"],
             Self::Grbr => &["convert"],
         }
     }
@@ -155,13 +159,17 @@ impl Kind {
             Self::Layout => &[
                 (Self::Grbr, Conversion::Rewrite),
                 (Self::Mcfr, Conversion::Computation),
+                (Self::Fight, Conversion::Computation),
             ],
             Self::Match => &[
                 (Self::Grbr, Conversion::Rewrite),
                 (Self::Layout, Conversion::Rewrite),
             ],
             Self::Grbr => &[(Self::Match, Conversion::Rewrite)],
-            Self::State | Self::Action | Self::Mcfr => &[],
+            // What a recording holds of its fight, written onto the layout it
+            // embeds: read, not computed.
+            Self::Mcfr => &[(Self::Fight, Conversion::Rewrite)],
+            Self::State | Self::Action | Self::Fight => &[],
         }
     }
 
@@ -208,6 +216,7 @@ mod tests {
     #[test]
     fn a_kind_is_read_from_the_content() {
         assert_eq!(Kind::of(b"kind: layout\nround: 1\n").unwrap(), Kind::Layout);
+        assert_eq!(Kind::of(b"kind: fight\nround: 1\n").unwrap(), Kind::Fight);
         assert_eq!(
             Kind::of(b"kind: match\ngame_build: x\n---\nkind: action\n").unwrap(),
             Kind::Match
@@ -241,6 +250,22 @@ mod tests {
             Some(Conversion::Computation)
         );
         assert_eq!(Kind::Mcfr.conversion(Kind::Layout), None);
+        assert_eq!(
+            Kind::Mcfr.conversion(Kind::Fight),
+            Some(Conversion::Rewrite)
+        );
+        assert_eq!(
+            Kind::Layout.conversion(Kind::Fight),
+            Some(Conversion::Computation)
+        );
+        // Checking a fight document is not this build's yet.
+        assert!(
+            Kind::Fight
+                .require("verify")
+                .unwrap_err()
+                .reason()
+                .contains("fight")
+        );
         assert!(
             Kind::State
                 .require("verify")
