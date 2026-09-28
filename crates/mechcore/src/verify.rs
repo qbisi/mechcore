@@ -6,17 +6,24 @@
 //! comparing the result with what it holds. A fight document is checked by
 //! fighting its projection with its seed, as `convert --to fight` does, and
 //! comparing the result it states with the one the simulator arrives at.
+//!
+//! With `--backend game` the game fights instead: each fight document and
+//! recording is recorded again, headless, and read back as a fight, and
+//! `--update` writes back what the game recorded wherever it differs.
 
 use std::{
     io::{IsTerminal, Read},
     path::{Path, PathBuf},
+    sync::Arc,
 };
 
 use serde::Serialize;
 use serde_json::Value;
 
 use crate::cli::{Args, Failure, Outcome};
+use crate::convert::Backend;
 use crate::kind::Kind;
+use crate::session::Session;
 
 /// Checks each named file.
 ///
@@ -33,22 +40,54 @@ use crate::kind::Kind;
 /// that cannot be read is a report like any other and the rest of a batch still
 /// runs. The exit code says whether every input was valid.
 ///
+/// `--backend game` fights each fight document and recording in a game
+/// somebody started, attached once for the batch; a layout or a match, which
+/// holds no fight, is checked as without it. `--update` then writes back each
+/// file the game's fight differs from, and the report says so.
+///
 /// # Errors
 ///
-/// Returns an error when no input is named at all, or when the list of paths
-/// cannot be read.
+/// Returns an error when no input is named at all, when the list of paths
+/// cannot be read, when `--update` is asked of the simulator, and
+/// `unavailable` when the game backend finds no game.
 pub(crate) fn run(mut arguments: Args) -> Outcome {
+    let backend = arguments
+        .value("--backend")?
+        .map_or(Ok(Backend::Simulator), |name| Backend::parse(&name))?;
+    let update = arguments.flag("--update")?;
+    let level = crate::acquire::level(&mut arguments)?;
     let paths = inputs(&mut arguments)?;
     arguments.finish()?;
+    if update && backend != Backend::Game {
+        return Err(Failure::usage(
+            "--update writes what the game recorded, and a pin never comes from the \
+             simulator; it takes --backend game",
+        ));
+    }
     let mut valid = true;
-    for path in paths {
-        let report = check(&path);
+    let mut emit = |report: &Report| -> Result<(), Failure> {
         valid &= report.valid;
         println!(
             "{}",
-            serde_json::to_string(&report)
+            serde_json::to_string(report)
                 .map_err(|error| Failure::failed(format!("cannot write the report: {error}")))?
         );
+        Ok(())
+    };
+    match backend {
+        Backend::Simulator => {
+            for path in paths {
+                emit(&check(&path))?;
+            }
+        }
+        Backend::Game => {
+            crate::game::with_game(level, async |session| {
+                for path in paths {
+                    emit(&in_game(&path, session, update).await)?;
+                }
+                Ok::<(), Failure>(())
+            })??;
+        }
     }
     Ok(valid.into())
 }
@@ -94,6 +133,21 @@ fn inputs(arguments: &mut Args) -> Result<Vec<PathBuf>, Failure> {
 }
 
 fn one(path: &Path) -> Result<Report, String> {
+    let (kind, bytes) = read(path)?;
+    match kind {
+        Kind::Match => {
+            let stated = mechcore_document::opening::stated(&bytes)?
+                .ok_or("the document names itself a match and holds no match stream")?;
+            verify_match(path, &stated)
+        }
+        Kind::Mcfr => verify_recording(path),
+        Kind::Fight => verify_fight(path, &bytes),
+        _ => verify_layout(path, &bytes),
+    }
+}
+
+/// Reads a file `verify` takes, and its kind.
+fn read(path: &Path) -> Result<(Kind, Vec<u8>), String> {
     // A directory names no file, and expanding one is the shell's job: saying
     // so beats an operating system error about a read that could not have
     // worked.
@@ -109,16 +163,7 @@ fn one(path: &Path) -> Result<Report, String> {
     let kind = Kind::of(&bytes)?;
     kind.require("verify")
         .map_err(|failure| failure.reason().to_owned())?;
-    match kind {
-        Kind::Match => {
-            let stated = mechcore_document::opening::stated(&bytes)?
-                .ok_or("the document names itself a match and holds no match stream")?;
-            verify_match(path, &stated)
-        }
-        Kind::Mcfr => verify_recording(path),
-        Kind::Fight => verify_fight(path, &bytes),
-        _ => verify_layout(path, &bytes),
-    }
+    Ok((kind, bytes))
 }
 
 fn verify_layout(path: &Path, bytes: &[u8]) -> Result<Report, String> {
@@ -215,7 +260,18 @@ fn verify_fight(path: &Path, bytes: &[u8]) -> Result<Report, String> {
         hash: simulated.hash.clone().filter(|_| trajectory),
         ..simulated
     };
-    let differences = crate::diff::document_differences(&document, &actual)?
+    let (error, differences) = compared(&document, &actual, "the simulator's fight")?;
+    Ok(report(error, differences))
+}
+
+/// Where `actual` differs from what `document` states, and the error that
+/// says so, naming who fought `actual`.
+fn compared(
+    document: &mechcore_document::Fight,
+    actual: &mechcore_document::Fight,
+    fought: &str,
+) -> Result<(Option<String>, Vec<Difference>), String> {
+    let differences = crate::diff::document_differences(document, actual)?
         .into_iter()
         .map(|difference| Difference {
             path: difference.path,
@@ -224,7 +280,7 @@ fn verify_fight(path: &Path, bytes: &[u8]) -> Result<Report, String> {
         })
         .collect::<Vec<_>>();
     if differences.is_empty() {
-        return Ok(report(None, differences));
+        return Ok((None, differences));
     }
     let paths = differences
         .iter()
@@ -244,8 +300,177 @@ fn verify_fight(path: &Path, bytes: &[u8]) -> Result<Report, String> {
             )
         })
         .unwrap_or_default();
-    let error = format!("the simulator's fight differs from the document in {paths}{incomparable}");
-    Ok(report(Some(error), differences))
+    Ok((
+        Some(format!(
+            "{fought} differs from the document in {paths}{incomparable}"
+        )),
+        differences,
+    ))
+}
+
+/// Checks one file with the game fighting it.
+async fn in_game(path: &Path, session: &Arc<Session>, update: bool) -> Report {
+    match read(path) {
+        Ok((Kind::Fight, bytes)) => fight_in_game(path, &bytes, session, update).await,
+        Ok((Kind::Mcfr, _)) => recording_in_game(path, session, update).await,
+        Ok(_) => Ok(check(path)),
+        Err(error) => Err(error),
+    }
+    .unwrap_or_else(|error| Report::refused(path, error))
+}
+
+/// Records a fight document's projection with its seed in the game, and
+/// compares the result it states with the one the game arrives at, as the
+/// simulator's is compared. `--update` writes the game's fight over it,
+/// keeping the comment at its top, and stating no build where it stated none.
+async fn fight_in_game(
+    path: &Path,
+    bytes: &[u8],
+    session: &Arc<Session>,
+    update: bool,
+) -> Result<Report, String> {
+    let document = mechcore_document::fight::parse_yaml(bytes)?.normalized();
+    let trajectory = document.source.has_trajectory();
+    let staged = tempfile::Builder::new()
+        .prefix("mechcore-verify-")
+        .tempdir()
+        .map_err(|error| format!("cannot stage the recording: {error}"))?;
+    let layout = serde_json::to_value(mechcore_document::fight::project(&document))
+        .map_err(|error| format!("cannot write the fight's layout: {error}"))?;
+    let recorded = match record(layout, Vec::new(), staged.path(), session).await {
+        Ok((recorded, _)) => recorded,
+        Err(refused) => return Ok(game_report(path, "fight", Some(refused), &[], false)),
+    };
+    let actual = if update {
+        recorded.clone()
+    } else {
+        mechcore_document::Fight {
+            source: document.source,
+            ticks: recorded.ticks.filter(|_| trajectory),
+            hash: recorded.hash.clone().filter(|_| trajectory),
+            ..recorded.clone()
+        }
+    };
+    let (error, differences) = compared(&document, &actual, "the game's fight")?;
+    if error.is_none() || !update {
+        return Ok(game_report(path, "fight", error, &differences, false));
+    }
+    let text = String::from_utf8_lossy(bytes);
+    let states_build = text.lines().any(|line| line.starts_with("game_build:"));
+    let yaml = mechcore_document::fight::canonical_yaml(recorded.clone())?;
+    let body: String = if states_build || recorded.game_build != document.game_build {
+        yaml
+    } else {
+        yaml.lines()
+            .filter(|line| !line.starts_with("game_build:"))
+            .flat_map(|line| [line, "\n"])
+            .collect()
+    };
+    let header: String = text
+        .lines()
+        .take_while(|line| line.starts_with('#') || line.trim().is_empty())
+        .flat_map(|line| [line, "\n"])
+        .collect();
+    std::fs::write(path, header + &body)
+        .map_err(|error| format!("cannot write {}: {error}", path.display()))?;
+    Ok(game_report(path, "fight", None, &differences, true))
+}
+
+/// Records a recording's own layout again in the game, with its seed and the
+/// instrument channels it holds, and compares the two as fights. `--update`
+/// replaces the file with the new recording, which is how a recording moves
+/// to a new format: one that no longer reads as a fight is recorded again from
+/// the layout it embeds all the same.
+async fn recording_in_game(
+    path: &Path,
+    session: &Arc<Session>,
+    update: bool,
+) -> Result<Report, String> {
+    let reader = crate::outcome::open(path).map_err(|failure| failure.reason().to_owned())?;
+    let instrument = reader
+        .instrument_channels()
+        .map(|name| {
+            serde_json::from_value(Value::String(name.to_owned()))
+                .map_err(|_| format!("{name:?} is no instrument channel this build records"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let layout: Value = serde_yaml::from_str(reader.layout_yaml())
+        .map_err(|error| format!("the recording's layout does not read: {error}"))?;
+    let read = crate::outcome::read(&reader)
+        .and_then(crate::outcome::Reading::fight)
+        .map(mechcore_document::Fight::normalized)
+        .map_err(|failure| failure.reason().to_owned());
+    drop(reader);
+    let staged = tempfile::Builder::new()
+        .prefix(".mechcore-verify-")
+        .tempdir_in(
+            path.parent()
+                .filter(|parent| !parent.as_os_str().is_empty())
+                .unwrap_or(Path::new(".")),
+        )
+        .map_err(|error| format!("cannot stage the recording: {error}"))?;
+    let (recorded, written) = match record(layout, instrument, staged.path(), session).await {
+        Ok(recorded) => recorded,
+        Err(refused) => return Ok(game_report(path, "mcfr", Some(refused), &[], false)),
+    };
+    let (error, differences) = match read {
+        Ok(found) => compared(&found, &recorded, "the game's fight")?,
+        Err(unread) => (
+            Some(format!("the recording does not read as a fight: {unread}")),
+            Vec::new(),
+        ),
+    };
+    if error.is_none() || !update {
+        return Ok(game_report(path, "mcfr", error, &differences, false));
+    }
+    std::fs::rename(&written, path)
+        .map_err(|error| format!("cannot replace {}: {error}", path.display()))?;
+    Ok(game_report(path, "mcfr", None, &differences, true))
+}
+
+/// Records `layout`, which states its seed, in the game into `directory`, and
+/// reads the recording back as a fight.
+async fn record(
+    layout: Value,
+    instrument: Vec<mechcore_protocol::InstrumentChannel>,
+    directory: &Path,
+    session: &Arc<Session>,
+) -> Result<(mechcore_document::Fight, PathBuf), String> {
+    let output = directory.join("recording.mcfr");
+    crate::game::Record::Layout {
+        layout,
+        seed: None,
+        output: output.clone(),
+        instrument,
+    }
+    .run(session, false)
+    .await
+    .map_err(|failure| format!("the game does not fight it: {}", failure.reason()))?;
+    let recorded = crate::outcome::fight(&output)
+        .map_err(|failure| failure.reason().to_owned())?
+        .normalized();
+    Ok((recorded, output))
+}
+
+fn game_report(
+    path: &Path,
+    kind: &'static str,
+    error: Option<String>,
+    differences: &[Difference],
+    updated: bool,
+) -> Report {
+    Report {
+        schema: SCHEMA,
+        valid: error.is_none(),
+        kind,
+        path: path.display().to_string(),
+        error,
+        detail: serde_json::json!({
+            "backend": "game",
+            "updated": updated,
+            "differences": differences,
+        }),
+    }
 }
 
 /// One field a fight document and the simulator's fight of it disagree on.

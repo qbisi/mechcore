@@ -72,7 +72,6 @@ fn one(verb: &str, mut arguments: Args) -> Outcome {
         .block_on(attached(verb, arguments, level))
 }
 
-/// Attaches, runs the one operation, and leaves the game to its owner.
 /// Records `record` in a game somebody started, as a command joins one: the
 /// game backend of `convert`.
 ///
@@ -81,6 +80,21 @@ fn one(verb: &str, mut arguments: Args) -> Outcome {
 /// Returns `unavailable` when no game answers, and what the recording
 /// refuses.
 pub(crate) fn record_attached(record: Record, force: bool, level: u8) -> Outcome {
+    let value = with_game(level, async |session| record.run(session, force).await)??;
+    println!("{value}");
+    Ok(Verdict::Yes)
+}
+
+/// Runs `work` against a game somebody started, attached for its whole
+/// length, so a batch holds the game once rather than once per file.
+///
+/// # Errors
+///
+/// Returns `unavailable` when no game answers.
+pub(crate) fn with_game<T>(
+    level: u8,
+    work: impl AsyncFnOnce(&Arc<Session>) -> T,
+) -> Result<T, Failure> {
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
@@ -90,19 +104,18 @@ pub(crate) fn record_attached(record: Record, force: bool, level: u8) -> Outcome
             let monitor = tokio::spawn(Session::monitor_status(session.clone()));
             let answered = match session.acquire(Mode::Attach, level).await {
                 Ok(_) => {
-                    let answer = record.run(&session, force).await;
+                    let answer = work(&session).await;
                     session.release().await;
-                    answer
+                    Ok(answer)
                 }
                 Err(failure) => Err(Failure::unavailable(failure)),
             };
             monitor.abort();
-            let value = answered?;
-            println!("{value}");
-            Ok(Verdict::Yes)
+            answered
         })
 }
 
+/// Attaches, runs the one operation, and leaves the game to its owner.
 async fn attached(verb: &str, arguments: Args, level: u8) -> Outcome {
     let session = Session::new();
     let monitor = tokio::spawn(Session::monitor_status(session.clone()));

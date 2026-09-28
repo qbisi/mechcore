@@ -17,7 +17,7 @@ the fight until a tower falls, and carry what the loss writes. In the two-tower
 fights the Energy Tower's lane is ahead, so the second tower falls while the
 first loss runs.
 
-CI verifies all seven through the simulator; `scripts/record-fights.py --check
+CI verifies all seven through the simulator; `mechcore verify --backend game
 tests/tower/fights/*.yaml` records them again where the game runs.
 
 The fights pinned more than the buff. A tower is an actor of its own: the Steel

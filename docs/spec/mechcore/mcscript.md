@@ -529,8 +529,8 @@ A fight states its own seed, so the recording `convert` takes none, and the
 recording read back by `convert --to fight` is a document of the same kind as
 the fixture, which `diff` compares field by field. `glob` answers paths a
 script cannot take apart, so each output lands under `out` at its fixture's own
-path. The repository's own re-recording, `scripts/record-fights.py`, is the
-same loop as commands, one per fight.
+path. The same check without a script is `mechcore verify --backend game`,
+which `--update` turns into the repository's own re-recording.
 
 ## Unresolved
 
