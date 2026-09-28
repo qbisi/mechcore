@@ -269,8 +269,8 @@ that started them, not through GitHub.
    pin unchanged. The real findings go back to the implementing agent.
 6. **The pull request is opened** from `research/<n>-<slug>`, its title and
    body the commit master will hold, ending with `Closes #<n>` before the
-   `Co-Authored-By` trailers, and the committer is asked, as
-   [Acceptance](#acceptance) says.
+   `Co-Authored-By` trailers, and the change sheet
+   [Acceptance](#acceptance) asks for.
 
 How many questions run at once is bounded by two things: the captures, which
 the one game takes one at a time, and the overlap between answers, which
@@ -310,12 +310,9 @@ means:
   will hold, and that the documents say what the build does and not what
   the simulator does.
 
-**The committer approves.** A pull request that resolves an issue, by its
-`research/` branch or its `Closes` line, merges only with an approving review
-on its head commit from a committer: someone with write access to this
-repository who is not the pull request's author. The reading ends with a
-**change sheet**, posted on the pull request and handed to the committer,
-which says in a few lines what the merge changes:
+**The change sheet.** The reading ends with a change sheet, in the pull
+request's body and handed to the committer, which says in a few lines what
+the merge changes:
 
 - behaviour: what the simulator did before and does after, with numbers;
 - structure: modules, functions or tables added or removed;
@@ -323,20 +320,9 @@ which says in a few lines what the merge changes:
 - refusals: which were added and which lifted;
 - what stays unverified.
 
-The committer approves on GitHub, or says in so many words to approve that
-one pull request, and `gh pr review <n> --approve` is run. An approval covers
-the pull request it was given for and the commit it was given on: a push after
-it needs a new one, and an approval for one pull request is not one for the
-next. `gate.yml` turns the pull request's `gate` status green once the
-approval and every check are in, and nothing merges before it; `review.yml`
-exists only so that submitting a review wakes it. The merge itself is asked
-for by whoever merges, as any other.
-
-GitHub refuses an approval from a pull request's own author, so an approval
-needs the agents to open pull requests under an account that is not the
-committer's. While they act through the committer's own account, no review
-can approve, and the committer merges a pull request whose change sheet they
-accepted by hand.
+A pull request that resolves an issue merges as any other does: `gate.yml`
+turns its `gate` status green once every check is, and no approval is
+waited for.
 
 A question that turns out not to close inside its scope still lands what
 holds, with a refusal for the rest, and its issue closes with a comment that
