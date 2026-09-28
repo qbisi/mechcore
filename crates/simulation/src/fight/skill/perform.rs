@@ -166,9 +166,10 @@ impl Simulation {
         let first = releases
             .next()
             .ok_or_else(|| Error::new("projectile burst contains no release"))?;
-        self.skill_mut(owner)
-            .projectile_pending_releases
-            .extend(releases);
+        let Performer::Projectile { pending } = &mut self.skill_mut(owner).performer else {
+            return Err(Error::new("a burst needs a projectile performer"));
+        };
+        pending.extend(releases);
         self.release_pending_projectile(owner, first, events)
     }
 

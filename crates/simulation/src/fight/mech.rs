@@ -16,6 +16,7 @@ impl Actor {
     #[cfg(test)]
     pub(in crate::fight) fn describe(&mut self, rules: UnitConfig) {
         self.stats = crate::data::Stats::of(&rules).expect("an uncorrected description resolves");
+        self.skill.performer = Performer::of(&rules.attack.path);
         self.rules = rules;
     }
 
@@ -46,6 +47,7 @@ impl Actor {
         } else {
             0
         };
+        let performer = Performer::of(&rules.attack.path);
         Self {
             x,
             z,
@@ -84,7 +86,7 @@ impl Actor {
                 state: MotionState::Idle,
                 attack_hold_fire: false,
             },
-            skill: Skill::new(weapon_rotations_q32, group_skill_count, magazine),
+            skill: Skill::new(weapon_rotations_q32, group_skill_count, magazine, performer),
         }
     }
 
@@ -99,7 +101,7 @@ impl Actor {
         self.skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
         self.skill.set_phase(FightSkillPhase::Idle);
         self.skill.clear_slots();
-        self.skill.projectile_pending_releases.clear();
+        self.skill.performer.stop();
         self.motion.attack_hold_fire = false;
         self.motion.current_velocity_x_q32 = 0;
         self.motion.current_velocity_z_q32 = 0;

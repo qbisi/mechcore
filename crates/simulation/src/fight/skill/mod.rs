@@ -37,6 +37,75 @@ pub(in crate::fight) struct PendingProjectileRelease {
     pub(in crate::fight) weapon_index: usize,
 }
 
+/// `SkillAttackController.attackPerformer`: what carries a blow out once
+/// it is released.
+#[derive(Debug, Clone)]
+pub(in crate::fight) enum Performer {
+    /// `NormalAttackPerformer`: a strike or a beam, which lands as the blow
+    /// is released.
+    Normal,
+    /// A `ProjectileAttackPerformer`: a burst's projectiles, the first
+    /// released with the blow and the rest still to come. The build splits
+    /// it into a single and a multiple performer, which is not read.
+    Projectile {
+        pending: Vec<PendingProjectileRelease>,
+    },
+}
+
+impl Performer {
+    /// The performer a skill that takes this path starts with.
+    pub(in crate::fight) const fn of(path: &AttackPath) -> Self {
+        match path {
+            AttackPath::Projectile { .. } => Self::Projectile {
+                pending: Vec::new(),
+            },
+            _ => Self::Normal,
+        }
+    }
+
+    /// The same performer with nothing in hand.
+    pub(in crate::fight) const fn fresh(&self) -> Self {
+        match self {
+            Self::Normal => Self::Normal,
+            Self::Projectile { .. } => Self::Projectile {
+                pending: Vec::new(),
+            },
+        }
+    }
+
+    /// The burst's projectiles still to be released.
+    pub(in crate::fight) fn pending(&self) -> &[PendingProjectileRelease] {
+        match self {
+            Self::Normal => &[],
+            Self::Projectile { pending } => pending,
+        }
+    }
+
+    /// Stops the burst: `StopAttack` ends a performer's work.
+    pub(in crate::fight) fn stop(&mut self) {
+        if let Self::Projectile { pending } = self {
+            pending.clear();
+        }
+    }
+
+    /// Takes out the projectiles due by this step, in order.
+    pub(in crate::fight) fn take_due(&mut self, step: u64) -> Vec<PendingProjectileRelease> {
+        let Self::Projectile { pending } = self else {
+            return Vec::new();
+        };
+        let mut due = Vec::new();
+        pending.retain(|release| {
+            if release.step <= step {
+                due.push(*release);
+                false
+            } else {
+                true
+            }
+        });
+        due
+    }
+}
+
 /// The skill's state, as `SkillStateController` holds it.
 ///
 /// Every combination of phase, wind-up, backswing and cooling the kernel
@@ -153,7 +222,7 @@ pub(in crate::fight) struct Skill {
     /// search that finds the unit it already holds still hands it to the
     /// owner.
     pub(in crate::fight) lock_written: bool,
-    pub(in crate::fight) projectile_pending_releases: Vec<PendingProjectileRelease>,
+    pub(in crate::fight) performer: Performer,
     /// `SkillAttackController.attackCount`: the blows started since the
     /// skill entered its attack state, less one. The constructor and
     /// leaving the attack state set it to [`ATTACK_COUNT_RESET`], and each
@@ -178,6 +247,7 @@ impl Skill {
         weapon_rotations_q32: Vec<i64>,
         group_skill_count: usize,
         magazine: Option<Magazine>,
+        performer: Performer,
     ) -> Self {
         Self {
             weapon_rotations_q32,
@@ -193,12 +263,12 @@ impl Skill {
             state: SkillState::Idle { ready_step: None },
             group_size: group_skill_count,
             slots: (1..group_skill_count)
-                .map(|_| Self::sibling_entering())
+                .map(|_| Self::sibling_entering(performer.fresh()))
                 .collect(),
             slot_weapon_rotations_q32: vec![0; group_skill_count.saturating_sub(1)],
             mech_lock: None,
             lock_written: false,
-            projectile_pending_releases: Vec::new(),
+            performer,
             attack_count: ATTACK_COUNT_RESET,
             rounds: magazine.map(|magazine| magazine.capacity),
             attack_target_left: None,
@@ -208,10 +278,10 @@ impl Skill {
     /// A grouped core's sibling as it enters the fight, and as leaving the
     /// fight or failing a check leaves it: idle, with no lock and nothing
     /// scheduled. Its weapon's pose and its group live on the core.
-    pub(in crate::fight) fn sibling_entering() -> Self {
+    pub(in crate::fight) fn sibling_entering(performer: Performer) -> Self {
         Self {
             search_target_time: 0,
-            ..Self::new(Vec::new(), 0, None)
+            ..Self::new(Vec::new(), 0, None, performer)
         }
     }
 
@@ -419,7 +489,9 @@ impl Skill {
     /// Every sibling slot left idle, with no allocation and nothing
     /// scheduled, as leaving the fight leaves them.
     pub(in crate::fight) fn clear_slots(&mut self) {
-        self.slots.fill_with(Self::sibling_entering);
+        let performer = self.performer.fresh();
+        self.slots
+            .fill_with(|| Self::sibling_entering(performer.fresh()));
     }
 
     /// `FightSkill.ChangeLockTarget`.
@@ -1082,7 +1154,7 @@ impl Simulation {
             let skill = self.skill_mut(owner);
             skill.drop_lock();
             skill.set_phase(FightSkillPhase::Idle);
-            skill.projectile_pending_releases.clear();
+            skill.performer.stop();
             if let Some(actor) = self.moving_mut(owner) {
                 if clear_velocity {
                     actor.motion.current_velocity_x_q32 = 0;
@@ -1166,7 +1238,7 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<Flow> {
         let skill = self.skill(owner);
-        let active_projectile_burst_lost_target = !skill.projectile_pending_releases.is_empty()
+        let active_projectile_burst_lost_target = !skill.performer.pending().is_empty()
             && skill
                 .attack_target()
                 .is_some_and(|target| !self.fight_actor_is_alive(target));
@@ -1183,20 +1255,10 @@ impl Simulation {
                 actor.stop_in_place(true);
             }
             if !has_alive_enemy {
-                self.skill_mut(owner).projectile_pending_releases.clear();
+                self.skill_mut(owner).performer.stop();
                 return Ok(Flow::Done);
             }
-            let mut due = Vec::new();
-            self.skill_mut(owner)
-                .projectile_pending_releases
-                .retain(|pending| {
-                    if pending.step <= step {
-                        due.push(*pending);
-                        false
-                    } else {
-                        true
-                    }
-                });
+            let due = self.skill_mut(owner).performer.take_due(step);
             for pending in due {
                 self.release_pending_projectile(owner, pending, events)?;
             }
@@ -1296,17 +1358,7 @@ impl Simulation {
         if released_this_step && self.motion_state(owner) != MotionState::Attacking {
             return Ok((Flow::Done, attack_point_rejected));
         }
-        let mut due = Vec::new();
-        self.skill_mut(owner)
-            .projectile_pending_releases
-            .retain(|pending| {
-                if pending.step <= step {
-                    due.push(*pending);
-                    false
-                } else {
-                    true
-                }
-            });
+        let due = self.skill_mut(owner).performer.take_due(step);
         for pending in due {
             self.release_pending_projectile(owner, pending, events)?;
         }

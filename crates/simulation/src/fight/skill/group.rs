@@ -386,7 +386,7 @@ impl Simulation {
             .sibling_mut(slot);
         *sibling = Skill {
             next_attack_step: sibling.next_attack_step,
-            ..Skill::sibling_entering()
+            ..Skill::sibling_entering(sibling.performer.fresh())
         };
     }
 
