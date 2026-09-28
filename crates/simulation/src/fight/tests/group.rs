@@ -195,18 +195,33 @@ fn an_attacking_sibling_gives_up_a_shared_unit_by_its_blows() {
         .search_target_time = 0;
     assert!(!sim.sibling_yields(1, 2, &order).unwrap(), "held alone");
 
-    sim.actors.get_mut(&1).unwrap().skill.sibling_mut(1).blows = 1;
+    sim.actors
+        .get_mut(&1)
+        .unwrap()
+        .skill
+        .sibling_mut(1)
+        .attack_count = 0;
     sim.actors.get_mut(&1).unwrap().skill.sibling_mut(2).lock = Some(unit_target(2));
     assert!(
         !sim.sibling_yields(1, 1, &order).unwrap(),
         "a sharer with fewer blows"
     );
-    sim.actors.get_mut(&1).unwrap().skill.sibling_mut(2).blows = 1;
+    sim.actors
+        .get_mut(&1)
+        .unwrap()
+        .skill
+        .sibling_mut(2)
+        .attack_count = 0;
     assert!(
         !sim.sibling_yields(1, 1, &order).unwrap(),
         "a sharer with as many"
     );
-    sim.actors.get_mut(&1).unwrap().skill.sibling_mut(2).blows = 2;
+    sim.actors
+        .get_mut(&1)
+        .unwrap()
+        .skill
+        .sibling_mut(2)
+        .attack_count = 1;
     assert!(
         sim.sibling_yields(1, 1, &order).unwrap(),
         "every sharer has more"

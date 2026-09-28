@@ -419,18 +419,14 @@ impl Simulation {
         let (damage, attacker_ref, attacker_team) = {
             let attacker = &self.actors[&actor_id];
             (
-                attacker
-                    .stats
-                    .laser_damage(&attacker.rules, attacker.skill.laser_attack_count),
+                attacker.stats.laser_damage(
+                    &attacker.rules,
+                    usize::try_from(attacker.skill.attack_count).unwrap_or(0),
+                ),
                 attacker.object_ref(),
                 attacker.placement.team,
             )
         };
-        self.actors
-            .get_mut(&actor_id)
-            .expect("actor identity is stable")
-            .skill
-            .laser_attack_count += 1;
         // A beam that splashes strikes as any other hit does, what it was
         // aimed at and everything of the other side around it, in the order
         // the target trees hold them: a Melting Point's beam at one Crawler

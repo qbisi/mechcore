@@ -101,7 +101,7 @@ impl Actor {
         self.skill.set_phase(FightSkillPhase::Idle);
         self.skill.clear_slots();
         self.skill.projectile_pending_releases.clear();
-        self.skill.laser_attack_count = 0;
+        self.skill.attack_count = ATTACK_COUNT_RESET;
         self.skill.retarget_after_own_direct_kill = false;
         self.motion.attack_hold_fire = false;
         self.motion.current_velocity_x_q32 = 0;

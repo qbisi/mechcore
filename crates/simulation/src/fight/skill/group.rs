@@ -102,8 +102,8 @@ impl Simulation {
             .flat_map(|(_, skills)| skills.iter().copied())
             .filter(|&other| other != slot && other != 0)
             .collect::<Vec<_>>();
-        let own = skill.sibling(slot).blows;
-        let blows = |other: usize| skill.sibling(other).blows;
+        let own = skill.sibling(slot).attack_count;
+        let blows = |other: usize| skill.sibling(other).attack_count;
         if others.iter().any(|&other| blows(other) <= own)
             || skill.sibling(slot).search_target_time > 0
         {
@@ -520,7 +520,7 @@ impl Simulation {
             .expect("actor identity is stable")
             .skill
             .sibling_mut(skill_index)
-            .blows += 1;
+            .attack_count += 1;
         Ok(())
     }
 }
