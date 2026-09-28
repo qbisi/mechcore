@@ -360,6 +360,16 @@ publishes none: an Overlord handed a tower on the tick the last enemy died,
 and idle from the next, stays where it stood rather than walking on at the
 next publish.
 
+**A won fight runs on without ending its skills' coolings.** Between the
+tick a side loses its last unit and the fight's end, a skill that was
+already cooling goes on cooling and goes on naming what it named, the dead
+last enemy included: three Phantom Rays cooling on a Crawler that died with
+the fight still name it for the five ticks after. A skill that was attacking
+goes idle and names nothing. `FightSkill.ExitFight`, which ends a cooling
+through `SkillStateController.ChangeToIdleState`, is therefore not what the
+won fight's first tick calls, and a cooling the simulator would begin on
+that very tick is not one the game shows.
+
 ## Reference unit fields
 
 [`config/units/marksman.yaml`](../../config/units/marksman.yaml) and
@@ -409,6 +419,8 @@ not the game's native attack-type enum.
 - A projectile's climb measured as it is created, and a moving unit stopped
   when the fight stops, in the Overlord's standard fights:
   `tests/units/regressions.mcscript`.
+- A cooling that goes on through a won fight, and an attack that goes idle,
+  in the Phantom Ray's standard fights: `tests/units/regressions.mcscript`.
 - A presearched target a few raw units left of straight ahead faced at
   +0.245°, in the standard fights of the Steel Ball, Stormcaller, Hound, Fire
   Badger and Phantom Ray: `tests/units/regressions.mcscript`.
@@ -420,6 +432,8 @@ not the game's native attack-type enum.
   `ProjectileFlyData.GetPosition`.
 - Entering idle stops a moving unit: `MotionIdleState.Enter`,
   `RVOControllerFixed.StopMove`.
+- Leaving the fight ends a cooling: `FightSkill.ExitFight`,
+  `SkillStateController.ChangeToIdleState`.
 - The presearch faces a unit by the direction to its target, and a facing is
   mirrored only past `FPoint`'s tolerance: `PresearchTargetController.SearchTarget`,
   `FightUtility.ConvertToAngle`, `FightMech.UpdateRotation`,
@@ -495,6 +509,9 @@ not the game's native attack-type enum.
 - **A tower's own update.** `FightCoreSystem.TeamUpdate` now updates each live
   tower of the team; what that update does is not read, and the recorded fights
   match without modelling it.
+- **When `FightSkill.ExitFight` runs** in a won fight, and why a cooling the
+  simulator would begin on the won fight's first tick is not one the game
+  shows; the recordings fix what is seen, not the call that makes it.
 - **The endgame** with several members or groups, summons, respawns,
   constructions, shields, and mixed damage inside one tick; and which of the
   winner's units the build hands a tower.
