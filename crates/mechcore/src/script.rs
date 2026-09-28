@@ -35,7 +35,7 @@ const NATIVE: &[&str] = &[
 ];
 
 /// Operations that run without a game.
-const GAMELESS: &[&str] = &["let", "convert", "diff", "show"];
+const GAMELESS: &[&str] = &["let", "verify", "convert", "diff", "show"];
 
 /// Step keys that are structure rather than an operation name.
 const RESERVED: &[&str] = &["expect", "steps", "where"];
@@ -663,6 +663,7 @@ async fn perform(
             let (_, report) = crate::diff::diff(&left, &right, selection, tick).map_err(reason)?;
             Ok(report)
         }
+        "verify" => verify(arguments, scope),
         "convert" => convert(arguments, scope).await,
         "show" => {
             let fields = closed(arguments, "show", &["input", "view", "tick"])?;
@@ -881,6 +882,7 @@ fn evaluate(value: &Value, scope: &Scope) -> Result<Value, String> {
             serde_yaml::from_str(reader.layout_yaml())
                 .map_err(|error| format!("cannot parse the embedded layout: {error}"))
         }
+        "glob" => glob(argument.trim(), scope),
         "range" => {
             let count = argument
                 .trim()
@@ -893,6 +895,117 @@ fn evaluate(value: &Value, scope: &Scope) -> Result<Value, String> {
         }
         other => Err(format!("unknown function {other}")),
     }
+}
+
+/// Checks files as `mechcore verify` does, answering every report in one
+/// result.
+///
+/// `input` is one path or a list of them, which is what `glob` binds: naming
+/// the files is the caller's, as it is on a command line. The answer is an
+/// answer, as `diff`'s is: `valid` says whether every input verified and
+/// `invalid` names each one that did not with its reason, so a step that
+/// expects `invalid: []` fails naming all of them rather than the first.
+fn verify(arguments: &Value, scope: &Scope) -> Result<Value, String> {
+    let fields = closed(arguments, "verify", &["input"])?;
+    let inputs = match fields.get("input") {
+        Some(Value::Array(inputs)) => inputs.clone(),
+        Some(input) => vec![input.clone()],
+        None => return Err("verify needs input, a file or a list of files".into()),
+    };
+    if inputs.is_empty() {
+        return Err("verify needs at least one input; the list is empty".into());
+    }
+    let mut reports = Vec::new();
+    let mut invalid = Vec::new();
+    for input in &inputs {
+        let report = crate::verify::check(&scope.path(input, "verify input")?);
+        if !report.valid {
+            invalid.push(json!({"path": input, "error": report.error}));
+        }
+        reports.push(
+            serde_json::to_value(&report)
+                .map_err(|error| format!("cannot write the report: {error}"))?,
+        );
+    }
+    Ok(json!({
+        "valid": invalid.is_empty(),
+        "invalid": invalid,
+        "reports": reports,
+    }))
+}
+
+/// The files a pattern names, sorted, each spelled as the pattern's directory
+/// joined with its name.
+///
+/// `*` and `?` match within the last component only: a pattern names the
+/// files of one directory, which is what a topic keeps its fixtures in. A
+/// directory that holds none of them answers an empty list, which a step
+/// taking files refuses.
+fn glob(pattern: &str, scope: &Scope) -> Result<Value, String> {
+    let (directory, name) = match pattern.rsplit_once('/') {
+        Some((directory, name)) => (directory, name),
+        None => ("", pattern),
+    };
+    if directory.contains(['*', '?']) {
+        return Err(format!(
+            "glob {pattern}: only the last component may hold * or ?"
+        ));
+    }
+    let listed = scope.path(
+        &Value::String(if directory.is_empty() { "." } else { directory }.into()),
+        "glob",
+    )?;
+    let entries = std::fs::read_dir(&listed)
+        .map_err(|error| format!("cannot list {}: {error}", listed.display()))?;
+    let mut matched = Vec::new();
+    for entry in entries {
+        let entry = entry.map_err(|error| format!("cannot list {}: {error}", listed.display()))?;
+        let file = entry.file_name();
+        let Some(file) = file.to_str() else { continue };
+        if entry.path().is_file() && wildcard(name, file) {
+            matched.push(if directory.is_empty() {
+                file.to_owned()
+            } else {
+                format!("{directory}/{file}")
+            });
+        }
+    }
+    matched.sort();
+    Ok(Value::Array(
+        matched.into_iter().map(Value::String).collect(),
+    ))
+}
+
+/// Whether `name` matches `pattern`, where `*` is any run of characters and
+/// `?` any one.
+fn wildcard(pattern: &str, name: &str) -> bool {
+    let pattern: Vec<char> = pattern.chars().collect();
+    let name: Vec<char> = name.chars().collect();
+    // The last `*` seen, and where in `name` its match ends so far: a
+    // mismatch after it lets it take one more character and tries again.
+    let (mut at, mut from) = (0, 0);
+    let mut star: Option<(usize, usize)> = None;
+    while from < name.len() {
+        match pattern.get(at) {
+            Some('*') => {
+                star = Some((at, from));
+                at += 1;
+            }
+            Some(&character) if character == '?' || character == name[from] => {
+                at += 1;
+                from += 1;
+            }
+            _ => match star {
+                Some((star_at, star_from)) => {
+                    at = star_at + 1;
+                    from = star_from + 1;
+                    star = Some((star_at, star_from + 1));
+                }
+                None => return false,
+            },
+        }
+    }
+    pattern[at..].iter().all(|character| *character == '*')
 }
 
 /// Converts a file as `mechcore convert` does, returning the same result
@@ -1086,6 +1199,62 @@ mod tests {
         assert!(instrument(Some(&json!(["rvo"]))).is_err());
         assert!(instrument(Some(&json!(["selector_score"]))).is_err());
         assert!(instrument(Some(&json!({"output": "local.h5"}))).is_err());
+    }
+
+    #[test]
+    fn a_wildcard_matches_within_one_name() {
+        assert!(wildcard("*.yaml", "tower.yaml"));
+        assert!(wildcard("*.yaml", ".yaml"));
+        assert!(!wildcard("*.yaml", "tower.yml"));
+        assert!(wildcard("t?wer-*-*.yaml", "tower-1-b.yaml"));
+        assert!(!wildcard("t?wer", "tower-1"));
+        assert!(wildcard("*", "anything"));
+        assert!(wildcard("a*b*c", "abxbc"));
+        assert!(!wildcard("a*b*c", "abxbd"));
+    }
+
+    /// A glob lists one directory's matching files, sorted and spelled as
+    /// the pattern spells its directory; a verify step reads every one and
+    /// names each that does not verify.
+    #[test]
+    fn a_verify_step_names_every_file_that_does_not_verify() {
+        let directory = tempfile::tempdir().unwrap();
+        let layout = "kind: layout\nround: 1\nseed: 7\nblue:\n  units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\nred:\n  units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n";
+        std::fs::create_dir(directory.path().join("fights")).unwrap();
+        std::fs::write(directory.path().join("fights/b.yaml"), layout).unwrap();
+        std::fs::write(directory.path().join("fights/a.yaml"), "kind: novel\n").unwrap();
+        std::fs::write(directory.path().join("fights/c.yaml"), "round: 1\n").unwrap();
+        std::fs::write(directory.path().join("fights/notes.md"), "").unwrap();
+        let scope = Scope {
+            overwrite: Overwrite::Ask,
+            values: BTreeMap::new(),
+            base: directory.path().to_path_buf(),
+        };
+        let listed = evaluate(&json!("glob(fights/*.yaml)"), &scope).unwrap();
+        assert_eq!(
+            listed,
+            json!(["fights/a.yaml", "fights/b.yaml", "fights/c.yaml"])
+        );
+        assert_eq!(
+            evaluate(&json!("glob(fights/*.json)"), &scope).unwrap(),
+            json!([])
+        );
+        assert!(evaluate(&json!("glob(*/a.yaml)"), &scope).is_err());
+
+        let result = verify(&json!({"input": listed}), &scope).unwrap();
+        assert_eq!(result["valid"], false);
+        assert_eq!(result["reports"].as_array().unwrap().len(), 3);
+        let invalid = result["invalid"].as_array().unwrap();
+        assert_eq!(invalid.len(), 2, "{result}");
+        assert_eq!(invalid[0]["path"], "fights/a.yaml");
+        assert_eq!(invalid[1]["path"], "fights/c.yaml");
+        assert!(invalid[1]["error"].as_str().unwrap().contains("kind"));
+
+        let one = verify(&json!({"input": "fights/b.yaml"}), &scope).unwrap();
+        assert_eq!(one["valid"], true);
+        assert_eq!(one["invalid"], json!([]));
+        assert!(verify(&json!({"input": []}), &scope).is_err());
+        assert!(verify(&json!({"inputs": "fights/b.yaml"}), &scope).is_err());
     }
 
     #[tokio::test]
