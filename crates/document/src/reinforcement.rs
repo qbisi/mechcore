@@ -864,7 +864,7 @@ mod tests {
     #[test]
     fn a_decline_pays_by_pool_and_round() {
         let economy = Economy::embedded().unwrap();
-        let paid = |pool, round| decline_supply(&economy, pool, round).unwrap();
+        let paid = |pool, round| decline_supply(economy, pool, round).unwrap();
         // Pool 1 deals units in rounds 2, 5, 8 and 11.
         assert_eq!(
             [2, 5, 8, 11].map(|round| paid(1, round)),
@@ -873,6 +873,6 @@ mod tests {
         assert_eq!(paid(1, 3), economy.reinforce_decline());
         // Pool 22's first unit round is 3, and it pays more than round 2 would.
         assert_eq!(paid(22, 3), 100);
-        assert!(decline_supply(&economy, 0, 2).is_err());
+        assert!(decline_supply(economy, 0, 2).is_err());
     }
 }

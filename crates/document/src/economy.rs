@@ -6,7 +6,7 @@
 //! nothing closes by accident.
 
 use serde::Deserialize;
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, sync::OnceLock};
 
 const UNIT_PRICES: &str = include_str!("../../../config/unit_prices.yaml");
 const UNIT_TECHS: &str = include_str!("../../../config/unit_techs.yaml");
@@ -401,13 +401,26 @@ fn parse<T: serde::de::DeserializeOwned>(source: &str, name: &str) -> Result<T, 
 }
 
 impl Economy {
-    /// Loads the tables this build ships with.
+    /// The tables this build ships with.
+    ///
+    /// They are parsed on the first call and shared by every later one: the
+    /// tables are compiled in, so every call would parse the same text, and a
+    /// layout is compiled against them several times on its way through
+    /// `verify`.
     ///
     /// # Errors
     ///
     /// Returns an error when one of the embedded tables cannot be read, which
     /// means the file and the shapes here have drifted apart.
-    pub fn embedded() -> Result<Self, String> {
+    pub fn embedded() -> Result<&'static Self, String> {
+        static EMBEDDED: OnceLock<Result<Economy, String>> = OnceLock::new();
+        EMBEDDED
+            .get_or_init(Self::load)
+            .as_ref()
+            .map_err(Clone::clone)
+    }
+
+    fn load() -> Result<Self, String> {
         let units: UnitPriceFile = parse(UNIT_PRICES, "config/unit_prices.yaml")?;
         let techs: UnitTechFile = parse(UNIT_TECHS, "config/unit_techs.yaml")?;
         let cards: CardFile = parse(REINFORCE_ITEMS, "config/reinforce_items.yaml")?;

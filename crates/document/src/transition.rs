@@ -1433,7 +1433,7 @@ red:
     #[test]
     fn a_round_releases_eight_contraptions() {
         let economy = Economy::embedded().unwrap();
-        let opened = super::open_round(&economy, &solvent(), 3, &mut |_, _| None, None).unwrap();
+        let opened = super::open_round(economy, &solvent(), 3, &mut |_, _| None, None).unwrap();
         assert_eq!(opened.shop.contraptions_remaining, 8);
         let shield = |x| Action::ReleaseContraption {
             contraption: 10_001,
@@ -1441,10 +1441,10 @@ red:
             extra_position: None,
         };
         let eight: Vec<_> = (0..8).map(|at| shield(at * 20)).collect();
-        let released = fold(&economy, &opened, &eight).unwrap();
+        let released = fold(economy, &opened, &eight).unwrap();
         assert_eq!(released.shop.contraptions_remaining, 0);
         assert!(matches!(
-            step_placing(&economy, &released, &shield(200), None, &mut |_, _| None),
+            step_placing(economy, &released, &shield(200), None, &mut |_, _| None),
             Err(Unsettled::Refused(_))
         ));
     }
@@ -1460,7 +1460,7 @@ red:
             state.units[0].unit.equipment = vec![13_030_004; modules];
             let before = state.supply;
             let next = step_placing(
-                &economy,
+                economy,
                 &state,
                 &Action::UpgradeUnit { index: 0 },
                 None,
@@ -1494,7 +1494,7 @@ red:
                 id: Some(20022),
             },
         ];
-        let next = fold(&economy, &state, &taken).unwrap();
+        let next = fold(economy, &state, &taken).unwrap();
         assert_eq!(next.officers, vec![20022, 20022, 20022]);
     }
 
@@ -1505,15 +1505,15 @@ red:
         let economy = Economy::embedded().unwrap();
         let state = SideState::default();
         let declined = Action::ChooseReinforceItem { index: 4, id: None };
-        let ordinary = crate::reinforcement::decline_supply(&economy, 1, 3).unwrap();
-        let unit = crate::reinforcement::decline_supply(&economy, 1, 8).unwrap();
+        let ordinary = crate::reinforcement::decline_supply(economy, 1, 3).unwrap();
+        let unit = crate::reinforcement::decline_supply(economy, 1, 8).unwrap();
         assert_eq!((ordinary, unit), (50, 400));
         for figure in [ordinary, unit] {
-            let next = super::step(&economy, &state, &declined, Some(figure)).unwrap();
+            let next = super::step(economy, &state, &declined, Some(figure)).unwrap();
             assert_eq!(next.supply, state.supply + figure);
         }
         assert_eq!(
-            super::step(&economy, &state, &declined, None),
+            super::step(economy, &state, &declined, None),
             Err(Unsettled::Unpriced("declined reinforcement"))
         );
     }
@@ -1528,7 +1528,7 @@ red:
         let economy = Economy::embedded().unwrap();
         let state = SideState::default();
         let declined = [Action::ChooseReinforceItem { index: 4, id: None }];
-        let next = fold(&economy, &state, &declined).unwrap();
+        let next = fold(economy, &state, &declined).unwrap();
         // A decline pays supply back, which is all it hands out.
         assert_eq!(
             SideState {
@@ -1547,7 +1547,7 @@ red:
             index: 0,
             id: Some(13_030_001),
         }];
-        let next = fold(&economy, &solvent(), &taken).unwrap();
+        let next = fold(economy, &solvent(), &taken).unwrap();
         assert_eq!(
             next.equipment,
             vec![crate::r#match::EquipmentItem {
@@ -1576,7 +1576,7 @@ red:
             },
         ];
         let state = side_holding(&[(4, Position { x: 0, y: -160 })]);
-        let next = fold(&economy, &state, &taken).unwrap();
+        let next = fold(economy, &state, &taken).unwrap();
         assert!(next.equipment.is_empty());
         assert_eq!(next.units[0].unit.equipment, vec![13_030_001]);
     }
@@ -1612,7 +1612,7 @@ red:
             battle_skills: vec![released, trained, slot(2, 300_004, 3), slot(3, 200_001, 0)],
             ..SideState::default()
         };
-        let opened = super::open_round(&economy, &state, 4, &mut |_, _| None, None).unwrap();
+        let opened = super::open_round(economy, &state, 4, &mut |_, _| None, None).unwrap();
         let restart = |id| economy.cooldown(id).unwrap().spent;
         assert_eq!(
             opened.battle_skills,
@@ -1641,7 +1641,7 @@ red:
             officers: vec![EXTRA_DEPLOYMENT_CARD, EXTRA_DEPLOYMENT_CARD],
             ..SideState::default()
         };
-        let opened = super::open_round(&economy, &state, 4, &mut |_, _| None, None).unwrap();
+        let opened = super::open_round(economy, &state, 4, &mut |_, _| None, None).unwrap();
         assert_eq!(
             (opened.shop.buys_remaining, opened.shop.unlocks_remaining),
             (4, 1)
@@ -1676,7 +1676,7 @@ red:
             ..SideState::default()
         };
         let movable = |round| {
-            super::open_round(&economy, &state, round, &mut |_, _| None, None)
+            super::open_round(economy, &state, round, &mut |_, _| None, None)
                 .unwrap()
                 .units
                 .iter()
@@ -1717,7 +1717,7 @@ red:
             energy_tower_skills: vec![1, 3],
             ..SideState::default()
         };
-        let opened = super::open_round(&economy, &state, 3, &mut |_, _| None, None).unwrap();
+        let opened = super::open_round(economy, &state, 3, &mut |_, _| None, None).unwrap();
         // Round 3 of the shared schedule pays 200 + 2 × 200.
         assert_eq!(opened.supply, 10 + 600 + 50 + 2 * 50 - 300);
         assert!(opened.energy_tower_skills.is_empty());
@@ -1735,7 +1735,7 @@ red:
             id: 9891,
             specialist: 10002,
         };
-        let opened = super::predict(&economy, 0, &before, &[choice], true, None, None).unwrap();
+        let opened = super::predict(economy, 0, &before, &[choice], true, None, None).unwrap();
         assert_eq!(opened.reactor_core, 4500 - 300 - 600);
         assert_eq!(opened.unlocked_units, [10, 24]);
         assert_eq!(opened.next_index.unit, 5);
@@ -1783,7 +1783,7 @@ red:
             value: Some(100),
             movable: false,
         });
-        let predicted = super::predict(&economy, 3, &state, &[], false, None, None).unwrap();
+        let predicted = super::predict(economy, 3, &state, &[], false, None, None).unwrap();
         assert_eq!(predicted.units[0].unit.travelling, None);
     }
 
@@ -1799,7 +1799,7 @@ red:
         };
         // Round 1 opens with the three items, and applying round 0 is what
         // reaches that position from the one before it.
-        let opened = super::open_round(&economy, &state, 1, &mut |_, _| None, None).unwrap();
+        let opened = super::open_round(economy, &state, 1, &mut |_, _| None, None).unwrap();
         assert_eq!(
             opened
                 .equipment
@@ -1809,7 +1809,7 @@ red:
             vec![13_030_009; 3]
         );
         assert!(
-            super::open_round(&economy, &state, 2, &mut |_, _| None, None)
+            super::open_round(economy, &state, 2, &mut |_, _| None, None)
                 .unwrap()
                 .equipment
                 .is_empty()
@@ -1835,7 +1835,7 @@ red:
                 index: 0,
             },
         ];
-        let next = fold(&economy, &state, &taken).unwrap();
+        let next = fold(economy, &state, &taken).unwrap();
         assert_eq!(next.officers, vec![10_524]);
         assert_eq!(
             next.equipment
@@ -1860,7 +1860,7 @@ red:
         };
         let mut stream = Stream::seeded(846_184_650);
         let handed = |stream: Stream, round| {
-            super::open_round(&economy, &state, round, &mut |_, _| None, Some(stream))
+            super::open_round(economy, &state, round, &mut |_, _| None, Some(stream))
                 .unwrap()
                 .equipment
                 .iter()
@@ -1868,10 +1868,10 @@ red:
                 .collect::<Vec<_>>()
         };
         assert_eq!(handed(stream, 1), vec![13_030_009]);
-        assert_eq!(super::player_draws(&economy, &state.officers, 1), 1);
+        assert_eq!(super::player_draws(economy, &state.officers, 1), 1);
         stream.skip(1);
         assert_eq!(handed(stream, 2), vec![13_030_522]);
-        assert!(super::open_round(&economy, &state, 1, &mut |_, _| None, None).is_err());
+        assert!(super::open_round(economy, &state, 1, &mut |_, _| None, None).is_err());
     }
 
     /// Fitting one of several copies takes exactly one out.
@@ -1882,12 +1882,12 @@ red:
             officers: vec![10013],
             ..side_holding(&[(0, Position { x: 0, y: -160 })])
         };
-        let opened = super::open_round(&economy, &state, 1, &mut |_, _| None, None).unwrap();
+        let opened = super::open_round(economy, &state, 1, &mut |_, _| None, None).unwrap();
         let fitted = [Action::UseEquipment {
             equipment: 13_030_009,
             index: 0,
         }];
-        assert_eq!(fold(&economy, &opened, &fitted).unwrap().equipment.len(), 2);
+        assert_eq!(fold(economy, &opened, &fitted).unwrap().equipment.len(), 2);
     }
 
     /// Recovering a formation hands back what it wore, in time to re-fit it.
@@ -1934,7 +1934,7 @@ red:
             target: crate::r#match::SkillTarget::Unit(5),
         }];
         assert_eq!(
-            fold(&economy, &state, &recovered)
+            fold(economy, &state, &recovered)
                 .unwrap()
                 .equipment
                 .iter()
@@ -1953,7 +1953,7 @@ red:
                 index: 7,
             },
         ];
-        let next = fold(&economy, &state, &refitted).unwrap();
+        let next = fold(economy, &state, &refitted).unwrap();
         assert!(next.equipment.is_empty());
         assert_eq!(next.units[0].unit.index, 7);
         assert_eq!(next.units[0].unit.equipment, vec![13_030_004]);
@@ -1973,7 +1973,7 @@ red:
         };
         let state = side_holding(&[(0, Position { x: 0, y: -160 })]);
         assert_eq!(
-            step(&economy, &state, &fitted),
+            step(economy, &state, &fitted),
             Err(Unsettled::Missing("equipment"))
         );
     }
@@ -2006,7 +2006,7 @@ red:
             },
         ];
         assert_eq!(
-            fold(&economy, &state, &released)
+            fold(economy, &state, &released)
                 .unwrap()
                 .next_index
                 .contraption,
@@ -2038,7 +2038,7 @@ red:
             position: Position { x: 0, y: -160 },
             rotated: false,
         };
-        let next = step(&economy, &state, &bought).unwrap();
+        let next = step(economy, &state, &bought).unwrap();
         assert_eq!(next.next_index.unit, 8);
         assert_eq!(next.shop.buys_remaining, 1);
         assert_eq!(next.units.len(), 1);
@@ -2062,7 +2062,7 @@ red:
             current: 650,
             maximum: 650,
         });
-        let next = step(&economy, &state, &Action::UpgradeUnit { index: 0 }).unwrap();
+        let next = step(economy, &state, &Action::UpgradeUnit { index: 0 }).unwrap();
         assert_eq!(next.units[0].unit.level, Some(2));
         assert_eq!(next.units[0].unit.exp, None);
         assert!(next.supply < state.supply);
@@ -2092,12 +2092,12 @@ red:
         // Where a squad lands is the board's to decide, so the plain step
         // stops at the position and names why.
         assert_eq!(
-            step(&economy, &state, &taken),
+            step(economy, &state, &taken),
             Err(crate::transition::Unsettled::GrantedPosition)
         );
         let mut placed = vec![Position { x: 0, y: -160 }, Position { x: -20, y: -160 }];
         placed.reverse();
-        let next = crate::transition::step_placing(&economy, &state, &taken, None, &mut |_, _| {
+        let next = crate::transition::step_placing(economy, &state, &taken, None, &mut |_, _| {
             placed.pop()
         })
         .unwrap();
@@ -2124,7 +2124,7 @@ red:
             id: 9890,
             specialist: 20005,
         };
-        let next = step(&economy, &state, &chosen).unwrap();
+        let next = step(economy, &state, &chosen).unwrap();
         assert_eq!(next.reactor_core, 100);
         assert!(next.units.is_empty());
         assert_eq!(next.next_index.unit, 0);
@@ -2143,7 +2143,7 @@ red:
                 specialist,
             };
             assert_eq!(
-                step(&economy, &SideState::default(), &chosen),
+                step(economy, &SideState::default(), &chosen),
                 Err(Unsettled::Refused(
                     "an opening pairs a team of units with a specialist officer"
                 )),
@@ -2161,7 +2161,7 @@ red:
             id: 9890,
             specialist: 20032,
         };
-        let next = step(&economy, &SideState::default(), &chosen).unwrap();
+        let next = step(economy, &SideState::default(), &chosen).unwrap();
         assert_eq!(next.reactor_core, 600);
     }
 
@@ -2185,7 +2185,7 @@ red:
             target: crate::r#match::SkillTarget::Unit(5),
         };
         assert_eq!(
-            step(&economy, &state, &released),
+            step(economy, &state, &released),
             Err(Unsettled::Missing("panel skill"))
         );
     }
@@ -2210,7 +2210,7 @@ red:
             id: 900_001,
             target: crate::r#match::SkillTarget::Unit(5),
         };
-        let next = step(&economy, &state, &released).unwrap();
+        let next = step(economy, &state, &released).unwrap();
         assert!(next.units.is_empty());
         assert_eq!(next.supply, state.supply + 400);
         assert_eq!(
@@ -2246,7 +2246,7 @@ red:
             id: 1_100_001,
             target: crate::r#match::SkillTarget::Unit(0),
         };
-        let next = step(&economy, &state, &train).unwrap();
+        let next = step(economy, &state, &train).unwrap();
         assert_eq!(
             next.units[0].unit.exp,
             Some(Experience {
@@ -2261,7 +2261,7 @@ red:
         // Training refuses a full formation.
         state.units[0].unit.exp = next.units[0].unit.exp;
         assert_eq!(
-            step(&economy, &state, &train),
+            step(economy, &state, &train),
             Err(crate::transition::Unsettled::Refused(
                 "training a unit at full strength"
             ))
@@ -2274,7 +2274,7 @@ red:
             maximum: 4373,
         });
         assert_eq!(
-            step(&economy, &state, &train),
+            step(economy, &state, &train),
             Err(crate::transition::Unsettled::Refused(
                 "training a unit at the last level"
             ))
@@ -2297,7 +2297,7 @@ red:
             rotated: false,
         };
         assert_eq!(
-            step(&economy, &fixed, &shift),
+            step(economy, &fixed, &shift),
             Err(crate::transition::Unsettled::Refused(
                 "moving a unit fixed in place"
             ))
@@ -2310,7 +2310,7 @@ red:
             durability: None,
         }];
         let fitted = step(
-            &economy,
+            economy,
             &worn,
             &Action::UseEquipment {
                 equipment: crate::mobility::DEPLOYMENT_MODULE,
@@ -2319,7 +2319,7 @@ red:
         )
         .unwrap();
         assert!(fitted.units[0].movable);
-        assert!(step(&economy, &fitted, &shift).is_ok());
+        assert!(step(economy, &fitted, &shift).is_ok());
 
         // Redeploy frees its target and spends its slot without a release.
         let mut panel = fixed.clone();
@@ -2332,7 +2332,7 @@ red:
             release: None,
         }];
         let redeployed = step(
-            &economy,
+            economy,
             &panel,
             &Action::ReleaseCommanderSkill {
                 index: 0,
@@ -2344,7 +2344,7 @@ red:
         assert!(redeployed.units[0].movable);
         assert!(redeployed.battle_skills[0].used);
         assert!(redeployed.battle_skills[0].release.is_none());
-        assert!(step(&economy, &redeployed, &shift).is_ok());
+        assert!(step(economy, &redeployed, &shift).is_ok());
 
         // A Jump Drive frees every formation of its unit, and no other.
         let mut wasps = side_holding(&[
@@ -2357,7 +2357,7 @@ red:
             entry.movable = false;
         }
         let researched = step(
-            &economy,
+            economy,
             &wasps,
             &Action::UpgradeTechnology {
                 unit: 6,
@@ -2376,7 +2376,7 @@ red:
         let mut state = side_holding(&[(0, Position { x: 0, y: -160 })]);
         state.supply = 700;
         let next = step(
-            &economy,
+            economy,
             &state,
             &Action::MoveUnit {
                 index: 0,
@@ -2403,10 +2403,7 @@ red:
             position: Position { x: 310, y: 20 },
             rotated: false,
         }];
-        assert_eq!(
-            travelling(&fold(&economy, &state, &moved).unwrap()),
-            vec![0]
-        );
+        assert_eq!(travelling(&fold(economy, &state, &moved).unwrap()), vec![0]);
         assert!(travelling(&state).is_empty());
     }
 
@@ -2424,7 +2421,7 @@ red:
             position: Position { x: 200, y: -40 },
             rotated: false,
         }];
-        assert!(travelling(&fold(&economy, &state, &about_the_main_half).unwrap()).is_empty());
+        assert!(travelling(&fold(economy, &state, &about_the_main_half).unwrap()).is_empty());
 
         let arrived = [
             Action::MoveUnit {
@@ -2439,7 +2436,7 @@ red:
             },
         ];
         assert_eq!(
-            travelling(&fold(&economy, &state, &arrived).unwrap()),
+            travelling(&fold(economy, &state, &arrived).unwrap()),
             vec![0]
         );
     }
@@ -2461,7 +2458,7 @@ red:
             rotated: false,
         }];
         assert_eq!(
-            travelling(&fold(&economy, &state, &crossed).unwrap()),
+            travelling(&fold(economy, &state, &crossed).unwrap()),
             vec![0]
         );
     }
@@ -2478,7 +2475,7 @@ red:
             position: Position { x: 0, y: -160 },
             rotated: false,
         }];
-        assert!(travelling(&fold(&economy, &state, &returned).unwrap()).is_empty());
+        assert!(travelling(&fold(economy, &state, &returned).unwrap()).is_empty());
     }
 
     /// A formation this round created starts in the main half.
@@ -2502,6 +2499,6 @@ red:
                 rotated: false,
             },
         ];
-        assert!(travelling(&fold(&economy, &solvent(), &bought).unwrap()).is_empty());
+        assert!(travelling(&fold(economy, &solvent(), &bought).unwrap()).is_empty());
     }
 }

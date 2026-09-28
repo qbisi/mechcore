@@ -271,12 +271,12 @@ fn verify_match(
     stated: &mechcore_document::opening::Stated,
 ) -> Result<Report, String> {
     let economy = mechcore_document::economy::Economy::embedded()?;
-    let checked = mechcore_document::opening::verify(&economy, stated).and_then(|opening| {
-        mechcore_document::reinforcement::verify(&economy, stated, &opening)
+    let checked = mechcore_document::opening::verify(economy, stated).and_then(|opening| {
+        mechcore_document::reinforcement::verify(economy, stated, &opening)
             .map(|reinforcements| (opening, reinforcements))
     });
     let coverage = mechcore_document::coverage::measure(
-        &economy,
+        economy,
         stated,
         match &checked {
             Ok((_, reinforcements)) => Ok(reinforcements),
@@ -289,7 +289,7 @@ fn verify_match(
     let projected = checked
         .as_ref()
         .ok()
-        .map(|(_, deal)| mechcore_document::project::every_round(&economy, stated, deal));
+        .map(|(_, deal)| mechcore_document::project::every_round(economy, stated, deal));
     let error = match &checked {
         Err(error) => Some(error.clone()),
         Ok(_) if matches!(projected, Some(Err(_))) => projected.clone().and_then(Result::err),

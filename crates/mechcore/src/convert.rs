@@ -212,11 +212,11 @@ fn replay_to_match(grbr: &[u8], destination: &Path) -> Result<Answer, Failure> {
         r#match,
         yaml,
         stated,
-    } = mechcore_document::convert::document(&economy, grbr).map_err(Failure::refused)?;
-    let deal = mechcore_document::opening::verify(&economy, &stated)
-        .and_then(|opening| mechcore_document::reinforcement::verify(&economy, &stated, &opening));
+    } = mechcore_document::convert::document(economy, grbr).map_err(Failure::refused)?;
+    let deal = mechcore_document::opening::verify(economy, &stated)
+        .and_then(|opening| mechcore_document::reinforcement::verify(economy, &stated, &opening));
     let coverage = mechcore_document::coverage::measure(
-        &economy,
+        economy,
         &stated,
         deal.as_ref().map_err(String::as_str),
     );
@@ -302,7 +302,7 @@ fn match_to_replay(bytes: &[u8], destination: &Path) -> Result<Answer, Failure> 
         .ok_or_else(|| Failure::refused("the document names itself a match and holds none"))?;
     let economy = mechcore_document::economy::Economy::embedded().map_err(Failure::failed)?;
     let replay = mechcore_document::match_replay::match_replay(
-        &economy,
+        economy,
         &stated,
         mechcore_document::game_build(),
     )
@@ -389,15 +389,15 @@ fn project(bytes: &[u8], round: Option<i32>, output: Option<&Path>) -> Result<An
     let economy = mechcore_document::economy::Economy::embedded().map_err(Failure::failed)?;
     // What declining this round's offer pays is the deal's to say, and a
     // decision that declined one cannot be applied without it.
-    let declined = mechcore_document::opening::verify(&economy, &stated)
-        .and_then(|opening| mechcore_document::reinforcement::verify(&economy, &stated, &opening))
+    let declined = mechcore_document::opening::verify(economy, &stated)
+        .and_then(|opening| mechcore_document::reinforcement::verify(economy, &stated, &opening))
         .map_err(Failure::refused)?
         .rounds
         .iter()
         .find(|dealt| dealt.round == round)
         .map(|dealt| dealt.declined);
     let deployed = |state, actions, red| {
-        mechcore_document::transition::deployed(&economy, state, actions, red, declined).map_err(
+        mechcore_document::transition::deployed(economy, state, actions, red, declined).map_err(
             |unsettled| Failure::refused(format!("round {round} is not settled: {unsettled}")),
         )
     };

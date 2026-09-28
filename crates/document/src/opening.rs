@@ -773,8 +773,8 @@ mod tests {
         let mut two = Stream::seeded(31_103_914);
         two.skip(29);
         assert_eq!(
-            deal(&economy, &mut one).unwrap(),
-            deal(&economy, &mut two).unwrap()
+            deal(economy, &mut one).unwrap(),
+            deal(economy, &mut two).unwrap()
         );
         assert_eq!(one.state(), two.state());
     }
