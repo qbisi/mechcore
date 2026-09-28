@@ -11,8 +11,9 @@
 //!   formation of the killer's side standing within `assistExpRange` of it,
 //!   each formation once.
 //!
-//! A formation starts at -1.0, the build's reset value; its first gain starts
-//! from zero, and no gain carries it past its bar.
+//! A formation starts at -1.0, the build's reset value, and then at the
+//! experience the layout brings it when that is above zero; its first gain
+//! starts from zero, and no gain carries it past its bar.
 
 use super::*;
 
@@ -101,7 +102,11 @@ impl FormationExperience {
 }
 
 impl Simulation {
-    /// Every formation's bar, at the build's reset value of -1.0.
+    /// Every formation's bar, and the experience it opens the fight with.
+    ///
+    /// `MechTeam` is built at -1.0, and `MapPlayerDataReader.LoadUnitDatas`
+    /// then hands it the unit's experience through `MechTeam.SetExpInt`,
+    /// which takes a value above zero whole and leaves -1.0 otherwise.
     pub(in crate::fight) fn seed_experience(&mut self) -> Result<()> {
         for actor in self.actors.values() {
             if self.formations.contains_key(&actor.placement.formation_id) {
@@ -114,7 +119,11 @@ impl Simulation {
                 actor.placement.formation_id,
                 FormationExperience {
                     team: actor.placement.team,
-                    experience: -ONE_Q32,
+                    experience: if actor.placement.exp > 0 {
+                        actor.placement.exp << 32
+                    } else {
+                        -ONE_Q32
+                    },
                     bar: bar << 32,
                 },
             );

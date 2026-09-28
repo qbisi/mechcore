@@ -341,6 +341,45 @@ red:
     assert!(schema.status.success());
 }
 
+#[test]
+fn a_formation_opens_the_simulated_fight_with_the_experience_its_layout_brings() {
+    let directory = tempfile::tempdir().unwrap();
+    let layout = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../layouts/experience.yaml");
+    let recording = directory.path().join("fight.mcfr");
+    let recorded = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .args(["convert".as_ref(), layout.as_os_str()])
+        .args(["--to", "mcfr"])
+        .arg(&recording)
+        .args(["--seed", "4242"])
+        .output()
+        .unwrap();
+    assert!(
+        recorded.status.success(),
+        "{}",
+        String::from_utf8_lossy(&recorded.stderr)
+    );
+    let read = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .arg("convert")
+        .arg(&recording)
+        .args(["--to", "fight"])
+        .output()
+        .unwrap();
+    let document = String::from_utf8(read.stdout).unwrap();
+    assert!(
+        read.status.success(),
+        "{document}{}",
+        String::from_utf8_lossy(&read.stderr)
+    );
+    // Each formation opens holding what the layout says, as the game's
+    // recording of this layout does: the Marksmen gain the Arclight's
+    // experience, and the Arclight ends with what it opened with.
+    assert!(
+        document.contains("level: 2, exp: 700/900/1465}"),
+        "{document}"
+    );
+    assert!(document.contains("exp: 300/300/750}"), "{document}");
+}
+
 /// The fight document the simulator fights a small layout into, written by
 /// `convert --to fight`.
 fn simulated_fight(directory: &std::path::Path) -> String {

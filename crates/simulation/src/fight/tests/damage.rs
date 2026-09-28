@@ -455,6 +455,7 @@ fn projectile_raw_target_cache_preserves_rounding_sequence() {
                 rotation: 0,
                 rotated: false,
                 level: 1,
+                exp: 0,
                 corrections: Vec::new(),
             },
             Placement {
@@ -468,6 +469,7 @@ fn projectile_raw_target_cache_preserves_rounding_sequence() {
                 rotation: 180_000,
                 rotated: false,
                 level: 1,
+                exp: 0,
                 corrections: Vec::new(),
             },
         ],

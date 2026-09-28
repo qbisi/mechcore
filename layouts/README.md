@@ -14,7 +14,9 @@ are in the corpus [`../replay/README.md`](../replay/README.md) points at.
 [`../tests/regression/fights/marksman-vs-arclight.yaml`](../tests/regression/fights/marksman-vs-arclight.yaml),
 one Marksman against one Arclight. The crates' tests read it as a plain
 layout: a small fight that ends, for what `simulate_layout` and the command
-line do with any layout, under seeds of their own.
+line do with any layout, under seeds of their own. They also fight
+`experience.yaml` through the simulator, for the experience a formation opens
+a fight with.
 
 `tuff-replay-round-7.yaml` is not built by hand: it was captured from the game
 at the end of round 7's deployment in the `[crower]VS[[TUFF]MARLFAUX]` replay,

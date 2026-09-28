@@ -29,6 +29,9 @@ pub(crate) struct Placement {
     pub(crate) rotated: bool,
     /// The formation's level, 1 to 9: its `IMechLevelData` rating.
     pub(crate) level: i64,
+    /// The experience the formation brings into the fight, whole: the
+    /// layout's `exp` within its level, 0 when it has none.
+    pub(crate) exp: i64,
     /// What the side's loadout wrote onto this formation, in the channel each
     /// correction belongs to. The entries are verified to resolve while the
     /// layout is compiled, which is the only place that can name the side and
@@ -328,6 +331,7 @@ fn compile_formation(
         rotation,
         rotated,
         level,
+        exp: i64::from(formation.exp.unwrap_or(0)),
         corrections,
     })
 }

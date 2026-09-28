@@ -114,6 +114,7 @@ fn normal_selector_split_query_remains_order_independent_for_a_unique_best() {
         rotation: 0,
         rotated: false,
         level: 1,
+        exp: 0,
         corrections: Vec::new(),
     }];
     placements.extend((0_i32..18).map(|index| Placement {
@@ -127,6 +128,7 @@ fn normal_selector_split_query_remains_order_independent_for_a_unique_best() {
         rotation: 180_000,
         rotated: false,
         level: 1,
+        exp: 0,
         corrections: Vec::new(),
     }));
     let layout = CompiledLayout::of_units(1, placements);

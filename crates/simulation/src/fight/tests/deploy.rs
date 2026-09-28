@@ -42,6 +42,7 @@ fn multi_formation_initial_state_and_target_search_entry_match_the_build() {
                 rotation: 0,
                 rotated: false,
                 level: 1,
+                exp: 0,
                 corrections: Vec::new(),
             },
             Placement {
@@ -55,6 +56,7 @@ fn multi_formation_initial_state_and_target_search_entry_match_the_build() {
                 rotation: 180_000,
                 rotated: false,
                 level: 1,
+                exp: 0,
                 corrections: Vec::new(),
             },
             Placement {
@@ -68,6 +70,7 @@ fn multi_formation_initial_state_and_target_search_entry_match_the_build() {
                 rotation: 180_000,
                 rotated: false,
                 level: 1,
+                exp: 0,
                 corrections: Vec::new(),
             },
         ],
@@ -276,6 +279,7 @@ fn crawler_member_grid_and_jitter_follow_native_creation_order() {
         rotation: 0,
         rotated: false,
         level: 1,
+        exp: 0,
         corrections: Vec::new(),
     };
     let seed = 1_787_601_811;
@@ -359,6 +363,7 @@ fn hound_partial_last_row_preserves_native_q32_centering() {
         rotation: 0,
         rotated: false,
         level: 1,
+        exp: 0,
         corrections: Vec::new(),
     };
     let seed = 1_787_601_811;
@@ -402,6 +407,7 @@ fn multi_member_identity_is_assigned_after_generation_and_shared_by_formation() 
             rotation: 0,
             rotated: false,
             level: 1,
+            exp: 0,
             corrections: Vec::new(),
         }],
     );
@@ -479,6 +485,7 @@ fn deployment_raw_and_per_tick_target_direction_round_tick_twenty_two_down() {
                 rotation: 0,
                 rotated: false,
                 level: 1,
+                exp: 0,
                 corrections: Vec::new(),
             },
             Placement {
@@ -492,6 +499,7 @@ fn deployment_raw_and_per_tick_target_direction_round_tick_twenty_two_down() {
                 rotation: 180_000,
                 rotated: false,
                 level: 1,
+                exp: 0,
                 corrections: Vec::new(),
             },
         ],
@@ -568,6 +576,7 @@ fn tick_fifteen_aim_uses_raw_q32_positions() {
                 rotation: 0,
                 rotated: false,
                 level: 1,
+                exp: 0,
                 corrections: Vec::new(),
             },
             Placement {
@@ -581,6 +590,7 @@ fn tick_fifteen_aim_uses_raw_q32_positions() {
                 rotation: 180_000,
                 rotated: false,
                 level: 1,
+                exp: 0,
                 corrections: Vec::new(),
             },
         ],
