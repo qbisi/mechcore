@@ -908,7 +908,7 @@ impl Simulation {
             && !actor.rules.has_body
             && !actor.motion.attack_hold_fire
             && actor.skill.pending().is_none()
-            && actor.skill.projectile_pending_releases.is_empty()
+            && actor.skill.performer.pending().is_empty()
             && actor.skill.backswing_finish_step().is_none()
             && (actor.rules.attack.melee || actor.skill.phase() == FightSkillPhase::Attack)
         {

@@ -261,7 +261,7 @@ impl Simulation {
     pub(in crate::fight) fn between_blows(&self, owner: FightActorRef, step: u64) -> bool {
         let skill = self.skill(owner);
         let waiting = skill.pending().is_none()
-            && skill.projectile_pending_releases.is_empty()
+            && skill.performer.pending().is_empty()
             && skill
                 .backswing_finish_step()
                 .is_none_or(|finish| finish < step);
