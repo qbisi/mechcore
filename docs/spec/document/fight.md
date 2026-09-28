@@ -98,6 +98,13 @@ After the layout's own root fields, `kind` apart, a fight states:
 - `replay`: read from a native replay's next round, which states what the
   fight left behind but not how it went.
 
+So a fight is checked by fighting its projection with its seed and comparing
+what the fight arrives at with what the document states: every result field,
+and `ticks` and `hash` as well where the source has a trajectory. A `replay`
+result is checked on its result fields alone. The layout fields need no
+comparing, since both fights start from the one projection.
+[`verify`](../mechcore/cli.md#verify) is the command that checks one.
+
 A recording says which of the first two it is: its `producer` is `game` or
 `simulator` ([mcfr.md](../mcfr/mcfr.md#file-metadata)), and a document read
 from it takes `recording` or `simulator` accordingly. The hash cannot say it,
@@ -210,10 +217,6 @@ entry, its result included, is one line.
 
 ## Unresolved
 
-- Which command checks a fight document, and what it reports: whether a
-  checker fights the projection and compares field by field, how it reports a
-  difference, and what it says of a `replay` source it has no trajectory to
-  compare.
 - Whether a fight document states the reactor core a side started with. A
   side destroyed by the fight is recognizable only with that number, which the
   layout does not carry, so the document cannot say on its own that the fight

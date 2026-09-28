@@ -108,6 +108,7 @@ than redefining them.
 | Operation | Needs a game | Notes |
 | --- | --- | --- |
 | `let` | no | binds names; see built-ins below |
+| `verify` | no | `input`, a file or a list of files; every report `mechcore verify` writes, in one result |
 | `convert` | no | `input`, `to`, optional `output`, `seed`, `round`; the same result as `mechcore convert` |
 | `diff` | no | `left`, `right`, optional `fields` (a group or a list of groups) and `tick`; the same report as `mechcore diff` |
 | `show` | no | `input`, `view`, optional `tick`; the same answer as `mechcore show` |
@@ -130,11 +131,13 @@ reaches, which its input decides:
 | --- | --- |
 | `output`, optional `video_output`, `speed_up`, `instrument` | the fight staged in the current scene |
 | `input` a layout, `output`, optional `seed`, `instrument` | the layout, fought without a scene |
+| `input` a fight, `output`, optional `instrument` | the fight's projection, with its seed, as a layout is |
 | `input` a replay, `round`, `output`, optional `instrument` | one round of the replay |
 | `watch: true`, optional `output_dir`, `wait_for_scene_seconds`, `match_timeout_seconds` | one live standard 1v1 |
 
-`input` is a path, whose kind the file itself says, or a layout given whole, as
-`read_yaml` and `embedded_layout` bind one.
+`input` is a path, whose kind the file itself says, or a layout or a fight
+given whole, as `read_yaml` and `embedded_layout` bind one; a document given
+whole is a fight when its `kind` says so.
 
 A step that writes a file refuses to overwrite it, and a script does not
 declare otherwise. The destinations are every path `game.record` and `convert`
@@ -181,6 +184,27 @@ state to a recording while other fields still differ, which the hash cannot:
 
 A group that differs is reached by its dotted path, as
 `fields.units.motion_state.first_divergence`.
+
+`verify` checks each file as `mechcore verify` does and answers every report
+in one result: `reports` holds them in the order of `input`, `valid` says
+whether all of them verified, and `invalid` lists each that did not as
+`{path, error}`, with the path as the step wrote it. That a file does not
+verify is an answer, as a difference is `diff`'s, so a step that holds files
+to their contracts says so with `expect`; `invalid: []` is the expectation
+that fails naming every file that does not verify rather than the first:
+
+```yaml
+- let:
+    fights: glob(tests/units/fights/*.yaml)
+- verify: {input: $fights}
+  expect:
+    invalid: []
+```
+
+Naming the files is the script's, as it is a command line's: `verify` takes
+files and refuses a directory, and `glob` lists one. An empty `input` is
+refused, so a pattern that matched nothing fails the step instead of
+verifying nothing.
 
 `show` with `view: outcome` and `view: stats` reads a recording for the two
 halves a capture is taken for: what the fight left of its units, and what was
@@ -245,6 +269,13 @@ Only inside a `let` value.
 | `read_yaml(<path>)` | the parsed YAML document |
 | `embedded_layout(<path.mcfr>)` | the layout embedded in that recording |
 | `range(<count>)` | integers from `0` through `count - 1`; `count` is at most 10,000 |
+| `glob(<pattern>)` | the paths of the files in one directory whose names match, sorted |
+
+`glob` matches `*`, any run of characters, and `?`, any one, in the last
+component alone, and spells each path as the pattern spells its directory:
+`glob(tests/units/fights/*.yaml)` binds `[tests/units/fights/a.yaml, ...]`. A
+wildcard in a directory is refused, and a directory holding no match binds an
+empty list.
 
 `embedded_layout` is how a replay round becomes a Training Ground layout
 without a separate conversion step:

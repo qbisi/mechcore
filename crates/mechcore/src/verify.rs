@@ -3,7 +3,9 @@
 //! A layout is checked by the shared static compiler. A match is checked
 //! against its seed and by predicting each round's next opening from the one
 //! before. A recording is checked by simulating the layout it embeds again and
-//! comparing the result with what it holds.
+//! comparing the result with what it holds. A fight document is checked by
+//! fighting its projection with its seed, as `convert --to fight` does, and
+//! comparing the result it states with the one the simulator arrives at.
 
 use std::{
     io::{IsTerminal, Read},
@@ -40,10 +42,7 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
     arguments.finish()?;
     let mut valid = true;
     for path in paths {
-        let report = match one(&path) {
-            Ok(report) => report,
-            Err(error) => Report::refused(&path, error),
-        };
+        let report = check(&path);
         valid &= report.valid;
         println!(
             "{}",
@@ -52,6 +51,14 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
         );
     }
     Ok(valid.into())
+}
+
+/// Checks one file.
+///
+/// A file that cannot be read or is of a kind `verify` does not take is a
+/// report like any other, so a batch goes on past it.
+pub(crate) fn check(path: &Path) -> Report {
+    one(path).unwrap_or_else(|error| Report::refused(path, error))
 }
 
 /// The paths to check: the arguments, or standard input one per line.
@@ -109,6 +116,7 @@ fn one(path: &Path) -> Result<Report, String> {
             verify_match(path, &stated)
         }
         Kind::Mcfr => verify_recording(path),
+        Kind::Fight => verify_fight(path, &bytes),
         _ => verify_layout(path, &bytes),
     }
 }
@@ -156,6 +164,100 @@ fn verify_recording(path: &Path) -> Result<Report, String> {
         }),
         detail: serde_json::json!({ "comparison": comparison }),
     })
+}
+
+/// Fights a fight document's projection with its seed, and compares the
+/// result the document states with the one the simulator arrives at.
+///
+/// The simulator's document is written onto the same projection, so the
+/// layout fields agree by construction and every difference is a result
+/// field. `source` is where each result was read and is not compared; a
+/// `replay` result has no trajectory, so only its result fields are.
+///
+/// A document names no tick of its fight, only the hash of all of them, so a
+/// hash that differs says the trajectories part and not where: the recording
+/// the document was read from answers that under `verify <mcfr>`.
+fn verify_fight(path: &Path, bytes: &[u8]) -> Result<Report, String> {
+    let document = mechcore_document::fight::parse_yaml(bytes)?.normalized();
+    let trajectory = document.source.has_trajectory();
+    let report = |error: Option<String>, differences: Vec<Difference>| Report {
+        schema: SCHEMA,
+        valid: error.is_none(),
+        kind: "fight",
+        path: path.display().to_string(),
+        error,
+        detail: serde_json::json!({
+            "source": document.source.as_str(),
+            "seed": document.seed,
+            "round": document.round,
+            "compared": if trajectory { &["result", "trajectory"][..] } else { &["result"][..] },
+            "differences": differences,
+        }),
+    };
+    let layout = mechcore_document::canonical_yaml(mechcore_document::fight::project(&document))?;
+    let simulated = match crate::convert::fought(|recording| {
+        mechcore_simulation::simulate_document(layout.as_bytes(), Some(recording), None)
+    }) {
+        Ok(simulated) => simulated.normalized(),
+        Err(refused) => {
+            return Ok(report(
+                Some(format!(
+                    "the simulator does not fight it: {}",
+                    refused.reason()
+                )),
+                Vec::new(),
+            ));
+        }
+    };
+    let actual = mechcore_document::Fight {
+        source: document.source,
+        ticks: simulated.ticks.filter(|_| trajectory),
+        hash: simulated.hash.clone().filter(|_| trajectory),
+        ..simulated
+    };
+    let differences = crate::diff::document_differences(&document, &actual)?
+        .into_iter()
+        .map(|difference| Difference {
+            path: difference.path,
+            expected: difference.left,
+            actual: difference.right,
+        })
+        .collect::<Vec<_>>();
+    if differences.is_empty() {
+        return Ok(report(None, differences));
+    }
+    let paths = differences
+        .iter()
+        .map(|difference| difference.path.as_str())
+        .collect::<Vec<_>>()
+        .join(", ");
+    let incomparable = document
+        .hash
+        .as_ref()
+        .zip(actual.hash.as_ref())
+        .filter(|(stated, computed)| stated.profile != computed.profile)
+        .map(|(stated, computed)| {
+            format!(
+                "; the document's hash is under {} and this build computes {}, so the two \
+                 hashes are not comparable",
+                stated.profile, computed.profile
+            )
+        })
+        .unwrap_or_default();
+    let error = format!("the simulator's fight differs from the document in {paths}{incomparable}");
+    Ok(report(Some(error), differences))
+}
+
+/// One field a fight document and the simulator's fight of it disagree on.
+#[derive(Serialize)]
+struct Difference {
+    path: String,
+    /// What the document states; absent when it states nothing there.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    expected: Option<Value>,
+    /// What the simulator arrived at; absent when it arrived at nothing there.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    actual: Option<Value>,
 }
 
 /// Checks opening layouts and every reinforcement draw using seeded setup,
@@ -222,15 +324,15 @@ const SCHEMA: &str = "mechcore.verify-result.v1";
 
 /// What checking one file found.
 #[derive(Serialize)]
-struct Report {
+pub(crate) struct Report {
     schema: &'static str,
-    valid: bool,
+    pub(crate) valid: bool,
     /// Which contract the file was checked against, or `unreadable` when it
     /// named none this build checks.
     kind: &'static str,
-    path: String,
+    pub(crate) path: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    error: Option<String>,
+    pub(crate) error: Option<String>,
     #[serde(flatten)]
     detail: Value,
 }

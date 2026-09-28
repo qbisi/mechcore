@@ -145,7 +145,7 @@ impl Kind {
     pub(crate) const fn verbs(self) -> &'static [&'static str] {
         match self {
             Self::Layout => &["verify", "convert", "diff", "format"],
-            Self::Fight => &["diff", "format"],
+            Self::Fight => &["verify", "diff", "format"],
             Self::Match => &["verify", "convert"],
             Self::State | Self::Action => &[],
             Self::Mcfr => &["verify", "convert", "diff", "show"],
@@ -258,14 +258,7 @@ mod tests {
             Kind::Layout.conversion(Kind::Fight),
             Some(Conversion::Computation)
         );
-        // Checking a fight document is not this build's yet.
-        assert!(
-            Kind::Fight
-                .require("verify")
-                .unwrap_err()
-                .reason()
-                .contains("fight")
-        );
+        assert!(Kind::Fight.require("verify").is_ok());
         assert!(
             Kind::State
                 .require("verify")

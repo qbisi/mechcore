@@ -461,12 +461,34 @@ fn simulate(layout: &Path, seed: Option<i32>, output: Option<&Path>) -> Result<A
 /// is `convert --to mcfr` followed by `convert --to fight`: the document's
 /// `source` is the simulator, because the simulator wrote the recording.
 fn fight(layout: &Path, seed: Option<i32>, output: Option<&Path>) -> Result<Answer, Failure> {
+    written(
+        fought(|recording| mechcore_simulation::simulate_layout(layout, Some(recording), seed))?,
+        output,
+    )
+}
+
+/// The fight document the simulator fights a layout into: `simulate` writes
+/// the recording to the path it is given, and the recording is read as
+/// `mcfr` to `fight` reads one.
+///
+/// `verify` checks a fight document through this same path, so what it
+/// compares against is exactly what `convert --to fight` would write.
+///
+/// # Errors
+///
+/// Returns a refusal naming what the simulator does not fight, or what the
+/// recording does not answer.
+pub(crate) fn fought(
+    simulate: impl FnOnce(
+        &Path,
+    )
+        -> Result<mechcore_simulation::SimulationResult, mechcore_simulation::Error>,
+) -> Result<mechcore_document::Fight, Failure> {
     let directory = tempfile::tempdir()
         .map_err(|error| Failure::failed(format!("cannot make room for the fight: {error}")))?;
     let recording = directory.path().join("fight.mcfr");
-    mechcore_simulation::simulate_layout(layout, Some(&recording), seed)
-        .map_err(|error| Failure::refused(error.to_string()))?;
-    written(crate::outcome::fight(&recording)?, output)
+    simulate(&recording).map_err(|error| Failure::refused(error.to_string()))?;
+    crate::outcome::fight(&recording)
 }
 
 /// A fight document on standard output, or written to `output` and reported.

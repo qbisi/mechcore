@@ -232,15 +232,27 @@ impl RecordRequest {
             .clone()
             .ok_or_else(|| Failure::usage("expected the recording to write"))?;
         let layout = match (self.layout.clone(), self.input.clone()) {
+            (Some(layout), None) if is_fight(&layout) => {
+                let fight = serde_json::from_value(layout)
+                    .map_err(|error| Failure::refused(format!("invalid fight: {error}")))?;
+                mechcore_document::fight::validate(&fight).map_err(Failure::refused)?;
+                self.fight(&fight)?
+            }
             (Some(layout), None) => layout,
             (None, Some(input)) => {
                 let (kind, bytes) = crate::kind::Kind::read(&input)?;
                 match kind {
                     crate::kind::Kind::Layout => parse_layout(&input, &bytes)?,
+                    crate::kind::Kind::Fight => {
+                        self.fight(&mechcore_document::fight::parse_yaml(&bytes).map_err(
+                            |error| Failure::refused(format!("{}: {error}", input.display())),
+                        )?)?
+                    }
                     crate::kind::Kind::Grbr => return self.replay(input, output),
                     other => {
                         return Err(Failure::refused(format!(
-                            "game record fights a layout or a replay's round, not a {} file",
+                            "game record fights a layout, a fight's layout or a replay's \
+                             round, not a {} file",
                             other.name()
                         )));
                     }
@@ -265,6 +277,18 @@ impl RecordRequest {
             output,
             instrument: self.instrument,
         })
+    }
+
+    /// The layout a fight document states, fought with the seed it states:
+    /// what it records is the fight the document is the result of, so one
+    /// file both records a fixture and verifies it.
+    fn fight(&self, fight: &mechcore_document::Fight) -> Result<Value, Failure> {
+        refuse_given(
+            &[(self.seed.is_some(), "a seed")],
+            "a fight, which states the seed its result is one of",
+        )?;
+        serde_json::to_value(mechcore_document::fight::project(fight))
+            .map_err(|error| Failure::failed(format!("cannot write the fight's layout: {error}")))
     }
 
     fn watch(self) -> Result<Record, Failure> {
@@ -423,6 +447,11 @@ impl Record {
     }
 }
 
+/// Whether a document given whole names itself a fight.
+fn is_fight(document: &Value) -> bool {
+    document.get("kind").and_then(Value::as_str) == Some(crate::kind::Kind::Fight.name())
+}
+
 fn parse_layout(path: &std::path::Path, bytes: &[u8]) -> Result<Value, Failure> {
     serde_yaml::from_slice(bytes)
         .map_err(|error| Failure::refused(format!("cannot parse {}: {error}", path.display())))
@@ -550,7 +579,34 @@ mod tests {
         };
         assert!(matches!(watch.decide(), Ok(Record::Watch { .. })));
 
+        // A fight is fought as its layout, with the seed its result is one of.
+        let fight: serde_json::Value = serde_yaml::from_str(
+            "kind: fight\nseed: 4242\nround: 1\nsource: replay\n\
+             blue:\n  units: [{name: marksman, index: 0, position: {x: 0, y: -50}, exp: 0/10/650}]\n\
+             red:\n  core_damage: 3\n  units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n",
+        )
+        .unwrap();
+        let fought = RecordRequest {
+            layout: Some(fight.clone()),
+            output: output(),
+            ..RecordRequest::default()
+        };
+        let Ok(Record::Layout { layout, seed, .. }) = fought.decide() else {
+            panic!("a fight is recorded as its layout");
+        };
+        assert_eq!(seed, None);
+        assert_eq!(layout["kind"], "layout");
+        assert_eq!(layout["seed"], 4242);
+        assert!(layout["red"].get("core_damage").is_none(), "{layout}");
+        assert!(layout["blue"]["units"][0].get("exp").is_none(), "{layout}");
+
         for refused in [
+            RecordRequest {
+                layout: Some(fight),
+                seed: Some(7),
+                output: output(),
+                ..RecordRequest::default()
+            },
             RecordRequest {
                 seed: Some(7),
                 output: output(),
