@@ -1,9 +1,8 @@
 # Unit levels
 
 Seed 1787720817. `stats.mcscript` records the control and the three fights
-in `fights/`. It needs the game. `regressions.mcscript` verifies the three
-without the game, against the native hash of each, and
-`../regression/simulate.mcscript` the control.
+in `fights/`. It needs the game. CI verifies the three and the control
+without it, against the native hash of each.
 
 | Fight | What it separates | Damage | Life |
 | --- | --- | ---: | ---: |

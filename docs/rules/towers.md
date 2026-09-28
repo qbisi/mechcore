@@ -83,15 +83,15 @@ gets the debuffed speed through `Move`.
 
 - Losing a tower at each strengthen level writes its level's buff on every live
   unit of the side, with the level's added life:
-  `tests/tower/regressions.mcscript`.
+  `tests/tower/fights/`.
 - The buff's rates act in the buff channel, composing with a unit's own as one
   factor on damage dealt, speed and damage taken:
-  `tests/tower/regressions.mcscript`.
+  `tests/tower/fights/`.
 - A second loss inside the first's debuff lengthens it by the new row's
-  duration and does not stack the rates: `tests/tower/regressions.mcscript`.
+  duration and does not stack the rates: `tests/tower/fights/`.
 - The buff counts from the hit that fells the tower, reaches a side updated
   before the felling side from the next tick, and a projectile takes its
-  owner's damage as it lands: `tests/tower/regressions.mcscript`.
+  owner's damage as it lands: `tests/tower/fights/`.
 
 ### Read
 

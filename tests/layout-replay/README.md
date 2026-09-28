@@ -7,8 +7,8 @@ fighting that round headlessly
 ([layout-replay.md](../../docs/spec/document/layout-replay.md)). This
 directory holds the evidence that the two recordings are the same fight.
 
-Most of it is elsewhere. Every fight pinned in another directory's
-`regressions.mcscript` was recorded in the Training Ground, and each one
+Most of it is elsewhere. Every fight pinned in another directory's `fights/`
+was recorded in the Training Ground, and each one
 recorded headlessly from its layout hashes the same:
 the units' standard layouts, constructions, equipment, officers, unit
 levels, technologies and tower strengthening. The fields no pinned fight

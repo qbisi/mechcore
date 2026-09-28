@@ -12,8 +12,15 @@ separate.
 | [`../regression/fights/wraith-group-attack-01.yaml`](../regression/fights/wraith-group-attack-01.yaml) | a slot re-searching while its siblings hold three of the units in reach | the checker channel's per-slot calls |
 | `fights/two-targets.yaml` | two units for four slots: whether a slot doubles up, and on which | the slots' first allocation |
 
-`slots.mcscript` records each fight once, from its fight document, with two
-channels:
+Each fight is recorded once, from its fight document, with two channels,
+beside the Wraith's M2, M3 and M6 standard fights:
+
+```sh
+scripts/record-fights.py --instrument skill_attackable_checker,group_slots \
+    --out /tmp/mechcore/wraith/slots tests/regression/fights/wraith-group-attack-01.yaml \
+    tests/wraith/fights/*.yaml tests/units/fights/wraith-*.yaml
+```
+
 `skill_attackable_checker`, which holds every `Check` call with the slot that
 made it and the slot's lock before and after it, and `group_slots`, which holds
 each slot's lock, attack target and state on every tick. A fight
@@ -24,9 +31,7 @@ The Wraith's skill (`config/units/wraith.yaml`, row 18001 of `level0`'s
 skill each, weapon mode 1, range 60, interval 1.6 s ± 0.2, prepare 0.4,
 `canAttackSameTarget` true, `isEvenlyAllocated` false, quick switch on.
 
-`regressions.mcscript` verifies two targets without the game, and
-`../regression/simulate.mcscript` the regression fight, against their native
-hashes, which come from the captures `slots.mcscript` made: 647 ticks for the
+CI verifies both without the game against their native hashes: 647 ticks for the
 regression fight and 96 for two targets, seed 1787857041. The two-target capture assigns u3, u2, u3,
 u3; sharing is not even allocation. In the regression capture, u30's fourth
 slot switches to u21 at tick 131, excluding u25 held by its sibling. At tick
@@ -42,15 +47,14 @@ The optional checker replay reads the recording's checker channel and restores e
 before-targets on the slot the call names, on a shadow skill at the kernel's checker site, then restores
 the simulated skill before execution continues. It compares the return value,
 lock and attack target on every grouped call: 4,188 in the regression capture
-and 344 in two targets. It requires the recordings `slots.mcscript` makes where
+and 344 in two targets. It requires the recordings that command makes where
 the game runs; with them in place, run:
 
 ```sh
 cargo test -p mechcore-simulation grouped_checker_matches_every_captured_call -- --ignored --nocapture
 ```
 
-`slots.mcscript` also records the Wraith's M2, M3 and M6 standard fights, and
-a second ignored test reads every recording it makes. It simulates each fight
+A second ignored test reads every recording that command makes. It simulates each fight
 and compares, tick by tick, every slot's lock, attack target and state with
 the recording's `group_slots`, and the unit's lock and motion beside them, and
 names the first tick a fight parts on:

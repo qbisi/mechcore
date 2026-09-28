@@ -89,15 +89,14 @@ the end.
 | `interval-order.mcscript` | yes | records the four Sledgehammer fixtures |
 | `disable.mcscript` | yes | records the Raiden shooting the Rhino |
 | `targeting.mcscript` | yes | records the two targeting fixtures |
-| `regressions.mcscript` | **no** | verifies every fight in `fights/` through the simulator |
 
 The three recording scripts are this directory's experiments: each one writes
 its expected numbers down before the game is started, records, and asserts
 both halves against the recording — what the build stored, and what it then
 computed. A pinned fixture is a fight document in `fights/`, holding the
 layout, the seed and what the game recorded, so the recording scripts record
-it from that file. `regressions.mcscript` is the other side of the same
-fights, and it is what CI runs: the simulator has to reproduce each recording
+it from that file. CI verifies the same fights from the other side: the
+simulator has to reproduce each recording
 tick for tick from the layout and the seed alone, on a machine that has no
 game at all. Each hash covers the derived numbers a recording carries, each
 skill's and each unit's `DataSet` aggregate among them, so a composition rule

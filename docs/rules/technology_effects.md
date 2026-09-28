@@ -95,7 +95,7 @@ whose effect grows with rank, rather than read index zero:
 ### Recorded
 
 - A technology's range and an officer's range land in one `attack_range_value`,
-  and the fight uses their sum: `tests/modifier/regressions.mcscript`.
+  and the fight uses their sum: `tests/modifier/fights/`.
 
 ### Read
 

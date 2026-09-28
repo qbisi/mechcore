@@ -263,7 +263,7 @@ def check_rules_evidence_sections(fail):
                 if not target.exists():
                     fail(f"{name}: cites {cite}, which does not exist")
                 elif target.suffix == ".mcscript" and re.search(r"^game:", target.read_text(), re.M):
-                    fail(f"{name}: cites {cite}, which needs the game; a recorded claim cites what CI replays")
+                    fail(f"{name}: cites {cite}, which needs the game; a recorded claim cites what CI verifies")
         for item in parts.get("Read", []):
             if not ANCHOR.search(item):
                 fail(f"{name}: a read claim names no `Class.member` it rests on: {item[:80]}")

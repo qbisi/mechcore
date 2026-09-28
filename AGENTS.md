@@ -73,9 +73,10 @@ master into it.
 Research runs in the session that holds the game, one question at a time,
 on a branch of this repository. These rules hold whoever does it:
 
-- **One game, one recorder.** Only the session that holds the game runs a
-  script that declares `game:`; `mechcore run <script> --check` says whether
-  one does. A gameless script is run by CI, and its assertions count as tests.
+- **One game, one recorder.** Only the session that holds the game records:
+  `convert --backend game`, `game record`, `scripts/record-fights.py`, and a
+  run script that declares `game:` (`mechcore run <script> --check` says
+  whether one does). CI verifies every fight document under `tests/`.
 - **A pinned hash comes from a recording made where the game runs**, never
   from the simulator. A pin that moves is a finding to explain, not a number
   to edit. The repository keeps what reproduces a recording, the fixtures and

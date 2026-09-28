@@ -13,11 +13,9 @@ fires, at what, and how often. That is the half of a construction
 | `fights/anti-armor-arclights.yaml` | the same, through a reload, in a fight no tower falls in | four Arclights down the Anti-Armor Turret's column, two shots each |
 
 Each is a fight document, holding its layout, the seed 4242 and what the game
-recorded. `skill.mcscript` records the first three from them with the
-`target_refs` channel and records the head-on fight twice, requiring the two
-to be one recording. `arclights.mcscript` records the Arclight fight twice,
-requiring the two to be one recording. `regressions.mcscript` needs no game:
-it verifies all four fights through the simulator, holding each to the game's
+recorded. `scripts/record-fights.py --instrument target_refs` records them with
+each skill's state, and `--check` holds each recording to its fixture. CI
+verifies all four fights through the simulator, holding each to the game's
 hash, which holds where every Crawler and every shot is and what each shot
 hit, and every lock, every motion state and the numbers derived for each unit
 besides.

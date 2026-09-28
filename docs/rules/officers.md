@@ -184,7 +184,7 @@ raises every formation's equipment slots from one to two
 ### Recorded
 
 - Equipment Expansion gives a formation a second slot, and each of its two items
-  writes: `tests/equipment/regressions.mcscript`.
+  writes: `tests/equipment/fights/`.
 
 ### Replayed
 

@@ -17,11 +17,8 @@ the fight until a tower falls, and carry what the loss writes. In the two-tower
 fights the Energy Tower's lane is ahead, so the second tower falls while the
 first loss runs.
 
-| Script | Needs the game | What it does |
-| --- | --- | --- |
-| `levels.mcscript` | yes | records the five level fights |
-| `both.mcscript` | yes | records the two two-tower fights |
-| `regressions.mcscript` | **no** | verifies all seven through the simulator |
+CI verifies all seven through the simulator; `scripts/record-fights.py --check
+tests/tower/fights/*.yaml` records them again where the game runs.
 
 The fights pinned more than the buff. A tower is an actor of its own: the Steel
 Ball whose beam fells it reads idle on that tick, and its `building_destroyed`
