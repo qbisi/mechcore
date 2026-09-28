@@ -2179,6 +2179,13 @@ steps:
       hashes.physics_result_hash: 5d70f8f759ffd2690ee1d358c4b50b4c60e9a426509bca6ab725ad630054e572
       hashes.content_result_hash: dc765160335424d607582a61e4628cfe2cd5e13020824cdc379d2e8ddfa7538d
   - fight.run:
+      layout: tests/units/overlord/m3-crawler.yaml
+      seed: 1787720817
+    expect:
+      steps: 374
+      hashes.physics_result_hash: 6add28722ea5bce8fbf934ef6f1676aa4690af386e0db2c4b165497e1ee7ab25
+      hashes.content_result_hash: 9c795948b32852b87ce2e9d1384a4c8f41514da47d70b9ffa847e8d2f71a3807
+  - fight.run:
       layout: tests/units/overlord/m4-marksman.yaml
       seed: 4242
     expect:

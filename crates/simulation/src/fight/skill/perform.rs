@@ -142,7 +142,7 @@ impl Simulation {
             .expect("u32 weapon count fits the supported host");
         let interval = native_time_units_to_steps(attack.projectile_release_interval_time_units());
         let radius = attack.projectile_target_offset_radius();
-        let climb_q32 = self.burst_climb_q32(owner, target)?;
+        let climb_target = self.climb_target(target)?;
         let source_y = self
             .attacker(owner)
             .ok_or_else(|| Error::new("projectile owner is absent"))?
@@ -171,7 +171,7 @@ impl Simulation {
                     target_z_q32: target_z_q32.saturating_add(z),
                     offset_x_q32: x,
                     offset_z_q32: z,
-                    climb_q32,
+                    climb_target,
                     weapon_index: index % weapon_count,
                 });
         let first = releases
@@ -183,21 +183,11 @@ impl Simulation {
         self.release_pending_projectile(owner, first, events)
     }
 
-    /// How high a burst's projectiles climb before they fly, above where
-    /// they leave: `ProjectileSystem.Create` scales the pre-flight height by
-    /// the distance to the target over the attack range, to the whole height
-    /// at the range and beyond. The distance is to where the target stood
-    /// when the tick began, once for the burst: a Farseer's two projectiles
-    /// climb the same 52.4 metres to a Rhino 109 metres off.
-    fn burst_climb_q32(&self, owner: FightActorRef, target: FightActorRef) -> Result<Option<i64>> {
-        let source = self
-            .attacker(owner)
-            .ok_or_else(|| Error::new("projectile owner is absent"))?
-            .launch();
-        if source.climb <= 0 {
-            return Ok(None);
-        }
-        let (target_x_q32, target_z_q32, target_y) = match target {
+    /// Where a burst's target stood when the tick the burst began on
+    /// began, and its height: what every projectile of the burst measures
+    /// its climb to.
+    fn climb_target(&self, target: FightActorRef) -> Result<(i64, i64, i64)> {
+        Ok(match target {
             FightActorRef::Unit(id) => {
                 let unit = &self.actors[&id];
                 (
@@ -212,7 +202,28 @@ impl Simulation {
                     .ok_or_else(|| Error::new("projectile target is absent"))?;
                 (view.x_q32, view.z_q32, 0)
             }
-        };
+        })
+    }
+
+    /// How high a projectile climbs before it flies, above where it leaves:
+    /// `ProjectileSystem.Create` scales the pre-flight height by the distance
+    /// from where the projectile leaves to the burst's target over the attack
+    /// range, to the whole height at the range and beyond. It is measured
+    /// for each projectile as it is created, from where its owner stands
+    /// then: an Overlord pushed aside between two releases of one burst
+    /// climbs its later projectiles to another height.
+    fn projectile_climb_q32(
+        &self,
+        owner: FightActorRef,
+        (target_x_q32, target_z_q32, target_y): (i64, i64, i64),
+    ) -> Result<Option<i64>> {
+        let source = self
+            .attacker(owner)
+            .ok_or_else(|| Error::new("projectile owner is absent"))?
+            .launch();
+        if source.climb <= 0 {
+            return Ok(None);
+        }
         let distance_q32 = native_q32_magnitude_3d(
             target_x_q32.saturating_sub(source.x_q32),
             space_to_q32(target_y).saturating_sub(space_to_q32(source.y)),
@@ -313,6 +324,7 @@ impl Simulation {
                 // which climbs first, still names the point the burst aimed
                 // at when it levels off.
                 let (target_x_q32, target_z_q32) = (pending.target_x_q32, pending.target_z_q32);
+                let climb_q32 = self.projectile_climb_q32(owner, pending.climb_target)?;
                 self.release_projectile_at(
                     owner,
                     pending.target,
@@ -330,9 +342,8 @@ impl Simulation {
                     projectile.offset_x_q32 = pending.offset_x_q32;
                     projectile.offset_z_q32 = pending.offset_z_q32;
                 }
-                projectile.climb_to_q32 = pending
-                    .climb_q32
-                    .map(|climb_q32| projectile.y_q32.saturating_add(climb_q32));
+                projectile.climb_to_q32 =
+                    climb_q32.map(|climb_q32| projectile.y_q32.saturating_add(climb_q32));
                 Ok(())
             }
             ObjectKind::Building => {
