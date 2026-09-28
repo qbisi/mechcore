@@ -33,7 +33,7 @@ impl Simulation {
             .skill
             .slots
             .iter()
-            .map(|slot| slot.lock)
+            .map(|slot| slot.lock_target)
             .collect::<Vec<_>>();
         let found = siblings
             .iter()
@@ -166,7 +166,7 @@ impl Simulation {
             skill.align_slots_to_core();
         }
         for slot in 1..self.actors[&actor_id].skill.group_size {
-            let before = self.actors[&actor_id].skill.sibling(slot).lock;
+            let before = self.actors[&actor_id].skill.sibling(slot).lock_target;
             match self.actors[&actor_id].skill.sibling(slot).state {
                 SkillState::Idle { .. } => {
                     if may_start_group_slot(fusillade, &self.actors[&actor_id].skill) {
@@ -266,7 +266,7 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
-        let after = actor.skill.sibling(slot).lock;
+        let after = actor.skill.sibling(slot).lock_target;
         if after != before {
             actor.skill.mech_lock = after;
         }
@@ -325,7 +325,7 @@ impl Simulation {
         let held_alive = self.actors[&actor_id]
             .skill
             .sibling(slot)
-            .lock
+            .lock_target
             .is_some_and(|lock| self.fight_actor_is_alive(lock));
         let sibling = self
             .actors
@@ -344,7 +344,7 @@ impl Simulation {
                 .expect("actor identity is stable")
                 .skill
                 .sibling_mut(slot);
-            sibling.lock = selected;
+            sibling.lock_target = selected;
             sibling.attack_target_left = None;
             sibling.search_target_time = SEARCH_TARGET_RESET_TICKS;
             self.refresh_group_walls(actor_id);
@@ -384,9 +384,9 @@ impl Simulation {
             .expect("actor identity is stable")
             .skill
             .sibling_mut(slot);
-        *sibling = SlotSkill {
+        *sibling = Skill {
             next_attack_step: sibling.next_attack_step,
-            ..SlotSkill::default()
+            ..Skill::sibling_entering()
         };
     }
 
