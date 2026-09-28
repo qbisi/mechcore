@@ -337,7 +337,9 @@ def record(mechcore: Path, steps: list[dict], folder: Path) -> dict[int, str]:
         # A JSON string is a YAML scalar only while it escapes nothing outside
         # the Basic Multilingual Plane, which a player's name can hold.
         script = "game: launch\nheadless: true\n\nsteps:\n" + "".join(
-            "  - game.record:\n"
+            "  - convert:\n"
+            "      to: mcfr\n"
+            "      backend: game\n"
             f"      input: {json.dumps(steps[index]['grbr'], ensure_ascii=False)}\n"
             f"      round: {steps[index]['round']}\n"
             f"      output: {json.dumps(steps[index]['output'], ensure_ascii=False)}\n"

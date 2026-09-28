@@ -42,7 +42,9 @@ steps:
       once: tests/modifier/fights/officer-speed-once.yaml
       twice: tests/modifier/fights/officer-speed-twice.yaml
 
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: $once
       output: ${out}/speed-once.mcfr
     expect:
@@ -55,7 +57,9 @@ steps:
       sides.red.0.unit.move_speed_value: 3
       sides.red.0.derived.move_speed: 81604378624
 
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: $twice
       output: ${out}/speed-twice.mcfr
     expect:

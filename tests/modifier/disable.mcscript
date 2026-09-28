@@ -26,7 +26,9 @@ steps:
   - let:
       disabled: read_yaml(tests/modifier/technology-disabled.yaml)
 
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: $disabled
       seed: $seed
       output: ${out}/disabled.mcfr

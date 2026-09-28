@@ -51,6 +51,14 @@ fn one(verb: &str, mut arguments: Args) -> Outcome {
         )));
     }
     let level = crate::acquire::level(&mut arguments)?;
+    if verb == "record" {
+        // What is recorded is decided, and refused, before any game is
+        // reached.
+        let force = force(&mut arguments)?;
+        let record = Record::read(&mut arguments)?;
+        arguments.finish()?;
+        return record_attached(record, force, level);
+    }
     if arguments.flag("--launch")? {
         return Err(Failure::usage(
             "a command joins a game somebody started; launch one in `mechcore shell` \
@@ -65,6 +73,36 @@ fn one(verb: &str, mut arguments: Args) -> Outcome {
 }
 
 /// Attaches, runs the one operation, and leaves the game to its owner.
+/// Records `record` in a game somebody started, as a command joins one: the
+/// game backend of `convert`.
+///
+/// # Errors
+///
+/// Returns `unavailable` when no game answers, and what the recording
+/// refuses.
+pub(crate) fn record_attached(record: Record, force: bool, level: u8) -> Outcome {
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .map_err(|error| Failure::failed(format!("cannot create async runtime: {error}")))?
+        .block_on(async move {
+            let session = Session::new();
+            let monitor = tokio::spawn(Session::monitor_status(session.clone()));
+            let answered = match session.acquire(Mode::Attach, level).await {
+                Ok(_) => {
+                    let answer = record.run(&session, force).await;
+                    session.release().await;
+                    answer
+                }
+                Err(failure) => Err(Failure::unavailable(failure)),
+            };
+            monitor.abort();
+            let value = answered?;
+            println!("{value}");
+            Ok(Verdict::Yes)
+        })
+}
+
 async fn attached(verb: &str, arguments: Args, level: u8) -> Outcome {
     let session = Session::new();
     let monitor = tokio::spawn(Session::monitor_status(session.clone()));
@@ -148,6 +186,11 @@ pub(crate) async fn operate(
     }
 }
 
+/// Where a file is fought into a recording, which `game record` does not do.
+pub(crate) const FILES_ARE_CONVERTED: &str = "game record records the scene or a watched match; \
+     a layout, a fight or a replay's round is fought into a recording by \
+     `convert <in> --to mcfr --backend game`";
+
 /// What `game record` records, which its input decides.
 ///
 /// No input is the fight staged in the current scene; a layout is fought
@@ -183,9 +226,6 @@ pub(crate) enum Record {
 /// What `game record` reads, before the input is looked at.
 #[derive(Default)]
 pub(crate) struct RecordRequest {
-    /// A layout given as an object rather than a file, which a run step may
-    /// pass.
-    pub(crate) layout: Option<Value>,
     pub(crate) input: Option<PathBuf>,
     pub(crate) output: Option<PathBuf>,
     pub(crate) seed: Option<i32>,
@@ -231,15 +271,8 @@ impl RecordRequest {
             .output
             .clone()
             .ok_or_else(|| Failure::usage("expected the recording to write"))?;
-        let layout = match (self.layout.clone(), self.input.clone()) {
-            (Some(layout), None) if is_fight(&layout) => {
-                let fight = serde_json::from_value(layout)
-                    .map_err(|error| Failure::refused(format!("invalid fight: {error}")))?;
-                mechcore_document::fight::validate(&fight).map_err(Failure::refused)?;
-                self.fight(&fight)?
-            }
-            (Some(layout), None) => layout,
-            (None, Some(input)) => {
+        let layout = match self.input.clone() {
+            Some(input) => {
                 let (kind, bytes) = crate::kind::Kind::read(&input)?;
                 match kind {
                     crate::kind::Kind::Layout => parse_layout(&input, &bytes)?,
@@ -258,10 +291,7 @@ impl RecordRequest {
                     }
                 }
             }
-            (None, None) => return self.scene(output),
-            (Some(_), Some(_)) => {
-                return Err(Failure::usage("name one input, a layout or a file"));
-            }
+            None => return self.scene(output),
         };
         refuse_given(
             &[
@@ -294,7 +324,7 @@ impl RecordRequest {
     fn watch(self) -> Result<Record, Failure> {
         refuse_given(
             &[
-                (self.layout.is_some() || self.input.is_some(), "an input"),
+                (self.input.is_some(), "an input"),
                 (self.output.is_some(), "an output"),
                 (self.seed.is_some(), "a seed"),
                 (self.round.is_some(), "a round"),
@@ -370,19 +400,10 @@ impl Record {
             ..RecordRequest::default()
         };
         let mut operands = arguments.operands()?.into_iter().map(PathBuf::from);
-        match (operands.next(), operands.next(), operands.next()) {
-            (None, _, _) => {}
-            (Some(output), None, _) => request.output = Some(output),
-            (Some(input), Some(output), None) => {
-                request.input = Some(input);
-                request.output = Some(output);
-            }
-            (Some(_), Some(_), Some(extra)) => {
-                return Err(Failure::usage(format!(
-                    "unexpected argument {:?}",
-                    extra.display()
-                )));
-            }
+        match (operands.next(), operands.next()) {
+            (None, _) => {}
+            (Some(output), None) => request.output = Some(output),
+            (Some(_), Some(_)) => return Err(Failure::usage(FILES_ARE_CONVERTED)),
         }
         request.decide()
     }
@@ -447,11 +468,6 @@ impl Record {
     }
 }
 
-/// Whether a document given whole names itself a fight.
-fn is_fight(document: &Value) -> bool {
-    document.get("kind").and_then(Value::as_str) == Some(crate::kind::Kind::Fight.name())
-}
-
 fn parse_layout(path: &std::path::Path, bytes: &[u8]) -> Result<Value, Failure> {
     serde_yaml::from_slice(bytes)
         .map_err(|error| Failure::refused(format!("cannot parse {}: {error}", path.display())))
@@ -463,7 +479,9 @@ fn seed(arguments: &mut Args) -> Result<Option<i32>, Failure> {
 }
 
 /// `--instrument a,b`: the instrument channels a recording carries.
-fn instrument(arguments: &mut Args) -> Result<Vec<mechcore_protocol::InstrumentChannel>, Failure> {
+pub(crate) fn instrument(
+    arguments: &mut Args,
+) -> Result<Vec<mechcore_protocol::InstrumentChannel>, Failure> {
     let Some(list) = arguments.value("--instrument")? else {
         return Ok(Vec::new());
     };
@@ -558,13 +576,23 @@ mod tests {
     #[test]
     fn a_recording_is_decided_by_its_input() {
         let output = || Some(std::path::PathBuf::from("/tmp/a.mcfr"));
+        let directory = tempfile::tempdir().unwrap();
+        let file = |name: &str, text: &str| {
+            let path = directory.path().join(name);
+            std::fs::write(&path, text).unwrap();
+            Some(path)
+        };
+        let layout_file = file(
+            "layout.yaml",
+            "kind: layout\nround: 1\nblue:\n  units: []\nred:\n  units: []\n",
+        );
         let scene = RecordRequest {
             output: output(),
             ..RecordRequest::default()
         };
         assert!(matches!(scene.decide(), Ok(Record::Scene { .. })));
         let layout = RecordRequest {
-            layout: Some(serde_json::json!({"kind": "layout"})),
+            input: layout_file.clone(),
             seed: Some(7),
             output: output(),
             ..RecordRequest::default()
@@ -580,14 +608,14 @@ mod tests {
         assert!(matches!(watch.decide(), Ok(Record::Watch { .. })));
 
         // A fight is fought as its layout, with the seed its result is one of.
-        let fight: serde_json::Value = serde_yaml::from_str(
+        let fight = file(
+            "fight.yaml",
             "kind: fight\nseed: 4242\nround: 1\nsource: replay\n\
              blue:\n  units: [{name: marksman, index: 0, position: {x: 0, y: -50}, exp: 0/10/650}]\n\
              red:\n  core_damage: 3\n  units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n",
-        )
-        .unwrap();
+        );
         let fought = RecordRequest {
-            layout: Some(fight.clone()),
+            input: fight.clone(),
             output: output(),
             ..RecordRequest::default()
         };
@@ -602,7 +630,7 @@ mod tests {
 
         for refused in [
             RecordRequest {
-                layout: Some(fight),
+                input: fight,
                 seed: Some(7),
                 output: output(),
                 ..RecordRequest::default()
@@ -613,7 +641,7 @@ mod tests {
                 ..RecordRequest::default()
             },
             RecordRequest {
-                layout: Some(serde_json::json!({"kind": "layout"})),
+                input: layout_file,
                 round: Some(2),
                 output: output(),
                 ..RecordRequest::default()

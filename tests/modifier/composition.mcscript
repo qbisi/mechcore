@@ -50,11 +50,15 @@ steps:
       once: tests/modifier/fights/officer-composition-once.yaml
       twice: tests/modifier/fights/officer-composition-twice.yaml
 
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: $none
       output: ${out}/none-1.mcfr
 
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: $none
       output: ${out}/none-2.mcfr
 
@@ -64,11 +68,15 @@ steps:
     expect:
       equal: true
 
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: $once
       output: ${out}/once.mcfr
 
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: $twice
       output: ${out}/twice.mcfr
 

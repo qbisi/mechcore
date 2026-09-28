@@ -18,6 +18,8 @@ steps:
       levels: [0, 1, 2, 3, 4]
   - foreach: {level: $levels}
     steps:
-      - game.record:
+      - convert:
+          to: mcfr
+          backend: game
           input: tests/tower/fights/tower-level-${level}.yaml
           output: ${out}/tower-level-${level}.mcfr

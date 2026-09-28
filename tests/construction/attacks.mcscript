@@ -30,7 +30,9 @@ steps:
   # over; reads idle with no lock and no weapon target for one tick; and then
   # takes the next thing in its way — block 4 the first time, the Marksman,
   # through the gap, the second.
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: tests/construction/fights/wall-rhino.yaml
       output: ${out}/rhino.mcfr
     expect:
@@ -68,7 +70,9 @@ steps:
   # own collider layer, where to the side that did it is not there at all.
   #
   # A beam's damage reads as its ramp's first step on every tick, 2 and not 55.
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: tests/construction/fights/wall-laser.yaml
       output: ${out}/laser.mcfr
     expect:

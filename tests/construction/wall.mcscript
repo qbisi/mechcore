@@ -45,7 +45,9 @@ vars:
 steps:
   # The side that placed it. Twenty-four Crawlers cross the line the wall
   # stands on and not one block loses a point of life.
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: tests/construction/fights/wall-passage.yaml
       output: ${out}/passage.mcfr
     expect:
@@ -71,7 +73,9 @@ steps:
 
   # The other side. The same unit against the same wall, and now it is a
   # target: four blocks destroyed and the fifth at 401.
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: tests/construction/fights/wall-block.yaml
       output: ${out}/block.mcfr
     expect:

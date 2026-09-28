@@ -146,6 +146,15 @@ struct Call {
     expect: Option<Map<String, Value>>,
 }
 
+impl Call {
+    /// Whether this step fights in the game: a `convert` whose backend is
+    /// the game, which a script declares a game for as it does `game.*`.
+    fn fights_in_game(&self) -> bool {
+        self.operation == "convert"
+            && self.arguments.get("backend").and_then(Value::as_str) == Some("game")
+    }
+}
+
 /// Repeat a body once per item of a list, binding the item to a name.
 ///
 /// The body is the unit of failure: a case that fails stops the run, because a
@@ -254,6 +263,18 @@ impl Script {
 
     /// Reject a script before it runs, without probing or launching anything.
     fn check(&self) -> Result<(), String> {
+        if self.game.is_none()
+            && let Some(call) = self
+                .steps
+                .iter()
+                .flat_map(Step::calls)
+                .find(|call| call.fights_in_game())
+        {
+            return Err(format!(
+                "{} with backend game needs a game, but the script declares no `game:` key",
+                call.operation
+            ));
+        }
         for operation in self.steps.iter().flat_map(Step::operations) {
             if !NATIVE.contains(&operation) && !GAMELESS.contains(&operation) {
                 return Err(format!("unknown operation {operation}"));
@@ -354,6 +375,13 @@ impl Step {
         match self {
             Self::Call(call) => vec![call.operation.as_str()],
             Self::ForEach(loop_) => loop_.body.iter().flat_map(Self::operations).collect(),
+        }
+    }
+
+    fn calls(&self) -> Vec<&Call> {
+        match self {
+            Self::Call(call) => vec![call],
+            Self::ForEach(loop_) => loop_.body.iter().flat_map(Self::calls).collect(),
         }
     }
 }
@@ -664,7 +692,7 @@ async fn perform(
             Ok(report)
         }
         "verify" => verify(arguments, scope),
-        "convert" => convert(arguments, scope).await,
+        "convert" => convert(arguments, scope, session).await,
         "show" => {
             let fields = closed(arguments, "show", &["input", "view", "tick"])?;
             let input = scope.path(fields.get("input").ok_or("show needs input")?, "show input")?;
@@ -1014,11 +1042,23 @@ fn wildcard(pattern: &str, name: &str) -> bool {
 /// An existing `output` is a destination like a recording's: the run replaces
 /// it only when `confirm_overwrite` says so. A rewrite answered without a
 /// destination answers the document it would have written.
-async fn convert(arguments: &Value, scope: &Scope) -> Result<Value, String> {
+async fn convert(
+    arguments: &Value,
+    scope: &Scope,
+    session: &Arc<Session>,
+) -> Result<Value, String> {
     let fields = closed(
         arguments,
         "convert",
-        &["input", "to", "output", "seed", "round"],
+        &[
+            "input",
+            "to",
+            "output",
+            "seed",
+            "round",
+            "backend",
+            "instrument",
+        ],
     )?;
     let input = scope.path(
         fields.get("input").ok_or("convert needs input")?,
@@ -1037,19 +1077,34 @@ async fn convert(arguments: &Value, scope: &Scope) -> Result<Value, String> {
         Some(output) => confirm_overwrite(scope, &[output.as_path()]).await?,
         None => false,
     };
-    let answer = crate::convert::convert(&crate::convert::Request {
+    let request = crate::convert::Request {
         input,
         to,
         output,
         seed: optional_i32(fields.get("seed"), "convert seed")?,
         round: optional_i32(fields.get("round"), "convert round")?,
         force,
-    })
-    .map_err(reason)?;
+        backend: backend(fields.get("backend"))?,
+        instrument: instrument(fields.get("instrument"))?,
+    };
+    if request.backend == crate::convert::Backend::Game {
+        let record = crate::convert::recorded(&request).map_err(reason)?;
+        return record.run(session, force).await.map_err(reason);
+    }
+    let answer = crate::convert::convert(&request).map_err(reason)?;
     match answer {
         crate::convert::Answer::Report { value, .. } => Ok(value),
         crate::convert::Answer::Document(text) => serde_yaml::from_str(&text)
             .map_err(|error| format!("cannot read the converted document back: {error}")),
+    }
+}
+
+/// A `convert` step's `backend`, the simulator unless it names the game.
+fn backend(value: Option<&Value>) -> Result<crate::convert::Backend, String> {
+    match value {
+        None | Some(Value::Null) => Ok(crate::convert::Backend::Simulator),
+        Some(Value::String(name)) => crate::convert::Backend::parse(name).map_err(reason),
+        Some(other) => Err(format!("convert backend is simulator or game, got {other}")),
     }
 }
 
@@ -1080,14 +1135,11 @@ fn record(arguments: &Value, scope: &Scope) -> Result<crate::game::Record, Strin
             .map(|value| scope.path(value, &format!("game.record {key}")))
             .transpose()
     };
-    let (layout, input) = match fields.get("input") {
-        None => (None, None),
-        Some(Value::Object(layout)) => (Some(Value::Object(layout.clone())), None),
-        Some(value) => (None, Some(scope.path(value, "game.record input")?)),
-    };
+    if fields.contains_key("input") {
+        return Err(crate::game::FILES_ARE_CONVERTED.to_owned());
+    }
     crate::game::RecordRequest {
-        layout,
-        input,
+        input: None,
         output: path("output")?,
         seed: optional_i32(fields.get("seed"), "game.record seed")?,
         round: optional_i32(fields.get("round"), "game.record round")?,
@@ -1274,7 +1326,7 @@ mod tests {
             "output": output.display().to_string(),
         });
 
-        let result = convert(&arguments, &scope).await.unwrap();
+        let result = convert(&arguments, &scope, &Session::new()).await.unwrap();
         assert_eq!(result["steps"], json!(91), "{result}");
         mechcore_mcfr::McfrReader::open(&output).expect("the output is the new recording");
     }

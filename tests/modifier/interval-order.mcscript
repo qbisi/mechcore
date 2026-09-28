@@ -48,7 +48,9 @@ steps:
       rate: read_yaml(tests/modifier/technology-interval-rate.yaml)
       both: read_yaml(tests/modifier/technology-interval.yaml)
 
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: $base
       seed: $seed
       output: ${out}/base.mcfr
@@ -59,7 +61,9 @@ steps:
       sides.blue.0.derived.current_attack_interval: 83
       sides.blue.0.derived.attack_damage: 608
 
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: $value
       seed: $seed
       output: ${out}/value.mcfr
@@ -71,7 +75,9 @@ steps:
       sides.blue.0.derived.current_attack_interval: 63
       sides.blue.0.derived.attack_damage: 608
 
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: $rate
       seed: $seed
       output: ${out}/rate.mcfr
@@ -84,7 +90,9 @@ steps:
       # 608 x 3.5, the rate on the other number this technology carries.
       sides.blue.0.derived.attack_damage: 2128
 
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: $both
       seed: $seed
       output: ${out}/both.mcfr

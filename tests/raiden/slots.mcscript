@@ -44,7 +44,9 @@ steps:
 
   - foreach: {recording: $recordings}
     steps:
-      - game.record:
+      - convert:
+          to: mcfr
+          backend: game
           input: ${recording.fight}
           output: ${out}/${recording.name}.mcfr
           instrument: [skill_attackable_checker, group_slots]

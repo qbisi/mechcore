@@ -40,7 +40,9 @@ steps:
   # The walk order, with nothing to interleave. The layout declares these in
   # the opposite order to the one the stream takes them in, which is how the
   # fixture shows that the order is the recording's and not the document's.
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: $singles
       seed: $seed
       output: ${out}/singles.mcfr
@@ -60,7 +62,9 @@ steps:
       sides.red.0.derived.current_attack_interval: 18
 
   # One type, one row, and a draw that comes out positive.
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: $marksmen
       seed: $seed
       output: ${out}/three-marksmen.mcfr
@@ -85,7 +89,9 @@ steps:
   # Twelve members in front of one Marksman. A draw per member puts the
   # Marksman thirteenth and answers 72; a draw per formation puts it second
   # and answers 55.
-  - game.record:
+  - convert:
+      to: mcfr
+      backend: game
       input: $members
       seed: $seed
       output: ${out}/mustang-then-marksman.mcfr
