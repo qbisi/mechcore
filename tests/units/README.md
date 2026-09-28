@@ -80,7 +80,7 @@ agrees with its `config/units/` file.
 
 Arclight, Fang, Mustang, Steel Ball, Wraith, Stormcaller and Phoenix have
 the same six layouts against the reference units: 84 recordings, of which
-76 play back exactly and are pinned. Arclight, Mustang and Phoenix meet the
+78 play back exactly and are pinned. Every unit but the Wraith meets the
 definition. A cell that parts gives the
 recording's ticks and the first tick the simulator differs on.
 
@@ -109,7 +109,7 @@ recording's ticks and the first tick the simulator differs on.
 | steel_ball | `m3-crawler` | 454 | 445 |
 | steel_ball | `m4-wasp` | 355 | 338 |
 | steel_ball | `m5-rotated` | 173 | 171 |
-| steel_ball | `m6-formations` | 530, parts at 1 | 507 |
+| steel_ball | `m6-formations` | 530 | 507 |
 | wraith | `m1-mirror` | 430 | 429 |
 | wraith | `m2-rhino` | 287, parts at 225 | 286, parts at 248 |
 | wraith | `m3-crawler` | 247, parts at 156 | 201, parts at 136 |
@@ -121,7 +121,7 @@ recording's ticks and the first tick the simulator differs on.
 | stormcaller | `m3-crawler` | 352 | 301 |
 | stormcaller | `m4-wasp` | 213 | 211 |
 | stormcaller | `m5-rotated` | 273 | 272 |
-| stormcaller | `m6-formations` | 462, parts at 1 | 449 |
+| stormcaller | `m6-formations` | 462 | 449 |
 | phoenix | `m1-mirror` | 77 | 76 |
 | phoenix | `m2-rhino` | 139 | 147 |
 | phoenix | `m3-crawler` | 463 | 462 |
@@ -129,18 +129,9 @@ recording's ticks and the first tick the simulator differs on.
 | phoenix | `m5-rotated` | 105 | 103 |
 | phoenix | `m6-formations` | 301 | 296 |
 
-Each fight that parts does so on one of two mechanisms, none of them the
-unit's own damage or motion:
+Each fight that parts is the Wraith's, on one mechanism that is not its own
+damage or motion:
 
-- **Facing a target dead ahead.** A Stormcaller or Steel Ball whose
-  presearched Crawler stands 6 Q32 units (1.4 nm) to its left faces +0.245°
-  in the game, as it would with no offset, and −0.245° in the simulator,
-  until it first moves. `AcosFastest(1)` is not zero, so the offset's sign
-  picks the side. Steel Ball's and Stormcaller's M6 with seed 4242. The
-  build's `FightUtility.ConvertToAngle` takes `360 - angle` for a direction
-  whose x is negative, as the simulator does, so the game's direction at
-  presearch has an x of zero or more where the simulator's is −6: the
-  positions it is taken between are what differ, and they are not read.
 - **The Wraith's grouped search.** Each of the Wraith's weapons searches
   for its own target, and the simulator answers a different one: M2, M3 and
   M6 part on a weapon's target or a released projectile. M6 with seed 4242
@@ -155,13 +146,15 @@ them, as its configuration cannot state a unit that burrows. Two units are
 still refused by name, for a main skill the kernel has no way to fire:
 Hacker's control beam, and Raiden's fusillade of three grouped weapons.
 
-Of the other 192 fights, 185 play back exactly and are pinned:
+Of the other 192 fights, 189 play back exactly and are pinned:
 
 | Unit | Pinned of 12 |
 | --- | ---: |
 | centurion | 12 |
 | farseer | 12 |
+| fire_badger | 12 |
 | fortress | 12 |
+| hound | 12 |
 | melting_point | 12 |
 | sabertooth | 12 |
 | scorpion | 12 |
@@ -171,10 +164,8 @@ Of the other 192 fights, 185 play back exactly and are pinned:
 | void_eye | 12 |
 | vortex | 12 |
 | vulcan | 12 |
-| fire_badger | 11 |
-| hound | 10 |
+| phantom_ray | 11 |
 | overlord | 10 |
-| phantom_ray | 10 |
 
 Each mechanism the recordings exposed is named in
 [`combat.md`](../../docs/rules/combat.md). Two of them were read off
@@ -188,14 +179,10 @@ The Overlord's M3 fields five formations in a row and its M6 two side by side:
 with three in a column, or two one behind the other, the Crawlers felled a
 tower before the Overlords could stop them.
 
-The seven that part:
+The three that part:
 
 | Unit | Layout | Seed | Parts at | On |
 | --- | --- | ---: | ---: | --- |
-| hound | `m3-crawler` | 4242 | 9 | facing a target dead ahead |
-| hound | `m6-formations` | 4242 | 9 | facing a target dead ahead |
-| fire_badger | `m6-formations` | 1787720817 | 9 | facing a target dead ahead |
-| phantom_ray | `m3-crawler` | 1787720817 | 1 | facing a target dead ahead |
 | phantom_ray | `m3-crawler` | 4242 | 176, content only | the dead last enemy named through a cooling, not read |
 | overlord | `m3-crawler` | 1787720817 | 256 | a climbing projectile's height by a few raw units, not read |
 | overlord | `m6-formations` | 1787720817 | 344 | a unit that stops in the game and moves on in the simulator, not read |

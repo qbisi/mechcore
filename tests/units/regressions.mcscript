@@ -649,6 +649,13 @@ steps:
       hashes.content_result_hash: be81491d29284ca1ab80d5aa0a3bd0a4314f6ae19bfb36556ef86927f9566cd9
   - fight.run:
       layout: tests/units/steel_ball/m6-formations.yaml
+      seed: 4242
+    expect:
+      steps: 530
+      hashes.physics_result_hash: f4a4bfc0559cd3ca07e6d13f76bbda743d865a264d8234a0fd800fa1f088759d
+      hashes.content_result_hash: 0a44846910db7db94f177dee9cf87b3b13fb8a083796a240245f919aba1d7161
+  - fight.run:
+      layout: tests/units/steel_ball/m6-formations.yaml
       seed: 1787720817
     expect:
       steps: 507
@@ -768,6 +775,13 @@ steps:
       steps: 272
       hashes.physics_result_hash: fb1462020c4ccea38751c1daa25e04faacbaf7bbc151cef230134a18ce56617c
       hashes.content_result_hash: 52601521ae495227dfaf957eeebdcc2ed4a85a07c77f6c8f7eaa90257f708c29
+  - fight.run:
+      layout: tests/units/stormcaller/m6-formations.yaml
+      seed: 4242
+    expect:
+      steps: 462
+      hashes.physics_result_hash: 3eabcf057d47cca5c88d12c63361bc4ce3c7c904c405efa5076c607c0f389fe8
+      hashes.content_result_hash: 43143c4847fb0173f695edd11a425cd97478aeb2f5446ebaf5e4c869d0e0a46a
   - fight.run:
       layout: tests/units/stormcaller/m6-formations.yaml
       seed: 1787720817
@@ -891,6 +905,13 @@ steps:
       hashes.content_result_hash: 635cd243cf87d1c530883d4f5912e6598bf98e721ef9904114f3f14fa8a53b5b
   - fight.run:
       layout: tests/units/hound/m3-crawler.yaml
+      seed: 4242
+    expect:
+      steps: 251
+      hashes.physics_result_hash: 14becef2a825a3ef10de7b5836be0a60a71e7dcf4c37d4719ed1d77912ff2807
+      hashes.content_result_hash: 8fc439cd149eed3fd5d882cb9bb2f4df64d024b7387c2a375a8984e9188e48fe
+  - fight.run:
+      layout: tests/units/hound/m3-crawler.yaml
       seed: 1787720817
     expect:
       steps: 255
@@ -924,6 +945,13 @@ steps:
       steps: 263
       hashes.physics_result_hash: cbc3adfb37591f9b8bb2e62406dc4cee4112b3e70315f7d30b814ef1764f422f
       hashes.content_result_hash: ea0ba48bf89150efabd08300637b998cfd38a53bfc6db37e690d59f29fe379e3
+  - fight.run:
+      layout: tests/units/hound/m6-formations.yaml
+      seed: 4242
+    expect:
+      steps: 381
+      hashes.physics_result_hash: 8a0964985d1790470a42b49db2a5e5d703660a6a1a81574f93237e3842758a96
+      hashes.content_result_hash: 13afeb561955ac9c52bbfbfc5ad19d3a6f8b7b8c393fa4f60acc5629fa51f88c
   - fight.run:
       layout: tests/units/hound/m6-formations.yaml
       seed: 1787720817
@@ -1349,6 +1377,13 @@ steps:
       steps: 350
       hashes.physics_result_hash: 73907eb1704d08fe88ebbf2765c29cc5063f8a38817beb074b11c7216a291629
       hashes.content_result_hash: 449324c90002124d3998a66b6637ad1a5a5b8df7b1e0ea0f7135e65e17d708d9
+  - fight.run:
+      layout: tests/units/fire_badger/m6-formations.yaml
+      seed: 1787720817
+    expect:
+      steps: 351
+      hashes.physics_result_hash: 320cb652b3d29ae126511410f310c6df4270189c3850fc59fe146783d960cd7d
+      hashes.content_result_hash: 2508b7584d4cf5540688771792abc70de1bc18808d4d1a067aecbc0ff60eae4e
   # phantom_ray
   - fight.run:
       layout: tests/units/phantom_ray/m1-mirror.yaml
@@ -1378,6 +1413,13 @@ steps:
       steps: 174
       hashes.physics_result_hash: 8f713f79ee66308ed34f9d5a7162a723d5dbc4caf99c5218616c74503c80f426
       hashes.content_result_hash: 6fc660b2a850f3bd51db319be160741d02ff05ef3b20b7e7ba27e0fce1c053c6
+  - fight.run:
+      layout: tests/units/phantom_ray/m3-crawler.yaml
+      seed: 1787720817
+    expect:
+      steps: 201
+      hashes.physics_result_hash: 7da435e3c2aae58c90eb867654f5cc9eda86d81b63872d7b7115c128b0dcfe97
+      hashes.content_result_hash: 90e77162d3d6251621274c8ce82a851c15ebbc632811e6075e492d03a80dfc63
   - fight.run:
       layout: tests/units/phantom_ray/m4-marksman.yaml
       seed: 4242
