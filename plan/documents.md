@@ -34,3 +34,8 @@
 
 - **语料按回合出 fight 夹具。** 转换器从原生回放的每一回合写出 `source: replay` 的 fight 文档，
   只有结转字段、没有 hash，放在 `work/` 下不进仓库。reopen_when：outcome 补完合并。
+- **重生进事件。** MCFR 不记重生：采集在 `FightController.CreateMech` 看得到 `isRebirth` 和
+  `createType` 却丢掉，outcome 只能从"死过又活到最后"推断重生、从编队配对推断召唤。只有凤凰
+  （量子重组）会重生，不改通用单位字段：新增 `unit_reborn` 事件，`unit_created` 带上
+  `create_type`，outcome 改为读事件。reopen_when：研究凤凰的量子重组科技时，用一个死后重生并
+  活到最后的凤凰夹具钉住 `rebirth_unit_score_rate`。
