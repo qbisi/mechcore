@@ -20,15 +20,15 @@
 2. 反编译里 U 不带科技就有的每个技能，要么被某个布阵复现，要么按名拒绝。
 3. 对手的单位——rhino、crawler、wasp、marksman——先满足这个定义。
 
-达标的单位把全套布阵落在 [`tests/units/`](../tests/units/README.md)，哪些单位达标、哪几场
-在哪里分叉，那份 README 说。
+达标的单位把全套布阵落在各自的 `tests/<单位>/fights/`，布阵是什么由
+[`tests/README.md`](../tests/README.md#standard-unit-layouts) 说。
 
 ## 做法：一起放行，批量录，看缺口
 
 不再一个一个加：所有单位同时放行，内核不再按白名单挑单位，有配置就进战斗；配置表达不了的主
 技能形状按名拒绝。批量录制，逐场与模拟器逐字段比较，按第一处分叉归到机制上。一个机制修好，
 所有卡在它上面的单位一起前进；每修一个，重跑全部录像，对上的钉进
-`tests/units/fights/`，已有的钉子一直要过。
+`tests/<单位>/fights/`，已有的钉子一直要过。
 
 目标范围：除 hacker、sandworm 和三个 800 费用的单位（war_factory、abyss、mountain）之外的
 所有单位。

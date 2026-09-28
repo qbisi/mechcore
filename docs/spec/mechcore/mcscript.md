@@ -195,7 +195,7 @@ that fails naming every file that does not verify rather than the first:
 
 ```yaml
 - let:
-    fights: glob(tests/units/fights/*.yaml)
+    fights: glob(tests/marksman/fights/*.yaml)
 - verify: {input: $fights}
   expect:
     invalid: []
@@ -272,7 +272,7 @@ Only inside a `let` value.
 
 `glob` matches `*`, any run of characters, and `?`, any one, in the last
 component alone, and spells each path as the pattern spells its directory:
-`glob(tests/units/fights/*.yaml)` binds `[tests/units/fights/a.yaml, ...]`. A
+`glob(tests/marksman/fights/*.yaml)` binds `[tests/marksman/fights/m1-mirror-4242.yaml, ...]`. A
 wildcard in a directory is refused, and a directory holding no match binds an
 empty list.
 

@@ -1,0 +1,7 @@
+# Steel Ball
+
+The Steel Ball's standard fights: the six
+[standard layouts](../README.md#standard-unit-layouts) under seeds 4242 and
+1787720817, 12 fight documents in `fights/`, each named for its layout and
+seed. CI verifies them; `scripts/record-fights.py --check
+tests/steel_ball/fights/*.yaml` records them again where the game runs.

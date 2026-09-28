@@ -11,13 +11,12 @@ fixed to the body. The rules are in
 | --- | --- | --- |
 | `fights/fang-in-reach.yaml` | three Raidens with a Fang formation already in reach: whether Raidens avoid one another's targets | the first volley's nine blows |
 
-The fixture and the Raiden's twelve standard fights (`raiden-*.yaml` in
-[`../units/fights/`](../units/README.md)) are recorded, each from its fight
-document, with two channels:
+The fixture and the Raiden's twelve standard fights, all in `fights/`, are
+recorded, each from its fight document, with two channels:
 
 ```sh
 scripts/record-fights.py --instrument skill_attackable_checker,group_slots \
-    --out /tmp/mechcore/raiden/slots tests/raiden/fights/*.yaml tests/units/fights/raiden-*.yaml
+    --out /tmp/mechcore/raiden/slots tests/raiden/fights/*.yaml
 ```
 
 `skill_attackable_checker`, which holds every `Check` call with the slot that
@@ -30,8 +29,8 @@ volley on tick 2 at nine different Fangs, and not because they avoid one
 another: the first to update kills the three it holds, and the next finds
 them dead and searches again. Raidens do not share out targets across units;
 in the Raiden's M3 with seed 4242 one Raiden locks, at tick 164, the three
-Crawlers another has held since tick 114. The twelve standard fights are
-pinned with the other units' in `../units/fights/`.
+Crawlers another has held since tick 114. The twelve standard fights are the
+six [standard layouts](../README.md#standard-unit-layouts) under two seeds.
 
 A second ignored test reads every recording that command makes, beside the
 Wraith's: it simulates each fight and compares, tick by tick, every slot's
