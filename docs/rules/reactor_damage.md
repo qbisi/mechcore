@@ -73,8 +73,8 @@ and taken out again before the score is compared, so it does not count either.
 ### Replayed
 
 - Each core falls, round by round, by exactly what the rule above answers from
-  the round's recording, classified as `mechcore show <recording> --view
-  outcome` classifies it: `scripts/match-replays.py` records every round of
+  the round's recording, classified as `mechcore convert <recording> --to
+  fight` classifies it: `scripts/match-replays.py` records every round of
   the corpus with the game and compares its answer with the fall between the
   round's state and the next in the match document, and `--recordings` repeats
   the comparison over recordings already made. The fights of the corpus

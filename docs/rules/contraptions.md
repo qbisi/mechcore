@@ -1,6 +1,7 @@
 # Releasing contraptions
 
-How many contraptions a side may release in one round. What a contraption is
+How many contraptions a side may release in one round, and which of them a
+fight leaves standing into the next. What a contraption is
 and where one may stand are [layout.md](../spec/document/layout.md)'s; what one
 costs is [`config/economy.yaml`](../../config/economy.yaml)'s.
 
@@ -29,7 +30,29 @@ format has no such decision.
 No officer a standard match deals carries one, so the count is eight in every
 round of a standard match.
 
+## What a fight leaves
+
+A contraption stands into the next round unless the fight ends it, and each
+kind ends its own way:
+
+- **A shield** stands until the fight destroys its shield.
+- **An interceptor** is a building of its side, and stands until the fight
+  destroys that building.
+- **A missile fires once.** When an enemy comes within its trigger range it
+  launches one missile, a projectile no unit owns, from where it stands, and is
+  spent. A missile that fired is gone from the next round, and one that did not
+  fire stands into it.
+
 ## Evidence
+
+### Replayed
+
+- A shield, an interceptor and a missile each stand into the next round as the
+  section above says: `scripts/match-replays.py` with `--recordings` converts every
+  recorded round of the corpus to its fight document, which reads a missile as
+  fired when a projectile no unit owns of its side is first recorded beside it,
+  and compares which contraptions it keeps with the next state in the match
+  document. The corpus holds each kind both kept and gone.
 
 ### Read
 
@@ -45,8 +68,21 @@ round of a standard match.
 - An officer raises both counts: `ContraptionManager.ChangeBuyCount`,
   `SystemOfficerController.ChangeContraptionBuyCount`,
   `OfficerData.contraptionBuyCount`.
+- A missile fires when an enemy comes within its trigger range, as a
+  projectile made with the missile as its data source:
+  `TeamMineManager.TryActiveMine`, `FightLandMine.GetTriggerRange`,
+  `MineSystem.ActiveMine`, `ProjectileSystem.Create`.
+- An interceptor is a building of its side: `FightInterceptor.Building`,
+  `FightInterceptor.OnDestroy`.
 
 ### Not established
+
+- **Which call spends a fired missile.** `TeamMineManager.Remove` takes a
+  missile off its side's list and has no caller the index resolves, so the
+  step from firing to being gone is read from the corpus, not the build.
+- **A missile cleared without firing.** `MineSystem.ClearLandMine` destroys a
+  side's missiles without a projectile; no fight of the corpus does it, and a
+  reader of a recording would take such a missile as standing.
 
 - **The cap in a recording.** No replay of this version's corpus releases more
   than seven contraptions in a round, counting releases later undone, so no
