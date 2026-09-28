@@ -198,7 +198,7 @@ impl Simulation {
                             .expect("actor identity is stable")
                             .skill
                             .sibling_mut(slot);
-                        sibling.state = SkillState::Attack(Blow::Waiting);
+                        sibling.enter(SkillState::Attack(Blow::Waiting));
                         sibling.next_attack_step =
                             sibling.next_attack_step.max(step.saturating_add(1));
                     }
@@ -239,7 +239,7 @@ impl Simulation {
                             .expect("actor identity is stable")
                             .skill
                             .sibling_mut(slot)
-                            .state = SkillState::Idle { ready_step: None };
+                            .enter(SkillState::Idle { ready_step: None });
                     }
                 }
                 SkillState::Reloading { .. } => {}
@@ -306,10 +306,10 @@ impl Simulation {
                 .expect("actor identity is stable")
                 .skill
                 .sibling_mut(slot)
-                .state = SkillState::Cooling {
-                started: step,
-                candidate,
-            };
+                .enter(SkillState::Cooling {
+                    started: step,
+                    candidate,
+                });
         }
     }
 
@@ -366,7 +366,7 @@ impl Simulation {
             // `SkillIdleState.Exit` resets the search timer. A skill with no
             // prepare is attacking on the update it starts.
             sibling.search_target_time = SEARCH_TARGET_RESET_TICKS;
-            sibling.state = if prepare_steps == 0 {
+            let state = if prepare_steps == 0 {
                 sibling.next_attack_step = sibling.next_attack_step.max(step.saturating_add(1));
                 SkillState::Attack(Blow::Waiting)
             } else {
@@ -374,6 +374,7 @@ impl Simulation {
                     finish_step: step.saturating_add(prepare_steps),
                 }
             };
+            sibling.enter(state);
         }
         Ok(())
     }

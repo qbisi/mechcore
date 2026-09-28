@@ -191,10 +191,6 @@ pub(in crate::fight) enum GroupBehaviour {
 /// is in, and the attack it is making.
 
 #[derive(Debug, Clone)]
-#[allow(
-    clippy::struct_excessive_bools,
-    reason = "the flags are pieces of the skill's state the kernel still carries apart; the attack state's own enum replaces them"
-)]
 pub(in crate::fight) struct Skill {
     pub(in crate::fight) weapon_rotations_q32: Vec<i64>,
     pub(in crate::fight) next_attack_step: u64,
