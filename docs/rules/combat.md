@@ -184,18 +184,29 @@ four `FightSkill`s, and each prepares, attacks and goes idle by itself:
   else answers.
 - Leaving the fight leaves every slot idle.
 
-**A sibling gives up a unit the core has just taken.** An attacking sibling's
-check asks `SkillAttackableChecker.TrySearchGroupSkillLockTarget` on every
-update while its lock lives, and the core's never does. When the core, which
-updates first, took on that same update the unit the sibling holds, no other
-sibling holds it, and a unit no slot holds stands in the sibling's reach, the
-answer is to give it up: the check fails with the lock unchanged, the slot
-goes idle and drops its lock, and on the next update it searches around the
-others and prepares anew. A unit shared from before is kept, and so is one
-more siblings hold, and one with nothing else in reach; a preparing sibling's
-check does not ask at all. In the Wraith's M3 with seed 1787720817, at tick
-178, the core took a Crawler three of its siblings held, two of them still
-preparing, with two free Crawlers in reach, and the attacking one kept it.
+**A sibling gives up a shared unit by its blows.** An attacking sibling's
+check asks `SkillAttackableChecker.TrySearchGroupSkillLockTarget` while its
+lock lives; the core's never does, nor a preparing sibling's. It groups the
+locks of the unit's own skills, and answers to give the unit up only when:
+
+- every skill of the group holds a lock, two of them the same one, and the
+  sibling does not hold its unit alone;
+- every other skill sharing a lock, the core aside, has struck more blows in
+  its current attack (`SkillAttackController.attackCount`) than this one:
+  the first with fewer, or else the last with as many, is the one to move,
+  and this one keeps its unit;
+- its search timer is up: leaving idle sets it to ten, and each attacking
+  update counts it down after the check;
+- and the search it then runs, which sets the timer to ten again, finds a
+  unit no skill of the group holds.
+
+The check then fails with the lock unchanged, the slot goes idle and drops
+its lock, and on the next update it searches around the others and prepares
+anew. So a sibling the core joins on a unit leaves it once its timer is up
+and a free unit stands in reach, and one that has struck a blow keeps a unit
+it shares with a sibling that is still preparing: in the Wraith's M3 with
+seed 1787720817, at tick 178, the core took a Crawler three of its siblings
+held, two of them still preparing, and the attacking one kept it.
 
 `crates/simulation/src/fight/mech.rs` implements the split as `lock_target`
 and `Actor::attack_target`.
@@ -227,13 +238,9 @@ Both the selector's range penalty and its fallback range test use the slot's
 own range; the unit's recorded range remains its core's.
 
 `GroupedSkillAttackBehaviour.Update` and `OnStartAttack` are empty. The hooks
-do not perform a separate allocation pass. The checker also has a distinct
-live-sharing redistribution path: `TrySearchGroupSkillLockTarget` groups
-existing locks, detects whether the current skill is their sole holder, and
-chooses among shared holders using attack counts before a throttled search.
-That path is not the ordinary search's sibling-exclusion loop; how it weighs
-the holders by their attack counts is not read, and its one recorded answer
-is the rule above. The fixtures
+do not perform a separate allocation pass. The checker's
+redistribution path, `TrySearchGroupSkillLockTarget`, is the rule above and
+not the ordinary search's sibling-exclusion loop. The fixtures
 that separated the rest are [the Wraith fixtures](../../tests/wraith/README.md).
 
 ## A fusillade fires with its core
@@ -544,11 +551,11 @@ not the game's native attack-type enum.
 - A grouped skill's slots, their locks and their reach, and a grouped unit's
   core interval: `tests/wraith/regressions.mcscript`.
 - Each slot's own states, the core leaving its attack while its siblings go
-  on, the unit's lock following the latest slot, a sibling giving up the
-  unit the core has just taken, and a slot's interval outliving its attack,
+  on, the unit's lock following the latest slot, a sibling giving up a unit
+  it shares with the core, and a slot's interval outliving its attack,
   in the Wraith's M2, M3 and M6 fights: `tests/units/regressions.mcscript`.
-- A sibling keeping a unit the core took while more siblings hold it, and a
-  free-moving Wraith at full speed off its facing, in the Wraith's M3 with
+- A sibling that has struck keeping a unit it shares with siblings still
+  preparing, and a free-moving Wraith at full speed off its facing, in the Wraith's M3 with
   seed 1787720817: `tests/units/regressions.mcscript`.
 - Where a charging Crawler is sent, and a Marksman's quick switch that cannot
   follow a kill: `tests/regression/simulate.mcscript`.
@@ -646,10 +653,13 @@ not the game's native attack-type enum.
   a unit from its siblings: `SkillSearchTargetController.SearchLockTarget`,
   `SkillSearchTargetController.PerformGroupedSkillSearch`,
   `FightSkill.ChangeLockTarget`.
-- Only a child skill asks whether to give its unit up, and the question is
-  asked within the unit's own group, of attack counts:
+- Only a child skill asks whether to give its unit up, within the unit's
+  own group, by blows struck and behind a search timer:
   `SkillAttackableChecker.TrySearchGroupSkillLockTarget`,
-  `SkillAttackController.attackCount`.
+  `SkillAttackController.attackCount`, `SkillAttackController.PerformAttack`,
+  `SkillAttackController.Exit`, `SearchTargetController.CanStartSearch`,
+  `SearchTargetController.ResetSearchTargetTime`, `SkillIdleState.Exit`,
+  `SkillAttackState.Update`.
 - The unit whose data is 27 has fixed weapons, which turn to their parent's
   rotation when their skill updates with a lock: `FightWeapon..ctor`,
   `FightWeapon.RotateTo`, `FightWeapon.CanRotate`, `FightSkill.Update`,
@@ -677,11 +687,10 @@ not the game's native attack-type enum.
   attack target in reach" is what the recordings and the shape of `IAttacker`,
   `IsAttackTargetInAttackRange` beside `GetLockTarget`, say. A Marksman's
   weapon has no pose in a recording, so its aim angle is not observed.
-- **Grouped slots**: a sibling giving up a unit another sibling took on the
-  same update, which the simulator refuses by name, and how
-  `TrySearchGroupSkillLockTarget` weighs attack counts in general, which it
-  reads within one unit's group and never across units; a fusillade of
-  weapons that do not strike, which the simulator refuses; redistribution of
+- **Grouped slots**: which skill `TrySearchGroupSkillLockTarget` removes
+  from the sharers besides itself, read as the core from the list it takes
+  it from; the order the build's dictionary walks the locks in, taken as the
+  order they are first named; a fusillade of weapons that do not strike, which the simulator refuses; redistribution of
   wall blockers; and whether an idle slot that
   finds a unit beyond its reach keeps it as its lock, which no recorded
   sibling has done.
@@ -712,9 +721,6 @@ not the game's native attack-type enum.
 - **When `FightSkill.ExitFight` runs** in a won fight, and why a cooling the
   simulator would begin on the won fight's first tick is not one the game
   shows; the recordings fix what is seen, not the call that makes it.
-- **A sibling keeping a unit more siblings hold** is recorded once, not
-  read: which holders `TrySearchGroupSkillLockTarget` counts, and whether
-  preparing siblings count among them, is what one tick of one fight says.
 - **The unit whose id is 54** is free-moving by the same literal; no recorded
   fight fields it.
 - **The endgame** with several members or groups, summons, respawns,

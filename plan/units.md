@@ -40,12 +40,6 @@
 
 ## 停车场
 
-- **子槽让出单位的规则是量出来的，不是读出来的。** `sibling_yields` 按"核心本次更新刚拿走、
-  没有别的兄弟持有、射程里有空闲单位"判断；构建的 `TrySearchGroupSkillLockTarget` 读出来是
-  同一单位的槽按锁定目标分组、按 `SkillAttackController.attackCount` 决定谁让、再过一个搜索
-  节流。两者在现有 Wraith 录像上一致。reopen_when：一场分叉落在子槽让出单位上，或要支持
-  共享目标且攻击次数不同的分组单位。
-
 - **模拟器没有的三个 RVO 分支。** 构建里同一小队（`sync_team.id` 相同且为正）的两个 agent 按
   小队半径之和避让，高度区间不重叠的邻居不生成 VO，被手动控制的 agent 直接跳过求解；
   `crates/simulation/src/fight/rvo.rs` 三处都没有，`docs/spec/simulation/rvo.md` 也没写。

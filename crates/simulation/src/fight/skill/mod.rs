@@ -175,11 +175,13 @@ pub(in crate::fight) struct SlotSkill {
     pub(in crate::fight) next_attack_step: u64,
     /// The slot's `SkillStateController` state.
     pub(in crate::fight) state: SkillState,
-    /// Whether `ChangeLockTarget` wrote the slot's lock on the current update.
-    pub(in crate::fight) lock_written: bool,
-    /// The slot's own search timer: an idle slot holding a live lock
-    /// searches again when it runs out.
+    /// The slot's own search timer (`SearchTargetController.searchTargetTime`):
+    /// an idle slot holding a live lock searches again when it runs out,
+    /// leaving idle sets it to ten, and each attacking update counts it down.
     pub(in crate::fight) search_target_time: i32,
+    /// The blows the slot has struck since it entered its attack state:
+    /// `SkillAttackController.attackCount`, which leaving the state resets.
+    pub(in crate::fight) blows: u32,
     /// What the weapon still fires at after the core took the slot's lock:
     /// `ChangeLockTarget(null)` drops the lock and leaves the attack target
     /// until the slot searches again.
@@ -193,8 +195,8 @@ impl Default for SlotSkill {
             in_the_way: None,
             next_attack_step: 0,
             state: SkillState::Idle { ready_step: None },
-            lock_written: false,
             search_target_time: 0,
+            blows: 0,
             attack_target_left: None,
         }
     }

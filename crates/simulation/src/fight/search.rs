@@ -664,7 +664,6 @@ impl Simulation {
             if sibling.lock == Some(found) {
                 sibling.attack_target_left = sibling.attack_target();
                 sibling.lock = None;
-                sibling.lock_written = true;
                 actor.skill.mech_lock = None;
             }
         }
