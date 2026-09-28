@@ -358,7 +358,6 @@ fn later_final_enemy_death_does_not_clear_an_own_kill_backswing_target() {
     source.skill.lock_target = Some(unit_target(2));
     source.motion.state = MotionState::Idle;
     source.skill.set_phase(FightSkillPhase::Attack);
-    source.skill.retarget_after_own_direct_kill = true;
     source.skill.set_backswing_finish_step(Some(20));
     simulation.actors.get_mut(&2).unwrap().life = 0;
 
@@ -740,7 +739,6 @@ fn laser_own_kill_retains_then_clears_the_dead_target() {
     let source = &simulation.actors[&1];
     assert_eq!(source.motion.state, MotionState::Idle);
     assert_eq!(source.skill.lock_target, Some(unit_target(2)));
-    assert!(source.skill.retarget_after_own_direct_kill);
     assert_eq!(source.skill.attack_count, 0);
     assert!(matches!(events[0].payload, EventPayload::UnitDied { .. }));
     assert!(matches!(
@@ -752,7 +750,6 @@ fn laser_own_kill_retains_then_clears_the_dead_target() {
     let source = &simulation.actors[&1];
     assert_eq!(source.motion.state, MotionState::Idle);
     assert_eq!(source.skill.lock_target, None);
-    assert!(!source.skill.retarget_after_own_direct_kill);
     assert_eq!(source.skill.attack_count, ATTACK_COUNT_RESET);
 }
 
@@ -873,7 +870,6 @@ fn reviewed_direct_kill_keeps_then_clears_the_mech_lock_target_state() {
                     simulation.actors[&1].skill.lock_target,
                     Some(unit_target(3))
                 );
-                assert!(simulation.actors[&1].skill.retarget_after_own_direct_kill);
                 assert_eq!(simulation.actors[&1].motion.state, MotionState::Idle);
             }
             224..=232 => {
@@ -881,11 +877,9 @@ fn reviewed_direct_kill_keeps_then_clears_the_mech_lock_target_state() {
                     simulation.actors[&1].skill.lock_target,
                     Some(unit_target(3))
                 );
-                assert!(simulation.actors[&1].skill.retarget_after_own_direct_kill);
             }
             233 => {
                 assert_eq!(simulation.actors[&1].skill.lock_target, None);
-                assert!(!simulation.actors[&1].skill.retarget_after_own_direct_kill);
                 assert_eq!(simulation.actors[&1].motion.state, MotionState::Idle);
             }
             234 => {

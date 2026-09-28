@@ -584,7 +584,6 @@ impl Simulation {
                 let ineligible = if natural_finish_handoff {
                     !moving_direct
                         && (actor.skill.attack_target().is_some()
-                            || actor.skill.retarget_after_own_direct_kill
                             || !actor.skill.searched_this_tick)
                 } else {
                     (!moving_direct && !moving_bodyful_projectile)

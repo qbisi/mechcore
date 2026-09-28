@@ -556,7 +556,6 @@ impl Simulation {
                     .expect("actor identity is stable");
                 let entered_idle = actor.motion.state != MotionState::Idle;
                 actor.skill.drop_lock();
-                actor.skill.retarget_after_own_direct_kill = false;
                 actor.motion.state = MotionState::Idle;
                 if entered_idle {
                     actor.motion.next_target_x_q32 = actor.x_q32;
@@ -569,14 +568,13 @@ impl Simulation {
             let died_this_tick = self
                 .fight_actor(target)
                 .is_some_and(|view| view.query_alive && !view.alive);
-            // A blow that kills its own target holds it through the tick
-            // even with no backswing to wait out: a Vortex reads idle on its
-            // kill, still on the dead unit, and attacks the next one the tick
-            // after, as a Rhino does once its backswing is over.
-            if !target_alive
-                && died_this_tick
-                && self.actors[&actor_id].skill.retarget_after_own_direct_kill
-            {
+            // A target that died this tick is held through it even with no
+            // backswing to wait out: `MotionAttackState.Update` goes idle once
+            // its lock is dead, and the skill, which updated before the
+            // motion, sees the death only the update after. A Vortex reads
+            // idle on its kill, still on the dead unit, and attacks the next
+            // one the tick after, as a Rhino does once its backswing is over.
+            if !target_alive && died_this_tick {
                 let actor = self
                     .actors
                     .get_mut(&actor_id)
