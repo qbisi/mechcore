@@ -19,6 +19,18 @@ use std::{
 
 pub use fight::{DivergentTick, SimulationComparison, SimulationResult, TimelineSummary};
 
+/// Where a fight's timeline goes.
+#[derive(Clone, Copy, Debug)]
+pub enum Record<'a> {
+    /// Nowhere: only its hash is kept.
+    Hash,
+    /// An MCFR written at this path, which must not exist yet.
+    File(&'a Path),
+    /// Kept in memory and handed back as [`SimulationResult::recording`], for
+    /// a reader that has no use for the file.
+    Memory,
+}
+
 #[derive(Debug)]
 pub struct Error(String);
 
@@ -44,7 +56,7 @@ impl From<mechcore_mcfr::Error> for Error {
 
 type Result<T> = std::result::Result<T, Error>;
 
-/// Simulates a supported layout and optionally writes an MCFR recording.
+/// Simulates a supported layout, recording its timeline where `record` says.
 ///
 /// A supplied `seed` overrides `layout.seed`. An effective seed of zero asks
 /// the simulator to generate and report a system-random seed.
@@ -55,15 +67,13 @@ type Result<T> = std::result::Result<T, Error>;
 /// existing requested output, simulation failure, or MCFR generation failure.
 pub fn simulate_layout(
     layout_path: impl AsRef<Path>,
-    output_path: Option<&Path>,
+    record: Record<'_>,
     seed: Option<i32>,
 ) -> Result<SimulationResult> {
     let layout_path = layout_path.as_ref();
     let config = rules::SimulationConfig::load()?;
     let loaded = layout::load(layout_path, &config.units)?;
-    run_loaded(loaded, &config, output_path, seed, || {
-        generate_seed(layout_path)
-    })
+    run_loaded(loaded, &config, record, seed, || generate_seed(layout_path))
 }
 
 /// Simulates a layout held in memory, which is what a match does with the
@@ -75,12 +85,12 @@ pub fn simulate_layout(
 /// existing requested output, simulation failure, or MCFR generation failure.
 pub fn simulate_document(
     layout: &[u8],
-    output_path: Option<&Path>,
+    record: Record<'_>,
     seed: Option<i32>,
 ) -> Result<SimulationResult> {
     let config = rules::SimulationConfig::load()?;
     let loaded = layout::read(layout, &config.units)?;
-    run_loaded(loaded, &config, output_path, seed, || {
+    run_loaded(loaded, &config, record, seed, || {
         Err(Error::new(
             "a layout with no seed cannot be simulated from memory: name the seed",
         ))
@@ -91,7 +101,7 @@ pub fn simulate_document(
 fn run_loaded(
     (layout_seed, layout, replay_layout): (Option<i32>, layout::CompiledLayout, String),
     config: &rules::SimulationConfig,
-    output_path: Option<&Path>,
+    record: Record<'_>,
     seed: Option<i32>,
     generate: impl FnOnce() -> Result<i32>,
 ) -> Result<SimulationResult> {
@@ -105,7 +115,7 @@ fn run_loaded(
         (None, Some(seed)) => (seed, "layout"),
         (None, None) => (generate()?, "generated"),
     };
-    fight::run(&layout, config, seed, source, output_path, &replay_layout)
+    fight::run(&layout, config, seed, source, record, &replay_layout)
 }
 
 /// Simulates the layout embedded in an MCFR and compares canonical ticks

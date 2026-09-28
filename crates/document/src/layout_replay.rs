@@ -38,7 +38,7 @@ pub fn layout_replay(plan: &Plan, game_build: &str) -> Result<Vec<u8>, String> {
     let mut deployments = Vec::new();
     for (name, side) in [("blue", &plan.blue), ("red", &plan.red)] {
         refusals.extend(side_refusals(name, side));
-        match deployment(&economy, side, plan.round) {
+        match deployment(economy, side, plan.round) {
             Ok(deployment) => deployments.push(deployment),
             Err(reasons) => {
                 refusals.extend(

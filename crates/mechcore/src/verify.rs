@@ -195,8 +195,8 @@ fn verify_fight(path: &Path, bytes: &[u8]) -> Result<Report, String> {
         }),
     };
     let layout = mechcore_document::canonical_yaml(mechcore_document::fight::project(&document))?;
-    let simulated = match crate::convert::fought(|recording| {
-        mechcore_simulation::simulate_document(layout.as_bytes(), Some(recording), None)
+    let simulated = match crate::convert::fought(|record| {
+        mechcore_simulation::simulate_document(layout.as_bytes(), record, None)
     }) {
         Ok(simulated) => simulated.normalized(),
         Err(refused) => {
@@ -271,12 +271,12 @@ fn verify_match(
     stated: &mechcore_document::opening::Stated,
 ) -> Result<Report, String> {
     let economy = mechcore_document::economy::Economy::embedded()?;
-    let checked = mechcore_document::opening::verify(&economy, stated).and_then(|opening| {
-        mechcore_document::reinforcement::verify(&economy, stated, &opening)
+    let checked = mechcore_document::opening::verify(economy, stated).and_then(|opening| {
+        mechcore_document::reinforcement::verify(economy, stated, &opening)
             .map(|reinforcements| (opening, reinforcements))
     });
     let coverage = mechcore_document::coverage::measure(
-        &economy,
+        economy,
         stated,
         match &checked {
             Ok((_, reinforcements)) => Ok(reinforcements),
@@ -289,7 +289,7 @@ fn verify_match(
     let projected = checked
         .as_ref()
         .ok()
-        .map(|(_, deal)| mechcore_document::project::every_round(&economy, stated, deal));
+        .map(|(_, deal)| mechcore_document::project::every_round(economy, stated, deal));
     let error = match &checked {
         Err(error) => Some(error.clone()),
         Ok(_) if matches!(projected, Some(Err(_))) => projected.clone().and_then(Result::err),

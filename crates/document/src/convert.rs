@@ -115,7 +115,7 @@ pub fn match_from_grbr(grbr: &[u8]) -> Result<Match, String> {
     // What a decline pays depends on the unit reinforcement pool the seed
     // selects. A match whose opening this build cannot deal still converts, as
     // long as it declines nothing.
-    let pool = crate::opening::predict(&economy, record.info.system_seed, record.info.map_id)
+    let pool = crate::opening::predict(economy, record.info.system_seed, record.info.map_id)
         .map(|opening| opening.initialization.unit_round_pool)
         .ok();
     // The opening is round 0, and it has no state: every side enters it holding
@@ -142,24 +142,17 @@ pub fn match_from_grbr(grbr: &[u8]) -> Result<Match, String> {
                 })?;
                 Ok::<_, String>(Offers {
                     dealt: array.values.clone(),
-                    refund: crate::reinforcement::decline_supply(&economy, pool, round)?,
+                    refund: crate::reinforcement::decline_supply(economy, pool, round)?,
                 })
             })
             .transpose()?;
-        turns.push(turn(
-            grbr,
-            &economy,
-            [&blue, &red],
-            position,
-            round,
-            offers,
-        )?);
+        turns.push(turn(grbr, economy, [&blue, &red], position, round, offers)?);
     }
 
     // The four combinations each side was dealt are recorded nowhere, and are
     // not lost: they are drawn from the match's reinforcement stream, which the
     // opening round's snapshot carries. `crate::opening` rebuilds them.
-    let dealt = opening_offers(&economy, &record.match_rounds.entries[0])?;
+    let dealt = opening_offers(economy, &record.match_rounds.entries[0])?;
 
     check_concession(&turns)?;
 
@@ -170,8 +163,8 @@ pub fn match_from_grbr(grbr: &[u8]) -> Result<Match, String> {
         // A replay was played under the game's own clock, not under this
         // platform's rule for running out of one, so it states none.
         deploy_time: None,
-        blue: match_side(&economy, &blue, Seat::Blue, dealt.blue)?,
-        red: match_side(&economy, &red, Seat::Red, dealt.red)?,
+        blue: match_side(economy, &blue, Seat::Blue, dealt.blue)?,
+        red: match_side(economy, &red, Seat::Red, dealt.red)?,
         turns,
     })
 }
@@ -1655,8 +1648,8 @@ mod tests {
     /// would not allow where it stands.
     fn settled(opened: &crate::r#match::SideState, taken: Vec<Action>) -> Vec<Action> {
         let economy = crate::economy::Economy::embedded().unwrap();
-        let settled = super::settle(&economy, opened, taken, opened, false, None).unwrap();
-        crate::transition::deployed(&economy, opened, &settled, false, None).unwrap();
+        let settled = super::settle(economy, opened, taken, opened, false, None).unwrap();
+        crate::transition::deployed(economy, opened, &settled, false, None).unwrap();
         settled
     }
 

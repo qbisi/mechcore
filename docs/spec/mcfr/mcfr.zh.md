@@ -569,6 +569,8 @@ finish()
 
 Writer 在目标同目录创建临时成员和 `.zip.part`，完成 Parquet footer 和 ZIP 封装后，以 `McfrReader` 重新打开并复核结构及持久化哈希元数据，最后通过 `persist_noclobber` 发布目标文件。目标路径在创建时保持空闲，发布具有防覆盖语义。
 
+`in_memory(producer, game_build, context, layout_yaml)` 做同样的检查，把每个规范化后的 tick 留在内存里而不写入存储，`finish_in_memory()` 交回这条时间线和它的哈希，不产生文件。读一场战斗的读取器通过 `Recording` 读它，`McfrReader` 和这条时间线都实现它：内嵌 layout、producer、哈希、终止 tick，以及每个 tick 的状态和事件。读取器是模拟器一场战斗的唯一用途时就这样保留它，`verify` 和 `convert --to fight` 读 layout 的战斗即如此。
+
 每次写入前，WorldSnapshot 先按规范顺序 canonicalize，再执行对象 ID、列表顺序、状态 bit 和 modifier 约束校验。一次局部写入失败会使 Writer 进入 poisoned 状态，完整文件只由成功的 `finish()` 发布。
 
 ## 9.2 Reader 验证

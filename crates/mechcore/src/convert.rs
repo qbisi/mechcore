@@ -16,6 +16,7 @@ use serde_json::Value;
 
 use crate::cli::{Args, Failure, Format, Outcome, Verdict};
 use crate::kind::{Conversion, Kind};
+use mechcore_simulation::Record;
 
 /// How many unequal leaves to name before counting the rest.
 const FAILURES_SHOWN: usize = 5;
@@ -212,11 +213,11 @@ fn replay_to_match(grbr: &[u8], destination: &Path) -> Result<Answer, Failure> {
         r#match,
         yaml,
         stated,
-    } = mechcore_document::convert::document(&economy, grbr).map_err(Failure::refused)?;
-    let deal = mechcore_document::opening::verify(&economy, &stated)
-        .and_then(|opening| mechcore_document::reinforcement::verify(&economy, &stated, &opening));
+    } = mechcore_document::convert::document(economy, grbr).map_err(Failure::refused)?;
+    let deal = mechcore_document::opening::verify(economy, &stated)
+        .and_then(|opening| mechcore_document::reinforcement::verify(economy, &stated, &opening));
     let coverage = mechcore_document::coverage::measure(
-        &economy,
+        economy,
         &stated,
         deal.as_ref().map_err(String::as_str),
     );
@@ -302,7 +303,7 @@ fn match_to_replay(bytes: &[u8], destination: &Path) -> Result<Answer, Failure> 
         .ok_or_else(|| Failure::refused("the document names itself a match and holds none"))?;
     let economy = mechcore_document::economy::Economy::embedded().map_err(Failure::failed)?;
     let replay = mechcore_document::match_replay::match_replay(
-        &economy,
+        economy,
         &stated,
         mechcore_document::game_build(),
     )
@@ -389,15 +390,15 @@ fn project(bytes: &[u8], round: Option<i32>, output: Option<&Path>) -> Result<An
     let economy = mechcore_document::economy::Economy::embedded().map_err(Failure::failed)?;
     // What declining this round's offer pays is the deal's to say, and a
     // decision that declined one cannot be applied without it.
-    let declined = mechcore_document::opening::verify(&economy, &stated)
-        .and_then(|opening| mechcore_document::reinforcement::verify(&economy, &stated, &opening))
+    let declined = mechcore_document::opening::verify(economy, &stated)
+        .and_then(|opening| mechcore_document::reinforcement::verify(economy, &stated, &opening))
         .map_err(Failure::refused)?
         .rounds
         .iter()
         .find(|dealt| dealt.round == round)
         .map(|dealt| dealt.declined);
     let deployed = |state, actions, red| {
-        mechcore_document::transition::deployed(&economy, state, actions, red, declined).map_err(
+        mechcore_document::transition::deployed(economy, state, actions, red, declined).map_err(
             |unsettled| Failure::refused(format!("round {round} is not settled: {unsettled}")),
         )
     };
@@ -432,7 +433,7 @@ fn project(bytes: &[u8], round: Option<i32>, output: Option<&Path>) -> Result<An
 /// that is refused leaves the old file as it was.
 fn simulate(layout: &Path, seed: Option<i32>, output: Option<&Path>) -> Result<Answer, Failure> {
     let simulate = |at: Option<&Path>| {
-        mechcore_simulation::simulate_layout(layout, at, seed)
+        mechcore_simulation::simulate_layout(layout, at.map_or(Record::Hash, Record::File), seed)
             .map_err(|error| Failure::refused(error.to_string()))
     };
     let Some(output) = output.filter(|output| output.exists()) else {
@@ -459,17 +460,17 @@ fn simulate(layout: &Path, seed: Option<i32>, output: Option<&Path>) -> Result<A
 
 /// Fights a layout in the simulator and reads the recording it makes, which
 /// is `convert --to mcfr` followed by `convert --to fight`: the document's
-/// `source` is the simulator, because the simulator wrote the recording.
+/// `source` is the simulator, because the simulator made the recording.
 fn fight(layout: &Path, seed: Option<i32>, output: Option<&Path>) -> Result<Answer, Failure> {
     written(
-        fought(|recording| mechcore_simulation::simulate_layout(layout, Some(recording), seed))?,
+        fought(|record| mechcore_simulation::simulate_layout(layout, record, seed))?,
         output,
     )
 }
 
-/// The fight document the simulator fights a layout into: `simulate` writes
-/// the recording to the path it is given, and the recording is read as
-/// `mcfr` to `fight` reads one.
+/// The fight document the simulator fights a layout into: `simulate` keeps
+/// the recording in memory, as it is told to, and the recording is read as
+/// `mcfr` to `fight` reads one on disk.
 ///
 /// `verify` checks a fight document through this same path, so what it
 /// compares against is exactly what `convert --to fight` would write.
@@ -480,15 +481,16 @@ fn fight(layout: &Path, seed: Option<i32>, output: Option<&Path>) -> Result<Answ
 /// recording does not answer.
 pub(crate) fn fought(
     simulate: impl FnOnce(
-        &Path,
+        Record<'static>,
     )
         -> Result<mechcore_simulation::SimulationResult, mechcore_simulation::Error>,
 ) -> Result<mechcore_document::Fight, Failure> {
-    let directory = tempfile::tempdir()
-        .map_err(|error| Failure::failed(format!("cannot make room for the fight: {error}")))?;
-    let recording = directory.path().join("fight.mcfr");
-    simulate(&recording).map_err(|error| Failure::refused(error.to_string()))?;
-    crate::outcome::fight(&recording)
+    let simulated =
+        simulate(Record::Memory).map_err(|error| Failure::refused(error.to_string()))?;
+    let recording = simulated
+        .recording
+        .ok_or_else(|| Failure::failed("the simulator kept no recording of the fight"))?;
+    crate::outcome::read(&recording)?.fight()
 }
 
 /// A fight document on standard output, or written to `output` and reported.

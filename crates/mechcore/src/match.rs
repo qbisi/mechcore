@@ -128,7 +128,7 @@ fn deal(
             "a deployment time is a number of seconds a side can deploy in",
         ));
     }
-    let dealt = opening::predict(&economy, seed, map_id).map_err(Failure::refused)?;
+    let dealt = opening::predict(economy, seed, map_id).map_err(Failure::refused)?;
     let loadout = match loadout {
         Some(path) => read_loadout(path)?,
         None => economy.unit_technologies(),
@@ -346,7 +346,7 @@ impl Phase {
 /// One match, held open with its turn file locked.
 struct Game {
     path: PathBuf,
-    economy: Economy,
+    economy: &'static Economy,
     r#match: Match,
     turn: Turn,
     /// The side this operation was given, which `new` decides and every other
@@ -561,7 +561,7 @@ impl Game {
                     // stream before it.
                     let stream = self.match_side(side).seed.map(Stream::seeded);
                     transition::predict(
-                        &self.economy,
+                        self.economy,
                         round,
                         &opened,
                         &actions,
@@ -580,7 +580,7 @@ impl Game {
                         Side::Red => &fight.red,
                     };
                     transition::settle(
-                        &self.economy,
+                        self.economy,
                         round,
                         &position,
                         fought,
@@ -623,7 +623,7 @@ impl Game {
             .filter(|turn| (1..=round).contains(&turn.round))
             .map(|turn| {
                 transition::player_draws(
-                    &self.economy,
+                    self.economy,
                     &state_of(&turn.state, side).officers,
                     turn.round,
                 )
@@ -644,8 +644,8 @@ impl Game {
         let yaml = mechcore_document::r#match::canonical_yaml(&self.r#match)?;
         let stated = mechcore_document::opening::stated(yaml.as_bytes())?
             .ok_or("a match in progress is not a match document")?;
-        let opening = opening::verify(&self.economy, &stated)?;
-        mechcore_document::reinforcement::deal_last_round(&self.economy, &stated, &opening)
+        let opening = opening::verify(self.economy, &stated)?;
+        mechcore_document::reinforcement::deal_last_round(self.economy, &stated, &opening)
     }
 
     /// Runs the round's fight and reads what it decided.
@@ -684,17 +684,22 @@ impl Game {
             self.r#match.seed,
         )?;
         let yaml = mechcore_document::canonical_yaml(layout)?;
-        let directory = tempfile::tempdir()
-            .map_err(|error| format!("cannot make room for the fight: {error}"))?;
-        let recording = directory.path().join("fight.mcfr");
-        mechcore_simulation::simulate_document(yaml.as_bytes(), Some(&recording), None)
-            .map_err(|error| format!("round {round} is not fought: {error}"))?;
-        crate::outcome::fight(&recording).map_err(|failure| {
-            format!(
-                "round {round} is fought and not settled: {}",
-                failure.reason()
-            )
-        })
+        let recording = mechcore_simulation::simulate_document(
+            yaml.as_bytes(),
+            mechcore_simulation::Record::Memory,
+            None,
+        )
+        .map_err(|error| format!("round {round} is not fought: {error}"))?
+        .recording
+        .ok_or_else(|| format!("round {round} is fought and its recording was not kept"))?;
+        crate::outcome::read(&recording)
+            .and_then(crate::outcome::Reading::fight)
+            .map_err(|failure| {
+                format!(
+                    "round {round} is fought and not settled: {}",
+                    failure.reason()
+                )
+            })
     }
 
     /// The position the round in progress opened with, before any decision.
@@ -742,7 +747,7 @@ impl Game {
     /// with, and the decisions taken from it.
     fn position(&self, side: Side) -> Result<SideState, Failure> {
         transition::deployed(
-            &self.economy,
+            self.economy,
             &self.opened(side)?,
             &self.decisions(side),
             side.red(),
@@ -777,7 +782,7 @@ impl Game {
         let before = self.position(side)?;
         let mut placement = mechcore_document::landing::placement(side.red());
         let after = transition::step_placing(
-            &self.economy,
+            self.economy,
             &before,
             decision,
             self.declined(),

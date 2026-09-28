@@ -9,8 +9,9 @@
 //! approximated, and a fight document is written only when nothing is.
 //!
 //! The reader is the seam the backends meet at. A fight the simulator ran and
-//! a fight the game played are the same MCFR, so what turns one into a fight
-//! document, and a match's next position, is written once, here.
+//! a fight the game played are the same timeline, one kept in memory and the
+//! other an MCFR on disk, both read as a [`Recording`], so what turns one into
+//! a fight document, and a match's next position, is written once, here.
 
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -24,7 +25,7 @@ use mechcore_document::{
     reactor_damage::{self, Survivor as Scored},
 };
 use mechcore_mcfr::{
-    EventPayload, McfrReader, ObjectKind, Producer, ShieldRoundPolicy, ShieldSourceKind,
+    EventPayload, McfrReader, ObjectKind, Producer, Recording, ShieldRoundPolicy, ShieldSourceKind,
     ShieldState, TerrainType, WorldSnapshot,
 };
 use serde::Serialize;
@@ -142,13 +143,14 @@ pub(crate) fn fight(path: &Path) -> Result<Fight, Failure> {
     read(&open(path)?)?.fight()
 }
 
-/// Reads an open recording for what its fight decided.
+/// Reads a recording, open on disk or kept in memory, for what its fight
+/// decided.
 ///
 /// # Errors
 ///
 /// Returns a failure when the recording's scene cannot be matched to the
 /// layout it embeds.
-pub(crate) fn read(reader: &McfrReader) -> Result<Reading, Failure> {
+pub(crate) fn read(reader: &dyn Recording) -> Result<Reading, Failure> {
     let layout = scene::layout(reader)?;
     let last = reader.terminal_tick();
     let opened = scene::snapshot(reader, FIRST_TICK)?;
@@ -338,7 +340,7 @@ struct Timeline {
 }
 
 impl Timeline {
-    fn read(reader: &McfrReader) -> Result<Self, Failure> {
+    fn read(reader: &dyn Recording) -> Result<Self, Failure> {
         let mut timeline = Self {
             created: BTreeSet::new(),
             died: BTreeSet::new(),
