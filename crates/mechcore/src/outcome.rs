@@ -181,9 +181,9 @@ pub(crate) fn of(reader: &McfrReader) -> Result<Outcome, Failure> {
 /// side's formations when it opened the fight in a formation a placement
 /// takes and the fight did not create it; any other unit was summoned,
 /// produced or spawned. It changed sides when its team is not the one it
-/// started on. A rebirth leaves no event of its own, so a unit that died and
-/// stands at the end may have been reborn: its side's score is named in
-/// `unresolved` rather than guessed.
+/// started on. It was reborn when it died in the fight and stands at the end:
+/// a rebirth revives the unit that died, `RebirthTask.RebirthMech`, which is
+/// the one way a dead unit stands again.
 fn scores(
     reader: &McfrReader,
     layout: &Layout,
@@ -243,16 +243,6 @@ fn scores(
             || unit.unit_type_id.to_string(),
             |(name, _)| name.to_owned(),
         );
-        if died.contains(&unit.unit_id) {
-            unresolved.push(format!(
-                "reactor_core: unit {} of {name} on {} died and stands at the end, \
-                 and whether it was reborn, which cuts its score, is not recorded",
-                unit.unit_id,
-                side.name(),
-            ));
-            scores[side.seat()] = None;
-            continue;
-        }
         // A unit that changes sides joins a formation of the side it serves, so
         // where it came from is the formation it opened the fight in.
         let placement = opened_in
@@ -267,7 +257,7 @@ fn scores(
             unit_type: unit.unit_type_id,
             level: placement.map(|placement| placement.level.unwrap_or(1)),
             support: created.contains(&unit.unit_id) || placement.is_none(),
-            reborn: false,
+            reborn: died.contains(&unit.unit_id),
             team_changed: unit.team_id != unit.original_team_id,
         };
         match reactor_damage::score(survivor) {

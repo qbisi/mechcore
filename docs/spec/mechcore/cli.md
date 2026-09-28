@@ -285,9 +285,8 @@ remain, each by its place in that list. A unit counts as deployed from its
 side's formations when it opened the fight in a formation a placement takes
 and the fight did not create it; a formation no placement takes, such as one an
 officer hands a side as the fight is built, is no placement's and is not among
-the survivors. A unit that died and stands at the end may have been reborn,
-which a recording does not say, so neither core's damage is answered while one
-stands.
+the survivors. A unit that died in the fight and stands at its end was
+reborn, and scores as one.
 What no rule and no recording answers is named in `unresolved` and never
 approximated, and the verdict is no while anything is — the fight was read, and
 the answer is that it does not settle a round. It is the one reader both

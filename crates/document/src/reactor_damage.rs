@@ -199,11 +199,29 @@ mod tests {
             ..controlled
         };
         assert_eq!(score(both), Ok(21));
+    }
+
+    /// A unit that died and was brought back scores a quarter, and a summoned
+    /// one that was reborn takes both cuts before the one floor.
+    #[test]
+    fn a_reborn_unit_scores_a_quarter() {
         let reborn = Survivor {
             reborn: true,
             ..deployed(FORTRESS)
         };
         assert_eq!(score(reborn), Ok(87));
+        let summoned = Survivor {
+            support: true,
+            ..reborn
+        };
+        assert_eq!(score(summoned), Ok(21));
+        // A quarter of a quarter of a Wasp's 17 is a floored 1, not 0 twice.
+        let wasp = Survivor {
+            support: true,
+            reborn: true,
+            ..deployed(WASP)
+        };
+        assert_eq!(score(wasp), Ok(1));
     }
 
     /// A row that scores every level alike needs no level; one past the last
