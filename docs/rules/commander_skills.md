@@ -37,10 +37,10 @@ stated for it.
 - A spent skill shows its `cooldown` as the next round opens, an unspent slot
   drops by one, and a slot joins at its `initial_cooldown`, Nuke's and Ion
   Blast's 1 among them: every panel of this version's corpus:
-  `scripts/verify-battles.py`.
+  `scripts/verify-matches.py`.
 - A snapshot marks active exactly the slots the previous round's actions spent;
-  conversion refuses a replay otherwise, so every battle
-  `scripts/verify-battles.py` reads has them.
+  conversion refuses a replay otherwise, so every match
+  `scripts/verify-matches.py` reads has them.
 
 ### Read
 

@@ -182,14 +182,14 @@ levels differ.
 
 - Every ordinary and unit round of this version's corpus is dealt as recorded,
   offer by offer and in order, from the stream the opening leaves:
-  `scripts/verify-battles.py`.
+  `scripts/verify-matches.py`.
 - Every officer with the investment share is dealt, or replaced from its group,
-  as the corpus recorded: `scripts/verify-battles.py`.
-- Every round opens on the pool log and the exclusions its battle's deal
+  as the corpus recorded: `scripts/verify-matches.py`.
+- Every round opens on the pool log and the exclusions its match's deal
   leaves, but for the order of a round's two choices; conversion refuses a
-  replay otherwise, so every battle `scripts/verify-battles.py` reads has them.
+  replay otherwise, so every match `scripts/verify-matches.py` reads has them.
 - A decline in an ordinary round and in each of the first three unit rounds
-  pays what the next round's supply records: `scripts/verify-battles.py`.
+  pays what the next round's supply records: `scripts/verify-matches.py`.
 
 ### Read
 

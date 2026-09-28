@@ -515,7 +515,7 @@ impl Economy {
     /// Every technology this build gives each unit, keyed by unit and in ID
     /// order.
     ///
-    /// A battle's `tech_loadout` is an account's own choice of these, which a
+    /// A match's `tech_loadout` is an account's own choice of these, which a
     /// replay records. A match nobody handed one to carries all of them: it is
     /// the build's answer rather than an invented account's.
     #[must_use]

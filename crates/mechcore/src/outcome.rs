@@ -1,6 +1,6 @@
 //! What a fight decided, read out of a recording of it.
 //!
-//! `docs/spec/document/battle.md` names five fields as the fight's: the damage
+//! `docs/spec/document/match.md` names five fields as the fight's: the damage
 //! each reactor core takes, the experience each unit gains, and which
 //! contraptions, terrains and airdrop shields remain. This reads a recording
 //! for as much of that as the recording holds, and names the rest rather than

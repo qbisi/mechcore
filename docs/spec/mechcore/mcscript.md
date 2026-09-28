@@ -113,7 +113,7 @@ than redefining them.
 | `game.status` | yes | current status snapshot |
 | `game.start_test` | yes | optional `seed`, `map_id`; rarely needed, see `game.apply_layout` |
 | `game.apply_layout` | yes | the layout object, or `{layout, seed}` |
-| `game.record_battle` | yes | `output`, optional `video_output`, `speed_up`, `instrument` |
+| `game.record_fight` | yes | `output`, optional `video_output`, `speed_up`, `instrument` |
 | `game.record_replay_round` | yes | `grbr`, `round`, `output`, optional `instrument` |
 | `game.record_layout` | yes | `layout`, `output`, optional `seed`, `instrument`; fights the layout without a scene |
 | `game.record_watch_replay` | yes | optional `output_dir`, `wait_for_scene_seconds`, `match_timeout_seconds`; records one live standard 1v1 |
@@ -126,7 +126,7 @@ than redefining them.
 | `game.quit_game` | yes | |
 
 A step that writes a file refuses to overwrite it, and a script does not
-declare otherwise. The destinations are every path `game.record_battle`,
+declare otherwise. The destinations are every path `game.record_fight`,
 `game.record_replay_round`, `game.record_layout` and `fight.run` publish:
 `output` and `video_output`. Whether to replace
 an existing one is a property of the run,
@@ -216,7 +216,7 @@ reference embedded in longer text is stringified and spliced:
 
 ```yaml
 - game.apply_layout: {layout: $layout, seed: $case.seed}  # stays a number
-- game.record_battle: {output: $out/battle.mcfr}          # becomes a path string
+- game.record_fight: {output: $out/fight.mcfr}          # becomes a path string
 ```
 
 `${name.field}` delimits the reference explicitly. A bare reference runs to
@@ -358,7 +358,7 @@ until someone looks at it.
 One JSON object per completed step, on stdout:
 
 ```json
-{"step": 4, "operation": "record_battle", "elapsed_ms": 10787, "result": {...}}
+{"step": 4, "operation": "record_fight", "elapsed_ms": 10787, "result": {...}}
 ```
 
 `elapsed_ms` measures the operation alone, which is what makes capture cost
@@ -435,7 +435,7 @@ steps:
   - let:
       layout: embedded_layout($out/replay.mcfr)
   - game.apply_layout: $layout
-  - game.record_battle:
+  - game.record_fight:
       output: $out/training.mcfr
   - fight.compare:
       left: $out/replay.mcfr
@@ -449,7 +449,7 @@ steps:
 
 `tests/regression/mcfr-regressions.yaml` stays a data table. `tests/regression/simulate.mcscript`
 reads it for the gameless simulator regression, which CI runs, and
-`crates/simulation/replay/battle.rs` reads it for the content-layer fields the
+`crates/simulation/tests/fight.rs` reads it for the content-layer fields the
 physics hash leaves out. Re-recording is one more reader of that same table,
 not a copy of it:
 
@@ -470,7 +470,7 @@ steps:
       - game.apply_layout:
           layout: $layout
           seed: ${case.seed}
-      - game.record_battle:
+      - game.record_fight:
           output: $out/${case.name}.mcfr
         expect:
           operation.tick_count: ${case.tick_count}

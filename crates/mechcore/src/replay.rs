@@ -26,7 +26,7 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
 #[derive(Serialize)]
 struct ConvertReport {
     schema: &'static str,
-    battle: String,
+    r#match: String,
     map_id: i32,
     seed: i32,
     rounds: usize,
@@ -41,7 +41,7 @@ struct ConvertReport {
 }
 
 /// Converts between a replay and a document, in the direction the source
-/// names: a `.grbr` replay becomes a battle document, and a layout becomes a
+/// names: a `.grbr` replay becomes a match document, and a layout becomes a
 /// `.grbr` replay the game fights.
 ///
 /// The source is read, never written, and the destination is refused when it
@@ -51,8 +51,8 @@ fn convert(mut arguments: Args) -> Outcome {
     let format = arguments.format()?;
     let force = arguments.flag("--force")?;
     let seed = arguments.parsed::<i32>("--seed", "a signed 32-bit integer")?;
-    let source = arguments.path("a replay, a battle or a layout to read")?;
-    let destination = arguments.path("a battle document or a replay to write")?;
+    let source = arguments.path("a replay, a match or a layout to read")?;
+    let destination = arguments.path("a match document or a replay to write")?;
     arguments.finish()?;
     if !force && destination.exists() {
         return Err(Failure::refused(format!(
@@ -74,7 +74,7 @@ fn convert(mut arguments: Args) -> Outcome {
         (false, true) => return document_to_replay(format, seed, &source, &destination),
         _ => {
             return Err(Failure::usage(
-                "convert reads a .grbr replay into a battle document, or a battle or a layout \
+                "convert reads a .grbr replay into a match document, or a match or a layout \
                  into a .grbr replay",
             ));
         }
@@ -85,7 +85,7 @@ fn convert(mut arguments: Args) -> Outcome {
     let economy = mechcore_document::economy::Economy::embedded().map_err(Failure::failed)?;
     // The document is measured as it was written, the way `verify` reads it.
     let mechcore_document::convert::Converted {
-        battle,
+        r#match,
         yaml,
         stated,
     } = mechcore_document::convert::document(&economy, &grbr).map_err(Failure::refused)?;
@@ -102,11 +102,11 @@ fn convert(mut arguments: Args) -> Outcome {
 
     let report = ConvertReport {
         schema: "mechcore.replay-convert-result.v1",
-        battle: destination.display().to_string(),
-        map_id: battle.map_id,
-        seed: battle.seed,
-        rounds: battle.turns.len(),
-        actions: battle
+        r#match: destination.display().to_string(),
+        map_id: r#match.map_id,
+        seed: r#match.seed,
+        rounds: r#match.turns.len(),
+        actions: r#match
             .turns
             .iter()
             .map(|turn| turn.actions.blue.len() + turn.actions.red.len())
@@ -156,7 +156,7 @@ struct LayoutReplayReport {
 /// snapshot is the layout, which `game record_replay_round` records at that
 /// round. The layout is compiled first, so a layout the Training Ground
 /// would refuse is refused here too.
-/// Writes a battle or a layout as a replay, as the document's own `kind`
+/// Writes a match or a layout as a replay, as the document's own `kind`
 /// says it is.
 fn document_to_replay(
     format: Format,
@@ -171,11 +171,11 @@ fn document_to_replay(
     };
     if seed.is_some() {
         return Err(Failure::usage(
-            "--seed belongs to a layout; a battle states its own",
+            "--seed belongs to a layout; a match states its own",
         ));
     }
     let economy = mechcore_document::economy::Economy::embedded().map_err(Failure::failed)?;
-    let replay = mechcore_document::battle_replay::battle_replay(
+    let replay = mechcore_document::match_replay::match_replay(
         &economy,
         &stated,
         mechcore_document::game_build(),
@@ -184,8 +184,8 @@ fn document_to_replay(
     fs::write(destination, replay).map_err(|error| {
         Failure::failed(format!("cannot write {}: {error}", destination.display()))
     })?;
-    let report = BattleReplayReport {
-        schema: "mechcore.replay-convert-battle-result.v1",
+    let report = MatchReplayReport {
+        schema: "mechcore.replay-convert-match-result.v1",
         replay: destination.display().to_string(),
         map_id: stated.map_id,
         seed: stated.seed,
@@ -202,9 +202,9 @@ fn document_to_replay(
     Ok(Verdict::Yes)
 }
 
-/// What a battle was written as.
+/// What a match was written as.
 #[derive(Serialize)]
-struct BattleReplayReport {
+struct MatchReplayReport {
     schema: &'static str,
     replay: String,
     map_id: i32,
@@ -254,7 +254,7 @@ fn layout_to_replay(
 fn print_text(report: &ConvertReport) {
     println!(
         "{} map {} seed {} rounds {} actions {}",
-        report.battle, report.map_id, report.seed, report.rounds, report.actions
+        report.r#match, report.map_id, report.seed, report.rounds, report.actions
     );
     let counts = &report.coverage;
     println!(

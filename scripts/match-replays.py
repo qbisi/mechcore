@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""Fight every corpus round from its replay and from the replay its battle writes.
+"""Fight every corpus round from its replay and from the replay its match writes.
 
-``mechcore replay convert <battle.yaml> <replay.grbr>`` writes a battle back as
-a replay that converts to the same battle again. This asks the other half:
+``mechcore replay convert <match.yaml> <replay.grbr>`` writes a match back as
+a replay that converts to the same match again. This asks the other half:
 whether the game plays that replay as it plays the match's own. For every
-battle ``scripts/export-replay-corpus.py`` writes under
-``work/battle/<version>/``, the replay of the same basename in
-``work/replay/replays/<version>/`` and the replay the battle writes are fought
+match ``scripts/export-replay-corpus.py`` writes under
+``work/match/<version>/``, the replay of the same basename in
+``work/replay/replays/<version>/`` and the replay the match writes are fought
 round by round headlessly (``record_replay_round``), and each pair of
 recordings is compared tick for tick, physics and content.
 
-A battle is recorded in one game session; a round the game refuses is reported
-and the battle's remaining rounds carry on in a new session. A recording on
+A match is recorded in one game session; a round the game refuses is reported
+and the match's remaining rounds carry on in a new session. A recording on
 disk is kept, so an interrupted run resumes where it stopped. The game runs
 headless, and each session's game log is kept beside the recordings as
 ``game-<n>.log``, since the game names every decision it refused there.
@@ -21,11 +21,11 @@ Run from anywhere inside the checkout, with the game installed:
     cargo build --release -p mechcore
     python3 scripts/replay.py sync
     python3 scripts/export-replay-corpus.py
-    python3 scripts/battle-replays.py
-    python3 scripts/battle-replays.py --only Chemtrails --json
+    python3 scripts/match-replays.py
+    python3 scripts/match-replays.py --only Chemtrails --json
 
 A round in which a side concedes is listed and not compared: a concession made
-during the fight ends it at a moment the battle does not record.
+during the fight ends it at a moment the match does not record.
 
 The exit status is 0 only when every other round records both ways and compares
 equal.
@@ -53,21 +53,21 @@ def parse_arguments(root: Path) -> argparse.Namespace:
     parser.add_argument(
         "--out",
         type=Path,
-        default=Path("/tmp/mechcore/battle-replays"),
+        default=Path("/tmp/mechcore/match-replays"),
         help="where the written replays and the recordings go",
     )
-    parser.add_argument("--only", help="only battles whose name contains this text")
+    parser.add_argument("--only", help="only matches whose name contains this text")
     parser.add_argument("--json", action="store_true", help="print one JSON object per round")
     return parser.parse_args()
 
 
-def rounds_of(battle: Path) -> tuple[list[int], set[int]]:
-    """The rounds a battle decides, and those of them in which a side concedes.
+def rounds_of(match_doc: Path) -> tuple[list[int], set[int]]:
+    """The rounds a match decides, and those of them in which a side concedes.
 
     A concession is kept as its round's last decision, but one made during the
-    fight ends it at a moment the battle does not record, so such a round is not
+    fight ends it at a moment the match does not record, so such a round is not
     compared."""
-    text = battle.read_text(encoding="utf-8")
+    text = match_doc.read_text(encoding="utf-8")
     rounds, conceded = [], set()
     for segment in re.split(r"^---$", text, flags=re.MULTILINE):
         found = re.match(r"\s*kind: action\nround: (\d+)$", segment, flags=re.MULTILINE)
@@ -188,28 +188,28 @@ def main() -> int:
     root = Path(__file__).resolve().parents[1]
     arguments = parse_arguments(root)
     version = arguments.version or build_data.build()
-    battles = sorted((root / "work/battle" / version).glob("*.yaml"))
+    matches = sorted((root / "work/match" / version).glob("*.yaml"))
     replays = root / "work/replay/replays" / version
     if arguments.only:
-        battles = [battle for battle in battles if arguments.only in battle.name]
-    if not battles:
-        print(f"no battle documents under work/battle/{version}", file=sys.stderr)
+        matches = [match_doc for match_doc in matches if arguments.only in match_doc.name]
+    if not matches:
+        print(f"no match documents under work/match/{version}", file=sys.stderr)
         return 1
 
     results = []
-    for battle in battles:
-        folder = arguments.out / battle.stem
+    for match_doc in matches:
+        folder = arguments.out / match_doc.stem
         folder.mkdir(parents=True, exist_ok=True)
         written = folder / "written.grbr"
         converted = run(
-            [str(arguments.mechcore), "replay", "convert", str(battle), str(written), "--force"]
+            [str(arguments.mechcore), "replay", "convert", str(match_doc), str(written), "--force"]
         )
-        numbers, conceded = rounds_of(battle)
+        numbers, conceded = rounds_of(match_doc)
         skipped = [
-            {"battle": battle.stem, "round": number, "conceded": True} for number in conceded
+            {"match": match_doc.stem, "round": number, "conceded": True} for number in conceded
         ]
         entries = [
-            {"battle": battle.stem, "round": number}
+            {"match": match_doc.stem, "round": number}
             for number in numbers
             if number not in conceded
         ]
@@ -219,7 +219,7 @@ def main() -> int:
         else:
             steps = []
             for entry in entries:
-                for tag, source in (("replay", replays / f"{battle.stem}.grbr"), ("battle", written)):
+                for tag, source in (("replay", replays / f"{match_doc.stem}.grbr"), ("match", written)):
                     steps.append(
                         {
                             "grbr": str(source.resolve()),
@@ -241,12 +241,12 @@ def main() -> int:
             if arguments.json:
                 print(json.dumps(entry, ensure_ascii=False), flush=True)
             else:
-                print(f"{entry['battle']} round {entry['round']}: {verdict(entry)}", flush=True)
+                print(f"{entry['match']} round {entry['round']}: {verdict(entry)}", flush=True)
 
     compared = [entry for entry in results if not entry.get("conceded")]
     equal = sum(1 for entry in compared if entry.get("equal"))
     print(
-        f"{equal} of {len(compared)} rounds fight the same from the battle's replay as from "
+        f"{equal} of {len(compared)} rounds fight the same from the match's replay as from "
         f"the match's own; {len(results) - len(compared)} conceded, not compared",
         file=sys.stderr,
     )

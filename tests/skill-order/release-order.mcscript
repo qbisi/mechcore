@@ -1,4 +1,4 @@
-# Does the release order of two battle skills change the battle?
+# Does the release order of two battle skills change the fight?
 #
 # Decompilation says yes: FightTeam holds one GRRandom at field offset 0x68,
 # reset every deployment by BattleSystem.OnEnterDeployment, and the fight-side

@@ -1,20 +1,20 @@
-//! Fills a battle document from one recorded match.
+//! Fills a match document from one recorded match.
 //!
 //! Most fields are copied. Four are rebuilt, because the snapshot the game
 //! writes precedes the round's own reset: `supply` gains the round's income,
 //! the two shop counters are restored to the round's allowance, the energy
 //! tower list is the set activated during the round and so empty at its
 //! start, and the equipment list drops what the formations carry.
-//! `docs/spec/document/battle.md` says what the conversion refuses.
+//! `docs/spec/document/match.md` says what the conversion refuses.
 
-use crate::battle::{
-    Action, Battle, BattleSide, EquipmentItem, NextIndex, Offers, Opening, OpeningOffer,
-    PanelSkill, SideState, SkillTarget, State, StateUnit, Turn, TurnActions,
-};
 use crate::catalog::{construction_type_from_id, contraption_type_from_id, unit_type_from_id};
 use crate::economy::{Economy, OpeningKind, RoundSupply};
 use crate::layout::{
     ContraptionPlacement, Experience, Position, Region, StaticPlacement, UnitPlacement,
+};
+use crate::r#match::{
+    Action, EquipmentItem, Match, MatchSide, NextIndex, Offers, Opening, OpeningOffer, PanelSkill,
+    SideState, SkillTarget, State, StateUnit, Turn, TurnActions,
 };
 use crate::opening::{self, Stream};
 use crate::record::{self, ActionRecord, PlayerData, PlayerRoundRecord};
@@ -64,7 +64,7 @@ impl Seat {
     }
 }
 
-/// Converts one locally recorded GRBR replay into a battle document.
+/// Converts one locally recorded GRBR replay into a match document.
 ///
 /// # Errors
 ///
@@ -72,11 +72,11 @@ impl Seat {
 /// by this machine, when its rounds are not the contiguous sequence both sides
 /// and the match share, or when it contains an object this build's catalogues
 /// or this format cannot name.
-pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
+pub fn match_from_grbr(grbr: &[u8]) -> Result<Match, String> {
     let record = record::read(grbr)?;
     readable(&record)?;
     let [blue, red] = <[record::PlayerRecord; 2]>::try_from(record.players.entries)
-        .map_err(|players| format!("replay has {} sides, and a battle has two", players.len()))?;
+        .map_err(|players| format!("replay has {} sides, and a match has two", players.len()))?;
 
     let match_rounds: Vec<i32> = record
         .match_rounds
@@ -106,7 +106,7 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
 
     if match_rounds.len() < 2 {
         return Err(format!(
-            "replay holds {} round, which is the opening alone, and a battle is deployment rounds",
+            "replay holds {} round, which is the opening alone, and a match is deployment rounds",
             match_rounds.len()
         ));
     }
@@ -163,15 +163,15 @@ pub fn battle_from_grbr(grbr: &[u8]) -> Result<Battle, String> {
 
     check_concession(&turns)?;
 
-    Ok(Battle {
+    Ok(Match {
         game_build: crate::economy::game_build().to_owned(),
         map_id: record.info.map_id,
         seed: record.info.system_seed,
         // A replay was played under the game's own clock, not under this
         // platform's rule for running out of one, so it states none.
         deploy_time: None,
-        blue: battle_side(&economy, &blue, Seat::Blue, dealt.blue)?,
-        red: battle_side(&economy, &red, Seat::Red, dealt.red)?,
+        blue: match_side(&economy, &blue, Seat::Blue, dealt.blue)?,
+        red: match_side(&economy, &red, Seat::Red, dealt.red)?,
         turns,
     })
 }
@@ -260,16 +260,16 @@ fn turn(
 /// A replay converted into the document `replay convert` writes, and that
 /// document read back the way `doc verify` reads it.
 pub struct Converted {
-    pub battle: Battle,
+    pub r#match: Match,
     pub yaml: String,
     pub stated: opening::Stated,
 }
 
-/// Converts a replay into its battle document, refusing one the document
+/// Converts a replay into its match document, refusing one the document
 /// would not faithfully carry.
 ///
 /// Two things are checked here because only the replay can check them. The
-/// written document has to read back as exactly the battle it was written
+/// written document has to read back as exactly the match it was written
 /// from, every state field and action operand included, or the corpus would
 /// hold something other than what was converted. And the seeded random stream
 /// has to land on every state the replay recorded: the match seed on the
@@ -282,30 +282,30 @@ pub struct Converted {
 ///
 /// # Errors
 ///
-/// Returns what [`battle_from_grbr`] refuses, a document that does not read
-/// back as its battle, and a stream that misses a recorded state.
+/// Returns what [`match_from_grbr`] refuses, a document that does not read
+/// back as its match, and a stream that misses a recorded state.
 pub fn document(economy: &Economy, grbr: &[u8]) -> Result<Converted, String> {
-    let battle = battle_from_grbr(grbr)?;
-    let yaml = crate::battle::canonical_yaml(&battle)?;
+    let r#match = match_from_grbr(grbr)?;
+    let yaml = crate::r#match::canonical_yaml(&r#match)?;
     let stated = opening::stated(yaml.as_bytes())?
-        .ok_or("the converted document does not read back as a battle")?;
-    if stated.turns != battle.turns {
+        .ok_or("the converted document does not read back as a match")?;
+    if stated.turns != r#match.turns {
         return Err(
-            "the converted document does not read back as the battle it was \
+            "the converted document does not read back as the match it was \
                     written from"
                 .into(),
         );
     }
     deal_lands_on_the_record(economy, &record::read(grbr)?, &stated)?;
     Ok(Converted {
-        battle,
+        r#match,
         yaml,
         stated,
     })
 }
 
 /// Refuses a replay whose recorded random states the seeded stream misses,
-/// or whose recorded pool the battle's deal does not make.
+/// or whose recorded pool the match's deal does not make.
 ///
 /// The generator is Lua's and a state is 256 bits, so a near miss does not
 /// land: equal states are the whole of the claim that the stream is modelled.
@@ -352,10 +352,10 @@ fn deal_lands_on_the_record(
     pool_lands_on_the_recorded_log(&native.match_rounds.entries, &deal.pools)
 }
 
-/// Refuses a replay whose rounds open on another pool than the battle's deal
+/// Refuses a replay whose rounds open on another pool than the match's deal
 /// leaves: each round's log, and the rounds it excludes the level-4 commander
 /// skills from, must be the deal's. The one freedom is the order of a round's
-/// choices, which the log keeps as the players chose and a battle does not.
+/// choices, which the log keeps as the players chose and a match does not.
 fn pool_lands_on_the_recorded_log(
     recorded_rounds: &[record::MatchRound],
     pools: &[crate::reinforcement::Pool],
@@ -432,7 +432,7 @@ fn opening_offers(economy: &Economy, round: &record::MatchRound) -> Result<openi
 ///
 /// `PAD_GiveUp` is the one recorded action that overrides `IsExitMatchAction`,
 /// and the override returns true unconditionally: it leaves the match. So a
-/// battle holds at most one, as the last decision its side takes in the last
+/// match holds at most one, as the last decision its side takes in the last
 /// round.
 ///
 /// # Errors
@@ -473,12 +473,12 @@ fn check_concession(turns: &[Turn]) -> Result<(), String> {
     Ok(())
 }
 
-fn battle_side(
+fn match_side(
     economy: &Economy,
     player: &record::PlayerRecord,
     seat: Seat,
     dealt: Vec<OpeningOffer>,
-) -> Result<BattleSide, String> {
+) -> Result<MatchSide, String> {
     let mut loadout = BTreeMap::new();
     for row in &player.data.unit_datas.entries {
         // The record lists every unit the account owns a loadout for, and a
@@ -490,7 +490,7 @@ fn battle_side(
         techs.sort_unstable();
         loadout.insert(row.id, techs);
     }
-    Ok(BattleSide {
+    Ok(MatchSide {
         opening: opening_taken(economy, player, seat, dealt)?,
         // The map deals the layout before the first round and nothing adds to
         // it, so the first round's list is the one the side started with.
@@ -652,7 +652,7 @@ fn side_state(
         supply: data.supply,
         unlocked_units,
         // The allowances are the opening's to set.
-        shop: crate::battle::Allowances::default(),
+        shop: crate::r#match::Allowances::default(),
         blueprints,
         // What the previous round activated and still owes for, which the
         // opening charges against the income and then lapses.
@@ -777,7 +777,7 @@ fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateUnit>, String> {
                 exp: Experience::of(unit.exp, type_name, unit.level + 1)?,
                 rotated: Some(unit.rotated).filter(|rotated| *rotated),
                 equipment: unit.equipments.entries.iter().map(|item| item.id).collect(),
-                // No recorded field states it; see docs/spec/document/battle.md.
+                // No recorded field states it; see docs/spec/document/match.md.
                 travelling: None,
             },
         });
@@ -885,7 +885,7 @@ fn energy_tower_debt(
     }
     Err(format!(
         "{} round {} records energy tower skills {recorded:?}, and the round before it \
-         decided {expected:?}; see docs/spec/document/battle.md",
+         decided {expected:?}; see docs/spec/document/match.md",
         seat.name(),
         entry.round
     ))
@@ -1206,7 +1206,7 @@ fn collapse_moves(taken: Vec<(Action, Placed)>) -> Vec<Action> {
 /// and the contraptions do. When nothing left can go, the moves wait on one
 /// another, as two units trading places do, and one of them first steps aside
 /// within its own region to a place nothing left goes: that move is part of
-/// the battle, as legal as the rest.
+/// the match, as legal as the rest.
 fn settle(
     economy: &Economy,
     opened: &SideState,
@@ -1499,7 +1499,7 @@ fn skill_target(action: &ActionRecord, seat: Seat) -> Result<SkillTarget, String
 #[cfg(test)]
 mod tests {
     use crate::Position;
-    use crate::battle::Action;
+    use crate::r#match::Action;
 
     /// Undoing a cancel stands the release it cancelled again. A side
     /// released Orbital Javelin, cancelled it, released it again and then
@@ -1538,7 +1538,7 @@ mod tests {
     }
 
     /// A round's log is the deal's but for the order of its choices: the
-    /// players' own order is kept, and a battle does not state it. Anything
+    /// players' own order is kept, and a match does not state it. Anything
     /// else another pool would restore is refused.
     #[test]
     fn a_pool_log_may_order_only_its_choices_otherwise() {
@@ -1593,8 +1593,8 @@ mod tests {
     }
 
     /// Two marksmen standing side by side, each free to move.
-    fn two_marksmen() -> crate::battle::SideState {
-        let marksman = |index, x| crate::battle::StateUnit {
+    fn two_marksmen() -> crate::r#match::SideState {
+        let marksman = |index, x| crate::r#match::StateUnit {
             unit: crate::layout::UnitPlacement {
                 type_name: "marksman".into(),
                 index,
@@ -1608,26 +1608,26 @@ mod tests {
             value: None,
             movable: true,
         };
-        crate::battle::SideState {
+        crate::r#match::SideState {
             supply: 100_000,
             unlocked_units: (1..=31).collect(),
-            shop: crate::battle::Allowances {
+            shop: crate::r#match::Allowances {
                 buys_remaining: 9,
                 unlocks_remaining: 9,
                 contraptions_remaining: 9,
             },
             units: vec![marksman(0, 0), marksman(1, 20)],
-            next_index: crate::battle::NextIndex {
+            next_index: crate::r#match::NextIndex {
                 unit: 2,
                 contraption: 0,
             },
-            ..crate::battle::SideState::default()
+            ..crate::r#match::SideState::default()
         }
     }
 
     /// Settles a side's decisions and steps them, refusing any the board
     /// would not allow where it stands.
-    fn settled(opened: &crate::battle::SideState, taken: Vec<Action>) -> Vec<Action> {
+    fn settled(opened: &crate::r#match::SideState, taken: Vec<Action>) -> Vec<Action> {
         let economy = crate::economy::Economy::embedded().unwrap();
         let settled = super::settle(&economy, opened, taken, opened, false, None).unwrap();
         crate::transition::deployed(&economy, opened, &settled, false, None).unwrap();
@@ -1635,7 +1635,7 @@ mod tests {
     }
 
     /// Two units trading places wait on each other, so one steps aside first,
-    /// within its region, and that step is a decision of the battle.
+    /// within its region, and that step is a decision of the match.
     #[test]
     fn units_trading_places_step_aside() {
         let moved = |index, x| Action::MoveUnit {

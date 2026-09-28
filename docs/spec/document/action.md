@@ -8,7 +8,7 @@ taken from, and the action segment that carries one round's decisions for both
 sides: that order is all a sequence carries, which recorded entries are
 collapsed away before one is written, and which native fields are excluded.
 
-A [battle](battle.md) is the stream the segments are written in, and places an
+A [match](match.md) is the stream the segments are written in, and places an
 action segment after the state it was decided from. A [state](state.md) defines
 the position an action reads and writes. A [layout](layout.md) is a projection
 of a state and holds no actions at all.
@@ -78,7 +78,7 @@ All three groups are written one decision at a time, not only at a round's end.
 A position is defined after every decision, so applying one decision to the
 position it was taken from has to reach the position the next decision was
 taken from. That is a stronger statement than the round transition
-[`battle.md`](battle.md#what-a-round-reproduces) defines, and it is the one this
+[`match.md`](match.md#what-a-round-reproduces) defines, and it is the one this
 document's per-action rules are answerable to.
 
 Where a summoned unit lands is the board's rule rather than the
@@ -156,7 +156,7 @@ round, which grows through the match.
 The opening, which is one decision with two halves: the team and the specialist
 officer bound to it. `name` names the team as the header's offers do, and
 `specialist` names the officer; both are required. `index` is the combination's
-position in the side's opening offers, which a battle's header states.
+position in the side's opening offers, which a match's header states.
 
 It is round zero's only decision, and no other round holds one.
 
@@ -369,7 +369,7 @@ within a round, since a card or a blueprint adds a skill to it.
 
 The key names the kind of target, as the list the index points into is named,
 and the form is plain YAML rather than a tag such as `!unit 4`, so any YAML or
-JSON reader takes a battle as it is.
+JSON reader takes a match as it is.
 
 What a release writes depends on the skill. It may put a construction, a
 retained airdrop shield or a terrain on the board, or take one of the side's own
@@ -425,7 +425,7 @@ Gives up the match. It carries no operand and writes no field: the round is not
 fought, so no position follows it.
 
 It is the last decision its side takes, and the segment that holds it is the
-last one its battle holds. What the side decided earlier in the round stands in
+last one its match holds. What the side decided earlier in the round stands in
 the sequence, and so does everything the other side decided.
 
 ## Rules no action states
@@ -551,9 +551,9 @@ settles the collapsed round before writing it:
    [landing](../../rules/landing.md) finds one; that move is a decision of the
    sequence like any other.
 
-A sequence settled this way is its own settling, so a battle written as a
+A sequence settled this way is its own settling, so a match written as a
 replay and converted back settles to itself. Applying a round refuses a
-decision whose place is taken, so every decision a battle holds is one the
+decision whose place is taken, so every decision a match holds is one the
 game takes where it stands.
 
 `GiveUp` is kept, as `concede`, and nothing it recorded besides its type
@@ -566,15 +566,15 @@ position, board included: not what the next round holds, but what this
 position looks like one decision later. That is the transition this document
 defines.
 
-A battle states no position between two decisions, so a decision is checked
-through the round it belongs to. [`battle.md`](battle.md#what-a-round-reproduces)
+A match states no position between two decisions, so a decision is checked
+through the round it belongs to. [`match.md`](match.md#what-a-round-reproduces)
 steps a round's decisions in order and compares what the next round opens with
 against the recorded state, and a layout captured live at the end of a
 deployment is compared against the projection of that round's decisions,
 stepped from the position it opened with.
 
 Stepping the opening answers what the position is immediately after it, which is
-not what round 1 holds: [`battle.md`](battle.md#what-a-round-reproduces) says
+not what round 1 holds: [`match.md`](match.md#what-a-round-reproduces) says
 where the two frames differ.
 
 ## Normal form
@@ -585,7 +585,7 @@ where the two frames differ.
 
 `kind` comes first in a segment and `round` second, and `blue` precedes `red`.
 Each action is written on one line as a flow mapping, by the spelling rules
-[`battle.md`](battle.md#normal-form) states for every segment.
+[`match.md`](match.md#normal-form) states for every segment.
 
 ## Excluded fields
 

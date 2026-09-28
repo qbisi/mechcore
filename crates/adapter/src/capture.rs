@@ -1686,7 +1686,7 @@ pub(crate) fn start(
         return Err(format!("native capture is unavailable: {error}"));
     }
     if state.armed {
-        return Err("a battle recording is already active".into());
+        return Err("a fight recording is already active".into());
     }
     if (instruments.target_refs || instruments.skill_attackable_checker || instruments.group_slots)
         && (state.metadata.fight_skill_class.is_none()

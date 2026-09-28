@@ -34,11 +34,11 @@ fn stated(layout: &str) -> String {
 #[allow(clippy::too_many_lines)]
 fn writes_and_reads_every_table() {
     let directory = tempfile::tempdir().unwrap();
-    let path = directory.path().join("battle.mcfr");
+    let path = directory.path().join("fight.mcfr");
     let initial = state(100);
     let final_state = state(75);
     let events = damage_events();
-    let hashes = write_battle(
+    let hashes = write_fight(
         &path,
         "build-a",
         &context(),
@@ -180,7 +180,7 @@ fn building_state_has_no_rotation_in_canonical_hash_input() {
 fn reader_open_and_comparison_trust_persisted_hashes() {
     let directory = tempfile::tempdir().unwrap();
     let original_path = directory.path().join("original.mcfr");
-    write_battle(
+    write_fight(
         &original_path,
         "build-a",
         &context(),
@@ -195,7 +195,7 @@ fn reader_open_and_comparison_trust_persisted_hashes() {
         amount: 24,
         skill_slot: Some(0),
     };
-    write_battle(
+    write_fight(
         &other_path,
         "build-a",
         &context(),
@@ -248,8 +248,8 @@ fn hash_only_timeline_matches_published_mcfr_hashes_without_creating_storage() {
     let hashes = hash_only.finish().unwrap();
     assert_eq!(std::fs::read_dir(directory.path()).unwrap().count(), 0);
 
-    let path = directory.path().join("battle.mcfr");
-    let published = write_battle(&path, "build-a", &context(), initial, final_state, &events);
+    let path = directory.path().join("fight.mcfr");
+    let published = write_fight(&path, "build-a", &context(), initial, final_state, &events);
     assert_eq!(hashes, published);
 }
 
@@ -257,7 +257,7 @@ fn hash_only_timeline_matches_published_mcfr_hashes_without_creating_storage() {
 fn game_build_metadata_does_not_change_result_hashes() {
     let directory = tempfile::tempdir().unwrap();
     let events = damage_events();
-    let left = write_battle(
+    let left = write_fight(
         &directory.path().join("left.mcfr"),
         "build-a",
         &context(),
@@ -265,7 +265,7 @@ fn game_build_metadata_does_not_change_result_hashes() {
         state(75),
         &events,
     );
-    let right = write_battle(
+    let right = write_fight(
         &directory.path().join("right.mcfr"),
         "build-b",
         &context(),
@@ -433,7 +433,7 @@ fn embedded_layout_is_not_a_hash_input() {
     const OTHER_LAYOUT: &str = "kind: layout\nseed: 42\nround: 1\nblue:\n  units:\n  - {name: marksman, index: 0, position: {x: 20, y: -50}}\nred:\n  units:\n  - {name: arclight, index: 0, position: {x: 0, y: -50}}\n";
     let directory = tempfile::tempdir().unwrap();
     let events = damage_events();
-    let left = write_battle(
+    let left = write_fight(
         &directory.path().join("left.mcfr"),
         "build-a",
         &context(),
@@ -567,7 +567,7 @@ fn shield_events_and_projectile_absorption_round_trip() {
             },
         ],
     };
-    write_battle(&path, "build-a", &context(), state(100), state(75), &events);
+    write_fight(&path, "build-a", &context(), state(100), state(75), &events);
     assert_eq!(McfrReader::open(&path).unwrap().events(1).unwrap(), events);
 }
 
@@ -632,7 +632,7 @@ fn terrain_events_round_trip() {
             },
         ],
     };
-    write_battle(&path, "build-a", &context(), state(100), state(75), &events);
+    write_fight(&path, "build-a", &context(), state(100), state(75), &events);
     assert_eq!(McfrReader::open(&path).unwrap().events(1).unwrap(), events);
 
     let mut archive = zip::ZipArchive::new(std::fs::File::open(&path).unwrap()).unwrap();
@@ -698,7 +698,7 @@ fn writer_rejects_non_shield_projectile_containment_reference() {
 #[test]
 fn instrument_channels_ride_in_the_recording_outside_both_hashes() {
     let directory = tempfile::tempdir().unwrap();
-    let plain = write_battle(
+    let plain = write_fight(
         &directory.path().join("plain.mcfr"),
         "build-a",
         &context(),
@@ -999,7 +999,7 @@ fn modifier(
     }
 }
 
-fn write_battle(
+fn write_fight(
     path: &std::path::Path,
     game_build: &str,
     context: &DurableContext,

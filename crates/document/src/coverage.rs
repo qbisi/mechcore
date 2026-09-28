@@ -1,7 +1,7 @@
-//! How much of a battle's next position its decisions predict.
+//! How much of a match's next position its decisions predict.
 //!
-//! `docs/spec/document/battle.md` defines the measure. Each transition of a
-//! battle starts from a round's opening position and the decisions taken from
+//! `docs/spec/document/match.md` defines the measure. Each transition of a
+//! match starts from a round's opening position and the decisions taken from
 //! it, [`crate::transition::predict`] produces the position the next round
 //! opens with, and every leaf field of the recorded next position is put in one
 //! of four classes. The recorded position is only ever compared against: no
@@ -12,8 +12,8 @@
 //! inventory with repeats are one leaf each. A leaf only one side has is still
 //! a leaf, so a formation missing from the prediction counts against it.
 
-use crate::battle::{Action, Offers, SideState, SkillTarget, Turn};
 use crate::economy::Economy;
+use crate::r#match::{Action, Offers, SideState, SkillTarget, Turn};
 use crate::opening::{Stated, Stream};
 use crate::reinforcement::Verified;
 use crate::transition::{Unsettled, before_opening};
@@ -22,7 +22,7 @@ use serde_yaml::Value;
 use std::collections::BTreeMap;
 
 /// What the fight decides, by field group. The fight runs between the
-/// decisions and the next opening, and nothing in a battle document says what
+/// decisions and the next opening, and nothing in a match document says what
 /// it did, so these leaves are neither predicted nor compared. Standard 1v1
 /// has no fight-phase income, which is why `supply` is not here.
 pub const FIGHT: &[&str] = &[
@@ -158,9 +158,9 @@ fn player_stream(seed: Option<i32>, draws: u32) -> Option<Stream> {
     })
 }
 
-/// Measures every transition a battle states.
+/// Measures every transition a match states.
 ///
-/// `deal` is the reinforcement check's result over the same battle. It is the
+/// `deal` is the reinforcement check's result over the same match. It is the
 /// prediction of `reinforce_offers`, which is dealt from a stream the header
 /// seeds rather than from the decisions.
 #[must_use]
@@ -555,7 +555,7 @@ mod tests {
     use super::*;
 
     /// Every field a side's position can hold, as the dotted path a leaf is
-    /// grouped under, read off the schema rather than off any battle.
+    /// grouped under, read off the schema rather than off any match.
     fn side_fields() -> Vec<String> {
         fn walk(
             node: &serde_json::Value,

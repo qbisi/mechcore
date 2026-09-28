@@ -48,7 +48,7 @@ red-side transform each Stormcaller starts about 51.35 m from the opponent's
 missile, inside the reference missile's 100 m trigger range. Both contraption
 centres deliberately miss the deployment modulo-10 grid. It covers shield and
 missile target-region validation, their exclusion from deployment collisions,
-recorder readback, the battle interaction, round transition and shutdown.
+recorder readback, the fight interaction, round transition and shutdown.
 
 `crawler-in-face.yaml` places a `50 x 20` Crawler per side at local `y=-20`,
 front edge exactly on `y=-10`. Placement succeeds only while the room keeps the

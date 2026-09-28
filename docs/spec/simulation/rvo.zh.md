@@ -243,7 +243,7 @@ point    += normalize(gradient) * step
 
 ```text
 cargo test -p mechcore-simulation rvo
-cargo test -p mechcore-simulation --test battle native_regression_smoke_hashes_match
+cargo test -p mechcore-simulation --test fight native_regression_smoke_hashes_match
 ```
 
 instrument 通道只用于研究和定位，见 [MCFR 文档](../mcfr/mcfr.md#instrument-channels)；它们都不

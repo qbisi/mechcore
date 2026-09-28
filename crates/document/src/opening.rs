@@ -1,6 +1,6 @@
 //! How a match's seed decides the four openings each side is dealt.
 //!
-//! The opening is the one part of a battle that no action records and no
+//! The opening is the one part of a match that no action records and no
 //! snapshot carries: a replay stores the combination taken and not the three
 //! refused. It is not lost, though. The deal is drawn from the match's
 //! reinforcement stream, which is seeded from `BattleInfo.SystemSeed`, so the
@@ -10,9 +10,9 @@
 //! the build. Initialization advances the reinforcement stream explicitly;
 //! map constructions use a separate stream seeded with the same match seed.
 
-use crate::battle::{Action, OpeningOffer, Turn, TurnActions};
 use crate::economy::{Economy, OpeningKind};
 use crate::layout::{Position, StaticPlacement};
+use crate::r#match::{Action, OpeningOffer, Turn, TurnActions};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -376,7 +376,7 @@ pub fn initialize(seed: i32) -> Result<Initialization, String> {
     Ok(Setup::embedded()?.initialize(seed))
 }
 
-/// Both initial construction lists in the battle document's side-local frame.
+/// Both initial construction lists in the match document's side-local frame.
 #[derive(Debug, Serialize)]
 pub struct Constructions {
     pub blue: Vec<StaticPlacement>,
@@ -508,7 +508,7 @@ pub fn predict(economy: &Economy, seed: i32, map_id: i32) -> Result<Prediction, 
     })
 }
 
-/// What a battle document says about its two openings and its rounds.
+/// What a match document says about its two openings and its rounds.
 ///
 /// States and decisions use the complete document types. A seed check may
 /// read only part of them, but malformed payloads must never pass unnoticed.
@@ -524,7 +524,7 @@ pub struct Stated {
     /// Round zero's decisions, each side's opening, as written.
     pub opening: TurnActions,
     /// Whether the last round's decisions are written with no position after
-    /// them, which a converted battle does because no replay records the last
+    /// them, which a converted match does because no replay records the last
     /// fight's result.
     pub ends_on_actions: bool,
 }
@@ -534,7 +534,7 @@ pub struct StatedSide {
     /// The opening this side took, absent while it has not taken one.
     #[serde(skip)]
     pub opening: Option<StatedOpening>,
-    /// The seed of the side's own stream, when the battle states one.
+    /// The seed of the side's own stream, when the match states one.
     #[serde(default)]
     pub seed: Option<i32>,
     pub offers: Vec<OpeningOffer>,
@@ -561,7 +561,7 @@ impl StatedSide {
 
 #[derive(Deserialize)]
 struct StatedHeader {
-    /// A battle that states no build is this binary's, as a layout is.
+    /// A match that states no build is this binary's, as a layout is.
     #[serde(default = "crate::economy::this_build")]
     game_build: String,
     map_id: i32,
@@ -603,24 +603,24 @@ impl StatedOpening {
     }
 }
 
-/// Reads the openings and rounds out of a battle stream, or nothing when the
+/// Reads the openings and rounds out of a match stream, or nothing when the
 /// file is not one.
 ///
 /// # Errors
 ///
-/// Returns an error when the document names itself a battle and then breaks
+/// Returns an error when the document names itself a match and then breaks
 /// the stream's grammar, or has a malformed state field or action operand.
 pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
-    let Some(stream) = crate::battle::segments(bytes)? else {
+    let Some(stream) = crate::r#match::segments(bytes)? else {
         return Ok(None);
     };
     let header: StatedHeader = serde_yaml::from_value(stream.header)
-        .map_err(|error| format!("battle header is not readable: {error}"))?;
+        .map_err(|error| format!("match header is not readable: {error}"))?;
     crate::economy::require_this_build(&header.game_build)?;
     let opening = stream
         .opening
-        .ok_or("battle states no round 0 opening decisions")?;
-    let opening: TurnActions = crate::battle::payload(opening)
+        .ok_or("match states no round 0 opening decisions")?;
+    let opening: TurnActions = crate::r#match::payload(opening)
         .map_err(|error| format!("round 0 action segment is not readable: {error}"))?;
     let mut blue = header.blue;
     let mut red = header.red;
@@ -634,14 +634,14 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
         .rounds
         .into_iter()
         .map(|round| {
-            let mut state: crate::battle::State = crate::battle::payload(round.state)
+            let mut state: crate::r#match::State = crate::r#match::payload(round.state)
                 .map_err(|error| format!("round {} state is not readable: {error}", round.round))?;
             // A state segment is the position a round opens with, so its
             // allowances are the ones the round opens with.
             crate::transition::open_allowances(&mut state.blue);
             crate::transition::open_allowances(&mut state.red);
             let actions = match round.actions {
-                Some(actions) => crate::battle::payload(actions).map_err(|error| {
+                Some(actions) => crate::r#match::payload(actions).map_err(|error| {
                     format!("round {} actions are not readable: {error}", round.round)
                 })?,
                 None => TurnActions::default(),
@@ -736,9 +736,9 @@ mod tests {
     use super::{Stream, deal, stated};
     use crate::economy::Economy;
 
-    /// Nothing but a battle takes this path.
+    /// Nothing but a match takes this path.
     #[test]
-    fn a_layout_is_not_a_battle() {
+    fn a_layout_is_not_a_match() {
         let layout = std::fs::read("../../layouts/tuff-replay-round-7.yaml").unwrap();
         assert!(stated(&layout).unwrap().is_none());
         assert!(stated(b"not a document at all").unwrap().is_none());

@@ -11,7 +11,7 @@ only grows, so it is read at `master` and a newer fetch never takes away what
 an older one had. `work/` is not tracked, so a checkout runs `sync` once, and
 again to pick up replays added since. The version this checkout describes is
 the one `scripts/build_data.py` reads. Nothing is generated in the corpus: `scripts/export-replay-corpus.py` converts a
-version's replays into `work/battle/<version>/`.
+version's replays into `work/match/<version>/`.
 
 `publish` is the one writer. It files the replays the installed game recorded
 itself under the installed game's version: a locally recorded replay is named

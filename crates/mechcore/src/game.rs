@@ -18,7 +18,7 @@ pub(crate) const OPERATIONS: &[&str] = &[
     "status",
     "start_test",
     "apply_layout",
-    "record_battle",
+    "record_fight",
     "record_replay_round",
     "record_layout",
     "record_watch_replay",
@@ -41,7 +41,7 @@ pub(crate) const OPERATIONS: &[&str] = &[
 /// acquisition it cannot make, an unavailable failure when no game answers,
 /// and whatever the operation refuses.
 pub(crate) fn run(mut arguments: Args) -> Outcome {
-    let verb = arguments.operand("a verb: status, apply_layout, record_battle, ...")?;
+    let verb = arguments.operand("a verb: status, apply_layout, record_fight, ...")?;
     one(&verb, arguments).map_err(|failure| failure.at(format!("game.{verb}")))
 }
 
@@ -122,7 +122,7 @@ pub(crate) async fn operate(
             let layout = read_layout(&path)?;
             session.apply_layout(layout, seed).await.map_err(refusal)
         }
-        "record_battle" => {
+        "record_fight" => {
             let video = arguments.value("--video")?.map(PathBuf::from);
             let force = force(&mut arguments)?;
             let speed_up = arguments.flag("--no-speed-up")?.then_some(false);
@@ -130,7 +130,7 @@ pub(crate) async fn operate(
             let output = arguments.path("a recording to write")?;
             arguments.finish()?;
             session
-                .record_battle(output, video, speed_up, force, instrument)
+                .record_fight(output, video, speed_up, force, instrument)
                 .await
                 .map_err(|value| Failure::refused(crate::shell::render(&value)))
         }
@@ -245,7 +245,7 @@ mod tests {
         Args::new(items.iter().map(|item| (*item).to_owned()))
     }
 
-    /// `record_battle`'s options are independent of each other and of where
+    /// `record_fight`'s options are independent of each other and of where
     /// they stand, and a repeated one is a mistake rather than the same answer.
     #[test]
     fn a_recording_reads_its_options_in_any_order() {

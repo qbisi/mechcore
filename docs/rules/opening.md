@@ -60,7 +60,7 @@ construction ID and a local position, all with `isRotate = false`; the same
 file states them as `constructions`. `MapRegion.ConvertToWorldPoint` rotates
 the group position by the main region's facing, then adds its center. The
 supported maps resolve to one `MapLayout` whose blue main region faces 0 and
-red's faces 2, so after the battle document rotates red by half a turn both
+red's faces 2, so after the match document rotates red by half a turn both
 centers are the same point, the file's `centers`. Thus each side's document
 position is `(±local_x, local_y + center_y)`. These are integer map
 coordinates, without rounding or fitted offsets.
@@ -114,7 +114,7 @@ the alternatives offered, not which alternative either player chooses.
 
 - The flow reproduces every recorded opening: the four offers each side was
   dealt and the construction layouts, in every replay of this version's corpus:
-  `scripts/verify-battles.py`.
+  `scripts/verify-matches.py`.
 
 ### Read
 

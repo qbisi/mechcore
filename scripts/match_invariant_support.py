@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Measure the battle-level claims of `docs/spec/document/battle.md`.
+"""Measure the match-level claims of `docs/spec/document/match.md`.
 
-A battle is a match: what every round shares, and the turns in order. This
+A match document is a match: what every round shares, and the turns in order. This
 script measures both halves. `BattleInfo` and each `PlayerRecord.data` say what
 is invariant across rounds, and consecutive `playerRoundRecords` say which side
 quantities can only move one way.
@@ -9,7 +9,7 @@ quantities can only move one way.
 `replay/README.md` explains which replays are usable and why the downloaded
 ones are not.
 
-    python3 scripts/battle_invariant_support.py
+    python3 scripts/match_invariant_support.py
 """
 import collections
 import pathlib

@@ -331,7 +331,7 @@ turns**, whatever its path: the Raiden, whose blows strike, as the units whose
 weapons fire projectiles, lasers or melee blows. Without the hold its attack
 state would find the target out of angle on the next update and give it up.
 
-## Normal target scoring and pre-battle acquisition
+## Normal target scoring and pre-fight acquisition
 
 Among currently visible, fully rotated, unsplit-quadtree ordinary ground targets
 with a unique optimum, the build picks by Q32 edge distance, strict

@@ -1,8 +1,8 @@
 //! Stateful reinforcement prediction; see `docs/rules/reinforcements.md`.
 
-use crate::battle::{Action, Offers, SideState, Turn};
 use crate::catalog::{NativeFormation, resolve_unit_type};
 use crate::economy::Economy;
+use crate::r#match::{Action, Offers, SideState, Turn};
 use crate::opening::{Prediction, Stated, Stream};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
@@ -220,7 +220,7 @@ pub struct Pool {
     /// match began, in order.
     pub log: Vec<(i32, i32)>,
     /// Where each earlier round's choices sit in `log`. Both players choose in
-    /// one round, and the log keeps the order they chose in, which a battle
+    /// one round, and the log keeps the order they chose in, which a match
     /// does not state; no reading of the pool depends on it.
     pub choices: Vec<std::ops::Range<usize>>,
     /// The rounds a level-4 commander skill was offered before, each one
@@ -704,7 +704,7 @@ pub fn verify(
     walk(economy, stated, opening, false).map(|walked| walked.verified)
 }
 
-/// Deals the offers of the round the battle has just opened, which is its
+/// Deals the offers of the round the match has just opened, which is its
 /// last, or nothing when that round is dealt none.
 ///
 /// The deal is stateful, so this replays every earlier round first: each one's
@@ -723,7 +723,7 @@ pub fn deal_last_round(
     walk(economy, stated, opening, true).map(|walked| walked.dealt)
 }
 
-/// One battle's rounds, replayed through the dealer.
+/// One match's rounds, replayed through the dealer.
 struct Walked {
     verified: Verified,
     /// The last round's offers, when they were dealt rather than checked.
@@ -741,7 +741,7 @@ fn walk(
     deal_last: bool,
 ) -> Result<Walked, String> {
     // A match that has not opened its first round has no draw to check. That
-    // is a battle in progress rather than a battle missing something: the
+    // is a match in progress rather than a match missing something: the
     // header and the openings are all a dealt match has.
     if stated.turns.is_empty() {
         return Ok(Walked {

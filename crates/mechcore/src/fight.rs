@@ -40,7 +40,7 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
 
 /// Answers what a recorded fight decided.
 ///
-/// The five fields a fight decides are `battle.md`'s, and this reads a
+/// The five fields a fight decides are `match.md`'s, and this reads a
 /// recording for as much of them as it holds. What no rule and no recording
 /// answers is named in `unresolved` rather than approximated, which is why the
 /// verdict is no when anything is: the fight was read, and the answer is that

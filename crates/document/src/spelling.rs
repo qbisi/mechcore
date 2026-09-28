@@ -1,7 +1,7 @@
 //! How the documents are spelled.
 //!
-//! A layout and a battle segment are written by the same three rules, stated in
-//! `docs/spec/document/layout.md` and `docs/spec/document/battle.md`. They
+//! A layout and a match segment are written by the same three rules, stated in
+//! `docs/spec/document/layout.md` and `docs/spec/document/match.md`. They
 //! decide spelling by the shape of a value and never by its field, so one
 //! document has one byte sequence and a new field needs no rule of its own.
 //!

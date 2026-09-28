@@ -110,8 +110,8 @@ static TOPICS: &[(&str, &str)] = &[
         include_str!("../../../docs/spec/document/action.md"),
     ),
     (
-        "spec/document/battle",
-        include_str!("../../../docs/spec/document/battle.md"),
+        "spec/document/match",
+        include_str!("../../../docs/spec/document/match.md"),
     ),
     (
         "spec/document/layout",
@@ -122,8 +122,8 @@ static TOPICS: &[(&str, &str)] = &[
         include_str!("../../../docs/spec/document/layout-replay.md"),
     ),
     (
-        "spec/document/battle-replay",
-        include_str!("../../../docs/spec/document/battle-replay.md"),
+        "spec/document/match-replay",
+        include_str!("../../../docs/spec/document/match-replay.md"),
     ),
     (
         "spec/document/state",

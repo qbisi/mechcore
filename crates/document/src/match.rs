@@ -1,6 +1,6 @@
-//! The battle document and the state and action segments it is made of.
+//! The match document and the state and action segments it is made of.
 //!
-//! `docs/spec/document/battle.md` defines a battle as a stream of YAML
+//! `docs/spec/document/match.md` defines a match as a stream of YAML
 //! documents: a header, the opening's decisions, and then each round's opening
 //! state followed by the decisions taken from it. `docs/spec/document/state.md`
 //! and `docs/spec/document/action.md` define the two segment shapes. Filling
@@ -13,15 +13,15 @@ use serde_yaml::Value;
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 
-/// One recorded match, as `docs/spec/document/battle.md` defines it.
+/// One recorded match, as `docs/spec/document/match.md` defines it.
 ///
 /// This is the match held whole. Its document is a stream, and
 /// [`canonical_yaml`] writes it as one: the header from `map_id`, `seed` and
 /// `sides`, the opening's decisions from each side's [`Opening`], and a state
 /// segment and an action segment per turn.
 #[derive(Debug, PartialEq, Eq)]
-pub struct Battle {
-    /// The build whose tables this battle is written against.
+pub struct Match {
+    /// The build whose tables this match is written against.
     pub game_build: String,
     pub map_id: i32,
     pub seed: i32,
@@ -33,8 +33,8 @@ pub struct Battle {
     /// played under it. A reader that needs a figure uses
     /// [`DEFAULT_DEPLOY_TIME`].
     pub deploy_time: Option<i32>,
-    pub blue: BattleSide,
-    pub red: BattleSide,
+    pub blue: MatchSide,
+    pub red: MatchSide,
     /// The deployment rounds, from the first one. The opening is round zero
     /// and has no state to open it, so each side's [`Opening`] holds it.
     pub turns: Vec<Turn>,
@@ -42,14 +42,14 @@ pub struct Battle {
 
 /// What a side holds for the whole match rather than for one round.
 #[derive(Debug, PartialEq, Eq)]
-pub struct BattleSide {
+pub struct MatchSide {
     /// The opening this side was dealt and the one it took.
     pub opening: Opening,
     /// The construction layout the map dealt this side before the first round.
     ///
     /// A state's own `constructions` is the live list, shortened when a
     /// building is recovered or destroyed. This one is what the side started
-    /// with, so a battle says where the buildings came from rather than having
+    /// with, so a match says where the buildings came from rather than having
     /// them appear in the first round it happens to hold.
     pub constructions: Vec<StaticPlacement>,
     /// Which technologies each unit may research, keyed by unit ID and
@@ -131,7 +131,7 @@ pub struct Turn {
     pub actions: TurnActions,
 }
 
-/// A match position, which a battle writes as a state segment.
+/// A match position, which a match writes as a state segment.
 #[derive(Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct State {
@@ -196,7 +196,7 @@ pub struct SideState {
     #[serde(with = "unit_names::units")]
     #[schemars(with = "Vec<String>")]
     pub unlocked_units: Vec<i32>,
-    /// What the round still allows, which a battle does not write: each
+    /// What the round still allows, which a match does not write: each
     /// opens at a value the round's opening fixes, and only the round's own
     /// decisions spend it.
     #[serde(skip)]
@@ -334,7 +334,7 @@ pub struct NextIndex {
     pub contraption: i32,
 }
 
-/// Each side's decisions in one round, which a battle writes as an action
+/// Each side's decisions in one round, which a match writes as an action
 /// segment.
 #[derive(Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -383,7 +383,7 @@ pub enum Action {
     /// A purchase and where the new formation is deployed.
     ///
     /// The game lands a purchase where [`crate::landing`] says the board has
-    /// room, and the player moves it from there. A battle writes the position
+    /// room, and the player moves it from there. A match writes the position
     /// the formation reaches within the main half, which is where the
     /// purchase's own moves end, so those moves are not written again.
     BuyUnit {
@@ -638,7 +638,7 @@ fn within_round(fields: &mut serde_yaml::Mapping, round: i64) {
     }
 }
 
-/// A battle names a unit type by the name a layout gives it, never by its ID.
+/// A match names a unit type by the name a layout gives it, never by its ID.
 ///
 /// The document still orders unit types by ID, which is the order the game
 /// lists them in, so the fields keep the ID and only their spelling is a name.
@@ -708,11 +708,11 @@ fn is_false(value: &bool) -> bool {
     !*value
 }
 
-/// One segment of a battle stream, tagged by the `kind` it opens with.
+/// One segment of a match stream, tagged by the `kind` it opens with.
 #[derive(Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 enum Segment<'a> {
-    Battle(Header<'a>),
+    Match(Header<'a>),
     State(StateSegment<'a>),
     Action(ActionSegment<'a>),
 }
@@ -739,7 +739,7 @@ struct HeaderSide<'a> {
 }
 
 impl<'a> HeaderSide<'a> {
-    fn of(side: &'a BattleSide) -> Self {
+    fn of(side: &'a MatchSide) -> Self {
         Self {
             seed: side.seed,
             offers: &side.opening.offers,
@@ -768,28 +768,28 @@ struct ActionSegment<'a> {
 /// The line that separates two segments of a stream.
 const SEPARATOR: &str = "---\n";
 
-/// Serializes a battle as the stream `docs/spec/document/battle.md` defines,
-/// in the normal form the battle, state and action documents define.
+/// Serializes a match as the stream `docs/spec/document/match.md` defines,
+/// in the normal form the match, state and action documents define.
 ///
 /// # Errors
 ///
 /// Returns an error when a segment cannot be serialized.
-pub fn canonical_yaml(battle: &Battle) -> Result<String, String> {
+pub fn canonical_yaml(r#match: &Match) -> Result<String, String> {
     let mut yaml = String::new();
-    for (at, segment) in segments_of(battle).iter().enumerate() {
+    for (at, segment) in segments_of(r#match).iter().enumerate() {
         if at > 0 {
             yaml.push_str(SEPARATOR);
         }
         let value = serde_yaml::to_value(segment)
-            .map_err(|error| format!("cannot serialize battle YAML: {error}"))?;
+            .map_err(|error| format!("cannot serialize match YAML: {error}"))?;
         yaml.push_str(&crate::spelling::document(&value)?);
     }
     Ok(yaml)
 }
 
-/// The shape of each segment a battle stream is written as.
+/// The shape of each segment a match stream is written as.
 ///
-/// A battle is a stream of documents rather than one, and each names its own
+/// A match is a stream of documents rather than one, and each names its own
 /// `kind`, so each has its own schema. These types exist to be described: they
 /// carry the segment's own two fields and hand the rest to the types that hold
 /// them, so a schema cannot drift from what [`canonical_yaml`] writes without
@@ -800,12 +800,12 @@ pub mod schema {
     use serde::Serialize;
     use std::collections::BTreeMap;
 
-    /// A battle's header, which opens the stream.
+    /// A match's header, which opens the stream.
     #[derive(Serialize, JsonSchema)]
     #[serde(deny_unknown_fields)]
-    pub struct Battle {
-        pub kind: BattleKind,
-        /// The build whose tables this battle is written against.
+    pub struct Match {
+        pub kind: MatchKind,
+        /// The build whose tables this match is written against.
         pub game_build: String,
         pub map_id: i32,
         pub seed: i32,
@@ -863,15 +863,15 @@ pub mod schema {
         };
     }
 
-    kind!(BattleKind, Battle);
+    kind!(MatchKind, Match);
     kind!(StateKind, State);
     kind!(ActionKind, Action);
 }
 
-/// Reads a battle document whole, or nothing when the file is not a battle.
+/// Reads a match document whole, or nothing when the file is not a match.
 ///
 /// This is [`canonical_yaml`]'s other direction: what it writes, this reads
-/// back. A battle a match is still playing reads too, which is what lets a
+/// back. A match still being played reads too, which is what lets a
 /// match keep its ledger on disk rather than in memory — a side that has not
 /// taken its opening, and a round whose decisions only one side has written,
 /// are both positions a document may be in between two operations.
@@ -880,7 +880,7 @@ pub mod schema {
 ///
 /// Returns an error when the stream's grammar is broken, a segment is not
 /// readable, or an opening names an offer its side was not dealt.
-pub fn read(bytes: &[u8]) -> Result<Option<Battle>, String> {
+pub fn read(bytes: &[u8]) -> Result<Option<Match>, String> {
     let Some(stated) = crate::opening::stated(bytes)? else {
         return Ok(None);
     };
@@ -907,7 +907,7 @@ pub fn read(bytes: &[u8]) -> Result<Option<Battle>, String> {
                 Some(opening.choose)
             }
         };
-        Ok(BattleSide {
+        Ok(MatchSide {
             opening: Opening {
                 choose,
                 offers: side.offers,
@@ -917,7 +917,7 @@ pub fn read(bytes: &[u8]) -> Result<Option<Battle>, String> {
             seed: side.seed,
         })
     };
-    Ok(Some(Battle {
+    Ok(Some(Match {
         game_build: crate::economy::this_build(),
         map_id: stated.map_id,
         seed: stated.seed,
@@ -928,24 +928,24 @@ pub fn read(bytes: &[u8]) -> Result<Option<Battle>, String> {
     }))
 }
 
-/// A battle's segments, in stream order.
-fn segments_of(battle: &Battle) -> Vec<Segment<'_>> {
+/// A match's segments, in stream order.
+fn segments_of(r#match: &Match) -> Vec<Segment<'_>> {
     let mut segments = vec![
-        Segment::Battle(Header {
-            game_build: &battle.game_build,
-            map_id: battle.map_id,
-            seed: battle.seed,
-            deploy_time: battle.deploy_time,
-            blue: HeaderSide::of(&battle.blue),
-            red: HeaderSide::of(&battle.red),
+        Segment::Match(Header {
+            game_build: &r#match.game_build,
+            map_id: r#match.map_id,
+            seed: r#match.seed,
+            deploy_time: r#match.deploy_time,
+            blue: HeaderSide::of(&r#match.blue),
+            red: HeaderSide::of(&r#match.red),
         }),
         Segment::Action(ActionSegment {
             round: 0,
-            blue: Cow::Owned(battle.blue.opening.action().into_iter().collect()),
-            red: Cow::Owned(battle.red.opening.action().into_iter().collect()),
+            blue: Cow::Owned(r#match.blue.opening.action().into_iter().collect()),
+            red: Cow::Owned(r#match.red.opening.action().into_iter().collect()),
         }),
     ];
-    for turn in &battle.turns {
+    for turn in &r#match.turns {
         segments.push(Segment::State(StateSegment {
             round: turn.round,
             reinforce_offers: turn.state.reinforce_offers.as_ref(),
@@ -961,10 +961,10 @@ fn segments_of(battle: &Battle) -> Vec<Segment<'_>> {
     segments
 }
 
-/// A battle stream read as the segments it is made of, each checked for its
+/// A match stream read as the segments it is made of, each checked for its
 /// place in the sequence and otherwise left as YAML.
 ///
-/// A reader that needs only part of a battle deserializes only that part, so
+/// A reader that needs only part of a match deserializes only that part, so
 /// what this checks is the grammar: which segment may follow which, and where
 /// the stream has to stop.
 #[derive(Debug)]
@@ -986,10 +986,10 @@ pub struct RoundSegments {
     pub actions: Option<Value>,
 }
 
-/// Reads a battle stream into its segments, or nothing when the file is not a
-/// battle.
+/// Reads a match stream into its segments, or nothing when the file is not a
+/// match.
 ///
-/// A file is a battle when its first document says `kind: battle`. After that
+/// A file is a match when its first document says `kind: match`. After that
 /// the stream alternates strictly: round zero's action segment, then each
 /// round's state followed by that round's actions. It may end after any
 /// segment, except that nothing follows a concession or a state in which a
@@ -997,7 +997,7 @@ pub struct RoundSegments {
 ///
 /// # Errors
 ///
-/// Returns an error when a battle's segments are out of order, misnumbered,
+/// Returns an error when a match's segments are out of order, misnumbered,
 /// continue past the end of the match, or state a release in a round's
 /// opening position.
 pub fn segments(bytes: &[u8]) -> Result<Option<Segments>, String> {
@@ -1008,7 +1008,7 @@ pub fn segments(bytes: &[u8]) -> Result<Option<Segments>, String> {
     else {
         return Ok(None);
     };
-    if kind_of(&header) != Some("battle") {
+    if kind_of(&header) != Some("match") {
         return Ok(None);
     }
     let mut stream = Segments {
@@ -1020,18 +1020,18 @@ pub fn segments(bytes: &[u8]) -> Result<Option<Segments>, String> {
     for (at, document) in documents.enumerate() {
         let position = at + 2;
         let segment = Value::deserialize(document)
-            .map_err(|error| format!("battle segment {position} is not YAML: {error}"))?;
+            .map_err(|error| format!("match segment {position} is not YAML: {error}"))?;
         if let Some(end) = ended {
-            return Err(format!("battle segment {position} follows {end}"));
+            return Err(format!("match segment {position} follows {end}"));
         }
         let kind = kind_of(&segment)
-            .ok_or_else(|| format!("battle segment {position} names no kind"))?
+            .ok_or_else(|| format!("match segment {position} names no kind"))?
             .to_owned();
         let round = segment
             .get("round")
             .and_then(Value::as_i64)
             .and_then(|round| i32::try_from(round).ok())
-            .ok_or_else(|| format!("battle segment {position} ({kind}) names no round"))?;
+            .ok_or_else(|| format!("match segment {position} ({kind}) names no round"))?;
         let (expected_kind, expected_round) = match (&stream.opening, stream.rounds.last()) {
             (None, _) => ("action", 0),
             (Some(_), None) => ("state", 1),
@@ -1040,14 +1040,14 @@ pub fn segments(bytes: &[u8]) -> Result<Option<Segments>, String> {
         };
         if kind != expected_kind || round != expected_round {
             return Err(format!(
-                "battle segment {position} is {kind} round {round}; \
+                "match segment {position} is {kind} round {round}; \
                  the stream expects {expected_kind} round {expected_round}"
             ));
         }
         if kind == "state" {
             if released(&segment) {
                 return Err(format!(
-                    "round {round} state carries a release or a used skill; a battle \
+                    "round {round} state carries a release or a used skill; a match \
                      states the position a round opens with, before any decision"
                 ));
             }
@@ -1344,7 +1344,7 @@ mod tests {
 
     use super::segments;
 
-    const HEADER: &str = "kind: battle\nmap_id: 1021\nseed: 1\n";
+    const HEADER: &str = "kind: match\nmap_id: 1021\nseed: 1\n";
     const OPENING: &str = "---\nkind: action\nround: 0\nblue: []\nred: []\n";
 
     fn state(round: i32, blue_core: i32) -> String {
@@ -1358,7 +1358,7 @@ mod tests {
     }
 
     fn read(stream: &str) -> Result<super::Segments, String> {
-        segments(stream.as_bytes()).map(|read| read.expect("a battle stream"))
+        segments(stream.as_bytes()).map(|read| read.expect("a match stream"))
     }
 
     fn read_ok(stream: &str) -> bool {
@@ -1518,7 +1518,7 @@ mod tests {
     }
 
     #[test]
-    fn only_a_battle_header_opens_a_battle() {
+    fn only_a_match_header_opens_a_match() {
         assert!(segments(b"kind: layout\nsides: {}\n").unwrap().is_none());
         assert!(segments(b"not: [a document").unwrap().is_none());
         assert!(segments(b"").unwrap().is_none());

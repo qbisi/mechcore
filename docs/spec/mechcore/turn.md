@@ -7,13 +7,13 @@
 This contract defines the file a match in progress keeps beside its document:
 what it holds, how two processes share it, and what is lost when it is.
 `<match>.turn` sits beside `<match>.yaml`, which is the
-[battle](../document/battle.md) document holding the rounds that have been
+[match](../document/match.md) document holding the rounds that have been
 played. The command that reads and writes both is
 [cli.md](cli.md)'s `match` namespace.
 
 The turn file is coordination, not record. It holds the round in progress, and
 a match that is over has none: everything a reader needs afterwards is in the
-battle document. Nothing about a fight, a position or a transition is here;
+match document. Nothing about a fight, a position or a transition is here;
 they are decided by the rules and written to the document.
 
 A match is cooperative. The file says which side each player was given and
@@ -78,7 +78,7 @@ One entry each for `blue` and `red`.
 
 A side's `decisions` are the [action](../document/action.md) spec's actions,
 exactly as a document writes them, and they are the side's own until it
-commits. Committing collapses them into the normal form a battle is written in,
+commits. Committing collapses them into the normal form a match is written in,
 writes them to the document's round, empties `decisions` and sets `committed`.
 
 `committed` is not derivable from the document: a side that committed without
@@ -138,7 +138,7 @@ had not yet joined cannot join it afterwards.
 
 A match that reaches its end deletes the file. What goes with it is the last
 round's uncommitted decisions, which were never played, and a clock no round is
-waiting on. What a reader wants afterwards is the battle document, which holds
+waiting on. What a reader wants afterwards is the match document, which holds
 every round that was.
 
 ## Unresolved

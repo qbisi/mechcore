@@ -9,7 +9,7 @@ use crate::acquire::{self, Mode, Ownership};
 use crate::adapter;
 use mechcore_protocol::{
     InstrumentChannel, MAX_WATCH_MATCH_TIMEOUT_SECONDS, MAX_WATCH_SCENE_WAIT_SECONDS, Operation,
-    RecordBattleArguments, RecordReplayRoundArguments, RecordWatchReplayArguments,
+    RecordFightArguments, RecordReplayRoundArguments, RecordWatchReplayArguments,
     StartTestArguments,
 };
 use serde::Serialize;
@@ -134,7 +134,7 @@ impl Session {
             "game adapter is not connected; acquire the game with launch or attach".to_owned()
         })?;
         let request_timeout = match operation {
-            Operation::RecordBattle => Duration::from_secs(180),
+            Operation::RecordFight => Duration::from_secs(180),
             Operation::RecordReplayRound => Duration::from_secs(330),
             Operation::RecordWatchReplay => {
                 let scene = arguments
@@ -142,12 +142,12 @@ impl Session {
                     .and_then(Value::as_u64)
                     .unwrap_or(MAX_WATCH_SCENE_WAIT_SECONDS)
                     .min(MAX_WATCH_SCENE_WAIT_SECONDS);
-                let battle = arguments
+                let r#match = arguments
                     .get("match_timeout_seconds")
                     .and_then(Value::as_u64)
                     .unwrap_or(MAX_WATCH_MATCH_TIMEOUT_SECONDS)
                     .min(MAX_WATCH_MATCH_TIMEOUT_SECONDS);
-                Duration::from_secs(scene.saturating_add(battle).saturating_add(480))
+                Duration::from_secs(scene.saturating_add(r#match).saturating_add(480))
             }
             _ => ADAPTER_REQUEST_TIMEOUT,
         };
@@ -351,7 +351,7 @@ impl Session {
         Ok(json!({"operation": result, "test": created, "status": status}))
     }
 
-    pub(crate) async fn record_battle(
+    pub(crate) async fn record_fight(
         &self,
         output: PathBuf,
         video_output: Option<PathBuf>,
@@ -363,10 +363,10 @@ impl Session {
         let before = self.refresh_status().await.map_err(error_body)?;
         if !is_training_deployment(&before) {
             return Err(error_body(format!(
-                "record_battle requires completed Training Ground deployment: {before}"
+                "record_fight requires completed Training Ground deployment: {before}"
             )));
         }
-        validate_record_outputs("record_battle", &output, video_output.as_deref(), force)?;
+        validate_record_outputs("record_fight", &output, video_output.as_deref(), force)?;
         let layout_input = self
             .last_applied_layout
             .lock()
@@ -374,13 +374,13 @@ impl Session {
             .clone()
             .ok_or_else(|| {
                 error_body(
-                    "record_battle requires a successfully applied layout in this test session",
+                    "record_fight requires a successfully applied layout in this test session",
                 )
             })?;
         let result = match self
             .adapter_request(
-                Operation::RecordBattle,
-                arguments(&RecordBattleArguments {
+                Operation::RecordFight,
+                arguments(&RecordFightArguments {
                     output: output.clone(),
                     video_output: video_output.clone(),
                     speed_up,
@@ -393,7 +393,7 @@ impl Session {
             Err(error) => {
                 *self.last_applied_layout.lock().await = None;
                 let cleanup = self.finish_recording_match().await;
-                return Err(record_battle_failure(
+                return Err(record_fight_failure(
                     &error,
                     &Value::Null,
                     &layout_input,
@@ -406,7 +406,7 @@ impl Session {
             *self.last_applied_layout.lock().await = None;
             let cleanup = self.finish_recording_match().await;
             let error = format!("adapter did not confirm recording: {result}");
-            return Err(record_battle_failure(
+            return Err(record_fight_failure(
                 &error,
                 &result,
                 &layout_input,
@@ -419,9 +419,9 @@ impl Session {
             Ok(cleanup) => cleanup,
             Err(error) => {
                 let message = format!(
-                    "record_battle published artifacts but could not return to main_menu: {error}"
+                    "record_fight published artifacts but could not return to main_menu: {error}"
                 );
-                return Err(record_battle_failure(
+                return Err(record_fight_failure(
                     &message,
                     &result,
                     &layout_input,
@@ -568,7 +568,7 @@ impl Session {
         Ok(result)
     }
 
-    /// Watch one live round-one matchmaking battle and publish its native GRBR.
+    /// Watch one live round-one matchmaking match and publish its native GRBR.
     ///
     /// Scene selection, saving and cleanup are one adapter transaction, and the
     /// file it names is the one the game itself wrote. The batch cannot start
@@ -966,7 +966,7 @@ fn layout_as_fought(
     ))
 }
 
-pub(crate) fn record_battle_failure(
+pub(crate) fn record_fight_failure(
     error: &str,
     operation: &Value,
     layout_input: &Value,
@@ -1114,8 +1114,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn record_battle_failure_explains_required_match_cleanup() {
-        let failure = record_battle_failure(
+    fn record_fight_failure_explains_required_match_cleanup() {
+        let failure = record_fight_failure(
             "cleanup failed",
             &json!({"recorded": true}),
             &json!({"kind": "layout", "round": 1, }),
@@ -1152,10 +1152,10 @@ mod tests {
     #[test]
     fn an_existing_output_is_refused_unless_the_caller_forces_it() {
         let directory = tempfile::tempdir().unwrap();
-        let output = directory.path().join("battle.mcfr");
+        let output = directory.path().join("fight.mcfr");
         std::fs::write(&output, b"existing").unwrap();
 
-        let refused = validate_record_outputs("record_battle", &output, None, false).unwrap_err();
+        let refused = validate_record_outputs("record_fight", &output, None, false).unwrap_err();
         assert!(
             refused["error"]
                 .as_str()
@@ -1165,20 +1165,20 @@ mod tests {
         );
         assert!(output.exists(), "a refusal must leave the file alone");
 
-        validate_record_outputs("record_battle", &output, None, true).unwrap();
+        validate_record_outputs("record_fight", &output, None, true).unwrap();
         assert!(!output.exists(), "force removes the destination up front");
     }
 
     #[test]
     fn a_refused_destination_leaves_every_other_one_in_place() {
         let directory = tempfile::tempdir().unwrap();
-        let output = directory.path().join("battle.mcfr");
-        let video = directory.path().join("battle.mov");
+        let output = directory.path().join("fight.mcfr");
+        let video = directory.path().join("fight.mov");
         std::fs::write(&output, b"existing").unwrap();
         std::fs::create_dir(&video).unwrap();
 
         let refused =
-            validate_record_outputs("record_battle", &output, Some(&video), true).unwrap_err();
+            validate_record_outputs("record_fight", &output, Some(&video), true).unwrap_err();
         assert!(
             refused["error"].as_str().unwrap().contains("is not a file"),
             "{refused}"

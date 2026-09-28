@@ -261,8 +261,8 @@ started it:
   application or a background one from its bundle's `Info.plist` when it checks
   in, so the Adapter marks the in-memory copy `LSBackgroundOnly` from its
   initializer, before that happens; the bundle on disk is untouched.
-- `-nographics` refuses `record_battle` with a `video_output`, since no frame
-  is ever rendered ([adapter.md](../adapter/adapter.md#record_battle)).
+- `-nographics` refuses `record_fight` with a `video_output`, since no frame
+  is ever rendered ([adapter.md](../adapter/adapter.md#record_fight)).
 - `-nographics` also answers `VideoSetting.TryFixResolution()` false. Without
   graphics the screen reads 640x480, below the smallest resolution the game
   supports, and `StartUpCommand.OnPlatformInitCb` then asks for a restart in a

@@ -400,7 +400,7 @@ mod tests {
     #[test]
     fn writes_atomic_quicktime_mjpeg_container() {
         let directory = tempfile::tempdir().unwrap();
-        let output = directory.path().join("battle.mov");
+        let output = directory.path().join("fight.mov");
         let mut writer = MovWriter::create(
             &output,
             Rational {
@@ -424,7 +424,7 @@ mod tests {
     #[test]
     fn refuses_dimension_changes() {
         let directory = tempfile::tempdir().unwrap();
-        let output = directory.path().join("battle.mov");
+        let output = directory.path().join("fight.mov");
         let mut writer = MovWriter::create(
             &output,
             Rational {

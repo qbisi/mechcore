@@ -26,13 +26,13 @@ fn usage(program: &str) {
     eprintln!("usage: {program} doc verify <document>... | paths on stdin");
     eprintln!("       {program} doc format <document.yaml> [--write]");
     eprintln!("       {program} doc diff <left.yaml> <right.yaml>");
-    eprintln!("       {program} doc project <battle.yaml> --round <n> [--output <layout.yaml>]");
-    eprintln!("       {program} doc schema <layout|battle|state|action>...");
-    eprintln!("       {program} replay convert <replay.grbr> <battle.yaml> [--force]");
+    eprintln!("       {program} doc project <match.yaml> --round <n> [--output <layout.yaml>]");
+    eprintln!("       {program} doc schema <layout|match|state|action>...");
+    eprintln!("       {program} replay convert <replay.grbr> <match.yaml> [--force]");
     eprintln!(
         "       {program} replay convert <layout.yaml> <replay.grbr> [--seed <i32>] [--force]"
     );
-    eprintln!("       {program} fight run <layout.yaml> [--seed <i32>] [--output <battle.mcfr>]");
+    eprintln!("       {program} fight run <layout.yaml> [--seed <i32>] [--output <fight.mcfr>]");
     eprintln!("       {program} fight outcome <recording.mcfr>");
     eprintln!("       {program} fight stats <recording.mcfr> [--tick <n>]");
     eprintln!("       {program} fight buildings <recording.mcfr> [--tick <n>]");

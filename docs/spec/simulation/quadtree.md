@@ -16,7 +16,7 @@ The tree is not merely a query accelerator, which is the reason it has a
 contract at all. Leaf capacity, linked-list insertion order, the reordering a
 split performs, branch visit order and the Q32.32 comparison rules all decide
 which of several equidistant candidates survives into the final twenty
-neighbours. Change any of them and the battle diverges.
+neighbours. Change any of them and the fight diverges.
 
 ## Data structure
 

@@ -42,7 +42,7 @@ refused the move of a unit the snapshot held. A purchase takes the
 allocator's next index, whatever the record asks for, so the round buys every
 unit from its first new index through the last travelling one, in order;
 `travelling.yaml` passed only because its travelling unit's index was the
-allocator's next, and three rounds of a corpus battle projected to layouts
+allocator's next, and three rounds of a corpus match projected to layouts
 fought a different unit until the round bought in that order, activating Mass
 Recruitment for a third purchase as the match itself did.
 

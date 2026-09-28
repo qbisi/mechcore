@@ -127,9 +127,9 @@ was, and a refused operation writes no file.
 
 ## `match`
 
-A match is a [battle](../document/battle.md) document and a turn file beside
+A match is a [match](../document/match.md) document and a turn file beside
 it. `<match>.yaml` holds the rounds that have been played, and it is a valid
-battle document between operations, so `doc verify` reads it at any point.
+match document between operations, so `doc verify` reads it at any point.
 `<match>.turn` holds what the round in progress has not settled yet: which side
 each player was given, each side's decisions before they are committed, when
 the round opened, and whether each side has committed. It is the match's
@@ -177,7 +177,7 @@ any order, and a match is the same match whichever order they take.
 A round is fought when both sides have committed. A side that has not committed
 when the header's deployment time runs out has lost the match, which ends there
 and is not fought; the document states that side's loss as its concession,
-which is the one way a battle says that a side lost a round nobody fought. Any
+which is the one way a match says that a side lost a round nobody fought. Any
 operation that finds a round due, either way, settles it before it answers, so
 nothing has to be watching for the clock.
 
@@ -216,13 +216,13 @@ chosen and makes a dealt match the build's rather than an absent account's.
 Whichever caller names the document first deals the match and writes that
 header; the second joins it. A join that names a seed, map or deployment time
 the document does not carry is refused rather than silently adopting the
-document's, and so is a document that is not a battle.
+document's, and so is a document that is not a match.
 
 Answers the side the caller was given, the header, and that side's opening
 offers and initial constructions. Each side is also given a seed of its own,
 drawn as the match seed is, which the header keeps and no answer shows.
 
-The deal follows from the seed, which [battle.md](../document/battle.md)
+The deal follows from the seed, which [match.md](../document/match.md)
 defines. What else that seed decides, the streams and pools a match is dealt
 from, is the checker's and not a player's, and no operation here answers with
 it.
@@ -261,7 +261,7 @@ consequence stands on the board and one whose consequence is only an option:
 | its `unlock_unit` decisions, in every round | the same fact, said as a decision |
 | the header's `seed` | it deals this match: every opening and every round's offers follow from it |
 | each side's own header `seed`, the caller's included | it decides what an officer that draws hands out in every later round |
-| the other side's opening `offers` | the four combinations are dealt to a side privately, as [battle.md](../document/battle.md) says |
+| the other side's opening `offers` | the four combinations are dealt to a side privately, as [match.md](../document/match.md) says |
 
 Everything else a committed round reached is visible: the units with their
 levels, experience, equipment and facing, the reactor core, the towers, the
@@ -333,7 +333,7 @@ Writes that side's decisions into the match, which is what playing them means.
 
 Operands: the match document. Options: `--side blue|red`.
 
-The decisions are collapsed into the normal form a battle is written in and
+The decisions are collapsed into the normal form a match is written in and
 written to the round's actions, the turn file records that this side has
 committed, and the round is fought when the other side has committed too.
 Answers the phase the match is now in; a side that wants the next round waits
@@ -348,7 +348,7 @@ time.
 
 ### The fight
 
-A fight answers the five fields [battle.md](../document/battle.md) says it
+A fight answers the five fields [match.md](../document/match.md) says it
 decides: the damage each reactor core takes, the experience each unit gains,
 and which contraptions, terrains and airdrop shields remain. Everything else in
 the next position is the transition's, and is predicted rather than fought.
@@ -417,7 +417,7 @@ ranking them.
 
 The `game` namespace carries the operations of [adapter.md](../adapter/adapter.md)
 under the names that protocol gives them: `status`, `start_test`,
-`apply_layout`, `record_battle`, `record_replay_round`, `record_watch_replay`,
+`apply_layout`, `record_fight`, `record_replay_round`, `record_watch_replay`,
 `toggle_fight`, `speed_up`, `quit_match` and `quit_game`. Each takes the
 argument object that protocol defines and answers what it answers.
 The recording verbs take `--instrument a,b`, the instrument channels to record
@@ -433,7 +433,7 @@ was given as `layout_input`. The game can refuse a decision the replay records
 and fight on without it, so the recording is held to the layout the game read
 back as the fight began, as a staged layout is: when the two differ in any
 field, once both are in normal form, the recording is removed
-and the refusal names the fields. `apply_layout` and `record_battle` remain the way
+and the refusal names the fields. `apply_layout` and `record_fight` remain the way
 to fight a layout the replay cannot state and to record a video.
 
 Three more belong to the session rather than the game:
@@ -549,14 +549,14 @@ them equal.
 `replay convert` converts between a replay and a document, in the direction its
 source names, with `--force` to replace an existing destination.
 
-`replay convert <replay.grbr> <battle.yaml>` reads a native replay and writes
-the battle document it records. It answers what it wrote and how much of each
+`replay convert <replay.grbr> <match.yaml>` reads a native replay and writes
+the match document it records. It answers what it wrote and how much of each
 transition the rules predict.
 
-`replay convert <battle.yaml> <replay.grbr>` writes a battle back as the replay
-it converts from, which converts to the same battle again byte for byte, and
-whose rounds the game fights ([battle-replay.md](../document/battle-replay.md)
-says where such a fight parts from the match's). A battle it cannot write is
+`replay convert <match.yaml> <replay.grbr>` writes a match back as the replay
+it converts from, which converts to the same match again byte for byte, and
+whose rounds the game fights ([match-replay.md](../document/match-replay.md)
+says where such a fight parts from the match's). A match it cannot write is
 refused, naming why. It answers the replay's path, map, seed and rounds.
 
 `replay convert <layout.yaml> <replay.grbr>` writes a layout as a replay the
@@ -577,7 +577,7 @@ and the refusal names which of the replay's properties it stands on.
 | `doc verify <document>...` | checks each document against the contract its `kind` names |
 | `doc format <document.yaml>` | writes the document in its normal form, in place with `--write` |
 | `doc diff <left.yaml> <right.yaml>` | normalizes both and reports every field they differ in |
-| `doc project <battle.yaml>` | writes the layout a round's fight starts from |
+| `doc project <match.yaml>` | writes the layout a round's fight starts from |
 | `doc schema <kind>...` | answers the JSON Schema of a document kind |
 
 `doc verify` takes its paths as operands, or one per line on standard input
@@ -592,7 +592,7 @@ being kept of it, and `--output <layout.yaml>` writes the layout rather than
 answering with it.
 
 `doc schema` takes the kinds a document declares in its own `kind` field:
-`layout`, `state`, `battle` and `action`. It answers the shape of the document,
+`layout`, `state`, `match` and `action`. It answers the shape of the document,
 which is what a reader validates against and what a writer generates from; it
 says nothing about what the fields mean, which is the document's own spec. A
 kind this contract does not name is refused.
@@ -649,7 +649,7 @@ mechcore man <topic>         # that topic, as text
 ```
 
 A topic is named by its document's path under `docs/`, without the extension:
-`rules/reinforcements`, `spec/document/battle`, `spec/mechcore/cli`, which is
+`rules/reinforcements`, `spec/document/match`, `spec/mechcore/cli`, which is
 this contract. A name no other topic shares
 may be written on its own, as `reinforcements`. A document's links to its
 siblings resolve to topic names the same way, so a reader without the

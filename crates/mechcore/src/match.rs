@@ -1,4 +1,4 @@
-//! The `match` namespace: a battle document played as a match.
+//! The `match` namespace: a match document, played.
 //!
 //! `docs/spec/mechcore/cli.md` is the contract. A match is the document and
 //! the turn file beside it: `<match>.yaml` holds the rounds that have been
@@ -12,12 +12,12 @@
 use std::{fs, path::PathBuf};
 
 use mechcore_document::{
-    battle::{
-        Action, Battle, BattleSide, DEFAULT_DEPLOY_TIME, Offers, Opening, OpeningOffer, SideState,
-        State, Turn as BattleTurn, TurnActions,
-    },
     economy::Economy,
     layout::StaticPlacement,
+    r#match::{
+        Action, DEFAULT_DEPLOY_TIME, Match, MatchSide, Offers, Opening, OpeningOffer, SideState,
+        State, Turn as MatchTurn, TurnActions,
+    },
     opening::{self, Stream},
     transition,
 };
@@ -135,7 +135,7 @@ fn deal(
     };
     // Each player brings a seed of its own, as the game's server hands one
     // out, which an officer that draws its hand-out draws from.
-    let mut side = |offers: &[OpeningOffer], constructions: &[StaticPlacement]| BattleSide {
+    let mut side = |offers: &[OpeningOffer], constructions: &[StaticPlacement]| MatchSide {
         opening: Opening {
             choose: None,
             offers: offers.to_vec(),
@@ -144,7 +144,7 @@ fn deal(
         tech_loadout: loadout.clone(),
         seed: Some(draw.seed()),
     };
-    let battle = Battle {
+    let r#match = Match {
         game_build: mechcore_document::game_build().to_owned(),
         map_id,
         seed,
@@ -157,7 +157,7 @@ fn deal(
     let mut game = Game {
         path: path.to_owned(),
         economy,
-        battle,
+        r#match,
         turn,
         side: Side::Blue,
         unresolved: None,
@@ -180,8 +180,8 @@ fn join(
         ))),
         _ => Ok(()),
     };
-    stated("seed", seed, game.battle.seed)?;
-    stated("map", map, game.battle.map_id)?;
+    stated("seed", seed, game.r#match.seed)?;
+    stated("map", map, game.r#match.map_id)?;
     stated("deploy-time", deploy_time, game.deploy_time())?;
     let Some(free) = Side::BOTH
         .into_iter()
@@ -347,7 +347,7 @@ impl Phase {
 struct Game {
     path: PathBuf,
     economy: Economy,
-    battle: Battle,
+    r#match: Match,
     turn: Turn,
     /// The side this operation was given, which `new` decides and every other
     /// operation names.
@@ -372,10 +372,10 @@ impl Game {
         let economy = Economy::embedded().map_err(Failure::failed)?;
         let bytes = fs::read(path)
             .map_err(|error| Failure::failed(format!("cannot read {}: {error}", path.display())))?;
-        let battle = mechcore_document::battle::read(&bytes)
+        let r#match = mechcore_document::r#match::read(&bytes)
             .map_err(Failure::refused)?
             .ok_or_else(|| {
-                Failure::refused(format!("{} is not a battle document", path.display()))
+                Failure::refused(format!("{} is not a match document", path.display()))
             })?;
         let turn = match already {
             Some(turn) => Some(turn),
@@ -384,7 +384,7 @@ impl Game {
         let mut game = Self {
             path: path.to_owned(),
             economy,
-            battle,
+            r#match,
             turn: Turn::opening(0, [true, true], true),
             side,
             unresolved: None,
@@ -409,11 +409,11 @@ impl Game {
     /// The round in progress, which is the one the document has not both
     /// written the decisions of.
     fn round(&self) -> i32 {
-        self.battle.turns.last().map_or(0, |turn| turn.round)
+        self.r#match.turns.last().map_or(0, |turn| turn.round)
     }
 
     fn deploy_time(&self) -> i32 {
-        self.battle.deploy_time.unwrap_or(DEFAULT_DEPLOY_TIME)
+        self.r#match.deploy_time.unwrap_or(DEFAULT_DEPLOY_TIME)
     }
 
     const fn side(&self) -> Side {
@@ -428,20 +428,20 @@ impl Game {
     /// nothing from one that has not committed, which is why the turn file
     /// carries the answer and this is only asked when that file is gone.
     fn written(&self, side: Side) -> bool {
-        match self.battle.turns.last() {
+        match self.r#match.turns.last() {
             None => self.opening(side).choose.is_some(),
             Some(turn) => !actions_of(&turn.actions, side).is_empty(),
         }
     }
 
     fn opening(&self, side: Side) -> &Opening {
-        &self.battle_side(side).opening
+        &self.match_side(side).opening
     }
 
-    fn battle_side(&self, side: Side) -> &BattleSide {
+    fn match_side(&self, side: Side) -> &MatchSide {
         match side {
-            Side::Blue => &self.battle.blue,
-            Side::Red => &self.battle.red,
+            Side::Blue => &self.r#match.blue,
+            Side::Red => &self.r#match.red,
         }
     }
 
@@ -466,7 +466,7 @@ impl Game {
     /// Whether the match has ended: a side gave up, or a reactor core reached
     /// zero.
     fn over(&self) -> bool {
-        let Some(turn) = self.battle.turns.last() else {
+        let Some(turn) = self.r#match.turns.last() else {
             return false;
         };
         let conceded = Side::BOTH
@@ -523,7 +523,7 @@ impl Game {
             .collect();
         for side in out {
             let round = self
-                .battle
+                .r#match
                 .turns
                 .last_mut()
                 .expect("a clock runs only on a round the document holds");
@@ -552,7 +552,7 @@ impl Game {
             let actions = self.committed_actions(side);
             // Nothing is declined in round zero, which deals no reinforcement,
             // and nothing has drawn from the side's own stream before it.
-            let stream = self.battle_side(side).seed.map(Stream::seeded);
+            let stream = self.match_side(side).seed.map(Stream::seeded);
             states.push(
                 transition::predict(
                     &self.economy,
@@ -569,7 +569,7 @@ impl Game {
             );
         }
         let [blue, red] = [states.remove(0), states.remove(0)];
-        self.battle.turns.push(BattleTurn {
+        self.r#match.turns.push(MatchTurn {
             round: round + 1,
             state: State {
                 reinforce_offers: None,
@@ -579,7 +579,7 @@ impl Game {
             actions: TurnActions::default(),
         });
         let dealt = self.deal()?;
-        if let Some(opened) = self.battle.turns.last_mut() {
+        if let Some(opened) = self.r#match.turns.last_mut() {
             opened.state.reinforce_offers = dealt;
         }
         self.turn = Turn::opening(round + 1, self.turn.given(), false);
@@ -594,9 +594,9 @@ impl Game {
     /// between operations: a round is dealt the same way whichever process
     /// opened it, and a turn file that was lost changes nothing.
     fn deal(&self) -> Result<Option<Offers>, String> {
-        let yaml = mechcore_document::battle::canonical_yaml(&self.battle)?;
+        let yaml = mechcore_document::r#match::canonical_yaml(&self.r#match)?;
         let stated = mechcore_document::opening::stated(yaml.as_bytes())?
-            .ok_or("a match in progress is not a battle document")?;
+            .ok_or("a match in progress is not a match document")?;
         let opening = opening::verify(&self.economy, &stated)?;
         mechcore_document::reinforcement::deal_last_round(&self.economy, &stated, &opening)
     }
@@ -605,7 +605,7 @@ impl Game {
     ///
     /// The simulator fights it, over the layout the deployment-end position
     /// projects onto, and [`crate::outcome`] reads the recording for the five
-    /// fields `battle.md` says a fight decides. Nothing here writes them into
+    /// fields `match.md` says a fight decides. Nothing here writes them into
     /// the next position yet: two of the five have no rule, so every fight
     /// ends at a named gap rather than at a guess. The recording is thrown
     /// away with the directory it was written in, because the same fight is
@@ -634,8 +634,8 @@ impl Game {
         let layout = mechcore_document::project::project(
             &state,
             round,
-            self.battle.map_id,
-            self.battle.seed,
+            self.r#match.map_id,
+            self.r#match.seed,
         )?;
         let yaml = mechcore_document::canonical_yaml(layout)?;
         let directory = tempfile::tempdir()
@@ -657,22 +657,22 @@ impl Game {
 
     /// The position the round in progress opened with, before any decision.
     fn opened(&self, side: Side) -> Result<SideState, Failure> {
-        if let Some(turn) = self.battle.turns.last() {
+        if let Some(turn) = self.r#match.turns.last() {
             return Ok(state_of(&turn.state, side).clone());
         }
         // The opening is taken from the position the header deals, which is
         // the map's reactor core and its constructions and nothing else.
         let core =
-            opening::reactor_core(self.battle.map_id, side.seat()).map_err(Failure::refused)?;
+            opening::reactor_core(self.r#match.map_id, side.seat()).map_err(Failure::refused)?;
         Ok(transition::before_opening(
             core,
-            self.battle_side(side).constructions.clone(),
+            self.match_side(side).constructions.clone(),
         ))
     }
 
     /// The decisions this side has committed to the round in progress.
     fn committed_actions(&self, side: Side) -> Vec<Action> {
-        match self.battle.turns.last() {
+        match self.r#match.turns.last() {
             Some(turn) => actions_of(&turn.actions, side).to_vec(),
             None => self.opening(side).action().into_iter().collect(),
         }
@@ -689,7 +689,7 @@ impl Game {
 
     /// What declining the round in progress pays, which its offers state.
     fn declined(&self) -> Option<i32> {
-        self.battle
+        self.r#match
             .turns
             .last()
             .and_then(|turn| turn.state.reinforce_offers.as_ref())
@@ -778,8 +778,8 @@ impl Game {
         let layout = mechcore_document::project::project(
             &state,
             round,
-            self.battle.map_id,
-            self.battle.seed,
+            self.r#match.map_id,
+            self.r#match.seed,
         )
         .map_err(Failure::refused)?;
         mechcore_document::compile_layout(layout)
@@ -828,7 +828,7 @@ impl Game {
             )),
             Action::ChooseReinforceItem { index: offer, id } => {
                 let Some(offers) = self
-                    .battle
+                    .r#match
                     .turns
                     .last()
                     .and_then(|turn| turn.state.reinforce_offers.as_ref())
@@ -883,13 +883,13 @@ impl Game {
             let offer = *offer;
             self.turn.side_mut(side).decisions.clear();
             match side {
-                Side::Blue => self.battle.blue.opening.choose = Some(offer),
-                Side::Red => self.battle.red.opening.choose = Some(offer),
+                Side::Blue => self.r#match.blue.opening.choose = Some(offer),
+                Side::Red => self.r#match.red.opening.choose = Some(offer),
             }
         } else {
             let decisions = std::mem::take(&mut self.turn.side_mut(side).decisions);
             let round = self
-                .battle
+                .r#match
                 .turns
                 .last_mut()
                 .expect("a round after the opening is one the document holds");
@@ -909,7 +909,7 @@ impl Game {
     }
 
     fn write_document(&self) -> Result<(), Failure> {
-        let yaml = mechcore_document::battle::canonical_yaml(&self.battle)
+        let yaml = mechcore_document::r#match::canonical_yaml(&self.r#match)
             .map_err(|error| Failure::failed(format!("cannot write the match: {error}")))?;
         fs::write(&self.path, yaml).map_err(|error| {
             Failure::failed(format!("cannot write {}: {error}", self.path.display()))
@@ -941,16 +941,16 @@ impl Game {
             phase,
             round: self.round(),
             game_build: mechcore_document::game_build(),
-            map_id: self.battle.map_id,
+            map_id: self.r#match.map_id,
             // The seed deals both openings and every reinforcement offer, so
             // a player that knew it would know what it is not dealt yet.
-            seed: omniscient.then_some(self.battle.seed),
+            seed: omniscient.then_some(self.r#match.seed),
             deploy_time: self.deploy_time(),
             opened: self.turn.opened.clone(),
             rebuilt: self.turn.rebuilt,
             remaining,
             reinforce_offers: self
-                .battle
+                .r#match
                 .turns
                 .last()
                 .and_then(|turn| turn.state.reinforce_offers.clone()),
@@ -976,14 +976,14 @@ impl Game {
         let mut position = serde_json::to_value(&position)
             .map_err(|error| Failure::failed(format!("cannot write a position: {error}")))?;
         let loadout = if own {
-            self.battle_side(side).tech_loadout.clone()
+            self.match_side(side).tech_loadout.clone()
         } else {
             let fielded = self.fielded(side);
             if let Some(fields) = position.as_object_mut() {
                 fields.remove("supply");
                 fields.remove("unlocked_units");
             }
-            self.battle_side(side)
+            self.match_side(side)
                 .tech_loadout
                 .iter()
                 .filter(|(unit, _)| {
@@ -1023,7 +1023,7 @@ impl Game {
                 decisions: self.opening(side).action().into_iter().collect(),
             });
         }
-        for turn in &self.battle.turns {
+        for turn in &self.r#match.turns {
             if turn.round >= ended {
                 break;
             }
@@ -1043,7 +1043,7 @@ impl Game {
     /// technology loadout is shown for.
     fn fielded(&self, side: Side) -> std::collections::BTreeSet<&str> {
         let mut fielded = std::collections::BTreeSet::new();
-        for turn in &self.battle.turns {
+        for turn in &self.r#match.turns {
             for unit in &state_of(&turn.state, side).units {
                 fielded.insert(unit.unit.type_name.as_str());
             }

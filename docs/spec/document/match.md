@@ -1,14 +1,14 @@
-# Battle definition
+# Match definition
 
 ## Scope
 
-A battle is one match, written as a stream of YAML documents separated by
+A match document is one match, written as a stream of YAML documents separated by
 `---`. The stream opens with a header, holds the opening's decisions next, and
 then alternates between the position a round opens with and the decisions each
 side takes from it.
 
 ```yaml
-kind: battle
+kind: match
 map_id: 1001
 seed: 2038621361
 blue: {offers: [...], constructions: [...], tech_loadout: {...}}
@@ -41,14 +41,14 @@ This document defines the header, the grammar of the stream, and what holds
 across its rounds. A state segment carries the [state](state.md) shape and an
 action segment carries two [action](action.md) sequences; those two documents
 define the segments themselves. A [layout](layout.md) is the projection of a
-state onto what the fight simulates, and never appears in a battle.
+state onto what the fight simulates, and never appears in a match.
 
 A segment is a unit a reader can take on its own. The header and one round's
 state are the position a side decides that round from, so a reader that wants
 one round reads the header, that round's state and that round's actions, and
 nothing between them.
 
-A battle states decisions and the positions they were taken from. It does not
+A match states decisions and the positions they were taken from. It does not
 state a fight: what a fight did is visible only as the difference between one
 round's state and the next.
 
@@ -57,7 +57,7 @@ round's state and the next.
 The segments come in one order:
 
 ```text
-battle, action(0), state(1), action(1), state(2), action(2), ...
+match, action(0), state(1), action(1), state(2), action(2), ...
 ```
 
 `round` counts up by one from each state to the next, and an action segment
@@ -86,7 +86,7 @@ repeat, or that continues past the end of a match.
 
 ### A state segment is the position a round opens with
 
-A battle states a round from before its first decision. No skill on its panel
+A match states a round from before its first decision. No skill on its panel
 carries a `release` or is `used`, and `travelling` is empty, because all three
 are written by the round's own decisions. A state segment that holds a release
 or a used skill is refused.
@@ -102,34 +102,34 @@ The header holds what every round of the match shares.
 
 | Field | Source |
 | --- | --- |
-| `game_build` | the build whose tables the battle is written against |
+| `game_build` | the build whose tables the match is written against |
 | `seed` | `BattleInfo.SystemSeed` |
 | `map_id` | `BattleInfo.MapID` |
 
 `seed` and `map_id` keep the meaning and the optionality a layout gives them.
 `game_build` is the one a [layout](layout.md#document-shape) states: every
-writer writes it, a reader refuses another build, and a battle that states none
+writer writes it, a reader refuses another build, and a match that states none
 is the reader's own.
 
 The rest of the match header is a property of the standard 1v1 rule set rather
 than of a match: the phase durations, the round cap, the advance team,
-reinforcement and construction flags, the game and score modes. A battle states
+reinforcement and construction flags, the game and score modes. A match states
 the mode once by being this format, rather than restating its consequences in
 every segment. A mode that changes them is a different format.
 
 `FightTime` is the only header constant a simulator reads, and it is 120
 seconds.
 
-### Game rules are the premise, so the battle carries them
+### Game rules are the premise, so the match carries them
 
 `game_rules` is optional and its absence means none. It is the one header
-constant a battle states rather than drops, because exclusions across the other
+constant a match states rather than drops, because exclusions across the other
 documents rest on it being empty: the research queue is unreachable without rule
 `999917`, equipment never wears out and so needs no `durability` without rule
 `999903`, and the blueprint pool is `[1, 2, 3, 4, 5]` only while no rule enables
 blueprint research. Each of those is a claim about this field.
 
-A battle that names a rule is outside what this format defines. A reader refuses
+A match that names a rule is outside what this format defines. A reader refuses
 such a document rather than reading the states inside it under premises the rule
 breaks.
 
@@ -185,7 +185,7 @@ part of it that differs between matches.
 
 The map rolls a construction layout and deals it to both sides before the first
 round. It is the one piece of the opening no decision produces, and without this
-field a battle's buildings would appear out of nothing in whichever round it
+field a match's buildings would appear out of nothing in whichever round it
 starts from.
 
 A state's own `constructions` is a different list with the same shape. That one
@@ -243,11 +243,11 @@ The seed belongs in the header rather than in a state for the reason the
 match seed does. A state already holds what the draw handed out, as it holds
 the round's `reinforce_offers`; the stream only decides what a later round is
 handed, and where it stands depends on how many rounds drew before, which is
-the battle's history rather than a position. A check that needs the stream
+the match's history rather than a position. A check that needs the stream
 starts it from this seed and advances it once for every hand-out the earlier
 rounds drew.
 
-`seed` is optional. A battle that states none cannot predict such a hand-out,
+`seed` is optional. A match that states none cannot predict such a hand-out,
 and its prediction leaves that round unimplemented. A match this platform deals
 draws one for each side, as the game's server does.
 
@@ -265,11 +265,11 @@ The seam from the header to round 1 is checked like every other seam, below.
 
 ## Checking the deal against the seed
 
-Every offer a battle states is drawn from the match's seed, so a battle can be
+Every offer a match states is drawn from the match's seed, so a match can be
 checked for having been dealt what it says without the replay it came from.
 
 ```bash
-mechcore doc verify <battle.yaml>
+mechcore doc verify <match.yaml>
 ```
 
 Before checking the deal, verification reads every state field and every
@@ -308,7 +308,7 @@ before and after generation. These checks are conditional on the stated round
 inputs; they do not authenticate player decisions or validate transitions across
 combat.
 
-The prediction runs on the seed alone, so it needs neither the battle nor the
+The prediction runs on the seed alone, so it needs neither the match nor the
 replay it came from: it selects each officer group's variant and the unit
 reinforcement round pool, advances the stream through the opening deal, and
 reads the map stream's construction group and reversal flags. Those are the
@@ -322,7 +322,7 @@ round deals.
 Consecutive states are not adjacent. Applying a round's decisions to its state
 yields the position at the end of the deployment, projecting that position
 yields the layout the fight starts from, and the fight is what produces the next
-round's roster and reactor core. A battle is therefore the only document that
+round's roster and reactor core. A match is therefore the only document that
 states an end-to-end simulator obligation, and the only one whose checks can be
 cross-round.
 
@@ -366,7 +366,7 @@ so the opening's third step delivers it.
 
 ### Transition coverage
 
-`mechcore doc verify <battle.yaml>` measures each transition against the whole next
+`mechcore doc verify <match.yaml>` measures each transition against the whole next
 position, not only the nine fields above. A transition starts from a round's
 state and that round's decisions, steps the decisions in order, and opens the
 next round on the result. Every leaf of the recorded next state is then put in
@@ -431,20 +431,20 @@ The report's `coverage` holds the four counts in `total`, by field group in
 round and side in `transitions`, where `side: match` holds `reinforce_offers`.
 `unequal` lists each disagreeing leaf with its round, side, path, predicted and
 recorded values, and `untargeted_round` names a last round whose decisions have
-no state after them, which is not a transition. A battle verifies only when no
+no state after them, which is not a transition. A match verifies only when no
 leaf is `unequal` or `unimplemented`.
 
-A battle is what fights are run from, so it also verifies only when every
+A match is what fights are run from, so it also verifies only when every
 round becomes a layout: the position a round opens with, and the position its
 decisions deploy onto, which is what `doc project` writes, are each projected
 and put through the layout compiler. The report's `projected_layouts` counts
 the layouts that compiled, two per round, and a round that does not project,
-deploy or compile fails the battle with its round and which position it was.
+deploy or compile fails the match with its round and which position it was.
 
 ### Cross-round invariants
 
-A segment checks itself. A battle checks the seams between states, and these
-hold across every seam of a well-formed battle.
+A segment checks itself. A match checks the seams between states, and these
+hold across every seam of a well-formed match.
 
 | Invariant |
 | --- |
@@ -486,7 +486,7 @@ owes.
 Nothing else reaches the supply between two rounds. Standard 1v1 pays nothing
 during a fight: the only officers in this build that pay a bounty for
 destroying a giant are neither dealt by an opening nor granted by a card. So
-`supply` is not in the `fight` class, and a battle whose supply does not add up
+`supply` is not in the `fight` class, and a match whose supply does not add up
 fails to verify at that leaf.
 
 The opening is the first term of that identity rather than an exception to it.
@@ -496,12 +496,12 @@ income arrives after.
 ## Converting a replay
 
 ```bash
-mechcore replay convert <replay.grbr> <battle.yaml> [--force]
+mechcore replay convert <replay.grbr> <match.yaml> [--force]
 ```
 
 Conversion needs no game. It reads the replay and nothing else, and it simulates
-no fight. It is also idempotent across this format: a battle written back as a
-replay ([battle-replay.md](battle-replay.md)) converts to the same battle, byte
+no fight. It is also idempotent across this format: a match written back as a
+replay ([match-replay.md](match-replay.md)) converts to the same match, byte
 for byte.
 
 The converter refuses rather than guesses. A replay from another build, a
@@ -515,11 +515,11 @@ side's decision, the specialist half is read back from round 1's officers, and
 the four offers are rebuilt from round 0's random state. A replay whose round 0
 stands for anything but one team choice per side is refused, and so is a missing
 or malformed random state, or a choice that disagrees with the rebuilt deal. A
-replay that holds the opening alone is refused too: a battle is deployment
+replay that holds the opening alone is refused too: a match is deployment
 rounds, and one with none is not a document this format has a use for.
 
 Two refusals rest on what only the replay holds. The written document has to
-read back as exactly the battle converted into it, every state field and
+read back as exactly the match converted into it, every state field and
 action operand included. And the random stream the header's seed starts has to
 land on every state the replay recorded: the match seed on round 0's, and each
 round's reinforcement deal on the state that round recorded before it and the
@@ -529,17 +529,17 @@ cannot reproduce at all is reported rather than refused, and `doc verify`
 fails the document for it. The deal also leaves a pool, and every round has to
 open on it: the log a round's snapshot recorded has to be the deal's, up to the
 order of each round's two choices, and so do the rounds it excludes the level-4
-commander skills from ([battle-replay.md](battle-replay.md#the-reinforcement-pool)).
+commander skills from ([match-replay.md](match-replay.md#the-reinforcement-pool)).
 Each side's own stream is held to the same test:
 the stream every round's snapshot records has to be where the side's seed,
 advanced once for every hand-out an earlier round drew, puts it, and the
 round's hand-out is drawn from it.
 
-### A converted battle ends on its last round's decisions
+### A converted match ends on its last round's decisions
 
 A fight's result is recorded only in the snapshot that opens the next round.
 The fight that ends a match opens none, so a replay holds no position after its
-last round's decisions, and a converted battle's last segment is that round's
+last round's decisions, and a converted match's last segment is that round's
 action segment. Its fight is not stated, because the source does not state it
 and conversion does not simulate one.
 
@@ -637,16 +637,16 @@ A [layout](layout.md#normal-form) is spelled by the same three:
     - {name: vortex, index: 0, position: {x: -120, y: -100}, exp: 193, value: 100}
 ```
 
-Actions, units and ID lists are what a battle holds by the thousand, and one
+Actions, units and ID lists are what a match holds by the thousand, and one
 line each keeps a round on a screen and makes a diff name the item that
 changed. A coordinate pair and an allocator are scalar mappings, so they fold
 by the same rule; a side and a technology list mix shapes and stay
-blocks. The spelling is part of the normal form, so one battle has one byte
+blocks. The spelling is part of the normal form, so one match has one byte
 sequence; a reader parses either style.
 
 ## Excluded fields
 
-| Field | Why it is not in the battle |
+| Field | Why it is not in the match |
 | --- | --- |
 | A round-zero state | Every side enters the opening holding nothing; the header is that position |
 | A fight's result | The next state shows it; the last fight has no next state, see above |
@@ -663,13 +663,13 @@ sequence; a reader parses either style.
 | The 1v1 header constants | Properties of the mode, above |
 
 A document's IDs are all resolved against one build's catalogue, so a converter
-records which replay and which build a battle came from beside the document
+records which replay and which build a match came from beside the document
 rather than inside it. A `build` field no rule reads would state a fact the
 reader cannot act on except by refusing the document.
 
 ## Unresolved
 
-**Whether a battle states the fight that ends it.** A converted battle ends on
+**Whether a match states the fight that ends it.** A converted match ends on
 its last round's decisions, and the stream admits one more state segment after
 them. What that segment would hold is open. The fight writes the roster with
 its experience, the constructions, the contraptions and the reactor cores, and
@@ -685,12 +685,12 @@ on the segment, and a field is only worth carrying if some reader refuses or
 weighs a segment by it.
 
 **Whether provenance belongs in the document.** A build mismatch is undetectable
-from a battle alone, because the build is recorded beside the file. Making it
+from a match alone, because the build is recorded beside the file. Making it
 detectable means a `build` field, and a field is only worth carrying if a
 mismatch is a refusal. That is the same question for every document kind and
 should be answered once.
 
-**What a battle does with a match that carries game rules.** Refusing is a floor
+**What a match document does with a match that carries game rules.** Refusing is a floor
 rather than a design. A rule changes premises the other documents rest on, so
 admitting one means each of those documents saying what it does under that
 rule, not just this one recording the rule's ID.

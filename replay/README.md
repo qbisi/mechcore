@@ -16,10 +16,10 @@ under the installed version and pushes them: the collector keeps them in the
 game's own replay directory, and publishing is a separate step.
 The version this checkout describes selects its directory, and
 `scripts/export-replay-corpus.py` converts those replays into
-`work/battle/<version>/`, where `scripts/verify-battles.py` and
-`scripts/fight-coverage.py` read them. It also writes each battle back as a
+`work/match/<version>/`, where `scripts/verify-matches.py` and
+`scripts/fight-coverage.py` read them. It also writes each match back as a
 replay and converts it again, and fails on one that does not come back the
-same; `scripts/battle-replays.py` fights every round of both replays in the game
+same; `scripts/match-replays.py` fights every round of both replays in the game
 and compares the two. Neither the test suite nor CI reads a
 replay: the converter is not bound to read every version the corpus holds, and
 a replay added there must not turn this repository's CI red.
@@ -37,7 +37,7 @@ new files under an unchanged version; the replays from before and after such an
 update share a directory. A replay is filed under the version of the game that
 recorded it; its header carries that version's last component (`2324`).
 
-**A battle document is generated and never hand-corrected.** A value that looks
+**A match document is generated and never hand-corrected.** A value that looks
 wrong is a claim about the converter and belongs in
 `crates/document/src/convert.rs`. Layouts built by hand, and the one captured
 live from a replay's round, are in [`../layouts/`](../layouts/README.md).

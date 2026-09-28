@@ -1,4 +1,4 @@
-//! The names a battle document gives what other documents number.
+//! The names a match document gives what other documents number.
 //!
 //! An officer, a unit's technologies, a blueprint, an energy tower skill, a
 //! commander skill and an equipment item are named by the game's own English
@@ -11,7 +11,7 @@
 //! skill or an equipment item by that one's name, and a card of units as
 //! `scorpion_1x_lv2`, its unit, squads and level. Two unit cards can share
 //! those and differ only in the round that deals them, so a unit card's name
-//! is only read within its round: a battle segment appends it as `@4`, and
+//! is only read within its round: a match segment appends it as `@4`, and
 //! a unit card's name read on its own is refused.
 //!
 //! The document still orders what it names by ID, so the fields keep the ID
@@ -462,7 +462,7 @@ shapes!(equipment, Equipment);
 shapes!(contraption, Contraption);
 
 /// Reinforcement cards by name. Writing needs nothing else; reading a unit
-/// card needs its round, which a battle segment appends as `name@round`.
+/// card needs its round, which a match segment appends as `name@round`.
 pub(crate) mod card {
     use serde::{Deserialize, Deserializer, Serializer};
 
@@ -475,10 +475,10 @@ pub(crate) mod card {
     }
 
     /// A reinforcement choice: the card taken, or the decline, written by
-    /// [`crate::battle::DECLINE_OFFER`].
+    /// [`crate::r#match::DECLINE_OFFER`].
     pub(crate) mod choice {
         use super::{Deserialize, Deserializer, Serializer};
-        use crate::battle::DECLINE_OFFER;
+        use crate::r#match::DECLINE_OFFER;
 
         // Required by serde's `with` shape.
         #[allow(clippy::ref_option, clippy::trivially_copy_pass_by_ref)]
@@ -507,7 +507,7 @@ pub(crate) mod card {
     /// decline with what it pays, `{name: decline_offer, refund: 50}`.
     pub(crate) mod offers {
         use super::{Deserialize, Deserializer, Serializer};
-        use crate::battle::{DECLINE_OFFER, Offers};
+        use crate::r#match::{DECLINE_OFFER, Offers};
         use serde::Serialize;
 
         #[derive(Serialize, Deserialize)]

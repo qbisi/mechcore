@@ -69,14 +69,14 @@ def named(what: str, owner: str) -> str:
     return f"{what} ({owner})" if what != owner else what.split(", and ")[0]
 
 
-def rounds_of(battle: pathlib.Path) -> int:
-    return sum(1 for line in battle.read_text().splitlines() if line == "kind: state")
+def rounds_of(match_doc: pathlib.Path) -> int:
+    return sum(1 for line in match_doc.read_text().splitlines() if line == "kind: state")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary", default="target/release/mechcore")
-    parser.add_argument("--battles", help="the battle documents (default: work/battle/<version>)")
+    parser.add_argument("--matches", help="the match documents (default: work/match/<version>)")
     arguments = parser.parse_args()
     binary = REPOSITORY / arguments.binary
     if not binary.exists():
@@ -89,17 +89,17 @@ def main() -> int:
     accepted = 0
     with tempfile.TemporaryDirectory() as room:
         layout = pathlib.Path(room) / "deployment.yaml"
-        battles = REPOSITORY / (arguments.battles or f"work/battle/{build_data.build()}")
-        for battle in sorted(battles.glob("*.yaml")):
-            for round_number in range(1, rounds_of(battle) + 1):
+        matches = REPOSITORY / (arguments.matches or f"work/match/{build_data.build()}")
+        for match_doc in sorted(matches.glob("*.yaml")):
+            for round_number in range(1, rounds_of(match_doc) + 1):
                 projected = subprocess.run(
-                    [binary, "doc", "project", battle, "--round", str(round_number),
+                    [binary, "doc", "project", match_doc, "--round", str(round_number),
                      "--output", layout],
                     capture_output=True,
                 )
                 if projected.returncode != 0:
                     refused_projection.append(
-                        (battle.name, round_number, projected.stderr.decode().strip())
+                        (match_doc.name, round_number, projected.stderr.decode().strip())
                     )
                     continue
                 fought = subprocess.run(

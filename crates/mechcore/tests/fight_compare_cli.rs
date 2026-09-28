@@ -8,7 +8,7 @@ use mechcore_mcfr::{
 #[test]
 fn compare_reports_equal_physics_result_hashes() {
     let directory = tempfile::tempdir().unwrap();
-    let path = directory.path().join("battle.mcfr");
+    let path = directory.path().join("fight.mcfr");
     write_recording(&path, 42, &[1]);
 
     let output = compare(&path, &path);

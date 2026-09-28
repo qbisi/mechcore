@@ -301,12 +301,12 @@ Three layers of test hold this:
 - kernel tests cover building collision, Q32.32 distance boundaries, the tree's
   coarse reachable range, and the behaviour at the edge of stopping;
 - the native smoke samples in `tests/regression/mcfr-regressions.yaml` compare the stable
-  physics projection's per-tick `physics_result_hash`, the Steel Ball battle
+  physics projection's per-tick `physics_result_hash`, the Steel Ball fight
   sample included.
 
 ```text
 cargo test -p mechcore-simulation rvo
-cargo test -p mechcore-simulation --test battle native_regression_smoke_hashes_match
+cargo test -p mechcore-simulation --test fight native_regression_smoke_hashes_match
 ```
 
 ## Fidelity boundary
@@ -334,7 +334,7 @@ covered one it looks.
 
 Instrument channels exist for research and for locating a divergence
 ([mcfr.md](../mcfr/mcfr.md#instrument-channels)). None substitutes for a full
-MCFR battle hash, and none is a layout field.
+MCFR fight hash, and none is a layout field.
 
 ## Unresolved
 

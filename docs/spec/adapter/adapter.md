@@ -158,7 +158,7 @@ An admitted claim receives:
     "status",
     "start_test",
     "apply_layout",
-    "record_battle",
+    "record_fight",
     "record_replay_round",
     "record_watch_replay",
     "toggle_fight",
@@ -254,7 +254,7 @@ automatically retried.
 
 The adapter returns after the native call or readback completes. `apply_layout`
 also waits until the requested activation-round deployment is stable.
-`record_battle` remains active through the complete logic-tick capture and
+`record_fight` remains active through the complete logic-tick capture and
 atomic MCFR publication. `record_replay_round` additionally owns replay
 loading and round selection; it fights the replay without a scene, so it starts
 and ends at the main menu.
@@ -342,12 +342,12 @@ The operation invokes Unity application shutdown. It refuses with
 The adapter confirms the request; the session additionally waits for the
 Adapter to disconnect.
 
-### record_battle
+### record_fight
 
 Input contains one absolute, non-existing destination with a `.mcfr` suffix:
 
 ```json
-{"output":"/absolute/path/battle.mcfr"}
+{"output":"/absolute/path/fight.mcfr"}
 ```
 
 An optional `video_output` enables the logic-frame visual recording, and an optional `speed_up`
@@ -355,8 +355,8 @@ selects whether the recording runs on scaled time:
 
 ```json
 {
-  "output":"/absolute/path/battle.mcfr",
-  "video_output":"/absolute/path/battle.mov",
+  "output":"/absolute/path/fight.mcfr",
+  "video_output":"/absolute/path/fight.mov",
   "speed_up":true
 }
 ```
@@ -502,13 +502,13 @@ wrote as one.
 
 ```json
 {
-  "grbr": "/absolute/path/battle.grbr",
+  "grbr": "/absolute/path/match.grbr",
   "round": 6,
   "output": "/absolute/path/round-6.mcfr"
 }
 ```
 
-Both `record_replay_round` and `record_battle` take an optional `instrument`
+Both `record_replay_round` and `record_fight` take an optional `instrument`
 list, the channels to record into the MCFR beside its tables:
 
 ```json
@@ -749,7 +749,7 @@ A replay saved mid-match holds every round the spectator was present for, from
 the round it joined in, and an empty round-0 record ahead of them when it
 joined after round one. A round's record is complete once the spectator has
 entered that round's fight. Joined before round two, the spectator builds the
-battle from its start and the replay also holds round 0, the opening
+match from its start and the replay also holds round 0, the opening
 specialist choice. `BattleRecord.GetAvaliableStartRound` makes the joined round
 the one a replay of it starts from.
 
@@ -777,7 +777,7 @@ Typical output:
 {"requested":true}
 ```
 
-The operation submits the native battle speed-up request. It refuses with
+The operation submits the native fight speed-up request. It refuses with
 `invalid_game_state` when there is no active match, and again when the match
 exposes no action controller. `status` carries no speed field, so the native
 call completing normally is the authoritative completion condition.
@@ -855,7 +855,7 @@ the client keeps none of it:
 `state` is one of `zero`, `loading`, `prepare`, `deploy`, `fighting` or
 `ending` (`EFightState`). The two elapsed times are measured by the server's
 clock, `ServerProxy.GetTimeSpanToCurrentServerTime`, from when the state and the
-battle began, and are read afresh at each `status`. `deploy_remaining_seconds`
+match began, and are read afresh at each `status`. `deploy_remaining_seconds`
 is set in `deploy` only: `BattleInfo.DeployTime` less the time spent, the
 latest the fight can begin, since both players may finish sooner. Deployments
 have been seen to run a few seconds past it.
@@ -881,7 +881,7 @@ Typical output:
 ```
 
 The operation changes the Training Ground process state from deployment to
-battle. The MCP layer additionally observes the battle transition before
+fight. The MCP layer additionally observes the fight transition before
 returning.
 
 ### watch_scene
@@ -970,8 +970,8 @@ cause is addressed.
 | --- | --- |
 | `capture_failed` | the capture itself broke, including a second recording header |
 | `deployment_capture_failed`, `deployment_capture_timeout` | a named round's readback failed or did not reach its opening/finish boundaries |
-| `battle_capture_failed` | round/source coverage, state continuity or battle writing failed, or the whole-battle resource budget expired |
-| `battle_publication_failed` | destination creation, source identity recheck, syncing or no-clobber publication failed |
+| `match_capture_failed` | round/source coverage, state continuity or match writing failed, or the whole-match resource budget expired |
+| `match_publication_failed` | destination creation, source identity recheck, syncing or no-clobber publication failed |
 | `mcfr_error` | the recording could not be written, or did not read back as written |
 | `video_error`, `video_verification_failed` | the optional video output could not be written or did not verify |
 | `native_replay_directory` | the native replay directory could not be resolved |
