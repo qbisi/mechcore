@@ -42,6 +42,7 @@ pub(super) fn test_placement(
         rotation: if team == 0 { 0 } else { 180_000 },
         rotated: false,
         level: 1,
+        exp: 0,
         corrections: Vec::new(),
     }
 }
