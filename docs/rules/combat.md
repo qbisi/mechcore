@@ -89,6 +89,18 @@ tick after that, on whatever the selector answers then. A shot that kills later
 in its flight, or a replacement already in the attack area, is followed at
 once, and a unit whose cooling is nothing never holds.
 
+## A free-moving unit keeps its speed whichever way it faces
+
+A unit whose rotate speed is below 180° a second, and whose body is more than
+90° from the way it drifts, moves slower than its full speed. A free-moving
+unit never does: `MotionController.CalculateMoveSpeed` returns the full speed
+first when `FightMech.isFreeMove` is set. The table's own column is false for
+every unit; `MechData.PreProcess` sets the flag for an id of at most 54 whose
+bit is set in the literal `0x40000000040010`: the Melting Point (4), the
+Wraith (18) and the unit whose id is 54. `scripts/extract-units.py` writes it
+as `free_move`. A Wraith drifting 100° off its facing in its M3 with seed
+1787720817 publishes its full 10 m/s at tick 172.
+
 ## Attack scheduling
 
 `RefreshAttackInterval` converts by the logical step and floors at one tick.
@@ -175,12 +187,15 @@ four `FightSkill`s, and each prepares, attacks and goes idle by itself:
 **A sibling gives up a unit the core has just taken.** An attacking sibling's
 check asks `SkillAttackableChecker.TrySearchGroupSkillLockTarget` on every
 update while its lock lives, and the core's never does. When the core, which
-updates first, took on that same update the unit the sibling holds, and a
-unit no slot holds stands in the sibling's reach, the answer is to give it
-up: the check fails with the lock unchanged, the slot goes idle and drops
-its lock, and on the next update it searches around the others and prepares
-anew. A unit shared from before is kept, and so is one with nothing else in
-reach; a preparing sibling's check does not ask at all.
+updates first, took on that same update the unit the sibling holds, no other
+sibling holds it, and a unit no slot holds stands in the sibling's reach, the
+answer is to give it up: the check fails with the lock unchanged, the slot
+goes idle and drops its lock, and on the next update it searches around the
+others and prepares anew. A unit shared from before is kept, and so is one
+more siblings hold, and one with nothing else in reach; a preparing sibling's
+check does not ask at all. In the Wraith's M3 with seed 1787720817, at tick
+178, the core took a Crawler three of its siblings held, two of them still
+preparing, with two free Crawlers in reach, and the attacking one kept it.
 
 `crates/simulation/src/fight/mech.rs` implements the split as `lock_target`
 and `Actor::attack_target`.
@@ -444,6 +459,9 @@ not the game's native attack-type enum.
   on, the unit's lock following the latest slot, a sibling giving up the
   unit the core has just taken, and a slot's interval outliving its attack,
   in the Wraith's M2, M3 and M6 fights: `tests/units/regressions.mcscript`.
+- A sibling keeping a unit the core took while more siblings hold it, and a
+  free-moving Wraith at full speed off its facing, in the Wraith's M3 with
+  seed 1787720817: `tests/units/regressions.mcscript`.
 - Where a charging Crawler is sent, and a Marksman's quick switch that cannot
   follow a kill: `tests/regression/simulate.mcscript`.
 - The body travelling toward the lock, attacking without moving, and the
@@ -522,6 +540,9 @@ not the game's native attack-type enum.
 - An attacking sibling's check asks whether to give its unit up:
   `SkillAttackableChecker.Check`,
   `SkillAttackableChecker.TrySearchGroupSkillLockTarget`.
+- A free-moving unit is not slowed by its facing, and which units are free
+  moving: `MotionController.CalculateMoveSpeed`, `FightMech.isFreeMove`,
+  `MechData.PreProcess`, `FightMech.EnterFight`.
 - The first acquisition happens before the first state: `FightPrepareState.Enter`.
 - Life lost is clamped to life left: `FightActor.ReduceLife`,
   `FightSkill.GetDamage`.
@@ -577,11 +598,11 @@ not the game's native attack-type enum.
 - **When `FightSkill.ExitFight` runs** in a won fight, and why a cooling the
   simulator would begin on the won fight's first tick is not one the game
   shows; the recordings fix what is seen, not the call that makes it.
-- **A Wraith's search angle from its root** is measured, not pinned: the
-  angles one recorded search gave three candidates, in the Wraith's M3 with
-  seed 1787720817, all put the facing it was measured from at its root's to
-  within 0.03°, and 1.9° from its first weapon's. No Wraith fight that
-  reaches that search plays back yet.
+- **A sibling keeping a unit more siblings hold** is recorded once, not
+  read: which holders `TrySearchGroupSkillLockTarget` counts, and whether
+  preparing siblings count among them, is what one tick of one fight says.
+- **The unit whose id is 54** is free-moving by the same literal; no recorded
+  fight fields it.
 - **The endgame** with several members or groups, summons, respawns,
   constructions, shields, and mixed damage inside one tick; and which of the
   winner's units the build hands a tower.

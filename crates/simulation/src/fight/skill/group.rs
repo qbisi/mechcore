@@ -44,9 +44,10 @@ impl Simulation {
     /// whether the slot gives up a unit another skill of its group also
     /// holds, so that the check fails and the slot, idle, searches afresh on
     /// the next update. It does when the core took that very unit earlier in
-    /// the same update and a unit no slot holds stands in the sibling's
-    /// reach. A unit shared from before is kept, and so is one with nothing
-    /// else in reach. A sibling that took the unit earlier in the update has
+    /// the same update, no other sibling holds it, and a unit no slot holds
+    /// stands in the sibling's reach. A unit shared from before is kept, and
+    /// so is one more siblings hold, and one with nothing else in reach. A
+    /// sibling that took the unit earlier in the update has
     /// not been recorded doing so, and is refused by name; the build weighs
     /// the holders by attack counts, which is not read.
     pub(in crate::fight) fn sibling_yields(
@@ -71,6 +72,16 @@ impl Simulation {
             })
             .collect::<Vec<_>>();
         if taken_now.is_empty() {
+            return Ok(false);
+        }
+        // A unit more of the group holds than the core and this slot is
+        // kept: the Wraith's M3 with seed 1787720817 at tick 178, its core
+        // taking the Crawler three of its siblings hold, two of them still
+        // preparing, with two free Crawlers in reach.
+        let holders = (0..slots.len())
+            .filter(|&other| other != slot && slots[other] == held)
+            .count();
+        if taken_now == [0] && holders > 1 {
             return Ok(false);
         }
         let Some(FightActorRef::Unit(candidate)) =

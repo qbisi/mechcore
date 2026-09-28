@@ -79,10 +79,9 @@ agrees with its `config/units/` file.
 ## The other seven
 
 Arclight, Fang, Mustang, Steel Ball, Wraith, Stormcaller and Phoenix have
-the same six layouts against the reference units: 84 recordings, of which
-83 play back exactly and are pinned. Every unit but the Wraith meets the
-definition. A cell that parts gives the
-recording's ticks and the first tick the simulator differs on.
+the same six layouts against the reference units: 84 recordings, all of
+which play back exactly and are pinned, so every one of them meets the
+definition. Each cell gives the recording's ticks.
 
 | Unit | Layout | Seed 4242 | Seed 1787720817 |
 | --- | --- | ---: | ---: |
@@ -112,7 +111,7 @@ recording's ticks and the first tick the simulator differs on.
 | steel_ball | `m6-formations` | 530 | 507 |
 | wraith | `m1-mirror` | 430 | 429 |
 | wraith | `m2-rhino` | 287 | 286 |
-| wraith | `m3-crawler` | 247 | 201, parts at 172 |
+| wraith | `m3-crawler` | 247 | 201 |
 | wraith | `m4-marksman` | 265 | 264 |
 | wraith | `m5-rotated` | 252 | 247 |
 | wraith | `m6-formations` | 312 | 330 |
@@ -129,15 +128,12 @@ recording's ticks and the first tick the simulator differs on.
 | phoenix | `m5-rotated` | 105 | 103 |
 | phoenix | `m6-formations` | 301 | 296 |
 
-The one fight that does not play back is the Wraith's M3 with seed
-1787720817, and it parts on motion, not on the Wraith's weapons:
-
-- **A move speed published four ticks after it was asked.** At tick 172 the
-  game publishes the Wraith's full 10 m/s where the simulator publishes 9 m/s:
-  the simulator's solve at tick 168 took the speed its facing limited then,
-  100° from its drift, where the game's took the speed of a tick or two
-  later, when the facing had come round. When an RVO solve reads what it
-  was asked is not read.
+The Wraith's M3 with seed 1787720817 was the last to play back. Its
+Wraith drifted 100° off its facing at tick 168 and the game still published
+its full 10 m/s: the Wraith is one of the units `MechData.PreProcess` marks
+free-moving, which never slow for their facing. Behind it, at tick 178, its
+core took a Crawler three of its siblings held, and the sibling the
+simulator moved off it kept it in the game.
 
 ## The eighteen released together
 
