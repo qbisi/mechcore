@@ -6,9 +6,8 @@
 # shot is a death and the interval between deaths is the interval between
 # shots.
 #
-# The Anti-Armor Turret against a Crawler, the Marksman behind. Blue loses
-# a tower at 509 and red at 771, and at 1027 the Marksman ends its attack
-# when its live lock walks out of reach, as every skill does.
+# Blue loses a tower at 509 and red at 771, and at 1027 the Marksman ends its
+# attack when its live lock walks out of reach, as every skill does.
 
 kind: fight
 map_id: 1021

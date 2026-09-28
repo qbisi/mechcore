@@ -25,8 +25,7 @@
 # reading is the attack target at tick one, which is decided before anything
 # moves.
 #
-# The same question four times at once, which is what bracketed the width,
-# and the fight where a tick that lands two shots reports the fallen block
+# The fight also shows that a tick landing two shots reports the fallen block
 # after both of them.
 
 kind: fight

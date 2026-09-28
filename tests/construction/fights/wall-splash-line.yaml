@@ -4,9 +4,7 @@
 # enters it, and its splash reads blocks and Crawlers in the order the target
 # trees hold them.
 #
-# The same, with the Arclight turning onto blocks and off them as they enter
-# and leave its line, and re-locking when its splash kills its lock. 161
-# ticks, the game's hashes.
+# It re-locks when its splash kills its lock.
 
 kind: fight
 map_id: 1021

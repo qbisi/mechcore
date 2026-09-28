@@ -8,10 +8,8 @@
 # arrives sooner and the Marksman gets fewer shots, so the Rhino's remaining
 # life goes up rather than down.
 #
-# A plain integer, summed: 16 m/s becomes 19 and then 22, and the walk to
-# the Marksman is the whole clock. The life left is the same in all three
-# because the Marksman lands two shots either way — the reading is the tick
-# the fight ends at.
+# 16 m/s becomes 19. The life left is the control's, because the Marksman
+# lands two shots either way; the reading is the tick the fight ends at.
 
 kind: fight
 map_id: 1021

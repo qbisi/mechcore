@@ -14,11 +14,6 @@
 #
 # So one reading at one tick answers a rate, a value and a plain integer
 # together, each on the number it belongs to.
-#
-# A technology's three corrections at once, on a unit that draws no stagger:
-# a rate on the interval, a value on the range and a plain integer on the
-# speed. The Stormcaller's `interval_offset` is zero, so the interval reads
-# the composed number exactly.
 
 kind: fight
 map_id: 1021

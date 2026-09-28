@@ -4,9 +4,8 @@
 # a block, and a shot at a block in the way of a Crawler, whose splash may
 # reach the Crawlers around it.
 #
-# A splash across a wall, from a shot at a building: an Arclight's shots at
-# the block Crawlers are crossing take the Crawlers on it with the block, in
-# the order the target trees hold them. 158 ticks, the game's hashes.
+# The shots at the block the Crawlers are crossing take the Crawlers on it
+# with the block, in the order the target trees hold them.
 
 kind: fight
 map_id: 1021

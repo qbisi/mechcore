@@ -1,7 +1,4 @@
 # The control for `officer-range-value.yaml`: the same fight with no officer.
-#
-# A value and an impairment in one fight, against the same fight without
-# them. Twenty metres of range moves every tick after the first shot.
 
 kind: fight
 map_id: 1021

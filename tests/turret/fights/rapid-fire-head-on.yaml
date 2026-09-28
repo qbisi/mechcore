@@ -10,8 +10,8 @@
 # blue unit and still ends: the Crawlers take the turret and then walk to the
 # Marksman.
 #
-# Crawlers straight down the turret's column. 24 fall to the turret, which
-# nothing reaches, and the fight ends when the last does: 237 ticks.
+# 24 Crawlers fall to the turret, which nothing reaches, and the fight ends
+# when the last does.
 
 kind: fight
 map_id: 1021

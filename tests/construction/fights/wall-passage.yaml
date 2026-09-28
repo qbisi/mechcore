@@ -16,9 +16,8 @@
 # shot of 2329 against a block's 1112 — which is what the first attempt at
 # this fixture measured and is a different question.
 #
-# The side that placed the wall, crossing it. Twenty-four Crawlers walk
-# through their own blocks, which still take places among their twenty
-# neighbours and yield them no obstacle. 341 ticks, the game's hash.
+# Twenty-four Crawlers walk through their own blocks, which still take places
+# among their twenty neighbours and yield them no obstacle.
 
 kind: fight
 map_id: 1021

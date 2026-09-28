@@ -1,10 +1,6 @@
-# A level-4 tower lost inside a level-0 tower's nine seconds.
-#
-# Red's Steel Balls come down both of blue's tower columns, the Energy Tower's
-# lane ahead, so blue loses its second tower while the first loss's debuff
-# runs. Blue's Fangs stand at the back between the two.
-#
-# A level-4 loss inside a level-0 one: 180 + 20, gone at tick 431.
+# A level-4 tower lost inside a level-0 tower's nine seconds, the Energy
+# Tower's lane ahead: the second loss lengthens the debuff by its own row's
+# 20 ticks, 180 + 20, and it is gone at tick 431.
 
 kind: fight
 map_id: 1021

@@ -11,9 +11,8 @@
 # writes travel the same channel an officer's do, since `TechnologyData` and
 # `OfficerData` answer the same interface.
 #
-# Two sources on one number: an officer's `+20` of range and a technology's
-# `+40`. The fight is the one above to the tick — the Arclight was already in
-# range — so only the number the build computed, which the hash covers,
+# The Arclight was already in range, so the fight moves as it would with the
+# officer alone; only the number the build computed, which the hash covers,
 # tells the two apart.
 
 kind: fight

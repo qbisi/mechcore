@@ -5,10 +5,9 @@
 # the Crawler and the Rhino should carry nothing. `targeting-ranged-none.yaml`
 # is the same fight without the officer.
 #
-# Which units a Ranged row reaches. The control is six formations with no
-# officer; with Advanced Targeting System the four ranged ones reach 10 m
-# further and the Crawler and the Rhino carry nothing, which only the content
-# hash can tell from a row that reached every unit.
+# The four ranged formations carry the `+10` and the Crawler and the Rhino
+# nothing, which only the content hash can tell from a row that reached every
+# unit.
 
 kind: fight
 map_id: 1021
