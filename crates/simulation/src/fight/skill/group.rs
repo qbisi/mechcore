@@ -58,70 +58,65 @@ impl Simulation {
     }
 
     /// `SkillAttackableChecker.TrySearchGroupSkillLockTarget`, which an
-    /// attacking sibling's check asks on every update while its lock lives:
-    /// whether the slot gives up a unit another skill of its group also
-    /// holds, so that the check fails and the slot, idle, searches afresh on
-    /// the next update. It does when the core took that very unit earlier in
-    /// the same update, no other sibling holds it, and a unit no slot holds
-    /// stands in the sibling's reach. A unit shared from before is kept, and
-    /// so is one more siblings hold, and one with nothing else in reach. A
-    /// sibling that took the unit earlier in the update has
-    /// not been recorded doing so, and is refused by name; the build weighs
-    /// the holders by attack counts, which is not read.
+    /// attacking sibling's check asks while its lock lives: whether the slot
+    /// gives up a unit another skill of its own group holds, so that the
+    /// check fails and the slot, idle, searches afresh on the next update.
+    ///
+    /// Every skill of the group must hold a lock and two must share one, and
+    /// the slot must not hold its unit alone. Of the skills sharing a lock,
+    /// less the slot and the core, the first that has struck fewer blows in
+    /// its attack than the slot gives up instead, and failing one, the last
+    /// that has struck as many; only when every other has struck more is it
+    /// this slot, and only when its search timer is up. It then searches,
+    /// resets the timer, and gives the unit up when the search finds one no
+    /// skill of the group holds.
     pub(in crate::fight) fn sibling_yields(
-        &self,
+        &mut self,
         actor_id: u64,
         slot: usize,
         order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<bool> {
         let skill = &self.actors[&actor_id].skill;
-        let slots = skill.slot_locks();
-        let held = slots[slot];
-        // The holders that took the unit on this update: the core, which
-        // updates first, and siblings before this one.
-        let taken_now = (0..slots.len())
-            .filter(|&other| other != slot && slots[other] == held)
-            .filter(|&other| {
-                if other == 0 {
-                    skill.lock_written
-                } else {
-                    skill.sibling(other).lock_written
-                }
-            })
-            .collect::<Vec<_>>();
-        if taken_now.is_empty() {
-            return Ok(false);
-        }
-        // A unit more of the group holds than the core and this slot is
-        // kept: the Wraith's M3 with seed 1787720817 at tick 178, its core
-        // taking the Crawler three of its siblings hold, two of them still
-        // preparing, with two free Crawlers in reach.
-        let holders = (0..slots.len())
-            .filter(|&other| other != slot && slots[other] == held)
-            .count();
-        if taken_now == [0] && holders > 1 {
-            return Ok(false);
-        }
-        let Some(FightActorRef::Unit(candidate)) =
-            self.select_group_lock_replacement(actor_id, slot, order)?
-        else {
+        let Some(locks) = skill.slot_locks().into_iter().collect::<Option<Vec<_>>>() else {
             return Ok(false);
         };
-        if slots.contains(&Some(FightActorRef::Unit(candidate)))
-            || !self.slot_target_in_attack_range(
-                FightActorRef::Unit(actor_id),
-                Some(slot),
-                FightActorRef::Unit(candidate),
-            )
+        // `attackInfos`: each lock with the skills holding it, in the order
+        // the skills first name it.
+        let mut holders: Vec<(FightActorRef, Vec<usize>)> = Vec::new();
+        for (index, &lock) in locks.iter().enumerate() {
+            match holders.iter_mut().find(|(held, _)| *held == lock) {
+                Some((_, skills)) => skills.push(index),
+                None => holders.push((lock, vec![index])),
+            }
+        }
+        if holders.len() == locks.len()
+            || holders
+                .iter()
+                .any(|(held, skills)| *held == locks[slot] && skills.len() == 1)
         {
             return Ok(false);
         }
-        if taken_now != [0] {
-            return Err(Error::new(
-                "a sibling giving up a unit another sibling took on the same update is not supported",
-            ));
+        let others = holders
+            .iter()
+            .filter(|(_, skills)| skills.len() >= 2)
+            .flat_map(|(_, skills)| skills.iter().copied())
+            .filter(|&other| other != slot && other != 0)
+            .collect::<Vec<_>>();
+        let own = skill.sibling(slot).blows;
+        let blows = |other: usize| skill.sibling(other).blows;
+        if others.iter().any(|&other| blows(other) <= own)
+            || skill.sibling(slot).search_target_time > 0
+        {
+            return Ok(false);
         }
-        Ok(true)
+        let found = self.select_group_lock_replacement(actor_id, slot, order)?;
+        self.actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable")
+            .skill
+            .sibling_mut(slot)
+            .search_target_time = SEARCH_TARGET_RESET_TICKS;
+        Ok(found.is_some_and(|found| holders.iter().all(|(held, _)| *held != found)))
     }
 
     /// `SkillManager.Update` for a grouped unit's core's siblings, after the
@@ -170,9 +165,6 @@ impl Simulation {
         if fusillade && core_entered_attack {
             skill.align_slots_to_core();
         }
-        for sibling in &mut skill.slots {
-            sibling.lock_written = false;
-        }
         for slot in 1..self.actors[&actor_id].skill.group_size {
             let before = self.actors[&actor_id].skill.sibling(slot).lock;
             match self.actors[&actor_id].skill.sibling(slot).state {
@@ -220,6 +212,17 @@ impl Simulation {
                         && let Some(target) = self.actors[&actor_id].skill.group_attack_target(slot)
                     {
                         self.release_group_slot(actor_id, slot, target, step, events)?;
+                    }
+                    // `SkillAttackState.Update` counts the search timer down
+                    // after the check and the blow.
+                    if let SkillState::Attack(_) = self.actors[&actor_id].skill.sibling(slot).state
+                    {
+                        self.actors
+                            .get_mut(&actor_id)
+                            .expect("actor identity is stable")
+                            .skill
+                            .sibling_mut(slot)
+                            .search_target_time -= 1;
                     }
                 }
                 // `SkillCoolingState`: the weapon names what it last turned
@@ -343,7 +346,6 @@ impl Simulation {
                 .sibling_mut(slot);
             sibling.lock = selected;
             sibling.attack_target_left = None;
-            sibling.lock_written = true;
             sibling.search_target_time = SEARCH_TARGET_RESET_TICKS;
             self.refresh_group_walls(actor_id);
         }
@@ -356,7 +358,9 @@ impl Simulation {
                 .expect("actor identity is stable")
                 .skill
                 .sibling_mut(slot);
-            // A skill with no prepare is attacking on the update it starts.
+            // `SkillIdleState.Exit` resets the search timer. A skill with no
+            // prepare is attacking on the update it starts.
+            sibling.search_target_time = SEARCH_TARGET_RESET_TICKS;
             sibling.state = if prepare_steps == 0 {
                 sibling.next_attack_step = sibling.next_attack_step.max(step.saturating_add(1));
                 SkillState::Attack(Blow::Waiting)
@@ -508,8 +512,15 @@ impl Simulation {
                     events,
                 )?;
             }
-            FightActorRef::Unit(_) => {}
+            FightActorRef::Unit(_) => return Ok(()),
         }
+        // `SkillAttackController.PerformAttack` counts the blow.
+        self.actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable")
+            .skill
+            .sibling_mut(skill_index)
+            .blows += 1;
         Ok(())
     }
 }

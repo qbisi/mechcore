@@ -135,12 +135,13 @@ fn grouped_child_range_is_parent_range_plus_ten_metres() {
     assert!(!sim.slot_target_in_attack_range(FightActorRef::Unit(1), Some(1), unit_target(2)));
 }
 
-/// An attacking sibling gives up a unit the core took on the same update
-/// when another unit stands in its reach; it keeps a unit shared from
-/// before, and one with nothing else in reach; and a unit another sibling
-/// took on the same update is refused.
+/// An attacking sibling gives up a unit it shares when every other sharer but
+/// the core has struck more blows, its search timer is up, and a search
+/// finds a unit no slot holds; a unit it holds alone, a group with a slot
+/// holding nothing, a sharer with as few blows, and a search that finds
+/// only held units all keep it.
 #[test]
-fn an_attacking_sibling_gives_up_the_unit_the_core_just_took() {
+fn an_attacking_sibling_gives_up_a_shared_unit_by_its_blows() {
     let config = SimulationConfig::load().unwrap();
     let layout = CompiledLayout::of_units(
         1,
@@ -151,34 +152,83 @@ fn an_attacking_sibling_gives_up_the_unit_the_core_just_took() {
             },
             test_placement(1, 0, 0, 30),
             test_placement(1, 1, 0, 40),
+            test_placement(1, 2, 0, 50),
+            test_placement(1, 3, 10, 45),
         ],
     );
     let mut sim = raw_test_simulation(&layout, &config, 7);
     let skill = &mut sim.actors.get_mut(&1).unwrap().skill;
-    skill.lock_target = Some(FightActorRef::Unit(2));
-    skill.sibling_mut(1).lock = Some(unit_target(2));
+    skill.lock_target = Some(unit_target(2));
+    for (slot, unit) in [(1, 2), (2, 3), (3, 4)] {
+        skill.sibling_mut(slot).lock = Some(unit_target(unit));
+    }
+    skill.sibling_mut(1).search_target_time = 1;
     sim.refresh_target_query_snapshot();
     let order = sim.target_search_order();
-    assert!(
-        !sim.sibling_yields(1, 1, &order).unwrap(),
-        "shared from before"
-    );
-    sim.actors.get_mut(&1).unwrap().skill.lock_written = true;
+
+    assert!(!sim.sibling_yields(1, 1, &order).unwrap(), "timer not up");
+    sim.actors
+        .get_mut(&1)
+        .unwrap()
+        .skill
+        .sibling_mut(1)
+        .search_target_time = 0;
     assert!(
         sim.sibling_yields(1, 1, &order).unwrap(),
-        "the core took it now"
+        "shared with the core"
     );
-    let sibling = sim.actors.get_mut(&1).unwrap().skill.sibling_mut(2);
-    sibling.lock = Some(unit_target(2));
-    sibling.lock_written = true;
-    assert!(
-        sim.sibling_yields(1, 1, &order).is_err(),
-        "a sibling took it now"
+    assert_eq!(
+        sim.actors
+            .get_mut(&1)
+            .unwrap()
+            .skill
+            .sibling(1)
+            .search_target_time,
+        10
     );
-    sim.actors.get_mut(&3).unwrap().life = 0;
+
+    sim.actors
+        .get_mut(&1)
+        .unwrap()
+        .skill
+        .sibling_mut(1)
+        .search_target_time = 0;
+    assert!(!sim.sibling_yields(1, 2, &order).unwrap(), "held alone");
+
+    sim.actors.get_mut(&1).unwrap().skill.sibling_mut(1).blows = 1;
+    sim.actors.get_mut(&1).unwrap().skill.sibling_mut(2).lock = Some(unit_target(2));
     assert!(
         !sim.sibling_yields(1, 1, &order).unwrap(),
-        "nothing else in reach"
+        "a sharer with fewer blows"
+    );
+    sim.actors.get_mut(&1).unwrap().skill.sibling_mut(2).blows = 1;
+    assert!(
+        !sim.sibling_yields(1, 1, &order).unwrap(),
+        "a sharer with as many"
+    );
+    sim.actors.get_mut(&1).unwrap().skill.sibling_mut(2).blows = 2;
+    assert!(
+        sim.sibling_yields(1, 1, &order).unwrap(),
+        "every sharer has more"
+    );
+
+    sim.actors
+        .get_mut(&1)
+        .unwrap()
+        .skill
+        .sibling_mut(1)
+        .search_target_time = 0;
+    for unit in [3, 5] {
+        sim.actors.get_mut(&unit).unwrap().life = 0;
+    }
+    assert!(
+        !sim.sibling_yields(1, 1, &order).unwrap(),
+        "nothing unheld to find"
+    );
+    sim.actors.get_mut(&1).unwrap().skill.sibling_mut(3).lock = None;
+    assert!(
+        !sim.sibling_yields(1, 1, &order).unwrap(),
+        "a slot holds nothing"
     );
 }
 

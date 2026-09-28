@@ -246,7 +246,6 @@ impl Simulation {
             let sibling = actor.skill.sibling_mut(slot);
             sibling.lock = selected;
             sibling.attack_target_left = None;
-            sibling.lock_written = true;
             self.refresh_group_walls(actor_id);
         }
         Ok(selected.is_some())
