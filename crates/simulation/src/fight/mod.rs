@@ -704,7 +704,11 @@ impl Simulation {
         let stop_fight = ready_to_finish || winner_was_decided;
         if stop_fight {
             for actor in self.actors.values_mut() {
-                actor.motion.state = MotionState::Idle;
+                // Every motion enters `MotionIdleState`, whose `Enter` asks
+                // `StopMove`: a unit handed a tower on the last kill's tick
+                // publishes no speed at the next solve.
+                let entered_idle = actor.motion.state != MotionState::Idle;
+                actor.stop_in_place(entered_idle);
                 actor.skill.drop_lock();
                 // `FightSkill.ExitFight` ends a cooling as well.
                 actor.skill.set_cooling(None);
