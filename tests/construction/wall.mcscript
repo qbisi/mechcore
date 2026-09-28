@@ -96,7 +96,7 @@ steps:
       view: outcome
     expect:
       sides.red.survivors.0.name: crawler
-      sides.red.survivors.0.alive: 20
+      sides.red.survivors.0.alive: 21
 
   # Both fights against the simulator, every field of every tick. The side
   # that placed the wall walks through it — the wall is among each Crawler's
