@@ -109,7 +109,7 @@ is not comparable, which is the checker's to report.
 
 | Field | Meaning |
 | --- | --- |
-| `core_damage` | what the fight took off the side's reactor core; a non-negative integer, absent when `0` |
+| `core_damage` | what the fight took off the side's reactor core, which [reactor_damage.md](../../rules/reactor_damage.md) states; a non-negative integer, absent when `0` |
 
 ## Object fields
 

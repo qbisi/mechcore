@@ -277,9 +277,17 @@ has three, and `--view` names one of them.
 
 **`outcome`** reads a recording for [the four fields a fight
 decides](#the-fight): which formations came out of it, under the indices the
-document knows them by, and what remains of what a fight thins out: each
-side's `contraptions`, and its `battle_skills`, the standing entries of the
-round's `battle_skills` that remain, each by its place in that list.
+document knows them by, each side's `core_damage`, what the fight took off its
+reactor core as [reactor_damage.md](../../rules/reactor_damage.md) states it,
+and what remains of what a fight thins out: each side's `contraptions`, and
+its `battle_skills`, the standing entries of the round's `battle_skills` that
+remain, each by its place in that list. A unit counts as deployed from its
+side's formations when it opened the fight in a formation a placement takes
+and the fight did not create it; a formation no placement takes, such as one an
+officer hands a side as the fight is built, is no placement's and is not among
+the survivors. A unit that died and stands at the end may have been reborn,
+which a recording does not say, so neither core's damage is answered while one
+stands.
 What no rule and no recording answers is named in `unresolved` and never
 approximated, and the verdict is no while anything is — the fight was read, and
 the answer is that it does not settle a round. It is the one reader both

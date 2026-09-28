@@ -27,8 +27,16 @@ Run from anywhere inside the checkout, with the game installed:
 A round in which a side concedes is listed and not compared: a concession made
 during the fight ends it at a moment the match does not record.
 
-The exit status is 0 only when every other round records both ways and compares
-equal.
+Each round's recording from the corpus replay is also read for what the fight
+took off each reactor core (``mechcore show <recording> --view outcome``), and
+that is compared with how far the side's ``reactor_core`` falls from the
+round's state to the next one in the match document, which is the game's own
+answer. ``--recordings <dir>`` makes only that comparison, gamelessly, over
+recordings already made, named ``mNN-rRR.mcfr``: the round ``RR`` of the
+``NN``-th match document in name order.
+
+The exit status is 0 only when every other round records both ways, compares
+equal, and takes off each reactor core what the match document says it did.
 """
 
 from __future__ import annotations
@@ -58,6 +66,12 @@ def parse_arguments(root: Path) -> argparse.Namespace:
     )
     parser.add_argument("--only", help="only matches whose name contains this text")
     parser.add_argument("--json", action="store_true", help="print one JSON object per round")
+    parser.add_argument(
+        "--recordings",
+        type=Path,
+        help="compare only the reactor core damage, over the recordings already in this "
+        "directory, named mNN-rRR.mcfr",
+    )
     return parser.parse_args()
 
 
@@ -76,6 +90,69 @@ def rounds_of(match_doc: Path) -> tuple[list[int], set[int]]:
             if re.search(r"^- \{type: concede\}$", segment, flags=re.MULTILINE):
                 conceded.add(int(found.group(1)))
     return sorted(rounds), conceded
+
+
+def reactor_cores(match_doc: Path) -> dict[int, tuple[int, int]]:
+    """Each state's reactor cores, blue's and red's, by the round it opens."""
+    text = match_doc.read_text(encoding="utf-8")
+    cores = {}
+    for segment in re.split(r"^---$", text, flags=re.MULTILINE):
+        found = re.match(r"\s*kind: state\nround: (\d+)$", segment, flags=re.MULTILINE)
+        if not found:
+            continue
+        sides = [
+            re.search(rf"^{side}:\n  reactor_core: (-?\d+)$", segment, flags=re.MULTILINE)
+            for side in ("blue", "red")
+        ]
+        if all(sides):
+            cores[int(found.group(1))] = (int(sides[0].group(1)), int(sides[1].group(1)))
+    return cores
+
+
+def core_damage(mechcore: Path, recording: str, cores: dict, number: int) -> dict:
+    """What the fight recorded took off each reactor core, against what the match
+    document's states say it did: the fall from the round's state to the next."""
+    if number not in cores or number + 1 not in cores:
+        return {"core_damage": f"the match holds no state for round {number} and the next"}
+    expected = [before - after for before, after in zip(cores[number], cores[number + 1])]
+    result = run([str(mechcore), "show", recording, "--view", "outcome", "--format", "json"])
+    try:
+        outcome = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return {"core_damage": reason(result.stdout + result.stderr)}
+    if "sides" not in outcome:
+        return {"core_damage": reason(result.stdout + result.stderr)}
+    answered = [outcome["sides"][side].get("core_damage") for side in ("blue", "red")]
+    if None in answered:
+        return {
+            "core_damage": "not answered: "
+            + "; ".join(item for item in outcome["unresolved"] if item.startswith("reactor_core"))
+        }
+    if answered != expected:
+        return {"core_damage": f"blue and red take {answered}, the match says {expected}"}
+    return {"core_damage": "equal"}
+
+
+def check_recordings(arguments: argparse.Namespace, matches: list[Path]) -> int:
+    """The reactor core comparison alone, over recordings already made."""
+    compared = equal = 0
+    for recording in sorted(arguments.recordings.glob("m*-r*.mcfr")):
+        found = re.fullmatch(r"m(\d+)-r(\d+)", recording.stem)
+        if not found or int(found.group(1)) >= len(matches):
+            continue
+        match_doc, number = matches[int(found.group(1))], int(found.group(2))
+        entry = {"match": match_doc.stem, "round": number}
+        entry.update(core_damage(arguments.mechcore, str(recording), reactor_cores(match_doc), number))
+        compared += 1
+        equal += entry["core_damage"] == "equal"
+        if arguments.json:
+            print(json.dumps(entry, ensure_ascii=False), flush=True)
+        elif entry["core_damage"] != "equal":
+            print(f"{recording.stem} {entry['match']} round {number}: {entry['core_damage']}",
+                  flush=True)
+    print(f"{equal} of {compared} recorded rounds take off each reactor core what the match "
+          "says they did", file=sys.stderr)
+    return 0 if compared and equal == compared else 1
 
 
 def run(command: list[str]) -> subprocess.CompletedProcess[str]:
@@ -171,8 +248,9 @@ def compare(mechcore: Path, left: str, right: str) -> dict:
 
 
 def verdict(entry: dict) -> str:
+    damage = entry.get("core_damage", "equal")
     if entry.get("equal"):
-        return "equal"
+        return "equal" if damage == "equal" else f"equal; reactor core {damage}"
     if entry.get("conceded"):
         return "conceded, not compared"
     if "refused" in entry:
@@ -195,6 +273,9 @@ def main() -> int:
     if not matches:
         print(f"no match documents under work/match/{version}", file=sys.stderr)
         return 1
+    if arguments.recordings:
+        # The numbering counts every match document, so a filter would move it.
+        return check_recordings(arguments, sorted((root / "work/match" / version).glob("*.yaml")))
 
     results = []
     for match_doc in matches:
@@ -236,6 +317,7 @@ def main() -> int:
                         }
                     )
             failed = record(arguments.mechcore, steps, folder)
+            cores = reactor_cores(match_doc)
             for at, entry in enumerate(entries):
                 left, right = 2 * at, 2 * at + 1
                 if left in failed or right in failed:
@@ -243,6 +325,9 @@ def main() -> int:
                 else:
                     entry.update(
                         compare(arguments.mechcore, steps[left]["output"], steps[right]["output"])
+                    )
+                    entry.update(
+                        core_damage(arguments.mechcore, steps[left]["output"], cores, entry["round"])
                     )
         for entry in sorted(entries + skipped, key=lambda entry: entry["round"]):
             results.append(entry)
@@ -253,12 +338,14 @@ def main() -> int:
 
     compared = [entry for entry in results if not entry.get("conceded")]
     equal = sum(1 for entry in compared if entry.get("equal"))
+    damaged = sum(1 for entry in compared if entry.get("core_damage") == "equal")
     print(
         f"{equal} of {len(compared)} rounds fight the same from the match's replay as from "
-        f"the match's own; {len(results) - len(compared)} conceded, not compared",
+        f"the match's own; {damaged} take off each reactor core what the match says; "
+        f"{len(results) - len(compared)} conceded, not compared",
         file=sys.stderr,
     )
-    return 0 if equal == len(compared) else 1
+    return 0 if equal == len(compared) and damaged == len(compared) else 1
 
 
 if __name__ == "__main__":
