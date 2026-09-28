@@ -16,7 +16,8 @@ impl Actor {
     #[cfg(test)]
     pub(in crate::fight) fn describe(&mut self, rules: UnitConfig) {
         self.stats = crate::data::Stats::of(&rules).expect("an uncorrected description resolves");
-        self.skill.performer = Performer::of(&rules.attack.path);
+        self.skill.kind = SkillKind::of(&rules.attack.path);
+        self.skill.performer = Performer::of(self.skill.kind);
         self.rules = rules;
     }
 
@@ -52,7 +53,7 @@ impl Actor {
                 },
             )
         });
-        let performer = Performer::of(&rules.attack.path);
+        let kind = SkillKind::of(&rules.attack.path);
         Self {
             x,
             z,
@@ -91,7 +92,7 @@ impl Actor {
                 state: MotionState::Idle,
                 attack_hold_fire: false,
             },
-            skill: Skill::new(weapon_rotations_q32, group, magazine, performer),
+            skill: Skill::new(weapon_rotations_q32, group, magazine, kind),
         }
     }
 

@@ -66,7 +66,9 @@ use rvo::{AgentInput as RvoAgentInput, AgentKey as RvoAgentKey, AgentSizeType, F
 use search::*;
 #[cfg(test)]
 use skill::ATTACK_COUNT_RESET;
-use skill::{FightSkillPhase, GroupBehaviour, Launch, Performer, Skill, SkillUpdate};
+#[cfg(test)]
+use skill::Performer;
+use skill::{FightSkillPhase, GroupBehaviour, Launch, Skill, SkillKind, SkillUpdate};
 use tower::{RunningBuff, TowerLoss};
 
 const SPACE_UNITS_PER_METER: i64 = 1_000;

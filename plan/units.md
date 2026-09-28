@@ -35,16 +35,7 @@
 
 ## 栈
 
-目标范围内的单位都已达标。栈上是让下一批机制变便宜的内核整理，自顶向下做。
-
-- **技能的形状对上 build**（栈顶）。一个单位的独特攻击逻辑曾经是 `Skill` 上只对某条路径
-  或某种模式有意义的字段，和共享代码里按 `AttackPath`、`fusillade` 的分支。build 把它们分在
-  `FightSkill` 的子类、`AttackPerformer` 的子类和 `SkillGroup` 的攻击行为里，模拟器照这个
-  分法收拢。剩下一步：技能种类是一个枚举，激光的状态归它，未实现的种类按名拒绝。
-
-  做完的判据：`Skill` 上只剩 `FightSkill` 基类自己有的字段；`skill/` 里不再直接判断路径
-  或齐射。整理的每一步都不改行为：所有钉住的哈希不变，哪一步动了哈希就不是整理。
-  `motion.rs` 里按机身和近战的分支是 `MotionController` 的事，不在这一个节点里。
+目标范围内的单位都已达标，栈空。
 
 
 ## 停车场
@@ -53,6 +44,10 @@
   小队半径之和避让，高度区间不重叠的邻居不生成 VO，被手动控制的 agent 直接跳过求解；
   `crates/simulation/src/fight/rvo.rs` 三处都没有，`docs/spec/simulation/rvo.md` 也没写。
   reopen_when：录像的 RVO 通道落地，或一场分叉落在其中之一。
+- **运动更新里放出的一下。** 模拟器的运动在进入射程时发起攻击，攻击点为零就当场放出这一下；
+  build 的一下只在技能更新里放出，技能先于运动。所以激光自己一束打死目标时，要在放出处替运动
+  补一次"锁定死了就空闲"，而直击交给运动自己的检查。`motion.rs` 里按机身和近战的分支是同一件事
+  的其它部分。reopen_when：一场分叉落在运动发起的攻击上，或要给一种新路径写放出。
 - **新机制随新单位而来。** 近战模式（`MeleeModeEffectSystem`）、副武器
   （`SideArmSearchTargetController`）、弹药池（`AmmoSkillPool`）、`IgnoreBuffEffectSystem`、
   出售单位（`PAD_SellUnit`）、塔成为 buff 目标。reopen_when：批量录像的第一处分叉指到其中之一。
