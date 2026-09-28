@@ -17,6 +17,7 @@ mod session;
 mod shell;
 mod stats;
 mod turn;
+mod watch;
 
 use std::process::ExitCode;
 
@@ -46,6 +47,7 @@ fn usage(program: &str) {
     eprintln!("       {program} man [<topic>] [--lang <code>]");
     eprintln!("       {program} run <script.mcscript> [--check] [--force]");
     eprintln!("       {program} shell");
+    eprintln!("       {program} watch --out <dir> [--duration <seconds>] [--rooms <n>] [--window]");
     eprintln!();
     eprintln!("Every command takes --format json|yaml|text and answers on standard output.");
     eprintln!("The contract is docs/spec/mechcore/cli.md, which `mechcore man cli` reads back;");
@@ -67,6 +69,7 @@ fn main() -> ExitCode {
         Some("man") => cli::exit("man", man::run(rest)),
         Some("run") => cli::exit("run", run_script(rest)),
         Some("shell") => cli::exit("shell", run_shell(rest)),
+        Some("watch") => cli::exit("watch", watch::run(rest)),
         _ => {
             usage(&program);
             ExitCode::from(2)
