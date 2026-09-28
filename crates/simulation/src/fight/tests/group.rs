@@ -135,8 +135,12 @@ fn grouped_child_range_is_parent_range_plus_ten_metres() {
     assert!(!sim.slot_target_in_attack_range(FightActorRef::Unit(1), Some(1), unit_target(2)));
 }
 
+/// An attacking sibling gives up a unit the core took on the same update
+/// when another unit stands in its reach; it keeps a unit shared from
+/// before, and one with nothing else in reach; and a unit another sibling
+/// took on the same update is refused.
 #[test]
-fn live_shared_lock_redistribution_is_refused_when_a_new_target_is_available() {
+fn an_attacking_sibling_gives_up_the_unit_the_core_just_took() {
     let config = SimulationConfig::load().unwrap();
     let layout = CompiledLayout::of_units(
         1,
@@ -152,14 +156,30 @@ fn live_shared_lock_redistribution_is_refused_when_a_new_target_is_available() {
     let mut sim = raw_test_simulation(&layout, &config, 7);
     let skill = &mut sim.actors.get_mut(&1).unwrap().skill;
     skill.lock_target = Some(FightActorRef::Unit(2));
-    for slot in &mut skill.slots {
-        slot.lock = Some(2);
-    }
+    skill.sibling_mut(1).lock = Some(2);
     sim.refresh_target_query_snapshot();
     let order = sim.target_search_order();
-    assert!(sim.check_group_redistribution_scope(1, 1, &order).is_err());
+    assert!(
+        !sim.sibling_yields(1, 1, &order).unwrap(),
+        "shared from before"
+    );
+    sim.actors.get_mut(&1).unwrap().skill.lock_written = true;
+    assert!(
+        sim.sibling_yields(1, 1, &order).unwrap(),
+        "the core took it now"
+    );
+    let sibling = sim.actors.get_mut(&1).unwrap().skill.sibling_mut(2);
+    sibling.lock = Some(2);
+    sibling.lock_written = true;
+    assert!(
+        sim.sibling_yields(1, 1, &order).is_err(),
+        "a sibling took it now"
+    );
     sim.actors.get_mut(&3).unwrap().life = 0;
-    assert!(sim.check_group_redistribution_scope(1, 1, &order).is_ok());
+    assert!(
+        !sim.sibling_yields(1, 1, &order).unwrap(),
+        "nothing else in reach"
+    );
 }
 
 /// Every slot of a grouped skill takes the construction in its way, and
@@ -299,7 +319,12 @@ mod oracle {
                         sibling.in_the_way = in_the_way;
                     }
                     let result = self
-                        .check_attackable_slot(FightActorRef::Unit(actor_id), Some(slot), &order)
+                        .check_attackable_slot(
+                            FightActorRef::Unit(actor_id),
+                            Some(slot),
+                            call["is_attacking_check"].as_bool().unwrap(),
+                            &order,
+                        )
                         .unwrap();
                     let actual = (
                         result,

@@ -163,8 +163,24 @@ four `FightSkill`s, and each prepares, attacks and goes idle by itself:
 - A slot that is already preparing goes on into its attack even when no
   sibling attacks any more; only starting waits for the group.
 - A slot enters its attack when its prepare is over and fires on the update
-  after, then at its own interval; the core does the same.
+  after, then at its own interval; the core does the same. The time its next
+  blow is due is the skill's own and outlives the attack: a slot that leaves
+  its attack and comes back to it fires when its interval is up, not on the
+  update after its return.
+- The core's own searches, in its check and in its idle search alike, are
+  the group's: around what its siblings hold, and among it when nothing
+  else answers.
 - Leaving the fight leaves every slot idle.
+
+**A sibling gives up a unit the core has just taken.** An attacking sibling's
+check asks `SkillAttackableChecker.TrySearchGroupSkillLockTarget` on every
+update while its lock lives, and the core's never does. When the core, which
+updates first, took on that same update the unit the sibling holds, and a
+unit no slot holds stands in the sibling's reach, the answer is to give it
+up: the check fails with the lock unchanged, the slot goes idle and drops
+its lock, and on the next update it searches around the others and prepares
+anew. A unit shared from before is kept, and so is one with nothing else in
+reach; a preparing sibling's check does not ask at all.
 
 `crates/simulation/src/fight/mech.rs` implements the split as `lock_target`
 and `Actor::attack_target`.
@@ -200,7 +216,9 @@ do not perform a separate allocation pass. The checker also has a distinct
 live-sharing redistribution path: `TrySearchGroupSkillLockTarget` groups
 existing locks, detects whether the current skill is their sole holder, and
 chooses among shared holders using attack counts before a throttled search.
-That path is not the ordinary search's sibling-exclusion loop. The fixtures
+That path is not the ordinary search's sibling-exclusion loop; how it weighs
+the holders by their attack counts is not read, and its one recorded answer
+is the rule above. The fixtures
 that separated the rest are [the Wraith fixtures](../../tests/wraith/README.md).
 
 ## Normal target scoring and pre-battle acquisition
@@ -423,8 +441,9 @@ not the game's native attack-type enum.
 - A grouped skill's slots, their locks and their reach, and a grouped unit's
   core interval: `tests/wraith/regressions.mcscript`.
 - Each slot's own states, the core leaving its attack while its siblings go
-  on, and the unit's lock following the latest slot, in the Wraith's M2
-  fights: `tests/units/regressions.mcscript`.
+  on, the unit's lock following the latest slot, a sibling giving up the
+  unit the core has just taken, and a slot's interval outliving its attack,
+  in the Wraith's M2, M3 and M6 fights: `tests/units/regressions.mcscript`.
 - Where a charging Crawler is sent, and a Marksman's quick switch that cannot
   follow a kill: `tests/regression/simulate.mcscript`.
 - The body travelling toward the lock, attacking without moving, and the
@@ -500,6 +519,9 @@ not the game's native attack-type enum.
   `FightSkill.ChangeLockTarget`, `FightSkillBase.IsMainSearcher`.
 - A failed check ends a slot's attack: `SkillAttackState.CheckAttackable`,
   `SkillAttackState.Finish`.
+- An attacking sibling's check asks whether to give its unit up:
+  `SkillAttackableChecker.Check`,
+  `SkillAttackableChecker.TrySearchGroupSkillLockTarget`.
 - The first acquisition happens before the first state: `FightPrepareState.Enter`.
 - Life lost is clamped to life left: `FightActor.ReduceLife`,
   `FightSkill.GetDamage`.
@@ -523,10 +545,12 @@ not the game's native attack-type enum.
   attack target in reach" is what the recordings and the shape of `IAttacker`,
   `IsAttackTargetInAttackRange` beside `GetLockTarget`, say. A Marksman's
   weapon has no pose in a recording, so its aim angle is not observed.
-- **Grouped slots**: live-sharing redistribution when an unheld target becomes
-  available, which the simulator refuses by name; grouped fusillade;
-  redistribution of wall blockers; and whether an idle slot that finds a unit
-  beyond its reach keeps it as its lock, which no recorded sibling has done.
+- **Grouped slots**: a sibling giving up a unit another sibling took on the
+  same update, which the simulator refuses by name, and how
+  `TrySearchGroupSkillLockTarget` weighs attack counts in general; grouped
+  fusillade; redistribution of wall blockers; and whether an idle slot that
+  finds a unit beyond its reach keeps it as its lock, which no recorded
+  sibling has done.
 - **Target scoring**: a split quadtree, tied candidates, a building winning,
   moving candidates being reinserted, and other selector modes.
 - **Projectiles**: why a projectile in simulated motion spares a dead unit's

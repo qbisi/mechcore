@@ -39,41 +39,60 @@ impl Simulation {
         }
     }
 
-    /// The ordinary grouped search is closed here; the separate checker
-    /// branch that redistributes live shared locks by attack count is not.
-    /// Refuse when that branch could acquire an unheld in-range target,
-    /// rather than silently keep the shared lock. A saturated group (the
-    /// two-target fixture) has no such alternative and keeps its holdings.
-    pub(in crate::fight) fn check_group_redistribution_scope(
+    /// `SkillAttackableChecker.TrySearchGroupSkillLockTarget`, which an
+    /// attacking sibling's check asks on every update while its lock lives:
+    /// whether the slot gives up a unit another skill of its group also
+    /// holds, so that the check fails and the slot, idle, searches afresh on
+    /// the next update. It does when the core took that very unit earlier in
+    /// the same update and a unit no slot holds stands in the sibling's
+    /// reach. A unit shared from before is kept, and so is one with nothing
+    /// else in reach. A sibling that took the unit earlier in the update has
+    /// not been recorded doing so, and is refused by name; the build weighs
+    /// the holders by attack counts, which is not read.
+    pub(in crate::fight) fn sibling_yields(
         &self,
         actor_id: u64,
         slot: usize,
         order: &BTreeMap<u32, Vec<FightActorRef>>,
-    ) -> Result<()> {
-        let slots = &self.actors[&actor_id].skill.slot_locks();
-        if slots.iter().any(Option::is_none)
-            || slots
-                .iter()
-                .filter(|target| **target == slots[slot])
-                .count()
-                < 2
-        {
-            return Ok(());
+    ) -> Result<bool> {
+        let skill = &self.actors[&actor_id].skill;
+        let slots = skill.slot_locks();
+        let held = slots[slot];
+        // The holders that took the unit on this update: the core, which
+        // updates first, and siblings before this one.
+        let taken_now = (0..slots.len())
+            .filter(|&other| other != slot && slots[other] == held)
+            .filter(|&other| {
+                if other == 0 {
+                    skill.lock_written
+                } else {
+                    skill.sibling(other).lock_written
+                }
+            })
+            .collect::<Vec<_>>();
+        if taken_now.is_empty() {
+            return Ok(false);
         }
-        if let Some(FightActorRef::Unit(candidate)) =
+        let Some(FightActorRef::Unit(candidate)) =
             self.select_group_lock_replacement(actor_id, slot, order)?
-            && !slots.contains(&Some(candidate))
-            && self.slot_target_in_attack_range(
+        else {
+            return Ok(false);
+        };
+        if slots.contains(&Some(candidate))
+            || !self.slot_target_in_attack_range(
                 FightActorRef::Unit(actor_id),
                 Some(slot),
                 FightActorRef::Unit(candidate),
             )
         {
+            return Ok(false);
+        }
+        if taken_now != [0] {
             return Err(Error::new(
-                "grouped live-lock redistribution by attack count is not supported",
+                "a sibling giving up a unit another sibling took on the same update is not supported",
             ));
         }
-        Ok(())
+        Ok(true)
     }
 
     /// `SkillManager.Update` for a grouped unit's core's siblings, after the
@@ -100,6 +119,15 @@ impl Simulation {
         self.replay_group_checker_calls(actor_id);
         let prepare_steps =
             native_time_units_to_steps(self.actors[&actor_id].rules.attack.prepare_time_units());
+        for sibling in &mut self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable")
+            .skill
+            .slots
+        {
+            sibling.lock_written = false;
+        }
         for slot in 1..self.actors[&actor_id].skill.group_size {
             let before = self.actors[&actor_id].skill.sibling(slot).lock;
             match self.actors[&actor_id].skill.sibling(slot).state {
@@ -118,6 +146,7 @@ impl Simulation {
                     if !self.check_attackable_slot(
                         FightActorRef::Unit(actor_id),
                         Some(slot),
+                        false,
                         target_search_order,
                     )? {
                         self.idle_group_slot(actor_id, slot);
@@ -129,13 +158,15 @@ impl Simulation {
                             .skill
                             .sibling_mut(slot);
                         sibling.state = SkillState::Attack(Blow::Waiting);
-                        sibling.next_attack_step = step.saturating_add(1);
+                        sibling.next_attack_step =
+                            sibling.next_attack_step.max(step.saturating_add(1));
                     }
                 }
                 SkillState::Attack(_) => {
                     if !self.check_attackable_slot(
                         FightActorRef::Unit(actor_id),
                         Some(slot),
+                        true,
                         target_search_order,
                     )? {
                         self.idle_group_slot(actor_id, slot);
@@ -181,12 +212,14 @@ impl Simulation {
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<()> {
         let selected = self.select_group_lock_replacement(actor_id, slot, target_search_order)?;
-        self.actors
+        let sibling = self
+            .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable")
             .skill
-            .sibling_mut(slot)
-            .lock = selected.and_then(FightActorRef::unit_id);
+            .sibling_mut(slot);
+        sibling.lock = selected.and_then(FightActorRef::unit_id);
+        sibling.lock_written = true;
         self.refresh_group_walls(actor_id);
         if let Some(target) = self.actors[&actor_id].skill.group_attack_target(slot)
             && self.slot_target_in_attack_range(FightActorRef::Unit(actor_id), Some(slot), target)
@@ -204,14 +237,20 @@ impl Simulation {
     }
 
     /// A sibling whose check failed: `SkillAttackState.Finish` and
-    /// `StopAttack`, its lock and everything it had scheduled dropped.
+    /// `StopAttack`, its lock dropped. The time its next blow is due is the
+    /// skill's own and stays: a Wraith's slot that leaves its attack and
+    /// comes back to it fires when its interval is up, not on its return.
     fn idle_group_slot(&mut self, actor_id: u64, slot: usize) {
-        *self
+        let sibling = self
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable")
             .skill
-            .sibling_mut(slot) = SlotSkill::default();
+            .sibling_mut(slot);
+        *sibling = SlotSkill {
+            next_attack_step: sibling.next_attack_step,
+            ..SlotSkill::default()
+        };
     }
 
     pub(in crate::fight) fn refresh_group_skill_attack_interval(

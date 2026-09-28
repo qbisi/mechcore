@@ -137,6 +137,11 @@ pub(in crate::fight) struct Skill {
     /// the core's or a sibling's. A skill that is not grouped reads its own
     /// lock instead.
     pub(in crate::fight) mech_lock: Option<FightActorRef>,
+    /// Whether `ChangeLockTarget` wrote this skill's lock on the current
+    /// update, whether or not the lock it wrote is new: a grouped core's
+    /// search that finds the unit it already holds still hands it to the
+    /// owner.
+    pub(in crate::fight) lock_written: bool,
     pub(in crate::fight) projectile_pending_releases: Vec<PendingProjectileRelease>,
     pub(in crate::fight) laser_attack_count: usize,
     pub(in crate::fight) retarget_after_own_direct_kill: bool,
@@ -161,6 +166,8 @@ pub(in crate::fight) struct SlotSkill {
     pub(in crate::fight) next_attack_step: u64,
     /// The slot's `SkillStateController` state.
     pub(in crate::fight) state: SkillState,
+    /// Whether `ChangeLockTarget` wrote the slot's lock on the current update.
+    pub(in crate::fight) lock_written: bool,
 }
 
 impl Default for SlotSkill {
@@ -170,6 +177,7 @@ impl Default for SlotSkill {
             in_the_way: None,
             next_attack_step: 0,
             state: SkillState::Idle { ready_step: None },
+            lock_written: false,
         }
     }
 }
@@ -210,6 +218,7 @@ impl Skill {
             group_size: group_skill_count,
             slots: vec![SlotSkill::default(); group_skill_count.saturating_sub(1)],
             mech_lock: None,
+            lock_written: false,
             projectile_pending_releases: Vec::new(),
             laser_attack_count: 0,
             retarget_after_own_direct_kill: false,
@@ -402,7 +411,7 @@ impl Skill {
     /// the usual eight ticks later. Nothing changes for a unit without a
     /// group, whose slot lists are empty.
     pub(in crate::fight) fn drop_lock(&mut self) {
-        self.lock_target = None;
+        self.write_lock(None);
         self.mech_lock = None;
     }
 
@@ -410,6 +419,12 @@ impl Skill {
     /// scheduled, as leaving the fight leaves them.
     pub(in crate::fight) fn clear_slots(&mut self) {
         self.slots.fill(SlotSkill::default());
+    }
+
+    /// `FightSkill.ChangeLockTarget`.
+    pub(in crate::fight) fn write_lock(&mut self, lock: Option<FightActorRef>) {
+        self.lock_target = lock;
+        self.lock_written = true;
     }
 
     pub(in crate::fight) const fn is_grouped(&self) -> bool {
@@ -514,7 +529,7 @@ impl Simulation {
             None
         };
         let skill = self.skill_mut(owner);
-        skill.lock_target = None;
+        skill.write_lock(None);
         skill.set_cooling(Some((started, candidate)));
         skill.search_target_time = 0;
         if let Some(actor) = self.moving_mut(owner) {
@@ -588,8 +603,22 @@ impl Simulation {
             .any(|candidate| candidate.placement.team != source_team && candidate.alive());
         let located =
             |error: Error| Error::new(format!("logic step {step} actor {}: {error}", owner.id()));
+        let grouped_core = owner.unit_id().filter(|_| {
+            self.skill(owner).is_grouped()
+                && self
+                    .skill(owner)
+                    .slots
+                    .iter()
+                    .any(|slot| slot.lock.is_some())
+        });
         let mut selected_candidate = if match_over {
             None
+        } else if let Some(actor_id) = grouped_core {
+            // A grouped core's search is `PerformGroupedSkillSearch` as its
+            // siblings' is: around what they hold, and among it when
+            // nothing else answers in reach.
+            self.select_group_lock_replacement(actor_id, 0, target_search_order)
+                .map_err(located)?
         } else {
             self.select_normal_target_with_order(
                 owner,
@@ -653,7 +682,7 @@ impl Simulation {
         if skill.attack_target() != selected {
             skill.laser_attack_count = 0;
         }
-        skill.lock_target = selected;
+        skill.write_lock(selected);
         skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
         skill.retarget_after_own_direct_kill = false;
         self.search_attack_target(owner);
@@ -706,6 +735,11 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let core_lock = self.actors[&actor_id].skill.lock_target;
+        self.actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable")
+            .skill
+            .lock_written = false;
         let update = self.update_skill(
             FightActorRef::Unit(actor_id),
             step,
@@ -720,7 +754,7 @@ impl Simulation {
                 .get_mut(&actor_id)
                 .expect("actor identity is stable")
                 .skill;
-            if skill.lock_target != core_lock {
+            if skill.lock_written || skill.lock_target != core_lock {
                 skill.mech_lock = skill.lock_target;
             }
             self.update_group_slots(actor_id, step, target_search_order, events)?;

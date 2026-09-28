@@ -80,7 +80,7 @@ agrees with its `config/units/` file.
 
 Arclight, Fang, Mustang, Steel Ball, Wraith, Stormcaller and Phoenix have
 the same six layouts against the reference units: 84 recordings, of which
-80 play back exactly and are pinned. Every unit but the Wraith meets the
+83 play back exactly and are pinned. Every unit but the Wraith meets the
 definition. A cell that parts gives the
 recording's ticks and the first tick the simulator differs on.
 
@@ -112,10 +112,10 @@ recording's ticks and the first tick the simulator differs on.
 | steel_ball | `m6-formations` | 530 | 507 |
 | wraith | `m1-mirror` | 430 | 429 |
 | wraith | `m2-rhino` | 287 | 286 |
-| wraith | `m3-crawler` | 247, refused at 139 | 201, refused at 138 |
+| wraith | `m3-crawler` | 247 | 201, parts at 172 |
 | wraith | `m4-marksman` | 265 | 264 |
 | wraith | `m5-rotated` | 252 | 247 |
-| wraith | `m6-formations` | 312, refused at 124 | 330, refused at 125 |
+| wraith | `m6-formations` | 312 | 330 |
 | stormcaller | `m1-mirror` | 120 | 248 |
 | stormcaller | `m2-rhino` | 315 | 291 |
 | stormcaller | `m3-crawler` | 352 | 301 |
@@ -129,13 +129,15 @@ recording's ticks and the first tick the simulator differs on.
 | phoenix | `m5-rotated` | 105 | 103 |
 | phoenix | `m6-formations` | 301 | 296 |
 
-Each fight that does not play back is the Wraith's, refused on one mechanism
-that is not its own damage or motion:
+The one fight that does not play back is the Wraith's M3 with seed
+1787720817, and it parts on motion, not on the Wraith's weapons:
 
-- **A live lock redistributed by attack count.** A slot whose lock a sibling
-  shares, with an unheld unit in its reach, goes through a branch of
-  `SkillAttackableChecker` that the simulator does not model, and refuses by
-  name. M3 and M6 reach it with both seeds, on the ticks above.
+- **A move speed published four ticks after it was asked.** At tick 172 the
+  game publishes the Wraith's full 10 m/s where the simulator publishes 9 m/s:
+  the simulator's solve at tick 168 took the speed its facing limited then,
+  100° from its drift, where the game's took the speed of a tick or two
+  later, when the facing had come round. When an RVO solve reads what it
+  was asked is not read.
 
 ## The eighteen released together
 
