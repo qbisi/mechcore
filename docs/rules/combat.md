@@ -236,6 +236,94 @@ the holders by their attack counts is not read, and its one recorded answer
 is the rule above. The fixtures
 that separated the rest are [the Wraith fixtures](../../tests/wraith/README.md).
 
+## A fusillade fires with its core
+
+A skill whose data says `IsFusillade` gets a `GroupedSkillFusilladeBehaviour`
+over its group in place of the ordinary one; the Raiden's three weapons are
+the one recorded. It holds every sibling to the core:
+
+- **A sibling starts only while the core prepares or attacks.**
+  `CanStartAttackCheck` asks the core's state alone, not whether any skill of
+  the group attacks. An idle sibling searches and starts once the core is in
+  `SkillPrepareState` or `SkillAttackState`, and with no prepare it is
+  attacking on the update it starts; while the core idles, the siblings hold
+  nothing.
+- **The core entering its attack hands every sibling its schedule.**
+  `FusilladeStart`, which `OnStartAttack` runs for the core, calls
+  `RefreshAttackData(core, isSync: true)` on each sibling: the interval and
+  the time already counted are the core's.
+- **A sibling fires only after the core has.** `CanPerformAttack` holds until
+  the core, which updates first, has started a blow on the same update
+  (`OnStartPerformAttack` puts it first in the list of skills attacking), so
+  the three blows land on one tick, one round every 92 ticks.
+- **After a round, every sibling is due again when the core is.**
+  `FusilladeEnd`, which the group's update runs when a skill attacked,
+  `RefreshAttackData(core)` without `isSync`: the core's interval, the count
+  started over.
+
+Where the simulator ends the core's update matters: a core with no prepare
+enters its attack in `SkillIdleState.TryStartAttack`, which the simulator
+runs with the unit's motion, so a fusillade's siblings update after the
+motion, with the facing the body had before it turned.
+
+**A fusillade's siblings never share, and are allocated towers.** A grouped
+search leaves out what the other skills hold, and a fusillade does not fall
+back on it, as a group that shares does. With no unit left, the answer is an
+enemy tower: a Raiden alone against a Rhino has its core on the Rhino and its
+two siblings each on a tower, idle while it is out of reach.
+
+**A fusillade's core takes a unit from its siblings.** The core searches around
+what its siblings hold like any slot; when that answer is missing or out of
+reach, `PerformGroupedSkillSearch` asks the selector about the held units, as a
+sharing group does, and each skill that holds what it finds drops its lock
+(`ChangeLockTarget(null)`). The sibling's attack target stays until it searches
+again; an attacking one searches on its next check. In the Raiden's M3 with
+seed 4242, the core, idle after its cooling, takes the Crawler its first
+sibling attacks at tick 177, and that sibling finds another one outside its
+angle and cools.
+
+**A sibling cools as the core does.** A sibling's check that fails in its attack
+ends in `SkillAttackState.Finish`: its lock dropped, reaching the owner, and
+its cooling time with its weapon on what the check turned it to; the last step
+of the cooling reads idle with nothing named, and the slot starts as an idle
+one on the update after.
+
+**An idle sibling searches on its own timer.** `SkillIdleState.TrySearchLockTarget`
+searches when the skill's search timer, ten updates, is up or what it holds is
+gone, and keeps the lock in between; a sibling that found a unit outside its
+area holds it idle until then.
+
+**A cooling that has nothing to drop hands the owner nothing.** A grouped unit's
+lock is the latest a slot wrote; a core cooling with no lock does not write one
+each update, so a sibling's lock stays the unit's.
+
+## A weapon fixed to the body
+
+`FightWeapon`'s constructor gives each weapon of the unit whose data is 27, the
+Raiden, a `RotationLimitFightTransform` of `RotateType.Fixed`, parented to the
+unit's transform, where every other unit's weapon has none. A recording carries
+such a weapon's pose:
+
+- it stands where the unit stands;
+- the core's weapon has the body's rotation on every tick;
+- a sibling's weapon turns only when its own skill updates holding a lock:
+  `FightSkill.Update` turns a skill's weapons toward its lock after the state
+  has updated, and a fixed weapon ignores the direction and takes the parent's
+  rotation, the body's before this update turned it. A sibling with no lock
+  keeps the rotation it had, and every weapon enters the fight with the body's.
+  On the update the fight stops no skill updates and no weapon turns.
+
+`FightSkill.GetMainTransform` answers the weapon's transform where
+`CanRotate` does, which a fixed weapon's does, so a Raiden sibling's search
+scores, and its attack area is measured, from its own weapon's rotation: a
+sibling whose weapon was left behind finds a unit outside its angle and does
+not start on it.
+
+**A bodyless unit entering its attack out of angle holds its fire while it
+turns**, whatever its path: the Raiden, whose blows strike, as the units whose
+weapons fire projectiles, lasers or melee blows. Without the hold its attack
+state would find the target out of angle on the next update and give it up.
+
 ## Normal target scoring and pre-battle acquisition
 
 Among currently visible, fully rotated, unsplit-quadtree ordinary ground targets
@@ -490,6 +578,10 @@ not the game's native attack-type enum.
   `tests/units/regressions.mcscript`.
 - A cooling that goes on through a won fight, and an attack that goes idle,
   in the Phantom Ray's standard fights: `tests/units/regressions.mcscript`.
+- The Raiden's fusillade, its siblings' towers, a core taking a sibling's unit,
+  siblings cooling and searching on their timers, and its weapons' poses, in
+  the Raiden's standard fights: `tests/units/regressions.mcscript`, and nine
+  Raidens' blows landing on nine Fangs: `tests/raiden/regressions.mcscript`.
 - A presearched target a few raw units left of straight ahead faced at
   +0.245°, in the standard fights of the Steel Ball, Stormcaller, Hound, Fire
   Badger and Phantom Ray: `tests/units/regressions.mcscript`.
@@ -543,6 +635,25 @@ not the game's native attack-type enum.
 - A free-moving unit is not slowed by its facing, and which units are free
   moving: `MotionController.CalculateMoveSpeed`, `FightMech.isFreeMove`,
   `MechData.PreProcess`, `FightMech.EnterFight`.
+- A fusillade holds its siblings to the core: `SkillGroup..ctor`,
+  `GroupedSkillFusilladeBehaviour.CanStartAttackCheck`,
+  `GroupedSkillFusilladeBehaviour.CanPerformAttack`,
+  `GroupedSkillFusilladeBehaviour.FusilladeStart`,
+  `GroupedSkillFusilladeBehaviour.FusilladeEnd`,
+  `GroupedSkillFusilladeNormal.OnStartPerformAttack`,
+  `FightSkill.RefreshAttackData`.
+- A grouped search falls back to the normal one, and a core's fallback takes
+  a unit from its siblings: `SkillSearchTargetController.SearchLockTarget`,
+  `SkillSearchTargetController.PerformGroupedSkillSearch`,
+  `FightSkill.ChangeLockTarget`.
+- Only a child skill asks whether to give its unit up, and the question is
+  asked within the unit's own group, of attack counts:
+  `SkillAttackableChecker.TrySearchGroupSkillLockTarget`,
+  `SkillAttackController.attackCount`.
+- The unit whose data is 27 has fixed weapons, which turn to their parent's
+  rotation when their skill updates with a lock: `FightWeapon..ctor`,
+  `FightWeapon.RotateTo`, `FightWeapon.CanRotate`, `FightSkill.Update`,
+  `FightSkill.GetMainTransform`, `RotationLimitFightTransform`.
 - The first acquisition happens before the first state: `FightPrepareState.Enter`.
 - Life lost is clamped to life left: `FightActor.ReduceLife`,
   `FightSkill.GetDamage`.
@@ -568,8 +679,10 @@ not the game's native attack-type enum.
   weapon has no pose in a recording, so its aim angle is not observed.
 - **Grouped slots**: a sibling giving up a unit another sibling took on the
   same update, which the simulator refuses by name, and how
-  `TrySearchGroupSkillLockTarget` weighs attack counts in general; grouped
-  fusillade; redistribution of wall blockers; and whether an idle slot that
+  `TrySearchGroupSkillLockTarget` weighs attack counts in general, which it
+  reads within one unit's group and never across units; a fusillade of
+  weapons that do not strike, which the simulator refuses; redistribution of
+  wall blockers; and whether an idle slot that
   finds a unit beyond its reach keeps it as its lock, which no recorded
   sibling has done.
 - **Target scoring**: a split quadtree, tied candidates, a building winning,
@@ -577,10 +690,11 @@ not the game's native attack-type enum.
 - **Projectiles**: why a projectile in simulated motion spares a dead unit's
   neighbours, which is recorded and not read; interception; and every other
   projectile type.
-- **Raiden.** `FightWeapon`'s constructor gives each weapon of the unit whose
-  data is 27 a transform of its own, fixed to the body, and its three grouped
-  weapons fire as a fusillade; which slots fire, what they hold and how their
-  transforms turn is recorded and not reproduced, so the unit is refused.
+- **A fixed weapon's transform**: that `RotationLimitFightTransform` refreshed
+  for `RotateType.Fixed` copies its parent's rotation exactly, and which call
+  keeps the core's weapon on the body's rotation, are measured, not read; the
+  core's search condition that lets it take a sibling's unit is read as a
+  fusillade's from where it stands, not from the flag it asks.
 - **Damage**: building splash, area boundary and ordering, modifier chains,
   shields, and other providers or target domains.
 - **A personal shield's** activation, absorption and destruction.

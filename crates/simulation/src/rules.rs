@@ -210,6 +210,12 @@ pub(crate) struct WeaponTopology {
     pub(crate) fusillade: Option<bool>,
     pub(crate) allow_same_target: Option<bool>,
     pub(crate) rotation_speed: Option<f64>,
+    /// `FightWeapon`'s constructor gives each weapon of the unit whose data
+    /// is 27 a transform of its own, `RotateType.Fixed` and parented to the
+    /// unit's: it stands where the unit stands and turns only when told to
+    /// take the unit's rotation.
+    #[serde(default)]
+    pub(crate) fixed_to_body: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -507,11 +513,19 @@ impl UnitConfig {
             // A group of one weapon fires one blow whatever its topology
             // says: a Vortex's is a single direct weapon.
             (_, WeaponMode::Group) if weapons.count() == 1 => return Ok(()),
-            (_, WeaponMode::Group) if weapons.fusillade == Some(true) => {
-                "fires its grouped weapons as a fusillade"
-            }
-            (AttackPath::Projectile { .. }, WeaponMode::Group) | (_, WeaponMode::Normal) => {
+            // The Raiden's blows are the one fusillade recorded, and a
+            // Wraith's projectiles the one group that shares out targets.
+            (AttackPath::Direct, WeaponMode::Group) if weapons.fusillade == Some(true) => {
                 return Ok(());
+            }
+            (AttackPath::Projectile { .. }, WeaponMode::Group)
+                if weapons.fusillade == Some(false) =>
+            {
+                return Ok(());
+            }
+            (_, WeaponMode::Normal) => return Ok(()),
+            (_, WeaponMode::Group) if weapons.fusillade == Some(true) => {
+                "fires a fusillade of weapons that do not strike"
             }
             (_, WeaponMode::Group) => "groups weapons that fire no projectile",
             (_, WeaponMode::Standalone) => "fires standalone weapons",
@@ -1044,9 +1058,10 @@ mod tests {
         assert_eq!(stats.laser_damage(rules, usize::MAX), 2_604);
     }
 
-    /// The kernel fires projectiles, blows and lasers, and groups several
-    /// weapons only for projectiles; a control beam and a fusillade of several
-    /// grouped weapons are refused by the unit that fires them.
+    /// The kernel fires projectiles, blows and lasers, groups several
+    /// projectile weapons that share out targets and several striking
+    /// weapons that fire as a fusillade; a control beam is refused by the
+    /// unit that fires it.
     #[test]
     fn a_main_skill_the_kernel_cannot_fire_is_refused_by_unit() {
         let config = SimulationConfig::load().unwrap();
@@ -1057,13 +1072,12 @@ mod tests {
             "wraith",
             "melting_point",
             "vortex",
+            "raiden",
         ] {
             assert!(config.units.get(fired).unwrap().fired().is_ok(), "{fired}");
         }
-        for (refused, why) in [("hacker", "a control beam"), ("raiden", "as a fusillade")] {
-            let error = config.units.get(refused).unwrap().fired().unwrap_err();
-            assert!(error.to_string().contains(why), "{error}");
-        }
+        let error = config.units.get("hacker").unwrap().fired().unwrap_err();
+        assert!(error.to_string().contains("a control beam"), "{error}");
     }
 
     #[test]

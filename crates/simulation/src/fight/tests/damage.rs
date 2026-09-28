@@ -19,7 +19,7 @@ fn direct_splash_emits_one_damage_event_per_actual_target() {
     set_actor_position(simulation.actors.get_mut(&3).unwrap(), 1_000, 20_000);
     let mut events = Vec::new();
     simulation
-        .direct_effect(1, FightActorRef::Unit(2), &mut events)
+        .direct_effect(1, FightActorRef::Unit(2), 0, &mut events)
         .unwrap();
     assert_eq!(
         [simulation.actors[&2].life, simulation.actors[&3].life],
@@ -82,7 +82,7 @@ fn direct_kill_emits_damage_before_death_with_raw_target_position() {
     let mut events = Vec::new();
 
     simulation
-        .direct_effect(1, FightActorRef::Unit(2), &mut events)
+        .direct_effect(1, FightActorRef::Unit(2), 0, &mut events)
         .unwrap();
 
     assert_eq!(events.len(), 2);
@@ -125,7 +125,7 @@ fn zero_radius_direct_attack_does_not_damage_an_overlapping_secondary_target() {
 
     let mut events = Vec::new();
     simulation
-        .direct_effect(1, FightActorRef::Unit(2), &mut events)
+        .direct_effect(1, FightActorRef::Unit(2), 0, &mut events)
         .unwrap();
 
     assert_eq!(simulation.actors[&2].life, primary_life - 79);
@@ -166,7 +166,7 @@ fn direct_splash_takes_a_building_beside_the_unit() {
     let building_life = building.life.current;
     let previous_life = simulation.actors[&2].life;
     simulation
-        .direct_effect(1, FightActorRef::Unit(2), &mut Vec::new())
+        .direct_effect(1, FightActorRef::Unit(2), 0, &mut Vec::new())
         .unwrap();
     let dealt = previous_life - simulation.actors[&2].life;
     assert!(dealt > 0);

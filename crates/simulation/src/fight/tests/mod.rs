@@ -67,6 +67,7 @@ pub(super) fn raw_test_simulation(
         rvo_counter: 0,
         rvo_first_tree_pending: true,
         terminal_drain_pending: false,
+        stop_step: None,
         late_building_events_pending: false,
         fallen_buildings: Vec::new(),
         tower_buff_events: BTreeMap::new(),

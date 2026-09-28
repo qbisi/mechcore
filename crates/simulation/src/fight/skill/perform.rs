@@ -77,7 +77,7 @@ impl Simulation {
             })?;
             let target = pending.target;
             let target_was_alive = self.fight_actor_is_alive(target);
-            self.direct_effect(actor_id, target, events)?;
+            self.direct_effect(actor_id, target, 0, events)?;
             // A block felled by a blow is left to the backswing and then to
             // the fallen-block rule: the Rhino of `wall-rhino.yaml` stays on
             // the block it felled until its swing is over, where a unit it

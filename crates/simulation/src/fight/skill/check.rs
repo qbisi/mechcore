@@ -180,7 +180,7 @@ impl Simulation {
         distance < space_to_q32(source.attack.min_range())
     }
 
-    fn slot_target_in_attack_area(
+    pub(in crate::fight) fn slot_target_in_attack_area(
         &self,
         owner: FightActorRef,
         slot: Option<usize>,
@@ -189,11 +189,19 @@ impl Simulation {
         if slot.is_none_or(|slot| slot == 0) {
             return self.target_in_attack_area(owner, target);
         }
+        let actor_id = owner.unit_id().expect("only a unit's skill is grouped");
+        let actor = &self.actors[&actor_id];
         self.slot_target_in_attack_range(owner, slot, target)
-            && self.bodyless_target_in_attack_angle(
-                owner.unit_id().expect("only a unit's skill is grouped"),
-                target,
-            )
+            && self.fight_actor(target).is_some_and(|view| {
+                view.alive
+                    && rotation_distance_q32(
+                        actor.slot_main_rotation_q32(slot.unwrap_or(0)),
+                        direction_degrees_q32_raw(
+                            view.x_q32.saturating_sub(actor.x_q32),
+                            view.z_q32.saturating_sub(actor.z_q32),
+                        ),
+                    ) <= mdeg_to_degrees_q32(actor.rules.attack.attack_half_angle_mdeg())
+            })
     }
 
     fn slot_lock_target(&self, owner: FightActorRef, slot: Option<usize>) -> Option<FightActorRef> {
@@ -227,13 +235,17 @@ impl Simulation {
         };
         let actor_id = owner.unit_id().expect("only a unit's skill is grouped");
         let selected = self.select_group_lock_replacement(actor_id, slot, target_search_order)?;
+        if slot == 0 {
+            self.take_from_siblings(actor_id, selected);
+        }
         let actor = self.actors.get_mut(&actor_id).expect("actor exists");
         if slot == 0 {
             actor.skill.write_lock(selected);
             self.search_attack_target(FightActorRef::Unit(actor_id));
         } else {
             let sibling = actor.skill.sibling_mut(slot);
-            sibling.lock = selected.and_then(FightActorRef::unit_id);
+            sibling.lock = selected;
+            sibling.attack_target_left = None;
             sibling.lock_written = true;
             self.refresh_group_walls(actor_id);
         }

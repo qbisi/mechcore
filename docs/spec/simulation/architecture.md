@@ -443,8 +443,9 @@ each settled search publishes its lock to the mech. The ordinary search
 excludes sibling locks and permits sharing according to the skill data.
 The child-range rule is in [combat](../../rules/combat.md#a-grouped-slot-searches-around-its-siblings-locks).
 The mirror refuses live shared-lock redistribution onto an available unheld
-target and a child leaving its attack area. Grouped fusillade is outside the
-supported configs. The existing prepare offset and per-slot wall checks are
+target and a child leaving its attack area. A grouped fusillade is supported
+for striking weapons only, per
+[combat](../../rules/combat.md#a-fusillade-fires-with-its-core). The existing prepare offset and per-slot wall checks are
 separate from this target-search contract.
 
 **A live lock beyond reach ends the attack.** `Check` searches again after a

@@ -140,11 +140,11 @@ simulator moved off it kept it in the game.
 Every other unit but the three that cost 800 (War Factory, Abyss, Mountain)
 was released to the simulator at once, and recorded in its six layouts with
 both seeds before any of it was fixed: 216 recordings. Sandworm is not among
-them, as its configuration cannot state a unit that burrows. Two units are
+them, as its configuration cannot state a unit that burrows. One unit is
 still refused by name, for a main skill the kernel has no way to fire:
-Hacker's control beam, and Raiden's fusillade of three grouped weapons.
+Hacker's control beam.
 
-All 192 of the other fights play back exactly and are pinned:
+All 204 of the other fights play back exactly and are pinned:
 
 | Unit | Pinned of 12 |
 | --- | ---: |
@@ -156,6 +156,7 @@ All 192 of the other fights play back exactly and are pinned:
 | melting_point | 12 |
 | overlord | 12 |
 | phantom_ray | 12 |
+| raiden | 12 |
 | sabertooth | 12 |
 | scorpion | 12 |
 | sledgehammer | 12 |
@@ -174,6 +175,9 @@ showed the game turning exactly as the simulator did and parting only on the
 state change. The fifth, the Phantom Ray's M3 with seed 4242, showed three
 Phantom Rays still cooling, and still naming the dead last Crawler, for the
 five ticks the fight runs on after it is won.
+
+The Raiden's twelve were read against [`../raiden/`](../raiden/README.md),
+which records them again with each weapon slot's lock and state.
 
 The Overlord's M3 fields five formations in a row and its M6 two side by side:
 with three in a column, or two one behind the other, the Crawlers felled a

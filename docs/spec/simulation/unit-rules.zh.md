@@ -114,6 +114,8 @@ body 方向，因此必须省略该字段。当前 P0 数据中所有适用值�
 - `fusillade` 和 `allow_same_target` 仅在 `group` 时必填，不允许用默认值代替缺失原生数据。
 - 仅当原生技能提供独立于主体的武器转速时填写 `rotation_speed`；Wraith 的该值为
   `90`，而主体层 `rotate_speed` 为 `120`。
+- `fixed_to_body` 只对单位数据为 27 的 Raiden 为 `true`：`FightWeapon` 的构造器给它的每件
+  武器一个固定在机身上的独立变换。表里没有这一列，由抽取脚本按 id 写出，缺省为 `false`。
 
 `path` 是四种变体的标签联合：
 

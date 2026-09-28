@@ -38,6 +38,7 @@ attack:
     per_skill: 1
     fusillade: true
     allow_same_target: false
+    fixed_to_body: true
   melee: false
   path:
     type: direct
