@@ -37,6 +37,29 @@ pub(in crate::fight) struct PendingProjectileRelease {
     pub(in crate::fight) weapon_index: usize,
 }
 
+/// Which `FightSkill` a skill is. The build makes one by the path its blow
+/// takes: a strike is a plain `FightSkill`, a laser a `FightLaserSkill`, a
+/// projectile skill a `FightProjectileSkill`, and a control beam a
+/// `FightControllBeamSkill`, which no fight reaches yet.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::fight) enum SkillKind {
+    Strike,
+    Laser,
+    Projectile,
+    ControlBeam,
+}
+
+impl SkillKind {
+    pub(in crate::fight) const fn of(path: &AttackPath) -> Self {
+        match path {
+            AttackPath::Direct => Self::Strike,
+            AttackPath::Laser { .. } => Self::Laser,
+            AttackPath::Projectile { .. } => Self::Projectile,
+            AttackPath::ControlBeam { .. } => Self::ControlBeam,
+        }
+    }
+}
+
 /// `SkillAttackController.attackPerformer`: what carries a blow out once
 /// it is released.
 #[derive(Debug, Clone)]
@@ -53,23 +76,13 @@ pub(in crate::fight) enum Performer {
 }
 
 impl Performer {
-    /// The performer a skill that takes this path starts with.
-    pub(in crate::fight) const fn of(path: &AttackPath) -> Self {
-        match path {
-            AttackPath::Projectile { .. } => Self::Projectile {
+    /// The performer a skill of this kind starts with.
+    pub(in crate::fight) const fn of(kind: SkillKind) -> Self {
+        match kind {
+            SkillKind::Projectile => Self::Projectile {
                 pending: Vec::new(),
             },
-            _ => Self::Normal,
-        }
-    }
-
-    /// The same performer with nothing in hand.
-    pub(in crate::fight) const fn fresh(&self) -> Self {
-        match self {
-            Self::Normal => Self::Normal,
-            Self::Projectile { .. } => Self::Projectile {
-                pending: Vec::new(),
-            },
+            SkillKind::Strike | SkillKind::Laser | SkillKind::ControlBeam => Self::Normal,
         }
     }
 
@@ -231,6 +244,7 @@ pub(in crate::fight) struct Skill {
     /// search that finds the unit it already holds still hands it to the
     /// owner.
     pub(in crate::fight) lock_written: bool,
+    pub(in crate::fight) kind: SkillKind,
     pub(in crate::fight) performer: Performer,
     /// `SkillAttackController.attackCount`: the blows started since the
     /// skill entered its attack state, less one. The constructor and
@@ -256,12 +270,11 @@ impl Skill {
         weapon_rotations_q32: Vec<i64>,
         group: Option<(usize, GroupBehaviour)>,
         magazine: Option<Magazine>,
-        performer: Performer,
+        kind: SkillKind,
     ) -> Self {
+        let performer = Performer::of(kind);
         let group = group.map(|(skills, behaviour)| Group {
-            siblings: (1..skills)
-                .map(|_| Self::sibling_entering(performer.fresh()))
-                .collect(),
+            siblings: (1..skills).map(|_| Self::sibling_entering(kind)).collect(),
             sibling_weapon_rotations_q32: vec![0; skills.saturating_sub(1)],
             mech_lock: None,
             core_blow_step: None,
@@ -280,6 +293,7 @@ impl Skill {
             state: SkillState::Idle { ready_step: None },
             group,
             lock_written: false,
+            kind,
             performer,
             attack_count: ATTACK_COUNT_RESET,
             rounds: magazine.map(|magazine| magazine.capacity),
@@ -290,10 +304,10 @@ impl Skill {
     /// A grouped core's sibling as it enters the fight, and as leaving the
     /// fight or failing a check leaves it: idle, with no lock and nothing
     /// scheduled. Its weapon's pose and its group live on the core.
-    pub(in crate::fight) fn sibling_entering(performer: Performer) -> Self {
+    pub(in crate::fight) fn sibling_entering(kind: SkillKind) -> Self {
         Self {
             search_target_time: 0,
-            ..Self::new(Vec::new(), None, None, performer)
+            ..Self::new(Vec::new(), None, None, kind)
         }
     }
 
@@ -503,9 +517,9 @@ impl Skill {
     /// Every sibling slot left idle, with no allocation and nothing
     /// scheduled, as leaving the fight leaves them.
     pub(in crate::fight) fn clear_slots(&mut self) {
-        let performer = self.performer.fresh();
+        let kind = self.kind;
         for sibling in self.siblings_mut() {
-            *sibling = Self::sibling_entering(performer.fresh());
+            *sibling = Self::sibling_entering(kind);
         }
     }
 
@@ -1416,14 +1430,7 @@ impl Simulation {
         for pending in due {
             self.release_pending_projectile(owner, pending, events)?;
         }
-        let grouped = self
-            .attacker(owner)
-            .expect("skill owner identity is stable")
-            .attack
-            .weapons
-            .mode
-            == WeaponMode::Group;
-        if grouped {
+        if self.skill(owner).is_grouped() {
             let actor_id = owner.unit_id().expect("only a unit's skill is grouped");
             self.perform_group_blows(actor_id, step, entered_attack, events)?;
         }

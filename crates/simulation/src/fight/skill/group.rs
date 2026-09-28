@@ -392,7 +392,7 @@ impl Simulation {
             .sibling_mut(slot);
         *sibling = Skill {
             next_attack_step: sibling.next_attack_step,
-            ..Skill::sibling_entering(sibling.performer.fresh())
+            ..Skill::sibling_entering(sibling.kind)
         };
     }
 
@@ -426,7 +426,7 @@ impl Simulation {
     ) -> Result<()> {
         let group_core_target = {
             let actor = &self.actors[&actor_id];
-            (actor.rules.attack.weapons.mode == WeaponMode::Group
+            (actor.skill.is_grouped()
                 && !entered_attack
                 && actor.motion.state == MotionState::Attacking
                 && !actor.motion.attack_hold_fire
@@ -473,7 +473,7 @@ impl Simulation {
                 if self.actors.get(&target_id).is_some_and(Actor::alive) =>
             {
                 self.refresh_group_skill_attack_interval(actor_id, skill_index, step)?;
-                if matches!(self.actors[&actor_id].rules.attack.path, AttackPath::Direct) {
+                if self.actors[&actor_id].skill.kind == SkillKind::Strike {
                     self.direct_effect(actor_id, target, skill_index, events)?;
                 } else {
                     self.release_projectile(

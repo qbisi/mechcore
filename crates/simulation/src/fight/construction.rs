@@ -40,7 +40,7 @@ impl Construction {
         searches: bool,
     ) -> Self {
         let magazine = attack.magazine;
-        let performer = Performer::of(&attack.path);
+        let kind = SkillKind::of(&attack.path);
         Self {
             team: building.team_id,
             x: building_x(building),
@@ -61,7 +61,7 @@ impl Construction {
                 }],
                 None,
                 magazine,
-                performer,
+                kind,
             ),
         }
     }
