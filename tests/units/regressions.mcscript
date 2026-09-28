@@ -691,6 +691,13 @@ steps:
       hashes.physics_result_hash: f37b63e8d41bf6b6a8fcc2ea71150732844c5f9d360e497cfae4978b33cea327
       hashes.content_result_hash: e9b8444a47d03a715a15690582e0d94510574f559b78e68c90d32f6347ca0bc1
   - fight.run:
+      layout: tests/units/wraith/m3-crawler.yaml
+      seed: 4242
+    expect:
+      steps: 247
+      hashes.physics_result_hash: b67f520f4a36fe31a51cb448fa19012de6e413a5b2a401d9e3e1c15eda4febbc
+      hashes.content_result_hash: d50b2964c4cc90fc9709b032e980535e67ce08dc9d683912a40591f926133e34
+  - fight.run:
       layout: tests/units/wraith/m4-marksman.yaml
       seed: 4242
     expect:
@@ -718,6 +725,20 @@ steps:
       steps: 247
       hashes.physics_result_hash: 85f81b2f6e59e9b1bbadac8223917600ef886b220e83378a2c8a48cc0f23ad8b
       hashes.content_result_hash: 16b5069f959306b87efebd93d5d3fd271475a33533310413248f8b36eba51862
+  - fight.run:
+      layout: tests/units/wraith/m6-formations.yaml
+      seed: 4242
+    expect:
+      steps: 312
+      hashes.physics_result_hash: 9820873012ff47d5399842ac069b0c664daa7c66244df90130b19fab96e475f8
+      hashes.content_result_hash: c40d8e8f83f10ac0e5fdee502e09b5510719c3dbca6cff779279043cea0c2313
+  - fight.run:
+      layout: tests/units/wraith/m6-formations.yaml
+      seed: 1787720817
+    expect:
+      steps: 330
+      hashes.physics_result_hash: c5981d3d41ccf653258da1a5de7bc9e36af2d862ff0c4260e22e5cf0bee6ea89
+      hashes.content_result_hash: aec03e32f7abbb1a332c387b15a9e341809963a1a1a64f2ef33d412c7b263a79
   # stormcaller
   - fight.run:
       layout: tests/units/stormcaller/m1-mirror.yaml

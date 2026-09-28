@@ -75,24 +75,28 @@ impl Simulation {
         // A grouped core searches as its group's slot 0, around what its
         // siblings hold.
         let slot = self.skill(owner).is_grouped().then_some(0);
-        self.check_attackable_slot(owner, slot, target_search_order)
+        self.check_attackable_slot(owner, slot, true, target_search_order)
     }
 
     pub(in crate::fight) fn check_attackable_slot(
         &mut self,
         owner: FightActorRef,
         slot: Option<usize>,
+        attacking_check: bool,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<bool> {
         let lock = self.slot_lock_target(owner, slot);
         let before = self.slot_attack_target(owner, slot);
         if lock.is_some_and(|lock| self.fight_actor_is_alive(lock)) {
-            if let Some(slot) = slot.filter(|slot| *slot > 0) {
-                self.check_group_redistribution_scope(
+            if let Some(slot) = slot.filter(|slot| *slot > 0)
+                && attacking_check
+                && self.sibling_yields(
                     owner.unit_id().expect("only a unit's skill is grouped"),
                     slot,
                     target_search_order,
-                )?;
+                )?
+            {
+                return Ok(false);
             }
             self.search_slot_attack_target(owner, slot);
         } else {
@@ -225,10 +229,12 @@ impl Simulation {
         let selected = self.select_group_lock_replacement(actor_id, slot, target_search_order)?;
         let actor = self.actors.get_mut(&actor_id).expect("actor exists");
         if slot == 0 {
-            actor.skill.lock_target = selected;
+            actor.skill.write_lock(selected);
             self.search_attack_target(FightActorRef::Unit(actor_id));
         } else {
-            actor.skill.sibling_mut(slot).lock = selected.and_then(FightActorRef::unit_id);
+            let sibling = actor.skill.sibling_mut(slot);
+            sibling.lock = selected.and_then(FightActorRef::unit_id);
+            sibling.lock_written = true;
             self.refresh_group_walls(actor_id);
         }
         Ok(selected.is_some())
@@ -348,7 +354,7 @@ impl Simulation {
             skill.drop_lock();
             return Ok(false);
         };
-        skill.lock_target = Some(selected);
+        skill.write_lock(Some(selected));
         self.search_attack_target(owner);
         Ok(true)
     }

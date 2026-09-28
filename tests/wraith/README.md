@@ -57,9 +57,9 @@ names the first tick a fight parts on:
 cargo test -p mechcore-simulation grouped_slots_match_every_recorded_tick -- --ignored --nocapture
 ```
 
-The two fixtures here and both M2 fights agree on every tick. The M3 and M6
-fights reach a live lock that a slot's check redistributes by attack count,
-and the simulator refuses them there.
+The two fixtures here and every standard fight but one agree on every tick.
+The Wraith's M3 with seed 1787720817 agrees until tick 178, after its motion
+has parted at tick 172 on a move speed ([`../units/README.md`](../units/README.md)).
 
 The replay requires the recording to carry the checker channel and rejects
 missing calls. Observed targets are never used to advance the simulation checked by the
