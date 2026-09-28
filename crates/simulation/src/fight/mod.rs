@@ -710,10 +710,20 @@ impl Simulation {
                 let entered_idle = actor.motion.state != MotionState::Idle;
                 actor.stop_in_place(entered_idle);
                 actor.skill.drop_lock();
-                // `FightSkill.ExitFight` ends a cooling as well.
-                actor.skill.set_cooling(None);
                 actor.skill.lock_is_terminal_handoff = false;
-                actor.skill.set_phase(FightSkillPhase::Idle);
+                // A won fight runs on without `FightSkill.ExitFight` until it
+                // ends: a skill already cooling goes on cooling at what it
+                // named, and only the end of the fight ends it. A cooling
+                // this very tick would have begun is not one the build's
+                // attack state has entered yet, and goes idle with it.
+                let cooling_before = actor
+                    .skill
+                    .cooling()
+                    .is_some_and(|(started, _)| started < step);
+                if ready_to_finish || !cooling_before {
+                    actor.skill.set_cooling(None);
+                    actor.skill.set_phase(FightSkillPhase::Idle);
+                }
                 if ready_to_finish {
                     actor.motion.current_velocity_x_q32 = 0;
                     actor.motion.current_velocity_z_q32 = 0;

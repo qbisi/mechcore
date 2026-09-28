@@ -4,15 +4,18 @@
 #   mechcore run tests/units/skill-state.mcscript --check   parse without the game
 #   mechcore run tests/units/skill-state.mcscript           record
 #
-# Re-records four standard fights with the `target_refs` instrument channel,
+# Re-records six standard fights with the `target_refs` instrument channel,
 # which holds, per unit and tick, the main skill's state, beside the
 # turret's rotation the recording itself carries. They are the
 # fights that showed that leaving `SkillIdleState` waits a tick before the
 # blow, and that an idle skill keeps its lock only while it can fire at it:
 # the Fortress's weapons turning onto a Crawler, a Sledgehammer and a Typhoon
 # locking a new target after a kill, and a Melting Point switching to the
-# Crawler its weapons already face. The fights are pinned in
-# `regressions.mcscript`; the channel is research evidence, outside both hashes.
+# Crawler its weapons already face. The Phantom Ray's two M3 fights showed
+# what a won fight does to a skill before it ends: one already cooling goes
+# on cooling at its dead target, and one attacking goes idle. The fights are
+# pinned in `regressions.mcscript`; the channel is research evidence, outside
+# both hashes.
 #
 # `out` must not already exist: a recording refuses to overwrite.
 
@@ -29,6 +32,8 @@ steps:
         - {unit: sledgehammer, name: m3-crawler, seed: 1787720817}
         - {unit: typhoon, name: m6-formations, seed: 4242}
         - {unit: melting_point, name: m6-formations, seed: 1787720817}
+        - {unit: phantom_ray, name: m3-crawler, seed: 4242}
+        - {unit: phantom_ray, name: m3-crawler, seed: 1787720817}
 
   - foreach: {fight: $fights}
     steps:

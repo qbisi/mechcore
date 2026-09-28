@@ -1415,6 +1415,13 @@ steps:
       hashes.content_result_hash: 6fc660b2a850f3bd51db319be160741d02ff05ef3b20b7e7ba27e0fce1c053c6
   - fight.run:
       layout: tests/units/phantom_ray/m3-crawler.yaml
+      seed: 4242
+    expect:
+      steps: 181
+      hashes.physics_result_hash: 7bfc4599a2bd3e337d55f72781bd0497923886342e23b9b15bd8a45a15b5e061
+      hashes.content_result_hash: 85e759753353553697e43a40a6e4ac73e25a7968b16041e2bb148487eb47ec85
+  - fight.run:
+      layout: tests/units/phantom_ray/m3-crawler.yaml
       seed: 1787720817
     expect:
       steps: 201

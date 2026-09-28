@@ -146,7 +146,7 @@ them, as its configuration cannot state a unit that burrows. Two units are
 still refused by name, for a main skill the kernel has no way to fire:
 Hacker's control beam, and Raiden's fusillade of three grouped weapons.
 
-Of the other 192 fights, 191 play back exactly and are pinned:
+All 192 of the other fights play back exactly and are pinned:
 
 | Unit | Pinned of 12 |
 | --- | ---: |
@@ -157,6 +157,7 @@ Of the other 192 fights, 191 play back exactly and are pinned:
 | hound | 12 |
 | melting_point | 12 |
 | overlord | 12 |
+| phantom_ray | 12 |
 | sabertooth | 12 |
 | scorpion | 12 |
 | sledgehammer | 12 |
@@ -165,22 +166,17 @@ Of the other 192 fights, 191 play back exactly and are pinned:
 | void_eye | 12 |
 | vortex | 12 |
 | vulcan | 12 |
-| phantom_ray | 11 |
 
 Each mechanism the recordings exposed is named in
 [`combat.md`](../../docs/rules/combat.md). Two of them were read off
-[`skill-state.mcscript`](skill-state.mcscript), which records four of the
+[`skill-state.mcscript`](skill-state.mcscript), which records five of the
 fights with each skill's state beside the turret's rotation, which the MCFR
 carries as `turret_rotation`: the attack angle is measured from it, and it
 showed the game turning exactly as the simulator did and parting only on the
-state change.
+state change. The fifth, the Phantom Ray's M3 with seed 4242, showed three
+Phantom Rays still cooling, and still naming the dead last Crawler, for the
+five ticks the fight runs on after it is won.
 
 The Overlord's M3 fields five formations in a row and its M6 two side by side:
 with three in a column, or two one behind the other, the Crawlers felled a
 tower before the Overlords could stop them.
-
-The one that parts:
-
-| Unit | Layout | Seed | Parts at | On |
-| --- | --- | ---: | ---: | --- |
-| phantom_ray | `m3-crawler` | 4242 | 176, content only | the dead last enemy named through a cooling, not read |
