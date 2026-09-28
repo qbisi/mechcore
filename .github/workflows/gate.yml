@@ -57,50 +57,26 @@ jobs:
             exit 0
           fi
 
-          # Every workflow run on the commit must be over first. A run exists
-          # from the push on, but its later jobs become checks only when the
-          # jobs they need are done: ci's test, scripts and adapter appear only
-          # once `changes` finishes. Counting checks alone, docs finishing
-          # first could find every check that exists green, answer success
-          # and let a pull request merge before its tests had run.
-          # Only each workflow's latest run on the commit and event counts:
-          # one it superseded, cancelled by ci's concurrency group, says
-          # nothing about the commit.
-          runs=$(gh api "repos/$REPOSITORY/actions/runs?head_sha=$HEAD_SHA&per_page=100" \
-            --jq '[.workflow_runs[] | select(.name != "gate")]
-                  | group_by([.name, .event]) | map(max_by(.created_at))')
-          unfinished=$(jq -r '[.[] | select(.status != "completed")] | length' <<<"$runs")
-          broken=$(jq -r \
-            '[.[] | select(.status == "completed")
-                  | select(.conclusion | IN("success", "skipped", "neutral") | not)] | length' \
-            <<<"$runs")
-          if [ "$broken" != 0 ]; then
-            answer failure "$broken workflow run(s) failed on this commit"
-          fi
-          if [ "$unfinished" != 0 ]; then
-            answer pending "$unfinished workflow run(s) still running"
-          fi
-
-          # Every check on the commit: ci's jobs, docs, and whatever is added
-          # later without touching this file. A check still queued or running
-          # means the answer is not in yet, and no check at all is not every
-          # check green. Only a completed check has a conclusion: one still
-          # queued reads null, which is not a failure.
+          # The checks a pull request must pass, by job name: ci's three jobs
+          # and docs'. Every one runs on every change, so each is expected
+          # rather than discovered: a check that has not appeared yet is one
+          # still to come, not one that was skipped. Adding a job means adding
+          # it here. Only each name's latest run counts, so a re-run replaces
+          # the attempt before it.
+          expected='["test", "scripts", "adapter", "docs"]'
           checks=$(gh api "repos/$REPOSITORY/commits/$HEAD_SHA/check-runs?per_page=100" \
-            --jq '[.check_runs[] | select(.name != "gate")]')
-          if [ "$(jq length <<<"$checks")" = 0 ]; then
-            answer pending "no check has started on this commit"
-          fi
-          pending=$(jq -r '[.[] | select(.status != "completed")] | length' <<<"$checks")
-          failed=$(jq -r \
-            '[.[] | select(.status == "completed")
-                  | select(.conclusion | IN("success", "skipped", "neutral") | not)] | length' \
-            <<<"$checks")
+            --jq '[.check_runs[]] | group_by(.name) | map(max_by(.id))')
+          failed=$(jq -r --argjson expected "$expected" \
+            '[.[] | select(.name | IN($expected[])) | select(.status == "completed")
+                  | select(.conclusion != "success")] | length' <<<"$checks")
           if [ "$failed" != 0 ]; then
             answer failure "$failed check(s) failed on this commit"
           fi
-          if [ "$pending" != 0 ]; then
-            answer pending "$pending check(s) still running"
+          waiting=$(jq -r --argjson expected "$expected" \
+            '[$expected[] as $name | select(any(.[]; .name == $name and .status == "completed") | not)]
+             | length' <<<"$checks")
+          if [ "$waiting" != 0 ]; then
+            answer pending "$waiting of 4 checks not finished"
           fi
 
           answer success "every check is green"
