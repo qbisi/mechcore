@@ -1,0 +1,19 @@
+# M6: two formations against a Crawler swarm and a Marksman:
+# target distribution and avoidance between allies.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 322
+hash: {profile: mcfr-content-0.7.0, result: fdd2bcf1e77d879a4bd61f75edde6945315c19c2730e3b7ffd212d69f82da6d4}
+blue:
+  units:
+  - {name: phantom_ray, index: 0, position: {x: -5, y: -120}, exp: 0/70/1000}
+  - {name: phantom_ray, index: 1, position: {x: -5, y: -80}, exp: 0/322/1000}
+red:
+  core_damage: 268
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -70}, exp: 0/33/450}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}, exp: 0/234/650}

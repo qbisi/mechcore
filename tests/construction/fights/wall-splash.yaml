@@ -1,0 +1,26 @@
+# Crawlers walking through their own wall into an Arclight's fire. The
+# Arclight's 7 metres of splash is what this measures, in both directions a
+# wall allows: a shot at a Crawler crossing the blocks, whose splash may reach
+# a block, and a shot at a block in the way of a Crawler, whose splash may
+# reach the Crawlers around it.
+#
+# A splash across a wall, from a shot at a building: an Arclight's shots at
+# the block Crawlers are crossing take the Crawlers on it with the block, in
+# the order the target trees hold them. 158 ticks, the game's hashes.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 158
+hash: {profile: mcfr-content-0.7.0, result: 24dadcfd46fdd560f865c11e92fd12378fd5723cb14e52a0fe097540482d5768}
+blue:
+  core_damage: 100
+  units:
+  - {name: crawler, index: 0, position: {x: -145, y: -100}}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+red:
+  units:
+  - {name: arclight, index: 0, position: {x: 140, y: -20}, exp: 0/204/750}

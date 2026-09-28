@@ -1,75 +1,15 @@
-# The turret fixtures, replayed through the simulator.
+# Every fight this directory pins, fought again by the simulator.
 #
 #   mechcore run tests/turret/regressions.mcscript
 #
-# This needs no game, which is why CI runs it: each hash below is the one the
-# game recorded for the fixture in `skill.mcscript`, and the simulator has to
-# reproduce it tick for tick from the layout and the seed alone. The hash
-# holds where every Crawler and every shot is and what each shot hit, and the
-# rest too — every lock, every motion state, the numbers derived for each unit.
-#
-# A Rapid-Fire Turret fires ten shots, reloads, and fires again. What these
-# two fights pin, `docs/rules/constructions.md` states as rules: the skill
-# locks and enters its attack on the first tick a Crawler is in reach edge to
-# edge, fires on the tick after, draws every interval from its side's stream
-# after the Marksman's and its own deployment draw, turns its weapon at 120
-# degrees a second and scores its next target from where it points, and after
-# the tenth shot spends 53 ticks reloading before the eleventh.
-#
-# `anti-armor-arclights.yaml` is the Anti-Armor Turret's fight: eight shots
-# at four Arclights, the magazine's six, a reload of 200 ticks, and two more.
-# `anti-armor-head-on.yaml` is not here. The simulator plays it tick for tick
-# up to tick 508, the Anti-Armor Turret's six shots and its fall at 335
-# included; at 509 the Crawlers take blue's Energy Tower, and the game
-# weakens the Marksman for it, which is a mechanism of its own this
-# build does not model.
+# This needs no game, which is why CI runs it. Each file under `fights/` is
+# a fight the game recorded, holding its layout, its seed and what the
+# recording decided, the tick count and the hash among it. `verify` fights
+# the layout with the seed and holds the simulator to all of it, and the
+# hash covers every field of every tick. `README.md` says what each fight
+# measures.
 
 steps:
-  # Crawlers straight down the turret's column. 24 fall to the turret, which
-  # nothing reaches, and the fight ends when the last does: 237 ticks.
-  - convert:
-      input: tests/turret/rapid-fire-head-on.yaml
-      to: mcfr
-      seed: 4242
-    expect:
-      steps: 237
-      winner: blue
-      teams.0.remaining_life: 1622
-      hashes.result_hash: df2922fb4ecb1680fd2346bdb898bd7ec379d51e619ef434cee58f27fc2b7c92
-
-  # The same Crawlers 36.6 degrees off the turret's column. The weapon has
-  # turned onto its lock before the lock is in reach, so the first shot is as
-  # early, counted from reach, as the head-on one: 234 ticks.
-  - convert:
-      input: tests/turret/rapid-fire-flank.yaml
-      to: mcfr
-      seed: 4242
-    expect:
-      steps: 234
-      winner: blue
-      teams.0.remaining_life: 1622
-      hashes.result_hash: e727c90d4d84233eb351478efc38860c15ad951945193141ee23156add60c561
-
-  # Four Arclights down the Anti-Armor Turret's column, two shots each. The
-  # sixth shot empties the magazine at 574, the reload runs to 776, and the
-  # seventh and eighth kill the last at 836. No tower falls.
-  - convert:
-      input: tests/turret/anti-armor-arclights.yaml
-      to: mcfr
-      seed: 4242
-    expect:
-      steps: 836
-      winner: blue
-      teams.0.remaining_life: 1622
-      hashes.result_hash: e9d48b2c100876b3396695f6cdcfe90bff3cb4902e44945df99190b62cd48cc5
-
-  # The Anti-Armor Turret against a Crawler, the Marksman behind. Blue loses
-  # a tower at 509 and red at 771, and at 1027 the Marksman ends its attack
-  # when its live lock walks out of reach, as every skill does.
-  - convert:
-      input: tests/turret/anti-armor-head-on.yaml
-      to: mcfr
-      seed: 4242
-    expect:
-      steps: 1397
-      hashes.result_hash: 6fab5e00c3ea3e080f91bcc370608d1bc377087da6a653cc0b001e8024ab531b
+  - let: {fights: glob(tests/turret/fights/*.yaml)}
+  - verify: {input: $fights}
+    expect: {invalid: []}

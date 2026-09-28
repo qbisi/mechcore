@@ -1,0 +1,19 @@
+# M6: two formations against a Crawler swarm and a Marksman:
+# target distribution and avoidance between allies.
+
+kind: fight
+map_id: 1021
+seed: 1787720817
+round: 1
+source: recording
+ticks: 302
+hash: {profile: mcfr-content-0.7.0, result: a530beb4f9f5ef549e193869481b64c561aa91997386046dcbf9f64950593f65}
+blue:
+  core_damage: 152
+  units:
+  - {name: vortex, index: 0, position: {x: 0, y: -120}, exp: 0/54/750}
+  - {name: vortex, index: 1, position: {x: 0, y: -80}, exp: 0/34/750}
+red:
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -70}, exp: 0/200/450}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}, exp: 0/200/650}

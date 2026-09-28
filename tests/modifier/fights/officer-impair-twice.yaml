@@ -1,0 +1,28 @@
+# Two copies of Cost Control Specialist on red, whose `damage_rate` and
+# `life_rate` are both `-0.11`. A negative rate is not a small enhancement:
+# `MultiplicativeDataFloat.Refresh` routes an entry by its sign, so this one
+# lands in the accumulator that starts at one and multiplies.
+#
+# This is the fixture that separates the rule from the obvious alternative.
+# Two impairments of 0.11 leave 0.89 x 0.89 = 0.7921 of the number if they
+# compound, and 1 - 0.22 = 0.78 if they sum as enhancements do. On the Rhino's
+# 19297 that is 15284 against 15051.
+#
+# One impairment, which both candidate rules agree about, and two, which
+# separate them: 0.89 x 0.89 leaves 15285 whole, and 1 - 0.22 leaves 15051.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 120
+hash: {profile: mcfr-content-0.7.0, result: af7de5c4b30a0f54b04d208abcdcb88ac0affc21ea5794c7181c039c8df9aaee}
+blue:
+  core_damage: 200
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -50}}
+red:
+  officers: [cost_control_specialist, cost_control_specialist]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150}

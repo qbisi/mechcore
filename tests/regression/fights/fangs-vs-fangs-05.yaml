@@ -1,0 +1,14 @@
+kind: fight
+map_id: 1021
+seed: 1787809018
+round: 1
+source: recording
+ticks: 366
+hash: {profile: mcfr-content-0.7.0, result: 7cb0641ff8fa1d95ade62199bfd3f5900767b8de77f55e64ed46549a11f06b1b}
+blue:
+  core_damage: 18
+  units:
+  - {name: fang, index: 0, position: {x: 5, y: -100}, exp: 0/168/600}
+red:
+  units:
+  - {name: fang, index: 0, position: {x: 5, y: -100}, exp: 0/198/600}

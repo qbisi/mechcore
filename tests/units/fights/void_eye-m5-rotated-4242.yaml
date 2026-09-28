@@ -1,0 +1,17 @@
+# M5: the formation rotated, its target off to one side: attack angle and
+# turning. The target stands nearer than either enemy tower.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 245
+hash: {profile: mcfr-content-0.7.0, result: 3b849ea7b10858b4810cf1d84785dc0c680b2fa7e0bc83de71479c04bbe276d2}
+blue:
+  core_damage: 200
+  units:
+  - {name: void_eye, index: 0, position: {x: -60, y: -60}, rotated: true}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: -35, y: -95}, exp: 0/198/1150}

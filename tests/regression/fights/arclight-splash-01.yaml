@@ -1,0 +1,16 @@
+kind: fight
+map_id: 1021
+seed: 1787837829
+round: 1
+source: recording
+ticks: 497
+hash: {profile: mcfr-content-0.7.0, result: 97a88c5f7ba1b774c6d8572c500e0a4c9e691a3a1a8013f34d9dc6fad1e84089}
+blue:
+  core_damage: 100
+  units:
+  - {name: arclight, index: 0, position: {x: 0, y: -100}, exp: 0/150/750}
+  - {name: crawler, index: 1, position: {x: 0, y: -135}, exp: 0/42/450, rotated: true}
+red:
+  units:
+  - {name: arclight, index: 0, position: {x: 0, y: -100}, exp: 0/356/750}
+  - {name: crawler, index: 1, position: {x: 0, y: -135}, exp: 0/36/450, rotated: true}

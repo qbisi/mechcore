@@ -3,7 +3,7 @@
 #   mechcore run tests/turret/arclights.mcscript --check   parse without the game
 #   mechcore run tests/turret/arclights.mcscript           record
 #
-# `anti-armor-head-on.yaml` asked whether the Anti-Armor Turret is the Rapid-
+# `fights/anti-armor-head-on.yaml` asked whether the Anti-Armor Turret is the Rapid-
 # Fire Turret's machine with other numbers, and its Crawlers take blue's
 # Energy Tower at tick 509, which weakens the Marksman. This fight asks
 # the same without a tower in the way, and asks more of it: four Arclights,
@@ -17,19 +17,16 @@ headless: true
 
 vars:
   out: /tmp/mechcore/turret/arclights
-  seed: 4242
 
 steps:
   - let:
-      layout: read_yaml(tests/turret/anti-armor-arclights.yaml)
+      fight: tests/turret/fights/anti-armor-arclights.yaml
   - game.record:
-      input: $layout
-      seed: $seed
+      input: $fight
       output: ${out}/anti-armor-arclights.mcfr
       instrument: [target_refs]
   - game.record:
-      input: $layout
-      seed: $seed
+      input: $fight
       output: ${out}/control.mcfr
   - diff:
       left: ${out}/anti-armor-arclights.mcfr

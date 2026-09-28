@@ -36,10 +36,7 @@ vars:
 
 steps:
   - let:
-      line: read_yaml(tests/construction/wall-line-of-fire.yaml)
-      tolerance: read_yaml(tests/construction/wall-line-tolerance.yaml)
       width: read_yaml(tests/construction/wall-line-width.yaml)
-      group: read_yaml(tests/construction/wall-weapon-group.yaml)
 
   # Nearest against on-the-line. Blue's five blocks are ids 3 to 7, left to
   # right. Red's Marksman stands above block 3 and shoots past the far end of
@@ -51,8 +48,7 @@ steps:
   # walls the line reaches, which is what `SortByDistance` and the first
   # overlap answer.
   - game.record:
-      input: $line
-      seed: $seed
+      input: tests/construction/fights/wall-line-of-fire.yaml
       output: ${out}/line-of-fire.mcfr
     expect:
       operation.tick_count: 20
@@ -79,8 +75,7 @@ steps:
   # Blocks 5 and 7 come down and 3, 4 and 6 stand, so the width is at least
   # 10.41 and under 12.59 metres. Nothing here scales with the Marksman.
   - game.record:
-      input: $tolerance
-      seed: $seed
+      input: tests/construction/fights/wall-line-tolerance.yaml
       output: ${out}/line-tolerance.mcfr
     expect:
       operation.tick_count: 19
@@ -139,8 +134,7 @@ steps:
   # The readings are the blocks that fall and when: 3 by tick 60 from
   # 381 + 381 + 350, then 4 and 5 together at tick 101, and 6 and 7 stand.
   - game.record:
-      input: $group
-      seed: $seed
+      input: tests/construction/fights/wall-weapon-group.yaml
       output: ${out}/weapon-group.mcfr
     expect:
       operation.tick_count: 242
@@ -166,31 +160,18 @@ steps:
       sides.blue.constructions.0.parts.0.id: 6
       sides.blue.constructions.0.parts.1.id: 7
 
-  # What each unit is directed at, against the simulator. The hash says
-  # whether two fights agree and not which field parts them, so a unit's
-  # lock, its weapons' target and its motion state are compared here, field
-  # by field, on every tick of the three fights the simulator can run.
-  # The width layout carries a Farseer, which it cannot.
+  # What each unit is directed at, against the simulator: every field of
+  # every tick of the three fights the simulator can run, a unit's lock, its
+  # weapons' target and its motion state among them, and where two part, the
+  # first tick they part on, explained. The width layout carries a Farseer,
+  # which it cannot.
   #
   # They agree on every tick, including the one after a block falls: the
   # unit that felled it reads idle, with no lock, and with its weapon still on
   # the fallen block, and takes its next target only from there.
-  - let:
-      simulated:
-        - {name: line-of-fire, layout: tests/construction/wall-line-of-fire.yaml}
-        - {name: line-tolerance, layout: tests/construction/wall-line-tolerance.yaml}
-        - {name: weapon-group, layout: tests/construction/wall-weapon-group.yaml}
-  - foreach: {case: $simulated}
-    steps:
-      - convert:
-          input: ${case.layout}
-          to: mcfr
-          seed: $seed
-          output: ${out}/simulated-${case.name}.mcfr
-      - diff:
-          left: ${out}/${case.name}.mcfr
-          right: ${out}/simulated-${case.name}.mcfr
-          fields: [units.mech_lock_target, units.motion_state, units.weapon_aims.attack_target]
-        expect:
-          equal: true
-          fields_equal: true
+  - verify:
+      input:
+        - ${out}/line-of-fire.mcfr
+        - ${out}/line-tolerance.mcfr
+        - ${out}/weapon-group.mcfr
+    expect: {invalid: []}

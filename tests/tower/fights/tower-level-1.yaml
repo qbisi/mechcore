@@ -1,0 +1,23 @@
+# What does losing a tower of strengthen level 1 write on its side?
+#
+# Red's Steel Balls come down blue's Energy Tower column and take the tower;
+# blue's Fangs stand at the back under the Research Center, out of the fight
+# until the tower has fallen, and carry what the loss writes on blue's units.
+#
+# Level 1: 23400 life, buff 2, 140 ticks.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 925
+hash: {profile: mcfr-content-0.7.0, result: 0c322396fa3a49b031760c50b21fd04c511f85b5152719d616f9bc00ae169bd4}
+blue:
+  core_damage: 150
+  tower_strengthen_levels: [1, 1]
+  units:
+  - {name: fang, index: 0, position: {x: 145, y: -300}, exp: 0/100/600}
+red:
+  units:
+  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/416/1000}

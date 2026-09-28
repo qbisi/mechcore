@@ -1,0 +1,20 @@
+# Twenty-four Crawlers charging one Marksman, with nothing between them. A
+# Crawler's reach, range 6 and radius 2, exactly cancels a Marksman's radius
+# of 8, which puts every Crawler on the edge of the comparison that decides
+# whether it is sent to the Marksman's centre or to a computed point: the eight
+# in front go to the centre and the sixteen behind do not.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 161
+hash: {profile: mcfr-content-0.7.0, result: 881e07f93cc14a8867b0ef9c5e251d897badf167afc0875464962071aa995d08}
+blue:
+  core_damage: 84
+  units:
+  - {name: marksman, index: 0, position: {x: -140, y: -100}, exp: 0/24/650}
+red:
+  units:
+  - {name: crawler, index: 0, position: {x: 145, y: -20}, exp: 0/200/450}

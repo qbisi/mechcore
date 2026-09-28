@@ -1,0 +1,14 @@
+kind: fight
+map_id: 1021
+seed: 1787823221
+round: 1
+source: recording
+ticks: 254
+hash: {profile: mcfr-content-0.7.0, result: 2baca37a32f893114e80ff21be9e690b5500781335ac5e598d166a7739468dbe}
+blue:
+  core_damage: 51
+  units:
+  - {name: mustang, index: 0, position: {x: 5, y: -100}, exp: 0/306/1200}
+red:
+  units:
+  - {name: mustang, index: 0, position: {x: 5, y: -100}, exp: 0/374/1200}

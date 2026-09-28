@@ -1,0 +1,32 @@
+# Which units does a Ranged row reach? Advanced Targeting System is
+# `mech_type` 4 and `attack_range_value` +10. `UnitUtility.IsEffectTarget`
+# answers Ranged from the unit's main `SkillData.isMeleeAttack`, so the four
+# ranged formations should reach 10 m further whatever their attack path, and
+# the Crawler and the Rhino should carry nothing. `targeting-ranged-none.yaml`
+# is the same fight without the officer.
+#
+# Which units a Ranged row reaches. The control is six formations with no
+# officer; with Advanced Targeting System the four ranged ones reach 10 m
+# further and the Crawler and the Rhino carry nothing, which only the content
+# hash can tell from a row that reached every unit.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 138
+hash: {profile: mcfr-content-0.7.0, result: c479adf16c178dbf1329bf8505f984c5f83b37fbc7a19ddc429064465d03fbb6}
+blue:
+  officers: [advanced_targeting_system]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -210}}
+  - {name: arclight, index: 1, position: {x: 0, y: -180}}
+  - {name: fang, index: 2, position: {x: 5, y: -150}}
+  - {name: steel_ball, index: 3, position: {x: 5, y: -120}, exp: 0/266/1000}
+  - {name: crawler, index: 4, position: {x: 5, y: -90}, exp: 0/66/450}
+  - {name: rhino, index: 5, position: {x: 5, y: -55}, exp: 0/66/1150}
+red:
+  core_damage: 776
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/56/1150}

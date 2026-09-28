@@ -1,0 +1,16 @@
+# M1: the mirror. One formation each, 200 m apart.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 237
+hash: {profile: mcfr-content-0.7.0, result: e104a43cea4bfa64a9bca93c18814836b937df45ef698321d27b179963dae085}
+blue:
+  core_damage: 250
+  units:
+  - {name: scorpion, index: 0, position: {x: -5, y: -105}}
+red:
+  units:
+  - {name: scorpion, index: 0, position: {x: -5, y: -105}, exp: 0/600/1500}

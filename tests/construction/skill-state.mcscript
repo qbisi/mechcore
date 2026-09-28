@@ -22,8 +22,8 @@
 #   marksman      a dead unit is switched from and the attack goes on; the kill
 #                 with no replacement in reach cools like a fallen block
 #
-# The recordings are the same fights the regressions pin, and are compared with
-# the simulator afterwards. The channel is research evidence, outside the hash.
+# The recordings are the same fights the fixtures pin, recorded from them, and
+# are compared with the simulator afterwards. The channel is research evidence, outside the hash.
 #
 # `out` must not already exist: a recording refuses to overwrite.
 
@@ -32,37 +32,26 @@ headless: true
 
 vars:
   out: /tmp/mechcore/construction/skill-state
-  seed: 4242
 
 steps:
   - let:
       fights:
-        - {name: line-of-fire, layout: tests/construction/wall-line-of-fire.yaml}
-        - {name: line-tolerance, layout: tests/construction/wall-line-tolerance.yaml}
-        - {name: rhino, layout: tests/construction/wall-rhino.yaml}
-        - {name: laser, layout: tests/construction/wall-laser.yaml}
-        - {name: block, layout: tests/construction/wall-block.yaml}
-        - {name: splash, layout: tests/construction/wall-splash.yaml}
-        - {name: splash-line, layout: tests/construction/wall-splash-line.yaml}
-        - {name: splash-behind, layout: tests/construction/wall-splash-behind.yaml}
-        - {name: marksman, layout: tests/regression/crawlers-vs-marksman.yaml}
+        - {name: line-of-fire, fight: tests/construction/fights/wall-line-of-fire.yaml}
+        - {name: line-tolerance, fight: tests/construction/fights/wall-line-tolerance.yaml}
+        - {name: rhino, fight: tests/construction/fights/wall-rhino.yaml}
+        - {name: laser, fight: tests/construction/fights/wall-laser.yaml}
+        - {name: block, fight: tests/construction/fights/wall-block.yaml}
+        - {name: splash, fight: tests/construction/fights/wall-splash.yaml}
+        - {name: splash-line, fight: tests/construction/fights/wall-splash-line.yaml}
+        - {name: splash-behind, fight: tests/construction/fights/wall-splash-behind.yaml}
+        - {name: marksman, fight: tests/regression/fights/crawlers-vs-marksman.yaml}
 
   - foreach: {fight: $fights}
     steps:
-      - let:
-          layout: read_yaml(${fight.layout})
       - game.record:
-          input: $layout
-          seed: $seed
+          input: ${fight.fight}
           output: ${out}/${fight.name}.mcfr
           instrument: [target_refs]
-      - convert:
-          input: ${fight.layout}
-          to: mcfr
-          seed: $seed
-          output: ${out}/simulated-${fight.name}.mcfr
-      - diff:
-          left: ${out}/${fight.name}.mcfr
-          right: ${out}/simulated-${fight.name}.mcfr
-        expect:
-          equal: true
+      - verify:
+          input: ${out}/${fight.name}.mcfr
+        expect: {invalid: []}

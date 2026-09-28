@@ -1,0 +1,16 @@
+# M4: a ground unit against air units.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 251
+hash: {profile: mcfr-content-0.7.0, result: f0f832834c327838abc7447b9f9d50956738d10f659a06206b0c6388d3ef2561}
+blue:
+  core_damage: 85
+  units:
+  - {name: fang, index: 0, position: {x: 5, y: -100}, exp: 0/221/600}
+red:
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/210/900}

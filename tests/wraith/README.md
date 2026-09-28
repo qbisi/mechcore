@@ -1,6 +1,6 @@
 # Wraith fixtures
 
-Every layout here exists to measure **how a Wraith's slots choose their
+Every fight here exists to measure **how a Wraith's slots choose their
 targets**. A Wraith's core is a `SkillGroup` of four `FightSkill`s, one per
 weapon slot, each running the same `SkillAttackableChecker.Check` a unit's
 skill runs, with a `GroupedSkillAttackBehaviour` over them; what a slot's
@@ -9,24 +9,25 @@ separate.
 
 | Fixture | What it separates | Reading |
 | --- | --- | --- |
-| [`../regression/wraith-group-attack.yaml`](../regression/wraith-group-attack.yaml) | a slot re-searching while its siblings hold three of the units in reach | the checker channel's per-slot calls |
-| `two-targets.yaml` | two units for four slots: whether a slot doubles up, and on which | the slots' first allocation |
+| [`../regression/fights/wraith-group-attack-01.yaml`](../regression/fights/wraith-group-attack-01.yaml) | a slot re-searching while its siblings hold three of the units in reach | the checker channel's per-slot calls |
+| `fights/two-targets.yaml` | two units for four slots: whether a slot doubles up, and on which | the slots' first allocation |
 
-`slots.mcscript` records each layout once with two channels:
+`slots.mcscript` records each fight once, from its fight document, with two
+channels:
 `skill_attackable_checker`, which holds every `Check` call with the slot that
 made it and the slot's lock before and after it, and `group_slots`, which holds
-each slot's lock, attack target and state on every tick. The
-regression layout is recorded under the seed the manifest pins it with, so
-the recording is the pinned fight.
+each slot's lock, attack target and state on every tick. A fight
+document states its own seed, so each recording is the pinned fight.
 
 The Wraith's skill (`config/units/wraith.yaml`, row 18001 of `level0`'s
 `MechSkillGroupData` by `scripts/extract-skills.py`): four weapons, one
 skill each, weapon mode 1, range 60, interval 1.6 s ± 0.2, prepare 0.4,
 `canAttackSameTarget` true, `isEvenlyAllocated` false, quick switch on.
 
-`regressions.mcscript` simulates both layouts without the game and pins their
-native hashes: 647 ticks for the regression fight and 96
-for two targets, seed 1787857041. The two-target capture assigns u3, u2, u3,
+`regressions.mcscript` verifies two targets without the game, and
+`../regression/simulate.mcscript` the regression fight, against their native
+hashes, which come from the captures `slots.mcscript` made: 647 ticks for the
+regression fight and 96 for two targets, seed 1787857041. The two-target capture assigns u3, u2, u3,
 u3; sharing is not even allocation. In the regression capture, u30's fourth
 slot switches to u21 at tick 131, excluding u25 held by its sibling. At tick
 205, u29's fourth slot takes u55 at an edge distance of 60.9585 m: a main child

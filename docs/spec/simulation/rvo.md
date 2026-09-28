@@ -300,10 +300,10 @@ Three layers of test hold this:
   construction at raw values;
 - kernel tests cover building collision, Q32.32 distance boundaries, the tree's
   coarse reachable range, and the behaviour at the edge of stopping;
-- the native samples in `tests/regression/mcfr-regressions.yaml` compare the
-  recording's `result_hash`, over every field of every tick, the Steel Ball
-  fight sample included; `tests/regression/simulate.mcscript` replays every
-  case through the simulator and needs no game.
+- the native samples in `tests/regression/fights/` are fight documents
+  holding the recording's `result_hash`, over every field of every tick, the
+  Steel Ball fight sample included; `tests/regression/simulate.mcscript`
+  verifies every one through the simulator and needs no game.
 
 ```text
 cargo test -p mechcore-simulation rvo

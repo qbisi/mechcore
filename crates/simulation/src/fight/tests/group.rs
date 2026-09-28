@@ -63,15 +63,16 @@ fn grouped_slots_follow_the_native_exclusion_and_fallback() {
     let config = SimulationConfig::load().unwrap();
     for (yaml, ticks) in [
         (
-            include_bytes!("../../../../../tests/wraith/two-targets.yaml").as_slice(),
+            include_bytes!("../../../../../tests/wraith/fights/two-targets.yaml").as_slice(),
             10_u64,
         ),
         (
-            include_bytes!("../../../../../tests/regression/wraith-group-attack.yaml").as_slice(),
+            include_bytes!("../../../../../tests/regression/fights/wraith-group-attack-01.yaml")
+                .as_slice(),
             206_u64,
         ),
     ] {
-        let (_, layout) = crate::layout::compile_with_seed(yaml, &config.units).unwrap();
+        let layout = pinned_layout(yaml, &config.units);
         let mut sim =
             Simulation::new(&layout, &config.units, &config.towers, 1_787_857_041).unwrap();
         for step in 0..ticks {
@@ -217,7 +218,7 @@ fn an_attacking_sibling_gives_up_a_shared_unit_by_its_blows() {
 /// Every slot of a grouped skill takes the construction in its way, and
 /// every slot is dropped with the lock.
 ///
-/// The Wraith of `tests/construction/wall-weapon-group.yaml` was
+/// The Wraith of `tests/construction/fights/wall-weapon-group.yaml` was
 /// recorded doing all of it: its core engages block 3 at tick 32 and the
 /// other three slots follow eight ticks later, while the lock stays on the
 /// Marksman; block 3 falls at tick 59 and all four slots read empty at
@@ -226,11 +227,10 @@ fn an_attacking_sibling_gives_up_a_shared_unit_by_its_blows() {
 #[test]
 fn grouped_slots_take_the_wall_and_are_dropped_with_the_lock() {
     let config = SimulationConfig::load().unwrap();
-    let (_, layout) = crate::layout::compile_with_seed(
-        include_bytes!("../../../../../tests/construction/wall-weapon-group.yaml"),
+    let layout = pinned_layout(
+        include_bytes!("../../../../../tests/construction/fights/wall-weapon-group.yaml"),
         &config.units,
-    )
-    .unwrap();
+    );
     let mut simulation = Simulation::new(&layout, &config.units, &config.towers, 4242).unwrap();
     let slots_at = |simulation: &mut Simulation, tick: u64, done: &mut u64| {
         while *done < tick {

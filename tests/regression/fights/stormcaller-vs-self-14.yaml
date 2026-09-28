@@ -1,0 +1,16 @@
+kind: fight
+map_id: 1021
+seed: 1787887345
+round: 1
+source: recording
+ticks: 627
+hash: {profile: mcfr-content-0.7.0, result: a778ca05f94dd7b469c10649e62ee8696afecc334bd4254492d279cc528618f6}
+blue:
+  core_damage: 58
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -80}, exp: 0/98/450}
+  - {name: stormcaller, index: 1, position: {x: 5, y: -120}, exp: 0/128/1100}
+red:
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -80}, exp: 0/394/450}
+  - {name: stormcaller, index: 1, position: {x: 5, y: -120}, exp: 0/198/1100}

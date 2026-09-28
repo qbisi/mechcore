@@ -217,8 +217,8 @@ against it; `tests/modifier/composition.mcscript` is the worked example.
 `convert` with `to: mcfr` runs the deterministic simulator on a layout and
 returns the same result object `mechcore convert --to mcfr` prints, so `expect`
 can assert `seed_source`, `steps`, or a dotted path like `hashes.result_hash`.
-It needs no game, which is what lets `tests/regression/simulate.mcscript` drive
-the whole regression manifest. Omit `output` unless the run should also publish
+It needs no game, which is what lets `tests/regression/simulate.mcscript` hold
+the simulator to a fight the game never recorded. Omit `output` unless the run should also publish
 an MCFR; an existing one is replaced as a recording's is. A rewrite to a layout
 without `output` answers the layout it would have written.
 
@@ -488,54 +488,66 @@ steps:
 
 ## Regression re-recording
 
-`tests/regression/mcfr-regressions.yaml` stays a data table. `tests/regression/simulate.mcscript`
-reads it for the gameless simulator regression, which CI runs, and
-`crates/simulation/tests/fight.rs` reads it to name a few fields — a unit's
-lock and motion state — so that a failure says which one moved. Re-recording is one more reader of that same table,
-not a copy of it:
+A pinned fight is a [fight](../document/fight.md) document under
+`tests/<topic>/fights/`, and the directory is the table: no other file lists
+the fights. Each topic's `regressions.mcscript`, and
+`tests/regression/simulate.mcscript`, `verify` them without the game, which CI
+runs, and `crates/simulation/tests/fight.rs` reads three of
+`tests/regression/fights/` to name a few fields — a unit's lock and motion
+state — so that a failure says which one moved. Re-recording is one more
+reader of the same files, not a copy of them:
 
 ```yaml
 game: launch
+headless: true
 
 vars:
   out: /tmp/mechcore/regression/refresh
 
 steps:
-  - let:
-      cases: read_yaml(tests/regression/mcfr-regressions.yaml)
-  - foreach: {case: $cases}
-    where: {smoke: true}
+  - let: {fights: glob(tests/regression/fights/*.yaml)}
+  - foreach: {fight: $fights}
     steps:
-      - let:
-          layout: read_yaml(${case.layout})
-      - game.apply_layout:
-          layout: $layout
-          seed: ${case.seed}
       - game.record:
-          output: $out/${case.name}.mcfr
+          input: $fight
+          output: $out/${fight}.mcfr
+      - convert:
+          input: $out/${fight}.mcfr
+          to: fight
+          output: $out/$fight
+      - diff:
+          left: $fight
+          right: $out/$fight
         expect:
-          operation.tick_count: ${case.tick_count}
-          operation.hashes.result_hash: ${case.result_hash}
+          equal: true
 ```
 
-The two uses of this shape differ only by the `expect` block, and confusing
-them wastes a capture run:
+A fight states its own seed, so `game.record` takes none, and the recording
+read back by `convert --to fight` is a document of the same kind as the
+fixture, which `diff` compares field by field. `glob` answers paths a script
+cannot take apart, so each output lands under `out` at its fixture's own
+path.
 
-- **Verify.** With `expect`, the run fails on the first case that no longer
-  matches the manifest. This is the check that nothing drifted.
-- **Refresh.** Without `expect`, the run records unconditionally and reports
-  each result, which is what produces the new values to write back into the
-  manifest. Nothing is written back automatically; the manifest is edited
-  deliberately, so a refresh is a reviewable diff rather than a side effect.
+The two uses of this shape differ only by the `diff`, and confusing them
+wastes a capture run:
 
-Because `game.apply_layout` creates the Training Ground itself, cases run one after
-another in a single game process. Only the first pays the cold start.
+- **Verify.** With the `diff`, the run fails on the first fight the game no
+  longer records as its fixture states it. This is the check that nothing
+  drifted.
+- **Refresh.** Without it, the run records and converts every fight, which is
+  what produces the new documents after an intended change. Nothing is
+  written back automatically; a fixture is replaced deliberately, so a
+  refresh is a reviewable diff rather than a side effect.
+
+A fight is recorded without a scene, from the main menu and back to it, so
+the fights run one after another in a single game process. Only the first
+pays the cold start.
 
 ## Unresolved
 
 **Should a failing iteration end the whole run?** Today it does: a loop over a
-manifest stops at the first case that fails, and the cases after it are never
-recorded. For a verify run that is right, because the first drift is the answer.
+directory of fights stops at the first one that fails, and the fights after it
+are never recorded. For a verify run that is right, because the first drift is the answer.
 For a refresh run over a long corpus it throws away the rest of an expensive
 session to report something already known. Either the loop grows a way to say
 which it is, or the two uses stay distinguished only by the presence of

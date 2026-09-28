@@ -15,7 +15,7 @@
 #
 # Life is not in `derived`; it is read off the recording's first tick. The
 # two `far` fights start the units 170 metres apart, where only a range that
-# acts lets the Marksman open fire without walking: `laser-sights.yaml`
+# acts lets the Marksman open fire without walking: `fights/laser-sights.yaml`
 # alone is the control's fight tick for tick, both units inside 140 from
 # the start.
 #
@@ -26,28 +26,24 @@ headless: true
 
 vars:
   out: /tmp/mechcore/equipment/stats
-  seed: 1787720817
 
 steps:
   - let:
       fights:
-        - {name: control, layout: tests/regression/marksman-vs-arclight.yaml}
-        - {name: heavy-armor, layout: tests/equipment/heavy-armor.yaml}
-        - {name: heavy-armor-officer, layout: tests/equipment/heavy-armor-officer.yaml}
-        - {name: firepower, layout: tests/equipment/firepower.yaml}
-        - {name: firepower-officer, layout: tests/equipment/firepower-officer.yaml}
-        - {name: laser-sights, layout: tests/equipment/laser-sights.yaml}
-        - {name: far-control, layout: tests/equipment/far-control.yaml}
-        - {name: laser-sights-far, layout: tests/equipment/laser-sights-far.yaml}
-        - {name: two-items, layout: tests/equipment/two-items.yaml}
+        - {name: control, fight: tests/regression/fights/marksman-vs-arclight.yaml}
+        - {name: heavy-armor, fight: tests/equipment/fights/heavy-armor.yaml}
+        - {name: heavy-armor-officer, fight: tests/equipment/fights/heavy-armor-officer.yaml}
+        - {name: firepower, fight: tests/equipment/fights/firepower.yaml}
+        - {name: firepower-officer, fight: tests/equipment/fights/firepower-officer.yaml}
+        - {name: laser-sights, fight: tests/equipment/fights/laser-sights.yaml}
+        - {name: far-control, fight: tests/equipment/fights/far-control.yaml}
+        - {name: laser-sights-far, fight: tests/equipment/fights/laser-sights-far.yaml}
+        - {name: two-items, fight: tests/equipment/fights/two-items.yaml}
 
   - foreach: {fight: $fights}
     steps:
-      - let:
-          layout: read_yaml(${fight.layout})
       - game.record:
-          input: $layout
-          seed: $seed
+          input: ${fight.fight}
           output: ${out}/${fight.name}.mcfr
 
   - show:

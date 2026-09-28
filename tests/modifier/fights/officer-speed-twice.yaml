@@ -1,0 +1,33 @@
+# Advanced Power System and Speed Specialist on red, `+3` of movement each, `speed_value` of `+3` over every
+# unit. A plain integer rather than an `FPoint`, which is the build saying it
+# lives in `DataSet.intDatas` — a `DataIntGroup`, summed, with a clamp of the
+# whole `Int32` range that never binds.
+#
+# Two different officers rather than two of one, because the question is what
+# the list does with two entries and not what one officer does twice.
+#
+# This is the fixture that says which `DataInt` this is. Summed, the Rhino
+# moves at 16 + 6; if the build had used `DataIntSingleMax` for a unit's
+# integers, two entries of 3 would answer 3 and this fight would be identical
+# to `officer-speed-once.yaml`.
+#
+# A plain integer, summed: 16 m/s becomes 19 and then 22, and the walk to
+# the Marksman is the whole clock. The life left is the same in all three
+# because the Marksman lands two shots either way — the reading is the tick
+# the fight ends at.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 92
+hash: {profile: mcfr-content-0.7.0, result: 7d287f64aba6090fea57249ee5251783784c4142e7ff84e78c79eaafd920c207}
+blue:
+  core_damage: 200
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -50}}
+red:
+  officers: [advanced_power_system, speed_specialist]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150}

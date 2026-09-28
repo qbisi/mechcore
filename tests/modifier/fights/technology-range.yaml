@@ -1,0 +1,35 @@
+# Two sources writing the same number. Blue's Arclight researches Range
+# Enhancement, `attack_range_value` of `+40`, and blue also holds Extended
+# Range Arclight, an officer carrying `+20` of range and `-0.2` of damage.
+#
+# The Arclight reaches 95 metres by its description. If the values of two
+# sources sum — the `+ Σ value` of the composition rule, across sources rather
+# than within one — it reaches 155, and its damage is still the 292 the
+# officer alone gives, because the technology writes nothing onto damage.
+#
+# This is also the first fight a technology reaches at all: the corrections it
+# writes travel the same channel an officer's do, since `TechnologyData` and
+# `OfficerData` answer the same interface.
+#
+# Two sources on one number: an officer's `+20` of range and a technology's
+# `+40`. The fight is the one above to the tick — the Arclight was already in
+# range — so only the number the build computed, which the hash covers,
+# tells the two apart.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 137
+hash: {profile: mcfr-content-0.7.0, result: 0e00f9d8f782010a8c951d6ef127751b0f72a3755e156ec60e98d5fea2f0b4c4}
+blue:
+  core_damage: 200
+  officers: [extended_range_arclight]
+  techs:
+    arclight: [range_enhancement]
+  units:
+  - {name: arclight, index: 0, position: {x: 0, y: -50}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150}

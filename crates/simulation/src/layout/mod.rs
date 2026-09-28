@@ -467,8 +467,8 @@ red:
 
     /// An officer reaches the fight as corrections on the units it targets.
     ///
-    /// The game agrees with this one to the tick: the same layout is
-    /// `marksman-vs-rhino-officer-damage` in `tests/regression/mcfr-regressions.yaml`,
+    /// The game agrees to the tick: the same officer on the same Marksman,
+    /// shooting a Rhino, is `tests/modifier/fights/officer-composition-once.yaml`,
     /// recorded natively.
     #[test]
     fn an_officer_writes_onto_the_units_it_reaches() {

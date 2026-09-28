@@ -1,0 +1,30 @@
+# Extended Range Arclight on blue: `attack_range_value` of `+20` and a
+# `damage_rate` of `-0.2`, which is an impairment rather than an enhancement.
+# Both measured clauses and the unmeasured one meet in one recording, and the
+# unknown is the value: whether it is added to the description in the number's
+# own units, which is what `AdditiveDataFloat` doing nothing but summing would
+# mean.
+#
+# An Arclight reaches 95 m; with the officer it should reach 115 and open fire
+# about 20 m earlier, which moves every tick of the fight after it. The whole
+# recording is the reading here rather than one number: nothing but the range
+# could have shifted the first shot.
+#
+# A value and an impairment in one fight, against the same fight without
+# them. Twenty metres of range moves every tick after the first shot.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 137
+hash: {profile: mcfr-content-0.7.0, result: 974c22a7aa6b1199507a4e25888afc8bd7c312e70b2b3132063e8f16f3140187}
+blue:
+  core_damage: 200
+  officers: [extended_range_arclight]
+  units:
+  - {name: arclight, index: 0, position: {x: 0, y: -50}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150}

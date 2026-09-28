@@ -1,0 +1,25 @@
+# A Steel Ball against a Marksman behind the wall. The Steel Ball's beam is a
+# laser, so this is how a laser takes a wall.
+#
+# A beam, and a block in the way of a unit's movement. Four Steel Balls take
+# three blocks with the beam's ramp, and one of them, overlapping block 3, is
+# pushed off it: to the other side a block is an immovable obstacle on the
+# wall's own collider layer. The Steel Ball whose beam fells block 4 turns
+# onto the Marksman behind it on that tick. 242 ticks, the game's hashes.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 242
+hash: {profile: mcfr-content-0.7.0, result: 41ae14a170c14a06214b7c35f9ced98b74d88e566a8d2ff61db802e5c0363da2}
+blue:
+  core_damage: 100
+  units:
+  - {name: marksman, index: 0, position: {x: -140, y: -100}, exp: 0/200/650}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+red:
+  units:
+  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/248/1000}

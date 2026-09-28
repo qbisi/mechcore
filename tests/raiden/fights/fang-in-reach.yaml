@@ -1,0 +1,20 @@
+# Three Raidens in a column and a Fang formation already within their reach:
+# every Raiden fires its first fusillade on the tick after the fight starts,
+# at nine Fangs one blow each kills, in the order the Raidens update.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 99
+hash: {profile: mcfr-content-0.7.0, result: 01e7dce3f21c90003117e67f9d96cd729efefbdb14edc16f94b41c2e148e606a}
+blue:
+  units:
+  - {name: raiden, index: 0, position: {x: 0, y: -110}, exp: 0/54/2400}
+  - {name: raiden, index: 1, position: {x: 0, y: -70}, exp: 0/54/2400}
+  - {name: raiden, index: 2, position: {x: 0, y: -30}, exp: 0/108/2400}
+red:
+  core_damage: 1050
+  units:
+  - {name: fang, index: 0, position: {x: 5, y: -20}}

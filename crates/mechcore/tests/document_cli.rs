@@ -296,8 +296,8 @@ fn mechcore(arguments: &[&std::ffi::OsStr]) -> (Option<i32>, serde_json::Value, 
 #[test]
 fn the_kind_is_read_from_the_content_and_an_unsupported_pair_names_it() {
     let directory = tempfile::tempdir().unwrap();
-    let layout = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tests/regression/marksman-vs-arclight.yaml");
+    let layout =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../layouts/marksman-vs-arclight.yaml");
     let replay = directory.path().join("replay.yaml");
     let os = |text: &'static str| std::ffi::OsStr::new(text);
 

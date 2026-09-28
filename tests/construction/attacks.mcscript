@@ -9,8 +9,8 @@
 # back against the simulator, which reproduces both on every tick, in every
 # field.
 #
-#   wall-rhino.yaml   a Rhino charging a Marksman behind the middle block
-#   wall-laser.yaml   four Steel Balls against the same Marksman
+#   fights/wall-rhino.yaml   a Rhino charging a Marksman behind the middle block
+#   fights/wall-laser.yaml   four Steel Balls against the same Marksman
 #
 # `out` must not already exist: a recording refuses to overwrite.
 
@@ -19,13 +19,8 @@ headless: true
 
 vars:
   out: /tmp/mechcore/construction/attacks
-  seed: 4242
 
 steps:
-  - let:
-      rhino: read_yaml(tests/construction/wall-rhino.yaml)
-      laser: read_yaml(tests/construction/wall-laser.yaml)
-
   # A blow takes a block as a shot does: the block in the line, one hit each,
   # the damage event capped at the life the block had — 1112, not the
   # Rhino's 3560. Block 5 falls at tick 93 and block 4 at tick 113, and the
@@ -36,8 +31,7 @@ steps:
   # takes the next thing in its way — block 4 the first time, the Marksman,
   # through the gap, the second.
   - game.record:
-      input: $rhino
-      seed: $seed
+      input: tests/construction/fights/wall-rhino.yaml
       output: ${out}/rhino.mcfr
     expect:
       operation.tick_count: 189
@@ -50,17 +44,10 @@ steps:
       sides.blue.constructions.0.parts.0.id: 3
       sides.blue.constructions.0.parts.1.id: 6
       sides.blue.constructions.0.parts.2.id: 7
-  - convert:
-      input: tests/construction/wall-rhino.yaml
-      to: mcfr
-      seed: $seed
-      output: ${out}/simulated-rhino.mcfr
-  # Every field of every tick.
-  - diff:
-      left: ${out}/rhino.mcfr
-      right: ${out}/simulated-rhino.mcfr
-    expect:
-      equal: true
+  # Every field of every tick, against the simulator.
+  - verify:
+      input: ${out}/rhino.mcfr
+    expect: {invalid: []}
 
   # A beam takes a block with its ramp: 2, 3, 8, 17, 31, 51, 77, 109, 148,
   # 193, 245, each Steel Ball on the block in its own line, the last hit
@@ -82,8 +69,7 @@ steps:
   #
   # A beam's damage reads as its ramp's first step on every tick, 2 and not 55.
   - game.record:
-      input: $laser
-      seed: $seed
+      input: tests/construction/fights/wall-laser.yaml
       output: ${out}/laser.mcfr
     expect:
       operation.tick_count: 242
@@ -102,14 +88,7 @@ steps:
     expect:
       sides.blue.constructions.0.standing: 1
       sides.blue.constructions.0.parts.0.id: 7
-  - convert:
-      input: tests/construction/wall-laser.yaml
-      to: mcfr
-      seed: $seed
-      output: ${out}/simulated-laser.mcfr
-  # Every field of every tick.
-  - diff:
-      left: ${out}/laser.mcfr
-      right: ${out}/simulated-laser.mcfr
-    expect:
-      equal: true
+  # Every field of every tick, against the simulator.
+  - verify:
+      input: ${out}/laser.mcfr
+    expect: {invalid: []}

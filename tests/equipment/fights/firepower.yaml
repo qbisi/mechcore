@@ -1,0 +1,23 @@
+# Where does an equipment's damage rate land?
+#
+# The pinned fight with the Improved Firepower Control System on blue's
+# Marksman: +0.65 of damage rate. An officer's damage rate lands in the
+# skill's overlay as `damage_rate`; the prediction is the same entry and a
+# shot of 2329 × 1.65 = 3842, truncated toward zero.
+#
+# Improved Firepower Control System: +0.65 of damage in the skill channel, 3842.
+
+kind: fight
+map_id: 1021
+seed: 1787720817
+round: 1
+source: recording
+ticks: 83
+hash: {profile: mcfr-content-0.7.0, result: e39dd7a71d4dbe6c278f493b02b0b7b70d3f298c54916ab14fc722850f7013b4}
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 0/200/650, equipment: [improved_firepower_control_system]}
+red:
+  core_damage: 100
+  units:
+  - {name: arclight, index: 0, position: {x: 0, y: -50}}

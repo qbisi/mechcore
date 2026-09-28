@@ -1,0 +1,18 @@
+kind: fight
+map_id: 1021
+seed: 1787857041
+round: 1
+source: recording
+ticks: 647
+hash: {profile: mcfr-content-0.7.0, result: 8782500b2d1f0769e185f02ce66a9b390631b48c4beab1ad41de83fea057d039}
+blue:
+  units:
+  - {name: wraith, index: 0, position: {x: -5, y: -95}, exp: 0/869/2250}
+  - {name: crawler, index: 1, position: {x: 0, y: -135}, exp: 0/48/450, rotated: true}
+  - {name: steel_ball, index: 2, position: {x: 20, y: -135}, exp: 0/273/1000, rotated: true}
+red:
+  core_damage: 250
+  units:
+  - {name: wraith, index: 0, position: {x: -5, y: -95}, exp: 0/345/2250}
+  - {name: crawler, index: 1, position: {x: 0, y: -135}, exp: 0/47/450, rotated: true}
+  - {name: steel_ball, index: 2, position: {x: 20, y: -135}, exp: 0/199/1000, rotated: true}

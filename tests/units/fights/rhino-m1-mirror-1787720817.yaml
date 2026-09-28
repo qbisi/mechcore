@@ -1,0 +1,16 @@
+# M1: the mirror. One formation each, 200 m apart, outside every reference unit's range.
+
+kind: fight
+map_id: 1021
+seed: 1787720817
+round: 1
+source: recording
+ticks: 209
+hash: {profile: mcfr-content-0.7.0, result: 6d1eec0731a2bdc82864c55e3c5796e440c1f10dd7c17cc4c4023f8311ff0313}
+blue:
+  core_damage: 200
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/400/1150}

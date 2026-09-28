@@ -1,0 +1,29 @@
+# Does a turret turn before it fires, and what does the turn cost?
+#
+# The same turret and Crawlers as `rapid-fire-head-on.yaml`, but the
+# Crawlers start at world (275, 60): they come in on a diagonal about 40
+# degrees off the head-on bearing, so the turret has to turn before its
+# target is inside its 20-degree attack angle. The difference between this
+# fight's first shot and the head-on one's, once both are measured from the
+# tick the nearest Crawler enters range, is what turning costs.
+#
+# The same Crawlers 36.6 degrees off the turret's column. The weapon has
+# turned onto its lock before the lock is in reach, so the first shot is as
+# early, counted from reach, as the head-on one: 234 ticks.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 234
+hash: {profile: mcfr-content-0.7.0, result: e727c90d4d84233eb351478efc38860c15ad951945193141ee23156add60c561}
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: -290, y: -150}, exp: 0/192/650}
+  constructions:
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+red:
+  core_damage: 100
+  units:
+  - {name: crawler, index: 0, position: {x: -275, y: -60}}

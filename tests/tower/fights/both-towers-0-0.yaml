@@ -1,0 +1,23 @@
+# A second tower lost inside the first loss's nine seconds, both at level 0.
+#
+# Red's Steel Balls come down both of blue's tower columns, the Energy Tower's
+# lane ahead, so blue loses its second tower while the first loss's debuff
+# runs. Blue's Fangs stand at the back between the two.
+#
+# A second level-0 loss inside the first: the debuff lasts 180 ticks longer.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 581
+hash: {profile: mcfr-content-0.7.0, result: cd73fdc16bc6af905c810fa8e02ab3179377c8b039856c3a51937e47262460e6}
+blue:
+  core_damage: 400
+  units:
+  - {name: fang, index: 0, position: {x: 5, y: -300}}
+red:
+  units:
+  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/344/1000}
+  - {name: steel_ball, index: 1, position: {x: -145, y: -60}, exp: 0/272/1000}

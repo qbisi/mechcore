@@ -1,0 +1,18 @@
+# M5: the formation rotated, its target off to one side: attack angle and
+# turning. The target stands nearer than either enemy tower.
+# An air unit's target is a Marksman, which shoots back, as in M4.
+
+kind: fight
+map_id: 1021
+seed: 1787720817
+round: 1
+source: recording
+ticks: 187
+hash: {profile: mcfr-content-0.7.0, result: 0a14ce62ad3a402e4a85f1b40b8598e2db4974c4357613c28d8edc7bf99bbf32}
+blue:
+  units:
+  - {name: wasp, index: 0, position: {x: -60, y: -55}, exp: 0/200/900, rotated: true}
+red:
+  core_damage: 153
+  units:
+  - {name: marksman, index: 0, position: {x: -40, y: -100}, exp: 0/102/650}

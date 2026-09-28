@@ -1268,14 +1268,14 @@ mod tests {
             base: PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../.."),
         };
         let arguments = json!({
-            "input": "tests/regression/crawlers-vs-crawlers.yaml",
+            "input": "layouts/marksman-vs-arclight.yaml",
             "to": "mcfr",
-            "seed": 1_787_778_788,
+            "seed": 1_787_720_817,
             "output": output.display().to_string(),
         });
 
         let result = convert(&arguments, &scope).await.unwrap();
-        assert_eq!(result["steps"], json!(351), "{result}");
+        assert_eq!(result["steps"], json!(91), "{result}");
         mechcore_mcfr::McfrReader::open(&output).expect("the output is the new recording");
     }
 

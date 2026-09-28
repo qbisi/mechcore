@@ -2,13 +2,16 @@
 
 [`plan/units.md`](../../plan/units.md) defines when a unit is supported
 without technology: six standard layouts, each recorded by the game with two
-seeds and played back by the simulator tick for tick, in every field. This directory holds those
-layouts, one directory per unit, the script that records them, and the
-gameless `regressions.mcscript` that pins every recording the simulator
-reproduces. CI runs the regressions; the record script needs the game. It
-fights each layout without a scene, as a
+seeds and played back by the simulator tick for tick, in every field. Every
+recording the simulator reproduces is pinned as a fight document in `fights/`,
+`<unit>-<layout>-<seed>.yaml`, which holds the layout, the seed and what the
+game recorded, with the layout's own comment at its top.
+`regressions.mcscript` verifies every one of them without the game, and CI
+runs it; `record.mcscript` needs the game, and records each fight from its
+document. It fights each layout without a scene, as a
 [layout replay](../../docs/spec/document/layout-replay.md), and every pin
-hashes the same recorded that way as in the Training Ground.
+hashes the same recorded that way as in the Training Ground. The Hacker's
+layouts are not pinned, so they are still layouts, in `hacker/`.
 
 | Layout | What it measures |
 | --- | --- |

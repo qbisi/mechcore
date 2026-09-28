@@ -1,0 +1,16 @@
+# M3: a swarm of ground targets: retargeting, splash, being surrounded.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 352
+hash: {profile: mcfr-content-0.7.0, result: 06135ffd43219344dae840ec6922308094a5a79c6bd11f8275392dc513fcc296}
+blue:
+  core_damage: 48
+  units:
+  - {name: stormcaller, index: 0, position: {x: 5, y: -100}, exp: 0/96/1100}
+red:
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/400/450}
