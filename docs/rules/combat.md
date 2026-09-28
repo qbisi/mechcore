@@ -225,8 +225,12 @@ sends its projectiles straight up at their speed, neither following the target
 nor landing, until they stand at or above the height, the last step taken whole:
 a Farseer's shot climbs 7 metres a tick to 63 for its 60. The height is the
 pre-flight height times the distance to the target over the attack range, at
-the range and beyond the whole of it, measured once for the burst to where the
-target stood when the tick began (`ProjectileSystem.Create`).
+the range and beyond the whole of it (`ProjectileSystem.Create`). The distance
+is measured for each projectile as it is created, from where its owner stands
+then, to where the burst's target stood when the tick the burst began on
+began: an Overlord pushed aside between two releases of one burst climbs its
+later projectiles to another height, and the first step of a climb, rounded
+through the reciprocal of what is left to climb, lands a few raw units apart.
 
 **A burst goes on after its target leaves reach.** A skill is not checked
 between the projectiles of a burst, so a bodyless unit whose target walks out
@@ -395,12 +399,18 @@ not the game's native attack-type enum.
 - The blow waiting a tick after the idle state is left, and an idle skill
   giving up a lock it cannot fire at, in the standard fights of the Fortress,
   Sledgehammer, Typhoon and Melting Point: `tests/units/regressions.mcscript`.
+- A projectile's climb measured as it is created, in the Overlord's standard
+  fights:
+  `tests/units/regressions.mcscript`.
 - A presearched target a few raw units left of straight ahead faced at
   +0.245°, in the standard fights of the Steel Ball, Stormcaller, Hound, Fire
   Badger and Phantom Ray: `tests/units/regressions.mcscript`.
 
 ### Read
 
+- A projectile's climb is scaled by the distance from where it leaves, as it
+  is created: `ProjectileSystem.Create`, `IProjectileSkillData.GetPreFlyHeight`,
+  `ProjectileFlyData.GetPosition`.
 - The presearch faces a unit by the direction to its target, and a facing is
   mirrored only past `FPoint`'s tolerance: `PresearchTargetController.SearchTarget`,
   `FightUtility.ConvertToAngle`, `FightMech.UpdateRotation`,
