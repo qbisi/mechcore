@@ -492,7 +492,7 @@ mod slots {
                     continue;
                 };
                 let slot = usize::from(row.skill_slot);
-                if slot >= actor.skill.group_size {
+                if slot >= actor.skill.group_size() {
                     differences.push(format!("u{} has no slot {slot}", row.unit.id));
                     continue;
                 }

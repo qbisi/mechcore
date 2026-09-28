@@ -621,17 +621,18 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
-        if actor.rules.attack.weapons.fusillade != Some(true) {
+        if !actor.skill.fusillade() {
             return;
         }
         let Some(found) = found else {
             return;
         };
-        for sibling in &mut actor.skill.slots {
+        let group = actor.skill.group.as_mut().expect("a fusillade is a group");
+        for sibling in &mut group.siblings {
             if sibling.lock_target == Some(found) {
                 sibling.attack_target_left = sibling.attack_target();
                 sibling.lock_target = None;
-                actor.skill.mech_lock = None;
+                group.mech_lock = None;
             }
         }
     }
@@ -701,7 +702,7 @@ impl Simulation {
         // A fusillade's core falls back on what its siblings hold as a
         // group that shares does, and takes what it finds from them
         // (`take_from_siblings`).
-        let fusillade_core = slot == 0 && source.rules.attack.weapons.fusillade == Some(true);
+        let fusillade_core = slot == 0 && source.skill.fusillade();
         let selected = select(false);
         if (source.rules.attack.weapons.allow_same_target == Some(true) || fusillade_core)
             && selected.is_none_or(|target| {

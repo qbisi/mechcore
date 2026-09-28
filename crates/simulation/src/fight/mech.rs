@@ -41,12 +41,17 @@ impl Actor {
             usize::try_from(rules.attack.weapons.count())
                 .expect("u32 weapon count fits the supported host")
         ];
-        let group_skill_count = if rules.attack.weapons.mode == WeaponMode::Group {
-            usize::try_from(rules.attack.weapons.count())
-                .expect("u32 weapon count fits the supported host")
-        } else {
-            0
-        };
+        let group = (rules.attack.weapons.mode == WeaponMode::Group).then(|| {
+            (
+                usize::try_from(rules.attack.weapons.count())
+                    .expect("u32 weapon count fits the supported host"),
+                if rules.attack.weapons.fusillade == Some(true) {
+                    GroupBehaviour::Fusillade
+                } else {
+                    GroupBehaviour::Each
+                },
+            )
+        });
         let performer = Performer::of(&rules.attack.path);
         Self {
             x,
@@ -86,7 +91,7 @@ impl Actor {
                 state: MotionState::Idle,
                 attack_hold_fire: false,
             },
-            skill: Skill::new(weapon_rotations_q32, group_skill_count, magazine, performer),
+            skill: Skill::new(weapon_rotations_q32, group, magazine, performer),
         }
     }
 
@@ -185,7 +190,7 @@ impl Actor {
     /// measured from; a slot without one is measured from the root.
     pub(in crate::fight) fn slot_main_rotation_q32(&self, slot: usize) -> i64 {
         if self.rules.attack.weapons.fixed_to_body && slot > 0 {
-            self.skill.slot_weapon_rotations_q32[slot - 1]
+            self.skill.sibling_weapon_rotation_q32(slot)
         } else {
             self.body_rotation_q32
         }
@@ -200,7 +205,7 @@ impl Actor {
             position,
             rotation: match weapon_index {
                 0 => self.body_rotation_q32,
-                slot => self.skill.slot_weapon_rotations_q32[slot - 1],
+                slot => self.skill.sibling_weapon_rotation_q32(slot),
             },
         })
     }
@@ -267,7 +272,7 @@ impl Actor {
             status_mask: 0,
             modifiers: self
                 .stats
-                .modifiers(self.skill.group_size.max(1))
+                .modifiers(self.skill.group_size().max(1))
                 .expect("the layout refused every correction a snapshot cannot record"),
             personal_shield: PersonalShieldState {
                 active: false,

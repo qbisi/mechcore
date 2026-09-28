@@ -468,7 +468,7 @@ impl Simulation {
             && actor.skill.lock_target.is_none()
             && actor
                 .skill
-                .slots
+                .siblings()
                 .iter()
                 .any(|slot| slot.lock_target.is_some())
         {
@@ -892,7 +892,7 @@ impl Simulation {
             && actor.motion.state == MotionState::Attacking
             && actor
                 .skill
-                .slots
+                .siblings()
                 .iter()
                 .any(|slot| slot.lock_target.is_some())
         {

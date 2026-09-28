@@ -157,6 +157,36 @@ pub(in crate::fight) enum FightSkillPhase {
     Attack,
 }
 
+/// `SkillGroup`: a grouped unit's skills and what they share. The core
+/// holds it; its siblings are the rest of `SkillGroup.skills`.
+#[derive(Debug, Clone)]
+pub(in crate::fight) struct Group {
+    /// The core's siblings, slot 1 first.
+    pub(in crate::fight) siblings: Vec<Skill>,
+    /// The rotation of each sibling's weapon, slot 1 first, where the
+    /// weapons are fixed to the body: the weapon's own transform, which
+    /// outlives what its skill does.
+    pub(in crate::fight) sibling_weapon_rotations_q32: Vec<i64>,
+    /// What the unit's body is directed at: `FightSkill.ChangeLockTarget`
+    /// hands the owner every lock a slot takes or drops, so it is the latest,
+    /// the core's or a sibling's.
+    pub(in crate::fight) mech_lock: Option<FightActorRef>,
+    /// The update the core last started a blow on:
+    /// `SkillGroup.OnStartPerformAttack`, which a fusillade's siblings wait
+    /// for before they may fire.
+    pub(in crate::fight) core_blow_step: Option<u64>,
+    pub(in crate::fight) behaviour: GroupBehaviour,
+}
+
+/// `SkillGroup.attackBehaviour`: how the group's skills take turns.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::fight) enum GroupBehaviour {
+    /// `GroupedSkillAttackBehaviour`: each skill attacks on its own.
+    Each,
+    /// A `GroupedSkillFusilladeBehaviour`: the siblings fire with the core.
+    Fusillade,
+}
+
 /// `FightSkill`: the lock and what the weapons fire at, the state the skill
 /// is in, and the attack it is making.
 
@@ -194,29 +224,12 @@ pub(in crate::fight) struct Skill {
     pub(in crate::fight) in_the_way: Option<(u64, FightActorRef)>,
     pub(in crate::fight) search_target_time: i32,
     pub(in crate::fight) searched_this_tick: bool,
-    /// The update a grouped core last started a blow on:
-    /// `SkillGroup.OnStartPerformAttack`, which a fusillade's siblings wait
-    /// for before they may fire.
-    pub(in crate::fight) blow_started_step: Option<u64>,
     /// Which `SkillStateController` state the skill is in, with what that
     /// state carries.
     pub(in crate::fight) state: SkillState,
-    /// How many `FightSkill`s the skill's `SkillGroup` holds, the core among
-    /// them; zero for a skill that is not grouped. A Vortex's group is its
-    /// core alone.
-    pub(in crate::fight) group_size: usize,
-    /// A grouped skill's other slots, the core's siblings: slot 1 first.
-    /// The core is this skill itself.
-    pub(in crate::fight) slots: Vec<Skill>,
-    /// The rotation of each sibling's weapon, slot 1 first, where the
-    /// weapons are fixed to the body: the weapon's own transform, which
-    /// outlives what its skill does.
-    pub(in crate::fight) slot_weapon_rotations_q32: Vec<i64>,
-    /// What a grouped unit's body is directed at: `FightSkill.ChangeLockTarget`
-    /// hands the owner every lock a slot takes or drops, so it is the latest,
-    /// the core's or a sibling's. A skill that is not grouped reads its own
-    /// lock instead.
-    pub(in crate::fight) mech_lock: Option<FightActorRef>,
+    /// The unit's `SkillGroup`, held by its core: none for a skill that is
+    /// not grouped, and a group of the core alone for a Vortex.
+    pub(in crate::fight) group: Option<Group>,
     /// Whether `ChangeLockTarget` wrote this skill's lock on the current
     /// update, whether or not the lock it wrote is new: a grouped core's
     /// search that finds the unit it already holds still hands it to the
@@ -245,10 +258,19 @@ impl Skill {
     /// A skill entering the fight: idle, no lock, nothing scheduled.
     pub(in crate::fight) fn new(
         weapon_rotations_q32: Vec<i64>,
-        group_skill_count: usize,
+        group: Option<(usize, GroupBehaviour)>,
         magazine: Option<Magazine>,
         performer: Performer,
     ) -> Self {
+        let group = group.map(|(skills, behaviour)| Group {
+            siblings: (1..skills)
+                .map(|_| Self::sibling_entering(performer.fresh()))
+                .collect(),
+            sibling_weapon_rotations_q32: vec![0; skills.saturating_sub(1)],
+            mech_lock: None,
+            core_blow_step: None,
+            behaviour,
+        });
         Self {
             weapon_rotations_q32,
             next_attack_step: 0,
@@ -259,14 +281,8 @@ impl Skill {
             // replaces this constructor value with the presearch batch ordinal.
             search_target_time: SEARCH_TARGET_RESET_TICKS,
             searched_this_tick: false,
-            blow_started_step: None,
             state: SkillState::Idle { ready_step: None },
-            group_size: group_skill_count,
-            slots: (1..group_skill_count)
-                .map(|_| Self::sibling_entering(performer.fresh()))
-                .collect(),
-            slot_weapon_rotations_q32: vec![0; group_skill_count.saturating_sub(1)],
-            mech_lock: None,
+            group,
             lock_written: false,
             performer,
             attack_count: ATTACK_COUNT_RESET,
@@ -281,7 +297,7 @@ impl Skill {
     pub(in crate::fight) fn sibling_entering(performer: Performer) -> Self {
         Self {
             search_target_time: 0,
-            ..Self::new(Vec::new(), 0, None, performer)
+            ..Self::new(Vec::new(), None, None, performer)
         }
     }
 
@@ -304,7 +320,9 @@ impl Skill {
     ) {
         self.next_attack_step = step.saturating_add(interval);
         self.current_attack_interval = interval;
-        self.blow_started_step = Some(step);
+        if let Some(group) = &mut self.group {
+            group.core_blow_step = Some(step);
+        }
         self.set_pending(Some(PendingRelease {
             step: step.saturating_add(attack_point_steps),
             target,
@@ -483,15 +501,16 @@ impl Skill {
     /// group, whose slot lists are empty.
     pub(in crate::fight) fn drop_lock(&mut self) {
         self.write_lock(None);
-        self.mech_lock = None;
+        self.set_mech_lock(None);
     }
 
     /// Every sibling slot left idle, with no allocation and nothing
     /// scheduled, as leaving the fight leaves them.
     pub(in crate::fight) fn clear_slots(&mut self) {
         let performer = self.performer.fresh();
-        self.slots
-            .fill_with(|| Self::sibling_entering(performer.fresh()));
+        for sibling in self.siblings_mut() {
+            *sibling = Self::sibling_entering(performer.fresh());
+        }
     }
 
     /// `FightSkill.ChangeLockTarget`.
@@ -501,14 +520,55 @@ impl Skill {
     }
 
     pub(in crate::fight) const fn is_grouped(&self) -> bool {
-        self.group_size > 0
+        self.group.is_some()
+    }
+
+    /// How many `FightSkill`s the group holds, the core among them; zero for
+    /// a skill that is not grouped.
+    pub(in crate::fight) fn group_size(&self) -> usize {
+        self.group
+            .as_ref()
+            .map_or(0, |group| group.siblings.len() + 1)
+    }
+
+    /// Whether the group fires its siblings with its core.
+    pub(in crate::fight) fn fusillade(&self) -> bool {
+        self.group
+            .as_ref()
+            .is_some_and(|group| group.behaviour == GroupBehaviour::Fusillade)
+    }
+
+    /// The core's siblings, none for a skill that is not grouped.
+    pub(in crate::fight) fn siblings(&self) -> &[Self] {
+        self.group.as_ref().map_or(&[], |group| &group.siblings)
+    }
+
+    pub(in crate::fight) fn siblings_mut(&mut self) -> &mut [Self] {
+        self.group
+            .as_mut()
+            .map_or(&mut [], |group| &mut group.siblings)
+    }
+
+    /// The rotation of a sibling's weapon fixed to the body.
+    pub(in crate::fight) fn sibling_weapon_rotation_q32(&self, slot: usize) -> i64 {
+        self.group
+            .as_ref()
+            .expect("only a grouped skill has siblings")
+            .sibling_weapon_rotations_q32[slot - 1]
+    }
+
+    /// Hands the owner a lock, where a group keeps one for it.
+    pub(in crate::fight) fn set_mech_lock(&mut self, lock: Option<FightActorRef>) {
+        if let Some(group) = &mut self.group {
+            group.mech_lock = lock;
+        }
     }
 
     /// `RefreshAttackData` from the core to every sibling: each is due when
     /// the core is.
     pub(in crate::fight) fn align_slots_to_core(&mut self) {
         let due = self.next_attack_step;
-        for sibling in &mut self.slots {
+        for sibling in self.siblings_mut() {
             sibling.next_attack_step = due;
         }
     }
@@ -519,22 +579,22 @@ impl Skill {
         if slot == 0 {
             self
         } else {
-            &self.slots[slot - 1]
+            &self.siblings()[slot - 1]
         }
     }
 
     /// A slot of the group, the core's siblings only.
     pub(in crate::fight) fn sibling(&self, slot: usize) -> &Self {
-        &self.slots[slot - 1]
+        &self.siblings()[slot - 1]
     }
 
     pub(in crate::fight) fn sibling_mut(&mut self, slot: usize) -> &mut Self {
-        &mut self.slots[slot - 1]
+        &mut self.siblings_mut()[slot - 1]
     }
 
     /// What a slot has locked.
     pub(in crate::fight) fn slot_lock(&self, slot: usize) -> Option<FightActorRef> {
-        if slot < self.group_size.max(1) {
+        if slot < self.group_size().max(1) {
             self.group_skill(slot).lock_target
         } else {
             None
@@ -543,7 +603,7 @@ impl Skill {
 
     /// What a slot's weapon names.
     pub(in crate::fight) fn group_attack_target(&self, slot: usize) -> Option<FightActorRef> {
-        if slot < self.group_size.max(1) {
+        if slot < self.group_size().max(1) {
             self.group_skill(slot).weapon_target()
         } else {
             None
@@ -565,19 +625,17 @@ impl Skill {
 
     /// Each slot's lock, the core first.
     pub(in crate::fight) fn slot_locks(&self) -> Vec<Option<FightActorRef>> {
-        (0..self.group_size)
+        (0..self.group_size())
             .map(|slot| self.slot_lock(slot))
             .collect()
     }
 
     /// The lock a recording reads as the unit's: a grouped unit's latest
     /// slot lock, and any other skill's own.
-    pub(in crate::fight) const fn unit_lock(&self) -> Option<FightActorRef> {
-        if self.is_grouped() {
-            self.mech_lock
-        } else {
-            self.lock_target
-        }
+    pub(in crate::fight) fn unit_lock(&self) -> Option<FightActorRef> {
+        self.group
+            .as_ref()
+            .map_or(self.lock_target, |group| group.mech_lock)
     }
 }
 
@@ -706,7 +764,7 @@ impl Simulation {
             self.skill(owner).is_grouped()
                 && self
                     .skill(owner)
-                    .slots
+                    .siblings()
                     .iter()
                     .any(|slot| slot.lock_target.is_some())
         });
@@ -839,7 +897,7 @@ impl Simulation {
             target_search_order,
             events,
         )?;
-        let fusillade = self.actors[&actor_id].rules.attack.weapons.fusillade == Some(true);
+        let fusillade = self.actors[&actor_id].skill.fusillade();
         if self.actors[&actor_id].skill.is_grouped() && !fusillade {
             // The core's `ChangeLockTarget` reaches the owner first; its
             // siblings update after it and may overwrite it.
@@ -849,7 +907,7 @@ impl Simulation {
                 .expect("actor identity is stable")
                 .skill;
             if skill.lock_written || skill.lock_target != core_lock {
-                skill.mech_lock = skill.lock_target;
+                skill.set_mech_lock(skill.lock_target);
             }
             let core_entered_attack =
                 !core_was_attacking && skill.phase() == FightSkillPhase::Attack;
@@ -879,7 +937,7 @@ impl Simulation {
                 .expect("actor identity is stable")
                 .skill;
             if skill.lock_written || skill.lock_target != core_lock {
-                skill.mech_lock = skill.lock_target;
+                skill.set_mech_lock(skill.lock_target);
             }
             let core_entered_attack =
                 !core_was_attacking && skill.phase() == FightSkillPhase::Attack;
