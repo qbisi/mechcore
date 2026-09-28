@@ -26,6 +26,13 @@ const LAUNCH_POLL_INTERVAL: Duration = Duration::from_millis(200);
 /// polling point, so this budget is the one thing that is still allowed to
 /// take time, leaving the match and settling at the main menu.
 const EVICTION_TIMEOUT: Duration = Duration::from_secs(120);
+/// How long a client that finds the game served waits for the holder to be
+/// gone before it is refused. A command that has just released the game has
+/// closed its connection before the Adapter has seen it close, so the next
+/// command in a pipeline finds the slot still taken for a moment; measured
+/// over a pipeline of 82 recordings, never longer than 0.4 s.
+const HANDOVER: Duration = Duration::from_secs(1);
+const HANDOVER_POLL_INTERVAL: Duration = Duration::from_millis(50);
 const EVICTION_POLL_INTERVAL: Duration = Duration::from_millis(500);
 /// How long a launched game waits for its next client before it quits itself.
 ///
@@ -174,6 +181,18 @@ pub(crate) async fn acquire(
     let mut probe = probe_endpoint(endpoint, level).await;
     if let Probe::Busy { evicting: true, .. } = probe {
         probe = wait_for_the_game(endpoint, level).await;
+    }
+    let handover = tokio::time::Instant::now() + HANDOVER;
+    while matches!(
+        probe,
+        Probe::Busy {
+            evicting: false,
+            ..
+        }
+    ) && tokio::time::Instant::now() < handover
+    {
+        tokio::time::sleep(HANDOVER_POLL_INTERVAL).await;
+        probe = probe_endpoint(endpoint, level).await;
     }
     // A game left running by an earlier launch is this launch's to reuse, but
     // only if it can do the work; otherwise it is retired and a new one
