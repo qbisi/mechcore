@@ -6,272 +6,587 @@ schema: mechcore.technology_effects
 # `docs/rules/technology_effects.md` states what each field means and what
 # is not established.
 #
+# Every technology a unit may research has a row. Its `kind` is the list
+# of `TechnologyGroupData` it comes from: `technologyDatas` for a plain
+# technology, which does nothing but correct its unit's numbers, and a
+# subclass's list for one that does something more. A plain row that sets
+# a field beyond its numbers names it in `special`.
+#
 # Every effect is a list indexed by the unit's rank: one entry for a
 # technology whose effect is flat, and one per rank for a technology that
 # grows with it. A rate is an FPoint Q32.32 raw integer, a value is an
 # FPoint in the number's own units, and speed is a plain integer.
 
 technologies:
+  - id: 206
+    name: 能量护盾
+    unit: wasp
+    kind: energyShieldTechnologies
+  - id: 209
+    name: 随身护盾
+    unit: fang
+    kind: energyShieldTechnologies
+  - id: 216
+    name: 能量护盾
+    unit: phoenix
+    kind: energyShieldTechnologies
+  - id: 225
+    name: 能量护盾
+    unit: phantom_ray
+    kind: energyShieldTechnologies
+  - id: 227
+    name: 能量护盾
+    unit: raiden
+    kind: energyShieldTechnologies
+  - id: 230
+    name: 能量护盾
+    unit: void_eye
+    kind: energyShieldTechnologies
   - id: 304
     name: 能量汲取
     unit: melting_point
+    kind: lifestealTechnologies
     life_rate: [2576980377]  # +0.6
   - id: 308
     name: 能量汲取
     unit: steel_ball
+    kind: lifestealTechnologies
     life_rate: [1717986918]  # +0.4
   - id: 330
     name: 能量汲取
     unit: void_eye
+    kind: lifestealTechnologies
     life_rate: [2576980377]  # +0.6
   - id: 406
     name: 高爆弹药
     unit: wasp
+    kind: splashTechnologies
     damage_rate: [-1288490188]  # -0.3
   - id: 407
     name: 高爆弹药
     unit: mustang
+    kind: splashTechnologies
     damage_rate: [-1503238553]  # -0.35
   - id: 411
     name: 高爆弹药
     unit: overlord
+    kind: splashTechnologies
     damage_rate: [-1717986918]  # -0.4
   - id: 412
     name: 高爆弹药
     unit: stormcaller
+    kind: splashTechnologies
     damage_rate: [-2147483648]  # -0.5
   - id: 417
     name: 高爆弹药
     unit: war_factory
+    kind: splashTechnologies
     damage_rate: [-1717986918]  # -0.4
   - id: 418
     name: 高爆弹药
     unit: wraith
+    kind: splashTechnologies
     damage_rate: [-1288490188]  # -0.3
   - id: 424
     name: 高爆弹药
     unit: tarantula
+    kind: splashTechnologies
     damage_rate: [-1932735283]  # -0.45
   - id: 425
     name: 高爆弹药
     unit: phantom_ray
+    kind: splashTechnologies
     damage_rate: [-1717986918]  # -0.4
+  - id: 506
+    name: 对地专精
+    unit: wasp
+    kind: damageIntensifyTechnologies
   - id: 608
     name: 伤害分摊
     unit: steel_ball
+    kind: damageShareTechnologies
     life_rate: [5153960755]  # +1.2
   - id: 613
     name: 伤害分摊
     unit: sledgehammer
+    kind: damageShareTechnologies
     life_rate: [5153960755]  # +1.2
+  - id: 631
+    name: 并网
+    unit: vortex
+    kind: damageShareTechnologies
   - id: 701
     name: 双发
     unit: fortress
+    kind: multiAttackTechnologies
     attack_interval_rate: [515396075]  # +0.12
   - id: 702
     name: 双发
     unit: marksman
+    kind: multiAttackTechnologies
     attack_interval_rate: [644245094]  # +0.15
   - id: 719
     name: 双发
     unit: scorpion
+    kind: multiAttackTechnologies
     attack_interval_rate: [515396075]  # +0.12
   - id: 721
     name: 双发
     unit: sabertooth
+    kind: multiAttackTechnologies
     attack_interval_rate: [515396075]  # +0.12
   - id: 725
     name: 全弹发射
     unit: phantom_ray
+    kind: multiAttackTechnologies
     attack_interval_rate: [6442450944]  # +1.5
   - id: 726
     name: 全弹发射
     unit: farseer
+    kind: multiAttackTechnologies
     attack_interval_rate: [8589934592]  # +2
   - id: 812
     name: 燃烧弹
     unit: stormcaller
+    kind: fireIntensifyTechnologies
     attack_range_value: [-85899345920]  # -20
   - id: 820
     name: 液态火
     unit: fire_badger
+    kind: fireIntensifyTechnologies
     life_rate: [-1288490188]  # -0.3
+  - id: 905
+    name: 战地维修
+    unit: rhino
+    kind: autoRecoveryTechnologies
   - id: 911
     name: 战地维修
     unit: overlord
+    kind: autoRecoveryTechnologies
     life_rate: [1288490188]  # +0.3
   - id: 913
     name: 战地维修
     unit: sledgehammer
+    kind: autoRecoveryTechnologies
     life_rate: [1288490188]  # +0.3
   - id: 918
     name: 战地维修
     unit: wraith
+    kind: autoRecoveryTechnologies
     life_rate: [1288490188]  # +0.3
   - id: 919
     name: 战地维修
     unit: scorpion
+    kind: autoRecoveryTechnologies
     life_rate: [1288490188]  # +0.3
   - id: 920
     name: 战地维修
     unit: fire_badger
+    kind: autoRecoveryTechnologies
     life_rate: [1288490188]  # +0.3
   - id: 923
     name: 潜地维修
     unit: sandworm
+    kind: autoRecoveryTechnologies
     life_rate: [858993459]  # +0.2
   - id: 924
     name: 战地维修
     unit: tarantula
+    kind: autoRecoveryTechnologies
     life_rate: [1288490188]  # +0.3
   - id: 931
     name: 战地维修
     unit: vortex
+    kind: autoRecoveryTechnologies
     life_rate: [1288490188]  # +0.3
+  - id: 1001
+    name: 保护屏障
+    unit: fortress
+    kind: advancedEnergyShieldTechnologies
+  - id: 1014
+    name: 保护屏障
+    unit: hacker
+    kind: advancedEnergyShieldTechnologies
+  - id: 1103
+    name: 燃烧弹
+    unit: vulcan
+    kind: extraWeaponTechnologies
+  - id: 1105
+    name: 防空弹幕
+    unit: fortress
+    kind: extraWeaponTechnologies
+  - id: 1106
+    name: 电磁弹幕
+    unit: melting_point
+    kind: extraWeaponTechnologies
   - id: 1107
     name: 能量散射
     unit: melting_point
+    kind: extraWeaponTechnologies
     attack_range_value: [-128849018880]  # -30
+  - id: 1108
+    name: 舰炮
+    unit: overlord
+    kind: extraWeaponTechnologies
+  - id: 1109
+    name: 旋风斩
+    unit: rhino
+    kind: extraWeaponTechnologies
+  - id: 1201
+    name: 尖牙制造
+    unit: fortress
+    kind: supportUnitTechnologies
+  - id: 1202
+    name: 射击小队
+    unit: marksman
+    kind: supportUnitTechnologies
+  - id: 1203
+    name: 最佳搭档
+    unit: vulcan
+    kind: supportUnitTechnologies
+  - id: 1204
+    name: 爬虫制造
+    unit: melting_point
+    kind: supportUnitTechnologies
+  - id: 1211
+    name: 母舰
+    unit: overlord
+    kind: supportUnitTechnologies
+  - id: 1232
+    name: 召唤猎犬
+    unit: centurion
+    kind: supportUnitTechnologies
+  - id: 1308
+    name: 机械分裂
+    unit: steel_ball
+    kind: deadSummonTechnologies
   - id: 1606
     name: 高速引擎
     unit: wasp
+    kind: mobilityIntensifyTechnologies
     speed_value: [5]
   - id: 1611
     name: 高速引擎
     unit: overlord
+    kind: mobilityIntensifyTechnologies
     speed_value: [5]
   - id: 1616
     name: 高速引擎
     unit: phoenix
+    kind: mobilityIntensifyTechnologies
     speed_value: [5]
+  - id: 1714
+    name: 强化控制
+    unit: hacker
+    kind: controllBeamLifeRecoveryTechnologies
+  - id: 1802
+    name: 电磁弹
+    unit: marksman
+    kind: buffTechnologies
+  - id: 1806
+    name: 电磁弹
+    unit: wasp
+    kind: buffTechnologies
+  - id: 1812
+    name: 电磁爆炸
+    unit: stormcaller
+    kind: buffTechnologies
+  - id: 1813
+    name: 电磁弹
+    unit: sledgehammer
+    kind: buffTechnologies
+  - id: 1814
+    name: 电磁干扰
+    unit: hacker
+    kind: buffTechnologies
+  - id: 1815
+    name: 电磁弹
+    unit: arclight
+    kind: buffTechnologies
+  - id: 1816
+    name: 电磁弹
+    unit: phoenix
+    kind: buffTechnologies
+  - id: 1826
+    name: 电磁爆炸
+    unit: farseer
+    kind: buffTechnologies
+  - id: 1827
+    name: 电磁弹
+    unit: raiden
+    kind: buffTechnologies
   - id: 2305
     name: 残骸利用
     unit: rhino
+    kind: wreckageRecoveryTechnologies
     damage_rate: [2576980377]  # +0.6
   - id: 2329
     name: 残骸利用
     unit: abyss
+    kind: wreckageRecoveryTechnologies
     damage_rate: [1503238553]  # +0.35
+  - id: 2408
+    name: 重装锁定
+    unit: steel_ball
+    kind: searchTargetModifyTechnologies
   - id: 2505
     name: 动力装甲
     unit: rhino
+    kind: ignoreBuffEffectTechnologyDatas
     life_rate: [1073741824]  # +0.25
   - id: 2610
     name: 潜地行动
     unit: crawler
+    kind: burrowTechnologies
     speed_value: [3]
+  - id: 2710
+    name: 酸性爆炸
+    unit: crawler
+    kind: deadAcidRangeItemTechnologyDatas
+  - id: 2805
+    name: 最后一击
+    unit: rhino
+    kind: deadExplosiveTechnologyDatas
+  - id: 2916
+    name: 量子重组
+    unit: phoenix
+    kind: rebirthEffectTechologyDatas
+  - id: 2922
+    name: 战地重组
+    unit: typhoon
+    kind: rebirthEffectTechologyDatas
   - id: 3001
     name: 装甲强化
     unit: fortress
+    kind: armorStrengthenTechnologyDatas
     life_rate: [2147483648]  # +0.5
   - id: 3003
     name: 装甲强化
     unit: vulcan
+    kind: armorStrengthenTechnologyDatas
     life_rate: [2147483648]  # +0.5
   - id: 3004
     name: 装甲强化
     unit: melting_point
+    kind: armorStrengthenTechnologyDatas
     life_rate: [2147483648]  # +0.5
   - id: 3005
     name: 装甲强化
     unit: rhino
+    kind: armorStrengthenTechnologyDatas
     life_rate: [2147483648]  # +0.5
   - id: 3008
     name: 装甲强化
     unit: steel_ball
+    kind: armorStrengthenTechnologyDatas
     life_rate: [1503238553]  # +0.35
   - id: 3011
     name: 装甲强化
     unit: overlord
+    kind: armorStrengthenTechnologyDatas
     life_rate: [1503238553]  # +0.35
   - id: 3013
     name: 装甲强化
     unit: sledgehammer
+    kind: armorStrengthenTechnologyDatas
     life_rate: [1503238553]  # +0.35
   - id: 3015
     name: 装甲强化
     unit: arclight
+    kind: armorStrengthenTechnologyDatas
     life_rate: [2147483648]  # +0.5
   - id: 3017
     name: 装甲强化
     unit: war_factory
+    kind: armorStrengthenTechnologyDatas
     life_rate: [2147483648]  # +0.5
   - id: 3018
     name: 装甲强化
     unit: wraith
+    kind: armorStrengthenTechnologyDatas
     life_rate: [1503238553]  # +0.35
   - id: 3019
     name: 装甲强化
     unit: scorpion
+    kind: armorStrengthenTechnologyDatas
     life_rate: [2147483648]  # +0.5
   - id: 3023
     name: 装甲强化
     unit: sandworm
+    kind: armorStrengthenTechnologyDatas
     life_rate: [2147483648]  # +0.5
   - id: 3024
     name: 装甲强化
     unit: tarantula
+    kind: armorStrengthenTechnologyDatas
     life_rate: [2147483648]  # +0.5
   - id: 3025
     name: 装甲强化
     unit: phantom_ray
+    kind: armorStrengthenTechnologyDatas
     life_rate: [1503238553]  # +0.35
   - id: 3028
     name: 装甲强化
     unit: hound
+    kind: armorStrengthenTechnologyDatas
     life_rate: [858993459]  # +0.2
   - id: 3109
     name: 榴弹发射器
     unit: fang
+    kind: airAttackTechnologyDatas
     attack_range_value: [42949672960]  # +10
     splash_range_value: [30064771072]  # +7
     projectile_speed_value: [-601295421440]  # -140
+  - id: 3115
+    name: 防空弹药
+    unit: arclight
+    kind: airAttackTechnologyDatas
   - id: 3123
     name: 对空
     unit: sandworm
+    kind: airAttackTechnologyDatas
     attack_range_value: [85899345920]  # +20
+  - id: 3124
+    name: 防空弹药
+    unit: tarantula
+    kind: airAttackTechnologyDatas
+  - id: 3202
+    name: 防空专精
+    unit: marksman
+    kind: searchTargetSpecificDatas
+  - id: 3206
+    name: 防空专精
+    unit: wasp
+    kind: searchTargetSpecificDatas
+  - id: 3207
+    name: 防空专精
+    unit: mustang
+    kind: searchTargetSpecificDatas
+  - id: 3225
+    name: 对地锁定
+    unit: phantom_ray
+    kind: searchTargetSpecificDatas
+  - id: 3226
+    name: 防空专精
+    unit: farseer
+    kind: searchTargetSpecificDatas
+  - id: 3307
+    name: 导弹拦截
+    unit: mustang
+    kind: interceptMissileTechnologyDatas
+  - id: 3317
+    name: 导弹拦截
+    unit: war_factory
+    kind: interceptMissileTechnologyDatas
+  - id: 3321
+    name: 导弹拦截
+    unit: sabertooth
+    kind: interceptMissileTechnologyDatas
+  - id: 3326
+    name: 导弹拦截
+    unit: farseer
+    kind: interceptMissileTechnologyDatas
   - id: 3510
     name: 松散队列
     unit: crawler
+    kind: rVORadiusChangeTechnologyTechDatas
     life_rate: [-1717986918]  # -0.4
+  - id: 3623
+    name: 复制
+    unit: sandworm
+    kind: moveAbilitySummonTechDatas
+  - id: 3723
+    name: 沙暴
+    unit: sandworm
+    kind: moveAbilityRangeItemTechDatas
+  - id: 3823
+    name: 突袭
+    unit: sandworm
+    kind: moveAbilityAttackIntensifyTechDatas
   - id: 3925
     name: 隐形
     unit: phantom_ray
+    kind: moveAbilityDynamicTechDatas
     life_rate: [858993459]  # +0.2
     damage_rate: [858993459]  # +0.2
   - id: 4027
     name: 连锁
     unit: raiden
+    kind: iterationHitDamageTechDatas
     attack_range_value: [-85899345920]  # -20
   - id: 4127
     name: 电离
     unit: raiden
+    kind: additionalDamageTechDatas
     damage_rate: [-3006477107]  # -0.7
+  - id: 4228
+    name: 消防装置
+    unit: hound
+    kind: clearRangeItemTechDatas
   - id: 4329
     name: 纵扫
     unit: abyss
+    kind: sweepSkillIntensifyTechDatas
     damage_rate: [2147483648]  # +0.5
   - id: 4418
     name: 地面巡航
     unit: wraith
+    kind: flyTechDatas
     attack_range_value: [214748364800]  # +50
     attack_interval_value: [2576980377]  # +0.6
   - id: 4430
     name: 飞行模式
     unit: void_eye
+    kind: flyTechDatas
     speed_value: [3]
     attack_range_value: [-64424509440]  # -15
   - id: 4515
     name: 震荡波
     unit: arclight
+    kind: secondaryDamageIntensifyTechDatas
     attack_range_value: [-21474836480]  # -5
+  - id: 4531
+    name: 电磁云
+    unit: vortex
+    kind: secondaryDamageIntensifyTechDatas
   - id: 4607
     name: 斩杀弹
     unit: mustang
+    kind: deadLineTechDatas
     damage_rate: [-1503238553]  # -0.35
+  - id: 4721
+    name: 野战工事
+    unit: sabertooth
+    kind: siegeModeTechDatas
+  - id: 4722
+    name: 野战工事
+    unit: typhoon
+    kind: siegeModeTechDatas
+  - id: 5122
+    name: 反应装甲
+    unit: typhoon
+    kind: reactiveArmorTechDatas
+  - id: 5132
+    name: 反应装甲
+    unit: centurion
+    kind: reactiveArmorTechDatas
+  - id: 5222
+    name: 维修阵列
+    unit: typhoon
+    kind: recoveryTechDatas
+  - id: 5322
+    name: 残骸引爆
+    unit: typhoon
+    kind: killExplosionTechDatas
+  - id: 5532
+    name: 近战模式
+    unit: centurion
+    kind: meleeModeTechData
   - id: 10019
     name: 攻城模式
     unit: scorpion
+    kind: technologyDatas
+    special: [isInverseIsLockTarget]
     damage_rate: [-1717986918]  # -0.4
     min_attack_range_value: [75]
     attack_range_value: [429496729600]  # +100
@@ -280,336 +595,576 @@ technologies:
   - id: 10102
     name: 突击模式
     unit: marksman
+    kind: technologyDatas
     life_rate: [21474836480]  # +5
     damage_rate: [2576980377]  # +0.6
     speed_value: [3]
     attack_range_value: [-300647710720]  # -70
     splash_range_value: [38654705664]  # +9
+  - id: 10131
+    name: 机器学习
+    unit: vortex
+    kind: technologyDatas
+    special: [expChangeRate]
   - id: 10201
     name: 射程强化
     unit: fortress
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10202
     name: 射程强化
     unit: marksman
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10203
     name: 射程强化
     unit: vulcan
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10204
     name: 射程强化
     unit: melting_point
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10206
     name: 射程强化
     unit: wasp
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10207
     name: 射程强化
     unit: mustang
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10208
     name: 射程强化
     unit: steel_ball
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10209
     name: 射程强化
     unit: fang
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10211
     name: 射程强化
     unit: overlord
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10212
     name: 射程强化
     unit: stormcaller
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10213
     name: 射程强化
     unit: sledgehammer
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10214
     name: 射程强化
     unit: hacker
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10215
     name: 射程强化
     unit: arclight
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10216
     name: 射程强化
     unit: phoenix
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10217
     name: 射程强化
     unit: war_factory
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10218
     name: 射程强化
     unit: wraith
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10219
     name: 射程强化
     unit: scorpion
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10220
     name: 射程强化
     unit: fire_badger
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10221
     name: 射程强化
     unit: sabertooth
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10222
     name: 射程强化
     unit: typhoon
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10224
     name: 射程强化
     unit: tarantula
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10225
     name: 射程强化
     unit: phantom_ray
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10226
     name: 射程强化
     unit: farseer
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10227
     name: 射程强化
     unit: raiden
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10228
     name: 射程强化
     unit: hound
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10229
     name: 射程强化
     unit: abyss
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10230
     name: 射程强化
     unit: void_eye
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10231
     name: 射程强化
     unit: vortex
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10232
     name: 射程强化
     unit: centurion
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 10301
     name: 发射器过载
     unit: fortress
+    kind: technologyDatas
     attack_range_value: [-85899345920]  # -20
     attack_interval_rate: [-2147483648]  # -0.5
   - id: 10311
     name: 发射器过载
     unit: overlord
+    kind: technologyDatas
     attack_range_value: [-85899345920]  # -20
     attack_interval_rate: [-2147483648]  # -0.5
   - id: 10312
     name: 发射器过载
     unit: stormcaller
+    kind: technologyDatas
     speed_value: [5]
     attack_range_value: [-171798691840]  # -40
     attack_interval_rate: [-2147483648]  # -0.5
   - id: 10316
     name: 发射器过载
     unit: phoenix
+    kind: technologyDatas
     attack_range_value: [-107374182400]  # -25
     attack_interval_rate: [-2147483648]  # -0.5
   - id: 10317
     name: 发射器过载
     unit: war_factory
+    kind: technologyDatas
     attack_range_value: [-85899345920]  # -20
     attack_interval_rate: [-2147483648]  # -0.5
   - id: 10321
     name: 战地维修
     unit: sabertooth
+    kind: autoRecoveryTechnologies
     life_rate: [1288490188]  # +0.3
   - id: 10401
     name: 实心弹
     unit: fortress
+    kind: technologyDatas
     attack_range_value: [257698037760]  # +60
     attack_interval_value: [3006477107]  # +0.7
     splash_range_value: [-8589934592]  # -2
   - id: 10402
     name: 快速弹夹
     unit: marksman
+    kind: technologyDatas
     damage_rate: [-2576980377]  # -0.6
     attack_interval_rate: [-2147483648]  # -0.5
   - id: 10419
     name: 收束射击
     unit: scorpion
+    kind: technologyDatas
     attack_range_value: [128849018880]  # +30
     attack_interval_value: [-4294967296]  # -1
     splash_range_value: [-34359738368]  # -8
   - id: 10505
     name: 机械狂暴
     unit: rhino
+    kind: technologyDatas
     speed_value: [5]
     attack_interval_value: [-1288490188]  # -0.3
   - id: 10509
     name: 机械狂暴
     unit: fang
+    kind: technologyDatas
     speed_value: [5]
     attack_interval_value: [-2147483648]  # -0.5
   - id: 10510
     name: 机械狂暴
     unit: crawler
+    kind: technologyDatas
     speed_value: [5]
     attack_interval_value: [-858993459]  # -0.2
   - id: 10513
     name: 机械狂暴
     unit: sledgehammer
+    kind: technologyDatas
     speed_value: [6]
     attack_interval_value: [-4294967296]  # -1
   - id: 10523
     name: 机械狂暴
     unit: sandworm
+    kind: technologyDatas
     speed_value: [5]
     attack_interval_value: [-3435973836]  # -0.8
   - id: 10524
     name: 机械狂暴
     unit: tarantula
+    kind: technologyDatas
     speed_value: [4]
     attack_interval_value: [-858993459]  # -0.2
   - id: 10528
     name: 机械狂暴
     unit: hound
+    kind: technologyDatas
     speed_value: [4]
     attack_interval_value: [-3435973836]  # -0.8
   - id: 10603
     name: 高温火焰
     unit: vulcan
+    kind: technologyDatas
     damage_rate: [3650722201]  # +0.85
   - id: 10606
     name: 穿甲弹
     unit: wasp
+    kind: technologyDatas
     damage_rate: [2147483648]  # +0.5
   - id: 10607
     name: 穿甲弹
     unit: mustang
+    kind: technologyDatas
     damage_rate: [2147483648]  # +0.5
   - id: 10609
     name: 穿甲弹
     unit: fang
+    kind: technologyDatas
     damage_rate: [2147483648]  # +0.5
   - id: 10613
     name: 穿甲弹
     unit: sledgehammer
+    kind: technologyDatas
     damage_rate: [10737418240]  # +2.5
     attack_interval_rate: [1288490188]  # +0.3
   - id: 10620
     name: 高温火焰
     unit: fire_badger
+    kind: technologyDatas
     damage_rate: [3650722201]  # +0.85
   - id: 10624
     name: 穿甲弹
     unit: tarantula
+    kind: technologyDatas
     damage_rate: [2147483648]  # +0.5
   - id: 10710
     name: 冲击钻头
     unit: crawler
+    kind: technologyDatas
     damage_rate: [5368709120]  # +1.25
   - id: 10801
     name: 精英射手
     unit: fortress
+    kind: technologyDatas
     damage_rate: [1073741824, 2147483648, 3221225472, 4294967296, 5368709120, 6442450944, 7516192768, 8589934592, 9663676416]  # +0.25, +0.5, +0.75, +1, +1.25, +1.5, +1.75, +2, +2.25
     attack_range_value: [21474836480, 42949672960, 64424509440, 85899345920, 107374182400, 128849018880, 150323855360, 171798691840, 193273528320]  # +5, +10, +15, +20, +25, +30, +35, +40, +45
   - id: 10802
     name: 精英射手
     unit: marksman
+    kind: technologyDatas
     damage_rate: [730144440, 1460288880, 2190433320, 2920577761, 3650722201, 4380866641, 5111011082, 5841155522, 6571299962]  # +0.17, +0.34, +0.51, +0.68, +0.85, +1.02, +1.19, +1.36, +1.53
     attack_range_value: [21474836480, 42949672960, 64424509440, 85899345920, 107374182400, 128849018880, 150323855360, 171798691840, 193273528320]  # +5, +10, +15, +20, +25, +30, +35, +40, +45
   - id: 10806
     name: 精英射手
     unit: wasp
+    kind: technologyDatas
     damage_rate: [1073741824, 2147483648, 3221225472, 4294967296, 5368709120, 6442450944, 7516192768, 8589934592, 9663676416]  # +0.25, +0.5, +0.75, +1, +1.25, +1.5, +1.75, +2, +2.25
     attack_range_value: [21474836480, 42949672960, 64424509440, 85899345920, 107374182400, 128849018880, 150323855360, 171798691840, 193273528320]  # +5, +10, +15, +20, +25, +30, +35, +40, +45
   - id: 10815
     name: 精英射手
     unit: arclight
+    kind: technologyDatas
     damage_rate: [730144440, 1460288880, 2190433320, 2920577761, 3650722201, 4380866641, 5111011082, 5841155522, 6571299962]  # +0.17, +0.34, +0.51, +0.68, +0.85, +1.02, +1.19, +1.36, +1.53
     attack_range_value: [21474836480, 42949672960, 64424509440, 85899345920, 107374182400, 128849018880, 150323855360, 171798691840, 193273528320]  # +5, +10, +15, +20, +25, +30, +35, +40, +45
   - id: 10816
     name: 精英射手
     unit: phoenix
+    kind: technologyDatas
     damage_rate: [858993459, 1717986918, 2576980377, 3435973836, 4294967296, 5153960755, 6012954214, 6871947673, 7730941132]  # +0.2, +0.4, +0.6, +0.8, +1, +1.2, +1.4, +1.6, +1.8
     attack_range_value: [21474836480, 42949672960, 64424509440, 85899345920, 107374182400, 128849018880, 150323855360, 171798691840, 193273528320]  # +5, +10, +15, +20, +25, +30, +35, +40, +45
   - id: 10912
     name: 重型导弹
     unit: stormcaller
+    kind: technologyDatas
     damage_rate: [3435973836]  # +0.8
     attack_interval_rate: [1073741824]  # +0.25
     projectile_life_rate: [8589934592]  # +2
   - id: 10915
     name: 蓄能攻击
     unit: arclight
+    kind: technologyDatas
     damage_rate: [12884901888]  # +3
     attack_interval_rate: [1503238553]  # +0.35
   - id: 10916
     name: 蓄能攻击
     unit: phoenix
+    kind: technologyDatas
     damage_rate: [8589934592]  # +2
     attack_range_value: [-107374182400]  # -25
   - id: 10930
     name: 蓄能攻击
     unit: void_eye
+    kind: technologyDatas
     damage_rate: [5153960755]  # +1.2
     attack_interval_rate: [1073741824]  # +0.25
+  - id: 11010
+    name: 黏油弹
+    unit: vulcan
+    kind: extraWeaponTechnologies
   - id: 11014
     name: 多重控制
     unit: hacker
+    kind: extraWeaponTechnologies
     attack_range_value: [-107374182400]  # -25
   - id: 11020
     name: 焦土冲击
     unit: fire_badger
+    kind: extraWeaponTechnologies
     life_rate: [3435973836]  # +0.8
+  - id: 11024
+    name: 蜘蛛雷
+    unit: tarantula
+    kind: extraWeaponTechnologies
+  - id: 11025
+    name: 黏油弹
+    unit: phantom_ray
+    kind: extraWeaponTechnologies
+  - id: 11028
+    name: 燃烧弹
+    unit: hound
+    kind: extraWeaponTechnologies
+  - id: 11029
+    name: 裂解
+    unit: abyss
+    kind: extraWeaponTechnologies
+  - id: 12017
+    name: 凤凰制造
+    unit: war_factory
+    kind: supportUnitTechnologies
+  - id: 12029
+    name: 暗黑伙伴
+    unit: abyss
+    kind: supportUnitTechnologies
+  - id: 12117
+    name: 钢球制造
+    unit: war_factory
+    kind: supportUnitTechnologies
+  - id: 12217
+    name: 铁锤制造
+    unit: war_factory
+    kind: supportUnitTechnologies
+  - id: 13023
+    name: 机械分裂
+    unit: sandworm
+    kind: deadSummonTechnologies
   - id: 72002
     name: 饱和打击
     unit: mountain
+    kind: multiAttackTechnologies
     attack_interval_rate: [5153960755]  # +1.2
     splash_range_value: [12884901888]  # +3
     projectile_speed_value: [-429496729600]  # -100
+  - id: 110181
+    name: 浮游炮阵
+    unit: wraith
+    kind: extraWeaponTechnologies
+  - id: 110201
+    name: 火箭拳
+    unit: fortress
+    kind: extraWeaponTechnologies
+  - id: 110211
+    name: 副炮
+    unit: sabertooth
+    kind: extraWeaponTechnologies
+  - id: 110212
+    name: 防空导弹
+    unit: sabertooth
+    kind: extraWeaponTechnologies
   - id: 110271
     name: 分叉
     unit: raiden
+    kind: extraWeaponTechnologies
     attack_range_value: [-42949672960]  # -10
+  - id: 110291
+    name: 蜂群导弹
+    unit: abyss
+    kind: extraWeaponTechnologies
   - id: 110321
     name: 双持
     unit: centurion
+    kind: extraWeaponTechnologies
     attack_range_value: [-107374182400]  # -25
+  - id: 110322
+    name: 追踪导弹
+    unit: centurion
+    kind: extraWeaponTechnologies
+  - id: 123101
+    name: 电磁双生
+    unit: vortex
+    kind: supportUnitTechnologies
+  - id: 180110
+    name: 复制
+    unit: crawler
+    kind: buffTechnologies
+  - id: 180203
+    name: 引燃
+    unit: vulcan
+    kind: buffTechnologies
+  - id: 180206
+    name: 引燃
+    unit: wasp
+    kind: buffTechnologies
+  - id: 180209
+    name: 引燃
+    unit: fang
+    kind: buffTechnologies
+  - id: 180220
+    name: 引燃
+    unit: fire_badger
+    kind: buffTechnologies
+  - id: 180305
+    name: 光子涂层
+    unit: rhino
+    kind: buffTechnologies
+  - id: 180311
+    name: 光子投射
+    unit: overlord
+    kind: buffTechnologies
+  - id: 180317
+    name: 光子涂层
+    unit: war_factory
+    kind: buffTechnologies
+  - id: 180326
+    name: 光子投射
+    unit: farseer
+    kind: buffTechnologies
+  - id: 180329
+    name: 光子涂层
+    unit: abyss
+    kind: buffTechnologies
+  - id: 180418
+    name: 退化光束
+    unit: wraith
+    kind: buffTechnologies
   - id: 180430
     name: 压制射击
     unit: void_eye
+    kind: buffTechnologies
     attack_range_value: [42949672960]  # +10
+  - id: 180519
+    name: 酸性攻击
+    unit: scorpion
+    kind: buffTechnologies
+  - id: 180526
+    name: 搜索雷达
+    unit: farseer
+    kind: buffTechnologies
+  - id: 180530
+    name: 电磁装甲
+    unit: void_eye
+    kind: buffTechnologies
   - id: 180620
     name: 逆火 
     unit: fire_badger
+    kind: buffTechnologies
     life_rate: [2147483648]  # +0.5
+  - id: 180805
+    name: 战斗进化
+    unit: rhino
+    kind: buffTechnologies
+  - id: 180808
+    name: 滚动充能
+    unit: steel_ball
+    kind: buffTechnologies
   - id: 180828
     name: 枪膛增压
     unit: hound
+    kind: buffTechnologies
     attack_interval_value: [2576980377]  # +0.6
   - id: 180931
     name: 移动电站
     unit: vortex
+    kind: buffTechnologies
     attack_range_value: [42949672960]  # +10
+  - id: 302002
+    name: 巨山装甲
+    unit: mountain
+    kind: armorStrengthenTechnologyDatas
   - id: 312002
     name: 防空弹药
     unit: mountain
+    kind: airAttackTechnologyDatas
     damage_rate: [-1717986918]  # -0.4
+  - id: 493101
+    name: 储能护盾
+    unit: vortex
+    kind: spawnAdvancedShieldTechDatas
+  - id: 503101
+    name: 应急装甲
+    unit: vortex
+    kind: stealthTechData
   - id: 1022002
     name: 射程强化
     unit: mountain
+    kind: technologyDatas
     attack_range_value: [171798691840]  # +40
   - id: 1032002
     name: 增程炮弹
     unit: mountain
+    kind: technologyDatas
     damage_rate: [-3221225472]  # -0.75
     attack_range_value: [687194767360]  # +160
+  - id: 1102022
+    name: 防空标记
+    unit: typhoon
+    kind: extraWeaponTechnologies
+  - id: 11020021
+    name: 炮射火箭
+    unit: mountain
+    kind: extraWeaponTechnologies
+  - id: 11020022
+    name: 烟雾弹
+    unit: mountain
+    kind: extraWeaponTechnologies
+  - id: 18032002
+    name: 光子循环
+    unit: mountain
+    kind: buffTechnologies
