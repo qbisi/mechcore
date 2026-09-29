@@ -1,0 +1,38 @@
+# Replay 2324_20260925--67152171, round 1, map 1011. Two of blue's units stand 6
+# raw units apart in world z and act in x order. A turret's skill keeps its
+# rotation window with the weapon at exactly 0: at tick 366 blue's Anti-Armor
+# Turret's skill passes over unit 57, 22.4 degrees off, for unit 80.
+
+kind: fight
+map_id: 1011
+seed: 584983421
+round: 1
+source: recording
+ticks: 1467
+hash: {profile: mcfr-content-0.7.0, result: 8575cf0db34874742cf371c087282ff9feec658a4f9fdb47700967983322bd3c}
+blue:
+  officers: [missile_specialist]
+  units:
+  - {name: void_eye, index: 0, position: {x: 70, y: -180}, exp: 0/270/650}
+  - {name: void_eye, index: 1, position: {x: 110, y: -180}, exp: 0/228/650}
+  - {name: void_eye, index: 2, position: {x: 170, y: -180}, exp: 0/223/650}
+  - {name: mustang, index: 3, position: {x: 140, y: -285}, exp: 0/360/1200, rotated: true}
+  - {name: mustang, index: 4, position: {x: -140, y: -285}, exp: 0/172/1200, rotated: true}
+  - {name: mustang, index: 5, position: {x: 255, y: -300}, exp: 0/678/1200}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+red:
+  core_damage: 437
+  officers: [secondary_equipment_expert]
+  units:
+  - {name: crawler, index: 0, position: {x: -140, y: -265}, exp: 0/39/450, rotated: true}
+  - {name: crawler, index: 1, position: {x: 140, y: -265}, exp: 0/58/450, rotated: true}
+  - {name: crawler, index: 2, position: {x: 0, y: -265}, exp: 0/63/450, rotated: true}
+  - {name: steel_ball, index: 3, position: {x: -185, y: -280}, exp: 0/221/1000}
+  - {name: steel_ball, index: 4, position: {x: 185, y: -280}, exp: 0/789/1000}
+  - {name: vortex, index: 5, position: {x: -140, y: -140}, exp: 0/34/750}
+  - {name: vortex, index: 6, position: {x: 140, y: -140}, exp: 0/272/750}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
