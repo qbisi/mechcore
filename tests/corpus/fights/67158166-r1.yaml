@@ -1,0 +1,41 @@
+# Replay 2324_20260925--67158166, round 1, map 1031. At tick 78 a blue
+# Vortex fells a block in front of its live lock with one blow and reads
+# attacking on it for the tick. Four blocks of red's wall fall by tick 157 and
+# leave red's target tree, so a Crawler moving into their node on tick 237
+# does not split it, and a Fire Badger's splash landing that tick strikes
+# Crawler 60 before Crawler 64. At tick 355 a red Steel Ball's beam fells blue's
+# block 6 before another kills blue's unit 5, and the two are recorded in
+# that order.
+
+kind: fight
+map_id: 1031
+seed: 1171883115
+round: 1
+source: recording
+ticks: 1475
+hash: {profile: mcfr-content-0.7.0, result: cde509dcb73f6620502cf12116c6ad65de3652843c63a505d4fc835835681d27}
+blue:
+  officers: [supply_specialist]
+  units:
+  - {name: vortex, index: 0, position: {x: -140, y: -70}, exp: 0/138/750}
+  - {name: vortex, index: 1, position: {x: -90, y: -70}, exp: 0/346/750}
+  - {name: vortex, index: 2, position: {x: -20, y: -70}, exp: 0/413/750}
+  - {name: fire_badger, index: 3, position: {x: -175, y: -70}, exp: 0/185/1400}
+  - {name: fire_badger, index: 4, position: {x: -55, y: -70}, exp: 0/350/1400}
+  - {name: crawler, index: 5, position: {x: -140, y: -105}, exp: 0/436/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: -20, y: -105}, exp: 0/365/450, rotated: true}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+red:
+  core_damage: 846
+  officers: [cost_control_specialist]
+  units:
+  - {name: crawler, index: 0, position: {x: -100, y: -205}, exp: 0/18/450, rotated: true}
+  - {name: crawler, index: 1, position: {x: -290, y: -265}, exp: 0/362/450, rotated: true}
+  - {name: crawler, index: 2, position: {x: 290, y: -265}, rotated: true}
+  - {name: steel_ball, index: 3, position: {x: -175, y: -230}, exp: 0/99/1000}
+  - {name: steel_ball, index: 4, position: {x: -65, y: -240}, exp: 0/34/1000}
+  - {name: marksman, index: 5, position: {x: -120, y: -170}, exp: 0/5/650}
+  - {name: marksman, index: 6, position: {x: 120, y: -170}, exp: 0/24/650}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
