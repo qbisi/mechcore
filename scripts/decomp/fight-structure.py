@@ -5,7 +5,7 @@
 object model and derived-value layer. Every list and table in it comes from
 here, so a claim about the build's shape can be rerun rather than believed.
 
-    python3 scripts/decomp/fight-structure.py [--index work/unity-index/<build>/index.sqlite]
+    python3 scripts/decomp/fight-structure.py [--index work/decomp/<build>/index.sqlite]
 
 The index holds types, methods and call edges and **no method bodies**, so this
 reports membership and call edges only: which module exists, what a property
@@ -29,11 +29,8 @@ NOISE = ("0x", "il2cpp", "0")
 
 def default_index() -> pathlib.Path | None:
     """The newest build's index under work/decomp, where scripts/decomp/decomp.py puts it."""
-    for root in ("decomp", "unity-index"):
-        candidates = sorted((REPOSITORY / "work" / root).glob("*/index.sqlite"))
-        if candidates:
-            return candidates[-1]
-    return None
+    candidates = sorted((REPOSITORY / "work" / "decomp").glob("*/index.sqlite"))
+    return candidates[-1] if candidates else None
 
 
 def names(database: sqlite3.Connection, suffix: str) -> list[str]:
