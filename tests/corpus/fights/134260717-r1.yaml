@@ -1,0 +1,37 @@
+# Replay 2324_20260925--134260717, round 1, map 1011. A formation's member
+# scatter is seeded with the layout's unit index, not its declaration
+# position: blue's units are indexed 0, 1, 2, 3, 5 and 6, and its two Hound
+# formations, 5 and 6, stand where seeds 5 and 6 put them.
+
+kind: fight
+map_id: 1011
+seed: 1231717251
+round: 1
+source: recording
+ticks: 600
+hash: {profile: mcfr-content-0.7.0, result: c7d3223455670583ad304bd2940accfc426f248cb9d3694c208f58f48b9c2183}
+blue:
+  core_damage: 1000
+  officers: [aerial_specialist]
+  units:
+  - {name: fang, index: 0, position: {x: 200, y: -235}, rotated: true}
+  - {name: fang, index: 1, position: {x: 0, y: -205}, rotated: true}
+  - {name: fang, index: 2, position: {x: -190, y: -225}, rotated: true}
+  - {name: fire_badger, index: 3, position: {x: -30, y: -205}, rotated: true}
+  - {name: hound, index: 5, position: {x: -190, y: -190}}
+  - {name: hound, index: 6, position: {x: 200, y: -200}}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+red:
+  officers: [cost_control_specialist]
+  units:
+  - {name: marksman, index: 0, position: {x: 160, y: -170}, exp: 0/80/650}
+  - {name: marksman, index: 1, position: {x: 140, y: -150}, exp: 0/212/650}
+  - {name: marksman, index: 2, position: {x: -140, y: -150}, exp: 0/146/650}
+  - {name: tarantula, index: 3, position: {x: 115, y: -165}, exp: 0/244/1500}
+  - {name: tarantula, index: 4, position: {x: -115, y: -165}, exp: 0/294/1500}
+  - {name: tarantula, index: 5, position: {x: 5, y: -155}, exp: 0/371/1500}
+  - {name: marksman, index: 6, position: {x: 30, y: -160}, exp: 0/246/650}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
