@@ -14,7 +14,7 @@ use super::rvo::fpoint_less_or_equal;
 use super::*;
 use crate::{
     data::{Entry, Index},
-    layout::SkillRelease,
+    layout::{SkillBuff, SkillEffect, SkillRelease},
 };
 
 /// What tags a battle skill's buff, so that its end takes it away.
@@ -37,8 +37,23 @@ impl Simulation {
             .cloned()
             .collect::<Vec<_>>();
         for release in landing {
-            let reached = self.skill_reach(&release, target_search_order);
-            self.write_skill_buff(&release, &reached, events)?;
+            match &release.effect {
+                SkillEffect::Buff { range_q32, buff } => {
+                    let reached = self.skill_reach(&release, *range_q32, target_search_order);
+                    self.write_skill_buff(&release, buff, &reached, events)?;
+                }
+                // `SupportUnitEffectController.PerformEffect`: a creator for
+                // the side's `TeamSupportUnitManager`, which updates later in
+                // this very tick.
+                SkillEffect::Summon(summon) => {
+                    self.creators.push(super::support_unit::Creator::new(
+                        release.team,
+                        release.x,
+                        release.z,
+                        (**summon).clone(),
+                    ));
+                }
+            }
         }
         Ok(())
     }
@@ -52,6 +67,7 @@ impl Simulation {
     fn skill_reach(
         &self,
         release: &SkillRelease,
+        range_q32: i64,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Vec<u64> {
         let (x_q32, z_q32) = (space_to_q32(release.x), space_to_q32(release.z));
@@ -71,7 +87,7 @@ impl Simulation {
                     view.z_q32.saturating_sub(z_q32),
                 )
                 .saturating_sub(space_to_q32(view.radius));
-                fpoint_less_or_equal(distance, release.range_q32).then_some(id)
+                fpoint_less_or_equal(distance, range_q32).then_some(id)
             })
             .collect()
     }
@@ -80,32 +96,33 @@ impl Simulation {
     fn write_skill_buff(
         &mut self,
         release: &SkillRelease,
+        buff: &SkillBuff,
         reached: &[u64],
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let row = super::tower::BuffRow {
-            buff_id: release.buff.id,
-            divide: release.buff.divide,
-            additive: release.buff.additive,
-            ticks: release.buff.ticks,
+            buff_id: buff.id,
+            divide: buff.divide,
+            additive: buff.additive,
+            ticks: buff.ticks,
             source: SKILL_SOURCE,
             entries: vec![Entry {
                 index: Index::MoveSpeed,
                 source: SKILL_SOURCE,
-                correction: super::tower::rate(release.buff.move_speed_rate),
+                correction: super::tower::rate(buff.move_speed_rate),
             }],
-            disables_technology: release.buff.disable_technology,
+            disables_technology: buff.disable_technology,
         };
         for &id in reached {
             let actor = &self.actors[&id];
-            if release.buff.disable_technology && self.researched.contains(&actor.placement.team) {
+            if buff.disable_technology && self.researched.contains(&actor.placement.team) {
                 return Err(Error::new(format!(
                     "{} reaches unit {id}, whose side researched a technology, and disabling \
                      a technology mid-fight is not measured",
                     release.name
                 )));
             }
-            if let Some(running) = actor.other_buff(release.buff.id) {
+            if let Some(running) = actor.other_buff(buff.id) {
                 return Err(Error::new(format!(
                     "{} reaches unit {id}, which runs buff {running}, and a skill's buff over \
                      another is not measured",

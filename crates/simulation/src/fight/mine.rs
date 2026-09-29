@@ -184,13 +184,14 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<super::damage::Struck> {
         let hit = DamageHit {
-            source: projectile.object_ref(),
+            source: Some(projectile.object_ref()),
             source_team: projectile.team,
             team: projectile.team,
+            effect: EffectTarget::Opponent,
             amount: shot.damage,
             projectile: Some(projectile.object_ref()),
             skill_slot: None,
-            aimed,
+            aimed: Some(aimed),
             hits_aimed: projectile.lock_target,
             center: (projectile.x, projectile.z),
             splash_radius: shot.splash_radius,

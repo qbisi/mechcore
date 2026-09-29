@@ -50,8 +50,8 @@ fn direct_splash_emits_one_damage_event_per_actual_target() {
             simulation.actors[&3].last_damage_source,
         ],
         [
-            Some((ObjectRef::new(ObjectKind::Unit, 1), 0)),
-            Some((ObjectRef::new(ObjectKind::Unit, 1), 0)),
+            Some((Some(ObjectRef::new(ObjectKind::Unit, 1)), 0)),
+            Some((Some(ObjectRef::new(ObjectKind::Unit, 1)), 0)),
         ]
     );
 }
@@ -268,8 +268,8 @@ fn projectile_splash_emits_one_damage_event_per_actual_target() {
             simulation.actors[&3].last_damage_source,
         ],
         [
-            Some((ObjectRef::new(ObjectKind::Unit, 1), 0)),
-            Some((ObjectRef::new(ObjectKind::Unit, 1), 0)),
+            Some((Some(ObjectRef::new(ObjectKind::Unit, 1)), 0)),
+            Some((Some(ObjectRef::new(ObjectKind::Unit, 1)), 0)),
         ]
     );
 }

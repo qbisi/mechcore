@@ -17,6 +17,8 @@ pub(in crate::fight) struct RvoProfile {
 pub(in crate::fight) struct Motion {
     pub(in crate::fight) rvo_tree_x_q32: i64,
     pub(in crate::fight) rvo_tree_z_q32: i64,
+    /// Whether its agent was made afresh since the last solve.
+    pub(in crate::fight) rvo_fresh: bool,
     pub(in crate::fight) current_velocity_x_q32: i64,
     pub(in crate::fight) current_velocity_z_q32: i64,
     pub(in crate::fight) next_target_x_q32: i64,
@@ -362,7 +364,19 @@ impl Simulation {
             ));
         }
         agents.extend(constructions.into_iter().filter_map(building_agent));
-        for (&actor_id, actor) in self.actors.iter().filter(|(_, actor)| actor.alive()) {
+        // A summon still appearing has its agent already, where it was made,
+        // locked: `CreateMechDelay` locks its movement. Crawlers still
+        // surfacing turn the Crawlers already up aside.
+        let units = self
+            .actors
+            .iter()
+            .filter(|(_, actor)| actor.alive())
+            .map(|(&actor_id, actor)| (actor_id, actor, false))
+            .chain(
+                self.appearing_actors()
+                    .map(|actor| (actor.placement.unit_id, actor, true)),
+            );
+        for (actor_id, actor, appearing) in units {
             let profile = rvo_profile(&actor.rules);
             let (layer, collides_with) = movable_rvo_collision_masks(profile.collider_priority);
             let target_delta = FixedVec2 {
@@ -384,7 +398,7 @@ impl Simulation {
                 collides_with,
                 group: i32::try_from(actor.placement.team).unwrap_or(i32::MAX),
                 passable_by_own_group: false,
-                locked: false,
+                locked: appearing,
                 tree_position: if first_tree {
                     FixedVec2::ZERO
                 } else {
@@ -415,6 +429,11 @@ impl Simulation {
             super::rvo::solve_agents(&agents, inverse_delta_time, &mut self.rvo_quadtree_capacity);
         self.rvo_first_tree_pending = false;
         for (&actor_id, actor) in self.actors.iter_mut().filter(|(_, actor)| actor.alive()) {
+            if actor.motion.rvo_fresh {
+                actor.motion.rvo_tree_x_q32 = actor.x_q32;
+                actor.motion.rvo_tree_z_q32 = actor.z_q32;
+                continue;
+            }
             let solution = solutions
                 .get(&RvoAgentKey::Unit(actor_id))
                 .expect("every live actor has an RVO solution");

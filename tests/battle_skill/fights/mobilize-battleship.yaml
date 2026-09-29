@@ -1,0 +1,22 @@
+# A summon that flies in.
+#
+# Blue releases Mobilize Battleship. The Overlord is made on tick 28, 70
+# metres over the release point, joins on tick 48 without dealing any damage,
+# and moves from tick 56.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 161
+hash: {profile: mcfr-content-0.7.0, result: 003352f3f2cd7e5ad5ebce4bbcc6594f59300efdf85e22e3be5c66ffd4921720}
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: -100, y: -150}}
+  battle_skills:
+  - {name: mobilize_battleship, positions: [{x: 0, y: -60}]}
+red:
+  core_damage: 200
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}

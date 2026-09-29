@@ -398,19 +398,26 @@ impl Simulation {
             )
             .collect::<Vec<_>>();
         for owner in owners {
-            let attacker = self
-                .attacker(owner)
-                .expect("skill owner identity is stable");
-            let skills = if attacker.attack.weapons.mode == WeaponMode::Group {
-                attacker.attack.weapons.count()
-            } else {
-                1
-            };
-            for index in 0..skills {
-                let interval = self.draw_attack_interval(owner)?;
-                if index == 0 {
-                    self.skill_mut(owner).current_attack_interval = interval;
-                }
+            self.draw_first_intervals(owner)?;
+        }
+        Ok(())
+    }
+
+    /// One owner's first intervals: one draw per skill it runs, the first
+    /// kept as its current interval.
+    pub(in crate::fight) fn draw_first_intervals(&mut self, owner: FightActorRef) -> Result<()> {
+        let attacker = self
+            .attacker(owner)
+            .expect("skill owner identity is stable");
+        let skills = if attacker.attack.weapons.mode == WeaponMode::Group {
+            attacker.attack.weapons.count()
+        } else {
+            1
+        };
+        for index in 0..skills {
+            let interval = self.draw_attack_interval(owner)?;
+            if index == 0 {
+                self.skill_mut(owner).current_attack_interval = interval;
             }
         }
         Ok(())

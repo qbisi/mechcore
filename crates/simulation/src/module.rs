@@ -332,7 +332,7 @@ pub(crate) static MODULES: &[Module] = &[
         native: "SummonSystem",
         claims: &[],
         understood: &[],
-        implemented: false,
+        implemented: true,
     },
     Module {
         native: "SuperDeploymentSystem",
@@ -344,7 +344,7 @@ pub(crate) static MODULES: &[Module] = &[
         native: "SupportUnitSystem",
         claims: &[],
         understood: &[],
-        implemented: false,
+        implemented: true,
     },
     Module {
         native: "TeamTranslationSystem",

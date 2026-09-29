@@ -2,13 +2,17 @@
 //!
 //! [`config/commander_skill_effects.yaml`](../../../../config/commander_skill_effects.yaml),
 //! which `scripts/extract/extract-commander-skill-effects.py` writes, holds the
-//! skills the fight releases; `docs/rules/battle_skill.md` states what they
-//! do. Every other battle skill is refused by name.
+//! skills the fight releases, the buff skills and the support skills;
+//! `docs/rules/battle_skill.md` states what they do. Every other battle skill
+//! is refused by name.
 
 use mechcore_document::BattleSkill;
 use serde::Deserialize;
 
-use crate::{Error, Result};
+use crate::{
+    Error, Result,
+    rules::{UnitConfig, UnitConfigs},
+};
 
 const DEFAULT_EFFECTS: &str = include_str!("../../../../config/commander_skill_effects.yaml");
 const SPACE: i64 = 1_000;
@@ -21,6 +25,27 @@ const LOGIC_DELTA_RAW: i64 = 0x0CCC_CCCC;
 struct Table {
     schema: String,
     buff_skills: Vec<BuffSkillRow>,
+    support_skills: Vec<SupportSkillRow>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SupportSkillRow {
+    id: i32,
+    name: String,
+    scope: i32,
+    effect_range_type: i32,
+    effect_type: i32,
+    unit_type_id: u32,
+    max_count: u32,
+    create_count_per_time: u32,
+    max_batch: u32,
+    appear_type: i32,
+    start_time: i64,
+    effect_range: i64,
+    sub_effect_move_speed: i64,
+    sub_effect_move_time: i64,
+    create_interval: i64,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -69,10 +94,45 @@ pub(crate) struct SkillRelease {
     pub(crate) z: i64,
     /// The tick its sub-effect lands on, the fight's first update being 1.
     pub(crate) lands_on: u64,
-    /// A unit's edge this near, `FPoint` raw metres, is reached.
-    pub(crate) range_q32: i64,
-    /// What it writes on every unit it reaches.
-    pub(crate) buff: SkillBuff,
+    /// What its sub-effect does where it lands.
+    pub(crate) effect: SkillEffect,
+}
+
+/// What a sub-effect does where it lands: the controller its skill's kind
+/// creates.
+#[derive(Debug, Clone)]
+pub(crate) enum SkillEffect {
+    /// `CommanderSkillSubEffectController`: a buff on every unit in range.
+    Buff {
+        /// A unit's edge this near, `FPoint` raw metres, is reached.
+        range_q32: i64,
+        /// What it writes on every unit it reaches.
+        buff: SkillBuff,
+    },
+    /// `SupportUnitEffectController`: a creator of summons.
+    Summon(Box<Summon>),
+}
+
+/// What a support skill's `SupportUnitCreator` makes, read off its row.
+#[derive(Debug, Clone)]
+pub(crate) struct Summon {
+    /// The unit it summons, `unitID`, as `IFightSetting.GetMechData` reads it.
+    pub(crate) rules: UnitConfig,
+    /// `maxCount`: how many it summons in all.
+    pub(crate) count: u32,
+    /// `createCountPerTime`: how many one creation makes.
+    pub(crate) per_time: u32,
+    /// `createInterval` in whole ticks: how long between two creations.
+    pub(crate) interval_ticks: u32,
+    /// How far from the landing point a summon may stand, `FPoint` raw
+    /// metres: the skill's range when it summons two or more, and none
+    /// otherwise.
+    pub(crate) random_range_q32: i64,
+    /// Whether a summon deals its life around it as it lands:
+    /// `appearType` 2, an air drop.
+    pub(crate) drop_damage: bool,
+    /// How many updates the creator lives, the last of them included.
+    pub(crate) updates: u64,
 }
 
 /// The buff a released skill writes: the Electromagnetic Impact's slow.
@@ -93,6 +153,7 @@ pub(crate) struct SkillBuff {
 #[derive(Debug, Clone)]
 pub(crate) struct CommanderSkillEffects {
     buff_skills: Vec<BuffSkillRow>,
+    support_skills: Vec<SupportSkillRow>,
 }
 
 impl CommanderSkillEffects {
@@ -113,6 +174,7 @@ impl CommanderSkillEffects {
         }
         Ok(Self {
             buff_skills: table.buff_skills,
+            support_skills: table.support_skills,
         })
     }
 
@@ -128,34 +190,41 @@ impl CommanderSkillEffects {
     ///
     /// Returns an error naming the skill when the table does not hold it, or
     /// when its row asks for what no recording has measured.
-    pub(crate) fn release(&self, team: u32, skill: &BattleSkill) -> Result<SkillRelease> {
+    pub(crate) fn release(
+        &self,
+        team: u32,
+        skill: &BattleSkill,
+        units: &UnitConfigs,
+    ) -> Result<SkillRelease> {
         let named = format!(
             "battle skill {} ({})",
             skill.type_name, skill.commander_skill_id
         );
-        let row = self
-            .buff_skills
-            .iter()
-            .find(|row| row.id == skill.commander_skill_id)
-            .ok_or_else(|| Error::new(format!("{named} is not released by this build")))?;
-        let named = format!("{named}, {}", row.name);
-        if row.scope != 1 || (row.effect_type, row.effect_range_type) != (0, 0) {
+        let id = skill.commander_skill_id;
+        let (row_name, common, effect) =
+            if let Some(row) = self.buff_skills.iter().find(|row| row.id == id) {
+                let named = format!("{named}, {}", row.name);
+                (
+                    row.name.as_str(),
+                    Common::of_buff(row),
+                    buff_effect(&named, row)?,
+                )
+            } else if let Some(row) = self.support_skills.iter().find(|row| row.id == id) {
+                let named = format!("{named}, {}", row.name);
+                (
+                    row.name.as_str(),
+                    Common::of_support(row),
+                    SkillEffect::Summon(Box::new(summon(&named, row, units)?)),
+                )
+            } else {
+                return Err(Error::new(format!("{named} is not released by this build")));
+            };
+        let named = format!("{named}, {row_name}");
+        if common.scope != 1 || (common.effect_type, common.effect_range_type) != (0, 0) {
             return Err(Error::new(format!(
                 "{named} reaches scope {} with effect type {} over range type {}, which this \
                  build does not read",
-                row.scope, row.effect_type, row.effect_range_type
-            )));
-        }
-        if row.sub_effect_damage != 0 {
-            return Err(Error::new(format!(
-                "{named} deals damage this build does not read"
-            )));
-        }
-        let buff = &row.buff;
-        if buff.can_affect_construction || buff.can_affect_tower {
-            return Err(Error::new(format!(
-                "{named}'s buff {} ({}) reaches a building, which is not measured",
-                buff.id, buff.name
+                common.scope, common.effect_type, common.effect_range_type
             )));
         }
         let [position] = skill.positions.as_slice() else {
@@ -175,25 +244,120 @@ impl CommanderSkillEffects {
             name: skill.type_name.clone(),
             x: x * SPACE,
             z: z * SPACE,
-            lands_on: lands_on(
-                row.start_time,
-                row.sub_effect_move_time,
-                row.sub_effect_move_speed,
-            )?,
-            // `CommanderSkillData.PreProcess`: a circle is one sub-effect,
-            // whose range is the skill's, whatever the row's own say.
-            range_q32: row.effect_range,
-            buff: SkillBuff {
-                id: buff.id,
-                divide: buff.divide,
-                additive: buff.additive,
-                ticks: u32::try_from(ticks(buff.duration)?)
-                    .map_err(|_| Error::new(format!("{named}'s buff outlasts a fight")))?,
-                move_speed_rate: buff.move_speed_rate,
-                disable_technology: buff.disable_technology,
-            },
+            lands_on: lands_on(common.start_time, common.move_time, common.move_speed)?,
+            effect,
         })
     }
+}
+
+/// What every kind of skill row holds that places and times its release.
+struct Common {
+    scope: i32,
+    effect_type: i32,
+    effect_range_type: i32,
+    start_time: i64,
+    move_time: i64,
+    move_speed: i64,
+}
+
+impl Common {
+    const fn of_buff(row: &BuffSkillRow) -> Self {
+        Self {
+            scope: row.scope,
+            effect_type: row.effect_type,
+            effect_range_type: row.effect_range_type,
+            start_time: row.start_time,
+            move_time: row.sub_effect_move_time,
+            move_speed: row.sub_effect_move_speed,
+        }
+    }
+
+    const fn of_support(row: &SupportSkillRow) -> Self {
+        Self {
+            scope: row.scope,
+            effect_type: row.effect_type,
+            effect_range_type: row.effect_range_type,
+            start_time: row.start_time,
+            move_time: row.sub_effect_move_time,
+            move_speed: row.sub_effect_move_speed,
+        }
+    }
+}
+
+/// A buff skill's sub-effect: its buff on every unit within its range, which
+/// `CommanderSkillData.PreProcess` made the circle's one sub-effect's.
+fn buff_effect(named: &str, row: &BuffSkillRow) -> Result<SkillEffect> {
+    if row.sub_effect_damage != 0 {
+        return Err(Error::new(format!(
+            "{named} deals damage this build does not read"
+        )));
+    }
+    let buff = &row.buff;
+    if buff.can_affect_construction || buff.can_affect_tower {
+        return Err(Error::new(format!(
+            "{named}'s buff {} ({}) reaches a building, which is not measured",
+            buff.id, buff.name
+        )));
+    }
+    Ok(SkillEffect::Buff {
+        range_q32: row.effect_range,
+        buff: SkillBuff {
+            id: buff.id,
+            divide: buff.divide,
+            additive: buff.additive,
+            ticks: u32::try_from(ticks(buff.duration)?)
+                .map_err(|_| Error::new(format!("{named}'s buff outlasts a fight")))?,
+            move_speed_rate: buff.move_speed_rate,
+            disable_technology: buff.disable_technology,
+        },
+    })
+}
+
+/// A support skill's creator, as `SupportUnitCreator` is built over its row.
+///
+/// `CSD_SupportUnit.PreProcess` gives the creator a life of the creations it
+/// needs times their interval, after the skill's `startTime`, and
+/// `CS_SupportUnit.CreateSubEffectController` hands it the skill's range to
+/// scatter in only when it summons two or more.
+fn summon(named: &str, row: &SupportSkillRow, units: &UnitConfigs) -> Result<Summon> {
+    if row.max_batch != 0 {
+        return Err(Error::new(format!(
+            "{named} summons in {} batches, which this build does not read",
+            row.max_batch
+        )));
+    }
+    if row.max_count == 0 || row.create_count_per_time == 0 {
+        return Err(Error::new(format!("{named} summons nothing")));
+    }
+    let config = units.by_type_id(row.unit_type_id).ok_or_else(|| {
+        Error::new(format!(
+            "{named} summons unit {}, which has no unit configuration",
+            row.unit_type_id
+        ))
+    })?;
+    let creations = i64::from(row.max_count.div_ceil(row.create_count_per_time));
+    let life = row
+        .start_time
+        .saturating_add(creations.saturating_mul(row.create_interval));
+    Ok(Summon {
+        rules: config.clone(),
+        count: row.max_count,
+        per_time: row.create_count_per_time,
+        interval_ticks: u32::try_from(ticks(row.create_interval)?)
+            .map_err(|_| Error::new(format!("{named} creates too seldom")))?,
+        random_range_q32: if row.max_count >= 2 {
+            row.effect_range
+        } else {
+            0
+        },
+        drop_damage: row.appear_type == 2,
+        // `SupportUnitCreator.IsFinished`: its updates times a tick have
+        // reached that life.
+        updates: u64::try_from(
+            (i128::from(life) + i128::from(LOGIC_DELTA_RAW) - 1) / i128::from(LOGIC_DELTA_RAW),
+        )
+        .map_err(|_| Error::new(format!("{named} creates for no time")))?,
+    })
 }
 
 /// The tick a released skill's first sub-effect lands on.
@@ -249,6 +413,18 @@ mod tests {
     #[test]
     fn a_sub_effect_lands_as_the_recordings_have_it() {
         let emp = CommanderSkillEffects::load().unwrap().buff_skills[0].clone();
+        let rhino = CommanderSkillEffects::load().unwrap().support_skills[1].clone();
+        assert_eq!(rhino.id, 1_200_002);
+        // A Rhino Assault lands, and its creator makes the Rhino, on 28.
+        assert_eq!(
+            lands_on(
+                rhino.start_time,
+                rhino.sub_effect_move_time,
+                rhino.sub_effect_move_speed
+            )
+            .unwrap(),
+            28
+        );
         assert_eq!(emp.id, 200_001);
         assert_eq!(
             lands_on(

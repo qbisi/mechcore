@@ -14,8 +14,10 @@ every unit within `effectRange`, of either side. `docs/rules/battle_skill.md`
 states what each field does.
 
 The table holds the rows the simulator fights: the buff skills whose buff is
-the Electromagnetic Impact's, a slow that disables technology. The script
-refuses a row when its buff moves anything else.
+the Electromagnetic Impact's, a slow that disables technology, and every
+support skill, which `SupportUnitSystem` summons units for. The script
+refuses a buff row when its buff moves anything else, and a support row that
+places its summons at set offsets.
 
 A time, a distance, a speed and a rate are the FPoint Q32.32 raw integers the
 build stores, with a comment reading each one; the rest are plain integers.
@@ -101,6 +103,44 @@ def buff_lines(buff):
     return lines
 
 
+# A support skill's row: what it summons, how many and how often, and how
+# the summons appear. `positions` has to be empty: a row that places its
+# summons at set offsets takes another path the fight does not read.
+SUPPORT_INTEGERS = (
+    ("scope", "scope"),
+    ("effectRangeType", "effect_range_type"),
+    ("effectType", "effect_type"),
+    ("unitID", "unit_type_id"),
+    ("maxCount", "max_count"),
+    ("createCountPerTime", "create_count_per_time"),
+    ("maxBatch", "max_batch"),
+    ("appearType", "appear_type"),
+)
+SUPPORT_FIXED = (
+    ("startTime", "start_time"),
+    ("effectRange", "effect_range"),
+    ("subEffectMoveSpeed", "sub_effect_move_speed"),
+    ("subEffectMoveTime", "sub_effect_move_time"),
+    ("createInterval", "create_interval"),
+)
+
+
+def support_lines(group):
+    lines = ["", "support_skills:"]
+    for row in group["supportUnitCommanderSkills"]:
+        if row["isTestData"]:
+            continue
+        if row["positions"]:
+            raise SystemExit(f"support skill {row['id']} places its summons at {row['positions']}")
+        lines += [f"  - id: {row['id']}", f"    name: {row['name']}"]
+        for field, name in SUPPORT_INTEGERS:
+            lines.append(f"    {name}: {row[field]}")
+        for field, name in SUPPORT_FIXED:
+            value = raw(row[field])
+            lines.append(f"    {name}: {value}{reading(value)}")
+    return lines
+
+
 def render(group):
     buffs = {buff["id"]: buff for buff in build_data.container()["buffDatas"]}
     rows = [
@@ -128,6 +168,7 @@ def render(group):
             value = raw(row[field])
             lines.append(f"    {name}: {value}{reading(value)}")
         lines += buff_lines(buffs[row["subEffectBuffID"]])
+    lines += support_lines(group)
     return "\n".join(lines) + "\n"
 
 

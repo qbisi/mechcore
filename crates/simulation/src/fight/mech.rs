@@ -74,11 +74,13 @@ impl Actor {
             stats,
             life: max_life,
             last_damage_source: None,
+            summoned: false,
             buffs: Vec::new(),
             rvo_max_speed_q32: max_speed_q32,
             motion: Motion {
                 rvo_tree_x_q32: x_q32,
                 rvo_tree_z_q32: z_q32,
+                rvo_fresh: false,
                 current_velocity_x_q32: 0,
                 current_velocity_z_q32: 0,
                 next_target_x_q32: x_q32,

@@ -170,8 +170,8 @@ pub enum RecorderKind {
     /// A construction group, `FightConstructionCombination`, or a
     /// construction outside one.
     Construction,
-    /// A mind-controlled unit, which counts alone while it serves the other
-    /// side.
+    /// A unit with no formation, which counts alone: a summon, or a
+    /// mind-controlled unit while it serves the other side.
     Unit,
 }
 

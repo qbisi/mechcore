@@ -1,0 +1,24 @@
+# An air drop reaches both sides, and whose experience its kills are.
+#
+# Blue drops the Vulcan where both sides' Crawlers meet. On tick 48 it kills
+# eight of blue's and eleven of red's, blue's first, and loses the 4750 they
+# lost. Each kill's experience goes to the dead one's enemies, so red takes
+# what blue's own Crawlers were worth. The Vulcan's own kills after that leave
+# blue's Crawlers their whole share.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 119
+hash: {profile: mcfr-content-0.7.0, result: 67119990b272a01eccbb2e953f8306e0e96b093879a84ff3abbf04a78f7060a1}
+blue:
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -40}, exp: 0/160/450}
+  battle_skills:
+  - {name: vulcans_descent, positions: [{x: 0, y: 0}]}
+red:
+  core_damage: 147
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -40}, exp: 0/72/450}
