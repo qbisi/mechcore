@@ -44,6 +44,7 @@ pub(super) fn test_placement(
         level: 1,
         exp: 0,
         corrections: Vec::new(),
+        travelling: false,
     }
 }
 
@@ -89,6 +90,7 @@ pub(super) fn raw_test_simulation(
         researched: BTreeSet::new(),
         creators: Vec::new(),
         appearing: Vec::new(),
+        travels: BTreeMap::new(),
         next_unit_id: 1,
         next_formation_id: 1,
         buildings,

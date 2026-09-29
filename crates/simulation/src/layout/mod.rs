@@ -48,6 +48,9 @@ pub(crate) struct Placement {
     /// layout is compiled, which is the only place that can name the side and
     /// the officer in a refusal.
     pub(crate) corrections: Vec<(Channel, Entry)>,
+    /// Whether it opens the fight travelling: a unit deployed into an ambush
+    /// zone, which `SuperDeploymentSystem` holds until its side arrives.
+    pub(crate) travelling: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -74,6 +77,9 @@ pub(crate) struct CompiledLayout {
     /// The sides that researched a unit technology, whose units carry what an
     /// Electromagnetic Impact would disable.
     pub(crate) researched: BTreeSet<u32>,
+    /// Each side's `superDeploymentTimeChangeRate`, Q32.32, where an officer
+    /// sets one.
+    pub(crate) travel_time_rates: BTreeMap<u32, i64>,
     /// Each side's tower strengthen levels, in the order the side's towers
     /// stand in the map; a side that strengthened none has none.
     pub(crate) tower_levels: BTreeMap<u32, Vec<u8>>,
@@ -95,6 +101,7 @@ impl CompiledLayout {
             shields: Vec::new(),
             battle_skills: Vec::new(),
             researched: BTreeSet::new(),
+            travel_time_rates: BTreeMap::new(),
             tower_levels: BTreeMap::new(),
             map_id: mechcore_document::layout_replay::DEFAULT_MAP_ID,
         }
@@ -216,7 +223,11 @@ pub(crate) fn compile_with_seed(
     let mut battle_skills = Vec::new();
     let mut researched = BTreeSet::new();
     let mut tower_levels = BTreeMap::new();
+    let mut travel_time_rates = BTreeMap::new();
     for (name, team, side) in sides {
+        if let Some(rate) = travel_time_rate(name, side, &loadouts, &mut refused) {
+            travel_time_rates.insert(team, rate);
+        }
         for (index, formation) in side.units.iter().enumerate() {
             placements.extend(compile_formation(
                 name,
@@ -279,12 +290,27 @@ pub(crate) fn compile_with_seed(
             shields,
             battle_skills,
             researched,
+            travel_time_rates,
             tower_levels,
             map_id: plan
                 .map_id
                 .unwrap_or(mechcore_document::layout_replay::DEFAULT_MAP_ID),
         },
     ))
+}
+
+/// The rate a side's officers set on its travel time, where one does.
+fn travel_time_rate(
+    name: &str,
+    side: &SidePlan,
+    loadouts: &Loadouts,
+    refused: &mut Refusals,
+) -> Option<i64> {
+    let rate = loadouts
+        .officers
+        .super_deployment_time_rate(&side.techs.officers)
+        .map_err(|error| Error::new(format!("side {name}: {error}")));
+    refused.hold(rate).filter(|rate| *rate != 0)
 }
 
 /// A side's contraptions: an interceptor released as `CRC_Interceptor`
@@ -423,8 +449,7 @@ fn compile_formation(
     loadouts: &Loadouts,
     refused: &mut Refusals,
 ) -> Option<Placement> {
-    // Travelling is a claimed field and was refused by the module registry;
-    // what is left is a placement that is not a unit at all.
+    // What is left to refuse here is a placement that is not a unit at all.
     if !matches!(formation.native, NativeFormation::Unit(_)) {
         refused.push(format!(
             "side {side_name} holds a placement that is not a unit"
@@ -497,6 +522,7 @@ fn compile_formation(
         level,
         exp: i64::from(formation.exp.unwrap_or(0)),
         corrections,
+        travelling: formation.travelling,
     })
 }
 

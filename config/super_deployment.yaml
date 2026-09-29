@@ -1,0 +1,8 @@
+schema: mechcore.super_deployment
+
+# What a travelling unit's arrival takes, read out of Config by
+# scripts/extract/extract-super-deployment.py.
+# docs/rules/super_deployment.md states what each field means.
+
+travel_time: 8
+life_rate: 1717986918  # +0.4

@@ -43,6 +43,9 @@ pub(crate) struct OfficerEffects {
 struct Officer {
     /// Which units the row reaches, as the build stores it.
     targets: Targets,
+    /// `superDeploymentTimeChangeRate`, Q32.32: a side's number, not a
+    /// unit's.
+    super_deployment_time_rate: i64,
     /// What it writes, or why this build will not apply it. The table loads
     /// whole either way: an officer nobody holds refuses nothing, and a fight
     /// is only refused for what its sides actually carry.
@@ -140,6 +143,31 @@ impl OfficerEffects {
         Ok(Self { officers })
     }
 
+    /// `FightTeam.superDeploymentTimeChangeRate`: the rate a side's officers
+    /// set on its travel time, `SystemOfficerFightController` through
+    /// `FightTeam.SetSuperDeploymentTimeChangeRate`.
+    ///
+    /// # Errors
+    ///
+    /// Refuses a side holding two officers that set it: the setter sets
+    /// rather than adds, and which of two wins is not measured.
+    pub(crate) fn super_deployment_time_rate(&self, held: &[i32]) -> Result<i64> {
+        let setting = held
+            .iter()
+            .filter_map(|id| self.officers.get(id))
+            .map(|officer| officer.super_deployment_time_rate)
+            .filter(|rate| *rate != 0)
+            .collect::<Vec<_>>();
+        match setting.as_slice() {
+            [] => Ok(0),
+            [rate] => Ok(*rate),
+            _ => Err(Error::new(
+                "two officers set the side's travel time rate, and which of them \
+                 holds is not measured",
+            )),
+        }
+    }
+
     /// Every correction this side's officers write onto one unit.
     ///
     /// An id the table does not hold writes nothing: the table carries the
@@ -190,6 +218,7 @@ impl Officer {
         let targets = Targets::of(row.mech_type, &row.units, &who);
         Self {
             targets,
+            super_deployment_time_rate: row.super_deployment_time_rate.unwrap_or(0),
             effect: corrections_of(row),
         }
     }
@@ -237,11 +266,6 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
         (row.tower_life_rate, "tower_life_rate", ELSEWHERE),
         (row.energy_shield_rate, "energy_shield_rate", ELSEWHERE),
         (row.land_mine_rate, "land_mine_rate", ELSEWHERE),
-        (
-            row.super_deployment_time_rate,
-            "super_deployment_time_rate",
-            ELSEWHERE,
-        ),
         (row.extra_life, "extra_life", ELSEWHERE),
         (row.exp_rate, "exp_rate", ELSEWHERE),
     ];
@@ -264,9 +288,9 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
     }))
 }
 
-const ELSEWHERE: &str = "it corrects a tower, a shield, a mine, a deployment \
-                         clock or a side's experience rather than a unit's own \
-                         number, and no mechanism here reads one";
+const ELSEWHERE: &str = "it corrects a tower, a shield, a mine or a side's \
+                         experience rather than a unit's own number, and no \
+                         mechanism here reads one";
 
 #[cfg(test)]
 mod tests {

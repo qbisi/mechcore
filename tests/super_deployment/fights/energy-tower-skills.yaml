@@ -1,0 +1,20 @@
+# The Arclight of `arrives.yaml` with both Energy Tower fight skills on
+# each side: they reach a travelling unit from the first tick.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: recording
+ticks: 1107
+hash: {profile: mcfr-content-0.7.0, result: e72a3bce0c5047ce2d71683a322bbb721026a6cbaaba334ed15205ddf2cbd37a}
+blue:
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: arclight, index: 1, position: {x: -310, y: 20}, exp: 0/200/750, travelling: true}
+red:
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
+  - {name: marksman, index: 1, position: {x: -60, y: -150}, exp: 0/600/650}

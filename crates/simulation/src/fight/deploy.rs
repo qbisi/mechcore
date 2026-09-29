@@ -544,6 +544,11 @@ impl Simulation {
             actor.set_body_rotation(target_rotation_q32);
             actor.aim_rotation = actor.body_rotation;
             actor.set_weapon_rotation(target_rotation_q32);
+            // A travelling unit keeps the lock its presearch found, and its
+            // attack target is searched by the first update of its own.
+            if actor.travelling {
+                continue;
+            }
             self.search_attack_target(FightActorRef::Unit(actor_id));
         }
         // A weapon fixed to the body enters the fight with the body's

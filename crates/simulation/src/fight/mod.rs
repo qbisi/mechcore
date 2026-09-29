@@ -53,6 +53,7 @@ mod search;
 mod shield;
 mod skill;
 mod statistics;
+mod super_deployment;
 mod support_unit;
 #[cfg(test)]
 mod tests;
@@ -201,6 +202,12 @@ struct Actor {
     /// Whether a support skill summoned it: a unit with no `MechTeam`, which
     /// counts alone and never gains experience.
     summoned: bool,
+    /// `FightMech.IsSuperDeployment`: still travelling to the field, which
+    /// `FightCoreSystem.TeamUpdate` counts alive and does not update.
+    travelling: bool,
+    /// Whether its skill has searched an attack target: every unit at the
+    /// fight's presearch, and a travelling one only at its first update.
+    searched_attack: bool,
     /// The buffs running on it, `BuffManager`'s list.
     buffs: Vec<RunningBuff>,
     /// `RVOControllerFixed._maxSpeed`: the speed `Active` read when the unit
@@ -250,6 +257,9 @@ struct Simulation {
     /// The summons created and not yet let into the fight, in the order they
     /// were created.
     appearing: Vec<support_unit::Appearing>,
+    /// Each side's `SuperDeploymentController` that opened with a unit
+    /// travelling.
+    travels: BTreeMap<u32, super_deployment::Travel>,
     /// The identity the next unit to join takes, and its formation's.
     next_unit_id: u64,
     next_formation_id: u64,
@@ -362,7 +372,8 @@ impl Simulation {
                 ))
             })?;
         }
-        let actors = initialize_actors(layout, configs, seed)?;
+        let mut actors = initialize_actors(layout, configs, seed)?;
+        let travels = super_deployment::enter_travel(&mut actors, &layout.travel_time_rates)?;
         let unit_update_order = deploy::update_order(&actors);
         let InitialBuildings {
             states: buildings,
@@ -409,6 +420,7 @@ impl Simulation {
             researched: layout.researched.clone(),
             creators: Vec::new(),
             appearing: Vec::new(),
+            travels,
             next_unit_id: 0,
             next_formation_id: 0,
             buildings,
@@ -443,19 +455,23 @@ impl Simulation {
             building_exp,
             experience: experience::ExperienceTable::load()?,
         };
-        // A unit joining the fight later takes the next number, and its
-        // formation the next formation's.
-        simulation.next_unit_id = simulation.actors.keys().max().map_or(1, |id| id + 1);
-        simulation.next_formation_id = simulation
+        simulation.number_joiners();
+        simulation.seed_statistics(&construction_groups);
+        simulation.seed_experience()?;
+        simulation.deploy_attack_intervals(layout.round)?;
+        Ok(simulation)
+    }
+
+    /// A unit joining the fight later takes the next number, and its
+    /// formation the next formation's.
+    fn number_joiners(&mut self) {
+        self.next_unit_id = self.actors.keys().max().map_or(1, |id| id + 1);
+        self.next_formation_id = self
             .actors
             .values()
             .map(|actor| actor.placement.formation_id)
             .max()
             .map_or(1, |id| id + 1);
-        simulation.seed_statistics(&construction_groups);
-        simulation.seed_experience()?;
-        simulation.deploy_attack_intervals(layout.round)?;
-        Ok(simulation)
     }
 
     fn snapshot(&self) -> WorldSnapshot {
@@ -589,6 +605,13 @@ impl Simulation {
                 .filter(|actor_id| self.actors[actor_id].placement.team == team_id)
                 .collect::<Vec<_>>();
             for actor_id in actor_ids {
+                if self.actors[&actor_id].travelling {
+                    continue;
+                }
+                self.actors
+                    .get_mut(&actor_id)
+                    .expect("actor identity is stable")
+                    .searched_attack = true;
                 self.step_actor_with_target_order(
                     actor_id,
                     step,
@@ -619,6 +642,8 @@ impl Simulation {
         let naturally_finished_before_projectiles = self.naturally_finished();
         self.step_projectiles(&mut events)?;
         self.step_interceptors(&mut events)?;
+        // `SuperDeploymentSystem` updates after `InterceptSystem`.
+        self.step_super_deployment();
         // `SupportUnitSystem` updates after `InterceptSystem`: a creator's
         // summons are made after every unit has moved and every shot landed.
         self.step_support_units(step, &mut events)?;

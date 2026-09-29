@@ -75,6 +75,8 @@ impl Actor {
             life: max_life,
             last_damage_source: None,
             summoned: false,
+            travelling: false,
+            searched_attack: true,
             buffs: Vec::new(),
             rvo_max_speed_q32: max_speed_q32,
             motion: Motion {
@@ -250,6 +252,10 @@ impl Actor {
                                 .filter(|_| self.skill.lock_target.is_none())
                         })
                 };
+                // A unit that travelled in has run no update to search an
+                // attack target with until its first: `SearchAttackTarget`
+                // answers only in one.
+                let attack_target = attack_target.filter(|_| self.searched_attack);
                 WeaponAimState {
                     skill_slot: if group_mode {
                         u16::try_from(weapon_index).expect("weapon index fits u16")

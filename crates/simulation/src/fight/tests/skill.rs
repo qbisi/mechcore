@@ -832,6 +832,7 @@ fn reviewed_direct_kill_keeps_then_clears_the_mech_lock_target_state() {
                 level: 1,
                 exp: 0,
                 corrections: Vec::new(),
+                travelling: false,
             },
             Placement {
                 team: 1,
@@ -846,6 +847,7 @@ fn reviewed_direct_kill_keeps_then_clears_the_mech_lock_target_state() {
                 level: 1,
                 exp: 0,
                 corrections: Vec::new(),
+                travelling: false,
             },
             Placement {
                 team: 1,
@@ -860,6 +862,7 @@ fn reviewed_direct_kill_keeps_then_clears_the_mech_lock_target_state() {
                 level: 1,
                 exp: 0,
                 corrections: Vec::new(),
+                travelling: false,
             },
         ],
     );
@@ -923,6 +926,7 @@ fn rhino_attack_angle_requires_every_weapon_and_accepts_the_boundary() {
             level: 1,
             exp: 0,
             corrections: Vec::new(),
+            travelling: false,
         },
         rules,
         0,
@@ -958,6 +962,7 @@ fn rhino_backswing_remains_active_through_its_ninth_wait_update() {
                 level: 1,
                 exp: 0,
                 corrections: Vec::new(),
+                travelling: false,
             },
             Placement {
                 team: 1,
@@ -972,6 +977,7 @@ fn rhino_backswing_remains_active_through_its_ninth_wait_update() {
                 level: 1,
                 exp: 0,
                 corrections: Vec::new(),
+                travelling: false,
             },
         ],
     );

@@ -27,6 +27,7 @@ so they need the decompilation under `work/decomp/<build>/`
 | `reactor_damage.yaml` | `extract_prices.py` |
 | `reinforce_items.yaml` | `extract_prices.py` |
 | `reinforcements.yaml` | `extract_reinforcements.py` |
+| `super_deployment.yaml` | `extract-super-deployment.py` |
 | `technology_effects.yaml` | `extract-technology-effects.py` |
 | `towers.yaml` | `extract-towers.py` |
 | `unit_experience.yaml` | `extract_prices.py` |

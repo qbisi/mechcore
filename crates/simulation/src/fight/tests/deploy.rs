@@ -44,6 +44,7 @@ fn multi_formation_initial_state_and_target_search_entry_match_the_build() {
                 level: 1,
                 exp: 0,
                 corrections: Vec::new(),
+                travelling: false,
             },
             Placement {
                 team: 1,
@@ -58,6 +59,7 @@ fn multi_formation_initial_state_and_target_search_entry_match_the_build() {
                 level: 1,
                 exp: 0,
                 corrections: Vec::new(),
+                travelling: false,
             },
             Placement {
                 team: 1,
@@ -72,6 +74,7 @@ fn multi_formation_initial_state_and_target_search_entry_match_the_build() {
                 level: 1,
                 exp: 0,
                 corrections: Vec::new(),
+                travelling: false,
             },
         ],
     );
@@ -131,6 +134,7 @@ fn multi_formation_initial_state_and_target_search_entry_match_the_build() {
             researched: BTreeSet::new(),
             creators: Vec::new(),
             appearing: Vec::new(),
+            travels: BTreeMap::new(),
             next_unit_id: 1,
             next_formation_id: 1,
             buildings,
@@ -307,6 +311,7 @@ fn crawler_member_grid_and_jitter_follow_native_creation_order() {
         level: 1,
         exp: 0,
         corrections: Vec::new(),
+        travelling: false,
     };
     let seed = 1_787_601_811;
     let positions = generate_formation_positions(&placement, rules, seed).unwrap();
@@ -391,6 +396,7 @@ fn hound_partial_last_row_preserves_native_q32_centering() {
         level: 1,
         exp: 0,
         corrections: Vec::new(),
+        travelling: false,
     };
     let seed = 1_787_601_811;
     let positions = generate_formation_positions(&placement, rules, seed).unwrap();
@@ -435,6 +441,7 @@ fn multi_member_identity_is_assigned_after_generation_and_shared_by_formation() 
             level: 1,
             exp: 0,
             corrections: Vec::new(),
+            travelling: false,
         }],
     );
     let actors = initialize_actors(&layout, &config.units, 1_787_601_811).unwrap();
@@ -513,6 +520,7 @@ fn deployment_raw_and_per_tick_target_direction_round_tick_twenty_two_down() {
                 level: 1,
                 exp: 0,
                 corrections: Vec::new(),
+                travelling: false,
             },
             Placement {
                 team: 1,
@@ -527,6 +535,7 @@ fn deployment_raw_and_per_tick_target_direction_round_tick_twenty_two_down() {
                 level: 1,
                 exp: 0,
                 corrections: Vec::new(),
+                travelling: false,
             },
         ],
     );
@@ -616,6 +625,7 @@ fn tick_fifteen_aim_uses_raw_q32_positions() {
                 level: 1,
                 exp: 0,
                 corrections: Vec::new(),
+                travelling: false,
             },
             Placement {
                 team: 1,
@@ -630,6 +640,7 @@ fn tick_fifteen_aim_uses_raw_q32_positions() {
                 level: 1,
                 exp: 0,
                 corrections: Vec::new(),
+                travelling: false,
             },
         ],
     );
