@@ -1,0 +1,41 @@
+# Replay 2324_20260925--134259672, round 1, map 1021. A felled block holds its
+# attacker only while it is in reach: red's Crawler 75 fells block 4 on tick
+# 344, while Crawlers 97, 98, 115 and 116 are in the swing after their own
+# blows on it, their lock the tower behind. Crawler 97, pushed to 12.38
+# metres from the block's centre, beyond the 12 its reach and the two radii
+# make, walks on towards the tower on tick 345; the others, within 12, go on
+# attacking.
+
+kind: fight
+map_id: 1021
+seed: 1685333659
+round: 1
+source: recording
+ticks: 756
+hash: {profile: mcfr-content-0.7.0, result: 4ebcdc7c1a1e8fa89e7801bc5719b23683ee227584a4cae4f767cf6b54ead651}
+blue:
+  core_damage: 472
+  officers: [typhoon_specialist]
+  units:
+  - {name: void_eye, index: 0, position: {x: 70, y: -70}, exp: 0/30/650}
+  - {name: void_eye, index: 1, position: {x: 150, y: -70}, exp: 0/92/650}
+  - {name: void_eye, index: 2, position: {x: 230, y: -70}, exp: 0/256/650}
+  - {name: tarantula, index: 3, position: {x: 105, y: -55}, exp: 0/282/1500}
+  - {name: tarantula, index: 4, position: {x: 195, y: -55}, exp: 0/182/1500}
+  - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 0/50/450}
+  - {name: crawler, index: 6, position: {x: 150, y: -105}, exp: 0/64/450, rotated: true}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+red:
+  officers: [training_specialist]
+  units:
+  - {name: arclight, index: 0, position: {x: 0, y: -150}, level: 2, exp: 0/818/1690}
+  - {name: arclight, index: 1, position: {x: 140, y: -150}, exp: 0/9/750}
+  - {name: arclight, index: 2, position: {x: -140, y: -150}, exp: 0/145/750}
+  - {name: sledgehammer, index: 3, position: {x: 75, y: -130}, exp: 0/653/1300}
+  - {name: sledgehammer, index: 4, position: {x: -75, y: -130}, exp: 0/140/1300}
+  - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 0/257/450}
+  - {name: crawler, index: 6, position: {x: -135, y: -190}, exp: 0/13/450}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
