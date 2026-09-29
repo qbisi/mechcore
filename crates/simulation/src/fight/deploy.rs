@@ -184,11 +184,14 @@ pub(in crate::fight) fn initialize_actors(
             ));
         }
     }
-    initial.sort_by_key(|actor| (actor.placement.team, actor.z, actor.x));
+    // A side's units take their identities in ascending world z, then x, by
+    // the raw positions: two units a few raw units apart in z keep that
+    // order even where their millimetres agree.
+    initial.sort_by_key(|actor| (actor.placement.team, actor.z_q32, actor.x_q32));
     for pair in initial.windows(2) {
         if pair[0].placement.team == pair[1].placement.team
-            && pair[0].x == pair[1].x
-            && pair[0].z == pair[1].z
+            && pair[0].x_q32 == pair[1].x_q32
+            && pair[0].z_q32 == pair[1].z_q32
         {
             return Err(Error::new(
                 "two initial same-team units have equal world coordinates",
