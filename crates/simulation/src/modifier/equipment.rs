@@ -140,18 +140,13 @@ impl EquipmentEffects {
         Ok(Self { equipment })
     }
 
-    /// What one equipment writes onto the unit wearing it, in `round`.
+    /// What one equipment writes onto the unit wearing it.
     ///
     /// # Errors
     ///
     /// Returns an error naming the equipment when this build cannot apply it,
     /// rather than applying the part of it that it understands.
-    pub(crate) fn corrections(
-        &self,
-        id: i32,
-        unit: &UnitConfig,
-        round: i32,
-    ) -> Result<Vec<(Channel, Entry)>> {
+    pub(crate) fn corrections(&self, id: i32, unit: &UnitConfig) -> Result<Vec<(Channel, Entry)>> {
         let Some(equipment) = self.equipment.get(&id) else {
             let name = mechcore_document::names::equipment_name(id).unwrap_or("unnamed");
             return Err(Error::new(format!(
@@ -160,14 +155,6 @@ impl EquipmentEffects {
                  mechanism here reads"
             )));
         };
-        // `Equipment.durability` is what an item carries from one round to
-        // the next, and no fixture here has worn one past the first.
-        if round != 1 {
-            return Err(Error::new(format!(
-                "equipment {id} is worn in round {round}, and what its durability \
-                 does after round 1 is not established"
-            )));
-        }
         let corrections = equipment
             .effect
             .as_ref()
@@ -299,7 +286,7 @@ mod tests {
         let officers = OfficerEffects::load().unwrap();
         let resolve = |corrections: &[_]| Stats::corrected(&marksman, 1, corrections).unwrap();
 
-        let mut life = equipment.corrections(HEAVY_ARMOR, &marksman, 1).unwrap();
+        let mut life = equipment.corrections(HEAVY_ARMOR, &marksman).unwrap();
         assert_eq!(life[0].0, Channel::Unit);
         assert_eq!(resolve(&life).max_life(), 2838);
         life.extend(
@@ -310,7 +297,7 @@ mod tests {
         assert_eq!(resolve(&life).max_life(), 3325);
 
         let mut damage = equipment
-            .corrections(IMPROVED_FIREPOWER, &marksman, 1)
+            .corrections(IMPROVED_FIREPOWER, &marksman)
             .unwrap();
         assert_eq!(damage[0].0, Channel::Skill);
         assert_eq!(resolve(&damage).attack_damage(), 3842);
@@ -321,7 +308,7 @@ mod tests {
         );
         assert_eq!(resolve(&damage).attack_damage(), 4541);
 
-        let range = equipment.corrections(LASER_SIGHTS, &marksman, 1).unwrap();
+        let range = equipment.corrections(LASER_SIGHTS, &marksman).unwrap();
         assert_eq!(resolve(&range).attack_range(), 160_000);
     }
 
@@ -331,13 +318,13 @@ mod tests {
         let equipment = EquipmentEffects::load().unwrap();
         assert!(
             equipment
-                .corrections(LASER_SIGHTS, &unit("rhino"), 1)
+                .corrections(LASER_SIGHTS, &unit("rhino"))
                 .unwrap()
                 .is_empty()
         );
         assert_eq!(
             equipment
-                .corrections(LASER_SIGHTS, &unit("steel_ball"), 1)
+                .corrections(LASER_SIGHTS, &unit("steel_ball"))
                 .unwrap()
                 .len(),
             1
@@ -348,14 +335,13 @@ mod tests {
     fn an_equipment_this_build_cannot_apply_is_refused_by_name() {
         let equipment = EquipmentEffects::load().unwrap();
         let marksman = unit("marksman");
-        for (id, round, said) in [
-            (BARRIER, 1, "barrier"),
-            (RAPID_LOADER, 1, "round_duration"),
-            (DOMINION_CORE, 1, "important_unit"),
-            (HEAVY_ARMOR, 2, "durability"),
+        for (id, said) in [
+            (BARRIER, "barrier"),
+            (RAPID_LOADER, "round_duration"),
+            (DOMINION_CORE, "important_unit"),
         ] {
             let refused = equipment
-                .corrections(id, &marksman, round)
+                .corrections(id, &marksman)
                 .unwrap_err()
                 .to_string();
             assert!(refused.contains(&id.to_string()), "{refused}");

@@ -139,12 +139,11 @@ fn compile(bytes: &[u8], units: &UnitConfigs) -> Result<CompiledLayout> {
 ///
 /// One per source of an `ICommonMechDataChangeDataSource`: officers,
 /// technologies and equipment today, the energy tower's skills when their
-/// table is extracted. The round is what an equipment's lifetime is read in.
+/// table is extracted.
 struct Loadouts {
     officers: OfficerEffects,
     technologies: TechnologyEffects,
     equipment: EquipmentEffects,
-    round: i32,
 }
 
 /// Everything a layout is refused for, gathered rather than stopped at.
@@ -189,7 +188,6 @@ pub(crate) fn compile_with_seed(
         officers: OfficerEffects::load()?,
         technologies: TechnologyEffects::load()?,
         equipment: EquipmentEffects::load()?,
-        round: plan.round,
     };
     let table = Constructions::load()?;
     let contraptions = Contraptions::load()?;
@@ -525,12 +523,11 @@ fn loadout(
                 .corrections(std::slice::from_ref(id), type_name)
                 .map_err(on_side)
         }))
-        .chain(equipment.iter().map(|&id| {
-            loadouts
-                .equipment
-                .corrections(id, rules, loadouts.round)
-                .map_err(on_side)
-        }))
+        .chain(
+            equipment
+                .iter()
+                .map(|&id| loadouts.equipment.corrections(id, rules).map_err(on_side)),
+        )
         .collect::<Vec<_>>();
     let mut corrections = Vec::new();
     let mut resolved = true;
