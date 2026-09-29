@@ -77,7 +77,8 @@ on a branch of this repository. These rules hold whoever does it:
   `convert --backend game`, `verify --backend game`, `game record`,
   `scripts/record-fights.py`, and a run script that declares `game:`
   (`mechcore run <script> --check` says whether one does). CI verifies every
-  fight document under `tests/`.
+  fight document under `tests/`, and `tests/README.md` says where one lives:
+  one home by where it came from, cited by every other topic it bears on.
 - **A pinned hash comes from a recording made where the game runs**, never
   from the simulator. A pin that moves is a finding to explain, not a number
   to edit. The repository keeps what reproduces a recording, the fixtures and

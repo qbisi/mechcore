@@ -1,8 +1,11 @@
 # Test fixtures
 
-A fixture lives with the research question it answers. Each question is one
-directory directly under `tests/`, named for what it studies, holding its
-fights and, where a fight's own comment cannot say it, a readme:
+A fixture has one home, chosen by where it came from. A fight built by hand
+lives with the research question it asked: each question is one directory
+directly under `tests/`, named for what it studies, holding its fights and,
+where a fight's own comment cannot say it, a readme. A fight taken from a round
+of the replay corpus lives in [`corpus/`](corpus/README.md), whatever it turns
+out to show:
 
 | Directory | What it holds |
 | --- | --- |
@@ -16,8 +19,19 @@ fights and, where a fight's own comment cannot say it, a readme:
 | [`raiden/`](raiden/README.md) | how a Raiden's three weapons choose targets and fire together, beside its standard fights |
 | [`wraith/`](wraith/README.md) | how a Wraith's four slots choose their targets, beside its standard fights |
 | [`regression/`](regression/README.md) | fights that exercise the kernel rather than one rule |
+| [`corpus/`](corpus/README.md) | rounds of the replay corpus the simulator plays back, each named for its replay and round |
 | every other unit, `arclight/` to `wasp/` | that unit's [standard fights](#standard-unit-layouts) |
 | `hacker/` | the Hacker's standard layouts, which no fight pins yet |
+
+**A fixture that bears on several topics is cited, not copied.** It stays in
+its home, and every other topic reaches it by its path: a rule's `### Recorded`
+evidence in [`docs/rules/`](../docs/rules/) names the fights it rests on, which
+`scripts/check/check-docs.py` holds to exist, and a topic's readme names a
+fight elsewhere that it reads, as `equipment/` and `level/` name the
+regression fight they take as their control. No fixture is copied into a
+second directory or linked there: CI finds fights by directory, and a second
+path would be a second fixture to keep in step. Two fights that differ in
+anything, a `map_id` included, are two fixtures.
 
 A fight's comment says what it measures and what the game answered, and a
 topic's readme says only what no one fight can: the question, the rule it
@@ -61,11 +75,13 @@ place a version is written. Otherwise the file stays as `convert` wrote it,
 and a comment added above it does not change what it states. CI finds it by
 its directory; nothing else lists it.
 
-Two kinds of fixture live outside `tests/` because no topic owns them. The
-native replays, and everything converted from them, are in the corpus
-[`../scripts/corpus/`](../scripts/corpus/README.md) describes. Layouts built by hand that no script
-uses, and the one the crates' tests read as a plain layout, are in
-[`../layouts/`](../layouts/README.md).
+Two kinds of fixture live outside `tests/`. The native replays themselves, and
+the match documents converted from them, are the corpus
+[`../scripts/corpus/`](../scripts/corpus/README.md) describes: `verify` over the
+match documents fights their rounds in order where the corpus is, and only a
+round pinned in [`corpus/`](corpus/README.md) is held by CI. Layouts built by
+hand that no script uses, and the one the crates' tests read as a plain
+layout, are in [`../layouts/`](../layouts/README.md).
 
 ## Standard unit layouts
 
