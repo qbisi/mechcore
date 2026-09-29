@@ -1,0 +1,36 @@
+# Replay 2324_20260925--201370830, round 1, map 1011. Two of blue's units stand 6
+# raw units apart in world z: their identities follow z, the one at x
+# -508953624579 first, and the fight updates them in x order, the other first.
+
+kind: fight
+map_id: 1011
+seed: 865572396
+round: 1
+source: recording
+ticks: 2267
+hash: {profile: mcfr-content-0.7.0, result: 10f3a2d8ab7788d4a110406fc28019d29f98477912806aca98373f9bd00854c3}
+blue:
+  core_damage: 300
+  officers: [elite_specialist]
+  units:
+  - {name: arclight, index: 0, position: {x: -90, y: -60}, exp: 0/104/750}
+  - {name: arclight, index: 1, position: {x: -190, y: -60}, exp: 0/145/750}
+  - {name: arclight, index: 2, position: {x: 180, y: -210}, exp: 0/400/750}
+  - {name: steel_ball, index: 3, position: {x: -225, y: -50}, exp: 0/331/1000}
+  - {name: steel_ball, index: 4, position: {x: -125, y: -70}, exp: 0/357/1000}
+  - {name: crawler, index: 5, position: {x: -125, y: -50}, level: 2, exp: 0/79/1014}
+  - {name: crawler, index: 6, position: {x: -225, y: -70}, level: 2, exp: 0/222/1014}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+red:
+  officers: [fortified_specialist]
+  units:
+  - {name: void_eye, index: 0, position: {x: 80, y: -70}, exp: 0/157/650}
+  - {name: void_eye, index: 1, position: {x: 180, y: -70}, exp: 0/148/650}
+  - {name: void_eye, index: 2, position: {x: 280, y: -70}, exp: 0/100/650}
+  - {name: tarantula, index: 3, position: {x: 85, y: -115}, exp: 0/1003/1500}
+  - {name: tarantula, index: 4, position: {x: 185, y: -115}, exp: 0/407/1500}
+  - {name: vortex, index: 5, position: {x: 110, y: -130}, exp: 0/750/750}
+  - {name: vortex, index: 6, position: {x: 150, y: -130}, exp: 0/364/750}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
