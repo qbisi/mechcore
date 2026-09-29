@@ -174,26 +174,20 @@ impl Simulation {
         self.release_pending_projectile(owner, first, events)
     }
 
-    /// Where a burst's target stood when the tick the burst began on
-    /// began, and its height: what every projectile of the burst measures
-    /// its climb to.
+    /// Where a burst's target stands as the burst begins, and its height:
+    /// what every projectile of the burst measures its climb to. A unit of
+    /// the side that updates first has already moved this tick: a Farseer's
+    /// burst at a Rhino closing on it climbs to the height the Rhino's new
+    /// position gives, both its projectiles alike.
     fn climb_target(&self, target: FightActorRef) -> Result<(i64, i64, i64)> {
-        Ok(match target {
-            FightActorRef::Unit(id) => {
-                let unit = &self.actors[&id];
-                (
-                    unit.target_query_x_q32,
-                    unit.target_query_z_q32,
-                    unit_height(unit.rules.domain),
-                )
-            }
-            FightActorRef::Building(_) => {
-                let view = self
-                    .fight_actor(target)
-                    .ok_or_else(|| Error::new("projectile target is absent"))?;
-                (view.x_q32, view.z_q32, 0)
-            }
-        })
+        let view = self
+            .fight_actor(target)
+            .ok_or_else(|| Error::new("projectile target is absent"))?;
+        let height = match target {
+            FightActorRef::Unit(id) => unit_height(self.actors[&id].rules.domain),
+            FightActorRef::Building(_) => 0,
+        };
+        Ok((view.x_q32, view.z_q32, height))
     }
 
     /// How high a projectile climbs before it flies, above where it leaves:

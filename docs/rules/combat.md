@@ -396,10 +396,13 @@ a Farseer's shot climbs 7 metres a tick to 63 for its 60. The height is the
 pre-flight height times the distance to the target over the attack range, at
 the range and beyond the whole of it (`ProjectileSystem.Create`). The distance
 is measured for each projectile as it is created, from where its owner stands
-then, to where the burst's target stood when the tick the burst began on
-began: an Overlord pushed aside between two releases of one burst climbs its
-later projectiles to another height, and the first step of a climb, rounded
-through the reciprocal of what is left to climb, lands a few raw units apart.
+then, to where the burst's target stood as the burst began: an Overlord pushed
+aside between two releases of one burst climbs its later projectiles to
+another height, and the first step of a climb, rounded through the reciprocal
+of what is left to climb, lands a few raw units apart. A target of the side
+that updates first has already moved that tick: a Farseer's burst at a Rhino
+walking at it climbs both its shots to the height the Rhino's new position
+gives, 30.92 m where the tick's start would give 31.31.
 
 **A burst goes on after its target leaves reach.** A skill is not checked
 between the projectiles of a burst, so a bodyless unit whose target walks out
@@ -604,6 +607,9 @@ not the game's native attack-type enum.
 - A projectile's climb measured as it is created, and a moving unit stopped
   when the fight stops, in the Overlord's standard fights:
   `tests/overlord/fights/`.
+- A burst's climb measured to where its target stood after the target's own
+  side moved that tick, for a Farseer's and an Overlord's bursts at a Rhino
+  walking at them: `tests/projectile/fights/`.
 - A cooling that goes on through a won fight, and an attack that goes idle,
   in the Phantom Ray's standard fights: `tests/phantom_ray/fights/`.
 - A winner's unit that updates after the last death taking a tower, and
