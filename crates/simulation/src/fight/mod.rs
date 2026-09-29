@@ -461,6 +461,7 @@ impl Simulation {
             }
             self.clear_buffs_as_the_fight_ends(&mut events)?;
         }
+        let opening = events.len();
         // Native search jobs retain the actor-quadtree candidate order
         // prepared at the start of this FightCore update.
         let target_search_order = self.target_search_order();
@@ -605,15 +606,25 @@ impl Simulation {
                     (Some(source), Some(team_id))
                 });
         }
-        let (mut events, deaths): (Vec<_>, Vec<_>) = events
-            .into_iter()
-            .partition(|event| !matches!(&event.payload, EventPayload::UnitDied { .. }));
+        // The deaths and falls the units' own hits caused come after the
+        // rest of the tick, in the order they happened, as
+        // `DeadEffectSystem.Update` takes its `deadActors`: a block one
+        // Steel Ball's beam fells reads before a unit a later beam kills.
+        // What opened the tick, the fight's end, stays where it is.
+        let later = events.split_off(opening);
+        let (rest, ends): (Vec<_>, Vec<_>) = later.into_iter().partition(|event| {
+            !matches!(
+                &event.payload,
+                EventPayload::UnitDied { .. } | EventPayload::BuildingDestroyed { .. }
+            )
+        });
+        events.extend(rest);
         // `BuffManager.Clear` takes a dying unit's buffs as it dies, whatever
         // killed it.
-        for death in deaths {
-            let (precedes, follows) = self.around_an_end(&death);
+        for end in ends {
+            let (precedes, follows) = self.around_an_end(&end);
             events.extend(precedes);
-            events.push(death);
+            events.push(end);
             events.extend(follows);
         }
         // What the tick's hits killed and felled comes last, in the order they
@@ -648,6 +659,19 @@ impl Simulation {
             }
             if let Some(tree) = self.mech_quadtrees.get_mut(&team) {
                 tree.remove(FightActorRef::Unit(actor_id));
+            }
+        }
+        // So does a building that fell: a wall's block stays in the tree no
+        // more than a dead unit does.
+        let fallen = self
+            .buildings
+            .iter()
+            .filter(|building| !building_alive(building))
+            .map(|building| (building.team_id, building.building_id))
+            .collect::<Vec<_>>();
+        for (team, building_id) in fallen {
+            if let Some(tree) = self.target_quadtrees.get_mut(&team) {
+                tree.remove(FightActorRef::Building(building_id));
             }
         }
         Ok(TransitionEvents { events })

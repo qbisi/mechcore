@@ -396,20 +396,33 @@ impl Simulation {
             reach: Reach::Targets(attacker.rules.attack.targets),
         };
         let struck = self.perform_damage(hit, events)?;
-        self.record_deaths(struck.deaths, events);
         // A block a blow fells falls after every hit the tick resolves, as a
         // shot's does: the Crawlers of `wall-block.yaml` read three more blows
-        // between the one that fells block 5 and `building_destroyed`.
-        for (building_id, position) in struck.fallen {
-            self.fallen_buildings.push(event(
-                Some(ObjectRef::new(ObjectKind::Building, building_id)),
-                None,
-                None,
-                None,
-                EventPayload::BuildingDestroyed { position },
-            ));
-        }
+        // between the one that fells block 5 and `building_destroyed`. It
+        // falls in its place among the tick's deaths, which the tick's end
+        // moves there together.
+        self.record_ends(struck.ends, events);
         Ok(())
+    }
+
+    /// A hit's deaths and falls, in the order it struck them, among the
+    /// tick's events: the tick's end moves every one of them, in that order,
+    /// after the rest (`DeadEffectSystem.deadActors`).
+    fn record_ends(&self, ends: Vec<(FightActorRef, QVec3)>, events: &mut Vec<Event>) {
+        for (target, position) in ends {
+            match target {
+                FightActorRef::Unit(dead_id) => {
+                    self.record_deaths(vec![(dead_id, position)], events);
+                }
+                FightActorRef::Building(building_id) => events.push(event(
+                    Some(ObjectRef::new(ObjectKind::Building, building_id)),
+                    None,
+                    None,
+                    None,
+                    EventPayload::BuildingDestroyed { position },
+                )),
+            }
+        }
     }
 
     pub(in crate::fight) fn laser_effect(
@@ -462,16 +475,7 @@ impl Simulation {
                 reach: Reach::Targets(attacker.rules.attack.targets),
             };
             let struck = self.perform_damage(hit, events)?;
-            self.record_deaths(struck.deaths, events);
-            for (building_id, position) in struck.fallen {
-                self.fallen_buildings.push(event(
-                    Some(ObjectRef::new(ObjectKind::Building, building_id)),
-                    None,
-                    None,
-                    None,
-                    EventPayload::BuildingDestroyed { position },
-                ));
-            }
+            self.record_ends(struck.ends, events);
             return Ok(());
         }
         // A laser with no splash strikes one target, so it takes the
@@ -508,8 +512,9 @@ impl Simulation {
         // blow's and a projectile's are: in the tower-loss fight with two
         // lanes, the other lane's Steel Ball damages its tower between the
         // beam that fells the first and that tower's `building_destroyed`.
+        // The tick's end moves it there, in its place among the deaths.
         if let Some(position) = stroke.fallen {
-            self.fallen_buildings.push(event(
+            events.push(event(
                 Some(target.object_ref()),
                 None,
                 None,
