@@ -175,6 +175,13 @@ pub struct CheckedSkill {
     pub attack_target: Option<ObjectRef>,
     pub skill_state: Option<String>,
     pub skill_attack_phase: Option<String>,
+    /// `FightSkill.attackTime`: the updates since the attack clock was last
+    /// reset, which `CanPerformAttack` holds against `attackInterval`.
+    pub attack_time: Option<i32>,
+    /// `FightSkill.attackInterval`, in logic ticks.
+    pub attack_interval: Option<i32>,
+    /// `SkillAttackController.performCount`.
+    pub perform_count: Option<i32>,
 }
 
 /// Which of the build's three ways a target search took.

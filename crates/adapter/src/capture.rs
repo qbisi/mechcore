@@ -330,6 +330,9 @@ struct RawCheckerSkillView {
     attack_target: usize,
     skill_state: Option<String>,
     skill_attack_phase: Option<&'static str>,
+    attack_time: Option<i32>,
+    attack_interval: Option<i32>,
+    perform_count: Option<i32>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -1457,6 +1460,9 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
                 attacking: field(attack, "attackingController")?,
                 after: field(attack, "attackWaitAfterController")?,
                 is_idle: field(skill_base, "<IsIdle>k__BackingField")?,
+                attack_time: field(skill, "attackTime")?,
+                attack_interval: field(skill, "attackInterval")?,
+                perform_count: field(attack, "performCount")?,
             })
         })();
         let damage_performer = api
@@ -2032,11 +2038,35 @@ fn read_checker_skill_view(
         Some(fields) => read_skill_fsm_state(api, skill, fields)?,
         None => (None, None, None),
     };
+    let integer = |owner: *mut Object, field: usize| {
+        api.field_value::<i32>(owner, field as *mut FieldInfo)
+            .map_err(|error| error.to_string())
+    };
+    let (attack_time, attack_interval, perform_count) = match metadata.skill_state_fields {
+        Some(fields) => {
+            let controller = api
+                .field_value::<*mut Object>(skill, fields.attack_controller as *mut FieldInfo)
+                .map_err(|error| error.to_string())?;
+            (
+                Some(integer(skill, fields.attack_time)?),
+                Some(integer(skill, fields.attack_interval)?),
+                if controller.is_null() {
+                    None
+                } else {
+                    Some(integer(controller, fields.perform_count)?)
+                },
+            )
+        }
+        None => (None, None, None),
+    };
     Ok(RawCheckerSkillView {
         lock_target: object(metadata.fight_skill_lock_target, "lockTarget")?,
         attack_target: object(metadata.fight_skill_attack_target, "attackTarget")?,
         skill_state,
         skill_attack_phase,
+        attack_time,
+        attack_interval,
+        perform_count,
     })
 }
 
@@ -4054,6 +4084,9 @@ struct SkillStateFields {
     attacking: usize,
     after: usize,
     is_idle: usize,
+    attack_time: usize,
+    attack_interval: usize,
+    perform_count: usize,
 }
 
 struct RawBuilding {
@@ -7862,6 +7895,9 @@ fn resolve_checker_skill_view(
         attack_target: target(view.attack_target, "attack target")?,
         skill_state: view.skill_state,
         skill_attack_phase: view.skill_attack_phase.map(str::to_owned),
+        attack_time: view.attack_time,
+        attack_interval: view.attack_interval,
+        perform_count: view.perform_count,
     })
 }
 
