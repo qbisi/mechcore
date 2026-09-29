@@ -344,6 +344,18 @@ has none, whether or not the weapons turn at a speed of their own: a
 Wraith, whose four weapons turn at 90° a second but carry no transform,
 scores from its root's facing, not from where its first weapon points.
 
+**A search reads the tick's start only when its skill asked for that.** At a
+tick's start `FightCoreSystem.PreCalculate` lets each skill state prepare a
+search, scored on where everything stands at that moment, and
+`ScoreRatingTargetSelector.TrySelect` answers a prepared skill from those
+scores. A skill that was not prepared, or whose prepared answer has died since,
+falls through to `PerformSearch`, which scores every candidate where it stands
+when the search runs. An attacking skill is prepared only while its lock is
+absent or dead, an idle one when it can start a search, and a preparing or
+cooling one never; the prepared scores are cleared every tick. So a
+Stormcaller whose live lock walks inside its minimum range during a tick
+searches past it and takes the next target that very tick.
+
 `FightPrepareState` completes the first acquisition and syncs initial facing
 before the first persisted state S(1).
 
@@ -607,11 +619,21 @@ not the game's native attack-type enum.
   Badger and Phantom Ray: `tests/steel_ball/fights/`,
   `tests/stormcaller/fights/`, `tests/hound/fights/`,
   `tests/fire_badger/fights/`, `tests/phantom_ray/fights/`.
+- A Stormcaller whose live lock walks inside its minimum range taking blue's
+  interceptor on that tick, and a second doing the same three ticks later:
+  `tests/search/fights/lock-inside-min-range.yaml`.
 
 ### Read
 
 - A search's angle is measured from the skill's main transform, a weapon's
   or the root's: `FightSkill.GetMainTransform`.
+- A search reads the tick's start only for a skill its state prepared, and
+  the preparation is cleared every tick: `FightCoreSystem.PreCalculate`,
+  `SkillAttackState.PreCalculate`, `SkillIdleState.PreCalculate`,
+  `SkillState.PreCalculate`, `MainSkillSearchTargetController.PrepareSearch`,
+  `ScoreRatingTargetSelector.TrySelect`,
+  `SkillSearchTargetController.PerformNormalSkillSearch`,
+  `ScoreRatingTargetSelector.ClearDatas`.
 - A projectile's climb is scaled by the distance from where it leaves, as it
   is created: `ProjectileSystem.Create`, `IProjectileSkillData.GetPreFlyHeight`,
   `ProjectileFlyData.GetPosition`.
@@ -717,6 +739,10 @@ not the game's native attack-type enum.
   sibling has done.
 - **Target scoring**: a split quadtree, tied candidates, a building winning,
   moving candidates being reinserted, and other selector modes.
+- **Where a search not prepared stands the searcher.** `PerformSearch` is read
+  to score the candidates where they stand; every recorded searcher that
+  searched that way had not moved during the tick, so whether its own position
+  and facing are also read anew is not measured.
 - **Projectiles**: why a projectile in simulated motion spares a dead unit's
   neighbours, which is recorded and not read; interception; and every other
   projectile type.

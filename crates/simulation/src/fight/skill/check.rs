@@ -322,23 +322,29 @@ impl Simulation {
 
     /// What `SearchLockTarget` answers in the middle of an update.
     ///
-    /// The selector reads the positions the tick's query snapshot holds,
-    /// unless the lock it replaces died during this very tick, when it reads
-    /// where every candidate stands now; and a candidate that has itself
-    /// just died is searched past with live positions.
+    /// `ScoreRatingTargetSelector.TrySelect` answers from the scores
+    /// `FightCoreSystem.PreCalculate` worked out on the tick's query snapshot,
+    /// but only for a skill whose state asked for them there; any other
+    /// skill's search is `PerformSearch`, which scores every candidate where
+    /// it stands now. `SkillAttackState.PreCalculate` asks only while the
+    /// lock is absent or dead, and `SkillPrepareState` never does. So a
+    /// Stormcaller whose live lock walks inside its minimum range searches
+    /// past it: the lock was alive when the tick began. A prepared answer
+    /// that has itself died since is searched past with live positions.
     pub(in crate::fight) fn select_lock_replacement(
         &self,
         owner: FightActorRef,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<Option<FightActorRef>> {
-        let died_this_tick = self
-            .skill(owner)
-            .attack_target()
-            .and_then(|target| self.fight_actor(target))
-            .is_some_and(|target| target.query_alive && !target.alive);
+        let skill = self.skill(owner);
+        let prepared = skill.phase() == FightSkillPhase::Attack
+            && skill
+                .lock_target
+                .and_then(|lock| self.fight_actor(lock))
+                .is_none_or(|lock| !lock.query_alive);
         let selected =
-            self.select_normal_target_with_order(owner, target_search_order, died_this_tick)?;
-        if !died_this_tick
+            self.select_normal_target_with_order(owner, target_search_order, !prepared)?;
+        if prepared
             && selected
                 .and_then(|candidate| self.fight_actor(candidate))
                 .is_some_and(|target| target.query_alive && !target.alive)
