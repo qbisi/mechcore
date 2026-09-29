@@ -114,7 +114,9 @@ among the enemy's constructions,
 
 **It is asked wherever the skill asks what to fire at**, which is one method,
 `FightSkill.SearchAttackTarget`: it takes the lock and hands the weapons a
-shield, else a wall in the way, else the lock itself.
+shield, else a wall in the way, else the lock itself. It asks whatever the lock
+is, a unit or a building: a unit locked on a tower out of its reach attacks the
+block in reach between them.
 `WallConstructionTargetChecker` has no other caller. The skill asks it every
 tick it is idle with a lock, not when the mech's lock is searched on its own
 timer, so a unit engages a wall the tick the wall comes into reach; and inside
