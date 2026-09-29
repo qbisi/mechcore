@@ -121,6 +121,7 @@ fn multi_formation_initial_state_and_target_search_entry_match_the_build() {
             identities: IdentityAllocator::new(),
             rvo_counter: 0,
             rvo_first_tree_pending: true,
+            rvo_quadtree_capacity: crate::fight::rvo::QuadtreeCapacity::default(),
             terminal_drain_pending: false,
             stop_step: None,
             late_building_events_pending: false,

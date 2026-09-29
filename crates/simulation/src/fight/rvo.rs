@@ -269,15 +269,30 @@ struct QuadtreeNode {
     max_speed: i64,
 }
 
+/// The length of native `RVOQuadtree.nodes`, which the constructor makes 16
+/// and `GetNodeIndex` doubles. A fight's `Simulator` keeps one tree, so the
+/// array a tree grew is the array the next tree starts from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct QuadtreeCapacity(usize);
+
+impl Default for QuadtreeCapacity {
+    fn default() -> Self {
+        Self(16)
+    }
+}
+
 struct NativeQuadtree<'a> {
     inputs: &'a [AgentInput],
+    /// The node array, as long as the native one.
     nodes: Vec<QuadtreeNode>,
+    /// Native `filledNodes`: the nodes in use are the first ones.
+    filled: usize,
     next: Vec<Option<usize>>,
     bounds: QuadtreeRect,
 }
 
 impl<'a> NativeQuadtree<'a> {
-    fn build(inputs: &'a [AgentInput]) -> Option<Self> {
+    fn build(inputs: &'a [AgentInput], capacity: QuadtreeCapacity) -> Option<Self> {
         let first = inputs.first()?;
         let mut bounds = QuadtreeRect {
             min: first.tree_position,
@@ -292,7 +307,8 @@ impl<'a> NativeQuadtree<'a> {
 
         let mut tree = Self {
             inputs,
-            nodes: vec![QuadtreeNode::default()],
+            nodes: vec![QuadtreeNode::default(); capacity.0],
+            filled: 1,
             next: vec![None; inputs.len()],
             bounds,
         };
@@ -303,32 +319,61 @@ impl<'a> NativeQuadtree<'a> {
         Some(tree)
     }
 
+    fn capacity(&self) -> QuadtreeCapacity {
+        QuadtreeCapacity(self.nodes.len())
+    }
+
     fn insert(&mut self, agent_index: usize) {
         let mut node_index = 0usize;
         let mut rect = self.bounds;
-        let mut depth = 1u8;
+        let mut depth = 0u8;
         loop {
+            depth = depth.saturating_add(1);
             if self.nodes[node_index].child00 == node_index {
-                if self.nodes[node_index].count >= QUADTREE_LEAF_SIZE && depth < QUADTREE_MAX_DEPTH
+                if self.nodes[node_index].count < QUADTREE_LEAF_SIZE || depth >= QUADTREE_MAX_DEPTH
                 {
-                    let child00 = self.nodes.len();
-                    self.nodes.extend((0..4).map(|quadrant| QuadtreeNode {
-                        child00: child00 + quadrant,
-                        ..QuadtreeNode::default()
-                    }));
-                    self.nodes[node_index].child00 = child00;
-                    self.distribute(node_index, rect);
-                } else {
                     self.prepend(node_index, agent_index);
                     return;
+                }
+                // `nodes[i].child00 = GetNodeIndex()` stores into the array it
+                // read before the call. When the call grows the array, the
+                // store lands in the old one: the node stays a leaf, its list
+                // is distributed over the nodes after it, and the agent comes
+                // back to it one level deeper.
+                let (child00, grown) = self.node_index();
+                if !grown {
+                    self.nodes[node_index].child00 = child00;
+                }
+                self.distribute(node_index, rect);
+                if self.nodes[node_index].child00 == node_index {
+                    continue;
                 }
             }
 
             let quadrant = Self::quadrant(self.inputs[agent_index].tree_position, rect);
             node_index = self.nodes[node_index].child00 + quadrant;
             rect = rect.child(quadrant);
-            depth = depth.saturating_add(1);
         }
+    }
+
+    /// `RVOQuadtree.GetNodeIndex`: four new leaves after the filled nodes,
+    /// doubling the array first when fewer than five slots are left, and
+    /// whether it did.
+    fn node_index(&mut self) -> (usize, bool) {
+        let grown = self.filled + 4 >= self.nodes.len();
+        if grown {
+            self.nodes
+                .resize(self.nodes.len() * 2, QuadtreeNode::default());
+        }
+        let child00 = self.filled;
+        for (index, node) in self.nodes.iter_mut().enumerate().skip(child00).take(4) {
+            *node = QuadtreeNode {
+                child00: index,
+                ..QuadtreeNode::default()
+            };
+        }
+        self.filled += 4;
+        (child00, grown)
     }
 
     fn quadrant(position: FixedVec2, rect: QuadtreeRect) -> usize {
@@ -343,17 +388,19 @@ impl<'a> NativeQuadtree<'a> {
         self.nodes[node_index].count = self.nodes[node_index].count.saturating_add(1);
     }
 
+    /// `Node.Distribute`: each agent of the list goes to the head of its
+    /// quadrant's node, and the list moves on to the agent it pointed to. An
+    /// agent whose node is the one distributing points to itself and leaves
+    /// every list.
     fn distribute(&mut self, node_index: usize, rect: QuadtreeRect) {
         let child00 = self.nodes[node_index].child00;
-        let mut current = self.nodes[node_index].head;
-        self.nodes[node_index].head = None;
-        while let Some(agent_index) = current {
+        while let Some(agent_index) = self.nodes[node_index].head {
             let old_next = self.next[agent_index];
             let quadrant = Self::quadrant(self.inputs[agent_index].tree_position, rect);
             let child_index = child00 + quadrant;
             self.next[agent_index] = self.nodes[child_index].head;
             self.nodes[child_index].head = Some(agent_index);
-            current = old_next;
+            self.nodes[node_index].head = old_next;
         }
         self.nodes[node_index].count = 0;
     }
@@ -664,11 +711,16 @@ impl VelocityObstacle {
 pub(crate) fn solve_agents(
     inputs: &[AgentInput],
     inverse_delta_time: i64,
+    capacity: &mut QuadtreeCapacity,
 ) -> BTreeMap<AgentKey, AgentSolution> {
+    let Some(tree) = NativeQuadtree::build(inputs, *capacity) else {
+        return BTreeMap::new();
+    };
+    *capacity = tree.capacity();
     inputs
         .iter()
         .map(|agent| {
-            let neighbours = nearest_neighbours(agent, inputs);
+            let neighbours = tree.query(agent);
             // A construction of the agent's own group is still one of its
             // neighbours — it takes one of the twenty places, as the native
             // capture showed for a Crawler crossing its own wall — and yields
@@ -681,12 +733,6 @@ pub(crate) fn solve_agents(
             (agent.key, solve_agent(agent, &obstacles))
         })
         .collect()
-}
-
-fn nearest_neighbours<'a>(agent: &AgentInput, inputs: &'a [AgentInput]) -> Vec<&'a AgentInput> {
-    NativeQuadtree::build(inputs)
-        .map(|tree| tree.query(agent))
-        .unwrap_or_default()
 }
 
 fn neighbour_obstacle(
@@ -1067,6 +1113,47 @@ mod tests {
         }
     }
 
+    fn tree_members(tree: &NativeQuadtree<'_>, node_index: usize) -> Vec<usize> {
+        let node = tree.nodes[node_index];
+        if node.child00 != node_index {
+            return (0..4)
+                .flat_map(|quadrant| tree_members(tree, node.child00 + quadrant))
+                .collect();
+        }
+        std::iter::successors(node.head, |&agent| tree.next[agent]).collect()
+    }
+
+    #[test]
+    fn a_split_that_grows_the_node_array_loses_the_list_it_splits() {
+        // Coincident agents, as on a fight's first tree: every split sends
+        // the whole list to quadrant 0, and the fourth split of a fresh tree
+        // grows the array of 16.
+        let inputs = (0..61)
+            .map(|id| {
+                observed_agent(
+                    AgentKey::Unit(id),
+                    FixedVec2::ZERO,
+                    Q32_ONE,
+                    Q32_ONE,
+                    0,
+                    1,
+                    1,
+                    0,
+                    false,
+                    AgentSizeType::S,
+                )
+            })
+            .collect::<Vec<_>>();
+
+        let fresh = NativeQuadtree::build(&inputs, QuadtreeCapacity::default()).unwrap();
+        assert_eq!(fresh.capacity(), QuadtreeCapacity(32));
+        assert_eq!(tree_members(&fresh, 0), [60]);
+
+        let grown = NativeQuadtree::build(&inputs, fresh.capacity()).unwrap();
+        assert_eq!(grown.capacity(), QuadtreeCapacity(32));
+        assert_eq!(tree_members(&grown, 0).len(), 61);
+    }
+
     #[test]
     fn quadtree_builds_from_the_previous_buffer_but_queries_current_positions() {
         let mut source = observed_agent(
@@ -1106,7 +1193,7 @@ mod tests {
         };
         let inputs = [source, candidate];
 
-        let tree = NativeQuadtree::build(&inputs).unwrap();
+        let tree = NativeQuadtree::build(&inputs, QuadtreeCapacity::default()).unwrap();
         assert_eq!(tree.bounds.min, source.tree_position);
         assert_eq!(tree.bounds.max, candidate.tree_position);
         assert_eq!(
@@ -1193,7 +1280,11 @@ mod tests {
             priority: Q32_ONE,
         };
 
-        let solutions = solve_agents(&[arclight, rhino], Q32_ONE * 5);
+        let solutions = solve_agents(
+            &[arclight, rhino],
+            Q32_ONE * 5,
+            &mut QuadtreeCapacity::default(),
+        );
         assert_eq!(
             solutions[&AgentKey::Unit(2)],
             AgentSolution {
@@ -1397,7 +1488,9 @@ mod tests {
         assert_eq!(found(&unit(1), wall(0)), 1, "the other side counts it");
         assert_eq!(found(&unit(0), wall(0)), 1, "and so does its own");
 
-        let solved = |inputs: &[AgentInput]| solve_agents(inputs, Q32_ONE * 5)[&AgentKey::Unit(1)];
+        let solved = |inputs: &[AgentInput]| {
+            solve_agents(inputs, Q32_ONE * 5, &mut QuadtreeCapacity::default())[&AgentKey::Unit(1)]
+        };
         let alone = solved(&[unit(0)]);
         assert_eq!(
             solved(&[unit(0), wall(0)]),

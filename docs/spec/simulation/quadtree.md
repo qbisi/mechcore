@@ -23,7 +23,8 @@ neighbours. Change any of them and the fight diverges.
 ```text
 NativeQuadtree
   inputs : &[AgentInput]       # the agent array, fixed for this round
-  nodes  : Vec<QuadtreeNode>   # a contiguous node pool
+  nodes  : Vec<QuadtreeNode>   # the node array, as long as the native one
+  filled : usize               # nodes in use, the first ones
   next   : Vec<Option<usize>>  # one singly-linked list entry per agent
   bounds : QuadtreeRect
 
@@ -36,7 +37,13 @@ QuadtreeNode
 
 Four children are always appended contiguously in one go, so a node stores only
 `child00` and the rest are `child00 + 1..3`. A branch holds no agents; every
-agent ends up in a leaf list.
+agent in the tree is in a leaf list.
+
+The node array's length is state of the fight, not of one tree. It is 16 when
+the fight's simulator is made, and when four more nodes would leave fewer than
+one slot free (`filled + 4 >= length`) it doubles before they are appended. A
+tree starts from the length the previous tree of the fight left, which the
+kernel carries as `QuadtreeCapacity`.
 
 | Constant | Value | Meaning |
 | --- | ---: | --- |
@@ -103,12 +110,26 @@ live constructions, then the live units from a `BTreeMap` ordered by Unit ID.
 
 At a leaf:
 
-1. with `count < 15`, prepend the new agent to the leaf list;
-2. with `count >= 15` and depth below 11, create four children contiguously;
-3. walking the old leaf list from head to tail, prepend each existing agent into
-   its own child leaf;
-4. clear the parent leaf, then continue descending with the new agent;
-5. at depth 11, keep everything in one leaf even past 15.
+1. with `count < 15`, or at depth 11, prepend the new agent to the leaf list
+   and count it;
+2. otherwise append four children, and make the first of them the leaf's
+   `child00`, unless appending them doubled the node array;
+3. walk the leaf's list from its head: prepend each agent into the node
+   `child00 + quadrant` and move the head to the agent it pointed to;
+4. set the leaf's `count` to 0, and continue with the new agent one level
+   deeper: into its quadrant's child, or, when the leaf stayed a leaf, into
+   the same node again.
+
+The depth counts every pass of the loop, so a leaf that stayed a leaf is
+entered again one level deeper. A distributed agent is not counted: `count`
+counts only the agents inserted into the leaf since it was made or last
+distributed.
+
+When the split doubled the array, `child00` is still the leaf's own index, so
+step 3 sends an agent of quadrant 0 back to the leaf itself. The agent is
+prepended to the list whose head it is, pointing to itself, and the head moves
+past it: it leaves the tree. An agent of another quadrant goes to the node that
+many places after the leaf, whatever that node is.
 
 Prepending reverses order, and a split prepends each item again, reversing it a
 second time. That list order becomes the leaf scan order and therefore fixes
@@ -116,8 +137,9 @@ which equidistant candidate wins. It cannot be replaced by a sorted `Vec` or a
 hash container.
 
 A split still happens when every point coincides and the root bounds have zero
-width and height. All points sink through quadrant 0 to the maximum depth, and
-the final leaf may hold more than 15.
+width and height. Every split then sends the whole list to quadrant 0, which
+holds it with a count of 0, so each level takes fifteen more agents before it
+splits. The splits that double the array lose everything inserted before them.
 
 ## Node maximum speed
 
@@ -190,20 +212,27 @@ every agent's tree_position = (0, 0)
 every agent's position      = its real current position
 ```
 
-Combined with leaf capacity that produces two distinct cases:
+The first tree is also the one that starts from an array of 16, and its
+coincident points split the most. Leaf capacity and the array's growth give
+three cases:
 
 - **At most 15 agents.** The root stays a leaf. A query passes through no
   spatial branch, scans every member, and filters by real position.
-- **More than 15 agents.** The tree splits repeatedly at zero coordinates. A
-  query centres its crossing test on the real position and may never reach the
-  quadrant 0 branch where the agents actually are.
+- **16 to 60 agents.** The tree splits along quadrant 0 at most three times,
+  within the 16 nodes, and keeps every agent in its deepest leaf. A query
+  centres its crossing test on the real position and reaches that leaf only
+  from within its range of the origin on both axes.
+- **More than 60 agents.** The fourth split doubles the array to 32, and the
+  first 60 agents leave the tree; the eighth doubles it to 64, and the first
+  120 have left. Only the agents inserted after the last doubling are in the
+  tree, the last of the units by ID.
 
-Two native scenarios separate the two cases: Steel Ball, with 8 units per side
-plus 4 colliding buildings, is 12 agents and does not split; Rhino against
+Two native scenarios separate the first two cases: Steel Ball, with 8 units per
+side plus 4 colliding buildings, is 12 agents and does not split; Rhino against
 Crawlers, with 25 units plus 4 buildings, is 29 agents and does. The first
 solve publishes at the next RVO boundary, which is MCFR tick 8 in the native
 captures. Every later build uses the positions saved at the previous RVO
-boundary rather than zeros.
+boundary rather than zeros, in the array the first tree grew.
 
 ## Determinism invariants
 
@@ -212,15 +241,19 @@ Changing the quadtree must preserve all of these:
 - bounds use only `tree_position`; the query centre and leaf distances use only
   `position`;
 - leaf capacity is 15, the 16th item splits, maximum depth is 11;
-- four children are appended contiguously to the node pool;
+- four children are appended contiguously to the node array, which starts at
+  16 for the fight and doubles when `filled + 4` reaches its length;
+- a split that doubles the array leaves its leaf a leaf, and distributes it
+  over the nodes after it;
 - leaf members are prepended, and a split prepends again in old-list order;
 - branches are visited 0, 1, 2, 3;
 - among equidistant neighbours the one traversed first is kept;
 - the twentieth distance narrows later branches only once twenty are held;
 - the Q32.32 centre, `Min/Max` and comparisons keep the native operation order.
 
-The unit test covering the double buffer directly is
-`quadtree_builds_from_the_previous_buffer_but_queries_current_positions`.
+The unit tests covering the double buffer and the array's growth directly are
+`quadtree_builds_from_the_previous_buffer_but_queries_current_positions` and
+`a_split_that_grows_the_node_array_loses_the_list_it_splits`.
 
 ## Fidelity boundary
 
@@ -236,6 +269,8 @@ Not established:
   which is to say the behaviour when a query genuinely exceeds twenty
   candidates in contention;
 - depth 11 saturation outside the coincident-point case;
+- a split that doubles the array when its list spreads over several quadrants,
+  which sends agents into whatever nodes follow the leaf;
 - any agent population the corpus has not reached, buildings with collision
   layers other than those it contains included.
 
