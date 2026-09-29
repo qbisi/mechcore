@@ -287,13 +287,13 @@ impl Overlays {
     /// reads a skill's and a buff's aggregates by its own arithmetic, which is
     /// not measured, so an interval corrected twice is refused rather than
     /// assumed to compose like damage.
-    fn resolve(&self, index: Index, base: i64) -> Result<i64> {
+    pub(crate) fn resolve(&self, index: Index, base: i64) -> Result<i64> {
         self.resolve_scaled(index, base, |value| value)
     }
 
     /// [`Overlays::resolve`] with the enhancements alone: what a number
     /// comes to before anything reduces it.
-    fn resolve_raised(&self, index: Index, base: i64) -> Result<i64> {
+    pub(crate) fn resolve_raised(&self, index: Index, base: i64) -> Result<i64> {
         let enhance = [&self.unit, &self.skill, &self.buff]
             .into_iter()
             .filter_map(|overlay| overlay.aggregate(index))

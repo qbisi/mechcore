@@ -233,6 +233,8 @@ struct Simulation {
     /// among `DeadEffectSystem.deadActors`, whose `OnDead` waits for that
     /// module's update.
     fallen_towers: Vec<u64>,
+    /// The buffs on constructions, by building.
+    building_buffs: BTreeMap<u64, tower::BuildingBuffs>,
     /// The buffs `BuffManager.Update` dropped from a unit dead this tick, to
     /// name in the `cleared` that follows its `unit_died`.
     dropped_buffs: BTreeMap<u64, Vec<u32>>,
@@ -335,6 +337,7 @@ impl Simulation {
             fallen_buildings: Vec::new(),
             tower_buff_events: BTreeMap::new(),
             fallen_towers: Vec::new(),
+            building_buffs: BTreeMap::new(),
             dropped_buffs: BTreeMap::new(),
             construction_colliders: construction_colliders.clone(),
             map_crystals,
@@ -477,15 +480,23 @@ impl Simulation {
                 )?;
                 self.step_actor_rvo_position(actor_id);
             }
+            // Every construction updates, a wall block as a turret: one that
+            // fires runs its skill, and each runs its buffs last.
             let building_ids = self
-                .constructions
+                .buildings
                 .iter()
-                .filter_map(|(&building_id, construction)| {
-                    (construction.team == team_id).then_some(building_id)
+                .filter(|building| {
+                    building.team_id == team_id
+                        && (self.constructions.contains_key(&building.building_id)
+                            || self.building_buffs.contains_key(&building.building_id))
                 })
-                .collect::<Vec<_>>();
+                .map(|building| building.building_id)
+                .collect::<std::collections::BTreeSet<_>>();
             for building_id in building_ids {
-                self.step_construction(building_id, step, &target_search_order, &mut events)?;
+                if self.constructions.contains_key(&building_id) {
+                    self.step_construction(building_id, step, &target_search_order, &mut events)?;
+                }
+                self.update_construction_buffs(building_id, &mut events)?;
             }
         }
         let naturally_finished_before_projectiles = self.naturally_finished();
@@ -585,7 +596,8 @@ impl Simulation {
         // `BuffManager.Clear` takes a dying unit's buffs as it dies, whatever
         // killed it.
         for death in deaths {
-            let follows = self.what_follows_an_end(&death);
+            let (precedes, follows) = self.around_an_end(&death);
+            events.extend(precedes);
             events.push(death);
             events.extend(follows);
         }
@@ -594,7 +606,8 @@ impl Simulation {
         // caused, and after every removal the tick resolved. A fallen tower's
         // buff follows it, as a dead unit's cleared buffs follow its death.
         for fallen in std::mem::take(&mut self.fallen_buildings) {
-            let follows = self.what_follows_an_end(&fallen);
+            let (precedes, follows) = self.around_an_end(&fallen);
+            events.extend(precedes);
             events.push(fallen);
             events.extend(follows);
         }
@@ -625,22 +638,26 @@ impl Simulation {
         Ok(TransitionEvents { events })
     }
 
-    /// The events that follow a unit's death or a building's fall: the
-    /// buffs the dead unit had, cleared, or the buff a fallen tower wrote on
-    /// its side.
-    fn what_follows_an_end(&mut self, end: &Event) -> Vec<Event> {
+    /// The events around a unit's death or a building's fall, before it and
+    /// after it. A dead unit's buffs, cleared, follow its death; a fallen
+    /// construction's precede its fall, and a fallen tower's buff on its side
+    /// follows it.
+    fn around_an_end(&mut self, end: &Event) -> (Vec<Event>, Vec<Event>) {
         match (end.subject, &end.payload) {
             (Some(subject), EventPayload::UnitDied { .. }) if subject.kind == ObjectKind::Unit => {
-                self.buffs_cleared_by_death(subject.id)
+                (Vec::new(), self.buffs_cleared_by_death(subject.id))
             }
             (Some(subject), EventPayload::BuildingDestroyed { .. })
                 if subject.kind == ObjectKind::Building =>
             {
-                self.tower_buff_events
-                    .remove(&subject.id)
-                    .unwrap_or_default()
+                (
+                    self.construction_buffs_cleared(subject.id),
+                    self.tower_buff_events
+                        .remove(&subject.id)
+                        .unwrap_or_default(),
+                )
             }
-            _ => Vec::new(),
+            _ => (Vec::new(), Vec::new()),
         }
     }
 

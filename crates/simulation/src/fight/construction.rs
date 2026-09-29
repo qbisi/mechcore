@@ -24,6 +24,8 @@ pub(in crate::fight) struct Construction {
     pub(in crate::fight) radius: i64,
     /// The skill row, with the construction's own damage.
     pub(in crate::fight) attack: AttackConfig,
+    /// The damage it deals, which a tower's loss on its side corrects.
+    pub(in crate::fight) attack_damage: i64,
     /// How far its weapon turns in one update.
     pub(in crate::fight) turn_q32: i64,
     /// Whether it has a `ConstructionSearchTargetController`, which its row's
@@ -48,6 +50,7 @@ impl Construction {
             x_q32: building.position.x,
             z_q32: building.position.z,
             radius: building_radius(building),
+            attack_damage: attack.base_damage,
             attack,
             turn_q32: q32_mul(i64::from(rotate_speed) << 32, NATIVE_LOGIC_DELTA_Q32),
             searches,

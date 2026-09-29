@@ -13,17 +13,20 @@
 //! reaches `BuffManager.AddBuff`. A buff already running in the same
 //! `buffDivide` is not added again: `Buff.Reset` lengthens it by the new row's
 //! duration in additive mode, and restarts it otherwise. `BuffManager.Update`
-//! runs last in `FightMech.Update`, after the skill and the motion, and a buff
-//! ends on the update its elapsed ticks reach its duration.
+//! runs last in `FightMech.Update` and `FightConstruction.Update`, after the
+//! skill and the motion, and a buff ends on the update its elapsed ticks reach
+//! its duration. The side's objects are its units and then its constructions
+//! whose row lets a tower's buff reach them.
 //!
-//! Each of these is an event: `buff_applied` for every unit the loss reaches,
-//! after the tower's `building_destroyed`, naming the running buff's row and
-//! the ticks left on it; `buff_removed` when its time is up, and, `cleared`,
-//! right after the `unit_died` of a unit that dies with it.
+//! Each of these is an event: `buff_applied` for every object the loss
+//! reaches, after the tower's `building_destroyed`, naming the running buff's
+//! row and the ticks left on it; `buff_removed` when its time is up, and,
+//! `cleared`, right after the `unit_died` of a unit that dies with it or right
+//! before the `building_destroyed` of a construction that falls with it.
 
 use crate::{
     Error, Result,
-    data::{Channel, Correction, Entry, Index},
+    data::{Channel, Correction, Entry, Index, Overlays},
     rules::{TowerLevel, TowersConfig},
 };
 
@@ -131,32 +134,12 @@ impl Simulation {
     }
 
     /// `FightTeamController.OnTowerDestoryed`: the fallen building's buff, on
-    /// every live object of its side.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the side has a live construction the buff would
-    /// reach, which no recording has shown, rather than leaving it out.
+    /// every live object of its side, `FightTeam.activeActors`: its units,
+    /// then its constructions whose row lets a tower's buff reach them.
     pub(in crate::fight) fn lose_tower(&mut self, building_id: u64) -> Result<()> {
         let Some(loss) = self.tower_losses.get(&building_id).copied() else {
             return Ok(());
         };
-        if self.towers.reaches_constructions() {
-            let reached = self.buildings.iter().find(|building| {
-                building.team_id == loss.team
-                    && building.life.current > 0
-                    && self
-                        .tower_buffed_constructions
-                        .contains(&building.building_id)
-            });
-            if let Some(building) = reached {
-                return Err(Error::new(format!(
-                    "team {} loses a tower while its construction {} stands, and \
-                     what a tower's loss writes on a construction is not measured",
-                    loss.team, building.building_id
-                )));
-            }
-        }
         let entries = self.towers.entries();
         let mut applied = Vec::new();
         let divide = self.towers.destroyed_buff.buff_divide;
@@ -173,41 +156,125 @@ impl Simulation {
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
-            if let Some(running) = actor
-                .buffs
-                .iter_mut()
-                .find(|running| running.divide == divide)
-            {
-                // `Buff.Reset`: an additive buff lasts the new row's duration
-                // longer; any other starts over.
-                if running.additive {
-                    running.duration = running.duration.saturating_add(loss.ticks);
-                } else {
-                    running.elapsed = 0;
+            let (running, added) = add_loss(&mut actor.buffs, loss, divide, additive);
+            applied.push(buff_applied(
+                ObjectRef::new(ObjectKind::Unit, actor_id),
+                loss.team,
+                &running,
+            ));
+            if added {
+                for entry in &entries {
+                    actor
+                        .stats
+                        .overlays
+                        .channel(Channel::Buff)
+                        .write(entry.clone());
                 }
-                applied.push(buff_applied(actor_id, loss.team, running));
-                continue;
+                actor.stats.refresh(&actor.rules)?;
             }
-            let running = RunningBuff {
-                buff_id: loss.buff_id,
-                divide,
-                additive,
-                elapsed: 0,
-                duration: loss.ticks,
-            };
-            applied.push(buff_applied(actor_id, loss.team, &running));
-            actor.buffs.push(running);
-            for entry in &entries {
-                actor
-                    .stats
-                    .overlays
-                    .channel(Channel::Buff)
-                    .write(entry.clone());
+        }
+        let reached = if self.towers.reaches_constructions() {
+            self.buildings
+                .iter()
+                .filter(|building| {
+                    building.team_id == loss.team
+                        && building.life.current > 0
+                        && self
+                            .tower_buffed_constructions
+                            .contains(&building.building_id)
+                })
+                .map(|building| building.building_id)
+                .collect::<Vec<_>>()
+        } else {
+            Vec::new()
+        };
+        for construction_id in reached {
+            let buffed = self.building_buffs.entry(construction_id).or_default();
+            let (running, added) = add_loss(&mut buffed.buffs, loss, divide, additive);
+            applied.push(buff_applied(
+                ObjectRef::new(ObjectKind::Building, construction_id),
+                loss.team,
+                &running,
+            ));
+            if added {
+                for entry in &entries {
+                    buffed.overlays.channel(Channel::Buff).write(entry.clone());
+                }
+                self.refresh_construction(construction_id)?;
             }
-            actor.stats.refresh(&actor.rules)?;
         }
         self.tower_buff_events.insert(building_id, applied);
         Ok(())
+    }
+
+    /// A firing construction's damage, as its buffs leave it.
+    fn refresh_construction(&mut self, building_id: u64) -> Result<()> {
+        let Some(construction) = self.constructions.get_mut(&building_id) else {
+            return Ok(());
+        };
+        let base = construction.attack.base_damage;
+        construction.attack_damage = match self.building_buffs.get(&building_id) {
+            Some(buffed) => buffed.overlays.resolve(Index::AttackDamage, base)?,
+            None => base,
+        };
+        Ok(())
+    }
+
+    /// What one hit of `amount` takes off a construction, and what it counts
+    /// as taken: the hit scaled by its buffs' rate on damage taken, as a
+    /// unit's is.
+    pub(in crate::fight) fn construction_damage_taken(
+        &self,
+        building_id: u64,
+        amount: i64,
+    ) -> Result<(i64, i64)> {
+        match self.building_buffs.get(&building_id) {
+            Some(buffed) => Ok((
+                buffed.overlays.resolve(Index::AmplifyDamage, amount)?,
+                buffed
+                    .overlays
+                    .resolve_raised(Index::AmplifyDamage, amount)?,
+            )),
+            None => Ok((amount, amount)),
+        }
+    }
+
+    /// `BuffManager.Update`, last in `FightConstruction.Update`: a
+    /// construction's buffs one tick older, and those whose time is up taken
+    /// away.
+    pub(in crate::fight) fn update_construction_buffs(
+        &mut self,
+        building_id: u64,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        let Some(buffed) = self.building_buffs.get_mut(&building_id) else {
+            return Ok(());
+        };
+        let subject = ObjectRef::new(ObjectKind::Building, building_id);
+        if tick_buffs(&mut buffed.buffs, subject, events) {
+            buffed.overlays.channel(Channel::Buff).withdraw(SOURCE);
+            if buffed.buffs.is_empty() {
+                self.building_buffs.remove(&building_id);
+            }
+            self.refresh_construction(building_id)?;
+        }
+        Ok(())
+    }
+
+    /// The buffs a construction had when it fell, `cleared`, to follow its
+    /// `building_destroyed`.
+    pub(in crate::fight) fn construction_buffs_cleared(&mut self, building_id: u64) -> Vec<Event> {
+        let subject = ObjectRef::new(ObjectKind::Building, building_id);
+        self.building_buffs
+            .remove(&building_id)
+            .map(|buffed| {
+                buffed
+                    .buffs
+                    .iter()
+                    .map(|buff| buff_removed(subject, buff.buff_id, BuffRemovedReason::Cleared))
+                    .collect()
+            })
+            .unwrap_or_default()
     }
 
     /// The buffs a unit that died this tick had, `cleared`, to follow its
@@ -228,7 +295,13 @@ impl Simulation {
         let dropped = self.dropped_buffs.remove(&actor_id).unwrap_or_default();
         let ids = if running.is_empty() { dropped } else { running };
         ids.into_iter()
-            .map(|buff_id| buff_removed(actor_id, buff_id, BuffRemovedReason::Cleared))
+            .map(|buff_id| {
+                buff_removed(
+                    ObjectRef::new(ObjectKind::Unit, actor_id),
+                    buff_id,
+                    BuffRemovedReason::Cleared,
+                )
+            })
             .collect()
     }
 
@@ -266,26 +339,8 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
-        if actor.buffs.is_empty() {
-            return Ok(());
-        }
-        for running in &mut actor.buffs {
-            running.elapsed = running.elapsed.saturating_add(1);
-        }
-        let before = actor.buffs.len();
-        for running in &actor.buffs {
-            if running.elapsed >= running.duration {
-                events.push(buff_removed(
-                    actor_id,
-                    running.buff_id,
-                    BuffRemovedReason::Expired,
-                ));
-            }
-        }
-        actor
-            .buffs
-            .retain(|running| running.elapsed < running.duration);
-        if actor.buffs.len() != before {
+        let subject = ObjectRef::new(ObjectKind::Unit, actor_id);
+        if tick_buffs(&mut actor.buffs, subject, events) {
             // One buff writes here today, so its end takes the channel's
             // entries with it.
             actor.stats.overlays.channel(Channel::Buff).withdraw(SOURCE);
@@ -295,12 +350,72 @@ impl Simulation {
     }
 }
 
-fn buff_applied(actor_id: u64, team: u32, running: &RunningBuff) -> Event {
+/// A construction's running buffs and what they write: the `BuffManager`
+/// a `FightConstruction` carries, which a unit's stats hold for it.
+#[derive(Debug, Clone, Default)]
+pub(in crate::fight) struct BuildingBuffs {
+    buffs: Vec<RunningBuff>,
+    overlays: Overlays,
+}
+
+/// `BuffManager.AddBuff` of a tower's loss: a buff already running in the
+/// same divide is `Buff.Reset`, lengthened by the new row's duration when
+/// additive and started over otherwise; any other is added. The running buff
+/// is returned, with whether it is new.
+fn add_loss(
+    buffs: &mut Vec<RunningBuff>,
+    loss: TowerLoss,
+    divide: i32,
+    additive: bool,
+) -> (RunningBuff, bool) {
+    if let Some(running) = buffs.iter_mut().find(|running| running.divide == divide) {
+        if running.additive {
+            running.duration = running.duration.saturating_add(loss.ticks);
+        } else {
+            running.elapsed = 0;
+        }
+        return (*running, false);
+    }
+    let running = RunningBuff {
+        buff_id: loss.buff_id,
+        divide,
+        additive,
+        elapsed: 0,
+        duration: loss.ticks,
+    };
+    buffs.push(running);
+    (running, true)
+}
+
+/// Every running buff one tick older, and those whose time is up removed
+/// with an `expired` event; whether any was.
+fn tick_buffs(buffs: &mut Vec<RunningBuff>, subject: ObjectRef, events: &mut Vec<Event>) -> bool {
+    if buffs.is_empty() {
+        return false;
+    }
+    for running in buffs.iter_mut() {
+        running.elapsed = running.elapsed.saturating_add(1);
+    }
+    let before = buffs.len();
+    for running in buffs.iter() {
+        if running.elapsed >= running.duration {
+            events.push(buff_removed(
+                subject,
+                running.buff_id,
+                BuffRemovedReason::Expired,
+            ));
+        }
+    }
+    buffs.retain(|running| running.elapsed < running.duration);
+    buffs.len() != before
+}
+
+fn buff_applied(subject: ObjectRef, team: u32, running: &RunningBuff) -> Event {
     event(
         None,
         None,
         Some(team),
-        Some(ObjectRef::new(ObjectKind::Unit, actor_id)),
+        Some(subject),
         EventPayload::BuffApplied {
             buff_id: running.buff_id,
             duration: i32::try_from(running.duration.saturating_sub(running.elapsed))
@@ -309,12 +424,12 @@ fn buff_applied(actor_id: u64, team: u32, running: &RunningBuff) -> Event {
     )
 }
 
-fn buff_removed(actor_id: u64, buff_id: u32, reason: BuffRemovedReason) -> Event {
+fn buff_removed(subject: ObjectRef, buff_id: u32, reason: BuffRemovedReason) -> Event {
     event(
         None,
         None,
         None,
-        Some(ObjectRef::new(ObjectKind::Unit, actor_id)),
+        Some(subject),
         EventPayload::BuffRemoved { buff_id, reason },
     )
 }

@@ -54,6 +54,22 @@ A second loss while the buff runs does not add a second buff. `BuffManager`
 finds the running one in the same `buffDivide`, and `Buff.Reset` lengthens it
 by the new row's duration, because the row is additive. The rates never stack.
 
+## A construction takes the loss too
+
+The side's actor list holds its constructions as well as its units, so a
+construction standing when its side loses a tower takes the buff after every
+unit of the side, when both the buff row's `canAffectConstruction` and the
+construction row's `canBeEffectedByTowerBuff` are set. `config/constructions.yaml`
+says which rows set the second; `config/towers.yaml` says the buff sets the
+first. A layout's Defensive Wall does not set it, and both turrets do.
+
+On a turret the buff does what it does on a unit. Its shots deal the damage
+the rates leave, a tenth of the row's; every hit it takes is scaled by the
+rate on damage taken; and `BuffManager.Update`, last in
+`FightConstruction.Update` as in `FightMech.Update`, ends it when its time is
+up. A construction that falls under the buff has it written as cleared just
+before its `building_destroyed`, where a unit's follows its `unit_died`.
+
 ## When
 
 The buff reaches the side after every unit and every projectile has updated
@@ -96,6 +112,11 @@ gets the debuffed speed through `Move`.
   `tests/tower/fights/`.
 - A second loss inside the first's debuff lengthens it by the new row's
   duration and does not stack the rates: `tests/tower/fights/`.
+- A turret standing through the loss takes the buff after the side's units,
+  fires at a tenth of its damage, takes hits raised by the rate on damage
+  taken, and loses the buff when it expires or, cleared, just before it falls:
+  `tests/tower/fights/turret-falls-under-the-loss.yaml`,
+  `tests/tower/fights/turret-outlasts-the-loss.yaml`.
 - A unit that dies under the buff has it written as cleared after its death,
   a projectile's kill as any other: `tests/tower/fights/`.
 - The buff counts from the tick after the tower falls on the side updated
@@ -126,13 +147,16 @@ gets the debuffed speed through `Move`.
 - A tower's buffs are kept apart from a unit's: `BuffManager.towerBuffDatas`,
   `BuffManager.GetTowerBuffDamageChangeAddRate`.
 - A buff row may reach a tower: `BuffData.canAffectTower`.
+- A buff row may reach a construction, and a construction row may let it:
+  `BuffData.canAffectConstruction`, `ConstructionData.CanBeEffectedByTowerBuff`.
+- A construction runs its buffs last in its update: `FightConstruction.Update`,
+  `BuffManager.Update`.
 
 ### Not established
 
-- **A construction standing when its side loses a tower.** `canAffectConstruction`
-  is set on the buff and `can_be_effected_by_tower_buff` on every construction
-  but the Defensive Wall's first row, and no recording has one standing through
-  a loss; the simulator refuses the fight when it happens.
+- **A Defensive Wall block, or a construction other than the turrets, under
+  the buff.** The Defensive Wall a layout places does not take it, and no
+  recording has another construction that does.
 - **A tower taking a buff.** Read above, not recorded.
 - **The losing side's blows and beams on the tick its tower falls.** Read
   above: they land without the buff, as its projectiles are recorded to. No

@@ -192,7 +192,7 @@ impl Simulation {
                     y: 0,
                     attack: &construction.attack,
                     attack_range: construction.attack.range(),
-                    attack_damage: construction.attack.base_damage,
+                    attack_damage: construction.attack_damage,
                     attack_interval: construction.attack.interval_time_units(),
                     facing: Facing::Weapons(&construction.skill.weapon_rotations_q32),
                     has_body: true,
