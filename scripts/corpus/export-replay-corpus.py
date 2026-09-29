@@ -74,7 +74,7 @@ def main() -> int:
     root = Path(__file__).resolve().parents[2]
     args = parse_arguments(root)
     executable = args.mechcore.resolve()
-    version = args.version or build_data.build()
+    version = args.version or build_data.configured_build()
     corpus = root / "work" / "replay" / "replays" / version
     match_dir = (args.match_dir or root / "work" / "match" / version).resolve()
     if not executable.is_file():

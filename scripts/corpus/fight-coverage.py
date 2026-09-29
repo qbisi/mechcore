@@ -90,7 +90,7 @@ def main() -> int:
     accepted = 0
     with tempfile.TemporaryDirectory() as room:
         layout = pathlib.Path(room) / "deployment.yaml"
-        matches = REPOSITORY / (arguments.matches or f"work/match/{build_data.build()}")
+        matches = REPOSITORY / (arguments.matches or f"work/match/{build_data.configured_build()}")
         for match_doc in sorted(matches.glob("*.yaml")):
             for round_number in range(1, rounds_of(match_doc) + 1):
                 projected = subprocess.run(
@@ -122,9 +122,17 @@ def main() -> int:
     if not total:
         return 1
 
-    print("\nwhat the corpus asks for")
+    # How many rounds each refusal is all that stands between: the ones its
+    # owner alone would open. Most rounds are held by several at once, so this
+    # and not the count of rounds a refusal appears in orders the work.
+    owed = [{owner for _, owner in held} for held in blockers]
+    alone = collections.Counter(next(iter(held)) for held in owed if len(held) == 1)
+    print("\nwhat the corpus asks for, and the rounds it alone holds")
     for (what, owner), count in asked.most_common():
-        print(f"  {count:4} rounds ({100 * count // total:2}%)  {named(what, owner)}")
+        print(
+            f"  {count:4} rounds ({100 * count // total:2}%)  {alone[owner]:3} alone  "
+            f"{named(what, owner)}"
+        )
     sizes = collections.Counter(len(held) for held in blockers)
     print(
         "  refusals per round: "
@@ -134,7 +142,6 @@ def main() -> int:
     # A module lands whole, so the order that opens the corpus fastest is over
     # owners and not over fields. It is not the same as which refusal blocks
     # the most rounds: a round opens only when everything it names is cleared.
-    owed = [{owner for _, owner in held} for held in blockers]
     print("\nrounds inside the closure as owners clear, greedily ordered")
     done: set[str] = set()
     while remaining := set().union(*owed) - done:

@@ -67,7 +67,7 @@ def sync():
 
 
 def path(version):
-    version = version or build_data.build()
+    version = version or build_data.configured_build()
     directory = DESTINATION / "replays" / version
     if not directory.is_dir():
         fail(f"no replays of {version} under work/replay; run scripts/corpus/replay.py sync")

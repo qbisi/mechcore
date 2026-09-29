@@ -15,10 +15,16 @@ here make the corpus, fetch it, and read it:
 | `verify-matches.py` | runs `mechcore verify` over those matches and adds up the transition coverage |
 | `match-replays.py` | fights every round of both replays, the corpus's and the one its match writes, in the game, and compares the two |
 | `fight-coverage.py` | how many recorded rounds the simulator fights, and what it names as missing for the rest |
+| `distance-report.py` | the two reports above as one Markdown table, beside an earlier commit's |
 
-Neither the test suite nor CI reads a replay: the converter is not bound to
-read every version the corpus holds, and a replay added there must not turn
-this repository's CI red.
+The test suite and the gate read no replay: the converter is not bound to
+read every version the corpus holds, and a replay added there must not keep a
+change from merging. [`corpus.yml`](../../.github/workflows/corpus.yml) reads
+it outside the gate. On every pull request and master commit it fetches the
+corpus, converts this version's replays, runs `fight-coverage.py` and
+`verify-matches.py`, and keeps the reports; on a pull request it also keeps one
+comment with `distance-report.py`'s table, compared with the master commit the
+pull request is based on.
 
 **A replay is evidence.** It is copied from the Steam installation byte for
 byte and never rewritten. Only a locally recorded replay is admitted: the
