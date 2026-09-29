@@ -223,12 +223,18 @@ struct Simulation {
     /// and no skill updates on it.
     stop_step: Option<u64>,
     late_building_events_pending: bool,
+    /// The buildings `FightCoreSystem.TryDstroyTower` tore down, whose
+    /// `building_destroyed` the next tick records.
+    torn_down_buildings: Vec<u64>,
     /// Buildings a projectile destroyed this tick, held until every projectile
     /// has resolved so their events follow all of the tick's shots.
     fallen_buildings: Vec<Event>,
     /// The `buff_applied` events a tower's loss wrote this tick, by tower, to
     /// follow its `building_destroyed`.
     tower_buff_events: BTreeMap<u64, Vec<Event>>,
+    /// The buildings standing when the tick's target queries were prepared,
+    /// as `target_query_alive` is for a unit.
+    buildings_query_alive: std::collections::BTreeSet<u64>,
     /// The towers a hit emptied this tick, in the order they fell: the towers
     /// among `DeadEffectSystem.deadActors`, whose `OnDead` waits for that
     /// module's update.
@@ -320,6 +326,7 @@ impl Simulation {
         let map_crystals = map_crystals(maps.buildings(layout.map_id)?);
         let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
         let mech_quadtrees = initialize_mech_quadtrees(&actors);
+        let buildings_query_alive = standing_buildings(&buildings);
         let mut simulation = Self {
             actors,
             team_random: BTreeMap::new(),
@@ -334,10 +341,12 @@ impl Simulation {
             terminal_drain_pending: false,
             stop_step: None,
             late_building_events_pending: false,
+            torn_down_buildings: Vec::new(),
             fallen_buildings: Vec::new(),
             tower_buff_events: BTreeMap::new(),
             fallen_towers: Vec::new(),
             building_buffs: BTreeMap::new(),
+            buildings_query_alive,
             dropped_buffs: BTreeMap::new(),
             construction_colliders: construction_colliders.clone(),
             map_crystals,
@@ -430,22 +439,27 @@ impl Simulation {
         self.stop_step = winner_was_decided.then_some(step);
         self.refresh_target_query_snapshot();
         let mut events = Vec::new();
-        if publish_late_building_events && let Some(winning_team) = self.winner() {
-            for building in self
-                .buildings
-                .iter()
-                .filter(|building| building.team_id != winning_team && !building_alive(building))
-            {
+        if publish_late_building_events {
+            // The towers the fight's end tore down, and then every buff a
+            // unit still runs, cleared as the fight is left
+            // (`BuffManager.Clear`): a buff the loss of a tower wrote and
+            // that has not run out is written as cleared on every survivor.
+            for building_id in std::mem::take(&mut self.torn_down_buildings) {
+                let position = self
+                    .buildings
+                    .iter()
+                    .find(|building| building.building_id == building_id)
+                    .map(|building| building.position)
+                    .ok_or_else(|| Error::new("a torn-down building is absent"))?;
                 events.push(event(
-                    Some(ObjectRef::new(ObjectKind::Building, building.building_id)),
+                    Some(ObjectRef::new(ObjectKind::Building, building_id)),
                     None,
                     None,
                     None,
-                    EventPayload::BuildingDestroyed {
-                        position: building.position,
-                    },
+                    EventPayload::BuildingDestroyed { position },
                 ));
             }
+            self.clear_buffs_as_the_fight_ends(&mut events)?;
         }
         // Native search jobs retain the actor-quadtree candidate order
         // prepared at the start of this FightCore update.
@@ -531,6 +545,7 @@ impl Simulation {
             building.life.current = 0;
             building.targetable = false;
             queued_late_building_events = true;
+            self.torn_down_buildings.push(building.building_id);
         }
         if queued_late_building_events {
             self.terminal_drain_pending = true;
@@ -693,7 +708,7 @@ impl Simulation {
                     query_z_q32: z_q32,
                     radius: building_radius(building),
                     alive: building_alive(building),
-                    query_alive: building_alive(building),
+                    query_alive: self.buildings_query_alive.contains(&id),
                     targetable: building.targetable && building.available,
                     domain: UnitDomain::Ground,
                 })
@@ -796,4 +811,15 @@ const fn unit_height(domain: UnitDomain) -> i64 {
         UnitDomain::Ground => 0,
         UnitDomain::Air => AIR_UNIT_HEIGHT,
     }
+}
+
+/// The buildings standing, by id.
+pub(in crate::fight) fn standing_buildings(
+    buildings: &[BuildingState],
+) -> std::collections::BTreeSet<u64> {
+    buildings
+        .iter()
+        .filter(|building| building_alive(building))
+        .map(|building| building.building_id)
+        .collect()
 }

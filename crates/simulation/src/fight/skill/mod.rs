@@ -813,9 +813,13 @@ impl Simulation {
         }
         if let Some(FightActorRef::Building(building_id)) = selected_candidate {
             let skill = self.skill_mut(owner);
-            skill.lock_target = Some(FightActorRef::Building(building_id));
+            // A building lock is written as any lock is, and the construction
+            // in its way is asked for at once, as `SkillIdleState.TryPerform`
+            // does after `TrySearchLockTarget`.
+            skill.write_lock(Some(FightActorRef::Building(building_id)));
             skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
             skill.set_phase(FightSkillPhase::Idle);
+            self.search_attack_target(owner);
             return Ok(());
         }
         let selected = selected_candidate;
