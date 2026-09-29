@@ -123,6 +123,63 @@ The compiler requires the declared position count to equal the runtime skill's
 `GetEffectPositionCount()`. It does not truncate, duplicate, coerce, or
 synthesize coordinates.
 
+## When a released skill lands
+
+A released position skill other than Mobile Beacon is `CSRC_Common`: a
+`CommanderSkillReleaseState` that prepares, then performs by dropping one
+sub-effect on each position. Write `S` for the row's `startTime`, `T` for its
+`subEffectMoveTime`, `v` for its `subEffectMoveSpeed`, and `s` and `m` for
+`S` and `T` as whole ticks, each divided by `LogicDeltaTime` and truncated.
+Count ticks from the fight's first update, tick 1.
+
+- Preparing counts one a tick from tick 1 and hands over once its count
+  reaches `s - m`, which is never before tick 1: it hands over on tick
+  `P = max(1, s - m)`.
+- Performing activates the first sub-effect on its first update, tick `P + 1`,
+  after that tick's sub-effects have moved, so it moves from tick `P + 2`.
+- A sub-effect starts `v × min(S, T)` above the height it lands at,
+  `subEffectDefaultHeight`, and falls `v × LogicDeltaTime` a tick. It lands on
+  the tick it reaches that height, and what it does is done on that tick.
+  `LogicDeltaTime` is a hair under a twentieth of a second, so a fall of `n`
+  whole twentieths takes `n + 1` ticks, whatever `v` is.
+
+So the first sub-effect lands on tick `P + 1 + N`, `N` being the ticks its fall
+takes: `s + 3` when `S` is no longer than `T`, and `s + 2` when it is longer.
+The Electromagnetic Impact's row, read from
+[`config/commander_skill_effects.yaml`](../../config/commander_skill_effects.yaml),
+lands on tick `s + 3`.
+
+This is the first sub-effect's rule. When a skill with several sub-effects
+activates the later ones is read to wait for their interval, at most one a
+tick, and is not stated here.
+
+## The Electromagnetic Impact
+
+The Electromagnetic Impact and the Electromagnetic Blast are rows of
+`buffCommanderSkills` that differ in their range alone; both write the same
+buff. [`config/commander_skill_effects.yaml`](../../config/commander_skill_effects.yaml),
+which `scripts/extract/extract-commander-skill-effects.py` reads out of
+`CommanderSkillGroupData`, holds them with that buff.
+
+Where its sub-effect lands it reaches every live unit of either side, the
+releasing side's own included, ground and air alike, whose edge stands within
+the skill's range of the landing point in the plane. The range is `effectRange`,
+which preprocessing made the circle's one sub-effect's. Equal counts as within,
+by `FPoint`'s tolerant comparison. A construction or a tower is never reached.
+The units are taken side by side, blue's first, each side in the order its
+target tree holds them, and the buff is written on each in that order.
+
+The buff slows the unit by its `move_speed_rate` for its `duration`, and while
+it runs the unit's technologies are off: `status_mask` reads
+`technology_disabled` whether the unit carries a technology or not. A second
+one on a unit it still runs on restarts it. A buff of divide 0 merges only
+with its own row, so another divide-0 buff, a missile's slow among them, runs
+beside it rather than merging.
+
+A fight's buffs are cleared as the fight is left, on its last tick: after the
+towers it tore down when a side's last unit fell, and after everything else
+that tick did when a projectile landing after the last death decided it.
+
 ## Names
 
 <!-- names: commander_skills -->
@@ -157,6 +214,19 @@ synthesize coordinates.
 
 ## Evidence
 
+### Recorded
+
+- An Electromagnetic Impact lands on tick `s + 3`, writes its buff for its
+  whole duration, and holds the unit's technologies off while it runs, on a
+  unit with none: `tests/battle_skill/fights/rhino-slowed.yaml`.
+- It reaches a unit by its edge, whose centre stands beyond the range:
+  `tests/battle_skill/fights/reached-by-its-edge.yaml`.
+- It reaches air units, and a fight a projectile's landing decided clears its
+  buff on the last tick, after that projectile's removal:
+  `tests/battle_skill/fights/wasps.yaml`.
+- It reaches the releasing side's own units, blue's before red's:
+  `tests/battle_skill/fights/own-side.yaml`.
+
 ### Replayed
 
 - Missile Specialist hands out Heavy Missile Strike as round 3 opens, and a
@@ -186,9 +256,52 @@ synthesize coordinates.
 - A skill states how many positions it takes:
   `CommanderSkillBase.GetEffectPositionCount`,
   `CS_WayPoint.GetEffectPositionCount`.
+- A buff skill and a damage skill release through the common controller:
+  `CS_Buff.CreateReleaseController`, `CS_Damage.CreateReleaseController`,
+  `CSRC_Common.ActiveSubEffect`.
+- Preparing counts from its first update and hands over at `startTime` less
+  the sub-effect's move time, the handover running no update of the next
+  state: `CSRS_Prepare.Update`, `SimpleFSM.ChangeState`,
+  `CommanderSkillBase.GetSubEffectTime`.
+- Performing starts its count where preparing stopped, moves every live
+  sub-effect before it activates the next, and activates at most one a tick:
+  `CSRS_Perform.Enter`, `CSRS_Perform.Update`.
+- A sub-effect starts its speed times the shorter of the two times above its
+  default height, and lands when it falls to that height:
+  `CSRC_Common.ActiveSubEffect`, `CommanderSkillSubEffectAgent.Update`.
+- A sub-effect reaches every live, visible actor of every group in its range
+  by edge distance in the plane, group by group and team by team in tree
+  order, and keeps the units outside an energy shield:
+  `CommanderSkillSubEffectController.PerformNegativeEffect`,
+  `RangeTargetCalculator.CalculateRangeActors`,
+  `RangeTargetCalculator.CalculateRangeActorsInternal`,
+  `FightMech.IsBuffTarget`,
+  `FightCalculator.IsActorInEnergyShield`.
+- The buff is written on each unit still alive, and merges with a running
+  buff of the same row, or of the same nonzero divide, by restarting it:
+  `BuffSystem.AddBuff`, `BuffManager.AddBuff`, `BuffData.IsSameBuff`,
+  `Buff.Reset`.
+- A buff that disables technology counts the unit's disabling up, and the
+  first switches its technology effects off: `BuffManager.AddBuff`,
+  `CBEC_DisableTechnology.Enter`, `FightMech.DisableTechnology`.
 
 ### Not established
 
+- **Another skill's landing.** The rule is read for every `CSRC_Common` skill,
+  and a Missile Strike and an Orbital Javelin were seen landing where it puts
+  them, but only the Electromagnetic Impact's is pinned, and the simulator
+  releases no other.
+- **A later sub-effect.** When a skill with several sub-effects activates each
+  after the first is not stated.
+- **What disabling a technology switches off.** No pinned fight hits a unit
+  that carries one; the simulator refuses such a fight.
+- **An Electromagnetic Impact on a unit running another buff.** The two run
+  side by side, and how their rates compose is not read; the simulator
+  refuses it.
+- **A unit inside an energy shield.** It is read to be spared, and no fight
+  pins it.
+- **The Electromagnetic Blast.** Its row differs in its range alone, and no
+  fight pins it.
 - **A Training Ground release of Heavy Missile Strike.** Its geometry and map
   rule are Missile Strike's by the row, and the corpus releases it, but no
   layout naming it has been run in the Training Ground.

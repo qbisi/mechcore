@@ -1,0 +1,23 @@
+# An Electromagnetic Impact reaches a unit by its edge.
+#
+# The fight is rhino-slowed.yaml's with the skill released aside: as it lands
+# on tick 57 the Rhino's centre stands 65.3 metres from the landing point,
+# beyond the 60 of its range, and its edge 54. The Rhino is reached as it is
+# there, and the two fights record the same.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 309
+hash: {profile: mcfr-content-0.7.0, result: 03ac8b5fb0347ec54923bcf0c1b188a093c38b7dac00f543f0f8df328ffd82d1}
+blue:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/200/1150}
+red:
+  core_damage: 200
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: -69, y: 7}]}

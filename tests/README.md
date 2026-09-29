@@ -9,6 +9,7 @@ out to show:
 
 | Directory | What it holds |
 | --- | --- |
+| [`battle_skill/`](battle_skill/README.md) | when a released battle skill lands, what it reaches, and what it writes |
 | [`construction/`](construction/README.md) | what a construction becomes in a fight, and what attacks it |
 | [`equipment/`](equipment/README.md) | where equipment corrections land and how they compose with officers |
 | [`interceptor/`](interceptor/README.md) | how an interceptor takes projectiles out of the air, and what befalls it |

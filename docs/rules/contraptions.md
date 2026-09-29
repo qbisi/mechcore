@@ -102,8 +102,10 @@ source; its damage and the deaths it causes are credited to the projectile.
 splashes it over `damageRange`, as a unit's projectile does. Then
 `FightLandMine.DispatchHitDamageEvent` writes the row's buff on every unit it
 struck that still stands, after the damage and before the projectile is
-removed; the buff is a slow in the buff channel, merged with one already
-running in its divide as any buff is, and it expires on the unit's update.
+removed; the buff is a slow in the buff channel, of divide 0, so it merges
+only with one of its own row already running
+([`battle_skill.md`](battle_skill.md) states the rule), and it expires on the
+unit's update.
 No unit made a kill a missile makes, so its experience goes to the pool
 [`unit_experience.md`](unit_experience.md) shares out, on the missile's side.
 

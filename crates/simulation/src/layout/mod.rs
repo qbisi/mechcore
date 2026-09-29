@@ -2,10 +2,11 @@ use std::{fs, path::Path};
 
 use mechcore_document::{NativeFormation, SidePlan};
 
+mod commander_skills;
 mod constructions;
 mod contraptions;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::{
     Error, Result,
@@ -13,6 +14,8 @@ use crate::{
     modifier::{EquipmentEffects, OfficerEffects, TechnologyEffects},
     rules::{UnitConfig, UnitConfigs},
 };
+use commander_skills::CommanderSkillEffects;
+pub(crate) use commander_skills::SkillRelease;
 pub(crate) use constructions::ConstructionBuilding;
 use constructions::Constructions;
 use contraptions::Contraptions;
@@ -57,6 +60,12 @@ pub(crate) struct CompiledLayout {
     /// The missiles both sides release, each side's in the order its layout
     /// lists them.
     pub(crate) missiles: Vec<MissileMine>,
+    /// The battle skills both sides release, each side's in the order its
+    /// layout lists them.
+    pub(crate) battle_skills: Vec<SkillRelease>,
+    /// The sides that researched a unit technology, whose units carry what an
+    /// Electromagnetic Impact would disable.
+    pub(crate) researched: BTreeSet<u32>,
     /// Each side's tower strengthen levels, in the order the side's towers
     /// stand in the map; a side that strengthened none has none.
     pub(crate) tower_levels: BTreeMap<u32, Vec<u8>>,
@@ -75,6 +84,8 @@ impl CompiledLayout {
             constructions: Vec::new(),
             interceptors: Vec::new(),
             missiles: Vec::new(),
+            battle_skills: Vec::new(),
+            researched: BTreeSet::new(),
             tower_levels: BTreeMap::new(),
             map_id: mechcore_document::layout_replay::DEFAULT_MAP_ID,
         }
@@ -173,6 +184,7 @@ pub(crate) fn compile_with_seed(
     };
     let table = Constructions::load()?;
     let contraptions = Contraptions::load()?;
+    let skill_effects = CommanderSkillEffects::load()?;
 
     // Both sides are asked everything before either is refused. The registry
     // speaks first, one clause a side naming every field it owes; what the
@@ -192,6 +204,8 @@ pub(crate) fn compile_with_seed(
     let mut constructions = Vec::new();
     let mut interceptors = Vec::new();
     let mut missiles = Vec::new();
+    let mut battle_skills = Vec::new();
+    let mut researched = BTreeSet::new();
     let mut tower_levels = BTreeMap::new();
     for (name, team, side) in sides {
         for (index, formation) in side.units.iter().enumerate() {
@@ -226,6 +240,18 @@ pub(crate) fn compile_with_seed(
                 _ => {}
             }
         }
+        if !side.techs.units.is_empty() {
+            researched.insert(team);
+        }
+        for skill in &side.battle_skills {
+            battle_skills.extend(
+                refused.hold(
+                    skill_effects
+                        .release(team, skill)
+                        .map_err(|error| Error::new(format!("side {name}: {error}"))),
+                ),
+            );
+        }
         let levels = side
             .tower_strengthen_levels
             .iter()
@@ -248,6 +274,8 @@ pub(crate) fn compile_with_seed(
             constructions,
             interceptors,
             missiles,
+            battle_skills,
+            researched,
             tower_levels,
             map_id: plan
                 .map_id

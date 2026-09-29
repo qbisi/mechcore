@@ -50,6 +50,9 @@ pub(in crate::fight) struct RunningBuff {
     /// What tags the entries it wrote, so that its end takes them away
     /// and leaves every other buff's.
     source: &'static str,
+    /// `IsDisableTechnology`: while it runs, `BuffManager` holds the unit's
+    /// `DisableTechnology` count above zero.
+    disables_technology: bool,
 }
 
 /// One `buffDatas` row as `BuffManager.AddBuff` adds it: which it is, how it
@@ -62,6 +65,7 @@ pub(in crate::fight) struct BuffRow {
     pub(in crate::fight) ticks: u32,
     pub(in crate::fight) source: &'static str,
     pub(in crate::fight) entries: Vec<Entry>,
+    pub(in crate::fight) disables_technology: bool,
 }
 
 /// What one tower's fall writes: on whom, and for how many ticks.
@@ -128,6 +132,22 @@ impl TowersConfig {
     }
 }
 
+impl super::Actor {
+    /// The row of a buff running on this unit other than `row`, if any runs.
+    pub(in crate::fight) fn other_buff(&self, row: u32) -> Option<u32> {
+        self.buffs
+            .iter()
+            .map(|running| running.buff_id)
+            .find(|&running| running != row)
+    }
+
+    /// `FightMech.IsTechnologyDisabled`: whether a running buff holds the
+    /// unit's technologies off.
+    pub(in crate::fight) fn technology_disabled(&self) -> bool {
+        self.buffs.iter().any(|running| running.disables_technology)
+    }
+}
+
 impl Simulation {
     /// Whether this target is one of the map's towers (`FightCrystal.IsTower`),
     /// which is an actor of its own rather than one block of a construction.
@@ -156,6 +176,7 @@ impl Simulation {
             ticks: loss.ticks,
             source: SOURCE,
             entries: self.towers.entries(),
+            disables_technology: false,
         };
         let mut applied = Vec::new();
         let actor_ids = self
@@ -440,15 +461,15 @@ pub(in crate::fight) struct BuildingBuffs {
     overlays: Overlays,
 }
 
-/// `BuffManager.AddBuff`: a buff already running in the row's divide is
-/// `Buff.Reset`, lengthened by the new row's duration when additive and
-/// started over otherwise; any other is added. The running buff is returned,
-/// with whether it is new.
+/// `BuffManager.AddBuff`: a buff already running that `IsSameBuff` matches,
+/// the same row or one of the same nonzero divide, is `Buff.Reset`,
+/// lengthened by the new row's duration when additive and started over
+/// otherwise; any other is added. The running buff is returned, with whether
+/// it is new.
 fn add_buff(buffs: &mut Vec<RunningBuff>, row: &BuffRow) -> (RunningBuff, bool) {
-    if let Some(running) = buffs
-        .iter_mut()
-        .find(|running| running.divide == row.divide)
-    {
+    if let Some(running) = buffs.iter_mut().find(|running| {
+        running.buff_id == row.buff_id || (row.divide != 0 && running.divide == row.divide)
+    }) {
         if running.additive {
             running.duration = running.duration.saturating_add(row.ticks);
         } else {
@@ -463,6 +484,7 @@ fn add_buff(buffs: &mut Vec<RunningBuff>, row: &BuffRow) -> (RunningBuff, bool) 
         elapsed: 0,
         duration: row.ticks,
         source: row.source,
+        disables_technology: row.disables_technology,
     };
     buffs.push(running);
     (running, true)

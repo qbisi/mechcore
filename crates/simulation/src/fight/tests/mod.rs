@@ -77,6 +77,8 @@ pub(super) fn raw_test_simulation(
         projectiles: Vec::new(),
         interceptors: Vec::new(),
         mines: Vec::new(),
+        battle_skills: Vec::new(),
+        researched: BTreeSet::new(),
         buildings,
         target_quadtrees,
         mech_quadtrees: BTreeMap::new(),

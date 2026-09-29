@@ -1,0 +1,21 @@
+# An Electromagnetic Impact reaches the side that released it.
+#
+# Blue releases it between its own Rhino and red's. On tick 57 it writes its
+# buff on both, blue's first, and both run slowed with their technologies off.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 149
+hash: {profile: mcfr-content-0.7.0, result: a450b28fdcde04828625bbe9416e9c4c78cbe071e6fee1fb0dfa3017c3ba2b22}
+blue:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/400/1150}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: 0, y: 0}]}
+red:
+  core_damage: 200
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -45}}
