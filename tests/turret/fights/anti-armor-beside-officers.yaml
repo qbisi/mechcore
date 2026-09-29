@@ -1,0 +1,35 @@
+# Does an officer or a unit technology reach a turret's skill?
+#
+# `anti-armor-arclights.yaml` with blue holding Advanced Offensive Tactics,
+# `+0.3` of damage on every unit, and Advanced Targeting System, `+10` of range
+# on every ranged unit, and its Marksman researching Range Enhancement. Were
+# either officer on the turret, its shots would take more of an Arclight's
+# life, and it would fire from further off; the hash covers both.
+#
+# Neither reaches it: each shot takes the row's 2748 of an Arclight's 4813, and
+# the second of a pair the 2065 left. The Marksman, which they do reach, takes
+# red's Energy Tower at 809, and the last Arclight dies at 837 under the
+# loss's buff.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 837
+hash: {profile: mcfr-content-0.7.0, result: 58f7735ab39e1ee44f6d103c016e89678c0c19909162be3e8ac5645b3264cdfa}
+blue:
+  officers: [advanced_offensive_tactics, advanced_targeting_system]
+  techs:
+    marksman: [range_enhancement]
+  units:
+  - {name: marksman, index: 0, position: {x: 290, y: -300}, exp: 0/650/650}
+  constructions:
+  - {name: anti_armor_turret, index: 2, position: {x: -140, y: -100}}
+red:
+  core_damage: 100
+  units:
+  - {name: arclight, index: 0, position: {x: 140, y: -100}}
+  - {name: arclight, index: 1, position: {x: 140, y: -140}}
+  - {name: arclight, index: 2, position: {x: 140, y: -220}}
+  - {name: arclight, index: 3, position: {x: 140, y: -260}}

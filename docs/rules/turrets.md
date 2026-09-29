@@ -18,7 +18,9 @@ only.
 The fights are in `tests/turret/fights/`: `rapid-fire-head-on.yaml`,
 `rapid-fire-flank.yaml` and `anti-armor-head-on.yaml`, and
 `anti-armor-arclights.yaml`, which puts the Anti-Armor Turret through a reload
-in a fight no tower falls in. The same fight recorded twice is one recording.
+in a fight no tower falls in, and `anti-armor-beside-officers.yaml`, the same
+fight with officers and a technology on the turret's side. The same fight
+recorded twice is one recording.
 
 ## A turret is a building that owns a unit's skill
 
@@ -127,6 +129,25 @@ it is released, as a unit's does. It flies at the bullet speed and deals the
 construction's damage with the skill's splash, capped at what each target has
 left. Its source, in every event and in each death it causes, is the building.
 
+## Officers and technologies do not reach a turret
+
+A turret fires with its row's numbers whatever officers and technologies its
+side holds, even one that corrects every unit, such as Advanced Offensive
+Tactics. An officer or a technology is a data source the fight hands to units
+by type: `BattleSystem.RecordFightEffect` passes it with a unit ID to
+`FightEffectSystem.AddProviderDataSource`, and `TeamFightEffectManager` keeps it
+for that ID and applies it to that type's units alone. A construction has an
+effect manager of its own, which takes nothing but what
+`FightEffectSystem.AddConstructionProviderDataSource` gives it: the
+construction's own main skill, as `BattleSystem.OnPlayerReleaseConstruction`
+places it. `FightConstruction` has no data modifier of its own either, and
+nothing outside the fight's effects writes onto a `ConstructionElement`.
+
+This covers the corrections an officer or a technology writes. A tower's loss
+reaches a construction through its buff, which
+[`towers.md`](towers.md) covers, and an energy tower's skills are a separate
+source.
+
 ## A building that was the lock is held like a unit
 
 A Crawler whose own lock was the turret, swinging at it when it falls, reads
@@ -168,6 +189,9 @@ content, as `tests/turret/fights/` replays them.
   source: `tests/turret/fights/`.
 - A unit whose lock was the fallen turret stays on it through its swing and
   then looks for the next target: `tests/turret/fights/`.
+- A turret fires with its row's damage and reach beside Advanced Offensive
+  Tactics, Advanced Targeting System and a unit technology on its side:
+  `tests/turret/fights/anti-armor-beside-officers.yaml`.
 
 ### Read
 
@@ -183,12 +207,16 @@ content, as `tests/turret/fights/` replays them.
   `SkillAttackAngleChecker.IsActorInAttackAngle`.
 - A dead lock is searched again inside the attack: `SkillAttackableChecker.Check`,
   `SkillAttackableChecker.CheckWhenLoseTarget`.
+- An officer or a technology reaches the units of one type and never a
+  construction: `BattleSystem.RecordFightEffect`,
+  `FightEffectSystem.AddProviderDataSource`,
+  `TeamFightEffectManager.AddProviderDataSource`,
+  `TeamFightEffectManager.CreateConstructionEffectMananger`,
+  `FightEffectSystem.AddConstructionProviderDataSource`,
+  `BattleSystem.OnPlayerReleaseConstruction`.
 
 ### Not established
 
-- **A turret beside an officer or a unit technology.** Whether either reaches a
-  construction's skill is not read, so a side that places a turret and carries
-  either is refused.
 - **Tower buffs on a turret.** A row may say `can_be_effected_by_tower_buff`,
   and a side that loses a tower while such a turret stands is refused when it
   happens ([`towers.md`](towers.md)); no recording has one.

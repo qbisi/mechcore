@@ -298,28 +298,43 @@ fn a_committed_round_is_written_and_the_fight_this_build_cannot_run_is_named() {
         "{written}"
     );
 
+    // Every opening hands its side an officer, a Defensive Wall and a turret,
+    // and neither the officer nor a technology reaches a construction, so the
+    // first round is fought and the second opens.
     let fought = run(&["match", "commit", &path, "--side", "red"]).ok();
-    assert_eq!(fought["phase"], "fight");
-    // The fight is run from the position the round ends in, so what stops it
-    // is what the simulator says about that position, all of it at once.
-    // Every opening hands its side an officer, a Defensive Wall and a turret.
-    // Each is applied alone, and the turret fires, but whether the officer
-    // reaches the turret's skill is not measured, so the refusal names the
-    // construction it is about, on each side.
-    let unresolved = fought["unresolved"].as_str().unwrap();
-    assert_eq!(
-        unresolved,
-        "round 1 is not fought: side blue: \"rapid_fire_turret\" fires a skill, and \
-         whether the side's officers and technologies reach it is not measured; \
-         side red: \"rapid_fire_turret\" fires a skill, and whether the side's \
-         officers and technologies reach it is not measured"
+    assert_eq!(fought["phase"], "deploy");
+    assert_eq!(fought["round"], 2);
+
+    // Quick Teleport corrects the side's deployment clock, which no mechanism
+    // here reads. The fight is run from the position the round ends in, so
+    // what stops it is what the simulator says about that position.
+    run(&[
+        "match",
+        "act",
+        &path,
+        "--side",
+        "red",
+        "{type: choose_reinforce_item, index: 0, name: quick_teleport}",
+    ])
+    .ok();
+    run(&["match", "commit", &path, "--side", "red"]).ok();
+    let stopped = run(&["match", "commit", &path, "--side", "blue"]).ok();
+    assert_eq!(stopped["phase"], "fight");
+    let unresolved = stopped["unresolved"].as_str().unwrap();
+    assert!(
+        unresolved.starts_with("round 2 is not fought: side red: officer 10009"),
+        "{unresolved}"
+    );
+    assert!(
+        unresolved.contains("super_deployment_time_rate"),
+        "{unresolved}"
     );
 
     // Nothing is approximated: the round stands unfought and both commits
     // stand with it, so the next caller finds the same fight waiting.
     let view = run(&["match", "show", &path, "--side", "blue"]).ok();
     assert_eq!(view["phase"], "fight");
-    assert_eq!(view["round"], 1);
+    assert_eq!(view["round"], 2);
     assert_eq!(verify(&path)["valid"], true);
 }
 
