@@ -262,6 +262,7 @@ impl Simulation {
                 })
             }
             FightActorRef::Building(building_id) => {
+                let (amount, taken) = self.construction_damage_taken(building_id, amount)?;
                 let building = self
                     .buildings
                     .iter_mut()
@@ -278,7 +279,7 @@ impl Simulation {
                 let stroke = Stroke {
                     actual: i64::from(previous_life - building.life.current),
                     dealt: amount,
-                    taken: amount,
+                    taken,
                     killed: building.life.current == 0,
                     reached_alive: previous_life > 0,
                     death: None,

@@ -145,9 +145,9 @@ places it. `FightConstruction` has no data modifier of its own either, and
 nothing outside the fight's effects writes onto a `ConstructionElement`.
 
 This covers the corrections an officer or a technology writes. A tower's loss
-reaches a construction through its buff, which
-[`towers.md`](towers.md) covers, and an energy tower's skills are a separate
-source.
+reaches a turret through its buff, which cuts its damage and raises what it
+takes as it does a unit's, as [`towers.md`](towers.md#a-construction-takes-the-loss-too)
+states; an energy tower's skills are a separate source.
 
 ## A building that was the lock is held like a unit
 
@@ -226,9 +226,6 @@ content, as `tests/turret/fights/` replays them.
 
 ### Not established
 
-- **Tower buffs on a turret.** A row may say `can_be_effected_by_tower_buff`,
-  and a side that loses a tower while such a turret stands is refused when it
-  happens ([`towers.md`](towers.md)); no recording has one.
 - **A construction skill with a wind-up, a swing, a cooling, a burst or a
   scattered target.** The two turrets have none. A row that has one is refused
   by name.

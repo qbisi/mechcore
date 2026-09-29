@@ -1,0 +1,24 @@
+# A turret that stands through a tower's loss carries its buff for the loss's
+# duration, and the buff ends on the turret as it does on a unit.
+#
+# Blue's Anti-Armor Turret stands in the far corner when red's Steel Balls take
+# blue's Energy Tower. The loss writes buff 1 on blue's Fangs and then on the
+# turret, and it expires on the turret's own update 180 ticks later, before
+# the Steel Balls reach it.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 1661
+hash: {profile: mcfr-content-0.7.0, result: 2e1d3bad2a59bc71615bc2f0b3b5475681ee014dce9772fca3bb318cb407aa82}
+blue:
+  core_damage: 100
+  units:
+  - {name: fang, index: 0, position: {x: 145, y: -300}, exp: 0/200/600}
+  constructions:
+  - {name: anti_armor_turret, index: 1, position: {x: -280, y: -300}}
+red:
+  units:
+  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/736/1000}
