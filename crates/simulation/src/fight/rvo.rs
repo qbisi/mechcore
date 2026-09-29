@@ -68,6 +68,8 @@ pub(crate) enum AgentSizeType {
 pub(crate) enum AgentKey {
     Unit(u64),
     Building(u64),
+    /// A neutral crystal of the map, by its place in the map's buildings.
+    MapBuilding(usize),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

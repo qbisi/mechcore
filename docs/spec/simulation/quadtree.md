@@ -97,9 +97,9 @@ A value equal to the centre, or differing by only 43 raw, falls to the low side.
 
 ## Insertion and splitting
 
-Agents insert strictly in input array order. The kernel adds the live buildings
-from `self.buildings` that have collision enabled, then the live units from a
-`BTreeMap` ordered by Unit ID.
+Agents insert strictly in input array order. The kernel adds the live towers,
+then the map's crystals in the order `config/maps.yaml` lists them, then the
+live constructions, then the live units from a `BTreeMap` ordered by Unit ID.
 
 At a leaf:
 

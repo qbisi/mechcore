@@ -30,11 +30,11 @@ simulator recomputes them from the publicly restorable unit, building and
 movement state. The RVO instrument channels observe them
 ([adapter.md](../adapter/adapter.md#record_replay_round)).
 
-Whether an unaligned `FightCrystal` joins the fight is the map's decision, not a
-Training Ground artefact to be deleted. A replay and a Training Ground scene
-select the same map through `layout.map_id` and keep its objects: map 1021 has 0 neutral crystal RVO controllers and map 1001 has 73. Loading map
-objects is not implemented, so agreement with a native capture on one map is not
-evidence about another.
+A map's neutral `FightCrystal`s are the map's, not a Training Ground artefact to
+be deleted. `layout.map_id` selects the map, and the kernel puts every crystal of
+collider priority 2 or more that `config/maps.yaml` lists in the tree as an
+immovable agent on its own priority's layer, with its radius for both radii;
+[map.md](../../rules/map.md) states which crystals those are and why.
 
 ## Coordinates and numerics
 
@@ -142,7 +142,8 @@ sets its own `collides_with` to 0. A colliding building uses priority 10,
 `size=M`, inner and outer radius both half the building's width, and
 `locked=true`. A construction does the same on its row's
 `pathfinding_collider_priority` instead of 10 — 5 for a Defensive Wall — and
-is marked `passable_by_own_group`.
+is marked `passable_by_own_group`. A map's crystal does the same on its own
+`pathfindingColliderPriority`, with its radius for both radii.
 
 The filter is directional: a candidate becomes a neighbour only when
 `query.collides_with & candidate.layer != 0`. A building therefore avoids
@@ -351,10 +352,3 @@ puts it in the neighbour budget of 20. A dense scene can therefore spend
 neighbour slots on walls and drop units that matter more. Modelling static
 geometry separately would remove that interaction at the cost of a second
 avoidance path.
-
-**What does map object loading mean for identity?** Native alignment is
-established on maps whose neutral crystals the simulator does not load. Either
-those objects are outside the fidelity claim permanently, which the scope should
-state as a property rather than as a gap, or loading them is required before any
-cross-map claim, which makes today's agreement map-specific in a way no recorded
-hash announces.

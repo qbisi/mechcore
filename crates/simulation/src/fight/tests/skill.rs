@@ -863,8 +863,14 @@ fn reviewed_direct_kill_keeps_then_clears_the_mech_lock_target_state() {
             },
         ],
     );
-    let mut simulation =
-        Simulation::new(&layout, &config.units, &config.towers, 1_787_601_811).unwrap();
+    let mut simulation = Simulation::new(
+        &layout,
+        &config.units,
+        &config.towers,
+        &config.maps,
+        1_787_601_811,
+    )
+    .unwrap();
     for output_tick in 1..=234 {
         simulation.step(output_tick - 1).unwrap();
         match output_tick {
@@ -970,8 +976,14 @@ fn rhino_backswing_remains_active_through_its_ninth_wait_update() {
         ],
     );
     let config = SimulationConfig::load().unwrap();
-    let mut simulation =
-        Simulation::new(&layout, &config.units, &config.towers, 1_787_591_883).unwrap();
+    let mut simulation = Simulation::new(
+        &layout,
+        &config.units,
+        &config.towers,
+        &config.maps,
+        1_787_591_883,
+    )
+    .unwrap();
 
     for step in 0..226 {
         simulation.step(step).unwrap();
@@ -1003,7 +1015,8 @@ fn a_marksman_holds_through_its_cooling_after_a_kill_it_cannot_follow() {
         include_bytes!("../../../../../tests/regression/fights/crawlers-vs-marksman.yaml"),
         &config.units,
     );
-    let mut simulation = Simulation::new(&layout, &config.units, &config.towers, 4242).unwrap();
+    let mut simulation =
+        Simulation::new(&layout, &config.units, &config.towers, &config.maps, 4242).unwrap();
     let mut states = BTreeMap::new();
     for step in 0..142u64 {
         simulation.step(step).unwrap();

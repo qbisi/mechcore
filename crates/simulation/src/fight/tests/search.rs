@@ -142,6 +142,7 @@ fn normal_selector_split_query_remains_order_independent_for_a_unique_best() {
         construction_groups: _,
         building_exp,
     } = initialize_buildings(&config.towers, &[], &BTreeMap::new()).unwrap();
+    let map_crystals = map_crystals(config.maps.buildings(1021).unwrap());
     let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
     let simulation = Simulation {
         actors,
@@ -160,6 +161,7 @@ fn normal_selector_split_query_remains_order_independent_for_a_unique_best() {
         tower_buff_events: BTreeMap::new(),
         dropped_buffs: BTreeMap::new(),
         construction_colliders: construction_colliders.clone(),
+        map_crystals,
         unsearchable_buildings: unsearchable.clone(),
         constructions: BTreeMap::new(),
         towers: config.towers.clone(),

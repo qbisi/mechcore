@@ -51,6 +51,9 @@ pub(crate) struct CompiledLayout {
     /// Each side's tower strengthen levels, in the order the side's towers
     /// stand in the map; a side that strengthened none has none.
     pub(crate) tower_levels: BTreeMap<u32, Vec<u8>>,
+    /// The map the fight is on: the layout's, or the Training Ground's when
+    /// it names none, as a layout replay loads it.
+    pub(crate) map_id: i32,
 }
 
 impl CompiledLayout {
@@ -62,6 +65,7 @@ impl CompiledLayout {
             placements,
             constructions: Vec::new(),
             tower_levels: BTreeMap::new(),
+            map_id: mechcore_document::layout_replay::DEFAULT_MAP_ID,
         }
     }
 }
@@ -216,6 +220,9 @@ pub(crate) fn compile_with_seed(
             placements,
             constructions,
             tower_levels,
+            map_id: plan
+                .map_id
+                .unwrap_or(mechcore_document::layout_replay::DEFAULT_MAP_ID),
         },
     ))
 }

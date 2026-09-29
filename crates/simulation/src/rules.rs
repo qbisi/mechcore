@@ -36,6 +36,7 @@ const DEFAULT_UNITS: [&str; 29] = [
     include_str!("../../../config/units/centurion.yaml"),
 ];
 const DEFAULT_TOWERS: &str = include_str!("../../../config/towers.yaml");
+const DEFAULT_MAPS: &str = include_str!("../../../config/maps.yaml");
 
 /// The integer form of [`SPACE_UNITS_PER_METER`], for whole-meter checks on
 /// values that have already been quantized.
@@ -251,6 +252,41 @@ pub(crate) struct SimulationConfig {
     pub(crate) game_build: String,
     pub(crate) units: UnitConfigs,
     pub(crate) towers: TowersConfig,
+    pub(crate) maps: MapsConfig,
+}
+
+/// `config/maps.yaml`: what each standard 1v1 map puts on the board.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct MapsConfig {
+    schema: String,
+    /// The map data each map id plays on; several share one.
+    maps: BTreeMap<i32, String>,
+    /// Each map data's buildings, in the order `FightBuildingLoader.Load`
+    /// creates them.
+    map_data: BTreeMap<String, Vec<MapBuilding>>,
+}
+
+/// One building a map places, as the fight's movement sees it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+pub(crate) enum MapBuilding {
+    /// A tower, `config/towers.yaml`'s: only its place in the order is the
+    /// map's, and the map is held to stand it where that file does.
+    Tower {
+        team_id: u32,
+        building_type_id: u32,
+        x: i64,
+        z: i64,
+    },
+    /// A neutral `FightCrystal` that runs an `RVOControllerFixed`: its centre
+    /// and radius, `FPoint` raw, and its collider priority.
+    Crystal {
+        x: i64,
+        z: i64,
+        radius: i64,
+        collider_priority: i32,
+    },
 }
 
 /// `config/towers.yaml`: the map's towers, what strengthening one adds and
@@ -330,10 +366,14 @@ impl SimulationConfig {
     pub(crate) fn load() -> Result<Self> {
         let towers = parse_towers(DEFAULT_TOWERS.as_bytes(), "embedded tower config")?;
         towers.validate()?;
+        let maps: MapsConfig = serde_yaml::from_slice(DEFAULT_MAPS.as_bytes())
+            .map_err(|error| Error::new(format!("invalid embedded map config: {error}")))?;
+        maps.validate(&towers)?;
         Ok(Self {
             game_build: mechcore_document::game_build().to_owned(),
             units: UnitConfigs::load()?,
             towers,
+            maps,
         })
     }
 }
@@ -371,6 +411,81 @@ impl TowersConfig {
             validate_signed_scaled(building.position.x, SPACE_UNITS_PER_METER, "position.x")?;
             validate_signed_scaled(building.position.z, SPACE_UNITS_PER_METER, "position.z")?;
             validate_scaled(building.radius, SPACE_UNITS_PER_METER, "radius", false)?;
+        }
+        Ok(())
+    }
+}
+
+impl MapsConfig {
+    /// The buildings map `map_id` places, in the order the game creates them.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error naming a map id that is not a standard 1v1 map.
+    pub(crate) fn buildings(&self, map_id: i32) -> Result<&[MapBuilding]> {
+        let name = self.maps.get(&map_id).ok_or_else(|| {
+            Error::new(format!(
+                "map_id {map_id} is not a standard 1v1 map; the maps are {}",
+                self.maps
+                    .keys()
+                    .map(ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ))
+        })?;
+        Ok(&self.map_data[name])
+    }
+
+    /// Every map data a map names exists, stands the towers where
+    /// `config/towers.yaml` does, in its order, and gives each crystal a
+    /// collider priority an RVO layer can hold.
+    fn validate(&self, towers: &TowersConfig) -> Result<()> {
+        if self.schema != "mechcore.maps" {
+            return Err(Error::new("unsupported map config type"));
+        }
+        let expected = towers
+            .buildings
+            .iter()
+            .map(|tower| {
+                (
+                    tower.team_id,
+                    tower.building_type_id,
+                    tower.x() / SPACE_UNITS_PER_METER_SCALE,
+                    tower.z() / SPACE_UNITS_PER_METER_SCALE,
+                )
+            })
+            .collect::<Vec<_>>();
+        for (map_id, name) in &self.maps {
+            let buildings = self.map_data.get(name).ok_or_else(|| {
+                Error::new(format!(
+                    "map {map_id} names map data {name}, which is not in the config"
+                ))
+            })?;
+            let placed = buildings
+                .iter()
+                .filter_map(|building| match *building {
+                    MapBuilding::Tower {
+                        team_id,
+                        building_type_id,
+                        x,
+                        z,
+                    } => Some((team_id, building_type_id, x, z)),
+                    MapBuilding::Crystal { .. } => None,
+                })
+                .collect::<Vec<_>>();
+            if placed != expected {
+                return Err(Error::new(format!(
+                    "map data {name} does not stand config/towers.yaml's towers"
+                )));
+            }
+            if buildings.iter().any(|building| {
+                matches!(building, MapBuilding::Crystal { collider_priority, .. }
+                    if !(1..=16).contains(collider_priority))
+            }) {
+                return Err(Error::new(format!(
+                    "map data {name} has a crystal whose collider priority no RVO layer holds"
+                )));
+            }
         }
         Ok(())
     }

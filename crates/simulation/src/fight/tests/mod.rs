@@ -67,6 +67,7 @@ pub(super) fn raw_test_simulation(
         construction_groups: _,
         building_exp,
     } = initialize_buildings(&config.towers, &[], &BTreeMap::new()).unwrap();
+    let map_crystals = map_crystals(config.maps.buildings(1021).unwrap());
     let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
     Simulation {
         actors,
@@ -85,6 +86,7 @@ pub(super) fn raw_test_simulation(
         tower_buff_events: BTreeMap::new(),
         dropped_buffs: BTreeMap::new(),
         construction_colliders: construction_colliders.clone(),
+        map_crystals,
         unsearchable_buildings: unsearchable.clone(),
         constructions: BTreeMap::new(),
         towers: config.towers.clone(),

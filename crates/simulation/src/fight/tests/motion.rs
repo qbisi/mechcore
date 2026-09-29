@@ -214,8 +214,14 @@ fn snapshot_velocity_is_quantized_from_raw_agent_velocity() {
         ],
     );
     let config = SimulationConfig::load().unwrap();
-    let mut simulation =
-        Simulation::new(&layout, &config.units, &config.towers, 1_787_555_163).unwrap();
+    let mut simulation = Simulation::new(
+        &layout,
+        &config.units,
+        &config.towers,
+        &config.maps,
+        1_787_555_163,
+    )
+    .unwrap();
     let actor = simulation.actors.get_mut(&1).unwrap();
     actor.motion.current_velocity_x_q32 = -198_556_428;
     actor.motion.current_velocity_z_q32 = -30_061_443_202;
@@ -262,8 +268,14 @@ fn rvo_pipeline_publishes_before_movement_consumes_velocity() {
         ],
     );
     let config = SimulationConfig::load().unwrap();
-    let mut simulation =
-        Simulation::new(&layout, &config.units, &config.towers, 1_787_555_163).unwrap();
+    let mut simulation = Simulation::new(
+        &layout,
+        &config.units,
+        &config.towers,
+        &config.maps,
+        1_787_555_163,
+    )
+    .unwrap();
     let initial = simulation.actors[&2].clone();
 
     for tick in 1..=9 {
@@ -305,8 +317,14 @@ fn first_split_rvo_tree_uses_the_zero_position_buffer() {
         include_bytes!("../../../../../tests/regression/fights/rhino-vs-crawlers-01.yaml"),
         &config.units,
     );
-    let mut simulation =
-        Simulation::new(&layout, &config.units, &config.towers, 1_787_748_319).unwrap();
+    let mut simulation = Simulation::new(
+        &layout,
+        &config.units,
+        &config.towers,
+        &config.maps,
+        1_787_748_319,
+    )
+    .unwrap();
 
     for step in 0..8 {
         simulation.step(step).unwrap();
@@ -354,8 +372,14 @@ fn rvo_boundary_recalculates_velocity_from_the_published_target_and_current_posi
         ],
     );
     let config = SimulationConfig::load().unwrap();
-    let mut simulation =
-        Simulation::new(&layout, &config.units, &config.towers, 1_787_555_163).unwrap();
+    let mut simulation = Simulation::new(
+        &layout,
+        &config.units,
+        &config.towers,
+        &config.maps,
+        1_787_555_163,
+    )
+    .unwrap();
 
     for step in 0..4 {
         simulation.step(step).unwrap();
@@ -439,8 +463,14 @@ fn range_entry_stops_only_after_the_two_stage_rvo_delay() {
         ],
     );
     let config = SimulationConfig::load().unwrap();
-    let mut simulation =
-        Simulation::new(&layout, &config.units, &config.towers, 1_787_555_163).unwrap();
+    let mut simulation = Simulation::new(
+        &layout,
+        &config.units,
+        &config.towers,
+        &config.maps,
+        1_787_555_163,
+    )
+    .unwrap();
     let mut tick_121_raw_position = None;
     let mut tick_121_body_rotation = None;
 
@@ -549,8 +579,14 @@ fn stopped_attacker_rate_limits_aim_without_rotating_root_body() {
         ],
     );
     let config = SimulationConfig::load().unwrap();
-    let mut simulation =
-        Simulation::new(&layout, &config.units, &config.towers, 1_787_555_163).unwrap();
+    let mut simulation = Simulation::new(
+        &layout,
+        &config.units,
+        &config.towers,
+        &config.maps,
+        1_787_555_163,
+    )
+    .unwrap();
     let marksman = simulation.actors.get_mut(&1).unwrap();
     assert_eq!(marksman.rules.independent_aim, Some(false));
     marksman.motion.state = MotionState::Attacking;

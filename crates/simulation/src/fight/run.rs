@@ -238,7 +238,8 @@ pub(in crate::fight) fn execute(
         combat_round: layout.round,
         match_seed: seed,
     };
-    let mut simulation = Simulation::new_unprepared(layout, &config.units, &config.towers, seed)?;
+    let mut simulation =
+        Simulation::new_unprepared(layout, &config.units, &config.towers, &config.maps, seed)?;
     let mut writer = writer(record, replay_layout, seed, config, &context)?;
     simulation.initialize_presearch_targets()?;
     let mut steps = 0;

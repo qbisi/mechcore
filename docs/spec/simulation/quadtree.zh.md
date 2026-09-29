@@ -84,8 +84,8 @@ center.y = min.y + (max.y - min.y) * 0.5
 
 ## 5. 插入与分裂
 
-agent 严格按输入数组顺序插入。当前 kernel 先加入 `self.buildings` 中启用碰撞的存活建筑，
-再加入 `BTreeMap` 中按 Unit ID 排列的存活单位。
+agent 严格按输入数组顺序插入。当前 kernel 先加入存活的塔，再按 `config/maps.yaml`
+的顺序加入地图的中立水晶，然后是存活的工事，最后是 `BTreeMap` 中按 Unit ID 排列的存活单位。
 
 在叶节点中：
 

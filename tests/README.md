@@ -9,6 +9,7 @@ fights and, where a fight's own comment cannot say it, a readme:
 | [`construction/`](construction/README.md) | what a construction becomes in a fight, and what attacks it |
 | [`equipment/`](equipment/README.md) | where equipment corrections land and how they compose with officers |
 | [`level/`](level/README.md) | how a unit level scales base life and damage before overlays |
+| [`map/`](map/README.md) | what a map's neutral crystals do to a fight |
 | [`modifier/`](modifier/README.md) | how officers and technologies correct a unit's numbers |
 | [`tower/`](tower/README.md) | what losing a tower writes on its side, and what strengthening one adds |
 | [`turret/`](turret/README.md) | when a turret fires, at what, and how often |
