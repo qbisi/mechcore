@@ -567,32 +567,23 @@ impl Simulation {
         let (mut events, deaths): (Vec<_>, Vec<_>) = events
             .into_iter()
             .partition(|event| !matches!(&event.payload, EventPayload::UnitDied { .. }));
-        // `BuffManager.Clear` takes a dying unit's buffs as it dies.
+        // `BuffManager.Clear` takes a dying unit's buffs as it dies, whatever
+        // killed it.
         for death in deaths {
-            let dead_id = death
-                .subject
-                .filter(|subject| subject.kind == ObjectKind::Unit)
-                .map(|subject| subject.id);
+            let follows = self.what_follows_an_end(&death);
             events.push(death);
-            if let Some(dead_id) = dead_id {
-                events.extend(self.buffs_cleared_by_death(dead_id));
-            }
+            events.extend(follows);
         }
-        self.dropped_buffs.clear();
         // What the tick's hits killed and felled comes last, in the order they
         // struck: a block a shot fells reads between the deaths its splash
         // caused, and after every removal the tick resolved. A fallen tower's
-        // buff follows it.
+        // buff follows it, as a dead unit's cleared buffs follow its death.
         for fallen in std::mem::take(&mut self.fallen_buildings) {
-            let building_id = fallen
-                .subject
-                .filter(|subject| subject.kind == ObjectKind::Building)
-                .map(|subject| subject.id);
+            let follows = self.what_follows_an_end(&fallen);
             events.push(fallen);
-            if let Some(applied) = building_id.and_then(|id| self.tower_buff_events.remove(&id)) {
-                events.extend(applied);
-            }
+            events.extend(follows);
         }
+        self.dropped_buffs.clear();
         if !self.tower_buff_events.is_empty() {
             return Err(Error::new(
                 "a tower's loss wrote its buff on a tick that records no building_destroyed for it",
@@ -617,6 +608,25 @@ impl Simulation {
             }
         }
         Ok(TransitionEvents { events })
+    }
+
+    /// The events that follow a unit's death or a building's fall: the
+    /// buffs the dead unit had, cleared, or the buff a fallen tower wrote on
+    /// its side.
+    fn what_follows_an_end(&mut self, end: &Event) -> Vec<Event> {
+        match (end.subject, &end.payload) {
+            (Some(subject), EventPayload::UnitDied { .. }) if subject.kind == ObjectKind::Unit => {
+                self.buffs_cleared_by_death(subject.id)
+            }
+            (Some(subject), EventPayload::BuildingDestroyed { .. })
+                if subject.kind == ObjectKind::Building =>
+            {
+                self.tower_buff_events
+                    .remove(&subject.id)
+                    .unwrap_or_default()
+            }
+            _ => Vec::new(),
+        }
     }
 
     fn fight_actor(&self, reference: FightActorRef) -> Option<FightActorView> {

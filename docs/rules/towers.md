@@ -62,6 +62,8 @@ on the update its elapsed ticks reach its duration. A side updated before the
 side that fells its tower counts from the next tick.
 
 A unit's buffs go on its first update after it dies, not on the tick it dies.
+The recording still writes each buff it had as cleared right after its death,
+whatever killed it: a hit, a laser or a projectile.
 A projectile takes its owner's damage as the owner has it when the projectile
 lands, so a shot fired under the debuff lands for the full damage once the
 debuff has ended, or once its dead owner's buffs are gone.
@@ -89,6 +91,8 @@ gets the debuffed speed through `Move`.
   `tests/tower/fights/`.
 - A second loss inside the first's debuff lengthens it by the new row's
   duration and does not stack the rates: `tests/tower/fights/`.
+- A unit that dies under the buff has it written as cleared after its death,
+  a projectile's kill as any other: `tests/tower/fights/`.
 - The buff counts from the hit that fells the tower, reaches a side updated
   before the felling side from the next tick, and a projectile takes its
   owner's damage as it lands: `tests/tower/fights/`.
