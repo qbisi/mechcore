@@ -351,11 +351,7 @@ impl Simulation {
             .map(|interceptor| interceptor.building_id)
     }
 
-    /// Whether this building is an interceptor, standing or not.
-    pub(in crate::fight) fn is_interceptor(&self, building_id: u64) -> bool {
-        self.interceptor(building_id).is_some()
-    }
-
+    /// The interceptor this building is, standing or not.
     fn interceptor(&self, building_id: u64) -> Option<&Interceptor> {
         self.interceptors
             .iter()

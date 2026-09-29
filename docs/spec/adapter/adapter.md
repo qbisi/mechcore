@@ -565,8 +565,9 @@ skill's index in its `GetSkills()` (null when it searched for itself), the
 path the build took, how many candidates it scored, what it returned and the
 nearest actor. `target_candidate` holds a search's five lowest scores, which
 the build calls best, with the candidate and, where they are seen,
-`CalculateScore`'s per-candidate arguments: distance, distance score, angle,
-angle score and side. Rows grow with the number of searches, not with
+`CalculateScore`'s arguments: distance, distance score, angle, angle score
+and side, and the search's maximum attack range, source rotation and rotation
+window. Rows grow with the number of searches, not with
 searches times candidates.
 
 The build scores targets three ways, and the Adapter names a candidate in each:

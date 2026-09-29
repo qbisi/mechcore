@@ -80,6 +80,14 @@ pub(in crate::fight) struct Attacker<'a> {
     pub(in crate::fight) has_body: bool,
     /// `ISkillOwner.GetRotateSpeed`, as one update's turn in Q32.32 degrees.
     pub(in crate::fight) turn_q32: i64,
+    /// Half the rotation window `Selector.CalculateRotationData` hands
+    /// `CalculateScore`, either side of the rotation it scores against: a
+    /// candidate in range outside it takes the out-of-range penalty. A unit's
+    /// window is the whole turn, `Angle0` to `Angle360`, which `CalculateScore`
+    /// does not check; a construction's is its attack angle either side of
+    /// its weapon, except at rotation 0, as the recorded `CalculateScore`
+    /// arguments show.
+    pub(in crate::fight) rotation_window_q32: Option<i64>,
     /// Whether its skill searches at all: a construction without a
     /// `ConstructionSearchTargetController`, which its row's
     /// `IsEnableSearchTarget` decides, never finds a target.
@@ -172,6 +180,7 @@ impl Simulation {
                     },
                     has_body: actor.rules.has_body,
                     turn_q32: actor.turn_q32(),
+                    rotation_window_q32: None,
                     searches: true,
                 })
             }
@@ -205,6 +214,9 @@ impl Simulation {
                     facing: Facing::Weapons(&construction.skill.weapon_rotations_q32),
                     has_body: true,
                     turn_q32: construction.turn_q32,
+                    rotation_window_q32: Some(mdeg_to_degrees_q32(
+                        construction.attack.attack_half_angle_mdeg(),
+                    )),
                     searches: construction.searches,
                 })
             }

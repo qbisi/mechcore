@@ -1,0 +1,41 @@
+# Replay 2324_20260924--268447927, round 1, map 1011. A construction lets its
+# own side through only when its row answers IsEnableBlock: at tick 12 red's
+# Sledgehammer 58 and Marksman 65 steer round red's Rapid-Fire Turret, whose
+# blockWidth is 0. A turret's search penalises a candidate in reach more than
+# its attack angle off the weapon: at tick 872 red's turret passes over the
+# nearest Crawler, 9, 28 degrees off, and takes 11, 8.5 degrees off.
+
+kind: fight
+map_id: 1011
+seed: 857911261
+round: 1
+source: recording
+ticks: 1195
+hash: {profile: mcfr-content-0.7.0, result: a171b4a890537cd456569d5d34a66f501c11f0fba31f6fac39ba066884787bc4}
+blue:
+  officers: [secondary_equipment_expert]
+  units:
+  - {name: marksman, index: 0, position: {x: -220, y: -130}, exp: 0/650/650}
+  - {name: marksman, index: 1, position: {x: -140, y: -100}, exp: 0/82/650}
+  - {name: marksman, index: 2, position: {x: -70, y: -120}, exp: 0/63/650}
+  - {name: tarantula, index: 3, position: {x: -105, y: -75}, exp: 0/89/1500}
+  - {name: tarantula, index: 4, position: {x: -185, y: -75}, exp: 0/355/1500, rotated: true, equipment: [secondary_fire_control_system]}
+  - {name: crawler, index: 5, position: {x: -90, y: -115}, exp: 0/277/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: -200, y: -115}, exp: 0/326/450, rotated: true}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+red:
+  core_damage: 300
+  officers: [typhoon_specialist]
+  units:
+  - {name: marksman, index: 0, position: {x: -140, y: -150}, exp: 0/258/650}
+  - {name: marksman, index: 1, position: {x: 140, y: -150}, exp: 0/13/650}
+  - {name: marksman, index: 2, position: {x: -100, y: -150}, exp: 0/388/650}
+  - {name: sledgehammer, index: 3, position: {x: 105, y: -130}, exp: 0/137/1300}
+  - {name: sledgehammer, index: 4, position: {x: -105, y: -130}, exp: 0/317/1300}
+  - {name: marksman, index: 5, position: {x: -60, y: -150}, exp: 0/323/650}
+  - {name: marksman, index: 6, position: {x: 100, y: -150}, exp: 0/53/650}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}

@@ -821,6 +821,10 @@ fn target_channels_round_trip_with_unseen_terms() {
         angle_raw: None,
         angle_score_raw: None,
         is_left_side: None,
+        max_attack_range_raw: None,
+        source_rotation_raw: None,
+        min_rotation_raw: None,
+        max_rotation_raw: None,
     };
     writer
         .append_instrument(std::slice::from_ref(&search))

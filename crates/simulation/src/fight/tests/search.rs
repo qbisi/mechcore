@@ -68,6 +68,7 @@ fn normal_target_score_uses_strict_minimum_and_maximum_range_edges() {
             0,
             min_range_q32,
             max_range_q32,
+            false,
         )
     };
     let at_both_edges = score(distance_q32, distance_q32).unwrap();
@@ -95,9 +96,95 @@ fn normal_target_score_adds_raw_distance_after_weighted_term() {
             angle_q32,
             0,
             100_i64 << 32,
+            false,
         ),
         Some(expected_q32)
     );
+}
+
+#[test]
+fn rotation_window_wraps_through_zero_and_tolerates_43_raw() {
+    let degrees = |value: i64| value << 32;
+    assert!(is_in_range_rotation(
+        degrees(305),
+        degrees(297),
+        degrees(337)
+    ));
+    assert!(!is_in_range_rotation(
+        degrees(289),
+        degrees(297),
+        degrees(337)
+    ));
+    assert!(is_in_range_rotation(degrees(5), degrees(330), degrees(10)));
+    assert!(is_in_range_rotation(
+        degrees(340),
+        degrees(330),
+        degrees(10)
+    ));
+    assert!(!is_in_range_rotation(
+        degrees(20),
+        degrees(330),
+        degrees(10)
+    ));
+    assert!(is_in_range_rotation(
+        degrees(297) - 43,
+        degrees(297),
+        degrees(337)
+    ));
+    assert!(!is_in_range_rotation(
+        degrees(297) - 44,
+        degrees(297),
+        degrees(337)
+    ));
+}
+
+#[test]
+fn a_candidate_in_range_outside_the_rotation_window_takes_the_range_penalty() {
+    // A turret pointing north-west at 315 degrees, with a window of 20 either
+    // side: one candidate at about 309 degrees, one at 270.
+    let score = |x: i64, z: i64, window| {
+        normal_visible_full_rotation_target_score_q32(
+            0,
+            0,
+            0,
+            315_i64 << 32,
+            x << 32,
+            z << 32,
+            0,
+            0,
+            115_000,
+            window,
+        )
+        .unwrap()
+    };
+    let window = Some(20_i64 << 32);
+    assert_eq!(score(-50, 40, window), score(-50, 40, None));
+    assert_eq!(
+        score(-50, 0, window),
+        score(-50, 0, None).saturating_add(TARGET_SCORE_OUT_OF_RANGE_PENALTY_Q32)
+    );
+}
+
+#[test]
+fn a_construction_pointing_at_zero_has_no_rotation_window() {
+    let score = |rotation: i64, window| {
+        normal_visible_full_rotation_target_score_q32(
+            0,
+            0,
+            0,
+            rotation << 32,
+            -50 << 32,
+            0,
+            0,
+            0,
+            115_000,
+            window,
+        )
+        .unwrap()
+    };
+    let window = Some(20_i64 << 32);
+    assert_eq!(score(0, window), score(0, None));
+    assert_ne!(score(10, window), score(10, None));
 }
 
 #[test]
@@ -137,6 +224,7 @@ fn normal_selector_split_query_remains_order_independent_for_a_unique_best() {
         states: buildings,
         unsearchable,
         colliders: construction_colliders,
+        passable_constructions,
         tower_losses,
         tower_buffed_constructions,
         construction_groups: _,
@@ -172,6 +260,7 @@ fn normal_selector_split_query_remains_order_independent_for_a_unique_best() {
         buildings_query_alive,
         dropped_buffs: BTreeMap::new(),
         construction_colliders: construction_colliders.clone(),
+        passable_constructions,
         map_crystals,
         unsearchable_buildings: unsearchable.clone(),
         constructions: BTreeMap::new(),

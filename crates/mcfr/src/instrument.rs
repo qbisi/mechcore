@@ -233,6 +233,13 @@ pub struct TargetCandidate {
     pub angle_raw: Option<i64>,
     pub angle_score_raw: Option<i64>,
     pub is_left_side: Option<bool>,
+    /// `CalculateScore`'s per-search arguments: the range past which a
+    /// candidate is penalised, and the rotation window a candidate in range
+    /// must lie in (`Selector.CalculateRotationData`).
+    pub max_attack_range_raw: Option<i64>,
+    pub source_rotation_raw: Option<i64>,
+    pub min_rotation_raw: Option<i64>,
+    pub max_rotation_raw: Option<i64>,
 }
 
 impl InstrumentRow for TargetCandidate {

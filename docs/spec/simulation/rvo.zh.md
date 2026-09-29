@@ -117,8 +117,10 @@ Simulator 用 `rvo_first_tree_pending` 显式复现这一点：
 对 priority `p`，可移动 agent 使用偶数位 `2p-2`，并接受自己的 layer 及所有更高位。
 不可移动建筑使用奇数位 `2p-1` 且自身 `collides_with=0`。当前碰撞建筑固定使用 priority
 10、`size=M`、内外半径均为建筑宽度的一半、`locked=true`。工事一样，只是 priority 用
-自己那一行的 `pathfinding_collider_priority`（防御墙是 5）而不是 10，并标记
-`passable_by_own_group`。
+自己那一行的 `pathfinding_collider_priority`（防御墙是 5）而不是 10；那一行的
+`IsEnableBlock` 为真（`blockWidth` 大于 0 且 `defaultActorVisibility` 小于 2）时标记
+`passable_by_own_group`，`RVOControllerFixed.RefreshGroup` 正是据此设
+`ignoreSameGroup`：防御墙的各块标记，`blockWidth` 为 0 的速射炮不标记，己方单位绕开它。
 
 筛选是有方向的：只有查询方满足
 `query.collides_with & candidate.layer != 0`，candidate 才成为邻居。建筑自身不会避让，

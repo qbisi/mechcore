@@ -271,6 +271,9 @@ struct Simulation {
     /// overlapping block 3 is pushed off it as that agent pushes it, tick for
     /// tick, and every other wall fight is unchanged by it.
     construction_colliders: BTreeMap<u64, i32>,
+    /// The constructions their own side passes through
+    /// (`FightConstruction.IsEnableBlock`); a turret is not one.
+    passable_constructions: BTreeSet<u64>,
     /// The map's neutral crystals that take part in movement, in the order
     /// the map lists them, which is the order they enter the RVO tree after
     /// the towers.
@@ -334,6 +337,7 @@ impl Simulation {
             states: buildings,
             unsearchable,
             colliders: construction_colliders,
+            passable_constructions,
             tower_losses,
             tower_buffed_constructions,
             construction_groups,
@@ -384,6 +388,7 @@ impl Simulation {
             buildings_query_alive,
             dropped_buffs: BTreeMap::new(),
             construction_colliders: construction_colliders.clone(),
+            passable_constructions,
             map_crystals,
             unsearchable_buildings: unsearchable.clone(),
             constructions,
