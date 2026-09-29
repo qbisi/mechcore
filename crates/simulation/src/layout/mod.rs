@@ -470,10 +470,19 @@ fn compile_formation(
     let rotated = formation.rotated;
     let local_x = i64::from(formation.position.x);
     let local_z = i64::from(formation.position.y);
-    let (world_x, world_z, rotation) = if team == 0 {
-        (local_x, local_z, 0)
+    let (world_x, world_z) = if team == 0 {
+        (local_x, local_z)
     } else {
-        (-local_x, -local_z, 180_000)
+        (-local_x, -local_z)
+    };
+    // A formation faces the enemy from its side's half, and the middle from
+    // a flank: the world's left flank faces +x and its right flank -x,
+    // whichever side stands there.
+    let rotation = match mechcore_document::Region::of(formation.position) {
+        mechcore_document::Region::Main if team == 0 => 0,
+        mechcore_document::Region::Main => 180_000,
+        _ if world_x < 0 => 90_000,
+        _ => 270_000,
     };
     Some(Placement {
         team,

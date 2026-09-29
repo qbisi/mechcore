@@ -18,6 +18,7 @@ out to show:
 | [`missile/`](missile/README.md) | when a missile fires, at what, and what its hit writes |
 | [`map/`](map/README.md) | what a map's neutral crystals do to a fight |
 | [`modifier/`](modifier/README.md) | how officers and technologies correct a unit's numbers |
+| [`super_deployment/`](super_deployment/README.md) | what a formation deployed on a flank does in a fight |
 | [`shield/`](shield/README.md) | what a battlefield shield does to the hits meant for what it covers, and when it breaks |
 | [`search/`](search/README.md) | which positions a skill's target search scores |
 | [`projectile/`](projectile/README.md) | how a projectile leaves its weapon, climbs and flies, and a burst still releasing |
