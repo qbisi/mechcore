@@ -29,11 +29,17 @@ the skill's `attackDurationRandomValue`, which
   layout answers the same numbers under any seed. The projection is
   `next_in_range(offset)`, uniform over `[1 − offset, offset − 1]` in ticks by
   masked rejection, so a unit can read above its description as well as below.
-- **Every member draws, in the order the recording numbers them.** The stream
-  walks the deployment by ascending world `z`, then `x`, the order
-  [`mcfr.md`](../spec/mcfr/mcfr.md) gives a recording's initial units, and
-  hands each **member** one draw in that member's own offset, whatever order
-  the layout declares them in.
+- **Every member draws, in the order the fight updates them.** The stream
+  walks the deployment by ascending world `z`, then `x`, and hands each
+  **member** one draw in that member's own offset, whatever order the layout
+  declares them in. That is the order [`mcfr.md`](../spec/mcfr/mcfr.md) numbers
+  a recording's initial units in but for one difference: the fight compares
+  `z` with `FPoint`'s tolerance (`FightUtility.PositionComparer`), so two
+  members within 43 raw units of each other in `z` go by `x`, while their
+  identities go by `z`. Every tick's updates follow the same order. Recorded in
+  replays 201370830 and 67152171, round 1: two units 6 raw apart in `z` draw
+  their first intervals, and act each tick, in `x` order, the later identity
+  first.
 - **Every cycle draws again.** The number is the interval the cycle in progress
   was scheduled with, so a unit's cadence jitters from cycle to cycle rather
   than being staggered once at deployment.

@@ -234,7 +234,9 @@ fn normal_selector_split_query_remains_order_independent_for_a_unique_best() {
     let map_crystals = map_crystals(config.maps.buildings(1021).unwrap());
     let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
     let buildings_query_alive = standing_buildings(&buildings);
+    let unit_update_order = crate::fight::deploy::update_order(&actors);
     let simulation = Simulation {
+        unit_update_order,
         actors,
         team_random: BTreeMap::new(),
         projectiles: Vec::new(),
