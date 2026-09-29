@@ -1,0 +1,52 @@
+# Replay 2324_20260925--201373545, round 2, map 1021. An idle unit keeps the
+# point it stopped at: blue's Marksman 12 goes idle on tick 1112, cooling
+# after its shot, and an RVO solve nudges it a tenth of a millimetre on tick
+# 1113. Its motion is not entered again while it cools, so the next solve
+# steers it back to where it stopped, and it stands there on tick 1121 when
+# it starts to move. The round also shows both sides' Shield Airdrops landing
+# on one tick, a splash reaching a shield from outside it, and a Steel Ball's
+# lock on a tower a shield covers.
+
+kind: fight
+map_id: 1021
+seed: 953550766
+round: 2
+source: recording
+ticks: 1413
+hash: {profile: mcfr-content-0.7.0, result: 84a1f64fe0988454cb5dac70ca8a646240035a7d89f6a702956b5d2a650b2d67}
+blue:
+  officers: [quick_supply_specialist]
+  units:
+  - {name: fang, index: 0, position: {x: -140, y: -135}, exp: 95/190/600, rotated: true}
+  - {name: fang, index: 1, position: {x: 50, y: -135}, exp: 82/241/600, rotated: true}
+  - {name: fang, index: 2, position: {x: 140, y: -135}, exp: 0/27/600, rotated: true}
+  - {name: steel_ball, index: 3, position: {x: -215, y: -230}, exp: 43/86/1000}
+  - {name: steel_ball, index: 4, position: {x: 215, y: -230}, exp: 562/1000/1000}
+  - {name: marksman, index: 5, position: {x: -100, y: -170}, exp: 123/264/650}
+  - {name: marksman, index: 6, position: {x: 100, y: -170}, exp: 258/619/650}
+  - {name: marksman, index: 7, position: {x: 180, y: -170}, exp: 450/634/650}
+  - {name: arclight, index: 8, position: {x: 100, y: -150}, exp: 0/286/750}
+  - {name: arclight, index: 9, position: {x: -160, y: -170}, exp: 0/750/750}
+  - {name: marksman, index: 10, position: {x: -180, y: -170}, exp: 0/62/650}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  battle_skills:
+  - {name: shield_airdrop, positions: [{x: -146, y: -160}], retained: false}
+red:
+  core_damage: 638
+  officers: [speed_specialist]
+  units:
+  - {name: arclight, index: 0, position: {x: 210, y: -150}, exp: 372/458/750}
+  - {name: arclight, index: 1, position: {x: 140, y: -150}, exp: 353/470/750}
+  - {name: arclight, index: 2, position: {x: 70, y: -150}, exp: 199/489/750}
+  - {name: sledgehammer, index: 3, position: {x: 185, y: -130}, exp: 346/612/1300}
+  - {name: sledgehammer, index: 4, position: {x: 95, y: -130}, exp: 254/536/1300}
+  - {name: crawler, index: 5, position: {x: 140, y: -205}, exp: 192/215/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 290, y: -285}, exp: 450/450/450, rotated: true}
+  - {name: fang, index: 7, position: {x: -180, y: -185}, rotated: true}
+  - {name: fang, index: 8, position: {x: 70, y: -235}, exp: 0/14/600, rotated: true}
+  - {name: crawler, index: 9, position: {x: 70, y: -285}, exp: 0/51/450, rotated: true}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  battle_skills:
+  - {name: shield_airdrop, positions: [{x: 143, y: -132}], retained: false}

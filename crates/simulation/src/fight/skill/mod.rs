@@ -741,7 +741,10 @@ impl Simulation {
         skill.set_cooling(Some((started, candidate)));
         skill.search_target_time = 0;
         if let Some(actor) = self.moving_mut(owner) {
-            actor.stop_in_place(true);
+            // The motion stops where it enters `MotionIdleState`; one already
+            // idle is not entered again, and keeps its target point.
+            let entered_idle = actor.motion.state != MotionState::Idle;
+            actor.stop_in_place(entered_idle);
         }
         Ok(true)
     }
