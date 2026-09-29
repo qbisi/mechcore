@@ -288,45 +288,77 @@ impl Simulation {
         let mut agents = Vec::new();
         let (tower_layer, tower_collides_with) =
             immovable_rvo_collision_masks(TOWER_RVO_COLLIDER_PRIORITY);
-        for building in &self.buildings {
+        let immovable = |key, layer, collides_with, group, x, z, radius, passable| RvoAgentInput {
+            key,
+            main_layer: 1,
+            layer,
+            collides_with,
+            passable_by_own_group: passable,
+            group,
+            locked: true,
+            tree_position: if first_tree {
+                FixedVec2::ZERO
+            } else {
+                rvo_position(x, z)
+            },
+            position: rvo_position(x, z),
+            current_velocity: FixedVec2::ZERO,
+            desired_velocity: FixedVec2::ZERO,
+            desired_target_delta: FixedVec2::ZERO,
+            desired_speed: 0,
+            max_speed: 0,
+            published_calculated_speed: 0,
+            radius_outer: radius,
+            radius_inner: radius,
+            size: AgentSizeType::M,
+            priority: Q32_ONE,
+        };
+        let building_agent = |building: &BuildingState| {
             let construction = self
                 .construction_colliders
                 .get(&building.building_id)
                 .copied();
             if !building_alive(building) || !(rvo_collides(building) || construction.is_some()) {
-                continue;
+                return None;
             }
             let (layer, collides_with) = construction.map_or(
                 (tower_layer, tower_collides_with),
                 immovable_rvo_collision_masks,
             );
-            let radius_q32 = building.bounds_width / 2;
-            agents.push(RvoAgentInput {
-                key: RvoAgentKey::Building(building.building_id),
-                main_layer: 1,
+            Some(immovable(
+                RvoAgentKey::Building(building.building_id),
                 layer,
                 collides_with,
-                passable_by_own_group: construction.is_some(),
-                group: i32::try_from(building.team_id).unwrap_or(i32::MAX),
-                locked: true,
-                tree_position: if first_tree {
-                    FixedVec2::ZERO
-                } else {
-                    rvo_position(building.position.x, building.position.z)
-                },
-                position: rvo_position(building.position.x, building.position.z),
-                current_velocity: FixedVec2::ZERO,
-                desired_velocity: FixedVec2::ZERO,
-                desired_target_delta: FixedVec2::ZERO,
-                desired_speed: 0,
-                max_speed: 0,
-                published_calculated_speed: 0,
-                radius_outer: radius_q32,
-                radius_inner: radius_q32,
-                size: AgentSizeType::M,
-                priority: Q32_ONE,
+                i32::try_from(building.team_id).unwrap_or(i32::MAX),
+                building.position.x,
+                building.position.z,
+                building.bounds_width / 2,
+                construction.is_some(),
+            ))
+        };
+        // The towers, then the map's crystals in the order the map lists them,
+        // then the constructions: the order the three activate their RVO
+        // controllers in when the fight starts.
+        let (constructions, towers): (Vec<_>, Vec<_>) =
+            self.buildings.iter().partition(|building| {
+                self.construction_colliders
+                    .contains_key(&building.building_id)
             });
+        agents.extend(towers.into_iter().filter_map(building_agent));
+        for (index, crystal) in self.map_crystals.iter().enumerate() {
+            let (layer, collides_with) = immovable_rvo_collision_masks(crystal.collider_priority);
+            agents.push(immovable(
+                RvoAgentKey::MapBuilding(index),
+                layer,
+                collides_with,
+                NEUTRAL_RVO_GROUP,
+                crystal.x_q32,
+                crystal.z_q32,
+                crystal.radius_q32,
+                false,
+            ));
         }
+        agents.extend(constructions.into_iter().filter_map(building_agent));
         for (&actor_id, actor) in self.actors.iter().filter(|(_, actor)| actor.alive()) {
             let profile = rvo_profile(&actor.rules);
             let (layer, collides_with) = movable_rvo_collision_masks(profile.collider_priority);

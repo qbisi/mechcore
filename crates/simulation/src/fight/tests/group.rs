@@ -47,7 +47,8 @@ fn grouped_skills_prime_one_attack_interval_sample_per_child() {
             },
         ],
     );
-    let mut simulation = Simulation::new(&layout, &config.units, &config.towers, 7).unwrap();
+    let mut simulation =
+        Simulation::new(&layout, &config.units, &config.towers, &config.maps, 7).unwrap();
 
     let blue = simulation.team_random.get_mut(&0).unwrap();
     assert_eq!([blue.next_in_range(4), blue.next_in_range(4)], [-1, -2]);
@@ -73,8 +74,14 @@ fn grouped_slots_follow_the_native_exclusion_and_fallback() {
         ),
     ] {
         let layout = pinned_layout(yaml, &config.units);
-        let mut sim =
-            Simulation::new(&layout, &config.units, &config.towers, 1_787_857_041).unwrap();
+        let mut sim = Simulation::new(
+            &layout,
+            &config.units,
+            &config.towers,
+            &config.maps,
+            1_787_857_041,
+        )
+        .unwrap();
         for step in 0..ticks {
             sim.step(step).unwrap();
             if ticks == 10 && step == 9 {
@@ -231,7 +238,8 @@ fn grouped_slots_take_the_wall_and_are_dropped_with_the_lock() {
         include_bytes!("../../../../../tests/construction/fights/wall-weapon-group.yaml"),
         &config.units,
     );
-    let mut simulation = Simulation::new(&layout, &config.units, &config.towers, 4242).unwrap();
+    let mut simulation =
+        Simulation::new(&layout, &config.units, &config.towers, &config.maps, 4242).unwrap();
     let slots_at = |simulation: &mut Simulation, tick: u64, done: &mut u64| {
         while *done < tick {
             simulation.step(*done).unwrap();
@@ -396,8 +404,14 @@ mod oracle {
             let (_, layout) =
                 crate::layout::compile_with_seed(recording.layout_yaml().as_bytes(), &config.units)
                     .unwrap();
-            let mut sim =
-                Simulation::new(&layout, &config.units, &config.towers, 1_787_857_041).unwrap();
+            let mut sim = Simulation::new(
+                &layout,
+                &config.units,
+                &config.towers,
+                &config.maps,
+                1_787_857_041,
+            )
+            .unwrap();
             let mut replay = Replay::default();
             for (tick, call) in calls {
                 let actor = call.source_actor.id;
@@ -474,6 +488,7 @@ mod slots {
             &layout,
             &config.units,
             &config.towers,
+            &config.maps,
             recording.context().match_seed,
         )
         .unwrap();

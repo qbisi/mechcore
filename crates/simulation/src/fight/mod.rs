@@ -26,8 +26,8 @@ use crate::{
     Error, Record, Result,
     layout::{CompiledLayout, ConstructionBuilding, Placement},
     rules::{
-        AttackConfig, AttackPath, AttackTargets, Magazine, RvoSize, SimulationConfig, TowersConfig,
-        UnitConfig, UnitConfigs, UnitDomain, WeaponMode,
+        AttackConfig, AttackPath, AttackTargets, Magazine, MapBuilding, MapsConfig, RvoSize,
+        SimulationConfig, TowersConfig, UnitConfig, UnitConfigs, UnitDomain, WeaponMode,
     },
 };
 
@@ -111,6 +111,9 @@ const TARGET_QUADTREE_HALF_HEIGHT_Q32: i64 = 350 * Q32_ONE;
 const RVO_SIMULATOR_ORIGIN_OFFSET_Q32: i64 = 400 * Q32_ONE;
 
 const TOWER_RVO_COLLIDER_PRIORITY: i32 = 10;
+/// The RVO group of a map's neutral crystal, which no team owns. A crystal
+/// is passable by no group, so which one it is changes nothing.
+const NEUTRAL_RVO_GROUP: i32 = -1;
 
 const SEARCH_TARGET_RESET_TICKS: i32 = 10;
 
@@ -238,6 +241,10 @@ struct Simulation {
     /// overlapping block 3 is pushed off it as that agent pushes it, tick for
     /// tick, and every other wall fight is unchanged by it.
     construction_colliders: BTreeMap<u64, i32>,
+    /// The map's neutral crystals that take part in movement, in the order
+    /// the map lists them, which is the order they enter the RVO tree after
+    /// the towers.
+    map_crystals: Vec<MapCrystal>,
     /// The buildings no unit searches for, which the target trees hold all
     /// the same.
     unsearchable_buildings: BTreeSet<u64>,
@@ -269,9 +276,10 @@ impl Simulation {
         layout: &CompiledLayout,
         configs: &UnitConfigs,
         towers: &TowersConfig,
+        maps: &MapsConfig,
         seed: i32,
     ) -> Result<Self> {
-        let mut simulation = Self::new_unprepared(layout, configs, towers, seed)?;
+        let mut simulation = Self::new_unprepared(layout, configs, towers, maps, seed)?;
         simulation.initialize_presearch_targets()?;
         Ok(simulation)
     }
@@ -280,6 +288,7 @@ impl Simulation {
         layout: &CompiledLayout,
         configs: &UnitConfigs,
         towers: &TowersConfig,
+        maps: &MapsConfig,
         seed: i32,
     ) -> Result<Self> {
         for placement in &layout.placements {
@@ -301,6 +310,7 @@ impl Simulation {
             building_exp,
         } = initialize_buildings(towers, &layout.constructions, &layout.tower_levels)?;
         let constructions = initialize_constructions(&buildings, &layout.constructions)?;
+        let map_crystals = map_crystals(maps.buildings(layout.map_id)?);
         let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
         let mech_quadtrees = initialize_mech_quadtrees(&actors);
         let mut simulation = Self {
@@ -320,6 +330,7 @@ impl Simulation {
             tower_buff_events: BTreeMap::new(),
             dropped_buffs: BTreeMap::new(),
             construction_colliders: construction_colliders.clone(),
+            map_crystals,
             unsearchable_buildings: unsearchable.clone(),
             constructions,
             towers: towers.clone(),

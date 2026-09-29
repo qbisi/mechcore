@@ -243,6 +243,47 @@ fn map_buildings(
         .collect()
 }
 
+/// A neutral crystal of the map in the RVO tree: an immovable agent on its
+/// own collider priority's layer with its radius for both of its radii. None
+/// is ever destroyed here, so it is in the tree for the whole fight.
+#[derive(Debug, Clone, Copy)]
+pub(in crate::fight) struct MapCrystal {
+    pub(in crate::fight) x_q32: i64,
+    pub(in crate::fight) z_q32: i64,
+    pub(in crate::fight) radius_q32: i64,
+    pub(in crate::fight) collider_priority: i32,
+}
+
+/// The lowest collider priority a neutral crystal takes part in movement
+/// with. Every crystal of priority 1 is left out of the RVO tree: with the
+/// Training Ground's nineteen that overlap a deployment region in the tree,
+/// 29 of the pinned fights part from the game, and with none they all hold.
+/// On every standard 1v1 map a crystal's priority is above 1 exactly when its
+/// life and its strength are, so which of the three the build asks is not
+/// separated; `docs/rules/map.md` says so.
+const CRYSTAL_MIN_COLLIDER_PRIORITY: i32 = 2;
+
+/// The map's crystals that take part in movement, in the order the map lists
+/// them.
+pub(in crate::fight) fn map_crystals(map: &[MapBuilding]) -> Vec<MapCrystal> {
+    map.iter()
+        .filter_map(|building| match *building {
+            MapBuilding::Tower { .. } => None,
+            MapBuilding::Crystal {
+                x,
+                z,
+                radius,
+                collider_priority,
+            } => (collider_priority >= CRYSTAL_MIN_COLLIDER_PRIORITY).then_some(MapCrystal {
+                x_q32: x,
+                z_q32: z,
+                radius_q32: radius,
+                collider_priority,
+            }),
+        })
+        .collect()
+}
+
 /// Every building the fight starts with: the map's own, and the ones this
 /// layout's constructions place.
 ///

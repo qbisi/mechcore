@@ -19,10 +19,10 @@
   对另一方是这样：它对自己一方沉下去，自己一方的单位仍把它算作邻居，但不为它生成速度
   障碍。
 
-无阵营 `FightCrystal` 是否参与战斗取决于地图，不能一概视为试验场额外对象并删除。
-原生录像/试验场通过 `layout.map_id` 选择同一地图并保留地图对象：
-1021 地图有 0 个中立水晶 RVO controller，1001 地图有 73 个。当前 Simulator
-未实现这套地图对象加载；上述原生对齐不代表 Simulator 已支持地图差异。
+地图的无阵营 `FightCrystal` 属于地图，不是试验场额外对象。`layout.map_id` 选择地图，
+kernel 把 `config/maps.yaml` 列出的、collider priority 不低于 2 的每个水晶作为不可移动
+agent 放进树里，layer 按它自己的 priority，内外半径都是它的半径；哪些水晶参与、为什么，
+见 [map.md](../../rules/map.md)。
 RVO 的私有双缓冲、邻居列表和 VO 列表不是 Layout 或 MCFR 的输入；Simulator
 从可公开还原的单位、建筑和移动状态重新计算它们。
 
