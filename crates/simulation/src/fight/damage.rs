@@ -476,7 +476,8 @@ impl Simulation {
         // stroke without the range step. A unit it kills is recorded dead
         // before the damage, and a block it fells falls after it: the Steel
         // Balls of `wall-laser.yaml` read `damage` and then
-        // `building_destroyed`. Damage is recorded even when none was dealt.
+        // `building_destroyed`. A beam that took no life records no damage,
+        // as no other hit does.
         let stroke = self.strike(target, attacker_ref, attacker_team, damage)?;
         self.count_hit(attacker_ref, target, &stroke)?;
         if let Some(position) = stroke.death {
@@ -488,17 +489,19 @@ impl Simulation {
                 EventPayload::UnitDied { position },
             ));
         }
-        events.push(event(
-            None,
-            Some(attacker_ref),
-            Some(attacker_team),
-            Some(target.object_ref()),
-            EventPayload::Damage {
-                amount: i32::try_from(stroke.actual)
-                    .map_err(|_| Error::new("laser damage exceeds i32"))?,
-                skill_slot: Some(0),
-            },
-        ));
+        if stroke.actual > 0 {
+            events.push(event(
+                None,
+                Some(attacker_ref),
+                Some(attacker_team),
+                Some(target.object_ref()),
+                EventPayload::Damage {
+                    amount: i32::try_from(stroke.actual)
+                        .map_err(|_| Error::new("laser damage exceeds i32"))?,
+                    skill_slot: Some(0),
+                },
+            ));
+        }
         // A building the beam fells is recorded at the end of the tick, as a
         // blow's and a projectile's are: in the tower-loss fight with two
         // lanes, the other lane's Steel Ball damages its tower between the
