@@ -538,8 +538,8 @@ null。时钟中的两个整数都以逻辑步为单位，并通过 `DurableCont
 | `unit_died` | `FightMech.OnDead` trace |
 | `building_destroyed` | `FightCrystal.OnDead` trace |
 | `healing` | `FightActor.AddLife(value, isShowLifeBar)`（单位、塔与水晶都经它回血）与 `FightConstruction.AddLife`。量是调用后读到的生命减去调用前的：满血截断，调用本身不返回实际加了多少。回血都显示血条；不显示的两处回满——单位死后复活、超级部署落地——不是回血，不记。没有 `source`，调用本身不带 |
-| `shield_created` | 相邻采样边界间首次进入 `GetEnergyShields(fightGroup)` 全量集合 |
-| `shield_destroyed` | 相邻采样边界间从全量集合消失。原因在 `GroupAdvancedEnergyShieldManager.Destroy(FightEnergyShield)`（唯一把护盾移出集合的方法）开始时读：能量耗尽为 `energy_depleted`，只有伤害会在销毁前清空能量；有 owner 为 `owner_destroyed`；其余为 `scripted`。回合结束时的销毁在最后一个记录的 tick 之后，不写 `round_end` |
+| `shield_created` | 相邻采样边界间首次进入 `GetEnergyShields(fightGroup)` 全量集合。同一对边界间加入的多个护盾按身份顺序写，即快照读它们的顺序：逐队读，每队按其集合自身的顺序，不按原生地址 |
+| `shield_destroyed` | 相邻采样边界间从全量集合消失。原因在 `GroupAdvancedEnergyShieldManager.Destroy(FightEnergyShield)`（唯一把护盾移出集合的方法）开始时读：能量耗尽为 `energy_depleted`，只有伤害会在销毁前清空能量；有 owner 为 `owner_destroyed`；其余为 `scripted`。回合结束时的销毁在最后一个记录的 tick 之后，不写 `round_end`。同一对边界间离开的多个护盾按身份顺序写 |
 | `terrain_created` | 相邻采样边界间首次进入所属 `RangeItemController.GetItems()` 集合 |
 | `terrain_removed` | 相邻采样边界间从所属 controller item 集合消失。原因在 `RangeItem.Remove()` 开始时读：处在 `RangeItemController.OnExitFight` 内为 `round_expired`，火焰也是，其控制器不看回合数、随战斗结束移除；否则 `IsTimeOver()` 为 `time_expired`，网格全部清空为 `grid_depleted`。油被点成火、被技能清除为 `unknown`，不写 `cleared` |
 

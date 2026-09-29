@@ -5373,6 +5373,58 @@ fn side_local_position(position: MapVector, team: usize) -> Result<(i32, i32), S
     ))
 }
 
+/// The shields that joined and left the collection since the last snapshot,
+/// as `shield_created` and `shield_destroyed` traces.
+fn trace_shield_membership(
+    capture: &mut CaptureState,
+    current: &BTreeSet<usize>,
+) -> Result<(), String> {
+    // The pointer sets order by address, which is the allocator's and not
+    // the game's; the events go in identity order, which is the order the
+    // snapshot read the shields in, team by team.
+    let mut created = Vec::new();
+    for pointer in current.difference(&capture.live_shield_pointers) {
+        let state = capture
+            .shield_last_states
+            .get(pointer)
+            .ok_or_else(|| "new shield is missing its captured state".to_owned())?;
+        created.push((
+            state.shield_id,
+            NativeTrace::ShieldCreated {
+                shield_id: state.shield_id,
+                team_id: state.team_id,
+                source_kind: state.source_kind,
+                position: state.position,
+            },
+        ));
+    }
+    let mut destroyed = Vec::new();
+    for pointer in capture.live_shield_pointers.difference(current) {
+        let state = capture
+            .shield_last_states
+            .get(pointer)
+            .ok_or_else(|| "destroyed shield is missing its last state".to_owned())?;
+        destroyed.push((
+            state.shield_id,
+            NativeTrace::ShieldDestroyed {
+                shield_id: state.shield_id,
+                position: state.position,
+                reason: capture
+                    .shield_removal_reasons
+                    .remove(pointer)
+                    .unwrap_or(ShieldDestroyedReason::Unknown),
+            },
+        ));
+        capture.retired_shield_pointers.insert(*pointer);
+    }
+    created.sort_by_key(|(id, _)| *id);
+    destroyed.sort_by_key(|(id, _)| *id);
+    capture
+        .traces
+        .extend(created.into_iter().chain(destroyed).map(|(_, trace)| trace));
+    Ok(())
+}
+
 #[allow(clippy::too_many_lines)]
 fn snapshot(
     runtime: &Runtime,
@@ -5641,36 +5693,7 @@ fn snapshot(
         shields.push(shield.state);
     }
     if !initial {
-        for pointer in current_shield_pointers.difference(&capture.live_shield_pointers) {
-            let state = capture
-                .shield_last_states
-                .get(pointer)
-                .ok_or_else(|| "new shield is missing its captured state".to_owned())?;
-            capture.traces.push(NativeTrace::ShieldCreated {
-                shield_id: state.shield_id,
-                team_id: state.team_id,
-                source_kind: state.source_kind,
-                position: state.position,
-            });
-        }
-        for pointer in capture
-            .live_shield_pointers
-            .difference(&current_shield_pointers)
-        {
-            let state = capture
-                .shield_last_states
-                .get(pointer)
-                .ok_or_else(|| "destroyed shield is missing its last state".to_owned())?;
-            capture.traces.push(NativeTrace::ShieldDestroyed {
-                shield_id: state.shield_id,
-                position: state.position,
-                reason: capture
-                    .shield_removal_reasons
-                    .remove(pointer)
-                    .unwrap_or(ShieldDestroyedReason::Unknown),
-            });
-            capture.retired_shield_pointers.insert(*pointer);
-        }
+        trace_shield_membership(capture, &current_shield_pointers)?;
     }
     // A shield made and destroyed between two snapshots never joins the
     // collection they see; its reason goes with it.
@@ -9024,6 +9047,31 @@ mod tests {
         assert_eq!(events[2].subject, Some(shield(4)));
         assert_eq!(events[3].subject, Some(shield(2)));
         assert_eq!(events[4].source, Some(shield(4)));
+    }
+
+    #[test]
+    fn shields_that_join_or_leave_together_are_traced_in_identity_order() {
+        // The allocator is free to put the later shield at the lower address.
+        let mut capture = shield_identity_test_capture(&[0x2000, 0x1000]);
+        let traced = |capture: &CaptureState| {
+            capture
+                .traces
+                .iter()
+                .map(|trace| match trace {
+                    NativeTrace::ShieldCreated { shield_id, .. } => ("created", *shield_id),
+                    NativeTrace::ShieldDestroyed { shield_id, .. } => ("destroyed", *shield_id),
+                    _ => panic!("only shield traces are expected"),
+                })
+                .collect::<Vec<_>>()
+        };
+        let standing = std::mem::take(&mut capture.live_shield_pointers);
+        trace_shield_membership(&mut capture, &standing).unwrap();
+        assert_eq!(traced(&capture), [("created", 1), ("created", 2)]);
+
+        capture.traces.clear();
+        capture.live_shield_pointers = standing;
+        trace_shield_membership(&mut capture, &BTreeSet::new()).unwrap();
+        assert_eq!(traced(&capture), [("destroyed", 1), ("destroyed", 2)]);
     }
 
     #[test]
