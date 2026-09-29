@@ -195,6 +195,7 @@ impl Simulation {
     pub(in crate::fight) fn count_experience(
         &mut self,
         source: ObjectRef,
+        source_team: u32,
         target: FightActorRef,
         killed: bool,
     ) -> Result<()> {
@@ -210,11 +211,17 @@ impl Simulation {
         if !killed {
             return Ok(());
         }
-        self.hand_out(source, target, provided)
+        self.hand_out(source, source_team, target, provided)
     }
 
     /// `ExpSystem.DoCalculateExp`.
-    fn hand_out(&mut self, source: ObjectRef, target: FightActorRef, provided: i64) -> Result<()> {
+    fn hand_out(
+        &mut self,
+        source: ObjectRef,
+        source_team: u32,
+        target: FightActorRef,
+        provided: i64,
+    ) -> Result<()> {
         let base = provided << 32;
         let mut pool = q32_mul(base, self.experience.assist_kill_exp_rate);
         let killer = (source.kind == ObjectKind::Unit).then_some(source.id);
@@ -242,7 +249,9 @@ impl Simulation {
                 shared.push(formation);
             }
         }
-        let side = self.side_of(source);
+        // A missile's projectile is no one's: the side the hit is recorded
+        // under is the killer's.
+        let side = self.side_of(source).or(Some(source_team));
         if let Some(side) = side
             && side != self.side_of(target.object_ref()).unwrap_or(side ^ 1)
         {

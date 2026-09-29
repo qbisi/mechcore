@@ -249,8 +249,8 @@ impl Simulation {
             let projectile = self.projectiles.remove(position);
             events.push(event(
                 Some(projectile.object_ref()),
-                Some(projectile.owner.object_ref()),
-                Some(projectile.team),
+                projectile.shooter.actor().map(FightActorRef::object_ref),
+                projectile.shooter.actor().map(|_| projectile.team),
                 Some(ObjectRef::new(projectile.target_kind, projectile.target)),
                 EventPayload::ProjectileRemoved {
                     position: QVec3 {

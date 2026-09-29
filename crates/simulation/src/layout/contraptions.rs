@@ -1,10 +1,9 @@
 //! What a layout's contraptions put on the board.
 //!
 //! [`config/contraptions.yaml`](../../../../config/contraptions.yaml), which
-//! `scripts/extract/extract-contraptions.py` writes, holds the interceptor a
-//! layout places; `docs/rules/contraptions.md` states what it does. A shield
-//! and a missile are refused before this is asked, by the modules that owe
-//! them.
+//! `scripts/extract/extract-contraptions.py` writes, holds the interceptor and
+//! the missile a layout places; `docs/rules/contraptions.md` states what they
+//! do. A shield is refused before this is asked, by the module that owes it.
 
 use mechcore_document::{NativeFormation, Placement};
 use serde::Deserialize;
@@ -23,6 +22,38 @@ const LOGIC_DELTA_RAW: i64 = 0x0CCC_CCCC;
 struct Table {
     schema: String,
     interceptors: Vec<InterceptorRow>,
+    missiles: Vec<MissileRow>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct MissileRow {
+    id: i32,
+    name: String,
+    layout_name: String,
+    count: i32,
+    damage: i32,
+    max_life: i32,
+    effect_type: i32,
+    effect_range_type: i32,
+    trigger_range: i64,
+    splash_radius: i64,
+    speed: i64,
+    interceptible: bool,
+    can_attack_construction: bool,
+    buff: MissileBuffRow,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct MissileBuffRow {
+    id: u32,
+    name: String,
+    divide: i32,
+    additive: bool,
+    duration: i64,
+    can_affect_construction: bool,
+    move_speed_rate: i64,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -92,10 +123,51 @@ pub(crate) struct InterceptorBuilding {
     pub(crate) interception: Interception,
 }
 
-/// Every interceptor the build holds, by the id a layout compiles to.
+/// One missile a layout places: `FightLandMine`, standing where the layout
+/// puts it until it fires.
+#[derive(Debug, Clone)]
+pub(crate) struct MissileMine {
+    pub(crate) team: u32,
+    /// Where it stands, in space units, a thousand to the metre.
+    pub(crate) x: i64,
+    pub(crate) z: i64,
+    /// An enemy's edge nearer than this, `FPoint` raw metres, sets it off.
+    pub(crate) trigger_range_q32: i64,
+    /// What it fires.
+    pub(crate) shot: MissileShot,
+}
+
+/// The projectile a missile fires and what its hit does, read off its row.
+#[derive(Debug, Clone)]
+pub(crate) struct MissileShot {
+    pub(crate) damage: i64,
+    /// In space units.
+    pub(crate) splash_radius: i64,
+    /// Space units a second.
+    pub(crate) speed: i64,
+    pub(crate) life: i64,
+    pub(crate) interceptible: bool,
+    /// The `buffDatas` row its hit writes on every unit it strikes.
+    pub(crate) buff: MissileBuff,
+}
+
+/// The one buff a missile's hit writes: a slow.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct MissileBuff {
+    pub(crate) id: u32,
+    pub(crate) divide: i32,
+    pub(crate) additive: bool,
+    pub(crate) ticks: u32,
+    /// `speedChangeRate`, an `FPoint` raw rate.
+    pub(crate) move_speed_rate: i64,
+}
+
+/// Every interceptor and missile the build holds, by the id a layout compiles
+/// to.
 #[derive(Debug, Clone)]
 pub(crate) struct Contraptions {
     interceptors: Vec<InterceptorRow>,
+    missiles: Vec<MissileRow>,
 }
 
 impl Contraptions {
@@ -115,6 +187,81 @@ impl Contraptions {
         }
         Ok(Self {
             interceptors: table.interceptors,
+            missiles: table.missiles,
+        })
+    }
+
+    /// The missile a placement puts on the board, as `CRC_Mine` releases it:
+    /// at the placement's centre, on its side's half.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error naming the missile when its row asks for what no
+    /// recording has measured.
+    pub(crate) fn missile(&self, team: u32, placement: &Placement) -> Result<MissileMine> {
+        let NativeFormation::Contraption(id) = placement.native else {
+            return Err(Error::new(format!(
+                "placement {:?} is not a contraption",
+                placement.type_name
+            )));
+        };
+        let row = self
+            .missiles
+            .iter()
+            .find(|row| row.id == id && row.layout_name == placement.type_name)
+            .ok_or_else(|| {
+                Error::new(format!(
+                    "contraption {id} ({:?}) is not a missile of the table",
+                    placement.type_name
+                ))
+            })?;
+        let named = format!("missile {id} ({})", row.name);
+        if row.count != 1 || (row.effect_type, row.effect_range_type) != (7, 0) {
+            return Err(Error::new(format!(
+                "{named} fires {} with effect type {} over range type {}, which this build does \
+                 not read",
+                row.count, row.effect_type, row.effect_range_type
+            )));
+        }
+        if !row.can_attack_construction {
+            return Err(Error::new(format!(
+                "{named} cannot strike a construction, which this build does not read"
+            )));
+        }
+        if row.buff.can_affect_construction {
+            return Err(Error::new(format!(
+                "{named}'s buff {} ({}) reaches a construction, which is not measured",
+                row.buff.id, row.buff.name
+            )));
+        }
+        let (local_x, local_z) = (
+            i64::from(placement.position.x),
+            i64::from(placement.position.y),
+        );
+        let (x, z) = if team == 0 {
+            (local_x, local_z)
+        } else {
+            (-local_x, -local_z)
+        };
+        Ok(MissileMine {
+            team,
+            x: x * SPACE,
+            z: z * SPACE,
+            trigger_range_q32: row.trigger_range,
+            shot: MissileShot {
+                damage: i64::from(row.damage),
+                splash_radius: fixed_to_space(row.splash_radius),
+                speed: fixed_to_space(row.speed),
+                life: i64::from(row.max_life),
+                interceptible: row.interceptible,
+                buff: MissileBuff {
+                    id: row.buff.id,
+                    divide: row.buff.divide,
+                    additive: row.buff.additive,
+                    ticks: ticks(row.buff.duration)?,
+                    move_speed_rate: row.buff.move_speed_rate,
+                },
+            },
         })
     }
 
@@ -199,6 +346,11 @@ impl Contraptions {
             },
         })
     }
+}
+
+/// An `FPoint` raw length in space units.
+fn fixed_to_space(raw: i64) -> i64 {
+    i64::try_from((i128::from(raw) * i128::from(SPACE)) >> 32).unwrap_or(i64::MAX)
 }
 
 /// A whole number of points times an `FPoint` rate, truncated as the build casts

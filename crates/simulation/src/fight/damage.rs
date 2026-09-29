@@ -76,6 +76,9 @@ pub(in crate::fight) struct Stroke {
 /// tick's events: a projectile records its own removal first.
 #[derive(Debug, Default)]
 pub(in crate::fight) struct Struck {
+    /// Everything the hit struck, in the order it struck them, which is the
+    /// list a hit's `DispatchHitDamageEvent` hands on.
+    pub(in crate::fight) targets: Vec<FightActorRef>,
     pub(in crate::fight) deaths: Vec<(u64, QVec3)>,
     pub(in crate::fight) fallen: Vec<(u64, QVec3)>,
     /// Every death and fall together, in the order the hit struck them.
@@ -315,7 +318,8 @@ impl Simulation {
         let mut struck = Struck::default();
         for target in self.damage_targets(&hit)? {
             let stroke = self.strike(target, hit.source, hit.source_team, hit.amount)?;
-            self.count_hit(hit.source, target, &stroke)?;
+            self.count_hit(hit.source, hit.source_team, target, &stroke)?;
+            struck.targets.push(target);
             if stroke.actual > 0 {
                 events.push(event(
                     hit.projectile,
@@ -490,7 +494,7 @@ impl Simulation {
         // `building_destroyed`. A beam that took no life records no damage,
         // as no other hit does.
         let stroke = self.strike(target, attacker_ref, attacker_team, damage)?;
-        self.count_hit(attacker_ref, target, &stroke)?;
+        self.count_hit(attacker_ref, attacker_team, target, &stroke)?;
         if let Some(position) = stroke.death {
             events.push(event(
                 Some(target.object_ref()),

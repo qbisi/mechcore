@@ -460,7 +460,7 @@ impl Simulation {
         let projectile = Projectile {
             id: projectile_id,
             team: source.team,
-            owner: source.owner,
+            shooter: Shooter::Actor(source.owner),
             skill_slot,
             target_kind,
             target: target_id,

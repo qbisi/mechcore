@@ -76,6 +76,7 @@ pub(super) fn raw_test_simulation(
         team_random: BTreeMap::new(),
         projectiles: Vec::new(),
         interceptors: Vec::new(),
+        mines: Vec::new(),
         buildings,
         target_quadtrees,
         mech_quadtrees: BTreeMap::new(),

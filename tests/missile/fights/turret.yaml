@@ -1,0 +1,26 @@
+# A building that is not a tower sets a missile off.
+#
+# Blue's missile stands within its trigger range of red's Rapid-Fire Turret
+# and of nothing else of red's as the fight opens: it fires on tick 1 at the
+# turret, building 5, and fells it on tick 37: its 5000 is more than the
+# turret's 3650 life, which is what the damage reads. The Rhino walks in later
+# and sets nothing off, since the missile is spent.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 394
+hash: {profile: mcfr-content-0.7.0, result: c087c27ce772fbe0ae13e7d40a3b12292d84900d3454816f9e2e234bac902120}
+blue:
+  core_damage: 200
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/120/650}
+  contraptions:
+  - {name: missile, index: 0, position: {x: -140, y: -11}, retained: false}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -255}, exp: 0/200/1150}
+  constructions:
+  - {name: rapid_fire_turret, index: 0, position: {x: 140, y: -100}}
