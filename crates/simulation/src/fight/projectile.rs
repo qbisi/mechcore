@@ -271,8 +271,8 @@ impl Simulation {
                     z: projectile.z_q32,
                 },
                 intercepted: false,
-                absorbed_by: projectile
-                    .absorbed_by
+                absorbed_by: struck
+                    .shield
                     .map(|shield| ObjectRef::new(ObjectKind::Shield, shield)),
             },
         ));

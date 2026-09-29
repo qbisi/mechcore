@@ -1,0 +1,25 @@
+# A splash that lands beside a shield.
+#
+# Blue's Marksman stands three metres outside blue's shield, and red's
+# Sledgehammers fire at it. Each shell lands on the Marksman, outside the
+# shield, and its five-metre splash reaches the shield's surface: the shield
+# takes the hit, and so does the Marksman, which no shield covers. The
+# recording removes each shell `absorbed_by` the shield, though it never
+# crossed the shield's surface.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: recording
+ticks: 66
+hash: {profile: mcfr-content-0.7.0, result: 379d9635ae3c6ce977fac44458ab3eaf24969a5d18d19e6a79209458a245db01}
+blue:
+  core_damage: 200
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -70}}
+  battle_skills:
+  - {name: shield_airdrop, standing: {position: {x: 0, y: -143}}}
+red:
+  units:
+  - {name: sledgehammer, index: 0, position: {x: 5, y: -50}, exp: 0/200/1300}

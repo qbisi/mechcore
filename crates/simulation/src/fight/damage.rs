@@ -123,6 +123,9 @@ pub(in crate::fight) struct Struck {
     pub(in crate::fight) ends: Vec<(FightActorRef, QVec3)>,
     /// The life it took in all, what `DamagePerformer.Perform` returns.
     pub(in crate::fight) lost: i64,
+    /// The last shield it took energy from, which a recording names as the
+    /// one that absorbed the projectile carrying the hit.
+    pub(in crate::fight) shield: Option<u64>,
 }
 
 impl Reach {
@@ -365,13 +368,17 @@ impl Simulation {
         if let Some(shield) = hit.shield
             && hit.splash_radius == 0
         {
-            self.hit_shield(shield, &hit, events)?;
+            if self.hit_shield(shield, &hit, events)? > 0 {
+                struck.shield = Some(shield);
+            }
             return Ok(struck);
         }
         let mut targets = self.damage_targets(&hit)?;
         if hit.splash_radius > 0 && !hit.crosses_shields {
             for shield in self.shields_in_the_way(&hit, &mut targets) {
-                self.hit_shield(shield, &hit, events)?;
+                if self.hit_shield(shield, &hit, events)? > 0 {
+                    struck.shield = Some(shield);
+                }
             }
         }
         for target in targets {

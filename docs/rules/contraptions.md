@@ -131,7 +131,8 @@ A hit meant for a unit its side's shield covers lands on the shield:
   attacker stands inside it.
 - **A splash** that lands outside a shield leaves the units it covers alone,
   and the shield takes the hit if the splash reaches it in the plane; one that
-  lands inside a shield reaches the units inside.
+  lands inside a shield reaches the units inside. A splash that lands on a
+  unit no shield covers, beside a shield it reaches, strikes both.
 - A skill whose hits cross shields (`canCrossAdvancedShield`: a Crawler's, a
   Rhino's) passes every shield, and a unit whose attack does not, aiming at a
   covered unit, fires at the shield: it stops once the point of the shield's
@@ -145,7 +146,10 @@ A Shield Airdrop's shield is the same object, made where the skill lands;
 
 A shield takes a hit's damage up to the energy it has left, and a hit that
 empties it destroys it for the rest of the fight: the excess goes nowhere. The
-recording names the shield as the target of that `damage`, and
+recording names the shield as the target of that `damage`, and removes a
+projectile whose hit took energy from a shield `absorbed_by` the last shield it
+took energy from, whether the projectile crossed that shield's surface or its
+splash reached it from outside.
 `shield_destroyed` comes after everything else the tick did. A skill that broke
 it still aims at it for the rest of that tick and loses its lock at its next
 check. A shield never regains energy within a fight.
@@ -197,6 +201,9 @@ kind ends its own way:
   `tests/shield/fights/crawlers-cross.yaml`.
 - The hit that empties a shield is absorbed whole, and the shield is gone
   after it: `tests/shield/fights/projectiles-break-it.yaml`.
+- A splash that lands on an uncovered unit beside a shield strikes both, and
+  its projectile is removed `absorbed_by` the shield it never entered:
+  `tests/shield/fights/splash-beside.yaml`.
 
 ### Replayed
 
