@@ -1,0 +1,23 @@
+# A burst's skill is not checked on the update its last projectile leaves.
+#
+# Blue's Rhino walks past a red Phantom Ray and out of its reach while the
+# Phantom Ray's burst is still releasing. The second projectile leaves at
+# tick 144; that update the game keeps the lock and moves after the Rhino,
+# and the Phantom Ray goes idle, its lock dropped, only at tick 145, when its
+# skill is next checked. Idling on the update the last shot leaves puts it a
+# tick early.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 157
+hash: {profile: mcfr-content-0.7.0, result: b07e7dc6fae47000be1cc8d55eb22820bbb64c9921a264a9b6dc8089fa6f9a04}
+blue:
+  core_damage: 201
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -45}}
+red:
+  units:
+  - {name: phantom_ray, index: 0, position: {x: 5, y: -40}, exp: 0/400/1000}

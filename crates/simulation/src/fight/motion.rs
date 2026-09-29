@@ -447,10 +447,13 @@ impl Simulation {
         actor_id: u64,
         step: u64,
         events: &mut Vec<Event>,
-        backswing_just_finished: bool,
-        prepare_finished: bool,
-        attack_point_rejected: bool,
+        update: SkillUpdate,
     ) -> Result<()> {
+        let SkillUpdate {
+            backswing_just_finished,
+            prepare_finished,
+            ..
+        } = update;
         if let Flow::Done = self.hold_dead_target(actor_id, backswing_just_finished) {
             return Ok(());
         }
@@ -533,8 +536,7 @@ impl Simulation {
                 body_z_q32,
                 body_radius,
             },
-            backswing_just_finished,
-            attack_point_rejected,
+            update,
         );
         Ok(())
     }
@@ -928,16 +930,8 @@ impl Simulation {
 
     /// A target out of range: the attack motion is left, through idle where
     /// the build does, or the unit moves towards where its lock stands.
-    fn leave_or_approach(
-        &mut self,
-        actor_id: u64,
-        approach: Approach,
-        backswing_just_finished: bool,
-        attack_point_rejected: bool,
-    ) {
-        if let Flow::Done =
-            self.leave_attack_range(actor_id, backswing_just_finished, attack_point_rejected)
-        {
+    fn leave_or_approach(&mut self, actor_id: u64, approach: Approach, update: SkillUpdate) {
+        if let Flow::Done = self.leave_attack_range(actor_id, update) {
             return;
         }
         self.approach(actor_id, approach);
@@ -946,12 +940,13 @@ impl Simulation {
     /// The ways a unit leaves its attack motion when what it fires at is out
     /// of range: a grouped root turning back while its slots still fire, and
     /// the bodyless exits through idle.
-    fn leave_attack_range(
-        &mut self,
-        actor_id: u64,
-        backswing_just_finished: bool,
-        attack_point_rejected: bool,
-    ) -> Flow {
+    fn leave_attack_range(&mut self, actor_id: u64, update: SkillUpdate) -> Flow {
+        let SkillUpdate {
+            backswing_just_finished,
+            attack_point_rejected,
+            burst_releasing,
+            ..
+        } = update;
         let actor = self
             .actors
             .get_mut(&actor_id)
@@ -976,6 +971,7 @@ impl Simulation {
             && !actor.rules.has_body
             && !actor.motion.attack_hold_fire
             && actor.skill.pending().is_none()
+            && !burst_releasing
             && actor.skill.performer.pending().is_empty()
             && actor.skill.backswing_finish_step().is_none()
             && (actor.rules.attack.melee || actor.skill.phase() == FightSkillPhase::Attack)
@@ -987,7 +983,9 @@ impl Simulation {
             // A burst still releasing is not checked between its shots, so
             // the unit moves after its target and fires the rest: an
             // Overlord whose Crawler walks out of reach after its third shot
-            // follows it and fires the fourth.
+            // follows it and fires the fourth. Nor on the update its last
+            // shot leaves: a Phantom Ray whose Rhino walks out of reach
+            // moves after it that update and goes idle on the next.
             actor.motion.state = MotionState::Idle;
             actor.skill.drop_lock();
             actor.skill.set_phase(FightSkillPhase::Idle);
