@@ -1,0 +1,25 @@
+# Settled formations on all four flanks, in round 3. Each side stands a
+# five-member Hound on its local left flank and an Arclight on its local
+# right. Every member starts where the grid and its jitter, turned a quarter
+# turn to face the middle, put it: +x on the world's left flank, -x on its
+# right. Unturned, the Arclight's jitter of (-0.4, +0.5) would have stood it
+# at (329.6, 100.5), not the recorded (329.5, 99.6).
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 3
+source: recording
+ticks: 1250
+hash: {profile: mcfr-content-0.7.0, result: dae806830438e8a28d56b16c55c5eb30deb5c334f672a1db7783cdad2c9b8555}
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: hound, index: 1, position: {x: -330, y: 60}, exp: 0/400/750}
+  - {name: arclight, index: 2, position: {x: 330, y: 100}, exp: 0/400/750}
+red:
+  core_damage: 140
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
+  - {name: hound, index: 1, position: {x: -330, y: 200}, exp: 0/200/750}
+  - {name: arclight, index: 2, position: {x: 330, y: 250}, exp: 0/320/750}

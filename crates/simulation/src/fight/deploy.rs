@@ -120,7 +120,21 @@ pub(in crate::fight) fn generate_formation_positions(
 
     let formation_seed = seed.wrapping_add(placement.formation_index);
     let mut layout_random = GrRandom::new(i64::from(formation_seed).cast_unsigned());
-    let direction = if placement.team == 0 { 1_i64 } else { -1_i64 };
+    // `MechPositionManager` lays the grid out facing +z and turns it with the
+    // formation: a quarter turn stands it across a flank.
+    let turn = |x: i64, z: i64| -> Result<(i64, i64)> {
+        match placement.rotation {
+            0 => Ok((x, z)),
+            90_000 => Ok((z, x.saturating_neg())),
+            180_000 => Ok((x.saturating_neg(), z.saturating_neg())),
+            270_000 => Ok((z.saturating_neg(), x)),
+            other => Err(Error::new(format!(
+                "unit {:?} formation faces {other} millidegrees, which is no \
+                 deployment facing",
+                rules.type_name
+            ))),
+        }
+    };
     let center_x_q32 = placement.world_x.saturating_mul(Q32_ONE);
     let center_z_q32 = placement.world_z.saturating_mul(Q32_ONE);
     let mut positions = Vec::with_capacity(usize::try_from(members).unwrap_or(usize::MAX));
@@ -139,17 +153,13 @@ pub(in crate::fight) fn generate_formation_positions(
                 .saturating_mul(C0_1_RAW);
             let jitter_z = i64::from(layout_random.next_in_range(FORMATION_JITTER_RANGE_TENTHS))
                 .saturating_mul(C0_1_RAW);
+            let (offset_x, offset_z) = turn(
+                local_x_q32.saturating_add(jitter_x),
+                local_z_q32.saturating_add(jitter_z),
+            )?;
             positions.push((
-                center_x_q32.saturating_add(
-                    local_x_q32
-                        .saturating_add(jitter_x)
-                        .saturating_mul(direction),
-                ),
-                center_z_q32.saturating_add(
-                    local_z_q32
-                        .saturating_add(jitter_z)
-                        .saturating_mul(direction),
-                ),
+                center_x_q32.saturating_add(offset_x),
+                center_z_q32.saturating_add(offset_z),
             ));
         }
     }

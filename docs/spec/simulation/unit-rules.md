@@ -99,7 +99,11 @@ members need. A rotated formation is not counted again on the turned
 footprint. `MechPositionManager.CalculateMechLocalPosition` lays it on the
 swapped footprint with the two counts exchanged, so its rows are the
 unrotated columns: a rotated Fang stands in three columns of six, not two
-of nine. Both grids take the same per-member jitter. Jitter constants, member RNG, update order, and identity allocation
+of nine. Both grids take the same per-member jitter. The grid and its jitter
+are laid out facing `+z` and turned with the formation's facing: none for
+blue's main region, half a turn for red's, and a quarter turn on a flank,
+where a formation faces the middle, `+x` on the world's left flank and `-x` on
+its right, whichever side stands there. Jitter constants, member RNG, update order, and identity allocation
 are kernel mechanisms. They are not duplicated in unit YAML. The Adapter assigns initial unit identities after
 sorting by team, world `z`, then world `x`; native member creation order is not
 the MCFR identity order.
