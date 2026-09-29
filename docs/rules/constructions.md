@@ -85,6 +85,13 @@ towards the unit behind it, not towards the block. The same holds for a blow
 that fells the block: `MotionAttackState` releases it and then turns
 (`AttackRotate`). A unit with a body turns its weapons, not its root.
 
+**A felled block holds its attacker only while it is in reach.** While the
+lock behind the block lives, `MotionAttackState.Update` goes on asking whether
+its attack target is in reach, measured where the fallen block stood, as for a
+standing one. A unit still in reach goes on attacking through its swing; one
+its neighbours have pushed out of reach enters `MotionMoveState` on the next
+update and walks on towards its lock, its weapons still naming the block.
+
 Only a unit whose skill is attacking has an attack to finish. A unit closing on
 a block by its motion, its skill still idle, goes straight on to what is
 behind the block the tick after another unit fells it: the idle skill asks
@@ -210,6 +217,9 @@ The map's own buildings are the exception and are named: each side gets one
   and its reach: `tests/construction/fights/`.
 - A tick that lands two shots reports the fallen block after both:
   `tests/construction/fights/`.
+- A unit pushed out of reach of a block an ally fells during its swing walks
+  on towards its lock the next update, and those still in reach go on
+  attacking: `tests/corpus/fights/134259672-r1.yaml`, ticks 344 and 345.
 - A unit with four weapon slots takes the block in its way with every slot,
   splashes the next block, and drops its slots with the lock when a block falls:
   `tests/construction/fights/`.
@@ -251,6 +261,10 @@ The map's own buildings are the exception and are named: each side gets one
 
 ### Not established
 
+- **Which slot `MotionAttackState.Update` asks for reach.** It dispatches
+  through interface slots the dump does not name; the reach of a fallen
+  block is what the recordings say, where one Crawler 12.38 metres from the
+  block's centre walked on and four within 12, its reach, went on attacking.
 - **The block spacing as a rule.** It is one wall's, measured; the method that
   computes it dispatches through slots the dump does not name.
 - **The line's width exactly.** The recordings bracket it between 11.447 and

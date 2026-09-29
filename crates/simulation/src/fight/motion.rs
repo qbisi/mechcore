@@ -594,6 +594,14 @@ impl Simulation {
                 && matches!(target, FightActorRef::Building(_))
                 && lock != Some(target)
                 && lock.is_some_and(|lock| self.fight_actor_is_alive(lock));
+            // With its lock alive, `MotionAttackState.Update` still asks
+            // whether the fallen block is in reach, where it stood: a
+            // Crawler pushed out of reach of the block an ally felled
+            // during its backswing walks on towards its lock the next
+            // update, while one still in reach goes on attacking.
+            if block_before_live_lock && !self.reaches_where_it_stood(actor_id, target) {
+                return Flow::Next;
+            }
             if !target_alive
                 && (block_before_live_lock
                     || self.actors[&actor_id]
@@ -717,6 +725,18 @@ impl Simulation {
     /// `wall-rhino.yaml` measure it for a bodyless root; a unit with a body
     /// turns its weapons, and whether they follow the lock is not measured,
     /// so they stay on the block.
+    /// Whether a unit's attack reaches a target where it stands, dead or
+    /// alive: the range half of `IsAttackTargetInAttackRange`.
+    fn reaches_where_it_stood(&self, actor_id: u64, target: FightActorRef) -> bool {
+        let (Some(attacker), Some(view)) = (
+            self.attacker(FightActorRef::Unit(actor_id)),
+            self.fight_actor(target),
+        ) else {
+            return false;
+        };
+        attacker.reaches(view.x_q32, view.z_q32, view.radius)
+    }
+
     fn turn_past_fallen_wall(&mut self, actor_id: u64, target: FightActorRef) {
         let skill = &self.actors[&actor_id].skill;
         let FightActorRef::Building(building) = target else {
