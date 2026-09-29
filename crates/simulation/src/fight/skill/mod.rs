@@ -757,7 +757,14 @@ impl Simulation {
         {
             return Ok(());
         }
-        if target_alive && skill.search_target_time > 0 {
+        // `SkillIdleState.CanStartSearchTarget` asks the lock, not what the
+        // weapons fire at: a lock that died is searched for at once, even
+        // while a construction that stood in its way still stands.
+        let lock_alive = skill
+            .lock_target
+            .and_then(|lock| self.fight_actor(lock))
+            .is_some_and(|lock| lock.alive);
+        if target_alive && lock_alive && skill.search_target_time > 0 {
             self.skill_mut(owner).search_target_time -= 1;
             return Ok(());
         }
