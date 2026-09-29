@@ -1,0 +1,21 @@
+# An Overlord's burst climbs to the height where its target stood after the
+# target's side moved that tick, not where it stood as the tick began.
+#
+# Blue's Rhino walks straight at a red Overlord. Blue updates first, and
+# measuring the climb from where the Rhino stood as the tick began puts
+# projectile 5's height off from tick 94.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 117
+hash: {profile: mcfr-content-0.7.0, result: 9321b3e84c5935180ce47afe554ce72254f1ec1c3efa0432ba3a682c2a006039}
+blue:
+  core_damage: 400
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -45}}
+red:
+  units:
+  - {name: overlord, index: 0, position: {x: 5, y: -45}, exp: 0/400/1750}

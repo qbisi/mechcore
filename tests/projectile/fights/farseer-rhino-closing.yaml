@@ -1,0 +1,24 @@
+# A Farseer's burst climbs to the height where its target stood after the
+# target's side moved that tick, not where it stood as the tick began.
+#
+# Blue's Rhino walks straight at a red Farseer. Blue updates first, so when
+# the Farseer's second burst begins at tick 42 the Rhino has already stepped
+# 0.8 m nearer: both projectiles of the burst climb to 30.92 m, the height
+# that position gives, where the tick's start would give 31.31 and a first
+# step 354,431 raw units shorter. The first burst, at tick 2, was fired
+# before the Rhino moved.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 153
+hash: {profile: mcfr-content-0.7.0, result: 3ba33d6d777cedbcbb0d469610b0cf7c3a36d5668bf625915b74539863020ebc}
+blue:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/600/1150}
+red:
+  core_damage: 200
+  units:
+  - {name: farseer, index: 0, position: {x: 5, y: -45}}

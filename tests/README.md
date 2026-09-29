@@ -16,6 +16,7 @@ out to show:
 | [`map/`](map/README.md) | what a map's neutral crystals do to a fight |
 | [`modifier/`](modifier/README.md) | how officers and technologies correct a unit's numbers |
 | [`search/`](search/README.md) | which positions a skill's target search scores |
+| [`projectile/`](projectile/README.md) | how a projectile leaves its weapon, climbs and flies |
 | [`tower/`](tower/README.md) | what losing a tower writes on its side, and what strengthening one adds |
 | [`turret/`](turret/README.md) | when a turret fires, at what, and how often |
 | [`raiden/`](raiden/README.md) | how a Raiden's three weapons choose targets and fire together, beside its standard fights |
