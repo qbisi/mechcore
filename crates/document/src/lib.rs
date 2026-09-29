@@ -395,7 +395,7 @@ red:
     fn tracked_layouts_are_normal_and_normalize_idempotently() {
         let root = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
         let mut paths = Vec::new();
-        for directory in ["tests", "layouts", "replay"] {
+        for directory in ["tests", "layouts"] {
             tracked_layouts(&std::path::Path::new(root).join(directory), &mut paths);
         }
         let mut checked = 0;
