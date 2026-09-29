@@ -6,6 +6,14 @@
 //! are [`super::effects`]'s, the same ones an officer writes, because
 //! `TechnologyData` and `OfficerData` answer the same interface.
 //!
+//! **Only a plain technology is applied.** Every technology a unit may research
+//! has a row, whose `kind` is the list of `TechnologyGroupData` it comes from.
+//! One of `technologyDatas` does nothing but correct its unit's numbers, and
+//! is applied unless its row names a field in `special`. One of any other
+//! list is a subclass that does more (a buff, a splash, a second weapon, a
+//! summon), which no mechanism here implements, and is refused by name rather
+//! than applied for its numbers alone.
+//!
 //! A technology belongs to one unit type, which is how a side's flat list of
 //! technologies reaches the units it corrects: a technology the side holds
 //! writes onto the units its table row names and onto nothing else.
@@ -28,6 +36,9 @@ use crate::{
 use super::effects::{self, Fields, PROJECTILE, SPLASH, VALUE_ELSEWHERE};
 
 const DEFAULT_TECHNOLOGY_EFFECTS: &str = include_str!("../../../../config/technology_effects.yaml");
+
+/// The list of `TechnologyGroupData` a plain technology comes from.
+const PLAIN: &str = "technologyDatas";
 
 /// The module that tags every entry a technology writes.
 pub(crate) const SOURCE: &str = "Modifier";
@@ -54,6 +65,11 @@ struct Row {
     id: i32,
     name: String,
     unit: String,
+    /// The list of `TechnologyGroupData` the row comes from.
+    kind: String,
+    /// The fields a plain row sets beyond the numbers this table carries.
+    #[serde(default)]
+    special: Vec<String>,
     #[serde(default)]
     life_rate: Vec<i64>,
     #[serde(default)]
@@ -123,11 +139,8 @@ impl TechnologyEffects {
 
     /// Every correction this side's technologies write onto one unit type.
     ///
-    /// An id the table does not hold writes nothing onto a unit: the table
-    /// carries the technologies that correct a unit's numbers, and the other
-    /// 96 summon something, change a skill or debuff the enemy. The ids
-    /// reaching here come from a compiled layout, whose technologies are
-    /// validated against the catalogue.
+    /// Every technology a unit may research is in the table, so an id it
+    /// does not hold is refused too.
     ///
     /// # Errors
     ///
@@ -141,7 +154,9 @@ impl TechnologyEffects {
         let mut written = Vec::new();
         for id in held {
             let Some(technology) = self.technologies.get(id) else {
-                continue;
+                return Err(Error::new(format!(
+                    "technology {id} is not in the technology effect table"
+                )));
             };
             if technology.unit != unit_type {
                 continue;
@@ -167,6 +182,21 @@ impl TechnologyEffects {
 
 /// What a row writes at rank one, or why this build will not apply it.
 fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correction)>, String> {
+    if row.kind != PLAIN {
+        return Err(format!(
+            "technology {} ({}) comes from TechnologyGroupData's {} list, and what \
+             it does beyond its unit's numbers is not implemented",
+            row.id, row.name, row.kind
+        ));
+    }
+    if !row.special.is_empty() {
+        return Err(format!(
+            "technology {} ({}) sets {}, which no mechanism here reads",
+            row.id,
+            row.name,
+            row.special.join(", ")
+        ));
+    }
     let every = [
         ("life_rate", &row.life_rate),
         ("damage_rate", &row.damage_rate),
@@ -239,8 +269,14 @@ mod tests {
     const RANGE_ENHANCEMENT: i32 = 10202;
     /// Elite Marksman for the Fortress, whose effect grows with rank.
     const ELITE_MARKSMAN: i32 = 10801;
-    /// Grenade Launcher for the Fang, which corrects a splash radius.
+    /// Assault Mode for the Marksman, a plain technology that corrects a
+    /// splash radius.
+    const ASSAULT_MODE: i32 = 10102;
+    /// Grenade Launcher for the Fang, an `airAttackTechnologyDatas` row.
     const GRENADE_LAUNCHER: i32 = 3109;
+    /// Machine Learning for the Vortex, a plain technology that corrects the
+    /// experience its unit gains.
+    const MACHINE_LEARNING: i32 = 10131;
 
     #[test]
     fn a_technology_writes_onto_the_unit_whose_table_row_names_it() {
@@ -277,17 +313,29 @@ mod tests {
     fn a_technology_correcting_a_number_this_build_lacks_is_refused() {
         let table = TechnologyEffects::load().unwrap();
         let refused = table
-            .corrections(&[GRENADE_LAUNCHER], "fang")
+            .corrections(&[ASSAULT_MODE], "marksman")
             .unwrap_err()
             .to_string();
         assert!(refused.contains("splash_range_value"), "{refused}");
     }
 
-    /// A technology that summons or debuffs is not in this table, and writes
-    /// nothing rather than refusing the fight.
+    /// A technology of a subclass is refused by name and kind, numbers and
+    /// all: Grenade Launcher's splash, and Fang Production's summons.
     #[test]
-    fn a_technology_with_no_correction_writes_nothing() {
+    fn a_technology_that_does_more_than_numbers_is_refused() {
         let table = TechnologyEffects::load().unwrap();
-        assert!(table.corrections(&[1201], "fortress").unwrap().is_empty());
+        for (id, unit, kind) in [
+            (GRENADE_LAUNCHER, "fang", "airAttackTechnologyDatas"),
+            (1201, "fortress", "supportUnitTechnologies"),
+        ] {
+            let refused = table.corrections(&[id], unit).unwrap_err().to_string();
+            assert!(refused.contains(&id.to_string()), "{refused}");
+            assert!(refused.contains(kind), "{refused}");
+        }
+        let refused = table
+            .corrections(&[MACHINE_LEARNING], "vortex")
+            .unwrap_err()
+            .to_string();
+        assert!(refused.contains("expChangeRate"), "{refused}");
     }
 }

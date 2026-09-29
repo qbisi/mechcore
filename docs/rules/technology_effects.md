@@ -5,9 +5,10 @@ are encoded, and how they grow with the unit's rank. Which technologies a unit
 may research and what each costs is [unit_techs.md](unit_techs.md)'s.
 
 [`config/technology_effects.yaml`](../../config/technology_effects.yaml) holds
-every technology a unit may research that writes onto its unit's numbers;
-`scripts/extract/extract-technology-effects.py` writes it from every list of
-`TechnologyGroupData` in `level0`.
+every technology a unit may research, with the numbers it writes onto its
+unit; `scripts/extract/extract-technology-effects.py` writes it from every list
+of `TechnologyGroupData` in `level0`. A row's `kind` names the list it comes
+from.
 
 The fields are the ones `GameRiver.TechnologyData` answers
 `ICommonMechDataChangeDataSource` with, which is the interface `OfficerData`
@@ -55,10 +56,27 @@ as the build localizes it with its parameters filled. The check runs in this
 direction because a technology's text also states effects this table does not
 carry.
 
+## Plain technologies, and the rest
+
+A row of `technologyDatas` is a plain `TechnologyData`: it does nothing in a
+fight but correct its unit's numbers. A row of any other list is a subclass,
+`BuffTechnologyData`, `SplashTechnologyData`, `ExtraWeaponTechnologyData` and
+the rest, and does something more, although many carry numbers as well: Double
+Shot's second shot, High-Explosive Ammo's splash, Energy Absorption's life
+steal, Field Maintenance's repair. 64 of the 241 technologies are plain. The
+simulator applies a plain technology's numbers and refuses every other
+technology by name and kind, since applying a subclass's numbers alone would
+fight it as something it is not.
+
+A plain row may still set a field beyond the numbers this table carries, and
+names it in `special`: Siege Mode's `isInverseIsLockTarget`, and Machine
+Learning's `expChangeRate`, which speeds up the experience its unit gains. The
+simulator refuses those too.
+
 ## What this table does not carry
 
-A technology the table does not list does something that is not a correction
-on its unit's own numbers. It may instead:
+A technology that is not plain does something that is not a correction on its
+unit's own numbers. It may instead:
 
 - **summon or fire something**, as Fang Production and Anti-Air Barrage do;
 - **change a skill rather than the unit**: Aerial Specialization's "ATK against
@@ -68,9 +86,9 @@ on its unit's own numbers. It may instead:
 - **apply something to the enemy**, as Electromagnetic Explosion disables the
   target's technologies on hit.
 
-A row of this table may also be only half of what its technology does: Photon
-Coating's reduction of damage received is not here even though the technology
-also carries numbers that are.
+Its numbers may also be only half of what it does: Photon Coating's reduction
+of damage received is not here even though the technology also carries numbers
+that are.
 
 ## What the recordings show
 

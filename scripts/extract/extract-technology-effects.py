@@ -56,6 +56,18 @@ LISTS = (
     ("projectile_speed_value", "projectileSpeedChangeValue"),
     ("projectile_life_rate", "projectileLifeChangeRate"),
 )
+# The list of `TechnologyGroupData` a plain technology comes from. A row of any
+# other list is a subclass (`BuffTechnologyData`, `SplashTechnologyData` and
+# the rest) that does something beyond its unit's numbers.
+PLAIN = "technologyDatas"
+# The fields every row carries that say nothing a fight reads beyond its
+# numbers: identity, text, cost, and which of the unit's skills the numbers
+# reach.
+DESCRIPTIVE = {
+    "id", "name", "isTestData", "iconName", "description", "descParams", "story",
+    "limitedScene", "supply", "previousTechID", "activeLevel", "unlockCost",
+    "mainSkillEffect", "extraSkillEffect", "extraSkillNumericalEffect",
+}
 RATES = {"life_rate", "damage_rate", "attack_range_rate", "attack_interval_rate", "projectile_life_rate"}
 INTEGERS = {"speed_value", "min_attack_range_value"}
 
@@ -67,14 +79,25 @@ def raw(value):
 def rows_by_id() -> dict[int, dict]:
     """Every technology row of every list, by id."""
     rows = {}
-    for table in build_data.level0("TechnologyGroupData").values():
+    for kind, table in build_data.level0("TechnologyGroupData").items():
         if isinstance(table, list):
             for row in table:
-                effect = {"id": row["id"], "name": row["name"], "row": row}
+                effect = {"id": row["id"], "name": row["name"], "row": row, "kind": kind}
                 for field, source in LISTS:
                     effect[field] = [raw(value) for value in row.get(source) or []]
                 rows[row["id"]] = effect
     return rows
+
+
+def special(row: dict) -> list[str]:
+    """The fields of a plain technology's row that are set and are neither a
+    number this table carries nor descriptive: what it does beyond numbers."""
+    numeric = {source for _, source in LISTS}
+    return sorted(
+        field
+        for field, value in row["row"].items()
+        if field not in numeric | DESCRIPTIVE and raw(value) not in (0, False, "", None, [], {})
+    )
 
 
 def described(row: dict) -> str | None:
@@ -204,6 +227,12 @@ def main() -> int:
         "# `docs/rules/technology_effects.md` states what each field means and what",
         "# is not established.",
         "#",
+        "# Every technology a unit may research has a row. Its `kind` is the list",
+        "# of `TechnologyGroupData` it comes from: `technologyDatas` for a plain",
+        "# technology, which does nothing but correct its unit's numbers, and a",
+        "# subclass's list for one that does something more. A plain row that sets",
+        "# a field beyond its numbers names it in `special`.",
+        "#",
         "# Every effect is a list indexed by the unit's rank: one entry for a",
         "# technology whose effect is flat, and one per rank for a technology that",
         "# grows with it. A rate is an FPoint Q32.32 raw integer, a value is an",
@@ -211,19 +240,23 @@ def main() -> int:
         "",
         "technologies:",
     ]
-    written = 0
+    written = plain = 0
     for identifier, row in sorted(rows.items()):
         held = [
             (field, row[field])
             for field, _ in LISTS
             if any(value != 0 for value in row.get(field, []))
         ]
-        if not held:
-            continue
         written += 1
         lines.append(f"  - id: {identifier}")
         lines.append(f"    name: {row['name']}")
         lines.append(f"    unit: {row['unit']}")
+        lines.append(f"    kind: {row['kind']}")
+        extra = special(row) if row["kind"] == PLAIN else []
+        if extra:
+            lines.append(f"    special: [{', '.join(extra)}]")
+        elif row["kind"] == PLAIN:
+            plain += 1
         for field, values in held:
             raw = ", ".join(str(value) for value in values)
             if field in INTEGERS:
@@ -234,7 +267,7 @@ def main() -> int:
 
     OUTPUT.write_text("\n".join(lines) + "\n")
     print(
-        f"{written} of {len(rows)} technologies write onto a unit's numbers ->"
+        f"{written} technologies, {plain} of them plain ->"
         f" {OUTPUT.relative_to(REPOSITORY)}; every number {checked} of them state"
         f" is in their own description, and every rank list is its first entry"
         f" times the rank"
