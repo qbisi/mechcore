@@ -3,7 +3,8 @@
 
 Relative links resolve, section anchors exist, readmes are spelled README.md,
 every spec follows the convention in docs/README.md, and the name tables of
-docs/rules/ are the ones config/localization.yaml gives. Nothing here judges
+docs/rules/ are the ones config/localization.yaml gives, and config/README.md
+names the script that writes every file under config/. Nothing here judges
 whether a sentence is true; that still needs a reader.
 
 Run from the repository root: python3 scripts/check/check-docs.py
@@ -304,6 +305,26 @@ def check_name_tables(fail):
         fail(f"{path.relative_to(REPO)}: a name table is stale; run scripts/extract/name-tables.py")
 
 
+def check_config_generators(fail):
+    """Every file under config/ has a row in its readme naming a script that exists."""
+    readme = REPO / "config" / "README.md"
+    rows = dict(re.findall(r"^\| `([^`]+)` \| `([^`]+\.py)` \|$", readme.read_text(), re.M))
+    tracked = subprocess.run(["git", "ls-files", "config"], cwd=REPO, capture_output=True,
+                             text=True, check=True).stdout.split()
+    for path in tracked:
+        name = path.removeprefix("config/")
+        if name == "README.md":
+            continue
+        row = "units/*.yaml" if name.startswith("units/") else name
+        if row not in rows:
+            fail(f"{path}: config/README.md does not say which script writes it")
+    for row, script in rows.items():
+        if not (REPO / "scripts" / "extract" / script).is_file():
+            fail(f"config/README.md: {row} names scripts/extract/{script}, which does not exist")
+        if row != "units/*.yaml" and f"config/{row}" not in tracked:
+            fail(f"config/README.md: a row for {row}, which is not a tracked file")
+
+
 def main():
     problems = []
     paths = tracked_markdown()
@@ -313,6 +334,7 @@ def main():
     check_spec_structure(problems.append)
     check_repeated_paragraphs(paths, problems.append)
     check_name_tables(problems.append)
+    check_config_generators(problems.append)
     check_rules_evidence(problems.append)
     check_version_pins(problems.append)
     check_rules_evidence_sections(problems.append)
