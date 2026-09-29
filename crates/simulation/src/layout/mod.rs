@@ -11,7 +11,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use crate::{
     Error, Result,
     data::{Channel, Entry, Stats},
-    modifier::{EquipmentEffects, OfficerEffects, TechnologyEffects},
+    modifier::{EnergyTowerSkillEffects, EquipmentEffects, OfficerEffects, TechnologyEffects},
     rules::{UnitConfig, UnitConfigs},
 };
 use commander_skills::CommanderSkillEffects;
@@ -138,12 +138,12 @@ fn compile(bytes: &[u8], units: &UnitConfigs) -> Result<CompiledLayout> {
 /// The tables a side's corrections are read from.
 ///
 /// One per source of an `ICommonMechDataChangeDataSource`: officers,
-/// technologies and equipment today, the energy tower's skills when their
-/// table is extracted.
+/// technologies, equipment and the energy tower's skills.
 struct Loadouts {
     officers: OfficerEffects,
     technologies: TechnologyEffects,
     equipment: EquipmentEffects,
+    energy_tower: EnergyTowerSkillEffects,
 }
 
 /// Everything a layout is refused for, gathered rather than stopped at.
@@ -188,6 +188,7 @@ pub(crate) fn compile_with_seed(
         officers: OfficerEffects::load()?,
         technologies: TechnologyEffects::load()?,
         equipment: EquipmentEffects::load()?,
+        energy_tower: EnergyTowerSkillEffects::load()?,
     };
     let table = Constructions::load()?;
     let contraptions = Contraptions::load()?;
@@ -365,13 +366,15 @@ fn compile_battle_skills(
             .release(team, skill, units)
             .and_then(|release| {
                 // A summon's data comes straight from the unit table;
-                // whether a side's officers and technologies reach it
-                // through `FightEffectSystem` is not measured.
-                let loaded = !side.techs.officers.is_empty() || !side.techs.units.is_empty();
+                // whether a side's officers, technologies and Energy Tower
+                // skills reach it through `FightEffectSystem` is not measured.
+                let loaded = !side.techs.officers.is_empty()
+                    || !side.techs.units.is_empty()
+                    || !side.energy_tower_skills.is_empty();
                 if matches!(release.effect, SkillEffect::Summon(_)) && loaded {
                     return Err(Error::new(format!(
-                        "{} summons onto a side with officers or technologies, and \
-                         whether they reach a summon is not measured",
+                        "{} summons onto a side with officers, technologies or Energy \
+                         Tower skills, and whether they reach a summon is not measured",
                         skill.type_name
                     )));
                 }
@@ -528,6 +531,12 @@ fn loadout(
                 .iter()
                 .map(|&id| loadouts.equipment.corrections(id, rules).map_err(on_side)),
         )
+        .chain(side.energy_tower_skills.iter().map(|id| {
+            loadouts
+                .energy_tower
+                .corrections(std::slice::from_ref(id), rules)
+                .map_err(on_side)
+        }))
         .collect::<Vec<_>>();
     let mut corrections = Vec::new();
     let mut resolved = true;
