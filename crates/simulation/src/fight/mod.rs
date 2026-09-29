@@ -453,7 +453,7 @@ impl Simulation {
                 && (every_unit || actor.skill.lock_target.is_some())
             {
                 actor.skill.current_attack_interval =
-                    native_time_units_to_steps(actor.stats.attack_interval());
+                    seconds_q32_to_steps(actor.stats.attack_interval_q32());
             }
         }
     }

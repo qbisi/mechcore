@@ -39,6 +39,15 @@ fn space_to_q32(millimetres: i64) -> i64 {
     .expect("a quantized speed fits Q32.32")
 }
 
+/// Time units to Q32.32 seconds, as a description's interval becomes the
+/// `FPoint` `AttackIntervalProperty` holds.
+fn time_to_q32(time_units: i64) -> i64 {
+    i64::try_from(
+        i128::from(time_units) * ONE / i128::from(crate::rules::TIME_UNITS_PER_SECOND_SCALE),
+    )
+    .expect("a quantized interval fits Q32.32")
+}
+
 /// Which of a unit's numbers an overlay entry corrects.
 ///
 /// The build addresses these by the `MechDataChange*` and `SkillDataChange*`
@@ -376,7 +385,9 @@ pub(crate) struct Stats {
     move_speed_q32: i64,
     max_life: i64,
     attack_damage: i64,
-    attack_interval: u64,
+    /// Q32.32 seconds: `AttackIntervalProperty` keeps the interval as an
+    /// `FPoint`, and a rate on it lands between two time units.
+    attack_interval_q32: i64,
     attack_range: i64,
 }
 
@@ -404,7 +415,7 @@ impl Stats {
             move_speed_q32: 0,
             max_life: 0,
             attack_damage: 0,
-            attack_interval: 0,
+            attack_interval_q32: 0,
             attack_range: 0,
         };
         stats.refresh(rules)?;
@@ -455,12 +466,19 @@ impl Stats {
         )?;
         self.max_life = resolve(Index::MaxLife, self.base(rules.max_life)?)?;
         self.attack_damage = resolve(Index::AttackDamage, self.base(rules.attack.base_damage)?)?;
-        self.attack_interval = u64::try_from(resolve(
+        // A value is whole time units; the interval is resolved in Q32.32.
+        let seconds = i128::from(crate::rules::TIME_UNITS_PER_SECOND_SCALE);
+        self.attack_interval_q32 = self.overlays.resolve_scaled(
             Index::AttackInterval,
-            i64::try_from(rules.attack.interval_time_units())
-                .map_err(|_| Error::new("attack interval is outside the signed range"))?,
-        )?)
-        .map_err(|_| Error::new("attack interval resolved below zero"))?;
+            time_to_q32(
+                i64::try_from(rules.attack.interval_time_units())
+                    .map_err(|_| Error::new("attack interval is outside the signed range"))?,
+            ),
+            |value| value * ONE / seconds,
+        )?;
+        if self.attack_interval_q32 < 0 {
+            return Err(Error::new("attack interval resolved below zero"));
+        }
         self.attack_range = resolve(Index::AttackRange, rules.attack.range())?;
         Ok(())
     }
@@ -715,8 +733,8 @@ impl Stats {
         self.overlays.resolve_raised(Index::AmplifyDamage, amount)
     }
 
-    pub(crate) const fn attack_interval(&self) -> u64 {
-        self.attack_interval
+    pub(crate) const fn attack_interval_q32(&self) -> i64 {
+        self.attack_interval_q32
     }
 
     pub(crate) const fn attack_range(&self) -> i64 {
@@ -798,7 +816,10 @@ mod tests {
         );
         assert_eq!(stats.max_life(), rules.max_life);
         assert_eq!(stats.attack_damage(), rules.attack.base_damage);
-        assert_eq!(stats.attack_interval(), rules.attack.interval_time_units());
+        assert_eq!(
+            stats.attack_interval_q32(),
+            super::time_to_q32(i64::try_from(rules.attack.interval_time_units()).unwrap())
+        );
         assert_eq!(stats.attack_range(), rules.attack.range());
     }
 
@@ -816,7 +837,10 @@ mod tests {
                 stats.move_speed_q32(),
                 super::space_to_q32(rules.move_speed())
             );
-            assert_eq!(stats.attack_interval(), rules.attack.interval_time_units());
+            assert_eq!(
+                stats.attack_interval_q32(),
+                super::time_to_q32(i64::try_from(rules.attack.interval_time_units()).unwrap())
+            );
             assert_eq!(stats.attack_range(), rules.attack.range());
         }
     }
