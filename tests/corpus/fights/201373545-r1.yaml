@@ -1,0 +1,43 @@
+# Replay 2324_20260925--201373545, round 1, map 1021: 140 RVO agents on the
+# first tree. It showed four divergences. At the first RVO boundary no unit
+# has a neighbour, because the split that grows the quadtree's node array
+# loses the agents inserted before it (tick 8). A red Sledgehammer whose lock
+# dies behind a wall searches again at once (tick 189). A blue Steel Ball
+# under a lost tower's debuff whose beam takes no life records no damage
+# (tick 787). A blue Steel Ball's beam fells red's Research Center at tick
+# 887, and red, updated after blue, counts the buff from the next tick: it
+# ends at tick 1067.
+
+kind: fight
+map_id: 1021
+seed: 953550766
+round: 1
+source: recording
+ticks: 1385
+hash: {profile: mcfr-content-0.7.0, result: 8709e4c53d80463215a3aeb0f1bccea11a4619045cb766d39ac7d883593a9921}
+blue:
+  core_damage: 284
+  officers: [quick_supply_specialist]
+  units:
+  - {name: fang, index: 0, position: {x: -140, y: -135}, exp: 0/95/600, rotated: true}
+  - {name: fang, index: 1, position: {x: 50, y: -135}, exp: 0/82/600, rotated: true}
+  - {name: fang, index: 2, position: {x: 140, y: -135}, rotated: true}
+  - {name: steel_ball, index: 3, position: {x: -215, y: -230}, exp: 0/43/1000}
+  - {name: steel_ball, index: 4, position: {x: 215, y: -230}, exp: 0/562/1000}
+  - {name: marksman, index: 5, position: {x: -100, y: -170}, exp: 0/123/650}
+  - {name: marksman, index: 6, position: {x: 100, y: -170}, exp: 0/258/650}
+  - {name: marksman, index: 7, position: {x: 180, y: -170}, exp: 0/450/650}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+red:
+  officers: [speed_specialist]
+  units:
+  - {name: arclight, index: 0, position: {x: 210, y: -150}, exp: 0/372/750}
+  - {name: arclight, index: 1, position: {x: 140, y: -150}, exp: 0/353/750}
+  - {name: arclight, index: 2, position: {x: 70, y: -150}, exp: 0/199/750}
+  - {name: sledgehammer, index: 3, position: {x: 185, y: -130}, exp: 0/346/1300}
+  - {name: sledgehammer, index: 4, position: {x: 95, y: -130}, exp: 0/254/1300}
+  - {name: crawler, index: 5, position: {x: 140, y: -205}, exp: 0/192/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 290, y: -285}, exp: 0/450/450, rotated: true}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}

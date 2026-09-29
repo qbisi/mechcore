@@ -160,6 +160,7 @@ fn normal_selector_split_query_remains_order_independent_for_a_unique_best() {
         late_building_events_pending: false,
         fallen_buildings: Vec::new(),
         tower_buff_events: BTreeMap::new(),
+        fallen_towers: Vec::new(),
         dropped_buffs: BTreeMap::new(),
         construction_colliders: construction_colliders.clone(),
         map_crystals,
