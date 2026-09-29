@@ -220,6 +220,10 @@ struct Terms {
     angle: i64,
     angle_score: i64,
     is_left_side: bool,
+    max_attack_range: i64,
+    source_rotation: i64,
+    min_rotation: i64,
+    max_rotation: i64,
     score: i64,
 }
 
@@ -386,6 +390,10 @@ unsafe extern "C" fn calculate_score_hook(
                     angle: angle.raw,
                     angle_score: angle_score.raw,
                     is_left_side,
+                    max_attack_range: max_attack_range.raw,
+                    source_rotation: source_rotation.raw,
+                    min_rotation: min_rotation.raw,
+                    max_rotation: max_rotation.raw,
                     score: score.raw,
                 });
             }
@@ -789,6 +797,10 @@ fn score_again(
         angle: angle.raw,
         angle_score: angle_score.raw,
         is_left_side,
+        max_attack_range: source.max_attack_range.raw,
+        source_rotation: source.rotation.raw,
+        min_rotation: source.min_rotation.raw,
+        max_rotation: source.max_rotation.raw,
         score: score.raw,
     })
 }
@@ -869,6 +881,10 @@ pub(crate) fn drain(
                         angle_raw: candidate.terms.map(|terms| terms.angle),
                         angle_score_raw: candidate.terms.map(|terms| terms.angle_score),
                         is_left_side: candidate.terms.map(|terms| terms.is_left_side),
+                        max_attack_range_raw: candidate.terms.map(|terms| terms.max_attack_range),
+                        source_rotation_raw: candidate.terms.map(|terms| terms.source_rotation),
+                        min_rotation_raw: candidate.terms.map(|terms| terms.min_rotation),
+                        max_rotation_raw: candidate.terms.map(|terms| terms.max_rotation),
                     }),
             );
         }
