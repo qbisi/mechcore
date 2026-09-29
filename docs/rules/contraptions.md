@@ -136,7 +136,9 @@ A hit meant for a unit its side's shield covers lands on the shield:
   Rhino's) passes every shield, and a unit whose attack does not, aiming at a
   covered unit, fires at the shield: it stops once the point of the shield's
   surface on its way to its target is within its range, and its weapons name no
-  target while it does.
+  target while it does, cooling included. Each weapon of a grouped unit
+  searches its own shield, with its own range, and keeps the one it last found
+  until it searches again itself, one broken since included.
 
 A Shield Airdrop's shield is the same object, made where the skill lands;
 [`battle_skill.md`](battle_skill.md) states when.
@@ -188,6 +190,9 @@ kind ends its own way:
   that broke it loses its lock the tick after:
   `tests/shield/fights/blows-break-it.yaml`.
 - A beam at a covered unit lands on the shield: `tests/shield/fights/beam.yaml`.
+- A grouped unit's weapons each fire at the shield covering their own lock,
+  and name no target while they do, cooling included, until they search
+  again: `tests/shield/fights/grouped-weapons.yaml`.
 - A skill that crosses shields strikes the covered unit:
   `tests/shield/fights/crawlers-cross.yaml`.
 - The hit that empties a shield is absorbed whole, and the shield is gone

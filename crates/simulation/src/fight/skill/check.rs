@@ -41,7 +41,10 @@ impl Simulation {
         self.skill_mut(owner).in_the_way = found;
         self.skill_mut(owner).target_shield = shield;
         if !self.skill(owner).siblings().is_empty() {
-            self.refresh_group_walls(owner.unit_id().expect("only a unit's skill is grouped"));
+            self.refresh_group_walls(
+                owner.unit_id().expect("only a unit's skill is grouped"),
+                None,
+            );
         }
     }
 
@@ -280,7 +283,10 @@ impl Simulation {
 
     fn search_slot_attack_target(&mut self, owner: FightActorRef, slot: Option<usize>) {
         if slot.is_some_and(|slot| slot > 0) {
-            self.refresh_group_walls(owner.unit_id().expect("only a unit's skill is grouped"));
+            self.refresh_group_walls(
+                owner.unit_id().expect("only a unit's skill is grouped"),
+                slot,
+            );
         } else {
             self.search_attack_target(owner);
         }
@@ -308,7 +314,7 @@ impl Simulation {
             let sibling = actor.skill.sibling_mut(slot);
             sibling.lock_target = selected;
             sibling.attack_target_left = None;
-            self.refresh_group_walls(actor_id);
+            self.refresh_group_walls(actor_id, Some(slot));
         }
         Ok(selected.is_some())
     }
@@ -368,7 +374,10 @@ impl Simulation {
                 .cooling_time_units(),
         );
         let skill = self.skill_mut(owner);
-        let fired_at = skill.attack_target();
+        // A skill firing at a shield has no attack target to go on naming.
+        let fired_at = skill
+            .attack_target()
+            .filter(|_| skill.shield_target().is_none());
         skill.drop_lock();
         skill.set_phase(FightSkillPhase::Idle);
         skill.set_backswing_finish_step(None);
