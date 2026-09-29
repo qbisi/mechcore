@@ -61,6 +61,21 @@ searches on it. Whether the attack counts it down too, and whether entering the
 attack resets it, these fights do not separate: they play back tick for tick
 with both and with neither. The simulator does neither, as for a unit.
 
+A candidate in reach but more than the attack angle off the weapon takes the
+out-of-range penalty too. `CalculateScore` adds it to a candidate within
+`maxAttackRange` whose side of the source rotation, the rotation less the
+angle on the left and plus it on the right, `FightUtility.IsInRangeRotation`
+puts outside `minRotation` to `maxRotation`, with `FPoint`'s tolerant
+comparisons and a window that wraps through 0. For a unit's search the window
+is `Angle0` to `Angle360`, which `CalculateScore` does not check. For a Rapid-Fire
+Turret's it is the weapon's rotation less and plus its attack angle of 20,
+except while the weapon points at exactly 0, where it is the whole turn: the
+recorded arguments carry the one on every search at any other rotation and
+the other on every search at 0, and the candidates in reach they score are
+unpenalised up to 14.8 degrees off and penalised from 21.1. Which code
+narrows a construction's window this way is not read, and whether an
+Anti-Armor Turret's is the same is not recorded.
+
 When a Rapid-Fire Turret's target dies, the next target is the one the selector
 scores from the weapon's rotation, not the nearest: in the head-on fight it
 takes a Crawler farther away but nearer the weapon's line over a nearer one
@@ -181,6 +196,8 @@ content, as `tests/turret/fights/` replays them.
   turns its weapon onto the lock: `tests/turret/fights/`.
 - A dead target is replaced by the one the selector scores from the weapon's
   rotation, not the nearest: `tests/turret/fights/`.
+- A candidate in reach more than the attack angle off the weapon takes the
+  out-of-range penalty: `tests/corpus/fights/268447927-r1.yaml`.
 - A reload keeps the lock, and the next shot goes to it: `tests/turret/fights/`.
 - The first shot leaves on the tick after a target starts within reach, reach
   measured edge to edge: `tests/turret/fights/`.

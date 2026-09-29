@@ -406,6 +406,7 @@ pub(in crate::fight) fn normal_visible_full_rotation_target_score_q32(
     target_radius: i64,
     min_range: i64,
     max_range: i64,
+    rotation_window_q32: Option<i64>,
 ) -> Option<i64> {
     let distance_q32 = native_q32_magnitude(
         target_x_q32.saturating_sub(source_x_q32),
@@ -427,12 +428,64 @@ pub(in crate::fight) fn normal_visible_full_rotation_target_score_q32(
     } else {
         delta_q32
     };
+    // `CalculateScore` checks the side of the source the candidate is on,
+    // `sourceRotation` less the angle on the left and plus it on the right,
+    // which is the bearing itself.
+    let outside_rotation_window = rotation_window_q32
+        .and_then(|half_width_q32| rotation_window(source_rotation_q32, half_width_q32))
+        .is_some_and(|(min_q32, max_q32)| !is_in_range_rotation(bearing_q32, min_q32, max_q32));
     normal_visible_full_rotation_score_from_distance_and_angle_q32(
         distance_q32,
         angle_q32,
         space_to_q32(min_range),
         space_to_q32(max_range),
+        outside_rotation_window,
     )
+}
+
+/// The window `Selector.CalculateRotationData` hands `CalculateScore` for a
+/// source whose window is its rotation widened by `half_width_q32` either
+/// side, if `CalculateScore` checks it. At rotation 0 the recorded window is
+/// the whole turn, `Angle0` to `Angle360`; `CalculateScore` checks a window
+/// only when it starts above `Angle0` and ends below `Angle360`.
+fn rotation_window(rotation_q32: i64, half_width_q32: i64) -> Option<(i64, i64)> {
+    let less = rvo::fpoint_less_than;
+    let full_rotation = 360_i64 << 32;
+    if !less(rotation_q32, 0) && !less(0, rotation_q32) {
+        return None;
+    }
+    let min_q32 = clamp_rotation(rotation_q32.saturating_sub(half_width_q32));
+    let max_q32 = clamp_rotation(rotation_q32.saturating_add(half_width_q32));
+    (less(0, min_q32) && less(max_q32, full_rotation)).then_some((min_q32, max_q32))
+}
+
+/// `FightUtility.ClampRotation`: one turn added below `Angle0`, one taken off
+/// from `Angle360`, with `FPoint`'s tolerant comparisons.
+fn clamp_rotation(rotation_q32: i64) -> i64 {
+    let full_rotation = 360_i64 << 32;
+    if rvo::fpoint_less_than(rotation_q32, 0) {
+        rotation_q32.saturating_add(full_rotation)
+    } else if !rvo::fpoint_less_than(rotation_q32, full_rotation) {
+        rotation_q32.saturating_sub(full_rotation)
+    } else {
+        rotation_q32
+    }
+}
+
+/// `FightUtility.IsInRangeRotation`: whether a rotation lies between two
+/// others, clockwise from the first, the window wrapping through 0 when the
+/// first is not below the second; every comparison is `FPoint`'s tolerant one.
+pub(in crate::fight) fn is_in_range_rotation(
+    rotation_q32: i64,
+    min_q32: i64,
+    max_q32: i64,
+) -> bool {
+    let less = rvo::fpoint_less_than;
+    if less(min_q32, max_q32) {
+        !less(rotation_q32, min_q32) && !less(max_q32, rotation_q32)
+    } else {
+        !(less(max_q32, rotation_q32) && less(rotation_q32, min_q32))
+    }
 }
 
 pub(in crate::fight) fn normal_visible_full_rotation_score_from_distance_and_angle_q32(
@@ -440,6 +493,7 @@ pub(in crate::fight) fn normal_visible_full_rotation_score_from_distance_and_ang
     angle_q32: i64,
     min_range_q32: i64,
     max_range_q32: i64,
+    outside_rotation_window: bool,
 ) -> Option<i64> {
     if distance_q32 < min_range_q32 {
         return None;
@@ -453,7 +507,9 @@ pub(in crate::fight) fn normal_visible_full_rotation_score_from_distance_and_ang
         distance_score_q32,
         TARGET_SCORE_BASE_Q32.saturating_add(angle_score_q32),
     );
-    if distance_q32 > max_range_q32 {
+    // One penalty for a candidate out of range, or in range but outside the
+    // rotation window.
+    if distance_q32 > max_range_q32 || outside_rotation_window {
         score_q32 = score_q32.saturating_add(TARGET_SCORE_OUT_OF_RANGE_PENALTY_Q32);
     }
     Some(score_q32.saturating_add(distance_q32))
@@ -598,6 +654,7 @@ impl Simulation {
                     target.radius,
                     source.attack.min_range(),
                     source.attack_range,
+                    source.rotation_window_q32,
                 ) {
                     consider(candidate, score);
                 }
@@ -690,6 +747,7 @@ impl Simulation {
                         target.radius,
                         source.rules.attack.min_range(),
                         self.slot_attack_range(actor_id, Some(slot)),
+                        None,
                     ) else {
                         continue;
                     };
