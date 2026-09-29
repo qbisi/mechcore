@@ -407,7 +407,10 @@ gives, 30.92 m where the tick's start would give 31.31.
 **A burst goes on after its target leaves reach.** A skill is not checked
 between the projectiles of a burst, so a bodyless unit whose target walks out
 of reach mid-burst moves after it and fires the rest: an Overlord follows its
-Crawler and fires its fourth shot before it goes idle.
+Crawler and fires its fourth shot before it goes idle. Nor is it checked on the
+update its last shot leaves: a Phantom Ray whose Rhino walks out of reach moves
+after it on that update, keeping its lock, and goes idle on the next, when the
+check fails.
 
 **A single weapon lands its offsets last drawn first.** A Phantom Ray's first
 projectile lands the second offset its burst drew, and its second the first.
@@ -610,6 +613,9 @@ not the game's native attack-type enum.
 - A burst's climb measured to where its target stood after the target's own
   side moved that tick, for a Farseer's and an Overlord's bursts at a Rhino
   walking at them: `tests/projectile/fights/`.
+- A Phantom Ray moving after a Rhino on the update its burst's last shot
+  leaves, and going idle on the next:
+  `tests/projectile/fights/phantom-ray-rhino-walks-off.yaml`.
 - A cooling that goes on through a won fight, and an attack that goes idle,
   in the Phantom Ray's standard fights: `tests/phantom_ray/fights/`.
 - A winner's unit that updates after the last death taking a tower, and

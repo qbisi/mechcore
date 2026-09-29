@@ -650,6 +650,10 @@ impl Skill {
 }
 
 /// What a skill's update hands on to the rest of its owner's update.
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "each is a separate fact the motion update reads"
+)]
 #[derive(Debug, Clone, Copy)]
 pub(in crate::fight) struct SkillUpdate {
     /// A backswing ended before this update.
@@ -658,6 +662,10 @@ pub(in crate::fight) struct SkillUpdate {
     pub(in crate::fight) prepare_finished: bool,
     /// The blow due on this update was rejected at its attack point.
     pub(in crate::fight) attack_point_rejected: bool,
+    /// A burst still had projectiles to release when this update began, so
+    /// its skill was not checked on it, the update the last one leaves
+    /// included.
+    pub(in crate::fight) burst_releasing: bool,
 }
 
 impl Simulation {
@@ -942,14 +950,7 @@ impl Simulation {
             )?;
         }
         if let Some(update) = update {
-            self.update_motion(
-                actor_id,
-                step,
-                events,
-                update.backswing_just_finished,
-                update.prepare_finished,
-                update.attack_point_rejected,
-            )?;
+            self.update_motion(actor_id, step, events, update)?;
         }
         if self.actors[&actor_id].skill.is_grouped() && fusillade {
             let skill = &mut self
@@ -993,6 +994,7 @@ impl Simulation {
             .skill(owner)
             .backswing_finish_step()
             .is_some_and(|finish_step| finish_step < step);
+        let burst_releasing = !self.skill(owner).performer.pending().is_empty();
         if let Flow::Done = self.exit_fight_when_over(owner) {
             return Ok(None);
         }
@@ -1052,6 +1054,7 @@ impl Simulation {
             backswing_just_finished,
             prepare_finished,
             attack_point_rejected,
+            burst_releasing,
         }))
     }
 
