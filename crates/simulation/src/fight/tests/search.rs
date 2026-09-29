@@ -159,6 +159,7 @@ fn normal_selector_split_query_remains_order_independent_for_a_unique_best() {
         terminal_drain_pending: false,
         stop_step: None,
         late_building_events_pending: false,
+        torn_down_buildings: Vec::new(),
         fallen_buildings: Vec::new(),
         tower_buff_events: BTreeMap::new(),
         fallen_towers: Vec::new(),

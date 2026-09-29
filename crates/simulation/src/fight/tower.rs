@@ -311,6 +311,30 @@ impl Simulation {
     /// two-tower fight killed by a Steel Ball's beam lands its projectile the
     /// same tick for the debuffed 6; one that died two ticks before its
     /// projectile landed lands it for the full 63.
+    /// Every buff a live unit still runs, taken off and written as cleared
+    /// in unit order, as the fight is left.
+    pub(in crate::fight) fn clear_buffs_as_the_fight_ends(
+        &mut self,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        for (&actor_id, actor) in &mut self.actors {
+            if !actor.alive() || actor.buffs.is_empty() {
+                continue;
+            }
+            events.extend(actor.buffs.iter().map(|buff| {
+                buff_removed(
+                    ObjectRef::new(ObjectKind::Unit, actor_id),
+                    buff.buff_id,
+                    BuffRemovedReason::Cleared,
+                )
+            }));
+            actor.buffs.clear();
+            actor.stats.overlays.channel(Channel::Buff).withdraw(SOURCE);
+            actor.stats.refresh(&actor.rules)?;
+        }
+        Ok(())
+    }
+
     pub(in crate::fight) fn drop_buffs_of_the_dead(&mut self, actor_id: u64) -> Result<()> {
         let actor = self
             .actors

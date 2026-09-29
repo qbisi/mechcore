@@ -82,6 +82,9 @@ duration, so either side counts from the next tick, whichever side felled the
 tower and however. For the rest of the tick the tower falls, the losing side's
 hits and the projectiles that land are without the buff.
 
+A buff still running when the fight ends is taken off every survivor and
+written as cleared, unit by unit, after the towers the end tore down.
+
 A unit's buffs go on its first update after it dies, not on the tick it dies.
 The recording still writes each buff it had as cleared right after its death,
 whatever killed it: a hit, a laser or a projectile.
@@ -124,6 +127,9 @@ gets the debuffed speed through `Move`.
   after it, where a Steel Ball of the side updated first fells a Research
   Center with its beam: `tests/corpus/fights/201373545-r1.yaml`. A projectile
   takes its owner's damage as it lands: `tests/tower/fights/`.
+- A buff still running when the fight ends is written as cleared on every
+  survivor, after the one tower the end tore down:
+  `tests/corpus/fights/67160345-r1.yaml`.
 - The losing side's projectiles that land after the fall, on the tick the tower
   falls, land for their full damage: a Fire Badger's shot fells a tower and two
   Mustang shots of the losing side land after it, undebuffed:

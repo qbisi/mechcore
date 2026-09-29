@@ -126,6 +126,7 @@ fn multi_formation_initial_state_and_target_search_entry_match_the_build() {
             terminal_drain_pending: false,
             stop_step: None,
             late_building_events_pending: false,
+            torn_down_buildings: Vec::new(),
             fallen_buildings: Vec::new(),
             tower_buff_events: BTreeMap::new(),
             fallen_towers: Vec::new(),
