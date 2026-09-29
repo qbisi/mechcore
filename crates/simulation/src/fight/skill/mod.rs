@@ -858,14 +858,8 @@ impl Simulation {
         }
         let selected = selected_candidate;
         let skill = self.skill(owner);
-        let quick_idle_retains_attackable_target = quick_switch_target
-            && skill.phase() == FightSkillPhase::Idle
-            && step >= skill.next_attack_step
-            && skill
-                .attack_target()
-                .is_some_and(|target_id| self.target_in_attack_area(owner, target_id));
         let selected = if target_alive
-            && (!quick_switch_target || quick_idle_retains_attackable_target)
+            && !quick_switch_target
             && self.motion_state(owner) == MotionState::Attacking
             && !self.attack_hold_fire(owner)
             && skill.pending().is_none()
@@ -876,7 +870,11 @@ impl Simulation {
                 .is_some_and(|lock| self.target_in_attack_area(owner, lock))
         {
             // An attacking unit keeps the lock it has while it can fire at
-            // it. What its weapons fire at is asked again below, so a
+            // it, unless its skill switches targets quickly: a quick switch
+            // takes what the search answers, as an idle Arclight with its lock
+            // in its area takes a better-scored target in replay 67156074
+            // round 2. What its weapons fire at is asked
+            // again below, so a
             // construction still in the way is handed back to them rather
             // than written into the lock. One whose weapons are still turning
             // onto its lock takes what the search answers: a Melting Point

@@ -1,0 +1,45 @@
+# Replay 2324_20260925--67156074, round 2, map 1011. A skill that switches targets
+# quickly takes what its search answers even while its lock stands in its
+# attack area: at tick 560 red's Arclight 174, idle with its lock on unit
+# 52, takes unit 116, whose score is lower.
+
+kind: fight
+map_id: 1011
+seed: 718623077
+round: 2
+source: recording
+ticks: 1108
+hash: {profile: mcfr-content-0.7.0, result: dfac5bf33a1a50df6f9264cb66f5a9510630462e3cc0b5adb763911b171c64ef}
+blue:
+  core_damage: 214
+  officers: [training_specialist]
+  units:
+  - {name: void_eye, index: 0, position: {x: 50, y: -140}, exp: 154/281/650}
+  - {name: void_eye, index: 1, position: {x: -10, y: -140}, exp: 103/415/650}
+  - {name: void_eye, index: 2, position: {x: 110, y: -140}, level: 2, exp: 332/826/1465}
+  - {name: mustang, index: 3, position: {x: 225, y: -240}, exp: 394/854/1200}
+  - {name: mustang, index: 4, position: {x: 105, y: -240}, exp: 615/1066/1200}
+  - {name: crawler, index: 5, position: {x: 140, y: -285}, exp: 291/324/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 140, y: -205}, exp: 139/164/450, rotated: true}
+  - {name: marksman, index: 7, position: {x: -120, y: -170}, exp: 0/130/650}
+  - {name: marksman, index: 8, position: {x: -60, y: -170}, exp: 0/41/650}
+  - {name: mustang, index: 9, position: {x: -105, y: -240}, exp: 0/327/1200}
+  - {name: crawler, index: 10, position: {x: -140, y: -205}, exp: 0/25/450, rotated: true}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+red:
+  officers: [sabertooth_specialist]
+  units:
+  - {name: fang, index: 0, position: {x: -155, y: -120}, exp: 53/240/600}
+  - {name: fang, index: 1, position: {x: 155, y: -120}, exp: 161/275/600}
+  - {name: fang, index: 2, position: {x: 0, y: -105}, exp: 86/133/600, rotated: true}
+  - {name: steel_ball, index: 3, position: {x: -185, y: -280}, exp: 69/193/1000}
+  - {name: steel_ball, index: 4, position: {x: 185, y: -280}, exp: 572/1000/1000}
+  - {name: crawler, index: 5, position: {x: 140, y: -285}, exp: 41/369/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: -140, y: -285}, exp: 20/66/450, rotated: true}
+  - {name: phantom_ray, index: 7, position: {x: -185, y: -250}, exp: 0/99/1000}
+  - {name: arclight, index: 8, position: {x: -140, y: -150}, exp: 0/750/750}
+  - {name: arclight, index: 9, position: {x: 0, y: -150}, exp: 0/341/750}
+  - {name: arclight, index: 10, position: {x: 140, y: -150}, exp: 0/630/750}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
