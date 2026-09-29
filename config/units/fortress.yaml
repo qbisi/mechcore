@@ -38,6 +38,7 @@ attack:
     indices: [0, 3]
     per_skill: 2
   melee: false
+  crosses_shields: false
   path:
     type: projectile
     count: 1

@@ -178,7 +178,11 @@ def render(mech, card, kind, skill, rvo, type_name):
         lines.append(f"    rotation_speed: {grid(skill['extraWeaponRotateSpeed'], 1000)}")
     if unit == FIXED_TO_BODY_UNIT:
         lines.append("    fixed_to_body: true")
-    lines += [f"  melee: {boolean(skill['isMeleeAttack'])}", "  path:"]
+    lines += [
+        f"  melee: {boolean(skill['isMeleeAttack'])}",
+        f"  crosses_shields: {boolean(skill['canCrossAdvancedShield'])}",
+        "  path:",
+    ]
     if kind == "projectileSkillDatas":
         life = skill["maxLife"] or [0]
         lines += [

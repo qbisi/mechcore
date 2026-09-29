@@ -1,0 +1,21 @@
+# A skill that crosses shields.
+#
+# Blue's Crawlers cross red's shield, their skill's `canCrossAdvancedShield`,
+# and strike the Marksman inside it: the shield keeps its full energy.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 265
+hash: {profile: mcfr-content-0.7.0, result: 07bffb24749fda5eeb92ff6812891e37a8a67f94bdcbb5a1d610f76358b27684}
+blue:
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -150}, exp: 0/200/450}
+red:
+  core_damage: 80
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -80}, exp: 0/32/650}
+  contraptions:
+  - {name: shield, index: 1, position: {x: 1, y: -81}}

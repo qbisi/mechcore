@@ -37,5 +37,6 @@ attack:
     indices: [0]
     per_skill: 1
   melee: true
+  crosses_shields: true
   path:
     type: direct

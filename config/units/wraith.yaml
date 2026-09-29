@@ -41,6 +41,7 @@ attack:
     allow_same_target: true
     rotation_speed: 90
   melee: false
+  crosses_shields: false
   path:
     type: projectile
     count: 1

@@ -231,6 +231,11 @@ pub(in crate::fight) struct Skill {
     /// `lock_target` is anything but the lock it was found for, the block no
     /// longer answers, without anyone having to clear it.
     pub(in crate::fight) in_the_way: Option<(u64, FightActorRef)>,
+    /// The battlefield shield covering the lock, and the lock it was found
+    /// for: `FightSkill.targetEnergyShield`, which
+    /// `SkillSearchTargetController.SearchTargetShield` hands the skill in
+    /// place of an attack target while the mech keeps its lock.
+    pub(in crate::fight) target_shield: Option<(u64, FightActorRef)>,
     pub(in crate::fight) search_target_time: i32,
     pub(in crate::fight) searched_this_tick: bool,
     /// Which `SkillStateController` state the skill is in, with what that
@@ -290,6 +295,7 @@ impl Skill {
             current_attack_interval: 0,
             lock_target: None,
             in_the_way: None,
+            target_shield: None,
             // FightSkill owns a second SearchTargetController. FightPrepareState
             // replaces this constructor value with the presearch batch ordinal.
             search_target_time: SEARCH_TARGET_RESET_TICKS,
@@ -497,6 +503,15 @@ impl Skill {
 }
 
 impl Skill {
+    /// The shield the skill fires at in place of its lock, while the lock is
+    /// the one it was found for.
+    pub(in crate::fight) fn shield_target(&self) -> Option<u64> {
+        match self.target_shield {
+            Some((shield, found_for)) if self.lock_target == Some(found_for) => Some(shield),
+            _ => None,
+        }
+    }
+
     /// What this actor's weapons fire at: the construction in the way if one
     /// stands there for the current lock, and the lock itself otherwise.
     ///

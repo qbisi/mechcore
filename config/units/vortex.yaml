@@ -39,5 +39,6 @@ attack:
     fusillade: true
     allow_same_target: false
   melee: false
+  crosses_shields: false
   path:
     type: direct

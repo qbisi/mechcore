@@ -157,7 +157,15 @@ impl Simulation {
             offset_x_q32: 0,
             offset_z_q32: 0,
             climb_to_q32: None,
+            spawn_shields: Vec::new(),
+            absorbed_by: None,
         };
+        if !self.shields.is_empty() {
+            return Err(Error::new(
+                "a missile fires in a fight with a shield, and what a shield does to a \
+                 missile's projectile is not measured",
+            ));
+        }
         events.push(event(
             Some(projectile.object_ref()),
             None,
@@ -194,6 +202,9 @@ impl Simulation {
             aimed: Some(aimed),
             hits_aimed: projectile.lock_target,
             center: (projectile.x, projectile.z),
+            center_y_q32: projectile.y_q32,
+            shield: None,
+            crosses_shields: false,
             splash_radius: shot.splash_radius,
             reach,
         };

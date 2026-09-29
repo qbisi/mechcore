@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Extract what an interceptor and a missile are into `config/contraptions.yaml`.
+"""Extract what an interceptor, a missile and a shield are into `config/contraptions.yaml`.
 
     python3 scripts/extract/extract-contraptions.py [--build BUILD] [--check]
 
@@ -149,6 +149,24 @@ def missile_lines(group):
     return lines
 
 
+def shield_lines(group):
+    rows = [row for row in group["energyShieldContraptionDatas"] if not row["isTestData"]]
+    if [row["id"] for row in rows] != [10001]:
+        raise SystemExit(f"energyShieldContraptionDatas holds {[row['id'] for row in rows]}, not 10001")
+    row = rows[0]
+    return [
+        "",
+        "shields:",
+        f"  - id: {row['id']}",
+        f"    name: {row['name']}",
+        "    layout_name: shield",
+        f"    energy: {row['energy']}",
+        f"    effect_type: {row['effectType']}",
+        f"    effect_range_type: {row['effectRangeType']}",
+        f"    radius: {raw(row['range'])}{reading(raw(row['range']))}",
+    ]
+
+
 def render(group):
     rows = [row for row in group["interceptContraptionDatas"] if not row["isTestData"]]
     identity, width, height = catalog_footprint()
@@ -162,7 +180,7 @@ def render(group):
     lines = [
         "schema: mechcore.contraptions",
         "",
-        "# What an interceptor and a missile are, read out of `ContraptionGroupData`. Generated",
+        "# What an interceptor, a missile and a shield are, read out of `ContraptionGroupData`. Generated",
         "# by scripts/extract/extract-contraptions.py; docs/rules/contraptions.md",
         "# states what each field does. A time, a distance or a rate is an",
         "# FPoint Q32.32 raw integer, read in the comment beside it.",
@@ -178,6 +196,7 @@ def render(group):
         value = raw(row[field])
         lines.append(f"    {name}: {value}{reading(value)}")
     lines += missile_lines(group)
+    lines += shield_lines(group)
     return "\n".join(lines) + "\n"
 
 

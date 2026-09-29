@@ -1,9 +1,9 @@
 //! What a layout's contraptions put on the board.
 //!
 //! [`config/contraptions.yaml`](../../../../config/contraptions.yaml), which
-//! `scripts/extract/extract-contraptions.py` writes, holds the interceptor and
-//! the missile a layout places; `docs/rules/contraptions.md` states what they
-//! do. A shield is refused before this is asked, by the module that owes it.
+//! `scripts/extract/extract-contraptions.py` writes, holds the interceptor, the
+//! missile and the shield a layout places; `docs/rules/contraptions.md` states
+//! what they do.
 
 use mechcore_document::{NativeFormation, Placement};
 use serde::Deserialize;
@@ -23,6 +23,19 @@ struct Table {
     schema: String,
     interceptors: Vec<InterceptorRow>,
     missiles: Vec<MissileRow>,
+    shields: Vec<ShieldRow>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ShieldRow {
+    id: i32,
+    name: String,
+    layout_name: String,
+    energy: i64,
+    effect_type: i32,
+    effect_range_type: i32,
+    radius: i64,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -162,12 +175,27 @@ pub(crate) struct MissileBuff {
     pub(crate) move_speed_rate: i64,
 }
 
-/// Every interceptor and missile the build holds, by the id a layout compiles
-/// to.
+/// One shield a layout places: `FightEnergyShield`, a sphere of its side
+/// standing on the ground where the layout puts it.
+#[derive(Debug, Clone)]
+pub(crate) struct ShieldPlacement {
+    pub(crate) team: u32,
+    /// Its centre, in space units, a thousand to the metre.
+    pub(crate) x: i64,
+    pub(crate) z: i64,
+    /// `FPoint` raw metres.
+    pub(crate) radius_q32: i64,
+    /// `GetAdvancedEnergyShieldValue`: its energy, full.
+    pub(crate) energy: i64,
+}
+
+/// Every interceptor, missile and shield the build holds, by the id a layout
+/// compiles to.
 #[derive(Debug, Clone)]
 pub(crate) struct Contraptions {
     interceptors: Vec<InterceptorRow>,
     missiles: Vec<MissileRow>,
+    shields: Vec<ShieldRow>,
 }
 
 impl Contraptions {
@@ -188,6 +216,58 @@ impl Contraptions {
         Ok(Self {
             interceptors: table.interceptors,
             missiles: table.missiles,
+            shields: table.shields,
+        })
+    }
+
+    /// The shield a placement puts on the board, as `CRC_EnergyShield`
+    /// releases it: a sphere of its side at the placement's centre, on the
+    /// ground, `range` across and holding its row's `energy`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error naming the shield when its row asks for what this
+    /// build does not read.
+    pub(crate) fn shield(&self, team: u32, placement: &Placement) -> Result<ShieldPlacement> {
+        let NativeFormation::Contraption(id) = placement.native else {
+            return Err(Error::new(format!(
+                "placement {:?} is not a contraption",
+                placement.type_name
+            )));
+        };
+        let row = self
+            .shields
+            .iter()
+            .find(|row| row.id == id && row.layout_name == placement.type_name)
+            .ok_or_else(|| {
+                Error::new(format!(
+                    "contraption {id} ({:?}) is not a shield of the table",
+                    placement.type_name
+                ))
+            })?;
+        if (row.effect_type, row.effect_range_type) != (7, 0) || row.radius <= 0 || row.energy <= 0
+        {
+            return Err(Error::new(format!(
+                "shield {id} ({}) has effect type {} over range type {}, which this build does \
+                 not read",
+                row.name, row.effect_type, row.effect_range_type
+            )));
+        }
+        let (local_x, local_z) = (
+            i64::from(placement.position.x),
+            i64::from(placement.position.y),
+        );
+        let (x, z) = if team == 0 {
+            (local_x, local_z)
+        } else {
+            (-local_x, -local_z)
+        };
+        Ok(ShieldPlacement {
+            team,
+            x: x * SPACE,
+            z: z * SPACE,
+            radius_q32: row.radius,
+            energy: row.energy,
         })
     }
 

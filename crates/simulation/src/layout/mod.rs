@@ -19,7 +19,9 @@ pub(crate) use commander_skills::{SkillBuff, SkillEffect, SkillRelease, Summon};
 pub(crate) use constructions::ConstructionBuilding;
 use constructions::Constructions;
 use contraptions::Contraptions;
-pub(crate) use contraptions::{Interception, InterceptorBuilding, MissileMine, MissileShot};
+pub(crate) use contraptions::{
+    Interception, InterceptorBuilding, MissileMine, MissileShot, ShieldPlacement,
+};
 
 #[derive(Debug, Clone)]
 pub(crate) struct Placement {
@@ -62,6 +64,9 @@ pub(crate) struct CompiledLayout {
     /// The missiles both sides release, each side's in the order its layout
     /// lists them.
     pub(crate) missiles: Vec<MissileMine>,
+    /// The shields both sides release, each side's in the order its layout
+    /// lists them.
+    pub(crate) shields: Vec<ShieldPlacement>,
     /// The battle skills both sides release, each side's in the order its
     /// layout lists them.
     pub(crate) battle_skills: Vec<SkillRelease>,
@@ -86,6 +91,7 @@ impl CompiledLayout {
             constructions: Vec::new(),
             interceptors: Vec::new(),
             missiles: Vec::new(),
+            shields: Vec::new(),
             battle_skills: Vec::new(),
             researched: BTreeSet::new(),
             tower_levels: BTreeMap::new(),
@@ -206,6 +212,7 @@ pub(crate) fn compile_with_seed(
     let mut constructions = Vec::new();
     let mut interceptors = Vec::new();
     let mut missiles = Vec::new();
+    let mut shields = Vec::new();
     let mut battle_skills = Vec::new();
     let mut researched = BTreeSet::new();
     let mut tower_levels = BTreeMap::new();
@@ -229,19 +236,14 @@ pub(crate) fn compile_with_seed(
             &table,
             &mut refused,
         ));
-        // A shield was refused by the registry; an interceptor is released
-        // as `CRC_Interceptor` releases it, and a missile as `CRC_Mine` does.
-        for placement in &side.contraptions {
-            let located = |error: Error| Error::new(format!("side {name}: {error}"));
-            match placement.type_name.as_str() {
-                "interceptor" => interceptors.extend(
-                    refused.hold(contraptions.interceptor(team, placement).map_err(located)),
-                ),
-                "missile" => missiles
-                    .extend(refused.hold(contraptions.missile(team, placement).map_err(located))),
-                _ => {}
-            }
-        }
+        compile_contraptions(
+            name,
+            team,
+            side,
+            &contraptions,
+            &mut refused,
+            (&mut interceptors, &mut missiles, &mut shields),
+        );
         if !side.techs.units.is_empty() {
             researched.insert(team);
         }
@@ -275,6 +277,7 @@ pub(crate) fn compile_with_seed(
             constructions,
             interceptors,
             missiles,
+            shields,
             battle_skills,
             researched,
             tower_levels,
@@ -283,6 +286,36 @@ pub(crate) fn compile_with_seed(
                 .unwrap_or(mechcore_document::layout_replay::DEFAULT_MAP_ID),
         },
     ))
+}
+
+/// A side's contraptions: an interceptor released as `CRC_Interceptor`
+/// releases it, a missile as `CRC_Mine` does, and a shield as
+/// `CRC_EnergyShield`.
+fn compile_contraptions(
+    name: &str,
+    team: u32,
+    side: &SidePlan,
+    contraptions: &Contraptions,
+    refused: &mut Refusals,
+    (interceptors, missiles, shields): (
+        &mut Vec<InterceptorBuilding>,
+        &mut Vec<MissileMine>,
+        &mut Vec<ShieldPlacement>,
+    ),
+) {
+    for placement in &side.contraptions {
+        let located = |error: Error| Error::new(format!("side {name}: {error}"));
+        match placement.type_name.as_str() {
+            "interceptor" => interceptors
+                .extend(refused.hold(contraptions.interceptor(team, placement).map_err(located))),
+            "missile" => missiles
+                .extend(refused.hold(contraptions.missile(team, placement).map_err(located))),
+            "shield" => {
+                shields.extend(refused.hold(contraptions.shield(team, placement).map_err(located)));
+            }
+            _ => {}
+        }
+    }
 }
 
 /// A side's released battle skills, or nothing for each one refused with its

@@ -40,5 +40,6 @@ attack:
     allow_same_target: false
     fixed_to_body: true
   melee: false
+  crosses_shields: false
   path:
     type: direct

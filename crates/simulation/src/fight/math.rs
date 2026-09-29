@@ -324,6 +324,16 @@ pub(crate) fn fpcs_atan2_fastest(y: i64, x: i64) -> i64 {
     }
 }
 
+/// `FPCSMath.AsinFastest`: none outside [-1, 1], where the build answers
+/// `NaN`.
+pub(crate) fn fpcs_asin_fastest(value: i64) -> Option<i64> {
+    if !(-Q32_ONE..=Q32_ONE).contains(&value) {
+        return None;
+    }
+    let complement = q32_mul(Q32_ONE.saturating_sub(value), Q32_ONE.saturating_add(value));
+    Some(fpcs_atan2_fastest(value, fpcs_sqrt_fastest(complement)))
+}
+
 pub(crate) fn fpcs_acos_fastest(value: i64) -> i64 {
     let complement = q32_mul(Q32_ONE.saturating_sub(value), Q32_ONE.saturating_add(value));
     fpcs_atan2_fastest(fpcs_sqrt_fastest(complement), value)

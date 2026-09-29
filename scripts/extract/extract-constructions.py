@@ -167,6 +167,7 @@ def attack(row, body):
                 "per_skill": row["weaponCountPerSkill"],
             },
             "melee": row["isMeleeAttack"],
+            "crosses_shields": row["canCrossAdvancedShield"],
             "path": {
                 "type": "projectile",
                 "count": row["projectileCount"],

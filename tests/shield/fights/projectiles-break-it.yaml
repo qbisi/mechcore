@@ -1,0 +1,23 @@
+# The hit that empties a shield.
+#
+# Blue's two Fortresses break red's shield: the shot on tick 311 takes its
+# last 856 of the shot's 6524, the rest going nowhere, and `shield_destroyed`
+# follows that tick's removals.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 382
+hash: {profile: mcfr-content-0.7.0, result: 14942db775d1d76a0758f696b097d75b643240d22bfcfd0e619f0da315fe2245}
+blue:
+  units:
+  - {name: fortress, index: 0, position: {x: -60, y: -150}}
+  - {name: fortress, index: 1, position: {x: 60, y: -150}, exp: 0/200/1600}
+red:
+  core_damage: 700
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -80}}
+  contraptions:
+  - {name: shield, index: 1, position: {x: 1, y: -81}, retained: false}

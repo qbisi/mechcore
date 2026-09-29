@@ -227,14 +227,23 @@ impl Actor {
             .map(|weapon_index| {
                 let group_mode = self.rules.attack.weapons.mode == WeaponMode::Group;
                 let attack_target = if group_mode {
-                    self.skill.group_attack_target(weapon_index)
+                    // The core's slot is the skill's own, and names no
+                    // target while it fires at a shield.
+                    self.skill
+                        .group_attack_target(weapon_index)
+                        .filter(|_| weapon_index != 0 || self.skill.shield_target().is_none())
                 } else {
-                    self.skill.attack_target().or_else(|| {
-                        self.skill
-                            .cooling()
-                            .and_then(|(_, candidate)| candidate)
-                            .filter(|_| self.skill.lock_target.is_none())
-                    })
+                    // A skill firing at a shield holds no attack target the
+                    // recording can name.
+                    self.skill
+                        .attack_target()
+                        .filter(|_| self.skill.shield_target().is_none())
+                        .or_else(|| {
+                            self.skill
+                                .cooling()
+                                .and_then(|(_, candidate)| candidate)
+                                .filter(|_| self.skill.lock_target.is_none())
+                        })
                 };
                 WeaponAimState {
                     skill_slot: if group_mode {

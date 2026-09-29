@@ -37,6 +37,15 @@ impl Simulation {
             .cloned()
             .collect::<Vec<_>>();
         for release in landing {
+            // A falling sub-effect stops at the first shield it enters
+            // (`CommanderSkillSubEffectAgent.IsHitEnergyShield`), and a buff
+            // skill's damage modifier strikes shields: neither is measured.
+            if !self.shields.is_empty() {
+                return Err(Error::new(format!(
+                    "{} lands in a fight with a battlefield shield, which is not measured",
+                    release.name
+                )));
+            }
             match &release.effect {
                 SkillEffect::Buff { range_q32, buff } => {
                     let reached = self.skill_reach(&release, *range_q32, target_search_order);

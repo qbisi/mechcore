@@ -39,6 +39,11 @@ pub(in crate::fight) struct Projectile {
     /// The height a projectile still climbs to before it flies at its
     /// target, if it has not reached it.
     pub(in crate::fight) climb_to_q32: Option<i64>,
+    /// `ProjectileController.inEnergyShields`: the enemy shields that held it
+    /// as it was made, which it passes through for the rest of its flight.
+    pub(in crate::fight) spawn_shields: Vec<u64>,
+    /// The shield that took it, once one has.
+    pub(in crate::fight) absorbed_by: Option<u64>,
 }
 
 /// What released a projectile.
@@ -87,7 +92,11 @@ impl Projectile {
                 current: i32::try_from(self.life).expect("projectile life fits i32"),
                 maximum: i32::try_from(self.max_life).expect("projectile life fits i32"),
             },
-            spawn_containing_shields: Vec::new(),
+            spawn_containing_shields: self
+                .spawn_shields
+                .iter()
+                .map(|&id| ObjectRef::new(ObjectKind::Shield, id))
+                .collect(),
         }
     }
 }
@@ -165,6 +174,8 @@ impl Simulation {
                 self.leave_interceptors(&projectile);
                 self.impact(&projectile, events)?;
             } else {
+                let (last_x_q32, last_y_q32, last_z_q32) =
+                    (projectile.x_q32, projectile.y_q32, projectile.z_q32);
                 let step_q32 = projectile_step_q32(&projectile);
                 if distance_q32 > 0 {
                     let move_q32 = step_q32.min(distance_q32);
@@ -182,6 +193,26 @@ impl Simulation {
                 projectile.x = q32_to_space_rounded(projectile.x_q32);
                 projectile.y = q32_to_space_rounded(projectile.y_q32);
                 projectile.z = q32_to_space_rounded(projectile.z_q32);
+                // `CheckIsHitEnergyShield`: where `Move` has put it, the first
+                // enemy shield that holds it and did not as it was made takes
+                // it, at the point it crossed the shield's surface.
+                if let Some(shield) = self.absorbing_shield(&projectile) {
+                    let (x_q32, y_q32, z_q32) = self.shield_entry_point(
+                        shield,
+                        (projectile.x_q32, projectile.y_q32, projectile.z_q32),
+                        (last_x_q32, last_y_q32, last_z_q32),
+                    );
+                    projectile.x_q32 = x_q32;
+                    projectile.y_q32 = y_q32;
+                    projectile.z_q32 = z_q32;
+                    projectile.x = q32_to_space_rounded(x_q32);
+                    projectile.y = q32_to_space_rounded(y_q32);
+                    projectile.z = q32_to_space_rounded(z_q32);
+                    projectile.absorbed_by = Some(shield);
+                    self.leave_interceptors(&projectile);
+                    self.impact(&projectile, events)?;
+                    continue;
+                }
                 // `Move` has put it where it is now, and
                 // `UpdateIsInInterceptSources` reads it there.
                 self.track_interceptors(&mut projectile);
@@ -240,7 +271,9 @@ impl Simulation {
                     z: projectile.z_q32,
                 },
                 intercepted: false,
-                absorbed_by: None,
+                absorbed_by: projectile
+                    .absorbed_by
+                    .map(|shield| ObjectRef::new(ObjectKind::Shield, shield)),
             },
         ));
         // Deaths and falls wait for every shot the tick resolves, and then
@@ -288,6 +321,23 @@ impl Simulation {
             .attacker(owner)
             .ok_or_else(|| Error::new("projectile owner is absent"))?
             .attack_damage;
+        let crosses_shields = self
+            .attacker(owner)
+            .is_some_and(|attacker| attacker.attack.crosses_shields);
+        // A shot that took no shield on its way and lands without a splash
+        // is still taken by the shield of its target's side that covers the
+        // target, and neither is when the one who fired it stands inside that
+        // shield: `DamagePerformer.Perform` then strikes the target.
+        let mut shield = projectile.absorbed_by;
+        if shield.is_none() && splash_radius == 0 && !crosses_shields {
+            shield = self.shield_around(aimed);
+        }
+        if splash_radius == 0
+            && let Some(covering) = shield
+            && self.shield_holds(covering, owner)
+        {
+            shield = None;
+        }
         let hit = DamageHit {
             source: Some(owner.object_ref()),
             source_team: projectile.team,
@@ -299,6 +349,9 @@ impl Simulation {
             aimed: Some(aimed),
             hits_aimed: projectile.lock_target,
             center: (projectile.x, projectile.z),
+            center_y_q32: projectile.y_q32,
+            shield,
+            crosses_shields,
             splash_radius,
             reach,
         };
