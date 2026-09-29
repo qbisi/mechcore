@@ -1,0 +1,21 @@
+# Both fight skills on a blue Wraith, against two Marksmen and a Fang. The
+# recording writes the +15 of range into each of the Wraith's four skill
+# slots, not only its main one, and +3 into its speed.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 330
+hash: {profile: mcfr-content-0.7.0, result: 61a1b793a6867efb651513fcb97b1ad4e96ef8fcd7645d230b04c8c9737578aa}
+blue:
+  core_damage: 200
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: wraith, index: 1, position: {x: 65, y: -145}, exp: 0/216/2250}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: -60, y: -150}, exp: 0/150/650}
+  - {name: marksman, index: 1, position: {x: 60, y: -150}, exp: 0/450/650}
+  - {name: fang, index: 2, position: {x: 5, y: -100}}

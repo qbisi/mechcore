@@ -11,6 +11,7 @@ out to show:
 | --- | --- |
 | [`battle_skill/`](battle_skill/README.md) | when a released battle skill lands, what it reaches, and what it writes or summons |
 | [`construction/`](construction/README.md) | what a construction becomes in a fight, and what attacks it |
+| [`energy_tower/`](energy_tower/README.md) | what the Energy Tower's fight skills write onto a side, and what they leave alone |
 | [`equipment/`](equipment/README.md) | where equipment corrections land and how they compose with officers |
 | [`interceptor/`](interceptor/README.md) | how an interceptor takes projectiles out of the air, and what befalls it |
 | [`level/`](level/README.md) | how a unit level scales base life and damage before overlays |

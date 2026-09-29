@@ -16,6 +16,7 @@ so they need the decompilation under `work/decomp/<build>/`
 | `constructions.yaml` | `extract-constructions.py` |
 | `contraptions.yaml` | `extract-contraptions.py` |
 | `economy.yaml` | `extract_prices.py` |
+| `energy_tower_skill_effects.yaml` | `extract-energy-tower-skill-effects.py` |
 | `equipment_effects.yaml` | `extract-equipment-effects.py` |
 | `localization.yaml` | `extract_names.py` |
 | `maps.yaml` | `extract-maps.py` |

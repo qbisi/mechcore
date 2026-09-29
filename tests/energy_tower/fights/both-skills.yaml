@@ -1,0 +1,23 @@
+# Both fight skills on blue: Enhanced Range and High Mobility. Each side has a
+# Marksman and a Rhino in mirrored places. Blue's Marksman reads 155 of range
+# and 11 of speed, where red's reads 140 and 8. Blue's Rhino reads 11 of speed
+# where red's reads 8, and its melee range is unchanged: the range reaches a
+# ranged unit only, and the speed reaches every unit.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 1293
+hash: {profile: mcfr-content-0.7.0, result: bdd2ca4a5274e498d7f127f4daf7a2c30fcd246990c8d6eedc601c50d7ff0712}
+blue:
+  core_damage: 200
+  energy_tower_skills: [enhanced_range, high_mobility]
+  units:
+  - {name: marksman, index: 0, position: {x: -60, y: -150}}
+  - {name: rhino, index: 1, position: {x: 65, y: -145}, exp: 0/600/1150}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: -60, y: -150}}
+  - {name: rhino, index: 1, position: {x: 65, y: -145}, exp: 0/1000/1150}

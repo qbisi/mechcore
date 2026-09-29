@@ -171,5 +171,4 @@ gets the debuffed speed through `Move`.
 - **Whether a tower's separate buff set changes the composition.** Not recorded.
 - **`isClearSelfBuffWhenDisableTech`**, set on the buff: nothing this simulator
   places disables a unit's technologies.
-- **The officer that lengthens the debuff and the energy tower's skills**, which
-  stay refused as `energy_tower_skills` and their officers.
+- **The officer that lengthens the debuff**, which stays refused.

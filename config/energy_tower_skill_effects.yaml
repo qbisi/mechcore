@@ -1,0 +1,21 @@
+schema: mechcore.energy_tower_skill_effects
+
+# What an Energy Tower skill writes onto the units of the side that
+# activated it, read out of energyTowerSkillDatas by
+# scripts/extract/extract-energy-tower-skill-effects.py.
+# docs/rules/energy_tower_skills.md states what each field means. Only
+# a skill that IsCommonEffect admits is here; what a skill costs and
+# pays is config/economy.yaml's.
+#
+# A value is an FPoint in the number's own units: 64424509440 is +15 of
+# range. A speed value is a plain integer.
+
+skills:
+  - id: 5
+    name: 强化瞄准
+    mech_type: [4]
+    attack_range_value: 64424509440  # +15
+  - id: 6
+    name: 高速移动
+    mech_type: [0]
+    speed_value: 3
