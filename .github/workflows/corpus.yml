@@ -1,0 +1,128 @@
+name: corpus
+
+# How far the simulator is from the corpus: the numbers `plan/README.md` steers
+# by, measured on every pull request and every mainline commit instead of
+# recomputed by hand. It needs no game and no decompilation: the replays are
+# public, and conversion and simulation are the release binary's.
+#
+# It gates nothing. The gate waits on ci and docs alone, so a replay added to
+# the corpus cannot keep a pull request from merging. On a pull request it
+# keeps one comment up to date with the numbers beside those of the master
+# commit the pull request is based on; on master it keeps the reports those
+# comments are compared with. A run that cannot measure still fails, and the
+# failure is for whoever reads the run.
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+# A pull request's newest push is the only one worth measuring; every master
+# commit is kept, because a later pull request compares with it.
+concurrency:
+  group: corpus-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  distance:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # The scripts job builds the same binary and saves its cache on master;
+      # this job only reads it.
+      - uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: cargo-scripts-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: cargo-scripts-${{ runner.os }}-
+
+      - name: Release build, without the Adapter
+        run: cargo build --release -p mechcore --no-default-features
+
+      - name: Fetch the corpus at its master
+        run: python3 scripts/corpus/replay.py sync
+
+      # A replay of this version the converter refuses, or one that does not
+      # come back the same, fails the run here.
+      - name: Convert this version's replays into match documents
+        run: python3 scripts/corpus/export-replay-corpus.py
+
+      # What the simulator accepts, and what it names as missing for the rest.
+      - name: Rounds the simulator fights
+        run: |
+          mkdir -p distance
+          python3 scripts/corpus/fight-coverage.py | tee distance/fight-coverage.txt
+
+      # Whether each match's rounds, fought in order, come out as the match
+      # says. The script exits 1 until every match does, which is the goal and
+      # not a failure of the run; 2 is finding nothing to read.
+      - name: Rounds fought as the match says
+        run: |
+          status=0
+          python3 scripts/corpus/verify-matches.py > distance/verify-matches.txt || status=$?
+          cat distance/verify-matches.txt
+          [ "$status" -le 1 ]
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: corpus-distance
+          path: distance/
+
+      # The reports of the master commit to compare with: the pull request's
+      # base, or for a master commit its parent; the newest master run that
+      # measured when that commit has none.
+      - name: Fetch the reports to compare with
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          run=
+          if [ -n "$BASE" ]; then
+            run=$(gh run list --workflow corpus --commit "$BASE" --status success \
+              --json databaseId --jq '.[0].databaseId // empty')
+          fi
+          if [ -z "$run" ]; then
+            run=$(gh run list --workflow corpus --branch master --event push --status success \
+              --json databaseId,headSha --jq "map(select(.headSha != \"$GITHUB_SHA\")) | .[0].databaseId // empty")
+          fi
+          if [ -n "$run" ]; then
+            gh run download "$run" --name corpus-distance --dir before
+            gh run view "$run" --json headSha --jq '.headSha[:7]' > before/commit
+          fi
+
+      - name: Write the report
+        run: |
+          if [ -f before/commit ]; then
+            title="Corpus distance: $(cat before/commit) on master, then this change"
+            python3 scripts/corpus/distance-report.py distance --before before --title "$title" > report.md
+          else
+            python3 scripts/corpus/distance-report.py distance --title "Corpus distance" > report.md
+          fi
+          cat report.md >> "$GITHUB_STEP_SUMMARY"
+
+      # One comment per pull request, found by its marker and rewritten on
+      # every push, so the thread holds the newest numbers once.
+      - name: Keep the pull request's comment up to date
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          marker='<!-- corpus-distance -->'
+          { echo "$marker"; cat report.md; } > comment.md
+          id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$NUMBER/comments" --paginate \
+            --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -n 1)
+          if [ -n "$id" ]; then
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@comment.md >/dev/null
+          else
+            gh pr comment "$NUMBER" --body-file comment.md
+          fi

@@ -113,8 +113,10 @@ nothing for:
   citing `scripts/corpus/verify-matches.py`, which replays every round of the match
   documents `scripts/corpus/export-replay-corpus.py` converts from that corpus, or
   `scripts/corpus/match-replays.py`, which fights every round of them with the game.
-  It needs the corpus fetched, so it runs where the corpus is, not in CI. A
-  claim the corpus of another version showed is not established here until
+  The corpus workflow runs `verify-matches.py` on every pull request and
+  master commit, outside the gate: a replay the corpus adds does not keep a
+  change from merging, so CI does not hold these claims the way it holds the
+  recorded ones. A claim the corpus of another version showed is not established here until
   this version's corpus shows it too.
 - `### Read`: each claim read from the build, naming in backticks the members
   it rests on, `Class.member`, as the class declares them. They are the
