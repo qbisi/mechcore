@@ -59,7 +59,9 @@ because every one of these decides tick-by-tick agreement:
 - vector division computes one shared reciprocal, then multiplies each
   component by it;
 - `FPoint.op_LessThan` treats values within 43 raw as equal, so at least 44 raw
-  of difference is required for true;
+  of difference is required for true; `op_GreaterThan`, `op_GreaterThanOrEqual`
+  and `op_LessThanOrEqual` use the same tolerance, and all four are false
+  against the sentinel;
 - `FPoint.Min/Max` returns its second argument when the two are equivalent, so
   argument order is part of the behaviour;
 - square root, trigonometric and exponential functions use the `Fastest`
@@ -233,6 +235,11 @@ fixed-point `Atan2Fastest`, `AcosFastest`, `SinFastest` and `CosFastest`. For a
 candidate velocity, a VO returns the gradient that leaves the forbidden region
 and the depth of penetration; an effective gradient is then multiplied by
 `2 * weight_factor`, and a positive weight gains one further raw `Q32_ONE`.
+Every test on the way uses the tolerance comparisons. These are: the colliding
+line's distance `>= 0`, the cut-off distance `<= 0`, both tangent distances
+`>= 0`, the arc's two dot products `> 0` and `< 0`, the nearer tangent `<`, and
+the positive weight `> 0`. A candidate within 43 raw of a boundary falls on its
+forbidden side.
 
 ## Solving for a velocity
 
@@ -266,9 +273,11 @@ point    += normalize(gradient) * step
 The first evaluation becomes the incumbent unconditionally. After that, only a
 score lower by at least 44 raw replaces it. The gradient score is the sum of:
 
-- the single highest-weighted gradient across all VOs, never a sum over several;
+- the single highest-weighted gradient across all VOs, never a sum over
+  several, a later VO replacing it only when its weight is `>` by tolerance;
 - an attraction term toward the biased desired velocity, weight `0.1`;
-- a penalty for exceeding maximum speed, weight `3`;
+- a penalty for exceeding maximum speed, weight `3`, when the speed is `>` the
+  maximum by tolerance;
 - a penalty for exceeding the desired speed, weighted by two separately
   truncated `0.1` terms added together.
 

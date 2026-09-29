@@ -667,22 +667,24 @@ impl VelocityObstacle {
     fn gradient(self, point: FixedVec2) -> (FixedVec2, i64) {
         if self.colliding {
             let distance = Self::signed_distance(self.line1, self.dir1, point);
-            return if distance >= 0 {
+            return if fpoint_greater_or_equal(distance, 0) {
                 (self.dir1.counter_clockwise_tangent(), distance)
             } else {
                 (FixedVec2::ZERO, 0)
             };
         }
         let cutoff_distance = Self::signed_distance(self.cutoff_line, self.cutoff_dir, point);
-        if cutoff_distance <= 0 {
+        if fpoint_less_or_equal(cutoff_distance, 0) {
             return (FixedVec2::ZERO, 0);
         }
         let distance1 = Self::signed_distance(self.line1, self.dir1, point);
         let distance2 = Self::signed_distance(self.line2, self.dir2, point);
-        if distance1 < 0 || distance2 < 0 {
+        if !fpoint_greater_or_equal(distance1, 0) || !fpoint_greater_or_equal(distance2, 0) {
             return (FixedVec2::ZERO, 0);
         }
-        if point.sub(self.line1).dot(self.dir1) > 0 && point.sub(self.line2).dot(self.dir2) < 0 {
+        if fpoint_greater_than(point.sub(self.line1).dot(self.dir1), 0)
+            && fpoint_less_than(point.sub(self.line2).dot(self.dir2), 0)
+        {
             let from_center = point.sub(self.circle_center);
             let distance = from_center.magnitude();
             return (
@@ -690,7 +692,7 @@ impl VelocityObstacle {
                 self.radius.saturating_sub(distance),
             );
         }
-        if distance1 < distance2 {
+        if fpoint_less_than(distance1, distance2) {
             (self.dir1.counter_clockwise_tangent(), distance1)
         } else {
             (self.dir2.counter_clockwise_tangent(), distance2)
@@ -699,7 +701,7 @@ impl VelocityObstacle {
 
     fn scaled_gradient(self, point: FixedVec2) -> (FixedVec2, i64) {
         let (mut gradient, mut weight) = self.gradient(point);
-        if weight > 0 {
+        if fpoint_greater_than(weight, 0) {
             let scale = q32_mul(VO_SCALE, self.weight_factor);
             gradient = gradient.mul(scale);
             weight = q32_mul(weight, scale).saturating_add(Q32_ONE);
@@ -904,6 +906,25 @@ pub(crate) fn fpoint_less_than(left: i64, right: i64) -> bool {
     difference < 0 && (difference.wrapping_add(43) as u64) >= 87
 }
 
+/// `FPoint.op_GreaterThan`: the same 43-raw tolerance, the other way.
+fn fpoint_greater_than(left: i64, right: i64) -> bool {
+    fpoint_less_than(right, left)
+}
+
+/// `FPoint.op_GreaterThanOrEqual`: true within 43 raw below, false against
+/// the sentinel.
+fn fpoint_greater_or_equal(left: i64, right: i64) -> bool {
+    const SENTINEL: i64 = i64::MIN + 1;
+    left != SENTINEL && right != SENTINEL && !fpoint_less_than(left, right)
+}
+
+/// `FPoint.op_LessThanOrEqual`: true within 43 raw above, false against the
+/// sentinel.
+fn fpoint_less_or_equal(left: i64, right: i64) -> bool {
+    const SENTINEL: i64 = i64::MIN + 1;
+    left != SENTINEL && right != SENTINEL && !fpoint_less_than(right, left)
+}
+
 /// Native `FPoint.Min` and `FPoint.Max` delegate to the tolerant comparison
 /// above and return their second argument when the operands compare equal.
 /// Preserve that argument-order tie behaviour: quadtree bounds and branch
@@ -934,7 +955,7 @@ fn evaluate_gradient(
     let mut value = 0;
     for obstacle in obstacles {
         let (candidate, weight) = obstacle.scaled_gradient(point);
-        if weight > value {
+        if fpoint_greater_than(weight, value) {
             value = weight;
             gradient = candidate;
         }
@@ -954,7 +975,7 @@ fn evaluate_gradient(
     if fpoint_less_than(desired_speed_sq, speed_sq) {
         // `FPoint.Sqrt` delegates to `FPCSMath.SqrtFastest` in the build.
         let speed = fpcs_sqrt_fastest(speed_sq);
-        if speed > agent.max_speed {
+        if fpoint_greater_than(speed, agent.max_speed) {
             value = value.saturating_add(q32_mul(
                 MAX_SPEED_WEIGHT,
                 speed.saturating_sub(agent.max_speed),

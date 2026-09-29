@@ -1,0 +1,38 @@
+# Replay 2324_20260925--201371791, round 1, map 1021. A velocity obstacle's
+# regions are tested with FPoint's tolerant comparisons: at tick 272 unit 34's
+# second trace crosses a VO's boundary back and forth, and a point within 43 raw
+# of it falls on its forbidden side. The trace ends on the game's point, and
+# the unit's velocity at tick 276 is the game's.
+
+kind: fight
+map_id: 1021
+seed: 802997336
+round: 1
+source: recording
+ticks: 842
+hash: {profile: mcfr-content-0.7.0, result: fa6c58f66bb3f2cbac17b7438b69effaf55f9c47e36e4a1d44c1f0f53e65ff6b}
+blue:
+  core_damage: 586
+  officers: [sabertooth_specialist]
+  units:
+  - {name: fang, index: 0, position: {x: 160, y: -175}, exp: 0/176/600, rotated: true}
+  - {name: fang, index: 1, position: {x: -140, y: -225}, rotated: true}
+  - {name: fang, index: 2, position: {x: -160, y: -35}, exp: 0/145/600, rotated: true}
+  - {name: sabertooth, index: 3, position: {x: -165, y: -75}, exp: 0/138/1300}
+  - {name: sabertooth, index: 4, position: {x: -75, y: -75}, exp: 0/82/1300}
+  - {name: hound, index: 5, position: {x: -120, y: -80}, exp: 0/60/750}
+  - {name: hound, index: 6, position: {x: -210, y: -80}, exp: 0/79/750}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+red:
+  officers: [training_specialist]
+  units:
+  - {name: void_eye, index: 0, position: {x: 110, y: -170}, exp: 0/455/650}
+  - {name: void_eye, index: 1, position: {x: -110, y: -170}, exp: 0/207/650}
+  - {name: void_eye, index: 2, position: {x: 0, y: -170}, exp: 0/166/650}
+  - {name: mustang, index: 3, position: {x: 95, y: -280}, exp: 0/486/1200}
+  - {name: mustang, index: 4, position: {x: -65, y: -280}, exp: 1200/1200/1200}
+  - {name: crawler, index: 5, position: {x: 120, y: -225}, exp: 0/35/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: -120, y: -225}, exp: 0/157/450, rotated: true}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
