@@ -487,11 +487,16 @@ impl Simulation {
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
+            // `MotionIdleState.Enter` stops the move, and its `Update` does
+            // not: an idle unit an RVO solve nudged keeps the target point it
+            // stopped at, and the next solve steers it back there.
+            if actor.motion.state != MotionState::Idle {
+                actor.motion.next_target_x_q32 = actor.x_q32;
+                actor.motion.next_target_z_q32 = actor.z_q32;
+                actor.motion.next_speed_q32 = 0;
+                actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
+            }
             actor.motion.state = MotionState::Idle;
-            actor.motion.next_target_x_q32 = actor.x_q32;
-            actor.motion.next_target_z_q32 = actor.z_q32;
-            actor.motion.next_speed_q32 = 0;
-            actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
             return Ok(());
         };
         let target_view = self.fight_actor(target).expect("target identity is stable");

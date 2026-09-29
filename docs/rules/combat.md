@@ -145,6 +145,12 @@ calls `RVOControllerFixed.StopMove`, and only `MotionMoveState` calls
 `attacking` does not move. A velocity already published carries on until the
 next RVO publish.
 
+**A unit stops once, where it goes idle.** `MotionIdleState.Enter` calls
+`RVOControllerFixed.StopMove`, which makes the point the unit stands on its
+target; `MotionIdleState.Update` does not, and a skill cooling after its attack
+does not enter the motion's idle again. So a unit an RVO solve nudges while idle
+keeps the point it stopped at, and the next solve steers it back there.
+
 **A body faces the lock; a unit without one faces its attack target.**
 `MotionAttackState.AttackRotate` asks `FightMech.IsHaveBody` before
 `RotateBodyTo`, and a unit with a body turns only its weapons in attack, its
@@ -599,6 +605,8 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- An idle Marksman an RVO solve nudges while it cools goes back to the point
+  it stopped at: `tests/corpus/fights/201373545-r2.yaml`, ticks 1112 to 1121.
 - A tick that leaves neither side a unit, with no shot in the air, fells all
   four towers: `tests/battle_skill/fights/missile-strike-both-sides.yaml`.
 - Every unit's current interval, its stagger and the three readings that
@@ -673,6 +681,9 @@ not the game's native attack-type enum.
 
 ### Read
 
+- An idle motion stops its unit when it is entered and not while it runs:
+  `MotionIdleState.Enter` calls `RVOControllerFixed.StopMove` and
+  `MotionIdleState.Update` does not.
 - A search's angle is measured from the skill's main transform, a weapon's
   or the root's: `FightSkill.GetMainTransform`.
 - A search reads the tick's start only for a skill its state prepared, and
