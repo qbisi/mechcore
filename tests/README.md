@@ -15,6 +15,7 @@ out to show:
 | [`level/`](level/README.md) | how a unit level scales base life and damage before overlays |
 | [`map/`](map/README.md) | what a map's neutral crystals do to a fight |
 | [`modifier/`](modifier/README.md) | how officers and technologies correct a unit's numbers |
+| [`search/`](search/README.md) | which positions a skill's target search scores |
 | [`tower/`](tower/README.md) | what losing a tower writes on its side, and what strengthening one adds |
 | [`turret/`](turret/README.md) | when a turret fires, at what, and how often |
 | [`raiden/`](raiden/README.md) | how a Raiden's three weapons choose targets and fire together, beside its standard fights |

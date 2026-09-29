@@ -1,0 +1,29 @@
+# A Stormcaller whose live lock walks inside its minimum range searches on
+# where every candidate stands now, not on the tick's start.
+#
+# Blue's Rhino runs at three red Stormcallers, whose minimum range is 70 m,
+# with blue's interceptor behind it as the only other target. At tick 13 the
+# Rhino, which blue moved first, stands inside unit 11's minimum range, where
+# the tick began with it outside; the game's unit 11 takes the interceptor
+# (building 3) that tick and goes on attacking, and unit 12 does the same at
+# tick 16. Scoring the tick's start answers the Rhino again, fails the check,
+# and leaves the unit idle for a tick before it takes the interceptor.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 689
+hash: {profile: mcfr-content-0.7.0, result: 99df0e9ee32e043fb91839be2110b68c4ee278c1e7e833dd0fe11dba8438902c}
+blue:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/1150/1150}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 5, y: -145}, retained: false}
+red:
+  core_damage: 200
+  units:
+  - {name: stormcaller, index: 0, position: {x: -55, y: -40}}
+  - {name: stormcaller, index: 1, position: {x: 5, y: -40}}
+  - {name: stormcaller, index: 2, position: {x: 65, y: -40}, exp: 0/200/1100}
