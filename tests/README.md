@@ -33,7 +33,7 @@ checked, and is never a fixture. A layout stays a layout file only while
 something reads it as a layout: a probe no fight pins, or a stage for
 `game.apply_layout`.
 
-CI verifies every fight: `scripts/check-scripts.sh` hands every
+CI verifies every fight: `scripts/check/check-scripts.sh` hands every
 `tests/*/fights/*.yaml` to `verify`, which fights each layout with its seed
 through the simulator and holds it to what the document states. Where the game
 runs, `mechcore verify --backend game` records the fights again and holds each

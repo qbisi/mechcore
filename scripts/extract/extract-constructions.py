@@ -20,12 +20,12 @@ Two checks stand between the export and the table.
   child and a zero would mean the fields are not the ones they are named.
 
 A construction a layout can place that deals damage fires a skill, and its
-`ProjectileSkillData` row, from `MechSkillGroupData` as `scripts/extract-skills.py`
+`ProjectileSkillData` row, from `MechSkillGroupData` as `scripts/extract/extract-skills.py`
 reads it, is written under `skills` in the shape a unit's `attack` has; the
 construction's own `damage` and `attackAngle` are written as its `base_damage`
 and `attack_half_angle`, which the loader checks back.
 
-    python3 scripts/extract-constructions.py [--build BUILD]
+    python3 scripts/extract/extract-constructions.py [--build BUILD]
 """
 
 import importlib.util
@@ -33,9 +33,10 @@ import pathlib
 import re
 import sys
 
-import build_data
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+import build_data  # noqa: E402
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
+ROOT = pathlib.Path(__file__).resolve().parents[2]
 CATALOG = ROOT / "crates/document/src/catalog.rs"
 OUTPUT = ROOT / "config/constructions.yaml"
 ONE = 1 << 32
@@ -102,8 +103,8 @@ def rows():
 
 
 def skill_reader():
-    """`scripts/extract-skills.py`, whose file name is not a module name."""
-    spec = importlib.util.spec_from_file_location("extract_skills", ROOT / "scripts/extract-skills.py")
+    """`scripts/extract/extract-skills.py`, whose file name is not a module name."""
+    spec = importlib.util.spec_from_file_location("extract_skills", ROOT / "scripts/extract/extract-skills.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -280,7 +281,7 @@ def render(entries, skills):
             "# What a construction's skill does, for the constructions that fire one.",
             "#",
             "# Each is the `ProjectileSkillData` row the construction's `skill_id` names,",
-            "# read out of `MechSkillGroupData` by `scripts/extract-skills.py`, in the",
+            "# read out of `MechSkillGroupData` by `scripts/extract/extract-skills.py`, in the",
             "# shape `config/units/*.yaml` gives a",
             "# unit's `attack`. Two numbers are the construction row's rather than the",
             "# skill's, and the loader refuses a table where they disagree: `base_damage`",

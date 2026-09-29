@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """Fetch the build's decompilation and its symbol index to where every tool reads them.
 
-    scripts/decomp.py sync [--build BUILD]   clone qbisi/mechcore-decomp into work/decomp, one build, and index it
-    scripts/decomp.py path [BUILD]           print work/decomp/<build>
-    scripts/decomp.py publish BUILD          commit a build scripts/decompile.py made
+    scripts/decomp/decomp.py sync [--build BUILD]   clone qbisi/mechcore-decomp into work/decomp, one build, and index it
+    scripts/decomp/decomp.py path [BUILD]           print work/decomp/<build>
+    scripts/decomp/decomp.py publish BUILD          commit a build scripts/decomp/decompile.py made
 
 The decompilation lives in the private repository
 https://github.com/qbisi/mechcore-decomp, one directory per game build. The
 symbol index `index.sqlite`, 449 MB of binary, is not stored anywhere: `sync`
-builds it from the dump, as `scripts/decompile.py` does, which needs neither
+builds it from the dump, as `scripts/decomp/decompile.py` does, which needs neither
 the game nor the network. Both land under one path, which is the convention
 every reader here follows:
 
@@ -28,7 +28,7 @@ machine, the GitHub proxy in a Claude Code cloud session with the repository
 attached, or a read-only token in `MECHCORE_DECOMP_TOKEN` on this repository
 alone, which is what a Codex container gets.
 
-A new build comes from `scripts/decompile.py`, which decompiles the installed
+A new build comes from `scripts/decomp/decompile.py`, which decompiles the installed
 game into `work/decomp/<build>`. `publish` is the only verb here that writes:
 it commits that directory to the repository and pushes it. Only a machine with
 the game has anything to publish.
@@ -45,7 +45,7 @@ from pathlib import Path
 import decompile
 
 REPOSITORY = "qbisi/mechcore-decomp"
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 DESTINATION = ROOT / "work" / "decomp"
 LEGACY_INDEX = ROOT / "work" / "unity-index"
 TOKEN = os.environ.get("MECHCORE_DECOMP_TOKEN")
@@ -117,7 +117,7 @@ def sync_index(build):
         print(f"{target}: linked from {legacy}")
         return
     # The index is the dump's, so it is built from the dump rather than
-    # fetched: the same step `scripts/decompile.py` ends with.
+    # fetched: the same step `scripts/decomp/decompile.py` ends with.
     manifest = json.loads((DESTINATION / build / "game-manifest.json").read_text())
     print(f"{target}: building from the dump")
     decompile.step_index(DESTINATION / build, manifest, manifest.get("commands", {}))
@@ -138,7 +138,7 @@ def sync(build):
 def path(build):
     builds = sorted(p.name for p in DESTINATION.glob("*") if (p / "cpp2il").is_dir())
     if not builds:
-        fail("no build under work/decomp; run scripts/decomp.py sync")
+        fail("no build under work/decomp; run scripts/decomp/decomp.py sync")
     if build is None:
         if len(builds) != 1:
             fail(f"several builds under work/decomp, name one: {', '.join(builds)}")
@@ -153,7 +153,7 @@ def publish(build):
     for required in ("cpp2il/IsilDump", "cpp2il/DiffableCs", "config-data-container.json",
                      "game-manifest.json", INDEX):
         if not (directory / required).exists():
-            fail(f"{directory} has no {required}; run scripts/decompile.py first")
+            fail(f"{directory} has no {required}; run scripts/decomp/decompile.py first")
     if not (DESTINATION / ".git").exists():
         fail(f"{DESTINATION} is not a clone of {REPOSITORY}; run sync first")
     if subprocess.run(["git", "sparse-checkout", "list"], cwd=DESTINATION, capture_output=True).returncode == 0:

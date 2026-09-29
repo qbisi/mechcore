@@ -2,7 +2,7 @@
 """Convert every replay of one game version into its match document.
 
 The corpus is https://github.com/qbisi/mechcore-replay, fetched to
-``work/replay`` by ``scripts/replay.py sync``: the replays of a version sit
+``work/replay`` by ``scripts/corpus/replay.py sync``: the replays of a version sit
 directly under ``replays/<version>/``. Each is converted without the game by
 ``mechcore convert --to match`` into the match YAML of the same basename under
 ``work/match/<version>/``, replacing what is there. The corpus holds no
@@ -18,8 +18,8 @@ match that does not come back the same fails the run too.
 Run from anywhere inside the checkout, after a release build:
 
     cargo build --release -p mechcore
-    python3 scripts/replay.py sync
-    python3 scripts/export-replay-corpus.py
+    python3 scripts/corpus/replay.py sync
+    python3 scripts/corpus/export-replay-corpus.py
 
 The version is this checkout's unless ``--version`` names another.
 """
@@ -32,7 +32,8 @@ import subprocess
 import sys
 import tempfile
 
-import build_data
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import build_data  # noqa: E402
 
 
 
@@ -70,7 +71,7 @@ def round_trip(executable: Path, root: Path, match_doc: Path) -> str | None:
 
 
 def main() -> int:
-    root = Path(__file__).resolve().parents[1]
+    root = Path(__file__).resolve().parents[2]
     args = parse_arguments(root)
     executable = args.mechcore.resolve()
     version = args.version or build_data.build()
@@ -81,7 +82,7 @@ def main() -> int:
         return 2
     sources = sorted(corpus.glob("*.grbr"))
     if not sources:
-        print(f"no replays of {version} in {corpus}; run scripts/replay.py sync", file=sys.stderr)
+        print(f"no replays of {version} in {corpus}; run scripts/corpus/replay.py sync", file=sys.stderr)
         return 2
 
     match_dir.mkdir(parents=True, exist_ok=True)

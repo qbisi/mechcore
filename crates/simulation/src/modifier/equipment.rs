@@ -1,7 +1,7 @@
 //! What an equipment writes onto the unit that wears it.
 //!
 //! `config/equipment_effects.yaml` is the build's table of ordinary
-//! `EquipmentData` rows, extracted by `scripts/extract-equipment-effects.py`,
+//! `EquipmentData` rows, extracted by `scripts/extract/extract-equipment-effects.py`,
 //! and `docs/rules/equipment_effects.md` states what each field means.
 //! `Equipment.AddData` writes through `MechDataModifer.TryAddCommonData` and
 //! `SkillDataModifier.AddData`, the writers an officer's correction goes

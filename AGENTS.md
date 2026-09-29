@@ -95,9 +95,9 @@ on a branch of this repository. These rules hold whoever does it:
 
 The evidence lives outside this repository's history. The decompilation is in
 the private `mechcore-decomp`, put under `work/decomp/<build>/` by
-`scripts/decomp.py sync`, which builds `index.sqlite` from the dump locally.
+`scripts/decomp/decomp.py sync`, which builds `index.sqlite` from the dump locally.
 The native replays are in the public `mechcore-replay`, fetched at master to
-`work/replay/` by `scripts/replay.py sync`. Recordings exist only on the
+`work/replay/` by `scripts/corpus/replay.py sync`. Recordings exist only on the
 machine that made them.
 
 **The game version is written only in `GAME_VERSION`**, one line, the game's
@@ -108,13 +108,13 @@ it, and the corpus and decompilation directories are named by it; `config/`,
 tests and docs never write a version of their own. Changing version is
 changing this line on a branch and moving the decompilation, the extraction,
 the recordings and pins in `tests/`, and the corpus to it, then merging when
-all is green. `scripts/rules-anchors.py --since <old>` lists the rules whose
+all is green. `scripts/decomp/rules-anchors.py --since <old>` lists the rules whose
 anchors moved, each reread on the new version (see `docs/README.md`).
 
-For a new version, the session with the game runs `scripts/decompile.py`,
+For a new version, the session with the game runs `scripts/decomp/decompile.py`,
 which reads the build from the installed game and fetches its pinned tools
-into `work/tools/`, then `scripts/decomp.py publish <build>`.
-`scripts/decomp-diff.py <old> <new>` compares two builds, and `--config`
+into `work/tools/`, then `scripts/decomp/decomp.py publish <build>`.
+`scripts/decomp/decomp-diff.py <old> <new>` compares two builds, and `--config`
 their tables.
 
 # Commits

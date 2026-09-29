@@ -1,10 +1,10 @@
-"""The build's data, as `scripts/decompile.py` exports it, for the extract scripts.
+"""The build's data, as `scripts/decomp/decompile.py` exports it, for the extract scripts.
 
 Every `scripts/extract*.py` reads the game's tables through this module and
 nothing else: no path id, no hand-written field parser, no build number of
 its own. The build is the version `GAME_VERSION` names unless a script is
 given `--build`, and its export is `work/decomp/<build>/`, which
-`scripts/decomp.py sync` fetches and `scripts/decompile.py` makes.
+`scripts/decomp/decomp.py sync` fetches and `scripts/decomp/decompile.py` makes.
 
     container()            ConfigDataContainer.m_Structure
     level0("Class")        the m_Structure of a level0 data object, e.g. MechSkillGroupData
@@ -56,7 +56,7 @@ def select(build):
     if not (directory / "config-data-container.json").exists():
         sys.exit(
             f"no export of build {build} under {DECOMP}; run "
-            f"`scripts/decomp.py sync --build {build}`, or `scripts/decompile.py` on the machine with the game"
+            f"`scripts/decomp/decomp.py sync --build {build}`, or `scripts/decomp/decompile.py` on the machine with the game"
         )
     _build = build
     _load.cache_clear()
@@ -72,7 +72,7 @@ def build():
 def _load(relative):
     path = DECOMP / build() / relative
     if not path.exists():
-        sys.exit(f"build {build()} has no {relative}; rerun `scripts/decompile.py --force config`")
+        sys.exit(f"build {build()} has no {relative}; rerun `scripts/decomp/decompile.py --force config`")
     return json.loads(path.read_text())
 
 

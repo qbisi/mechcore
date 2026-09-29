@@ -78,7 +78,7 @@ the old `protocol` name and every new client is refused with
 `protocol_mismatch`; a lingering game quits itself within 30 s, and any other
 is quit from the game's own menu, before launching again.
 
-`python3 scripts/check-adapter-packaging.py` exercises the real packaging build
+`python3 scripts/check/check-adapter-packaging.py` exercises the real packaging build
 script with a small test dylib: source changes, no-op builds, a removed copy,
 debug/release profiles, a custom output directory and an explicit target triple.
 Run it in the same nightly environment after fetching the workspace dependencies.

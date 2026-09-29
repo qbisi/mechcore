@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """What changed between two decompiled builds, declaration by declaration.
 
-    scripts/decomp-diff.py OLD NEW [--assembly NAME ...] [--config]
+    scripts/decomp/decomp-diff.py OLD NEW [--assembly NAME ...] [--config]
 
-OLD and NEW are builds under work/decomp (as `scripts/decompile.py` or
-`scripts/decomp.py sync` leave them). The C# stubs are compared with every
+OLD and NEW are builds under work/decomp (as `scripts/decomp/decompile.py` or
+`scripts/decomp/decomp.py sync` leave them). The C# stubs are compared with every
 attribute line dropped, so what remains is declarations: types, fields with
 their offsets, and method signatures. A type file present in one build only is
 reported whole; a type in both lists the declarations each side lacks.
@@ -22,7 +22,7 @@ import json
 import pathlib
 import sys
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
+ROOT = pathlib.Path(__file__).resolve().parents[2]
 DECOMP = ROOT / "work" / "decomp"
 DEFAULT_ASSEMBLIES = ("GRFight", "GRCore", "GRUtility")
 

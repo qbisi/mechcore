@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Print skill rows of the build's `MechSkillGroupData`, one JSON object each.
 
-    python3 scripts/extract-skills.py [--build BUILD] 3003001 3002001
-    python3 scripts/extract-skills.py [--build BUILD] --all
+    python3 scripts/extract/extract-skills.py [--build BUILD] 3003001 3002001
+    python3 scripts/extract/extract-skills.py [--build BUILD] --all
 
 The skills a unit or a construction fires are the rows of `MechSkillGroupData`
 in `level0`, one list per kind of skill (`skillDatas`, `projectileSkillDatas`,
@@ -16,7 +16,9 @@ unit's and a construction's damage sit on their own rows in
 import json
 import sys
 
-import build_data
+import pathlib
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+import build_data  # noqa: E402
 
 ONE = 1 << 32
 

@@ -56,7 +56,7 @@ as a round opens can already read 1.
   an earlier round may not: every recorded move of this version's corpus is of a
   unit the rule lets move, and every formation's `movable` agrees, in matches
   that fit the Module and matches that research a Jump Drive:
-  `scripts/verify-matches.py`.
+  `scripts/corpus/verify-matches.py`.
 
 ### Read
 

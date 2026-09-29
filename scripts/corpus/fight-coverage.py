@@ -15,7 +15,7 @@ behaviour, an officer whose effect this build cannot compose. So this is a
 histogram of what the simulator itself says it is missing rather than a list
 written down a second time.
 
-    python3 scripts/fight-coverage.py [--binary target/release/mechcore]
+    python3 scripts/corpus/fight-coverage.py [--binary target/release/mechcore]
 
 A round the projection itself refuses is reported rather than skipped silently.
 """
@@ -29,9 +29,10 @@ import subprocess
 import sys
 import tempfile
 
-import build_data
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+import build_data  # noqa: E402
 
-REPOSITORY = pathlib.Path(__file__).resolve().parent.parent
+REPOSITORY = pathlib.Path(__file__).resolve().parents[2]
 
 # `cannot simulate layout <path>: ` before the refusal proper.
 WHERE = re.compile(r"^cannot simulate layout \S+: ")

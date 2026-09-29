@@ -88,7 +88,7 @@ impl Field {
 /// One module of the fight.
 pub(crate) struct Module {
     /// The build's name for it, which is what a refusal says and what
-    /// `scripts/fight-structure.py` lists.
+    /// `scripts/decomp/fight-structure.py` lists.
     pub(crate) native: &'static str,
     /// The layout fields this module is responsible for understanding.
     pub(crate) claims: &'static [Field],
@@ -376,7 +376,7 @@ pub(crate) fn unsupported(side: &SidePlan) -> Vec<(Field, &'static str)> {
 ///
 /// Naming all of them rather than the first is what lets a caller see how far a
 /// deployment is from being fought, and what
-/// `scripts/fight-coverage.py` counts.
+/// `scripts/corpus/fight-coverage.py` counts.
 pub(crate) fn refusal(side_name: &str, missing: &[(Field, &'static str)]) -> String {
     let listed = missing
         .iter()
@@ -419,7 +419,7 @@ mod tests {
         assert_eq!(claimed, every.len());
     }
 
-    /// The build's own module list, which `scripts/fight-structure.py` reads
+    /// The build's own module list, which `scripts/decomp/fight-structure.py` reads
     /// out of the decompilation index. One of ours is not the build's, and
     /// [`MODULES`] says why.
     #[test]

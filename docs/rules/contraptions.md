@@ -48,7 +48,7 @@ kind ends its own way:
 ### Replayed
 
 - A shield, an interceptor and a missile each stand into the next round as the
-  section above says: `scripts/match-replays.py` with `--recordings` converts every
+  section above says: `scripts/corpus/match-replays.py` with `--recordings` converts every
   recorded round of the corpus to its fight document, which reads a missile as
   fired when a projectile no unit owns of its side is first recorded beside it,
   and compares which contraptions it keeps with the next state in the match

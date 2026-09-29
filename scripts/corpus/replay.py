@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 r"""Fetch the replay corpus, and add to it.
 
-    scripts/replay.py sync             fetch qbisi/mechcore-replay's master into work/replay
-    scripts/replay.py path [VERSION]   print a version's replay directory (default: this checkout's)
-    scripts/replay.py publish          add this machine's new replays of the installed version, and push
+    scripts/corpus/replay.py sync             fetch qbisi/mechcore-replay's master into work/replay
+    scripts/corpus/replay.py path [VERSION]   print a version's replay directory (default: this checkout's)
+    scripts/corpus/replay.py publish          add this machine's new replays of the installed version, and push
 
 The native replays live in https://github.com/qbisi/mechcore-replay, one
 directory per game version, `replays/<version>/<name>.grbr`. The repository
 only grows, so it is read at `master` and a newer fetch never takes away what
 an older one had. `work/` is not tracked, so a checkout runs `sync` once, and
 again to pick up replays added since. The version this checkout describes is
-the one `scripts/build_data.py` reads. Nothing is generated in the corpus: `scripts/export-replay-corpus.py` converts a
+the one `scripts/build_data.py` reads. Nothing is generated in the corpus: `scripts/corpus/export-replay-corpus.py` converts a
 version's replays into `work/match/<version>/`.
 
 `publish` is the one writer. It files the replays the installed game recorded
@@ -33,10 +33,11 @@ import sys
 import time
 from pathlib import Path
 
-import build_data
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import build_data  # noqa: E402
 
 REPOSITORY = "https://github.com/qbisi/mechcore-replay"
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 DESTINATION = ROOT / "work" / "replay"
 APP = Path(os.environ.get(
     "MECHABELLUM_APP",
@@ -69,7 +70,7 @@ def path(version):
     version = version or build_data.build()
     directory = DESTINATION / "replays" / version
     if not directory.is_dir():
-        fail(f"no replays of {version} under work/replay; run scripts/replay.py sync")
+        fail(f"no replays of {version} under work/replay; run scripts/corpus/replay.py sync")
     print(directory)
 
 

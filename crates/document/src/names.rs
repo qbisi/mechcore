@@ -3,7 +3,7 @@
 //! An officer, a unit's technologies, a blueprint, an energy tower skill, a
 //! commander skill and an equipment item are named by the game's own English
 //! names in snake case, which `config/names.yaml` holds and
-//! `scripts/extract_names.py` extracts. A contraption is named as a layout
+//! `scripts/extract/extract_names.py` extracts. A contraption is named as a layout
 //! names it. An opening team is named by its two unit types,
 //! `vortex-fire_badger`; the specialist dealt beside it is an officer.
 //!

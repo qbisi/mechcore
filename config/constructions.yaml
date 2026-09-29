@@ -268,7 +268,7 @@ constructions:
 # What a construction's skill does, for the constructions that fire one.
 #
 # Each is the `ProjectileSkillData` row the construction's `skill_id` names,
-# read out of `MechSkillGroupData` by `scripts/extract-skills.py`, in the
+# read out of `MechSkillGroupData` by `scripts/extract/extract-skills.py`, in the
 # shape `config/units/*.yaml` gives a
 # unit's `attack`. Two numbers are the construction row's rather than the
 # skill's, and the loader refuses a table where they disagree: `base_damage`

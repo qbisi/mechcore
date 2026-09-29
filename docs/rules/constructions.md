@@ -7,7 +7,7 @@ way. What a construction *does* on its own is not here: a turret's skill is
 
 The machine-readable table is
 [`config/constructions.yaml`](../../config/constructions.yaml), and
-`scripts/extract-constructions.py` writes it from
+`scripts/extract/extract-constructions.py` writes it from
 `ConfigDataContainer.constructionDatas`. A layout can name four of its rows'
 constructions: the Defensive Wall, the Anti-Armor Turret, the Rapid-Fire
 Turret and the Magnetic Barrier.

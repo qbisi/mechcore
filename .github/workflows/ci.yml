@@ -101,7 +101,7 @@ jobs:
       # them stays a thing only a machine with the game can do. A tracked run
       # script is a runnable claim, so every one of them has to parse.
       - name: Every pinned fight verifies, and every script parses
-        run: scripts/check-scripts.sh
+        run: scripts/check/check-scripts.sh
 
       - uses: actions/cache/save@v4
         if: github.ref == 'refs/heads/master' && steps.cache.outputs.cache-hit != 'true'

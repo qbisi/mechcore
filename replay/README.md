@@ -8,18 +8,18 @@ them, so it is read at `master`: nothing here pins a commit of it.
 
 | File | What it is |
 | --- | --- |
-| [`../scripts/collect-replays.py`](../scripts/collect-replays.py) | how new replays are made: it watches live standard 1v1 matches unattended and keeps each one; it needs the game |
+| [`../scripts/corpus/collect-replays.py`](../scripts/corpus/collect-replays.py) | how new replays are made: it watches live standard 1v1 matches unattended and keeps each one; it needs the game |
 
-`scripts/replay.py sync` fetches the corpus into the untracked `work/replay/`,
-and `scripts/replay.py publish` adds the replays this machine's game recorded
+`scripts/corpus/replay.py sync` fetches the corpus into the untracked `work/replay/`,
+and `scripts/corpus/replay.py publish` adds the replays this machine's game recorded
 under the installed version and pushes them: the collector keeps them in the
 game's own replay directory, and publishing is a separate step.
 The version this checkout describes selects its directory, and
-`scripts/export-replay-corpus.py` converts those replays into
-`work/match/<version>/`, where `scripts/verify-matches.py` and
-`scripts/fight-coverage.py` read them. It also writes each match back as a
+`scripts/corpus/export-replay-corpus.py` converts those replays into
+`work/match/<version>/`, where `scripts/corpus/verify-matches.py` and
+`scripts/corpus/fight-coverage.py` read them. It also writes each match back as a
 replay and converts it again, and fails on one that does not come back the
-same; `scripts/match-replays.py` fights every round of both replays in the game
+same; `scripts/corpus/match-replays.py` fights every round of both replays in the game
 and compares the two. Neither the test suite nor CI reads a
 replay: the converter is not bound to read every version the corpus holds, and
 a replay added there must not turn this repository's CI red.

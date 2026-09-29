@@ -305,7 +305,7 @@ fn passes(
     Ok(true)
 }
 
-/// The shipped inputs to initialization, extracted by `scripts/extract_opening.py`.
+/// The shipped inputs to initialization, extracted by `scripts/extract/extract_opening.py`.
 #[derive(Deserialize)]
 struct Setup {
     officer_groups: BTreeMap<i32, Vec<i32>>,

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Extract every unit configuration under `config/units/` from the build.
 
-    python3 scripts/extract-units.py [--build BUILD] [--check]
+    python3 scripts/extract/extract-units.py [--build BUILD] [--check]
 
 A unit's configuration joins four of the build's tables, as
 `scripts/build_data.py` reads them:
@@ -31,9 +31,10 @@ import re
 import struct
 import sys
 
-import build_data
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+import build_data  # noqa: E402
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
+ROOT = pathlib.Path(__file__).resolve().parents[2]
 UNITS = ROOT / "config" / "units"
 ONE = 1 << 32
 SIZES = {0: "xs", 1: "s", 2: "m", 3: "l", 4: "xl", 5: "xxl"}

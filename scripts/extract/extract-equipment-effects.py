@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Extract what an ordinary EquipmentData row writes onto a unit into `config/equipment_effects.yaml`.
 
-    python3 scripts/extract-equipment-effects.py [--build BUILD] [--check]
+    python3 scripts/extract/extract-equipment-effects.py [--build BUILD] [--check]
 
 The rows are `EquipmentGroupData.equipmentDatas` of `level0`, as
 `scripts/build_data.py` reads them: the equipment whose effect is the plain
@@ -14,9 +14,10 @@ are written as raw integers; only the comment beside one reads it as a decimal.
 import sys
 from pathlib import Path
 
-import build_data
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import build_data  # noqa: E402
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 # The build's field for each column this table writes.
 FIELDS = {
     "life_rate": "lifeChangeRate", "damage_rate": "damageChangeRate",
@@ -71,7 +72,7 @@ def render(rows):
         "schema: mechcore.equipment_effects",
         "",
         "# What an ordinary EquipmentData row writes onto the unit that wears it,",
-        "# read out of EquipmentGroupData by scripts/extract-equipment-effects.py.",
+        "# read out of EquipmentGroupData by scripts/extract/extract-equipment-effects.py.",
         "# docs/rules/equipment_effects.md states what each field means. A field",
         "# is written only when it is set; what an equipment costs is",
         "# config/reinforce_items.yaml's, and its other pool fields are not here.",

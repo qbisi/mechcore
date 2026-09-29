@@ -69,10 +69,10 @@ touching rectangles do not overlap.
 
 - Every arrival of this version's corpus lands where the rule puts it: a unit
   card's squads, a side's opening force, and the squads a specialist delivers as
-  a round opens: `scripts/verify-matches.py`.
+  a round opens: `scripts/corpus/verify-matches.py`.
 - Every round of this version's corpus settles into an order in which the rule
   allows each move, purchase and contraption where it stands, and verification
-  applies each under it: `scripts/verify-matches.py`.
+  applies each under it: `scripts/corpus/verify-matches.py`.
 
 ### Read
 

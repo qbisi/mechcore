@@ -22,7 +22,7 @@ and the tables below group by the card.
 
 [`config/unit_techs.yaml`](../../config/unit_techs.yaml) gives each technology's
 own `supply`, and [`config/unit_prices.yaml`](../../config/unit_prices.yaml) what
-a unit costs to buy, to unlock and to raise one level; `scripts/extract_prices.py`
+a unit costs to buy, to unlock and to raise one level; `scripts/extract/extract_prices.py`
 writes both. What researching one costs in a match is
 `UnitUtility.CalculateUpgradeTechnologyCost`: its own supply plus the number of
 the unit's technologies already active times a step, the unit's positive
