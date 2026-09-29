@@ -352,6 +352,7 @@ impl Simulation {
             center_y_q32: projectile.y_q32,
             shield,
             crosses_shields,
+            strikes_buildings: true,
             splash_radius,
             reach,
         };

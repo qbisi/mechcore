@@ -1,0 +1,20 @@
+# A Heavy Missile Strike, a Missile Strike of 12000.
+#
+# The fight is missile-strike-both-sides.yaml's with the heavier strike; its
+# row's `scope`, 0, changes nothing in the fight.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 64
+hash: {profile: mcfr-content-0.7.0, result: 8510e02e0bfe55753fa060de2c64a81e930b5d1be6de6aa4e5ee33f7d1362dbe}
+blue:
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -40}, exp: 0/192/450}
+  battle_skills:
+  - {name: heavy_missile_strike, positions: [{x: 0, y: 0}]}
+red:
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -40}, exp: 0/192/450}

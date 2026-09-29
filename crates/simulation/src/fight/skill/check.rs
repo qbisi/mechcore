@@ -198,6 +198,21 @@ impl Simulation {
         }
         let actor_id = owner.unit_id().expect("only a unit's skill is grouped");
         let source = &self.actors[&actor_id];
+        // A slot firing at a shield reaches it once the shield's surface on
+        // its way to the lock is in its range, as the core does.
+        if let Some(shield) = source.skill.sibling(slot.unwrap_or(0)).shield_target() {
+            return self.fight_actor(target).is_some_and(|view| view.alive)
+                && self.shield_attack_point(shield, owner, target).is_some_and(
+                    |(x_q32, z_q32)| {
+                        let distance =
+                            native_q32_magnitude(x_q32 - source.x_q32, z_q32 - source.z_q32)
+                                .saturating_sub(space_to_q32(source.rules.collision_radius()))
+                                .max(0);
+                        distance >= space_to_q32(source.rules.attack.min_range())
+                            && distance <= space_to_q32(self.slot_attack_range(actor_id, slot))
+                    },
+                );
+        }
         let Some(target) = self.fight_actor(target) else {
             return false;
         };

@@ -684,7 +684,11 @@ impl Simulation {
         let group = actor.skill.group.as_mut().expect("a fusillade is a group");
         for sibling in &mut group.siblings {
             if sibling.lock_target == Some(found) {
-                sibling.attack_target_left = sibling.attack_target();
+                // `ChangeAttackTarget(null, shield)` left the skill no attack
+                // target while it fired at a shield.
+                sibling.attack_target_left = sibling
+                    .attack_target()
+                    .filter(|_| sibling.shield_target().is_none());
                 sibling.lock_target = None;
                 group.mech_lock = None;
             }

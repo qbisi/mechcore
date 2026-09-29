@@ -228,6 +228,25 @@ under the summon's side, and a kill counts for the dead unit's enemies. The
 summon then loses the life its hit took in all, with no rate on damage taken,
 and counts that as taken.
 
+## A damage strike
+
+A damage skill that strikes one circle, a row of `damageCommanderSkills` with
+`effectRangeType` 0 (Missile Strike, Heavy Missile Strike, Nuke, Orbital
+Javelin), lands as any `CSRC_Common` skill does. Where it lands it deals its
+row's `subEffectDamage` to every unit, of either side and either domain, whose
+edge its `effectRange` reaches in the plane, as a hit with no owner: its
+damage and the deaths it causes are credited to no one, under the releasing
+side, and a kill counts for the dead unit's enemies. A tower is never struck.
+The hit meets shields as a splash does, which
+[`contraptions.md`](contraptions.md) states.
+
+A strike that does not cross shields (`isCrossAdvancedShield`) is tested as it
+falls: on the first tick of its fall that it stands strictly inside an active
+shield of either side, it strikes there instead of landing, at the point where
+its way met the shield's surface, half a metre out; of several such shields,
+the one its last point was nearest. `scope` and `isDirectHit` change nothing
+in the fight.
+
 ## A Shield Airdrop
 
 A Shield Airdrop is a row of `energyShieldCommanderSkills`, in
@@ -305,6 +324,15 @@ the fight's first tick, full, sorted among the side's other shields by
   obstacle: `tests/battle_skill/fights/underground-threat.yaml`.
 - An air drop reaches both sides, blue's first, and its kills count for the
   dead ones' enemies: `tests/battle_skill/fights/vulcans-descent.yaml`.
+- A damage strike lands on tick `s + 3` or `s + 2`, strikes both sides'
+  units with no owner, and spares towers:
+  `tests/battle_skill/fights/missile-strike-both-sides.yaml`,
+  `tests/battle_skill/fights/heavy-missile-strike.yaml`,
+  `tests/battle_skill/fights/strike-spares-tower.yaml`,
+  `tests/battle_skill/fights/nuke-beside-shield.yaml`.
+- A falling strike stops at a shield, and one that crosses shields does not:
+  `tests/battle_skill/fights/strike-stopped-by-shield.yaml`,
+  `tests/battle_skill/fights/javelin-crosses-shield.yaml`.
 - A Shield Airdrop lands on tick `s + 3`, and stands a full shield on the
   ground at its release point, which takes shots until it breaks:
   `tests/shield/fights/airdrop-lands.yaml`.
@@ -397,6 +425,16 @@ the fight's first tick, full, sorted among the side's other shields by
   `SupportUnitDamageProvider.GetDamage`,
   `FightCalculator.CalculateHitActorDamage`.
 - A summon takes no experience: `ExpSystem.IsValidOwner`.
+- A damage strike is `CommanderSkillDamageProvider`'s damage over the skill's
+  range, on every group, with no owner, never a tower:
+  `CommanderSkillDamageProvider.GetDamage`,
+  `CommanderSkillDamageProvider.GetEffectTargetType`,
+  `DamagePerformer.PrepareRangeTargets`,
+  `RangeTargetCalculator.CalculateRangeActors`.
+- Its fall stops at the first shield it comes inside:
+  `CommanderSkillSubEffectAgent.Update`,
+  `CommanderSkillSubEffectAgent.IsHitEnergyShield`,
+  `CSRC_Common.InterruptSubEffect`.
 - A Shield Airdrop's landing stands a shield of its side on the ground where
   it landed, full and active, after the side's others:
   `CS_EnergyShield.CreateSubEffectController`,
@@ -412,6 +450,11 @@ the fight's first tick, full, sorted among the side's other shields by
   `GroupAdvancedEnergyShieldManager.OnFightStart`.
 
 ### Not established
+
+- **A strike reaching a construction.** Whether a construction is among the
+  actors a battle skill's circle takes is not read; the simulator refuses it.
+- **A random circle or a line** (Orbital Bombardment, Lightning Storm, Ion
+  Blast), which scatter several sub-effects: not released.
 
 - **Why a solve on a summon's join tick passes it over,** and why its first
   intervals are drawn as it joins. Both are measured, not read.

@@ -205,6 +205,7 @@ impl Simulation {
             center_y_q32: projectile.y_q32,
             shield: None,
             crosses_shields: false,
+            strikes_buildings: true,
             splash_radius: shot.splash_radius,
             reach,
         };

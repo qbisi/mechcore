@@ -1,0 +1,24 @@
+# A strike that crosses shields.
+#
+# Blue's Orbital Javelin falls through red's shield, lands on tick 62, and
+# kills the Marksman inside; the shield keeps its energy.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 395
+hash: {profile: mcfr-content-0.7.0, result: dfadb7628dfe94c5281e2e7ce659ba9ab87daa3335250909f90ee233cb4c4d47}
+blue:
+  units:
+  - {name: fortress, index: 0, position: {x: 60, y: -150}, exp: 0/400/1600}
+  battle_skills:
+  - {name: orbital_javelin, positions: [{x: -1, y: 81}]}
+red:
+  core_damage: 350
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -80}}
+  - {name: marksman, index: 1, position: {x: 60, y: -130}}
+  contraptions:
+  - {name: shield, index: 2, position: {x: 1, y: -81}}

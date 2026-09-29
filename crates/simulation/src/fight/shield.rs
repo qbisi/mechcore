@@ -300,6 +300,7 @@ impl Simulation {
         &self,
         owner: FightActorRef,
         target: FightActorRef,
+        range: i64,
     ) -> Option<u64> {
         let FightActorRef::Unit(target_id) = target else {
             return None;
@@ -330,7 +331,7 @@ impl Simulation {
                         .saturating_sub(space_to_q32(target_actor.rules.collision_radius()))
                         .max(0);
                     if gap >= space_to_q32(attacker.attack.min_range())
-                        && gap <= space_to_q32(attacker.attack_range)
+                        && gap <= space_to_q32(range)
                     {
                         best = Some((shield.id, distance));
                     }
@@ -350,13 +351,25 @@ impl Simulation {
         owner: FightActorRef,
         target: FightActorRef,
     ) -> Option<u64> {
+        let range = self.attacker(owner)?.attack_range;
+        self.search_target_shield_in(owner, target, range)
+    }
+
+    /// The same for a skill of the given range: a grouped unit's slot reaches
+    /// further than its core, and asks with its own.
+    pub(in crate::fight) fn search_target_shield_in(
+        &self,
+        owner: FightActorRef,
+        target: FightActorRef,
+        range: i64,
+    ) -> Option<u64> {
         if self
             .attacker(owner)
             .is_none_or(|attacker| attacker.attack.crosses_shields)
         {
             return None;
         }
-        let shield = self.target_energy_shield(owner, target)?;
+        let shield = self.target_energy_shield(owner, target, range)?;
         (!self.shield_holds(shield, owner)).then_some(shield)
     }
 
@@ -383,6 +396,34 @@ impl Simulation {
         let outside = self.position_3d(owner)?;
         let (x, _, z) = self.shield_entry_point(shield_id, inside, outside);
         Some((x, z))
+    }
+
+    /// `CommanderSkillSubEffectAgent.IsHitEnergyShield`: the shield a falling
+    /// sub-effect has come inside, of either side, the one whose surface its
+    /// last point was nearest, and where it met that surface.
+    pub(in crate::fight) fn falling_into_shield(
+        &self,
+        now: (i64, i64, i64),
+        last: (i64, i64, i64),
+    ) -> Option<(u64, (i64, i64, i64))> {
+        let shield = self
+            .shields
+            .iter()
+            .filter(|shield| shield.contains(now.0, now.1, now.2))
+            .min_by_key(|shield| {
+                magnitude(sub(last, (shield.x_q32, 0, shield.z_q32)))
+                    .saturating_sub(shield.radius_q32)
+            })?;
+        Some((
+            shield.id,
+            point_on_circle(
+                (shield.x_q32, 0, shield.z_q32),
+                shield.radius_q32,
+                now,
+                last,
+                HALF_METRE,
+            ),
+        ))
     }
 
     /// `FightUtility.GetAttackPositionOnEnergyShieldOuter`: where the way from

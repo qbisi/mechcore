@@ -637,10 +637,16 @@ impl Simulation {
         // its towers on that tick, whatever dealt the last blow, and their
         // `OnDead` lands on the next. Projectile drain reaches the same round
         // result without mutating buildings (observed in Fang mirror fights).
+        // A tick that leaves both sides with no unit, a Missile Strike
+        // landing among both sides' Crawlers, fells both sides' towers.
+        let wiped_out = [0_u32, 1].into_iter().all(|team| {
+            team_alive_counts.get(&team).is_none_or(|alive| *alive == 0) && !self.appearing_on(team)
+        }) && !team_alive_counts.is_empty()
+            && self.projectiles.is_empty();
         let towers_fall = !fight_was_finished
             && !winner_was_decided
             && !projectile_finished_fight
-            && self.winner().is_some();
+            && (self.winner().is_some() || wiped_out);
         let mut queued_late_building_events = false;
         let appearing_teams = [0_u32, 1]
             .into_iter()

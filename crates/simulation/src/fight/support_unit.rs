@@ -255,6 +255,7 @@ impl Simulation {
             // `PerformAirDropDamage` turns `IsInterceptByAdvancedEnergyShield`
             // off.
             crosses_shields: true,
+            strikes_buildings: true,
             splash_radius: actor.rules.collision_radius(),
             reach: Reach::Targets(AttackTargets {
                 ground: true,
