@@ -1,0 +1,24 @@
+# A shield over a tower.
+#
+# Red's Shield Airdrop stands over red's tower at (-140, 170). Blue's
+# Marksman locks that tower from the first tick and fires at the shield in
+# its place: its weapon names no target, and every shot it fires lands on
+# the shield, which never breaks. Red's Marksman walks to blue's other
+# tower, fells it on tick 501, and kills blue's Marksman on tick 848.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: recording
+ticks: 848
+hash: {profile: mcfr-content-0.7.0, result: d833324e02a3a28e0f785cf1b5168be3ba263747ee233dd0c8847e8365e42325}
+blue:
+  core_damage: 100
+  units:
+  - {name: marksman, index: 0, position: {x: -140, y: -40}}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: -140, y: -150}, exp: 0/400/650}
+  battle_skills:
+  - {name: shield_airdrop, standing: {position: {x: 140, y: -150}}}

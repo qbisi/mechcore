@@ -119,7 +119,9 @@ the order `CompareEnergyShield` sorts them at the fight's start: their centre's
 x, then its z, then their energy and radius. A shield covers what its sphere
 holds strictly inside, in three dimensions, while it has energy left.
 
-A hit meant for a unit its side's shield covers lands on the shield:
+A hit meant for a unit or a tower its side's shield covers lands on the
+shield, since the build asks whether any `FightActor` is covered, and a tower
+is one as a unit is:
 
 - **A projectile** is tested where each move leaves it: the first enemy shield
   that holds it and did not hold it as it was made takes it, and it is removed
@@ -134,9 +136,9 @@ A hit meant for a unit its side's shield covers lands on the shield:
   lands inside a shield reaches the units inside.
 - A skill whose hits cross shields (`canCrossAdvancedShield`: a Crawler's, a
   Rhino's) passes every shield, and a unit whose attack does not, aiming at a
-  covered unit, fires at the shield: it stops once the point of the shield's
-  surface on its way to its target is within its range, and its weapons name no
-  target while it does, cooling included. Each weapon of a grouped unit
+  covered unit or tower, fires at the shield: it stops once the point of the
+  shield's surface on its way to its target is within its range, and its
+  weapons name no target while it does, cooling included. Each weapon of a grouped unit
   searches its own shield, with its own range, and keeps the one it last found
   until it searches again itself, one broken since included.
 
@@ -195,6 +197,9 @@ kind ends its own way:
   again: `tests/shield/fights/grouped-weapons.yaml`.
 - A skill that crosses shields strikes the covered unit:
   `tests/shield/fights/crawlers-cross.yaml`.
+- A unit locking a covered tower fires at the shield, its weapon naming no
+  target, and the shield takes every shot:
+  `tests/shield/fights/tower-covered.yaml`.
 - The hit that empties a shield is absorbed whole, and the shield is gone
   after it: `tests/shield/fights/projectiles-break-it.yaml`.
 
@@ -258,6 +263,10 @@ kind ends its own way:
   `FightSkill.GetTargetEnergyShield`, `FightSkill.IsActorProtectedByEnergyShield`,
   `SkillSearchTargetController.SearchTargetShield`,
   `SkillAttackRangeChecker.IsAttackTargetInAttackRange`.
+- Whether a shield covers something is asked of any `FightActor`, a tower
+  included: `FightCalculator.IsActorInEnergyShield(FightActor, FightEnergyShield)`,
+  called by `FightSkill.GetTargetEnergyShield(FightActor)`,
+  `DamageEffect.Perform` and `FightSkill.IsTowerAttackable`.
 - A splash spares what a shield covers unless it lands inside it:
   `DamagePerformer.ProcessAdvancedEnergyShieldEffect`,
   `DamagePerformer.PerformRangeEffect`.
