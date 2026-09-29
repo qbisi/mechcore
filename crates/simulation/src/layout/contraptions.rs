@@ -187,6 +187,16 @@ pub(crate) struct ShieldPlacement {
     pub(crate) radius_q32: i64,
     /// `GetAdvancedEnergyShieldValue`: its energy, full.
     pub(crate) energy: i64,
+    pub(crate) kind: ShieldKind,
+}
+
+/// What made a shield: `get_EnergyShieldData()`'s runtime type.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ShieldKind {
+    /// `EnergyShieldContraption`.
+    Contraption,
+    /// `CS_EnergyShield`, a Shield Airdrop.
+    CommanderSkill,
 }
 
 /// Every interceptor, missile and shield the build holds, by the id a layout
@@ -268,6 +278,7 @@ impl Contraptions {
             z: z * SPACE,
             radius_q32: row.radius,
             energy: row.energy,
+            kind: ShieldKind::Contraption,
         })
     }
 

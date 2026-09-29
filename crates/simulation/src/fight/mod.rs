@@ -232,6 +232,11 @@ struct Simulation {
     /// The `shield_destroyed` events of the tick, which the recording reads
     /// off the shields standing at its end, after everything else.
     destroyed_shields: Vec<Event>,
+    /// The `shield_created` events of the tick, which the recording reads
+    /// off the shields standing at its end, before the destroyed.
+    created_shields: Vec<Event>,
+    /// The identity the next shield made in the fight takes.
+    next_shield_id: u64,
     /// The shields broken this tick, which a skill firing at one still aims
     /// at until the tick is over.
     broken_shields: Vec<shield::EnergyShield>,
@@ -393,6 +398,8 @@ impl Simulation {
             },
             shields: shield::initialize_shields(&layout.shields),
             destroyed_shields: Vec::new(),
+            created_shields: Vec::new(),
+            next_shield_id: u64::try_from(layout.shields.len()).expect("shield count fits u64") + 1,
             broken_shields: Vec::new(),
             battle_skills: {
                 let mut releases = layout.battle_skills.clone();
@@ -782,6 +789,7 @@ impl Simulation {
                 tree.remove(FightActorRef::Building(building_id));
             }
         }
+        events.append(&mut self.created_shields);
         events.append(&mut self.destroyed_shields);
         self.broken_shields.clear();
         Ok(TransitionEvents { events })

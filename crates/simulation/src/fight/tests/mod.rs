@@ -82,6 +82,8 @@ pub(super) fn raw_test_simulation(
         mines: Vec::new(),
         shields: Vec::new(),
         destroyed_shields: Vec::new(),
+        created_shields: Vec::new(),
+        next_shield_id: 1,
         broken_shields: Vec::new(),
         battle_skills: Vec::new(),
         researched: BTreeSet::new(),

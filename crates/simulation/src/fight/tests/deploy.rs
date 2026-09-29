@@ -124,6 +124,8 @@ fn multi_formation_initial_state_and_target_search_entry_match_the_build() {
             mines: Vec::new(),
             shields: Vec::new(),
             destroyed_shields: Vec::new(),
+            created_shields: Vec::new(),
+            next_shield_id: 1,
             broken_shields: Vec::new(),
             battle_skills: Vec::new(),
             researched: BTreeSet::new(),

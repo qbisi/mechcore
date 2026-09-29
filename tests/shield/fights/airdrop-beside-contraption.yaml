@@ -1,0 +1,25 @@
+# A standing Shield Airdrop among its side's other shields.
+#
+# Red holds a contraption's shield and a Shield Airdrop an earlier round left
+# standing. Both stand full from the first tick, in the order their centres'
+# x sorts them, the contraption's first; blue's Fortress breaks the
+# contraption's shield on tick 430 and leaves the Airdrop alone.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: recording
+ticks: 504
+hash: {profile: mcfr-content-0.7.0, result: 2d89fcab11fa1304730e697f410e856d3abad25abf8d2a8573de9e5d600e8047}
+blue:
+  units:
+  - {name: fortress, index: 0, position: {x: 60, y: -150}, exp: 0/200/1600}
+red:
+  core_damage: 350
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -80}}
+  contraptions:
+  - {name: shield, index: 1, position: {x: 1, y: -81}, retained: false}
+  battle_skills:
+  - {name: shield_airdrop, standing: {position: {x: -60, y: -120}}}

@@ -1,0 +1,24 @@
+# Shield Airdrops an earlier round left standing.
+#
+# Each side holds one from an earlier round. Both stand from the fight's
+# first tick, full, and take the other side's shots as a contraption's shield
+# does.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: recording
+ticks: 132
+hash: {profile: mcfr-content-0.7.0, result: 0d139c5bc71fde8ad134bcae35a5b09e465a851c8748e0fbc1b1e27c78cff69c}
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 0/200/650}
+  battle_skills:
+  - {name: shield_airdrop, standing: {position: {x: 0, y: -60}}}
+red:
+  core_damage: 100
+  units:
+  - {name: arclight, index: 0, position: {x: 0, y: -50}}
+  battle_skills:
+  - {name: shield_airdrop, standing: {position: {x: 60, y: 20}}}

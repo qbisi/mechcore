@@ -15,7 +15,8 @@ states what each field does.
 
 The table holds the rows the simulator fights: the buff skills whose buff is
 the Electromagnetic Impact's, a slow that disables technology, and every
-support skill, which `SupportUnitSystem` summons units for. The script
+support skill, which `SupportUnitSystem` summons units for, and every shield
+skill, whose landing stands a shield of `AdvancedEnergyShieldSystem`. The script
 refuses a buff row when its buff moves anything else, and a support row that
 places its summons at set offsets.
 
@@ -141,6 +142,38 @@ def support_lines(group):
     return lines
 
 
+# A shield skill's row: when its shield lands and what the shield holds. Its
+# `subEffectDefaultHeight` is where the fall stops, which moves nothing the
+# fight reads, and `isCrossAdvancedShield` is never read: `CS_EnergyShield`
+# crosses shields whatever its row says.
+SHIELD_INTEGERS = (
+    ("scope", "scope"),
+    ("effectRangeType", "effect_range_type"),
+    ("effectType", "effect_type"),
+    ("energy", "energy"),
+)
+SHIELD_FIXED = (
+    ("startTime", "start_time"),
+    ("effectRange", "effect_range"),
+    ("subEffectMoveSpeed", "sub_effect_move_speed"),
+    ("subEffectMoveTime", "sub_effect_move_time"),
+)
+
+
+def shield_lines(group):
+    lines = ["", "shield_skills:"]
+    for row in group["energyShieldCommanderSkills"]:
+        if row["isTestData"]:
+            continue
+        lines += [f"  - id: {row['id']}", f"    name: {row['name']}"]
+        for field, name in SHIELD_INTEGERS:
+            lines.append(f"    {name}: {row[field]}")
+        for field, name in SHIELD_FIXED:
+            value = raw(row[field])
+            lines.append(f"    {name}: {value}{reading(value)}")
+    return lines
+
+
 def render(group):
     buffs = {buff["id"]: buff for buff in build_data.container()["buffDatas"]}
     rows = [
@@ -169,6 +202,7 @@ def render(group):
             lines.append(f"    {name}: {value}{reading(value)}")
         lines += buff_lines(buffs[row["subEffectBuffID"]])
     lines += support_lines(group)
+    lines += shield_lines(group)
     return "\n".join(lines) + "\n"
 
 

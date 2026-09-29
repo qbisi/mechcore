@@ -9,6 +9,7 @@
 use mechcore_document::BattleSkill;
 use serde::Deserialize;
 
+use super::contraptions::{ShieldKind, ShieldPlacement};
 use crate::{
     Error, Result,
     rules::{UnitConfig, UnitConfigs},
@@ -26,7 +27,27 @@ struct Table {
     schema: String,
     buff_skills: Vec<BuffSkillRow>,
     support_skills: Vec<SupportSkillRow>,
+    shield_skills: Vec<ShieldSkillRow>,
 }
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ShieldSkillRow {
+    id: i32,
+    name: String,
+    scope: i32,
+    effect_range_type: i32,
+    effect_type: i32,
+    energy: i64,
+    start_time: i64,
+    effect_range: i64,
+    sub_effect_move_speed: i64,
+    sub_effect_move_time: i64,
+}
+
+/// The Shield Airdrop an earlier round left standing: `CS_EnergyShield`
+/// 800001, the only one a standard match holds.
+const STANDING_SHIELD_SKILL: i32 = 800_001;
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -111,6 +132,12 @@ pub(crate) enum SkillEffect {
     },
     /// `SupportUnitEffectController`: a creator of summons.
     Summon(Box<Summon>),
+    /// `CS_EnergyShield`'s: a shield of the side, standing where it lands.
+    Shield {
+        /// `FPoint` raw metres.
+        radius_q32: i64,
+        energy: i64,
+    },
 }
 
 /// What a support skill's `SupportUnitCreator` makes, read off its row.
@@ -152,8 +179,9 @@ pub(crate) struct SkillBuff {
 /// Every battle skill the fight releases, by its commander skill id.
 #[derive(Debug, Clone)]
 pub(crate) struct CommanderSkillEffects {
-    buff_skills: Vec<BuffSkillRow>,
-    support_skills: Vec<SupportSkillRow>,
+    buffs: Vec<BuffSkillRow>,
+    summons: Vec<SupportSkillRow>,
+    shields: Vec<ShieldSkillRow>,
 }
 
 impl CommanderSkillEffects {
@@ -173,8 +201,41 @@ impl CommanderSkillEffects {
             )));
         }
         Ok(Self {
-            buff_skills: table.buff_skills,
-            support_skills: table.support_skills,
+            buffs: table.buff_skills,
+            summons: table.support_skills,
+            shields: table.shield_skills,
+        })
+    }
+
+    /// A Shield Airdrop an earlier round left standing, full: the shield
+    /// resets to its maximum as each round's fight ends.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the table does not hold its row.
+    pub(crate) fn standing_shield(
+        &self,
+        team: u32,
+        position: mechcore_document::Position,
+    ) -> Result<ShieldPlacement> {
+        let row = self
+            .shields
+            .iter()
+            .find(|row| row.id == STANDING_SHIELD_SKILL)
+            .ok_or_else(|| Error::new("the Shield Airdrop is not in the table"))?;
+        let (local_x, local_z) = (i64::from(position.x), i64::from(position.y));
+        let (x, z) = if team == 0 {
+            (local_x, local_z)
+        } else {
+            (-local_x, -local_z)
+        };
+        Ok(ShieldPlacement {
+            team,
+            x: x * SPACE,
+            z: z * SPACE,
+            radius_q32: row.effect_range,
+            energy: row.energy,
+            kind: ShieldKind::CommanderSkill,
         })
     }
 
@@ -202,19 +263,28 @@ impl CommanderSkillEffects {
         );
         let id = skill.commander_skill_id;
         let (row_name, common, effect) =
-            if let Some(row) = self.buff_skills.iter().find(|row| row.id == id) {
+            if let Some(row) = self.buffs.iter().find(|row| row.id == id) {
                 let named = format!("{named}, {}", row.name);
                 (
                     row.name.as_str(),
                     Common::of_buff(row),
                     buff_effect(&named, row)?,
                 )
-            } else if let Some(row) = self.support_skills.iter().find(|row| row.id == id) {
+            } else if let Some(row) = self.summons.iter().find(|row| row.id == id) {
                 let named = format!("{named}, {}", row.name);
                 (
                     row.name.as_str(),
                     Common::of_support(row),
                     SkillEffect::Summon(Box::new(summon(&named, row, units)?)),
+                )
+            } else if let Some(row) = self.shields.iter().find(|row| row.id == id) {
+                (
+                    row.name.as_str(),
+                    Common::of_shield(row),
+                    SkillEffect::Shield {
+                        radius_q32: row.effect_range,
+                        energy: row.energy,
+                    },
                 )
             } else {
                 return Err(Error::new(format!("{named} is not released by this build")));
@@ -262,6 +332,17 @@ struct Common {
 
 impl Common {
     const fn of_buff(row: &BuffSkillRow) -> Self {
+        Self {
+            scope: row.scope,
+            effect_type: row.effect_type,
+            effect_range_type: row.effect_range_type,
+            start_time: row.start_time,
+            move_time: row.sub_effect_move_time,
+            move_speed: row.sub_effect_move_speed,
+        }
+    }
+
+    const fn of_shield(row: &ShieldSkillRow) -> Self {
         Self {
             scope: row.scope,
             effect_type: row.effect_type,
@@ -412,8 +493,8 @@ mod tests {
     /// what separates them is whether the fall is shorter than the wait.
     #[test]
     fn a_sub_effect_lands_as_the_recordings_have_it() {
-        let emp = CommanderSkillEffects::load().unwrap().buff_skills[0].clone();
-        let rhino = CommanderSkillEffects::load().unwrap().support_skills[1].clone();
+        let emp = CommanderSkillEffects::load().unwrap().buffs[0].clone();
+        let rhino = CommanderSkillEffects::load().unwrap().summons[1].clone();
         assert_eq!(rhino.id, 1_200_002);
         // A Rhino Assault lands, and its creator makes the Rhino, on 28.
         assert_eq!(
