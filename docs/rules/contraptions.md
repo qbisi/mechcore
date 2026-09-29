@@ -30,6 +30,14 @@ format has no such decision.
 No officer a standard match deals carries one, so the count is eight in every
 round of a standard match.
 
+## Three kinds, three mechanisms
+
+A contraption is one of three kinds, and each is made by a module of its own
+when the fight is built: a shield by `AdvancedEnergyShieldSystem`, the module
+that also holds a Shield Airdrop's shield; an interceptor by `InterceptSystem`;
+a missile by `MineSystem`. A side that releases one is fought only once the
+module of its kind is, and a refusal names the kind with its module.
+
 ## What a fight leaves
 
 A contraption stands into the next round unless the fight ends it, and each
@@ -56,6 +64,10 @@ kind ends its own way:
 
 ### Read
 
+- Each kind is made by its own module: `CRC_EnergyShield.Perform` calls
+  `AdvancedEnergyShieldSystem.Create`, `CRC_Interceptor.Perform` calls
+  `InterceptSystem.DoCreateFightInterceptor`, and `CRC_Mine.Perform` calls
+  `MineSystem.Create`.
 - The count starts at eight and is restored as each round opens:
   `ContraptionManager.ContraptionManager`, `ContraptionManager.BuyCount`,
   `ContraptionManager.RemainCount`, `ContraptionSystem.OnEnterDeployment`.

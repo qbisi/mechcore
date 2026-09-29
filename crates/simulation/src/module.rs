@@ -39,7 +39,9 @@ pub(crate) enum Field {
     TowerStrengthenLevels,
     BattleSkills,
     Constructions,
-    Contraptions,
+    ShieldContraptions,
+    InterceptorContraptions,
+    MissileContraptions,
     StandingShields,
     StandingOil,
     UnitEquipment,
@@ -57,7 +59,9 @@ impl Field {
             Self::TowerStrengthenLevels => "tower strengthen levels",
             Self::BattleSkills => "battle skills",
             Self::Constructions => "constructions",
-            Self::Contraptions => "contraptions",
+            Self::ShieldContraptions => "shield contraptions",
+            Self::InterceptorContraptions => "interceptor contraptions",
+            Self::MissileContraptions => "missile contraptions",
             Self::StandingShields => "standing shield_airdrop",
             Self::StandingOil => "standing sticky_oil_bomb",
             Self::UnitEquipment => "unit equipment",
@@ -76,13 +80,26 @@ impl Field {
             }
             Self::BattleSkills => !side.battle_skills.is_empty(),
             Self::Constructions => !side.constructions.is_empty(),
-            Self::Contraptions => !side.contraptions.is_empty(),
+            Self::ShieldContraptions => carries_contraption(side, "shield"),
+            Self::InterceptorContraptions => carries_contraption(side, "interceptor"),
+            Self::MissileContraptions => carries_contraption(side, "missile"),
             Self::StandingShields => !side.standing_shields.is_empty(),
             Self::StandingOil => !side.standing_oil.is_empty(),
             Self::UnitEquipment => side.units.iter().any(|unit| !unit.equipment.is_empty()),
             Self::Travelling => side.units.iter().any(|unit| unit.travelling),
         }
     }
+}
+
+/// Whether a side releases a contraption of this kind. The three kinds are
+/// three mechanisms of the build: `CRC_EnergyShield.Perform` makes a shield
+/// through `AdvancedEnergyShieldSystem.Create`, `CRC_Interceptor.Perform` an
+/// interceptor through `InterceptSystem.DoCreateFightInterceptor`, and
+/// `CRC_Mine.Perform` a missile through `MineSystem.Create`.
+fn carries_contraption(side: &SidePlan, kind: &str) -> bool {
+    side.contraptions
+        .iter()
+        .any(|contraption| contraption.type_name == kind)
 }
 
 /// One module of the fight.
@@ -137,7 +154,7 @@ pub(crate) static MODULES: &[Module] = &[
     },
     Module {
         native: "AdvancedEnergyShieldSystem",
-        claims: &[Field::StandingShields],
+        claims: &[Field::ShieldContraptions, Field::StandingShields],
         understood: &[],
         implemented: false,
     },
@@ -235,7 +252,7 @@ pub(crate) static MODULES: &[Module] = &[
     },
     Module {
         native: "InterceptSystem",
-        claims: &[Field::Contraptions],
+        claims: &[Field::InterceptorContraptions],
         understood: &[],
         implemented: false,
     },
@@ -259,7 +276,7 @@ pub(crate) static MODULES: &[Module] = &[
     },
     Module {
         native: "MineSystem",
-        claims: &[],
+        claims: &[Field::MissileContraptions],
         understood: &[],
         implemented: false,
     },
@@ -401,7 +418,9 @@ mod tests {
             Field::TowerStrengthenLevels,
             Field::BattleSkills,
             Field::Constructions,
-            Field::Contraptions,
+            Field::ShieldContraptions,
+            Field::InterceptorContraptions,
+            Field::MissileContraptions,
             Field::StandingShields,
             Field::StandingOil,
             Field::UnitEquipment,
@@ -471,6 +490,32 @@ mod tests {
             [("battle skills", "CommanderSkillSystem")],
             "officers, a unit's level and the construction beside them are \
              understood; the battle skill is not"
+        );
+    }
+
+    /// Each kind of contraption is owed by the module that makes it, so a
+    /// side is refused for the kinds it releases and not for the field.
+    #[test]
+    fn a_contraption_is_owed_by_the_module_of_its_kind() {
+        let layout = mechcore_document::parse_yaml(
+            "kind: layout\nround: 1\nblue:\n  units: \
+             [{name: marksman, index: 0, position: {x: 0, y: -50}}]\n  contraptions: \
+             [{name: interceptor, index: 0, position: {x: 5, y: -95}}, \
+             {name: missile, index: 1, position: {x: 1, y: -11}}]\nred:\n  units: \
+             [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n"
+                .as_bytes(),
+        )
+        .unwrap();
+        let plan = mechcore_document::compile_layout(layout).unwrap();
+        assert_eq!(
+            unsupported(&plan.blue)
+                .iter()
+                .map(|(field, module)| (field.name(), *module))
+                .collect::<Vec<_>>(),
+            [
+                ("interceptor contraptions", "InterceptSystem"),
+                ("missile contraptions", "MineSystem"),
+            ]
         );
     }
 
