@@ -511,6 +511,13 @@ pub(in crate::fight) fn normal_visible_full_rotation_score_from_distance_and_ang
     Some(score_q32.saturating_add(distance_q32))
 }
 
+/// A skill's search looks at least this far around its searcher, in space
+/// units, whatever its reach: the 400 of `max(range, 400)`. Recorded in
+/// replay 134266831 round 3: a Crawler's first search scores the 13
+/// candidates, 11 units and 2 towers, that a square 800 m wide around it
+/// holds, and not the enemy straight ahead 538 m off.
+const SEARCH_MIN_RADIUS: i64 = 400_000;
+
 impl Simulation {
     pub(in crate::fight) fn refresh_target_query_snapshot(&mut self) {
         // The build prepares selector inputs before FightCore updates actors
@@ -578,8 +585,30 @@ impl Simulation {
         }
     }
 
-    /// `MainSkillSearchTargetController`: the other side's candidates in the
-    /// order the target trees hold them, scored from where the owner stood and
+    /// The candidates a skill's search scores: what the other sides' target
+    /// trees answer for a square around the searcher as wide as twice its
+    /// reach, and never narrower than 800 metres, whether the search was
+    /// prepared at the tick's start or performed when it runs.
+    pub(in crate::fight) fn search_candidates(
+        &self,
+        owner: FightActorRef,
+    ) -> Option<BTreeSet<FightActorRef>> {
+        let source = self.attacker(owner)?;
+        let radius_q32 = space_to_q32(source.attack_range.max(SEARCH_MIN_RADIUS));
+        Some(
+            self.target_quadtrees
+                .iter()
+                .filter(|(team, _)| **team != source.team)
+                .flat_map(|(_, tree)| {
+                    tree.query_square(source.x_q32, source.z_q32, radius_q32.saturating_mul(2))
+                })
+                .collect(),
+        )
+    }
+
+    /// `MainSkillSearchTargetController`: the other side's candidates around
+    /// the owner ([`Simulation::search_candidates`]) in the order the target
+    /// trees hold them, scored from where the owner stood and
     /// pointed at the tick's start, the lowest score taken. A unit's skill and
     /// a construction's ask the same selector.
     pub(in crate::fight) fn select_normal_target_with_order(
@@ -594,6 +623,7 @@ impl Simulation {
         if !source.searches {
             return Ok(None);
         }
+        let nearby = self.search_candidates(owner);
         let mut best: Option<(FightActorRef, i64)> = None;
         let mut consider = |candidate, score| match best {
             None => {
@@ -610,6 +640,12 @@ impl Simulation {
                 continue;
             }
             for &candidate in candidates {
+                if nearby
+                    .as_ref()
+                    .is_some_and(|nearby| !nearby.contains(&candidate))
+                {
+                    continue;
+                }
                 let Some(target) = self.fight_actor(candidate) else {
                     continue;
                 };

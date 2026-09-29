@@ -356,7 +356,11 @@ search, scored on where everything stands at that moment, and
 `ScoreRatingTargetSelector.TrySelect` answers a prepared skill from those
 scores. A skill that was not prepared, or whose prepared answer has died since,
 falls through to `PerformSearch`, which scores every candidate where it stands
-when the search runs. An attacking skill is prepared only while its lock is
+when the search runs. Either way a candidate is scored only if the target tree
+holds it in a node that a square around the searcher overlaps, a square twice
+`max(range, 400)` wide: at the fight's first tick, a Crawler of replay 134266831
+round 3 scores 13 candidates, and not the enemy 538 m straight ahead of it,
+which a square 800 m wide leaves out. An attacking skill is prepared only while its lock is
 absent or dead, an idle one when it can start a search, and a preparing or
 cooling one never; the prepared scores are cleared every tick. So a
 Stormcaller whose live lock walks inside its minimum range during a tick
