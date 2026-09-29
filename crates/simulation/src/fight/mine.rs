@@ -208,6 +208,7 @@ impl Simulation {
                 source: MISSILE_SOURCE,
                 correction: super::tower::rate(shot.buff.move_speed_rate),
             }],
+            disables_technology: false,
         };
         for &target in &struck.targets {
             if let FightActorRef::Unit(id) = target

@@ -1,5 +1,8 @@
 use super::*;
 
+/// The bit of `status_mask` that holds `FightMech.IsTechnologyDisabled`.
+const TECHNOLOGY_DISABLED: u64 = 1 << 2;
+
 impl Actor {
     #[cfg(test)]
     pub(in crate::fight) fn new(placement: Placement, rules: UnitConfig, seed: i32) -> Self {
@@ -270,7 +273,11 @@ impl Actor {
             active: true,
             targetable: true,
             visibility: Visibility::Normal,
-            status_mask: 0,
+            status_mask: if self.technology_disabled() {
+                TECHNOLOGY_DISABLED
+            } else {
+                0
+            },
             modifiers: self
                 .stats
                 .modifiers(self.skill.group_size().max(1))

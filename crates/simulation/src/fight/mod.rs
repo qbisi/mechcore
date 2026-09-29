@@ -26,7 +26,7 @@ use crate::{
     Error, Record, Result,
     layout::{
         CompiledLayout, ConstructionBuilding, InterceptorBuilding, MissileMine, MissileShot,
-        Placement,
+        Placement, SkillRelease,
     },
     rules::{
         AttackConfig, AttackPath, AttackTargets, Magazine, MapBuilding, MapsConfig, RvoSize,
@@ -35,6 +35,7 @@ use crate::{
 };
 
 mod attacker;
+mod commander_skill;
 mod construction;
 mod damage;
 mod deploy;
@@ -217,6 +218,11 @@ struct Simulation {
     interceptors: Vec<Interceptor>,
     /// Each side's missiles still standing, `MineSystem`'s, in side order.
     mines: Vec<Mine>,
+    /// Each side's released battle skills, `CommanderSkillSystem`'s, in side
+    /// order.
+    battle_skills: Vec<SkillRelease>,
+    /// The sides that researched a unit technology.
+    researched: BTreeSet<u32>,
     buildings: Vec<BuildingState>,
     target_quadtrees: BTreeMap<u32, TargetActorQuadtree>,
     /// Each side's units alone, `FightTeam.mechQuadtree`, which the
@@ -354,6 +360,12 @@ impl Simulation {
                 mines.sort_by_key(Mine::team);
                 mines
             },
+            battle_skills: {
+                let mut releases = layout.battle_skills.clone();
+                releases.sort_by_key(|release| release.team);
+                releases
+            },
+            researched: layout.researched.clone(),
             buildings,
             target_quadtrees,
             mech_quadtrees,
@@ -488,8 +500,10 @@ impl Simulation {
         // Native search jobs retain the actor-quadtree candidate order
         // prepared at the start of this FightCore update.
         let target_search_order = self.target_search_order();
-        // `MineSystem` updates before `FightCoreSystem`: a missile fires on
-        // where its enemies stood as the tick opened.
+        // `CommanderSkillSystem` and then `MineSystem` update before
+        // `FightCoreSystem`: a skill lands, and a missile fires, on where
+        // their enemies stood as the tick opened.
+        self.step_battle_skills(step, &target_search_order, &mut events)?;
         self.step_mines(&target_search_order, &mut events)?;
         let team_ids = self
             .actors
@@ -665,6 +679,12 @@ impl Simulation {
             events.extend(follows);
         }
         self.dropped_buffs.clear();
+        // A fight a projectile's drain finished leaves on this tick, with no
+        // tower torn down to publish first: its buffs are cleared after
+        // everything else the tick did.
+        if !publish_late_building_events && self.ready_to_finish() {
+            self.clear_buffs_as_the_fight_ends(&mut events)?;
+        }
         if !self.tower_buff_events.is_empty() {
             return Err(Error::new(
                 "a tower's loss wrote its buff on a tick that records no building_destroyed for it",

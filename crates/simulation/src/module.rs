@@ -197,8 +197,8 @@ pub(crate) static MODULES: &[Module] = &[
     Module {
         native: "CommanderSkillSystem",
         claims: &[Field::BattleSkills],
-        understood: &[],
-        implemented: false,
+        understood: &[Field::BattleSkills],
+        implemented: true,
     },
     Module {
         native: "DeadEffectSystem",
@@ -477,7 +477,8 @@ mod tests {
         let loaded = plan(
             "kind: layout\nround: 1\nblue:\n  officers: [supply_specialist]\n  \
              constructions: [{name: defensive_wall, index: 0, position: {x: 140, y: -105}}]\n  \
-             battle_skills: [{name: missile_strike, positions: [{x: 0, y: 40}]}]\n  \
+             battle_skills: [{name: missile_strike, positions: [{x: 0, y: 40}]}, \
+             {name: sticky_oil_bomb, standing: {control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}}]\n  \
              units: [{name: marksman, index: 0, position: {x: 0, y: -50}, level: 3}]\nred:\n  \
              units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n",
         );
@@ -487,9 +488,10 @@ mod tests {
                 .iter()
                 .map(|(field, module)| (field.name(), *module))
                 .collect::<Vec<_>>(),
-            [("battle skills", "CommanderSkillSystem")],
-            "officers, a unit's level and the construction beside them are \
-             understood; the battle skill is not"
+            [("standing sticky_oil_bomb", "RangeItemSystem")],
+            "officers, a unit's level, the construction and the released battle \
+             skill beside them are understood; the oil standing from an earlier \
+             round is not"
         );
     }
 

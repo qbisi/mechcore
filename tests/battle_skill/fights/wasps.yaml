@@ -1,0 +1,23 @@
+# An Electromagnetic Impact reaches air units, and a drain's end clears it.
+#
+# Red releases it on blue's Wasps, and on tick 57 it writes its buff on all
+# twelve. A projectile landing after the last death decides the fight, and on
+# that last tick each surviving Wasp's buff is cleared after the projectile is
+# removed.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 383
+hash: {profile: mcfr-content-0.7.0, result: cbf541ff8827af505fea65cdda6ab908b1a31ee094b82d6b01e77fa7c6ed282d}
+blue:
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -150}, exp: 0/200/900}
+red:
+  core_damage: 136
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/136/650}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: -5, y: 150}]}

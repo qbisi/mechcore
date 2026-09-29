@@ -11,6 +11,7 @@ so they need the decompilation under `work/decomp/<build>/`
 | File | Written by |
 | --- | --- |
 | `advance_teams.yaml` | `extract_prices.py` |
+| `commander_skill_effects.yaml` | `extract-commander-skill-effects.py` |
 | `commander_skills.yaml` | `extract_prices.py` |
 | `constructions.yaml` | `extract-constructions.py` |
 | `contraptions.yaml` | `extract-contraptions.py` |

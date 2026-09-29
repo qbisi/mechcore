@@ -152,6 +152,8 @@ fn normal_selector_split_query_remains_order_independent_for_a_unique_best() {
         projectiles: Vec::new(),
         interceptors: Vec::new(),
         mines: Vec::new(),
+        battle_skills: Vec::new(),
+        researched: BTreeSet::new(),
         buildings,
         target_quadtrees,
         mech_quadtrees: BTreeMap::new(),
