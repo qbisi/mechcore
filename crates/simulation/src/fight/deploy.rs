@@ -263,6 +263,13 @@ pub(in crate::fight) struct MapCrystal {
 /// separated; `docs/rules/map.md` says so.
 const CRYSTAL_MIN_COLLIDER_PRIORITY: i32 = 2;
 
+/// A crystal stands where `CrystalElement.GetPosition` puts it: its map
+/// position as a `MapVector`, whose `FVector2` constructor keeps each
+/// coordinate's integer part, which for an `FPoint` is its floor.
+const fn whole_metres(raw: i64) -> i64 {
+    raw & !0xFFFF_FFFF
+}
+
 /// The map's crystals that take part in movement, in the order the map lists
 /// them.
 pub(in crate::fight) fn map_crystals(map: &[MapBuilding]) -> Vec<MapCrystal> {
@@ -275,8 +282,8 @@ pub(in crate::fight) fn map_crystals(map: &[MapBuilding]) -> Vec<MapCrystal> {
                 radius,
                 collider_priority,
             } => (collider_priority >= CRYSTAL_MIN_COLLIDER_PRIORITY).then_some(MapCrystal {
-                x_q32: x,
-                z_q32: z,
+                x_q32: whole_metres(x),
+                z_q32: whole_metres(z),
                 radius_q32: radius,
                 collider_priority,
             }),
