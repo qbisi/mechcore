@@ -5,9 +5,10 @@ fight-coverage 挡得最多的理由重排。
 
 ## 栈
 
-1. **模块广度**，按 fight-coverage 里单独补上一项能多放行的回合数排：`CommanderSkillSystem`
-   （战场技能）、`InterceptSystem`（contraption）、
-   `BuildingSystem`（能量塔技能）、`SuperDeploymentSystem`（空投单位）、`Modifier` 的装备。
+1. **模块广度**，按 fight-coverage 里单独补上一项能多放行的回合数排：`InterceptSystem`
+   （拦截器，先做：它有现成的参考 layout）、`CommanderSkillSystem`（战场技能）、`MineSystem`
+   （导弹 contraption）、`AdvancedEnergyShieldSystem`（护盾 contraption）、`BuildingSystem`
+   （能量塔技能）、`SuperDeploymentSystem`（空投单位）、`Modifier` 的装备。
    挡住回合最多的理由不一定先做：一个回合常被几项同时挡住，只补其中一项放行不了它。
 2. **效果表。** 装备、能量塔技能。
 3. **语料层的稀疏验收**，与经验规则。
