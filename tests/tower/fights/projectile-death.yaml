@@ -1,0 +1,19 @@
+# A unit that a projectile kills under the loss's buff has the buff cleared as
+# it dies, as one killed any other way does. The two Fang squads meet in front
+# of blue's Research Center, and each side loses a tower before the fight is
+# over; blue's last Fangs carry buff 1 when red's shots kill them.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 2088
+hash: {profile: mcfr-content-0.7.0, result: 6e39b94de315f5ccf27cce955f55b47980c1c356d246d1420c05896f987ce5e5}
+blue:
+  core_damage: 12
+  units:
+  - {name: fang, index: 0, position: {x: 145, y: -300}, exp: 0/392/600}
+red:
+  units:
+  - {name: fang, index: 0, position: {x: 145, y: -20}, exp: 0/598/600}
