@@ -24,7 +24,7 @@ use serde::Serialize;
 
 use crate::{
     Error, Record, Result,
-    layout::{CompiledLayout, ConstructionBuilding, Placement},
+    layout::{CompiledLayout, ConstructionBuilding, InterceptorBuilding, Placement},
     rules::{
         AttackConfig, AttackPath, AttackTargets, Magazine, MapBuilding, MapsConfig, RvoSize,
         SimulationConfig, TowersConfig, UnitConfig, UnitConfigs, UnitDomain, WeaponMode,
@@ -36,6 +36,7 @@ mod construction;
 mod damage;
 mod deploy;
 mod experience;
+mod intercept;
 mod math;
 mod mech;
 mod motion;
@@ -55,6 +56,7 @@ use attacker::Facing;
 use construction::*;
 use damage::*;
 use deploy::*;
+use intercept::*;
 pub(crate) use math::*;
 use motion::*;
 use projectile::*;
@@ -206,6 +208,8 @@ struct Simulation {
     actors: BTreeMap<u64, Actor>,
     team_random: BTreeMap<u32, GrRandom>,
     projectiles: Vec<Projectile>,
+    /// Each side's interceptors, `InterceptSystem`'s sources.
+    interceptors: Vec<Interceptor>,
     buildings: Vec<BuildingState>,
     target_quadtrees: BTreeMap<u32, TargetActorQuadtree>,
     /// Each side's units alone, `FightTeam.mechQuadtree`, which the
@@ -321,7 +325,13 @@ impl Simulation {
             tower_buffed_constructions,
             construction_groups,
             building_exp,
-        } = initialize_buildings(towers, &layout.constructions, &layout.tower_levels)?;
+            interceptors,
+        } = initialize_buildings(
+            towers,
+            &layout.constructions,
+            &layout.interceptors,
+            &layout.tower_levels,
+        )?;
         let constructions = initialize_constructions(&buildings, &layout.constructions)?;
         let map_crystals = map_crystals(maps.buildings(layout.map_id)?);
         let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
@@ -331,6 +341,7 @@ impl Simulation {
             actors,
             team_random: BTreeMap::new(),
             projectiles: Vec::new(),
+            interceptors,
             buildings,
             target_quadtrees,
             mech_quadtrees,
@@ -516,6 +527,7 @@ impl Simulation {
         }
         let naturally_finished_before_projectiles = self.naturally_finished();
         self.step_projectiles(&mut events)?;
+        self.step_interceptors(&mut events)?;
         // `DeadEffectSystem` updates after `FightCoreSystem` and
         // `ProjectileSystem` (`FightController.AddModules`), and calls `OnDead`
         // on what died this tick: a tower's loss reaches its side after every

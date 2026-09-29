@@ -24,7 +24,14 @@ pub(in crate::fight) struct Projectile {
     pub(in crate::fight) cached_target_z_q32: i64,
     pub(in crate::fight) cached_target_radius: i64,
     pub(in crate::fight) speed: i64,
+    /// What is left of its life, which only an interceptor takes.
     pub(in crate::fight) life: i64,
+    pub(in crate::fight) max_life: i64,
+    pub(in crate::fight) interceptible: bool,
+    /// The interceptors whose reach it is in, as it last moved.
+    pub(in crate::fight) sources: Vec<u64>,
+    /// The interceptors locked on it.
+    pub(in crate::fight) locked_by: Vec<u64>,
     pub(in crate::fight) lock_target: bool,
     /// Where a projectile that follows its target lands relative to it.
     pub(in crate::fight) offset_x_q32: i64,
@@ -58,7 +65,7 @@ impl Projectile {
             cached_target_radius: space_to_q32(self.cached_target_radius),
             life: GaugeI32 {
                 current: i32::try_from(self.life).expect("projectile life fits i32"),
-                maximum: i32::try_from(self.life).expect("projectile life fits i32"),
+                maximum: i32::try_from(self.max_life).expect("projectile life fits i32"),
             },
             spawn_containing_shields: Vec::new(),
         }
@@ -101,6 +108,9 @@ impl Simulation {
                 if projectile.y_q32 >= height_q32 {
                     projectile.climb_to_q32 = None;
                 }
+                // Climbing, it is not yet among any interceptor's: the
+                // Farseer's shot of `farseer-climbs.yaml` takes no hit until
+                // it flies.
                 retained.push(projectile);
                 continue;
             }
@@ -132,6 +142,7 @@ impl Simulation {
                 .saturating_sub(projectile.y_q32);
             let distance_q32 = native_q32_magnitude_3d(dx_q32, dy_q32, dz_q32);
             if distance_q32 < space_to_q32(projectile.cached_target_radius) {
+                self.leave_interceptors(&projectile);
                 self.impact(&projectile, events)?;
             } else {
                 let step_q32 = projectile_step_q32(&projectile);
@@ -151,6 +162,9 @@ impl Simulation {
                 projectile.x = q32_to_space_rounded(projectile.x_q32);
                 projectile.y = q32_to_space_rounded(projectile.y_q32);
                 projectile.z = q32_to_space_rounded(projectile.z_q32);
+                // `Move` has put it where it is now, and
+                // `UpdateIsInInterceptSources` reads it there.
+                self.track_interceptors(&mut projectile);
                 retained.push(projectile);
             }
         }

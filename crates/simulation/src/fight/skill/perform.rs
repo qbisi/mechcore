@@ -13,6 +13,9 @@ pub(in crate::fight) struct Launch {
     pub(in crate::fight) z_q32: i64,
     pub(in crate::fight) speed: i64,
     pub(in crate::fight) life: i64,
+    /// Whether an interceptor may take it out of the air: the skill's
+    /// `canBeIntercept`.
+    pub(in crate::fight) interceptible: bool,
     pub(in crate::fight) lock_target: bool,
     /// How high the projectile climbs before it flies, in space units.
     pub(in crate::fight) climb: i64,
@@ -476,6 +479,10 @@ impl Simulation {
             cached_target_radius: target_radius,
             speed: source.speed,
             life: source.life,
+            max_life: source.life,
+            interceptible: source.interceptible,
+            sources: Vec::new(),
+            locked_by: Vec::new(),
             lock_target: source.lock_target,
             offset_x_q32: 0,
             offset_z_q32: 0,

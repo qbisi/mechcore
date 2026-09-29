@@ -140,6 +140,13 @@ impl Simulation {
         let Some(loss) = self.tower_losses.get(&building_id).copied() else {
             return Ok(());
         };
+        if let Some(interceptor) = self.standing_interceptor(loss.team) {
+            return Err(Error::new(format!(
+                "team {} loses a tower while its interceptor {interceptor} stands, and what a \
+                 tower's loss writes on an interceptor is not measured",
+                loss.team
+            )));
+        }
         let entries = self.towers.entries();
         let mut applied = Vec::new();
         let divide = self.towers.destroyed_buff.buff_divide;

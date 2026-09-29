@@ -292,6 +292,11 @@ impl Simulation {
                 if destroyed && self.is_tower(target) {
                     self.fallen_towers.push(building_id);
                 }
+                // An interceptor's building falling is `FightInterceptor.
+                // OnDestroy`: it intercepts nothing from the next hit on.
+                if destroyed {
+                    self.lose_interceptor(building_id);
+                }
                 Ok(stroke)
             }
         }

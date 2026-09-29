@@ -11,6 +11,7 @@ out to show:
 | --- | --- |
 | [`construction/`](construction/README.md) | what a construction becomes in a fight, and what attacks it |
 | [`equipment/`](equipment/README.md) | where equipment corrections land and how they compose with officers |
+| [`interceptor/`](interceptor/README.md) | how an interceptor takes projectiles out of the air, and what befalls it |
 | [`level/`](level/README.md) | how a unit level scales base life and damage before overlays |
 | [`map/`](map/README.md) | what a map's neutral crystals do to a fight |
 | [`modifier/`](modifier/README.md) | how officers and technologies correct a unit's numbers |

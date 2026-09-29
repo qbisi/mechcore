@@ -1,0 +1,28 @@
+# Each side's Stormcaller fires on the other over the other's interceptor.
+#
+# `layouts/shield-missile-battle.yaml` with each shield an interceptor on the
+# grid and no missile. The interceptors take 46 rockets out of the air, the
+# first two at tick 22, three ticks apart while rockets are in reach: each one
+# locked and prepared draws once from its side's stream, and a hit takes the
+# rocket's whole 42000 while the attack stands above it. Between volleys, from
+# tick 58 to 154, both are idle with nothing to lock and their attack rises
+# again. Both interceptors stand at the end.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 338
+hash: {profile: mcfr-content-0.7.0, result: bb6269e69e24f33f53e9fd091d6f36432a6c0ad3e3d4277d76683fcc288e546d}
+blue:
+  units:
+  - {name: stormcaller, index: 0, position: {x: 5, y: -40}, exp: 0/400/1100}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 5, y: -85}}
+red:
+  core_damage: 200
+  units:
+  - {name: stormcaller, index: 0, position: {x: 5, y: -40}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 5, y: -85}}

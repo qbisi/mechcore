@@ -66,7 +66,8 @@ pub(super) fn raw_test_simulation(
         tower_buffed_constructions,
         construction_groups: _,
         building_exp,
-    } = initialize_buildings(&config.towers, &[], &BTreeMap::new()).unwrap();
+        interceptors: _,
+    } = initialize_buildings(&config.towers, &[], &[], &BTreeMap::new()).unwrap();
     let map_crystals = map_crystals(config.maps.buildings(1021).unwrap());
     let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
     let buildings_query_alive = standing_buildings(&buildings);
@@ -74,6 +75,7 @@ pub(super) fn raw_test_simulation(
         actors,
         team_random: BTreeMap::new(),
         projectiles: Vec::new(),
+        interceptors: Vec::new(),
         buildings,
         target_quadtrees,
         mech_quadtrees: BTreeMap::new(),

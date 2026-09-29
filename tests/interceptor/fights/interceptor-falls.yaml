@@ -1,0 +1,26 @@
+# An interceptor that falls stops intercepting, and falls among the tick's
+# deaths.
+#
+# Red's Stormcaller fires on blue's past blue's interceptor, which takes 11 of
+# its rockets out of the air; red's Crawlers run onto the interceptor and fell
+# it at tick 241. That tick reads the interceptor's `building_destroyed`
+# before the `unit_died` of a unit another Crawler killed later in the tick,
+# in the order they happened. It does not stand into the next round.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 241
+hash: {profile: mcfr-content-0.7.0, result: 21e6d7eb9892ceb4917ffcaf77317ffd5798caccd97b0e9374d43bf7d3084557}
+blue:
+  core_damage: 114
+  units:
+  - {name: stormcaller, index: 0, position: {x: 5, y: -40}, exp: 0/314/1100}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: -95, y: -85}, retained: false}
+red:
+  units:
+  - {name: stormcaller, index: 0, position: {x: 5, y: -40}, exp: 0/100/1100}
+  - {name: crawler, index: 1, position: {x: 95, y: -40}, exp: 0/300/450}

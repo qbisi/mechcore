@@ -253,8 +253,8 @@ pub(crate) static MODULES: &[Module] = &[
     Module {
         native: "InterceptSystem",
         claims: &[Field::InterceptorContraptions],
-        understood: &[],
-        implemented: false,
+        understood: &[Field::InterceptorContraptions],
+        implemented: true,
     },
     Module {
         native: "IterationEffectSystem",
@@ -494,7 +494,8 @@ mod tests {
     }
 
     /// Each kind of contraption is owed by the module that makes it, so a
-    /// side is refused for the kinds it releases and not for the field.
+    /// side is refused for the kinds it releases and not for the field: an
+    /// interceptor is understood, and the missile beside it is not.
     #[test]
     fn a_contraption_is_owed_by_the_module_of_its_kind() {
         let layout = mechcore_document::parse_yaml(
@@ -512,10 +513,7 @@ mod tests {
                 .iter()
                 .map(|(field, module)| (field.name(), *module))
                 .collect::<Vec<_>>(),
-            [
-                ("interceptor contraptions", "InterceptSystem"),
-                ("missile contraptions", "MineSystem"),
-            ]
+            [("missile contraptions", "MineSystem")]
         );
     }
 
