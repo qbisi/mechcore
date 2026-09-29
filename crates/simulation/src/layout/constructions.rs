@@ -1,7 +1,7 @@
 //! What a layout's `constructions` become when the fight is built.
 //!
 //! `config/constructions.yaml` is the build's own table, extracted by
-//! `scripts/extract-constructions.py`, and `docs/rules/constructions.md` states
+//! `scripts/extract/extract-constructions.py`, and `docs/rules/constructions.md` states
 //! what each field means and which of them was measured against the game.
 //!
 //! **A construction is several objects.** One placement becomes `count`

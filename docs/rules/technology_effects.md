@@ -6,7 +6,7 @@ may research and what each costs is [unit_techs.md](unit_techs.md)'s.
 
 [`config/technology_effects.yaml`](../../config/technology_effects.yaml) holds
 every technology a unit may research that writes onto its unit's numbers;
-`scripts/extract-technology-effects.py` writes it from every list of
+`scripts/extract/extract-technology-effects.py` writes it from every list of
 `TechnologyGroupData` in `level0`.
 
 The fields are the ones `GameRiver.TechnologyData` answers
@@ -103,7 +103,7 @@ whose effect grows with rank, rather than read index zero:
   fields land in the same channels: `TechnologyData.lifeChangeRate`,
   `TechnologyData.damageChangeRate`, `TechnologyData.attackRangeChangeValue`.
 - An effect is a list indexed by rank, and a growing list is its first entry
-  times the rank; `scripts/extract-technology-effects.py` refuses a table where
+  times the rank; `scripts/extract/extract-technology-effects.py` refuses a table where
   that does not hold, and wrote this version's: `TechnologyData.damageChangeRate`.
 - The numbers a technology states appear in its own description, which the
   extraction checks: `TechnologyData.lifeChangeRate`.

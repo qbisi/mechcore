@@ -4,7 +4,7 @@
 ``mechcore convert <match.yaml> --to grbr <replay.grbr>`` writes a match back as
 a replay that converts to the same match again. This asks the other half:
 whether the game plays that replay as it plays the match's own. For every
-match ``scripts/export-replay-corpus.py`` writes under
+match ``scripts/corpus/export-replay-corpus.py`` writes under
 ``work/match/<version>/``, the replay of the same basename in
 ``work/replay/replays/<version>/`` and the replay the match writes are fought
 round by round headlessly (``game record --round``), and each pair of
@@ -19,10 +19,10 @@ headless, and each session's game log is kept beside the recordings as
 Run from anywhere inside the checkout, with the game installed:
 
     cargo build --release -p mechcore
-    python3 scripts/replay.py sync
-    python3 scripts/export-replay-corpus.py
-    python3 scripts/match-replays.py
-    python3 scripts/match-replays.py --only Chemtrails --json
+    python3 scripts/corpus/replay.py sync
+    python3 scripts/corpus/export-replay-corpus.py
+    python3 scripts/corpus/match-replays.py
+    python3 scripts/corpus/match-replays.py --only Chemtrails --json
 
 A round in which a side concedes is listed and not compared: a concession made
 during the fight ends it at a moment the match does not record.
@@ -51,7 +51,8 @@ import re
 import subprocess
 import sys
 
-import build_data
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import build_data  # noqa: E402
 
 
 def parse_arguments(root: Path) -> argparse.Namespace:
@@ -425,7 +426,7 @@ def verdict(entry: dict) -> str:
 
 
 def main() -> int:
-    root = Path(__file__).resolve().parents[1]
+    root = Path(__file__).resolve().parents[2]
     arguments = parse_arguments(root)
     version = arguments.version or build_data.build()
     matches = sorted((root / "work/match" / version).glob("*.yaml"))

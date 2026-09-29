@@ -16,9 +16,9 @@
 它验收。当 build 的结构和"好写的结构"冲突时，以 build 为准，并写下理由。
 
 **证据覆盖到哪里。** 这里的结构读自本地反编译索引
-`scripts/decomp.py sync` 放到 `work/decomp/<version>/` 下的 `index.sqlite`：
+`scripts/decomp/decomp.py sync` 放到 `work/decomp/<version>/` 下的 `index.sqlite`：
 Cpp2IL 产出的类型、方法和调用边。下面每一份清单和表格都由
-[`scripts/fight-structure.py`](../../../scripts/fight-structure.py) 重新生成。
+[`scripts/decomp/fight-structure.py`](../../../scripts/decomp/fight-structure.py) 重新生成。
 该索引**不含方法体**，所以它能确立的是归属关系和调用边——哪个类型存在、它拥有什么、
 它调用了谁；它确立不了算术、分支条件，以及一个方法体内部的调用顺序。下面每一句都属于
 前一类，需要后一类才能回答的都在 [Unresolved](#unresolved)。
@@ -406,7 +406,7 @@ build 只在 `Check` 的重搜分支里读快速切换标志。
 | 录像的各列 | 每一层各自逐 tick 对齐的验收面 |
 
 没实现的模块照样在场、照样认领字段、然后拒绝。语料里有多少回合的 layout 能编译，就是
-进度条，由 [`scripts/fight-coverage.py`](../../../scripts/fight-coverage.py) 报出。
+进度条，由 [`scripts/corpus/fight-coverage.py`](../../../scripts/corpus/fight-coverage.py) 报出。
 
 ## Determinism invariants
 

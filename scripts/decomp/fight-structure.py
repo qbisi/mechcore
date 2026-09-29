@@ -5,7 +5,7 @@
 object model and derived-value layer. Every list and table in it comes from
 here, so a claim about the build's shape can be rerun rather than believed.
 
-    python3 scripts/fight-structure.py [--index work/unity-index/<build>/index.sqlite]
+    python3 scripts/decomp/fight-structure.py [--index work/unity-index/<build>/index.sqlite]
 
 The index holds types, methods and call edges and **no method bodies**, so this
 reports membership and call edges only: which module exists, what a property
@@ -22,13 +22,13 @@ import sqlite3
 import sys
 import textwrap
 
-REPOSITORY = pathlib.Path(__file__).resolve().parent.parent
+REPOSITORY = pathlib.Path(__file__).resolve().parents[2]
 NAMESPACE = "GameRiver.Fight"
 NOISE = ("0x", "il2cpp", "0")
 
 
 def default_index() -> pathlib.Path | None:
-    """The newest build's index under work/decomp, where scripts/decomp.py puts it."""
+    """The newest build's index under work/decomp, where scripts/decomp/decomp.py puts it."""
     for root in ("decomp", "unity-index"):
         candidates = sorted((REPOSITORY / "work" / root).glob("*/index.sqlite"))
         if candidates:
@@ -70,7 +70,7 @@ def main() -> int:
     index = pathlib.Path(arguments.index) if arguments.index else default_index()
     if index is None or not index.exists():
         print(
-            "no decompilation index under work/decomp; run scripts/decomp.py sync",
+            "no decompilation index under work/decomp; run scripts/decomp/decomp.py sync",
             file=sys.stderr,
         )
         return 2

@@ -6,7 +6,7 @@ every spec follows the convention in docs/README.md, and the name tables of
 docs/rules/ are the ones config/localization.yaml gives. Nothing here judges
 whether a sentence is true; that still needs a reader.
 
-Run from the repository root: python3 scripts/check-docs.py
+Run from the repository root: python3 scripts/check/check-docs.py
 """
 
 import re
@@ -14,7 +14,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[1]
+REPO = Path(__file__).resolve().parents[2]
 
 # Kinds from docs/README.md. A spec must appear in exactly one set, so adding a
 # spec without classifying it fails rather than being silently unchecked.
@@ -162,7 +162,7 @@ def check_spec_classification(paths, fail):
     present = {str(p) for p in paths
                if str(p).startswith("docs/spec/") and not str(p).endswith(".zh.md")}
     for path in sorted(present - classified):
-        fail(f"{path}: not classified in scripts/check-docs.py; "
+        fail(f"{path}: not classified in scripts/check/check-docs.py; "
              f"add it to a kind and to docs/README.md")
     for path in sorted(classified - present):
         fail(f"{path}: classified but missing from the tree")
@@ -189,7 +189,7 @@ def check_spec_structure(fail):
         names = sections(Path(path))
         if names[:1] == ["Scope"] and names[-1:] == ["Unresolved"]:
             fail(f"{path}: listed as pending but already conforms; "
-                 f"remove it from PENDING in scripts/check-docs.py")
+                 f"remove it from PENDING in scripts/check/check-docs.py")
 
 
 # What a rules document may not cite, by docs/README.md's "Evidence a rule may
@@ -216,7 +216,7 @@ def check_rules_evidence(fail):
 EVIDENCE_PARTS = ("Recorded", "Replayed", "Read", "Not established")
 # What replays the corpus: the simulator over its match documents, and the game
 # over its rounds.
-REPLAY_SCRIPTS = ("verify-matches.py", "match-replays.py")
+REPLAY_SCRIPTS = ("corpus/verify-matches.py", "corpus/match-replays.py")
 ANCHOR = re.compile(r"`[A-Z][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_]*`")
 TESTS_PATH = re.compile(r"`(tests/[^`]+)`")
 
@@ -252,8 +252,8 @@ def check_rules_evidence_sections(fail):
             continue
         for item in parts.get("Replayed", []):
             if not any(f"`scripts/{script}`" in item for script in REPLAY_SCRIPTS):
-                fail(f"{name}: a replayed claim cites scripts/verify-matches.py or "
-                     f"scripts/match-replays.py: {item[:80]}")
+                fail(f"{name}: a replayed claim cites scripts/corpus/verify-matches.py or "
+                     f"scripts/corpus/match-replays.py: {item[:80]}")
         for item in parts.get("Recorded", []):
             cited = TESTS_PATH.findall(item)
             if not cited:
@@ -297,11 +297,11 @@ def check_name_tables(fail):
     """The name tables of docs/rules/ are what config/localization.yaml gives."""
     import importlib.util
 
-    spec = importlib.util.spec_from_file_location("name_tables", REPO / "scripts" / "name-tables.py")
+    spec = importlib.util.spec_from_file_location("name_tables", REPO / "scripts" / "extract" / "name-tables.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     for path in module.stale():
-        fail(f"{path.relative_to(REPO)}: a name table is stale; run scripts/name-tables.py")
+        fail(f"{path.relative_to(REPO)}: a name table is stale; run scripts/extract/name-tables.py")
 
 
 def main():

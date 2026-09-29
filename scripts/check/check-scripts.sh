@@ -9,10 +9,10 @@
 # parsed: none that is tracked needs no game, and a machine without the game
 # cannot run the others; `run --check` is what says which it is.
 #
-#     scripts/check-scripts.sh                 against target/release/mechcore
-#     MECHCORE=target/debug/mechcore scripts/check-scripts.sh
+#     scripts/check/check-scripts.sh                 against target/release/mechcore
+#     MECHCORE=target/debug/mechcore scripts/check/check-scripts.sh
 set -eu
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 bin=${MECHCORE:-target/release/mechcore}
 git ls-files 'tests/*/fights/*.yaml' | "$bin" verify >/dev/null
 for script in $(git ls-files '*.mcscript'); do

@@ -6,13 +6,13 @@ description: Decompile the installed Mechabellum build into work/decomp/<build>,
 # Decompile a build
 
 Only a session on the machine that has the game installed can make a new
-build. Every other session fetches one with `scripts/decomp.py sync`.
+build. Every other session fetches one with `scripts/decomp/decomp.py sync`.
 
 ## Make and publish
 
 ```bash
-python3 scripts/decompile.py
-python3 scripts/decomp.py publish <build>
+python3 scripts/decomp/decompile.py
+python3 scripts/decomp/decomp.py publish <build>
 ```
 
 - `decompile.py` reads the build number and Unity version from the game's
@@ -39,8 +39,8 @@ whole `.app`). They keep two builds' dumps comparable line by line.
 ## See what changed
 
 ```bash
-python3 scripts/decomp-diff.py <old-build> <new-build>            # declarations, GRFight GRCore GRUtility
-python3 scripts/decomp-diff.py <old-build> <new-build> --config   # config tables, row by row
+python3 scripts/decomp/decomp-diff.py <old-build> <new-build>            # declarations, GRFight GRCore GRUtility
+python3 scripts/decomp/decomp-diff.py <old-build> <new-build> --config   # config tables, row by row
 ```
 
 Rows whose `limitedScene` is only 8 and 9 belong to Interstellar Expedition

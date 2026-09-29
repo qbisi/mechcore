@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Hold every rules document's anchors to the game version it describes.
 
-    python3 scripts/rules-anchors.py                 every anchor resolves in this version's dump
-    python3 scripts/rules-anchors.py --since OLD     which read claims a move from OLD may have changed
+    python3 scripts/decomp/rules-anchors.py                 every anchor resolves in this version's dump
+    python3 scripts/decomp/rules-anchors.py --since OLD     which read claims a move from OLD may have changed
 
 A rules document ends in `## Evidence`, and each item under its `### Read`
 names the build members the claim was read from, as `Class.member` in
@@ -18,7 +18,7 @@ declaration differs, or a
 member that is gone. Each claim resting on one is listed for re-reading. A
 claim whose anchors all stand still is left alone: the build does what it did.
 
-`scripts/decomp.py sync` fetches a version's dump, and `scripts/decompile.py`
+`scripts/decomp/decomp.py sync` fetches a version's dump, and `scripts/decomp/decompile.py`
 makes one.
 """
 
@@ -28,9 +28,10 @@ import pathlib
 import re
 import sys
 
-import build_data
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+import build_data  # noqa: E402
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
+ROOT = pathlib.Path(__file__).resolve().parents[2]
 RULES = ROOT / "docs" / "rules"
 ANCHOR = re.compile(r"`([A-Z][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)`")
 # What moves between two builds without the logic moving: addresses, jump
@@ -72,7 +73,7 @@ class Dump:
     def __init__(self, version):
         base = ROOT / "work" / "decomp" / version / "cpp2il"
         if not (base / "DiffableCs").is_dir():
-            sys.exit(f"rules-anchors: no dump of {version}; run scripts/decomp.py sync --build {version}")
+            sys.exit(f"rules-anchors: no dump of {version}; run scripts/decomp/decomp.py sync --build {version}")
         self.stubs = collections.defaultdict(list)
         for stub in (base / "DiffableCs").rglob("*.cs"):
             self.stubs[stub.stem.split("_NestedType_")[0]].append(stub)

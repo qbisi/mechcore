@@ -13,9 +13,9 @@ other mechanism in its own list (buff, lifesteal, shield, production line and
 the rest). What taking one costs, and the two amounts an equipment can change
 rather than a stat (`roundSupply`, `upgradeSupplyChangeValue`), are
 [`config/reinforce_items.yaml`](../../config/reinforce_items.yaml), which
-`scripts/extract_prices.py` writes; what an ordinary one writes onto its unit
+`scripts/extract/extract_prices.py` writes; what an ordinary one writes onto its unit
 is [`config/equipment_effects.yaml`](../../config/equipment_effects.yaml),
-which `scripts/extract-equipment-effects.py` writes. The card system that deals
+which `scripts/extract/extract-equipment-effects.py` writes. The card system that deals
 one is [reinforce_items.md](reinforce_items.md).
 
 ## Wearing one

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Extract the prices a supply ledger needs into `config/`.
 
-    python3 scripts/extract_prices.py [--build BUILD]
+    python3 scripts/extract/extract_prices.py [--build BUILD]
 
 Everything is read through `scripts/build_data.py`, the build's typed export:
 
@@ -25,7 +25,8 @@ import pathlib
 import re
 import sys
 
-import build_data
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+import build_data  # noqa: E402
 
 CONTRAPTION_TYPES = {10001: "shield", 20001: "missile", 30001: "interceptor"}
 # `limitedScene` lists the modes an item can be offered in, and every card a
@@ -40,7 +41,7 @@ OPENING_SCOPE = 2
 # The map `docs/spec/document/layout.md` treats as the 1v1 reference, whose research centre
 # offers what every versus map offers.
 STANDARD_MAP = 1001
-ROOT = pathlib.Path(__file__).resolve().parents[1]
+ROOT = pathlib.Path(__file__).resolve().parents[2]
 CATALOG = ROOT / "crates/document/src/catalog.rs"
 UNIT_TECHS = ROOT / "config/unit_techs.yaml"
 REINFORCE = ROOT / "config/reinforce_items.yaml"

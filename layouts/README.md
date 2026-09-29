@@ -8,7 +8,7 @@ reason it exists belongs with it.
 These are the layouts built by hand that no script uses, and one captured live.
 One a script reads lives with it, in its topic directory under
 [`../tests/`](../tests/README.md); the replays a layout can be projected from
-are in the corpus [`../replay/README.md`](../replay/README.md) points at.
+are in the corpus [`../scripts/corpus/README.md`](../scripts/corpus/README.md) points at.
 
 `marksman-vs-arclight.yaml` is the layout of the pinned fight
 [`../tests/regression/fights/marksman-vs-arclight.yaml`](../tests/regression/fights/marksman-vs-arclight.yaml),

@@ -1,7 +1,7 @@
 //! What an officer writes onto a unit, and onto which units.
 //!
 //! `config/officer_effects.yaml` is the build's own table, extracted by
-//! `scripts/extract-officer-effects.py`, and `docs/rules/officer_effects.md`
+//! `scripts/extract/extract-officer-effects.py`, and `docs/rules/officer_effects.md`
 //! states what each field means and how it is encoded. This turns a row of it
 //! into the corrections [`crate::data`] resolves, for the units the row
 //! reaches.

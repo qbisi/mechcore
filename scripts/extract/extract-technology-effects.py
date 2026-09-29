@@ -25,16 +25,17 @@ Every number the table states has to be in the technology's own English
 description, as the build localizes it with its placeholders filled; and a
 list that grows with rank has to be its first entry times the rank.
 
-    python3 scripts/extract-technology-effects.py [--build BUILD]
+    python3 scripts/extract/extract-technology-effects.py [--build BUILD]
 """
 
 import pathlib
 import re
 import sys
 
-import build_data
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+import build_data  # noqa: E402
 
-REPOSITORY = pathlib.Path(__file__).resolve().parent.parent
+REPOSITORY = pathlib.Path(__file__).resolve().parents[2]
 OUTPUT = REPOSITORY / "config/technology_effects.yaml"
 UNIT_TECHS = REPOSITORY / "config/unit_techs.yaml"
 ONE = 1 << 32

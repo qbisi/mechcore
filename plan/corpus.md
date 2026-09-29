@@ -4,13 +4,13 @@
 
 游戏能不建场景地打一份回放的任意回合（`record_replay_round`），一份 layout 也能写成回放来打
 （`convert <layout.yaml> --to grbr <replay.grbr>`，[layout-replay.md](../docs/spec/document/layout-replay.md)）。
-`scripts/match-replays.py` 把这两件事接到语料上：match 的每一回合写成回放，由游戏无头打完，
+`scripts/corpus/match-replays.py` 把这两件事接到语料上：match 的每一回合写成回放，由游戏无头打完，
 同一回合的真实回放与由 match 写出的回放各打一遍，两份录像应当相等；不相等的地方要么是投影丢了
 战斗读的状态，要么是写入器的错。
 
 ## 栈
 
-空：`scripts/match-replays.py` 逐回合无头打完语料，把每一个由战斗决定的叶子对照 match 下一回合
+空：`scripts/corpus/match-replays.py` 逐回合无头打完语料，把每一个由战斗决定的叶子对照 match 下一回合
 记录的状态。
 
 ## 停车场

@@ -6,10 +6,10 @@ so anything else takes the machine from the collector: a client of a higher
 level ends the watch in progress at its next poll, the game returns to the
 main menu, and the collector stops, leaving that game to its claimant. The
 game keeps each match it admitted at round one in its own replay directory,
-where ``scripts/replay.py publish`` finds it.
+where ``scripts/corpus/replay.py publish`` finds it.
 
-    scripts/collect-replays.py                       until 10000 matches, or one fails
-    scripts/collect-replays.py --count 20 > collected.jsonl
+    scripts/corpus/collect-replays.py                       until 10000 matches, or one fails
+    scripts/corpus/collect-replays.py --count 20 > collected.jsonl
 
 One JSON line per capture goes to standard output, the recording's result, so
 the per-file path, publication mode and scene metadata can travel with the
@@ -27,7 +27,7 @@ import subprocess
 import sys
 import tempfile
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def parse_arguments() -> argparse.Namespace:

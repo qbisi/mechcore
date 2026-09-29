@@ -6,7 +6,7 @@ report holds the opening and reinforcement checks and the transition coverage
 that ``docs/spec/document/match.md`` defines: every leaf of each next opening
 is equal, unequal, unimplemented or decided by the fight. This script adds the
 reports up by field group and lists every unequal leaf.
-The documents are the ones `scripts/export-replay-corpus.py` converts from the
+The documents are the ones `scripts/corpus/export-replay-corpus.py` converts from the
 corpus's replays of this checkout's version.
 
 The exit status is 0 only when every match verifies, which needs no unequal
@@ -16,10 +16,10 @@ Run from anywhere inside the checkout, after a release build and a corpus
 fetch:
 
     cargo build --release -p mechcore
-    python3 scripts/replay.py sync
-    python3 scripts/export-replay-corpus.py
-    python3 scripts/verify-matches.py
-    python3 scripts/verify-matches.py --json > coverage.json
+    python3 scripts/corpus/replay.py sync
+    python3 scripts/corpus/export-replay-corpus.py
+    python3 scripts/corpus/verify-matches.py
+    python3 scripts/corpus/verify-matches.py --json > coverage.json
 """
 
 from __future__ import annotations
@@ -32,7 +32,8 @@ import sys
 from typing import Any
 import unicodedata
 
-import build_data
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import build_data  # noqa: E402
 
 
 CLASSES = ("equal", "unequal", "unimplemented", "fight")
@@ -47,7 +48,7 @@ def parse_arguments(root: Path) -> argparse.Namespace:
         "--match-dir",
         type=Path,
         help="the match documents (default: work/match/<version>, as "
-        "scripts/export-replay-corpus.py writes them)",
+        "scripts/corpus/export-replay-corpus.py writes them)",
     )
     parser.add_argument(
         "--json",
@@ -180,7 +181,7 @@ def print_summary(summary: dict[str, Any], limit: int) -> None:
 
 
 def main() -> int:
-    root = Path(__file__).resolve().parents[1]
+    root = Path(__file__).resolve().parents[2]
     args = parse_arguments(root)
     executable = args.mechcore.resolve()
     if not executable.is_file():
@@ -193,7 +194,7 @@ def main() -> int:
     match_dir = args.match_dir or root / "work" / "match" / build_data.build()
     matches = sorted(match_dir.resolve().glob("*.yaml"))
     if not matches:
-        print(f"no match YAML in {match_dir}; run scripts/export-replay-corpus.py", file=sys.stderr)
+        print(f"no match YAML in {match_dir}; run scripts/corpus/export-replay-corpus.py", file=sys.stderr)
         return 2
 
     summary = summarize(matches, verify(executable, matches))

@@ -9,8 +9,8 @@ the construction row carries the damage, the attack angle, the rotate speed and
 the radius, and its `skills` section carries the `ProjectileSkillData` row each
 turret's `skill_id` names, in the shape a unit's `attack` has: range, interval
 and its random part, magazine and reload, bullet speed, splash and targets.
-`scripts/extract-constructions.py` writes both from the build's typed export,
-the skill rows through `scripts/extract-skills.py`. For the Rapid-Fire Turret
+`scripts/extract/extract-constructions.py` writes both from the build's typed export,
+the skill rows through `scripts/extract/extract-skills.py`. For the Rapid-Fire Turret
 and the Anti-Armor Turret, the two a layout can place, every prepare, attack
 point, backswing, cooling and initial cooldown is zero, and both target ground
 only.

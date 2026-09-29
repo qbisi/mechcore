@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Extract what an officer does to a fight into `config/officer_effects.yaml`.
 
-    python3 scripts/extract-officer-effects.py [--build BUILD]
+    python3 scripts/extract/extract-officer-effects.py [--build BUILD]
 
 `config/officers.yaml` carries what an officer does to a ledger: a discount, an
 income, a squad it hands out. This carries the other half, the corrections it
@@ -21,9 +21,10 @@ import pathlib
 import re
 import sys
 
-import build_data
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+import build_data  # noqa: E402
 
-REPOSITORY = pathlib.Path(__file__).resolve().parent.parent
+REPOSITORY = pathlib.Path(__file__).resolve().parents[2]
 OUTPUT = REPOSITORY / "config/officer_effects.yaml"
 UNIT_TECHS = REPOSITORY / "config/unit_techs.yaml"
 

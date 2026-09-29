@@ -3,7 +3,7 @@
 How a commander skill's cooldown counts, per skill and per round.
 
 [`config/commander_skills.yaml`](../../config/commander_skills.yaml) holds each
-skill's two cooldowns in rounds, which `scripts/extract_prices.py` reads out of
+skill's two cooldowns in rounds, which `scripts/extract/extract_prices.py` reads out of
 every `CommanderSkillGroupData` row: `initial_cooldown` is `initialCoolDown`
 and `cooldown` is `releaseInterval`.
 
@@ -37,10 +37,10 @@ stated for it.
 - A spent skill shows its `cooldown` as the next round opens, an unspent slot
   drops by one, and a slot joins at its `initial_cooldown`, Nuke's and Ion
   Blast's 1 among them: every panel of this version's corpus:
-  `scripts/verify-matches.py`.
+  `scripts/corpus/verify-matches.py`.
 - A snapshot marks active exactly the slots the previous round's actions spent;
   conversion refuses a replay otherwise, so every match
-  `scripts/verify-matches.py` reads has them.
+  `scripts/corpus/verify-matches.py` reads has them.
 
 ### Read
 

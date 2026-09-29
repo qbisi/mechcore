@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Exercise the real build.rs with a tiny cdylib; no game or native capture.
 
-Run from a nightly Cargo environment: python3 scripts/check-adapter-packaging.py
+Run from a nightly Cargo environment: python3 scripts/check/check-adapter-packaging.py
 """
 
 import json
@@ -12,7 +12,7 @@ import subprocess
 import tempfile
 
 
-REPO = Path(__file__).resolve().parents[1]
+REPO = Path(__file__).resolve().parents[2]
 
 
 def main():
@@ -29,6 +29,9 @@ name = "packaging-check"
 version = "0.0.0"
 edition = "2024"
 [workspace]
+[features]
+default = ["adapter"]
+adapter = []
 [build-dependencies]
 mechcore-adapter = { path = "adapter", artifact = "cdylib", target = "target" }
 tempfile = "3"

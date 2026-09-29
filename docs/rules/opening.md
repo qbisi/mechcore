@@ -72,7 +72,7 @@ entries gives every seat its first; the file states each map's
 rows list no default shop unit and no commander skill, so a
 side holds neither before its opening.
 
-`scripts/extract_opening.py` reads the build's typed export: each map's
+`scripts/extract/extract_opening.py` reads the build's typed export: each map's
 `matchSettings` row names its `MapData`, whose `layoutName` names the
 `MapLayout` whose territories give the seats' main regions. The extractor
 validates the supported flags and facings before emitting the initialization
@@ -90,7 +90,7 @@ The standard pools contain enough teams and specialists that the cap is
 
 `BattleOpeningController.PrepareData` reads the selected map's `MatchSetting`
 through `Config.GetMatchSetting`. It passes `advanceSameUnitMaximum` as
-`ReinforcementSystem.RandAdvance`'s `diffUnitLimit`; `scripts/extract_opening.py`
+`ReinforcementSystem.RandAdvance`'s `diffUnitLimit`; `scripts/extract/extract_opening.py`
 checks that every supported map carries the same value. Despite its name, this argument is used as a lower bound on
 unit diversity, not an upper bound on a repeated unit's squad count.
 
@@ -114,7 +114,7 @@ the alternatives offered, not which alternative either player chooses.
 
 - The flow reproduces every recorded opening: the four offers each side was
   dealt and the construction layouts, in every replay of this version's corpus:
-  `scripts/verify-matches.py`.
+  `scripts/corpus/verify-matches.py`.
 
 ### Read
 

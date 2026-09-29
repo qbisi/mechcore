@@ -7,7 +7,7 @@ does to a ledger, a discount, an income, a squad it hands out, is
 [`config/officers.yaml`](../../config/officers.yaml)'s.
 
 [`config/officer_effects.yaml`](../../config/officer_effects.yaml) holds every
-officer that carries a correction; `scripts/extract-officer-effects.py` writes
+officer that carries a correction; `scripts/extract/extract-officer-effects.py` writes
 it from `ConfigDataContainer.officerDatas`, leaving out officers limited to
 Interstellar Expedition.
 

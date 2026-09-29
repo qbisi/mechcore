@@ -13,7 +13,7 @@ life and chooses the buff the tower's loss writes. Both are
 `ConfigDataContainer.towerStrengthenDatas`: each row adds its `life` on top of
 the levels below it, and names the `buffDatas` row a loss writes. Level 0 is
 the tower's own life and buff, which no strengthen row names.
-[`scripts/extract-towers.py`](../../scripts/extract-towers.py) writes them to
+[`scripts/extract/extract-towers.py`](../../scripts/extract/extract-towers.py) writes them to
 [`config/towers.yaml`](../../config/towers.yaml).
 
 `towerDefaultDatas` gives a tower's own `life`, `protectionRange` and

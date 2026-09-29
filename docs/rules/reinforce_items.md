@@ -25,7 +25,7 @@ what the thing is, but not which of the three fields it belongs in.
 A unit card is the exception. Its ID names the card and not the units, so its
 table states which unit it hands out, how many squads of it, the level they
 arrive at, and the first round it can be offered. No card mixes two kinds of
-unit; `scripts/extract_prices.py` refuses one that does.
+unit; `scripts/extract/extract_prices.py` refuses one that does.
 
 ## The opening
 
@@ -99,7 +99,7 @@ that do, and the shapes are these:
 
 ## Where the tables come from
 
-`scripts/extract_prices.py` writes all of them from one build's typed export:
+`scripts/extract/extract_prices.py` writes all of them from one build's typed export:
 the officers, unit cards and openings of `ConfigDataContainer`, and the
 commander skill and equipment cards of `CommanderSkillGroupData` and
 `EquipmentGroupData` in `level0`. A card's appear condition can depend on both
@@ -110,7 +110,7 @@ sides' investment, which [reinforcements.md](reinforcements.md) states.
 ### Replayed
 
 - A card taken puts its own ID into the side's equipment, panel or officers:
-  `scripts/verify-matches.py`.
+  `scripts/corpus/verify-matches.py`.
 
 ### Read
 

@@ -1,7 +1,7 @@
 schema: mechcore.equipment_effects
 
 # What an ordinary EquipmentData row writes onto the unit that wears it,
-# read out of EquipmentGroupData by scripts/extract-equipment-effects.py.
+# read out of EquipmentGroupData by scripts/extract/extract-equipment-effects.py.
 # docs/rules/equipment_effects.md states what each field means. A field
 # is written only when it is set; what an equipment costs is
 # config/reinforce_items.yaml's, and its other pool fields are not here.

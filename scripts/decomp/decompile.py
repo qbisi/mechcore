@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Decompile the installed game into work/decomp/<build>, whatever its build.
 
-    scripts/decompile.py [--game APP] [--force STEP[,STEP...]]
+    scripts/decomp/decompile.py [--game APP] [--force STEP[,STEP...]]
 
-`scripts/decomp.py sync` fetches a build someone already decompiled; this makes
+`scripts/decomp/decomp.py sync` fetches a build someone already decompiled; this makes
 one. It reads the build number from the game itself, fetches any tool it lacks
 into `work/tools/`, and writes the same shape every reader here expects:
 
@@ -59,7 +59,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
+ROOT = pathlib.Path(__file__).resolve().parents[2]
 TOOLS = ROOT / "work" / "tools"
 DECOMP = ROOT / "work" / "decomp"
 DEFAULT_GAME = pathlib.Path.home() / "Library/Application Support/Steam/steamapps/common/Mechabellum/Mechabellum.app"

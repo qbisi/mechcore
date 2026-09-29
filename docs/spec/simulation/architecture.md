@@ -19,10 +19,10 @@ at a time. Where the build's structure and a convenient structure disagree, the
 build wins and the reason is written down.
 
 **What the evidence covers.** The structure here is read from the local
-decompilation index, the `index.sqlite` that `scripts/decomp.py sync` puts
+decompilation index, the `index.sqlite` that `scripts/decomp/decomp.py sync` puts
 under `work/decomp/<version>/`: the types, methods and call edges Cpp2IL
 produces.
-[`scripts/fight-structure.py`](../../../scripts/fight-structure.py) regenerates
+[`scripts/decomp/fight-structure.py`](../../../scripts/decomp/fight-structure.py) regenerates
 every list and table below from it. The index carries **no method bodies**, so
 what it establishes is membership and call edges — which type exists, what it
 owns, what it calls. It does not establish arithmetic, branch conditions, or
@@ -501,7 +501,7 @@ filling modules rather than by editing the kernel:
 
 A module that is not implemented is present, claims its fields, and refuses
 them. The count of tracked rounds a layout compiles for is the progress bar, and
-[`scripts/fight-coverage.py`](../../../scripts/fight-coverage.py) reports it.
+[`scripts/corpus/fight-coverage.py`](../../../scripts/corpus/fight-coverage.py) reports it.
 
 ## Determinism invariants
 

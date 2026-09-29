@@ -165,7 +165,7 @@ pays the selected schedule's `giveUpSupply` at the round's place in
 ## Inputs
 
 [config/reinforcements.yaml](../../config/reinforcements.yaml) is written by
-`scripts/extract_reinforcements.py` from the build's typed export: the officer,
+`scripts/extract/extract_reinforcements.py` from the build's typed export: the officer,
 unit card, round pool, probability and card rows of `ConfigDataContainer`, the
 commander skill and equipment cards of `CommanderSkillGroupData` and
 `EquipmentGroupData`, and `Config.reinforceItemCount`. Every value is an
@@ -182,14 +182,14 @@ levels differ.
 
 - Every ordinary and unit round of this version's corpus is dealt as recorded,
   offer by offer and in order, from the stream the opening leaves:
-  `scripts/verify-matches.py`.
+  `scripts/corpus/verify-matches.py`.
 - Every officer with the investment share is dealt, or replaced from its group,
-  as the corpus recorded: `scripts/verify-matches.py`.
+  as the corpus recorded: `scripts/corpus/verify-matches.py`.
 - Every round opens on the pool log and the exclusions its match's deal
   leaves, but for the order of a round's two choices; conversion refuses a
-  replay otherwise, so every match `scripts/verify-matches.py` reads has them.
+  replay otherwise, so every match `scripts/corpus/verify-matches.py` reads has them.
 - A decline in an ordinary round and in each of the first three unit rounds
-  pays what the next round's supply records: `scripts/verify-matches.py`.
+  pays what the next round's supply records: `scripts/corpus/verify-matches.py`.
 
 ### Read
 

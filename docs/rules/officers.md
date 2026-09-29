@@ -30,11 +30,11 @@ Where its effects live:
 - [`config/officers.yaml`](../../config/officers.yaml): what it does to a
   ledger, a discount and the units it applies to, an income, the bounty for a
   giant, and the skills, equipment and opening squad it hands out.
-  `scripts/extract_prices.py` writes it.
+  `scripts/extract/extract_prices.py` writes it.
 - [`config/officer_effects.yaml`](../../config/officer_effects.yaml): the
   corrections it writes onto units in a fight, which
   [officer_effects.md](officer_effects.md) explains.
-  `scripts/extract-officer-effects.py` writes it.
+  `scripts/extract/extract-officer-effects.py` writes it.
 - [`config/reinforcements.yaml`](../../config/reinforcements.yaml): when the
   pool may deal it, its level, group and appear condition, which
   [reinforcements.md](reinforcements.md) explains.
@@ -190,14 +190,14 @@ raises every formation's equipment slots from one to two
 
 - A Mass-produced equipment officer's three items are in the inventory from the
   decision that took it, and can be fitted in the same round:
-  `scripts/verify-matches.py`.
+  `scripts/corpus/verify-matches.py`.
 - Secondary Equipment Expert hands out one item a round, the one its side's
-  stream draws: `scripts/verify-matches.py`.
+  stream draws: `scripts/corpus/verify-matches.py`.
 - A side's own stream is where its seed puts it, advanced once for every
   hand-out an earlier round drew, on every round of every replay; conversion
-  refuses a replay where it is not: `scripts/verify-matches.py`.
+  refuses a replay where it is not: `scripts/corpus/verify-matches.py`.
 - An officer card taken puts its own ID into the side's officers:
-  `scripts/verify-matches.py`.
+  `scripts/corpus/verify-matches.py`.
 
 ### Read
 

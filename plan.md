@@ -11,7 +11,7 @@ Plan 一节。
 
 ## 离目标多远
 
-`scripts/fight-coverage.py` 把语料的每一回合投影成它开打时的 layout 交给 `convert --to mcfr`，模拟器
+`scripts/corpus/fight-coverage.py` 把语料的每一回合投影成它开打时的 layout 交给 `convert --to mcfr`，模拟器
 一次报出这份 layout 被拒的全部理由。它的输出就是离真实对局还有多远；挡得最多的理由指向该先
 推哪条 lane。一轮研究要花多少（录一场、读一个内部过程、对照一次）是第二个指标：它决定修工具
 链是不是比修模拟器更划算。

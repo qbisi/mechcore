@@ -97,7 +97,7 @@ unit never does: `MotionController.CalculateMoveSpeed` returns the full speed
 first when `FightMech.isFreeMove` is set. The table's own column is false for
 every unit; `MechData.PreProcess` sets the flag for an id of at most 54 whose
 bit is set in the literal `0x40000000040010`: the Melting Point (4), the
-Wraith (18) and the unit whose id is 54. `scripts/extract-units.py` writes it
+Wraith (18) and the unit whose id is 54. `scripts/extract/extract-units.py` writes it
 as `free_move`. A Wraith drifting 100° off its facing in its M3 with seed
 1787720817 publishes its full 10 m/s at tick 172.
 

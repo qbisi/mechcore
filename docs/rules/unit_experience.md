@@ -11,7 +11,7 @@ is the full bar of the unit's level from 1 through 9.
 
 The machine-readable table is
 [`config/unit_experience.yaml`](../../config/unit_experience.yaml).
-`scripts/extract_prices.py` copies it verbatim out of the build's
+`scripts/extract/extract_prices.py` copies it verbatim out of the build's
 `mechExpDatas`, whose `upgradeLv2` through `upgradeLv9` are its eight entries
 per unit, and checks the formula below on every row it writes.
 
@@ -140,7 +140,7 @@ what the formation carries into the next round.
 ### Replayed
 
 - A formation ends the fight on its experience cut down to a whole number, and
-  opens the next round holding it: `scripts/match-replays.py` with `--recordings`
+  opens the next round holding it: `scripts/corpus/match-replays.py` with `--recordings`
   converts every recorded round of the corpus to its fight document and
   compares each unit's `exp` with the next state in the match document. The
   corpus includes fights that ran out of time, whose recordings end before the
@@ -171,7 +171,7 @@ what the formation carries into the next round.
 - A fight's end cuts experience to a whole number: `BattleSystem.OnFightOver`,
   `MechTeam.PruneExp`.
 - Intensive Training refuses a full unit: `CS_AddExp.CheckAvaliable`.
-- Every row but Vulcan's follows the formula; `scripts/extract_prices.py`
+- Every row but Vulcan's follows the formula; `scripts/extract/extract_prices.py`
   checks it on every row it writes, which it did on this version's table:
   `MechExpData.upgradeLv2`.
 
@@ -183,7 +183,7 @@ what the formation carries into the next round.
 - **Intensive Training reaching exactly the table's value.** Every release of
   it in another version's corpus did, at levels 1 through 4. This version's
   corpus holds releases of it, but its replay leaves a unit's experience to the
-  fight and compares none: `scripts/verify-matches.py`. Levels 5 through 8
+  fight and compares none: `scripts/corpus/verify-matches.py`. Levels 5 through 8
   are unobserved.
 - **When a full bar becomes a level.** A fight stops a formation's gains at
   its bar; what turns a full bar into the next level after the fight is not

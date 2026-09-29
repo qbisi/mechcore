@@ -33,7 +33,7 @@ checked, and is never a fixture. A layout stays a layout file only while
 something reads it as a layout: a probe no fight pins, or a stage for
 `game.apply_layout`.
 
-CI verifies every fight: `scripts/check-scripts.sh` hands every
+CI verifies every fight: `scripts/check/check-scripts.sh` hands every
 `tests/*/fights/*.yaml` to `verify`, which fights each layout with its seed
 through the simulator and holds it to what the document states. Where the game
 runs, `mechcore verify --backend game` records the fights again and holds each
@@ -62,7 +62,7 @@ its directory; nothing else lists it.
 
 Two kinds of fixture live outside `tests/` because no topic owns them. The
 native replays, and everything converted from them, are in the corpus
-[`../replay/`](../replay/README.md) pins. Layouts built by hand that no script
+[`../scripts/corpus/`](../scripts/corpus/README.md) describes. Layouts built by hand that no script
 uses, and the one the crates' tests read as a plain layout, are in
 [`../layouts/`](../layouts/README.md).
 

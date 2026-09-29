@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Write the name tables of docs/rules/ from config/localization.yaml.
 
-    python3 scripts/name-tables.py            rewrite every table
-    python3 scripts/name-tables.py --check    exit 1 when one is stale
+    python3 scripts/extract/name-tables.py            rewrite every table
+    python3 scripts/extract/name-tables.py --check    exit 1 when one is stale
 
 A rules document that names units, officers, commander skills, equipment or
 technologies carries a table of their official English and Simplified Chinese
@@ -17,14 +17,14 @@ The kinds are `units`, `officers`, `commander_skills`, `equipment` and
 `technologies`. Each row gives the ID, the Chinese and English names, and the
 name a document writes, from config/names.yaml (a unit's is the catalog's,
 the snake case of its English name). Only the standard library is used, so
-scripts/check-docs.py can run it wherever it runs.
+scripts/check/check-docs.py can run it wherever it runs.
 """
 
 import re
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 RULES = ROOT / "docs" / "rules"
 BLOCK = re.compile(r"(<!-- names: (\w+) -->\n)(.*?)(<!-- /names -->)", re.S)
 KINDS = ("units", "officers", "commander_skills", "equipment", "technologies")
@@ -114,7 +114,7 @@ def main():
     changed = stale()
     if "--check" in sys.argv[1:]:
         for path in changed:
-            print(f"error: {path.relative_to(ROOT)}: a name table is stale; run scripts/name-tables.py")
+            print(f"error: {path.relative_to(ROOT)}: a name table is stale; run scripts/extract/name-tables.py")
         return 1 if changed else 0
     for path, text in changed.items():
         path.write_text(text)

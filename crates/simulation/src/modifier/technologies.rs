@@ -1,7 +1,7 @@
 //! What a technology writes onto the unit that researched it.
 //!
 //! `config/technology_effects.yaml` is the build's own table, extracted by
-//! `scripts/extract-technology-effects.py`, and
+//! `scripts/extract/extract-technology-effects.py`, and
 //! `docs/rules/technology_effects.md` states what each field means. The fields
 //! are [`super::effects`]'s, the same ones an officer writes, because
 //! `TechnologyData` and `OfficerData` answer the same interface.

@@ -64,7 +64,7 @@ interval.
   `FightMech.GetBaseDamage`.
 - The rating is the level row's: `AttributeUpgradeData.lifeRating`,
   `AttributeUpgradeData.damageRating`. That every row equals its level is the
-  table's, which `scripts/decomp-diff.py --config` compares between versions.
+  table's, which `scripts/decomp/decomp-diff.py --config` compares between versions.
 - Damage reaches the skill as the base times the skill's multiplier, and then
   the dynamic rates: `DamageProperty.RefreshBaseDamage`,
   `DamageProperty.CalculateBaseDamage`, `DamageProperty.CalculateDamage`.

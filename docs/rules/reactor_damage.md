@@ -6,7 +6,7 @@ takes its score off the other side's core.
 
 The machine-readable table is
 [`config/reactor_damage.yaml`](../../config/reactor_damage.yaml).
-`scripts/extract_prices.py` copies it verbatim out of the build: each unit's
+`scripts/extract/extract_prices.py` copies it verbatim out of the build: each unit's
 `score` per level from `mechExpDatas`, and the three rates below from the
 `Config` object of `level0`.
 
@@ -74,7 +74,7 @@ and taken out again before the score is compared, so it does not count either.
 
 - Each core falls, round by round, by exactly what the rule above answers from
   the round's recording, classified as `mechcore convert <recording> --to
-  fight` classifies it: `scripts/match-replays.py` records every round of
+  fight` classifies it: `scripts/corpus/match-replays.py` records every round of
   the corpus with the game and compares its answer with the fall between the
   round's state and the next in the match document, and `--recordings` repeats
   the comparison over recordings already made. The fights of the corpus

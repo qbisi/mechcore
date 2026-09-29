@@ -47,7 +47,7 @@ simulator does not give a unit.
 
 [`config/equipment_effects.yaml`](../../config/equipment_effects.yaml) holds
 the rows of `EquipmentGroupData.equipmentDatas` a standard match can deal,
-which [`extract-equipment-effects.py`](../../scripts/extract-equipment-effects.py)
+which [`extract-equipment-effects.py`](../../scripts/extract/extract-equipment-effects.py)
 reads from the build's typed export. A field is written only when it is set,
 and only the fields that say what a row does in a fight: its targeting, its
 skill selection, its lifetime and its corrections. What an item costs is
