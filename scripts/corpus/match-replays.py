@@ -428,7 +428,7 @@ def verdict(entry: dict) -> str:
 def main() -> int:
     root = Path(__file__).resolve().parents[2]
     arguments = parse_arguments(root)
-    version = arguments.version or build_data.build()
+    version = arguments.version or build_data.configured_build()
     matches = sorted((root / "work/match" / version).glob("*.yaml"))
     replays = root / "work/replay/replays" / version
     if arguments.only:

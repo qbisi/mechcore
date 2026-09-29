@@ -213,7 +213,7 @@ def main() -> int:
             file=sys.stderr,
         )
         return 2
-    match_dir = args.match_dir or root / "work" / "match" / build_data.build()
+    match_dir = args.match_dir or root / "work" / "match" / build_data.configured_build()
     matches = sorted(match_dir.resolve().glob("*.yaml"))
     if not matches:
         print(f"no match YAML in {match_dir}; run scripts/corpus/export-replay-corpus.py", file=sys.stderr)
