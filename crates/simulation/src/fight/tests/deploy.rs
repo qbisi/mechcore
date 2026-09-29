@@ -111,6 +111,7 @@ fn multi_formation_initial_state_and_target_search_entry_match_the_build() {
         } = initialize_buildings(&config.towers, &[], &BTreeMap::new()).unwrap();
         let map_crystals = map_crystals(config.maps.buildings(1021).unwrap());
         let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
+        let buildings_query_alive = standing_buildings(&buildings);
         Simulation {
             actors,
             team_random: BTreeMap::new(),
@@ -129,6 +130,7 @@ fn multi_formation_initial_state_and_target_search_entry_match_the_build() {
             tower_buff_events: BTreeMap::new(),
             fallen_towers: Vec::new(),
             building_buffs: BTreeMap::new(),
+            buildings_query_alive,
             dropped_buffs: BTreeMap::new(),
             construction_colliders: construction_colliders.clone(),
             map_crystals,

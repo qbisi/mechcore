@@ -144,6 +144,7 @@ fn normal_selector_split_query_remains_order_independent_for_a_unique_best() {
     } = initialize_buildings(&config.towers, &[], &BTreeMap::new()).unwrap();
     let map_crystals = map_crystals(config.maps.buildings(1021).unwrap());
     let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
+    let buildings_query_alive = standing_buildings(&buildings);
     let simulation = Simulation {
         actors,
         team_random: BTreeMap::new(),
@@ -162,6 +163,7 @@ fn normal_selector_split_query_remains_order_independent_for_a_unique_best() {
         tower_buff_events: BTreeMap::new(),
         fallen_towers: Vec::new(),
         building_buffs: BTreeMap::new(),
+        buildings_query_alive,
         dropped_buffs: BTreeMap::new(),
         construction_colliders: construction_colliders.clone(),
         map_crystals,

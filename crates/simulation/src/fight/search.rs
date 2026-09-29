@@ -488,6 +488,7 @@ impl Simulation {
             actor.target_query_alive = actor.alive();
             actor.skill.searched_this_tick = false;
         }
+        self.buildings_query_alive = super::standing_buildings(&self.buildings);
     }
 
     pub(in crate::fight) fn target_search_order(&self) -> BTreeMap<u32, Vec<FightActorRef>> {
