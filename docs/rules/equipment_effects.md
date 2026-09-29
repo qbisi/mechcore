@@ -54,6 +54,19 @@ skill selection, its lifetime and its corrections. What an item costs is
 [`config/reinforce_items.yaml`](../../config/reinforce_items.yaml)'s, and its
 names are [equipment.md](equipment.md)'s.
 
+## Across rounds
+
+An item a standard 1v1 deals stays on the formation wearing it for every
+round the formation survives, and writes the same corrections in each. Its
+`Equipment.durability` starts at -1. `Equipment.SetOwner` sets it from the
+row's `roundDuration` only when that is positive, and
+`UnitManager.OnEnterDeployment` counts it down through
+`Equipment.ReduceDurability` as each deployment opens. Nothing in a fight reads
+it. Every row with a `roundDuration`, all 1, is an experimental item
+limited to scene 1300, the reinforcement label that game rule `999903`
+(Experimental Equipment) swaps in; a standard 1v1 names no game rule, and a
+replay that does is refused when it is converted.
+
 ## What is refused
 
 A layout is refused by name, rather than fought with part of an item, when it
@@ -62,10 +75,8 @@ carries:
 - an equipment that is not a row of the table: the catalogue's other items,
   shields, repair kits and production lines among them, are not ordinary
   `EquipmentData`, and no mechanism here reads what they do;
-- an equipment in a round after the first, since what `Equipment.durability`
-  does across rounds has not been recorded;
 - a row that sets `importantUnit` (Dominion Core) or `roundDuration` (Rapid
-  Autoloader), whose effects have not been recorded.
+  Autoloader, rule `999903`'s), whose effects have not been recorded.
 
 ## Evidence
 
@@ -83,6 +94,11 @@ carries:
 - A `Ranged` row reaches the ranged units of a side and not its melee ones, as an
   officer's does: `tests/modifier/fights/`.
 
+### Replayed
+
+- A fitted item stays on its formation into every round the formation
+  survives, with durability -1 throughout: `scripts/corpus/verify-matches.py`.
+
 ### Read
 
 - An item writes through the writers an officer does:
@@ -90,6 +106,11 @@ carries:
   `SkillDataModifier.AddData`.
 - An item's target type is answered as an officer's is:
   `UnitUtility.IsEffectTarget`.
+- An item wears out only by a positive `roundDuration`, counted down as a
+  deployment opens: `Equipment.SetOwner`, `Equipment.ReduceDurability`,
+  `UnitManager.OnEnterDeployment`, `EquipmentData.roundDuration`.
+- Rule `999903` deals the items limited to scene 1300:
+  `GameRule.replaceReinforceLabel`, `ItemData.limitedScene`.
 
 ### Not established
 
@@ -97,5 +118,7 @@ carries:
   two officers do, is read from the writers, not recorded.
 - **An item below some level.** Only a technology overrides
   `IsLocked(CardLevel)`; what an item answers is not read.
+- **An item whose durability runs out.** How `OnEnterDeployment` takes it off
+  is not read; no standard item reaches it.
 - **Equipment on a construction or a tower**, what the other item classes do,
   and the reactor supply an item changes, which the ledger owns.

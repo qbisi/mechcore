@@ -42,11 +42,9 @@ WHERE = re.compile(r"^cannot simulate layout \S+: ")
 REGISTRY = re.compile(r"^side (?:blue|red) needs modules this build has not implemented: ")
 ASKED = re.compile(r"([a-z][a-z ]+) \(([A-Za-z]+)\)")
 
-# What a member refusal says about a side or a round is not what blocks it: the
-# same officer blocks a blue side and a red one, and equipment worn past round
-# one blocks every later round alike.
+# What a member refusal says about a side is not what blocks it: the same
+# officer blocks a blue side and a red one alike.
 SIDE = re.compile(r"^side (?:blue|red)(?:: | )")
-WORN = re.compile(r"is worn in round \d+")
 
 
 def blockers_of(reason: str) -> set[tuple[str, str]]:
@@ -60,7 +58,7 @@ def blockers_of(reason: str) -> set[tuple[str, str]]:
         if REGISTRY.match(clause):
             held |= set(ASKED.findall(REGISTRY.sub("", clause)))
         else:
-            member = WORN.sub("is worn in a later round", SIDE.sub("", clause))
+            member = SIDE.sub("", clause)
             held.add((member, member))
     return held
 
