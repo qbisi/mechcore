@@ -18,8 +18,9 @@ only.
 The fights are in `tests/turret/fights/`: `rapid-fire-head-on.yaml`,
 `rapid-fire-flank.yaml` and `anti-armor-head-on.yaml`, and
 `anti-armor-arclights.yaml`, which puts the Anti-Armor Turret through a reload
-in a fight no tower falls in, and `anti-armor-beside-officers.yaml`, the same
-fight with officers and a technology on the turret's side. The same fight
+in a fight no tower falls in, `anti-armor-beside-officers.yaml`, the same
+fight with officers and a technology on the turret's side, and
+`laser-fells-turret.yaml`, where Steel Balls' beams take the turret. The same fight
 recorded twice is one recording.
 
 ## A turret is a building that owns a unit's skill
@@ -158,6 +159,12 @@ unlike a wall block that stood in the way of another lock
 mid-swing when the turret falls go idle holding it, and one that was not
 mid-swing drops it and walks on.
 
+A beam is the same: the Steel Ball whose beam fells the turret it locked reads
+idle on that tick, as one whose beam kills a unit or fells a tower does. What
+decides it is that the fallen building was the lock, not what kind of building
+it is; a block the beam fells while it only stood in the way of the lock leaves
+the Steel Ball attacking until the next tick.
+
 ## Scope
 
 The fights are on the 1v1 board, round one, with the two turrets a layout can
@@ -189,6 +196,8 @@ content, as `tests/turret/fights/` replays them.
   source: `tests/turret/fights/`.
 - A unit whose lock was the fallen turret stays on it through its swing and
   then looks for the next target: `tests/turret/fights/`.
+- A Steel Ball whose beam fells the turret it locked reads idle on that tick:
+  `tests/turret/fights/laser-fells-turret.yaml`.
 - A turret fires with its row's damage and reach beside Advanced Offensive
   Tactics, Advanced Targeting System and a unit technology on its side:
   `tests/turret/fights/anti-armor-beside-officers.yaml`.

@@ -80,17 +80,16 @@ impl Simulation {
                     .ok_or_else(|| Error::new("a construction's laser is not supported"))?;
                 let target = pending.target;
                 let target_was_alive = self.fight_actor_is_alive(target);
+                let target_was_lock = self.skill(owner).lock_target == Some(target);
                 self.laser_effect(actor_id, target, events)?;
-                // A block the beam fells is left to the fallen-block rule on the
-                // next tick, as a blow's is: the Steel Ball of `wall-laser.yaml`
-                // that fells block 4 reads attacking on that tick, idle on the
-                // next. A tower is an actor of its own, `FightCrystal`, and dies
-                // as a unit does: the Steel Ball that fells a tower in the
-                // tower-loss fights reads idle on that tick.
-                if target_was_alive
-                    && !self.fight_actor_is_alive(target)
-                    && (matches!(target, FightActorRef::Unit(_)) || self.is_tower(target))
-                {
+                // A lock the beam kills stops the motion on that tick, whatever
+                // it is: the Steel Ball that fells a tower in the tower-loss
+                // fights, or the turret of `laser-fells-turret.yaml`, reads idle
+                // on that tick. A block that only stood in the way is left to
+                // the fallen-block rule on the next tick, as a blow's is: the
+                // Steel Ball of `wall-laser.yaml` that fells block 4 reads
+                // attacking on that tick, idle on the next.
+                if target_was_alive && !self.fight_actor_is_alive(target) && target_was_lock {
                     let actor = self
                         .actors
                         .get_mut(&actor_id)
