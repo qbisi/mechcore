@@ -22,14 +22,12 @@ impl Simulation {
     /// being the attack target the next time it is asked. Nothing changes in a
     /// fight that places no enemy construction.
     pub(in crate::fight) fn search_attack_target(&mut self, owner: FightActorRef) {
-        let found = match self.skill(owner).lock_target {
-            // A search that already chose a building is not redirected: the
-            // measurement is a wall taking the place of a unit.
-            Some(target @ FightActorRef::Unit(_)) => self
-                .wall_in_the_way(owner, target)
-                .map(|building| (building, target)),
-            _ => None,
-        };
+        // Whatever the lock is, a unit or a building: `SearchAttackTarget`
+        // asks `CheckWallConstruction` before it looks at the lock at all.
+        let found = self.skill(owner).lock_target.and_then(|target| {
+            self.wall_in_the_way(owner, target)
+                .map(|building| (building, target))
+        });
         self.skill_mut(owner).in_the_way = found;
         if !self.skill(owner).siblings().is_empty() {
             self.refresh_group_walls(owner.unit_id().expect("only a unit's skill is grouped"));
