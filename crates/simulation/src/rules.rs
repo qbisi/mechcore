@@ -880,6 +880,14 @@ impl AttackConfig {
         quantize_i64(pre_flight_height, SPACE_UNITS_PER_METER)
     }
 
+    /// Whether an interceptor may take this projectile out of the air.
+    pub(crate) fn projectile_interceptible(&self) -> bool {
+        let AttackPath::Projectile { interceptible, .. } = self.path else {
+            unreachable!("interception requires the projectile attack path")
+        };
+        interceptible
+    }
+
     pub(crate) fn projectile_life(&self) -> i64 {
         let AttackPath::Projectile { max_life, .. } = self.path else {
             unreachable!("projectile life requires the projectile attack path")

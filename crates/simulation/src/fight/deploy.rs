@@ -2,6 +2,8 @@ use super::*;
 
 /// Every building a fight starts with, and what a unit may do about each.
 pub(in crate::fight) struct InitialBuildings {
+    /// The interceptors, each side's in the order its layout releases them.
+    pub(in crate::fight) interceptors: Vec<Interceptor>,
     pub(in crate::fight) states: Vec<BuildingState>,
     /// The ones a unit looking for a target may not find.
     pub(in crate::fight) unsearchable: BTreeSet<u64>,
@@ -291,25 +293,9 @@ pub(in crate::fight) fn map_crystals(map: &[MapBuilding]) -> Vec<MapCrystal> {
         .collect()
 }
 
-/// Every building the fight starts with: the map's own, and the ones this
-/// layout's constructions place.
-///
-/// Identity is the capture's: a building's id is its place in `(team, type,
-/// x, z)` order over both sources together, one-based, which is how a
-/// recording numbers them and therefore the only numbering the two backends
-/// can be compared under.
-///
-/// A side's towers take their strengthen levels in the order the map lists
-/// them, which is `BuildingManager.buildings`' order and the key
-/// `tower_strengthen_levels` is written in: a level adds its life and chooses
-/// the buff the tower's loss writes.
-pub(in crate::fight) fn initialize_buildings(
-    towers: &TowersConfig,
-    constructions: &[ConstructionBuilding],
-    tower_levels: &BTreeMap<u32, Vec<u8>>,
-) -> Result<InitialBuildings> {
-    let mut raw = map_buildings(towers, tower_levels)?;
-    raw.extend(constructions.iter().map(|building| RawBuilding {
+/// A construction's block as the fight builds it.
+fn construction_building(building: &ConstructionBuilding) -> RawBuilding {
+    RawBuilding {
         team_id: building.team,
         building_type_id: building.building_type_id,
         x: building.x,
@@ -327,7 +313,53 @@ pub(in crate::fight) fn initialize_buildings(
         tower_buff: building.tower_buff,
         group: Some(building.group),
         exp: i64::from(building.exp),
-    }));
+    }
+}
+
+/// An interceptor as the fight builds it: `BuildingType.Special` as a
+/// construction is, a building of its side that units may shoot and that
+/// stands on its collider layer, but one that belongs to no construction and
+/// that no tower's loss is read on.
+fn interceptor_building(building: &InterceptorBuilding) -> RawBuilding {
+    RawBuilding {
+        team_id: building.team,
+        building_type_id: CONSTRUCTION_BUILDING_TYPE,
+        x: building.x,
+        z: building.z,
+        radius: building.radius,
+        life: i64::from(building.life),
+        collision_enabled: true,
+        searchable: true,
+        collider_priority: Some(building.collider_priority),
+        loss: None,
+        tower_buff: false,
+        group: None,
+        exp: i64::from(building.exp),
+    }
+}
+
+/// Every building the fight starts with: the map's own, and the ones this
+/// layout's constructions place.
+///
+/// Identity is the capture's: a building's id is its place in `(team, type,
+/// x, z)` order over both sources together, one-based, which is how a
+/// recording numbers them and therefore the only numbering the two backends
+/// can be compared under.
+///
+/// A side's towers take their strengthen levels in the order the map lists
+/// them, which is `BuildingManager.buildings`' order and the key
+/// `tower_strengthen_levels` is written in: a level adds its life and chooses
+/// the buff the tower's loss writes.
+pub(in crate::fight) fn initialize_buildings(
+    towers: &TowersConfig,
+    constructions: &[ConstructionBuilding],
+    interceptors: &[InterceptorBuilding],
+    tower_levels: &BTreeMap<u32, Vec<u8>>,
+) -> Result<InitialBuildings> {
+    let mut raw = map_buildings(towers, tower_levels)?;
+    let placed_interceptors = raw.len() + constructions.len();
+    raw.extend(constructions.iter().map(construction_building));
+    raw.extend(interceptors.iter().map(interceptor_building));
 
     let building_key = |building: &RawBuilding| {
         (
@@ -401,7 +433,13 @@ pub(in crate::fight) fn initialize_buildings(
         .collect();
     let (construction_groups, building_exp, tower_buffed_constructions) =
         construction_groups(&raw, |building| normalized_ids[&building_key(building)]);
+    let interceptors = raw[placed_interceptors..]
+        .iter()
+        .zip(interceptors)
+        .map(|(building, placed)| Interceptor::new(normalized_ids[&building_key(building)], placed))
+        .collect();
     Ok(InitialBuildings {
+        interceptors,
         states,
         unsearchable,
         colliders,

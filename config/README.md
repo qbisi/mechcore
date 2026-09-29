@@ -13,6 +13,7 @@ so they need the decompilation under `work/decomp/<build>/`
 | `advance_teams.yaml` | `extract_prices.py` |
 | `commander_skills.yaml` | `extract_prices.py` |
 | `constructions.yaml` | `extract-constructions.py` |
+| `contraptions.yaml` | `extract-contraptions.py` |
 | `economy.yaml` | `extract_prices.py` |
 | `equipment_effects.yaml` | `extract-equipment-effects.py` |
 | `localization.yaml` | `extract_names.py` |

@@ -141,7 +141,8 @@ fn normal_selector_split_query_remains_order_independent_for_a_unique_best() {
         tower_buffed_constructions,
         construction_groups: _,
         building_exp,
-    } = initialize_buildings(&config.towers, &[], &BTreeMap::new()).unwrap();
+        interceptors: _,
+    } = initialize_buildings(&config.towers, &[], &[], &BTreeMap::new()).unwrap();
     let map_crystals = map_crystals(config.maps.buildings(1021).unwrap());
     let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
     let buildings_query_alive = standing_buildings(&buildings);
@@ -149,6 +150,7 @@ fn normal_selector_split_query_remains_order_independent_for_a_unique_best() {
         actors,
         team_random: BTreeMap::new(),
         projectiles: Vec::new(),
+        interceptors: Vec::new(),
         buildings,
         target_quadtrees,
         mech_quadtrees: BTreeMap::new(),

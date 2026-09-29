@@ -128,6 +128,7 @@ impl Attacker<'_> {
             z_q32: self.z_q32,
             speed: self.attack.projectile_speed(),
             life: self.attack.projectile_life(),
+            interceptible: self.attack.projectile_interceptible(),
             lock_target: self.attack.lock_target,
             climb: self.attack.projectile_pre_flight_height(),
             range: self.attack_range,
@@ -136,6 +137,13 @@ impl Attacker<'_> {
 }
 
 impl Simulation {
+    /// A side's `FightTeam.random`.
+    pub(in crate::fight) fn side_random(&mut self, team: u32) -> Result<&mut GrRandom> {
+        self.team_random
+            .get_mut(&team)
+            .ok_or_else(|| Error::new(format!("side {team} has no random stream")))
+    }
+
     /// The owner of a skill, as its skill sees it.
     pub(in crate::fight) fn attacker(&self, owner: FightActorRef) -> Option<Attacker<'_>> {
         match owner {
@@ -351,6 +359,20 @@ impl Simulation {
     /// is blue's stream past the Marksman's draw and one more: the
     /// construction draws after every unit.
     pub(in crate::fight) fn deploy_attack_intervals(&mut self, round: u32) -> Result<()> {
+        // `FightTeam.random`: every side's stream starts with the fight, from
+        // the round and the side, whether or not anything of the side draws
+        // from it before the fight has begun.
+        for team in [0_u32, 1] {
+            self.team_random.entry(team).or_insert_with(|| {
+                GrRandom::new(u64::from(
+                    round
+                        .cast_signed()
+                        .wrapping_add(team.cast_signed())
+                        .wrapping_mul(4_444)
+                        .cast_unsigned(),
+                ))
+            });
+        }
         let owners = self
             .actors
             .keys()
@@ -365,21 +387,11 @@ impl Simulation {
             let attacker = self
                 .attacker(owner)
                 .expect("skill owner identity is stable");
-            let team = attacker.team;
             let skills = if attacker.attack.weapons.mode == WeaponMode::Group {
                 attacker.attack.weapons.count()
             } else {
                 1
             };
-            self.team_random.entry(team).or_insert_with(|| {
-                GrRandom::new(u64::from(
-                    round
-                        .cast_signed()
-                        .wrapping_add(team.cast_signed())
-                        .wrapping_mul(4_444)
-                        .cast_unsigned(),
-                ))
-            });
             for index in 0..skills {
                 let interval = self.draw_attack_interval(owner)?;
                 if index == 0 {

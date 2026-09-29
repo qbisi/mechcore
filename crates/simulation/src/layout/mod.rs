@@ -3,6 +3,7 @@ use std::{fs, path::Path};
 use mechcore_document::{NativeFormation, SidePlan};
 
 mod constructions;
+mod contraptions;
 
 use std::collections::BTreeMap;
 
@@ -14,6 +15,8 @@ use crate::{
 };
 pub(crate) use constructions::ConstructionBuilding;
 use constructions::Constructions;
+use contraptions::Contraptions;
+pub(crate) use contraptions::{Interception, InterceptorBuilding};
 
 #[derive(Debug, Clone)]
 pub(crate) struct Placement {
@@ -48,6 +51,9 @@ pub(crate) struct CompiledLayout {
     /// fight sees buildings rather than constructions, so the placement they
     /// came from is not carried past here.
     pub(crate) constructions: Vec<ConstructionBuilding>,
+    /// The interceptors both sides release, each side's in the order its
+    /// layout lists them.
+    pub(crate) interceptors: Vec<InterceptorBuilding>,
     /// Each side's tower strengthen levels, in the order the side's towers
     /// stand in the map; a side that strengthened none has none.
     pub(crate) tower_levels: BTreeMap<u32, Vec<u8>>,
@@ -64,6 +70,7 @@ impl CompiledLayout {
             round,
             placements,
             constructions: Vec::new(),
+            interceptors: Vec::new(),
             tower_levels: BTreeMap::new(),
             map_id: mechcore_document::layout_replay::DEFAULT_MAP_ID,
         }
@@ -161,6 +168,7 @@ pub(crate) fn compile_with_seed(
         round: plan.round,
     };
     let table = Constructions::load()?;
+    let contraptions = Contraptions::load()?;
 
     // Both sides are asked everything before either is refused. The registry
     // speaks first, one clause a side naming every field it owes; what the
@@ -178,6 +186,7 @@ pub(crate) fn compile_with_seed(
     // because this is the only place a refusal can still name the side and the
     // construction it is about.
     let mut constructions = Vec::new();
+    let mut interceptors = Vec::new();
     let mut tower_levels = BTreeMap::new();
     for (name, team, side) in sides {
         for (index, formation) in side.units.iter().enumerate() {
@@ -199,6 +208,21 @@ pub(crate) fn compile_with_seed(
             &table,
             &mut refused,
         ));
+        // A shield or a missile was refused by the registry; an interceptor
+        // is released as `CRC_Interceptor` releases it.
+        for placement in side
+            .contraptions
+            .iter()
+            .filter(|placement| placement.type_name == "interceptor")
+        {
+            interceptors.extend(
+                refused.hold(
+                    contraptions
+                        .interceptor(team, placement)
+                        .map_err(|error| Error::new(format!("side {name}: {error}"))),
+                ),
+            );
+        }
         let levels = side
             .tower_strengthen_levels
             .iter()
@@ -219,6 +243,7 @@ pub(crate) fn compile_with_seed(
             round: u32::try_from(plan.round).expect("validated layout round is positive"),
             placements,
             constructions,
+            interceptors,
             tower_levels,
             map_id: plan
                 .map_id

@@ -1,0 +1,29 @@
+schema: mechcore.contraptions
+
+# What an interceptor is, read out of `ContraptionGroupData`. Generated
+# by scripts/extract/extract-contraptions.py; docs/rules/contraptions.md
+# states what each field does. A time, a distance or a rate is an
+# FPoint Q32.32 raw integer, read in the comment beside it.
+
+interceptors:
+  - id: 30001
+    name: 导弹拦截器
+    layout_name: interceptor
+    max_life: 4000
+    exp: 0
+    slot_size: 30
+    path_radius: 3
+    collider_priority: 8
+    attack: 60500
+    effect_type: 7
+    effect_range_type: 0
+    range_max: 644245094400  # 150
+    range_min: 107374182400  # 25
+    prepare_time: 429496729  # 0.1
+    interval: 429496729  # 0.1
+    cooling_time: 0  # 0
+    rise_interval: 429496729  # 0.1
+    decline: 107374182  # 0.025
+    lower_limit: 1288490188  # 0.3
+    rise: 4294967  # 0.001
+    judgment_probability: 4294967296  # 1
