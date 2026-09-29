@@ -144,7 +144,7 @@ cannot be told apart from a question nobody asked.
 
 Unresolved is for decisions, never for work. "Whether a match document records how the
 match ended" is a decision. "The deployment executor does not exist" is work,
-and work belongs in the plan (`plan.md` and `plan/`).
+and work belongs in the plan (`plan/`).
 
 A third case is neither. Something observed disagrees with this spec, and nobody
 has yet decided whether the spec is wrong or the reading was. That is an issue,
