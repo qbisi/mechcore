@@ -127,6 +127,7 @@ fn multi_formation_initial_state_and_target_search_entry_match_the_build() {
             late_building_events_pending: false,
             fallen_buildings: Vec::new(),
             tower_buff_events: BTreeMap::new(),
+            fallen_towers: Vec::new(),
             dropped_buffs: BTreeMap::new(),
             construction_colliders: construction_colliders.clone(),
             map_crystals,

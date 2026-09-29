@@ -284,11 +284,12 @@ impl Simulation {
                     death: None,
                     fallen: destroyed.then_some(building.position),
                 };
-                // `FightCrystal.OnDead` invokes `OnBuildingDestroyed` in the
-                // hit that fells it, so a tower's loss is on its side before
-                // the next hit lands.
-                if destroyed {
-                    self.lose_tower(building_id)?;
+                // `FightActor.ReduceLife` hands a building it empties to
+                // `DeadEffectSystem.OnActorDead`, which only queues it: its
+                // `OnDead`, and a tower's loss with it, comes when that
+                // module updates.
+                if destroyed && self.is_tower(target) {
+                    self.fallen_towers.push(building_id);
                 }
                 Ok(stroke)
             }

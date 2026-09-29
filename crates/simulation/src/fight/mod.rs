@@ -229,6 +229,10 @@ struct Simulation {
     /// The `buff_applied` events a tower's loss wrote this tick, by tower, to
     /// follow its `building_destroyed`.
     tower_buff_events: BTreeMap<u64, Vec<Event>>,
+    /// The towers a hit emptied this tick, in the order they fell: the towers
+    /// among `DeadEffectSystem.deadActors`, whose `OnDead` waits for that
+    /// module's update.
+    fallen_towers: Vec<u64>,
     /// The buffs `BuffManager.Update` dropped from a unit dead this tick, to
     /// name in the `cleared` that follows its `unit_died`.
     dropped_buffs: BTreeMap<u64, Vec<u32>>,
@@ -330,6 +334,7 @@ impl Simulation {
             late_building_events_pending: false,
             fallen_buildings: Vec::new(),
             tower_buff_events: BTreeMap::new(),
+            fallen_towers: Vec::new(),
             dropped_buffs: BTreeMap::new(),
             construction_colliders: construction_colliders.clone(),
             map_crystals,
@@ -485,6 +490,14 @@ impl Simulation {
         }
         let naturally_finished_before_projectiles = self.naturally_finished();
         self.step_projectiles(&mut events)?;
+        // `DeadEffectSystem` updates after `FightCoreSystem` and
+        // `ProjectileSystem` (`FightController.AddModules`), and calls `OnDead`
+        // on what died this tick: a tower's loss reaches its side after every
+        // unit has updated, and counts from the next tick whichever side felled
+        // it.
+        for building_id in std::mem::take(&mut self.fallen_towers) {
+            self.lose_tower(building_id)?;
+        }
         let projectile_finished_fight =
             !naturally_finished_before_projectiles && self.naturally_finished();
         // `FightingState.Update` runs `FightCoreSystem.TryDstroyTower` after

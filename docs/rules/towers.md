@@ -56,10 +56,15 @@ by the new row's duration, because the row is additive. The rates never stack.
 
 ## When
 
-The buff is on the side from the hit that fells the tower. `BuffManager.Update`
-runs last in `FightMech.Update`, after the skill and the motion, and a buff ends
-on the update its elapsed ticks reach its duration. A side updated before the
-side that fells its tower counts from the next tick.
+The buff reaches the side after every unit and every projectile has updated
+on the tick the tower falls. The hit that empties the tower only queues it with
+`DeadEffectSystem`; that module updates after `FightCoreSystem` and
+`ProjectileSystem`, and it is its update that calls the tower's `OnDead`, which
+writes the buff. `BuffManager.Update` runs last in `FightMech.Update`, after the
+skill and the motion, and a buff ends on the update its elapsed ticks reach its
+duration, so either side counts from the next tick, whichever side felled the
+tower and however. For the rest of the tick the tower falls, the losing side's
+hits and the projectiles that land are without the buff.
 
 A unit's buffs go on its first update after it dies, not on the tick it dies.
 The recording still writes each buff it had as cleared right after its death,
@@ -93,9 +98,15 @@ gets the debuffed speed through `Move`.
   duration and does not stack the rates: `tests/tower/fights/`.
 - A unit that dies under the buff has it written as cleared after its death,
   a projectile's kill as any other: `tests/tower/fights/`.
-- The buff counts from the hit that fells the tower, reaches a side updated
-  before the felling side from the next tick, and a projectile takes its
-  owner's damage as it lands: `tests/tower/fights/`.
+- The buff counts from the tick after the tower falls on the side updated
+  before the felling side, `tests/tower/fights/`, and on the side updated
+  after it, where a Steel Ball of the side updated first fells a Research
+  Center with its beam: `tests/corpus/fights/201373545-r1.yaml`. A projectile
+  takes its owner's damage as it lands: `tests/tower/fights/`.
+- The losing side's projectiles that land after the fall, on the tick the tower
+  falls, land for their full damage: a Fire Badger's shot fells a tower and two
+  Mustang shots of the losing side land after it, undebuffed:
+  `tests/corpus/fights/67160729-r1.yaml`.
 
 ### Read
 
@@ -104,6 +115,14 @@ gets the debuffed speed through `Move`.
   `BuildingSystem.OnTowerDestroyed`, `BuildingSystem.SetAddTowerBuffTarget`,
   `TowerDefaultData.addBufToOwner`.
 - A second buff of the same divide lengthens the running one: `Buff.Reset`.
+- A tower's loss waits for `DeadEffectSystem`: `FightActor.ReduceLife` hands
+  an emptied actor to `DeadEffectSystem.OnActorDead`, which adds it to
+  `DeadEffectSystem.deadActors`; `DeadEffectSystem.Update` calls each one's
+  `OnDead`, and `FightTower.OnDead` goes through `FightCrystal.OnDead` to the
+  side's `FightTeamController.OnTowerDestoryed`.
+- `FightController.AddModules` adds `FightCoreSystem`, then `ProjectileSystem`,
+  then `DeadEffectSystem`, and `FightingState.Update` updates the modules in
+  that order.
 - A tower's buffs are kept apart from a unit's: `BuffManager.towerBuffDatas`,
   `BuffManager.GetTowerBuffDamageChangeAddRate`.
 - A buff row may reach a tower: `BuffData.canAffectTower`.
@@ -115,6 +134,10 @@ gets the debuffed speed through `Move`.
   but the Defensive Wall's first row, and no recording has one standing through
   a loss; the simulator refuses the fight when it happens.
 - **A tower taking a buff.** Read above, not recorded.
+- **The losing side's blows and beams on the tick its tower falls.** Read
+  above: they land without the buff, as its projectiles are recorded to. No
+  recording has a unit of the losing side strike directly after the fall
+  within that tick.
 - **Whether a tower's separate buff set changes the composition.** Not recorded.
 - **`isClearSelfBuffWhenDisableTech`**, set on the buff: nothing this simulator
   places disables a unit's technologies.
