@@ -632,3 +632,182 @@ mod tests {
         }
     }
 }
+
+/// What fighting a match's rounds in order found: how many fights ended as
+/// the match says, and the first that did not, if one did.
+#[derive(Debug, Default, Serialize)]
+pub struct Fights {
+    /// The rounds fought, in order, whose fight decided what the match says.
+    pub equal: Vec<i32>,
+    /// The first round that stopped the run.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stopped: Option<Stopped>,
+}
+
+/// The round a run of fights stopped on, and why.
+#[derive(Debug, Serialize)]
+#[serde(tag = "result", rename_all = "snake_case")]
+pub enum Stopped {
+    /// The round's deployment does not project onto a layout.
+    NotProjected { round: i32, reason: String },
+    /// The simulator refuses the round's layout.
+    Unsupported { round: i32, reason: String },
+    /// The fight's result, written onto the deployment, is not the position
+    /// the next round opens with: each leaf of what the fight decides that
+    /// differs.
+    Differs {
+        round: i32,
+        differences: Vec<Difference>,
+    },
+}
+
+impl Fights {
+    /// Whether every round with a next position was fought and agrees.
+    #[must_use]
+    pub const fn complete(&self) -> bool {
+        self.stopped.is_none()
+    }
+}
+
+/// Fights a match's rounds in order and holds each fight's result to the
+/// position the next round opens with, stopping at the first that is not
+/// fought or does not agree.
+///
+/// A round is fought from the position its decisions deploy, projected as
+/// `convert --to layout` projects it; `fight` answers the fight document for
+/// that layout, or why it cannot. Its result is written onto the deployment
+/// as [`crate::transition::settle`] writes it, and only the leaves the fight
+/// decides, [`FIGHT`], are compared: everything else about the next opening
+/// is [`measure`]'s. A round the match states no position after is not
+/// fought.
+pub fn fights(
+    economy: &Economy,
+    stated: &Stated,
+    deal: &Verified,
+    mut fight: impl FnMut(&crate::layout::Layout) -> Result<crate::fight::Fight, String>,
+) -> Fights {
+    let mut found = Fights::default();
+    let seeds = [stated.blue.seed, stated.red.seed];
+    let mut draws = [0_u32; 2];
+    for pair in stated.turns.windows(2) {
+        let [turn, next] = pair else { continue };
+        for (at, red) in [(0, false), (1, true)] {
+            let state = if red {
+                &turn.state.red
+            } else {
+                &turn.state.blue
+            };
+            draws[at] += crate::transition::player_draws(economy, &state.officers, turn.round);
+        }
+        let declined = deal
+            .rounds
+            .iter()
+            .find(|dealt| dealt.round == turn.round)
+            .map(|dealt| dealt.declined);
+        let deployed = |state, actions, red| {
+            crate::transition::deployed(economy, state, actions, red, declined)
+                .map_err(|unsettled| format!("round {} does not deploy: {unsettled}", turn.round))
+        };
+        let position = deployed(&turn.state.blue, &turn.actions.blue, false).and_then(|blue| {
+            deployed(&turn.state.red, &turn.actions.red, true).map(|red| crate::r#match::State {
+                reinforce_offers: turn.state.reinforce_offers.clone(),
+                blue,
+                red,
+            })
+        });
+        let layout = position.and_then(|position| {
+            crate::project::project(&position, turn.round, stated.map_id, stated.seed)
+                .map(|layout| (position, layout))
+        });
+        let (position, layout) = match layout {
+            Ok(projected) => projected,
+            Err(reason) => {
+                found.stopped = Some(Stopped::NotProjected {
+                    round: turn.round,
+                    reason,
+                });
+                return found;
+            }
+        };
+        let fought = match fight(&layout) {
+            Ok(fought) => fought,
+            Err(reason) => {
+                found.stopped = Some(Stopped::Unsupported {
+                    round: turn.round,
+                    reason,
+                });
+                return found;
+            }
+        };
+        let mut differences = Vec::new();
+        for (at, (side, red)) in [("blue", false), ("red", true)].into_iter().enumerate() {
+            let (deployed, fought_side, recorded) = if red {
+                (&position.red, &fought.red, &next.state.red)
+            } else {
+                (&position.blue, &fought.blue, &next.state.blue)
+            };
+            differences.extend(settled_differences(
+                economy,
+                turn.round,
+                (deployed, fought_side, recorded),
+                (side, red),
+                player_stream(seeds[at], draws[at]),
+            ));
+        }
+        if !differences.is_empty() {
+            found.stopped = Some(Stopped::Differs {
+                round: turn.round,
+                differences,
+            });
+            return found;
+        }
+        found.equal.push(turn.round);
+    }
+    found
+}
+
+/// The leaves the fight decides on which `recorded` differs from `deployed`
+/// with the fight's result written on and the next round opened, for one
+/// side; the one entry `fight` when the result does not settle.
+fn settled_differences(
+    economy: &Economy,
+    round: i32,
+    (deployed, fought, recorded): (&SideState, &crate::fight::FightSide, &SideState),
+    (side, red): (&'static str, bool),
+    stream: Option<Stream>,
+) -> Vec<Difference> {
+    let predicted = match crate::transition::settle(economy, round, deployed, fought, red, stream) {
+        Ok(predicted) => predicted,
+        Err(unsettled) => {
+            return vec![Difference {
+                round,
+                side,
+                path: "fight".into(),
+                predicted: Some(format!("{unsettled:?}")),
+                recorded: None,
+            }];
+        }
+    };
+    let mut predicted = side_leaves(&predicted);
+    let recorded = side_leaves(recorded);
+    let paths: std::collections::BTreeSet<String> =
+        predicted.keys().chain(recorded.keys()).cloned().collect();
+    paths
+        .into_iter()
+        .filter(|path| {
+            let group = group(path);
+            FIGHT.iter().any(|field| within(&group, field))
+        })
+        .filter_map(|path| {
+            let made = predicted.remove(&path);
+            let held = recorded.get(&path).cloned();
+            (made != held).then_some(Difference {
+                round,
+                side,
+                path,
+                predicted: made,
+                recorded: held,
+            })
+        })
+        .collect()
+}
