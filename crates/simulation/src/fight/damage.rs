@@ -12,20 +12,25 @@ use super::*;
 /// explosions — against `FightActor`s, and a unit and a building are both.
 #[derive(Debug, Clone, Copy)]
 pub(in crate::fight) struct DamageHit {
-    pub(in crate::fight) source: ObjectRef,
+    /// Its owner, `IDamageProvider.GetOwner`: none for a hit no object
+    /// dealt, which is recorded under its team alone.
+    pub(in crate::fight) source: Option<ObjectRef>,
     /// The team the hit is recorded under.
     pub(in crate::fight) source_team: u32,
     /// The team whose enemies it strikes: the attacker's own at the moment of
     /// impact, which a projectile reads from its owner rather than from the
     /// team it was released under.
     pub(in crate::fight) team: u32,
+    /// Whose objects it strikes, `IDamageProvider.GetEffectTargetType`.
+    pub(in crate::fight) effect: EffectTarget,
     pub(in crate::fight) amount: i64,
     /// The projectile that carried the hit, if one did.
     pub(in crate::fight) projectile: Option<ObjectRef>,
     /// The index of the skill that dealt it in its owner's skills.
     pub(in crate::fight) skill_slot: Option<u16>,
-    /// What the attack was aimed at.
-    pub(in crate::fight) aimed: FightActorRef,
+    /// What the attack was aimed at, `IDamageProvider.GetMainTarget`: none
+    /// for a hit that only splashes.
+    pub(in crate::fight) aimed: Option<FightActorRef>,
     /// Whether the aimed-at object is struck wherever it stands, rather than
     /// only if the splash reaches it. A direct strike always is; a projectile
     /// is when it locks its target.
@@ -34,6 +39,25 @@ pub(in crate::fight) struct DamageHit {
     pub(in crate::fight) center: (i64, i64),
     pub(in crate::fight) splash_radius: i64,
     pub(in crate::fight) reach: Reach,
+}
+
+/// Whose objects a hit strikes: `DamagePerformer.PrepareRangeTargets` takes
+/// the groups `GroupManager.GetOpponentGroups` answers for one, and every
+/// group `GroupManager.GetGroups` does for the other.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::fight) enum EffectTarget {
+    Opponent,
+    Both,
+}
+
+impl EffectTarget {
+    /// Whether a hit of this team's strikes an object of that one.
+    const fn strikes(self, hitter: u32, team: u32) -> bool {
+        match self {
+            Self::Opponent => hitter != team,
+            Self::Both => true,
+        }
+    }
 }
 
 /// Which units a hit can touch.
@@ -83,6 +107,8 @@ pub(in crate::fight) struct Struck {
     pub(in crate::fight) fallen: Vec<(u64, QVec3)>,
     /// Every death and fall together, in the order the hit struck them.
     pub(in crate::fight) ends: Vec<(FightActorRef, QVec3)>,
+    /// The life it took in all, what `DamagePerformer.Perform` returns.
+    pub(in crate::fight) lost: i64,
 }
 
 impl Reach {
@@ -113,7 +139,7 @@ impl Simulation {
     /// a building.
     pub(in crate::fight) fn damage_targets(&self, hit: &DamageHit) -> Result<Vec<FightActorRef>> {
         let (center_x, center_z) = hit.center;
-        if let FightActorRef::Building(building_id) = hit.aimed {
+        if let Some(FightActorRef::Building(building_id)) = hit.aimed {
             let building = self
                 .buildings
                 .iter()
@@ -124,7 +150,11 @@ impl Simulation {
                 building_z(building).saturating_sub(center_z),
             ) <= building_radius(building).saturating_add(hit.splash_radius);
             if hit.splash_radius == 0 || !hit.reach.touches(UnitDomain::Ground) {
-                return Ok(if reached { vec![hit.aimed] } else { Vec::new() });
+                return Ok(if reached {
+                    vec![FightActorRef::Building(building_id)]
+                } else {
+                    Vec::new()
+                });
             }
             // A shot at a building splashes everything of the other side
             // around it, units and buildings alike, in the order the target
@@ -136,7 +166,7 @@ impl Simulation {
             let struck = self
                 .target_search_order()
                 .into_iter()
-                .filter(|(team, _)| *team != hit.team)
+                .filter(|(team, _)| hit.effect.strikes(hit.team, *team))
                 .flat_map(|(_, candidates)| candidates)
                 .filter(|candidate| match *candidate {
                     FightActorRef::Unit(unit_id) => {
@@ -178,14 +208,14 @@ impl Simulation {
         let struck = self
             .target_search_order()
             .into_iter()
-            .filter(|(team, _)| *team != hit.team)
+            .filter(|(team, _)| hit.effect.strikes(hit.team, *team))
             .flat_map(|(_, candidates)| candidates)
             .filter(|candidate_ref| match *candidate_ref {
                 FightActorRef::Unit(candidate_id) => {
                     let candidate = &self.actors[&candidate_id];
                     candidate.alive()
                         && hit.reach.touches(candidate.rules.domain)
-                        && ((hit.hits_aimed && *candidate_ref == hit.aimed)
+                        && ((hit.hits_aimed && Some(*candidate_ref) == hit.aimed)
                             || (hit.splash_radius > 0
                                 && magnitude(
                                     candidate.x.saturating_sub(center_x),
@@ -224,7 +254,7 @@ impl Simulation {
     pub(in crate::fight) fn strike(
         &mut self,
         target: FightActorRef,
-        source: ObjectRef,
+        source: Option<ObjectRef>,
         source_team: u32,
         amount: i64,
     ) -> Result<Stroke> {
@@ -320,10 +350,11 @@ impl Simulation {
             let stroke = self.strike(target, hit.source, hit.source_team, hit.amount)?;
             self.count_hit(hit.source, hit.source_team, target, &stroke)?;
             struck.targets.push(target);
+            struck.lost += stroke.actual;
             if stroke.actual > 0 {
                 events.push(event(
                     hit.projectile,
-                    Some(hit.source),
+                    hit.source,
                     Some(hit.source_team),
                     Some(target.object_ref()),
                     EventPayload::Damage {
@@ -357,9 +388,7 @@ impl Simulation {
         for (dead_id, position) in deaths {
             let (source, source_team_id) = self.actors[&dead_id]
                 .last_damage_source
-                .map_or((None, None), |(source, team_id)| {
-                    (Some(source), Some(team_id))
-                });
+                .map_or((None, None), |(source, team_id)| (source, Some(team_id)));
             events.push(event(
                 Some(ObjectRef::new(ObjectKind::Unit, dead_id)),
                 source,
@@ -391,14 +420,15 @@ impl Simulation {
                 .ok_or_else(|| Error::new("direct attack target is absent"))?,
         };
         let hit = DamageHit {
-            source: attacker.object_ref(),
+            source: Some(attacker.object_ref()),
             source_team: attacker.placement.team,
             team: attacker.placement.team,
+            effect: EffectTarget::Opponent,
             amount: attacker.stats.attack_damage(),
             // A blow is `SkillDamageProvider`'s, of the skill that struck.
             projectile: None,
             skill_slot: Some(u16::try_from(skill_slot).expect("skill slot fits u16")),
-            aimed: target,
+            aimed: Some(target),
             hits_aimed: true,
             center,
             splash_radius: attacker.rules.attack.splash_radius(),
@@ -417,7 +447,11 @@ impl Simulation {
     /// A hit's deaths and falls, in the order it struck them, among the
     /// tick's events: the tick's end moves every one of them, in that order,
     /// after the rest (`DeadEffectSystem.deadActors`).
-    fn record_ends(&self, ends: Vec<(FightActorRef, QVec3)>, events: &mut Vec<Event>) {
+    pub(in crate::fight) fn record_ends(
+        &self,
+        ends: Vec<(FightActorRef, QVec3)>,
+        events: &mut Vec<Event>,
+    ) {
         for (target, position) in ends {
             match target {
                 FightActorRef::Unit(dead_id) => {
@@ -471,13 +505,14 @@ impl Simulation {
                     .ok_or_else(|| Error::new("laser target is absent"))?,
             };
             let hit = DamageHit {
-                source: attacker_ref,
+                source: Some(attacker_ref),
                 source_team: attacker_team,
                 team: attacker_team,
+                effect: EffectTarget::Opponent,
                 amount: damage,
                 projectile: None,
                 skill_slot: Some(0),
-                aimed: target,
+                aimed: Some(target),
                 hits_aimed: true,
                 center,
                 splash_radius,
@@ -493,8 +528,8 @@ impl Simulation {
         // Balls of `wall-laser.yaml` read `damage` and then
         // `building_destroyed`. A beam that took no life records no damage,
         // as no other hit does.
-        let stroke = self.strike(target, attacker_ref, attacker_team, damage)?;
-        self.count_hit(attacker_ref, attacker_team, target, &stroke)?;
+        let stroke = self.strike(target, Some(attacker_ref), attacker_team, damage)?;
+        self.count_hit(Some(attacker_ref), attacker_team, target, &stroke)?;
         if let Some(position) = stroke.death {
             events.push(event(
                 Some(target.object_ref()),

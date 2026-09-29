@@ -518,6 +518,13 @@ impl UnitConfigs {
         self.units.get(type_name)
     }
 
+    /// The unit a build's unit id names, `IFightSetting.GetMechData`.
+    pub(crate) fn by_type_id(&self, unit_type_id: u32) -> Option<&UnitConfig> {
+        self.units
+            .values()
+            .find(|config| config.unit_type_id == unit_type_id)
+    }
+
     fn from_configs(configs: Vec<UnitConfig>) -> Result<Self> {
         if configs.is_empty() {
             return Err(Error::new("no unit configuration is embedded"));

@@ -462,14 +462,14 @@ null。时钟中的两个整数都以逻辑步为单位，并通过 `DurableCont
 | --- | --- | --- |
 | `tick` | `UINT32` required | 快照 |
 | `team_id` | `UINT32` required | 持有该项的队伍字典；单独计数的单位为它此刻效力的一方 |
-| `recorder` | `UINT8` required | `0=formation`（`MechTeam`）、`1=construction`（`FightConstructionCombination`，或不属于组合的单个建造物）、`2=unit`（被精神控制的单位） |
+| `recorder` | `UINT8` required | `0=formation`（`MechTeam`）、`1=construction`（`FightConstructionCombination`，或不属于组合的单个建造物）、`2=unit`（没有 `MechTeam` 的单位：召唤物，或被精神控制的单位） |
 | `recorder_id` | `UINT64` required | 编队的 `formation_id`；建造物组合中最小的 `building_id`；单位的 `unit_id` |
 | `damage` | `INT32` required | `DamageMax`：每一下伤害经过全部减免之后、按目标剩余生命截断之前的值之和 |
 | `damage_real` | `INT32` required | `DamageReal`：这些伤害实际扣掉的生命或个人护盾能量 |
 | `kills` | `INT32` required | `KillCount`：打完之后目标不再存活的次数 |
 | `damage_taken` | `INT32` required | `DamageTaken`：记录者成员受到的伤害，只计入增伤、未经任何减伤 |
 
-一下伤害记给 `HitDamageInfo.sourceSkillOwner` 的记录者，并记入目标的记录者。单位的记录者是它的编队；建造物的是它的组合；防御塔不是记录者，打它的一方照样记分，它自己不记承伤。没有技能拥有者的伤害（地面火、buff 持续伤害、指挥官技能、空投）不记给任何人。已经死亡的目标在计数之前就被跳过。每个编队和建造物组合从部署起就有一行，初值为零，编队全灭后仍保留；被精神控制的单位在回合的临时字典里单独计数，记在它此刻效力的一方。计数是原生的 `int`，每场战斗从零开始。
+一下伤害记给 `HitDamageInfo.sourceSkillOwner` 的记录者，并记入目标的记录者。单位的记录者是它的编队；建造物的是它的组合；防御塔不是记录者，打它的一方照样记分，它自己不记承伤。没有技能拥有者的伤害（地面火、buff 持续伤害、指挥官技能、空投）不记给任何人。已经死亡的目标在计数之前就被跳过。每个编队和建造物组合从部署起就有一行，初值为零，编队全灭后仍保留。召唤物没有编队，从它计入的第一下伤害起单独计数；被精神控制的单位也单独计数，在回合的临时字典里，记在它此刻效力的一方。计数是原生的 `int`，每场战斗从零开始。
 
 ## 7.1 `formations.parquet`
 

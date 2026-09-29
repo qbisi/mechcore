@@ -15,7 +15,7 @@ use crate::{
     rules::{UnitConfig, UnitConfigs},
 };
 use commander_skills::CommanderSkillEffects;
-pub(crate) use commander_skills::SkillRelease;
+pub(crate) use commander_skills::{SkillBuff, SkillEffect, SkillRelease, Summon};
 pub(crate) use constructions::ConstructionBuilding;
 use constructions::Constructions;
 use contraptions::Contraptions;
@@ -245,15 +245,14 @@ pub(crate) fn compile_with_seed(
         if !side.techs.units.is_empty() {
             researched.insert(team);
         }
-        for skill in &side.battle_skills {
-            battle_skills.extend(
-                refused.hold(
-                    skill_effects
-                        .release(team, skill)
-                        .map_err(|error| Error::new(format!("side {name}: {error}"))),
-                ),
-            );
-        }
+        battle_skills.extend(compile_battle_skills(
+            name,
+            team,
+            side,
+            &skill_effects,
+            units,
+            &mut refused,
+        ));
         let levels = side
             .tower_strengthen_levels
             .iter()
@@ -284,6 +283,40 @@ pub(crate) fn compile_with_seed(
                 .unwrap_or(mechcore_document::layout_replay::DEFAULT_MAP_ID),
         },
     ))
+}
+
+/// A side's released battle skills, or nothing for each one refused with its
+/// refusal kept.
+fn compile_battle_skills(
+    name: &str,
+    team: u32,
+    side: &SidePlan,
+    skill_effects: &CommanderSkillEffects,
+    units: &UnitConfigs,
+    refused: &mut Refusals,
+) -> Vec<SkillRelease> {
+    let mut battle_skills = Vec::new();
+    for skill in &side.battle_skills {
+        let release = skill_effects
+            .release(team, skill, units)
+            .and_then(|release| {
+                // A summon's data comes straight from the unit table;
+                // whether a side's officers and technologies reach it
+                // through `FightEffectSystem` is not measured.
+                let loaded = !side.techs.officers.is_empty() || !side.techs.units.is_empty();
+                if matches!(release.effect, SkillEffect::Summon(_)) && loaded {
+                    return Err(Error::new(format!(
+                        "{} summons onto a side with officers or technologies, and \
+                         whether they reach a summon is not measured",
+                        skill.type_name
+                    )));
+                }
+                Ok(release)
+            })
+            .map_err(|error| Error::new(format!("side {name}: {error}")));
+        battle_skills.extend(refused.hold(release));
+    }
+    battle_skills
 }
 
 fn compile_constructions(

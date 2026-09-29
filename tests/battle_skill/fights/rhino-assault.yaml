@@ -1,0 +1,23 @@
+# When a summon is made, where, and when it joins the fight.
+#
+# Blue releases Rhino Assault away from everything. Its sub-effect lands on
+# tick 28, and its creator makes the Rhino that tick: unit 3, a formation of
+# its own, at level 1, exactly on the release point. It stays out of the
+# snapshots until it joins on tick 48, and moves from tick 56.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 259
+hash: {profile: mcfr-content-0.7.0, result: e6434dbd52ca8bf02a8e826cda59d50e60ce2e9371663caa2ae57f83a8186820}
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: -100, y: -150}}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: 0, y: -60}]}
+red:
+  core_damage: 150
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}

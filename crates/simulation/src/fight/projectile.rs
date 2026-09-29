@@ -289,13 +289,14 @@ impl Simulation {
             .ok_or_else(|| Error::new("projectile owner is absent"))?
             .attack_damage;
         let hit = DamageHit {
-            source: owner.object_ref(),
+            source: Some(owner.object_ref()),
             source_team: projectile.team,
             team: owner_team,
+            effect: EffectTarget::Opponent,
             amount,
             projectile: Some(projectile.object_ref()),
             skill_slot: Some(projectile.skill_slot),
-            aimed,
+            aimed: Some(aimed),
             hits_aimed: projectile.lock_target,
             center: (projectile.x, projectile.z),
             splash_radius,

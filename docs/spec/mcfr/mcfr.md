@@ -614,7 +614,7 @@ fight reads it back.
 | --- | --- | --- |
 | `tick` | `UINT32` required | the snapshot |
 | `team_id` | `UINT32` required | the team whose dictionary holds the entry, or for a unit counted alone the side it serves |
-| `recorder` | `UINT8` required | `0=formation` (`MechTeam`), `1=construction` (`FightConstructionCombination`, or a construction outside one), `2=unit` (a mind-controlled unit) |
+| `recorder` | `UINT8` required | `0=formation` (`MechTeam`), `1=construction` (`FightConstructionCombination`, or a construction outside one), `2=unit` (a unit with no `MechTeam`: a summon, or a mind-controlled unit) |
 | `recorder_id` | `UINT64` required | the formation's `formation_id`; a construction's lowest `building_id`; a unit's `unit_id` |
 | `damage` | `INT32` required | `DamageMax`: each hit's damage after every mitigation, before it is held to what the target had left |
 | `damage_real` | `INT32` required | `DamageReal`: the life, or personal shield energy, the hits took |
@@ -628,8 +628,9 @@ nothing and is charged nothing, though a hit on it credits its attacker. A hit
 with no skill owner, such as ground fire, buff damage over time, a commander
 skill or an air drop, credits nobody. A target already dead is skipped before
 anything counts. Every formation and construction group has its row, at zero,
-from deployment, and a formation that dies keeps it. A mind-controlled unit is
-counted alone, in the round's temporary dictionary, under the side it serves.
+from deployment, and a formation that dies keeps it. A summon has no formation
+and is counted alone, from the first hit it counts; so is a mind-controlled
+unit, in the round's temporary dictionary, under the side it serves.
 
 The counters are the build's `int`, and each row restarts at zero with each
 fight.

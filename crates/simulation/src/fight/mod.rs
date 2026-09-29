@@ -52,6 +52,7 @@ mod rvo;
 mod search;
 mod skill;
 mod statistics;
+mod support_unit;
 #[cfg(test)]
 mod tests;
 mod tower;
@@ -195,7 +196,10 @@ struct Actor {
     body_rotation_q32: i64,
     aim_rotation: i64,
     life: i64,
-    last_damage_source: Option<(ObjectRef, u32)>,
+    last_damage_source: Option<(Option<ObjectRef>, u32)>,
+    /// Whether a support skill summoned it: a unit with no `MechTeam`, which
+    /// counts alone and never gains experience.
+    summoned: bool,
     /// The buffs running on it, `BuffManager`'s list.
     buffs: Vec<RunningBuff>,
     /// `RVOControllerFixed._maxSpeed`: the speed `Active` read when the unit
@@ -223,6 +227,14 @@ struct Simulation {
     battle_skills: Vec<SkillRelease>,
     /// The sides that researched a unit technology.
     researched: BTreeSet<u32>,
+    /// Each side's `SupportUnitCreator`s still creating or alive.
+    creators: Vec<support_unit::Creator>,
+    /// The summons created and not yet let into the fight, in the order they
+    /// were created.
+    appearing: Vec<support_unit::Appearing>,
+    /// The identity the next unit to join takes, and its formation's.
+    next_unit_id: u64,
+    next_formation_id: u64,
     buildings: Vec<BuildingState>,
     target_quadtrees: BTreeMap<u32, TargetActorQuadtree>,
     /// Each side's units alone, `FightTeam.mechQuadtree`, which the
@@ -370,6 +382,10 @@ impl Simulation {
                 releases
             },
             researched: layout.researched.clone(),
+            creators: Vec::new(),
+            appearing: Vec::new(),
+            next_unit_id: 0,
+            next_formation_id: 0,
             buildings,
             target_quadtrees,
             mech_quadtrees,
@@ -402,6 +418,15 @@ impl Simulation {
             building_exp,
             experience: experience::ExperienceTable::load()?,
         };
+        // A unit joining the fight later takes the next number, and its
+        // formation the next formation's.
+        simulation.next_unit_id = simulation.actors.keys().max().map_or(1, |id| id + 1);
+        simulation.next_formation_id = simulation
+            .actors
+            .values()
+            .map(|actor| actor.placement.formation_id)
+            .max()
+            .map_or(1, |id| id + 1);
         simulation.seed_statistics(&construction_groups);
         simulation.seed_experience()?;
         simulation.deploy_attack_intervals(layout.round)?;
@@ -478,6 +503,13 @@ impl Simulation {
         let winner_was_decided = self.winner().is_some();
         self.stop_step = winner_was_decided.then_some(step);
         self.refresh_target_query_snapshot();
+        // `GRTimerManager.Update` runs before any module: the summons whose
+        // second is up join the fight first. The tick's searches were
+        // prepared without them, and find them from the next: the Crawlers
+        // around a Rhino that has just dropped go on searching for what they
+        // were after.
+        let mut joined = Vec::new();
+        self.join_summons(step, &mut joined)?;
         let mut events = Vec::new();
         if publish_late_building_events {
             // The towers the fight's end tore down, and then every buff a
@@ -502,6 +534,7 @@ impl Simulation {
             self.clear_buffs_as_the_fight_ends(&mut events)?;
         }
         let opening = events.len();
+        events.extend(joined);
         // Native search jobs retain the actor-quadtree candidate order
         // prepared at the start of this FightCore update.
         let target_search_order = self.target_search_order();
@@ -562,6 +595,9 @@ impl Simulation {
         let naturally_finished_before_projectiles = self.naturally_finished();
         self.step_projectiles(&mut events)?;
         self.step_interceptors(&mut events)?;
+        // `SupportUnitSystem` updates after `InterceptSystem`: a creator's
+        // summons are made after every unit has moved and every shot landed.
+        self.step_support_units(step, &mut events)?;
         // `DeadEffectSystem` updates after `FightCoreSystem` and
         // `ProjectileSystem` (`FightController.AddModules`), and calls `OnDead`
         // on what died this tick: a tower's loss reaches its side after every
@@ -582,12 +618,17 @@ impl Simulation {
             && !projectile_finished_fight
             && self.winner().is_some();
         let mut queued_late_building_events = false;
+        let appearing_teams = [0_u32, 1]
+            .into_iter()
+            .filter(|&team| self.appearing_on(team))
+            .collect::<BTreeSet<_>>();
         for building in self.buildings.iter_mut().filter(|building| {
             towers_fall
                 && building_alive(building)
                 && team_alive_counts
                     .get(&building.team_id)
                     .is_some_and(|alive_count| *alive_count == 0)
+                && !appearing_teams.contains(&building.team_id)
         }) {
             building.life.current = 0;
             building.targetable = false;
@@ -648,9 +689,7 @@ impl Simulation {
             };
             (death.source, death.source_team_id) = self.actors[&dead_id]
                 .last_damage_source
-                .map_or((None, None), |(source, team_id)| {
-                    (Some(source), Some(team_id))
-                });
+                .map_or((None, None), |(source, team_id)| (source, Some(team_id)));
         }
         // The deaths and falls the units' own hits caused come after the
         // rest of the tick, in the order they happened, as
@@ -797,15 +836,17 @@ impl Simulation {
             .is_some_and(|target| target.alive && target.targetable)
     }
 
+    /// A side with a summon still appearing has not lost:
+    /// `FightCoreSystem.TryDstroyTower` passes over a team that
+    /// `HaveProcessingMech`.
     fn winner(&self) -> Option<u32> {
-        let blue = self
-            .actors
-            .values()
-            .any(|actor| actor.placement.team == 0 && actor.alive());
-        let red = self
-            .actors
-            .values()
-            .any(|actor| actor.placement.team == 1 && actor.alive());
+        let standing = |team| {
+            self.actors
+                .values()
+                .any(|actor| actor.placement.team == team && actor.alive())
+                || self.appearing_on(team)
+        };
+        let (blue, red) = (standing(0), standing(1));
         match (blue, red) {
             (true, false) => Some(0),
             (false, true) => Some(1),
@@ -820,7 +861,12 @@ impl Simulation {
             .filter(|actor| actor.alive())
             .map(|actor| actor.placement.team)
             .collect::<std::collections::BTreeSet<_>>();
-        living_teams.len() < 2 && self.projectiles.is_empty()
+        // `SupportUnitSystem.IsStepFinish` and `SummonSystem.IsStepFinish`:
+        // a creator still alive, or a summon still appearing, holds the fight.
+        living_teams.len() < 2
+            && self.projectiles.is_empty()
+            && self.creators.is_empty()
+            && self.appearing.is_empty()
     }
 
     /// What happens between a tick's work and its snapshot: intervals settle

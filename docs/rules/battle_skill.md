@@ -180,6 +180,54 @@ A fight's buffs are cleared as the fight is left, on its last tick: after the
 towers it tore down when a side's last unit fell, and after everything else
 that tick did when a projectile landing after the last death decided it.
 
+## A summon
+
+A support skill, a row of `supportUnitCommanderSkills`, lands as any
+`CSRC_Common` skill does; with no fall, its sub-effect lands on tick
+`max(1, s) + 2`. Its landing hands the side a creator, which
+[`config/commander_skill_effects.yaml`](../../config/commander_skill_effects.yaml)
+reads off the row.
+
+**Creation.** The creator updates later in the landing tick, after every
+unit has updated and every projectile landed, and on each tick after. It
+creates `createCountPerTime` summons on its first update and again every
+`createInterval`, until it has made `maxCount`; one that dies is never
+replaced. It lives until its updates reach `startTime` plus its creations
+times their interval, and while it lives the fight cannot end.
+
+**Where a summon stands.** A skill that summons one puts it exactly on the
+release point. One that summons two or more moves each from the release point
+by two draws of its side's stream, X and then Z, each a whole number of
+hundredths uniform within the skill's `effectRange`, rounded to the nearest
+raw unit; the draws of one summon come before the next's. A flying summon
+stands at its flying height.
+
+**What a summon is.** It is its side's unit at level 1, facing its side's way,
+with no formation: it counts alone in the statistics, from the first hit it
+counts, never takes experience, and takes no share of another's. What the
+side's officers and technologies do to it is not measured.
+
+**Appearing.** For a second after it is made, a summon is out of the fight: in
+no tree, never updated, and not counted for its side, though a side with a
+summon still appearing has not lost and the fight cannot end. Its movement
+agent is there from the start, locked where it stands, and the units moving
+around it turn aside. It draws its skills' first intervals from its side's
+stream when it joins, not when it is made.
+
+**Joining.** At the start of the tick a second on, before anything updates,
+the summon joins. The searches of that tick were prepared without it, so it is
+found from the next. A movement solve on the tick it joins passes it over, and
+it moves from the next.
+
+**An air drop.** A summon of `appearType` 2 that does not fly, the Rhino of
+Rhino Assault or the Vulcan of Vulcan's Descent, deals its life, as it joins,
+to every unit whose edge its own collision radius covers, of either side,
+ground and air, blue's first, in the order its side's tree holds them. The
+hit has no owner: its damage and the deaths it causes are credited to no one,
+under the summon's side, and a kill counts for the dead unit's enemies. The
+summon then loses the life its hit took in all, with no rate on damage taken,
+and counts that as taken.
+
 ## Names
 
 <!-- names: commander_skills -->
@@ -226,6 +274,20 @@ that tick did when a projectile landing after the last death decided it.
   `tests/battle_skill/fights/wasps.yaml`.
 - It reaches the releasing side's own units, blue's before red's:
   `tests/battle_skill/fights/own-side.yaml`.
+- A support skill lands on tick `s + 2`, and a summon stands on the release
+  point, joins a second later, is found from the tick after, and moves from
+  the next solve: `tests/battle_skill/fights/rhino-assault.yaml`,
+  `tests/battle_skill/fights/mobilize-battleship.yaml`.
+- An air drop deals the summon's life around it, and the summon loses what it
+  took; an appearing summon turns units aside:
+  `tests/battle_skill/fights/rhino-drop.yaml`.
+- Several summons are scattered by two draws each of their side's stream, and
+  a solve on their join tick passes them over:
+  `tests/battle_skill/fights/wasp-swarm.yaml`.
+- A creator makes its summons in batches, and a surfacing summon is a locked
+  obstacle: `tests/battle_skill/fights/underground-threat.yaml`.
+- An air drop reaches both sides, blue's first, and its kills count for the
+  dead ones' enemies: `tests/battle_skill/fights/vulcans-descent.yaml`.
 
 ### Replayed
 
@@ -284,8 +346,45 @@ that tick did when a projectile landing after the last death decided it.
 - A buff that disables technology counts the unit's disabling up, and the
   first switches its technology effects off: `BuffManager.AddBuff`,
   `CBEC_DisableTechnology.Enter`, `FightMech.DisableTechnology`.
+- A support skill's sub-effect hands its side a creator, which scatters its
+  summons only when it makes two or more: `CS_SupportUnit.CreateReleaseController`,
+  `CS_SupportUnit.CreateSubEffectController`,
+  `SupportUnitEffectController.PerformEffect`,
+  `SupportUnitSystem.AddTemporaryCreator`.
+- A creator creates on its first update and every interval after, never
+  replaces a dead summon, lives for its start time plus its creations, and
+  holds the fight while it lives: `SupportUnitCreator.Update`,
+  `SupportUnitCreator.IsFinished`, `CSD_SupportUnit.PreProcess`,
+  `TeamSupportUnitManager.Update`, `TeamSupportUnitManager.IsStepFinish`.
+- A summon is scattered by two draws of its side's stream, made at level 1 in
+  no formation, and kept out of the fight for a second:
+  `SummonSystem.CreateMech`, `SummonSystem.DoCreateMech`,
+  `SummonSystem.CreateMechDelay`, `FightTeam.DeactiveMech`,
+  `SupportUnitCreator.APPEAR_DURATION`.
+- Joining runs before any module, drops the air drop's damage, and then puts
+  the summon in its side's trees; a side with a summon appearing keeps its
+  towers: `FightController.Update`, `SummonSystem.AddMechDelay`,
+  `FightTeam.ActiveMech`, `FightCoreSystem.TryDstroyTower`,
+  `SummonSystem.HaveProcessingMech`.
+- An air drop hits both sides with the summon's life over its radius, with no
+  owner, and the summon then loses what it took:
+  `SupportUnitCreator.OnMechEneterFight`,
+  `SupportUnitCreator.PerformAirDropDamage`,
+  `SupportUnitDamageProvider.GetDamage`,
+  `FightCalculator.CalculateHitActorDamage`.
+- A summon takes no experience: `ExpSystem.IsValidOwner`.
 
 ### Not established
+
+- **Why a solve on a summon's join tick passes it over,** and why its first
+  intervals are drawn as it joins. Both are measured, not read.
+- **A side's officers and technologies on a summon.** No fight pins one; the
+  simulator refuses a summon on a side that has either.
+- **A summon killed by its own air drop.** Whose death that counts as is not
+  measured; the simulator refuses it.
+- **A support skill whose row places its summons at set offsets**, or makes
+  them in capped batches. None of the standard ones does, and the simulator
+  refuses such a row.
 
 - **Another skill's landing.** The rule is read for every `CSRC_Common` skill,
   and a Missile Strike and an Orbital Javelin were seen landing where it puts

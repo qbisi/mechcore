@@ -194,7 +194,7 @@ impl Simulation {
     /// and a kill hands the target's experience out.
     pub(in crate::fight) fn count_experience(
         &mut self,
-        source: ObjectRef,
+        source: Option<ObjectRef>,
         source_team: u32,
         target: FightActorRef,
         killed: bool,
@@ -205,7 +205,9 @@ impl Simulation {
             return Ok(());
         }
         let attackers = self.attackers.entry(target.object_ref()).or_default();
-        if !attackers.contains(&source) {
+        if let Some(source) = source
+            && !attackers.contains(&source)
+        {
             attackers.push(source);
         }
         if !killed {
@@ -217,14 +219,16 @@ impl Simulation {
     /// `ExpSystem.DoCalculateExp`.
     fn hand_out(
         &mut self,
-        source: ObjectRef,
+        source: Option<ObjectRef>,
         source_team: u32,
         target: FightActorRef,
         provided: i64,
     ) -> Result<()> {
         let base = provided << 32;
         let mut pool = q32_mul(base, self.experience.assist_kill_exp_rate);
-        let killer = (source.kind == ObjectKind::Unit).then_some(source.id);
+        let killer = source
+            .filter(|source| source.kind == ObjectKind::Unit)
+            .map(|source| source.id);
         match killer {
             Some(unit) => {
                 if let Some(formation) = self.may_gain(unit) {
@@ -250,8 +254,14 @@ impl Simulation {
             }
         }
         // A missile's projectile is no one's: the side the hit is recorded
-        // under is the killer's.
-        let side = self.side_of(source).or(Some(source_team));
+        // under is the killer's. An air drop has no owner at all, and what it
+        // kills counts for the dead one's enemies, whichever side dropped
+        // it: a Vulcan landing among its own Crawlers hands the other side
+        // their experience.
+        let side = match source {
+            Some(source) => self.side_of(source).or(Some(source_team)),
+            None => self.side_of(target.object_ref()).map(|team| team ^ 1),
+        };
         if let Some(side) = side
             && side != self.side_of(target.object_ref()).unwrap_or(side ^ 1)
         {
@@ -331,6 +341,11 @@ impl Simulation {
             let Some(actor) = self.actors.get(&id) else {
                 continue;
             };
+            // `ExpSystem.IsValidOwner`: a summon has no formation to take a
+            // share, and does not thin the others'.
+            if actor.summoned {
+                continue;
+            }
             let formation = actor.placement.formation_id;
             if shared.contains(&formation) {
                 continue;

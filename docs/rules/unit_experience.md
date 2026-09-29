@@ -113,7 +113,12 @@ starts from zero. A kill hands out its amount twice over:
   target, edge to centre. Each formation takes one share, however many of its
   units qualify, and the killer's formation takes a share as well as the whole.
   A kill no unit made with no one to share it goes to every formation of the
-  killer's side that may take experience.
+  killer's side that may take experience. A summon takes no share and is not
+  counted among those that do.
+- **A kill with no owner at all counts for the dead one's enemies.** An air
+  drop's hit has no owner, and the side it counts for is the one the dead unit
+  fought, whichever side dropped it: a Vulcan landing among its own side's
+  Crawlers hands their experience to the other side.
 
 "Within 65 metres" is asked of the side's unit quadtree first, for a square 65
 metres wide around the target. The tree answers with whole nodes, so a unit is
@@ -138,6 +143,10 @@ what the formation carries into the next round.
   topics' hold.
 - A missile's kill, which no unit made and no one else shares, goes to every
   formation of the missile's side: `tests/missile/fights/crawlers.yaml`.
+- An air drop's kills count for the dead ones' enemies, its own side's dead
+  included, and a summon's own kills leave its side's formations their whole
+  share: `tests/battle_skill/fights/rhino-drop.yaml`,
+  `tests/battle_skill/fights/vulcans-descent.yaml`.
 
 ### Replayed
 
