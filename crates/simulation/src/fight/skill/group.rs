@@ -28,7 +28,16 @@ impl Simulation {
     /// shared out among the slots is not something any recording has shown;
     /// the build's `CheckWallConstructionForGroupedSkill` keeps a list of walls
     /// already checked, which suggests it might, and nothing here assumes so.
-    pub(in crate::fight) fn refresh_group_walls(&mut self, actor_id: u64) {
+    ///
+    /// A slot's shield is its own `SearchAttackTarget`'s, which only that
+    /// slot asks: `searching` names the slot, if one, whose search this is,
+    /// and every other slot keeps the shield it last found, even one that
+    /// has since broken.
+    pub(in crate::fight) fn refresh_group_walls(
+        &mut self,
+        actor_id: u64,
+        searching: Option<usize>,
+    ) {
         let siblings = self.actors[&actor_id]
             .skill
             .siblings()
@@ -45,6 +54,9 @@ impl Simulation {
                         .map(|building| (building, lock))
                 });
                 // Each slot's `SearchTargetShield`, as the core's.
+                if searching != Some(index + 1) {
+                    return (wall, None, false);
+                }
                 let shield = if wall.is_none() {
                     lock.and_then(|lock| {
                         self.search_target_shield_in(
@@ -57,10 +69,10 @@ impl Simulation {
                 } else {
                     None
                 };
-                (wall, shield)
+                (wall, shield, true)
             })
             .collect::<Vec<_>>();
-        for (slot, (in_the_way, shield)) in self
+        for (slot, (in_the_way, shield, searched)) in self
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable")
@@ -70,7 +82,9 @@ impl Simulation {
             .zip(found)
         {
             slot.in_the_way = in_the_way;
-            slot.target_shield = shield;
+            if searched {
+                slot.target_shield = shield;
+            }
         }
     }
 
@@ -309,7 +323,12 @@ impl Simulation {
     /// `StopAttack`, its lock dropped, then its cooling, its weapon naming
     /// what the check turned it to. With no cooling it is idle at once.
     fn finish_group_slot(&mut self, actor_id: u64, slot: usize, step: u64, cooling_steps: u64) {
-        let candidate = self.actors[&actor_id].skill.group_attack_target(slot);
+        // A slot firing at a shield has no attack target to go on naming:
+        // `ChangeAttackTarget(null, shield)` cleared it.
+        let skill = &self.actors[&actor_id].skill;
+        let candidate = skill
+            .group_attack_target(slot)
+            .filter(|_| skill.group_skill(slot).shield_target().is_none());
         self.idle_group_slot(actor_id, slot);
         // `StopAttack` hands the owner the dropped lock.
         self.actors
@@ -369,7 +388,7 @@ impl Simulation {
             sibling.lock_target = selected;
             sibling.attack_target_left = None;
             sibling.search_target_time = SEARCH_TARGET_RESET_TICKS;
-            self.refresh_group_walls(actor_id);
+            self.refresh_group_walls(actor_id, Some(slot));
         }
         if let Some(target) = self.actors[&actor_id].skill.group_attack_target(slot)
             && self.slot_target_in_attack_area(FightActorRef::Unit(actor_id), Some(slot), target)
