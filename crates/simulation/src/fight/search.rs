@@ -443,17 +443,13 @@ pub(in crate::fight) fn normal_visible_full_rotation_target_score_q32(
     )
 }
 
-/// The window `Selector.CalculateRotationData` hands `CalculateScore` for a
-/// source whose window is its rotation widened by `half_width_q32` either
-/// side, if `CalculateScore` checks it. At rotation 0 the recorded window is
-/// the whole turn, `Angle0` to `Angle360`; `CalculateScore` checks a window
-/// only when it starts above `Angle0` and ends below `Angle360`.
+/// The window `CalculateScore` is handed for a source whose window is its
+/// rotation widened by `half_width_q32` either side, if it checks it: it
+/// checks a window only when it starts above `Angle0` and ends below
+/// `Angle360`.
 fn rotation_window(rotation_q32: i64, half_width_q32: i64) -> Option<(i64, i64)> {
     let less = rvo::fpoint_less_than;
     let full_rotation = 360_i64 << 32;
-    if !less(rotation_q32, 0) && !less(0, rotation_q32) {
-        return None;
-    }
     let min_q32 = clamp_rotation(rotation_q32.saturating_sub(half_width_q32));
     let max_q32 = clamp_rotation(rotation_q32.saturating_add(half_width_q32));
     (less(0, min_q32) && less(max_q32, full_rotation)).then_some((min_q32, max_q32))

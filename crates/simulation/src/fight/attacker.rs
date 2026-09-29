@@ -84,9 +84,10 @@ pub(in crate::fight) struct Attacker<'a> {
     /// `CalculateScore`, either side of the rotation it scores against: a
     /// candidate in range outside it takes the out-of-range penalty. A unit's
     /// window is the whole turn, `Angle0` to `Angle360`, which `CalculateScore`
-    /// does not check; a construction's is its attack angle either side of
-    /// its weapon, except at rotation 0, as the recorded `CalculateScore`
-    /// arguments show.
+    /// does not check; a construction's skill's is its attack angle either
+    /// side of its weapon, at every rotation, as the recorded `CalculateScore`
+    /// arguments show. The construction's own search, whose lock nothing aims
+    /// or fires from, has none.
     pub(in crate::fight) rotation_window_q32: Option<i64>,
     /// Whether its skill searches at all: a construction without a
     /// `ConstructionSearchTargetController`, which its row's

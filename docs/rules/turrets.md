@@ -67,14 +67,23 @@ out-of-range penalty too. `CalculateScore` adds it to a candidate within
 angle on the left and plus it on the right, `FightUtility.IsInRangeRotation`
 puts outside `minRotation` to `maxRotation`, with `FPoint`'s tolerant
 comparisons and a window that wraps through 0. For a unit's search the window
-is `Angle0` to `Angle360`, which `CalculateScore` does not check. For a Rapid-Fire
-Turret's it is the weapon's rotation less and plus its attack angle of 20,
-except while the weapon points at exactly 0, where it is the whole turn: the
-recorded arguments carry the one on every search at any other rotation and
-the other on every search at 0, and the candidates in reach they score are
-unpenalised up to 14.8 degrees off and penalised from 21.1. Which code
-narrows a construction's window this way is not read, and whether an
-Anti-Armor Turret's is the same is not recorded.
+is `Angle0` to `Angle360`, which `CalculateScore` does not check. For a
+turret's skill it is the weapon's rotation less and plus its attack angle of
+20, at every rotation: the recorded arguments carry it on every search the
+Rapid-Fire Turrets' skills made in replay 268447927 round 1, 70 of them with
+the weapon at exactly 0 and the window 340 to 20, and the candidates in reach
+they score are unpenalised up to 14.8 degrees off and penalised from 21.1. The
+construction's own search, whose lock nothing aims or fires from, carries the
+whole turn. `CalculateScore` checks a window only when it starts above
+`Angle0` and ends below `Angle360`. Which code narrows the skill's window is
+not read: `Selector.CalculateRotationData`, hooked, answers the whole turn
+for the same searches.
+
+An Anti-Armor Turret's skill keeps the window too, where its search is scored
+on worker threads and the arguments are not seen: in replay 67152171 round 1
+its weapon points at exactly 0 at tick 366, and its search passes over the
+best-scored candidate, 22.4 degrees off, which the construction's own search
+takes.
 
 When a Rapid-Fire Turret's target dies, the next target is the one the selector
 scores from the weapon's rotation, not the nearest: in the head-on fight it
@@ -197,7 +206,9 @@ content, as `tests/turret/fights/` replays them.
 - A dead target is replaced by the one the selector scores from the weapon's
   rotation, not the nearest: `tests/turret/fights/`.
 - A candidate in reach more than the attack angle off the weapon takes the
-  out-of-range penalty: `tests/corpus/fights/268447927-r1.yaml`.
+  out-of-range penalty, at every rotation of the weapon:
+  `tests/corpus/fights/268447927-r1.yaml`,
+  `tests/corpus/fights/67152171-r1.yaml`.
 - A reload keeps the lock, and the next shot goes to it: `tests/turret/fights/`.
 - The first shot leaves on the tick after a target starts within reach, reach
   measured edge to edge: `tests/turret/fights/`.
