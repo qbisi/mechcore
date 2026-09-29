@@ -1210,7 +1210,9 @@ enum NativeTrace {
         position: QVec3,
     },
     /// A unit that joined the fight within the tick, numbered by the tick's
-    /// snapshot, or with the fleeting units when it left again.
+    /// snapshot, or with the fleeting units when the snapshot does not hold
+    /// it: released with them when it died again within the tick, and kept
+    /// for the snapshot that first holds it otherwise.
     UnitCreated {
         unit: usize,
         team_id: u32,
@@ -7499,13 +7501,36 @@ fn number_fleeting_units(capture: &mut CaptureState) -> Result<(), String> {
             _ => None,
         })
         .collect::<Vec<_>>();
+    // A unit created within the tick and still standing keeps its number: a
+    // summon joins the fight's actors only once it has appeared, some ticks
+    // after `CreateMech`, and the snapshot that first holds it has to find
+    // the number its `unit_created` gave it. One that died within the tick
+    // too is released with the rest.
+    let died = capture
+        .traces
+        .iter()
+        .filter_map(|trace| match trace {
+            NativeTrace::UnitDiedUnresolved { unit, .. } => Some(*unit),
+            _ => None,
+        })
+        .collect::<BTreeSet<_>>();
+    let appearing = capture
+        .traces
+        .iter()
+        .filter_map(|trace| match trace {
+            NativeTrace::UnitCreated { unit, .. } if !died.contains(unit) => Some(*unit),
+            _ => None,
+        })
+        .collect::<BTreeSet<_>>();
     for pointer in named {
         if capture.unit_ids.contains_key(&pointer) {
             continue;
         }
         let id = allocate(&mut capture.next_unit_id, "unit")?;
         capture.unit_ids.insert(pointer, id);
-        capture.fleeting_unit_pointers.push(pointer);
+        if !appearing.contains(&pointer) {
+            capture.fleeting_unit_pointers.push(pointer);
+        }
     }
     // A fleeting unit's formation is numbered after the snapshot's. One with
     // no `MechTeam` is keyed by the unit's own pointer, which is released
@@ -9153,6 +9178,39 @@ mod tests {
         };
         assert!(validate_checker_availability(all, &available).is_ok());
         assert!(validate_checker_availability(others, &available).is_ok());
+    }
+
+    /// A summon is created ticks before it joins the fight's actors: its
+    /// number and its formation's are kept for the snapshot that first holds
+    /// it, while a unit created and killed within one tick is released.
+    #[test]
+    fn a_unit_created_outside_the_snapshot_keeps_its_number_until_it_appears() {
+        let created = |unit| NativeTrace::UnitCreated {
+            unit,
+            team_id: 0,
+            unit_type_id: 5,
+            formation: 0,
+            position: QVec3 { x: 0, y: 0, z: 0 },
+        };
+        let mut capture = CaptureState {
+            next_unit_id: 3,
+            next_formation_id: 3,
+            traces: vec![
+                created(33),
+                created(44),
+                NativeTrace::UnitDiedUnresolved {
+                    unit: 44,
+                    position: QVec3 { x: 0, y: 0, z: 0 },
+                    source: None,
+                    source_team_id: None,
+                },
+            ],
+            ..CaptureState::default()
+        };
+        number_fleeting_units(&mut capture).unwrap();
+        assert_eq!(capture.unit_ids.get(&33), Some(&3));
+        assert_eq!(capture.unit_ids.get(&44), Some(&4));
+        assert_eq!(capture.fleeting_unit_pointers, vec![44]);
     }
 
     #[test]
