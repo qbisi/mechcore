@@ -1,23 +1,59 @@
-# Lanes
+# 目标与计划
 
-One file per lane of [`plan.md`](../plan.md), named after the lane. A lane is
-one sub-goal of the plan, and its file is owned by the work in that lane: two
-tasks in different lanes never write the same file, and two tasks in the same
-lane are not run at once, because nodes in one lane block or conflict with
-each other.
+把 mechcore 做成 agent 和人类的对战平台：输入一条原子 action，返回下一个 state。一局比赛就是
+一份 match 文档，平台一边下一边把它写出来。平台那一半已经能跑，卡在模拟器打不了真实对局的仗；
+这条主线没有变。
 
-A lane file holds intent, never state:
+这份文件是任务图的结构：目标、衡量离目标多远的指标、各条 lane 的先后、lane 之间的边。每条
+lane 的栈和停车场在本目录下各自的文件里，写法见文末。做到了哪一步不写在任何一处，
+从 PR、commit、`tests/<topic>/README.md` 和 issue 读出来；怎么维护这张图见 `AGENTS.md` 的
+Plan 一节。
 
-- **the sub-goal and what counts as done**, and why the lane is shaped the way
-  it is;
-- **the stack**: the node being worked at the top and, under it, the nodes it
-  was pushed over, each with what blocks it. A node that is done leaves the
-  stack; its record is the pull request that did it;
-- **the parking lot**: nodes nobody is working, each with a `reopen_when` that
-  can actually be decided;
-- the method particular to the lane, if it has one.
+## 离目标多远
 
-Numbers, pass counts and "done up to X" do not go here. They go in the pull
-request body, in `tests/<topic>/README.md`, or in an issue, which are where they
-can be checked. A new edge to another lane, or a change of the lanes' order, is
-a change to `plan.md`, not to a lane file.
+`scripts/corpus/fight-coverage.py` 把语料的每一回合投影成它开打时的 layout 交给 `convert --to mcfr`，模拟器
+一次报出这份 layout 被拒的全部理由。它的输出就是离真实对局还有多远；挡得最多的理由指向该先
+推哪条 lane。一轮研究要花多少（录一场、读一个内部过程、对照一次）是第二个指标：它决定修工具
+链是不是比修模拟器更划算。
+
+## Lane
+
+一个子目标一条 lane，按先后排。目标是它们的合取。
+
+| 先后 | Lane | 子目标 |
+| --- | --- | --- |
+| 1 | [广度与平台](platform.md) | 模块、效果表，然后是对战平台本身 |
+| 2 | [文档与命令行](documents.md) | 回归夹具是自己说清结果的文档，命令行按动作划分 |
+| 3 | [换版本留下的尾巴](migration.md) | 仓库对当前游戏版本说的每件事都录过、钉过 |
+| 4 | [录像成为可分析的对象](recordings.md) | 一份录像直接读出因果、统计和内部过程，agent 能拿它做统计 |
+| 5 | [单位的无科技模拟](units.md) | 每个单位在标准布阵里被模拟器逐 tick 复现 |
+| 6 | [语料成为游戏 oracle](corpus.md) | 语料的每一回合都有游戏给的答案 |
+
+单位与语料两条的栈已空，排在最后；fight-coverage 挡得最多的全是模块，广度因此排第一。
+
+## 跨 lane 的边
+
+- **广度 blocks 平台。** 模拟器打不了真实对局，平台就不成立；挡住真实对局的是模块，不再是单位。
+- **文档与命令行 enables 所有 lane。** 一份 fight 文档就是一个夹具，加钉子不用写脚本；校验变快，
+  每次提交的 CI 就短。
+- **文档与命令行 enables 平台。** 平台对外的面就是命令行。
+- **广度 conflicts 文档与命令行。** 两边都会改 `tests/` 下的夹具，同一时间只做一边。
+- **录像 enables 换版本的尾巴。** 经验进了录像，经验条和 `UpgradeExp` 谁写就能直接读。
+- **所有录制 conflicts 游戏进程。** 游戏只有一个进程，录制在持有它的会话里排队。
+
+## Lane 文件
+
+每条 lane 一个文件，以 lane 命名。一条 lane 是计划的一个子目标，它的文件归这条 lane 上的工作
+所有：不同 lane 的两个任务从不写同一个文件，同一条 lane 的两个任务不同时跑，因为一条 lane 里的
+节点彼此 block 或 conflict。
+
+lane 文件只写意图，不写状态：
+
+- **子目标和怎样算完成**，以及这条 lane 为什么是现在这个形状；
+- **栈**：顶上是正在做的节点，下面是它压住的节点，各自写明被什么挡住。做完的节点出栈，它的记录
+  就是完成它的 PR；
+- **停车场**：没人在做的节点，各带一个真能判定的 `reopen_when`；
+- 这条 lane 特有的方法，如果有的话。
+
+数字、通过数和"做到了 X"不写在这里，写进 PR 正文、`tests/<topic>/README.md` 或 issue，那里才能
+核对。跨 lane 的新边、lane 顺序的变化，改的是本文件前面几节，不是某个 lane 文件。

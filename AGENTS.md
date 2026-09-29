@@ -18,10 +18,10 @@ says what qualifies as one; read it before opening one.
 
 # Plan
 
-The plan is a task graph, kept in Chinese. Its structure is in `plan.md`: the
-goal, the metric of how far off it is, the lanes (one per sub-goal), their
-order, and the edges between them. Each lane's stack and parking lot are in
-`plan/<lane>.md`, and `plan/README.md` says what goes there.
+The plan is a task graph, kept in Chinese. Its structure is in
+`plan/README.md`: the goal, the metric of how far off it is, the lanes (one per
+sub-goal), their order, the edges between them, and what a lane file holds.
+Each lane's stack and parking lot are in `plan/<lane>.md`.
 
 - **Three kinds of edge.** blocks: B cannot finish before A, and only this
   kind forms a stack. conflicts: both change the same module or both need
@@ -38,7 +38,7 @@ order, and the edges between them. Each lane's stack and parking lot are in
 - **State is derived, not written.** A node in progress is its open pull
   request, a finished one is its merge commit, numbers live in pull request
   bodies and `tests/<topic>/README.md`, and a block is `Blocked by #n`.
-  Neither `plan.md` nor a lane file says how far along anything is.
+  Neither `plan/README.md` nor a lane file says how far along anything is.
 - **One writer for structure.** Edges and lane order are changed by the main
   session after a merge. A parallel session that finds a cross-lane relation
   writes it in its own pull request body. A lane file is changed only by that
