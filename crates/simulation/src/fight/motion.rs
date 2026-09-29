@@ -408,7 +408,8 @@ impl Simulation {
         }
 
         let inverse_delta_time = q32_div(Q32_ONE, NATIVE_LOGIC_DELTA_Q32.saturating_mul(4));
-        let solutions = super::rvo::solve_agents(&agents, inverse_delta_time);
+        let solutions =
+            super::rvo::solve_agents(&agents, inverse_delta_time, &mut self.rvo_quadtree_capacity);
         self.rvo_first_tree_pending = false;
         for (&actor_id, actor) in self.actors.iter_mut().filter(|(_, actor)| actor.alive()) {
             let solution = solutions

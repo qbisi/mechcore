@@ -217,6 +217,7 @@ struct Simulation {
     // buffer. The internal position read by the first BuildQuadtree remains
     // zero until the subsequent BufferSwitch.
     rvo_first_tree_pending: bool,
+    rvo_quadtree_capacity: rvo::QuadtreeCapacity,
     terminal_drain_pending: bool,
     /// The step the fight stops on: a side had already won when it began,
     /// and no skill updates on it.
@@ -323,6 +324,7 @@ impl Simulation {
             identities: IdentityAllocator::new(),
             rvo_counter: 0,
             rvo_first_tree_pending: true,
+            rvo_quadtree_capacity: rvo::QuadtreeCapacity::default(),
             terminal_drain_pending: false,
             stop_step: None,
             late_building_events_pending: false,
