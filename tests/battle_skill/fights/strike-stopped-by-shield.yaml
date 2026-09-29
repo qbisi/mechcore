@@ -1,0 +1,26 @@
+# A falling strike stopped by a shield.
+#
+# Blue drops a Missile Strike onto the centre of red's shield. On tick 60 its
+# fall has come 65 metres above the ground, inside the shield, and it strikes
+# there, three ticks before it would land: the shield takes the 3000, and the
+# Marksman inside takes nothing.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 747
+hash: {profile: mcfr-content-0.7.0, result: 9c0aba8d03c7c6f59c66f33838c9a110068cb7df22033dfb1f67e39e6d286a72}
+blue:
+  units:
+  - {name: fortress, index: 0, position: {x: 60, y: -150}, exp: 0/400/1600}
+  battle_skills:
+  - {name: missile_strike, positions: [{x: -1, y: 81}]}
+red:
+  core_damage: 350
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -80}}
+  - {name: marksman, index: 1, position: {x: 60, y: -130}, exp: 0/200/650}
+  contraptions:
+  - {name: shield, index: 2, position: {x: 1, y: -81}, retained: false}

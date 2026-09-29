@@ -1,0 +1,22 @@
+# A Missile Strike on both sides' units, and the towers after.
+#
+# Blue's strike lands on tick 63 where both sides' Crawlers meet: its 3000
+# reaches every unit its 40 metres cover, of either side, with no owner, and
+# kills them all. With neither side left a unit and no shot in the air, all
+# four towers fall that tick, and the fight's last tick records them.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 64
+hash: {profile: mcfr-content-0.7.0, result: e43135148ee11adf1dfebb1af314e6f8f80ffa8fc11ff6d403dfc86847581219}
+blue:
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -40}, exp: 0/192/450}
+  battle_skills:
+  - {name: missile_strike, positions: [{x: 0, y: 0}]}
+red:
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -40}, exp: 0/192/450}

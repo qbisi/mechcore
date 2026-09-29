@@ -35,16 +35,32 @@ impl Simulation {
             .iter()
             .map(|slot| slot.lock_target)
             .collect::<Vec<_>>();
+        let owner = FightActorRef::Unit(actor_id);
         let found = siblings
             .iter()
-            .map(|lock| {
-                lock.and_then(|lock| {
-                    self.wall_in_the_way(FightActorRef::Unit(actor_id), lock)
+            .enumerate()
+            .map(|(index, lock)| {
+                let wall = lock.and_then(|lock| {
+                    self.wall_in_the_way(owner, lock)
                         .map(|building| (building, lock))
-                })
+                });
+                // Each slot's `SearchTargetShield`, as the core's.
+                let shield = if wall.is_none() {
+                    lock.and_then(|lock| {
+                        self.search_target_shield_in(
+                            owner,
+                            lock,
+                            self.slot_attack_range(actor_id, Some(index + 1)),
+                        )
+                        .map(|shield| (shield, lock))
+                    })
+                } else {
+                    None
+                };
+                (wall, shield)
             })
             .collect::<Vec<_>>();
-        for (slot, in_the_way) in self
+        for (slot, (in_the_way, shield)) in self
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable")
@@ -54,6 +70,7 @@ impl Simulation {
             .zip(found)
         {
             slot.in_the_way = in_the_way;
+            slot.target_shield = shield;
         }
     }
 

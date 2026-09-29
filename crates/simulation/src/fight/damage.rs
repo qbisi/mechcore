@@ -48,6 +48,9 @@ pub(in crate::fight) struct DamageHit {
     /// `canCrossAdvancedShield`, or a performer that
     /// `IsInterceptByAdvancedEnergyShield` is false for.
     pub(in crate::fight) crosses_shields: bool,
+    /// Whether its splash strikes buildings as well as units: a unit's and
+    /// a missile's does, and a battle skill's reaches units alone.
+    pub(in crate::fight) strikes_buildings: bool,
     pub(in crate::fight) splash_radius: i64,
     pub(in crate::fight) reach: Reach,
 }
@@ -215,7 +218,7 @@ impl Simulation {
         // Crawler standing just in front of a wall reads the block between the
         // Crawlers around it, for the shot's full damage.
         let splash_reaches_buildings =
-            hit.splash_radius > 0 && hit.reach.touches(UnitDomain::Ground);
+            hit.strikes_buildings && hit.splash_radius > 0 && hit.reach.touches(UnitDomain::Ground);
         let struck = self
             .target_search_order()
             .into_iter()
@@ -507,6 +510,7 @@ impl Simulation {
             center_y_q32: self.target_height_q32(target),
             shield,
             crosses_shields: attacker.rules.attack.crosses_shields,
+            strikes_buildings: true,
             splash_radius: attacker.rules.attack.splash_radius(),
             reach: Reach::Targets(attacker.rules.attack.targets),
         };
@@ -549,6 +553,7 @@ impl Simulation {
             center_y_q32: 0,
             shield: Some(shield),
             crosses_shields: false,
+            strikes_buildings: true,
             splash_radius: 0,
             reach: Reach::Targets(attacker.rules.attack.targets),
         };
@@ -657,6 +662,7 @@ impl Simulation {
                 center_y_q32: self.target_height_q32(target),
                 shield: None,
                 crosses_shields: attacker.rules.attack.crosses_shields,
+                strikes_buildings: true,
                 splash_radius,
                 reach: Reach::Targets(attacker.rules.attack.targets),
             };

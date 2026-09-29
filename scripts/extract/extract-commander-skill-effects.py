@@ -16,7 +16,8 @@ states what each field does.
 The table holds the rows the simulator fights: the buff skills whose buff is
 the Electromagnetic Impact's, a slow that disables technology, and every
 support skill, which `SupportUnitSystem` summons units for, and every shield
-skill, whose landing stands a shield of `AdvancedEnergyShieldSystem`. The script
+skill, whose landing stands a shield of `AdvancedEnergyShieldSystem`, and every
+damage skill that strikes one circle. The script
 refuses a buff row when its buff moves anything else, and a support row that
 places its summons at set offsets.
 
@@ -37,7 +38,8 @@ ONE = 1 << 32
 BUFF = 200001
 
 # (field in the row, name here). What is left out is the panel's (icon,
-# description, story, audio, prices, the rounds a skill can be dealt in), a
+# description, story, audio, prices, the rounds a skill can be dealt in, and
+# `scope`, when the card may be used), a
 # shield's (`energyShieldDamage`, `isCrossAdvancedShield`: a side carrying a
 # shield is refused before a skill is released), and what
 # `CommanderSkillData.PreProcess` overwrites for a circle (`subEffectCount`,
@@ -45,7 +47,6 @@ BUFF = 200001
 # a sub-effect's fall stops and the fall starts that much higher, so it moves
 # nothing the fight reads.
 INTEGERS = (
-    ("scope", "scope"),
     ("effectRangeType", "effect_range_type"),
     ("effectType", "effect_type"),
     ("subEffectDamage", "sub_effect_damage"),
@@ -108,7 +109,6 @@ def buff_lines(buff):
 # the summons appear. `positions` has to be empty: a row that places its
 # summons at set offsets takes another path the fight does not read.
 SUPPORT_INTEGERS = (
-    ("scope", "scope"),
     ("effectRangeType", "effect_range_type"),
     ("effectType", "effect_type"),
     ("unitID", "unit_type_id"),
@@ -147,7 +147,6 @@ def support_lines(group):
 # fight reads, and `isCrossAdvancedShield` is never read: `CS_EnergyShield`
 # crosses shields whatever its row says.
 SHIELD_INTEGERS = (
-    ("scope", "scope"),
     ("effectRangeType", "effect_range_type"),
     ("effectType", "effect_type"),
     ("energy", "energy"),
@@ -171,6 +170,43 @@ def shield_lines(group):
         for field, name in SHIELD_FIXED:
             value = raw(row[field])
             lines.append(f"    {name}: {value}{reading(value)}")
+    return lines
+
+
+# A damage skill's row, for the circles: one sub-effect, which
+# `CommanderSkillData.PreProcess` makes reach `effectRange`. A random circle
+# or a line scatters several, which the table does not carry.
+DAMAGE_INTEGERS = (
+    ("effectRangeType", "effect_range_type"),
+    ("effectType", "effect_type"),
+    ("subEffectDamage", "sub_effect_damage"),
+    ("subEffectBuffID", "sub_effect_buff_id"),
+)
+DAMAGE_FIXED = (
+    ("startTime", "start_time"),
+    ("effectRange", "effect_range"),
+    ("subEffectMoveSpeed", "sub_effect_move_speed"),
+    ("subEffectMoveTime", "sub_effect_move_time"),
+    ("subEffectDefaultHeight", "sub_effect_default_height"),
+)
+# `isDirectHit` only rides on the hit's event, which nothing in the fight
+# reads.
+DAMAGE_FLAGS = (("isCrossAdvancedShield", "cross_advanced_shield"),)
+
+
+def damage_lines(group):
+    lines = ["", "damage_skills:"]
+    for row in group["damageCommanderSkills"]:
+        if row["isTestData"] or row["effectRangeType"] != 0:
+            continue
+        lines += [f"  - id: {row['id']}", f"    name: {row['name']}"]
+        for field, name in DAMAGE_INTEGERS:
+            lines.append(f"    {name}: {row[field]}")
+        for field, name in DAMAGE_FIXED:
+            value = raw(row[field])
+            lines.append(f"    {name}: {value}{reading(value)}")
+        for field, name in DAMAGE_FLAGS:
+            lines.append(f"    {name}: {str(row[field]).lower()}")
     return lines
 
 
@@ -203,6 +239,7 @@ def render(group):
         lines += buff_lines(buffs[row["subEffectBuffID"]])
     lines += support_lines(group)
     lines += shield_lines(group)
+    lines += damage_lines(group)
     return "\n".join(lines) + "\n"
 
 

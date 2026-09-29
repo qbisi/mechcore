@@ -28,6 +28,24 @@ struct Table {
     buff_skills: Vec<BuffSkillRow>,
     support_skills: Vec<SupportSkillRow>,
     shield_skills: Vec<ShieldSkillRow>,
+    damage_skills: Vec<DamageSkillRow>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct DamageSkillRow {
+    id: i32,
+    name: String,
+    effect_range_type: i32,
+    effect_type: i32,
+    sub_effect_damage: i64,
+    sub_effect_buff_id: u32,
+    start_time: i64,
+    effect_range: i64,
+    sub_effect_move_speed: i64,
+    sub_effect_move_time: i64,
+    sub_effect_default_height: i64,
+    cross_advanced_shield: bool,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -35,7 +53,6 @@ struct Table {
 struct ShieldSkillRow {
     id: i32,
     name: String,
-    scope: i32,
     effect_range_type: i32,
     effect_type: i32,
     energy: i64,
@@ -54,7 +71,6 @@ const STANDING_SHIELD_SKILL: i32 = 800_001;
 struct SupportSkillRow {
     id: i32,
     name: String,
-    scope: i32,
     effect_range_type: i32,
     effect_type: i32,
     unit_type_id: u32,
@@ -74,7 +90,6 @@ struct SupportSkillRow {
 struct BuffSkillRow {
     id: i32,
     name: String,
-    scope: i32,
     effect_range_type: i32,
     effect_type: i32,
     sub_effect_damage: i32,
@@ -132,12 +147,50 @@ pub(crate) enum SkillEffect {
     },
     /// `SupportUnitEffectController`: a creator of summons.
     Summon(Box<Summon>),
+    /// `CS_Damage`'s: the skill's damage over its circle.
+    Strike {
+        /// `FPoint` raw metres, the circle's radius.
+        range_q32: i64,
+        damage: i64,
+        /// `isCrossAdvancedShield`: it passes shields, falling and landing.
+        crosses_shields: bool,
+        /// How its sub-effect falls, which a shield can stop.
+        fall: Fall,
+    },
     /// `CS_EnergyShield`'s: a shield of the side, standing where it lands.
     Shield {
         /// `FPoint` raw metres.
         radius_q32: i64,
         energy: i64,
     },
+}
+
+/// A sub-effect's fall, `CommanderSkillSubEffectAgent`: from the tick after
+/// its activation it drops a step a tick from its height above where it
+/// lands, and lands once it has fallen the whole of it.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct Fall {
+    /// The tick it first moves on.
+    pub(crate) first_move_on: u64,
+    /// `FPoint` raw metres: where it starts above the ground, and where it
+    /// lands.
+    pub(crate) start_q32: i64,
+    pub(crate) floor_q32: i64,
+    /// `FPoint` raw metres a tick.
+    pub(crate) step_q32: i64,
+}
+
+impl Fall {
+    /// Where it stands on a tick of its fall, `FPoint` raw metres up: none
+    /// before it moves.
+    pub(crate) fn height_on(&self, tick: u64) -> Option<i64> {
+        let moves = i64::try_from(tick.checked_sub(self.first_move_on)? + 1).ok()?;
+        Some(
+            self.start_q32
+                .saturating_sub(self.step_q32.saturating_mul(moves))
+                .max(self.floor_q32),
+        )
+    }
 }
 
 /// What a support skill's `SupportUnitCreator` makes, read off its row.
@@ -182,6 +235,7 @@ pub(crate) struct CommanderSkillEffects {
     buffs: Vec<BuffSkillRow>,
     summons: Vec<SupportSkillRow>,
     shields: Vec<ShieldSkillRow>,
+    strikes: Vec<DamageSkillRow>,
 }
 
 impl CommanderSkillEffects {
@@ -204,6 +258,7 @@ impl CommanderSkillEffects {
             buffs: table.buff_skills,
             summons: table.support_skills,
             shields: table.shield_skills,
+            strikes: table.damage_skills,
         })
     }
 
@@ -286,15 +341,38 @@ impl CommanderSkillEffects {
                         energy: row.energy,
                     },
                 )
+            } else if let Some(row) = self.strikes.iter().find(|row| row.id == id) {
+                if row.sub_effect_buff_id != 0 {
+                    return Err(Error::new(format!(
+                        "{named}, {}, writes buff {}, which this build does not read",
+                        row.name, row.sub_effect_buff_id
+                    )));
+                }
+                (
+                    row.name.as_str(),
+                    Common::of_strike(row),
+                    SkillEffect::Strike {
+                        range_q32: row.effect_range,
+                        damage: row.sub_effect_damage,
+                        crosses_shields: row.cross_advanced_shield,
+                        fall: fall(
+                            row.start_time,
+                            row.sub_effect_move_time,
+                            row.sub_effect_move_speed,
+                            row.sub_effect_default_height,
+                        )?,
+                    },
+                )
             } else {
                 return Err(Error::new(format!("{named} is not released by this build")));
             };
         let named = format!("{named}, {row_name}");
-        if common.scope != 1 || (common.effect_type, common.effect_range_type) != (0, 0) {
+        // `scope` is when the card may be used, which nothing in the fight
+        // reads.
+        if (common.effect_type, common.effect_range_type) != (0, 0) {
             return Err(Error::new(format!(
-                "{named} reaches scope {} with effect type {} over range type {}, which this \
-                 build does not read",
-                common.scope, common.effect_type, common.effect_range_type
+                "{named} has effect type {} over range type {}, which this build does not read",
+                common.effect_type, common.effect_range_type
             )));
         }
         let [position] = skill.positions.as_slice() else {
@@ -322,7 +400,6 @@ impl CommanderSkillEffects {
 
 /// What every kind of skill row holds that places and times its release.
 struct Common {
-    scope: i32,
     effect_type: i32,
     effect_range_type: i32,
     start_time: i64,
@@ -333,7 +410,16 @@ struct Common {
 impl Common {
     const fn of_buff(row: &BuffSkillRow) -> Self {
         Self {
-            scope: row.scope,
+            effect_type: row.effect_type,
+            effect_range_type: row.effect_range_type,
+            start_time: row.start_time,
+            move_time: row.sub_effect_move_time,
+            move_speed: row.sub_effect_move_speed,
+        }
+    }
+
+    const fn of_strike(row: &DamageSkillRow) -> Self {
+        Self {
             effect_type: row.effect_type,
             effect_range_type: row.effect_range_type,
             start_time: row.start_time,
@@ -344,7 +430,6 @@ impl Common {
 
     const fn of_shield(row: &ShieldSkillRow) -> Self {
         Self {
-            scope: row.scope,
             effect_type: row.effect_type,
             effect_range_type: row.effect_range_type,
             start_time: row.start_time,
@@ -355,7 +440,6 @@ impl Common {
 
     const fn of_support(row: &SupportSkillRow) -> Self {
         Self {
-            scope: row.scope,
             effect_type: row.effect_type,
             effect_range_type: row.effect_range_type,
             start_time: row.start_time,
@@ -462,6 +546,20 @@ fn lands_on(start_raw: i64, move_time_raw: i64, speed_raw: i64) -> Result<u64> {
     };
     u64::try_from(prepare + 1 + falls)
         .map_err(|_| Error::new("a battle skill lands before the fight begins"))
+}
+
+/// The fall `lands_on` counts: `CSRS_Perform` activates the sub-effect on
+/// the tick after preparing hands over, and it moves from the next, from
+/// `speed x min(startTime, moveTime)` above its default height.
+fn fall(start_raw: i64, move_time_raw: i64, speed_raw: i64, floor_raw: i64) -> Result<Fall> {
+    let prepare = (ticks(start_raw)? - ticks(move_time_raw)?).max(1);
+    Ok(Fall {
+        first_move_on: u64::try_from(prepare + 2)
+            .map_err(|_| Error::new("a battle skill falls before the fight begins"))?,
+        start_q32: floor_raw.saturating_add(multiply(speed_raw, start_raw.min(move_time_raw))),
+        floor_q32: floor_raw,
+        step_q32: multiply(speed_raw, LOGIC_DELTA_RAW),
+    })
 }
 
 /// `FPoint` multiplication.

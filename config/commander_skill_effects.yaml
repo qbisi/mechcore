@@ -9,7 +9,6 @@ schema: mechcore.commander_skill_effects
 buff_skills:
   - id: 200001
     name: 电磁冲击
-    scope: 1
     effect_range_type: 0
     effect_type: 0
     sub_effect_damage: 0
@@ -29,7 +28,6 @@ buff_skills:
       move_speed_rate: -1717986918  # -0.4
   - id: 200002
     name: 巨型电磁冲击
-    scope: 1
     effect_range_type: 0
     effect_type: 0
     sub_effect_damage: 0
@@ -49,7 +47,6 @@ buff_skills:
       move_speed_rate: -1717986918  # -0.4
   - id: 200004
     name: 巨型电磁冲击
-    scope: 0
     effect_range_type: 0
     effect_type: 0
     sub_effect_damage: 0
@@ -71,7 +68,6 @@ buff_skills:
 support_skills:
   - id: 1200001
     name: 地底威胁
-    scope: 1
     effect_range_type: 0
     effect_type: 0
     unit_type_id: 10
@@ -86,7 +82,6 @@ support_skills:
     create_interval: 1073741824  # 0.25
   - id: 1200002
     name: 犀牛来袭
-    scope: 1
     effect_range_type: 0
     effect_type: 0
     unit_type_id: 5
@@ -101,7 +96,6 @@ support_skills:
     create_interval: 0  # 0
   - id: 1200003
     name: 呼叫机群
-    scope: 1
     effect_range_type: 0
     effect_type: 0
     unit_type_id: 6
@@ -116,7 +110,6 @@ support_skills:
     create_interval: 0  # 0
   - id: 1200004
     name: 呼叫战舰
-    scope: 1
     effect_range_type: 0
     effect_type: 0
     unit_type_id: 11
@@ -131,7 +124,6 @@ support_skills:
     create_interval: 0  # 0
   - id: 1200005
     name: 天降火神
-    scope: 1
     effect_range_type: 0
     effect_type: 0
     unit_type_id: 3
@@ -146,7 +138,6 @@ support_skills:
     create_interval: 0  # 0
   - id: 1200006
     name: 犀牛来袭
-    scope: 0
     effect_range_type: 0
     effect_type: 0
     unit_type_id: 5
@@ -161,7 +152,6 @@ support_skills:
     create_interval: 0  # 0
   - id: 1200007
     name: 呼叫凤凰
-    scope: 0
     effect_range_type: 0
     effect_type: 0
     unit_type_id: 16
@@ -176,7 +166,6 @@ support_skills:
     create_interval: 0  # 0
   - id: 1200008
     name: 呼叫恶灵
-    scope: 1
     effect_range_type: 0
     effect_type: 0
     unit_type_id: 18
@@ -191,7 +180,6 @@ support_skills:
     create_interval: 0  # 0
   - id: 1200009
     name: 狂蝎来袭
-    scope: 1
     effect_range_type: 0
     effect_type: 0
     unit_type_id: 19
@@ -206,7 +194,6 @@ support_skills:
     create_interval: 0  # 0
   - id: 1200010
     name: 台风来袭
-    scope: 0
     effect_range_type: 0
     effect_type: 0
     unit_type_id: 22
@@ -221,7 +208,6 @@ support_skills:
     create_interval: 0  # 0
   - id: 1200011
     name: 火獾来袭
-    scope: 0
     effect_range_type: 0
     effect_type: 0
     unit_type_id: 20
@@ -236,7 +222,6 @@ support_skills:
     create_interval: 0  # 0
   - id: 1200012
     name: 天降堡垒
-    scope: 0
     effect_range_type: 0
     effect_type: 0
     unit_type_id: 1
@@ -251,7 +236,6 @@ support_skills:
     create_interval: 0  # 0
   - id: 1200013
     name: 天降熔点
-    scope: 1
     effect_range_type: 0
     effect_type: 0
     unit_type_id: 4
@@ -268,7 +252,6 @@ support_skills:
 shield_skills:
   - id: 800001
     name: 空投护盾
-    scope: 1
     effect_range_type: 0
     effect_type: 0
     energy: 50000
@@ -278,7 +261,6 @@ shield_skills:
     sub_effect_move_time: 4294967296  # 1
   - id: 800011
     name: 空投护盾
-    scope: 1
     effect_range_type: 0
     effect_type: 0
     energy: 50000
@@ -288,7 +270,6 @@ shield_skills:
     sub_effect_move_time: 4294967296  # 1
   - id: 800012
     name: 空投护盾
-    scope: 1
     effect_range_type: 0
     effect_type: 0
     energy: 50000
@@ -296,3 +277,101 @@ shield_skills:
     effect_range: 300647710720  # 70
     sub_effect_move_speed: 42949672960  # 10
     sub_effect_move_time: 4294967296  # 1
+
+damage_skills:
+  - id: 300001
+    name: 导弹打击
+    effect_range_type: 0
+    effect_type: 0
+    sub_effect_damage: 3000
+    sub_effect_buff_id: 0
+    start_time: 12884901888  # 3
+    effect_range: 171798691840  # 40
+    sub_effect_move_speed: 2791728742400  # 650
+    sub_effect_move_time: 19327352832  # 4.5
+    sub_effect_default_height: 0  # 0
+    cross_advanced_shield: false
+  - id: 300004
+    name: 核弹
+    effect_range_type: 0
+    effect_type: 0
+    sub_effect_damage: 70000
+    sub_effect_buff_id: 0
+    start_time: 64424509440  # 15
+    effect_range: 429496729600  # 100
+    sub_effect_move_speed: 2791728742400  # 650
+    sub_effect_move_time: 19327352832  # 4.5
+    sub_effect_default_height: 0  # 0
+    cross_advanced_shield: false
+  - id: 300007
+    name: 轨道标枪
+    effect_range_type: 0
+    effect_type: 0
+    sub_effect_damage: 70000
+    sub_effect_buff_id: 0
+    start_time: 12884901888  # 3
+    effect_range: 128849018880  # 30
+    sub_effect_move_speed: 4294967296000  # 1000
+    sub_effect_move_time: 8589934592  # 2
+    sub_effect_default_height: 0  # 0
+    cross_advanced_shield: true
+  - id: 300008
+    name: 核弹
+    effect_range_type: 0
+    effect_type: 0
+    sub_effect_damage: 70000
+    sub_effect_buff_id: 0
+    start_time: 64424509440  # 15
+    effect_range: 429496729600  # 100
+    sub_effect_move_speed: 2791728742400  # 650
+    sub_effect_move_time: 19327352832  # 4.5
+    sub_effect_default_height: 0  # 0
+    cross_advanced_shield: false
+  - id: 300011
+    name: 导弹打击
+    effect_range_type: 0
+    effect_type: 0
+    sub_effect_damage: 3000
+    sub_effect_buff_id: 0
+    start_time: 12884901888  # 3
+    effect_range: 171798691840  # 40
+    sub_effect_move_speed: 2791728742400  # 650
+    sub_effect_move_time: 19327352832  # 4.5
+    sub_effect_default_height: 0  # 0
+    cross_advanced_shield: false
+  - id: 300012
+    name: 核弹
+    effect_range_type: 0
+    effect_type: 0
+    sub_effect_damage: 70000
+    sub_effect_buff_id: 0
+    start_time: 64424509440  # 15
+    effect_range: 429496729600  # 100
+    sub_effect_move_speed: 2791728742400  # 650
+    sub_effect_move_time: 19327352832  # 4.5
+    sub_effect_default_height: 0  # 0
+    cross_advanced_shield: false
+  - id: 300015
+    name: 轨道标枪
+    effect_range_type: 0
+    effect_type: 0
+    sub_effect_damage: 70000
+    sub_effect_buff_id: 0
+    start_time: 12884901888  # 3
+    effect_range: 128849018880  # 30
+    sub_effect_move_speed: 4294967296000  # 1000
+    sub_effect_move_time: 8589934592  # 2
+    sub_effect_default_height: 0  # 0
+    cross_advanced_shield: true
+  - id: 300016
+    name: 重型导弹打击
+    effect_range_type: 0
+    effect_type: 0
+    sub_effect_damage: 12000
+    sub_effect_buff_id: 0
+    start_time: 12884901888  # 3
+    effect_range: 171798691840  # 40
+    sub_effect_move_speed: 2791728742400  # 650
+    sub_effect_move_time: 19327352832  # 4.5
+    sub_effect_default_height: 0  # 0
+    cross_advanced_shield: false

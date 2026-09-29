@@ -1,0 +1,26 @@
+# A Nuke landing beside a shield.
+#
+# Blue's Nuke lands on tick 302 just outside red's shield. Its 100 metres
+# reach the shield, which takes what it has left and breaks, and the
+# Marksmen it covers, the one that walked in among them, take nothing.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 433
+hash: {profile: mcfr-content-0.7.0, result: 7c9b984e02e05058a4863599129ac51ccebbd837b70dcde06947febb450fa943}
+blue:
+  units:
+  - {name: fortress, index: 0, position: {x: -60, y: -150}, exp: 0/200/1600}
+  - {name: fortress, index: 1, position: {x: 60, y: -150}, exp: 0/200/1600}
+  battle_skills:
+  - {name: nuke, positions: [{x: -60, y: 130}]}
+red:
+  core_damage: 700
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -80}}
+  - {name: marksman, index: 1, position: {x: 60, y: -130}}
+  contraptions:
+  - {name: shield, index: 2, position: {x: 1, y: -81}, retained: false}

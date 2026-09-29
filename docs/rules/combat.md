@@ -542,6 +542,13 @@ and it does not ask what dealt the last blow. A laser kill takes the loser's
 towers down the same way: gone on the kill's tick, their `building_destroyed`
 on the next, which is the fight's last.
 
+**A tick that leaves neither side a unit takes both sides' towers down, when
+no projectile is in flight.** A Missile Strike landing among both sides'
+Crawlers, before any unit updates, leaves both teams' counts at zero, and all
+four towers fall on that tick. Two sides that kill each other's last units
+while shots are still in the air end the fight as the drain ends it, with
+their towers standing.
+
 **On the tick a side loses its last unit, a winner's unit that updates after
 that death takes one of the loser's towers.** It searches as it would on any
 tick, and a tower is an ordinary candidate: nothing in target selection asks
@@ -588,6 +595,8 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- A tick that leaves neither side a unit, with no shot in the air, fells all
+  four towers: `tests/battle_skill/fights/missile-strike-both-sides.yaml`.
 - Every unit's current interval, its stagger and the three readings that
   complete it, on every tick of the standard unit fights, one directory per
   unit, `tests/marksman/fights/` among them.
