@@ -9,6 +9,8 @@ pub(in crate::fight) struct InitialBuildings {
     pub(in crate::fight) unsearchable: BTreeSet<u64>,
     /// Each construction's RVO collider priority.
     pub(in crate::fight) colliders: BTreeMap<u64, i32>,
+    /// The constructions their own side passes through.
+    pub(in crate::fight) passable_constructions: BTreeSet<u64>,
     /// What each tower's fall writes on its side.
     pub(in crate::fight) tower_losses: BTreeMap<u64, TowerLoss>,
     /// The constructions a tower's loss reaches.
@@ -21,6 +23,10 @@ pub(in crate::fight) struct InitialBuildings {
 
 /// One building before it is given an identity, from either source.
 #[derive(Debug, Clone, Copy)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "each flag is a separate answer of the building's row"
+)]
 pub(in crate::fight) struct RawBuilding {
     pub(in crate::fight) team_id: u32,
     pub(in crate::fight) building_type_id: u32,
@@ -37,6 +43,9 @@ pub(in crate::fight) struct RawBuilding {
     pub(in crate::fight) loss: Option<(u32, u32)>,
     /// Whether a tower's loss reaches this construction.
     pub(in crate::fight) tower_buff: bool,
+    /// Whether its own side passes through it: a construction whose row
+    /// answers `IsEnableBlock`.
+    pub(in crate::fight) enable_block: bool,
     /// The construction a block belongs to; none for a tower.
     pub(in crate::fight) group: Option<usize>,
     /// The experience its destruction hands out.
@@ -238,6 +247,7 @@ fn map_buildings(
                 collider_priority: None,
                 loss: Some((towers.loss_buff(level)?, towers.loss_ticks(level)?)),
                 tower_buff: false,
+                enable_block: false,
                 group: None,
                 exp: building.exp,
             })
@@ -311,6 +321,7 @@ fn construction_building(building: &ConstructionBuilding) -> RawBuilding {
         collider_priority: Some(building.collider_priority),
         loss: None,
         tower_buff: building.tower_buff,
+        enable_block: building.enable_block,
         group: Some(building.group),
         exp: i64::from(building.exp),
     }
@@ -333,6 +344,7 @@ fn interceptor_building(building: &InterceptorBuilding) -> RawBuilding {
         collider_priority: Some(building.collider_priority),
         loss: None,
         tower_buff: false,
+        enable_block: false,
         group: None,
         exp: i64::from(building.exp),
     }
@@ -393,6 +405,11 @@ pub(in crate::fight) fn initialize_buildings(
                 .map(|priority| (normalized_ids[&building_key(building)], priority))
         })
         .collect::<BTreeMap<_, _>>();
+    let passable_constructions = raw
+        .iter()
+        .filter(|building| building.enable_block)
+        .map(|building| normalized_ids[&building_key(building)])
+        .collect::<BTreeSet<_>>();
     let states = raw
         .iter()
         .map(|building| {
@@ -443,6 +460,7 @@ pub(in crate::fight) fn initialize_buildings(
         states,
         unsearchable,
         colliders,
+        passable_constructions,
         tower_losses,
         tower_buffed_constructions,
         construction_groups,

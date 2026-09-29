@@ -333,9 +333,10 @@ impl Simulation {
                 building.position.x,
                 building.position.z,
                 building.bounds_width / 2,
-                // A construction lets its own side through; an interceptor
-                // is a building as a map's crystal is, and holds everyone off.
-                construction.is_some() && !self.is_interceptor(building.building_id),
+                // `RVOControllerFixed.RefreshGroup` lets a construction's own
+                // side through when its row answers `IsEnableBlock`: a wall's
+                // block, not a turret. An interceptor is no construction.
+                self.passable_constructions.contains(&building.building_id),
             ))
         };
         // The towers, then the map's crystals in the order the map lists them,

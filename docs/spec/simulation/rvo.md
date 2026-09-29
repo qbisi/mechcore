@@ -145,7 +145,11 @@ sets its own `collides_with` to 0. A colliding building uses priority 10,
 `size=M`, inner and outer radius both half the building's width, and
 `locked=true`. A construction does the same on its row's
 `pathfinding_collider_priority` instead of 10 — 5 for a Defensive Wall — and
-is marked `passable_by_own_group`. A map's crystal does the same on its own
+is marked `passable_by_own_group` when its row answers `IsEnableBlock`, a
+`blockWidth` above 0 and a `defaultActorVisibility` below 2, which is what
+`RVOControllerFixed.RefreshGroup` sets `ignoreSameGroup` from: a Defensive
+Wall's blocks are, a Rapid-Fire Turret, whose `blockWidth` is 0, is not, and
+its own side steers round it. A map's crystal does the same on its own
 `pathfindingColliderPriority`, with its radius for both radii.
 
 The filter is directional: a candidate becomes a neighbour only when

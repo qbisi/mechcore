@@ -77,6 +77,12 @@ pub(crate) struct ConstructionBuilding {
     /// The row's `canBeEffectedByTowerBuff`: whether a tower's loss writes its
     /// buff on this building too.
     pub(crate) tower_buff: bool,
+    /// `ConstructionData.IsEnableBlock`: a `blockWidth` above zero and a
+    /// `defaultActorVisibility` below 2. Its own side passes through such a
+    /// construction (`RVOControllerFixed.RefreshGroup` sets
+    /// `ignoreSameGroup` from it); a turret, whose `blockWidth` is 0, it
+    /// avoids.
+    pub(crate) enable_block: bool,
 }
 
 /// Space units to the metre, as `crates/simulation/src/rules.rs` quantizes a
@@ -262,6 +268,7 @@ impl Constructions {
                 skill: skill.clone(),
                 rotate_speed: row.rotate_speed,
                 tower_buff: row.can_be_effected_by_tower_buff,
+                enable_block: row.block_width > 0 && row.default_actor_visibility < 2,
             })
             .collect())
     }
