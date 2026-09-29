@@ -190,9 +190,16 @@ batch still runs.
 - A **layout** is compiled as `game apply_layout` would compile it, and the
   report carries the counts of what it places.
 - A **match** is checked against its seed, and each round's next opening is
-  predicted from the one before. It verifies only when every leaf outside the
-  fight is predicted and agrees, and every round projects onto a layout the
-  compiler takes.
+  predicted from the one before. Its rounds are then fought in order, each from
+  the layout its decisions deploy, as `convert --to layout` projects it: the
+  simulator's result is written onto the deployment and held to the position
+  the next round opens with, on the leaves the fight decides (the reactor core,
+  each formation's `exp`, the contraptions and the standing objects). The run
+  stops at the first round the simulator refuses, with its reason, or whose
+  result differs, with each leaf that does. `fights` carries the rounds fought
+  as the match says and where the run stopped. A match verifies only when every
+  leaf outside the fight is predicted and agrees, every round projects onto a
+  layout the compiler takes, and every fight is fought and agrees.
 - A **recording** is checked by simulating the layout it embeds again and
   comparing the result with what it holds. The report's `comparison` carries
   both timelines, the first tick they part at, and that tick explained.

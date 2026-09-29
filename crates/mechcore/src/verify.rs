@@ -1,8 +1,9 @@
 //! `verify`: checks each file against the contract its own kind defines.
 //!
 //! A layout is checked by the shared static compiler. A match is checked
-//! against its seed and by predicting each round's next opening from the one
-//! before. A recording is checked by simulating the layout it embeds again and
+//! against its seed, by predicting each round's next opening from the one
+//! before, and by fighting its rounds in order until the first the simulator
+//! refuses or whose result is not the next round's opening. A recording is checked by simulating the layout it embeds again and
 //! comparing the result with what it holds. A fight document is checked by
 //! fighting its projection with its seed, as `convert --to fight` does, and
 //! comparing the result it states with the one the simulator arrives at.
@@ -486,7 +487,8 @@ struct Difference {
 }
 
 /// Checks opening layouts and every reinforcement draw using seeded setup,
-/// then measures how much of each next opening the transition predicts.
+/// then measures how much of each next opening the transition predicts, and
+/// fights the rounds in order, holding each result to the next opening.
 /// Choices must name predicted offers; the source replay authenticates them.
 ///
 /// A match verifies only when every leaf outside the fight is predicted and
@@ -515,6 +517,17 @@ fn verify_match(
         .as_ref()
         .ok()
         .map(|(_, deal)| mechcore_document::project::every_round(economy, stated, deal));
+    // Each round's fight, in order, until the first the simulator does not
+    // fight or whose result is not the next round's opening.
+    let fights = checked.as_ref().ok().map(|(_, deal)| {
+        mechcore_document::coverage::fights(economy, stated, deal, |layout| {
+            let yaml = mechcore_document::canonical_yaml(layout.clone())?;
+            crate::convert::fought(|record| {
+                mechcore_simulation::simulate_document(yaml.as_bytes(), record, None)
+            })
+            .map_err(|failure| failure.reason().to_owned())
+        })
+    });
     let error = match &checked {
         Err(error) => Some(error.clone()),
         Ok(_) if matches!(projected, Some(Err(_))) => projected.clone().and_then(Result::err),
@@ -522,7 +535,25 @@ fn verify_match(
             "transitions are not fully predicted: {} leaves unequal, {} unimplemented",
             coverage.total.unequal, coverage.total.unimplemented
         )),
-        Ok(_) => None,
+        Ok(_) => fights.as_ref().and_then(|fights| {
+            use mechcore_document::coverage::Stopped;
+            fights.stopped.as_ref().map(|stopped| match stopped {
+                Stopped::NotProjected { round, reason } => {
+                    format!("round {round} is not fought: {reason}")
+                }
+                Stopped::Unsupported { round, reason } => {
+                    format!("the simulator does not fight round {round}: {reason}")
+                }
+                Stopped::Differs { round, differences } => format!(
+                    "round {round}'s fight is not what the match says it decided: {}",
+                    differences
+                        .iter()
+                        .map(|difference| format!("{} {}", difference.side, difference.path))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
+            })
+        }),
     };
     let found = checked.as_ref().ok();
     Ok(Report {
@@ -541,6 +572,7 @@ fn verify_match(
             "projected_layouts": projected.and_then(Result::ok),
             "reinforcements": found.map(|(_, checked)| &checked.rounds),
             "coverage": coverage,
+            "fights": fights,
         }),
     })
 }

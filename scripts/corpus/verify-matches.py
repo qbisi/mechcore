@@ -4,13 +4,16 @@
 Runs ``mechcore verify`` over each match YAML in one batch. Each match's
 report holds the opening and reinforcement checks and the transition coverage
 that ``docs/spec/document/match.md`` defines: every leaf of each next opening
-is equal, unequal, unimplemented or decided by the fight. This script adds the
-reports up by field group and lists every unequal leaf.
+is equal, unequal, unimplemented or decided by the fight. Each report also fights
+the match's rounds in order until the first the simulator refuses or whose
+result is not the next round's opening. This script adds the reports up by
+field group, lists every unequal leaf, and says for each match how many rounds
+it fought as the match says and where it stopped.
 The documents are the ones `scripts/corpus/export-replay-corpus.py` converts from the
 corpus's replays of this checkout's version.
 
 The exit status is 0 only when every match verifies, which needs no unequal
-and no unimplemented leaf anywhere.
+and no unimplemented leaf anywhere, and every round fought as the match says.
 
 Run from anywhere inside the checkout, after a release build and a corpus
 fetch:
@@ -99,17 +102,28 @@ def summarize(matches: list[Path], reports: list[dict[str, Any]]) -> dict[str, A
             add(fields.setdefault(group, {}), group_counts)
         for difference in coverage.get("unequal") or []:
             unequal.append({"match": path.name, **difference})
+        fights = report.get("fights") or {}
+        stopped = fights.get("stopped")
         files.append(
             {
                 "match": path.name,
                 "valid": bool(report.get("valid")),
                 "error": report.get("error"),
                 **{name: int(counts.get(name, 0)) for name in CLASSES},
+                "fought": len(fights.get("equal") or []),
+                "stopped": f"{stopped['result']} r{stopped['round']}" if stopped else "",
             }
         )
+    stops: dict[str, int] = {}
+    for file in files:
+        if file["stopped"]:
+            result = file["stopped"].split()[0]
+            stops[result] = stops.get(result, 0) + 1
     return {
         "matches": len(matches),
         "valid": sum(file["valid"] for file in files),
+        "fought": sum(file["fought"] for file in files),
+        "stops": dict(sorted(stops.items())),
         "total": {name: total.get(name, 0) for name in CLASSES},
         "fields": dict(sorted(fields.items())),
         "files": files,
@@ -151,10 +165,15 @@ def print_summary(summary: dict[str, Any], limit: int) -> None:
     print(table(rows, numbers))
     print()
 
-    rows = [["match", *CLASSES, "error"]]
+    rows = [["match", *CLASSES, "fought", "stopped", "error"]]
     for file in summary["files"]:
-        rows.append([*counted(file["match"], file), "" if file["valid"] else file["error"] or ""])
-    print(table(rows, numbers))
+        rows.append([
+            *counted(file["match"], file),
+            str(file["fought"]),
+            file["stopped"],
+            "" if file["valid"] else file["error"] or "",
+        ])
+    print(table(rows, numbers | {len(CLASSES) + 1}))
     print()
 
     unequal = summary["unequal"]
@@ -177,6 +196,9 @@ def print_summary(summary: dict[str, Any], limit: int) -> None:
             print(f"... {len(unequal) - len(shown)} more unequal leaves; --limit 0 lists all")
         print()
 
+    stops = ", ".join(f"{count} {result}" for result, count in summary["stops"].items())
+    print(f"{summary['fought']} rounds fought as the match says before the first that is not"
+          + (f"; stopped: {stops}" if stops else ""))
     print(f"{summary['valid']}/{summary['matches']} matches verify")
 
 
