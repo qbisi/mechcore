@@ -243,20 +243,6 @@ fn compile_constructions(
         ) else {
             continue;
         };
-        // Whether an officer or a technology reaches a construction's skill is
-        // not read: the fight would shoot with the row's numbers where the
-        // game may not. A firing construction on a side that carries either is
-        // refused rather than fought without them.
-        if buildings.iter().any(|building| building.skill.is_some())
-            && (!side.techs.officers.is_empty() || !side.techs.units.is_empty())
-        {
-            refused.push(format!(
-                "side {name}: {:?} fires a skill, and whether the side's officers and \
-                 technologies reach it is not measured",
-                placement.type_name
-            ));
-            continue;
-        }
         for building in &mut buildings {
             building.group = group;
         }
@@ -575,25 +561,26 @@ red:
         assert!(refused.contains("10 objects over 2 rows"), "{refused}");
     }
 
-    /// A turret is placed; beside an officer it is refused, because whether
-    /// the officer reaches its skill is not measured.
+    /// A turret beside an officer and a technology is placed as it is alone:
+    /// neither reaches a construction, so its skill keeps the row's numbers.
     #[test]
-    fn a_turret_beside_an_officer_is_refused() {
+    fn a_turret_beside_an_officer_is_placed() {
         let turret = LAYOUT.replace(
             "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
             "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\n  constructions: [{name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}]",
         );
-        let compiled = compile_default(&turret).unwrap();
-        assert!(
-            compiled.constructions[0].skill.is_some(),
-            "the turret fires"
+        let alone = compile_default(&turret).unwrap();
+        assert!(alone.constructions[0].skill.is_some(), "the turret fires");
+        let with_officer = turret.replace(
+            "blue:\n",
+            "blue:\n  officers: [advanced_offensive_tactics]\n  techs:\n    marksman: [range_enhancement]\n",
         );
-        let with_officer = turret.replace("blue:\n", "blue:\n  officers: [improved_wasp]\n");
         assert_ne!(with_officer, turret, "the fixture carries an officer");
-        let refused = compile_default(&with_officer).unwrap_err().to_string();
-        assert!(refused.contains("side blue"), "{refused}");
-        assert!(refused.contains("rapid_fire_turret"), "{refused}");
-        assert!(refused.contains("officers and technologies"), "{refused}");
+        let beside = compile_default(&with_officer).unwrap();
+        assert_eq!(
+            format!("{:?}", beside.constructions),
+            format!("{:?}", alone.constructions)
+        );
     }
 
     /// A layout refused for several things is refused for all of them at
