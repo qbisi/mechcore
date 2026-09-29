@@ -18,9 +18,8 @@ every reader here follows:
     work/decomp/<build>/index.sqlite         the symbol and call index
 
 `sync` looks before it fetches. A build already under `work/decomp` is left
-alone, an index already there is left alone, and an index in the older
-`work/unity-index/<build>/` is linked across rather than built again. A
-machine that has run it once needs the network only for a build it lacks.
+alone, and so is an index already there. A machine that has run it once needs
+the network only for a build it lacks.
 
 `work/decomp` is a sparse, blob-less clone, so a second build adds only its
 own files. Access is whatever git and `gh` have: a signed-in `gh` on a
@@ -36,7 +35,6 @@ the game has anything to publish.
 
 import json
 import os
-import shutil
 import subprocess
 import sys
 import time
@@ -47,7 +45,6 @@ import decompile
 REPOSITORY = "qbisi/mechcore-decomp"
 ROOT = Path(__file__).resolve().parents[2]
 DESTINATION = ROOT / "work" / "decomp"
-LEGACY_INDEX = ROOT / "work" / "unity-index"
 TOKEN = os.environ.get("MECHCORE_DECOMP_TOKEN")
 INDEX = "index.sqlite"
 
@@ -107,14 +104,6 @@ def sync_index(build):
     target = DESTINATION / build / INDEX
     if target.exists():
         print(f"{target}: present")
-        return
-    legacy = LEGACY_INDEX / build / INDEX
-    if legacy.exists():
-        try:
-            os.link(legacy, target)
-        except OSError:
-            shutil.copyfile(legacy, target)
-        print(f"{target}: linked from {legacy}")
         return
     # The index is the dump's, so it is built from the dump rather than
     # fetched: the same step `scripts/decomp/decompile.py` ends with.
