@@ -916,7 +916,8 @@ ordering above first meets them, so initial formation IDs are exactly `1..F` by
 first appearance. This numbers formations by their members' world `z` and `x`
 ordering, and is not the layout's formation declaration index. The layout keeps
 declaration order by native Unit index, because formation member scatter uses
-`match_seed + unit_index`.
+`match_seed + unit_index`, where `unit_index` is the layout's `index` and not
+the declaration position: a sold unit leaves a gap in it.
 
 **Buildings.** Initial buildings sort strictly ascending by `(team_id,
 building_type_id, position.x, position.y, position.z)` using Q32.32 raw

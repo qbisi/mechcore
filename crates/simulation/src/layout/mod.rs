@@ -26,7 +26,9 @@ pub(crate) struct Placement {
     pub(crate) team: u32,
     pub(crate) unit_id: u64,
     pub(crate) formation_id: u64,
-    // Native side-local UnitIndex for the unit-only, cleared baseline deployment.
+    /// The native side-local `UnitIndex`, which seeds the formation's layout
+    /// stream: the document's `index`, which a sold unit leaves a gap in,
+    /// and the declaration order only for a document that states none.
     pub(crate) formation_index: i32,
     pub(crate) type_name: String,
     pub(crate) world_x: i64,
@@ -353,10 +355,13 @@ fn compile_formation(
         loadouts,
         refused,
     );
-    let formation_index = refused.hold(
-        i32::try_from(index)
-            .map_err(|_| Error::new("formation index exceeds the native integer range")),
-    );
+    let formation_index = refused.hold(formation.index.map_or_else(
+        || {
+            i32::try_from(index)
+                .map_err(|_| Error::new("formation index exceeds the native integer range"))
+        },
+        Ok,
+    ));
     let (Some(()), Some(()), Some(corrections), Some(formation_index)) =
         (fired, fits, corrections, formation_index)
     else {
@@ -496,6 +501,17 @@ red:
         assert_eq!(layout.placements[0].unit_id, 0);
         assert_eq!(layout.placements[1].unit_id, 0);
         assert_eq!(layout.placements[0].formation_index, 0);
+    }
+
+    #[test]
+    fn formation_index_is_the_stated_unit_index_across_a_gap() {
+        let value = LAYOUT.replace(
+            "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
+            "units:\n      - {name: arclight, index: 0, position: {x: 20, y: -100}}\n      - {name: rhino, index: 5, position: {x: -15, y: -105}}",
+        );
+        let layout = compile_default(&value).unwrap();
+        assert_eq!(layout.placements[1].type_name, "rhino");
+        assert_eq!(layout.placements[1].formation_index, 5);
     }
 
     #[test]
