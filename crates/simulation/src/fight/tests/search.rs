@@ -166,7 +166,7 @@ fn a_candidate_in_range_outside_the_rotation_window_takes_the_range_penalty() {
 }
 
 #[test]
-fn a_construction_pointing_at_zero_has_no_rotation_window() {
+fn a_window_is_checked_only_between_angle0_and_angle360() {
     let score = |rotation: i64, window| {
         normal_visible_full_rotation_target_score_q32(
             0,
@@ -183,8 +183,14 @@ fn a_construction_pointing_at_zero_has_no_rotation_window() {
         .unwrap()
     };
     let window = Some(20_i64 << 32);
-    assert_eq!(score(0, window), score(0, None));
-    assert_ne!(score(10, window), score(10, None));
+    // Pointing at 0 the window is 340 to 20, and a candidate at 270 is out.
+    assert_eq!(
+        score(0, window),
+        score(0, None).saturating_add(TARGET_SCORE_OUT_OF_RANGE_PENALTY_Q32)
+    );
+    // Pointing at 20 it starts at `Angle0`, which `CalculateScore` does not
+    // check.
+    assert_eq!(score(20, window), score(20, None));
 }
 
 #[test]
