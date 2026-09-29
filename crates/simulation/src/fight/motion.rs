@@ -544,11 +544,23 @@ impl Simulation {
         let lock_target = self.actors[&actor_id].skill.attack_target();
         if let Some(target) = lock_target {
             let target_alive = self.fight_actor_is_alive(target);
+            // `MotionAttackState.Update` asks the lock, not what the weapons
+            // fire at: a block that falls in the way of a live lock leaves the
+            // unit attacking, still on the block, until the skill's next
+            // check finishes the attack: a Vortex that fells a block with a
+            // single blow reads attacking on it that tick, with no backswing
+            // to wait out.
+            let lock = self.actors[&actor_id].skill.lock_target;
+            let block_before_live_lock = !target_alive
+                && matches!(target, FightActorRef::Building(_))
+                && lock != Some(target)
+                && lock.is_some_and(|lock| self.fight_actor_is_alive(lock));
             if !target_alive
-                && self.actors[&actor_id]
-                    .skill
-                    .backswing_finish_step()
-                    .is_some()
+                && (block_before_live_lock
+                    || self.actors[&actor_id]
+                        .skill
+                        .backswing_finish_step()
+                        .is_some())
             {
                 // The build enters idle but retains the dead target through
                 // the remaining backswing even when an ally dealt the kill.
@@ -564,7 +576,8 @@ impl Simulation {
                 // idle on the tick it fell, still on it, until their swing is
                 // over.
                 let holds_a_block = matches!(target, FightActorRef::Building(_))
-                    && self.actors[&actor_id].skill.lock_target != Some(target);
+                    && lock != Some(target)
+                    && lock.is_some_and(|lock| self.fight_actor_is_alive(lock));
                 // And keeps turning through its swing, as it did while the
                 // block stood. A tower the match's end tears down is not
                 // turned to.
@@ -631,6 +644,26 @@ impl Simulation {
                     .expect("actor identity is stable")
                     .skill
                     .drop_lock();
+            }
+            // And the other way round: a lock that died behind a block that
+            // stands leaves the unit idle, still on both, until the skill
+            // searches again.
+            if target_alive
+                && lock.is_some_and(|lock| lock != target && !self.fight_actor_is_alive(lock))
+            {
+                let actor = self
+                    .actors
+                    .get_mut(&actor_id)
+                    .expect("actor identity is stable");
+                let entered_idle = actor.motion.state != MotionState::Idle;
+                actor.motion.state = MotionState::Idle;
+                if entered_idle {
+                    actor.motion.next_target_x_q32 = actor.x_q32;
+                    actor.motion.next_target_z_q32 = actor.z_q32;
+                }
+                actor.motion.next_speed_q32 = 0;
+                actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
+                return Flow::Done;
             }
         }
         Flow::Next
