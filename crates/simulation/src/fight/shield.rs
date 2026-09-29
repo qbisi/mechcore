@@ -15,7 +15,7 @@ use super::{
     },
     rvo,
 };
-use crate::layout::ShieldPlacement;
+use crate::layout::{ShieldKind, ShieldPlacement};
 use mechcore_mcfr::{ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind, ShieldState};
 
 /// One `FightEnergyShield` still standing.
@@ -28,6 +28,7 @@ pub(in crate::fight) struct EnergyShield {
     pub(in crate::fight) radius_q32: i64,
     pub(in crate::fight) energy: i64,
     max_energy: i64,
+    source_kind: ShieldSourceKind,
 }
 
 /// Every shield both sides release, each side's in its active order:
@@ -45,6 +46,10 @@ pub(in crate::fight) fn initialize_shields(placed: &[ShieldPlacement]) -> Vec<En
             radius_q32: shield.radius_q32,
             energy: shield.energy,
             max_energy: shield.energy,
+            source_kind: match shield.kind {
+                ShieldKind::Contraption => ShieldSourceKind::Contraption,
+                ShieldKind::CommanderSkill => ShieldSourceKind::CommanderSkill,
+            },
         })
         .collect::<Vec<_>>();
     shields.sort_by_key(|shield| {
@@ -90,7 +95,7 @@ impl Simulation {
                 let state = ShieldState {
                     shield_id: shield.id,
                     team_id: shield.team,
-                    source_kind: ShieldSourceKind::Contraption,
+                    source_kind: shield.source_kind,
                     owner: None,
                     position: QVec3 {
                         x: shield.x_q32,
@@ -110,6 +115,52 @@ impl Simulation {
                 state
             })
             .collect()
+    }
+
+    /// `AdvancedEnergyShieldSystem.Create` for a Shield Airdrop that lands:
+    /// a shield of the side where it landed, active and full, after every
+    /// shield its side already holds, taking the next identity.
+    pub(in crate::fight) fn create_shield(
+        &mut self,
+        team: u32,
+        x: i64,
+        z: i64,
+        radius_q32: i64,
+        energy: i64,
+    ) {
+        let id = self.next_shield_id;
+        self.next_shield_id += 1;
+        let shield = EnergyShield {
+            id,
+            team,
+            x_q32: space_to_q32(x),
+            z_q32: space_to_q32(z),
+            radius_q32,
+            energy,
+            max_energy: energy,
+            source_kind: ShieldSourceKind::CommanderSkill,
+        };
+        self.created_shields.push(event(
+            Some(shield.object_ref()),
+            None,
+            None,
+            None,
+            EventPayload::ShieldCreated {
+                team_id: team,
+                source_kind: ShieldSourceKind::CommanderSkill,
+                position: QVec3 {
+                    x: shield.x_q32,
+                    y: 0,
+                    z: shield.z_q32,
+                },
+            },
+        ));
+        let after = self
+            .shields
+            .iter()
+            .rposition(|standing| standing.team <= team)
+            .map_or(0, |index| index + 1);
+        self.shields.insert(after, shield);
     }
 
     /// Every shield of the other side that holds the point, a projectile's

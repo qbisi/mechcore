@@ -264,3 +264,35 @@ support_skills:
     sub_effect_move_speed: 0  # 0
     sub_effect_move_time: 0  # 0
     create_interval: 0  # 0
+
+shield_skills:
+  - id: 800001
+    name: 空投护盾
+    scope: 1
+    effect_range_type: 0
+    effect_type: 0
+    energy: 50000
+    start_time: 4294967296  # 1
+    effect_range: 300647710720  # 70
+    sub_effect_move_speed: 42949672960  # 10
+    sub_effect_move_time: 4294967296  # 1
+  - id: 800011
+    name: 空投护盾
+    scope: 1
+    effect_range_type: 0
+    effect_type: 0
+    energy: 50000
+    start_time: 4294967296  # 1
+    effect_range: 300647710720  # 70
+    sub_effect_move_speed: 42949672960  # 10
+    sub_effect_move_time: 4294967296  # 1
+  - id: 800012
+    name: 空投护盾
+    scope: 1
+    effect_range_type: 0
+    effect_type: 0
+    energy: 50000
+    start_time: 4294967296  # 1
+    effect_range: 300647710720  # 70
+    sub_effect_move_speed: 42949672960  # 10
+    sub_effect_move_time: 4294967296  # 1

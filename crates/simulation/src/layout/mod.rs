@@ -19,6 +19,7 @@ pub(crate) use commander_skills::{SkillBuff, SkillEffect, SkillRelease, Summon};
 pub(crate) use constructions::ConstructionBuilding;
 use constructions::Constructions;
 use contraptions::Contraptions;
+pub(crate) use contraptions::ShieldKind;
 pub(crate) use contraptions::{
     Interception, InterceptorBuilding, MissileMine, MissileShot, ShieldPlacement,
 };
@@ -247,6 +248,13 @@ pub(crate) fn compile_with_seed(
         if !side.techs.units.is_empty() {
             researched.insert(team);
         }
+        shields.extend(compile_standing_shields(
+            name,
+            team,
+            side,
+            &skill_effects,
+            &mut refused,
+        ));
         battle_skills.extend(compile_battle_skills(
             name,
             team,
@@ -255,15 +263,7 @@ pub(crate) fn compile_with_seed(
             units,
             &mut refused,
         ));
-        let levels = side
-            .tower_strengthen_levels
-            .iter()
-            .map(|level| {
-                u8::try_from(*level)
-                    .map_err(|_| Error::new(format!("a tower strengthen level of {level}")))
-            })
-            .collect::<Result<Vec<_>>>();
-        if let Some(levels) = refused.hold(levels) {
+        if let Some(levels) = refused.hold(tower_strengthen_levels(side)) {
             tower_levels.insert(team, levels);
         }
     }
@@ -316,6 +316,39 @@ fn compile_contraptions(
             _ => {}
         }
     }
+}
+
+/// A side's tower strengthen levels, in the order the side's towers stand in
+/// the map.
+fn tower_strengthen_levels(side: &SidePlan) -> Result<Vec<u8>> {
+    side.tower_strengthen_levels
+        .iter()
+        .map(|level| {
+            u8::try_from(*level)
+                .map_err(|_| Error::new(format!("a tower strengthen level of {level}")))
+        })
+        .collect()
+}
+
+/// The Shield Airdrops an earlier round left standing on a side, installed
+/// before any release as shields of the side.
+fn compile_standing_shields(
+    name: &str,
+    team: u32,
+    side: &SidePlan,
+    skill_effects: &CommanderSkillEffects,
+    refused: &mut Refusals,
+) -> Vec<ShieldPlacement> {
+    side.standing_shields
+        .iter()
+        .filter_map(|&position| {
+            refused.hold(
+                skill_effects
+                    .standing_shield(team, position)
+                    .map_err(|error| Error::new(format!("side {name}: {error}"))),
+            )
+        })
+        .collect()
 }
 
 /// A side's released battle skills, or nothing for each one refused with its

@@ -228,6 +228,23 @@ under the summon's side, and a kill counts for the dead unit's enemies. The
 summon then loses the life its hit took in all, with no rate on damage taken,
 and counts that as taken.
 
+## A Shield Airdrop
+
+A Shield Airdrop is a row of `energyShieldCommanderSkills`, in
+[`config/commander_skill_effects.yaml`](../../config/commander_skill_effects.yaml).
+It lands as any `CSRC_Common` skill does, and its sub-effect crosses every
+shield on its way down, whatever its row says. Where it lands it stands a
+battlefield shield of its side, on the ground, active and full: its radius is
+the skill's `effectRange`, which preprocessing makes the one sub-effect's, and
+its energy the row's `energy`. The shield takes the side's next shield
+identity, joins after every shield the side holds, and is recorded
+`shield_created` after everything else its tick did. From then on it is a
+shield as a contraption's is, which [`contraptions.md`](contraptions.md) states.
+
+A Shield Airdrop an earlier round left standing is a shield of its side from
+the fight's first tick, full, sorted among the side's other shields by
+`CompareEnergyShield` as they are.
+
 ## Names
 
 <!-- names: commander_skills -->
@@ -288,6 +305,13 @@ and counts that as taken.
   obstacle: `tests/battle_skill/fights/underground-threat.yaml`.
 - An air drop reaches both sides, blue's first, and its kills count for the
   dead ones' enemies: `tests/battle_skill/fights/vulcans-descent.yaml`.
+- A Shield Airdrop lands on tick `s + 3`, and stands a full shield on the
+  ground at its release point, which takes shots until it breaks:
+  `tests/shield/fights/airdrop-lands.yaml`.
+- One an earlier round left standing stands full from the first tick, and
+  sorts among its side's shields by position:
+  `tests/shield/fights/airdrops-standing.yaml`,
+  `tests/shield/fights/airdrop-beside-contraption.yaml`.
 
 ### Replayed
 
@@ -373,6 +397,19 @@ and counts that as taken.
   `SupportUnitDamageProvider.GetDamage`,
   `FightCalculator.CalculateHitActorDamage`.
 - A summon takes no experience: `ExpSystem.IsValidOwner`.
+- A Shield Airdrop's landing stands a shield of its side on the ground where
+  it landed, full and active, after the side's others:
+  `CS_EnergyShield.CreateSubEffectController`,
+  `AdvancedEnergyShieldEffectController.PerformEffect`,
+  `CommanderSkillManager.CalculateAttackPositions`,
+  `AdvancedEnergyShieldSystem.Create`, `GroupAdvancedEnergyShieldManager.Create`,
+  `CSD_EnergyShield.GetAdvancedEnergyShieldValue`.
+- Its fall crosses every shield: `CS_EnergyShield.CanCrossAdvancedEnergyShield`,
+  `CommanderSkillSubEffectAgent.Update`.
+- It stands into the next round, refilled, as a contraption's shield does:
+  `CS_EnergyShield.IsShortLifeTime`, `CS_EnergyShield.IsResetNextRound`,
+  `GroupAdvancedEnergyShieldManager.OnFightEnd`,
+  `GroupAdvancedEnergyShieldManager.OnFightStart`.
 
 ### Not established
 

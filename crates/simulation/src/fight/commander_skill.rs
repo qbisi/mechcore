@@ -40,7 +40,9 @@ impl Simulation {
             // A falling sub-effect stops at the first shield it enters
             // (`CommanderSkillSubEffectAgent.IsHitEnergyShield`), and a buff
             // skill's damage modifier strikes shields: neither is measured.
-            if !self.shields.is_empty() {
+            // A Shield Airdrop's sub-effect crosses shields whatever its row
+            // says: `CS_EnergyShield.CanCrossAdvancedEnergyShield`.
+            if !self.shields.is_empty() && !matches!(release.effect, SkillEffect::Shield { .. }) {
                 return Err(Error::new(format!(
                     "{} lands in a fight with a battlefield shield, which is not measured",
                     release.name
@@ -54,6 +56,9 @@ impl Simulation {
                 // `SupportUnitEffectController.PerformEffect`: a creator for
                 // the side's `TeamSupportUnitManager`, which updates later in
                 // this very tick.
+                SkillEffect::Shield { radius_q32, energy } => {
+                    self.create_shield(release.team, release.x, release.z, *radius_q32, *energy);
+                }
                 SkillEffect::Summon(summon) => {
                     self.creators.push(super::support_unit::Creator::new(
                         release.team,

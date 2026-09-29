@@ -138,6 +138,9 @@ A hit meant for a unit its side's shield covers lands on the shield:
   surface on its way to its target is within its range, and its weapons name no
   target while it does.
 
+A Shield Airdrop's shield is the same object, made where the skill lands;
+[`battle_skill.md`](battle_skill.md) states when.
+
 A shield takes a hit's damage up to the energy it has left, and a hit that
 empties it destroys it for the rest of the fight: the excess goes nowhere. The
 recording names the shield as the target of that `damage`, and

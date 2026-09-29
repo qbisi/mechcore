@@ -155,7 +155,7 @@ pub(crate) static MODULES: &[Module] = &[
     Module {
         native: "AdvancedEnergyShieldSystem",
         claims: &[Field::ShieldContraptions, Field::StandingShields],
-        understood: &[Field::ShieldContraptions],
+        understood: &[Field::ShieldContraptions, Field::StandingShields],
         implemented: true,
     },
     Module {
@@ -495,9 +495,9 @@ mod tests {
         );
     }
 
-    /// Each kind of contraption is owed by the module that makes it, and
-    /// all three are understood; a Shield Airdrop an earlier round left
-    /// standing is the shield module's too, and is not.
+    /// Each kind of contraption is owed by the module that makes it, and all
+    /// three are understood, as is a Shield Airdrop an earlier round left
+    /// standing, which the shield module owes too.
     #[test]
     fn a_contraption_is_owed_by_the_module_of_its_kind() {
         let layout = mechcore_document::parse_yaml(
@@ -517,7 +517,7 @@ mod tests {
                 .iter()
                 .map(|(field, module)| (field.name(), *module))
                 .collect::<Vec<_>>(),
-            [("standing shield_airdrop", "AdvancedEnergyShieldSystem")]
+            [] as [(&str, &str); 0]
         );
     }
 
