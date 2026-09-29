@@ -643,7 +643,8 @@ format `0.17.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, posi
 `formation_id` 由上述初始 Unit 顺序首次遇到的 formation 依次分配。因此初始
 `formation_id` 的首现顺序必须严格为 `1..F`；它表达成员按世界 `z/x` 排序后的首现编号，
 不等同于布局 formation 声明索引。布局声明顺序保留原生 Unit index，因为 formation
-成员散布使用 `match_seed + unit_index`。动态 Unit、Projectile 和 Building 在各自 namespace
+成员散布使用 `match_seed + unit_index`，其中 `unit_index` 是布局的 `index`
+而不是声明位置：卖掉的单位会在其中留下空缺。动态 Unit、Projectile 和 Building 在各自 namespace
 中按首次观察顺序追加。ID 生命周期覆盖其退出快照后的历史引用。
 
 初始 Building 按 `(team_id, building_type_id, position.x, position.y, position.z)`
