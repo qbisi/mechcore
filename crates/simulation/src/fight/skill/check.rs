@@ -117,12 +117,50 @@ impl Simulation {
         if !self.target_inside_min_range(owner, target) {
             return Ok(false);
         }
-        if !self.search_lock_target(owner, slot, target_search_order)? {
-            return Ok(false);
+        let attackable = self.search_lock_target(owner, slot, target_search_order)?
+            && self
+                .slot_attack_target(owner, slot)
+                .is_some_and(|target| self.slot_target_in_attack_area(owner, slot, target));
+        if attacking_check && slot.is_none_or(|slot| slot == 0) {
+            self.reset_attack_data_on_losing_target(owner, attackable)?;
         }
-        Ok(self
-            .slot_attack_target(owner, slot)
-            .is_some_and(|target| self.slot_target_in_attack_area(owner, slot, target)))
+        Ok(attackable)
+    }
+
+    /// The `ResetAttackData` of `CheckWhenLoseTarget`, which an attacking
+    /// check of the main searcher calls while a blow is under way
+    /// (`SkillAttackController.currentController` set): it draws the interval
+    /// again (`RefreshAttackInterval` with `addOffsetTime`), and gives the
+    /// wait back whole (`refreshAttackTime`) when no blow of this attack state
+    /// has run its cycle out, unless the blow is still winding up on a target
+    /// it can attack. Recorded: a Stormcaller whose target walked inside its
+    /// minimum range two ticks into the wind-up read `attackTime` 3 before
+    /// the check and 132, its interval, after it.
+    fn reset_attack_data_on_losing_target(
+        &mut self,
+        owner: FightActorRef,
+        attackable: bool,
+    ) -> Result<()> {
+        let skill = self.skill(owner);
+        let SkillState::Attack(blow) = skill.state else {
+            return Ok(());
+        };
+        if blow == Blow::Waiting {
+            return Ok(());
+        }
+        let refresh = skill.perform_count == 0 && !(matches!(blow, Blow::Before(_)) && attackable);
+        let started = skill
+            .next_attack_step
+            .saturating_sub(skill.current_attack_interval);
+        let interval = self.draw_attack_interval(owner)?;
+        let skill = self.skill_mut(owner);
+        skill.current_attack_interval = interval;
+        skill.next_attack_step = if refresh {
+            0
+        } else {
+            started.saturating_add(interval)
+        };
+        Ok(())
     }
 
     /// Main child skills read their parent's range plus Q32 `0xA00000000`

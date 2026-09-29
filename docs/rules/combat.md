@@ -356,6 +356,20 @@ cooling one never; the prepared scores are cleared every tick. So a
 Stormcaller whose live lock walks inside its minimum range during a tick
 searches past it and takes the next target that very tick.
 
+**A blow that loses its target inside the minimum range gives its interval
+back.** That search is `SkillAttackableChecker.CheckWhenLoseTarget`, and on an
+attacking check of the main searcher, while a blow is under way, it calls
+`FightSkill.ResetAttackData`: the interval is drawn again, and when no blow of
+the attack state has run its cycle out (`performCount` 0) and the blow is not
+still winding up on a target it can attack, `attackTime` is set to the
+interval, so the next blow may start as soon as a target is in the area. A
+lock that died is searched for without it, and keeps the time its wind-up
+spent. Recorded in replay 201372157 round 2: a Stormcaller whose target
+walked inside its 70 m minimum range two ticks into the wind-up read
+`attackTime` 3 before the check and 132, its interval, after it, and wound up
+again at tick 558, 49 ticks later rather than the interval's 132; twelve ticks into an earlier wind-up
+whose target died, the same check left `attackTime` at 12.
+
 `FightPrepareState` completes the first acquisition and syncs initial facing
 before the first persisted state S(1).
 
@@ -634,6 +648,9 @@ not the game's native attack-type enum.
 - A Stormcaller whose live lock walks inside its minimum range taking blue's
   interceptor on that tick, and a second doing the same three ticks later:
   `tests/search/fights/lock-inside-min-range.yaml`.
+- A Stormcaller's blow that lost its target inside the minimum range giving
+  its interval back, and one whose target died keeping it:
+  `tests/corpus/fights/201372157-r2.yaml`.
 
 ### Read
 

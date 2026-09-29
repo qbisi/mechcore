@@ -253,6 +253,10 @@ pub(in crate::fight) struct Skill {
     /// blow reads its own index: a laser's damage multiplier is the one at
     /// that index.
     pub(in crate::fight) attack_count: i32,
+    /// `SkillAttackController.performCount`: the blows whose cycle ran out,
+    /// backswing and all (`ChangeToIdle`), since the skill entered its
+    /// attack state; leaving it (`Exit`) clears it.
+    pub(in crate::fight) perform_count: u32,
     /// The rounds left in a skill that fires from a magazine
     /// (`SkillData.isLoadingType`), and none for one that does not.
     pub(in crate::fight) rounds: Option<u32>,
@@ -296,6 +300,7 @@ impl Skill {
             kind,
             performer,
             attack_count: ATTACK_COUNT_RESET,
+            perform_count: 0,
             rounds: magazine.map(|magazine| magazine.capacity),
             attack_target_left: None,
         }
@@ -408,6 +413,12 @@ impl Skill {
     pub(in crate::fight) fn enter(&mut self, state: SkillState) {
         if matches!(self.state, SkillState::Attack(_)) && !matches!(state, SkillState::Attack(_)) {
             self.attack_count = ATTACK_COUNT_RESET;
+            self.perform_count = 0;
+        }
+        if matches!(self.state, SkillState::Attack(Blow::After { .. }))
+            && state == SkillState::Attack(Blow::Waiting)
+        {
+            self.perform_count += 1;
         }
         self.state = state;
     }
