@@ -417,9 +417,9 @@ impl Simulation {
     /// `DamagePerformer.ProcessAdvancedEnergyShieldEffect` and the shields
     /// `PerformRangeEffect` then strikes. Every shield of the sides the hit
     /// strikes that does not hold the point it lands at takes its side's
-    /// units it covers out of the hit; the one covering what the hit was
-    /// aimed at is its main shield. The main shield, and every other the
-    /// splash reaches in the plane, take the hit, before any unit does.
+    /// units and towers it covers out of the hit; the one covering what the
+    /// hit was aimed at is its main shield. The main shield, and every other
+    /// the splash reaches in the plane, take the hit, before any unit does.
     fn shields_in_the_way(&self, hit: &DamageHit, targets: &mut Vec<FightActorRef>) -> Vec<u64> {
         let (x_q32, z_q32) = (space_to_q32(hit.center.0), space_to_q32(hit.center.1));
         let mut main = hit.shield;
@@ -431,8 +431,8 @@ impl Simulation {
                 continue;
             }
             let covered = |target: &FightActorRef| {
-                matches!(target, FightActorRef::Unit(id)
-                    if self.actors[id].placement.team == shield.team)
+                self.fight_actor(*target)
+                    .is_some_and(|actor| actor.team == shield.team)
                     && self.shield_holds(shield.id, *target)
             };
             if main.is_none() && hit.aimed.is_some_and(|aimed| covered(&aimed)) {

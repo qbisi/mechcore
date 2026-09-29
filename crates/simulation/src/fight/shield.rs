@@ -179,39 +179,27 @@ impl Simulation {
             .collect()
     }
 
-    /// `FightCalculator.IsActorInEnergyShield`: the first of the unit's own
-    /// side's shields that holds its centre.
+    /// `FightCalculator.IsActorInEnergyShield`: the first of the actor's own
+    /// side's shields that holds its centre. A tower is a `FightActor` as a
+    /// unit is, and a shield over it covers it.
     pub(in crate::fight) fn shield_around(&self, target: FightActorRef) -> Option<u64> {
-        let FightActorRef::Unit(id) = target else {
-            return None;
-        };
-        let actor = self.actors.get(&id)?;
-        let y_q32 = space_to_q32(unit_height(actor.rules.domain));
+        let team = self.fight_actor(target)?.team;
+        let (x_q32, y_q32, z_q32) = self.position_3d(target)?;
         self.shields
             .iter()
-            .find(|shield| {
-                shield.team == actor.placement.team
-                    && shield.contains(actor.x_q32, y_q32, actor.z_q32)
-            })
+            .find(|shield| shield.team == team && shield.contains(x_q32, y_q32, z_q32))
             .map(|shield| shield.id)
     }
 
-    /// Whether a shield holds a unit's centre.
-    pub(in crate::fight) fn shield_holds(&self, shield_id: u64, unit: FightActorRef) -> bool {
-        let FightActorRef::Unit(id) = unit else {
-            return false;
-        };
-        let (Some(shield), Some(actor)) = (
+    /// Whether a shield holds an actor's centre.
+    pub(in crate::fight) fn shield_holds(&self, shield_id: u64, actor: FightActorRef) -> bool {
+        let (Some(shield), Some((x_q32, y_q32, z_q32))) = (
             self.shields.iter().find(|shield| shield.id == shield_id),
-            self.actors.get(&id),
+            self.position_3d(actor),
         ) else {
             return false;
         };
-        shield.contains(
-            actor.x_q32,
-            space_to_q32(unit_height(actor.rules.domain)),
-            actor.z_q32,
-        )
+        shield.contains(x_q32, y_q32, z_q32)
     }
 
     /// `DamagePerformer.PerformHitAdvancedEndergyShieldEffect`: a hit on a
@@ -302,10 +290,9 @@ impl Simulation {
         target: FightActorRef,
         range: i64,
     ) -> Option<u64> {
-        let FightActorRef::Unit(target_id) = target else {
-            return None;
-        };
-        let target_actor = self.actors.get(&target_id)?;
+        // Any `FightActor`: a tower a shield covers is fired at through it as
+        // a unit is.
+        let target_actor = self.fight_actor(target)?;
         let attacker = self.attacker(owner)?;
         let (owner_x, owner_y, owner_z) = self.position_3d(owner)?;
         let (target_x, target_y, target_z) = self.position_3d(target)?;
@@ -313,7 +300,7 @@ impl Simulation {
         for shield in self
             .shields
             .iter()
-            .filter(|shield| shield.team == target_actor.placement.team)
+            .filter(|shield| shield.team == target_actor.team)
         {
             if !shield.contains(target_x, target_y, target_z) {
                 continue;
@@ -328,7 +315,7 @@ impl Simulation {
                     let gap = distance
                         .saturating_sub(space_to_q32(attacker.radius))
                         .saturating_sub(shield.radius_q32)
-                        .saturating_sub(space_to_q32(target_actor.rules.collision_radius()))
+                        .saturating_sub(space_to_q32(target_actor.radius))
                         .max(0);
                     if gap >= space_to_q32(attacker.attack.min_range())
                         && gap <= space_to_q32(range)
