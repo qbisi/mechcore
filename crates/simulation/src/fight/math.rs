@@ -10,10 +10,19 @@ pub(in crate::fight) const fn gcd(mut left: u64, mut right: u64) -> u64 {
 }
 
 pub(in crate::fight) fn native_time_units_to_steps(time_units: u64) -> u64 {
-    let raw_time =
-        i64::try_from((u128::from(time_units) << 32) / u128::from(TIME_UNITS_PER_SECOND))
-            .unwrap_or(i64::MAX);
-    q32_div(raw_time, NATIVE_LOGIC_DELTA_Q32)
+    seconds_q32_to_steps(time_units_to_seconds_q32(time_units))
+}
+
+/// Native time units as Q32.32 seconds, the fraction truncated.
+pub(in crate::fight) fn time_units_to_seconds_q32(time_units: u64) -> i64 {
+    i64::try_from((u128::from(time_units) << 32) / u128::from(TIME_UNITS_PER_SECOND))
+        .unwrap_or(i64::MAX)
+}
+
+/// Whole logic ticks in an `FPoint` of seconds: `FightSkill.RefreshAttackInterval`
+/// divides the interval by `FightUtility.DeltaTime` and keeps the integer part.
+pub(in crate::fight) fn seconds_q32_to_steps(seconds_q32: i64) -> u64 {
+    q32_div(seconds_q32, NATIVE_LOGIC_DELTA_Q32)
         .max(0)
         .cast_unsigned()
         >> 32

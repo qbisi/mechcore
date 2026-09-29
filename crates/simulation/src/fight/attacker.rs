@@ -71,8 +71,8 @@ pub(in crate::fight) struct Attacker<'a> {
     pub(in crate::fight) attack_range: i64,
     /// What one blow deals, with whatever corrects it.
     pub(in crate::fight) attack_damage: i64,
-    /// The attack interval, in native time units, with whatever corrects it.
-    pub(in crate::fight) attack_interval: u64,
+    /// The attack interval, in Q32.32 seconds, with whatever corrects it.
+    pub(in crate::fight) attack_interval_q32: i64,
     pub(in crate::fight) facing: Facing<'a>,
     /// Whether its weapons turn on a transform of their own, which the attack
     /// angle is then measured from: a unit with a body, and a construction.
@@ -172,7 +172,7 @@ impl Simulation {
                     attack: &actor.rules.attack,
                     attack_range: actor.stats.attack_range(),
                     attack_damage: actor.stats.attack_damage(),
-                    attack_interval: actor.stats.attack_interval(),
+                    attack_interval_q32: actor.stats.attack_interval_q32(),
                     facing: if actor.rules.has_body {
                         Facing::Weapons(&actor.skill.weapon_rotations_q32)
                     } else {
@@ -210,7 +210,9 @@ impl Simulation {
                     attack: &construction.attack,
                     attack_range: construction.attack.range(),
                     attack_damage: construction.attack_damage,
-                    attack_interval: construction.attack.interval_time_units(),
+                    attack_interval_q32: time_units_to_seconds_q32(
+                        construction.attack.interval_time_units(),
+                    ),
                     facing: Facing::Weapons(&construction.skill.weapon_rotations_q32),
                     has_body: true,
                     turn_q32: construction.turn_q32,
@@ -349,7 +351,7 @@ impl Simulation {
             .attacker(owner)
             .ok_or_else(|| Error::new("attack interval owner is absent"))?;
         let team = attacker.team;
-        let interval_steps = native_time_units_to_steps(attacker.attack_interval);
+        let interval_steps = seconds_q32_to_steps(attacker.attack_interval_q32);
         let offset_steps = native_time_units_to_steps(attacker.attack.interval_offset_time_units());
         let random = self
             .team_random
