@@ -650,6 +650,19 @@ impl Simulation {
                 tree.remove(FightActorRef::Unit(actor_id));
             }
         }
+        // So does a building that fell: a wall's block stays in the tree no
+        // more than a dead unit does.
+        let fallen = self
+            .buildings
+            .iter()
+            .filter(|building| !building_alive(building))
+            .map(|building| (building.team_id, building.building_id))
+            .collect::<Vec<_>>();
+        for (team, building_id) in fallen {
+            if let Some(tree) = self.target_quadtrees.get_mut(&team) {
+                tree.remove(FightActorRef::Building(building_id));
+            }
+        }
         Ok(TransitionEvents { events })
     }
 
