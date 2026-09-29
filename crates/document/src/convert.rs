@@ -185,7 +185,7 @@ fn readable(record: &record::BattleRecord) -> Result<(), String> {
     if record.seat < 0 {
         return Err(
             "replay was downloaded from the server, whose snapshots are reconstructions; \
-             see replay/README.md"
+             see scripts/corpus/README.md"
                 .into(),
         );
     }

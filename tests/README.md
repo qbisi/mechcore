@@ -62,7 +62,7 @@ its directory; nothing else lists it.
 
 Two kinds of fixture live outside `tests/` because no topic owns them. The
 native replays, and everything converted from them, are in the corpus
-[`../replay/`](../replay/README.md) pins. Layouts built by hand that no script
+[`../scripts/corpus/`](../scripts/corpus/README.md) describes. Layouts built by hand that no script
 uses, and the one the crates' tests read as a plain layout, are in
 [`../layouts/`](../layouts/README.md).
 
