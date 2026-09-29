@@ -1,0 +1,22 @@
+# The Arclight of `arrives.yaml` with Advanced Defensive and Offensive
+# Tactics on its side and Heavy Armor on it. Every correction is written as
+# the fight is built, not as the unit arrives: it starts on 3946 of 9866,
+# 0.4 of the corrected life, and heals 739 a second.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: recording
+ticks: 1362
+hash: {profile: mcfr-content-0.7.0, result: 8c30de79f549f335c5f26093010299f0ba3830408e0feedf3b58109146f4c9c8}
+blue:
+  core_damage: 100
+  officers: [advanced_defensive_tactics, advanced_offensive_tactics]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: arclight, index: 1, position: {x: -310, y: 20}, exp: 0/200/750, equipment: [heavy_armor], travelling: true}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
+  - {name: marksman, index: 1, position: {x: -60, y: -150}, exp: 0/600/650}

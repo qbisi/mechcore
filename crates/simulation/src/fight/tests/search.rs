@@ -209,6 +209,7 @@ fn normal_selector_split_query_remains_order_independent_for_a_unique_best() {
         level: 1,
         exp: 0,
         corrections: Vec::new(),
+        travelling: false,
     }];
     placements.extend((0_i32..18).map(|index| Placement {
         team: 1,
@@ -223,6 +224,7 @@ fn normal_selector_split_query_remains_order_independent_for_a_unique_best() {
         level: 1,
         exp: 0,
         corrections: Vec::new(),
+        travelling: false,
     }));
     let layout = CompiledLayout::of_units(1, placements);
     let actors = initialize_actors(&layout, &config.units, 7).unwrap();
@@ -257,6 +259,7 @@ fn normal_selector_split_query_remains_order_independent_for_a_unique_best() {
         researched: BTreeSet::new(),
         creators: Vec::new(),
         appearing: Vec::new(),
+        travels: BTreeMap::new(),
         next_unit_id: 1,
         next_formation_id: 1,
         buildings,

@@ -305,16 +305,26 @@ fn a_committed_round_is_written_and_the_fight_this_build_cannot_run_is_named() {
     assert_eq!(fought["phase"], "deploy");
     assert_eq!(fought["round"], 2);
 
-    // Quick Teleport corrects the side's deployment clock, which no mechanism
-    // here reads. The fight is run from the position the round ends in, so
-    // what stops it is what the simulator says about that position.
+    // A summon on a side holding an officer is refused: whether the
+    // officer's corrections reach a summon is not measured. The fight is run
+    // from the position the round ends in, so what stops it is what the
+    // simulator says about that position.
     run(&[
         "match",
         "act",
         &path,
         "--side",
         "red",
-        "{type: choose_reinforce_item, index: 0, name: quick_teleport}",
+        "{type: choose_reinforce_item, index: 1, name: rhino_assault}",
+    ])
+    .ok();
+    run(&[
+        "match",
+        "act",
+        &path,
+        "--side",
+        "red",
+        "{type: release_commander_skill, index: 0, name: rhino_assault, target: {area: [{x: 0, y: -100}]}}",
     ])
     .ok();
     run(&["match", "commit", &path, "--side", "red"]).ok();
@@ -322,11 +332,7 @@ fn a_committed_round_is_written_and_the_fight_this_build_cannot_run_is_named() {
     assert_eq!(stopped["phase"], "fight");
     let unresolved = stopped["unresolved"].as_str().unwrap();
     assert!(
-        unresolved.starts_with("round 2 is not fought: side red: officer 10009"),
-        "{unresolved}"
-    );
-    assert!(
-        unresolved.contains("super_deployment_time_rate"),
+        unresolved.starts_with("round 2 is not fought: side red: rhino_assault summons"),
         "{unresolved}"
     );
 

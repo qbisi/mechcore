@@ -913,7 +913,7 @@ pub(crate) fn fpoint_greater_than(left: i64, right: i64) -> bool {
 
 /// `FPoint.op_GreaterThanOrEqual`: true within 43 raw below, false against
 /// the sentinel.
-fn fpoint_greater_or_equal(left: i64, right: i64) -> bool {
+pub(crate) fn fpoint_greater_or_equal(left: i64, right: i64) -> bool {
     const SENTINEL: i64 = i64::MIN + 1;
     left != SENTINEL && right != SENTINEL && !fpoint_less_than(left, right)
 }

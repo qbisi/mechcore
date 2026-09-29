@@ -1,0 +1,21 @@
+# The Arclight of `arrives.yaml` with Quick Teleport on its side, whose
+# -0.5 halves the travel time: it arrives on tick 81 after four heals of
+# 721, a quarter of 0.6 of its life each.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: recording
+ticks: 1198
+hash: {profile: mcfr-content-0.7.0, result: 4b356649152c2886cfa632e1e851e7ba9042eb0e22a4d43d7ba4292bcdcd43fc}
+blue:
+  core_damage: 100
+  officers: [quick_teleport]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: arclight, index: 1, position: {x: -310, y: 20}, exp: 0/200/750, travelling: true}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
+  - {name: marksman, index: 1, position: {x: -60, y: -150}, exp: 0/600/650}

@@ -1,0 +1,21 @@
+# The Arclight of `arrives.yaml` with Range Enhancement and Charged Shot
+# researched: its technologies correct it from the first tick.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: recording
+ticks: 1041
+hash: {profile: mcfr-content-0.7.0, result: ee2ced3444eb01b177a0f3004ea3588b35d98b73b1bbfa77957aee19dbdca3e9}
+blue:
+  techs:
+    arclight: [range_enhancement, charged_shot]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: arclight, index: 1, position: {x: -310, y: 20}, exp: 0/400/750, travelling: true}
+red:
+  core_damage: 100
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
+  - {name: marksman, index: 1, position: {x: -60, y: -150}, exp: 0/200/650}

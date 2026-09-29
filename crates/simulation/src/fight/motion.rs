@@ -370,7 +370,7 @@ impl Simulation {
         let units = self
             .actors
             .iter()
-            .filter(|(_, actor)| actor.alive())
+            .filter(|(_, actor)| actor.alive() && !actor.travelling)
             .map(|(&actor_id, actor)| (actor_id, actor, false))
             .chain(
                 self.appearing_actors()
@@ -428,7 +428,11 @@ impl Simulation {
         let solutions =
             super::rvo::solve_agents(&agents, inverse_delta_time, &mut self.rvo_quadtree_capacity);
         self.rvo_first_tree_pending = false;
-        for (&actor_id, actor) in self.actors.iter_mut().filter(|(_, actor)| actor.alive()) {
+        for (&actor_id, actor) in self
+            .actors
+            .iter_mut()
+            .filter(|(_, actor)| actor.alive() && !actor.travelling)
+        {
             if actor.motion.rvo_fresh {
                 actor.motion.rvo_tree_x_q32 = actor.x_q32;
                 actor.motion.rvo_tree_z_q32 = actor.z_q32;

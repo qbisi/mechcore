@@ -337,8 +337,8 @@ pub(crate) static MODULES: &[Module] = &[
     Module {
         native: "SuperDeploymentSystem",
         claims: &[Field::Travelling],
-        understood: &[],
-        implemented: false,
+        understood: &[Field::Travelling],
+        implemented: true,
     },
     Module {
         native: "SupportUnitSystem",

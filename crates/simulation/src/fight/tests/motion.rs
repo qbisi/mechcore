@@ -196,6 +196,7 @@ fn snapshot_velocity_is_quantized_from_raw_agent_velocity() {
                 level: 1,
                 exp: 0,
                 corrections: Vec::new(),
+                travelling: false,
             },
             Placement {
                 team: 1,
@@ -210,6 +211,7 @@ fn snapshot_velocity_is_quantized_from_raw_agent_velocity() {
                 level: 1,
                 exp: 0,
                 corrections: Vec::new(),
+                travelling: false,
             },
         ],
     );
@@ -250,6 +252,7 @@ fn rvo_pipeline_publishes_before_movement_consumes_velocity() {
                 level: 1,
                 exp: 0,
                 corrections: Vec::new(),
+                travelling: false,
             },
             Placement {
                 team: 1,
@@ -264,6 +267,7 @@ fn rvo_pipeline_publishes_before_movement_consumes_velocity() {
                 level: 1,
                 exp: 0,
                 corrections: Vec::new(),
+                travelling: false,
             },
         ],
     );
@@ -354,6 +358,7 @@ fn rvo_boundary_recalculates_velocity_from_the_published_target_and_current_posi
                 level: 1,
                 exp: 0,
                 corrections: Vec::new(),
+                travelling: false,
             },
             Placement {
                 team: 1,
@@ -368,6 +373,7 @@ fn rvo_boundary_recalculates_velocity_from_the_published_target_and_current_posi
                 level: 1,
                 exp: 0,
                 corrections: Vec::new(),
+                travelling: false,
             },
         ],
     );
@@ -445,6 +451,7 @@ fn range_entry_stops_only_after_the_two_stage_rvo_delay() {
                 level: 1,
                 exp: 0,
                 corrections: Vec::new(),
+                travelling: false,
             },
             Placement {
                 team: 1,
@@ -459,6 +466,7 @@ fn range_entry_stops_only_after_the_two_stage_rvo_delay() {
                 level: 1,
                 exp: 0,
                 corrections: Vec::new(),
+                travelling: false,
             },
         ],
     );
@@ -561,6 +569,7 @@ fn stopped_attacker_rate_limits_aim_without_rotating_root_body() {
                 level: 1,
                 exp: 0,
                 corrections: Vec::new(),
+                travelling: false,
             },
             Placement {
                 team: 1,
@@ -575,6 +584,7 @@ fn stopped_attacker_rate_limits_aim_without_rotating_root_body() {
                 level: 1,
                 exp: 0,
                 corrections: Vec::new(),
+                travelling: false,
             },
         ],
     );

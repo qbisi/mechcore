@@ -481,6 +481,7 @@ fn projectile_raw_target_cache_preserves_rounding_sequence() {
                 level: 1,
                 exp: 0,
                 corrections: Vec::new(),
+                travelling: false,
             },
             Placement {
                 team: 1,
@@ -495,6 +496,7 @@ fn projectile_raw_target_cache_preserves_rounding_sequence() {
                 level: 1,
                 exp: 0,
                 corrections: Vec::new(),
+                travelling: false,
             },
         ],
     );

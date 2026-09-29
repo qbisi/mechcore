@@ -1,0 +1,25 @@
+# One blue Arclight travelling in from the left flank in round 2, beside a
+# Marksman, against two Marksmen. It stands where its layout puts it from the
+# first tick on 1925 of its 4813 life, 0.4 of it truncated, and gains 360 at
+# ticks 20, 40, 61, 81, 101, 121, 141 and 161: a second of FPoint time each,
+# counted with the tolerant comparison, which is why the third heal lands a
+# tick later than the first two. It arrives on tick 161, at 4805, and moves
+# from 162. Until then it holds the lock the fight's presearch gave it and
+# names no attack target.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: recording
+ticks: 1257
+hash: {profile: mcfr-content-0.7.0, result: 04cfe7ad7622cc9516a9c806c67bed6dd0225ec48d117a4a1a6637844b5d0c26}
+blue:
+  core_damage: 100
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: arclight, index: 1, position: {x: -310, y: 20}, exp: 0/200/750, travelling: true}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
+  - {name: marksman, index: 1, position: {x: -60, y: -150}, exp: 0/600/650}
