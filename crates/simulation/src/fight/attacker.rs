@@ -152,6 +152,22 @@ impl Simulation {
             .ok_or_else(|| Error::new(format!("side {team} has no random stream")))
     }
 
+    /// Every unit, deployed ones in the fight's update order and the ones
+    /// made since in identity order after them.
+    pub(in crate::fight) fn units_in_update_order(&self) -> Vec<u64> {
+        let deployed = self
+            .unit_update_order
+            .iter()
+            .copied()
+            .filter(|id| self.actors.contains_key(id));
+        let made = self
+            .actors
+            .keys()
+            .copied()
+            .filter(|id| !self.unit_update_order.contains(id));
+        deployed.chain(made).collect()
+    }
+
     /// The owner of a skill, as its skill sees it.
     pub(in crate::fight) fn attacker(&self, owner: FightActorRef) -> Option<Attacker<'_>> {
         match owner {
@@ -399,9 +415,9 @@ impl Simulation {
             });
         }
         let owners = self
-            .actors
-            .keys()
-            .map(|&id| FightActorRef::Unit(id))
+            .units_in_update_order()
+            .into_iter()
+            .map(FightActorRef::Unit)
             .chain(
                 self.constructions
                     .keys()

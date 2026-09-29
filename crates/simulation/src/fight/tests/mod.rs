@@ -72,7 +72,9 @@ pub(super) fn raw_test_simulation(
     let map_crystals = map_crystals(config.maps.buildings(1021).unwrap());
     let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
     let buildings_query_alive = standing_buildings(&buildings);
+    let unit_update_order = crate::fight::deploy::update_order(&actors);
     Simulation {
+        unit_update_order,
         actors,
         team_random: BTreeMap::new(),
         projectiles: Vec::new(),

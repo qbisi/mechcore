@@ -184,11 +184,14 @@ pub(in crate::fight) fn initialize_actors(
             ));
         }
     }
-    initial.sort_by_key(|actor| (actor.placement.team, actor.z, actor.x));
+    // A side's units take their identities in ascending world z, then x, by
+    // the raw positions: two units a few raw units apart in z keep that
+    // order even where their millimetres agree.
+    initial.sort_by_key(|actor| (actor.placement.team, actor.z_q32, actor.x_q32));
     for pair in initial.windows(2) {
         if pair[0].placement.team == pair[1].placement.team
-            && pair[0].x == pair[1].x
-            && pair[0].z == pair[1].z
+            && pair[0].x_q32 == pair[1].x_q32
+            && pair[0].z_q32 == pair[1].z_q32
         {
             return Err(Error::new(
                 "two initial same-team units have equal world coordinates",
@@ -543,4 +546,38 @@ impl Simulation {
         }
         Ok(())
     }
+}
+
+/// The order a fight updates its deployed units in: each side's units by
+/// `FightUtility.PositionComparer` on where they spawned, world `z` unless
+/// `FPoint`'s tolerant inequality finds two within 43 raw of each other, and
+/// world `x` then. Identities follow `z` strictly, so two units a few raw
+/// units apart in `z` update in the order their `x` gives, not their
+/// identities': recorded in replays 201370830 and 67152171, round 1, where two
+/// such units draw their first intervals, and act each tick, in that order.
+/// The comparison is no total order, which `sort_by` may refuse, so each unit
+/// is inserted after every unit it does not precede.
+pub(in crate::fight) fn update_order(actors: &BTreeMap<u64, Actor>) -> Vec<u64> {
+    const TOLERANCE: u64 = 43;
+    let order = |left: &Actor, right: &Actor| {
+        left.placement
+            .team
+            .cmp(&right.placement.team)
+            .then_with(|| {
+                if left.z_q32.abs_diff(right.z_q32) > TOLERANCE {
+                    left.z_q32.cmp(&right.z_q32)
+                } else {
+                    left.x_q32.cmp(&right.x_q32)
+                }
+            })
+    };
+    let mut sorted: Vec<u64> = Vec::with_capacity(actors.len());
+    for (&id, actor) in actors {
+        let at = sorted
+            .iter()
+            .rposition(|placed| order(&actors[placed], actor) != Ordering::Greater)
+            .map_or(0, |index| index + 1);
+        sorted.insert(at, id);
+    }
+    sorted
 }

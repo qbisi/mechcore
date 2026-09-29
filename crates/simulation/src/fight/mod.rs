@@ -217,6 +217,9 @@ const CONSTRUCTION_BUILDING_TYPE: u32 = 3;
 
 struct Simulation {
     actors: BTreeMap<u64, Actor>,
+    /// The order the fight updates its deployed units in, which is not their
+    /// identity order: see [`deploy::update_order`].
+    unit_update_order: Vec<u64>,
     team_random: BTreeMap<u32, GrRandom>,
     projectiles: Vec<Projectile>,
     /// Each side's interceptors, `InterceptSystem`'s sources.
@@ -355,6 +358,7 @@ impl Simulation {
             })?;
         }
         let actors = initialize_actors(layout, configs, seed)?;
+        let unit_update_order = deploy::update_order(&actors);
         let InitialBuildings {
             states: buildings,
             unsearchable,
@@ -378,6 +382,7 @@ impl Simulation {
         let buildings_query_alive = standing_buildings(&buildings);
         let mut simulation = Self {
             actors,
+            unit_update_order,
             team_random: BTreeMap::new(),
             projectiles: Vec::new(),
             interceptors,
@@ -572,11 +577,9 @@ impl Simulation {
                     .count(),
             );
             let actor_ids = self
-                .actors
-                .iter()
-                .filter_map(|(&actor_id, actor)| {
-                    (actor.placement.team == team_id).then_some(actor_id)
-                })
+                .units_in_update_order()
+                .into_iter()
+                .filter(|actor_id| self.actors[actor_id].placement.team == team_id)
                 .collect::<Vec<_>>();
             for actor_id in actor_ids {
                 self.step_actor_with_target_order(
