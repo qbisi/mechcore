@@ -33,7 +33,8 @@ movement state. The RVO instrument channels observe them
 A map's neutral `FightCrystal`s are the map's, not a Training Ground artefact to
 be deleted. `layout.map_id` selects the map, and the kernel puts every crystal of
 collider priority 2 or more that `config/maps.yaml` lists in the tree as an
-immovable agent on its own priority's layer, with its radius for both radii;
+immovable agent on its own priority's layer, at its map position floored to
+whole metres, with its radius for both radii;
 [map.md](../../rules/map.md) states which crystals those are and why.
 
 ## Coordinates and numerics

@@ -49,6 +49,12 @@ lists them. A crystal whose `enablePathfinding` holds gets an
 row's `radius` and whose collider priority is its
 `pathfindingColliderPriority`; every crystal of the three map datas has one.
 
+A crystal does not stand where the map data places it but on whole metres:
+`CrystalElement.GetPosition` makes its position a `MapVector`, which keeps each
+coordinate's integer part, the floor of the map's. Of the crystals that take
+part in movement, four stand at a fraction of a metre, and one of them,
+Desert's at (95.48, -360.93), stands at (95, -361).
+
 ## A crystal of priority 2 or more is an obstacle
 
 A crystal whose collider priority is 2 or more is an immovable agent in the
@@ -77,6 +83,11 @@ place crystals of priority 1 only, so a fight on 1011 is the same fight as on
 - A Desert crystal of priority 3 changes a fight the Training Ground fights
   otherwise, and the simulator reproduces it with every crystal of priority 2
   or more in the tree, the towers before them: `tests/map/fights/`.
+- A crystal stands on its map position floored to whole metres: the Scorpion's
+  M4 on Desert parts from the game at tick 208 with the crystal at
+  (95.48, -360.93) where the map data places it, and plays back with it at
+  (95, -361), where an RVO neighbour list of the game measured it:
+  `tests/map/fights/scorpion-m4-wasp-1787720817.yaml`.
 - 1001, 1031 and 1032 fight alike: each fight under `tests/map/fights/`
   recorded on 1031 and 1032 has 1001's hash.
 
@@ -90,6 +101,8 @@ place crystals of priority 1 only, so a fight on 1011 is the same fight as on
   `BuildingData.pathfindingColliderPriority`, `RVOControllerFixed.SetRadius`.
 - An immovable controller's layer is the odd bit of its priority:
   `RVOControllerFixed.RefreshCollideInfo`.
+- A crystal's position is its map position as a `MapVector`, whose
+  coordinates are integers: `CrystalElement.GetPosition`, `MapVector..ctor`.
 - The buildings are created in the map's order, a tower through its own call:
   `FightBuildingLoader.Load`, `FightController.CreateFightTower`,
   `FightController.CreateFightBuilding`.
@@ -109,7 +122,7 @@ place crystals of priority 1 only, so a fight on 1011 is the same fight as on
   crystals a fight has.
 - **Why the towers go in before the crystals.** In the map's order the towers
   stand among the crystals; with them first, every fight pinned on 1021
-  recorded again on 1001 plays back but one, the Scorpion's M4 with seed
-  1787720817, which parts at tick 208 far from any crystal.
+  recorded again on 1001 plays back, and with them after the crystals, five do
+  not.
 - **Whether a crystal can be damaged.** Desert's priority-3 crystals have 600
   life. No recording here has a unit attack one or splash reach one.

@@ -1,0 +1,24 @@
+# `tests/scorpion/fights/m4-wasp-1787720817.yaml` on Desert, map 1001: 244
+# ticks, as on the Training Ground, but no longer the same fight from tick
+# 208. No Scorpion is near a crystal, and none takes one as a neighbour: the
+# crystals change which branches of the RVO tree a query visits. It parts
+# from the game unless every crystal stands where CrystalElement.GetPosition
+# puts it, its map position floored to whole metres, which moves one of them,
+# at (95.48, -360.93), to (95, -361).
+
+kind: fight
+map_id: 1001
+seed: 1787720817
+round: 1
+source: recording
+ticks: 244
+hash: {profile: mcfr-content-0.7.0, result: 477af32fcdb0d642518472bfe6bd33e5a8f7a2df18792a4658fa1e2c6aec97bf}
+blue:
+  core_damage: 612
+  units:
+  - {name: scorpion, index: 0, position: {x: -5, y: -105}}
+red:
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/100/900}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/100/900}
+  - {name: wasp, index: 2, position: {x: 5, y: -180}, exp: 0/400/900}
