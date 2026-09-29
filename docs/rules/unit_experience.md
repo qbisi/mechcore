@@ -105,8 +105,8 @@ starts from zero. A kill hands out its amount twice over:
 
 - **The killer's formation takes the whole amount**, when the killer is a unit
   that may take experience: alive, not summoned, not controlled by the other
-  side, and not already at a full bar. A kill no unit made, by a turret say,
-  adds the amount to the pool below instead.
+  side, and not already at a full bar. A kill no unit made, by a turret or a
+  missile say, adds the amount to the pool below instead.
 - **A pool of the same amount is split evenly.** It goes to every formation
   that hit the target during the fight and may take experience, and to every
   formation of the killer's side with a unit standing within 65 metres of the
@@ -136,6 +136,8 @@ what the formation carries into the next round.
   simulator reproduces it tick by tick in every fight the topics pin, which
   every unit's `fights/`, `tests/marksman/fights/` among them, and the other
   topics' hold.
+- A missile's kill, which no unit made and no one else shares, goes to every
+  formation of the missile's side: `tests/missile/fights/crawlers.yaml`.
 
 ### Replayed
 

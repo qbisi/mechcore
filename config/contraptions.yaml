@@ -1,6 +1,6 @@
 schema: mechcore.contraptions
 
-# What an interceptor is, read out of `ContraptionGroupData`. Generated
+# What an interceptor and a missile are, read out of `ContraptionGroupData`. Generated
 # by scripts/extract/extract-contraptions.py; docs/rules/contraptions.md
 # states what each field does. A time, a distance or a rate is an
 # FPoint Q32.32 raw integer, read in the comment beside it.
@@ -27,3 +27,26 @@ interceptors:
     lower_limit: 1288490188  # 0.3
     rise: 4294967  # 0.001
     judgment_probability: 4294967296  # 1
+
+missiles:
+  - id: 20001
+    name: 哨戒飞弹
+    layout_name: missile
+    count: 1
+    damage: 5000
+    max_life: 327900
+    effect_type: 7
+    effect_range_type: 0
+    trigger_range: 515396075520  # 120
+    splash_radius: 171798691840  # 40
+    speed: 279172874240  # 65
+    interceptible: true
+    can_attack_construction: true
+    buff:
+      id: 20001
+      name: 减速-防御飞弹
+      divide: 0
+      additive: false
+      duration: 60129542144  # 14
+      can_affect_construction: false
+      move_speed_rate: -2791728742  # -0.65

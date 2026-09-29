@@ -1,0 +1,28 @@
+# Interceptors take each other's missiles out of the air.
+#
+# `layouts/shield-missile-battle.yaml` with each shield an interceptor on the
+# grid. Each side's missile fires on tick 1 at the Stormcaller across from it;
+# the other side's interceptor locks it three ticks at a time, and the sixth
+# hit, on tick 18, takes the last of its 327900 life, the attack having fallen
+# 1512 with each hit. Then the Stormcallers fight.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 195
+hash: {profile: mcfr-content-0.7.0, result: 9bbc57915021c8713b2fd02c0fcf0ac4cdc0a8737620028696bb380be80f5c35}
+blue:
+  units:
+  - {name: stormcaller, index: 0, position: {x: 5, y: -40}, exp: 0/300/1100}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 5, y: -85}}
+  - {name: missile, index: 1, position: {x: 1, y: -11}, retained: false}
+red:
+  core_damage: 100
+  units:
+  - {name: stormcaller, index: 0, position: {x: 5, y: -40}, exp: 0/200/1100}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 5, y: -85}}
+  - {name: missile, index: 1, position: {x: 1, y: -11}, retained: false}

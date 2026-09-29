@@ -16,7 +16,7 @@ use crate::{
 pub(crate) use constructions::ConstructionBuilding;
 use constructions::Constructions;
 use contraptions::Contraptions;
-pub(crate) use contraptions::{Interception, InterceptorBuilding};
+pub(crate) use contraptions::{Interception, InterceptorBuilding, MissileMine, MissileShot};
 
 #[derive(Debug, Clone)]
 pub(crate) struct Placement {
@@ -54,6 +54,9 @@ pub(crate) struct CompiledLayout {
     /// The interceptors both sides release, each side's in the order its
     /// layout lists them.
     pub(crate) interceptors: Vec<InterceptorBuilding>,
+    /// The missiles both sides release, each side's in the order its layout
+    /// lists them.
+    pub(crate) missiles: Vec<MissileMine>,
     /// Each side's tower strengthen levels, in the order the side's towers
     /// stand in the map; a side that strengthened none has none.
     pub(crate) tower_levels: BTreeMap<u32, Vec<u8>>,
@@ -71,6 +74,7 @@ impl CompiledLayout {
             placements,
             constructions: Vec::new(),
             interceptors: Vec::new(),
+            missiles: Vec::new(),
             tower_levels: BTreeMap::new(),
             map_id: mechcore_document::layout_replay::DEFAULT_MAP_ID,
         }
@@ -187,6 +191,7 @@ pub(crate) fn compile_with_seed(
     // construction it is about.
     let mut constructions = Vec::new();
     let mut interceptors = Vec::new();
+    let mut missiles = Vec::new();
     let mut tower_levels = BTreeMap::new();
     for (name, team, side) in sides {
         for (index, formation) in side.units.iter().enumerate() {
@@ -208,20 +213,18 @@ pub(crate) fn compile_with_seed(
             &table,
             &mut refused,
         ));
-        // A shield or a missile was refused by the registry; an interceptor
-        // is released as `CRC_Interceptor` releases it.
-        for placement in side
-            .contraptions
-            .iter()
-            .filter(|placement| placement.type_name == "interceptor")
-        {
-            interceptors.extend(
-                refused.hold(
-                    contraptions
-                        .interceptor(team, placement)
-                        .map_err(|error| Error::new(format!("side {name}: {error}"))),
+        // A shield was refused by the registry; an interceptor is released
+        // as `CRC_Interceptor` releases it, and a missile as `CRC_Mine` does.
+        for placement in &side.contraptions {
+            let located = |error: Error| Error::new(format!("side {name}: {error}"));
+            match placement.type_name.as_str() {
+                "interceptor" => interceptors.extend(
+                    refused.hold(contraptions.interceptor(team, placement).map_err(located)),
                 ),
-            );
+                "missile" => missiles
+                    .extend(refused.hold(contraptions.missile(team, placement).map_err(located))),
+                _ => {}
+            }
         }
         let levels = side
             .tower_strengthen_levels
@@ -244,6 +247,7 @@ pub(crate) fn compile_with_seed(
             placements,
             constructions,
             interceptors,
+            missiles,
             tower_levels,
             map_id: plan
                 .map_id

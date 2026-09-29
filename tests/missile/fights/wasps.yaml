@@ -1,0 +1,22 @@
+# A unit in the air sets a missile off as one on the ground does.
+#
+# Red's Wasps are in blue's missile's trigger range as the fight opens; it
+# fires on tick 1 at the nearest, flies at the Wasps' height, and its splash
+# kills all 12 on tick 14.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 14
+hash: {profile: mcfr-content-0.7.0, result: a10cb8e45f287ca18effdd835b46f27c23ce7455d65f34930d2a86eacf3ca3d1}
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/408/650}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 1, y: -11}, retained: false}
+red:
+  core_damage: 100
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -40}}

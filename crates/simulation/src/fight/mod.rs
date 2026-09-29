@@ -24,7 +24,10 @@ use serde::Serialize;
 
 use crate::{
     Error, Record, Result,
-    layout::{CompiledLayout, ConstructionBuilding, InterceptorBuilding, Placement},
+    layout::{
+        CompiledLayout, ConstructionBuilding, InterceptorBuilding, MissileMine, MissileShot,
+        Placement,
+    },
     rules::{
         AttackConfig, AttackPath, AttackTargets, Magazine, MapBuilding, MapsConfig, RvoSize,
         SimulationConfig, TowersConfig, UnitConfig, UnitConfigs, UnitDomain, WeaponMode,
@@ -39,6 +42,7 @@ mod experience;
 mod intercept;
 mod math;
 mod mech;
+mod mine;
 mod motion;
 mod projectile;
 mod random;
@@ -58,6 +62,7 @@ use damage::*;
 use deploy::*;
 use intercept::*;
 pub(crate) use math::*;
+use mine::*;
 use motion::*;
 use projectile::*;
 use random::GrRandom;
@@ -210,6 +215,8 @@ struct Simulation {
     projectiles: Vec<Projectile>,
     /// Each side's interceptors, `InterceptSystem`'s sources.
     interceptors: Vec<Interceptor>,
+    /// Each side's missiles still standing, `MineSystem`'s, in side order.
+    mines: Vec<Mine>,
     buildings: Vec<BuildingState>,
     target_quadtrees: BTreeMap<u32, TargetActorQuadtree>,
     /// Each side's units alone, `FightTeam.mechQuadtree`, which the
@@ -342,6 +349,11 @@ impl Simulation {
             team_random: BTreeMap::new(),
             projectiles: Vec::new(),
             interceptors,
+            mines: {
+                let mut mines = layout.missiles.iter().map(Mine::new).collect::<Vec<_>>();
+                mines.sort_by_key(Mine::team);
+                mines
+            },
             buildings,
             target_quadtrees,
             mech_quadtrees,
@@ -476,6 +488,9 @@ impl Simulation {
         // Native search jobs retain the actor-quadtree candidate order
         // prepared at the start of this FightCore update.
         let target_search_order = self.target_search_order();
+        // `MineSystem` updates before `FightCoreSystem`: a missile fires on
+        // where its enemies stood as the tick opened.
+        self.step_mines(&target_search_order, &mut events)?;
         let team_ids = self
             .actors
             .values()

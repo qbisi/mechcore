@@ -1,0 +1,23 @@
+# What a missile's hit writes on a unit it does not kill.
+#
+# Blue's missile fires on tick 1 at red's Rhino and lands on tick 22 for its
+# 5000. The hit writes the missile's buff 20001 on the Rhino, after the damage
+# and before the projectile's removal: its move speed falls by 0.65 in the
+# buff channel for 280 ticks, and the buff expires on tick 302.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 391
+hash: {profile: mcfr-content-0.7.0, result: ee346ebcc34897f2c51f72182cd2a61d92b2a9941d44bbb2b83562dbd2ef2242}
+blue:
+  core_damage: 200
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 1, y: -11}, retained: false}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/200/1150}

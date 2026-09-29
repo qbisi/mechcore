@@ -205,7 +205,7 @@ fn projectile_splash_emits_one_damage_event_per_actual_target() {
     let projectile = Projectile {
         id: 1,
         team: 0,
-        owner: FightActorRef::Unit(1),
+        shooter: Shooter::Actor(FightActorRef::Unit(1)),
         skill_slot: 0,
         target_kind: ObjectKind::Unit,
         target: 2,
@@ -300,7 +300,7 @@ fn dual_domain_projectile_splash_uses_the_main_targets_domain() {
     let projectile = Projectile {
         id: 1,
         team: 0,
-        owner: FightActorRef::Unit(1),
+        shooter: Shooter::Actor(FightActorRef::Unit(1)),
         skill_slot: 0,
         target_kind: ObjectKind::Unit,
         target: 2,
@@ -349,7 +349,7 @@ fn projectile_drain_does_not_late_teardown_the_defeated_teams_buildings() {
     simulation.projectiles.push(Projectile {
         id: 1,
         team: 0,
-        owner: FightActorRef::Unit(1),
+        shooter: Shooter::Actor(FightActorRef::Unit(1)),
         skill_slot: 0,
         target_kind: ObjectKind::Unit,
         target: 2,
@@ -415,7 +415,7 @@ fn projectile_splash_takes_a_building_beside_its_target() {
     let projectile = Projectile {
         id: 1,
         team: 0,
-        owner: FightActorRef::Unit(1),
+        shooter: Shooter::Actor(FightActorRef::Unit(1)),
         skill_slot: 0,
         target_kind: ObjectKind::Unit,
         target: 2,
@@ -510,7 +510,7 @@ fn projectile_raw_target_cache_preserves_rounding_sequence() {
         }
 
         let projectile = &simulation.projectiles[0];
-        let owner = &simulation.actors[&projectile.owner.id()];
+        let owner = &simulation.actors[&projectile.shooter.actor().expect("a unit fired it").id()];
         let target = &simulation.actors[&projectile.target];
         let (x_q32, z_q32) =
             millimeter_path.get_or_insert_with(|| (space_to_q32(owner.x), space_to_q32(owner.z)));

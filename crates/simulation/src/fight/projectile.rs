@@ -4,8 +4,8 @@ use super::*;
 pub(in crate::fight) struct Projectile {
     pub(in crate::fight) id: u64,
     pub(in crate::fight) team: u32,
-    /// Who released it: a unit, or a construction whose skill fires.
-    pub(in crate::fight) owner: FightActorRef,
+    /// Who released it.
+    pub(in crate::fight) shooter: Shooter,
     /// The owner's skill that released it.
     pub(in crate::fight) skill_slot: u16,
     pub(in crate::fight) target_kind: ObjectKind,
@@ -41,6 +41,26 @@ pub(in crate::fight) struct Projectile {
     pub(in crate::fight) climb_to_q32: Option<i64>,
 }
 
+/// What released a projectile.
+#[derive(Debug, Clone)]
+pub(in crate::fight) enum Shooter {
+    /// A unit, or a construction whose skill fires.
+    Actor(FightActorRef),
+    /// A missile, `FightLandMine`: nothing owns the projectile, and its hit is
+    /// the missile's own.
+    Missile(MissileShot),
+}
+
+impl Shooter {
+    /// The unit or construction that released it, if one did.
+    pub(in crate::fight) const fn actor(&self) -> Option<FightActorRef> {
+        match self {
+            Self::Actor(owner) => Some(*owner),
+            Self::Missile(_) => None,
+        }
+    }
+}
+
 impl Projectile {
     pub(in crate::fight) fn object_ref(&self) -> ObjectRef {
         ObjectRef::new(ObjectKind::Projectile, self.id)
@@ -50,7 +70,7 @@ impl Projectile {
         ProjectileState {
             projectile_id: self.id,
             team_id: self.team,
-            owner: Some(self.owner.object_ref()),
+            owner: self.shooter.actor().map(FightActorRef::object_ref),
             position: QVec3 {
                 x: self.x_q32,
                 y: self.y_q32,
@@ -179,10 +199,6 @@ impl Simulation {
         projectile: &Projectile,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let (owner_team, splash_radius) = self
-            .attacker(projectile.owner)
-            .map(|attacker| (attacker.team, attacker.attack.splash_radius()))
-            .ok_or_else(|| Error::new("projectile owner is absent"))?;
         let (aimed, reach) = if projectile.target_kind == ObjectKind::Building {
             // A building stands on the ground, and a projectile narrows a
             // dual-domain skill to its target's domain.
@@ -202,53 +218,20 @@ impl Simulation {
                 Reach::Domain(target_domain),
             )
         };
-        // A projectile carries no damage of its own: it takes its owner's as
-        // the owner has it when it lands. The Fangs of the two-tower fight
-        // whose debuff ends, or who die, while a shot is in the air land it
-        // for the full 63.
-        let amount = self
-            .attacker(projectile.owner)
-            .ok_or_else(|| Error::new("projectile owner is absent"))?
-            .attack_damage;
-        let hit = DamageHit {
-            source: projectile.owner.object_ref(),
-            source_team: projectile.team,
-            team: owner_team,
-            amount,
-            projectile: Some(projectile.object_ref()),
-            skill_slot: Some(projectile.skill_slot),
-            aimed,
-            hits_aimed: projectile.lock_target,
-            center: (projectile.x, projectile.z),
-            splash_radius,
-            reach,
-        };
-        // A projectile in simulated motion (`isSimulateMode`) that lands on a
-        // unit already dead does nothing, splash included: a Fire Badger's or
-        // a Typhoon's shot at a Crawler another shot killed while it flew
-        // leaves the Crawlers around it untouched. Any other projectile still
-        // strikes where it lands, as an Arclight's does.
-        let simulated = self.attacker(projectile.owner).is_some_and(|attacker| {
-            matches!(
-                attacker.attack.path,
-                crate::rules::AttackPath::Projectile {
-                    simulated_motion: true,
-                    ..
-                }
-            )
-        });
-        let lands_on_nothing = simulated
-            && projectile.target_kind == ObjectKind::Unit
-            && !self.actors[&projectile.target].alive();
-        let struck = if lands_on_nothing {
-            super::damage::Struck::default()
-        } else {
-            self.perform_damage(hit, events)?
+        let (struck, source) = match &projectile.shooter {
+            Shooter::Actor(owner) => (
+                self.actor_hit(projectile, *owner, aimed, reach, events)?,
+                Some((owner.object_ref(), projectile.team)),
+            ),
+            Shooter::Missile(shot) => (
+                self.missile_hit(projectile, shot, aimed, reach, events)?,
+                None,
+            ),
         };
         events.push(event(
             Some(projectile.object_ref()),
-            Some(hit.source),
-            Some(projectile.team),
+            source.map(|(source, _)| source),
+            source.map(|(_, team)| team),
             Some(aimed.object_ref()),
             EventPayload::ProjectileRemoved {
                 position: QVec3 {
@@ -282,5 +265,64 @@ impl Simulation {
             }
         }
         Ok(())
+    }
+
+    /// A unit's or a construction's projectile landing.
+    fn actor_hit(
+        &mut self,
+        projectile: &Projectile,
+        owner: FightActorRef,
+        aimed: FightActorRef,
+        reach: Reach,
+        events: &mut Vec<Event>,
+    ) -> Result<super::damage::Struck> {
+        let (owner_team, splash_radius) = self
+            .attacker(owner)
+            .map(|attacker| (attacker.team, attacker.attack.splash_radius()))
+            .ok_or_else(|| Error::new("projectile owner is absent"))?;
+        // A projectile carries no damage of its own: it takes its owner's as
+        // the owner has it when it lands. The Fangs of the two-tower fight
+        // whose debuff ends, or who die, while a shot is in the air land it
+        // for the full 63.
+        let amount = self
+            .attacker(owner)
+            .ok_or_else(|| Error::new("projectile owner is absent"))?
+            .attack_damage;
+        let hit = DamageHit {
+            source: owner.object_ref(),
+            source_team: projectile.team,
+            team: owner_team,
+            amount,
+            projectile: Some(projectile.object_ref()),
+            skill_slot: Some(projectile.skill_slot),
+            aimed,
+            hits_aimed: projectile.lock_target,
+            center: (projectile.x, projectile.z),
+            splash_radius,
+            reach,
+        };
+        // A projectile in simulated motion (`isSimulateMode`) that lands on a
+        // unit already dead does nothing, splash included: a Fire Badger's or
+        // a Typhoon's shot at a Crawler another shot killed while it flew
+        // leaves the Crawlers around it untouched. Any other projectile still
+        // strikes where it lands, as an Arclight's does.
+        let simulated = self.attacker(owner).is_some_and(|attacker| {
+            matches!(
+                attacker.attack.path,
+                crate::rules::AttackPath::Projectile {
+                    simulated_motion: true,
+                    ..
+                }
+            )
+        });
+        let lands_on_nothing = simulated
+            && projectile.target_kind == ObjectKind::Unit
+            && !self.actors[&projectile.target].alive();
+        let struck = if lands_on_nothing {
+            super::damage::Struck::default()
+        } else {
+            self.perform_damage(hit, events)?
+        };
+        Ok(struck)
     }
 }

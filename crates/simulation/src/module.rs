@@ -277,8 +277,8 @@ pub(crate) static MODULES: &[Module] = &[
     Module {
         native: "MineSystem",
         claims: &[Field::MissileContraptions],
-        understood: &[],
-        implemented: false,
+        understood: &[Field::MissileContraptions],
+        implemented: true,
     },
     Module {
         native: "MoveAbilityRangeItemSystem",
@@ -495,14 +495,15 @@ mod tests {
 
     /// Each kind of contraption is owed by the module that makes it, so a
     /// side is refused for the kinds it releases and not for the field: an
-    /// interceptor is understood, and the missile beside it is not.
+    /// interceptor and a missile are understood, and a shield is not.
     #[test]
     fn a_contraption_is_owed_by_the_module_of_its_kind() {
         let layout = mechcore_document::parse_yaml(
             "kind: layout\nround: 1\nblue:\n  units: \
              [{name: marksman, index: 0, position: {x: 0, y: -50}}]\n  contraptions: \
              [{name: interceptor, index: 0, position: {x: 5, y: -95}}, \
-             {name: missile, index: 1, position: {x: 1, y: -11}}]\nred:\n  units: \
+             {name: missile, index: 1, position: {x: 1, y: -11}}, \
+             {name: shield, index: 2, position: {x: 1, y: -81}}]\nred:\n  units: \
              [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n"
                 .as_bytes(),
         )
@@ -513,7 +514,7 @@ mod tests {
                 .iter()
                 .map(|(field, module)| (field.name(), *module))
                 .collect::<Vec<_>>(),
-            [("missile contraptions", "MineSystem")]
+            [("shield contraptions", "AdvancedEnergyShieldSystem")]
         );
     }
 

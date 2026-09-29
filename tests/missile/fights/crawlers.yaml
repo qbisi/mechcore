@@ -1,0 +1,25 @@
+# A missile fires once at the nearest enemy and its splash takes a crowd.
+#
+# Red's Crawlers stand inside blue's missile's trigger range as the fight
+# opens, so it fires on tick 1, before any unit has moved: a projectile from
+# 60 metres above where it stands, at 65 metres a second, locked on the
+# Crawler whose edge is nearest. It lands on tick 22 and its splash kills all
+# 24 Crawlers. No unit made the kills, and nothing else hit them, so the
+# experience goes to blue's one formation, the Marksman standing back.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 22
+hash: {profile: mcfr-content-0.7.0, result: 3ca045478e36e49f69255386324ada2bc0a75e156c4c994c2c66e29dfc7dc8c8}
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/192/650}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 1, y: -11}, retained: false}
+red:
+  core_damage: 100
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -40}}

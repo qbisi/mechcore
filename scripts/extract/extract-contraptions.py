@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
-"""Extract what an interceptor is into `config/contraptions.yaml`.
+"""Extract what an interceptor and a missile are into `config/contraptions.yaml`.
 
     python3 scripts/extract/extract-contraptions.py [--build BUILD] [--check]
 
 Read through `scripts/build_data.py` from the `ContraptionGroupData` object of
-`level0`, whose `interceptContraptionDatas` hold the interceptor a layout
-places. `InterceptSystem.DoCreateFightInterceptor` makes it a building of its
-side, and `InterceptEffectBase` reads the rest: its reach, the attack it deals
-a projectile, and how that attack falls with every hit and comes back while it
-is idle. `docs/rules/contraptions.md` states what each field does.
+`level0`. Its `interceptContraptionDatas` hold the interceptor a layout places:
+`InterceptSystem.DoCreateFightInterceptor` makes it a building of its side, and
+`InterceptEffectBase` reads the rest, its reach, the attack it deals a
+projectile, and how that attack falls with every hit and comes back while it
+is idle. Its `landMineContraptionDatas` hold the missile: `MineSystem` fires it
+once at the nearest enemy in its trigger range, a projectile with the row's
+speed, life, damage and splash, and the `buffDatas` row its `buffID` names is
+written on what the projectile hits. `docs/rules/contraptions.md` states what
+each field does.
 
 One check stands between the export and the table: the row's `slotSize` has
 to be the footprint `crates/document/src/catalog.rs` gives an interceptor,
@@ -78,6 +82,73 @@ def catalog_footprint():
     return int(found.group(1)), int(found.group(2)), int(found.group(3))
 
 
+MISSILE_INTEGERS = (
+    ("count", "count"),
+    ("damage", "damage"),
+    ("maxLife", "max_life"),
+    ("effectType", "effect_type"),
+    ("effectRangeType", "effect_range_type"),
+)
+MISSILE_FIXED = (
+    ("range", "trigger_range"),
+    ("damageRange", "splash_radius"),
+    ("moveSpeed", "speed"),
+)
+MISSILE_FLAGS = (
+    ("canBeIntercept", "interceptible"),
+    ("canAttackConstruction", "can_attack_construction"),
+)
+# The buff's fields the fight reads; every other rate has to be zero, and the
+# script refuses the row when one is not.
+BUFF_RATES = {"speedChangeRate": "move_speed_rate"}
+BUFF_ZERO = (
+    "lifeChangeRate", "maxLifeChangeRate", "currentLifeDisposableChangeRate",
+    "attackDurationChangeRate", "extraAttackDurationChangeRate", "damageChangeRate",
+    "amplifyDamageRate", "attackRangeChangeRate", "extraAttackRangeChangeRate", "stepTime",
+)
+
+
+def missile_lines(group):
+    rows = [row for row in group["landMineContraptionDatas"] if not row["isTestData"]]
+    if [row["id"] for row in rows] != [20001]:
+        raise SystemExit(f"landMineContraptionDatas holds {[row['id'] for row in rows]}, not 20001")
+    row = rows[0]
+    buffs = {buff["id"]: buff for buff in build_data.container()["buffDatas"]}
+    buff = buffs.get(row["buffID"])
+    if buff is None:
+        raise SystemExit(f"the missile names buff {row['buffID']}, which buffDatas does not hold")
+    moving = [field for field in BUFF_ZERO if raw(buff.get(field, 0))]
+    if moving:
+        raise SystemExit(f"buff {buff['id']} moves {moving}, which this table does not carry")
+    lines = [
+        "",
+        "missiles:",
+        f"  - id: {row['id']}",
+        f"    name: {row['name']}",
+        "    layout_name: missile",
+    ]
+    for field, name in MISSILE_INTEGERS:
+        lines.append(f"    {name}: {row[field]}")
+    for field, name in MISSILE_FIXED:
+        value = raw(row[field])
+        lines.append(f"    {name}: {value}{reading(value)}")
+    for field, name in MISSILE_FLAGS:
+        lines.append(f"    {name}: {str(row[field]).lower()}")
+    lines += [
+        "    buff:",
+        f"      id: {buff['id']}",
+        f"      name: {buff['name']}",
+        f"      divide: {buff.get('buffDivide', 0)}",
+        f"      additive: {str(buff.get('isAdditiveMode', False)).lower()}",
+        f"      duration: {raw(buff['duration'])}{reading(raw(buff['duration']))}",
+        f"      can_affect_construction: {str(buff.get('canAffectConstruction', False)).lower()}",
+    ]
+    for field, name in BUFF_RATES.items():
+        value = raw(buff.get(field, 0))
+        lines.append(f"      {name}: {value}{reading(value)}")
+    return lines
+
+
 def render(group):
     rows = [row for row in group["interceptContraptionDatas"] if not row["isTestData"]]
     identity, width, height = catalog_footprint()
@@ -91,7 +162,7 @@ def render(group):
     lines = [
         "schema: mechcore.contraptions",
         "",
-        "# What an interceptor is, read out of `ContraptionGroupData`. Generated",
+        "# What an interceptor and a missile are, read out of `ContraptionGroupData`. Generated",
         "# by scripts/extract/extract-contraptions.py; docs/rules/contraptions.md",
         "# states what each field does. A time, a distance or a rate is an",
         "# FPoint Q32.32 raw integer, read in the comment beside it.",
@@ -106,6 +177,7 @@ def render(group):
     for field, name in FIXED:
         value = raw(row[field])
         lines.append(f"    {name}: {value}{reading(value)}")
+    lines += missile_lines(group)
     return "\n".join(lines) + "\n"
 
 

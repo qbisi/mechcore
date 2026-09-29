@@ -77,6 +77,36 @@ cools for `coolingTime` and then gives back `attackNum × rise` every
 read among the tick's deaths and falls in the order they came, as every
 building's and unit's is.
 
+## A missile
+
+A missile is `FightLandMine`: it stands where it was released and is not a
+building, so nothing targets it and it takes no part in movement.
+[`config/contraptions.yaml`](../../config/contraptions.yaml) holds its numbers
+and the buff its hit writes.
+
+**When it fires.** `MineSystem` updates before `FightCoreSystem`, so on every
+tick, before any unit has moved, each side's missiles in the order they were
+released ask whether an enemy is in range: the object of the other side whose
+edge is nearest, a unit of either domain or a building that is not a tower,
+its distance measured in two dimensions from the missile to its centre less
+its radius and required to be under the row's `range`. The first of equals is
+taken. A missile fires once, and is spent.
+
+**What it fires.** A projectile of its own, which no unit owns: it leaves from
+`mineFlyHeight`, 60 metres, above where the missile stands, at the row's
+`moveSpeed`, locked on what set it off, with the row's `maxLife`, and an
+interceptor may take it out of the air. Its release and its removal name no
+source; its damage and the deaths it causes are credited to the projectile.
+
+**What its hit does.** It deals the row's `damage` to what it lands on and
+splashes it over `damageRange`, as a unit's projectile does. Then
+`FightLandMine.DispatchHitDamageEvent` writes the row's buff on every unit it
+struck that still stands, after the damage and before the projectile is
+removed; the buff is a slow in the buff channel, merged with one already
+running in its divide as any buff is, and it expires on the unit's update.
+No unit made a kill a missile makes, so its experience goes to the pool
+[`unit_experience.md`](unit_experience.md) shares out, on the missile's side.
+
 ## What a fight leaves
 
 A contraption stands into the next round unless the fight ends it, and each
@@ -99,6 +129,14 @@ kind ends its own way:
   projectile's life, its attack falling with hits and rising while idle, and
   its standing as an obstacle to both sides:
   `tests/interceptor/fights/stormcallers.yaml`.
+- A missile fires once, at tick one when an enemy is in range, at the enemy
+  whose edge is nearest, air or ground, or a building that is not a tower; its
+  projectile leaves from 60 metres above it, lands for its damage and splash,
+  and writes its slow on every unit it struck that still stands:
+  `tests/missile/fights/crawlers.yaml`, `tests/missile/fights/rhino-slowed.yaml`,
+  `tests/missile/fights/wasps.yaml`, `tests/missile/fights/turret.yaml`.
+- Interceptors take missiles' projectiles out of the air:
+  `tests/interceptor/fights/missiles.yaml`.
 - A fallen interceptor intercepts nothing more, falls among the tick's deaths,
   and does not stand into the next round:
   `tests/interceptor/fights/interceptor-falls.yaml`.
@@ -134,6 +172,18 @@ kind ends its own way:
   projectile made with the missile as its data source:
   `TeamMineManager.TryActiveMine`, `FightLandMine.GetTriggerRange`,
   `MineSystem.ActiveMine`, `ProjectileSystem.Create`.
+- A missile is created where it is released, and fires when it finds a
+  target: `CRC_Mine.Perform`, `MineSystem.Create`, `TeamMineManager.Update`,
+  `TeamMineManager.TryActiveMine`, `FightUtility.CalculateDistance2D`,
+  `FightCrystal.IsTower`, `MineSystem.ActiveMine`.
+- Its projectile is its own: `FightLandMine.IsLockTarget`,
+  `FightLandMine.GetEffectTargetType`, `FightLandMine.CanAttackConstruction`,
+  and it leaves from `Config.mineFlyHeight` through
+  `IFightSetting.GetMineFlyHeight`.
+- Its hit writes its buff: `FightLandMine.DispatchHitDamageEvent`,
+  `BuffSystem.AddBuff`.
+- It updates before the units: `FightController.AddModules` adds `MineSystem`
+  before `FightCoreSystem`.
 - An interceptor is a building of its side: `FightInterceptor.Building`,
   `FightInterceptor.OnDestroy`.
 - It is built with the row's life, its `pathRadius` for a radius and its
@@ -168,6 +218,10 @@ kind ends its own way:
 - **A row whose hit can miss.** The one interceptor's probability is a
   certainty, and a row that is not is refused by name.
 
+- **Where 60 metres comes from.** `Config.mineFlyHeight` is private and the
+  export does not carry it; the height is what the recordings show.
+- **Two missiles of one side.** Which asks first is taken as the order the
+  layout releases them in, and no recording has two.
 - **Which call spends a fired missile.** `TeamMineManager.Remove` takes a
   missile off its side's list and has no caller the index resolves, so the
   step from firing to being gone is read from the corpus, not the build.

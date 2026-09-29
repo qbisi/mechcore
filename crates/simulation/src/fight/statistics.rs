@@ -78,13 +78,14 @@ impl Simulation {
     pub(in crate::fight) fn count_hit(
         &mut self,
         source: ObjectRef,
+        source_team: u32,
         target: FightActorRef,
         stroke: &Stroke,
     ) -> Result<()> {
         if !stroke.reached_alive {
             return Ok(());
         }
-        self.count_experience(source, target, stroke.killed)?;
+        self.count_experience(source, source_team, target, stroke.killed)?;
         let narrow =
             |value: i64| i32::try_from(value).map_err(|_| Error::new("a counted hit exceeds i32"));
         if let Some(key) = self.recorder(source) {
