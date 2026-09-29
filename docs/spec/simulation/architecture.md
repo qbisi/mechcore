@@ -480,7 +480,10 @@ target nearer than the skill's minimum range (vtable 1088), not beyond its
 range (1104). So a live lock that walks out of reach fails the check for every
 skill, whether it switches quickly or not, and the attack finishes; one that
 walks inside the minimum range sends `CheckWhenLoseTarget` to `SearchLockTarget`,
-and the check passes if the answer is in the area. The Stormcaller is the one
+and the check passes if the answer is in the area; while a blow is under way it
+also calls `ResetAttackData`, which draws the interval again and gives the wait
+back when no blow of the attack state has run its cycle out, unless the blow is
+still winding up on a target it can attack. The Stormcaller is the one
 unit with a minimum range. The build reads the quick-switch flag only in the
 research branch of `Check`.
 

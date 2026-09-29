@@ -552,7 +552,8 @@ row closes, in call order: the skill's owner, the skill's index in the
 owner's `GetSkills()` (or its parent's, for a child skill the list does not
 hold; null when neither is listed), `is_attacking_check`, the skill's
 lock, attack target, state and attack phase read just `before` the call and
-just `after` it, and what it returned. The method is hooked the way the
+just `after` it, with its `attackTime`, `attackInterval` and its attack
+controller's `performCount`, and what it returned. The method is hooked the way the
 selector method is — its first four arm64 instructions, `sub sp` and three
 `stp`, are stack-only and move to a trampoline unchanged — and is forwarded
 with its arguments and result untouched; the reads on either side are field

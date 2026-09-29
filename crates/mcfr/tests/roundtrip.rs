@@ -651,12 +651,18 @@ fn instrument_channels_ride_in_the_recording_outside_the_hash() {
             attack_target: None,
             skill_state: None,
             skill_attack_phase: None,
+            attack_time: None,
+            attack_interval: None,
+            perform_count: None,
         },
         after: CheckedSkill {
             lock_target: Some(ObjectRef::new(ObjectKind::Unit, 2)),
             attack_target: None,
             skill_state: Some("SkillPrepareState".into()),
             skill_attack_phase: None,
+            attack_time: None,
+            attack_interval: None,
+            perform_count: None,
         },
         check_return: true,
     };
