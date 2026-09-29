@@ -303,6 +303,17 @@ impl Simulation {
         let (Some(attacker), Some(view)) = (self.attacker(owner), self.fight_actor(target)) else {
             return false;
         };
+        // A skill firing at a shield reaches it once the point of the
+        // shield's surface on its way to the lock is in range, from the
+        // owner's edge: `SkillAttackRangeChecker.IsAttackTargetInAttackRange`.
+        if let Some(shield) = self.skill(owner).shield_target()
+            && Some(target) == self.skill(owner).lock_target
+        {
+            return view.alive
+                && self
+                    .shield_attack_point(shield, owner, target)
+                    .is_some_and(|(x_q32, z_q32)| attacker.reaches(x_q32, z_q32, 0));
+        }
         view.alive && view.targetable && attacker.reaches(view.x_q32, view.z_q32, view.radius)
     }
 

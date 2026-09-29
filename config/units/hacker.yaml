@@ -38,6 +38,7 @@ attack:
     indices: [4]
     per_skill: 1
   melee: false
+  crosses_shields: false
   path:
     type: control_beam
     warmup_attack_count: 2

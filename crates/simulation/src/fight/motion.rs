@@ -534,9 +534,15 @@ impl Simulation {
             actor.aim_rotation = actor.body_rotation;
             return Ok(());
         }
-        if edge_distance_q32 >= space_to_q32(actor.rules.attack.min_range())
-            && edge_distance_q32 <= space_to_q32(actor.stats.attack_range())
-        {
+        let in_reach = if actor.skill.shield_target().is_some() {
+            // A skill firing at a shield stops its unit once the shield's
+            // surface is in reach, however far the lock stands behind it.
+            self.target_in_attack_range(FightActorRef::Unit(actor_id), target)
+        } else {
+            edge_distance_q32 >= space_to_q32(actor.rules.attack.min_range())
+                && edge_distance_q32 <= space_to_q32(actor.stats.attack_range())
+        };
+        if in_reach {
             return self.attack_in_range(
                 actor_id,
                 step,

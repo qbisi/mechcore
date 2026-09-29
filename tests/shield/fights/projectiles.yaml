@@ -1,0 +1,26 @@
+# What a shield does to projectiles.
+#
+# Red's Marksman stands inside red's shield. Blue's Marksman and Arclight aim
+# at it, fire at the shield instead, and stop once its surface is in range:
+# the Marksman on tick 51, the surface just inside its 140 metres. Every
+# shot, the Arclight's splashing ones too, is removed where it crosses the
+# surface and takes its damage off the shield, which reads it as the damage's
+# target; the Marksman inside takes nothing.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 326
+hash: {profile: mcfr-content-0.7.0, result: 2559ac4a0f1f6e799ab3031cc9ef5287fc5247fb80428640717da5b74168ec7a}
+blue:
+  core_damage: 100
+  units:
+  - {name: marksman, index: 0, position: {x: -40, y: -150}}
+  - {name: arclight, index: 1, position: {x: 40, y: -150}}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -80}, exp: 0/400/650}
+  contraptions:
+  - {name: shield, index: 1, position: {x: 1, y: -81}}

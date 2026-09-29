@@ -301,6 +301,7 @@ skills:
         indices: [0]
         per_skill: 1
       melee: false
+      crosses_shields: false
       path:
         type: projectile
         count: 1
@@ -338,6 +339,7 @@ skills:
         indices: [0]
         per_skill: 1
       melee: false
+      crosses_shields: false
       path:
         type: projectile
         count: 1

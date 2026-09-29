@@ -50,6 +50,7 @@ mod random;
 mod run;
 mod rvo;
 mod search;
+mod shield;
 mod skill;
 mod statistics;
 mod support_unit;
@@ -222,6 +223,15 @@ struct Simulation {
     interceptors: Vec<Interceptor>,
     /// Each side's missiles still standing, `MineSystem`'s, in side order.
     mines: Vec<Mine>,
+    /// Every battlefield shield still standing, each side's in its active
+    /// order.
+    shields: Vec<shield::EnergyShield>,
+    /// The `shield_destroyed` events of the tick, which the recording reads
+    /// off the shields standing at its end, after everything else.
+    destroyed_shields: Vec<Event>,
+    /// The shields broken this tick, which a skill firing at one still aims
+    /// at until the tick is over.
+    broken_shields: Vec<shield::EnergyShield>,
     /// Each side's released battle skills, `CommanderSkillSystem`'s, in side
     /// order.
     battle_skills: Vec<SkillRelease>,
@@ -376,6 +386,9 @@ impl Simulation {
                 mines.sort_by_key(Mine::team);
                 mines
             },
+            shields: shield::initialize_shields(&layout.shields),
+            destroyed_shields: Vec::new(),
+            broken_shields: Vec::new(),
             battle_skills: {
                 let mut releases = layout.battle_skills.clone();
                 releases.sort_by_key(|release| release.team);
@@ -448,6 +461,7 @@ impl Simulation {
                 .filter(|building| building_alive(building))
                 .cloned()
                 .collect(),
+            shields: self.shield_states(),
             statistics: self.statistics.values().copied().collect(),
             formations: self.formation_states(),
             ..WorldSnapshot::default()
@@ -765,6 +779,8 @@ impl Simulation {
                 tree.remove(FightActorRef::Building(building_id));
             }
         }
+        events.append(&mut self.destroyed_shields);
+        self.broken_shields.clear();
         Ok(TransitionEvents { events })
     }
 

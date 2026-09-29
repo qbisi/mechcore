@@ -481,7 +481,17 @@ impl Simulation {
             offset_x_q32: 0,
             offset_z_q32: 0,
             climb_to_q32: None,
+            spawn_shields: Vec::new(),
+            absorbed_by: None,
         };
+        let mut projectile = projectile;
+        // `ProjectileController.Init`: the enemy shields that already hold it.
+        projectile.spawn_shields = self.enemy_shields_at(
+            source.team,
+            projectile.x_q32,
+            projectile.y_q32,
+            projectile.z_q32,
+        );
         let projectile_ref = projectile.object_ref();
         events.push(event(
             Some(projectile_ref),

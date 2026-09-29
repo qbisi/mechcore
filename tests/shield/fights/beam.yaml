@@ -1,0 +1,21 @@
+# A beam at a covered unit.
+#
+# Blue's Steel Ball turns its beam on red's Marksman inside red's shield, and
+# every tick of it drains the shield instead, as its damage grows.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: recording
+ticks: 349
+hash: {profile: mcfr-content-0.7.0, result: 4b8290002941b45f5f86ef2781950a9d713370f9e007a38a70b5312aec15695e}
+blue:
+  units:
+  - {name: steel_ball, index: 0, position: {x: 5, y: -150}, exp: 0/200/1000}
+red:
+  core_damage: 100
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -80}, exp: 0/200/650}
+  contraptions:
+  - {name: shield, index: 1, position: {x: 1, y: -81}, retained: false}

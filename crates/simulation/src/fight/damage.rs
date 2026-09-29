@@ -37,6 +37,17 @@ pub(in crate::fight) struct DamageHit {
     pub(in crate::fight) hits_aimed: bool,
     /// Where the splash is measured from, in space units.
     pub(in crate::fight) center: (i64, i64),
+    /// How high that point is, `FPoint` raw metres: a shield holds the point
+    /// or not in three dimensions.
+    pub(in crate::fight) center_y_q32: i64,
+    /// The shield the hit is for: a projectile that a shield took, or a blow
+    /// at a unit its side's shield covers. With no splash the shield takes
+    /// the whole of it; with one it is the splash's main shield.
+    pub(in crate::fight) shield: Option<u64>,
+    /// Whether it passes battlefield shields: the skill's
+    /// `canCrossAdvancedShield`, or a performer that
+    /// `IsInterceptByAdvancedEnergyShield` is false for.
+    pub(in crate::fight) crosses_shields: bool,
     pub(in crate::fight) splash_radius: i64,
     pub(in crate::fight) reach: Reach,
 }
@@ -346,7 +357,21 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<Struck> {
         let mut struck = Struck::default();
-        for target in self.damage_targets(&hit)? {
+        // `PerformSingleEffect` on a shield: it takes the hit, and no unit
+        // does.
+        if let Some(shield) = hit.shield
+            && hit.splash_radius == 0
+        {
+            self.hit_shield(shield, &hit, events)?;
+            return Ok(struck);
+        }
+        let mut targets = self.damage_targets(&hit)?;
+        if hit.splash_radius > 0 && !hit.crosses_shields {
+            for shield in self.shields_in_the_way(&hit, &mut targets) {
+                self.hit_shield(shield, &hit, events)?;
+            }
+        }
+        for target in targets {
             let stroke = self.strike(target, hit.source, hit.source_team, hit.amount)?;
             self.count_hit(hit.source, hit.source_team, target, &stroke)?;
             struck.targets.push(target);
@@ -377,6 +402,48 @@ impl Simulation {
             }
         }
         Ok(struck)
+    }
+
+    /// `DamagePerformer.ProcessAdvancedEnergyShieldEffect` and the shields
+    /// `PerformRangeEffect` then strikes. Every shield of the sides the hit
+    /// strikes that does not hold the point it lands at takes its side's
+    /// units it covers out of the hit; the one covering what the hit was
+    /// aimed at is its main shield. The main shield, and every other the
+    /// splash reaches in the plane, take the hit, before any unit does.
+    fn shields_in_the_way(&self, hit: &DamageHit, targets: &mut Vec<FightActorRef>) -> Vec<u64> {
+        let (x_q32, z_q32) = (space_to_q32(hit.center.0), space_to_q32(hit.center.1));
+        let mut main = hit.shield;
+        let mut listed = Vec::new();
+        for shield in &self.shields {
+            if !hit.effect.strikes(hit.team, shield.team)
+                || shield.contains(x_q32, hit.center_y_q32, z_q32)
+            {
+                continue;
+            }
+            let covered = |target: &FightActorRef| {
+                matches!(target, FightActorRef::Unit(id)
+                    if self.actors[id].placement.team == shield.team)
+                    && self.shield_holds(shield.id, *target)
+            };
+            if main.is_none() && hit.aimed.is_some_and(|aimed| covered(&aimed)) {
+                main = Some(shield.id);
+            }
+            targets.retain(|target| !covered(target));
+            listed.push(shield);
+        }
+        listed
+            .into_iter()
+            .filter(|shield| {
+                Some(shield.id) == main
+                    || native_q32_magnitude(
+                        shield.x_q32.saturating_sub(x_q32),
+                        shield.z_q32.saturating_sub(z_q32),
+                    )
+                    .saturating_sub(shield.radius_q32)
+                        <= space_to_q32(hit.splash_radius)
+            })
+            .map(|shield| shield.id)
+            .collect()
     }
 
     /// Records the units a hit killed, each credited to whoever last hurt it.
@@ -419,6 +486,12 @@ impl Simulation {
                 .map(|building| (building_x(building), building_z(building)))
                 .ok_or_else(|| Error::new("direct attack target is absent"))?,
         };
+        let shield = self.blow_shield(actor_id, target);
+        if shield.is_some() && attacker.rules.attack.splash_radius() > 0 {
+            return Err(Error::new(
+                "a splashing blow at a unit its side's shield covers is not measured",
+            ));
+        }
         let hit = DamageHit {
             source: Some(attacker.object_ref()),
             source_team: attacker.placement.team,
@@ -431,6 +504,9 @@ impl Simulation {
             aimed: Some(target),
             hits_aimed: true,
             center,
+            center_y_q32: self.target_height_q32(target),
+            shield,
+            crosses_shields: attacker.rules.attack.crosses_shields,
             splash_radius: attacker.rules.attack.splash_radius(),
             reach: Reach::Targets(attacker.rules.attack.targets),
         };
@@ -442,6 +518,64 @@ impl Simulation {
         // moves there together.
         self.record_ends(struck.ends, events);
         Ok(())
+    }
+
+    /// A beam that a shield takes in place of its target.
+    fn beam_at_shield(
+        &mut self,
+        actor_id: u64,
+        target: FightActorRef,
+        shield: u64,
+        damage: i64,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        let attacker = &self.actors[&actor_id];
+        if attacker.rules.attack.splash_radius() > 0 {
+            return Err(Error::new(
+                "a splashing beam at a unit its side's shield covers is not measured",
+            ));
+        }
+        let hit = DamageHit {
+            source: Some(attacker.object_ref()),
+            source_team: attacker.placement.team,
+            team: attacker.placement.team,
+            effect: EffectTarget::Opponent,
+            amount: damage,
+            projectile: None,
+            skill_slot: Some(0),
+            aimed: Some(target),
+            hits_aimed: true,
+            center: (attacker.x, attacker.z),
+            center_y_q32: 0,
+            shield: Some(shield),
+            crosses_shields: false,
+            splash_radius: 0,
+            reach: Reach::Targets(attacker.rules.attack.targets),
+        };
+        self.perform_damage(hit, events)?;
+        Ok(())
+    }
+
+    /// `DamageEffect.Perform`'s shield: the one of the target's side that
+    /// covers it, `FightSkill.IsActorProtectedByEnergyShield`, unless the
+    /// blow crosses shields or the attacker stands inside that shield too.
+    pub(in crate::fight) fn blow_shield(
+        &self,
+        actor_id: u64,
+        target: FightActorRef,
+    ) -> Option<u64> {
+        self.search_target_shield(FightActorRef::Unit(actor_id), target)
+    }
+
+    /// How high a target stands, `FPoint` raw metres.
+    pub(in crate::fight) fn target_height_q32(&self, target: FightActorRef) -> i64 {
+        match target {
+            FightActorRef::Unit(id) => self
+                .actors
+                .get(&id)
+                .map_or(0, |actor| space_to_q32(unit_height(actor.rules.domain))),
+            FightActorRef::Building(_) => 0,
+        }
     }
 
     /// A hit's deaths and falls, in the order it struck them, among the
@@ -490,6 +624,11 @@ impl Simulation {
         // the target trees hold them: a Melting Point's beam at one Crawler
         // reads the Crawler beside it first.
         let splash_radius = self.actors[&actor_id].rules.attack.splash_radius();
+        // A beam at a unit its side's shield covers strikes the shield, as a
+        // blow does: `DamageEffect.Perform`.
+        if let Some(shield) = self.blow_shield(actor_id, target) {
+            return self.beam_at_shield(actor_id, target, shield, damage, events);
+        }
         if splash_radius > 0 {
             let attacker = &self.actors[&actor_id];
             let center = match target {
@@ -515,6 +654,9 @@ impl Simulation {
                 aimed: Some(target),
                 hits_aimed: true,
                 center,
+                center_y_q32: self.target_height_q32(target),
+                shield: None,
+                crosses_shields: attacker.rules.attack.crosses_shields,
                 splash_radius,
                 reach: Reach::Targets(attacker.rules.attack.targets),
             };

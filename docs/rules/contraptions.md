@@ -109,6 +109,42 @@ unit's update.
 No unit made a kill a missile makes, so its experience goes to the pool
 [`unit_experience.md`](unit_experience.md) shares out, on the missile's side.
 
+## A shield
+
+A shield is a sphere of its side standing on the ground at its placement's
+centre, as wide as its row's `range` and holding its row's `energy`, both in
+[`config/contraptions.yaml`](../../config/contraptions.yaml). It is active from
+the start, is no actor, and takes no part in movement. A side's shields are in
+the order `CompareEnergyShield` sorts them at the fight's start: their centre's
+x, then its z, then their energy and radius. A shield covers what its sphere
+holds strictly inside, in three dimensions, while it has energy left.
+
+A hit meant for a unit its side's shield covers lands on the shield:
+
+- **A projectile** is tested where each move leaves it: the first enemy shield
+  that holds it and did not hold it as it was made takes it, and it is removed
+  where its way crosses the shield's surface, half a metre beyond it. One that
+  lands on a covered unit without having entered a shield, and has no splash,
+  is taken by the shield covering the unit; neither happens when the one who
+  fired it stands inside that shield.
+- **A blow or a beam** at a covered unit lands on the shield, unless the
+  attacker stands inside it.
+- **A splash** that lands outside a shield leaves the units it covers alone,
+  and the shield takes the hit if the splash reaches it in the plane; one that
+  lands inside a shield reaches the units inside.
+- A skill whose hits cross shields (`canCrossAdvancedShield`: a Crawler's, a
+  Rhino's) passes every shield, and a unit whose attack does not, aiming at a
+  covered unit, fires at the shield: it stops once the point of the shield's
+  surface on its way to its target is within its range, and its weapons name no
+  target while it does.
+
+A shield takes a hit's damage up to the energy it has left, and a hit that
+empties it destroys it for the rest of the fight: the excess goes nowhere. The
+recording names the shield as the target of that `damage`, and
+`shield_destroyed` comes after everything else the tick did. A skill that broke
+it still aims at it for the rest of that tick and loses its lock at its next
+check. A shield never regains energy within a fight.
+
 ## What a fight leaves
 
 A contraption stands into the next round unless the fight ends it, and each
@@ -142,6 +178,17 @@ kind ends its own way:
 - A fallen interceptor intercepts nothing more, falls among the tick's deaths,
   and does not stand into the next round:
   `tests/interceptor/fights/interceptor-falls.yaml`.
+- A shield takes projectiles at its surface, a splashing one's included, and
+  its side's covered unit takes nothing; units whose target it covers stop at
+  its surface: `tests/shield/fights/projectiles.yaml`.
+- Blows at a covered unit land on the shield until it breaks, and the unit
+  that broke it loses its lock the tick after:
+  `tests/shield/fights/blows-break-it.yaml`.
+- A beam at a covered unit lands on the shield: `tests/shield/fights/beam.yaml`.
+- A skill that crosses shields strikes the covered unit:
+  `tests/shield/fights/crawlers-cross.yaml`.
+- The hit that empties a shield is absorbed whole, and the shield is gone
+  after it: `tests/shield/fights/projectiles-break-it.yaml`.
 
 ### Replayed
 
@@ -186,6 +233,31 @@ kind ends its own way:
   `BuffSystem.AddBuff`.
 - It updates before the units: `FightController.AddModules` adds `MineSystem`
   before `FightCoreSystem`.
+- A shield is a sphere of its side on the ground, active from its creation,
+  as wide as its row's range and holding its energy:
+  `AdvancedEnergyShieldSystem.Create`, `FightEnergyShield.Active`,
+  `EnergyShieldContraption.GetAdvancedEnergyShieldRadius`,
+  `EnergyShieldContraption.GetAdvancedEnergyShieldValue`.
+- A projectile is tested against enemy shields after each move, as a point,
+  past those that held it as it was made: `FightProjectile.Update`,
+  `FightProjectile.CheckIsHitEnergyShield`,
+  `ProjectileController.IsProjectileHitEnergyShield`,
+  `FightCalculator.IsInEnergyShield`,
+  `FightUtility.GetAttackPositionOnEnergyShieldOuter`,
+  `FightUtility.CalculatePointOnCricle`.
+- A blow at a covered unit lands on its shield, which the skill's search
+  hands it in place of an attack target: `DamageEffect.Perform`,
+  `FightSkill.GetTargetEnergyShield`, `FightSkill.IsActorProtectedByEnergyShield`,
+  `SkillSearchTargetController.SearchTargetShield`,
+  `SkillAttackRangeChecker.IsAttackTargetInAttackRange`.
+- A splash spares what a shield covers unless it lands inside it:
+  `DamagePerformer.ProcessAdvancedEnergyShieldEffect`,
+  `DamagePerformer.PerformRangeEffect`.
+- A hit takes the energy it can, and one that empties a shield destroys it:
+  `DamagePerformer.PerformHitAdvancedEndergyShieldEffect`,
+  `FightEnergyShield.ReduceEnergy`, `AdvancedEnergyShieldSystem.Destroy`.
+- A contraption's shield regains nothing within a fight:
+  `GroupAdvancedEnergyShieldManager.Update`.
 - An interceptor is a building of its side: `FightInterceptor.Building`,
   `FightInterceptor.OnDestroy`.
 - It is built with the row's life, its `pathRadius` for a radius and its
@@ -219,6 +291,16 @@ kind ends its own way:
   is not read, and the simulator refuses the fight when it happens.
 - **A row whose hit can miss.** The one interceptor's probability is a
   certainty, and a row that is not is refused by name.
+- **A missile, or a battle skill, in a fight with a shield.** A missile's
+  projectile and a falling sub-effect each have shield branches no fight
+  pins; the simulator refuses both.
+- **A splashing blow or beam at a covered unit.** Its damage point on the
+  shield's surface is read but no fight pins it; the simulator refuses it.
+- **A projectile fired from inside an enemy shield,** or across two shields.
+  The exemption for the shields that held it as it was made is read, and no
+  fight pins it.
+- **An officer's rate on a shield's energy** (`ChangEnergyShieldValue`). The
+  simulator refuses the officer.
 
 - **Where 60 metres comes from.** `Config.mineFlyHeight` is private and the
   export does not carry it; the height is what the recordings show.

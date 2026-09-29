@@ -135,6 +135,10 @@ pub(crate) enum UnitDomain {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "the skill row's flags are independent fields"
+)]
 pub(crate) struct AttackConfig {
     pub(crate) base_damage: i64,
     pub(crate) min_range: f64,
@@ -150,6 +154,9 @@ pub(crate) struct AttackConfig {
     /// branches read it, and `UnitUtility.IsEffectTarget` answers the Melee
     /// and Ranged targeting categories from it.
     pub(crate) melee: bool,
+    /// `SkillData.canCrossAdvancedShield` of the main skill: its hits pass
+    /// every battlefield shield, as a Crawler's and a Rhino's do.
+    pub(crate) crosses_shields: bool,
     pub(crate) path: AttackPath,
     /// A skill that fires from a magazine: `SkillData.isLoadingType`, which a
     /// turret's is and no unit this build places reads.

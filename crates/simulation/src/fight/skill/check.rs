@@ -28,7 +28,18 @@ impl Simulation {
             self.wall_in_the_way(owner, target)
                 .map(|building| (building, target))
         });
+        // `SearchTargetShield`: with no construction in the way, a lock its
+        // side's shield covers makes the shield what the skill fires at.
+        let shield = if found.is_none() {
+            self.skill(owner).lock_target.and_then(|target| {
+                self.search_target_shield(owner, target)
+                    .map(|shield| (shield, target))
+            })
+        } else {
+            None
+        };
         self.skill_mut(owner).in_the_way = found;
+        self.skill_mut(owner).target_shield = shield;
         if !self.skill(owner).siblings().is_empty() {
             self.refresh_group_walls(owner.unit_id().expect("only a unit's skill is grouped"));
         }

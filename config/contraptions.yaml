@@ -1,6 +1,6 @@
 schema: mechcore.contraptions
 
-# What an interceptor and a missile are, read out of `ContraptionGroupData`. Generated
+# What an interceptor, a missile and a shield are, read out of `ContraptionGroupData`. Generated
 # by scripts/extract/extract-contraptions.py; docs/rules/contraptions.md
 # states what each field does. A time, a distance or a rate is an
 # FPoint Q32.32 raw integer, read in the comment beside it.
@@ -50,3 +50,12 @@ missiles:
       duration: 60129542144  # 14
       can_affect_construction: false
       move_speed_rate: -2791728742  # -0.65
+
+shields:
+  - id: 10001
+    name: 护盾发生器
+    layout_name: shield
+    energy: 40000
+    effect_type: 7
+    effect_range_type: 0
+    radius: 300647710720  # 70

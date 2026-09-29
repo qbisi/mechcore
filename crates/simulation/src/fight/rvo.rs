@@ -907,7 +907,7 @@ pub(crate) fn fpoint_less_than(left: i64, right: i64) -> bool {
 }
 
 /// `FPoint.op_GreaterThan`: the same 43-raw tolerance, the other way.
-fn fpoint_greater_than(left: i64, right: i64) -> bool {
+pub(crate) fn fpoint_greater_than(left: i64, right: i64) -> bool {
     fpoint_less_than(right, left)
 }
 
@@ -1010,7 +1010,7 @@ fn lerp(left: FixedVec2, right: FixedVec2, amount: i64) -> FixedVec2 {
     clippy::cast_possible_wrap,
     reason = "the 32-bit truncation and sign reinterpretation reproduce the build's Q32.32 arithmetic"
 )]
-fn q32_mul(left: i64, right: i64) -> i64 {
+pub(crate) fn q32_mul(left: i64, right: i64) -> i64 {
     let low = ((u64::from(left as u32) * u64::from(right as u32)) >> 32) as i64;
     (left >> 32)
         .wrapping_mul(right)
@@ -1018,7 +1018,7 @@ fn q32_mul(left: i64, right: i64) -> i64 {
         .wrapping_add(low)
 }
 
-fn q32_div(numerator: i64, denominator: i64) -> i64 {
+pub(crate) fn q32_div(numerator: i64, denominator: i64) -> i64 {
     if denominator == 0 {
         return if numerator < 0 { i64::MIN } else { i64::MAX };
     }
