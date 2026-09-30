@@ -135,6 +135,22 @@ is not below zero. `AcosFastest(1)` is not zero, so a target straight ahead is
 faced at +0.245°, and so is one a few raw units to the left, where a
 formation's jittered slots can put it, rather than at −0.245°.
 
+## A unit beside a flanked tower faces the flank
+
+**A unit enters the fight facing its formation's way, unless it stands beside
+one of its towers and the other side holds the flank there.** As the fight
+starts, `TerritoryManager.RefreshMechDiretion` turns each unit to
+`PlayerTerritory.GetAttackFacing`, and the presearch then scores from that
+facing. A side's main region has two defence areas: the left one runs from the
+region's left edge to the left tower's right edge, and from its back edge to
+the tower's front edge, which is 150 metres short of the region's front; the
+right one mirrors it. A unit standing in one, by its own position floored to
+whole metres, faces a quarter turn from its formation towards that side when
+the region beside the area, the other side's flank there, holds a formation.
+Otherwise it faces as its formation does. So members of one formation that
+straddles the area's front edge face two ways, and a unit on the flank itself,
+or in a fight with nobody on the other side's flanks, is not turned.
+
 ## The body follows the lock, the weapons follow the attack target
 
 A unit has two targets and the build keeps them apart: the mech's lock
@@ -614,6 +630,11 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- A unit in a defence area beside a flanked tower enters the fight a quarter
+  turn towards the flank, and one of the same formation outside it does not:
+  `tests/corpus/fights/268487043-r4.yaml`; in replay 134270595 round 4 the
+  back row of a Fang formation faced 270 degrees and its other rows 0, read
+  from `PresearchTargetController.SearchTarget` with a temporary hook.
 - An idle Marksman an RVO solve nudges while it cools goes back to the point
   it stopped at: `tests/corpus/fights/201373545-r2.yaml`, ticks 1112 to 1121.
 - A tick that leaves neither side a unit, with no shot in the air, fells all
@@ -692,6 +713,13 @@ not the game's native attack-type enum.
 
 ### Read
 
+- A unit's facing as the fight starts is its territory's attack facing, a
+  quarter turn in a defence area whose region holds something:
+  `TerritoryManager.RefreshMechDiretion`, `PlayerTerritory.GetAttackFacing`,
+  `PlayerTerritory.CreateLeftDefenseAreaLocal`,
+  `PlayerTerritory.CreateRightDefenseAreaLocal`, `DefenseArea.Contains`,
+  `MapRect.Contains`, `MapRegion.IsDefenseRegionEmpty`,
+  `TerritoryManager.PrepareDefenseRegion`.
 - A blow draws its interval and is then fitted into it:
   `SkillAttackState.TryPerformAttack` calls `FightSkill.ResetAttackData`, which
   calls `FightSkill.RefreshAttackInterval`, before

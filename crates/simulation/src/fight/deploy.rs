@@ -177,6 +177,7 @@ pub(in crate::fight) fn initialize_actors(
     configs: &UnitConfigs,
     seed: i32,
 ) -> Result<BTreeMap<u64, Actor>> {
+    let flanked = flanked_sides(&layout.placements);
     let mut initial = Vec::new();
     for placement in &layout.placements {
         let rules = configs.get(placement.type_name.as_str()).ok_or_else(|| {
@@ -186,12 +187,13 @@ pub(in crate::fight) fn initialize_actors(
             ))
         })?;
         for (x_q32, z_q32) in generate_formation_positions(placement, rules, seed)? {
-            initial.push(Actor::at_generated_position(
-                placement.clone(),
-                rules.clone(),
-                x_q32,
-                z_q32,
-            ));
+            let mut actor =
+                Actor::at_generated_position(placement.clone(), rules.clone(), x_q32, z_q32);
+            let facing = attack_facing(placement, x_q32, z_q32, &flanked);
+            if facing != placement.rotation {
+                actor.face(mdeg_to_degrees_q32(facing));
+            }
+            initial.push(actor);
         }
     }
     // A side's units take their identities in ascending world z, then x, by
@@ -227,6 +229,109 @@ pub(in crate::fight) fn initialize_actors(
         actors.insert(unit_id, actor);
     }
     Ok(actors)
+}
+
+/// A side's main deployment region, `x=[-300,300), y=[-310,-10)` in its own
+/// frame, whole metres, half open as `MapRect.Contains` is; its towers stand
+/// at `x = ±TOWER_X, y = TOWER_Y`, `TOWER_SIZE` square.
+const MAIN_MIN_X: i64 = -300;
+const MAIN_MAX_X: i64 = 300;
+const MAIN_MIN_Y: i64 = -310;
+const MAIN_MAX_Y: i64 = -10;
+const TOWER_X: i64 = 140;
+const TOWER_Y: i64 = -170;
+const TOWER_SIZE: i64 = 20;
+/// `PlayerTerritory.MAIN_DEFENSE_AREA_HEIGHT_OFFSET`.
+const DEFENSE_AREA_HEIGHT_OFFSET: i64 = 150;
+
+/// Which of each side's two defence regions hold something, as
+/// `(team, left)`: a side's left, in its own frame, holds something when the
+/// other side has a formation on the flank beside it.
+///
+/// `TerritoryManager.PrepareDefenseRegion` gives each of a side's two
+/// defence areas the region beside it, the other side's flank there, and
+/// `MapRegion.IsDefenseRegionEmpty` asks whether it holds anything. A side's
+/// left is beside the other's right flank, and its right beside the other's
+/// left one.
+fn flanked_sides(placements: &[Placement]) -> BTreeSet<(u32, bool)> {
+    let mut flanked = BTreeSet::new();
+    for placement in placements {
+        let (x, z) = if placement.team == 0 {
+            (placement.world_x, placement.world_z)
+        } else {
+            (-placement.world_x, -placement.world_z)
+        };
+        let position = mechcore_document::Position {
+            x: i32::try_from(x).unwrap_or(i32::MAX),
+            y: i32::try_from(z).unwrap_or(i32::MAX),
+        };
+        let other = u32::from(placement.team == 0);
+        match mechcore_document::Region::of(position) {
+            mechcore_document::Region::Main => {}
+            mechcore_document::Region::LeftFlank => {
+                flanked.insert((other, false));
+            }
+            mechcore_document::Region::RightFlank => {
+                flanked.insert((other, true));
+            }
+        }
+    }
+    flanked
+}
+
+/// `PlayerTerritory.GetAttackFacing`, which `TerritoryManager.RefreshMechDiretion`
+/// turns each unit to as the fight starts: a unit of the main region standing
+/// in one of its side's two defence areas, whose defence region holds
+/// something, faces a quarter turn towards that side, left or right of its
+/// formation; any other faces as its formation does.
+///
+/// It reads the unit's own position, in whole metres, so the members of one
+/// formation can face two ways. `CreateLeftDefenseAreaLocal` makes the left
+/// area the main region from its left edge to the left tower's right edge and
+/// from its back edge to `DEFENSE_AREA_HEIGHT_OFFSET` short of its front, and
+/// `DefenseArea.Contains` takes of it what lies no further forward than the
+/// tower's front edge, beyond which a triangle is added that a standard map's
+/// towers leave empty: their front edge is the area's. The right area mirrors
+/// the left.
+fn attack_facing(
+    placement: &Placement,
+    x_q32: i64,
+    z_q32: i64,
+    flanked: &BTreeSet<(u32, bool)>,
+) -> i64 {
+    let main = if placement.team == 0 { 0 } else { 180_000 };
+    if placement.rotation != main {
+        return placement.rotation;
+    }
+    // A `MapVector` keeps each coordinate's floor, and the main region's
+    // bound is held in world coordinates.
+    let (world_x, world_z) = (x_q32 >> 32, z_q32 >> 32);
+    let (x, y) = if placement.team == 0 {
+        (world_x, world_z)
+    } else {
+        (-world_x, -world_z)
+    };
+    let (min_z, max_z) = if placement.team == 0 {
+        (MAIN_MIN_Y, MAIN_MAX_Y)
+    } else {
+        (-MAIN_MAX_Y, -MAIN_MIN_Y)
+    };
+    if !(MAIN_MIN_X..MAIN_MAX_X).contains(&world_x) || !(min_z..max_z).contains(&world_z) {
+        return main;
+    }
+    let back = MAIN_MIN_Y;
+    let front = back + (MAIN_MAX_Y - MAIN_MIN_Y) - DEFENSE_AREA_HEIGHT_OFFSET;
+    if !(back..front).contains(&y) || y > TOWER_Y + TOWER_SIZE / 2 {
+        return main;
+    }
+    let inner = TOWER_X - TOWER_SIZE / 2;
+    if (MAIN_MIN_X..-inner).contains(&x) && flanked.contains(&(placement.team, true)) {
+        (main - 90_000).rem_euclid(360_000)
+    } else if (inner..MAIN_MAX_X).contains(&x) && flanked.contains(&(placement.team, false)) {
+        (main + 90_000).rem_euclid(360_000)
+    } else {
+        main
+    }
 }
 
 /// The map's own buildings, each tower at its side's strengthen level: in the
