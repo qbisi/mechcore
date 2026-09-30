@@ -18,6 +18,12 @@ written down a second time.
     python3 scripts/corpus/fight-coverage.py [--binary target/release/mechcore]
 
 A round the projection itself refuses is reported rather than skipped silently.
+
+Two more views group the same refusals. *By system* owes a member refusal to
+the build list it comes from, since one mechanism clears the whole list, and a
+registry clause to its module. *By layout field* says which field of the
+layout each refusal is about. Each is printed as the rounds a group touches
+and alone holds, and the order that opens the most rounds as groups land.
 """
 
 import argparse
@@ -40,7 +46,7 @@ WHERE = re.compile(r"^cannot simulate layout \S+: ")
 # `side blue needs modules this build has not implemented: officers (Modifier),
 # constructions (FightConstructionSystem)`, one clause per side.
 REGISTRY = re.compile(r"^side (?:blue|red) needs modules this build has not implemented: ")
-ASKED = re.compile(r"([a-z][a-z ]+) \(([A-Za-z]+)\)")
+ASKED = re.compile(r"([a-z][a-z_ ]+) \(([A-Za-z]+)\)")
 
 # What a member refusal says about a side is not what blocks it: the same
 # officer blocks a blue side and a red one alike.
@@ -61,6 +67,76 @@ def blockers_of(reason: str) -> set[tuple[str, str]]:
             member = SIDE.sub("", clause)
             held.add((member, member))
     return held
+
+
+# The system a refusal is owed to: a whole build list for a member that names
+# the list it comes from, a module for a registry clause, and otherwise the
+# kind of thing it says it cannot do. Implementing a system clears every member
+# of it at once, which is why the work is ordered over systems.
+LISTED = re.compile(r"comes from (\w+)'s (\w+) list")
+FIELDS_WRITTEN = re.compile(r"^(technology|officer) \d+ \(.*?\) (?:sets|writes) (\w+)")
+UNIT = re.compile(r'^unit(?: type)? "(\w+)"')
+
+
+def system_of(what: str, owner: str) -> str:
+    """The system a refusal belongs to."""
+    if what != owner:
+        return owner
+    if match := LISTED.search(owner):
+        return f"{match.group(1)}.{match.group(2)}"
+    if match := FIELDS_WRITTEN.search(owner):
+        return f"{match.group(1)} field {match.group(2)}"
+    if match := UNIT.search(owner):
+        return f"unit {match.group(1)}"
+    if "summons onto a side" in owner:
+        return "a summon on a side with a loadout"
+    if "grows with the unit's rank" in owner:
+        return "technology by rank"
+    return owner.split(",")[0]
+
+
+def field_of(what: str, owner: str) -> str:
+    """The layout field a refusal is about."""
+    if what != owner:
+        return what
+    # Named as the module registry names the field it claims, so a registry
+    # clause and a member refusal about one field count together.
+    for prefix, field in (
+        ("technology", "unit technologies"),
+        ("officer", "officers"),
+        ("equipment", "unit equipment"),
+        ("battle skill", "battle skills"),
+        ("unit", "units"),
+    ):
+        if owner.startswith(prefix):
+            return field
+    if "summons onto a side" in owner:
+        return "battle skills"
+    if "missile" in owner:
+        return "missile contraptions"
+    return "other"
+
+
+def view(heading: str, blockers: list, key) -> None:
+    """How many rounds each group touches and alone holds, then the order
+    that clears the most rounds as groups land whole."""
+    total = len(blockers)
+    owed = [{key(what, owner) for what, owner in held} for held in blockers]
+    touched = collections.Counter(group for held in owed for group in held)
+    alone = collections.Counter(next(iter(held)) for held in owed if len(held) == 1)
+    print(f"\n{heading}: rounds it touches, rounds it alone holds")
+    for group, count in touched.most_common():
+        print(f"  {count:4} touched  {alone[group]:3} alone  {group}")
+    print(f"\n{heading}, greedily ordered")
+    done: set[str] = set()
+    while remaining := set().union(*owed) - done:
+        best = max(
+            sorted(remaining),
+            key=lambda group: sum(1 for held in owed if not held - done - {group}),
+        )
+        done.add(best)
+        inside = sum(1 for held in owed if not held - done)
+        print(f"  {inside:4}/{total}  + {best}")
 
 
 def named(what: str, owner: str) -> str:
@@ -150,6 +226,9 @@ def main() -> int:
         done.add(best)
         inside = sum(1 for held in owed if not held - done)
         print(f"  {inside:4}/{total}  + {named(best, best)}")
+
+    view("by system", blockers, system_of)
+    view("by layout field", blockers, field_of)
     return 0
 
 
