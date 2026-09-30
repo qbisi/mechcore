@@ -29,6 +29,18 @@ struct Table {
     support_skills: Vec<SupportSkillRow>,
     shield_skills: Vec<ShieldSkillRow>,
     damage_skills: Vec<DamageSkillRow>,
+    waypoint_skills: Vec<WaypointSkillRow>,
+}
+
+/// A `CSD_WayPoint` row: the units it selects and the width of its path.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct WaypointSkillRow {
+    id: i32,
+    name: String,
+    effect_target_type: i32,
+    sub_effect_buff_id: i32,
+    sub_effect_range: i64,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -163,6 +175,14 @@ pub(crate) enum SkillEffect {
         radius_q32: i64,
         energy: i64,
     },
+    /// `CSRC_WayPoint`: a path the side's units near its first point walk.
+    Path {
+        /// The release's positions in the world, `FPoint` raw metres.
+        points: Vec<(i64, i64)>,
+        /// `subEffectRange`, `FPoint` raw metres: how near the first point a
+        /// unit is selected, and how wide each segment is.
+        width_q32: i64,
+    },
 }
 
 /// A sub-effect's fall, `CommanderSkillSubEffectAgent`: from the tick after
@@ -236,6 +256,7 @@ pub(crate) struct CommanderSkillEffects {
     summons: Vec<SupportSkillRow>,
     shields: Vec<ShieldSkillRow>,
     strikes: Vec<DamageSkillRow>,
+    waypoints: Vec<WaypointSkillRow>,
 }
 
 impl CommanderSkillEffects {
@@ -259,6 +280,7 @@ impl CommanderSkillEffects {
             summons: table.support_skills,
             shields: table.shield_skills,
             strikes: table.damage_skills,
+            waypoints: table.waypoint_skills,
         })
     }
 
@@ -317,6 +339,9 @@ impl CommanderSkillEffects {
             skill.type_name, skill.commander_skill_id
         );
         let id = skill.commander_skill_id;
+        if let Some(row) = self.waypoints.iter().find(|row| row.id == id) {
+            return path_release(&format!("{named}, {}", row.name), team, skill, row);
+        }
         let (row_name, common, effect) =
             if let Some(row) = self.buffs.iter().find(|row| row.id == id) {
                 let named = format!("{named}, {}", row.name);
@@ -575,6 +600,52 @@ fn ticks(seconds_raw: i64) -> Result<i64> {
         Error::new(format!(
             "a battle skill time of {seconds_raw} is not a tick count"
         ))
+    })
+}
+
+/// A waypoint skill's release, `CSRC_WayPoint`: no sub-effect lands. The
+/// fight gives its path to the units it selects as it starts.
+fn path_release(
+    named: &str,
+    team: u32,
+    skill: &BattleSkill,
+    row: &WaypointSkillRow,
+) -> Result<SkillRelease> {
+    if row.effect_target_type != 0 || row.sub_effect_buff_id != 0 {
+        return Err(Error::new(format!(
+            "{named} selects effect target type {} and writes buff {}, which \
+             this build does not read",
+            row.effect_target_type, row.sub_effect_buff_id
+        )));
+    }
+    if skill.positions.len() < 2 {
+        return Err(Error::new(format!(
+            "{named} is released at {} positions, which make no path",
+            skill.positions.len()
+        )));
+    }
+    let points = skill
+        .positions
+        .iter()
+        .map(|position| {
+            let (local_x, local_z) = (i64::from(position.x), i64::from(position.y));
+            if team == 0 {
+                (local_x * SPACE, local_z * SPACE)
+            } else {
+                (-local_x * SPACE, -local_z * SPACE)
+            }
+        })
+        .collect::<Vec<_>>();
+    Ok(SkillRelease {
+        team,
+        name: skill.type_name.clone(),
+        x: points[0].0,
+        z: points[0].1,
+        lands_on: 0,
+        effect: SkillEffect::Path {
+            points,
+            width_q32: row.sub_effect_range,
+        },
     })
 }
 

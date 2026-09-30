@@ -1,0 +1,23 @@
+# Red's Mobile Beacon under its Rhino, in red's own coordinates. The Rhino
+# walks the whole path past blue's units, its lock switching to one and back
+# without drawing it off, and only at the path's end goes for blue's tower.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: recording
+ticks: 686
+hash: {profile: mcfr-content-0.7.0, result: 1d451ad3adde3015311978a86309782d7131e40c25b8001edb9103d2b5194755}
+blue:
+  core_damage: 300
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: arclight, index: 1, position: {x: 150, y: -150}, exp: 0/200/750}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 105, y: -145}, exp: 0/200/1150}
+  - {name: hound, index: 1, position: {x: -100, y: -200}}
+  - {name: marksman, index: 2, position: {x: 0, y: -250}, exp: 0/400/650}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: 105, y: -145}, {x: 250, y: -100}, {x: 250, y: 50}]}

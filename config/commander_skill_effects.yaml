@@ -375,3 +375,20 @@ damage_skills:
     sub_effect_move_time: 19327352832  # 4.5
     sub_effect_default_height: 0  # 0
     cross_advanced_shield: false
+
+waypoint_skills:
+  - id: 1500001
+    name: 移动信标
+    effect_target_type: 0
+    sub_effect_buff_id: 0
+    sub_effect_range: 171798691840  # 40
+  - id: 1500002
+    name: 移动信标
+    effect_target_type: 0
+    sub_effect_buff_id: 0
+    sub_effect_range: 171798691840  # 40
+  - id: 1500003
+    name: 干扰信标
+    effect_target_type: 1
+    sub_effect_buff_id: 9005
+    sub_effect_range: 128849018880  # 30

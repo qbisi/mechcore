@@ -1,0 +1,23 @@
+# A Mobile Beacon under five Hounds, each keeping its offset from the first
+# position along a path up blue's left side. They turn onto the second segment
+# 20 m past the first one's end, and are left to their own behaviour at the
+# last.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: recording
+ticks: 1392
+hash: {profile: mcfr-content-0.7.0, result: 0bc651265e47a5dca460a49eb25c9320507192430ed65fa2d15bb5f1051144c4}
+blue:
+  units:
+  - {name: hound, index: 0, position: {x: -150, y: -200}, exp: 0/400/750}
+  - {name: marksman, index: 1, position: {x: 100, y: -150}}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: -150, y: -200}, {x: -250, y: -100}, {x: -250, y: 50}]}
+red:
+  core_damage: 100
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/400/650}
+  - {name: marksman, index: 1, position: {x: -60, y: -150}, exp: 0/200/650}

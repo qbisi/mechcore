@@ -1,7 +1,7 @@
 # Battle skill
 
 When a released battle skill lands, what it reaches, and what it writes or
-summons.
+summons, and how a Mobile Beacon walks the units it selects.
 [`battle_skill.md`](../../docs/rules/battle_skill.md) states the rule, and
 [`config/commander_skill_effects.yaml`](../../config/commander_skill_effects.yaml)
 holds the numbers of the skills the simulator releases.

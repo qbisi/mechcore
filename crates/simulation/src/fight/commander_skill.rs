@@ -96,6 +96,8 @@ impl Simulation {
                         events,
                     )?;
                 }
+                // Given out as the fight starts, and never landed.
+                SkillEffect::Path { .. } => {}
                 SkillEffect::Shield { radius_q32, energy } => {
                     self.create_shield(release.team, release.x, release.z, *radius_q32, *energy);
                 }

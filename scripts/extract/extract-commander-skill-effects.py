@@ -210,6 +210,31 @@ def damage_lines(group):
     return lines
 
 
+# A waypoint skill's row: `CSRC_WayPoint` selects the units within
+# `subEffectRange` of the first position and walks them along the path, a
+# segment of that width between each two positions. `startTime` and
+# `effectRange` are the release's, which the fight does not read.
+WAYPOINT_INTEGERS = (
+    ("effectTargetType", "effect_target_type"),
+    ("subEffectBuffID", "sub_effect_buff_id"),
+)
+WAYPOINT_FIXED = (("subEffectRange", "sub_effect_range"),)
+
+
+def waypoint_lines(group):
+    lines = ["", "waypoint_skills:"]
+    for row in group["wayPointCommanderSkills"]:
+        if row["isTestData"]:
+            continue
+        lines += [f"  - id: {row['id']}", f"    name: {row['name']}"]
+        for field, name in WAYPOINT_INTEGERS:
+            lines.append(f"    {name}: {row.get(field, 0)}")
+        for field, name in WAYPOINT_FIXED:
+            value = raw(row[field])
+            lines.append(f"    {name}: {value}{reading(value)}")
+    return lines
+
+
 def render(group):
     buffs = {buff["id"]: buff for buff in build_data.container()["buffDatas"]}
     rows = [
@@ -240,6 +265,7 @@ def render(group):
     lines += support_lines(group)
     lines += shield_lines(group)
     lines += damage_lines(group)
+    lines += waypoint_lines(group)
     return "\n".join(lines) + "\n"
 
 

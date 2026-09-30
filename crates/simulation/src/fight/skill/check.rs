@@ -389,7 +389,7 @@ impl Simulation {
         // motion is idle already keeps the point it stopped at.
         if let Some(actor) = self.moving_mut(owner) {
             let entered_idle = actor.motion.state != MotionState::Idle;
-            actor.stop_in_place(entered_idle);
+            actor.lose_target_motion(entered_idle);
         }
     }
 
@@ -456,7 +456,7 @@ impl Simulation {
         skill.set_backswing_finish_step(None);
         skill.set_pending(None);
         if let Some(actor) = self.moving_mut(owner) {
-            actor.stop_in_place(true);
+            actor.lose_target_motion(true);
         }
     }
 

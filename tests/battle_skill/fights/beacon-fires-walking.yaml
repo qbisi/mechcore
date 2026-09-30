@@ -1,0 +1,23 @@
+# A Mobile Beacon under two Marksmen walking sideways while an Arclight comes
+# into range away from their path: they fire at it as they walk, walk on when
+# it dies, and walk on while their skills cool, their turrets turning back to
+# their bodies.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: recording
+ticks: 2115
+hash: {profile: mcfr-content-0.7.0, result: cb10081e9cfee6ba705043481265a1a7c3d4baea876f13de0245e9ce61b738bb}
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: -100, y: -150}}
+  - {name: marksman, index: 1, position: {x: -80, y: -170}, exp: 0/650/650}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: -90, y: -160}, {x: -250, y: -160}, {x: -250, y: -60}]}
+red:
+  core_damage: 100
+  units:
+  - {name: marksman, index: 0, position: {x: 100, y: -50}}
+  - {name: arclight, index: 1, position: {x: -100, y: -250}, exp: 0/400/750}

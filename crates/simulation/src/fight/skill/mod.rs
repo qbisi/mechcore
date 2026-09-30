@@ -744,7 +744,7 @@ impl Simulation {
             // The motion stops where it enters `MotionIdleState`; one already
             // idle is not entered again, and keeps its target point.
             let entered_idle = actor.motion.state != MotionState::Idle;
-            actor.stop_in_place(entered_idle);
+            actor.lose_target_motion(entered_idle);
         }
         Ok(true)
     }
@@ -940,6 +940,7 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let core_lock = self.actors[&actor_id].skill.lock_target;
+        let was_moving = self.actors[&actor_id].motion.state == MotionState::Moving;
         let core_was_attacking = self.actors[&actor_id].skill.phase() == FightSkillPhase::Attack;
         let body_rotation_q32 = self.actors[&actor_id].body_rotation_q32;
         self.actors
@@ -978,6 +979,15 @@ impl Simulation {
         }
         if let Some(update) = update {
             self.update_motion(actor_id, step, events, update)?;
+        } else if was_moving
+            && self.actors[&actor_id].command.is_some()
+            && self.actors[&actor_id].skill.attack_target().is_none()
+            && self.stop_step.is_none()
+        {
+            // `MotionController.Update` runs whatever the skill did: a
+            // command walks its path while the skill cools or reloads. A
+            // move state entered on this update is not updated on it.
+            self.follow_command(actor_id);
         }
         if self.actors[&actor_id].skill.is_grouped() && fusillade {
             let skill = &mut self
@@ -1361,7 +1371,7 @@ impl Simulation {
                 .values()
                 .any(|actor| actor.placement.team != owner_team && actor.alive());
             if let Some(actor) = self.moving_mut(owner) {
-                actor.stop_in_place(true);
+                actor.lose_target_motion(true);
             }
             if !has_alive_enemy {
                 self.skill_mut(owner).performer.stop();
@@ -1438,7 +1448,7 @@ impl Simulation {
             skill.set_pending(None);
             skill.set_phase(FightSkillPhase::Idle);
             if let Some(actor) = self.moving_mut(owner) {
-                actor.stop_in_place(true);
+                actor.lose_target_motion(true);
             }
             return Flow::Done;
         }
