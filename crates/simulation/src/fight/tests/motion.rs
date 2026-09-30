@@ -5,13 +5,7 @@ fn rvo_solves_a_collision_building_inside_the_influence_bound() {
     let config = SimulationConfig::load().unwrap();
     let layout = CompiledLayout::of_units(
         1,
-        vec![
-            Placement {
-                type_name: "rhino".to_owned(),
-                ..test_placement(0, 0, 0, 0)
-            },
-            test_placement(1, 0, 0, 100),
-        ],
+        vec![placement(0, "rhino", 0, 0, 0), test_placement(1, 0, 0, 100)],
     );
     let mut simulation = raw_test_simulation(&layout, &config, 7);
     set_actor_position(simulation.actors.get_mut(&1).unwrap(), 0, 0);
@@ -38,10 +32,7 @@ fn rvo_q32_boundary_uses_raw_distance_not_snapshot_rounding() {
     let layout = CompiledLayout::of_units(
         1,
         vec![
-            Placement {
-                type_name: "rhino".to_owned(),
-                ..test_placement(0, 0, 0, 0)
-            },
+            placement(0, "rhino", 0, 0, 0),
             test_placement(1, 0, 0, 100),
             test_placement(1, 1, 1, 68),
         ],
@@ -96,10 +87,7 @@ fn rvo_allows_a_coarse_tree_hit_outside_candidate_relative_travel() {
     let layout = CompiledLayout::of_units(
         1,
         vec![
-            Placement {
-                type_name: "rhino".to_owned(),
-                ..test_placement(0, 0, 0, 0)
-            },
+            placement(0, "rhino", 0, 0, 0),
             test_placement(1, 0, 0, 100),
             test_placement(1, 1, 75, 0),
         ],
@@ -184,34 +172,14 @@ fn snapshot_velocity_is_quantized_from_raw_agent_velocity() {
         1,
         vec![
             Placement {
-                team: 0,
                 unit_id: 1,
                 formation_id: 1,
-                formation_index: 0,
-                type_name: "marksman".to_owned(),
-                world_x: 0,
-                world_z: -50,
-                rotation: 0,
-                rotated: false,
-                level: 1,
-                exp: 0,
-                corrections: Vec::new(),
-                travelling: false,
+                ..placement(0, "marksman", 0, 0, -50)
             },
             Placement {
-                team: 1,
                 unit_id: 2,
                 formation_id: 2,
-                formation_index: 0,
-                type_name: "arclight".to_owned(),
-                world_x: 0,
-                world_z: 100,
-                rotation: 180_000,
-                rotated: false,
-                level: 1,
-                exp: 0,
-                corrections: Vec::new(),
-                travelling: false,
+                ..placement(1, "arclight", 0, 0, 100)
             },
         ],
     );
@@ -240,34 +208,14 @@ fn rvo_pipeline_publishes_before_movement_consumes_velocity() {
         1,
         vec![
             Placement {
-                team: 0,
                 unit_id: 1,
                 formation_id: 1,
-                formation_index: 0,
-                type_name: "marksman".to_owned(),
-                world_x: 0,
-                world_z: -50,
-                rotation: 0,
-                rotated: false,
-                level: 1,
-                exp: 0,
-                corrections: Vec::new(),
-                travelling: false,
+                ..placement(0, "marksman", 0, 0, -50)
             },
             Placement {
-                team: 1,
                 unit_id: 2,
                 formation_id: 2,
-                formation_index: 0,
-                type_name: "arclight".to_owned(),
-                world_x: 0,
-                world_z: 100,
-                rotation: 180_000,
-                rotated: false,
-                level: 1,
-                exp: 0,
-                corrections: Vec::new(),
-                travelling: false,
+                ..placement(1, "arclight", 0, 0, 100)
             },
         ],
     );
@@ -346,34 +294,14 @@ fn rvo_boundary_recalculates_velocity_from_the_published_target_and_current_posi
         1,
         vec![
             Placement {
-                team: 0,
                 unit_id: 1,
                 formation_id: 1,
-                formation_index: 0,
-                type_name: "marksman".to_owned(),
-                world_x: 0,
-                world_z: -50,
-                rotation: 0,
-                rotated: false,
-                level: 1,
-                exp: 0,
-                corrections: Vec::new(),
-                travelling: false,
+                ..placement(0, "marksman", 0, 0, -50)
             },
             Placement {
-                team: 1,
                 unit_id: 2,
                 formation_id: 2,
-                formation_index: 0,
-                type_name: "arclight".to_owned(),
-                world_x: 0,
-                world_z: 100,
-                rotation: 180_000,
-                rotated: false,
-                level: 1,
-                exp: 0,
-                corrections: Vec::new(),
-                travelling: false,
+                ..placement(1, "arclight", 0, 0, 100)
             },
         ],
     );
@@ -439,34 +367,14 @@ fn range_entry_stops_only_after_the_two_stage_rvo_delay() {
         1,
         vec![
             Placement {
-                team: 0,
                 unit_id: 1,
                 formation_id: 1,
-                formation_index: 0,
-                type_name: "marksman".to_owned(),
-                world_x: 0,
-                world_z: -50,
-                rotation: 0,
-                rotated: false,
-                level: 1,
-                exp: 0,
-                corrections: Vec::new(),
-                travelling: false,
+                ..placement(0, "marksman", 0, 0, -50)
             },
             Placement {
-                team: 1,
                 unit_id: 2,
                 formation_id: 2,
-                formation_index: 0,
-                type_name: "arclight".to_owned(),
-                world_x: 0,
-                world_z: 100,
-                rotation: 180_000,
-                rotated: false,
-                level: 1,
-                exp: 0,
-                corrections: Vec::new(),
-                travelling: false,
+                ..placement(1, "arclight", 0, 0, 100)
             },
         ],
     );
@@ -557,34 +465,14 @@ fn stopped_attacker_rate_limits_aim_without_rotating_root_body() {
         1,
         vec![
             Placement {
-                team: 0,
                 unit_id: 1,
                 formation_id: 1,
-                formation_index: 0,
-                type_name: "marksman".to_owned(),
-                world_x: 0,
-                world_z: -50,
-                rotation: 0,
-                rotated: false,
-                level: 1,
-                exp: 0,
-                corrections: Vec::new(),
-                travelling: false,
+                ..placement(0, "marksman", 0, 0, -50)
             },
             Placement {
-                team: 1,
                 unit_id: 2,
                 formation_id: 2,
-                formation_index: 0,
-                type_name: "arclight".to_owned(),
-                world_x: 0,
-                world_z: -100,
-                rotation: 180_000,
-                rotated: false,
-                level: 1,
-                exp: 0,
-                corrections: Vec::new(),
-                travelling: false,
+                ..placement(1, "arclight", 0, 0, -100)
             },
         ],
     );

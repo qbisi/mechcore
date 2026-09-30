@@ -10,10 +10,7 @@ fn grouped_bodyless_selector_scores_the_root_rotation() {
     let layout = CompiledLayout::of_units(
         1,
         vec![
-            Placement {
-                type_name: "wraith".to_owned(),
-                ..test_placement(0, 0, 0, 0)
-            },
+            placement(0, "wraith", 0, 0, 0),
             test_placement(1, 0, -8, 94),
             test_placement(1, 1, 3, 96),
         ],
@@ -37,14 +34,8 @@ fn grouped_skills_prime_one_attack_interval_sample_per_child() {
     let layout = CompiledLayout::of_units(
         1,
         vec![
-            Placement {
-                type_name: "wraith".to_owned(),
-                ..test_placement(0, 0, 0, 0)
-            },
-            Placement {
-                type_name: "wraith".to_owned(),
-                ..test_placement(1, 0, 0, 100)
-            },
+            placement(0, "wraith", 0, 0, 0),
+            placement(1, "wraith", 0, 0, 100),
         ],
     );
     let mut simulation =
@@ -125,13 +116,7 @@ fn grouped_child_range_is_parent_range_plus_ten_metres() {
     let config = SimulationConfig::load().unwrap();
     let layout = CompiledLayout::of_units(
         1,
-        vec![
-            Placement {
-                type_name: "wraith".to_owned(),
-                ..test_placement(0, 0, 0, 0)
-            },
-            test_placement(1, 0, 0, 80),
-        ],
+        vec![placement(0, "wraith", 0, 0, 0), test_placement(1, 0, 0, 80)],
     );
     let mut sim = raw_test_simulation(&layout, &config, 7);
     set_actor_position(sim.actors.get_mut(&1).unwrap(), 0, 0);
@@ -159,10 +144,7 @@ fn an_attacking_sibling_gives_up_a_shared_unit_by_its_blows() {
     let layout = CompiledLayout::of_units(
         1,
         vec![
-            Placement {
-                type_name: "wraith".to_owned(),
-                ..test_placement(0, 0, 0, 0)
-            },
+            placement(0, "wraith", 0, 0, 0),
             test_placement(1, 0, 0, 30),
             test_placement(1, 1, 0, 40),
             test_placement(1, 2, 0, 50),

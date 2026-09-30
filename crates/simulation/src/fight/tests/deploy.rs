@@ -31,51 +31,9 @@ fn multi_formation_initial_state_and_target_search_entry_match_the_build() {
     let layout = CompiledLayout::of_units(
         1,
         vec![
-            Placement {
-                team: 0,
-                unit_id: 0,
-                formation_id: 0,
-                formation_index: 0,
-                type_name: "rhino".to_owned(),
-                world_x: -285,
-                world_z: -105,
-                rotation: 0,
-                rotated: false,
-                level: 1,
-                exp: 0,
-                corrections: Vec::new(),
-                travelling: false,
-            },
-            Placement {
-                team: 1,
-                unit_id: 0,
-                formation_id: 0,
-                formation_index: 0,
-                type_name: "arclight".to_owned(),
-                world_x: -290,
-                world_z: 100,
-                rotation: 180_000,
-                rotated: false,
-                level: 1,
-                exp: 0,
-                corrections: Vec::new(),
-                travelling: false,
-            },
-            Placement {
-                team: 1,
-                unit_id: 0,
-                formation_id: 0,
-                formation_index: 1,
-                type_name: "arclight".to_owned(),
-                world_x: -190,
-                world_z: 100,
-                rotation: 180_000,
-                rotated: false,
-                level: 1,
-                exp: 0,
-                corrections: Vec::new(),
-                travelling: false,
-            },
+            placement(0, "rhino", 0, -285, -105),
+            placement(1, "arclight", 0, -290, 100),
+            placement(1, "arclight", 1, -190, 100),
         ],
     );
     let config = SimulationConfig::load().unwrap();
@@ -101,75 +59,7 @@ fn multi_formation_initial_state_and_target_search_entry_match_the_build() {
             (3, 1, 3, "arclight", -290_600, 99_900),
         ]
     );
-    let make_simulation = || {
-        let actors = actors.clone();
-        let InitialBuildings {
-            states: buildings,
-            unsearchable,
-            colliders: construction_colliders,
-            passable_constructions,
-            tower_losses,
-            tower_buffed_constructions,
-            construction_groups: _,
-            building_exp,
-            interceptors: _,
-        } = initialize_buildings(&config.towers, &[], &[], &BTreeMap::new()).unwrap();
-        let map_crystals = map_crystals(config.maps.buildings(1021).unwrap(), &[]);
-        let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
-        let buildings_query_alive = standing_buildings(&buildings);
-        let unit_update_order = crate::fight::deploy::update_order(&actors);
-        Simulation {
-            unit_update_order,
-            actors,
-            team_random: BTreeMap::new(),
-            projectiles: Vec::new(),
-            interceptors: Vec::new(),
-            mines: Vec::new(),
-            shields: Vec::new(),
-            destroyed_shields: Vec::new(),
-            created_shields: Vec::new(),
-            next_shield_id: 1,
-            broken_shields: Vec::new(),
-            battle_skills: Vec::new(),
-            researched: BTreeSet::new(),
-            creators: Vec::new(),
-            appearing: Vec::new(),
-            travels: BTreeMap::new(),
-            next_unit_id: 1,
-            next_formation_id: 1,
-            buildings,
-            target_quadtrees,
-            mech_quadtrees: BTreeMap::new(),
-            identities: IdentityAllocator::new(),
-            rvo_counter: 0,
-            rvo_first_tree_pending: true,
-            rvo_quadtree_capacity: crate::fight::rvo::QuadtreeCapacity::default(),
-            terminal_drain_pending: false,
-            stop_step: None,
-            late_building_events_pending: false,
-            torn_down_buildings: Vec::new(),
-            fallen_buildings: Vec::new(),
-            tower_buff_events: BTreeMap::new(),
-            fallen_towers: Vec::new(),
-            building_buffs: BTreeMap::new(),
-            buildings_query_alive,
-            dropped_buffs: BTreeMap::new(),
-            construction_colliders: construction_colliders.clone(),
-            passable_constructions,
-            map_crystals,
-            unsearchable_buildings: unsearchable.clone(),
-            constructions: BTreeMap::new(),
-            towers: config.towers.clone(),
-            tower_losses,
-            tower_buffed_constructions,
-            statistics: BTreeMap::new(),
-            construction_recorders: BTreeMap::new(),
-            formations: BTreeMap::new(),
-            attackers: BTreeMap::new(),
-            building_exp,
-            experience: super::experience::ExperienceTable::load().unwrap(),
-        }
-    };
+    let make_simulation = || raw_test_simulation(&layout, &config, 1_787_601_811);
     let mut simulation = make_simulation();
     assert_eq!(simulation.select_normal_unit_target(1).unwrap(), Some(3));
     simulation.initialize_presearch_targets().unwrap();
@@ -298,21 +188,7 @@ fn multi_formation_initial_state_and_target_search_entry_match_the_build() {
 fn crawler_member_grid_and_jitter_follow_native_creation_order() {
     let config = SimulationConfig::load().unwrap();
     let rules = config.units.get("crawler").unwrap();
-    let placement = Placement {
-        team: 0,
-        unit_id: 0,
-        formation_id: 0,
-        formation_index: 0,
-        type_name: "crawler".to_owned(),
-        world_x: 0,
-        world_z: 0,
-        rotation: 0,
-        rotated: false,
-        level: 1,
-        exp: 0,
-        corrections: Vec::new(),
-        travelling: false,
-    };
+    let placement = placement(0, "crawler", 0, 0, 0);
     let seed = 1_787_601_811;
     let positions = generate_formation_positions(&placement, rules, seed).unwrap();
     assert_eq!(positions.len(), 24);
@@ -383,21 +259,7 @@ fn crawler_member_grid_and_jitter_follow_native_creation_order() {
 fn hound_partial_last_row_preserves_native_q32_centering() {
     let config = SimulationConfig::load().unwrap();
     let rules = config.units.get("hound").unwrap();
-    let placement = Placement {
-        team: 0,
-        unit_id: 0,
-        formation_id: 0,
-        formation_index: 0,
-        type_name: "hound".to_owned(),
-        world_x: 0,
-        world_z: 0,
-        rotation: 0,
-        rotated: false,
-        level: 1,
-        exp: 0,
-        corrections: Vec::new(),
-        travelling: false,
-    };
+    let placement = placement(0, "hound", 0, 0, 0);
     let seed = 1_787_601_811;
     let positions = generate_formation_positions(&placement, rules, seed).unwrap();
     let mut random = GrRandom::new(i64::from(seed).cast_unsigned());
@@ -426,24 +288,7 @@ fn hound_partial_last_row_preserves_native_q32_centering() {
 #[test]
 fn multi_member_identity_is_assigned_after_generation_and_shared_by_formation() {
     let config = SimulationConfig::load().unwrap();
-    let layout = CompiledLayout::of_units(
-        1,
-        vec![Placement {
-            team: 0,
-            unit_id: 0,
-            formation_id: 0,
-            formation_index: 0,
-            type_name: "crawler".to_owned(),
-            world_x: 5,
-            world_z: -50,
-            rotation: 0,
-            rotated: false,
-            level: 1,
-            exp: 0,
-            corrections: Vec::new(),
-            travelling: false,
-        }],
-    );
+    let layout = CompiledLayout::of_units(1, vec![placement(0, "crawler", 0, 5, -50)]);
     let actors = initialize_actors(&layout, &config.units, 1_787_601_811).unwrap();
     assert_eq!(actors.len(), 24);
     assert!(
@@ -508,34 +353,14 @@ fn deployment_raw_and_per_tick_target_direction_round_tick_twenty_two_down() {
         1,
         vec![
             Placement {
-                team: 0,
                 unit_id: 1,
                 formation_id: 1,
-                formation_index: 0,
-                type_name: "marksman".to_owned(),
-                world_x: 0,
-                world_z: -50,
-                rotation: 0,
-                rotated: false,
-                level: 1,
-                exp: 0,
-                corrections: Vec::new(),
-                travelling: false,
+                ..placement(0, "marksman", 0, 0, -50)
             },
             Placement {
-                team: 1,
                 unit_id: 2,
                 formation_id: 2,
-                formation_index: 0,
-                type_name: "arclight".to_owned(),
-                world_x: 0,
-                world_z: 100,
-                rotation: 180_000,
-                rotated: false,
-                level: 1,
-                exp: 0,
-                corrections: Vec::new(),
-                travelling: false,
+                ..placement(1, "arclight", 0, 0, 100)
             },
         ],
     );
@@ -613,34 +438,14 @@ fn tick_fifteen_aim_uses_raw_q32_positions() {
         1,
         vec![
             Placement {
-                team: 0,
                 unit_id: 1,
                 formation_id: 1,
-                formation_index: 0,
-                type_name: "marksman".to_owned(),
-                world_x: 0,
-                world_z: -50,
-                rotation: 0,
-                rotated: false,
-                level: 1,
-                exp: 0,
-                corrections: Vec::new(),
-                travelling: false,
+                ..placement(0, "marksman", 0, 0, -50)
             },
             Placement {
-                team: 1,
                 unit_id: 2,
                 formation_id: 2,
-                formation_index: 0,
-                type_name: "arclight".to_owned(),
-                world_x: 0,
-                world_z: 100,
-                rotation: 180_000,
-                rotated: false,
-                level: 1,
-                exp: 0,
-                corrections: Vec::new(),
-                travelling: false,
+                ..placement(1, "arclight", 0, 0, 100)
             },
         ],
     );

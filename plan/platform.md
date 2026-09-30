@@ -5,14 +5,13 @@ fight-coverage 按系统的贪心顺序重排。
 
 ## 栈
 
-1. **让新机制的改动更局部的代码结构调整。** 近来每个功能 PR 都要连带改测试里手抄的三份
-   `Simulation` 构造、平铺在 `Simulation` 上的系统状态和各处 `DamageHit` 字面量。它们和模块广度
+1. **让新机制的改动更局部的代码结构调整。** 近来每个功能 PR 都要连带改平铺在
+   `Simulation` 上的系统状态和各处 `DamageHit` 字面量。它们和模块广度
    改的是同一批文件（conflicts），做完后每个新机制只动自己的系统（enables），所以排在前面，每步
    一个 `refactor` PR，由全部夹具保证行为不变：
-   1. 测试改走真正的构造函数，`Placement` 的测试字面量改走一个辅助函数。
-   2. `Simulation` 按 build 的系统分组成子结构，各系统在自己的文件里建立和更新，`step` 只留系统
+   1. `Simulation` 按 build 的系统分组成子结构，各系统在自己的文件里建立和更新，`step` 只留系统
       顺序（`FightController.AddModules`）。
-   3. `DamageHit` 按伤害来源给构造函数。
+   2. `DamageHit` 按伤害来源给构造函数。
 2. **模块广度，按系统排。** 一个系统是游戏的一张数据表（`TechnologyGroupData`、
    `EquipmentGroupData`、`CommanderSkillGroupData` 的一个子类列表）或一个模块：实现它一次放行
    表里的所有成员，所以顺序按 fight-coverage 的"by system, greedily ordered"排，而不是按单条理由。

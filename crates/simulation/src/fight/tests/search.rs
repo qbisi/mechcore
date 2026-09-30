@@ -196,104 +196,12 @@ fn a_window_is_checked_only_between_angle0_and_angle360() {
 #[test]
 fn normal_selector_split_query_remains_order_independent_for_a_unique_best() {
     let config = SimulationConfig::load().unwrap();
-    let mut placements = vec![Placement {
-        team: 0,
-        unit_id: 0,
-        formation_id: 0,
-        formation_index: 0,
-        type_name: "rhino".to_owned(),
-        world_x: 0,
-        world_z: -100,
-        rotation: 0,
-        rotated: false,
-        level: 1,
-        exp: 0,
-        corrections: Vec::new(),
-        travelling: false,
-    }];
-    placements.extend((0_i32..18).map(|index| Placement {
-        team: 1,
-        unit_id: 0,
-        formation_id: 0,
-        formation_index: index,
-        type_name: "arclight".to_owned(),
-        world_x: i64::from(index) * 20 - 170,
-        world_z: 100,
-        rotation: 180_000,
-        rotated: false,
-        level: 1,
-        exp: 0,
-        corrections: Vec::new(),
-        travelling: false,
-    }));
+    let mut placements = vec![placement(0, "rhino", 0, 0, -100)];
+    placements.extend(
+        (0_i32..18).map(|index| placement(1, "arclight", index, i64::from(index) * 20 - 170, 100)),
+    );
     let layout = CompiledLayout::of_units(1, placements);
-    let actors = initialize_actors(&layout, &config.units, 7).unwrap();
-    let InitialBuildings {
-        states: buildings,
-        unsearchable,
-        colliders: construction_colliders,
-        passable_constructions,
-        tower_losses,
-        tower_buffed_constructions,
-        construction_groups: _,
-        building_exp,
-        interceptors: _,
-    } = initialize_buildings(&config.towers, &[], &[], &BTreeMap::new()).unwrap();
-    let map_crystals = map_crystals(config.maps.buildings(1021).unwrap(), &[]);
-    let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
-    let buildings_query_alive = standing_buildings(&buildings);
-    let unit_update_order = crate::fight::deploy::update_order(&actors);
-    let simulation = Simulation {
-        unit_update_order,
-        actors,
-        team_random: BTreeMap::new(),
-        projectiles: Vec::new(),
-        interceptors: Vec::new(),
-        mines: Vec::new(),
-        shields: Vec::new(),
-        destroyed_shields: Vec::new(),
-        created_shields: Vec::new(),
-        next_shield_id: 1,
-        broken_shields: Vec::new(),
-        battle_skills: Vec::new(),
-        researched: BTreeSet::new(),
-        creators: Vec::new(),
-        appearing: Vec::new(),
-        travels: BTreeMap::new(),
-        next_unit_id: 1,
-        next_formation_id: 1,
-        buildings,
-        target_quadtrees,
-        mech_quadtrees: BTreeMap::new(),
-        identities: IdentityAllocator::new(),
-        rvo_counter: 0,
-        rvo_first_tree_pending: true,
-        rvo_quadtree_capacity: crate::fight::rvo::QuadtreeCapacity::default(),
-        terminal_drain_pending: false,
-        stop_step: None,
-        late_building_events_pending: false,
-        torn_down_buildings: Vec::new(),
-        fallen_buildings: Vec::new(),
-        tower_buff_events: BTreeMap::new(),
-        fallen_towers: Vec::new(),
-        building_buffs: BTreeMap::new(),
-        buildings_query_alive,
-        dropped_buffs: BTreeMap::new(),
-        construction_colliders: construction_colliders.clone(),
-        passable_constructions,
-        map_crystals,
-        unsearchable_buildings: unsearchable.clone(),
-        constructions: BTreeMap::new(),
-        towers: config.towers.clone(),
-        tower_losses,
-        tower_buffed_constructions,
-        statistics: BTreeMap::new(),
-        construction_recorders: BTreeMap::new(),
-        formations: BTreeMap::new(),
-        attackers: BTreeMap::new(),
-        building_exp,
-        experience: super::experience::ExperienceTable::load().unwrap(),
-    };
+    let simulation = raw_test_simulation(&layout, &config, 7);
     assert_eq!(simulation.select_normal_unit_target(1).unwrap(), Some(10));
 }
 
@@ -328,10 +236,7 @@ fn fight_skill_adopts_a_selected_building_and_enters_moving() {
     let layout = CompiledLayout::of_units(
         1,
         vec![
-            Placement {
-                type_name: "steel_ball".to_owned(),
-                ..test_placement(0, 0, 0, 0)
-            },
+            placement(0, "steel_ball", 0, 0, 0),
             test_placement(1, 0, 0, 200),
         ],
     );
