@@ -982,7 +982,7 @@ impl Simulation {
         } else if was_moving
             && self.actors[&actor_id].command.is_some()
             && self.actors[&actor_id].skill.attack_target().is_none()
-            && self.stop_step.is_none()
+            && self.ending.stop_step.is_none()
         {
             // `MotionController.Update` runs whatever the skill did: a
             // command walks its path while the skill cools or reloads. A
@@ -1265,11 +1265,11 @@ impl Simulation {
     /// firing, its idle state and its lock cleared. The rest are left as they
     /// are, a cooling one still cooling.
     fn exit_fight_when_over(&mut self, owner: FightActorRef) -> Flow {
-        if self.stop_step.is_none() {
+        if self.ending.stop_step.is_none() {
             return Flow::Next;
         }
         if self.skill(owner).lock_target.is_some() {
-            let clear_velocity = self.terminal_drain_pending;
+            let clear_velocity = self.ending.terminal_drain_pending;
             let skill = self.skill_mut(owner);
             skill.drop_lock();
             skill.set_phase(FightSkillPhase::Idle);

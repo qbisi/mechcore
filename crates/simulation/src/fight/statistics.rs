@@ -12,6 +12,16 @@ use super::*;
 /// A statistics entry's place: its side, kind and recorder.
 pub(in crate::fight) type RecorderKey = (u32, RecorderKind, u64);
 
+/// `BattleStatisticManager`'s current round: each recorder's counters, and
+/// which recorder each construction block counts in.
+#[derive(Default)]
+pub(in crate::fight) struct StatisticsSystem {
+    /// The build's damage and kill counters, by recorder.
+    pub(in crate::fight) recorders: BTreeMap<RecorderKey, DamageStatistics>,
+    /// Each construction block's recorder, by building.
+    pub(in crate::fight) construction_recorders: BTreeMap<u64, RecorderKey>,
+}
+
 impl Simulation {
     /// Every formation's and construction's entry, at zero, and each
     /// construction block's recorder.
@@ -33,7 +43,7 @@ impl Simulation {
             let entry = lowest.entry(*group).or_insert(*building);
             *entry = (*entry).min(*building);
         }
-        self.construction_recorders = groups
+        self.statistics.construction_recorders = groups
             .iter()
             .map(|(building, group)| {
                 (
@@ -43,20 +53,24 @@ impl Simulation {
             })
             .collect();
         let constructions = self
+            .statistics
             .construction_recorders
             .values()
             .copied()
             .collect::<Vec<_>>();
         for key in formations.into_iter().chain(constructions) {
-            self.statistics.entry(key).or_insert(DamageStatistics {
-                team_id: key.0,
-                recorder: key.1,
-                recorder_id: key.2,
-                damage: 0,
-                damage_real: 0,
-                kills: 0,
-                damage_taken: 0,
-            });
+            self.statistics
+                .recorders
+                .entry(key)
+                .or_insert(DamageStatistics {
+                    team_id: key.0,
+                    recorder: key.1,
+                    recorder_id: key.2,
+                    damage: 0,
+                    damage_real: 0,
+                    kills: 0,
+                    damage_taken: 0,
+                });
         }
     }
 
@@ -75,7 +89,11 @@ impl Simulation {
                     )
                 }
             }),
-            ObjectKind::Building => self.construction_recorders.get(&object.id).copied(),
+            ObjectKind::Building => self
+                .statistics
+                .construction_recorders
+                .get(&object.id)
+                .copied(),
             _ => None,
         }
     }
@@ -84,17 +102,22 @@ impl Simulation {
     /// deployment, and a unit's from the first hit it counts.
     fn row(&mut self, key: RecorderKey) -> Option<&mut DamageStatistics> {
         if key.1 == RecorderKind::Unit {
-            return Some(self.statistics.entry(key).or_insert(DamageStatistics {
-                team_id: key.0,
-                recorder: key.1,
-                recorder_id: key.2,
-                damage: 0,
-                damage_real: 0,
-                kills: 0,
-                damage_taken: 0,
-            }));
+            return Some(
+                self.statistics
+                    .recorders
+                    .entry(key)
+                    .or_insert(DamageStatistics {
+                        team_id: key.0,
+                        recorder: key.1,
+                        recorder_id: key.2,
+                        damage: 0,
+                        damage_real: 0,
+                        kills: 0,
+                        damage_taken: 0,
+                    }),
+            );
         }
-        self.statistics.get_mut(&key)
+        self.statistics.recorders.get_mut(&key)
     }
 
     /// What a summon's air drop takes off it, charged to it with no one

@@ -21,6 +21,31 @@ const ONE_Q32: i64 = 1 << 32;
 
 const UNIT_EXPERIENCE: &str = include_str!("../../../../config/unit_experience.yaml");
 
+/// `ExpSystem`: what each formation has gained, who has hit what, and what
+/// a kill hands out.
+pub(in crate::fight) struct ExpSystem {
+    /// The bars and loot of every unit type.
+    pub(in crate::fight) table: ExperienceTable,
+    /// Each formation's experience, by formation.
+    pub(in crate::fight) formations: BTreeMap<u64, FormationExperience>,
+    /// Who has hit each target, first hit first.
+    pub(in crate::fight) attackers: BTreeMap<ObjectRef, Vec<ObjectRef>>,
+    /// What each building's destruction hands out, by building.
+    pub(in crate::fight) building_exp: BTreeMap<u64, i64>,
+}
+
+impl ExpSystem {
+    /// No experience gained yet, with each building's loot.
+    pub(in crate::fight) fn new(building_exp: BTreeMap<u64, i64>) -> Result<Self> {
+        Ok(Self {
+            table: ExperienceTable::load()?,
+            formations: BTreeMap::new(),
+            attackers: BTreeMap::new(),
+            building_exp,
+        })
+    }
+}
+
 #[derive(serde::Deserialize)]
 struct ExperienceFile {
     assist_kill_exp_rate: i64,
@@ -109,13 +134,18 @@ impl Simulation {
     /// which takes a value above zero whole and leaves -1.0 otherwise.
     pub(in crate::fight) fn seed_experience(&mut self) -> Result<()> {
         for actor in self.actors.values() {
-            if self.formations.contains_key(&actor.placement.formation_id) {
+            if self
+                .exp
+                .formations
+                .contains_key(&actor.placement.formation_id)
+            {
                 continue;
             }
             let bar = self
-                .experience
+                .exp
+                .table
                 .bar(&actor.placement.type_name, actor.placement.level)?;
-            self.formations.insert(
+            self.exp.formations.insert(
                 actor.placement.formation_id,
                 FormationExperience {
                     team: actor.placement.team,
@@ -132,7 +162,8 @@ impl Simulation {
     }
 
     pub(in crate::fight) fn formation_states(&self) -> Vec<FormationState> {
-        self.formations
+        self.exp
+            .formations
             .iter()
             .map(|(formation_id, formation)| FormationState {
                 formation_id: *formation_id,
@@ -148,10 +179,11 @@ impl Simulation {
         match target {
             FightActorRef::Unit(id) => {
                 let actor = &self.actors[&id];
-                self.experience
+                self.exp
+                    .table
                     .loot(&actor.placement.type_name, actor.placement.level)
             }
-            FightActorRef::Building(id) => Ok(self.building_exp.get(&id).copied().unwrap_or(0)),
+            FightActorRef::Building(id) => Ok(self.exp.building_exp.get(&id).copied().unwrap_or(0)),
         }
     }
 
@@ -162,6 +194,7 @@ impl Simulation {
         let formation = actor.placement.formation_id;
         (actor.alive()
             && self
+                .exp
                 .formations
                 .get(&formation)
                 .is_some_and(|state| !state.full()))
@@ -171,7 +204,7 @@ impl Simulation {
     /// `MechTeam.PruneExp`, as the fight ends: a formation's gain is held to
     /// a whole number, and one that has never gained keeps -1.0.
     pub(in crate::fight) fn prune_experience(&mut self) {
-        for state in self.formations.values_mut() {
+        for state in self.exp.formations.values_mut() {
             if state.experience > 0 {
                 state.experience &= !(ONE_Q32 - 1);
             }
@@ -181,7 +214,7 @@ impl Simulation {
     /// `MechTeam.AddExp` with no rate on it: a formation below zero starts
     /// from zero, and the bar caps it.
     fn gain(&mut self, formation: u64, amount: i64) {
-        if let Some(state) = self.formations.get_mut(&formation) {
+        if let Some(state) = self.exp.formations.get_mut(&formation) {
             state.experience = state
                 .experience
                 .max(0)
@@ -204,7 +237,7 @@ impl Simulation {
         if matches!(target, FightActorRef::Building(_)) && provided <= 0 {
             return Ok(());
         }
-        let attackers = self.attackers.entry(target.object_ref()).or_default();
+        let attackers = self.exp.attackers.entry(target.object_ref()).or_default();
         if let Some(source) = source
             && !attackers.contains(&source)
         {
@@ -225,7 +258,7 @@ impl Simulation {
         provided: i64,
     ) -> Result<()> {
         let base = provided << 32;
-        let mut pool = q32_mul(base, self.experience.assist_kill_exp_rate);
+        let mut pool = q32_mul(base, self.exp.table.assist_kill_exp_rate);
         let killer = source
             .filter(|source| source.kind == ObjectKind::Unit)
             .map(|source| source.id);
@@ -239,6 +272,7 @@ impl Simulation {
         }
         let mut shared = Vec::<u64>::new();
         for attacker in self
+            .exp
             .attackers
             .get(&target.object_ref())
             .cloned()
@@ -292,7 +326,7 @@ impl Simulation {
         for formation in shared {
             self.gain(formation, share);
         }
-        self.attackers.remove(&target.object_ref());
+        self.exp.attackers.remove(&target.object_ref());
         Ok(())
     }
 
@@ -330,7 +364,7 @@ impl Simulation {
                 .map(|building| (building.position.x, building.position.z))
                 .ok_or_else(|| Error::new("a killed building is absent"))?,
         };
-        let range = self.experience.assist_exp_range << 32;
+        let range = self.exp.table.assist_exp_range << 32;
         let Some(tree) = self.mech_quadtrees.get(&side) else {
             return Ok(());
         };

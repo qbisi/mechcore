@@ -340,7 +340,7 @@ impl Simulation {
                 // `OnDead`, and a tower's loss with it, comes when that
                 // module updates.
                 if destroyed && self.is_tower(target) {
-                    self.fallen_towers.push(building_id);
+                    self.towers.fallen.push(building_id);
                 }
                 // An interceptor's building falling is `FightInterceptor.
                 // OnDestroy`: it intercepts nothing from the next hit on.
@@ -424,7 +424,7 @@ impl Simulation {
         let (x_q32, z_q32) = (space_to_q32(hit.center.0), space_to_q32(hit.center.1));
         let mut main = hit.shield;
         let mut listed = Vec::new();
-        for shield in &self.shields {
+        for shield in &self.shield.standing {
             if !hit.effect.strikes(hit.team, shield.team)
                 || shield.contains(x_q32, hit.center_y_q32, z_q32)
             {

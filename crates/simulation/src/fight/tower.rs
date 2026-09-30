@@ -24,6 +24,8 @@
 //! `cleared`, right after the `unit_died` of a unit that dies with it or right
 //! before the `building_destroyed` of a construction that falls with it.
 
+use std::collections::{BTreeMap, BTreeSet};
+
 use crate::{
     Error, Result,
     data::{Channel, Correction, Entry, Index, Overlays},
@@ -66,6 +68,35 @@ pub(in crate::fight) struct BuffRow {
     pub(in crate::fight) source: &'static str,
     pub(in crate::fight) entries: Vec<Entry>,
     pub(in crate::fight) disables_technology: bool,
+}
+
+/// The towers of both sides: what their table says, what each one's loss
+/// writes, and the towers a hit emptied this tick.
+pub(in crate::fight) struct TowerSystem {
+    /// The tower table: what a strengthen level adds, what a loss writes.
+    pub(in crate::fight) config: TowersConfig,
+    /// What each tower's fall writes, by building.
+    pub(in crate::fight) losses: BTreeMap<u64, TowerLoss>,
+    /// The constructions a tower's loss would reach, by building.
+    pub(in crate::fight) buffed_constructions: BTreeSet<u64>,
+    /// The towers a hit emptied this tick, in the order they fell: the towers
+    /// among `DeadEffectSystem.deadActors`, whose `OnDead` waits for that
+    /// module's update.
+    pub(in crate::fight) fallen: Vec<u64>,
+}
+
+/// `BuffManager`'s state the fight keeps outside the units: the buffs on
+/// constructions, and the buff events a tick holds back.
+#[derive(Default)]
+pub(in crate::fight) struct BuffState {
+    /// The buffs on constructions, by building.
+    pub(in crate::fight) building_buffs: BTreeMap<u64, BuildingBuffs>,
+    /// The buffs `BuffManager.Update` dropped from a unit dead this tick, to
+    /// name in the `cleared` that follows its `unit_died`.
+    pub(in crate::fight) dropped: BTreeMap<u64, Vec<u32>>,
+    /// The `buff_applied` events a tower's loss wrote this tick, by tower, to
+    /// follow its `building_destroyed`.
+    pub(in crate::fight) tower_events: BTreeMap<u64, Vec<Event>>,
 }
 
 /// What one tower's fall writes: on whom, and for how many ticks.
@@ -152,14 +183,14 @@ impl Simulation {
     /// Whether this target is one of the map's towers (`FightCrystal.IsTower`),
     /// which is an actor of its own rather than one block of a construction.
     pub(in crate::fight) fn is_tower(&self, target: super::FightActorRef) -> bool {
-        matches!(target, super::FightActorRef::Building(id) if self.tower_losses.contains_key(&id))
+        matches!(target, super::FightActorRef::Building(id) if self.towers.losses.contains_key(&id))
     }
 
     /// `FightTeamController.OnTowerDestoryed`: the fallen building's buff, on
     /// every live object of its side, `FightTeam.activeActors`: its units,
     /// then its constructions whose row lets a tower's buff reach them.
     pub(in crate::fight) fn lose_tower(&mut self, building_id: u64) -> Result<()> {
-        let Some(loss) = self.tower_losses.get(&building_id).copied() else {
+        let Some(loss) = self.towers.losses.get(&building_id).copied() else {
             return Ok(());
         };
         if let Some(interceptor) = self.standing_interceptor(loss.team) {
@@ -171,11 +202,11 @@ impl Simulation {
         }
         let row = BuffRow {
             buff_id: loss.buff_id,
-            divide: self.towers.destroyed_buff.buff_divide,
-            additive: self.towers.destroyed_buff.additive,
+            divide: self.towers.config.destroyed_buff.buff_divide,
+            additive: self.towers.config.destroyed_buff.additive,
             ticks: loss.ticks,
             source: SOURCE,
-            entries: self.towers.entries(),
+            entries: self.towers.config.entries(),
             disables_technology: false,
         };
         let mut applied = Vec::new();
@@ -189,14 +220,15 @@ impl Simulation {
         for actor_id in actor_ids {
             applied.push(self.write_buff(actor_id, loss.team, &row)?);
         }
-        let reached = if self.towers.reaches_constructions() {
+        let reached = if self.towers.config.reaches_constructions() {
             self.buildings
                 .iter()
                 .filter(|building| {
                     building.team_id == loss.team
                         && building.life.current > 0
                         && self
-                            .tower_buffed_constructions
+                            .towers
+                            .buffed_constructions
                             .contains(&building.building_id)
                 })
                 .map(|building| building.building_id)
@@ -205,7 +237,11 @@ impl Simulation {
             Vec::new()
         };
         for construction_id in reached {
-            let buffed = self.building_buffs.entry(construction_id).or_default();
+            let buffed = self
+                .buffs
+                .building_buffs
+                .entry(construction_id)
+                .or_default();
             let (running, added) = add_buff(&mut buffed.buffs, &row);
             applied.push(buff_applied(
                 ObjectRef::new(ObjectKind::Building, construction_id),
@@ -219,7 +255,7 @@ impl Simulation {
                 self.refresh_construction(construction_id)?;
             }
         }
-        self.tower_buff_events.insert(building_id, applied);
+        self.buffs.tower_events.insert(building_id, applied);
         Ok(())
     }
 
@@ -260,7 +296,7 @@ impl Simulation {
             return Ok(());
         };
         let base = construction.attack.base_damage;
-        construction.attack_damage = match self.building_buffs.get(&building_id) {
+        construction.attack_damage = match self.buffs.building_buffs.get(&building_id) {
             Some(buffed) => buffed.overlays.resolve(Index::AttackDamage, base)?,
             None => base,
         };
@@ -275,7 +311,7 @@ impl Simulation {
         building_id: u64,
         amount: i64,
     ) -> Result<(i64, i64)> {
-        match self.building_buffs.get(&building_id) {
+        match self.buffs.building_buffs.get(&building_id) {
             Some(buffed) => Ok((
                 buffed.overlays.resolve(Index::AmplifyDamage, amount)?,
                 buffed
@@ -294,7 +330,7 @@ impl Simulation {
         building_id: u64,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let Some(buffed) = self.building_buffs.get_mut(&building_id) else {
+        let Some(buffed) = self.buffs.building_buffs.get_mut(&building_id) else {
             return Ok(());
         };
         let subject = ObjectRef::new(ObjectKind::Building, building_id);
@@ -304,7 +340,7 @@ impl Simulation {
                 buffed.overlays.channel(Channel::Buff).withdraw(source);
             }
             if buffed.buffs.is_empty() {
-                self.building_buffs.remove(&building_id);
+                self.buffs.building_buffs.remove(&building_id);
             }
             self.refresh_construction(building_id)?;
         }
@@ -315,7 +351,8 @@ impl Simulation {
     /// `building_destroyed`.
     pub(in crate::fight) fn construction_buffs_cleared(&mut self, building_id: u64) -> Vec<Event> {
         let subject = ObjectRef::new(ObjectKind::Building, building_id);
-        self.building_buffs
+        self.buffs
+            .building_buffs
             .remove(&building_id)
             .map(|buffed| {
                 buffed
@@ -342,7 +379,7 @@ impl Simulation {
                     .collect::<Vec<_>>()
             })
             .unwrap_or_default();
-        let dropped = self.dropped_buffs.remove(&actor_id).unwrap_or_default();
+        let dropped = self.buffs.dropped.remove(&actor_id).unwrap_or_default();
         let ids = if running.is_empty() { dropped } else { running };
         ids.into_iter()
             .map(|buff_id| {
@@ -398,7 +435,7 @@ impl Simulation {
         if actor.buffs.is_empty() {
             return Ok(());
         }
-        self.dropped_buffs.insert(
+        self.buffs.dropped.insert(
             actor_id,
             actor.buffs.iter().map(|buff| buff.buff_id).collect(),
         );
