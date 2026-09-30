@@ -51,6 +51,11 @@ The target type is answered by `UnitUtility.IsEffectTarget`, as an officer's
 row is ([which units a correction reaches](officer_effects.md#which-units-a-correction-reaches)).
 A Rhino, whose main skill is a melee attack, gets the speed and not the range.
 
+A summon is written on as a unit of its type is: `FightEffectSystem.AddEffect`
+gives it what the side registered for its mech
+([a summon](battle_skill.md#a-summon)). A travelling unit reads the skills
+from the first tick.
+
 A construction's effects are looked up in `TeamFightEffectManager`'s
 construction managers, and these skills never register there. So a turret's
 range is its own under Enhanced Range, and a tower has no range to change.
@@ -63,9 +68,7 @@ opens. A skill activated again is written again.
 
 A skill whose targeting is not a single type that
 [`targets.rs`](../../crates/simulation/src/modifier/targets.rs) resolves is
-refused by name, as an officer's is. A summon on a side that activated a skill
-is refused with the summons on a side with officers or technologies: whether
-`FightEffectSystem` reaches a summon has not been recorded.
+refused by name, as an officer's is.
 
 ## Evidence
 
@@ -78,6 +81,10 @@ is refused with the summons on a side with officers or technologies: whether
   `tests/energy_tower/fights/wraith-slots.yaml`.
 - Enhanced Range leaves a turret's range alone:
   `tests/energy_tower/fights/turret-untouched.yaml`.
+- High Mobility reaches a summon:
+  `tests/battle_skill/fights/summon-energy-tower.yaml`.
+- Both skills reach a travelling unit from the first tick:
+  `tests/super_deployment/fights/energy-tower-skills.yaml`.
 
 ### Read
 
@@ -95,8 +102,5 @@ is refused with the summons on a side with officers or technologies: whether
 
 ### Not established
 
-- **A summon or a travelling unit under a skill.** A summon's effects are
-  added by `FightEffectSystem.AddEffect` and a traveller's on arrival, and
-  neither is recorded. Both stay refused.
 - **The two skills beside an officer that corrects the same number.** They
   add as two values by the writers, which no recording has checked.

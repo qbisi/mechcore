@@ -5,9 +5,10 @@
 //! `SupportUnitSystem`, after `InterceptSystem`, and creates its summons in
 //! batches: the first on its first update, the landing tick, and the next each
 //! `createInterval` later, until it has made `maxCount`. Each is its side's
-//! unit from then on, at level 1 and in no formation, standing where the skill
-//! landed or, when the skill summons several, scattered around it by two draws
-//! of its side's stream. It then appears: for a second it is out of every
+//! unit from then on, at level 1 and in no formation, carrying what its side's
+//! officers, technologies and Energy Tower skills write onto its type, and
+//! standing where the skill landed or, when the skill summons several,
+//! scattered around it by two draws of its side's stream. It then appears: for a second it is out of every
 //! tree, neither updated nor counted, but already an obstacle to the units
 //! moving around it. At the start of the tick a second on, before any module
 //! updates, `SummonSystem.AddMech` lets it in, and an air-dropped one first
@@ -169,7 +170,7 @@ impl Simulation {
             rotated: false,
             level: 1,
             exp: 0,
-            corrections: Vec::new(),
+            corrections: creator.summon.corrections.clone(),
             travelling: false,
         };
         let mut actor = Actor::at_generated_position(placement, rules, x_q32, z_q32);

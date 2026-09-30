@@ -153,6 +153,17 @@ struct Loadouts {
     energy_tower: EnergyTowerSkillEffects,
 }
 
+impl Loadouts {
+    fn load() -> Result<Self> {
+        Ok(Self {
+            officers: OfficerEffects::load()?,
+            technologies: TechnologyEffects::load()?,
+            equipment: EquipmentEffects::load()?,
+            energy_tower: EnergyTowerSkillEffects::load()?,
+        })
+    }
+}
+
 /// Everything a layout is refused for, gathered rather than stopped at.
 ///
 /// A caller wants to know how far a deployment is from being fought, not its
@@ -191,12 +202,7 @@ pub(crate) fn compile_with_seed(
 ) -> Result<(Option<i32>, CompiledLayout)> {
     let layout = mechcore_document::parse_yaml(bytes).map_err(Error::new)?;
     let plan = mechcore_document::compile_layout(layout).map_err(Error::new)?;
-    let loadouts = Loadouts {
-        officers: OfficerEffects::load()?,
-        technologies: TechnologyEffects::load()?,
-        equipment: EquipmentEffects::load()?,
-        energy_tower: EnergyTowerSkillEffects::load()?,
-    };
+    let loadouts = Loadouts::load()?;
     let table = Constructions::load()?;
     let contraptions = Contraptions::load()?;
     let skill_effects = CommanderSkillEffects::load()?;
@@ -271,6 +277,7 @@ pub(crate) fn compile_with_seed(
             side,
             &skill_effects,
             units,
+            &loadouts,
             &mut refused,
         ));
         if let Some(levels) = refused.hold(tower_strengthen_levels(side)) {
@@ -378,36 +385,42 @@ fn compile_standing_shields(
 
 /// A side's released battle skills, or nothing for each one refused with its
 /// refusal kept.
+#[allow(clippy::too_many_arguments)]
 fn compile_battle_skills(
     name: &str,
     team: u32,
     side: &SidePlan,
     skill_effects: &CommanderSkillEffects,
     units: &UnitConfigs,
+    loadouts: &Loadouts,
     refused: &mut Refusals,
 ) -> Vec<SkillRelease> {
     let mut battle_skills = Vec::new();
     for skill in &side.battle_skills {
-        let release = skill_effects
-            .release(team, skill, units)
-            .and_then(|release| {
-                // A summon's data comes straight from the unit table;
-                // whether a side's officers, technologies and Energy Tower
-                // skills reach it through `FightEffectSystem` is not measured.
-                let loaded = !side.techs.officers.is_empty()
-                    || !side.techs.units.is_empty()
-                    || !side.energy_tower_skills.is_empty();
-                if matches!(release.effect, SkillEffect::Summon(_)) && loaded {
-                    return Err(Error::new(format!(
-                        "{} summons onto a side with officers, technologies or Energy \
-                         Tower skills, and whether they reach a summon is not measured",
-                        skill.type_name
-                    )));
-                }
-                Ok(release)
-            })
-            .map_err(|error| Error::new(format!("side {name}: {error}")));
-        battle_skills.extend(refused.hold(release));
+        let Some(mut release) = refused.hold(
+            skill_effects
+                .release(team, skill, units)
+                .map_err(|error| Error::new(format!("side {name}: {error}"))),
+        ) else {
+            continue;
+        };
+        if let SkillEffect::Summon(summon) = &mut release.effect {
+            // `SummonSystem` makes a summon at level 1, with no equipment.
+            let Some(corrections) = loadout(
+                name,
+                &summon.rules.type_name,
+                1,
+                &[],
+                &summon.rules,
+                side,
+                loadouts,
+                refused,
+            ) else {
+                continue;
+            };
+            summon.corrections = corrections;
+        }
+        battle_skills.push(release);
     }
     battle_skills
 }

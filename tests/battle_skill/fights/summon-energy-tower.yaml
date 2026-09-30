@@ -1,0 +1,25 @@
+# A side's Energy Tower skill reaches its summon.
+#
+# Blue activated High Mobility, +3 speed on every unit, and releases Rhino
+# Assault where rhino-assault.yaml does. The Rhino it summons joins on tick 48
+# with 19 of speed where it would read 16 without the skill. The simulator
+# matches this fight only by writing the side's Energy Tower skills onto the
+# summon's type, as onto a Rhino deployed without equipment.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 231
+hash: {profile: mcfr-content-0.7.0, result: 99658a3296de7424b3bd4d2c53108af6b42324365b0c4eacecd77afde634bf8a}
+blue:
+  energy_tower_skills: [high_mobility]
+  units:
+  - {name: marksman, index: 0, position: {x: -100, y: -150}}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: 0, y: -60}]}
+red:
+  core_damage: 150
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}

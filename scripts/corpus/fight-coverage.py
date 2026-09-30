@@ -88,8 +88,6 @@ def system_of(what: str, owner: str) -> str:
         return f"{match.group(1)} field {match.group(2)}"
     if match := UNIT.search(owner):
         return f"unit {match.group(1)}"
-    if "summons onto a side" in owner:
-        return "a summon on a side with a loadout"
     if "grows with the unit's rank" in owner:
         return "technology by rank"
     return owner.split(",")[0]
@@ -110,8 +108,6 @@ def field_of(what: str, owner: str) -> str:
     ):
         if owner.startswith(prefix):
             return field
-    if "summons onto a side" in owner:
-        return "battle skills"
     if "missile" in owner:
         return "missile contraptions"
     return "other"

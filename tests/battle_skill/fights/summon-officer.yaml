@@ -1,0 +1,26 @@
+# A side's officer reaches its summon.
+#
+# Blue holds Advanced Offensive Tactics, +0.3 damage on every unit, and
+# releases Rhino Assault where rhino-assault.yaml does. The Rhino it summons
+# joins on tick 48 carrying the officer's rate: 4627 of damage where it would
+# read 3560 without it. The simulator matches this fight only by writing the
+# side's officers onto the summon's type, as onto a Rhino deployed without
+# equipment.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 259
+hash: {profile: mcfr-content-0.7.0, result: 7dc9a280cc745a80e68c159781bd9e18e056ba25f10b32c21aaa8119ef9cc949}
+blue:
+  officers: [advanced_offensive_tactics]
+  units:
+  - {name: marksman, index: 0, position: {x: -100, y: -150}}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: 0, y: -60}]}
+red:
+  core_damage: 150
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
