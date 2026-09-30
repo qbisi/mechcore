@@ -47,7 +47,10 @@ unit runs `SuperDeploymentController.Update`, in this order:
    by the travel time.
 3. When the travel time reaches `TravelTime()`, `FinishTranvel` brings every
    travelling unit in: in the list's order, it activates each unit's movement
-   where it stands and takes it out of travel.
+   where it stands and takes it out of travel. Activating makes the unit's RVO
+   agent, and the first tree built after reads a new agent's position as zero
+   ([rvo.md](../spec/simulation/rvo.md#the-first-tree)), so in the first solve
+   after the arrival no arriving unit is another's neighbour.
 
 Both comparisons are `FPoint.op_GreaterThanOrEqual`, which counts a value within
 43 raw below as equal. Twenty logic deltas are a second less 16 raw, so the
@@ -92,6 +95,9 @@ starts on its share of its corrected life and heals by its corrected maximum.
   `tests/super_deployment/fights/energy-tower-skills.yaml`.
 - Quick Teleport halves the travel, with four heals of a quarter of 0.6:
   `tests/super_deployment/fights/quick-teleport.yaml`.
+- A squad that arrives together is solved once with none of its members among
+  another's RVO neighbours, and walks off where a squad whose members saw each
+  other would stand blocked: `tests/corpus/fights/134270595-r2.yaml`.
 
 ### Read
 

@@ -230,6 +230,7 @@ impl Simulation {
             // Crawlers that surfaced overlapping stand still through that
             // solve rather than pushing apart.
             actor.motion.rvo_fresh = true;
+            actor.motion.rvo_new_agent = true;
             let unit_id = actor.placement.unit_id;
             let team = actor.placement.team;
             self.actors.insert(unit_id, actor);
