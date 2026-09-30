@@ -10,6 +10,8 @@
 mod canonical;
 mod error;
 mod event_table;
+#[cfg(test)]
+mod hashed_content;
 mod instrument;
 mod model;
 mod parquet_storage;
