@@ -739,8 +739,14 @@ pub fn fights(
             })
         });
         let layout = position.and_then(|position| {
-            crate::project::project(&position, turn.round, stated.map_id, stated.seed)
-                .map(|layout| (position, layout))
+            crate::project::project(
+                &turn.state,
+                &position,
+                turn.round,
+                stated.map_id,
+                stated.seed,
+            )
+            .map(|layout| (position, layout))
         });
         let (position, layout) = match layout {
             Ok(projected) => projected,

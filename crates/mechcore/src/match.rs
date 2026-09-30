@@ -677,7 +677,17 @@ impl Game {
             blue,
             red,
         };
+        let opening = State {
+            reinforce_offers: None,
+            blue: self
+                .opened(Side::Blue)
+                .map_err(|failure| failure.reason().to_owned())?,
+            red: self
+                .opened(Side::Red)
+                .map_err(|failure| failure.reason().to_owned())?,
+        };
         let layout = mechcore_document::project::project(
+            &opening,
             &state,
             round,
             self.r#match.map_id,
@@ -814,15 +824,26 @@ impl Game {
         }
         let other = self.opened(side.other())?;
         let (blue, red) = match side {
-            Side::Blue => (position.clone(), other),
-            Side::Red => (other, position.clone()),
+            Side::Blue => (position.clone(), other.clone()),
+            Side::Red => (other.clone(), position.clone()),
         };
         let state = State {
             reinforce_offers: None,
             blue,
             red,
         };
+        let own = self.opened(side)?;
+        let (blue, red) = match side {
+            Side::Blue => (own, other),
+            Side::Red => (other, own),
+        };
+        let opening = State {
+            reinforce_offers: None,
+            blue,
+            red,
+        };
         let layout = mechcore_document::project::project(
+            &opening,
             &state,
             round,
             self.r#match.map_id,

@@ -13,6 +13,7 @@ hash: {profile: mcfr-content-0.7.0, result: 8da14ebf5ad41b9cdece0e77e10c2350e8b6
 blue:
   officers: [quick_supply_specialist]
   blueprints: [attack_enhancement, defense_enhancement]
+  legacy_index: 10
   units:
   - {name: arclight, index: 0, position: {x: 50, y: -70}, exp: 177/361/750}
   - {name: arclight, index: 1, position: {x: 140, y: -70}, exp: 720/750/750}
@@ -32,6 +33,7 @@ blue:
 red:
   core_damage: 1215
   officers: [fortified_specialist]
+  legacy_index: 9
   units:
   - {name: crawler, index: 0, position: {x: 290, y: -265}, exp: 238/238/450, rotated: true}
   - {name: crawler, index: 1, position: {x: -290, y: -255}, exp: 22/38/450, rotated: true}

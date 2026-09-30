@@ -43,6 +43,8 @@ pub struct SidePlan {
     pub techs: Techs,
     pub energy_tower_skills: Vec<i32>,
     pub tower_strengthen_levels: Vec<i32>,
+    /// The layout's `legacy_index`: a unit of a lower index is legacy.
+    pub legacy_unit: i32,
     pub units: Vec<Placement>,
     pub constructions: Vec<Placement>,
     pub contraptions: Vec<Placement>,
@@ -170,6 +172,7 @@ fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, Str
         blueprints,
         energy_tower_skills,
         tower_strengthen_levels,
+        legacy_index,
         units,
         constructions,
         contraptions,
@@ -186,6 +189,7 @@ fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, Str
     officers.sort_unstable();
     let slots = crate::economy::Economy::embedded()?.equipment_slots(&officers);
     let units = compile_units(side_name, units, round, slots)?;
+    validate_legacy_index(side_name, legacy_index, round, &units)?;
     let constructions = compile_constructions(side_name, constructions)?;
     let contraptions = compile_contraptions(side_name, contraptions)?;
     let mut standing_shields = Vec::new();
@@ -210,6 +214,7 @@ fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, Str
         },
         energy_tower_skills,
         tower_strengthen_levels,
+        legacy_unit: legacy_index,
         units,
         constructions,
         contraptions,
@@ -217,6 +222,39 @@ fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, Str
         standing_oil,
         battle_skills,
     })
+}
+
+/// The first round carries nothing into it, and a unit reaches a flank during
+/// the round only by travelling there, so one that stands on a flank without
+/// travelling is legacy.
+fn validate_legacy_index(
+    side_name: &str,
+    legacy_index: i32,
+    round: i32,
+    units: &[Placement],
+) -> Result<(), String> {
+    if legacy_index < 0 {
+        return Err(format!("{side_name} legacy_index must not be negative"));
+    }
+    if round <= 1 && legacy_index != 0 {
+        return Err(format!(
+            "{side_name} legacy_index {legacy_index} in round {round}: the first round has no \
+             legacy unit"
+        ));
+    }
+    if let Some(unit) = units.iter().find(|unit| {
+        !unit.travelling
+            && Region::of(unit.position).is_flank()
+            && unit.index.is_some_and(|index| index >= legacy_index)
+    }) {
+        return Err(format!(
+            "{side_name} unit {} at ({}, {}) stands on a flank without travelling, and its \
+             index is not below legacy_index {legacy_index}: a unit that joins during the \
+             round reaches a flank by travelling",
+            unit.type_name, unit.position.x, unit.position.y
+        ));
+    }
+    Ok(())
 }
 
 #[allow(clippy::too_many_lines)]

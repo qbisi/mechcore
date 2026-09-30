@@ -375,6 +375,9 @@ pub(crate) struct CaptureState {
     last_native_tick: Option<u64>,
     native_tick_step: Option<u64>,
     deployment_layout_yaml: Option<String>,
+    /// Each side's unit allocator as the replayed round opened, read once it
+    /// entered that round's deployment, before its decisions replay.
+    opening_next_units: Option<[i32; 2]>,
     queue: VecDeque<CaptureMessage>,
     pub(crate) unit_ids: BTreeMap<usize, u64>,
     pub(crate) building_ids: BTreeMap<usize, u64>,
@@ -441,6 +444,7 @@ impl CaptureState {
         self.last_native_tick = None;
         self.native_tick_step = None;
         self.deployment_layout_yaml = None;
+        self.opening_next_units = None;
         self.instruments = Instruments::default();
         rvo::arm(RvoChannels::default());
         self.rvo_solves.clear();
@@ -1076,6 +1080,7 @@ static RUNTIME: AtomicPtr<Runtime> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_UPDATE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_MATCH_UPDATE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_PLAYER_FINISH_DEPLOY: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
+static ORIGINAL_ENTER_DEPLOYMENT_AFTER: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_POST_RENDER: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_PROJECTILE_CREATE: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
 static ORIGINAL_PROJECTILE_ADD: AtomicPtr<c_void> = AtomicPtr::new(ptr::null_mut());
@@ -1292,6 +1297,10 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
         let player_finish_deploy = api
             .class("GRCore.dll", "GameRiver", "PlayerController")
             .and_then(|class| api.method(class, "FinishDeploy", 0))
+            .map_err(|error| error.to_string())?;
+        let enter_deployment_after = api
+            .class("GRClient.dll", "GameRiver.Client", "BattleSystem")
+            .and_then(|class| api.method(class, "OnEnterDeploymentAfter", 0))
             .map_err(|error| error.to_string())?;
         let camera = api
             .class("UnityEngine.CoreModule.dll", "UnityEngine", "Camera")
@@ -1587,6 +1596,13 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
         install_update_hook(api, update)?;
         install_match_update_hook(api, match_update)?;
         install_player_finish_deploy_hook(api, player_finish_deploy)?;
+        install_inline_hook(
+            api,
+            enter_deployment_after,
+            enter_deployment_after_hook as *const c_void,
+            &ORIGINAL_ENTER_DEPLOYMENT_AFTER,
+            "BattleSystem.OnEnterDeploymentAfter",
+        )?;
         install_post_render_hook(api, post_render)?;
         let (selector, selector_error) = match selector::initialize(api) {
             Ok(selector) => (Some(selector), None),
@@ -1728,7 +1744,12 @@ pub(crate) fn start(
     let layout_yaml = match mode {
         CaptureStartMode::TrainingGround => {
             let (_, context) = recording_context(runtime)?;
-            Some(read_native_layout(runtime, &context, &state.metadata)?)
+            Some(read_native_layout(
+                runtime,
+                &context,
+                &state.metadata,
+                None,
+            )?)
         }
         CaptureStartMode::Replay(_) => None,
     };
@@ -2237,8 +2258,12 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
                 }
                 if state.deployment_layout_yaml.is_none() {
                     let (_, context) = recording_context(runtime)?;
-                    state.deployment_layout_yaml =
-                        Some(read_native_layout(runtime, &context, &state.metadata)?);
+                    state.deployment_layout_yaml = Some(read_native_layout(
+                        runtime,
+                        &context,
+                        &state.metadata,
+                        Some(opened(&state)?),
+                    )?);
                 }
                 state.await_replay_deployment = false;
             }
@@ -2300,7 +2325,12 @@ unsafe extern "C" fn update_hook(controller: *mut Object, method: *const MethodI
             if !state.initialized {
                 if fighting && state.await_replay_deployment {
                     let (game_build, context) = recording_context(runtime)?;
-                    let layout_yaml = read_native_layout(runtime, &context, &state.metadata)?;
+                    let layout_yaml = read_native_layout(
+                        runtime,
+                        &context,
+                        &state.metadata,
+                        Some(opened(&state)?),
+                    )?;
                     let initial = snapshot(runtime, &mut state, true)?;
                     if initial.native_tick != 0 {
                         return Err(format!(
@@ -2461,6 +2491,86 @@ unsafe extern "C" fn match_update_hook(current: *mut Object, method: *const Meth
     }));
 }
 
+/// Reads each side's unit allocator once the replayed round has entered its
+/// deployment: `BattleSystem.OnEnterDeploymentAfter` has run every module's,
+/// the officers' squads among them, and no side's decision has replayed.
+unsafe extern "C" fn enter_deployment_after_hook(system: *mut Object, method: *const MethodInfo) {
+    let original = ORIGINAL_ENTER_DEPLOYMENT_AFTER.load(Ordering::Acquire);
+    if original.is_null() {
+        return;
+    }
+    // SAFETY: the installer stores the trampoline for this exact no-argument void ABI, and
+    // system and MethodInfo are forwarded unchanged from IL2CPP exactly once.
+    let original: PlayerFinishDeployFn = unsafe { std::mem::transmute(original) };
+    unsafe { original(system, method) };
+    let _ = catch_unwind(AssertUnwindSafe(|| {
+        let runtime = RUNTIME.load(Ordering::Acquire);
+        if runtime.is_null() {
+            return;
+        }
+        // SAFETY: runtime is boxed for the adapter process lifetime.
+        let runtime = unsafe { &*runtime };
+        let mut state = capture_state()
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if !state.armed || !state.await_replay_deployment {
+            return;
+        }
+        match replay_round_pending(runtime, &state) {
+            Ok(false) => {}
+            Ok(true) => return,
+            Err(error) => {
+                state.fail(error);
+                return;
+            }
+        }
+        match read_next_units(runtime) {
+            Ok(next_units) => {
+                state.opening_next_units = Some(next_units);
+            }
+            Err(error) => state.fail(error),
+        }
+    }));
+}
+
+/// Each side's allocator as the replayed round opened, which names its
+/// legacy units.
+fn opened(state: &CaptureState) -> Result<[i32; 2], String> {
+    state.opening_next_units.ok_or_else(|| {
+        "the replayed round's deployment opened unobserved, so its legacy units are unknown"
+            .to_owned()
+    })
+}
+
+/// Each side's unit allocator, `UnitManager.NextUnitIndex`, by team.
+fn read_next_units(runtime: &Runtime) -> Result<[i32; 2], String> {
+    let current = capture_match(runtime);
+    if current.is_null() {
+        return Err("active replay disappeared as its round opened".into());
+    }
+    let player_manager = invoke_object(runtime.api, current, "GetPlayerManager")?;
+    let controllers = invoke_object(runtime.api, player_manager, "GetPlayerControllers")?;
+    let mut next_units = [None; 2];
+    for index in 0..list_count(runtime.api, controllers, 32)? {
+        let player_controller = list_item(runtime.api, controllers, index)?;
+        let team = invoke_value::<i32>(runtime.api, player_controller, "GetTeamIndex")?;
+        let slot = usize::try_from(team)
+            .ok()
+            .and_then(|team| next_units.get_mut(team))
+            .ok_or_else(|| format!("unsupported native team index {team}"))?;
+        let unit_manager = invoke_object(runtime.api, player_controller, "GetUnitManager")?;
+        *slot = Some(invoke_value::<i32>(
+            runtime.api,
+            unit_manager,
+            "get_NextUnitIndex",
+        )?);
+    }
+    match next_units {
+        [Some(blue), Some(red)] => Ok([blue, red]),
+        _ => Err("the replay's round opened without both sides".into()),
+    }
+}
+
 unsafe extern "C" fn player_finish_deploy_hook(player: *mut Object, method: *const MethodInfo) {
     let original = ORIGINAL_PLAYER_FINISH_DEPLOY.load(Ordering::Acquire);
     if original.is_null() {
@@ -2507,7 +2617,7 @@ fn capture_replay_initial_before_final_deploy(
         return Ok(());
     }
     let (game_build, context) = recording_context(runtime)?;
-    let layout_yaml = read_native_layout(runtime, &context, &state.metadata)?;
+    let layout_yaml = read_native_layout(runtime, &context, &state.metadata, Some(opened(state)?))?;
     state.traces.clear();
     let initial = snapshot(runtime, state, true)?;
     if initial.native_tick != 0 {
@@ -4146,10 +4256,17 @@ fn read_native_layout(
     runtime: &Runtime,
     context: &DurableContext,
     metadata: &Metadata,
+    opening_next_units: Option<[i32; 2]>,
 ) -> Result<String, String> {
     let round = i32::try_from(context.combat_round)
         .map_err(|_| format!("round {} exceeds layout range", context.combat_round))?;
-    let layout = read_native_layout_inner(runtime, round, context.match_seed, metadata)?;
+    let layout = read_native_layout_inner(
+        runtime,
+        round,
+        context.match_seed,
+        metadata,
+        opening_next_units,
+    )?;
     canonical_embedded_yaml(layout).map_err(|error| format!("cannot encode native layout: {error}"))
 }
 
@@ -4158,6 +4275,7 @@ fn read_native_layout_inner(
     round: i32,
     seed: i32,
     metadata: &Metadata,
+    opening_next_units: Option<[i32; 2]>,
 ) -> Result<Layout, String> {
     let current = capture_match(runtime);
     if current.is_null() {
@@ -4191,18 +4309,23 @@ fn read_native_layout_inner(
         if sides[team].is_some() {
             return Err(format!("duplicate native team index {team}"));
         }
-        sides[team] = Some(
-            read_native_side(
-                runtime.api,
-                player_controller,
-                super_deployment,
-                shield_system,
-                range_item_system,
-                team,
-                metadata,
-            )
-            .map_err(|error| format!("team {team}: {error}"))?,
-        );
+        let mut side = read_native_side(
+            runtime.api,
+            player_controller,
+            super_deployment,
+            shield_system,
+            range_item_system,
+            team,
+            metadata,
+        )
+        .map_err(|error| format!("team {team}: {error}"))?;
+        // The units the allocator had named as a replayed round opened are
+        // legacy, but in the first round, which carries none. What the
+        // Training Ground places joins during the round.
+        side.legacy_index = opening_next_units
+            .filter(|_| round > 1)
+            .map_or(0, |next_units| next_units[team]);
+        sides[team] = Some(side);
     }
     let layout = Layout {
         kind: DocumentKind::Layout,
@@ -4328,6 +4451,7 @@ fn read_native_side(
             .collect(),
         energy_tower_skills: read_native_energy_tower_skills(api, controller)?,
         tower_strengthen_levels: read_native_tower_strengthen_levels(api, controller)?,
+        legacy_index: 0,
         units: formations,
         constructions,
         contraptions,

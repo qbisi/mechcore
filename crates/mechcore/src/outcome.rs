@@ -288,6 +288,7 @@ fn fight_side(side: mechcore_document::Side, read: SideReading) -> Result<FightS
         blueprints: side.blueprints,
         energy_tower_skills: side.energy_tower_skills,
         tower_strengthen_levels: side.tower_strengthen_levels,
+        legacy_index: side.legacy_index,
         units: side
             .units
             .into_iter()

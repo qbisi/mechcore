@@ -594,7 +594,7 @@ red:
         let plan = compile(&json!({
             "kind": "layout",
             "round": 3,
-            "blue": {"units": [
+            "blue": {"legacy_index": 2, "units": [
                 {"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}},
                 {"index": 1, "name": "marksman", "position": {"x": -310, "y": 20}},
                 {"index": 2, "name": "arclight", "position": {"x": 310, "y": 20}, "travelling": true}
@@ -655,7 +655,16 @@ red:
         .unwrap_err();
         assert!(omitted.contains("first flank deployment"));
         assert!(compile(&layout(2, true)).unwrap().blue.units[0].travelling);
-        assert!(!compile(&layout(3, false)).unwrap().blue.units[0].travelling);
+        // From round 3 a unit stands on a flank without travelling only if
+        // the side carried it into the round.
+        assert!(
+            compile(&layout(3, false))
+                .unwrap_err()
+                .contains("stands on a flank without travelling")
+        );
+        let mut legacy = layout(3, false);
+        legacy["blue"]["legacy_index"] = json!(1);
+        assert!(!compile(&legacy).unwrap().blue.units[0].travelling);
     }
 
     #[test]

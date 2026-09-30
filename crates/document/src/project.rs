@@ -3,7 +3,8 @@
 //! `docs/spec/document/state.md` defines the projection: what a fight cannot observe is
 //! dropped, most of what it can is copied, and three fields are translated.
 //! A supply, a shop, a reinforcement offer and the two allocators do not
-//! survive; formations, constructions, contraptions and the tower levels do.
+//! survive; formations, constructions, contraptions and the tower levels do,
+//! and the units the round opened with are the legacy ones.
 //!
 //! The three that are neither dropped nor copied are the Research Center's
 //! blueprints, of which a layout keeps only the two enhancement chains, the
@@ -18,22 +19,46 @@ use crate::layout::{
 };
 use crate::r#match::{Release, SideState, SkillTarget, State};
 
-/// Projects one round's position onto a layout.
+/// Projects one round's position onto a layout: `state`, which the round
+/// opened with as `opening` or reached from it.
 ///
 /// # Errors
 ///
 /// Returns an error when a released skill has no layout type or aims at a
 /// target a layout cannot state.
-pub fn project(state: &State, round: i32, map_id: i32, seed: i32) -> Result<Layout, String> {
+pub fn project(
+    opening: &State,
+    state: &State,
+    round: i32,
+    map_id: i32,
+    seed: i32,
+) -> Result<Layout, String> {
     Ok(Layout {
         kind: DocumentKind::Layout,
         game_build: crate::economy::game_build().to_owned(),
         map_id: Some(map_id),
         seed: Some(seed),
         round,
-        blue: project_side(&state.blue, "blue")?,
-        red: project_side(&state.red, "red")?,
+        blue: Side {
+            legacy_index: legacy_index(&opening.blue, round),
+            ..project_side(&state.blue, "blue")?
+        },
+        red: Side {
+            legacy_index: legacy_index(&opening.red, round),
+            ..project_side(&state.red, "red")?
+        },
     })
+}
+
+/// The units a side carried into the round: those the allocator had named
+/// as it opened, the squads its officers delivered among them. The first
+/// round carries none, though it opens with the squads each side is dealt.
+fn legacy_index(opening: &SideState, round: i32) -> i32 {
+    if round > 1 {
+        opening.next_index.unit
+    } else {
+        0
+    }
 }
 
 /// Projects every round of a match both ways and compiles each layout.
@@ -54,14 +79,14 @@ pub fn every_round(
     stated: &crate::opening::Stated,
     deal: &crate::reinforcement::Verified,
 ) -> Result<usize, String> {
-    let compiled = |state: &State, round: i32, which: &str| {
-        project(state, round, stated.map_id, stated.seed)
+    let compiled = |opening: &State, state: &State, round: i32, which: &str| {
+        project(opening, state, round, stated.map_id, stated.seed)
             .and_then(crate::compile_layout)
             .map_err(|error| format!("round {round}'s {which} position: {error}"))
     };
     let mut layouts = 0;
     for turn in &stated.turns {
-        compiled(&turn.state, turn.round, "opening")?;
+        compiled(&turn.state, &turn.state, turn.round, "opening")?;
         let declined = deal
             .rounds
             .iter()
@@ -76,13 +101,13 @@ pub fn every_round(
             blue: deployed(&turn.state.blue, &turn.actions.blue, false)?,
             red: deployed(&turn.state.red, &turn.actions.red, true)?,
         };
-        compiled(&state, turn.round, "deployed")?;
+        compiled(&turn.state, &state, turn.round, "deployed")?;
         layouts += 2;
     }
     Ok(layouts)
 }
 
-/// Projects one side of a position.
+/// Projects one side of a position, every unit joining it during the round.
 ///
 /// # Errors
 ///
@@ -100,6 +125,7 @@ pub fn project_side(state: &SideState, side_name: &str) -> Result<Side, String> 
         blueprints: chain_blueprints(&state.blueprints),
         energy_tower_skills: energy_tower_skills(&state.energy_tower_skills),
         tower_strengthen_levels: tower_strengthen_levels(&state.tower_strengthen_levels),
+        legacy_index: 0,
         units: state
             .units
             .iter()

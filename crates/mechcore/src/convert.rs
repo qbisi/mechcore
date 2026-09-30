@@ -469,8 +469,9 @@ fn project(bytes: &[u8], round: Option<i32>, output: Option<&Path>) -> Result<An
         blue: deployed(&turn.state.blue, &turn.actions.blue, false)?,
         red: deployed(&turn.state.red, &turn.actions.red, true)?,
     };
-    let layout = mechcore_document::project::project(&state, round, stated.map_id, stated.seed)
-        .map_err(Failure::refused)?;
+    let layout =
+        mechcore_document::project::project(&turn.state, &state, round, stated.map_id, stated.seed)
+            .map_err(Failure::refused)?;
     let yaml = mechcore_document::canonical_yaml(layout).map_err(Failure::refused)?;
     match output {
         Some(output) => {

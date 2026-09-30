@@ -13,12 +13,14 @@ source: game
 ticks: 1250
 hash: {profile: mcfr-content-0.7.0, result: dae806830438e8a28d56b16c55c5eb30deb5c334f672a1db7783cdad2c9b8555}
 blue:
+  legacy_index: 3
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
   - {name: hound, index: 1, position: {x: -330, y: 60}, exp: 0/400/750}
   - {name: arclight, index: 2, position: {x: 330, y: 100}, exp: 0/400/750}
 red:
   core_damage: 140
+  legacy_index: 3
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
   - {name: hound, index: 1, position: {x: -330, y: 200}, exp: 0/200/750}

@@ -114,6 +114,14 @@ pub struct Side {
     pub energy_tower_skills: Vec<i32>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tower_strengthen_levels: Vec<i32>,
+    /// The units of a lower index are legacy: the side carried them into
+    /// the round, the squads its officers delivered as the round opened among
+    /// them. Every other unit joined it during the round, and the first round
+    /// has no legacy unit. `0`, every unit joined during the round, is the
+    /// default.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    #[schemars(range(min = 0))]
+    pub legacy_index: i32,
     pub units: Vec<UnitPlacement>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub constructions: Vec<StaticPlacement>,
@@ -123,6 +131,11 @@ pub struct Side {
     /// this round's releases in release order.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub battle_skills: Vec<BattleSkillEntry>,
+}
+
+#[allow(clippy::trivially_copy_pass_by_ref)]
+pub(crate) fn is_zero(value: &i32) -> bool {
+    *value == 0
 }
 
 /// What a compiled side holds of officers and technologies, as the adapter and

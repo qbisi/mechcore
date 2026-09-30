@@ -336,6 +336,7 @@ when omitted:
 - `energy_tower_skills` defaults to `[]`.
 - `tower_strengthen_levels` defaults to `[]`, which puts every tower at level
   `0`.
+- `legacy_index` defaults to `0`: every unit joined the side during the round.
 - `constructions` defaults to `[]`.
 - `contraptions` defaults to `[]`.
 - `battle_skills` defaults to `[]`.
@@ -520,6 +521,29 @@ the list `GetInvisibleOfficers` returns rather than `GetOfficers`. Both the
 readback that verifies an apply and the capture that exports a side read both
 lists, so one of these Officers is neither reported missing right after it was
 installed nor dropped from a capture of the side that holds it.
+
+### `legacy_index`
+
+```yaml
+legacy_index: 7
+```
+
+A unit whose `index` is below `legacy_index` is legacy: the side carried it
+into the round, the squads its officers delivered as the round opened among
+them. Every other unit joined the side during the round, bought, taken as a
+reinforcement or added. The unit allocator names units in the order they are
+created, so one number divides the two: the allocator as the round opened, the
+officers' deliveries made. The first round carries nothing, so its
+`legacy_index` is `0`, although each side opens it with the squads it is
+dealt.
+
+A unit reaches a flank during the round only by travelling there, so a unit
+that stands on a flank without travelling is legacy.
+
+A capture reads `legacy_index` from the allocator as a replayed round opens.
+The Training Ground adds every unit during the round, so it applies no layout
+with a legacy unit, and a layout replay holds its legacy units in the round's
+snapshot ([layout-replay.md](layout-replay.md#the-rounds-decisions)).
 
 ### `units`
 
@@ -1037,6 +1061,8 @@ Applying a layout is fail-closed:
 
 1. The game must be in a fresh deterministic round-one Training Ground
    deployment, and `round` must satisfy the ambush/travelling rules above.
+   The executor places every unit during the layout's round, so it refuses a
+   layout with a legacy unit.
 2. Both sides must exist and the adapter must be able to select each side
    explicitly.
 3. Types, type-specific fields, side-local coordinates, static battle-skill

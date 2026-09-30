@@ -11,6 +11,7 @@
 use crate::layout::{
     BattleSkillEntry, BattleSkillFields, BattleSkillRelease, Experience, Layout, Position,
     SHIELD_AIRDROP_SKILL, STICKY_OIL_BOMB_SKILL, Side, Standing, StaticPlacement, UnitPlacement,
+    is_zero,
 };
 use crate::{DocumentKind, compile::compile_layout};
 use schemars::JsonSchema;
@@ -130,6 +131,9 @@ pub struct FightSide {
     pub energy_tower_skills: Vec<i32>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tower_strengthen_levels: Vec<i32>,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    #[schemars(range(min = 0))]
+    pub legacy_index: i32,
     pub units: Vec<FightUnit>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub constructions: Vec<StaticPlacement>,
@@ -412,11 +416,6 @@ impl FightBattleSkill {
     }
 }
 
-#[allow(clippy::trivially_copy_pass_by_ref)]
-fn is_zero(value: &i32) -> bool {
-    *value == 0
-}
-
 const fn yes() -> bool {
     true
 }
@@ -452,6 +451,7 @@ fn project_side(side: &FightSide) -> Side {
         blueprints: side.blueprints.clone(),
         energy_tower_skills: side.energy_tower_skills.clone(),
         tower_strengthen_levels: side.tower_strengthen_levels.clone(),
+        legacy_index: side.legacy_index,
         units: side
             .units
             .iter()
