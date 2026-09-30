@@ -68,8 +68,12 @@ A crystal of priority 1 takes no part in movement. It is in no neighbour set,
 which the layers alone would already give, and it is not in the tree either,
 where it would move the root's bounds and the leaves' order.
 
-The towers enter the tree first, then the crystals in the order the map lists
-them, then the constructions, then the units.
+The buildings enter the tree side by side, each side's towers and then its
+constructions, blue's before red's; then the crystals in the order the map
+lists them; then the units. The order matters: the tree's node array grows
+only when a split finds it nearly full, the split that grows it loses the
+agents it was distributing, and which split that is follows from the order
+the agents go in.
 
 ## A crystal a formation stands on is not in the fight
 
@@ -104,6 +108,14 @@ place crystals of priority 1 only, so a fight on 1011 is the same fight as on
   touch the one at (-135, -320). In that round the game's RVO tree held 299
   agents, two fewer than the simulator's with the two crystals, and no
   neighbour list of the game names them.
+- Each side's constructions enter the RVO tree right after its towers, before
+  the other side's towers and before the crystals: in round 2 of replay
+  134265566, a temporary read of the game's `Simulator` (not committed) found
+  blue's two towers, blue's five wall blocks, red's two towers and red's five
+  wall blocks, then the 71 crystals, as the first 85 of its 299 agents. With
+  the constructions after the crystals, the simulator's tree grew its node
+  array on tick 52 and lost the fifteen agents of one leaf from it, red
+  Crawlers among them, where the game's did not: `tests/corpus/fights/134265566-r2.yaml`.
 - 1001, 1031 and 1032 fight alike: each fight under `tests/map/fights/`
   recorded on 1031 and 1032 has 1001's hash.
 

@@ -341,15 +341,28 @@ impl Simulation {
                 self.passable_constructions.contains(&building.building_id),
             ))
         };
-        // The towers, then the map's crystals in the order the map lists them,
-        // then the constructions: the order the three activate their RVO
-        // controllers in when the fight starts.
-        let (constructions, towers): (Vec<_>, Vec<_>) =
-            self.buildings.iter().partition(|building| {
-                self.construction_colliders
-                    .contains_key(&building.building_id)
-            });
-        agents.extend(towers.into_iter().filter_map(building_agent));
+        // Each side's buildings, its towers and then its constructions, side
+        // by side, then the map's crystals in the order the map lists them:
+        // the order their RVO controllers activate in when the fight starts.
+        let mut teams = self
+            .buildings
+            .iter()
+            .map(|building| building.team_id)
+            .collect::<Vec<_>>();
+        teams.sort_unstable();
+        teams.dedup();
+        for team in teams {
+            let (constructions, towers): (Vec<_>, Vec<_>) = self
+                .buildings
+                .iter()
+                .filter(|building| building.team_id == team)
+                .partition(|building| {
+                    self.construction_colliders
+                        .contains_key(&building.building_id)
+                });
+            agents.extend(towers.into_iter().filter_map(building_agent));
+            agents.extend(constructions.into_iter().filter_map(building_agent));
+        }
         for (index, crystal) in self.map_crystals.iter().enumerate() {
             let (layer, collides_with) = immovable_rvo_collision_masks(crystal.collider_priority);
             agents.push(immovable(
@@ -363,7 +376,6 @@ impl Simulation {
                 false,
             ));
         }
-        agents.extend(constructions.into_iter().filter_map(building_agent));
         // A summon still appearing has its agent already, where it was made,
         // locked: `CreateMechDelay` locks its movement. Crawlers still
         // surfacing turn the Crawlers already up aside.
