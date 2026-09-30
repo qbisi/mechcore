@@ -112,6 +112,15 @@ as `free_move`. A Wraith drifting 100° off its facing in its M3 with seed
 `RefreshAttackInterval` converts by the logical step and floors at one tick.
 After a unit first enters Attack, the next update is the earliest release.
 
+**A blow is fitted into its interval.** A blow starts by drawing its interval
+and then converts its attack point and its backswing to whole ticks, each
+truncated on its own. When the two together are longer than the interval, the
+attack point is scaled by the interval over their sum, an `FPoint` product
+truncated to whole ticks, and the backswing is what is left of the interval.
+A unit whose attack point and backswing fit its interval keeps both. The
+Rhino's fit its own interval and no longer fit the one Mechanical Rage leaves
+it, so the technology brings its blow forward as well as its next one.
+
 ## Base facing
 
 There is no `aim_tolerance` turn deadzone. A value like 20 is not a threshold
@@ -678,9 +687,15 @@ not the game's native attack-type enum.
 - A Stormcaller's blow that lost its target inside the minimum range giving
   its interval back, and one whose target died keeping it:
   `tests/corpus/fights/201372157-r2.yaml`.
+- A blow whose attack point and backswing outlast its interval is fitted into
+  it: `tests/modifier/fights/technology-interval-value.yaml`.
 
 ### Read
 
+- A blow draws its interval and is then fitted into it:
+  `SkillAttackState.TryPerformAttack` calls `FightSkill.ResetAttackData`, which
+  calls `FightSkill.RefreshAttackInterval`, before
+  `SkillAttackController.PerformAttack`, which reads `FightSkill.GetAttackPoint`.
 - An idle motion stops its unit when it is entered and not while it runs:
   `MotionIdleState.Enter` calls `RVOControllerFixed.StopMove` and
   `MotionIdleState.Update` does not.

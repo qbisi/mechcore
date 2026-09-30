@@ -19,6 +19,25 @@ pub(in crate::fight) fn time_units_to_seconds_q32(time_units: u64) -> i64 {
         .unwrap_or(i64::MAX)
 }
 
+/// `SkillAttackController.PerformAttack`: a blow whose attack point and
+/// backswing, in whole ticks, outlast its interval is fitted into it. The
+/// attack point is scaled by the interval over the two together, an `FPoint`
+/// product whose fraction is dropped, and the backswing takes what is left of
+/// the interval.
+pub(in crate::fight) fn fitted_attack_point(
+    attack_point: u64,
+    backswing: u64,
+    interval: u64,
+) -> u64 {
+    let whole = attack_point.saturating_add(backswing);
+    if whole <= interval {
+        return attack_point;
+    }
+    let q32 = |steps: u64| i64::try_from(steps).unwrap_or(i64::MAX >> 32) << 32;
+    let rate = q32_div(q32(interval), q32(whole));
+    (q32_mul(q32(attack_point), rate).max(0).cast_unsigned()) >> 32
+}
+
 /// Whole logic ticks in an `FPoint` of seconds: `FightSkill.RefreshAttackInterval`
 /// divides the interval by `FightUtility.DeltaTime` and keeps the integer part.
 pub(in crate::fight) fn seconds_q32_to_steps(seconds_q32: i64) -> u64 {

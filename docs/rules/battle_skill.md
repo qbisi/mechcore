@@ -366,9 +366,10 @@ drawn from any stream, and no event is written.
   obstacle: `tests/battle_skill/fights/underground-threat.yaml`.
 - An air drop reaches both sides, blue's first, and its kills count for the
   dead ones' enemies: `tests/battle_skill/fights/vulcans-descent.yaml`.
-- A side's officer and its Energy Tower skill reach its summon as they reach
-  a deployed unit of the summon's type:
+- A side's officer, technology and Energy Tower skill reach its summon as they
+  reach a deployed unit of the summon's type:
   `tests/battle_skill/fights/summon-officer.yaml`,
+  `tests/battle_skill/fights/summon-technology.yaml`,
   `tests/battle_skill/fights/summon-energy-tower.yaml`.
 - A damage strike lands on tick `s + 3` or `s + 2`, strikes both sides'
   units with no owner, and spares towers:
@@ -531,8 +532,6 @@ drawn from any stream, and no event is written.
 
 - **Why a solve on a summon's join tick passes it over,** and why its first
   intervals are drawn as it joins. Both are measured, not read.
-- **A side's technology on a summon.** It reaches the summon by the lookup
-  an officer's does, and no fight pins one.
 - **A summon killed by its own air drop.** Whose death that counts as is not
   measured; the simulator refuses it.
 - **A support skill whose row places its summons at set offsets**, or makes

@@ -120,6 +120,8 @@ whose effect grows with rank, rather than read index zero:
 
 - A technology's range and an officer's range land in one `attack_range_value`,
   and the fight uses their sum: `tests/modifier/fights/`.
+- An interval value lands as the table's `FPoint`, and the Rhino's blows follow
+  the interval it composes: `tests/modifier/fights/technology-interval-value.yaml`.
 
 ### Read
 
