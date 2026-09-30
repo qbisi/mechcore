@@ -71,11 +71,8 @@ fn recorded(name: &str) -> (tempfile::TempDir, McfrReader) {
     let output = directory.path().join("fight.mcfr");
     simulate_document(layout.as_bytes(), Record::File(&output), Some(fight.seed)).unwrap();
     let reader = McfrReader::open(output).unwrap();
-    assert_eq!(Some(reader.tick_count()), fight.ticks);
-    assert_eq!(
-        Some(reader.hashes().result_hash.as_str()),
-        fight.hash.as_ref().map(|hash| hash.result.as_str())
-    );
+    assert_eq!(reader.tick_count(), fight.ticks);
+    assert_eq!(reader.hashes().result_hash, fight.hash.result);
     (directory, reader)
 }
 

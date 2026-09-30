@@ -217,15 +217,13 @@ fn verify_recording(path: &Path) -> Result<Report, String> {
 ///
 /// The simulator's document is written onto the same projection, so the
 /// layout fields agree by construction and every difference is a result
-/// field. `source` is where each result was read and is not compared; a
-/// `replay` result has no trajectory, so only its result fields are.
+/// field and its trajectory. `source`, who fought it, is not compared.
 ///
 /// A document names no tick of its fight, only the hash of all of them, so a
 /// hash that differs says the trajectories part and not where: the recording
 /// the document was read from answers that under `verify <mcfr>`.
 fn verify_fight(path: &Path, bytes: &[u8]) -> Result<Report, String> {
     let document = mechcore_document::fight::parse_yaml(bytes)?.normalized();
-    let trajectory = document.source.has_trajectory();
     let report = |error: Option<String>, differences: Vec<Difference>| Report {
         schema: SCHEMA,
         valid: error.is_none(),
@@ -236,7 +234,7 @@ fn verify_fight(path: &Path, bytes: &[u8]) -> Result<Report, String> {
             "source": document.source.as_str(),
             "seed": document.seed,
             "round": document.round,
-            "compared": if trajectory { &["result", "trajectory"][..] } else { &["result"][..] },
+            "compared": ["result", "trajectory"],
             "differences": differences,
         }),
     };
@@ -257,8 +255,6 @@ fn verify_fight(path: &Path, bytes: &[u8]) -> Result<Report, String> {
     };
     let actual = mechcore_document::Fight {
         source: document.source,
-        ticks: simulated.ticks.filter(|_| trajectory),
-        hash: simulated.hash.clone().filter(|_| trajectory),
         ..simulated
     };
     let (error, differences) = compared(&document, &actual, "the simulator's fight")?;
@@ -288,10 +284,7 @@ fn compared(
         .map(|difference| difference.path.as_str())
         .collect::<Vec<_>>()
         .join(", ");
-    let incomparable = document
-        .hash
-        .as_ref()
-        .zip(actual.hash.as_ref())
+    let incomparable = Some((&document.hash, &actual.hash))
         .filter(|(stated, computed)| stated.profile != computed.profile)
         .map(|(stated, computed)| {
             format!(
@@ -331,7 +324,6 @@ async fn fight_in_game(
     update: bool,
 ) -> Result<Report, String> {
     let document = mechcore_document::fight::parse_yaml(bytes)?.normalized();
-    let trajectory = document.source.has_trajectory();
     let staged = tempfile::Builder::new()
         .prefix("mechcore-verify-")
         .tempdir()
@@ -347,8 +339,6 @@ async fn fight_in_game(
     } else {
         mechcore_document::Fight {
             source: document.source,
-            ticks: recorded.ticks.filter(|_| trajectory),
-            hash: recorded.hash.clone().filter(|_| trajectory),
             ..recorded.clone()
         }
     };

@@ -486,32 +486,23 @@ fn verify_fights_a_fight_document_again_and_names_what_differs() {
     assert_eq!(report["differences"].as_array().unwrap().len(), 1);
 }
 
-/// A replay states no trajectory, so its result fields alone are compared;
-/// and a fight the simulator does not fight is answered with why.
+/// A game's fight is compared on its result and its trajectory alike; and a
+/// fight the simulator does not fight is answered with why.
 #[test]
-fn verify_compares_a_replay_on_its_result_and_answers_a_refusal() {
+fn verify_compares_a_game_fight_and_answers_a_refusal() {
     let directory = tempfile::tempdir().unwrap();
-    let replay = simulated_fight(directory.path())
-        .lines()
-        .filter(|line| !line.starts_with("ticks:") && !line.starts_with("hash:"))
-        .map(|line| {
-            if line == "source: simulator" {
-                "source: replay"
-            } else {
-                line
-            }
-        })
-        .collect::<Vec<_>>()
-        .join("\n")
-        + "\n";
+    let replay = simulated_fight(directory.path()).replace("source: simulator", "source: game");
     let verify = |name: &str, text: &str| verify_text(directory.path(), name, text);
 
-    let (code, report) = verify("replay.yaml", &replay);
+    let (code, report) = verify("game.yaml", &replay);
     assert_eq!(code, Some(0), "{report}");
-    assert_eq!(report["source"], "replay");
-    assert_eq!(report["compared"], serde_json::json!(["result"]));
+    assert_eq!(report["source"], "game");
+    assert_eq!(
+        report["compared"],
+        serde_json::json!(["result", "trajectory"])
+    );
     let (code, report) = verify(
-        "replay-damage.yaml",
+        "game-damage.yaml",
         &replay.replace("core_damage: ", "core_damage: 1"),
     );
     assert_eq!(code, Some(1), "{report}");

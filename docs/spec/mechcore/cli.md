@@ -207,7 +207,7 @@ batch still runs.
   layout: its projection, with its seed, through the simulator and the one
   reader. It verifies when the simulator's document states what it states, as
   [fight.md](../document/fight.md#root-fields) says a fight is checked: every
-  result field, and `ticks` and `hash` too unless the source is `replay`.
+  result field, and `ticks` and `hash`.
   `compared` names which of the two were, and `differences` lists each path
   they part on, as `diff` spells one, with the document's value as `expected`
   and the simulator's as `actual`. A document holds no tick of its fight, so a
@@ -312,9 +312,9 @@ refusal names the fields.
 
 **`mcfr` to `fight`, a rewrite.** Reads a recording for what its fight decided
 and writes it onto the layout the recording embeds, as the
-[fight](../document/fight.md) document it records: `source` is `recording`
-for a recording the game made and `simulator` for one the simulator wrote, as
-the recording's `producer` says, and `ticks` and `hash` are the recording's.
+[fight](../document/fight.md) document it records: `source` is `game` for a
+recording the game made and `simulator` for one the simulator wrote, as the
+recording's `producer` says, and `ticks` and `hash` are the recording's.
 Every result is read from the recording and none is computed; a recording that
 does not answer one is refused, naming all it does not answer, and no document
 is written. Without `<out>` it answers the document; with one it writes it

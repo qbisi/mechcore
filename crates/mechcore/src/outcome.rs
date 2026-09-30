@@ -199,7 +199,7 @@ pub(crate) fn read(reader: &dyn Recording) -> Result<Reading, Failure> {
     Ok(Reading {
         layout,
         source: match reader.producer() {
-            Producer::Game => Source::Recording,
+            Producer::Game => Source::Game,
             Producer::Simulator => Source::Simulator,
         },
         ticks: last,
@@ -264,8 +264,8 @@ impl Reading {
             seed,
             round,
             source: self.source,
-            ticks: Some(self.ticks),
-            hash: Some(self.hash),
+            ticks: self.ticks,
+            hash: self.hash,
             blue: fight_side(blue, blue_reading)?,
             red: fight_side(red, red_reading)?,
         };

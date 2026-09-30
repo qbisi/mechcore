@@ -5,7 +5,7 @@ kind: fight
 map_id: 1021
 seed: 1787720817
 round: 1
-source: recording
+source: game
 ticks: 204
 hash: {profile: mcfr-content-0.7.0, result: ef6b38738f78a7aee8d1373f6b4abe16e44ca5f23ed91767ae19bd6feef126ad}
 blue:
