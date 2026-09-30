@@ -5,12 +5,7 @@ fight-coverage 按系统的贪心顺序重排。
 
 ## 栈
 
-1. **让新机制的改动更局部的代码结构调整。** 近来每个功能 PR 都要连带改各处 `DamageHit`
-   字面量。它们和模块广度
-   改的是同一批文件（conflicts），做完后每个新机制只动自己的系统（enables），所以排在前面，每步
-   一个 `refactor` PR，由全部夹具保证行为不变：
-   1. `DamageHit` 按伤害来源给构造函数。
-2. **模块广度，按系统排。** 一个系统是游戏的一张数据表（`TechnologyGroupData`、
+1. **模块广度，按系统排。** 一个系统是游戏的一张数据表（`TechnologyGroupData`、
    `EquipmentGroupData`、`CommanderSkillGroupData` 的一个子类列表）或一个模块：实现它一次放行
    表里的所有成员，所以顺序按 fight-coverage 的"by system, greedily ordered"排，而不是按单条理由。
    "by layout field" 说明剩下的距离落在哪个字段上：单位科技最多，其次是战场技能、装备、单位。
@@ -29,7 +24,7 @@ fight-coverage 按系统的贪心顺序重排。
 
    每个系统先录每个成员至少一场探针；成员机制各不相同的系统（附加武器）按成员分 PR。沙虫、深渊、
    泰山和骇客的控制光束是单位，归 [units.md](units.md)。
-3. **平台。** `arena`、`shell --json` 和 `game` 后端。
+2. **平台。** `arena`、`shell --json` 和 `game` 后端。
 
 ## 停车场
 
