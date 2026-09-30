@@ -235,6 +235,28 @@ def waypoint_lines(group):
     return lines
 
 
+def other_lines(group, written):
+    """Every other row, by the list it comes from, which a refusal names."""
+    ids = {int(line.split(": ")[1]) for line in written if line.startswith("  - id: ")}
+    lines = [
+        "",
+        "# The skills of every other kind, and the rows of the lists above this",
+        "# build does not release, by the CommanderSkillGroupData list each comes",
+        "# from.",
+        "other_skills:",
+    ]
+    rows = []
+    for kind, entries in group.items():
+        if not isinstance(entries, list):
+            continue
+        for row in entries:
+            if isinstance(row, dict) and "id" in row and not row.get("isTestData") and row["id"] not in ids:
+                rows.append((row["id"], row["name"], kind))
+    for identifier, name, kind in sorted(rows):
+        lines.append(f"  - {{id: {identifier}, name: {name}, kind: {kind}}}")
+    return lines
+
+
 def render(group):
     buffs = {buff["id"]: buff for buff in build_data.container()["buffDatas"]}
     rows = [
@@ -266,6 +288,7 @@ def render(group):
     lines += shield_lines(group)
     lines += damage_lines(group)
     lines += waypoint_lines(group)
+    lines += other_lines(group, lines)
     return "\n".join(lines) + "\n"
 
 

@@ -392,3 +392,36 @@ waypoint_skills:
     effect_target_type: 1
     sub_effect_buff_id: 9005
     sub_effect_range: 128849018880  # 30
+
+# The skills of every other kind, and the rows of the lists above this
+# build does not release, by the CommanderSkillGroupData list each comes
+# from.
+other_skills:
+  - {id: 100002, name: 燃烧弹, kind: fireCommanderSkills}
+  - {id: 100003, name: 燃烧弹, kind: fireCommanderSkills}
+  - {id: 200003, name: 光子投射, kind: buffCommanderSkills}
+  - {id: 300003, name: 轨道轰炸, kind: damageCommanderSkills}
+  - {id: 300005, name: 闪电风暴, kind: damageCommanderSkills}
+  - {id: 300006, name: 离子轰炸, kind: damageCommanderSkills}
+  - {id: 300009, name: 闪电风暴, kind: damageCommanderSkills}
+  - {id: 300010, name: 离子轰炸, kind: damageCommanderSkills}
+  - {id: 300013, name: 闪电风暴, kind: damageCommanderSkills}
+  - {id: 300014, name: 离子轰炸, kind: damageCommanderSkills}
+  - {id: 400002, name: 黏油弹, kind: oilCommanderSkills}
+  - {id: 400003, name: 黏油弹, kind: oilCommanderSkills}
+  - {id: 500002, name: 酸液弹, kind: acidCommanderSkills}
+  - {id: 600002, name: 烟雾弹, kind: fogCommanderSkills}
+  - {id: 900001, name: 战地回收, kind: sellUnitCommanderSkills}
+  - {id: 900002, name: 低效回收, kind: sellUnitCommanderSkills}
+  - {id: 900003, name: 低效回收, kind: sellUnitCommanderSkills}
+  - {id: 900004, name: 机械进化, kind: sellUnitCommanderSkills}
+  - {id: 900010, name: 单位回收, kind: sellUnitCommanderSkills}
+  - {id: 900011, name: 机械进化, kind: sellUnitCommanderSkills}
+  - {id: 900012, name: 机械进化, kind: sellUnitCommanderSkills}
+  - {id: 1000001, name: 再部署, kind: moveUnitCommanderSkills}
+  - {id: 1000002, name: 再部署, kind: moveUnitCommanderSkills}
+  - {id: 1000011, name: 再部署, kind: moveUnitCommanderSkills}
+  - {id: 1000012, name: 再部署, kind: moveUnitCommanderSkills}
+  - {id: 1100001, name: 强化训练, kind: addExpCommanderSkills}
+  - {id: 1100002, name: 强化训练, kind: addExpCommanderSkills}
+  - {id: 1100003, name: 强化训练, kind: addExpCommanderSkills}
