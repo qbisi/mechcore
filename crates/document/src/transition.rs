@@ -1346,7 +1346,9 @@ mod tests {
 kind: fight
 seed: 4242
 round: 3
-source: replay
+source: game
+ticks: 870
+hash: {profile: mcfr-content-0.7.0, result: 0000000000000000000000000000000000000000000000000000000000000000}
 blue:
   core_damage: 37
   units:

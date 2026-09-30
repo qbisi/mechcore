@@ -51,7 +51,7 @@ readme here.
 topic's `fights/` directory: the layout, the seed, and what the game's
 recording of them decided, its tick count and hash among it, in one file. A
 comment at the top of the file says what the fight measures. A fixture's
-`source` is `recording`: a fight the simulator computed states what is being
+`source` is `game`: a fight the simulator computed states what is being
 checked, and is never a fixture. A layout stays a layout file only while
 something reads it as a layout: a probe no fight pins, or a stage for
 `game.apply_layout`.

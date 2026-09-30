@@ -39,16 +39,13 @@ pub struct Fight {
     pub seed: i32,
     #[schemars(range(min = 1))]
     pub round: i32,
-    /// Where the result was read, and so what it may be checked against.
+    /// Who fought it, and so what it may be checked against.
     pub source: Source,
-    /// The fight's logical ticks; stated exactly when `source` is not
-    /// `replay`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// The fight's logical ticks.
     #[schemars(range(min = 1))]
-    pub ticks: Option<u32>,
-    /// The trajectory hash; stated exactly when `source` is not `replay`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub hash: Option<FightHash>,
+    pub ticks: u32,
+    /// The trajectory hash.
+    pub hash: FightHash,
     pub blue: FightSide,
     pub red: FightSide,
 }
@@ -60,15 +57,14 @@ pub enum FightKind {
     Fight,
 }
 
-/// Where a fight's result was read.
+/// Who fought the fight whose result a document states: the recording's
+/// `producer`. The game fights a layout and a native replay's round the same
+/// way, and the two agree tick for tick, so both are `game`.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum Source {
-    /// A recording the game made of this layout and seed.
-    Recording,
-    /// The next round of a native replay, which states what the fight left
-    /// but not how it went.
-    Replay,
+    /// The game, through the Adapter: evidence of what the game does.
+    Game,
     /// The simulator's own run: a valid document, never evidence.
     Simulator,
 }
@@ -78,17 +74,9 @@ impl Source {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::Recording => "recording",
-            Self::Replay => "replay",
+            Self::Game => "game",
             Self::Simulator => "simulator",
         }
-    }
-
-    /// Whether a result from this source carries a trajectory: `ticks` and
-    /// `hash`.
-    #[must_use]
-    pub const fn has_trajectory(self) -> bool {
-        !matches!(self, Self::Replay)
     }
 }
 
@@ -633,49 +621,38 @@ fn require_fight_kind(kind: Option<&str>) -> Result<(), String> {
     }
 }
 
-/// `ticks` and `hash` are stated exactly when the source has a trajectory.
+/// A fight's `ticks` and `hash` in form.
 ///
 /// The profile is checked for form only: the profile the MCFR crate
 /// computes lives in a crate that reads this one, not one this crate reads.
 fn validate_trajectory(fight: &Fight) -> Result<(), String> {
-    let source = fight.source.as_str();
-    match (fight.source.has_trajectory(), fight.ticks, &fight.hash) {
-        (false, None, None) => Ok(()),
-        (false, _, _) => Err(format!(
-            "a fight read from a {source} states neither ticks nor hash: a native replay \
-             records what the fight left, not how it went"
-        )),
-        (true, Some(ticks), Some(hash)) => {
-            if ticks == 0 {
-                return Err("fight ticks must be at least 1".to_owned());
-            }
-            if hash.profile.is_empty()
-                || !hash.profile.bytes().all(|byte| {
-                    byte.is_ascii_lowercase() || byte.is_ascii_digit() || b"-.".contains(&byte)
-                })
-            {
-                return Err(format!(
-                    "fight hash profile {:?} is not a profile name",
-                    hash.profile
-                ));
-            }
-            if hash.result.len() != 64
-                || !hash
-                    .result
-                    .bytes()
-                    .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
-            {
-                return Err(format!(
-                    "fight hash result {:?} is not 64 lowercase hex digits",
-                    hash.result
-                ));
-            }
-            Ok(())
-        }
-        (true, _, _) => Err(format!(
-            "a fight from a {source} states both ticks and hash"
-        )),
+    let hash = &fight.hash;
+    if fight.ticks == 0 {
+        return Err("fight ticks must be at least 1".to_owned());
     }
+    if hash.profile.is_empty()
+        || !hash
+            .profile
+            .bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || b"-.".contains(&byte))
+    {
+        return Err(format!(
+            "fight hash profile {:?} is not a profile name",
+            hash.profile
+        ));
+    }
+    if hash.result.len() != 64
+        || !hash
+            .result
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        return Err(format!(
+            "fight hash result {:?} is not 64 lowercase hex digits",
+            hash.result
+        ));
+    }
+    Ok(())
 }
 
 fn validate_side(side_name: &str, side: &FightSide) -> Result<(), String> {
@@ -736,7 +713,7 @@ mod tests {
 kind: fight
 seed: 4242
 round: 3
-source: recording
+source: game
 ticks: 870
 hash: {profile: mcfr-content-0.7.0, result: 380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef}
 blue:
@@ -800,7 +777,7 @@ red:
     #[test]
     fn the_worked_example_is_in_normal_form() {
         let fight = example();
-        assert_eq!(fight.source, Source::Recording);
+        assert_eq!(fight.source, Source::Game);
         assert_eq!(fight.red.core_damage, 37);
         assert_eq!(
             fight.blue.units[0].exp,
@@ -826,7 +803,9 @@ red:
 kind: fight
 seed: 4242
 round: 3
-source: replay
+source: game
+ticks: 870
+hash: {profile: mcfr-content-0.7.0, result: 380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef}
 blue:
   core_damage: 0
   units:
@@ -852,7 +831,9 @@ red:
 kind: fight
 seed: 4242
 round: 3
-source: replay
+source: game
+ticks: 870
+hash: {profile: mcfr-content-0.7.0, result: 380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef}
 blue:
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 12/170/650}
@@ -889,7 +870,7 @@ red:
     #[test]
     fn a_layout_carrying_a_result_is_refused() {
         for (from, to) in [
-            ("round: 3\n", "round: 3\nsource: recording\n"),
+            ("round: 3\n", "round: 3\nsource: game\n"),
             ("red:\n", "red:\n  core_damage: 37\n"),
             ("exp: 12/650", "exp: 12/170/650"),
             (
@@ -943,21 +924,11 @@ red:
     }
 
     #[test]
-    fn the_trajectory_follows_the_source() {
-        let error = edited("source: recording", "source: replay").unwrap_err();
-        assert!(error.contains("neither ticks nor hash"), "{error}");
-        let hash_line = EXAMPLE
-            .lines()
-            .find(|line| line.starts_with("hash:"))
-            .unwrap();
-        let replay = EXAMPLE
-            .replacen("source: recording", "source: replay", 1)
-            .replacen("ticks: 870\n", "", 1)
-            .replacen(&format!("{hash_line}\n"), "", 1);
-        assert!(parse_yaml(replay.as_bytes()).is_ok());
-        let error = edited("ticks: 870\n", "").unwrap_err();
-        assert!(error.contains("both ticks and hash"), "{error}");
-        assert!(edited("source: recording", "source: simulator").is_ok());
+    fn every_fight_states_its_trajectory() {
+        let error = edited("source: game", "source: replay").unwrap_err();
+        assert!(error.contains("replay"), "{error}");
+        assert!(edited("ticks: 870\n", "").is_err());
+        assert!(edited("source: game", "source: simulator").is_ok());
         let error = edited("result: 380d", "result: 380D").unwrap_err();
         assert!(error.contains("64 lowercase hex"), "{error}");
         let error = edited("ticks: 870", "ticks: 0").unwrap_err();

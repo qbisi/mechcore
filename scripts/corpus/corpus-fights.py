@@ -6,7 +6,7 @@ For every match ``scripts/corpus/export-replay-corpus.py`` writes under
 ``work/replay/replays/<version>/`` is fought headlessly and written as
 ``work/fight/<version>/<replay>-rNN.yaml``:
 ``mechcore convert <replay.grbr> --round <n> --to fight --backend game``, a
-fight document of ``source: recording`` with the recording's ticks and hash.
+fight document of ``source: game`` with the recording's ticks and hash.
 Such a document is a fixture candidate for ``tests/corpus/``: fighting its
 projection with its seed in the simulator is checked against it by
 ``mechcore verify``.

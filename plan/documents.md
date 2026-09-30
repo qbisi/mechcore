@@ -11,7 +11,8 @@
   （`positions`）字段互斥；标准型里 `standing` 条目排在前面并排序，释放保持原序。state 记在
   面板槽位上，和原生回放把它们记在释放技能的 `rangeItems` 里一致。
 - **fight 文档是写进了结果的 layout。** `layout = project(fight)`；`seed` 必填；`source` 是
-  `recording`、`replay` 或 `simulator`，模拟器算的不作夹具；录像来源带 `ticks` 和 hash；没有
+  谁打的这一仗，`game` 或 `simulator`，模拟器算的不作夹具；两者都带 `ticks` 和 hash，游戏从回放
+  打和从 layout 打的哈希一致，不一致是 adapter 的错；没有
   `winner`，胜负由 `core_damage` 说明；单位 `exp: before/after/maximum`；contraption 的
   `retained` 默认 `true`；本回合释放的技能的结果写在它自己的 `battle_skills` 条目下，地形类
   技能另记 `grid_rows`。

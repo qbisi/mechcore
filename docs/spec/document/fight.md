@@ -12,7 +12,7 @@ the result.
 kind: fight
 seed: 4242
 round: 3
-source: recording
+source: game
 ticks: 870
 hash: {profile: mcfr-content-0.7.0, result: 380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef}
 blue:
@@ -86,35 +86,39 @@ After the layout's own root fields, `kind` apart, a fight states:
 | --- | --- |
 | `kind` | exactly `fight` |
 | `seed` | the match seed the fight was fought with; required |
-| `source` | where the result was read: `recording`, `replay` or `simulator` |
+| `source` | who fought it: `game` or `simulator` |
 | `ticks` | the fight's logical ticks, the recording's `tick_count` |
 | `hash` | `{profile, result}`: the recording's `hash_profile` and `result_hash` |
 
-`source` says what the result is and so what it may be checked against:
+`source` says who fought the fight, and so what the document is:
 
-- `recording`: read from an MCFR the game recorded from this layout and seed.
-- `simulator`: what the simulator computed from this layout and seed. It has a
-  trajectory as a recording does, and so a hash.
-- `replay`: read from a native replay's next round, which states what the
-  fight left behind but not how it went.
+- `game`: the game fought it, through the Adapter, and recorded it. It is
+  evidence of what the game does, and is what a fixture pins.
+- `simulator`: the simulator fought it. It states what the simulator
+  computed, and is never evidence.
+
+The game fights a layout by writing it as a replay and fighting that replay's
+round, and fights a native replay's round the same way; the two recordings of
+one fight agree tick for tick, hash included. So a fight the game fought from
+a replay and one it fought from a layout are both `game`, and a recording of
+either that disagreed with the other would be the Adapter's error, not a
+second kind of fight.
+
+A recording says which it is: its `producer` is `game` or `simulator`
+([mcfr.md](../mcfr/mcfr.md#file-metadata)), and a document read from it takes
+the same name. The hash cannot say it, since both producers write the same
+timeline for the same fight.
 
 So a fight is checked by fighting its projection with its seed and comparing
 what the fight arrives at with what the document states: every result field,
-and `ticks` and `hash` as well where the source has a trajectory. A `replay`
-result is checked on its result fields alone. The layout fields need no
-comparing, since both fights start from the one projection.
-[`verify`](../mechcore/cli.md#verify) is the command that checks one.
+`ticks` and `hash`. The layout fields need no comparing, since both fights
+start from the one projection. [`verify`](../mechcore/cli.md#verify) is the
+command that checks one.
 
-A recording says which of the first two it is: its `producer` is `game` or
-`simulator` ([mcfr.md](../mcfr/mcfr.md#file-metadata)), and a document read
-from it takes `recording` or `simulator` accordingly. The hash cannot say it,
-since both producers write the same timeline for the same fight.
-
-`ticks` and `hash` are present exactly when `source` is `recording` or
-`simulator`, and absent for `replay`. `ticks` is at least `1`; `hash.result`
-is 64 lowercase hex digits, and `hash.profile` names the definition that
-computed it, as [mcfr.md](../mcfr/mcfr.md#the-hash) names profiles. A reader
-checks the profile's form; a hash under a profile the checker does not compute
+`ticks` and `hash` are required. `ticks` is at least `1`; `hash.result` is 64
+lowercase hex digits, and `hash.profile` names the definition that computed
+it, as [mcfr.md](../mcfr/mcfr.md#the-hash) names profiles. A reader checks the
+profile's form; a hash under a profile the checker does not compute
 is not comparable, which is the checker's to report.
 
 ## Side fields
