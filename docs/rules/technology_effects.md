@@ -98,6 +98,12 @@ recording stores the technology's and the officer's range as **one**
 `attack_range_value`: the build merges two sources exactly as it merges two
 officers.
 
+An interval value is an `FPoint` of seconds, and it lands in
+`attack_interval_value` exactly as the table states it; the interval is
+composed in `FPoint` seconds and only then cut into ticks. A value such as
+Mechanical Rage's is a tenth of a second, which no whole number of the
+description's time units holds.
+
 The interval technologies put a value and a rate on one number: Mechanical Rage
 and Armour Piercing Bullets are the one pair that do, and they are what
 measured the order in the composition rule, which

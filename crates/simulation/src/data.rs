@@ -136,8 +136,9 @@ pub(crate) enum Correction {
     /// Q32.32 raw. `add` enhances and `reduce` impairs; one entry commonly
     /// carries one of them, and a recording's aggregate carries both.
     Rate { add: i64, reduce: i64 },
-    /// The number's own units, signed. A value has one accumulator because
-    /// the build gives it one: `AdditiveDataFloat` sums and clamps.
+    /// The number's own units, signed, and Q32.32 seconds for an interval. A
+    /// value has one accumulator because the build gives it one:
+    /// `AdditiveDataFloat` sums and clamps.
     Value(i64),
 }
 
@@ -466,15 +467,13 @@ impl Stats {
         )?;
         self.max_life = resolve(Index::MaxLife, self.base(rules.max_life)?)?;
         self.attack_damage = resolve(Index::AttackDamage, self.base(rules.attack.base_damage)?)?;
-        // A value is whole time units; the interval is resolved in Q32.32.
-        let seconds = i128::from(crate::rules::TIME_UNITS_PER_SECOND_SCALE);
-        self.attack_interval_q32 = self.overlays.resolve_scaled(
+        // A value is Q32.32 seconds already, and so is the interval.
+        self.attack_interval_q32 = self.overlays.resolve(
             Index::AttackInterval,
             time_to_q32(
                 i64::try_from(rules.attack.interval_time_units())
                     .map_err(|_| Error::new("attack interval is outside the signed range"))?,
             ),
-            |value| value * ONE / seconds,
         )?;
         if self.attack_interval_q32 < 0 {
             return Err(Error::new("attack interval resolved below zero"));
@@ -665,10 +664,8 @@ impl Stats {
                     slot,
                     "attack_interval_value",
                     ModifierPart::Value,
-                    q32(
-                        interval.value,
-                        i128::from(crate::rules::TIME_UNITS_PER_SECOND_SCALE),
-                    )?,
+                    i64::try_from(interval.value)
+                        .map_err(|_| Error::new("an interval value is outside i64"))?,
                 );
                 push_rate(
                     modifiers,

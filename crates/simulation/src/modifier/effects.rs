@@ -13,17 +13,16 @@
 
 use crate::data::{Channel, Correction, Index};
 
-/// The build's quantum for a distance and for a time, which
-/// `crates/simulation/src/rules.rs` quantizes a description with.
+/// The build's quantum for a distance, which `crates/simulation/src/rules.rs`
+/// quantizes a description with.
 pub(crate) const METERS: i64 = 1_000;
-pub(crate) const SECONDS: i64 = 2_000;
 const FIXED_ONE: i128 = 1 << 32;
 
 /// An `FPoint` in its own unit, in the quantized units the simulator holds.
 ///
-/// Every value in either table is a whole number of metres or a tenth of a
-/// second, so this is exact; it truncates toward zero for anything else, as
-/// the build's own quantization does.
+/// Every distance in either table is a whole number of metres, so this is
+/// exact; it truncates toward zero for anything else, as the build's own
+/// quantization does.
 pub(crate) fn fixed_to(raw: i64, quantum: i64) -> i64 {
     let scaled = i128::from(raw) * i128::from(quantum) / FIXED_ONE;
     i64::try_from(scaled).unwrap_or(i64::MAX)
@@ -82,8 +81,10 @@ pub(crate) fn corrections(fields: Fields) -> Vec<(Channel, Index, Correction)> {
     rate(fields.attack_range_rate, Channel::Skill, Index::AttackRange);
     rate(fields.life_rate, Channel::Unit, Index::MaxLife);
 
-    // An FPoint value in metres or seconds reaches the simulator in the
-    // number's own quantized units, which is what `Stats` resolves against.
+    // An FPoint value in metres reaches the simulator in millimetres, which
+    // is what `Stats` resolves a range against. One in seconds stays the
+    // FPoint it is: a tenth of a second is no whole number of time units, and
+    // `Stats` resolves the interval in FPoint seconds.
     if let Some(raw) = fields.attack_range_value.filter(|raw| *raw != 0) {
         written.push((
             Channel::Skill,
@@ -95,7 +96,7 @@ pub(crate) fn corrections(fields: Fields) -> Vec<(Channel, Index, Correction)> {
         written.push((
             Channel::Skill,
             Index::AttackInterval,
-            Correction::Value(fixed_to(raw, SECONDS)),
+            Correction::Value(raw),
         ));
     }
 
