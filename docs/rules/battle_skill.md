@@ -264,6 +264,45 @@ A Shield Airdrop an earlier round left standing is a shield of its side from
 the fight's first tick, full, sorted among the side's other shields by
 `CompareEnergyShield` as they are.
 
+## A Mobile Beacon
+
+A Mobile Beacon lands nothing. It is `CSRC_WayPoint`, a row of
+`wayPointCommanderSkills` in
+[`config/commander_skill_effects.yaml`](../../config/commander_skill_effects.yaml),
+and its three positions are a path of two segments, each as wide as the row's
+`subEffectRange`, 40 m. As the fight starts, `CSRC_WayPoint.OnFightStart`
+selects the releasing side's units whose bounds meet a circle of that width
+around the first position, and `CSRC_WayPoint.AddMech` gives each one a
+`MoveAttackCommand` through `PilotAI.SetCommand`, keeping where it stood from
+the first position as its offset. A unit already walking a beacon of its own
+side keeps that one. `startTime` and `effectRange` are the release's, and the
+fight reads neither.
+
+A command faces its unit along the first segment before the fight's presearch,
+which scores from that facing. It then takes the place of the unit's
+`AutoMoveBehaviour`:
+
+- Its point, `MoveAttackCommand.RefreshCurrentTargetInfo`, is the segment's
+  start moved by the offset, carried along the segment for its length and 20 m
+  more. `MotionController.Move` steps towards it, stopping 20 m short, at the
+  unit's own speed.
+- It is active with or without a lock. A unit whose target is out of range, or
+  that has none, or whose target died, walks towards the point rather than the
+  lock. Where the default behaviour would go idle, the motion changes to
+  moving, and it walks on while its skill cools or reloads.
+- A unit with a target in range attacks it. `MoveAttackCommand.IsEnableAttackMove`
+  decides whether it walks on while it fires. A melee unit stops. A ranged unit
+  stops only for a live enemy both near what is left of its segment and within
+  its range, capped at 140 m; otherwise it keeps walking. A unit that fires all
+  round and has no body, an Overlord or a Wraith, then turns its root to where
+  it moves rather than to its target.
+- With no target, its weapons turn to where its body faces.
+
+`PilotAI.Update`, after the unit's motion, moves the command on once the unit,
+less its radius, is within 20 m of the point. After the last segment the command
+ends and the unit returns to `AutoMoveBehaviour` where it stands. Nothing is
+drawn from any stream, and no event is written.
+
 ## Names
 
 <!-- names: commander_skills -->
@@ -340,6 +379,17 @@ the fight's first tick, full, sorted among the side's other shields by
   sorts among its side's shields by position:
   `tests/shield/fights/airdrops-standing.yaml`,
   `tests/shield/fights/airdrop-beside-contraption.yaml`.
+
+- A Mobile Beacon faces its units along the path, walks each at its own
+  speed, turns them onto the next segment 20 m past each end, and leaves
+  them to their own behaviour at the last:
+  `tests/battle_skill/fights/beacon-marksman.yaml`,
+  `tests/battle_skill/fights/beacon-hounds.yaml`,
+  `tests/battle_skill/fights/beacon-red-rhino.yaml`.
+- A ranged unit on a beacon fires as it walks, walks on when its target dies
+  and while its skill cools, and a free-firing unit faces where it moves:
+  `tests/battle_skill/fights/beacon-fires-walking.yaml`,
+  `tests/battle_skill/fights/beacon-free-fire.yaml`.
 
 ### Replayed
 
@@ -449,12 +499,24 @@ the fight's first tick, full, sorted among the side's other shields by
   `GroupAdvancedEnergyShieldManager.OnFightEnd`,
   `GroupAdvancedEnergyShieldManager.OnFightStart`.
 
+- A Mobile Beacon selects its units as the fight starts and walks them by a
+  command: `CSRC_WayPoint.OnFightStart`, `CSRC_WayPoint.AddMech`,
+  `PilotAI.SetCommand`, `PilotAI.Update`,
+  `MoveAttackCommand.RefreshCurrentTargetInfo`, `MoveAttackCommand.Perform`,
+  `MoveAttackCommand.IsEnableAttackMove`,
+  `MoveAttackCommand.CalculateMoveLineRange`, `MotionController.Move`.
+
 ### Not established
 
 - **A strike reaching a construction.** Whether a construction is among the
   actors a battle skill's circle takes is not read; the simulator refuses it.
 - **A random circle or a line** (Orbital Bombardment, Lightning Storm, Ion
   Blast), which scatter several sub-effects: not released.
+- **How a beacon's `LineRange` meets a unit's circle.** The simulator reads it
+  as the distance to the segment against the width and the radius, which the
+  recordings agree with and the build's `LineRange.Overlaps` is not read for.
+- **The Jamming Beacon** (`1500003`), which walks enemy units and writes a
+  buff: refused.
 
 - **Why a solve on a summon's join tick passes it over,** and why its first
   intervals are drawn as it joins. Both are measured, not read.

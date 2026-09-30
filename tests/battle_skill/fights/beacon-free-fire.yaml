@@ -1,0 +1,24 @@
+# Two Mobile Beacons, one under an Overlord and one under a Wraith, which
+# fire all round and have no body: attacking as they walk, each turns its root
+# to where it moves rather than to its target.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: recording
+ticks: 695
+hash: {profile: mcfr-content-0.7.0, result: 7c98e937fd75f021a665ef051a3da9c9faae0e63123cc1891e4b61414d52725f}
+blue:
+  core_damage: 154
+  units:
+  - {name: overlord, index: 0, position: {x: -105, y: -155}, exp: 0/108/1750}
+  - {name: wraith, index: 1, position: {x: 105, y: -145}}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: -105, y: -155}, {x: -250, y: -155}, {x: -250, y: -30}]}
+  - {name: mobile_beacon, positions: [{x: 105, y: -145}, {x: 250, y: -145}, {x: 250, y: -30}]}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: 100, y: -50}, exp: 0/650/650}
+  - {name: marksman, index: 1, position: {x: -100, y: -50}, exp: 0/650/650}
+  - {name: fang, index: 2, position: {x: 5, y: -100}}

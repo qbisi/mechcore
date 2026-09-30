@@ -1,0 +1,23 @@
+# A Mobile Beacon under a blue Marksman, its path to (0, -100) and on to
+# (100, -50). The Marksman faces along the first segment from the first tick,
+# which its presearch scores from, and walks it at its own 8 m/s rather than
+# at its lock. From 275 it fires at the Marksman it has come in range of and
+# walks on as it fires.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: recording
+ticks: 294
+hash: {profile: mcfr-content-0.7.0, result: 6327fd1587936a672a65cc17a309a46a74322ad5a39d7e05cc3b5445ffd220da}
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: -100, y: -150}}
+  - {name: marksman, index: 1, position: {x: 100, y: -150}}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: -100, y: -150}, {x: 0, y: -100}, {x: 100, y: -50}]}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
+  - {name: marksman, index: 1, position: {x: -60, y: -150}, exp: 0/200/650}

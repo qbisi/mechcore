@@ -45,6 +45,7 @@ mod math;
 mod mech;
 mod mine;
 mod motion;
+mod pilot;
 mod projectile;
 mod random;
 mod run;
@@ -208,6 +209,9 @@ struct Actor {
     /// Whether its skill has searched an attack target: every unit at the
     /// fight's presearch, and a travelling one only at its first update.
     searched_attack: bool,
+    /// `PilotAI`'s command: the path a Mobile Beacon walks it along, which
+    /// its motion follows rather than its lock until it arrives.
+    command: Option<pilot::MoveCommand>,
     /// The buffs running on it, `BuffManager`'s list.
     buffs: Vec<RunningBuff>,
     /// `RVOControllerFixed._maxSpeed`: the speed `Active` read when the unit
@@ -456,6 +460,10 @@ impl Simulation {
             experience: experience::ExperienceTable::load()?,
         };
         simulation.number_joiners();
+        // `CommanderSkillManager.OnFightStart`: a path is given out before
+        // the first tick, and lands nothing.
+        let releases = std::mem::take(&mut simulation.battle_skills);
+        simulation.battle_skills = simulation.start_paths(releases);
         simulation.seed_statistics(&construction_groups);
         simulation.seed_experience()?;
         simulation.deploy_attack_intervals(layout.round)?;
@@ -619,6 +627,7 @@ impl Simulation {
                     &mut events,
                 )?;
                 self.step_actor_rvo_position(actor_id);
+                self.perform_command(actor_id);
             }
             // Every construction updates, a wall block as a turret: one that
             // fires runs its skill, and each runs its buffs last.

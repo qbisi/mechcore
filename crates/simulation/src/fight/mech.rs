@@ -77,6 +77,7 @@ impl Actor {
             summoned: false,
             travelling: false,
             searched_attack: true,
+            command: None,
             buffs: Vec::new(),
             rvo_max_speed_q32: max_speed_q32,
             motion: Motion {
@@ -100,6 +101,30 @@ impl Actor {
                 attack_hold_fire: false,
             },
             skill: Skill::new(weapon_rotations_q32, group, magazine, kind),
+        }
+    }
+
+    /// `MotionMoveState.MoveUpdate`'s `NormalRotate` and then the speed
+    /// `CalculateMoveSpeed` hands `Move`: the facing is turned to the
+    /// velocity first, so the speed sees this tick's facing.
+    pub(in crate::fight) fn set_turn_limited_speed(&mut self) {
+        if self.motion.current_velocity_x_q32 != 0 || self.motion.current_velocity_z_q32 != 0 {
+            self.rotate_body_towards(direction_degrees_q32_raw(
+                self.motion.current_velocity_x_q32,
+                self.motion.current_velocity_z_q32,
+            ));
+        }
+        self.motion.next_speed_q32 = turn_limited_move_speed_q32(
+            self.stats.move_speed_q32(),
+            self.rules.free_move,
+            self.rules.rotate_speed_mdeg_per_second(),
+            self.body_rotation_q32,
+            self.motion.current_velocity_x_q32,
+            self.motion.current_velocity_z_q32,
+        );
+        self.motion.next_max_speed_q32 = self.motion.next_speed_q32;
+        if !self.rules.has_body {
+            self.aim_rotation = self.body_rotation;
         }
     }
 
@@ -127,6 +152,19 @@ impl Actor {
         self.motion.published_target_x_q32 = self.x_q32;
         self.motion.published_target_z_q32 = self.z_q32;
         self.motion.published_speed_q32 = 0;
+    }
+
+    /// The motion when the skill lets its target go. `AutoMoveBehaviour` is
+    /// no longer active and the motion stops idle; a command stays active,
+    /// and `MotionAttackState` changes to `MotionMoveState` instead.
+    pub(in crate::fight) fn lose_target_motion(&mut self, publish_point: bool) {
+        if self.command.is_some() {
+            if self.motion.state == MotionState::Attacking {
+                self.motion.state = MotionState::Moving;
+            }
+            return;
+        }
+        self.stop_in_place(publish_point);
     }
 
     /// `MotionIdleState` entered with a stop: the motion reads idle and

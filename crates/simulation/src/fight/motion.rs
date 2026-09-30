@@ -478,10 +478,16 @@ impl Simulation {
             prepare_finished,
             ..
         } = update;
-        if let Flow::Done = self.hold_dead_target(actor_id, backswing_just_finished) {
+        if let Flow::Done = self.hold_dead_target_moving(actor_id, backswing_just_finished) {
             return Ok(());
         }
         let target = self.actors[&actor_id].skill.attack_target();
+        if target.is_none() && self.actors[&actor_id].command.is_some() {
+            // A command is active without a target: every motion state
+            // goes to or stays in `MotionMoveState`, which walks the path.
+            self.follow_command(actor_id);
+            return Ok(());
+        }
         let Some(target) = target else {
             let actor = self
                 .actors
@@ -552,7 +558,8 @@ impl Simulation {
                 && edge_distance_q32 <= space_to_q32(actor.stats.attack_range())
         };
         if in_reach {
-            return self.attack_in_range(
+            let was_attacking = self.actors[&actor_id].motion.state == MotionState::Attacking;
+            self.attack_in_range(
                 actor_id,
                 step,
                 events,
@@ -560,7 +567,9 @@ impl Simulation {
                 target_rotation_q32,
                 backswing_just_finished,
                 prepare_finished,
-            );
+            )?;
+            self.attack_move(actor_id, was_attacking);
+            return Ok(());
         }
         self.leave_or_approach(
             actor_id,
@@ -574,6 +583,29 @@ impl Simulation {
             update,
         );
         Ok(())
+    }
+
+    /// `hold_dead_target`, and under a command, which stays active with a
+    /// dead target out of range: where `AutoMoveBehaviour` goes idle, the
+    /// unit changes to `MotionMoveState`, or walks on in it.
+    fn hold_dead_target_moving(&mut self, actor_id: u64, backswing_just_finished: bool) -> Flow {
+        let was_moving = self.actors[&actor_id].motion.state == MotionState::Moving;
+        let Flow::Done = self.hold_dead_target(actor_id, backswing_just_finished) else {
+            return Flow::Next;
+        };
+        if self.actors[&actor_id].command.is_some()
+            && self.actors[&actor_id].motion.state == MotionState::Idle
+        {
+            if was_moving {
+                self.move_to_command_point(actor_id);
+            }
+            self.actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable")
+                .motion
+                .state = MotionState::Moving;
+        }
+        Flow::Done
     }
 
     /// A target that died while the unit still swings at it: a unit is left
@@ -961,7 +993,20 @@ impl Simulation {
                     .unwrap_or(actor.body_rotation_q32),
             );
         } else {
-            actor.rotate_body_towards(target_rotation_q32);
+            // `IsFreeFireMove`: a command walking a unit that fires all
+            // round turns its root to where it moves, not to the target.
+            let free_fire_move =
+                actor.command.is_some() && actor.rules.attack.attack_half_angle_mdeg() >= 360_000;
+            if !free_fire_move {
+                actor.rotate_body_towards(target_rotation_q32);
+            } else if actor.motion.current_velocity_x_q32 != 0
+                || actor.motion.current_velocity_z_q32 != 0
+            {
+                actor.rotate_body_towards(direction_degrees_q32_raw(
+                    actor.motion.current_velocity_x_q32,
+                    actor.motion.current_velocity_z_q32,
+                ));
+            }
             actor.aim_rotation = actor.body_rotation;
             // MotionAttackState subsequently asks the active FightSkill to rotate its weapons.
             actor.rotate_weapons_towards(target_rotation_q32);
@@ -987,9 +1032,80 @@ impl Simulation {
     /// the build does, or the unit moves towards where its lock stands.
     fn leave_or_approach(&mut self, actor_id: u64, approach: Approach, update: SkillUpdate) {
         if let Flow::Done = self.leave_attack_range(actor_id, update) {
+            // A skill that let its target go leaves `MotionAttackState` for
+            // `MotionMoveState` under a command, which stays active without
+            // one.
+            let actor = self
+                .actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable");
+            if actor.command.is_some() && actor.motion.state == MotionState::Idle {
+                actor.motion.state = MotionState::Moving;
+            }
             return;
         }
         self.approach(actor_id, approach);
+    }
+
+    /// `MotionAttackState.AttackMove`: a command may walk on while the unit
+    /// fires, where `AutoMoveBehaviour` stops. A state entered this update
+    /// is not updated on it.
+    fn attack_move(&mut self, actor_id: u64, was_attacking: bool) {
+        if was_attacking
+            && self.actors[&actor_id].motion.state == MotionState::Attacking
+            && self.command_attack_moves(actor_id)
+        {
+            self.move_to_command_point(actor_id);
+        }
+    }
+
+    /// The motion states under a command with nothing to fire at:
+    /// `MotionIdleState` and `MotionAttackState` change to
+    /// `MotionMoveState`, which is not updated the tick it is entered, and
+    /// `MotionMoveState` walks towards the command's point.
+    pub(in crate::fight) fn follow_command(&mut self, actor_id: u64) {
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        if actor.motion.state != MotionState::Moving {
+            actor.motion.state = MotionState::Moving;
+            actor.motion.attack_hold_fire = false;
+            return;
+        }
+        self.move_to_command_point(actor_id);
+        // `NormalRotate` with nothing to face turns the weapons to where the
+        // body faces.
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        let facing = actor.body_rotation_q32;
+        actor.rotate_weapons_towards(facing);
+        if actor.rules.has_body {
+            actor.aim_rotation = degrees_q32_to_mdeg(
+                actor
+                    .skill
+                    .weapon_rotations_q32
+                    .first()
+                    .copied()
+                    .unwrap_or(actor.body_rotation_q32),
+            );
+        }
+    }
+
+    /// `MotionController.Move` towards the command's point, turning first.
+    fn move_to_command_point(&mut self, actor_id: u64) {
+        let Some((move_target_x_q32, move_target_z_q32)) = self.command_move_point(actor_id) else {
+            return;
+        };
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        actor.motion.next_target_x_q32 = move_target_x_q32;
+        actor.motion.next_target_z_q32 = move_target_z_q32;
+        actor.set_turn_limited_speed();
     }
 
     /// The ways a unit leaves its attack motion when what it fires at is out
@@ -1130,6 +1246,11 @@ impl Simulation {
         if entered_move {
             return;
         }
+        if actor.command.is_some() {
+            // A command's `GetTargetPosition` is its point, not the lock.
+            self.move_to_command_point(actor_id);
+            return;
+        }
         let (move_target_x_q32, move_target_z_q32) = native_auto_move_target_point(
             actor.x_q32,
             actor.z_q32,
@@ -1141,25 +1262,6 @@ impl Simulation {
         );
         actor.motion.next_target_x_q32 = move_target_x_q32;
         actor.motion.next_target_z_q32 = move_target_z_q32;
-        if actor.motion.current_velocity_x_q32 != 0 || actor.motion.current_velocity_z_q32 != 0 {
-            // MotionMoveState.MoveUpdate runs NormalRotate before Move;
-            // CalculateMoveSpeed therefore observes this tick's new facing.
-            actor.rotate_body_towards(direction_degrees_q32_raw(
-                actor.motion.current_velocity_x_q32,
-                actor.motion.current_velocity_z_q32,
-            ));
-        }
-        actor.motion.next_speed_q32 = turn_limited_move_speed_q32(
-            actor.stats.move_speed_q32(),
-            actor.rules.free_move,
-            actor.rules.rotate_speed_mdeg_per_second(),
-            actor.body_rotation_q32,
-            actor.motion.current_velocity_x_q32,
-            actor.motion.current_velocity_z_q32,
-        );
-        actor.motion.next_max_speed_q32 = actor.motion.next_speed_q32;
-        if !actor.rules.has_body {
-            actor.aim_rotation = actor.body_rotation;
-        }
+        actor.set_turn_limited_speed();
     }
 }
