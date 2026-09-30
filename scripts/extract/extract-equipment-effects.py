@@ -33,6 +33,21 @@ FIELDS = {
 }
 
 
+def others():
+    """Every other standard row, by the subclass list it comes from: an
+    equipment of another class, which a refusal names by its list."""
+    group = build_data.level0("EquipmentGroupData")
+    rows = []
+    for kind, entries in group.items():
+        if kind == "equipmentDatas" or not isinstance(entries, list):
+            continue
+        for row in entries:
+            if row["isTestData"] or not build_data.in_standard(row):
+                continue
+            rows.append({"id": row["id"], "name": row["name"], "kind": kind})
+    return sorted(rows, key=lambda row: row["id"])
+
+
 def raw(value):
     return value["m_rawValue"] if isinstance(value, dict) else value
 
@@ -99,6 +114,14 @@ def render(rows):
         for field in INTEGERS:
             if d[field]:
                 lines.append(f"    {field}: {d[field]}")
+    lines += [
+        "",
+        "# The equipment of every other class, by the EquipmentGroupData list it",
+        "# comes from, which no row above describes.",
+        "other:",
+    ]
+    for d in others():
+        lines.append(f"  - {{id: {d['id']}, name: {d['name']}, kind: {d['kind']}}}")
     return "\n".join(lines) + "\n"
 
 

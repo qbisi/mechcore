@@ -99,3 +99,36 @@ equipment:
     main_skill_effect: true
     extra_skill_effect: true
     life_rate: 1288490188  # +0.3
+
+# The equipment of every other class, by the EquipmentGroupData list it
+# comes from, which no row above describes.
+other:
+  - {id: 1305001, name: 充能弹药, kind: buffEquipmentDatas}
+  - {id: 1305002, name: 寄生弹药, kind: buffEquipmentDatas}
+  - {id: 1305003, name: 光子涂层, kind: buffEquipmentDatas}
+  - {id: 1305004, name: 先进电磁弹药, kind: buffEquipmentDatas}
+  - {id: 1305005, name: 先进寄生弹药, kind: buffEquipmentDatas}
+  - {id: 1305006, name: 先进压制弹药, kind: buffEquipmentDatas}
+  - {id: 1305007, name: 战斗进化系统, kind: buffEquipmentDatas}
+  - {id: 1305008, name: 光子投射装置, kind: buffEquipmentDatas}
+  - {id: 1305009, name: 先进酸性弹药, kind: buffEquipmentDatas}
+  - {id: 1305010, name: 先进引导雷达, kind: buffEquipmentDatas}
+  - {id: 1306001, name: 坦克生产线, kind: supportUnitEquipmentDatas}
+  - {id: 1306002, name: 野马生产线, kind: supportUnitEquipmentDatas}
+  - {id: 1306003, name: 钢球生产线, kind: supportUnitEquipmentDatas}
+  - {id: 1306004, name: 深渊信标, kind: supportUnitEquipmentDatas}
+  - {id: 1307001, name: 保护屏障, kind: advancedEnergyShieldEquipmentDatas}
+  - {id: 1307002, name: 超级屏障, kind: advancedEnergyShieldEquipmentDatas}
+  - {id: 1308001, name: 抗干扰模块, kind: ignoreBuffEquipmentDatas}
+  - {id: 1309001, name: 汲取模块, kind: lifestealEquipmentDatas}
+  - {id: 13010001, name: 便携式护盾, kind: energyShieldEquipmentDatas}
+  - {id: 13020001, name: 纳米维修包, kind: autoRecoveryEquipmentDatas}
+  - {id: 13040001, name: 部署模块, kind: mobilityIntensifyEquipmentDatas}
+  - {id: 13100001, name: 试验级巨山装甲, kind: armorStrengthenEquipmentDatas}
+  - {id: 13110001, name: 分裂核心, kind: deadSummonEquipmentDatas}
+  - {id: 13120001, name: 应激电容, kind: lifeBuffEquipmentDatas}
+  - {id: 13130001, name: 光学迷彩, kind: moveAbilityDynamicEquipmentDatas}
+  - {id: 13130101, name: 光学迷彩, kind: moveAbilityDynamicEquipmentDatas}
+  - {id: 13140001, name: 重装锁定系统, kind: searchTargetModifyEquipmentDatas}
+  - {id: 13150001, name: 先进高爆弹药, kind: splashEquipmentDatas}
+  - {id: 13150101, name: 爆裂弹药, kind: splashEquipmentDatas}

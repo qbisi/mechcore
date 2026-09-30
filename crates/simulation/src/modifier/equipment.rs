@@ -37,6 +37,8 @@ pub(crate) const SOURCE: &str = "Modifier";
 #[derive(Debug, Clone)]
 pub(crate) struct EquipmentEffects {
     equipment: BTreeMap<i32, Equipment>,
+    /// Every other class's equipment, by id: its name and its list.
+    others: BTreeMap<i32, (String, String)>,
 }
 
 #[derive(Debug, Clone)]
@@ -110,6 +112,17 @@ struct Row {
 struct Table {
     schema: String,
     equipment: Vec<Row>,
+    other: Vec<OtherRow>,
+}
+
+/// An equipment of another class: which `EquipmentGroupData` list it comes
+/// from, which its refusal names.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OtherRow {
+    id: i32,
+    name: String,
+    kind: String,
 }
 
 impl EquipmentEffects {
@@ -137,7 +150,12 @@ impl EquipmentEffects {
                 )));
             }
         }
-        Ok(Self { equipment })
+        let others = table
+            .other
+            .into_iter()
+            .map(|row| (row.id, (row.name, row.kind)))
+            .collect();
+        Ok(Self { equipment, others })
     }
 
     /// What one equipment writes onto the unit wearing it.
@@ -148,12 +166,13 @@ impl EquipmentEffects {
     /// rather than applying the part of it that it understands.
     pub(crate) fn corrections(&self, id: i32, unit: &UnitConfig) -> Result<Vec<(Channel, Entry)>> {
         let Some(equipment) = self.equipment.get(&id) else {
-            let name = mechcore_document::names::equipment_name(id).unwrap_or("unnamed");
-            return Err(Error::new(format!(
-                "equipment {id} ({name}) is not an ordinary EquipmentData row: \
-                 its effect belongs to another equipment class, which no \
-                 mechanism here reads"
-            )));
+            return Err(Error::new(match self.others.get(&id) {
+                Some((name, kind)) => format!(
+                    "equipment {id} ({name}) comes from EquipmentGroupData's {kind} \
+                     list, which no mechanism here reads"
+                ),
+                None => format!("equipment {id} is not in the equipment table"),
+            }));
         };
         let corrections = equipment
             .effect
@@ -336,7 +355,7 @@ mod tests {
         let equipment = EquipmentEffects::load().unwrap();
         let marksman = unit("marksman");
         for (id, said) in [
-            (BARRIER, "barrier"),
+            (BARRIER, "advancedEnergyShieldEquipmentDatas"),
             (RAPID_LOADER, "round_duration"),
             (DOMINION_CORE, "important_unit"),
         ] {

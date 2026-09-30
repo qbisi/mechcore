@@ -30,6 +30,17 @@ struct Table {
     shield_skills: Vec<ShieldSkillRow>,
     damage_skills: Vec<DamageSkillRow>,
     waypoint_skills: Vec<WaypointSkillRow>,
+    other_skills: Vec<OtherSkillRow>,
+}
+
+/// A skill of another kind, or a row this build does not release: which
+/// `CommanderSkillGroupData` list it comes from, which its refusal names.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OtherSkillRow {
+    id: i32,
+    name: String,
+    kind: String,
 }
 
 /// A `CSD_WayPoint` row: the units it selects and the width of its path.
@@ -257,6 +268,7 @@ pub(crate) struct CommanderSkillEffects {
     shields: Vec<ShieldSkillRow>,
     strikes: Vec<DamageSkillRow>,
     waypoints: Vec<WaypointSkillRow>,
+    others: Vec<OtherSkillRow>,
 }
 
 impl CommanderSkillEffects {
@@ -281,6 +293,7 @@ impl CommanderSkillEffects {
             shields: table.shield_skills,
             strikes: table.damage_skills,
             waypoints: table.waypoint_skills,
+            others: table.other_skills,
         })
     }
 
@@ -389,7 +402,16 @@ impl CommanderSkillEffects {
                     },
                 )
             } else {
-                return Err(Error::new(format!("{named} is not released by this build")));
+                return Err(Error::new(
+                    match self.others.iter().find(|row| row.id == id) {
+                        Some(row) => format!(
+                            "{named}, {}, comes from CommanderSkillGroupData's {} list, \
+                             which this build does not release",
+                            row.name, row.kind
+                        ),
+                        None => format!("{named} is not in the commander skill table"),
+                    },
+                ));
             };
         let named = format!("{named}, {row_name}");
         // `scope` is when the card may be used, which nothing in the fight
