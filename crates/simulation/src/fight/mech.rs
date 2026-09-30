@@ -188,6 +188,15 @@ impl Actor {
         self.skill.weapon_rotations_q32.fill(rotation_q32);
     }
 
+    /// Turns the whole unit, body, aim, weapons and the rotation its search
+    /// scores from, to one facing, as it stands before the fight.
+    pub(in crate::fight) fn face(&mut self, rotation_q32: i64) {
+        self.set_body_rotation(rotation_q32);
+        self.aim_rotation = self.body_rotation;
+        self.set_weapon_rotation(rotation_q32);
+        self.target_query_source_rotation_q32 = self.body_rotation_q32;
+    }
+
     pub(in crate::fight) fn set_body_rotation(&mut self, rotation_q32: i64) {
         self.body_rotation_q32 = rotation_q32.rem_euclid(360_i64 << 32);
         self.body_rotation = degrees_q32_to_mdeg(self.body_rotation_q32);

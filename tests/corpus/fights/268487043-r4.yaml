@@ -1,0 +1,57 @@
+# Replay 2324_20260925--268487043, round 4. A unit beside a tower whose flank
+# the other side holds enters the fight facing that flank: red's Fire Badgers
+# stand on red's left flank, beside blue's right tower, so the blue units in
+# the defence area there face 90 degrees before the presearch, and blue's
+# Crawler 3 locks the Fire Badger 173 rather than 174.
+
+kind: fight
+map_id: 1031
+seed: 1041759675
+round: 4
+source: game
+ticks: 1166
+hash: {profile: mcfr-content-0.7.0, result: 2a51bcda9c0237a9d4612772e3ea8e68099e6f9ef2f255651518e5f5addac0a4}
+blue:
+  core_damage: 450
+  officers: [sabertooth_specialist]
+  techs:
+    tarantula: [range_enhancement]
+  blueprints: [attack_enhancement, defense_enhancement]
+  units:
+  - {name: void_eye, index: 0, position: {x: 140, y: -80}, level: 2, exp: 0/16/1465}
+  - {name: void_eye, index: 1, position: {x: 230, y: -80}, level: 2, exp: 0/28/1465}
+  - {name: void_eye, index: 2, position: {x: 50, y: -80}, exp: 423/503/650}
+  - {name: tarantula, index: 3, position: {x: 95, y: -65}, exp: 1421/1500/1500}
+  - {name: tarantula, index: 4, position: {x: 185, y: -65}, exp: 1236/1500/1500}
+  - {name: crawler, index: 5, position: {x: 80, y: -105}, exp: 165/173/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 170, y: -105}, exp: 217/217/450, rotated: true}
+  - {name: mustang, index: 7, position: {x: 225, y: -190}, exp: 813/857/1200}
+  - {name: phoenix, index: 8, position: {x: 140, y: -100}, exp: 1226/1272/1300}
+  - {name: crawler, index: 9, position: {x: 135, y: -190}, exp: 124/124/450}
+  - {name: sabertooth, index: 10, position: {x: -285, y: -45}, exp: 610/963/1300}
+  - {name: crawler, index: 11, position: {x: -275, y: -20}, level: 2, exp: 0/36/1014}
+  - {name: crawler, index: 12, position: {x: 260, y: -285}, exp: 244/300/450, rotated: true}
+  - {name: crawler, index: 13, position: {x: -260, y: -285}, exp: 10/332/450, rotated: true}
+  - {name: sabertooth, index: 14, position: {x: 285, y: -275}, exp: 0/312/1300}
+  - {name: tarantula, index: 15, position: {x: -255, y: -75}, exp: 0/705/1500}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+red:
+  officers: [fire_badger_specialist]
+  techs:
+    vulcan: [range_enhancement]
+  blueprints: [attack_enhancement]
+  units:
+  - {name: void_eye, index: 0, position: {x: 0, y: -170}, exp: 318/433/650}
+  - {name: void_eye, index: 2, position: {x: -60, y: -170}, exp: 128/142/650}
+  - {name: fire_badger, index: 3, position: {x: 135, y: -150}, exp: 608/898/1400}
+  - {name: marksman, index: 5, position: {x: -170, y: -190}, exp: 79/650/650}
+  - {name: marksman, index: 6, position: {x: 170, y: -190}, level: 2, exp: 30/478/1465}
+  - {name: mustang, index: 7, position: {x: -105, y: -300}, exp: 336/468/1200}
+  - {name: crawler, index: 8, position: {x: -250, y: -285}, exp: 46/46/450, rotated: true}
+  - {name: crawler, index: 9, position: {x: -135, y: -190}, exp: 88/88/450}
+  - {name: fire_badger, index: 10, position: {x: -350, y: 285}, exp: 0/32/1400}
+  - {name: fang, index: 11, position: {x: -140, y: -225}, exp: 13/13/600, rotated: true}
+  - {name: fang, index: 12, position: {x: -140, y: -95}, exp: 84/84/600, rotated: true}
+  - {name: fang, index: 13, position: {x: 140, y: -95}, exp: 0/254/600, rotated: true}
+  - {name: vulcan, index: 14, position: {x: -140, y: -140}, level: 2, exp: 0/3625/5453, equipment: [amplifying_core]}
