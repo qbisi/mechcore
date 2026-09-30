@@ -26,6 +26,10 @@ REFUSAL = re.compile(r"^\s+(\d+) rounds \(\s*\d+%\)\s+(\d+) alone  (.+)$", re.M)
 FOUGHT = re.compile(r"^(\d+) rounds fought as the match says", re.M)
 STOPPED = re.compile(r"(\d+) (differs|unsupported)")
 VERIFY = re.compile(r"^(\d+)/(\d+) matches verify$", re.M)
+EVERY = re.compile(
+    r"^(\d+) of (\d+) rounds the simulator fights come out as the match says; (\d+) differ$", re.M
+)
+DIFFERING = "rounds the simulator fights whose result differs from the match"
 SHOWN = 12
 
 
@@ -37,6 +41,7 @@ def read(directory: pathlib.Path) -> dict:
     verified = VERIFY.search(matches)
     if not (accepted and fought and verified):
         sys.exit(f"{directory} does not hold both reports whole")
+    every = EVERY.search(matches)
     summary_line = matches[fought.start():].splitlines()[0]
     stopped = {kind: int(count) for count, kind in STOPPED.findall(summary_line)}
     return {
@@ -50,9 +55,28 @@ def read(directory: pathlib.Path) -> dict:
         "refusals": [
             (name, int(rounds), int(alone)) for rounds, alone, name in REFUSAL.findall(coverage)
         ],
+        # A report from before the rounds after a stop were fought has
+        # neither; the numbers it cannot give are left out of the comparison.
+        "equal": int(every.group(1)) if every else None,
+        "differ": int(every.group(3)) if every else None,
+        "differing": differing(matches),
         "coverage": coverage,
         "verify": matches,
     }
+
+
+def differing(matches: str) -> list[tuple[str, str, str, str]] | None:
+    """The rows of the differing rounds' table: match, round, pinned, leaves."""
+    lines = matches.splitlines()
+    if DIFFERING not in lines:
+        return None
+    rows = []
+    for line in lines[lines.index(DIFFERING) + 3:]:
+        if not line.strip():
+            break
+        match, round_number, pinned, leaves = re.split(r"\s{2,}", line.strip(), maxsplit=3)
+        rows.append((match, round_number, pinned, leaves))
+    return rows
 
 
 def change(after: int, before: int | None) -> str:
@@ -72,7 +96,9 @@ def report(after: dict, before: dict | None, title: str) -> str:
     ]
     rows = [
         ("rounds the simulator accepts", "accepted", f" of {after['rounds']}"),
-        ("rounds fought as the match says", "fought", ""),
+        ("rounds fought as the match says, every one", "equal", ""),
+        ("rounds fought that differ from the match", "differ", ""),
+        ("rounds fought as the match says before a match stops", "fought", ""),
         ("matches stopped where a round differs", "differs", ""),
         ("matches stopped at a round it refuses", "unsupported", ""),
         ("matches that verify", "verified", f" of {after['matches']}"),
@@ -80,8 +106,10 @@ def report(after: dict, before: dict | None, title: str) -> str:
     for label, key, suffix in rows:
         cells = [f"{change(after[key], was(key))}{suffix}"]
         if before:
-            cells.insert(0, f"{before[key]}")
+            cells.insert(0, "" if before[key] is None else f"{before[key]}")
         lines.append(f"| {label} | " + " | ".join(cells) + " |")
+
+    lines += differing_table(after["differing"] or [], before["differing"] if before else None)
 
     held_before = {name: rounds for name, rounds, _ in before["refusals"]} if before else {}
     alone_before = {name: alone for name, _, alone in before["refusals"]} if before else {}
@@ -110,6 +138,33 @@ def report(after: dict, before: dict | None, title: str) -> str:
             "</details>",
         ]
     return "\n".join(lines) + "\n"
+
+
+def differing_table(
+    after: list[tuple[str, str, str, str]], before: list[tuple[str, str, str, str]] | None
+) -> list[str]:
+    """The rounds the simulator fights and gets wrong, the divergences left to
+    find, each marked when the change brings it, and the ones it fixes."""
+    lines = [
+        "",
+        "The rounds the simulator fights and gets wrong, each a divergence to find"
+        " and, once fixed, a round to pin under `tests/corpus/fights/`:",
+        "",
+    ]
+    was = {(match, round_number) for match, round_number, _, _ in before} if before is not None else None
+    now = {(match, round_number) for match, round_number, _, _ in after}
+    if after:
+        lines += ["| match | round | pinned | differences |", "| --- | ---: | --- | --- |"]
+        for match, round_number, pinned, leaves in after:
+            new = " (new)" if was is not None and (match, round_number) not in was else ""
+            lines.append(f"| {match} | {round_number}{new} | {pinned} | {leaves} |")
+    else:
+        lines.append("None.")
+    if was is not None:
+        gone = sorted(was - now)
+        if gone:
+            lines += ["", "No longer wrong: " + ", ".join(f"{match} r{number}" for match, number in gone)]
+    return lines
 
 
 def main() -> int:
