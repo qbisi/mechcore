@@ -448,7 +448,7 @@ impl Simulation {
         weapon: i32,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let projectile_id = self.identities.allocate_object(ObjectKind::Projectile)?.id;
+        let projectile_id = self.ids.objects.allocate_object(ObjectKind::Projectile)?.id;
         let skill_slot =
             u16::try_from(skill_slot).map_err(|_| Error::new("skill slot exceeds u16"))?;
         let projectile = Projectile {

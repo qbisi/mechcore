@@ -26,7 +26,7 @@ use crate::{
     Error, Record, Result,
     layout::{
         CompiledLayout, ConstructionBuilding, InterceptorBuilding, MissileMine, MissileShot,
-        Placement, SkillRelease,
+        Placement,
     },
     rules::{
         AttackConfig, AttackPath, AttackTargets, Magazine, MapBuilding, MapsConfig, RvoSize,
@@ -226,6 +226,29 @@ struct Actor {
 /// `GameRiver.BuildingType.Special`.
 const CONSTRUCTION_BUILDING_TYPE: u32 = 3;
 
+/// The identities the fight hands out as it goes: to projectiles, and to the
+/// units and formations that join it.
+struct Identities {
+    /// The projectiles', and every other object's the recording numbers.
+    objects: IdentityAllocator,
+    /// The identity the next unit to join takes, and its formation's.
+    next_unit: u64,
+    next_formation: u64,
+}
+
+/// `FightingState` as the fight ends: the step it stops on, and what its end
+/// tore down and still owes the recording.
+struct Ending {
+    /// The step the fight stops on: a side had already won when it began,
+    /// and no skill updates on it.
+    stop_step: Option<u64>,
+    terminal_drain_pending: bool,
+    late_building_events_pending: bool,
+    /// The buildings `FightCoreSystem.TryDstroyTower` tore down, whose
+    /// `building_destroyed` the next tick records.
+    torn_down_buildings: Vec<u64>,
+}
+
 struct Simulation {
     actors: BTreeMap<u64, Actor>,
     /// The order the fight updates its deployed units in, which is not their
@@ -237,114 +260,45 @@ struct Simulation {
     interceptors: Vec<Interceptor>,
     /// Each side's missiles still standing, `MineSystem`'s, in side order.
     mines: Vec<Mine>,
-    /// Every battlefield shield still standing, each side's in its active
-    /// order.
-    shields: Vec<shield::EnergyShield>,
-    /// The `shield_destroyed` events of the tick, which the recording reads
-    /// off the shields standing at its end, after everything else.
-    destroyed_shields: Vec<Event>,
-    /// The `shield_created` events of the tick, which the recording reads
-    /// off the shields standing at its end, before the destroyed.
-    created_shields: Vec<Event>,
-    /// The identity the next shield made in the fight takes.
-    next_shield_id: u64,
-    /// The shields broken this tick, which a skill firing at one still aims
-    /// at until the tick is over.
-    broken_shields: Vec<shield::EnergyShield>,
-    /// Each side's released battle skills, `CommanderSkillSystem`'s, in side
-    /// order.
-    battle_skills: Vec<SkillRelease>,
-    /// The sides that researched a unit technology.
-    researched: BTreeSet<u32>,
-    /// Each side's `SupportUnitCreator`s still creating or alive.
-    creators: Vec<support_unit::Creator>,
-    /// The summons created and not yet let into the fight, in the order they
-    /// were created.
-    appearing: Vec<support_unit::Appearing>,
     /// Each side's `SuperDeploymentController` that opened with a unit
     /// travelling.
     travels: BTreeMap<u32, super_deployment::Travel>,
-    /// The identity the next unit to join takes, and its formation's.
-    next_unit_id: u64,
-    next_formation_id: u64,
     buildings: Vec<BuildingState>,
     target_quadtrees: BTreeMap<u32, TargetActorQuadtree>,
     /// Each side's units alone, `FightTeam.mechQuadtree`, which the
     /// experience a kill shares out is looked for in.
     mech_quadtrees: BTreeMap<u32, TargetActorQuadtree>,
-    identities: IdentityAllocator,
-    rvo_counter: u8,
-    // Native Agent::.ctor stores its initial position in the public backing
-    // buffer. The internal position read by the first BuildQuadtree remains
-    // zero until the subsequent BufferSwitch.
-    rvo_first_tree_pending: bool,
-    rvo_quadtree_capacity: rvo::QuadtreeCapacity,
-    terminal_drain_pending: bool,
-    /// The step the fight stops on: a side had already won when it began,
-    /// and no skill updates on it.
-    stop_step: Option<u64>,
-    late_building_events_pending: bool,
-    /// The buildings `FightCoreSystem.TryDstroyTower` tore down, whose
-    /// `building_destroyed` the next tick records.
-    torn_down_buildings: Vec<u64>,
     /// Buildings a projectile destroyed this tick, held until every projectile
     /// has resolved so their events follow all of the tick's shots.
     fallen_buildings: Vec<Event>,
-    /// The `buff_applied` events a tower's loss wrote this tick, by tower, to
-    /// follow its `building_destroyed`.
-    tower_buff_events: BTreeMap<u64, Vec<Event>>,
     /// The buildings standing when the tick's target queries were prepared,
     /// as `target_query_alive` is for a unit.
     buildings_query_alive: std::collections::BTreeSet<u64>,
-    /// The towers a hit emptied this tick, in the order they fell: the towers
-    /// among `DeadEffectSystem.deadActors`, whose `OnDead` waits for that
-    /// module's update.
-    fallen_towers: Vec<u64>,
-    /// The buffs on constructions, by building.
-    building_buffs: BTreeMap<u64, tower::BuildingBuffs>,
-    /// The buffs `BuffManager.Update` dropped from a unit dead this tick, to
-    /// name in the `cleared` that follows its `unit_died`.
-    dropped_buffs: BTreeMap<u64, Vec<u32>>,
-    /// The RVO collider layer of every construction, by building.
-    ///
-    /// A construction is an obstacle only to the other side: the wall's own
-    /// description says it sinks into the ground for a friendly unit, and a
-    /// Crawler of the side that placed it walks through a block. To the other
-    /// side it is an immovable agent on its `pathfinding_collider_priority`
-    /// layer with its own box for a radius — a Steel Ball of `wall-laser.yaml`
-    /// overlapping block 3 is pushed off it as that agent pushes it, tick for
-    /// tick, and every other wall fight is unchanged by it.
-    construction_colliders: BTreeMap<u64, i32>,
-    /// The constructions their own side passes through
-    /// (`FightConstruction.IsEnableBlock`); a turret is not one.
-    passable_constructions: BTreeSet<u64>,
-    /// The map's neutral crystals that take part in movement, in the order
-    /// the map lists them, which is the order they enter the RVO tree after
-    /// the towers.
-    map_crystals: Vec<MapCrystal>,
     /// The buildings no unit searches for, which the target trees hold all
     /// the same.
     unsearchable_buildings: BTreeSet<u64>,
     /// The constructions whose skill fires, by building.
     constructions: BTreeMap<u64, Construction>,
-    /// The tower table: what a strengthen level adds, what a loss writes.
-    towers: TowersConfig,
-    /// What each tower's fall writes, by building.
-    tower_losses: BTreeMap<u64, TowerLoss>,
-    /// The constructions a tower's loss would reach, by building.
-    tower_buffed_constructions: BTreeSet<u64>,
-    /// The build's damage and kill counters, by recorder.
-    statistics: BTreeMap<statistics::RecorderKey, DamageStatistics>,
-    /// Each construction block's recorder, by building.
-    construction_recorders: BTreeMap<u64, statistics::RecorderKey>,
-    /// Each formation's experience, by formation.
-    formations: BTreeMap<u64, experience::FormationExperience>,
-    /// Who has hit each target, first hit first.
-    attackers: BTreeMap<ObjectRef, Vec<ObjectRef>>,
-    /// What each building's destruction hands out, by building.
-    building_exp: BTreeMap<u64, i64>,
-    /// The bars and loot of every unit type.
-    experience: experience::ExperienceTable,
+    /// `BattleStatisticManager`'s counters.
+    statistics: statistics::StatisticsSystem,
+    /// `AdvancedEnergyShieldSystem`'s battlefield shields.
+    shield: shield::ShieldSystem,
+    /// `SupportUnitSystem`'s creators and the summons still appearing.
+    support: support_unit::SupportUnitSystem,
+    /// `CommanderSkillSystem`'s releases still to land.
+    commander: commander_skill::CommanderSkillSystem,
+    /// `ExpSystem`'s formations, attackers and loot.
+    exp: experience::ExpSystem,
+    /// The RVO simulator's state and the obstacles besides the units.
+    rvo: RvoState,
+    /// The buffs on constructions and the buff events a tick holds back.
+    buffs: tower::BuffState,
+    /// The towers of both sides and what losing one writes.
+    towers: tower::TowerSystem,
+    /// The identities the fight hands out.
+    ids: Identities,
+    /// How the fight ends, and what its end still owes the recording.
+    ending: Ending,
 }
 
 impl Simulation {
@@ -412,59 +366,44 @@ impl Simulation {
                 mines.sort_by_key(Mine::team);
                 mines
             },
-            shields: shield::initialize_shields(&layout.shields),
-            destroyed_shields: Vec::new(),
-            created_shields: Vec::new(),
-            next_shield_id: u64::try_from(layout.shields.len()).expect("shield count fits u64") + 1,
-            broken_shields: Vec::new(),
-            battle_skills: {
-                let mut releases = layout.battle_skills.clone();
-                releases.sort_by_key(|release| release.team);
-                releases
-            },
-            researched: layout.researched.clone(),
-            creators: Vec::new(),
-            appearing: Vec::new(),
+            shield: shield::ShieldSystem::new(&layout.shields),
+            commander: commander_skill::CommanderSkillSystem::new(layout),
+            support: support_unit::SupportUnitSystem::default(),
             travels,
-            next_unit_id: 0,
-            next_formation_id: 0,
+            ids: Identities {
+                objects: IdentityAllocator::new(),
+                next_unit: 0,
+                next_formation: 0,
+            },
+            ending: Ending {
+                stop_step: None,
+                terminal_drain_pending: false,
+                late_building_events_pending: false,
+                torn_down_buildings: Vec::new(),
+            },
             buildings,
             target_quadtrees,
             mech_quadtrees,
-            identities: IdentityAllocator::new(),
-            rvo_counter: 0,
-            rvo_first_tree_pending: true,
-            rvo_quadtree_capacity: rvo::QuadtreeCapacity::default(),
-            terminal_drain_pending: false,
-            stop_step: None,
-            late_building_events_pending: false,
-            torn_down_buildings: Vec::new(),
+            rvo: RvoState::new(construction_colliders, passable_constructions, map_crystals),
             fallen_buildings: Vec::new(),
-            tower_buff_events: BTreeMap::new(),
-            fallen_towers: Vec::new(),
-            building_buffs: BTreeMap::new(),
             buildings_query_alive,
-            dropped_buffs: BTreeMap::new(),
-            construction_colliders: construction_colliders.clone(),
-            passable_constructions,
-            map_crystals,
             unsearchable_buildings: unsearchable.clone(),
             constructions,
-            towers: towers.clone(),
-            tower_losses,
-            tower_buffed_constructions,
-            statistics: BTreeMap::new(),
-            construction_recorders: BTreeMap::new(),
-            formations: BTreeMap::new(),
-            attackers: BTreeMap::new(),
-            building_exp,
-            experience: experience::ExperienceTable::load()?,
+            towers: tower::TowerSystem {
+                config: towers.clone(),
+                losses: tower_losses,
+                buffed_constructions: tower_buffed_constructions,
+                fallen: Vec::new(),
+            },
+            buffs: tower::BuffState::default(),
+            statistics: statistics::StatisticsSystem::default(),
+            exp: experience::ExpSystem::new(building_exp)?,
         };
         simulation.number_joiners();
         // `CommanderSkillManager.OnFightStart`: a path is given out before
         // the first tick, and lands nothing.
-        let releases = std::mem::take(&mut simulation.battle_skills);
-        simulation.battle_skills = simulation.start_paths(releases);
+        let releases = std::mem::take(&mut simulation.commander.releases);
+        simulation.commander.releases = simulation.start_paths(releases);
         simulation.seed_statistics(&construction_groups);
         simulation.seed_experience()?;
         simulation.deploy_attack_intervals(layout.round)?;
@@ -474,8 +413,8 @@ impl Simulation {
     /// A unit joining the fight later takes the next number, and its
     /// formation the next formation's.
     fn number_joiners(&mut self) {
-        self.next_unit_id = self.actors.keys().max().map_or(1, |id| id + 1);
-        self.next_formation_id = self
+        self.ids.next_unit = self.actors.keys().max().map_or(1, |id| id + 1);
+        self.ids.next_formation = self
             .actors
             .values()
             .map(|actor| actor.placement.formation_id)
@@ -499,7 +438,7 @@ impl Simulation {
                 .cloned()
                 .collect(),
             shields: self.shield_states(),
-            statistics: self.statistics.values().copied().collect(),
+            statistics: self.statistics.recorders.values().copied().collect(),
             formations: self.formation_states(),
             ..WorldSnapshot::default()
         }
@@ -545,14 +484,14 @@ impl Simulation {
     #[allow(clippy::too_many_lines)]
     fn step(&mut self, step: u64) -> Result<TransitionEvents> {
         self.settle_intervals(false);
-        let publish_late_building_events = self.late_building_events_pending;
-        self.late_building_events_pending = false;
-        if self.terminal_drain_pending {
-            self.terminal_drain_pending = false;
+        let publish_late_building_events = self.ending.late_building_events_pending;
+        self.ending.late_building_events_pending = false;
+        if self.ending.terminal_drain_pending {
+            self.ending.terminal_drain_pending = false;
         }
         let fight_was_finished = self.naturally_finished();
         let winner_was_decided = self.winner().is_some();
-        self.stop_step = winner_was_decided.then_some(step);
+        self.ending.stop_step = winner_was_decided.then_some(step);
         self.refresh_target_query_snapshot();
         // `GRTimerManager.Update` runs before any module: the summons whose
         // second is up join the fight first. The tick's searches were
@@ -567,7 +506,7 @@ impl Simulation {
             // unit still runs, cleared as the fight is left
             // (`BuffManager.Clear`): a buff the loss of a tower wrote and
             // that has not run out is written as cleared on every survivor.
-            for building_id in std::mem::take(&mut self.torn_down_buildings) {
+            for building_id in std::mem::take(&mut self.ending.torn_down_buildings) {
                 let position = self
                     .buildings
                     .iter()
@@ -638,7 +577,10 @@ impl Simulation {
                 .filter(|building| {
                     building.team_id == team_id
                         && (self.constructions.contains_key(&building.building_id)
-                            || self.building_buffs.contains_key(&building.building_id))
+                            || self
+                                .buffs
+                                .building_buffs
+                                .contains_key(&building.building_id))
                 })
                 .map(|building| building.building_id)
                 .collect::<std::collections::BTreeSet<_>>();
@@ -662,7 +604,7 @@ impl Simulation {
         // on what died this tick: a tower's loss reaches its side after every
         // unit has updated, and counts from the next tick whichever side felled
         // it.
-        for building_id in std::mem::take(&mut self.fallen_towers) {
+        for building_id in std::mem::take(&mut self.towers.fallen) {
             self.lose_tower(building_id)?;
         }
         let projectile_finished_fight =
@@ -698,11 +640,11 @@ impl Simulation {
             building.life.current = 0;
             building.targetable = false;
             queued_late_building_events = true;
-            self.torn_down_buildings.push(building.building_id);
+            self.ending.torn_down_buildings.push(building.building_id);
         }
         if queued_late_building_events {
-            self.terminal_drain_pending = true;
-            self.late_building_events_pending = true;
+            self.ending.terminal_drain_pending = true;
+            self.ending.late_building_events_pending = true;
         }
         let ready_to_finish = self.ready_to_finish();
         let stop_fight = ready_to_finish || winner_was_decided;
@@ -787,14 +729,14 @@ impl Simulation {
             events.push(fallen);
             events.extend(follows);
         }
-        self.dropped_buffs.clear();
+        self.buffs.dropped.clear();
         // A fight a projectile's drain finished leaves on this tick, with no
         // tower torn down to publish first: its buffs are cleared after
         // everything else the tick did.
         if !publish_late_building_events && self.ready_to_finish() {
             self.clear_buffs_as_the_fight_ends(&mut events)?;
         }
-        if !self.tower_buff_events.is_empty() {
+        if !self.buffs.tower_events.is_empty() {
             return Err(Error::new(
                 "a tower's loss wrote its buff on a tick that records no building_destroyed for it",
             ));
@@ -830,9 +772,9 @@ impl Simulation {
                 tree.remove(FightActorRef::Building(building_id));
             }
         }
-        events.append(&mut self.created_shields);
-        events.append(&mut self.destroyed_shields);
-        self.broken_shields.clear();
+        events.append(&mut self.shield.created);
+        events.append(&mut self.shield.destroyed);
+        self.shield.broken.clear();
         Ok(TransitionEvents { events })
     }
 
@@ -850,7 +792,8 @@ impl Simulation {
             {
                 (
                     self.construction_buffs_cleared(subject.id),
-                    self.tower_buff_events
+                    self.buffs
+                        .tower_events
                         .remove(&subject.id)
                         .unwrap_or_default(),
                 )
@@ -933,8 +876,8 @@ impl Simulation {
         // a creator still alive, or a summon still appearing, holds the fight.
         living_teams.len() < 2
             && self.projectiles.is_empty()
-            && self.creators.is_empty()
-            && self.appearing.is_empty()
+            && self.support.creators.is_empty()
+            && self.support.appearing.is_empty()
     }
 
     /// What happens between a tick's work and its snapshot: intervals settle
@@ -948,7 +891,7 @@ impl Simulation {
     }
 
     fn ready_to_finish(&self) -> bool {
-        self.naturally_finished() && !self.terminal_drain_pending
+        self.naturally_finished() && !self.ending.terminal_drain_pending
     }
 }
 

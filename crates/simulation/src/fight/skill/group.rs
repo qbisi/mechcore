@@ -312,7 +312,7 @@ impl Simulation {
         // skills.
         if actor.rules.attack.weapons.fixed_to_body
             && after.is_some()
-            && self.stop_step != Some(step)
+            && self.ending.stop_step != Some(step)
             && let Some(group) = &mut actor.skill.group
         {
             group.sibling_weapon_rotations_q32[slot - 1] = body_rotation_q32;

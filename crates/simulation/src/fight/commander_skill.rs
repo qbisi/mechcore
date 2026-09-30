@@ -17,6 +17,27 @@ use crate::{
     layout::{SkillBuff, SkillEffect, SkillRelease},
 };
 
+/// `CommanderSkillSystem`: the releases still to land, and which sides a
+/// technology-disabling skill would find researched.
+pub(in crate::fight) struct CommanderSkillSystem {
+    /// Each side's released battle skills, in side order.
+    pub(in crate::fight) releases: Vec<SkillRelease>,
+    /// The sides that researched a unit technology.
+    pub(in crate::fight) researched: BTreeSet<u32>,
+}
+
+impl CommanderSkillSystem {
+    /// A layout's releases, each side's in the order it releases them.
+    pub(in crate::fight) fn new(layout: &CompiledLayout) -> Self {
+        let mut releases = layout.battle_skills.clone();
+        releases.sort_by_key(|release| release.team);
+        Self {
+            releases,
+            researched: layout.researched.clone(),
+        }
+    }
+}
+
 /// What tags a battle skill's buff, so that its end takes it away.
 const SKILL_SOURCE: &str = "BuffSystem.CommanderSkill";
 
@@ -31,8 +52,8 @@ impl Simulation {
     ) -> Result<()> {
         let tick = step + 1;
         let mut index = 0;
-        while index < self.battle_skills.len() {
-            let release = self.battle_skills[index].clone();
+        while index < self.commander.releases.len() {
+            let release = self.commander.releases[index].clone();
             // A falling strike that cannot cross shields stops at the first it
             // comes inside, before it would land, and strikes there.
             if let SkillEffect::Strike {
@@ -50,7 +71,7 @@ impl Simulation {
                 if let Some((_, point)) =
                     self.falling_into_shield((x_q32, height, z_q32), (x_q32, last, z_q32))
                 {
-                    self.battle_skills.remove(index);
+                    self.commander.releases.remove(index);
                     self.strike_circle(&release, *range_q32, *damage, false, point, events)?;
                     continue;
                 }
@@ -64,7 +85,7 @@ impl Simulation {
             // strikes shields: neither is measured. A Shield Airdrop's
             // crosses shields whatever its row says
             // (`CS_EnergyShield.CanCrossAdvancedEnergyShield`).
-            if !self.shields.is_empty()
+            if !self.shield.standing.is_empty()
                 && matches!(
                     release.effect,
                     SkillEffect::Buff { .. } | SkillEffect::Summon(_)
@@ -105,12 +126,14 @@ impl Simulation {
                 // the side's `TeamSupportUnitManager`, which updates later in
                 // this very tick.
                 SkillEffect::Summon(summon) => {
-                    self.creators.push(super::support_unit::Creator::new(
-                        release.team,
-                        release.x,
-                        release.z,
-                        (**summon).clone(),
-                    ));
+                    self.support
+                        .creators
+                        .push(super::support_unit::Creator::new(
+                            release.team,
+                            release.x,
+                            release.z,
+                            (**summon).clone(),
+                        ));
                 }
             }
         }
@@ -241,7 +264,8 @@ impl Simulation {
         };
         for &id in reached {
             let actor = &self.actors[&id];
-            if buff.disable_technology && self.researched.contains(&actor.placement.team) {
+            if buff.disable_technology && self.commander.researched.contains(&actor.placement.team)
+            {
                 return Err(Error::new(format!(
                     "{} reaches unit {id}, whose side researched a technology, and disabling \
                      a technology mid-fight is not measured",

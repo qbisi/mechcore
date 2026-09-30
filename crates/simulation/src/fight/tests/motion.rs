@@ -20,7 +20,7 @@ fn rvo_solves_a_collision_building_inside_the_influence_bound() {
     source.motion.next_target_z_q32 = target_position.1;
     source.motion.next_speed_q32 = source.stats.move_speed_q32();
     source.motion.next_max_speed_q32 = source.motion.next_speed_q32;
-    simulation.rvo_counter = 3;
+    simulation.rvo.counter = 3;
     simulation.step_rvo();
     assert!(simulation.actors[&1].motion.solver_speed_q32 > 0);
     assert_ne!(simulation.actors[&1].motion.solver_target_z_q32, 0);
@@ -75,7 +75,7 @@ fn rvo_q32_boundary_uses_raw_distance_not_snapshot_rounding() {
     source.motion.next_target_z_q32 = target_position.1;
     source.motion.next_speed_q32 = source.stats.move_speed_q32();
     source.motion.next_max_speed_q32 = source.motion.next_speed_q32;
-    simulation.rvo_counter = 3;
+    simulation.rvo.counter = 3;
     simulation.step_rvo();
     assert!(simulation.actors[&1].motion.solver_speed_q32 > 0);
     assert_ne!(simulation.actors[&1].motion.solver_target_z_q32, 0);
@@ -99,7 +99,7 @@ fn rvo_allows_a_coarse_tree_hit_outside_candidate_relative_travel() {
     let source = simulation.actors.get_mut(&1).unwrap();
     source.skill.lock_target = Some(unit_target(2));
     source.motion.state = MotionState::Moving;
-    simulation.rvo_counter = 3;
+    simulation.rvo.counter = 3;
     simulation.step_rvo();
 }
 
@@ -135,7 +135,7 @@ fn zero_published_speed_still_snaps_a_tolerance_equal_rvo_delta() {
     actor.motion.solver_target_x_q32 = 1_717_060_204_994;
     actor.motion.solver_target_z_q32 = 1_696_431_970_300;
     actor.motion.solver_speed_q32 = 0;
-    simulation.rvo_counter = 3;
+    simulation.rvo.counter = 3;
 
     simulation.step_rvo();
 
@@ -159,7 +159,7 @@ fn stopped_snap_reset_expires_on_a_moving_tick_before_the_rvo_boundary() {
     actor.motion.published_target_x_q32 = actor.x_q32;
     actor.motion.published_target_z_q32 = actor.z_q32;
     actor.motion.published_speed_q32 = 0;
-    simulation.rvo_counter = 1;
+    simulation.rvo.counter = 1;
 
     simulation.step_actor_rvo_position(1);
 

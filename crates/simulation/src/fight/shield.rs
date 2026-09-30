@@ -31,11 +31,43 @@ pub(in crate::fight) struct EnergyShield {
     source_kind: ShieldSourceKind,
 }
 
+/// `AdvancedEnergyShieldSystem`: every battlefield shield standing, and what
+/// the tick did to them, which the recording reads at the tick's end.
+pub(in crate::fight) struct ShieldSystem {
+    /// Every battlefield shield still standing, each side's in its active
+    /// order.
+    pub(in crate::fight) standing: Vec<EnergyShield>,
+    /// The `shield_destroyed` events of the tick, which the recording reads
+    /// off the shields standing at its end, after everything else.
+    pub(in crate::fight) destroyed: Vec<Event>,
+    /// The `shield_created` events of the tick, which the recording reads
+    /// off the shields standing at its end, before the destroyed.
+    pub(in crate::fight) created: Vec<Event>,
+    /// The identity the next shield made in the fight takes.
+    pub(in crate::fight) next_id: u64,
+    /// The shields broken this tick, which a skill firing at one still aims
+    /// at until the tick is over.
+    pub(in crate::fight) broken: Vec<EnergyShield>,
+}
+
+impl ShieldSystem {
+    /// The shields a layout stands, before the first tick.
+    pub(in crate::fight) fn new(placed: &[ShieldPlacement]) -> Self {
+        Self {
+            standing: initialize_shields(placed),
+            destroyed: Vec::new(),
+            created: Vec::new(),
+            next_id: u64::try_from(placed.len()).expect("shield count fits u64") + 1,
+            broken: Vec::new(),
+        }
+    }
+}
+
 /// Every shield both sides release, each side's in its active order:
 /// `GroupAdvancedEnergyShieldManager.OnFightStart` sorts a side's shields by
 /// `CompareEnergyShield`, their centre's x, then its z, then their energy and
 /// radius. They take their identities in that order, side by side.
-pub(in crate::fight) fn initialize_shields(placed: &[ShieldPlacement]) -> Vec<EnergyShield> {
+fn initialize_shields(placed: &[ShieldPlacement]) -> Vec<EnergyShield> {
     let mut shields = placed
         .iter()
         .map(|shield| EnergyShield {
@@ -88,7 +120,8 @@ impl Simulation {
     /// Every standing shield as the snapshot holds it.
     pub(in crate::fight) fn shield_states(&self) -> Vec<ShieldState> {
         let mut order = BTreeMap::<u32, u32>::new();
-        self.shields
+        self.shield
+            .standing
             .iter()
             .map(|shield| {
                 let active_order = order.entry(shield.team).or_insert(0);
@@ -128,8 +161,8 @@ impl Simulation {
         radius_q32: i64,
         energy: i64,
     ) {
-        let id = self.next_shield_id;
-        self.next_shield_id += 1;
+        let id = self.shield.next_id;
+        self.shield.next_id += 1;
         let shield = EnergyShield {
             id,
             team,
@@ -140,7 +173,7 @@ impl Simulation {
             max_energy: energy,
             source_kind: ShieldSourceKind::CommanderSkill,
         };
-        self.created_shields.push(event(
+        self.shield.created.push(event(
             Some(shield.object_ref()),
             None,
             None,
@@ -156,11 +189,12 @@ impl Simulation {
             },
         ));
         let after = self
-            .shields
+            .shield
+            .standing
             .iter()
             .rposition(|standing| standing.team <= team)
             .map_or(0, |index| index + 1);
-        self.shields.insert(after, shield);
+        self.shield.standing.insert(after, shield);
     }
 
     /// Every shield of the other side that holds the point, a projectile's
@@ -172,7 +206,8 @@ impl Simulation {
         y_q32: i64,
         z_q32: i64,
     ) -> Vec<u64> {
-        self.shields
+        self.shield
+            .standing
             .iter()
             .filter(|shield| shield.team != team && shield.contains(x_q32, y_q32, z_q32))
             .map(|shield| shield.id)
@@ -185,7 +220,8 @@ impl Simulation {
     pub(in crate::fight) fn shield_around(&self, target: FightActorRef) -> Option<u64> {
         let team = self.fight_actor(target)?.team;
         let (x_q32, y_q32, z_q32) = self.position_3d(target)?;
-        self.shields
+        self.shield
+            .standing
             .iter()
             .find(|shield| shield.team == team && shield.contains(x_q32, y_q32, z_q32))
             .map(|shield| shield.id)
@@ -194,7 +230,10 @@ impl Simulation {
     /// Whether a shield holds an actor's centre.
     pub(in crate::fight) fn shield_holds(&self, shield_id: u64, actor: FightActorRef) -> bool {
         let (Some(shield), Some((x_q32, y_q32, z_q32))) = (
-            self.shields.iter().find(|shield| shield.id == shield_id),
+            self.shield
+                .standing
+                .iter()
+                .find(|shield| shield.id == shield_id),
             self.position_3d(actor),
         ) else {
             return false;
@@ -213,11 +252,12 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<i64> {
         let index = self
-            .shields
+            .shield
+            .standing
             .iter()
             .position(|shield| shield.id == shield_id)
             .ok_or_else(|| Error::new("a hit shield is absent"))?;
-        let shield = &mut self.shields[index];
+        let shield = &mut self.shield.standing[index];
         let taken = hit.amount.min(shield.energy).max(0);
         shield.energy -= taken;
         events.push(event(
@@ -231,9 +271,9 @@ impl Simulation {
             },
         ));
         if shield.energy <= 0 {
-            let shield = self.shields.remove(index);
-            self.broken_shields.push(shield.clone());
-            self.destroyed_shields.push(event(
+            let shield = self.shield.standing.remove(index);
+            self.shield.broken.push(shield.clone());
+            self.shield.destroyed.push(event(
                 Some(shield.object_ref()),
                 None,
                 None,
@@ -264,7 +304,8 @@ impl Simulation {
         {
             return None;
         }
-        self.shields
+        self.shield
+            .standing
             .iter()
             .find(|shield| {
                 shield.team != projectile.team
@@ -298,7 +339,8 @@ impl Simulation {
         let (target_x, target_y, target_z) = self.position_3d(target)?;
         let mut best: Option<(u64, i64)> = None;
         for shield in self
-            .shields
+            .shield
+            .standing
             .iter()
             .filter(|shield| shield.team == target_actor.team)
         {
@@ -372,9 +414,10 @@ impl Simulation {
         // next check: the Vortex whose blow breaks one reads attacking on
         // its lock that tick, and loses it the next.
         if !self
-            .shields
+            .shield
+            .standing
             .iter()
-            .chain(&self.broken_shields)
+            .chain(&self.shield.broken)
             .any(|shield| shield.id == shield_id)
         {
             return None;
@@ -394,7 +437,8 @@ impl Simulation {
         last: (i64, i64, i64),
     ) -> Option<(u64, (i64, i64, i64))> {
         let shield = self
-            .shields
+            .shield
+            .standing
             .iter()
             .filter(|shield| shield.contains(now.0, now.1, now.2))
             .min_by_key(|shield| {
@@ -423,9 +467,10 @@ impl Simulation {
         outside: (i64, i64, i64),
     ) -> (i64, i64, i64) {
         let Some(shield) = self
-            .shields
+            .shield
+            .standing
             .iter()
-            .chain(&self.broken_shields)
+            .chain(&self.shield.broken)
             .find(|shield| shield.id == shield_id)
         else {
             return inside;

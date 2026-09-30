@@ -20,6 +20,17 @@ use crate::layout::Summon;
 /// `SupportUnitCreator.APPEAR_DURATION`, one second, in ticks.
 const APPEAR_TICKS: u64 = 20;
 
+/// `SupportUnitSystem`'s creators and `SummonSystem`'s summons still
+/// appearing.
+#[derive(Default)]
+pub(in crate::fight) struct SupportUnitSystem {
+    /// Each side's `SupportUnitCreator`s still creating or alive.
+    pub(in crate::fight) creators: Vec<Creator>,
+    /// The summons created and not yet let into the fight, in the order they
+    /// were created.
+    pub(in crate::fight) appearing: Vec<Appearing>,
+}
+
 /// One `SupportUnitCreator` still creating or still alive.
 #[derive(Debug, Clone)]
 pub(in crate::fight) struct Creator {
@@ -62,13 +73,17 @@ impl Creator {
 impl Simulation {
     /// The summons still appearing, in the order they were made.
     pub(in crate::fight) fn appearing_actors(&self) -> impl Iterator<Item = &Actor> {
-        self.appearing.iter().map(|appearing| &appearing.actor)
+        self.support
+            .appearing
+            .iter()
+            .map(|appearing| &appearing.actor)
     }
 
     /// `SummonSystem.HaveProcessingMech`: whether a summon of the side is still
     /// appearing.
     pub(in crate::fight) fn appearing_on(&self, team: u32) -> bool {
-        self.appearing
+        self.support
+            .appearing
             .iter()
             .any(|appearing| appearing.actor.placement.team == team)
     }
@@ -82,14 +97,14 @@ impl Simulation {
     ) -> Result<()> {
         let tick = step + 1;
         for team in [0_u32, 1] {
-            let mut index = self.creators.len();
+            let mut index = self.support.creators.len();
             while index > 0 {
                 index -= 1;
-                if self.creators[index].team != team {
+                if self.support.creators[index].team != team {
                     continue;
                 }
                 let batch = {
-                    let creator = &mut self.creators[index];
+                    let creator = &mut self.support.creators[index];
                     creator.updates += 1;
                     let mut batch = 0;
                     if creator.created < creator.summon.count {
@@ -105,12 +120,12 @@ impl Simulation {
                     }
                     batch
                 };
-                let creator = self.creators[index].clone();
+                let creator = self.support.creators[index].clone();
                 for _ in 0..batch {
                     self.create_summon(&creator, tick, events)?;
                 }
                 if creator.updates >= creator.summon.updates {
-                    self.creators.remove(index);
+                    self.support.creators.remove(index);
                 }
             }
         }
@@ -138,10 +153,10 @@ impl Simulation {
             }
         }
         let rules = creator.summon.rules.clone();
-        let unit_id = self.next_unit_id;
-        self.next_unit_id += 1;
-        let formation_id = self.next_formation_id;
-        self.next_formation_id += 1;
+        let unit_id = self.ids.next_unit;
+        self.ids.next_unit += 1;
+        let formation_id = self.ids.next_formation;
+        self.ids.next_formation += 1;
         let placement = Placement {
             team,
             unit_id,
@@ -177,7 +192,7 @@ impl Simulation {
                 position,
             },
         ));
-        self.appearing.push(Appearing {
+        self.support.appearing.push(Appearing {
             actor,
             joins_on: tick + APPEAR_TICKS,
             drop_damage: creator.summon.drop_damage,
@@ -199,6 +214,7 @@ impl Simulation {
             actor.motion.rvo_fresh = false;
         }
         while self
+            .support
             .appearing
             .first()
             .is_some_and(|appearing| appearing.joins_on <= tick)
@@ -207,7 +223,7 @@ impl Simulation {
                 mut actor,
                 drop_damage,
                 ..
-            } = self.appearing.remove(0);
+            } = self.support.appearing.remove(0);
             // Joining makes its movement agent afresh, and a new agent's
             // position reads zero in the first tree built after it:
             // Crawlers that surfaced overlapping stand still through that

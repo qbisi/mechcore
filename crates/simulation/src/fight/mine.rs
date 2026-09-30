@@ -126,7 +126,7 @@ impl Simulation {
             ),
             FightActorRef::Building(id) => (ObjectKind::Building, id, 0),
         };
-        let projectile_id = self.identities.allocate_object(ObjectKind::Projectile)?.id;
+        let projectile_id = self.ids.objects.allocate_object(ObjectKind::Projectile)?.id;
         let projectile = Projectile {
             id: projectile_id,
             team: mine.team,
@@ -160,7 +160,7 @@ impl Simulation {
             spawn_shields: Vec::new(),
             absorbed_by: None,
         };
-        if !self.shields.is_empty() {
+        if !self.shield.standing.is_empty() {
             return Err(Error::new(
                 "a missile fires in a fight with a shield, and what a shield does to a \
                  missile's projectile is not measured",

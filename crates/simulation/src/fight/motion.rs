@@ -10,9 +10,54 @@ pub(in crate::fight) struct RvoProfile {
     pub(in crate::fight) priority_q32: i64,
 }
 
+/// The RVO simulator's own state, and the obstacles it holds besides the
+/// units: `RVOSimulatorFixed` and the colliders the buildings activate.
+pub(in crate::fight) struct RvoState {
+    /// The ticks since the last quadtree boundary.
+    pub(in crate::fight) counter: u8,
+    // Native Agent::.ctor stores its initial position in the public backing
+    // buffer. The internal position read by the first BuildQuadtree remains
+    // zero until the subsequent BufferSwitch.
+    pub(in crate::fight) first_tree_pending: bool,
+    pub(in crate::fight) quadtree_capacity: rvo::QuadtreeCapacity,
+    /// The RVO collider layer of every construction, by building.
+    ///
+    /// A construction is an obstacle only to the other side: the wall's own
+    /// description says it sinks into the ground for a friendly unit, and a
+    /// Crawler of the side that placed it walks through a block. To the other
+    /// side it is an immovable agent on its `pathfinding_collider_priority`
+    /// layer with its own box for a radius — a Steel Ball of `wall-laser.yaml`
+    /// overlapping block 3 is pushed off it as that agent pushes it, tick for
+    /// tick, and every other wall fight is unchanged by it.
+    pub(in crate::fight) construction_colliders: BTreeMap<u64, i32>,
+    /// The constructions their own side passes through
+    /// (`FightConstruction.IsEnableBlock`); a turret is not one.
+    pub(in crate::fight) passable_constructions: BTreeSet<u64>,
+    /// The map's neutral crystals that take part in movement, in the order
+    /// the map lists them, which is the order they enter the RVO tree after
+    /// the towers.
+    pub(in crate::fight) map_crystals: Vec<MapCrystal>,
+}
+
+impl RvoState {
+    pub(in crate::fight) fn new(
+        construction_colliders: BTreeMap<u64, i32>,
+        passable_constructions: BTreeSet<u64>,
+        map_crystals: Vec<MapCrystal>,
+    ) -> Self {
+        Self {
+            counter: 0,
+            first_tree_pending: true,
+            quadtree_capacity: rvo::QuadtreeCapacity::default(),
+            construction_colliders,
+            passable_constructions,
+            map_crystals,
+        }
+    }
+}
+
 /// `MotionController`: what the body does — its state, where it has been
 /// asked to go and how fast, and what the RVO solver made of that.
-
 #[derive(Debug, Clone)]
 pub(in crate::fight) struct Motion {
     pub(in crate::fight) rvo_tree_x_q32: i64,
@@ -187,7 +232,7 @@ pub(in crate::fight) fn clamp_magnitude_q32_raw(dx: i64, dz: i64, maximum: i64) 
 
 impl Simulation {
     pub(in crate::fight) fn step_actor_rvo_position(&mut self, actor_id: u64) {
-        let rvo_boundary_due = self.rvo_counter == 3;
+        let rvo_boundary_due = self.rvo.counter == 3;
         let changed = {
             let actor = self
                 .actors
@@ -253,12 +298,12 @@ impl Simulation {
 
     #[allow(clippy::too_many_lines)]
     pub(in crate::fight) fn step_rvo(&mut self) {
-        self.rvo_counter += 1;
-        if self.rvo_counter < 4 {
+        self.rvo.counter += 1;
+        if self.rvo.counter < 4 {
             return;
         }
-        self.rvo_counter = 0;
-        let first_tree = self.rvo_first_tree_pending;
+        self.rvo.counter = 0;
+        let first_tree = self.rvo.first_tree_pending;
         for actor in self.actors.values_mut().filter(|actor| actor.alive()) {
             if actor.motion.rvo_stopped_snap_since_boundary
                 && actor.motion.state == MotionState::Moving
@@ -317,6 +362,7 @@ impl Simulation {
         };
         let building_agent = |building: &BuildingState| {
             let construction = self
+                .rvo
                 .construction_colliders
                 .get(&building.building_id)
                 .copied();
@@ -338,7 +384,9 @@ impl Simulation {
                 // `RVOControllerFixed.RefreshGroup` lets a construction's own
                 // side through when its row answers `IsEnableBlock`: a wall's
                 // block, not a turret. An interceptor is no construction.
-                self.passable_constructions.contains(&building.building_id),
+                self.rvo
+                    .passable_constructions
+                    .contains(&building.building_id),
             ))
         };
         // Each side's buildings, its towers and then its constructions, side
@@ -357,13 +405,14 @@ impl Simulation {
                 .iter()
                 .filter(|building| building.team_id == team)
                 .partition(|building| {
-                    self.construction_colliders
+                    self.rvo
+                        .construction_colliders
                         .contains_key(&building.building_id)
                 });
             agents.extend(towers.into_iter().filter_map(building_agent));
             agents.extend(constructions.into_iter().filter_map(building_agent));
         }
-        for (index, crystal) in self.map_crystals.iter().enumerate() {
+        for (index, crystal) in self.rvo.map_crystals.iter().enumerate() {
             let (layer, collides_with) = immovable_rvo_collision_masks(crystal.collider_priority);
             agents.push(immovable(
                 RvoAgentKey::MapBuilding(index),
@@ -438,8 +487,8 @@ impl Simulation {
 
         let inverse_delta_time = q32_div(Q32_ONE, NATIVE_LOGIC_DELTA_Q32.saturating_mul(4));
         let solutions =
-            super::rvo::solve_agents(&agents, inverse_delta_time, &mut self.rvo_quadtree_capacity);
-        self.rvo_first_tree_pending = false;
+            super::rvo::solve_agents(&agents, inverse_delta_time, &mut self.rvo.quadtree_capacity);
+        self.rvo.first_tree_pending = false;
         for (&actor_id, actor) in self
             .actors
             .iter_mut()
