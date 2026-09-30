@@ -59,11 +59,19 @@ impl RvoState {
 /// `MotionController`: what the body does — its state, where it has been
 /// asked to go and how fast, and what the RVO solver made of that.
 #[derive(Debug, Clone)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "the motion mirrors the native agent's independent state flags"
+)]
 pub(in crate::fight) struct Motion {
     pub(in crate::fight) rvo_tree_x_q32: i64,
     pub(in crate::fight) rvo_tree_z_q32: i64,
     /// Whether its agent was made afresh since the last solve.
     pub(in crate::fight) rvo_fresh: bool,
+    /// Whether its agent was made since the last tree was built: a new
+    /// agent's first tree reads its position as zero
+    /// (`docs/spec/simulation/rvo.md`).
+    pub(in crate::fight) rvo_new_agent: bool,
     pub(in crate::fight) current_velocity_x_q32: i64,
     pub(in crate::fight) current_velocity_z_q32: i64,
     pub(in crate::fight) next_target_x_q32: i64,
@@ -460,7 +468,7 @@ impl Simulation {
                 group: i32::try_from(actor.placement.team).unwrap_or(i32::MAX),
                 passable_by_own_group: false,
                 locked: appearing,
-                tree_position: if first_tree {
+                tree_position: if first_tree || actor.motion.rvo_new_agent {
                     FixedVec2::ZERO
                 } else {
                     rvo_position(actor.motion.rvo_tree_x_q32, actor.motion.rvo_tree_z_q32)
@@ -494,6 +502,7 @@ impl Simulation {
             .iter_mut()
             .filter(|(_, actor)| actor.alive() && !actor.travelling)
         {
+            actor.motion.rvo_new_agent = false;
             if actor.motion.rvo_fresh {
                 actor.motion.rvo_tree_x_q32 = actor.x_q32;
                 actor.motion.rvo_tree_z_q32 = actor.z_q32;

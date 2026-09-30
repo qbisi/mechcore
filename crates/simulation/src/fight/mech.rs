@@ -84,6 +84,7 @@ impl Actor {
                 rvo_tree_x_q32: x_q32,
                 rvo_tree_z_q32: z_q32,
                 rvo_fresh: false,
+                rvo_new_agent: false,
                 current_velocity_x_q32: 0,
                 current_velocity_z_q32: 0,
                 next_target_x_q32: x_q32,

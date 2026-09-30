@@ -167,6 +167,7 @@ impl Simulation {
                 .get_mut(&unit_id)
                 .expect("a travelling unit is an actor");
             actor.travelling = false;
+            actor.motion.rvo_new_agent = true;
             actor.rvo_max_speed_q32 = actor.stats.move_speed_q32();
             actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
             actor.motion.rvo_tree_x_q32 = actor.x_q32;
