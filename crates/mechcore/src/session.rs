@@ -292,6 +292,13 @@ impl Session {
         seed: Option<i32>,
     ) -> Result<Value, String> {
         let plan = mechcore_document::compile(&layout)?;
+        if plan.blue.legacy_unit > 0 || plan.red.legacy_unit > 0 {
+            return Err(
+                "apply_layout adds every unit during the layout's round, so a layout with \
+                 legacy units is fought from its replay: convert --to mcfr --backend game"
+                    .to_owned(),
+            );
+        }
         if plan.round > mechcore_protocol::MAX_STAGED_ROUND {
             return Err(format!(
                 "apply_layout advances through every earlier round inside one timeout budget \

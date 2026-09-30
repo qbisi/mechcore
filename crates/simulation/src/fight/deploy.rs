@@ -735,6 +735,71 @@ impl Simulation {
     }
 }
 
+impl Simulation {
+    /// `TerritoryManager.RefreshConstructionDirection` as the fight starts:
+    /// `UnitDirectionCalculator.Calculate` turns each construction that fires
+    /// onto the nearest of what it could fire at among the other side's
+    /// towers and its legacy units. A unit that joined its side during the
+    /// round is not among them, so where the other side has no legacy unit a
+    /// turret faces a tower.
+    pub(in crate::fight) fn face_constructions_at_fight_start(
+        &mut self,
+        legacy_units: &BTreeMap<u32, i32>,
+    ) {
+        let ids = self
+            .constructions
+            .iter()
+            .filter(|(_, construction)| construction.searches)
+            .map(|(&id, _)| id)
+            .collect::<Vec<_>>();
+        for id in ids {
+            let construction = &self.constructions[&id];
+            let (x_q32, z_q32, team) = (construction.x_q32, construction.z_q32, construction.team);
+            let accepts = |domain| construction.attack.accepts(domain);
+            let distance = |tx: i64, tz: i64| {
+                let dx = i128::from(tx.saturating_sub(x_q32));
+                let dz = i128::from(tz.saturating_sub(z_q32));
+                dx * dx + dz * dz
+            };
+            let mut nearest: Option<(i128, i64, i64)> = None;
+            let mut consider = |tx: i64, tz: i64| {
+                let d = distance(tx, tz);
+                if nearest.is_none_or(|(best, _, _)| d < best) {
+                    nearest = Some((d, tx, tz));
+                }
+            };
+            for building in &self.buildings {
+                if building.team_id != team
+                    && self.is_tower(FightActorRef::Building(building.building_id))
+                    && building_alive(building)
+                    && accepts(UnitDomain::Ground)
+                {
+                    consider(building.position.x, building.position.z);
+                }
+            }
+            for actor in self.actors.values() {
+                let legacy = legacy_units
+                    .get(&actor.placement.team)
+                    .is_some_and(|&legacy_index| actor.placement.formation_index < legacy_index);
+                if actor.placement.team != team
+                    && legacy
+                    && actor.alive()
+                    && accepts(actor.rules.domain)
+                {
+                    consider(actor.x_q32, actor.z_q32);
+                }
+            }
+            let Some((_, tx, tz)) = nearest else {
+                continue;
+            };
+            let bearing =
+                direction_degrees_q32_raw(tx.saturating_sub(x_q32), tz.saturating_sub(z_q32));
+            self.skill_mut(FightActorRef::Building(id))
+                .turn_weapons_towards(bearing, 360_i64 << 32);
+        }
+    }
+}
+
 /// The order a fight updates its deployed units in: each side's units by
 /// `FightUtility.PositionComparer` on where they spawned, world `z` unless
 /// `FPoint`'s tolerant inequality finds two within 43 raw of each other, and

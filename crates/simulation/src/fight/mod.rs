@@ -407,6 +407,7 @@ impl Simulation {
         simulation.seed_statistics(&construction_groups);
         simulation.seed_experience()?;
         simulation.deploy_attack_intervals(layout.round)?;
+        simulation.face_constructions_at_fight_start(&layout.legacy_units);
         Ok(simulation)
     }
 

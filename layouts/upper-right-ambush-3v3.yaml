@@ -2,6 +2,7 @@ kind: layout
 round: 3
 
 blue:
+  legacy_index: 3
   units:
     - name: crawler
       index: 0

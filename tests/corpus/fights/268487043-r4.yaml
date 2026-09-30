@@ -17,6 +17,7 @@ blue:
   techs:
     tarantula: [range_enhancement]
   blueprints: [attack_enhancement, defense_enhancement]
+  legacy_index: 14
   units:
   - {name: void_eye, index: 0, position: {x: 140, y: -80}, level: 2, exp: 0/16/1465}
   - {name: void_eye, index: 1, position: {x: 230, y: -80}, level: 2, exp: 0/28/1465}
@@ -41,6 +42,7 @@ red:
   techs:
     vulcan: [range_enhancement]
   blueprints: [attack_enhancement]
+  legacy_index: 13
   units:
   - {name: void_eye, index: 0, position: {x: 0, y: -170}, exp: 318/433/650}
   - {name: void_eye, index: 2, position: {x: -60, y: -170}, exp: 128/142/650}

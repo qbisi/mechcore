@@ -14,6 +14,7 @@ hash: {profile: mcfr-content-0.7.0, result: ba53f80b59eb763e559ddcd1c4e0f9108db3
 blue:
   core_damage: 680
   officers: [rhino_specialist, improved_phoenix]
+  legacy_index: 7
   units:
   - {name: marksman, index: 0, position: {x: 100, y: -170}, exp: 193/357/650}
   - {name: marksman, index: 1, position: {x: -100, y: -170}, exp: 165/343/650}
@@ -29,6 +30,7 @@ blue:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
   officers: [giant_specialist]
+  legacy_index: 7
   units:
   - {name: marksman, index: 0, position: {x: -60, y: -190}, exp: 341/554/650}
   - {name: marksman, index: 1, position: {x: 60, y: -190}, exp: 352/639/650}
