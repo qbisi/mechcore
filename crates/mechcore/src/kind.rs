@@ -169,6 +169,7 @@ impl Kind {
             Self::Grbr => &[
                 (Self::Match, Conversion::Rewrite),
                 (Self::Mcfr, Conversion::Computation),
+                (Self::Fight, Conversion::Computation),
             ],
             // What a recording holds of its fight, written onto the layout it
             // embeds: read, not computed.

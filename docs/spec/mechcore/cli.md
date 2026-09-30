@@ -96,7 +96,7 @@ refused rather than guessed at.
 | `state` | — | — | — | — | — |
 | `action` | — | — | — | — | — |
 | `mcfr` | yes | `fight` (rewrite) | yes | `outcome`, `stats`, `buildings` | — |
-| `grbr` | — | `match` (rewrite), `mcfr` (computation, the game alone) | — | — | — |
+| `grbr` | — | `match` (rewrite), `mcfr` and `fight` (computation, the game alone) | — | — | — |
 
 A state and an action are read inside a match, which is what verifies them.
 `schema` names a
@@ -282,14 +282,16 @@ defines.
 with the seed the document states, which is why it takes no `--seed`: the
 fight whose result the document is.
 
-**`grbr` to `mcfr`, a computation the game alone makes.** Fights one round of
-a replay, `--round <n>`. The simulator does not open a replay, so without
-`--backend game` it is refused.
+**`grbr` to `mcfr` or `fight`, a computation the game alone makes.** Fights
+one round of a replay, `--round <n>`. The simulator does not open a replay, so
+without `--backend game` it is refused.
 
 **Who fights a computation into a recording.** `--backend simulator`, the
 default, fights with the simulator this binary carries. `--backend game`
 fights in the game, headless, through the Adapter, and writes what the game
-recorded; it requires `<out>`, takes `--instrument a,b`, the instrument
+recorded, or with `--to fight` the fight document that recording states, read
+as [`mcfr` to `fight`](#convert) reads one, the recording itself not kept; it
+requires `<out>`, takes `--instrument a,b`, the instrument
 channels to record into the MCFR by name
 ([mcfr.md](../mcfr/mcfr.md#instrument-channels)), and, as a command, joins a
 game somebody started, with the `--level` the [`game`](#game) namespace's

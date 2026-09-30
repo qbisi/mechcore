@@ -329,9 +329,11 @@ def reason(output: str) -> str:
     return output.strip()[-400:]
 
 
-def record(mechcore: Path, steps: list[dict], folder: Path) -> dict[int, str]:
-    """Records the steps in one game session, resuming after a refused one.
-    Answers the refusal of each step that failed, by position."""
+def record(mechcore: Path, steps: list[dict], folder: Path, to: str = "mcfr") -> dict[int, str]:
+    """Records the steps in one game session, resuming after a refused one:
+    each replay's round converted `to` a recording, or to the fight document
+    the recording states. Answers the refusal of each step that failed, by
+    position."""
     failed: dict[int, str] = {}
     pending = [index for index, step in enumerate(steps) if not Path(step["output"]).exists()]
     while pending:
@@ -339,7 +341,7 @@ def record(mechcore: Path, steps: list[dict], folder: Path) -> dict[int, str]:
         # the Basic Multilingual Plane, which a player's name can hold.
         script = "game: launch\nheadless: true\n\nsteps:\n" + "".join(
             "  - convert:\n"
-            "      to: mcfr\n"
+            f"      to: {to}\n"
             "      backend: game\n"
             f"      input: {json.dumps(steps[index]['grbr'], ensure_ascii=False)}\n"
             f"      round: {steps[index]['round']}\n"
