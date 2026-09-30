@@ -12,6 +12,7 @@ use serde::Deserialize;
 use super::contraptions::{ShieldKind, ShieldPlacement};
 use crate::{
     Error, Result,
+    data::{Channel, Entry},
     rules::{UnitConfig, UnitConfigs},
 };
 
@@ -244,6 +245,11 @@ pub(crate) struct Summon {
     pub(crate) drop_damage: bool,
     /// How many updates the creator lives, the last of them included.
     pub(crate) updates: u64,
+    /// What its side's officers, technologies and Energy Tower skills write
+    /// onto it: `FightEffectSystem.AddEffect` looks up what the side
+    /// registered for its mech, as for a unit of its type deployed without
+    /// equipment. The layout fills it in, where the side is known.
+    pub(crate) corrections: Vec<(Channel, Entry)>,
 }
 
 /// The buff a released skill writes: the Electromagnetic Impact's slow.
@@ -569,6 +575,7 @@ fn summon(named: &str, row: &SupportSkillRow, units: &UnitConfigs) -> Result<Sum
             (i128::from(life) + i128::from(LOGIC_DELTA_RAW) - 1) / i128::from(LOGIC_DELTA_RAW),
         )
         .map_err(|_| Error::new(format!("{named} creates for no time")))?,
+        corrections: Vec::new(),
     })
 }
 
