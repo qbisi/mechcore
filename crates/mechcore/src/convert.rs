@@ -109,6 +109,9 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
         instrument,
     };
     if backend == Backend::Game {
+        if request.to == Kind::Fight {
+            return fought_in_game(&request, level, format);
+        }
         return crate::game::record_attached(recorded(&request)?, force, level);
     }
     let answer = convert(&request)?;
@@ -175,7 +178,7 @@ pub(crate) fn convert(request: &Request) -> Result<Answer, Failure> {
     let takes_seed = from == Kind::Layout;
     let takes_round = matches!(
         (from, request.to),
-        (Kind::Match, Kind::Layout) | (Kind::Grbr, Kind::Mcfr)
+        (Kind::Match, Kind::Layout) | (Kind::Grbr, Kind::Mcfr | Kind::Fight)
     );
     if request.seed.is_some() && !takes_seed {
         return Err(Failure::usage(format!(
@@ -225,7 +228,7 @@ pub(crate) fn convert(request: &Request) -> Result<Answer, Failure> {
         (Kind::Mcfr, Kind::Fight) => written(crate::outcome::fight(&request.input)?, output),
         (Kind::Layout, Kind::Fight) => fight(&request.input, request.seed, output),
         (Kind::Fight, Kind::Mcfr) => simulate_fight(&bytes, output),
-        (Kind::Grbr, Kind::Mcfr) => Err(Failure::refused(
+        (Kind::Grbr, Kind::Mcfr | Kind::Fight) => Err(Failure::refused(
             "the simulator does not open a replay; the game fights its round with \
              --backend game --round <n>",
         )),
@@ -567,8 +570,13 @@ pub(crate) fn recorded(request: &Request) -> Result<crate::game::Record, Failure
             from.name()
         )));
     }
+    // The Adapter opens a replay by the path it is given, from the game's
+    // own working directory.
+    let input = std::fs::canonicalize(&request.input).map_err(|error| {
+        Failure::refused(format!("cannot read {}: {error}", request.input.display()))
+    })?;
     crate::game::RecordRequest {
-        input: Some(request.input.clone()),
+        input: Some(input),
         output: Some(output),
         seed: request.seed,
         round: request.round,
@@ -576,6 +584,66 @@ pub(crate) fn recorded(request: &Request) -> Result<crate::game::Record, Failure
         ..crate::game::RecordRequest::default()
     }
     .decide()
+}
+
+/// A file fought in the game into the fight document its recording states,
+/// on a game this command attaches to.
+///
+/// # Errors
+///
+/// Returns `unavailable` when no game answers, and what [`game_fight`]
+/// refuses.
+fn fought_in_game(request: &Request, level: u8, format: Format) -> Outcome {
+    let value = crate::game::with_game(level, async |session| game_fight(request, session).await)??;
+    crate::cli::emit(&value, format)?;
+    Ok(Verdict::Yes)
+}
+
+/// A file fought in the game into the fight document its recording states:
+/// `convert --to mcfr --backend game` into a recording kept aside, then read
+/// as `mcfr` to `fight` reads one. A replay's round is the case only the game
+/// fights; a layout or a fight document is fought from its projection.
+///
+/// # Errors
+///
+/// Returns a usage failure without a destination, a refusal for one that
+/// exists without `force`, what the recording request refuses, and what the
+/// recording does not answer.
+pub(crate) async fn game_fight(
+    request: &Request,
+    session: &crate::session::Session,
+) -> Result<Value, Failure> {
+    let output = request
+        .output
+        .clone()
+        .ok_or_else(|| Failure::usage("the game's fight document goes to a file; name it"))?;
+    if output.exists() && !request.force {
+        return Err(Failure::refused(format!(
+            "{} exists; --force replaces it",
+            output.display()
+        )));
+    }
+    let beside = tempfile::Builder::new()
+        .tempdir()
+        .map_err(|error| Failure::failed(format!("cannot stage the recording: {error}")))?;
+    let staged = beside.path().join("recording.mcfr");
+    let record = recorded(&Request {
+        input: request.input.clone(),
+        to: Kind::Mcfr,
+        output: Some(staged.clone()),
+        seed: request.seed,
+        round: request.round,
+        force: true,
+        backend: request.backend,
+        instrument: request.instrument.clone(),
+    })?;
+    record.run(session, true).await?;
+    match written(crate::outcome::fight(&staged)?, Some(&output))? {
+        Answer::Report { value, .. } => Ok(value),
+        Answer::Document(_) => Err(Failure::failed(
+            "a fight written to a file answers a report",
+        )),
+    }
 }
 
 /// The fight document the simulator fights a layout into: `simulate` keeps

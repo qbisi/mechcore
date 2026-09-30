@@ -14,6 +14,7 @@ here make the corpus, fetch it, and read it:
 | `export-replay-corpus.py` | converts this checkout's version's replays into `work/match/<version>/`, writes each match back as a replay and converts it again, and fails on one that does not come back the same |
 | `verify-matches.py` | runs `mechcore verify` over those matches and adds up the transition coverage |
 | `match-replays.py` | fights every round of both replays, the corpus's and the one its match writes, in the game, and compares the two |
+| `corpus-fights.py` | fights every corpus round in the game into the fight document it records, under `work/fight/<version>/`, each a fixture candidate for `tests/corpus/`; it needs the game |
 | `fight-coverage.py` | how many recorded rounds the simulator fights, and what it names as missing for the rest, by refusal, by system and by layout field |
 | `distance-report.py` | the two reports above as one Markdown table, beside an earlier commit's |
 

@@ -1087,6 +1087,11 @@ async fn convert(
         backend: backend(fields.get("backend"))?,
         instrument: instrument(fields.get("instrument"))?,
     };
+    if request.backend == crate::convert::Backend::Game && request.to == crate::kind::Kind::Fight {
+        return crate::convert::game_fight(&request, session)
+            .await
+            .map_err(reason);
+    }
     if request.backend == crate::convert::Backend::Game {
         let record = crate::convert::recorded(&request).map_err(reason)?;
         return record.run(session, force).await.map_err(reason);
