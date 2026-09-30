@@ -633,21 +633,22 @@ mod tests {
     }
 }
 
-/// What fighting a match's rounds in order found: how many fights ended as
-/// the match says, and the first that did not, if one did.
+/// What fighting each of a match's rounds found, round by round.
+///
+/// Every round is fought from its own position, which the match states, so a
+/// round that does not agree leaves the rounds after it to be fought as well.
 #[derive(Debug, Default, Serialize)]
 pub struct Fights {
-    /// The rounds fought, in order, whose fight decided what the match says.
-    pub equal: Vec<i32>,
-    /// The first round that stopped the run.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub stopped: Option<Stopped>,
+    /// Each round the match states a position after, in order.
+    pub rounds: Vec<Fought>,
 }
 
-/// The round a run of fights stopped on, and why.
+/// One round's fight, and how it came out.
 #[derive(Debug, Serialize)]
 #[serde(tag = "result", rename_all = "snake_case")]
-pub enum Stopped {
+pub enum Fought {
+    /// The fight decided what the match says.
+    Equal { round: i32 },
     /// The round's deployment does not project onto a layout.
     NotProjected { round: i32, reason: String },
     /// The simulator refuses the round's layout.
@@ -661,17 +662,39 @@ pub enum Stopped {
     },
 }
 
-impl Fights {
-    /// Whether every round with a next position was fought and agrees.
+impl Fought {
     #[must_use]
-    pub const fn complete(&self) -> bool {
-        self.stopped.is_none()
+    pub const fn round(&self) -> i32 {
+        match self {
+            Self::Equal { round }
+            | Self::NotProjected { round, .. }
+            | Self::Unsupported { round, .. }
+            | Self::Differs { round, .. } => *round,
+        }
+    }
+
+    #[must_use]
+    pub const fn agrees(&self) -> bool {
+        matches!(self, Self::Equal { .. })
     }
 }
 
-/// Fights a match's rounds in order and holds each fight's result to the
-/// position the next round opens with, stopping at the first that is not
-/// fought or does not agree.
+impl Fights {
+    /// Whether every round with a next position was fought and agrees.
+    #[must_use]
+    pub fn complete(&self) -> bool {
+        self.rounds.iter().all(Fought::agrees)
+    }
+
+    /// The first round that was not fought or does not agree.
+    #[must_use]
+    pub fn first_stop(&self) -> Option<&Fought> {
+        self.rounds.iter().find(|round| !round.agrees())
+    }
+}
+
+/// Fights every one of a match's rounds and holds each fight's result to the
+/// position the next round opens with.
 ///
 /// A round is fought from the position its decisions deploy, projected as
 /// `convert --to layout` projects it; `fight` answers the fight document for
@@ -722,21 +745,21 @@ pub fn fights(
         let (position, layout) = match layout {
             Ok(projected) => projected,
             Err(reason) => {
-                found.stopped = Some(Stopped::NotProjected {
+                found.rounds.push(Fought::NotProjected {
                     round: turn.round,
                     reason,
                 });
-                return found;
+                continue;
             }
         };
         let fought = match fight(&layout) {
             Ok(fought) => fought,
             Err(reason) => {
-                found.stopped = Some(Stopped::Unsupported {
+                found.rounds.push(Fought::Unsupported {
                     round: turn.round,
                     reason,
                 });
-                return found;
+                continue;
             }
         };
         let mut differences = Vec::new();
@@ -754,14 +777,14 @@ pub fn fights(
                 player_stream(seeds[at], draws[at]),
             ));
         }
-        if !differences.is_empty() {
-            found.stopped = Some(Stopped::Differs {
+        found.rounds.push(if differences.is_empty() {
+            Fought::Equal { round: turn.round }
+        } else {
+            Fought::Differs {
                 round: turn.round,
                 differences,
-            });
-            return found;
-        }
-        found.equal.push(turn.round);
+            }
+        });
     }
     found
 }

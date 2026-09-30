@@ -62,9 +62,11 @@ jobs:
           mkdir -p distance
           python3 scripts/corpus/fight-coverage.py | tee distance/fight-coverage.txt
 
-      # Whether each match's rounds, fought in order, come out as the match
-      # says. The script exits 1 until every match does, which is the goal and
-      # not a failure of the run; 2 is finding nothing to read.
+      # Whether each round the simulator fights comes out as the match says,
+      # every round fought from the position its match states, and which do
+      # not: those are the divergences left to find. The script exits 1 until
+      # every match verifies, which is the goal and not a failure of the run;
+      # 2 is finding nothing to read.
       - name: Rounds fought as the match says
         run: |
           status=0

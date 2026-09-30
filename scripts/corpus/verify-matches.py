@@ -5,10 +5,13 @@ Runs ``mechcore verify`` over each match YAML in one batch. Each match's
 report holds the opening and reinforcement checks and the transition coverage
 that ``docs/spec/document/match.md`` defines: every leaf of each next opening
 is equal, unequal, unimplemented or decided by the fight. Each report also fights
-the match's rounds in order until the first the simulator refuses or whose
-result is not the next round's opening. This script adds the reports up by
-field group, lists every unequal leaf, and says for each match how many rounds
-it fought as the match says and where it stopped.
+every round of the match, each from the position the match states for it, and
+says whether the simulator refused it or whether its result is the next round's
+opening. This script adds the reports up by field group, lists every unequal
+leaf, says for each match how many rounds it fought as the match says before
+the first that is not and where that was, and lists every round the simulator
+fights whose result differs from the match, the divergences left to find, with
+whether `tests/corpus/fights/` pins the round already.
 The documents are the ones `scripts/corpus/export-replay-corpus.py` converts from the
 corpus's replays of this checkout's version.
 
@@ -89,11 +92,24 @@ def add(total: dict[str, int], counts: dict[str, Any]) -> None:
         total[name] = total.get(name, 0) + int(counts.get(name, 0))
 
 
+def match_id(path: Path) -> str:
+    """The replay's match number, the digits after `--` in the document's name."""
+    return path.stem.split("--", 1)[-1].split("_", 1)[0]
+
+
+def pinned(path: Path, round_number: int) -> bool:
+    """Whether `tests/corpus/fights/` pins the round, under the name its readme gives."""
+    root = Path(__file__).resolve().parents[2]
+    return (root / "tests/corpus/fights" / f"{match_id(path)}-r{round_number}.yaml").is_file()
+
+
 def summarize(matches: list[Path], reports: list[dict[str, Any]]) -> dict[str, Any]:
     total: dict[str, int] = {}
     fields: dict[str, dict[str, int]] = {}
     files = []
     unequal = []
+    equal = 0
+    differing = []
     for path, report in zip(matches, reports):
         coverage = report.get("coverage") or {}
         counts = coverage.get("total") or {}
@@ -102,15 +118,34 @@ def summarize(matches: list[Path], reports: list[dict[str, Any]]) -> dict[str, A
             add(fields.setdefault(group, {}), group_counts)
         for difference in coverage.get("unequal") or []:
             unequal.append({"match": path.name, **difference})
-        fights = report.get("fights") or {}
-        stopped = fights.get("stopped")
+        rounds = (report.get("fights") or {}).get("rounds") or []
+        stopped = next((fought for fought in rounds if fought["result"] != "equal"), None)
+        leading = next(
+            (at for at, fought in enumerate(rounds) if fought["result"] != "equal"), len(rounds)
+        )
+        for fought in rounds:
+            if fought["result"] == "equal":
+                equal += 1
+            elif fought["result"] == "differs":
+                differing.append(
+                    {
+                        "match": path.name,
+                        "id": match_id(path),
+                        "round": fought["round"],
+                        "pinned": pinned(path, fought["round"]),
+                        "differences": [
+                            f"{difference['side']} {difference['path']}"
+                            for difference in fought["differences"]
+                        ],
+                    }
+                )
         files.append(
             {
                 "match": path.name,
                 "valid": bool(report.get("valid")),
                 "error": report.get("error"),
                 **{name: int(counts.get(name, 0)) for name in CLASSES},
-                "fought": len(fights.get("equal") or []),
+                "fought": leading,
                 "stopped": f"{stopped['result']} r{stopped['round']}" if stopped else "",
             }
         )
@@ -128,6 +163,8 @@ def summarize(matches: list[Path], reports: list[dict[str, Any]]) -> dict[str, A
         "fields": dict(sorted(fields.items())),
         "files": files,
         "unequal": unequal,
+        "equal": equal,
+        "differing": differing,
     }
 
 
@@ -196,9 +233,25 @@ def print_summary(summary: dict[str, Any], limit: int) -> None:
             print(f"... {len(unequal) - len(shown)} more unequal leaves; --limit 0 lists all")
         print()
 
+    differing = summary["differing"]
+    fought = summary["equal"] + len(differing)
+    print("rounds the simulator fights whose result differs from the match")
+    if differing:
+        rows = [["match", "round", "pinned", "differences"]]
+        for found in differing:
+            leaves = found["differences"]
+            shown = ", ".join(leaves[:4]) + (f", +{len(leaves) - 4} more" if len(leaves) > 4 else "")
+            rows.append([found["id"], str(found["round"]), "yes" if found["pinned"] else "no", shown])
+        print(table(rows, {1}))
+    print()
+
     stops = ", ".join(f"{count} {result}" for result, count in summary["stops"].items())
     print(f"{summary['fought']} rounds fought as the match says before the first that is not"
           + (f"; stopped: {stops}" if stops else ""))
+    print(
+        f"{summary['equal']} of {fought} rounds the simulator fights come out as the match says;"
+        f" {len(differing)} differ"
+    )
     print(f"{summary['valid']}/{summary['matches']} matches verify")
 
 

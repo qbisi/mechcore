@@ -507,8 +507,9 @@ fn verify_match(
         .as_ref()
         .ok()
         .map(|(_, deal)| mechcore_document::project::every_round(economy, stated, deal));
-    // Each round's fight, in order, until the first the simulator does not
-    // fight or whose result is not the next round's opening.
+    // Every round's fight, each from the position the match states for it,
+    // so a round that does not agree does not keep the rounds after it from
+    // being fought.
     let fights = checked.as_ref().ok().map(|(_, deal)| {
         mechcore_document::coverage::fights(economy, stated, deal, |layout| {
             let yaml = mechcore_document::canonical_yaml(layout.clone())?;
@@ -526,15 +527,16 @@ fn verify_match(
             coverage.total.unequal, coverage.total.unimplemented
         )),
         Ok(_) => fights.as_ref().and_then(|fights| {
-            use mechcore_document::coverage::Stopped;
-            fights.stopped.as_ref().map(|stopped| match stopped {
-                Stopped::NotProjected { round, reason } => {
+            use mechcore_document::coverage::Fought;
+            fights.first_stop().map(|stopped| match stopped {
+                Fought::Equal { .. } => unreachable!("a round that agrees does not stop a match"),
+                Fought::NotProjected { round, reason } => {
                     format!("round {round} is not fought: {reason}")
                 }
-                Stopped::Unsupported { round, reason } => {
+                Fought::Unsupported { round, reason } => {
                     format!("the simulator does not fight round {round}: {reason}")
                 }
-                Stopped::Differs { round, differences } => format!(
+                Fought::Differs { round, differences } => format!(
                     "round {round}'s fight is not what the match says it decided: {}",
                     differences
                         .iter()
