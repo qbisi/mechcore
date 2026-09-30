@@ -83,6 +83,12 @@ on a branch of this repository. These rules hold whoever does it:
   from the simulator. A pin that moves is a finding to explain, not a number
   to edit. The repository keeps what reproduces a recording, the fixtures and
   scripts under `tests/<topic>/` and the hashes they pin, never the recording.
+- **The hash is the scorer, and the owner admits what it reads.** What the
+  MCFR content hash reads is listed in `crates/mcfr/hashed-content.txt` and
+  admitted by `docs/spec/mcfr/mcfr.md`'s rules. An agent adds instrument
+  channels on its own. A pull request that changes that file says which
+  admission condition each changed line meets, and the owner merges it; an
+  agent never sets it to auto-merge.
 - **Mirror the build.** Each new function mirrors a build method, and two
   functions mirroring one method are a divergence. What differs between two
   owners reaches shared code only through the interface the build uses

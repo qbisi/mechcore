@@ -16,6 +16,7 @@ pub const HASH_PROFILE: &str = "mcfr-content-0.7.0";
 /// says whether a recording is evidence of what the game does or a statement
 /// of what the simulator computed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum Producer {
     Game,
@@ -44,6 +45,7 @@ impl Producer {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Hashes {
     pub result_hash: String,
@@ -67,6 +69,7 @@ impl Hashes {
 /// `events` are the native events observed while advancing to this tick's
 /// `state`. MCFR begins at tick one; `S(0)` and `E(0)` are not stored.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct TickSlice {
     pub tick: u32,
@@ -76,12 +79,14 @@ pub struct TickSlice {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct TickHashes {
     pub tick_hash: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct DurableContext {
     pub logic_step: Rational,
@@ -109,6 +114,7 @@ impl DurableContext {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Rational {
     pub numerator: u32,
@@ -127,6 +133,7 @@ impl Rational {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct WorldSnapshot {
     #[serde(default)]
@@ -150,6 +157,7 @@ pub struct WorldSnapshot {
 /// A formation's experience, `MechTeam`'s own: what `ExpSystem` hands it for
 /// kills during the fight, and the bar it stops at.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct FormationState {
     pub formation_id: u64,
@@ -163,6 +171,7 @@ pub struct FormationState {
 
 /// Whose counters a row of the build's damage statistics is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum RecorderKind {
     /// A formation, `MechTeam`: every unit of it counts together.
@@ -179,6 +188,7 @@ pub enum RecorderKind {
 /// it inside the logic tick: what a formation or construction group dealt,
 /// killed and took in this fight.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct DamageStatistics {
     pub team_id: u32,
@@ -245,7 +255,7 @@ impl WorldSnapshot {
             }
         }
         for unit in &self.live_units {
-            if unit.status_mask & !0x0f != 0 {
+            if unit.status_mask >> STATUS_MASK_BITS.len() != 0 {
                 return Err(Error::invalid(format!(
                     "unit {} status_mask uses reserved bits",
                     unit.unit_id
@@ -462,6 +472,7 @@ impl WorldSnapshot {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum ObjectKind {
     Unit,
@@ -493,6 +504,7 @@ impl ObjectKind {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct ObjectRef {
     pub kind: ObjectKind,
@@ -603,6 +615,7 @@ impl IdentityAllocator {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct QVec3 {
     pub x: i64,
@@ -613,6 +626,7 @@ pub struct QVec3 {
 /// A vector on the ground plane, raw Q32.32: world `x` and `z`. Movement has
 /// no vertical part in this build.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct QPlanar {
     pub x: i64,
@@ -620,6 +634,7 @@ pub struct QPlanar {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct QPose {
     pub position: QVec3,
@@ -627,6 +642,7 @@ pub struct QPose {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum Domain {
     Ground,
@@ -634,6 +650,7 @@ pub enum Domain {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum MotionState {
     Idle,
@@ -646,6 +663,7 @@ pub enum MotionState {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum Visibility {
     Normal,
@@ -654,7 +672,16 @@ pub enum Visibility {
     Hide,
 }
 
+/// The bits of [`LiveUnitState::status_mask`], lowest first.
+pub const STATUS_MASK_BITS: [&str; 4] = [
+    "invincible",
+    "frozen",
+    "technology_disabled",
+    "recovery_disabled",
+];
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct LiveUnitState {
     pub unit_id: u64,
@@ -678,6 +705,7 @@ pub struct LiveUnitState {
     pub active: bool,
     pub targetable: bool,
     pub visibility: Visibility,
+    /// Native boolean state, bit `i` named by [`STATUS_MASK_BITS`]`[i]`.
     pub status_mask: u64,
     /// Every non-zero correction on the unit and its skills.
     #[serde(default)]
@@ -703,6 +731,7 @@ pub struct LiveUnitState {
 /// is why an interval is the build's own integer rather than the `FPoint`
 /// seconds its property answers.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct DerivedStats {
     /// `MoveSpeedProperty`, `FPoint` raw.
@@ -791,6 +820,7 @@ fn validate_initial_formation_order(snapshot: &WorldSnapshot) -> Result<()> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct PersonalShieldState {
     pub active: bool,
@@ -799,6 +829,7 @@ pub struct PersonalShieldState {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct WeaponAimState {
     pub skill_slot: u16,
@@ -811,6 +842,7 @@ pub struct WeaponAimState {
 
 /// Which native store a modifier lives in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum ModifierChannel {
     /// `BuffManager`'s aggregate getters over the unit's live buffs.
@@ -849,6 +881,7 @@ impl ModifierChannel {
 
 /// Which part of a field a modifier is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum ModifierPart {
     /// A signed value: an int, a fixed-point value, or a buff's signed sum.
@@ -865,6 +898,7 @@ pub enum ModifierPart {
 /// A unit's modifiers are a sparse list: what the build holds as zero is not
 /// written, so a field any content can set costs nothing where none sets it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Modifier {
     pub channel: ModifierChannel,
@@ -933,6 +967,7 @@ fn validate_modifiers(unit_id: u64, modifiers: &[Modifier]) -> Result<()> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct ProjectileState {
     pub projectile_id: u64,
@@ -950,6 +985,7 @@ pub struct ProjectileState {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct GaugeI32 {
     pub current: i32,
@@ -957,6 +993,7 @@ pub struct GaugeI32 {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct BuildingState {
     pub building_id: u64,
@@ -972,6 +1009,7 @@ pub struct BuildingState {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum ShieldSourceKind {
     Contraption,
@@ -981,6 +1019,7 @@ pub enum ShieldSourceKind {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum ShieldRoundPolicy {
     DestroyAtRoundEnd,
@@ -989,6 +1028,7 @@ pub enum ShieldRoundPolicy {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum ShieldDestroyedReason {
     EnergyDepleted,
@@ -999,6 +1039,7 @@ pub enum ShieldDestroyedReason {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum TerrainRemovedReason {
     TimeExpired,
@@ -1011,6 +1052,7 @@ pub enum TerrainRemovedReason {
 /// Why a buff left the actor it was on: the caller of
 /// `BuffManager.RemoveBuff(Buff)`, the one method a buff leaves through.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum BuffRemovedReason {
     /// Its time ran out, in `BuffManager.Update`.
@@ -1029,6 +1071,7 @@ pub enum BuffRemovedReason {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct ShieldState {
     pub shield_id: u64,
@@ -1046,6 +1089,7 @@ pub struct ShieldState {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum TerrainType {
     Fire,
@@ -1057,6 +1101,7 @@ pub enum TerrainType {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct TerrainGridState {
     pub origin_x: i64,
@@ -1067,6 +1112,7 @@ pub struct TerrainGridState {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct TerrainLogicLifetime {
     pub elapsed: i32,
@@ -1074,6 +1120,7 @@ pub struct TerrainLogicLifetime {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct TerrainApplicationState {
     pub unit_id: u64,
@@ -1082,6 +1129,7 @@ pub struct TerrainApplicationState {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct TerrainEffectClock {
     pub elapsed: i32,
@@ -1089,6 +1137,7 @@ pub struct TerrainEffectClock {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct TerrainState {
     pub terrain_id: u64,
@@ -1108,6 +1157,7 @@ pub struct TerrainState {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct TransitionEvents {
     #[serde(default)]
@@ -1115,6 +1165,7 @@ pub struct TransitionEvents {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Event {
     #[serde(default)]
@@ -1136,6 +1187,7 @@ impl Event {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum EventKind {
     ProjectileReleased,
@@ -1156,6 +1208,7 @@ pub enum EventKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum EventPayload {
     ProjectileReleased {

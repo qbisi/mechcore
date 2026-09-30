@@ -22,9 +22,9 @@ restated here. The operation that captures a recording is
 inside the file.
 
 One hash is specified, over everything the timeline holds. Two recordings are
-the same fight when every field of every tick agrees, so a field added to the
-format moves every pin: the hash never lets a difference go
-unseen to spare a re-record.
+the same fight when every field of every tick agrees: the hash never lets a
+difference go unseen to spare a re-record. What it reads is admitted field by
+field, under [Admission to the hash](#admission-to-the-hash).
 
 ## Container shape
 
@@ -996,6 +996,42 @@ profile and new domain strings, never an edit in place.
 first divergence from this hash. `diff` also says where two recordings
 differ field by field, which a hash cannot:
 [cli.md](../mechcore/cli.md#diff) defines its field groups.
+
+## Admission to the hash
+
+The hash is what a simulator is scored against, so what it reads is a decision
+of its own. `crates/mcfr/hashed-content.txt` lists every field, variant, enum
+value and `status_mask` bit that `S(t)` and `E(t)` carry, and a test holds the
+types to it: a change to what the hash reads is a change to that file.
+
+**What the hash reads only grows.** Every fight it has compared was compared
+on all of it, so taking a field out, or loosening what one means, weakens every
+comparison already made. Two changes are not removals: re-encoding the same
+information, when the old encoding and the new each determine the other, and
+correcting a field a producer read wrong.
+
+**A quantity enters when it meets all four conditions.**
+
+1. **It settles the fight or names a cause.** It feeds what a round settles:
+   core damage, the statistics, experience, a score. Or it names what caused a
+   change the timeline already records, such as the skill, projectile or
+   landing behind a damage, a buff or a new unit. A quantity that only helps
+   find where two fights part is an [instrument channel](#instrument-channels).
+2. **It is the game's own.** A producer reads it at a build member, as every
+   field above names one. A value computed from other recorded values is not
+   stored.
+3. **It is one value per fight, whoever writes it.** A recording made from a
+   replay and one made from its layout agree on it, and a simulator of the
+   same fight writes it too.
+4. **Its volume per tick is bounded** by a constant times the number of
+   entities.
+
+**What an admission moves.** A new event kind, enum value or `status_mask` bit
+appears only in the fights where it happens, and moves only their pins. A new
+field of a state object or of an event, or a new state collection, is written
+in every tick, null or empty where nothing has it, and moves every pin. A new
+value of a field already admitted, such as a modifier's `field` naming another
+native field, is not an admission.
 
 ## Physical encoding
 
