@@ -115,23 +115,35 @@ the construction's rotate speed times the tick, after the state has updated, so
 a tick's angle check sees the rotation of the tick before. Blue's weapon rests
 facing red's side and red's facing blue's, as a side's units face.
 
-## As the fight starts it faces the nearest legacy target
+## As the fight starts it faces the target its selector scores best
 
-As the fight starts, `TerritoryManager.RefreshConstructionDirection` sets each
-construction's rotation twice through `FightConstruction.UpdateRotation`: to
-its side's attack facing, `PlayerTerritory.GetAttackFacing`, and then to the
-direction `UnitDirectionCalculator.Calculate` finds, which is onto the nearest
-of the construction's targets. The targets are the other side's towers and
-those of its units the construction can fire at, so a ground turret leaves out
-an air unit, and only the side's legacy units: a unit that joined the side
-during the round, bought or taken as a reinforcement, is not among them,
-wherever it stands. A legacy unit a move took elsewhere this round is a target
-where it now stands. What a layout calls legacy is its `legacy_index`
-([layout.md](../spec/document/layout.md#legacy_index)). Where the other side
-has no legacy unit, as in the first round, the turret faces a tower. Neither
-call turns through `RotateTo` or `RotateWeaponTo`, so the weapon starts the
-fight facing the same way, and a lock the turret then finds may already be in
-its attack angle.
+As the fight starts, `BattleSystem.OnFightStart` turns each side's units and
+then, through `TerritoryManager.RefreshConstructionDirection`, each
+construction that does not block: `FightConstruction.UpdateRotation` sets it
+to its side's attack facing, `PlayerTerritory.GetAttackFacing`, and then to
+the direction `UnitDirectionCalculator.Calculate` finds. That gathers the
+other side's targets, has the construction's skill choose one of them with a
+`ScoreRatingTargetSelector`, the selector a search scores with
+([combat.md](combat.md)), and faces where the chosen target stands; with none
+chosen it keeps the attack facing. The score is taken from where the
+construction stands and points, which is the attack facing, so the target is
+the best scored, not the nearest: a turret faces a tower straight ahead rather
+than a unit whose centre is nearer but whose edge is not, or which stands off
+its line.
+
+The targets are the other side's towers, the constructions it could fire at,
+a turret but not a wall, and its old units, which a ground turret takes only
+on the ground. `OldMechTargetFilter` passes a unit only when
+`MechTeam.IsOldUnit`, which its round count makes true once the unit has
+opened a round: `UnitSystem.OnEnterDeployment` counts each unit on the board
+as a round opens, and a squad an officer delivers or a unit a snapshot
+restores is counted as it arrives. A unit bought or taken as a reinforcement
+during the round is not among them, wherever it stands, and in the first
+round no unit is. What a layout calls legacy is its `legacy_index`
+([layout.md](../spec/document/layout.md#legacy_index)). Neither call turns
+through `RotateTo` or `RotateWeaponTo`, so the weapon starts the fight facing
+the same way, and a lock the turret then finds may already be in its attack
+angle.
 
 ## Each shot draws its interval from the side's stream
 
@@ -234,10 +246,12 @@ content, as `tests/turret/fights/` replays them.
   measured edge to edge: `tests/turret/fights/`.
 - The weapon turns at the construction's rotate speed after the state has
   updated: `tests/turret/fights/`.
-- A turret starts the fight facing the nearest of the other side's towers and
-  legacy units, and the units that side bought this round are not among them:
-  `tests/corpus/fights/134270595-r3.yaml`. With no legacy unit it faces a
-  tower: `tests/turret/fights/`.
+- A turret starts the fight facing the best scored of the other side's
+  towers, turrets and old units, the units that side bought this round not
+  among them: `tests/corpus/fights/134270595-r3.yaml`, where red's faces a
+  blue unit, and `tests/corpus/fights/67158946-r3.yaml`, where blue's faces a
+  red tower although an old red unit's centre is nearer, and red's faces
+  blue's turret. With no old unit it faces a tower: `tests/turret/fights/`.
 - Each shot draws its interval from the owning side's stream, after every unit
   of the side, including the top bit of a power-of-two range:
   `tests/turret/fights/`.
@@ -264,12 +278,26 @@ content, as `tests/turret/fights/` replays them.
   run out: `SkillIdleState.TrySearchLockTarget`, `SkillIdleState.TryStartAttack`.
 - The weapon turns towards the lock after the state has updated:
   `FightSkill.Update`.
-- As the fight starts a construction is turned to its attack facing and then
-  towards the nearest of its targets, the towers and units of the other side
-  it can fire at: `TerritoryManager.RefreshConstructionDirection`,
+- As the fight starts each construction that does not block is turned to its
+  attack facing and then towards the target its skill's selector chooses
+  from the other side's, or kept at its attack facing without one:
+  `BattleSystem.OnFightStart`,
+  `TerritoryManager.RefreshConstructionDirection`,
   `FightConstruction.UpdateRotation`, `PlayerTerritory.GetAttackFacing`,
-  `UnitDirectionCalculator.Calculate`, `UnitDirectionCalculator.GetTargetsNormal`,
-  `TargetSelector.IsValidTarget`.
+  `UnitDirectionCalculator.Calculate`,
+  `UnitDirectionCalculator.CalculateMechDirection`,
+  `UnitDirectionCalculator.GetTargetsNormal`, `FightSkill.SelectTarget`,
+  `ScoreRatingTargetSelector.Select`.
+- The targets are the other side's fight groups' active actors that
+  `OldMechTargetFilter` and `AttackTargetFilter` pass: a unit only when
+  `MechTeam.IsOldUnit`, a construction only when it does not block, and each
+  only when the construction could fire at it: `GroupManager.GetOpponentGroups`,
+  `FightTeam.PrepareActors`, `OldMechTargetFilter.Check`,
+  `AttackTargetFilter.Check`, `FightCalculator.IsValidTarget`.
+- A unit's round count rises as each round opens, and as an officer's squad
+  or a snapshot's unit arrives: `UnitSystem.OnEnterDeployment`,
+  `MechTeam.AddRoundCount`, `UnitOfficerController.AddExtraUnit`,
+  `PlayerSnapshotController.ApplyUnitSnapshot`.
 - The attack angle is checked for a construction as for a unit:
   `SkillAttackAngleChecker.IsActorInAttackAngle`.
 - A dead lock is searched again inside the attack: `SkillAttackableChecker.Check`,
@@ -284,13 +312,16 @@ content, as `tests/turret/fights/` replays them.
 
 ### Not established
 
-- **What leaves a unit that joined during the round out of the targets as the
-  fight starts.** In every recording read, the units left out are those the
-  allocator named after the round opened, and the targets come from the other
-  side's fight groups, `FightCalculator.GetOpponentGroups`; which of the
-  build's fields makes the one follow the other is not read. That the target
-  is the nearest is recorded; the order `GetTargets` sorts in is not read.
-
+- **Which rotation the fight-start score is taken from.**
+  `ScoreRatingTargetSelector` reads it through the attacker's
+  `CalculateRotationData`, which is not read; the construction's weapon and
+  body both point at the attack facing then, and the recordings agree with
+  either.
+- **A construction whose attack facing is a quarter turn off its main
+  facing.** `UnitDirectionCalculator.GetTargets` then looks first in a defense
+  region, `GetTargetsInRegion`, which finds no tower. Every turret recorded
+  stands outside the defense areas, where the two agree, so it is not
+  implemented.
 - **A construction skill with a wind-up, a swing, a cooling, a burst or a
   scattered target.** The two turrets have none. A row that has one is refused
   by name.

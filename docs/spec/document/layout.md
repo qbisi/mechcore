@@ -538,8 +538,9 @@ officers' deliveries made. The first round carries nothing, so its
 dealt.
 
 A fight sees the difference once, as it starts: a construction that fires turns
-to the nearest of the other side's towers and legacy units
-([turrets](../../rules/turrets.md#as-the-fight-starts-it-faces-the-nearest-legacy-target)).
+to the best scored of the other side's targets, legacy units among them but
+never a unit that joined
+([turrets](../../rules/turrets.md#as-the-fight-starts-it-faces-the-target-its-selector-scores-best)).
 A unit reaches a flank during the round only by travelling there, so a unit
 that stands on a flank without travelling is legacy.
 

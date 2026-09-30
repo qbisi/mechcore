@@ -738,10 +738,11 @@ impl Simulation {
 impl Simulation {
     /// `TerritoryManager.RefreshConstructionDirection` as the fight starts:
     /// `UnitDirectionCalculator.Calculate` turns each construction that fires
-    /// onto the nearest of what it could fire at among the other side's
-    /// towers and its legacy units. A unit that joined its side during the
-    /// round is not among them, so where the other side has no legacy unit a
-    /// turret faces a tower.
+    /// onto the best of the targets it finds of the other side, scored as its
+    /// skill's selector scores them from where the construction stands and
+    /// points. It finds the other side's towers, the constructions a search
+    /// finds, and its legacy units; a unit that joined its side during the
+    /// round is not among them.
     pub(in crate::fight) fn face_constructions_at_fight_start(
         &mut self,
         legacy_units: &BTreeMap<u32, i32>,
@@ -753,47 +754,64 @@ impl Simulation {
             .map(|(&id, _)| id)
             .collect::<Vec<_>>();
         for id in ids {
-            let construction = &self.constructions[&id];
-            let (x_q32, z_q32, team) = (construction.x_q32, construction.z_q32, construction.team);
-            let accepts = |domain| construction.attack.accepts(domain);
-            let distance = |tx: i64, tz: i64| {
-                let dx = i128::from(tx.saturating_sub(x_q32));
-                let dz = i128::from(tz.saturating_sub(z_q32));
-                dx * dx + dz * dz
+            let Some(source) = self.attacker(FightActorRef::Building(id)) else {
+                continue;
             };
-            let mut nearest: Option<(i128, i64, i64)> = None;
-            let mut consider = |tx: i64, tz: i64| {
-                let d = distance(tx, tz);
-                if nearest.is_none_or(|(best, _, _)| d < best) {
-                    nearest = Some((d, tx, tz));
+            let mut best: Option<(i64, i64, i64)> = None;
+            let mut consider = |x_q32: i64, z_q32: i64, radius: i64| {
+                let Some(score) = normal_visible_full_rotation_target_score_q32(
+                    source.x_q32,
+                    source.z_q32,
+                    source.radius,
+                    source.query_rotation_q32,
+                    x_q32,
+                    z_q32,
+                    radius,
+                    source.attack.min_range(),
+                    source.attack_range,
+                    source.rotation_window_q32,
+                ) else {
+                    return;
+                };
+                if best.is_none_or(|(least, _, _)| score < least) {
+                    best = Some((score, x_q32, z_q32));
                 }
             };
             for building in &self.buildings {
-                if building.team_id != team
-                    && self.is_tower(FightActorRef::Building(building.building_id))
+                let found = self.is_tower(FightActorRef::Building(building.building_id))
+                    || (building.targetable
+                        && !self.unsearchable_buildings.contains(&building.building_id));
+                if building.team_id != source.team
+                    && found
                     && building_alive(building)
-                    && accepts(UnitDomain::Ground)
+                    && source.attack.accepts(UnitDomain::Ground)
                 {
-                    consider(building.position.x, building.position.z);
+                    consider(
+                        building.position.x,
+                        building.position.z,
+                        building_radius(building),
+                    );
                 }
             }
             for actor in self.actors.values() {
                 let legacy = legacy_units
                     .get(&actor.placement.team)
                     .is_some_and(|&legacy_index| actor.placement.formation_index < legacy_index);
-                if actor.placement.team != team
+                if actor.placement.team != source.team
                     && legacy
                     && actor.alive()
-                    && accepts(actor.rules.domain)
+                    && source.attack.accepts(actor.rules.domain)
                 {
-                    consider(actor.x_q32, actor.z_q32);
+                    consider(actor.x_q32, actor.z_q32, actor.rules.collision_radius());
                 }
             }
-            let Some((_, tx, tz)) = nearest else {
+            let Some((_, tx, tz)) = best else {
                 continue;
             };
-            let bearing =
-                direction_degrees_q32_raw(tx.saturating_sub(x_q32), tz.saturating_sub(z_q32));
+            let bearing = direction_degrees_q32_raw(
+                tx.saturating_sub(source.x_q32),
+                tz.saturating_sub(source.z_q32),
+            );
             self.skill_mut(FightActorRef::Building(id))
                 .turn_weapons_towards(bearing, 360_i64 << 32);
         }
