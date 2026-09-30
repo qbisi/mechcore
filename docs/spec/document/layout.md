@@ -537,6 +537,9 @@ officers' deliveries made. The first round carries nothing, so its
 `legacy_index` is `0`, although each side opens it with the squads it is
 dealt.
 
+A fight sees the difference once, as it starts: a construction that fires turns
+to the nearest of the other side's towers and legacy units
+([turrets](../../rules/turrets.md#as-the-fight-starts-it-faces-the-nearest-legacy-target)).
 A unit reaches a flank during the round only by travelling there, so a unit
 that stands on a flank without travelling is legacy.
 

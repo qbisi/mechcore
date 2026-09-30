@@ -77,6 +77,9 @@ pub(crate) struct CompiledLayout {
     /// The sides that researched a unit technology, whose units carry what an
     /// Electromagnetic Impact would disable.
     pub(crate) researched: BTreeSet<u32>,
+    /// Each side's `legacy_index`: a formation of a lower index is one the
+    /// side carried into the round.
+    pub(crate) legacy_units: BTreeMap<u32, i32>,
     /// Each side's `superDeploymentTimeChangeRate`, Q32.32, where an officer
     /// sets one.
     pub(crate) travel_time_rates: BTreeMap<u32, i64>,
@@ -101,6 +104,7 @@ impl CompiledLayout {
             shields: Vec::new(),
             battle_skills: Vec::new(),
             researched: BTreeSet::new(),
+            legacy_units: BTreeMap::new(),
             travel_time_rates: BTreeMap::new(),
             tower_levels: BTreeMap::new(),
             map_id: mechcore_document::layout_replay::DEFAULT_MAP_ID,
@@ -297,6 +301,10 @@ pub(crate) fn compile_with_seed(
             shields,
             battle_skills,
             researched,
+            legacy_units: sides
+                .iter()
+                .map(|(_, team, side)| (*team, side.legacy_unit))
+                .collect(),
             travel_time_rates,
             tower_levels,
             map_id: plan
