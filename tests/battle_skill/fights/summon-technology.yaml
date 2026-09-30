@@ -1,0 +1,25 @@
+# A side's technology reaches its summon.
+#
+# Blue researched Mechanical Rage for the Rhino and releases Rhino Assault
+# where rhino-assault.yaml does. The Rhino it summons joins on tick 48 with the
+# technology's `attack_interval_value` and speed on it, as a Rhino deployed
+# with the technology has them.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 214
+hash: {profile: mcfr-content-0.7.0, result: 8ee18e56b72e2b5404eacea3e824450d2389aaa7d763ab1e4fc4cfcb0d44dfe1}
+blue:
+  techs:
+    rhino: [mechanical_rage]
+  units:
+  - {name: marksman, index: 0, position: {x: -100, y: -150}}
+  battle_skills:
+  - {name: rhino_assault, positions: [{x: 0, y: -60}]}
+red:
+  core_damage: 150
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}

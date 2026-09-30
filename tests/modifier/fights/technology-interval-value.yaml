@@ -1,0 +1,25 @@
+# An interval value, and a blow fitted into the interval it leaves.
+#
+# Blue's Rhino researched Mechanical Rage, whose -0.3 s lands in its
+# `attack_interval_value` as the table's FPoint states it, and takes its
+# interval from 18 ticks to 12. Its attack point and backswing together no
+# longer fit in 12 ticks, so its blows are fitted into the interval: blue
+# strikes on tick 71 and every 13 ticks after, where red's Rhino, which has
+# no technology, strikes on tick 74 and every 18.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 137
+hash: {profile: mcfr-content-0.7.0, result: cfbe32884d3c40baee12fa408d8beaf275837b4a3a7ab88a26dd0e5c49411960}
+blue:
+  techs:
+    rhino: [mechanical_rage]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -65}, exp: 0/400/1150}
+red:
+  core_damage: 200
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -65}}

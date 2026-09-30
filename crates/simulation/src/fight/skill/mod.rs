@@ -1158,6 +1158,7 @@ impl Simulation {
             .attack;
         let prepare_steps = native_time_units_to_steps(attack.prepare_time_units());
         let attack_point_steps = native_time_units_to_steps(attack.attack_point_time_units());
+        let backswing_steps = native_time_units_to_steps(attack.backswing_time_units());
         let attack_hold_fire = self.attack_hold_fire(owner);
         let skill = self.skill_mut(owner);
         let mut entered_skill_phase = false;
@@ -1207,9 +1208,13 @@ impl Simulation {
             && !prepare_finished
             && step >= skill.next_attack_step
         {
+            // `FightSkill.ResetAttackData` draws the interval before
+            // `SkillAttackController.PerformAttack` fits the blow into it.
             let interval = self
                 .draw_attack_interval(owner)
                 .expect("every skill owner's team owns one attack random stream");
+            let attack_point_steps =
+                fitted_attack_point(attack_point_steps, backswing_steps, interval);
             self.skill_mut(owner)
                 .schedule_blow(step, interval, attack_point_steps, target);
         }
