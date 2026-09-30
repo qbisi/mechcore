@@ -114,7 +114,7 @@ fn multi_formation_initial_state_and_target_search_entry_match_the_build() {
             building_exp,
             interceptors: _,
         } = initialize_buildings(&config.towers, &[], &[], &BTreeMap::new()).unwrap();
-        let map_crystals = map_crystals(config.maps.buildings(1021).unwrap());
+        let map_crystals = map_crystals(config.maps.buildings(1021).unwrap(), &[]);
         let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
         let buildings_query_alive = standing_buildings(&buildings);
         let unit_update_order = crate::fight::deploy::update_order(&actors);

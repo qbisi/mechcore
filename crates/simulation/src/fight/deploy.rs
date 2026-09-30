@@ -295,9 +295,71 @@ const fn whole_metres(raw: i64) -> i64 {
     raw & !0xFFFF_FFFF
 }
 
+/// The ground a formation stands on: its footprint, turned with the
+/// formation, around its centre, as `(x_min, x_max, z_min, z_max)` Q32.32.
+pub(in crate::fight) fn formation_ground(
+    placement: &Placement,
+    rules: &UnitConfig,
+) -> Result<(i64, i64, i64, i64)> {
+    let (width, depth) = rules.formation_footprint_meters()?;
+    let across = placement.rotated != matches!(placement.rotation, 90_000 | 270_000);
+    let (width, depth) = if across {
+        (depth, width)
+    } else {
+        (width, depth)
+    };
+    let (x, z) = (
+        placement.world_x.saturating_mul(Q32_ONE),
+        placement.world_z.saturating_mul(Q32_ONE),
+    );
+    let (half_width, half_depth) = (
+        width.saturating_mul(Q32_ONE) / 2,
+        depth.saturating_mul(Q32_ONE) / 2,
+    );
+    Ok((
+        x.saturating_sub(half_width),
+        x.saturating_add(half_width),
+        z.saturating_sub(half_depth),
+        z.saturating_add(half_depth),
+    ))
+}
+
+/// The ground every formation of the layout stands on.
+pub(in crate::fight) fn formation_grounds(
+    layout: &CompiledLayout,
+    configs: &UnitConfigs,
+) -> Result<Vec<(i64, i64, i64, i64)>> {
+    layout
+        .placements
+        .iter()
+        .map(|placement| {
+            let rules = configs.get(&placement.type_name).ok_or_else(|| {
+                Error::new(format!(
+                    "unit type {:?} has no configuration",
+                    placement.type_name
+                ))
+            })?;
+            formation_ground(placement, rules)
+        })
+        .collect()
+}
+
 /// The map's crystals that take part in movement, in the order the map lists
-/// them.
-pub(in crate::fight) fn map_crystals(map: &[MapBuilding]) -> Vec<MapCrystal> {
+/// them. A crystal a formation stands on is not among them: its circle
+/// reaching into the formation's footprint, strictly, leaves it out of the
+/// fight, and one whose circle only touches the footprint's edge stays.
+pub(in crate::fight) fn map_crystals(
+    map: &[MapBuilding],
+    grounds: &[(i64, i64, i64, i64)],
+) -> Vec<MapCrystal> {
+    let stood_on = |x: i64, z: i64, radius: i64| {
+        grounds.iter().any(|&(x_min, x_max, z_min, z_max)| {
+            let dx = x.clamp(x_min, x_max).saturating_sub(x);
+            let dz = z.clamp(z_min, z_max).saturating_sub(z);
+            i128::from(dx) * i128::from(dx) + i128::from(dz) * i128::from(dz)
+                < i128::from(radius) * i128::from(radius)
+        })
+    };
     map.iter()
         .filter_map(|building| match *building {
             MapBuilding::Tower { .. } => None,
@@ -306,7 +368,9 @@ pub(in crate::fight) fn map_crystals(map: &[MapBuilding]) -> Vec<MapCrystal> {
                 z,
                 radius,
                 collider_priority,
-            } => (collider_priority >= CRYSTAL_MIN_COLLIDER_PRIORITY).then_some(MapCrystal {
+            } => (collider_priority >= CRYSTAL_MIN_COLLIDER_PRIORITY
+                && !stood_on(whole_metres(x), whole_metres(z), radius))
+            .then_some(MapCrystal {
                 x_q32: whole_metres(x),
                 z_q32: whole_metres(z),
                 radius_q32: radius,

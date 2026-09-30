@@ -1,0 +1,22 @@
+# Mustangs placed over two Desert crystals.
+#
+# Blue's Mustangs stand at (-135, -300), a footprint 50 metres wide and 20
+# deep whose far edge runs through the centres of the crystals at (-125, -310)
+# and (-115, -310). Neither takes part in the fight: no unit avoids them and
+# the RVO tree does not hold them. The crystal at (-135, -320), whose circle
+# only touches that edge, does.
+
+kind: fight
+map_id: 1001
+seed: 4242
+round: 1
+source: recording
+ticks: 392
+hash: {profile: mcfr-content-0.7.0, result: 957482260463862577f172caa68ef6385e82ab2efd737cc58093ce5eeb700f6d}
+blue:
+  core_damage: 68
+  units:
+  - {name: mustang, index: 0, position: {x: -135, y: -300}, exp: 0/255/1200}
+red:
+  units:
+  - {name: mustang, index: 0, position: {x: 135, y: -150}, exp: 0/408/1200}
