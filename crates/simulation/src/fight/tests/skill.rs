@@ -39,10 +39,7 @@ fn a_quick_switch_check_takes_the_unit_in_its_attack_area() {
     let layout = CompiledLayout::of_units(
         1,
         vec![
-            Placement {
-                type_name: "stormcaller".to_owned(),
-                ..test_placement(0, 0, 0, 0)
-            },
+            placement(0, "stormcaller", 0, 0, 0),
             test_placement(1, 0, 0, 60),
             test_placement(1, 1, 0, 100),
         ],
@@ -819,51 +816,9 @@ fn reviewed_direct_kill_keeps_then_clears_the_mech_lock_target_state() {
     let layout = CompiledLayout::of_units(
         1,
         vec![
-            Placement {
-                team: 0,
-                unit_id: 0,
-                formation_id: 0,
-                formation_index: 0,
-                type_name: "rhino".to_owned(),
-                world_x: -285,
-                world_z: -105,
-                rotation: 0,
-                rotated: false,
-                level: 1,
-                exp: 0,
-                corrections: Vec::new(),
-                travelling: false,
-            },
-            Placement {
-                team: 1,
-                unit_id: 0,
-                formation_id: 0,
-                formation_index: 0,
-                type_name: "arclight".to_owned(),
-                world_x: -290,
-                world_z: 100,
-                rotation: 180_000,
-                rotated: false,
-                level: 1,
-                exp: 0,
-                corrections: Vec::new(),
-                travelling: false,
-            },
-            Placement {
-                team: 1,
-                unit_id: 0,
-                formation_id: 0,
-                formation_index: 1,
-                type_name: "arclight".to_owned(),
-                world_x: -190,
-                world_z: 100,
-                rotation: 180_000,
-                rotated: false,
-                level: 1,
-                exp: 0,
-                corrections: Vec::new(),
-                travelling: false,
-            },
+            placement(0, "rhino", 0, -285, -105),
+            placement(1, "arclight", 0, -290, 100),
+            placement(1, "arclight", 1, -190, 100),
         ],
     );
     let mut simulation = Simulation::new(
@@ -914,19 +869,9 @@ fn rhino_attack_angle_requires_every_weapon_and_accepts_the_boundary() {
     let rules = config.units.get("rhino").unwrap().clone();
     let mut actor = Actor::new(
         Placement {
-            team: 0,
             unit_id: 1,
             formation_id: 1,
-            formation_index: 0,
-            type_name: "rhino".to_owned(),
-            world_x: 0,
-            world_z: 0,
-            rotation: 0,
-            rotated: false,
-            level: 1,
-            exp: 0,
-            corrections: Vec::new(),
-            travelling: false,
+            ..placement(0, "rhino", 0, 0, 0)
         },
         rules,
         0,
@@ -950,34 +895,14 @@ fn rhino_backswing_remains_active_through_its_ninth_wait_update() {
         1,
         vec![
             Placement {
-                team: 0,
                 unit_id: 1,
                 formation_id: 1,
-                formation_index: 0,
-                type_name: "rhino".to_owned(),
-                world_x: -35,
-                world_z: -105,
-                rotation: 0,
-                rotated: false,
-                level: 1,
-                exp: 0,
-                corrections: Vec::new(),
-                travelling: false,
+                ..placement(0, "rhino", 0, -35, -105)
             },
             Placement {
-                team: 1,
                 unit_id: 2,
                 formation_id: 2,
-                formation_index: 0,
-                type_name: "arclight".to_owned(),
-                world_x: 40,
-                world_z: 100,
-                rotation: 180_000,
-                rotated: false,
-                level: 1,
-                exp: 0,
-                corrections: Vec::new(),
-                travelling: false,
+                ..placement(1, "arclight", 0, 40, 100)
             },
         ],
     );

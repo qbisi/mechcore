@@ -6,10 +6,7 @@ fn direct_splash_emits_one_damage_event_per_actual_target() {
     let layout = CompiledLayout::of_units(
         1,
         vec![
-            Placement {
-                type_name: "rhino".to_owned(),
-                ..test_placement(0, 0, 0, 0)
-            },
+            placement(0, "rhino", 0, 0, 0),
             test_placement(1, 0, 0, 20),
             test_placement(1, 1, 1, 20),
         ],
@@ -61,13 +58,7 @@ fn direct_kill_emits_damage_before_death_with_raw_target_position() {
     let config = SimulationConfig::load().unwrap();
     let layout = CompiledLayout::of_units(
         1,
-        vec![
-            Placement {
-                type_name: "rhino".to_owned(),
-                ..test_placement(0, 0, 0, 0)
-            },
-            test_placement(1, 0, 0, 20),
-        ],
+        vec![placement(0, "rhino", 0, 0, 0), test_placement(1, 0, 0, 20)],
     );
     let mut simulation = raw_test_simulation(&layout, &config, 7);
     let target = simulation.actors.get_mut(&2).unwrap();
@@ -146,13 +137,7 @@ fn direct_splash_takes_a_building_beside_the_unit() {
     let config = SimulationConfig::load().unwrap();
     let layout = CompiledLayout::of_units(
         1,
-        vec![
-            Placement {
-                type_name: "rhino".to_owned(),
-                ..test_placement(0, 0, 0, 0)
-            },
-            test_placement(1, 0, 0, 20),
-        ],
+        vec![placement(0, "rhino", 0, 0, 0), test_placement(1, 0, 0, 20)],
     );
     let mut simulation = raw_test_simulation(&layout, &config, 7);
     set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 20_000);
@@ -189,14 +174,8 @@ fn projectile_splash_emits_one_damage_event_per_actual_target() {
         1,
         vec![
             test_placement(0, 0, 0, 0),
-            Placement {
-                type_name: "rhino".to_owned(),
-                ..test_placement(1, 0, 0, 20)
-            },
-            Placement {
-                type_name: "rhino".to_owned(),
-                ..test_placement(1, 1, 1, 20)
-            },
+            placement(1, "rhino", 0, 0, 20),
+            placement(1, "rhino", 1, 1, 20),
         ],
     );
     let mut simulation = raw_test_simulation(&layout, &config, 7);
@@ -282,18 +261,9 @@ fn dual_domain_projectile_splash_uses_the_main_targets_domain() {
     let layout = CompiledLayout::of_units(
         1,
         vec![
-            Placement {
-                type_name: "wraith".to_owned(),
-                ..test_placement(0, 0, 0, 0)
-            },
-            Placement {
-                type_name: "marksman".to_owned(),
-                ..test_placement(1, 0, 0, 20)
-            },
-            Placement {
-                type_name: "wraith".to_owned(),
-                ..test_placement(1, 1, 0, 20)
-            },
+            placement(0, "wraith", 0, 0, 0),
+            placement(1, "marksman", 0, 0, 20),
+            placement(1, "wraith", 1, 0, 20),
         ],
     );
     let mut simulation = raw_test_simulation(&layout, &config, 7);
@@ -400,13 +370,7 @@ fn projectile_splash_takes_a_building_beside_its_target() {
     let config = SimulationConfig::load().unwrap();
     let layout = CompiledLayout::of_units(
         1,
-        vec![
-            test_placement(0, 0, 0, 0),
-            Placement {
-                type_name: "rhino".to_owned(),
-                ..test_placement(1, 0, 0, 20)
-            },
-        ],
+        vec![test_placement(0, 0, 0, 0), placement(1, "rhino", 0, 0, 20)],
     );
     let mut simulation = raw_test_simulation(&layout, &config, 7);
     set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 20_000);
@@ -469,34 +433,14 @@ fn projectile_raw_target_cache_preserves_rounding_sequence() {
         1,
         vec![
             Placement {
-                team: 0,
                 unit_id: 1,
                 formation_id: 1,
-                formation_index: 0,
-                type_name: "marksman".to_owned(),
-                world_x: 0,
-                world_z: -50,
-                rotation: 0,
-                rotated: false,
-                level: 1,
-                exp: 0,
-                corrections: Vec::new(),
-                travelling: false,
+                ..placement(0, "marksman", 0, 0, -50)
             },
             Placement {
-                team: 1,
                 unit_id: 2,
                 formation_id: 2,
-                formation_index: 0,
-                type_name: "arclight".to_owned(),
-                world_x: 0,
-                world_z: 100,
-                rotation: 180_000,
-                rotated: false,
-                level: 1,
-                exp: 0,
-                corrections: Vec::new(),
-                travelling: false,
+                ..placement(1, "arclight", 0, 0, 100)
             },
         ],
     );

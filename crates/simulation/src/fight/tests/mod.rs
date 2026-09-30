@@ -25,8 +25,11 @@ pub(super) fn unit_target(id: u64) -> FightActorRef {
     FightActorRef::Unit(id)
 }
 
-pub(super) fn test_placement(
+/// A level-one formation of `type_name` at a world position, facing the other
+/// side as a deployment does; a test states only what it changes from it.
+pub(super) fn placement(
     team: u32,
+    type_name: &str,
     formation_index: i32,
     world_x: i64,
     world_z: i64,
@@ -36,7 +39,7 @@ pub(super) fn test_placement(
         unit_id: 0,
         formation_id: 0,
         formation_index,
-        type_name: "arclight".to_owned(),
+        type_name: type_name.to_owned(),
         world_x,
         world_z,
         rotation: if team == 0 { 0 } else { 180_000 },
@@ -48,83 +51,29 @@ pub(super) fn test_placement(
     }
 }
 
+/// An Arclight's formation, `placement`'s commonest case.
+pub(super) fn test_placement(
+    team: u32,
+    formation_index: i32,
+    world_x: i64,
+    world_z: i64,
+) -> Placement {
+    placement(team, "arclight", formation_index, world_x, world_z)
+}
+
 pub(super) fn snapshot_velocity_q32(actor: &Actor) -> (i64, i64) {
     let velocity = actor.snapshot().velocity;
     (velocity.x, velocity.z)
 }
 
+/// A simulation of `layout` built as a fight builds one, without the
+/// presearch that picks every unit's first target.
 pub(super) fn raw_test_simulation(
     layout: &CompiledLayout,
     config: &SimulationConfig,
     seed: i32,
 ) -> Simulation {
-    let actors = initialize_actors(layout, &config.units, seed).unwrap();
-    let InitialBuildings {
-        states: buildings,
-        unsearchable,
-        colliders: construction_colliders,
-        passable_constructions,
-        tower_losses,
-        tower_buffed_constructions,
-        construction_groups: _,
-        building_exp,
-        interceptors: _,
-    } = initialize_buildings(&config.towers, &[], &[], &BTreeMap::new()).unwrap();
-    let map_crystals = map_crystals(config.maps.buildings(1021).unwrap(), &[]);
-    let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
-    let buildings_query_alive = standing_buildings(&buildings);
-    let unit_update_order = crate::fight::deploy::update_order(&actors);
-    Simulation {
-        unit_update_order,
-        actors,
-        team_random: BTreeMap::new(),
-        projectiles: Vec::new(),
-        interceptors: Vec::new(),
-        mines: Vec::new(),
-        shields: Vec::new(),
-        destroyed_shields: Vec::new(),
-        created_shields: Vec::new(),
-        next_shield_id: 1,
-        broken_shields: Vec::new(),
-        battle_skills: Vec::new(),
-        researched: BTreeSet::new(),
-        creators: Vec::new(),
-        appearing: Vec::new(),
-        travels: BTreeMap::new(),
-        next_unit_id: 1,
-        next_formation_id: 1,
-        buildings,
-        target_quadtrees,
-        mech_quadtrees: BTreeMap::new(),
-        identities: IdentityAllocator::new(),
-        rvo_counter: 0,
-        rvo_first_tree_pending: true,
-        rvo_quadtree_capacity: crate::fight::rvo::QuadtreeCapacity::default(),
-        terminal_drain_pending: false,
-        stop_step: None,
-        late_building_events_pending: false,
-        torn_down_buildings: Vec::new(),
-        fallen_buildings: Vec::new(),
-        tower_buff_events: BTreeMap::new(),
-        fallen_towers: Vec::new(),
-        building_buffs: BTreeMap::new(),
-        buildings_query_alive,
-        dropped_buffs: BTreeMap::new(),
-        construction_colliders: construction_colliders.clone(),
-        passable_constructions,
-        map_crystals,
-        unsearchable_buildings: unsearchable.clone(),
-        constructions: BTreeMap::new(),
-        towers: config.towers.clone(),
-        tower_losses,
-        tower_buffed_constructions,
-        statistics: BTreeMap::new(),
-        construction_recorders: BTreeMap::new(),
-        formations: BTreeMap::new(),
-        attackers: BTreeMap::new(),
-        building_exp,
-        experience: super::experience::ExperienceTable::load().unwrap(),
-    }
+    Simulation::new_unprepared(layout, &config.units, &config.towers, &config.maps, seed).unwrap()
 }
 
 pub(super) fn set_actor_position(actor: &mut Actor, x: i64, z: i64) {
