@@ -45,6 +45,36 @@ an outcome that matches, an older project's config, and whatever value makes the
 implementation convenient. The number gate never relaxes because the mechanism
 around it was allowed a risk-adjusted conclusion.
 
+## A match needs a witness
+
+A recording that matches is evidence for a mechanism only if it would have
+caught the mechanism wrong. So a mechanism is not done when its probes match. It
+is done when its probes are shown to see it, and each check below runs on the
+simulator alone, without the game.
+
+- **Off.** Switched off in the simulator, the mechanism moves the probe's hash.
+  If the hash holds, the probe did not exercise it or the recording cannot see
+  it. Find a probe that does, or propose a channel that sees it.
+- **Late.** Shifted by one tick, or with one of its numbers nudged, the
+  mechanism's first divergence lands near the tick it first acts. One that
+  lands far later, or only in what the round settles, cannot be located from
+  the recording. Propose an instrument channel that locates it, or, if the
+  quantity settles the fight or names a cause, an admission to the hash
+  ([mcfr.md](../../docs/spec/mcfr/mcfr.md#admission-to-the-hash)).
+- **Cause.** A damage, buff or unit the mechanism makes carries the cause the
+  build has. An event whose cause is null where the build's call has one is a
+  gap in the format.
+- **Entry.** Every hooked build entry the mechanism passes writes its event.
+  One the build passes and the recording lacks is a capture bug, fixed rather
+  than worked around.
+
+The pull request that lands a mechanism names its witness: the recorded fields
+or events that see it, and for each mutation the tick of its first divergence
+beside the tick the mechanism first acts. A format change the witness needs
+blocks the mechanism: it goes on the stack above it, and the mechanism waits.
+Instrument channels an agent adds on its own. A change to what the hash reads
+waits for the owner.
+
 ## Status and confidence are separate axes
 
 Recording them as one value is how a guess becomes a fact by accident.
@@ -75,7 +105,8 @@ Every question that passes review leaves at least this behind:
 - for each number, its source, the arithmetic, the units and the precision
   conversion;
 - the replay scenario, seed, MCFR hash and first-divergence result used to
-  verify the implementation;
+  verify the implementation, and the witness that shows the recording sees
+  the mechanism;
 - the uncovered branches, the unverified assumptions, and a `reopen_when` that
   can actually be decided.
 
