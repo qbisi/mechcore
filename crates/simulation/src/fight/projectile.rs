@@ -338,23 +338,16 @@ impl Simulation {
         {
             shield = None;
         }
+        // A unit's projectile is owned by the unit, and strikes for the side
+        // the unit is on as it lands.
         let hit = DamageHit {
             source: Some(owner.object_ref()),
-            source_team: projectile.team,
             team: owner_team,
-            effect: EffectTarget::Opponent,
-            amount,
-            projectile: Some(projectile.object_ref()),
             skill_slot: Some(projectile.skill_slot),
-            aimed: Some(aimed),
-            hits_aimed: projectile.lock_target,
-            center: (projectile.x, projectile.z),
-            center_y_q32: projectile.y_q32,
             shield,
             crosses_shields,
-            strikes_buildings: true,
             splash_radius,
-            reach,
+            ..DamageHit::of_projectile(projectile, aimed, amount, reach)
         };
         // A projectile in simulated motion (`isSimulateMode`) that lands on a
         // unit already dead does nothing, splash included: a Fire Badger's or

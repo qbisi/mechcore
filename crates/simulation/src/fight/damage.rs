@@ -55,6 +55,100 @@ pub(in crate::fight) struct DamageHit {
     pub(in crate::fight) reach: Reach,
 }
 
+impl DamageHit {
+    /// A skill's own hit, `SkillDamageProvider`'s: the unit that fired it owns
+    /// it, it strikes the other side, and what it was aimed at is struck
+    /// wherever that stands. It splashes and crosses shields as the unit's
+    /// skill does, from where the unit stands, with no shield of its own.
+    pub(in crate::fight) fn of_skill(
+        attacker: &Actor,
+        skill_slot: u16,
+        aimed: FightActorRef,
+        amount: i64,
+    ) -> Self {
+        Self {
+            source: Some(attacker.object_ref()),
+            source_team: attacker.placement.team,
+            team: attacker.placement.team,
+            effect: EffectTarget::Opponent,
+            amount,
+            projectile: None,
+            skill_slot: Some(skill_slot),
+            aimed: Some(aimed),
+            hits_aimed: true,
+            center: (attacker.x, attacker.z),
+            center_y_q32: 0,
+            shield: None,
+            crosses_shields: attacker.rules.attack.crosses_shields,
+            strikes_buildings: true,
+            splash_radius: attacker.rules.attack.splash_radius(),
+            reach: Reach::Targets(attacker.rules.attack.targets),
+        }
+    }
+
+    /// A projectile's hit where it stands, `FightProjectile`'s: the
+    /// projectile owns it under the team it flies for, it strikes the other
+    /// side, and what it was aimed at is struck wherever that stands only if
+    /// the projectile locks it. It neither splashes nor crosses shields.
+    pub(in crate::fight) fn of_projectile(
+        projectile: &Projectile,
+        aimed: FightActorRef,
+        amount: i64,
+        reach: Reach,
+    ) -> Self {
+        Self {
+            source: Some(projectile.object_ref()),
+            source_team: projectile.team,
+            team: projectile.team,
+            effect: EffectTarget::Opponent,
+            amount,
+            projectile: Some(projectile.object_ref()),
+            skill_slot: None,
+            aimed: Some(aimed),
+            hits_aimed: projectile.lock_target,
+            center: (projectile.x, projectile.z),
+            center_y_q32: projectile.y_q32,
+            shield: None,
+            crosses_shields: false,
+            strikes_buildings: true,
+            splash_radius: 0,
+            reach,
+        }
+    }
+
+    /// A hit no object deals, recorded under its team alone: it strikes both
+    /// sides, of either domain, over a circle, and aims at nothing.
+    pub(in crate::fight) fn unowned(
+        team: u32,
+        amount: i64,
+        center: (i64, i64),
+        center_y_q32: i64,
+        splash_radius: i64,
+    ) -> Self {
+        Self {
+            source: None,
+            source_team: team,
+            team,
+            effect: EffectTarget::Both,
+            amount,
+            projectile: None,
+            skill_slot: None,
+            aimed: None,
+            hits_aimed: false,
+            center,
+            center_y_q32,
+            shield: None,
+            crosses_shields: false,
+            strikes_buildings: true,
+            splash_radius,
+            reach: Reach::Targets(AttackTargets {
+                ground: true,
+                air: true,
+            }),
+        }
+    }
+}
+
 /// Whose objects a hit strikes: `DamagePerformer.PrepareRangeTargets` takes
 /// the groups `GroupManager.GetOpponentGroups` answers for one, and every
 /// group `GroupManager.GetGroups` does for the other.
@@ -502,24 +596,17 @@ impl Simulation {
                 "a splashing blow at a unit its side's shield covers is not measured",
             ));
         }
+        // A blow is `SkillDamageProvider`'s, of the skill that struck.
         let hit = DamageHit {
-            source: Some(attacker.object_ref()),
-            source_team: attacker.placement.team,
-            team: attacker.placement.team,
-            effect: EffectTarget::Opponent,
-            amount: attacker.stats.attack_damage(),
-            // A blow is `SkillDamageProvider`'s, of the skill that struck.
-            projectile: None,
-            skill_slot: Some(u16::try_from(skill_slot).expect("skill slot fits u16")),
-            aimed: Some(target),
-            hits_aimed: true,
             center,
             center_y_q32: self.target_height_q32(target),
             shield,
-            crosses_shields: attacker.rules.attack.crosses_shields,
-            strikes_buildings: true,
-            splash_radius: attacker.rules.attack.splash_radius(),
-            reach: Reach::Targets(attacker.rules.attack.targets),
+            ..DamageHit::of_skill(
+                attacker,
+                u16::try_from(skill_slot).expect("skill slot fits u16"),
+                target,
+                attacker.stats.attack_damage(),
+            )
         };
         let struck = self.perform_damage(hit, events)?;
         // A block a blow fells falls after every hit the tick resolves, as a
@@ -547,22 +634,10 @@ impl Simulation {
             ));
         }
         let hit = DamageHit {
-            source: Some(attacker.object_ref()),
-            source_team: attacker.placement.team,
-            team: attacker.placement.team,
-            effect: EffectTarget::Opponent,
-            amount: damage,
-            projectile: None,
-            skill_slot: Some(0),
-            aimed: Some(target),
-            hits_aimed: true,
-            center: (attacker.x, attacker.z),
-            center_y_q32: 0,
             shield: Some(shield),
             crosses_shields: false,
-            strikes_buildings: true,
             splash_radius: 0,
-            reach: Reach::Targets(attacker.rules.attack.targets),
+            ..DamageHit::of_skill(attacker, 0, target, damage)
         };
         self.perform_damage(hit, events)?;
         Ok(())
@@ -656,22 +731,9 @@ impl Simulation {
                     .ok_or_else(|| Error::new("laser target is absent"))?,
             };
             let hit = DamageHit {
-                source: Some(attacker_ref),
-                source_team: attacker_team,
-                team: attacker_team,
-                effect: EffectTarget::Opponent,
-                amount: damage,
-                projectile: None,
-                skill_slot: Some(0),
-                aimed: Some(target),
-                hits_aimed: true,
                 center,
                 center_y_q32: self.target_height_q32(target),
-                shield: None,
-                crosses_shields: attacker.rules.attack.crosses_shields,
-                strikes_buildings: true,
-                splash_radius,
-                reach: Reach::Targets(attacker.rules.attack.targets),
+                ..DamageHit::of_skill(attacker, 0, target, damage)
             };
             let struck = self.perform_damage(hit, events)?;
             self.record_ends(struck.ends, events);

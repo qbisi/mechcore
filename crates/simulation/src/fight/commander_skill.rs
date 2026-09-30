@@ -153,26 +153,17 @@ impl Simulation {
         (x_q32, y_q32, z_q32): (i64, i64, i64),
         events: &mut Vec<Event>,
     ) -> Result<()> {
+        // A battle skill's circle reaches units alone.
         let hit = DamageHit {
-            source: None,
-            source_team: release.team,
-            team: release.team,
-            effect: EffectTarget::Both,
-            amount: damage,
-            projectile: None,
-            skill_slot: None,
-            aimed: None,
-            hits_aimed: false,
-            center: (q32_to_space_rounded(x_q32), q32_to_space_rounded(z_q32)),
-            center_y_q32: y_q32,
-            shield: None,
             crosses_shields,
             strikes_buildings: false,
-            splash_radius: q32_to_space_rounded(range_q32),
-            reach: Reach::Targets(AttackTargets {
-                ground: true,
-                air: true,
-            }),
+            ..DamageHit::unowned(
+                release.team,
+                damage,
+                (q32_to_space_rounded(x_q32), q32_to_space_rounded(z_q32)),
+                y_q32,
+                q32_to_space_rounded(range_q32),
+            )
         };
         // `PrepareRangeTargets` asks `CalculateRangeActors` with
         // `includeBuilding` off: a tower is never struck. Whether a

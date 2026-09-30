@@ -192,22 +192,8 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<super::damage::Struck> {
         let hit = DamageHit {
-            source: Some(projectile.object_ref()),
-            source_team: projectile.team,
-            team: projectile.team,
-            effect: EffectTarget::Opponent,
-            amount: shot.damage,
-            projectile: Some(projectile.object_ref()),
-            skill_slot: None,
-            aimed: Some(aimed),
-            hits_aimed: projectile.lock_target,
-            center: (projectile.x, projectile.z),
-            center_y_q32: projectile.y_q32,
-            shield: None,
-            crosses_shields: false,
-            strikes_buildings: true,
             splash_radius: shot.splash_radius,
-            reach,
+            ..DamageHit::of_projectile(projectile, aimed, shot.damage, reach)
         };
         let struck = self.perform_damage(hit, events)?;
         let row = super::tower::BuffRow {

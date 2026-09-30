@@ -257,27 +257,16 @@ impl Simulation {
         let actor = &self.actors[&unit_id];
         let team = actor.placement.team;
         let hit = DamageHit {
-            source: None,
-            source_team: team,
-            team,
-            effect: EffectTarget::Both,
-            amount: actor.life,
-            projectile: None,
-            skill_slot: None,
-            aimed: None,
-            hits_aimed: false,
-            center: (actor.x, actor.z),
-            center_y_q32: 0,
-            shield: None,
             // `PerformAirDropDamage` turns `IsInterceptByAdvancedEnergyShield`
             // off.
             crosses_shields: true,
-            strikes_buildings: true,
-            splash_radius: actor.rules.collision_radius(),
-            reach: Reach::Targets(AttackTargets {
-                ground: true,
-                air: true,
-            }),
+            ..DamageHit::unowned(
+                team,
+                actor.life,
+                (actor.x, actor.z),
+                0,
+                actor.rules.collision_radius(),
+            )
         };
         let struck = self.perform_damage(hit, events)?;
         let total = struck.lost;
