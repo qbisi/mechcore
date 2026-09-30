@@ -1,0 +1,21 @@
+# `rapid-fire-head-on.yaml` under a second seed, 1787720817: the Crawlers'
+# scatter and intervals come from another stream. Under it the turret kills
+# all 24 Crawlers without falling, eleven of them at 116 and the last two at
+# 307, where the fight ends.
+
+kind: fight
+map_id: 1021
+seed: 1787720817
+round: 1
+source: recording
+ticks: 307
+hash: {profile: mcfr-content-0.7.0, result: d92a4a026ec124c8d9cf3fd2158917e696523fa862f4e8b8a10c7dec4fd95263}
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: -290, y: -150}, exp: 0/192/650}
+  constructions:
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+red:
+  core_damage: 100
+  units:
+  - {name: crawler, index: 0, position: {x: -145, y: -100}}

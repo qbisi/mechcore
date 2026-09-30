@@ -7,8 +7,7 @@
 
 1. **只读、未录的规则。** 各需一段录制：一个编队戴两个强化模块升级、第 9 个物件被拒、次级装备
    专家用的玩家种子。
-2. **随迁移发现的。** `SkillDataChangeInt.AttackValue` 谁写；rapid-fire 用种子 1787720817 时
-   第 242 tick 的分叉。
+2. **随迁移发现的。** `SkillDataChangeInt.AttackValue` 谁写。
 
 ## 停车场
 
