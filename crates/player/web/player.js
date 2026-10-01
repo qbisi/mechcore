@@ -340,7 +340,7 @@
 
   // ------------------------------------------------------------ the ground
   // The map, simplified: a ground of worn plates and sand, each side's half
-  // washed in its colour, the centre line, and a pad under each tower.
+  // washed in its colour, and the centre line.
   const ground = (() => {
     const hw = data.field.half_width / 100;
     const hd = data.field.half_depth / 100;
@@ -395,26 +395,6 @@
     c.lineTo(g.width, g.height / 2);
     c.stroke();
     c.setLineDash([]);
-    // tower pads
-    for (const b of buildings) {
-      if (b.kind !== 'energy_tower' && b.kind !== 'research_center') continue;
-      const px = (b.x + hw) * res;
-      const py = (hd - b.z) * res;
-      const r = 16 * res;
-      c.fillStyle = 'rgba(160,170,180,0.10)';
-      c.fillRect(px - r, py - r, r * 2, r * 2);
-      c.strokeStyle = `rgba(${TEAMS[b.team].rgb},0.35)`;
-      c.lineWidth = 0.8 * res;
-      c.strokeRect(px - r, py - r, r * 2, r * 2);
-      c.strokeStyle = 'rgba(255,255,255,0.12)';
-      for (const [dx, dy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
-        c.beginPath();
-        c.moveTo(px + dx * r, py + dy * (r - 5 * res));
-        c.lineTo(px + dx * r, py + dy * r);
-        c.lineTo(px + dx * (r - 5 * res), py + dy * r);
-        c.stroke();
-      }
-    }
     // the edge of the field
     const v = c.createRadialGradient(g.width / 2, g.height / 2, Math.min(g.width, g.height) * 0.35, g.width / 2, g.height / 2, Math.max(g.width, g.height) * 0.75);
     v.addColorStop(0, 'rgba(0,0,0,0)');
@@ -530,8 +510,8 @@
       ctx.fill();
       Sprites.drawBuilding(ctx, b.kind, p, b.width, b.depth);
       if (p.hurt > 0) hurtFlash(Math.max(b.width, b.depth) * 0.55, p.hurt);
-      const tower = b.kind === 'energy_tower' || b.kind === 'research_center';
-      if (tower || b.L[s[0]] < b.maxLife) {
+      // a building shows its life once it has lost some, as a unit does
+      if (b.L[s[0]] < b.maxLife) {
         bars.push([b.x, b.z, Math.max(b.width, b.depth) * 0.55, b.L[s[0]], b.maxLife, b.team, true]);
       }
     }
@@ -1123,24 +1103,8 @@
       list.append(row);
       rows.push({ row, n, members, last: '' });
     }
-    const towers = document.createElement('div');
-    towers.className = 'towers';
-    const towerRows = [];
-    for (const b of buildings) {
-      if (b.team !== team || (b.kind !== 'energy_tower' && b.kind !== 'research_center')) continue;
-      const box = document.createElement('div');
-      box.className = 'tower';
-      box.textContent = NAMES[b.kind][0];
-      const bar = document.createElement('div');
-      bar.className = 'bar';
-      const fill = document.createElement('i');
-      bar.append(fill);
-      box.append(bar);
-      towers.append(box);
-      towerRows.push({ b, fill });
-    }
-    panel.append(head, list, towers);
-    return { count, rows, towerRows };
+    panel.append(head, list);
+    return { count, rows };
   });
 
   function updateHud() {
@@ -1160,11 +1124,6 @@
         }
       }
       side.count.textContent = `${alive} / ${total} units`;
-      for (const { b, fill } of side.towerRows) {
-        const s = slot(b, tau);
-        const frac = s ? b.L[s[0]] / b.maxLife : 0;
-        fill.style.width = `${Math.max(0, frac * 100).toFixed(1)}%`;
-      }
     }
     const seconds = (tau - 1) / TPS;
     const m = Math.floor(seconds / 60);

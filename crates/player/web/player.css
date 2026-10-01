@@ -80,18 +80,6 @@ html, body {
 }
 .roster .kind.out { opacity: 0.35; }
 .roster canvas { flex: none; }
-.towers { display: flex; gap: 6px; margin-top: 6px; }
-.tower { flex: 1; font-size: 11px; color: var(--muted); }
-.bar {
-  height: 4px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
-  overflow: hidden;
-  margin-top: 2px;
-}
-.bar i { display: block; height: 100%; background: var(--blue); }
-#side-1 .bar i { background: var(--red); }
-
 #controls {
   position: fixed;
   inset: auto 12px 12px 12px;
