@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-12.1 -10.1 24.2 16.58" width="387" height="265">
+<title>rhino</title>
+<defs><clipPath id="c1"><path d="M-0.1 -5.6L0.1 -5.6A1.4 1.4 0 0 1 1.5 -4.2L1.5 4.2A1.4 1.4 0 0 1 0.1 5.6L-0.1 5.6A1.4 1.4 0 0 1 -1.5 4.2L-1.5 -4.2A1.4 1.4 0 0 1 -0.1 -5.6Z"/></clipPath><radialGradient id="g2" gradientUnits="userSpaceOnUse" cx="0" cy="1.4" r="1.8" fx="0" fy="1.4" fr="0"><stop offset="0" stop-color="#ffa236"/><stop offset="1" stop-color="#ffa236" stop-opacity="0"/></radialGradient></defs>
+<path d="M-0.1 -5.6L0.1 -5.6A1.4 1.4 0 0 1 1.5 -4.2L1.5 4.2A1.4 1.4 0 0 1 0.1 5.6L-0.1 5.6A1.4 1.4 0 0 1 -1.5 4.2L-1.5 -4.2A1.4 1.4 0 0 1 -0.1 -5.6Z" fill="#121418"/>
+<path d="M-0.1 -5.6L0.1 -5.6A1.4 1.4 0 0 1 1.5 -4.2L1.5 4.2A1.4 1.4 0 0 1 0.1 5.6L-0.1 5.6A1.4 1.4 0 0 1 -1.5 4.2L-1.5 -4.2A1.4 1.4 0 0 1 -0.1 -5.6Z" fill="none" stroke="#0a0c0f" stroke-width="0.1"/>
+<g clip-path="url(#c1)">
+<path d="M-1.5 -6.2L1.5 -5.9" fill="none" stroke="#575e68" stroke-width="0.25"/>
+<path d="M-1.5 -5L1.5 -4.7" fill="none" stroke="#575e68" stroke-width="0.25"/>
+<path d="M-1.5 -3.8L1.5 -3.5" fill="none" stroke="#575e68" stroke-width="0.25"/>
+<path d="M-1.5 -2.6L1.5 -2.3" fill="none" stroke="#575e68" stroke-width="0.25"/>
+<path d="M-1.5 -1.4L1.5 -1.1" fill="none" stroke="#575e68" stroke-width="0.25"/>
+<path d="M-1.5 -0.2L1.5 0.1" fill="none" stroke="#575e68" stroke-width="0.25"/>
+<path d="M-1.5 1L1.5 1.3" fill="none" stroke="#575e68" stroke-width="0.25"/>
+<path d="M-1.5 2.2L1.5 2.5" fill="none" stroke="#575e68" stroke-width="0.25"/>
+<path d="M-1.5 3.4L1.5 3.7" fill="none" stroke="#575e68" stroke-width="0.25"/>
+<path d="M-1.5 4.6L1.5 4.9" fill="none" stroke="#575e68" stroke-width="0.25"/>
+<path d="M-1.5 5.8L1.5 6.1" fill="none" stroke="#575e68" stroke-width="0.25"/>
+</g>
+<path d="M-5.2 -2.2L-8.4 -2.6L-9 1L-5.2 1.2Z" fill="#363b43"/>
+<path d="M-5.2 -2.2L-8.4 -2.6L-9 1L-5.2 1.2Z" fill="none" stroke="#0a0c0f" stroke-width="0.1"/>
+<path d="M-7.8 -3.8L-11.4 -3L-11.8 2L-8.2 2.4Z" fill="#e6e9ee"/>
+<path d="M-7.8 -3.8L-11.4 -3L-11.8 2L-8.2 2.4Z" fill="none" stroke="#0a0c0f" stroke-width="0.1"/>
+<path d="M-8.6 -1.8L-11.2 -1.5L-11.4 0.8L-8.8 1Z" fill="#3d8dff"/>
+<path d="M-9.2 -3.2L-10.8 -3L-10.2 -9L-9.5 -9.8Z" fill="#1d4fa6"/>
+<path d="M-9.2 -3.2L-10.8 -3L-10.2 -9L-9.5 -9.8Z" fill="none" stroke="#0a0c0f" stroke-width="0.1"/>
+<path d="M-9.6 -3.6L-10.4 -3.5L-9.9 -8.6Z" fill="#c3c9d1"/>
+<path d="M5.2 -2.2L8.4 -2.6L9 1L5.2 1.2Z" fill="#363b43"/>
+<path d="M5.2 -2.2L8.4 -2.6L9 1L5.2 1.2Z" fill="none" stroke="#0a0c0f" stroke-width="0.1"/>
+<path d="M7.8 -3.8L11.4 -3L11.8 2L8.2 2.4Z" fill="#e6e9ee"/>
+<path d="M7.8 -3.8L11.4 -3L11.8 2L8.2 2.4Z" fill="none" stroke="#0a0c0f" stroke-width="0.1"/>
+<path d="M8.6 -1.8L11.2 -1.5L11.4 0.8L8.8 1Z" fill="#3d8dff"/>
+<path d="M9.2 -3.2L10.8 -3L10.2 -9L9.5 -9.8Z" fill="#1d4fa6"/>
+<path d="M9.2 -3.2L10.8 -3L10.2 -9L9.5 -9.8Z" fill="none" stroke="#0a0c0f" stroke-width="0.1"/>
+<path d="M9.6 -3.6L10.4 -3.5L9.9 -8.6Z" fill="#c3c9d1"/>
+<path d="M0 -7.6L2.4 -6.6L5.2 -2.6L4.8 3.4L2 5.2L0 5.4L0 5.4L-2 5.2L-4.8 3.4L-5.2 -2.6L-2.4 -6.6L0 -7.6Z" fill="#e6e9ee"/>
+<path d="M0 -7.6L2.4 -6.6L5.2 -2.6L4.8 3.4L2 5.2L0 5.4L0 5.4L-2 5.2L-4.8 3.4L-5.2 -2.6L-2.4 -6.6L0 -7.6Z" fill="none" stroke="#0a0c0f" stroke-width="0.1"/>
+<path d="M0 -5.4L2.2 -2.2L2.6 2.4L0 3.8L0 3.8L-2.6 2.4L-2.2 -2.2L0 -5.4Z" fill="#363b43"/>
+<path d="M0 -7.6L0.7 -6.8L0.6 -1.6L-0.6 -1.6L-0.7 -6.8Z" fill="#3d8dff"/>
+<path d="M0 -7.6L0.7 -6.8L0.6 -1.6L-0.6 -1.6L-0.7 -6.8Z" fill="none" stroke="#0a0c0f" stroke-width="0.06"/>
+<path d="M-1.35 0L-1.05 0A0.2 0.2 0 0 1 -0.85 0.2L-0.85 2.2A0.2 0.2 0 0 1 -1.05 2.4L-1.35 2.4A0.2 0.2 0 0 1 -1.55 2.2L-1.55 0.2A0.2 0.2 0 0 1 -1.35 0Z" fill="#c3c9d1"/>
+<path d="M1.05 0L1.35 0A0.2 0.2 0 0 1 1.55 0.2L1.55 2.2A0.2 0.2 0 0 1 1.35 2.4L1.05 2.4A0.2 0.2 0 0 1 0.85 2.2L0.85 0.2A0.2 0.2 0 0 1 1.05 0Z" fill="#c3c9d1"/>
+<path d="M-1.8 -0.4L1.8 -0.4L1.8 3.2L-1.8 3.2Z" fill="url(#g2)" opacity="0.6"/>
+</svg>

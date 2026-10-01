@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10.7 -12.95 21.4 23.65" width="342" height="378">
+<title>research_center</title>
+<defs><radialGradient id="g1" gradientUnits="userSpaceOnUse" cx="0" cy="-8.2" r="4.5" fx="0" fy="-8.2" fr="0"><stop offset="0" stop-color="rgb(61,141,255)"/><stop offset="1" stop-color="rgb(61,141,255)" stop-opacity="0"/></radialGradient></defs>
+<path d="M-8.4 -10.4L8.4 -10.4L10.4 -8.4L10.4 8.4L8.4 10.4L-8.4 10.4L-10.4 8.4L-10.4 -8.4Z" fill="#23272d"/>
+<path d="M-8.4 -10.4L8.4 -10.4L10.4 -8.4L10.4 8.4L8.4 10.4L-8.4 10.4L-10.4 8.4L-10.4 -8.4Z" fill="none" stroke="#0a0c0f" stroke-width="0.1"/>
+<path d="M-7 -6.4L7 -6.4A1.2 1.2 0 0 1 8.2 -5.2L8.2 5.6A1.2 1.2 0 0 1 7 6.8L-7 6.8A1.2 1.2 0 0 1 -8.2 5.6L-8.2 -5.2A1.2 1.2 0 0 1 -7 -6.4Z" fill="#e6e9ee"/>
+<path d="M-7 -6.4L7 -6.4A1.2 1.2 0 0 1 8.2 -5.2L8.2 5.6A1.2 1.2 0 0 1 7 6.8L-7 6.8A1.2 1.2 0 0 1 -8.2 5.6L-8.2 -5.2A1.2 1.2 0 0 1 -7 -6.4Z" fill="none" stroke="#0a0c0f" stroke-width="0.1"/>
+<path d="M-6.4 -5.4L6.4 -5.4A0.8 0.8 0 0 1 7.2 -4.6L7.2 5A0.8 0.8 0 0 1 6.4 5.8L-6.4 5.8A0.8 0.8 0 0 1 -7.2 5L-7.2 -4.6A0.8 0.8 0 0 1 -6.4 -5.4Z" fill="#363b43"/>
+<path d="M-5 -4L5 -4A1.6 1.6 0 0 1 6.6 -2.4L6.6 -2.4A1.6 1.6 0 0 1 5 -0.8L-5 -0.8A1.6 1.6 0 0 1 -6.6 -2.4L-6.6 -2.4A1.6 1.6 0 0 1 -5 -4Z" fill="#a39ec3"/>
+<path d="M-5 -4L5 -4A1.6 1.6 0 0 1 6.6 -2.4L6.6 -2.4A1.6 1.6 0 0 1 5 -0.8L-5 -0.8A1.6 1.6 0 0 1 -6.6 -2.4L-6.6 -2.4A1.6 1.6 0 0 1 -5 -4Z" fill="none" stroke="#0a0c0f" stroke-width="0.1"/>
+<path d="M-6.3 -3.4L6.3 -3.4A0.3 0.3 0 0 1 6.6 -3.1L6.6 -3A0.3 0.3 0 0 1 6.3 -2.7L-6.3 -2.7A0.3 0.3 0 0 1 -6.6 -3L-6.6 -3.1A0.3 0.3 0 0 1 -6.3 -3.4Z" fill="#d8d4ee"/>
+<path d="M-6.6 -4L-8.6 -2.4L-6.6 -0.8Z" fill="#3d8dff"/>
+<path d="M-6.6 -4L-8.6 -2.4L-6.6 -0.8Z" fill="none" stroke="#0a0c0f" stroke-width="0.1"/>
+<path d="M-5 0.6L5 0.6A1.6 1.6 0 0 1 6.6 2.2L6.6 2.2A1.6 1.6 0 0 1 5 3.8L-5 3.8A1.6 1.6 0 0 1 -6.6 2.2L-6.6 2.2A1.6 1.6 0 0 1 -5 0.6Z" fill="#a39ec3"/>
+<path d="M-5 0.6L5 0.6A1.6 1.6 0 0 1 6.6 2.2L6.6 2.2A1.6 1.6 0 0 1 5 3.8L-5 3.8A1.6 1.6 0 0 1 -6.6 2.2L-6.6 2.2A1.6 1.6 0 0 1 -5 0.6Z" fill="none" stroke="#0a0c0f" stroke-width="0.1"/>
+<path d="M-6.3 1.2L6.3 1.2A0.3 0.3 0 0 1 6.6 1.5L6.6 1.6A0.3 0.3 0 0 1 6.3 1.9L-6.3 1.9A0.3 0.3 0 0 1 -6.6 1.6L-6.6 1.5A0.3 0.3 0 0 1 -6.3 1.2Z" fill="#d8d4ee"/>
+<path d="M-6.6 0.6L-8.6 2.2L-6.6 3.8Z" fill="#3d8dff"/>
+<path d="M-6.6 0.6L-8.6 2.2L-6.6 3.8Z" fill="none" stroke="#0a0c0f" stroke-width="0.1"/>
+<path d="M9 -6L9.8 -6A0.4 0.4 0 0 1 10.2 -5.6L10.2 5.6A0.4 0.4 0 0 1 9.8 6L9 6A0.4 0.4 0 0 1 8.6 5.6L8.6 -5.6A0.4 0.4 0 0 1 9 -6Z" fill="#2f6a3c"/>
+<path d="M9 -6L9.8 -6A0.4 0.4 0 0 1 10.2 -5.6L10.2 5.6A0.4 0.4 0 0 1 9.8 6L9 6A0.4 0.4 0 0 1 8.6 5.6L8.6 -5.6A0.4 0.4 0 0 1 9 -6Z" fill="none" stroke="#0a0c0f" stroke-width="0.1"/>
+<path d="M0 -10L2.2 -8L0 -6.6L-2.2 -8Z" fill="#3d8dff"/>
+<path d="M0 -10L2.2 -8L0 -6.6L-2.2 -8Z" fill="none" stroke="#0a0c0f" stroke-width="0.1"/>
+<path d="M0 -10L2.2 -8L0 -8Z" fill="#a6d2ff"/>
+<path d="M-4.5 -12.7L4.5 -12.7L4.5 -3.7L-4.5 -3.7Z" fill="url(#g1)" opacity="0.36"/>
+</svg>
