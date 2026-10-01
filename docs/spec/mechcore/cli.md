@@ -88,15 +88,15 @@ answers with the manual the binary carries.
 A YAML document that names no kind, or one this binary does not read, is
 refused rather than guessed at.
 
-| Kind | `verify` | `convert --to` | `diff` | `show --view` | `format` |
-| --- | --- | --- | --- | --- | --- |
-| `layout` | yes | `grbr` (rewrite), `mcfr` (computation), `fight` (computation) | yes | — | yes |
-| `fight` | yes | `mcfr` (computation) | yes | — | yes |
-| `match` | yes | `grbr` (rewrite), `layout` (rewrite) | — | — | — |
-| `state` | — | — | — | — | — |
-| `action` | — | — | — | — | — |
-| `mcfr` | yes | `fight` (rewrite) | yes | `outcome`, `stats`, `buildings` | — |
-| `grbr` | — | `match` (rewrite), `mcfr` and `fight` (computation, the game alone) | — | — | — |
+| Kind | `verify` | `convert --to` | `diff` | `show --view` | `play` | `format` |
+| --- | --- | --- | --- | --- | --- | --- |
+| `layout` | yes | `grbr` (rewrite), `mcfr` (computation), `fight` (computation) | yes | — | yes (computation) | yes |
+| `fight` | yes | `mcfr` (computation) | yes | — | yes (computation) | yes |
+| `match` | yes | `grbr` (rewrite), `layout` (rewrite) | — | — | — | — |
+| `state` | — | — | — | — | — | — |
+| `action` | — | — | — | — | — | — |
+| `mcfr` | yes | `fight` (rewrite) | yes | `outcome`, `stats`, `buildings` | yes | — |
+| `grbr` | — | `match` (rewrite), `mcfr` and `fight` (computation, the game alone) | — | — | — | — |
 
 A state and an action are read inside a match, which is what verifies them.
 `schema` names a
@@ -446,6 +446,25 @@ Positions, bounds and every other length are the recording's own fixed point,
 
 `match show` shares the verb because it is the same question asked of a match
 in play: what one side is shown of it.
+
+## `play`
+
+`play <file> [<page>] [--seed <i32>]` writes the page that plays a fight back:
+one HTML file, carrying its script and the whole fight, that a browser opens
+offline and plays the battlefield from above at any speed. Without `<page>` it
+writes beside the file, under the file's name with `.html`, replacing a page
+already there, and it answers the page's path, the kind of the file, who
+fought the fight (`producer`), its ticks and, for a fight fought here, the seed
+it was fought with and where that seed came from.
+
+A recording is played as it holds the fight. A layout or a fight document is
+fought by the simulator first, as [`convert --to mcfr`](#convert) fights it,
+`--seed` overriding a layout's own and a fight document taking its own seed and
+no `--seed`; the fight is kept in memory and laid out for the page directly,
+so no recording is written. One that is wanted is `convert --to mcfr`, and
+playing it plays the same fight. A seed given to a recording or a fight
+document is a usage error, and a fight the simulator does not fight is refused
+as `convert` refuses it.
 
 ## `format` and `schema`
 

@@ -12,6 +12,7 @@ mod kind;
 mod man;
 mod r#match;
 mod outcome;
+mod play;
 mod scene;
 mod schema;
 mod script;
@@ -33,6 +34,7 @@ fn usage(program: &str) {
     );
     eprintln!("       {program} diff <left> <right> [--fields <group>,...] [--tick <n>]");
     eprintln!("       {program} show <recording.mcfr> --view outcome|stats|buildings [--tick <n>]");
+    eprintln!("       {program} play <layout|fight|recording> [<page.html>] [--seed <i32>]");
     eprintln!("       {program} format <document.yaml> [--write]");
     eprintln!("       {program} schema <layout|fight|match|state|action>...");
     eprintln!("       {program} match new <match.yaml> [--seed <i32>] [--map <i32>]");
@@ -79,6 +81,7 @@ pub(crate) fn dispatch(command: &str, arguments: Args) -> Option<Outcome> {
         "convert" => convert::run(arguments),
         "diff" => diff::run(arguments),
         "show" => show::run(arguments),
+        "play" => play::run(arguments),
         "format" => format::run(arguments),
         "schema" => schema::run(arguments),
         "match" => r#match::run(arguments),

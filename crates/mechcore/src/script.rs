@@ -35,7 +35,7 @@ const NATIVE: &[&str] = &[
 ];
 
 /// Operations that run without a game.
-const GAMELESS: &[&str] = &["let", "verify", "convert", "diff", "show"];
+const GAMELESS: &[&str] = &["let", "verify", "convert", "diff", "show", "play"];
 
 /// Step keys that are structure rather than an operation name.
 const RESERVED: &[&str] = &["expect", "steps", "where"];
@@ -708,6 +708,17 @@ async fn perform(
             // for, and `unresolved` says what the reading does not cover.
             let (_, shown) = crate::show::show(&input, view, tick).map_err(reason)?;
             Ok(shown)
+        }
+        "play" => {
+            let fields = closed(arguments, "play", &["input", "page", "seed"])?;
+            let input = scope.path(fields.get("input").ok_or("play needs input")?, "play input")?;
+            let page = fields
+                .get("page")
+                .map(|value| scope.path(value, "play page"))
+                .transpose()?;
+            let seed = optional_i32(fields.get("seed"), "play seed")?;
+            let played = crate::play::play(&input, page.as_deref(), seed).map_err(reason)?;
+            serde_json::to_value(played).map_err(|error| error.to_string())
         }
         "game.status" => Ok(session.current_status()),
         "game.start_test" => {

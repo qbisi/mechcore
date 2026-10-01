@@ -512,6 +512,7 @@ dependencies = [
  "mechcore-adapter",
  "mechcore-document",
  "mechcore-mcfr",
+ "mechcore-player",
  "mechcore-protocol",
  "mechcore-simulation",
  "schemars",
