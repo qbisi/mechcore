@@ -33,7 +33,7 @@ const Sprites = (() => {
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
-    marksman: [12, 22], arclight: [14, 14], rhino: [24, 15], crawler: [4.2, 5.2],
+    marksman: [12, 22], arclight: [18, 13], rhino: [24, 15], crawler: [4.2, 5.2],
     sledgehammer: [7.6, 13], wasp: [9, 11], energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
@@ -197,73 +197,78 @@ const Sprites = (() => {
     c.restore();
   }
 
-  // Arclight: a broad four-legged walker, its legs mostly under the hull. The
-  // hull carries a glass panel and a coil wheel; the turret carries the two
-  // fan emitters at its front corners, which the lightning leaves from.
+  // Arclight, as its ordinary attack holds it: a biped whose upper body
+  // carries the hull, a shield hung on each side and one cannon down its
+  // middle, which fires the splashing bolt. The legs show only their striped
+  // heels behind the hull; everything above them turns with the turret.
   function arclight(c, p) {
     const T = p.team;
-    const stride = Math.min(1, p.speed / 4) * 1.2;
-    const ph = p.walk * Math.PI * 2 / 7;
-    for (const [sx, sy, phase] of [[-1, -1, 0], [1, 1, 0], [1, -1, Math.PI], [-1, 1, Math.PI]]) {
-      const lift = Math.sin(ph + phase) * stride;
-      const fx = sx * 6.3, fy = sy * 5.0 + lift;
-      line(c, sx * 4.4, sy * 3.6, fx, fy, M.line, 1.5);
-      line(c, sx * 4.4, sy * 3.6, fx, fy, M.dark, 1.0);
-      poly(c, [fx - 0.8, fy - 0.9, fx + 0.8, fy - 0.9, fx + 0.6, fy + 0.9, fx - 0.6, fy + 0.9]);
-      paint(c, M.darker);
-    }
-    rr(c, -5.6, -5.2, 11.2, 11.6, 1.0);
-    paint(c, M.dark);
-    for (const sx of [-1, 1]) {
-      poly(c, [sx * 3.5, -4.8, sx * 5.6, -4.0, sx * 5.6, 4.4, sx * 3.5, 4.8]);
+    const stride = Math.min(1, p.speed / 4) * 1.1;
+    const ph = p.walk * Math.PI * 2 / 6;
+    for (const side of [-1, 1]) {
+      const off = Math.sin(ph + (side > 0 ? Math.PI : 0)) * stride;
+      rr(c, side * 1.25 - 0.4, 2.4 + off, 0.8, 2.8, 0.3);
       paint(c, M.white);
-      // striped guards over the hind legs
+      rr(c, side * 2.65 - 0.6, 3.0 + off, 1.2, 3.2, 0.3);
+      paint(c, M.dark);
       for (let i = 0; i < 3; i++) {
-        rr(c, sx * 5.0 - 0.9, 4.1 + i * 0.7, 1.8, 0.7, 0.1);
+        rr(c, side * 2.65 - 0.55, 3.9 + off + i * 0.7, 1.1, 0.7, 0.1);
         paint(c, i % 2 ? M.white : T.accent, M.line, 0.5);
       }
     }
-    rr(c, -3.1, -3.6, 2.4, 6.6, 0.5);
-    paint(c, M.glass, M.line, 0.7);
-    c.save();
-    c.translate(1.9, 0.2);
-    circle(c, 0, 0, 1.9);
-    paint(c, M.darker);
-    c.rotate(p.t * (p.attacking ? 9 : 1.5));
-    for (let i = 0; i < 6; i++) {
-      c.rotate(Math.PI / 3);
-      line(c, 0, 0.5, 0, 1.6, M.pale, 0.3);
-    }
-    c.restore();
-    for (let i = 0; i < 3; i++) { rr(c, -2.6, 3.6 + i * 0.6, 5.2, 0.3, 0.1); paint(c, M.black, null); }
 
     c.save();
     c.rotate(p.turret);
-    const busy = p.attacking ? 1 : 0;
-    const spin = p.t * (2 + busy * 10);
-    rr(c, -4.4, -6.2, 8.8, 2.4, 0.8);
-    paint(c, M.mid);
-    rr(c, -1.4, -5.8, 2.8, 1.4, 0.4);
-    paint(c, T.accent, null);
-    for (const sx of [-1, 1]) {
-      c.save();
-      c.translate(sx * 4.4, -5.6);
-      circle(c, 0, 0, 2.2);
-      paint(c, M.white);
-      c.rotate(spin * sx);
-      for (let b = 0; b < 4; b++) {
-        c.rotate(Math.PI / 2);
-        poly(c, [0.2, -0.35, 2.0, -1.0, 2.1, 0.35, 0.3, 0.35]);
-        paint(c, b % 2 ? T.accent : M.pale, M.line, 0.5);
-      }
-      circle(c, 0, 0, 0.7);
+    const kick = recoil(p.fireAge, 0.4) * 0.7;
+    // the shields, each on an arm from the hull's side
+    for (const side of [-1, 1]) {
+      rr(c, side * 5.9 - 0.9, 0.9, 1.8, 0.8, 0.2);
       paint(c, M.dark);
-      c.restore();
-      glow(c, sx * 4.4, -5.6, 3.8, GLOW.arclight, busy * (0.35 + 0.25 * Math.sin(p.t * 17 + sx)));
+      poly(c, [side * 6.5, -4.0, side * 7.6, -4.2, side * 8.5, 3.0, side * 7.4, 4.8, side * 6.7, 4.3]);
+      paint(c, T.accent);
+      poly(c, [side * 6.5, -4.0, side * 6.9, -4.05, side * 7.1, 4.5, side * 6.7, 4.3]);
+      paint(c, M.white, null);
+      line(c, side * 7.4, -3.4, side * 7.9, 3.2, T.deep, 0.35);
+      rr(c, side * 7.2 - 0.5, 0.5, 1.0, 1.6, 0.3);
+      paint(c, M.steel);
     }
-    glow(c, 1.9, 0.2, 2.2, GLOW.arclight, 0.3 + busy * 0.4);
-    flash(c, -4.4, -5.6, 2.6, GLOW.arclight, p.fireAge, 0.12, p.fireIndex);
-    flash(c, 4.4, -5.6, 2.6, GLOW.arclight, p.fireAge, 0.12, p.fireIndex + 1);
+    // the hull
+    rr(c, -5.3, -5.6, 10.6, 9.7, 0.6);
+    paint(c, M.dark);
+    poly(c, [-5.2, -4.4, -3.8, -5.6, -1.7, -5.6, -1.7, 4.0, -5.2, 4.0]);
+    paint(c, M.white);
+    rr(c, -3.9, -3.6, 2.1, 5.4, 0.6);
+    paint(c, M.glass, M.line, 0.7);
+    rr(c, -5.6, -0.9, 0.7, 2.4, 0.2);
+    paint(c, M.mid);
+    poly(c, [1.8, -5.6, 3.9, -5.6, 5.2, -4.4, 5.2, 0.6, 1.8, 0.6]);
+    paint(c, M.white);
+    poly(c, [1.8, 0.6, 5.2, 0.6, 5.2, 4.0, 1.8, 4.0]);
+    paint(c, M.steel, M.line, 0.6);
+    for (const y of [2.0, 3.0]) { circle(c, 4.6, y, 0.25); paint(c, M.pale, null); }
+    // the fuel tank on its right
+    rr(c, 2.5, -2.7, 1.5, 5.2, 0.75);
+    paint(c, M.mid);
+    line(c, 2.95, -2.2, 2.95, 1.9, M.pale, 0.2);
+    circle(c, 3.25, -3.1, 0.45);
+    paint(c, M.dark);
+    // the cannon down the middle, kicked back by its shot
+    for (const side of [-1, 1]) {
+      rr(c, side * 1.55 - 0.25, -4.6, 0.5, 9.2, 0.2);
+      paint(c, M.white);
+    }
+    rr(c, -1.1, 0.6, 2.2, 1.9, 0.3);
+    paint(c, M.white);
+    rr(c, -1.2, -1.5, 2.4, 1.8, 0.2);
+    paint(c, M.darker);
+    for (let i = 0; i < 4; i++) line(c, -1.0, -1.25 + i * 0.42, 1.0, -1.25 + i * 0.42, M.mid, 0.12);
+    rr(c, -1.3, -4.9 + kick, 2.6, 3.2, 0.4);
+    paint(c, M.white);
+    rr(c, -1.45, -5.7 + kick, 2.9, 1.0, 0.45);
+    paint(c, T.accent);
+    const charge = p.chargeIn < 0.4 ? 1 - p.chargeIn / 0.4 : 0;
+    glow(c, 0, -5.4 + kick, 2.4, GLOW.arclight, Math.max(charge, p.attacking ? 0.25 : 0));
+    flash(c, 0, -6.2 + kick, 2.6, GLOW.arclight, p.fireAge, 0.14, p.fireIndex);
     c.restore();
   }
 
