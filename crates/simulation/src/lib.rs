@@ -17,7 +17,10 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-pub use fight::{DivergentTick, SimulationComparison, SimulationResult, TimelineSummary};
+pub use fight::{
+    DivergentTick, Phases, SimulationComparison, SimulationProfile, SimulationResult, SlowestStep,
+    TimelineSummary,
+};
 
 /// Where a fight's timeline goes.
 #[derive(Clone, Copy, Debug)]

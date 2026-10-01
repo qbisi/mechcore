@@ -1,0 +1,272 @@
+# A crowd for timing the simulator, not a research question: each side
+# places 44 formations, 651 units of six kinds (Crawler, Fang, Wasp,
+# Sledgehammer, Marksman, Arclight), mirrored, under a fixed seed.
+# `mechcore convert layouts/crowd.yaml --to mcfr` answers what it cost in
+# its profiling.
+kind: layout
+round: 1
+seed: 7
+
+blue:
+  units:
+    - name: crawler
+      index: 0
+      position: {x: -175, y: -40}
+    - name: crawler
+      index: 1
+      position: {x: -125, y: -40}
+    - name: crawler
+      index: 2
+      position: {x: -75, y: -40}
+    - name: crawler
+      index: 3
+      position: {x: -25, y: -40}
+    - name: crawler
+      index: 4
+      position: {x: 25, y: -40}
+    - name: crawler
+      index: 5
+      position: {x: 75, y: -40}
+    - name: crawler
+      index: 6
+      position: {x: 125, y: -40}
+    - name: crawler
+      index: 7
+      position: {x: 175, y: -40}
+    - name: fang
+      index: 8
+      position: {x: -175, y: -70}
+    - name: fang
+      index: 9
+      position: {x: -125, y: -70}
+    - name: fang
+      index: 10
+      position: {x: -75, y: -70}
+    - name: fang
+      index: 11
+      position: {x: -25, y: -70}
+    - name: fang
+      index: 12
+      position: {x: 25, y: -70}
+    - name: fang
+      index: 13
+      position: {x: 75, y: -70}
+    - name: fang
+      index: 14
+      position: {x: 125, y: -70}
+    - name: fang
+      index: 15
+      position: {x: 175, y: -70}
+    - name: crawler
+      index: 16
+      position: {x: -175, y: -100}
+    - name: crawler
+      index: 17
+      position: {x: -125, y: -100}
+    - name: crawler
+      index: 18
+      position: {x: -75, y: -100}
+    - name: crawler
+      index: 19
+      position: {x: -25, y: -100}
+    - name: crawler
+      index: 20
+      position: {x: 25, y: -100}
+    - name: crawler
+      index: 21
+      position: {x: 75, y: -100}
+    - name: crawler
+      index: 22
+      position: {x: 125, y: -100}
+    - name: crawler
+      index: 23
+      position: {x: 175, y: -100}
+    - name: wasp
+      index: 24
+      position: {x: -175, y: -130}
+    - name: wasp
+      index: 25
+      position: {x: -125, y: -130}
+    - name: wasp
+      index: 26
+      position: {x: -75, y: -130}
+    - name: wasp
+      index: 27
+      position: {x: -25, y: -130}
+    - name: wasp
+      index: 28
+      position: {x: 25, y: -130}
+    - name: wasp
+      index: 29
+      position: {x: 75, y: -130}
+    - name: wasp
+      index: 30
+      position: {x: 125, y: -130}
+    - name: wasp
+      index: 31
+      position: {x: 175, y: -130}
+    - name: sledgehammer
+      index: 32
+      position: {x: -75, y: -160}
+    - name: sledgehammer
+      index: 33
+      position: {x: -25, y: -160}
+    - name: sledgehammer
+      index: 34
+      position: {x: 25, y: -160}
+    - name: sledgehammer
+      index: 35
+      position: {x: 75, y: -160}
+    - name: marksman
+      index: 36
+      position: {x: -100, y: -190}
+    - name: marksman
+      index: 37
+      position: {x: -60, y: -190}
+    - name: marksman
+      index: 38
+      position: {x: -20, y: -190}
+    - name: marksman
+      index: 39
+      position: {x: 20, y: -190}
+    - name: marksman
+      index: 40
+      position: {x: 60, y: -190}
+    - name: marksman
+      index: 41
+      position: {x: 100, y: -190}
+    - name: arclight
+      index: 42
+      position: {x: -110, y: -150}
+
+red:
+  units:
+    - name: crawler
+      index: 0
+      position: {x: -175, y: -40}
+    - name: crawler
+      index: 1
+      position: {x: -125, y: -40}
+    - name: crawler
+      index: 2
+      position: {x: -75, y: -40}
+    - name: crawler
+      index: 3
+      position: {x: -25, y: -40}
+    - name: crawler
+      index: 4
+      position: {x: 25, y: -40}
+    - name: crawler
+      index: 5
+      position: {x: 75, y: -40}
+    - name: crawler
+      index: 6
+      position: {x: 125, y: -40}
+    - name: crawler
+      index: 7
+      position: {x: 175, y: -40}
+    - name: fang
+      index: 8
+      position: {x: -175, y: -70}
+    - name: fang
+      index: 9
+      position: {x: -125, y: -70}
+    - name: fang
+      index: 10
+      position: {x: -75, y: -70}
+    - name: fang
+      index: 11
+      position: {x: -25, y: -70}
+    - name: fang
+      index: 12
+      position: {x: 25, y: -70}
+    - name: fang
+      index: 13
+      position: {x: 75, y: -70}
+    - name: fang
+      index: 14
+      position: {x: 125, y: -70}
+    - name: fang
+      index: 15
+      position: {x: 175, y: -70}
+    - name: crawler
+      index: 16
+      position: {x: -175, y: -100}
+    - name: crawler
+      index: 17
+      position: {x: -125, y: -100}
+    - name: crawler
+      index: 18
+      position: {x: -75, y: -100}
+    - name: crawler
+      index: 19
+      position: {x: -25, y: -100}
+    - name: crawler
+      index: 20
+      position: {x: 25, y: -100}
+    - name: crawler
+      index: 21
+      position: {x: 75, y: -100}
+    - name: crawler
+      index: 22
+      position: {x: 125, y: -100}
+    - name: crawler
+      index: 23
+      position: {x: 175, y: -100}
+    - name: wasp
+      index: 24
+      position: {x: -175, y: -130}
+    - name: wasp
+      index: 25
+      position: {x: -125, y: -130}
+    - name: wasp
+      index: 26
+      position: {x: -75, y: -130}
+    - name: wasp
+      index: 27
+      position: {x: -25, y: -130}
+    - name: wasp
+      index: 28
+      position: {x: 25, y: -130}
+    - name: wasp
+      index: 29
+      position: {x: 75, y: -130}
+    - name: wasp
+      index: 30
+      position: {x: 125, y: -130}
+    - name: wasp
+      index: 31
+      position: {x: 175, y: -130}
+    - name: sledgehammer
+      index: 32
+      position: {x: -75, y: -160}
+    - name: sledgehammer
+      index: 33
+      position: {x: -25, y: -160}
+    - name: sledgehammer
+      index: 34
+      position: {x: 25, y: -160}
+    - name: sledgehammer
+      index: 35
+      position: {x: 75, y: -160}
+    - name: marksman
+      index: 36
+      position: {x: -100, y: -190}
+    - name: marksman
+      index: 37
+      position: {x: -60, y: -190}
+    - name: marksman
+      index: 38
+      position: {x: -20, y: -190}
+    - name: marksman
+      index: 39
+      position: {x: 20, y: -190}
+    - name: marksman
+      index: 40
+      position: {x: 60, y: -190}
+    - name: marksman
+      index: 41
+      position: {x: 100, y: -190}
+    - name: arclight
+      index: 42
+      position: {x: -110, y: -150}
