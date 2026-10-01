@@ -9,7 +9,7 @@
 use std::{
     cmp::Ordering,
     collections::{BTreeMap, BTreeSet},
-    time::Instant,
+    time::{Duration, Instant},
 };
 
 use mechcore_mcfr::{
@@ -72,7 +72,10 @@ use motion::*;
 use projectile::*;
 use random::GrRandom;
 pub(crate) use run::*;
-pub use run::{DivergentTick, SimulationComparison, SimulationResult, TimelineSummary};
+pub use run::{
+    DivergentTick, Phases, SimulationComparison, SimulationProfile, SimulationResult, SlowestStep,
+    TimelineSummary,
+};
 use rvo::{AgentInput as RvoAgentInput, AgentKey as RvoAgentKey, AgentSizeType, FixedVec2};
 use search::*;
 #[cfg(test)]

@@ -281,6 +281,17 @@ the terminal structure of the fight, its hashes and its profiling. With
 `<out>` it also writes the recording there, which [mcfr.md](../mcfr/mcfr.md)
 defines.
 
+The profiling is what the fight cost to compute, so the simulator's speed can
+be followed from one change to the next. It gives the whole generation's
+duration and its rate against the fight's own time, and splits the duration
+into phases that add up to it: `prepare`, building the scene; `step`, the
+rules advancing each tick; `snapshot`, reading each tick's state out; `record`,
+hashing each tick and storing it when a recording is kept; and `finish`,
+closing the recording and reopening a written one to check it. Beside them it
+states the fight's size as `unit_ticks`, the live units summed over every
+tick, with `peak_live_units`, and the step's cost per tick and per unit-tick,
+with the tick whose step took longest and how many units it had.
+
 **`fight` to `mcfr`, a computation.** Fights a fight document's projection
 with the seed the document states, which is why it takes no `--seed`: the
 fight whose result the document is.

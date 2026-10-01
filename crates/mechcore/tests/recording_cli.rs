@@ -70,13 +70,36 @@ fn converting_without_an_output_answers_the_result_and_writes_nothing() {
         String::from_utf8_lossy(&command.stderr)
     );
     let report: serde_json::Value = serde_json::from_slice(&command.stdout).unwrap();
-    assert_eq!(report["schema"], "mechcore.simulation-result.v4");
+    assert_eq!(report["schema"], "mechcore.simulation-result.v5");
     assert!(report.get("output").is_none());
     assert!(report["hashes"].get("scenario_hash").is_none());
     assert!(report["hashes"]["result_hash"].is_string());
     assert!(report["teams"].is_array());
     assert!(report["profiling"]["generation_duration_milliseconds"].is_number());
     assert!(report["profiling"]["simulation_to_real_time_rate"].is_number());
+    let profiling = &report["profiling"];
+    let phases = &profiling["phases_milliseconds"];
+    let phase_sum: f64 = ["prepare", "step", "snapshot", "record", "finish"]
+        .iter()
+        .map(|phase| phases[phase].as_f64().unwrap())
+        .sum();
+    assert!(
+        phase_sum
+            <= profiling["generation_duration_milliseconds"]
+                .as_f64()
+                .unwrap()
+    );
+    assert!(
+        profiling["unit_ticks"].as_u64().unwrap() >= profiling["peak_live_units"].as_u64().unwrap()
+    );
+    assert!(profiling["peak_live_units"].as_u64().unwrap() >= 2);
+    assert!(
+        profiling["step_microseconds_per_unit_tick"]
+            .as_f64()
+            .unwrap()
+            > 0.0
+    );
+    assert!(profiling["slowest_step"]["tick"].as_u64().unwrap() >= 1);
     assert!(report["profiling"].get("file_size_bytes").is_none());
     assert!(report["profiling"].get("member_sizes_bytes").is_none());
     assert!(!layout.with_extension("mcfr").exists());

@@ -30,14 +30,76 @@ pub struct SimulationResult {
     pub recording: Option<MemoryRecording>,
 }
 
+/// What a fight cost to compute, for following the simulator's speed from one
+/// change to the next.
 #[derive(Debug, Clone, Serialize)]
 pub struct SimulationProfile {
     pub generation_duration_milliseconds: f64,
     pub simulation_to_real_time_rate: f64,
+    /// Where the generation went: the four phases add up to it.
+    pub phases_milliseconds: Phases,
+    /// Live units summed over every tick: the fight's size, which the step's
+    /// cost grows with.
+    pub unit_ticks: u64,
+    /// The most units alive on one tick.
+    pub peak_live_units: u64,
+    /// The step phase over the ticks fought.
+    pub step_milliseconds_per_tick: f64,
+    /// The step phase over the unit-ticks fought.
+    pub step_microseconds_per_unit_tick: f64,
+    /// The tick whose step took longest.
+    pub slowest_step: SlowestStep,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub file_size_bytes: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub member_sizes_bytes: Option<BTreeMap<String, u64>>,
+}
+
+/// Where a fight's generation went, in milliseconds.
+#[derive(Debug, Clone, Copy, Serialize)]
+pub struct Phases {
+    /// Building the scene and its first targets, before the first tick.
+    pub prepare: f64,
+    /// Advancing the fight a tick: the rules themselves.
+    pub step: f64,
+    /// Reading each tick's state out of the fight and putting it in order.
+    pub snapshot: f64,
+    /// Hashing each tick and, for a kept recording, storing it.
+    pub record: f64,
+    /// Closing the recording, and reopening a written one to check it.
+    pub finish: f64,
+}
+
+#[derive(Debug, Clone, Copy, Serialize)]
+pub struct SlowestStep {
+    pub tick: u32,
+    pub milliseconds: f64,
+    pub live_units: u64,
+}
+
+/// What [`execute`] measures as it fights.
+#[derive(Default)]
+pub(in crate::fight) struct Costs {
+    prepare: Duration,
+    step: Duration,
+    snapshot: Duration,
+    record: Duration,
+    unit_ticks: u64,
+    peak_live_units: u64,
+    slowest_step: (Duration, u32, u64),
+}
+
+impl Costs {
+    /// Counts one tick's step and the units alive after it.
+    fn stepped(&mut self, tick: u32, took: Duration, live_units: usize) {
+        let live_units = u64::try_from(live_units).unwrap_or(u64::MAX);
+        self.step += took;
+        self.unit_ticks += live_units;
+        self.peak_live_units = self.peak_live_units.max(live_units);
+        if took > self.slowest_step.0 {
+            self.slowest_step = (took, tick, live_units);
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -74,6 +136,7 @@ pub(in crate::fight) struct Execution {
     pub(in crate::fight) end_reason: &'static str,
     pub(in crate::fight) first_divergence: Option<u32>,
     pub(in crate::fight) divergent_tick: Option<DivergentTick>,
+    pub(in crate::fight) costs: Costs,
 }
 
 pub(crate) fn run(
@@ -92,9 +155,11 @@ pub(crate) fn run(
         steps,
         end_reason,
         first_divergence,
+        costs,
         ..
     } = execution;
     debug_assert!(first_divergence.is_none());
+    let finish_started = Instant::now();
     let (hashes, recording) = match record {
         Record::Memory => {
             let recording = writer.finish_in_memory()?;
@@ -118,6 +183,7 @@ pub(crate) fn run(
     } else {
         (None, None)
     };
+    let finish = finish_started.elapsed();
     let generation_duration = generation_started.elapsed();
     let simulated_duration_milliseconds = steps
         .saturating_mul(LOGIC_TICK_TIME_UNITS)
@@ -131,7 +197,7 @@ pub(crate) fn run(
         simulated_duration_milliseconds as f64 / generation_duration.as_secs_f64() / 1_000.0;
     let winner = simulation.winner().map(team_name);
     Ok(SimulationResult {
-        schema: "mechcore.simulation-result.v4",
+        schema: "mechcore.simulation-result.v5",
         game_build: config.game_build.clone(),
         seed,
         seed_source,
@@ -154,13 +220,49 @@ pub(crate) fn run(
             .collect(),
         hashes,
         profiling: SimulationProfile {
-            generation_duration_milliseconds: generation_duration.as_secs_f64() * 1_000.0,
+            generation_duration_milliseconds: milliseconds(generation_duration),
             simulation_to_real_time_rate,
+            phases_milliseconds: Phases {
+                prepare: milliseconds(costs.prepare),
+                step: milliseconds(costs.step),
+                snapshot: milliseconds(costs.snapshot),
+                record: milliseconds(costs.record),
+                finish: milliseconds(finish),
+            },
+            unit_ticks: costs.unit_ticks,
+            peak_live_units: costs.peak_live_units,
+            step_milliseconds_per_tick: per(milliseconds(costs.step), steps),
+            step_microseconds_per_unit_tick: per(
+                milliseconds(costs.step) * 1_000.0,
+                costs.unit_ticks,
+            ),
+            slowest_step: SlowestStep {
+                tick: costs.slowest_step.1,
+                milliseconds: milliseconds(costs.slowest_step.0),
+                live_units: costs.slowest_step.2,
+            },
             file_size_bytes,
             member_sizes_bytes,
         },
         recording,
     })
+}
+
+fn milliseconds(duration: Duration) -> f64 {
+    duration.as_secs_f64() * 1_000.0
+}
+
+/// A total over a count, zero over none.
+#[allow(
+    clippy::cast_precision_loss,
+    reason = "a tick or unit-tick count stays far below f64's exact integer range"
+)]
+fn per(total: f64, count: u64) -> f64 {
+    if count == 0 {
+        0.0
+    } else {
+        total / count as f64
+    }
 }
 
 pub(crate) fn compare(
@@ -238,10 +340,13 @@ pub(in crate::fight) fn execute(
         combat_round: layout.round,
         match_seed: seed,
     };
+    let mut costs = Costs::default();
+    let prepare_started = Instant::now();
     let mut simulation =
         Simulation::new_unprepared(layout, &config.units, &config.towers, &config.maps, seed)?;
     let mut writer = writer(record, replay_layout, seed, config, &context)?;
     simulation.initialize_presearch_targets()?;
+    costs.prepare = prepare_started.elapsed();
     let mut steps = 0;
     let mut first_divergence = None;
     let mut divergent_tick = None;
@@ -252,13 +357,20 @@ pub(in crate::fight) fn execute(
         if steps >= max_steps {
             break "forced_time_limit";
         }
+        let step_started = Instant::now();
         let events = simulation.step(steps)?;
         steps += 1;
         let tick = u32::try_from(steps).map_err(|_| Error::new("tick index exceeds u32"))?;
         simulation.close_tick(steps >= max_steps);
+        let stepped = step_started.elapsed();
+        let snapshot_started = Instant::now();
         let mut state = simulation.snapshot();
         state.canonicalize();
+        costs.snapshot += snapshot_started.elapsed();
+        costs.stepped(tick, stepped, state.live_units.len());
+        let record_started = Instant::now();
         let tick_hashes = writer.append_tick(state.clone(), &events)?;
+        costs.record += record_started.elapsed();
         if let Some(recording) = recording {
             let expected_hash = if tick <= recording.tick_count() {
                 Some(recording.tick_hash(tick)?)
@@ -309,6 +421,7 @@ pub(in crate::fight) fn execute(
         end_reason,
         first_divergence,
         divergent_tick,
+        costs,
     })
 }
 
