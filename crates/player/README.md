@@ -5,13 +5,15 @@ the map's towers, the constructions, the shields, the units and their shots,
 moving and fighting as the recording says they did.
 
 ```bash
-mechcore convert crates/player/scenes/six-units.yaml --to mcfr six-units.mcfr
-cargo run --release -p mechcore-player -- six-units.mcfr
+mechcore play crates/player/scenes/six-units.yaml
 ```
 
-The second command writes `six-units.html` beside the recording: one file
-that carries its style, its script and the whole fight, and plays offline in
-any browser. Space plays and pauses, the arrows step a tick (a second with
+writes `six-units.html` beside the layout: one file that carries its style,
+its script and the whole fight, and plays offline in any browser. `play` takes
+a recording too, and a layout or fight document it fights in memory first;
+[cli.md](../../docs/spec/mechcore/cli.md#play) is its contract. This crate is
+the library it plays with: [`timeline`](src/timeline.rs) lays any
+`Recording` out for the page and [`page`](src/page.rs) writes it. Space plays and pauses, the arrows step a tick (a second with
 Shift), the wheel zooms, a drag pans, and the bar at the bottom seeks, with
 each side's losses marked along it.
 

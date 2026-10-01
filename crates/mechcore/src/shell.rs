@@ -43,6 +43,7 @@ the game
   game quit_game                  shut the game down
 without the game
   verify | convert | diff | show  files, whose kind is read from what they hold
+  play <file> [<page.html>]       the page that plays a fight back
   format | schema                 documents
   man [<topic>|<kind>]            the manual this binary carries
 shell
@@ -51,7 +52,7 @@ shell
 
 /// The commands a line may name beside the game's, which need no session.
 const SESSIONLESS: &[&str] = &[
-    "verify", "convert", "diff", "show", "format", "schema", "man",
+    "verify", "convert", "diff", "show", "play", "format", "schema", "man",
 ];
 
 pub(crate) fn run() -> Result<(), String> {

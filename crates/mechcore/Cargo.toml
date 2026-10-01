@@ -18,6 +18,7 @@ blake3 = "1"
 libc = "0.2"
 mechcore-document = { path = "../document", features = ["convert"] }
 mechcore-mcfr = { path = "../mcfr" }
+mechcore-player = { path = "../player" }
 mechcore-protocol = { path = "../protocol" }
 mechcore-simulation = { path = "../simulation" }
 schemars = "1"
