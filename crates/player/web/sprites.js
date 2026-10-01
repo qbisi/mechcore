@@ -1,0 +1,729 @@
+// Top-down sprites, drawn after the game's own models.
+//
+// Every sprite is drawn in metres around the object's centre with its front
+// toward -y, so the page turns it by the recorded facing and scales it by the
+// zoom. The shapes and proportions follow each model as its prefab assembles
+// it in its attack pose, seen from straight above: the parts a unit moves in
+// a fight (legs, turret, barrels, arms, stinger) are drawn apart so the page
+// can move them. The colours follow the models' textures: white armour over
+// gunmetal, the team colour where the texture masks it, and each unit's own
+// emissive colour.
+
+'use strict';
+
+const Sprites = (() => {
+  const TEAMS = [
+    { name: 'Blue', accent: '#3d8dff', deep: '#1d4fa6', light: '#a6d2ff', rgb: '61,141,255' },
+    { name: 'Red', accent: '#ff4f3c', deep: '#a8261b', light: '#ffb4a8', rgb: '255,79,60' },
+  ];
+  const M = {
+    white: '#e6e9ee', pale: '#c3c9d1', mid: '#7f8691', steel: '#575e68',
+    dark: '#363b43', darker: '#23272d', black: '#121418', line: '#0a0c0f',
+    glass: '#9cc6e6', sand: '#b7a47a', caution: '#f2a640', gold: '#e8c23a',
+  };
+  // Each unit's emissive colour, read off its model's emission texture.
+  const GLOW = {
+    marksman: '#5ff2ff', arclight: '#b3f2ff', rhino: '#ffa236', crawler: '#ffb648',
+    sledgehammer: '#55e8f4', wasp: '#ffd84e',
+  };
+  // The model's footprint in metres, width by length, which frames an icon.
+  const SIZE = {
+    marksman: [12, 22], arclight: [14, 14], rhino: [24, 15], crawler: [4.2, 5.2],
+    sledgehammer: [7.6, 13], wasp: [9, 11], energy_tower: [22, 22], research_center: [22, 22],
+    anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
+  };
+
+  let LW = 0.15; // outline width in metres, set from the zoom
+
+  function setScale(metresPerPixel) {
+    LW = Math.max(0.1, metresPerPixel * 0.9);
+  }
+
+  // ----------------------------------------------------------------- helpers
+  function rr(c, x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.arcTo(x + w, y, x + w, y + h, r);
+    c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r);
+    c.arcTo(x, y, x + w, y, r);
+    c.closePath();
+  }
+  function poly(c, pts) {
+    c.beginPath();
+    c.moveTo(pts[0], pts[1]);
+    for (let i = 2; i < pts.length; i += 2) c.lineTo(pts[i], pts[i + 1]);
+    c.closePath();
+  }
+  // Mirror a half outline drawn on the right (+x) side into a whole one.
+  function sym(half) {
+    const out = half.slice();
+    for (let i = half.length - 2; i >= 0; i -= 2) out.push(-half[i], half[i + 1]);
+    return out;
+  }
+  function circle(c, x, y, r) {
+    c.beginPath();
+    c.arc(x, y, r, 0, Math.PI * 2);
+  }
+  function paint(c, fill, stroke = M.line, width = 1) {
+    if (fill) { c.fillStyle = fill; c.fill(); }
+    if (stroke) { c.lineWidth = LW * width; c.strokeStyle = stroke; c.stroke(); }
+  }
+  function line(c, x1, y1, x2, y2, colour, width) {
+    c.beginPath();
+    c.moveTo(x1, y1);
+    c.lineTo(x2, y2);
+    c.lineWidth = width;
+    c.strokeStyle = colour;
+    c.stroke();
+  }
+  function glow(c, x, y, r, colour, alpha) {
+    if (alpha <= 0.01) return;
+    const g = c.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, colour);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    c.save();
+    c.globalAlpha = Math.min(1, alpha);
+    c.globalCompositeOperation = 'lighter';
+    c.fillStyle = g;
+    c.fillRect(x - r, y - r, r * 2, r * 2);
+    c.restore();
+  }
+  // A star-shaped flash, for a muzzle.
+  function flash(c, x, y, r, colour, age, life, seed = 0) {
+    if (age < 0 || age > life) return;
+    const k = 1 - age / life;
+    glow(c, x, y, r * 1.6, colour, k);
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    c.globalAlpha = k;
+    c.fillStyle = '#ffffff';
+    c.beginPath();
+    const spikes = 6;
+    for (let i = 0; i < spikes * 2; i++) {
+      const a = (i / (spikes * 2)) * Math.PI * 2 + seed;
+      const rr2 = i % 2 === 0 ? r * (0.8 + 0.4 * ((seed * 7 + i) % 3) / 2) : r * 0.25;
+      const px = x + Math.sin(a) * rr2, py = y - Math.cos(a) * rr2;
+      if (i === 0) c.moveTo(px, py); else c.lineTo(px, py);
+    }
+    c.closePath();
+    c.fill();
+    c.restore();
+  }
+  const ease = (t) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));
+  // How far a weapon has kicked back `age` seconds after firing: a sharp kick
+  // and a slower return.
+  function recoil(age, back = 0.45) {
+    if (!(age >= 0) || age > back + 0.06) return 0;
+    if (age < 0.06) return age / 0.06;
+    return 1 - ease((age - 0.06) / back);
+  }
+
+  // ------------------------------------------------------------------ units
+  // A pose says how a unit stands this frame; the page fills it in.
+  function pose() {
+    return {
+      t: 0, team: TEAMS[0], facing: 0, turret: 0, speed: 0, walk: 0,
+      fireAge: Infinity, fireIndex: 0, chargeIn: Infinity,
+      strike: -1, strikeIndex: 0, attacking: false, altitude: 0, life: 1,
+    };
+  }
+
+  // Marksman (Longbow): a biped carrying a rail rifle twice its length, the
+  // twin prongs forward, shoulder pods to its left and a battery to its back.
+  function marksman(c, p) {
+    const T = p.team;
+    const stride = Math.min(1, p.speed / 4) * 1.5;
+    const ph = p.walk * Math.PI * 2 / 6;
+    for (const side of [-1, 1]) {
+      const off = Math.sin(ph + (side > 0 ? Math.PI : 0)) * stride;
+      line(c, side * 1.4, 0.4, side * 2.6, off, M.dark, 1.3);
+      poly(c, [side * 1.8, off - 2.2, side * 3.4, off - 1.8, side * 3.6, off + 1.6, side * 1.7, off + 1.9]);
+      paint(c, M.darker);
+      poly(c, [side * 2.0, off - 2.2, side * 2.7, off - 3.2, side * 3.3, off - 1.9]);
+      paint(c, M.steel);
+    }
+    rr(c, -2, -1.4, 4, 3, 0.6);
+    paint(c, M.dark);
+
+    c.save();
+    c.rotate(p.turret);
+    const kick = recoil(p.fireAge, 0.55);
+    c.translate(0, kick * 0.4);
+    // battery on the back
+    rr(c, 2.9, 0.6, 1.9, 4.6, 0.9);
+    paint(c, M.white);
+    rr(c, 2.9, 2.0, 1.9, 1.6, 0.2);
+    paint(c, '#3f6f93', null);
+    // torso
+    poly(c, [-2.7, -2.2, -0.9, -3.8, 0.9, -3.8, 2.7, -2.2, 2.9, 2.0, 0.8, 3.4, -0.8, 3.4, -2.9, 2.0]);
+    paint(c, M.white);
+    poly(c, [-0.8, -3.2, 0.8, -3.2, 1.1, 2.4, -1.1, 2.4]);
+    paint(c, M.glass, M.line, 0.6);
+    poly(c, [-2.6, -1.6, -1.3, -1.9, -1.4, 1.8, -2.6, 1.6]);
+    paint(c, T.accent, null);
+    // shoulder pod: the team colour under white facets
+    circle(c, -4.3, -0.3, 2.2);
+    paint(c, T.accent);
+    poly(c, [-4.3, -2.4, -3.1, -0.3, -5.5, -0.3]);
+    paint(c, M.white, null);
+    poly(c, [-4.3, 1.8, -3.3, 0.3, -5.3, 0.3]);
+    paint(c, M.white, null);
+    circle(c, -4.3, -0.3, 2.2);
+    paint(c, null, M.line, 1.2);
+    for (const x of [-2.1, -1.4]) { rr(c, x, -2.9, 0.5, 2.0, 0.2); paint(c, M.pale, M.line, 0.6); }
+    // rifle on the right, kicked back by the shot
+    c.translate(0, kick * 1.6);
+    rr(c, 0.9, -5.2, 2.2, 8.6, 0.5);
+    paint(c, M.darker);
+    rr(c, 1.15, -4.6, 1.7, 3.6, 0.3);
+    paint(c, T.accent, M.line, 0.7);
+    const charge = p.chargeIn < 0.6 ? 1 - p.chargeIn / 0.6 : 0;
+    if (charge > 0) line(c, 2.0, -6, 2.0, -15.2, GLOW.marksman, 0.25 + charge * 0.5);
+    for (const x of [1.25, 2.35]) {
+      poly(c, [x, -5.2, x + 0.4, -5.2, x + 0.4, -15.4, x + 0.2, -16.3, x, -15.4]);
+      paint(c, M.white, M.line, 0.7);
+    }
+    rr(c, 1.0, -8.2, 2.0, 0.7, 0.2);
+    paint(c, M.dark, null);
+    if (charge > 0) glow(c, 2.0, -15.6, 2.2, GLOW.marksman, charge);
+    flash(c, 2.0, -16.6, 2.6, GLOW.marksman, p.fireAge, 0.18, p.fireIndex);
+    c.restore();
+  }
+
+  // Arclight: a broad four-legged walker, its legs mostly under the hull. The
+  // hull carries a glass panel and a coil wheel; the turret carries the two
+  // fan emitters at its front corners, which the lightning leaves from.
+  function arclight(c, p) {
+    const T = p.team;
+    const stride = Math.min(1, p.speed / 4) * 1.2;
+    const ph = p.walk * Math.PI * 2 / 7;
+    for (const [sx, sy, phase] of [[-1, -1, 0], [1, 1, 0], [1, -1, Math.PI], [-1, 1, Math.PI]]) {
+      const lift = Math.sin(ph + phase) * stride;
+      const fx = sx * 6.3, fy = sy * 5.0 + lift;
+      line(c, sx * 4.4, sy * 3.6, fx, fy, M.line, 1.5);
+      line(c, sx * 4.4, sy * 3.6, fx, fy, M.dark, 1.0);
+      poly(c, [fx - 0.8, fy - 0.9, fx + 0.8, fy - 0.9, fx + 0.6, fy + 0.9, fx - 0.6, fy + 0.9]);
+      paint(c, M.darker);
+    }
+    rr(c, -5.6, -5.2, 11.2, 11.6, 1.0);
+    paint(c, M.dark);
+    for (const sx of [-1, 1]) {
+      poly(c, [sx * 3.5, -4.8, sx * 5.6, -4.0, sx * 5.6, 4.4, sx * 3.5, 4.8]);
+      paint(c, M.white);
+      // striped guards over the hind legs
+      for (let i = 0; i < 3; i++) {
+        rr(c, sx * 5.0 - 0.9, 4.1 + i * 0.7, 1.8, 0.7, 0.1);
+        paint(c, i % 2 ? M.white : T.accent, M.line, 0.5);
+      }
+    }
+    rr(c, -3.1, -3.6, 2.4, 6.6, 0.5);
+    paint(c, M.glass, M.line, 0.7);
+    c.save();
+    c.translate(1.9, 0.2);
+    circle(c, 0, 0, 1.9);
+    paint(c, M.darker);
+    c.rotate(p.t * (p.attacking ? 9 : 1.5));
+    for (let i = 0; i < 6; i++) {
+      c.rotate(Math.PI / 3);
+      line(c, 0, 0.5, 0, 1.6, M.pale, 0.3);
+    }
+    c.restore();
+    for (let i = 0; i < 3; i++) { rr(c, -2.6, 3.6 + i * 0.6, 5.2, 0.3, 0.1); paint(c, M.black, null); }
+
+    c.save();
+    c.rotate(p.turret);
+    const busy = p.attacking ? 1 : 0;
+    const spin = p.t * (2 + busy * 10);
+    rr(c, -4.4, -6.2, 8.8, 2.4, 0.8);
+    paint(c, M.mid);
+    rr(c, -1.4, -5.8, 2.8, 1.4, 0.4);
+    paint(c, T.accent, null);
+    for (const sx of [-1, 1]) {
+      c.save();
+      c.translate(sx * 4.4, -5.6);
+      circle(c, 0, 0, 2.2);
+      paint(c, M.white);
+      c.rotate(spin * sx);
+      for (let b = 0; b < 4; b++) {
+        c.rotate(Math.PI / 2);
+        poly(c, [0.2, -0.35, 2.0, -1.0, 2.1, 0.35, 0.3, 0.35]);
+        paint(c, b % 2 ? T.accent : M.pale, M.line, 0.5);
+      }
+      circle(c, 0, 0, 0.7);
+      paint(c, M.dark);
+      c.restore();
+      glow(c, sx * 4.4, -5.6, 3.8, GLOW.arclight, busy * (0.35 + 0.25 * Math.sin(p.t * 17 + sx)));
+    }
+    glow(c, 1.9, 0.2, 2.2, GLOW.arclight, 0.3 + busy * 0.4);
+    flash(c, -4.4, -5.6, 2.6, GLOW.arclight, p.fireAge, 0.12, p.fireIndex);
+    flash(c, 4.4, -5.6, 2.6, GLOW.arclight, p.fireAge, 0.12, p.fireIndex + 1);
+    c.restore();
+  }
+
+  // Rhino: a wide mech balanced on one wheel, its two arms ending in blades
+  // that it swings in turn.
+  function rhino(c, p) {
+    const T = p.team;
+    // the wheel, rolling
+    rr(c, -1.5, -5.6, 3.0, 11.2, 1.4);
+    paint(c, M.black);
+    const roll = (p.walk * 1.4) % 1.2;
+    c.save();
+    rr(c, -1.5, -5.6, 3.0, 11.2, 1.4);
+    c.clip();
+    for (let y = -6.2 + roll; y < 6; y += 1.2) line(c, -1.5, y, 1.5, y + 0.3, M.steel, 0.25);
+    c.restore();
+
+    for (const side of [-1, 1]) {
+      const swinging = p.strike >= 0 && ((p.strikeIndex % 2 === 0) === (side < 0));
+      let a = 0;
+      if (swinging) {
+        const s = p.strike;
+        a = s < 0.45 ? -0.35 * ease(s / 0.45) : s < 0.6 ? -0.35 + 1.25 * ease((s - 0.45) / 0.15) : 0.9 * (1 - ease((s - 0.6) / 0.4));
+      }
+      c.save();
+      c.translate(side * 5.2, -0.6);
+      c.rotate(-side * a);
+      poly(c, [0, -1.6, side * 3.2, -2.0, side * 3.8, 1.6, 0, 1.8]);
+      paint(c, M.dark);
+      poly(c, [side * 2.6, -3.2, side * 6.2, -2.4, side * 6.6, 2.6, side * 3.0, 3.0]);
+      paint(c, M.white);
+      poly(c, [side * 3.4, -1.2, side * 6.0, -0.9, side * 6.2, 1.4, side * 3.6, 1.6]);
+      paint(c, T.accent, null);
+      // the blade
+      poly(c, [side * 4.0, -2.6, side * 5.6, -2.4, side * 5.0, -8.4, side * 4.3, -9.2]);
+      paint(c, T.deep);
+      poly(c, [side * 4.4, -3.0, side * 5.2, -2.9, side * 4.7, -8.0]);
+      paint(c, M.pale, null);
+      c.restore();
+      if (swinging && p.strike > 0.45 && p.strike < 0.8) {
+        // the blade tip's trail across the front, as it sweeps inward
+        const rest = Math.atan2(-8.2, -side * 0.6);
+        c.save();
+        c.translate(side * 5.2, -0.6);
+        c.globalCompositeOperation = 'lighter';
+        c.globalAlpha = 1 - (p.strike - 0.45) / 0.35;
+        c.beginPath();
+        const lead = rest - side * a;
+        const trail = rest - side * Math.max(-0.35, a - 0.9);
+        c.arc(0, 0, 8.4, Math.min(lead, trail), Math.max(lead, trail));
+        c.lineWidth = 1.1;
+        c.strokeStyle = GLOW.rhino;
+        c.stroke();
+        c.lineWidth = 0.35;
+        c.strokeStyle = '#ffffff';
+        c.stroke();
+        c.restore();
+      }
+    }
+    // the body
+    poly(c, sym([0, -7.6, 2.4, -6.6, 5.2, -2.6, 4.8, 3.4, 2.0, 5.2, 0, 5.4]));
+    paint(c, M.white);
+    poly(c, sym([0, -5.4, 2.2, -2.2, 2.6, 2.4, 0, 3.8]));
+    paint(c, M.dark, null);
+    poly(c, [0, -7.6, 0.7, -6.8, 0.6, -1.6, -0.6, -1.6, -0.7, -6.8]);
+    paint(c, T.accent, M.line, 0.6);
+    for (const side of [-1, 1]) {
+      rr(c, side * 1.2 - 0.35, 0, 0.7, 2.4, 0.2);
+      paint(c, M.pale, null);
+    }
+    glow(c, 0, 1.4, 1.8, GLOW.rhino, 0.6 + 0.3 * Math.sin(p.t * 4));
+  }
+
+  // Crawler: a small four-legged shell led by a spinning drill.
+  function crawler(c, p) {
+    const T = p.team;
+    const lunge = p.strike >= 0 ? Math.sin(Math.min(1, p.strike) * Math.PI) : 0;
+    c.translate(0, -lunge * 0.9);
+    const ph = p.walk * Math.PI * 2 / 1.6;
+    const step = Math.min(1, p.speed / 4) * 0.5;
+    for (const [sx, sy, phase] of [[-1, -1, 0], [1, 1, 0], [1, -1, Math.PI], [-1, 1, Math.PI]]) {
+      const off = Math.sin(ph + phase) * step;
+      const hx = sx * 0.9, hy = sy * 0.5;
+      const kx = sx * 1.9, ky = sy * 0.9 + off * 0.5;
+      const fx = sx * 2.1, fy = sy * 1.9 + off;
+      c.beginPath();
+      c.moveTo(hx, hy); c.lineTo(kx, ky); c.lineTo(fx, fy);
+      c.lineWidth = 0.42; c.strokeStyle = M.line; c.stroke();
+      c.lineWidth = 0.24; c.strokeStyle = M.pale; c.stroke();
+    }
+    const spin = (p.t * (p.strike >= 0 ? 30 : 8)) % 0.6;
+    poly(c, [-0.6, -1.5, 0.6, -1.5, 0, -3.3]);
+    paint(c, M.mid, M.line, 0.8);
+    c.save();
+    poly(c, [-0.6, -1.5, 0.6, -1.5, 0, -3.3]);
+    c.clip();
+    for (let y = -3.4 + spin; y < -1.4; y += 0.6) line(c, -0.7, y + 0.25, 0.7, y, M.white, 0.14);
+    c.restore();
+    poly(c, sym([0, -1.8, 1.5, -0.8, 1.3, 1.5, 0.7, 2.0, 0, 2.0]));
+    paint(c, M.white);
+    poly(c, [-0.35, -1.5, 0.35, -1.5, 0.45, 1.8, -0.45, 1.8]);
+    paint(c, M.dark, null);
+    for (const sx of [-1, 1]) {
+      poly(c, [sx * 1.4, -0.6, sx * 1.25, 1.2, sx * 0.85, 1.4, sx * 0.95, -0.6]);
+      paint(c, T.accent, null);
+    }
+    glow(c, 0, -1.2, 0.9, GLOW.crawler, 0.9);
+  }
+
+  // Sledgehammer: a tracked tank whose turret carries one long cannon.
+  function sledgehammer(c, p) {
+    const T = p.team;
+    const roll = (p.walk * 2.5) % 0.9;
+    for (const sx of [-1, 1]) {
+      rr(c, sx * 3.75 - (sx > 0 ? 1.4 : 0), -5.9, 1.4, 11.8, 0.6);
+      paint(c, M.black);
+      c.save();
+      rr(c, sx * 3.75 - (sx > 0 ? 1.4 : 0), -5.9, 1.4, 11.8, 0.6);
+      c.clip();
+      for (let y = -6.4 + roll; y < 6.2; y += 0.9) line(c, sx * 2.3, y, sx * 3.8, y, M.steel, 0.22);
+      c.restore();
+    }
+    poly(c, sym([0, -5.4, 2.2, -5.4, 2.5, -3.6, 2.5, 5.0, 0, 5.4]));
+    paint(c, M.white);
+    for (const sx of [-1, 1]) {
+      poly(c, [sx * 1.6, -4.8, sx * 2.4, -3.4, sx * 2.4, 0.6, sx * 1.6, 0.2]);
+      paint(c, T.accent, null);
+    }
+    rr(c, -1.6, 3.0, 3.2, 1.9, 0.3);
+    paint(c, M.darker);
+    for (let i = 0; i < 3; i++) line(c, -1.2 + i * 1.2, 3.3, -1.2 + i * 1.2, 4.6, GLOW.sledgehammer, 0.25);
+
+    c.save();
+    c.rotate(p.turret);
+    const kick = recoil(p.fireAge, 0.7);
+    circle(c, 0, 0, 2.3);
+    paint(c, M.dark);
+    rr(c, -0.5, -9.4 + kick * 1.6, 1.0, 8.0, 0.3);
+    paint(c, T.accent);
+    rr(c, -0.8, -10.2 + kick * 1.6, 1.6, 1.3, 0.3);
+    paint(c, M.darker);
+    rr(c, -0.65, -5.0 + kick * 1.6, 1.3, 0.8, 0.2);
+    paint(c, M.dark, null);
+    poly(c, sym([0, -2.6, 1.5, -2.0, 2.0, 0.4, 1.4, 2.0, 0, 2.3]));
+    paint(c, M.white);
+    circle(c, 0, 0.1, 1.0);
+    paint(c, T.accent);
+    circle(c, 0, 0.1, 0.45);
+    paint(c, M.darker, null);
+    line(c, 1.2, 1.2, 2.4, 2.6, M.gold, 0.12);
+    flash(c, 0, -10.8 + kick * 1.6, 2.6, '#ffb347', p.fireAge, 0.2, p.fireIndex);
+    c.restore();
+  }
+
+  // Wasp (Bee): a flying fuselage between two engine pods, with a stinger
+  // tail it thrusts forward as it fires.
+  function wasp(c, p) {
+    const T = p.team;
+    const bob = Math.sin(p.t * 3 + p.walk) * 0.04;
+    c.scale(1 + bob, 1 + bob);
+    // stinger
+    const thrust = p.fireAge < 0.5 ? Math.sin(Math.min(1, p.fireAge / 0.5) * Math.PI) : 0;
+    c.save();
+    c.translate(0, 2.4);
+    c.scale(1, 1 - thrust * 1.6);
+    poly(c, [-0.5, 0, 0.5, 0, 0.3, 3.4, 0, 4.4, -0.3, 3.4]);
+    paint(c, T.accent);
+    c.restore();
+    // engine pods and their struts
+    for (const sx of [-1, 1]) {
+      poly(c, [sx * 0.8, -1.0, sx * 3.0, -1.4, sx * 3.0, 0.2, sx * 0.8, 0.8]);
+      paint(c, M.dark);
+      poly(c, [sx * 3.0, -4.0, sx * 3.6, -3.0, sx * 3.7, 2.6, sx * 3.3, 3.4, sx * 2.9, 2.6, sx * 2.6, -3.0]);
+      paint(c, M.white);
+      rr(c, sx * 3.15 - 0.25, -2.4, 0.5, 4.0, 0.2);
+      paint(c, M.darker, null);
+      poly(c, [sx * 3.6, -1.6, sx * 4.6, -0.6, sx * 4.6, 0.4, sx * 3.7, 0.0]);
+      paint(c, T.accent);
+      glow(c, sx * 3.3, 3.6, 1.6, GLOW.wasp, 0.7 + 0.3 * Math.sin(p.t * 31 + sx));
+    }
+    poly(c, sym([0, -5.4, 0.8, -3.6, 1.1, 0.4, 0.7, 2.8, 0, 3.1]));
+    paint(c, M.white);
+    poly(c, sym([0, -4.9, 0.45, -3.6, 0.5, -2.4, 0, -2.1]));
+    paint(c, '#bfefff', M.line, 0.6);
+    poly(c, sym([0, -1.4, 0.7, -0.6, 0.6, 1.8, 0, 2.2]));
+    paint(c, T.accent, null);
+    flash(c, 0, 7.0 - thrust * 7.4, 1.4, GLOW.wasp, p.fireAge, 0.15, p.fireIndex);
+  }
+
+  // A unit the page has no sprite for: a disc of its collision size, marked.
+  function generic(c, p, radius, label) {
+    circle(c, 0, 0, radius);
+    paint(c, M.dark);
+    circle(c, 0, 0, radius * 0.75);
+    paint(c, p.team.accent, null);
+    poly(c, [0, -radius * 1.05, radius * 0.35, -radius * 0.55, -radius * 0.35, -radius * 0.55]);
+    paint(c, M.white);
+    if (label) {
+      // the name stays upright whichever way the unit faces
+      c.save();
+      c.rotate(-p.facing);
+      c.fillStyle = M.white;
+      c.font = `bold ${radius * 0.8}px sans-serif`;
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.fillText(label.slice(0, 2).toUpperCase(), 0, 0);
+      c.restore();
+    }
+  }
+
+  const UNITS = { marksman, arclight, rhino, crawler, sledgehammer, wasp };
+
+  function drawUnit(c, kind, p, radius) {
+    const draw = UNITS[kind];
+    if (draw) draw(c, p);
+    else generic(c, p, radius, kind);
+  }
+
+  // -------------------------------------------------------------- buildings
+  // The Energy Tower: a round base around a glowing core, four pods at its
+  // diagonals and a ring turning above them.
+  function energyTower(c, p) {
+    const T = p.team;
+    circle(c, 0, 0, 10.6);
+    paint(c, M.darker);
+    circle(c, 0, 0, 9.7);
+    paint(c, null, T.accent, 5);
+    for (let i = 0; i < 12; i++) {
+      const a = i * Math.PI / 6;
+      line(c, Math.sin(a) * 3.2, -Math.cos(a) * 3.2, Math.sin(a) * 8.6, -Math.cos(a) * 8.6, M.steel, 0.35);
+    }
+    for (let i = 0; i < 4; i++) {
+      const a = Math.PI / 4 + i * Math.PI / 2;
+      const x = Math.sin(a) * 6.4, y = -Math.cos(a) * 6.4;
+      circle(c, x, y, 2.6);
+      paint(c, M.mid);
+      circle(c, x, y, 1.7);
+      paint(c, M.pale, M.line, 0.6);
+      circle(c, x, y, 0.8);
+      paint(c, T.deep, null);
+    }
+    c.save();
+    c.rotate(p.t * 0.4);
+    for (let i = 0; i < 6; i++) {
+      c.beginPath();
+      c.arc(0, 0, 4.6, i * Math.PI / 3 + 0.15, (i + 1) * Math.PI / 3 - 0.15);
+      c.lineWidth = 0.9;
+      c.strokeStyle = M.white;
+      c.stroke();
+    }
+    c.restore();
+    circle(c, 0, 0, 2.8);
+    paint(c, M.white);
+    const pulse = 0.7 + 0.3 * Math.sin(p.t * 2.2);
+    circle(c, 0, 0, 2.0);
+    paint(c, '#2fe3ff', null);
+    glow(c, 0, 0, 6.5 * pulse, '#53ecff', 0.8 * p.life + 0.1);
+    flash(c, 0, 0, 3.4, '#8ff4ff', p.fireAge, 0.2, p.fireIndex);
+  }
+
+  // The Research Center: a chamfered block holding two long tubes, a crystal
+  // over its front.
+  function researchCenter(c, p) {
+    const T = p.team;
+    poly(c, [-8.4, -10.4, 8.4, -10.4, 10.4, -8.4, 10.4, 8.4, 8.4, 10.4, -8.4, 10.4, -10.4, 8.4, -10.4, -8.4]);
+    paint(c, M.darker);
+    rr(c, -8.2, -6.4, 16.4, 13.2, 1.2);
+    paint(c, M.white);
+    rr(c, -7.2, -5.4, 14.4, 11.2, 0.8);
+    paint(c, M.dark, null);
+    for (const y of [-4.0, 0.6]) {
+      rr(c, -6.6, y, 13.2, 3.2, 1.6);
+      paint(c, '#a39ec3');
+      rr(c, -6.6, y + 0.6, 13.2, 0.7, 0.3);
+      paint(c, '#d8d4ee', null);
+      poly(c, [-6.6, y, -8.6, y + 1.6, -6.6, y + 3.2]);
+      paint(c, T.accent);
+    }
+    rr(c, 8.6, -6.0, 1.6, 12, 0.4);
+    paint(c, '#2f6a3c');
+    const gleam = 0.6 + 0.4 * Math.sin(p.t * 1.7);
+    poly(c, [0, -10.0, 2.2, -8.0, 0, -6.6, -2.2, -8.0]);
+    paint(c, T.accent);
+    poly(c, [0, -10.0, 2.2, -8.0, 0, -8.0]);
+    paint(c, T.light, null);
+    glow(c, 0, -8.2, 4.5, `rgba(${T.rgb},1)`, gleam * 0.6 * p.life);
+  }
+
+  // Anti-Armor Turret: four splayed legs, sandbags and one heavy cannon.
+  function antiArmorTurret(c, p) {
+    const T = p.team;
+    for (let i = 0; i < 4; i++) {
+      const a = Math.PI / 4 + i * Math.PI / 2;
+      c.save();
+      c.rotate(a);
+      rr(c, -1.1, -10.2, 2.2, 7.6, 0.6);
+      paint(c, M.dark);
+      rr(c, -1.7, -11.2, 3.4, 2.2, 0.6);
+      paint(c, M.steel);
+      rr(c, -0.5, -9.0, 1.0, 2.4, 0.2);
+      paint(c, M.caution, null);
+      c.restore();
+    }
+    // sandbags behind the gun
+    for (let i = 0; i < 12; i++) {
+      const a = (100 + i * 14.5) * Math.PI / 180;
+      const x = Math.sin(a) * 8.8, y = -Math.cos(a) * 8.8;
+      c.save();
+      c.translate(x, y);
+      c.rotate(a);
+      rr(c, -1.3, -0.7, 2.6, 1.4, 0.6);
+      paint(c, M.sand, M.line, 0.6);
+      c.restore();
+    }
+    circle(c, 0, 0, 5.0);
+    paint(c, M.mid);
+    c.save();
+    c.rotate(p.turret);
+    const kick = recoil(p.fireAge, 0.8);
+    rr(c, -1.1, -13.0 + kick * 2.2, 2.2, 10.4, 0.5);
+    paint(c, M.pale);
+    for (const y of [-11.2, -8.4]) { rr(c, -1.25, y + kick * 2.2, 2.5, 0.7, 0.2); paint(c, M.dark, null); }
+    rr(c, -1.6, -14.2 + kick * 2.2, 3.2, 1.8, 0.4);
+    paint(c, M.darker);
+    rr(c, -3.6, -3.4, 7.2, 8.0, 1.0);
+    paint(c, M.white);
+    rr(c, -2.4, -2.4, 4.8, 3.4, 0.6);
+    paint(c, M.dark, null);
+    for (const sx of [-1, 1]) {
+      rr(c, sx * 3.0 - 0.6, -1.0, 1.2, 4.6, 0.3);
+      paint(c, M.caution, null);
+    }
+    rr(c, -2.6, 2.4, 5.2, 1.4, 0.3);
+    paint(c, T.accent, null);
+    flash(c, 0, -15.2 + kick * 2.2, 3.4, '#ffb347', p.fireAge, 0.22, p.fireIndex);
+    c.restore();
+  }
+
+  // Rapid-Fire Turret: a light mount with twin barrels firing in turn, fed
+  // from two drums.
+  function rapidFireTurret(c, p) {
+    const T = p.team;
+    for (let i = 0; i < 4; i++) {
+      c.save();
+      c.rotate(Math.PI / 4 + i * Math.PI / 2);
+      rr(c, -0.8, -6.6, 1.6, 4.0, 0.4);
+      paint(c, M.dark);
+      rr(c, -1.3, -7.2, 2.6, 1.4, 0.5);
+      paint(c, M.steel);
+      c.restore();
+    }
+    circle(c, 0, 0, 4.2);
+    paint(c, M.mid);
+    c.save();
+    c.rotate(p.turret);
+    for (const sx of [-1, 1]) {
+      rr(c, sx * 3.0 - (sx > 0 ? 0 : 2.6), -0.6, 2.6, 2.8, 0.6);
+      paint(c, M.dark);
+      for (let i = 0; i < 4; i++) {
+        rr(c, sx * 3.0 - (sx > 0 ? 0 : 2.6) + 0.3 + i * 0.55, -0.3, 0.35, 2.2, 0.15);
+        paint(c, M.caution, null);
+      }
+    }
+    for (const [i, sx] of [[0, -1], [1, 1]]) {
+      const mine = (p.fireIndex % 2) === i;
+      const kick = mine ? recoil(p.fireAge, 0.12) : 0;
+      rr(c, sx * 0.95 - 0.4, -11.0 + kick * 1.2, 0.8, 9.2, 0.3);
+      paint(c, M.pale);
+      rr(c, sx * 0.95 - 0.55, -11.6 + kick * 1.2, 1.1, 1.0, 0.3);
+      paint(c, M.darker);
+      if (mine) flash(c, sx * 0.95, -12.2, 1.8, '#ffd36b', p.fireAge, 0.1, p.fireIndex);
+    }
+    rr(c, -2.6, -2.4, 5.2, 6.0, 0.9);
+    paint(c, M.white);
+    rr(c, -1.6, -1.6, 3.2, 2.2, 0.4);
+    paint(c, M.dark, null);
+    rr(c, -2.2, 2.2, 4.4, 1.0, 0.3);
+    paint(c, T.accent, null);
+    c.restore();
+  }
+
+  // One block of a Defensive Wall, its capped front toward the enemy.
+  function wallBlock(c, p) {
+    const T = p.team;
+    poly(c, [-4.4, -4.8, 4.4, -4.8, 4.9, -4.2, 4.9, 4.4, 4.2, 4.9, -4.2, 4.9, -4.9, 4.4, -4.9, -4.2]);
+    paint(c, M.dark);
+    for (const sx of [-1, 1]) {
+      poly(c, [sx * 0.9, -3.2, sx * 3.9, -3.2, sx * 3.6, 3.9, sx * 1.1, 3.9]);
+      paint(c, T.accent, M.line, 0.6);
+      poly(c, [sx * 0.9, -3.2, sx * 1.6, -3.2, sx * 1.8, 3.9, sx * 1.1, 3.9]);
+      paint(c, T.deep, null);
+      rr(c, sx * 4.0 - (sx > 0 ? 3.2 : 0), -4.5, 3.2, 1.1, 0.2);
+      paint(c, M.gold, M.line, 0.5);
+    }
+    rr(c, -0.6, -3.0, 1.2, 6.6, 0.2);
+    paint(c, M.darker, null);
+    line(c, -0.2, -2.6, -0.2, 2.0, M.pale, 0.12);
+    line(c, 0.2, -2.6, 0.2, 2.0, M.pale, 0.12);
+    if (p.life < 0.6) {
+      c.save();
+      c.globalAlpha = Math.min(1, (0.6 - p.life) * 3);
+      line(c, -3.0, -1.4, -1.6, 0.4, M.black, 0.25);
+      line(c, -1.6, 0.4, -2.2, 2.0, M.black, 0.2);
+      line(c, 2.4, -1.0, 1.4, 1.4, M.black, 0.22);
+      c.restore();
+    }
+  }
+
+  function genericBuilding(c, p, width, depth) {
+    rr(c, -width / 2, -depth / 2, width, depth, Math.min(width, depth) * 0.15);
+    paint(c, M.dark);
+    rr(c, -width / 3, -depth / 3, width * 2 / 3, depth * 2 / 3, Math.min(width, depth) * 0.1);
+    paint(c, p.team.accent, null);
+  }
+
+  const BUILDINGS = {
+    energy_tower: energyTower,
+    research_center: researchCenter,
+    anti_armor_turret: antiArmorTurret,
+    rapid_fire_turret: rapidFireTurret,
+    defensive_wall: wallBlock,
+  };
+
+  function drawBuilding(c, kind, p, width, depth) {
+    const draw = BUILDINGS[kind];
+    if (draw) draw(c, p);
+    else genericBuilding(c, p, width, depth);
+  }
+
+  // The generator at the centre of a deployed shield.
+  function shieldGenerator(c, team, t) {
+    poly(c, [0, -3.2, 2.8, -1.6, 2.8, 1.6, 0, 3.2, -2.8, 1.6, -2.8, -1.6]);
+    paint(c, M.dark);
+    poly(c, [0, -2.2, 1.9, -1.1, 1.9, 1.1, 0, 2.2, -1.9, 1.1, -1.9, -1.1]);
+    paint(c, M.white, null);
+    circle(c, 0, 0, 1.0);
+    paint(c, team.accent);
+    glow(c, 0, 0, 4, `rgba(${team.rgb},1)`, 0.6 + 0.3 * Math.sin(t * 3));
+  }
+
+  // A sprite drawn whole into a small canvas, for the legend.
+  function icon(kind, team, size, building) {
+    const canvas = document.createElement('canvas');
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = canvas.height = Math.round(size * dpr);
+    canvas.style.width = canvas.style.height = `${size}px`;
+    const c = canvas.getContext('2d');
+    const [w, h] = SIZE[kind] || [10, 10];
+    const scale = (size * dpr * 0.86) / Math.max(w, h);
+    setScale(1 / scale);
+    c.translate(canvas.width / 2, canvas.height / 2);
+    c.scale(scale, scale);
+    const p = pose();
+    p.team = TEAMS[team];
+    p.t = 0.6;
+    if (kind === 'marksman') c.translate(-1, 3);
+    if (kind === 'wasp') c.translate(0, -0.6);
+    if (building) drawBuilding(c, kind, p, w, h);
+    else drawUnit(c, kind, p, 4);
+    return canvas;
+  }
+
+  return {
+    TEAMS, GLOW, SIZE, setScale, pose, drawUnit, drawBuilding, shieldGenerator, icon,
+    has: (kind) => kind in UNITS || kind in BUILDINGS,
+    glow, flash, ease,
+  };
+})();

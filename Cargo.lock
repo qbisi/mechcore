@@ -568,6 +568,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "mechcore-player"
+version = "0.1.0"
+dependencies = [
+ "mechcore-document",
+ "mechcore-mcfr",
+ "mechcore-simulation",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "mechcore-protocol"
 version = "0.1.0"
 dependencies = [
