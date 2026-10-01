@@ -648,15 +648,15 @@
     ctx.restore();
   }
 
-  function emitter(u, tau2, side) {
+  // Where an Arclight's bolt leaves: the muzzle of the cannon down the
+  // middle of its turret, as sprites.js draws it.
+  function muzzle(u, tau2) {
     const s = unitAt(u, Math.min(Math.max(tau2, u.from), u.to));
     if (!s) return null;
     const a = rad(s.turret);
-    // the fan emitters sprites.js draws on the Arclight's turret
-    const ox = side * 4.4;
-    const oy = -5.6;
-    // local (x right, -y forward) to world (x, z)
-    return [s.x + ox * Math.cos(a) - oy * Math.sin(a), s.z - ox * Math.sin(a) - oy * Math.cos(a)];
+    const forward = 6.0;
+    // local -y forward to world (x, z)
+    return [s.x + forward * Math.sin(a), s.z + forward * Math.cos(a)];
   }
 
   function drawProjectiles() {
@@ -667,7 +667,7 @@
       if (!head) continue;
       const kind = p.by ? p.by.kind : '';
       if (kind === 'arclight') {
-        const from = p.by.what === 'unit' ? emitter(p.by, tau, p.id % 2 ? 1 : -1) : null;
+        const from = p.by.what === 'unit' ? muzzle(p.by, tau) : null;
         const start = from || [head.x, head.z];
         lightning(start[0], start[1], head.x, head.z, p.id * 31 + frameSeed, Sprites.GLOW.arclight, 0.35);
         place(head.x, head.z);

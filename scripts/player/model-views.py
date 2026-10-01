@@ -8,8 +8,8 @@ prefab is a hierarchy of transforms whose renderers hold its parts, and a
 skinned body leaves its weapons and limbs wherever its bind pose puts them
 until an animation poses the bones. So this assembles each prefab the way the
 game does: it composes every transform from the root, poses the bones with one
-sample of the unit's attack clip from its own animator controller, skins each
-vertex to its bones, keeps only the renderers a LOD group shows first, and
+sample of the clip its animator controller plays in the unit's ordinary
+attack state, skins each vertex to its bones, keeps only the renderers a LOD group shows first, and
 colours each triangle from its material's albedo texture.
 
 It writes `<sprite>-top.png` and `<sprite>-side.png` for each, and
@@ -36,13 +36,18 @@ DATA = Path.home() / (
 )
 OUT = Path(__file__).resolve().parents[2] / "work/player/models"
 
-# sprite: (asset file, prefab, attack clip or None, seconds into it). A tower
-# is a node of the battle scene rather than a prefab of its own.
+# sprite: (asset file, prefab, animator state or None, seconds into its clip).
+# A unit is posed by the state its ordinary attack plays, named as the
+# controller names it, never by a clip's name: one controller may hold two
+# clips of one name for different stances, as the Arclight's holds two
+# `attack` clips that swing its shields forward, while its ordinary attack,
+# `normalAttack`, keeps them at its sides. A tower is a node of the battle
+# scene rather than a prefab of its own.
 MODELS = {
-    "marksman": ("sharedassets0.assets", "Mech_Default_2_1", "Longbow_FiringA", 0.3),
-    "arclight": ("sharedassets0.assets", "Mech_Default_15_1", "attack", 0.2),
-    "rhino": ("sharedassets0.assets", "Mech_Default_5_1", "Rhinoceros_FiringAL", 0.2),
-    "crawler": ("sharedassets0.assets", "Mech_Default_10_1", "attack", 0.2),
+    "marksman": ("sharedassets0.assets", "Mech_Default_2_1", "Attack", 0.3),
+    "arclight": ("sharedassets0.assets", "Mech_Default_15_1", "normalAttack", 0.2),
+    "rhino": ("sharedassets0.assets", "Mech_Default_5_1", "AttackAL", 0.2),
+    "crawler": ("sharedassets0.assets", "Mech_Default_10_1", "Attack", 0.2),
     "sledgehammer": ("sharedassets0.assets", "Mech_Default_13_1", None, 0.0),
     "wasp": ("sharedassets0.assets", "Mech_Default_6_1", "Attack", 0.2),
     "defensive_wall": ("sharedassets0.assets", "Construction_Default_1", None, 0.0),
@@ -162,21 +167,33 @@ def find_root(env, name):
     return best
 
 
-def find_clip(root, name):
+def states(root):
+    """The animator a prefab's pose is driven by, and its controller's states
+    on the base layer: (name, clip, default) in declaration order."""
     stack = [root]
     while stack:
         transform = stack.pop()
         for kind, component in components(transform.m_GameObject.deref().read()):
-            if kind != "Animator":
+            if kind != "Animator" or not component.read().m_Controller.path_id:
                 continue
-            controller = component.read().m_Controller
-            if not controller.path_id:
-                continue
-            for pointer in controller.deref().read().m_AnimationClips:
-                if pointer.path_id and pointer.deref().peek_name() == name:
-                    return transform, pointer.deref().read()
+            controller = component.read().m_Controller.deref().read()
+            names = dict(controller.m_TOS)
+            clips = controller.m_AnimationClips
+            base = controller.m_Controller.m_StateMachineArray[0].data
+            found = []
+            for index, state in enumerate(base.m_StateConstantArray):
+                state = state.data
+                leaves = [
+                    node.data.m_ClipID
+                    for tree in state.m_BlendTreeConstantArray
+                    for node in tree.data.m_NodeArray
+                    if node.data.m_ClipID != 0xFFFFFFFF
+                ]
+                clip = clips[leaves[0]].deref().read() if leaves else None
+                found.append((names.get(state.m_NameID, str(state.m_NameID)), clip, index == base.m_DefaultState))
+            return transform, found
         stack.extend(child.deref().read() for child in transform.m_Children)
-    return None, None
+    return None, []
 
 
 def posed_transforms(animator, clip, time):
@@ -355,7 +372,7 @@ def main():
     arguments.out.mkdir(parents=True, exist_ok=True)
     environments, views = {}, []
     for sprite in wanted:
-        asset, prefab, clip_name, time = MODELS[sprite]
+        asset, prefab, state_name, time = MODELS[sprite]
         if asset not in environments:
             environments[asset] = UnityPy.load(str(arguments.data / asset))
         root = find_root(environments[asset], prefab)
@@ -363,10 +380,14 @@ def main():
             print(f"{sprite}: {prefab} is not in {asset}", file=sys.stderr)
             continue
         posed = {}
-        if clip_name:
-            animator, clip = find_clip(root, clip_name)
+        animator, found = states(root)
+        if found:
+            listed = ", ".join(f"{name}{'*' if default else ''}={clip.m_Name if clip else '-'}" for name, clip, default in found)
+            print(f"{sprite}: states {listed}")
+        if state_name:
+            clip = next((clip for name, clip, _ in found if name == state_name), None)
             if clip is None:
-                print(f"{sprite}: {prefab} has no clip {clip_name}; drawing its rest pose", file=sys.stderr)
+                print(f"{sprite}: {prefab} has no state {state_name} with a clip; drawing its rest pose", file=sys.stderr)
             else:
                 posed = posed_transforms(animator, clip, time)
         triangles = assemble(root, posed)
