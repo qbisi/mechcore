@@ -3,7 +3,8 @@
 <defs><radialGradient id="g1" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="4.55" fx="0" fy="0" fr="0"><stop offset="0" stop-color="#53ecff"/><stop offset="1" stop-color="#53ecff" stop-opacity="0"/></radialGradient></defs>
 <path d="M10.6 0A10.6 10.6 0 0 1 -5.3 9.18A10.6 10.6 0 0 1 -5.3 -9.18A10.6 10.6 0 0 1 10.6 0" fill="#23272d"/>
 <path d="M10.6 0A10.6 10.6 0 0 1 -5.3 9.18A10.6 10.6 0 0 1 -5.3 -9.18A10.6 10.6 0 0 1 10.6 0" fill="none" stroke="#0a0c0f" stroke-width="0.1"/>
-<path d="M9.7 0A9.7 9.7 0 0 1 -4.85 8.4A9.7 9.7 0 0 1 -4.85 -8.4A9.7 9.7 0 0 1 9.7 0" fill="none" stroke="#3d8dff" stroke-width="0.5"/>
+<path d="M9.7 0A9.7 9.7 0 0 1 -4.85 8.4A9.7 9.7 0 0 1 -4.85 -8.4A9.7 9.7 0 0 1 9.7 0" fill="none" stroke="rgb(61,141,255)" stroke-width="0.55" opacity="0.22"/>
+<path d="M0 -9.7A9.7 9.7 0 0 1 8.4 4.85A9.7 9.7 0 0 1 -8.4 4.85A9.7 9.7 0 0 1 0 -9.7" fill="none" stroke="#3d8dff" stroke-width="0.55"/>
 <path d="M0 -3.2L0 -8.6" fill="none" stroke="#575e68" stroke-width="0.35"/>
 <path d="M1.6 -2.77L4.3 -7.45" fill="none" stroke="#575e68" stroke-width="0.35"/>
 <path d="M2.77 -1.6L7.45 -4.3" fill="none" stroke="#575e68" stroke-width="0.35"/>

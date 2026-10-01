@@ -510,8 +510,10 @@
       ctx.fill();
       Sprites.drawBuilding(ctx, b.kind, p, b.width, b.depth);
       if (p.hurt > 0) hurtFlash(Math.max(b.width, b.depth) * 0.55, p.hurt);
-      // a building shows its life once it has lost some, as a unit does
-      if (b.L[s[0]] < b.maxLife) {
+      // a building shows its life once it has lost some, as a unit does; a
+      // tower shows it on its own outer ring instead
+      const tower = b.kind === 'energy_tower' || b.kind === 'research_center';
+      if (!tower && b.L[s[0]] < b.maxLife) {
         bars.push([b.x, b.z, Math.max(b.width, b.depth) * 0.55, b.L[s[0]], b.maxLife, b.team, true]);
       }
     }

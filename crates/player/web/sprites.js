@@ -520,12 +520,27 @@ const Sprites = (() => {
   // -------------------------------------------------------------- buildings
   // The Energy Tower: a round base around a glowing core, four pods at its
   // diagonals and a ring turning above them.
+  // A tower's outer ring, which is its life: the lit arc runs clockwise from
+  // its front and shortens as the tower loses life, over a dim whole ring.
+  function lifeRing(c, T, life) {
+    circle(c, 0, 0, 9.7);
+    c.lineWidth = 0.55;
+    c.strokeStyle = `rgba(${T.rgb},0.22)`;
+    c.stroke();
+    const left = Math.max(0, Math.min(1, life));
+    if (left <= 0) return;
+    c.beginPath();
+    c.arc(0, 0, 9.7, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * left);
+    c.lineWidth = 0.55;
+    c.strokeStyle = T.accent;
+    c.stroke();
+  }
+
   function energyTower(c, p) {
     const T = p.team;
     circle(c, 0, 0, 10.6);
     paint(c, M.darker);
-    circle(c, 0, 0, 9.7);
-    paint(c, null, T.accent, 5);
+    lifeRing(c, T, p.life);
     for (let i = 0; i < 12; i++) {
       const a = i * Math.PI / 6;
       line(c, Math.sin(a) * 3.2, -Math.cos(a) * 3.2, Math.sin(a) * 8.6, -Math.cos(a) * 8.6, M.steel, 0.35);
@@ -559,32 +574,69 @@ const Sprites = (() => {
     flash(c, 0, 0, 3.4, '#8ff4ff', p.fireAge, 0.2, p.fireIndex);
   }
 
-  // The Research Center: a chamfered block holding two long tubes, a crystal
-  // over its front.
+  // The Research Center, drawn for what it does rather than after its model:
+  // on the Energy Tower's round base, a hexagonal laboratory floor holding an
+  // atom, three orbits turning slowly around a crystal nucleus, each carrying
+  // a bright electron.
   function researchCenter(c, p) {
     const T = p.team;
-    poly(c, [-8.4, -10.4, 8.4, -10.4, 10.4, -8.4, 10.4, 8.4, 8.4, 10.4, -8.4, 10.4, -10.4, 8.4, -10.4, -8.4]);
+    circle(c, 0, 0, 10.6);
     paint(c, M.darker);
-    rr(c, -8.2, -6.4, 16.4, 13.2, 1.2);
-    paint(c, M.white);
-    rr(c, -7.2, -5.4, 14.4, 11.2, 0.8);
-    paint(c, M.dark, null);
-    for (const y of [-4.0, 0.6]) {
-      rr(c, -6.6, y, 13.2, 3.2, 1.6);
-      paint(c, '#a39ec3');
-      rr(c, -6.6, y + 0.6, 13.2, 0.7, 0.3);
-      paint(c, '#d8d4ee', null);
-      poly(c, [-6.6, y, -8.6, y + 1.6, -6.6, y + 3.2]);
-      paint(c, T.accent);
+    lifeRing(c, T, p.life);
+    const hex = (r) => {
+      const pts = [];
+      for (let i = 0; i < 6; i++) {
+        const a = (i * Math.PI) / 3;
+        pts.push(Math.cos(a) * r, Math.sin(a) * r);
+      }
+      return pts;
+    };
+    poly(c, hex(8.5));
+    paint(c, M.dark, M.line, 1.2);
+    poly(c, hex(7.4));
+    paint(c, null, M.steel, 1.2);
+    for (let i = 0; i < 6; i++) {
+      const a = (i * Math.PI) / 3;
+      circle(c, Math.cos(a) * 7.95, Math.sin(a) * 7.95, 0.4);
+      paint(c, M.pale, null);
     }
-    rr(c, 8.6, -6.0, 1.6, 12, 0.4);
-    paint(c, '#2f6a3c');
+    // an orbit is an ellipse turned about the nucleus, drawn as a polyline
+    const orbit = (k, phase) => {
+      const tilt = p.t * 0.25 + (k * Math.PI) / 3;
+      const point = (u) => {
+        const x = Math.cos(u) * 6.1;
+        const y = Math.sin(u) * 2.2;
+        return [x * Math.cos(tilt) - y * Math.sin(tilt), x * Math.sin(tilt) + y * Math.cos(tilt)];
+      };
+      c.beginPath();
+      for (let i = 0; i <= 48; i++) {
+        const [x, y] = point((i / 48) * Math.PI * 2);
+        if (i === 0) c.moveTo(x, y); else c.lineTo(x, y);
+      }
+      return point(phase);
+    };
+    const electrons = [];
+    for (let k = 0; k < 3; k++) {
+      const at = orbit(k, p.t * 1.6 + k * 2.1);
+      c.lineWidth = 0.7;
+      c.strokeStyle = M.line;
+      c.stroke();
+      c.lineWidth = 0.32;
+      c.strokeStyle = T.light;
+      c.stroke();
+      electrons.push(at);
+    }
+    for (const [x, y] of electrons) {
+      glow(c, x, y, 1.6, `rgba(${T.rgb},1)`, 0.9);
+      circle(c, x, y, 0.5);
+      paint(c, '#ffffff', M.line, 0.6);
+    }
     const gleam = 0.6 + 0.4 * Math.sin(p.t * 1.7);
-    poly(c, [0, -10.0, 2.2, -8.0, 0, -6.6, -2.2, -8.0]);
+    glow(c, 0, 0, 4.0, `rgba(${T.rgb},1)`, gleam * 0.7 * p.life + 0.1);
+    poly(c, [0, -1.9, 1.5, 0, 0, 1.9, -1.5, 0]);
     paint(c, T.accent);
-    poly(c, [0, -10.0, 2.2, -8.0, 0, -8.0]);
+    poly(c, [0, -1.9, 1.5, 0, 0, 0]);
     paint(c, T.light, null);
-    glow(c, 0, -8.2, 4.5, `rgba(${T.rgb},1)`, gleam * 0.6 * p.life);
   }
 
   // Anti-Armor Turret: four splayed legs, sandbags and one heavy cannon.
