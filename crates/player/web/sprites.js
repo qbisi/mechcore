@@ -33,7 +33,7 @@ const Sprites = (() => {
   };
   // The model's footprint in metres, width by length, which frames an icon.
   const SIZE = {
-    marksman: [12, 22], arclight: [18, 13], rhino: [24, 15], crawler: [4.2, 5.2],
+    marksman: [12, 22], arclight: [18, 13], rhino: [28, 24], crawler: [4.2, 5.2],
     sledgehammer: [7.6, 13], wasp: [9, 11], energy_tower: [22, 22], research_center: [22, 22],
     anti_armor_turret: [24, 24], rapid_fire_turret: [14, 20], defensive_wall: [10, 10],
   };
@@ -272,74 +272,104 @@ const Sprites = (() => {
     c.restore();
   }
 
-  // Rhino: a wide mech balanced on one wheel, its two arms ending in blades
-  // that it swings in turn.
+  // Rhino, as it walks: a biped on wheeled feet, its two arms held out to
+  // the sides, each ending in a red armoured pod with a white blade and a
+  // ring claw forward. It strikes with each arm in turn, the arm swinging
+  // its claw down onto what stands in front.
   function rhino(c, p) {
     const T = p.team;
-    // the wheel, rolling
-    rr(c, -1.5, -5.6, 3.0, 11.2, 1.4);
-    paint(c, M.black);
-    const roll = (p.walk * 1.4) % 1.2;
-    c.save();
-    rr(c, -1.5, -5.6, 3.0, 11.2, 1.4);
-    c.clip();
-    for (let y = -6.2 + roll; y < 6; y += 1.2) line(c, -1.5, y, 1.5, y + 0.3, M.steel, 0.25);
-    c.restore();
-
+    const pace = Math.min(1, p.speed / 6);
+    const ph = p.walk * Math.PI * 2 / 9;
+    // the legs, white thighs reaching back to a wheel each
     for (const side of [-1, 1]) {
-      const swinging = p.strike >= 0 && ((p.strikeIndex % 2 === 0) === (side < 0));
-      let a = 0;
-      if (swinging) {
+      const off = Math.sin(ph + (side > 0 ? Math.PI : 0)) * 1.6 * pace;
+      rr(c, side * 3.6 - 1.1, 7.2 + off, 2.2, 5.0, 1.1);
+      paint(c, M.black);
+      c.save();
+      rr(c, side * 3.6 - 1.1, 7.2 + off, 2.2, 5.0, 1.1);
+      c.clip();
+      const roll = (p.walk * 1.6) % 1.1;
+      for (let y = 6.6 + off + roll; y < 12.8 + off; y += 1.1) line(c, side * 3.6 - 1.1, y, side * 3.6 + 1.1, y, M.steel, 0.25);
+      c.restore();
+      poly(c, [side * 2.2, 1.0 + off * 0.3, side * 5.0, 1.4 + off * 0.3, side * 4.8, 8.4 + off, side * 3.7, 9.4 + off, side * 2.5, 8.6 + off]);
+      paint(c, M.white);
+      poly(c, [side * 2.7, 6.4 + off, side * 4.5, 6.2 + off, side * 4.3, 7.8 + off, side * 3.0, 8.0 + off]);
+      paint(c, M.caution, null);
+      line(c, side * 3.7, 2.0 + off * 0.3, side * 3.7, 6.0 + off, M.pale, 0.2);
+    }
+    // the arms
+    for (const side of [-1, 1]) {
+      const left = side < 0;
+      const striking = p.strike >= 0 && ((p.strikeIndex % 2 === 0) === left);
+      // a walking arm swings against its leg
+      let swing = Math.sin(ph + (side > 0 ? 0 : Math.PI)) * 0.12 * pace;
+      let thrust = 0;
+      if (striking) {
         const s = p.strike;
-        a = s < 0.45 ? -0.35 * ease(s / 0.45) : s < 0.6 ? -0.35 + 1.25 * ease((s - 0.45) / 0.15) : 0.9 * (1 - ease((s - 0.6) / 0.4));
+        // raise, then bring the claw down hard in front, then recover
+        const raise = s < 0.45 ? ease(s / 0.45) : s < 0.6 ? 1 - ease((s - 0.45) / 0.15) : 0;
+        const blow = s < 0.45 ? 0 : s < 0.6 ? ease((s - 0.45) / 0.15) : 1 - ease((s - 0.6) / 0.4);
+        swing = -side * (0.25 * raise - 0.55 * blow);
+        thrust = 2.6 * blow - 0.8 * raise;
       }
       c.save();
-      c.translate(side * 5.2, -0.6);
-      c.rotate(-side * a);
-      poly(c, [0, -1.6, side * 3.2, -2.0, side * 3.8, 1.6, 0, 1.8]);
+      c.translate(side * 5.0, -1.0);
+      c.rotate(swing);
+      c.translate(0, -thrust);
+      // upper arm
+      poly(c, [0, -1.4, side * 4.2, -1.8, side * 4.6, 1.4, 0, 1.6]);
       paint(c, M.dark);
-      poly(c, [side * 2.6, -3.2, side * 6.2, -2.4, side * 6.6, 2.6, side * 3.0, 3.0]);
+      circle(c, side * 1.0, 0, 1.1);
+      paint(c, '#7fa6a8');
+      // the pod: red armour outside, a white plate inside
+      poly(c, [side * 4.2, -4.0, side * 7.6, -4.6, side * 8.8, -1.0, side * 8.6, 5.6, side * 6.4, 6.6, side * 4.4, 4.6]);
+      paint(c, T.accent);
+      poly(c, [side * 4.2, -4.0, side * 5.6, -4.2, side * 5.6, 5.4, side * 4.4, 4.6]);
       paint(c, M.white);
-      poly(c, [side * 3.4, -1.2, side * 6.0, -0.9, side * 6.2, 1.4, side * 3.6, 1.6]);
-      paint(c, T.accent, null);
-      // the blade
-      poly(c, [side * 4.0, -2.6, side * 5.6, -2.4, side * 5.0, -8.4, side * 4.3, -9.2]);
+      line(c, side * 7.2, -3.6, side * 7.4, 4.8, T.deep, 0.35);
+      // the blade and the ring claw, forward
+      poly(c, [side * 4.6, -4.1, side * 5.6, -4.2, side * 5.0, -9.2]);
+      paint(c, M.white);
+      c.beginPath();
+      c.arc(side * 6.9, -7.6, 1.9, 0, Math.PI * 2);
+      c.lineWidth = 0.9;
+      c.strokeStyle = M.line;
+      c.stroke();
+      c.lineWidth = 0.6;
+      c.strokeStyle = M.white;
+      c.stroke();
+      poly(c, [side * 6.2, -4.4, side * 7.6, -4.4, side * 7.3, -6.0, side * 6.5, -6.0]);
       paint(c, T.deep);
-      poly(c, [side * 4.4, -3.0, side * 5.2, -2.9, side * 4.7, -8.0]);
-      paint(c, M.pale, null);
       c.restore();
-      if (swinging && p.strike > 0.45 && p.strike < 0.8) {
-        // the blade tip's trail across the front, as it sweeps inward
-        const rest = Math.atan2(-8.2, -side * 0.6);
+      if (striking && p.strike > 0.45 && p.strike < 0.85) {
+        // the claw's impact in front of the arm
+        const k = (p.strike - 0.45) / 0.4;
         c.save();
-        c.translate(side * 5.2, -0.6);
         c.globalCompositeOperation = 'lighter';
-        c.globalAlpha = 1 - (p.strike - 0.45) / 0.35;
+        c.globalAlpha = 1 - k;
         c.beginPath();
-        const lead = rest - side * a;
-        const trail = rest - side * Math.max(-0.35, a - 0.9);
-        c.arc(0, 0, 8.4, Math.min(lead, trail), Math.max(lead, trail));
-        c.lineWidth = 1.1;
+        c.arc(side * 6.4, -10.5, 2 + 4 * k, 0, Math.PI * 2);
+        c.lineWidth = 0.8;
         c.strokeStyle = GLOW.rhino;
         c.stroke();
-        c.lineWidth = 0.35;
-        c.strokeStyle = '#ffffff';
-        c.stroke();
         c.restore();
+        glow(c, side * 6.4, -10.5, 4, GLOW.rhino, 1 - k);
       }
     }
     // the body
-    poly(c, sym([0, -7.6, 2.4, -6.6, 5.2, -2.6, 4.8, 3.4, 2.0, 5.2, 0, 5.4]));
+    poly(c, sym([0, -8.0, 1.3, -7.2, 3.7, -4.8, 5.2, -1.0, 5.0, 2.6, 2.4, 4.6, 0, 4.8]));
     paint(c, M.white);
-    poly(c, sym([0, -5.4, 2.2, -2.2, 2.6, 2.4, 0, 3.8]));
-    paint(c, M.dark, null);
-    poly(c, [0, -7.6, 0.7, -6.8, 0.6, -1.6, -0.6, -1.6, -0.7, -6.8]);
+    poly(c, sym([0, -6.4, 2.6, -4.0, 3.3, -0.6, 2.2, 0.6, 0, 0.6]));
+    paint(c, M.pale, null);
+    rr(c, -2.2, 1.0, 4.4, 3.3, 0.5);
+    paint(c, M.dark);
+    poly(c, [0, -8.4, 0.85, -7.4, 0.7, 0.6, -0.7, 0.6, -0.85, -7.4]);
     paint(c, T.accent, M.line, 0.6);
     for (const side of [-1, 1]) {
-      rr(c, side * 1.2 - 0.35, 0, 0.7, 2.4, 0.2);
-      paint(c, M.pale, null);
+      poly(c, [side * 3.4, -0.2, side * 5.0, 0.2, side * 4.8, 2.4, side * 3.3, 2.6]);
+      paint(c, T.accent, null);
     }
-    glow(c, 0, 1.4, 1.8, GLOW.rhino, 0.6 + 0.3 * Math.sin(p.t * 4));
+    glow(c, 0, 2.6, 2.0, GLOW.rhino, 0.6 + 0.3 * Math.sin(p.t * 4));
   }
 
   // Crawler: a small four-legged shell led by a spinning drill.
