@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{title}} · mechcore player</title>
+<style>/*{{style}}*/</style>
+</head>
+<body>
+<canvas id="field"></canvas>
+<header id="hud">
+  <div id="title"><b>{{title}}</b><span id="meta"></span></div>
+  <div class="side" id="side-0"></div>
+  <div class="side" id="side-1"></div>
+</header>
+<div id="tooltip" hidden></div>
+<footer id="controls">
+  <button id="play" type="button" title="Play or pause (Space)" aria-label="Play or pause">▶</button>
+  <span id="clock">0:00.0</span>
+  <div id="scrub">
+    <canvas id="marks"></canvas>
+    <input id="seek" type="range" min="1" value="1" step="any" aria-label="Time">
+  </div>
+  <select id="speed" title="Speed (+ and −)" aria-label="Speed">
+    <option value="0.25">0.25×</option>
+    <option value="0.5">0.5×</option>
+    <option value="1" selected>1×</option>
+    <option value="2">2×</option>
+    <option value="4">4×</option>
+    <option value="8">8×</option>
+  </select>
+  <label title="Life bars (L)"><input type="checkbox" id="opt-life" checked> Life</label>
+  <label title="Damage numbers (D)"><input type="checkbox" id="opt-damage"> Damage</label>
+  <label title="What each unit aims at (A)"><input type="checkbox" id="opt-aim"> Aim</label>
+  <button id="fit" type="button" title="Fit the field (F)" aria-label="Fit the field">⤢</button>
+</footer>
+<script id="timeline" type="application/json">{{timeline}}</script>
+<script>/*{{sprites}}*/</script>
+<script>/*{{player}}*/</script>
+</body>
+</html>

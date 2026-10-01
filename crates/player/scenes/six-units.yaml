@@ -1,0 +1,78 @@
+# The player's demo: each side fields the six units the page has sprites
+# for (Rhino, Crawler, Sledgehammer, Wasp, Arclight and Marksman), a
+# Defensive Wall, an Anti-Armor Turret, a Rapid-Fire Turret and a shield,
+# beside the map's two towers; both sides place the same board. The crate's
+# test fights it with the simulator, and `crates/player/README.md` says how
+# to watch it.
+kind: layout
+round: 1
+
+blue:
+  units:
+    - name: rhino
+      index: 0
+      position: {x: 5, y: -45}
+    - name: crawler
+      index: 1
+      position: {x: -65, y: -50}
+    - name: sledgehammer
+      index: 2
+      position: {x: 65, y: -60}
+    - name: wasp
+      index: 3
+      position: {x: -65, y: -90}
+    - name: arclight
+      index: 4
+      position: {x: -20, y: -110}
+    - name: marksman
+      index: 5
+      position: {x: 30, y: -130}
+  constructions:
+    - name: defensive_wall
+      index: 0
+      position: {x: 100, y: -25}
+    - name: rapid_fire_turret
+      index: 1
+      position: {x: 140, y: -100}
+    - name: anti_armor_turret
+      index: 2
+      position: {x: -140, y: -100}
+  contraptions:
+    - name: shield
+      index: 0
+      position: {x: 0, y: -120}
+
+red:
+  units:
+    - name: rhino
+      index: 0
+      position: {x: 5, y: -45}
+    - name: crawler
+      index: 1
+      position: {x: -65, y: -50}
+    - name: sledgehammer
+      index: 2
+      position: {x: 65, y: -60}
+    - name: wasp
+      index: 3
+      position: {x: -65, y: -90}
+    - name: arclight
+      index: 4
+      position: {x: -20, y: -110}
+    - name: marksman
+      index: 5
+      position: {x: 30, y: -130}
+  constructions:
+    - name: defensive_wall
+      index: 0
+      position: {x: 100, y: -25}
+    - name: rapid_fire_turret
+      index: 1
+      position: {x: 140, y: -100}
+    - name: anti_armor_turret
+      index: 2
+      position: {x: -140, y: -100}
+  contraptions:
+    - name: shield
+      index: 0
+      position: {x: 0, y: -120}

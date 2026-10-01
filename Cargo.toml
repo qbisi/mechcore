@@ -4,6 +4,7 @@ members = [
     "crates/document",
     "crates/mcfr",
     "crates/mechcore",
+    "crates/player",
     "crates/protocol",
     "crates/simulation",
 ]
