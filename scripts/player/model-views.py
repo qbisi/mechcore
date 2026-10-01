@@ -37,16 +37,17 @@ DATA = Path.home() / (
 OUT = Path(__file__).resolve().parents[2] / "work/player/models"
 
 # sprite: (asset file, prefab, animator state or None, seconds into its clip).
-# A unit is posed by the state its ordinary attack plays, named as the
-# controller names it, never by a clip's name: one controller may hold two
-# clips of one name for different stances, as the Arclight's holds two
-# `attack` clips that swing its shields forward, while its ordinary attack,
-# `normalAttack`, keeps them at its sides. A tower is a node of the battle
-# scene rather than a prefab of its own.
+# A unit is posed by a state named as its controller names it, never by a
+# clip's name: one controller may hold two clips of one name for different
+# stances, as the Arclight's holds two `attack` clips that swing its shields
+# forward, while its ordinary attack, `normalAttack`, keeps them at its sides.
+# The state is the unit's ordinary attack, unless that keeps the crouch the
+# unit rests in: the Rhino's attacks do, so it is posed walking.
+# A tower is a node of the battle scene rather than a prefab of its own.
 MODELS = {
     "marksman": ("sharedassets0.assets", "Mech_Default_2_1", "Attack", 0.3),
     "arclight": ("sharedassets0.assets", "Mech_Default_15_1", "normalAttack", 0.2),
-    "rhino": ("sharedassets0.assets", "Mech_Default_5_1", "AttackAL", 0.2),
+    "rhino": ("sharedassets0.assets", "Mech_Default_5_1", "Walk", 0.0),
     "crawler": ("sharedassets0.assets", "Mech_Default_10_1", "Attack", 0.2),
     "sledgehammer": ("sharedassets0.assets", "Mech_Default_13_1", None, 0.0),
     "wasp": ("sharedassets0.assets", "Mech_Default_6_1", "Attack", 0.2),
