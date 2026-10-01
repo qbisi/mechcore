@@ -8,6 +8,11 @@
 // can move them. The colours follow the models' textures: white armour over
 // gunmetal, the team colour where the texture masks it, and each unit's own
 // emissive colour.
+//
+// scripts/player/export-models.mjs runs this file to write `models/`, one SVG
+// per sprite, through a context that records the canvas calls made
+// here as SVG. A sprite draws only with the calls it records, and turns, moves
+// and scales its parts uniformly.
 
 'use strict';
 

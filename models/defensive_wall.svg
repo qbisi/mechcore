@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.2 -5.1 10.4 10.3" width="166" height="165">
+<title>defensive_wall</title>
+<defs></defs>
+<path d="M-4.4 -4.8L4.4 -4.8L4.9 -4.2L4.9 4.4L4.2 4.9L-4.2 4.9L-4.9 4.4L-4.9 -4.2Z" fill="#363b43"/>
+<path d="M-4.4 -4.8L4.4 -4.8L4.9 -4.2L4.9 4.4L4.2 4.9L-4.2 4.9L-4.9 4.4L-4.9 -4.2Z" fill="none" stroke="#0a0c0f" stroke-width="0.1"/>
+<path d="M-0.9 -3.2L-3.9 -3.2L-3.6 3.9L-1.1 3.9Z" fill="#3d8dff"/>
+<path d="M-0.9 -3.2L-3.9 -3.2L-3.6 3.9L-1.1 3.9Z" fill="none" stroke="#0a0c0f" stroke-width="0.06"/>
+<path d="M-0.9 -3.2L-1.6 -3.2L-1.8 3.9L-1.1 3.9Z" fill="#1d4fa6"/>
+<path d="M-3.8 -4.5L-1 -4.5A0.2 0.2 0 0 1 -0.8 -4.3L-0.8 -3.6A0.2 0.2 0 0 1 -1 -3.4L-3.8 -3.4A0.2 0.2 0 0 1 -4 -3.6L-4 -4.3A0.2 0.2 0 0 1 -3.8 -4.5Z" fill="#e8c23a"/>
+<path d="M-3.8 -4.5L-1 -4.5A0.2 0.2 0 0 1 -0.8 -4.3L-0.8 -3.6A0.2 0.2 0 0 1 -1 -3.4L-3.8 -3.4A0.2 0.2 0 0 1 -4 -3.6L-4 -4.3A0.2 0.2 0 0 1 -3.8 -4.5Z" fill="none" stroke="#0a0c0f" stroke-width="0.05"/>
+<path d="M0.9 -3.2L3.9 -3.2L3.6 3.9L1.1 3.9Z" fill="#3d8dff"/>
+<path d="M0.9 -3.2L3.9 -3.2L3.6 3.9L1.1 3.9Z" fill="none" stroke="#0a0c0f" stroke-width="0.06"/>
+<path d="M0.9 -3.2L1.6 -3.2L1.8 3.9L1.1 3.9Z" fill="#1d4fa6"/>
+<path d="M1 -4.5L3.8 -4.5A0.2 0.2 0 0 1 4 -4.3L4 -3.6A0.2 0.2 0 0 1 3.8 -3.4L1 -3.4A0.2 0.2 0 0 1 0.8 -3.6L0.8 -4.3A0.2 0.2 0 0 1 1 -4.5Z" fill="#e8c23a"/>
+<path d="M1 -4.5L3.8 -4.5A0.2 0.2 0 0 1 4 -4.3L4 -3.6A0.2 0.2 0 0 1 3.8 -3.4L1 -3.4A0.2 0.2 0 0 1 0.8 -3.6L0.8 -4.3A0.2 0.2 0 0 1 1 -4.5Z" fill="none" stroke="#0a0c0f" stroke-width="0.05"/>
+<path d="M-0.4 -3L0.4 -3A0.2 0.2 0 0 1 0.6 -2.8L0.6 3.4A0.2 0.2 0 0 1 0.4 3.6L-0.4 3.6A0.2 0.2 0 0 1 -0.6 3.4L-0.6 -2.8A0.2 0.2 0 0 1 -0.4 -3Z" fill="#23272d"/>
+<path d="M-0.2 -2.6L-0.2 2" fill="none" stroke="#c3c9d1" stroke-width="0.12"/>
+<path d="M0.2 -2.6L0.2 2" fill="none" stroke="#c3c9d1" stroke-width="0.12"/>
+</svg>
