@@ -97,6 +97,15 @@ A buff item with any other trigger, target or chance, or whose buff sets a
 field beyond these, is refused by name, and so is a travelling formation
 wearing one.
 
+**An anti-interference item makes its unit ignore its buff group, from the
+fight's start.** Anti-Interference Module's group holds the rows of every
+tower's loss and of every electromagnetic buff, the Electromagnetic Impact's
+among them; [`config/equipment_effects.yaml`](../../config/equipment_effects.yaml)
+lists them as the row's `ignored_buffs`. A buff its unit ignores is not added
+and not recorded, whoever writes it. The item is a permanent effect, active
+already during deployment, which changes nothing in the fight: the ignored
+buffs are in force from its start.
+
 ## What is refused
 
 A layout is refused by name, rather than fought with part of an item, when it
@@ -107,7 +116,8 @@ carries:
   Repair Kit's classes are read: their life steal and repair are
   [combat.md](combat.md#lifesteal)'s. So is Explosive Ammo's, which adds its
   `splash_range` to the skill's splash as [combat.md](combat.md#damage-and-death)
-  states, and Photon Coating's, whose buff [Buff items](#buff-items) states;
+  states, and Photon Coating's and Anti-Interference Module's, which
+  [Buff items](#buff-items) states;
 - a row that sets `importantUnit` (Dominion Core) or `roundDuration` (Rapid
   Autoloader, rule `999903`'s), whose effects have not been recorded.
 
@@ -131,6 +141,9 @@ carries:
   debuff off it: `tests/equipment_buff/fights/photon-coating.yaml`,
   `tests/equipment_buff/fights/photon-coating-crawlers.yaml` and
   `tests/equipment_buff/fights/photon-coating-emp.yaml`.
+- Anti-Interference Module keeps an Electromagnetic Impact's buff and a
+  tower's loss off its unit: `tests/equipment_buff/fights/anti-interference-emp.yaml`
+  and `tests/equipment_buff/fights/anti-interference-tower.yaml`.
 
 ### Replayed
 
@@ -155,6 +168,14 @@ carries:
   `CommanderSkillSystem`.
 - An invincible unit takes no debuff: `BuffManager.AddBuff` returns at once
   for an `IBuffData.IsDebuff` buff while `BuffManager.IsInvincible`.
+- An anti-interference item's group is ignored from the fight's start:
+  `IgnoreBuffEffectSystem.Active` holds it while the fight has not begun,
+  `IgnoreBuffEffectSystem.OnEnterFight` and
+  `IgnoreBuffEffectSystem.ApplyIgnoreBuff` add every buff of
+  `IIgnoreBuffDataSouce.GetIgnoredBuffs` to `BuffManager.AddIgnoredBuff`, for
+  good since `IgnoreBuffEquipment.GetDuration` is zero, and
+  `BuffSystem.DoAddBuff` adds no buff its target `IsIgnoredBuff`; a permanent
+  effect is activated during deployment by `EffectProvider.ActiveCheck`.
 - Rule `999903` deals the items limited to scene 1300:
   `GameRule.replaceReinforceLabel`, `ItemData.limitedScene`.
 
@@ -166,5 +187,8 @@ carries:
   `IsLocked(CardLevel)`; what an item answers is not read.
 - **An item whose durability runs out.** How `OnEnterDeployment` takes it off
   is not read; no standard item reaches it.
+- **Anti-Interference Module against a Hacker's control beam**
+  (`IgnoreBuffEquipment.IgnoreControllerBeam`): the simulator fights no
+  Hacker.
 - **Equipment on a construction or a tower**, what the other item classes do,
   and the reactor supply an item changes, which the ledger owns.

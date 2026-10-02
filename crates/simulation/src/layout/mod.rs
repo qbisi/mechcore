@@ -59,6 +59,9 @@ pub(crate) struct Placement {
     pub(crate) auto_recovery: Option<AutoRecovery>,
     /// The buffs its equipment adds to it as the fight starts.
     pub(crate) start_buffs: Vec<StartBuff>,
+    /// The `buffDatas` rows its equipment makes it ignore,
+    /// `BuffManager.ignoredBuffs`.
+    pub(crate) ignored_buffs: Vec<u32>,
     /// Whether it opens the fight travelling: a unit deployed into an ambush
     /// zone, which `SuperDeploymentSystem` holds until its side arrives.
     pub(crate) travelling: bool,
@@ -575,6 +578,7 @@ fn compile_formation(
         lifesteal: worn.lifesteal,
         auto_recovery: worn.auto_recovery,
         start_buffs: worn.start_buffs,
+        ignored_buffs: worn.ignored_buffs,
         travelling: formation.travelling,
     })
 }
@@ -585,6 +589,7 @@ struct Worn {
     lifesteal: Option<LifeSteal>,
     auto_recovery: Option<AutoRecovery>,
     start_buffs: Vec<StartBuff>,
+    ignored_buffs: Vec<u32>,
 }
 
 /// What this side's loadout and a formation's equipment write onto it.
@@ -671,7 +676,10 @@ fn loadout(
             .map_err(on_side),
     )?;
     let mut start_buffs = Vec::new();
+    let mut ignored_buffs = Vec::new();
     for &id in equipment {
+        ignored_buffs
+            .extend(refused.hold(loadouts.equipment.ignored_buffs(id, rules).map_err(on_side))?);
         start_buffs
             .extend(refused.hold(loadouts.equipment.start_buff(id, rules).map_err(on_side))?);
         lifesteal.extend(refused.hold(loadouts.equipment.lifesteal(id, rules).map_err(on_side))?);
@@ -684,6 +692,7 @@ fn loadout(
         lifesteal: refused.hold(current_source(&lifesteal).map_err(in_force))?,
         auto_recovery: refused.hold(current_source(&auto_recovery).map_err(in_force))?,
         start_buffs,
+        ignored_buffs,
     })
 }
 

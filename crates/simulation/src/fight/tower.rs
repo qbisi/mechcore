@@ -286,10 +286,15 @@ impl Simulation {
     /// channel. The `buff_applied` it answers names the running buff.
     /// `BuffSystem.DoAddBuff` before it hands a buff to the unit's
     /// `BuffManager.AddBuff`, and the head of that: whether the buff reaches
-    /// the unit at all. A debuff does not reach a unit that a running buff
-    /// makes invincible, and nothing is recorded.
+    /// the unit at all. A buff the unit ignores (`FightMech.IsIgnoredBuff`)
+    /// does not, nor does a debuff a running buff makes it invincible to, and
+    /// nothing is recorded.
     pub(in crate::fight) fn buff_reaches(&self, actor_id: u64, row: &BuffRow) -> bool {
-        !(row.debuff && self.actors[&actor_id].invincible())
+        let actor = &self.actors[&actor_id];
+        if actor.placement.ignored_buffs.contains(&row.buff_id) {
+            return false;
+        }
+        !row.debuff || !actor.invincible()
     }
 
     /// `BuffManager.AddBuff` of a buff that reaches the unit, recorded with

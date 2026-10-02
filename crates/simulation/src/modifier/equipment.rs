@@ -43,15 +43,25 @@ const DEFAULT_EQUIPMENT_EFFECTS: &str = include_str!("../../../../config/equipme
 /// `equipmentDatas`, the plain item; `mobilityIntensifyEquipmentDatas`, whose
 /// `MobilityIntensifyEquipment` overrides nothing of `Equipment` and frees its
 /// formation during deployment, which a fight does not read; [`LIFESTEAL`];
-/// [`AUTO_RECOVERY`]; [`SPLASH`]; and [`BUFF`].
-const APPLIED: [&str; 6] = [
+/// [`AUTO_RECOVERY`]; [`SPLASH`]; [`BUFF`]; and [`IGNORE_BUFF`].
+const APPLIED: [&str; 7] = [
     "equipmentDatas",
     "mobilityIntensifyEquipmentDatas",
     LIFESTEAL,
     AUTO_RECOVERY,
     SPLASH,
     BUFF,
+    IGNORE_BUFF,
 ];
+
+/// The list whose `IgnoreBuffEquipment` is an `IIgnoreBuffDataSouce`:
+/// `IgnoreBuffEffectSystem.ApplyIgnoreBuff` adds every buff of its group to
+/// its unit's `BuffManager.AddIgnoredBuff` as it enters the fight, for good,
+/// since its `GetDuration` is zero. Its row is a permanent effect, which
+/// `EffectProvider.ActiveCheck` activates before the fight, during
+/// deployment; `IgnoreBuffEffectSystem.Active` then holds the buffs until
+/// `OnEnterFight`, so in the fight they are ignored from its start.
+const IGNORE_BUFF: &str = "ignoreBuffEquipmentDatas";
 
 /// The list whose `LifestealEquipment` is an `ILifeSteal` as well, which
 /// hands its unit a [`LifeSteal`].
@@ -104,6 +114,9 @@ struct Equipment {
     auto_recovery: Option<AutoRecovery>,
     /// The buff it adds as the fight starts, if its class is a buff item's.
     start_buff: Option<StartBuff>,
+    /// The `buffDatas` rows its unit ignores, if its class is an
+    /// anti-interference item's.
+    ignored_buffs: Vec<u32>,
 }
 
 /// One row of the table, with every field the extraction writes.
@@ -190,6 +203,9 @@ struct Row {
     /// The `buffDatas` row a buff row adds.
     #[serde(default)]
     buff: Option<BuffBlock>,
+    /// The buffs of an anti-interference row's group.
+    #[serde(default)]
+    ignored_buffs: Vec<u32>,
 }
 
 /// A `buffDatas` row a buff item adds, with the fields the simulator reads.
@@ -320,6 +336,18 @@ impl EquipmentEffects {
             .and_then(|equipment| equipment.start_buff))
     }
 
+    /// The buffs one equipment makes the unit wearing it ignore.
+    ///
+    /// # Errors
+    ///
+    /// Returns the error [`Self::corrections`] does.
+    pub(crate) fn ignored_buffs(&self, id: i32, unit: &UnitConfig) -> Result<Vec<u32>> {
+        Ok(self
+            .worn(id, unit)?
+            .map(|equipment| equipment.ignored_buffs.clone())
+            .unwrap_or_default())
+    }
+
     /// One equipment's row, once its effect is known to apply, or nothing
     /// when its targeting does not reach the unit.
     fn worn(&self, id: i32, unit: &UnitConfig) -> Result<Option<&Equipment>> {
@@ -376,6 +404,7 @@ impl Equipment {
             lifesteal,
             auto_recovery,
             start_buff,
+            ignored_buffs: row.ignored_buffs.clone(),
         }
     }
 }
@@ -456,7 +485,12 @@ fn corrections_of(
     }
     let lifetimes = [
         (row.round_duration != 0, "round_duration"),
-        (row.permanent_effect, "permanent_effect"),
+        // A permanent effect is activated during deployment, before the
+        // fight: what an anti-interference item does in it does not change.
+        (
+            row.permanent_effect && row.kind != IGNORE_BUFF,
+            "permanent_effect",
+        ),
         (row.important_unit, "important_unit"),
     ];
     for (set, field) in lifetimes {
@@ -527,6 +561,7 @@ mod tests {
     const NANO_REPAIR_KIT: i32 = 13_020_001;
     const PHOTON_COATING: i32 = 1_305_003;
     const CHARGED_AMMO: i32 = 1_305_001;
+    const ANTI_INTERFERENCE_MODULE: i32 = 1_308_001;
     const ADVANCED_DEFENSIVE_TACTICS: i32 = 20001;
     const ADVANCED_OFFENSIVE_TACTICS: i32 = 20002;
 
@@ -672,6 +707,27 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(refused.contains("BuffTechListener"), "{refused}");
+    }
+
+    /// Anti-Interference Module, a permanent effect, makes its unit ignore
+    /// its group's buffs: every tower loss's and the Electromagnetic
+    /// Impact's among them.
+    #[test]
+    fn an_anti_interference_item_names_the_buffs_its_unit_ignores() {
+        let equipment = EquipmentEffects::load().unwrap();
+        let rhino = unit("rhino");
+        assert!(
+            equipment
+                .corrections(ANTI_INTERFERENCE_MODULE, &rhino)
+                .unwrap()
+                .is_empty()
+        );
+        let ignored = equipment
+            .ignored_buffs(ANTI_INTERFERENCE_MODULE, &rhino)
+            .unwrap();
+        for buff in [1, 2, 3, 4, 5, 200_001] {
+            assert!(ignored.contains(&buff), "{ignored:?}");
+        }
     }
 
     #[test]

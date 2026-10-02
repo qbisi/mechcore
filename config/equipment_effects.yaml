@@ -14,6 +14,7 @@ schema: mechcore.equipment_effects
 # a buff item what triggers it (`buff_trigger`, a BuffTechListener: 1
 # is the fight's start), whom it reaches (`buff_targets`, TargetTypes:
 # 1 is the unit itself), how likely, and the buffDatas row it adds;
+# an anti-interference item the `ignored_buffs` of its buff group;
 # a lifesteal item its `lifesteal_multiplier`, the share of a hit's
 # damage its unit takes back as life, and a repair item the seconds
 # hurt before it repairs, the seconds between two repairs and the
@@ -290,6 +291,7 @@ equipment:
     main_skill_effect: true
     extra_skill_effect: true
     permanent_effect: true
+    ignored_buffs: [1, 2, 3, 4, 5, 1002, 1004, 1005, 1006, 1009, 1012, 1013, 1014, 1015, 1016, 1026, 1027, 1054, 102001, 1031, 1100, 200001, 10055, 20064, 1056, 10302, 9004, 1004001, 105002, 105004, 105006, 105012, 105013, 105014, 105015, 105016, 105026, 105027, 105201, 105031, 1500302]  # 抗干扰模块免疫BUFF
   - id: 1309001
     name: 汲取模块
     kind: lifestealEquipmentDatas

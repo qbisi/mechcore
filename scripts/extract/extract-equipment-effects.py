@@ -121,6 +121,8 @@ def extract():
                           if kind == owner})
             if kind == "buffEquipmentDatas":
                 entry["buff_row"] = row
+            if kind == "ignoreBuffEquipmentDatas":
+                entry["buff_group"] = row["buffGroup"]
             rows.append(entry)
     return sorted(rows, key=lambda row: row["id"])
 
@@ -146,6 +148,7 @@ def reading(value):
 
 def render(rows):
     buffs = {buff["id"]: buff for buff in build_data.container()["buffDatas"]}
+    groups = {group["id"]: group for group in build_data.container()["buffGroups"]}
     lines = [
         "schema: mechcore.equipment_effects",
         "",
@@ -163,6 +166,7 @@ def render(rows):
         "# a buff item what triggers it (`buff_trigger`, a BuffTechListener: 1",
         "# is the fight's start), whom it reaches (`buff_targets`, TargetTypes:",
         "# 1 is the unit itself), how likely, and the buffDatas row it adds;",
+        "# an anti-interference item the `ignored_buffs` of its buff group;",
         "# a lifesteal item its `lifesteal_multiplier`, the share of a hit's",
         "# damage its unit takes back as life, and a repair item the seconds",
         "# hurt before it repairs, the seconds between two repairs and the",
@@ -194,6 +198,9 @@ def render(rows):
                 lines.append(f"    {field}: {d[field]}")
         if "buff_row" in d:
             lines += buff_lines(d["buff_row"], buffs)
+        if "buff_group" in d:
+            group = groups[d["buff_group"]]
+            lines.append(f"    ignored_buffs: [{', '.join(map(str, group['buffs']))}]  # {group['name']}")
         for field in SUBCLASS_FIELDS:
             if field in d:
                 comment = reading(d[field]) if d[field] else ""

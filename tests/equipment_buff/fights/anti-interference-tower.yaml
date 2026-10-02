@@ -1,0 +1,20 @@
+# Anti-Interference Module on the Fang of
+# `../../tower/fights/tower-level-0.yaml`. Red's Steel Ball takes blue's tower
+# on tick 231, whose loss writes buff 1 on every unit of blue's side; the
+# item's buff group holds every tower loss's row, so the Fang ignores it and
+# no buff is recorded. The fight ends on tick 859 where it ended on 870.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 859
+hash: {profile: mcfr-content-0.7.0, result: 00d91e2c604b581b9295e6f347a7ebb3bdde7082ac84d1f734945a23ba7aa917}
+blue:
+  core_damage: 150
+  units:
+  - {name: fang, index: 0, position: {x: 145, y: -300}, exp: 0/100/600, equipment: [anti_interference_module]}
+red:
+  units:
+  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/416/1000}
