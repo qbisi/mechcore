@@ -70,10 +70,16 @@ def differing(matches: str) -> list[tuple[str, str, str, str]] | None:
     lines = matches.splitlines()
     if DIFFERING not in lines:
         return None
-    rows = []
-    for line in lines[lines.index(DIFFERING) + 3:]:
+    # The heading's block runs to the first blank line. A table, when a round
+    # differs, opens with its column names and rule; with none, the block is
+    # empty.
+    block = []
+    for line in lines[lines.index(DIFFERING) + 1:]:
         if not line.strip():
             break
+        block.append(line)
+    rows = []
+    for line in block[2:]:
         match, round_number, pinned, leaves = re.split(r"\s{2,}", line.strip(), maxsplit=3)
         rows.append((match, round_number, pinned, leaves))
     return rows
