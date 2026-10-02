@@ -146,6 +146,15 @@ is one as a unit is:
 A Shield Airdrop's shield is the same object, made where the skill lands;
 [`battle_skill.md`](battle_skill.md) states when.
 
+**A shield a unit carries is the same object again, with its unit as its
+owner.** A Barrier on a huge ground unit makes one of the item's radius and
+energy, among its side's shields at the fight's start, where the unit stands.
+It stands where its owner stands, moved as the owner moves, and once the owner
+dies it stays where it last stood, still naming it. A hit that empties a shield
+with an owner deactivates it rather than destroying it: it stays on the board,
+recorded inactive with no energy, shields nothing, and no `shield_destroyed`
+is written. The Barrier's shield neither recovers nor refills.
+
 A shield takes a hit's damage up to the energy it has left, and a hit that
 empties it destroys it for the rest of the fight: the excess goes nowhere. The
 recording names the shield as the target of that `damage`, and removes a
@@ -209,6 +218,11 @@ kind ends its own way:
 - A splash that lands on an uncovered unit beside a shield strikes both, and
   its projectile is removed `absorbed_by` the shield it never entered:
   `tests/shield/fights/splash-beside.yaml`.
+
+- A shield a unit carries follows it, shields it from shots from outside,
+  is deactivated when emptied and stays where its owner fell:
+  `tests/shield/fights/barrier-wasps.yaml`; blows from inside it reach its
+  owner: `tests/shield/fights/barrier-crawlers.yaml`.
 
 ### Replayed
 
@@ -302,6 +316,14 @@ kind ends its own way:
   `InterceptEffectBase.UpdateForIdleCooling`.
 - It updates after the projectiles: `FightController.AddModules` adds
   `ProjectileSystem` and then `InterceptSystem`.
+
+- A carried shield: `AdvancedEnergyShieldProvider` is a
+  `SingleEffectProvider` of `IAdvancedEnergyShieldSource`, which
+  `AdvancedEnergyShieldEquipment.GetRadius` and `GetShieldValue` answer from
+  its row, and `GetRecoverTime` and `GetEnergyChangeValue` with zero;
+  `DamagePerformer.PerformHitAdvancedEndergyShieldEffect` calls
+  `AdvancedEnergyShieldSystem.DeactiveEnergyShield` for an emptied shield
+  with an owner and `AdvancedEnergyShieldSystem.Destroy` for one without.
 
 ### Not established
 

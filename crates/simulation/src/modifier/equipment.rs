@@ -33,7 +33,7 @@ use crate::{
 
 use super::{
     effects::{self, Fields, PROJECTILE, VALUE_ELSEWHERE},
-    sources::{AutoRecovery, EnergyShield, LifeSteal, StartBuff},
+    sources::{AutoRecovery, CarriedShield, EnergyShield, LifeSteal, StartBuff},
     targets::Targets,
 };
 
@@ -43,9 +43,9 @@ const DEFAULT_EQUIPMENT_EFFECTS: &str = include_str!("../../../../config/equipme
 /// `equipmentDatas`, the plain item; `mobilityIntensifyEquipmentDatas`, whose
 /// `MobilityIntensifyEquipment` overrides nothing of `Equipment` and frees its
 /// formation during deployment, which a fight does not read; [`LIFESTEAL`];
-/// [`AUTO_RECOVERY`]; [`SPLASH`]; [`BUFF`]; [`IGNORE_BUFF`]; and
-/// [`ENERGY_SHIELD`].
-const APPLIED: [&str; 8] = [
+/// [`AUTO_RECOVERY`]; [`SPLASH`]; [`BUFF`]; [`IGNORE_BUFF`];
+/// [`ENERGY_SHIELD`]; and [`BARRIER`].
+const APPLIED: [&str; 9] = [
     "equipmentDatas",
     "mobilityIntensifyEquipmentDatas",
     LIFESTEAL,
@@ -54,7 +54,14 @@ const APPLIED: [&str; 8] = [
     BUFF,
     IGNORE_BUFF,
     ENERGY_SHIELD,
+    BARRIER,
 ];
+
+/// The list whose `AdvancedEnergyShieldEquipment` is an
+/// `IAdvancedEnergyShieldSource`, which hands its unit a [`CarriedShield`]:
+/// its `GetRecoverTime` and `GetEnergyChangeValue` answer zero, so the shield
+/// it carries neither recovers nor refills.
+const BARRIER: &str = "advancedEnergyShieldEquipmentDatas";
 
 /// The list whose `EnergyShieldEquipment` is an `IEnergyShieldSource`,
 /// which hands its unit an [`EnergyShield`] of its row's `lifeRate`.
@@ -125,6 +132,9 @@ struct Equipment {
     ignored_buffs: Vec<u32>,
     /// What it answers `IEnergyShieldSource` with, if its class is one.
     energy_shield: Option<EnergyShield>,
+    /// What it answers `IAdvancedEnergyShieldSource` with, if its class is
+    /// one.
+    carried_shield: Option<CarriedShield>,
 }
 
 /// One row of the table, with every field the extraction writes.
@@ -217,6 +227,12 @@ struct Row {
     /// `EnergyShieldEquipmentData.lifeRate`, on a shield row.
     #[serde(default)]
     shield_life_rate: Option<i64>,
+    /// `AdvancedEnergyShieldEquipmentData.radius` and `shieldValue`, on a
+    /// barrier row.
+    #[serde(default)]
+    barrier_radius: Option<i64>,
+    #[serde(default)]
+    barrier_energy: Option<i64>,
 }
 
 /// A `buffDatas` row a buff item adds, with the fields the simulator reads.
@@ -359,6 +375,22 @@ impl EquipmentEffects {
             .and_then(|equipment| equipment.energy_shield))
     }
 
+    /// The battlefield shield one equipment makes the unit wearing it carry,
+    /// if its class is a barrier's.
+    ///
+    /// # Errors
+    ///
+    /// Returns the error [`Self::corrections`] does.
+    pub(crate) fn carried_shield(
+        &self,
+        id: i32,
+        unit: &UnitConfig,
+    ) -> Result<Option<CarriedShield>> {
+        Ok(self
+            .worn(id, unit)?
+            .and_then(|equipment| equipment.carried_shield))
+    }
+
     /// The buffs one equipment makes the unit wearing it ignore.
     ///
     /// # Errors
@@ -393,13 +425,14 @@ impl EquipmentEffects {
 impl Equipment {
     fn of(row: &Row) -> Self {
         let who = format!("equipment {} ({})", row.id, row.name);
-        let targets = match (row.mech_type.as_slice(), row.units.is_empty()) {
-            (&[mech_type], true) => Targets::of(mech_type, &[], &who),
-            _ => Targets::Refused(format!(
+        let targets = if row.units.is_empty() && !row.mech_type.is_empty() {
+            Targets::of_list(&row.mech_type, &[], &who)
+        } else {
+            Targets::Refused(format!(
                 "{who} targets mech_type {:?} and units {:?}, which this build \
                  does not read",
                 row.mech_type, row.units
-            )),
+            ))
         };
         // `LifestealEquipment.GetLifestealMuliplier` answers its row's
         // multiplier, and `Equipment.CanDisable` false.
@@ -433,6 +466,12 @@ impl Equipment {
                 life_rate_q32: row.shield_life_rate.unwrap_or(0),
                 priority: PRIORITY,
                 can_disable: false,
+            }),
+            // `AdvancedEnergyShieldEquipment.GetRadius` and `GetShieldValue`
+            // answer its row's.
+            carried_shield: (row.kind == BARRIER).then(|| CarriedShield {
+                radius: row.barrier_radius.unwrap_or(0),
+                energy: row.barrier_energy.unwrap_or(0),
             }),
         }
     }
@@ -584,7 +623,6 @@ mod tests {
     const IMPROVED_FIREPOWER: i32 = 13_030_003;
     const DOMINION_CORE: i32 = 13_030_010;
     const RAPID_LOADER: i32 = 13_030_011;
-    const BARRIER: i32 = 1_307_001;
     const DEPLOYMENT_MODULE: i32 = 13_040_001;
     const ABSORPTION_MODULE: i32 = 1_309_001;
     const NANO_REPAIR_KIT: i32 = 13_020_001;
@@ -592,6 +630,7 @@ mod tests {
     const CHARGED_AMMO: i32 = 1_305_001;
     const ANTI_INTERFERENCE_MODULE: i32 = 1_308_001;
     const PORTABLE_SHIELD: i32 = 13_010_001;
+    const BARRIER_ITEM: i32 = 1_307_001;
     const ADVANCED_DEFENSIVE_TACTICS: i32 = 20001;
     const ADVANCED_OFFENSIVE_TACTICS: i32 = 20002;
 
@@ -774,12 +813,32 @@ mod tests {
         assert_eq!(shield.priority, 1);
     }
 
+    /// Barrier reaches huge ground units alone, `[7, 2]` both holding: a
+    /// Fortress carries its shield, a Raiden, huge but flying, and a
+    /// Marksman, on the ground but medium, carry none.
+    #[test]
+    fn a_barrier_reaches_huge_ground_units() {
+        let equipment = EquipmentEffects::load().unwrap();
+        let carried = equipment
+            .carried_shield(BARRIER_ITEM, &unit("fortress"))
+            .unwrap()
+            .unwrap();
+        assert_eq!((carried.radius, carried.energy), (65, 60_000));
+        for other in ["raiden", "marksman"] {
+            assert_eq!(
+                equipment
+                    .carried_shield(BARRIER_ITEM, &unit(other))
+                    .unwrap(),
+                None
+            );
+        }
+    }
+
     #[test]
     fn an_equipment_this_build_cannot_apply_is_refused_by_name() {
         let equipment = EquipmentEffects::load().unwrap();
         let marksman = unit("marksman");
         for (id, said) in [
-            (BARRIER, "advancedEnergyShieldEquipmentDatas"),
             (RAPID_LOADER, "round_duration"),
             (DOMINION_CORE, "important_unit"),
         ] {

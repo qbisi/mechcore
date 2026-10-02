@@ -16,7 +16,8 @@ schema: mechcore.equipment_effects
 # 1 is the unit itself), how likely, and the buffDatas row it adds;
 # an anti-interference item the `ignored_buffs` of its buff group;
 # a shield item its `shield_life_rate`, its shield's share of its
-# unit's maximum life;
+# unit's maximum life; a barrier item the `barrier_radius`, in whole
+# metres, and `barrier_energy` of the battlefield shield it carries;
 # a lifesteal item its `lifesteal_multiplier`, the share of a hit's
 # damage its unit takes back as life, and a repair item the seconds
 # hurt before it repairs, the seconds between two repairs and the
@@ -279,6 +280,8 @@ equipment:
     mech_type: [7, 2]
     main_skill_effect: true
     extra_skill_effect: true
+    barrier_radius: 65
+    barrier_energy: 60000
   - id: 1307002
     name: 超级屏障
     kind: advancedEnergyShieldEquipmentDatas
@@ -286,6 +289,8 @@ equipment:
     main_skill_effect: true
     extra_skill_effect: true
     round_duration: 1
+    barrier_radius: 130
+    barrier_energy: 180000
   - id: 1308001
     name: 抗干扰模块
     kind: ignoreBuffEquipmentDatas

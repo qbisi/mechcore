@@ -75,6 +75,16 @@ pub(crate) struct EnergyShield {
     pub(crate) can_disable: bool,
 }
 
+/// What an `IAdvancedEnergyShieldSource` answers: the battlefield shield its
+/// unit carries.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct CarriedShield {
+    /// `GetRadius`, whole metres.
+    pub(crate) radius: i64,
+    /// `GetShieldValue`: its energy, full.
+    pub(crate) energy: i64,
+}
+
 /// An `IEffectProviderDataSource` a `SingleEffectProvider` sorts.
 pub(crate) trait Source: Copy + PartialEq {
     /// The interface's name, which a refusal says.

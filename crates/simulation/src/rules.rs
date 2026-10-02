@@ -62,6 +62,8 @@ pub(crate) struct UnitConfig {
     pub(crate) unit_type_id: u32,
     pub(crate) formation: FormationConfig,
     pub(crate) domain: UnitDomain,
+    /// `MechData.mechType`, a `UnitType`.
+    pub(crate) size: UnitSize,
     pub(crate) max_life: i64,
     pub(crate) collision_radius: f64,
     pub(crate) move_speed: f64,
@@ -192,6 +194,15 @@ pub(crate) struct FormationFootprint {
 pub(crate) enum UnitDomain {
     Ground,
     Air,
+}
+
+/// `UnitType`: what a row targeting small, medium or huge units reads.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum UnitSize {
+    Small,
+    Medium,
+    Huge,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

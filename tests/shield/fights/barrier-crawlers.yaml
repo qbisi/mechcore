@@ -1,0 +1,19 @@
+# A Barrier on blue's Fortress against the Crawlers of
+# `../../fortress/fights/m3-crawler-4242.yaml`. The Crawlers strike the
+# Fortress from inside the shield it carries, and a blow from inside a shield
+# lands on what it covers: the shield takes nothing all fight.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 376
+hash: {profile: mcfr-content-0.7.0, result: 37c246d546269693a7e96522a9919517b3f797f66202d38312a05d434aa9bd78}
+blue:
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/192/1600, equipment: [barrier]}
+red:
+  core_damage: 350
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}}

@@ -8,6 +8,7 @@ formation:
   footprint: {width: 40, depth: 20}
 
 domain: ground
+size: medium
 max_life: 9529
 collision_radius: 9
 move_speed: 9

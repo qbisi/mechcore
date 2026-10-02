@@ -174,6 +174,7 @@ impl Simulation {
             lifesteal: None,
             auto_recovery: None,
             energy_shield: None,
+            carried_shield: None,
             start_buffs: Vec::new(),
             ignored_buffs: Vec::new(),
             travelling: false,

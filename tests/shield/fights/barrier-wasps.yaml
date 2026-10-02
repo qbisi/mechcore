@@ -1,0 +1,26 @@
+# A Barrier on blue's Fortress, a shield of 65 metres and 60000 energy that
+# it carries, against five Wasp formations. The shield stands where the
+# Fortress stands every tick. The Wasps' shots from outside it take its
+# energy until tick 263 empties it, and an emptied shield with an owner is
+# deactivated, not destroyed: it stays on the board with no energy and
+# shields nothing. The Fortress falls on tick 410, and its shield stays where
+# it last stood, still naming it as its owner.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 416
+hash: {profile: mcfr-content-0.7.0, result: 455362f59c052135e97a94aff2ffafec89dda20b2315437b76f04a3c3567e01a}
+blue:
+  core_damage: 1020
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, equipment: [barrier]}
+red:
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/80/900}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/80/900}
+  - {name: wasp, index: 2, position: {x: 5, y: -180}, exp: 0/80/900}
+  - {name: wasp, index: 3, position: {x: -55, y: -100}, exp: 0/80/900}
+  - {name: wasp, index: 4, position: {x: 65, y: -100}, exp: 0/480/900}

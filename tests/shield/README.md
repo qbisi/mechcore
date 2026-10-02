@@ -8,3 +8,6 @@ holds the shield's range and energy.
 Each fight is its layout fought once in the game, read back as a fight. A hit
 a shield takes is a `damage` whose target is the shield, and a projectile it
 takes is removed `absorbed_by` it.
+
+The Barrier fights put a shield on a unit, which carries it: `barrier-wasps.yaml`
+and `barrier-crawlers.yaml`.
