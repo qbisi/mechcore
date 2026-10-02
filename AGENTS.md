@@ -122,7 +122,10 @@ For a new version, the session with the game runs `scripts/decomp/decompile.py`,
 which reads the build from the installed game and fetches its pinned tools
 into `work/tools/`, then `scripts/decomp/decomp.py publish <build>`.
 `scripts/decomp/decomp-diff.py <old> <new>` compares two builds, and `--config`
-their tables.
+their tables. Where the ISIL is hard to follow, `scripts/decomp/ghidra.py
+decompile Class.Method` writes a method's C from a Ghidra project of the
+installed game, its interface calls named by slot; `ghidra.py prepare` makes
+the project once per build, on the machine with the game.
 
 # Commits
 
