@@ -5,12 +5,12 @@ use mechcore_mcfr::{
     BuildingState, CheckedSkill, DerivedStats, Domain, DurableContext, Event, EventPayload,
     GaugeI32, GroupSlot, HASH_PROFILE, Hashes, LiveUnitState, MCFR_FORMAT, McfrReader, McfrWriter,
     Modifier, ModifierChannel, ModifierPart, MotionState, ObjectKind, ObjectRef,
-    PersonalShieldState, Producer, QPlanar, QVec3, Rational, RvoExit, RvoNeighbour,
+    PersonalShieldState, PoseClip, Producer, QPlanar, QVec3, Rational, RvoExit, RvoNeighbour,
     RvoNeighbourKind, RvoSolve, RvoVec, RvoVo, ShieldDestroyedReason, ShieldRoundPolicy,
     ShieldSourceKind, ShieldState, SkillAttackableCheck, TargetCandidate, TargetRefs, TargetSearch,
     TargetSearchPath, TerrainApplicationState, TerrainEffectClock, TerrainGridState,
     TerrainLogicLifetime, TerrainRemovedReason, TerrainState, TerrainType, TransitionEvents,
-    Visibility, WeaponAimState, WorldSnapshot, sort_modifiers,
+    UnitPose, Visibility, WeaponAimState, WorldSnapshot, sort_modifiers,
 };
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use serde_json::json;
@@ -713,6 +713,68 @@ fn instrument_channels_ride_in_the_recording_outside_the_hash() {
     );
     let plain = McfrReader::open(directory.path().join("plain.mcfr")).unwrap();
     assert_eq!(plain.instrument::<TargetRefs>().unwrap(), None);
+}
+
+/// A pose row carries floats, an optional transition and a list of clips,
+/// and reads back as written.
+#[test]
+fn unit_pose_rows_read_back_with_their_clips() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("posed.mcfr");
+    let mut writer =
+        McfrWriter::create(&path, Producer::Game, "build-a", &context(), LAYOUT_YAML).unwrap();
+    writer.append_tick(state(75), &damage_events()).unwrap();
+    // A model's two layers, one in transition and blending two clips.
+    let poses = vec![
+        UnitPose {
+            unit: ObjectRef::new(ObjectKind::Unit, 1),
+            layer: 0,
+            layer_name: "Base Layer".into(),
+            layer_weight: 1.0,
+            state: 1_432_961_145,
+            state_name: 2_081_823_275,
+            normalized_time: 1.25,
+            state_length: 0.85,
+            state_speed: 1.176,
+            next_state: Some(-7),
+            clips: vec![
+                PoseClip {
+                    name: "Rhinoceros_FiringAL".into(),
+                    weight: 0.75,
+                },
+                PoseClip {
+                    name: "Rhinoceros_Walk".into(),
+                    weight: 0.25,
+                },
+            ],
+            animator_speed: 1.0,
+        },
+        UnitPose {
+            unit: ObjectRef::new(ObjectKind::Unit, 1),
+            layer: 1,
+            layer_name: "AttackMove".into(),
+            layer_weight: 0.0,
+            state: 3,
+            state_name: 4,
+            normalized_time: 0.0,
+            state_length: 1.067,
+            state_speed: 1.0,
+            next_state: None,
+            clips: Vec::new(),
+            animator_speed: 1.0,
+        },
+    ];
+    writer.append_instrument(&poses).unwrap();
+    writer.finish().unwrap();
+    let reader = McfrReader::open(&path).unwrap();
+    assert_eq!(
+        reader.instrument_channels().collect::<Vec<_>>(),
+        ["unit_pose"]
+    );
+    assert_eq!(
+        reader.instrument::<UnitPose>().unwrap(),
+        Some(poses.into_iter().map(|pose| (1, pose)).collect())
+    );
 }
 
 #[test]

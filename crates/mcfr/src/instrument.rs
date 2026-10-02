@@ -168,6 +168,52 @@ impl InstrumentRow for GroupSlot {
     const CHANNEL: &'static str = "group_slots";
 }
 
+/// One animator layer of a unit's model at a snapshot: the state the view's
+/// `Animator` plays on that layer, how far through it, and the clips it
+/// blends there. The pose a unit is drawn in is the view's, which the fight
+/// does not read; this is what lets a reader draw the unit as the game did.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct UnitPose {
+    pub unit: ObjectRef,
+    /// The layer's index in the controller.
+    pub layer: u8,
+    /// `Animator.GetLayerName`.
+    pub layer_name: String,
+    /// `Animator.GetLayerWeight`.
+    pub layer_weight: f32,
+    /// `AnimatorStateInfo.fullPathHash`: `Animator.StringToHash` of
+    /// `<layer name>.<state name>`.
+    pub state: i32,
+    /// `AnimatorStateInfo.shortNameHash`: `Animator.StringToHash` of the
+    /// state's name alone.
+    pub state_name: i32,
+    /// `AnimatorStateInfo.normalizedTime`: cycles played, the integer part
+    /// counting loops.
+    pub normalized_time: f32,
+    /// `AnimatorStateInfo.length`, seconds.
+    pub state_length: f32,
+    /// `AnimatorStateInfo.speed` times its `speedMultiplier`.
+    pub state_speed: f32,
+    /// The state the layer is blending into, while `IsInTransition`.
+    pub next_state: Option<i32>,
+    /// The clips the current state plays, with their blend weights:
+    /// `GetCurrentAnimatorClipInfo`.
+    pub clips: Vec<PoseClip>,
+    /// `Animator.speed`, the whole animator's playback rate.
+    pub animator_speed: f32,
+}
+
+impl InstrumentRow for UnitPose {
+    const CHANNEL: &'static str = "unit_pose";
+}
+
+/// One clip a layer plays, by its asset name.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PoseClip {
+    pub name: String,
+    pub weight: f32,
+}
+
 /// A skill's lock, attack target, state and attack phase, read field by field.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CheckedSkill {

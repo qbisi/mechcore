@@ -546,6 +546,25 @@ For every unit whose main skill is not a `FightSkill`, it records one row per
 `skill_attack_phase` and `skill_is_idle` reads. A unit with an ordinary main
 skill has no rows.
 
+`unit_pose` records how the view animates each unit's model: the pose a unit
+is drawn in, which the fight never reads. `FightMech.GetMechEventListener()` is
+the scene's `Mech`, whose `animationController` holds the model's main
+`Animator` (`AnimationController.GetMainAnimator()`), and each of the
+animator's layers is one row per tick: its name and weight
+(`GetLayerName`, `GetLayerWeight`), the current state's `fullPathHash` and
+`shortNameHash`, its `normalizedTime`, `length` and speed times speed
+multiplier (`GetCurrentAnimatorStateInfo`), the state it is blending into while
+`IsInTransition` (`GetNextAnimatorStateInfo`), the clips the state plays by
+asset name with their blend weights (`GetCurrentAnimatorClipInfo`, each clip
+named through `AnimatorClipInfo.InstanceIDToAnimationClipPPtr`), and the
+animator's own `speed`. A unit whose view holds no animator, as a
+Sledgehammer's does not, has no rows. A view animates once per rendered
+frame, so a recording read for its poses runs with `speed_up: false`: at
+the default scale fifty times the game's, the reads land on a frame
+advanced by many ticks at once. A headless game animates its views too. The
+channel reads the scene's views, and a fight with no scene, as
+`record_replay_round` fights, has none: its units have no rows.
+
 `skill_attackable_checker` records every call of
 `SkillAttackableChecker.Check(bool isAttackingCheck)` made during the update a
 row closes, in call order: the skill's owner, the skill's index in the

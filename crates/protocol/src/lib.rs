@@ -383,10 +383,13 @@ pub enum InstrumentChannel {
     RvoVo,
     /// Each grouped unit's skills, one row per slot: lock, attack target and state.
     GroupSlots,
+    /// Each unit's model as the view animates it: per animator layer, the state,
+    /// its progress and the clips it blends, every tick.
+    UnitPose,
 }
 
 impl InstrumentChannel {
-    pub const ALL: [Self; 8] = [
+    pub const ALL: [Self; 9] = [
         Self::TargetRefs,
         Self::SkillAttackableChecker,
         Self::TargetSearch,
@@ -395,6 +398,7 @@ impl InstrumentChannel {
         Self::RvoNeighbour,
         Self::RvoVo,
         Self::GroupSlots,
+        Self::UnitPose,
     ];
 
     /// The channel's name, which is also its member's file stem in the MCFR.
@@ -409,6 +413,7 @@ impl InstrumentChannel {
             Self::RvoNeighbour => "rvo_neighbour",
             Self::RvoVo => "rvo_vo",
             Self::GroupSlots => "group_slots",
+            Self::UnitPose => "unit_pose",
         }
     }
 }

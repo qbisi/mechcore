@@ -2,7 +2,7 @@ use crate::rvo::{self, RawSolve, RvoChannels, RvoMetadata, RvoRows};
 use crate::selector::{self, RawSearch, SelectorMetadata, TargetChannels};
 use crate::statistics::{self, StatisticsMetadata};
 use crate::{
-    il2cpp::{Api, Class, FieldInfo, MethodInfo, Object, argument, object_argument},
+    il2cpp::{Api, Class, FieldInfo, MethodInfo, Object, StringObject, argument, object_argument},
     runtime::Runtime,
 };
 use jpeg_encoder::{ColorType, Encoder};
@@ -22,8 +22,8 @@ use mechcore_mcfr::{
     WorldSnapshot,
 };
 use mechcore_mcfr::{
-    CheckedSkill, GroupSlot, RvoNeighbour, RvoSolve, RvoVo, SkillAttackableCheck, TargetCandidate,
-    TargetRefs, TargetSearch,
+    CheckedSkill, GroupSlot, PoseClip, RvoNeighbour, RvoSolve, RvoVo, SkillAttackableCheck,
+    TargetCandidate, TargetRefs, TargetSearch, UnitPose,
 };
 use mechcore_protocol::InstrumentChannel;
 use std::{
@@ -178,6 +178,7 @@ pub(crate) struct Instruments {
     target_refs: bool,
     skill_attackable_checker: bool,
     group_slots: bool,
+    unit_pose: bool,
     pub(crate) target: TargetChannels,
     pub(crate) rvo: RvoChannels,
 }
@@ -188,6 +189,7 @@ impl Instruments {
             target_refs: channels.contains(&InstrumentChannel::TargetRefs),
             skill_attackable_checker: channels.contains(&InstrumentChannel::SkillAttackableChecker),
             group_slots: channels.contains(&InstrumentChannel::GroupSlots),
+            unit_pose: channels.contains(&InstrumentChannel::UnitPose),
             target: TargetChannels {
                 search: channels.contains(&InstrumentChannel::TargetSearch),
                 candidate: channels.contains(&InstrumentChannel::TargetCandidate),
@@ -213,6 +215,7 @@ pub(crate) struct InstrumentRows {
     pub(crate) rvo_neighbour: Option<Vec<RvoNeighbour>>,
     pub(crate) rvo_vo: Option<Vec<RvoVo>>,
     pub(crate) group_slots: Option<Vec<GroupSlot>>,
+    pub(crate) unit_pose: Option<Vec<UnitPose>>,
 }
 
 #[allow(
@@ -1720,6 +1723,9 @@ pub(crate) fn start(
             "target-reference instrumentation is unavailable because native target fields could not be resolved"
                 .into(),
         );
+    }
+    if instruments.unit_pose {
+        validate_pose_availability(runtime.api)?;
     }
     validate_target_availability(instruments, &state.metadata)?;
     validate_checker_availability(instruments, &state.metadata)?;
@@ -4160,6 +4166,8 @@ struct RawUnit {
     state: LiveUnitState,
     target_refs: Option<RawTargetRefs>,
     group_slots: Vec<RawGroupSlot>,
+    /// The model's animator layers, each row's unit still to be numbered.
+    poses: Vec<UnitPose>,
 }
 
 /// One skill of a grouped unit, before its targets are named.
@@ -5698,6 +5706,7 @@ fn snapshot(
     let mut raw_weapon_targets = Vec::new();
     let mut raw_target_refs = Vec::new();
     let mut raw_group_slots = Vec::new();
+    let mut unit_pose = capture.instruments.unit_pose.then(Vec::new);
     for mut unit in raw_units {
         let unit_id = match capture.unit_ids.get(&unit.pointer) {
             Some(id) => *id,
@@ -5750,6 +5759,12 @@ fn snapshot(
             raw_target_refs.push((unit_id, target_refs));
         }
         raw_group_slots.extend(unit.group_slots.into_iter().map(|slot| (unit_id, slot)));
+        if let Some(rows) = &mut unit_pose {
+            rows.extend(unit.poses.into_iter().map(|mut pose| {
+                pose.unit = ObjectRef::new(ObjectKind::Unit, unit_id);
+                pose
+            }));
+        }
         units.push(unit.state);
     }
     if let Some(previous) = renumbered {
@@ -5920,6 +5935,7 @@ fn snapshot(
         rvo_neighbour,
         rvo_vo,
         group_slots,
+        unit_pose,
     };
     let projectiles = read_projectiles(runtime, capture)?;
     let pending = capture.pending_projectile_absorptions.len()
@@ -6522,6 +6538,11 @@ fn read_unit(
     } else {
         Vec::new()
     };
+    let poses = if instruments.unit_pose {
+        read_unit_pose(api, unit)?
+    } else {
+        Vec::new()
+    };
     let shield = invoke_object(api, unit, "GetEnergyShieldController")?;
     let max_energy = invoke_value::<i32>(api, shield, "GetMaxEnergy")?;
     let personal_shield = PersonalShieldState {
@@ -6596,6 +6617,7 @@ fn read_unit(
         },
         target_refs,
         group_slots,
+        poses,
     })
 }
 
@@ -7890,6 +7912,168 @@ fn resolve_target_ref(
                 "{field} references {class} at 0x{pointer:x}, absent from the MCFR world snapshot"
             )
         })
+}
+
+/// `UnityEngine.AnimatorStateInfo`, as `UnityEngine.AnimationModule` lays it out.
+#[repr(C)]
+#[derive(Clone, Copy)]
+struct AnimatorStateInfo {
+    short_name_hash: i32,
+    _path: i32,
+    full_path_hash: i32,
+    normalized_time: f32,
+    length: f32,
+    speed: f32,
+    speed_multiplier: f32,
+    _tag: i32,
+    _loop: i32,
+}
+
+/// `UnityEngine.AnimatorClipInfo`: a clip by its instance and its blend weight.
+#[repr(C)]
+#[derive(Clone, Copy)]
+struct AnimatorClipInfo {
+    clip_instance: i32,
+    weight: f32,
+}
+
+/// The animator layers a pose is read from, at most: a mech's controllers
+/// hold two.
+const POSE_LAYERS: i32 = 8;
+/// The clips one layer blends, at most.
+const POSE_CLIPS: usize = 16;
+
+/// Refuses `unit_pose` before arming when the animator types it reads are not
+/// in the build.
+fn validate_pose_availability(api: Api) -> Result<(), String> {
+    for name in ["Animator", "AnimatorClipInfo"] {
+        api.class("UnityEngine.AnimationModule.dll", "UnityEngine", name)
+            .map_err(|error| format!("the unit_pose channel is unavailable: {name}: {error}"))?;
+    }
+    Ok(())
+}
+
+/// A unit's model as its view animates it: `FightMech.GetMechEventListener()`
+/// is the scene's `Mech`, whose `animationController` holds the model's main
+/// `Animator`, and each of the animator's layers is one row. A unit whose
+/// view holds no animator has none.
+fn read_unit_pose(api: Api, unit: *mut Object) -> Result<Vec<UnitPose>, String> {
+    let failed = |error: crate::il2cpp::Error| error.to_string();
+    let view = api
+        .call0::<*mut Object>(unit, "GetMechEventListener")
+        .map_err(failed)?;
+    let Some(class) = (!view.is_null()).then(|| api.object_class(view)).flatten() else {
+        return Ok(Vec::new());
+    };
+    // A listener that is not a `Mech` carries no model of its own.
+    let Ok(field) = api.field(class, "animationController") else {
+        return Ok(Vec::new());
+    };
+    let controller = api
+        .field_value::<*mut Object>(view, field)
+        .map_err(failed)?;
+    if controller.is_null() {
+        return Ok(Vec::new());
+    }
+    let animator = api
+        .call0::<*mut Object>(controller, "GetMainAnimator")
+        .map_err(failed)?;
+    if animator.is_null() {
+        return Ok(Vec::new());
+    }
+    let layers = api
+        .call0::<i32>(animator, "get_layerCount")
+        .map_err(failed)?;
+    let animator_speed = api.call0::<f32>(animator, "get_speed").map_err(failed)?;
+    let mut rows = Vec::new();
+    for layer in 0..layers.clamp(0, POSE_LAYERS) {
+        let mut index = layer;
+        let mut at = || [argument(&mut index)];
+        let state: AnimatorStateInfo = api
+            .invoke_value(animator, "GetCurrentAnimatorStateInfo", &mut at())
+            .map_err(failed)?;
+        let in_transition: bool = api
+            .invoke_value(animator, "IsInTransition", &mut at())
+            .map_err(failed)?;
+        let next_state = if in_transition {
+            let next: AnimatorStateInfo = api
+                .invoke_value(animator, "GetNextAnimatorStateInfo", &mut at())
+                .map_err(failed)?;
+            Some(next.full_path_hash)
+        } else {
+            None
+        };
+        let layer_weight: f32 = api
+            .invoke_value(animator, "GetLayerWeight", &mut at())
+            .map_err(failed)?;
+        let layer_name = api
+            .invoke(animator, "GetLayerName", &mut at())
+            .and_then(|name| api.string_to_rust(name.cast::<StringObject>()))
+            .map_err(failed)?;
+        let infos = api
+            .invoke(animator, "GetCurrentAnimatorClipInfo", &mut at())
+            .and_then(|array| api.value_array::<AnimatorClipInfo>(array, POSE_CLIPS))
+            .map_err(failed)?;
+        let mut clips = Vec::with_capacity(infos.len());
+        for info in infos {
+            clips.push(PoseClip {
+                name: clip_name(api, info.clip_instance)?,
+                weight: info.weight,
+            });
+        }
+        rows.push(UnitPose {
+            unit: ObjectRef::new(ObjectKind::Unit, 0),
+            layer: u8::try_from(layer).map_err(|_| "animator layer overflow".to_owned())?,
+            layer_name,
+            layer_weight,
+            state: state.full_path_hash,
+            state_name: state.short_name_hash,
+            normalized_time: state.normalized_time,
+            state_length: state.length,
+            state_speed: state.speed * state.speed_multiplier,
+            next_state,
+            clips,
+            animator_speed,
+        });
+    }
+    Ok(rows)
+}
+
+/// A clip's asset name by its instance, read once per clip:
+/// `AnimatorClipInfo.InstanceIDToAnimationClipPPtr`, then `Object.name`.
+fn clip_name(api: Api, instance: i32) -> Result<String, String> {
+    thread_local! {
+        static NAMES: std::cell::RefCell<std::collections::HashMap<i32, String>> =
+            std::cell::RefCell::new(std::collections::HashMap::new());
+    }
+    if let Some(name) = NAMES.with(|names| names.borrow().get(&instance).cloned()) {
+        return Ok(name);
+    }
+    let failed = |error: crate::il2cpp::Error| error.to_string();
+    let class = api
+        .class(
+            "UnityEngine.AnimationModule.dll",
+            "UnityEngine",
+            "AnimatorClipInfo",
+        )
+        .map_err(failed)?;
+    let mut id = instance;
+    let clip = api
+        .invoke_static(
+            class,
+            "InstanceIDToAnimationClipPPtr",
+            &mut [argument(&mut id)],
+        )
+        .map_err(failed)?;
+    let name = if clip.is_null() {
+        String::new()
+    } else {
+        let name = api.call0::<*mut Object>(clip, "get_name").map_err(failed)?;
+        api.string_to_rust(name.cast::<StringObject>())
+            .map_err(failed)?
+    };
+    NAMES.with(|names| names.borrow_mut().insert(instance, name.clone()));
+    Ok(name)
 }
 
 /// The main skill's state machine state, its attack phase, and `IsIdle`.
