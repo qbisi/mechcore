@@ -85,6 +85,26 @@ pub(crate) struct CarriedShield {
     pub(crate) energy: i64,
 }
 
+/// What a `SupportUnitEquipment` answers `ISupportDataSource` with: a
+/// production line its wearer runs, `appearType` 5, whose makes stand at
+/// set offsets from it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct ProductionLine {
+    /// `GetUnitID`: the unit type it makes.
+    pub(crate) unit_type_id: u32,
+    /// `GetBatchMaxCount`: how many batches it makes in all.
+    pub(crate) max_batch: u32,
+    /// `GetMaxCount`: how many of its makes may live at once.
+    pub(crate) max_alive: u32,
+    /// `GetCreateCountPerTime`.
+    pub(crate) per_time: u32,
+    /// `GetCreateInterval`, Q32.32 seconds.
+    pub(crate) interval_q32: i64,
+    /// `GetPositionDatas`: each make's offset from its wearer, Q32.32
+    /// metres, right and forward of its facing.
+    pub(crate) offsets: Vec<(i64, i64)>,
+}
+
 /// An `IEffectProviderDataSource` a `SingleEffectProvider` sorts.
 pub(crate) trait Source: Copy + PartialEq {
     /// The interface's name, which a refusal says.

@@ -1,0 +1,20 @@
+# Mustang Production Line on blue's Fortress, against two Marksmen. The
+# line makes four Mustangs on tick 1, at its row's offsets x ±20 and ±10,
+# z −15 in the Fortress's frame, and four more 11 s later, on tick 221. Blue
+# wins on tick 319 with five Mustangs left.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 319
+hash: {profile: mcfr-content-0.7.0, result: 70c537c2804846826cc7dfa78eaaac298742fd333afd53dff664b5d64b530ea5}
+blue:
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/400/1600, equipment: [mustang_production_line]}
+red:
+  core_damage: 370
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -100}}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/102/650}

@@ -108,6 +108,29 @@ def buff_lines(row, buffs):
     return lines
 
 
+# A production line's SupportUnitEquipmentData: what it makes, how many and
+# how often, where around its wearer, and how its makes are corrected.
+PRODUCTION = (
+    ("support_unit_id", "supportUnitID"), ("unit_level", "unitLevel"),
+    ("max_batch", "maxBatch"), ("max_alive", "maxCount"),
+    ("create_count_per_time", "createCountPerTime"), ("start_time", "startTime"),
+    ("appear_type", "appearType"), ("max_create_count", "maxCreateCount"),
+)
+
+
+def production_lines(row):
+    lines = ["    production:"]
+    for name, field in PRODUCTION:
+        lines.append(f"      {name}: {row[field]}")
+    duration = raw(row["createDuration"])
+    lines.append(f"      create_duration: {duration}{reading(duration)}")
+    rate = raw(row["unitLifeChangerate"])
+    lines.append(f"      unit_life_rate: {rate}{reading(rate) if rate else ''}")
+    offsets = ", ".join(f"{{x: {raw(p['x'])}, z: {raw(p['y'])}}}" for p in row["positions"])
+    lines.append(f"      positions: [{offsets}]")
+    return lines
+
+
 def raw(value):
     return value["m_rawValue"] if isinstance(value, dict) else value
 
@@ -128,6 +151,8 @@ def extract():
                 entry["buff_row"] = row
             if kind == "ignoreBuffEquipmentDatas":
                 entry["buff_group"] = row["buffGroup"]
+            if kind == "supportUnitEquipmentDatas":
+                entry["production"] = row
             rows.append(entry)
     return sorted(rows, key=lambda row: row["id"])
 
@@ -172,6 +197,10 @@ def render(rows):
         "# is the fight's start), whom it reaches (`buff_targets`, TargetTypes:",
         "# 1 is the unit itself), how likely, and the buffDatas row it adds;",
         "# an anti-interference item the `ignored_buffs` of its buff group;",
+        "# a production line the `production` it runs: the unit it makes,",
+        "# `max_batch` batches of `create_count_per_time` every `create_duration`",
+        "# seconds while fewer than `max_alive` live, each at its `positions`",
+        "# offset from its wearer, in FPoint raw metres;",
         "# a shield item its `shield_life_rate`, its shield's share of its",
         "# unit's maximum life; a barrier item the `barrier_radius`, in whole",
         "# metres, and `barrier_energy` of the battlefield shield it carries;",
@@ -206,6 +235,8 @@ def render(rows):
                 lines.append(f"    {field}: {d[field]}")
         if "buff_row" in d:
             lines += buff_lines(d["buff_row"], buffs)
+        if "production" in d:
+            lines += production_lines(d["production"])
         if "buff_group" in d:
             group = groups[d["buff_group"]]
             lines.append(f"    ignored_buffs: [{', '.join(map(str, group['buffs']))}]  # {group['name']}")

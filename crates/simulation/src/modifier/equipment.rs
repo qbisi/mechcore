@@ -33,7 +33,7 @@ use crate::{
 
 use super::{
     effects::{self, Fields, PROJECTILE, VALUE_ELSEWHERE},
-    sources::{AutoRecovery, CarriedShield, EnergyShield, LifeSteal, StartBuff},
+    sources::{AutoRecovery, CarriedShield, EnergyShield, LifeSteal, ProductionLine, StartBuff},
     targets::Targets,
 };
 
@@ -44,8 +44,8 @@ const DEFAULT_EQUIPMENT_EFFECTS: &str = include_str!("../../../../config/equipme
 /// `MobilityIntensifyEquipment` overrides nothing of `Equipment` and frees its
 /// formation during deployment, which a fight does not read; [`LIFESTEAL`];
 /// [`AUTO_RECOVERY`]; [`SPLASH`]; [`BUFF`]; [`IGNORE_BUFF`];
-/// [`ENERGY_SHIELD`]; and [`BARRIER`].
-const APPLIED: [&str; 9] = [
+/// [`ENERGY_SHIELD`]; [`BARRIER`]; and [`PRODUCTION`].
+const APPLIED: [&str; 10] = [
     "equipmentDatas",
     "mobilityIntensifyEquipmentDatas",
     LIFESTEAL,
@@ -55,7 +55,16 @@ const APPLIED: [&str; 9] = [
     IGNORE_BUFF,
     ENERGY_SHIELD,
     BARRIER,
+    PRODUCTION,
 ];
+
+/// The list whose `SupportUnitEquipment` is an `ISupportDataSource`, which
+/// hands its unit a [`ProductionLine`].
+const PRODUCTION: &str = "supportUnitEquipmentDatas";
+
+/// `SupportUnitAppearType` 5: makes stand at the row's offsets from the
+/// wearer.
+const AT_OFFSETS: i32 = 5;
 
 /// The list whose `AdvancedEnergyShieldEquipment` is an
 /// `IAdvancedEnergyShieldSource`, which hands its unit a [`CarriedShield`]:
@@ -135,6 +144,8 @@ struct Equipment {
     /// What it answers `IAdvancedEnergyShieldSource` with, if its class is
     /// one.
     carried_shield: Option<CarriedShield>,
+    /// The production line it runs, if its class is one.
+    production: Option<ProductionLine>,
 }
 
 /// One row of the table, with every field the extraction writes.
@@ -233,6 +244,36 @@ struct Row {
     barrier_radius: Option<i64>,
     #[serde(default)]
     barrier_energy: Option<i64>,
+    /// `SupportUnitEquipmentData`'s fields, on a production row.
+    #[serde(default)]
+    production: Option<ProductionRow>,
+}
+
+/// A production row's fields.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ProductionRow {
+    support_unit_id: u32,
+    unit_level: i32,
+    max_batch: u32,
+    max_alive: u32,
+    create_count_per_time: u32,
+    /// `startTime`. A production line makes its first batch on the fight's
+    /// first tick whatever it is; what it gates is not read.
+    #[allow(dead_code, reason = "the first batch comes on the first tick")]
+    start_time: i32,
+    appear_type: i32,
+    max_create_count: u32,
+    create_duration: i64,
+    unit_life_rate: i64,
+    positions: Vec<Offset>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Offset {
+    x: i64,
+    z: i64,
 }
 
 /// A `buffDatas` row a buff item adds, with the fields the simulator reads.
@@ -391,6 +432,18 @@ impl EquipmentEffects {
             .and_then(|equipment| equipment.carried_shield))
     }
 
+    /// The production line one equipment makes the unit wearing it run, if
+    /// its class is one.
+    ///
+    /// # Errors
+    ///
+    /// Returns the error [`Self::corrections`] does.
+    pub(crate) fn production(&self, id: i32, unit: &UnitConfig) -> Result<Option<ProductionLine>> {
+        Ok(self
+            .worn(id, unit)?
+            .and_then(|equipment| equipment.production.clone()))
+    }
+
     /// The buffs one equipment makes the unit wearing it ignore.
     ///
     /// # Errors
@@ -450,9 +503,15 @@ impl Equipment {
             priority: PRIORITY,
             can_disable: false,
         });
-        let (effect, start_buff) = match (corrections_of(row, &who), start_buff_of(row, &who)) {
-            (Ok(corrections), Ok(start_buff)) => (Ok(corrections), start_buff),
-            (Err(why), _) | (_, Err(why)) => (Err(why), None),
+        let (effect, start_buff, production) = match (
+            corrections_of(row, &who),
+            start_buff_of(row, &who),
+            production_of(row, &who),
+        ) {
+            (Ok(corrections), Ok(start_buff), Ok(production)) => {
+                (Ok(corrections), start_buff, production)
+            }
+            (Err(why), _, _) | (_, Err(why), _) | (_, _, Err(why)) => (Err(why), None, None),
         };
         Self {
             targets,
@@ -469,6 +528,7 @@ impl Equipment {
             }),
             // `AdvancedEnergyShieldEquipment.GetRadius` and `GetShieldValue`
             // answer its row's.
+            production,
             carried_shield: (row.kind == BARRIER).then(|| CarriedShield {
                 radius: row.barrier_radius.unwrap_or(0),
                 energy: row.barrier_energy.unwrap_or(0),
@@ -528,6 +588,42 @@ fn start_buff_of(row: &Row, who: &str) -> std::result::Result<Option<StartBuff>,
         debuff: buff.debuff,
         invincible: buff.invincible,
         amplify_damage_rate: buff.amplify_damage_rate,
+    }))
+}
+
+/// The production line a production row runs, or why this build will not
+/// apply the row: one that makes its units anywhere but at its offsets, at a
+/// level of its own, with a life rate or with a cap on all it makes.
+fn production_of(row: &Row, who: &str) -> std::result::Result<Option<ProductionLine>, String> {
+    if row.kind != PRODUCTION {
+        return Ok(None);
+    }
+    let Some(line) = &row.production else {
+        return Err(format!("{who} names no production"));
+    };
+    let unread = [
+        (line.appear_type != AT_OFFSETS, "an appearType other than 5"),
+        (line.unit_level != 0, "a unitLevel"),
+        (line.max_create_count != 0, "a maxCreateCount"),
+        (line.unit_life_rate != 0, "a unitLifeChangerate"),
+        (line.positions.is_empty(), "no positions"),
+    ];
+    if let Some((_, what)) = unread.iter().find(|(set, _)| *set) {
+        return Err(format!(
+            "{who} runs a production line with {what}, which is not read"
+        ));
+    }
+    Ok(Some(ProductionLine {
+        unit_type_id: line.support_unit_id,
+        max_batch: line.max_batch,
+        max_alive: line.max_alive,
+        per_time: line.create_count_per_time,
+        interval_q32: line.create_duration,
+        offsets: line
+            .positions
+            .iter()
+            .map(|offset| (offset.x, offset.z))
+            .collect(),
     }))
 }
 
@@ -631,6 +727,7 @@ mod tests {
     const ANTI_INTERFERENCE_MODULE: i32 = 1_308_001;
     const PORTABLE_SHIELD: i32 = 13_010_001;
     const BARRIER_ITEM: i32 = 1_307_001;
+    const TANK_PRODUCTION_LINE: i32 = 1_306_001;
     const ADVANCED_DEFENSIVE_TACTICS: i32 = 20001;
     const ADVANCED_OFFENSIVE_TACTICS: i32 = 20002;
 
@@ -832,6 +929,23 @@ mod tests {
                 None
             );
         }
+    }
+
+    /// Tank Production Line hands the Fortress a line of two Tanks every 13 s,
+    /// seven batches at most and twenty alive, at its two offsets.
+    #[test]
+    fn a_production_line_hands_its_unit_a_line() {
+        let equipment = EquipmentEffects::load().unwrap();
+        let fortress = unit("fortress");
+        let line = equipment
+            .production(TANK_PRODUCTION_LINE, &fortress)
+            .unwrap()
+            .unwrap();
+        assert_eq!(line.unit_type_id, 13);
+        assert_eq!((line.max_batch, line.max_alive, line.per_time), (7, 20, 2));
+        assert_eq!(line.interval_q32, 13 << 32);
+        assert_eq!(line.offsets, [(24 << 32, 15 << 32), (-24 << 32, 15 << 32)]);
+        assert_eq!(equipment.production(HEAVY_ARMOR, &fortress).unwrap(), None);
     }
 
     #[test]

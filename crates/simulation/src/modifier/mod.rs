@@ -22,6 +22,7 @@ pub(crate) use energy_tower::EnergyTowerSkillEffects;
 pub(crate) use equipment::EquipmentEffects;
 pub(crate) use officers::OfficerEffects;
 pub(crate) use sources::{
-    AutoRecovery, CarriedShield, EnergyShield, LifeSteal, StartBuff, current as current_source,
+    AutoRecovery, CarriedShield, EnergyShield, LifeSteal, ProductionLine, StartBuff,
+    current as current_source,
 };
 pub(crate) use technologies::TechnologyEffects;

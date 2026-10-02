@@ -51,6 +51,7 @@ pub(super) fn placement(
         auto_recovery: None,
         energy_shield: None,
         carried_shield: None,
+        production: None,
         start_buffs: Vec::new(),
         ignored_buffs: Vec::new(),
         travelling: false,
