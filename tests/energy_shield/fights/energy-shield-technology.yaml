@@ -1,0 +1,21 @@
+# Energy Shield, the technology, on blue's Wasp, against the Marksman of
+# `../../wasp/fights/m4-marksman-4242.yaml`. The Wasp opens with a shield of
+# 311, its whole maximum life, as an item's of rate 1 would give it: a
+# technology's shield always holds the whole of it.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 194
+hash: {profile: mcfr-content-0.7.0, result: 6ec8c15afd59afa365d5e0e34eebbeb44c710473afa1e34b9027bf8cb3a0afd8}
+blue:
+  techs:
+    wasp: [energy_shield]
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/200/900}
+red:
+  core_damage: 187
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -100}, exp: 0/34/650}

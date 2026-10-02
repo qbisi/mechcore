@@ -63,6 +63,18 @@ pub(crate) struct StartBuff {
     pub(crate) amplify_damage_rate: i64,
 }
 
+/// What an `IEnergyShieldSource` answers: the share of its unit's maximum
+/// life its shield holds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct EnergyShield {
+    /// `GetLifeRate`, Q32.32.
+    pub(crate) life_rate_q32: i64,
+    /// `GetPriority`: 1 for an equipment, 0 for a technology.
+    pub(crate) priority: i32,
+    /// `CanDisable`, as [`LifeSteal::can_disable`].
+    pub(crate) can_disable: bool,
+}
+
 /// An `IEffectProviderDataSource` a `SingleEffectProvider` sorts.
 pub(crate) trait Source: Copy + PartialEq {
     /// The interface's name, which a refusal says.
@@ -73,6 +85,14 @@ pub(crate) trait Source: Copy + PartialEq {
 
 impl Source for LifeSteal {
     const INTERFACE: &'static str = "ILifeSteal";
+
+    fn priority(&self) -> i32 {
+        self.priority
+    }
+}
+
+impl Source for EnergyShield {
+    const INTERFACE: &'static str = "IEnergyShieldSource";
 
     fn priority(&self) -> i32 {
         self.priority

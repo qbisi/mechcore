@@ -71,7 +71,8 @@ SUBCLASS_SCALARS = (
 )
 # The lists whose rows say in `special` what they set beyond the fields
 # this table carries: the plain one, and each subclass's the simulator reads.
-IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnologies")
+IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnologies",
+               "energyShieldTechnologies")
 # The list of `TechnologyGroupData` a plain technology comes from. A row of any
 # other list is a subclass (`BuffTechnologyData`, `SplashTechnologyData` and
 # the rest) that does something beyond its unit's numbers.

@@ -37,7 +37,7 @@ use crate::{
 
 use super::{
     effects::{self, Fields, PROJECTILE, VALUE_ELSEWHERE},
-    sources::{AutoRecovery, LifeSteal},
+    sources::{AutoRecovery, EnergyShield, LifeSteal},
 };
 
 const DEFAULT_TECHNOLOGY_EFFECTS: &str = include_str!("../../../../config/technology_effects.yaml");
@@ -50,6 +50,13 @@ const LIFESTEAL: &str = "lifestealTechnologies";
 
 /// The list whose `AutoRecoveryTech` is an `IAutoRecovery` as well.
 const AUTO_RECOVERY: &str = "autoRecoveryTechnologies";
+
+/// The list whose `EnergyShieldTech` is an `IEnergyShieldSource` as well.
+const ENERGY_SHIELD: &str = "energyShieldTechnologies";
+
+/// `EnergyShieldTech.GetLifeRate`: `FPoint.One`, whatever its row, so the
+/// shield holds the unit's whole maximum life.
+const SHIELD_LIFE_RATE: i64 = 1 << 32;
 
 /// `AutoRecoveryStateType.Normal`: a repair that runs whenever its unit is
 /// hurt, not only underground or cloaked.
@@ -78,6 +85,8 @@ struct Technology {
     lifesteal: Option<LifeSteal>,
     /// What it answers `IAutoRecovery` with, if its class is one.
     auto_recovery: Option<AutoRecovery>,
+    /// What it answers `IEnergyShieldSource` with, if its class is one.
+    energy_shield: Option<EnergyShield>,
 }
 
 /// One row of the table. Every effect is a list because a technology's effect
@@ -178,11 +187,17 @@ impl TechnologyEffects {
                 priority: PRIORITY,
                 can_disable: true,
             });
+            let energy_shield = (row.kind == ENERGY_SHIELD).then_some(EnergyShield {
+                life_rate_q32: SHIELD_LIFE_RATE,
+                priority: PRIORITY,
+                can_disable: true,
+            });
             let technology = Technology {
                 unit: row.unit.clone(),
                 effect: corrections_of(&row),
                 lifesteal,
                 auto_recovery,
+                energy_shield,
             };
             if technologies.insert(id, technology).is_some() {
                 return Err(Error::new(format!(
@@ -251,6 +266,22 @@ impl TechnologyEffects {
             .collect())
     }
 
+    /// What this side's technologies answer `IEnergyShieldSource` with on
+    /// one unit type, each that is one.
+    ///
+    /// # Errors
+    ///
+    /// Returns the error [`Self::corrections`] does.
+    pub(crate) fn energy_shield(&self, held: &[i32], unit_type: &str) -> Result<Vec<EnergyShield>> {
+        self.corrections(held, unit_type)?;
+        Ok(held
+            .iter()
+            .filter_map(|id| self.technologies.get(id))
+            .filter(|technology| technology.unit == unit_type)
+            .filter_map(|technology| technology.energy_shield)
+            .collect())
+    }
+
     /// What this side's technologies answer `IAutoRecovery` with on one unit
     /// type, each that is one.
     ///
@@ -270,7 +301,7 @@ impl TechnologyEffects {
 
 /// What a row writes at rank one, or why this build will not apply it.
 fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correction)>, String> {
-    if row.kind != PLAIN && row.kind != LIFESTEAL && row.kind != AUTO_RECOVERY {
+    if ![PLAIN, LIFESTEAL, AUTO_RECOVERY, ENERGY_SHIELD].contains(&row.kind.as_str()) {
         return Err(format!(
             "technology {} ({}) comes from TechnologyGroupData's {} list, and what \
              it does beyond its unit's numbers is not implemented",

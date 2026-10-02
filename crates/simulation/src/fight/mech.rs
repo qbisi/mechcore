@@ -66,6 +66,13 @@ impl Actor {
             .auto_recovery
             .map(|_| super::recovery::RecoveryClock::reset());
         let start_buffs_pending = !placement.start_buffs.is_empty();
+        let shield = placement.energy_shield.map(|source| {
+            let maximum = q32_mul(max_life << 32, source.life_rate_q32) >> 32;
+            PersonalShield {
+                energy: maximum,
+                maximum,
+            }
+        });
         let underground = rules.underground.as_ref().map(underground::Underground::of);
         Self {
             x,
@@ -91,6 +98,7 @@ impl Actor {
             command: None,
             buffs: Vec::new(),
             start_buffs_pending,
+            shield,
             recovery,
             rvo_max_speed_q32: max_speed_q32,
             visibility: Visibility::Normal,
@@ -377,11 +385,15 @@ impl Actor {
                 .modifiers(self.skill.group_size().max(1))
                 .expect("the layout refused every correction a snapshot cannot record"),
             personal_shield: PersonalShieldState {
-                active: false,
+                active: self.shield.is_some(),
                 enabled: true,
                 energy: GaugeI32 {
-                    current: 0,
-                    maximum: 0,
+                    current: self.shield.map_or(0, |shield| {
+                        i32::try_from(shield.energy).expect("shield energy fits i32")
+                    }),
+                    maximum: self.shield.map_or(0, |shield| {
+                        i32::try_from(shield.maximum).expect("shield energy fits i32")
+                    }),
                 },
             },
             weapon_aims,

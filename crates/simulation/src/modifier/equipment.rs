@@ -33,7 +33,7 @@ use crate::{
 
 use super::{
     effects::{self, Fields, PROJECTILE, VALUE_ELSEWHERE},
-    sources::{AutoRecovery, LifeSteal, StartBuff},
+    sources::{AutoRecovery, EnergyShield, LifeSteal, StartBuff},
     targets::Targets,
 };
 
@@ -43,8 +43,9 @@ const DEFAULT_EQUIPMENT_EFFECTS: &str = include_str!("../../../../config/equipme
 /// `equipmentDatas`, the plain item; `mobilityIntensifyEquipmentDatas`, whose
 /// `MobilityIntensifyEquipment` overrides nothing of `Equipment` and frees its
 /// formation during deployment, which a fight does not read; [`LIFESTEAL`];
-/// [`AUTO_RECOVERY`]; [`SPLASH`]; [`BUFF`]; and [`IGNORE_BUFF`].
-const APPLIED: [&str; 7] = [
+/// [`AUTO_RECOVERY`]; [`SPLASH`]; [`BUFF`]; [`IGNORE_BUFF`]; and
+/// [`ENERGY_SHIELD`].
+const APPLIED: [&str; 8] = [
     "equipmentDatas",
     "mobilityIntensifyEquipmentDatas",
     LIFESTEAL,
@@ -52,7 +53,12 @@ const APPLIED: [&str; 7] = [
     SPLASH,
     BUFF,
     IGNORE_BUFF,
+    ENERGY_SHIELD,
 ];
+
+/// The list whose `EnergyShieldEquipment` is an `IEnergyShieldSource`,
+/// which hands its unit an [`EnergyShield`] of its row's `lifeRate`.
+const ENERGY_SHIELD: &str = "energyShieldEquipmentDatas";
 
 /// The list whose `IgnoreBuffEquipment` is an `IIgnoreBuffDataSouce`:
 /// `IgnoreBuffEffectSystem.ApplyIgnoreBuff` adds every buff of its group to
@@ -117,6 +123,8 @@ struct Equipment {
     /// The `buffDatas` rows its unit ignores, if its class is an
     /// anti-interference item's.
     ignored_buffs: Vec<u32>,
+    /// What it answers `IEnergyShieldSource` with, if its class is one.
+    energy_shield: Option<EnergyShield>,
 }
 
 /// One row of the table, with every field the extraction writes.
@@ -206,6 +214,9 @@ struct Row {
     /// The buffs of an anti-interference row's group.
     #[serde(default)]
     ignored_buffs: Vec<u32>,
+    /// `EnergyShieldEquipmentData.lifeRate`, on a shield row.
+    #[serde(default)]
+    shield_life_rate: Option<i64>,
 }
 
 /// A `buffDatas` row a buff item adds, with the fields the simulator reads.
@@ -336,6 +347,18 @@ impl EquipmentEffects {
             .and_then(|equipment| equipment.start_buff))
     }
 
+    /// What one equipment answers `IEnergyShieldSource` with on the unit
+    /// wearing it, if its class is one.
+    ///
+    /// # Errors
+    ///
+    /// Returns the error [`Self::corrections`] does.
+    pub(crate) fn energy_shield(&self, id: i32, unit: &UnitConfig) -> Result<Option<EnergyShield>> {
+        Ok(self
+            .worn(id, unit)?
+            .and_then(|equipment| equipment.energy_shield))
+    }
+
     /// The buffs one equipment makes the unit wearing it ignore.
     ///
     /// # Errors
@@ -405,6 +428,12 @@ impl Equipment {
             auto_recovery,
             start_buff,
             ignored_buffs: row.ignored_buffs.clone(),
+            // `EnergyShieldEquipment.GetLifeRate` answers its row's.
+            energy_shield: (row.kind == ENERGY_SHIELD).then(|| EnergyShield {
+                life_rate_q32: row.shield_life_rate.unwrap_or(0),
+                priority: PRIORITY,
+                can_disable: false,
+            }),
         }
     }
 }
@@ -562,6 +591,7 @@ mod tests {
     const PHOTON_COATING: i32 = 1_305_003;
     const CHARGED_AMMO: i32 = 1_305_001;
     const ANTI_INTERFERENCE_MODULE: i32 = 1_308_001;
+    const PORTABLE_SHIELD: i32 = 13_010_001;
     const ADVANCED_DEFENSIVE_TACTICS: i32 = 20001;
     const ADVANCED_OFFENSIVE_TACTICS: i32 = 20002;
 
@@ -728,6 +758,20 @@ mod tests {
         for buff in [1, 2, 3, 4, 5, 200_001] {
             assert!(ignored.contains(&buff), "{ignored:?}");
         }
+    }
+
+    /// Portable Shield hands its unit a shield of its row's rate, 1, at an
+    /// equipment's priority.
+    #[test]
+    fn a_shield_item_hands_a_source() {
+        let equipment = EquipmentEffects::load().unwrap();
+        let marksman = unit("marksman");
+        let shield = equipment
+            .energy_shield(PORTABLE_SHIELD, &marksman)
+            .unwrap()
+            .unwrap();
+        assert_eq!(shield.life_rate_q32, 1 << 32);
+        assert_eq!(shield.priority, 1);
     }
 
     #[test]

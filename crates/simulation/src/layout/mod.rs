@@ -12,8 +12,8 @@ use crate::{
     Error, Result,
     data::{Channel, Entry, Stats},
     modifier::{
-        AutoRecovery, EnergyTowerSkillEffects, EquipmentEffects, LifeSteal, OfficerEffects,
-        StartBuff, TechnologyEffects, current_source,
+        AutoRecovery, EnergyShield, EnergyTowerSkillEffects, EquipmentEffects, LifeSteal,
+        OfficerEffects, StartBuff, TechnologyEffects, current_source,
     },
     rules::{UnitConfig, UnitConfigs},
 };
@@ -57,6 +57,9 @@ pub(crate) struct Placement {
     /// The `IAutoRecovery` its `AutoRecoveryEffectProvider` enables, if its
     /// technologies or equipment hand it one.
     pub(crate) auto_recovery: Option<AutoRecovery>,
+    /// The `IEnergyShieldSource` its `EnergyShieldProvider` enables, if its
+    /// technologies or equipment hand it one.
+    pub(crate) energy_shield: Option<EnergyShield>,
     /// The buffs its equipment adds to it as the fight starts.
     pub(crate) start_buffs: Vec<StartBuff>,
     /// The `buffDatas` rows its equipment makes it ignore,
@@ -440,10 +443,13 @@ fn compile_battle_skills(
             ) else {
                 continue;
             };
-            if worn.lifesteal.is_some() || worn.auto_recovery.is_some() {
+            if worn.lifesteal.is_some()
+                || worn.auto_recovery.is_some()
+                || worn.energy_shield.is_some()
+            {
                 refused.push(format!(
-                    "side {name} summons a {} that its technologies give lifesteal or \
-                     repair, and what a summon's effect providers carry is not measured",
+                    "side {name} summons a {} that its technologies give lifesteal, repair \
+                     or a shield, and what a summon's effect providers carry is not measured",
                     summon.rules.type_name
                 ));
                 continue;
@@ -577,6 +583,7 @@ fn compile_formation(
         corrections: worn.corrections,
         lifesteal: worn.lifesteal,
         auto_recovery: worn.auto_recovery,
+        energy_shield: worn.energy_shield,
         start_buffs: worn.start_buffs,
         ignored_buffs: worn.ignored_buffs,
         travelling: formation.travelling,
@@ -588,6 +595,7 @@ struct Worn {
     corrections: Vec<(Channel, Entry)>,
     lifesteal: Option<LifeSteal>,
     auto_recovery: Option<AutoRecovery>,
+    energy_shield: Option<EnergyShield>,
     start_buffs: Vec<StartBuff>,
     ignored_buffs: Vec<u32>,
 }
@@ -675,6 +683,12 @@ fn loadout(
             .auto_recovery(&side.techs.units, type_name)
             .map_err(on_side),
     )?;
+    let mut energy_shield = refused.hold(
+        loadouts
+            .technologies
+            .energy_shield(&side.techs.units, type_name)
+            .map_err(on_side),
+    )?;
     let mut start_buffs = Vec::new();
     let mut ignored_buffs = Vec::new();
     for &id in equipment {
@@ -682,6 +696,8 @@ fn loadout(
             .extend(refused.hold(loadouts.equipment.ignored_buffs(id, rules).map_err(on_side))?);
         start_buffs
             .extend(refused.hold(loadouts.equipment.start_buff(id, rules).map_err(on_side))?);
+        energy_shield
+            .extend(refused.hold(loadouts.equipment.energy_shield(id, rules).map_err(on_side))?);
         lifesteal.extend(refused.hold(loadouts.equipment.lifesteal(id, rules).map_err(on_side))?);
         auto_recovery
             .extend(refused.hold(loadouts.equipment.auto_recovery(id, rules).map_err(on_side))?);
@@ -691,6 +707,7 @@ fn loadout(
         corrections,
         lifesteal: refused.hold(current_source(&lifesteal).map_err(in_force))?,
         auto_recovery: refused.hold(current_source(&auto_recovery).map_err(in_force))?,
+        energy_shield: refused.hold(current_source(&energy_shield).map_err(in_force))?,
         start_buffs,
         ignored_buffs,
     })

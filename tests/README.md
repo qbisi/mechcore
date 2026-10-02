@@ -12,6 +12,7 @@ out to show:
 | [`battle_skill/`](battle_skill/README.md) | when a released battle skill lands, what it reaches, and what it writes or summons |
 | [`construction/`](construction/README.md) | what a construction becomes in a fight, and what attacks it |
 | [`energy_tower/`](energy_tower/README.md) | what the Energy Tower's fight skills write onto a side, and what they leave alone |
+| [`energy_shield/`](energy_shield/README.md) | what a unit's own shield holds and takes off a hit, from an item or a technology |
 | [`equipment/`](equipment/README.md) | where equipment corrections land and how they compose with officers |
 | [`equipment_buff/`](equipment_buff/README.md) | what a buff item adds to the unit wearing it, and which buffs it keeps off |
 | [`interceptor/`](interceptor/README.md) | how an interceptor takes projectiles out of the air, and what befalls it |
