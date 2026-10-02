@@ -513,6 +513,14 @@ A beam with a splash strikes as any other hit does: a Melting Point's beam at
 one Crawler takes the Crawlers around it too, in the order the target trees
 hold them. A Steel Ball's beam has no splash and strikes its target alone.
 
+**A splash reaches what its edge is within, as the fast square root measures
+it.** An actor is struck when its distance from where the hit lands, less its
+radius, is no more than the splash's radius, and the distance is the fixed-point
+one the build takes with its fast square root, which errs by a few parts in a
+hundred thousand. On the edge that decides it: a Crawler 6.99976 metres from
+where a Tarantula's 5-metre splash lands, with its own 2, reads 7.00034 and is
+spared.
+
 A Rhino's main skill, under those same baseline constraints and as a
 single-target direct effect, reaches its description's damage through
 `SkillDamageProvider -> FightSkill.GetDamage -> DamageProperty`. The killing
@@ -655,6 +663,9 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- A Crawler on the very edge of a Tarantula's splash is spared:
+  `tests/corpus/fights/67159970-r2.yaml`, tick 188.
+
 - A Vortex left with only aircraft to fire at locks one, walks on it, idles
   in touch, searches every eleven ticks and sets off again when its lock
   changes: `tests/corpus/fights/201370830-r3.yaml`, ticks 1227 to 1347.
@@ -745,6 +756,11 @@ not the game's native attack-type enum.
   it: `tests/modifier/fights/technology-interval-value.yaml`.
 
 ### Read
+
+- A splash is measured with the fast square root, edge to edge:
+  `RangeTargetCalculator.CalculateRangeActorsInternal`,
+  `FightCalculator.IsInRange2D`, `FightUtility.CalculateDistance2D`,
+  `FVector2.Distance`, `FPoint.RawSqrt`, `FPCSMath.SqrtFastest`.
 
 - A search that answers nothing falls back on any live enemy and leaves the
   skill idle, and an idle skill's lock search clears what it fires at:
@@ -905,7 +921,8 @@ not the game's native attack-type enum.
   keeps the core's weapon on the body's rotation, are measured, not read; the
   core's search condition that lets it take a sibling's unit is read as a
   fusillade's from where it stands, not from the flag it asks.
-- **Damage**: building splash, area boundary and ordering, modifier chains,
+- **Damage**: building splash, the area boundary of a hit other than a splash,
+  ordering, modifier chains,
   shields, and other providers or target domains.
 - **A personal shield's** activation, absorption and destruction.
 - **Attack timing**: repeat attacks, grouped and loading paths, phase

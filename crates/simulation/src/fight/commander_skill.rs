@@ -160,7 +160,7 @@ impl Simulation {
             ..DamageHit::unowned(
                 release.team,
                 damage,
-                (q32_to_space_rounded(x_q32), q32_to_space_rounded(z_q32)),
+                (x_q32, z_q32),
                 y_q32,
                 q32_to_space_rounded(range_q32),
             )

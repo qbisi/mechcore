@@ -35,8 +35,8 @@ pub(in crate::fight) struct DamageHit {
     /// only if the splash reaches it. A direct strike always is; a projectile
     /// is when it locks its target.
     pub(in crate::fight) hits_aimed: bool,
-    /// Where the splash is measured from, in space units.
-    pub(in crate::fight) center: (i64, i64),
+    /// Where the splash is measured from, `FPoint` raw metres.
+    pub(in crate::fight) center_q32: (i64, i64),
     /// How high that point is, `FPoint` raw metres: a shield holds the point
     /// or not in three dimensions.
     pub(in crate::fight) center_y_q32: i64,
@@ -76,7 +76,7 @@ impl DamageHit {
             skill_slot: Some(skill_slot),
             aimed: Some(aimed),
             hits_aimed: true,
-            center: (attacker.x, attacker.z),
+            center_q32: (attacker.x_q32, attacker.z_q32),
             center_y_q32: 0,
             shield: None,
             crosses_shields: attacker.rules.attack.crosses_shields,
@@ -106,7 +106,7 @@ impl DamageHit {
             skill_slot: None,
             aimed: Some(aimed),
             hits_aimed: projectile.lock_target,
-            center: (projectile.x, projectile.z),
+            center_q32: (projectile.x_q32, projectile.z_q32),
             center_y_q32: projectile.y_q32,
             shield: None,
             crosses_shields: false,
@@ -116,12 +116,27 @@ impl DamageHit {
         }
     }
 
+    /// `FightCalculator.IsInRange2D` of a bounds circle: the distance from
+    /// the hit's centre, `FVector2.Distance` with `FPoint.RawSqrt`'s fast
+    /// square root, less the circle's radius, no more than the range. The
+    /// fast root errs by a few parts in a hundred thousand, which decides a
+    /// unit standing on the edge of a splash.
+    fn reaches(&self, x_q32: i64, z_q32: i64, radius_q32: i64, range_q32: i64) -> bool {
+        let (center_x_q32, center_z_q32) = self.center_q32;
+        native_q32_magnitude(
+            x_q32.saturating_sub(center_x_q32),
+            z_q32.saturating_sub(center_z_q32),
+        )
+        .saturating_sub(radius_q32)
+            <= range_q32
+    }
+
     /// A hit no object deals, recorded under its team alone: it strikes both
     /// sides, of either domain, over a circle, and aims at nothing.
     pub(in crate::fight) fn unowned(
         team: u32,
         amount: i64,
-        center: (i64, i64),
+        center_q32: (i64, i64),
         center_y_q32: i64,
         splash_radius: i64,
     ) -> Self {
@@ -135,7 +150,7 @@ impl DamageHit {
             skill_slot: None,
             aimed: None,
             hits_aimed: false,
-            center,
+            center_q32,
             center_y_q32,
             shield: None,
             crosses_shields: false,
@@ -249,17 +264,19 @@ impl Simulation {
     /// from a hit aimed at a unit, and one reaching a unit from a hit aimed at
     /// a building.
     pub(in crate::fight) fn damage_targets(&self, hit: &DamageHit) -> Result<Vec<FightActorRef>> {
-        let (center_x, center_z) = hit.center;
+        let splash_q32 = space_to_q32(hit.splash_radius);
         if let Some(FightActorRef::Building(building_id)) = hit.aimed {
             let building = self
                 .buildings
                 .iter()
                 .find(|building| building.building_id == building_id)
                 .ok_or_else(|| Error::new("damage target building is absent"))?;
-            let reached = magnitude(
-                building_x(building).saturating_sub(center_x),
-                building_z(building).saturating_sub(center_z),
-            ) <= building_radius(building).saturating_add(hit.splash_radius);
+            let reached = hit.reaches(
+                building.position.x,
+                building.position.z,
+                building.bounds_width / 2,
+                splash_q32,
+            );
             if hit.splash_radius == 0 || !hit.reach.touches(UnitDomain::Ground) {
                 return Ok(if reached {
                     vec![FightActorRef::Building(building_id)]
@@ -284,12 +301,12 @@ impl Simulation {
                         let unit = &self.actors[&unit_id];
                         unit.alive()
                             && hit.reach.touches(unit.rules.domain)
-                            && magnitude(
-                                unit.x.saturating_sub(center_x),
-                                unit.z.saturating_sub(center_z),
+                            && hit.reaches(
+                                unit.x_q32,
+                                unit.z_q32,
+                                space_to_q32(unit.rules.collision_radius()),
+                                splash_q32,
                             )
-                            .saturating_sub(unit.rules.collision_radius())
-                                <= hit.splash_radius
                     }
                     FightActorRef::Building(other_id) => self
                         .buildings
@@ -298,12 +315,12 @@ impl Simulation {
                         .is_some_and(|other| {
                             building_alive(other)
                                 && other.targetable
-                                && magnitude(
-                                    building_x(other).saturating_sub(center_x),
-                                    building_z(other).saturating_sub(center_z),
+                                && hit.reaches(
+                                    other.position.x,
+                                    other.position.z,
+                                    other.bounds_width / 2,
+                                    splash_q32,
                                 )
-                                .saturating_sub(building_radius(other))
-                                    <= hit.splash_radius
                         }),
                 })
                 .collect::<Vec<_>>();
@@ -328,12 +345,12 @@ impl Simulation {
                         && hit.reach.touches(candidate.rules.domain)
                         && ((hit.hits_aimed && Some(*candidate_ref) == hit.aimed)
                             || (hit.splash_radius > 0
-                                && magnitude(
-                                    candidate.x.saturating_sub(center_x),
-                                    candidate.z.saturating_sub(center_z),
-                                )
-                                .saturating_sub(candidate.rules.collision_radius())
-                                    <= hit.splash_radius))
+                                && hit.reaches(
+                                    candidate.x_q32,
+                                    candidate.z_q32,
+                                    space_to_q32(candidate.rules.collision_radius()),
+                                    splash_q32,
+                                )))
                 }
                 FightActorRef::Building(building_id) => {
                     splash_reaches_buildings
@@ -344,12 +361,12 @@ impl Simulation {
                             .is_some_and(|building| {
                                 building_alive(building)
                                     && building.targetable
-                                    && magnitude(
-                                        building_x(building).saturating_sub(center_x),
-                                        building_z(building).saturating_sub(center_z),
+                                    && hit.reaches(
+                                        building.position.x,
+                                        building.position.z,
+                                        building.bounds_width / 2,
+                                        splash_q32,
                                     )
-                                    .saturating_sub(building_radius(building))
-                                        <= hit.splash_radius
                             })
                 }
             })
@@ -515,7 +532,7 @@ impl Simulation {
     /// hit was aimed at is its main shield. The main shield, and every other
     /// the splash reaches in the plane, take the hit, before any unit does.
     fn shields_in_the_way(&self, hit: &DamageHit, targets: &mut Vec<FightActorRef>) -> Vec<u64> {
-        let (x_q32, z_q32) = (space_to_q32(hit.center.0), space_to_q32(hit.center.1));
+        let (x_q32, z_q32) = hit.center_q32;
         let mut main = hit.shield;
         let mut listed = Vec::new();
         for shield in &self.shield.standing {
@@ -578,16 +595,16 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let attacker = &self.actors[&actor_id];
-        let center = match target {
+        let center_q32 = match target {
             FightActorRef::Unit(target_id) => {
                 let aimed = &self.actors[&target_id];
-                (aimed.x, aimed.z)
+                (aimed.x_q32, aimed.z_q32)
             }
             FightActorRef::Building(building_id) => self
                 .buildings
                 .iter()
                 .find(|building| building.building_id == building_id)
-                .map(|building| (building_x(building), building_z(building)))
+                .map(|building| (building.position.x, building.position.z))
                 .ok_or_else(|| Error::new("direct attack target is absent"))?,
         };
         let shield = self.blow_shield(actor_id, target);
@@ -598,7 +615,7 @@ impl Simulation {
         }
         // A blow is `SkillDamageProvider`'s, of the skill that struck.
         let hit = DamageHit {
-            center,
+            center_q32,
             center_y_q32: self.target_height_q32(target),
             shield,
             ..DamageHit::of_skill(
@@ -718,20 +735,20 @@ impl Simulation {
         }
         if splash_radius > 0 {
             let attacker = &self.actors[&actor_id];
-            let center = match target {
+            let center_q32 = match target {
                 FightActorRef::Unit(target_id) => {
                     let aimed = &self.actors[&target_id];
-                    (aimed.x, aimed.z)
+                    (aimed.x_q32, aimed.z_q32)
                 }
                 FightActorRef::Building(building_id) => self
                     .buildings
                     .iter()
                     .find(|building| building.building_id == building_id)
-                    .map(|building| (building_x(building), building_z(building)))
+                    .map(|building| (building.position.x, building.position.z))
                     .ok_or_else(|| Error::new("laser target is absent"))?,
             };
             let hit = DamageHit {
-                center,
+                center_q32,
                 center_y_q32: self.target_height_q32(target),
                 ..DamageHit::of_skill(attacker, 0, target, damage)
             };
