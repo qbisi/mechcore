@@ -1,4 +1,6 @@
 /target/
+# the pages `mechcore play` writes beside a layout
+/layouts/*.html
 __pycache__
 /work/*
 !/work/research/

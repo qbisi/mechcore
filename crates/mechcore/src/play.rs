@@ -5,8 +5,14 @@
 //! out for the page directly: writing a recording only to read it back would
 //! cost the encoding and the reading for nothing, and `convert --to mcfr` is
 //! what keeps one. The page is `mechcore_player`'s.
+//!
+//! From the command line the page is opened in the system's browser once it is
+//! written, unless `--no-open` says not to; a run script's step only writes it.
 
-use std::path::Path;
+use std::{
+    path::Path,
+    process::{Command, Stdio},
+};
 
 use mechcore_mcfr::{McfrReader, Recording};
 use mechcore_simulation::{Record, SimulationResult};
@@ -17,7 +23,7 @@ use crate::{
     kind::Kind,
 };
 
-pub(crate) const SCHEMA: &str = "mechcore.play-result.v1";
+pub(crate) const SCHEMA: &str = "mechcore.play-result.v2";
 
 /// What `play` answers: the page it wrote and the fight on it.
 #[derive(Serialize)]
@@ -34,9 +40,12 @@ pub(crate) struct Played {
     seed: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     seed_source: Option<&'static str>,
+    /// Whether the system was asked to open the page and took the request.
+    opened: bool,
 }
 
-/// Reads `play <file> [<page>] [--seed <i32>]` off a command line.
+/// Reads `play <file> [<page>] [--seed <i32>] [--no-open]` off a command line,
+/// and opens the page it writes unless told not to.
 ///
 /// # Errors
 ///
@@ -45,6 +54,7 @@ pub(crate) struct Played {
 pub(crate) fn run(mut arguments: Args) -> Outcome {
     let format = arguments.format()?;
     let seed = arguments.parsed::<i32>("--seed", "a signed 32-bit integer")?;
+    let stay = arguments.flag("--no-open")?;
     let input = arguments.path("a file to play")?;
     let page = if arguments.is_empty() {
         None
@@ -52,7 +62,18 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
         Some(arguments.path("the page to write")?)
     };
     arguments.finish()?;
-    let played = play(&input, page.as_deref(), seed)?;
+    let mut played = play(&input, page.as_deref(), seed)?;
+    if !stay {
+        // A page that cannot be opened is still written, and the answer says
+        // which: not opening it is no failure of the command.
+        match open(Path::new(&played.page)) {
+            Ok(()) => played.opened = true,
+            Err(error) => eprintln!(
+                "mechcore: wrote {} but cannot open it: {error}",
+                played.page
+            ),
+        }
+    }
     crate::cli::emit(&played, format)?;
     Ok(Verdict::Yes)
 }
@@ -152,5 +173,27 @@ fn written(
         ticks: recording.terminal_tick(),
         seed: fought.map(|(seed, _)| seed),
         seed_source: fought.map(|(_, source)| source),
+        opened: false,
     })
+}
+
+/// Asks the system to open the page in its default browser, without waiting
+/// for the browser.
+fn open(page: &Path) -> std::io::Result<()> {
+    let mut command = if cfg!(target_os = "macos") {
+        Command::new("open")
+    } else if cfg!(target_os = "windows") {
+        let mut start = Command::new("cmd");
+        start.args(["/C", "start", ""]);
+        start
+    } else {
+        Command::new("xdg-open")
+    };
+    command
+        .arg(page)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .map(drop)
 }
