@@ -54,6 +54,7 @@ pub(super) fn placement(
         production: None,
         start_buffs: Vec::new(),
         ignored_buffs: Vec::new(),
+        important: false,
         travelling: false,
     }
 }

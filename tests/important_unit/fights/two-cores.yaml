@@ -1,0 +1,23 @@
+# Dominion Core on two blue Marksmen, a Fortress behind them, against three
+# Arclights. The first Marksman dies on tick 55 and nothing else does: the
+# other core still stands. When it dies, on tick 301, the Fortress dies after
+# it, credited to no one, and red wins.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 301
+hash: {profile: mcfr-content-0.7.0, result: 37ae2f49d1c2c7b8ac8b430e5632d22abc37156d75761da4ef90e30ff9f09a91}
+blue:
+  core_damage: 100
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -50}, equipment: [dominion_core]}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/400/650, equipment: [dominion_core]}
+  - {name: fortress, index: 2, position: {x: 0, y: -250}}
+red:
+  units:
+  - {name: arclight, index: 0, position: {x: 0, y: -50}, exp: 0/33/750}
+  - {name: arclight, index: 1, position: {x: 30, y: -50}, exp: 0/233/750}
+  - {name: arclight, index: 2, position: {x: -30, y: -50}, exp: 0/133/750}

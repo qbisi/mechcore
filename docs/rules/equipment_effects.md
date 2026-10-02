@@ -138,6 +138,22 @@ A row with a `unit_level`, a `max_create_count`, a `unit_life_rate`, no
 two lines on one unit, a make whose side's technologies give it life steal,
 repair or a shield, and a make due after its wearer has fallen.
 
+## An important unit
+
+**A side does not outlive its last important unit.** Dominion Core's row sets
+`important_unit`, and every unit wearing it is one: each Crawler of a
+formation that wears it. The row writes its life and damage rates as any
+ordinary row does, once. When the tick's deaths are taken, after every unit
+has updated and every shot landed, the death of an important unit that
+leaves its side none standing destroys every other unit of the side still
+standing. Each loses its whole life, which no shield takes and no damage event
+records, and dies after every other death of the tick, in its side's order,
+credited to no one. An important unit that dies while another of its side
+stands destroys nothing.
+
+A side whose last important unit dies while a summon of it is still
+appearing, or a unit of it still travelling, is refused by name.
+
 ## What is refused
 
 A layout is refused by name, rather than fought with part of an item, when it
@@ -150,10 +166,11 @@ carries:
   [contraptions.md](contraptions.md#a-shield)'s. So is Explosive Ammo's, which adds its
   `splash_range` to the skill's splash as [combat.md](combat.md#damage-and-death)
   states, Photon Coating's and Anti-Interference Module's, which
-  [Buff items](#buff-items) states, and the production lines', which
-  [Production lines](#production-lines) states;
-- a row that sets `importantUnit` (Dominion Core) or `roundDuration` (Rapid
-  Autoloader, rule `999903`'s), whose effects have not been recorded.
+  [Buff items](#buff-items) states, the production lines', which
+  [Production lines](#production-lines) states, and Dominion Core's, which
+  [An important unit](#an-important-unit) states;
+- a row that sets `roundDuration` (Rapid Autoloader, rule `999903`'s), whose
+  effect has not been recorded.
 
 ## Evidence
 
@@ -182,6 +199,10 @@ carries:
   `create_duration` later, each make where its offset turned by the wearer's
   facing puts it, and the fight ends while the line could still make:
   `tests/production/fights/`.
+- A side's last important unit dying destroys the rest of the side on that
+  tick, after it and credited to no one, through a full shield and whether a
+  shot or a direct hit killed it; one dying while another stands destroys
+  nothing: `tests/important_unit/fights/`.
 
 ### Replayed
 
@@ -223,6 +244,15 @@ carries:
   `SupportUnitCreator.IsBatchMax` and its living makes against
   `SupportUnitCreator.IsMaxLimit`, and `SupportUnitCreator.CreateMech` places
   a make by its owner's rotation.
+- An important unit: `MechDataModifer.TryAddCommonData` marks it by
+  `FightMech.SetImportantUnitData` and goes on to write the row,
+  `FightMech.IsImportant`; `DeadEffectSystem.Update` takes `deadActors` by
+  index as the list grows and, for a dead unit that is no summon, calls
+  `DeadEffectSystem.TryProcessDeadImportantUnit`, which removes it from its
+  side's and calls `DeadEffectSystem.CheckTeamImportantUnit`; that destroys
+  every unit of the side's `activeMeches` with life left by
+  `FightActor.DestroySelf`, a suicide's `FightActor.ReduceLife` of its whole
+  life, unless an important unit of the side remains.
 - Rule `999903` deals the items limited to scene 1300:
   `GameRule.replaceReinforceLabel`, `ItemData.limitedScene`.
 
