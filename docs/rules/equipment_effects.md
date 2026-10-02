@@ -74,6 +74,29 @@ limited to scene 1300, the reinforcement label that game rule `999903`
 (Experimental Equipment) swaps in; a standard 1v1 names no game rule, and a
 replay that does is refused when it is converted.
 
+## Buff items
+
+**A buff item whose trigger is the fight's start adds its buff to the unit
+wearing it on the fight's first tick, once.** Photon Coating is one: each
+unit of the formation adds `buffDatas` row 4000 to itself, recorded as written
+by itself, for the row's duration, before any battle skill lands that tick.
+The buff writes its `amplifyDamageRate` on the damage the unit takes, as a
+tower's loss writes its own, and makes the unit invincible while it runs.
+
+**An invincible unit takes no debuff.** A buff the build marks `debuff`, an
+Electromagnetic Impact's among them, does not reach a unit a running buff
+makes invincible: nothing is written and nothing is recorded, so neither its
+slow nor its disabling of technologies applies. A tower's loss writes no
+debuff and still reaches it. `debuff` is
+[`config/commander_skill_effects.yaml`](../../config/commander_skill_effects.yaml)'s,
+[`config/towers.yaml`](../../config/towers.yaml)'s and
+[`config/contraptions.yaml`](../../config/contraptions.yaml)'s, and the item's
+buff is [`config/equipment_effects.yaml`](../../config/equipment_effects.yaml)'s.
+
+A buff item with any other trigger, target or chance, or whose buff sets a
+field beyond these, is refused by name, and so is a travelling formation
+wearing one.
+
 ## What is refused
 
 A layout is refused by name, rather than fought with part of an item, when it
@@ -84,7 +107,7 @@ carries:
   Repair Kit's classes are read: their life steal and repair are
   [combat.md](combat.md#lifesteal)'s. So is Explosive Ammo's, which adds its
   `splash_range` to the skill's splash as [combat.md](combat.md#damage-and-death)
-  states;
+  states, and Photon Coating's, whose buff [Buff items](#buff-items) states;
 - a row that sets `importantUnit` (Dominion Core) or `roundDuration` (Rapid
   Autoloader, rule `999903`'s), whose effects have not been recorded.
 
@@ -103,6 +126,11 @@ carries:
   `tests/equipment/fights/`.
 - A `Ranged` row reaches the ranged units of a side and not its melee ones, as an
   officer's does: `tests/modifier/fights/`.
+- Photon Coating's buff is added on tick 1 to each unit wearing it, written by
+  itself, cuts the damage it takes, and keeps an Electromagnetic Impact's
+  debuff off it: `tests/equipment_buff/fights/photon-coating.yaml`,
+  `tests/equipment_buff/fights/photon-coating-crawlers.yaml` and
+  `tests/equipment_buff/fights/photon-coating-emp.yaml`.
 
 ### Replayed
 
@@ -119,6 +147,14 @@ carries:
 - An item wears out only by a positive `roundDuration`, counted down as a
   deployment opens: `Equipment.SetOwner`, `Equipment.ReduceDurability`,
   `UnitManager.OnEnterDeployment`, `EquipmentData.roundDuration`.
+- A buff item's fight-start trigger: `BuffEffectProvider.RegisterEffectEvent`,
+  `BuffCycleController.OnEnterFight`, which starts no controller on a
+  travelling unit, `BuffCycleController.Update`, which triggers once with no
+  delay and no interval, and `BuffSystem.AddBuffByCheck`;
+  `FightController.AddModules` adds `BuffSystem` before
+  `CommanderSkillSystem`.
+- An invincible unit takes no debuff: `BuffManager.AddBuff` returns at once
+  for an `IBuffData.IsDebuff` buff while `BuffManager.IsInvincible`.
 - Rule `999903` deals the items limited to scene 1300:
   `GameRule.replaceReinforceLabel`, `ItemData.limitedScene`.
 

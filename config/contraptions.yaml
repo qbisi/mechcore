@@ -47,6 +47,7 @@ missiles:
       name: 减速-防御飞弹
       divide: 0
       additive: false
+      debuff: false
       duration: 60129542144  # 14
       can_affect_construction: false
       move_speed_rate: -2791728742  # -0.65

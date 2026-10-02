@@ -44,6 +44,25 @@ pub(crate) struct AutoRecovery {
     pub(crate) can_disable: bool,
 }
 
+/// The `buffDatas` row a `BuffEquipment` adds to its unit as the fight
+/// starts: one whose `BuffTechListener` is `FightStart`, whose target is the
+/// unit itself, and which always triggers. `BuffEffectProvider` holds every
+/// such source, not one.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct StartBuff {
+    pub(crate) buff_id: u32,
+    pub(crate) divide: i32,
+    pub(crate) additive: bool,
+    /// `duration`, Q32.32 seconds.
+    pub(crate) duration_q32: i64,
+    /// `IsDebuff`.
+    pub(crate) debuff: bool,
+    /// `IsInvincible`: while it runs, no debuff reaches the unit.
+    pub(crate) invincible: bool,
+    /// `amplifyDamageRate`, Q32.32: the rate on the damage the unit takes.
+    pub(crate) amplify_damage_rate: i64,
+}
+
 /// An `IEffectProviderDataSource` a `SingleEffectProvider` sorts.
 pub(crate) trait Source: Copy + PartialEq {
     /// The interface's name, which a refusal says.

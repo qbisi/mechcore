@@ -13,6 +13,7 @@ out to show:
 | [`construction/`](construction/README.md) | what a construction becomes in a fight, and what attacks it |
 | [`energy_tower/`](energy_tower/README.md) | what the Energy Tower's fight skills write onto a side, and what they leave alone |
 | [`equipment/`](equipment/README.md) | where equipment corrections land and how they compose with officers |
+| [`equipment_buff/`](equipment_buff/README.md) | what a buff item adds to the unit wearing it, and which buffs it keeps off |
 | [`interceptor/`](interceptor/README.md) | how an interceptor takes projectiles out of the air, and what befalls it |
 | [`level/`](level/README.md) | how a unit level scales base life and damage before overlays |
 | [`lifesteal/`](lifesteal/README.md) | how a hit hands life back to the unit whose skill dealt it, and which lifesteal source does |

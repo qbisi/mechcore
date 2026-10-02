@@ -63,6 +63,7 @@ FIXED = (
 BUFF_RATES = {"speedChangeRate": "move_speed_rate"}
 BUFF_FLAGS = (
     ("isAdditiveMode", "additive"),
+    ("debuff", "debuff"),
     ("disableTechnology", "disable_technology"),
     ("canAffectConstruction", "can_affect_construction"),
     ("canAffectTower", "can_affect_tower"),

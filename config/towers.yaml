@@ -45,6 +45,7 @@ destroyed_buff:
   name: 能量塔摧毁
   buff_divide: 1
   additive: true
+  debuff: false
   max_additive_stack: 0
   can_affect_construction: true
   clear_when_technologies_disabled: true
