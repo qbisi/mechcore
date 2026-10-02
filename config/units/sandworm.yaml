@@ -1,0 +1,49 @@
+schema: mechcore.unit
+type_name: sandworm
+unit_type_id: 23
+
+formation:
+  members: 1
+  slot_size: 40
+  footprint: {width: 40, depth: 40}
+
+domain: ground
+max_life: 48645
+collision_radius: 13
+move_speed: 16
+rotate_speed: 90
+has_body: true
+independent_aim: false
+rvo: {outer_radius: 15, inner_radius: 9, size: xl, collider_priority: 9, priority: 0.009}
+
+underground:
+  enter: 1
+  exit: 1.5
+  exit_keep: 1
+  attack_range: 30
+
+attack:
+  base_damage: 9726
+  min_range: 0
+  range: 60
+  attack_half_angle: 30
+  targets: {ground: true, air: false}
+  lock_target: true
+  quick_switch_target: true
+  timing:
+    interval: 2.5
+    interval_offset: 0
+    initial_cooldown: 0
+    prepare: 0
+    attack_point: 1
+    backswing: 1.5
+    cooling: 0
+  splash_radius: 12
+  weapons:
+    mode: normal
+    indices: [0]
+    per_skill: 1
+  melee: true
+  crosses_shields: true
+  path:
+    type: direct

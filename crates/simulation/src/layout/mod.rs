@@ -897,7 +897,7 @@ red:
             )
             .replace(
                 "units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]",
-                "units:\n  - {name: sandworm, index: 0, position: {x: 0, y: -160}}\n  - {name: war_factory, index: 1, position: {x: 75, y: -165}}",
+                "units:\n  - {name: abyss, index: 0, position: {x: -5, y: -165}}\n  - {name: war_factory, index: 1, position: {x: 75, y: -165}}",
             );
         let refused = compile_default(&value).unwrap_err().to_string();
         let clauses: Vec<&str> = refused.split("; ").collect();
@@ -908,7 +908,7 @@ red:
         );
         assert!(clauses[1].contains("30502"), "{refused}");
         assert!(
-            clauses[2].contains("\"sandworm\" has no unit configuration"),
+            clauses[2].contains("\"abyss\" has no unit configuration"),
             "{refused}"
         );
         assert!(

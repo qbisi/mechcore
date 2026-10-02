@@ -84,6 +84,8 @@ pub(in crate::fight) struct Motion {
     pub(in crate::fight) published_speed_q32: i64,
     pub(in crate::fight) rvo_stopped_snap_since_boundary: bool,
     pub(in crate::fight) state: MotionState,
+    /// `TransitionState.nextState`: the state a transition leads to.
+    pub(in crate::fight) transition_to: Option<MotionState>,
     pub(in crate::fight) attack_hold_fire: bool,
 }
 
@@ -244,7 +246,9 @@ impl Simulation {
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
-            if !actor.alive() {
+            // A locked agent stands where it is: `DoCalculateNextPosition`
+            // moves it nowhere.
+            if !actor.alive() || actor.agent_locked() {
                 return;
             }
             let maximum_delta_q32 =
@@ -336,6 +340,11 @@ impl Simulation {
                     .saturating_sub(actor.z_q32),
                 actor.motion.published_speed_q32,
             );
+            // `Agent.BufferSwitch` zeroes a locked agent's velocity.
+            if actor.agent_locked() {
+                actor.motion.current_velocity_x_q32 = 0;
+                actor.motion.current_velocity_z_q32 = 0;
+            }
         }
 
         let mut agents = Vec::new();
@@ -444,28 +453,42 @@ impl Simulation {
                     .map(|actor| (actor.placement.unit_id, actor, true)),
             );
         for (actor_id, actor, appearing) in units {
-            let profile = rvo_profile(&actor.rules);
+            let mut profile = rvo_profile(&actor.rules);
+            // A move ability's `Lock` takes the agent to its own collider
+            // priority and full priority until it lets go.
+            let agent_override = actor.agent_override();
+            if let Some((collider_priority, priority_q32)) = agent_override.locked {
+                profile.collider_priority = collider_priority;
+                profile.priority_q32 = priority_q32;
+            }
             let (layer, collides_with) = movable_rvo_collision_masks(profile.collider_priority);
             let target_delta = FixedVec2 {
                 x: actor.motion.next_target_x_q32.saturating_sub(actor.x_q32),
                 y: actor.motion.next_target_z_q32.saturating_sub(actor.z_q32),
             };
-            let (desired_x, desired_z) = normalized_velocity_q32_raw(
-                target_delta.x,
-                target_delta.y,
-                actor.motion.next_speed_q32,
-            );
+            // `Agent.BufferSwitch` gives a locked agent no desired velocity.
+            let (desired_x, desired_z) = if agent_override.locked.is_some() {
+                (0, 0)
+            } else {
+                normalized_velocity_q32_raw(
+                    target_delta.x,
+                    target_delta.y,
+                    actor.motion.next_speed_q32,
+                )
+            };
             agents.push(RvoAgentInput {
                 key: RvoAgentKey::Unit(actor_id),
-                main_layer: match actor.rules.domain {
-                    UnitDomain::Ground => 1,
-                    UnitDomain::Air => 2,
-                },
+                main_layer: agent_override
+                    .main_layer
+                    .unwrap_or(match actor.rules.domain {
+                        UnitDomain::Ground => 1,
+                        UnitDomain::Air => 2,
+                    }),
                 layer,
                 collides_with,
                 group: i32::try_from(actor.placement.team).unwrap_or(i32::MAX),
                 passable_by_own_group: false,
-                locked: appearing,
+                locked: appearing || agent_override.locked.is_some(),
                 tree_position: if first_tree || actor.motion.rvo_new_agent {
                     FixedVec2::ZERO
                 } else {
@@ -536,6 +559,28 @@ impl Simulation {
         events: &mut Vec<Event>,
         update: SkillUpdate,
     ) -> Result<()> {
+        let before = self.actors[&actor_id].motion.state;
+        self.update_motion_states(actor_id, step, events, update)?;
+        // A change of state goes through the transition with a move ability
+        // (`ChangeToMoveState`, `ChangeToAttackState`,
+        // `MotionMoveState.ChangeToIdle`). What the skill did on the way
+        // stands: `SkillIdleState.TryStartAttack` starts the attack of a
+        // unit coming into range whatever its motion does, and only the
+        // surfacing's `SkillManager.Deactive` stops it again.
+        let after = self.actors[&actor_id].motion.state;
+        if before != after && self.transits(actor_id, before, after) {
+            self.begin_transition(actor_id, before, after);
+        }
+        Ok(())
+    }
+
+    fn update_motion_states(
+        &mut self,
+        actor_id: u64,
+        step: u64,
+        events: &mut Vec<Event>,
+        update: SkillUpdate,
+    ) -> Result<()> {
         let SkillUpdate {
             backswing_just_finished,
             prepare_finished,
@@ -561,6 +606,8 @@ impl Simulation {
         let target_x_q32 = target_view.x_q32;
         let target_z_q32 = target_view.z_q32;
         let target_radius = target_view.radius;
+        // `IsAttackTargetInAttackRange` asks whether the target is visible.
+        let sees_target = self.reaches_hidden(FightActorRef::Unit(actor_id), target_view.visible);
         // Where the body goes when it moves is the lock's, not the weapons':
         // a unit held by a construction in its line of fire still advances on
         // the unit behind it, and only stops because the construction is in
@@ -606,7 +653,8 @@ impl Simulation {
             // surface is in reach, however far the lock stands behind it.
             self.target_in_attack_range(FightActorRef::Unit(actor_id), target)
         } else {
-            edge_distance_q32 >= space_to_q32(actor.rules.attack.min_range())
+            sees_target
+                && edge_distance_q32 >= space_to_q32(actor.rules.attack.min_range())
                 && edge_distance_q32 <= space_to_q32(actor.stats.attack_range())
         };
         if in_reach {
@@ -1255,6 +1303,11 @@ impl Simulation {
     /// `MotionMoveState`, which is not updated the tick it is entered, and
     /// `MotionMoveState` walks towards the command's point.
     pub(in crate::fight) fn follow_command(&mut self, actor_id: u64) {
+        let state = self.actors[&actor_id].motion.state;
+        if state != MotionState::Moving && self.transits(actor_id, state, MotionState::Moving) {
+            self.begin_transition(actor_id, state, MotionState::Moving);
+            return;
+        }
         let actor = self
             .actors
             .get_mut(&actor_id)

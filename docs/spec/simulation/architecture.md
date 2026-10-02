@@ -108,6 +108,7 @@ skill's update (`attack_in_reach`), with the same `try_start_attack`.
 | `skill/check.rs` | `SearchAttackTarget`, `SkillAttackableChecker`, `WallConstructionTargetChecker`, `SkillAttackState.Finish` |
 | `skill/perform.rs` | the attack performers: a blow, a shot, a burst |
 | `skill/group.rs` | a grouped skill's slots |
+| `underground.rs` | `UndergroundMoveAbility` and the `TransitionState` the motion holds while it burrows or surfaces |
 | `rvo.rs` | `RVOSimulatorFixed`, the sampled RVO the motion submits to; [rvo.md](rvo.md) |
 | `random.rs` | `GRRandom`, the stream an attack interval's stagger draws from |
 | `math.rs` | the build's fixed-point arithmetic |

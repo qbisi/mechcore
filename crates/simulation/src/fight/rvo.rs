@@ -722,6 +722,17 @@ pub(crate) fn solve_agents(
     inputs
         .iter()
         .map(|agent| {
+            // `RVOAgentFixed.CalculateVelocity`: a locked agent's target is
+            // where it stands, at no speed.
+            if agent.locked {
+                return (
+                    agent.key,
+                    AgentSolution {
+                        target_delta: FixedVec2::ZERO,
+                        speed: 0,
+                    },
+                );
+            }
             let neighbours = tree.query(agent);
             // A construction of the agent's own group is still one of its
             // neighbours — it takes one of the twenty places, as the native

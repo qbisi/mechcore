@@ -1,0 +1,19 @@
+# M6: two formations against a Crawler swarm and a Marksman:
+# target distribution and avoidance between allies.
+
+kind: fight
+map_id: 1021
+seed: 1787720817
+round: 1
+source: game
+ticks: 386
+hash: {profile: mcfr-content-0.7.0, result: 1c593c1ec35c04ba34fba0cfe9ab5366509e445276d3b7730470d605ccaba29c}
+blue:
+  units:
+  - {name: sandworm, index: 0, position: {x: 0, y: -130}, exp: 0/96/2000}
+  - {name: sandworm, index: 1, position: {x: 0, y: -80}, exp: 0/296/2000}
+red:
+  core_damage: 700
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -70}}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}}

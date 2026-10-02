@@ -66,6 +66,7 @@ impl Actor {
             .auto_recovery
             .map(|_| super::recovery::RecoveryClock::reset());
         let start_buffs_pending = !placement.start_buffs.is_empty();
+        let underground = rules.underground.as_ref().map(underground::Underground::of);
         Self {
             x,
             z,
@@ -75,6 +76,7 @@ impl Actor {
             target_query_z_q32: z_q32,
             target_query_source_rotation_q32: mdeg_to_degrees_q32(placement.rotation),
             target_query_alive: true,
+            target_query_visible: true,
             body_rotation: placement.rotation,
             body_rotation_q32: mdeg_to_degrees_q32(placement.rotation),
             aim_rotation: placement.rotation,
@@ -91,6 +93,9 @@ impl Actor {
             start_buffs_pending,
             recovery,
             rvo_max_speed_q32: max_speed_q32,
+            visibility: Visibility::Normal,
+            skills_active: true,
+            underground,
             motion: Motion {
                 rvo_tree_x_q32: x_q32,
                 rvo_tree_z_q32: z_q32,
@@ -109,6 +114,7 @@ impl Actor {
                 published_speed_q32: 0,
                 rvo_stopped_snap_since_boundary: false,
                 state: MotionState::Idle,
+                transition_to: None,
                 attack_hold_fire: false,
             },
             skill: Skill::new(weapon_rotations_q32, group, magazine, kind),
@@ -315,17 +321,7 @@ impl Actor {
                                 .is_none()
                     })
                 } else {
-                    // A skill firing at a shield holds no attack target the
-                    // recording can name.
-                    self.skill
-                        .attack_target()
-                        .filter(|_| self.skill.shield_target().is_none())
-                        .or_else(|| {
-                            self.skill
-                                .cooling()
-                                .and_then(|(_, candidate)| candidate)
-                                .filter(|_| self.skill.lock_target.is_none())
-                        })
+                    self.skill.named_attack_target()
                 };
                 // A unit that travelled in has run no update to search an
                 // attack target with until its first: `SearchAttackTarget`
@@ -368,8 +364,8 @@ impl Actor {
                 maximum: i32::try_from(self.stats.max_life()).expect("unit max life fits i32"),
             },
             active: true,
-            targetable: true,
-            visibility: Visibility::Normal,
+            targetable: self.visibility == Visibility::Normal,
+            visibility: self.visibility,
             status_mask: if self.invincible() { INVINCIBLE } else { 0 }
                 | if self.technology_disabled() {
                     TECHNOLOGY_DISABLED

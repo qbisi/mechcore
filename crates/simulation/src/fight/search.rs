@@ -395,8 +395,15 @@ pub(in crate::fight) fn initialize_target_quadtrees(
     trees
 }
 
+/// `ScoreRatingTargetSelector.invisibleActorDistanceScoreOffset`: a
+/// candidate that is not visible is scored as if it stood 40 metres
+/// further off, by `DistanceScoreCalculator.Calculate`. It is offered all
+/// the same: a Rhino searching while the Sandworm it locked is burrowed
+/// keeps it.
+const INVISIBLE_DISTANCE_SCORE_OFFSET_Q32: i64 = 40 << 32;
+
 #[allow(clippy::too_many_arguments)]
-pub(in crate::fight) fn normal_visible_full_rotation_target_score_q32(
+pub(in crate::fight) fn full_rotation_target_score_q32(
     source_x_q32: i64,
     source_z_q32: i64,
     source_radius: i64,
@@ -404,6 +411,7 @@ pub(in crate::fight) fn normal_visible_full_rotation_target_score_q32(
     target_x_q32: i64,
     target_z_q32: i64,
     target_radius: i64,
+    target_visible: bool,
     min_range: i64,
     max_range: i64,
     rotation_window_q32: Option<i64>,
@@ -434,8 +442,13 @@ pub(in crate::fight) fn normal_visible_full_rotation_target_score_q32(
     let outside_rotation_window = rotation_window_q32
         .and_then(|half_width_q32| rotation_window(source_rotation_q32, half_width_q32))
         .is_some_and(|(min_q32, max_q32)| !is_in_range_rotation(bearing_q32, min_q32, max_q32));
-    normal_visible_full_rotation_score_from_distance_and_angle_q32(
+    full_rotation_score_from_distance_and_angle_q32(
         distance_q32,
+        if target_visible {
+            0
+        } else {
+            INVISIBLE_DISTANCE_SCORE_OFFSET_Q32
+        },
         angle_q32,
         space_to_q32(min_range),
         space_to_q32(max_range),
@@ -496,8 +509,9 @@ pub(in crate::fight) fn is_in_range_rotation(
     }
 }
 
-pub(in crate::fight) fn normal_visible_full_rotation_score_from_distance_and_angle_q32(
+pub(in crate::fight) fn full_rotation_score_from_distance_and_angle_q32(
     distance_q32: i64,
+    distance_score_offset_q32: i64,
     angle_q32: i64,
     min_range_q32: i64,
     max_range_q32: i64,
@@ -510,7 +524,9 @@ pub(in crate::fight) fn normal_visible_full_rotation_score_from_distance_and_ang
         angle_q32.min(TARGET_SCORE_ANGLE_LIMIT_Q32),
         TARGET_SCORE_ANGLE_FACTOR_Q32,
     );
-    let distance_score_q32 = distance_q32.max(TARGET_SCORE_MIN_DISTANCE_Q32);
+    let distance_score_q32 = distance_q32
+        .saturating_add(distance_score_offset_q32)
+        .max(TARGET_SCORE_MIN_DISTANCE_Q32);
     let mut score_q32 = q32_mul(
         distance_score_q32,
         TARGET_SCORE_BASE_Q32.saturating_add(angle_score_q32),
@@ -529,6 +545,55 @@ pub(in crate::fight) fn normal_visible_full_rotation_score_from_distance_and_ang
 /// candidates, 11 units and 2 towers, that a square 800 m wide around it
 /// holds, and not the enemy straight ahead 538 m off.
 const SEARCH_MIN_RADIUS: i64 = 400_000;
+
+/// What `ScoreRatingTargetSelector.Selector.CheckResultTarget` keeps of the
+/// candidates it scores: the lowest score, and the lowest-scored visible one
+/// other than it (`nextTarget`), which a lower score that is visible hands
+/// its place to.
+#[derive(Debug, Default)]
+pub(in crate::fight) struct Scoring {
+    best: Option<(FightActorRef, i64, bool)>,
+    next: Option<(FightActorRef, i64)>,
+}
+
+impl Scoring {
+    pub(in crate::fight) fn consider(
+        &mut self,
+        candidate: FightActorRef,
+        score: i64,
+        visible: bool,
+    ) {
+        match self.best {
+            Some((_, best_score, _)) if score >= best_score => {
+                if visible && self.next.is_none_or(|(_, next_score)| score < next_score) {
+                    self.next = Some((candidate, score));
+                }
+            }
+            previous => {
+                if let Some((previous, previous_score, true)) = previous {
+                    self.next = Some((previous, previous_score));
+                }
+                self.best = Some((candidate, score, visible));
+            }
+        }
+    }
+
+    /// `ScoreRatingTargetSelector.Select` and `TrySelect`: the lowest score,
+    /// unless it is not visible and the visible one after it is in the
+    /// attacker's range (`IsActorInAttackRange`). A Marksman whose Sandworm
+    /// burrows takes a visible unit as soon as one is in its reach, and the
+    /// burrowed one while none is.
+    pub(in crate::fight) fn chosen(
+        self,
+        reaches: impl Fn(FightActorRef) -> bool,
+    ) -> Option<FightActorRef> {
+        let (best, _, visible) = self.best?;
+        match self.next {
+            Some((next, _)) if !visible && reaches(next) => Some(next),
+            _ => Some(best),
+        }
+    }
+}
 
 impl Simulation {
     pub(in crate::fight) fn refresh_target_query_snapshot(&mut self) {
@@ -557,6 +622,7 @@ impl Simulation {
                     actor.body_rotation_q32
                 };
             actor.target_query_alive = actor.alive();
+            actor.target_query_visible = actor.visibility == Visibility::Normal;
             actor.skill.searched_this_tick = false;
         }
         self.buildings_query_alive = super::standing_buildings(&self.buildings);
@@ -636,16 +702,7 @@ impl Simulation {
             return Ok(None);
         }
         let nearby = self.search_candidates(owner);
-        let mut best: Option<(FightActorRef, i64)> = None;
-        let mut consider = |candidate, score| match best {
-            None => {
-                best = Some((candidate, score));
-            }
-            Some((_, best_score)) if score < best_score => {
-                best = Some((candidate, score));
-            }
-            Some(_) => {}
-        };
+        let mut scoring = Scoring::default();
 
         for (&team, candidates) in target_search_order {
             if team == source.team {
@@ -688,7 +745,12 @@ impl Simulation {
                 } else {
                     (target.query_x_q32, target.query_z_q32)
                 };
-                if let Some(score) = normal_visible_full_rotation_target_score_q32(
+                let visible = if use_live_candidate_positions {
+                    target.visible
+                } else {
+                    target.query_visible
+                };
+                if let Some(score) = full_rotation_target_score_q32(
                     source.query_x_q32,
                     source.query_z_q32,
                     source.radius,
@@ -696,16 +758,17 @@ impl Simulation {
                     candidate_x_q32,
                     candidate_z_q32,
                     target.radius,
+                    visible,
                     source.attack.min_range(),
                     source.attack_range,
                     source.rotation_window_q32,
                 ) {
-                    consider(candidate, score);
+                    scoring.consider(candidate, score, visible);
                 }
             }
         }
 
-        Ok(best.map(|(candidate, _)| candidate))
+        Ok(scoring.chosen(|next| self.target_in_attack_range(owner, next)))
     }
 
     /// `SkillSearchTargetController.TrySearchAliveTarget`, which
@@ -742,7 +805,7 @@ impl Simulation {
             ),
         };
         let select = |blocking: bool| {
-            let mut best: Option<(i64, FightActorRef)> = None;
+            let mut scoring = Scoring::default();
             for (&team, candidates) in target_search_order {
                 if team == source.team {
                     continue;
@@ -756,7 +819,7 @@ impl Simulation {
                     if target.team != team || !target.alive || blocks != blocking {
                         continue;
                     }
-                    let Some(score) = normal_visible_full_rotation_target_score_q32(
+                    let Some(score) = full_rotation_target_score_q32(
                         source.query_x_q32,
                         source.query_z_q32,
                         source.radius,
@@ -764,18 +827,17 @@ impl Simulation {
                         target.x_q32,
                         target.z_q32,
                         target.radius,
+                        target.visible,
                         source.attack.min_range(),
                         attack_range,
                         rotation_window_q32,
                     ) else {
                         continue;
                     };
-                    if best.is_none_or(|(previous, _)| score < previous) {
-                        best = Some((score, candidate));
-                    }
+                    scoring.consider(candidate, score, target.visible);
                 }
             }
-            best.map(|(_, candidate)| candidate)
+            scoring.chosen(|next| self.target_in_attack_range(owner, next))
         };
         Ok(select(false).or_else(|| select(true)))
     }
@@ -837,7 +899,7 @@ impl Simulation {
                 .select_lock_replacement(FightActorRef::Unit(actor_id), target_search_order);
         }
         let select = |shared: bool| {
-            let mut best: Option<(i64, FightActorRef)> = None;
+            let mut scoring = Scoring::default();
             for (&team, candidates) in target_search_order {
                 if team == source.placement.team {
                     continue;
@@ -857,7 +919,7 @@ impl Simulation {
                     {
                         continue;
                     }
-                    let Some(score) = normal_visible_full_rotation_target_score_q32(
+                    let Some(score) = full_rotation_target_score_q32(
                         source.target_query_x_q32,
                         source.target_query_z_q32,
                         source.rules.collision_radius(),
@@ -865,18 +927,17 @@ impl Simulation {
                         target.x_q32,
                         target.z_q32,
                         target.radius,
+                        target.visible,
                         source.rules.attack.min_range(),
                         self.slot_attack_range(actor_id, Some(slot)),
                         None,
                     ) else {
                         continue;
                     };
-                    if best.is_none_or(|(previous, _)| score < previous) {
-                        best = Some((score, candidate));
-                    }
+                    scoring.consider(candidate, score, target.visible);
                 }
             }
-            best.map(|(_, candidate)| candidate)
+            scoring.chosen(|next| self.target_in_attack_range(FightActorRef::Unit(actor_id), next))
         };
         // A fusillade's core falls back on what its siblings hold as a
         // group that shares does, and takes what it finds from them

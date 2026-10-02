@@ -92,6 +92,7 @@ Cpp2IL 产出的类型、方法和调用边。下面每一份清单和表格都�
 | `skill/check.rs` | `SearchAttackTarget`、`SkillAttackableChecker`、`WallConstructionTargetChecker`、`SkillAttackState.Finish` |
 | `skill/perform.rs` | 攻击执行器：一击、一发、一串连发 |
 | `skill/group.rs` | 成组技能的各个位 |
+| `underground.rs` | `UndergroundMoveAbility`，以及单位入地、出地时运动所处的 `TransitionState` |
 | `rvo.rs` | `RVOSimulatorFixed`，运动提交给它的采样 RVO；见 [rvo.zh.md](rvo.zh.md) |
 | `random.rs` | `GRRandom`，攻击间隔抖动取数的随机流 |
 | `math.rs` | 游戏的定点数运算 |

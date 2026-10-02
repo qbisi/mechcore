@@ -343,7 +343,12 @@ impl Simulation {
                     let candidate = &self.actors[&candidate_id];
                     candidate.alive()
                         && hit.reach.touches(candidate.rules.domain)
-                        && ((hit.hits_aimed && Some(*candidate_ref) == hit.aimed)
+                        // `FightProjectile.Update` strikes what it aimed at
+                        // only while `IsValidTarget(Stealth)`: a Wasp's shot
+                        // that reaches a Sandworm as it burrows is spent.
+                        && ((hit.hits_aimed
+                            && Some(*candidate_ref) == hit.aimed
+                            && candidate.visibility != Visibility::Hide)
                             || (hit.splash_radius > 0
                                 && hit.reaches(
                                     candidate.x_q32,

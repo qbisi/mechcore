@@ -420,8 +420,10 @@ impl Simulation {
             ObjectKind::Building => FightActorRef::Building(projectile.target),
             _ => FightActorRef::Unit(projectile.target),
         };
-        let lands_on_nothing =
-            simulated && !self.fight_actor(target).is_some_and(|view| view.alive);
+        let lands_on_nothing = simulated
+            && !self
+                .fight_actor(target)
+                .is_some_and(|view| view.alive && view.visible);
         let struck = if lands_on_nothing {
             super::damage::Struck::default()
         } else {

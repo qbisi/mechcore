@@ -1,0 +1,19 @@
+# M4: a ground unit that cannot hit air, against wasps: what it does when
+# it can target nothing.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 1025
+hash: {profile: mcfr-content-0.7.0, result: e07d121fb515eb2f436604ba7514aebeaf1e5320fc16b59c90a3487a8799662d}
+blue:
+  core_damage: 612
+  units:
+  - {name: sandworm, index: 0, position: {x: 0, y: -100}, exp: 0/400/2000}
+red:
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/133/900}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/533/900}
+  - {name: wasp, index: 2, position: {x: 5, y: -180}, exp: 0/133/900}

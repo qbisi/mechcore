@@ -91,11 +91,11 @@ Simulator 用 `rvo_first_tree_pending` 显式复现这一点：
 | 字段 | 当前含义 |
 | --- | --- |
 | `key` | Unit 或 Building namespace 内的稳定身份 |
-| `main_layer` | `Ground=1`、`Air=2`；不同主层直接排除 |
+| `main_layer` | `Underground=0`、`Ground=1`、`Air=2`；不同主层直接排除 |
 | `layer` | 由 collider priority 生成的单 bit |
 | `collides_with` | 查询方接受的 candidate layer mask |
 | `group` | 避让分组；当前 kernel 使用队伍 ID 填充 |
-| `locked` | 不可移动 agent 为真；邻居承担全部避让责任 |
+| `locked` | 不可移动 agent 为真；邻居承担全部避让责任；它自己原地求得零速度，也没有期望速度 |
 | `tree_position` | 本轮建树使用的旧内部位置 |
 | `position` | BufferSwitch 后查询和 VO 使用的当前位置 |
 | `current_velocity` | 上次已发布目标和速度导出的当前速度 |
@@ -109,7 +109,9 @@ Simulator 用 `rvo_first_tree_pending` 显式复现这一点：
 | `priority` | 同组双方分配避让责任的 Q32.32 权重 |
 
 单位的 `outer_radius`、`inner_radius`、`size`、`collider_priority` 和 `priority` 来自
-`config/units/*.yaml` 的 `rvo` 字段。配置要求 `inner_radius <= outer_radius`、priority 在
+`config/units/*.yaml` 的 `rvo` 字段。单位的移动能力持有 agent 时覆盖它们
+（`fight/underground.rs`）：单位入地或出地期间，agent 被锁定在 collider priority 11、
+priority 1，下一个边界清零它的当前速度；单位在地下时，agent 在地下主层。配置要求 `inner_radius <= outer_radius`、priority 在
 `0..=1`、collider priority 在 `1..=10`。
 
 ### 4.1 碰撞 layer

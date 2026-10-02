@@ -759,7 +759,8 @@ impl Simulation {
             };
             let mut best: Option<(i64, i64, i64)> = None;
             let mut consider = |x_q32: i64, z_q32: i64, radius: i64| {
-                let Some(score) = normal_visible_full_rotation_target_score_q32(
+                // Nothing is hidden before the fight starts.
+                let Some(score) = full_rotation_target_score_q32(
                     source.x_q32,
                     source.z_q32,
                     source.radius,
@@ -767,6 +768,7 @@ impl Simulation {
                     x_q32,
                     z_q32,
                     radius,
+                    true,
                     source.attack.min_range(),
                     source.attack_range,
                     source.rotation_window_q32,

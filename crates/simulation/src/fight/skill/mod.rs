@@ -269,7 +269,7 @@ pub(in crate::fight) struct Skill {
     /// `FightSkill.attackTarget` is kept apart from `lockTarget`, and a
     /// grouped core taking a sibling's unit calls the sibling's
     /// `ChangeLockTarget(null)`, which leaves it until the sibling searches
-    /// again. Nothing else clears a lock that way, so only a sibling holds one.
+    /// again, as `StopAttack` does when a move ability stops the skills.
     pub(in crate::fight) attack_target_left: Option<FightActorRef>,
     /// `FightSkillBase.IsIdle`: the last lock search found nothing the skill
     /// can fire at and fell back on any live enemy
@@ -565,6 +565,9 @@ impl Skill {
 
     /// `FightSkill.ChangeLockTarget`.
     pub(in crate::fight) fn write_lock(&mut self, lock: Option<FightActorRef>) {
+        if lock.is_some() {
+            self.attack_target_left = None;
+        }
         self.lock_target = lock;
         self.lock_written = true;
     }
@@ -671,6 +674,23 @@ impl Skill {
             SkillState::Cooling { candidate, .. } => candidate,
             _ => self.attack_target_left,
         }
+    }
+
+    /// What an ungrouped skill's weapon names: its attack target, none while
+    /// it fires at a shield, which the recording cannot name, and once it
+    /// holds no lock, what a cooling still names or what `StopAttack` left.
+    pub(in crate::fight) fn named_attack_target(&self) -> Option<FightActorRef> {
+        self.attack_target()
+            .filter(|_| self.shield_target().is_none())
+            .or_else(|| {
+                self.cooling()
+                    .and_then(|(_, candidate)| candidate)
+                    .filter(|_| self.lock_target.is_none())
+            })
+            .or_else(|| {
+                self.attack_target_left
+                    .filter(|_| self.lock_target.is_none())
+            })
     }
 
     /// Each slot's lock, the core first.
@@ -963,6 +983,12 @@ impl Simulation {
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
         events: &mut Vec<Event>,
     ) -> Result<()> {
+        if !self.actors[&actor_id].skills_active {
+            // `SkillManager.Update` returns at once while its manager is not
+            // active; the motion updates all the same.
+            let _ = self.update_transition(actor_id);
+            return Ok(());
+        }
         let core_lock = self.actors[&actor_id].skill.lock_target;
         let was_moving = self.actors[&actor_id].motion.state == MotionState::Moving;
         let core_was_attacking = self.actors[&actor_id].skill.phase() == FightSkillPhase::Attack;
@@ -1001,7 +1027,9 @@ impl Simulation {
                 events,
             )?;
         }
-        if let Some(update) = update {
+        if let Flow::Done = self.update_transition(actor_id) {
+            // `TransitionState.Update` is the motion's whole update.
+        } else if let Some(update) = update {
             self.update_motion(actor_id, step, events, update)?;
         } else if was_moving
             && self.actors[&actor_id].command.is_some()
