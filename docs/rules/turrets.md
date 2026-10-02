@@ -50,10 +50,19 @@ them.
 The skill searches as a unit's main skill does. `SkillIdleState` searches when
 it has no lock, when its lock is dead, or when its search timer has run out. It
 uses the unit's selector: the other side's candidates in the order the target
-trees hold them, positions as they stood at the tick's start, scored by edge
+trees hold them, scored by edge
 distance weighted by the angle from where the **weapon** points, with the
 out-of-range penalty. A turret therefore holds a lock before anything is in
 reach, and turns its weapon onto it.
+
+**A turret searches where its candidates stand when it searches.** A unit's
+search is prepared on the positions of the tick's start; a turret's never is,
+since `FightCoreSystem.PreCalculate` prepares the skills of the fight's units
+alone. It scores the candidates where they stand by the time it updates, after
+the units of the sides that update before its own have moved: red's
+Anti-Armor Turret locks a Hound that has walked 0.5 metres into its 125
+metres of reach during the tick, where its position at the tick's start
+leaves it 0.33 out.
 
 The search timer is a unit's skill's. A search resets it, and so does leaving
 the reload; idle counts it down, and a live lock is kept. The attack never
@@ -230,6 +239,9 @@ legacy units.
 
 ### Recorded
 
+- A turret searches on the positions the tick has moved its candidates to:
+  `tests/corpus/fights/268477093-r2.yaml`, tick 122.
+
 Each holds in both Rapid-Fire fights and both Anti-Armor fights, physics and
 content, as `tests/turret/fights/` replays them.
 
@@ -269,6 +281,12 @@ content, as `tests/turret/fights/` replays them.
   `tests/turret/fights/anti-armor-beside-officers.yaml`.
 
 ### Read
+
+- Only the units' skills are prepared on the tick's query snapshot:
+  `FightCoreSystem.PreCalculate`, `SkillStateController.PreCalculate`,
+  `SuperDeploymentSystem.IsTravelling`. The `target_search` channel names
+  every recorded search of a construction `select` or `select_job`, the paths
+  that score as they run, and none `team`.
 
 - A construction updates its search controller and then its skill manager, and
   nothing else: `FightConstruction.Update`.
