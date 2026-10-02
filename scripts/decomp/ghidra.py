@@ -16,8 +16,11 @@ Il2CppDumper reads the IL2CPP metadata against the arm64 slice of
 the running process. `ghidra-analyzeHeadless` imports the slice without
 auto-analysis, which takes hours on it, and `ghidra/ApplyIl2Cpp.java` makes a
 function at every method entry, named `Namespace.Class$$Method`, and a label
-at every metadata usage (`..._TypeInfo`, `Method$...`). The decompiler needs
-nothing more to decompile one function.
+at every metadata usage (`..._TypeInfo`, `Method$...`). Then
+`ghidra/ApplyIl2CppTypes.java` parses `il2cpp.h`, rewritten for Ghidra's C
+parser, into the program, and types every method with its C signature and
+every metadata label with its class: the decompiler reads a field by name,
+`this->fields.moveRange`, where it would read an offset.
 
 `decompile` writes each METHOD's C to `work/decomp/<build>/ghidra/c/`, or
 `--out`. A METHOD is `Class.Method` or `Namespace.Class$$Method`; every
@@ -129,6 +132,31 @@ def il2cppdumper(work):
     return directory / "Il2CppDumper.dll"
 
 
+# What Ghidra's C parser lacks of what il2cpp.h assumes: the fixed-width
+# integer names, and a base class written as a struct's first member.
+GHIDRA_HEADER = """typedef unsigned __int8 uint8_t;
+typedef unsigned __int16 uint16_t;
+typedef unsigned __int32 uint32_t;
+typedef unsigned __int64 uint64_t;
+typedef __int8 int8_t;
+typedef __int16 int16_t;
+typedef __int32 int32_t;
+typedef __int64 int64_t;
+typedef __int64 intptr_t;
+typedef __int64 uintptr_t;
+typedef unsigned __int64 size_t;
+typedef _Bool bool;
+"""
+
+
+def ghidra_header(dumper):
+    """il2cpp.h as Ghidra's C parser reads it, beside it."""
+    target = dumper / "il2cpp_ghidra.h"
+    source = (dumper / "il2cpp.h").read_text()
+    target.write_text(GHIDRA_HEADER + re.sub(r": (\w+) \{", r"{\n \1 super;", source))
+    return target
+
+
 def headless(project_dir, *arguments, log):
     command = [
         "ghidra-analyzeHeadless", str(project_dir), PROJECT,
@@ -171,6 +199,16 @@ def prepare(app, build_dir, work, force):
             "-postScript", "ApplyIl2Cpp.java", str(dumper / "script.json"),
             log=ghidra / "import.log",
         )
+    typed = ghidra / "types.done"
+    if force or not typed.exists():
+        say("typing it from il2cpp.h and script.json (about twenty minutes)")
+        header = ghidra_header(dumper)
+        headless(
+            project, "-process", SLICE, "-noanalysis",
+            "-postScript", "ApplyIl2CppTypes.java", str(dumper / "script.json"), str(header),
+            log=ghidra / "types.log",
+        )
+        typed.write_text(IL2CPPDUMPER["version"] + "\n")
     say(f"ready: {project}")
 
 
