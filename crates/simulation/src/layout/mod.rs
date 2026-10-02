@@ -12,8 +12,8 @@ use crate::{
     Error, Result,
     data::{Channel, Entry, Stats},
     modifier::{
-        AutoRecovery, EnergyShield, EnergyTowerSkillEffects, EquipmentEffects, LifeSteal,
-        OfficerEffects, StartBuff, TechnologyEffects, current_source,
+        AutoRecovery, CarriedShield, EnergyShield, EnergyTowerSkillEffects, EquipmentEffects,
+        LifeSteal, OfficerEffects, StartBuff, TechnologyEffects, current_source,
     },
     rules::{UnitConfig, UnitConfigs},
 };
@@ -60,6 +60,8 @@ pub(crate) struct Placement {
     /// The `IEnergyShieldSource` its `EnergyShieldProvider` enables, if its
     /// technologies or equipment hand it one.
     pub(crate) energy_shield: Option<EnergyShield>,
+    /// The battlefield shield its equipment makes it carry.
+    pub(crate) carried_shield: Option<CarriedShield>,
     /// The buffs its equipment adds to it as the fight starts.
     pub(crate) start_buffs: Vec<StartBuff>,
     /// The `buffDatas` rows its equipment makes it ignore,
@@ -584,6 +586,7 @@ fn compile_formation(
         lifesteal: worn.lifesteal,
         auto_recovery: worn.auto_recovery,
         energy_shield: worn.energy_shield,
+        carried_shield: worn.carried_shield,
         start_buffs: worn.start_buffs,
         ignored_buffs: worn.ignored_buffs,
         travelling: formation.travelling,
@@ -596,6 +599,7 @@ struct Worn {
     lifesteal: Option<LifeSteal>,
     auto_recovery: Option<AutoRecovery>,
     energy_shield: Option<EnergyShield>,
+    carried_shield: Option<CarriedShield>,
     start_buffs: Vec<StartBuff>,
     ignored_buffs: Vec<u32>,
 }
@@ -668,6 +672,38 @@ fn loadout(
     // A snapshot carries each `DataSet`'s aggregate; one this build cannot
     // record is refused here, where the side and the officer can be named.
     refused.hold(stats.modifiers(1).map_err(refusal))?;
+    worn(
+        side_name,
+        type_name,
+        equipment,
+        rules,
+        side,
+        loadouts,
+        corrections,
+        refused,
+    )
+}
+
+/// What a unit's technologies and equipment hand it beyond its numbers, the
+/// sources of each interface its one provider of that interface enables.
+#[allow(clippy::too_many_arguments)]
+fn worn(
+    side_name: &str,
+    type_name: &str,
+    equipment: &[i32],
+    rules: &UnitConfig,
+    side: &SidePlan,
+    loadouts: &Loadouts,
+    corrections: Vec<(Channel, Entry)>,
+    refused: &mut Refusals,
+) -> Option<Worn> {
+    let on_side = |error: Error| Error::new(format!("side {side_name}: {error}"));
+    let refusal = |error: Error| {
+        Error::new(format!(
+            "side {side_name} unit type {type_name:?} carries a loadout this \
+             build cannot resolve: {error}"
+        ))
+    };
     // Every source of an interface reaches the unit's one provider of it,
     // which enables the one of the highest priority whatever order they came
     // in.
@@ -689,6 +725,7 @@ fn loadout(
             .energy_shield(&side.techs.units, type_name)
             .map_err(on_side),
     )?;
+    let mut carried_shields = Vec::new();
     let mut start_buffs = Vec::new();
     let mut ignored_buffs = Vec::new();
     for &id in equipment {
@@ -698,6 +735,14 @@ fn loadout(
             .extend(refused.hold(loadouts.equipment.start_buff(id, rules).map_err(on_side))?);
         energy_shield
             .extend(refused.hold(loadouts.equipment.energy_shield(id, rules).map_err(on_side))?);
+        carried_shields.extend(
+            refused.hold(
+                loadouts
+                    .equipment
+                    .carried_shield(id, rules)
+                    .map_err(on_side),
+            )?,
+        );
         lifesteal.extend(refused.hold(loadouts.equipment.lifesteal(id, rules).map_err(on_side))?);
         auto_recovery
             .extend(refused.hold(loadouts.equipment.auto_recovery(id, rules).map_err(on_side))?);
@@ -708,6 +753,17 @@ fn loadout(
         lifesteal: refused.hold(current_source(&lifesteal).map_err(in_force))?,
         auto_recovery: refused.hold(current_source(&auto_recovery).map_err(in_force))?,
         energy_shield: refused.hold(current_source(&energy_shield).map_err(in_force))?,
+        carried_shield: match carried_shields.as_slice() {
+            [] => None,
+            [one] => Some(*one),
+            _ => {
+                refused.push(format!(
+                    "side {side_name} unit type {type_name:?} carries two barriers, which is \
+                     not measured"
+                ));
+                return None;
+            }
+        },
         start_buffs,
         ignored_buffs,
     })

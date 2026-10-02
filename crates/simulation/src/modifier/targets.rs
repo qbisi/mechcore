@@ -5,7 +5,10 @@
 //! category means the same thing whichever table names it, and it is resolved
 //! here rather than by each table.
 
-use crate::{Error, Result, rules::UnitConfig};
+use crate::{
+    Error, Result,
+    rules::{UnitConfig, UnitDomain, UnitSize},
+};
 
 /// A row's `UnitEffectTargetType`, for the categories this build resolves.
 #[derive(Debug, Clone)]
@@ -18,6 +21,13 @@ pub(crate) enum Targets {
     Melee,
     /// `Ranged` (4): a unit whose main skill's `isMeleeAttack` is clear.
     Ranged,
+    /// `Ground` (2): a unit that does not fly.
+    Ground,
+    /// `Small`, `Medium` and `Huge` (5 to 7): a unit of that `UnitType`.
+    Size(UnitSize),
+    /// A row naming several categories: `IsEffectTarget` walks them and
+    /// reaches the unit only if every one does.
+    AllOf(Vec<Targets>),
     /// A category this build does not resolve, carrying what to say about it.
     Refused(String),
 }
@@ -28,8 +38,12 @@ impl Targets {
         match mech_type {
             0 => Self::Every,
             1 | 10 => Self::Listed(units.to_vec()),
+            2 => Self::Ground,
             3 => Self::Melee,
             4 => Self::Ranged,
+            5 => Self::Size(UnitSize::Small),
+            6 => Self::Size(UnitSize::Medium),
+            7 => Self::Size(UnitSize::Huge),
             // Type 11 corrects a tower, a shield or a mine. Its rows carry no
             // unit number at all, so a refusal names the field first; this is
             // here so a future type-11 row with one is not silently applied
@@ -40,6 +54,20 @@ impl Targets {
             other => Self::Refused(format!(
                 "{who} targets mech_type {other}, which this build does not read"
             )),
+        }
+    }
+
+    /// The categories a row's `mech_type` list names, every one of which a
+    /// unit has to be in.
+    pub(crate) fn of_list(mech_types: &[i32], units: &[String], who: &str) -> Self {
+        match mech_types {
+            [mech_type] => Self::of(*mech_type, units, who),
+            _ => Self::AllOf(
+                mech_types
+                    .iter()
+                    .map(|&mech_type| Self::of(mech_type, units, who))
+                    .collect(),
+            ),
         }
     }
 
@@ -58,6 +86,16 @@ impl Targets {
             Self::Listed(units) => Ok(units.contains(&unit.type_name)),
             Self::Melee => Ok(unit.attack.melee),
             Self::Ranged => Ok(!unit.attack.melee),
+            Self::Ground => Ok(unit.domain == UnitDomain::Ground),
+            Self::Size(size) => Ok(unit.size == *size),
+            Self::AllOf(every) => {
+                for targets in every {
+                    if !targets.reaches(unit)? {
+                        return Ok(false);
+                    }
+                }
+                Ok(true)
+            }
             Self::Refused(reason) => Err(Error::new(reason.clone())),
         }
     }

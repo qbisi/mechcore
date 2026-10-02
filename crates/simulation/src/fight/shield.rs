@@ -7,6 +7,12 @@
 //! left, and one that empties it destroys it for the rest of the fight: the
 //! hit that does is absorbed whole. `docs/rules/contraptions.md` states the
 //! rule.
+//!
+//! A shield a unit carries, a Barrier's, is one too, with that unit as its
+//! owner: it stands where its owner stands, moving as it moves and staying
+//! where it last stood once it dies, and one that a hit empties is
+//! deactivated rather than destroyed (`PerformHitAdvancedEndergyShieldEffect`
+//! branches on the owner), staying on the board with no energy.
 
 use super::*;
 use super::{
@@ -29,6 +35,24 @@ pub(in crate::fight) struct EnergyShield {
     pub(in crate::fight) energy: i64,
     max_energy: i64,
     source_kind: ShieldSourceKind,
+    /// The unit carrying it, `FightEnergyShield.GetOwner`: none for one that
+    /// stands where it was placed.
+    owner: Option<u64>,
+    /// `FightEnergyShield.IsActive`: false once a hit empties a shield with
+    /// an owner.
+    pub(in crate::fight) active: bool,
+}
+
+/// A shield a unit carries into the fight: its side, where it starts, how
+/// large and how full, and its owner.
+#[derive(Debug, Clone, Copy)]
+pub(in crate::fight) struct CarriedShieldPlacement {
+    pub(in crate::fight) team: u32,
+    pub(in crate::fight) x_q32: i64,
+    pub(in crate::fight) z_q32: i64,
+    pub(in crate::fight) radius_q32: i64,
+    pub(in crate::fight) energy: i64,
+    pub(in crate::fight) owner: u64,
 }
 
 /// `AdvancedEnergyShieldSystem`: every battlefield shield standing, and what
@@ -52,12 +76,16 @@ pub(in crate::fight) struct ShieldSystem {
 
 impl ShieldSystem {
     /// The shields a layout stands, before the first tick.
-    pub(in crate::fight) fn new(placed: &[ShieldPlacement]) -> Self {
+    pub(in crate::fight) fn new(
+        placed: &[ShieldPlacement],
+        carried: &[CarriedShieldPlacement],
+    ) -> Self {
         Self {
-            standing: initialize_shields(placed),
+            standing: initialize_shields(placed, carried),
             destroyed: Vec::new(),
             created: Vec::new(),
-            next_id: u64::try_from(placed.len()).expect("shield count fits u64") + 1,
+            next_id: u64::try_from(placed.len() + carried.len()).expect("shield count fits u64")
+                + 1,
             broken: Vec::new(),
         }
     }
@@ -66,8 +94,12 @@ impl ShieldSystem {
 /// Every shield both sides release, each side's in its active order:
 /// `GroupAdvancedEnergyShieldManager.OnFightStart` sorts a side's shields by
 /// `CompareEnergyShield`, their centre's x, then its z, then their energy and
-/// radius. They take their identities in that order, side by side.
-fn initialize_shields(placed: &[ShieldPlacement]) -> Vec<EnergyShield> {
+/// radius. They take their identities in that order, side by side. A shield
+/// a unit carries is one of its side's, where its owner stands.
+fn initialize_shields(
+    placed: &[ShieldPlacement],
+    carried: &[CarriedShieldPlacement],
+) -> Vec<EnergyShield> {
     let mut shields = placed
         .iter()
         .map(|shield| EnergyShield {
@@ -82,7 +114,21 @@ fn initialize_shields(placed: &[ShieldPlacement]) -> Vec<EnergyShield> {
                 ShieldKind::Contraption => ShieldSourceKind::Contraption,
                 ShieldKind::CommanderSkill => ShieldSourceKind::CommanderSkill,
             },
+            owner: None,
+            active: true,
         })
+        .chain(carried.iter().map(|shield| EnergyShield {
+            id: 0,
+            team: shield.team,
+            x_q32: shield.x_q32,
+            z_q32: shield.z_q32,
+            radius_q32: shield.radius_q32,
+            energy: shield.energy,
+            max_energy: shield.energy,
+            source_kind: ShieldSourceKind::OwnerAdvanced,
+            owner: Some(shield.owner),
+            active: true,
+        }))
         .collect::<Vec<_>>();
     shields.sort_by_key(|shield| {
         (
@@ -107,7 +153,8 @@ impl EnergyShield {
     /// `FightCalculator.IsInEnergyShield`: a point strictly inside the sphere
     /// of a shield that has energy left.
     pub(in crate::fight) fn contains(&self, x_q32: i64, y_q32: i64, z_q32: i64) -> bool {
-        self.energy > 0
+        self.active
+            && self.energy > 0
             && native_q32_magnitude_3d(
                 x_q32.saturating_sub(self.x_q32),
                 y_q32,
@@ -117,6 +164,21 @@ impl EnergyShield {
 }
 
 impl Simulation {
+    /// The shields a unit carries stand where it stands: each is moved with
+    /// it, as its owner's position is set.
+    pub(in crate::fight) fn follow_owner(&mut self, actor_id: u64) {
+        let Some(actor) = self.actors.get(&actor_id) else {
+            return;
+        };
+        let (x_q32, z_q32) = (actor.x_q32, actor.z_q32);
+        for shield in &mut self.shield.standing {
+            if shield.owner == Some(actor_id) {
+                shield.x_q32 = x_q32;
+                shield.z_q32 = z_q32;
+            }
+        }
+    }
+
     /// Every standing shield as the snapshot holds it.
     pub(in crate::fight) fn shield_states(&self) -> Vec<ShieldState> {
         let mut order = BTreeMap::<u32, u32>::new();
@@ -129,7 +191,9 @@ impl Simulation {
                     shield_id: shield.id,
                     team_id: shield.team,
                     source_kind: shield.source_kind,
-                    owner: None,
+                    owner: shield
+                        .owner
+                        .map(|owner| ObjectRef::new(ObjectKind::Unit, owner)),
                     position: QVec3 {
                         x: shield.x_q32,
                         y: 0,
@@ -141,10 +205,12 @@ impl Simulation {
                         maximum: i32::try_from(shield.max_energy).expect("shield energy fits i32"),
                     },
                     round_policy: ShieldRoundPolicy::ResetToMax,
-                    active: true,
-                    active_order: Some(*active_order),
+                    active: shield.active,
+                    active_order: shield.active.then_some(*active_order),
                 };
-                *active_order += 1;
+                if shield.active {
+                    *active_order += 1;
+                }
                 state
             })
             .collect()
@@ -172,6 +238,8 @@ impl Simulation {
             energy,
             max_energy: energy,
             source_kind: ShieldSourceKind::CommanderSkill,
+            owner: None,
+            active: true,
         };
         self.shield.created.push(event(
             Some(shield.object_ref()),
@@ -270,7 +338,10 @@ impl Simulation {
                 skill_slot: hit.skill_slot,
             },
         ));
-        if shield.energy <= 0 {
+        if shield.energy <= 0 && shield.owner.is_some() {
+            // `AdvancedEnergyShieldSystem.DeactiveEnergyShield`.
+            shield.active = false;
+        } else if shield.energy <= 0 {
             let shield = self.shield.standing.remove(index);
             self.shield.broken.push(shield.clone());
             self.shield.destroyed.push(event(

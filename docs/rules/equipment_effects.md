@@ -39,6 +39,11 @@ A row's `mech_type` is a `UnitEffectTargetType`, answered by the
 Most rows are `All`. Laser Sights is `Ranged`: every unit whose main skill is
 not a melee attack. On a Rhino or a Crawler it writes nothing.
 
+A row naming several types reaches a unit only if every one does:
+`IsEffectTarget` walks them and stops at the first that does not. Barrier's
+`[7, 2]` is `Huge` and `Ground`: a unit whose `UnitType` is huge, the unit
+description's `size`, and that does not fly.
+
 A skill correction reaches the main skill through `mainSkillEffect`, which
 every row sets. `extraSkillEffect` selects a unit's other skills, which this
 simulator does not give a unit.
@@ -112,9 +117,11 @@ A layout is refused by name, rather than fought with part of an item, when it
 carries:
 
 - an equipment of a class whose mechanism is not here, named by its kind:
-  shields and production lines among them. Absorption Module's and Nano
+  production lines among them. Absorption Module's and Nano
   Repair Kit's classes are read: their life steal and repair are
-  [combat.md](combat.md#lifesteal)'s. So is Explosive Ammo's, which adds its
+  [combat.md](combat.md#lifesteal)'s, Portable Shield's is
+  [combat.md](combat.md#personal-shield)'s and Barrier's
+  [contraptions.md](contraptions.md#a-shield)'s. So is Explosive Ammo's, which adds its
   `splash_range` to the skill's splash as [combat.md](combat.md#damage-and-death)
   states, and Photon Coating's and Anti-Interference Module's, which
   [Buff items](#buff-items) states;

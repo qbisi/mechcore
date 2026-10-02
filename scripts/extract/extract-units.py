@@ -45,6 +45,11 @@ SIZES = {0: "xs", 1: "s", 2: "m", 3: "l", 4: "xl", 5: "xxl"}
 FREE_MOVE_MASK = 0x40000000040010
 
 
+
+# `MechData.mechType`, a `UnitType`: what `UnitUtility.IsEffectTarget` reads
+# for a row targeting small, medium or huge units.
+UNIT_SIZES = {0: "small", 1: "medium", 2: "huge"}
+
 def free_move(unit):
     return unit <= 54 and bool(FREE_MOVE_MASK >> unit & 1)
 
@@ -139,6 +144,7 @@ def render(mech, card, kind, skill, rvo, type_name):
         f"  footprint: {{width: {grid(card['cardBaseSize']['x'], 1000)}, depth: {grid(card['cardBaseSize']['y'], 1000)}}}",
         "",
         f"domain: {'air' if mech['isFly'] else 'ground'}",
+        f"size: {UNIT_SIZES[mech['mechType']]}",
         f"max_life: {mech['life']}",
         f"collision_radius: {grid(mech['radius'], 1000)}",
         f"move_speed: {mech['moveSpeed']}",

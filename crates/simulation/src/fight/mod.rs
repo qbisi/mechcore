@@ -266,6 +266,28 @@ struct PersonalShield {
     maximum: i64,
 }
 
+/// The battlefield shields the units carry into the fight, each where its
+/// owner stands as it is placed: `AdvancedEnergyShieldProvider` creates one
+/// for a unit whose equipment is a Barrier.
+fn carried_shields(actors: &BTreeMap<u64, Actor>) -> Vec<shield::CarriedShieldPlacement> {
+    actors
+        .iter()
+        .filter_map(|(&id, actor)| {
+            actor
+                .placement
+                .carried_shield
+                .map(|carried| shield::CarriedShieldPlacement {
+                    team: actor.placement.team,
+                    x_q32: actor.x_q32,
+                    z_q32: actor.z_q32,
+                    radius_q32: carried.radius << 32,
+                    energy: carried.energy,
+                    owner: id,
+                })
+        })
+        .collect()
+}
+
 /// `GameRiver.BuildingType.Special`.
 const CONSTRUCTION_BUILDING_TYPE: u32 = 3;
 
@@ -398,6 +420,7 @@ impl Simulation {
         let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
         let mech_quadtrees = initialize_mech_quadtrees(&actors);
         let buildings_query_alive = standing_buildings(&buildings);
+        let carried = carried_shields(&actors);
         let mut simulation = Self {
             actors,
             unit_update_order,
@@ -409,7 +432,7 @@ impl Simulation {
                 mines.sort_by_key(Mine::team);
                 mines
             },
-            shield: shield::ShieldSystem::new(&layout.shields),
+            shield: shield::ShieldSystem::new(&layout.shields, &carried),
             commander: commander_skill::CommanderSkillSystem::new(layout),
             support: support_unit::SupportUnitSystem::default(),
             travels,
@@ -622,6 +645,7 @@ impl Simulation {
                     &mut events,
                 )?;
                 self.step_actor_rvo_position(actor_id);
+                self.follow_owner(actor_id);
                 self.perform_command(actor_id);
             }
             // Every construction updates, a wall block as a turret: one that

@@ -42,7 +42,11 @@ SUBCLASS_FIELDS = {
     "recovery_life_rate": ("recoveryLifeRate", "autoRecoveryEquipmentDatas"),
     "splash_range": ("range", "splashEquipmentDatas"),
     "shield_life_rate": ("lifeRate", "energyShieldEquipmentDatas"),
+    "barrier_radius": ("radius", "advancedEnergyShieldEquipmentDatas"),
+    "barrier_energy": ("shieldValue", "advancedEnergyShieldEquipmentDatas"),
 }
+# The subclass fields that are plain integers rather than FPoint raw values.
+SUBCLASS_INTEGERS = {"barrier_radius", "barrier_energy"}
 
 
 # A buff item's trigger, read by the simulator, and the rest of its
@@ -169,7 +173,8 @@ def render(rows):
         "# 1 is the unit itself), how likely, and the buffDatas row it adds;",
         "# an anti-interference item the `ignored_buffs` of its buff group;",
         "# a shield item its `shield_life_rate`, its shield's share of its",
-        "# unit's maximum life;",
+        "# unit's maximum life; a barrier item the `barrier_radius`, in whole",
+        "# metres, and `barrier_energy` of the battlefield shield it carries;",
         "# a lifesteal item its `lifesteal_multiplier`, the share of a hit's",
         "# damage its unit takes back as life, and a repair item the seconds",
         "# hurt before it repairs, the seconds between two repairs and the",
@@ -206,7 +211,7 @@ def render(rows):
             lines.append(f"    ignored_buffs: [{', '.join(map(str, group['buffs']))}]  # {group['name']}")
         for field in SUBCLASS_FIELDS:
             if field in d:
-                comment = reading(d[field]) if d[field] else ""
+                comment = reading(d[field]) if d[field] and field not in SUBCLASS_INTEGERS else ""
                 lines.append(f"    {field}: {d[field]}{comment}")
     return "\n".join(lines) + "\n"
 

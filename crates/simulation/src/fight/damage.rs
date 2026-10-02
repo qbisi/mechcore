@@ -611,7 +611,8 @@ impl Simulation {
         let mut main = hit.shield;
         let mut listed = Vec::new();
         for shield in &self.shield.standing {
-            if !hit.effect.strikes(hit.team, shield.team)
+            if !shield.active
+                || !hit.effect.strikes(hit.team, shield.team)
                 || shield.contains(x_q32, hit.center_y_q32, z_q32)
             {
                 continue;
