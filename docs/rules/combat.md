@@ -597,12 +597,16 @@ machine. A skill that holds a lock leaves the fight: its attack stops, a
 burst still firing included, it goes idle, and its lock is cleared. A skill
 that holds none is not updated at all.
 
-**When the fight stops, every unit's motion enters idle, and a unit that was
+**When the fight stops, a unit's motion loses its target, and one that was
 moving stops.** `MotionIdleState.Enter` calls `RVOControllerFixed.StopMove`,
 which asks for no speed at the point the unit stands on, so the next solve
 publishes none: an Overlord handed a tower on the tick the last enemy died,
 and idle from the next, stays where it stood rather than walking on at the
-next publish.
+next publish. A unit walking a Mobile Beacon is the exception while the won
+fight runs on: its command stays active
+([battle_skill.md](battle_skill.md#a-mobile-beacon)), so an attack changes to
+moving rather than idle, and the unit goes on moving and turning to where it
+moves. The fight's end idles every motion and stops every unit.
 
 **A won fight runs on without ending its skills' coolings.** A skill that
 was already cooling has no lock left, since finishing its attack cleared it,
@@ -689,6 +693,10 @@ not the game's native attack-type enum.
   `tests/projectile/fights/phantom-ray-rhino-walks-off.yaml`.
 - A cooling that goes on through a won fight, and an attack that goes idle,
   in the Phantom Ray's standard fights: `tests/phantom_ray/fights/`.
+- Wasps still on a Mobile Beacon when the fight is won going on moving and
+  turning until the fight ends, and idle at its end:
+  `tests/battle_skill/fights/beacon-wasps-won.yaml`,
+  `tests/corpus/fights/134270595-r4.yaml`.
 - A winner's unit that updates after the last death taking a tower, and
   letting it go the tick after, in the Stormcaller mirrors:
   `tests/regression/fights/`; a burst the fight's end stops, in the

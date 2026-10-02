@@ -307,6 +307,10 @@ which scores from that facing. It then takes the place of the unit's
   ends only once its target is out of range. A lock that dies within range
   keeps the unit attacking, turning to the dead unit and walking on or
   stopping as above, until its skill takes another.
+- A command outlives a won fight. When the skill lets its target go as the
+  fight stops, an attacking unit changes to moving, and a unit on the beacon
+  goes on moving and turning to where it moves until the fight ends, which
+  idles it ([combat.md](combat.md)).
 - With no target, its weapons turn to where its body faces.
 
 `PilotAI.Update`, after the unit's motion, moves the command on once the unit,
@@ -411,6 +415,9 @@ drawn from any stream, and no event is written.
   range, and does not turn its body as it walks on; what it walks towards
   reaches its agent only on the update before each RVO solve:
   `tests/battle_skill/fights/beacon-wasps.yaml`.
+- Wasps still on a beacon when the fight is won go on moving until it ends:
+  `tests/battle_skill/fights/beacon-wasps-won.yaml`,
+  `tests/corpus/fights/134270595-r4.yaml`.
 
 ### Replayed
 
