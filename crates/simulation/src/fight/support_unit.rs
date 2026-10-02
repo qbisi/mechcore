@@ -258,7 +258,7 @@ impl Simulation {
             ..DamageHit::unowned(
                 team,
                 actor.life,
-                (actor.x, actor.z),
+                (actor.x_q32, actor.z_q32),
                 0,
                 actor.rules.collision_radius(),
             )
