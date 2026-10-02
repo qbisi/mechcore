@@ -23,7 +23,7 @@ use crate::{
 };
 
 use super::{
-    effects::{self, Fields, KILLS, PROJECTILE, SPLASH, VALUE_ELSEWHERE},
+    effects::{self, Fields, KILLS, PROJECTILE, VALUE_ELSEWHERE},
     targets::Targets,
 };
 
@@ -246,7 +246,6 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
             "min_attack_range_value",
             VALUE_ELSEWHERE,
         ),
-        (row.splash_range_value, "splash_range_value", SPLASH),
         (
             row.projectile_speed_value,
             "projectile_speed_value",
@@ -284,6 +283,7 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
         attack_interval_rate: row.attack_interval_rate,
         attack_range_value: row.attack_range_value,
         attack_interval_value: row.attack_interval_value,
+        splash_range_value: row.splash_range_value,
         speed_value: row.speed_value,
     }))
 }

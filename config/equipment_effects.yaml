@@ -14,7 +14,8 @@ schema: mechcore.equipment_effects
 # a lifesteal item its `lifesteal_multiplier`, the share of a hit's
 # damage its unit takes back as life, and a repair item the seconds
 # hurt before it repairs, the seconds between two repairs and the
-# share of maximum life each restores.
+# share of maximum life each restores, and a splash item the
+# `splash_range` it adds to its unit's main skill.
 #
 # A rate is an FPoint Q32.32 raw integer: 3221225472 is +0.75. A value is
 # an FPoint in the number's own units: 85899345920 is +20 of range.
@@ -315,8 +316,10 @@ equipment:
     mech_type: [0]
     main_skill_effect: true
     round_duration: 1
+    splash_range: 42949672960  # +10
   - id: 13150101
     name: 爆裂弹药
     kind: splashEquipmentDatas
     mech_type: [0]
     main_skill_effect: true
+    splash_range: 21474836480  # +5

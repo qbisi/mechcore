@@ -363,7 +363,7 @@ impl Simulation {
     ) -> Result<super::damage::Struck> {
         let (owner_team, splash_radius) = self
             .attacker(owner)
-            .map(|attacker| (attacker.team, attacker.attack.splash_radius()))
+            .map(|attacker| (attacker.team, attacker.splash_radius))
             .ok_or_else(|| Error::new("projectile owner is absent"))?;
         // A projectile carries no damage of its own: it takes its owner's as
         // the owner has it when it lands. The Fangs of the two-tower fight

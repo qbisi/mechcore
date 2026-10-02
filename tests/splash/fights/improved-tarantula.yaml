@@ -1,0 +1,19 @@
+# Improved Tarantula, an officer writing 4 metres of splash value onto the
+# Tarantula, on one blue Tarantula against a Crawler formation. Its splash
+# widens by the officer's 4: a shot strikes up to ten Crawlers.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 151
+hash: {profile: mcfr-content-0.7.0, result: 265d92bc05f963404a758ad2a8a2ed65a98d8258a167a53b445055100fa4f28f}
+blue:
+  officers: [improved_tarantula]
+  units:
+  - {name: tarantula, index: 0, position: {x: -5, y: -105}, exp: 0/192/1500}
+red:
+  core_damage: 200
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}}

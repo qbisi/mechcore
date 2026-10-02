@@ -98,15 +98,13 @@ on the unit; its life rate lands in the unit channel.
 corrections on the units it reaches, tagged `Modifier` so removing the officer
 removes them: a row whose every field is a rate, a value or a plain integer on a
 number the simulator derives (damage, life, attack interval, attack range,
-movement speed) and whose `mech_type` it answers. It refuses the side that
+splash radius, movement speed) and whose `mech_type` it answers. It refuses the side that
 holds any other row, by name, for one of these reasons:
 
 - the row corrects a tower, shield, mine, deployment clock, experience or a
   projectile's life, which needs the mechanism that owns that object;
 - the row carries a `*_by_kill_count` rate, which needs a mechanism that counts
-  a unit's kills;
-- the row carries a `splash_range_value`, which needs a splash radius among the
-  numbers the simulator derives.
+  a unit's kills.
 
 What is left is no longer about how a correction composes: every remaining
 refusal is a mechanism this simulator does not have.

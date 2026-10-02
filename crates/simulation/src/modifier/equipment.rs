@@ -32,7 +32,7 @@ use crate::{
 };
 
 use super::{
-    effects::{self, Fields, PROJECTILE, SPLASH, VALUE_ELSEWHERE},
+    effects::{self, Fields, PROJECTILE, VALUE_ELSEWHERE},
     sources::{AutoRecovery, LifeSteal},
     targets::Targets,
 };
@@ -43,12 +43,13 @@ const DEFAULT_EQUIPMENT_EFFECTS: &str = include_str!("../../../../config/equipme
 /// `equipmentDatas`, the plain item; `mobilityIntensifyEquipmentDatas`, whose
 /// `MobilityIntensifyEquipment` overrides nothing of `Equipment` and frees its
 /// formation during deployment, which a fight does not read; [`LIFESTEAL`];
-/// and [`AUTO_RECOVERY`].
-const APPLIED: [&str; 4] = [
+/// [`AUTO_RECOVERY`]; and [`SPLASH`].
+const APPLIED: [&str; 5] = [
     "equipmentDatas",
     "mobilityIntensifyEquipmentDatas",
     LIFESTEAL,
     AUTO_RECOVERY,
+    SPLASH,
 ];
 
 /// The list whose `LifestealEquipment` is an `ILifeSteal` as well, which
@@ -59,6 +60,10 @@ const LIFESTEAL: &str = "lifestealEquipmentDatas";
 /// whose `GetAutoRecoveryStateType` is `Normal`, and which hands its unit an
 /// [`AutoRecovery`].
 const AUTO_RECOVERY: &str = "autoRecoveryEquipmentDatas";
+
+/// The list whose `SplashEquipment.AddData` writes its row's correction and
+/// then its `range` into the skill's `SkillDataChangeFloat.SplashRangeValue`.
+const SPLASH: &str = "splashEquipmentDatas";
 
 /// `Equipment.GetPriority`, which overrides a technology's 0.
 const PRIORITY: i32 = 1;
@@ -152,6 +157,9 @@ struct Row {
     recovery_duration: Option<i64>,
     #[serde(default)]
     recovery_life_rate: Option<i64>,
+    /// `SplashEquipmentData.range`, on a splash row.
+    #[serde(default)]
+    splash_range: Option<i64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -333,7 +341,6 @@ fn corrections_of(
             "min_attack_range_value",
             VALUE_ELSEWHERE,
         ),
-        (row.splash_range_value, "splash_range_value", SPLASH),
         (
             row.projectile_speed_value,
             "projectile_speed_value",
@@ -348,15 +355,25 @@ fn corrections_of(
             return Err(format!("{who} writes {field}, and {why}"));
         }
     }
-    Ok(effects::corrections(Fields {
+    let mut corrections = effects::corrections(Fields {
         life_rate: row.life_rate,
         damage_rate: row.damage_rate,
         attack_range_rate: row.attack_range_rate,
         attack_interval_rate: row.attack_interval_rate,
         attack_range_value: row.attack_range_value,
         attack_interval_value: row.attack_interval_value,
+        splash_range_value: row.splash_range_value,
         speed_value: row.speed_value,
-    }))
+    });
+    // `SplashEquipment.AddData`'s second write, `AddSkillData` of its range,
+    // which lands where a splash value does.
+    if row.kind == SPLASH {
+        corrections.extend(effects::corrections(Fields {
+            splash_range_value: row.splash_range,
+            ..Fields::default()
+        }));
+    }
+    Ok(corrections)
 }
 
 #[cfg(test)]

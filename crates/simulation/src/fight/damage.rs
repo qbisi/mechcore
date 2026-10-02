@@ -81,7 +81,7 @@ impl DamageHit {
             shield: None,
             crosses_shields: attacker.rules.attack.crosses_shields,
             strikes_buildings: true,
-            splash_radius: attacker.rules.attack.splash_radius(),
+            splash_radius: attacker.stats.splash_radius(),
             reach: Reach::Targets(attacker.rules.attack.targets),
         }
     }
@@ -659,7 +659,7 @@ impl Simulation {
                 .ok_or_else(|| Error::new("direct attack target is absent"))?,
         };
         let shield = self.blow_shield(actor_id, target);
-        if shield.is_some() && attacker.rules.attack.splash_radius() > 0 {
+        if shield.is_some() && attacker.stats.splash_radius() > 0 {
             return Err(Error::new(
                 "a splashing blow at a unit its side's shield covers is not measured",
             ));
@@ -696,7 +696,7 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let attacker = &self.actors[&actor_id];
-        if attacker.rules.attack.splash_radius() > 0 {
+        if attacker.stats.splash_radius() > 0 {
             return Err(Error::new(
                 "a splashing beam at a unit its side's shield covers is not measured",
             ));
@@ -778,7 +778,7 @@ impl Simulation {
         // aimed at and everything of the other side around it, in the order
         // the target trees hold them: a Melting Point's beam at one Crawler
         // reads the Crawler beside it first.
-        let splash_radius = self.actors[&actor_id].rules.attack.splash_radius();
+        let splash_radius = self.actors[&actor_id].stats.splash_radius();
         // A beam at a unit its side's shield covers strikes the shield, as a
         // blow does: `DamageEffect.Perform`.
         if let Some(shield) = self.blow_shield(actor_id, target) {

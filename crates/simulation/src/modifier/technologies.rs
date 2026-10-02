@@ -36,7 +36,7 @@ use crate::{
 };
 
 use super::{
-    effects::{self, Fields, PROJECTILE, SPLASH, VALUE_ELSEWHERE},
+    effects::{self, Fields, PROJECTILE, VALUE_ELSEWHERE},
     sources::{AutoRecovery, LifeSteal},
 };
 
@@ -325,7 +325,6 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
             "min_attack_range_value",
             VALUE_ELSEWHERE,
         ),
-        (&row.splash_range_value, "splash_range_value", SPLASH),
         (
             &row.projectile_speed_value,
             "projectile_speed_value",
@@ -354,6 +353,7 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
         attack_interval_rate: at_rank_one(&row.attack_interval_rate),
         attack_range_value: at_rank_one(&row.attack_range_value),
         attack_interval_value: at_rank_one(&row.attack_interval_value),
+        splash_range_value: at_rank_one(&row.splash_range_value),
         speed_value: at_rank_one(&row.speed_value),
     }))
 }
@@ -407,14 +407,19 @@ mod tests {
         assert!(refused.contains("rank"), "{refused}");
     }
 
+    /// Assault Mode's splash value lands in the skill's channel, as the
+    /// skill's `SplashRangeValue`.
     #[test]
-    fn a_technology_correcting_a_number_this_build_lacks_is_refused() {
+    fn a_technology_correcting_a_splash_writes_the_skill() {
         let table = TechnologyEffects::load().unwrap();
-        let refused = table
-            .corrections(&[ASSAULT_MODE], "marksman")
-            .unwrap_err()
-            .to_string();
-        assert!(refused.contains("splash_range_value"), "{refused}");
+        let written = table.corrections(&[ASSAULT_MODE], "marksman").unwrap();
+        assert!(
+            written
+                .iter()
+                .any(|(channel, entry)| *channel == Channel::Skill
+                    && entry.index == Index::SplashRange),
+            "{written:?}"
+        );
     }
 
     /// A technology of a subclass is refused by name and kind, numbers and

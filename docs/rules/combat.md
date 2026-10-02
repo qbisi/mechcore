@@ -533,6 +533,14 @@ hundred thousand. On the edge that decides it: a Crawler 6.99976 metres from
 where a Tarantula's 5-metre splash lands, with its own 2, reads 7.00034 and is
 spared.
 
+**A skill's splash is its description's plus every splash value written onto
+it.** An officer's, a technology's and an item's `splash_range_value` land in
+the skill's `SplashRangeValue`, as Explosive Ammo's `splash_range` does, and
+the splash a hit takes is the description's radius with their sum added, no
+rate applying. A skill with no splash of its own that is given one splashes
+as any other: a Marksman with Explosive Ammo strikes the Crawlers around the
+one it shoots.
+
 A Rhino's main skill, under those same baseline constraints and as a
 single-target direct effect, reaches its description's damage through
 `SkillDamageProvider -> FightSkill.GetDamage -> DamageProperty`. The killing
@@ -837,6 +845,13 @@ not the game's native attack-type enum.
   `tests/lifesteal/fights/absorption-module-over-technology.yaml` and
   `tests/lifesteal/fights/technology-lifesteal-beam.yaml`.
 
+- A splash value widens a skill's splash, from an item onto a skill with
+  none and onto one with its own, from a technology and from an officer:
+  `tests/splash/fights/explosive-ammo.yaml`,
+  `tests/splash/fights/explosive-ammo-arclight.yaml`,
+  `tests/splash/fights/assault-mode.yaml`,
+  `tests/splash/fights/improved-overlord.yaml` and
+  `tests/splash/fights/improved-tarantula.yaml`.
 - A unit repairs from its twentieth hurt tick on, every second tick, by
   the whole part of its maximum life times the rate, from an item and from a
   technology: `tests/repair/fights/nano-repair-kit.yaml` and
@@ -986,6 +1001,10 @@ not the game's native attack-type enum.
   and `Technology`'s; `Equipment`'s `CanDisable` is false and
   `Technology.CanDisable` reads `ignoreElectricEffect`.
 
+- A splash value: `SplashEquipment.AddData` writes its row through
+  `MechDataModifer.TryAddCommonData` and then ``Equipment`1.AddSkillData`` of
+  `SkillDataChangeFloat.SplashRangeValue`; `FightSkill.GetSplashRange` adds the
+  skill's data at that index to its row's splash.
 - Repair: `AutoRecoveryEffectProvider.DoActive` adds a unit to its side's
   `TeamAutoRecoveryManager`, whose `AutoRecoveryController` constructor
   calls `TeamAutoRecoveryManager+AutoRecoveryController.Reset`, setting the start clock to −1;

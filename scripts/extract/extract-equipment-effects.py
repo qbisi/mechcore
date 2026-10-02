@@ -40,6 +40,7 @@ SUBCLASS_FIELDS = {
     "start_time": ("startTime", "autoRecoveryEquipmentDatas"),
     "recovery_duration": ("recoveryDuration", "autoRecoveryEquipmentDatas"),
     "recovery_life_rate": ("recoveryLifeRate", "autoRecoveryEquipmentDatas"),
+    "splash_range": ("range", "splashEquipmentDatas"),
 }
 
 
@@ -100,7 +101,8 @@ def render(rows):
         "# a lifesteal item its `lifesteal_multiplier`, the share of a hit's",
         "# damage its unit takes back as life, and a repair item the seconds",
         "# hurt before it repairs, the seconds between two repairs and the",
-        "# share of maximum life each restores.",
+        "# share of maximum life each restores, and a splash item the",
+        "# `splash_range` it adds to its unit's main skill.",
         "#",
         "# A rate is an FPoint Q32.32 raw integer: 3221225472 is +0.75. A value is",
         "# an FPoint in the number's own units: 85899345920 is +20 of range.",

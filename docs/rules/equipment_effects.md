@@ -82,7 +82,9 @@ carries:
 - an equipment of a class whose mechanism is not here, named by its kind:
   shields and production lines among them. Absorption Module's and Nano
   Repair Kit's classes are read: their life steal and repair are
-  [combat.md](combat.md#lifesteal)'s;
+  [combat.md](combat.md#lifesteal)'s. So is Explosive Ammo's, which adds its
+  `splash_range` to the skill's splash as [combat.md](combat.md#damage-and-death)
+  states;
 - a row that sets `importantUnit` (Dominion Core) or `roundDuration` (Rapid
   Autoloader, rule `999903`'s), whose effects have not been recorded.
 
