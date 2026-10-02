@@ -1,0 +1,18 @@
+# A Raiden whose grouped slots could take a Defensive Wall block: red's
+# Raiden flies at blue's Crawlers behind blue's wall. Recorded with the game,
+# only its core slot strikes a block, once; its two siblings strike none. The
+# simulator refuses a striking slot at a construction rather than guess which
+# one it takes, so this layout is refused, and no fight pins it.
+
+kind: layout
+map_id: 1021
+seed: 4242
+round: 1
+blue:
+  units:
+  - {name: crawler, index: 0, position: {x: -145, y: -110}}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+red:
+  units:
+  - {name: raiden, index: 0, position: {x: 140, y: -40}}
