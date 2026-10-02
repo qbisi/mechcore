@@ -1,0 +1,20 @@
+# Steel Ball Production Line on blue's Fortress, against two Marksmen. The
+# line makes two Steel Balls on tick 1, at its row's offsets x ±24, z 15
+# in the Fortress's frame, and two more 16 s later, on tick 321. Blue wins on
+# tick 344 with two Steel Balls left.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 344
+hash: {profile: mcfr-content-0.7.0, result: 62322b120dcb64a1e11247a91d441c99dddcdfa10c803c1415a9f446d39c141e}
+blue:
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/400/1600, equipment: [steel_ball_production_line]}
+red:
+  core_damage: 374
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -100}, exp: 0/50/650}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/150/650}

@@ -1,0 +1,8 @@
+# Production lines
+
+What a production line makes, where its makes stand and how often they come,
+and whether a line holds the fight.
+[`equipment_effects.md`](../../docs/rules/equipment_effects.md#production-lines)
+is the rule. Each fight puts one line on blue's Fortress and names what it
+fights; the three lines each make their own unit, at their own offsets and
+interval.

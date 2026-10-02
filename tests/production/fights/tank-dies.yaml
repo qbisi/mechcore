@@ -1,0 +1,24 @@
+# Tank Production Line on blue's Fortress, against five Wasps. The line
+# makes its two batches of two Tanks on ticks 1 and 261; the Fortress falls on
+# tick 297, before its third would come, and its Tanks fight on without it
+# until red wins on tick 361. What a line does after its wearer falls is not
+# measured: the simulator refuses a make after it.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 361
+hash: {profile: mcfr-content-0.7.0, result: 0729cc1918c1d03a923f484d85a2fb862dcad59727b7486127c126fca2c4e33e}
+blue:
+  core_damage: 1020
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, equipment: [tank_production_line]}
+red:
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/158/900}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/558/900}
+  - {name: wasp, index: 2, position: {x: 5, y: -180}, exp: 0/148/900}
+  - {name: wasp, index: 3, position: {x: -55, y: -100}, exp: 0/98/900}
+  - {name: wasp, index: 4, position: {x: 65, y: -100}, exp: 0/158/900}

@@ -13,7 +13,7 @@ use crate::{
     data::{Channel, Entry, Stats},
     modifier::{
         AutoRecovery, CarriedShield, EnergyShield, EnergyTowerSkillEffects, EquipmentEffects,
-        LifeSteal, OfficerEffects, StartBuff, TechnologyEffects, current_source,
+        LifeSteal, OfficerEffects, ProductionLine, StartBuff, TechnologyEffects, current_source,
     },
     rules::{UnitConfig, UnitConfigs},
 };
@@ -62,6 +62,8 @@ pub(crate) struct Placement {
     pub(crate) energy_shield: Option<EnergyShield>,
     /// The battlefield shield its equipment makes it carry.
     pub(crate) carried_shield: Option<CarriedShield>,
+    /// The production line its equipment makes it run.
+    pub(crate) production: Option<Production>,
     /// The buffs its equipment adds to it as the fight starts.
     pub(crate) start_buffs: Vec<StartBuff>,
     /// The `buffDatas` rows its equipment makes it ignore,
@@ -70,6 +72,17 @@ pub(crate) struct Placement {
     /// Whether it opens the fight travelling: a unit deployed into an ambush
     /// zone, which `SuperDeploymentSystem` holds until its side arrives.
     pub(crate) travelling: bool,
+}
+
+/// A production line a unit runs, with what it makes resolved: the unit's
+/// description and what its side's officers, technologies and Energy Tower
+/// skills write onto that type, as `FightEffectSystem` registers them for a
+/// unit of it deployed with no equipment.
+#[derive(Debug, Clone)]
+pub(crate) struct Production {
+    pub(crate) line: ProductionLine,
+    pub(crate) rules: UnitConfig,
+    pub(crate) corrections: Vec<(Channel, Entry)>,
 }
 
 #[derive(Debug, Clone)]
@@ -531,6 +544,15 @@ fn compile_formation(
         loadouts,
         refused,
     );
+    let production = production_of(
+        side_name,
+        &formation.equipment,
+        rules,
+        units,
+        side,
+        loadouts,
+        refused,
+    );
     let formation_index = refused.hold(formation.index.map_or_else(
         || {
             i32::try_from(index)
@@ -538,8 +560,8 @@ fn compile_formation(
         },
         Ok,
     ));
-    let (Some(()), Some(()), Some(worn), Some(formation_index)) =
-        (fired, fits, worn, formation_index)
+    let (Some(()), Some(()), Some(worn), Some(production), Some(formation_index)) =
+        (fired, fits, worn, production, formation_index)
     else {
         return None;
     };
@@ -587,10 +609,79 @@ fn compile_formation(
         auto_recovery: worn.auto_recovery,
         energy_shield: worn.energy_shield,
         carried_shield: worn.carried_shield,
+        production,
         start_buffs: worn.start_buffs,
         ignored_buffs: worn.ignored_buffs,
         travelling: formation.travelling,
     })
+}
+
+/// The production line a formation's equipment runs, resolved, or `None`
+/// with its refusals kept: `Some(None)` for a formation that runs none.
+#[allow(clippy::option_option, reason = "a refusal is kept apart from no line")]
+fn production_of(
+    side_name: &str,
+    equipment: &[i32],
+    rules: &UnitConfig,
+    units: &UnitConfigs,
+    side: &SidePlan,
+    loadouts: &Loadouts,
+    refused: &mut Refusals,
+) -> Option<Option<Production>> {
+    let mut lines = Vec::new();
+    for &id in equipment {
+        lines.extend(
+            refused.hold(
+                loadouts
+                    .equipment
+                    .production(id, rules)
+                    .map_err(|error| Error::new(format!("side {side_name}: {error}"))),
+            )?,
+        );
+    }
+    let line = match lines.as_slice() {
+        [] => return Some(None),
+        [line] => line.clone(),
+        _ => {
+            refused.push(format!(
+                "side {side_name} unit type {:?} runs two production lines, which is not \
+                 measured",
+                rules.type_name
+            ));
+            return None;
+        }
+    };
+    let Some(made) = units.by_type_id(line.unit_type_id) else {
+        refused.push(format!(
+            "side {side_name}: a production line makes unit {}, which has no unit configuration",
+            line.unit_type_id
+        ));
+        return None;
+    };
+    let made = made.clone();
+    let worn = loadout(
+        side_name,
+        &made.type_name,
+        1,
+        &[],
+        &made,
+        side,
+        loadouts,
+        refused,
+    )?;
+    if worn.lifesteal.is_some() || worn.auto_recovery.is_some() || worn.energy_shield.is_some() {
+        refused.push(format!(
+            "side {side_name} makes a {} that its technologies give lifesteal, repair or a \
+             shield, and what a made unit's effect providers carry is not measured",
+            made.type_name
+        ));
+        return None;
+    }
+    Some(Some(Production {
+        line,
+        rules: made,
+        corrections: worn.corrections,
+    }))
 }
 
 /// What this side's loadout and a formation's equipment hand one unit.

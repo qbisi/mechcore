@@ -1,0 +1,22 @@
+# Tank Production Line on blue's Fortress, against two Marksmen. The line
+# makes its first batch of two Tanks on tick 1, at its row's offsets x ±24,
+# z 15 in the Fortress's frame, facing as it faces, and its second 13 s later,
+# on tick 261; each stands in the fight a second after it is made. Blue wins
+# on tick 298 with three Tanks left, and the line, which could still make,
+# does not hold the fight.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 298
+hash: {profile: mcfr-content-0.7.0, result: aa1529c998595dd5c35e74da92e6739279fc354861f38c69501570b58b4e6ae4}
+blue:
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/400/1600, equipment: [tank_production_line]}
+red:
+  core_damage: 380
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -100}}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/80/650}

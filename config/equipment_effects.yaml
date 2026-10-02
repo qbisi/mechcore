@@ -15,6 +15,10 @@ schema: mechcore.equipment_effects
 # is the fight's start), whom it reaches (`buff_targets`, TargetTypes:
 # 1 is the unit itself), how likely, and the buffDatas row it adds;
 # an anti-interference item the `ignored_buffs` of its buff group;
+# a production line the `production` it runs: the unit it makes,
+# `max_batch` batches of `create_count_per_time` every `create_duration`
+# seconds while fewer than `max_alive` live, each at its `positions`
+# offset from its wearer, in FPoint raw metres;
 # a shield item its `shield_life_rate`, its shield's share of its
 # unit's maximum life; a barrier item the `barrier_radius`, in whole
 # metres, and `barrier_energy` of the battlefield shield it carries;
@@ -255,18 +259,54 @@ equipment:
     mech_type: [7]
     main_skill_effect: true
     extra_skill_effect: true
+    production:
+      support_unit_id: 13
+      unit_level: 0
+      max_batch: 7
+      max_alive: 20
+      create_count_per_time: 2
+      start_time: 2
+      appear_type: 5
+      max_create_count: 0
+      create_duration: 55834574848  # +13
+      unit_life_rate: 0
+      positions: [{x: 103079215104, z: 64424509440}, {x: -103079215104, z: 64424509440}]
   - id: 1306002
     name: 野马生产线
     kind: supportUnitEquipmentDatas
     mech_type: [7]
     main_skill_effect: true
     extra_skill_effect: true
+    production:
+      support_unit_id: 7
+      unit_level: 0
+      max_batch: 8
+      max_alive: 20
+      create_count_per_time: 4
+      start_time: 2
+      appear_type: 5
+      max_create_count: 0
+      create_duration: 47244640256  # +11
+      unit_life_rate: 0
+      positions: [{x: 85899345920, z: -64424509440}, {x: -85899345920, z: -64424509440}, {x: 42949672960, z: -64424509440}, {x: -42949672960, z: -64424509440}]
   - id: 1306003
     name: 钢球生产线
     kind: supportUnitEquipmentDatas
     mech_type: [7]
     main_skill_effect: true
     extra_skill_effect: true
+    production:
+      support_unit_id: 8
+      unit_level: 0
+      max_batch: 6
+      max_alive: 20
+      create_count_per_time: 2
+      start_time: 2
+      appear_type: 5
+      max_create_count: 0
+      create_duration: 68719476736  # +16
+      unit_life_rate: 0
+      positions: [{x: 103079215104, z: 64424509440}, {x: -103079215104, z: 64424509440}]
   - id: 1306004
     name: 深渊信标
     kind: supportUnitEquipmentDatas
@@ -274,6 +314,18 @@ equipment:
     main_skill_effect: true
     extra_skill_effect: true
     round_duration: 1
+    production:
+      support_unit_id: 29
+      unit_level: 0
+      max_batch: 1
+      max_alive: 1
+      create_count_per_time: 1
+      start_time: 20
+      appear_type: 5
+      max_create_count: 0
+      create_duration: 42945377992704  # +9999
+      unit_life_rate: 0
+      positions: [{x: 0, z: 64424509440}]
   - id: 1307001
     name: 保护屏障
     kind: advancedEnergyShieldEquipmentDatas

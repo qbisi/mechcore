@@ -266,6 +266,21 @@ struct PersonalShield {
     maximum: i64,
 }
 
+/// The production lines the units run, one creator each, made as the fight
+/// starts in the order the units were placed.
+fn production_creators(actors: &BTreeMap<u64, Actor>) -> Vec<support_unit::Creator> {
+    actors
+        .values()
+        .filter_map(|actor| {
+            actor
+                .placement
+                .production
+                .as_ref()
+                .map(|production| support_unit::Creator::production(actor, production))
+        })
+        .collect()
+}
+
 /// The battlefield shields the units carry into the fight, each where its
 /// owner stands as it is placed: `AdvancedEnergyShieldProvider` creates one
 /// for a unit whose equipment is a Barrier.
@@ -421,6 +436,7 @@ impl Simulation {
         let mech_quadtrees = initialize_mech_quadtrees(&actors);
         let buildings_query_alive = standing_buildings(&buildings);
         let carried = carried_shields(&actors);
+        let productions = production_creators(&actors);
         let mut simulation = Self {
             actors,
             unit_update_order,
@@ -434,7 +450,11 @@ impl Simulation {
             },
             shield: shield::ShieldSystem::new(&layout.shields, &carried),
             commander: commander_skill::CommanderSkillSystem::new(layout),
-            support: support_unit::SupportUnitSystem::default(),
+            support: support_unit::SupportUnitSystem {
+                lines: productions,
+                creators: Vec::new(),
+                appearing: Vec::new(),
+            },
             travels,
             ids: Identities {
                 objects: IdentityAllocator::new(),
@@ -972,7 +992,8 @@ impl Simulation {
             .map(|actor| actor.placement.team)
             .collect::<std::collections::BTreeSet<_>>();
         // `SupportUnitSystem.IsStepFinish` and `SummonSystem.IsStepFinish`:
-        // a creator still alive, or a summon still appearing, holds the fight.
+        // a battle skill's creator still alive, or a summon still appearing,
+        // holds the fight; a production line never does.
         living_teams.len() < 2
             && self.projectiles.is_empty()
             && self.support.creators.is_empty()

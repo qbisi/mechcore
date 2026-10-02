@@ -111,20 +111,47 @@ and not recorded, whoever writes it. The item is a permanent effect, active
 already during deployment, which changes nothing in the fight: the ignored
 buffs are in force from its start.
 
+## Production lines
+
+**A production line makes its unit for as long as the fight lasts.** As the
+fight starts it hands its wearer's side a creator, which joins the side's
+production lines rather than its battle skills' creators. It updates on every
+tick from the first, where a summon's creator does and before its side's, and
+makes `create_count_per_time` of its unit on its first update, the fight's
+first tick, and again every `create_duration`; the row's `start_time` delays
+nothing. It stops for good after `max_batch` batches, and makes none while
+`max_alive` of its makes stand, counting those still appearing. It never
+finishes and never holds the fight: a fight ends while a line could still
+make.
+
+**Where a make stands.** The makes of a batch take the row's `positions` in
+turn, each an offset `x` to the right and `z` ahead of the wearer, turned by
+the wearer's facing about the vertical as `FQuaternion.AngleAxis` turns it,
+and face as the wearer faces. Each is then a summon at level 1, carrying what
+its side's officers and technologies write onto its type, and appears for a
+second as [battle_skill.md](battle_skill.md#a-summon) states. The rows are
+[`config/equipment_effects.yaml`](../../config/equipment_effects.yaml)'s
+`production`.
+
+A row with a `unit_level`, a `max_create_count`, a `unit_life_rate`, no
+`positions` or an `appear_type` other than 5 is refused by name, and so are
+two lines on one unit, a make whose side's technologies give it life steal,
+repair or a shield, and a make due after its wearer has fallen.
+
 ## What is refused
 
 A layout is refused by name, rather than fought with part of an item, when it
 carries:
 
-- an equipment of a class whose mechanism is not here, named by its kind:
-  production lines among them. Absorption Module's and Nano
-  Repair Kit's classes are read: their life steal and repair are
+- an equipment of a class whose mechanism is not here, named by its kind.
+  Absorption Module's and Nano Repair Kit's classes are read: their life steal and repair are
   [combat.md](combat.md#lifesteal)'s, Portable Shield's is
   [combat.md](combat.md#personal-shield)'s and Barrier's
   [contraptions.md](contraptions.md#a-shield)'s. So is Explosive Ammo's, which adds its
   `splash_range` to the skill's splash as [combat.md](combat.md#damage-and-death)
-  states, and Photon Coating's and Anti-Interference Module's, which
-  [Buff items](#buff-items) states;
+  states, Photon Coating's and Anti-Interference Module's, which
+  [Buff items](#buff-items) states, and the production lines', which
+  [Production lines](#production-lines) states;
 - a row that sets `importantUnit` (Dominion Core) or `roundDuration` (Rapid
   Autoloader, rule `999903`'s), whose effects have not been recorded.
 
@@ -151,6 +178,10 @@ carries:
 - Anti-Interference Module keeps an Electromagnetic Impact's buff and a
   tower's loss off its unit: `tests/equipment_buff/fights/anti-interference-emp.yaml`
   and `tests/equipment_buff/fights/anti-interference-tower.yaml`.
+- A production line makes its first batch on tick 1 and the next a
+  `create_duration` later, each make where its offset turned by the wearer's
+  facing puts it, and the fight ends while the line could still make:
+  `tests/production/fights/`.
 
 ### Replayed
 
@@ -183,6 +214,15 @@ carries:
   good since `IgnoreBuffEquipment.GetDuration` is zero, and
   `BuffSystem.DoAddBuff` adds no buff its target `IsIgnoredBuff`; a permanent
   effect is activated during deployment by `EffectProvider.ActiveCheck`.
+- A production line's creator: `TeamSupportUnitManager.AddCreator` adds it to
+  `creators`, where a battle skill's goes to `temporaryCreator` by
+  `TeamSupportUnitManager.AddTemporaryCreator`; `TeamSupportUnitManager.Update`
+  runs `creators` before `temporaryCreator`, each latest first, and
+  `TeamSupportUnitManager.IsStepFinish` reads `temporaryCreator` alone.
+  `SupportUnitCreator.Update` counts its batches against
+  `SupportUnitCreator.IsBatchMax` and its living makes against
+  `SupportUnitCreator.IsMaxLimit`, and `SupportUnitCreator.CreateMech` places
+  a make by its owner's rotation.
 - Rule `999903` deals the items limited to scene 1300:
   `GameRule.replaceReinforceLabel`, `ItemData.limitedScene`.
 

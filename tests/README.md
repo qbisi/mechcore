@@ -25,6 +25,7 @@ out to show:
 | [`super_deployment/`](super_deployment/README.md) | what a formation deployed on a flank does in a fight, travelling in or settled |
 | [`shield/`](shield/README.md) | what a battlefield shield does to the hits meant for what it covers, and when it breaks |
 | [`search/`](search/README.md) | which positions a skill's target search scores |
+| [`production/`](production/README.md) | what a production line makes, where its makes stand, and how often they come |
 | [`repair/`](repair/README.md) | how a unit repairs itself while hurt: when it starts, how often and by how much |
 | [`projectile/`](projectile/README.md) | how a projectile leaves its weapon, climbs and flies, and a burst still releasing |
 | [`tower/`](tower/README.md) | what losing a tower writes on its side, and what strengthening one adds |

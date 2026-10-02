@@ -15,8 +15,16 @@
 //! deals its whole life to everything its edge covers, of either side, and
 //! loses as much as it dealt. `docs/rules/battle_skill.md` states the rule.
 
+use super::math::fpcs_sin_fastest;
 use super::*;
 use crate::layout::Summon;
+
+/// `FPoint.Deg2Rad`, Q32.32.
+const DEG_TO_RAD: i64 = 0x0477_D1A9;
+
+/// A quarter turn, Q32.32 radians: `SinFastest` of an angle a quarter turn
+/// on is its cosine.
+const QUARTER_TURN: i64 = 0x1_921F_B544;
 
 /// `SupportUnitCreator.APPEAR_DURATION`, one second, in ticks.
 const APPEAR_TICKS: u64 = 20;
@@ -25,7 +33,12 @@ const APPEAR_TICKS: u64 = 20;
 /// appearing.
 #[derive(Default)]
 pub(in crate::fight) struct SupportUnitSystem {
-    /// Each side's `SupportUnitCreator`s still creating or alive.
+    /// `TeamSupportUnitManager.creators`, `AddCreator`'s: the production
+    /// lines units carry, which never finish and never hold the fight.
+    pub(in crate::fight) lines: Vec<Creator>,
+    /// `TeamSupportUnitManager.temporaryCreator`, `AddTemporaryCreator`'s:
+    /// the battle skills' creators still creating or alive, which hold the
+    /// fight (`IsStepFinish`).
     pub(in crate::fight) creators: Vec<Creator>,
     /// The summons created and not yet let into the fight, in the order they
     /// were created.
@@ -39,12 +52,50 @@ pub(in crate::fight) struct Creator {
     x_q32: i64,
     z_q32: i64,
     summon: Summon,
+    /// The unit whose production line it is, `SupportUnitData.GetParent`:
+    /// its makes stand at `offsets` from where that unit stands and faces.
+    owner: Option<u64>,
+    /// `GetPositionDatas`, Q32.32 metres right and forward of the owner.
+    offsets: Vec<(i64, i64)>,
+    /// `GetBatchMaxCount`: how many batches it makes in all, none for no
+    /// bound.
+    max_batch: u32,
+    /// `createBatchCount`.
+    batches: u32,
+    /// `GetMaxAliveCount`: how many of its makes may stand at once, none for
+    /// no bound.
+    max_alive: u32,
+    /// Its makes, `AddMech`'s: `aliveMechCount` counts those not dead.
+    made: Vec<u64>,
     /// `intervalTimeCounter`.
     counter: u32,
     /// `createCount`, which a summon's death never takes back.
     created: u32,
     /// `lifeTime`: the updates it has run.
     updates: u64,
+}
+
+/// Which of a `TeamSupportUnitManager`'s lists a creator is in.
+#[derive(Clone, Copy)]
+enum List {
+    Lines,
+    Temporary,
+}
+
+impl SupportUnitSystem {
+    fn list(&self, list: List) -> &Vec<Creator> {
+        match list {
+            List::Lines => &self.lines,
+            List::Temporary => &self.creators,
+        }
+    }
+
+    fn list_mut(&mut self, list: List) -> &mut Vec<Creator> {
+        match list {
+            List::Lines => &mut self.lines,
+            List::Temporary => &mut self.creators,
+        }
+    }
 }
 
 /// A summon created and not yet let into the fight.
@@ -65,6 +116,48 @@ impl Creator {
             // Set so that the first update creates.
             counter: summon.interval_ticks,
             summon,
+            owner: None,
+            offsets: Vec::new(),
+            max_batch: 0,
+            batches: 0,
+            max_alive: 0,
+            made: Vec::new(),
+            created: 0,
+            updates: 0,
+        }
+    }
+
+    /// A production line's creator, as `SupportUnitEffectProvider` hands its
+    /// owner's side one when the fight starts: it makes for as long as the
+    /// fight lasts, bound by its batches and by how many of its makes live.
+    pub(in crate::fight) fn production(
+        owner: &Actor,
+        production: &crate::layout::Production,
+    ) -> Self {
+        let line = &production.line;
+        let summon = Summon {
+            rules: production.rules.clone(),
+            count: u32::MAX,
+            per_time: line.per_time,
+            interval_ticks: u32::try_from(seconds_q32_to_steps(line.interval_q32))
+                .unwrap_or(u32::MAX),
+            random_range_q32: 0,
+            drop_damage: false,
+            updates: u64::MAX,
+            corrections: production.corrections.clone(),
+        };
+        Self {
+            team: owner.placement.team,
+            x_q32: owner.x_q32,
+            z_q32: owner.z_q32,
+            counter: summon.interval_ticks,
+            summon,
+            owner: Some(owner.placement.unit_id),
+            offsets: line.offsets.clone(),
+            max_batch: line.max_batch,
+            batches: 0,
+            max_alive: line.max_alive,
+            made: Vec::new(),
             created: 0,
             updates: 0,
         }
@@ -89,8 +182,9 @@ impl Simulation {
             .any(|appearing| appearing.actor.placement.team == team)
     }
 
-    /// `TeamSupportUnitManager.Update`, side by side: every creator, the
-    /// latest first, runs one update, and one whose time is up is removed.
+    /// `TeamSupportUnitManager.Update`, side by side: the production lines,
+    /// then the battle skills' creators, each list the latest first; every
+    /// creator runs one update, and one whose time is up is removed.
     pub(in crate::fight) fn step_support_units(
         &mut self,
         step: u64,
@@ -98,36 +192,71 @@ impl Simulation {
     ) -> Result<()> {
         let tick = step + 1;
         for team in [0_u32, 1] {
-            let mut index = self.support.creators.len();
-            while index > 0 {
-                index -= 1;
-                if self.support.creators[index].team != team {
+            self.step_creators(List::Lines, team, tick, events)?;
+            self.step_creators(List::Temporary, team, tick, events)?;
+        }
+        Ok(())
+    }
+
+    /// `TeamSupportUnitManager.UpdateCreators` over one list of a side's.
+    fn step_creators(
+        &mut self,
+        list: List,
+        team: u32,
+        tick: u64,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        let mut index = self.support.list(list).len();
+        while index > 0 {
+            index -= 1;
+            if self.support.list(list)[index].team != team {
+                continue;
+            }
+            let alive = {
+                let creator = &self.support.list(list)[index];
+                let appearing = |id: u64| {
+                    self.support
+                        .appearing
+                        .iter()
+                        .any(|appearing| appearing.actor.placement.unit_id == id)
+                };
+                creator
+                    .made
+                    .iter()
+                    .filter(|&&id| appearing(id) || self.actors.get(&id).is_some_and(Actor::alive))
+                    .count()
+            };
+            let batch = {
+                let creator = &mut self.support.list_mut(list)[index];
+                // `IsBatchMax` stops it for good, before its life counts.
+                if creator.max_batch > 0 && creator.batches >= creator.max_batch {
                     continue;
                 }
-                let batch = {
-                    let creator = &mut self.support.creators[index];
-                    creator.updates += 1;
-                    let mut batch = 0;
-                    if creator.created < creator.summon.count {
-                        creator.counter += 1;
-                        if creator.counter >= creator.summon.interval_ticks {
-                            creator.counter = 0;
-                            batch = creator
-                                .summon
-                                .per_time
-                                .min(creator.summon.count - creator.created);
-                            creator.created += batch;
-                        }
+                creator.updates += 1;
+                let mut batch = 0;
+                let full = creator.max_alive > 0
+                    && alive >= usize::try_from(creator.max_alive).unwrap_or(usize::MAX);
+                if !full && creator.created < creator.summon.count {
+                    creator.counter += 1;
+                    if creator.counter >= creator.summon.interval_ticks {
+                        creator.counter = 0;
+                        batch = creator
+                            .summon
+                            .per_time
+                            .min(creator.summon.count - creator.created);
+                        creator.created += batch;
+                        creator.batches += 1;
                     }
-                    batch
-                };
-                let creator = self.support.creators[index].clone();
-                for _ in 0..batch {
-                    self.create_summon(&creator, tick, events)?;
                 }
-                if creator.updates >= creator.summon.updates {
-                    self.support.creators.remove(index);
-                }
+                batch
+            };
+            let creator = self.support.list(list)[index].clone();
+            for member in 0..batch {
+                let unit_id = self.create_summon(&creator, member, tick, events)?;
+                self.support.list_mut(list)[index].made.push(unit_id);
+            }
+            if creator.updates >= creator.summon.updates {
+                self.support.list_mut(list).remove(index);
             }
         }
         Ok(())
@@ -140,11 +269,18 @@ impl Simulation {
     fn create_summon(
         &mut self,
         creator: &Creator,
+        member: u32,
         tick: u64,
         events: &mut Vec<Event>,
-    ) -> Result<()> {
+    ) -> Result<u64> {
         let team = creator.team;
-        let (mut x_q32, mut z_q32) = (creator.x_q32, creator.z_q32);
+        let (mut x_q32, mut z_q32, facing) = match creator.owner {
+            Some(owner) => {
+                let (x, z, facing) = self.production_position(creator, owner, member)?;
+                (x, z, Some(facing))
+            }
+            None => (creator.x_q32, creator.z_q32, None),
+        };
         if creator.summon.random_range_q32 > 0 {
             let span = i32::try_from((creator.summon.random_range_q32 >> 32) * 100)
                 .map_err(|_| Error::new("a summon's scatter exceeds i32"))?;
@@ -175,11 +311,15 @@ impl Simulation {
             auto_recovery: None,
             energy_shield: None,
             carried_shield: None,
+            production: None,
             start_buffs: Vec::new(),
             ignored_buffs: Vec::new(),
             travelling: false,
         };
         let mut actor = Actor::at_generated_position(placement, rules, x_q32, z_q32);
+        if let Some(facing) = facing {
+            actor.face(facing);
+        }
         actor.summoned = true;
         // `CreateMechDelay` locks the agent with nothing handed to it: it
         // reaches its first solve with no speed to take unless entering a
@@ -209,7 +349,37 @@ impl Simulation {
             joins_on: tick + APPEAR_TICKS,
             drop_damage: creator.summon.drop_damage,
         });
-        Ok(())
+        Ok(unit_id)
+    }
+
+    /// Where a production line's make stands, and which way it faces:
+    /// `SummonSystem.CreateMech` turns its offset, `UnitPositionDatas.
+    /// GetPosition`'s next, by `FQuaternion.AngleAxis` of its owner's facing
+    /// about the vertical, adds it to where the owner stands, and faces it as
+    /// the owner faces.
+    fn production_position(
+        &self,
+        creator: &Creator,
+        owner: u64,
+        member: u32,
+    ) -> Result<(i64, i64, i64)> {
+        let Some(owner_actor) = self.actors.get(&owner).filter(|actor| actor.alive()) else {
+            return Err(Error::new(format!(
+                "unit {owner}'s production line makes a unit after it died, which is not \
+                 measured"
+            )));
+        };
+        let index = usize::try_from(member).unwrap_or(usize::MAX) % creator.offsets.len().max(1);
+        let Some(&(right, forward)) = creator.offsets.get(index) else {
+            return Err(Error::new("a production line holds no offset"));
+        };
+        let facing = owner_actor.body_rotation_q32;
+        let (x, z) = turn_about_vertical(facing, right, forward);
+        Ok((
+            owner_actor.x_q32.saturating_add(x),
+            owner_actor.z_q32.saturating_add(z),
+            facing,
+        ))
     }
 
     /// `SummonSystem.AddMechDelay` for every summon whose second is up, in
@@ -300,6 +470,24 @@ impl Simulation {
         ));
         Ok(())
     }
+}
+
+/// `FQuaternion.AngleAxis(angle, FVector3.up) * (x, 0, z)`, in the build's
+/// fixed point: the half angle's `SinFastest` is the quaternion's `y`, a
+/// quarter turn on its `w`, and `FQuaternion.Transform` expands the product
+/// term by term.
+fn turn_about_vertical(angle_q32: i64, x: i64, z: i64) -> (i64, i64) {
+    let half = q32_div(q32_mul(angle_q32, DEG_TO_RAD), 2 << 32);
+    let qy = fpcs_sin_fastest(half);
+    let w = fpcs_sin_fastest(half.saturating_add(QUARTER_TURN));
+    let y2 = qy.saturating_mul(2);
+    let yy = q32_mul(qy, y2);
+    let wy = q32_mul(w, y2);
+    let one = 1_i64 << 32;
+    (
+        q32_mul(x, one - yy) + q32_mul(z, wy),
+        q32_mul(x, -wy) + q32_mul(z, one - yy),
+    )
 }
 
 /// A draw in hundredths of a metre as `FPoint` raw metres, `draw / 100` in
