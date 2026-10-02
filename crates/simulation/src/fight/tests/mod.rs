@@ -49,6 +49,7 @@ pub(super) fn placement(
         corrections: Vec::new(),
         lifesteal: None,
         auto_recovery: None,
+        energy_shield: None,
         start_buffs: Vec::new(),
         ignored_buffs: Vec::new(),
         travelling: false,

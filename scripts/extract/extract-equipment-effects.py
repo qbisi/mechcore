@@ -41,6 +41,7 @@ SUBCLASS_FIELDS = {
     "recovery_duration": ("recoveryDuration", "autoRecoveryEquipmentDatas"),
     "recovery_life_rate": ("recoveryLifeRate", "autoRecoveryEquipmentDatas"),
     "splash_range": ("range", "splashEquipmentDatas"),
+    "shield_life_rate": ("lifeRate", "energyShieldEquipmentDatas"),
 }
 
 
@@ -167,6 +168,8 @@ def render(rows):
         "# is the fight's start), whom it reaches (`buff_targets`, TargetTypes:",
         "# 1 is the unit itself), how likely, and the buffDatas row it adds;",
         "# an anti-interference item the `ignored_buffs` of its buff group;",
+        "# a shield item its `shield_life_rate`, its shield's share of its",
+        "# unit's maximum life;",
         "# a lifesteal item its `lifesteal_multiplier`, the share of a hit's",
         "# damage its unit takes back as life, and a repair item the seconds",
         "# hurt before it repairs, the seconds between two repairs and the",

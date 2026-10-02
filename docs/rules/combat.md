@@ -600,9 +600,21 @@ and [`config/technology_effects.yaml`](../../config/technology_effects.yaml)'s
 whose `auto_recovery_state_type` is not 0 repairs only underground or
 cloaked, which the simulator refuses.
 
-## Personal shield baseline
+## Personal shield
 
 A unit with no shield still starts with its `EnergyShieldController` enabled.
+
+**A unit with a shield source opens the fight with a shield of the whole part
+of its maximum life times the source's rate, and a hit takes energy before
+life.** While the shield holds energy, a hit of at least 1 takes as much as it
+can of it and no life at all: what the shield held of it is what the hit
+dealt, recorded and counted as such, and the rest of the hit is lost. Once
+the shield is empty, hits take life. It does not refill.
+
+Portable Shield is a source of its row's `shield_life_rate`, and an Energy
+Shield technology a source of rate 1, whatever its row: the technology's
+class answers the rate with a constant. A unit holds one source in force, an
+item's over a technology's, as for lifesteal.
 
 ## Ordinary first-attack delay
 
@@ -857,6 +869,10 @@ not the game's native attack-type enum.
   technology: `tests/repair/fights/nano-repair-kit.yaml` and
   `tests/repair/fights/field-maintenance.yaml`.
 
+- A shield of the whole maximum life takes hits before life, its last hit
+  only what it held: `tests/energy_shield/fights/portable-shield.yaml` and
+  `tests/energy_shield/fights/energy-shield-technology.yaml`.
+
 ### Read
 
 - A projectile that locks its target is released with no damage out of its
@@ -1018,6 +1034,16 @@ not the game's native attack-type enum.
   `FightController.AddModules` adds `AutoRecoverySystem` after
   `SuperDeploymentSystem`.
 
+- A personal shield: `EnergyShieldProvider.AddEffect` sets the controller's
+  `lifeRate` from `IEnergyShieldSource.GetLifeRate`, which
+  `EnergyShieldEquipment.GetLifeRate` reads from its row and
+  `EnergyShieldTech.GetLifeRate` answers as `FPoint.One`;
+  `EnergyShieldController.Open` fills it to
+  `EnergyShieldController.RefreshMaxEnergy`'s maximum life times that rate;
+  `FightMech.OnHitted` takes `FPoint.Min` of the energy and the hit through
+  `EnergyShieldController.ReduceEnergy` while `EnergyShieldBehaviour.IsAvaliable`,
+  and calls `FightActor.ReduceLife` only otherwise.
+
 ### Not established
 
 - **Repair with its technologies disabled**, which stops the clocks
@@ -1076,7 +1102,9 @@ not the game's native attack-type enum.
 - **Damage**: building splash, the area boundary of a hit other than a splash,
   ordering, modifier chains,
   shields, and other providers or target domains.
-- **A personal shield's** activation, absorption and destruction.
+- **A personal shield's** refresh when its unit's maximum life changes
+  (`EnergyShieldController.Refresh`), which no simulated buff does, and its
+  disabling with its unit's technologies.
 - **Attack timing**: repeat attacks, grouped and loading paths, phase
   adjustments other than the backswing; losing the target during windup, a
   third-party kill and quick target switching during a backswing; third-party

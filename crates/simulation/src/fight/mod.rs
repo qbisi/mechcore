@@ -232,6 +232,11 @@ struct Actor {
     command: Option<pilot::MoveCommand>,
     /// The buffs running on it, `BuffManager`'s list.
     buffs: Vec<RunningBuff>,
+    /// Its `EnergyShieldController`'s energy and maximum, when a shield
+    /// source is in force on it: `EnergyShieldProvider.AddEffect` sets the
+    /// controller's `lifeRate`, and its `Open` fills it to the whole part of
+    /// the unit's maximum life times that rate.
+    shield: Option<PersonalShield>,
     /// Whether its equipment's fight-start buffs are still to be added:
     /// its `BuffCycleController`s are running and have not updated.
     start_buffs_pending: bool,
@@ -252,6 +257,13 @@ struct Actor {
     underground: Option<underground::Underground>,
     pub(in crate::fight) motion: Motion,
     pub(in crate::fight) skill: Skill,
+}
+
+/// A unit's own shield, `EnergyShieldController`.
+#[derive(Debug, Clone, Copy)]
+struct PersonalShield {
+    energy: i64,
+    maximum: i64,
 }
 
 /// `GameRiver.BuildingType.Special`.

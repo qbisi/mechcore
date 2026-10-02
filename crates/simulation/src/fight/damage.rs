@@ -403,6 +403,25 @@ impl Simulation {
                 let taken = unit.stats.damage_taken_raised(amount)?;
                 let amount = unit.stats.damage_taken(amount)?;
                 let previous_life = unit.life;
+                // `FightMech.OnHitted`: a shield with energy left takes the
+                // hit, as much of it as it holds, and the unit loses no life;
+                // what it took is what the hit dealt.
+                if let Some(shield) = unit.shield.as_mut()
+                    && amount >= 1
+                    && shield.energy > 0
+                {
+                    let absorbed = shield.energy.min(amount);
+                    shield.energy -= absorbed;
+                    return Ok(Stroke {
+                        actual: absorbed,
+                        dealt: amount,
+                        taken,
+                        killed: false,
+                        reached_alive: previous_life > 0,
+                        death: None,
+                        fallen: None,
+                    });
+                }
                 unit.life = unit.life.saturating_sub(amount).max(0);
                 let actual = previous_life - unit.life;
                 if actual > 0 {
