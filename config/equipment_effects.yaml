@@ -1,34 +1,177 @@
 schema: mechcore.equipment_effects
 
-# What an ordinary EquipmentData row writes onto the unit that wears it,
-# read out of EquipmentGroupData by scripts/extract/extract-equipment-effects.py.
+# What an EquipmentData row writes onto the unit that wears it, read out
+# of EquipmentGroupData by scripts/extract/extract-equipment-effects.py.
 # docs/rules/equipment_effects.md states what each field means. A field
 # is written only when it is set; what an equipment costs is
 # config/reinforce_items.yaml's, and its other pool fields are not here.
+#
+# A row's `kind` is the list of EquipmentGroupData it comes from:
+# `equipmentDatas` for an item that does nothing but correct its unit's
+# numbers, and a subclass's list for one that does something more.
+# Every class writes the corrections below, whatever else it does.
 #
 # A rate is an FPoint Q32.32 raw integer: 3221225472 is +0.75. A value is
 # an FPoint in the number's own units: 85899345920 is +20 of range.
 
 equipment:
+  - id: 1305001
+    name: 充能弹药
+    kind: buffEquipmentDatas
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
+  - id: 1305002
+    name: 寄生弹药
+    kind: buffEquipmentDatas
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
+  - id: 1305003
+    name: 光子涂层
+    kind: buffEquipmentDatas
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
+  - id: 1305004
+    name: 先进电磁弹药
+    kind: buffEquipmentDatas
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
+    round_duration: 1
+    attack_range_value: 171798691840  # +40
+  - id: 1305005
+    name: 先进寄生弹药
+    kind: buffEquipmentDatas
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
+    round_duration: 1
+    damage_rate: 2147483648  # +0.5
+  - id: 1305006
+    name: 先进压制弹药
+    kind: buffEquipmentDatas
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
+    round_duration: 1
+    attack_range_value: 171798691840  # +40
+  - id: 1305007
+    name: 战斗进化系统
+    kind: buffEquipmentDatas
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
+    round_duration: 1
+  - id: 1305008
+    name: 光子投射装置
+    kind: buffEquipmentDatas
+    mech_type: [7]
+    main_skill_effect: true
+    extra_skill_effect: true
+    round_duration: 1
+  - id: 1305009
+    name: 先进酸性弹药
+    kind: buffEquipmentDatas
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
+    round_duration: 1
+  - id: 1305010
+    name: 先进引导雷达
+    kind: buffEquipmentDatas
+    mech_type: [7, 2]
+    main_skill_effect: true
+    extra_skill_effect: true
+    round_duration: 1
+  - id: 1306001
+    name: 坦克生产线
+    kind: supportUnitEquipmentDatas
+    mech_type: [7]
+    main_skill_effect: true
+    extra_skill_effect: true
+  - id: 1306002
+    name: 野马生产线
+    kind: supportUnitEquipmentDatas
+    mech_type: [7]
+    main_skill_effect: true
+    extra_skill_effect: true
+  - id: 1306003
+    name: 钢球生产线
+    kind: supportUnitEquipmentDatas
+    mech_type: [7]
+    main_skill_effect: true
+    extra_skill_effect: true
+  - id: 1306004
+    name: 深渊信标
+    kind: supportUnitEquipmentDatas
+    mech_type: [7]
+    main_skill_effect: true
+    extra_skill_effect: true
+    round_duration: 1
+  - id: 1307001
+    name: 保护屏障
+    kind: advancedEnergyShieldEquipmentDatas
+    mech_type: [7, 2]
+    main_skill_effect: true
+    extra_skill_effect: true
+  - id: 1307002
+    name: 超级屏障
+    kind: advancedEnergyShieldEquipmentDatas
+    mech_type: [7]
+    main_skill_effect: true
+    extra_skill_effect: true
+    round_duration: 1
+  - id: 1308001
+    name: 抗干扰模块
+    kind: ignoreBuffEquipmentDatas
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
+    permanent_effect: true
+  - id: 1309001
+    name: 汲取模块
+    kind: lifestealEquipmentDatas
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
+    life_rate: 1288490188  # +0.3
+  - id: 13010001
+    name: 便携式护盾
+    kind: energyShieldEquipmentDatas
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
+  - id: 13020001
+    name: 纳米维修包
+    kind: autoRecoveryEquipmentDatas
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
   - id: 13030001
     name: 激光瞄具
+    kind: equipmentDatas
     mech_type: [4]
     main_skill_effect: true
     attack_range_value: 85899345920  # +20
   - id: 13030002
     name: 重型装甲
+    kind: equipmentDatas
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
     life_rate: 3221225472  # +0.75
   - id: 13030003
     name: 改良火控系统
+    kind: equipmentDatas
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
     damage_rate: 2791728742  # +0.65
   - id: 13030004
     name: 强化模块
+    kind: equipmentDatas
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
@@ -36,6 +179,7 @@ equipment:
     damage_rate: 1073741824  # +0.25
   - id: 13030005
     name: 速攻模块
+    kind: equipmentDatas
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
@@ -43,12 +187,14 @@ equipment:
     speed_value: 5
   - id: 13030006
     name: 超重型装甲
+    kind: equipmentDatas
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
     life_rate: 6442450944  # +1.5
   - id: 13030007
     name: 增幅核心
+    kind: equipmentDatas
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
@@ -56,12 +202,14 @@ equipment:
     damage_rate: 2147483648  # +0.5
   - id: 13030008
     name: 高级火控系统
+    kind: equipmentDatas
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
     damage_rate: 8589934592  # +2
   - id: 13030009
     name: 次级增幅核心
+    kind: equipmentDatas
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
@@ -69,6 +217,7 @@ equipment:
     damage_rate: 644245094  # +0.15
   - id: 13030010
     name: 统御核心
+    kind: equipmentDatas
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
@@ -77,6 +226,7 @@ equipment:
     damage_rate: 2147483648  # +0.5
   - id: 13030011
     name: 快速装填机
+    kind: equipmentDatas
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
@@ -84,51 +234,80 @@ equipment:
     attack_interval_rate: -2147483648  # -0.5
   - id: 13030521
     name: 次级激光瞄具
+    kind: equipmentDatas
     mech_type: [4]
     main_skill_effect: true
     attack_range_value: 34359738368  # +8
   - id: 13030522
     name: 次级火控系统
+    kind: equipmentDatas
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
     damage_rate: 1073741824  # +0.25
   - id: 13030523
     name: 次级重型装甲
+    kind: equipmentDatas
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
     life_rate: 1288490188  # +0.3
-
-# The equipment of every other class, by the EquipmentGroupData list it
-# comes from, which no row above describes.
-other:
-  - {id: 1305001, name: 充能弹药, kind: buffEquipmentDatas}
-  - {id: 1305002, name: 寄生弹药, kind: buffEquipmentDatas}
-  - {id: 1305003, name: 光子涂层, kind: buffEquipmentDatas}
-  - {id: 1305004, name: 先进电磁弹药, kind: buffEquipmentDatas}
-  - {id: 1305005, name: 先进寄生弹药, kind: buffEquipmentDatas}
-  - {id: 1305006, name: 先进压制弹药, kind: buffEquipmentDatas}
-  - {id: 1305007, name: 战斗进化系统, kind: buffEquipmentDatas}
-  - {id: 1305008, name: 光子投射装置, kind: buffEquipmentDatas}
-  - {id: 1305009, name: 先进酸性弹药, kind: buffEquipmentDatas}
-  - {id: 1305010, name: 先进引导雷达, kind: buffEquipmentDatas}
-  - {id: 1306001, name: 坦克生产线, kind: supportUnitEquipmentDatas}
-  - {id: 1306002, name: 野马生产线, kind: supportUnitEquipmentDatas}
-  - {id: 1306003, name: 钢球生产线, kind: supportUnitEquipmentDatas}
-  - {id: 1306004, name: 深渊信标, kind: supportUnitEquipmentDatas}
-  - {id: 1307001, name: 保护屏障, kind: advancedEnergyShieldEquipmentDatas}
-  - {id: 1307002, name: 超级屏障, kind: advancedEnergyShieldEquipmentDatas}
-  - {id: 1308001, name: 抗干扰模块, kind: ignoreBuffEquipmentDatas}
-  - {id: 1309001, name: 汲取模块, kind: lifestealEquipmentDatas}
-  - {id: 13010001, name: 便携式护盾, kind: energyShieldEquipmentDatas}
-  - {id: 13020001, name: 纳米维修包, kind: autoRecoveryEquipmentDatas}
-  - {id: 13040001, name: 部署模块, kind: mobilityIntensifyEquipmentDatas}
-  - {id: 13100001, name: 试验级巨山装甲, kind: armorStrengthenEquipmentDatas}
-  - {id: 13110001, name: 分裂核心, kind: deadSummonEquipmentDatas}
-  - {id: 13120001, name: 应激电容, kind: lifeBuffEquipmentDatas}
-  - {id: 13130001, name: 光学迷彩, kind: moveAbilityDynamicEquipmentDatas}
-  - {id: 13130101, name: 光学迷彩, kind: moveAbilityDynamicEquipmentDatas}
-  - {id: 13140001, name: 重装锁定系统, kind: searchTargetModifyEquipmentDatas}
-  - {id: 13150001, name: 先进高爆弹药, kind: splashEquipmentDatas}
-  - {id: 13150101, name: 爆裂弹药, kind: splashEquipmentDatas}
+  - id: 13040001
+    name: 部署模块
+    kind: mobilityIntensifyEquipmentDatas
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
+  - id: 13100001
+    name: 试验级巨山装甲
+    kind: armorStrengthenEquipmentDatas
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
+    round_duration: 1
+  - id: 13110001
+    name: 分裂核心
+    kind: deadSummonEquipmentDatas
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
+    round_duration: 1
+  - id: 13120001
+    name: 应激电容
+    kind: lifeBuffEquipmentDatas
+    mech_type: [7]
+    main_skill_effect: true
+    extra_skill_effect: true
+    round_duration: 1
+    life_rate: 6442450944  # +1.5
+  - id: 13130001
+    name: 光学迷彩
+    kind: moveAbilityDynamicEquipmentDatas
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
+    round_duration: 1
+    damage_rate: 4294967296  # +1
+  - id: 13130101
+    name: 光学迷彩
+    kind: moveAbilityDynamicEquipmentDatas
+    mech_type: [0]
+    main_skill_effect: true
+    extra_skill_effect: true
+  - id: 13140001
+    name: 重装锁定系统
+    kind: searchTargetModifyEquipmentDatas
+    mech_type: [0]
+    main_skill_effect: true
+    round_duration: 1
+  - id: 13150001
+    name: 先进高爆弹药
+    kind: splashEquipmentDatas
+    mech_type: [0]
+    main_skill_effect: true
+    round_duration: 1
+  - id: 13150101
+    name: 爆裂弹药
+    kind: splashEquipmentDatas
+    mech_type: [0]
+    main_skill_effect: true

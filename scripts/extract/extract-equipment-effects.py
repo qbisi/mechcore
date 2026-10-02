@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-"""Extract what an ordinary EquipmentData row writes onto a unit into `config/equipment_effects.yaml`.
+"""Extract what an EquipmentData row writes onto a unit into `config/equipment_effects.yaml`.
 
     python3 scripts/extract/extract-equipment-effects.py [--build BUILD] [--check]
 
-The rows are `EquipmentGroupData.equipmentDatas` of `level0`, as
-`scripts/build_data.py` reads them: the equipment whose effect is the plain
-`ICommonMechDataChangeDataSource` correction. The subclass lists beside it
-(buff, lifesteal, shield and the rest) are other mechanisms and not here. Test
-rows and rows limited to Interstellar Expedition are left out. Q32.32 values
-are written as raw integers; only the comment beside one reads it as a decimal.
+The rows are every list of `EquipmentGroupData` in `level0`, as
+`scripts/build_data.py` reads them, each with the list it comes from as its
+`kind`. Every class is an `EquipmentData`, and `Equipment.AddData` writes its
+plain `ICommonMechDataChangeDataSource` correction whatever the class, so
+every row carries those fields; what a subclass does beyond them (a buff,
+lifesteal, a shield and the rest) is its kind's mechanism. Test rows and rows
+limited to Interstellar Expedition are left out. Q32.32 values are written as
+raw integers; only the comment beside one reads it as a decimal.
 """
 
 import sys
@@ -33,34 +35,22 @@ FIELDS = {
 }
 
 
-def others():
-    """Every other standard row, by the subclass list it comes from: an
-    equipment of another class, which a refusal names by its list."""
-    group = build_data.level0("EquipmentGroupData")
-    rows = []
-    for kind, entries in group.items():
-        if kind == "equipmentDatas" or not isinstance(entries, list):
-            continue
-        for row in entries:
-            if row["isTestData"] or not build_data.in_standard(row):
-                continue
-            rows.append({"id": row["id"], "name": row["name"], "kind": kind})
-    return sorted(rows, key=lambda row: row["id"])
-
-
 def raw(value):
     return value["m_rawValue"] if isinstance(value, dict) else value
 
 
 def extract():
     rows = []
-    for row in build_data.level0("EquipmentGroupData")["equipmentDatas"]:
-        if row["isTestData"] or not build_data.in_standard(row):
+    for kind, entries in build_data.level0("EquipmentGroupData").items():
+        if not isinstance(entries, list):
             continue
-        entry = {"id": row["id"], "name": row["name"]}
-        entry.update({column: raw(row[field]) for column, field in FIELDS.items()})
-        rows.append(entry)
-    return rows
+        for row in entries:
+            if row["isTestData"] or not build_data.in_standard(row):
+                continue
+            entry = {"id": row["id"], "name": row["name"], "kind": kind}
+            entry.update({column: raw(row[field]) for column, field in FIELDS.items()})
+            rows.append(entry)
+    return sorted(rows, key=lambda row: row["id"])
 
 
 # What a row writes onto a unit, in the order an officer's table writes it.
@@ -86,11 +76,16 @@ def render(rows):
     lines = [
         "schema: mechcore.equipment_effects",
         "",
-        "# What an ordinary EquipmentData row writes onto the unit that wears it,",
-        "# read out of EquipmentGroupData by scripts/extract/extract-equipment-effects.py.",
+        "# What an EquipmentData row writes onto the unit that wears it, read out",
+        "# of EquipmentGroupData by scripts/extract/extract-equipment-effects.py.",
         "# docs/rules/equipment_effects.md states what each field means. A field",
         "# is written only when it is set; what an equipment costs is",
         "# config/reinforce_items.yaml's, and its other pool fields are not here.",
+        "#",
+        "# A row's `kind` is the list of EquipmentGroupData it comes from:",
+        "# `equipmentDatas` for an item that does nothing but correct its unit's",
+        "# numbers, and a subclass's list for one that does something more.",
+        "# Every class writes the corrections below, whatever else it does.",
         "#",
         "# A rate is an FPoint Q32.32 raw integer: 3221225472 is +0.75. A value is",
         "# an FPoint in the number's own units: 85899345920 is +20 of range.",
@@ -100,6 +95,7 @@ def render(rows):
     for d in rows:
         lines.append(f"  - id: {d['id']}")
         lines.append(f"    name: {d['name']}")
+        lines.append(f"    kind: {d['kind']}")
         lines.append(f"    mech_type: [{', '.join(map(str, d['mech_type']))}]")
         if d["units"]:
             lines.append(f"    units: [{', '.join(map(str, d['units']))}]")
@@ -114,14 +110,6 @@ def render(rows):
         for field in INTEGERS:
             if d[field]:
                 lines.append(f"    {field}: {d[field]}")
-    lines += [
-        "",
-        "# The equipment of every other class, by the EquipmentGroupData list it",
-        "# comes from, which no row above describes.",
-        "other:",
-    ]
-    for d in others():
-        lines.append(f"  - {{id: {d['id']}, name: {d['name']}, kind: {d['kind']}}}")
     return "\n".join(lines) + "\n"
 
 
