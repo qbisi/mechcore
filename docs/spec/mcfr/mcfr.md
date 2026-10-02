@@ -792,7 +792,8 @@ channel's schema can change without a format version.
 
 The channels the Adapter records are `target_refs`,
 `skill_attackable_checker`, `group_slots`, `target_search`, `target_candidate`,
-`rvo_solve`, `rvo_neighbour`, `rvo_vo` and `unit_pose` ([adapter.md](../adapter/adapter.md#record_replay_round)).
+`rvo_solve`, `rvo_neighbour`, `rvo_vo`, `unit_pose` and `projectile_reach`
+([adapter.md](../adapter/adapter.md#record_replay_round)).
 
 ## Writing, reading and validation
 

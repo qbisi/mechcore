@@ -1,3 +1,4 @@
+use crate::reach::{self, ReachMetadata};
 use crate::rvo::{self, RawSolve, RvoChannels, RvoMetadata, RvoRows};
 use crate::selector::{self, RawSearch, SelectorMetadata, TargetChannels};
 use crate::statistics::{self, StatisticsMetadata};
@@ -22,8 +23,8 @@ use mechcore_mcfr::{
     WorldSnapshot,
 };
 use mechcore_mcfr::{
-    CheckedSkill, GroupSlot, PoseClip, RvoNeighbour, RvoSolve, RvoVo, SkillAttackableCheck,
-    TargetCandidate, TargetRefs, TargetSearch, UnitPose,
+    CheckedSkill, GroupSlot, PoseClip, ProjectileReach, RvoNeighbour, RvoSolve, RvoVo,
+    SkillAttackableCheck, TargetCandidate, TargetRefs, TargetSearch, UnitPose,
 };
 use mechcore_protocol::InstrumentChannel;
 use std::{
@@ -179,6 +180,7 @@ pub(crate) struct Instruments {
     skill_attackable_checker: bool,
     group_slots: bool,
     unit_pose: bool,
+    pub(crate) projectile_reach: bool,
     pub(crate) target: TargetChannels,
     pub(crate) rvo: RvoChannels,
 }
@@ -190,6 +192,7 @@ impl Instruments {
             skill_attackable_checker: channels.contains(&InstrumentChannel::SkillAttackableChecker),
             group_slots: channels.contains(&InstrumentChannel::GroupSlots),
             unit_pose: channels.contains(&InstrumentChannel::UnitPose),
+            projectile_reach: channels.contains(&InstrumentChannel::ProjectileReach),
             target: TargetChannels {
                 search: channels.contains(&InstrumentChannel::TargetSearch),
                 candidate: channels.contains(&InstrumentChannel::TargetCandidate),
@@ -216,6 +219,7 @@ pub(crate) struct InstrumentRows {
     pub(crate) rvo_vo: Option<Vec<RvoVo>>,
     pub(crate) group_slots: Option<Vec<GroupSlot>>,
     pub(crate) unit_pose: Option<Vec<UnitPose>>,
+    pub(crate) projectile_reach: Option<Vec<ProjectileReach>>,
 }
 
 #[allow(
@@ -325,6 +329,8 @@ pub(crate) struct Metadata {
     selector_error: Option<String>,
     pub(crate) rvo: Option<RvoMetadata>,
     rvo_error: Option<String>,
+    pub(crate) reach: Option<ReachMetadata>,
+    reach_error: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -384,7 +390,7 @@ pub(crate) struct CaptureState {
     queue: VecDeque<CaptureMessage>,
     pub(crate) unit_ids: BTreeMap<usize, u64>,
     pub(crate) building_ids: BTreeMap<usize, u64>,
-    projectile_ids: BTreeMap<usize, u64>,
+    pub(crate) projectile_ids: BTreeMap<usize, u64>,
     shield_ids: BTreeMap<usize, u64>,
     shield_ids_finalized: bool,
     /// Whether S(1) has been written, after which unit identities are final.
@@ -431,6 +437,8 @@ pub(crate) struct CaptureState {
     pub(crate) rvo_agent_owners: BTreeMap<usize, ObjectRef>,
     open_checker_calls: BTreeMap<u64, OpenCheckerCall>,
     completed_checker_calls: Vec<CompletedCheckerCall>,
+    /// This tick's projectile reach checks, in the order they were asked.
+    pub(crate) projectile_reaches: Vec<ProjectileReach>,
     visual: Option<VisualCapture>,
     pending_visual: Option<PendingVisualMessage>,
     render_completed: bool,
@@ -450,6 +458,8 @@ impl CaptureState {
         self.opening_next_units = None;
         self.instruments = Instruments::default();
         rvo::arm(RvoChannels::default());
+        reach::arm(false);
+        self.projectile_reaches.clear();
         self.rvo_solves.clear();
         self.rvo_agent_owners.clear();
         self.queue.clear();
@@ -1619,6 +1629,10 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             Ok(rvo) => (Some(rvo), None),
             Err(error) => (None, Some(error)),
         };
+        let (reach, reach_error) = match reach::initialize(api) {
+            Ok(reach) => (Some(reach), None),
+            Err(error) => (None, Some(error)),
+        };
         Ok(Metadata {
             projectile_system_class: projectile_system as usize,
             range_item_system_class: range_item_system as usize,
@@ -1664,6 +1678,8 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             checker_error,
             rvo,
             rvo_error,
+            reach,
+            reach_error,
         })
     }
 }
@@ -1729,6 +1745,7 @@ pub(crate) fn start(
     }
     validate_target_availability(instruments, &state.metadata)?;
     validate_checker_availability(instruments, &state.metadata)?;
+    validate_reach_availability(instruments, &state.metadata)?;
     if instruments.rvo.any() && state.metadata.rvo.is_none() {
         return Err(format!(
             "the RVO channels are unavailable: {}",
@@ -1775,6 +1792,7 @@ pub(crate) fn start(
     }
     state.armed = true;
     rvo::arm(instruments.rvo);
+    reach::arm(instruments.projectile_reach);
     selector::arm(instruments.target);
     let scaled = state.restore_time_scale.is_some();
     drop(state);
@@ -1833,6 +1851,24 @@ fn validate_target_availability(
                 .selector_error
                 .as_deref()
                 .unwrap_or("native selector methods or hooks could not be resolved")
+        ))
+    } else {
+        Ok(())
+    }
+}
+
+fn validate_reach_availability(
+    instruments: Instruments,
+    metadata: &Metadata,
+) -> Result<(), String> {
+    if instruments.projectile_reach && metadata.reach.is_none() {
+        Err(format!(
+            "{} is unavailable: {}",
+            InstrumentChannel::ProjectileReach.as_str(),
+            metadata
+                .reach_error
+                .as_deref()
+                .unwrap_or("native reach methods or hooks could not be resolved")
         ))
     } else {
         Ok(())
@@ -5936,6 +5972,10 @@ fn snapshot(
         rvo_vo,
         group_slots,
         unit_pose,
+        projectile_reach: capture
+            .instruments
+            .projectile_reach
+            .then(|| std::mem::take(&mut capture.projectile_reaches)),
     };
     let projectiles = read_projectiles(runtime, capture)?;
     let pending = capture.pending_projectile_absorptions.len()

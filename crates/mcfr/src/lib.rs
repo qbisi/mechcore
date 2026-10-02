@@ -21,8 +21,8 @@ mod writer;
 
 pub use error::{Error, Result};
 pub use instrument::{
-    CheckedSkill, GroupSlot, INSTRUMENT_TICK_COLUMN, InstrumentRow, PoseClip, RvoExit,
-    RvoNeighbour, RvoNeighbourKind, RvoSolve, RvoVec, RvoVo, SkillAttackableCheck,
+    CheckedSkill, GroupSlot, INSTRUMENT_TICK_COLUMN, InstrumentRow, PoseClip, ProjectileReach,
+    RvoExit, RvoNeighbour, RvoNeighbourKind, RvoSolve, RvoVec, RvoVo, SkillAttackableCheck,
     TARGET_CANDIDATES, TargetCandidate, TargetRefs, TargetSearch, TargetSearchPath, UnitPose,
     valid_channel_name,
 };

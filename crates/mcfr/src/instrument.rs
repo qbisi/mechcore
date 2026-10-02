@@ -13,7 +13,7 @@ use arrow_schema::{DataType, Field, FieldRef, Schema, SchemaRef};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_arrow::schema::{SchemaLike, TracingOptions};
 
-use crate::{Error, ObjectRef, Result};
+use crate::{Error, ObjectRef, QVec3, Result};
 
 /// The column every channel starts with.
 pub const INSTRUMENT_TICK_COLUMN: &str = "tick";
@@ -166,6 +166,33 @@ pub struct GroupSlot {
 
 impl InstrumentRow for GroupSlot {
     const CHANNEL: &'static str = "group_slots";
+}
+
+/// One projectile's reach check: the `FightCalculator.IsInRange3D` that
+/// `FightProjectile.Update` asks right after `CalculateMaxMoveDistance`,
+/// against what that returned. A projectile out of reach is released with no
+/// damage, so this is what decides a shot spent on nothing.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProjectileReach {
+    pub projectile: ObjectRef,
+    /// The `ISkillOwner` that released it, if the capture names it.
+    pub owner: Option<ObjectRef>,
+    /// `FightProjectile.moveRange`, raw `FPoint`.
+    pub move_range_raw: i64,
+    /// What `CalculateMaxMoveDistance` returned, raw, which is the range
+    /// `IsInRange3D` is asked against.
+    pub max_move_raw: i64,
+    /// The `FightTransform.position3D` it measures from.
+    pub transform_position: QVec3,
+    /// The radius it subtracts, raw.
+    pub radius_raw: i64,
+    /// Where the projectile stands.
+    pub position: QVec3,
+    pub in_range: bool,
+}
+
+impl InstrumentRow for ProjectileReach {
+    const CHANNEL: &'static str = "projectile_reach";
 }
 
 /// One animator layer of a unit's model at a snapshot: the state the view's
