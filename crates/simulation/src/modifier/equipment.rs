@@ -8,10 +8,18 @@
 //! through, so a row becomes the corrections [`super::effects`] makes of an
 //! officer's, in the same channels, and sums with an officer's there.
 //!
+//! **Every class writes its numbers; a class's own mechanism is its kind's.**
+//! Each row's `kind` is the list of `EquipmentGroupData` it comes from, and
+//! `Equipment.AddData` writes the plain correction of a row of any class. A
+//! kind whose subclass does nothing more in a fight is applied for its
+//! numbers; one whose subclass does more (a buff, lifesteal, a shield) is
+//! refused by name until its mechanism lands, rather than applied for its
+//! numbers alone.
+//!
 //! An equipment this build cannot apply is refused by name rather than partly
-//! applied: an item of another `EquipmentData` class, a lifetime this build
-//! has not measured, a field no mechanism here reads, and a targeting this
-//! build does not resolve.
+//! applied: a kind whose mechanism is not here, a lifetime this build has not
+//! measured, a field no mechanism here reads, and a targeting this build does
+//! not resolve.
 
 use std::collections::BTreeMap;
 
@@ -30,6 +38,13 @@ use super::{
 
 const DEFAULT_EQUIPMENT_EFFECTS: &str = include_str!("../../../../config/equipment_effects.yaml");
 
+/// The kinds applied for their numbers alone, each the list of
+/// `EquipmentGroupData` it comes from: `equipmentDatas`, the plain item, and
+/// `mobilityIntensifyEquipmentDatas`, whose `MobilityIntensifyEquipment`
+/// overrides nothing of `Equipment` and frees its formation during
+/// deployment, which a fight does not read.
+const APPLIED: [&str; 2] = ["equipmentDatas", "mobilityIntensifyEquipmentDatas"];
+
 /// The module that tags every entry an equipment writes.
 pub(crate) const SOURCE: &str = "Modifier";
 
@@ -37,8 +52,6 @@ pub(crate) const SOURCE: &str = "Modifier";
 #[derive(Debug, Clone)]
 pub(crate) struct EquipmentEffects {
     equipment: BTreeMap<i32, Equipment>,
-    /// Every other class's equipment, by id: its name and its list.
-    others: BTreeMap<i32, (String, String)>,
 }
 
 #[derive(Debug, Clone)]
@@ -62,6 +75,8 @@ struct Equipment {
 struct Row {
     id: i32,
     name: String,
+    /// The list of `EquipmentGroupData` the row comes from.
+    kind: String,
     mech_type: Vec<i32>,
     #[serde(default)]
     units: Vec<i32>,
@@ -112,17 +127,6 @@ struct Row {
 struct Table {
     schema: String,
     equipment: Vec<Row>,
-    other: Vec<OtherRow>,
-}
-
-/// An equipment of another class: which `EquipmentGroupData` list it comes
-/// from, which its refusal names.
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct OtherRow {
-    id: i32,
-    name: String,
-    kind: String,
 }
 
 impl EquipmentEffects {
@@ -150,12 +154,7 @@ impl EquipmentEffects {
                 )));
             }
         }
-        let others = table
-            .other
-            .into_iter()
-            .map(|row| (row.id, (row.name, row.kind)))
-            .collect();
-        Ok(Self { equipment, others })
+        Ok(Self { equipment })
     }
 
     /// What one equipment writes onto the unit wearing it.
@@ -166,13 +165,9 @@ impl EquipmentEffects {
     /// rather than applying the part of it that it understands.
     pub(crate) fn corrections(&self, id: i32, unit: &UnitConfig) -> Result<Vec<(Channel, Entry)>> {
         let Some(equipment) = self.equipment.get(&id) else {
-            return Err(Error::new(match self.others.get(&id) {
-                Some((name, kind)) => format!(
-                    "equipment {id} ({name}) comes from EquipmentGroupData's {kind} \
-                     list, which no mechanism here reads"
-                ),
-                None => format!("equipment {id} is not in the equipment table"),
-            }));
+            return Err(Error::new(format!(
+                "equipment {id} is not in the equipment table"
+            )));
         };
         let corrections = equipment
             .effect
@@ -224,6 +219,12 @@ fn corrections_of(
     row: &Row,
     who: &str,
 ) -> std::result::Result<Vec<(Channel, Index, Correction)>, String> {
+    if !APPLIED.contains(&row.kind.as_str()) {
+        return Err(format!(
+            "{who} comes from EquipmentGroupData's {} list, which no mechanism here reads",
+            row.kind
+        ));
+    }
     if !row.main_skill_effect {
         return Err(format!(
             "{who} leaves the main skill out, and no other skill is simulated"
@@ -288,6 +289,7 @@ mod tests {
     const DOMINION_CORE: i32 = 13_030_010;
     const RAPID_LOADER: i32 = 13_030_011;
     const BARRIER: i32 = 1_307_001;
+    const DEPLOYMENT_MODULE: i32 = 13_040_001;
     const ADVANCED_DEFENSIVE_TACTICS: i32 = 20001;
     const ADVANCED_OFFENSIVE_TACTICS: i32 = 20002;
 
@@ -347,6 +349,19 @@ mod tests {
                 .unwrap()
                 .len(),
             1
+        );
+    }
+
+    /// The Deployment Module's class does nothing in a fight, and its row
+    /// writes no number: it is worn and changes nothing.
+    #[test]
+    fn a_kind_that_does_nothing_more_is_applied_for_its_numbers() {
+        let equipment = EquipmentEffects::load().unwrap();
+        assert!(
+            equipment
+                .corrections(DEPLOYMENT_MODULE, &unit("marksman"))
+                .unwrap()
+                .is_empty()
         );
     }
 

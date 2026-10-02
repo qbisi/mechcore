@@ -46,9 +46,16 @@ simulator does not give a unit.
 ## The table
 
 [`config/equipment_effects.yaml`](../../config/equipment_effects.yaml) holds
-the rows of `EquipmentGroupData.equipmentDatas` a standard match can deal,
-which [`extract-equipment-effects.py`](../../scripts/extract/extract-equipment-effects.py)
-reads from the build's typed export. A field is written only when it is set,
+the rows of every `EquipmentGroupData` list a standard match can deal, which
+[`extract-equipment-effects.py`](../../scripts/extract/extract-equipment-effects.py)
+reads from the build's typed export. A row's `kind` is the list it comes from.
+Every class is an `EquipmentData`, and `Equipment.AddData` writes the
+correction of a row of any class: Absorption Module, a
+`LifestealEquipmentData`, also raises its unit's life by 0.3. What a subclass
+does beyond that is its kind's mechanism. `MobilityIntensifyEquipment`, the
+Deployment Module's class, overrides nothing of `Equipment`: in a fight it
+writes its row's numbers, none, and its effect is the deployment rule
+[mobility.md](mobility.md) states. A field is written only when it is set,
 and only the fields that say what a row does in a fight: its targeting, its
 skill selection, its lifetime and its corrections. What an item costs is
 [`config/reinforce_items.yaml`](../../config/reinforce_items.yaml)'s, and its
