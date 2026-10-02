@@ -379,6 +379,9 @@ drawn from any stream, and no event is written.
   Wasps that join setting off to move take no speed from the solve on their
   join tick:
   `tests/battle_skill/fights/wasp-swarm.yaml`.
+- Wasps that join attacking are pushed off the Wasps they overlap by the
+  solve on their join tick: `tests/corpus/fights/67158166-r2.yaml`, ticks 48
+  to 52.
 - A creator makes its summons in batches, and a surfacing summon is a locked
   obstacle: `tests/battle_skill/fights/underground-threat.yaml`.
 - An air drop reaches both sides, blue's first, and its kills count for the
