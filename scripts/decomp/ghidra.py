@@ -133,7 +133,8 @@ def il2cppdumper(work):
 
 
 # What Ghidra's C parser lacks of what il2cpp.h assumes: the fixed-width
-# integer names, and a base class written as a struct's first member.
+# integer names. The C++ base classes il2cpp.h writes are flattened by
+# `ghidra_header`.
 GHIDRA_HEADER = """typedef unsigned __int8 uint8_t;
 typedef unsigned __int16 uint16_t;
 typedef unsigned __int32 uint32_t;
@@ -149,11 +150,46 @@ typedef _Bool bool;
 """
 
 
+STRUCT = re.compile(r"^struct (\w+)(?: : (\w+))? \{\n(.*?)^\};\n", re.M | re.S)
+MEMBER = re.compile(r"(\w+);$", re.M)
+
+
 def ghidra_header(dumper):
-    """il2cpp.h as Ghidra's C parser reads it, beside it."""
+    """il2cpp.h as Ghidra's C parser reads it, beside it.
+
+    A derived class's `X_Fields : Base_Fields` gets its bases' fields written
+    inline ahead of its own. IL2CPP lays a derived field right after the
+    base's last one, at the field's own alignment, which is what C does to
+    the flattened fields; a `Base_Fields super;` member would instead start
+    them after the base struct's tail padding. A base field the class hides
+    with one of its own name is written `base_<name>`.
+    """
     target = dumper / "il2cpp_ghidra.h"
     source = (dumper / "il2cpp.h").read_text()
-    target.write_text(GHIDRA_HEADER + re.sub(r": (\w+) \{", r"{\n \1 super;", source))
+    bodies = {}
+
+    def flatten(found):
+        name, base, body = found.groups()
+        if base is not None:
+            if base not in bodies:
+                fail(f"il2cpp.h: {name} derives from {base}, not defined before it")
+            own = set(MEMBER.findall(body))
+            taken = own | set(MEMBER.findall(bodies[base]))
+
+            def hidden(member):
+                if member[1] not in own:
+                    return member[0]
+                renamed = f"base_{member[1]}"
+                while renamed in taken:
+                    renamed = f"base_{renamed}"
+                taken.add(renamed)
+                return f"{renamed};"
+
+            body = MEMBER.sub(hidden, bodies[base]) + body
+        bodies[name] = body
+        return f"struct {name} {{\n{body}}};\n"
+
+    target.write_text(GHIDRA_HEADER + STRUCT.sub(flatten, source))
     return target
 
 
