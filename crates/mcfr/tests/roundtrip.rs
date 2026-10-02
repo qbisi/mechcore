@@ -2,11 +2,11 @@ use std::io::Read;
 
 use bytes::Bytes;
 use mechcore_mcfr::{
-    BuildingState, CheckedSkill, DerivedStats, Domain, DurableContext, Event, EventPayload,
-    GaugeI32, GroupSlot, HASH_PROFILE, Hashes, LiveUnitState, MCFR_FORMAT, McfrReader, McfrWriter,
-    Modifier, ModifierChannel, ModifierPart, MotionState, ObjectKind, ObjectRef,
-    PersonalShieldState, PoseClip, Producer, ProjectileReach, QPlanar, QVec3, Rational, RvoExit,
-    RvoNeighbour, RvoNeighbourKind, RvoSolve, RvoVec, RvoVo, ShieldDestroyedReason,
+    BuildingState, CheckedSkill, ControlProgress, DerivedStats, Domain, DurableContext, Event,
+    EventPayload, GaugeI32, GroupSlot, HASH_PROFILE, Hashes, LiveUnitState, MCFR_FORMAT,
+    McfrReader, McfrWriter, Modifier, ModifierChannel, ModifierPart, MotionState, ObjectKind,
+    ObjectRef, PersonalShieldState, PoseClip, Producer, ProjectileReach, QPlanar, QVec3, Rational,
+    RvoExit, RvoNeighbour, RvoNeighbourKind, RvoSolve, RvoVec, RvoVo, ShieldDestroyedReason,
     ShieldRoundPolicy, ShieldSourceKind, ShieldState, SkillAttackableCheck, TargetCandidate,
     TargetRefs, TargetSearch, TargetSearchPath, TerrainApplicationState, TerrainEffectClock,
     TerrainGridState, TerrainLogicLifetime, TerrainRemovedReason, TerrainState, TerrainType,
@@ -755,6 +755,39 @@ fn projectile_reach_rows_read_back() {
     assert_eq!(
         reader.instrument::<ProjectileReach>().unwrap(),
         Some(vec![(1, reach)])
+    );
+}
+
+/// A control row carries a list of sources and reads back as written.
+#[test]
+fn control_progress_rows_read_back() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("control.mcfr");
+    let mut writer =
+        McfrWriter::create(&path, Producer::Game, "build-a", &context(), LAYOUT_YAML).unwrap();
+    writer.append_tick(state(75), &damage_events()).unwrap();
+    let rows = vec![
+        ControlProgress {
+            unit: ObjectRef::new(ObjectKind::Unit, 7),
+            progress: 602,
+            sources: vec![ObjectRef::new(ObjectKind::Unit, 1)],
+        },
+        ControlProgress {
+            unit: ObjectRef::new(ObjectKind::Unit, 9),
+            progress: 0,
+            sources: Vec::new(),
+        },
+    ];
+    writer.append_instrument(&rows).unwrap();
+    writer.finish().unwrap();
+    let reader = McfrReader::open(&path).unwrap();
+    assert_eq!(
+        reader.instrument_channels().collect::<Vec<_>>(),
+        ["control_progress"]
+    );
+    assert_eq!(
+        reader.instrument::<ControlProgress>().unwrap(),
+        Some(rows.into_iter().map(|row| (1, row)).collect())
     );
 }
 

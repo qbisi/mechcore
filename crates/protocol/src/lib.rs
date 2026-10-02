@@ -389,10 +389,12 @@ pub enum InstrumentChannel {
     /// Each projectile's reach check: how far from its owner it may be and
     /// still land, against where it stands.
     ProjectileReach,
+    /// Each unit a control beam is turning: how far, and by whose skills.
+    ControlProgress,
 }
 
 impl InstrumentChannel {
-    pub const ALL: [Self; 10] = [
+    pub const ALL: [Self; 11] = [
         Self::TargetRefs,
         Self::SkillAttackableChecker,
         Self::TargetSearch,
@@ -403,6 +405,7 @@ impl InstrumentChannel {
         Self::GroupSlots,
         Self::UnitPose,
         Self::ProjectileReach,
+        Self::ControlProgress,
     ];
 
     /// The channel's name, which is also its member's file stem in the MCFR.
@@ -419,6 +422,7 @@ impl InstrumentChannel {
             Self::GroupSlots => "group_slots",
             Self::UnitPose => "unit_pose",
             Self::ProjectileReach => "projectile_reach",
+            Self::ControlProgress => "control_progress",
         }
     }
 }

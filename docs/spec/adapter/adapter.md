@@ -577,6 +577,15 @@ position, the range and its answer. The projectile and its owner are named
 while the hook runs, since a projectile the check releases is gone by the
 snapshot.
 
+`control_progress` records, at each snapshot, every entry of
+`TeamTranslationSystem.translatingDatas`: the unit a control beam is turning,
+the power its beams have added (`TranslationData.progress`), and the owners of
+the skills whose beams hold it (`TranslationData.sources`), in the order the
+build keeps them. `ControllEffect.Start` and `Stop` add and take away a beam's
+skill, `ControllEffect.Perform` adds each hit's power through
+`TeamTranslationSystem.Translate`, and the entry goes with its last beam. The
+field is a `SyncDictionary`, read through the two lists it keeps side by side.
+
 `skill_attackable_checker` records every call of
 `SkillAttackableChecker.Check(bool isAttackingCheck)` made during the update a
 row closes, in call order: the skill's owner, the skill's index in the
