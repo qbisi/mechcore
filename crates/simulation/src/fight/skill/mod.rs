@@ -271,6 +271,12 @@ pub(in crate::fight) struct Skill {
     /// `ChangeLockTarget(null)`, which leaves it until the sibling searches
     /// again. Nothing else clears a lock that way, so only a sibling holds one.
     pub(in crate::fight) attack_target_left: Option<FightActorRef>,
+    /// `FightSkillBase.IsIdle`: the last lock search found nothing the skill
+    /// can fire at and fell back on any live enemy
+    /// ([`Simulation::select_alive_target`]). `FightSkill.SearchLockTarget`
+    /// then clears what the skill fires at, so the lock is only where the
+    /// mech goes.
+    pub(in crate::fight) idle: bool,
 }
 
 impl Skill {
@@ -309,6 +315,7 @@ impl Skill {
             perform_count: 0,
             rounds: magazine.map(|magazine| magazine.capacity),
             attack_target_left: None,
+            idle: false,
         }
     }
 
@@ -506,6 +513,9 @@ impl Skill {
     /// The shield the skill fires at in place of its lock, while the lock is
     /// the one it was found for.
     pub(in crate::fight) fn shield_target(&self) -> Option<u64> {
+        if self.idle {
+            return None;
+        }
         match self.target_shield {
             Some((shield, found_for)) if self.lock_target == Some(found_for) => Some(shield),
             _ => None,
@@ -513,12 +523,16 @@ impl Skill {
     }
 
     /// What this actor's weapons fire at: the construction in the way if one
-    /// stands there for the current lock, and the lock itself otherwise.
+    /// stands there for the current lock, the lock itself otherwise, and
+    /// nothing while the skill is [`Skill::idle`].
     ///
     /// Range, attack angle, release and the question of whether the target
     /// is still alive are all asked of this. Where to move and where a body
     /// faces are asked of `lock_target`.
     pub(in crate::fight) fn attack_target(&self) -> Option<FightActorRef> {
+        if self.idle {
+            return None;
+        }
         match self.in_the_way {
             Some((building, found_for)) if self.lock_target == Some(found_for) => {
                 Some(FightActorRef::Building(building))
@@ -801,7 +815,9 @@ impl Simulation {
             .lock_target
             .and_then(|lock| self.fight_actor(lock))
             .is_some_and(|lock| lock.alive);
-        if target_alive && lock_alive && skill.search_target_time > 0 {
+        // A skill left idle by its last search fires at nothing by design,
+        // so only its lock and the timer are asked.
+        if (target_alive || skill.idle) && lock_alive && skill.search_target_time > 0 {
             self.skill_mut(owner).search_target_time -= 1;
             return Ok(());
         }
@@ -848,6 +864,13 @@ impl Simulation {
         if let Some(actor_id) = grouped_core {
             self.take_from_siblings(actor_id, selected_candidate);
         }
+        let idle = selected_candidate.is_none();
+        if idle {
+            selected_candidate = self
+                .select_alive_target(owner, grouped_core.map(|_| 0), target_search_order)
+                .map_err(located)?;
+        }
+        self.skill_mut(owner).idle = idle;
         if let Some(FightActorRef::Building(building_id)) = selected_candidate {
             let skill = self.skill_mut(owner);
             // A building lock is written as any lock is, and the construction

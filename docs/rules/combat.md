@@ -95,6 +95,24 @@ tick after that, on whatever the selector answers then. A shot that kills later
 in its flight, or a replacement already in the attack area, is followed at
 once, and a unit whose cooling is nothing never holds.
 
+## A unit with nothing it can fire at walks on any enemy
+
+A skill whose search finds nothing it can attack falls back on any live enemy,
+of either domain, and is left idle. The fallback scores the candidates as the
+search does, where they stand when it runs, and offers the enemy's blocking
+constructions only when nothing else stands. It belongs to the skill that
+searches for its unit, every slot of the main skill, so a construction's
+skill falls back too. An idle skill fires at nothing: what it fires at is
+cleared, and its lock is only where the unit goes. It searches again on its
+timer, as one with a target does, or at once when its lock dies.
+
+The unit walks on that lock, sent as it is to a target it would attack, until
+the lock is in touch: the whole metres between the two, edge to edge, are no
+more than twice the unit's radius. There it idles, and it sets off again
+once the lock is out of touch. So a Vortex, which cannot fire at aircraft,
+that fells the last tower with only aircraft left locks onto the nearest one
+and follows it about.
+
 ## A free-moving unit keeps its speed whichever way it faces
 
 A unit whose rotate speed is below 180° a second, and whose body is more than
@@ -634,6 +652,10 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- A Vortex left with only aircraft to fire at locks one, walks on it, idles
+  in touch, searches every eleven ticks and sets off again when its lock
+  changes: `tests/corpus/fights/201370830-r3.yaml`, ticks 1227 to 1347.
+
 - A unit in a defence area beside a flanked tower enters the fight a quarter
   turn towards the flank, and one of the same formation outside it does not:
   `tests/corpus/fights/268487043-r4.yaml`; in replay 134270595 round 4 the
@@ -720,6 +742,18 @@ not the game's native attack-type enum.
   it: `tests/modifier/fights/technology-interval-value.yaml`.
 
 ### Read
+
+- A search that answers nothing falls back on any live enemy and leaves the
+  skill idle, and an idle skill's lock search clears what it fires at:
+  `SkillSearchTargetController.SearchLockTarget`,
+  `SkillSearchTargetController.TrySearchAliveTarget`,
+  `OpponentController.GetActors`, `FightConstruction.IsEnableBlock`,
+  `SearchTargetController..ctor` (`aliveTargetSelector`, an
+  `AliveTargetFilter`), `FightSkillBase.IsMainSearcher`,
+  `FightSkill.SearchLockTarget`, `SkillIdleState.CanStartSearchTarget`.
+- An idle skill's unit walks on its lock until it is in touch:
+  `MotionIdleState.Update`, `AutoMoveBehaviour.IsActive`,
+  `AutoMoveBehaviour.IsIdle`, `AutoMoveBehaviour.IsLockTargetInTouchRange`.
 
 - A unit's facing as the fight starts is its territory's attack facing, a
   quarter turn in a defence area whose region holds something:
@@ -847,6 +881,11 @@ not the game's native attack-type enum.
   wall blockers; and whether an idle slot that
   finds a unit beyond its reach keeps it as its lock, which no recorded
   sibling has done.
+- **Touch range on another branch.** `IsLockTargetInTouchRange` scales the
+  range differently in `MotionMoveState` when a flag the owner's data holds
+  is set; which flag, and the scale, are not read. The recorded Vortex took
+  the twice-its-radius branch. No recorded construction has fallen back, and
+  no recorded grouped slot.
 - **Target scoring**: a split quadtree, tied candidates, a building winning,
   moving candidates being reinserted, and other selector modes.
 - **Where a search not prepared stands the searcher.** `PerformSearch` is read

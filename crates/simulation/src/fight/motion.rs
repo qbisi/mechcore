@@ -559,20 +559,9 @@ impl Simulation {
             return Ok(());
         }
         let Some(target) = target else {
-            let actor = self
-                .actors
-                .get_mut(&actor_id)
-                .expect("actor identity is stable");
-            // `MotionIdleState.Enter` stops the move, and its `Update` does
-            // not: an idle unit an RVO solve nudged keeps the target point it
-            // stopped at, and the next solve steers it back there.
-            if actor.motion.state != MotionState::Idle {
-                actor.motion.next_target_x_q32 = actor.x_q32;
-                actor.motion.next_target_z_q32 = actor.z_q32;
-                actor.motion.next_speed_q32 = 0;
-                actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
+            if let Flow::Next = self.walk_on_idle_lock(actor_id, update) {
+                self.enter_motion_idle(actor_id);
             }
-            actor.motion.state = MotionState::Idle;
             return Ok(());
         };
         let target_view = self.fight_actor(target).expect("target identity is stable");
@@ -653,6 +642,74 @@ impl Simulation {
             update,
         );
         Ok(())
+    }
+
+    /// `MotionIdleState`: its `Enter` stops the move, and its `Update` does
+    /// not, so an idle unit an RVO solve nudged keeps the target point it
+    /// stopped at, and the next solve steers it back there.
+    fn enter_motion_idle(&mut self, actor_id: u64) {
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        if actor.motion.state != MotionState::Idle {
+            actor.motion.next_target_x_q32 = actor.x_q32;
+            actor.motion.next_target_z_q32 = actor.z_q32;
+            actor.motion.next_speed_q32 = 0;
+            actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
+        }
+        actor.motion.state = MotionState::Idle;
+    }
+
+    /// `AutoMoveBehaviour` for a skill its search left idle ([`Skill::idle`]):
+    /// it is active while the lock lives, and with nothing to fire at the
+    /// motion asks only whether the lock is in touch
+    /// (`IsLockTargetInTouchRange`): the whole metres of `Distance2D`, edge to
+    /// edge, no more than twice the unit's radius. A moving unit walks on the
+    /// lock until it is in touch and idles there; an idle one sets off again
+    /// once it is not.
+    fn walk_on_idle_lock(&mut self, actor_id: u64, update: SkillUpdate) -> Flow {
+        let actor = &self.actors[&actor_id];
+        if !actor.skill.idle {
+            return Flow::Next;
+        }
+        let Some(view) = actor
+            .skill
+            .lock_target
+            .filter(|&lock| self.fight_actor_is_alive(lock))
+            .and_then(|lock| self.fight_actor(lock))
+        else {
+            return Flow::Next;
+        };
+        let radius_q32 = space_to_q32(actor.rules.collision_radius());
+        let edge_distance_q32 = native_q32_magnitude(
+            view.x_q32.saturating_sub(actor.x_q32),
+            view.z_q32.saturating_sub(actor.z_q32),
+        )
+        .saturating_sub(radius_q32)
+        .saturating_sub(space_to_q32(view.radius))
+        .max(0);
+        let whole_metres_q32 = edge_distance_q32 & !(Q32_ONE - 1);
+        if whole_metres_q32 <= radius_q32.saturating_mul(2) {
+            self.enter_motion_idle(actor_id);
+            return Flow::Done;
+        }
+        let target_rotation_q32 = direction_degrees_q32_raw(
+            view.x_q32.saturating_sub(actor.x_q32),
+            view.z_q32.saturating_sub(actor.z_q32),
+        );
+        self.leave_or_approach(
+            actor_id,
+            Approach {
+                edge_distance_q32,
+                target_rotation_q32,
+                body_x_q32: view.x_q32,
+                body_z_q32: view.z_q32,
+                body_radius: view.radius,
+            },
+            update,
+        );
+        Flow::Done
     }
 
     /// `MotionAttackState.Update` under a command, whose `IsIdle` and
