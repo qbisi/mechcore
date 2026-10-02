@@ -522,7 +522,72 @@ impl Simulation {
                 struck.ends.push((target, position));
             }
         }
+        self.dispatch_hit_damage(&hit, struck.lost, events)?;
         Ok(struck)
+    }
+
+    /// `IDamageProvider.DispatchHitDamageEvent` after a hit: a unit's skill,
+    /// struck directly (`SkillDamageProvider`) or through its projectile
+    /// (`FightProjectile`), hands the life the hit took in all to the skill's
+    /// hit effects, `FightSkill.DispatchHitDamageEvent`. The one hit effect
+    /// this simulator gives a skill is `LifeStealEffectProvider`'s. A hit no
+    /// unit's skill dealt — a turret's, a mine's, a battle skill's — reaches
+    /// no unit's skill.
+    pub(in crate::fight) fn dispatch_hit_damage(
+        &mut self,
+        hit: &DamageHit,
+        damage: i64,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        match hit.source {
+            Some(owner) if owner.kind == ObjectKind::Unit && hit.skill_slot.is_some() => {
+                self.steal_life(owner.id, damage, events)
+            }
+            _ => Ok(()),
+        }
+    }
+
+    /// `LifeStealEffectProvider.PerformHitEffect`: the skill's owner, alive
+    /// and short of its maximum life, takes back the whole part of the hit's
+    /// damage times its `ILifeSteal`'s multiplier, through
+    /// `FightMech.StealLife`, which `FightActor.AddLife` caps at the maximum.
+    ///
+    /// A source that `CanDisable` does nothing while the owner's
+    /// technologies are disabled, which the provider reads as the hit's
+    /// `isTechnologyDisabled`. `StealLife` gives nothing while a buff
+    /// disables recovery, and only the Ignite buffs do, which no simulated
+    /// mechanism runs.
+    fn steal_life(&mut self, owner_id: u64, damage: i64, events: &mut Vec<Event>) -> Result<()> {
+        let Some(owner) = self.actors.get_mut(&owner_id) else {
+            return Ok(());
+        };
+        let Some(lifesteal) = owner.placement.lifesteal else {
+            return Ok(());
+        };
+        if lifesteal.can_disable && owner.technology_disabled() {
+            return Ok(());
+        }
+        let max_life = owner.stats.max_life();
+        if !owner.alive() || owner.life >= max_life {
+            return Ok(());
+        }
+        let stolen = q32_mul(damage << 32, lifesteal.multiplier_q32) >> 32;
+        if stolen < 1 {
+            return Ok(());
+        }
+        let before = owner.life;
+        owner.life = (owner.life + stolen).min(max_life);
+        events.push(event(
+            None,
+            None,
+            None,
+            Some(owner.object_ref()),
+            EventPayload::Healing {
+                amount: i32::try_from(owner.life - before)
+                    .map_err(|_| Error::new("healing exceeds i32"))?,
+            },
+        ));
+        Ok(())
     }
 
     /// `DamagePerformer.ProcessAdvancedEnergyShieldEffect` and the shields
@@ -786,6 +851,9 @@ impl Simulation {
                 },
             ));
         }
+        // The beam is its skill's `SkillDamageProvider`, which hands what it
+        // took to the skill's hit effects as any hit does.
+        self.steal_life(actor_id, stroke.actual, events)?;
         // A building the beam fells is recorded at the end of the tick, as a
         // blow's and a projectile's are: in the tower-loss fight with two
         // lanes, the other lane's Steel Ball damages its tower between the

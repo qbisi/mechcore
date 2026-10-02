@@ -64,12 +64,13 @@ fight but correct its unit's numbers. A row of any other list is a subclass,
 the rest, and does something more, although many carry numbers as well: Double
 Shot's second shot, High-Explosive Ammo's splash, Energy Absorption's life
 steal, Field Maintenance's repair. 64 of the 241 technologies are plain. The
-simulator applies a plain technology's numbers and refuses every other
-technology by name and kind, since applying a subclass's numbers alone would
-fight it as something it is not.
+simulator applies a plain technology's numbers, and a lifesteal technology's
+with the life steal [combat.md](combat.md#lifesteal) states, and refuses every
+other technology by name and kind, since applying a subclass's numbers alone
+would fight it as something it is not.
 
-A plain row may still set a field beyond the numbers this table carries, and
-names it in `special`: Siege Mode's `isInverseIsLockTarget`, and Machine
+A plain or a lifesteal row may still set a field beyond what this table
+carries, and names it in `special`: Siege Mode's `isInverseIsLockTarget`, and Machine
 Learning's `expChangeRate`, which speeds up the experience its unit gains. The
 simulator refuses those too.
 

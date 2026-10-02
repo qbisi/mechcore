@@ -9,13 +9,18 @@ schema: mechcore.technology_effects
 # Every technology a unit may research has a row. Its `kind` is the list
 # of `TechnologyGroupData` it comes from: `technologyDatas` for a plain
 # technology, which does nothing but correct its unit's numbers, and a
-# subclass's list for one that does something more. A plain row that sets
-# a field beyond its numbers names it in `special`.
+# subclass's list for one that does something more. A plain or a
+# lifesteal row that sets a field beyond what it carries here names it
+# in `special`.
 #
 # Every effect is a list indexed by the unit's rank: one entry for a
 # technology whose effect is flat, and one per rank for a technology that
 # grows with it. A rate is an FPoint Q32.32 raw integer, a value is an
 # FPoint in the number's own units, and speed is a plain integer.
+#
+# A subclass's row also carries what it answers its own interface with:
+# a lifesteal technology its `lifesteal_multiplier`, the share of a hit's
+# damage its unit takes back as life.
 
 technologies:
   - id: 206
@@ -47,16 +52,19 @@ technologies:
     unit: melting_point
     kind: lifestealTechnologies
     life_rate: [2576980377]  # +0.6
+    lifesteal_multiplier: [3435973836]  # +0.8
   - id: 308
     name: 能量汲取
     unit: steel_ball
     kind: lifestealTechnologies
     life_rate: [1717986918]  # +0.4
+    lifesteal_multiplier: [3435973836]  # +0.8
   - id: 330
     name: 能量汲取
     unit: void_eye
     kind: lifestealTechnologies
     life_rate: [2576980377]  # +0.6
+    lifesteal_multiplier: [3435973836]  # +0.8
   - id: 406
     name: 高爆弹药
     unit: wasp

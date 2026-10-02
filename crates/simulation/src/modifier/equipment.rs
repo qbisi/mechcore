@@ -33,17 +33,29 @@ use crate::{
 
 use super::{
     effects::{self, Fields, PROJECTILE, SPLASH, VALUE_ELSEWHERE},
+    sources::LifeSteal,
     targets::Targets,
 };
 
 const DEFAULT_EQUIPMENT_EFFECTS: &str = include_str!("../../../../config/equipment_effects.yaml");
 
-/// The kinds applied for their numbers alone, each the list of
-/// `EquipmentGroupData` it comes from: `equipmentDatas`, the plain item, and
-/// `mobilityIntensifyEquipmentDatas`, whose `MobilityIntensifyEquipment`
-/// overrides nothing of `Equipment` and frees its formation during
-/// deployment, which a fight does not read.
-const APPLIED: [&str; 2] = ["equipmentDatas", "mobilityIntensifyEquipmentDatas"];
+/// The kinds applied, each the list of `EquipmentGroupData` it comes from:
+/// `equipmentDatas`, the plain item; `mobilityIntensifyEquipmentDatas`, whose
+/// `MobilityIntensifyEquipment` overrides nothing of `Equipment` and frees its
+/// formation during deployment, which a fight does not read; and
+/// [`LIFESTEAL`].
+const APPLIED: [&str; 3] = [
+    "equipmentDatas",
+    "mobilityIntensifyEquipmentDatas",
+    LIFESTEAL,
+];
+
+/// The list whose `LifestealEquipment` is an `ILifeSteal` as well, which
+/// hands its unit a [`LifeSteal`].
+const LIFESTEAL: &str = "lifestealEquipmentDatas";
+
+/// `Equipment.GetPriority`, which overrides a technology's 0.
+const PRIORITY: i32 = 1;
 
 /// The module that tags every entry an equipment writes.
 pub(crate) const SOURCE: &str = "Modifier";
@@ -60,6 +72,8 @@ struct Equipment {
     targets: Targets,
     /// What it writes, or why this build will not apply it.
     effect: std::result::Result<Vec<(Channel, Index, Correction)>, String>,
+    /// What it answers `ILifeSteal` with, if its class is one.
+    lifesteal: Option<LifeSteal>,
 }
 
 /// One row of the table, with every field the extraction writes.
@@ -120,6 +134,9 @@ struct Row {
     exp_rate: Option<i64>,
     #[serde(default)]
     grade_upper_limit: Option<i64>,
+    /// `LifestealEquipmentData.lifestealMultiplier`, on a lifesteal row.
+    #[serde(default)]
+    lifesteal_multiplier: Option<i64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -164,20 +181,13 @@ impl EquipmentEffects {
     /// Returns an error naming the equipment when this build cannot apply it,
     /// rather than applying the part of it that it understands.
     pub(crate) fn corrections(&self, id: i32, unit: &UnitConfig) -> Result<Vec<(Channel, Entry)>> {
-        let Some(equipment) = self.equipment.get(&id) else {
-            return Err(Error::new(format!(
-                "equipment {id} is not in the equipment table"
-            )));
-        };
-        let corrections = equipment
-            .effect
-            .as_ref()
-            .map_err(|why| Error::new(why.clone()))?;
-        if !equipment.targets.reaches(unit)? {
+        let Some(equipment) = self.worn(id, unit)? else {
             return Ok(Vec::new());
-        }
-        Ok(corrections
+        };
+        Ok(equipment
+            .effect
             .iter()
+            .flatten()
             .map(|(channel, index, correction)| {
                 (
                     *channel,
@@ -189,6 +199,36 @@ impl EquipmentEffects {
                 )
             })
             .collect())
+    }
+
+    /// What one equipment answers `ILifeSteal` with on the unit wearing it,
+    /// if its class is one.
+    ///
+    /// # Errors
+    ///
+    /// Returns the error [`Self::corrections`] does.
+    pub(crate) fn lifesteal(&self, id: i32, unit: &UnitConfig) -> Result<Option<LifeSteal>> {
+        Ok(self
+            .worn(id, unit)?
+            .and_then(|equipment| equipment.lifesteal))
+    }
+
+    /// One equipment's row, once its effect is known to apply, or nothing
+    /// when its targeting does not reach the unit.
+    fn worn(&self, id: i32, unit: &UnitConfig) -> Result<Option<&Equipment>> {
+        let Some(equipment) = self.equipment.get(&id) else {
+            return Err(Error::new(format!(
+                "equipment {id} is not in the equipment table"
+            )));
+        };
+        equipment
+            .effect
+            .as_ref()
+            .map_err(|why| Error::new(why.clone()))?;
+        if !equipment.targets.reaches(unit)? {
+            return Ok(None);
+        }
+        Ok(Some(equipment))
     }
 }
 
@@ -203,9 +243,17 @@ impl Equipment {
                 row.mech_type, row.units
             )),
         };
+        // `LifestealEquipment.GetLifestealMuliplier` answers its row's
+        // multiplier, and `Equipment.CanDisable` false.
+        let lifesteal = (row.kind == LIFESTEAL).then(|| LifeSteal {
+            multiplier_q32: row.lifesteal_multiplier.unwrap_or(0),
+            priority: PRIORITY,
+            can_disable: false,
+        });
         Self {
             targets,
             effect: corrections_of(row, &who),
+            lifesteal,
         }
     }
 }
@@ -290,6 +338,7 @@ mod tests {
     const RAPID_LOADER: i32 = 13_030_011;
     const BARRIER: i32 = 1_307_001;
     const DEPLOYMENT_MODULE: i32 = 13_040_001;
+    const ABSORPTION_MODULE: i32 = 1_309_001;
     const ADVANCED_DEFENSIVE_TACTICS: i32 = 20001;
     const ADVANCED_OFFENSIVE_TACTICS: i32 = 20002;
 
@@ -363,6 +412,25 @@ mod tests {
                 .unwrap()
                 .is_empty()
         );
+    }
+
+    /// Absorption Module writes its row's life rate, as any class does, and
+    /// hands its unit an `ILifeSteal` of 0.9 at an equipment's priority.
+    #[test]
+    fn a_lifesteal_item_writes_its_numbers_and_hands_a_source() {
+        let equipment = EquipmentEffects::load().unwrap();
+        let marksman = unit("marksman");
+        let written = equipment.corrections(ABSORPTION_MODULE, &marksman).unwrap();
+        assert_eq!(written.len(), 1);
+        assert_eq!(written[0].0, Channel::Unit);
+        let lifesteal = equipment
+            .lifesteal(ABSORPTION_MODULE, &marksman)
+            .unwrap()
+            .unwrap();
+        assert_eq!(lifesteal.multiplier_q32, 3_865_470_566);
+        assert_eq!(lifesteal.priority, 1);
+        assert!(!lifesteal.can_disable);
+        assert_eq!(equipment.lifesteal(HEAVY_ARMOR, &marksman).unwrap(), None);
     }
 
     #[test]

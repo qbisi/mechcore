@@ -1,0 +1,21 @@
+# Absorption Module on blue's Marksman, against the Arclight of
+# `../../regression/fights/marksman-vs-arclight.yaml`, which the Arclight
+# wins. The item writes +0.3 of life, and each hit hands the Marksman back
+# 0.9 of the life it took, as far as its maximum: two shots of 2329 give back
+# 365 and 1095, what the Marksman was short of, and a shot of 155 gives back
+# 139, the whole part of 139.5. The Marksman wins.
+
+kind: fight
+map_id: 1021
+seed: 1787720817
+round: 1
+source: game
+ticks: 139
+hash: {profile: mcfr-content-0.7.0, result: 42915b0f2b686fafd6235039f1285bcefda006361cfc255293938a7aa21aa4b1}
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 0/200/650, equipment: [absorption_module]}
+red:
+  core_damage: 100
+  units:
+  - {name: arclight, index: 0, position: {x: 0, y: -50}}

@@ -47,6 +47,7 @@ pub(super) fn placement(
         level: 1,
         exp: 0,
         corrections: Vec::new(),
+        lifesteal: None,
         travelling: false,
     }
 }

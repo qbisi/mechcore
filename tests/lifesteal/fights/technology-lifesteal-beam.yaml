@@ -1,0 +1,21 @@
+# Energy Absorption on blue's Melting Point, whose beam has no splash and
+# strikes its target alone, against a Marksman that hurts it. A beam of 5
+# gives back 3: 0.8 is stored a little short of itself, and 5 times it is
+# 3.99999, whose whole part is 3.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 104
+hash: {profile: mcfr-content-0.7.0, result: 295e4f7a7db105ebe532df0d6d18df24efca787bd2797857f68639fab8042f72}
+blue:
+  techs:
+    melting_point: [energy_absorption]
+  units:
+  - {name: melting_point, index: 0, position: {x: 0, y: -100}, exp: 0/200/1400}
+red:
+  core_damage: 350
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -50}}

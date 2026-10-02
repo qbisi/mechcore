@@ -11,7 +11,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use crate::{
     Error, Result,
     data::{Channel, Entry, Stats},
-    modifier::{EnergyTowerSkillEffects, EquipmentEffects, OfficerEffects, TechnologyEffects},
+    modifier::{
+        EnergyTowerSkillEffects, EquipmentEffects, LifeSteal, OfficerEffects, TechnologyEffects,
+        current_lifesteal,
+    },
     rules::{UnitConfig, UnitConfigs},
 };
 use commander_skills::CommanderSkillEffects;
@@ -48,6 +51,9 @@ pub(crate) struct Placement {
     /// layout is compiled, which is the only place that can name the side and
     /// the officer in a refusal.
     pub(crate) corrections: Vec<(Channel, Entry)>,
+    /// The `ILifeSteal` its `LifeStealEffectProvider` enables, if its
+    /// technologies or equipment hand it one.
+    pub(crate) lifesteal: Option<LifeSteal>,
     /// Whether it opens the fight travelling: a unit deployed into an ambush
     /// zone, which `SuperDeploymentSystem` holds until its side arrives.
     pub(crate) travelling: bool,
@@ -414,7 +420,7 @@ fn compile_battle_skills(
         };
         if let SkillEffect::Summon(summon) = &mut release.effect {
             // `SummonSystem` makes a summon at level 1, with no equipment.
-            let Some(corrections) = loadout(
+            let Some(worn) = loadout(
                 name,
                 &summon.rules.type_name,
                 1,
@@ -426,7 +432,15 @@ fn compile_battle_skills(
             ) else {
                 continue;
             };
-            summon.corrections = corrections;
+            if worn.lifesteal.is_some() {
+                refused.push(format!(
+                    "side {name} summons a {} that its technologies give lifesteal, and \
+                     what a summon's effect providers carry is not measured",
+                    summon.rules.type_name
+                ));
+                continue;
+            }
+            summon.corrections = worn.corrections;
         }
         battle_skills.push(release);
     }
@@ -491,7 +505,7 @@ fn compile_formation(
     );
     let fits = refused.hold(validate_formation_footprint(side_name, formation, rules));
     let level = i64::from(formation.level.unwrap_or(1));
-    let corrections = loadout(
+    let worn = loadout(
         side_name,
         &formation.type_name,
         level,
@@ -508,8 +522,8 @@ fn compile_formation(
         },
         Ok,
     ));
-    let (Some(()), Some(()), Some(corrections), Some(formation_index)) =
-        (fired, fits, corrections, formation_index)
+    let (Some(()), Some(()), Some(worn), Some(formation_index)) =
+        (fired, fits, worn, formation_index)
     else {
         return None;
     };
@@ -542,9 +556,16 @@ fn compile_formation(
         rotated,
         level,
         exp: i64::from(formation.exp.unwrap_or(0)),
-        corrections,
+        corrections: worn.corrections,
+        lifesteal: worn.lifesteal,
         travelling: formation.travelling,
     })
+}
+
+/// What this side's loadout and a formation's equipment hand one unit.
+struct Worn {
+    corrections: Vec<(Channel, Entry)>,
+    lifesteal: Option<LifeSteal>,
 }
 
 /// What this side's loadout and a formation's equipment write onto it.
@@ -564,7 +585,7 @@ fn loadout(
     side: &SidePlan,
     loadouts: &Loadouts,
     refused: &mut Refusals,
-) -> Option<Vec<(Channel, Entry)>> {
+) -> Option<Worn> {
     let on_side = |error: Error| Error::new(format!("side {side_name}: {error}"));
     let asked = side
         .techs
@@ -615,7 +636,24 @@ fn loadout(
     // A snapshot carries each `DataSet`'s aggregate; one this build cannot
     // record is refused here, where the side and the officer can be named.
     refused.hold(stats.modifiers(1).map_err(refusal))?;
-    Some(corrections)
+    // Every source of an interface reaches the unit's one provider of it,
+    // which enables the one of the highest priority whatever order they came
+    // in.
+    let mut sources = refused.hold(
+        loadouts
+            .technologies
+            .lifesteal(&side.techs.units, type_name)
+            .map_err(on_side),
+    )?;
+    for &id in equipment {
+        sources.extend(refused.hold(loadouts.equipment.lifesteal(id, rules).map_err(on_side))?);
+    }
+    let lifesteal =
+        refused.hold(current_lifesteal(&sources).map_err(|error| refusal(Error::new(error))))?;
+    Some(Worn {
+        corrections,
+        lifesteal,
+    })
 }
 
 fn validate_formation_footprint(

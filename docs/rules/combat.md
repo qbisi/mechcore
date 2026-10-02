@@ -538,6 +538,34 @@ single-target direct effect, reaches its description's damage through
 `SkillDamageProvider -> FightSkill.GetDamage -> DamageProperty`. The killing
 blow is clamped to the remaining life.
 
+## Lifesteal
+
+**A unit's skill hands back a share of the life each of its hits took.** After
+a hit, the provider that dealt it hands the life it took from everything it
+struck, summed, to the skill's hit effects, and a lifesteal source's effect
+gives the skill's owner the whole part of that sum times the source's
+multiplier. It gives nothing to an owner that is dead or at its maximum life,
+and never past the maximum: what the owner was short of is what it gets. A
+direct blow, a beam with or without a splash and a projectile all hand their
+hit on, and so does a hit a shield took in part, for the life the rest took.
+A turret's, a mine's and a battle skill's hits reach no unit's skill.
+
+The multiplier is a fixed-point number, and the share is truncated: 0.8 is
+stored a little short of itself, so 5 of damage gives back 3.
+
+**A unit has one lifesteal source in force: the one of the highest
+priority.** An item and a technology are both lifesteal sources, and the unit
+holds one provider for them, which enables one. An item's priority is above a
+technology's, so a unit with Absorption Module and Energy Absorption steals at
+the item's multiplier alone; the two do not sum. A technology's source does
+nothing while its owner's technologies are disabled, and an item's is never
+disabled.
+
+The rows are [`config/equipment_effects.yaml`](../../config/equipment_effects.yaml)'s
+and [`config/technology_effects.yaml`](../../config/technology_effects.yaml)'s
+`lifesteal_multiplier`; each source also writes its row's corrections, as any
+item and technology does.
+
 ## Personal shield baseline
 
 A unit with no shield still starts with its `EnergyShieldController` enabled.
@@ -775,6 +803,14 @@ not the game's native attack-type enum.
 - A blow whose attack point and backswing outlast its interval is fitted into
   it: `tests/modifier/fights/technology-interval-value.yaml`.
 
+- A hit hands back the whole part of its life times the multiplier, as far
+  as the owner's maximum, through a blow, a projectile and a beam with no
+  splash, and an item's source overrides a technology's:
+  `tests/lifesteal/fights/absorption-module.yaml`,
+  `tests/lifesteal/fights/technology-lifesteal.yaml`,
+  `tests/lifesteal/fights/absorption-module-over-technology.yaml` and
+  `tests/lifesteal/fights/technology-lifesteal-beam.yaml`.
+
 ### Read
 
 - A projectile that locks its target is released with no damage out of its
@@ -905,7 +941,27 @@ not the game's native attack-type enum.
   `FightCoreSystem.TeamUpdate`, `FightMech.Update`, `SkillManager.Update`,
   `FightSkill.ExitFight`, `FightSkill.StopAttack`.
 
+- Lifesteal: `DamagePerformer.PerformSingleEffect` and
+  `DamagePerformer.PerformRangeEffect` hand the sum `FightActor.ReduceLife`
+  returned to `IDamageProvider.DispatchHitDamageEvent`;
+  `SkillDamageProvider` and `FightProjectile` pass it to
+  `FightSkill.DispatchHitDamageEvent`, `SkillHitEffectController.PerformHitEffect`;
+  `LifeStealEffectProvider.PerformHitEffect` checks the owner's life and
+  `CanDisable`, multiplies by `ILifeSteal.GetLifestealMuliplier` and calls
+  `FightMech.StealLife`, which `BuffManager.IsRecoverDisabled` stops and
+  `FightActor.AddLife` caps. The provider's source is
+  ``SingleEffectProvider`1.AddDataSource``'s first after sorting by
+  `EffectProvider.IsOverrideEffect`, which compares `Equipment.GetPriority`
+  and `Technology`'s; `Equipment`'s `CanDisable` is false and
+  `Technology.CanDisable` reads `ignoreElectricEffect`.
+
 ### Not established
+
+- **Lifesteal under a recovery-disabling buff or with its technologies
+  disabled.** Only the Ignite buffs disable recovery and no recorded fight runs
+  one; no recorded lifesteal unit had its technologies disabled. Which of two
+  sources of one priority that answer differently a provider enables is not
+  read, and a summon's lifesteal is not measured.
 
 - **The interval stream.** The order in which one member's several skills
   consume it, and what else consumes from it once the fight is running.

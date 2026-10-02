@@ -79,9 +79,9 @@ replay that does is refused when it is converted.
 A layout is refused by name, rather than fought with part of an item, when it
 carries:
 
-- an equipment that is not a row of the table: the catalogue's other items,
-  shields, repair kits and production lines among them, are not ordinary
-  `EquipmentData`, and no mechanism here reads what they do;
+- an equipment of a class whose mechanism is not here, named by its kind:
+  shields, repair kits and production lines among them. Absorption Module's
+  class is read: its life steal is [combat.md](combat.md#lifesteal)'s;
 - a row that sets `importantUnit` (Dominion Core) or `roundDuration` (Rapid
   Autoloader, rule `999903`'s), whose effects have not been recorded.
 
