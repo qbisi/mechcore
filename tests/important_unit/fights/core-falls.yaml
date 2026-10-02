@@ -1,0 +1,24 @@
+# Dominion Core on blue's front Marksman, a Fortress and a Marksman far
+# behind it, against three Arclights. The Arclights kill the Marksman wearing
+# the core on tick 52, and on that tick the Fortress and the other Marksman
+# die after it, in that order, with no damage recorded and no one credited.
+# Red wins on tick 52.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 52
+hash: {profile: mcfr-content-0.7.0, result: c92e6370f32623decaa35ce6dc526522f1698a21108375a95f0037aa895eef23}
+blue:
+  core_damage: 300
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: [dominion_core]}
+  - {name: fortress, index: 1, position: {x: 0, y: -250}}
+  - {name: marksman, index: 2, position: {x: 40, y: -250}}
+red:
+  units:
+  - {name: arclight, index: 0, position: {x: 0, y: -50}, exp: 0/133/750}
+  - {name: arclight, index: 1, position: {x: 30, y: -50}, exp: 0/33/750}
+  - {name: arclight, index: 2, position: {x: -30, y: -50}, exp: 0/33/750}

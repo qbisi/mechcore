@@ -146,6 +146,9 @@ struct Equipment {
     carried_shield: Option<CarriedShield>,
     /// The production line it runs, if its class is one.
     production: Option<ProductionLine>,
+    /// `ICommonMechDataChangeDataSource.IsImportantUnit`: whether it makes its
+    /// unit one its side cannot outlive.
+    important: bool,
 }
 
 /// One row of the table, with every field the extraction writes.
@@ -444,6 +447,18 @@ impl EquipmentEffects {
             .and_then(|equipment| equipment.production.clone()))
     }
 
+    /// Whether one equipment makes the unit wearing it an important unit,
+    /// which `MechDataModifer.TryAddCommonData` marks as it writes the row.
+    ///
+    /// # Errors
+    ///
+    /// Returns the error [`Self::corrections`] does.
+    pub(crate) fn important(&self, id: i32, unit: &UnitConfig) -> Result<bool> {
+        Ok(self
+            .worn(id, unit)?
+            .is_some_and(|equipment| equipment.important))
+    }
+
     /// The buffs one equipment makes the unit wearing it ignore.
     ///
     /// # Errors
@@ -533,6 +548,7 @@ impl Equipment {
                 radius: row.barrier_radius.unwrap_or(0),
                 energy: row.barrier_energy.unwrap_or(0),
             }),
+            important: row.important_unit,
         }
     }
 }
@@ -655,7 +671,6 @@ fn corrections_of(
             row.permanent_effect && row.kind != IGNORE_BUFF,
             "permanent_effect",
         ),
-        (row.important_unit, "important_unit"),
     ];
     for (set, field) in lifetimes {
         if set {
@@ -948,20 +963,32 @@ mod tests {
         assert_eq!(equipment.production(HEAVY_ARMOR, &fortress).unwrap(), None);
     }
 
+    /// Dominion Core makes its unit an important one and writes its life and
+    /// damage rates as an ordinary row does.
+    #[test]
+    fn an_important_item_marks_its_unit_and_writes_its_numbers() {
+        let equipment = EquipmentEffects::load().unwrap();
+        let marksman = unit("marksman");
+        assert!(equipment.important(DOMINION_CORE, &marksman).unwrap());
+        assert_eq!(
+            equipment
+                .corrections(DOMINION_CORE, &marksman)
+                .unwrap()
+                .len(),
+            2
+        );
+        assert!(!equipment.important(HEAVY_ARMOR, &marksman).unwrap());
+    }
+
     #[test]
     fn an_equipment_this_build_cannot_apply_is_refused_by_name() {
         let equipment = EquipmentEffects::load().unwrap();
         let marksman = unit("marksman");
-        for (id, said) in [
-            (RAPID_LOADER, "round_duration"),
-            (DOMINION_CORE, "important_unit"),
-        ] {
-            let refused = equipment
-                .corrections(id, &marksman)
-                .unwrap_err()
-                .to_string();
-            assert!(refused.contains(&id.to_string()), "{refused}");
-            assert!(refused.contains(said), "{refused}");
-        }
+        let refused = equipment
+            .corrections(RAPID_LOADER, &marksman)
+            .unwrap_err()
+            .to_string();
+        assert!(refused.contains(&RAPID_LOADER.to_string()), "{refused}");
+        assert!(refused.contains("round_duration"), "{refused}");
     }
 }

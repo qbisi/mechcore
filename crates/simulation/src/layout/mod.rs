@@ -69,6 +69,9 @@ pub(crate) struct Placement {
     /// The `buffDatas` rows its equipment makes it ignore,
     /// `BuffManager.ignoredBuffs`.
     pub(crate) ignored_buffs: Vec<u32>,
+    /// Whether its equipment makes it an important unit
+    /// (`FightMech.IsImportant`): its side does not outlive it.
+    pub(crate) important: bool,
     /// Whether it opens the fight travelling: a unit deployed into an ambush
     /// zone, which `SuperDeploymentSystem` holds until its side arrives.
     pub(crate) travelling: bool,
@@ -612,6 +615,7 @@ fn compile_formation(
         production,
         start_buffs: worn.start_buffs,
         ignored_buffs: worn.ignored_buffs,
+        important: worn.important,
         travelling: formation.travelling,
     })
 }
@@ -693,6 +697,7 @@ struct Worn {
     carried_shield: Option<CarriedShield>,
     start_buffs: Vec<StartBuff>,
     ignored_buffs: Vec<u32>,
+    important: bool,
 }
 
 /// What this side's loadout and a formation's equipment write onto it.
@@ -819,7 +824,9 @@ fn worn(
     let mut carried_shields = Vec::new();
     let mut start_buffs = Vec::new();
     let mut ignored_buffs = Vec::new();
+    let mut important = false;
     for &id in equipment {
+        important |= refused.hold(loadouts.equipment.important(id, rules).map_err(on_side))?;
         ignored_buffs
             .extend(refused.hold(loadouts.equipment.ignored_buffs(id, rules).map_err(on_side))?);
         start_buffs
@@ -857,6 +864,7 @@ fn worn(
         },
         start_buffs,
         ignored_buffs,
+        important,
     })
 }
 

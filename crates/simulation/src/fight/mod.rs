@@ -41,6 +41,7 @@ mod construction;
 mod damage;
 mod deploy;
 mod experience;
+mod important_unit;
 mod intercept;
 mod math;
 mod mech;
@@ -708,6 +709,9 @@ impl Simulation {
         for building_id in std::mem::take(&mut self.towers.fallen) {
             self.lose_tower(building_id)?;
         }
+        // Its `TryProcessDeadImportantUnit` too: a side whose last important
+        // unit died this tick loses every unit it has left.
+        self.lose_important_units(&events)?;
         let projectile_finished_fight =
             !naturally_finished_before_projectiles && self.naturally_finished();
         // `FightingState.Update` runs `FightCoreSystem.TryDstroyTower` after

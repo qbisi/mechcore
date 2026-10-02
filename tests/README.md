@@ -15,6 +15,7 @@ out to show:
 | [`energy_shield/`](energy_shield/README.md) | what a unit's own shield holds and takes off a hit, from an item or a technology |
 | [`equipment/`](equipment/README.md) | where equipment corrections land and how they compose with officers |
 | [`equipment_buff/`](equipment_buff/README.md) | what a buff item adds to the unit wearing it, and which buffs it keeps off |
+| [`important_unit/`](important_unit/README.md) | what a side does when its last important unit dies |
 | [`interceptor/`](interceptor/README.md) | how an interceptor takes projectiles out of the air, and what befalls it |
 | [`level/`](level/README.md) | how a unit level scales base life and damage before overlays |
 | [`lifesteal/`](lifesteal/README.md) | how a hit hands life back to the unit whose skill dealt it, and which lifesteal source does |

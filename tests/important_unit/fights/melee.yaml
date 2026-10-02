@@ -1,0 +1,20 @@
+# Dominion Core on blue's Marksman, a Fortress behind it, against two
+# Rhinos. A Rhino's direct hit kills the Marksman on tick 124, and the
+# Fortress dies after it on that tick, credited to no one. Red wins.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 124
+hash: {profile: mcfr-content-0.7.0, result: 35bd222c751001428d3160da0f9280325417f80e10fa21b7bd2d8b70dd12f6c6}
+blue:
+  core_damage: 400
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: [dominion_core]}
+  - {name: fortress, index: 1, position: {x: 0, y: -250}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/150/1150}
+  - {name: rhino, index: 1, position: {x: 35, y: -55}, exp: 0/50/1150}
