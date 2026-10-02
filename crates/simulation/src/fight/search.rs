@@ -695,6 +695,78 @@ impl Simulation {
 
         Ok(best.map(|(candidate, _)| candidate))
     }
+
+    /// `SkillSearchTargetController.TrySearchAliveTarget`, which
+    /// `SearchLockTarget` falls back on when the skill's own search answers
+    /// nothing, leaving the skill idle.
+    ///
+    /// The skill that searches for its owner (`FightSkillBase.IsMainSearcher`,
+    /// every slot of the main skill) is offered every actor of the other side
+    /// in either domain (`OpponentController.GetActors(Both)`) through
+    /// `aliveTargetSelector`, a selector like its own that filters on nothing
+    /// but `IsAlive`, scoring candidates where they stand when it runs. The
+    /// other side's blocking constructions are offered only when nothing
+    /// else answers. So a Vortex, which cannot fire at aircraft, that fells
+    /// the last tower with only aircraft left locks onto one and walks on it.
+    pub(in crate::fight) fn select_alive_target(
+        &self,
+        owner: FightActorRef,
+        slot: Option<usize>,
+        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
+    ) -> Result<Option<FightActorRef>> {
+        let source = self
+            .attacker(owner)
+            .ok_or_else(|| Error::new("target selector source is absent"))?;
+        let (rotation_q32, attack_range, rotation_window_q32) = match (owner, slot) {
+            (FightActorRef::Unit(actor_id), Some(slot)) if slot > 0 => (
+                self.actors[&actor_id].slot_main_rotation_q32(slot),
+                self.slot_attack_range(actor_id, Some(slot)),
+                None,
+            ),
+            _ => (
+                source.query_rotation_q32,
+                source.attack_range,
+                source.rotation_window_q32,
+            ),
+        };
+        let select = |blocking: bool| {
+            let mut best: Option<(i64, FightActorRef)> = None;
+            for (&team, candidates) in target_search_order {
+                if team == source.team {
+                    continue;
+                }
+                for &candidate in candidates {
+                    let Some(target) = self.fight_actor(candidate) else {
+                        continue;
+                    };
+                    let blocks = matches!(candidate, FightActorRef::Building(id)
+                        if self.rvo.passable_constructions.contains(&id));
+                    if target.team != team || !target.alive || blocks != blocking {
+                        continue;
+                    }
+                    let Some(score) = normal_visible_full_rotation_target_score_q32(
+                        source.query_x_q32,
+                        source.query_z_q32,
+                        source.radius,
+                        rotation_q32,
+                        target.x_q32,
+                        target.z_q32,
+                        target.radius,
+                        source.attack.min_range(),
+                        attack_range,
+                        rotation_window_q32,
+                    ) else {
+                        continue;
+                    };
+                    if best.is_none_or(|(previous, _)| score < previous) {
+                        best = Some((score, candidate));
+                    }
+                }
+            }
+            best.map(|(_, candidate)| candidate)
+        };
+        Ok(select(false).or_else(|| select(true)))
+    }
 }
 
 impl Simulation {

@@ -379,12 +379,23 @@ impl Simulation {
         } else {
             let selected =
                 self.select_group_lock_replacement(actor_id, slot, target_search_order)?;
+            let idle = selected.is_none();
+            let selected = if idle {
+                self.select_alive_target(
+                    FightActorRef::Unit(actor_id),
+                    Some(slot),
+                    target_search_order,
+                )?
+            } else {
+                selected
+            };
             let sibling = self
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable")
                 .skill
                 .sibling_mut(slot);
+            sibling.idle = idle;
             sibling.lock_target = selected;
             sibling.attack_target_left = None;
             sibling.search_target_time = SEARCH_TARGET_RESET_TICKS;

@@ -306,12 +306,20 @@ impl Simulation {
         if slot == 0 {
             self.take_from_siblings(actor_id, selected);
         }
+        let idle = selected.is_none();
+        let selected = if idle {
+            self.select_alive_target(owner, Some(slot), target_search_order)?
+        } else {
+            selected
+        };
         let actor = self.actors.get_mut(&actor_id).expect("actor exists");
         if slot == 0 {
+            actor.skill.idle = idle;
             actor.skill.write_lock(selected);
             self.search_attack_target(FightActorRef::Unit(actor_id));
         } else {
             let sibling = actor.skill.sibling_mut(slot);
+            sibling.idle = idle;
             sibling.lock_target = selected;
             sibling.attack_target_left = None;
             self.refresh_group_walls(actor_id, Some(slot));
@@ -435,7 +443,14 @@ impl Simulation {
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<bool> {
         let selected = self.select_lock_replacement(owner, target_search_order)?;
+        let idle = selected.is_none();
+        let selected = if idle {
+            self.select_alive_target(owner, None, target_search_order)?
+        } else {
+            selected
+        };
         let skill = self.skill_mut(owner);
+        skill.idle = idle;
         let Some(selected) = selected else {
             skill.drop_lock();
             return Ok(false);
