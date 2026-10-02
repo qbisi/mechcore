@@ -9,9 +9,9 @@ schema: mechcore.technology_effects
 # Every technology a unit may research has a row. Its `kind` is the list
 # of `TechnologyGroupData` it comes from: `technologyDatas` for a plain
 # technology, which does nothing but correct its unit's numbers, and a
-# subclass's list for one that does something more. A plain or a
-# lifesteal row that sets a field beyond what it carries here names it
-# in `special`.
+# subclass's list for one that does something more. A plain row, and
+# a lifesteal or repair row, that sets a field beyond what it carries
+# here names it in `special`.
 #
 # Every effect is a list indexed by the unit's rank: one entry for a
 # technology whose effect is flat, and one per rank for a technology that
@@ -20,7 +20,10 @@ schema: mechcore.technology_effects
 #
 # A subclass's row also carries what it answers its own interface with:
 # a lifesteal technology its `lifesteal_multiplier`, the share of a hit's
-# damage its unit takes back as life.
+# damage its unit takes back as life, and a repair technology the
+# seconds hurt before it repairs, the state it repairs in (0 always,
+# 1 underground, 2 cloaked), the seconds between two repairs and the
+# share of maximum life each restores.
 
 technologies:
   - id: 206
@@ -167,46 +170,82 @@ technologies:
     name: 战地维修
     unit: rhino
     kind: autoRecoveryTechnologies
+    start_time: 0
+    auto_recovery_state_type: 0
+    recovery_duration: [429496729]  # +0.1
+    recovery_life_rate: [19327352]  # +0.0045
   - id: 911
     name: 战地维修
     unit: overlord
     kind: autoRecoveryTechnologies
+    start_time: 0
+    auto_recovery_state_type: 0
     life_rate: [1288490188]  # +0.3
+    recovery_duration: [429496729]  # +0.1
+    recovery_life_rate: [19327352]  # +0.0045
   - id: 913
     name: 战地维修
     unit: sledgehammer
     kind: autoRecoveryTechnologies
+    start_time: 0
+    auto_recovery_state_type: 0
     life_rate: [1288490188]  # +0.3
+    recovery_duration: [429496729]  # +0.1
+    recovery_life_rate: [19327352]  # +0.0045
   - id: 918
     name: 战地维修
     unit: wraith
     kind: autoRecoveryTechnologies
+    start_time: 0
+    auto_recovery_state_type: 0
     life_rate: [1288490188]  # +0.3
+    recovery_duration: [429496729]  # +0.1
+    recovery_life_rate: [19327352]  # +0.0045
   - id: 919
     name: 战地维修
     unit: scorpion
     kind: autoRecoveryTechnologies
+    start_time: 0
+    auto_recovery_state_type: 0
     life_rate: [1288490188]  # +0.3
+    recovery_duration: [429496729]  # +0.1
+    recovery_life_rate: [19327352]  # +0.0045
   - id: 920
     name: 战地维修
     unit: fire_badger
     kind: autoRecoveryTechnologies
+    start_time: 0
+    auto_recovery_state_type: 0
     life_rate: [1288490188]  # +0.3
+    recovery_duration: [429496729]  # +0.1
+    recovery_life_rate: [19327352]  # +0.0045
   - id: 923
     name: 潜地维修
     unit: sandworm
     kind: autoRecoveryTechnologies
+    start_time: 0
+    auto_recovery_state_type: 1
     life_rate: [858993459]  # +0.2
+    recovery_duration: [429496729]  # +0.1
+    recovery_life_rate: [85899345]  # +0.02
   - id: 924
     name: 战地维修
     unit: tarantula
     kind: autoRecoveryTechnologies
+    start_time: 0
+    auto_recovery_state_type: 0
     life_rate: [1288490188]  # +0.3
+    recovery_duration: [429496729]  # +0.1
+    recovery_life_rate: [19327352]  # +0.0045
   - id: 931
     name: 战地维修
     unit: vortex
     kind: autoRecoveryTechnologies
+    start_time: 0
+    auto_recovery_state_type: 0
     life_rate: [1288490188]  # +0.3
+    recovery_duration: [429496729]  # +0.1
+    recovery_life_rate: [19327352]  # +0.0045
   - id: 1001
     name: 保护屏障
     unit: fortress
@@ -794,7 +833,11 @@ technologies:
     name: 战地维修
     unit: sabertooth
     kind: autoRecoveryTechnologies
+    start_time: 0
+    auto_recovery_state_type: 0
     life_rate: [1288490188]  # +0.3
+    recovery_duration: [429496729]  # +0.1
+    recovery_life_rate: [19327352]  # +0.0045
   - id: 10401
     name: 实心弹
     unit: fortress

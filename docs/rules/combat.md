@@ -566,6 +566,32 @@ and [`config/technology_effects.yaml`](../../config/technology_effects.yaml)'s
 `lifesteal_multiplier`; each source also writes its row's corrections, as any
 item and technology does.
 
+## Repair
+
+**A unit with a repair source repairs itself while it is hurt, after a
+second and every 0.1 second.** Each tick, after every unit has updated and
+every projectile landed, a unit that is alive and short of its maximum life
+advances two clocks by the tick: a start clock, which begins at −1 second,
+and once that reaches the source's start time, a repair clock. When the
+repair clock reaches the source's interval it is set back to zero and the
+unit gains the whole part of its maximum life times the source's rate, as
+far as its maximum. Nothing sets the start clock back during a fight: a unit
+that is healed whole and hurt again repairs at once.
+
+A fixed-point comparison counts 43 raw units as equal, and the tick is a few
+raw units short of 0.05 second: twenty hurt ticks reach the second and two
+reach the interval. With a start time of 0 and an interval of 0.1 second, as
+every standard source has, a unit repairs from its twentieth hurt tick on,
+every second tick.
+
+Nano Repair Kit and Field Maintenance are repair sources, one per unit as
+lifesteal's are, the item's priority above the technology's. Their numbers
+are [`config/equipment_effects.yaml`](../../config/equipment_effects.yaml)'s
+and [`config/technology_effects.yaml`](../../config/technology_effects.yaml)'s
+`start_time`, `recovery_duration` and `recovery_life_rate`. A technology
+whose `auto_recovery_state_type` is not 0 repairs only underground or
+cloaked, which the simulator refuses.
+
 ## Personal shield baseline
 
 A unit with no shield still starts with its `EnergyShieldController` enabled.
@@ -811,6 +837,11 @@ not the game's native attack-type enum.
   `tests/lifesteal/fights/absorption-module-over-technology.yaml` and
   `tests/lifesteal/fights/technology-lifesteal-beam.yaml`.
 
+- A unit repairs from its twentieth hurt tick on, every second tick, by
+  the whole part of its maximum life times the rate, from an item and from a
+  technology: `tests/repair/fights/nano-repair-kit.yaml` and
+  `tests/repair/fights/field-maintenance.yaml`.
+
 ### Read
 
 - A projectile that locks its target is released with no damage out of its
@@ -955,8 +986,24 @@ not the game's native attack-type enum.
   and `Technology`'s; `Equipment`'s `CanDisable` is false and
   `Technology.CanDisable` reads `ignoreElectricEffect`.
 
+- Repair: `AutoRecoveryEffectProvider.DoActive` adds a unit to its side's
+  `TeamAutoRecoveryManager`, whose `AutoRecoveryController` constructor
+  calls `TeamAutoRecoveryManager+AutoRecoveryController.Reset`, setting the start clock to −1;
+  `TeamAutoRecoveryManager.Update` advances the clocks by
+  `FightUtility.DeltaTime`, compares them with `IAutoRecovery.GetStartTime`
+  and `IAutoRecovery.GetRecoveryDuration` through
+  `FPoint.op_GreaterThanOrEqual`, and calls
+  `TeamAutoRecoveryManager.RecoveryMech`, which multiplies the maximum life by
+  `IAutoRecovery.GetRecoveryLIfeRate` and calls `FightMech.RecoveryLife`.
+  `FightController.AddModules` adds `AutoRecoverySystem` after
+  `SuperDeploymentSystem`.
+
 ### Not established
 
+- **Repair with its technologies disabled**, which stops the clocks
+  (`AutoRecoveryEffectProvider.DisableEffect`) and which no recorded fight
+  does; and which of an item and a technology a unit with both keeps, since
+  every standard source repairs by the same numbers.
 - **Lifesteal under a recovery-disabling buff or with its technologies
   disabled.** Only the Ignite buffs disable recovery and no recorded fight runs
   one; no recorded lifesteal unit had its technologies disabled. Which of two

@@ -61,10 +61,17 @@ LISTS = (
 # the corrections are, written only on the rows of that list.
 SUBCLASS_LISTS = (
     ("lifesteal_multiplier", "lifestealMultiplier", "lifestealTechnologies"),
+    ("recovery_duration", "recoveryDuration", "autoRecoveryTechnologies"),
+    ("recovery_life_rate", "recoveryLifeRate", "autoRecoveryTechnologies"),
+)
+# The same for a field that is one value rather than a rank list.
+SUBCLASS_SCALARS = (
+    ("start_time", "startTime", "autoRecoveryTechnologies"),
+    ("auto_recovery_state_type", "autoRecoveryStateType", "autoRecoveryTechnologies"),
 )
 # The lists whose rows say in `special` what they set beyond the fields
 # this table carries: the plain one, and each subclass's the simulator reads.
-IMPLEMENTED = ("technologyDatas", "lifestealTechnologies")
+IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnologies")
 # The list of `TechnologyGroupData` a plain technology comes from. A row of any
 # other list is a subclass (`BuffTechnologyData`, `SplashTechnologyData` and
 # the rest) that does something beyond its unit's numbers.
@@ -78,7 +85,7 @@ DESCRIPTIVE = {
     "mainSkillEffect", "extraSkillEffect", "extraSkillNumericalEffect",
 }
 RATES = {"life_rate", "damage_rate", "attack_range_rate", "attack_interval_rate", "projectile_life_rate",
-         "lifesteal_multiplier"}
+         "lifesteal_multiplier", "recovery_life_rate"}
 INTEGERS = {"speed_value", "min_attack_range_value"}
 
 
@@ -98,6 +105,9 @@ def rows_by_id() -> dict[int, dict]:
                 for field, source, owner in SUBCLASS_LISTS:
                     if kind == owner:
                         effect[field] = [raw(value) for value in row[source]]
+                for field, source, owner in SUBCLASS_SCALARS:
+                    if kind == owner:
+                        effect[field] = raw(row[source])
                 rows[row["id"]] = effect
     return rows
 
@@ -105,7 +115,8 @@ def rows_by_id() -> dict[int, dict]:
 def special(row: dict) -> list[str]:
     """The fields of a plain technology's row that are set and are neither a
     number this table carries nor descriptive: what it does beyond numbers."""
-    numeric = {source for _, source in LISTS} | {source for _, source, _ in SUBCLASS_LISTS}
+    numeric = ({source for _, source in LISTS} | {source for _, source, _ in SUBCLASS_LISTS}
+               | {source for _, source, _ in SUBCLASS_SCALARS})
     return sorted(
         field
         for field, value in row["row"].items()
@@ -243,9 +254,9 @@ def main() -> int:
         "# Every technology a unit may research has a row. Its `kind` is the list",
         "# of `TechnologyGroupData` it comes from: `technologyDatas` for a plain",
         "# technology, which does nothing but correct its unit's numbers, and a",
-        "# subclass's list for one that does something more. A plain or a",
-        "# lifesteal row that sets a field beyond what it carries here names it",
-        "# in `special`.",
+        "# subclass's list for one that does something more. A plain row, and",
+        "# a lifesteal or repair row, that sets a field beyond what it carries",
+        "# here names it in `special`.",
         "#",
         "# Every effect is a list indexed by the unit's rank: one entry for a",
         "# technology whose effect is flat, and one per rank for a technology that",
@@ -254,7 +265,10 @@ def main() -> int:
         "#",
         "# A subclass's row also carries what it answers its own interface with:",
         "# a lifesteal technology its `lifesteal_multiplier`, the share of a hit's",
-        "# damage its unit takes back as life.",
+        "# damage its unit takes back as life, and a repair technology the",
+        "# seconds hurt before it repairs, the state it repairs in (0 always,",
+        "# 1 underground, 2 cloaked), the seconds between two repairs and the",
+        "# share of maximum life each restores.",
         "",
         "technologies:",
     ]
@@ -282,6 +296,9 @@ def main() -> int:
             for field, _, owner in SUBCLASS_LISTS
             if row["kind"] == owner
         ]
+        for field, source, owner in SUBCLASS_SCALARS:
+            if row["kind"] == owner:
+                lines.append(f"    {field}: {row[field]}")
         for field, values in held:
             raw = ", ".join(str(value) for value in values)
             if field in INTEGERS:

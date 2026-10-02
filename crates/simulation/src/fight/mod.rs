@@ -48,6 +48,7 @@ mod motion;
 mod pilot;
 mod projectile;
 mod random;
+mod recovery;
 mod run;
 mod rvo;
 mod search;
@@ -217,6 +218,9 @@ struct Actor {
     command: Option<pilot::MoveCommand>,
     /// The buffs running on it, `BuffManager`'s list.
     buffs: Vec<RunningBuff>,
+    /// Its `AutoRecoveryController`'s clocks, when a repair source is in
+    /// force on it.
+    recovery: Option<recovery::RecoveryClock>,
     /// `RVOControllerFixed._maxSpeed`: the speed `Active` read when the unit
     /// took the field, which `StopMove` hands the agent as its maximum. A
     /// buff that changes the unit's speed later reaches a moving agent through
@@ -600,6 +604,8 @@ impl Simulation {
         self.step_interceptors(&mut events)?;
         // `SuperDeploymentSystem` updates after `InterceptSystem`.
         self.step_super_deployment();
+        // `AutoRecoverySystem` updates after `SuperDeploymentSystem`.
+        self.step_auto_recovery(&mut events)?;
         // `SupportUnitSystem` updates after `InterceptSystem`: a creator's
         // summons are made after every unit has moved and every shot landed.
         self.step_support_units(step, &mut events)?;

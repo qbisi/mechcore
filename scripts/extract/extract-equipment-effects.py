@@ -37,6 +37,9 @@ FIELDS = {
 # and the list of `EquipmentGroupData` whose rows carry it.
 SUBCLASS_FIELDS = {
     "lifesteal_multiplier": ("lifestealMultiplier", "lifestealEquipmentDatas"),
+    "start_time": ("startTime", "autoRecoveryEquipmentDatas"),
+    "recovery_duration": ("recoveryDuration", "autoRecoveryEquipmentDatas"),
+    "recovery_life_rate": ("recoveryLifeRate", "autoRecoveryEquipmentDatas"),
 }
 
 
@@ -95,7 +98,9 @@ def render(rows):
         "# Every class writes the corrections below, whatever else it does, and",
         "# a subclass's row also carries what it answers its own interface with:",
         "# a lifesteal item its `lifesteal_multiplier`, the share of a hit's",
-        "# damage its unit takes back as life.",
+        "# damage its unit takes back as life, and a repair item the seconds",
+        "# hurt before it repairs, the seconds between two repairs and the",
+        "# share of maximum life each restores.",
         "#",
         "# A rate is an FPoint Q32.32 raw integer: 3221225472 is +0.75. A value is",
         "# an FPoint in the number's own units: 85899345920 is +20 of range.",
@@ -122,7 +127,8 @@ def render(rows):
                 lines.append(f"    {field}: {d[field]}")
         for field in SUBCLASS_FIELDS:
             if field in d:
-                lines.append(f"    {field}: {d[field]}{reading(d[field])}")
+                comment = reading(d[field]) if d[field] else ""
+                lines.append(f"    {field}: {d[field]}{comment}")
     return "\n".join(lines) + "\n"
 
 

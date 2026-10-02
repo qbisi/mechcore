@@ -172,6 +172,7 @@ impl Simulation {
             exp: 0,
             corrections: creator.summon.corrections.clone(),
             lifesteal: None,
+            auto_recovery: None,
             travelling: false,
         };
         let mut actor = Actor::at_generated_position(placement, rules, x_q32, z_q32);

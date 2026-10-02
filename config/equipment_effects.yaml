@@ -12,7 +12,9 @@ schema: mechcore.equipment_effects
 # Every class writes the corrections below, whatever else it does, and
 # a subclass's row also carries what it answers its own interface with:
 # a lifesteal item its `lifesteal_multiplier`, the share of a hit's
-# damage its unit takes back as life.
+# damage its unit takes back as life, and a repair item the seconds
+# hurt before it repairs, the seconds between two repairs and the
+# share of maximum life each restores.
 #
 # A rate is an FPoint Q32.32 raw integer: 3221225472 is +0.75. A value is
 # an FPoint in the number's own units: 85899345920 is +20 of range.
@@ -153,6 +155,9 @@ equipment:
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
+    start_time: 0
+    recovery_duration: 429496729  # +0.1
+    recovery_life_rate: 19327352  # +0.0045
   - id: 13030001
     name: 激光瞄具
     kind: equipmentDatas

@@ -33,7 +33,7 @@ use crate::{
 
 use super::{
     effects::{self, Fields, PROJECTILE, SPLASH, VALUE_ELSEWHERE},
-    sources::LifeSteal,
+    sources::{AutoRecovery, LifeSteal},
     targets::Targets,
 };
 
@@ -42,17 +42,23 @@ const DEFAULT_EQUIPMENT_EFFECTS: &str = include_str!("../../../../config/equipme
 /// The kinds applied, each the list of `EquipmentGroupData` it comes from:
 /// `equipmentDatas`, the plain item; `mobilityIntensifyEquipmentDatas`, whose
 /// `MobilityIntensifyEquipment` overrides nothing of `Equipment` and frees its
-/// formation during deployment, which a fight does not read; and
-/// [`LIFESTEAL`].
-const APPLIED: [&str; 3] = [
+/// formation during deployment, which a fight does not read; [`LIFESTEAL`];
+/// and [`AUTO_RECOVERY`].
+const APPLIED: [&str; 4] = [
     "equipmentDatas",
     "mobilityIntensifyEquipmentDatas",
     LIFESTEAL,
+    AUTO_RECOVERY,
 ];
 
 /// The list whose `LifestealEquipment` is an `ILifeSteal` as well, which
 /// hands its unit a [`LifeSteal`].
 const LIFESTEAL: &str = "lifestealEquipmentDatas";
+
+/// The list whose `AutoRecoveryEquipment` is an `IAutoRecovery` as well,
+/// whose `GetAutoRecoveryStateType` is `Normal`, and which hands its unit an
+/// [`AutoRecovery`].
+const AUTO_RECOVERY: &str = "autoRecoveryEquipmentDatas";
 
 /// `Equipment.GetPriority`, which overrides a technology's 0.
 const PRIORITY: i32 = 1;
@@ -74,6 +80,8 @@ struct Equipment {
     effect: std::result::Result<Vec<(Channel, Index, Correction)>, String>,
     /// What it answers `ILifeSteal` with, if its class is one.
     lifesteal: Option<LifeSteal>,
+    /// What it answers `IAutoRecovery` with, if its class is one.
+    auto_recovery: Option<AutoRecovery>,
 }
 
 /// One row of the table, with every field the extraction writes.
@@ -137,6 +145,13 @@ struct Row {
     /// `LifestealEquipmentData.lifestealMultiplier`, on a lifesteal row.
     #[serde(default)]
     lifesteal_multiplier: Option<i64>,
+    /// `AutoRecoveryEquipmentData`'s three fields, on a repair row.
+    #[serde(default)]
+    start_time: Option<i64>,
+    #[serde(default)]
+    recovery_duration: Option<i64>,
+    #[serde(default)]
+    recovery_life_rate: Option<i64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -213,6 +228,18 @@ impl EquipmentEffects {
             .and_then(|equipment| equipment.lifesteal))
     }
 
+    /// What one equipment answers `IAutoRecovery` with on the unit wearing
+    /// it, if its class is one.
+    ///
+    /// # Errors
+    ///
+    /// Returns the error [`Self::corrections`] does.
+    pub(crate) fn auto_recovery(&self, id: i32, unit: &UnitConfig) -> Result<Option<AutoRecovery>> {
+        Ok(self
+            .worn(id, unit)?
+            .and_then(|equipment| equipment.auto_recovery))
+    }
+
     /// One equipment's row, once its effect is known to apply, or nothing
     /// when its targeting does not reach the unit.
     fn worn(&self, id: i32, unit: &UnitConfig) -> Result<Option<&Equipment>> {
@@ -250,10 +277,20 @@ impl Equipment {
             priority: PRIORITY,
             can_disable: false,
         });
+        // `AutoRecoveryEquipment` answers its row's three fields, and
+        // `Normal` for its state.
+        let auto_recovery = (row.kind == AUTO_RECOVERY).then(|| AutoRecovery {
+            start_time_q32: row.start_time.unwrap_or(0),
+            duration_q32: row.recovery_duration.unwrap_or(0),
+            life_rate_q32: row.recovery_life_rate.unwrap_or(0),
+            priority: PRIORITY,
+            can_disable: false,
+        });
         Self {
             targets,
             effect: corrections_of(row, &who),
             lifesteal,
+            auto_recovery,
         }
     }
 }
@@ -339,6 +376,7 @@ mod tests {
     const BARRIER: i32 = 1_307_001;
     const DEPLOYMENT_MODULE: i32 = 13_040_001;
     const ABSORPTION_MODULE: i32 = 1_309_001;
+    const NANO_REPAIR_KIT: i32 = 13_020_001;
     const ADVANCED_DEFENSIVE_TACTICS: i32 = 20001;
     const ADVANCED_OFFENSIVE_TACTICS: i32 = 20002;
 
@@ -431,6 +469,39 @@ mod tests {
         assert_eq!(lifesteal.priority, 1);
         assert!(!lifesteal.can_disable);
         assert_eq!(equipment.lifesteal(HEAVY_ARMOR, &marksman).unwrap(), None);
+    }
+
+    /// Nano Repair Kit hands its unit an `IAutoRecovery` of its row's
+    /// numbers at an equipment's priority, and writes no number.
+    #[test]
+    fn a_repair_item_hands_a_source() {
+        let equipment = EquipmentEffects::load().unwrap();
+        let marksman = unit("marksman");
+        assert!(
+            equipment
+                .corrections(NANO_REPAIR_KIT, &marksman)
+                .unwrap()
+                .is_empty()
+        );
+        let repair = equipment
+            .auto_recovery(NANO_REPAIR_KIT, &marksman)
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            (
+                repair.start_time_q32,
+                repair.duration_q32,
+                repair.life_rate_q32
+            ),
+            (0, 429_496_729, 19_327_352)
+        );
+        assert_eq!(repair.priority, 1);
+        assert_eq!(
+            equipment
+                .auto_recovery(ABSORPTION_MODULE, &marksman)
+                .unwrap(),
+            None
+        );
     }
 
     #[test]

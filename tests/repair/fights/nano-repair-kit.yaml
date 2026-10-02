@@ -1,0 +1,20 @@
+# Nano Repair Kit on blue's Marksman, against the Arclight of
+# `../../regression/fights/marksman-vs-arclight.yaml`. First hurt on tick 9,
+# the Marksman repairs from tick 29, twenty ticks on, and every second tick
+# after while it is hurt, each time by 7, the whole part of 0.0045 of its
+# 1622. It holds out to tick 112 where it fell on tick 91, and still loses.
+
+kind: fight
+map_id: 1021
+seed: 1787720817
+round: 1
+source: game
+ticks: 112
+hash: {profile: mcfr-content-0.7.0, result: 3f14f85c2e61e7e2479c9f2d9962ae99f1ab9c05ef0bd2b94d5a97dde61d0fd6}
+blue:
+  core_damage: 100
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: [nano_repair_kit]}
+red:
+  units:
+  - {name: arclight, index: 0, position: {x: 0, y: -50}, exp: 0/200/750}

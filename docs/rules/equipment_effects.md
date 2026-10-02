@@ -80,8 +80,9 @@ A layout is refused by name, rather than fought with part of an item, when it
 carries:
 
 - an equipment of a class whose mechanism is not here, named by its kind:
-  shields, repair kits and production lines among them. Absorption Module's
-  class is read: its life steal is [combat.md](combat.md#lifesteal)'s;
+  shields and production lines among them. Absorption Module's and Nano
+  Repair Kit's classes are read: their life steal and repair are
+  [combat.md](combat.md#lifesteal)'s;
 - a row that sets `importantUnit` (Dominion Core) or `roundDuration` (Rapid
   Autoloader, rule `999903`'s), whose effects have not been recorded.
 
