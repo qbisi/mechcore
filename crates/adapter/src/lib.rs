@@ -8,6 +8,7 @@ mod headless;
 mod il2cpp;
 mod offline;
 mod operations;
+mod reach;
 mod runtime;
 mod rvo;
 mod selector;

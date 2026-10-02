@@ -386,10 +386,13 @@ pub enum InstrumentChannel {
     /// Each unit's model as the view animates it: per animator layer, the state,
     /// its progress and the clips it blends, every tick.
     UnitPose,
+    /// Each projectile's reach check: how far from its owner it may be and
+    /// still land, against where it stands.
+    ProjectileReach,
 }
 
 impl InstrumentChannel {
-    pub const ALL: [Self; 9] = [
+    pub const ALL: [Self; 10] = [
         Self::TargetRefs,
         Self::SkillAttackableChecker,
         Self::TargetSearch,
@@ -399,6 +402,7 @@ impl InstrumentChannel {
         Self::RvoVo,
         Self::GroupSlots,
         Self::UnitPose,
+        Self::ProjectileReach,
     ];
 
     /// The channel's name, which is also its member's file stem in the MCFR.
@@ -414,6 +418,7 @@ impl InstrumentChannel {
             Self::RvoVo => "rvo_vo",
             Self::GroupSlots => "group_slots",
             Self::UnitPose => "unit_pose",
+            Self::ProjectileReach => "projectile_reach",
         }
     }
 }

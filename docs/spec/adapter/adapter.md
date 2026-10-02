@@ -565,6 +565,18 @@ advanced by many ticks at once. A headless game animates its views too. The
 channel reads the scene's views, and a fight with no scene, as
 `record_replay_round` fights, has none: its units have no rows.
 
+`projectile_reach` records each projectile's reach check.
+`FightProjectile.Update` asks, of a projectile that locks a live or dead
+target, `CalculateMaxMoveDistance` and then `FightCalculator.IsInRange3D`
+whether the projectile still stands within that of its owner, and releases
+one that does not with no damage. Both methods are hooked: the first notes,
+on its thread, the projectile, its `owner` and `moveRange` and what it
+returned; the second, when asked against that value, records the check it was
+asked for: the transform's `position3D`, the radius, the projectile's
+position, the range and its answer. The projectile and its owner are named
+while the hook runs, since a projectile the check releases is gone by the
+snapshot.
+
 `skill_attackable_checker` records every call of
 `SkillAttackableChecker.Check(bool isAttackingCheck)` made during the update a
 row closes, in call order: the skill's owner, the skill's index in the

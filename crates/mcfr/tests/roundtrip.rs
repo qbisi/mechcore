@@ -5,12 +5,12 @@ use mechcore_mcfr::{
     BuildingState, CheckedSkill, DerivedStats, Domain, DurableContext, Event, EventPayload,
     GaugeI32, GroupSlot, HASH_PROFILE, Hashes, LiveUnitState, MCFR_FORMAT, McfrReader, McfrWriter,
     Modifier, ModifierChannel, ModifierPart, MotionState, ObjectKind, ObjectRef,
-    PersonalShieldState, PoseClip, Producer, QPlanar, QVec3, Rational, RvoExit, RvoNeighbour,
-    RvoNeighbourKind, RvoSolve, RvoVec, RvoVo, ShieldDestroyedReason, ShieldRoundPolicy,
-    ShieldSourceKind, ShieldState, SkillAttackableCheck, TargetCandidate, TargetRefs, TargetSearch,
-    TargetSearchPath, TerrainApplicationState, TerrainEffectClock, TerrainGridState,
-    TerrainLogicLifetime, TerrainRemovedReason, TerrainState, TerrainType, TransitionEvents,
-    UnitPose, Visibility, WeaponAimState, WorldSnapshot, sort_modifiers,
+    PersonalShieldState, PoseClip, Producer, ProjectileReach, QPlanar, QVec3, Rational, RvoExit,
+    RvoNeighbour, RvoNeighbourKind, RvoSolve, RvoVec, RvoVo, ShieldDestroyedReason,
+    ShieldRoundPolicy, ShieldSourceKind, ShieldState, SkillAttackableCheck, TargetCandidate,
+    TargetRefs, TargetSearch, TargetSearchPath, TerrainApplicationState, TerrainEffectClock,
+    TerrainGridState, TerrainLogicLifetime, TerrainRemovedReason, TerrainState, TerrainType,
+    TransitionEvents, UnitPose, Visibility, WeaponAimState, WorldSnapshot, sort_modifiers,
 };
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use serde_json::json;
@@ -717,6 +717,47 @@ fn instrument_channels_ride_in_the_recording_outside_the_hash() {
 
 /// A pose row carries floats, an optional transition and a list of clips,
 /// and reads back as written.
+/// A reach row carries two positions and reads back as written.
+#[test]
+fn projectile_reach_rows_read_back() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("reach.mcfr");
+    let mut writer =
+        McfrWriter::create(&path, Producer::Game, "build-a", &context(), LAYOUT_YAML).unwrap();
+    writer.append_tick(state(75), &damage_events()).unwrap();
+    let reach = ProjectileReach {
+        projectile: ObjectRef::new(ObjectKind::Projectile, 2925),
+        owner: Some(ObjectRef::new(ObjectKind::Unit, 82)),
+        move_range_raw: 137 << 32,
+        max_move_raw: 140 << 32,
+        transform_position: QVec3 {
+            x: 38 << 32,
+            y: 0,
+            z: -99 << 32,
+        },
+        radius_raw: 3 << 32,
+        position: QVec3 {
+            x: 179 << 32,
+            y: 0,
+            z: -74 << 32,
+        },
+        in_range: false,
+    };
+    writer
+        .append_instrument(std::slice::from_ref(&reach))
+        .unwrap();
+    writer.finish().unwrap();
+    let reader = McfrReader::open(&path).unwrap();
+    assert_eq!(
+        reader.instrument_channels().collect::<Vec<_>>(),
+        ["projectile_reach"]
+    );
+    assert_eq!(
+        reader.instrument::<ProjectileReach>().unwrap(),
+        Some(vec![(1, reach)])
+    );
+}
+
 #[test]
 fn unit_pose_rows_read_back_with_their_clips() {
     let directory = tempfile::tempdir().unwrap();
