@@ -159,6 +159,7 @@ impl Simulation {
             climb_to_q32: None,
             spawn_shields: Vec::new(),
             absorbed_by: None,
+            move_range_q32: None,
         };
         if !self.shield.standing.is_empty() {
             return Err(Error::new(

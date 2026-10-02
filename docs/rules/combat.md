@@ -496,6 +496,18 @@ untouched, and so does a Fire Badger's shot at a wall block that fell while it
 flew. Any other projectile still strikes where it lands, as an Arclight's
 does.
 
+**A shot that follows its target is spent on nothing out of its owner's
+reach.** Each update, before it lands, a projectile of a skill with
+`isLockTarget=true` asks whether it stands within its reach of its owner,
+edge to edge in three dimensions from where the owner stands, dead or
+alive. Its reach is the owner's radius, the skill's attack range and the
+target's radius, all as the projectile was made; against a target flying at
+another height than the owner, the hypotenuse of that and the 70 metres
+between them. One out of reach is removed with no damage. A Mustang's shot,
+135 metres of range, at a Crawler running away is spent 143.06 metres from
+the Mustang, against the 3 + 135 + 2 + 3 it may stand at. A Stormcaller's
+shells lock nothing and are never asked.
+
 **A weapon is named by its index.** A skill's weapons carry their own index in
 the build, and a recording names a weapon aim and a projectile release by it: a
 Hound's one weapon is index 2, a Sabertooth's two are 0 and 2.
@@ -663,6 +675,10 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- A Mustang's shot at a Crawler running away is spent on nothing out of its
+  owner's reach: `tests/corpus/fights/67156074-r5.yaml`, tick 539; and
+  `tests/corpus/fights/268477093-r3.yaml`.
+
 - A Crawler on the very edge of a Tarantula's splash is spared:
   `tests/corpus/fights/67159970-r2.yaml`, tick 188.
 - A Fire Badger's shot at a wall block that fell while it flew lands on
@@ -760,6 +776,12 @@ not the game's native attack-type enum.
   it: `tests/modifier/fights/technology-interval-value.yaml`.
 
 ### Read
+
+- A projectile that locks its target is released with no damage out of its
+  owner's reach: `FightProjectile.Update`, `FightProjectile.Init`,
+  `FightProjectile.CalculateMaxMoveDistance`, `FightCalculator.IsInRange3D`,
+  `FPoint.Sqrt`. The radius, the range and the reach were recorded by the
+  `projectile_reach` channel.
 
 - A splash is measured with the fast square root, edge to edge:
   `RangeTargetCalculator.CalculateRangeActorsInternal`,

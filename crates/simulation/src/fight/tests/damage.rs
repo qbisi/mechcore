@@ -213,6 +213,7 @@ fn projectile_splash_emits_one_damage_event_per_actual_target() {
         climb_to_q32: None,
         spawn_shields: Vec::new(),
         absorbed_by: None,
+        move_range_q32: None,
     };
     let previous_life = [simulation.actors[&2].life, simulation.actors[&3].life];
     let mut events = Vec::new();
@@ -301,6 +302,7 @@ fn dual_domain_projectile_splash_uses_the_main_targets_domain() {
         climb_to_q32: None,
         spawn_shields: Vec::new(),
         absorbed_by: None,
+        move_range_q32: None,
     };
     let ground_life = simulation.actors[&2].life;
     let air_life = simulation.actors[&3].life;
@@ -352,6 +354,7 @@ fn projectile_drain_does_not_late_teardown_the_defeated_teams_buildings() {
         climb_to_q32: None,
         spawn_shields: Vec::new(),
         absorbed_by: None,
+        move_range_q32: None,
     });
 
     simulation.step(1).unwrap();
@@ -414,6 +417,7 @@ fn projectile_splash_takes_a_building_beside_its_target() {
         climb_to_q32: None,
         spawn_shields: Vec::new(),
         absorbed_by: None,
+        move_range_q32: None,
     };
     let previous_life = simulation.actors[&2].life;
     simulation.impact(&projectile, &mut Vec::new()).unwrap();
