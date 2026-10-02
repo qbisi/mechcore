@@ -1,0 +1,25 @@
+# Two Wasp squads walking a Mobile Beacon past two Fang squads. A Wasp
+# that attacks walks on unless an enemy near what is left of its segment,
+# half the segment's width out, is within its range edge to edge; a lock
+# that dies within range keeps it attacking and turning to the dead unit;
+# walking on as it attacks does not turn its body; and the point and speed
+# it walks at reach its agent only on the update before each RVO solve.
+
+kind: fight
+map_id: 1011
+seed: 4242
+round: 3
+source: game
+ticks: 1488
+hash: {profile: mcfr-content-0.7.0, result: 03c604d0980fde96afe90ed26d8c5b80244663fdf5f4f5679b56c1b26b278fbf}
+blue:
+  core_damage: 68
+  units:
+  - {name: fang, index: 0, position: {x: -10, y: -35}, exp: 0/600/600, rotated: true}
+  - {name: fang, index: 1, position: {x: 230, y: -35}, exp: 0/370/600, rotated: true}
+red:
+  units:
+  - {name: wasp, index: 0, position: {x: 275, y: -40}, exp: 0/380/900}
+  - {name: wasp, index: 1, position: {x: 275, y: -60}, exp: 0/428/900}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: 265, y: -30}, {x: 146, y: 130}, {x: -50, y: 168}]}

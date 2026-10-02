@@ -290,15 +290,23 @@ which scores from that facing. It then takes the place of the unit's
   more. `MotionController.Move` steps towards it, stopping 20 m short, at the
   unit's own speed.
 - It is active with or without a lock. A unit whose target is out of range, or
-  that has none, or whose target died, walks towards the point rather than the
-  lock. Where the default behaviour would go idle, the motion changes to
-  moving, and it walks on while its skill cools or reloads.
+  that has none, or whose target died out of range, walks towards the point
+  rather than the lock. Where the default behaviour would go idle, the motion
+  changes to moving, and it walks on while its skill cools or reloads.
 - A unit with a target in range attacks it. `MoveAttackCommand.IsEnableAttackMove`
   decides whether it walks on while it fires. A melee unit stops. A ranged unit
-  stops only for a live enemy both near what is left of its segment and within
-  its range, capped at 140 m; otherwise it keeps walking. A unit that fires all
-  round and has no body, an Overlord or a Wraith, then turns its root to where
-  it moves rather than to its target.
+  stops only for a live enemy both near what is left of its segment, within
+  half the segment's width of it (`LineRange.Overlaps`) or the whole width of
+  its end, and within its range edge to edge (`FightActor.Distance2D`), capped
+  at 140 m; otherwise it keeps walking. Walking on, `MotionController.Move`
+  does not turn its body, which `MotionAttackState.AttackRotate` turns to its
+  target. A unit that fires all round and has no body, an Overlord or a Wraith,
+  turns its root to where it moves rather than to its target.
+- Under a command `MotionAttackState.Update` does not ask whether the lock
+  lives: the command's `IsIdle` and `IsActive` are constants, and the attack
+  ends only once its target is out of range. A lock that dies within range
+  keeps the unit attacking, turning to the dead unit and walking on or
+  stopping as above, until its skill takes another.
 - With no target, its weapons turn to where its body faces.
 
 `PilotAI.Update`, after the unit's motion, moves the command on once the unit,
@@ -398,6 +406,11 @@ drawn from any stream, and no event is written.
   and while its skill cools, and a free-firing unit faces where it moves:
   `tests/battle_skill/fights/beacon-fires-walking.yaml`,
   `tests/battle_skill/fights/beacon-free-fire.yaml`.
+- A Wasp on a beacon walks on unless an enemy within half the segment's width
+  is within its range edge to edge, keeps attacking a lock that dies within
+  range, and does not turn its body as it walks on; what it walks towards
+  reaches its agent only on the update before each RVO solve:
+  `tests/battle_skill/fights/beacon-wasps.yaml`.
 
 ### Replayed
 
@@ -517,6 +530,15 @@ drawn from any stream, and no event is written.
   `MoveAttackCommand.RefreshCurrentTargetInfo`, `MoveAttackCommand.Perform`,
   `MoveAttackCommand.IsEnableAttackMove`,
   `MoveAttackCommand.CalculateMoveLineRange`, `MotionController.Move`.
+- A unit attacking under a command walks on or stops, turns to its target and
+  leaves the attack only once its target is out of range; how near and how far
+  an enemy stops it: `MotionAttackState.Update`, `MotionAttackState.AttackRotate`,
+  `MotionAttackState.AttackMove`, `MoveAttackCommand.IsIdle`,
+  `MoveAttackCommand.IsActive`, `LineRange.Overlaps`, `FightActor.Distance2D`,
+  `FightTransform.Distance2D`.
+- `MotionController.Move` hands the agent nothing but on the update the RVO
+  counter reads 3: `MotionController.Move`, `RVOSimulatorFixed.IsUpdateFrame`,
+  `RVOSimulatorFixed.DoFixedUpdate`, `RVOControllerFixed.Move`.
 
 ### Not established
 

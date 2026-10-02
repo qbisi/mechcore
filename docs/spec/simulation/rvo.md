@@ -89,6 +89,14 @@ So a full RVO period separates solving from taking effect. Within a combat logic
 tick, a unit's movement consumes the currently published target and velocity
 first, and only afterwards may that tick reach an RVO boundary.
 
+What the solve takes in is what `MotionController.Move` handed the agent last,
+and `Move` hands it anything only on the update before a boundary, when
+`RVOSimulatorFixed`'s counter reads 3: on the other three it returns at once.
+So the target point, and the speed `CalculateMoveSpeed` reads from the facing
+and the published velocity, are those of the boundary's own tick when the unit
+moves on it, and those of four ticks before when it does not, as on a tick it
+changes state. `StopMove` is not held back.
+
 ### The first tree
 
 A native sampled agent writes its public `Position` at construction but does not

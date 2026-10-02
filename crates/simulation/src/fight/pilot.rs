@@ -178,10 +178,12 @@ impl Simulation {
             .filter(|view| view.alive)
             .any(|view| {
                 let radius = space_to_q32(view.radius);
+                // `LineRange.Overlaps` measures from the segment half its
+                // width out; the point past its end is the whole width out.
                 let near_line = (start != end
                     && fpoint_less_or_equal(
                         segment_distance(start, end, (view.x_q32, view.z_q32)),
-                        command.width_q32.saturating_add(radius),
+                        (command.width_q32 / 2).saturating_add(radius),
                     ))
                     || fpoint_less_than(
                         native_q32_magnitude(
@@ -190,14 +192,15 @@ impl Simulation {
                         ),
                         radius.saturating_add(command.width_q32),
                     );
-                near_line
-                    && fpoint_less_than(
-                        native_q32_magnitude(
-                            view.x_q32.saturating_sub(actor.x_q32),
-                            view.z_q32.saturating_sub(actor.z_q32),
-                        ),
-                        reach,
-                    )
+                // `FightActor.Distance2D`: edge to edge, never below zero.
+                let distance = native_q32_magnitude(
+                    view.x_q32.saturating_sub(actor.x_q32),
+                    view.z_q32.saturating_sub(actor.z_q32),
+                )
+                .saturating_sub(space_to_q32(actor.rules.collision_radius()))
+                .saturating_sub(radius)
+                .max(0);
+                near_line && fpoint_less_than(distance, reach)
             })
     }
 
