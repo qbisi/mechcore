@@ -66,8 +66,6 @@ impl RvoState {
 pub(in crate::fight) struct Motion {
     pub(in crate::fight) rvo_tree_x_q32: i64,
     pub(in crate::fight) rvo_tree_z_q32: i64,
-    /// Whether its agent was made afresh since the last solve.
-    pub(in crate::fight) rvo_fresh: bool,
     /// Whether its agent was made since the last tree was built: a new
     /// agent's first tree reads its position as zero
     /// (`docs/spec/simulation/rvo.md`).
@@ -503,11 +501,6 @@ impl Simulation {
             .filter(|(_, actor)| actor.alive() && !actor.travelling)
         {
             actor.motion.rvo_new_agent = false;
-            if actor.motion.rvo_fresh {
-                actor.motion.rvo_tree_x_q32 = actor.x_q32;
-                actor.motion.rvo_tree_z_q32 = actor.z_q32;
-                continue;
-            }
             let solution = solutions
                 .get(&RvoAgentKey::Unit(actor_id))
                 .expect("every live actor has an RVO solution");
