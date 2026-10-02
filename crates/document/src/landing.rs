@@ -69,6 +69,16 @@ impl Rect {
     }
 }
 
+impl Region {
+    /// The region's rectangle in its side's own frame, in metres: its least
+    /// corner and its greatest, `x` across and `y` toward the other side.
+    #[must_use]
+    pub const fn bounds(self) -> ((i64, i64), (i64, i64)) {
+        let rect = bounds(self);
+        (rect.min, rect.max)
+    }
+}
+
 /// A region's rectangle in the side's own frame.
 const fn bounds(region: Region) -> Rect {
     match region {

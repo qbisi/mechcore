@@ -18,6 +18,7 @@ mod track;
 
 pub use page::page;
 pub use timeline::{
-    Building, Cue, Error, Field, Pose, Projectile, Ref, SCHEMA, Shield, Timeline, Unit, timeline,
+    Building, Cue, DeploymentRegion, Error, Field, Pose, Projectile, Ref, SCHEMA, Shield, Timeline,
+    Unit, timeline,
 };
 pub use track::{Step, Track};

@@ -403,7 +403,8 @@
 
   // ------------------------------------------------------------ the ground
   // The map, simplified: a ground of worn plates and sand, each side's half
-  // washed in its colour, and the centre line.
+  // washed in its colour, and the centre line. `drawGround` lays the
+  // deployment grid and each side's deployment regions over it.
   const ground = (() => {
     const hw = data.field.half_width / 100;
     const hd = data.field.half_depth / 100;
@@ -496,6 +497,19 @@
       }
       ctx.stroke();
     }
+    // each side's three deployment regions, dashed in its colour: its main
+    // half and the two flanks on the other side's half. A flank shares an
+    // edge with the other side's main half, so each is drawn just inside its
+    // own edges, and the two lines stand side by side.
+    ctx.lineWidth = 1;
+    ctx.setLineDash([5, 6]);
+    for (const r of data.regions) {
+      ctx.strokeStyle = `rgba(${TEAMS[r.team].rgb},0.3)`;
+      const left = Math.round(sx(r.x0 / 100)) + 2.5;
+      const top = Math.round(sy(r.z1 / 100)) + 2.5;
+      ctx.strokeRect(left, top, Math.round(sx(r.x1 / 100)) - 2.5 - left, Math.round(sy(r.z0 / 100)) - 2.5 - top);
+    }
+    ctx.setLineDash([]);
   }
 
   // What fights leave on the ground: a scorch where a unit died, rubble
