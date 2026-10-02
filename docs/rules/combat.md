@@ -488,11 +488,12 @@ check fails.
 **A single weapon lands its offsets last drawn first.** A Phantom Ray's first
 projectile lands the second offset its burst drew, and its second the first.
 
-**A projectile in simulated motion that lands on a dead unit does nothing.** A
-skill with `isSimulateMode=true` whose projectile arrives after its target died
-deals no damage, splash included: a Fire Badger's or a Typhoon's shot at a
+**A projectile in simulated motion that lands on a dead target does nothing.**
+A skill with `isSimulateMode=true` whose projectile arrives after its target
+died deals no damage, splash included: a Fire Badger's or a Typhoon's shot at a
 Crawler another shot killed while it flew leaves the Crawlers beside it
-untouched. Any other projectile still strikes where it lands, as an Arclight's
+untouched, and so does a Fire Badger's shot at a wall block that fell while it
+flew. Any other projectile still strikes where it lands, as an Arclight's
 does.
 
 **A weapon is named by its index.** A skill's weapons carry their own index in
@@ -892,8 +893,8 @@ not the game's native attack-type enum.
   to score the candidates where they stand; every recorded searcher that
   searched that way had not moved during the tick, so whether its own position
   and facing are also read anew is not measured.
-- **Projectiles**: why a projectile in simulated motion spares a dead unit's
-  neighbours, which is recorded and not read; interception; and every other
+- **Projectiles**: why a projectile in simulated motion spares a dead
+  target's neighbours, which is recorded and not read; interception; and every other
   projectile type.
 - **A fixed weapon's transform**: that `RotationLimitFightTransform` refreshed
   for `RotateType.Fixed` copies its parent's rotation exactly, and which call
