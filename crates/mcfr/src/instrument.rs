@@ -195,6 +195,24 @@ impl InstrumentRow for ProjectileReach {
     const CHANNEL: &'static str = "projectile_reach";
 }
 
+/// One unit a control beam is turning, at a snapshot: an entry of
+/// `TeamTranslationSystem.translatingDatas`. Each hit of a beam adds its power
+/// to `progress`, and the unit changes side once `progress` reaches its life;
+/// the entry goes when the last beam on it stops.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ControlProgress {
+    pub unit: ObjectRef,
+    /// `TranslationData.progress`: the power its beams have added.
+    pub progress: i32,
+    /// The owners of the skills whose beams hold it, `TranslationData.sources`
+    /// in the order the build keeps them.
+    pub sources: Vec<ObjectRef>,
+}
+
+impl InstrumentRow for ControlProgress {
+    const CHANNEL: &'static str = "control_progress";
+}
+
 /// One animator layer of a unit's model at a snapshot: the state the view's
 /// `Animator` plays on that layer, how far through it, and the clips it
 /// blends there. The pose a unit is drawn in is the view's, which the fight

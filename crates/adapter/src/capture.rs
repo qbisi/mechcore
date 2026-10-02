@@ -1,3 +1,4 @@
+use crate::control::{self, ControlMetadata};
 use crate::reach::{self, ReachMetadata};
 use crate::rvo::{self, RawSolve, RvoChannels, RvoMetadata, RvoRows};
 use crate::selector::{self, RawSearch, SelectorMetadata, TargetChannels};
@@ -23,8 +24,8 @@ use mechcore_mcfr::{
     WorldSnapshot,
 };
 use mechcore_mcfr::{
-    CheckedSkill, GroupSlot, PoseClip, ProjectileReach, RvoNeighbour, RvoSolve, RvoVo,
-    SkillAttackableCheck, TargetCandidate, TargetRefs, TargetSearch, UnitPose,
+    CheckedSkill, ControlProgress, GroupSlot, PoseClip, ProjectileReach, RvoNeighbour, RvoSolve,
+    RvoVo, SkillAttackableCheck, TargetCandidate, TargetRefs, TargetSearch, UnitPose,
 };
 use mechcore_protocol::InstrumentChannel;
 use std::{
@@ -181,6 +182,7 @@ pub(crate) struct Instruments {
     group_slots: bool,
     unit_pose: bool,
     pub(crate) projectile_reach: bool,
+    control_progress: bool,
     pub(crate) target: TargetChannels,
     pub(crate) rvo: RvoChannels,
 }
@@ -193,6 +195,7 @@ impl Instruments {
             group_slots: channels.contains(&InstrumentChannel::GroupSlots),
             unit_pose: channels.contains(&InstrumentChannel::UnitPose),
             projectile_reach: channels.contains(&InstrumentChannel::ProjectileReach),
+            control_progress: channels.contains(&InstrumentChannel::ControlProgress),
             target: TargetChannels {
                 search: channels.contains(&InstrumentChannel::TargetSearch),
                 candidate: channels.contains(&InstrumentChannel::TargetCandidate),
@@ -220,6 +223,7 @@ pub(crate) struct InstrumentRows {
     pub(crate) group_slots: Option<Vec<GroupSlot>>,
     pub(crate) unit_pose: Option<Vec<UnitPose>>,
     pub(crate) projectile_reach: Option<Vec<ProjectileReach>>,
+    pub(crate) control_progress: Option<Vec<ControlProgress>>,
 }
 
 #[allow(
@@ -331,6 +335,8 @@ pub(crate) struct Metadata {
     rvo_error: Option<String>,
     pub(crate) reach: Option<ReachMetadata>,
     reach_error: Option<String>,
+    control: Option<ControlMetadata>,
+    control_error: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -1633,6 +1639,10 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             Ok(reach) => (Some(reach), None),
             Err(error) => (None, Some(error)),
         };
+        let (control, control_error) = match control::initialize(api) {
+            Ok(control) => (Some(control), None),
+            Err(error) => (None, Some(error)),
+        };
         Ok(Metadata {
             projectile_system_class: projectile_system as usize,
             range_item_system_class: range_item_system as usize,
@@ -1680,6 +1690,8 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             rvo_error,
             reach,
             reach_error,
+            control,
+            control_error,
         })
     }
 }
@@ -1746,6 +1758,7 @@ pub(crate) fn start(
     validate_target_availability(instruments, &state.metadata)?;
     validate_checker_availability(instruments, &state.metadata)?;
     validate_reach_availability(instruments, &state.metadata)?;
+    validate_control_availability(instruments, &state.metadata)?;
     if instruments.rvo.any() && state.metadata.rvo.is_none() {
         return Err(format!(
             "the RVO channels are unavailable: {}",
@@ -1851,6 +1864,24 @@ fn validate_target_availability(
                 .selector_error
                 .as_deref()
                 .unwrap_or("native selector methods or hooks could not be resolved")
+        ))
+    } else {
+        Ok(())
+    }
+}
+
+fn validate_control_availability(
+    instruments: Instruments,
+    metadata: &Metadata,
+) -> Result<(), String> {
+    if instruments.control_progress && metadata.control.is_none() {
+        Err(format!(
+            "{} is unavailable: {}",
+            InstrumentChannel::ControlProgress.as_str(),
+            metadata
+                .control_error
+                .as_deref()
+                .unwrap_or("TeamTranslationSystem could not be resolved")
         ))
     } else {
         Ok(())
@@ -5976,6 +6007,11 @@ fn snapshot(
             .instruments
             .projectile_reach
             .then(|| std::mem::take(&mut capture.projectile_reaches)),
+        control_progress: if capture.instruments.control_progress {
+            Some(read_control_progress(runtime, capture)?)
+        } else {
+            None
+        },
     };
     let projectiles = read_projectiles(runtime, capture)?;
     let pending = capture.pending_projectile_absorptions.len()
@@ -7323,6 +7359,28 @@ fn read_projectiles(
         .projectile_ids
         .retain(|pointer, _| seen.contains(pointer));
     Ok(projectiles)
+}
+
+/// The `control_progress` rows: `TeamTranslationSystem`'s units being turned.
+fn read_control_progress(
+    runtime: &Runtime,
+    capture: &CaptureState,
+) -> Result<Vec<ControlProgress>, String> {
+    let metadata = capture
+        .metadata
+        .control
+        .ok_or("the control_progress channel was not resolved")?;
+    let modules = runtime
+        .api
+        .invoke(runtime.current_fight(), "GetModules", &mut [])
+        .map_err(|error| error.to_string())?;
+    let system = find_module(
+        runtime.api,
+        modules,
+        metadata.system_class,
+        "TeamTranslationSystem",
+    )?;
+    control::read(runtime.api, system, &metadata, capture)
 }
 
 fn find_module(

@@ -4,6 +4,7 @@
 //! MCP clients and executes validated operations on Unity's main thread.
 
 mod capture;
+mod control;
 mod headless;
 mod il2cpp;
 mod offline;
