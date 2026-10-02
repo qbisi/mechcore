@@ -41,6 +41,7 @@ pub(crate) struct Fields {
     pub(crate) attack_interval_rate: Option<i64>,
     pub(crate) attack_range_value: Option<i64>,
     pub(crate) attack_interval_value: Option<i64>,
+    pub(crate) splash_range_value: Option<i64>,
     pub(crate) speed_value: Option<i64>,
 }
 
@@ -92,6 +93,15 @@ pub(crate) fn corrections(fields: Fields) -> Vec<(Channel, Index, Correction)> {
             Correction::Value(fixed_to(raw, METERS)),
         ));
     }
+    // `SkillDataModifier.AddData` writes a splash value where it writes a
+    // range value, into the skill's `SkillDataChangeFloat.SplashRangeValue`.
+    if let Some(raw) = fields.splash_range_value.filter(|raw| *raw != 0) {
+        written.push((
+            Channel::Skill,
+            Index::SplashRange,
+            Correction::Value(fixed_to(raw, METERS)),
+        ));
+    }
     if let Some(raw) = fields.attack_interval_value.filter(|raw| *raw != 0) {
         written.push((
             Channel::Skill,
@@ -115,6 +125,5 @@ pub(crate) fn corrections(fields: Fields) -> Vec<(Channel, Index, Correction)> {
 
 /// Why a field this build will not apply is refused.
 pub(crate) const VALUE_ELSEWHERE: &str = "no number this simulator derives is the one it corrects";
-pub(crate) const SPLASH: &str = "no number this simulator derives is a splash radius";
 pub(crate) const KILLS: &str = "no mechanism here counts a unit's kills";
 pub(crate) const PROJECTILE: &str = "no mechanism here reads a projectile's own numbers";

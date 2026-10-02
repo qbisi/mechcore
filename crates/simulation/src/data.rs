@@ -61,6 +61,9 @@ pub(crate) enum Index {
     AttackDamage,
     AttackInterval,
     AttackRange,
+    /// `SkillDataChangeFloat.SplashRangeValue`: `FightSkill.GetSplashRange`
+    /// adds the skill `DataSet`'s value to the skill row's `splashRange`.
+    SplashRange,
     /// The rate on the damage a unit takes: `PerformHitTargetEffect` reads a
     /// buff's `amplifyDamageRate` and scales each hit by it. It corrects no
     /// number of the description, only what reaches the unit.
@@ -88,6 +91,7 @@ impl Index {
             Self::AttackDamage => "attack damage",
             Self::AttackInterval => "attack interval",
             Self::AttackRange => "attack range",
+            Self::SplashRange => "splash range",
             Self::AmplifyDamage => "damage taken",
         }
     }
@@ -390,6 +394,7 @@ pub(crate) struct Stats {
     /// `FPoint`, and a rate on it lands between two time units.
     attack_interval_q32: i64,
     attack_range: i64,
+    splash_radius: i64,
 }
 
 impl Stats {
@@ -418,6 +423,7 @@ impl Stats {
             attack_damage: 0,
             attack_interval_q32: 0,
             attack_range: 0,
+            splash_radius: 0,
         };
         stats.refresh(rules)?;
         Ok(stats)
@@ -479,6 +485,7 @@ impl Stats {
             return Err(Error::new("attack interval resolved below zero"));
         }
         self.attack_range = resolve(Index::AttackRange, rules.attack.range())?;
+        self.splash_radius = resolve(Index::SplashRange, rules.attack.splash_radius())?;
         Ok(())
     }
 
@@ -592,6 +599,7 @@ impl Stats {
             Index::AttackDamage,
             Index::AttackInterval,
             Index::AttackRange,
+            Index::SplashRange,
             Index::AmplifyDamage,
         ] {
             if unit.aggregate(index).is_some() {
@@ -625,6 +633,14 @@ impl Stats {
                 "the skill DataSet has no field for a damage value",
             ));
         }
+        // `SkillDataChangeFloatRate` has no member for a splash.
+        if let Some(splash) = skill.aggregate(Index::SplashRange)
+            && splash.rate()? != (0, 0)
+        {
+            return Err(Error::new(
+                "the skill DataSet has no field for a splash rate",
+            ));
+        }
         for slot in 0..slots {
             let slot =
                 Some(u16::try_from(slot).map_err(|_| Error::new("a skill slot is outside u16"))?);
@@ -656,6 +672,19 @@ impl Stats {
                     "attack_range_rate",
                     range,
                 )?;
+            }
+            if let Some(splash) = skill.aggregate(Index::SplashRange) {
+                push(
+                    modifiers,
+                    ModifierChannel::SkillFloat,
+                    slot,
+                    "splash_range_value",
+                    ModifierPart::Value,
+                    q32(
+                        splash.value,
+                        i128::from(crate::rules::SPACE_UNITS_PER_METER_SCALE),
+                    )?,
+                );
             }
             if let Some(interval) = skill.aggregate(Index::AttackInterval) {
                 push(
@@ -698,7 +727,12 @@ impl Stats {
                 push_rate(modifiers, ModifierChannel::Buff, None, field, aggregate)?;
             }
         }
-        for index in [Index::MaxLife, Index::AttackInterval, Index::AttackRange] {
+        for index in [
+            Index::MaxLife,
+            Index::AttackInterval,
+            Index::AttackRange,
+            Index::SplashRange,
+        ] {
             if buff.aggregate(index).is_some() {
                 return Err(Error::new(format!(
                     "no buff here corrects {}",
@@ -736,6 +770,13 @@ impl Stats {
 
     pub(crate) const fn attack_range(&self) -> i64 {
         self.attack_range
+    }
+
+    /// The splash radius, `FightSkill.GetSplashRange`: the description's with
+    /// the skill's value added. `DamagePerformer.Perform` splashes only when
+    /// it is above zero, so one corrected to zero or below is none.
+    pub(crate) fn splash_radius(&self) -> i64 {
+        self.splash_radius.max(0)
     }
 }
 

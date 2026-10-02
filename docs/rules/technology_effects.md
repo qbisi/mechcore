@@ -112,7 +112,7 @@ measured the order in the composition rule, which
 [officer_effects.md](officer_effects.md#how-a-correction-composes) carries.
 
 The simulator refuses a side holding a technology whose correction it does not
-derive (a minimum range, a splash radius, a projectile's speed or life) or
+derive (a minimum range, a projectile's speed or life) or
 whose effect grows with rank, rather than read index zero:
 `crates/simulation/src/modifier/technologies.rs` names each refusal.
 
@@ -148,6 +148,5 @@ whose effect grows with rank, rather than read index zero:
   document does not state what a unit's rank is at the moment a technology is
   applied, nor whether raising a rank mid-fight re-reads it. Rank one is the
   only case any recording has covered.
-- **`min_attack_range_value`, `splash_range_value`, `projectile_speed_value`
-  and `projectile_life_rate`**, which no mechanism in `crates/simulation`
-  reads.
+- **`min_attack_range_value`, `projectile_speed_value` and
+  `projectile_life_rate`**, which no mechanism in `crates/simulation` reads.

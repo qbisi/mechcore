@@ -71,6 +71,9 @@ pub(in crate::fight) struct Attacker<'a> {
     pub(in crate::fight) attack_range: i64,
     /// What one blow deals, with whatever corrects it.
     pub(in crate::fight) attack_damage: i64,
+    /// `FightSkill.GetSplashRange`: the description's splash with the
+    /// skill's `SplashRangeValue` added.
+    pub(in crate::fight) splash_radius: i64,
     /// The attack interval, in Q32.32 seconds, with whatever corrects it.
     pub(in crate::fight) attack_interval_q32: i64,
     pub(in crate::fight) facing: Facing<'a>,
@@ -189,6 +192,7 @@ impl Simulation {
                     attack: &actor.rules.attack,
                     attack_range: actor.stats.attack_range(),
                     attack_damage: actor.stats.attack_damage(),
+                    splash_radius: actor.stats.splash_radius(),
                     attack_interval_q32: actor.stats.attack_interval_q32(),
                     facing: if actor.rules.has_body {
                         Facing::Weapons(&actor.skill.weapon_rotations_q32)
@@ -227,6 +231,7 @@ impl Simulation {
                     attack: &construction.attack,
                     attack_range: construction.attack.range(),
                     attack_damage: construction.attack_damage,
+                    splash_radius: construction.attack.splash_radius(),
                     attack_interval_q32: time_units_to_seconds_q32(
                         construction.attack.interval_time_units(),
                     ),
