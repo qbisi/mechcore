@@ -13,7 +13,17 @@ attack state, skins each vertex to its bones, keeps only the renderers a LOD gro
 colours each triangle from its material's albedo texture.
 
 It writes `<sprite>-top.png` and `<sprite>-side.png` for each, and
-`models.png` with all of them, into `work/player/models/`. Nothing it writes
+`models.png` with all of them, into `work/player/models/`.
+
+    uv run --with UnityPy --with pillow --with pyarrow \
+        python3 scripts/player/model-views.py --recording <recording.mcfr> [sprite...]
+
+assembles each unit's model in the poses a recording shows instead: a
+recording made with the `unit_pose` channel names the state each unit's
+model played tick by tick, and every state a sprite's unit type played is
+rendered at its median normalized time, `<sprite>-<state>-top.png` and
+`-side.png` with `<sprite>-states.png` beside them. A state is found by its
+hash, so two clips of one name in one controller cannot be confused. Nothing it writes
 is tracked: the views are the game's art, and the repository keeps the script
 that makes them again. `--data` names the game's `Data` directory when it is
 not the default Steam install.
@@ -360,17 +370,99 @@ def render(triangles, project, depth, light, size=640):
     return image
 
 
+def unit_names():
+    """Unit type id to the name config/units/ files it under, a sprite's."""
+    names = {}
+    for path in (Path(__file__).resolve().parents[2] / "config/units").glob("*.yaml"):
+        fields = dict(line.split(":", 1) for line in path.read_text().splitlines()[:4] if ":" in line)
+        names[int(fields["unit_type_id"])] = fields["type_name"].strip()
+    return names
+
+
+def recorded_states(path):
+    """{sprite: {(layer name, state hash): [normalized time within a cycle]}}
+    for every base-layer pose a recording holds."""
+    import io
+    import zipfile
+
+    import pyarrow.parquet as pq
+
+    archive = zipfile.ZipFile(path)
+    if "instrument/unit_pose.parquet" not in archive.namelist():
+        sys.exit(f"{path} holds no unit_pose channel")
+    read = lambda member: pq.read_table(io.BytesIO(archive.read(member))).to_pylist()
+    names = unit_names()
+    kind = {row["unit_id"]: names.get(row["unit_type_id"]) for row in read("units.parquet")}
+    played = {}
+    for pose in read("instrument/unit_pose.parquet"):
+        if pose["layer"] != 0:
+            continue
+        time = pose["normalized_time"]
+        played.setdefault(kind[pose["unit"]["id"]], {}).setdefault(
+            (pose["layer_name"], pose["state"]), []
+        ).append(time - int(time))
+    return played
+
+
+def unity_hash(text):
+    """`Animator.StringToHash`: a CRC-32, read as a signed integer."""
+    value = zlib.crc32(text.encode())
+    return value - (1 << 32) if value >= 1 << 31 else value
+
+
+def render_states(out, sprite, root, animator, found, played):
+    """Renders a model in each state its unit type played, at the state's
+    median normalized time."""
+    if not played:
+        print(f"{sprite}: the recording shows none of its states", file=sys.stderr)
+        return
+    # The controller's own table of the paths it hashed: a state's full
+    # path runs through any sub-state machine it sits in.
+    paths = {}
+    for kind, component in components(animator.m_GameObject.deref().read()):
+        if kind == "Animator":
+            table = component.read().m_Controller.deref().read().m_TOS
+            paths = {unity_hash(path): path for _, path in table}
+    cells = []
+    for (layer, state_hash), times in sorted(played.items(), key=lambda item: -len(item[1])):
+        short = paths.get(state_hash, "").rsplit(".", 1)[-1]
+        state = next(((name, clip) for name, clip, _ in found if name == short), None)
+        if state is None or state[1] is None:
+            print(f"{sprite}: state {state_hash} of {layer} names no state with a clip", file=sys.stderr)
+            continue
+        name, clip = state
+        median = sorted(times)[len(times) // 2]
+        triangles = assemble(root, posed_transforms(animator, clip, median * clip.m_MuscleClip.m_StopTime))
+        top = render(triangles, lambda p: (p[0], p[2]), lambda p: p[1], (0.3, 0.9, 0.3))
+        side = render(triangles, lambda p: (p[2], p[1]), lambda p: -p[0], (0.8, 0.5, 0.2))
+        top.save(out / f"{sprite}-{name}-top.png")
+        side.save(out / f"{sprite}-{name}-side.png")
+        print(f"{sprite}: {name} ({clip.m_Name}), {len(times)} ticks, at {median:.2f}")
+        cells.append((f"{name} {len(times)} ticks", top, side))
+    if cells:
+        cell = 256
+        sheet = Image.new("RGB", (cell * len(cells), cell * 2 + 18), (0, 0, 0))
+        draw = ImageDraw.Draw(sheet)
+        for i, (label, top, side) in enumerate(cells):
+            sheet.paste(top.resize((cell, cell)), (i * cell, 18))
+            sheet.paste(side.resize((cell, cell)), (i * cell, cell + 18))
+            draw.text((i * cell + 4, 3), label, fill=(255, 255, 0))
+        sheet.save(out / f"{sprite}-states.png")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("sprites", nargs="*", help="sprites to render; all when none is named")
     parser.add_argument("--data", type=Path, default=DATA, help="the game's Data directory")
     parser.add_argument("--out", type=Path, default=OUT)
+    parser.add_argument("--recording", type=Path, help="a recording with the unit_pose channel")
     arguments = parser.parse_args()
     wanted = arguments.sprites or list(MODELS)
     unknown = [name for name in wanted if name not in MODELS]
     if unknown:
         sys.exit(f"no model for {', '.join(unknown)}; known: {', '.join(MODELS)}")
     arguments.out.mkdir(parents=True, exist_ok=True)
+    played = recorded_states(arguments.recording) if arguments.recording else None
     environments, views = {}, []
     for sprite in wanted:
         asset, prefab, state_name, time = MODELS[sprite]
@@ -391,6 +483,9 @@ def main():
                 print(f"{sprite}: {prefab} has no state {state_name} with a clip; drawing its rest pose", file=sys.stderr)
             else:
                 posed = posed_transforms(animator, clip, time)
+        if played is not None:
+            render_states(arguments.out, sprite, root, animator, found, played.get(sprite, {}))
+            continue
         triangles = assemble(root, posed)
         if not triangles:
             print(f"{sprite}: {prefab} shows no mesh", file=sys.stderr)
