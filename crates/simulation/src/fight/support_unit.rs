@@ -175,6 +175,11 @@ impl Simulation {
         };
         let mut actor = Actor::at_generated_position(placement, rules, x_q32, z_q32);
         actor.summoned = true;
+        // `CreateMechDelay` locks the agent with nothing handed to it: it
+        // reaches its first solve with no speed to take unless entering a
+        // state hands it one, as `StopMove` does at once and `Move` only on
+        // the update before a solve.
+        actor.motion.next_max_speed_q32 = 0;
         actor.target_query_alive = false;
         let position = QVec3 {
             x: x_q32,
@@ -210,10 +215,6 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let tick = step + 1;
-        // Only a solve of the tick a summon joined on passes it over.
-        for actor in self.actors.values_mut() {
-            actor.motion.rvo_fresh = false;
-        }
         while self
             .support
             .appearing
@@ -221,16 +222,8 @@ impl Simulation {
             .is_some_and(|appearing| appearing.joins_on <= tick)
         {
             let Appearing {
-                mut actor,
-                drop_damage,
-                ..
+                actor, drop_damage, ..
             } = self.support.appearing.remove(0);
-            // Joining makes its movement agent afresh, and a new agent's
-            // position reads zero in the first tree built after it:
-            // Crawlers that surfaced overlapping stand still through that
-            // solve rather than pushing apart.
-            actor.motion.rvo_fresh = true;
-            actor.motion.rvo_new_agent = true;
             let unit_id = actor.placement.unit_id;
             let team = actor.placement.team;
             self.actors.insert(unit_id, actor);

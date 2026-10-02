@@ -3,7 +3,8 @@
 # Blue releases Wasp Swarm. Its creator makes all twelve Wasps on tick 28,
 # 70 metres up, each moved from the release point by two draws of blue's
 # stream within the skill's 25 metres, X and then Z. They join on tick 48,
-# a solve tick, which passes them over, and move from tick 56.
+# a solve tick, setting off to move with no speed handed to their agents
+# yet, and move from tick 56.
 
 kind: fight
 map_id: 1021

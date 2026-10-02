@@ -219,8 +219,12 @@ stream when it joins, not when it is made.
 
 **Joining.** At the start of the tick a second on, before anything updates,
 the summon joins. The searches of that tick were prepared without it, so it is
-found from the next. A movement solve on the tick it joins passes it over, and
-it moves from the next.
+found from the next. Its agent, locked while it appeared, was handed no speed,
+and keeps the place it has in the solver's tree. A solve on the tick it joins
+gives it a speed only if entering a state handed it one first: a summon that
+attacks at once is handed one by `StopMove` and is pushed off the summons it
+overlaps, while one that sets off moving is handed its speed by `Move` only on
+the update before the next solve, and moves from the solve after.
 
 **An air drop.** A summon of `appearType` 2 that does not fly, the Rhino of
 Rhino Assault or the Vulcan of Vulcan's Descent, deals its life, as it joins,
@@ -372,7 +376,8 @@ drawn from any stream, and no event is written.
   took; an appearing summon turns units aside:
   `tests/battle_skill/fights/rhino-drop.yaml`.
 - Several summons are scattered by two draws each of their side's stream, and
-  a solve on their join tick passes them over:
+  Wasps that join setting off to move take no speed from the solve on their
+  join tick:
   `tests/battle_skill/fights/wasp-swarm.yaml`.
 - A creator makes its summons in batches, and a surfacing summon is a locked
   obstacle: `tests/battle_skill/fights/underground-threat.yaml`.
@@ -559,8 +564,10 @@ drawn from any stream, and no event is written.
 - **The Jamming Beacon** (`1500003`), which walks enemy units and writes a
   buff: refused.
 
-- **Why a solve on a summon's join tick passes it over,** and why its first
-  intervals are drawn as it joins. Both are measured, not read.
+- **Why a summon's first intervals are drawn as it joins,** and that its
+  agent is handed no speed while it appears. Both are measured, not read: the
+  game's `rvo_solve` rows read an appearing summon's agent locked with a
+  maximum speed of 0.
 - **A summon killed by its own air drop.** Whose death that counts as is not
   measured; the simulator refuses it.
 - **A support skill whose row places its summons at set offsets**, or makes
