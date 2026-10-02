@@ -443,6 +443,18 @@ pub(in crate::fight) fn normal_visible_full_rotation_target_score_q32(
     )
 }
 
+/// Whether a search of this owner's skill may be one `FightCoreSystem.PreCalculate`
+/// prepared on the tick's query snapshot. It prepares the skills of the
+/// fight's mechs, and no construction's: a turret's skill searches with
+/// `Select` whenever it searches, scoring candidates where they stand by
+/// then, after every unit of the sides that update before its own has moved.
+/// Every one of 565 recorded searches of a construction took that path, and
+/// the Anti-Armor Turret of replay 268477093 round 2 locks a Hound that the
+/// tick-start positions put 0.33 metres out of its reach.
+pub(in crate::fight) const fn search_prepared(owner: FightActorRef) -> bool {
+    matches!(owner, FightActorRef::Unit(_))
+}
+
 /// The window `CalculateScore` is handed for a source whose window is its
 /// rotation widened by `half_width_q32` either side, if it checks it: it
 /// checks a window only when it starts above `Angle0` and ends below

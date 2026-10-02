@@ -848,11 +848,12 @@ impl Simulation {
             self.select_normal_target_with_order(
                 owner,
                 target_search_order,
-                target_died_during_tick,
+                target_died_during_tick || !search_prepared(owner),
             )
             .map_err(located)?
         };
         if !target_died_during_tick
+            && search_prepared(owner)
             && selected_candidate
                 .and_then(|candidate| self.fight_actor(candidate))
                 .is_some_and(|target| target.query_alive && !target.alive)
