@@ -105,16 +105,36 @@ impl Actor {
         }
     }
 
-    /// `MotionMoveState.MoveUpdate`'s `NormalRotate` and then the speed
-    /// `CalculateMoveSpeed` hands `Move`: the facing is turned to the
-    /// velocity first, so the speed sees this tick's facing.
-    pub(in crate::fight) fn set_turn_limited_speed(&mut self) {
+    /// `MotionMoveState.MoveUpdate`'s `NormalRotate`: the facing turned to
+    /// the velocity, before `Move` reads it for the speed.
+    pub(in crate::fight) fn turn_to_move_direction(&mut self) {
         if self.motion.current_velocity_x_q32 != 0 || self.motion.current_velocity_z_q32 != 0 {
             self.rotate_body_towards(direction_degrees_q32_raw(
                 self.motion.current_velocity_x_q32,
                 self.motion.current_velocity_z_q32,
             ));
         }
+    }
+
+    /// `MotionController.Move`: the target point and the speed
+    /// `CalculateMoveSpeed` takes from the facing the body has, handed to the
+    /// agent. `Move` does this only on the update before the RVO solve, when
+    /// `RVOSimulatorFixed`'s counter reads 3; on the other three it returns at
+    /// once and the agent keeps what it was handed last.
+    pub(in crate::fight) fn move_to(
+        &mut self,
+        target_x_q32: i64,
+        target_z_q32: i64,
+        solve_due: bool,
+    ) {
+        if !self.rules.has_body {
+            self.aim_rotation = self.body_rotation;
+        }
+        if !solve_due {
+            return;
+        }
+        self.motion.next_target_x_q32 = target_x_q32;
+        self.motion.next_target_z_q32 = target_z_q32;
         self.motion.next_speed_q32 = turn_limited_move_speed_q32(
             self.stats.move_speed_q32(),
             self.rules.free_move,
@@ -124,9 +144,6 @@ impl Actor {
             self.motion.current_velocity_z_q32,
         );
         self.motion.next_max_speed_q32 = self.motion.next_speed_q32;
-        if !self.rules.has_body {
-            self.aim_rotation = self.body_rotation;
-        }
     }
 
     pub(in crate::fight) fn alive(&self) -> bool {

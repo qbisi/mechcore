@@ -655,10 +655,66 @@ impl Simulation {
         Ok(())
     }
 
+    /// `MotionAttackState.Update` under a command, whose `IsIdle` and
+    /// `IsActive` do not ask whether the lock lives: the motion leaves the
+    /// attack only once its target is out of range, so a dead target still in
+    /// range keeps the unit attacking, turning to it (`AttackRotate`) and
+    /// walking on or stopping as `AttackMove` decides, until its skill takes
+    /// another.
+    fn attack_dead_lock_under_command(&mut self, actor_id: u64) -> Flow {
+        let actor = &self.actors[&actor_id];
+        if actor.command.is_none() || actor.motion.state != MotionState::Attacking {
+            return Flow::Next;
+        }
+        let Some(target) = actor.skill.attack_target() else {
+            return Flow::Next;
+        };
+        if self.fight_actor_is_alive(target) {
+            return Flow::Next;
+        }
+        let Some(view) = self.fight_actor(target) else {
+            return Flow::Next;
+        };
+        let target_rotation_q32 = direction_degrees_q32_raw(
+            view.x_q32.saturating_sub(actor.x_q32),
+            view.z_q32.saturating_sub(actor.z_q32),
+        );
+        let edge_distance_q32 = native_q32_magnitude(
+            view.x_q32.saturating_sub(actor.x_q32),
+            view.z_q32.saturating_sub(actor.z_q32),
+        )
+        .saturating_sub(space_to_q32(actor.rules.collision_radius()))
+        .saturating_sub(space_to_q32(view.radius))
+        .max(0);
+        let in_reach = edge_distance_q32 >= space_to_q32(actor.rules.attack.min_range())
+            && edge_distance_q32 <= space_to_q32(actor.stats.attack_range());
+        if !in_reach {
+            return Flow::Next;
+        }
+        if !self.command_attack_moves(actor_id) {
+            let actor = self
+                .actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable");
+            actor.motion.next_target_x_q32 = actor.x_q32;
+            actor.motion.next_target_z_q32 = actor.z_q32;
+            actor.motion.next_speed_q32 = 0;
+            actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
+        }
+        self.track_target_in_range(actor_id, target_rotation_q32, false);
+        self.attack_move(actor_id, true);
+        Flow::Done
+    }
+
     /// `hold_dead_target`, and under a command, which stays active with a
-    /// dead target out of range: where `AutoMoveBehaviour` goes idle, the
-    /// unit changes to `MotionMoveState`, or walks on in it.
+    /// dead target: in range it keeps attacking
+    /// ([`Self::attack_dead_lock_under_command`]); out of range, where
+    /// `AutoMoveBehaviour` goes idle, the unit changes to `MotionMoveState`,
+    /// or walks on in it.
     fn hold_dead_target_moving(&mut self, actor_id: u64, backswing_just_finished: bool) -> Flow {
+        if let Flow::Done = self.attack_dead_lock_under_command(actor_id) {
+            return Flow::Done;
+        }
         let was_moving = self.actors[&actor_id].motion.state == MotionState::Moving;
         let Flow::Done = self.hold_dead_target(actor_id, backswing_just_finished) else {
             return Flow::Next;
@@ -932,6 +988,9 @@ impl Simulation {
             .attacker(FightActorRef::Unit(actor_id))
             .expect("actor identity is stable")
             .faces(target_rotation_q32);
+        // `AttackMove` walks a command on with `Move` instead of stopping.
+        let walks_on = self.actors[&actor_id].motion.state == MotionState::Attacking
+            && self.command_attack_moves(actor_id);
         let actor = self
             .actors
             .get_mut(&actor_id)
@@ -940,13 +999,16 @@ impl Simulation {
             let entered_attack = actor.motion.state != MotionState::Attacking;
             actor.motion.state = MotionState::Attacking;
             // RVOControllerFixed.StopMove refreshes the target point on
-            // every MotionAttackState update. It submits zero desired
-            // speed while retaining the unit's configured maximum speed,
-            // so neighbouring agents can still push a stopped attacker.
-            actor.motion.next_target_x_q32 = actor.x_q32;
-            actor.motion.next_target_z_q32 = actor.z_q32;
-            actor.motion.next_speed_q32 = 0;
-            actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
+            // every MotionAttackState update that does not walk on. It
+            // submits zero desired speed while retaining the unit's
+            // configured maximum speed, so neighbouring agents can still
+            // push a stopped attacker.
+            if !walks_on {
+                actor.motion.next_target_x_q32 = actor.x_q32;
+                actor.motion.next_target_z_q32 = actor.z_q32;
+                actor.motion.next_speed_q32 = 0;
+                actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
+            }
             let completed_attack_reentry_rejected = entered_attack
                 && backswing_just_finished
                 && actor.rules.attack.melee
@@ -1119,13 +1181,22 @@ impl Simulation {
 
     /// `MotionAttackState.AttackMove`: a command may walk on while the unit
     /// fires, where `AutoMoveBehaviour` stops. A state entered this update
-    /// is not updated on it.
+    /// is not updated on it. `MotionController.Move` does not turn the body;
+    /// only the move state's `NormalRotate` turns it to where it moves.
     fn attack_move(&mut self, actor_id: u64, was_attacking: bool) {
         if was_attacking
             && self.actors[&actor_id].motion.state == MotionState::Attacking
             && self.command_attack_moves(actor_id)
         {
-            self.move_to_command_point(actor_id);
+            let Some((move_target_x_q32, move_target_z_q32)) = self.command_move_point(actor_id)
+            else {
+                return;
+            };
+            let solve_due = self.rvo_solve_due();
+            self.actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable")
+                .move_to(move_target_x_q32, move_target_z_q32, solve_due);
         }
     }
 
@@ -1164,18 +1235,25 @@ impl Simulation {
         }
     }
 
-    /// `MotionController.Move` towards the command's point, turning first.
+    /// `MotionMoveState.MoveUpdate` under a command: `NormalRotate`, then
+    /// `MotionController.Move` towards the command's point.
     fn move_to_command_point(&mut self, actor_id: u64) {
         let Some((move_target_x_q32, move_target_z_q32)) = self.command_move_point(actor_id) else {
             return;
         };
+        let solve_due = self.rvo_solve_due();
         let actor = self
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
-        actor.motion.next_target_x_q32 = move_target_x_q32;
-        actor.motion.next_target_z_q32 = move_target_z_q32;
-        actor.set_turn_limited_speed();
+        actor.turn_to_move_direction();
+        actor.move_to(move_target_x_q32, move_target_z_q32, solve_due);
+    }
+
+    /// Whether this update is the one before the RVO solve, the only one on
+    /// which `MotionController.Move` hands the agent anything.
+    fn rvo_solve_due(&self) -> bool {
+        self.rvo.counter == 3
     }
 
     /// The ways a unit leaves its attack motion when what it fires at is out
@@ -1283,6 +1361,7 @@ impl Simulation {
             body_z_q32,
             body_radius,
         } = approach;
+        let solve_due = self.rvo_solve_due();
         let actor = self
             .actors
             .get_mut(&actor_id)
@@ -1330,8 +1409,7 @@ impl Simulation {
             body_radius,
             actor.stats.attack_range(),
         );
-        actor.motion.next_target_x_q32 = move_target_x_q32;
-        actor.motion.next_target_z_q32 = move_target_z_q32;
-        actor.set_turn_limited_speed();
+        actor.turn_to_move_direction();
+        actor.move_to(move_target_x_q32, move_target_z_q32, solve_due);
     }
 }
