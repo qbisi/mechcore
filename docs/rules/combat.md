@@ -871,7 +871,8 @@ not the game's native attack-type enum.
   quarter turn in a defence area whose region holds something:
   `TerritoryManager.RefreshMechDiretion`, `PlayerTerritory.GetAttackFacing`,
   `PlayerTerritory.CreateLeftDefenseAreaLocal`,
-  `PlayerTerritory.CreateRightDefenseAreaLocal`, `DefenseArea.Contains`,
+  `PlayerTerritory.CreateRightDefenseAreaLocal`,
+  `PlayerTerritory.DefenseArea.Contains`,
   `MapRect.Contains`, `MapRegion.IsDefenseRegionEmpty`,
   `TerritoryManager.PrepareDefenseRegion`.
 - A blow draws its interval and is then fitted into it:

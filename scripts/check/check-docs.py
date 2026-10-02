@@ -218,7 +218,7 @@ EVIDENCE_PARTS = ("Recorded", "Replayed", "Read", "Not established")
 # What replays the corpus: the simulator over its match documents, and the game
 # over its rounds.
 REPLAY_SCRIPTS = ("corpus/verify-matches.py", "corpus/match-replays.py")
-ANCHOR = re.compile(r"`[A-Z][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_]*`")
+ANCHOR = re.compile(r"`[A-Z][A-Za-z0-9_]*(?:\.[A-Z][A-Za-z0-9_]*)*\.[A-Za-z_][A-Za-z0-9_]*`")
 TESTS_PATH = re.compile(r"`(tests/[^`]+)`")
 
 

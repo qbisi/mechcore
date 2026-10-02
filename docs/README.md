@@ -119,8 +119,8 @@ nothing for:
   recorded ones. A claim the corpus of another version showed is not established here until
   this version's corpus shows it too.
 - `### Read`: each claim read from the build, naming in backticks the members
-  it rests on, `Class.member`, as the class declares them. They are the
-  document's anchors.
+  it rests on, `Class.member`, as the class declares them, a nested class as
+  `Outer.Inner.member`. They are the document's anchors.
 - `### Not established`: what the document does not claim, and why.
 
 `scripts/decomp/rules-anchors.py` resolves every anchor in the pinned version's dump.
