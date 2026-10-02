@@ -593,7 +593,9 @@ runs.
 `FightingState.Update` calls `TryDstroyTower` once per tick, after every module,
 and it does not ask what dealt the last blow. A laser kill takes the loser's
 towers down the same way: gone on the kill's tick, their `building_destroyed`
-on the next, which is the fight's last.
+on the next, which is the fight's last. `DeadEffectSystem` writes them there,
+after the projectiles that tick resolved and before what those killed: a
+Wasp's shot at a tower torn down is removed before the tower falls.
 
 **A tick that leaves neither side a unit takes both sides' towers down, when
 no projectile is in flight.** A Missile Strike landing among both sides'
@@ -850,7 +852,9 @@ not the game's native attack-type enum.
   `FightSkill.GetDamage`.
 - The alive count is cached per team, and towers fall once per tick after every
   module: `FightCoreSystem.TeamUpdate`, `FightCoreSystem.TryDstroyTower`,
-  `FightingState.Update`, `DeadEffectSystem.Update`.
+  `FightingState.Update`, `DeadEffectSystem.Update`. `DeadEffectSystem`
+  updates after `FightCoreSystem` and `ProjectileSystem`:
+  `FightController.AddModules`.
 - A tower is an ordinary search candidate: `FightTeam.AddTower`,
   `FightTeam.AddActor`, `MechSearchTargetController.SearchLockTarget`.
 - Once at most one side has a live unit the fight is off, and only a skill

@@ -505,11 +505,13 @@ impl Simulation {
         let mut joined = Vec::new();
         self.join_summons(step, &mut joined)?;
         let mut events = Vec::new();
+        let mut torn_down = Vec::new();
         if publish_late_building_events {
             // The towers the fight's end tore down, and then every buff a
             // unit still runs, cleared as the fight is left
             // (`BuffManager.Clear`): a buff the loss of a tower wrote and
             // that has not run out is written as cleared on every survivor.
+            // `DeadEffectSystem` writes them after the tick's shots, below.
             for building_id in std::mem::take(&mut self.ending.torn_down_buildings) {
                 let position = self
                     .buildings
@@ -517,7 +519,7 @@ impl Simulation {
                     .find(|building| building.building_id == building_id)
                     .map(|building| building.position)
                     .ok_or_else(|| Error::new("a torn-down building is absent"))?;
-                events.push(event(
+                torn_down.push(event(
                     Some(ObjectRef::new(ObjectKind::Building, building_id)),
                     None,
                     None,
@@ -525,9 +527,7 @@ impl Simulation {
                     EventPayload::BuildingDestroyed { position },
                 ));
             }
-            self.clear_buffs_as_the_fight_ends(&mut events)?;
         }
-        let opening = events.len();
         events.extend(joined);
         // Native search jobs retain the actor-quadtree candidate order
         // prepared at the start of this FightCore update.
@@ -713,15 +713,21 @@ impl Simulation {
         // rest of the tick, in the order they happened, as
         // `DeadEffectSystem.Update` takes its `deadActors`: a block one
         // Steel Ball's beam fells reads before a unit a later beam kills.
-        // What opened the tick, the fight's end, stays where it is.
-        let later = events.split_off(opening);
-        let (rest, ends): (Vec<_>, Vec<_>) = later.into_iter().partition(|event| {
-            !matches!(
-                &event.payload,
-                EventPayload::UnitDied { .. } | EventPayload::BuildingDestroyed { .. }
-            )
-        });
+        // The towers the fight's end tore down on the tick before are first
+        // in that list, after the shots this tick resolved: a Wasp's shot at
+        // a tower torn down reads its removal before the tower falls.
+        let (rest, ends): (Vec<_>, Vec<_>) =
+            std::mem::take(&mut events).into_iter().partition(|event| {
+                !matches!(
+                    &event.payload,
+                    EventPayload::UnitDied { .. } | EventPayload::BuildingDestroyed { .. }
+                )
+            });
         events.extend(rest);
+        if publish_late_building_events {
+            events.extend(torn_down);
+            self.clear_buffs_as_the_fight_ends(&mut events)?;
+        }
         // `BuffManager.Clear` takes a dying unit's buffs as it dies, whatever
         // killed it.
         for end in ends {
