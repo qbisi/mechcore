@@ -485,6 +485,9 @@ impl Simulation {
             climb_to_q32: None,
             spawn_shields: Vec::new(),
             absorbed_by: None,
+            move_range_q32: Some(
+                space_to_q32(source.range).saturating_add(space_to_q32(target_radius)),
+            ),
         };
         let mut projectile = projectile;
         // `ProjectileController.Init`: the enemy shields that already hold it.

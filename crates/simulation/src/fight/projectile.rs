@@ -44,6 +44,10 @@ pub(in crate::fight) struct Projectile {
     pub(in crate::fight) spawn_shields: Vec<u64>,
     /// The shield that took it, once one has.
     pub(in crate::fight) absorbed_by: Option<u64>,
+    /// `FightProjectile.moveRange`: the releasing skill's attack range and
+    /// its target's radius, set as it is made. None for a missile's, which
+    /// no `ISkillOwner` released.
+    pub(in crate::fight) move_range_q32: Option<i64>,
 }
 
 /// What released a projectile.
@@ -160,6 +164,11 @@ impl Simulation {
                 projectile.cached_target_y_q32 = space_to_q32(projectile.cached_target_y);
                 projectile.cached_target_radius = target.rules.collision_radius();
             }
+            if !self.within_owner_reach(&projectile) {
+                self.leave_interceptors(&projectile);
+                events.push(spent_on_nothing(&projectile));
+                continue;
+            }
             let dx_q32 = projectile
                 .cached_target_x_q32
                 .saturating_sub(projectile.x_q32);
@@ -222,6 +231,49 @@ impl Simulation {
         retained.reverse();
         self.projectiles = retained;
         Ok(())
+    }
+
+    /// `FightProjectile.Update`'s `IsInRange3D`: a projectile that locks its
+    /// target lands only while it stands within `CalculateMaxMoveDistance` of
+    /// its owner, edge to edge in three dimensions: the owner's radius and the
+    /// projectile's `moveRange`, taken across the height between the two when
+    /// the owner and its target fly at different heights. The owner is asked
+    /// where it stood last, dead or alive. A Mustang's shot at a Crawler
+    /// running away is spent on nothing once it is farther from the Mustang
+    /// than that; a Stormcaller's shells, which lock nothing, are not asked.
+    fn within_owner_reach(&self, projectile: &Projectile) -> bool {
+        let (Shooter::Actor(owner), Some(move_range_q32), true) = (
+            &projectile.shooter,
+            projectile.move_range_q32,
+            projectile.lock_target,
+        ) else {
+            return true;
+        };
+        let Some(view) = self.fight_actor(*owner) else {
+            return true;
+        };
+        let owner_height = match owner {
+            FightActorRef::Unit(id) => unit_height(self.actors[id].rules.domain),
+            FightActorRef::Building(_) => 0,
+        };
+        let target_height = q32_to_space_rounded(projectile.cached_target_y_q32);
+        let radius_q32 = space_to_q32(view.radius);
+        let reach_q32 = radius_q32.saturating_add(move_range_q32);
+        let rise_q32 = space_to_q32(target_height.saturating_sub(owner_height));
+        let reach_q32 = if rise_q32 == 0 {
+            reach_q32
+        } else {
+            fpcs_sqrt_fastest(
+                q32_mul(reach_q32, reach_q32).saturating_add(q32_mul(rise_q32, rise_q32)),
+            )
+        };
+        native_q32_magnitude_3d(
+            projectile.x_q32.saturating_sub(view.x_q32),
+            projectile.y_q32.saturating_sub(space_to_q32(owner_height)),
+            projectile.z_q32.saturating_sub(view.z_q32),
+        )
+        .saturating_sub(radius_q32)
+            <= reach_q32
     }
 
     #[allow(clippy::too_many_lines)]
@@ -377,4 +429,24 @@ impl Simulation {
         };
         Ok(struck)
     }
+}
+
+/// `ProjectileController.Release` with no damage performed.
+fn spent_on_nothing(projectile: &Projectile) -> Event {
+    let source = projectile.shooter.actor().map(FightActorRef::object_ref);
+    event(
+        Some(projectile.object_ref()),
+        source,
+        source.map(|_| projectile.team),
+        Some(ObjectRef::new(projectile.target_kind, projectile.target)),
+        EventPayload::ProjectileRemoved {
+            position: QVec3 {
+                x: projectile.x_q32,
+                y: projectile.y_q32,
+                z: projectile.z_q32,
+            },
+            intercepted: false,
+            absorbed_by: None,
+        },
+    )
 }
