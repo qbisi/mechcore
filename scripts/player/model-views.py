@@ -51,8 +51,8 @@ OUT = Path(__file__).resolve().parents[2] / "work/player/models"
 # clip's name: one controller may hold two clips of one name for different
 # stances, as the Arclight's holds two `attack` clips that swing its shields
 # forward, while its ordinary attack, `normalAttack`, keeps them at its sides.
-# The state is the unit's ordinary attack, unless that keeps the crouch the
-# unit rests in: the Rhino's attacks do, so it is posed walking.
+# The state is the unit's ordinary attack, except the Rhino's, which is posed
+# walking, as its sprite stands.
 # A tower is a node of the battle scene rather than a prefab of its own.
 MODELS = {
     "marksman": ("sharedassets0.assets", "Mech_Default_2_1", "Attack", 0.3),
@@ -143,19 +143,49 @@ def sample_clip(clip, time):
     return values
 
 
+# Unity's RotationOrder, which an Euler curve's binding names in its
+# `customType`: the axes in the order they turn.
+ROTATION_ORDERS = ["xyz", "xzy", "yzx", "yxz", "zxy", "zyx"]
+
+
+def euler_rotation(degrees, order):
+    """The quaternion of Euler angles in degrees, the axes turning in
+    `order`."""
+    q = (0.0, 0.0, 0.0, 1.0)
+    for axis in ROTATION_ORDERS[order]:
+        i = "xyz".index(axis)
+        half = math.radians(degrees[i]) / 2
+        turn = [0.0, 0.0, 0.0, math.cos(half)]
+        turn[i] = math.sin(half)
+        (ax, ay, az, aw), (bx, by, bz, bw) = turn, q
+        q = (
+            aw * bx + ax * bw + ay * bz - az * by,
+            aw * by - ax * bz + ay * bw + az * bx,
+            aw * bz + ax * by - ay * bx + az * bw,
+            aw * bw - ax * bx - ay * by - az * bz,
+        )
+    return q
+
+
 def transform_pose(clip, time):
     """{path hash: {attribute: values}} for the clip's transform curves:
-    1 position, 2 rotation, 3 scale."""
+    1 position, 2 rotation, 3 scale. A clip may key a rotation as Euler
+    angles instead (attribute 4), as the Rhino's attacks do; those are turned
+    into the rotation they give, in the order their binding names: the
+    Rhino's turn x first, not z as Unity's default."""
     values = sample_clip(clip, time)
     pose = {}
     index = 0
     for binding in clip.m_ClipBindingConstant.genericBindings:
         transform = (getattr(binding, "typeID", None) or getattr(binding, "classID", None)) == 4
         width = {1: 3, 2: 4, 3: 3, 4: 3}.get(binding.attribute, 1) if transform else 1
-        if transform and binding.attribute in (1, 2, 3):
+        if transform and binding.attribute in (1, 2, 3, 4):
             sample = tuple(values.get(index + k) for k in range(width))
             if None not in sample:
-                pose.setdefault(binding.path, {})[binding.attribute] = sample
+                if binding.attribute == 4:
+                    pose.setdefault(binding.path, {}).setdefault(2, euler_rotation(sample, binding.customType))
+                else:
+                    pose.setdefault(binding.path, {})[binding.attribute] = sample
         index += width
     return pose
 
