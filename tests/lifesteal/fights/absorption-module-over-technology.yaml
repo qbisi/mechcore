@@ -1,0 +1,21 @@
+# `technology-lifesteal.yaml` with Absorption Module on the Steel Ball as
+# well. Both are lifesteal sources of the unit's one provider, which enables
+# the item's alone: a beam of 148 gives back 133, the whole part of 0.9 of
+# it, not 118 and not the two summed.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 175
+hash: {profile: mcfr-content-0.7.0, result: 9ba0eedf612f9e55588d51541cf72548269e8e0bbef21636f04bf296c2c8e7b8}
+blue:
+  techs:
+    steel_ball: [energy_absorption]
+  units:
+  - {name: steel_ball, index: 0, position: {x: 5, y: -100}, exp: 0/400/1000, equipment: [absorption_module]}
+red:
+  core_damage: 200
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}

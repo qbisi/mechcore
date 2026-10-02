@@ -6,13 +6,14 @@
 //! are [`super::effects`]'s, the same ones an officer writes, because
 //! `TechnologyData` and `OfficerData` answer the same interface.
 //!
-//! **Only a plain technology is applied.** Every technology a unit may research
-//! has a row, whose `kind` is the list of `TechnologyGroupData` it comes from.
-//! One of `technologyDatas` does nothing but correct its unit's numbers, and
-//! is applied unless its row names a field in `special`. One of any other
-//! list is a subclass that does more (a buff, a splash, a second weapon, a
-//! summon), which no mechanism here implements, and is refused by name rather
-//! than applied for its numbers alone.
+//! **A plain technology is applied, and a subclass whose mechanism is here.**
+//! Every technology a unit may research has a row, whose `kind` is the list of
+//! `TechnologyGroupData` it comes from. One of `technologyDatas` does nothing
+//! but correct its unit's numbers, and is applied unless its row names a field
+//! in `special`. One of any other list is a subclass that does more (a buff, a
+//! splash, a second weapon, a summon). A `LifestealTech` is applied for its
+//! numbers and hands its unit a [`LifeSteal`]; any other is refused by name
+//! rather than applied for its numbers alone.
 //!
 //! A technology belongs to one unit type, which is how a side's flat list of
 //! technologies reaches the units it corrects: a technology the side holds
@@ -33,12 +34,22 @@ use crate::{
     data::{Channel, Correction, Entry, Index},
 };
 
-use super::effects::{self, Fields, PROJECTILE, SPLASH, VALUE_ELSEWHERE};
+use super::{
+    effects::{self, Fields, PROJECTILE, SPLASH, VALUE_ELSEWHERE},
+    sources::LifeSteal,
+};
 
 const DEFAULT_TECHNOLOGY_EFFECTS: &str = include_str!("../../../../config/technology_effects.yaml");
 
 /// The list of `TechnologyGroupData` a plain technology comes from.
 const PLAIN: &str = "technologyDatas";
+
+/// The list whose `LifestealTech` is an `ILifeSteal` as well.
+const LIFESTEAL: &str = "lifestealTechnologies";
+
+/// `Technology`'s `IEffectProviderDataSource.GetPriority`, which an
+/// equipment's 1 overrides.
+const PRIORITY: i32 = 0;
 
 /// The module that tags every entry a technology writes.
 pub(crate) const SOURCE: &str = "Modifier";
@@ -55,6 +66,8 @@ struct Technology {
     unit: String,
     /// What it writes, or why this build will not apply it.
     effect: std::result::Result<Vec<(Channel, Index, Correction)>, String>,
+    /// What it answers `ILifeSteal` with, if its class is one.
+    lifesteal: Option<LifeSteal>,
 }
 
 /// One row of the table. Every effect is a list because a technology's effect
@@ -67,7 +80,8 @@ struct Row {
     unit: String,
     /// The list of `TechnologyGroupData` the row comes from.
     kind: String,
-    /// The fields a plain row sets beyond the numbers this table carries.
+    /// The fields a plain or a lifesteal row sets beyond what this table
+    /// carries.
     #[serde(default)]
     special: Vec<String>,
     #[serde(default)]
@@ -92,6 +106,9 @@ struct Row {
     projectile_speed_value: Vec<i64>,
     #[serde(default)]
     projectile_life_rate: Vec<i64>,
+    /// `LifestealTechnologyData.lifestealMultiplier`, on a lifesteal row.
+    #[serde(default)]
+    lifesteal_multiplier: Vec<i64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -124,9 +141,19 @@ impl TechnologyEffects {
         let mut technologies = BTreeMap::new();
         for row in table.technologies {
             let id = row.id;
+            // `LifestealTech.GetLifestealMuliplier` reads its row's list at
+            // the unit's rank, which `corrections_of` refuses past one entry;
+            // no lifesteal row sets `ignoreElectricEffect`, so each answers
+            // `CanDisable` true.
+            let lifesteal = (row.kind == LIFESTEAL).then(|| LifeSteal {
+                multiplier_q32: row.lifesteal_multiplier.first().copied().unwrap_or(0),
+                priority: PRIORITY,
+                can_disable: true,
+            });
             let technology = Technology {
                 unit: row.unit.clone(),
                 effect: corrections_of(&row),
+                lifesteal,
             };
             if technologies.insert(id, technology).is_some() {
                 return Err(Error::new(format!(
@@ -178,11 +205,27 @@ impl TechnologyEffects {
         }
         Ok(written)
     }
+
+    /// What this side's technologies answer `ILifeSteal` with on one unit
+    /// type, each that is one.
+    ///
+    /// # Errors
+    ///
+    /// Returns the error [`Self::corrections`] does.
+    pub(crate) fn lifesteal(&self, held: &[i32], unit_type: &str) -> Result<Vec<LifeSteal>> {
+        self.corrections(held, unit_type)?;
+        Ok(held
+            .iter()
+            .filter_map(|id| self.technologies.get(id))
+            .filter(|technology| technology.unit == unit_type)
+            .filter_map(|technology| technology.lifesteal)
+            .collect())
+    }
 }
 
 /// What a row writes at rank one, or why this build will not apply it.
 fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correction)>, String> {
-    if row.kind != PLAIN {
+    if row.kind != PLAIN && row.kind != LIFESTEAL {
         return Err(format!(
             "technology {} ({}) comes from TechnologyGroupData's {} list, and what \
              it does beyond its unit's numbers is not implemented",
@@ -209,6 +252,7 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
         ("splash_range_value", &row.splash_range_value),
         ("projectile_speed_value", &row.projectile_speed_value),
         ("projectile_life_rate", &row.projectile_life_rate),
+        ("lifesteal_multiplier", &row.lifesteal_multiplier),
     ];
     for (field, values) in every {
         if values.len() > 1 {

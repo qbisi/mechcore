@@ -6,17 +6,20 @@
 //! called from `MAP_AddUnit` — so they are applied as the fight is built, into
 //! the overlays [`crate::data`] resolves. [`effects`] is what every table
 //! writes; [`officers`], [`technologies`], [`equipment`] and
-//! [`energy_tower`] read their own table, and [`targets`] says which units a
-//! row's targeting category reaches.
+//! [`energy_tower`] read their own table, [`targets`] says which units a
+//! row's targeting category reaches, and [`sources`] is what an equipment or
+//! a technology hands its unit beyond its numbers.
 
 mod effects;
 mod energy_tower;
 mod equipment;
 mod officers;
+mod sources;
 mod targets;
 mod technologies;
 
 pub(crate) use energy_tower::EnergyTowerSkillEffects;
 pub(crate) use equipment::EquipmentEffects;
 pub(crate) use officers::OfficerEffects;
+pub(crate) use sources::{LifeSteal, current as current_lifesteal};
 pub(crate) use technologies::TechnologyEffects;

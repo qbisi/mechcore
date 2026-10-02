@@ -15,6 +15,7 @@ out to show:
 | [`equipment/`](equipment/README.md) | where equipment corrections land and how they compose with officers |
 | [`interceptor/`](interceptor/README.md) | how an interceptor takes projectiles out of the air, and what befalls it |
 | [`level/`](level/README.md) | how a unit level scales base life and damage before overlays |
+| [`lifesteal/`](lifesteal/README.md) | how a hit hands life back to the unit whose skill dealt it, and which lifesteal source does |
 | [`missile/`](missile/README.md) | when a missile fires, at what, and what its hit writes |
 | [`map/`](map/README.md) | what a map's neutral crystals do to a fight |
 | [`modifier/`](modifier/README.md) | how officers and technologies correct a unit's numbers |

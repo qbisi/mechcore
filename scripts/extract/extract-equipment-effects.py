@@ -33,6 +33,11 @@ FIELDS = {
     "main_skill_effect": "mainSkillEffect", "extra_skill_effect": "extraSkillEffect",
     "permanent_effect": "permanentEffect",
 }
+# What a subclass's row answers its own interface with, by the build's field
+# and the list of `EquipmentGroupData` whose rows carry it.
+SUBCLASS_FIELDS = {
+    "lifesteal_multiplier": ("lifestealMultiplier", "lifestealEquipmentDatas"),
+}
 
 
 def raw(value):
@@ -49,6 +54,8 @@ def extract():
                 continue
             entry = {"id": row["id"], "name": row["name"], "kind": kind}
             entry.update({column: raw(row[field]) for column, field in FIELDS.items()})
+            entry.update({column: raw(row[field]) for column, (field, owner) in SUBCLASS_FIELDS.items()
+                          if kind == owner})
             rows.append(entry)
     return sorted(rows, key=lambda row: row["id"])
 
@@ -85,7 +92,10 @@ def render(rows):
         "# A row's `kind` is the list of EquipmentGroupData it comes from:",
         "# `equipmentDatas` for an item that does nothing but correct its unit's",
         "# numbers, and a subclass's list for one that does something more.",
-        "# Every class writes the corrections below, whatever else it does.",
+        "# Every class writes the corrections below, whatever else it does, and",
+        "# a subclass's row also carries what it answers its own interface with:",
+        "# a lifesteal item its `lifesteal_multiplier`, the share of a hit's",
+        "# damage its unit takes back as life.",
         "#",
         "# A rate is an FPoint Q32.32 raw integer: 3221225472 is +0.75. A value is",
         "# an FPoint in the number's own units: 85899345920 is +20 of range.",
@@ -110,6 +120,9 @@ def render(rows):
         for field in INTEGERS:
             if d[field]:
                 lines.append(f"    {field}: {d[field]}")
+        for field in SUBCLASS_FIELDS:
+            if field in d:
+                lines.append(f"    {field}: {d[field]}{reading(d[field])}")
     return "\n".join(lines) + "\n"
 
 

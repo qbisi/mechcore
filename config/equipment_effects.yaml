@@ -9,7 +9,10 @@ schema: mechcore.equipment_effects
 # A row's `kind` is the list of EquipmentGroupData it comes from:
 # `equipmentDatas` for an item that does nothing but correct its unit's
 # numbers, and a subclass's list for one that does something more.
-# Every class writes the corrections below, whatever else it does.
+# Every class writes the corrections below, whatever else it does, and
+# a subclass's row also carries what it answers its own interface with:
+# a lifesteal item its `lifesteal_multiplier`, the share of a hit's
+# damage its unit takes back as life.
 #
 # A rate is an FPoint Q32.32 raw integer: 3221225472 is +0.75. A value is
 # an FPoint in the number's own units: 85899345920 is +20 of range.
@@ -137,6 +140,7 @@ equipment:
     main_skill_effect: true
     extra_skill_effect: true
     life_rate: 1288490188  # +0.3
+    lifesteal_multiplier: 3865470566  # +0.9
   - id: 13010001
     name: 便携式护盾
     kind: energyShieldEquipmentDatas

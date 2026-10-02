@@ -56,6 +56,15 @@ LISTS = (
     ("projectile_speed_value", "projectileSpeedChangeValue"),
     ("projectile_life_rate", "projectileLifeChangeRate"),
 )
+# What a subclass's row answers its own interface with, by the build's field
+# and the list of `TechnologyGroupData` whose rows carry it: a rank list, as
+# the corrections are, written only on the rows of that list.
+SUBCLASS_LISTS = (
+    ("lifesteal_multiplier", "lifestealMultiplier", "lifestealTechnologies"),
+)
+# The lists whose rows say in `special` what they set beyond the fields
+# this table carries: the plain one, and each subclass's the simulator reads.
+IMPLEMENTED = ("technologyDatas", "lifestealTechnologies")
 # The list of `TechnologyGroupData` a plain technology comes from. A row of any
 # other list is a subclass (`BuffTechnologyData`, `SplashTechnologyData` and
 # the rest) that does something beyond its unit's numbers.
@@ -68,7 +77,8 @@ DESCRIPTIVE = {
     "limitedScene", "supply", "previousTechID", "activeLevel", "unlockCost",
     "mainSkillEffect", "extraSkillEffect", "extraSkillNumericalEffect",
 }
-RATES = {"life_rate", "damage_rate", "attack_range_rate", "attack_interval_rate", "projectile_life_rate"}
+RATES = {"life_rate", "damage_rate", "attack_range_rate", "attack_interval_rate", "projectile_life_rate",
+         "lifesteal_multiplier"}
 INTEGERS = {"speed_value", "min_attack_range_value"}
 
 
@@ -85,6 +95,9 @@ def rows_by_id() -> dict[int, dict]:
                 effect = {"id": row["id"], "name": row["name"], "row": row, "kind": kind}
                 for field, source in LISTS:
                     effect[field] = [raw(value) for value in row.get(source) or []]
+                for field, source, owner in SUBCLASS_LISTS:
+                    if kind == owner:
+                        effect[field] = [raw(value) for value in row[source]]
                 rows[row["id"]] = effect
     return rows
 
@@ -92,7 +105,7 @@ def rows_by_id() -> dict[int, dict]:
 def special(row: dict) -> list[str]:
     """The fields of a plain technology's row that are set and are neither a
     number this table carries nor descriptive: what it does beyond numbers."""
-    numeric = {source for _, source in LISTS}
+    numeric = {source for _, source in LISTS} | {source for _, source, _ in SUBCLASS_LISTS}
     return sorted(
         field
         for field, value in row["row"].items()
@@ -230,13 +243,18 @@ def main() -> int:
         "# Every technology a unit may research has a row. Its `kind` is the list",
         "# of `TechnologyGroupData` it comes from: `technologyDatas` for a plain",
         "# technology, which does nothing but correct its unit's numbers, and a",
-        "# subclass's list for one that does something more. A plain row that sets",
-        "# a field beyond its numbers names it in `special`.",
+        "# subclass's list for one that does something more. A plain or a",
+        "# lifesteal row that sets a field beyond what it carries here names it",
+        "# in `special`.",
         "#",
         "# Every effect is a list indexed by the unit's rank: one entry for a",
         "# technology whose effect is flat, and one per rank for a technology that",
         "# grows with it. A rate is an FPoint Q32.32 raw integer, a value is an",
         "# FPoint in the number's own units, and speed is a plain integer.",
+        "#",
+        "# A subclass's row also carries what it answers its own interface with:",
+        "# a lifesteal technology its `lifesteal_multiplier`, the share of a hit's",
+        "# damage its unit takes back as life.",
         "",
         "technologies:",
     ]
@@ -252,11 +270,18 @@ def main() -> int:
         lines.append(f"    name: {row['name']}")
         lines.append(f"    unit: {row['unit']}")
         lines.append(f"    kind: {row['kind']}")
-        extra = special(row) if row["kind"] == PLAIN else []
+        # A plain row, and a subclass's whose mechanism the simulator reads,
+        # name what else they set, which the simulator refuses.
+        extra = special(row) if row["kind"] in IMPLEMENTED else []
         if extra:
             lines.append(f"    special: [{', '.join(extra)}]")
         elif row["kind"] == PLAIN:
             plain += 1
+        held += [
+            (field, row[field])
+            for field, _, owner in SUBCLASS_LISTS
+            if row["kind"] == owner
+        ]
         for field, values in held:
             raw = ", ".join(str(value) for value in values)
             if field in INTEGERS:
