@@ -1,0 +1,24 @@
+# Two Wasp squads walking a Mobile Beacon kill a lone Marksman on its
+# first segment, and the fight is won with the Wasps still on the beacon.
+# The skill lets its target go and the command stays active: an attacking
+# Wasp changes to moving rather than idle, every Wasp on the beacon goes on
+# moving and turning to where it moves while the won fight runs on, and the
+# fight's end idles them all.
+
+kind: fight
+map_id: 1011
+seed: 4242
+round: 3
+source: game
+ticks: 111
+hash: {profile: mcfr-content-0.7.0, result: f05efc4f703172ec1830a48691053e4633786965c5b24165fd6ebd312baa1282}
+blue:
+  core_damage: 374
+  units:
+  - {name: marksman, index: 0, position: {x: -200, y: -60}, exp: 0/68/650}
+red:
+  units:
+  - {name: wasp, index: 0, position: {x: 275, y: -40}, exp: 0/50/900}
+  - {name: wasp, index: 1, position: {x: 275, y: -60}, exp: 0/150/900}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: 265, y: -30}, {x: 146, y: 130}, {x: -50, y: 168}]}

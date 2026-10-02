@@ -654,11 +654,18 @@ impl Simulation {
         let stop_fight = ready_to_finish || winner_was_decided;
         if stop_fight {
             for actor in self.actors.values_mut() {
-                // Every motion enters `MotionIdleState`, whose `Enter` asks
-                // `StopMove`: a unit that took a tower on the last kill's tick
-                // publishes no speed at the next solve.
+                // Every motion loses its target: one without a command enters
+                // `MotionIdleState`, whose `Enter` asks `StopMove`, so a unit
+                // that took a tower on the last kill's tick publishes no speed
+                // at the next solve. A command stays active and moves on
+                // while a won fight runs on, and the fight's end idles every
+                // motion.
                 let entered_idle = actor.motion.state != MotionState::Idle;
-                actor.stop_in_place(entered_idle);
+                if ready_to_finish {
+                    actor.stop_in_place(entered_idle);
+                } else {
+                    actor.lose_target_motion(entered_idle);
+                }
                 actor.skill.drop_lock();
                 actor.skill.clear_slots();
                 // A won fight runs on without `FightSkill.ExitFight` until it

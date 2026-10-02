@@ -982,11 +982,11 @@ impl Simulation {
         } else if was_moving
             && self.actors[&actor_id].command.is_some()
             && self.actors[&actor_id].skill.attack_target().is_none()
-            && self.ending.stop_step.is_none()
         {
             // `MotionController.Update` runs whatever the skill did: a
-            // command walks its path while the skill cools or reloads. A
-            // move state entered on this update is not updated on it.
+            // command walks its path while the skill cools or reloads, and
+            // once a won fight has stopped it. A move state entered on this
+            // update is not updated on it.
             self.follow_command(actor_id);
         }
         if self.actors[&actor_id].skill.is_grouped() && fusillade {
@@ -1284,7 +1284,8 @@ impl Simulation {
                     actor.motion.current_velocity_x_q32 = 0;
                     actor.motion.current_velocity_z_q32 = 0;
                 }
-                actor.stop_in_place(true);
+                // The skill letting its target go leaves a command active.
+                actor.lose_target_motion(true);
             }
         }
         Flow::Done
