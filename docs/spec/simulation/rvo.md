@@ -132,11 +132,11 @@ query semantics.
 | Field | Meaning |
 | --- | --- |
 | `key` | stable identity within the Unit or Building namespace |
-| `main_layer` | `Ground=1`, `Air=2`; a different main layer is excluded outright |
+| `main_layer` | `Underground=0`, `Ground=1`, `Air=2`; a different main layer is excluded outright |
 | `layer` | a single bit derived from collider priority |
 | `collides_with` | the candidate layer mask the querying agent accepts |
 | `group` | the avoidance group; the kernel fills it with the team ID |
-| `locked` | true for an immovable agent, whose neighbours carry all the avoidance |
+| `locked` | true for an immovable agent, whose neighbours carry all the avoidance; it solves to no speed where it stands, and has no desired velocity |
 | `tree_position` | the older internal position this round's tree is built from |
 | `position` | the current position used by the query and by every VO |
 | `current_velocity` | the velocity implied by the last published target and speed |
@@ -150,7 +150,11 @@ query semantics.
 | `priority` | the Q32.32 weight that splits avoidance responsibility within a group |
 
 A unit's `outer_radius`, `inner_radius`, `size`, `collider_priority` and
-`priority` come from the `rvo` block of `config/units/*.yaml`. The configuration
+`priority` come from the `rvo` block of `config/units/*.yaml`. A unit's move
+ability overrides them while it holds the agent (`fight/underground.rs`): it
+locks the agent on collider priority 11 at priority 1 while the unit burrows
+or surfaces, which zeroes its current velocity at the next boundary, and puts
+it on the underground main layer while the unit is below. The configuration
 requires `inner_radius <= outer_radius`, a priority in `0..=1`, and a collider
 priority in `1..=10`.
 

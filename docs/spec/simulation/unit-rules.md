@@ -85,6 +85,7 @@ attack:
 | `move_speed`, `rotate_speed` | Member movement and body rotation speed. |
 | `has_body` | Whether native `MechData` exposes a separate mech body. |
 | `independent_aim` | Whether the main weapon receives an aim direction generated independently of the mech body direction. In the current P0 catalog it is present exactly for units with a mech body; omission means not applicable, not `false`. |
+| `underground` | Present for a unit whose `MechData.moveType` is `Underground`: how long it burrows (`enter`) and surfaces (`exit`), how far into surfacing it stays hidden (`exit_keep`), and the range it is given below (`attack_range`). [`docs/rules/underground.md`](../../rules/underground.md) says what they do. |
 | `base_damage` | Unmodified level-1 mech base damage before path-specific attack-count multipliers. |
 | `min_range`, `range`, `attack_half_angle` | Native engagement distance bounds and effective main-skill half-angle. |
 | `targets`, `lock_target` | Native ground/air target acceptance and projectile/skill target locking. |

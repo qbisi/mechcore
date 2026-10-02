@@ -63,8 +63,9 @@ fn target_quadtree_reinserts_a_moved_child_element_in_native_order() {
 fn normal_target_score_uses_strict_minimum_and_maximum_range_edges() {
     let distance_q32 = 20_i64 << 32;
     let score = |min_range_q32, max_range_q32| {
-        normal_visible_full_rotation_score_from_distance_and_angle_q32(
+        full_rotation_score_from_distance_and_angle_q32(
             distance_q32,
+            0,
             0,
             min_range_q32,
             max_range_q32,
@@ -91,8 +92,9 @@ fn normal_target_score_adds_raw_distance_after_weighted_term() {
     .saturating_add(distance_q32);
 
     assert_eq!(
-        normal_visible_full_rotation_score_from_distance_and_angle_q32(
+        full_rotation_score_from_distance_and_angle_q32(
             distance_q32,
+            0,
             angle_q32,
             0,
             100_i64 << 32,
@@ -143,7 +145,7 @@ fn a_candidate_in_range_outside_the_rotation_window_takes_the_range_penalty() {
     // A turret pointing north-west at 315 degrees, with a window of 20 either
     // side: one candidate at about 309 degrees, one at 270.
     let score = |x: i64, z: i64, window| {
-        normal_visible_full_rotation_target_score_q32(
+        full_rotation_target_score_q32(
             0,
             0,
             0,
@@ -151,6 +153,7 @@ fn a_candidate_in_range_outside_the_rotation_window_takes_the_range_penalty() {
             x << 32,
             z << 32,
             0,
+            true,
             0,
             115_000,
             window,
@@ -168,7 +171,7 @@ fn a_candidate_in_range_outside_the_rotation_window_takes_the_range_penalty() {
 #[test]
 fn a_window_is_checked_only_between_angle0_and_angle360() {
     let score = |rotation: i64, window| {
-        normal_visible_full_rotation_target_score_q32(
+        full_rotation_target_score_q32(
             0,
             0,
             0,
@@ -176,6 +179,7 @@ fn a_window_is_checked_only_between_angle0_and_angle360() {
             -50 << 32,
             0,
             0,
+            true,
             0,
             115_000,
             window,

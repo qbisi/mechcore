@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result};
 
-const DEFAULT_UNITS: [&str; 29] = [
+const DEFAULT_UNITS: [&str; 30] = [
     include_str!("../../../config/units/marksman.yaml"),
     include_str!("../../../config/units/rhino.yaml"),
     include_str!("../../../config/units/wasp.yaml"),
@@ -34,6 +34,7 @@ const DEFAULT_UNITS: [&str; 29] = [
     include_str!("../../../config/units/overlord.yaml"),
     include_str!("../../../config/units/raiden.yaml"),
     include_str!("../../../config/units/centurion.yaml"),
+    include_str!("../../../config/units/sandworm.yaml"),
 ];
 const DEFAULT_TOWERS: &str = include_str!("../../../config/towers.yaml");
 const DEFAULT_MAPS: &str = include_str!("../../../config/maps.yaml");
@@ -72,7 +73,67 @@ pub(crate) struct UnitConfig {
     pub(crate) free_move: bool,
     pub(crate) independent_aim: Option<bool>,
     pub(crate) rvo: RvoConfig,
+    /// `UndergroundMoveAbility`, which `MoveAbility.Create` makes for a unit
+    /// whose `moveType` is `Underground`: it burrows to move and surfaces to
+    /// attack.
+    #[serde(default)]
+    pub(crate) underground: Option<UndergroundConfig>,
     pub(crate) attack: AttackConfig,
+}
+
+/// The four numbers `UndergroundMoveAbility`'s constructor reads from the
+/// unit's `MechData`, in seconds and metres.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct UndergroundConfig {
+    /// `moveAbilityEnterTime`: how long burrowing takes.
+    pub(crate) enter: f64,
+    /// `moveAbilityExitTime`: how long surfacing takes.
+    pub(crate) exit: f64,
+    /// `moveAbilityExitKeepEffectTime`: how long into surfacing it stays hidden.
+    pub(crate) exit_keep: f64,
+    /// `underGroundExitRange`: the attack range it is given underground.
+    pub(crate) attack_range: f64,
+}
+
+impl UndergroundConfig {
+    pub(crate) fn enter_time_units(&self) -> u64 {
+        quantize_u64(self.enter, TIME_UNITS_PER_SECOND)
+    }
+
+    pub(crate) fn exit_time_units(&self) -> u64 {
+        quantize_u64(self.exit, TIME_UNITS_PER_SECOND)
+    }
+
+    pub(crate) fn exit_keep_time_units(&self) -> u64 {
+        quantize_u64(self.exit_keep, TIME_UNITS_PER_SECOND)
+    }
+
+    pub(crate) fn attack_range(&self) -> i64 {
+        quantize_i64(self.attack_range, SPACE_UNITS_PER_METER)
+    }
+
+    fn validate(&self) -> Result<()> {
+        validate_scaled(
+            self.enter,
+            TIME_UNITS_PER_SECOND,
+            "underground.enter",
+            false,
+        )?;
+        validate_scaled(self.exit, TIME_UNITS_PER_SECOND, "underground.exit", false)?;
+        validate_scaled(
+            self.exit_keep,
+            TIME_UNITS_PER_SECOND,
+            "underground.exit_keep",
+            true,
+        )?;
+        validate_scaled(
+            self.attack_range,
+            SPACE_UNITS_PER_METER,
+            "underground.attack_range",
+            false,
+        )
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -629,6 +690,9 @@ impl UnitConfig {
                 "rvo collider_priority or priority is outside its native range",
             ));
         }
+        if let Some(underground) = &self.underground {
+            underground.validate()?;
+        }
         self.attack.validate()
     }
 
@@ -1049,7 +1113,7 @@ mod tests {
     fn si_values_quantize_to_the_internal_integer_grid() {
         let config = SimulationConfig::load().unwrap();
         assert_eq!(config.game_build, mechcore_document::game_build());
-        assert_eq!(config.units.units.len(), 29);
+        assert_eq!(config.units.units.len(), 30);
         let arclight = config.units.get("arclight").unwrap();
         assert_eq!(arclight.collision_radius(), 9_000);
         assert_eq!(arclight.move_speed(), 7_000);

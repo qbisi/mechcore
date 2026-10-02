@@ -7,7 +7,8 @@ A unit's configuration joins four of the build's tables, as
 `scripts/build_data.py` reads them:
 
 * `ConfigDataContainer.mechDatas`: life, damage, collision radius, move and
-  rotate speed, whether it flies and whether it has a body, and `mainSkillID`.
+  rotate speed, whether it flies and whether it has a body, `mainSkillID`, and
+  for a unit that moves underground the four numbers its move ability reads.
   `isFreeMove` is not read from the table, where it is false for every unit:
   `MechData.PreProcess` sets it on load for the ids in `FREE_MOVE_IDS`.
 * `ConfigDataContainer.cardDatas`, the row whose `mechID` is the unit: how many
@@ -46,6 +47,11 @@ FREE_MOVE_MASK = 0x40000000040010
 
 def free_move(unit):
     return unit <= 54 and bool(FREE_MOVE_MASK >> unit & 1)
+
+
+# `MechMoveType`: `MoveAbility.Create` makes an `UndergroundMoveAbility` for
+# `Underground` and a `CloakMoveAbility` for `Cloak`, which no unit's row sets.
+MOVE_NORMAL, MOVE_UNDERGROUND = 0, 1
 
 
 # `FightWeapon`'s constructor gives each weapon of the unit whose data is 27,
@@ -117,8 +123,8 @@ def render(mech, card, kind, skill, rvo, type_name):
     for field in ("isLoadingType", "isDiffusion", "useSelfSplash", "useDefaultRotationSearchTarget"):
         if skill[field]:
             refuse(unit, f"main skill sets {field}")
-    if mech["moveType"] != 0:
-        refuse(unit, "moves other than on the ground grid")
+    if mech["moveType"] not in (MOVE_NORMAL, MOVE_UNDERGROUND):
+        refuse(unit, "moves cloaked")
     if any((weapon["defaultAngle"], weapon["rotateAngleLeft"], weapon["rotateAngleRight"]) != (0, -1, -1)
            for weapon in skill["weapons"]):
         refuse(unit, "a weapon has a limited rotation")
@@ -146,6 +152,17 @@ def render(mech, card, kind, skill, rvo, type_name):
     lines += [
         f"rvo: {{outer_radius: {grid(rvo['radiusOuter'], 1000)}, inner_radius: {grid(rvo['radiusInner'], 1000)}, "
         f"size: {SIZES[rvo['size']]}, collider_priority: {rvo['colliderPriority']}, priority: {readable(rvo['priority'])}}}",
+    ]
+    if mech["moveType"] == MOVE_UNDERGROUND:
+        lines += [
+            "",
+            "underground:",
+            f"  enter: {grid(mech['moveAbilityEnterTime'], 2000)}",
+            f"  exit: {grid(mech['moveAbilityExitTime'], 2000)}",
+            f"  exit_keep: {grid(mech['moveAbilityExitKeepEffectTime'], 2000)}",
+            f"  attack_range: {grid(mech['underGroundExitRange'], 1000)}",
+        ]
+    lines += [
         "",
         "attack:",
         f"  base_damage: {mech['damage']}",

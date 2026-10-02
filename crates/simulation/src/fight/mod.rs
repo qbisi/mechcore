@@ -61,6 +61,7 @@ mod support_unit;
 #[cfg(test)]
 mod tests;
 mod tower;
+mod underground;
 
 #[cfg(test)]
 use attacker::Facing;
@@ -167,6 +168,10 @@ impl FightActorRef {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "a view mirrors the native actor's independent state flags"
+)]
 struct FightActorView {
     team: u32,
     x_q32: i64,
@@ -176,7 +181,14 @@ struct FightActorView {
     radius: i64,
     alive: bool,
     query_alive: bool,
+    /// Whether the tick-start snapshot the selectors score saw it visible:
+    /// `ScoreRatingTargetSelector` passes over a unit that is not.
+    query_visible: bool,
     targetable: bool,
+    /// `FightActor.IsVisible`, which the selectors and the range check ask
+    /// and a lock already held does not: a Rhino keeps its lock on a
+    /// Sandworm that burrows and walks on towards it.
+    visible: bool,
     domain: UnitDomain,
 }
 
@@ -200,6 +212,7 @@ struct Actor {
     target_query_z_q32: i64,
     target_query_source_rotation_q32: i64,
     target_query_alive: bool,
+    target_query_visible: bool,
     body_rotation: i64,
     body_rotation_q32: i64,
     aim_rotation: i64,
@@ -230,6 +243,13 @@ struct Actor {
     /// buff that changes the unit's speed later reaches a moving agent through
     /// `Move`, and never this.
     rvo_max_speed_q32: i64,
+    /// `FightActor.visibility`: a hidden unit is no target.
+    visibility: Visibility,
+    /// `SkillManager.isActive`: a move ability stops every skill while it
+    /// burrows or surfaces.
+    skills_active: bool,
+    /// Its move ability, for a unit whose description moves underground.
+    underground: Option<underground::Underground>,
     pub(in crate::fight) motion: Motion,
     pub(in crate::fight) skill: Skill,
 }
@@ -498,10 +518,19 @@ impl Simulation {
         self.settle_intervals(false);
         let publish_late_building_events = self.ending.late_building_events_pending;
         self.ending.late_building_events_pending = false;
+        let drain_tick = self.ending.terminal_drain_pending;
         if self.ending.terminal_drain_pending {
             self.ending.terminal_drain_pending = false;
         }
         let fight_was_finished = self.naturally_finished();
+        if drain_tick && fight_was_finished {
+            // The fight ends on this tick, and every mech has left it
+            // (`MotionController.ExitFight`) before any updates: a Sandworm
+            // still underground is cleared and stands where it was.
+            for actor in self.actors.values_mut() {
+                actor.exit_fight_move_ability();
+            }
+        }
         let winner_was_decided = self.winner().is_some();
         self.ending.stop_step = winner_was_decided.then_some(step);
         self.refresh_target_query_snapshot();
@@ -674,6 +703,7 @@ impl Simulation {
                 // motion.
                 let entered_idle = actor.motion.state != MotionState::Idle;
                 if ready_to_finish {
+                    actor.exit_fight_move_ability();
                     actor.stop_in_place(entered_idle);
                 } else {
                     actor.lose_target_motion(entered_idle);
@@ -844,7 +874,9 @@ impl Simulation {
                     radius: actor.rules.collision_radius(),
                     alive: actor.alive(),
                     query_alive: actor.target_query_alive,
+                    query_visible: actor.target_query_visible,
                     targetable: actor.alive(),
+                    visible: actor.visibility == Visibility::Normal,
                     domain: actor.rules.domain,
                 })
             }
@@ -864,6 +896,8 @@ impl Simulation {
                     radius: building_radius(building),
                     alive: building_alive(building),
                     query_alive: self.buildings_query_alive.contains(&id),
+                    query_visible: true,
+                    visible: true,
                     targetable: building.targetable && building.available,
                     domain: UnitDomain::Ground,
                 })

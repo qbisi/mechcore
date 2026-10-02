@@ -1,0 +1,17 @@
+# M5: the formation rotated, its target off to one side: attack angle and
+# turning. The target stands nearer than either enemy tower.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 186
+hash: {profile: mcfr-content-0.7.0, result: d8a73516780bb46e57394216cf34575336915fac0f7e7c866e8f6a2ab4651100}
+blue:
+  units:
+  - {name: sandworm, index: 0, position: {x: -60, y: -60}, exp: 0/400/2000, rotated: true}
+red:
+  core_damage: 350
+  units:
+  - {name: rhino, index: 0, position: {x: -35, y: -95}}

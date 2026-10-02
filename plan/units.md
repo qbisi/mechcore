@@ -30,8 +30,7 @@
 所有卡在它上面的单位一起前进；每修一个，重跑全部录像，对上的钉进
 `tests/<单位>/fights/`，已有的钉子一直要过。
 
-目标范围：除 hacker、sandworm 和三个 800 费用的单位（war_factory、abyss、mountain）之外的
-所有单位。
+目标范围：除 hacker 和三个 800 费用的单位（war_factory、abyss、mountain）之外的所有单位。
 
 ## 栈
 
@@ -48,8 +47,8 @@
   build 的一下只在技能更新里放出，技能先于运动。所以激光自己一束打死目标时，要在放出处替运动
   补一次"锁定死了就空闲"，而直击交给运动自己的检查。`motion.rs` 里按机身和近战的分支是同一件事
   的其它部分。reopen_when：一场分叉落在运动发起的攻击上，或要给一种新路径写放出。
-- **目标范围外的单位。** 沙虫、深渊、泰山和骇客的控制光束都挡着语料的回合，fight-coverage 的
-  系统视角把它们各算一个系统。reopen_when：广度栈按系统顺序排在它们前面的节点都出栈。
+- **目标范围外的单位。** 深渊、泰山、战争工厂和骇客的控制光束都挡着语料的回合，fight-coverage
+  的系统视角把它们各算一个系统。reopen_when：广度栈按系统顺序排在它们前面的节点都出栈。
 - **新机制随新单位而来。** 近战模式（`MeleeModeEffectSystem`）、副武器
   （`SideArmSearchTargetController`）、弹药池（`AmmoSkillPool`）、`IgnoreBuffEffectSystem`、
   出售单位（`PAD_SellUnit`）、塔成为 buff 目标。reopen_when：批量录像的第一处分叉指到其中之一。
