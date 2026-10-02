@@ -205,6 +205,32 @@ fn the_page_carries_the_timeline_whole() {
     assert_eq!(embedded["schema"], mechcore_player::SCHEMA);
 }
 
+/// Each side's three deployment regions, in the world's frame: blue's own
+/// half below the centre line and its flanks beside red's, red's turned half
+/// a turn; the field frames all six.
+#[test]
+fn the_timeline_carries_each_sides_deployment_regions() {
+    let (_, timeline) = fought();
+    let rects: Vec<_> = timeline
+        .regions
+        .iter()
+        .map(|r| (r.team, r.flank, r.x0, r.z0, r.x1, r.z1))
+        .collect();
+    assert_eq!(
+        rects,
+        [
+            (0, false, -30_000, -31_000, 30_000, -1_000),
+            (0, true, -36_000, 1_000, -30_000, 31_000),
+            (0, true, 30_000, 1_000, 36_000, 31_000),
+            (1, false, -30_000, 1_000, 30_000, 31_000),
+            (1, true, 30_000, -31_000, 36_000, -1_000),
+            (1, true, -36_000, -31_000, -30_000, -1_000),
+        ]
+    );
+    assert!(timeline.field.half_width >= 36_000);
+    assert!(timeline.field.half_depth >= 31_000);
+}
+
 /// A recording's poses ride on the units they pose: each unit's base layer
 /// clip, numbered in the clip table, and its normalized time in thousandths,
 /// a tick with no pose holding -1.

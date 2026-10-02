@@ -10,7 +10,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 
-use mechcore_document::{Layout, StaticPlacement};
+use mechcore_document::{Layout, Region, StaticPlacement};
 use mechcore_mcfr::{
     BuildingState, Domain, Event, EventPayload, LiveUnitState, MotionState, ObjectKind, ObjectRef,
     ProjectileState, QVec3, Recording, ShieldSourceKind, ShieldState, UnitPose,
@@ -25,11 +25,8 @@ pub const SCHEMA: &str = "mechcore.player.v1";
 /// fixes for every producer.
 const TICKS_PER_SECOND: u32 = 20;
 
-/// The least of the field the page frames, in centimetres from the centre on
-/// each axis, 200 and 230 metres: the map's four towers stand at 140 and 170.
-const LEAST_HALF_WIDTH: i64 = 20_000;
-const LEAST_HALF_DEPTH: i64 = 23_000;
-/// Room left around the farthest object, 25 metres.
+/// Room left around the six deployment regions and the farthest object, 25
+/// metres.
 const MARGIN: i64 = 2_500;
 
 #[derive(Debug)]
@@ -60,6 +57,7 @@ pub struct Timeline {
     pub ticks: u32,
     pub ticks_per_second: u32,
     pub field: Field,
+    pub regions: Vec<DeploymentRegion>,
     pub units: Vec<Unit>,
     pub buildings: Vec<Building>,
     pub projectiles: Vec<Projectile>,
@@ -69,6 +67,42 @@ pub struct Timeline {
     /// numbers; empty for a recording that holds no poses.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub clips: Vec<String>,
+}
+
+/// One of a side's three deployment regions, in centimetres in the world's
+/// frame: its least corner and its greatest.
+#[derive(Debug, Serialize)]
+pub struct DeploymentRegion {
+    pub team: u32,
+    pub flank: bool,
+    pub x0: i64,
+    pub z0: i64,
+    pub x1: i64,
+    pub z1: i64,
+}
+
+/// Each side's three deployment regions, where the layout places its
+/// formations: its main half and the two flanks on the other side's half. A
+/// side's own frame is the world's for blue and turned half a turn for red.
+fn deployment_regions() -> Vec<DeploymentRegion> {
+    let mut regions = Vec::new();
+    for team in [0, 1] {
+        let turn = if team == 0 { 100 } else { -100 };
+        for region in Region::ALL {
+            let ((x0, y0), (x1, y1)) = region.bounds();
+            let (xa, xb) = (x0 * turn, x1 * turn);
+            let (za, zb) = (y0 * turn, y1 * turn);
+            regions.push(DeploymentRegion {
+                team,
+                flank: region.is_flank(),
+                x0: xa.min(xb),
+                z0: za.min(zb),
+                x1: xa.max(xb),
+                z1: za.max(zb),
+            });
+        }
+    }
+    regions
 }
 
 /// The rectangle the page frames, centred on the map's centre.
@@ -348,7 +382,7 @@ impl<'a> Builder<'a> {
             projectiles: BTreeMap::new(),
             shields: BTreeMap::new(),
             cues: Vec::new(),
-            reach: (LEAST_HALF_WIDTH - MARGIN, LEAST_HALF_DEPTH - MARGIN),
+            reach: (0, 0),
             poses: None,
             clips: Vec::new(),
         }
@@ -680,7 +714,12 @@ impl<'a> Builder<'a> {
         self.cues.push(cue);
     }
 
-    fn finish(self, producer: &'static str, ticks: u32, round: i32) -> Timeline {
+    fn finish(mut self, producer: &'static str, ticks: u32, round: i32) -> Timeline {
+        let regions = deployment_regions();
+        for region in &regions {
+            self.reach(region.x0, region.z0);
+            self.reach(region.x1, region.z1);
+        }
         Timeline {
             schema: SCHEMA,
             producer,
@@ -691,6 +730,7 @@ impl<'a> Builder<'a> {
                 half_width: self.reach.0 + MARGIN,
                 half_depth: self.reach.1 + MARGIN,
             },
+            regions,
             units: self.units.into_values().collect(),
             buildings: self.buildings.into_values().collect(),
             projectiles: self.projectiles.into_values().collect(),

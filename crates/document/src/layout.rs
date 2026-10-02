@@ -568,6 +568,9 @@ pub enum Region {
 }
 
 impl Region {
+    /// A side's three regions, its main half first.
+    pub const ALL: [Self; 3] = [Self::Main, Self::LeftFlank, Self::RightFlank];
+
     /// Which region holds a position.
     #[must_use]
     pub fn of(position: Position) -> Self {

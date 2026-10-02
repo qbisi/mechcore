@@ -38,7 +38,11 @@ with the timings `scripts/player/pose-timing.py` reads off a recording that
 has them: `SWING` and `ACTIONS` in `web/player.js`.
 
 A unit type with no sprite is still drawn, as a disc of its collision size
-under its name. Terrain, buffs and the instrument channels are not drawn.
+under its name. The ground is simplified, under each side's three deployment
+regions dashed in its colour: its main half and the two flanks beside the
+other side's, where a layout may place a formation, as `Region` in
+`mechcore-document` bounds them; the page frames all six. Terrain, buffs and
+the instrument channels are not drawn.
 
 ## The sprites
 
