@@ -136,6 +136,7 @@ struct BuffRow {
     divide: i32,
     duration: i64,
     additive: bool,
+    debuff: bool,
     disable_technology: bool,
     can_affect_construction: bool,
     can_affect_tower: bool,
@@ -264,6 +265,8 @@ pub(crate) struct SkillBuff {
     /// `disableTechnology`: it switches off the technologies of what it is
     /// written on.
     pub(crate) disable_technology: bool,
+    /// `debuff`: a unit a buff makes invincible does not take it.
+    pub(crate) debuff: bool,
 }
 
 /// Every battle skill the fight releases, by its commander skill id.
@@ -527,6 +530,7 @@ fn buff_effect(named: &str, row: &BuffSkillRow) -> Result<SkillEffect> {
                 .map_err(|_| Error::new(format!("{named}'s buff outlasts a fight")))?,
             move_speed_rate: buff.move_speed_rate,
             disable_technology: buff.disable_technology,
+            debuff: buff.debuff,
         },
     })
 }

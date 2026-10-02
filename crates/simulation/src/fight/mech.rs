@@ -1,5 +1,8 @@
 use super::*;
 
+/// The bit of `status_mask` that holds `BuffManager.IsInvincible`.
+const INVINCIBLE: u64 = 1;
+
 /// The bit of `status_mask` that holds `FightMech.IsTechnologyDisabled`.
 const TECHNOLOGY_DISABLED: u64 = 1 << 2;
 
@@ -62,6 +65,7 @@ impl Actor {
         let recovery = placement
             .auto_recovery
             .map(|_| super::recovery::RecoveryClock::reset());
+        let start_buffs_pending = !placement.start_buffs.is_empty();
         Self {
             x,
             z,
@@ -84,6 +88,7 @@ impl Actor {
             searched_attack: true,
             command: None,
             buffs: Vec::new(),
+            start_buffs_pending,
             recovery,
             rvo_max_speed_q32: max_speed_q32,
             motion: Motion {
@@ -365,11 +370,12 @@ impl Actor {
             active: true,
             targetable: true,
             visibility: Visibility::Normal,
-            status_mask: if self.technology_disabled() {
-                TECHNOLOGY_DISABLED
-            } else {
-                0
-            },
+            status_mask: if self.invincible() { INVINCIBLE } else { 0 }
+                | if self.technology_disabled() {
+                    TECHNOLOGY_DISABLED
+                } else {
+                    0
+                },
             modifiers: self
                 .stats
                 .modifiers(self.skill.group_size().max(1))

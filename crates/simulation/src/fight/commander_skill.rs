@@ -252,8 +252,13 @@ impl Simulation {
                 correction: super::tower::rate(buff.move_speed_rate),
             }],
             disables_technology: buff.disable_technology,
+            debuff: buff.debuff,
+            invincible: false,
         };
         for &id in reached {
+            if !self.buff_reaches(id, &row) {
+                continue;
+            }
             let actor = &self.actors[&id];
             if buff.disable_technology && self.commander.researched.contains(&actor.placement.team)
             {
@@ -270,7 +275,7 @@ impl Simulation {
                     release.name
                 )));
             }
-            events.push(self.write_buff(id, release.team, &row)?);
+            events.push(self.write_buff(id, None, release.team, &row)?);
         }
         Ok(())
     }

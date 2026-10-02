@@ -44,6 +44,65 @@ SUBCLASS_FIELDS = {
 }
 
 
+# A buff item's trigger, read by the simulator, and the rest of its
+# BuffEquipmentData fields, any of which set is named in `buff_special`. The
+# effect's name and whether it follows are what the client shows.
+BUFF_TRIGGER = {
+    "buff_trigger": "buffTechTrigger", "buff_targets": "effectTargetTypes",
+    "probability": "probability",
+}
+BUFF_ITEM_OTHER = (
+    "energyShieldDamageMultiplier", "min", "max", "intervalTime", "delayTime", "targetFlyType",
+    "targetDamageDistanceType", "buffTargetUpdateModel", "triggerRangeItemBuffId",
+    "triggerRangeItemType", "triggerLifeTime", "triggerRangeItemRange", "triggerRoundDuration",
+    "isDistanceCalculateTargetRadius", "isDistanceCalculateSelfRadius",
+)
+# The fields of the buffDatas row a buff item names that the simulator
+# reads; any other set is named in the buff's `special`.
+BUFF_READ = {
+    "buffDivide": "divide", "isAdditiveMode": "additive", "debuff": "debuff",
+    "invincible": "invincible", "disableTechnology": "disable_technology",
+    "amplifyDamageRate": "amplify_damage_rate",
+    "isClearSelfBuffWhenDisableTech": "clear_when_technologies_disabled",
+}
+BUFF_DESCRIPTIVE = {"id", "name", "isTestData", "duration", "effectType"}
+
+
+def set_fields(row, fields):
+    return [field for field in fields if raw(row.get(field)) not in (0, False, None, "", [], {})]
+
+
+def buff_lines(row, buffs):
+    """A buff item's trigger and the buffDatas row it adds."""
+    lines = [
+        f"    buff_trigger: {row['buffTechTrigger']}",
+        f"    buff_targets: [{', '.join(map(str, row['effectTargetTypes']))}]",
+        f"    probability: {raw(row['probability'])}{reading(raw(row['probability']))}",
+    ]
+    special = set_fields(row, BUFF_ITEM_OTHER)
+    if special:
+        lines.append(f"    buff_special: [{', '.join(special)}]")
+    buff = buffs[row["buffID"]]
+    lines += [
+        "    buff:",
+        f"      id: {buff['id']}",
+        f"      name: {buff['name']}",
+        f"      duration: {raw(buff['duration'])}{reading(raw(buff['duration']))}",
+    ]
+    for field, name in BUFF_READ.items():
+        value = raw(buff[field])
+        if isinstance(value, bool):
+            lines.append(f"      {name}: {str(value).lower()}")
+        elif field == "amplifyDamageRate":
+            lines.append(f"      {name}: {value}{reading(value) if value else ''}")
+        else:
+            lines.append(f"      {name}: {value}")
+    special = set_fields(buff, [field for field in buff if field not in BUFF_READ and field not in BUFF_DESCRIPTIVE])
+    if special:
+        lines.append(f"      special: [{', '.join(special)}]")
+    return lines
+
+
 def raw(value):
     return value["m_rawValue"] if isinstance(value, dict) else value
 
@@ -60,6 +119,8 @@ def extract():
             entry.update({column: raw(row[field]) for column, field in FIELDS.items()})
             entry.update({column: raw(row[field]) for column, (field, owner) in SUBCLASS_FIELDS.items()
                           if kind == owner})
+            if kind == "buffEquipmentDatas":
+                entry["buff_row"] = row
             rows.append(entry)
     return sorted(rows, key=lambda row: row["id"])
 
@@ -84,6 +145,7 @@ def reading(value):
 
 
 def render(rows):
+    buffs = {buff["id"]: buff for buff in build_data.container()["buffDatas"]}
     lines = [
         "schema: mechcore.equipment_effects",
         "",
@@ -98,6 +160,9 @@ def render(rows):
         "# numbers, and a subclass's list for one that does something more.",
         "# Every class writes the corrections below, whatever else it does, and",
         "# a subclass's row also carries what it answers its own interface with:",
+        "# a buff item what triggers it (`buff_trigger`, a BuffTechListener: 1",
+        "# is the fight's start), whom it reaches (`buff_targets`, TargetTypes:",
+        "# 1 is the unit itself), how likely, and the buffDatas row it adds;",
         "# a lifesteal item its `lifesteal_multiplier`, the share of a hit's",
         "# damage its unit takes back as life, and a repair item the seconds",
         "# hurt before it repairs, the seconds between two repairs and the",
@@ -127,6 +192,8 @@ def render(rows):
         for field in INTEGERS:
             if d[field]:
                 lines.append(f"    {field}: {d[field]}")
+        if "buff_row" in d:
+            lines += buff_lines(d["buff_row"], buffs)
         for field in SUBCLASS_FIELDS:
             if field in d:
                 comment = reading(d[field]) if d[field] else ""

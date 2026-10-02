@@ -64,6 +64,7 @@ struct MissileBuffRow {
     name: String,
     divide: i32,
     additive: bool,
+    debuff: bool,
     duration: i64,
     can_affect_construction: bool,
     move_speed_rate: i64,
@@ -173,6 +174,8 @@ pub(crate) struct MissileBuff {
     pub(crate) ticks: u32,
     /// `speedChangeRate`, an `FPoint` raw rate.
     pub(crate) move_speed_rate: i64,
+    /// `debuff`: a unit a buff makes invincible does not take it.
+    pub(crate) debuff: bool,
 }
 
 /// One shield a layout places: `FightEnergyShield`, a sphere of its side
@@ -351,6 +354,7 @@ impl Contraptions {
                     additive: row.buff.additive,
                     ticks: ticks(row.buff.duration)?,
                     move_speed_rate: row.buff.move_speed_rate,
+                    debuff: row.buff.debuff,
                 },
             },
         })

@@ -13,7 +13,7 @@ use crate::{
     data::{Channel, Entry, Stats},
     modifier::{
         AutoRecovery, EnergyTowerSkillEffects, EquipmentEffects, LifeSteal, OfficerEffects,
-        TechnologyEffects, current_source,
+        StartBuff, TechnologyEffects, current_source,
     },
     rules::{UnitConfig, UnitConfigs},
 };
@@ -57,6 +57,8 @@ pub(crate) struct Placement {
     /// The `IAutoRecovery` its `AutoRecoveryEffectProvider` enables, if its
     /// technologies or equipment hand it one.
     pub(crate) auto_recovery: Option<AutoRecovery>,
+    /// The buffs its equipment adds to it as the fight starts.
+    pub(crate) start_buffs: Vec<StartBuff>,
     /// Whether it opens the fight travelling: a unit deployed into an ambush
     /// zone, which `SuperDeploymentSystem` holds until its side arrives.
     pub(crate) travelling: bool,
@@ -530,6 +532,16 @@ fn compile_formation(
     else {
         return None;
     };
+    // `BuffCycleController.OnEnterFight` starts no controller on a unit still
+    // travelling, and when one that arrives starts it is not read.
+    if formation.travelling && !worn.start_buffs.is_empty() {
+        refused.push(format!(
+            "side {side_name} unit type {:?} travels in with a buff its equipment adds as \
+             the fight starts, and when a travelling unit's starts is not measured",
+            formation.type_name
+        ));
+        return None;
+    }
     let rotated = formation.rotated;
     let local_x = i64::from(formation.position.x);
     let local_z = i64::from(formation.position.y);
@@ -562,6 +574,7 @@ fn compile_formation(
         corrections: worn.corrections,
         lifesteal: worn.lifesteal,
         auto_recovery: worn.auto_recovery,
+        start_buffs: worn.start_buffs,
         travelling: formation.travelling,
     })
 }
@@ -571,6 +584,7 @@ struct Worn {
     corrections: Vec<(Channel, Entry)>,
     lifesteal: Option<LifeSteal>,
     auto_recovery: Option<AutoRecovery>,
+    start_buffs: Vec<StartBuff>,
 }
 
 /// What this side's loadout and a formation's equipment write onto it.
@@ -656,7 +670,10 @@ fn loadout(
             .auto_recovery(&side.techs.units, type_name)
             .map_err(on_side),
     )?;
+    let mut start_buffs = Vec::new();
     for &id in equipment {
+        start_buffs
+            .extend(refused.hold(loadouts.equipment.start_buff(id, rules).map_err(on_side))?);
         lifesteal.extend(refused.hold(loadouts.equipment.lifesteal(id, rules).map_err(on_side))?);
         auto_recovery
             .extend(refused.hold(loadouts.equipment.auto_recovery(id, rules).map_err(on_side))?);
@@ -666,6 +683,7 @@ fn loadout(
         corrections,
         lifesteal: refused.hold(current_source(&lifesteal).map_err(in_force))?,
         auto_recovery: refused.hold(current_source(&auto_recovery).map_err(in_force))?,
+        start_buffs,
     })
 }
 

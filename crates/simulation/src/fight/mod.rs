@@ -35,6 +35,7 @@ use crate::{
 };
 
 mod attacker;
+mod buff_cycle;
 mod commander_skill;
 mod construction;
 mod damage;
@@ -218,6 +219,9 @@ struct Actor {
     command: Option<pilot::MoveCommand>,
     /// The buffs running on it, `BuffManager`'s list.
     buffs: Vec<RunningBuff>,
+    /// Whether its equipment's fight-start buffs are still to be added:
+    /// its `BuffCycleController`s are running and have not updated.
+    start_buffs_pending: bool,
     /// Its `AutoRecoveryController`'s clocks, when a repair source is in
     /// force on it.
     recovery: Option<recovery::RecoveryClock>,
@@ -536,6 +540,8 @@ impl Simulation {
         // Native search jobs retain the actor-quadtree candidate order
         // prepared at the start of this FightCore update.
         let target_search_order = self.target_search_order();
+        // `BuffSystem` updates before `CommanderSkillSystem`.
+        self.step_buff_cycles(&mut events)?;
         // `CommanderSkillSystem` and then `MineSystem` update before
         // `FightCoreSystem`: a skill lands, and a missile fires, on where
         // their enemies stood as the tick opened.

@@ -11,6 +11,9 @@ schema: mechcore.equipment_effects
 # numbers, and a subclass's list for one that does something more.
 # Every class writes the corrections below, whatever else it does, and
 # a subclass's row also carries what it answers its own interface with:
+# a buff item what triggers it (`buff_trigger`, a BuffTechListener: 1
+# is the fight's start), whom it reaches (`buff_targets`, TargetTypes:
+# 1 is the unit itself), how likely, and the buffDatas row it adds;
 # a lifesteal item its `lifesteal_multiplier`, the share of a hit's
 # damage its unit takes back as life, and a repair item the seconds
 # hurt before it repairs, the seconds between two repairs and the
@@ -27,18 +30,62 @@ equipment:
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
+    buff_trigger: 0
+    buff_targets: [4]
+    probability: 4294967296  # +1
+    buff:
+      id: 1100
+      name: 装备-充能弹药
+      duration: 21474836480  # +5
+      divide: 0
+      additive: false
+      debuff: true
+      invincible: false
+      disable_technology: true
+      amplify_damage_rate: 0
+      clear_when_technologies_disabled: false
+      special: [speedChangeRate]
   - id: 1305002
     name: 寄生弹药
     kind: buffEquipmentDatas
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
+    buff_trigger: 0
+    buff_targets: [4]
+    probability: 4294967296  # +1
+    buff:
+      id: 2100
+      name: 装备-寄生弹药
+      duration: 12884901888  # +3
+      divide: 0
+      additive: false
+      debuff: false
+      invincible: false
+      disable_technology: false
+      amplify_damage_rate: 0
+      clear_when_technologies_disabled: false
+      special: [summonUnitID]
   - id: 1305003
     name: 光子涂层
     kind: buffEquipmentDatas
     mech_type: [0]
     main_skill_effect: true
     extra_skill_effect: true
+    buff_trigger: 1
+    buff_targets: [1]
+    probability: 4294967296  # +1
+    buff:
+      id: 4000
+      name: 光子涂层通用
+      duration: 128849018880  # +30
+      divide: 0
+      additive: false
+      debuff: false
+      invincible: true
+      disable_technology: false
+      amplify_damage_rate: -1288490188  # -0.3
+      clear_when_technologies_disabled: true
   - id: 1305004
     name: 先进电磁弹药
     kind: buffEquipmentDatas
@@ -47,6 +94,21 @@ equipment:
     extra_skill_effect: true
     round_duration: 1
     attack_range_value: 171798691840  # +40
+    buff_trigger: 0
+    buff_targets: [4]
+    probability: 4294967296  # +1
+    buff:
+      id: 1100
+      name: 装备-充能弹药
+      duration: 21474836480  # +5
+      divide: 0
+      additive: false
+      debuff: true
+      invincible: false
+      disable_technology: true
+      amplify_damage_rate: 0
+      clear_when_technologies_disabled: false
+      special: [speedChangeRate]
   - id: 1305005
     name: 先进寄生弹药
     kind: buffEquipmentDatas
@@ -55,6 +117,21 @@ equipment:
     extra_skill_effect: true
     round_duration: 1
     damage_rate: 2147483648  # +0.5
+    buff_trigger: 0
+    buff_targets: [4]
+    probability: 4294967296  # +1
+    buff:
+      id: 2100
+      name: 装备-寄生弹药
+      duration: 12884901888  # +3
+      divide: 0
+      additive: false
+      debuff: false
+      invincible: false
+      disable_technology: false
+      amplify_damage_rate: 0
+      clear_when_technologies_disabled: false
+      special: [summonUnitID]
   - id: 1305006
     name: 先进压制弹药
     kind: buffEquipmentDatas
@@ -63,6 +140,21 @@ equipment:
     extra_skill_effect: true
     round_duration: 1
     attack_range_value: 171798691840  # +40
+    buff_trigger: 0
+    buff_targets: [4]
+    probability: 4294967296  # +1
+    buff:
+      id: 10301
+      name: 压制射击-魔眼
+      duration: 15032385536  # +3.5
+      divide: 0
+      additive: false
+      debuff: false
+      invincible: false
+      disable_technology: false
+      amplify_damage_rate: 0
+      clear_when_technologies_disabled: true
+      special: [attackRangeChangeRate]
   - id: 1305007
     name: 战斗进化系统
     kind: buffEquipmentDatas
@@ -70,6 +162,21 @@ equipment:
     main_skill_effect: true
     extra_skill_effect: true
     round_duration: 1
+    buff_trigger: 1
+    buff_targets: [1]
+    probability: 4294967296  # +1
+    buff:
+      id: 9001
+      name: 试验级进化装置
+      duration: 42945377992704  # +9999
+      divide: 0
+      additive: false
+      debuff: false
+      invincible: false
+      disable_technology: false
+      amplify_damage_rate: 0
+      clear_when_technologies_disabled: false
+      special: [stepTime, maxLifeChangeRate, damageChangeRate, isAdditiveEffect, buffEffectAdditiveCondition]
   - id: 1305008
     name: 光子投射装置
     kind: buffEquipmentDatas
@@ -77,6 +184,21 @@ equipment:
     main_skill_effect: true
     extra_skill_effect: true
     round_duration: 1
+    buff_trigger: 1
+    buff_targets: [3, 2]
+    probability: 4294967296  # +1
+    buff_special: [max, intervalTime, delayTime, targetFlyType, isDistanceCalculateTargetRadius]
+    buff:
+      id: 40000
+      name: 光子投射通用
+      duration: 85899345920  # +20
+      divide: 0
+      additive: false
+      debuff: false
+      invincible: true
+      disable_technology: false
+      amplify_damage_rate: -1288490188  # -0.3
+      clear_when_technologies_disabled: true
   - id: 1305009
     name: 先进酸性弹药
     kind: buffEquipmentDatas
@@ -84,6 +206,22 @@ equipment:
     main_skill_effect: true
     extra_skill_effect: true
     round_duration: 1
+    buff_trigger: 0
+    buff_targets: []
+    probability: 4294967296  # +1
+    buff_special: [triggerRangeItemBuffId, triggerRangeItemType, triggerLifeTime, triggerRangeItemRange]
+    buff:
+      id: 9003
+      name: 无效果
+      duration: 4294967296  # +1
+      divide: 0
+      additive: false
+      debuff: false
+      invincible: false
+      disable_technology: false
+      amplify_damage_rate: 0
+      clear_when_technologies_disabled: false
+      special: [stepTime]
   - id: 1305010
     name: 先进引导雷达
     kind: buffEquipmentDatas
@@ -91,6 +229,22 @@ equipment:
     main_skill_effect: true
     extra_skill_effect: true
     round_duration: 1
+    buff_trigger: 1
+    buff_targets: [3, 2, 1]
+    probability: 4294967296  # +1
+    buff_special: [max, intervalTime, delayTime, targetDamageDistanceType, isDistanceCalculateTargetRadius]
+    buff:
+      id: 9002
+      name: 试验级雷达
+      duration: 8589934592  # +2
+      divide: 0
+      additive: false
+      debuff: false
+      invincible: false
+      disable_technology: false
+      amplify_damage_rate: 0
+      clear_when_technologies_disabled: false
+      special: [stepTime, attackRangeChangeValue]
   - id: 1306001
     name: 坦克生产线
     kind: supportUnitEquipmentDatas

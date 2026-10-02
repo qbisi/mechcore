@@ -119,6 +119,7 @@ def render(structure):
         f"  name: {first['name']}",
         f"  buff_divide: {first['buffDivide']}",
         f"  additive: {str(first['isAdditiveMode']).lower()}",
+        f"  debuff: {str(first['debuff']).lower()}",
         f"  max_additive_stack: {first['maxAdditiveStack']}",
         f"  can_affect_construction: {str(first['canAffectConstruction']).lower()}",
         f"  clear_when_technologies_disabled: {str(first['isClearSelfBuffWhenDisableTech']).lower()}",

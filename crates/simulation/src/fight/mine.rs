@@ -209,12 +209,15 @@ impl Simulation {
                 correction: super::tower::rate(shot.buff.move_speed_rate),
             }],
             disables_technology: false,
+            debuff: shot.buff.debuff,
+            invincible: false,
         };
         for &target in &struck.targets {
             if let FightActorRef::Unit(id) = target
                 && self.actors[&id].alive()
+                && self.buff_reaches(id, &row)
             {
-                events.push(self.write_buff(id, projectile.team, &row)?);
+                events.push(self.write_buff(id, None, projectile.team, &row)?);
             }
         }
         Ok(struck)

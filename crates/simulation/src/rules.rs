@@ -321,6 +321,8 @@ pub(crate) struct DestroyedBuff {
     pub(crate) name: String,
     pub(crate) buff_divide: i32,
     pub(crate) additive: bool,
+    /// `debuff`: a unit a buff makes invincible does not take it.
+    pub(crate) debuff: bool,
     pub(crate) max_additive_stack: i32,
     pub(crate) can_affect_construction: bool,
     /// `isClearSelfBuffWhenDisableTech`. Nothing this simulator places

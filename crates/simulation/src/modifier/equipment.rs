@@ -33,7 +33,7 @@ use crate::{
 
 use super::{
     effects::{self, Fields, PROJECTILE, VALUE_ELSEWHERE},
-    sources::{AutoRecovery, LifeSteal},
+    sources::{AutoRecovery, LifeSteal, StartBuff},
     targets::Targets,
 };
 
@@ -43,13 +43,14 @@ const DEFAULT_EQUIPMENT_EFFECTS: &str = include_str!("../../../../config/equipme
 /// `equipmentDatas`, the plain item; `mobilityIntensifyEquipmentDatas`, whose
 /// `MobilityIntensifyEquipment` overrides nothing of `Equipment` and frees its
 /// formation during deployment, which a fight does not read; [`LIFESTEAL`];
-/// [`AUTO_RECOVERY`]; and [`SPLASH`].
-const APPLIED: [&str; 5] = [
+/// [`AUTO_RECOVERY`]; [`SPLASH`]; and [`BUFF`].
+const APPLIED: [&str; 6] = [
     "equipmentDatas",
     "mobilityIntensifyEquipmentDatas",
     LIFESTEAL,
     AUTO_RECOVERY,
     SPLASH,
+    BUFF,
 ];
 
 /// The list whose `LifestealEquipment` is an `ILifeSteal` as well, which
@@ -60,6 +61,20 @@ const LIFESTEAL: &str = "lifestealEquipmentDatas";
 /// whose `GetAutoRecoveryStateType` is `Normal`, and which hands its unit an
 /// [`AutoRecovery`].
 const AUTO_RECOVERY: &str = "autoRecoveryEquipmentDatas";
+
+/// The list whose `BuffEquipment` is an `IEffectBuffDataSource`: a buff it
+/// adds on a trigger. The one trigger read is the fight's start, onto the
+/// unit itself, which hands its unit a [`StartBuff`].
+const BUFF: &str = "buffEquipmentDatas";
+
+/// `BuffTechListener.FightStart`.
+const FIGHT_START: i32 = 1;
+
+/// `TargetType.MechUnit`: the unit the buff's source is on.
+const MECH_UNIT: i32 = 1;
+
+/// One, Q32.32.
+const ONE: i64 = 1 << 32;
 
 /// The list whose `SplashEquipment.AddData` writes its row's correction and
 /// then its `range` into the skill's `SkillDataChangeFloat.SplashRangeValue`.
@@ -87,6 +102,8 @@ struct Equipment {
     lifesteal: Option<LifeSteal>,
     /// What it answers `IAutoRecovery` with, if its class is one.
     auto_recovery: Option<AutoRecovery>,
+    /// The buff it adds as the fight starts, if its class is a buff item's.
+    start_buff: Option<StartBuff>,
 }
 
 /// One row of the table, with every field the extraction writes.
@@ -160,6 +177,49 @@ struct Row {
     /// `SplashEquipmentData.range`, on a splash row.
     #[serde(default)]
     splash_range: Option<i64>,
+    /// `BuffEquipmentData`'s trigger, on a buff row.
+    #[serde(default)]
+    buff_trigger: Option<i32>,
+    #[serde(default)]
+    buff_targets: Vec<i32>,
+    #[serde(default)]
+    probability: Option<i64>,
+    /// The other `BuffEquipmentData` fields a buff row sets.
+    #[serde(default)]
+    buff_special: Vec<String>,
+    /// The `buffDatas` row a buff row adds.
+    #[serde(default)]
+    buff: Option<BuffBlock>,
+}
+
+/// A `buffDatas` row a buff item adds, with the fields the simulator reads.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "the buff row's flags are independent fields"
+)]
+struct BuffBlock {
+    id: u32,
+    name: String,
+    duration: i64,
+    divide: i32,
+    additive: bool,
+    debuff: bool,
+    invincible: bool,
+    disable_technology: bool,
+    amplify_damage_rate: i64,
+    /// `isClearSelfBuffWhenDisableTech`. A buff is cleared by it only when
+    /// its unit's technologies are disabled, which no buff here can do to an
+    /// invincible unit; nothing reads it.
+    #[allow(
+        dead_code,
+        reason = "no read buff runs on a unit whose technologies go off"
+    )]
+    clear_when_technologies_disabled: bool,
+    /// The other fields it sets.
+    #[serde(default)]
+    special: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -248,6 +308,18 @@ impl EquipmentEffects {
             .and_then(|equipment| equipment.auto_recovery))
     }
 
+    /// The buff one equipment adds to the unit wearing it as the fight
+    /// starts, if its class is a buff item's.
+    ///
+    /// # Errors
+    ///
+    /// Returns the error [`Self::corrections`] does.
+    pub(crate) fn start_buff(&self, id: i32, unit: &UnitConfig) -> Result<Option<StartBuff>> {
+        Ok(self
+            .worn(id, unit)?
+            .and_then(|equipment| equipment.start_buff))
+    }
+
     /// One equipment's row, once its effect is known to apply, or nothing
     /// when its targeting does not reach the unit.
     fn worn(&self, id: i32, unit: &UnitConfig) -> Result<Option<&Equipment>> {
@@ -294,13 +366,72 @@ impl Equipment {
             priority: PRIORITY,
             can_disable: false,
         });
+        let (effect, start_buff) = match (corrections_of(row, &who), start_buff_of(row, &who)) {
+            (Ok(corrections), Ok(start_buff)) => (Ok(corrections), start_buff),
+            (Err(why), _) | (_, Err(why)) => (Err(why), None),
+        };
         Self {
             targets,
-            effect: corrections_of(row, &who),
+            effect,
             lifesteal,
             auto_recovery,
+            start_buff,
         }
     }
+}
+
+/// The buff a buff row adds as the fight starts, or why this build will not
+/// apply the row. `BuffCycleController.OnEnterFight` runs a controller whose
+/// listener is `FightStart`, and its first `Update` triggers once, since a
+/// row with no delay and no interval does not cycle.
+fn start_buff_of(row: &Row, who: &str) -> std::result::Result<Option<StartBuff>, String> {
+    if row.kind != BUFF {
+        return Ok(None);
+    }
+    let Some(buff) = &row.buff else {
+        return Err(format!("{who} names no buff"));
+    };
+    if row.buff_trigger != Some(FIGHT_START) || row.buff_targets != [MECH_UNIT] {
+        return Err(format!(
+            "{who} adds its buff on BuffTechListener {:?} to TargetTypes {:?}, and only the \
+             fight's start onto the unit itself is read",
+            row.buff_trigger, row.buff_targets
+        ));
+    }
+    if row.probability != Some(ONE) {
+        return Err(format!(
+            "{who} adds its buff with probability {:?}, and only a certain one is read",
+            row.probability
+        ));
+    }
+    if !row.buff_special.is_empty() {
+        return Err(format!(
+            "{who} sets {}, which no mechanism here reads",
+            row.buff_special.join(", ")
+        ));
+    }
+    if !buff.special.is_empty() || buff.disable_technology {
+        return Err(format!(
+            "{who} adds buff {} ({}), which sets {}, and no mechanism here reads it on a \
+             unit's own buff",
+            buff.id,
+            buff.name,
+            if buff.disable_technology {
+                "disableTechnology".to_owned()
+            } else {
+                buff.special.join(", ")
+            }
+        ));
+    }
+    Ok(Some(StartBuff {
+        buff_id: buff.id,
+        divide: buff.divide,
+        additive: buff.additive,
+        duration_q32: buff.duration,
+        debuff: buff.debuff,
+        invincible: buff.invincible,
+        amplify_damage_rate: buff.amplify_damage_rate,
+    }))
 }
 
 /// What a row writes, or why this build will not apply it.
@@ -394,6 +525,8 @@ mod tests {
     const DEPLOYMENT_MODULE: i32 = 13_040_001;
     const ABSORPTION_MODULE: i32 = 1_309_001;
     const NANO_REPAIR_KIT: i32 = 13_020_001;
+    const PHOTON_COATING: i32 = 1_305_003;
+    const CHARGED_AMMO: i32 = 1_305_001;
     const ADVANCED_DEFENSIVE_TACTICS: i32 = 20001;
     const ADVANCED_OFFENSIVE_TACTICS: i32 = 20002;
 
@@ -519,6 +652,26 @@ mod tests {
                 .unwrap(),
             None
         );
+    }
+
+    /// Photon Coating adds buff 4000 to its unit as the fight starts; a buff
+    /// item that adds its buff on a hit, Charged Ammo, is refused by name.
+    #[test]
+    fn a_buff_item_adds_its_buff_as_the_fight_starts() {
+        let equipment = EquipmentEffects::load().unwrap();
+        let marksman = unit("marksman");
+        let buff = equipment
+            .start_buff(PHOTON_COATING, &marksman)
+            .unwrap()
+            .unwrap();
+        assert_eq!(buff.buff_id, 4000);
+        assert!(buff.invincible && !buff.debuff);
+        assert_eq!(buff.amplify_damage_rate, -1_288_490_188);
+        let refused = equipment
+            .corrections(CHARGED_AMMO, &marksman)
+            .unwrap_err()
+            .to_string();
+        assert!(refused.contains("BuffTechListener"), "{refused}");
     }
 
     #[test]

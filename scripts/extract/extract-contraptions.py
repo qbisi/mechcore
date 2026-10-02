@@ -140,6 +140,7 @@ def missile_lines(group):
         f"      name: {buff['name']}",
         f"      divide: {buff.get('buffDivide', 0)}",
         f"      additive: {str(buff.get('isAdditiveMode', False)).lower()}",
+        f"      debuff: {str(buff.get('debuff', False)).lower()}",
         f"      duration: {raw(buff['duration'])}{reading(raw(buff['duration']))}",
         f"      can_affect_construction: {str(buff.get('canAffectConstruction', False)).lower()}",
     ]

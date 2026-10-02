@@ -1,0 +1,19 @@
+# Photon Coating on a blue Crawler formation, against a Marksman. Each of the
+# 24 Crawlers adds buff 4000 to itself on tick 1, once: the item's target is
+# the unit wearing it, not its formation. A Crawler that dies has its buff
+# cleared.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 240
+hash: {profile: mcfr-content-0.7.0, result: 2380d799a05059773ecff79b09a59cc0f9d00b72657a0569550d9de70ae072c2}
+blue:
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/200/450, equipment: [photon_coating]}
+red:
+  core_damage: 84
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -100}, exp: 0/24/650}

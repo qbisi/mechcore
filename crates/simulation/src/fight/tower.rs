@@ -55,11 +55,18 @@ pub(in crate::fight) struct RunningBuff {
     /// `IsDisableTechnology`: while it runs, `BuffManager` holds the unit's
     /// `DisableTechnology` count above zero.
     disables_technology: bool,
+    /// `IsInvincible`: while it runs, `BuffManager` holds the unit's
+    /// `Invincible` count above zero.
+    invincible: bool,
 }
 
 /// One `buffDatas` row as `BuffManager.AddBuff` adds it: which it is, how it
 /// merges with one already running, how long it lasts, and what it writes.
 #[derive(Debug, Clone)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "the buff row's flags are independent fields"
+)]
 pub(in crate::fight) struct BuffRow {
     pub(in crate::fight) buff_id: u32,
     pub(in crate::fight) divide: i32,
@@ -68,6 +75,10 @@ pub(in crate::fight) struct BuffRow {
     pub(in crate::fight) source: &'static str,
     pub(in crate::fight) entries: Vec<Entry>,
     pub(in crate::fight) disables_technology: bool,
+    /// `IsDebuff`: a unit a buff makes invincible does not take it.
+    pub(in crate::fight) debuff: bool,
+    /// `IsInvincible`.
+    pub(in crate::fight) invincible: bool,
 }
 
 /// The towers of both sides: what their table says, what each one's loss
@@ -172,6 +183,12 @@ impl super::Actor {
             .find(|&running| running != row)
     }
 
+    /// `BuffManager.IsInvincible`: whether a running buff makes the unit
+    /// invincible.
+    pub(in crate::fight) fn invincible(&self) -> bool {
+        self.buffs.iter().any(|running| running.invincible)
+    }
+
     /// `FightMech.IsTechnologyDisabled`: whether a running buff holds the
     /// unit's technologies off.
     pub(in crate::fight) fn technology_disabled(&self) -> bool {
@@ -208,6 +225,8 @@ impl Simulation {
             source: SOURCE,
             entries: self.towers.config.entries(),
             disables_technology: false,
+            debuff: self.towers.config.destroyed_buff.debuff,
+            invincible: false,
         };
         let mut applied = Vec::new();
         let actor_ids = self
@@ -218,7 +237,9 @@ impl Simulation {
             })
             .collect::<Vec<_>>();
         for actor_id in actor_ids {
-            applied.push(self.write_buff(actor_id, loss.team, &row)?);
+            if self.buff_reaches(actor_id, &row) {
+                applied.push(self.write_buff(actor_id, None, loss.team, &row)?);
+            }
         }
         let reached = if self.towers.config.reaches_constructions() {
             self.buildings
@@ -245,6 +266,7 @@ impl Simulation {
             let (running, added) = add_buff(&mut buffed.buffs, &row);
             applied.push(buff_applied(
                 ObjectRef::new(ObjectKind::Building, construction_id),
+                None,
                 loss.team,
                 &running,
             ));
@@ -262,9 +284,20 @@ impl Simulation {
     /// `BuffManager.AddBuff` on a unit: the row added, or merged into the one
     /// of its divide already running, and what it writes on the unit's buff
     /// channel. The `buff_applied` it answers names the running buff.
+    /// `BuffSystem.DoAddBuff` before it hands a buff to the unit's
+    /// `BuffManager.AddBuff`, and the head of that: whether the buff reaches
+    /// the unit at all. A debuff does not reach a unit that a running buff
+    /// makes invincible, and nothing is recorded.
+    pub(in crate::fight) fn buff_reaches(&self, actor_id: u64, row: &BuffRow) -> bool {
+        !(row.debuff && self.actors[&actor_id].invincible())
+    }
+
+    /// `BuffManager.AddBuff` of a buff that reaches the unit, recorded with
+    /// the object that wrote it when one did.
     pub(in crate::fight) fn write_buff(
         &mut self,
         actor_id: u64,
+        source: Option<ObjectRef>,
         team: u32,
         row: &BuffRow,
     ) -> Result<Event> {
@@ -285,6 +318,7 @@ impl Simulation {
         }
         Ok(buff_applied(
             ObjectRef::new(ObjectKind::Unit, actor_id),
+            source,
             team,
             &running,
         ))
@@ -522,6 +556,7 @@ fn add_buff(buffs: &mut Vec<RunningBuff>, row: &BuffRow) -> (RunningBuff, bool) 
         duration: row.ticks,
         source: row.source,
         disables_technology: row.disables_technology,
+        invincible: row.invincible,
     };
     buffs.push(running);
     (running, true)
@@ -557,10 +592,15 @@ fn tick_buffs(
     ended
 }
 
-fn buff_applied(subject: ObjectRef, team: u32, running: &RunningBuff) -> Event {
+fn buff_applied(
+    subject: ObjectRef,
+    source: Option<ObjectRef>,
+    team: u32,
+    running: &RunningBuff,
+) -> Event {
     event(
         None,
-        None,
+        source,
         Some(team),
         Some(subject),
         EventPayload::BuffApplied {
