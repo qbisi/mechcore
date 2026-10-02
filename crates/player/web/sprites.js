@@ -129,7 +129,7 @@ const Sprites = (() => {
   // A pose says how a unit stands this frame; the page fills it in.
   function pose() {
     return {
-      t: 0, team: TEAMS[0], facing: 0, turret: 0, speed: 0, walk: 0,
+      t: 0, team: TEAMS[0], facing: 0, turret: 0, speed: 0, walk: 0, stance: 0,
       fireAge: Infinity, fireIndex: 0, chargeIn: Infinity,
       strike: -1, strikeIndex: 0, attacking: false, altitude: 0, life: 1,
     };
@@ -266,23 +266,27 @@ const Sprites = (() => {
     paint(c, M.white);
     rr(c, -1.45, -5.7 + kick, 2.9, 1.0, 0.45);
     paint(c, T.accent);
-    const charge = p.chargeIn < 0.4 ? 1 - p.chargeIn / 0.4 : 0;
+    // the charge builds through attack2, the 0.7 s before the shot
+    const charge = p.chargeIn < 0.7 ? 1 - p.chargeIn / 0.7 : 0;
     glow(c, 0, -5.4 + kick, 2.4, GLOW.arclight, Math.max(charge, p.attacking ? 0.25 : 0));
     flash(c, 0, -6.2 + kick, 2.6, GLOW.arclight, p.fireAge, 0.14, p.fireIndex);
     c.restore();
   }
 
-  // Rhino, as it walks: a biped on wheeled feet, its two arms held out to
-  // the sides, each ending in a red armoured pod with a white blade and a
-  // ring claw forward. It strikes with each arm in turn, the arm swinging
-  // its claw down onto what stands in front.
+  // Rhino: a biped on wheeled feet, its two arms ending in a red armoured
+  // pod with a white blade and a ring claw forward. It stands on its wheels to
+  // walk, arms held out, and plants itself to fight, legs folded under it and
+  // arms drawn in (`stance`, 0 to 1), as its Walk and FiringAL/AR clips pose
+  // it. It strikes with each arm in turn, the claw coming down in front.
   function rhino(c, p) {
     const T = p.team;
-    const pace = Math.min(1, p.speed / 6);
+    const pace = Math.min(1, p.speed / 6) * (1 - p.stance);
     const ph = p.walk * Math.PI * 2 / 9;
-    // the legs, white thighs reaching back to a wheel each
+    const fold = 4.4 * p.stance;
+    // the legs, white thighs reaching back to a wheel each, folded under the
+    // body when it is planted
     for (const side of [-1, 1]) {
-      const off = Math.sin(ph + (side > 0 ? Math.PI : 0)) * 1.6 * pace;
+      const off = Math.sin(ph + (side > 0 ? Math.PI : 0)) * 1.6 * pace - fold;
       rr(c, side * 3.6 - 1.1, 7.2 + off, 2.2, 5.0, 1.1);
       paint(c, M.black);
       c.save();
@@ -306,14 +310,14 @@ const Sprites = (() => {
       let thrust = 0;
       if (striking) {
         const s = p.strike;
-        // raise, then bring the claw down hard in front, then recover
-        const raise = s < 0.45 ? ease(s / 0.45) : s < 0.6 ? 1 - ease((s - 0.45) / 0.15) : 0;
-        const blow = s < 0.45 ? 0 : s < 0.6 ? ease((s - 0.45) / 0.15) : 1 - ease((s - 0.6) / 0.4);
+        // raise, bring the claw down to land 0.39 of the way through, recover
+        const raise = s < 0.3 ? ease(s / 0.3) : s < 0.4 ? 1 - ease((s - 0.3) / 0.1) : 0;
+        const blow = s < 0.3 ? 0 : s < 0.4 ? ease((s - 0.3) / 0.1) : 1 - ease((s - 0.4) / 0.6);
         swing = -side * (0.25 * raise - 0.55 * blow);
         thrust = 2.6 * blow - 0.8 * raise;
       }
       c.save();
-      c.translate(side * 5.0, -1.0);
+      c.translate(side * (5.0 - 2.0 * p.stance), -1.0 - 0.8 * p.stance);
       c.rotate(swing);
       c.translate(0, -thrust);
       // upper arm
@@ -341,9 +345,9 @@ const Sprites = (() => {
       poly(c, [side * 6.2, -4.4, side * 7.6, -4.4, side * 7.3, -6.0, side * 6.5, -6.0]);
       paint(c, T.deep);
       c.restore();
-      if (striking && p.strike > 0.45 && p.strike < 0.85) {
-        // the claw's impact in front of the arm
-        const k = (p.strike - 0.45) / 0.4;
+      if (striking && p.strike > 0.38 && p.strike < 0.78) {
+        // the claw's impact in front of the arm, as it lands
+        const k = (p.strike - 0.38) / 0.4;
         c.save();
         c.globalCompositeOperation = 'lighter';
         c.globalAlpha = 1 - k;

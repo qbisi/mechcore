@@ -28,6 +28,15 @@ swings so its blow lands on the tick its damage does, and a construction,
 whose facing the recording does not hold, turns its gun toward each shot it
 fires.
 
+A recording made with the `unit_pose` instrument channel also says how the
+game drew each unit: the clip its model played and how far through. The page
+then takes a unit's stance and the phase of its attack from that clip, so a
+Rhino stands on its wheels to walk and plants itself to strike, left arm and
+right in turn, as the game showed it. A recording with no poses, as every
+fight the simulator makes, is animated from its units' motion and its events,
+with the timings `scripts/player/pose-timing.py` reads off a recording that
+has them: `SWING` and `ACTIONS` in `web/player.js`.
+
 A unit type with no sprite is still drawn, as a disc of its collision size
 under its name. Terrain, buffs and the instrument channels are not drawn.
 

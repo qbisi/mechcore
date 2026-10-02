@@ -8,12 +8,12 @@
 //! page divides back, which is finer than a sprite can show and keeps the
 //! differences a track writes short.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use mechcore_document::{Layout, StaticPlacement};
 use mechcore_mcfr::{
     BuildingState, Domain, Event, EventPayload, LiveUnitState, MotionState, ObjectKind, ObjectRef,
-    ProjectileState, QVec3, Recording, ShieldSourceKind, ShieldState,
+    ProjectileState, QVec3, Recording, ShieldSourceKind, ShieldState, UnitPose,
 };
 use serde::{Serialize, Serializer};
 
@@ -65,6 +65,10 @@ pub struct Timeline {
     pub projectiles: Vec<Projectile>,
     pub shields: Vec<Shield>,
     pub cues: Vec<Cue>,
+    /// The names of the clips the units' poses play, which a [`Pose`] track
+    /// numbers; empty for a recording that holds no poses.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub clips: Vec<String>,
 }
 
 /// The rectangle the page frames, centred on the map's centre.
@@ -103,6 +107,20 @@ pub struct Unit {
     /// What the first weapon fires at, as a [`Ref`] number: a unit by its
     /// id, a building by its negated id, nothing by 0.
     pub aim: Track,
+    /// How the game drew the unit, for a recording that holds its poses.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pose: Option<Pose>,
+}
+
+/// A unit's animated pose, tick by tick: the clip its model's base layer
+/// plays most and how far through it, from the `unit_pose` channel.
+#[derive(Debug, Serialize)]
+pub struct Pose {
+    /// The clip's index in [`Timeline::clips`], -1 for none.
+    pub clip: Track,
+    /// The state's normalized time in thousandths: cycles played, the integer
+    /// part counting loops.
+    pub time: Track,
 }
 
 /// One building's life. It never moves; only its life changes.
@@ -266,15 +284,22 @@ pub enum Cue {
     },
 }
 
-/// Lays a recording out for the page.
+/// Lays a recording out for the page, with the units' poses when the
+/// recording holds its `unit_pose` channel.
 ///
 /// # Errors
 ///
 /// Returns an error when a tick of the recording cannot be read.
-pub fn timeline(recording: &dyn Recording) -> Result<Timeline, Error> {
+pub fn timeline(
+    recording: &dyn Recording,
+    poses: Option<&[(u32, UnitPose)]>,
+) -> Result<Timeline, Error> {
     let layout = mechcore_document::parse_embedded_yaml(recording.layout_yaml().as_bytes()).ok();
     let ticks = recording.terminal_tick();
     let mut builder = Builder::new(layout.as_ref());
+    if let Some(poses) = poses {
+        builder.poses(poses);
+    }
     for tick in 1..=ticks {
         let state = recording.state(tick)?;
         for unit in &state.live_units {
@@ -308,6 +333,10 @@ struct Builder<'a> {
     shields: BTreeMap<u64, Shield>,
     cues: Vec<Cue>,
     reach: (i64, i64),
+    /// Each unit's base-layer pose by tick and unit, when the recording
+    /// holds poses: the clip's index and the normalized time in thousandths.
+    poses: Option<HashMap<(u32, u64), (i64, i64)>>,
+    clips: Vec<String>,
 }
 
 impl<'a> Builder<'a> {
@@ -320,7 +349,39 @@ impl<'a> Builder<'a> {
             shields: BTreeMap::new(),
             cues: Vec::new(),
             reach: (LEAST_HALF_WIDTH - MARGIN, LEAST_HALF_DEPTH - MARGIN),
+            poses: None,
+            clips: Vec::new(),
         }
+    }
+
+    /// Indexes the base layer of every pose: the layer that poses a unit,
+    /// which the controllers' second layers only blend into on the move.
+    fn poses(&mut self, rows: &[(u32, UnitPose)]) {
+        let mut numbered: HashMap<String, i64> = HashMap::new();
+        let mut poses = HashMap::new();
+        for (tick, pose) in rows {
+            if pose.layer != 0 {
+                continue;
+            }
+            let clip = pose
+                .clips
+                .iter()
+                .max_by(|left, right| left.weight.total_cmp(&right.weight))
+                .map_or(-1, |clip| {
+                    let next = i64::try_from(numbered.len()).unwrap_or(i64::MAX);
+                    *numbered.entry(clip.name.clone()).or_insert_with(|| {
+                        self.clips.push(clip.name.clone());
+                        next
+                    })
+                });
+            #[allow(
+                clippy::cast_possible_truncation,
+                reason = "a normalized time in thousandths stays far inside i64"
+            )]
+            let time = (f64::from(pose.normalized_time) * 1_000.0).round() as i64;
+            poses.insert((*tick, pose.unit.id), (clip, time));
+        }
+        self.poses = Some(poses);
     }
 
     fn reach(&mut self, x: i64, z: i64) {
@@ -350,7 +411,19 @@ impl<'a> Builder<'a> {
             shield: None,
             motion: Track::default(),
             aim: Track::default(),
+            pose: None,
         });
+        if self.poses.is_some() && unit.pose.is_none() {
+            let mut pose = Pose {
+                clip: Track::default(),
+                time: Track::default(),
+            };
+            for _ in 0..unit.life.len() {
+                pose.clip.push(-1);
+                pose.time.push(0);
+            }
+            unit.pose = Some(pose);
+        }
         let shield = if state.personal_shield.enabled || state.personal_shield.active {
             i64::from(state.personal_shield.energy.current.max(0))
         } else {
@@ -392,6 +465,14 @@ impl<'a> Builder<'a> {
             .find_map(|aim| aim.attack_target)
             .or(state.mech_lock_target);
         unit.aim.push(Ref::number(aim));
+        if let (Some(pose), Some(poses)) = (&mut unit.pose, &self.poses) {
+            let (clip, time) = poses
+                .get(&(tick, state.unit_id))
+                .copied()
+                .unwrap_or((-1, 0));
+            pose.clip.push(clip);
+            pose.time.push(time);
+        }
     }
 
     fn building(&mut self, tick: u32, state: &BuildingState) {
@@ -615,6 +696,7 @@ impl<'a> Builder<'a> {
             projectiles: self.projectiles.into_values().collect(),
             shields: self.shields.into_values().collect(),
             cues: self.cues,
+            clips: self.clips,
         }
     }
 }
@@ -634,6 +716,10 @@ fn repeat_unit(unit: &mut Unit) {
     }
     if let Some(shield) = &mut unit.shield {
         tracks.push(shield);
+    }
+    if let Some(pose) = &mut unit.pose {
+        tracks.push(&mut pose.clip);
+        tracks.push(&mut pose.time);
     }
     for track in tracks {
         let last = track.last().unwrap_or_default();

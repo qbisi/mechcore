@@ -475,7 +475,12 @@ system cannot open is still written: the command does not fail for it, and
 says so on standard error. `--no-open` only writes the page, and so does a
 run script's `play` step, which never opens one.
 
-A recording is played as it holds the fight. A layout or a fight document is
+A recording is played as it holds the fight, and one made with the
+`unit_pose` instrument channel ([mcfr.md](../mcfr/mcfr.md#instrument-channels))
+is drawn in the poses it records: each unit takes its stance and the phase of
+its attack from the clip its model played. A fight with no poses, which every
+fight the simulator makes is, is drawn from its units' motion and its events.
+A layout or a fight document is
 fought by the simulator first, as [`convert --to mcfr`](#convert) fights it,
 `--seed` overriding a layout's own and a fight document taking its own seed and
 no `--seed`; the fight is kept in memory and laid out for the page directly,

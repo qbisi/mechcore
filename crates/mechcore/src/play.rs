@@ -14,7 +14,7 @@ use std::{
     process::{Command, Stdio},
 };
 
-use mechcore_mcfr::{McfrReader, Recording};
+use mechcore_mcfr::{McfrReader, Recording, UnitPose};
 use mechcore_simulation::{Record, SimulationResult};
 use serde::Serialize;
 
@@ -101,6 +101,7 @@ pub(crate) fn play(
             .ok_or_else(|| Failure::failed("the simulator kept no recording of the fight"))?;
         written(
             &recording,
+            None,
             input,
             kind,
             &page,
@@ -117,7 +118,11 @@ pub(crate) fn play(
             let reader = McfrReader::open(input).map_err(|error| {
                 Failure::refused(format!("cannot read {}: {error}", input.display()))
             })?;
-            written(&reader, input, kind, &page, None)
+            // A recording the game made may hold how it drew each unit.
+            let poses = reader.instrument::<UnitPose>().map_err(|error| {
+                Failure::refused(format!("cannot read {}'s poses: {error}", input.display()))
+            })?;
+            written(&reader, poses.as_deref(), input, kind, &page, None)
         }
         Kind::Layout => fought(mechcore_simulation::simulate_layout(
             input,
@@ -151,12 +156,13 @@ pub(crate) fn play(
 /// Lays a fight out for the page and writes the page.
 fn written(
     recording: &dyn Recording,
+    poses: Option<&[(u32, UnitPose)]>,
     input: &Path,
     kind: Kind,
     page: &Path,
     fought: Option<(i32, &'static str)>,
 ) -> Result<Played, Failure> {
-    let timeline = mechcore_player::timeline(recording)
+    let timeline = mechcore_player::timeline(recording, poses)
         .map_err(|error| Failure::failed(format!("cannot read the fight: {error}")))?;
     let title = input
         .file_stem()

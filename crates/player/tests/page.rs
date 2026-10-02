@@ -24,7 +24,7 @@ fn fought() -> &'static (MemoryRecording, Timeline) {
             .unwrap()
             .recording
             .unwrap();
-        let timeline = mechcore_player::timeline(&recording).unwrap();
+        let timeline = mechcore_player::timeline(&recording, None).unwrap();
         (recording, timeline)
     })
 }
@@ -203,4 +203,59 @@ fn the_page_carries_the_timeline_whole() {
     let embedded: serde_json::Value = serde_json::from_str(&page[start..end]).unwrap();
     assert_eq!(embedded, serde_json::to_value(timeline).unwrap());
     assert_eq!(embedded["schema"], mechcore_player::SCHEMA);
+}
+
+/// A recording's poses ride on the units they pose: each unit's base layer
+/// clip, numbered in the clip table, and its normalized time in thousandths,
+/// a tick with no pose holding -1.
+#[test]
+fn a_unit_carries_its_recorded_pose() {
+    use mechcore_mcfr::{ObjectKind, ObjectRef, PoseClip, UnitPose};
+    let (recording, _) = fought();
+    let pose = |tick: u32, layer: u8, clip: &str, time: f32| {
+        (
+            tick,
+            UnitPose {
+                unit: ObjectRef::new(ObjectKind::Unit, 1),
+                layer,
+                layer_name: if layer == 0 {
+                    "Base Layer"
+                } else {
+                    "AttackMove"
+                }
+                .into(),
+                layer_weight: 1.0,
+                state: 0,
+                state_name: 0,
+                normalized_time: time,
+                state_length: 1.0,
+                state_speed: 1.0,
+                next_state: None,
+                clips: vec![PoseClip {
+                    name: clip.into(),
+                    weight: 1.0,
+                }],
+                animator_speed: 1.0,
+            },
+        )
+    };
+    let rows = [
+        pose(1, 0, "Longbow_BattleIdle", 0.0),
+        pose(1, 1, "Longbow_Walk", 0.5),
+        pose(2, 0, "Longbow_BattleIdle", 0.033),
+        pose(3, 0, "Longbow_Walk", 1.25),
+    ];
+    let timeline = mechcore_player::timeline(recording, Some(&rows)).unwrap();
+    assert_eq!(timeline.clips, ["Longbow_BattleIdle", "Longbow_Walk"]);
+    let unit = timeline.units.iter().find(|unit| unit.id == 1).unwrap();
+    let pose = unit.pose.as_ref().unwrap();
+    assert_eq!(&read_back(&pose.clip)[..4], [0, 0, 1, -1]);
+    assert_eq!(&read_back(&pose.time)[..4], [0, 33, 1250, 0]);
+    // A unit no row poses still carries the track, at -1 throughout.
+    let other = timeline.units.iter().find(|unit| unit.id == 2).unwrap();
+    assert!(
+        read_back(&other.pose.as_ref().unwrap().clip)
+            .iter()
+            .all(|&clip| clip == -1)
+    );
 }

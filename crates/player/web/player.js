@@ -23,8 +23,22 @@
   };
   const MOTION = ['idle', 'moving', 'attacking', 'stopped', 'transitioning'];
   // A melee strike's swing: how long before the blow it starts, and how long
-  // it lasts, in seconds; the model's attack point and backswing.
-  const SWING = { rhino: [0.42, 0.9], crawler: [0.2, 0.5] };
+  // it lasts, in seconds. A Rhino's FiringAL and FiringAR last 0.72 s and
+  // land their blow 0.39 of the way through, as the game's poses show.
+  const SWING = { rhino: [0.28, 0.72], crawler: [0.2, 0.5] };
+  // How the game animates a unit's attack, read off its recorded poses: the
+  // clip a shot or blow plays in, its length in seconds as played, and for a
+  // melee unit the side each clip strikes with. A recording that holds poses
+  // drives these from the clip itself; one that does not, from its events.
+  const CLIPS = data.clips || [];
+  const ACTIONS = {
+    marksman: { fire: 'Longbow_FiringA', fireLength: 1.067, charge: 'Longbow_PreAttack', chargeLength: 0.5 },
+    arclight: { charge: 'attack2', chargeLength: 0.7 },
+    rhino: { strikes: { Rhinoceros_FiringAL: 0, Rhinoceros_FiringAR: 1 }, standing: ['Rhinoceros_Walk'] },
+  };
+  // How long a stance takes to change, in ticks: a Rhino rising onto its
+  // wheels to walk, or planting itself to strike.
+  const STANCE_TICKS = 5;
   const DEFAULT_SWING = [0.25, 0.6];
   const LONGEST_EFFECT = 3 * TPS;
 
@@ -45,6 +59,25 @@
     while (i < n) out[i++] = value * scale;
     return out;
   }
+  // A unit's stance tick by tick, 0 standing to 1 planted, averaged over the
+  // ticks a change takes so that it eases from one to the other: from its
+  // recorded clip when the recording holds poses, else from whether it moves.
+  function stances(u) {
+    const action = ACTIONS[u.kind];
+    if (!action || !action.standing) return null;
+    const planted = new Float64Array(u.n);
+    for (let i = 0; i < u.n; i++) {
+      const clip = u.PC && u.PC[i] >= 0 ? CLIPS[u.PC[i]] : null;
+      planted[i] = clip ? (action.standing.includes(clip) ? 0 : 1) : (u.Mo[i] === 1 ? 0 : 1);
+    }
+    const eased = new Float64Array(u.n);
+    let sum = 0;
+    for (let i = 0; i < u.n; i++) {
+      sum += planted[i] - (i >= STANCE_TICKS ? planted[i - STANCE_TICKS] : 0);
+      eased[i] = sum / Math.min(i + 1, STANCE_TICKS);
+    }
+    return eased;
+  }
   const byRef = new Map();
   const ref = (name) => (name ? byRef.get(name) : undefined);
 
@@ -57,10 +90,12 @@
       B: decode(u.body, n), R: u.turret ? decode(u.turret, n) : null,
       L: decode(u.life, n), S: u.shield ? decode(u.shield, n) : null,
       Mo: decode(u.motion, n), A: decode(u.aim, n),
+      PC: u.pose ? decode(u.pose.clip, n) : null, PT: u.pose ? decode(u.pose.time, n, 0.001) : null,
       fires: [], strikes: [], hits: [], death: null,
     };
     o.D = new Float64Array(n);
     for (let i = 1; i < n; i++) o.D[i] = o.D[i - 1] + Math.hypot(o.X[i] - o.X[i - 1], o.Z[i] - o.Z[i - 1]);
+    o.stance = stances(o);
     byRef.set(`u${u.id}`, o);
     return o;
   });
@@ -206,7 +241,16 @@
       body, turret: u.R ? angle(u.R, i, f, n) : body,
       life: u.L[i], shield: u.S ? u.S[i] : 0, motion: u.Mo[i], aim: u.A[i],
       walk: lerp(u.D, i, f, n), speed: i + 1 < n ? (u.D[i + 1] - u.D[i]) * TPS : 0,
+      stance: u.stance ? lerp(u.stance, i, f, n) : 0,
+      ...clipAt(u, i, f),
     };
+  }
+  // The clip a unit's model plays and how far through it, interpolated within
+  // a clip and not across a change of clip.
+  function clipAt(u, i, f) {
+    if (!u.PC || u.PC[i] < 0) return { clip: null, clipTime: 0 };
+    const same = i + 1 < u.n && u.PC[i + 1] === u.PC[i] && u.PT[i + 1] >= u.PT[i];
+    return { clip: CLIPS[u.PC[i]], clipTime: same ? u.PT[i] + (u.PT[i + 1] - u.PT[i]) * f : u.PT[i] };
   }
   // Where an object named by a cue stood at tick `t`, for an effect there.
   function placeOf(name, t) {
@@ -270,6 +314,25 @@
     }
     const hit = before(o.hits, tau);
     pose.hurt = hit >= 0 ? Math.max(0, 1 - (tau - o.hits[hit]) / (0.15 * TPS)) : 0;
+  }
+
+  // Takes a unit's attack from the clip its model plays, where the recording
+  // holds poses: the phase of a strike and which arm strikes, how far a shot's
+  // recoil has run, and how near the next shot is.
+  function posed(kind, clip, time, p) {
+    const action = ACTIONS[kind];
+    if (!action) return;
+    const phase = time - Math.floor(time);
+    if (action.strikes) {
+      const side = action.strikes[clip];
+      p.strike = side === undefined ? -1 : phase;
+      p.strikeIndex = side === undefined ? 0 : side;
+    }
+    if (action.fire) p.fireAge = clip === action.fire ? phase * action.fireLength : Infinity;
+    if (action.charge) {
+      p.chargeIn = clip === action.charge ? (1 - phase) * action.chargeLength : Infinity;
+      if (clip === action.charge) p.attacking = true;
+    }
   }
 
   // Where a turret construction points: toward each shot it fires, turned
@@ -488,6 +551,7 @@
     p.life = 1;
     p.hurt = 0;
     p.facing = 0;
+    p.stance = 0;
     return p;
   }
 
@@ -550,7 +614,9 @@
       p.walk = s.walk + u.id * 1.7;
       p.attacking = s.motion === 2;
       p.life = s.life / u.maxLife;
+      p.stance = s.stance;
       weaponState(u, tau, p);
+      if (s.clip) posed(u.kind, s.clip, s.clipTime, p);
       // a unit fades out over the tick it dies in
       const dying = u.death && tau > u.to ? 1 - (tau - u.to) : 1;
       const alt = air ? s.y : 0;
