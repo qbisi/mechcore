@@ -6,7 +6,8 @@
 
 A rules document ends in `## Evidence`, and each item under its `### Read`
 names the build members the claim was read from, as `Class.member` in
-backticks: a method, a field or a property the class declares. Those are the
+backticks, `Outer.Inner.member` for a nested class: a method, a field or a
+property the class itself declares, not a class nested in it. Those are the
 document's anchors. They are what a claim read from the build rests on, and
 what can move under it when the game does.
 
@@ -33,7 +34,7 @@ import build_data  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 RULES = ROOT / "docs" / "rules"
-ANCHOR = re.compile(r"`([A-Z][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)`")
+ANCHOR = re.compile(r"`([A-Z][A-Za-z0-9_]*(?:\.[A-Z][A-Za-z0-9_]*)*)\.([A-Za-z_][A-Za-z0-9_]*)`")
 # What moves between two builds without the logic moving: addresses, jump
 # targets, field offsets, which shift whenever a class gains a field, and the
 # padding (`Nop`) between methods.
@@ -80,13 +81,36 @@ class Dump:
         self.isil = base / "IsilDump"
         self.base = base
 
+    def members(self, cls):
+        """(stub, declaration line, member lines) of each type `cls` names, `Outer.Inner` for a nested one.
+
+        A type's own members are indented one tab deeper than its declaration,
+        so a nested type's members are neither its outer type's nor the
+        reverse."""
+        outer, *nested = cls.split(".")
+        found = []
+        for stub in self.stubs.get(outer, []):
+            lines, head = stub.read_text(errors="replace").splitlines(), None
+            for depth, name in enumerate([outer, *nested]):
+                indent = "\t" * depth
+                start = next((i for i, line in enumerate(lines) if re.match(
+                    rf"{indent}(?!\t).*\b(class|struct|enum|interface) {re.escape(name)}\b", line)), None)
+                if start is None:
+                    lines = None
+                    break
+                end = next((i for i in range(start + 1, len(lines)) if lines[i] == indent + "}"), len(lines))
+                head, lines = lines[start], lines[start + 1:end]
+            if lines is not None:
+                own = [line for line in lines if re.match(rf"\t{{{len(nested) + 1}}}(?!\t)", line)]
+                found.append((stub, head, own))
+        return found
+
     def declarations(self, cls, member):
         found = []
-        for stub in self.stubs.get(cls, []):
-            text = stub.read_text(errors="replace")
+        for _, head, lines in self.members(cls):
             # An enum's values are declared bare, as `Name = 0,`.
-            enum = re.search(rf"\benum {re.escape(cls)}\b", text)
-            for line in text.splitlines():
+            enum = re.search(r"\benum\b", head)
+            for line in lines:
                 code = line.split("//")[0]
                 if DECLARATION.match(line) and re.search(rf"\b(get_|set_)?{re.escape(member)}\b\s*[(;{{=]", code) \
                         or enum and re.match(rf"\s*{re.escape(member)}\s*=", code):
@@ -95,8 +119,10 @@ class Dump:
 
     def bodies(self, cls, member):
         found = []
-        for stub in self.stubs.get(cls, []):
-            dump = self.isil / stub.relative_to(self.base / "DiffableCs").with_suffix(".txt")
+        for stub, _, _ in self.members(cls):
+            # A nested type's instructions are dumped beside its outer type's, as `Outer_NestedType_Inner`.
+            dump = (self.isil / stub.relative_to(self.base / "DiffableCs")).with_name(
+                "_NestedType_".join(cls.split(".")) + ".txt")
             if not dump.exists():
                 continue
             for section in dump.read_text(errors="replace").split("\nMethod: ")[1:]:
