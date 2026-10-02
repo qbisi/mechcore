@@ -52,8 +52,10 @@ fn a_layout_is_fought_in_memory_and_played() {
         page.as_os_str(),
         "--seed".as_ref(),
         "7".as_ref(),
+        "--no-open".as_ref(),
     ]);
-    assert_eq!(report["schema"], "mechcore.play-result.v1");
+    assert_eq!(report["schema"], "mechcore.play-result.v2");
+    assert_eq!(report["opened"], false);
     assert_eq!(report["kind"], "layout");
     assert_eq!(report["producer"], "simulator");
     assert_eq!(report["seed"], 7);
@@ -69,7 +71,12 @@ fn a_fight_and_its_recording_play_the_same_fight() {
     let directory = tempfile::tempdir().unwrap();
     let fight = repository().join("tests/regression/fights/marksman-vs-arclight.yaml");
     let from_fight = directory.path().join("fight.html");
-    let report = played(&["play".as_ref(), fight.as_os_str(), from_fight.as_os_str()]);
+    let report = played(&[
+        "play".as_ref(),
+        fight.as_os_str(),
+        from_fight.as_os_str(),
+        "--no-open".as_ref(),
+    ]);
     assert_eq!(report["kind"], "fight");
     assert_eq!(report["seed_source"], "layout");
     let ticks = report["ticks"].as_u64().unwrap();
@@ -85,7 +92,7 @@ fn a_fight_and_its_recording_play_the_same_fight() {
     ]);
     assert!(converted.status.success());
     // Without a page named, the page is written beside the recording.
-    let report = played(&["play".as_ref(), recording.as_os_str()]);
+    let report = played(&["play".as_ref(), recording.as_os_str(), "--no-open".as_ref()]);
     assert_eq!(report["kind"], "mcfr");
     assert_eq!(report["ticks"].as_u64().unwrap(), ticks);
     assert!(report.get("seed").is_none());
