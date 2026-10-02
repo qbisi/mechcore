@@ -350,9 +350,10 @@ impl Simulation {
             ..DamageHit::of_projectile(projectile, aimed, amount, reach)
         };
         // A projectile in simulated motion (`isSimulateMode`) that lands on a
-        // unit already dead does nothing, splash included: a Fire Badger's or
-        // a Typhoon's shot at a Crawler another shot killed while it flew
-        // leaves the Crawlers around it untouched. Any other projectile still
+        // target already dead does nothing, splash included: a Fire Badger's
+        // or a Typhoon's shot at a Crawler another shot killed while it flew
+        // leaves the Crawlers around it untouched, and so does a Fire
+        // Badger's at a wall block that fell. Any other projectile still
         // strikes where it lands, as an Arclight's does.
         let simulated = self.attacker(owner).is_some_and(|attacker| {
             matches!(
@@ -363,9 +364,12 @@ impl Simulation {
                 }
             )
         });
-        let lands_on_nothing = simulated
-            && projectile.target_kind == ObjectKind::Unit
-            && !self.actors[&projectile.target].alive();
+        let target = match projectile.target_kind {
+            ObjectKind::Building => FightActorRef::Building(projectile.target),
+            _ => FightActorRef::Unit(projectile.target),
+        };
+        let lands_on_nothing =
+            simulated && !self.fight_actor(target).is_some_and(|view| view.alive);
         let struck = if lands_on_nothing {
             super::damage::Struck::default()
         } else {
