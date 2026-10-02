@@ -550,13 +550,11 @@ impl Simulation {
     /// `LifeStealEffectProvider.PerformHitEffect`: the skill's owner, alive
     /// and short of its maximum life, takes back the whole part of the hit's
     /// damage times its `ILifeSteal`'s multiplier, through
-    /// `FightMech.StealLife`, which `FightActor.AddLife` caps at the maximum.
+    /// `FightMech.StealLife`, [`Self::add_life`].
     ///
     /// A source that `CanDisable` does nothing while the owner's
     /// technologies are disabled, which the provider reads as the hit's
-    /// `isTechnologyDisabled`. `StealLife` gives nothing while a buff
-    /// disables recovery, and only the Ignite buffs do, which no simulated
-    /// mechanism runs.
+    /// `isTechnologyDisabled`.
     fn steal_life(&mut self, owner_id: u64, damage: i64, events: &mut Vec<Event>) -> Result<()> {
         let Some(owner) = self.actors.get_mut(&owner_id) else {
             return Ok(());
@@ -575,19 +573,7 @@ impl Simulation {
         if stolen < 1 {
             return Ok(());
         }
-        let before = owner.life;
-        owner.life = (owner.life + stolen).min(max_life);
-        events.push(event(
-            None,
-            None,
-            None,
-            Some(owner.object_ref()),
-            EventPayload::Healing {
-                amount: i32::try_from(owner.life - before)
-                    .map_err(|_| Error::new("healing exceeds i32"))?,
-            },
-        ));
-        Ok(())
+        self.add_life(owner_id, stolen, events)
     }
 
     /// `DamagePerformer.ProcessAdvancedEnergyShieldEffect` and the shields

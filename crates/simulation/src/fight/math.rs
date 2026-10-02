@@ -178,6 +178,16 @@ pub(in crate::fight) fn q32_mul(left: i64, right: i64) -> i64 {
     })
 }
 
+/// `FPoint.op_LessThanOrEqual`: differences of up to 43 raw count as equal.
+pub(in crate::fight) fn fpoint_less_or_equal(left: i64, right: i64) -> bool {
+    const NAN: i64 = i64::MIN + 1;
+    if left == NAN || right == NAN {
+        return false;
+    }
+    let difference = left.wrapping_sub(right);
+    difference < 0 || difference <= 43
+}
+
 pub(in crate::fight) fn q32_div(numerator: i64, denominator: i64) -> i64 {
     if denominator == 0 {
         return if numerator < 0 { i64::MIN } else { i64::MAX };

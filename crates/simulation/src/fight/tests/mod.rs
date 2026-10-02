@@ -48,6 +48,7 @@ pub(super) fn placement(
         exp: 0,
         corrections: Vec::new(),
         lifesteal: None,
+        auto_recovery: None,
         travelling: false,
     }
 }

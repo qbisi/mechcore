@@ -12,8 +12,8 @@ use crate::{
     Error, Result,
     data::{Channel, Entry, Stats},
     modifier::{
-        EnergyTowerSkillEffects, EquipmentEffects, LifeSteal, OfficerEffects, TechnologyEffects,
-        current_lifesteal,
+        AutoRecovery, EnergyTowerSkillEffects, EquipmentEffects, LifeSteal, OfficerEffects,
+        TechnologyEffects, current_source,
     },
     rules::{UnitConfig, UnitConfigs},
 };
@@ -54,6 +54,9 @@ pub(crate) struct Placement {
     /// The `ILifeSteal` its `LifeStealEffectProvider` enables, if its
     /// technologies or equipment hand it one.
     pub(crate) lifesteal: Option<LifeSteal>,
+    /// The `IAutoRecovery` its `AutoRecoveryEffectProvider` enables, if its
+    /// technologies or equipment hand it one.
+    pub(crate) auto_recovery: Option<AutoRecovery>,
     /// Whether it opens the fight travelling: a unit deployed into an ambush
     /// zone, which `SuperDeploymentSystem` holds until its side arrives.
     pub(crate) travelling: bool,
@@ -432,10 +435,10 @@ fn compile_battle_skills(
             ) else {
                 continue;
             };
-            if worn.lifesteal.is_some() {
+            if worn.lifesteal.is_some() || worn.auto_recovery.is_some() {
                 refused.push(format!(
-                    "side {name} summons a {} that its technologies give lifesteal, and \
-                     what a summon's effect providers carry is not measured",
+                    "side {name} summons a {} that its technologies give lifesteal or \
+                     repair, and what a summon's effect providers carry is not measured",
                     summon.rules.type_name
                 ));
                 continue;
@@ -558,6 +561,7 @@ fn compile_formation(
         exp: i64::from(formation.exp.unwrap_or(0)),
         corrections: worn.corrections,
         lifesteal: worn.lifesteal,
+        auto_recovery: worn.auto_recovery,
         travelling: formation.travelling,
     })
 }
@@ -566,6 +570,7 @@ fn compile_formation(
 struct Worn {
     corrections: Vec<(Channel, Entry)>,
     lifesteal: Option<LifeSteal>,
+    auto_recovery: Option<AutoRecovery>,
 }
 
 /// What this side's loadout and a formation's equipment write onto it.
@@ -639,20 +644,28 @@ fn loadout(
     // Every source of an interface reaches the unit's one provider of it,
     // which enables the one of the highest priority whatever order they came
     // in.
-    let mut sources = refused.hold(
+    let mut lifesteal = refused.hold(
         loadouts
             .technologies
             .lifesteal(&side.techs.units, type_name)
             .map_err(on_side),
     )?;
+    let mut auto_recovery = refused.hold(
+        loadouts
+            .technologies
+            .auto_recovery(&side.techs.units, type_name)
+            .map_err(on_side),
+    )?;
     for &id in equipment {
-        sources.extend(refused.hold(loadouts.equipment.lifesteal(id, rules).map_err(on_side))?);
+        lifesteal.extend(refused.hold(loadouts.equipment.lifesteal(id, rules).map_err(on_side))?);
+        auto_recovery
+            .extend(refused.hold(loadouts.equipment.auto_recovery(id, rules).map_err(on_side))?);
     }
-    let lifesteal =
-        refused.hold(current_lifesteal(&sources).map_err(|error| refusal(Error::new(error))))?;
+    let in_force = |error: String| refusal(Error::new(error));
     Some(Worn {
         corrections,
-        lifesteal,
+        lifesteal: refused.hold(current_source(&lifesteal).map_err(in_force))?,
+        auto_recovery: refused.hold(current_source(&auto_recovery).map_err(in_force))?,
     })
 }
 

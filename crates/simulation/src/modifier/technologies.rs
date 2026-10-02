@@ -12,7 +12,8 @@
 //! but correct its unit's numbers, and is applied unless its row names a field
 //! in `special`. One of any other list is a subclass that does more (a buff, a
 //! splash, a second weapon, a summon). A `LifestealTech` is applied for its
-//! numbers and hands its unit a [`LifeSteal`]; any other is refused by name
+//! numbers and hands its unit a [`LifeSteal`], and an `AutoRecoveryTech` that
+//! repairs in any state an [`AutoRecovery`]; any other is refused by name
 //! rather than applied for its numbers alone.
 //!
 //! A technology belongs to one unit type, which is how a side's flat list of
@@ -36,7 +37,7 @@ use crate::{
 
 use super::{
     effects::{self, Fields, PROJECTILE, SPLASH, VALUE_ELSEWHERE},
-    sources::LifeSteal,
+    sources::{AutoRecovery, LifeSteal},
 };
 
 const DEFAULT_TECHNOLOGY_EFFECTS: &str = include_str!("../../../../config/technology_effects.yaml");
@@ -46,6 +47,13 @@ const PLAIN: &str = "technologyDatas";
 
 /// The list whose `LifestealTech` is an `ILifeSteal` as well.
 const LIFESTEAL: &str = "lifestealTechnologies";
+
+/// The list whose `AutoRecoveryTech` is an `IAutoRecovery` as well.
+const AUTO_RECOVERY: &str = "autoRecoveryTechnologies";
+
+/// `AutoRecoveryStateType.Normal`: a repair that runs whenever its unit is
+/// hurt, not only underground or cloaked.
+const NORMAL: i64 = 0;
 
 /// `Technology`'s `IEffectProviderDataSource.GetPriority`, which an
 /// equipment's 1 overrides.
@@ -68,6 +76,8 @@ struct Technology {
     effect: std::result::Result<Vec<(Channel, Index, Correction)>, String>,
     /// What it answers `ILifeSteal` with, if its class is one.
     lifesteal: Option<LifeSteal>,
+    /// What it answers `IAutoRecovery` with, if its class is one.
+    auto_recovery: Option<AutoRecovery>,
 }
 
 /// One row of the table. Every effect is a list because a technology's effect
@@ -80,8 +90,8 @@ struct Row {
     unit: String,
     /// The list of `TechnologyGroupData` the row comes from.
     kind: String,
-    /// The fields a plain or a lifesteal row sets beyond what this table
-    /// carries.
+    /// The fields a plain, a lifesteal or a repair row sets beyond what this
+    /// table carries.
     #[serde(default)]
     special: Vec<String>,
     #[serde(default)]
@@ -109,6 +119,15 @@ struct Row {
     /// `LifestealTechnologyData.lifestealMultiplier`, on a lifesteal row.
     #[serde(default)]
     lifesteal_multiplier: Vec<i64>,
+    /// `AutoRecoveryTechnologyData`'s fields, on a repair row.
+    #[serde(default)]
+    start_time: i64,
+    #[serde(default)]
+    auto_recovery_state_type: i64,
+    #[serde(default)]
+    recovery_duration: Vec<i64>,
+    #[serde(default)]
+    recovery_life_rate: Vec<i64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -150,10 +169,20 @@ impl TechnologyEffects {
                 priority: PRIORITY,
                 can_disable: true,
             });
+            // `AutoRecoveryTech` reads its two lists at the unit's rank, as
+            // `LifestealTech` does.
+            let auto_recovery = (row.kind == AUTO_RECOVERY).then(|| AutoRecovery {
+                start_time_q32: row.start_time,
+                duration_q32: row.recovery_duration.first().copied().unwrap_or(0),
+                life_rate_q32: row.recovery_life_rate.first().copied().unwrap_or(0),
+                priority: PRIORITY,
+                can_disable: true,
+            });
             let technology = Technology {
                 unit: row.unit.clone(),
                 effect: corrections_of(&row),
                 lifesteal,
+                auto_recovery,
             };
             if technologies.insert(id, technology).is_some() {
                 return Err(Error::new(format!(
@@ -221,11 +250,27 @@ impl TechnologyEffects {
             .filter_map(|technology| technology.lifesteal)
             .collect())
     }
+
+    /// What this side's technologies answer `IAutoRecovery` with on one unit
+    /// type, each that is one.
+    ///
+    /// # Errors
+    ///
+    /// Returns the error [`Self::corrections`] does.
+    pub(crate) fn auto_recovery(&self, held: &[i32], unit_type: &str) -> Result<Vec<AutoRecovery>> {
+        self.corrections(held, unit_type)?;
+        Ok(held
+            .iter()
+            .filter_map(|id| self.technologies.get(id))
+            .filter(|technology| technology.unit == unit_type)
+            .filter_map(|technology| technology.auto_recovery)
+            .collect())
+    }
 }
 
 /// What a row writes at rank one, or why this build will not apply it.
 fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correction)>, String> {
-    if row.kind != PLAIN && row.kind != LIFESTEAL {
+    if row.kind != PLAIN && row.kind != LIFESTEAL && row.kind != AUTO_RECOVERY {
         return Err(format!(
             "technology {} ({}) comes from TechnologyGroupData's {} list, and what \
              it does beyond its unit's numbers is not implemented",
@@ -238,6 +283,13 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
             row.id,
             row.name,
             row.special.join(", ")
+        ));
+    }
+    if row.kind == AUTO_RECOVERY && row.auto_recovery_state_type != NORMAL {
+        return Err(format!(
+            "technology {} ({}) repairs only in autoRecoveryStateType {}, underground or \
+             cloaked, which no mechanism here reads",
+            row.id, row.name, row.auto_recovery_state_type
         ));
     }
     let every = [
@@ -253,6 +305,8 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
         ("projectile_speed_value", &row.projectile_speed_value),
         ("projectile_life_rate", &row.projectile_life_rate),
         ("lifesteal_multiplier", &row.lifesteal_multiplier),
+        ("recovery_duration", &row.recovery_duration),
+        ("recovery_life_rate", &row.recovery_life_rate),
     ];
     for (field, values) in every {
         if values.len() > 1 {

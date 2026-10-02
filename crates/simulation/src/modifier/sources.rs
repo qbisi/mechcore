@@ -2,7 +2,8 @@
 //!
 //! A subclass's `Equipment` or `Technology` is an `IEffectProviderDataSource`
 //! of its own interface as well as a correction: `LifestealEquipment` and
-//! `LifestealTech` are both `ILifeSteal`s. The unit's `FightEffectMananger`
+//! `LifestealTech` are both `ILifeSteal`s, `AutoRecoveryEquipment` and
+//! `AutoRecoveryTech` both `IAutoRecovery`s. The unit's `FightEffectMananger`
 //! holds one `SingleEffectProvider` per interface, and it enables one of the
 //! sources it is handed, its `Current`: `AddDataSource` sorts them by
 //! `EffectProvider.IsOverrideEffect`, the higher `GetPriority` first, and
@@ -26,24 +27,66 @@ pub(crate) struct LifeSteal {
     pub(crate) can_disable: bool,
 }
 
-/// `SingleEffectProvider<ILifeSteal>.Current`: of the sources a unit
-/// carries, the one of the highest priority.
+/// What an `IAutoRecovery` whose `GetAutoRecoveryStateType` is `Normal`
+/// answers: it repairs whenever its unit is hurt.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct AutoRecovery {
+    /// `GetStartTime`, Q32.32 seconds.
+    pub(crate) start_time_q32: i64,
+    /// `GetRecoveryDuration`, Q32.32 seconds between two repairs.
+    pub(crate) duration_q32: i64,
+    /// `GetRecoveryLIfeRate`, Q32.32: the share of the unit's maximum life
+    /// one repair restores.
+    pub(crate) life_rate_q32: i64,
+    /// `GetPriority`: 1 for an equipment, 0 for a technology.
+    pub(crate) priority: i32,
+    /// `CanDisable`, as [`LifeSteal::can_disable`].
+    pub(crate) can_disable: bool,
+}
+
+/// An `IEffectProviderDataSource` a `SingleEffectProvider` sorts.
+pub(crate) trait Source: Copy + PartialEq {
+    /// The interface's name, which a refusal says.
+    const INTERFACE: &'static str;
+
+    fn priority(&self) -> i32;
+}
+
+impl Source for LifeSteal {
+    const INTERFACE: &'static str = "ILifeSteal";
+
+    fn priority(&self) -> i32 {
+        self.priority
+    }
+}
+
+impl Source for AutoRecovery {
+    const INTERFACE: &'static str = "IAutoRecovery";
+
+    fn priority(&self) -> i32 {
+        self.priority
+    }
+}
+
+/// `SingleEffectProvider<T>.Current`: of the sources of one interface a
+/// unit carries, the one of the highest priority.
 ///
 /// # Errors
 ///
 /// Refuses two sources of the highest priority that answer differently: the
 /// comparison `AddDataSource` sorts by orders neither before the other, and
 /// which one the sort leaves first is not established.
-pub(crate) fn current(sources: &[LifeSteal]) -> Result<Option<LifeSteal>, String> {
-    let Some(highest) = sources.iter().map(|source| source.priority).max() else {
+pub(crate) fn current<T: Source>(sources: &[T]) -> Result<Option<T>, String> {
+    let Some(highest) = sources.iter().map(Source::priority).max() else {
         return Ok(None);
     };
-    let mut first = sources.iter().filter(|source| source.priority == highest);
+    let mut first = sources.iter().filter(|source| source.priority() == highest);
     let current = *first.next().expect("the highest priority is some source's");
     if first.any(|other| *other != current) {
         return Err(format!(
-            "two lifesteal sources of priority {highest} answer differently, and which \
-             one SingleEffectProvider enables is not established"
+            "two {} sources of priority {highest} answer differently, and which one \
+             SingleEffectProvider enables is not established",
+            T::INTERFACE
         ));
     }
     Ok(Some(current))
@@ -71,7 +114,7 @@ mod tests {
             current(&[ENERGY_DRAIN, ABSORPTION_MODULE]),
             Ok(Some(ABSORPTION_MODULE))
         );
-        assert_eq!(current(&[]), Ok(None));
+        assert_eq!(current::<LifeSteal>(&[]), Ok(None));
         assert_eq!(
             current(&[ABSORPTION_MODULE, ABSORPTION_MODULE]),
             Ok(Some(ABSORPTION_MODULE))

@@ -57,6 +57,11 @@ impl Actor {
             )
         });
         let kind = SkillKind::of(&rules.attack.path);
+        // `AutoRecoveryEffectProvider.DoActive` hands a unit with a repair
+        // source in force a controller, which its constructor resets.
+        let recovery = placement
+            .auto_recovery
+            .map(|_| super::recovery::RecoveryClock::reset());
         Self {
             x,
             z,
@@ -79,6 +84,7 @@ impl Actor {
             searched_attack: true,
             command: None,
             buffs: Vec::new(),
+            recovery,
             rvo_max_speed_q32: max_speed_q32,
             motion: Motion {
                 rvo_tree_x_q32: x_q32,
