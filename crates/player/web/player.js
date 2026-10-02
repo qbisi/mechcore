@@ -36,8 +36,8 @@
     arclight: { charge: 'attack2', chargeLength: 0.7 },
     rhino: { strikes: { Rhinoceros_FiringAL: 0, Rhinoceros_FiringAR: 1 }, standing: ['Rhinoceros_Walk'] },
   };
-  // How long a stance takes to change, in ticks: a Rhino rising onto its
-  // wheels to walk, or planting itself to strike.
+  // How long a stance takes to change, in ticks: a Rhino raising its
+  // chainsaws ahead of it to walk, or lowering them to its sides to fight.
   const STANCE_TICKS = 5;
   const DEFAULT_SWING = [0.25, 0.6];
   const LONGEST_EFFECT = 3 * TPS;

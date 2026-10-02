@@ -273,107 +273,263 @@ const Sprites = (() => {
     c.restore();
   }
 
-  // Rhino: a biped on wheeled feet, its two arms ending in a red armoured
-  // pod with a white blade and a ring claw forward. It stands on its wheels to
-  // walk, arms held out, and plants itself to fight, legs folded under it and
-  // arms drawn in (`stance`, 0 to 1), as its Walk and FiringAL/AR clips pose
-  // it. It strikes with each arm in turn, the claw coming down in front.
+  // Rhino: a biped on wheeled feet whose forearms carry chainsaws, long bars
+  // clamped beside the hand with a saw flywheel turning on the nose. It walks with both bars held
+  // ahead, as its Walk clip poses it, and stands to fight with them hanging
+  // at its sides, as its Idle does (`stance`, 0 to 1). It strikes with each
+  // arm in turn, as its FiringAL and FiringAR do: the torso winds back and
+  // lifts the bar behind the shoulder, then turns through to slash it forward
+  // and across, the hips following.
   function rhino(c, p) {
     const T = p.team;
     const pace = Math.min(1, p.speed / 6) * (1 - p.stance);
     const ph = p.walk * Math.PI * 2 / 9;
-    const fold = 4.4 * p.stance;
-    // the legs, white thighs reaching back to a wheel each, folded under the
-    // body when it is planted
-    for (const side of [-1, 1]) {
-      const off = Math.sin(ph + (side > 0 ? Math.PI : 0)) * 1.6 * pace - fold;
-      rr(c, side * 3.6 - 1.1, 7.2 + off, 2.2, 5.0, 1.1);
+    // which side strikes, -1 left and 1 right, and the strike's key there
+    const side = p.strike >= 0 ? (p.strikeIndex % 2 === 0 ? -1 : 1) : 0;
+    const key = slashAt(side ? p.strike : 0, side || -1);
+    // the legs, white thighs reaching back to a wheel each, turning with the
+    // hips
+    c.save();
+    c.rotate(key.hips * p.stance);
+    for (const leg of [-1, 1]) {
+      const off = Math.sin(ph + (leg > 0 ? Math.PI : 0)) * 1.6 * pace;
+      rr(c, leg * 3.6 - 1.1, 7.2 + off, 2.2, 5.0, 1.1);
       paint(c, M.black);
       c.save();
-      rr(c, side * 3.6 - 1.1, 7.2 + off, 2.2, 5.0, 1.1);
+      rr(c, leg * 3.6 - 1.1, 7.2 + off, 2.2, 5.0, 1.1);
       c.clip();
       const roll = (p.walk * 1.6) % 1.1;
-      for (let y = 6.6 + off + roll; y < 12.8 + off; y += 1.1) line(c, side * 3.6 - 1.1, y, side * 3.6 + 1.1, y, M.steel, 0.25);
+      for (let y = 6.6 + off + roll; y < 12.8 + off; y += 1.1) line(c, leg * 3.6 - 1.1, y, leg * 3.6 + 1.1, y, M.steel, 0.25);
       c.restore();
-      poly(c, [side * 2.2, 1.0 + off * 0.3, side * 5.0, 1.4 + off * 0.3, side * 4.8, 8.4 + off, side * 3.7, 9.4 + off, side * 2.5, 8.6 + off]);
+      poly(c, [leg * 2.2, 1.0 + off * 0.3, leg * 5.0, 1.4 + off * 0.3, leg * 4.8, 8.4 + off, leg * 3.7, 9.4 + off, leg * 2.5, 8.6 + off]);
       paint(c, M.white);
-      poly(c, [side * 2.7, 6.4 + off, side * 4.5, 6.2 + off, side * 4.3, 7.8 + off, side * 3.0, 8.0 + off]);
+      poly(c, [leg * 2.7, 6.4 + off, leg * 4.5, 6.2 + off, leg * 4.3, 7.8 + off, leg * 3.0, 8.0 + off]);
       paint(c, M.caution, null);
-      line(c, side * 3.7, 2.0 + off * 0.3, side * 3.7, 6.0 + off, M.pale, 0.2);
+      line(c, leg * 3.7, 2.0 + off * 0.3, leg * 3.7, 6.0 + off, M.pale, 0.2);
     }
-    // the arms
-    for (const side of [-1, 1]) {
-      const left = side < 0;
-      const striking = p.strike >= 0 && ((p.strikeIndex % 2 === 0) === left);
-      // a walking arm swings against its leg
-      let swing = Math.sin(ph + (side > 0 ? 0 : Math.PI)) * 0.12 * pace;
-      let thrust = 0;
-      if (striking) {
-        const s = p.strike;
-        // raise, bring the claw down to land 0.39 of the way through, recover
-        const raise = s < 0.3 ? ease(s / 0.3) : s < 0.4 ? 1 - ease((s - 0.3) / 0.1) : 0;
-        const blow = s < 0.3 ? 0 : s < 0.4 ? ease((s - 0.3) / 0.1) : 1 - ease((s - 0.4) / 0.6);
-        swing = -side * (0.25 * raise - 0.55 * blow);
-        thrust = 2.6 * blow - 0.8 * raise;
-      }
-      c.save();
-      c.translate(side * (5.0 - 2.0 * p.stance), -1.0 - 0.8 * p.stance);
-      c.rotate(swing);
-      c.translate(0, -thrust);
-      // upper arm
-      poly(c, [0, -1.4, side * 4.2, -1.8, side * 4.6, 1.4, 0, 1.6]);
-      paint(c, M.dark);
-      circle(c, side * 1.0, 0, 1.1);
-      paint(c, '#7fa6a8');
-      // the pod: red armour outside, a white plate inside
-      poly(c, [side * 4.2, -4.0, side * 7.6, -4.6, side * 8.8, -1.0, side * 8.6, 5.6, side * 6.4, 6.6, side * 4.4, 4.6]);
-      paint(c, T.accent);
-      poly(c, [side * 4.2, -4.0, side * 5.6, -4.2, side * 5.6, 5.4, side * 4.4, 4.6]);
-      paint(c, M.white);
-      line(c, side * 7.2, -3.6, side * 7.4, 4.8, T.deep, 0.35);
-      // the blade and the ring claw, forward
-      poly(c, [side * 4.6, -4.1, side * 5.6, -4.2, side * 5.0, -9.2]);
-      paint(c, M.white);
-      c.beginPath();
-      c.arc(side * 6.9, -7.6, 1.9, 0, Math.PI * 2);
-      c.lineWidth = 0.9;
-      c.strokeStyle = M.line;
-      c.stroke();
-      c.lineWidth = 0.6;
-      c.strokeStyle = M.white;
-      c.stroke();
-      poly(c, [side * 6.2, -4.4, side * 7.6, -4.4, side * 7.3, -6.0, side * 6.5, -6.0]);
-      paint(c, T.deep);
-      c.restore();
-      if (striking && p.strike > 0.38 && p.strike < 0.78) {
-        // the claw's impact in front of the arm, as it lands
-        const k = (p.strike - 0.38) / 0.4;
-        c.save();
-        c.globalCompositeOperation = 'lighter';
-        c.globalAlpha = 1 - k;
-        c.beginPath();
-        c.arc(side * 6.4, -10.5, 2 + 4 * k, 0, Math.PI * 2);
-        c.lineWidth = 0.8;
-        c.strokeStyle = GLOW.rhino;
-        c.stroke();
-        c.restore();
-        glow(c, side * 6.4, -10.5, 4, GLOW.rhino, 1 - k);
-      }
-    }
-    // the body
-    poly(c, sym([0, -8.0, 1.3, -7.2, 3.7, -4.8, 5.2, -1.0, 5.0, 2.6, 2.4, 4.6, 0, 4.8]));
+    c.restore();
+    // each arm in the torso's frame, between the pose it walks in and the one
+    // it fights in; a walking arm swings against its leg
+    const arms = [-1, 1].map((arm) => {
+      const fight = arm === side || (!side && arm < 0) ? key.striking : key.other;
+      const walking = Math.sin(ph + (arm > 0 ? 0 : Math.PI)) * 0.12 * pace;
+      return { arm, joints: swung(mixJoints(mirrorJoints(RHINO_WALK, arm), fight, p.stance), arm * walking) };
+    });
+    if (side && p.stance > 0.5) slashTrail(c, p.strike, side);
+    // the torso, turning and shifting about the spine
+    c.save();
+    c.translate(key.shift[0] * p.stance, RHINO_SPINE + key.shift[1] * p.stance);
+    c.rotate(key.torso * p.stance);
+    // the striking arm is drawn over the body, the other under it
+    for (const a of arms) if (a.arm !== side) rhinoArm(c, a.joints, a.arm, T, p.t, false);
+    poly(c, sym([0, -7.4, 1.3, -6.6, 3.7, -4.2, 5.2, -0.4, 5.0, 3.2, 2.4, 5.2, 0, 5.4]));
     paint(c, M.white);
-    poly(c, sym([0, -6.4, 2.6, -4.0, 3.3, -0.6, 2.2, 0.6, 0, 0.6]));
+    poly(c, sym([0, -5.8, 2.6, -3.4, 3.3, 0, 2.2, 1.2, 0, 1.2]));
     paint(c, M.pale, null);
-    rr(c, -2.2, 1.0, 4.4, 3.3, 0.5);
+    rr(c, -2.2, 1.6, 4.4, 3.3, 0.5);
     paint(c, M.dark);
-    poly(c, [0, -8.4, 0.85, -7.4, 0.7, 0.6, -0.7, 0.6, -0.85, -7.4]);
+    poly(c, [0, -7.8, 0.85, -6.8, 0.7, 1.2, -0.7, 1.2, -0.85, -6.8]);
     paint(c, T.accent, M.line, 0.6);
-    for (const side of [-1, 1]) {
-      poly(c, [side * 3.4, -0.2, side * 5.0, 0.2, side * 4.8, 2.4, side * 3.3, 2.6]);
-      paint(c, T.accent, null);
+    glow(c, 0, 3.2, 2.0, GLOW.rhino, 0.6 + 0.3 * Math.sin(p.t * 4));
+    for (const a of arms) if (a.arm === side) rhinoArm(c, a.joints, a.arm, T, p.t, true);
+    // sparks off the nose as it cuts, from the blow on
+    if (side && p.strike > 0.39 && p.strike < 0.6) {
+      const nose = arms.find((a) => a.arm === side).joints[4];
+      sparks(c, nose[0], nose[1], 1 - (p.strike - 0.39) / 0.21, p.t, side);
     }
-    glow(c, 0, 2.6, 2.0, GLOW.rhino, 0.6 + 0.3 * Math.sin(p.t * 4));
+    c.restore();
+  }
+
+  // Where the spine stands, ahead of the body's middle: the torso turns
+  // about it.
+  const RHINO_SPINE = -0.6;
+  // A Rhino's left arm walking, read off its Walk clip by
+  // scripts/player/rhino-slash.py: the shoulder, the elbow, the hand, the top
+  // of the chainsaw's bar and its nose, from the spine.
+  const RHINO_WALK = [[-5.0, 1.2], [-6.3, -0.4], [-6.3, -2.8], [-9.4, 3.3], [-9.1, -9.7]];
+  // A Rhino's FiringAL as scripts/player/rhino-slash.py prints it: how far
+  // through the clip; how far the torso and the hips have turned, degrees
+  // clockwise; how far the spine has moved; then the striking left arm's
+  // joints and the right arm's, in the torso's frame. Its first key is the
+  // Idle a Rhino fights in.
+  const RHINO_SLASH = [
+    [0.0, 0, 0, 0.0, 0.0, -5.0, 1.1, -6.4, 3.9, -6.9, 2.9, -8.5, 5.7, -11.1, -0.3, 5.0, 1.1, 6.4, 3.9, 6.9, 2.9, 8.5, 5.7, 11.1, -0.3],
+    [0.1, -14, -8, -0.3, 0.3, -4.8, 1.3, -6.3, 4.7, -7.1, 3.7, -8.0, 6.2, -11.7, 0.4, 5.2, 1.2, 6.2, 4.0, 6.8, 3.0, 8.3, 6.3, 11.2, 0.2],
+    [0.2, -46, -25, -0.7, 0.9, -4.5, 2.0, -6.1, 6.1, -7.3, 4.9, -6.7, 8.0, -11.4, 1.9, 5.4, 1.7, 5.5, 4.2, 6.3, 3.1, 7.0, 7.8, 11.2, 1.3],
+    [0.267, -59, -36, -0.9, 1.3, -4.4, 2.4, -5.8, 6.7, -7.2, 5.4, -5.4, 9.4, -11.0, 2.8, 5.4, 1.9, 5.4, 4.2, 6.3, 3.0, 6.7, 8.3, 11.3, 1.1],
+    [0.3, -64, -42, -1.1, 1.7, -4.5, 2.5, -5.8, 6.8, -7.3, 5.4, -5.1, 10.0, -10.8, 2.8, 5.3, 1.9, 5.5, 4.2, 6.3, 2.9, 6.8, 8.4, 11.3, 0.8],
+    [0.333, -59, -38, -0.8, 1.5, -4.4, 2.4, -6.1, 6.6, -7.6, 5.1, -5.2, 10.1, -10.8, 2.3, 5.4, 1.9, 5.5, 4.2, 6.3, 2.9, 6.9, 8.2, 11.3, 0.9],
+    [0.367, -21, -18, 0.7, 0.3, -4.9, 1.4, -8.1, 3.3, -9.0, 1.0, -9.5, 5.5, -12.1, -6.1, 5.2, 1.4, 6.2, 3.9, 6.7, 2.7, 8.6, 6.6, 10.9, -0.5],
+    [0.4, 56, 21, 2.8, -0.9, -5.6, 0.9, -9.1, 0.4, -10.0, -2.3, -11.3, -0.1, -14.0, -14.3, 4.0, 1.3, 7.0, 2.7, 7.1, 1.5, 9.1, 3.4, 9.0, -3.6],
+    [0.433, 70, 29, 3.0, -0.9, -5.6, 1.0, -9.0, -0.2, -9.7, -3.1, -11.2, -0.6, -13.0, -15.4, 3.8, 1.5, 7.0, 2.5, 7.0, 1.2, 9.0, 3.1, 8.4, -4.2],
+    [0.467, 73, 31, 3.0, -0.9, -5.5, 1.0, -8.7, -0.7, -9.1, -3.7, -10.9, -1.1, -10.9, -16.3, 3.8, 1.5, 7.0, 2.4, 7.0, 1.1, 8.9, 3.1, 8.4, -4.3],
+    [0.5, 69, 29, 2.8, -0.9, -5.5, 1.0, -8.3, -1.1, -8.3, -4.1, -10.6, -1.5, -8.4, -16.7, 3.8, 1.5, 7.0, 2.5, 7.0, 1.2, 8.9, 3.2, 8.6, -4.1],
+    [0.567, 60, 26, 2.5, -0.8, -5.6, 0.9, -7.6, -1.0, -7.0, -3.9, -10.3, -1.6, -5.1, -15.9, 3.9, 1.4, 6.9, 2.7, 7.1, 1.5, 8.9, 3.6, 9.2, -3.6],
+    [0.633, 48, 21, 2.0, -0.7, -5.5, 0.9, -7.2, -0.5, -6.5, -3.3, -10.3, -1.0, -4.4, -14.4, 4.1, 1.2, 6.9, 3.0, 7.2, 1.8, 8.9, 3.9, 9.7, -3.0],
+    [0.7, 35, 15, 1.5, -0.6, -5.5, 0.9, -7.0, 0.7, -6.6, -1.8, -10.4, 0.5, -6.0, -11.8, 4.4, 1.1, 6.8, 3.2, 7.2, 2.1, 8.8, 4.4, 10.3, -2.3],
+    [0.767, 22, 9, 1.0, -0.4, -5.4, 0.9, -6.8, 2.2, -6.8, 0.2, -10.3, 2.3, -8.6, -7.8, 4.6, 1.1, 6.7, 3.5, 7.1, 2.4, 8.8, 4.8, 10.7, -1.6],
+    [0.833, 10, 4, 0.5, -0.2, -5.2, 1.0, -6.5, 3.4, -6.9, 2.2, -9.6, 4.2, -10.7, -2.8, 4.9, 1.0, 6.6, 3.7, 7.0, 2.7, 8.6, 5.3, 11.0, -0.9],
+    [0.9, 3, 1, 0.1, 0.0, -5.1, 1.0, -6.4, 3.9, -6.9, 2.9, -8.7, 5.4, -11.0, -0.3, 5.0, 1.0, 6.4, 3.8, 7.0, 2.8, 8.5, 5.6, 11.1, -0.4],
+    [1.0, 0, 0, 0.0, 0.0, -5.0, 1.1, -6.4, 3.9, -6.9, 2.9, -8.5, 5.7, -11.1, -0.3, 5.0, 1.1, 6.4, 3.9, 6.9, 2.9, 8.5, 5.7, 11.1, -0.3],
+  ];
+
+  // A Rhino's strike `s` of the way through its clip, struck with `side`'s
+  // arm, -1 left: FiringAR is FiringAL mirrored. Angles are in radians.
+  function slashAt(s, side) {
+    let i = 0;
+    while (i + 2 < RHINO_SLASH.length && RHINO_SLASH[i + 1][0] <= s) i++;
+    const [a, b] = [RHINO_SLASH[i], RHINO_SLASH[i + 1]];
+    const k = Math.max(0, Math.min(1, (s - a[0]) / (b[0] - a[0])));
+    const v = a.map((x, j) => x + (b[j] - x) * k);
+    const flip = -side;
+    const joints = (from) => [0, 1, 2, 3, 4].map((j) => [flip * v[from + 2 * j], v[from + 2 * j + 1]]);
+    return {
+      torso: (flip * v[1] * Math.PI) / 180,
+      hips: (flip * v[2] * Math.PI) / 180,
+      shift: [flip * v[3], v[4]],
+      striking: joints(5),
+      other: joints(15),
+    };
+  }
+
+  function mirrorJoints(joints, arm) {
+    return joints.map(([x, y]) => [-arm * x, y]);
+  }
+  function mixJoints(a, b, k) {
+    return a.map(([x, y], j) => [x + (b[j][0] - x) * k, y + (b[j][1] - y) * k]);
+  }
+  // An arm's joints turned by `angle` about its shoulder.
+  function swung(joints, angle) {
+    const [sx, sy] = joints[0];
+    const c = Math.cos(angle), s = Math.sin(angle);
+    return joints.map(([x, y]) => [sx + (x - sx) * c - (y - sy) * s, sy + (x - sx) * s + (y - sy) * c]);
+  }
+
+  // One Rhino arm: the upper arm under a team-coloured guard, the forearm,
+  // and the chainsaw clamped beside the hand.
+  function rhinoArm(c, [shoulder, elbow, hand, top, nose], arm, T, t, striking) {
+    segment(c, shoulder, elbow, 2.0, M.dark, M.steel);
+    segment(c, elbow, hand, 1.6, M.white, T.deep);
+    // the clamp from the hand to the bar
+    const [bx, by] = [nose[0] - top[0], nose[1] - top[1]];
+    const along = Math.max(0, Math.min(1, ((hand[0] - top[0]) * bx + (hand[1] - top[1]) * by) / (bx * bx + by * by || 1)));
+    segment(c, hand, [top[0] + bx * along, top[1] + by * along], 1.4, M.darker, M.mid);
+    // the guard over the shoulder, hung from the collarbone as the model's
+    // pauldron is, so turning with the torso
+    c.save();
+    c.translate(shoulder[0], shoulder[1]);
+    poly(c, [arm * 0.4, -2.4, arm * 3.0, -3.0, arm * 4.0, 0.0, arm * 3.8, 4.6, arm * 2.0, 5.4, arm * 0.3, 3.8]);
+    paint(c, T.accent);
+    poly(c, [arm * 0.4, -2.4, arm * 1.5, -2.6, arm * 1.5, 4.4, arm * 0.3, 3.8]);
+    paint(c, M.white);
+    line(c, arm * 2.6, -2.2, arm * 2.8, 4.0, T.deep, 0.35);
+    c.restore();
+    chainsaw(c, top, nose, T, t * (striking ? 26 : 5) * arm, striking);
+  }
+
+  // A chainsaw: its bar from the top to the nose, and the toothed saw
+  // flywheel turning on the nose, a fast one blurred.
+  function chainsaw(c, top, nose, T, spin, fast) {
+    const length = Math.hypot(nose[0] - top[0], nose[1] - top[1]);
+    c.save();
+    c.translate(top[0], top[1]);
+    c.rotate(Math.atan2(nose[0] - top[0], -(nose[1] - top[1])));
+    rr(c, -0.8, -length, 1.6, length, 0.8);
+    paint(c, T.accent);
+    rr(c, -0.3, -length + 1.0, 0.6, Math.max(0, length - 1.6), 0.3);
+    paint(c, T.deep, null);
+    c.restore();
+    saw(c, nose[0], nose[1], 2.6, spin, T, fast);
+  }
+
+  // A toothed saw flywheel turning about its hub; a fast one blurs.
+  function saw(c, x, y, r, spin, T, fast) {
+    c.save();
+    c.translate(x, y);
+    if (fast) {
+      circle(c, 0, 0, r * 1.22);
+      paint(c, 'rgba(230,233,238,0.25)', null);
+    }
+    c.rotate(spin);
+    const teeth = 14;
+    c.beginPath();
+    for (let i = 0; i < teeth * 2; i++) {
+      const a = (i * Math.PI) / teeth;
+      const reach = i % 2 === 0 ? r * 1.2 : r;
+      const lag = i % 2 === 0 ? 0.12 : 0;
+      if (i === 0) c.moveTo(Math.sin(a + lag) * reach, -Math.cos(a + lag) * reach);
+      else c.lineTo(Math.sin(a + lag) * reach, -Math.cos(a + lag) * reach);
+    }
+    c.closePath();
+    paint(c, M.pale);
+    circle(c, 0, 0, r * 0.8);
+    paint(c, M.mid, null);
+    for (let k = 0; k < 3; k++) {
+      c.rotate((Math.PI * 2) / 3);
+      rr(c, -0.22 * r, -0.72 * r, 0.44 * r, 0.34 * r, 0.12 * r);
+      paint(c, M.darker, null);
+    }
+    circle(c, 0, 0, r * 0.34);
+    paint(c, T.accent);
+    circle(c, 0, 0, r * 0.13);
+    paint(c, M.darker, null);
+    c.restore();
+  }
+
+  // The band a Rhino's bar has swept through over the last tenth of its
+  // clip, from its middle to its nose, in the unit's frame.
+  function slashTrail(c, s, side) {
+    if (s < 0.34 || s > 0.62) return;
+    const sweep = (at) => {
+      const key = slashAt(at, side);
+      const [, , , top, nose] = key.striking;
+      const cos = Math.cos(key.torso), sin = Math.sin(key.torso);
+      const place = ([x, y]) => [key.shift[0] + x * cos - y * sin, RHINO_SPINE + key.shift[1] + x * sin + y * cos];
+      return [place([(top[0] + nose[0]) / 2, (top[1] + nose[1]) / 2]), place(nose)];
+    };
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    const steps = 10;
+    const fade = s < 0.5 ? 1 : 1 - (s - 0.5) / 0.12;
+    for (let i = 0; i < steps; i++) {
+      const [a0, a1] = sweep(Math.max(0.34, s - (0.1 * (steps - i)) / steps));
+      const [b0, b1] = sweep(Math.max(0.34, s - (0.1 * (steps - i - 1)) / steps));
+      c.globalAlpha = fade * ((i + 1) / steps) * 0.55;
+      poly(c, [a0[0], a0[1], a1[0], a1[1], b1[0], b1[1], b0[0], b0[1]]);
+      paint(c, '#ffc46b', null);
+      // the nose's own path, brightest
+      line(c, a1[0], a1[1], b1[0], b1[1], '#fff1d6', 0.5 * ((i + 1) / steps));
+    }
+    c.restore();
+  }
+
+  // One limb from `from` to `to`, `width` across, with a stripe down it.
+  function segment(c, from, to, width, fill, stripe) {
+    const length = Math.hypot(to[0] - from[0], to[1] - from[1]);
+    c.save();
+    c.translate(from[0], from[1]);
+    c.rotate(Math.atan2(to[0] - from[0], -(to[1] - from[1])));
+    rr(c, -width / 2, -length - width / 2, width, length + width, width * 0.45);
+    paint(c, fill);
+    rr(c, -width * 0.12, -length * 0.85, width * 0.24, length * 0.7, width * 0.1);
+    paint(c, stripe, null);
+    c.restore();
+  }
+
+  // Sparks thrown forward off a saw as it cuts.
+  function sparks(c, x, y, strength, t, side) {
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 9; i++) {
+      const phase = (t * 7 + i * 0.37) % 1;
+      const a = side * (0.25 + 0.5 * ((i * 0.618) % 1)) - Math.PI / 2;
+      const d0 = 0.4 + phase * 3.2;
+      const d1 = d0 + 0.9;
+      c.globalAlpha = strength * (1 - phase);
+      line(c, x + Math.cos(a) * d0, y + Math.sin(a) * d0, x + Math.cos(a) * d1, y + Math.sin(a) * d1, '#ffd27a', 0.22);
+    }
+    c.restore();
+    glow(c, x, y, 2.6, GLOW.rhino, strength * 0.9);
   }
 
   // Crawler: a small four-legged shell led by a spinning drill.
