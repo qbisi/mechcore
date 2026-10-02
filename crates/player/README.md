@@ -31,8 +31,9 @@ fires.
 A recording made with the `unit_pose` instrument channel also says how the
 game drew each unit: the clip its model played and how far through. The page
 then takes a unit's stance and the phase of its attack from that clip, so a
-Rhino stands on its wheels to walk and plants itself to strike, left arm and
-right in turn, as the game showed it. A recording with no poses, as every
+Rhino carries its chainsaws ahead to walk and lowers them to its sides to
+fight, and slashes with its left arm and its right in turn, as the game
+showed it. A recording with no poses, as every
 fight the simulator makes, is animated from its units' motion and its events,
 with the timings `scripts/player/pose-timing.py` reads off a recording that
 has them: `SWING` and `ACTIONS` in `web/player.js`.
