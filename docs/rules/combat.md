@@ -665,6 +665,10 @@ not the game's native attack-type enum.
 
 - A Crawler on the very edge of a Tarantula's splash is spared:
   `tests/corpus/fights/67159970-r2.yaml`, tick 188.
+- A Fire Badger's shot at a wall block that fell while it flew lands on
+  nothing, splash included, and on the fight's last tick a Wasp's shot at a
+  tower torn down is removed before the towers fall:
+  `tests/corpus/fights/67158166-r2.yaml`, ticks 290 and 765.
 
 - A Vortex left with only aircraft to fire at locks one, walks on it, idles
   in touch, searches every eleven ticks and sets off again when its lock

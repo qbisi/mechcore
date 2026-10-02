@@ -1,0 +1,49 @@
+# Replay 2324_20260925--67158166, round 2, map 1031. Blue's Wasp Swarm
+# makes twelve Wasps that join attacking: entering the attack hands their
+# agents a speed at once, and the solve on their join tick pushes the ones
+# that overlap apart. Two Fire Badger shots at a wall block that falls
+# while they fly land on nothing, splash included. On the fight's last
+# tick a Wasp's shot at a tower torn down is removed before the towers
+# fall.
+
+kind: fight
+map_id: 1031
+seed: 1171883115
+round: 2
+source: game
+ticks: 767
+hash: {profile: mcfr-content-0.7.0, result: 877ece7d8a4e118f9da130b58e544bafd33cdc5639e6a47b8793174e971ff137}
+blue:
+  officers: [supply_specialist]
+  blueprints: [defense_enhancement]
+  legacy_index: 7
+  units:
+  - {name: vortex, index: 0, position: {x: -140, y: -70}, exp: 138/635/750}
+  - {name: vortex, index: 1, position: {x: -90, y: -70}, exp: 346/750/750}
+  - {name: vortex, index: 2, position: {x: -20, y: -70}, exp: 413/526/750}
+  - {name: fire_badger, index: 3, position: {x: -175, y: -70}, exp: 185/400/1400}
+  - {name: fire_badger, index: 4, position: {x: -55, y: -70}, exp: 350/589/1400}
+  - {name: crawler, index: 5, position: {x: -140, y: -105}, exp: 436/450/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: -20, y: -105}, exp: 365/377/450, rotated: true}
+  - {name: fang, index: 7, position: {x: 160, y: -175}, exp: 0/160/600, rotated: true}
+  - {name: fang, index: 8, position: {x: -160, y: -175}, rotated: true}
+  - {name: fang, index: 9, position: {x: -140, y: -35}, exp: 0/121/600, rotated: true}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  battle_skills:
+  - {name: wasp_swarm, positions: [{x: 263, y: 283}]}
+red:
+  core_damage: 252
+  officers: [cost_control_specialist]
+  legacy_index: 7
+  units:
+  - {name: crawler, index: 0, position: {x: -100, y: -205}, exp: 18/23/450, rotated: true}
+  - {name: crawler, index: 1, position: {x: -290, y: -265}, exp: 362/386/450, rotated: true}
+  - {name: crawler, index: 2, position: {x: 290, y: -265}, exp: 0/33/450, rotated: true}
+  - {name: steel_ball, index: 4, position: {x: -65, y: -240}, exp: 34/170/1000}
+  - {name: marksman, index: 5, position: {x: -120, y: -170}, exp: 5/328/650}
+  - {name: marksman, index: 6, position: {x: 120, y: -170}, exp: 24/490/650}
+  - {name: vulcan, index: 7, position: {x: 80, y: -140}, exp: 0/1034/2200}
+  - {name: crawler, index: 8, position: {x: 110, y: -135}, exp: 0/43/450, rotated: true}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
