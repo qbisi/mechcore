@@ -551,6 +551,16 @@ impl Simulation {
                 else {
                     return Ok(());
                 };
+                // A striking sibling at a construction: the Raiden's slots
+                // recorded against a Defensive Wall strike no block where
+                // this path would, so which construction a striking slot
+                // takes is not established.
+                if self.actors[&actor_id].skill.kind == SkillKind::Strike {
+                    return Err(Error::new(format!(
+                        "unit {actor_id}'s grouped slot {skill_index} strikes construction \
+                         {building_id}, and a striking slot at a construction is not measured"
+                    )));
+                }
                 self.refresh_group_skill_attack_interval(actor_id, skill_index, step)?;
                 self.release_projectile_to(
                     FightActorRef::Unit(actor_id),

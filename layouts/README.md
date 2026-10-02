@@ -25,6 +25,11 @@ sides, board included. `crates/document/src/project.rs` holds the projection
 to it, and `crates/adapter/src/operations.rs` reads red's two towers from it,
 one strengthened to level 2 beside one that is not.
 
+`raiden-wall-slots.yaml` is the probe behind the simulator's refusal of a
+grouped slot that strikes a construction: the game's Raiden there strikes a
+wall block with its core slot alone, where the simulator's slots would have
+struck one each.
+
 `crowd.yaml` is the large scene the simulator's speed is followed on: 1302
 units, mirrored, under a fixed seed, whose `convert --to mcfr` profiling
 splits what the fight cost by phase and states it per unit-tick.
