@@ -1,0 +1,24 @@
+# A Portable Shield on red's Crawlers, against the Hacker of
+# `../../hacker/fights/m3-crawler-4242.yaml`. A Crawler is turned once its
+# progress reaches its life, 250, whatever its shield holds: the first is
+# turned with its whole shield of 250, others with what their enemies left
+# of it.
+#
+# On tick 166 a Crawler is turned as the turned Crawler beside it dies, and
+# the Crawlers that were after the dead one search where everything stands
+# now: they take the one just turned.
+
+kind: fight
+map_id: 1021
+seed: 1787720817
+round: 1
+source: game
+ticks: 381
+hash: {profile: mcfr-content-0.7.0, result: 95a05ea4a5efa622b5f81f91c471d3d6dcac5219af15202140787dcc88959f92}
+blue:
+  core_damage: 64
+  units:
+  - {name: hacker, index: 0, position: {x: -5, y: -105}, exp: 0/64/560}
+red:
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/450/450, equipment: [portable_shield]}

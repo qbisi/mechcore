@@ -1,0 +1,21 @@
+# The Hacker's beam on a Marksman inside red's shield, laid out as the Steel
+# Ball's `../../shield/fights/beam.yaml`. The beam does not cross a shield: the
+# skill fires at the shield in place of its lock, and the beam deals the
+# shield its damage effect, 179 a hit, and turns nothing.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 181
+hash: {profile: mcfr-content-0.7.0, result: eadb27f3d6a76419ca42d29605f67eb176c43e71f11f79b684e0e0c49d68b7cd}
+blue:
+  core_damage: 100
+  units:
+  - {name: hacker, index: 0, position: {x: 5, y: -155}}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -80}, exp: 0/400/650}
+  contraptions:
+  - {name: shield, index: 1, position: {x: 1, y: -81}}

@@ -28,6 +28,10 @@ pub(crate) use contraptions::{
 };
 
 #[derive(Debug, Clone)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "each flag is an independent fact the unit's equipment or deployment gives it"
+)]
 pub(crate) struct Placement {
     pub(crate) team: u32,
     pub(crate) unit_id: u64,
@@ -72,6 +76,9 @@ pub(crate) struct Placement {
     /// Whether its equipment makes it an important unit
     /// (`FightMech.IsImportant`): its side does not outlive it.
     pub(crate) important: bool,
+    /// Whether its equipment keeps every control beam from turning it,
+    /// `TeamTranslationSystem.IsIgnoredMech`.
+    pub(crate) ignores_control_beam: bool,
     /// Whether it opens the fight travelling: a unit deployed into an ambush
     /// zone, which `SuperDeploymentSystem` holds until its side arrives.
     pub(crate) travelling: bool,
@@ -616,6 +623,7 @@ fn compile_formation(
         start_buffs: worn.start_buffs,
         ignored_buffs: worn.ignored_buffs,
         important: worn.important,
+        ignores_control_beam: worn.ignores_control_beam,
         travelling: formation.travelling,
     })
 }
@@ -698,6 +706,7 @@ struct Worn {
     start_buffs: Vec<StartBuff>,
     ignored_buffs: Vec<u32>,
     important: bool,
+    ignores_control_beam: bool,
 }
 
 /// What this side's loadout and a formation's equipment write onto it.
@@ -825,8 +834,15 @@ fn worn(
     let mut start_buffs = Vec::new();
     let mut ignored_buffs = Vec::new();
     let mut important = false;
+    let mut ignores_control_beam = false;
     for &id in equipment {
         important |= refused.hold(loadouts.equipment.important(id, rules).map_err(on_side))?;
+        ignores_control_beam |= refused.hold(
+            loadouts
+                .equipment
+                .ignores_control_beam(id, rules)
+                .map_err(on_side),
+        )?;
         ignored_buffs
             .extend(refused.hold(loadouts.equipment.ignored_buffs(id, rules).map_err(on_side))?);
         start_buffs
@@ -865,6 +881,7 @@ fn worn(
         start_buffs,
         ignored_buffs,
         important,
+        ignores_control_beam,
     })
 }
 

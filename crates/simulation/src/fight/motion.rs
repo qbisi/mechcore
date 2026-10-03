@@ -1134,13 +1134,17 @@ impl Simulation {
                 && !actor.motion.attack_hold_fire
                 && !in_attack_angle
                 && actor.skill.pending().is_none()
-                && actor.skill.backswing_finish_step().is_none();
+                && actor.skill.backswing_finish_step().is_none()
+                && actor.skill.phase() == FightSkillPhase::Attack;
             if invalid_attack_angle_barrier {
                 // MotionAttackState returns to Idle when an active bodyless
                 // skill loses its root-transform attack angle. The new
                 // Idle state is entered synchronously but is not updated
                 // recursively, so target reacquisition waits one tick and
-                // this transition tick preserves the old body facing.
+                // this transition tick preserves the old body facing. An idle
+                // skill is not active, and `MotionAttackState.AttackRotate`
+                // turns the unit to its target: a Crawler whose target a beam
+                // turned takes the next and turns to it.
                 actor.motion.state = MotionState::Idle;
                 actor.skill.drop_lock();
                 actor.skill.set_phase(FightSkillPhase::Idle);
@@ -1396,7 +1400,7 @@ impl Simulation {
             && !burst_releasing
             && actor.skill.performer.pending().is_empty()
             && actor.skill.backswing_finish_step().is_none()
-            && (actor.rules.attack.melee || actor.skill.phase() == FightSkillPhase::Attack)
+            && actor.skill.phase() == FightSkillPhase::Attack
         {
             // FightSkill updates before MotionController. An active bodyless
             // attack rejects an out-of-range retained target and enters
@@ -1407,7 +1411,10 @@ impl Simulation {
             // Overlord whose Crawler walks out of reach after its third shot
             // follows it and fires the fourth. Nor on the update its last
             // shot leaves: a Phantom Ray whose Rhino walks out of reach
-            // moves after it that update and goes idle on the next.
+            // moves after it that update and goes idle on the next. An idle
+            // skill rejects nothing, and `MotionAttackState` changes to
+            // `MotionMoveState`: a Crawler whose target a beam turned walks
+            // on the next one it finds.
             actor.motion.state = MotionState::Idle;
             actor.skill.drop_lock();
             actor.skill.set_phase(FightSkillPhase::Idle);

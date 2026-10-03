@@ -1,0 +1,20 @@
+# A Portable Shield on red's Rhino, against the Hacker of
+# `../../hacker/fights/m2-rhino-4242.yaml`. The beam turns and strikes
+# nothing, so the shield takes nothing: the Rhino reads its whole shield and
+# life all fight while its progress grows by 600 a hit, to 10803 before the
+# Rhino wins.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 203
+hash: {profile: mcfr-content-0.7.0, result: f11c30958909f04452cc8fa0308b3deddd57d55c31a7eedb8959a852f54064f1}
+blue:
+  core_damage: 200
+  units:
+  - {name: hacker, index: 0, position: {x: -5, y: -105}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/400/1150, equipment: [portable_shield]}

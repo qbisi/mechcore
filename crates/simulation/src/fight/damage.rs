@@ -519,6 +519,7 @@ impl Simulation {
         for target in targets {
             let stroke = self.strike(target, hit.source, hit.source_team, hit.amount)?;
             self.count_hit(hit.source, hit.source_team, target, &stroke)?;
+            self.turned_unit_fell(target, &stroke);
             struck.targets.push(target);
             struck.lost += stroke.actual;
             if stroke.actual > 0 {
@@ -670,6 +671,30 @@ impl Simulation {
         skill_slot: usize,
         events: &mut Vec<Event>,
     ) -> Result<()> {
+        let amount = self.actors[&actor_id].stats.attack_damage();
+        self.blow(actor_id, target, skill_slot, amount, events)
+    }
+
+    /// A blow dealing what a beam's damage effect deals: the main skill's
+    /// `DamageEffect.Perform` with another amount.
+    pub(in crate::fight) fn direct_effect_dealing(
+        &mut self,
+        actor_id: u64,
+        target: FightActorRef,
+        amount: i64,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        self.blow(actor_id, target, 0, amount, events)
+    }
+
+    fn blow(
+        &mut self,
+        actor_id: u64,
+        target: FightActorRef,
+        skill_slot: usize,
+        amount: i64,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
         let attacker = &self.actors[&actor_id];
         let center_q32 = match target {
             FightActorRef::Unit(target_id) => {
@@ -698,7 +723,7 @@ impl Simulation {
                 attacker,
                 u16::try_from(skill_slot).expect("skill slot fits u16"),
                 target,
-                attacker.stats.attack_damage(),
+                amount,
             )
         };
         let struck = self.perform_damage(hit, events)?;
@@ -840,6 +865,7 @@ impl Simulation {
         // as no other hit does.
         let stroke = self.strike(target, Some(attacker_ref), attacker_team, damage)?;
         self.count_hit(Some(attacker_ref), attacker_team, target, &stroke)?;
+        self.turned_unit_fell(target, &stroke);
         if let Some(position) = stroke.death {
             events.push(event(
                 Some(target.object_ref()),

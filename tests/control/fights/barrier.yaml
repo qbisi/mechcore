@@ -1,0 +1,18 @@
+# A Barrier on red's Fortress, against the Hacker. The Hacker stands outside
+# the shield the Fortress carries and fires at it in place of the Fortress:
+# 179 a hit, as at a battlefield shield, and nothing is turned.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 245
+hash: {profile: mcfr-content-0.7.0, result: 9e546ac84ebce3d1e2a41f3c461ac6cbe4e672ba7e9fabd527643ca4cdc36a0c}
+blue:
+  core_damage: 350
+  units:
+  - {name: hacker, index: 0, position: {x: -5, y: -105}}
+red:
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/400/1600, equipment: [barrier]}

@@ -426,7 +426,7 @@ fn bodyless_in_range_turn_barrier_preserves_attack_timing() {
     source.describe(config.units.get("fang").unwrap().clone());
     source.skill.lock_target = Some(unit_target(2));
     source.motion.state = MotionState::Attacking;
-    source.skill.set_phase(FightSkillPhase::Idle);
+    source.skill.set_phase(FightSkillPhase::Attack);
     source.skill.next_attack_step = 20;
     simulation.actors.get_mut(&2).unwrap().life = 0;
     assert!(simulation.target_in_attack_range(FightActorRef::Unit(1), unit_target(3)));
@@ -558,6 +558,7 @@ fn bodyless_melee_attack_motion_exits_through_idle_when_target_leaves_range() {
     source.describe(config.units.get("crawler").unwrap().clone());
     source.skill.lock_target = Some(unit_target(2));
     source.motion.state = MotionState::Attacking;
+    source.skill.set_phase(FightSkillPhase::Attack);
     source.set_body_rotation(mdeg_to_degrees_q32(123_000));
 
     simulation.step_actor(1, 11, &mut Vec::new()).unwrap();

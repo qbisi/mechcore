@@ -315,6 +315,7 @@ impl Simulation {
             start_buffs: Vec::new(),
             ignored_buffs: Vec::new(),
             important: false,
+            ignores_control_beam: false,
             travelling: false,
         };
         let mut actor = Actor::at_generated_position(placement, rules, x_q32, z_q32);

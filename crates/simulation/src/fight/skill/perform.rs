@@ -106,7 +106,10 @@ impl Simulation {
                 self.start_projectile_burst(owner, pending.target, pending.step, events)?;
             }
             SkillKind::ControlBeam => {
-                return Err(Error::new("a control beam is refused before a fight"));
+                let actor_id = owner
+                    .unit_id()
+                    .ok_or_else(|| Error::new("a construction's control beam is not supported"))?;
+                self.control_effect(actor_id, pending.target, events)?;
             }
         }
         Ok(false)

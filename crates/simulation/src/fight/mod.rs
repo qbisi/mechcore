@@ -38,6 +38,7 @@ mod attacker;
 mod buff_cycle;
 mod commander_skill;
 mod construction;
+mod control;
 mod damage;
 mod deploy;
 mod experience;
@@ -256,6 +257,14 @@ struct Actor {
     skills_active: bool,
     /// Its move ability, for a unit whose description moves underground.
     underground: Option<underground::Underground>,
+    /// The effect a control beam's attack holds, while it attacks.
+    beam: Option<control::Beam>,
+    /// The side it was deployed on, which a control beam may have turned it
+    /// from.
+    original_team: u32,
+    /// The formation it was deployed in, which it leaves when it is turned
+    /// and is counted in again when it dies.
+    original_formation: u64,
     pub(in crate::fight) motion: Motion,
     pub(in crate::fight) skill: Skill,
 }
@@ -332,6 +341,15 @@ struct Ending {
 
 struct Simulation {
     actors: BTreeMap<u64, Actor>,
+    /// `TeamTranslationSystem.translatingDatas`, which a `SyncDictionary`
+    /// keeps in the order of its keys: two units due on one tick are turned
+    /// the lower identity first, whichever beam began first.
+    translations: Vec<control::Translation>,
+    /// The turned units that died this tick, in the order they died, whose
+    /// `OnDead` hands them back to their side once every unit has updated.
+    turned_fallen: Vec<u64>,
+    /// The step being simulated, which what happens inside a hit reads.
+    step_now: u64,
     /// The order the fight updates its deployed units in, which is not their
     /// identity order: see [`deploy::update_order`].
     unit_update_order: Vec<u64>,
@@ -440,6 +458,9 @@ impl Simulation {
         let productions = production_creators(&actors);
         let mut simulation = Self {
             actors,
+            translations: Vec::new(),
+            turned_fallen: Vec::new(),
+            step_now: 0,
             unit_update_order,
             team_random: BTreeMap::new(),
             projectiles: Vec::new(),
@@ -516,7 +537,13 @@ impl Simulation {
                 .actors
                 .values()
                 .filter(|actor| actor.alive())
-                .map(Actor::snapshot)
+                .map(|actor| {
+                    let mut state = actor.snapshot();
+                    if let Some(damage) = self.beam_snapshot_damage(actor) {
+                        state.derived.attack_damage = damage;
+                    }
+                    state
+                })
                 .collect(),
             projectiles: self.projectiles.iter().map(Projectile::snapshot).collect(),
             buildings: self
@@ -578,6 +605,7 @@ impl Simulation {
         if self.ending.terminal_drain_pending {
             self.ending.terminal_drain_pending = false;
         }
+        self.step_now = step;
         let fight_was_finished = self.naturally_finished();
         if drain_tick && fight_was_finished {
             // The fight ends on this tick, and every mech has left it
@@ -630,12 +658,17 @@ impl Simulation {
         // `CommanderSkillSystem` and then `MineSystem` update before
         // `FightCoreSystem`: a skill lands, and a missile fires, on where
         // their enemies stood as the tick opened.
+        // `TeamTranslationSystem` updates before `FightCoreSystem`: a unit a
+        // beam's last hit turned acts on its new side on the next tick.
+        self.update_translations(step);
         self.step_battle_skills(step, &target_search_order, &mut events)?;
         self.step_mines(&target_search_order, &mut events)?;
+        // A side whose every unit a beam turned has none left, and is counted
+        // all the same: its towers fall as a wiped-out side's do.
         let team_ids = self
             .actors
             .values()
-            .map(|actor| actor.placement.team)
+            .flat_map(|actor| [actor.placement.team, actor.original_team])
             .collect::<std::collections::BTreeSet<_>>();
         let mut team_alive_counts = BTreeMap::new();
         for team_id in team_ids {
@@ -709,6 +742,9 @@ impl Simulation {
         for building_id in std::mem::take(&mut self.towers.fallen) {
             self.lose_tower(building_id)?;
         }
+        for unit_id in std::mem::take(&mut self.turned_fallen) {
+            self.turned_unit_died(unit_id);
+        }
         // Its `TryProcessDeadImportantUnit` too: a side whose last important
         // unit died this tick loses every unit it has left.
         self.lose_important_units(&events)?;
@@ -769,6 +805,7 @@ impl Simulation {
                     actor.lose_target_motion(entered_idle);
                 }
                 actor.skill.drop_lock();
+                actor.skill.attack_target_left = None;
                 actor.skill.clear_slots();
                 // A won fight runs on without `FightSkill.ExitFight` until it
                 // ends: a skill already cooling goes on cooling at what it

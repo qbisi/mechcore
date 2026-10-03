@@ -249,6 +249,16 @@ impl Simulation {
         self.hand_out(source, source_team, target, provided)
     }
 
+    /// What turning a unit hands out: `TeamTranslationSystem.ChangeTeam`
+    /// calls `ExpSystem.CalculateExp` with the side it goes to and no
+    /// killer, so the beam's owner takes no loot of its own and the whole
+    /// of it is shared with the assist pool.
+    pub(in crate::fight) fn hand_out_turned(&mut self, team: u32, unit: u64) -> Result<()> {
+        let target = FightActorRef::Unit(unit);
+        let provided = self.provided(target)?;
+        self.hand_out(None, team, target, provided)
+    }
+
     /// `ExpSystem.DoCalculateExp`.
     fn hand_out(
         &mut self,
@@ -376,8 +386,9 @@ impl Simulation {
                 continue;
             };
             // `ExpSystem.IsValidOwner`: a summon has no formation to take a
-            // share, and does not thin the others'.
-            if actor.summoned {
+            // share, nor has a unit a beam turned (`IsTranslatedMech`), and
+            // neither thins the others'.
+            if actor.summoned || actor.placement.team != actor.original_team {
                 continue;
             }
             let formation = actor.placement.formation_id;
