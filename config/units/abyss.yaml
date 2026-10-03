@@ -1,0 +1,53 @@
+schema: mechcore.unit
+type_name: abyss
+unit_type_id: 29
+
+formation:
+  members: 1
+  slot_size: 70
+  footprint: {width: 70, depth: 70}
+
+domain: air
+size: huge
+max_life: 66955
+collision_radius: 30
+move_speed: 10
+rotate_speed: 60
+has_body: false
+rvo: {outer_radius: 34, inner_radius: 28.5, size: xxl, collider_priority: 10, priority: 0.005}
+
+attack:
+  base_damage: 3859
+  min_range: 0
+  range: 100
+  attack_half_angle: 120
+  targets: {ground: true, air: true}
+  lock_target: false
+  quick_switch_target: false
+  timing:
+    interval: 4
+    interval_offset: 0.4
+    initial_cooldown: 0
+    prepare: 0
+    attack_point: 0
+    backswing: 0
+    cooling: 0
+  splash_radius: 0
+  weapons:
+    mode: normal
+    indices: [3]
+    per_skill: 1
+  melee: false
+  crosses_shields: false
+  path:
+    type: sweep
+    perpendicular: true
+    length: 160
+    width: 10
+    sweeps: 1
+    damage_times: 20
+    damage_interval: 0.1
+    damage_delay: 0
+    hit_caps:
+      - {radius: 3.9, hits: 1}
+      - {radius: 4.1, hits: 2}

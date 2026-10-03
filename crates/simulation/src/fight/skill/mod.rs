@@ -49,6 +49,7 @@ pub(in crate::fight) enum SkillKind {
     Laser,
     Projectile,
     ControlBeam,
+    Sweep,
 }
 
 impl SkillKind {
@@ -58,6 +59,7 @@ impl SkillKind {
             AttackPath::Laser { .. } => Self::Laser,
             AttackPath::Projectile { .. } => Self::Projectile,
             AttackPath::ControlBeam { .. } => Self::ControlBeam,
+            AttackPath::Sweep { .. } => Self::Sweep,
         }
     }
 }
@@ -75,6 +77,9 @@ pub(in crate::fight) enum Performer {
     Projectile {
         pending: Vec<PendingProjectileRelease>,
     },
+    /// A `SweepAttackPerformer` under way: the strip it sweeps and what it
+    /// has struck.
+    Sweep(Box<super::sweep::Sweep>),
 }
 
 impl Performer {
@@ -84,22 +89,33 @@ impl Performer {
             SkillKind::Projectile => Self::Projectile {
                 pending: Vec::new(),
             },
-            SkillKind::Strike | SkillKind::Laser | SkillKind::ControlBeam => Self::Normal,
+            SkillKind::Strike | SkillKind::Laser | SkillKind::ControlBeam | SkillKind::Sweep => {
+                Self::Normal
+            }
         }
     }
 
     /// The burst's projectiles still to be released.
     pub(in crate::fight) fn pending(&self) -> &[PendingProjectileRelease] {
         match self {
-            Self::Normal => &[],
+            Self::Normal | Self::Sweep(_) => &[],
             Self::Projectile { pending } => pending,
         }
     }
 
+    /// Whether a sweep is under way: `SweepAttackPerformer.IsEnableCheckTarget`
+    /// answers no until it is over, and an invalid target does not interrupt
+    /// it (`IsInterruptedByInvalidTarget`).
+    pub(in crate::fight) const fn sweeping(&self) -> bool {
+        matches!(self, Self::Sweep(_))
+    }
+
     /// Stops the burst: `StopAttack` ends a performer's work.
     pub(in crate::fight) fn stop(&mut self) {
-        if let Self::Projectile { pending } = self {
-            pending.clear();
+        match self {
+            Self::Projectile { pending } => pending.clear(),
+            Self::Sweep(_) => *self = Self::Normal,
+            Self::Normal => {}
         }
     }
 
@@ -272,6 +288,10 @@ pub(in crate::fight) struct Skill {
     /// blow reads its own index: a laser's damage multiplier is the one at
     /// that index.
     pub(in crate::fight) attack_count: i32,
+    /// `SkillAttackController.totalAttackCount`: every blow started this
+    /// fight (`ResetInFightAttackData` sets it to nothing as the fight
+    /// starts), which leaving the attack state does not reset.
+    pub(in crate::fight) total_attack_count: i32,
     /// `SkillAttackController.performCount`: the blows whose cycle ran out,
     /// backswing and all (`ChangeToIdle`), since the skill entered its
     /// attack state; leaving it (`Exit`) clears it.
@@ -328,6 +348,7 @@ impl Skill {
             kind,
             performer,
             attack_count: ATTACK_COUNT_RESET,
+            total_attack_count: 0,
             perform_count: 0,
             rounds: magazine.map(|magazine| magazine.capacity),
             attack_target_left: None,
@@ -1176,6 +1197,12 @@ impl Simulation {
             .backswing_finish_step()
             .is_some_and(|finish_step| finish_step < step);
         let burst_releasing = !self.skill(owner).performer.pending().is_empty();
+        // A sweep that struck its last stretch on the update before is over.
+        if let Performer::Sweep(sweep) = &self.skill(owner).performer
+            && sweep.over()
+        {
+            self.skill_mut(owner).performer = Performer::Normal;
+        }
         if let Flow::Done = self.exit_fight_when_over(owner) {
             return Ok(None);
         }
@@ -1457,9 +1484,11 @@ impl Simulation {
             .attack
             .quick_switch_target;
         let skill = self.skill(owner);
+        // A sweep under way runs on whatever becomes of its target.
         let dead_target = !quick_switch_target
             && skill.phase() == FightSkillPhase::Attack
             && skill.backswing_finish_step().is_none()
+            && !skill.performer.sweeping()
             && skill
                 .attack_target()
                 .is_some_and(|target| !self.fight_actor_is_alive(target));
@@ -1634,6 +1663,11 @@ impl Simulation {
         let due = self.skill_mut(owner).performer.take_due(step);
         for pending in due {
             self.release_pending_projectile(owner, pending, events)?;
+        }
+        if self.skill(owner).performer.sweeping()
+            && let Some(actor_id) = owner.unit_id()
+        {
+            self.update_sweep(actor_id, events)?;
         }
         if self.skill(owner).is_grouped() {
             let actor_id = owner.unit_id().expect("only a unit's skill is grouped");

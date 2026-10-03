@@ -933,6 +933,23 @@ impl Simulation {
     /// A target that died while the unit still swings at it: a unit is left
     /// idle with it through its backswing, a felled block keeps it attacking
     /// and turning to it, and a unit whose backswing just ended drops it.
+    /// A sweep under way keeps naming its dead target until it is over
+    /// (`SweepAttackPerformer.IsInterruptedByInvalidTarget`), and the
+    /// motion, its lock dead, stays idle.
+    fn idle_through_sweep(&mut self, actor_id: u64) -> Flow {
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        if !actor.skill.performer.sweeping() {
+            return Flow::Next;
+        }
+        actor.motion.state = MotionState::Idle;
+        actor.motion.next_speed_q32 = 0;
+        actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
+        Flow::Done
+    }
+
     fn hold_dead_target(&mut self, actor_id: u64, backswing_just_finished: bool) -> Flow {
         let lock_target = self.actors[&actor_id].skill.attack_target();
         if let Some(target) = lock_target {
@@ -1030,13 +1047,10 @@ impl Simulation {
                     .get_mut(&actor_id)
                     .expect("actor identity is stable");
                 let entered_idle = actor.motion.state != MotionState::Idle;
-                actor.motion.state = MotionState::Idle;
-                if entered_idle {
-                    actor.motion.next_target_x_q32 = actor.x_q32;
-                    actor.motion.next_target_z_q32 = actor.z_q32;
-                }
-                actor.motion.next_speed_q32 = 0;
-                actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
+                actor.stop_in_place(entered_idle);
+                return Flow::Done;
+            }
+            if !target_alive && let Flow::Done = self.idle_through_sweep(actor_id) {
                 return Flow::Done;
             }
             if !target_alive {
@@ -1057,13 +1071,7 @@ impl Simulation {
                     .get_mut(&actor_id)
                     .expect("actor identity is stable");
                 let entered_idle = actor.motion.state != MotionState::Idle;
-                actor.motion.state = MotionState::Idle;
-                if entered_idle {
-                    actor.motion.next_target_x_q32 = actor.x_q32;
-                    actor.motion.next_target_z_q32 = actor.z_q32;
-                }
-                actor.motion.next_speed_q32 = 0;
-                actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
+                actor.stop_in_place(entered_idle);
                 return Flow::Done;
             }
         }
@@ -1540,6 +1548,7 @@ impl Simulation {
             && actor.skill.pending().is_none()
             && !burst_releasing
             && actor.skill.performer.pending().is_empty()
+            && !actor.skill.performer.sweeping()
             && actor.skill.backswing_finish_step().is_none()
             && actor.skill.phase() == FightSkillPhase::Attack
         {

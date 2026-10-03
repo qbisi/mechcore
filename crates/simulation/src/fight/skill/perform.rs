@@ -58,6 +58,7 @@ impl Simulation {
         skill.fire_round();
         // `SkillAttackController.PerformAttack` counts the blow as it starts.
         skill.attack_count += 1;
+        skill.total_attack_count += 1;
         // The backswing is cut short by the next blow: a blow fitted into its
         // interval by `SkillAttackController.PerformAttack` gives its
         // backswing what is left of the interval, and a Wasp's 1.5-second
@@ -73,6 +74,28 @@ impl Simulation {
         // fails or the attack finishes.
         skill.set_phase(FightSkillPhase::Attack);
         match kind {
+            SkillKind::Sweep => {
+                let actor_id = owner
+                    .unit_id()
+                    .ok_or_else(|| Error::new("a construction's sweep is not supported"))?;
+                let actor = &self.actors[&actor_id];
+                let aimed = actor.skill.attack_target().or(actor.skill.lock_target);
+                let sweep = super::super::sweep::Sweep::starting(
+                    &actor.rules.attack,
+                    aimed,
+                    actor.skill.total_attack_count,
+                );
+                if let Some(sweep) = sweep {
+                    self.actors
+                        .get_mut(&actor_id)
+                        .expect("actor identity is stable")
+                        .skill
+                        .performer = Performer::Sweep(Box::new(sweep));
+                    // `SkillAttackController.ChangeToNextPhase` starts the
+                    // attacking phase and updates it on the same update.
+                    self.update_sweep(actor_id, events)?;
+                }
+            }
             SkillKind::Strike => {
                 let actor_id = owner.unit_id().ok_or_else(|| {
                     Error::new("a construction's skill that strikes is not supported")
