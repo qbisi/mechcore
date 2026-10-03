@@ -744,7 +744,11 @@ impl Simulation {
                 if self.constructions.contains_key(&building_id) {
                     self.step_construction(building_id, step, &target_search_order, &mut events)?;
                 }
-                self.update_construction_buffs(building_id, &mut events)?;
+                // With the fight over, `FightConstruction.Update` returns
+                // before `BuffManager.Update`, as a unit's does.
+                if self.ending.stop_step.is_none() {
+                    self.update_construction_buffs(building_id, &mut events)?;
+                }
             }
         }
         let naturally_finished_before_projectiles = self.naturally_finished();
