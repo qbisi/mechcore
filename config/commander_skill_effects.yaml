@@ -342,6 +342,17 @@ damage_skills:
     sub_effect_default_height: 0  # 0
     sub_effect_interval_time: 1717986918  # 0.4
     cross_advanced_shield: false
+    buff:
+      id: 20002
+      name: 减速-战场技能-闪电风暴
+      divide: 0
+      duration: 85899345920  # 20
+      additive: false
+      debuff: false
+      disable_technology: false
+      can_affect_construction: false
+      can_affect_tower: false
+      move_speed_rate: -2791728742  # -0.65
   - id: 300006
     name: 离子轰炸
     effect_range_type: 1
@@ -402,6 +413,17 @@ damage_skills:
     sub_effect_default_height: 0  # 0
     sub_effect_interval_time: 1717986918  # 0.4
     cross_advanced_shield: false
+    buff:
+      id: 20002
+      name: 减速-战场技能-闪电风暴
+      divide: 0
+      duration: 85899345920  # 20
+      additive: false
+      debuff: false
+      disable_technology: false
+      can_affect_construction: false
+      can_affect_tower: false
+      move_speed_rate: -2791728742  # -0.65
   - id: 300010
     name: 离子轰炸
     effect_range_type: 1
@@ -462,6 +484,17 @@ damage_skills:
     sub_effect_default_height: 0  # 0
     sub_effect_interval_time: 1717986918  # 0.4
     cross_advanced_shield: false
+    buff:
+      id: 20002
+      name: 减速-战场技能-闪电风暴
+      divide: 0
+      duration: 85899345920  # 20
+      additive: false
+      debuff: false
+      disable_technology: false
+      can_affect_construction: false
+      can_affect_tower: false
+      move_speed_rate: -2791728742  # -0.65
   - id: 300014
     name: 离子轰炸
     effect_range_type: 1

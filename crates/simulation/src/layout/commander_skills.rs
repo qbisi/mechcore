@@ -73,6 +73,9 @@ struct DamageSkillRow {
     sub_effect_range: i64,
     sub_effect_interval_time: i64,
     cross_advanced_shield: bool,
+    /// The `buffDatas` row its `subEffectBuffID` names, when it names one.
+    #[serde(default)]
+    buff: Option<BuffRow>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -183,6 +186,9 @@ pub(crate) enum SkillEffect {
         damage: i64,
         /// `isCrossAdvancedShield`: it passes shields, falling and landing.
         crosses_shields: bool,
+        /// What each sub-effect writes on the units it reaches, after its
+        /// damage.
+        buff: Option<SkillBuff>,
         /// Where `CommanderSkillManager.CalculateAttackPositions` puts the
         /// sub-effects about the release.
         scatter: Scatter,
@@ -523,12 +529,15 @@ fn released(
 /// says, each timed off its row and striking `subEffectRange` about where it
 /// lands.
 fn strike_effect(named: &str, row: &DamageSkillRow) -> Result<SkillEffect> {
-    if row.sub_effect_buff_id != 0 {
-        return Err(Error::new(format!(
-            "{named} writes buff {}, which this build does not read",
-            row.sub_effect_buff_id
-        )));
-    }
+    let buff = match (&row.buff, row.sub_effect_buff_id) {
+        (None, 0) => None,
+        (Some(buff), id) if buff.id == id => Some(skill_buff(named, buff)?),
+        (_, id) => {
+            return Err(Error::new(format!(
+                "{named} writes buff {id}, which the table does not carry"
+            )));
+        }
+    };
     let scatter = match row.effect_range_type {
         0 => Scatter::Point,
         1 => Scatter::Line { to_q32: (0, 0) },
@@ -545,6 +554,7 @@ fn strike_effect(named: &str, row: &DamageSkillRow) -> Result<SkillEffect> {
         range_q32: row.sub_effect_range,
         damage: row.sub_effect_damage,
         crosses_shields: row.cross_advanced_shield,
+        buff,
         scatter,
         sub_effects: schedule(row)?
             .into_iter()
@@ -617,25 +627,29 @@ fn buff_effect(named: &str, row: &BuffSkillRow) -> Result<SkillEffect> {
             "{named} deals damage this build does not read"
         )));
     }
-    let buff = &row.buff;
+    Ok(SkillEffect::Buff {
+        range_q32: row.effect_range,
+        buff: skill_buff(named, &row.buff)?,
+    })
+}
+
+/// The buff a sub-effect writes, as `BuffSystem.AddBuff` reads its row.
+fn skill_buff(named: &str, buff: &BuffRow) -> Result<SkillBuff> {
     if buff.can_affect_construction || buff.can_affect_tower {
         return Err(Error::new(format!(
             "{named}'s buff {} ({}) reaches a building, which is not measured",
             buff.id, buff.name
         )));
     }
-    Ok(SkillEffect::Buff {
-        range_q32: row.effect_range,
-        buff: SkillBuff {
-            id: buff.id,
-            divide: buff.divide,
-            additive: buff.additive,
-            ticks: u32::try_from(ticks(buff.duration)?)
-                .map_err(|_| Error::new(format!("{named}'s buff outlasts a fight")))?,
-            move_speed_rate: buff.move_speed_rate,
-            disable_technology: buff.disable_technology,
-            debuff: buff.debuff,
-        },
+    Ok(SkillBuff {
+        id: buff.id,
+        divide: buff.divide,
+        additive: buff.additive,
+        ticks: u32::try_from(ticks(buff.duration)?)
+            .map_err(|_| Error::new(format!("{named}'s buff outlasts a fight")))?,
+        move_speed_rate: buff.move_speed_rate,
+        disable_technology: buff.disable_technology,
+        debuff: buff.debuff,
     })
 }
 

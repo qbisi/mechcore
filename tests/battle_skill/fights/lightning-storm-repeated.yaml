@@ -1,0 +1,27 @@
+# Lightning Storm on level 3 Sledgehammers, which outlive its strikes.
+#
+# A unit struck again while its slow runs takes the buff again: 38 writes land
+# on 15 units, three of them taking it four or five times, and each unit
+# carries one slow, of which one runs its 400 ticks out. The strikes kill one
+# unit.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 747
+hash: {profile: mcfr-content-0.7.0, result: f08b6511bfa868478e93d17a2279e34d0acb42f25a8d9c590681ba4ef3c454ce}
+blue:
+  units:
+  - {name: fortress, index: 0, position: {x: -60, y: -160}, exp: 0/1600/1600}
+  - {name: fortress, index: 1, position: {x: 60, y: -160}, exp: 0/1600/1600}
+  battle_skills:
+  - {name: lightning_storm, positions: [{x: 0, y: 40}]}
+red:
+  core_damage: 350
+  units:
+  - {name: sledgehammer, index: 0, position: {x: -45, y: -60}, level: 3}
+  - {name: sledgehammer, index: 1, position: {x: 5, y: -60}, level: 3}
+  - {name: sledgehammer, index: 2, position: {x: 55, y: -60}, level: 3}
+  - {name: fortress, index: 3, position: {x: 0, y: -110}, exp: 0/800/1600}

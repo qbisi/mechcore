@@ -1,0 +1,30 @@
+# Lightning Storm on red's Sledgehammers and Crawlers as they set off.
+#
+# A random circle as Orbital Bombardment is, of thirty sub-effects 0.4
+# seconds apart: they land on tick 62, then 69, then every eight ticks. Each
+# deals 2000 to every unit whose edge its 30 metres reach and then writes buff
+# 20002, a slow of 0.65 for 400 ticks, on those of them still alive: 80 hits
+# on 16 ticks kill 64 units and slow 16.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 440
+hash: {profile: mcfr-content-0.7.0, result: 4510fedc8c861cdf5caaab7a0903a3e9d55d2432aad8bb7333e943ef71042539}
+blue:
+  units:
+  - {name: fortress, index: 0, position: {x: -60, y: -160}, exp: 0/940/1600}
+  - {name: fortress, index: 1, position: {x: 60, y: -160}, exp: 0/836/1600}
+  battle_skills:
+  - {name: lightning_storm, positions: [{x: 0, y: -20}]}
+red:
+  core_damage: 700
+  units:
+  - {name: sledgehammer, index: 0, position: {x: -45, y: -60}}
+  - {name: sledgehammer, index: 1, position: {x: 5, y: -60}}
+  - {name: sledgehammer, index: 2, position: {x: 55, y: -60}}
+  - {name: crawler, index: 3, position: {x: 5, y: -110}}
+  - {name: crawler, index: 4, position: {x: -55, y: -110}}
+  - {name: crawler, index: 5, position: {x: 65, y: -110}}
