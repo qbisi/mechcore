@@ -1,0 +1,40 @@
+# Replay 2324_20260925--134266831, round 1, map 1011. A construction whose
+# side has no unit left still has its buff cleared as the fight ends. Tower 9
+# falls on tick 1152, and its loss's buff reaches units 56, 118 and 125 and
+# construction 11. A shot kills all three units on tick 1165, ending the fight:
+# each death clears its unit's buff, and the end clears building 11's last.
+
+kind: fight
+map_id: 1011
+seed: 746343185
+round: 1
+source: game
+ticks: 1165
+hash: {profile: mcfr-content-0.7.0, result: fb317a9fa6906ffc3ff2d6b778493615e49f686cdc1fd125efc574c52e355530}
+blue:
+  officers: [quick_supply_specialist]
+  units:
+  - {name: arclight, index: 0, position: {x: 50, y: -70}}
+  - {name: arclight, index: 1, position: {x: 140, y: -70}, exp: 0/560/750}
+  - {name: arclight, index: 2, position: {x: 230, y: -70}, exp: 0/307/750}
+  - {name: sabertooth, index: 3, position: {x: 185, y: -65}, exp: 0/377/1300}
+  - {name: sabertooth, index: 4, position: {x: 95, y: -65}}
+  - {name: crawler, index: 5, position: {x: 90, y: -125}, exp: 0/285/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 190, y: -125}, exp: 0/450/450, rotated: true}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+red:
+  core_damage: 408
+  officers: [fortified_specialist]
+  units:
+  - {name: crawler, index: 0, position: {x: 290, y: -265}, exp: 0/238/450, rotated: true}
+  - {name: crawler, index: 1, position: {x: -290, y: -255}, exp: 0/9/450, rotated: true}
+  - {name: crawler, index: 2, position: {x: -135, y: -190}, exp: 0/34/450}
+  - {name: sabertooth, index: 3, position: {x: 5, y: -105}, exp: 0/366/1300}
+  - {name: sabertooth, index: 4, position: {x: -75, y: -105}, exp: 0/438/1300}
+  - {name: crawler, index: 5, position: {x: 145, y: -190}, exp: 0/374/450}
+  - {name: crawler, index: 6, position: {x: 0, y: -255}, exp: 0/73/450, rotated: true}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}

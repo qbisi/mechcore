@@ -1,0 +1,48 @@
+# Replay 2324_20260925--201377411, round 2, map 1021. A construction's buffs
+# are cleared as the fight ends, after the units'. Tower 10 falls on tick 891,
+# and its loss's buff reaches units 35, 41 and 74 and construction 16 of its
+# side. Unit 74 kills the other side's last unit on tick 979 with the buff
+# still running: the recording writes it cleared on 35, 41 and 74, then on
+# building 16.
+
+kind: fight
+map_id: 1011
+seed: 1926875283
+round: 2
+source: game
+ticks: 979
+hash: {profile: mcfr-content-0.7.0, result: 2b915dd5b331721463d1d0586ac15f2d6508c680a1a1474120d9daead8fe6854}
+blue:
+  core_damage: 212
+  officers: [quick_teleport, secondary_equipment_expert]
+  legacy_index: 7
+  units:
+  - {name: marksman, index: 0, position: {x: -80, y: -170}, exp: 316/650/650}
+  - {name: marksman, index: 1, position: {x: -120, y: -170}, exp: 254/445/650}
+  - {name: marksman, index: 2, position: {x: -40, y: -170}, exp: 92/299/650}
+  - {name: tarantula, index: 3, position: {x: -105, y: -135}, exp: 71/239/1500, equipment: [small_amplifying_core]}
+  - {name: tarantula, index: 4, position: {x: -25, y: -135}, exp: 577/696/1500, equipment: [secondary_fire_control_system]}
+  - {name: marksman, index: 5, position: {x: 0, y: -170}, exp: 391/650/650}
+  - {name: marksman, index: 6, position: {x: 40, y: -170}, exp: 73/169/650}
+  - {name: marksman, index: 7, position: {x: 80, y: -170}, exp: 0/72/650}
+  - {name: marksman, index: 8, position: {x: 120, y: -170}, exp: 0/72/650}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+red:
+  officers: [sabertooth_specialist]
+  techs:
+    sabertooth: [range_enhancement]
+  legacy_index: 7
+  units:
+  - {name: arclight, index: 0, position: {x: 110, y: -160}}
+  - {name: arclight, index: 1, position: {x: 190, y: -160}, exp: 100/200/750}
+  - {name: arclight, index: 2, position: {x: 150, y: -150}, exp: 300/300/750}
+  - {name: sabertooth, index: 3, position: {x: 165, y: -115}, exp: 0/920/1300}
+  - {name: sabertooth, index: 4, position: {x: -135, y: -215}, level: 2, exp: 0/1174/2929}
+  - {name: fang, index: 5, position: {x: -145, y: -140}, exp: 24/86/600}
+  - {name: fang, index: 6, position: {x: 165, y: -70}}
+  - {name: crawler, index: 7, position: {x: 175, y: -200}, exp: 0/100/450}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}

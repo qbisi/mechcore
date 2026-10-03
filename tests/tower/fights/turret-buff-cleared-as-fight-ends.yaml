@@ -1,0 +1,27 @@
+# Is a turret's buff cleared as the fight ends?
+#
+# Round 3. Blue's Sabertooth fells red's tower on tick 545, and the loss's buff
+# reaches red's Marksman and red's Anti-Armor Turret. The Sabertooth kills the
+# Marksman, red's last unit, on tick 599: its death clears the Marksman's buff,
+# and the fight's end clears the turret's, which still has 126 ticks to run.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 3
+source: game
+ticks: 599
+hash: {profile: mcfr-content-0.7.0, result: e43edb3231c1b2be1956e5dcf56824434fb3d8f801200bde39d78f78c07c7132}
+blue:
+  officers: [sabertooth_specialist]
+  legacy_index: 2
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 10/10/650}
+  - {name: sabertooth, index: 1, position: {x: -105, y: -155}, exp: 0/400/1300}
+red:
+  core_damage: 300
+  legacy_index: 1
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 10/10/650}
+  constructions:
+  - {name: anti_armor_turret, index: 0, position: {x: -140, y: -100}}

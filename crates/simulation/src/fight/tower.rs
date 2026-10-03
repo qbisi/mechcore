@@ -454,14 +454,10 @@ impl Simulation {
             .collect()
     }
 
-    /// `BuffManager.Update` on a unit that is no longer alive: its buffs go.
-    ///
-    /// Not on the tick it dies but on its next update. A Fang of the
-    /// two-tower fight killed by a Steel Ball's beam lands its projectile the
-    /// same tick for the debuffed 6; one that died two ticks before its
-    /// projectile landed lands it for the full 63.
     /// Every buff a live unit still runs, taken off and written as cleared
-    /// in unit order, as the fight is left.
+    /// in unit order, as the fight is left, and then every buff a standing
+    /// construction runs, in building order: each actor's `BuffManager.Clear`
+    /// as the fight's objects are let go.
     pub(in crate::fight) fn clear_buffs_as_the_fight_ends(
         &mut self,
         events: &mut Vec<Event>,
@@ -486,9 +482,25 @@ impl Simulation {
             }
             actor.stats.refresh(&actor.rules)?;
         }
+        for (building_id, buffed) in std::mem::take(&mut self.buffs.building_buffs) {
+            let subject = ObjectRef::new(ObjectKind::Building, building_id);
+            events.extend(
+                buffed
+                    .buffs
+                    .iter()
+                    .map(|buff| buff_removed(subject, buff.buff_id, BuffRemovedReason::Cleared)),
+            );
+            self.refresh_construction(building_id)?;
+        }
         Ok(())
     }
 
+    /// `BuffManager.Update` on a unit that is no longer alive: its buffs go.
+    ///
+    /// Not on the tick it dies but on its next update. A Fang of the
+    /// two-tower fight killed by a Steel Ball's beam lands its projectile the
+    /// same tick for the debuffed 6; one that died two ticks before its
+    /// projectile landed lands it for the full 63.
     pub(in crate::fight) fn drop_buffs_of_the_dead(&mut self, actor_id: u64) -> Result<()> {
         let actor = self
             .actors

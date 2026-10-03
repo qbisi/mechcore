@@ -86,8 +86,9 @@ From the tick after a side is decided the fight is over, and
 `FightMech.Update` and `FightConstruction.Update` return before
 `BuffManager.Update`: a unit's or a construction's buffs neither run on nor run
 out. A buff still running when the fight ends is taken off every
-survivor and written as cleared, unit by unit, after the towers the end tore
-down.
+survivor and written as cleared, after the towers the end tore down: unit by
+unit, and then construction by construction, a construction whose side has no
+unit left among them.
 
 A unit's buffs go on its first update after it dies, not on the tick it dies.
 The recording still writes each buff it had as cleared right after its death,
@@ -133,7 +134,11 @@ gets the debuffed speed through `Move`.
   takes its owner's damage as it lands: `tests/tower/fights/`.
 - A buff still running when the fight ends is written as cleared on every
   survivor, after the one tower the end tore down:
-  `tests/corpus/fights/67160345-r1.yaml`.
+  `tests/corpus/fights/67160345-r1.yaml`. On a construction it is written
+  after the units', `tests/corpus/fights/201377411-r2.yaml`, and also when the
+  construction's side has lost its last unit:
+  `tests/corpus/fights/134266831-r1.yaml`,
+  `tests/tower/fights/turret-buff-cleared-as-fight-ends.yaml`.
 - The losing side's projectiles that land after the fall, on the tick the tower
   falls, land for their full damage: a Fire Badger's shot fells a tower and two
   Mustang shots of the losing side land after it, undebuffed:
@@ -161,12 +166,19 @@ gets the debuffed speed through `Move`.
   `BuffData.canAffectConstruction`, `ConstructionData.CanBeEffectedByTowerBuff`.
 - A construction runs its buffs last in its update: `FightConstruction.Update`,
   `BuffManager.Update`.
+- Each holder, unit or construction, has its own `BuffManager`, whose
+  `Clear` removes every buff it holds: `BuffManager.Clear`,
+  `BuffManager.RemoveBuff`.
 - A unit or a construction runs no buff once the fight is over:
   `FightMech.Update` and `FightConstruction.Update`, which return before
   `BuffManager.Update` when `isFighting` is false.
 
 ### Not established
 
+- **What clears the buffs as the fight ends.** `BuffManager.Clear` is reached
+  through `FightBehaviour.Clear`, whose caller the call graph does not show,
+  so that units clear before constructions is recorded, not read, and two
+  constructions' order is not recorded.
 - **A Defensive Wall block, or a construction other than the turrets, under
   the buff.** The Defensive Wall a layout places does not take it, and no
   recording has another construction that does.
