@@ -218,6 +218,14 @@ struct Actor {
     body_rotation: i64,
     body_rotation_q32: i64,
     aim_rotation: i64,
+    /// The mech body's rotation, for a unit whose weapons each turn within
+    /// an arc of their own (`RotationLimitFightTransform`): the motion turns
+    /// it, and each weapon turns apart from it in its skill's update.
+    turret_q32: Option<i64>,
+    /// Where the mech body turns to on this update, for a batch of
+    /// standalone weapons ([`Simulation::aim_standalone_turret`]), which
+    /// need not be the unit's own lock the motion walks on.
+    turret_aim_q32: Option<i64>,
     life: i64,
     last_damage_source: Option<(Option<ObjectRef>, u32)>,
     /// Whether a support skill summoned it: a unit with no `MechTeam`, which

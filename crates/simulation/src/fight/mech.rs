@@ -48,17 +48,7 @@ impl Actor {
             usize::try_from(rules.attack.weapons.count())
                 .expect("u32 weapon count fits the supported host")
         ];
-        let group = (rules.attack.weapons.mode == WeaponMode::Group).then(|| {
-            (
-                usize::try_from(rules.attack.weapons.count())
-                    .expect("u32 weapon count fits the supported host"),
-                if rules.attack.weapons.fusillade == Some(true) {
-                    GroupBehaviour::Fusillade
-                } else {
-                    GroupBehaviour::Each
-                },
-            )
-        });
+        let group = group_shape(&rules);
         let kind = SkillKind::of(&rules.attack.path);
         // `AutoRecoveryEffectProvider.DoActive` hands a unit with a repair
         // source in force a controller, which its constructor resets.
@@ -89,6 +79,13 @@ impl Actor {
             body_rotation: placement.rotation,
             body_rotation_q32: mdeg_to_degrees_q32(placement.rotation),
             aim_rotation: placement.rotation,
+            turret_q32: rules
+                .attack
+                .weapons
+                .arcs
+                .is_some()
+                .then(|| mdeg_to_degrees_q32(placement.rotation)),
+            turret_aim_q32: None,
             placement,
             rules,
             stats,
@@ -233,6 +230,9 @@ impl Actor {
 
     pub(in crate::fight) fn set_weapon_rotation(&mut self, rotation_q32: i64) {
         self.skill.weapon_rotations_q32.fill(rotation_q32);
+        if let Some(turret) = &mut self.turret_q32 {
+            *turret = rotation_q32;
+        }
     }
 
     /// Turns the whole unit, body, aim, weapons and the rotation its search
@@ -275,12 +275,29 @@ impl Actor {
 
     pub(in crate::fight) fn rotate_weapons_towards(&mut self, target_q32: i64) {
         let turn_q32 = self.turn_q32();
+        // The motion turns the mech body; weapons with arcs of their own
+        // turn in their skills' update (`Simulation::turn_arc_weapons`).
+        if let Some(turret) = &mut self.turret_q32 {
+            let aim = if self.skill.standalone() {
+                let Some(aim) = self.turret_aim_q32 else {
+                    return;
+                };
+                aim
+            } else {
+                target_q32
+            };
+            *turret = rotate_towards_q32(*turret, aim, turn_q32);
+            return;
+        }
         self.skill.turn_weapons_towards(target_q32, turn_q32);
     }
 
     /// A unit with a body turns its turret, whose rotation every weapon of
     /// it shares; one without a body has none.
     fn turret_rotation(&self) -> Option<i64> {
+        if self.turret_q32.is_some() {
+            return self.turret_q32;
+        }
         self.rules
             .has_body
             .then(|| self.skill.weapon_rotations_q32.first().copied())
@@ -298,11 +315,50 @@ impl Actor {
         }
     }
 
+    /// What a standalone weapon's search is scored from when its skill
+    /// searches from its default rotation (`useDefaultRotationSearchTarget`,
+    /// `ScoreRatingTargetSelector.Selector.CalculateRotationData`): a weapon
+    /// held to an arc is scored from its rest, the mech body's rotation plus
+    /// its default angle, and passes over what lies outside its arc widened
+    /// by the attack angle either side; a weapon that turns freely is scored
+    /// from its rest too, and has no window: the Mountain's first gun, at 10
+    /// degrees, takes the Crawler to the right of the one straight ahead. The
+    /// window is a half width about the rest, which an arc as wide to the
+    /// left as to the right is.
+    pub(in crate::fight) fn default_search_frame(&self, slot: usize) -> Option<(i64, Option<i64>)> {
+        if !self.rules.attack.default_rotation_search {
+            return None;
+        }
+        let arc = self.rules.attack.weapons.arcs.as_ref()?.get(slot)?;
+        let turret = self.turret_q32?;
+        let rest = turret
+            .saturating_add(i64::from(arc.default) << 32)
+            .rem_euclid(360_i64 << 32);
+        match (arc.left, arc.right) {
+            (Some(left), Some(right)) if left == right => {
+                let half = (i64::from(left) << 32).saturating_add(mdeg_to_degrees_q32(
+                    self.rules.attack.attack_half_angle_mdeg(),
+                ));
+                Some((rest, Some(half)))
+            }
+            (None, None) => Some((rest, None)),
+            _ => None,
+        }
+    }
+
     /// A weapon fixed to the body stands where the unit stands; the core's
     /// takes the body's rotation whenever the body turns, a sibling's only
     /// when its own skill updates holding a lock. Any other weapon has no
     /// transform of its own.
     fn fixed_weapon_pose(&self, weapon_index: usize, position: QVec3) -> Option<QPose> {
+        // A weapon that turns within an arc has a transform of its own too,
+        // `RotationLimitFightTransform`, which turns on its own.
+        if self.rules.attack.weapons.arcs.is_some() {
+            return Some(QPose {
+                position,
+                rotation: self.skill.weapon_rotations_q32[weapon_index],
+            });
+        }
         self.rules.attack.weapons.fixed_to_body.then(|| QPose {
             position,
             rotation: match weapon_index {
@@ -321,7 +377,7 @@ impl Actor {
         };
         let weapon_aims = (0..self.skill.weapon_rotations_q32.len())
             .map(|weapon_index| {
-                let group_mode = self.rules.attack.weapons.mode == WeaponMode::Group;
+                let group_mode = self.rules.attack.weapons.mode != WeaponMode::Normal;
                 let attack_target = if group_mode {
                     // A slot firing at a shield names no target the
                     // recording can.
@@ -429,4 +485,22 @@ impl Actor {
             },
         }
     }
+}
+
+/// How many skills a unit's weapons make and how they take turns, or `None`
+/// for one skill alone.
+fn group_shape(rules: &UnitConfig) -> Option<(usize, GroupBehaviour)> {
+    let weapons = &rules.attack.weapons;
+    (weapons.mode != WeaponMode::Normal).then(|| {
+        (
+            usize::try_from(weapons.count()).expect("u32 weapon count fits the supported host"),
+            if weapons.mode == WeaponMode::Standalone {
+                GroupBehaviour::Standalone
+            } else if weapons.fusillade == Some(true) {
+                GroupBehaviour::Fusillade
+            } else {
+                GroupBehaviour::Each
+            },
+        )
+    })
 }

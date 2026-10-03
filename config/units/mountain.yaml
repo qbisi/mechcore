@@ -1,0 +1,60 @@
+schema: mechcore.unit
+type_name: mountain
+unit_type_id: 2002
+
+formation:
+  members: 1
+  slot_size: 70
+  footprint: {width: 70, depth: 70}
+
+domain: ground
+size: huge
+max_life: 136657
+collision_radius: 35
+move_speed: 6
+rotate_speed: 50
+has_body: true
+independent_aim: false
+rvo: {outer_radius: 35, inner_radius: 28.5, size: xxl, collider_priority: 10, priority: 1}
+
+attack:
+  base_damage: 5899
+  min_range: 0
+  range: 100
+  attack_half_angle: 10
+  targets: {ground: true, air: false}
+  lock_target: true
+  quick_switch_target: true
+  timing:
+    interval: 2
+    interval_offset: 0.5
+    initial_cooldown: 0
+    prepare: 0
+    attack_point: 0
+    backswing: 0
+    cooling: 0.5
+  splash_radius: 5
+  weapons:
+    mode: standalone
+    indices: [3, 4, 5, 6]
+    per_skill: 1
+    arcs:
+      - {default: 10}
+      - {default: 5, left: 10, right: 10}
+      - {default: -5, left: 10, right: 10}
+      - {default: -10, left: 15, right: 15}
+  melee: false
+  crosses_shields: false
+  default_rotation_search: true
+  path:
+    type: projectile
+    count: 1
+    release_interval: 0.15
+    speed: 300
+    target_offset_radius: 1
+    evenly_allocate_targets: false
+    extra_search_range: 0
+    pre_flight_height: 0
+    simulated_motion: false
+    interceptible: false
+    max_life: 0

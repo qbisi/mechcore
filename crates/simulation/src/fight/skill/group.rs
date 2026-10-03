@@ -4,6 +4,9 @@ use super::*;
 /// `CanStartAttackCheck` asks whether the core prepares or attacks, another
 /// group's is `SkillGroup.IsAttacking`, any of its skills attacking.
 fn may_start_group_slot(fusillade: bool, skill: &Skill) -> bool {
+    if skill.standalone() {
+        return true;
+    }
     if fusillade {
         matches!(
             skill.phase(),
@@ -401,6 +404,13 @@ impl Simulation {
             sibling.search_target_time = SEARCH_TARGET_RESET_TICKS;
             self.refresh_group_walls(actor_id, Some(slot));
         }
+        self.try_start_group_slot(actor_id, slot, step, prepare_steps);
+        Ok(())
+    }
+
+    /// The start itself: a slot whose target is in its attack area prepares,
+    /// or with no prepare is attacking and fires on the next update.
+    fn try_start_group_slot(&mut self, actor_id: u64, slot: usize, step: u64, prepare_steps: u64) {
         if let Some(target) = self.actors[&actor_id].skill.group_attack_target(slot)
             && self.slot_target_in_attack_area(FightActorRef::Unit(actor_id), Some(slot), target)
         {
@@ -423,7 +433,25 @@ impl Simulation {
             };
             sibling.enter(state);
         }
-        Ok(())
+    }
+
+    /// The standalone weapons' skills starting with the unit's main skill, as
+    /// its motion comes into its attack: each is a main skill of its own,
+    /// and starts in the same update.
+    pub(in crate::fight) fn start_standalone_slots(&mut self, actor_id: u64, step: u64) {
+        if !self.actors[&actor_id].skill.standalone() {
+            return;
+        }
+        let prepare_steps =
+            native_time_units_to_steps(self.actors[&actor_id].rules.attack.prepare_time_units());
+        for slot in 1..self.actors[&actor_id].skill.group_size() {
+            if matches!(
+                self.actors[&actor_id].skill.sibling(slot).state,
+                SkillState::Idle { .. }
+            ) {
+                self.try_start_group_slot(actor_id, slot, step, prepare_steps);
+            }
+        }
     }
 
     /// A sibling whose check failed: `SkillAttackState.Finish` and
@@ -522,6 +550,14 @@ impl Simulation {
                 self.refresh_group_skill_attack_interval(actor_id, skill_index, step)?;
                 if self.actors[&actor_id].skill.kind == SkillKind::Strike {
                     self.direct_effect(actor_id, target, skill_index, events)?;
+                } else if self.actors[&actor_id].skill.standalone() {
+                    self.release_standalone_projectile(
+                        actor_id,
+                        skill_index,
+                        target,
+                        step,
+                        events,
+                    )?;
                 } else {
                     self.release_projectile(
                         FightActorRef::Unit(actor_id),
@@ -587,5 +623,87 @@ impl Simulation {
             .sibling_mut(skill_index)
             .attack_count += 1;
         Ok(())
+    }
+
+    /// `FightSkill.Update` turning a weapon with an arc of its own,
+    /// `RotationLimitFightTransform.RotateTo`: each slot's weapon turns
+    /// towards its skill's lock by the unit's rotate speed, then is
+    /// held within its arc, measured from the mech body's rotation plus the
+    /// weapon's default angle (`CalculateDefaultRotation`), as the body
+    /// pointed before the motion turned it.
+    pub(in crate::fight) fn turn_arc_weapons(&mut self, actor_id: u64, turret: Option<i64>) {
+        let actor = &self.actors[&actor_id];
+        let (Some(arcs), Some(turret)) = (actor.rules.attack.weapons.arcs.clone(), turret) else {
+            return;
+        };
+        // No skill updates once the fight is decided.
+        if self.ending.stop_step.is_some() {
+            return;
+        }
+        let turn = actor.turn_q32();
+        let (x, z) = (actor.x_q32, actor.z_q32);
+        for (slot, arc) in arcs.iter().enumerate() {
+            // `FightSkill.Update` turns the weapon to the skill's lock, and a
+            // skill without one, idle or cooling, leaves it where it points.
+            let Some(target) = self.actors[&actor_id].skill.slot_lock(slot) else {
+                continue;
+            };
+            let Some(view) = self.fight_actor(target) else {
+                continue;
+            };
+            let bearing = direction_degrees_q32_raw(
+                view.x_q32.saturating_sub(x),
+                view.z_q32.saturating_sub(z),
+            );
+            let skill = &mut self
+                .actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable")
+                .skill;
+            let turned = rotate_towards_q32(skill.weapon_rotations_q32[slot], bearing, turn);
+            skill.weapon_rotations_q32[slot] = match (arc.left, arc.right) {
+                (Some(left), Some(right)) => {
+                    let rest = turret.saturating_add(i64::from(arc.default) << 32);
+                    let full = 360_i64 << 32;
+                    let half = 180_i64 << 32;
+                    let delta = (turned - rest + half).rem_euclid(full) - half;
+                    let delta = delta.clamp(-(i64::from(left) << 32), i64::from(right) << 32);
+                    (rest + delta).rem_euclid(full)
+                }
+                _ => turned,
+            };
+        }
+    }
+
+    /// Where a batch of standalone weapons turns its mech body on this
+    /// update (`MotionAttackState.AttackRotate`, `FightMech.RotateBodyTo`),
+    /// from where the unit stands as its motion updates: the attack target
+    /// of its first weapon that holds a lock, or, while the motion attacks,
+    /// of its first weapon in its attack that holds one. A weapon idle on a
+    /// fresh lock does not draw the body off a weapon firing.
+    pub(in crate::fight) fn aim_standalone_turret(&mut self, actor_id: u64) {
+        let actor = &self.actors[&actor_id];
+        if !actor.skill.standalone() || actor.turret_q32.is_none() {
+            return;
+        }
+        let skill = &actor.skill;
+        let locked = |slot: &usize| skill.slot_lock(*slot).is_some();
+        let attacking = actor.motion.state == MotionState::Attacking;
+        let aim = (0..skill.group_size())
+            .filter(locked)
+            .find(|&slot| attacking && skill.group_skill(slot).phase() == FightSkillPhase::Attack)
+            .or_else(|| (0..skill.group_size()).find(locked))
+            .and_then(|slot| skill.group_attack_target(slot))
+            .and_then(|target| self.fight_actor(target))
+            .map(|view| {
+                direction_degrees_q32_raw(
+                    view.x_q32.saturating_sub(actor.x_q32),
+                    view.z_q32.saturating_sub(actor.z_q32),
+                )
+            });
+        self.actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable")
+            .turret_aim_q32 = aim;
     }
 }

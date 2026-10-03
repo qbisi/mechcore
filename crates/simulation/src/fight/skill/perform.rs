@@ -168,6 +168,7 @@ impl Simulation {
                     offset_z_q32: z,
                     climb_target,
                     weapon_index: index % weapon_count,
+                    skill_slot: 0,
                 });
         let first = releases
             .next()
@@ -277,6 +278,61 @@ impl Simulation {
         Ok(offsets)
     }
 
+    /// A standalone weapon's skill releasing its blow, as the unit's main
+    /// skill does: one projectile at a point its offset draw gives.
+    pub(in crate::fight) fn release_standalone_projectile(
+        &mut self,
+        actor_id: u64,
+        slot: usize,
+        target: FightActorRef,
+        step: u64,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        let owner = FightActorRef::Unit(actor_id);
+        let view = self
+            .fight_actor(target)
+            .ok_or_else(|| Error::new("projectile target is absent"))?;
+        let (target_x_q32, target_z_q32) = (view.x_q32, view.z_q32);
+        let attacker = self
+            .attacker(owner)
+            .ok_or_else(|| Error::new("projectile owner is absent"))?;
+        let radius = attacker.attack.projectile_target_offset_radius();
+        let source_y = attacker.y;
+        let target_y = match target {
+            FightActorRef::Unit(id) => unit_height(self.actors[&id].rules.domain),
+            FightActorRef::Building(_) => 0,
+        };
+        let climb_target = self.climb_target(target)?;
+        let (x, z) = self
+            .projectile_target_offsets(
+                owner,
+                target_x_q32,
+                target_z_q32,
+                (space_to_q32(source_y), space_to_q32(target_y)),
+                1,
+                radius,
+            )?
+            .into_iter()
+            .next()
+            .ok_or_else(|| Error::new("a standalone blow draws one offset"))?;
+        self.release_pending_projectile(
+            owner,
+            PendingProjectileRelease {
+                step,
+                target_kind: target.kind(),
+                target: target.id(),
+                target_x_q32: target_x_q32.saturating_add(x),
+                target_z_q32: target_z_q32.saturating_add(z),
+                offset_x_q32: x,
+                offset_z_q32: z,
+                climb_target,
+                weapon_index: slot,
+                skill_slot: slot,
+            },
+            events,
+        )
+    }
+
     pub(in crate::fight) fn release_projectile(
         &mut self,
         owner: FightActorRef,
@@ -320,7 +376,7 @@ impl Simulation {
                     pending.target,
                     target_x_q32,
                     target_z_q32,
-                    0,
+                    pending.skill_slot,
                     pending.weapon_index,
                     events,
                 )?;

@@ -186,7 +186,11 @@ impl Simulation {
                     z_q32: actor.z_q32,
                     query_x_q32: actor.target_query_x_q32,
                     query_z_q32: actor.target_query_z_q32,
-                    query_rotation_q32: actor.target_query_source_rotation_q32,
+                    query_rotation_q32: actor
+                        .default_search_frame(0)
+                        .map_or(actor.target_query_source_rotation_q32, |(rotation, _)| {
+                            rotation
+                        }),
                     radius: actor.rules.collision_radius(),
                     y: unit_height(actor.rules.domain),
                     attack: &actor.rules.attack,
@@ -194,14 +198,20 @@ impl Simulation {
                     attack_damage: actor.stats.attack_damage(),
                     splash_radius: actor.stats.splash_radius(),
                     attack_interval_q32: actor.stats.attack_interval_q32(),
-                    facing: if actor.rules.has_body {
+                    // A standalone weapon's skill faces with its own weapon:
+                    // the unit's main skill is the first gun's.
+                    facing: if actor.rules.has_body && actor.skill.standalone() {
+                        Facing::Weapons(&actor.skill.weapon_rotations_q32[..1])
+                    } else if actor.rules.has_body {
                         Facing::Weapons(&actor.skill.weapon_rotations_q32)
                     } else {
                         Facing::Root(actor.body_rotation_q32)
                     },
                     has_body: actor.rules.has_body,
                     turn_q32: actor.turn_q32(),
-                    rotation_window_q32: None,
+                    rotation_window_q32: actor
+                        .default_search_frame(0)
+                        .and_then(|(_, window)| window),
                     searches: true,
                 })
             }
@@ -459,10 +469,10 @@ impl Simulation {
         let attacker = self
             .attacker(owner)
             .expect("skill owner identity is stable");
-        let skills = if attacker.attack.weapons.mode == WeaponMode::Group {
-            attacker.attack.weapons.count()
-        } else {
+        let skills = if attacker.attack.weapons.mode == WeaponMode::Normal {
             1
+        } else {
+            attacker.attack.weapons.count()
         };
         for index in 0..skills {
             let interval = self.draw_attack_interval(owner)?;

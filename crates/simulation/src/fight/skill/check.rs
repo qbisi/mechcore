@@ -102,6 +102,7 @@ impl Simulation {
         if lock.is_some_and(|lock| self.fight_actor_is_alive(lock)) {
             if let Some(slot) = slot.filter(|slot| *slot > 0)
                 && attacking_check
+                && !self.skill(owner).standalone()
                 && self.sibling_yields(
                     owner.unit_id().expect("only a unit's skill is grouped"),
                     slot,
@@ -179,10 +180,12 @@ impl Simulation {
 
     /// Main child skills read their parent's range plus Q32 `0xA00000000`
     /// (10 metres) in the build's `FightSkill.GetAttackRange`. The first
-    /// grouped skill has no parent and keeps the ordinary range.
+    /// grouped skill has no parent and keeps the ordinary range, as does
+    /// every standalone weapon's skill, which no `SkillGroup` parents.
     pub(in crate::fight) fn slot_attack_range(&self, actor_id: u64, slot: Option<usize>) -> i64 {
-        self.actors[&actor_id].stats.attack_range().saturating_add(
-            if slot.is_some_and(|slot| slot > 0) {
+        let actor = &self.actors[&actor_id];
+        actor.stats.attack_range().saturating_add(
+            if slot.is_some_and(|slot| slot > 0) && !actor.skill.standalone() {
                 10_000
             } else {
                 0
@@ -256,11 +259,18 @@ impl Simulation {
         }
         let actor_id = owner.unit_id().expect("only a unit's skill is grouped");
         let actor = &self.actors[&actor_id];
-        self.slot_target_in_attack_range(owner, slot, target)
+        let slot = slot.unwrap_or(0);
+        // A standalone weapon's skill measures its angle from its own weapon.
+        let rotation = if actor.skill.standalone() {
+            actor.skill.weapon_rotations_q32[slot]
+        } else {
+            actor.slot_main_rotation_q32(slot)
+        };
+        self.slot_target_in_attack_range(owner, Some(slot), target)
             && self.fight_actor(target).is_some_and(|view| {
                 view.alive
                     && rotation_distance_q32(
-                        actor.slot_main_rotation_q32(slot.unwrap_or(0)),
+                        rotation,
                         direction_degrees_q32_raw(
                             view.x_q32.saturating_sub(actor.x_q32),
                             view.z_q32.saturating_sub(actor.z_q32),
@@ -393,6 +403,10 @@ impl Simulation {
         if cooling_steps > 0 {
             skill.set_cooling(Some((step, fired_at)));
         }
+        // A standalone weapon's skill leaves the motion to the batch.
+        if skill.standalone() {
+            return;
+        }
         // `MotionIdleState.Enter` publishes the stop once; a unit whose
         // motion is idle already keeps the point it stopped at.
         if let Some(actor) = self.moving_mut(owner) {
@@ -471,6 +485,9 @@ impl Simulation {
         skill.search_target_time = 0;
         skill.set_backswing_finish_step(None);
         skill.set_pending(None);
+        if skill.standalone() {
+            return;
+        }
         if let Some(actor) = self.moving_mut(owner) {
             actor.lose_target_motion(true);
         }

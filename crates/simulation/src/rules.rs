@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result};
 
-const DEFAULT_UNITS: [&str; 30] = [
+const DEFAULT_UNITS: [&str; 31] = [
     include_str!("../../../config/units/marksman.yaml"),
     include_str!("../../../config/units/rhino.yaml"),
     include_str!("../../../config/units/wasp.yaml"),
@@ -35,6 +35,7 @@ const DEFAULT_UNITS: [&str; 30] = [
     include_str!("../../../config/units/raiden.yaml"),
     include_str!("../../../config/units/centurion.yaml"),
     include_str!("../../../config/units/sandworm.yaml"),
+    include_str!("../../../config/units/mountain.yaml"),
 ];
 const DEFAULT_TOWERS: &str = include_str!("../../../config/towers.yaml");
 const DEFAULT_MAPS: &str = include_str!("../../../config/maps.yaml");
@@ -229,6 +230,10 @@ pub(crate) struct AttackConfig {
     /// `SkillData.canCrossAdvancedShield` of the main skill: its hits pass
     /// every battlefield shield, as a Crawler's and a Rhino's do.
     pub(crate) crosses_shields: bool,
+    /// `SkillData.useDefaultRotationSearchTarget` of the main skill: its
+    /// searches are scored from each weapon's default rotation.
+    #[serde(default)]
+    pub(crate) default_rotation_search: bool,
     pub(crate) path: AttackPath,
     /// A skill that fires from a magazine: `SkillData.isLoadingType`, which a
     /// turret's is and no unit this build places reads.
@@ -296,6 +301,23 @@ pub(crate) struct WeaponTopology {
     /// take the unit's rotation.
     #[serde(default)]
     pub(crate) fixed_to_body: bool,
+    /// Each weapon's `WeaponData.defaultAngle` and how far it may turn from
+    /// it, `rotateAngleLeft` and `rotateAngleRight`, in the order of
+    /// `indices`; absent for a unit whose every weapon turns freely from the
+    /// unit's own rotation.
+    #[serde(default)]
+    pub(crate) arcs: Option<Vec<WeaponArc>>,
+}
+
+/// One weapon's rotation in degrees: where it rests from the unit's rotation,
+/// and how far it may turn to either side, a side that is absent turning
+/// freely.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct WeaponArc {
+    pub(crate) default: i32,
+    pub(crate) left: Option<i32>,
+    pub(crate) right: Option<i32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -728,7 +750,10 @@ impl UnitConfig {
             {
                 return Ok(());
             }
-            (_, WeaponMode::Normal) => return Ok(()),
+            // The Mountain's four guns are each a skill of its own.
+            (_, WeaponMode::Normal) | (AttackPath::Projectile { .. }, WeaponMode::Standalone) => {
+                return Ok(());
+            }
             (_, WeaponMode::Group) if weapons.fusillade == Some(true) => {
                 "fires a fusillade of weapons that do not strike"
             }
@@ -1123,7 +1148,7 @@ mod tests {
     fn si_values_quantize_to_the_internal_integer_grid() {
         let config = SimulationConfig::load().unwrap();
         assert_eq!(config.game_build, mechcore_document::game_build());
-        assert_eq!(config.units.units.len(), 30);
+        assert_eq!(config.units.units.len(), 31);
         let arclight = config.units.get("arclight").unwrap();
         assert_eq!(arclight.collision_radius(), 9_000);
         assert_eq!(arclight.move_speed(), 7_000);
