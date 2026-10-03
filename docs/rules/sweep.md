@@ -87,6 +87,19 @@ A Barrier is a shield as a battlefield shield is.
 - **Its end is met on the next update.** On the update after the last strike
   the checks run again, and a skill whose target died lets it go.
 
+## Technology
+
+A sweep technology (`SweepSkillIntensifyTech`, the Abyss's Vertical Sweep)
+hands the sweep its row's changes through `SweepSkillIntensifyEffectProvider`,
+besides its numbers. `FightSweepSkill.ChangeLength` and `ChangeWidth` add
+metres to the strip, a total below one making it nothing, and
+`ChangePerpendicular`, `ChangeReverse` and `ChangeDisableDirectionChange` set
+whether it lies across the line to the target, runs the other way, and keeps
+one direction attack after attack. Vertical Sweep lays the strip along the
+line, from the unit's side out past the target, the same way every attack,
+and raises the damage by half: a strip along the line runs on over what
+stands behind the target.
+
 ## The weapon
 
 The Abyss's weapon rests straight ahead with an arc no wider than its rest
@@ -131,6 +144,19 @@ unit does. Its configuration writes no arc for it.
   `tests/sweep/fights/domain-1787720817.yaml`.
 - A sweep at red's Anti-Armor Turret strikes it, and a sweep at a tower the
   tower: `tests/sweep/fights/turret-4242.yaml`, ticks 153, 339 and 869.
+- With Vertical Sweep the strip runs along the line and one way: a Rhino is
+  struck three times a sweep, `tests/sweep/fights/vertical-rhino-4242.yaml`,
+  `tests/sweep/fights/vertical-rhino-1787720817.yaml`; a Marksman standing
+  behind the one aimed at is struck by the same sweep,
+  `tests/sweep/fights/vertical-marksmen-4242.yaml`, ticks 102 and 108,
+  `tests/sweep/fights/vertical-marksmen-1787720817.yaml`; a Crawler swarm,
+  `tests/sweep/fights/vertical-4242.yaml`,
+  `tests/sweep/fights/vertical-1787720817.yaml`.
+- A strip that runs on past the Marksman it killed strikes the tower and the
+  wall blocks it crosses, which it was not aimed at:
+  `tests/sweep/fights/tower-vertical-4242.yaml`, ticks 111 and 119;
+  `tests/sweep/fights/wall-vertical-4242.yaml`, ticks 44, 48 and 129; and
+  their second seeds.
 
 ### Read
 
@@ -152,6 +178,10 @@ unit does. Its configuration writes no arc for it.
   `FightSkill.IsActorProtectedByEnergyShield`.
 - What it ignores: `SweepAttackPerformer.IsInterruptedByInvalidTarget`,
   `SweepAttackPerformer.IsEnableCheckTarget`.
+- Technology: `SweepSkillIntensifyEffectProvider`,
+  `FightSweepSkill.ChangeLength`, `FightSweepSkill.ChangeWidth`,
+  `FightSweepSkill.ChangePerpendicular`, `FightSweepSkill.ChangeReverse`,
+  `FightSweepSkill.ChangeDisableDirectionChange`.
 - The weapon: `FightWeapon.rotateType`.
 
 ### Not established
@@ -161,12 +191,9 @@ unit does. Its configuration writes no arc for it.
   each recorded, the lock is the nearer, or the strikes land on the shield
   either way. Nor is a shield struck twice capped by its radius, as a unit
   is, recorded.
-- **Buildings in a strip aimed elsewhere.** Whether a strike reaches a tower
-  or a construction it was not aimed at is not recorded; the simulator
-  strikes it.
-- **A delay or a technology.** No sweep with a `damage_delay`, and no
-  technology that changes the strip (`SweepSkillIntensifyTech`, which can
-  reverse it or keep it one way), is recorded.
+- **A delay, a reversed strip, a changed size.** No sweep with a
+  `damage_delay`, and no technology that reverses the strip or changes its
+  width or length, is in the build's tables, so none is recorded.
 - **Order within a strike.** Units a strike reaches are struck in the order
   the target trees hold them, as a splash's are; a strike that kills two
   units is recorded, and their order agrees, but the order is not read.

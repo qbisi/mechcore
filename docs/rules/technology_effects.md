@@ -66,7 +66,8 @@ Shot's second shot, High-Explosive Ammo's splash, Energy Absorption's life
 steal, Field Maintenance's repair. 64 of the 241 technologies are plain. The
 simulator applies a plain technology's numbers, a lifesteal technology's
 with the life steal [combat.md](combat.md#lifesteal) states, and a repair
-technology's with [its repair](combat.md#repair), and refuses every other
+technology's with [its repair](combat.md#repair), a sweep technology's with
+the strip it changes ([sweep.md](sweep.md#technology)), and refuses every other
 technology by name and kind, since applying a subclass's numbers alone
 would fight it as something it is not.
 

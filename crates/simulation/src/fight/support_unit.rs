@@ -311,6 +311,7 @@ impl Simulation {
             lifesteal: None,
             auto_recovery: None,
             energy_shield: None,
+            sweep: None,
             carried_shield: None,
             production: None,
             start_buffs: Vec::new(),

@@ -13,7 +13,8 @@ use crate::{
     data::{Channel, Entry, ExperienceRate, Stats},
     modifier::{
         AutoRecovery, CarriedShield, EnergyShield, EnergyTowerSkillEffects, EquipmentEffects,
-        LifeSteal, OfficerEffects, ProductionLine, StartBuff, TechnologyEffects, current_source,
+        LifeSteal, OfficerEffects, ProductionLine, StartBuff, SweepIntensify, TechnologyEffects,
+        current_source,
     },
     rules::{UnitConfig, UnitConfigs},
 };
@@ -69,6 +70,8 @@ pub(crate) struct Placement {
     /// The `IEnergyShieldSource` its `EnergyShieldProvider` enables, if its
     /// technologies or equipment hand it one.
     pub(crate) energy_shield: Option<EnergyShield>,
+    /// What its technologies hand its sweep (`SweepSkillIntensifyTech`).
+    pub(crate) sweep: Option<SweepIntensify>,
     /// The battlefield shield its equipment makes it carry.
     pub(crate) carried_shield: Option<CarriedShield>,
     /// The production line its equipment makes it run.
@@ -633,6 +636,7 @@ fn compile_formation(
         lifesteal: worn.lifesteal,
         auto_recovery: worn.auto_recovery,
         energy_shield: worn.energy_shield,
+        sweep: worn.sweep,
         carried_shield: worn.carried_shield,
         production,
         start_buffs: worn.start_buffs,
@@ -718,6 +722,7 @@ struct Worn {
     lifesteal: Option<LifeSteal>,
     auto_recovery: Option<AutoRecovery>,
     energy_shield: Option<EnergyShield>,
+    sweep: Option<SweepIntensify>,
     carried_shield: Option<CarriedShield>,
     start_buffs: Vec<StartBuff>,
     ignored_buffs: Vec<u32>,
@@ -854,6 +859,12 @@ fn worn(
             .energy_shield(&side.techs.units, type_name)
             .map_err(on_side),
     )?;
+    let sweep = refused.hold(
+        loadouts
+            .technologies
+            .sweep(&side.techs.units, type_name)
+            .map_err(on_side),
+    )?;
     let mut carried_shields = Vec::new();
     let mut start_buffs = Vec::new();
     let mut ignored_buffs = Vec::new();
@@ -892,6 +903,7 @@ fn worn(
         lifesteal: refused.hold(current_source(&lifesteal).map_err(in_force))?,
         auto_recovery: refused.hold(current_source(&auto_recovery).map_err(in_force))?,
         energy_shield: refused.hold(current_source(&energy_shield).map_err(in_force))?,
+        sweep,
         carried_shield: match carried_shields.as_slice() {
             [] => None,
             [one] => Some(*one),

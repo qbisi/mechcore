@@ -82,6 +82,7 @@ impl Simulation {
                 let aimed = actor.skill.attack_target().or(actor.skill.lock_target);
                 let sweep = super::super::sweep::Sweep::starting(
                     &actor.rules.attack,
+                    actor.placement.sweep,
                     aimed,
                     actor.skill.total_attack_count,
                 );

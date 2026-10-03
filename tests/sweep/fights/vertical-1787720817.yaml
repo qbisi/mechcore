@@ -1,0 +1,18 @@
+# The Abyss with Vertical Sweep against a Crawler swarm.
+
+kind: fight
+map_id: 1021
+seed: 1787720817
+round: 1
+source: game
+ticks: 868
+hash: {profile: mcfr-content-0.7.0, result: ab9bd662ad3b5c246e36abdbecb8e775dec2acb38e88c559d1369b044770bffe}
+blue:
+  techs:
+    abyss: [vertical_sweep]
+  units:
+  - {name: abyss, index: 0, position: {x: 5, y: -105}, exp: 0/192/4800}
+red:
+  core_damage: 500
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -70}, exp: 0/400/450}

@@ -1,0 +1,21 @@
+# The Abyss with Vertical Sweep at a Marksman standing before red's tower:
+# the strip runs along the line, past the Marksman and over the tower.
+# Another Marksman on the far flank keeps the fight going.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 445
+hash: {profile: mcfr-content-0.7.0, result: 19eba9d480279179d93b64ffa21151372fb2671749bc2cba35d0812125e2e60b}
+blue:
+  techs:
+    abyss: [vertical_sweep]
+  units:
+  - {name: abyss, index: 0, position: {x: -135, y: -45}, exp: 0/600/4800}
+red:
+  core_damage: 500
+  units:
+  - {name: marksman, index: 0, position: {x: 140, y: -140}}
+  - {name: marksman, index: 1, position: {x: -140, y: -140}}

@@ -37,7 +37,7 @@ use crate::{
 
 use super::{
     effects::{self, Fields, PROJECTILE, VALUE_ELSEWHERE},
-    sources::{AutoRecovery, EnergyShield, LifeSteal},
+    sources::{AutoRecovery, EnergyShield, LifeSteal, SweepIntensify},
 };
 
 const DEFAULT_TECHNOLOGY_EFFECTS: &str = include_str!("../../../../config/technology_effects.yaml");
@@ -53,6 +53,9 @@ const AUTO_RECOVERY: &str = "autoRecoveryTechnologies";
 
 /// The list whose `EnergyShieldTech` is an `IEnergyShieldSource` as well.
 const ENERGY_SHIELD: &str = "energyShieldTechnologies";
+
+/// The list a sweep technology comes from.
+const SWEEP: &str = "sweepSkillIntensifyTechDatas";
 
 /// `EnergyShieldTech.GetLifeRate`: `FPoint.One`, whatever its row, so the
 /// shield holds the unit's whole maximum life.
@@ -87,6 +90,8 @@ struct Technology {
     auto_recovery: Option<AutoRecovery>,
     /// What it answers `IEnergyShieldSource` with, if its class is one.
     energy_shield: Option<EnergyShield>,
+    /// What it hands its unit's sweep, if its class is a sweep's.
+    sweep: Option<SweepIntensify>,
 }
 
 /// One row of the table. Every effect is a list because a technology's effect
@@ -137,6 +142,18 @@ struct Row {
     recovery_duration: Vec<i64>,
     #[serde(default)]
     recovery_life_rate: Vec<i64>,
+    #[serde(default)]
+    sweep_skill_id: i64,
+    #[serde(default)]
+    sweep_width_value: i32,
+    #[serde(default)]
+    sweep_length_value: i32,
+    #[serde(default)]
+    sweep_perpendicular: bool,
+    #[serde(default)]
+    sweep_reverse: bool,
+    #[serde(default)]
+    sweep_fixed_direction: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -192,12 +209,23 @@ impl TechnologyEffects {
                 priority: PRIORITY,
                 can_disable: true,
             });
+            // `SweepSkillIntensifyEffectProvider` hands the sweep its row's
+            // changes; the row names the unit's main skill.
+            let sweep = (row.kind == SWEEP).then_some(SweepIntensify {
+                width_value: row.sweep_width_value,
+                length_value: row.sweep_length_value,
+                perpendicular: row.sweep_perpendicular,
+                reverse: row.sweep_reverse,
+                fixed_direction: row.sweep_fixed_direction,
+            });
+            let _ = row.sweep_skill_id;
             let technology = Technology {
                 unit: row.unit.clone(),
                 effect: corrections_of(&row),
                 lifesteal,
                 auto_recovery,
                 energy_shield,
+                sweep,
             };
             if technologies.insert(id, technology).is_some() {
                 return Err(Error::new(format!(
@@ -282,6 +310,21 @@ impl TechnologyEffects {
             .collect())
     }
 
+    /// What this side's technologies hand one unit type's sweep, the first
+    /// that does.
+    ///
+    /// # Errors
+    ///
+    /// Returns the error [`Self::corrections`] does.
+    pub(crate) fn sweep(&self, held: &[i32], unit_type: &str) -> Result<Option<SweepIntensify>> {
+        self.corrections(held, unit_type)?;
+        Ok(held
+            .iter()
+            .filter_map(|id| self.technologies.get(id))
+            .filter(|technology| technology.unit == unit_type)
+            .find_map(|technology| technology.sweep))
+    }
+
     /// What this side's technologies answer `IAutoRecovery` with on one unit
     /// type, each that is one.
     ///
@@ -301,7 +344,7 @@ impl TechnologyEffects {
 
 /// What a row writes at rank one, or why this build will not apply it.
 fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correction)>, String> {
-    if ![PLAIN, LIFESTEAL, AUTO_RECOVERY, ENERGY_SHIELD].contains(&row.kind.as_str()) {
+    if ![PLAIN, LIFESTEAL, AUTO_RECOVERY, ENERGY_SHIELD, SWEEP].contains(&row.kind.as_str()) {
         return Err(format!(
             "technology {} ({}) comes from TechnologyGroupData's {} list, and what \
              it does beyond its unit's numbers is not implemented",
