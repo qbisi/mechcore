@@ -104,6 +104,39 @@ pub(crate) struct TerrainSpec {
     /// `GetRoundDuration`: the rounds it stands, which a fire ignores.
     pub(crate) rounds: i32,
     pub(crate) effect: TerrainEffect,
+    /// The fire it turns to when a fire reaches it, an oil's alone.
+    pub(crate) burns: Option<Burning>,
+}
+
+/// The fire an oil turns to: `RangeItemSystem.CheckInteractableItems` makes
+/// it with the oil's provider, so it takes the oil's range and rounds and
+/// burns the oil row's `fireLifeTime` (`CS_Oil.GetFireLifeTime`), dealing
+/// `Config`'s fire as any fire does.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct Burning {
+    pub(crate) life_ticks: i32,
+    pub(crate) damage: i64,
+    pub(crate) period_ticks: i32,
+}
+
+impl TerrainSpec {
+    /// The fire this terrain turns to, when it is an oil.
+    pub(crate) const fn burning(&self) -> Option<Self> {
+        let Some(burning) = self.burns else {
+            return None;
+        };
+        Some(Self {
+            kind: TerrainKind::Fire,
+            radius_q32: self.radius_q32,
+            life_ticks: Some(burning.life_ticks),
+            rounds: self.rounds,
+            effect: TerrainEffect::Fire {
+                damage: burning.damage,
+                period_ticks: burning.period_ticks,
+            },
+            burns: None,
+        })
+    }
 }
 
 /// A skill of another kind, or a row this build does not release: which
@@ -663,6 +696,8 @@ fn terrain_effect(named: &str, row: &TerrainSkillRow, fire: GroundFire) -> Resul
             row.effect_range_type
         )));
     }
+    let fire_period = i32::try_from(ticks(fire.interval)?)
+        .map_err(|_| Error::new("a fire's interval outlasts a fight"))?;
     let effect = match row.kind {
         TerrainKind::Fog => TerrainEffect::Fog {
             attack_range_rate: row.attack_range_change_rate,
@@ -686,19 +721,28 @@ fn terrain_effect(named: &str, row: &TerrainSkillRow, fire: GroundFire) -> Resul
         }
         TerrainKind::Fire => TerrainEffect::Fire {
             damage: fire.damage,
-            period_ticks: i32::try_from(ticks(fire.interval)?)
-                .map_err(|_| Error::new("a fire's interval outlasts a fight"))?,
+            period_ticks: fire_period,
         },
     };
-    // `fireLifeTime` is the life oil takes on when a fire meets it, which
-    // `add_terrain` refuses as a mix of kinds.
-    let _ = row.fire_life_time;
-    let life_ticks = match row.life_time {
-        0 => None,
-        life => Some(
-            i32::try_from(ticks(life)?)
-                .map_err(|_| Error::new(format!("{named}'s terrain outlasts a fight")))?,
-        ),
+    let lifetime = |life: i64| -> Result<Option<i32>> {
+        match life {
+            0 => Ok(None),
+            life => i32::try_from(ticks(life)?)
+                .map(Some)
+                .map_err(|_| Error::new(format!("{named}'s terrain outlasts a fight"))),
+        }
+    };
+    let life_ticks = lifetime(row.life_time)?;
+    let burns = match (row.kind, lifetime(row.fire_life_time)?) {
+        (TerrainKind::Oil, Some(life_ticks)) => Some(Burning {
+            life_ticks,
+            damage: fire.damage,
+            period_ticks: fire_period,
+        }),
+        (TerrainKind::Oil, None) => {
+            return Err(Error::new(format!("{named}'s oil burns for no time")));
+        }
+        _ => None,
     };
     Ok(SkillEffect::Terrain {
         spec: TerrainSpec {
@@ -707,6 +751,7 @@ fn terrain_effect(named: &str, row: &TerrainSkillRow, fire: GroundFire) -> Resul
             life_ticks,
             rounds: row.effect_duration,
             effect,
+            burns,
         },
         scatter: Scatter::Line { to_q32: (0, 0) },
         sub_effects: schedule(&Timing::of_terrain(row))?

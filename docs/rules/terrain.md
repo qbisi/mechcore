@@ -66,7 +66,8 @@ the tick it lands. Smoke Bomb's seven fogs of 50 metres land every four ticks
 from tick 63.
 
 **Each tick**, after `MineSystem` and before `FightCoreSystem`, each
-controller holding terrains updates:
+controller holding terrains updates, in the order `RangeItemSystem.Init`
+makes them: fire, oil, fog, sand fog, acid, recovery zone.
 
 1. Each terrain, last first, ages, and one whose lifetime is up goes,
    `time_expired`. A fire burns its row's `lifeTime`, Incendiary Bomb's 700
@@ -133,14 +134,36 @@ rest stand into the next round. A fog stands one round and goes; an oil
 stands two and is still there in the last state, with one round left. A
 terrain of more than one round reads its rounds left as `remaining_rounds`.
 
+**A fire and an oil.** `RangeItemSystem.interactiveInfos` holds one
+interaction: a fire takes oil. A fire that lands (`DoAddItem`) takes every
+oil whose circle its own reaches (`CheckInteractableItems`), in the oil
+controller's order: each goes, and then each turns, in that order, to a fire
+where it stood. A centre no further from another than the two radii
+together, by `FPoint`'s tolerant comparison, reaches it
+(`CircleRange.Overlaps`). The new fire is made with the oil's provider, so it
+has the oil's range, 30 metres, and rounds, and burns the oil row's
+`fireLifeTime`, 700 ticks (`CS_Oil.GetFireLifeTime`). It is of the side of
+the fire that lit it, and it lands as any fire does, so it takes the oils it
+reaches in turn: a fire that reaches one oil of a line burns the line. An oil
+that lands where a fire already burns (`AddItem`, through the fire
+controller's `IsInteractable`) turns at once to such a fire, of its own
+side. A fire of a provider that already has one standing at the same place
+is not made again; the standing one burns from the start
+(`GetRepeatItem`, `FightGroundFire.Reset`). Taking an oil away does not
+release the units in it: its controller lets them go on its next update. In
+a tick, a side's battle skills land in the order it released them.
+
 A recording finds a terrain made or gone by comparing one snapshot's terrains
 with the last, so `terrain_created` and `terrain_removed` are the last events
 of their tick, after every other: the made, then the gone, each in identity
-order.
+order. It names a terrain the first time a snapshot holds it, controller by
+controller in the system's order and item by item. A terrain made and gone
+in one tick, an oil that lands in a fire, is never named. A terrain it only
+finds gone, an oil that burns, goes `unknown`.
 
 The simulator refuses a terrain in a fight with a battlefield shield, which
-turns it to a grid; two kinds of terrain in one fight, whose controllers'
-order is not read; and a controller's twentieth terrain, which splits its tree.
+turns it to a grid, and a controller's twentieth terrain, which splits its
+tree.
 
 ## Circles and grids
 
@@ -225,6 +248,10 @@ already exists.
 - An acid's buff takes 1.5% of a unit's maximum life every ten ticks from its
   first writing, unraised by the buff's damage taken and unreset by its
   rewriting, and stops once the fight is over: `tests/terrain/fights/acid.yaml`.
+- A fire takes the oils it reaches, for its own side, and an oil that lands
+  in a fire burns for the oil's side; a burning oil is a fire of 30 metres,
+  two rounds and 700 ticks: `tests/terrain/fights/oil-ignited.yaml`,
+  `tests/terrain/fights/oil-ignited-by-the-enemy.yaml`.
 - A fire hits a unit as it enters and every four ticks it stays, the units
   counting last first, burns out after 700 ticks, and its removal is the
   last event of its tick: `tests/terrain/fights/fire.yaml`,
@@ -260,6 +287,13 @@ already exists.
   rewrite leaves: `Buff.Init`, `Buff.Update`, `Buff.Reset`,
   `BuffManager.Update`, `IBEC_ChangeLIfe.Update`,
   `FightCalculator.PerformHitTargetEffect`.
+- A new fire takes the oils it reaches, and a new oil a fire reaches burns:
+  `RangeItemSystem.Init` (the controllers and `interactiveInfos`),
+  `RangeItemSystem.AddItem`, `RangeItemSystem.DoAddItem`,
+  `RangeItemSystem.CheckInteractableItems`, `RangeItemSystem.GetRepeatItem`,
+  `RangeItemController.IsInteractable`, `RangeItemController.GetItems`,
+  `CircleRange.Overlaps`, `RangeItem.GetRange`, `CS_Oil.GetFireLifeTime`,
+  `FightGroundFire.Reset`, `RangeItemSystem.Update`.
 - As the fight ends a terrain counts a round and goes when its rounds are
   over, a fire's at once: `RangeItemController.OnExitFight`,
   `RangeItem.AddRound`, `RangeItem.IsRoundOver`,
@@ -287,7 +321,6 @@ already exists.
 
 ### Not established
 
-- **A fire lit from oil.**
 - **A buff that heals**, a positive `lifeChangeRate`: the controller's other
   branch, which the simulator refuses.
 - **`FogController.SelectBestTarget`**, which picks the stronger of two fogs

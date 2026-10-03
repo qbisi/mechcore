@@ -1,0 +1,31 @@
+# Blue's Sticky Oil Bomb across red's units, and its Incendiary Bomb down
+# the right of it, both landing every four ticks from tick 63, the oil first
+# in each tick.
+#
+# On tick 79 the fifth oil lands at (20, -40), then the fifth fire at
+# (60, -80) reaches it: the oil goes and a fire of the oil's stands in its
+# place, 30 metres, two rounds and 700 ticks, which reaches the oils beside
+# it, and they burn in turn down the line. That oil is never seen as one, and
+# each oil that burns goes `unknown`. On ticks 83 and 87 an oil lands in a
+# fire already burning and turns to one at once, before the tick's fire
+# lands. Every fire goes as the fight ends.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 242
+hash: {profile: mcfr-content-0.7.0, result: 87031837a8b6778b8fda52f145d6cdd6432051bd725b1844369236b288ee74ac}
+blue:
+  core_damage: 120
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/204/650}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/148/650}
+  battle_skills:
+  - {name: sticky_oil_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}], retained: false}
+  - {name: incendiary_bomb, positions: [{x: 60, y: -160}, {x: 60, y: -40}]}
+red:
+  units:
+  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}, exp: 0/300/1300}
+  - {name: crawler, index: 1, position: {x: 5, y: -110}, exp: 0/100/450}

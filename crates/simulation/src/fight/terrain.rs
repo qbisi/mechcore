@@ -11,7 +11,9 @@
 //!
 //! A recording finds a terrain made or gone by comparing two snapshots'
 //! terrains, so the events come last in their tick: the made ones, then the
-//! gone ones, each in identity order.
+//! gone ones, each in identity order. It names a terrain the first time a
+//! snapshot holds it, controller by controller in the system's order and
+//! item by item, so a terrain made and gone within one tick is never named.
 
 use super::*;
 use crate::{
@@ -34,18 +36,28 @@ const ITEMS_BEFORE_A_SPLIT: usize = 19;
 /// `RangeItemSystem`: every terrain, and a controller per kind in play.
 #[derive(Default)]
 pub(in crate::fight) struct TerrainSystem {
+    /// Every terrain made, by key, the gone ones too: a unit a controller
+    /// still holds may name one its controller no longer does.
     terrains: BTreeMap<u64, Terrain>,
+    /// In the order `RangeItemSystem.Init` makes them.
     controllers: Vec<TerrainController>,
+    next_key: u64,
+    /// The identity a recording gave each terrain it saw, by key.
+    ids: BTreeMap<u64, u64>,
     next_id: u64,
-    /// The tick's `terrain_created` and `terrain_removed`, by identity.
-    created: BTreeMap<u64, Event>,
-    removed: BTreeMap<u64, Event>,
+    /// The terrains the last snapshot held, by key.
+    seen: Vec<u64>,
+    /// Why a terrain went, when a recording can tell; any other goes
+    /// `unknown`.
+    reasons: BTreeMap<u64, TerrainRemovedReason>,
 }
 
 /// A `RangeItem`.
 struct Terrain {
-    /// The skill that left it, for a refusal.
+    /// The skill that left it, for a refusal, and with `provider_team` its
+    /// `IRangeItemProvider`: a fire an oil turns to keeps the oil's.
     name: String,
+    provider_team: u32,
     team: u32,
     x_q32: i64,
     z_q32: i64,
@@ -74,6 +86,17 @@ struct Affected {
     time: i32,
 }
 
+/// A controller's place in `RangeItemSystem.Init`, which `Update` keeps:
+/// fire, oil, fog, sand fog, acid, recovery zone.
+const fn controller_rank(kind: TerrainKind) -> u8 {
+    match kind {
+        TerrainKind::Fire => 0,
+        TerrainKind::Oil => 1,
+        TerrainKind::Fog => 2,
+        TerrainKind::Acid => 4,
+    }
+}
+
 const fn terrain_type(kind: TerrainKind) -> TerrainType {
     match kind {
         TerrainKind::Fire => TerrainType::Fire,
@@ -84,14 +107,17 @@ const fn terrain_type(kind: TerrainKind) -> TerrainType {
 }
 
 impl Simulation {
-    /// `RangeItemSystem.AddItem` from a landing sub-effect: the terrain joins
-    /// its kind's controller, which it creates the first time.
+    /// `RangeItemSystem.AddItem` from a landing sub-effect: the terrain
+    /// joins its kind's controller. `interactiveInfos` holds one interaction,
+    /// a fire with oil: an oil a fire reaches as it lands turns at once to a
+    /// fire of the oil's, under the oil's side, which takes every oil it
+    /// reaches in turn.
     pub(in crate::fight) fn add_terrain(
         &mut self,
         team: u32,
         name: &str,
         spec: TerrainSpec,
-        (x_q32, z_q32): (i64, i64),
+        position: (i64, i64),
     ) -> Result<()> {
         // A shield turns a terrain to a grid of cells, which is not read.
         if !self.shield.standing.is_empty() {
@@ -99,52 +125,62 @@ impl Simulation {
                 "{name} leaves a terrain in a fight with a battlefield shield, which is not measured"
             )));
         }
-        if self
-            .terrain
-            .controllers
-            .iter()
-            .any(|controller| controller.kind != spec.kind)
+        self.add_item((team, name), team, spec, position)?;
+        if let Some(fire) = spec.burning()
+            && self.fire_reaches(position, spec.radius_q32)
         {
-            return Err(Error::new(format!(
-                "{name} leaves a terrain beside one of another kind, and the order their \
-                 controllers update in is not read"
-            )));
+            self.add_item((team, name), team, fire, position)?;
         }
-        if !self
-            .terrain
-            .controllers
-            .iter()
-            .any(|controller| controller.kind == spec.kind)
+        Ok(())
+    }
+
+    /// `RangeItemSystem.DoAddItem`. A fire of a provider that already has
+    /// one standing where it lands is not made again: the standing one burns
+    /// from the start (`FightGroundFire.Reset`). Any other terrain joins its
+    /// kind's controller, which is made the first time, and a fire then takes
+    /// the oils it reaches (`CheckInteractableItems`).
+    fn add_item(
+        &mut self,
+        (provider_team, name): (u32, &str),
+        team: u32,
+        spec: TerrainSpec,
+        (x_q32, z_q32): (i64, i64),
+    ) -> Result<()> {
+        if spec.kind == TerrainKind::Fire
+            && let Some(repeat) = self.controller_of(TerrainKind::Fire).and_then(|index| {
+                self.terrain.controllers[index]
+                    .items
+                    .iter()
+                    .copied()
+                    .find(|key| {
+                        let terrain = &self.terrain.terrains[key];
+                        terrain.provider_team == provider_team
+                            && terrain.name == name
+                            && (terrain.x_q32, terrain.z_q32) == (x_q32, z_q32)
+                    })
+            })
         {
-            self.terrain.controllers.push(TerrainController {
-                kind: spec.kind,
-                items: Vec::new(),
-                affected: Vec::new(),
-                period: match spec.effect {
-                    TerrainEffect::Fog { .. } => None,
-                    TerrainEffect::Fire { period_ticks, .. }
-                    | TerrainEffect::Buff { period_ticks, .. } => Some(period_ticks),
-                },
-            });
+            self.terrain
+                .terrains
+                .get_mut(&repeat)
+                .expect("an item's terrain exists")
+                .elapsed = 0;
+            return Ok(());
         }
-        let index = self
-            .terrain
-            .controllers
-            .iter()
-            .position(|controller| controller.kind == spec.kind)
-            .expect("the kind's controller was just made");
+        let index = self.controller_for(spec);
         if self.terrain.controllers[index].items.len() >= ITEMS_BEFORE_A_SPLIT {
             return Err(Error::new(format!(
                 "{name} leaves its kind's twentieth terrain, which splits its controller's \
                  quadtree, and what that does to the order units are found in is not read"
             )));
         }
-        self.terrain.next_id += 1;
-        let id = self.terrain.next_id;
+        self.terrain.next_key += 1;
+        let key = self.terrain.next_key;
         self.terrain.terrains.insert(
-            id,
+            key,
             Terrain {
                 name: name.to_owned(),
+                provider_team,
                 team,
                 x_q32,
                 z_q32,
@@ -153,35 +189,169 @@ impl Simulation {
                 round: 0,
             },
         );
-        self.terrain.controllers[index].items.push(id);
-        self.terrain.created.insert(
-            id,
-            event(
-                Some(ObjectRef::new(ObjectKind::Terrain, id)),
-                None,
-                Some(team),
-                None,
-                EventPayload::TerrainCreated {
-                    team_id: Some(team),
-                    terrain_type: terrain_type(spec.kind),
-                    position: QVec3 {
-                        x: x_q32,
-                        y: 0,
-                        z: z_q32,
-                    },
-                    radius: spec.radius_q32,
-                },
-            ),
-        );
+        self.terrain.controllers[index].items.push(key);
+        if spec.kind == TerrainKind::Fire {
+            self.ignite_oils(key)?;
+        }
         Ok(())
     }
 
+    /// `CheckInteractableItems` for a new fire: every oil it reaches, in its
+    /// controller's order, goes, and each turns to a fire of its own
+    /// provider where it stood, under the new fire's side.
+    fn ignite_oils(&mut self, fire: u64) -> Result<()> {
+        let Some(index) = self.controller_of(TerrainKind::Oil) else {
+            return Ok(());
+        };
+        let (x_q32, z_q32, radius_q32, team) = {
+            let fire = &self.terrain.terrains[&fire];
+            (fire.x_q32, fire.z_q32, fire.spec.radius_q32, fire.team)
+        };
+        let reached = self.terrain.controllers[index]
+            .items
+            .iter()
+            .copied()
+            .filter(|key| self.circles_overlap((x_q32, z_q32, radius_q32), *key))
+            .collect::<Vec<_>>();
+        self.terrain.controllers[index]
+            .items
+            .retain(|key| !reached.contains(key));
+        for oil in reached {
+            let oil = &self.terrain.terrains[&oil];
+            let (provider, spec, position) = (
+                (oil.provider_team, oil.name.clone()),
+                oil.spec.burning().expect("an oil burns"),
+                (oil.x_q32, oil.z_q32),
+            );
+            self.add_item((provider.0, &provider.1), team, spec, position)?;
+        }
+        Ok(())
+    }
+
+    /// `RangeItemController.IsInteractable` of the fire controller: whether
+    /// any fire reaches a circle.
+    fn fire_reaches(&self, (x_q32, z_q32): (i64, i64), radius_q32: i64) -> bool {
+        self.controller_of(TerrainKind::Fire).is_some_and(|index| {
+            self.terrain.controllers[index]
+                .items
+                .iter()
+                .any(|&key| self.circles_overlap((x_q32, z_q32, radius_q32), key))
+        })
+    }
+
+    /// `CircleRange.Overlaps`: the centres no further apart than the radii
+    /// together, by `FPoint`'s tolerant comparison.
+    fn circles_overlap(&self, (x_q32, z_q32, radius_q32): (i64, i64, i64), key: u64) -> bool {
+        let terrain = &self.terrain.terrains[&key];
+        let distance = native_q32_magnitude(
+            terrain.x_q32.saturating_sub(x_q32),
+            terrain.z_q32.saturating_sub(z_q32),
+        );
+        fpoint_less_or_equal(distance, radius_q32.saturating_add(terrain.spec.radius_q32))
+    }
+
+    /// The controller of a terrain's kind, made in its place the first time.
+    fn controller_for(&mut self, spec: TerrainSpec) -> usize {
+        if let Some(index) = self.controller_of(spec.kind) {
+            return index;
+        }
+        let index = self
+            .terrain
+            .controllers
+            .iter()
+            .position(|controller| controller_rank(controller.kind) > controller_rank(spec.kind))
+            .unwrap_or(self.terrain.controllers.len());
+        self.terrain.controllers.insert(
+            index,
+            TerrainController {
+                kind: spec.kind,
+                items: Vec::new(),
+                affected: Vec::new(),
+                period: match spec.effect {
+                    TerrainEffect::Fog { .. } => None,
+                    TerrainEffect::Fire { period_ticks, .. }
+                    | TerrainEffect::Buff { period_ticks, .. } => Some(period_ticks),
+                },
+            },
+        );
+        index
+    }
+
+    fn controller_of(&self, kind: TerrainKind) -> Option<usize> {
+        self.terrain
+            .controllers
+            .iter()
+            .position(|controller| controller.kind == kind)
+    }
+
     /// The tick's terrain events, as a recording finds them at its end: the
-    /// made, then the gone.
+    /// terrains its snapshot holds are named, the new ones in the system's
+    /// order, and set against the last snapshot's, the made and then the
+    /// gone.
     pub(in crate::fight) fn take_terrain_events(&mut self) -> Vec<Event> {
-        let created = std::mem::take(&mut self.terrain.created);
-        let removed = std::mem::take(&mut self.terrain.removed);
-        created.into_values().chain(removed.into_values()).collect()
+        let holding = self
+            .terrain
+            .controllers
+            .iter()
+            .flat_map(|controller| controller.items.iter().copied())
+            .collect::<Vec<_>>();
+        let mut created = Vec::new();
+        for &key in &holding {
+            if self.terrain.ids.contains_key(&key) {
+                continue;
+            }
+            self.terrain.next_id += 1;
+            let id = self.terrain.next_id;
+            self.terrain.ids.insert(key, id);
+            let terrain = &self.terrain.terrains[&key];
+            created.push(event(
+                Some(ObjectRef::new(ObjectKind::Terrain, id)),
+                None,
+                Some(terrain.team),
+                None,
+                EventPayload::TerrainCreated {
+                    team_id: Some(terrain.team),
+                    terrain_type: terrain_type(terrain.spec.kind),
+                    position: QVec3 {
+                        x: terrain.x_q32,
+                        y: 0,
+                        z: terrain.z_q32,
+                    },
+                    radius: terrain.spec.radius_q32,
+                },
+            ));
+        }
+        let mut removed = std::mem::take(&mut self.terrain.seen)
+            .into_iter()
+            .filter(|key| !holding.contains(key))
+            .map(|key| (self.terrain.ids[&key], key))
+            .collect::<Vec<_>>();
+        removed.sort_unstable();
+        let removed = removed.into_iter().map(|(id, key)| {
+            let terrain = &self.terrain.terrains[&key];
+            event(
+                Some(ObjectRef::new(ObjectKind::Terrain, id)),
+                None,
+                None,
+                None,
+                EventPayload::TerrainRemoved {
+                    position: QVec3 {
+                        x: terrain.x_q32,
+                        y: 0,
+                        z: terrain.z_q32,
+                    },
+                    reason: self
+                        .terrain
+                        .reasons
+                        .get(&key)
+                        .copied()
+                        .unwrap_or(TerrainRemovedReason::Unknown),
+                },
+            )
+        });
+        let events = created.into_iter().chain(removed).collect();
+        self.terrain.seen = holding;
+        events
     }
 
     /// `RangeItemSystem.Update`: each controller holding items, in the
@@ -256,29 +426,13 @@ impl Simulation {
         }
     }
 
-    fn remove_terrain(&mut self, index: usize, id: u64, reason: TerrainRemovedReason) {
+    /// `RangeItemController.Remove`: the terrain leaves its controller,
+    /// which still holds any unit that stood in it until it next updates.
+    fn remove_terrain(&mut self, index: usize, key: u64, reason: TerrainRemovedReason) {
         self.terrain.controllers[index]
             .items
-            .retain(|&item| item != id);
-        if let Some(terrain) = self.terrain.terrains.remove(&id) {
-            self.terrain.removed.insert(
-                id,
-                event(
-                    Some(ObjectRef::new(ObjectKind::Terrain, id)),
-                    None,
-                    None,
-                    None,
-                    EventPayload::TerrainRemoved {
-                        position: QVec3 {
-                            x: terrain.x_q32,
-                            y: 0,
-                            z: terrain.z_q32,
-                        },
-                        reason,
-                    },
-                ),
-            );
-        }
+            .retain(|&item| item != key);
+        self.terrain.reasons.insert(key, reason);
     }
 
     /// `UpdateAffectedActorChange`. Side by side, each item against every
@@ -456,13 +610,13 @@ impl Simulation {
     pub(in crate::fight) fn terrain_states(&self) -> Vec<TerrainState> {
         let mut states = Vec::new();
         for controller in &self.terrain.controllers {
-            for &id in &controller.items {
-                let terrain = &self.terrain.terrains[&id];
+            for &key in &controller.items {
+                let terrain = &self.terrain.terrains[&key];
                 let mut applications = controller
                     .affected
                     .iter()
                     .filter(|affected| {
-                        affected.terrain == id && self.actors[&affected.unit].alive()
+                        affected.terrain == key && self.actors[&affected.unit].alive()
                     })
                     .map(|affected| TerrainApplicationState {
                         unit_id: affected.unit,
@@ -476,7 +630,7 @@ impl Simulation {
                     .collect::<Vec<_>>();
                 applications.sort_by_key(|application| application.unit_id);
                 states.push(TerrainState {
-                    terrain_id: id,
+                    terrain_id: self.terrain.ids.get(&key).copied().unwrap_or_default(),
                     team_id: Some(terrain.team),
                     terrain_type: terrain_type(terrain.spec.kind),
                     position: QVec3 {
