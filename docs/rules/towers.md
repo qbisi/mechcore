@@ -83,8 +83,9 @@ tower and however. For the rest of the tick the tower falls, the losing side's
 hits and the projectiles that land are without the buff.
 
 From the tick after a side is decided the fight is over, and
-`FightMech.Update` returns before `BuffManager.Update`: a unit's buffs neither
-run on nor run out. A buff still running when the fight ends is taken off every
+`FightMech.Update` and `FightConstruction.Update` return before
+`BuffManager.Update`: a unit's or a construction's buffs neither run on nor run
+out. A buff still running when the fight ends is taken off every
 survivor and written as cleared, unit by unit, after the towers the end tore
 down.
 
@@ -160,8 +161,9 @@ gets the debuffed speed through `Move`.
   `BuffData.canAffectConstruction`, `ConstructionData.CanBeEffectedByTowerBuff`.
 - A construction runs its buffs last in its update: `FightConstruction.Update`,
   `BuffManager.Update`.
-- A unit runs no buff once the fight is over: `FightMech.Update`, which returns
-  before `BuffManager.Update` when `isFighting` is false.
+- A unit or a construction runs no buff once the fight is over:
+  `FightMech.Update` and `FightConstruction.Update`, which return before
+  `BuffManager.Update` when `isFighting` is false.
 
 ### Not established
 
