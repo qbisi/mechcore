@@ -1220,7 +1220,6 @@ impl Simulation {
         let prepare_steps = native_time_units_to_steps(attack.prepare_time_units());
         let attack_point_steps = native_time_units_to_steps(attack.attack_point_time_units());
         let backswing_steps = native_time_units_to_steps(attack.backswing_time_units());
-        let attack_hold_fire = self.attack_hold_fire(owner);
         let skill = self.skill_mut(owner);
         let mut entered_skill_phase = false;
         // `SkillIdleState.TryStartAttack` enters the attack or prepare
@@ -1258,8 +1257,11 @@ impl Simulation {
         // pushed out of reach during its backswing and back in on the tick
         // after starts its next blow on the tick it returns, as the game's
         // skill state reads in the Rhino's formation fight.
-        if !attack_hold_fire
-            && in_attack_angle
+        // `SkillAttackState.TryPerformAttack` asks the attack angle and
+        // nothing of the motion, so a bodyless unit back in its attack out
+        // of angle is not held once the angle answers: a Wasp moved during
+        // its backswing fires on the first tick its target is in its angle.
+        if in_attack_angle
             && skill.pending().is_none()
             && skill.backswing_finish_step().is_none()
             && skill.phase() == FightSkillPhase::Attack
