@@ -20,7 +20,7 @@ mod technologies;
 
 pub(crate) use energy_tower::EnergyTowerSkillEffects;
 pub(crate) use equipment::EquipmentEffects;
-pub(crate) use officers::OfficerEffects;
+pub(crate) use officers::{ContraptionRates, OfficerEffects};
 pub(crate) use sources::{
     AutoRecovery, CarriedShield, EnergyShield, LifeSteal, ProductionLine, StartBuff,
     current as current_source,

@@ -98,7 +98,8 @@ taken. A missile fires once, and is spent.
 interceptor may take it out of the air. Its release and its removal name no
 source; its damage and the deaths it causes are credited to the projectile.
 
-**What its hit does.** It deals the row's `damage` to what it lands on and
+**What its hit does.** It deals the row's `damage`, raised by its side's
+officers (below), to what it lands on and
 splashes it over `damageRange`, as a unit's projectile does. Then
 `FightLandMine.DispatchHitDamageEvent` writes the row's buff on every unit it
 struck that still stands, after the damage and before the projectile is
@@ -113,7 +114,8 @@ No unit made a kill a missile makes, so its experience goes to the pool
 
 A shield is a sphere of its side standing on the ground at its placement's
 centre, as wide as its row's `range` and holding its row's `energy`, both in
-[`config/contraptions.yaml`](../../config/contraptions.yaml). It is active from
+[`config/contraptions.yaml`](../../config/contraptions.yaml), the energy raised
+by its side's officers (below). It is active from
 the start, is no actor, and takes no part in movement. A side's shields are in
 the order `CompareEnergyShield` sorts them at the fight's start: their centre's
 x, then its z, then their energy and radius. A shield covers what its sphere
@@ -165,6 +167,20 @@ splash reached it from outside.
 it still aims at it for the rest of that tick and loses its lock at its next
 check. A shield never regains energy within a fight.
 
+## What an officer adds
+
+Two officers raise a side's contraptions rather than its units. Advanced Shield
+Device adds its `energy_shield_rate` of `+0.4` to the side's shield, and
+Advanced Missile Device its `land_mine_rate` of `+2` to the side's missile. A
+side holds one contraption of each kind, which every placement of the kind
+reads, so the rate reaches each of them whether it was placed before the
+officer was taken or after. Two officers' rates sum.
+
+The shield's energy and the missile's damage are then the row's number times
+`1 + rate` in `FPoint`, cut to an integer. The shield's `+0.4` is stored a hair
+under it, so a shield of 40000 holds 55999; the missile's `+2` is exact, and
+its 5000 becomes 15000.
+
 ## What a fight leaves
 
 A contraption stands into the next round unless the fight ends it, and each
@@ -198,6 +214,10 @@ kind ends its own way:
 - A fallen interceptor intercepts nothing more, falls among the tick's deaths,
   and does not stand into the next round:
   `tests/interceptor/fights/interceptor-falls.yaml`.
+- An officer's rate raises a side's shield's energy and its missile's damage,
+  cut to an integer: `tests/shield/fights/advanced-shield-device.yaml` against
+  `tests/shield/fights/projectiles.yaml`, and
+  `tests/missile/fights/advanced-missile-device.yaml`.
 - A shield takes projectiles at its surface, a splashing one's included, and
   its side's covered unit takes nothing; units whose target it covers stop at
   its surface: `tests/shield/fights/projectiles.yaml`.
@@ -251,6 +271,15 @@ kind ends its own way:
 - An officer raises both counts: `ContraptionManager.ChangeBuyCount`,
   `SystemOfficerController.ChangeContraptionBuyCount`,
   `OfficerData.contraptionBuyCount`.
+- An officer's rate is added onto the side's one contraption of the kind,
+  and its number read times one plus it:
+  `SystemOfficerController.ChangeConstraptionEnergyShield`,
+  `SystemOfficerController.ChangeConstraptionLandMine`,
+  `ContraptionManager.ChangEnergyShieldValue`,
+  `ContraptionManager.ChangeLandMineValue`,
+  `EnergyShieldContraption.ChangeEnergy`,
+  `EnergyShieldContraption.GetAdvancedEnergyShieldValue`,
+  `LandMineContraption.ChangeDamage`, `LandMineContraption.GetDamage`.
 - A missile fires when an enemy comes within its trigger range, as a
   projectile made with the missile as its data source:
   `TeamMineManager.TryActiveMine`, `FightLandMine.GetTriggerRange`,

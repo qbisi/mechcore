@@ -39,6 +39,14 @@ pub(crate) struct OfficerEffects {
     officers: BTreeMap<i32, Officer>,
 }
 
+/// The rates a side's officers add onto its contraptions, Q32.32:
+/// `EnergyShieldContraption.energyRate` and `LandMineContraption.damageRate`.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct ContraptionRates {
+    pub(crate) shield_energy: i64,
+    pub(crate) missile_damage: i64,
+}
+
 #[derive(Debug, Clone)]
 struct Officer {
     /// Which units the row reaches, as the build stores it.
@@ -51,6 +59,9 @@ struct Officer {
     /// `ICommonMechDataChangeDataSource` `OfficerData.GetExpChangeRate`
     /// answers zero, so it writes nothing onto the unit itself.
     exp_rate: i64,
+    /// `energyShieldChangeRate` and `landMineChangeRate`, Q32.32: what
+    /// `SystemOfficerController` adds onto its side's shield and missile.
+    contraption_rates: ContraptionRates,
     /// What it writes, or why this build will not apply it. The table loads
     /// whole either way: an officer nobody holds refuses nothing, and a fight
     /// is only refused for what its sides actually carry.
@@ -173,6 +184,25 @@ impl OfficerEffects {
         }
     }
 
+    /// What this side's officers add onto its contraptions:
+    /// `SystemOfficerController.ChangeConstraptionEnergyShield` and
+    /// `ChangeConstraptionLandMine` hand each officer's rate to its side's
+    /// `ContraptionManager`, which adds it onto the one shield and the one
+    /// missile contraption every placement of that kind reads.
+    pub(crate) fn contraption_rates(&self, held: &[i32]) -> ContraptionRates {
+        held.iter().filter_map(|id| self.officers.get(id)).fold(
+            ContraptionRates::default(),
+            |sum, officer| ContraptionRates {
+                shield_energy: sum
+                    .shield_energy
+                    .saturating_add(officer.contraption_rates.shield_energy),
+                missile_damage: sum
+                    .missile_damage
+                    .saturating_add(officer.contraption_rates.missile_damage),
+            },
+        )
+    }
+
     /// Every correction this side's officers write onto one unit.
     ///
     /// An id the table does not hold writes nothing: the table carries the
@@ -249,6 +279,10 @@ impl Officer {
             targets,
             super_deployment_time_rate: row.super_deployment_time_rate.unwrap_or(0),
             exp_rate: row.exp_rate.unwrap_or(0),
+            contraption_rates: ContraptionRates {
+                shield_energy: row.energy_shield_rate.unwrap_or(0),
+                missile_damage: row.land_mine_rate.unwrap_or(0),
+            },
             effect: corrections_of(row),
         }
     }
@@ -288,8 +322,6 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
             KILLS,
         ),
         (row.tower_life_rate, "tower_life_rate", ELSEWHERE),
-        (row.energy_shield_rate, "energy_shield_rate", ELSEWHERE),
-        (row.land_mine_rate, "land_mine_rate", ELSEWHERE),
         (row.extra_life, "extra_life", ELSEWHERE),
     ];
     for (value, field, why) in unsupported {
@@ -313,7 +345,7 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
     }))
 }
 
-const ELSEWHERE: &str = "it corrects a tower, a shield or a mine rather than a \
+const ELSEWHERE: &str = "it corrects a tower's life or a side's lives rather than a \
                          unit's own number, and no mechanism here reads one";
 
 #[cfg(test)]
@@ -464,6 +496,46 @@ mod tests {
                 .unwrap(),
             ExperienceRate::default()
         );
+    }
+
+    /// Advanced Shield Device and Advanced Missile Device write nothing onto
+    /// a unit and add their rates onto the side's contraptions, which sum:
+    /// `tests/shield/fights/advanced-shield-device.yaml`,
+    /// `tests/missile/fights/advanced-missile-device.yaml`.
+    #[test]
+    fn a_device_officer_rates_its_sides_contraptions() {
+        use super::ContraptionRates;
+        const SHIELD_DEVICE: i32 = 10007;
+        const MISSILE_DEVICE: i32 = 10008;
+        let table = OfficerEffects::load().unwrap();
+        for id in [SHIELD_DEVICE, MISSILE_DEVICE] {
+            assert!(
+                table
+                    .corrections(&[id], &unit("marksman"))
+                    .unwrap()
+                    .is_empty()
+            );
+        }
+        assert_eq!(
+            table.contraption_rates(&[SHIELD_DEVICE, MISSILE_DEVICE, MISSILE_DEVICE]),
+            ContraptionRates {
+                shield_energy: 1_717_986_918,
+                missile_damage: 2 * (2_i64 << 32),
+            }
+        );
+    }
+
+    /// A row with a field no mechanism reads refuses the side that holds it,
+    /// by name: Berserk Sledgehammer's life per kill.
+    #[test]
+    fn an_officer_this_build_cannot_apply_is_refused_by_name() {
+        let table = OfficerEffects::load().unwrap();
+        let refused = table
+            .corrections(&[31303], &unit("sledgehammer"))
+            .unwrap_err()
+            .to_string();
+        assert!(refused.contains("31303"), "{refused}");
+        assert!(refused.contains("life_rate_by_kill_count"), "{refused}");
     }
 
     /// An officer that only touches a ledger is not in this table, and writes
