@@ -30,7 +30,7 @@
 所有卡在它上面的单位一起前进；每修一个，重跑全部录像，对上的钉进
 `tests/<单位>/fights/`，已有的钉子一直要过。
 
-目标范围：除两个 800 费用的单位（war_factory、abyss）之外的所有单位。
+目标范围：除 800 费用的 abyss 之外的所有单位。
 
 ## 栈
 
@@ -47,12 +47,12 @@
   build 的一下只在技能更新里放出，技能先于运动。所以激光自己一束打死目标时，要在放出处替运动
   补一次"锁定死了就空闲"，而直击交给运动自己的检查。`motion.rs` 里按机身和近战的分支是同一件事
   的其它部分。reopen_when：一场分叉落在运动发起的攻击上，或要给一种新路径写放出。
-- **目标范围外的单位。** 深渊和战争工厂都挡着语料的回合，fight-coverage 的系统视角把它们各算
-  一个系统。reopen_when：广度栈按系统顺序排在它们前面的节点都出栈。
-- **独立武器的运动问的是谁。** `FightMech.SetMotionAttackerAfterSkill` 把批次的第一个技能交给
+- **目标范围外的单位。** 深渊挡着语料的回合，fight-coverage 的系统视角把它算一个系统。
+  reopen_when：广度栈按系统顺序排在它前面的节点都出栈。
+- **泰山的运动问的是谁。** `FightMech.SetMotionAttackerAfterSkill` 把批次的第一个技能交给
   运动，可录像里运动跟的是机甲锁定、炮塔跟的是另一门炮；模拟器按录像写了规则
-  （`docs/rules/standalone_weapons.md`），读出它的方法还没找到。reopen_when：一场分叉落在独立
-  武器的运动或炮塔上，或战争工厂的录像和这条规则不符。
+  （`docs/rules/standalone_weapons.md`），读出它的方法还没找到。战争工厂自己搜索，运动问的是
+  机甲本身，不在此列。reopen_when：一场分叉落在泰山的运动或炮塔上。
 - **新机制随新单位而来。** 近战模式（`MeleeModeEffectSystem`）、副武器
   （`SideArmSearchTargetController`）、弹药池（`AmmoSkillPool`）、`IgnoreBuffEffectSystem`、
   出售单位（`PAD_SellUnit`）、塔成为 buff 目标。reopen_when：批量录像的第一处分叉指到其中之一。

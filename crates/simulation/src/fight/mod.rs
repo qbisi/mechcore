@@ -31,6 +31,7 @@ use crate::{
     rules::{
         AttackConfig, AttackPath, AttackTargets, Magazine, MapBuilding, MapsConfig, RvoSize,
         SimulationConfig, TowersConfig, UnitConfig, UnitConfigs, UnitDomain, WeaponMode,
+        WeaponMount,
     },
 };
 
@@ -813,7 +814,13 @@ impl Simulation {
                 if ready_to_finish {
                     actor.exit_fight_move_ability();
                     actor.stop_in_place(entered_idle);
-                } else {
+                    // Leaving the fight drops the unit's own lock too.
+                    if let Some(group) = &mut actor.skill.group {
+                        group.mech_lock = None;
+                    }
+                } else if !actor.skill.mech_searches() {
+                    // A unit that searches for itself keeps its own lock,
+                    // which no skill drops, and its motion goes on after it.
                     actor.lose_target_motion(entered_idle);
                 }
                 actor.skill.drop_lock();

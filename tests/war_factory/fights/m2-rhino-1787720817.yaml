@@ -1,0 +1,16 @@
+# M2: a single large ground target that closes in.
+
+kind: fight
+map_id: 1021
+seed: 1787720817
+round: 1
+source: game
+ticks: 103
+hash: {profile: mcfr-content-0.7.0, result: c8b7261ac0ee79f76b60f850c5df11dd9f85ac86596da6fe261bab47563dbc42}
+blue:
+  units:
+  - {name: war_factory, index: 0, position: {x: 5, y: -105}, exp: 0/400/3200}
+red:
+  core_damage: 500
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}

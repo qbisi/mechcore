@@ -84,6 +84,7 @@ attack:
 | `collision_radius` | Native member radius used by movement, range and hit tests. |
 | `move_speed`, `rotate_speed` | Member movement and body rotation speed. |
 | `has_body` | Whether native `MechData` exposes a separate mech body. |
+| `mech_search` | `MechData.isEnableMechSearchTarget`: the unit runs a target search of its own, which its motion follows and no skill writes. [`docs/rules/standalone_weapons.md`](../../rules/standalone_weapons.md) says what it changes. Absent means `false`. |
 | `independent_aim` | Whether the main weapon receives an aim direction generated independently of the mech body direction. In the current P0 catalog it is present exactly for units with a mech body; omission means not applicable, not `false`. |
 | `underground` | Present for a unit whose `MechData.moveType` is `Underground`: how long it burrows (`enter`) and surfaces (`exit`), how far into surfacing it stays hidden (`exit_keep`), and the range it is given below (`attack_range`). [`docs/rules/underground.md`](../../rules/underground.md) says what they do. |
 | `base_damage` | Unmodified level-1 mech base damage before path-specific attack-count multipliers. |
@@ -131,7 +132,10 @@ Weapon scheduling is orthogonal to the effect path:
   may substitute for missing native data.
 - `rotation_speed` is present only when the native skill supplies a weapon
   rotation speed distinct from the member body; Wraith stores `90` while its
-  body-level `rotate_speed` is `120`.
+  body-level `rotate_speed` is `120`. A weapon with an arc turns at it.
+- `mount` is the skill's `weaponMountNode` where it is not `Default`: `mech`
+  or `mech_body`. A weapon with an arc turns about the mech body, the turret,
+  for `mech_body`, and about the unit's root otherwise.
 - `arcs`, one entry per weapon in `indices` order, is present only when some
   weapon turns within an arc of the body: its `default` angle from the body
   and, for a limited weapon, how far it turns `left` and `right` of that. A

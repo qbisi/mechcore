@@ -414,7 +414,7 @@ pub(in crate::fight) fn full_rotation_target_score_q32(
     target_visible: bool,
     min_range: i64,
     max_range: i64,
-    rotation_window_q32: Option<i64>,
+    rotation_window_q32: Option<(i64, i64)>,
 ) -> Option<i64> {
     let distance_q32 = native_q32_magnitude(
         target_x_q32.saturating_sub(source_x_q32),
@@ -440,7 +440,7 @@ pub(in crate::fight) fn full_rotation_target_score_q32(
     // `sourceRotation` less the angle on the left and plus it on the right,
     // which is the bearing itself.
     let outside_rotation_window = rotation_window_q32
-        .and_then(|half_width_q32| rotation_window(source_rotation_q32, half_width_q32))
+        .and_then(|(left_q32, right_q32)| rotation_window(source_rotation_q32, left_q32, right_q32))
         .is_some_and(|(min_q32, max_q32)| !is_in_range_rotation(bearing_q32, min_q32, max_q32));
     full_rotation_score_from_distance_and_angle_q32(
         distance_q32,
@@ -472,11 +472,11 @@ pub(in crate::fight) const fn search_prepared(owner: FightActorRef) -> bool {
 /// rotation widened by `half_width_q32` either side, if it checks it: it
 /// checks a window only when it starts above `Angle0` and ends below
 /// `Angle360`.
-fn rotation_window(rotation_q32: i64, half_width_q32: i64) -> Option<(i64, i64)> {
+fn rotation_window(rotation_q32: i64, left_q32: i64, right_q32: i64) -> Option<(i64, i64)> {
     let less = rvo::fpoint_less_than;
     let full_rotation = 360_i64 << 32;
-    let min_q32 = clamp_rotation(rotation_q32.saturating_sub(half_width_q32));
-    let max_q32 = clamp_rotation(rotation_q32.saturating_add(half_width_q32));
+    let min_q32 = clamp_rotation(rotation_q32.saturating_sub(left_q32));
+    let max_q32 = clamp_rotation(rotation_q32.saturating_add(right_q32));
     (less(0, min_q32) && less(max_q32, full_rotation)).then_some((min_q32, max_q32))
 }
 
@@ -698,8 +698,23 @@ impl Simulation {
         let source = self
             .attacker(owner)
             .ok_or_else(|| Error::new("target selector source is absent"))?;
+        Ok(self.select_normal_target_from(
+            &source,
+            target_search_order,
+            use_live_candidate_positions,
+        ))
+    }
+
+    /// [`Simulation::select_normal_target_with_order`] for a given source.
+    pub(in crate::fight) fn select_normal_target_from(
+        &self,
+        source: &super::attacker::Attacker<'_>,
+        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
+        use_live_candidate_positions: bool,
+    ) -> Option<FightActorRef> {
+        let owner = source.owner;
         if !source.searches {
-            return Ok(None);
+            return None;
         }
         let nearby = self.search_candidates(owner);
         let mut scoring = Scoring::default();
@@ -774,7 +789,64 @@ impl Simulation {
             }
         }
 
-        Ok(scoring.chosen(|next| self.target_in_attack_range(owner, next)))
+        scoring.chosen(|next| self.target_in_attack_range(owner, next))
+    }
+
+    /// `MechSearchTargetController.Update`, before the unit's skills: a unit
+    /// that searches for itself keeps its lock while it lives and the search
+    /// is not due, counting down, and otherwise searches
+    /// (`MechSearchTargetController.SearchLockTarget`) and waits ten updates.
+    /// Its search scores from where the unit stands and its root points as
+    /// it updates (`FightMech`'s `GetMainTransform`), over the whole turn,
+    /// and falls back on any live enemy.
+    pub(in crate::fight) fn update_mech_search(
+        &mut self,
+        actor_id: u64,
+        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
+    ) -> Result<()> {
+        let skill = &self.actors[&actor_id].skill;
+        let Some(group) = skill.group.as_ref() else {
+            return Ok(());
+        };
+        let Some(time) = group.mech_search_time else {
+            return Ok(());
+        };
+        let lock_alive = group
+            .mech_lock
+            .is_some_and(|lock| self.fight_actor_is_alive(lock));
+        let found = if lock_alive && time >= 1 {
+            None
+        } else {
+            let source = self
+                .mech_attacker(actor_id)
+                .ok_or_else(|| Error::new("mech search source is absent"))?;
+            Some(
+                match self.select_normal_target_from(&source, target_search_order, true) {
+                    Some(found) => Some(found),
+                    None => self.select_alive_target(
+                        FightActorRef::Unit(actor_id),
+                        None,
+                        target_search_order,
+                    )?,
+                },
+            )
+        };
+        let group = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable")
+            .skill
+            .group
+            .as_mut()
+            .expect("checked above");
+        match found {
+            None => group.mech_search_time = Some(time - 1),
+            Some(found) => {
+                group.mech_lock = found;
+                group.mech_search_time = Some(10);
+            }
+        }
+        Ok(())
     }
 
     /// `SkillSearchTargetController.TrySearchAliveTarget`, which

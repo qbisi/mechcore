@@ -38,6 +38,7 @@ attack:
     mode: normal
     indices: [0, 2]
     per_skill: 2
+    mount: mech_body
   melee: false
   crosses_shields: false
   path:

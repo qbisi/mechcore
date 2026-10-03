@@ -1,0 +1,22 @@
+# M4: the air relation. The War Factory cannot fire at aircraft, so six Wasp
+# formations win before any tower falls.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 395
+hash: {profile: mcfr-content-0.7.0, result: 46721b7cd5358df1306bbc826164344820b4b9ddd4bdd52d591c1b57a2ba26f5}
+blue:
+  core_damage: 1224
+  units:
+  - {name: war_factory, index: 0, position: {x: 5, y: -105}}
+red:
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/133/900}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/133/900}
+  - {name: wasp, index: 2, position: {x: 5, y: -180}, exp: 0/133/900}
+  - {name: wasp, index: 3, position: {x: -55, y: -100}, exp: 0/900/900}
+  - {name: wasp, index: 4, position: {x: -55, y: -140}, exp: 0/133/900}
+  - {name: wasp, index: 5, position: {x: -55, y: -180}, exp: 0/133/900}

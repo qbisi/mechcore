@@ -1,0 +1,15 @@
+# M1: the mirror. One formation each, 200 m apart.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 346
+hash: {profile: mcfr-content-0.7.0, result: 1f89db8d1d2f296b9091be8812759b1a4fb2273b3e47bc8601182afeeb3200e6}
+blue:
+  units:
+  - {name: war_factory, index: 0, position: {x: 5, y: -105}, exp: 0/1600/3200}
+red:
+  units:
+  - {name: war_factory, index: 0, position: {x: 5, y: -105}}

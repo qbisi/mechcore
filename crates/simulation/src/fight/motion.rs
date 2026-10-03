@@ -581,6 +581,12 @@ impl Simulation {
     fn motion_target(&self, actor_id: u64) -> Option<FightActorRef> {
         let actor = &self.actors[&actor_id];
         let skill = &actor.skill;
+        // A unit that searches for itself is its motion's attacker
+        // (`FightMech.SetMotionAttackerAfterSkill`): the motion goes after
+        // the unit's own lock.
+        if skill.mech_searches() {
+            return skill.unit_lock();
+        }
         let attacking = actor.motion.state == MotionState::Attacking
             && (0..skill.group_size())
                 .any(|slot| skill.group_skill(slot).phase() == FightSkillPhase::Attack);
@@ -596,17 +602,77 @@ impl Simulation {
     fn batch_in_reach(&self, actor_id: u64) -> Option<bool> {
         let actor = &self.actors[&actor_id];
         let skill = &actor.skill;
-        (skill.standalone() && actor.motion.state == MotionState::Attacking).then(|| {
-            (0..skill.group_size()).any(|slot| {
-                skill.group_attack_target(slot).is_some_and(|aimed| {
-                    self.slot_target_in_attack_range(
-                        FightActorRef::Unit(actor_id),
-                        Some(slot),
-                        aimed,
-                    )
+        (skill.standalone()
+            && !skill.mech_searches()
+            && actor.motion.state == MotionState::Attacking)
+            .then(|| {
+                (0..skill.group_size()).any(|slot| {
+                    skill.group_attack_target(slot).is_some_and(|aimed| {
+                        self.slot_target_in_attack_range(
+                            FightActorRef::Unit(actor_id),
+                            Some(slot),
+                            aimed,
+                        )
+                    })
                 })
             })
-        })
+    }
+
+    /// What the body walks on: the skill's lock, or the unit's own for a
+    /// unit that searches for itself.
+    fn walked_on(&self, actor_id: u64, target: FightActorRef) -> Option<FightActorRef> {
+        if self.actors[&actor_id].skill.mech_searches() {
+            Some(target)
+        } else {
+            self.actors[&actor_id].skill.lock_target
+        }
+    }
+
+    /// `MotionAttackState.Update` for a unit that searches for itself, its
+    /// own lock out of range: it changes to `MotionMoveState`, and the state
+    /// entered is not updated on the tick it is entered, so the body neither
+    /// turns nor walks until the next.
+    fn mech_leaves_attack(&mut self, actor_id: u64) -> Flow {
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        if actor.skill.mech_searches() && actor.motion.state == MotionState::Attacking {
+            actor.motion.state = MotionState::Moving;
+            return Flow::Done;
+        }
+        Flow::Next
+    }
+
+    /// Whether the motion's target is in reach: a batch's weapon's, a unit's
+    /// own lock, a shield's surface, or its target where it stands.
+    fn motion_in_reach(
+        &self,
+        actor_id: u64,
+        target: FightActorRef,
+        sees_target: bool,
+        edge_distance_q32: i64,
+    ) -> bool {
+        let actor = &self.actors[&actor_id];
+        if let Some(batch_in_reach) = self.batch_in_reach(actor_id) {
+            batch_in_reach
+        } else if actor.skill.mech_searches() {
+            // `FightMech.IsActorInAttackRange`: the unit's own lock is in
+            // reach nearer than its main skill's range less a metre.
+            sees_target
+                && rvo::fpoint_less_than(
+                    edge_distance_q32,
+                    space_to_q32(actor.stats.attack_range()).saturating_sub(1_i64 << 32),
+                )
+        } else if actor.skill.shield_target().is_some() {
+            // A skill firing at a shield stops its unit once the shield's
+            // surface is in reach, however far the lock stands behind it.
+            self.target_in_attack_range(FightActorRef::Unit(actor_id), target)
+        } else {
+            sees_target
+                && edge_distance_q32 >= space_to_q32(actor.rules.attack.min_range())
+                && edge_distance_q32 <= space_to_q32(actor.stats.attack_range())
+        }
     }
 
     fn update_motion_states(
@@ -649,18 +715,13 @@ impl Simulation {
         // a unit held by a construction in its line of fire still advances on
         // the unit behind it, and only stops because the construction is in
         // reach. The two coincide in every fight without one.
-        let (body_x_q32, body_z_q32, body_radius) = self.actors[&actor_id]
-            .skill
-            .lock_target
+        let (body_x_q32, body_z_q32, body_radius) = self
+            .walked_on(actor_id, target)
             .and_then(|lock| self.fight_actor(lock))
             .map_or((target_x_q32, target_z_q32, target_radius), |view| {
                 (view.x_q32, view.z_q32, view.radius)
             });
-        let batch_in_reach = self.batch_in_reach(actor_id);
-        let actor = self
-            .actors
-            .get_mut(&actor_id)
-            .expect("actor identity is stable");
+        let actor = &self.actors[&actor_id];
         let target_rotation_q32 = direction_degrees_q32_raw(
             target_x_q32.saturating_sub(actor.x_q32),
             target_z_q32.saturating_sub(actor.z_q32),
@@ -673,6 +734,10 @@ impl Simulation {
             .saturating_sub(space_to_q32(actor.rules.collision_radius()))
             .saturating_sub(space_to_q32(target_radius))
             .max(0);
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
         if actor.rules.attack.weapons.mode == WeaponMode::Group
             && actor.motion.state == MotionState::Attacking
             && actor.skill.lock_target.is_none()
@@ -686,17 +751,7 @@ impl Simulation {
             actor.aim_rotation = actor.body_rotation;
             return Ok(());
         }
-        let in_reach = if let Some(batch_in_reach) = batch_in_reach {
-            batch_in_reach
-        } else if actor.skill.shield_target().is_some() {
-            // A skill firing at a shield stops its unit once the shield's
-            // surface is in reach, however far the lock stands behind it.
-            self.target_in_attack_range(FightActorRef::Unit(actor_id), target)
-        } else {
-            sees_target
-                && edge_distance_q32 >= space_to_q32(actor.rules.attack.min_range())
-                && edge_distance_q32 <= space_to_q32(actor.stats.attack_range())
-        };
+        let in_reach = self.motion_in_reach(actor_id, target, sees_target, edge_distance_q32);
         if in_reach {
             let was_attacking = self.actors[&actor_id].motion.state == MotionState::Attacking;
             self.attack_in_range(
@@ -709,6 +764,9 @@ impl Simulation {
                 prepare_finished,
             )?;
             self.attack_move(actor_id, was_attacking);
+            return Ok(());
+        }
+        if let Flow::Done = self.mech_leaves_attack(actor_id) {
             return Ok(());
         }
         self.leave_or_approach(
@@ -1107,7 +1165,7 @@ impl Simulation {
     /// is up.
     /// The first weapon's skill of a batch attacks its own target, whatever
     /// the unit walks on, once it is in its weapon's attack area.
-    fn start_standalone_core(
+    pub(in crate::fight) fn start_standalone_core(
         &mut self,
         actor_id: u64,
         step: u64,
@@ -1231,7 +1289,9 @@ impl Simulation {
                 return Ok(());
             }
             let clear_hold_after_motion = actor.motion.attack_hold_fire && in_attack_angle;
-            if self.actors[&actor_id].skill.standalone() {
+            if self.actors[&actor_id].skill.mech_searches() {
+                // Its first weapon's skill starts in its own update.
+            } else if self.actors[&actor_id].skill.standalone() {
                 self.start_standalone_core(actor_id, step, entered_attack, prepare_finished);
             } else {
                 self.try_start_attack(

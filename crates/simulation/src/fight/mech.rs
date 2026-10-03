@@ -66,7 +66,7 @@ impl Actor {
         let underground = rules.underground.as_ref().map(underground::Underground::of);
         let original_team = placement.team;
         let original_formation = placement.formation_id;
-        Self {
+        let mut actor = Self {
             x,
             z,
             x_q32,
@@ -128,7 +128,13 @@ impl Actor {
                 attack_hold_fire: false,
             },
             skill: Skill::new(weapon_rotations_q32, group, magazine, kind),
+        };
+        if actor.rules.mech_search
+            && let Some(group) = &mut actor.skill.group
+        {
+            group.mech_search_time = Some(0);
         }
+        actor
     }
 
     /// `MotionMoveState.MoveUpdate`'s `NormalRotate`: the facing turned to
@@ -273,6 +279,20 @@ impl Actor {
         )
     }
 
+    /// One update's turn of a weapon that turns within an arc of its own:
+    /// `FightWeapon`'s constructor gives it the skill's weapon rotation
+    /// speed where the skill has one, and the unit's otherwise.
+    pub(in crate::fight) fn arc_weapon_turn_q32(&self) -> i64 {
+        self.rules
+            .attack
+            .weapons
+            .rotation_speed_mdeg_per_second()
+            .map_or_else(
+                || self.turn_q32(),
+                |speed| q32_mul(mdeg_to_degrees_q32(speed), NATIVE_LOGIC_DELTA_Q32),
+            )
+    }
+
     pub(in crate::fight) fn rotate_weapons_towards(&mut self, target_q32: i64) {
         let turn_q32 = self.turn_q32();
         // The motion turns the mech body; weapons with arcs of their own
@@ -323,27 +343,43 @@ impl Actor {
     /// by the attack angle either side; a weapon that turns freely is scored
     /// from its rest too, and has no window: the Mountain's first gun, at 10
     /// degrees, takes the Crawler to the right of the one straight ahead. The
-    /// window is a half width about the rest, which an arc as wide to the
-    /// left as to the right is.
-    pub(in crate::fight) fn default_search_frame(&self, slot: usize) -> Option<(i64, Option<i64>)> {
+    /// window is how far it reaches left and right of the rest, which need
+    /// not be the same: the War Factory's arcs are not.
+    pub(in crate::fight) fn default_search_frame(
+        &self,
+        slot: usize,
+    ) -> Option<(i64, Option<(i64, i64)>)> {
         if !self.rules.attack.default_rotation_search {
             return None;
         }
         let arc = self.rules.attack.weapons.arcs.as_ref()?.get(slot)?;
-        let turret = self.turret_q32?;
-        let rest = turret
+        let rest = self
+            .arc_parent_q32()?
             .saturating_add(i64::from(arc.default) << 32)
             .rem_euclid(360_i64 << 32);
-        match (arc.left, arc.right) {
-            (Some(left), Some(right)) if left == right => {
-                let half = (i64::from(left) << 32).saturating_add(mdeg_to_degrees_q32(
-                    self.rules.attack.attack_half_angle_mdeg(),
-                ));
-                Some((rest, Some(half)))
-            }
-            (None, None) => Some((rest, None)),
-            _ => None,
-        }
+        let window = arc.left.zip(arc.right).map(|(left, right)| {
+            let angle = mdeg_to_degrees_q32(self.rules.attack.attack_half_angle_mdeg());
+            (
+                (i64::from(left) << 32).saturating_add(angle),
+                (i64::from(right) << 32).saturating_add(angle),
+            )
+        });
+        Some((rest, window))
+    }
+
+    /// What a weapon that turns within an arc turns about
+    /// (`RotationLimitFightTransform`'s parent): the mech body, the turret,
+    /// for a skill mounted on it (`WeaponMountNode.MechBody`), and the unit's
+    /// root otherwise. `None` for a unit whose weapons have no arcs.
+    pub(in crate::fight) fn arc_parent_q32(&self) -> Option<i64> {
+        let turret = self.turret_q32?;
+        Some(
+            if self.rules.attack.weapons.mount == WeaponMount::MechBody {
+                turret
+            } else {
+                self.body_rotation_q32
+            },
+        )
     }
 
     /// A weapon fixed to the body stands where the unit stands; the core's

@@ -65,6 +65,9 @@ MOVE_NORMAL, MOVE_UNDERGROUND = 0, 1
 # unit's own. No table column says so.
 FIXED_TO_BODY_UNIT = 27
 WEAPON_MODES = {0: "normal", 1: "group", 2: "standalone"}
+# `WeaponMountNode`, which the skill's `weaponMountNode` names: what a weapon
+# that turns within an arc turns about. `Default` is written as nothing.
+WEAPON_MOUNTS = {1: "mech", 2: "mech_body"}
 
 
 def raw(value):
@@ -156,6 +159,8 @@ def render(mech, card, kind, skill, rvo, type_name):
         lines.append("free_move: true")
     if mech["isHaveBody"]:
         lines.append("independent_aim: false")
+    if mech["isEnableMechSearchTarget"]:
+        lines.append("mech_search: true")
     lines += [
         f"rvo: {{outer_radius: {grid(rvo['radiusOuter'], 1000)}, inner_radius: {grid(rvo['radiusInner'], 1000)}, "
         f"size: {SIZES[rvo['size']]}, collider_priority: {rvo['colliderPriority']}, priority: {readable(rvo['priority'])}}}",
@@ -202,6 +207,8 @@ def render(mech, card, kind, skill, rvo, type_name):
         lines.append(f"    rotation_speed: {grid(skill['extraWeaponRotateSpeed'], 1000)}")
     if unit == FIXED_TO_BODY_UNIT:
         lines.append("    fixed_to_body: true")
+    if skill["weaponMountNode"]:
+        lines.append(f"    mount: {WEAPON_MOUNTS[skill['weaponMountNode']]}")
     if any((weapon["defaultAngle"], weapon["rotateAngleLeft"], weapon["rotateAngleRight"]) != (0, -1, -1)
            for weapon in skill["weapons"]):
         lines.append("    arcs:")

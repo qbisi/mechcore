@@ -191,6 +191,11 @@ pub(in crate::fight) struct Group {
     /// for before they may fire.
     pub(in crate::fight) core_blow_step: Option<u64>,
     pub(in crate::fight) behaviour: GroupBehaviour,
+    /// `MechSearchTargetController.searchTargetTime`, for a unit that
+    /// searches for itself (`MechData.isEnableMechSearchTarget`): its own
+    /// search writes `mech_lock`, and no skill hands it one
+    /// (`FightSkill.ChangeLockTarget` asks `IsMechSearchTargetEnabled`).
+    pub(in crate::fight) mech_search_time: Option<i32>,
 }
 
 /// `SkillGroup.attackBehaviour`: how the group's skills take turns.
@@ -303,6 +308,7 @@ impl Skill {
             mech_lock: None,
             core_blow_step: None,
             behaviour,
+            mech_search_time: None,
         });
         Self {
             weapon_rotations_q32,
@@ -640,11 +646,21 @@ impl Skill {
             .sibling_weapon_rotations_q32[slot - 1]
     }
 
-    /// Hands the owner a lock, where a group keeps one for it.
+    /// Hands the owner a lock, where a group keeps one for it and the unit
+    /// does not search for itself.
     pub(in crate::fight) fn set_mech_lock(&mut self, lock: Option<FightActorRef>) {
-        if let Some(group) = &mut self.group {
+        if let Some(group) = &mut self.group
+            && group.mech_search_time.is_none()
+        {
             group.mech_lock = lock;
         }
+    }
+
+    /// Whether the unit searches for itself (`MechSearchTargetController`).
+    pub(in crate::fight) fn mech_searches(&self) -> bool {
+        self.group
+            .as_ref()
+            .is_some_and(|group| group.mech_search_time.is_some())
     }
 
     /// `RefreshAttackData` from the core to every sibling: each is due when
@@ -1010,6 +1026,8 @@ impl Simulation {
             self.sync_beam(actor_id);
             return self.drop_buffs_of_the_dead(actor_id);
         }
+        // `FightMech.Update` runs the unit's own search before its skills.
+        self.update_mech_search(actor_id, target_search_order)?;
         self.step_actor_skill_and_motion(actor_id, step, target_search_order, events)?;
         self.sync_beam(actor_id);
         self.update_buffs(actor_id, events)
@@ -1043,6 +1061,26 @@ impl Simulation {
             target_search_order,
             events,
         )?;
+        // A unit that searches for itself is its motion's attacker, so its
+        // first weapon's skill starts and fires in its own update
+        // (`SkillIdleState.TryStartAttack`, `SkillAttackState.TryPerformAttack`),
+        // as the others do.
+        if self.actors[&actor_id].skill.mech_searches()
+            && matches!(
+                self.actors[&actor_id].skill.phase(),
+                FightSkillPhase::Idle | FightSkillPhase::Attack
+            )
+            && let Some(update) = update
+        {
+            self.start_standalone_core(actor_id, step, false, update.prepare_finished);
+            if self.actors[&actor_id]
+                .skill
+                .pending()
+                .is_some_and(|pending| pending.step == step)
+            {
+                let _attack_point_rejected = self.release(FightActorRef::Unit(actor_id), events)?;
+            }
+        }
         let fusillade = self.actors[&actor_id].skill.fusillade();
         if self.actors[&actor_id].skill.is_grouped() && !fusillade {
             // The core's `ChangeLockTarget` reaches the owner first; its
@@ -1068,17 +1106,21 @@ impl Simulation {
         }
         // `FightSkill.Update` turns its weapons after its state has updated,
         // and before the motion turns the body: the skill's checks on this
-        // update see the weapons as they were, and their arc is the body's
-        // as it was.
-        let turret_before = self.actors[&actor_id].turret_q32;
+        // update see the weapons as they were, and their arc is the one its
+        // parent made as it was.
+        let arc_parent_before = self.actors[&actor_id].arc_parent_q32();
         self.aim_standalone_turret(actor_id);
         if let Flow::Done = self.update_transition(actor_id) {
             // `TransitionState.Update` is the motion's whole update.
         } else if let Some(update) = update {
             self.update_motion(actor_id, step, events, update)?;
-        } else if self.actors[&actor_id].skill.standalone() && self.ending.stop_step.is_none() {
+        } else if self.actors[&actor_id].skill.standalone()
+            && (self.ending.stop_step.is_none() || self.actors[&actor_id].skill.mech_searches())
+        {
             // `MotionController.Update` asks the batch, which the first
-            // weapon's cooling does not hold: another weapon may lock.
+            // weapon's cooling does not hold: another weapon may lock. A unit
+            // that searches for itself goes on after its own lock, a tower
+            // the fight's last tick has not yet torn down.
             self.update_motion(actor_id, step, events, SkillUpdate::default())?;
         } else if was_moving
             && self.actors[&actor_id].command.is_some()
@@ -1090,7 +1132,7 @@ impl Simulation {
             // update is not updated on it.
             self.follow_command(actor_id);
         }
-        self.turn_arc_weapons(actor_id, turret_before);
+        self.turn_arc_weapons(actor_id, arc_parent_before);
         if self.actors[&actor_id].skill.is_grouped() && fusillade {
             let skill = &mut self
                 .actors
