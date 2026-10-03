@@ -376,6 +376,8 @@ instrument 通道），和 `tests/construction/` 下的录像一起。
 - 已经处在攻击状态的技能，间隔一到就开始下一下，不管移动状态怎样：后摇期间被挤出射程、下一 tick
   回来的爬虫，在回来的那一 tick 就开始下一下，游戏对犀牛编队那场的技能状态采集就是这样读的
   （`tests/rhino/fights/m6-formations-1787720817.yaml`）。只有从空闲进入攻击状态才等一个 tick。
+  无身体单位的移动状态带着出角回到攻击，也按不住它：这一下只等攻击角，
+  `tests/regression/fights/barrier-fortress-vs-wasps.yaml` 里的 Wasp 就是这样读的。
 
 有了这些，原来回答"锁定死了或走远了"的失效目标、快速切换出界、失效替换三条路径都删了，全部由检查器
 回答。

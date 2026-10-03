@@ -385,6 +385,12 @@ not start on it.
 turns**, whatever its path: the Raiden, whose blows strike, as the units whose
 weapons fire projectiles, lasers or melee blows. Without the hold its attack
 state would find the target out of angle on the next update and give it up.
+The hold does not reach a skill already in its attack state:
+`SkillAttackState.TryPerformAttack` asks whether the interval is up and the
+target in angle, and nothing of the motion. A Wasp whose motion moved during
+its backswing, and came back into its attack out of angle, fires on the first
+tick its target is in its angle
+(`tests/regression/fights/barrier-fortress-vs-wasps.yaml`).
 
 ## Normal target scoring and pre-fight acquisition
 

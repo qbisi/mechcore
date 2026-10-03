@@ -1,0 +1,28 @@
+# A Fortress carrying a Barrier against three Wasp formations: a skill that
+# stays in its attack state while its unit's motion leaves the attack and
+# comes back. Wasp unit 4 fires on tick 458, and the game's skill state
+# (the `target_refs` channel) reads SkillAttackState from tick 457 to 490
+# while its motion moves on ticks 473 to 485 and attacks again from 486.
+# Its interval of 29 is up on tick 487, when its target is still outside
+# its attack angle, and the blow comes on tick 488, the first tick the
+# target is inside it: the `skill_attackable_checker` channel reads
+# attackTime 30 against attackInterval 29 there. Coming back into its
+# attack out of angle does not hold a skill already attacking: only the
+# angle does.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 811
+hash: {profile: mcfr-content-0.7.0, result: ef1958d4edadc70919bf3c4816ad3deee2e5c3f368016008ecfc7d14bc00245f}
+blue:
+  core_damage: 612
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/200/1600, equipment: [barrier]}
+red:
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/133/900}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/533/900}
+  - {name: wasp, index: 2, position: {x: 5, y: -180}, exp: 0/133/900}

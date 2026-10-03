@@ -459,7 +459,10 @@ per-call replay and the physics/content checks. Beyond the checker itself:
   backswing and back on the next tick starts its next blow on the tick it
   returns, as the game's skill-state capture of the Rhino's formation fight
   reads (`tests/rhino/fights/m6-formations-1787720817.yaml`). Only
-  entering the attack state from idle waits a tick.
+  entering the attack state from idle waits a tick. Nor does a bodyless
+  unit's motion coming back into its attack out of angle hold it: the blow
+  waits only for the angle, as the Wasp of
+  `tests/regression/fights/barrier-fortress-vs-wasps.yaml` reads.
 
 With those, the stale-target, quick-switch-out-of-range and stale-replacement
 paths that answered a lock dying or walking away are gone: the checker answers
