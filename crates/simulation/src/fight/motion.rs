@@ -574,6 +574,41 @@ impl Simulation {
         Ok(())
     }
 
+    /// What the motion goes after. A batch of standalone weapons answers its
+    /// first weapon that holds a lock (`FightSkillBatch.GetLockTarget`), but
+    /// only while the mech holds a lock, the latest any weapon took or
+    /// dropped, or while it attacks with a weapon in its attack.
+    fn motion_target(&self, actor_id: u64) -> Option<FightActorRef> {
+        let actor = &self.actors[&actor_id];
+        let skill = &actor.skill;
+        let attacking = actor.motion.state == MotionState::Attacking
+            && (0..skill.group_size())
+                .any(|slot| skill.group_skill(slot).phase() == FightSkillPhase::Attack);
+        skill
+            .batch_attack_target()
+            .filter(|_| !skill.standalone() || skill.unit_lock().is_some() || attacking)
+    }
+
+    /// A batch of standalone weapons already attacking stays in its attack
+    /// while any weapon's target is in range
+    /// (`FightSkillBatch.IsAttackTargetInAttackRange`); `None` for any other
+    /// unit.
+    fn batch_in_reach(&self, actor_id: u64) -> Option<bool> {
+        let actor = &self.actors[&actor_id];
+        let skill = &actor.skill;
+        (skill.standalone() && actor.motion.state == MotionState::Attacking).then(|| {
+            (0..skill.group_size()).any(|slot| {
+                skill.group_attack_target(slot).is_some_and(|aimed| {
+                    self.slot_target_in_attack_range(
+                        FightActorRef::Unit(actor_id),
+                        Some(slot),
+                        aimed,
+                    )
+                })
+            })
+        })
+    }
+
     fn update_motion_states(
         &mut self,
         actor_id: u64,
@@ -589,7 +624,9 @@ impl Simulation {
         if let Flow::Done = self.hold_dead_target_moving(actor_id, backswing_just_finished) {
             return Ok(());
         }
-        let target = self.actors[&actor_id].skill.attack_target();
+        // A batch of standalone weapons answers its first weapon that holds
+        // a lock (`FightSkillBatch.GetLockTarget`).
+        let target = self.motion_target(actor_id);
         if target.is_none() && self.actors[&actor_id].command.is_some() {
             // A command is active without a target: every motion state
             // goes to or stays in `MotionMoveState`, which walks the path.
@@ -619,6 +656,7 @@ impl Simulation {
             .map_or((target_x_q32, target_z_q32, target_radius), |view| {
                 (view.x_q32, view.z_q32, view.radius)
             });
+        let batch_in_reach = self.batch_in_reach(actor_id);
         let actor = self
             .actors
             .get_mut(&actor_id)
@@ -648,7 +686,9 @@ impl Simulation {
             actor.aim_rotation = actor.body_rotation;
             return Ok(());
         }
-        let in_reach = if actor.skill.shield_target().is_some() {
+        let in_reach = if let Some(batch_in_reach) = batch_in_reach {
+            batch_in_reach
+        } else if actor.skill.shield_target().is_some() {
             // A skill firing at a shield stops its unit once the shield's
             // surface is in reach, however far the lock stands behind it.
             self.target_in_attack_range(FightActorRef::Unit(actor_id), target)
@@ -1065,6 +1105,42 @@ impl Simulation {
     /// `MotionAttackState` with a target in range, and the skill it starts:
     /// `TryStartAttack` from idle, and the next blow's wait once the interval
     /// is up.
+    /// The first weapon's skill of a batch attacks its own target, whatever
+    /// the unit walks on, once it is in its weapon's attack area.
+    fn start_standalone_core(
+        &mut self,
+        actor_id: u64,
+        step: u64,
+        entered_attack: bool,
+        prepare_finished: bool,
+    ) {
+        let owner = FightActorRef::Unit(actor_id);
+        let Some(own) = self.actors[&actor_id].skill.attack_target() else {
+            return;
+        };
+        if !self.slot_target_in_attack_range(owner, Some(0), own) {
+            return;
+        }
+        let actor = &self.actors[&actor_id];
+        let in_own_angle = self.fight_actor(own).is_some_and(|view| {
+            rotation_distance_q32(
+                actor.skill.weapon_rotations_q32[0],
+                direction_degrees_q32_raw(
+                    view.x_q32.saturating_sub(actor.x_q32),
+                    view.z_q32.saturating_sub(actor.z_q32),
+                ),
+            ) <= mdeg_to_degrees_q32(actor.rules.attack.attack_half_angle_mdeg())
+        });
+        self.try_start_attack(
+            owner,
+            step,
+            own,
+            entered_attack,
+            in_own_angle,
+            prepare_finished,
+        );
+    }
+
     #[allow(
         clippy::too_many_arguments,
         reason = "the motion's reading of its target, handed on from update_motion"
@@ -1155,14 +1231,19 @@ impl Simulation {
                 return Ok(());
             }
             let clear_hold_after_motion = actor.motion.attack_hold_fire && in_attack_angle;
-            self.try_start_attack(
-                FightActorRef::Unit(actor_id),
-                step,
-                target,
-                entered_attack,
-                in_attack_angle,
-                prepare_finished,
-            );
+            if self.actors[&actor_id].skill.standalone() {
+                self.start_standalone_core(actor_id, step, entered_attack, prepare_finished);
+            } else {
+                self.try_start_attack(
+                    FightActorRef::Unit(actor_id),
+                    step,
+                    target,
+                    entered_attack,
+                    in_attack_angle,
+                    prepare_finished,
+                );
+            }
+            self.start_standalone_slots(actor_id, step);
             (
                 entered_attack,
                 self.actors[&actor_id]

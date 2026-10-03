@@ -16,8 +16,9 @@ A unit's configuration joins four of the build's tables, as
 * `MechSkillGroupData`, the main skill's row, and the list it is in, which is
   the attack's path: `skillDatas` direct, `projectileSkillDatas` projectile,
   `laserSkillDatas` laser, `controllBeamSkillDatas` control beam.
-* The unit's prefab `Mech_Default_<id>` in `sharedassets0`, whose
-  `RVOControllerFixed` sizes its avoidance.
+* The unit's prefab, `MechData.prefabName` in `sharedassets0`, whose
+  `RVOControllerFixed` sizes its avoidance: `Mech_Default_<id>` for every unit
+  but the Mountain, whose is `Mech_Default_51`.
 
 Which units are written is which files `config/units/` holds; each file's
 `type_name` has to be the snake case of the unit's official English name. A
@@ -63,6 +64,7 @@ MOVE_NORMAL, MOVE_UNDERGROUND = 0, 1
 # the Raiden, a transform of its own of `RotateType.Fixed`, parented to the
 # unit's own. No table column says so.
 FIXED_TO_BODY_UNIT = 27
+WEAPON_MODES = {0: "normal", 1: "group", 2: "standalone"}
 
 
 def raw(value):
@@ -125,14 +127,13 @@ def render(mech, card, kind, skill, rvo, type_name):
     for field in ("initialCoolDownTime",):
         if raw(skill[field]):
             refuse(unit, f"main skill has {field}")
-    for field in ("isLoadingType", "isDiffusion", "useSelfSplash", "useDefaultRotationSearchTarget"):
+    for field in ("isLoadingType", "isDiffusion", "useSelfSplash"):
         if skill[field]:
             refuse(unit, f"main skill sets {field}")
+    if skill["weaponMode"] not in WEAPON_MODES:
+        refuse(unit, f"main skill has weapon mode {skill['weaponMode']}")
     if mech["moveType"] not in (MOVE_NORMAL, MOVE_UNDERGROUND):
         refuse(unit, "moves cloaked")
-    if any((weapon["defaultAngle"], weapon["rotateAngleLeft"], weapon["rotateAngleRight"]) != (0, -1, -1)
-           for weapon in skill["weapons"]):
-        refuse(unit, "a weapon has a limited rotation")
     lines = [
         "schema: mechcore.unit",
         f"type_name: {type_name}",
@@ -188,7 +189,7 @@ def render(mech, card, kind, skill, rvo, type_name):
         f"    cooling: {grid(skill['coolingTime'], 2000)}",
         f"  splash_radius: {grid(skill['splashRange'], 1000)}",
         "  weapons:",
-        f"    mode: {'group' if skill['weaponMode'] == 1 else 'normal'}",
+        f"    mode: {WEAPON_MODES[skill['weaponMode']]}",
         f"    indices: [{', '.join(str(weapon['index']) for weapon in skill['weapons'])}]",
         f"    per_skill: {skill['weaponCountPerSkill']}",
     ]
@@ -201,11 +202,22 @@ def render(mech, card, kind, skill, rvo, type_name):
         lines.append(f"    rotation_speed: {grid(skill['extraWeaponRotateSpeed'], 1000)}")
     if unit == FIXED_TO_BODY_UNIT:
         lines.append("    fixed_to_body: true")
+    if any((weapon["defaultAngle"], weapon["rotateAngleLeft"], weapon["rotateAngleRight"]) != (0, -1, -1)
+           for weapon in skill["weapons"]):
+        lines.append("    arcs:")
+        for weapon in skill["weapons"]:
+            arc = [f"default: {weapon['defaultAngle']}"]
+            for side, field in (("left", "rotateAngleLeft"), ("right", "rotateAngleRight")):
+                if weapon[field] >= 0:
+                    arc.append(f"{side}: {weapon[field]}")
+            lines.append(f"      - {{{', '.join(arc)}}}")
     lines += [
         f"  melee: {boolean(skill['isMeleeAttack'])}",
         f"  crosses_shields: {boolean(skill['canCrossAdvancedShield'])}",
-        "  path:",
     ]
+    if skill["useDefaultRotationSearchTarget"]:
+        lines.append("  default_rotation_search: true")
+    lines.append("  path:")
     if kind == "projectileSkillDatas":
         life = skill["maxLife"] or [0]
         lines += [
@@ -258,7 +270,7 @@ def main():
         if path.stem != type_name:
             raise SystemExit(f"{path.name} holds unit {unit}, whose English name is {names[unit]['en']!r}")
         kind, skill = skills[mechs[unit]["mainSkillID"]]
-        text = render(mechs[unit], cards[unit], kind, skill, rvos[f"Mech_Default_{unit}"], type_name)
+        text = render(mechs[unit], cards[unit], kind, skill, rvos[mechs[unit]["prefabName"]], type_name)
         if arguments.check:
             if path.read_text() != text:
                 differing.append(path.name)

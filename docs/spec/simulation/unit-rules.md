@@ -93,6 +93,7 @@ attack:
 | `timing.*` | Native attack interval, random offset, initial cooldown, prepare, attack point, backswing and cooling phases. |
 | `splash_radius` | Native base effect radius; zero means no area effect. |
 | `melee` | The main skill's `SkillData.isMeleeAttack`. The fight's melee branches read it, and the Melee and Ranged targeting categories are answered from it. |
+| `default_rotation_search` | The main skill's `useDefaultRotationSearchTarget`: a search scores its candidates from each weapon's resting direction rather than from where the weapon points. [`docs/rules/standalone_weapons.md`](../../rules/standalone_weapons.md) says what it changes. Absent means `false`. |
 
 Formation rows and columns are derived from `members`, `slot_size`, and
 `footprint`: `footprint.width / slot_size` columns and as many rows as the
@@ -118,7 +119,9 @@ create a default for future units or weapon modes.
 
 Weapon scheduling is orthogonal to the effect path:
 
-- `weapons.mode` is `normal`, `group`, or `standalone`.
+- `weapons.mode` is `normal`, `group`, or `standalone`. A `standalone` unit's
+  weapons are each a skill of their own, side by side
+  ([`docs/rules/standalone_weapons.md`](../../rules/standalone_weapons.md)).
 - `indices` lists each weapon's own index in the build, in the order the
   skill lists them; how many there are is the weapon count. A weapon is
   fired by its position in the list and named by its index, which is what a
@@ -129,6 +132,11 @@ Weapon scheduling is orthogonal to the effect path:
 - `rotation_speed` is present only when the native skill supplies a weapon
   rotation speed distinct from the member body; Wraith stores `90` while its
   body-level `rotate_speed` is `120`.
+- `arcs`, one entry per weapon in `indices` order, is present only when some
+  weapon turns within an arc of the body: its `default` angle from the body
+  and, for a limited weapon, how far it turns `left` and `right` of that. A
+  side the build gives as negative is omitted, and a weapon without both
+  turns freely.
 - `fixed_to_body` is `true` only for the unit whose data is 27, the Raiden:
   `FightWeapon`'s constructor gives each of its weapons a transform of its
   own fixed to the body. The table has no column for it; the extraction

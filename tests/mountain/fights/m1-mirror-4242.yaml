@@ -1,0 +1,15 @@
+# M1: the mirror. One formation each, 200 m apart.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 308
+hash: {profile: mcfr-content-0.7.0, result: daa6e200fd4a97ff65cee7f0c730777b8624c7eef84a832cd977e922243ab9ae}
+blue:
+  units:
+  - {name: mountain, index: 0, position: {x: 5, y: -105}}
+red:
+  units:
+  - {name: mountain, index: 0, position: {x: 5, y: -105}, exp: 0/1600/3200}

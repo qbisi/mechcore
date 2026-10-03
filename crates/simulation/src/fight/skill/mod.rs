@@ -35,6 +35,8 @@ pub(in crate::fight) struct PendingProjectileRelease {
     /// projectile's climb is measured to.
     pub(in crate::fight) climb_target: (i64, i64, i64),
     pub(in crate::fight) weapon_index: usize,
+    /// The skill of the unit that fires it: a standalone weapon's own.
+    pub(in crate::fight) skill_slot: usize,
 }
 
 /// Which `FightSkill` a skill is. The build makes one by the path its blow
@@ -198,6 +200,9 @@ pub(in crate::fight) enum GroupBehaviour {
     Each,
     /// A `GroupedSkillFusilladeBehaviour`: the siblings fire with the core.
     Fusillade,
+    /// No `SkillGroup` at all: a `FightSkillBatch` of standalone weapons,
+    /// each skill the unit's main skill, searching and attacking on its own.
+    Standalone,
 }
 
 /// `FightSkill`: the lock and what the weapons fire at, the state the skill
@@ -581,6 +586,26 @@ impl Skill {
         self.group.is_some()
     }
 
+    /// What the motion follows: the skill's attack target, or for a batch
+    /// of standalone weapons the attack target of its first weapon holding a
+    /// lock (`FightSkillBatch.GetLockTarget`): a Mountain whose first gun
+    /// cools walks on what another holds.
+    pub(in crate::fight) fn batch_attack_target(&self) -> Option<FightActorRef> {
+        if !self.standalone() {
+            return self.attack_target();
+        }
+        (0..self.group_size())
+            .find(|&slot| self.slot_lock(slot).is_some())
+            .and_then(|slot| self.group_attack_target(slot))
+    }
+
+    /// A batch of standalone weapons, which no `SkillGroup` holds together.
+    pub(in crate::fight) fn standalone(&self) -> bool {
+        self.group
+            .as_ref()
+            .is_some_and(|group| group.behaviour == GroupBehaviour::Standalone)
+    }
+
     /// How many `FightSkill`s the group holds, the core among them; zero for
     /// a skill that is not grouped.
     pub(in crate::fight) fn group_size(&self) -> usize {
@@ -719,7 +744,7 @@ impl Skill {
     clippy::struct_excessive_bools,
     reason = "each is a separate fact the motion update reads"
 )]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub(in crate::fight) struct SkillUpdate {
     /// A backswing ended before this update.
     pub(in crate::fight) backswing_just_finished: bool,
@@ -779,6 +804,11 @@ impl Simulation {
         }
         skill.set_cooling(Some((started, candidate)));
         skill.search_target_time = 0;
+        // A standalone weapon's skill leaves the motion to the batch, which
+        // may hold a lock through another weapon.
+        if self.skill(owner).standalone() {
+            return Ok(true);
+        }
         if let Some(actor) = self.moving_mut(owner) {
             // The motion stops where it enters `MotionIdleState`; one already
             // idle is not entered again, and keeps its target point.
@@ -1036,10 +1066,20 @@ impl Simulation {
                 events,
             )?;
         }
+        // `FightSkill.Update` turns its weapons after its state has updated,
+        // and before the motion turns the body: the skill's checks on this
+        // update see the weapons as they were, and their arc is the body's
+        // as it was.
+        let turret_before = self.actors[&actor_id].turret_q32;
+        self.aim_standalone_turret(actor_id);
         if let Flow::Done = self.update_transition(actor_id) {
             // `TransitionState.Update` is the motion's whole update.
         } else if let Some(update) = update {
             self.update_motion(actor_id, step, events, update)?;
+        } else if self.actors[&actor_id].skill.standalone() && self.ending.stop_step.is_none() {
+            // `MotionController.Update` asks the batch, which the first
+            // weapon's cooling does not hold: another weapon may lock.
+            self.update_motion(actor_id, step, events, SkillUpdate::default())?;
         } else if was_moving
             && self.actors[&actor_id].command.is_some()
             && self.actors[&actor_id].skill.attack_target().is_none()
@@ -1050,6 +1090,7 @@ impl Simulation {
             // update is not updated on it.
             self.follow_command(actor_id);
         }
+        self.turn_arc_weapons(actor_id, turret_before);
         if self.actors[&actor_id].skill.is_grouped() && fusillade {
             let skill = &mut self
                 .actors

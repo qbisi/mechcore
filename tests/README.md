@@ -140,8 +140,8 @@ only through a technology's `ExtraSkillSystem`. So the definition's second
 condition is met by the main attack alone, and each unit's main skill row
 agrees with its `config/units/` file.
 
-Every unit is pinned but the three that cost 800 (War Factory, Abyss,
-Mountain). Each mechanism the recordings exposed is named in
+Every unit is pinned but two of the three that cost 800, the War Factory
+and the Abyss. Each mechanism the recordings exposed is named in
 [`combat.md`](../docs/rules/combat.md). Two of them were read off five of the
 fights recorded with the `target_refs` channel,
 `scripts/record-fights.py --instrument target_refs`, each skill's state beside

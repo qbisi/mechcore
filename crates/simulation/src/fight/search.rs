@@ -799,11 +799,17 @@ impl Simulation {
             .attacker(owner)
             .ok_or_else(|| Error::new("target selector source is absent"))?;
         let (rotation_q32, attack_range, rotation_window_q32) = match (owner, slot) {
-            (FightActorRef::Unit(actor_id), Some(slot)) if slot > 0 => (
-                self.actors[&actor_id].slot_main_rotation_q32(slot),
-                self.slot_attack_range(actor_id, Some(slot)),
-                None,
-            ),
+            (FightActorRef::Unit(actor_id), Some(slot)) if slot > 0 => {
+                let actor = &self.actors[&actor_id];
+                let (rotation, window) = actor
+                    .default_search_frame(slot)
+                    .unwrap_or((actor.slot_main_rotation_q32(slot), None));
+                (
+                    rotation,
+                    self.slot_attack_range(actor_id, Some(slot)),
+                    window,
+                )
+            }
             _ => (
                 source.query_rotation_q32,
                 source.attack_range,
@@ -893,6 +899,12 @@ impl Simulation {
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<Option<FightActorRef>> {
         let source = &self.actors[&actor_id];
+        // A standalone weapon's skill searches as a skill of its own: no
+        // group keeps it off what the others hold.
+        if source.skill.standalone() && slot == 0 {
+            return self
+                .select_lock_replacement(FightActorRef::Unit(actor_id), target_search_order);
+        }
         let held = source
             .skill
             .slot_locks()
@@ -916,7 +928,7 @@ impl Simulation {
                     let Some(target) = self.fight_actor(candidate) else {
                         continue;
                     };
-                    if held.contains(&candidate) != shared
+                    if (held.contains(&candidate) != shared && !source.skill.standalone())
                         || !target.alive
                         || !target.targetable
                         || matches!(candidate, FightActorRef::Building(id)
@@ -925,22 +937,33 @@ impl Simulation {
                     {
                         continue;
                     }
+                    let (rotation, window) = source
+                        .default_search_frame(slot)
+                        .unwrap_or((source.slot_main_rotation_q32(slot), None));
+                    // A standalone weapon's skill is a main skill: its search
+                    // is the one `FightCoreSystem.PreCalculate` prepared, on
+                    // where everything stood as the tick opened.
+                    let (target_x_q32, target_z_q32, visible) = if source.skill.standalone() {
+                        (target.query_x_q32, target.query_z_q32, target.query_visible)
+                    } else {
+                        (target.x_q32, target.z_q32, target.visible)
+                    };
                     let Some(score) = full_rotation_target_score_q32(
                         source.target_query_x_q32,
                         source.target_query_z_q32,
                         source.rules.collision_radius(),
-                        source.slot_main_rotation_q32(slot),
-                        target.x_q32,
-                        target.z_q32,
+                        rotation,
+                        target_x_q32,
+                        target_z_q32,
                         target.radius,
-                        target.visible,
+                        visible,
                         source.rules.attack.min_range(),
                         self.slot_attack_range(actor_id, Some(slot)),
-                        None,
+                        window,
                     ) else {
                         continue;
                     };
-                    scoring.consider(candidate, score, target.visible);
+                    scoring.consider(candidate, score, visible);
                 }
             }
             scoring.chosen(|next| self.target_in_attack_range(FightActorRef::Unit(actor_id), next))
