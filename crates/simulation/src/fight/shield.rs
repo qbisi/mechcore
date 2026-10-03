@@ -481,6 +481,31 @@ impl Simulation {
         owner: FightActorRef,
         target: FightActorRef,
     ) -> Option<(i64, i64)> {
+        // A sweep is measured to the shield's centre or to its lock,
+        // whichever is nearer in space
+        // (`SkillAttackRangeChecker.IsAttackTargetInAttackRange`); to the
+        // lock once the shield is gone, which a sweep under way, its checks
+        // held, still names.
+        if self.skill(owner).kind == SkillKind::Sweep {
+            let inside = self.position_3d(target)?;
+            let outside = self.position_3d(owner)?;
+            let center = self
+                .shield
+                .standing
+                .iter()
+                .chain(&self.shield.broken)
+                .find(|shield| shield.id == shield_id)
+                .map(|shield| (shield.x_q32, 0, shield.z_q32));
+            let (x, _, z) = match center {
+                Some(center)
+                    if magnitude(sub(center, outside)) <= magnitude(sub(inside, outside)) =>
+                {
+                    center
+                }
+                _ => inside,
+            };
+            return Some((x, z));
+        }
         // A shield broken this tick is still the skill's target until its
         // next check: the Vortex whose blow breaks one reads attacking on
         // its lock that tick, and loses it the next.

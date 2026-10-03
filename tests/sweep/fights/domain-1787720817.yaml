@@ -1,0 +1,18 @@
+# A sweep across Wasps and Crawlers side by side: it strikes only the domain
+# of what it aimed at.
+
+kind: fight
+map_id: 1021
+seed: 1787720817
+round: 1
+source: game
+ticks: 869
+hash: {profile: mcfr-content-0.7.0, result: 423e84f947c9139955c540cdeea0f2e7919eb2893862ce045620cf73832a2882}
+blue:
+  units:
+  - {name: abyss, index: 0, position: {x: 5, y: -105}, exp: 0/600/4800}
+red:
+  core_damage: 500
+  units:
+  - {name: wasp, index: 0, position: {x: -35, y: -100}}
+  - {name: crawler, index: 1, position: {x: 35, y: -100}, exp: 0/200/450}

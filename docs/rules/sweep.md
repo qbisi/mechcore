@@ -13,7 +13,10 @@ Its first update lays out the strip (`SweepAttackPerformer.FirstPrepare`,
 `FightSweepSkill.CreateAttackArea`):
 
 - **It lies across the target.** Its centre is what the skill fires at where
-  that is a construction, and its lock otherwise. Its line is the one from the
+  that is a construction, and its lock otherwise; where the lock stands
+  inside a shield of its side, and the sweep does not cross shields, the
+  shield's centre if that is nearer the unit
+  (`FightSweepSkill.CheckIsLockTargetInEnergyShield`). Its line is the one from the
   target back to the unit, turned a quarter turn where the skill's
   `isPerpendicular` is set, as the Abyss's is.
 - **It runs one way, then the other.** An attack whose
@@ -50,7 +53,29 @@ update for the Abyss, twenty stretches over forty updates. A strike
   touches this stretch alone, not the one before
   (`SweepSkillData.GetMaxDamageTimesByRadius`). The cap is the one paired with
   the first radius in `hit_caps` at least as large as the unit's; a unit wider
-  than every radius there has none.
+  than every radius there has none. A unit passed over is counted with those
+  struck (`DamageEffect.PerformInRange` adds what it strikes to the list of
+  those it passed over, and `SweepAttackPerformer.Perform` counts the list).
+
+## Shields
+
+A sweep that does not cross shields, as the Abyss's does not:
+
+- **reaches a shielded target where the shield's centre or the lock is in
+  range**, whichever is nearer in space, from its edge
+  (`SkillAttackRangeChecker.IsAttackTargetInAttackRange`), not where its line
+  to the lock meets the shield. Once the shield is gone the lock is measured,
+  as the sweep under way still names the shield.
+- **strikes a shield in place of every unit** when the end, the middle or the
+  start of a strike's area, at the height of the aimed domain, stands inside
+  a shield of the other side that does not hold the unit
+  (`FightCalculator.IsFightRangeInEnergyShield`,
+  `FightCalculator.IsActorInEnergyShield`). The shield takes the skill's
+  damage, and nothing else is struck.
+- **passes over a unit a shield covers** otherwise
+  (`FightSkill.IsActorProtectedByEnergyShield`).
+
+A Barrier is a shield as a battlefield shield is.
 
 ## While it lasts
 
@@ -91,6 +116,21 @@ unit does. Its configuration writes no arc for it.
   `tests/abyss/fights/m6-formations-4242.yaml` strike other units.
 - The Abyss fights each of the six standard layouts on both seeds:
   `tests/abyss/fights/`.
+- A sweep at a Marksman inside red's battlefield shield stops when the
+  Marksman, nearer than the shield's centre, is in range, strikes the shield
+  every second update until it breaks and the Marksman with the next strike:
+  `tests/sweep/fights/shield-4242.yaml`, ticks 164 to 190;
+  `tests/sweep/fights/shield-1787720817.yaml`.
+- A sweep at a Fortress carrying a Barrier strikes the Barrier sixteen times,
+  breaking it, and the Fortress from the next sweep:
+  `tests/sweep/fights/barrier-4242.yaml`, ticks 114 to 211;
+  `tests/sweep/fights/barrier-1787720817.yaml`.
+- A sweep aimed at a Wasp strikes the Wasps it reaches and none of the
+  Crawlers beside them, and one aimed at a Crawler no Wasp:
+  `tests/sweep/fights/domain-4242.yaml`, ticks 79 to 89 and 411 to 419;
+  `tests/sweep/fights/domain-1787720817.yaml`.
+- A sweep at red's Anti-Armor Turret strikes it, and a sweep at a tower the
+  tower: `tests/sweep/fights/turret-4242.yaml`, ticks 153, 339 and 869.
 
 ### Read
 
@@ -105,18 +145,25 @@ unit does. Its configuration writes no arc for it.
   `SkillAttackController.ChangeToNextPhase`,
   `SkillAttackController.ResetTotalAttackCount`,
   `SkillAttackController.totalAttackCount`.
+- Shields: `FightSweepSkill.CheckIsLockTargetInEnergyShield`,
+  `SkillAttackRangeChecker.IsAttackTargetInAttackRange`,
+  `FightCalculator.IsFightRangeInEnergyShield`,
+  `FightCalculator.IsActorInEnergyShield`,
+  `FightSkill.IsActorProtectedByEnergyShield`.
 - What it ignores: `SweepAttackPerformer.IsInterruptedByInvalidTarget`,
   `SweepAttackPerformer.IsEnableCheckTarget`.
 - The weapon: `FightWeapon.rotateType`.
 
 ### Not established
 
-- **Shields.** A sweep whose lock stands in a battlefield shield centres on
-  the shield where that is nearer, and counts the shields it strikes as it
-  counts units (`FightSweepSkill.CheckIsLockTargetInEnergyShield`); no
-  recording has a shield, and the simulator does not take them.
-- **Buildings.** Whether a strike reaches a tower or a construction standing
-  in the strip is not recorded; the simulator strikes it.
+- **The strip centred on a shield.** No recording separates a strip laid on
+  a shield's centre from one laid on the lock behind it: in
+  each recorded, the lock is the nearer, or the strikes land on the shield
+  either way. Nor is a shield struck twice capped by its radius, as a unit
+  is, recorded.
+- **Buildings in a strip aimed elsewhere.** Whether a strike reaches a tower
+  or a construction it was not aimed at is not recorded; the simulator
+  strikes it.
 - **A delay or a technology.** No sweep with a `damage_delay`, and no
   technology that changes the strip (`SweepSkillIntensifyTech`, which can
   reverse it or keep it one way), is recorded.
