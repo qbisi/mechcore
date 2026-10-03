@@ -1,0 +1,23 @@
+# Incendiary Bomb across level 9 Crawlers that chase a Wasp they cannot
+# reach.
+#
+# The Crawlers run through the fires for 1150 ticks. Each fire burns out on
+# its 700th tick, from tick 762 four ticks apart, `time_expired`, and its
+# removal is the last event of its tick, after the shots that tick resolved.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 1150
+hash: {profile: mcfr-content-0.7.0, result: 90c8b05f239031b16cf6fb442779fdb5b90429abb5d6ae096969f31f5ef4b56c}
+blue:
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -170}, exp: 0/900/900}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: -60, y: -60}, {x: 60, y: -60}]}
+red:
+  core_damage: 204
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, level: 9, exp: 0/400/3027}

@@ -1,0 +1,26 @@
+# Incendiary Bomb across red's Sledgehammers and Crawlers.
+#
+# Its seven fires of 40 metres land every four ticks from tick 63, each
+# burning for 700 ticks. A unit that enters one takes the fire's 54 at once,
+# with no owner under blue, and 54 again every four ticks it stays, the units
+# a fire holds counting last first: the three Crawlers that enter on tick 137
+# are struck in the order they entered, and on tick 140 in the order back.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 288
+hash: {profile: mcfr-content-0.7.0, result: 6d23efac5d2e2060c01726cc132698c3510f765e6e435b7d83d1102c931f3a3a}
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/256/650}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/336/650}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}]}
+red:
+  core_damage: 200
+  units:
+  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}}
+  - {name: crawler, index: 1, position: {x: 5, y: -110}}

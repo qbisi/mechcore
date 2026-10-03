@@ -69,7 +69,9 @@ from tick 63.
 controller holding terrains updates:
 
 1. Each terrain, last first, ages, and one whose lifetime is up goes,
-   `time_expired`. A fog has no lifetime and stays the round.
+   `time_expired`. A fire burns its row's `lifeTime`, Incendiary Bomb's 700
+   ticks, counted from 1 on the tick it lands; a fog has no lifetime and
+   stays the round.
 2. It finds who stands in its terrains. Side by side, blue's first, it asks
    the side's unit tree for the units under its own tree's node, and takes
    each terrain against each unit found, in the tree's query order: a ground
@@ -80,6 +82,9 @@ controller holding terrains updates:
    that is not affected enters the first terrain it was found in, and one
    already affected stays in its own, even when that one no longer reaches
    it. A unit that dies leaves as it dies, the rest keeping their order.
+4. A controller with a period, a fire's, counts one for every affected unit,
+   last first, from zero as it entered; one whose count reaches the period
+   counts it back off and takes the effect again.
 
 **A fog** writes its row's `attackRangeChangeRate`, Smoke Bomb's `-0.35`, on
 every skill of a unit that enters it whose attack is not a melee one, as the
@@ -89,9 +94,20 @@ stands in. A unit with a melee attack enters and is left alone. The range is
 then the description's times the rate in `FPoint`: a Sledgehammer's 95 metres
 are 61.75.
 
+**A fire** deals `Config.groundFireDamage`, 54, to a unit as it enters and
+again every `fireAttackInterval`, four ticks, while it stays: a hit with no
+owner, under the fire's side, scaled by the unit's rate on damage taken and
+taken first by its own shield, as any hit is. A kill it makes counts for the
+dead unit's enemies.
+
 **As the fight ends**, every terrain goes, `round_expired`, after the buffs
 the units still run are cleared, and takes back what it did: the last state
 reads no terrain and no fog's rate.
+
+A recording finds a terrain made or gone by comparing one snapshot's terrains
+with the last, so `terrain_created` and `terrain_removed` are the last events
+of their tick, after every other: the made, then the gone, each in identity
+order.
 
 The simulator refuses a terrain in a fight with a battlefield shield, which
 turns it to a grid; two kinds of terrain in one fight, whose controllers'
@@ -175,6 +191,10 @@ already exists.
   attack's range to 0.65 of it, leave melee units alone, and go as the fight
   ends, taking the rate back: `tests/terrain/fights/smoke.yaml`,
   `tests/terrain/fights/smoke-both-sides.yaml`.
+- A fire hits a unit as it enters and every four ticks it stays, the units
+  counting last first, burns out after 700 ticks, and its removal is the
+  last event of its tick: `tests/terrain/fights/fire.yaml`,
+  `tests/terrain/fights/fire-burns-out.yaml`.
 
 ### Read
 
@@ -194,6 +214,11 @@ already exists.
 - A fog rates every ranged skill's range, the controller its modifier:
   `FogController.PerformItemEffect`, `FogController.OnActorExit`,
   `SkillDataChangeFloatRate.AttackRangeRate`, `FightSkill.IsMeleeAttack`.
+- A fire's lifetime is its own count, and its controller hits with the
+  setting's damage every interval: `FightGroundFire.Update`,
+  `FightGroundFire.IsTimeOver`, `GroundFireController.PerformItemEffect`,
+  `Config.groundFireDamage`, `Config.fireAttackInterval`,
+  `FightCalculator.PerformHitTargetEffect`.
 - `RangeItemSystem` updates between `MineSystem` and `FightCoreSystem`:
   `FightController.AddModules`, `RangeItemSystem.Update`.
 
@@ -217,14 +242,11 @@ already exists.
 
 ### Not established
 
-- **What fire, oil and acid do to a unit.**
+- **What oil and acid do to a unit**, and a fire lit from oil.
 - **`FogController.SelectBestTarget`**, which picks the stronger of two fogs
   and which no path of a fog's update reaches.
 - **Any radius, effect clock or lifetime.** They vary by source, and two sources
   of one type can differ, so no value derives from a type.
-- **The periodic clock.** That fire's and acid's `elapsed` advances once per
-  logic advance and wraps after `duration` was seen in another version's
-  recordings, which no test pins.
 - **The native grid's orientation.** That `GridBlockInt.grids` holds x as
   columns with y in the high bits is what the Adapter's read assumes and what
   recorded grids agreed with; the grid methods were not read for it.

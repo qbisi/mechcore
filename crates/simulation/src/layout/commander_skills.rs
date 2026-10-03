@@ -32,7 +32,6 @@ struct Table {
     damage_skills: Vec<DamageSkillRow>,
     waypoint_skills: Vec<WaypointSkillRow>,
     terrain_skills: Vec<TerrainSkillRow>,
-    #[allow(dead_code, reason = "a fire's terrain reads it")]
     ground_fire: GroundFire,
     other_skills: Vec<OtherSkillRow>,
 }
@@ -68,7 +67,6 @@ struct TerrainSkillRow {
 
 /// `Config.groundFireDamage` and `fireAttackInterval`.
 #[derive(Debug, Clone, Copy, Deserialize)]
-#[allow(dead_code, reason = "a fire's terrain reads it")]
 #[serde(deny_unknown_fields)]
 struct GroundFire {
     damage: i64,
@@ -90,6 +88,9 @@ pub(crate) enum TerrainKind {
 pub(crate) enum TerrainEffect {
     /// `FogController`: an attack range rate on every ranged skill.
     Fog { attack_range_rate: i64 },
+    /// `GroundFireController`: `Config.groundFireDamage` on entering, and
+    /// again every `fireAttackInterval`, in ticks.
+    Fire { damage: i64, period_ticks: i32 },
 }
 
 /// A terrain one sub-effect leaves where it lands.
@@ -414,6 +415,7 @@ pub(crate) struct CommanderSkillEffects {
     strikes: Vec<DamageSkillRow>,
     waypoints: Vec<WaypointSkillRow>,
     terrains: Vec<TerrainSkillRow>,
+    ground_fire: GroundFire,
     others: Vec<OtherSkillRow>,
 }
 
@@ -440,6 +442,7 @@ impl CommanderSkillEffects {
             strikes: table.damage_skills,
             waypoints: table.waypoint_skills,
             terrains: table.terrain_skills,
+            ground_fire: table.ground_fire,
             others: table.other_skills,
         })
     }
@@ -538,7 +541,7 @@ impl CommanderSkillEffects {
                 (
                     row.name.as_str(),
                     Common::of_terrain(row),
-                    terrain_effect(&named, row)?,
+                    terrain_effect(&named, row, self.ground_fire)?,
                 )
             } else {
                 return Err(Error::new(
@@ -644,7 +647,7 @@ fn released(
 }
 
 /// A terrain skill's sub-effects: a line of them, each leaving its terrain.
-fn terrain_effect(named: &str, row: &TerrainSkillRow) -> Result<SkillEffect> {
+fn terrain_effect(named: &str, row: &TerrainSkillRow, fire: GroundFire) -> Result<SkillEffect> {
     if row.effect_range_type != 1 {
         return Err(Error::new(format!(
             "{named} has range type {}, which this build does not read",
@@ -654,6 +657,11 @@ fn terrain_effect(named: &str, row: &TerrainSkillRow) -> Result<SkillEffect> {
     let effect = match row.kind {
         TerrainKind::Fog => TerrainEffect::Fog {
             attack_range_rate: row.attack_range_change_rate,
+        },
+        TerrainKind::Fire => TerrainEffect::Fire {
+            damage: fire.damage,
+            period_ticks: i32::try_from(ticks(fire.interval)?)
+                .map_err(|_| Error::new("a fire's interval outlasts a fight"))?,
         },
         kind => {
             return Err(Error::new(format!(

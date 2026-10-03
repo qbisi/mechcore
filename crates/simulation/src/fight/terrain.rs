@@ -8,6 +8,10 @@
 //! age and the ones whose time is up go (`UpdateItemStatus`), then it works
 //! out who stands in them (`UpdateAffectedActorChange`), then it runs the
 //! periodic effects. `docs/rules/terrain.md` states the rule.
+//!
+//! A recording finds a terrain made or gone by comparing two snapshots'
+//! terrains, so the events come last in their tick: the made ones, then the
+//! gone ones, each in identity order.
 
 use super::*;
 use crate::{
@@ -33,6 +37,9 @@ pub(in crate::fight) struct TerrainSystem {
     terrains: BTreeMap<u64, Terrain>,
     controllers: Vec<TerrainController>,
     next_id: u64,
+    /// The tick's `terrain_created` and `terrain_removed`, by identity.
+    created: BTreeMap<u64, Event>,
+    removed: BTreeMap<u64, Event>,
 }
 
 /// A `RangeItem`.
@@ -81,7 +88,6 @@ impl Simulation {
         name: &str,
         spec: TerrainSpec,
         (x_q32, z_q32): (i64, i64),
-        events: &mut Vec<Event>,
     ) -> Result<()> {
         // A shield turns a terrain to a grid of cells, which is not read.
         if !self.shield.standing.is_empty() {
@@ -110,7 +116,10 @@ impl Simulation {
                 kind: spec.kind,
                 items: Vec::new(),
                 affected: Vec::new(),
-                period: None,
+                period: match spec.effect {
+                    TerrainEffect::Fog { .. } => None,
+                    TerrainEffect::Fire { period_ticks, .. } => Some(period_ticks),
+                },
             });
         }
         let index = self
@@ -138,23 +147,34 @@ impl Simulation {
             },
         );
         self.terrain.controllers[index].items.push(id);
-        events.push(event(
-            Some(ObjectRef::new(ObjectKind::Terrain, id)),
-            None,
-            Some(team),
-            None,
-            EventPayload::TerrainCreated {
-                team_id: Some(team),
-                terrain_type: terrain_type(spec.kind),
-                position: QVec3 {
-                    x: x_q32,
-                    y: 0,
-                    z: z_q32,
+        self.terrain.created.insert(
+            id,
+            event(
+                Some(ObjectRef::new(ObjectKind::Terrain, id)),
+                None,
+                Some(team),
+                None,
+                EventPayload::TerrainCreated {
+                    team_id: Some(team),
+                    terrain_type: terrain_type(spec.kind),
+                    position: QVec3 {
+                        x: x_q32,
+                        y: 0,
+                        z: z_q32,
+                    },
+                    radius: spec.radius_q32,
                 },
-                radius: spec.radius_q32,
-            },
-        ));
+            ),
+        );
         Ok(())
+    }
+
+    /// The tick's terrain events, as a recording finds them at its end: the
+    /// made, then the gone.
+    pub(in crate::fight) fn take_terrain_events(&mut self) -> Vec<Event> {
+        let created = std::mem::take(&mut self.terrain.created);
+        let removed = std::mem::take(&mut self.terrain.removed);
+        created.into_values().chain(removed.into_values()).collect()
     }
 
     /// `RangeItemSystem.Update`: each controller holding items, in the
@@ -165,8 +185,37 @@ impl Simulation {
                 continue;
             }
             self.forget_the_dead(index);
-            self.update_item_status(index, events);
-            self.update_affected(index)?;
+            self.update_item_status(index);
+            self.update_affected(index, events)?;
+            self.update_periodic(index, events)?;
+        }
+        Ok(())
+    }
+
+    /// The periodic effects, `effectTimeDuration` apart: every affected unit,
+    /// last first, counts one, and one whose count reaches the period counts
+    /// it back off and takes the effect again. A unit the effect kills leaves.
+    fn update_periodic(&mut self, index: usize, events: &mut Vec<Event>) -> Result<()> {
+        let Some(period) = self.terrain.controllers[index]
+            .period
+            .filter(|&period| period > 0)
+        else {
+            return Ok(());
+        };
+        let mut position = self.terrain.controllers[index].affected.len();
+        while position > 0 {
+            position -= 1;
+            let Some(affected) = self.terrain.controllers[index].affected.get_mut(position) else {
+                continue;
+            };
+            affected.time += 1;
+            if affected.time < period {
+                continue;
+            }
+            affected.time -= period;
+            let (unit, item) = (affected.unit, affected.terrain);
+            self.perform_terrain_effect(item, unit, events)?;
+            self.forget_the_dead(index);
         }
         Ok(())
     }
@@ -182,7 +231,7 @@ impl Simulation {
 
     /// `UpdateItemStatus`: each item, last first, ages, and goes once its
     /// time is up.
-    fn update_item_status(&mut self, index: usize, events: &mut Vec<Event>) {
+    fn update_item_status(&mut self, index: usize) {
         let items = self.terrain.controllers[index].items.clone();
         for &id in items.iter().rev() {
             let terrain = self
@@ -195,36 +244,33 @@ impl Simulation {
             };
             terrain.elapsed += 1;
             if terrain.elapsed >= limit {
-                self.remove_terrain(index, id, TerrainRemovedReason::TimeExpired, events);
+                self.remove_terrain(index, id, TerrainRemovedReason::TimeExpired);
             }
         }
     }
 
-    fn remove_terrain(
-        &mut self,
-        index: usize,
-        id: u64,
-        reason: TerrainRemovedReason,
-        events: &mut Vec<Event>,
-    ) {
+    fn remove_terrain(&mut self, index: usize, id: u64, reason: TerrainRemovedReason) {
         self.terrain.controllers[index]
             .items
             .retain(|&item| item != id);
         if let Some(terrain) = self.terrain.terrains.remove(&id) {
-            events.push(event(
-                Some(ObjectRef::new(ObjectKind::Terrain, id)),
-                None,
-                None,
-                None,
-                EventPayload::TerrainRemoved {
-                    position: QVec3 {
-                        x: terrain.x_q32,
-                        y: 0,
-                        z: terrain.z_q32,
+            self.terrain.removed.insert(
+                id,
+                event(
+                    Some(ObjectRef::new(ObjectKind::Terrain, id)),
+                    None,
+                    None,
+                    None,
+                    EventPayload::TerrainRemoved {
+                        position: QVec3 {
+                            x: terrain.x_q32,
+                            y: 0,
+                            z: terrain.z_q32,
+                        },
+                        reason,
                     },
-                    reason,
-                },
-            ));
+                ),
+            );
         }
     }
 
@@ -234,7 +280,7 @@ impl Simulation {
     /// range reaches, in two dimensions. Every affected unit not found
     /// leaves, last first; every unit found that is not affected enters the
     /// first item it was found in, and one already affected keeps its own.
-    fn update_affected(&mut self, index: usize) -> Result<()> {
+    fn update_affected(&mut self, index: usize, events: &mut Vec<Event>) -> Result<()> {
         let mut found = Vec::<(u64, u64)>::new();
         let items = self.terrain.controllers[index].items.clone();
         for team in [0_u32, 1] {
@@ -289,14 +335,47 @@ impl Simulation {
                 terrain: item,
                 time: 0,
             });
-            self.perform_terrain_effect(item, unit)?;
+            self.perform_terrain_effect(item, unit, events)?;
+            self.forget_the_dead(index);
         }
         Ok(())
     }
 
     /// The controller's `PerformItemEffect` on a unit standing in the item.
-    fn perform_terrain_effect(&mut self, item: u64, unit: u64) -> Result<()> {
+    fn perform_terrain_effect(
+        &mut self,
+        item: u64,
+        unit: u64,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        let team = self.terrain.terrains[&item].team;
         match self.terrain.terrains[&item].spec.effect {
+            // `GroundFireController.PerformItemEffect`: a hit of the fire's
+            // damage through `PerformHitTargetEffect`, with no owner, under
+            // the fire's side.
+            TerrainEffect::Fire { damage, .. } => {
+                let target = FightActorRef::Unit(unit);
+                let stroke = self.strike(target, None, team, damage)?;
+                self.count_hit(None, team, target, &stroke)?;
+                self.turned_unit_fell(target, &stroke);
+                if stroke.actual > 0 {
+                    events.push(event(
+                        None,
+                        None,
+                        Some(team),
+                        Some(target.object_ref()),
+                        EventPayload::Damage {
+                            amount: i32::try_from(stroke.actual)
+                                .map_err(|_| Error::new("damage exceeds i32"))?,
+                            skill_slot: None,
+                        },
+                    ));
+                }
+                if let Some(position) = stroke.death {
+                    self.record_ends(vec![(target, position)], events);
+                }
+                Ok(())
+            }
             // `FogController.PerformItemEffect`: the rate on every skill
             // that is not a melee attack, the controller its modifier.
             TerrainEffect::Fog { attack_range_rate } => {
@@ -351,10 +430,7 @@ impl Simulation {
 
     /// As the fight is left every terrain goes, the round over for it, and
     /// takes back what it did to the units still in it.
-    pub(in crate::fight) fn clear_terrains_as_the_fight_ends(
-        &mut self,
-        events: &mut Vec<Event>,
-    ) -> Result<()> {
+    pub(in crate::fight) fn clear_terrains_as_the_fight_ends(&mut self) -> Result<()> {
         for index in 0..self.terrain.controllers.len() {
             self.forget_the_dead(index);
             let affected = self.terrain.controllers[index]
@@ -366,7 +442,7 @@ impl Simulation {
                 self.exit_terrain(index, unit)?;
             }
             for id in self.terrain.controllers[index].items.clone() {
-                self.remove_terrain(index, id, TerrainRemovedReason::RoundExpired, events);
+                self.remove_terrain(index, id, TerrainRemovedReason::RoundExpired);
             }
         }
         Ok(())
