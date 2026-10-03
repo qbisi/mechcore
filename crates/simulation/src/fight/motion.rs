@@ -534,6 +534,7 @@ impl Simulation {
             actor.motion.rvo_tree_z_q32 = actor.z_q32;
             actor.motion.rvo_stopped_snap_since_boundary = false;
         }
+        self.appearing_agents_built();
     }
 }
 

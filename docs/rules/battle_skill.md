@@ -236,7 +236,8 @@ a deployed unit finds them for the summon.
 no tree, never updated, and not counted for its side, though a side with a
 summon still appearing has not lost and the fight cannot end. Its movement
 agent is there from the start, locked where it stands, and the units moving
-around it turn aside. It draws its skills' first intervals from its side's
+around it turn aside, from the second solve on: the first after it is made
+finds it at zero, as any new agent ([rvo.md](../spec/simulation/rvo.md)). It draws its skills' first intervals from its side's
 stream when it joins, not when it is made.
 
 **Joining.** At the start of the tick a second on, before anything updates,

@@ -119,8 +119,10 @@ agent is made as it arrives (`RVOControllerFixed.Active` from
 reads its position as `(0, 0)` while its own query already uses the real one:
 a squad that arrives together is solved once with none of its members among
 another's neighbours. A summon's agent is made as the summon is, locked while
-it appears, so it has its real place in the tree well before it joins. The simulator marks such
-an agent with `rvo_new_agent` until its first tree is built.
+it appears, and the first tree built after reads it at zero too: Crawlers
+an Underground Threat makes are not among the neighbours of the solve that
+follows, and are from the next. The simulator marks such an agent with
+`rvo_new_agent` until its first tree is built.
 Combined with leaf capacity it is observable: at 12 agents the root does not
 split and the whole leaf is scanned, while at 29 agents the zero-coordinate tree
 splits and a query from a real position may not reach the branch holding the

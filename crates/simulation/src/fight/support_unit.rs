@@ -173,6 +173,14 @@ impl Simulation {
             .map(|appearing| &appearing.actor)
     }
 
+    /// The tree a solve built holds every appearing summon's agent where it
+    /// stands, made before that solve.
+    pub(in crate::fight) fn appearing_agents_built(&mut self) {
+        for appearing in &mut self.support.appearing {
+            appearing.actor.motion.rvo_new_agent = false;
+        }
+    }
+
     /// `SummonSystem.HaveProcessingMech`: whether a summon of the side is still
     /// appearing.
     pub(in crate::fight) fn appearing_on(&self, team: u32) -> bool {
@@ -330,6 +338,9 @@ impl Simulation {
         // state hands it one, as `StopMove` does at once and `Move` only on
         // the update before a solve.
         actor.motion.next_max_speed_q32 = 0;
+        // Its agent is made with it, so the first tree built after reads its
+        // position as zero, as any new agent's.
+        actor.motion.rvo_new_agent = true;
         actor.target_query_alive = false;
         let position = QVec3 {
             x: x_q32,
