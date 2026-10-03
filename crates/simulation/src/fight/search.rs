@@ -175,6 +175,23 @@ impl TargetActorQuadtreeNode {
         node
     }
 
+    /// `FightQuadtreeNode.Query`: a node the range overlaps answers its
+    /// elements, then each child's, children in order.
+    fn query(
+        &self,
+        overlaps: &impl Fn(TargetActorRect) -> bool,
+        found: &mut Vec<FightActorRef>,
+    ) -> bool {
+        if !overlaps(self.rect) {
+            return false;
+        }
+        found.extend(self.elements.iter().copied());
+        for child in self.children.iter().flat_map(|children| children.iter()) {
+            child.query(overlaps, found);
+        }
+        true
+    }
+
     pub(in crate::fight) fn append_query_order(&self, output: &mut Vec<FightActorRef>) {
         output.extend(self.elements.iter().copied());
         if let Some(children) = &self.children {
@@ -293,7 +310,8 @@ impl TargetActorQuadtree {
     /// `FightQuadtree.Query` for a square of full width `size` around a
     /// point, all Q32.32: the root's elements always, then every element of
     /// each node whose rect overlaps the square, strictly on both axes, with
-    /// no test of the elements themselves.
+    /// no test of the elements themselves; a node's before its children's,
+    /// the children in order.
     pub(in crate::fight) fn query_square(
         &self,
         center_x_q32: i64,
@@ -308,20 +326,9 @@ impl TargetActorQuadtree {
             };
             axis(rect.min_x, rect.max_x, center_x_q32) && axis(rect.min_z, rect.max_z, center_z_q32)
         };
-        let mut found = self.root.elements.clone();
-        if overlaps(self.root.rect) {
-            let mut pending = self
-                .root
-                .children
-                .iter()
-                .flat_map(|children| children.iter())
-                .collect::<Vec<_>>();
-            while let Some(node) = pending.pop() {
-                if overlaps(node.rect) {
-                    found.extend(node.elements.iter().copied());
-                    pending.extend(node.children.iter().flat_map(|children| children.iter()));
-                }
-            }
+        let mut found = Vec::new();
+        if !self.root.query(&overlaps, &mut found) {
+            found.extend(self.root.elements.iter().copied());
         }
         found
     }
@@ -343,20 +350,9 @@ impl TargetActorQuadtree {
             axis(rect.min_x, rect.max_x, range.min_x, range.max_x)
                 && axis(rect.min_z, rect.max_z, range.min_z, range.max_z)
         };
-        let mut found = self.root.elements.clone();
-        if overlaps(self.root.rect) {
-            let mut pending = self
-                .root
-                .children
-                .iter()
-                .flat_map(|children| children.iter())
-                .collect::<Vec<_>>();
-            while let Some(node) = pending.pop() {
-                if overlaps(node.rect) {
-                    found.extend(node.elements.iter().copied());
-                    pending.extend(node.children.iter().flat_map(|children| children.iter()));
-                }
-            }
+        let mut found = Vec::new();
+        if !self.root.query(&overlaps, &mut found) {
+            found.extend(self.root.elements.iter().copied());
         }
         found
     }
