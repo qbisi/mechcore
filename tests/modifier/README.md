@@ -5,7 +5,10 @@ clause of [`officer_effects.md`](../../docs/rules/officer_effects.md)'s
 formula on one unit, and its comment names the clause and what the game
 answered. Most are one Marksman shooting one Rhino, differing only in their
 `officers`; an Arclight shoots in the range fights, and the targeting pair
-fields six formations to ask which a Ranged row reaches. The disabled
+fields six formations to ask which a Ranged row reaches. The three
+`officer-exp-rate-*` fights put a Marksman and an Arclight against a squad of
+Crawlers, with no officer and with an experience rate on each in turn, and read
+each formation's experience. The disabled
 technology and the four Sledgehammer intervals, which the simulator does not
 fight, are layouts in [`../../layouts/`](../../layouts/README.md).
 

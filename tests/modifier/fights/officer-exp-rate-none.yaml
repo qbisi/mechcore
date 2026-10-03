@@ -1,0 +1,22 @@
+# The control for the two experience-rate fights: a Marksman and an Arclight,
+# no officer, against one squad of Crawlers.
+#
+# The Marksman's formation ends on 34 and the Arclight's on 158. The
+# Marksman's first kill, on tick 56, hands it 8: the Crawler's whole 4 as its
+# killer and a share of 4 as the formation that hit it alone.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 172
+hash: {profile: mcfr-content-0.7.0, result: fcddf2ec68c6d236174c0097cc0f143dbcb1eee35d7c8f21dea4a9d6215d3df2}
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/34/650}
+  - {name: arclight, index: 1, position: {x: 20, y: -150}, exp: 0/158/750}
+red:
+  core_damage: 200
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -40}}

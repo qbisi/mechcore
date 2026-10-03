@@ -16,6 +16,7 @@
 //! starts from zero, and no gain carries it past its bar.
 
 use super::*;
+use crate::data::ExperienceRate;
 
 const ONE_Q32: i64 = 1 << 32;
 
@@ -118,6 +119,8 @@ pub(in crate::fight) struct FormationExperience {
     team: u32,
     experience: i64,
     bar: i64,
+    /// `MechTeam.expAddRate` and `expReduceRate`, from the unit's card.
+    rate: ExperienceRate,
 }
 
 impl FormationExperience {
@@ -155,6 +158,7 @@ impl Simulation {
                         -ONE_Q32
                     },
                     bar: bar << 32,
+                    rate: actor.placement.experience_rate,
                 },
             );
         }
@@ -211,14 +215,21 @@ impl Simulation {
         }
     }
 
-    /// `MechTeam.AddExp` with no rate on it: a formation below zero starts
-    /// from zero, and the bar caps it.
+    /// `MechTeam.AddExp`: the amount times the formation's rate, from zero
+    /// for a formation below it, and the bar caps it.
+    ///
+    /// The rate is `(1 + expAddRate + add) × expReduceRate × reduce`, where
+    /// `add` and `reduce` are the `MechDataChangeFloatRate.ExpChangeRate` of
+    /// the unit the gain is for, the killer or the formation's first. No
+    /// source here writes that one: an officer's `GetExpChangeRate` answers
+    /// zero, and its rate is the card's.
     fn gain(&mut self, formation: u64, amount: i64) {
         if let Some(state) = self.exp.formations.get_mut(&formation) {
+            let rate = q32_mul(ONE_Q32.saturating_add(state.rate.add), state.rate.remaining);
             state.experience = state
                 .experience
                 .max(0)
-                .saturating_add(amount)
+                .saturating_add(q32_mul(amount, rate))
                 .min(state.bar);
         }
     }

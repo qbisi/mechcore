@@ -10,7 +10,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::{
     Error, Result,
-    data::{Channel, Entry, Stats},
+    data::{Channel, Entry, ExperienceRate, Stats},
     modifier::{
         AutoRecovery, CarriedShield, EnergyShield, EnergyTowerSkillEffects, EquipmentEffects,
         LifeSteal, OfficerEffects, ProductionLine, StartBuff, TechnologyEffects, current_source,
@@ -50,6 +50,8 @@ pub(crate) struct Placement {
     /// The experience the formation brings into the fight, whole: the
     /// layout's `exp` within its level, 0 when it has none.
     pub(crate) exp: i64,
+    /// The rate its side's officers put on what its formation gains.
+    pub(crate) experience_rate: ExperienceRate,
     /// What the side's loadout wrote onto this formation, in the channel each
     /// correction belongs to. The entries are verified to resolve while the
     /// layout is compiled, which is the only place that can name the side and
@@ -614,6 +616,7 @@ fn compile_formation(
         rotated,
         level,
         exp: i64::from(formation.exp.unwrap_or(0)),
+        experience_rate: worn.experience_rate,
         corrections: worn.corrections,
         lifesteal: worn.lifesteal,
         auto_recovery: worn.auto_recovery,
@@ -699,6 +702,7 @@ fn production_of(
 /// What this side's loadout and a formation's equipment hand one unit.
 struct Worn {
     corrections: Vec<(Channel, Entry)>,
+    experience_rate: ExperienceRate,
     lifesteal: Option<LifeSteal>,
     auto_recovery: Option<AutoRecovery>,
     energy_shield: Option<EnergyShield>,
@@ -773,11 +777,17 @@ fn loadout(
              build cannot resolve: {error}"
         ))
     };
+    let experience_rate = refused.hold(
+        loadouts
+            .officers
+            .experience_rate(&side.techs.officers, rules)
+            .map_err(on_side),
+    )?;
     let stats = refused.hold(Stats::corrected(rules, level, &corrections).map_err(refusal))?;
     // A snapshot carries each `DataSet`'s aggregate; one this build cannot
     // record is refused here, where the side and the officer can be named.
     refused.hold(stats.modifiers(1).map_err(refusal))?;
-    worn(
+    let mut worn = worn(
         side_name,
         type_name,
         equipment,
@@ -786,7 +796,9 @@ fn loadout(
         loadouts,
         corrections,
         refused,
-    )
+    )?;
+    worn.experience_rate = experience_rate;
+    Some(worn)
 }
 
 /// What a unit's technologies and equipment hand it beyond its numbers, the
@@ -864,6 +876,7 @@ fn worn(
     let in_force = |error: String| refusal(Error::new(error));
     Some(Worn {
         corrections,
+        experience_rate: ExperienceRate::default(),
         lifesteal: refused.hold(current_source(&lifesteal).map_err(in_force))?,
         auto_recovery: refused.hold(current_source(&auto_recovery).map_err(in_force))?,
         energy_shield: refused.hold(current_source(&energy_shield).map_err(in_force))?,

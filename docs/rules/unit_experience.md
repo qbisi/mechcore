@@ -127,6 +127,20 @@ twenty units, one standing well within 65 metres can be missed. A unit found is
 then held to the circle, and a unit found need not be alive, only still in the
 tree.
 
+## An officer's rate
+
+An officer's `exp_rate`, Smart Marksman's `+0.75` say, multiplies every gain
+of the formations of the units it reaches: what a kill hands its killer and
+what it shares out alike. A Marksman whose first kill hands it 8 takes 14 with
+Smart Marksman held, and a share of 4 is 7. A formation it does not reach gains
+what it would without it.
+
+The rate is the formation's, not a unit's. The officer writes it onto the
+unit's card, where enhancements sum and impairments compound as on a unit,
+and the card hands both halves to its formation. Each gain is then the amount
+times `(1 + enhancement) × remaining`, and the bar still caps it; the bar
+itself is the table's whatever the rate.
+
 No gain carries a formation past its bar, and a full formation takes no share,
 though a share is still set aside for it when it stands near. As the fight
 ends, each formation's experience is cut down to a whole number, and that is
@@ -147,6 +161,11 @@ what the formation carries into the next round.
   included, and a summon's own kills leave its side's formations their whole
   share: `tests/battle_skill/fights/rhino-drop.yaml`,
   `tests/battle_skill/fights/vulcans-descent.yaml`.
+- An officer's experience rate multiplies its formation's every gain, the
+  whole and the share, and no other formation's, and leaves the bar the table's:
+  `tests/modifier/fights/officer-exp-rate-marksman.yaml`,
+  `tests/modifier/fights/officer-exp-rate-arclight.yaml`, against
+  `tests/modifier/fights/officer-exp-rate-none.yaml`.
 
 ### Replayed
 
@@ -175,7 +194,17 @@ what the formation carries into the next round.
 - Who shares it, by attack and by distance: `ExpSystem.AddAttackData`,
   `ExpSystem.AddRangeUnit`, `Config.assistExpRange`, `RectRange.Overlaps`,
   `FightTeam.CreateQuadtree`.
-- A gain starts from zero and stops at the bar: `MechTeam.AddExp`.
+- A gain starts from zero and stops at the bar, and is the amount times
+  `(1 + expAddRate + add) × expReduceRate × reduce`, `add` and `reduce` being
+  the unit's own `MechDataChangeFloatRate.ExpChangeRate`, of the killer or,
+  for a share, of the formation's first unit: `MechTeam.AddExp`,
+  `ExpSystem.DoCalculateExp`.
+- A formation's `expAddRate` and `expReduceRate` are its card's
+  `UnitDataChangeFloatRate.ExpChangeRate`, and start at zero and one:
+  `CardElement.RefreshExpRate`, `MechTeam.ChangeExpRate`, `MechTeam..ctor`.
+- An officer's rate reaches the card and not the unit:
+  `OfficerData.get_ExpChangeRate`, and `OfficerData.GetExpChangeRate`, which
+  answers zero to `MechDataModifer.TryAddCommonData`.
 - What a unit, a tower and a construction hand out: `MechExpData.lootExpLv1`,
   `FightMech.GetProvideExp`, `FightCrystal.GetProvideExp`,
   `towerDefaultDatas.exp`.
@@ -199,6 +228,11 @@ what the formation carries into the next round.
 - **When a full bar becomes a level.** A fight stops a formation's gains at
   its bar; what turns a full bar into the next level after the fight is not
   read.
-- **What writes a unit's `UpgradeExp`.** An officer's `expChangeRate` is the one
-  table field that touches experience; whether it reaches the bar through this
-  value is not read, and no recording has a bar changed.
+- **What writes a unit's `UpgradeExp`.** Not an officer's `expChangeRate`,
+  which rates the gains and leaves the bar the table's in
+  `tests/modifier/fights/officer-exp-rate-marksman.yaml`; no recording has a
+  bar changed.
+- **An impairment of the rate, and two rates on one card.** Every officer row
+  that carries one is a single enhancement, and the simulator compounds an
+  impairment and sums two enhancements as a card's `DataSet` does without a
+  recording that pins either.

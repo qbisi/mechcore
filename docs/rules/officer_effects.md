@@ -101,8 +101,8 @@ number the simulator derives (damage, life, attack interval, attack range,
 splash radius, movement speed) and whose `mech_type` it answers. It refuses the side that
 holds any other row, by name, for one of these reasons:
 
-- the row corrects a tower, shield, mine, deployment clock, experience or a
-  projectile's life, which needs the mechanism that owns that object;
+- the row corrects a tower, shield, mine, deployment clock or a projectile's
+  life, which needs the mechanism that owns that object;
 - the row carries a `*_by_kill_count` rate, which needs a mechanism that counts
   a unit's kills.
 
@@ -155,7 +155,10 @@ index's text says what each one is:
 
 `exp_rate` is a fifth that corrects no unit's number: a rate on the experience
 a unit gains, `+1` or `+0.75`, which the text reads as "increases EXP Growth
-Rate by 100%".
+Rate by 100%". It lands on the unit's card rather than on the unit, and the
+card hands it to the unit's formation;
+[unit_experience.md](unit_experience.md#an-officers-rate) states what it does
+to a gain.
 
 `extra_life` is stored like a unit's number and is not one. Its single row is
 紧急避险, whose text describes a side's life being reset to 1 rather than a unit
@@ -178,6 +181,8 @@ gaining any, so the field's name is not what it does.
 - Two speed values sum: `tests/modifier/fights/`.
 - A `Ranged` row reaches the ranged units of a side and not its melee ones:
   `tests/modifier/fights/`.
+- An experience rate is on no unit's modifier set:
+  `tests/modifier/fights/officer-exp-rate-marksman.yaml`.
 
 ### Read
 
@@ -194,7 +199,10 @@ gaining any, so the field's name is not what it does.
 - A target type is answered from the unit's main skill:
   `UnitUtility.IsEffectTarget`, `UnitEffectTargetType.Ranged`,
   `SkillData.isMeleeAttack`.
-- The experience correction is a rate: `OfficerData.expChangeRate`.
+- The experience correction is a rate, on the unit's card and not on the unit:
+  `OfficerData.expChangeRate`, `OfficerData.get_ExpChangeRate`, and
+  `OfficerData.GetExpChangeRate`, which answers zero to
+  `MechDataModifer.TryAddCommonData`.
 
 ### Not established
 

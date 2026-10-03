@@ -306,6 +306,7 @@ impl Simulation {
             rotated: false,
             level: 1,
             exp: 0,
+            experience_rate: crate::data::ExperienceRate::default(),
             corrections: creator.summon.corrections.clone(),
             lifesteal: None,
             auto_recovery: None,
