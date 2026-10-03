@@ -133,6 +133,9 @@ pub(crate) struct CompiledLayout {
     /// Each side's `legacy_index`: a formation of a lower index is one the
     /// side carried into the round.
     pub(crate) legacy_units: BTreeMap<u32, i32>,
+    /// The formations an officer delivered as the round opened, by side and
+    /// layout index: the last of each side's legacy formations.
+    pub(crate) delivered: BTreeSet<(u32, i32)>,
     /// Each side's `superDeploymentTimeChangeRate`, Q32.32, where an officer
     /// sets one.
     pub(crate) travel_time_rates: BTreeMap<u32, i64>,
@@ -159,6 +162,7 @@ impl CompiledLayout {
             standing_oil: Vec::new(),
             researched: BTreeSet::new(),
             legacy_units: BTreeMap::new(),
+            delivered: BTreeSet::new(),
             travel_time_rates: BTreeMap::new(),
             tower_levels: BTreeMap::new(),
             map_id: mechcore_document::layout_replay::DEFAULT_MAP_ID,
@@ -254,6 +258,36 @@ impl Refusals {
     }
 }
 
+/// The registry's refusals: one clause a side naming every field it owes.
+fn registry_refusals(sides: &[(&str, u32, &SidePlan); 2]) -> Refusals {
+    let mut refused = Refusals::default();
+    for (name, _, side) in sides {
+        let missing = crate::module::unsupported(side);
+        if !missing.is_empty() {
+            refused.push(crate::module::refusal(name, &missing));
+        }
+    }
+    refused
+}
+
+/// The formations a side's officers delivered as the round opened, by side
+/// and layout index, or none when the side's units cannot be those squads.
+fn delivered_formations(
+    (name, team, side): (&str, u32, &SidePlan),
+    round: i32,
+    refused: &mut Refusals,
+) -> Vec<(u32, i32)> {
+    refused
+        .hold(
+            mechcore_document::layout_replay::delivered_units(side, round)
+                .map_err(|reason| Error::new(format!("side {name}: {reason}"))),
+        )
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|at| side.units[at].index.map(|index| (team, index)))
+        .collect()
+}
+
 pub(crate) fn compile_with_seed(
     bytes: &[u8],
     units: &UnitConfigs,
@@ -268,14 +302,8 @@ pub(crate) fn compile_with_seed(
     // Both sides are asked everything before either is refused. The registry
     // speaks first, one clause a side naming every field it owes; what the
     // registry lets through is then refused member by member.
-    let mut refused = Refusals::default();
     let sides = [("blue", 0, &plan.blue), ("red", 1, &plan.red)];
-    for (name, _, side) in sides {
-        let missing = crate::module::unsupported(side);
-        if !missing.is_empty() {
-            refused.push(crate::module::refusal(name, &missing));
-        }
-    }
+    let mut refused = registry_refusals(&sides);
     let mut placements = Vec::new();
     // Both sides' constructions are resolved here rather than in the kernel,
     // because this is the only place a refusal can still name the side and the
@@ -288,6 +316,7 @@ pub(crate) fn compile_with_seed(
     let mut standing_oil = Vec::new();
     let mut researched = BTreeSet::new();
     let mut tower_levels = BTreeMap::new();
+    let mut delivered = BTreeSet::new();
     let mut travel_time_rates = BTreeMap::new();
     for (name, team, side) in sides {
         if let Some(rate) = travel_time_rate(name, side, &loadouts, &mut refused) {
@@ -338,6 +367,11 @@ pub(crate) fn compile_with_seed(
         if let Some(levels) = refused.hold(tower_strengthen_levels(side)) {
             tower_levels.insert(team, levels);
         }
+        delivered.extend(delivered_formations(
+            (name, team, side),
+            plan.round,
+            &mut refused,
+        ));
     }
     refused.settle()?;
 
@@ -357,6 +391,7 @@ pub(crate) fn compile_with_seed(
                 .iter()
                 .map(|(_, team, side)| (*team, side.legacy_unit))
                 .collect(),
+            delivered,
             travel_time_rates,
             tower_levels,
             map_id: plan

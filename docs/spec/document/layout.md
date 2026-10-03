@@ -539,8 +539,12 @@ dealt.
 
 A fight sees the difference once, as it starts: a construction that fires turns
 to the best scored of the other side's targets, legacy units among them but
-never a unit that joined
+never a unit that joined, and a squad an officer delivered as the round opened
+scored as if it stood at the origin
 ([turrets](../../rules/turrets.md#as-the-fight-starts-it-faces-the-target-its-selector-scores-best)).
+The deliveries are the last legacy units, one squad for each officer whose
+`opening_unit` the round activates, so a side that two such officers deliver
+to in one round is refused: the order they deliver in is not recorded.
 A unit reaches a flank during the round only by travelling there, so a unit
 that stands on a flank without travelling is legacy.
 

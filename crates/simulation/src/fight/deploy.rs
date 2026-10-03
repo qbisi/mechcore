@@ -746,6 +746,7 @@ impl Simulation {
     pub(in crate::fight) fn face_constructions_at_fight_start(
         &mut self,
         legacy_units: &BTreeMap<u32, i32>,
+        delivered: &BTreeSet<(u32, i32)>,
     ) {
         let ids = self
             .constructions
@@ -804,7 +805,19 @@ impl Simulation {
                     && actor.alive()
                     && source.attack.accepts(actor.rules.domain)
                 {
-                    consider(actor.x_q32, actor.z_q32, actor.rules.collision_radius());
+                    // A squad an officer delivered as the round opened still
+                    // stands at the origin for this: the selector scores it
+                    // there and `CalculateMechDirection` turns towards its
+                    // `FightTransform.recordPosition`, which the delivery
+                    // leaves unset.
+                    let (x_q32, z_q32) = if delivered
+                        .contains(&(actor.placement.team, actor.placement.formation_index))
+                    {
+                        (0, 0)
+                    } else {
+                        (actor.x_q32, actor.z_q32)
+                    };
+                    consider(x_q32, z_q32, actor.rules.collision_radius());
                 }
             }
             let Some((_, tx, tz)) = best else {

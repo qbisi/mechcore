@@ -154,6 +154,15 @@ through `RotateTo` or `RotateWeaponTo`, so the weapon starts the fight facing
 the same way, and a lock the turret then finds may already be in its attack
 angle.
 
+A squad an officer delivers as the round opens is among the old units, but
+for this it stands at the origin, wherever it is moved. The selector scores
+it there, at its distance from the map's centre and its angle off the attack
+facing, and `CalculateMechDirection` turns towards the chosen target's
+`FightTransform.recordPosition`, which the delivery leaves at the origin. A
+turret that chooses it starts the fight facing the map's centre, whatever
+stands on that line. A unit a snapshot restores, or one bought and moved, is
+scored and faced where it stands.
+
 ## Each shot draws its interval from the side's stream
 
 The interval is drawn from the owning side's random stream, the one a unit's
@@ -264,6 +273,16 @@ content, as `tests/turret/fights/` replays them.
   blue unit, and `tests/corpus/fights/67158946-r3.yaml`, where blue's faces a
   red tower although an old red unit's centre is nearer, and red's faces
   blue's turret. With no old unit it faces a tower: `tests/turret/fights/`.
+- A squad an officer delivers as the round opens is scored and faced at the
+  origin, wherever it is moved: red's turret at world (140, 100) faces 234.44
+  degrees, and at world (-140, 100) faces 125.56, with nothing of blue's on
+  either line; the same squad restored from a snapshot is faced where it
+  stands: `tests/turret/fights/anti-armor-faces-delivered-squad.yaml`,
+  `tests/turret/fights/anti-armor-faces-delivered-squad-moved.yaml`,
+  `tests/turret/fights/anti-armor-faces-delivered-squad-mirrored.yaml`,
+  `tests/turret/fights/anti-armor-faces-restored-squad.yaml`, and
+  `tests/corpus/fights/67152781-r3.yaml`, where the facing leaves the
+  turret's first target out of its attack angle.
 - Each shot draws its interval from the owning side's stream, after every unit
   of the side, including the top bit of a power-of-two range:
   `tests/turret/fights/`.
@@ -316,6 +335,10 @@ content, as `tests/turret/fights/` replays them.
   or a snapshot's unit arrives: `UnitSystem.OnEnterDeployment`,
   `MechTeam.AddRoundCount`, `UnitOfficerController.AddExtraUnit`,
   `PlayerSnapshotController.ApplyUnitSnapshot`.
+- The fight-start direction is taken towards the chosen target's
+  `FightTransform.recordPosition`: `UnitDirectionCalculator.CalculateMechDirection`.
+  An officer's squad is added through a callback,
+  `OfficerSystem.ActiveOfficerEffect` to `UnitOfficerController.AddExtraUnit`.
 - The attack angle is checked for a construction as for a unit:
   `SkillAttackAngleChecker.IsActorInAttackAngle`.
 - A dead lock is searched again inside the attack: `SkillAttackableChecker.Check`,
@@ -335,6 +358,10 @@ content, as `tests/turret/fights/` replays them.
   `CalculateRotationData`, which is not read; the construction's weapon and
   body both point at the attack facing then, and the recordings agree with
   either.
+- **What leaves a delivered squad at the origin.** Recorded, not read: which
+  call sets `FightTransform.recordPosition` for a restored or bought unit and
+  not for a delivered one, and whether the selector reads the same field.
+  A unit's own fight-start facing towards a delivered squad is not recorded.
 - **A construction whose attack facing is a quarter turn off its main
   facing.** `UnitDirectionCalculator.GetTargets` then looks first in a defense
   region, `GetTargetsInRegion`, which finds no tower. Every turret recorded

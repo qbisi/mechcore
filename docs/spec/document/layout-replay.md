@@ -120,11 +120,12 @@ opens with does not from round 2 on, and a settled flank unit is one.
 A squad an officer's schedule hands out as the round opens arrives on top of
 the snapshot, so the snapshot does not hold it again. It becomes the layout's
 unit of the same type, at that squad's level or above, without experience,
-and its decisions upgrade, fit and move it. Several squads take consecutive
-indices in the order of the officers that deliver them, and they are the last
-legacy units: the allocator opens at the first squad's index, which the
-delivery takes, and the last one's index is one below `legacy_index`. Without
-deliveries the allocator opens at `legacy_index`.
+and its decisions upgrade, fit and move it. It is the last legacy unit: the
+allocator opens at its index, which the delivery takes, one below
+`legacy_index`. Without a delivery the allocator opens at `legacy_index`. A
+standard 1v1 never deals a side two officers that deliver in one round, and
+the order two would deliver in is not recorded, so a side that two deliver to
+is refused.
 
 ## What a layout replay refuses
 
@@ -132,8 +133,9 @@ A layout that compiles is refused only when a replay cannot open or play it,
 and the refusal names each part:
 
 - no seed;
+- two officers that each deliver a squad as the round opens;
 - a squad an officer delivers as the round opens with no unit of the side to
-  become, at consecutive indices;
+  become;
 - squads that are not the last legacy units;
 - a unit that joins during the round with experience, since a round's
   decisions hand out none;

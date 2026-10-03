@@ -559,12 +559,31 @@ struct Deployment {
     next_unit: i32,
 }
 
-/// Works out how a side's units reach the layout, or why some cannot.
-fn deployment(
+/// The units of a side that its officers delivered as the round opened, as
+/// positions in its `units`: the squad each officer's `opening_unit` names in
+/// a round its `active_round` holds. The unit allocator names them in
+/// delivery order as the round opens, so they are the side's last legacy
+/// units.
+///
+/// # Errors
+///
+/// Returns why the side's units cannot be those squads, or that two officers
+/// deliver in one round, which a standard 1v1 never deals.
+pub fn delivered_units(side: &SidePlan, round: i32) -> Result<Vec<usize>, String> {
+    let economy = crate::economy::Economy::embedded()?;
+    delivered_squads(economy, side, round)
+        .map(|delivered| delivered.into_iter().map(|(at, _)| at).collect())
+        .map_err(|reasons| reasons.join("; "))
+}
+
+/// Each squad the side's officers deliver as the round opens, as the unit it
+/// becomes and the level it arrives at, or why the side's units cannot be
+/// them.
+fn delivered_squads(
     economy: &crate::economy::Economy,
     side: &SidePlan,
     round: i32,
-) -> Result<Deployment, Vec<String>> {
+) -> Result<Vec<(usize, i32)>, Vec<String>> {
     let mut reasons = Vec::new();
     let squads: Vec<(i32, crate::economy::OpeningUnit)> = side
         .techs
@@ -578,6 +597,20 @@ fn deployment(
             Some((*officer, squad))
         })
         .collect();
+    // Which of two officers delivers first is not recorded, and a standard
+    // 1v1 never deals a side two officers that deliver in the same round.
+    if squads.len() > 1 {
+        let officers: Vec<String> = squads
+            .iter()
+            .map(|(officer, _)| officer.to_string())
+            .collect();
+        return Err(vec![format!(
+            "officers {} each deliver a squad as round {round} opens: a standard 1v1 never \
+             deals a side two officers that deliver in one round, and the order they deliver \
+             in is not recorded",
+            officers.join(" and ")
+        )]);
+    }
     let delivered = deliveries(side, &squads);
     if delivered.is_none() {
         let named: Vec<String> = squads
@@ -599,19 +632,39 @@ fn deployment(
         ));
     }
     let delivered = delivered.unwrap_or_default();
-    let legacy = side.legacy_unit;
     // The officers deliver as the round opens, so their squads are the last
     // units it opens with.
     let squad_count = i32::try_from(delivered.len()).unwrap_or(i32::MAX);
     if let Some((first, _)) = delivered.first()
-        && index(&side.units[*first]) + squad_count != legacy
+        && index(&side.units[*first]) + squad_count != side.legacy_unit
     {
         reasons.push(format!(
             "officers' squads, delivered as the round opens from index {}: they are its last \
-             legacy units, and legacy_index is {legacy}",
-            index(&side.units[*first])
+             legacy units, and legacy_index is {}",
+            index(&side.units[*first]),
+            side.legacy_unit
         ));
     }
+    if reasons.is_empty() {
+        Ok(delivered)
+    } else {
+        Err(reasons)
+    }
+}
+
+/// Works out how a side's units reach the layout, or why some cannot.
+fn deployment(
+    economy: &crate::economy::Economy,
+    side: &SidePlan,
+    round: i32,
+) -> Result<Deployment, Vec<String>> {
+    let mut reasons = Vec::new();
+    let delivered = delivered_squads(economy, side, round).unwrap_or_else(|mut refused| {
+        reasons.append(&mut refused);
+        Vec::new()
+    });
+    let legacy = side.legacy_unit;
+    let squad_count = i32::try_from(delivered.len()).unwrap_or(i32::MAX);
     let is_delivered = |at: usize| delivered.iter().any(|(unit, _)| *unit == at);
     let settled: Vec<usize> = (0..side.units.len())
         .filter(|at| index(&side.units[*at]) < legacy && !is_delivered(*at))
