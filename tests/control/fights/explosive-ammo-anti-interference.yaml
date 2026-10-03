@@ -1,0 +1,19 @@
+# Explosive Ammo on the Hacker, against Crawlers wearing the Anti-Interference
+# Module. The beam strikes what it may not turn with the main skill's damage
+# effect, and that effect splashes: one hit deals 179 to every Crawler within
+# 5 metres of the one it is on, up to four at once here.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 270
+hash: {profile: mcfr-content-0.7.0, result: 14e8bb46ae11750bbd77f70a5f5f919295b3d7a7004531cabd00e983c6f69c4a}
+blue:
+  core_damage: 36
+  units:
+  - {name: hacker, index: 0, position: {x: -5, y: -105}, exp: 0/120/560, equipment: [explosive_ammo]}
+red:
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/400/450, equipment: [anti_interference_module]}

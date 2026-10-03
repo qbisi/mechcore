@@ -79,7 +79,7 @@ impl Simulation {
     fn recorder(&self, object: ObjectRef) -> Option<RecorderKey> {
         match object.kind {
             ObjectKind::Unit => self.actors.get(&object.id).map(|actor| {
-                if actor.summoned {
+                if actor.summoned || actor.placement.team != actor.original_team {
                     (actor.placement.team, RecorderKind::Unit, object.id)
                 } else {
                     (

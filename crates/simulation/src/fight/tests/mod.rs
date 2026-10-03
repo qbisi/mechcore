@@ -55,6 +55,7 @@ pub(super) fn placement(
         start_buffs: Vec::new(),
         ignored_buffs: Vec::new(),
         important: false,
+        ignores_control_beam: false,
         travelling: false,
     }
 }

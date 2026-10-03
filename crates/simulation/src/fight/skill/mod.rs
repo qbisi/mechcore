@@ -238,6 +238,10 @@ pub(in crate::fight) struct Skill {
     pub(in crate::fight) target_shield: Option<(u64, FightActorRef)>,
     pub(in crate::fight) search_target_time: i32,
     pub(in crate::fight) searched_this_tick: bool,
+    /// The step a bodyless skill whose motion already attacks started its
+    /// attack state on, from its own update: the state is not updated on the
+    /// tick it is entered, so its first blow waits for the next.
+    pub(in crate::fight) started_from_idle: Option<u64>,
     /// Which `SkillStateController` state the skill is in, with what that
     /// state carries.
     pub(in crate::fight) state: SkillState,
@@ -306,6 +310,7 @@ impl Skill {
             // replaces this constructor value with the presearch batch ordinal.
             search_target_time: SEARCH_TARGET_RESET_TICKS,
             searched_this_tick: false,
+            started_from_idle: None,
             state: SkillState::Idle { ready_step: None },
             group,
             lock_written: false,
@@ -798,16 +803,18 @@ impl Simulation {
         // the main FightSkill. Prepare and Attack retain this private counter;
         // Attack only enters the selector when its private attack target is no
         // longer alive.
-        let quick_switch_target = self
+        let attacker = self
             .attacker(owner)
-            .expect("skill owner identity is stable")
-            .attack
-            .quick_switch_target;
+            .expect("skill owner identity is stable");
+        let (quick_switch_target, team) = (attacker.attack.quick_switch_target, attacker.team);
         let skill = self.skill(owner);
         let target = skill
             .attack_target()
             .and_then(|target| self.fight_actor(target));
-        let target_alive = target.is_some_and(|target| target.alive && target.targetable);
+        // `FightActor.IsValidTarget` asks the side too: a unit a beam turned
+        // finds what it was after on its own side, and searches.
+        let target_alive =
+            target.is_some_and(|target| target.alive && target.targetable && target.team != team);
         let target_died_during_tick =
             target.is_some_and(|target| target.query_alive && !target.alive);
         if !target_alive
@@ -834,7 +841,7 @@ impl Simulation {
         let lock_alive = skill
             .lock_target
             .and_then(|lock| self.fight_actor(lock))
-            .is_some_and(|lock| lock.alive);
+            .is_some_and(|lock| lock.alive && lock.team != team);
         // A skill left idle by its last search fires at nothing by design,
         // so only its lock and the timer are asked.
         if (target_alive || skill.idle) && lock_alive && skill.search_target_time > 0 {
@@ -970,9 +977,11 @@ impl Simulation {
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
             actor.exit_fight_on_death();
+            self.sync_beam(actor_id);
             return self.drop_buffs_of_the_dead(actor_id);
         }
         self.step_actor_skill_and_motion(actor_id, step, target_search_order, events)?;
+        self.sync_beam(actor_id);
         self.update_buffs(actor_id, events)
     }
 
@@ -1255,6 +1264,7 @@ impl Simulation {
             && skill.backswing_finish_step().is_none()
             && skill.phase() == FightSkillPhase::Attack
             && !entered_skill_phase
+            && skill.started_from_idle != Some(step)
             // A state is not updated on the tick it is entered: the
             // first blow waits for the tick after the prepare ends.
             && !prepare_finished
@@ -1395,6 +1405,7 @@ impl Simulation {
                 .attack_target()
                 .is_some_and(|target_id| self.target_in_attack_area(owner, target_id));
         if bodyless_skill_starts_before_idle_search {
+            self.skill_mut(owner).started_from_idle = Some(step);
             self.skill_mut(owner).set_phase(if prepare_steps == 0 {
                 FightSkillPhase::Attack
             } else {

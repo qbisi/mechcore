@@ -74,6 +74,8 @@ impl Actor {
             }
         });
         let underground = rules.underground.as_ref().map(underground::Underground::of);
+        let original_team = placement.team;
+        let original_formation = placement.formation_id;
         Self {
             x,
             z,
@@ -104,6 +106,9 @@ impl Actor {
             visibility: Visibility::Normal,
             skills_active: true,
             underground,
+            beam: None,
+            original_team,
+            original_formation,
             motion: Motion {
                 rvo_tree_x_q32: x_q32,
                 rvo_tree_z_q32: z_q32,
@@ -350,7 +355,7 @@ impl Actor {
         LiveUnitState {
             unit_id: self.placement.unit_id,
             team_id: self.placement.team,
-            original_team_id: self.placement.team,
+            original_team_id: self.original_team,
             formation_id: self.placement.formation_id,
             unit_type_id: self.rules.unit_type_id,
             domain: match self.rules.domain {

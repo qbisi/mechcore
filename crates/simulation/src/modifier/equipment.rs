@@ -149,6 +149,9 @@ struct Equipment {
     /// `ICommonMechDataChangeDataSource.IsImportantUnit`: whether it makes its
     /// unit one its side cannot outlive.
     important: bool,
+    /// `IIgnoreBuffDataSouce.IgnoreControllerBeam`, which every
+    /// `IgnoreBuffEquipment` answers true: no control beam turns its unit.
+    ignores_control_beam: bool,
 }
 
 /// One row of the table, with every field the extraction writes.
@@ -471,6 +474,17 @@ impl EquipmentEffects {
             .unwrap_or_default())
     }
 
+    /// Whether the item keeps every control beam from turning its unit.
+    ///
+    /// # Errors
+    ///
+    /// See [`Self::ignored_buffs`].
+    pub(crate) fn ignores_control_beam(&self, id: i32, unit: &UnitConfig) -> Result<bool> {
+        Ok(self
+            .worn(id, unit)?
+            .is_some_and(|equipment| equipment.ignores_control_beam))
+    }
+
     /// One equipment's row, once its effect is known to apply, or nothing
     /// when its targeting does not reach the unit.
     fn worn(&self, id: i32, unit: &UnitConfig) -> Result<Option<&Equipment>> {
@@ -549,6 +563,7 @@ impl Equipment {
                 energy: row.barrier_energy.unwrap_or(0),
             }),
             important: row.important_unit,
+            ignores_control_beam: row.kind == IGNORE_BUFF,
         }
     }
 }

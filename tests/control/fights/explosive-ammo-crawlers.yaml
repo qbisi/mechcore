@@ -1,0 +1,19 @@
+# Explosive Ammo on the Hacker of `../../hacker/fights/m3-crawler-4242.yaml`,
+# whose beam may turn every Crawler. The item's 5 metres of splash change
+# nothing: a hit that turns strikes nothing, so nothing splashes. The fight
+# turns the same Crawlers and ends on the same tick as the one without it.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 324
+hash: {profile: mcfr-content-0.7.0, result: e565ad10bc42b07b282f95f23878a973d818b4fe29abc9f11090279f9a3bfd18}
+blue:
+  core_damage: 64
+  units:
+  - {name: hacker, index: 0, position: {x: -5, y: -105}, exp: 0/56/560, equipment: [explosive_ammo]}
+red:
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/450/450}

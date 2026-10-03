@@ -705,7 +705,10 @@ impl Simulation {
         let mut scoring = Scoring::default();
 
         for (&team, candidates) in target_search_order {
-            if team == source.team {
+            // The prepared trees hold each unit on the side it stood on as the
+            // tick opened; a search made where everything stands now asks the
+            // side it stands on, which a beam may have turned since.
+            if team == source.team && !use_live_candidate_positions {
                 continue;
             }
             for &candidate in candidates {
@@ -718,6 +721,9 @@ impl Simulation {
                 let Some(target) = self.fight_actor(candidate) else {
                     continue;
                 };
+                if use_live_candidate_positions && target.team == source.team {
+                    continue;
+                }
                 let candidate_alive = if use_live_candidate_positions {
                     target.alive
                 } else {
@@ -731,7 +737,7 @@ impl Simulation {
                         FightActorRef::Building(_) => target.targetable,
                     }
                 };
-                if target.team != team
+                if (target.team != team && !use_live_candidate_positions)
                     || !candidate_alive
                     || !candidate_targetable
                     || matches!(candidate, FightActorRef::Building(id)

@@ -1,0 +1,21 @@
+# The Anti-Interference Module on red's Rhino, against the Hacker of
+# `../../hacker/fights/m2-rhino-4242.yaml`. No beam turns a unit wearing it:
+# the beam deals its damage effect instead, three tenths of its damage rounded
+# down. Its three warmup hits of 1 deal nothing and write no damage, and each
+# later hit deals 179 of 600. Nothing is turned and no `control_progress` row
+# is written; the Rhino wins.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 203
+hash: {profile: mcfr-content-0.7.0, result: 3ef3c32eeedade9621dd587fdbd4fba0655e0c5092e4f040997c3a8f6ce71e63}
+blue:
+  core_damage: 200
+  units:
+  - {name: hacker, index: 0, position: {x: -5, y: -105}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/400/1150, equipment: [anti_interference_module]}

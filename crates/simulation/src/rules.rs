@@ -715,7 +715,6 @@ impl UnitConfig {
     pub(crate) fn fired(&self) -> Result<()> {
         let weapons = &self.attack.weapons;
         let why = match (&self.attack.path, weapons.mode) {
-            (AttackPath::ControlBeam { .. }, _) => "fires a control beam",
             // A group of one weapon fires one blow whatever its topology
             // says: a Vortex's is a single direct weapon.
             (_, WeaponMode::Group) if weapons.count() == 1 => return Ok(()),
@@ -1287,11 +1286,10 @@ mod tests {
             "melting_point",
             "vortex",
             "raiden",
+            "hacker",
         ] {
             assert!(config.units.get(fired).unwrap().fired().is_ok(), "{fired}");
         }
-        let error = config.units.get("hacker").unwrap().fired().unwrap_err();
-        assert!(error.to_string().contains("a control beam"), "{error}");
     }
 
     #[test]

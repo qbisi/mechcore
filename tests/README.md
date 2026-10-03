@@ -11,6 +11,7 @@ out to show:
 | --- | --- |
 | [`battle_skill/`](battle_skill/README.md) | when a released battle skill lands, what it reaches, and what it writes or summons |
 | [`construction/`](construction/README.md) | what a construction becomes in a fight, and what attacks it |
+| [`control/`](control/README.md) | what a control beam turns, what it strikes instead, and what an item or a shield changes about it |
 | [`energy_tower/`](energy_tower/README.md) | what the Energy Tower's fight skills write onto a side, and what they leave alone |
 | [`energy_shield/`](energy_shield/README.md) | what a unit's own shield holds and takes off a hit, from an item or a technology |
 | [`equipment/`](equipment/README.md) | where equipment corrections land and how they compose with officers |
@@ -36,7 +37,6 @@ out to show:
 | [`regression/`](regression/README.md) | fights that exercise the kernel rather than one rule |
 | [`corpus/`](corpus/README.md) | rounds of the replay corpus the simulator plays back, each named for its replay and round |
 | every other unit, `arclight/` to `wasp/` | that unit's [standard fights](#standard-unit-layouts) |
-| `hacker/` | the Hacker's standard layouts, which no fight pins yet |
 
 **A fixture that bears on several topics is cited, not copied.** It stays in
 its home, and every other topic reaches it by its path: a rule's `### Recorded`
@@ -141,9 +141,7 @@ condition is met by the main attack alone, and each unit's main skill row
 agrees with its `config/units/` file.
 
 Every unit is pinned but the three that cost 800 (War Factory, Abyss,
-Mountain), the Sandworm, whose configuration cannot state a unit that burrows,
-and the Hacker, refused by name for a main skill the kernel has no way to fire,
-its control beam. Each mechanism the recordings exposed is named in
+Mountain). Each mechanism the recordings exposed is named in
 [`combat.md`](../docs/rules/combat.md). Two of them were read off five of the
 fights recorded with the `target_refs` channel,
 `scripts/record-fights.py --instrument target_refs`, each skill's state beside
