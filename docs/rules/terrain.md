@@ -217,7 +217,9 @@ keeping the original control points.
 The game path enumerates the restored objects from
 `RangeItemController.GetItems()` before the fight, groups them by shared
 provider, recovers the control points from the surviving endpoints, and exports
-the grids by `RangeItem.Index`. After a replay restore the manager no longer
+the grids by `RangeItem.Index`. The last point falls a fraction of a millimetre
+off the second control point, so its centre is taken to the nearest whole
+metre, within 2^-16 metres. After a replay restore the manager no longer
 holds the provider's release data, so this path fails closed when an endpoint is
 missing. The file path has no such requirement, and only the game path observes
 what a specific build actually restored.

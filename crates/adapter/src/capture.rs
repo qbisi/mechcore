@@ -4687,16 +4687,23 @@ fn read_native_standing_oil(
             }
             let mut control_points = Vec::with_capacity(2);
             for (label, center) in [("start", start), ("end", end)] {
-                if center[0] % FIXED_ONE_RAW != 0 || center[2] % FIXED_ONE_RAW != 0 {
-                    return Err(format!(
-                        "retained oil {label} point is not an integer MapVector"
-                    ));
-                }
+                // The first centre is the start point itself. The last is the
+                // start plus the clamped path, which the fixed-point step
+                // leaves a fraction of a millimetre off the end point: the
+                // round-one Sticky Oil Bomb from (-60, -40) to (60, -40)
+                // lands its seventh oil 518 raw past x = 60.
+                let metres = |raw: i64| -> Result<i32, String> {
+                    let whole = (raw + FIXED_ONE_RAW / 2).div_euclid(FIXED_ONE_RAW);
+                    if (raw - whole * FIXED_ONE_RAW).abs() > 65_536 {
+                        return Err(format!(
+                            "retained oil {label} point {center:?} is not on a whole metre"
+                        ));
+                    }
+                    i32::try_from(whole).map_err(|_| format!("retained oil {label} exceeds i32"))
+                };
                 let world = MapVector {
-                    x: i32::try_from(center[0] / FIXED_ONE_RAW)
-                        .map_err(|_| format!("retained oil {label} x exceeds i32"))?,
-                    y: i32::try_from(center[2] / FIXED_ONE_RAW)
-                        .map_err(|_| format!("retained oil {label} y exceeds i32"))?,
+                    x: metres(center[0])?,
+                    y: metres(center[2])?,
                 };
                 let (x, y) = side_local_position(world, team)?;
                 control_points.push(Position { x, y });
