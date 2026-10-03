@@ -58,6 +58,7 @@ struct TerrainSkillRow {
     life_time: i64,
     fire_life_time: i64,
     attack_range_change_rate: i64,
+    cross_advanced_shield: bool,
     #[serde(default)]
     buff: Option<BuffRow>,
 }
@@ -217,8 +218,10 @@ pub(crate) struct StandingOil {
     pub(crate) to_q32: (i64, i64),
     /// The row's `subEffectCount`, the points the line expands into.
     pub(crate) count: usize,
-    /// The native indices of the points that still stand, in order.
-    pub(crate) points: Vec<u32>,
+    /// The native indices of the points that still stand, in order, each
+    /// with the cells it still holds when a shield cut it, as a recording
+    /// reads them in the world's frame.
+    pub(crate) points: Vec<(u32, Option<Vec<u32>>)>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -328,6 +331,9 @@ pub(crate) enum SkillEffect {
     /// it lands, `RangeItemSystem.AddItem`.
     Terrain {
         spec: TerrainSpec,
+        /// `isCrossAdvancedShield`: whether a falling sub-effect passes a
+        /// shield it comes inside.
+        crosses_shields: bool,
         scatter: Scatter,
         /// The sub-effects still to land, in the order they are activated.
         sub_effects: Vec<SubEffect>,
@@ -541,13 +547,12 @@ impl CommanderSkillEffects {
         })
     }
 
-    /// The oil a Sticky Oil Bomb of an earlier round left on a side. A point
-    /// a shield cut to a grid is refused: a grid is not read.
+    /// The oil a Sticky Oil Bomb of an earlier round left on a side. A
+    /// point's cells are the side's, so red's turn half a turn.
     ///
     /// # Errors
     ///
-    /// Returns an error when the table does not hold the skill, or when a
-    /// point stands as a grid.
+    /// Returns an error when the table does not hold the skill.
     pub(crate) fn standing_oil(&self, team: u32, area: &OilArea) -> Result<StandingOil> {
         let row = self
             .terrains
@@ -576,15 +581,23 @@ impl CommanderSkillEffects {
             )));
         };
         let points = if area.grid_rows.is_empty() {
-            (0..u32::try_from(sub_effects.len()).unwrap_or(u32::MAX)).collect()
+            (0..u32::try_from(sub_effects.len()).unwrap_or(u32::MAX))
+                .map(|point| (point, None))
+                .collect()
         } else {
-            if let Some((point, _)) = area.grid_rows.iter().find(|(_, rows)| !rows.is_empty()) {
-                return Err(Error::new(format!(
-                    "standing {name}'s point {point} stands as a grid a shield cut, which is \
-                     not read"
-                )));
-            }
-            area.grid_rows.keys().copied().collect()
+            area.grid_rows
+                .iter()
+                .map(|(&point, rows)| {
+                    let rows = (!rows.is_empty()).then(|| {
+                        if team == 0 {
+                            rows.clone()
+                        } else {
+                            mechcore_document::rotate_oil_grid_rows(rows)
+                        }
+                    });
+                    (point, rows)
+                })
+                .collect()
         };
         Ok(StandingOil {
             team,
@@ -829,6 +842,7 @@ fn terrain_effect(named: &str, row: &TerrainSkillRow, fire: GroundFire) -> Resul
             effect,
             burns,
         },
+        crosses_shields: row.cross_advanced_shield,
         scatter: Scatter::Line { to_q32: (0, 0) },
         sub_effects: schedule(&Timing::of_terrain(row))?
             .into_iter()

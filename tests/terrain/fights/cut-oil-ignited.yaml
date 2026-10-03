@@ -1,0 +1,28 @@
+# Blue's standing Shield Airdrop at (0, 0), its Sticky Oil Bomb along
+# y = -40 and its Incendiary Bomb down x = 60, in round two.
+#
+# The outer oils and the fires the shield reaches stand cut. On tick 87 the
+# last oil lands cut at (60, -40), where the fire of tick 83 reaches it with
+# its cells, and turns to a fire with the oil's 66 cells before that tick's
+# fire lands on it.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: game
+ticks: 242
+hash: {profile: mcfr-content-0.7.0, result: ae58a6249d8eeb8a6200092b71b0bc2076622f72c1c19caa8905ebb0b265b64f}
+blue:
+  core_damage: 212
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/88/650}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/80/650}
+  battle_skills:
+  - {name: shield_airdrop, standing: {position: {x: 0, y: 0}}}
+  - {name: sticky_oil_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}], grid_rows: {0: [240, 1020, 2046, 2046, 1023, 255, 63, 31, 14, 6, 0, 0]}}
+  - {name: incendiary_bomb, positions: [{x: 60, y: -160}, {x: 60, y: -40}]}
+red:
+  units:
+  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}, exp: 0/250/1300}
+  - {name: crawler, index: 1, position: {x: 5, y: -110}, exp: 0/150/450}

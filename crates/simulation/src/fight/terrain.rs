@@ -18,7 +18,10 @@
 use super::*;
 use crate::{
     data::{Channel, Correction, Entry, Index},
-    fight::commander_skill::line_point,
+    fight::{
+        commander_skill::line_point,
+        grid::{Circle, GridBlock},
+    },
     layout::{StandingOil, TerrainEffect, TerrainKind, TerrainSpec},
 };
 use mechcore_mcfr::{
@@ -71,6 +74,22 @@ struct Terrain {
     elapsed: i32,
     /// `Round`: the rounds it has stood, counted as each fight ends.
     round: i32,
+    /// Its cells, when it is laid out as a grid (`IsGridMode`).
+    grid: Option<GridBlock>,
+}
+
+/// How `RangeItemEffectLayerGrid.OnAddRangeItem` lays a new terrain out.
+#[derive(Debug, Clone, Copy)]
+enum Layout {
+    /// `useGrid` with no cells given: a grid when a shield reaches it, its
+    /// cells under every shield gone unless it was turned from another kind
+    /// (`isConvertFromOtherType`) or its centre stands inside the first such
+    /// shield; a circle when none does.
+    Cut { converted: bool },
+    /// `detailMasks`: the cells another terrain or a recording holds.
+    Held(GridBlock),
+    /// Neither: a circle, whatever shields stand.
+    Circle,
 }
 
 /// A `RangeItemController`: its items in the order they were added, and the
@@ -124,17 +143,20 @@ impl Simulation {
         spec: TerrainSpec,
         position: (i64, i64),
     ) -> Result<()> {
-        // A shield turns a terrain to a grid of cells, which is not read.
-        if !self.shield.standing.is_empty() {
-            return Err(Error::new(format!(
-                "{name} leaves a terrain in a fight with a battlefield shield, which is not measured"
-            )));
-        }
-        self.add_item((team, name, None), team, spec, position)?;
+        let key = self.add_item(
+            (team, name, None),
+            team,
+            spec,
+            position,
+            Layout::Cut { converted: false },
+        )?;
         if let Some(fire) = spec.burning()
-            && self.fire_reaches(position, spec.radius_q32)
+            && self.fire_reaches((position.0, position.1, spec.radius_q32))?
         {
-            self.add_item((team, name, None), team, fire, position)?;
+            let layout = self.terrain.terrains[&key]
+                .grid
+                .map_or(Layout::Cut { converted: true }, Layout::Held);
+            self.add_item((team, name, None), team, fire, position, layout)?;
         }
         Ok(())
     }
@@ -151,21 +173,25 @@ impl Simulation {
         if standing.is_empty() {
             return Ok(());
         }
-        if !self.shield.standing.is_empty() {
-            return Err(Error::new(
-                "a standing sticky_oil_bomb stands in a fight with a battlefield shield, which is \
-                 not measured",
-            ));
-        }
         for (area, oil) in standing.iter().enumerate() {
             let count = i64::try_from(oil.count).unwrap_or(i64::MAX);
-            for &point in &oil.points {
-                let position = line_point(oil.from_q32, oil.to_q32, count, i64::from(point));
+            for (point, rows) in &oil.points {
+                let position = line_point(oil.from_q32, oil.to_q32, count, i64::from(*point));
+                // A replay restores a point with no cells of its own with
+                // `useGrid` off: a circle, whatever shields stand.
+                let layout = match rows {
+                    Some(rows) => Layout::Held(GridBlock::of_circle_holding(
+                        (position.0, position.1, oil.spec.radius_q32),
+                        rows,
+                    )?),
+                    None => Layout::Circle,
+                };
                 let key = self.add_item(
                     (oil.team, &oil.name, Some(area)),
                     oil.team,
                     oil.spec,
                     position,
+                    layout,
                 )?;
                 self.terrain
                     .terrains
@@ -189,6 +215,7 @@ impl Simulation {
         team: u32,
         spec: TerrainSpec,
         (x_q32, z_q32): (i64, i64),
+        layout: Layout,
     ) -> Result<u64> {
         if spec.kind == TerrainKind::Fire
             && let Some(repeat) = self.controller_of(TerrainKind::Fire).and_then(|index| {
@@ -219,6 +246,7 @@ impl Simulation {
                  quadtree, and what that does to the order units are found in is not read"
             )));
         }
+        let grid = self.lay_out((x_q32, z_q32, spec.radius_q32), layout)?;
         self.terrain.next_key += 1;
         let key = self.terrain.next_key;
         self.terrain.terrains.insert(
@@ -233,6 +261,7 @@ impl Simulation {
                 spec,
                 elapsed: 0,
                 round: 0,
+                grid,
             },
         );
         self.terrain.controllers[index].items.push(key);
@@ -253,12 +282,12 @@ impl Simulation {
             let fire = &self.terrain.terrains[&fire];
             (fire.x_q32, fire.z_q32, fire.spec.radius_q32, fire.team)
         };
-        let reached = self.terrain.controllers[index]
-            .items
-            .iter()
-            .copied()
-            .filter(|key| self.circles_overlap((x_q32, z_q32, radius_q32), *key))
-            .collect::<Vec<_>>();
+        let mut reached = Vec::new();
+        for &key in &self.terrain.controllers[index].items {
+            if self.terrain_reaches(key, (x_q32, z_q32, radius_q32))? {
+                reached.push(key);
+            }
+        }
         self.terrain.controllers[index]
             .items
             .retain(|key| !reached.contains(key));
@@ -269,31 +298,83 @@ impl Simulation {
                 oil.spec.burning().expect("an oil burns"),
                 (oil.x_q32, oil.z_q32),
             );
-            self.add_item((provider.0, &provider.1, provider.2), team, spec, position)?;
+            let layout = oil
+                .grid
+                .map_or(Layout::Cut { converted: true }, Layout::Held);
+            self.add_item(
+                (provider.0, &provider.1, provider.2),
+                team,
+                spec,
+                position,
+                layout,
+            )?;
         }
         Ok(())
     }
 
     /// `RangeItemController.IsInteractable` of the fire controller: whether
     /// any fire reaches a circle.
-    fn fire_reaches(&self, (x_q32, z_q32): (i64, i64), radius_q32: i64) -> bool {
-        self.controller_of(TerrainKind::Fire).is_some_and(|index| {
-            self.terrain.controllers[index]
-                .items
-                .iter()
-                .any(|&key| self.circles_overlap((x_q32, z_q32, radius_q32), key))
-        })
+    fn fire_reaches(&self, circle: Circle) -> Result<bool> {
+        let Some(index) = self.controller_of(TerrainKind::Fire) else {
+            return Ok(false);
+        };
+        for &key in &self.terrain.controllers[index].items {
+            if self.terrain_reaches(key, circle)? {
+                return Ok(true);
+            }
+        }
+        Ok(false)
     }
 
-    /// `CircleRange.Overlaps`: the centres no further apart than the radii
-    /// together, by `FPoint`'s tolerant comparison.
-    fn circles_overlap(&self, (x_q32, z_q32, radius_q32): (i64, i64, i64), key: u64) -> bool {
+    /// Whether a terrain reaches a circle, as `GetItems` and `IsInteractable`
+    /// ask it: a grid by its cells (`GridBlockInt.Overlaps`), a circle by
+    /// `CircleRange.Overlaps`, the centres no further apart than the radii
+    /// together by `FPoint`'s tolerant comparison.
+    fn terrain_reaches(&self, key: u64, circle: Circle) -> Result<bool> {
         let terrain = &self.terrain.terrains[&key];
-        let distance = native_q32_magnitude(
-            terrain.x_q32.saturating_sub(x_q32),
-            terrain.z_q32.saturating_sub(z_q32),
+        if let Some(grid) = &terrain.grid {
+            return grid.overlaps(circle);
+        }
+        Ok(circles_overlap(
+            circle,
+            (terrain.x_q32, terrain.z_q32, terrain.spec.radius_q32),
+        ))
+    }
+
+    /// `RangeItemEffectLayerGrid.OnAddRangeItem` and `GenerateGrid`: a new
+    /// terrain's cells, or none for a circle. Every shield of every side
+    /// cuts, and the first that reaches the terrain says whether its centre
+    /// stands inside one (`FightCalculator.IsInRange3D`).
+    fn lay_out(&self, circle: Circle, layout: Layout) -> Result<Option<GridBlock>> {
+        let converted = match layout {
+            Layout::Held(grid) => return Ok(Some(grid)),
+            Layout::Circle => return Ok(None),
+            Layout::Cut { converted } => converted,
+        };
+        let shields = self
+            .shield
+            .standing
+            .iter()
+            .filter(|shield| shield.active)
+            .map(|shield| (shield.x_q32, shield.z_q32, shield.radius_q32))
+            .collect::<Vec<_>>();
+        let Some(&first) = shields
+            .iter()
+            .find(|&&shield| circles_overlap(shield, circle))
+        else {
+            return Ok(None);
+        };
+        let inside = fpoint_less_or_equal(
+            native_q32_magnitude(first.0 - circle.0, first.1 - circle.1).saturating_sub(first.2),
+            0,
         );
-        fpoint_less_or_equal(distance, radius_q32.saturating_add(terrain.spec.radius_q32))
+        let mut grid = GridBlock::of_circle(circle)?;
+        if !converted && !inside {
+            for shield in shields {
+                grid.disable(shield)?;
+            }
+        }
+        Ok(Some(grid))
     }
 
     /// The controller of a terrain's kind, made in its place the first time.
@@ -508,12 +589,19 @@ impl Simulation {
                     {
                         continue;
                     }
+                    let radius = space_to_q32(actor.rules.collision_radius());
                     let edge = native_q32_magnitude(
                         actor.x_q32.saturating_sub(terrain.x_q32),
                         actor.z_q32.saturating_sub(terrain.z_q32),
                     )
-                    .saturating_sub(space_to_q32(actor.rules.collision_radius()));
-                    if fpoint_less_or_equal(edge, terrain.spec.radius_q32) {
+                    .saturating_sub(radius);
+                    // A grid's unit must also meet one of its cells with its
+                    // bounds circle (`RangeItemEffectLayerGrid.IsInRange`).
+                    if fpoint_less_or_equal(edge, terrain.spec.radius_q32)
+                        && terrain.grid.map_or(Ok(true), |grid| {
+                            grid.overlaps((actor.x_q32, actor.z_q32, radius))
+                        })?
+                    {
                         found.push((unit_id, item));
                     }
                 }
@@ -685,7 +773,7 @@ impl Simulation {
                         z: terrain.z_q32,
                     },
                     radius: terrain.spec.radius_q32,
-                    grid: None,
+                    grid: terrain.grid.map(|grid| grid.recorded()),
                     // `GetDuration` less `Round`, read only of a terrain that
                     // stands more than one round.
                     remaining_rounds: (terrain.spec.rounds > 1)
@@ -700,4 +788,13 @@ impl Simulation {
         }
         states
     }
+}
+
+/// `CircleRange.Overlaps`: the centres no further apart than the radii
+/// together, by `FPoint`'s tolerant comparison.
+fn circles_overlap((x, z, radius): Circle, (other_x, other_z, other_radius): Circle) -> bool {
+    fpoint_less_or_equal(
+        native_q32_magnitude(other_x.saturating_sub(x), other_z.saturating_sub(z)),
+        radius.saturating_add(other_radius),
+    )
 }

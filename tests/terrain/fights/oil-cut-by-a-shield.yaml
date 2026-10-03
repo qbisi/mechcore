@@ -1,0 +1,27 @@
+# Blue's Sticky Oil Bomb along a line through its own standing Shield
+# Airdrop of 70 metres at (0, 0), in round two.
+#
+# The five middle oils fall inside the shield, which ends them: no oil, and
+# the shield takes nothing. The two outer oils land beside it and stand cut:
+# twelve cells by twelve of five metres, the cells the shield's own cells
+# cover gone. A cut terrain is recorded with its grid.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: game
+ticks: 309
+hash: {profile: mcfr-content-0.7.0, result: 7881eccb30f82b2dc08c812523fb223befde299882acef1c05f1d0aa1e3b2c0c}
+blue:
+  core_damage: 200
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/94/650}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/98/650}
+  battle_skills:
+  - {name: shield_airdrop, standing: {position: {x: 0, y: 0}}}
+  - {name: sticky_oil_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}], grid_rows: {0: [240, 1020, 2046, 2046, 1023, 255, 63, 31, 14, 6, 0, 0], 6: [0, 0, 6, 14, 31, 63, 255, 1023, 2046, 2046, 1020, 240]}}
+red:
+  units:
+  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}, exp: 0/100/1300}
+  - {name: crawler, index: 1, position: {x: 5, y: -110}, exp: 0/300/450}

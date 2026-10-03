@@ -1135,15 +1135,13 @@ red:
         let value = LAYOUT
             .replace(
                 "blue:\n  units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
-                "blue:\n  techs:\n    marksman: [shooting_squad]\n  units:\n  - {name: marksman, index: 0, position: {x: 0, y: -50}}\n  - {name: marksman, index: 1, position: {x: 20, y: -50}}\n  battle_skills: [{name: sticky_oil_bomb, standing: {control_points: [{x: -60, y: 40}, {x: 60, y: 40}], grid_rows: {3: [4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095]}}}]",
+                "blue:\n  techs:\n    marksman: [doubleshot, shooting_squad]\n  units:\n  - {name: marksman, index: 0, position: {x: 0, y: -50}}\n  - {name: marksman, index: 1, position: {x: 20, y: -50}}",
             );
         let refused = compile_default(&value).unwrap_err().to_string();
         let clauses: Vec<&str> = refused.split("; ").collect();
         assert_eq!(clauses.len(), 2, "{refused}");
         assert!(
-            clauses
-                .iter()
-                .any(|clause| clause.contains("point 3 stands as a grid")),
+            clauses.iter().any(|clause| clause.contains("702")),
             "{refused}"
         );
         assert!(
@@ -1153,7 +1151,7 @@ red:
     }
 
     #[test]
-    fn restores_standing_oil_and_refuses_a_point_cut_to_a_grid() {
+    fn restores_standing_oil_with_the_cells_a_point_holds() {
         let standing = |grid: &str| {
             LAYOUT.replace(
                 "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
@@ -1166,14 +1164,18 @@ red:
         };
         let layout = compile_default(&standing(", grid_rows: {0: [], 6: []}")).unwrap();
         assert_eq!(layout.standing_oil.len(), 1);
-        assert_eq!(layout.standing_oil[0].points, [0, 6]);
-        let refused = compile_default(&standing(&format!(
+        assert_eq!(layout.standing_oil[0].points, [(0, None), (6, None)]);
+        let mut rows = vec![4095; 12];
+        rows[0] = 1;
+        let layout = compile_default(&standing(&format!(
             ", grid_rows: {{0: [{}]}}",
-            ["4095"; 12].join(", ")
+            rows.iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join(", ")
         )))
-        .unwrap_err()
-        .to_string();
-        assert!(refused.contains("point 0 stands as a grid"), "{refused}");
+        .unwrap();
+        assert_eq!(layout.standing_oil[0].points, [(0, Some(rows))]);
     }
 
     #[test]

@@ -297,7 +297,8 @@ starts, release by release, before any unit draws its first interval:
 
 A terrain skill's row, a line of `terrain_skills`, places and times its
 sub-effects as a line strike does, and each leaves a terrain where it lands
-rather than striking: [`terrain.md`](terrain.md).
+rather than striking; one that falls inside a shield ends there and leaves
+nothing: [`terrain.md`](terrain.md).
 
 A strike whose row names a buff, Lightning Storm's slow, takes the units its
 circle reaches as it lands, deals its damage, and then writes the buff on
