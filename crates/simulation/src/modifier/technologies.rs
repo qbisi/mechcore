@@ -380,6 +380,8 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
     Ok(effects::corrections(Fields {
         life_rate: at_rank_one(&row.life_rate),
         damage_rate: at_rank_one(&row.damage_rate),
+        // The table has no such column.
+        damage_rate_by_kill_count: None,
         attack_range_rate: at_rank_one(&row.attack_range_rate),
         attack_interval_rate: at_rank_one(&row.attack_interval_rate),
         attack_range_value: at_rank_one(&row.attack_range_value),

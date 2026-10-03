@@ -1,0 +1,24 @@
+# Berserk Rhino beside a Marksman, against Fangs and a Marksman: the Rhino's
+# damage counts the kills of targets it hit and no other.
+#
+# The Marksman kills five Fangs the Rhino never hit, and the Rhino's damage
+# stays 3560 through each. Its own kills, three, two, two, three, one and two,
+# take it to 4627, 5339, 6051, 7119, 7475 and 8187. It dies on tick 356.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 390
+hash: {profile: mcfr-content-0.7.0, result: 1f669d9faff80b147a9bb48856ac0c362837165736731ebe14f347635f6fe49f}
+blue:
+  officers: [berserk_rhino]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -145}, exp: 0/168/1150}
+  - {name: marksman, index: 1, position: {x: -40, y: -150}, exp: 0/248/650}
+red:
+  core_damage: 100
+  units:
+  - {name: fang, index: 0, position: {x: 5, y: -40}}
+  - {name: marksman, index: 1, position: {x: 40, y: -60}, exp: 0/400/650}

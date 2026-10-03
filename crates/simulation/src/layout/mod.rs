@@ -1004,12 +1004,12 @@ red:
     fn an_officer_this_build_cannot_apply_refuses_the_side_that_holds_it() {
         let value = LAYOUT.replace(
             "blue:\n  units:",
-            "blue:\n  officers: [berserk_rhino]\n  units:",
+            "blue:\n  officers: [advanced_missile_device]\n  units:",
         );
         let refused = compile_default(&value).unwrap_err().to_string();
         assert!(refused.contains("side blue"), "{refused}");
-        assert!(refused.contains("30502"), "{refused}");
-        assert!(refused.contains("kills"), "{refused}");
+        assert!(refused.contains("10008"), "{refused}");
+        assert!(refused.contains("land_mine_rate"), "{refused}");
     }
 
     /// An officer that only touches a ledger reaches the fight as nothing,
@@ -1104,7 +1104,7 @@ red:
         let value = LAYOUT
             .replace(
                 "blue:\n  units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
-                "blue:\n  officers: [berserk_rhino]\n  units:\n  - {name: marksman, index: 0, position: {x: 0, y: -50}}\n  - {name: marksman, index: 1, position: {x: 20, y: -50}}\n  battle_skills: [{name: sticky_oil_bomb, standing: {control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}}]",
+                "blue:\n  officers: [advanced_missile_device]\n  units:\n  - {name: marksman, index: 0, position: {x: 0, y: -50}}\n  - {name: marksman, index: 1, position: {x: 20, y: -50}}\n  battle_skills: [{name: sticky_oil_bomb, standing: {control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}}]",
             )
             .replace(
                 "units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]",
@@ -1117,7 +1117,7 @@ red:
             clauses[0].contains("standing sticky_oil_bomb (RangeItemSystem)"),
             "{refused}"
         );
-        assert!(clauses[1].contains("30502"), "{refused}");
+        assert!(clauses[1].contains("10008"), "{refused}");
         assert!(
             clauses[2].contains("\"abyss\" has no unit configuration"),
             "{refused}"

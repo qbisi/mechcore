@@ -37,6 +37,7 @@ pub(crate) fn fixed_to(raw: i64, quantum: i64) -> i64 {
 pub(crate) struct Fields {
     pub(crate) life_rate: Option<i64>,
     pub(crate) damage_rate: Option<i64>,
+    pub(crate) damage_rate_by_kill_count: Option<i64>,
     pub(crate) attack_range_rate: Option<i64>,
     pub(crate) attack_interval_rate: Option<i64>,
     pub(crate) attack_range_value: Option<i64>,
@@ -74,6 +75,13 @@ pub(crate) fn corrections(fields: Fields) -> Vec<(Channel, Index, Correction)> {
         )),
     };
     rate(fields.damage_rate, Channel::Skill, Index::AttackDamage);
+    // `SkillDataModifier.AddData` writes it where it writes the damage rate,
+    // into the skill's `SkillDataChangeFloatRate.DamageRateByKillCount`.
+    rate(
+        fields.damage_rate_by_kill_count,
+        Channel::Skill,
+        Index::DamagePerKill,
+    );
     rate(
         fields.attack_interval_rate,
         Channel::Skill,
@@ -125,5 +133,5 @@ pub(crate) fn corrections(fields: Fields) -> Vec<(Channel, Index, Correction)> {
 
 /// Why a field this build will not apply is refused.
 pub(crate) const VALUE_ELSEWHERE: &str = "no number this simulator derives is the one it corrects";
-pub(crate) const KILLS: &str = "no mechanism here counts a unit's kills";
+pub(crate) const KILLS: &str = "no mechanism here rates a unit's life by its kills";
 pub(crate) const PROJECTILE: &str = "no mechanism here reads a projectile's own numbers";

@@ -283,11 +283,6 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
         ),
         (row.projectile_life_rate, "projectile_life_rate", PROJECTILE),
         (
-            row.damage_rate_by_kill_count,
-            "damage_rate_by_kill_count",
-            KILLS,
-        ),
-        (
             row.life_rate_by_kill_count,
             "life_rate_by_kill_count",
             KILLS,
@@ -308,6 +303,7 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
     Ok(effects::corrections(Fields {
         life_rate: row.life_rate,
         damage_rate: row.damage_rate,
+        damage_rate_by_kill_count: row.damage_rate_by_kill_count,
         attack_range_rate: row.attack_range_rate,
         attack_interval_rate: row.attack_interval_rate,
         attack_range_value: row.attack_range_value,

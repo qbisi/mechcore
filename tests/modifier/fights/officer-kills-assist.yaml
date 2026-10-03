@@ -1,0 +1,27 @@
+# Two Rhinos, both under Berserk Rhino, on one squad of level 2
+# Sledgehammers: a death counts for every unit that hit the target and is
+# alive, not only its killer.
+#
+# The first Rhino kills a Sledgehammer on tick 211 and the second one on tick
+# 212, each stepping to 3915; the second kills another on 250, which the first
+# never hit, and only it steps, to 4271; the first catches up with its own
+# kill on 261. On tick 292 the second kills the last Sledgehammer, which both
+# had hit, and both step to 4627. The fight ends on the next tick, and both
+# read 3560 again.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 293
+hash: {profile: mcfr-content-0.7.0, result: f2d08f38108a96426e320e5ed9cfffb2873ac943994f869936ccd6b9874d59d2}
+blue:
+  officers: [berserk_rhino]
+  units:
+  - {name: rhino, index: 0, position: {x: -25, y: -145}, exp: 0/540/1150}
+  - {name: rhino, index: 1, position: {x: 35, y: -145}, exp: 0/660/1150}
+red:
+  core_damage: 400
+  units:
+  - {name: sledgehammer, index: 0, position: {x: 5, y: -40}, level: 2}

@@ -68,6 +68,11 @@ pub(crate) enum Index {
     /// buff's `amplifyDamageRate` and scales each hit by it. It corrects no
     /// number of the description, only what reaches the unit.
     AmplifyDamage,
+    /// `SkillDataChangeFloatRate.DamageRateByKillCount`: what each of the
+    /// skill's kills adds to its damage's enhancement. It corrects no number
+    /// on its own; `DamageProperty.CalculateDamage` multiplies its enhancement
+    /// by the skill's `DamageCalculator.killCount`.
+    DamagePerKill,
 }
 
 impl Index {
@@ -93,6 +98,7 @@ impl Index {
             Self::AttackRange => "attack range",
             Self::SplashRange => "splash range",
             Self::AmplifyDamage => "damage taken",
+            Self::DamagePerKill => "damage per kill",
         }
     }
 }
@@ -257,6 +263,44 @@ impl Aggregate {
     }
 }
 
+/// Damage and its kill-count rate, which a skill's `DataSet` keeps as rates
+/// alone, and the field each is recorded in.
+const DAMAGE_RATES: [(Index, &str); 2] = [
+    (Index::AttackDamage, "damage_rate"),
+    (Index::DamagePerKill, "damage_rate_by_kill_count"),
+];
+
+/// What a skill overlay may carry that its `DataSet` has no field for.
+fn refuse_unrecorded_skill_fields(skill: &Overlay) -> Result<()> {
+    for index in [Index::MoveSpeed, Index::MaxLife, Index::AmplifyDamage] {
+        if skill.aggregate(index).is_some() {
+            return Err(Error::new(format!(
+                "the skill DataSet has no field for {}",
+                index.name()
+            )));
+        }
+    }
+    for (index, _) in DAMAGE_RATES {
+        if let Some(damage) = skill.aggregate(index)
+            && damage.value != 0
+        {
+            return Err(Error::new(format!(
+                "the skill DataSet has no field for a value of {}",
+                index.name()
+            )));
+        }
+    }
+    // `SkillDataChangeFloatRate` has no member for a splash.
+    if let Some(splash) = skill.aggregate(Index::SplashRange)
+        && splash.rate()? != (0, 0)
+    {
+        return Err(Error::new(
+            "the skill DataSet has no field for a splash rate",
+        ));
+    }
+    Ok(())
+}
+
 /// The three overlays a unit carries.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct Overlays {
@@ -302,7 +346,23 @@ impl Overlays {
     /// not measured, so an interval corrected twice is refused rather than
     /// assumed to compose like damage.
     pub(crate) fn resolve(&self, index: Index, base: i64) -> Result<i64> {
-        self.resolve_scaled(index, base, |value| value)
+        self.resolve_scaled(index, base, |value| value, 0)
+    }
+
+    /// A damage with its skill's kills in it: `DamageProperty.CalculateDamage`
+    /// adds the skill's `DamageRateByKillCount` enhancement times its
+    /// `killCount` to the enhancements it sums, and reads no impairment of it.
+    fn resolve_damage(&self, base: i64, kills: i64) -> Result<i64> {
+        let per_kill = self
+            .skill
+            .aggregate(Index::DamagePerKill)
+            .map_or(0, |aggregate| aggregate.enhance);
+        self.resolve_scaled(
+            Index::AttackDamage,
+            base,
+            |value| value,
+            per_kill * i128::from(kills),
+        )
     }
 
     /// [`Overlays::resolve`] with the enhancements alone: what a number
@@ -329,6 +389,7 @@ impl Overlays {
         index: Index,
         base: i64,
         value_scale: impl Fn(i128) -> i128,
+        extra_enhance: i128,
     ) -> Result<i64> {
         let mut corrected: Option<&'static str> = None;
         let mut total = Aggregate::default();
@@ -356,9 +417,10 @@ impl Overlays {
             total.enhance += aggregate.enhance;
             total.remaining = total.remaining * aggregate.remaining / ONE;
         }
-        if corrected.is_none() {
+        if corrected.is_none() && extra_enhance == 0 {
             return Ok(base);
         }
+        total.enhance += extra_enhance;
         // The rates meet first, as one FPoint factor, and the number is
         // multiplied by it once: `CalculateDamage` multiplies its summed
         // enhancement by the reduce rates before it reaches the damage.
@@ -434,6 +496,9 @@ pub(crate) struct Stats {
     /// The unit's level, which is its `IMechLevelData` rating: base life and
     /// base damage are the description's times it, before any overlay.
     level: i64,
+    /// Its skills' `DamageCalculator.killCount`: every target it hit that
+    /// died while it lived.
+    kills: i64,
     /// Q32.32 metres a second: `MoveSpeedProperty` keeps the speed as an
     /// `FPoint`, and a rate on it lands between two millimetres.
     move_speed_q32: i64,
@@ -467,6 +532,7 @@ impl Stats {
         let mut stats = Self {
             overlays: Overlays::default(),
             level,
+            kills: 0,
             move_speed_q32: 0,
             max_life: 0,
             attack_damage: 0,
@@ -519,9 +585,12 @@ impl Stats {
             Index::MoveSpeed,
             space_to_q32(rules.move_speed()),
             |value| value * ONE / metres,
+            0,
         )?;
         self.max_life = resolve(Index::MaxLife, self.base(rules.max_life)?)?;
-        self.attack_damage = resolve(Index::AttackDamage, self.base(rules.attack.base_damage)?)?;
+        self.attack_damage = self
+            .overlays
+            .resolve_damage(self.base(rules.attack.base_damage)?, self.kills)?;
         // A value is Q32.32 seconds already, and so is the interval.
         self.attack_interval_q32 = self.overlays.resolve(
             Index::AttackInterval,
@@ -536,6 +605,31 @@ impl Stats {
         self.attack_range = resolve(Index::AttackRange, rules.attack.range())?;
         self.splash_radius = resolve(Index::SplashRange, rules.attack.splash_radius())?;
         Ok(())
+    }
+
+    /// `DamageCalculator.AddKillCount` on each of its skills: one more kill,
+    /// and the damage again.
+    ///
+    /// # Errors
+    ///
+    /// See [`Stats::refresh`].
+    pub(crate) fn add_kill(&mut self, rules: &UnitConfig) -> Result<()> {
+        self.kills = self.kills.saturating_add(1);
+        self.refresh(rules)
+    }
+
+    /// `DamageCalculator.Clear`, as the fight ends: no kills, and the damage
+    /// again.
+    ///
+    /// # Errors
+    ///
+    /// See [`Stats::refresh`].
+    pub(crate) fn clear_kills(&mut self, rules: &UnitConfig) -> Result<()> {
+        if self.kills == 0 {
+            return Ok(());
+        }
+        self.kills = 0;
+        self.refresh(rules)
     }
 
     /// A base number at this unit's level.
@@ -576,7 +670,7 @@ impl Stats {
         let multiplier = damage_multipliers[attack_count.min(damage_multipliers.len() - 1)];
         let ramped = (base as f64 * multiplier).trunc() as i64;
         self.overlays
-            .resolve(Index::AttackDamage, ramped)
+            .resolve_damage(ramped, self.kills)
             .expect("the layout verified the damage corrections")
     }
 
@@ -650,6 +744,7 @@ impl Stats {
             Index::AttackRange,
             Index::SplashRange,
             Index::AmplifyDamage,
+            Index::DamagePerKill,
         ] {
             if unit.aggregate(index).is_some() {
                 return Err(Error::new(format!(
@@ -667,40 +762,20 @@ impl Stats {
             i64::try_from(value * ONE / units_per_one)
                 .map_err(|_| Error::new("a skill value is outside the signed range"))
         };
-        for index in [Index::MoveSpeed, Index::MaxLife, Index::AmplifyDamage] {
-            if skill.aggregate(index).is_some() {
-                return Err(Error::new(format!(
-                    "the skill DataSet has no field for {}",
-                    index.name()
-                )));
-            }
-        }
-        if let Some(damage) = skill.aggregate(Index::AttackDamage)
-            && damage.value != 0
-        {
-            return Err(Error::new(
-                "the skill DataSet has no field for a damage value",
-            ));
-        }
-        // `SkillDataChangeFloatRate` has no member for a splash.
-        if let Some(splash) = skill.aggregate(Index::SplashRange)
-            && splash.rate()? != (0, 0)
-        {
-            return Err(Error::new(
-                "the skill DataSet has no field for a splash rate",
-            ));
-        }
+        refuse_unrecorded_skill_fields(skill)?;
         for slot in 0..slots {
             let slot =
                 Some(u16::try_from(slot).map_err(|_| Error::new("a skill slot is outside u16"))?);
-            if let Some(damage) = skill.aggregate(Index::AttackDamage) {
-                push_rate(
-                    modifiers,
-                    ModifierChannel::SkillFloatRate,
-                    slot,
-                    "damage_rate",
-                    damage,
-                )?;
+            for (index, field) in DAMAGE_RATES {
+                if let Some(rate) = skill.aggregate(index) {
+                    push_rate(
+                        modifiers,
+                        ModifierChannel::SkillFloatRate,
+                        slot,
+                        field,
+                        rate,
+                    )?;
+                }
             }
             if let Some(range) = skill.aggregate(Index::AttackRange) {
                 push(
@@ -781,6 +856,7 @@ impl Stats {
             Index::AttackInterval,
             Index::AttackRange,
             Index::SplashRange,
+            Index::DamagePerKill,
         ] {
             if buff.aggregate(index).is_some() {
                 return Err(Error::new(format!(
@@ -914,6 +990,37 @@ mod tests {
     /// else, before any overlay: `tests/level/`'s recordings read 3244 and
     /// 4658 at level 2, 4866 and 6987 at level 3, and move speed, interval and
     /// range unchanged.
+    /// A kill-count rate adds its enhancement once per kill, and the fight's
+    /// end takes the kills away: `tests/modifier/fights/officer-kills-crawlers.yaml`
+    /// reads 4983 after four kills and 3560 again on its last tick.
+    #[test]
+    fn each_kill_adds_the_kill_count_rate_to_the_damage() {
+        let rhino = crate::rules::UnitConfigs::load()
+            .unwrap()
+            .get("rhino")
+            .unwrap()
+            .clone();
+        let per_kill = (
+            Channel::Skill,
+            Entry {
+                index: Index::DamagePerKill,
+                source: "test",
+                correction: Correction::Rate {
+                    add: 429_496_729,
+                    reduce: 0,
+                },
+            },
+        );
+        let mut stats = Stats::corrected(&rhino, 1, &[per_kill]).unwrap();
+        assert_eq!(stats.attack_damage(), 3560, "no kill, no change");
+        for _ in 0..4 {
+            stats.add_kill(&rhino).unwrap();
+        }
+        assert_eq!(stats.attack_damage(), 4983);
+        stats.clear_kills(&rhino).unwrap();
+        assert_eq!(stats.attack_damage(), 3560);
+    }
+
     #[test]
     fn a_level_multiplies_base_life_and_damage() {
         let rules = marksman();
