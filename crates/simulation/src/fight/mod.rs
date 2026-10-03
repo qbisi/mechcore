@@ -467,7 +467,8 @@ impl Simulation {
         let constructions = initialize_constructions(&buildings, &layout.constructions)?;
         let grounds = formation_grounds(layout, configs)?;
         let map_crystals = map_crystals(maps.buildings(layout.map_id)?, &grounds);
-        let target_quadtrees = initialize_target_quadtrees(&actors, &buildings);
+        let target_quadtrees =
+            initialize_target_quadtrees(&actors, &buildings, &construction_colliders);
         let mech_quadtrees = initialize_mech_quadtrees(&actors);
         let buildings_query_alive = standing_buildings(&buildings);
         let carried = carried_shields(&actors);

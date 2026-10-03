@@ -82,7 +82,7 @@ makes them: fire, oil, fog, sand fog, acid, recovery zone.
 3. Every affected unit not found anywhere leaves, last first. Every unit found
    that is not affected enters the first terrain it was found in, and one
    already affected stays in its own, even when that one no longer reaches
-   it. A unit that dies leaves as it dies, the rest keeping their order.
+   it or is gone. A unit that dies leaves as it dies, the rest keeping their order.
 4. A controller with a period, a fire's, counts one for every affected unit,
    last first, from zero as it entered; one whose count reaches the period
    counts it back off and takes the effect again.
@@ -252,6 +252,10 @@ already exists.
   in a fire burns for the oil's side; a burning oil is a fire of 30 metres,
   two rounds and 700 ticks: `tests/terrain/fights/oil-ignited.yaml`,
   `tests/terrain/fights/oil-ignited-by-the-enemy.yaml`.
+- A unit held to a fire that burns out while it stands in the next one takes
+  the gone fire's hits on, every four ticks: an Arclight held to the fifth of
+  an Incendiary Bomb's fires, gone after tick 777, takes 54 on ticks 778 and
+  782, `tests/corpus/fights/67156354-r3.yaml`.
 - A fire hits a unit as it enters and every four ticks it stays, the units
   counting last first, burns out after 700 ticks, and its removal is the
   last event of its tick: `tests/terrain/fights/fire.yaml`,

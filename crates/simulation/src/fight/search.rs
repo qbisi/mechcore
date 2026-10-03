@@ -392,6 +392,7 @@ pub(in crate::fight) fn initialize_mech_quadtrees(
 pub(in crate::fight) fn initialize_target_quadtrees(
     actors: &BTreeMap<u64, Actor>,
     buildings: &[BuildingState],
+    constructions: &BTreeMap<u64, i32>,
 ) -> BTreeMap<u32, TargetActorQuadtree> {
     let teams = actors
         .values()
@@ -401,25 +402,31 @@ pub(in crate::fight) fn initialize_target_quadtrees(
     let mut trees = BTreeMap::new();
     for team in teams {
         let mut tree = TargetActorQuadtree::new();
-
         let mut team_buildings = buildings
             .iter()
             .filter(|building| building.team_id == team)
             .collect::<Vec<_>>();
         team_buildings.sort_by_key(|building| building.building_id);
-        // A construction no unit searches for is still in the tree: the
-        // selector passes it over, and a splash takes it where it stands in
-        // the tree's order — an Arclight's shot at a block of a wall reads its
-        // damage on the block between the Crawlers around it.
-        for building in team_buildings {
+        let (team_constructions, towers): (Vec<_>, Vec<_>) = team_buildings
+            .into_iter()
+            .partition(|building| constructions.contains_key(&building.building_id));
+        let insert_building = |tree: &mut TargetActorQuadtree, building: &BuildingState| {
             tree.insert(
                 FightActorRef::Building(building.building_id),
                 building.position.x,
                 building.position.z,
                 building_radius(building),
             );
+        };
+        // `FightTeam.CreateQuadtree` takes `activeActors` in their order: the
+        // towers, then the units, then the constructions. A construction no
+        // unit searches for is still in the tree: the selector passes it
+        // over, and a splash takes it where it stands in the tree's order —
+        // an Arclight's shot at a block of a wall reads its damage on the
+        // block between the Crawlers around it.
+        for building in towers {
+            insert_building(&mut tree, building);
         }
-
         for (&actor_id, actor) in actors
             .iter()
             .filter(|(_, actor)| actor.placement.team == team)
@@ -430,6 +437,9 @@ pub(in crate::fight) fn initialize_target_quadtrees(
                 actor.z_q32,
                 actor.rules.collision_radius(),
             );
+        }
+        for building in team_constructions {
+            insert_building(&mut tree, building);
         }
         trees.insert(team, tree);
     }
