@@ -178,7 +178,8 @@ def shield_lines(group):
 # `CommanderSkillData.PreProcess` makes its one sub-effect reach `effectRange`,
 # which the row then carries as its count and range; a random circle or a line
 # scatters `subEffectCount` sub-effects, `subEffectIntervalTime` apart, each
-# striking `subEffectRange` about where it lands.
+# striking `subEffectRange` about where it lands; one whose `subEffectBuffID`
+# names a buff writes it on what it reaches, which the row then carries.
 DAMAGE_INTEGERS = (
     ("effectRangeType", "effect_range_type"),
     ("effectType", "effect_type"),
@@ -198,7 +199,7 @@ DAMAGE_FIXED = (
 DAMAGE_FLAGS = (("isCrossAdvancedShield", "cross_advanced_shield"),)
 
 
-def damage_lines(group):
+def damage_lines(group, buffs):
     lines = ["", "damage_skills:"]
     for row in group["damageCommanderSkills"]:
         if row["isTestData"]:
@@ -215,6 +216,8 @@ def damage_lines(group):
             lines.append(f"    {name}: {value}{reading(value)}")
         for field, name in DAMAGE_FLAGS:
             lines.append(f"    {name}: {str(row[field]).lower()}")
+        if row["subEffectBuffID"]:
+            lines += buff_lines(buffs[row["subEffectBuffID"]])
     return lines
 
 
@@ -294,7 +297,7 @@ def render(group):
         lines += buff_lines(buffs[row["subEffectBuffID"]])
     lines += support_lines(group)
     lines += shield_lines(group)
-    lines += damage_lines(group)
+    lines += damage_lines(group, buffs)
     lines += waypoint_lines(group)
     lines += other_lines(group, lines)
     return "\n".join(lines) + "\n"

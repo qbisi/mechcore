@@ -118,15 +118,16 @@ impl Simulation {
                 range_q32,
                 damage,
                 crosses_shields,
+                buff,
                 sub_effects,
                 ..
             } = &release.effect
             {
                 let falling = self.step_sub_effects(
                     &release,
-                    (*range_q32, *damage, *crosses_shields),
+                    (*range_q32, *damage, *crosses_shields, buff.as_ref()),
                     sub_effects,
-                    tick,
+                    (tick, target_search_order),
                     events,
                 )?;
                 if falling.is_empty() {
@@ -163,7 +164,8 @@ impl Simulation {
             }
             match &release.effect {
                 SkillEffect::Buff { range_q32, buff } => {
-                    let reached = self.skill_reach(&release, *range_q32, target_search_order);
+                    let point = (space_to_q32(release.x), space_to_q32(release.z));
+                    let reached = self.skill_reach(point, *range_q32, target_search_order);
                     self.write_skill_buff(&release, buff, &reached, events)?;
                 }
                 // A strike's sub-effects land above, and a path is given out
@@ -195,14 +197,26 @@ impl Simulation {
     /// that cannot cross shields stops at the first it comes inside as it
     /// falls, before it would land, and strikes there. Answers the ones still
     /// to land.
+    ///
+    /// A strike that writes a buff (`PerformNegativeEffect`) takes the units
+    /// its circle reaches before it deals its damage, and writes the buff on
+    /// those still alive after, as `BuffSystem.AddBuff` skips the dead. The
+    /// list also leaves out the units a shield covers, which is not measured,
+    /// so such a strike is refused beside a battlefield shield.
     fn step_sub_effects(
         &mut self,
         release: &SkillRelease,
-        (range_q32, damage, crosses_shields): (i64, i64, bool),
+        (range_q32, damage, crosses_shields, buff): (i64, i64, bool, Option<&SkillBuff>),
         sub_effects: &[SubEffect],
-        tick: u64,
+        (tick, target_search_order): (u64, &BTreeMap<u32, Vec<FightActorRef>>),
         events: &mut Vec<Event>,
     ) -> Result<Vec<SubEffect>> {
+        if buff.is_some() && !self.shield.standing.is_empty() {
+            return Err(Error::new(format!(
+                "{} writes a buff in a fight with a battlefield shield, which is not measured",
+                release.name
+            )));
+        }
         let mut falling = Vec::new();
         for sub_effect in sub_effects {
             let (x_q32, z_q32, fall) = (sub_effect.x_q32, sub_effect.z_q32, sub_effect.fall);
@@ -219,8 +233,15 @@ impl Simulation {
                 }
             }
             if sub_effect.lands_on == tick {
+                let reached = match buff {
+                    Some(_) => self.skill_reach((x_q32, z_q32), range_q32, target_search_order),
+                    None => Vec::new(),
+                };
                 let point = (x_q32, 0, z_q32);
                 self.strike_circle(release, range_q32, damage, crosses_shields, point, events)?;
+                if let Some(buff) = buff {
+                    self.write_skill_buff(release, buff, &reached, events)?;
+                }
                 continue;
             }
             falling.push(*sub_effect);
@@ -294,11 +315,10 @@ impl Simulation {
     /// `IsBuffTarget` keeps units alone.
     fn skill_reach(
         &self,
-        release: &SkillRelease,
+        (x_q32, z_q32): (i64, i64),
         range_q32: i64,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Vec<u64> {
-        let (x_q32, z_q32) = (space_to_q32(release.x), space_to_q32(release.z));
         target_search_order
             .values()
             .flatten()
@@ -344,7 +364,9 @@ impl Simulation {
             invincible: false,
         };
         for &id in reached {
-            if !self.buff_reaches(id, &row) {
+            // `BuffSystem.AddBuff` passes over the dead: a strike's damage
+            // may have killed what its circle reached.
+            if !self.actors[&id].alive() || !self.buff_reaches(id, &row) {
                 continue;
             }
             let actor = &self.actors[&id];

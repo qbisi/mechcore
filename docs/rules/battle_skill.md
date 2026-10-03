@@ -263,8 +263,8 @@ in the fight.
 
 ## A scattered strike
 
-A damage skill of `effectRangeType` 2, a random circle (Orbital Bombardment),
-or 1, a line (Ion Blast), drops its row's `subEffectCount` sub-effects as the
+A damage skill of `effectRangeType` 2, a random circle (Orbital Bombardment,
+Lightning Storm), or 1, a line (Ion Blast), drops its row's `subEffectCount` sub-effects as the
 section above times them, each striking as a damage strike does over its row's
 `subEffectRange` about where it lands. Where they land is drawn as the fight
 starts, release by release, before any unit draws its first interval:
@@ -278,6 +278,13 @@ starts, release by release, before any unit draws its first interval:
 - **A line** places them evenly from its first position to its second: the
   `k`-th the way there clamped to `k` times the length over `subEffectCount -
   1`.
+
+A strike whose row names a buff, Lightning Storm's slow, takes the units its
+circle reaches as it lands, deals its damage, and then writes the buff on
+those of them still alive. A unit struck again takes the buff again, as a
+missile's slow does ([`contraptions.md`](contraptions.md)). The list leaves
+out the units a shield covers, which is not measured, so the simulator refuses
+such a strike in a fight with a battlefield shield.
 
 
 
@@ -401,6 +408,10 @@ drawn from any stream, and no event is written.
   `tests/battle_skill/fights/orbital-bombardment.yaml`,
   `tests/battle_skill/fights/ion-blast.yaml`,
   `tests/battle_skill/fights/scattered-both-sides.yaml`.
+- A strike's buff is written after its damage on the units it reached that
+  are still alive, and again on a unit struck again:
+  `tests/battle_skill/fights/lightning-storm.yaml`,
+  `tests/battle_skill/fights/lightning-storm-repeated.yaml`.
 - A support skill lands on tick `s + 2`, and a summon stands on the release
   point, joins a second later, is found from the tick after, and moves from
   the next solve: `tests/battle_skill/fights/rhino-assault.yaml`,
@@ -564,8 +575,11 @@ drawn from any stream, and no event is written.
   one an update: `CSRS_Perform.Enter`, `CSRS_Perform.Update`,
   `CSRS_Perform.ActiveSubEffect`, `FSMState.Update`,
   `CommanderSkillReleaseState..ctor`, `CommanderSkillBase.GetSubEffectTime`.
-- Each sub-effect strikes its `subEffectRange`:
-  `CommanderSkillSubEffectController.PerformNegativeEffect`.
+- Each sub-effect strikes its `subEffectRange`, and one that carries a buff
+  lists what its circle reaches before the damage and writes the buff after,
+  on the living: `CommanderSkillSubEffectController.PerformNegativeEffect`,
+  `CommanderSkillSubEffectController.PerformHitEffect`,
+  `BuffSystem.AddBuff`.
 - Its fall stops at the first shield it comes inside:
   `CommanderSkillSubEffectAgent.Update`,
   `CommanderSkillSubEffectAgent.IsHitEnergyShield`,
@@ -604,8 +618,8 @@ drawn from any stream, and no event is written.
 
 - **A strike reaching a construction.** Whether a construction is among the
   actors a battle skill's circle takes is not read; the simulator refuses it.
-- **Lightning Storm**, a random circle whose sub-effects also write a buff:
-  refused.
+- **A strike's buff beside a shield.** Which units a shield takes off a
+  strike's buff list is not recorded; the simulator refuses it.
 - **How a beacon's `LineRange` meets a unit's circle.** The simulator reads it
   as the distance to the segment against the width and the radius, which the
   recordings agree with and the build's `LineRange.Overlaps` is not read for.
