@@ -11,13 +11,21 @@ Plan 一节。
 
 ## 离目标多远
 
-`scripts/corpus/fight-coverage.py` 把语料的每一回合投影成它开打时的 layout 交给 `convert --to mcfr`，模拟器
-一次报出这份 layout 被拒的全部理由。它的输出就是离真实对局还有多远；挡得最多的理由指向该先
-推哪条 lane。一轮研究要花多少（录一场、读一个内部过程、对照一次）是第二个指标：它决定修工具
-链是不是比修模拟器更划算。
+距离有两半。`scripts/corpus/fight-coverage.py` 把语料的每一回合投影成它开打时的 layout 交给
+`convert --to mcfr`，模拟器一次报出这份 layout 被拒的全部理由：放行了多少回合，挡得最多的理由
+指向该先推哪条 lane。`scripts/corpus/verify-matches.py` 把放行的回合逐一打完，和 match 记下的
+结果比：打错的回合是已经放行的系统里还没找到的分叉。一轮研究要花多少（录一场、读一个内部过程、
+对照一次）是另一个指标：它决定修工具链是不是比修模拟器更划算。
 
 这两个脚本的数字由 `.github/workflows/corpus.yml` 在每个 PR 和每个 master 提交上量出来：PR 下有
-一条评论，和它所基于的 master 提交对比；它不是门禁。
+一条评论，和它所基于的 master 提交对比；它不是门禁。当前的距离就是最新一个 master 提交的那次
+run：它的 summary 是同一份报告，`corpus-distance` artifact 是两个脚本的原始输出。
+
+```
+gh run list --workflow corpus --branch master --event push -L 1
+gh run download <run> --name corpus-distance --dir distance
+python3 scripts/corpus/distance-report.py distance
+```
 
 ## Lane
 
@@ -32,9 +40,9 @@ Plan 一节。
 | 5 | [语料成为游戏 oracle](corpus.md) | 语料的每一回合都有游戏给的答案 |
 | 6 | [换版本留下的尾巴](migration.md) | 仓库对当前游戏版本说的每件事都录过、钉过 |
 
-fight-coverage 挡得最多的全是模块，广度因此排第一。广度按 fight-coverage 的系统视角排，字段
-视角说明距离落在哪个 layout 字段上。录像排
-第二，因为它的格式扩展让广度的战场技能节点好查。换版本放在最后：游戏的下一次小型更新等其它
+fight-coverage 挡住的几乎全是单位科技，其余只剩零星几条，广度因此排第一。广度按 fight-coverage
+的系统视角排，字段视角说明距离落在哪个 layout 字段上。录像排第二，因为它的格式扩展让广度
+出了分叉好查。换版本放在最后：游戏的下一次小型更新等其它
 lane 走到自然的停顿再做，届时再定预案，语料沿用现有版本的。
 
 ## 跨 lane 的边
@@ -44,8 +52,8 @@ lane 走到自然的停顿再做，届时再定预案，语料沿用现有版本
   每次提交的 CI 就短。
 - **文档与命令行 enables 平台。** 平台对外的面就是命令行。
 - **广度 conflicts 文档与命令行。** 两边都会改 `tests/` 下的夹具，同一时间只做一边。
-- **录像 enables 广度。** 战场技能的落地事件、旅行状态进了录像，广度的战场技能、地形节点出了
-  分叉能直接定位，不用从很多 tick 之后的位置反推。
+- **录像 enables 广度。** 战场技能的落地事件、旅行状态进了录像，广度出了分叉能直接定位，不用
+  从很多 tick 之后的位置反推。
 - **录像 conflicts 换版本。** 录像格式的扩展和换版本都要在有游戏的机器上重录夹具，合成一次全量
   重录，不各录一遍。
 - **换版本 blocks 广度的录制。** 游戏一更新，旧版本就录不了；从更新到迁移合并，广度只做不用录制

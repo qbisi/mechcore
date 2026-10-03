@@ -5,7 +5,7 @@ Two numbers, and they measure different things.
 
 *What the simulator accepts* is the progress bar: every tracked round projected
 onto the layout its fight starts from and handed to `convert --to mcfr`, counting the
-ones it does not refuse. It is zero today and is meant only to go up.
+ones it does not refuse. It is meant only to go up.
 
 *What the corpus asks for* is the work order: the same refusals, read for what
 they name. A refusal names everything the layout is refused for at once, one
