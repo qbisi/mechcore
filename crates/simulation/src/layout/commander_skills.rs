@@ -47,8 +47,7 @@ struct TerrainSkillRow {
     effect_range_type: i32,
     effect_type: i32,
     sub_effect_count: u32,
-    /// The rounds it stands, which a fight does not read.
-    #[allow(dead_code, reason = "the rounds a terrain stands are the match's")]
+    /// The rounds it stands.
     effect_duration: i32,
     start_time: i64,
     sub_effect_range: i64,
@@ -91,6 +90,9 @@ pub(crate) enum TerrainEffect {
     /// `GroundFireController`: `Config.groundFireDamage` on entering, and
     /// again every `fireAttackInterval`, in ticks.
     Fire { damage: i64, period_ticks: i32 },
+    /// `BuffItemController`: the row's buff on entering, and again every
+    /// tick short of its duration, so that it runs while the unit stays.
+    Buff { buff: SkillBuff, period_ticks: i32 },
 }
 
 /// A terrain one sub-effect leaves where it lands.
@@ -101,6 +103,8 @@ pub(crate) struct TerrainSpec {
     pub(crate) radius_q32: i64,
     /// `lifeTime` in ticks, when it burns out within a fight.
     pub(crate) life_ticks: Option<i32>,
+    /// `GetRoundDuration`: the rounds it stands, which a fire ignores.
+    pub(crate) rounds: i32,
     pub(crate) effect: TerrainEffect,
 }
 
@@ -658,18 +662,38 @@ fn terrain_effect(named: &str, row: &TerrainSkillRow, fire: GroundFire) -> Resul
         TerrainKind::Fog => TerrainEffect::Fog {
             attack_range_rate: row.attack_range_change_rate,
         },
+        TerrainKind::Oil => {
+            let Some(buff) = &row.buff else {
+                return Err(Error::new(format!(
+                    "{named} writes buff {}, which the table does not carry",
+                    row.uncarried_buff.unwrap_or_default()
+                )));
+            };
+            let buff = skill_buff(named, buff)?;
+            TerrainEffect::Buff {
+                buff,
+                // `BuffItemController.Add`: the buff's duration in ticks,
+                // less one, and never under one.
+                period_ticks: i32::try_from(buff.ticks)
+                    .map_err(|_| Error::new(format!("{named}'s buff outlasts a fight")))?
+                    .saturating_sub(1)
+                    .max(1),
+            }
+        }
         TerrainKind::Fire => TerrainEffect::Fire {
             damage: fire.damage,
             period_ticks: i32::try_from(ticks(fire.interval)?)
                 .map_err(|_| Error::new("a fire's interval outlasts a fight"))?,
         },
-        kind => {
+        kind @ TerrainKind::Acid => {
             return Err(Error::new(format!(
                 "{named} leaves a terrain of kind {kind:?}, which this build does not read"
             )));
         }
     };
-    let _ = (&row.buff, row.uncarried_buff, row.fire_life_time);
+    // `fireLifeTime` is the life oil takes on when a fire meets it, which
+    // `add_terrain` refuses as a mix of kinds.
+    let _ = row.fire_life_time;
     let life_ticks = match row.life_time {
         0 => None,
         life => Some(
@@ -682,6 +706,7 @@ fn terrain_effect(named: &str, row: &TerrainSkillRow, fire: GroundFire) -> Resul
             kind: row.kind,
             radius_q32: row.sub_effect_range,
             life_ticks,
+            rounds: row.effect_duration,
             effect,
         },
         scatter: Scatter::Line { to_q32: (0, 0) },

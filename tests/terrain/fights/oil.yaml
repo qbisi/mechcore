@@ -1,0 +1,26 @@
+# Sticky Oil Bomb across red's Sledgehammers and Crawlers.
+#
+# Its seven oils of 30 metres land every four ticks from tick 63. A unit that
+# enters one takes buff 400001, a slow of 0.55 for 20 ticks, at once, and
+# again every 19 ticks it stays, so the slow runs while it stands in the oil
+# and runs out after it leaves. The oils stand two rounds: as the fight ends
+# the units leave them and they stay, one round left.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 373
+hash: {profile: mcfr-content-0.7.0, result: 40a8722f00557a72caefefcc9a98099f1107c1d3192406e6eb0fad23dcbc05aa}
+blue:
+  core_damage: 196
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/98/650}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/102/650}
+  battle_skills:
+  - {name: sticky_oil_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}]}
+red:
+  units:
+  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}, exp: 0/300/1300}
+  - {name: crawler, index: 1, position: {x: 5, y: -110}, exp: 0/100/450}
