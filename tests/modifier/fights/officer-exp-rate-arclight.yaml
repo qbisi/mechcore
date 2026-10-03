@@ -1,0 +1,23 @@
+# Smart Arclight on blue: an `exp_rate` of +0.75 on the Arclight, which
+# `officer-exp-rate-marksman.yaml` puts on the Marksman instead.
+#
+# The Arclight's formation gains 1.75 times what it gains in
+# `officer-exp-rate-none.yaml`, 56 for the 32 of its first kill, and ends on
+# 276.5, cut to 276; the Marksman's gains are the control's.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 172
+hash: {profile: mcfr-content-0.7.0, result: 014b5e2a771ca304841a1ab02032eae737e702a9735f3f3ee9a634493b198a60}
+blue:
+  officers: [smart_arclight]
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/34/650}
+  - {name: arclight, index: 1, position: {x: 20, y: -150}, exp: 0/276/750}
+red:
+  core_damage: 200
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -40}}

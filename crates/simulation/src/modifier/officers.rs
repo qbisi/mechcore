@@ -18,7 +18,7 @@ use serde::Deserialize;
 
 use crate::{
     Error, Result,
-    data::{Channel, Correction, Entry, Index},
+    data::{Channel, Correction, Entry, ExperienceRate, Index},
     rules::UnitConfig,
 };
 
@@ -46,6 +46,11 @@ struct Officer {
     /// `superDeploymentTimeChangeRate`, Q32.32: a side's number, not a
     /// unit's.
     super_deployment_time_rate: i64,
+    /// `expChangeRate`, Q32.32: what the officer answers as an
+    /// `IUnitDataChangeDataSource`, onto the card of a unit it reaches. As an
+    /// `ICommonMechDataChangeDataSource` `OfficerData.GetExpChangeRate`
+    /// answers zero, so it writes nothing onto the unit itself.
+    exp_rate: i64,
     /// What it writes, or why this build will not apply it. The table loads
     /// whole either way: an officer nobody holds refuses nothing, and a fight
     /// is only refused for what its sides actually carry.
@@ -210,6 +215,30 @@ impl OfficerEffects {
         }
         Ok(written)
     }
+    /// The rate this side's officers put on what a formation of this unit
+    /// gains: each one that reaches the unit writes its `expChangeRate` onto
+    /// the unit's card, which hands the aggregate to the formation.
+    ///
+    /// # Errors
+    ///
+    /// Returns the refusal of a targeting category this build does not
+    /// resolve, for an officer that carries a rate.
+    pub(crate) fn experience_rate(
+        &self,
+        held: &[i32],
+        unit: &UnitConfig,
+    ) -> Result<ExperienceRate> {
+        let mut rate = ExperienceRate::default();
+        for id in held {
+            let Some(officer) = self.officers.get(id) else {
+                continue;
+            };
+            if officer.exp_rate != 0 && officer.reaches(unit)? {
+                rate = rate.with(officer.exp_rate);
+            }
+        }
+        Ok(rate)
+    }
 }
 
 impl Officer {
@@ -219,6 +248,7 @@ impl Officer {
         Self {
             targets,
             super_deployment_time_rate: row.super_deployment_time_rate.unwrap_or(0),
+            exp_rate: row.exp_rate.unwrap_or(0),
             effect: corrections_of(row),
         }
     }
@@ -266,7 +296,6 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
         (row.energy_shield_rate, "energy_shield_rate", ELSEWHERE),
         (row.land_mine_rate, "land_mine_rate", ELSEWHERE),
         (row.extra_life, "extra_life", ELSEWHERE),
-        (row.exp_rate, "exp_rate", ELSEWHERE),
     ];
     for (value, field, why) in unsupported {
         if value.is_some_and(|value| value != 0) {
@@ -288,15 +317,14 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
     }))
 }
 
-const ELSEWHERE: &str = "it corrects a tower, a shield, a mine or a side's \
-                         experience rather than a unit's own number, and no \
-                         mechanism here reads one";
+const ELSEWHERE: &str = "it corrects a tower, a shield or a mine rather than a \
+                         unit's own number, and no mechanism here reads one";
 
 #[cfg(test)]
 mod tests {
     use super::{Channel, Index, OfficerEffects};
     use crate::{
-        data::Correction,
+        data::{Correction, ExperienceRate},
         rules::{UnitConfig, UnitConfigs},
     };
 
@@ -411,6 +439,35 @@ mod tests {
                 "{melee}"
             );
         }
+    }
+
+    /// Smart Marksman's `exp_rate` is its formation's, not a correction on
+    /// the unit, and reaches only the unit its row lists:
+    /// `tests/modifier/fights/officer-exp-rate-marksman.yaml`.
+    #[test]
+    fn an_experience_rate_is_the_formations_and_reaches_its_listed_unit() {
+        const SMART_MARKSMAN: i32 = 30202;
+        let table = OfficerEffects::load().unwrap();
+        let marksman = unit("marksman");
+        assert!(
+            table
+                .corrections(&[SMART_MARKSMAN], &marksman)
+                .unwrap()
+                .is_empty()
+        );
+        assert_eq!(
+            table.experience_rate(&[SMART_MARKSMAN], &marksman).unwrap(),
+            ExperienceRate {
+                add: 3_221_225_472,
+                remaining: 1 << 32,
+            }
+        );
+        assert_eq!(
+            table
+                .experience_rate(&[SMART_MARKSMAN], &unit("arclight"))
+                .unwrap(),
+            ExperienceRate::default()
+        );
     }
 
     /// An officer that only touches a ledger is not in this table, and writes

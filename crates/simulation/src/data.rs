@@ -373,6 +373,55 @@ impl Overlays {
     }
 }
 
+/// The rate on what a formation gains, `MechTeam.expAddRate` and
+/// `expReduceRate`, Q32.32.
+///
+/// It is not a unit's number: an officer's `expChangeRate` lands on the
+/// unit's card, in its `DataSet`'s `UnitDataChangeFloatRate.ExpChangeRate`,
+/// and `CardElement.RefreshExpRate` hands the card's two getters to its
+/// formation through `MechTeam.ChangeExpRate`. The card's `DataSet` is a
+/// `MultiplicativeDataFloat` like the unit's, so enhancements sum and
+/// impairments compound.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct ExperienceRate {
+    /// Σ enhance.
+    pub(crate) add: i64,
+    /// Π (1 − impair): the remaining multiplier, which is what the reduce
+    /// getter answers and `MechTeam` keeps.
+    pub(crate) remaining: i64,
+}
+
+impl Default for ExperienceRate {
+    /// `MechTeam`'s constructor: no enhancement, and `FPoint.One` remaining.
+    fn default() -> Self {
+        Self {
+            add: 0,
+            remaining: 1 << 32,
+        }
+    }
+}
+
+impl ExperienceRate {
+    /// The rate with one more card entry routed into it by its sign.
+    #[must_use]
+    pub(crate) fn with(self, rate: i64) -> Self {
+        match rate {
+            0 => self,
+            add if add > 0 => Self {
+                add: self.add.saturating_add(add),
+                ..self
+            },
+            reduce => Self {
+                remaining: i64::try_from(
+                    i128::from(self.remaining) * (ONE + i128::from(reduce)) / ONE,
+                )
+                .unwrap_or(0),
+                ..self
+            },
+        }
+    }
+}
+
 /// A unit's derived numbers, which is what the fight reads.
 ///
 /// This is the build's `FightProperty` layer: each number is computed from the
