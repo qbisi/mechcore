@@ -1,0 +1,28 @@
+# Blue's Sticky Oil Bomb across red's units, and red's Incendiary Bomb down
+# the right of it, both landing every four ticks from tick 63.
+#
+# A fire takes an oil for the side that lit it: red's fire on tick 79 turns
+# the five oils that have landed to red fires. An oil that lands in a
+# burning fire turns to a fire of its own side: blue's oils on ticks 83 and
+# 87 land in red's fires and burn as blue fires.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 242
+hash: {profile: mcfr-content-0.7.0, result: 9948fac993f8f255f65f3769c08fedf1543e40824043d7ca6a85637f5b74b8a8}
+blue:
+  core_damage: 120
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/204/650}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/148/650}
+  battle_skills:
+  - {name: sticky_oil_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}], retained: false}
+red:
+  units:
+  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}, exp: 0/300/1300}
+  - {name: crawler, index: 1, position: {x: 5, y: -110}, exp: 0/100/450}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: -60, y: 160}, {x: -60, y: 40}]}
