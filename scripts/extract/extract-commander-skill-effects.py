@@ -253,6 +253,10 @@ def terrain_lines(group, buffs):
             for field, name in TERRAIN_FIXED:
                 value = raw(row.get(field, 0))
                 lines.append(f"    {name}: {value}{reading(value)}")
+            # A falling sub-effect that cannot cross shields ends on the
+            # first it comes inside, leaving nothing.
+            for field, name in DAMAGE_FLAGS:
+                lines.append(f"    {name}: {str(row[field]).lower()}")
             buff = row.get("buffID", 0)
             if buff:
                 lines += buff_lines(buffs[buff])

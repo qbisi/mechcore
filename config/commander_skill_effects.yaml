@@ -623,6 +623,7 @@ terrain_skills:
     life_time: 150323855360  # 35
     fire_life_time: 0  # 0
     attack_range_change_rate: 0  # 0
+    cross_advanced_shield: false
   - id: 100003
     name: 燃烧弹
     kind: fire
@@ -639,6 +640,7 @@ terrain_skills:
     life_time: 150323855360  # 35
     fire_life_time: 0  # 0
     attack_range_change_rate: 0  # 0
+    cross_advanced_shield: false
   - id: 400002
     name: 黏油弹
     kind: oil
@@ -655,6 +657,7 @@ terrain_skills:
     life_time: 0  # 0
     fire_life_time: 150323855360  # 35
     attack_range_change_rate: 0  # 0
+    cross_advanced_shield: false
     buff:
       id: 400001
       name: 战场技能-粘油
@@ -686,6 +689,7 @@ terrain_skills:
     life_time: 0  # 0
     fire_life_time: 150323855360  # 35
     attack_range_change_rate: 0  # 0
+    cross_advanced_shield: false
     buff:
       id: 400001
       name: 战场技能-粘油
@@ -717,6 +721,7 @@ terrain_skills:
     life_time: 0  # 0
     fire_life_time: 0  # 0
     attack_range_change_rate: -1503238553  # -0.35
+    cross_advanced_shield: false
   - id: 500002
     name: 酸液弹
     kind: acid
@@ -733,6 +738,7 @@ terrain_skills:
     life_time: 0  # 0
     fire_life_time: 0  # 0
     attack_range_change_rate: 0  # 0
+    cross_advanced_shield: false
     buff:
       id: 500001
       name: 战场技能-酸液

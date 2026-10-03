@@ -1028,10 +1028,10 @@ A standing oil area's fields:
   inactive.
 - A mapped empty list means that point is active as a complete circle. A mapped
   non-empty list is the final shield-clipped `12 x 12` occupancy mask and must
-  contain exactly 12 unsigned integer rows. Within each row the low 12 bits
-  represent cells in increasing local x order, and rows appear in increasing
-  local y order. Bits above bit 11 are rejected, and at least one cell must be
-  active.
+  contain exactly 12 unsigned integer rows, as a recording reads them: entry
+  `i` is the cells of local column `i`, in increasing local x order, and its
+  low 12 bits the cells of that column in increasing local y order. Bits above
+  bit 11 are rejected, and at least one cell must be active.
 
 The control-point path, expanded by the 30 m radius, must overlap the battlefield
 rectangle `x=[-400,400], y=[-350,350]`; edge contact is accepted. The compiler

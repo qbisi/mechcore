@@ -1,0 +1,27 @@
+# Blue's Incendiary Bomb along y = 70 beside red's shield contraption of 70
+# metres at (0, 120).
+#
+# A shield of either side cuts a terrain it reaches: the two outer fires
+# stand cut by red's shield, the middle ones fall inside it and leave
+# nothing.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 312
+hash: {profile: mcfr-content-0.7.0, result: e1ce5c4032fbfda82322f3f507ab2cc32fe15013f4b2933da896567f9b213972}
+blue:
+  core_damage: 200
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/96/650}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/96/650}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: -60, y: 70}, {x: 60, y: 70}]}
+red:
+  units:
+  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}, exp: 0/100/1300}
+  - {name: crawler, index: 1, position: {x: 5, y: -110}, exp: 0/300/450}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 0, y: -120}}

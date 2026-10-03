@@ -161,10 +161,14 @@ impl Simulation {
             // `RangeItemEffectController.PerformEffect`: each sub-effect
             // that lands leaves its terrain there.
             if let SkillEffect::Terrain {
-                spec, sub_effects, ..
+                spec,
+                crosses_shields,
+                sub_effects,
+                ..
             } = &release.effect
             {
-                let falling = self.land_terrains(&release, *spec, sub_effects, tick)?;
+                let falling =
+                    self.land_terrains(&release, (*spec, *crosses_shields), sub_effects, tick)?;
                 if falling.is_empty() {
                     self.commander.releases.remove(index);
                     continue;
@@ -292,31 +296,38 @@ impl Simulation {
     }
 
     /// `RangeItemEffectController.PerformEffect` for each of a terrain
-    /// skill's sub-effects that lands on this tick. Answers the ones still to
-    /// land. Whether a falling one stops at a shield is not read.
+    /// skill's sub-effects that lands on this tick. One that cannot cross
+    /// shields is tested as it falls, as a strike's is, and ends on the first
+    /// shield it comes inside: `InterruptEffect`'s `PerformHitEffect` leaves
+    /// no terrain and deals the shield nothing. Answers the ones still to
+    /// land.
     fn land_terrains(
         &mut self,
         release: &SkillRelease,
-        spec: TerrainSpec,
+        (spec, crosses_shields): (TerrainSpec, bool),
         sub_effects: &[SubEffect],
         tick: u64,
     ) -> Result<Vec<SubEffect>> {
-        if !self.shield.standing.is_empty() {
-            return Err(Error::new(format!(
-                "{} falls in a fight with a battlefield shield, which is not measured",
-                release.name
-            )));
-        }
-        let (landing, falling): (Vec<SubEffect>, Vec<SubEffect>) = sub_effects
-            .iter()
-            .partition(|sub_effect| sub_effect.lands_on == tick);
-        for sub_effect in landing {
-            self.add_terrain(
-                release.team,
-                &release.name,
-                spec,
-                (sub_effect.x_q32, sub_effect.z_q32),
-            )?;
+        let mut falling = Vec::new();
+        for sub_effect in sub_effects {
+            let (x_q32, z_q32, fall) = (sub_effect.x_q32, sub_effect.z_q32, sub_effect.fall);
+            if !crosses_shields
+                && tick <= sub_effect.lands_on
+                && let Some(height) = fall.height_on(tick)
+            {
+                let last = fall.height_on(tick - 1).unwrap_or(fall.start_q32);
+                if self
+                    .falling_into_shield((x_q32, height, z_q32), (x_q32, last, z_q32))
+                    .is_some()
+                {
+                    continue;
+                }
+            }
+            if sub_effect.lands_on == tick {
+                self.add_terrain(release.team, &release.name, spec, (x_q32, z_q32))?;
+                continue;
+            }
+            falling.push(*sub_effect);
         }
         Ok(falling)
     }

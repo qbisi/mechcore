@@ -171,29 +171,64 @@ controller in the system's order and item by item. A terrain made and gone
 in one tick, an oil that lands in a fire, is never named. A terrain it only
 finds gone, an oil that burns, goes `unknown`.
 
-The simulator refuses a terrain in a fight with a battlefield shield, which
-turns it to a grid, and a controller's twentieth terrain, which splits its
-tree.
+The simulator refuses a controller's twentieth terrain, which splits its
+tree, and a circle of 80 metres or more meeting a grid, which the build
+compares as a `GridBlockLong`.
 
 ## Circles and grids
 
 An ordinary terrain is a `position` and a `radius`, stored as Q32.32 raw
 integers, with no grid.
 
-When space must be subtracted from that circle, the object enters grid mode and
-carries an origin, a size and one bit mask per row. The native
-`GridBlockInt.grids` encodes x as columns with y in the high bits; a recording
-stores the transpose, y as rows with x in the low bits. The transposition
-happens at the read boundary, so a consumer never sees the native layout.
+**A grid** (`GridBlockInt`) is a terrain cut into cells of five metres
+(`RangeItemEffectLayerGrid.gridSize`). The cells of a circle are a template
+the fight keeps by radius (`FightCacheData.GetGridBlockInt`): every cell of a
+circle centred at `(r, r)` whose centre the circle contains, by `FPoint`'s
+tolerant comparison, its first cell centred at
+`RoundToInt((r - r) / 5) × 5 + 2.5` on each axis, across `⌊2r / 5⌋ + 1` cells,
+and its size the cells it sets. A grid of a circle where it stands is that
+template with its first cell where `CalculateGridDataForCheck` puts it, the
+circle's lower corner divided by five, rounded half to even and taken back to
+the lattice of cell centres at `5k + 2.5` (`GridBlockInt.Create`). An oil's
+grid is twelve cells by twelve, a fire's sixteen and a fog's twenty.
 
-## Shields subtract from terrain
+Two grids are compared by shifting one onto the other's cells
+(`ConvertToLocalSpace`): row `y` of the native `grids` holds column `x` at bit
+`31 - x`, a column shift masked to five bits as C#'s is. A circle meets a grid
+when the circle's own grid, made as above, shares a cell with it
+(`GridBlockInt.Overlaps`), after a rectangle test of the grid's bounds
+(`CalculateBounds`, `FightRange.Overlaps`). A small circle may hold no cell:
+a crawler's of 2 metres holds one.
 
-`RangeItemEffectLayerGrid.GenerateGrid` calls
-`AdvancedEnergyShieldSystem.GetActiveEnergyShields`,
-`FightEnergyShield.GetFightTransform` and `FightEnergyShield.GetRadius`, then
-`GridBlockInt.TryDisableGrid`, `RefreshMask` and `Sync`. Grid generation
-therefore reads the live battlefield shields and subtracts the cells that fall
-inside one.
+A recording reads the native rows as columns, so its row `i` holds the cells
+of column `i`, cell `(i, j)` at bit `j`. Its origin is the first cell's
+centre.
+
+## Shields cut terrain
+
+A terrain sub-effect that cannot cross shields (`isCrossAdvancedShield`, false
+for every terrain row) is tested as it falls, as a strike's is
+([`battle_skill.md`](battle_skill.md)). On the first shield it comes inside it
+ends, and `InterruptEffect`'s `PerformHitEffect` leaves no terrain and deals
+the shield nothing.
+
+A terrain added with `useGrid` and no cells of its own
+(`RangeItemEffectLayerGrid.OnAddRangeItem`) becomes a grid when an active
+shield of either side reaches its circle (`CircleRange.Overlaps`), and stays a
+circle otherwise. Its grid then loses the cells every active shield's own grid
+covers (`GenerateGrid`, `GridBlockInt.TryDisableGrid`), unless it was turned
+from another kind (`isConvertFromOtherType`, a fire burnt from oil) or its
+centre stands inside the first shield that reaches it
+(`FightCalculator.IsInRange3D`); then it is a whole grid. A shield raised later
+cuts nothing already standing. A terrain added with cells takes them
+(`GenerateGrid` with `detailMasks`, `Sync`): a fire burnt from a cut oil takes
+the oil's, and a standing oil a point's recorded cells. A standing oil with
+none is added without `useGrid`, a circle whatever shields stand.
+
+A grid's unit must also meet one of its cells with its bounds circle, its
+position and radius (`RangeItemEffectLayerGrid.IsInRange`), and a grid reaches
+a fire or an oil by its cells (`RangeItemController.GetItems`,
+`IsInteractable`).
 
 A battlefield shield takes part in projectile and area-effect intersection only.
 It is not an RVO agent, not a movement blocker, and not a layout deployment
@@ -268,6 +303,15 @@ already exists.
   the gone fire's hits on, every four ticks: an Arclight held to the fifth of
   an Incendiary Bomb's fires, gone after tick 777, takes 54 on ticks 778 and
   782, `tests/corpus/fights/67156354-r3.yaml`.
+- A shield of either side ends the terrain sub-effects that fall inside it and
+  cuts the terrains it reaches; a unit stands in a cut terrain where its cells
+  meet the terrain's, a burnt cut oil keeps its cells, and a standing oil is
+  restored with its recorded cells or whole:
+  `tests/terrain/fights/oil-cut-by-a-shield.yaml`,
+  `tests/terrain/fights/units-in-cut-terrains.yaml`,
+  `tests/terrain/fights/fire-cut-by-an-enemy-shield.yaml`,
+  `tests/terrain/fights/cut-oil-ignited.yaml`,
+  `tests/terrain/fights/oil-standing-cut.yaml`.
 - An oil an earlier round left stands from the first tick, one round old and
   named in point order, side by side, blue's first; it burns when a fire
   reaches it and goes as the fight ends: `tests/terrain/fights/oil-standing.yaml`,
@@ -315,6 +359,20 @@ already exists.
   `RangeItemController.IsInteractable`, `RangeItemController.GetItems`,
   `CircleRange.Overlaps`, `RangeItem.GetRange`, `CS_Oil.GetFireLifeTime`,
   `FightGroundFire.Reset`, `RangeItemSystem.Update`.
+- A grid is a template of five-metre cells placed on the lattice, cut by the
+  shields' own grids and compared by shifting one onto the other:
+  `RangeItemEffectLayerGrid.OnAddRangeItem`, `RangeItemEffectLayerGrid.GenerateGrid`,
+  `RangeItemEffectLayerGrid.IsInRange`, `FightCacheData.GetGridBlockInt`,
+  `GridBlockInt.CalculateGridDataForCheck`, `GridBlockInt.Create`,
+  `GridBlockInt.TryDisableGrid`, `GridBlockInt.ConvertToLocalSpace`,
+  `GridBlockInt.Overlaps`, `GridBlockInt.CalculateBounds`,
+  `CircleRange.Contains`, `FightRange.Overlaps`,
+  `FightActor.GetBoundsCircle`.
+- A falling terrain sub-effect ends at a shield, leaving nothing:
+  `CommanderSkillSubEffectAgent.OnHitEnergyShield`,
+  `CSRC_Common.InterruptSubEffect`,
+  `CommanderSkillSubEffectController.InterruptEffect`,
+  `RangeItemEffectController.PerformEffect`.
 - A fight's controllers start from the items they already hold, each tree
   rebuilt in item order: `RangeItemSystem.OnFightStart`,
   `RangeItemController.OnFightStart`.
@@ -351,9 +409,8 @@ already exists.
   and which no path of a fog's update reaches.
 - **Any radius, effect clock or lifetime.** They vary by source, and two sources
   of one type can differ, so no value derives from a type.
-- **The native grid's orientation.** That `GridBlockInt.grids` holds x as
-  columns with y in the high bits is what the Adapter's read assumes and what
-  recorded grids agreed with; the grid methods were not read for it.
+- **A whole grid.** A terrain turned from another kind or standing inside the
+  shield that reaches it is read as a whole grid, not recorded.
 - **`recovery_zone` and `fog_sand` behaviour.**
 - **A type conversion within one identity**: whether a native producer for one
   exists.

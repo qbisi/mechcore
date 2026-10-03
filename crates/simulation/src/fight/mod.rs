@@ -43,6 +43,7 @@ mod control;
 mod damage;
 mod deploy;
 mod experience;
+mod grid;
 mod important_unit;
 mod intercept;
 mod kills;
