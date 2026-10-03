@@ -781,7 +781,7 @@ impl Simulation {
     }
 
     /// A beam that a shield takes in place of its target.
-    fn beam_at_shield(
+    pub(in crate::fight) fn beam_at_shield(
         &mut self,
         actor_id: u64,
         target: FightActorRef,

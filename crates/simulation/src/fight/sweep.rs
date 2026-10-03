@@ -128,6 +128,16 @@ fn overlaps(stretch: SweepStretch, width_q32: i64, center: FixedVec2, radius_q32
 }
 
 impl Sweep {
+    /// `m_damagedTargets` counting each of these once more.
+    fn count_struck(&mut self, targets: &[FightActorRef]) {
+        for &target in targets {
+            match self.struck.iter_mut().find(|(struck, _)| *struck == target) {
+                Some((_, count)) => *count += 1,
+                None => self.struck.push((target, 1)),
+            }
+        }
+    }
+
     /// Whether every stretch has been struck.
     pub(in crate::fight) fn over(&self) -> bool {
         self.prepared && self.stretches.is_empty()
@@ -166,6 +176,23 @@ impl Simulation {
         })
     }
 
+    /// The centre of the first shield of its side that holds the skill's
+    /// lock, unless the sweep crosses shields.
+    fn lock_shield(&self, actor_id: u64) -> Option<(i64, i64)> {
+        let actor = &self.actors[&actor_id];
+        if actor.rules.attack.crosses_shields {
+            return None;
+        }
+        let lock = actor.skill.lock_target?;
+        let team = self.fight_actor(lock)?.team;
+        self.shield
+            .standing
+            .iter()
+            .filter(|shield| shield.team == team)
+            .find(|shield| self.shield_holds(shield.id, lock))
+            .map(|shield| (shield.x_q32, shield.z_q32))
+    }
+
     /// `FightSweepSkill.CreateAttackArea`: the strip `length` long across
     /// the target, `damage_times` stretches of it, laid out from the end the
     /// attack count picks.
@@ -183,13 +210,25 @@ impl Simulation {
             .filter(|target| matches!(target, FightActorRef::Building(_)))
             .or(skill.lock_target)
             .or_else(|| skill.attack_target());
-        let Some(center) = center_of.and_then(|target| self.sweep_point(target)) else {
+        let Some(mut center) = center_of.and_then(|target| self.sweep_point(target)) else {
             return VecDeque::new();
         };
         let owner = FixedVec2 {
             x: actor.x_q32,
             y: actor.z_q32,
         };
+        // `FightSweepSkill.CheckIsLockTargetInEnergyShield`: a lock inside a
+        // shield of its side, for a sweep that does not cross shields, has
+        // the strip centred on the shield where that is nearer the unit.
+        if let Some(shield) = self.lock_shield(actor_id) {
+            let shield_center = FixedVec2 {
+                x: shield.0,
+                y: shield.1,
+            };
+            if shield_center.sub(owner).sqr_magnitude() < center.sub(owner).sqr_magnitude() {
+                center = shield_center;
+            }
+        }
         let mut direction = owner.sub(center);
         if shape.perpendicular {
             direction = FixedVec2 {
@@ -315,6 +354,34 @@ impl Simulation {
         } else {
             UnitDomain::Ground
         };
+        let crosses = self.actors[&actor_id].rules.attack.crosses_shields;
+        let owner = FightActorRef::Unit(actor_id);
+        // `FightCalculator.IsFightRangeInEnergyShield`: the area's end, its
+        // middle or its start, at the aimed domain's height, inside a shield
+        // of the other side. A sweep that does not cross shields strikes that
+        // shield in place of every unit, unless the unit stands inside it.
+        let height = unit_height(domain);
+        let middle = area.start.add(area.end).div(2_i64 << 32);
+        let shield_struck = if crosses {
+            None
+        } else {
+            [area.end, middle, area.start].iter().find_map(|point| {
+                self.shield
+                    .standing
+                    .iter()
+                    .find(|shield| shield.team != team && shield.contains(point.x, height, point.y))
+                    .map(|shield| shield.id)
+            })
+        }
+        .filter(|&shield| !self.shield_holds(shield, owner));
+        if let Some(shield) = shield_struck {
+            let damage = self.actors[&actor_id].stats.attack_damage();
+            let aimed = sweep.aimed.unwrap_or(owner);
+            self.beam_at_shield(actor_id, aimed, shield, damage, events)?;
+            sweep.previous = Some(stretch);
+            sweep.count_struck(&excluded);
+            return Ok(());
+        }
         let hits = self
             .target_search_order()
             .into_iter()
@@ -328,6 +395,10 @@ impl Simulation {
                     && circle(self, *candidate).is_some_and(|(center, radius)| {
                         overlaps(area, shape.width_q32, center, radius)
                     })
+                    // `FightSkill.IsActorProtectedByEnergyShield`: a unit a
+                    // shield of its side covers, and the owner is outside of,
+                    // is passed over.
+                    && (crosses || self.blow_shield(actor_id, *candidate).is_none())
             })
             .collect::<Vec<_>>();
         for target in &hits {
@@ -336,16 +407,11 @@ impl Simulation {
             }
         }
         sweep.previous = Some(stretch);
-        for target in hits {
-            match sweep
-                .struck
-                .iter_mut()
-                .find(|(struck, _)| *struck == target)
-            {
-                Some((_, count)) => *count += 1,
-                None => sweep.struck.push((target, 1)),
-            }
-        }
+        // `DamageEffect.PerformInRange` adds what it struck to the list of
+        // those passed over, and `Perform` counts every one of them.
+        let mut counted = excluded;
+        counted.extend(hits);
+        sweep.count_struck(&counted);
         Ok(())
     }
 }

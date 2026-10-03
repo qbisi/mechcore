@@ -1,0 +1,16 @@
+# A sweep at a Fortress carrying a Barrier.
+
+kind: fight
+map_id: 1021
+seed: 1787720817
+round: 1
+source: game
+ticks: 377
+hash: {profile: mcfr-content-0.7.0, result: 3c62f8426b7c2002a1670952f6edfecd8cd012cf86b6f028cbefbad652165af2}
+blue:
+  units:
+  - {name: abyss, index: 0, position: {x: -5, y: -105}, exp: 0/800/4800}
+red:
+  core_damage: 500
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, equipment: [barrier]}

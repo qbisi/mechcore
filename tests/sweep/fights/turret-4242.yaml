@@ -1,0 +1,19 @@
+# A sweep whose target is a construction: red's Anti-Armor Turret, the only
+# enemy near.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 1515
+hash: {profile: mcfr-content-0.7.0, result: 4210030f47bab6583b153fff718e1ca2dd96329ac13feb7abcdd69fe96034b67}
+blue:
+  units:
+  - {name: abyss, index: 0, position: {x: 135, y: -105}, exp: 0/712/4800}
+red:
+  core_damage: 500
+  units:
+  - {name: crawler, index: 0, position: {x: 145, y: -120}, exp: 0/400/450}
+  constructions:
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
