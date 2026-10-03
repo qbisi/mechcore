@@ -894,7 +894,7 @@ impl Simulation {
         if publish_late_building_events {
             events.extend(torn_down);
             self.clear_buffs_as_the_fight_ends(&mut events)?;
-            self.clear_terrains_as_the_fight_ends(&mut events)?;
+            self.clear_terrains_as_the_fight_ends()?;
         }
         // `BuffManager.Clear` takes a dying unit's buffs as it dies, whatever
         // killed it.
@@ -920,7 +920,7 @@ impl Simulation {
         // everything else the tick did.
         if !publish_late_building_events && self.ready_to_finish() {
             self.clear_buffs_as_the_fight_ends(&mut events)?;
-            self.clear_terrains_as_the_fight_ends(&mut events)?;
+            self.clear_terrains_as_the_fight_ends()?;
         }
         if !self.buffs.tower_events.is_empty() {
             return Err(Error::new(
@@ -960,6 +960,7 @@ impl Simulation {
         }
         events.append(&mut self.shield.created);
         events.append(&mut self.shield.destroyed);
+        events.extend(self.take_terrain_events());
         self.shield.broken.clear();
         Ok(TransitionEvents { events })
     }

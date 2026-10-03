@@ -157,7 +157,7 @@ impl Simulation {
                 spec, sub_effects, ..
             } = &release.effect
             {
-                let falling = self.land_terrains(&release, *spec, sub_effects, tick, events)?;
+                let falling = self.land_terrains(&release, *spec, sub_effects, tick)?;
                 if falling.is_empty() {
                     self.commander.releases.remove(index);
                     continue;
@@ -293,7 +293,6 @@ impl Simulation {
         spec: TerrainSpec,
         sub_effects: &[SubEffect],
         tick: u64,
-        events: &mut Vec<Event>,
     ) -> Result<Vec<SubEffect>> {
         if !self.shield.standing.is_empty() {
             return Err(Error::new(format!(
@@ -310,7 +309,6 @@ impl Simulation {
                 &release.name,
                 spec,
                 (sub_effect.x_q32, sub_effect.z_q32),
-                events,
             )?;
         }
         Ok(falling)
