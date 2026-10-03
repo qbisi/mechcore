@@ -1422,9 +1422,10 @@ red:
         let plan = compile(&value).unwrap();
         assert_eq!(plan.blue.contraptions.len(), 1);
         assert_eq!(plan.standing_shield_count(), 2);
+        // They are restored in normal form's order, not as written.
         assert_eq!(
             plan.blue.standing_shields,
-            [Position { x: 300, y: 20 }, Position { x: -300, y: 20 }]
+            [Position { x: -300, y: 20 }, Position { x: 300, y: 20 }]
         );
         assert!(plan.blue.battle_skills.is_empty());
 

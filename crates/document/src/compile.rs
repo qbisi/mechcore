@@ -206,6 +206,17 @@ fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, Str
     }
     compile_standing_shields(side_name, &standing_shields)?;
     compile_standing_oil(side_name, &standing_oil)?;
+    // Normal form orders standing entries rather than keeping them as
+    // written, so they are restored in that order, and a layout and its
+    // normal form fight the same fight. A refusal above still counts them as
+    // written.
+    standing_shields.sort_by_key(|position| (position.x, position.y));
+    standing_oil.sort_by_cached_key(|area| {
+        area.control_points
+            .iter()
+            .map(|position| (position.x, position.y))
+            .collect::<Vec<_>>()
+    });
     let battle_skills = compile_battle_skills(side_name, releases)?;
     Ok(SidePlan {
         techs: Techs {

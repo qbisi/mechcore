@@ -1042,7 +1042,8 @@ inside a single-fight layout.
 
 During the requested round's deployment, after contraptions and before any
 release, the executor installs every standing shield and then every standing
-oil area, each kind in declaration order. For a shield it constructs the data
+oil area, each kind in normal form's order rather than as written, so a layout
+and its normal form fight the same fight. For a shield it constructs the data
 source and invokes `AdvancedEnergyShieldSystem.Create(data, FVector3,
 teamController)`, then verifies full/active-list insertion, source, team, exact
 position, radius, energy, and round policy. MCFR shield IDs remain normalized
