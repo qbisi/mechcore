@@ -1025,7 +1025,7 @@ impl Simulation {
     }
 
     /// One unit's update, in the order `FightMech.Update` runs it: its skill,
-    /// then its motion, then its buffs.
+    /// then its motion, then, while the fight is on, its buffs.
     ///
     /// The motion's part, `update_motion`, is where a target in range starts
     /// the skill (`SkillIdleState.TryStartAttack`) and one out of range is
@@ -1051,6 +1051,11 @@ impl Simulation {
         self.update_mech_search(actor_id, target_search_order)?;
         self.step_actor_skill_and_motion(actor_id, step, target_search_order, events)?;
         self.sync_beam(actor_id);
+        // With the fight over, `FightMech.Update` returns before
+        // `BuffManager.Update`: no buff runs on, steps or runs out.
+        if self.ending.stop_step.is_some() {
+            return Ok(());
+        }
         self.update_buffs(actor_id, events)
     }
 
