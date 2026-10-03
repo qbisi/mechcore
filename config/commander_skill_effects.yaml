@@ -288,11 +288,29 @@ damage_skills:
     effect_type: 0
     sub_effect_damage: 3000
     sub_effect_buff_id: 0
+    sub_effect_count: 1
+    sub_effect_range: 171798691840  # 40
     start_time: 12884901888  # 3
     effect_range: 171798691840  # 40
     sub_effect_move_speed: 2791728742400  # 650
     sub_effect_move_time: 19327352832  # 4.5
     sub_effect_default_height: 0  # 0
+    sub_effect_interval_time: 0  # 0
+    cross_advanced_shield: false
+  - id: 300003
+    name: 轨道轰炸
+    effect_range_type: 2
+    effect_type: 0
+    sub_effect_damage: 2500
+    sub_effect_buff_id: 0
+    sub_effect_count: 15
+    sub_effect_range: 128849018880  # 30
+    start_time: 12884901888  # 3
+    effect_range: 558345748480  # 130
+    sub_effect_move_speed: 2791728742400  # 650
+    sub_effect_move_time: 19327352832  # 4.5
+    sub_effect_default_height: 0  # 0
+    sub_effect_interval_time: 4294967296  # 1
     cross_advanced_shield: false
   - id: 300004
     name: 核弹
@@ -300,11 +318,44 @@ damage_skills:
     effect_type: 0
     sub_effect_damage: 70000
     sub_effect_buff_id: 0
+    sub_effect_count: 1
+    sub_effect_range: 429496729600  # 100
     start_time: 64424509440  # 15
     effect_range: 429496729600  # 100
     sub_effect_move_speed: 2791728742400  # 650
     sub_effect_move_time: 19327352832  # 4.5
     sub_effect_default_height: 0  # 0
+    sub_effect_interval_time: 0  # 0
+    cross_advanced_shield: false
+  - id: 300005
+    name: 闪电风暴
+    effect_range_type: 2
+    effect_type: 0
+    sub_effect_damage: 2000
+    sub_effect_buff_id: 20002
+    sub_effect_count: 30
+    sub_effect_range: 128849018880  # 30
+    start_time: 12884901888  # 3
+    effect_range: 558345748480  # 130
+    sub_effect_move_speed: 42949672960000  # 10000
+    sub_effect_move_time: 429496729  # 0.1
+    sub_effect_default_height: 0  # 0
+    sub_effect_interval_time: 1717986918  # 0.4
+    cross_advanced_shield: false
+  - id: 300006
+    name: 离子轰炸
+    effect_range_type: 1
+    effect_type: 0
+    sub_effect_damage: 2400
+    sub_effect_buff_id: 0
+    sub_effect_count: 60
+    sub_effect_range: 85899345920  # 20
+    start_time: 12884901888  # 3
+    effect_range: 773094113280  # 180
+    sub_effect_move_speed: 858993459200  # 200
+    sub_effect_move_time: 4294967296  # 1
+    sub_effect_default_height: 0  # 0
+    sub_effect_interval_time: 1288490188  # 0.3
     cross_advanced_shield: false
   - id: 300007
     name: 轨道标枪
@@ -312,11 +363,14 @@ damage_skills:
     effect_type: 0
     sub_effect_damage: 70000
     sub_effect_buff_id: 0
+    sub_effect_count: 1
+    sub_effect_range: 128849018880  # 30
     start_time: 12884901888  # 3
     effect_range: 128849018880  # 30
     sub_effect_move_speed: 4294967296000  # 1000
     sub_effect_move_time: 8589934592  # 2
     sub_effect_default_height: 0  # 0
+    sub_effect_interval_time: 0  # 0
     cross_advanced_shield: true
   - id: 300008
     name: 核弹
@@ -324,11 +378,44 @@ damage_skills:
     effect_type: 0
     sub_effect_damage: 70000
     sub_effect_buff_id: 0
+    sub_effect_count: 1
+    sub_effect_range: 429496729600  # 100
     start_time: 64424509440  # 15
     effect_range: 429496729600  # 100
     sub_effect_move_speed: 2791728742400  # 650
     sub_effect_move_time: 19327352832  # 4.5
     sub_effect_default_height: 0  # 0
+    sub_effect_interval_time: 0  # 0
+    cross_advanced_shield: false
+  - id: 300009
+    name: 闪电风暴
+    effect_range_type: 2
+    effect_type: 0
+    sub_effect_damage: 2000
+    sub_effect_buff_id: 20002
+    sub_effect_count: 30
+    sub_effect_range: 128849018880  # 30
+    start_time: 12884901888  # 3
+    effect_range: 558345748480  # 130
+    sub_effect_move_speed: 42949672960000  # 10000
+    sub_effect_move_time: 429496729  # 0.1
+    sub_effect_default_height: 0  # 0
+    sub_effect_interval_time: 1717986918  # 0.4
+    cross_advanced_shield: false
+  - id: 300010
+    name: 离子轰炸
+    effect_range_type: 1
+    effect_type: 0
+    sub_effect_damage: 2400
+    sub_effect_buff_id: 0
+    sub_effect_count: 60
+    sub_effect_range: 85899345920  # 20
+    start_time: 12884901888  # 3
+    effect_range: 773094113280  # 180
+    sub_effect_move_speed: 858993459200  # 200
+    sub_effect_move_time: 4294967296  # 1
+    sub_effect_default_height: 0  # 0
+    sub_effect_interval_time: 1288490188  # 0.3
     cross_advanced_shield: false
   - id: 300011
     name: 导弹打击
@@ -336,11 +423,14 @@ damage_skills:
     effect_type: 0
     sub_effect_damage: 3000
     sub_effect_buff_id: 0
+    sub_effect_count: 1
+    sub_effect_range: 171798691840  # 40
     start_time: 12884901888  # 3
     effect_range: 171798691840  # 40
     sub_effect_move_speed: 2791728742400  # 650
     sub_effect_move_time: 19327352832  # 4.5
     sub_effect_default_height: 0  # 0
+    sub_effect_interval_time: 0  # 0
     cross_advanced_shield: false
   - id: 300012
     name: 核弹
@@ -348,11 +438,44 @@ damage_skills:
     effect_type: 0
     sub_effect_damage: 70000
     sub_effect_buff_id: 0
+    sub_effect_count: 1
+    sub_effect_range: 429496729600  # 100
     start_time: 64424509440  # 15
     effect_range: 429496729600  # 100
     sub_effect_move_speed: 2791728742400  # 650
     sub_effect_move_time: 19327352832  # 4.5
     sub_effect_default_height: 0  # 0
+    sub_effect_interval_time: 0  # 0
+    cross_advanced_shield: false
+  - id: 300013
+    name: 闪电风暴
+    effect_range_type: 2
+    effect_type: 0
+    sub_effect_damage: 2000
+    sub_effect_buff_id: 20002
+    sub_effect_count: 30
+    sub_effect_range: 128849018880  # 30
+    start_time: 12884901888  # 3
+    effect_range: 558345748480  # 130
+    sub_effect_move_speed: 42949672960000  # 10000
+    sub_effect_move_time: 429496729  # 0.1
+    sub_effect_default_height: 0  # 0
+    sub_effect_interval_time: 1717986918  # 0.4
+    cross_advanced_shield: false
+  - id: 300014
+    name: 离子轰炸
+    effect_range_type: 1
+    effect_type: 0
+    sub_effect_damage: 2400
+    sub_effect_buff_id: 0
+    sub_effect_count: 60
+    sub_effect_range: 85899345920  # 20
+    start_time: 12884901888  # 3
+    effect_range: 773094113280  # 180
+    sub_effect_move_speed: 858993459200  # 200
+    sub_effect_move_time: 4294967296  # 1
+    sub_effect_default_height: 0  # 0
+    sub_effect_interval_time: 1288490188  # 0.3
     cross_advanced_shield: false
   - id: 300015
     name: 轨道标枪
@@ -360,11 +483,14 @@ damage_skills:
     effect_type: 0
     sub_effect_damage: 70000
     sub_effect_buff_id: 0
+    sub_effect_count: 1
+    sub_effect_range: 128849018880  # 30
     start_time: 12884901888  # 3
     effect_range: 128849018880  # 30
     sub_effect_move_speed: 4294967296000  # 1000
     sub_effect_move_time: 8589934592  # 2
     sub_effect_default_height: 0  # 0
+    sub_effect_interval_time: 0  # 0
     cross_advanced_shield: true
   - id: 300016
     name: 重型导弹打击
@@ -372,11 +498,14 @@ damage_skills:
     effect_type: 0
     sub_effect_damage: 12000
     sub_effect_buff_id: 0
+    sub_effect_count: 1
+    sub_effect_range: 171798691840  # 40
     start_time: 12884901888  # 3
     effect_range: 171798691840  # 40
     sub_effect_move_speed: 2791728742400  # 650
     sub_effect_move_time: 19327352832  # 4.5
     sub_effect_default_height: 0  # 0
+    sub_effect_interval_time: 0  # 0
     cross_advanced_shield: false
 
 waypoint_skills:
@@ -403,13 +532,6 @@ other_skills:
   - {id: 100002, name: 燃烧弹, kind: fireCommanderSkills}
   - {id: 100003, name: 燃烧弹, kind: fireCommanderSkills}
   - {id: 200003, name: 光子投射, kind: buffCommanderSkills}
-  - {id: 300003, name: 轨道轰炸, kind: damageCommanderSkills}
-  - {id: 300005, name: 闪电风暴, kind: damageCommanderSkills}
-  - {id: 300006, name: 离子轰炸, kind: damageCommanderSkills}
-  - {id: 300009, name: 闪电风暴, kind: damageCommanderSkills}
-  - {id: 300010, name: 离子轰炸, kind: damageCommanderSkills}
-  - {id: 300013, name: 闪电风暴, kind: damageCommanderSkills}
-  - {id: 300014, name: 离子轰炸, kind: damageCommanderSkills}
   - {id: 400002, name: 黏油弹, kind: oilCommanderSkills}
   - {id: 400003, name: 黏油弹, kind: oilCommanderSkills}
   - {id: 500002, name: 酸液弹, kind: acidCommanderSkills}
