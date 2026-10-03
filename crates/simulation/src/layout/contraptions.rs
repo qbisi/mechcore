@@ -8,7 +8,7 @@
 use mechcore_document::{NativeFormation, Placement};
 use serde::Deserialize;
 
-use crate::{Error, Result};
+use crate::{Error, Result, modifier::ContraptionRates};
 
 const DEFAULT_CONTRAPTIONS: &str = include_str!("../../../../config/contraptions.yaml");
 const SPACE: i64 = 1_000;
@@ -235,13 +235,19 @@ impl Contraptions {
 
     /// The shield a placement puts on the board, as `CRC_EnergyShield`
     /// releases it: a sphere of its side at the placement's centre, on the
-    /// ground, `range` across and holding its row's `energy`.
+    /// ground, `range` across and holding its row's `energy` raised by its
+    /// side's `energyRate`.
     ///
     /// # Errors
     ///
     /// Returns an error naming the shield when its row asks for what this
     /// build does not read.
-    pub(crate) fn shield(&self, team: u32, placement: &Placement) -> Result<ShieldPlacement> {
+    pub(crate) fn shield(
+        &self,
+        team: u32,
+        placement: &Placement,
+        rates: ContraptionRates,
+    ) -> Result<ShieldPlacement> {
         let NativeFormation::Contraption(id) = placement.native else {
             return Err(Error::new(format!(
                 "placement {:?} is not a contraption",
@@ -280,7 +286,7 @@ impl Contraptions {
             x: x * SPACE,
             z: z * SPACE,
             radius_q32: row.radius,
-            energy: row.energy,
+            energy: raised(row.energy, rates.shield_energy),
             kind: ShieldKind::Contraption,
         })
     }
@@ -292,7 +298,12 @@ impl Contraptions {
     ///
     /// Returns an error naming the missile when its row asks for what no
     /// recording has measured.
-    pub(crate) fn missile(&self, team: u32, placement: &Placement) -> Result<MissileMine> {
+    pub(crate) fn missile(
+        &self,
+        team: u32,
+        placement: &Placement,
+        rates: ContraptionRates,
+    ) -> Result<MissileMine> {
         let NativeFormation::Contraption(id) = placement.native else {
             return Err(Error::new(format!(
                 "placement {:?} is not a contraption",
@@ -343,7 +354,7 @@ impl Contraptions {
             z: z * SPACE,
             trigger_range_q32: row.trigger_range,
             shot: MissileShot {
-                damage: i64::from(row.damage),
+                damage: raised(i64::from(row.damage), rates.missile_damage),
                 splash_radius: fixed_to_space(row.splash_radius),
                 speed: fixed_to_space(row.speed),
                 life: i64::from(row.max_life),
@@ -454,6 +465,15 @@ fn fixed_to_space(raw: i64) -> i64 {
 fn scaled(points: i64, rate_raw: i64) -> i64 {
     let product = i128::from(points) * i128::from(rate_raw);
     i64::try_from(product >> 32).unwrap_or(i64::MAX)
+}
+
+/// A contraption's number raised by its side's rate, as
+/// `EnergyShieldContraption.GetAdvancedEnergyShieldValue` and
+/// `LandMineContraption.GetDamage` read it: the number times `1 + rate` in
+/// `FPoint`, cut back to an integer. Advanced Shield Device's `+0.4` is a hair
+/// under it, so a shield of 40000 holds 55999.
+fn raised(points: i64, rate_raw: i64) -> i64 {
+    scaled(points, (1_i64 << 32).saturating_add(rate_raw))
 }
 
 /// A time in seconds as whole ticks, `(int)(time / LogicDeltaTime)` in `FPoint`

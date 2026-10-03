@@ -1,0 +1,26 @@
+# Advanced Missile Device on blue: `config/officer_effects.yaml` gives it a
+# `land_mine_rate` of +2. Everything else is `rhino-slowed.yaml`, with a
+# squad of Crawlers beside the Rhino.
+#
+# The missile's hit takes 15000 off the Rhino rather than 5000, three times
+# its row's damage; the Crawlers its splash reaches die as they do without
+# the officer, each taking its whole 250.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 259
+hash: {profile: mcfr-content-0.7.0, result: f4bb26d9d7d2490a29bba6eac2d54515f43aff3744aab084004f7028e70de813}
+blue:
+  core_damage: 224
+  officers: [advanced_missile_device]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/144/650}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 1, y: -11}, retained: false}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -45}}
+  - {name: crawler, index: 1, position: {x: 45, y: -40}, exp: 0/200/450}

@@ -305,7 +305,7 @@ pub(crate) fn compile_with_seed(
             name,
             team,
             side,
-            &contraptions,
+            (&contraptions, &loadouts.officers),
             &mut refused,
             (&mut interceptors, &mut missiles, &mut shields),
         );
@@ -379,7 +379,7 @@ fn compile_contraptions(
     name: &str,
     team: u32,
     side: &SidePlan,
-    contraptions: &Contraptions,
+    (contraptions, officers): (&Contraptions, &OfficerEffects),
     refused: &mut Refusals,
     (interceptors, missiles, shields): (
         &mut Vec<InterceptorBuilding>,
@@ -387,15 +387,24 @@ fn compile_contraptions(
         &mut Vec<ShieldPlacement>,
     ),
 ) {
+    // The side's officers rate its shield and missile kinds alike.
+    let rates = officers.contraption_rates(&side.techs.officers);
     for placement in &side.contraptions {
         let located = |error: Error| Error::new(format!("side {name}: {error}"));
         match placement.type_name.as_str() {
             "interceptor" => interceptors
                 .extend(refused.hold(contraptions.interceptor(team, placement).map_err(located))),
-            "missile" => missiles
-                .extend(refused.hold(contraptions.missile(team, placement).map_err(located))),
+            "missile" => missiles.extend(
+                refused.hold(
+                    contraptions
+                        .missile(team, placement, rates)
+                        .map_err(located),
+                ),
+            ),
             "shield" => {
-                shields.extend(refused.hold(contraptions.shield(team, placement).map_err(located)));
+                shields.extend(
+                    refused.hold(contraptions.shield(team, placement, rates).map_err(located)),
+                );
             }
             _ => {}
         }
@@ -998,18 +1007,18 @@ red:
         );
     }
 
-    /// A side that carries an officer this build cannot apply is refused, and
-    /// the refusal names the side, the officer and what is missing.
+    /// A side that carries a technology this build cannot apply is refused,
+    /// and the refusal names the side, the technology and what is missing.
     #[test]
-    fn an_officer_this_build_cannot_apply_refuses_the_side_that_holds_it() {
+    fn a_technology_this_build_cannot_apply_refuses_the_side_that_holds_it() {
         let value = LAYOUT.replace(
             "blue:\n  units:",
-            "blue:\n  officers: [advanced_missile_device]\n  units:",
+            "blue:\n  techs:\n    marksman: [shooting_squad]\n  units:",
         );
         let refused = compile_default(&value).unwrap_err().to_string();
         assert!(refused.contains("side blue"), "{refused}");
-        assert!(refused.contains("10008"), "{refused}");
-        assert!(refused.contains("land_mine_rate"), "{refused}");
+        assert!(refused.contains("1202"), "{refused}");
+        assert!(refused.contains("supportUnitTechnologies"), "{refused}");
     }
 
     /// An officer that only touches a ledger reaches the fight as nothing,
@@ -1104,7 +1113,7 @@ red:
         let value = LAYOUT
             .replace(
                 "blue:\n  units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
-                "blue:\n  officers: [advanced_missile_device]\n  units:\n  - {name: marksman, index: 0, position: {x: 0, y: -50}}\n  - {name: marksman, index: 1, position: {x: 20, y: -50}}\n  battle_skills: [{name: sticky_oil_bomb, standing: {control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}}]",
+                "blue:\n  techs:\n    marksman: [shooting_squad]\n  units:\n  - {name: marksman, index: 0, position: {x: 0, y: -50}}\n  - {name: marksman, index: 1, position: {x: 20, y: -50}}\n  battle_skills: [{name: sticky_oil_bomb, standing: {control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}}]",
             )
             .replace(
                 "units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]",
@@ -1117,7 +1126,7 @@ red:
             clauses[0].contains("standing sticky_oil_bomb (RangeItemSystem)"),
             "{refused}"
         );
-        assert!(clauses[1].contains("10008"), "{refused}");
+        assert!(clauses[1].contains("1202"), "{refused}");
         assert!(
             clauses[2].contains("\"abyss\" has no unit configuration"),
             "{refused}"

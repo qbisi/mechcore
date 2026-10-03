@@ -539,7 +539,10 @@ fn verify_compares_a_game_fight_and_answers_a_refusal() {
 
     let (code, report) = verify(
         "refused.yaml",
-        &replay.replace("blue:\n", "blue:\n  officers: [advanced_missile_device]\n"),
+        &replay.replace(
+            "blue:\n",
+            "blue:\n  techs:\n    marksman: [shooting_squad]\n",
+        ),
     );
     assert_eq!(code, Some(1), "{report}");
     assert_eq!(report["kind"], "fight");
@@ -548,7 +551,7 @@ fn verify_compares_a_game_fight_and_answers_a_refusal() {
         error.starts_with("the simulator does not fight it"),
         "{error}"
     );
-    assert!(error.contains("10008"), "{error}");
+    assert!(error.contains("1202"), "{error}");
 }
 
 /// What was written onto a fight's units, which is not what the fight decided.

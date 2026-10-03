@@ -101,8 +101,8 @@ number the simulator derives (damage, life, attack interval, attack range,
 splash radius, movement speed) and whose `mech_type` it answers. It refuses the side that
 holds any other row, by name, for one of these reasons:
 
-- the row corrects a tower, shield, mine, deployment clock or a projectile's
-  life, which needs the mechanism that owns that object;
+- the row corrects a tower's life, a side's lives or a projectile's life,
+  which needs the mechanism that owns that number;
 - the row carries a `life_rate_by_kill_count`, which needs the life a unit's
   kills raise, `FightMech.RefreshLifeByKillCount`.
 
@@ -169,8 +169,8 @@ index's text says what each one is:
 | Field | What it corrects |
 | --- | --- |
 | `tower_life_rate` | the Energy Tower's life; 能量塔过载's `+1` is its "by 100%" |
-| `energy_shield_rate` | the Energy Shield device's shield; 先进护盾装置's `+0.4` |
-| `land_mine_rate` | the Sentry Missile device's damage; 先进飞弹装置's `+2` |
+| `energy_shield_rate` | the Energy Shield device's shield; 先进护盾装置's `+0.4`, which [contraptions.md](contraptions.md#what-an-officer-adds) states |
+| `land_mine_rate` | the Sentry Missile device's damage; 先进飞弹装置's `+2`, likewise |
 | `super_deployment_time_rate` | the teleport time a rear deployment takes; 快速传送's `-0.5` |
 
 `exp_rate` is a fifth that corrects no unit's number: a rate on the experience
@@ -248,9 +248,8 @@ gaining any, so the field's name is not what it does.
 - **That a value joins before a rate.** It was measured on a Sledgehammer's
   attack interval in another version, with a script that needs the game, and
   no gameless test pins it.
-- **What a correction does once it lands**, for the odd fields above: no
-  mechanism here reads a tower's life, a mine, a shield device or a deployment
-  clock yet.
+- **What a correction does once it lands** on a tower's life: no mechanism
+  here reads it yet.
 - **Which of a unit's skills a correction reaches beyond its main skill.** The
   writer that selects them, `SkillDataModifier.AddData` taking the source,
   asks its source more than it did; every recorded row reaches the main skill.
