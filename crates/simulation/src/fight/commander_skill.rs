@@ -199,7 +199,7 @@ impl Simulation {
                     if !buff.harmful() {
                         reached.retain(|id| self.actors[id].placement.team == release.team);
                     }
-                    self.write_skill_buff(&release, buff, &reached, events)?;
+                    self.write_skill_buff((&release.name, release.team), buff, &reached, events)?;
                 }
                 // A strike's sub-effects land above, and a path is given out
                 // as the fight starts and never lands.
@@ -275,7 +275,7 @@ impl Simulation {
                 let point = (x_q32, 0, z_q32);
                 self.strike_circle(release, range_q32, damage, crosses_shields, point, events)?;
                 if let Some(buff) = buff {
-                    self.write_skill_buff(release, buff, &reached, events)?;
+                    self.write_skill_buff((&release.name, release.team), buff, &reached, events)?;
                 }
                 continue;
             }
@@ -406,9 +406,9 @@ impl Simulation {
     }
 
     /// `BuffSystem.AddBuff` of the skill's row on every unit it reached.
-    fn write_skill_buff(
+    pub(in crate::fight) fn write_skill_buff(
         &mut self,
-        release: &SkillRelease,
+        (name, team): (&str, u32),
         buff: &SkillBuff,
         reached: &[u64],
         events: &mut Vec<Event>,
@@ -445,19 +445,17 @@ impl Simulation {
             if buff.disable_technology && self.commander.researched.contains(&actor.placement.team)
             {
                 return Err(Error::new(format!(
-                    "{} reaches unit {id}, whose side researched a technology, and disabling \
-                     a technology mid-fight is not measured",
-                    release.name
+                    "{name} reaches unit {id}, whose side researched a technology, and disabling \
+                     a technology mid-fight is not measured"
                 )));
             }
             if let Some(running) = actor.other_buff(buff.id) {
                 return Err(Error::new(format!(
-                    "{} reaches unit {id}, which runs buff {running}, and a skill's buff over \
-                     another is not measured",
-                    release.name
+                    "{name} reaches unit {id}, which runs buff {running}, and a skill's buff over \
+                     another is not measured"
                 )));
             }
-            events.push(self.write_buff(id, None, release.team, &row)?);
+            events.push(self.write_buff(id, None, team, &row)?);
         }
         Ok(())
     }

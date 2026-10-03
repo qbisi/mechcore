@@ -44,12 +44,16 @@ pub(in crate::fight) struct TerrainSystem {
 
 /// A `RangeItem`.
 struct Terrain {
+    /// The skill that left it, for a refusal.
+    name: String,
     team: u32,
     x_q32: i64,
     z_q32: i64,
     spec: TerrainSpec,
     /// `time`, counted by each update when the terrain has a life.
     elapsed: i32,
+    /// `Round`: the rounds it has stood, counted as each fight ends.
+    round: i32,
 }
 
 /// A `RangeItemController`: its items in the order they were added, and the
@@ -118,7 +122,8 @@ impl Simulation {
                 affected: Vec::new(),
                 period: match spec.effect {
                     TerrainEffect::Fog { .. } => None,
-                    TerrainEffect::Fire { period_ticks, .. } => Some(period_ticks),
+                    TerrainEffect::Fire { period_ticks, .. }
+                    | TerrainEffect::Buff { period_ticks, .. } => Some(period_ticks),
                 },
             });
         }
@@ -139,11 +144,13 @@ impl Simulation {
         self.terrain.terrains.insert(
             id,
             Terrain {
+                name: name.to_owned(),
                 team,
                 x_q32,
                 z_q32,
                 spec,
                 elapsed: 0,
+                round: 0,
             },
         );
         self.terrain.controllers[index].items.push(id);
@@ -350,6 +357,12 @@ impl Simulation {
     ) -> Result<()> {
         let team = self.terrain.terrains[&item].team;
         match self.terrain.terrains[&item].spec.effect {
+            // `BuffItemController.PerformItemEffect`: the buff, written by no
+            // object under the terrain's side, `BuffSystem.AddBuff`.
+            TerrainEffect::Buff { buff, .. } => {
+                let name = self.terrain.terrains[&item].name.clone();
+                self.write_skill_buff((&name, team), &buff, &[unit], events)
+            }
             // `GroundFireController.PerformItemEffect`: a hit of the fire's
             // damage through `PerformHitTargetEffect`, with no owner, under
             // the fire's side.
@@ -428,8 +441,10 @@ impl Simulation {
         Ok(())
     }
 
-    /// As the fight is left every terrain goes, the round over for it, and
-    /// takes back what it did to the units still in it.
+    /// `RangeItemController.OnExitFight`: every unit leaves, taking back
+    /// what the terrain did to it, and every terrain counts a round and goes,
+    /// `round_expired`, once it has stood its rounds, or at once for a fire,
+    /// whose controller ignores them (`IsIgnoreRoundDuration`).
     pub(in crate::fight) fn clear_terrains_as_the_fight_ends(&mut self) -> Result<()> {
         for index in 0..self.terrain.controllers.len() {
             self.forget_the_dead(index);
@@ -442,7 +457,15 @@ impl Simulation {
                 self.exit_terrain(index, unit)?;
             }
             for id in self.terrain.controllers[index].items.clone() {
-                self.remove_terrain(index, id, TerrainRemovedReason::RoundExpired);
+                let terrain = self
+                    .terrain
+                    .terrains
+                    .get_mut(&id)
+                    .expect("an item's terrain exists");
+                terrain.round += 1;
+                if terrain.spec.kind == TerrainKind::Fire || terrain.round >= terrain.spec.rounds {
+                    self.remove_terrain(index, id, TerrainRemovedReason::RoundExpired);
+                }
             }
         }
         Ok(())
@@ -483,7 +506,10 @@ impl Simulation {
                     },
                     radius: terrain.spec.radius_q32,
                     grid: None,
-                    remaining_rounds: None,
+                    // `GetDuration` less `Round`, read only of a terrain that
+                    // stands more than one round.
+                    remaining_rounds: (terrain.spec.rounds > 1)
+                        .then(|| u32::try_from(terrain.spec.rounds - terrain.round).unwrap_or(0)),
                     logic_lifetime: terrain.spec.life_ticks.map(|limit| TerrainLogicLifetime {
                         elapsed: terrain.elapsed,
                         limit,

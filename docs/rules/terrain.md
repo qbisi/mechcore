@@ -100,9 +100,19 @@ owner, under the fire's side, scaled by the unit's rate on damage taken and
 taken first by its own shield, as any hit is. A kill it makes counts for the
 dead unit's enemies.
 
-**As the fight ends**, every terrain goes, `round_expired`, after the buffs
-the units still run are cleared, and takes back what it did: the last state
-reads no terrain and no fog's rate.
+**An oil** writes its row's buff, Sticky Oil Bomb's `400001`, a slow of 0.55
+for 20 ticks, on a unit as it enters, by no object under the oil's side, and
+again every 19 ticks it stays: its controller's period is the buff's duration
+in ticks less one, never under one (`BuffItemController.Add`). The slow runs
+while the unit stands in the oil, and runs out after it leaves.
+
+**As the fight ends**, after the buffs the units still run are cleared, every
+unit leaves its terrain, which takes back what it did, and every terrain
+counts a round. One that has stood its row's `effectDuration` goes,
+`round_expired`, and so does every fire, whose controller ignores rounds; the
+rest stand into the next round. A fog stands one round and goes; an oil
+stands two and is still there in the last state, with one round left. A
+terrain of more than one round reads its rounds left as `remaining_rounds`.
 
 A recording finds a terrain made or gone by comparing one snapshot's terrains
 with the last, so `terrain_created` and `terrain_removed` are the last events
@@ -191,6 +201,8 @@ already exists.
   attack's range to 0.65 of it, leave melee units alone, and go as the fight
   ends, taking the rate back: `tests/terrain/fights/smoke.yaml`,
   `tests/terrain/fights/smoke-both-sides.yaml`.
+- An oil writes its slow as a unit enters and every 19 ticks it stays, and
+  stands into the next round: `tests/terrain/fights/oil.yaml`.
 - A fire hits a unit as it enters and every four ticks it stays, the units
   counting last first, burns out after 700 ticks, and its removal is the
   last event of its tick: `tests/terrain/fights/fire.yaml`,
@@ -219,6 +231,13 @@ already exists.
   `FightGroundFire.IsTimeOver`, `GroundFireController.PerformItemEffect`,
   `Config.groundFireDamage`, `Config.fireAttackInterval`,
   `FightCalculator.PerformHitTargetEffect`.
+- An oil's controller writes its buff, its period the buff's duration less
+  one tick: `BuffItemController.PerformItemEffect`, `BuffItemController.Add`,
+  `BuffSystem.AddBuff`.
+- As the fight ends a terrain counts a round and goes when its rounds are
+  over, a fire's at once: `RangeItemController.OnExitFight`,
+  `RangeItem.AddRound`, `RangeItem.IsRoundOver`,
+  `GroundFireController.IsIgnoreRoundDuration`.
 - `RangeItemSystem` updates between `MineSystem` and `FightCoreSystem`:
   `FightController.AddModules`, `RangeItemSystem.Update`.
 
@@ -242,7 +261,7 @@ already exists.
 
 ### Not established
 
-- **What oil and acid do to a unit**, and a fire lit from oil.
+- **What acid does to a unit**, and a fire lit from oil.
 - **`FogController.SelectBestTarget`**, which picks the stronger of two fogs
   and which no path of a fog's update reaches.
 - **Any radius, effect clock or lifetime.** They vary by source, and two sources
