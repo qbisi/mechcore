@@ -83,15 +83,17 @@ pub(in crate::fight) struct Attacker<'a> {
     pub(in crate::fight) has_body: bool,
     /// `ISkillOwner.GetRotateSpeed`, as one update's turn in Q32.32 degrees.
     pub(in crate::fight) turn_q32: i64,
-    /// Half the rotation window `Selector.CalculateRotationData` hands
-    /// `CalculateScore`, either side of the rotation it scores against: a
-    /// candidate in range outside it takes the out-of-range penalty. A unit's
-    /// window is the whole turn, `Angle0` to `Angle360`, which `CalculateScore`
-    /// does not check; a construction's skill's is its attack angle either
-    /// side of its weapon, at every rotation, as the recorded `CalculateScore`
-    /// arguments show. The construction's own search, whose lock nothing aims
-    /// or fires from, has none.
-    pub(in crate::fight) rotation_window_q32: Option<i64>,
+    /// The rotation window `Selector.CalculateRotationData` hands
+    /// `CalculateScore`, as how far it reaches to the left and to the right
+    /// of the rotation it scores against: a candidate in range outside it
+    /// takes the out-of-range penalty. A unit's window is the whole turn,
+    /// `Angle0` to `Angle360`, which `CalculateScore` does not check; a
+    /// construction's skill's is its attack angle either side of its weapon,
+    /// at every rotation, as the recorded `CalculateScore` arguments show,
+    /// and a weapon turning within an arc has the arc widened by the attack
+    /// angle. The construction's own search, whose lock nothing aims or fires
+    /// from, has none.
+    pub(in crate::fight) rotation_window_q32: Option<(i64, i64)>,
     /// Whether its skill searches at all: a construction without a
     /// `ConstructionSearchTargetController`, which its row's
     /// `IsEnableSearchTarget` decides, never finds a target.
@@ -173,6 +175,19 @@ impl Simulation {
     }
 
     /// The owner of a skill, as its skill sees it.
+    /// The unit itself as the attacker its own search scores for
+    /// (`FightMech` as `IAttacker`): its root's transform where it stands as
+    /// it updates, the whole turn its window, and its main skill's range.
+    pub(in crate::fight) fn mech_attacker(&self, actor_id: u64) -> Option<Attacker<'_>> {
+        let actor = self.actors.get(&actor_id)?;
+        let mut source = self.attacker(FightActorRef::Unit(actor_id))?;
+        source.query_x_q32 = actor.x_q32;
+        source.query_z_q32 = actor.z_q32;
+        source.query_rotation_q32 = actor.body_rotation_q32;
+        source.rotation_window_q32 = None;
+        Some(source)
+    }
+
     pub(in crate::fight) fn attacker(&self, owner: FightActorRef) -> Option<Attacker<'_>> {
         match owner {
             FightActorRef::Unit(id) => {
@@ -248,9 +263,11 @@ impl Simulation {
                     facing: Facing::Weapons(&construction.skill.weapon_rotations_q32),
                     has_body: true,
                     turn_q32: construction.turn_q32,
-                    rotation_window_q32: Some(mdeg_to_degrees_q32(
-                        construction.attack.attack_half_angle_mdeg(),
-                    )),
+                    rotation_window_q32: Some({
+                        let half =
+                            mdeg_to_degrees_q32(construction.attack.attack_half_angle_mdeg());
+                        (half, half)
+                    }),
                     searches: construction.searches,
                 })
             }

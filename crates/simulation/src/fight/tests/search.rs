@@ -160,7 +160,7 @@ fn a_candidate_in_range_outside_the_rotation_window_takes_the_range_penalty() {
         )
         .unwrap()
     };
-    let window = Some(20_i64 << 32);
+    let window = Some((20_i64 << 32, 20_i64 << 32));
     assert_eq!(score(-50, 40, window), score(-50, 40, None));
     assert_eq!(
         score(-50, 0, window),
@@ -186,7 +186,7 @@ fn a_window_is_checked_only_between_angle0_and_angle360() {
         )
         .unwrap()
     };
-    let window = Some(20_i64 << 32);
+    let window = Some((20_i64 << 32, 20_i64 << 32));
     // Pointing at 0 the window is 340 to 20, and a candidate at 270 is out.
     assert_eq!(
         score(0, window),

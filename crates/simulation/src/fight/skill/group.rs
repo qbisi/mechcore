@@ -640,7 +640,7 @@ impl Simulation {
         if self.ending.stop_step.is_some() {
             return;
         }
-        let turn = actor.turn_q32();
+        let turn = actor.arc_weapon_turn_q32();
         let (x, z) = (actor.x_q32, actor.z_q32);
         for (slot, arc) in arcs.iter().enumerate() {
             // `FightSkill.Update` turns the weapon to the skill's lock, and a
@@ -687,6 +687,24 @@ impl Simulation {
             return;
         }
         let skill = &actor.skill;
+        if skill.mech_searches() {
+            // `CalculateTargetDirection` with the unit as the motion's
+            // attacker: towards its own lock.
+            let aim = skill
+                .unit_lock()
+                .and_then(|lock| self.fight_actor(lock))
+                .map(|view| {
+                    direction_degrees_q32_raw(
+                        view.x_q32.saturating_sub(actor.x_q32),
+                        view.z_q32.saturating_sub(actor.z_q32),
+                    )
+                });
+            self.actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable")
+                .turret_aim_q32 = aim;
+            return;
+        }
         let locked = |slot: &usize| skill.slot_lock(*slot).is_some();
         let attacking = actor.motion.state == MotionState::Attacking;
         let aim = (0..skill.group_size())

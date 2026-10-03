@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result};
 
-const DEFAULT_UNITS: [&str; 31] = [
+const DEFAULT_UNITS: [&str; 32] = [
     include_str!("../../../config/units/marksman.yaml"),
     include_str!("../../../config/units/rhino.yaml"),
     include_str!("../../../config/units/wasp.yaml"),
@@ -36,6 +36,7 @@ const DEFAULT_UNITS: [&str; 31] = [
     include_str!("../../../config/units/centurion.yaml"),
     include_str!("../../../config/units/sandworm.yaml"),
     include_str!("../../../config/units/mountain.yaml"),
+    include_str!("../../../config/units/war_factory.yaml"),
 ];
 const DEFAULT_TOWERS: &str = include_str!("../../../config/towers.yaml");
 const DEFAULT_MAPS: &str = include_str!("../../../config/maps.yaml");
@@ -75,6 +76,11 @@ pub(crate) struct UnitConfig {
     #[serde(default)]
     pub(crate) free_move: bool,
     pub(crate) independent_aim: Option<bool>,
+    /// `MechData.isEnableMechSearchTarget`: the unit runs a
+    /// `MechSearchTargetController` of its own, whose lock its motion follows
+    /// and no skill hands it.
+    #[serde(default)]
+    pub(crate) mech_search: bool,
     pub(crate) rvo: RvoConfig,
     /// `UndergroundMoveAbility`, which `MoveAbility.Create` makes for a unit
     /// whose `moveType` is `Underground`: it burrows to move and surfaces to
@@ -307,6 +313,21 @@ pub(crate) struct WeaponTopology {
     /// unit's own rotation.
     #[serde(default)]
     pub(crate) arcs: Option<Vec<WeaponArc>>,
+    /// The skill's `weaponMountNode`: a weapon with an arc turns about the
+    /// mech body, the turret, where it is `MechBody`, and about the unit's
+    /// root otherwise.
+    #[serde(default)]
+    pub(crate) mount: WeaponMount,
+}
+
+/// `WeaponMountNode`.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum WeaponMount {
+    #[default]
+    Default,
+    Mech,
+    MechBody,
 }
 
 /// One weapon's rotation in degrees: where it rests from the unit's rotation,
@@ -808,6 +829,14 @@ impl UnitConfig {
     }
 }
 
+impl WeaponTopology {
+    /// The skill's own weapon rotation speed, where it has one.
+    pub(crate) fn rotation_speed_mdeg_per_second(&self) -> Option<i64> {
+        self.rotation_speed
+            .map(|speed| quantize_i64(speed, MILLIDEGREES_PER_DEGREE))
+    }
+}
+
 impl AttackConfig {
     #[allow(clippy::too_many_lines)]
     fn validate(&self) -> Result<()> {
@@ -1148,7 +1177,7 @@ mod tests {
     fn si_values_quantize_to_the_internal_integer_grid() {
         let config = SimulationConfig::load().unwrap();
         assert_eq!(config.game_build, mechcore_document::game_build());
-        assert_eq!(config.units.units.len(), 31);
+        assert_eq!(config.units.units.len(), 32);
         let arclight = config.units.get("arclight").unwrap();
         assert_eq!(arclight.collision_radius(), 9_000);
         assert_eq!(arclight.move_speed(), 7_000);
