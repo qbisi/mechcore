@@ -1013,11 +1013,14 @@ A standing oil area's fields:
   release direction. It is named apart from `positions` because `grid_rows` is
   keyed over a different sequence: the seven generated centers, not these two.
   The build's `CalculateAttackPositions` line branch expands them into seven oil
-  centers. Only these two endpoints are integers. The step length divides the
-  path magnitude by six through a fixed-point square root, so the five
-  intermediate centers land on fractional Q32.32 values and cannot be written as
-  layout coordinates. Reusing the same native `FixedMath` primitives restores
-  them exactly instead.
+  centers. Only the two control points are integers. The step length divides
+  the path magnitude by six through a fixed-point square root, and each center
+  is the start plus the path clamped to its multiple of the step, so the five
+  intermediate centers land on fractional Q32.32 values and even the seventh
+  falls a fraction of a millimetre off the second control point: from
+  (-60, -40) to (60, -40) it lands 518 raw past x = 60. None of them can be
+  written as layout coordinates. Reusing the same native `FixedMath`
+  primitives restores them exactly instead.
 - `grid_rows` is an optional map keyed by the native zero-based generated-point
   index, `0..=6`. If the map is omitted or empty, all seven points are active as
   complete 30 m circles. If it is non-empty, its key set is the complete set of
