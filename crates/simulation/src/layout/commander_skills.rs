@@ -60,8 +60,6 @@ struct TerrainSkillRow {
     attack_range_change_rate: i64,
     #[serde(default)]
     buff: Option<BuffRow>,
-    #[serde(default)]
-    uncarried_buff: Option<u32>,
 }
 
 /// `Config.groundFireDamage` and `fireAttackInterval`.
@@ -223,6 +221,8 @@ struct BuffRow {
     can_affect_tower: bool,
     move_speed_rate: i64,
     amplify_damage_rate: i64,
+    life_change_rate: i64,
+    step_time: i64,
 }
 
 /// One battle skill a side releases, as `CommanderSkillReleaseState` carries
@@ -398,15 +398,20 @@ pub(crate) struct SkillBuff {
     pub(crate) invincible: bool,
     /// `amplifyDamageRate`, an `FPoint` raw rate on the damage the unit takes.
     pub(crate) amplify_damage_rate: i64,
+    /// `lifeChangeRate`, an `FPoint` raw rate of the unit's maximum life it
+    /// changes by every step.
+    pub(crate) life_change_rate: i64,
+    /// `stepTime` in ticks, `Buff.Init`'s `stepTimeConfig`.
+    pub(crate) step_ticks: u32,
 }
 
 impl SkillBuff {
-    /// `BuffData.IsHarmful` over the fields the table carries: a slower
-    /// speed or more damage taken. A harmful buff is written on every unit
-    /// in reach, of either side (`PerformNegativeEffect`), and any other on
-    /// the releasing side's alone (`PerformPositiveEffect`).
+    /// `BuffData.IsHarmful` over the fields the table carries: a loss of
+    /// life, a slower speed or more damage taken. A harmful buff is written
+    /// on every unit in reach, of either side (`PerformNegativeEffect`), and
+    /// any other on the releasing side's alone (`PerformPositiveEffect`).
     pub(crate) const fn harmful(&self) -> bool {
-        self.move_speed_rate < 0 || self.amplify_damage_rate > 0
+        self.life_change_rate < 0 || self.move_speed_rate < 0 || self.amplify_damage_rate > 0
     }
 }
 
@@ -662,11 +667,10 @@ fn terrain_effect(named: &str, row: &TerrainSkillRow, fire: GroundFire) -> Resul
         TerrainKind::Fog => TerrainEffect::Fog {
             attack_range_rate: row.attack_range_change_rate,
         },
-        TerrainKind::Oil => {
+        TerrainKind::Oil | TerrainKind::Acid => {
             let Some(buff) = &row.buff else {
                 return Err(Error::new(format!(
-                    "{named} writes buff {}, which the table does not carry",
-                    row.uncarried_buff.unwrap_or_default()
+                    "{named} leaves a terrain that writes no buff"
                 )));
             };
             let buff = skill_buff(named, buff)?;
@@ -685,11 +689,6 @@ fn terrain_effect(named: &str, row: &TerrainSkillRow, fire: GroundFire) -> Resul
             period_ticks: i32::try_from(ticks(fire.interval)?)
                 .map_err(|_| Error::new("a fire's interval outlasts a fight"))?,
         },
-        kind @ TerrainKind::Acid => {
-            return Err(Error::new(format!(
-                "{named} leaves a terrain of kind {kind:?}, which this build does not read"
-            )));
-        }
     };
     // `fireLifeTime` is the life oil takes on when a fire meets it, which
     // `add_terrain` refuses as a mix of kinds.
@@ -842,6 +841,12 @@ fn buff_effect(named: &str, row: &BuffSkillRow) -> Result<SkillEffect> {
 
 /// The buff a sub-effect writes, as `BuffSystem.AddBuff` reads its row.
 fn skill_buff(named: &str, buff: &BuffRow) -> Result<SkillBuff> {
+    if buff.life_change_rate > 0 {
+        return Err(Error::new(format!(
+            "{named}'s buff {} ({}) heals, and a buff's healing is not measured",
+            buff.id, buff.name
+        )));
+    }
     if buff.can_affect_construction || buff.can_affect_tower {
         return Err(Error::new(format!(
             "{named}'s buff {} ({}) reaches a building, which is not measured",
@@ -859,6 +864,9 @@ fn skill_buff(named: &str, buff: &BuffRow) -> Result<SkillBuff> {
         debuff: buff.debuff,
         invincible: buff.invincible,
         amplify_damage_rate: buff.amplify_damage_rate,
+        life_change_rate: buff.life_change_rate,
+        step_ticks: u32::try_from(ticks(buff.step_time)?)
+            .map_err(|_| Error::new(format!("{named}'s buff steps beyond a fight")))?,
     })
 }
 
@@ -1179,5 +1187,25 @@ mod tests {
             .map(|(lands_on, _)| lands_on)
             .collect::<Vec<_>>();
         assert_eq!(landings, [63, 67, 71, 75, 79, 83, 87]);
+    }
+
+    #[test]
+    fn an_acid_blasts_buff_takes_life_every_ten_ticks() {
+        let table = CommanderSkillEffects::load().unwrap();
+        let row = table.terrains.iter().find(|row| row.id == 500_002).unwrap();
+        let Ok(SkillEffect::Terrain {
+            spec:
+                TerrainSpec {
+                    effect: TerrainEffect::Buff { buff, period_ticks },
+                    ..
+                },
+            ..
+        }) = terrain_effect("acid_blast", row, table.ground_fire)
+        else {
+            panic!("an acid writes a buff");
+        };
+        assert_eq!((buff.id, buff.ticks, period_ticks), (500_001, 20, 19));
+        assert_eq!((buff.step_ticks, buff.life_change_rate), (10, -64_424_509));
+        assert!(buff.harmful());
     }
 }

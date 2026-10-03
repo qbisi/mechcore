@@ -106,6 +106,25 @@ again every 19 ticks it stays: its controller's period is the buff's duration
 in ticks less one, never under one (`BuffItemController.Add`). The slow runs
 while the unit stands in the oil, and runs out after it leaves.
 
+**An acid** writes its buff as an oil does, Acid Blast's `500001`: 1.5 more
+damage taken for 20 ticks, again every 19 ticks the unit stays. The buff also
+changes the unit's life every step. `Buff.Init` gives a buff of a nonzero
+`lifeChangeRate` a controller, `IBEC_ChangeLIfe`, and a step of its
+`stepTime` in ticks, ten for this buff. `Buff.Update` counts the step on every
+update of the unit's buffs, the update on the tick the buff was written being
+the first, and at ten it goes back to zero and the controller acts. Rewriting
+the buff (`Buff.Reset`) leaves the count where it was, so the acid steps every
+ten ticks from the unit's first writing whatever the oil-like rewrites do. The
+controller takes the unit's maximum life times the rate in `FPoint`, its whole
+part, a loss rounded away from zero: 1.5% of 3478 is 52.17 and takes 53. The
+loss is a hit with no owner, under the side that wrote the buff, that the
+unit's rate on damage taken does not touch (`isAmplifyDamageAffected` false),
+so the buff's own 1.5 does not raise it; the unit's shield takes it first, as
+any hit. A kill it makes counts as a fire's does. A step that kills the unit
+ends its buffs' update, and the buffs before it in the list neither age nor
+step that tick. With the fight over, from the tick after a side is decided, no
+buff steps.
+
 **As the fight ends**, after the buffs the units still run are cleared, every
 unit leaves its terrain, which takes back what it did, and every terrain
 counts a round. One that has stood its row's `effectDuration` goes,
@@ -203,6 +222,9 @@ already exists.
   `tests/terrain/fights/smoke-both-sides.yaml`.
 - An oil writes its slow as a unit enters and every 19 ticks it stays, and
   stands into the next round: `tests/terrain/fights/oil.yaml`.
+- An acid's buff takes 1.5% of a unit's maximum life every ten ticks from its
+  first writing, unraised by the buff's damage taken and unreset by its
+  rewriting, and stops once the fight is over: `tests/terrain/fights/acid.yaml`.
 - A fire hits a unit as it enters and every four ticks it stays, the units
   counting last first, burns out after 700 ticks, and its removal is the
   last event of its tick: `tests/terrain/fights/fire.yaml`,
@@ -234,6 +256,10 @@ already exists.
 - An oil's controller writes its buff, its period the buff's duration less
   one tick: `BuffItemController.PerformItemEffect`, `BuffItemController.Add`,
   `BuffSystem.AddBuff`.
+- An acid's buff changes the unit's life every step, its own count that a
+  rewrite leaves: `Buff.Init`, `Buff.Update`, `Buff.Reset`,
+  `BuffManager.Update`, `IBEC_ChangeLIfe.Update`,
+  `FightCalculator.PerformHitTargetEffect`.
 - As the fight ends a terrain counts a round and goes when its rounds are
   over, a fire's at once: `RangeItemController.OnExitFight`,
   `RangeItem.AddRound`, `RangeItem.IsRoundOver`,
@@ -261,7 +287,9 @@ already exists.
 
 ### Not established
 
-- **What acid does to a unit**, and a fire lit from oil.
+- **A fire lit from oil.**
+- **A buff that heals**, a positive `lifeChangeRate`: the controller's other
+  branch, which the simulator refuses.
 - **`FogController.SelectBestTarget`**, which picks the stronger of two fogs
   and which no path of a fog's update reaches.
 - **Any radius, effect clock or lifetime.** They vary by source, and two sources

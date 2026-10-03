@@ -58,6 +58,26 @@ pub(in crate::fight) struct RunningBuff {
     /// `IsInvincible`: while it runs, `BuffManager` holds the unit's
     /// `Invincible` count above zero.
     invincible: bool,
+    /// `IBEC_ChangeLIfe`, the controller `Buff.Init` gives a buff of a
+    /// nonzero `lifeChangeRate`, and its step.
+    life_change: Option<LifeChangeStep>,
+}
+
+/// A buff's `lifeChangeRate` as it runs: `Buff.stepTime` counting to
+/// `stepTimeConfig`, and the side whose `sourceTeamController` the hit is
+/// dealt under, which `Buff.Reset` does not change.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct LifeChangeStep {
+    life_change: LifeChange,
+    team: u32,
+    elapsed: u32,
+}
+
+/// A buff row's `lifeChangeRate` and `stepTime`, the latter in ticks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::fight) struct LifeChange {
+    pub(in crate::fight) rate: i64,
+    pub(in crate::fight) step_ticks: u32,
 }
 
 /// One `buffDatas` row as `BuffManager.AddBuff` adds it: which it is, how it
@@ -79,6 +99,8 @@ pub(in crate::fight) struct BuffRow {
     pub(in crate::fight) debuff: bool,
     /// `IsInvincible`.
     pub(in crate::fight) invincible: bool,
+    /// `lifeChangeRate` and `stepTime`, when the rate is not zero.
+    pub(in crate::fight) life_change: Option<LifeChange>,
 }
 
 /// The towers of both sides: what their table says, what each one's loss
@@ -227,6 +249,7 @@ impl Simulation {
             disables_technology: false,
             debuff: self.towers.config.destroyed_buff.debuff,
             invincible: false,
+            life_change: None,
         };
         let mut applied = Vec::new();
         let actor_ids = self
@@ -263,7 +286,7 @@ impl Simulation {
                 .building_buffs
                 .entry(construction_id)
                 .or_default();
-            let (running, added) = add_buff(&mut buffed.buffs, &row);
+            let (running, added) = add_buff(&mut buffed.buffs, &row, loss.team);
             applied.push(buff_applied(
                 ObjectRef::new(ObjectKind::Building, construction_id),
                 None,
@@ -310,7 +333,7 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
-        let (running, added) = add_buff(&mut actor.buffs, row);
+        let (running, added) = add_buff(&mut actor.buffs, row, team);
         if added {
             for entry in &row.entries {
                 actor
@@ -373,7 +396,7 @@ impl Simulation {
             return Ok(());
         };
         let subject = ObjectRef::new(ObjectKind::Building, building_id);
-        let ended = tick_buffs(&mut buffed.buffs, subject, events);
+        let ended = tick_buffs(&mut buffed.buffs, 0, subject, events);
         if !ended.is_empty() {
             for source in ended {
                 buffed.overlays.channel(Channel::Buff).withdraw(source);
@@ -488,6 +511,53 @@ impl Simulation {
         actor.stats.refresh(&actor.rules)
     }
 
+    /// `Buff.Update`'s step of every buff on a unit, last first as
+    /// `BuffManager.Update` runs them: `stepTime` a tick on, and at
+    /// `stepTimeConfig` back to zero and each of the buff's controllers
+    /// updated, of which only `IBEC_ChangeLIfe` acts here. `Buff.Reset` leaves
+    /// the step where it was. A step that kills the unit ends the update, and
+    /// the buffs before it in the list do not run; the answer is the first
+    /// that did.
+    fn step_buffs(&mut self, actor_id: u64, events: &mut Vec<Event>) -> Result<usize> {
+        let count = self.actors[&actor_id].buffs.len();
+        for index in (0..count).rev() {
+            let actor = self
+                .actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable");
+            let max_life = actor.stats.max_life();
+            let Some(step) = actor.buffs[index].life_change.as_mut() else {
+                continue;
+            };
+            step.elapsed += 1;
+            if step.elapsed < step.life_change.step_ticks {
+                continue;
+            }
+            step.elapsed = 0;
+            // `IBEC_ChangeLIfe.Update`: the unit's maximum life times the
+            // rate, its whole part. A loss is a hit of no object under the
+            // buff's side that the rate on damage taken does not affect.
+            let change = max_life.saturating_mul(step.life_change.rate) >> 32;
+            let team = step.team;
+            match change.cmp(&0) {
+                std::cmp::Ordering::Less => {
+                    let target = super::FightActorRef::Unit(actor_id);
+                    self.hit_with_no_object(target, team, (-change, false), events)?;
+                }
+                std::cmp::Ordering::Equal => {}
+                std::cmp::Ordering::Greater => {
+                    return Err(Error::new(format!(
+                        "a buff heals unit {actor_id}, and a buff's healing is not measured"
+                    )));
+                }
+            }
+            if !self.actors[&actor_id].alive() {
+                return Ok(index);
+            }
+        }
+        Ok(0)
+    }
+
     /// `BuffManager.Update`: every running buff one tick older, and those
     /// whose time is up taken away.
     pub(in crate::fight) fn update_buffs(
@@ -495,12 +565,13 @@ impl Simulation {
         actor_id: u64,
         events: &mut Vec<Event>,
     ) -> Result<()> {
+        let from = self.step_buffs(actor_id, events)?;
         let actor = self
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
         let subject = ObjectRef::new(ObjectKind::Unit, actor_id);
-        let ended = tick_buffs(&mut actor.buffs, subject, events);
+        let ended = tick_buffs(&mut actor.buffs, from, subject, events);
         if !ended.is_empty() {
             // A buff's end takes what it wrote, and every other buff's
             // entries stay.
@@ -542,7 +613,7 @@ pub(in crate::fight) struct BuildingBuffs {
 /// lengthened by the new row's duration when additive and started over
 /// otherwise; any other is added. The running buff is returned, with whether
 /// it is new.
-fn add_buff(buffs: &mut Vec<RunningBuff>, row: &BuffRow) -> (RunningBuff, bool) {
+fn add_buff(buffs: &mut Vec<RunningBuff>, row: &BuffRow, team: u32) -> (RunningBuff, bool) {
     if let Some(running) = buffs.iter_mut().find(|running| {
         running.buff_id == row.buff_id || (row.divide != 0 && running.divide == row.divide)
     }) {
@@ -562,6 +633,11 @@ fn add_buff(buffs: &mut Vec<RunningBuff>, row: &BuffRow) -> (RunningBuff, bool) 
         source: row.source,
         disables_technology: row.disables_technology,
         invincible: row.invincible,
+        life_change: row.life_change.map(|life_change| LifeChangeStep {
+            life_change,
+            team,
+            elapsed: 0,
+        }),
     };
     buffs.push(running);
     (running, true)
@@ -569,15 +645,19 @@ fn add_buff(buffs: &mut Vec<RunningBuff>, row: &BuffRow) -> (RunningBuff, bool) 
 
 /// Every running buff one tick older, and those whose time is up removed
 /// with an `expired` event; what the ended ones wrote their entries under.
+///
+/// Only the buffs from `from` on run: `BuffManager.Update` runs them last
+/// first and stops at one whose step killed the unit.
 fn tick_buffs(
     buffs: &mut Vec<RunningBuff>,
+    from: usize,
     subject: ObjectRef,
     events: &mut Vec<Event>,
 ) -> Vec<&'static str> {
     if buffs.is_empty() {
         return Vec::new();
     }
-    for running in buffs.iter_mut() {
+    for running in &mut buffs[from..] {
         running.elapsed = running.elapsed.saturating_add(1);
     }
     let before = buffs.len();

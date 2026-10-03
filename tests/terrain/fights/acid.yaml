@@ -1,0 +1,30 @@
+# Acid Blast across red's Sledgehammers and Crawlers.
+#
+# Its seven acids of 40 metres land every four ticks from tick 63. A unit in
+# one takes buff 500001, 1.5 more damage taken for 20 ticks, at once and
+# again every 19 ticks it stays. The buff steps every 10 ticks, the tick it
+# was written counting as the first, and each step takes 1.5% of the unit's
+# maximum life, 53 of 3478 for the units it reaches, as a hit of blue's that the
+# buff's own rate does not raise. Rewriting the buff leaves its step running.
+# Blue's last unit dies on tick 307; from then the fight is over and no buff
+# steps or runs out, so the acid deals nothing more and the buffs are cleared
+# as the fight ends.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 312
+hash: {profile: mcfr-content-0.7.0, result: 30d64cc870798b9d9b9fab2a7e0673dc41e42f7be30a94e429818967757c6c1d}
+blue:
+  core_damage: 200
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/96/650}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/96/650}
+  battle_skills:
+  - {name: acid_blast, positions: [{x: -60, y: -40}, {x: 60, y: -40}]}
+red:
+  units:
+  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}, exp: 0/100/1300}
+  - {name: crawler, index: 1, position: {x: 5, y: -110}, exp: 0/300/450}
