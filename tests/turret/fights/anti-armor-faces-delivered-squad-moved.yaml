@@ -1,0 +1,29 @@
+# Is the delivered squad scored where it stands?
+#
+# `anti-armor-faces-delivered-squad.yaml` with the Sabertooth moved to
+# (105, -155), the other side of the board. Red's turret scores it with the
+# same 149.03 metres and 54.44 degrees, and again starts the fight facing
+# 234.44: the score is the origin's, wherever the squad is moved.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 3
+source: game
+ticks: 698
+hash: {profile: mcfr-content-0.7.0, result: 7c20708ea53da9f0ea24ab5ee3b657e09ae63c1df341f32960e7e4cbc2d90284}
+blue:
+  officers: [sabertooth_specialist]
+  legacy_index: 2
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 10/210/650}
+  - {name: sabertooth, index: 1, position: {x: 105, y: -155}, exp: 0/320/1300}
+  constructions:
+  - {name: anti_armor_turret, index: 0, position: {x: -140, y: -100}}
+red:
+  core_damage: 300
+  legacy_index: 1
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 10/10/650}
+  constructions:
+  - {name: anti_armor_turret, index: 0, position: {x: -140, y: -100}}

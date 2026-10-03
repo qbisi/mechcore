@@ -1,0 +1,27 @@
+# A squad restored from the round before stands where it is placed.
+#
+# `anti-armor-faces-delivered-squad.yaml` with no officer: the Sabertooth is
+# a legacy squad of the round before. Red's turret starts the fight facing
+# 180 degrees, at blue's tower 2.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 3
+source: game
+ticks: 551
+hash: {profile: mcfr-content-0.7.0, result: c765a0a74c0935626166d60ff386048f907c1a1fd3336d86a2192ad78b2f5752}
+blue:
+  legacy_index: 2
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 10/10/650}
+  - {name: sabertooth, index: 1, position: {x: -105, y: -155}, exp: 0/200/1300}
+  constructions:
+  - {name: anti_armor_turret, index: 0, position: {x: -140, y: -100}}
+red:
+  core_damage: 300
+  legacy_index: 1
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 10/10/650}
+  constructions:
+  - {name: anti_armor_turret, index: 0, position: {x: -140, y: -100}}

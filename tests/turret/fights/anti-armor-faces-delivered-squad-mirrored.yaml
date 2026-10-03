@@ -1,0 +1,27 @@
+# Is it the origin, or the mirror of the turret?
+#
+# Round 3, no blue turret. Red's Anti-Armor Turret stands at red-local
+# (140, -100), world (-140, 100), and blue's Sabertooth Specialist delivers a
+# Sabertooth. The turret starts the fight facing 125.56 degrees, the bearing
+# of the origin from where it stands; nothing of blue's is on that line.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 3
+source: game
+ticks: 555
+hash: {profile: mcfr-content-0.7.0, result: 2da2b5fcc8bf8de45e9a1c4c93e9d4d7112d1fab2952b7d8638fa5a96619d06a}
+blue:
+  officers: [sabertooth_specialist]
+  legacy_index: 2
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 10/10/650}
+  - {name: sabertooth, index: 1, position: {x: -105, y: -155}, exp: 0/320/1300}
+red:
+  core_damage: 300
+  legacy_index: 1
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -280}, exp: 10/10/650}
+  constructions:
+  - {name: anti_armor_turret, index: 0, position: {x: 140, y: -100}}
