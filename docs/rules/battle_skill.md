@@ -452,6 +452,9 @@ drawn from any stream, and no event is written.
   to 52.
 - A creator makes its summons in batches, and a surfacing summon is a locked
   obstacle: `tests/battle_skill/fights/underground-threat.yaml`.
+- A summon is no neighbour of the first solve after it is made: the
+  Crawlers made on tick 53 are not among a Crawler's twenty neighbours on
+  tick 56, and are on tick 60, `tests/corpus/fights/67156354-r3.yaml`.
 - An air drop reaches both sides, blue's first, and its kills count for the
   dead ones' enemies: `tests/battle_skill/fights/vulcans-descent.yaml`.
 - A side's officer, technology and Energy Tower skill reach its summon as they

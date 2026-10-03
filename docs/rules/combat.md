@@ -537,6 +537,13 @@ hold them. A Steel Ball's beam has no splash and strikes its target alone.
 children's, the children in order, wherever a query reads a side's tree, as
 a terrain finding who stands in it and a kill's shares of experience do.
 
+**A side's tree takes its objects in the order they joined the side.** As
+the fight starts it takes its towers, then its units, then its
+constructions. A node holds twenty before it splits, the split hands each of
+its own that fits a child down, the last first, and a node never joins its
+children again: two units that stay in one node all fight are read in the
+order the split left them.
+
 **A splash reaches what its edge is within, as the fast square root measures
 it.** An actor is struck when its distance from where the hit lands, less its
 radius, is no more than the splash's radius, and the distance is the fixed-point
@@ -879,6 +886,12 @@ not the game's native attack-type enum.
   `tests/splash/fights/assault-mode.yaml`,
   `tests/splash/fights/improved-overlord.yaml` and
   `tests/splash/fights/improved-tarantula.yaml`.
+- A side's tree takes its towers, then its units, then its constructions,
+  and a query takes a node's own before its children's, children in order:
+  a splash at two Void Eyes in one node reads them in the order the units
+  went in before their node split, tick 616, and a fire that Fangs of two
+  children enter reads the first child's first, tick 83,
+  `tests/corpus/fights/67156354-r3.yaml`.
 - A unit repairs from its twentieth hurt tick on, every second tick, by
   the whole part of its maximum life times the rate, from an item and from a
   technology: `tests/repair/fights/nano-repair-kit.yaml` and
@@ -1041,6 +1054,10 @@ not the game's native attack-type enum.
 - A query: `RangeItemController.UpdateAffectedActorChange` asks
   ``FightQuadtree`1.Query``, and ``FightQuadtreeNode`1.Query`` takes the
   node's elements and then queries each node of its list.
+- A side's tree: `FightTeam.CreateQuadtree` inserts `activeActors` in
+  order, which `FightTeam.AddTower`, `FightTeam.AddMech` and
+  `FightTeam.AddConstruction` fill through `FightTeam.AddActor`;
+  ``FightQuadtreeNode`1.Split`` and ``FightQuadtreeNode`1.RemoveElement``.
 - Repair: `AutoRecoveryEffectProvider.DoActive` adds a unit to its side's
   `TeamAutoRecoveryManager`, whose `AutoRecoveryController` constructor
   calls `TeamAutoRecoveryManager+AutoRecoveryController.Reset`, setting the start clock to −1;
