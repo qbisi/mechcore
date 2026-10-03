@@ -111,7 +111,9 @@ the lock is in touch: the whole metres between the two, edge to edge, are no
 more than twice the unit's radius. There it idles, and it sets off again
 once the lock is out of touch. So a Vortex, which cannot fire at aircraft,
 that fells the last tower with only aircraft left locks onto the nearest one
-and follows it about.
+and follows it about. A unit attacking when its search leaves it idle stops
+first: `MotionAttackState.Update` asks `IsIdle` before anything and goes idle
+on that update, and it sets off only from the idle state, on the next.
 
 ## A free-moving unit keeps its speed whichever way it faces
 
@@ -769,6 +771,9 @@ not the game's native attack-type enum.
 - A Vortex left with only aircraft to fire at locks one, walks on it, idles
   in touch, searches every eleven ticks and sets off again when its lock
   changes: `tests/corpus/fights/201370830-r3.yaml`, ticks 1227 to 1347.
+- A Crawler attacking a tower that another Crawler fells locks the Abyss,
+  which it cannot fire at, stands idle on that update and walks on it from the
+  next: `tests/sweep/fights/turret-1787720817.yaml`, ticks 1091 to 1093.
 
 - A unit in a defence area beside a flanked tower enters the fight a quarter
   turn towards the flank, and one of the same formation outside it does not:
@@ -900,8 +905,9 @@ not the game's native attack-type enum.
   `SearchTargetController..ctor` (`aliveTargetSelector`, an
   `AliveTargetFilter`), `FightSkillBase.IsMainSearcher`,
   `FightSkill.SearchLockTarget`, `SkillIdleState.CanStartSearchTarget`.
-- An idle skill's unit walks on its lock until it is in touch:
-  `MotionIdleState.Update`, `AutoMoveBehaviour.IsActive`,
+- An idle skill's unit walks on its lock until it is in touch, and one
+  attacking stops first: `MotionAttackState.Update`, `MotionIdleState.Update`,
+  `AutoMoveBehaviour.IsActive`,
   `AutoMoveBehaviour.IsIdle`, `AutoMoveBehaviour.IsLockTargetInTouchRange`.
 
 - A unit's facing as the fight starts is its territory's attack facing, a

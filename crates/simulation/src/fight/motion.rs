@@ -820,6 +820,12 @@ impl Simulation {
         else {
             return Flow::Next;
         };
+        // `MotionAttackState.Update` asks `IsIdle` first and goes idle; the
+        // idle state sets off on the update after.
+        if actor.motion.state == MotionState::Attacking {
+            self.enter_motion_idle(actor_id);
+            return Flow::Done;
+        }
         let radius_q32 = space_to_q32(actor.rules.collision_radius());
         let edge_distance_q32 = native_q32_magnitude(
             view.x_q32.saturating_sub(actor.x_q32),

@@ -25,6 +25,7 @@ out to show:
 | [`modifier/`](modifier/README.md) | how officers and technologies correct a unit's numbers |
 | [`splash/`](splash/README.md) | how a correction widens a skill's splash, and a skill with none given one |
 | [`super_deployment/`](super_deployment/README.md) | what a formation deployed on a flank does in a fight, travelling in or settled |
+| [`sweep/`](sweep/README.md) | what a sweep strikes beyond the standard fights: shields, buildings, aircraft beside ground units, its technology |
 | [`shield/`](shield/README.md) | what a battlefield shield does to the hits meant for what it covers, and when it breaks |
 | [`search/`](search/README.md) | which positions a skill's target search scores |
 | [`production/`](production/README.md) | what a production line makes, where its makes stand, and how often they come |
