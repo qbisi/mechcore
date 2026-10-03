@@ -133,8 +133,8 @@ def il2cppdumper(work):
 
 
 # What Ghidra's C parser lacks of what il2cpp.h assumes: the fixed-width
-# integer names. The C++ base classes il2cpp.h writes are flattened by
-# `ghidra_header`.
+# integer names. The C++ base classes il2cpp.h writes are flattened, and the
+# fields laid out where `dump.cs` has them, by `ghidra_header`.
 GHIDRA_HEADER = """typedef unsigned __int8 uint8_t;
 typedef unsigned __int16 uint16_t;
 typedef unsigned __int32 uint32_t;
@@ -148,10 +148,19 @@ typedef __int64 uintptr_t;
 typedef unsigned __int64 size_t;
 typedef _Bool bool;
 """
+# The size of each scalar a field of il2cpp.h has; any other field is a
+# pointer or a value type's `_o`.
+SCALARS = {
+    "bool": 1, "int8_t": 1, "uint8_t": 1, "int16_t": 2, "uint16_t": 2,
+    "int32_t": 4, "uint32_t": 4, "float": 4, "int64_t": 8, "uint64_t": 8,
+    "double": 8, "intptr_t": 8, "uintptr_t": 8,
+}
+# A thread-static field's offset in `dump.cs`: it is not in `static_fields`.
+THREAD_STATIC = 0x80000000
 
 
 STRUCT = re.compile(r"^struct (\w+)(?: : (\w+))? \{\n(.*?)^\};\n", re.M | re.S)
-MEMBER = re.compile(r"(\w+);$", re.M)
+MEMBER = re.compile(r"^\t(.+?)\s*\b(\w+);$", re.M)
 
 
 def ghidra_header(dumper):
@@ -163,34 +172,316 @@ def ghidra_header(dumper):
     the flattened fields; a `Base_Fields super;` member would instead start
     them after the base struct's tail padding. A base field the class hides
     with one of its own name is written `base_<name>`.
+
+    Where C would still put a field elsewhere than `dump.cs` has it, the
+    struct is written out at `dump.cs`'s offsets: an explicit layout's
+    overlapping fields as a union `at_<offset>`, its gaps as bytes, a packed
+    struct's under `#pragma pack`. A thread-static field is left out of
+    `_StaticFields`, which does not hold it, and an empty value type gets a
+    byte, which C# gives it and C does not.
     """
     target = dumper / "il2cpp_ghidra.h"
     source = (dumper / "il2cpp.h").read_text()
-    bodies = {}
-
-    def flatten(found):
-        name, base, body = found.groups()
-        if base is not None:
-            if base not in bodies:
-                fail(f"il2cpp.h: {name} derives from {base}, not defined before it")
-            own = set(MEMBER.findall(body))
-            taken = own | set(MEMBER.findall(bodies[base]))
-
-            def hidden(member):
-                if member[1] not in own:
-                    return member[0]
-                renamed = f"base_{member[1]}"
-                while renamed in taken:
-                    renamed = f"base_{renamed}"
-                taken.add(renamed)
-                return f"{renamed};"
-
-            body = MEMBER.sub(hidden, bodies[base]) + body
-        bodies[name] = body
-        return f"struct {name} {{\n{body}}};\n"
-
-    target.write_text(GHIDRA_HEADER + STRUCT.sub(flatten, source))
+    header = Header(source, FieldOffsets(dumper / "dump.cs"))
+    target.write_text(GHIDRA_HEADER + STRUCT.sub(header.write, source))
+    say(
+        f"{header.checked} structs checked against dump.cs, {len(header.moved)} laid out at its offsets"
+        + (f", {len(header.unplaced)} it could not place: {', '.join(header.unplaced[:5])}"
+           if header.unplaced else "")
+    )
     return target
+
+
+class FieldOffsets:
+    """`dump.cs`'s field offsets, looked up by il2cpp.h's struct name.
+
+    A class's instance offsets count its object header, which `_Fields` does
+    not. A nested type has no namespace line: it takes the namespace of the
+    next type named as its outermost one, which `dump.cs` writes right after
+    its nested types, or else it is found by the end of the struct's name.
+    Il2CppDumper numbers a name it repeats, `X_1`. Either way the fields'
+    names decide between the types a name could be. A generic definition's
+    fields are at 0x0 in `dump.cs`, and its instances are not in it.
+    """
+
+    TYPE = re.compile(r"^(?:[a-z]+ )*(class|struct) (\S+) (?::.*)?// TypeDefIndex")
+    FIELD = re.compile(r"^\t(.*?) (\S+); // 0x([0-9A-F]+)$")
+
+    def __init__(self, dump):
+        self.named = {}
+        self.nested = {}
+        pending = {}
+        namespace = None
+        found = None
+        with open(dump, encoding="utf-8") as lines:
+            for line in lines:
+                if line.startswith("// Namespace: "):
+                    namespace = line[len("// Namespace: "):].strip()
+                elif (match := self.TYPE.match(line)) is not None:
+                    kind, name = match.groups()
+                    if re.search(r"\w<", name):
+                        continue  # a generic definition: no offsets of its own
+                    found = {"class": kind == "class", "instance": [], "static": []}
+                    if namespace or "." not in name:
+                        for inner, nested in pending.pop(name, []) + [(name, found)]:
+                            key = fixed(f"{namespace}.{inner}" if namespace else inner)
+                            self.named.setdefault(key, []).append(nested)
+                    else:
+                        pending.setdefault(name.split(".")[0], []).append((name, found))
+                elif line.startswith("}"):
+                    found = None
+                elif found is not None and (field := self.FIELD.match(line)) is not None:
+                    modifiers, name, offset = field.groups()
+                    kind = "static" if re.search(r"\bstatic\b", modifiers) else "instance"
+                    found[kind].append((fixed(name), int(offset, 16)))
+        for nested in pending.values():
+            for name, found in nested:
+                self.nested.setdefault(fixed(name), []).append(found)
+
+    def of(self, struct, members):
+        """Each member's offset in a `_Fields` or `_StaticFields` struct, or None."""
+        if struct.endswith("_StaticFields"):
+            name, kind = struct[: -len("_StaticFields")], "static"
+        elif struct.endswith("_Fields"):
+            name, kind = struct[: -len("_Fields")], "instance"
+        else:
+            return None
+        names = [member for _, member in members]
+        answers = set()
+        for found in self.candidates(name):
+            fields = found[kind]
+            if len(fields) == len(names) and all(
+                member in (field, "_" + field) for (field, _), member in zip(fields, names)
+            ):
+                base = 0x10 if found["class"] and kind == "instance" else 0
+                answers.add(tuple(offset - base for _, offset in fields))
+        return list(answers.pop()) if len(answers) == 1 else None
+
+    def candidates(self, name):
+        names = [name]
+        if (numbered := re.fullmatch(r"(\w+)_\d+", name)) is not None:
+            names.append(numbered.group(1))
+        for name in names:
+            yield from self.named.get(name, [])
+            parts = name.split("_")
+            for start in range(1, len(parts)):
+                yield from self.nested.get("_".join(parts[start:]), [])
+
+
+def fixed(name):
+    """A C# name as Il2CppDumper writes it in C."""
+    return re.sub(r"\W", "_", name)
+
+
+class Header:
+    """il2cpp.h's structs, each flattened and laid out as `dump.cs` has it."""
+
+    def __init__(self, source, offsets):
+        self.offsets = offsets
+        self.structs = {
+            name: (base or None, MEMBER.findall(body)) for name, base, body in STRUCT.findall(source)
+        }
+        self.flat = {}
+        self.bodies = {}
+        self.layouts = {}
+        self.checked = 0
+        self.moved = []
+        self.unplaced = []
+
+    def write(self, found):
+        name = found.group(1)
+        if not name.endswith("Fields"):
+            return f"struct {name} {{\n{found.group(3)}}};\n"
+        return self.body(name)
+
+    def members(self, name):
+        """The struct's members with bases' inline, each `(type, name, offset or None)`."""
+        if name in self.flat:
+            return self.flat[name]
+        base, own = self.structs[name]
+        offsets = self.offsets.of(name, own) or [None] * len(own)
+        members = [(kind, member, offset) for (kind, member), offset in zip(own, offsets)]
+        if base is not None:
+            if base not in self.structs:
+                fail(f"il2cpp.h: {name} derives from {base}, which it does not define")
+            names = {member for _, member in own}
+            taken = names | {member for _, member, _ in self.members(base)}
+            inherited = []
+            for kind, member, offset in self.members(base):
+                if member in names:
+                    renamed = f"base_{member}"
+                    while renamed in taken:
+                        renamed = f"base_{renamed}"
+                    taken.add(renamed)
+                    member = renamed
+                inherited.append((kind, member, offset))
+            members = inherited + members
+        members = [member for member in members if (member[2] or 0) < THREAD_STATIC]
+        if not members and self.is_value_type(name):
+            members = [("uint8_t", "_empty", None)]
+        self.flat[name] = members
+        return members
+
+    def is_value_type(self, name):
+        if not name.endswith("_Fields"):
+            return False
+        boxed = self.structs.get(name[: -len("_Fields")] + "_o")
+        return boxed is not None and all(member != "klass" for _, member in boxed[1])
+
+    def body(self, name):
+        """The struct's C, and its layout in `self.layouts`."""
+        if name in self.bodies:
+            return self.bodies[name]
+        members = self.members(name)
+        sized = [(kind, member, offset) + self.size(kind) for kind, member, offset in members]
+        natural = Layout.natural(sized)
+        wanted = [offset for _, _, offset, _, _ in sized]
+        if any(offset is not None for offset in wanted):
+            self.checked += 1
+        if all(want in (None, have) for want, have in zip(wanted, natural.offsets)):
+            text = "".join(f"\t{kind} {member};\n" for kind, member, *_ in sized)
+            layout = natural
+        else:
+            placed = Layout.place(sized)
+            if placed is None:
+                self.unplaced.append(name)
+                text = "".join(f"\t{kind} {member};\n" for kind, member, *_ in sized)
+                layout = natural
+            else:
+                self.moved.append(name)
+                text, layout = placed
+        pack = "" if layout.pack is None else f"#pragma pack(push, {layout.pack})\n"
+        self.bodies[name] = (
+            f"{pack}struct {name} {{\n{text}}};\n" + ("#pragma pack(pop)\n" if pack else "")
+        )
+        self.layouts[name] = layout
+        return self.bodies[name]
+
+    def size(self, kind):
+        """`(size, alignment)` of a member's C type."""
+        if kind.endswith("*"):
+            return 8, 8
+        if kind in SCALARS:
+            return SCALARS[kind], SCALARS[kind]
+        name = kind.removeprefix("struct ").strip()
+        if name not in self.layouts:
+            if name not in self.structs:
+                fail(f"il2cpp.h: a field has type {kind}, which it does not define")
+            if name.endswith("Fields"):
+                self.body(name)
+            else:
+                members = self.structs[name][1]
+                self.layouts[name] = Layout.natural(
+                    [(kind, member, None) + self.size(kind) for kind, member in members]
+                )
+        layout = self.layouts[name]
+        return layout.size, layout.align
+
+
+class Layout:
+    """Where C puts a struct's members, and the struct's size and alignment."""
+
+    def __init__(self, offsets, size, align, pack=None):
+        self.offsets, self.size, self.align, self.pack = offsets, size, align, pack
+
+    @staticmethod
+    def natural(members):
+        offsets, end, align = [], 0, 1
+        for *_, size, alignment in members:
+            end = -(-end // alignment) * alignment
+            offsets.append(end)
+            end += size
+            align = max(align, alignment)
+        return Layout(offsets, -(-end // align) * align, align)
+
+    @staticmethod
+    def place(members):
+        """The members at their wanted offsets: `(C, Layout)`, or None.
+
+        A member with no wanted offset follows the one before it.
+        """
+        items, end = [], 0
+        for index, (kind, member, offset, size, align) in enumerate(members):
+            if offset is None:
+                offset = -(-end // align) * align
+            items.append((offset, index, f"{kind} {member};", size, align))
+            end = offset + size
+        items.sort()
+        for pack in (8, 4, 2, 1):
+            written = Layout.struct(items, 0, pack, "\t")
+            if written is not None:
+                lines, size, align = written
+                offsets = [offset for offset, *_ in sorted(items, key=lambda item: item[1])]
+                return "".join(lines), Layout(offsets, size, align, None if pack == 8 else pack)
+        return None
+
+    @staticmethod
+    def struct(items, start, pack, indent):
+        """Members sorted by offset as a struct at `start`: `(lines, size, align)`, or None."""
+        lines, end, align = [], 0, 1
+        for cluster in Layout.clusters(items):
+            at = cluster[0][0] - start
+            if len(cluster) == 1:
+                _, _, line, size, alignment = cluster[0]
+                written = [indent + line + "\n"]
+                alignment = min(alignment, pack)
+            else:
+                union = Layout.union(cluster, pack, indent)
+                if union is None:
+                    return None
+                written, size, alignment = union
+            if at < end or at % alignment:
+                return None
+            if at > end:
+                lines.append(f"{indent}uint8_t _gap_{start + end:x}[{at - end}];\n")
+            lines += written
+            end = at + size
+            align = max(align, alignment)
+        return lines, -(-end // align) * align, align
+
+    @staticmethod
+    def union(cluster, pack, indent):
+        """Overlapping members as a union of runs that do not overlap."""
+        start = cluster[0][0]
+        runs = []
+        for item in cluster:
+            for run in runs:
+                if run[-1][0] + run[-1][3] <= item[0]:
+                    run.append(item)
+                    break
+            else:
+                runs.append([item])
+        lines, size, align = [f"{indent}union {{\n"], 0, 1
+        for run in runs:
+            if len(run) == 1 and run[0][0] == start:
+                _, _, line, length, alignment = run[0]
+                lines.append(f"{indent}\t{line}\n")
+                alignment = min(alignment, pack)
+            else:
+                written = Layout.struct(run, start, pack, indent + "\t\t")
+                if written is None:
+                    return None
+                body, length, alignment = written
+                name = run[0][2].rstrip(";").split()[-1]
+                lines += [f"{indent}\tstruct {{\n", *body, f"{indent}\t}} as_{name};\n"]
+            size, align = max(size, length), max(align, alignment)
+        lines.append(f"{indent}}} at_{start:x};\n")
+        return lines, -(-size // align) * align, align
+
+    @staticmethod
+    def clusters(items):
+        """The members in runs whose bytes overlap."""
+        cluster, end = [], None
+        for item in items:
+            if cluster and item[0] >= end:
+                yield cluster
+                cluster = []
+            if not cluster:
+                end = item[0] + item[3]
+            cluster.append(item)
+            end = max(end, item[0] + item[3])
+        if cluster:
+            yield cluster
 
 
 def headless(project_dir, *arguments, log):
