@@ -24,9 +24,11 @@ buff_skills:
       additive: false
       debuff: true
       disable_technology: true
+      invincible: false
       can_affect_construction: false
       can_affect_tower: false
       move_speed_rate: -1717986918  # -0.4
+      amplify_damage_rate: 0  # 0
   - id: 200002
     name: 巨型电磁冲击
     effect_range_type: 0
@@ -44,9 +46,33 @@ buff_skills:
       additive: false
       debuff: true
       disable_technology: true
+      invincible: false
       can_affect_construction: false
       can_affect_tower: false
       move_speed_rate: -1717986918  # -0.4
+      amplify_damage_rate: 0  # 0
+  - id: 200003
+    name: 光子投射
+    effect_range_type: 0
+    effect_type: 0
+    sub_effect_damage: 0
+    start_time: 2576980377  # 0.6
+    effect_range: 472446402560  # 110
+    sub_effect_move_speed: 0  # 0
+    sub_effect_move_time: 0  # 0
+    buff:
+      id: 40000
+      name: 光子投射通用
+      divide: 0
+      duration: 85899345920  # 20
+      additive: false
+      debuff: false
+      disable_technology: false
+      invincible: true
+      can_affect_construction: false
+      can_affect_tower: false
+      move_speed_rate: 0  # 0
+      amplify_damage_rate: -1288490188  # -0.3
   - id: 200004
     name: 巨型电磁冲击
     effect_range_type: 0
@@ -64,9 +90,11 @@ buff_skills:
       additive: false
       debuff: true
       disable_technology: true
+      invincible: false
       can_affect_construction: false
       can_affect_tower: false
       move_speed_rate: -1717986918  # -0.4
+      amplify_damage_rate: 0  # 0
 
 support_skills:
   - id: 1200001
@@ -350,9 +378,11 @@ damage_skills:
       additive: false
       debuff: false
       disable_technology: false
+      invincible: false
       can_affect_construction: false
       can_affect_tower: false
       move_speed_rate: -2791728742  # -0.65
+      amplify_damage_rate: 0  # 0
   - id: 300006
     name: 离子轰炸
     effect_range_type: 1
@@ -421,9 +451,11 @@ damage_skills:
       additive: false
       debuff: false
       disable_technology: false
+      invincible: false
       can_affect_construction: false
       can_affect_tower: false
       move_speed_rate: -2791728742  # -0.65
+      amplify_damage_rate: 0  # 0
   - id: 300010
     name: 离子轰炸
     effect_range_type: 1
@@ -492,9 +524,11 @@ damage_skills:
       additive: false
       debuff: false
       disable_technology: false
+      invincible: false
       can_affect_construction: false
       can_affect_tower: false
       move_speed_rate: -2791728742  # -0.65
+      amplify_damage_rate: 0  # 0
   - id: 300014
     name: 离子轰炸
     effect_range_type: 1
@@ -564,7 +598,6 @@ waypoint_skills:
 other_skills:
   - {id: 100002, name: 燃烧弹, kind: fireCommanderSkills}
   - {id: 100003, name: 燃烧弹, kind: fireCommanderSkills}
-  - {id: 200003, name: 光子投射, kind: buffCommanderSkills}
   - {id: 400002, name: 黏油弹, kind: oilCommanderSkills}
   - {id: 400003, name: 黏油弹, kind: oilCommanderSkills}
   - {id: 500002, name: 酸液弹, kind: acidCommanderSkills}

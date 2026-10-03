@@ -144,9 +144,11 @@ struct BuffRow {
     additive: bool,
     debuff: bool,
     disable_technology: bool,
+    invincible: bool,
     can_affect_construction: bool,
     can_affect_tower: bool,
     move_speed_rate: i64,
+    amplify_damage_rate: i64,
 }
 
 /// One battle skill a side releases, as `CommanderSkillReleaseState` carries
@@ -291,8 +293,13 @@ pub(crate) struct Summon {
     pub(crate) corrections: Vec<(Channel, Entry)>,
 }
 
-/// The buff a released skill writes: the Electromagnetic Impact's slow.
+/// The buff a released skill writes: the Electromagnetic Impact's slow,
+/// Lightning Storm's, or Photon Emission's protection.
 #[derive(Debug, Clone, Copy)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "the buff row's flags are independent fields"
+)]
 pub(crate) struct SkillBuff {
     pub(crate) id: u32,
     pub(crate) divide: i32,
@@ -305,6 +312,20 @@ pub(crate) struct SkillBuff {
     pub(crate) disable_technology: bool,
     /// `debuff`: a unit a buff makes invincible does not take it.
     pub(crate) debuff: bool,
+    /// `invincible`: while it runs, no debuff reaches the unit.
+    pub(crate) invincible: bool,
+    /// `amplifyDamageRate`, an `FPoint` raw rate on the damage the unit takes.
+    pub(crate) amplify_damage_rate: i64,
+}
+
+impl SkillBuff {
+    /// `BuffData.IsHarmful` over the fields the table carries: a slower
+    /// speed or more damage taken. A harmful buff is written on every unit
+    /// in reach, of either side (`PerformNegativeEffect`), and any other on
+    /// the releasing side's alone (`PerformPositiveEffect`).
+    pub(crate) const fn harmful(&self) -> bool {
+        self.move_speed_rate < 0 || self.amplify_damage_rate > 0
+    }
 }
 
 /// Every battle skill the fight releases, by its commander skill id.
@@ -650,6 +671,8 @@ fn skill_buff(named: &str, buff: &BuffRow) -> Result<SkillBuff> {
         move_speed_rate: buff.move_speed_rate,
         disable_technology: buff.disable_technology,
         debuff: buff.debuff,
+        invincible: buff.invincible,
+        amplify_damage_rate: buff.amplify_damage_rate,
     })
 }
 

@@ -165,7 +165,12 @@ impl Simulation {
             match &release.effect {
                 SkillEffect::Buff { range_q32, buff } => {
                     let point = (space_to_q32(release.x), space_to_q32(release.z));
-                    let reached = self.skill_reach(point, *range_q32, target_search_order);
+                    let mut reached = self.skill_reach(point, *range_q32, target_search_order);
+                    // `PerformPositiveEffect` asks the calculator of the
+                    // releasing side's group alone.
+                    if !buff.harmful() {
+                        reached.retain(|id| self.actors[id].placement.team == release.team);
+                    }
                     self.write_skill_buff(&release, buff, &reached, events)?;
                 }
                 // A strike's sub-effects land above, and a path is given out
@@ -354,14 +359,21 @@ impl Simulation {
             additive: buff.additive,
             ticks: buff.ticks,
             source: SKILL_SOURCE,
-            entries: vec![Entry {
-                index: Index::MoveSpeed,
+            entries: [
+                (Index::MoveSpeed, buff.move_speed_rate),
+                (Index::AmplifyDamage, buff.amplify_damage_rate),
+            ]
+            .into_iter()
+            .filter(|&(_, rate)| rate != 0)
+            .map(|(index, rate)| Entry {
+                index,
                 source: SKILL_SOURCE,
-                correction: super::tower::rate(buff.move_speed_rate),
-            }],
+                correction: super::tower::rate(rate),
+            })
+            .collect(),
             disables_technology: buff.disable_technology,
             debuff: buff.debuff,
-            invincible: false,
+            invincible: buff.invincible,
         };
         for &id in reached {
             // `BuffSystem.AddBuff` passes over the dead: a strike's damage

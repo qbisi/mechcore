@@ -13,8 +13,9 @@ subEffectMoveTime)` above the ground at that speed, and its landing asks
 every unit within `effectRange`, of either side. `docs/rules/battle_skill.md`
 states what each field does.
 
-The table holds the rows the simulator fights: the buff skills whose buff is
-the Electromagnetic Impact's, a slow that disables technology, and every
+The table holds the rows the simulator fights: the buff skills whose buff
+moves only what the table carries, a slow, a rate on the damage taken,
+invincibility and disabled technology, and every
 support skill, which `SupportUnitSystem` summons units for, and every shield
 skill, whose landing stands a shield of `AdvancedEnergyShieldSystem`, and every
 damage skill, which strikes one circle or scatters several. The script
@@ -60,20 +61,21 @@ FIXED = (
 # The buff's fields the fight reads; every other rate has to be zero, and the
 # script refuses the row when one is not. `isClearSelfBuffWhenDisableTech`
 # is about the buff a unit wrote on itself, never one a skill writes.
-BUFF_RATES = {"speedChangeRate": "move_speed_rate"}
+BUFF_RATES = {"speedChangeRate": "move_speed_rate", "amplifyDamageRate": "amplify_damage_rate"}
 BUFF_FLAGS = (
     ("isAdditiveMode", "additive"),
     ("debuff", "debuff"),
     ("disableTechnology", "disable_technology"),
+    ("invincible", "invincible"),
     ("canAffectConstruction", "can_affect_construction"),
     ("canAffectTower", "can_affect_tower"),
 )
 BUFF_ZERO = (
     "stepTime", "lifeChangeRate", "maxLifeChangeRate", "lifeChangeDisposableValue",
     "currentLifeDisposableChangeRate", "speedChangeValue", "attackDurationChangeRate",
-    "extraAttackDurationChangeRate", "damageChangeRate", "amplifyDamageRate",
+    "extraAttackDurationChangeRate", "damageChangeRate",
     "attackRangeChangeValue", "extraAttackRangeChangeValue", "attackRangeChangeRate",
-    "extraAttackRangeChangeRate", "summonUnitID", "invincible", "freeze", "disableRecover",
+    "extraAttackRangeChangeRate", "summonUnitID", "freeze", "disableRecover",
     "isAdditiveEffect", "isDeadingLeavingRangeItem", "disableSkill",
 )
 
@@ -87,9 +89,14 @@ def reading(value):
     return f"  # {text}"
 
 
+def carried(buff):
+    """Whether the table carries every field the buff moves."""
+    return not any(raw(buff.get(field, 0)) for field in BUFF_ZERO)
+
+
 def buff_lines(buff):
-    moving = [field for field in BUFF_ZERO if raw(buff.get(field, 0))]
-    if moving:
+    if not carried(buff):
+        moving = [field for field in BUFF_ZERO if raw(buff.get(field, 0))]
         raise SystemExit(f"buff {buff['id']} moves {moving}, which this table does not carry")
     lines = [
         "    buff:",
@@ -272,9 +279,9 @@ def render(group):
     buffs = {buff["id"]: buff for buff in build_data.container()["buffDatas"]}
     rows = [
         row for row in group["buffCommanderSkills"]
-        if not row["isTestData"] and row["subEffectBuffID"] == BUFF
+        if not row["isTestData"] and carried(buffs[row["subEffectBuffID"]])
     ]
-    if not rows:
+    if not any(row["subEffectBuffID"] == BUFF for row in rows):
         raise SystemExit(f"no buff commander skill writes buff {BUFF}")
     lines = [
         "schema: mechcore.commander_skill_effects",
