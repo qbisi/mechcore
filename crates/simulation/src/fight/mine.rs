@@ -211,6 +211,7 @@ impl Simulation {
             disables_technology: false,
             debuff: shot.buff.debuff,
             invincible: false,
+            life_change: None,
         };
         for &target in &struck.targets {
             if let FightActorRef::Unit(id) = target

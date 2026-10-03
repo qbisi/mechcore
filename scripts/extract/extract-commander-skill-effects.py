@@ -61,7 +61,12 @@ FIXED = (
 # The buff's fields the fight reads; every other rate has to be zero, and the
 # script refuses the row when one is not. `isClearSelfBuffWhenDisableTech`
 # is about the buff a unit wrote on itself, never one a skill writes.
-BUFF_RATES = {"speedChangeRate": "move_speed_rate", "amplifyDamageRate": "amplify_damage_rate"}
+BUFF_RATES = {
+    "speedChangeRate": "move_speed_rate",
+    "amplifyDamageRate": "amplify_damage_rate",
+    "lifeChangeRate": "life_change_rate",
+    "stepTime": "step_time",
+}
 BUFF_FLAGS = (
     ("isAdditiveMode", "additive"),
     ("debuff", "debuff"),
@@ -71,7 +76,7 @@ BUFF_FLAGS = (
     ("canAffectTower", "can_affect_tower"),
 )
 BUFF_ZERO = (
-    "stepTime", "lifeChangeRate", "maxLifeChangeRate", "lifeChangeDisposableValue",
+    "maxLifeChangeRate", "lifeChangeDisposableValue",
     "currentLifeDisposableChangeRate", "speedChangeValue", "attackDurationChangeRate",
     "extraAttackDurationChangeRate", "damageChangeRate",
     "attackRangeChangeValue", "extraAttackRangeChangeValue", "attackRangeChangeRate",
@@ -249,10 +254,8 @@ def terrain_lines(group, buffs):
                 value = raw(row.get(field, 0))
                 lines.append(f"    {name}: {value}{reading(value)}")
             buff = row.get("buffID", 0)
-            if buff and carried(buffs[buff]):
+            if buff:
                 lines += buff_lines(buffs[buff])
-            elif buff:
-                lines.append(f"    uncarried_buff: {buff}")
     return lines
 
 

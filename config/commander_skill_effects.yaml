@@ -29,6 +29,8 @@ buff_skills:
       can_affect_tower: false
       move_speed_rate: -1717986918  # -0.4
       amplify_damage_rate: 0  # 0
+      life_change_rate: 0  # 0
+      step_time: 0  # 0
   - id: 200002
     name: 巨型电磁冲击
     effect_range_type: 0
@@ -51,6 +53,8 @@ buff_skills:
       can_affect_tower: false
       move_speed_rate: -1717986918  # -0.4
       amplify_damage_rate: 0  # 0
+      life_change_rate: 0  # 0
+      step_time: 0  # 0
   - id: 200003
     name: 光子投射
     effect_range_type: 0
@@ -73,6 +77,8 @@ buff_skills:
       can_affect_tower: false
       move_speed_rate: 0  # 0
       amplify_damage_rate: -1288490188  # -0.3
+      life_change_rate: 0  # 0
+      step_time: 0  # 0
   - id: 200004
     name: 巨型电磁冲击
     effect_range_type: 0
@@ -95,6 +101,8 @@ buff_skills:
       can_affect_tower: false
       move_speed_rate: -1717986918  # -0.4
       amplify_damage_rate: 0  # 0
+      life_change_rate: 0  # 0
+      step_time: 0  # 0
 
 support_skills:
   - id: 1200001
@@ -383,6 +391,8 @@ damage_skills:
       can_affect_tower: false
       move_speed_rate: -2791728742  # -0.65
       amplify_damage_rate: 0  # 0
+      life_change_rate: 0  # 0
+      step_time: 0  # 0
   - id: 300006
     name: 离子轰炸
     effect_range_type: 1
@@ -456,6 +466,8 @@ damage_skills:
       can_affect_tower: false
       move_speed_rate: -2791728742  # -0.65
       amplify_damage_rate: 0  # 0
+      life_change_rate: 0  # 0
+      step_time: 0  # 0
   - id: 300010
     name: 离子轰炸
     effect_range_type: 1
@@ -529,6 +541,8 @@ damage_skills:
       can_affect_tower: false
       move_speed_rate: -2791728742  # -0.65
       amplify_damage_rate: 0  # 0
+      life_change_rate: 0  # 0
+      step_time: 0  # 0
   - id: 300014
     name: 离子轰炸
     effect_range_type: 1
@@ -654,6 +668,8 @@ terrain_skills:
       can_affect_tower: false
       move_speed_rate: -2362232012  # -0.55
       amplify_damage_rate: 0  # 0
+      life_change_rate: 0  # 0
+      step_time: 0  # 0
   - id: 400003
     name: 黏油弹
     kind: oil
@@ -683,6 +699,8 @@ terrain_skills:
       can_affect_tower: false
       move_speed_rate: -2362232012  # -0.55
       amplify_damage_rate: 0  # 0
+      life_change_rate: 0  # 0
+      step_time: 0  # 0
   - id: 600002
     name: 烟雾弹
     kind: fog
@@ -715,7 +733,21 @@ terrain_skills:
     life_time: 0  # 0
     fire_life_time: 0  # 0
     attack_range_change_rate: 0  # 0
-    uncarried_buff: 500001
+    buff:
+      id: 500001
+      name: 战场技能-酸液
+      divide: 0
+      duration: 4294967296  # 1
+      additive: false
+      debuff: true
+      disable_technology: false
+      invincible: false
+      can_affect_construction: false
+      can_affect_tower: false
+      move_speed_rate: 0  # 0
+      amplify_damage_rate: 6442450944  # 1.5
+      life_change_rate: -64424509  # -0.015
+      step_time: 2147483648  # 0.5
 
 # `Config.groundFireDamage` and `fireAttackInterval`: what a fire deals
 # a unit standing in it, and how often.

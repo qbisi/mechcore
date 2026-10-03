@@ -379,17 +379,50 @@ impl Simulation {
         Ok(struck)
     }
 
+    /// `PerformHitTargetEffect` of a hit no object dealt, only a side: a
+    /// fire's, or a buff's step on the unit it runs on. It takes the life, is
+    /// counted for the side, and records the damage and any death.
+    pub(in crate::fight) fn hit_with_no_object(
+        &mut self,
+        target: FightActorRef,
+        team: u32,
+        hit: (i64, bool),
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        let stroke = self.strike(target, None, team, hit)?;
+        self.count_hit(None, team, target, &stroke)?;
+        self.turned_unit_fell(target, &stroke);
+        if stroke.actual > 0 {
+            events.push(event(
+                None,
+                None,
+                Some(team),
+                Some(target.object_ref()),
+                EventPayload::Damage {
+                    amount: i32::try_from(stroke.actual)
+                        .map_err(|_| Error::new("damage exceeds i32"))?,
+                    skill_slot: None,
+                },
+            ));
+        }
+        if let Some(position) = stroke.death {
+            self.record_ends(vec![(target, position)], events);
+        }
+        Ok(())
+    }
+
     /// Takes one hit's damage off one target, unit or building alike.
     ///
     /// The one place this simulator takes life away. A unit remembers who hurt
     /// it and leaves the fight when it dies; a building stops being a target
-    /// when it falls.
+    /// when it falls. `amplified` is `PerformHitTargetEffect`'s
+    /// `isAmplifyDamageAffected`.
     pub(in crate::fight) fn strike(
         &mut self,
         target: FightActorRef,
         source: Option<ObjectRef>,
         source_team: u32,
-        amount: i64,
+        (amount, amplified): (i64, bool),
     ) -> Result<Stroke> {
         match target {
             FightActorRef::Unit(unit_id) => {
@@ -399,9 +432,16 @@ impl Simulation {
                     .ok_or_else(|| Error::new("damage target unit is absent"))?;
                 // `PerformHitTargetEffect` scales the hit by the unit's rate on
                 // damage taken before it takes any life, and counts it as taken
-                // with the rate's increases alone.
-                let taken = unit.stats.damage_taken_raised(amount)?;
-                let amount = unit.stats.damage_taken(amount)?;
+                // with the rate's increases alone; a hit that rate does not
+                // affect is taken whole.
+                let (taken, amount) = if amplified {
+                    (
+                        unit.stats.damage_taken_raised(amount)?,
+                        unit.stats.damage_taken(amount)?,
+                    )
+                } else {
+                    (amount, amount)
+                };
                 let previous_life = unit.life;
                 // `FightMech.OnHitted`: a shield with energy left takes the
                 // hit, as much of it as it holds, and the unit loses no life;
@@ -447,7 +487,11 @@ impl Simulation {
                 })
             }
             FightActorRef::Building(building_id) => {
-                let (amount, taken) = self.construction_damage_taken(building_id, amount)?;
+                let (amount, taken) = if amplified {
+                    self.construction_damage_taken(building_id, amount)?
+                } else {
+                    (amount, amount)
+                };
                 let building = self
                     .buildings
                     .iter_mut()
@@ -517,7 +561,7 @@ impl Simulation {
             }
         }
         for target in targets {
-            let stroke = self.strike(target, hit.source, hit.source_team, hit.amount)?;
+            let stroke = self.strike(target, hit.source, hit.source_team, (hit.amount, true))?;
             self.count_hit(hit.source, hit.source_team, target, &stroke)?;
             self.turned_unit_fell(target, &stroke);
             struck.targets.push(target);
@@ -863,7 +907,7 @@ impl Simulation {
         // Balls of `wall-laser.yaml` read `damage` and then
         // `building_destroyed`. A beam that took no life records no damage,
         // as no other hit does.
-        let stroke = self.strike(target, Some(attacker_ref), attacker_team, damage)?;
+        let stroke = self.strike(target, Some(attacker_ref), attacker_team, (damage, true))?;
         self.count_hit(Some(attacker_ref), attacker_team, target, &stroke)?;
         self.turned_unit_fell(target, &stroke);
         if let Some(position) = stroke.death {

@@ -367,27 +367,7 @@ impl Simulation {
             // damage through `PerformHitTargetEffect`, with no owner, under
             // the fire's side.
             TerrainEffect::Fire { damage, .. } => {
-                let target = FightActorRef::Unit(unit);
-                let stroke = self.strike(target, None, team, damage)?;
-                self.count_hit(None, team, target, &stroke)?;
-                self.turned_unit_fell(target, &stroke);
-                if stroke.actual > 0 {
-                    events.push(event(
-                        None,
-                        None,
-                        Some(team),
-                        Some(target.object_ref()),
-                        EventPayload::Damage {
-                            amount: i32::try_from(stroke.actual)
-                                .map_err(|_| Error::new("damage exceeds i32"))?,
-                            skill_slot: None,
-                        },
-                    ));
-                }
-                if let Some(position) = stroke.death {
-                    self.record_ends(vec![(target, position)], events);
-                }
-                Ok(())
+                self.hit_with_no_object(FightActorRef::Unit(unit), team, (damage, true), events)
             }
             // `FogController.PerformItemEffect`: the rate on every skill
             // that is not a melee attack, the controller its modifier.

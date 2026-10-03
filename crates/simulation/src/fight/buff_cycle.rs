@@ -50,6 +50,7 @@ impl Simulation {
                     disables_technology: false,
                     debuff: buff.debuff,
                     invincible: buff.invincible,
+                    life_change: None,
                 };
                 if self.buff_reaches(id, &row) {
                     events.push(self.write_buff(id, Some(source), team, &row)?);

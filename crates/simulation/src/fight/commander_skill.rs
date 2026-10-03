@@ -434,6 +434,10 @@ impl Simulation {
             disables_technology: buff.disable_technology,
             debuff: buff.debuff,
             invincible: buff.invincible,
+            life_change: (buff.life_change_rate != 0).then_some(super::tower::LifeChange {
+                rate: buff.life_change_rate,
+                step_ticks: buff.step_ticks,
+            }),
         };
         for &id in reached {
             // `BuffSystem.AddBuff` passes over the dead: a strike's damage
