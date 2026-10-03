@@ -187,6 +187,21 @@ A fight's buffs are cleared as the fight is left, on its last tick: after the
 towers it tore down when a side's last unit fell, and after everything else
 that tick did when a projectile landing after the last death decided it.
 
+## Photon Emission
+
+Photon Emission is a row of `buffCommanderSkills` with no fall: its
+`subEffectMoveSpeed` and `subEffectMoveTime` are zero, so its one sub-effect
+lands on tick `s + 2`, 14. Its buff, `40000`, takes 0.3 off the damage the unit
+takes and makes it invincible for 20 seconds, so a debuff, the Electromagnetic
+Impact's among them, does not reach it while the buff runs.
+
+Whose units a buff skill reaches turns on its buff (`BuffData.IsHarmful`). A
+harmful one, which slows or raises the damage taken, as the Electromagnetic
+Impact's does, reaches every unit in range of either side
+(`PerformNegativeEffect`). Any other reaches the releasing side's units alone
+(`PerformPositiveEffect`), in the order its target tree holds them: Photon
+Emission's reaches no enemy, however near.
+
 ## A summon
 
 A support skill, a row of `supportUnitCommanderSkills`, lands as any
@@ -400,6 +415,10 @@ drawn from any stream, and no event is written.
   `tests/battle_skill/fights/wasps.yaml`.
 - It reaches the releasing side's own units, blue's before red's:
   `tests/battle_skill/fights/own-side.yaml`.
+- Photon Emission lands on tick 14, writes its buff on the releasing side's
+  units in range and on no enemy, and its invincibility keeps an Electromagnetic
+  Impact's debuff off them: `tests/battle_skill/fights/photon-emission.yaml`,
+  `tests/battle_skill/fights/photon-emission-allies.yaml`.
 - A random circle's sub-effects are drawn from its side's stream before any
   first interval, land `subEffectIntervalTime` apart and strike
   `subEffectRange` about where each lands; each side draws from its own
@@ -565,6 +584,10 @@ drawn from any stream, and no event is written.
   `CommanderSkillDamageProvider.GetEffectTargetType`,
   `DamagePerformer.PrepareRangeTargets`,
   `RangeTargetCalculator.CalculateRangeActors`.
+- A sub-effect writes on either side when its buff is harmful and on its own
+  side's group otherwise: `CommanderSkillSubEffectController.PerformHitEffect`,
+  `CS_Buff.IsHarmful`, `BuffData.IsHarmful`, `BuffData.HarmfulCheck`,
+  `CommanderSkillSubEffectController.PerformPositiveEffect`.
 - A strike's sub-effects are placed as the fight starts, a random circle's
   by two draws each of its side's stream in tenths and a line's evenly along
   it: `CSRC_Common.OnFightStart`,

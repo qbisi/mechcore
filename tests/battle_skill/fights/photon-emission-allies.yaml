@@ -1,0 +1,23 @@
+# Photon Emission between the two sides: its 110 metres reach red's Marksman
+# and Crawlers as well as blue's Marksmen, and its buff is written on blue's
+# two units alone. The buff is not harmful, so the skill's landing writes it
+# on its own side's units, as `PerformPositiveEffect` asks.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 216
+hash: {profile: mcfr-content-0.7.0, result: 21e884aa8c8f0b05b8ad39646e4e2743da9af05a5180885b4f6fcba0847e6bdf}
+blue:
+  core_damage: 80
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -100}, exp: 0/32/650}
+  - {name: marksman, index: 1, position: {x: 20, y: -100}}
+  battle_skills:
+  - {name: photon_emission, positions: [{x: 0, y: -10}]}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -60}, exp: 0/200/650}
+  - {name: crawler, index: 1, position: {x: 25, y: -60}, exp: 0/200/450}
