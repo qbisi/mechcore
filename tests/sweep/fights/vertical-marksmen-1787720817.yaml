@@ -1,0 +1,20 @@
+# The Abyss with Vertical Sweep against two Marksmen standing one behind the
+# other on its line: the strip along the line reaches the one behind.
+
+kind: fight
+map_id: 1021
+seed: 1787720817
+round: 1
+source: game
+ticks: 106
+hash: {profile: mcfr-content-0.7.0, result: 8c9ab2e408115e0370ad86f338e68144c7d55a602cb08716e40bd0021ef4ea69}
+blue:
+  techs:
+    abyss: [vertical_sweep]
+  units:
+  - {name: abyss, index: 0, position: {x: 5, y: -105}, exp: 0/400/4800}
+red:
+  core_damage: 500
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -70}}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}}

@@ -68,11 +68,17 @@ SUBCLASS_LISTS = (
 SUBCLASS_SCALARS = (
     ("start_time", "startTime", "autoRecoveryTechnologies"),
     ("auto_recovery_state_type", "autoRecoveryStateType", "autoRecoveryTechnologies"),
+    ("sweep_skill_id", "skillID", "sweepSkillIntensifyTechDatas"),
+    ("sweep_width_value", "widthChangeValue", "sweepSkillIntensifyTechDatas"),
+    ("sweep_length_value", "lengthChangeValue", "sweepSkillIntensifyTechDatas"),
+    ("sweep_perpendicular", "isAttackDirectionPerpendicular", "sweepSkillIntensifyTechDatas"),
+    ("sweep_reverse", "isReverse", "sweepSkillIntensifyTechDatas"),
+    ("sweep_fixed_direction", "isDiableDirectionChange", "sweepSkillIntensifyTechDatas"),
 )
 # The lists whose rows say in `special` what they set beyond the fields
 # this table carries: the plain one, and each subclass's the simulator reads.
 IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnologies",
-               "energyShieldTechnologies")
+               "energyShieldTechnologies", "sweepSkillIntensifyTechDatas")
 # The list of `TechnologyGroupData` a plain technology comes from. A row of any
 # other list is a subclass (`BuffTechnologyData`, `SplashTechnologyData` and
 # the rest) that does something beyond its unit's numbers.
@@ -269,7 +275,10 @@ def main() -> int:
         "# damage its unit takes back as life, and a repair technology the",
         "# seconds hurt before it repairs, the state it repairs in (0 always,",
         "# 1 underground, 2 cloaked), the seconds between two repairs and the",
-        "# share of maximum life each restores.",
+        "# share of maximum life each restores. A sweep technology names the",
+        "# skill it changes and the metres it adds to the strip's width and",
+        "# length, and sets whether the strip lies across the line to the",
+        "# target, runs backwards, and keeps one direction.",
         "",
         "technologies:",
     ]
@@ -299,7 +308,8 @@ def main() -> int:
         ]
         for field, source, owner in SUBCLASS_SCALARS:
             if row["kind"] == owner:
-                lines.append(f"    {field}: {row[field]}")
+                value = row[field]
+                lines.append(f"    {field}: {str(value).lower() if isinstance(value, bool) else value}")
         for field, values in held:
             raw = ", ".join(str(value) for value in values)
             if field in INTEGERS:

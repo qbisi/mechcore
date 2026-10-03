@@ -63,6 +63,23 @@ pub(crate) struct StartBuff {
     pub(crate) amplify_damage_rate: i64,
 }
 
+/// What a `SweepSkillIntensifyTech` hands its unit's sweep
+/// (`SweepSkillIntensifyEffectProvider`): metres onto the strip's width and
+/// length, and how it lies and runs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct SweepIntensify {
+    pub(crate) width_value: i32,
+    pub(crate) length_value: i32,
+    /// `isAttackDirectionPerpendicular`: whether the strip lies across the
+    /// line to the target.
+    pub(crate) perpendicular: bool,
+    /// `isReverse`: whether it runs the other way.
+    pub(crate) reverse: bool,
+    /// `isDiableDirectionChange`: whether it keeps one direction attack after
+    /// attack.
+    pub(crate) fixed_direction: bool,
+}
+
 /// What an `IEnergyShieldSource` answers: the share of its unit's maximum
 /// life its shield holds.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

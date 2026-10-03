@@ -1,0 +1,19 @@
+# The Abyss with Vertical Sweep against a Rhino: the strip lies along the
+# line to the target and runs one way every attack.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 171
+hash: {profile: mcfr-content-0.7.0, result: 9216e905e0dfc7545e30111a8820f98507590ea50c348a32017057d980d21e86}
+blue:
+  techs:
+    abyss: [vertical_sweep]
+  units:
+  - {name: abyss, index: 0, position: {x: 5, y: -105}, exp: 0/400/4800}
+red:
+  core_damage: 500
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -105}}

@@ -23,7 +23,10 @@ schema: mechcore.technology_effects
 # damage its unit takes back as life, and a repair technology the
 # seconds hurt before it repairs, the state it repairs in (0 always,
 # 1 underground, 2 cloaked), the seconds between two repairs and the
-# share of maximum life each restores.
+# share of maximum life each restores. A sweep technology names the
+# skill it changes and the metres it adds to the strip's width and
+# length, and sets whether the strip lies across the line to the
+# target, runs backwards, and keeps one direction.
 
 technologies:
   - id: 206
@@ -574,6 +577,12 @@ technologies:
     name: 纵扫
     unit: abyss
     kind: sweepSkillIntensifyTechDatas
+    sweep_skill_id: 29001
+    sweep_width_value: 0
+    sweep_length_value: 0
+    sweep_perpendicular: false
+    sweep_reverse: false
+    sweep_fixed_direction: true
     damage_rate: [2147483648]  # +0.5
   - id: 4418
     name: 地面巡航

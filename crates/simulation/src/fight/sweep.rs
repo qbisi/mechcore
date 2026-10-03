@@ -7,6 +7,7 @@ use std::collections::VecDeque;
 use super::rvo::FixedVec2;
 use super::skill::Performer;
 use super::*;
+use crate::modifier::SweepIntensify;
 
 /// One stretch of the strip, `LineRange`: from `start` to `end`, the sweep's
 /// width wide.
@@ -44,6 +45,8 @@ pub(in crate::fight) struct Sweep {
 /// The sweep path's numbers, read off the unit's attack.
 struct SweepShape {
     perpendicular: bool,
+    reverse: bool,
+    fixed_direction: bool,
     length: i64,
     width_q32: i64,
     damage_times: u32,
@@ -62,7 +65,10 @@ fn truncated_q32(value: f64) -> i64 {
     (value * 4_294_967_296.0) as i64
 }
 
-fn shape_of(attack: &AttackConfig) -> Option<SweepShape> {
+/// The unit's sweep as its technologies leave it: `FightSweepSkill`'s
+/// `ChangeLength` and `ChangeWidth` add their metres, none below nothing, and
+/// the rest set how the strip lies and runs.
+fn shape_of(attack: &AttackConfig, intensify: Option<SweepIntensify>) -> Option<SweepShape> {
     let AttackPath::Sweep {
         perpendicular,
         length,
@@ -76,10 +82,16 @@ fn shape_of(attack: &AttackConfig) -> Option<SweepShape> {
     else {
         return None;
     };
+    let changed = |base: u32, change: Option<i32>| {
+        let total = i64::from(base) + i64::from(change.unwrap_or(0));
+        if total < 1 { 0 } else { total }
+    };
     Some(SweepShape {
-        perpendicular: *perpendicular,
-        length: i64::from(*length),
-        width_q32: i64::from(*width) << 32,
+        perpendicular: intensify.map_or(*perpendicular, |sweep| sweep.perpendicular),
+        reverse: intensify.is_some_and(|sweep| sweep.reverse),
+        fixed_direction: intensify.is_some_and(|sweep| sweep.fixed_direction),
+        length: changed(*length, intensify.map(|sweep| sweep.length_value)),
+        width_q32: changed(*width, intensify.map(|sweep| sweep.width_value)) << 32,
         damage_times: (*damage_times).max(1),
         damage_interval_q32: truncated_q32(*damage_interval),
         damage_delay_q32: truncated_q32(*damage_delay),
@@ -146,10 +158,11 @@ impl Sweep {
     /// `SweepAttackPerformer.Start`.
     pub(in crate::fight) fn starting(
         attack: &AttackConfig,
+        intensify: Option<SweepIntensify>,
         aimed: Option<FightActorRef>,
         attack_count: i32,
     ) -> Option<Self> {
-        let shape = shape_of(attack)?;
+        let shape = shape_of(attack, intensify)?;
         let damage_frame = q32_div(shape.damage_interval_q32, NATIVE_LOGIC_DELTA_Q32) >> 32;
         Some(Self {
             stretches: VecDeque::new(),
@@ -236,8 +249,12 @@ impl Simulation {
                 y: direction.x.saturating_neg(),
             };
         }
-        // `isEvenAttack`: an even attack sweeps the other way.
-        if attack_count.rem_euclid(2) == 0 {
+        if shape.reverse {
+            direction = FixedVec2::ZERO.sub(direction);
+        }
+        // `isEvenAttack`: an even attack sweeps the other way, unless the
+        // direction is kept.
+        if !shape.fixed_direction && attack_count.rem_euclid(2) == 0 {
             direction = FixedVec2::ZERO.sub(direction);
         }
         let span = direction.normalized().mul(shape.length << 32);
@@ -270,7 +287,8 @@ impl Simulation {
         actor_id: u64,
         events: &mut Vec<Event>,
     ) -> Result<bool> {
-        let Some(shape) = shape_of(&self.actors[&actor_id].rules.attack) else {
+        let actor = &self.actors[&actor_id];
+        let Some(shape) = shape_of(&actor.rules.attack, actor.placement.sweep) else {
             return Ok(true);
         };
         let Performer::Sweep(sweep) = &self.actors[&actor_id].skill.performer else {
