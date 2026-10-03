@@ -439,20 +439,10 @@ impl Simulation {
 }
 
 impl Simulation {
-    /// Every skill's first interval, drawn at deployment from its side's
-    /// stream: one draw per skill the owner runs, units in identity order and
-    /// then constructions, and the first draw kept as the owner's current
-    /// interval. Nothing schedules an attack yet, so the draw is kept rather
-    /// than consumed and discarded.
-    ///
-    /// A side's stream is seeded `(round + team) × 4444`. The Anti-Armor
-    /// Turret's shots in `tests/turret/` are 49 48 52 50 50 ticks apart, which
-    /// is blue's stream past the Marksman's draw and one more: the
-    /// construction draws after every unit.
-    pub(in crate::fight) fn deploy_attack_intervals(&mut self, round: u32) -> Result<()> {
-        // `FightTeam.random`: every side's stream starts with the fight, from
-        // the round and the side, whether or not anything of the side draws
-        // from it before the fight has begun.
+    /// `FightTeam.random`: every side's stream starts with the fight, from
+    /// the round and the side, whether or not anything of the side draws
+    /// from it before the fight has begun.
+    pub(in crate::fight) fn start_side_streams(&mut self, round: u32) {
         for team in [0_u32, 1] {
             self.team_random.entry(team).or_insert_with(|| {
                 GrRandom::new(u64::from(
@@ -464,6 +454,19 @@ impl Simulation {
                 ))
             });
         }
+    }
+
+    /// Every skill's first interval, drawn at deployment from its side's
+    /// stream: one draw per skill the owner runs, units in identity order and
+    /// then constructions, and the first draw kept as the owner's current
+    /// interval. Nothing schedules an attack yet, so the draw is kept rather
+    /// than consumed and discarded.
+    ///
+    /// A side's stream is seeded `(round + team) × 4444`. The Anti-Armor
+    /// Turret's shots in `tests/turret/` are 49 48 52 50 50 ticks apart, which
+    /// is blue's stream past the Marksman's draw and one more: the
+    /// construction draws after every unit.
+    pub(in crate::fight) fn deploy_attack_intervals(&mut self) -> Result<()> {
         let owners = self
             .units_in_update_order()
             .into_iter()

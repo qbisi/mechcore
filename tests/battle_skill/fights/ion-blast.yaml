@@ -1,0 +1,30 @@
+# Ion Blast across red's advance, from 90 metres left to 90 right.
+#
+# Its sixty sub-effects stand evenly along the line, 180 metres over 59
+# spacings, each striking 20 metres about where it lands for 2400. The first
+# lands on tick 62; the next is activated five updates later and every one
+# after six, the 0.3 seconds between them: ticks 67, 73, 79 and on. Fourteen
+# strike something, 39 hits in all.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 790
+hash: {profile: mcfr-content-0.7.0, result: 11a9f056a50cdf49c9ecd2abdf1eac7139a895c902cdc68d95f9abf4e7c718a9}
+blue:
+  units:
+  - {name: fortress, index: 0, position: {x: -60, y: -160}, exp: 0/796/1600}
+  - {name: fortress, index: 1, position: {x: 60, y: -160}, exp: 0/980/1600}
+  battle_skills:
+  - {name: ion_blast, positions: [{x: -90, y: 40}, {x: 90, y: 40}]}
+red:
+  core_damage: 700
+  units:
+  - {name: sledgehammer, index: 0, position: {x: -45, y: -60}}
+  - {name: sledgehammer, index: 1, position: {x: 5, y: -60}}
+  - {name: sledgehammer, index: 2, position: {x: 55, y: -60}}
+  - {name: crawler, index: 3, position: {x: 5, y: -110}}
+  - {name: crawler, index: 4, position: {x: -55, y: -110}}
+  - {name: crawler, index: 5, position: {x: 65, y: -110}}

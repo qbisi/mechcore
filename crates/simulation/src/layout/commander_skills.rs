@@ -69,6 +69,9 @@ struct DamageSkillRow {
     sub_effect_move_speed: i64,
     sub_effect_move_time: i64,
     sub_effect_default_height: i64,
+    sub_effect_count: u32,
+    sub_effect_range: i64,
+    sub_effect_interval_time: i64,
     cross_advanced_shield: bool,
 }
 
@@ -172,15 +175,19 @@ pub(crate) enum SkillEffect {
     },
     /// `SupportUnitEffectController`: a creator of summons.
     Summon(Box<Summon>),
-    /// `CS_Damage`'s: the skill's damage over its circle.
+    /// `CS_Damage`'s: the skill's damage over each sub-effect's circle.
     Strike {
-        /// `FPoint` raw metres, the circle's radius.
+        /// `FPoint` raw metres, each circle's radius: `subEffectRange`, which
+        /// `CommanderSkillData.PreProcess` makes a circle's `effectRange`.
         range_q32: i64,
         damage: i64,
         /// `isCrossAdvancedShield`: it passes shields, falling and landing.
         crosses_shields: bool,
-        /// How its sub-effect falls, which a shield can stop.
-        fall: Fall,
+        /// Where `CommanderSkillManager.CalculateAttackPositions` puts the
+        /// sub-effects about the release.
+        scatter: Scatter,
+        /// The sub-effects still to land, in the order they are activated.
+        sub_effects: Vec<SubEffect>,
     },
     /// `CS_EnergyShield`'s: a shield of the side, standing where it lands.
     Shield {
@@ -196,6 +203,31 @@ pub(crate) enum SkillEffect {
         /// unit is selected, and how wide each segment is.
         width_q32: i64,
     },
+}
+
+/// How `CommanderSkillManager.CalculateAttackPositions` places a skill's
+/// sub-effects about its release.
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum Scatter {
+    /// A circle: its one sub-effect on the release.
+    Point,
+    /// A random circle: each sub-effect drawn within `radius_q32`, the row's
+    /// `effectRange` less its `subEffectRange`, of the release, from the
+    /// side's stream at the fight's start.
+    RandomCircle { radius_q32: i64 },
+    /// A line: the sub-effects evenly from the release to its second
+    /// position, `FPoint` raw metres in the world.
+    Line { to_q32: (i64, i64) },
+}
+
+/// One sub-effect, `CommanderSkillSubEffectAgent`: where it lands, `FPoint`
+/// raw metres in the world, when, and how it falls there.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct SubEffect {
+    pub(crate) x_q32: i64,
+    pub(crate) z_q32: i64,
+    pub(crate) lands_on: u64,
+    pub(crate) fall: Fall,
 }
 
 /// A sub-effect's fall, `CommanderSkillSubEffectAgent`: from the tick after
@@ -338,13 +370,13 @@ impl CommanderSkillEffects {
         })
     }
 
-    /// A released battle skill, as `CSRC_Common` releases it: its one
-    /// sub-effect falling on the release's position, on its side's half.
+    /// A released battle skill, as `CSRC_Common` releases it: its
+    /// sub-effects falling about the release's position, on its side's half.
     ///
-    /// The table's rows are circles, `effectRangeType` 0, which
+    /// Every kind but a damage skill is a circle, `effectRangeType` 0, which
     /// `CommanderSkillData.PreProcess` makes one sub-effect reaching
-    /// `effectRange` with no interval, so the row's own `subEffectCount`,
-    /// `subEffectRange` and `subEffectIntervalTime` are never read.
+    /// `effectRange`. A damage skill's random circle or line scatters its
+    /// row's `subEffectCount`, `subEffectIntervalTime` apart.
     ///
     /// # Errors
     ///
@@ -389,26 +421,11 @@ impl CommanderSkillEffects {
                     },
                 )
             } else if let Some(row) = self.strikes.iter().find(|row| row.id == id) {
-                if row.sub_effect_buff_id != 0 {
-                    return Err(Error::new(format!(
-                        "{named}, {}, writes buff {}, which this build does not read",
-                        row.name, row.sub_effect_buff_id
-                    )));
-                }
+                let named = format!("{named}, {}", row.name);
                 (
                     row.name.as_str(),
                     Common::of_strike(row),
-                    SkillEffect::Strike {
-                        range_q32: row.effect_range,
-                        damage: row.sub_effect_damage,
-                        crosses_shields: row.cross_advanced_shield,
-                        fall: fall(
-                            row.start_time,
-                            row.sub_effect_move_time,
-                            row.sub_effect_move_speed,
-                            row.sub_effect_default_height,
-                        )?,
-                    },
+                    strike_effect(&named, row)?,
                 )
             } else {
                 return Err(Error::new(
@@ -422,36 +439,123 @@ impl CommanderSkillEffects {
                     },
                 ));
             };
-        let named = format!("{named}, {row_name}");
-        // `scope` is when the card may be used, which nothing in the fight
-        // reads.
-        if (common.effect_type, common.effect_range_type) != (0, 0) {
-            return Err(Error::new(format!(
-                "{named} has effect type {} over range type {}, which this build does not read",
-                common.effect_type, common.effect_range_type
-            )));
+        released(
+            team,
+            skill,
+            &format!("{named}, {row_name}"),
+            &common,
+            effect,
+        )
+    }
+}
+
+/// A release at its positions, on its side's half: a strike's sub-effects
+/// stand on its first until the fight places them, and a line's second is
+/// where it runs to.
+fn released(
+    team: u32,
+    skill: &BattleSkill,
+    named: &str,
+    common: &Common,
+    mut effect: SkillEffect,
+) -> Result<SkillRelease> {
+    // `scope` is when the card may be used, which nothing in the fight
+    // reads. A strike's range type is its scatter; every other kind is a
+    // circle.
+    let strike = matches!(effect, SkillEffect::Strike { .. });
+    let range_type = if strike { 0 } else { common.effect_range_type };
+    if (common.effect_type, range_type) != (0, 0) {
+        return Err(Error::new(format!(
+            "{named} has effect type {} over range type {}, which this build does not read",
+            common.effect_type, common.effect_range_type
+        )));
+    }
+    let line = matches!(
+        effect,
+        SkillEffect::Strike {
+            scatter: Scatter::Line { .. },
+            ..
         }
-        let [position] = skill.positions.as_slice() else {
-            return Err(Error::new(format!(
-                "{named} is released at {} positions, not one",
-                skill.positions.len()
-            )));
-        };
+    );
+    let wanted = if line { 2 } else { 1 };
+    if skill.positions.len() != wanted {
+        return Err(Error::new(format!(
+            "{named} is released at {} positions, not {wanted}",
+            skill.positions.len()
+        )));
+    }
+    let world = |position: &mechcore_document::Position| {
         let (local_x, local_z) = (i64::from(position.x), i64::from(position.y));
-        let (x, z) = if team == 0 {
+        if team == 0 {
             (local_x, local_z)
         } else {
             (-local_x, -local_z)
-        };
-        Ok(SkillRelease {
-            team,
-            name: skill.type_name.clone(),
-            x: x * SPACE,
-            z: z * SPACE,
-            lands_on: lands_on(common.start_time, common.move_time, common.move_speed)?,
-            effect,
-        })
+        }
+    };
+    let (x, z) = world(&skill.positions[0]);
+    let mut lands = lands_on(common.start_time, common.move_time, common.move_speed)?;
+    if let SkillEffect::Strike {
+        scatter,
+        sub_effects,
+        ..
+    } = &mut effect
+    {
+        if let Scatter::Line { to_q32 } = scatter {
+            let (to_x, to_z) = world(&skill.positions[1]);
+            *to_q32 = (to_x << 32, to_z << 32);
+        }
+        for sub_effect in sub_effects.iter_mut() {
+            (sub_effect.x_q32, sub_effect.z_q32) = (x << 32, z << 32);
+        }
+        lands = sub_effects.last().map_or(lands, |last| last.lands_on);
     }
+    Ok(SkillRelease {
+        team,
+        name: skill.type_name.clone(),
+        x: x * SPACE,
+        z: z * SPACE,
+        lands_on: lands,
+        effect,
+    })
+}
+
+/// A damage skill's strike: its sub-effects, scattered as its range type
+/// says, each timed off its row and striking `subEffectRange` about where it
+/// lands.
+fn strike_effect(named: &str, row: &DamageSkillRow) -> Result<SkillEffect> {
+    if row.sub_effect_buff_id != 0 {
+        return Err(Error::new(format!(
+            "{named} writes buff {}, which this build does not read",
+            row.sub_effect_buff_id
+        )));
+    }
+    let scatter = match row.effect_range_type {
+        0 => Scatter::Point,
+        1 => Scatter::Line { to_q32: (0, 0) },
+        2 => Scatter::RandomCircle {
+            radius_q32: row.effect_range.saturating_sub(row.sub_effect_range),
+        },
+        other => {
+            return Err(Error::new(format!(
+                "{named} has range type {other}, which this build does not read"
+            )));
+        }
+    };
+    Ok(SkillEffect::Strike {
+        range_q32: row.sub_effect_range,
+        damage: row.sub_effect_damage,
+        crosses_shields: row.cross_advanced_shield,
+        scatter,
+        sub_effects: schedule(row)?
+            .into_iter()
+            .map(|(lands_on, fall)| SubEffect {
+                x_q32: 0,
+                z_q32: 0,
+                lands_on,
+                fall,
+            })
+            .collect(),
+    })
 }
 
 /// What every kind of skill row holds that places and times its release.
@@ -606,6 +710,54 @@ fn lands_on(start_raw: i64, move_time_raw: i64, speed_raw: i64) -> Result<u64> {
         .map_err(|_| Error::new("a battle skill lands before the fight begins"))
 }
 
+/// When each of a strike's sub-effects lands, and how it falls.
+///
+/// `CSRS_Perform` enters with its `time` at `(startTime - subEffectTime) /
+/// LogicDeltaTime` and adds one on every update; after its agents have moved
+/// it activates the next sub-effect, at most one an update, once `startTime +
+/// subEffectIntervalTime x activated - subEffectTime`, each in whole ticks, is
+/// no later than that `time`, and on every update when `subEffectTime` is
+/// zero. The first is activated on its first update, which is the one
+/// `lands_on` and `fall` count, and a later one that many updates after.
+fn schedule(row: &DamageSkillRow) -> Result<Vec<(u64, Fall)>> {
+    let first_lands = lands_on(
+        row.start_time,
+        row.sub_effect_move_time,
+        row.sub_effect_move_speed,
+    )?;
+    let first_fall = fall(
+        row.start_time,
+        row.sub_effect_move_time,
+        row.sub_effect_move_speed,
+        row.sub_effect_default_height,
+    )?;
+    let (start, interval, move_time) = (
+        ticks(row.start_time)?,
+        ticks(row.sub_effect_interval_time)?,
+        ticks(row.sub_effect_move_time)?,
+    );
+    let entered = ticks(row.start_time.saturating_sub(row.sub_effect_move_time))?;
+    let mut update = 0_i64;
+    let mut landings = Vec::new();
+    for activated in 0..i64::from(row.sub_effect_count.max(1)) {
+        update = if row.sub_effect_move_time == 0 {
+            update + 1
+        } else {
+            (update + 1).max(start + interval * activated - move_time - entered)
+        };
+        let later = u64::try_from(update - 1)
+            .map_err(|_| Error::new("a sub-effect is activated before the first"))?;
+        landings.push((
+            first_lands + later,
+            Fall {
+                first_move_on: first_fall.first_move_on + later,
+                ..first_fall
+            },
+        ));
+    }
+    Ok(landings)
+}
+
 /// The fall `lands_on` counts: `CSRS_Perform` activates the sub-effect on
 /// the tick after preparing hands over, and it moves from the next, from
 /// `speed x min(startTime, moveTime)` above its default height.
@@ -626,9 +778,19 @@ fn multiply(left: i64, right: i64) -> i64 {
 }
 
 /// A time in seconds as whole ticks, `(int)(time / LogicDeltaTime)` in `FPoint`
-/// division.
+/// division: `FPoint.RawDiv` rounds the quotient's magnitude to the nearest
+/// raw unit, and the cast keeps the whole part below it, so -1.5 seconds is
+/// -31 ticks.
 fn ticks(seconds_raw: i64) -> Result<i64> {
-    let quotient = (i128::from(seconds_raw) << 32) / i128::from(LOGIC_DELTA_RAW);
+    let scaled = u128::from(seconds_raw.unsigned_abs()) << 32;
+    let divisor = u128::from(LOGIC_DELTA_RAW.unsigned_abs());
+    let magnitude = scaled / divisor + u128::from((scaled % divisor) * 2 >= divisor);
+    let magnitude = i128::try_from(magnitude).unwrap_or(i128::MAX);
+    let quotient = if seconds_raw < 0 {
+        -magnitude
+    } else {
+        magnitude
+    };
     i64::try_from(quotient >> 32).map_err(|_| {
         Error::new(format!(
             "a battle skill time of {seconds_raw} is not a tick count"
@@ -722,5 +884,28 @@ mod tests {
         assert_eq!(lands_on(seconds(30), seconds(45), 650 << 32).unwrap(), 63);
         // Orbital Javelin: 3 s against a 2 s fall at 1000 m/s.
         assert_eq!(lands_on(seconds(30), seconds(20), 1000 << 32).unwrap(), 62);
+    }
+
+    /// A scattered strike's sub-effects land as the recordings have them:
+    /// Orbital Bombardment's every 20 ticks from 63, Ion Blast's on 62, 67
+    /// and every six after (`tests/battle_skill/fights/`).
+    #[test]
+    fn a_scattered_strikes_sub_effects_land_their_interval_apart() {
+        let table = CommanderSkillEffects::load().unwrap();
+        let landings = |id: i32| {
+            let row = table.strikes.iter().find(|row| row.id == id).unwrap();
+            schedule(row)
+                .unwrap()
+                .into_iter()
+                .map(|(lands_on, _)| lands_on)
+                .collect::<Vec<_>>()
+        };
+        let orbital = landings(300_003);
+        assert_eq!(orbital.len(), 15);
+        assert_eq!(&orbital[..3], [63, 83, 103]);
+        assert_eq!(orbital[14], 343);
+        let ion = landings(300_006);
+        assert_eq!(ion.len(), 60);
+        assert_eq!(&ion[..4], [62, 67, 73, 79]);
     }
 }

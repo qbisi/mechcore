@@ -53,6 +53,32 @@ impl GrRandom {
         i32::try_from(self.next_inclusive(i64::from(1 - range), i64::from(range - 1)))
             .expect("the sample remains inside the i32 input range")
     }
+
+    /// `NextFixInRangePrecision`, which `NextFixInRange10` and
+    /// `NextFixInRange100` call: an `FPoint` within `range` either way, a
+    /// whole number of `factor_raw`s, the build's `C0_1` or `C0_01`. The range
+    /// is counted in those steps by `FPoint.RoundToInt`, which rounds a half to
+    /// the even neighbour, and the step is the truncated constant, so a draw
+    /// of `n` is `n x factor_raw` exactly.
+    ///
+    /// `None` for a range of less than half a step, which leaves nothing to
+    /// draw from.
+    pub(crate) fn next_fix_in_range(
+        &mut self,
+        range_q32: i64,
+        precision: i32,
+        factor_raw: i64,
+    ) -> Option<i64> {
+        let scaled = super::math::q32_mul(range_q32, i64::from(precision) << 32);
+        let (whole, fraction) = (scaled >> 32, scaled & 0xFFFF_FFFF);
+        let steps = match fraction.cmp(&0x8000_0000) {
+            std::cmp::Ordering::Less => whole,
+            std::cmp::Ordering::Equal => whole + (whole & 1),
+            std::cmp::Ordering::Greater => whole + 1,
+        };
+        let steps = i32::try_from(steps).ok().filter(|steps| *steps > 0)?;
+        Some(i64::from(self.next_in_range(steps)) * factor_raw)
+    }
 }
 
 #[cfg(test)]

@@ -14,7 +14,7 @@ use super::rvo::fpoint_less_or_equal;
 use super::*;
 use crate::{
     data::{Entry, Index},
-    layout::{SkillBuff, SkillEffect, SkillRelease},
+    layout::{Scatter, SkillBuff, SkillEffect, SkillRelease, SubEffect},
 };
 
 /// `CommanderSkillSystem`: the releases still to land, and which sides a
@@ -42,6 +42,66 @@ impl CommanderSkillSystem {
 const SKILL_SOURCE: &str = "BuffSystem.CommanderSkill";
 
 impl Simulation {
+    /// `CSRC_Common.OnFightStart`: each release's
+    /// `CommanderSkillManager.CalculateAttackPositions`, side by side in
+    /// release order, after every unit has drawn its first intervals.
+    ///
+    /// A random circle draws each sub-effect's x and then its z from its
+    /// side's stream in tenths: the x within the circle's radius `r`, the z
+    /// within `sqrt(r² - x²)`, so the point stays inside. A line puts its
+    /// `n` sub-effects `length / (n - 1)` apart from the release towards its
+    /// second position, each the way there clamped to its distance.
+    pub(in crate::fight) fn place_sub_effects(&mut self) -> Result<()> {
+        for index in 0..self.commander.releases.len() {
+            let team = self.commander.releases[index].team;
+            let SkillEffect::Strike {
+                scatter,
+                sub_effects,
+                ..
+            } = &self.commander.releases[index].effect
+            else {
+                continue;
+            };
+            let (scatter, mut sub_effects) = (*scatter, sub_effects.clone());
+            let count = i64::try_from(sub_effects.len()).unwrap_or(i64::MAX);
+            for (step, sub_effect) in (0_i64..).zip(sub_effects.iter_mut()) {
+                let (x_q32, z_q32) = (sub_effect.x_q32, sub_effect.z_q32);
+                (sub_effect.x_q32, sub_effect.z_q32) = match scatter {
+                    Scatter::Point => (x_q32, z_q32),
+                    Scatter::RandomCircle { radius_q32 } => {
+                        let random = self.side_random(team)?;
+                        let across = random
+                            .next_fix_in_range(radius_q32, 10, C0_1_RAW)
+                            .ok_or_else(|| Error::new("a random circle has no radius"))?;
+                        let room = fpcs_sqrt_fastest(
+                            q32_mul(radius_q32, radius_q32).saturating_sub(q32_mul(across, across)),
+                        );
+                        let along = random.next_fix_in_range(room, 10, C0_1_RAW).unwrap_or(0);
+                        (x_q32.saturating_add(across), z_q32.saturating_add(along))
+                    }
+                    Scatter::Line {
+                        to_q32: (to_x, to_z),
+                    } => {
+                        let (dx, dz) = (to_x.saturating_sub(x_q32), to_z.saturating_sub(z_q32));
+                        let spacing =
+                            q32_div(native_q32_magnitude(dx, dz), (count - 1).max(1) << 32);
+                        let (ox, oz) =
+                            clamp_magnitude_q32_raw(dx, dz, q32_mul(spacing, step << 32));
+                        (x_q32.saturating_add(ox), z_q32.saturating_add(oz))
+                    }
+                };
+            }
+            if let SkillEffect::Strike {
+                sub_effects: placed,
+                ..
+            } = &mut self.commander.releases[index].effect
+            {
+                *placed = sub_effects;
+            }
+        }
+        Ok(())
+    }
+
     /// `CommanderSkillSystem`'s update: every release whose sub-effect lands
     /// on this tick, in the order the sides released them.
     pub(in crate::fight) fn step_battle_skills(
@@ -54,27 +114,32 @@ impl Simulation {
         let mut index = 0;
         while index < self.commander.releases.len() {
             let release = self.commander.releases[index].clone();
-            // A falling strike that cannot cross shields stops at the first it
-            // comes inside, before it would land, and strikes there.
             if let SkillEffect::Strike {
                 range_q32,
                 damage,
-                crosses_shields: false,
-                fall,
+                crosses_shields,
+                sub_effects,
                 ..
             } = &release.effect
-                && tick <= release.lands_on
-                && let Some(height) = fall.height_on(tick)
             {
-                let last = fall.height_on(tick - 1).unwrap_or(fall.start_q32);
-                let (x_q32, z_q32) = (space_to_q32(release.x), space_to_q32(release.z));
-                if let Some((_, point)) =
-                    self.falling_into_shield((x_q32, height, z_q32), (x_q32, last, z_q32))
-                {
+                let falling = self.step_sub_effects(
+                    &release,
+                    (*range_q32, *damage, *crosses_shields),
+                    sub_effects,
+                    tick,
+                    events,
+                )?;
+                if falling.is_empty() {
                     self.commander.releases.remove(index);
-                    self.strike_circle(&release, *range_q32, *damage, false, point, events)?;
                     continue;
                 }
+                if let SkillEffect::Strike { sub_effects, .. } =
+                    &mut self.commander.releases[index].effect
+                {
+                    *sub_effects = falling;
+                }
+                index += 1;
+                continue;
             }
             index += 1;
             if release.lands_on != tick {
@@ -101,24 +166,9 @@ impl Simulation {
                     let reached = self.skill_reach(&release, *range_q32, target_search_order);
                     self.write_skill_buff(&release, buff, &reached, events)?;
                 }
-                SkillEffect::Strike {
-                    range_q32,
-                    damage,
-                    crosses_shields,
-                    ..
-                } => {
-                    let point = (space_to_q32(release.x), 0, space_to_q32(release.z));
-                    self.strike_circle(
-                        &release,
-                        *range_q32,
-                        *damage,
-                        *crosses_shields,
-                        point,
-                        events,
-                    )?;
-                }
-                // Given out as the fight starts, and never landed.
-                SkillEffect::Path { .. } => {}
+                // A strike's sub-effects land above, and a path is given out
+                // as the fight starts and never lands.
+                SkillEffect::Strike { .. } | SkillEffect::Path { .. } => {}
                 SkillEffect::Shield { radius_q32, energy } => {
                     self.create_shield(release.team, release.x, release.z, *radius_q32, *energy);
                 }
@@ -138,6 +188,44 @@ impl Simulation {
             }
         }
         Ok(())
+    }
+
+    /// `CSRS_Perform`'s update of a strike's agents, in the order they were
+    /// activated: one that lands on this tick strikes where it lands, and one
+    /// that cannot cross shields stops at the first it comes inside as it
+    /// falls, before it would land, and strikes there. Answers the ones still
+    /// to land.
+    fn step_sub_effects(
+        &mut self,
+        release: &SkillRelease,
+        (range_q32, damage, crosses_shields): (i64, i64, bool),
+        sub_effects: &[SubEffect],
+        tick: u64,
+        events: &mut Vec<Event>,
+    ) -> Result<Vec<SubEffect>> {
+        let mut falling = Vec::new();
+        for sub_effect in sub_effects {
+            let (x_q32, z_q32, fall) = (sub_effect.x_q32, sub_effect.z_q32, sub_effect.fall);
+            if !crosses_shields
+                && tick <= sub_effect.lands_on
+                && let Some(height) = fall.height_on(tick)
+            {
+                let last = fall.height_on(tick - 1).unwrap_or(fall.start_q32);
+                if let Some((_, point)) =
+                    self.falling_into_shield((x_q32, height, z_q32), (x_q32, last, z_q32))
+                {
+                    self.strike_circle(release, range_q32, damage, false, point, events)?;
+                    continue;
+                }
+            }
+            if sub_effect.lands_on == tick {
+                let point = (x_q32, 0, z_q32);
+                self.strike_circle(release, range_q32, damage, crosses_shields, point, events)?;
+                continue;
+            }
+            falling.push(*sub_effect);
+        }
+        Ok(falling)
     }
 
     /// `CommanderSkillSubEffectController.PerformNegativeEffect` for a damage

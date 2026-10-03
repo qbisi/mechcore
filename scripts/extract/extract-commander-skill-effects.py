@@ -17,7 +17,7 @@ The table holds the rows the simulator fights: the buff skills whose buff is
 the Electromagnetic Impact's, a slow that disables technology, and every
 support skill, which `SupportUnitSystem` summons units for, and every shield
 skill, whose landing stands a shield of `AdvancedEnergyShieldSystem`, and every
-damage skill that strikes one circle. The script
+damage skill, which strikes one circle or scatters several. The script
 refuses a buff row when its buff moves anything else, and a support row that
 places its summons at set offsets.
 
@@ -174,9 +174,11 @@ def shield_lines(group):
     return lines
 
 
-# A damage skill's row, for the circles: one sub-effect, which
-# `CommanderSkillData.PreProcess` makes reach `effectRange`. A random circle
-# or a line scatters several, which the table does not carry.
+# A damage skill's row. A circle strikes once, and
+# `CommanderSkillData.PreProcess` makes its one sub-effect reach `effectRange`,
+# which the row then carries as its count and range; a random circle or a line
+# scatters `subEffectCount` sub-effects, `subEffectIntervalTime` apart, each
+# striking `subEffectRange` about where it lands.
 DAMAGE_INTEGERS = (
     ("effectRangeType", "effect_range_type"),
     ("effectType", "effect_type"),
@@ -189,6 +191,7 @@ DAMAGE_FIXED = (
     ("subEffectMoveSpeed", "sub_effect_move_speed"),
     ("subEffectMoveTime", "sub_effect_move_time"),
     ("subEffectDefaultHeight", "sub_effect_default_height"),
+    ("subEffectIntervalTime", "sub_effect_interval_time"),
 )
 # `isDirectHit` only rides on the hit's event, which nothing in the fight
 # reads.
@@ -198,11 +201,15 @@ DAMAGE_FLAGS = (("isCrossAdvancedShield", "cross_advanced_shield"),)
 def damage_lines(group):
     lines = ["", "damage_skills:"]
     for row in group["damageCommanderSkills"]:
-        if row["isTestData"] or row["effectRangeType"] != 0:
+        if row["isTestData"]:
             continue
+        circle = row["effectRangeType"] == 0
         lines += [f"  - id: {row['id']}", f"    name: {row['name']}"]
         for field, name in DAMAGE_INTEGERS:
             lines.append(f"    {name}: {row[field]}")
+        lines.append(f"    sub_effect_count: {1 if circle else row['subEffectCount']}")
+        reach = raw(row["effectRange"] if circle else row["subEffectRange"])
+        lines.append(f"    sub_effect_range: {reach}{reading(reach)}")
         for field, name in DAMAGE_FIXED:
             value = raw(row[field])
             lines.append(f"    {name}: {value}{reading(value)}")

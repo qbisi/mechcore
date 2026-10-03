@@ -149,9 +149,16 @@ The Electromagnetic Impact's row, read from
 [`config/commander_skill_effects.yaml`](../../config/commander_skill_effects.yaml),
 lands on tick `s + 3`.
 
-This is the first sub-effect's rule. When a skill with several sub-effects
-activates the later ones is read to wait for their interval, at most one a
-tick, and is not stated here.
+A skill with several sub-effects activates the later ones as it performs.
+Performing starts its count at `(S - T) / LogicDeltaTime`, cast to an integer
+after the division rounds its magnitude, so -1.5 seconds counts from -31, and
+adds one on every update. After that update's sub-effects have moved, it
+activates the next once `s + I × k - m` is no later than its count, `I` being
+the row's `subEffectIntervalTime` as whole ticks and `k` the number already
+activated, and at most one an update. Each falls as the first does, from its
+own activation. Orbital Bombardment's land 20 ticks apart from the first;
+Ion Blast's second lands five ticks after its first and every later one six
+after the one before.
 
 ## The Electromagnetic Impact
 
@@ -254,7 +261,25 @@ its way met the shield's surface, half a metre out; of several such shields,
 the one its last point was nearest. `scope` and `isDirectHit` change nothing
 in the fight.
 
-## A Shield Airdrop
+## A scattered strike
+
+A damage skill of `effectRangeType` 2, a random circle (Orbital Bombardment),
+or 1, a line (Ion Blast), drops its row's `subEffectCount` sub-effects as the
+section above times them, each striking as a damage strike does over its row's
+`subEffectRange` about where it lands. Where they land is drawn as the fight
+starts, release by release, before any unit draws its first interval:
+
+- **A random circle** draws each sub-effect from its side's stream, an x
+  within `r` of the release and then a z within `sqrt(r² - x²)`, `r` being
+  the row's `effectRange` less its `subEffectRange`. Each draw is a whole
+  number of tenths up to the range in tenths, rounded half to even, and
+  stays strictly inside it; a tenth is `FPoint`'s truncated `0.1`. Each side's
+  draws come from its own stream, and a line draws nothing.
+- **A line** places them evenly from its first position to its second: the
+  `k`-th the way there clamped to `k` times the length over `subEffectCount -
+  1`.
+
+
 
 A Shield Airdrop is a row of `energyShieldCommanderSkills`, in
 [`config/commander_skill_effects.yaml`](../../config/commander_skill_effects.yaml).
@@ -368,6 +393,14 @@ drawn from any stream, and no event is written.
   `tests/battle_skill/fights/wasps.yaml`.
 - It reaches the releasing side's own units, blue's before red's:
   `tests/battle_skill/fights/own-side.yaml`.
+- A random circle's sub-effects are drawn from its side's stream before any
+  first interval, land `subEffectIntervalTime` apart and strike
+  `subEffectRange` about where each lands; each side draws from its own
+  stream, and a line's sub-effects stand evenly along it and land as the
+  activation rule times them:
+  `tests/battle_skill/fights/orbital-bombardment.yaml`,
+  `tests/battle_skill/fights/ion-blast.yaml`,
+  `tests/battle_skill/fights/scattered-both-sides.yaml`.
 - A support skill lands on tick `s + 2`, and a summon stands on the release
   point, joins a second later, is found from the tick after, and moves from
   the next solve: `tests/battle_skill/fights/rhino-assault.yaml`,
@@ -521,6 +554,18 @@ drawn from any stream, and no event is written.
   `CommanderSkillDamageProvider.GetEffectTargetType`,
   `DamagePerformer.PrepareRangeTargets`,
   `RangeTargetCalculator.CalculateRangeActors`.
+- A strike's sub-effects are placed as the fight starts, a random circle's
+  by two draws each of its side's stream in tenths and a line's evenly along
+  it: `CSRC_Common.OnFightStart`,
+  `CommanderSkillManager.CalculateAttackPositions`,
+  `GRRandom.NextFixInRange10`, `GRRandom.NextFixInRangePrecision`,
+  `FPoint.RoundToInt`, `FPoint.Round`, `FVector3.ClampMagnitude`.
+- Its later sub-effects are activated by the perform state's count, at most
+  one an update: `CSRS_Perform.Enter`, `CSRS_Perform.Update`,
+  `CSRS_Perform.ActiveSubEffect`, `FSMState.Update`,
+  `CommanderSkillReleaseState..ctor`, `CommanderSkillBase.GetSubEffectTime`.
+- Each sub-effect strikes its `subEffectRange`:
+  `CommanderSkillSubEffectController.PerformNegativeEffect`.
 - Its fall stops at the first shield it comes inside:
   `CommanderSkillSubEffectAgent.Update`,
   `CommanderSkillSubEffectAgent.IsHitEnergyShield`,
@@ -559,8 +604,8 @@ drawn from any stream, and no event is written.
 
 - **A strike reaching a construction.** Whether a construction is among the
   actors a battle skill's circle takes is not read; the simulator refuses it.
-- **A random circle or a line** (Orbital Bombardment, Lightning Storm, Ion
-  Blast), which scatter several sub-effects: not released.
+- **Lightning Storm**, a random circle whose sub-effects also write a buff:
+  refused.
 - **How a beacon's `LineRange` meets a unit's circle.** The simulator reads it
   as the distance to the segment against the width and the radius, which the
   recordings agree with and the build's `LineRange.Overlaps` is not read for.

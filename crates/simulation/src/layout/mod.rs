@@ -18,7 +18,9 @@ use crate::{
     rules::{UnitConfig, UnitConfigs},
 };
 use commander_skills::CommanderSkillEffects;
-pub(crate) use commander_skills::{SkillBuff, SkillEffect, SkillRelease, Summon};
+pub(crate) use commander_skills::{
+    Scatter, SkillBuff, SkillEffect, SkillRelease, SubEffect, Summon,
+};
 pub(crate) use constructions::ConstructionBuilding;
 use constructions::Constructions;
 use contraptions::Contraptions;
