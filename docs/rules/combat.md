@@ -533,6 +533,10 @@ A beam with a splash strikes as any other hit does: a Melting Point's beam at
 one Crawler takes the Crawlers around it too, in the order the target trees
 hold them. A Steel Ball's beam has no splash and strikes its target alone.
 
+**A query reads a tree a node at a time.** It takes a node's own before its
+children's, the children in order, wherever a query reads a side's tree, as
+a terrain finding who stands in it and a kill's shares of experience do.
+
 **A splash reaches what its edge is within, as the fast square root measures
 it.** An actor is struck when its distance from where the hit lands, less its
 radius, is no more than the splash's radius, and the distance is the fixed-point
@@ -1034,6 +1038,9 @@ not the game's native attack-type enum.
   `MechDataModifer.TryAddCommonData` and then ``Equipment`1.AddSkillData`` of
   `SkillDataChangeFloat.SplashRangeValue`; `FightSkill.GetSplashRange` adds the
   skill's data at that index to its row's splash.
+- A query: `RangeItemController.UpdateAffectedActorChange` asks
+  ``FightQuadtree`1.Query``, and ``FightQuadtreeNode`1.Query`` takes the
+  node's elements and then queries each node of its list.
 - Repair: `AutoRecoveryEffectProvider.DoActive` adds a unit to its side's
   `TeamAutoRecoveryManager`, whose `AutoRecoveryController` constructor
   calls `TeamAutoRecoveryManager+AutoRecoveryController.Reset`, setting the start clock to −1;
