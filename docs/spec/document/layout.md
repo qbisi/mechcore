@@ -1050,8 +1050,8 @@ position, radius, energy, and round policy. MCFR shield IDs remain normalized
 at S(1). For an oil area it reproduces the build's line branch with native
 `FVector3`/`FPoint` operations, adds only the declared active indexes through
 `RangeItemSystem.AddItem`, then overwrites and reads back each optional
-`GridBlockInt` mask. The Simulator rejects a layout carrying any standing entry
-before constructing a simulated fight.
+`GridBlockInt` mask. The Simulator installs both kinds the same way before the
+fight; it refuses an oil point that stands as a grid, which it does not read.
 
 Direct GRBR decoding of the standing objects a replay round holds, each with the
 panel slot it is recorded under, is exposed as

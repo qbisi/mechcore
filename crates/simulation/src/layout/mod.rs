@@ -20,8 +20,8 @@ use crate::{
 };
 use commander_skills::CommanderSkillEffects;
 pub(crate) use commander_skills::{
-    Scatter, SkillBuff, SkillEffect, SkillRelease, SubEffect, Summon, TerrainEffect, TerrainKind,
-    TerrainSpec,
+    Scatter, SkillBuff, SkillEffect, SkillRelease, StandingOil, SubEffect, Summon, TerrainEffect,
+    TerrainKind, TerrainSpec,
 };
 pub(crate) use constructions::ConstructionBuilding;
 use constructions::Constructions;
@@ -124,6 +124,9 @@ pub(crate) struct CompiledLayout {
     /// The battle skills both sides release, each side's in the order its
     /// layout lists them.
     pub(crate) battle_skills: Vec<SkillRelease>,
+    /// The oil earlier rounds left, blue's and then red's, each side's in the
+    /// order its layout lists them.
+    pub(crate) standing_oil: Vec<StandingOil>,
     /// The sides that researched a unit technology, whose units carry what an
     /// Electromagnetic Impact would disable.
     pub(crate) researched: BTreeSet<u32>,
@@ -153,6 +156,7 @@ impl CompiledLayout {
             missiles: Vec::new(),
             shields: Vec::new(),
             battle_skills: Vec::new(),
+            standing_oil: Vec::new(),
             researched: BTreeSet::new(),
             legacy_units: BTreeMap::new(),
             travel_time_rates: BTreeMap::new(),
@@ -281,6 +285,7 @@ pub(crate) fn compile_with_seed(
     let mut missiles = Vec::new();
     let mut shields = Vec::new();
     let mut battle_skills = Vec::new();
+    let mut standing_oil = Vec::new();
     let mut researched = BTreeSet::new();
     let mut tower_levels = BTreeMap::new();
     let mut travel_time_rates = BTreeMap::new();
@@ -318,13 +323,9 @@ pub(crate) fn compile_with_seed(
         if !side.techs.units.is_empty() {
             researched.insert(team);
         }
-        shields.extend(compile_standing_shields(
-            name,
-            team,
-            side,
-            &skill_effects,
-            &mut refused,
-        ));
+        let standing = compile_standing(name, team, side, &skill_effects, &mut refused);
+        shields.extend(standing.0);
+        standing_oil.extend(standing.1);
         battle_skills.extend(compile_battle_skills(
             name,
             team,
@@ -350,6 +351,7 @@ pub(crate) fn compile_with_seed(
             missiles,
             shields,
             battle_skills,
+            standing_oil,
             researched,
             legacy_units: sides
                 .iter()
@@ -429,25 +431,30 @@ fn tower_strengthen_levels(side: &SidePlan) -> Result<Vec<u8>> {
         .collect()
 }
 
-/// The Shield Airdrops an earlier round left standing on a side, installed
-/// before any release as shields of the side.
-fn compile_standing_shields(
+/// What earlier rounds left standing on a side: its Shield Airdrops,
+/// installed before any release as shields of the side, and its oil,
+/// restored before the fight.
+fn compile_standing(
     name: &str,
     team: u32,
     side: &SidePlan,
     skill_effects: &CommanderSkillEffects,
     refused: &mut Refusals,
-) -> Vec<ShieldPlacement> {
-    side.standing_shields
+) -> (Vec<ShieldPlacement>, Vec<StandingOil>) {
+    let named = |error: Error| Error::new(format!("side {name}: {error}"));
+    let shields = side
+        .standing_shields
         .iter()
         .filter_map(|&position| {
-            refused.hold(
-                skill_effects
-                    .standing_shield(team, position)
-                    .map_err(|error| Error::new(format!("side {name}: {error}"))),
-            )
+            refused.hold(skill_effects.standing_shield(team, position).map_err(named))
         })
-        .collect()
+        .collect();
+    let oil = side
+        .standing_oil
+        .iter()
+        .filter_map(|area| refused.hold(skill_effects.standing_oil(team, area).map_err(named)))
+        .collect();
+    (shields, oil)
 }
 
 /// A side's released battle skills, or nothing for each one refused with its
@@ -1128,29 +1135,45 @@ red:
         let value = LAYOUT
             .replace(
                 "blue:\n  units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
-                "blue:\n  techs:\n    marksman: [shooting_squad]\n  units:\n  - {name: marksman, index: 0, position: {x: 0, y: -50}}\n  - {name: marksman, index: 1, position: {x: 20, y: -50}}\n  battle_skills: [{name: sticky_oil_bomb, standing: {control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}}]",
+                "blue:\n  techs:\n    marksman: [shooting_squad]\n  units:\n  - {name: marksman, index: 0, position: {x: 0, y: -50}}\n  - {name: marksman, index: 1, position: {x: 20, y: -50}}\n  battle_skills: [{name: sticky_oil_bomb, standing: {control_points: [{x: -60, y: 40}, {x: 60, y: 40}], grid_rows: {3: [4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095]}}}]",
             );
         let refused = compile_default(&value).unwrap_err().to_string();
         let clauses: Vec<&str> = refused.split("; ").collect();
         assert_eq!(clauses.len(), 2, "{refused}");
         assert!(
-            clauses[0].contains("standing sticky_oil_bomb (RangeItemSystem)"),
+            clauses
+                .iter()
+                .any(|clause| clause.contains("point 3 stands as a grid")),
             "{refused}"
         );
-        assert!(clauses[1].contains("1202"), "{refused}");
+        assert!(
+            clauses.iter().any(|clause| clause.contains("1202")),
+            "{refused}"
+        );
     }
 
     #[test]
-    fn rejects_standing_oil_outside_simulator_closure() {
-        let value = LAYOUT.replace(
-            "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
-            "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\n  battle_skills: [{name: sticky_oil_bomb, standing: {control_points: [{x: -60, y: 40}, {x: 60, y: 40}]}}]",
-        );
-        assert_eq!(
-            compile_default(&value).unwrap_err().to_string(),
-            "side blue needs modules this build has not implemented: \
-             standing sticky_oil_bomb (RangeItemSystem)"
-        );
+    fn restores_standing_oil_and_refuses_a_point_cut_to_a_grid() {
+        let standing = |grid: &str| {
+            LAYOUT.replace(
+                "units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
+                &format!(
+                    "units: [{{name: marksman, index: 0, position: {{x: 0, y: -50}}}}]\n  \
+                     battle_skills: [{{name: sticky_oil_bomb, standing: {{control_points: \
+                     [{{x: -60, y: 40}}, {{x: 60, y: 40}}]{grid}}}}}]"
+                ),
+            )
+        };
+        let layout = compile_default(&standing(", grid_rows: {0: [], 6: []}")).unwrap();
+        assert_eq!(layout.standing_oil.len(), 1);
+        assert_eq!(layout.standing_oil[0].points, [0, 6]);
+        let refused = compile_default(&standing(&format!(
+            ", grid_rows: {{0: [{}]}}",
+            ["4095"; 12].join(", ")
+        )))
+        .unwrap_err()
+        .to_string();
+        assert!(refused.contains("point 0 stands as a grid"), "{refused}");
     }
 
     #[test]

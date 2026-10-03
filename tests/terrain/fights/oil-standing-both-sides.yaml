@@ -1,0 +1,28 @@
+# Standing oil on both sides in round two: blue's whole line, blue's line of
+# which three points stand, and red's whole line.
+#
+# They are restored side by side, blue's first, each side's areas in normal
+# form's order, by their control points, and each area's points in order,
+# and named so as the fight opens.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: game
+ticks: 497
+hash: {profile: mcfr-content-0.7.0, result: a56bf8803bd0ccdc199e6c34cd2fca487a834b0b715fa3eab3d244291a8e0b3c}
+blue:
+  core_damage: 216
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/112/650}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/48/650}
+  battle_skills:
+  - {name: sticky_oil_bomb, standing: {control_points: [{x: -100, y: 60}, {x: -100, y: -60}], grid_rows: {0: [], 3: [], 6: []}}}
+  - {name: sticky_oil_bomb, standing: {control_points: [{x: -60, y: -40}, {x: 60, y: -40}]}}
+red:
+  units:
+  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}, exp: 0/200/1300}
+  - {name: crawler, index: 1, position: {x: 5, y: -110}, exp: 0/200/450}
+  battle_skills:
+  - {name: sticky_oil_bomb, standing: {control_points: [{x: 80, y: -30}, {x: -40, y: -30}]}}

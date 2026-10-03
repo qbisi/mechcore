@@ -18,7 +18,8 @@
 use super::*;
 use crate::{
     data::{Channel, Correction, Entry, Index},
-    layout::{TerrainEffect, TerrainKind, TerrainSpec},
+    fight::commander_skill::line_point,
+    layout::{StandingOil, TerrainEffect, TerrainKind, TerrainSpec},
 };
 use mechcore_mcfr::{
     TerrainApplicationState, TerrainLogicLifetime, TerrainRemovedReason, TerrainState, TerrainType,
@@ -54,10 +55,14 @@ pub(in crate::fight) struct TerrainSystem {
 
 /// A `RangeItem`.
 struct Terrain {
-    /// The skill that left it, for a refusal, and with `provider_team` its
-    /// `IRangeItemProvider`: a fire an oil turns to keeps the oil's.
+    /// The skill that left it, for a refusal, and with `provider_team` and
+    /// `provider_area` its `IRangeItemProvider`: a fire an oil turns to keeps
+    /// the oil's.
     name: String,
     provider_team: u32,
+    /// The standing area it was restored from: each is restored with a
+    /// provider of its own.
+    provider_area: Option<usize>,
     team: u32,
     x_q32: i64,
     z_q32: i64,
@@ -125,12 +130,51 @@ impl Simulation {
                 "{name} leaves a terrain in a fight with a battlefield shield, which is not measured"
             )));
         }
-        self.add_item((team, name), team, spec, position)?;
+        self.add_item((team, name, None), team, spec, position)?;
         if let Some(fire) = spec.burning()
             && self.fire_reaches(position, spec.radius_q32)
         {
-            self.add_item((team, name), team, fire, position)?;
+            self.add_item((team, name, None), team, fire, position)?;
         }
+        Ok(())
+    }
+
+    /// The oil earlier rounds left, restored before the fight as a replay
+    /// restores it: each area's line expanded as its release was, and each
+    /// point that still stands added in order, through `AddItem`, one round
+    /// old. A recording names them in its first snapshot and records none
+    /// made.
+    pub(in crate::fight) fn restore_standing_oil(
+        &mut self,
+        standing: &[StandingOil],
+    ) -> Result<()> {
+        if standing.is_empty() {
+            return Ok(());
+        }
+        if !self.shield.standing.is_empty() {
+            return Err(Error::new(
+                "a standing sticky_oil_bomb stands in a fight with a battlefield shield, which is \
+                 not measured",
+            ));
+        }
+        for (area, oil) in standing.iter().enumerate() {
+            let count = i64::try_from(oil.count).unwrap_or(i64::MAX);
+            for &point in &oil.points {
+                let position = line_point(oil.from_q32, oil.to_q32, count, i64::from(point));
+                let key = self.add_item(
+                    (oil.team, &oil.name, Some(area)),
+                    oil.team,
+                    oil.spec,
+                    position,
+                )?;
+                self.terrain
+                    .terrains
+                    .get_mut(&key)
+                    .expect("a restored oil exists")
+                    .round = 1;
+            }
+        }
+        let _ = self.take_terrain_events();
         Ok(())
     }
 
@@ -141,11 +185,11 @@ impl Simulation {
     /// the oils it reaches (`CheckInteractableItems`).
     fn add_item(
         &mut self,
-        (provider_team, name): (u32, &str),
+        (provider_team, name, provider_area): (u32, &str, Option<usize>),
         team: u32,
         spec: TerrainSpec,
         (x_q32, z_q32): (i64, i64),
-    ) -> Result<()> {
+    ) -> Result<u64> {
         if spec.kind == TerrainKind::Fire
             && let Some(repeat) = self.controller_of(TerrainKind::Fire).and_then(|index| {
                 self.terrain.controllers[index]
@@ -155,6 +199,7 @@ impl Simulation {
                     .find(|key| {
                         let terrain = &self.terrain.terrains[key];
                         terrain.provider_team == provider_team
+                            && terrain.provider_area == provider_area
                             && terrain.name == name
                             && (terrain.x_q32, terrain.z_q32) == (x_q32, z_q32)
                     })
@@ -165,7 +210,7 @@ impl Simulation {
                 .get_mut(&repeat)
                 .expect("an item's terrain exists")
                 .elapsed = 0;
-            return Ok(());
+            return Ok(repeat);
         }
         let index = self.controller_for(spec);
         if self.terrain.controllers[index].items.len() >= ITEMS_BEFORE_A_SPLIT {
@@ -181,6 +226,7 @@ impl Simulation {
             Terrain {
                 name: name.to_owned(),
                 provider_team,
+                provider_area,
                 team,
                 x_q32,
                 z_q32,
@@ -193,7 +239,7 @@ impl Simulation {
         if spec.kind == TerrainKind::Fire {
             self.ignite_oils(key)?;
         }
-        Ok(())
+        Ok(key)
     }
 
     /// `CheckInteractableItems` for a new fire: every oil it reaches, in its
@@ -219,11 +265,11 @@ impl Simulation {
         for oil in reached {
             let oil = &self.terrain.terrains[&oil];
             let (provider, spec, position) = (
-                (oil.provider_team, oil.name.clone()),
+                (oil.provider_team, oil.name.clone(), oil.provider_area),
                 oil.spec.burning().expect("an oil burns"),
                 (oil.x_q32, oil.z_q32),
             );
-            self.add_item((provider.0, &provider.1), team, spec, position)?;
+            self.add_item((provider.0, &provider.1, provider.2), team, spec, position)?;
         }
         Ok(())
     }

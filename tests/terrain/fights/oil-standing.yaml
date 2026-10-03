@@ -1,0 +1,26 @@
+# A Sticky Oil Bomb's oil blue's round one left, across red's units in round
+# two.
+#
+# The seven oils stand from the first tick, one round old, named in point
+# order and recorded as made by no event; each has one round left. They slow
+# the units in them as any oil does, and as the fight ends they have stood
+# their two rounds and go.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: game
+ticks: 366
+hash: {profile: mcfr-content-0.7.0, result: 9447fc1df35dec8b1c5d2312bce12af69f74cd2ed867cf1fb627a5e19e62d8af}
+blue:
+  core_damage: 196
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/98/650}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/94/650}
+  battle_skills:
+  - {name: sticky_oil_bomb, standing: {control_points: [{x: -60, y: -40}, {x: 60, y: -40}]}}
+red:
+  units:
+  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}, exp: 0/300/1300}
+  - {name: crawler, index: 1, position: {x: 5, y: -110}, exp: 0/100/450}

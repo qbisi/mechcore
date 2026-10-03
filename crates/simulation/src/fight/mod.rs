@@ -527,6 +527,7 @@ impl Simulation {
             terrain: terrain::TerrainSystem::default(),
         };
         simulation.number_joiners();
+        simulation.restore_standing_oil(&layout.standing_oil)?;
         // `CommanderSkillManager.OnFightStart`: a path is given out before
         // the first tick, and lands nothing.
         let releases = std::mem::take(&mut simulation.commander.releases);
