@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result};
 
-const DEFAULT_UNITS: [&str; 32] = [
+const DEFAULT_UNITS: [&str; 33] = [
     include_str!("../../../config/units/marksman.yaml"),
     include_str!("../../../config/units/rhino.yaml"),
     include_str!("../../../config/units/wasp.yaml"),
@@ -37,6 +37,7 @@ const DEFAULT_UNITS: [&str; 32] = [
     include_str!("../../../config/units/sandworm.yaml"),
     include_str!("../../../config/units/mountain.yaml"),
     include_str!("../../../config/units/war_factory.yaml"),
+    include_str!("../../../config/units/abyss.yaml"),
 ];
 const DEFAULT_TOWERS: &str = include_str!("../../../config/towers.yaml");
 const DEFAULT_MAPS: &str = include_str!("../../../config/maps.yaml");
@@ -364,6 +365,28 @@ pub(crate) enum AttackPath {
         warmup_attack_count: u32,
         warmup_damage_multiplier: f64,
     },
+    /// `FightSweepSkill`: a strip of `length` by `width` metres swept across
+    /// the target, `damage_times` strikes `damage_interval` apart after
+    /// `damage_delay`; `hit_caps` is `unitRadiusList` beside
+    /// `maxDamageTimesList`.
+    Sweep {
+        perpendicular: bool,
+        length: u32,
+        width: u32,
+        sweeps: u32,
+        damage_times: u32,
+        damage_interval: f64,
+        damage_delay: f64,
+        hit_caps: Vec<SweepHitCap>,
+    },
+}
+
+/// One entry of a sweep's `unitRadiusList` with its `maxDamageTimesList`.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct SweepHitCap {
+    pub(crate) radius: f64,
+    pub(crate) hits: u32,
 }
 
 pub(crate) struct UnitConfigs {
@@ -948,6 +971,16 @@ impl AttackConfig {
                 }
                 Ok(())
             }
+            AttackPath::Sweep {
+                damage_times,
+                damage_interval,
+                ..
+            } => {
+                if *damage_times == 0 || !damage_interval.is_finite() || *damage_interval <= 0.0 {
+                    return Err(Error::new("sweep path requires positive strikes"));
+                }
+                Ok(())
+            }
             AttackPath::ControlBeam {
                 warmup_attack_count,
                 warmup_damage_multiplier,
@@ -1177,7 +1210,7 @@ mod tests {
     fn si_values_quantize_to_the_internal_integer_grid() {
         let config = SimulationConfig::load().unwrap();
         assert_eq!(config.game_build, mechcore_document::game_build());
-        assert_eq!(config.units.units.len(), 32);
+        assert_eq!(config.units.units.len(), 33);
         let arclight = config.units.get("arclight").unwrap();
         assert_eq!(arclight.collision_radius(), 9_000);
         assert_eq!(arclight.move_speed(), 7_000);

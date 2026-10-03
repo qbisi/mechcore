@@ -81,28 +81,28 @@ pub(crate) struct FixedVec2 {
 impl FixedVec2 {
     pub(crate) const ZERO: Self = Self { x: 0, y: 0 };
 
-    fn add(self, other: Self) -> Self {
+    pub(crate) fn add(self, other: Self) -> Self {
         Self {
             x: self.x.saturating_add(other.x),
             y: self.y.saturating_add(other.y),
         }
     }
 
-    fn sub(self, other: Self) -> Self {
+    pub(crate) fn sub(self, other: Self) -> Self {
         Self {
             x: self.x.saturating_sub(other.x),
             y: self.y.saturating_sub(other.y),
         }
     }
 
-    fn mul(self, scalar: i64) -> Self {
+    pub(crate) fn mul(self, scalar: i64) -> Self {
         Self {
             x: q32_mul(self.x, scalar),
             y: q32_mul(self.y, scalar),
         }
     }
 
-    fn div(self, scalar: i64) -> Self {
+    pub(crate) fn div(self, scalar: i64) -> Self {
         // Native `FVector2.op_Division` computes one shared reciprocal with
         // `FPoint.RawDiv(One, scalar)` and then multiplies both components by
         // it.  Direct component-wise division has a different Q32.32 rounding
@@ -110,11 +110,11 @@ impl FixedVec2 {
         self.mul(q32_div(Q32_ONE, scalar))
     }
 
-    fn dot(self, other: Self) -> i64 {
+    pub(crate) fn dot(self, other: Self) -> i64 {
         q32_mul(self.x, other.x).saturating_add(q32_mul(self.y, other.y))
     }
 
-    fn sqr_magnitude(self) -> i64 {
+    pub(crate) fn sqr_magnitude(self) -> i64 {
         self.dot(self)
     }
 
@@ -122,7 +122,7 @@ impl FixedVec2 {
         fpcs_sqrt_fastest(q32_mul(self.x, self.x).saturating_add(q32_mul(self.y, self.y)))
     }
 
-    fn normalized(self) -> Self {
+    pub(crate) fn normalized(self) -> Self {
         let magnitude = self.magnitude();
         // Native `FVector2.Normalize()` returns zero only while the magnitude
         // is strictly below `FPoint.C1em5`; equality takes the division path.

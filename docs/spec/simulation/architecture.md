@@ -109,6 +109,7 @@ skill's update (`attack_in_reach`), with the same `try_start_attack`.
 | `skill/perform.rs` | the attack performers: a blow, a shot, a burst |
 | `skill/group.rs` | a grouped skill's slots |
 | `control.rs` | `TeamTranslationSystem` and `ControllEffect`: a control beam's progress, the turn and what it stops |
+| `sweep.rs` | `FightSweepSkill` and `SweepAttackPerformer`: a sweep's strip and its strikes |
 | `underground.rs` | `UndergroundMoveAbility` and the `TransitionState` the motion holds while it burrows or surfaces |
 | `rvo.rs` | `RVOSimulatorFixed`, the sampled RVO the motion submits to; [rvo.md](rvo.md) |
 | `random.rs` | `GRRandom`, the stream an attack interval's stagger draws from |

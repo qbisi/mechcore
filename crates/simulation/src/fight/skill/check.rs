@@ -348,6 +348,7 @@ impl Simulation {
         let skill = self.skill(owner);
         let waiting = skill.pending().is_none()
             && skill.performer.pending().is_empty()
+            && !skill.performer.sweeping()
             && skill
                 .backswing_finish_step()
                 .is_none_or(|finish| finish < step);

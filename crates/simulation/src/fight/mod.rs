@@ -62,6 +62,7 @@ mod skill;
 mod statistics;
 mod super_deployment;
 mod support_unit;
+mod sweep;
 mod terrain;
 #[cfg(test)]
 mod tests;

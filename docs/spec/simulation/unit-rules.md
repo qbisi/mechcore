@@ -141,18 +141,25 @@ Weapon scheduling is orthogonal to the effect path:
   and, for a limited weapon, how far it turns `left` and `right` of that. A
   side the build gives as negative is omitted, and a weapon without both
   turns freely.
+  A weapon that rests straight ahead with an arc no wider than its rest
+  points as its unit does, and is written as no arc at all.
 - `fixed_to_body` is `true` only for the unit whose data is 27, the Raiden:
   `FightWeapon`'s constructor gives each of its weapons a transform of its
   own fixed to the body. The table has no column for it; the extraction
   script writes it from the id, and it defaults to `false`.
 
-The `path` tagged union has four variants:
+The `path` tagged union has five variants:
 
 - `projectile`: count, release interval, movement and target-offset data,
   interception flag, and projectile life;
 - `direct`: direct effect;
 - `laser`: attack-count damage multipliers;
-- `control_beam`: warmup attack count and warmup damage multiplier.
+- `control_beam`: warmup attack count and warmup damage multiplier;
+- `sweep`: the strip a `FightSweepSkill` sweeps across its target, whether
+  it lies across the line to the target, its length and width, how many
+  stretches it is struck in and how far apart, its delay, and how often a
+  unit of each radius may be struck. [`docs/rules/sweep.md`](../../rules/sweep.md)
+  says what they do.
 
 Single versus multi-projectile behavior comes from `path.count`; melee versus
 non-melee behavior comes from `melee`, which every path has; Group/Fusillade

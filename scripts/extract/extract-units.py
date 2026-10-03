@@ -207,10 +207,17 @@ def render(mech, card, kind, skill, rvo, type_name):
         lines.append(f"    rotation_speed: {grid(skill['extraWeaponRotateSpeed'], 1000)}")
     if unit == FIXED_TO_BODY_UNIT:
         lines.append("    fixed_to_body: true")
+    # A weapon whose arc is no wider than its rest straight ahead points as
+    # its unit does, as one that turns freely from it does when nothing else
+    # turns it: `FightWeapon` gives it no transform of its own.
+    fixed = [(weapon["defaultAngle"], weapon["rotateAngleLeft"], weapon["rotateAngleRight"]) == (0, 0, 0)
+             for weapon in skill["weapons"]]
+    if any(fixed) and not all(fixed):
+        refuse(unit, "fixes some weapons straight ahead and not others")
     if skill["weaponMountNode"]:
         lines.append(f"    mount: {WEAPON_MOUNTS[skill['weaponMountNode']]}")
-    if any((weapon["defaultAngle"], weapon["rotateAngleLeft"], weapon["rotateAngleRight"]) != (0, -1, -1)
-           for weapon in skill["weapons"]):
+    if not all(fixed) and any((weapon["defaultAngle"], weapon["rotateAngleLeft"], weapon["rotateAngleRight"])
+                              != (0, -1, -1) for weapon in skill["weapons"]):
         lines.append("    arcs:")
         for weapon in skill["weapons"]:
             arc = [f"default: {weapon['defaultAngle']}"]
@@ -253,6 +260,22 @@ def render(mech, card, kind, skill, rvo, type_name):
             f"    warmup_attack_count: {skill['prepareAttackCount']}",
             f"    warmup_damage_multiplier: {single(skill['prepareAttackDamageMultiplier'])}",
         ]
+    elif kind == "sweepSkillDatas":
+        if len(skill["unitRadiusList"]) != len(skill["maxDamageTimesList"]):
+            refuse(unit, "sweep lists a hit cap for other than each unit radius")
+        lines += [
+            "    type: sweep",
+            f"    perpendicular: {boolean(skill['isPerpendicular'])}",
+            f"    length: {skill['sweepLength']}",
+            f"    width: {skill['sweepWidth']}",
+            f"    sweeps: {skill['sweepTimes']}",
+            f"    damage_times: {skill['damageTimes']}",
+            f"    damage_interval: {readable(skill['damageInteval'])}",
+            f"    damage_delay: {readable(skill['damageDelay'])}",
+            "    hit_caps:",
+        ]
+        for radius, hits in zip(skill["unitRadiusList"], skill["maxDamageTimesList"]):
+            lines.append(f"      - {{radius: {readable(radius)}, hits: {hits}}}")
     else:
         refuse(unit, f"main skill is a {kind} row")
     return "\n".join(lines) + "\n"

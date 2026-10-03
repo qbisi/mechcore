@@ -1,0 +1,16 @@
+# M1: the mirror. One formation each, 200 m apart.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 173
+hash: {profile: mcfr-content-0.7.0, result: e44743f4b256ab58bb11b4d8e5984694e54863338e1c9c0b92d9d84cffc1a3b6}
+blue:
+  units:
+  - {name: abyss, index: 0, position: {x: 5, y: -105}, exp: 0/1600/4800}
+red:
+  core_damage: 500
+  units:
+  - {name: abyss, index: 0, position: {x: 5, y: -105}}
