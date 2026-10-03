@@ -103,8 +103,8 @@ holds any other row, by name, for one of these reasons:
 
 - the row corrects a tower, shield, mine, deployment clock or a projectile's
   life, which needs the mechanism that owns that object;
-- the row carries a `*_by_kill_count` rate, which needs a mechanism that counts
-  a unit's kills.
+- the row carries a `life_rate_by_kill_count`, which needs the life a unit's
+  kills raise, `FightMech.RefreshLifeByKillCount`.
 
 What is left is no longer about how a correction composes: every remaining
 refusal is a mechanism this simulator does not have.
@@ -112,6 +112,26 @@ refusal is a mechanism this simulator does not have.
 A partly applied officer is not offered: a side carrying one this build cannot
 compose is refused, because a fight with two thirds of an officer on it is a
 fight whose numbers nobody can check.
+
+## A rate per kill
+
+Berserk Rhino's `damage_rate_by_kill_count` of `+0.1` is a rate on damage that
+counts once for every kill. It lands beside the damage rate, in the skill's
+`DataSet`, and the Rhino carries it from the first tick as
+`damage_rate_by_kill_count`. Each kill adds the rate to the damage's
+enhancements, beside the skill's damage rate and its buffs':
+
+```text
+damage = base × (1 + damage rate + buff rate + kills × per-kill rate) × remaining
+```
+
+A kill is counted for every unit that hit the target and is alive when it
+dies, the killer or not. Two Rhinos on one Sledgehammer each count it however
+it was finished, and a Rhino counts nothing for a target another unit killed
+that it never hit. The count starts at zero each fight, and the fight's end
+clears it, so the last state of a fight reads each unit's damage without its
+kills. The rate's `+0.1` is stored as `429496729`, a hair under a tenth, so
+four kills on a Rhino's 3560 make 4983 rather than 4984.
 
 ## Which units a correction reaches
 
@@ -181,6 +201,12 @@ gaining any, so the field's name is not what it does.
 - Two speed values sum: `tests/modifier/fights/`.
 - A `Ranged` row reaches the ranged units of a side and not its melee ones:
   `tests/modifier/fights/`.
+- A kill-count damage rate raises damage once per kill, counts a death for
+  every living unit that hit the target, counts nothing for a target the unit
+  never hit, and is cleared as the fight ends:
+  `tests/modifier/fights/officer-kills-crawlers.yaml`,
+  `tests/modifier/fights/officer-kills-assist.yaml`,
+  `tests/modifier/fights/officer-kills-others.yaml`.
 - An experience rate is on no unit's modifier set:
   `tests/modifier/fights/officer-exp-rate-marksman.yaml`.
 
@@ -196,6 +222,15 @@ gaining any, so the field's name is not what it does.
 - An integer entry sums, keeps the largest or keeps the smallest by its class:
   `DataIntGroup.Refresh`, `DataIntSingleMax.Refresh`,
   `DataIntSingleMin.Refresh`.
+- A kill-count damage rate is written beside the damage rate, into
+  `SkillDataChangeFloatRate.DamageRateByKillCount`, and its enhancement times
+  the skill's kills joins the damage's: `SkillDataModifier.AddData`,
+  `DamageProperty.CalculateDamage`, `DamageCalculator.killCount`.
+- A death counts for every attacker on the target's list that is alive:
+  `FightCoreSystem.OnActorHitted`, `FightCoreSystem.AddAttackData`,
+  `FightController.OnActorHitted`, `FightMech.AddKillCount`,
+  `FightSkill.AddKillCount`, `DamageCalculator.AddKillCount`.
+- The count is set back to zero: `DamageCalculator.Clear`.
 - A target type is answered from the unit's main skill:
   `UnitUtility.IsEffectTarget`, `UnitEffectTargetType.Ranged`,
   `SkillData.isMeleeAttack`.
@@ -206,6 +241,10 @@ gaining any, so the field's name is not what it does.
 
 ### Not established
 
+- **What clears the count at the fight's end.** `DamageCalculator.Clear` sets
+  it to zero, and every recording reads the damage without kills on its last
+  tick; which call of the fight's end reaches it is not read, and a fight that
+  runs out of time is assumed to clear it the same way.
 - **That a value joins before a rate.** It was measured on a Sledgehammer's
   attack interval in another version, with a script that needs the game, and
   no gameless test pins it.

@@ -8,7 +8,9 @@ answered. Most are one Marksman shooting one Rhino, differing only in their
 fields six formations to ask which a Ranged row reaches. The three
 `officer-exp-rate-*` fights put a Marksman and an Arclight against a squad of
 Crawlers, with no officer and with an experience rate on each in turn, and read
-each formation's experience. The disabled
+each formation's experience. The three `officer-kills-*` fights put Berserk Rhino on
+Rhinos that kill Crawlers, Fangs and Sledgehammers, and read the damage each
+kill adds. The disabled
 technology and the four Sledgehammer intervals, which the simulator does not
 fight, are layouts in [`../../layouts/`](../../layouts/README.md).
 

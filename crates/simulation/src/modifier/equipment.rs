@@ -717,6 +717,8 @@ fn corrections_of(
     let mut corrections = effects::corrections(Fields {
         life_rate: row.life_rate,
         damage_rate: row.damage_rate,
+        // The table has no such column.
+        damage_rate_by_kill_count: None,
         attack_range_rate: row.attack_range_rate,
         attack_interval_rate: row.attack_interval_rate,
         attack_range_value: row.attack_range_value,

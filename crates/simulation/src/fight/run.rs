@@ -361,7 +361,7 @@ pub(in crate::fight) fn execute(
         let events = simulation.step(steps)?;
         steps += 1;
         let tick = u32::try_from(steps).map_err(|_| Error::new("tick index exceeds u32"))?;
-        simulation.close_tick(steps >= max_steps);
+        simulation.close_tick(steps >= max_steps)?;
         let stepped = step_started.elapsed();
         let snapshot_started = Instant::now();
         let mut state = simulation.snapshot();

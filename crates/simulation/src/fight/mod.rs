@@ -44,6 +44,7 @@ mod deploy;
 mod experience;
 mod important_unit;
 mod intercept;
+mod kills;
 mod math;
 mod mech;
 mod mine;
@@ -388,6 +389,8 @@ struct Simulation {
     commander: commander_skill::CommanderSkillSystem,
     /// `ExpSystem`'s formations, attackers and loot.
     exp: experience::ExpSystem,
+    /// `FightCoreSystem`'s attackers of each target, whom its death credits.
+    kills: kills::KillCounts,
     /// The RVO simulator's state and the obstacles besides the units.
     rvo: RvoState,
     /// The buffs on constructions and the buff events a tick holds back.
@@ -506,6 +509,7 @@ impl Simulation {
             buffs: tower::BuffState::default(),
             statistics: statistics::StatisticsSystem::default(),
             exp: experience::ExpSystem::new(building_exp)?,
+            kills: kills::KillCounts::default(),
         };
         simulation.number_joiners();
         // `CommanderSkillManager.OnFightStart`: a path is given out before
@@ -1043,12 +1047,15 @@ impl Simulation {
 
     /// What happens between a tick's work and its snapshot: intervals settle
     /// as the fight finishes, and `BattleSystem.OnFightOver` prunes each
-    /// formation's experience to a whole number before the last state is read.
-    fn close_tick(&mut self, out_of_time: bool) {
+    /// formation's experience to a whole number and clears every skill's
+    /// kills before the last state is read.
+    fn close_tick(&mut self, out_of_time: bool) -> Result<()> {
         self.settle_intervals_if_finishing();
         if self.ready_to_finish() || out_of_time {
             self.prune_experience();
+            self.clear_kills()?;
         }
+        Ok(())
     }
 
     fn ready_to_finish(&self) -> bool {

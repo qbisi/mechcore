@@ -1,0 +1,26 @@
+# Berserk Rhino on blue: `config/officer_effects.yaml` gives the Rhino a
+# `damage_rate_by_kill_count` of +0.1, raw 429496729, a hair under it.
+#
+# The Rhino's splash kills Crawlers four, four, three, two, two, three, one,
+# three and two at a time, and its damage climbs with every one: 3560 is
+# 4983 after four, 6407 after eight, up to 12103 after 24, each
+# `3560 × (1 + kills × 0.1)` cut down. The rate is a skill modifier,
+# `damage_rate_by_kill_count`, which the Rhino carries from the first tick.
+# On the last tick the Rhino reads 3560 again: the fight's end clears its
+# kills before the last state is read.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 303
+hash: {profile: mcfr-content-0.7.0, result: 24d4ec2b8227f610ebf3b88558aac5bea029c2ec784b7b52204c71a958a144f9}
+blue:
+  officers: [berserk_rhino]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -145}, exp: 0/192/1150}
+red:
+  core_damage: 200
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -40}}
