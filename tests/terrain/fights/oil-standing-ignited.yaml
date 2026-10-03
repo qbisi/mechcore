@@ -1,0 +1,27 @@
+# Blue's standing oil, its fourth point gone, and red's Incendiary Bomb down
+# the right of it in round two.
+#
+# Red's fire at (60, -100) on tick 75 reaches the oils at 40 and 60 and the
+# line burns down from there for red: 40, then -20, -60, -40, then 20, then
+# 60, each a red fire of the oil's 30 metres.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: game
+ticks: 242
+hash: {profile: mcfr-content-0.7.0, result: 069ac8fc24489a2a1625a507620eb654386fcfcb5e3e7ea989265446c87a23c6}
+blue:
+  core_damage: 120
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/212/650}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/140/650}
+  battle_skills:
+  - {name: sticky_oil_bomb, standing: {control_points: [{x: -60, y: -40}, {x: 60, y: -40}], grid_rows: {0: [], 1: [], 2: [], 4: [], 5: [], 6: []}}}
+red:
+  units:
+  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}, exp: 0/300/1300}
+  - {name: crawler, index: 1, position: {x: 5, y: -110}, exp: 0/100/450}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: -60, y: 160}, {x: -60, y: 40}]}

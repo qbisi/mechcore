@@ -6,7 +6,7 @@
 //! `docs/rules/battle_skill.md` states what they do. Every other battle skill
 //! is refused by name.
 
-use mechcore_document::BattleSkill;
+use mechcore_document::{BattleSkill, OilArea};
 use serde::Deserialize;
 
 use super::contraptions::{ShieldKind, ShieldPlacement};
@@ -200,6 +200,26 @@ struct ShieldSkillRow {
 /// The Shield Airdrop an earlier round left standing: `CS_EnergyShield`
 /// 800001, the only one a standard match holds.
 const STANDING_SHIELD_SKILL: i32 = 800_001;
+
+/// The Sticky Oil Bomb, whose oil stands into the next round.
+const STANDING_OIL_SKILL: i32 = 400_002;
+
+/// The oil a Sticky Oil Bomb of an earlier round left on a side: the line it
+/// was released along, and which of the points that line expands into still
+/// stand.
+#[derive(Debug, Clone)]
+pub(crate) struct StandingOil {
+    pub(crate) team: u32,
+    pub(crate) name: String,
+    pub(crate) spec: TerrainSpec,
+    /// The two control points, Q32.32 world metres.
+    pub(crate) from_q32: (i64, i64),
+    pub(crate) to_q32: (i64, i64),
+    /// The row's `subEffectCount`, the points the line expands into.
+    pub(crate) count: usize,
+    /// The native indices of the points that still stand, in order.
+    pub(crate) points: Vec<u32>,
+}
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -518,6 +538,62 @@ impl CommanderSkillEffects {
             radius_q32: row.effect_range,
             energy: row.energy,
             kind: ShieldKind::CommanderSkill,
+        })
+    }
+
+    /// The oil a Sticky Oil Bomb of an earlier round left on a side. A point
+    /// a shield cut to a grid is refused: a grid is not read.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the table does not hold the skill, or when a
+    /// point stands as a grid.
+    pub(crate) fn standing_oil(&self, team: u32, area: &OilArea) -> Result<StandingOil> {
+        let row = self
+            .terrains
+            .iter()
+            .find(|row| row.id == STANDING_OIL_SKILL)
+            .ok_or_else(|| Error::new("the Sticky Oil Bomb is not in the table"))?;
+        let name = "sticky_oil_bomb";
+        let SkillEffect::Terrain {
+            spec, sub_effects, ..
+        } = terrain_effect(name, row, self.ground_fire)?
+        else {
+            unreachable!("a terrain row leaves a terrain");
+        };
+        let world = |position: &mechcore_document::Position| {
+            let (x, z) = (i64::from(position.x), i64::from(position.y));
+            if team == 0 {
+                (x << 32, z << 32)
+            } else {
+                (-x << 32, -z << 32)
+            }
+        };
+        let [from, to] = area.control_points.as_slice() else {
+            return Err(Error::new(format!(
+                "standing {name} has {} control points, not two",
+                area.control_points.len()
+            )));
+        };
+        let points = if area.grid_rows.is_empty() {
+            (0..u32::try_from(sub_effects.len()).unwrap_or(u32::MAX)).collect()
+        } else {
+            if let Some((point, _)) = area.grid_rows.iter().find(|(_, rows)| !rows.is_empty()) {
+                return Err(Error::new(format!(
+                    "standing {name}'s point {point} stands as a grid a shield cut, which is \
+                     not read"
+                )));
+            }
+            area.grid_rows.keys().copied().collect()
+        };
+        Ok(StandingOil {
+            team,
+            name: name.to_owned(),
+            spec,
+            from_q32: world(from),
+            to_q32: world(to),
+            count: sub_effects.len(),
+            points,
         })
     }
 

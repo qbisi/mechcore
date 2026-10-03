@@ -301,8 +301,8 @@ pub(crate) static MODULES: &[Module] = &[
     Module {
         native: "RangeItemSystem",
         claims: &[Field::StandingOil],
-        understood: &[],
-        implemented: false,
+        understood: &[Field::StandingOil],
+        implemented: true,
     },
     Module {
         native: "ReactiveArmorSystem",
@@ -459,10 +459,10 @@ mod tests {
         assert_eq!(native.len(), 35);
     }
 
-    /// An empty side is inside the closure, and a side that carries something
-    /// unimplemented is refused for every field at once rather than the first.
+    /// An empty side is inside the closure, and so is one that carries a
+    /// field of every kind the closure once lacked.
     #[test]
-    fn a_side_is_refused_for_everything_it_carries() {
+    fn every_field_a_side_carries_is_understood() {
         let plan = |yaml: &str| {
             let layout = mechcore_document::parse_yaml(yaml.as_bytes()).unwrap();
             mechcore_document::compile_layout(layout).unwrap()
@@ -482,16 +482,10 @@ mod tests {
              units: [{name: marksman, index: 0, position: {x: 0, y: -50}, level: 3}]\nred:\n  \
              units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n",
         );
-        let missing = unsupported(&loaded.blue);
-        assert_eq!(
-            missing
-                .iter()
-                .map(|(field, module)| (field.name(), *module))
-                .collect::<Vec<_>>(),
-            [("standing sticky_oil_bomb", "RangeItemSystem")],
-            "officers, a unit's level, the construction and the released battle \
-             skill beside them are understood; the oil standing from an earlier \
-             round is not"
+        assert!(
+            unsupported(&loaded.blue).is_empty(),
+            "officers, a unit's level, the construction, the released battle skill \
+             and the oil standing from an earlier round are all understood"
         );
     }
 

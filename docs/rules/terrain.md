@@ -153,6 +153,16 @@ is not made again; the standing one burns from the start
 release the units in it: its controller lets them go on its next update. In
 a tick, a side's battle skills land in the order it released them.
 
+**Standing oil.** An oil an earlier round left is restored before the fight
+from its release's panel skill, which keeps it in its `rangeItems`: the line
+between its two control points is expanded as the release expanded it
+(`CalculateAttackPositions`), and each point that still stands is added in
+order through `AddItem`, one round old. Each side's areas are restored in turn,
+blue's first. Each area's skill is a provider of its own. A standing oil is
+there in the recording's first snapshot, named in that order with no
+`terrain_created`, with one round left; it slows and burns as any oil does,
+and goes `round_expired` as the fight ends.
+
 A recording finds a terrain made or gone by comparing one snapshot's terrains
 with the last, so `terrain_created` and `terrain_removed` are the last events
 of their tick, after every other: the made, then the gone, each in identity
@@ -258,6 +268,11 @@ already exists.
   the gone fire's hits on, every four ticks: an Arclight held to the fifth of
   an Incendiary Bomb's fires, gone after tick 777, takes 54 on ticks 778 and
   782, `tests/corpus/fights/67156354-r3.yaml`.
+- An oil an earlier round left stands from the first tick, one round old and
+  named in point order, side by side, blue's first; it burns when a fire
+  reaches it and goes as the fight ends: `tests/terrain/fights/oil-standing.yaml`,
+  `tests/terrain/fights/oil-standing-ignited.yaml`,
+  `tests/terrain/fights/oil-standing-both-sides.yaml`.
 - A fire hits a unit as it enters and every four ticks it stays, the units
   counting last first, burns out after 700 ticks, and its removal is the
   last event of its tick: `tests/terrain/fights/fire.yaml`,
@@ -300,6 +315,9 @@ already exists.
   `RangeItemController.IsInteractable`, `RangeItemController.GetItems`,
   `CircleRange.Overlaps`, `RangeItem.GetRange`, `CS_Oil.GetFireLifeTime`,
   `FightGroundFire.Reset`, `RangeItemSystem.Update`.
+- A fight's controllers start from the items they already hold, each tree
+  rebuilt in item order: `RangeItemSystem.OnFightStart`,
+  `RangeItemController.OnFightStart`.
 - As the fight ends a terrain counts a round and goes when its rounds are
   over, a fire's at once: `RangeItemController.OnExitFight`,
   `RangeItem.AddRound`, `RangeItem.IsRoundOver`,

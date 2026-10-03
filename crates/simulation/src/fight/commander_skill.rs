@@ -41,6 +41,22 @@ impl CommanderSkillSystem {
 /// What tags a battle skill's buff, so that its end takes it away.
 const SKILL_SOURCE: &str = "BuffSystem.CommanderSkill";
 
+/// `CalculateAttackPositions`' line: the `step`th of `count` points
+/// `length / (count - 1)` apart from `from` towards `to`, the way there
+/// clamped to its distance, so the last falls a fraction of a millimetre off
+/// `to`.
+pub(in crate::fight) fn line_point(
+    (x_q32, z_q32): (i64, i64),
+    (to_x, to_z): (i64, i64),
+    count: i64,
+    step: i64,
+) -> (i64, i64) {
+    let (dx, dz) = (to_x.saturating_sub(x_q32), to_z.saturating_sub(z_q32));
+    let spacing = q32_div(native_q32_magnitude(dx, dz), (count - 1).max(1) << 32);
+    let (ox, oz) = clamp_magnitude_q32_raw(dx, dz, q32_mul(spacing, step << 32));
+    (x_q32.saturating_add(ox), z_q32.saturating_add(oz))
+}
+
 impl Simulation {
     /// `CSRC_Common.OnFightStart`: each release's
     /// `CommanderSkillManager.CalculateAttackPositions`, side by side in
@@ -84,16 +100,7 @@ impl Simulation {
                         let along = random.next_fix_in_range(room, 10, C0_1_RAW).unwrap_or(0);
                         (x_q32.saturating_add(across), z_q32.saturating_add(along))
                     }
-                    Scatter::Line {
-                        to_q32: (to_x, to_z),
-                    } => {
-                        let (dx, dz) = (to_x.saturating_sub(x_q32), to_z.saturating_sub(z_q32));
-                        let spacing =
-                            q32_div(native_q32_magnitude(dx, dz), (count - 1).max(1) << 32);
-                        let (ox, oz) =
-                            clamp_magnitude_q32_raw(dx, dz, q32_mul(spacing, step << 32));
-                        (x_q32.saturating_add(ox), z_q32.saturating_add(oz))
-                    }
+                    Scatter::Line { to_q32 } => line_point((x_q32, z_q32), to_q32, count, step),
                 };
             }
             if let SkillEffect::Strike {
