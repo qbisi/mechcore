@@ -1,0 +1,27 @@
+# Smoke Bomb across red's Sledgehammers and Crawlers.
+#
+# Its seven sub-effects fall along the line every four ticks from tick 63,
+# each leaving a fog of 50 metres. A ground unit whose edge a fog reaches
+# enters it, one fog at a time, and a Sledgehammer in fog shoots at 0.65 of its
+# 95 metres, `attack_range_rate` 0.35 in its skill's modifiers; a Crawler,
+# whose attack is a melee one, enters and is left alone. Each fog goes as the
+# fight ends, and takes its rate back on that tick.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 312
+hash: {profile: mcfr-content-0.7.0, result: 40ca8c93efdd7e6efd3080d77344c26e76701d09c3bead25398e1ef393e7f644}
+blue:
+  core_damage: 200
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/96/650}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/96/650}
+  battle_skills:
+  - {name: smoke_bomb, positions: [{x: -60, y: -40}, {x: 60, y: -40}]}
+red:
+  units:
+  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}, exp: 0/150/1300}
+  - {name: crawler, index: 1, position: {x: 5, y: -110}, exp: 0/250/450}

@@ -62,6 +62,7 @@ mod skill;
 mod statistics;
 mod super_deployment;
 mod support_unit;
+mod terrain;
 #[cfg(test)]
 mod tests;
 mod tower;
@@ -400,6 +401,8 @@ struct Simulation {
     exp: experience::ExpSystem,
     /// `FightCoreSystem`'s attackers of each target, whom its death credits.
     kills: kills::KillCounts,
+    /// `RangeItemSystem`'s terrains and the units standing in them.
+    terrain: terrain::TerrainSystem,
     /// The RVO simulator's state and the obstacles besides the units.
     rvo: RvoState,
     /// The buffs on constructions and the buff events a tick holds back.
@@ -519,6 +522,7 @@ impl Simulation {
             statistics: statistics::StatisticsSystem::default(),
             exp: experience::ExpSystem::new(building_exp)?,
             kills: kills::KillCounts::default(),
+            terrain: terrain::TerrainSystem::default(),
         };
         simulation.number_joiners();
         // `CommanderSkillManager.OnFightStart`: a path is given out before
@@ -568,9 +572,9 @@ impl Simulation {
                 .cloned()
                 .collect(),
             shields: self.shield_states(),
+            terrains: self.terrain_states(),
             statistics: self.statistics.recorders.values().copied().collect(),
             formations: self.formation_states(),
-            ..WorldSnapshot::default()
         }
     }
 
@@ -678,6 +682,9 @@ impl Simulation {
         self.update_translations(step);
         self.step_battle_skills(step, &target_search_order, &mut events)?;
         self.step_mines(&target_search_order, &mut events)?;
+        // `RangeItemSystem` updates after `MineSystem` and before
+        // `FightCoreSystem`.
+        self.step_terrains(&mut events)?;
         // A side whose every unit a beam turned has none left, and is counted
         // all the same: its towers fall as a wiped-out side's do.
         let team_ids = self
@@ -887,6 +894,7 @@ impl Simulation {
         if publish_late_building_events {
             events.extend(torn_down);
             self.clear_buffs_as_the_fight_ends(&mut events)?;
+            self.clear_terrains_as_the_fight_ends(&mut events)?;
         }
         // `BuffManager.Clear` takes a dying unit's buffs as it dies, whatever
         // killed it.
@@ -912,6 +920,7 @@ impl Simulation {
         // everything else the tick did.
         if !publish_late_building_events && self.ready_to_finish() {
             self.clear_buffs_as_the_fight_ends(&mut events)?;
+            self.clear_terrains_as_the_fight_ends(&mut events)?;
         }
         if !self.buffs.tower_events.is_empty() {
             return Err(Error::new(

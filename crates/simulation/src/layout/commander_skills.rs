@@ -31,7 +31,76 @@ struct Table {
     shield_skills: Vec<ShieldSkillRow>,
     damage_skills: Vec<DamageSkillRow>,
     waypoint_skills: Vec<WaypointSkillRow>,
+    terrain_skills: Vec<TerrainSkillRow>,
+    #[allow(dead_code, reason = "a fire's terrain reads it")]
+    ground_fire: GroundFire,
     other_skills: Vec<OtherSkillRow>,
+}
+
+/// A terrain skill's row: a line of sub-effects, each leaving a `RangeItem`
+/// of its kind where it lands.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct TerrainSkillRow {
+    id: i32,
+    name: String,
+    kind: TerrainKind,
+    effect_range_type: i32,
+    effect_type: i32,
+    sub_effect_count: u32,
+    /// The rounds it stands, which a fight does not read.
+    #[allow(dead_code, reason = "the rounds a terrain stands are the match's")]
+    effect_duration: i32,
+    start_time: i64,
+    sub_effect_range: i64,
+    sub_effect_move_speed: i64,
+    sub_effect_move_time: i64,
+    sub_effect_default_height: i64,
+    sub_effect_interval_time: i64,
+    life_time: i64,
+    fire_life_time: i64,
+    attack_range_change_rate: i64,
+    #[serde(default)]
+    buff: Option<BuffRow>,
+    #[serde(default)]
+    uncarried_buff: Option<u32>,
+}
+
+/// `Config.groundFireDamage` and `fireAttackInterval`.
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[allow(dead_code, reason = "a fire's terrain reads it")]
+#[serde(deny_unknown_fields)]
+struct GroundFire {
+    damage: i64,
+    interval: i64,
+}
+
+/// `RangeItemType`: which `RangeItemController` holds a terrain.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum TerrainKind {
+    Fire,
+    Oil,
+    Fog,
+    Acid,
+}
+
+/// What a terrain does to the units standing in it, read off its row.
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum TerrainEffect {
+    /// `FogController`: an attack range rate on every ranged skill.
+    Fog { attack_range_rate: i64 },
+}
+
+/// A terrain one sub-effect leaves where it lands.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct TerrainSpec {
+    pub(crate) kind: TerrainKind,
+    /// `GetRangeItemRange`, `FPoint` raw metres.
+    pub(crate) radius_q32: i64,
+    /// `lifeTime` in ticks, when it burns out within a fight.
+    pub(crate) life_ticks: Option<i32>,
+    pub(crate) effect: TerrainEffect,
 }
 
 /// A skill of another kind, or a row this build does not release: which
@@ -197,6 +266,14 @@ pub(crate) enum SkillEffect {
         /// The sub-effects still to land, in the order they are activated.
         sub_effects: Vec<SubEffect>,
     },
+    /// `RangeItemEffectController`: each sub-effect leaves a terrain where
+    /// it lands, `RangeItemSystem.AddItem`.
+    Terrain {
+        spec: TerrainSpec,
+        scatter: Scatter,
+        /// The sub-effects still to land, in the order they are activated.
+        sub_effects: Vec<SubEffect>,
+    },
     /// `CS_EnergyShield`'s: a shield of the side, standing where it lands.
     Shield {
         /// `FPoint` raw metres.
@@ -336,6 +413,7 @@ pub(crate) struct CommanderSkillEffects {
     shields: Vec<ShieldSkillRow>,
     strikes: Vec<DamageSkillRow>,
     waypoints: Vec<WaypointSkillRow>,
+    terrains: Vec<TerrainSkillRow>,
     others: Vec<OtherSkillRow>,
 }
 
@@ -361,6 +439,7 @@ impl CommanderSkillEffects {
             shields: table.shield_skills,
             strikes: table.damage_skills,
             waypoints: table.waypoint_skills,
+            terrains: table.terrain_skills,
             others: table.other_skills,
         })
     }
@@ -454,6 +533,13 @@ impl CommanderSkillEffects {
                     Common::of_strike(row),
                     strike_effect(&named, row)?,
                 )
+            } else if let Some(row) = self.terrains.iter().find(|row| row.id == id) {
+                let named = format!("{named}, {}", row.name);
+                (
+                    row.name.as_str(),
+                    Common::of_terrain(row),
+                    terrain_effect(&named, row)?,
+                )
             } else {
                 return Err(Error::new(
                     match self.others.iter().find(|row| row.id == id) {
@@ -489,7 +575,10 @@ fn released(
     // `scope` is when the card may be used, which nothing in the fight
     // reads. A strike's range type is its scatter; every other kind is a
     // circle.
-    let strike = matches!(effect, SkillEffect::Strike { .. });
+    let strike = matches!(
+        effect,
+        SkillEffect::Strike { .. } | SkillEffect::Terrain { .. }
+    );
     let range_type = if strike { 0 } else { common.effect_range_type };
     if (common.effect_type, range_type) != (0, 0) {
         return Err(Error::new(format!(
@@ -500,6 +589,9 @@ fn released(
     let line = matches!(
         effect,
         SkillEffect::Strike {
+            scatter: Scatter::Line { .. },
+            ..
+        } | SkillEffect::Terrain {
             scatter: Scatter::Line { .. },
             ..
         }
@@ -525,6 +617,11 @@ fn released(
         scatter,
         sub_effects,
         ..
+    }
+    | SkillEffect::Terrain {
+        scatter,
+        sub_effects,
+        ..
     } = &mut effect
     {
         if let Scatter::Line { to_q32 } = scatter {
@@ -543,6 +640,52 @@ fn released(
         z: z * SPACE,
         lands_on: lands,
         effect,
+    })
+}
+
+/// A terrain skill's sub-effects: a line of them, each leaving its terrain.
+fn terrain_effect(named: &str, row: &TerrainSkillRow) -> Result<SkillEffect> {
+    if row.effect_range_type != 1 {
+        return Err(Error::new(format!(
+            "{named} has range type {}, which this build does not read",
+            row.effect_range_type
+        )));
+    }
+    let effect = match row.kind {
+        TerrainKind::Fog => TerrainEffect::Fog {
+            attack_range_rate: row.attack_range_change_rate,
+        },
+        kind => {
+            return Err(Error::new(format!(
+                "{named} leaves a terrain of kind {kind:?}, which this build does not read"
+            )));
+        }
+    };
+    let _ = (&row.buff, row.uncarried_buff, row.fire_life_time);
+    let life_ticks = match row.life_time {
+        0 => None,
+        life => Some(
+            i32::try_from(ticks(life)?)
+                .map_err(|_| Error::new(format!("{named}'s terrain outlasts a fight")))?,
+        ),
+    };
+    Ok(SkillEffect::Terrain {
+        spec: TerrainSpec {
+            kind: row.kind,
+            radius_q32: row.sub_effect_range,
+            life_ticks,
+            effect,
+        },
+        scatter: Scatter::Line { to_q32: (0, 0) },
+        sub_effects: schedule(&Timing::of_terrain(row))?
+            .into_iter()
+            .map(|(lands_on, fall)| SubEffect {
+                x_q32: 0,
+                z_q32: 0,
+                lands_on,
+                fall,
+            })
+            .collect(),
     })
 }
 
@@ -577,7 +720,7 @@ fn strike_effect(named: &str, row: &DamageSkillRow) -> Result<SkillEffect> {
         crosses_shields: row.cross_advanced_shield,
         buff,
         scatter,
-        sub_effects: schedule(row)?
+        sub_effects: schedule(&Timing::of_strike(row))?
             .into_iter()
             .map(|(lands_on, fall)| SubEffect {
                 x_q32: 0,
@@ -610,6 +753,16 @@ impl Common {
     }
 
     const fn of_strike(row: &DamageSkillRow) -> Self {
+        Self {
+            effect_type: row.effect_type,
+            effect_range_type: row.effect_range_type,
+            start_time: row.start_time,
+            move_time: row.sub_effect_move_time,
+            move_speed: row.sub_effect_move_speed,
+        }
+    }
+
+    const fn of_terrain(row: &TerrainSkillRow) -> Self {
         Self {
             effect_type: row.effect_type,
             effect_range_type: row.effect_range_type,
@@ -756,7 +909,7 @@ fn lands_on(start_raw: i64, move_time_raw: i64, speed_raw: i64) -> Result<u64> {
 /// no later than that `time`, and on every update when `subEffectTime` is
 /// zero. The first is activated on its first update, which is the one
 /// `lands_on` and `fall` count, and a later one that many updates after.
-fn schedule(row: &DamageSkillRow) -> Result<Vec<(u64, Fall)>> {
+fn schedule(row: &Timing) -> Result<Vec<(u64, Fall)>> {
     let first_lands = lands_on(
         row.start_time,
         row.sub_effect_move_time,
@@ -793,6 +946,41 @@ fn schedule(row: &DamageSkillRow) -> Result<Vec<(u64, Fall)>> {
         ));
     }
     Ok(landings)
+}
+
+/// What times a row's sub-effects: when its release lands, how they fall,
+/// and how many there are how far apart.
+struct Timing {
+    start_time: i64,
+    sub_effect_move_time: i64,
+    sub_effect_move_speed: i64,
+    sub_effect_default_height: i64,
+    sub_effect_interval_time: i64,
+    sub_effect_count: u32,
+}
+
+impl Timing {
+    const fn of_strike(row: &DamageSkillRow) -> Self {
+        Self {
+            start_time: row.start_time,
+            sub_effect_move_time: row.sub_effect_move_time,
+            sub_effect_move_speed: row.sub_effect_move_speed,
+            sub_effect_default_height: row.sub_effect_default_height,
+            sub_effect_interval_time: row.sub_effect_interval_time,
+            sub_effect_count: row.sub_effect_count,
+        }
+    }
+
+    const fn of_terrain(row: &TerrainSkillRow) -> Self {
+        Self {
+            start_time: row.start_time,
+            sub_effect_move_time: row.sub_effect_move_time,
+            sub_effect_move_speed: row.sub_effect_move_speed,
+            sub_effect_default_height: row.sub_effect_default_height,
+            sub_effect_interval_time: row.sub_effect_interval_time,
+            sub_effect_count: row.sub_effect_count,
+        }
+    }
 }
 
 /// The fall `lands_on` counts: `CSRS_Perform` activates the sub-effect on
@@ -931,7 +1119,7 @@ mod tests {
         let table = CommanderSkillEffects::load().unwrap();
         let landings = |id: i32| {
             let row = table.strikes.iter().find(|row| row.id == id).unwrap();
-            schedule(row)
+            schedule(&Timing::of_strike(row))
                 .unwrap()
                 .into_iter()
                 .map(|(lands_on, _)| lands_on)
@@ -944,5 +1132,19 @@ mod tests {
         let ion = landings(300_006);
         assert_eq!(ion.len(), 60);
         assert_eq!(&ion[..4], [62, 67, 73, 79]);
+    }
+
+    /// A Smoke Bomb's seven fogs land every four ticks from 63, as
+    /// `tests/terrain/fights/smoke.yaml` has them.
+    #[test]
+    fn a_smoke_bombs_fogs_land_every_four_ticks() {
+        let table = CommanderSkillEffects::load().unwrap();
+        let row = table.terrains.iter().find(|row| row.id == 600_002).unwrap();
+        let landings = schedule(&Timing::of_terrain(row))
+            .unwrap()
+            .into_iter()
+            .map(|(lands_on, _)| lands_on)
+            .collect::<Vec<_>>();
+        assert_eq!(landings, [63, 67, 71, 75, 79, 83, 87]);
     }
 }

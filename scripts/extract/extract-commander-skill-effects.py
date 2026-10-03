@@ -206,6 +206,70 @@ DAMAGE_FIXED = (
 DAMAGE_FLAGS = (("isCrossAdvancedShield", "cross_advanced_shield"),)
 
 
+# A terrain skill's row: a line of `subEffectCount` sub-effects, each leaving
+# a `RangeItem` of `subEffectRange` where it lands, of the kind its list
+# names. `lifeTime` is how long a fire burns, and `effectDuration` the rounds
+# the others stand; a fog's `attackRangeChangeRate` is what it does, and an
+# acid's or an oil's `buffID` what they write.
+TERRAIN_KINDS = (
+    ("fireCommanderSkills", "fire"),
+    ("oilCommanderSkills", "oil"),
+    ("fogCommanderSkills", "fog"),
+    ("acidCommanderSkills", "acid"),
+)
+TERRAIN_INTEGERS = (
+    ("effectRangeType", "effect_range_type"),
+    ("effectType", "effect_type"),
+    ("subEffectCount", "sub_effect_count"),
+    ("effectDuration", "effect_duration"),
+)
+TERRAIN_FIXED = (
+    ("startTime", "start_time"),
+    ("subEffectRange", "sub_effect_range"),
+    ("subEffectMoveSpeed", "sub_effect_move_speed"),
+    ("subEffectMoveTime", "sub_effect_move_time"),
+    ("subEffectDefaultHeight", "sub_effect_default_height"),
+    ("subEffectIntervalTime", "sub_effect_interval_time"),
+    ("lifeTime", "life_time"),
+    ("fireLifeTime", "fire_life_time"),
+    ("attackRangeChangeRate", "attack_range_change_rate"),
+)
+
+
+def terrain_lines(group, buffs):
+    lines = ["", "terrain_skills:"]
+    for kind_list, kind in TERRAIN_KINDS:
+        for row in group[kind_list]:
+            if row["isTestData"]:
+                continue
+            lines += [f"  - id: {row['id']}", f"    name: {row['name']}", f"    kind: {kind}"]
+            for field, name in TERRAIN_INTEGERS:
+                lines.append(f"    {name}: {row.get(field, 0)}")
+            for field, name in TERRAIN_FIXED:
+                value = raw(row.get(field, 0))
+                lines.append(f"    {name}: {value}{reading(value)}")
+            buff = row.get("buffID", 0)
+            if buff and carried(buffs[buff]):
+                lines += buff_lines(buffs[buff])
+            elif buff:
+                lines.append(f"    uncarried_buff: {buff}")
+    return lines
+
+
+def ground_fire_lines():
+    """`Config`'s fire: what a burning terrain deals, and how often."""
+    config = build_data.level0("Config")
+    interval = raw(config["fireAttackInterval"])
+    return [
+        "",
+        "# `Config.groundFireDamage` and `fireAttackInterval`: what a fire deals",
+        "# a unit standing in it, and how often.",
+        "ground_fire:",
+        f"  damage: {config['groundFireDamage']}",
+        f"  interval: {interval}{reading(interval)}",
+    ]
+
+
 def damage_lines(group, buffs):
     lines = ["", "damage_skills:"]
     for row in group["damageCommanderSkills"]:
@@ -306,6 +370,8 @@ def render(group):
     lines += shield_lines(group)
     lines += damage_lines(group, buffs)
     lines += waypoint_lines(group)
+    lines += terrain_lines(group, buffs)
+    lines += ground_fire_lines()
     lines += other_lines(group, lines)
     return "\n".join(lines) + "\n"
 

@@ -14,7 +14,7 @@ use super::rvo::fpoint_less_or_equal;
 use super::*;
 use crate::{
     data::{Entry, Index},
-    layout::{Scatter, SkillBuff, SkillEffect, SkillRelease, SubEffect},
+    layout::{Scatter, SkillBuff, SkillEffect, SkillRelease, SubEffect, TerrainSpec},
 };
 
 /// `CommanderSkillSystem`: the releases still to land, and which sides a
@@ -54,11 +54,16 @@ impl Simulation {
     pub(in crate::fight) fn place_sub_effects(&mut self) -> Result<()> {
         for index in 0..self.commander.releases.len() {
             let team = self.commander.releases[index].team;
-            let SkillEffect::Strike {
+            let (SkillEffect::Strike {
                 scatter,
                 sub_effects,
                 ..
-            } = &self.commander.releases[index].effect
+            }
+            | SkillEffect::Terrain {
+                scatter,
+                sub_effects,
+                ..
+            }) = &self.commander.releases[index].effect
             else {
                 continue;
             };
@@ -92,6 +97,10 @@ impl Simulation {
                 };
             }
             if let SkillEffect::Strike {
+                sub_effects: placed,
+                ..
+            }
+            | SkillEffect::Terrain {
                 sub_effects: placed,
                 ..
             } = &mut self.commander.releases[index].effect
@@ -142,6 +151,25 @@ impl Simulation {
                 index += 1;
                 continue;
             }
+            // `RangeItemEffectController.PerformEffect`: each sub-effect
+            // that lands leaves its terrain there.
+            if let SkillEffect::Terrain {
+                spec, sub_effects, ..
+            } = &release.effect
+            {
+                let falling = self.land_terrains(&release, *spec, sub_effects, tick, events)?;
+                if falling.is_empty() {
+                    self.commander.releases.remove(index);
+                    continue;
+                }
+                if let SkillEffect::Terrain { sub_effects, .. } =
+                    &mut self.commander.releases[index].effect
+                {
+                    *sub_effects = falling;
+                }
+                index += 1;
+                continue;
+            }
             index += 1;
             if release.lands_on != tick {
                 continue;
@@ -175,7 +203,9 @@ impl Simulation {
                 }
                 // A strike's sub-effects land above, and a path is given out
                 // as the fight starts and never lands.
-                SkillEffect::Strike { .. } | SkillEffect::Path { .. } => {}
+                SkillEffect::Strike { .. }
+                | SkillEffect::Terrain { .. }
+                | SkillEffect::Path { .. } => {}
                 SkillEffect::Shield { radius_q32, energy } => {
                     self.create_shield(release.team, release.x, release.z, *radius_q32, *energy);
                 }
@@ -250,6 +280,38 @@ impl Simulation {
                 continue;
             }
             falling.push(*sub_effect);
+        }
+        Ok(falling)
+    }
+
+    /// `RangeItemEffectController.PerformEffect` for each of a terrain
+    /// skill's sub-effects that lands on this tick. Answers the ones still to
+    /// land. Whether a falling one stops at a shield is not read.
+    fn land_terrains(
+        &mut self,
+        release: &SkillRelease,
+        spec: TerrainSpec,
+        sub_effects: &[SubEffect],
+        tick: u64,
+        events: &mut Vec<Event>,
+    ) -> Result<Vec<SubEffect>> {
+        if !self.shield.standing.is_empty() {
+            return Err(Error::new(format!(
+                "{} falls in a fight with a battlefield shield, which is not measured",
+                release.name
+            )));
+        }
+        let (landing, falling): (Vec<SubEffect>, Vec<SubEffect>) = sub_effects
+            .iter()
+            .partition(|sub_effect| sub_effect.lands_on == tick);
+        for sub_effect in landing {
+            self.add_terrain(
+                release.team,
+                &release.name,
+                spec,
+                (sub_effect.x_q32, sub_effect.z_q32),
+                events,
+            )?;
         }
         Ok(falling)
     }

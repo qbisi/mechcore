@@ -592,16 +592,141 @@ waypoint_skills:
     sub_effect_buff_id: 9005
     sub_effect_range: 128849018880  # 30
 
+terrain_skills:
+  - id: 100002
+    name: 燃烧弹
+    kind: fire
+    effect_range_type: 1
+    effect_type: 0
+    sub_effect_count: 7
+    effect_duration: 0
+    start_time: 12884901888  # 3
+    sub_effect_range: 171798691840  # 40
+    sub_effect_move_speed: 2791728742400  # 650
+    sub_effect_move_time: 19327352832  # 4.5
+    sub_effect_default_height: 0  # 0
+    sub_effect_interval_time: 858993459  # 0.2
+    life_time: 150323855360  # 35
+    fire_life_time: 0  # 0
+    attack_range_change_rate: 0  # 0
+  - id: 100003
+    name: 燃烧弹
+    kind: fire
+    effect_range_type: 1
+    effect_type: 0
+    sub_effect_count: 7
+    effect_duration: 0
+    start_time: 12884901888  # 3
+    sub_effect_range: 171798691840  # 40
+    sub_effect_move_speed: 2791728742400  # 650
+    sub_effect_move_time: 19327352832  # 4.5
+    sub_effect_default_height: 0  # 0
+    sub_effect_interval_time: 858993459  # 0.2
+    life_time: 150323855360  # 35
+    fire_life_time: 0  # 0
+    attack_range_change_rate: 0  # 0
+  - id: 400002
+    name: 黏油弹
+    kind: oil
+    effect_range_type: 1
+    effect_type: 0
+    sub_effect_count: 7
+    effect_duration: 2
+    start_time: 12884901888  # 3
+    sub_effect_range: 128849018880  # 30
+    sub_effect_move_speed: 2791728742400  # 650
+    sub_effect_move_time: 19327352832  # 4.5
+    sub_effect_default_height: 0  # 0
+    sub_effect_interval_time: 858993459  # 0.2
+    life_time: 0  # 0
+    fire_life_time: 150323855360  # 35
+    attack_range_change_rate: 0  # 0
+    buff:
+      id: 400001
+      name: 战场技能-粘油
+      divide: 0
+      duration: 4294967296  # 1
+      additive: false
+      debuff: false
+      disable_technology: false
+      invincible: false
+      can_affect_construction: false
+      can_affect_tower: false
+      move_speed_rate: -2362232012  # -0.55
+      amplify_damage_rate: 0  # 0
+  - id: 400003
+    name: 黏油弹
+    kind: oil
+    effect_range_type: 1
+    effect_type: 0
+    sub_effect_count: 7
+    effect_duration: 2
+    start_time: 12884901888  # 3
+    sub_effect_range: 128849018880  # 30
+    sub_effect_move_speed: 2791728742400  # 650
+    sub_effect_move_time: 19327352832  # 4.5
+    sub_effect_default_height: 0  # 0
+    sub_effect_interval_time: 858993459  # 0.2
+    life_time: 0  # 0
+    fire_life_time: 150323855360  # 35
+    attack_range_change_rate: 0  # 0
+    buff:
+      id: 400001
+      name: 战场技能-粘油
+      divide: 0
+      duration: 4294967296  # 1
+      additive: false
+      debuff: false
+      disable_technology: false
+      invincible: false
+      can_affect_construction: false
+      can_affect_tower: false
+      move_speed_rate: -2362232012  # -0.55
+      amplify_damage_rate: 0  # 0
+  - id: 600002
+    name: 烟雾弹
+    kind: fog
+    effect_range_type: 1
+    effect_type: 0
+    sub_effect_count: 7
+    effect_duration: 1
+    start_time: 12884901888  # 3
+    sub_effect_range: 214748364800  # 50
+    sub_effect_move_speed: 2791728742400  # 650
+    sub_effect_move_time: 19327352832  # 4.5
+    sub_effect_default_height: 0  # 0
+    sub_effect_interval_time: 858993459  # 0.2
+    life_time: 0  # 0
+    fire_life_time: 0  # 0
+    attack_range_change_rate: -1503238553  # -0.35
+  - id: 500002
+    name: 酸液弹
+    kind: acid
+    effect_range_type: 1
+    effect_type: 0
+    sub_effect_count: 7
+    effect_duration: 1
+    start_time: 12884901888  # 3
+    sub_effect_range: 171798691840  # 40
+    sub_effect_move_speed: 2791728742400  # 650
+    sub_effect_move_time: 19327352832  # 4.5
+    sub_effect_default_height: 0  # 0
+    sub_effect_interval_time: 858993459  # 0.2
+    life_time: 0  # 0
+    fire_life_time: 0  # 0
+    attack_range_change_rate: 0  # 0
+    uncarried_buff: 500001
+
+# `Config.groundFireDamage` and `fireAttackInterval`: what a fire deals
+# a unit standing in it, and how often.
+ground_fire:
+  damage: 54
+  interval: 858993459  # 0.2
+
 # The skills of every other kind, and the rows of the lists above this
 # build does not release, by the CommanderSkillGroupData list each comes
 # from.
 other_skills:
-  - {id: 100002, name: 燃烧弹, kind: fireCommanderSkills}
-  - {id: 100003, name: 燃烧弹, kind: fireCommanderSkills}
-  - {id: 400002, name: 黏油弹, kind: oilCommanderSkills}
-  - {id: 400003, name: 黏油弹, kind: oilCommanderSkills}
-  - {id: 500002, name: 酸液弹, kind: acidCommanderSkills}
-  - {id: 600002, name: 烟雾弹, kind: fogCommanderSkills}
   - {id: 900001, name: 战地回收, kind: sellUnitCommanderSkills}
   - {id: 900002, name: 低效回收, kind: sellUnitCommanderSkills}
   - {id: 900003, name: 低效回收, kind: sellUnitCommanderSkills}

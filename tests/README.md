@@ -30,6 +30,7 @@ out to show:
 | [`production/`](production/README.md) | what a production line makes, where its makes stand, and how often they come |
 | [`repair/`](repair/README.md) | how a unit repairs itself while hurt: when it starts, how often and by how much |
 | [`projectile/`](projectile/README.md) | how a projectile leaves its weapon, climbs and flies, and a burst still releasing |
+| [`terrain/`](terrain/README.md) | what a battle skill's terrain does to the units standing in it, and when it goes |
 | [`tower/`](tower/README.md) | what losing a tower writes on its side, and what strengthening one adds |
 | [`turret/`](turret/README.md) | when a turret fires, at what, and how often |
 | [`raiden/`](raiden/README.md) | how a Raiden's three weapons choose targets and fire together, beside its standard fights |

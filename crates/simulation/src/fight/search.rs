@@ -23,6 +23,16 @@ pub(in crate::fight) struct TargetActorQuadtree {
 }
 
 impl TargetActorRect {
+    /// The battlefield, which every fight quadtree's root covers.
+    pub(in crate::fight) const fn map() -> Self {
+        Self {
+            min_x: -TARGET_QUADTREE_HALF_WIDTH_Q32,
+            min_z: -TARGET_QUADTREE_HALF_HEIGHT_Q32,
+            max_x: TARGET_QUADTREE_HALF_WIDTH_Q32,
+            max_z: TARGET_QUADTREE_HALF_HEIGHT_Q32,
+        }
+    }
+
     pub(in crate::fight) fn around(x_q32: i64, z_q32: i64, radius: i64) -> Self {
         let radius_q32 = space_to_q32(radius.max(0));
         Self {
@@ -297,6 +307,41 @@ impl TargetActorQuadtree {
                 twice_delta < i128::from(max) - i128::from(min) + i128::from(size_q32)
             };
             axis(rect.min_x, rect.max_x, center_x_q32) && axis(rect.min_z, rect.max_z, center_z_q32)
+        };
+        let mut found = self.root.elements.clone();
+        if overlaps(self.root.rect) {
+            let mut pending = self
+                .root
+                .children
+                .iter()
+                .flat_map(|children| children.iter())
+                .collect::<Vec<_>>();
+            while let Some(node) = pending.pop() {
+                if overlaps(node.rect) {
+                    found.extend(node.elements.iter().copied());
+                    pending.extend(node.children.iter().flat_map(|children| children.iter()));
+                }
+            }
+        }
+        found
+    }
+
+    /// `FightQuadtree.Query` for a rect: the root's elements always, then,
+    /// as [`TargetActorQuadtree::query_square`] walks them, every element of
+    /// each node whose rect overlaps it strictly on both axes.
+    pub(in crate::fight) fn query_rect(&self, range: TargetActorRect) -> Vec<FightActorRef> {
+        let overlaps = |rect: TargetActorRect| {
+            let axis = |min: i64, max: i64, range_min: i64, range_max: i64| {
+                let twice_delta = (i128::from(min) + i128::from(max)
+                    - i128::from(range_min)
+                    - i128::from(range_max))
+                .abs();
+                twice_delta
+                    < i128::from(max) - i128::from(min) + i128::from(range_max)
+                        - i128::from(range_min)
+            };
+            axis(rect.min_x, rect.max_x, range.min_x, range.max_x)
+                && axis(rect.min_z, rect.max_z, range.min_z, range.max_z)
         };
         let mut found = self.root.elements.clone();
         if overlaps(self.root.rect) {

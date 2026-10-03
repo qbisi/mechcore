@@ -508,6 +508,9 @@ pub(crate) struct Stats {
     /// `FPoint`, and a rate on it lands between two time units.
     attack_interval_q32: i64,
     attack_range: i64,
+    /// Q32.32 metres: `AttackRangeProperty` keeps the range as an `FPoint`,
+    /// and a rate on it lands between two millimetres.
+    attack_range_q32: i64,
     splash_radius: i64,
 }
 
@@ -538,6 +541,7 @@ impl Stats {
             attack_damage: 0,
             attack_interval_q32: 0,
             attack_range: 0,
+            attack_range_q32: 0,
             splash_radius: 0,
         };
         stats.refresh(rules)?;
@@ -603,6 +607,12 @@ impl Stats {
             return Err(Error::new("attack interval resolved below zero"));
         }
         self.attack_range = resolve(Index::AttackRange, rules.attack.range())?;
+        self.attack_range_q32 = self.overlays.resolve_scaled(
+            Index::AttackRange,
+            space_to_q32(rules.attack.range()),
+            |value| value * ONE / metres,
+            0,
+        )?;
         self.splash_radius = resolve(Index::SplashRange, rules.attack.splash_radius())?;
         Ok(())
     }
@@ -891,6 +901,11 @@ impl Stats {
 
     pub(crate) const fn attack_interval_q32(&self) -> i64 {
         self.attack_interval_q32
+    }
+
+    /// Q32.32 metres.
+    pub(crate) const fn attack_range_q32(&self) -> i64 {
+        self.attack_range_q32
     }
 
     pub(crate) const fn attack_range(&self) -> i64 {
