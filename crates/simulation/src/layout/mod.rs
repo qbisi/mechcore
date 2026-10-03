@@ -19,7 +19,8 @@ use crate::{
 };
 use commander_skills::CommanderSkillEffects;
 pub(crate) use commander_skills::{
-    Scatter, SkillBuff, SkillEffect, SkillRelease, SubEffect, Summon,
+    Scatter, SkillBuff, SkillEffect, SkillRelease, SubEffect, Summon, TerrainEffect, TerrainKind,
+    TerrainSpec,
 };
 pub(crate) use constructions::ConstructionBuilding;
 use constructions::Constructions;

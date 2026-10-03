@@ -56,6 +56,47 @@ the recording's `DurableContext.logic_step`, not its separate
 `time_units_per_second` scale; [mcfr.md](../spec/mcfr/mcfr.md) defines the file
 fields.
 
+## A battle skill's terrains
+
+A terrain battle skill (Incendiary Bomb, Sticky Oil Bomb, Smoke Bomb, Acid
+Blast) is a line of its row's `subEffectCount` sub-effects, placed and timed as
+a line strike's are ([`battle_skill.md`](battle_skill.md)), and each leaves one
+terrain of the row's `subEffectRange` where it lands, of the skill's side, on
+the tick it lands. Smoke Bomb's seven fogs of 50 metres land every four ticks
+from tick 63.
+
+**Each tick**, after `MineSystem` and before `FightCoreSystem`, each
+controller holding terrains updates:
+
+1. Each terrain, last first, ages, and one whose lifetime is up goes,
+   `time_expired`. A fog has no lifetime and stays the round.
+2. It finds who stands in its terrains. Side by side, blue's first, it asks
+   the side's unit tree for the units under its own tree's node, and takes
+   each terrain against each unit found, in the tree's query order: a ground
+   unit, alive and not hidden, whose edge the terrain's range reaches in the
+   plane, by `FPoint`'s tolerant comparison, is found in it. Both sides' units
+   are, whichever side the terrain is.
+3. Every affected unit not found anywhere leaves, last first. Every unit found
+   that is not affected enters the first terrain it was found in, and one
+   already affected stays in its own, even when that one no longer reaches
+   it. A unit that dies leaves as it dies, the rest keeping their order.
+
+**A fog** writes its row's `attackRangeChangeRate`, Smoke Bomb's `-0.35`, on
+every skill of a unit that enters it whose attack is not a melee one, as the
+skill's `attack_range_rate`, and takes it back as the unit leaves. The
+controller is the modifier, so a unit carries one fog's rate however many it
+stands in. A unit with a melee attack enters and is left alone. The range is
+then the description's times the rate in `FPoint`: a Sledgehammer's 95 metres
+are 61.75.
+
+**As the fight ends**, every terrain goes, `round_expired`, after the buffs
+the units still run are cleared, and takes back what it did: the last state
+reads no terrain and no fog's rate.
+
+The simulator refuses a terrain in a fight with a battlefield shield, which
+turns it to a grid; two kinds of terrain in one fight, whose controllers'
+order is not read; and a controller's twentieth terrain, which splits its tree.
+
 ## Circles and grids
 
 An ordinary terrain is a `position` and a `radius`, stored as Q32.32 raw
@@ -127,7 +168,34 @@ already exists.
 
 ## Evidence
 
+### Recorded
+
+- A Smoke Bomb's fogs land along its line every four ticks, take ground units
+  of either side whose edge they reach one fog at a time, hold a ranged
+  attack's range to 0.65 of it, leave melee units alone, and go as the fight
+  ends, taking the rate back: `tests/terrain/fights/smoke.yaml`,
+  `tests/terrain/fights/smoke-both-sides.yaml`.
+
 ### Read
+
+- A controller ages its terrains, then finds who stands in them, then runs its
+  periodic effects: `RangeItemController.Update`,
+  `RangeItemController.UpdateItemStatus`, `RangeItem.IsTimeOver`.
+- Who stands in a terrain is found side by side, the terrain tree's nodes
+  against the side's unit tree, and an affected unit keeps its terrain:
+  `RangeItemController.UpdateAffectedActorChange`,
+  `FightQuadtree.GetInteractableNodes` (a node with items, against the
+  generic tree's `IsInteractableRange` and `Query`),
+  `FightCalculator.IsInRange2D`, `RangeItemController.OnActorEnter`,
+  `RangeItemController.OnActorExit`, `RangeItemController.AddAffectedActor`.
+- Every controller takes ground units of either side: `FogController.GetAttackTarget`,
+  `GroundFireController.GetAttackTarget`, `BuffItemController.GetAttackTarget`,
+  `RangeItemController.GetEffectTargetType`.
+- A fog rates every ranged skill's range, the controller its modifier:
+  `FogController.PerformItemEffect`, `FogController.OnActorExit`,
+  `SkillDataChangeFloatRate.AttackRangeRate`, `FightSkill.IsMeleeAttack`.
+- `RangeItemSystem` updates between `MineSystem` and `FightCoreSystem`:
+  `FightController.AddModules`, `RangeItemSystem.Update`.
 
 - A terrain is in play exactly while its controller's set holds it:
   `RangeItemController.GetItems`.
@@ -149,8 +217,9 @@ already exists.
 
 ### Not established
 
-- **What a type does to a unit**, beyond that an affected set exists; which
-  effect runs is a virtual dispatch the static call graph does not decide.
+- **What fire, oil and acid do to a unit.**
+- **`FogController.SelectBestTarget`**, which picks the stronger of two fogs
+  and which no path of a fog's update reaches.
 - **Any radius, effect clock or lifetime.** They vary by source, and two sources
   of one type can differ, so no value derives from a type.
 - **The periodic clock.** That fire's and acid's `elapsed` advances once per

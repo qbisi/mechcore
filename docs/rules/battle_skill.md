@@ -294,6 +294,10 @@ starts, release by release, before any unit draws its first interval:
   `k`-th the way there clamped to `k` times the length over `subEffectCount -
   1`.
 
+A terrain skill's row, a line of `terrain_skills`, places and times its
+sub-effects as a line strike does, and each leaves a terrain where it lands
+rather than striking: [`terrain.md`](terrain.md).
+
 A strike whose row names a buff, Lightning Storm's slow, takes the units its
 circle reaches as it lands, deals its damage, and then writes the buff on
 those of them still alive. A unit struck again takes the buff again, as a

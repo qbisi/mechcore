@@ -502,7 +502,7 @@ impl Actor {
             // arranging a fight whose outcome happens to tell them apart.
             derived: DerivedStats {
                 move_speed: self.stats.move_speed_q32(),
-                attack_range: space_to_q32(self.stats.attack_range()),
+                attack_range: self.stats.attack_range_q32(),
                 // A beam's damage is its ramp's first step, whatever step it
                 // is on: the Steel Balls of `wall-laser.yaml` read 2, which
                 // is 55 at its first multiplier, on every tick of their fight.
