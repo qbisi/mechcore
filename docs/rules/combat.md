@@ -949,7 +949,9 @@ not the game's native attack-type enum.
   off each hit and leaving at least 1: 60 and 180 off a Marksman's shot on a
   level-1 and a level-3 Rhino, `tests/armor/fights/rhino-armor-enhancement.yaml`
   and `tests/armor/fights/rhino-armor-enhancement-3.yaml`, and 1 left of an
-  Arclight's hit on a Mountain, `tests/armor/fights/mountain-plating.yaml`.
+  Arclight's hit on a Mountain, `tests/armor/fights/mountain-plating.yaml`;
+  577 hits on six armoured Phantom Rays, 21 of them left at 1,
+  `tests/corpus/fights/134258634-r4.yaml`.
 
 ### Read
 
