@@ -35,9 +35,11 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 import build_data  # noqa: E402
+import yaml  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 UNITS = ROOT / "config" / "units"
+UNIT_TECHS = ROOT / "config" / "unit_techs.yaml"
 ONE = 1 << 32
 SIZES = {0: "xs", 1: "s", 2: "m", 3: "l", 4: "xl", 5: "xxl"}
 # `MechData.PreProcess` sets `isFreeMove` for an id of at most 54 whose bit is
@@ -121,7 +123,7 @@ def refuse(unit, reason):
     raise SystemExit(f"unit {unit}: {reason}")
 
 
-def render(mech, card, kind, skill, rvo, type_name):
+def render(mech, card, kind, skill, rvo, type_name, extra_weapons):
     unit = mech["id"]
     if card["specialUnit"] > 0 or card["isTestUnit"]:
         refuse(unit, "is a special or test unit")
@@ -141,6 +143,7 @@ def render(mech, card, kind, skill, rvo, type_name):
         "schema: mechcore.unit",
         f"type_name: {type_name}",
         f"unit_type_id: {unit}",
+        f"main_skill: {skill['id']}",
         "",
         "formation:",
         f"  members: {card['mechCount']}",
@@ -174,13 +177,68 @@ def render(mech, card, kind, skill, rvo, type_name):
             f"  exit_keep: {grid(mech['moveAbilityExitKeepEffectTime'], 2000)}",
             f"  attack_range: {grid(mech['underGroundExitRange'], 1000)}",
         ]
-    lines += [
-        "",
-        "attack:",
-        f"  base_damage: {mech['damage']}",
+    lines += ["", "attack:"]
+    lines += attack_lines(unit, kind, skill, f"base_damage: {mech['damage']}", mech["attackAngle"], "  ")
+    extras = []
+    for technology, (extra_kind, extra_skill, row) in extra_weapons.items():
+        written = extra_weapon_lines(mech, technology, extra_kind, extra_skill, row)
+        if written:
+            extras += written
+    if extras:
+        lines += ["", "extra_weapons:"] + extras
+    return "\n".join(lines) + "\n"
+
+
+def extra_weapon_lines(mech, technology, kind, skill, row):
+    """An extra weapon technology's skill, when the simulator's shape can state it.
+
+    `ExtraWeaponTech` adds the row's `skillID` beside the unit's main skill
+    (`ExtraSkillSystem.AddMech`). A row that also leaves a terrain, writes a
+    buff, changes a shield's damage, reduces every weapon's damage or reaches
+    with the main skill's range in a way this cannot state is left out, and
+    the simulator refuses the technology by name.
+    """
+    # `energyShieldDamage` -1 leaves a shield's damage as it is.
+    if (row.get("rangeItemType", -1) != -1 or row.get("buffID") or row.get("energyShieldDamage", -1) != -1
+            or any(raw(value) for value in row.get("fireLifeTime") or [])
+            or raw(row.get("fogAttackRangeChangeRate")) or raw(row.get("allWeaponReduceDamageRate"))):
+        return []
+    # A skill with no damage rate deals its own damage, one entry a level; one
+    # whose damage is the unit's times its rate is not stated here yet.
+    if raw(skill["damageRate"]) or not skill["damage"]:
+        return []
+    if raw(skill["initialCoolDownTime"]) or any(
+            skill[field] for field in ("isLoadingType", "isDiffusion", "useSelfSplash")):
+        return []
+    try:
+        attack = attack_lines(mech["id"], kind, skill, f"base_damage: {skill['damage'][0]}",
+                              skill["canAttackAngle"], "      ", angle_absent=360 * ONE)
+    except SystemExit:
+        return []
+    return [
+        f"  - technology: {technology}",
+        f"    skill: {skill['id']}",
+        f"    use_main_skill_range: {boolean(row.get('useMainSkillRange', False))}",
+        f"    damage_by_level: [{', '.join(str(value) for value in skill['damage'])}]",
+        "    attack:",
+    ] + attack
+
+
+def attack_lines(unit, kind, skill, damage_line, attack_angle, indent, angle_absent=None):
+    """A skill's attack, as `config/units/` states it, each line indented.
+
+    `FightSkill.Init` takes a skill's attack angle from its own row where the
+    row sets one, and otherwise an extra skill's is the full circle and a main
+    skill's is its owner's: `attack_angle` is the owner's for a main skill,
+    and `angle_absent` what an extra skill without one of its own reads.
+    """
+    if angle_absent is not None and raw(attack_angle) <= 0:
+        attack_angle = {"m_rawValue": angle_absent}
+    lines = [
+        f"  {damage_line}",
         f"  min_range: {grid(skill['minAttackRange'], 1000)}",
         f"  range: {grid(skill['attackRange'], 1000)}",
-        f"  attack_half_angle: {grid(mech['attackAngle'], 1000)}",
+        f"  attack_half_angle: {grid(attack_angle, 1000)}",
         f"  targets: {{ground: {boolean(skill['canAttackGround'])}, air: {boolean(skill['canAttackAir'])}}}",
         f"  lock_target: {boolean(skill['isLockTarget'])}",
         f"  quick_switch_target: {boolean(skill['enableQuickSwitchTarget'])}",
@@ -278,7 +336,7 @@ def render(mech, card, kind, skill, rvo, type_name):
             lines.append(f"      - {{radius: {readable(radius)}, hits: {hits}}}")
     else:
         refuse(unit, f"main skill is a {kind} row")
-    return "\n".join(lines) + "\n"
+    return [indent + line[2:] for line in lines]
 
 
 def main():
@@ -288,6 +346,11 @@ def main():
     cards = {row["mechID"]: row for row in structure["cardDatas"]}
     skills = skill_rows()
     names = build_data.names("MechData")
+    extra_rows = {row["id"]: row for row in build_data.level0("TechnologyGroupData")["extraWeaponTechnologies"]
+                  if not row.get("isTestData") and build_data.in_standard(row)}
+    researched = {}
+    for entry in yaml.safe_load(UNIT_TECHS.read_text())["units"]:
+        researched[entry["unit_id"]] = [tech["id"] for tech in entry["technologies"]]
     rvos = build_data.shared("RVOControllerFixed")
 
     files = {}
@@ -300,7 +363,12 @@ def main():
         if path.stem != type_name:
             raise SystemExit(f"{path.name} holds unit {unit}, whose English name is {names[unit]['en']!r}")
         kind, skill = skills[mechs[unit]["mainSkillID"]]
-        text = render(mechs[unit], cards[unit], kind, skill, rvos[mechs[unit]["prefabName"]], type_name)
+        extra_weapons = {
+            technology: (*skills[extra_rows[technology]["skillID"]], extra_rows[technology])
+            for technology in researched.get(unit, []) if technology in extra_rows
+        }
+        text = render(mechs[unit], cards[unit], kind, skill, rvos[mechs[unit]["prefabName"]], type_name,
+                      extra_weapons)
         if arguments.check:
             if path.read_text() != text:
                 differing.append(path.name)

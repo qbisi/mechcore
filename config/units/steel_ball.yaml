@@ -1,6 +1,7 @@
 schema: mechcore.unit
 type_name: steel_ball
 unit_type_id: 8
+main_skill: 8001
 
 formation:
   members: 4

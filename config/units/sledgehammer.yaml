@@ -1,6 +1,7 @@
 schema: mechcore.unit
 type_name: sledgehammer
 unit_type_id: 13
+main_skill: 13001
 
 formation:
   members: 5

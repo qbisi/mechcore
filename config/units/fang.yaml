@@ -1,6 +1,7 @@
 schema: mechcore.unit
 type_name: fang
 unit_type_id: 9
+main_skill: 9001
 
 formation:
   members: 18

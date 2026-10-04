@@ -1,6 +1,7 @@
 schema: mechcore.unit
 type_name: overlord
 unit_type_id: 11
+main_skill: 11001
 
 formation:
   members: 1
@@ -51,3 +52,45 @@ attack:
     simulated_motion: false
     interceptible: true
     max_life: 152895
+
+extra_weapons:
+  - technology: 1108
+    skill: 11002
+    use_main_skill_range: false
+    damage_by_level: [7000, 14000, 21000, 28000, 35000, 42000, 49000, 56000, 63000]
+    attack:
+      base_damage: 7000
+      min_range: 0
+      range: 140
+      attack_half_angle: 20
+      targets: {ground: true, air: false}
+      lock_target: true
+      quick_switch_target: true
+      timing:
+        interval: 3
+        interval_offset: 0.3
+        initial_cooldown: 0
+        prepare: 0
+        attack_point: 0
+        backswing: 0
+        cooling: 0.5
+      splash_radius: 4.5
+      weapons:
+        mode: standalone
+        indices: [0, 1]
+        per_skill: 2
+        rotation_speed: 50
+      melee: false
+      crosses_shields: false
+      path:
+        type: projectile
+        count: 1
+        release_interval: 0.05
+        speed: 400
+        target_offset_radius: 0
+        evenly_allocate_targets: false
+        extra_search_range: 0
+        pre_flight_height: 0
+        simulated_motion: false
+        interceptible: false
+        max_life: 0

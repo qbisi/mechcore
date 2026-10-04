@@ -1,6 +1,7 @@
 schema: mechcore.unit
 type_name: farseer
 unit_type_id: 26
+main_skill: 26001
 
 formation:
   members: 1

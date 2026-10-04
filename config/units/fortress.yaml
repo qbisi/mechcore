@@ -1,6 +1,7 @@
 schema: mechcore.unit
 type_name: fortress
 unit_type_id: 1
+main_skill: 1001
 
 formation:
   members: 1
@@ -52,3 +53,44 @@ attack:
     simulated_motion: false
     interceptible: false
     max_life: 0
+
+extra_weapons:
+  - technology: 1105
+    skill: 1003
+    use_main_skill_range: false
+    damage_by_level: [900]
+    attack:
+      base_damage: 900
+      min_range: 0
+      range: 170
+      attack_half_angle: 360
+      targets: {ground: false, air: true}
+      lock_target: false
+      quick_switch_target: true
+      timing:
+        interval: 10
+        interval_offset: 0
+        initial_cooldown: 0
+        prepare: 0
+        attack_point: 0
+        backswing: 0
+        cooling: 0
+      splash_radius: 7.5
+      weapons:
+        mode: normal
+        indices: [2, 5]
+        per_skill: 2
+      melee: false
+      crosses_shields: false
+      path:
+        type: projectile
+        count: 16
+        release_interval: 0.12
+        speed: 160
+        target_offset_radius: 55
+        evenly_allocate_targets: false
+        extra_search_range: 0
+        pre_flight_height: 60
+        simulated_motion: false
+        interceptible: true
+        max_life: 58000

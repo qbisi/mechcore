@@ -1,6 +1,7 @@
 schema: mechcore.unit
 type_name: phantom_ray
 unit_type_id: 25
+main_skill: 25001
 
 formation:
   members: 3

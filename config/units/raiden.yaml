@@ -1,6 +1,7 @@
 schema: mechcore.unit
 type_name: raiden
 unit_type_id: 27
+main_skill: 27001
 
 formation:
   members: 1

@@ -1,6 +1,7 @@
 schema: mechcore.unit
 type_name: arclight
 unit_type_id: 15
+main_skill: 15001
 
 formation:
   members: 1

@@ -1,6 +1,7 @@
 schema: mechcore.unit
 type_name: wasp
 unit_type_id: 6
+main_skill: 6001
 
 formation:
   members: 12

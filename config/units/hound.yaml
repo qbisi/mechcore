@@ -1,6 +1,7 @@
 schema: mechcore.unit
 type_name: hound
 unit_type_id: 28
+main_skill: 28001
 
 formation:
   members: 5

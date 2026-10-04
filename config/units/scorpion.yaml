@@ -1,6 +1,7 @@
 schema: mechcore.unit
 type_name: scorpion
 unit_type_id: 19
+main_skill: 19001
 
 formation:
   members: 1

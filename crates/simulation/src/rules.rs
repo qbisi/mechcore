@@ -63,6 +63,9 @@ pub(crate) struct UnitConfig {
     schema: String,
     pub(crate) type_name: String,
     pub(crate) unit_type_id: u32,
+    /// `MechData.mainSkillID`: its main skill's ID, which orders it among the
+    /// unit's skills (`SkillManager.SortSkills`).
+    pub(crate) main_skill: i32,
     pub(crate) formation: FormationConfig,
     pub(crate) domain: UnitDomain,
     /// `MechData.mechType`, a `UnitType`.
@@ -88,6 +91,26 @@ pub(crate) struct UnitConfig {
     /// attack.
     #[serde(default)]
     pub(crate) underground: Option<UndergroundConfig>,
+    pub(crate) attack: AttackConfig,
+    /// The skill each extra weapon technology the unit may research adds
+    /// beside its main skill (`ExtraWeaponTech`, `ExtraSkillSystem.AddMech`),
+    /// where its shape is one this file can state.
+    #[serde(default)]
+    pub(crate) extra_weapons: Vec<ExtraWeaponConfig>,
+}
+
+/// An `ExtraWeaponTechnologyData` row and the skill its `skillID` names.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ExtraWeaponConfig {
+    pub(crate) technology: i32,
+    pub(crate) skill: i32,
+    /// `ExtraWeaponTechnologyData.useMainSkillRange`: the skill reaches as far
+    /// as the unit's main skill does (`FightSkill.GetAttackRange`).
+    pub(crate) use_main_skill_range: bool,
+    /// `SkillData.damage`: a skill with no damage rate deals its own, one
+    /// entry for each unit level.
+    pub(crate) damage_by_level: Vec<i64>,
     pub(crate) attack: AttackConfig,
 }
 

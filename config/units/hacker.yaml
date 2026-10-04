@@ -1,6 +1,7 @@
 schema: mechcore.unit
 type_name: hacker
 unit_type_id: 14
+main_skill: 14001
 
 formation:
   members: 1
