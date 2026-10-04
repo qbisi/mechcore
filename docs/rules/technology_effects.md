@@ -67,7 +67,9 @@ steal, Field Maintenance's repair. 64 of the 241 technologies are plain. The
 simulator applies a plain technology's numbers, a lifesteal technology's
 with the life steal [combat.md](combat.md#lifesteal) states, and a repair
 technology's with [its repair](combat.md#repair), a sweep technology's with
-the strip it changes ([sweep.md](sweep.md#technology)), Secondary Armament,
+the strip it changes ([sweep.md](sweep.md#technology)), an armour
+technology's with the reduction of each hit [combat.md](combat.md#armour)
+states, which its row's `reduce_damage_value` gives by unit level, Secondary Armament,
 Incendiary Bomb and Scorching Charge with the skill each adds
 ([extra_weapons.md](extra_weapons.md)), and refuses
 every other technology by name and kind, since applying a subclass's numbers

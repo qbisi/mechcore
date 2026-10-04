@@ -467,6 +467,7 @@ impl Simulation {
             // `PerformAirDropDamage` turns `IsInterceptByAdvancedEnergyShield`
             // off.
             crosses_shields: true,
+            provider: Provider::SupportUnit,
             ..DamageHit::unowned(
                 team,
                 actor.life,

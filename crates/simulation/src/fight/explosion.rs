@@ -144,6 +144,7 @@ impl Simulation {
                     EffectTarget::Opponent
                 },
                 amount,
+                provider: Provider::Other,
                 projectile: None,
                 skill_slot: None,
                 aimed: None,

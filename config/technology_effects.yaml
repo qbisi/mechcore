@@ -26,7 +26,9 @@ schema: mechcore.technology_effects
 # share of maximum life each restores. A sweep technology names the
 # skill it changes and the metres it adds to the strip's width and
 # length, and sets whether the strip lies across the line to the
-# target, runs backwards, and keeps one direction.
+# target, runs backwards, and keeps one direction. An armour technology
+# carries its `reduce_damage_value`, the damage each hit on its unit
+# loses, one entry per unit level.
 
 technologies:
   - id: 206
@@ -410,76 +412,91 @@ technologies:
     unit: fortress
     kind: armorStrengthenTechnologyDatas
     life_rate: [2147483648]  # +0.5
+    reduce_damage_value: [60, 120, 180, 240, 300, 360, 420, 480, 540]
   - id: 3003
     name: 装甲强化
     unit: vulcan
     kind: armorStrengthenTechnologyDatas
     life_rate: [2147483648]  # +0.5
+    reduce_damage_value: [60, 120, 180, 240, 300, 360, 420, 480, 540]
   - id: 3004
     name: 装甲强化
     unit: melting_point
     kind: armorStrengthenTechnologyDatas
     life_rate: [2147483648]  # +0.5
+    reduce_damage_value: [60, 120, 180, 240, 300, 360, 420, 480, 540]
   - id: 3005
     name: 装甲强化
     unit: rhino
     kind: armorStrengthenTechnologyDatas
     life_rate: [2147483648]  # +0.5
+    reduce_damage_value: [60, 120, 180, 240, 300, 360, 420, 480, 540]
   - id: 3008
     name: 装甲强化
     unit: steel_ball
     kind: armorStrengthenTechnologyDatas
     life_rate: [1503238553]  # +0.35
+    reduce_damage_value: [60, 120, 180, 240, 300, 360, 420, 480, 540]
   - id: 3011
     name: 装甲强化
     unit: overlord
     kind: armorStrengthenTechnologyDatas
     life_rate: [1503238553]  # +0.35
+    reduce_damage_value: [60, 120, 180, 240, 300, 360, 420, 480, 540]
   - id: 3013
     name: 装甲强化
     unit: sledgehammer
     kind: armorStrengthenTechnologyDatas
     life_rate: [1503238553]  # +0.35
+    reduce_damage_value: [60, 120, 180, 240, 300, 360, 420, 480, 540]
   - id: 3015
     name: 装甲强化
     unit: arclight
     kind: armorStrengthenTechnologyDatas
     life_rate: [2147483648]  # +0.5
+    reduce_damage_value: [60, 120, 180, 240, 300, 360, 420, 480, 540]
   - id: 3017
     name: 装甲强化
     unit: war_factory
     kind: armorStrengthenTechnologyDatas
     life_rate: [2147483648]  # +0.5
+    reduce_damage_value: [60, 120, 180, 240, 300, 360, 420, 480, 540]
   - id: 3018
     name: 装甲强化
     unit: wraith
     kind: armorStrengthenTechnologyDatas
     life_rate: [1503238553]  # +0.35
+    reduce_damage_value: [60, 120, 180, 240, 300, 360, 420, 480, 540]
   - id: 3019
     name: 装甲强化
     unit: scorpion
     kind: armorStrengthenTechnologyDatas
     life_rate: [2147483648]  # +0.5
+    reduce_damage_value: [60, 120, 180, 240, 300, 360, 420, 480, 540]
   - id: 3023
     name: 装甲强化
     unit: sandworm
     kind: armorStrengthenTechnologyDatas
     life_rate: [2147483648]  # +0.5
+    reduce_damage_value: [60, 120, 180, 240, 300, 360, 420, 480, 540]
   - id: 3024
     name: 装甲强化
     unit: tarantula
     kind: armorStrengthenTechnologyDatas
     life_rate: [2147483648]  # +0.5
+    reduce_damage_value: [60, 120, 180, 240, 300, 360, 420, 480, 540]
   - id: 3025
     name: 装甲强化
     unit: phantom_ray
     kind: armorStrengthenTechnologyDatas
     life_rate: [1503238553]  # +0.35
+    reduce_damage_value: [60, 120, 180, 240, 300, 360, 420, 480, 540]
   - id: 3028
     name: 装甲强化
     unit: hound
     kind: armorStrengthenTechnologyDatas
     life_rate: [858993459]  # +0.2
+    reduce_damage_value: [60, 120, 180, 240, 300, 360, 420, 480, 540]
   - id: 3109
     name: 榴弹发射器
     unit: fang
@@ -1188,6 +1205,7 @@ technologies:
     name: 巨山装甲
     unit: mountain
     kind: armorStrengthenTechnologyDatas
+    reduce_damage_value: [700, 1400, 2100, 2800, 3500, 4200, 4900, 5600, 6300]
   - id: 312002
     name: 防空弹药
     unit: mountain

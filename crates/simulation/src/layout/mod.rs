@@ -818,9 +818,14 @@ fn loadout(
                 .map_err(on_side)
         })
         .chain(side.techs.units.iter().map(|id| {
-            loadouts
-                .technologies
-                .corrections(std::slice::from_ref(id), type_name)
+            let held = std::slice::from_ref(id);
+            let technologies = &loadouts.technologies;
+            technologies
+                .corrections(held, type_name)
+                .and_then(|mut written| {
+                    written.extend(technologies.armor(held, type_name, level)?);
+                    Ok(written)
+                })
                 .map_err(on_side)
         }))
         .chain(

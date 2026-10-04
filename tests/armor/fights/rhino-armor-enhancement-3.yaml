@@ -1,0 +1,24 @@
+# Armor Enhancement on a level-3 Rhino: the entry for its level.
+#
+# `rhino-armor-enhancement.yaml` with the Rhino at level 3. The technology's
+# list holds 60 a level, and the recording reads 180 in the Rhino's
+# `reduce_damage_value`, its third entry: each of the twelve shots takes 2149.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 311
+hash: {profile: mcfr-content-0.7.0, result: 4e27ddfdb4122522034f0a3df2b8feab3646818266bf7911f78ffadef8824a91}
+blue:
+  techs:
+    rhino: [armor_enhancement]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -45}, level: 3, exp: 0/600/4096}
+red:
+  core_damage: 200
+  units:
+  - {name: marksman, index: 0, position: {x: -40, y: -100}}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}}
+  - {name: marksman, index: 2, position: {x: 40, y: -100}}
