@@ -133,5 +133,4 @@ pub(crate) fn corrections(fields: Fields) -> Vec<(Channel, Index, Correction)> {
 
 /// Why a field this build will not apply is refused.
 pub(crate) const VALUE_ELSEWHERE: &str = "no number this simulator derives is the one it corrects";
-pub(crate) const KILLS: &str = "no mechanism here rates a unit's life by its kills";
 pub(crate) const PROJECTILE: &str = "no mechanism here reads a projectile's own numbers";

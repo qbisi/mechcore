@@ -484,8 +484,8 @@ its board pays, less what an energy tower skill activated this round still
 owes.
 
 Nothing else reaches the supply between two rounds. Standard 1v1 pays nothing
-during a fight: the only officers in this build that pay a bounty for
-destroying a giant are neither dealt by an opening nor granted by a card. So
+during a fight: no officer a standard side can hold pays a bounty for
+destroying a giant, which the extraction checks. So
 `supply` is not in the `fight` class, and a match whose supply does not add up
 fails to verify at that leaf.
 

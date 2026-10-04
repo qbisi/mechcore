@@ -28,8 +28,10 @@ the side does not fit stays in its inventory.
 Where its effects live:
 
 - [`config/officers.yaml`](../../config/officers.yaml): what it does to a
-  ledger, a discount and the units it applies to, an income, the bounty for a
-  giant, and the skills, equipment and opening squad it hands out.
+  ledger, a discount and the units it applies to, an income, and the skills,
+  equipment and opening squad it hands out. It holds only the officers a
+  standard 1v1 side can hold: a card the pool deals, an opening's specialist,
+  a chain blueprint's officer and a unit round's supply.
   `scripts/extract/extract_prices.py` writes it.
 - [`config/officer_effects.yaml`](../../config/officer_effects.yaml): the
   corrections it writes onto units in a fight, which
@@ -53,8 +55,13 @@ Where its effects live:
   the `blueprints` field; a document states them there and never in
   `officers`.
 
-Rows that are test data or limited to Interstellar Expedition are none of
-these and are not named.
+- **Unit round supplies** `50008` to `50013` are what a unit round pays a side
+  that declines its offer, `UnitReinforceRoundPool.supplyReinforceID`; they
+  carry `granted_supply` and are not named.
+
+No other officer reaches a standard 1v1 side. `officerDatas` holds more, test
+data, Interstellar Expedition's and rows no standard pool deals, and they are
+in no table and not named: a layout cannot hold one.
 
 ## Additional Deployment Slot
 

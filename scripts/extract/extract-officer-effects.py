@@ -9,8 +9,8 @@ writes onto a unit's numbers, from `ConfigDataContainer.officerDatas` as
 `scripts/build_data.py` reads it. The fields are the ones `GameRiver.OfficerData`
 answers `ICommonMechDataChangeDataSource` with, the interface `OfficerData`,
 `TechnologyData`, `EquipmentData` and `EnergyTowerSkillData` all implement,
-which is why one shape serves all four. Officers limited to Interstellar
-Expedition are left out.
+which is why one shape serves all four. Only the officers a standard 1v1 side
+can hold are written (`extract_prices.standard_officers`).
 
 Every percentage an officer's own English description states ("by 17%") has to
 be one of the rates the table holds for it; a misparse would have to agree with
@@ -23,6 +23,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 import build_data  # noqa: E402
+from extract_prices import standard_officers  # noqa: E402
 
 REPOSITORY = pathlib.Path(__file__).resolve().parents[2]
 OUTPUT = REPOSITORY / "config/officer_effects.yaml"
@@ -114,7 +115,9 @@ def crosscheck(written: str, officers: list[dict]) -> tuple[int, list[str]]:
 
 def main() -> int:
     build_data.arguments(__doc__)
-    officers = [row for row in build_data.container()["officerDatas"] if build_data.in_standard(row)]
+    structure = build_data.container()
+    standard = standard_officers(structure)
+    officers = [row for row in structure["officerDatas"] if row["id"] in standard]
     names = unit_names()
 
     lines = [

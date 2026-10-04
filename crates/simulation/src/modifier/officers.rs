@@ -6,11 +6,10 @@
 //! into the corrections [`crate::data`] resolves, for the units the row
 //! reaches.
 //!
-//! An officer this build cannot apply is refused by name rather than partly
-//! applied. Three things make one: a field that corrects a number no mechanism
-//! here reads, a field whose composition nobody has measured, and a targeting
-//! category the build's data does not enumerate. A fight is not fought with
-//! half an officer on it.
+//! The table holds only the officers a standard 1v1 side can hold, and each
+//! of their fields is applied. An officer whose targeting category the
+//! build's data does not enumerate is refused by name rather than partly
+//! applied: a fight is not fought with half an officer on it.
 
 use std::collections::BTreeMap;
 
@@ -23,7 +22,7 @@ use crate::{
 };
 
 use super::{
-    effects::{self, Fields, KILLS, PROJECTILE, VALUE_ELSEWHERE},
+    effects::{self, Fields},
     targets::Targets,
 };
 
@@ -62,16 +61,16 @@ struct Officer {
     /// `energyShieldChangeRate` and `landMineChangeRate`, Q32.32: what
     /// `SystemOfficerController` adds onto its side's shield and missile.
     contraption_rates: ContraptionRates,
-    /// What it writes, or why this build will not apply it. The table loads
-    /// whole either way: an officer nobody holds refuses nothing, and a fight
-    /// is only refused for what its sides actually carry.
-    effect: std::result::Result<Vec<(Channel, Index, Correction)>, String>,
+    /// What it writes onto a unit it reaches.
+    effect: Vec<(Channel, Index, Correction)>,
 }
 
 /// One row of the table, with every field the extraction writes.
 ///
 /// Unknown fields are refused rather than ignored: a field this build has
-/// never seen is a decision about what it corrects, not a value to skip.
+/// never seen is a decision about what it corrects, not a value to skip. That
+/// holds for a field the build's officers answer but no standard officer
+/// carries, such as a tower's life or a life per kill.
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Row {
@@ -87,15 +86,9 @@ struct Row {
     #[serde(default)]
     life_rate: Option<i64>,
     #[serde(default)]
-    life_rate_by_kill_count: Option<i64>,
-    #[serde(default)]
     attack_interval_rate: Option<i64>,
     #[serde(default)]
     attack_range_rate: Option<i64>,
-    #[serde(default)]
-    projectile_life_rate: Option<i64>,
-    #[serde(default)]
-    tower_life_rate: Option<i64>,
     #[serde(default)]
     energy_shield_rate: Option<i64>,
     #[serde(default)]
@@ -105,17 +98,11 @@ struct Row {
     #[serde(default)]
     attack_range_value: Option<i64>,
     #[serde(default)]
-    min_attack_range_value: Option<i64>,
-    #[serde(default)]
     attack_interval_value: Option<i64>,
     #[serde(default)]
     splash_range_value: Option<i64>,
     #[serde(default)]
-    projectile_speed_value: Option<i64>,
-    #[serde(default)]
     speed_value: Option<i64>,
-    #[serde(default)]
-    extra_life: Option<i64>,
     #[serde(default)]
     exp_rate: Option<i64>,
 }
@@ -225,14 +212,10 @@ impl OfficerEffects {
             let Some(officer) = self.officers.get(id) else {
                 continue;
             };
-            let corrections = officer
-                .effect
-                .as_ref()
-                .map_err(|why| Error::new(why.clone()))?;
-            if corrections.is_empty() || !officer.reaches(unit)? {
+            if officer.effect.is_empty() || !officer.reaches(unit)? {
                 continue;
             }
-            for (channel, index, correction) in corrections {
+            for (channel, index, correction) in &officer.effect {
                 written.push((
                     *channel,
                     Entry {
@@ -290,49 +273,19 @@ impl Officer {
     /// Whether this officer writes onto the given unit.
     ///
     /// A refused targeting category is only an error for an officer that
-    /// writes something: a row that corrects a tower reaches no unit either
-    /// way, and refusing the fight over it would refuse a side for carrying an
-    /// officer whose effect is not a unit's at all.
+    /// writes something: a device officer, type 11, rates its side's
+    /// contraptions and reaches no unit either way, and refusing the fight
+    /// over it would refuse a side for carrying an officer whose effect is
+    /// not a unit's at all.
     fn reaches(&self, unit: &UnitConfig) -> Result<bool> {
         self.targets.reaches(unit)
     }
 }
 
-/// What a row writes, or why this build will not apply it.
-///
-/// The fields an officer shares with every other source of corrections are
-/// [`super::effects`]'s; the ones only an officer carries are refused here,
-/// each with what it would take to support it.
-fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correction)>, String> {
-    let unsupported = [
-        (
-            row.min_attack_range_value,
-            "min_attack_range_value",
-            VALUE_ELSEWHERE,
-        ),
-        (
-            row.projectile_speed_value,
-            "projectile_speed_value",
-            PROJECTILE,
-        ),
-        (row.projectile_life_rate, "projectile_life_rate", PROJECTILE),
-        (
-            row.life_rate_by_kill_count,
-            "life_rate_by_kill_count",
-            KILLS,
-        ),
-        (row.tower_life_rate, "tower_life_rate", ELSEWHERE),
-        (row.extra_life, "extra_life", ELSEWHERE),
-    ];
-    for (value, field, why) in unsupported {
-        if value.is_some_and(|value| value != 0) {
-            return Err(format!(
-                "officer {} ({}) writes {field}, and {why}",
-                row.id, row.name
-            ));
-        }
-    }
-    Ok(effects::corrections(Fields {
+/// What a row writes: the fields an officer shares with every other source
+/// of corrections, [`super::effects`]'s.
+fn corrections_of(row: &Row) -> Vec<(Channel, Index, Correction)> {
+    effects::corrections(Fields {
         life_rate: row.life_rate,
         damage_rate: row.damage_rate,
         damage_rate_by_kill_count: row.damage_rate_by_kill_count,
@@ -342,11 +295,8 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
         attack_interval_value: row.attack_interval_value,
         splash_range_value: row.splash_range_value,
         speed_value: row.speed_value,
-    }))
+    })
 }
-
-const ELSEWHERE: &str = "it corrects a tower's life or a side's lives rather than a \
-                         unit's own number, and no mechanism here reads one";
 
 #[cfg(test)]
 mod tests {
@@ -523,19 +473,6 @@ mod tests {
                 missile_damage: 2 * (2_i64 << 32),
             }
         );
-    }
-
-    /// A row with a field no mechanism reads refuses the side that holds it,
-    /// by name: Berserk Sledgehammer's life per kill.
-    #[test]
-    fn an_officer_this_build_cannot_apply_is_refused_by_name() {
-        let table = OfficerEffects::load().unwrap();
-        let refused = table
-            .corrections(&[31303], &unit("sledgehammer"))
-            .unwrap_err()
-            .to_string();
-        assert!(refused.contains("31303"), "{refused}");
-        assert!(refused.contains("life_rate_by_kill_count"), "{refused}");
     }
 
     /// An officer that only touches a ledger is not in this table, and writes

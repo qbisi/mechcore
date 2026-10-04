@@ -7,9 +7,11 @@ does to a ledger, a discount, an income, a squad it hands out, is
 [`config/officers.yaml`](../../config/officers.yaml)'s.
 
 [`config/officer_effects.yaml`](../../config/officer_effects.yaml) holds every
-officer that carries a correction; `scripts/extract/extract-officer-effects.py` writes
-it from `ConfigDataContainer.officerDatas`, leaving out officers limited to
-Interstellar Expedition.
+officer a standard 1v1 side can hold that carries a correction:
+a card the pool deals, an opening's specialist, a chain blueprint's officer
+and a unit round's supply. `scripts/extract/extract-officer-effects.py` writes
+it from `ConfigDataContainer.officerDatas`. An officer no standard side can
+hold is in no table, and a layout cannot name it.
 
 **The numbers are checked against the game's own words.** Every percentage an
 officer's English description states, as the build localizes it with its
@@ -92,26 +94,16 @@ skill modifier set holds `damage_rate`, `attack_range_rate` and
 move-speed fields. An officer's damage rate lands in the skill channel and not
 on the unit; its life rate lands in the unit channel.
 
-## What the simulator refuses
+## What the simulator applies
 
 `crates/simulation/src/modifier/officers.rs` turns a row of the table into
 corrections on the units it reaches, tagged `Modifier` so removing the officer
-removes them: a row whose every field is a rate, a value or a plain integer on a
-number the simulator derives (damage, life, attack interval, attack range,
-splash radius, movement speed) and whose `mech_type` it answers. It refuses the side that
-holds any other row, by name, for one of these reasons:
-
-- the row corrects a tower's life, a side's lives or a projectile's life,
-  which needs the mechanism that owns that number;
-- the row carries a `life_rate_by_kill_count`, which needs the life a unit's
-  kills raise, `FightMech.RefreshLifeByKillCount`.
-
-What is left is no longer about how a correction composes: every remaining
-refusal is a mechanism this simulator does not have.
-
-A partly applied officer is not offered: a side carrying one this build cannot
-compose is refused, because a fight with two thirds of an officer on it is a
-fight whose numbers nobody can check.
+removes them. Every field a standard officer carries is a rate, a value or a
+plain integer on a number the simulator derives (damage, life, attack interval,
+attack range, splash radius, movement speed), or one of the side's own numbers
+below. A field the build's officers answer but no standard officer carries, a
+tower's life, a life per kill, a side's lives, a projectile's numbers, is not
+read: a table that came to hold one fails to load rather than drop it.
 
 ## A rate per kill
 
@@ -142,7 +134,7 @@ one, the unit list that goes with it:
 | ---: | --- | --- |
 | 10 | the units themselves | those units |
 | 0 | none | every unit |
-| 11 | none | no unit: the correction is on a tower, a shield or a mine |
+| 11 | none | no unit: the correction is on a shield, a mine or a travel time |
 | 1 | the air units | those units |
 | 4 | none | ranged units |
 
@@ -150,8 +142,8 @@ Type 10 is the common case and needs no reading: 改进型铁锤 lists Sledgeham
 and corrects Sledgehammer. Type 0 carries no list and reaches everything, which
 is what 先进进攻战术's `+0.3` damage is: the officer a side may hold twice, and
 `docs/spec/document/layout.md` keeps `officers` a multiset for exactly that.
-Type 11 rows correct `tower_life_rate`, `energy_shield_rate`, `land_mine_rate`
-or `extra_life`, none of which is a unit's number at all.
+Type 11 rows correct `energy_shield_rate`, `land_mine_rate` or
+`super_deployment_time_rate`, none of which is a unit's number at all.
 
 Type 4 is 先进瞄准系统, with `+10` of range and no unit list. The category is
 `UnitEffectTargetType.Ranged`, and `UnitUtility.IsEffectTarget`, which
@@ -163,26 +155,21 @@ unit table carries the flag as `attack.melee`.
 
 ## What the odd fields touch
 
-Four fields correct something that is not a unit's number, and the officer
+Three fields correct something that is not a unit's number, and the officer
 index's text says what each one is:
 
 | Field | What it corrects |
 | --- | --- |
-| `tower_life_rate` | the Energy Tower's life; 能量塔过载's `+1` is its "by 100%" |
 | `energy_shield_rate` | the Energy Shield device's shield; 先进护盾装置's `+0.4`, which [contraptions.md](contraptions.md#what-an-officer-adds) states |
 | `land_mine_rate` | the Sentry Missile device's damage; 先进飞弹装置's `+2`, likewise |
 | `super_deployment_time_rate` | the teleport time a rear deployment takes; 快速传送's `-0.5` |
 
-`exp_rate` is a fifth that corrects no unit's number: a rate on the experience
+`exp_rate` is a fourth that corrects no unit's number: a rate on the experience
 a unit gains, `+1` or `+0.75`, which the text reads as "increases EXP Growth
 Rate by 100%". It lands on the unit's card rather than on the unit, and the
 card hands it to the unit's formation;
 [unit_experience.md](unit_experience.md#an-officers-rate) states what it does
 to a gain.
-
-`extra_life` is stored like a unit's number and is not one. Its single row is
-紧急避险, whose text describes a side's life being reset to 1 rather than a unit
-gaining any, so the field's name is not what it does.
 
 ## Evidence
 
@@ -248,8 +235,6 @@ gaining any, so the field's name is not what it does.
 - **That a value joins before a rate.** It was measured on a Sledgehammer's
   attack interval in another version, with a script that needs the game, and
   no gameless test pins it.
-- **What a correction does once it lands** on a tower's life: no mechanism
-  here reads it yet.
 - **Which of a unit's skills a correction reaches beyond its main skill.** The
   writer that selects them, `SkillDataModifier.AddData` taking the source,
   asks its source more than it did; every recorded row reaches the main skill.

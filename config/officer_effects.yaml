@@ -86,11 +86,6 @@ officers:
     life_rate: 858993459  # +0.2
     attack_range_value: -42949672960  # -10
     speed_value: 3
-  - id: 30103
-    name: 智能堡垒
-    mech_type: 10
-    units: [fortress]
-    exp_rate: 4294967296  # +1
   - id: 30104
     name: 改进型堡垒
     mech_type: 10
@@ -129,11 +124,6 @@ officers:
     life_rate: 1717986918  # +0.4
     attack_range_value: -42949672960  # -10
     speed_value: 3
-  - id: 30303
-    name: 智能火神
-    mech_type: 10
-    units: [vulcan]
-    exp_rate: 4294967296  # +1
   - id: 30401
     name: 突击熔点
     mech_type: 10
@@ -178,25 +168,12 @@ officers:
     damage_rate: 2576980377  # +0.6
     life_rate: 2576980377  # +0.6
     attack_range_value: 42949672960  # +10
-  - id: 30603
-    name: 狂暴兵蜂
-    mech_type: 10
-    units: [wasp]
-    damage_rate_by_kill_count: 858993459  # +0.2
-    life_rate_by_kill_count: 858993459  # +0.2
   - id: 30702
     name: 重装野马
     mech_type: 10
     units: [mustang]
     life_rate: 8589934592  # +2
     attack_range_value: -85899345920  # -20
-  - id: 30802
-    name: 增程钢球
-    mech_type: 10
-    units: [steel_ball]
-    damage_rate: -1288490188  # -0.3
-    life_rate: -1717986918  # -0.4
-    attack_range_value: 171798691840  # +40
   - id: 30803
     name: 改进型钢球
     mech_type: 10
@@ -212,12 +189,6 @@ officers:
     damage_rate: 2147483648  # +0.5
     attack_range_value: -64424509440  # -15
     speed_value: 3
-  - id: 31003
-    name: 改进型爬虫
-    mech_type: 10
-    units: [crawler]
-    damage_rate: 3435973836  # +0.8
-    life_rate: 1717986918  # +0.4
   - id: 31101
     name: 重装霸主
     mech_type: 10
@@ -231,11 +202,6 @@ officers:
     damage_rate: -644245094  # -0.15
     life_rate: -644245094  # -0.15
     attack_range_value: -42949672960  # -10
-  - id: 31103
-    name: 智能霸主
-    mech_type: 10
-    units: [overlord]
-    exp_rate: 4294967296  # +1
   - id: 31104
     name: 改进型霸主
     mech_type: 10
@@ -256,13 +222,6 @@ officers:
     units: [stormcaller]
     damage_rate: -1288490188  # -0.3
     attack_range_value: 150323855360  # +35
-  - id: 31204
-    name: 改进型暴雨
-    mech_type: 10
-    units: [stormcaller]
-    life_rate: 17179869184  # +4
-    attack_range_value: -85899345920  # -20
-    speed_value: 5
   - id: 31301
     name: 量产铁锤
     mech_type: 10
@@ -276,24 +235,12 @@ officers:
     damage_rate: -858993459  # -0.2
     life_rate: -858993459  # -0.2
     attack_range_value: 128849018880  # +30
-  - id: 31303
-    name: 狂暴铁锤
-    mech_type: 10
-    units: [sledgehammer]
-    damage_rate_by_kill_count: 343597383  # +0.08
-    life_rate_by_kill_count: 343597383  # +0.08
   - id: 31304
     name: 改进型铁锤
     mech_type: 10
     units: [sledgehammer]
     damage_rate: 4294967296  # +1
     speed_value: 3
-  - id: 31401
-    name: 增程骇客
-    mech_type: 10
-    units: [hacker]
-    damage_rate: -1288490188  # -0.3
-    attack_range_value: 128849018880  # +30
   - id: 31402
     name: 重装骇客
     mech_type: 10
@@ -462,15 +409,3 @@ officers:
     damage_rate: 1717986918  # +0.4
     life_rate: 1717986918  # +0.4
     attack_range_value: 21474836480  # +5
-  - id: 40004
-    name: 量产护盾装置
-    mech_type: 11
-    energy_shield_rate: -2147483648  # -0.5
-  - id: 40005
-    name: 紧急避险
-    mech_type: 11
-    extra_life: 1
-  - id: 40006
-    name: 能量塔过载
-    mech_type: 11
-    tower_life_rate: 4294967296  # +1
