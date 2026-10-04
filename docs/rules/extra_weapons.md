@@ -97,7 +97,8 @@ chassis before the fight, and turns towards its skill's lock at the row's
 arc about its rest as the chassis pointed before the motion turned it.
 
 A weapon whose row gives it no arc has no transform of its own and points
-where its mount points: the Hound's bomb launchers point as the unit does.
+where its mount points: the Hound's bomb launchers point as the unit does, and
+the Centurion's missile launcher, mounted by default, as its turret does.
 Its skill scores its searches from the unit's rotation as it stands then, the
 same rotation the main skill scores from, and asks its attack angle of the
 unit; it does not turn towards its lock.
@@ -272,6 +273,9 @@ equipment or an Energy Tower skill writes a skill correction onto.
 - A Homing Missile fired at a block in the way names its missile skill and
   climbs first: replay 2324_20260925--67159970 round 6, fought by the game with
   `scripts/corpus/match-replays.py`.
+- A Centurion's missile skill scores its search from its turret's rotation,
+  and takes the target its main gun takes: replay 2324_20260925--67159970
+  round 6, fought by the game with `scripts/corpus/match-replays.py`.
 
 ### Read
 

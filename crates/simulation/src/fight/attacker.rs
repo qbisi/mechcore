@@ -330,7 +330,7 @@ impl Simulation {
         // the unit. The Hound's bombs score from the unit's rotation, as its
         // main skill does.
         let mount_rotation = match (rules.attack.weapons.mount, actor.turret_rotation()) {
-            (WeaponMount::MechBody, Some(turret)) => turret,
+            (WeaponMount::MechBody | WeaponMount::Default, Some(turret)) => turret,
             _ => actor.body_rotation_q32,
         };
         let rotation = if extra.arc().is_some() {
