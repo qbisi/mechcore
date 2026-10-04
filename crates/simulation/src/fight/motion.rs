@@ -903,7 +903,7 @@ impl Simulation {
         match skill_ref.slot {
             SkillSlot::Main => {
                 actor.motion.attacker = SkillSlot::Main;
-                self.hand_standalone_motion(actor_id, 0);
+                self.hand_standalone_motion(SkillRef::main(FightActorRef::Unit(actor_id)), 0);
             }
             SkillSlot::Extra(_) => {
                 if actor.skills.main.slot_lock(0).is_none() {
@@ -918,7 +918,11 @@ impl Simulation {
     /// (`ISkillOwner.SetAttacker`) unless another weapon holds it and holds a
     /// lock (`IAttacker.IsMainTargetProvider`, `GetLockTarget`). A weapon
     /// taking a fresh lock does not draw the turret off the one that has it.
-    pub(in crate::fight) fn hand_standalone_motion(&mut self, actor_id: u64, slot: usize) {
+    pub(in crate::fight) fn hand_standalone_motion(&mut self, skill_ref: SkillRef, slot: usize) {
+        let (FightActorRef::Unit(actor_id), SkillSlot::Main) = (skill_ref.owner, skill_ref.slot)
+        else {
+            return;
+        };
         let Some(actor) = self.actors.get_mut(&actor_id) else {
             return;
         };

@@ -205,7 +205,7 @@ impl Simulation {
                     query_x_q32: actor.target_query_x_q32,
                     query_z_q32: actor.target_query_z_q32,
                     query_rotation_q32: actor
-                        .default_search_frame(0)
+                        .default_search_frame(&actor.rules.attack, 0)
                         .map_or(actor.target_query_source_rotation_q32, |(rotation, _)| {
                             rotation
                         }),
@@ -228,7 +228,7 @@ impl Simulation {
                     has_body: actor.rules.has_body,
                     turn_q32: actor.turn_q32(),
                     rotation_window_q32: actor
-                        .default_search_frame(0)
+                        .default_search_frame(&actor.rules.attack, 0)
                         .and_then(|(_, window)| window),
                     searches: true,
                 })
@@ -465,6 +465,14 @@ impl Simulation {
                 .skills
                 .get_mut(skill_ref.slot),
         }
+    }
+
+    /// The row a skill runs from: its owner's for the main skill, its
+    /// technology's for an extra one.
+    pub(in crate::fight) fn skill_rules(&self, skill_ref: SkillRef) -> &AttackConfig {
+        self.skill_attacker(skill_ref)
+            .expect("skill owner identity is stable")
+            .attack
     }
 
     /// `ISkillData`'s quick switch: whether the skill takes the next target

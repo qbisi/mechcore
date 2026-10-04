@@ -1086,19 +1086,18 @@ impl Simulation {
                 skill_ref.owner.id()
             ))
         };
-        let grouped_core = skill_ref.owner.unit_id().filter(|_| {
-            self.skill(skill_ref).is_grouped()
-                && self
-                    .skill(skill_ref)
-                    .siblings()
-                    .iter()
-                    .any(|slot| slot.lock_target.is_some())
-        });
-        let mut selected_candidate = if let Some(actor_id) = grouped_core {
+        let grouped_core = skill_ref.owner.unit_id().is_some()
+            && self.skill(skill_ref).is_grouped()
+            && self
+                .skill(skill_ref)
+                .siblings()
+                .iter()
+                .any(|slot| slot.lock_target.is_some());
+        let mut selected_candidate = if grouped_core {
             // A grouped core's search is `PerformGroupedSkillSearch` as its
             // siblings' is: around what they hold, and among it when
             // nothing else answers in reach.
-            self.select_group_lock_replacement(actor_id, 0, target_search_order)
+            self.select_group_lock_replacement(skill_ref, 0, target_search_order)
                 .map_err(located)?
         } else {
             self.select_normal_target_with_order(
@@ -1118,13 +1117,13 @@ impl Simulation {
                 .select_normal_target_with_order(skill_ref, target_search_order, true)
                 .map_err(located)?;
         }
-        if let Some(actor_id) = grouped_core {
-            self.take_from_siblings(actor_id, selected_candidate);
+        if grouped_core {
+            self.take_from_siblings(skill_ref, selected_candidate);
         }
         let idle = selected_candidate.is_none();
         if idle {
             selected_candidate = self
-                .select_alive_target(skill_ref, grouped_core.map(|_| 0), target_search_order)
+                .select_alive_target(skill_ref, grouped_core.then_some(0), target_search_order)
                 .map_err(located)?;
         }
         self.skill_mut(skill_ref).idle = idle;
@@ -1301,7 +1300,7 @@ impl Simulation {
             let core_entered_attack =
                 !core_was_attacking && skill.phase() == FightSkillPhase::Attack;
             self.update_group_slots(
-                actor_id,
+                SkillRef::main(FightActorRef::Unit(actor_id)),
                 step,
                 core_entered_attack,
                 body_rotation_q32,
@@ -1335,7 +1334,7 @@ impl Simulation {
             let core_entered_attack =
                 !core_was_attacking && skill.phase() == FightSkillPhase::Attack;
             self.update_group_slots(
-                actor_id,
+                SkillRef::main(FightActorRef::Unit(actor_id)),
                 step,
                 core_entered_attack,
                 body_rotation_q32,
@@ -1936,15 +1935,13 @@ impl Simulation {
     }
 
     /// Schedules the next attack and remembers the interval it used.
-    pub(in crate::fight) fn sample_actor_attack_interval(
+    pub(in crate::fight) fn sample_attack_interval(
         &mut self,
-        actor_id: u64,
+        skill_ref: SkillRef,
         step: u64,
     ) -> Result<u64> {
-        let owner = FightActorRef::Unit(actor_id);
-        let sampled = self.draw_attack_interval(SkillRef::main(owner))?;
-        self.skill_mut(SkillRef::main(owner))
-            .current_attack_interval = sampled;
+        let sampled = self.draw_attack_interval(skill_ref)?;
+        self.skill_mut(skill_ref).current_attack_interval = sampled;
         Ok(step.saturating_add(sampled))
     }
 }

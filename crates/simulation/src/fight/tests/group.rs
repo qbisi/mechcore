@@ -184,31 +184,43 @@ fn an_attacking_sibling_gives_up_a_shared_unit_by_its_blows() {
     sim.refresh_target_query_snapshot();
     let order = sim.target_search_order();
 
-    assert!(!sim.sibling_yields(1, 1, &order).unwrap(), "timer not up");
+    assert!(
+        !sim.sibling_yields(SkillRef::main(FightActorRef::Unit(1)), 1, &order)
+            .unwrap(),
+        "timer not up"
+    );
     slot(&mut sim, 1).search_target_time = 0;
     assert!(
-        sim.sibling_yields(1, 1, &order).unwrap(),
+        sim.sibling_yields(SkillRef::main(FightActorRef::Unit(1)), 1, &order)
+            .unwrap(),
         "shared with the core"
     );
     assert_eq!(slot(&mut sim, 1).search_target_time, 10);
 
     slot(&mut sim, 1).search_target_time = 0;
-    assert!(!sim.sibling_yields(1, 2, &order).unwrap(), "held alone");
+    assert!(
+        !sim.sibling_yields(SkillRef::main(FightActorRef::Unit(1)), 2, &order)
+            .unwrap(),
+        "held alone"
+    );
 
     slot(&mut sim, 1).attack_count = 0;
     slot(&mut sim, 2).lock_target = Some(unit_target(2));
     assert!(
-        !sim.sibling_yields(1, 1, &order).unwrap(),
+        !sim.sibling_yields(SkillRef::main(FightActorRef::Unit(1)), 1, &order)
+            .unwrap(),
         "a sharer with fewer blows"
     );
     slot(&mut sim, 2).attack_count = 0;
     assert!(
-        !sim.sibling_yields(1, 1, &order).unwrap(),
+        !sim.sibling_yields(SkillRef::main(FightActorRef::Unit(1)), 1, &order)
+            .unwrap(),
         "a sharer with as many"
     );
     slot(&mut sim, 2).attack_count = 1;
     assert!(
-        sim.sibling_yields(1, 1, &order).unwrap(),
+        sim.sibling_yields(SkillRef::main(FightActorRef::Unit(1)), 1, &order)
+            .unwrap(),
         "every sharer has more"
     );
 
@@ -217,12 +229,14 @@ fn an_attacking_sibling_gives_up_a_shared_unit_by_its_blows() {
         sim.actors.get_mut(&unit).unwrap().life = 0;
     }
     assert!(
-        !sim.sibling_yields(1, 1, &order).unwrap(),
+        !sim.sibling_yields(SkillRef::main(FightActorRef::Unit(1)), 1, &order)
+            .unwrap(),
         "nothing unheld to find"
     );
     slot(&mut sim, 3).lock_target = None;
     assert!(
-        !sim.sibling_yields(1, 1, &order).unwrap(),
+        !sim.sibling_yields(SkillRef::main(FightActorRef::Unit(1)), 1, &order)
+            .unwrap(),
         "a slot holds nothing"
     );
 }
