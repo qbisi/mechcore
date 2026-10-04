@@ -1,0 +1,21 @@
+# The control of `sabertooth-range-enhancement.yaml`: the same fight without
+# Range Enhancement. The missile first fires on t37, 111 metres off.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 88
+hash: {profile: mcfr-content-0.7.0, result: e91bc7593922bde1a970cab9a2906087e3e5c8af944553f13b9e3dd98e3fdc7b}
+blue:
+  core_damage: 401
+  techs:
+    sabertooth: [secondary_armament, anti_air_missile]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 5, y: -45}}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: -40, y: -100}, exp: 0/66/650}
+  - {name: marksman, index: 1, position: {x: 40, y: -100}, exp: 0/66/650}
+  - {name: phantom_ray, index: 2, position: {x: 5, y: -100}, exp: 0/266/1000}

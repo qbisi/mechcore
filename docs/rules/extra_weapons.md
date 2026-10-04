@@ -249,6 +249,16 @@ equipment or an Energy Tower skill writes a skill correction onto.
   different targets, they reach the main gun's corrected range plus their
   row's own, and a level 2 unit's deal the row's level 2 damage:
   `tests/extra_weapon/fights/secondary-armament-level-range.yaml`.
+- A technology's and an officer's range, written on the main skill alone,
+  reach both of a Sabertooth's extra skills through the main skill's range:
+  Range Enhancement's +40 metres lets the missile and the extra guns fire
+  from 145 and 152 metres, centre to centre, at once,
+  `tests/extra_weapon/fights/sabertooth-range-enhancement.yaml`, beside its
+  control `tests/extra_weapon/fights/sabertooth-range-enhancement-control.yaml`;
+  Advanced Targeting System's +10 metres lets the missile fire from 122
+  metres nine ticks earlier,
+  `tests/extra_weapon/fights/anti-air-missile-advanced-targeting.yaml`, beside
+  its control `tests/extra_weapon/fights/anti-air-missile.yaml`.
 - An extra gun takes the motion while the main gun holds no lock, and the
   motion moves after the gun's target out of its reach:
   `tests/extra_weapon/fights/secondary-armament-takes-motion.yaml`, beside its
