@@ -228,7 +228,10 @@ counts, never takes experience, and takes no share of another's. Its side's
 officers, technologies and Energy Tower skills write onto it what they write
 onto a unit of its type deployed without equipment: the side registers them
 by mech, and a summon's mech is its unit's, so the lookup that finds them for
-a deployed unit finds them for the summon.
+a deployed unit finds them for the summon. **A summon that dies loses them**
+as the tick's deaths are taken, after every shot of the tick has landed: a
+shell it fired that lands later strikes for its unit's damage without its
+side's corrections. A deployed unit is no summon, and keeps them.
 
 **Appearing.** For a second after it is made, a summon is out of the fight: in
 no tree, never updated, and not counted for its side, though a side with a
@@ -574,6 +577,10 @@ drawn from any stream, and no event is written.
   `SummonSystem.CreateMech`, `SummonSystem.DoCreateMech`,
   `SummonSystem.CreateMechDelay`, `FightTeam.DeactiveMech`,
   `SupportUnitCreator.APPEAR_DURATION`.
+- A summon that dies is destroyed and its side's effects cleared from it,
+  where a deployed unit's are not: `DeadEffectSystem.Update`,
+  `FightMech.IsSummonMech`, `SummonSystem.RemoveMech`,
+  `FightController.DestroyMech`, `FightEffectSystem.ClearEffect`.
 - A summon is given what its side registered for its mech as it is made:
   `SummonSystem.DoCreateMech`, `FightEffectSystem.AddEffect`,
   `TeamFightEffectManager.TryGetFightEffectMananger`,

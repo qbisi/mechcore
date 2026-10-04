@@ -787,6 +787,7 @@ impl Simulation {
         for unit_id in std::mem::take(&mut self.turned_fallen) {
             self.turned_unit_died(unit_id);
         }
+        self.clear_dead_summons()?;
         // Its `TryProcessDeadImportantUnit` too: a side whose last important
         // unit died this tick loses every unit it has left.
         self.lose_important_units(&events)?;
