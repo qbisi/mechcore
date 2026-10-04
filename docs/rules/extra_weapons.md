@@ -75,7 +75,12 @@ the whole of the difference:
   block in the way before the lock behind it: a unit without a body its root,
   one with a body its body, whose chassis still turns to where it moves, as
   under the main skill: a Centurion walking on while its missile skill holds
-  the motion. A Sabertooth whose main
+  the motion. Moving, it turns the skill's weapons to what the skill fires
+  at, or to where the unit moves when it fires at nothing
+  (`MotionMoveState.NormalRotate`, `CalculateTargetDirection`); with a body
+  they are the turret every weapon shares, so a Centurion whose main skill
+  has just lost its lock turns its turret to its missile skill's lock a tick
+  before the main skill locks it. A Sabertooth whose main
   gun has just felled its target and found nothing reads moving on the next
   update when an extra gun took a target beyond its reach on it, and idle
   without the guns; a Hound whose main skill's target burnt to death stays
@@ -338,6 +343,9 @@ simulator refuses it.
   landing beyond its 7 metre splash of every unit strikes nothing:
   `tests/extra_weapon/fights/homing-missile.yaml`, beside its control
   `tests/extra_weapon/fights/homing-missile-control.yaml`.
+- A Centurion whose missile skill holds its motion turns its turret to the
+  missile skill's lock as it moves, a tick before its main skill locks it:
+  `tests/corpus/fights/134265566-r4.yaml`.
 - A Hound's bomb skill whose target walks inside its 40 metre minimum range
   takes another on that update, and its search passes towers over:
   `tests/corpus/fights/201371791-r4.yaml`, `tests/corpus/fights/201371791-r5.yaml`.
@@ -457,7 +465,9 @@ simulator refuses it.
   `FightMech.SetMotionAttackerAfterSkill`, `AutoMoveBehaviour.IsIdle`,
   `AutoMoveBehaviour.IsActive`, `FightSkillBase.IsLockTargetAvaliable`,
   `MotionAttackState.Update`, `MotionAttackState.AttackRotate`,
-  `MotionIdleState.Update`, `MotionMoveState.Update`.
+  `MotionIdleState.Update`, `MotionMoveState.Update`,
+  `MotionMoveState.NormalRotate`, `MotionController.CalculateTargetDirection`,
+  `MotionController.RotateWeaponTo`, `FightSkill.RotateWeaponTo`.
 - An around skill: `FightAroundSkill.CreateStartAttackChecker`,
   `AroundSkillStartAttackChecker.Check`, `PreemptiveSkillStartAttackChecker.Check`,
   `PreemptiveSkillStartAttackChecker.IsMainSkillIdleState`,
