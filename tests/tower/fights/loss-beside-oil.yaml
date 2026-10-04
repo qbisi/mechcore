@@ -1,0 +1,28 @@
+# A tower's loss and a Sticky Oil Bomb's slow on the same units.
+#
+# `tower-level-0.yaml` with a Rhino beside blue's Fangs and three red Phantom
+# Rays with Sticky Oil Bomb. Blue's towers fall at t167 and t239, writing the
+# loss's buff, -0.8 of move speed among its rates, on its nineteen units; from
+# t183 the bombs and their oils write the oil's -0.55 on Fangs that run the
+# loss's buff. The two run side by side and the speeds compose, the
+# impairments multiplied. A Fang that dies running both has the oil's buff
+# cleared before the loss's, the last added first (t297).
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 605
+hash: {profile: mcfr-content-0.7.0, result: 69900902bafbd37cc9d03f6f09bd2056b007c47c67a6a80295c052356b511e25}
+blue:
+  core_damage: 401
+  units:
+  - {name: fang, index: 0, position: {x: 145, y: -300}}
+  - {name: rhino, index: 1, position: {x: -145, y: -295}}
+red:
+  techs:
+    phantom_ray: [sticky_oil_bomb]
+  units:
+  - {name: steel_ball, index: 0, position: {x: 145, y: -20}, exp: 0/606/1000}
+  - {name: phantom_ray, index: 1, position: {x: -145, y: -20}, exp: 0/410/1000}
