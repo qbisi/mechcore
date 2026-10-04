@@ -1789,33 +1789,26 @@ red:
         assert_eq!(predicted.units[0].unit.travelling, None);
     }
 
-    /// An officer delivers its equipment in its own round, not when it arrives.
+    /// An officer delivers in its own round, not when it arrives.
     ///
-    /// 增幅专家 `10013` hands out three copies of `13030009` in round 1.
+    /// 导弹专家 `10011` puts `300016` on the panel as round 3 opens.
     #[test]
-    fn an_officer_delivers_its_equipment_on_its_own_schedule() {
+    fn an_officer_delivers_on_its_own_schedule() {
         let economy = Economy::embedded().unwrap();
         let state = SideState {
-            officers: vec![10013],
+            officers: vec![10011],
             ..SideState::default()
         };
-        // Round 1 opens with the three items, and applying round 0 is what
-        // reaches that position from the one before it.
-        let opened = super::open_round(economy, &state, 1, &mut |_, _| None, None).unwrap();
-        assert_eq!(
-            opened
-                .equipment
-                .iter()
-                .map(|item| item.id)
-                .collect::<Vec<_>>(),
-            vec![13_030_009; 3]
-        );
-        assert!(
-            super::open_round(economy, &state, 2, &mut |_, _| None, None)
+        let panel = |round| {
+            super::open_round(economy, &state, round, &mut |_, _| None, None)
                 .unwrap()
-                .equipment
-                .is_empty()
-        );
+                .battle_skills
+                .iter()
+                .map(|skill| skill.id)
+                .collect::<Vec<_>>()
+        };
+        assert!(panel(2).is_empty());
+        assert_eq!(panel(3), vec![300_016]);
     }
 
     /// An officer that lists no round hands out as it is taken, in time to
@@ -1881,15 +1874,20 @@ red:
     fn fitting_takes_one_copy_out_of_a_stack() {
         let economy = Economy::embedded().unwrap();
         let state = SideState {
-            officers: vec![10013],
+            equipment: vec![
+                EquipmentItem {
+                    id: 13_030_521,
+                    durability: None,
+                };
+                3
+            ],
             ..side_holding(&[(0, Position { x: 0, y: -160 })])
         };
-        let opened = super::open_round(economy, &state, 1, &mut |_, _| None, None).unwrap();
         let fitted = [Action::UseEquipment {
-            equipment: 13_030_009,
+            equipment: 13_030_521,
             index: 0,
         }];
-        assert_eq!(fold(economy, &opened, &fitted).unwrap().equipment.len(), 2);
+        assert_eq!(fold(economy, &state, &fitted).unwrap().equipment.len(), 2);
     }
 
     /// Recovering a formation hands back what it wore, in time to re-fit it.

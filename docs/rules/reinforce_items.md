@@ -92,8 +92,6 @@ that do, and the shapes are these:
   list of units, or on researching a technology, which is not scoped;
 - an addition to every round's income, or to the first round's alone, or a lump
   sum granted once;
-- a bounty the fight pays for destroying a giant, which is the one effect no
-  document can predict;
 - a commander skill, an equipment, or an opening unit the officer hands
   out, which is why taking an officer card can put a skill on the panel.
 

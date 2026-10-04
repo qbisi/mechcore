@@ -191,7 +191,6 @@ MODIFIERS = (
     ("round_supply", "roundSupply"),
     ("first_round_supply", "firstRoundSupply"),
     ("granted_supply", "addSupply"),
-    ("kill_bounty", "destroyHugeMechSupply"),
     ("equipment_slots", "equipmentCountChangeValue"),
 )
 
@@ -307,6 +306,44 @@ def write_unit_reinforcements(structure, by_level):
     print(f"unit reinforcement cards: {count}")
 
 
+def in_standard_scene(row):
+    """A row no `limitedScene` keeps out of a standard match."""
+    scenes = row.get("limitedScene") or []
+    return not scenes or STANDARD_SCENE in scenes
+
+
+def standard_blueprints(structure):
+    """The blueprints a standard match can reach, by ID.
+
+    The reference map's research centre offers each row that needs no
+    research, and a chain's second level is reached by activating its first.
+    """
+    catalogue = {row["id"]: row for row in structure["blueprints"]}
+    standard = next(row["blueprints"] for row in structure["matchSettings"]
+                    if row["id"] == STANDARD_MAP)
+    offered = {identifier for identifier in standard
+               if not catalogue[identifier].get("researchTime")}
+    offered |= {catalogue[identifier]["nextID"] for identifier in list(offered)
+                if catalogue[identifier].get("nextID")}
+    return sorted((catalogue[identifier] for identifier in offered), key=lambda row: row["id"])
+
+
+def standard_officers(structure):
+    """The officers a side of a standard 1v1 can hold.
+
+    A card the reinforcement pool deals, an opening's specialist, the officer a
+    chain blueprint produces, and the supply a unit round pays for a declined
+    offer. No other officer reaches a standard side, so no table carries one.
+    """
+    held = {row["id"] for row in structure["officerDatas"]
+            if in_standard_scene(row) and row.get("scope") in (DEALT_SCOPE, OPENING_SCOPE)}
+    held |= {row.get("mapID", 0) for row in standard_blueprints(structure)
+             if row.get("bpType") == 1}
+    held |= {supply for row in structure["unitReinforceRoundPool"] if in_standard_scene(row)
+             for supply in row["supplyReinforceID"]}
+    return held
+
+
 def write_advance_teams(structure):
     """What a side can pick in round 0, and what picking it does.
 
@@ -352,9 +389,13 @@ def write_officers(structure):
              "# discount applies to. An empty scope applies to every unit.",
              "", "officers:"]
     count = 0
+    standard = standard_officers(structure)
     for row in sorted(structure["officerDatas"], key=lambda row: row["id"]):
-        if not build_data.in_standard(row):
+        if row["id"] not in standard:
             continue
+        # A bounty the fight pays for a giant would make supply depend on the
+        # fight, and `docs/spec/document/match.md` predicts it without one.
+        assert not row.get("destroyHugeMechSupply"), row["id"]
         present = [(name, row[field]) for name, field in MODIFIERS if row.get(field)]
         granted = [(name, row[field]) for name, field in GRANTS if row.get(field)]
         opening = row.get("extraUnitLevel") and row.get("unitID")
@@ -406,15 +447,7 @@ def write_economy(structure, contraptions, config):
              "# needs research because no standard rule enables it, and a chain's",
              "# second level is reached by activating its first.",
              "", "blueprints:"]
-    catalogue = {row["id"]: row for row in structure["blueprints"]}
-    standard = next(row["blueprints"] for row in structure["matchSettings"]
-                    if row["id"] == STANDARD_MAP)
-    offered = {identifier for identifier in standard
-               if not catalogue[identifier].get("researchTime")}
-    offered |= {catalogue[identifier]["nextID"] for identifier in list(offered)
-                if catalogue[identifier].get("nextID")}
-    for row in sorted((catalogue[identifier] for identifier in offered),
-                      key=lambda row: row["id"]):
+    for row in standard_blueprints(structure):
         # A chain blueprint's mapID names the officer it produces; any other
         # blueprint's names the commander skill it puts on the panel.
         grants = ("grants_officer" if row.get("bpType") == 1 else "grants_skill")
