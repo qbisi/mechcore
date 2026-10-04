@@ -221,8 +221,10 @@ What the Mountain's motion follows is, as recorded:
   does not search for itself the batch's first skill, which alone would leave
   the motion idle whenever the first gun cools; the recordings show it going
   after the mech's lock and the turret after another gun's. The rules under
-  "A unit that does not search for itself" are what the recordings show; the
-  methods that make them are not read.
+  "A unit that does not search for itself" are what the recordings show.
+  `FightSkill.SearchLockTarget` hands the motion to a skill that is not the
+  main searcher while the main searcher holds no lock (`extra_weapons.md`);
+  whether that is what makes the Mountain's is not checked.
 - **Whether the unit's own search is prepared.** The War Factory's is scored
   where the units stand as it updates; no recording has told that from where
   they stood as the tick opened.

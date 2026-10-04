@@ -126,6 +126,7 @@ impl Actor {
                 state: MotionState::Idle,
                 transition_to: None,
                 attack_hold_fire: false,
+                attacker: SkillSlot::Main,
             },
             skills: SkillManager::new(Skill::new(weapon_rotations_q32, group, magazine, kind)),
         };

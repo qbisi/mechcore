@@ -87,6 +87,10 @@ pub(in crate::fight) struct Motion {
     /// `TransitionState.nextState`: the state a transition leads to.
     pub(in crate::fight) transition_to: Option<MotionState>,
     pub(in crate::fight) attack_hold_fire: bool,
+    /// `MotionController.attacker`: the skill the motion asks. The main skill
+    /// is, except while one of the unit's extra skills has taken it
+    /// ([`Simulation::hand_motion_after_lock_search`]).
+    pub(in crate::fight) attacker: SkillSlot,
 }
 
 pub(in crate::fight) fn rvo_profile(rules: &UnitConfig) -> RvoProfile {
@@ -688,6 +692,12 @@ impl Simulation {
             prepare_finished,
             ..
         } = update;
+        if let SkillSlot::Extra(index) = self.actors[&actor_id].motion.attacker
+            && self.actors[&actor_id].command.is_none()
+        {
+            self.follow_extra_attacker(actor_id, index);
+            return Ok(());
+        }
         if let Flow::Done = self.hold_dead_target_moving(actor_id, backswing_just_finished) {
             return Ok(());
         }
@@ -858,6 +868,121 @@ impl Simulation {
             update,
         );
         Flow::Done
+    }
+
+    /// The end of `FightSkill.SearchLockTarget`, which hands the motion its
+    /// attacker (`ISkillOwner.SetAttacker`). A unit that searches for itself
+    /// is its own. The main skill, the unit's main searcher, takes the motion
+    /// back on each search, since an extra skill is no main target provider
+    /// (`IsMainTargetProvider` answers `isMainSkill`). An extra skill takes it
+    /// only while the main searcher holds no lock
+    /// (`GetMainSearcherSkill().GetLockTarget()`), and hands the unit no lock
+    /// with it.
+    pub(in crate::fight) fn hand_motion_after_lock_search(&mut self, skill_ref: SkillRef) {
+        let FightActorRef::Unit(actor_id) = skill_ref.owner else {
+            return;
+        };
+        let Some(actor) = self.actors.get_mut(&actor_id) else {
+            return;
+        };
+        if actor.skills.main.mech_searches() {
+            return;
+        }
+        match skill_ref.slot {
+            SkillSlot::Main => actor.motion.attacker = SkillSlot::Main,
+            SkillSlot::Extra(_) => {
+                if actor.skills.main.slot_lock(0).is_none() {
+                    actor.motion.attacker = skill_ref.slot;
+                }
+            }
+        }
+    }
+
+    /// `MotionController` while an extra skill is its attacker.
+    /// `AutoMoveBehaviour` asks the extra skill: whether it is idle
+    /// (`IsIdle`), whether its lock lives (`IsActive`), and whether what it
+    /// fires at is in its own range (`IsAttackTargetInAttackRange`). A state
+    /// entered is not updated on the update it is entered.
+    fn follow_extra_attacker(&mut self, actor_id: u64, index: usize) {
+        let skill_ref = SkillRef {
+            owner: FightActorRef::Unit(actor_id),
+            slot: SkillSlot::Extra(index),
+        };
+        let skill = self.skill(skill_ref);
+        let idle = skill.idle;
+        let lock = skill
+            .lock_target
+            .filter(|&lock| self.fight_actor_is_alive(lock))
+            .and_then(|lock| self.fight_actor(lock));
+        let in_range = skill
+            .attack_target()
+            .is_some_and(|target| self.target_in_attack_range(skill_ref, target));
+        let Some(lock) = lock else {
+            // `IsActive` fails: the attack and the move states go idle, and
+            // the idle state stays.
+            self.enter_motion_idle(actor_id);
+            return;
+        };
+        let actor = &self.actors[&actor_id];
+        let state = actor.motion.state;
+        let (dx, dz) = (
+            lock.x_q32.saturating_sub(actor.x_q32),
+            lock.z_q32.saturating_sub(actor.z_q32),
+        );
+        let edge_distance_q32 = native_q32_magnitude(dx, dz)
+            .saturating_sub(space_to_q32(actor.rules.collision_radius()))
+            .saturating_sub(space_to_q32(lock.radius))
+            .max(0);
+        // `IsLockTargetInTouchRange`, as [`Self::walk_on_idle_lock`] asks it.
+        let in_touch = edge_distance_q32 & !(Q32_ONE - 1)
+            <= space_to_q32(actor.rules.collision_radius()).saturating_mul(2);
+        let solve_due = self.rvo_solve_due();
+        let attack_range = self
+            .skill_attacker(skill_ref)
+            .expect("skill owner identity is stable")
+            .attack_range;
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        match state {
+            MotionState::Attacking if idle => self.enter_motion_idle(actor_id),
+            MotionState::Attacking if !in_range => actor.motion.state = MotionState::Moving,
+            MotionState::Attacking => {
+                // `RVOControllerFixed.StopMove`, and `AttackRotate` turning
+                // the body to the lock (`CalculateTargetDirection`).
+                actor.motion.next_target_x_q32 = actor.x_q32;
+                actor.motion.next_target_z_q32 = actor.z_q32;
+                actor.motion.next_speed_q32 = 0;
+                actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
+                if actor.rules.has_body {
+                    actor.rotate_body_towards(direction_degrees_q32_raw(dx, dz));
+                }
+            }
+            MotionState::Idle if idle && in_touch => {}
+            MotionState::Idle if !idle && in_range => actor.motion.state = MotionState::Attacking,
+            MotionState::Idle => actor.motion.state = MotionState::Moving,
+            MotionState::Moving if idle && in_touch => self.enter_motion_idle(actor_id),
+            MotionState::Moving if !idle && in_range => {
+                actor.motion.state = MotionState::Attacking;
+            }
+            MotionState::Moving => {
+                // `NormalRotate` and the move towards the lock, to the
+                // extra skill's range.
+                let (x_q32, z_q32) = native_auto_move_target_point(
+                    actor.x_q32,
+                    actor.z_q32,
+                    actor.rules.collision_radius(),
+                    lock.x_q32,
+                    lock.z_q32,
+                    lock.radius,
+                    attack_range,
+                );
+                actor.turn_to_move_direction();
+                actor.move_to(x_q32, z_q32, solve_due);
+            }
+            MotionState::Stopped | MotionState::Transitioning => {}
+        }
     }
 
     /// `MotionAttackState.Update` under a command, whose `IsIdle` and
