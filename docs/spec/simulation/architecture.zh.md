@@ -66,12 +66,14 @@ Cpp2IL 产出的类型、方法和调用边。下面每一份清单和表格都�
 
 `crates/simulation/src/fight/` 就是战斗，按每部分镜像游戏里的什么拆开，每个文件声明它拥有的数据。一个
 单位是 `mod.rs` 里的 `Actor`——机甲本身：布置、位置、朝向、生命——它持有一个 `Motion`（`motion.rs`，
-即 `MotionController`：运动状态、被要求去哪、RVO 求解的结果）和一个 `Skill`（`skill/mod.rs`，即
-`FightSkill`：锁定和武器打的对象、技能状态、正在进行的攻击）。经过单位的路径和游戏的读法一致：
-`actor.skill.lock_target`、`actor.motion.state`。
+即 `MotionController`：运动状态、被要求去哪、RVO 求解的结果）和一个 `SkillManager`（`skill/mod.rs`：
+主技能，以及附加武器科技这类来源在它旁边加上的额外技能），每个都是一个 `Skill`（即 `FightSkill`：锁定和
+武器打的对象、技能状态、正在进行的攻击）。经过单位的路径和游戏的读法一致：
+`actor.skills.main.lock_target`、`actor.motion.state`。
 
 技能只有一台状态机，不管谁持有它。会开火的建筑（`construction.rs`，即 `FightConstruction`）持有同一个
-`Skill`，`update_skill` 就是两种 owner 共用的 `SkillManager.Update`。单位和建筑的差别只经由
+`SkillManager`，`update_skill` 就是两种 owner 共用的 `SkillManager.Update`。状态机运行在某个 owner 的
+某一个技能上，即 `SkillRef`：owner 和它的哪个技能。单位和建筑的差别只经由
 `attacker.rs` 进入技能，也就是游戏的 `ISkillOwner` 和 `IAttacker`：owner 站在哪、半径和射程、攻击角以
 什么为基准、武器转多快、是否搜索。建筑的 `MotionController` 从不更新，所以它的运动状态始终是空闲。内核
 让单位从运动里开始攻击（`attack_in_range`），建筑则在技能更新之后开始（`attack_in_reach`），调用的是同

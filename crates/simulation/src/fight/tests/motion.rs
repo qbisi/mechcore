@@ -14,7 +14,7 @@ fn rvo_solves_a_collision_building_inside_the_influence_bound() {
     building.position = point(20_000, 0);
     let target_position = (simulation.actors[&2].x_q32, simulation.actors[&2].z_q32);
     let source = simulation.actors.get_mut(&1).unwrap();
-    source.skill.lock_target = Some(unit_target(2));
+    source.skills.main.lock_target = Some(unit_target(2));
     source.motion.state = MotionState::Moving;
     source.motion.next_target_x_q32 = target_position.0;
     source.motion.next_target_z_q32 = target_position.1;
@@ -69,7 +69,7 @@ fn rvo_q32_boundary_uses_raw_distance_not_snapshot_rounding() {
     ));
     let target_position = (simulation.actors[&2].x_q32, simulation.actors[&2].z_q32);
     let source = simulation.actors.get_mut(&1).unwrap();
-    source.skill.lock_target = Some(unit_target(2));
+    source.skills.main.lock_target = Some(unit_target(2));
     source.motion.state = MotionState::Moving;
     source.motion.next_target_x_q32 = target_position.0;
     source.motion.next_target_z_q32 = target_position.1;
@@ -97,7 +97,7 @@ fn rvo_allows_a_coarse_tree_hit_outside_candidate_relative_travel() {
     set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 100_000);
     set_actor_position(simulation.actors.get_mut(&3).unwrap(), 75_000, 0);
     let source = simulation.actors.get_mut(&1).unwrap();
-    source.skill.lock_target = Some(unit_target(2));
+    source.skills.main.lock_target = Some(unit_target(2));
     source.motion.state = MotionState::Moving;
     simulation.rvo.counter = 3;
     simulation.step_rvo();
@@ -117,8 +117,8 @@ fn zero_published_speed_still_snaps_a_tolerance_equal_rvo_delta() {
     actor.motion.published_target_x_q32 = 1_717_060_248_001;
     actor.motion.published_target_z_q32 = 1_696_431_622_651;
     actor.motion.published_speed_q32 = 0;
-    actor.skill.lock_target = Some(unit_target(2));
-    actor.skill.set_backswing_finish_step(Some(10));
+    actor.skills.main.lock_target = Some(unit_target(2));
+    actor.skills.main.set_backswing_finish_step(Some(10));
     simulation.actors.get_mut(&2).unwrap().life = 0;
 
     simulation.step_actor_rvo_position(1);
@@ -430,7 +430,7 @@ fn range_entry_stops_only_after_the_two_stage_rvo_delay() {
                 );
                 assert_eq!(arclight.motion.next_speed_q32, 0);
                 assert_eq!(arclight.body_rotation, tick_121_body_rotation.unwrap());
-                assert!(arclight.skill.pending().is_none());
+                assert!(arclight.skills.main.pending().is_none());
             }
             123..=127 => {
                 let expected_z = 60_800 - i64::try_from(tick - 122).unwrap() * 350;
@@ -488,7 +488,7 @@ fn stopped_attacker_rate_limits_aim_without_rotating_root_body() {
     let marksman = simulation.actors.get_mut(&1).unwrap();
     assert_eq!(marksman.rules.independent_aim, Some(false));
     marksman.motion.state = MotionState::Attacking;
-    marksman.skill.next_attack_step = u64::MAX;
+    marksman.skills.main.next_attack_step = u64::MAX;
 
     simulation.step_actor(1, 0, &mut Vec::new()).unwrap();
     let root_body = simulation.actors[&1].body_rotation;

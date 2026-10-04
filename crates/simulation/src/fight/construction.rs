@@ -31,7 +31,7 @@ pub(in crate::fight) struct Construction {
     /// Whether it has a `ConstructionSearchTargetController`, which its row's
     /// `IsEnableSearchTarget` decides: without one, its skill never searches.
     pub(in crate::fight) searches: bool,
-    pub(in crate::fight) skill: Skill,
+    pub(in crate::fight) skills: SkillManager,
 }
 
 impl Construction {
@@ -56,7 +56,7 @@ impl Construction {
             searches,
             // A side's board faces the other side: blue's weapons rest at 0
             // degrees and red's at 180, as its units' bodies do.
-            skill: Skill::new(
+            skills: SkillManager::new(Skill::new(
                 vec![if building.team_id == 0 {
                     0
                 } else {
@@ -65,7 +65,7 @@ impl Construction {
                 None,
                 magazine,
                 kind,
-            ),
+            )),
         }
     }
 }
@@ -114,13 +114,15 @@ impl Simulation {
     ) -> Result<()> {
         let owner = FightActorRef::Building(building_id);
         if !self.fight_actor_is_alive(owner) {
-            let skill = self.skill_mut(owner);
+            let skill = self.skill_mut(SkillRef::main(owner));
             skill.drop_lock();
             skill.set_phase(FightSkillPhase::Idle);
             return Ok(());
         }
-        if let Some(update) = self.update_skill(owner, step, target_search_order, events)? {
-            self.attack_in_reach(owner, step, update, events)?;
+        if let Some(update) =
+            self.update_skill(SkillRef::main(owner), step, target_search_order, events)?
+        {
+            self.attack_in_reach(SkillRef::main(owner), step, update, events)?;
         }
         self.turn_construction_weapon(building_id);
         Ok(())
@@ -137,24 +139,24 @@ impl Simulation {
     /// skill asks them here, with the same answers to the same questions.
     fn attack_in_reach(
         &mut self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         step: u64,
         update: SkillUpdate,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let skill = self.skill(owner);
+        let skill = self.skill(skill_ref);
         let Some(target) = skill.attack_target() else {
             return Ok(());
         };
-        if !self.target_in_attack_range(owner, target) {
+        if !self.target_in_attack_range(skill_ref, target) {
             return Ok(());
         }
         // The attack is entered from idle; the state is not updated on the
         // tick it is entered.
         let entered_attack = skill.phase() == FightSkillPhase::Idle;
-        let in_attack_angle = self.target_in_attack_angle(owner, target);
+        let in_attack_angle = self.target_in_attack_angle(skill_ref.owner, target);
         self.try_start_attack(
-            owner,
+            skill_ref,
             step,
             target,
             entered_attack,
@@ -162,11 +164,11 @@ impl Simulation {
             update.prepare_finished,
         );
         if self
-            .skill(owner)
+            .skill(skill_ref)
             .pending()
             .is_some_and(|pending| pending.step == step)
         {
-            self.release(owner, events)?;
+            self.release(skill_ref, events)?;
         }
         Ok(())
     }
@@ -176,7 +178,7 @@ impl Simulation {
     pub(in crate::fight) fn turn_construction_weapon(&mut self, building_id: u64) {
         let owner = FightActorRef::Building(building_id);
         let Some(target) = self
-            .skill(owner)
+            .skill(SkillRef::main(owner))
             .lock_target
             .and_then(|target| self.fight_actor(target))
         else {
@@ -186,6 +188,6 @@ impl Simulation {
             .attacker(owner)
             .expect("construction identity is stable")
             .bearing_q32(target.x_q32, target.z_q32);
-        self.turn_weapons_towards(owner, bearing_q32);
+        self.turn_weapons_towards(SkillRef::main(owner), bearing_q32);
     }
 }

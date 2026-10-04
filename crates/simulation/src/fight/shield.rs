@@ -478,7 +478,7 @@ impl Simulation {
     pub(in crate::fight) fn shield_attack_point(
         &self,
         shield_id: u64,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         target: FightActorRef,
     ) -> Option<(i64, i64)> {
         // A sweep is measured to the shield's centre or to its lock,
@@ -486,9 +486,9 @@ impl Simulation {
         // (`SkillAttackRangeChecker.IsAttackTargetInAttackRange`); to the
         // lock once the shield is gone, which a sweep under way, its checks
         // held, still names.
-        if self.skill(owner).kind == SkillKind::Sweep {
+        if self.skill(skill_ref).kind == SkillKind::Sweep {
             let inside = self.position_3d(target)?;
-            let outside = self.position_3d(owner)?;
+            let outside = self.position_3d(skill_ref.owner)?;
             let center = self
                 .shield
                 .standing
@@ -519,7 +519,7 @@ impl Simulation {
             return None;
         }
         let inside = self.position_3d(target)?;
-        let outside = self.position_3d(owner)?;
+        let outside = self.position_3d(skill_ref.owner)?;
         let (x, _, z) = self.shield_entry_point(shield_id, inside, outside);
         Some((x, z))
     }

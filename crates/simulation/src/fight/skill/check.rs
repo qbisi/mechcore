@@ -21,28 +21,31 @@ impl Simulation {
     /// tick the skill is idle, and a block that is no longer in the way stops
     /// being the attack target the next time it is asked. Nothing changes in a
     /// fight that places no enemy construction.
-    pub(in crate::fight) fn search_attack_target(&mut self, owner: FightActorRef) {
+    pub(in crate::fight) fn search_attack_target(&mut self, skill_ref: SkillRef) {
         // Whatever the lock is, a unit or a building: `SearchAttackTarget`
         // asks `CheckWallConstruction` before it looks at the lock at all.
-        let found = self.skill(owner).lock_target.and_then(|target| {
-            self.wall_in_the_way(owner, target)
+        let found = self.skill(skill_ref).lock_target.and_then(|target| {
+            self.wall_in_the_way(skill_ref.owner, target)
                 .map(|building| (building, target))
         });
         // `SearchTargetShield`: with no construction in the way, a lock its
         // side's shield covers makes the shield what the skill fires at.
         let shield = if found.is_none() {
-            self.skill(owner).lock_target.and_then(|target| {
-                self.search_target_shield(owner, target)
+            self.skill(skill_ref).lock_target.and_then(|target| {
+                self.search_target_shield(skill_ref.owner, target)
                     .map(|shield| (shield, target))
             })
         } else {
             None
         };
-        self.skill_mut(owner).in_the_way = found;
-        self.skill_mut(owner).target_shield = shield;
-        if !self.skill(owner).siblings().is_empty() {
+        self.skill_mut(skill_ref).in_the_way = found;
+        self.skill_mut(skill_ref).target_shield = shield;
+        if !self.skill(skill_ref).siblings().is_empty() {
             self.refresh_group_walls(
-                owner.unit_id().expect("only a unit's skill is grouped"),
+                skill_ref
+                    .owner
+                    .unit_id()
+                    .expect("only a unit's skill is grouped"),
                 None,
             );
         }
@@ -77,67 +80,72 @@ impl Simulation {
     /// lock and attack target (`grouped_checker_matches_every_captured_call`).
     pub(in crate::fight) fn check_attackable(
         &mut self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<bool> {
         #[cfg(test)]
-        if let Some(actor_id) = owner.unit_id() {
+        if let Some(actor_id) = skill_ref.owner.unit_id() {
             self.replay_group_checker_calls(actor_id);
         }
         // A grouped core searches as its group's slot 0, around what its
         // siblings hold.
-        let slot = self.skill(owner).is_grouped().then_some(0);
-        self.check_attackable_slot(owner, slot, true, target_search_order)
+        let slot = self.skill(skill_ref).is_grouped().then_some(0);
+        self.check_attackable_slot(skill_ref, slot, true, target_search_order)
     }
 
     pub(in crate::fight) fn check_attackable_slot(
         &mut self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         slot: Option<usize>,
         attacking_check: bool,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<bool> {
-        let lock = self.slot_lock_target(owner, slot);
-        let before = self.slot_attack_target(owner, slot);
+        let lock = self.slot_lock_target(skill_ref, slot);
+        let before = self.slot_attack_target(skill_ref, slot);
         if lock.is_some_and(|lock| self.fight_actor_is_alive(lock)) {
             if let Some(slot) = slot.filter(|slot| *slot > 0)
                 && attacking_check
-                && !self.skill(owner).standalone()
+                && !self.skill(skill_ref).standalone()
                 && self.sibling_yields(
-                    owner.unit_id().expect("only a unit's skill is grouped"),
+                    skill_ref
+                        .owner
+                        .unit_id()
+                        .expect("only a unit's skill is grouped"),
                     slot,
                     target_search_order,
                 )?
             {
                 return Ok(false);
             }
-            self.search_slot_attack_target(owner, slot);
+            self.search_slot_attack_target(skill_ref, slot);
         } else {
-            if !self.search_lock_target(owner, slot, target_search_order)? {
+            if !self.search_lock_target(skill_ref, slot, target_search_order)? {
                 return Ok(false);
             }
-            if !self.quick_switch_target(owner) && self.slot_attack_target(owner, slot) != before {
+            if !self.quick_switch_target(skill_ref.owner)
+                && self.slot_attack_target(skill_ref, slot) != before
+            {
                 return Ok(false);
             }
         }
-        let Some(target) = self.slot_attack_target(owner, slot) else {
+        let Some(target) = self.slot_attack_target(skill_ref, slot) else {
             return Ok(false);
         };
-        if self.slot_target_in_attack_area(owner, slot, target) {
+        if self.slot_target_in_attack_area(skill_ref, slot, target) {
             return Ok(true);
         }
-        if self.slot_target_in_attack_range(owner, slot, target) {
+        if self.slot_target_in_attack_range(skill_ref, slot, target) {
             return Ok(false);
         }
-        if !self.target_inside_min_range(owner, target) {
+        if !self.target_inside_min_range(skill_ref.owner, target) {
             return Ok(false);
         }
-        let attackable = self.search_lock_target(owner, slot, target_search_order)?
+        let attackable = self.search_lock_target(skill_ref, slot, target_search_order)?
             && self
-                .slot_attack_target(owner, slot)
-                .is_some_and(|target| self.slot_target_in_attack_area(owner, slot, target));
+                .slot_attack_target(skill_ref, slot)
+                .is_some_and(|target| self.slot_target_in_attack_area(skill_ref, slot, target));
         if attacking_check && slot.is_none_or(|slot| slot == 0) {
-            self.reset_attack_data_on_losing_target(owner, attackable)?;
+            self.reset_attack_data_on_losing_target(skill_ref, attackable)?;
         }
         Ok(attackable)
     }
@@ -153,10 +161,10 @@ impl Simulation {
     /// the check and 132, its interval, after it.
     fn reset_attack_data_on_losing_target(
         &mut self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         attackable: bool,
     ) -> Result<()> {
-        let skill = self.skill(owner);
+        let skill = self.skill(skill_ref);
         let SkillState::Attack(blow) = skill.state else {
             return Ok(());
         };
@@ -167,8 +175,8 @@ impl Simulation {
         let started = skill
             .next_attack_step
             .saturating_sub(skill.current_attack_interval);
-        let interval = self.draw_attack_interval(owner)?;
-        let skill = self.skill_mut(owner);
+        let interval = self.draw_attack_interval(skill_ref.owner)?;
+        let skill = self.skill_mut(skill_ref);
         skill.current_attack_interval = interval;
         skill.next_attack_step = if refresh {
             0
@@ -185,7 +193,7 @@ impl Simulation {
     pub(in crate::fight) fn slot_attack_range(&self, actor_id: u64, slot: Option<usize>) -> i64 {
         let actor = &self.actors[&actor_id];
         actor.stats.attack_range().saturating_add(
-            if slot.is_some_and(|slot| slot > 0) && !actor.skill.standalone() {
+            if slot.is_some_and(|slot| slot > 0) && !actor.skills.main.standalone() {
                 10_000
             } else {
                 0
@@ -195,29 +203,37 @@ impl Simulation {
 
     pub(in crate::fight) fn slot_target_in_attack_range(
         &self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         slot: Option<usize>,
         target: FightActorRef,
     ) -> bool {
         if slot.is_none_or(|slot| slot == 0) {
-            return self.target_in_attack_range(owner, target);
+            return self.target_in_attack_range(skill_ref, target);
         }
-        let actor_id = owner.unit_id().expect("only a unit's skill is grouped");
+        let actor_id = skill_ref
+            .owner
+            .unit_id()
+            .expect("only a unit's skill is grouped");
         let source = &self.actors[&actor_id];
         // A slot firing at a shield reaches it once the shield's surface on
         // its way to the lock is in its range, as the core does.
-        if let Some(shield) = source.skill.sibling(slot.unwrap_or(0)).shield_target() {
+        if let Some(shield) = source
+            .skills
+            .main
+            .sibling(slot.unwrap_or(0))
+            .shield_target()
+        {
             return self.fight_actor(target).is_some_and(|view| view.alive)
-                && self.shield_attack_point(shield, owner, target).is_some_and(
-                    |(x_q32, z_q32)| {
+                && self
+                    .shield_attack_point(shield, skill_ref, target)
+                    .is_some_and(|(x_q32, z_q32)| {
                         let distance =
                             native_q32_magnitude(x_q32 - source.x_q32, z_q32 - source.z_q32)
                                 .saturating_sub(space_to_q32(source.rules.collision_radius()))
                                 .max(0);
                         distance >= space_to_q32(source.rules.attack.min_range())
                             && distance <= space_to_q32(self.slot_attack_range(actor_id, slot))
-                    },
-                );
+                    });
         }
         let Some(target) = self.fight_actor(target) else {
             return false;
@@ -250,23 +266,26 @@ impl Simulation {
 
     pub(in crate::fight) fn slot_target_in_attack_area(
         &self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         slot: Option<usize>,
         target: FightActorRef,
     ) -> bool {
         if slot.is_none_or(|slot| slot == 0) {
-            return self.target_in_attack_area(owner, target);
+            return self.target_in_attack_area(skill_ref, target);
         }
-        let actor_id = owner.unit_id().expect("only a unit's skill is grouped");
+        let actor_id = skill_ref
+            .owner
+            .unit_id()
+            .expect("only a unit's skill is grouped");
         let actor = &self.actors[&actor_id];
         let slot = slot.unwrap_or(0);
         // A standalone weapon's skill measures its angle from its own weapon.
-        let rotation = if actor.skill.standalone() {
-            actor.skill.weapon_rotations_q32[slot]
+        let rotation = if actor.skills.main.standalone() {
+            actor.skills.main.weapon_rotations_q32[slot]
         } else {
             actor.slot_main_rotation_q32(slot)
         };
-        self.slot_target_in_attack_range(owner, Some(slot), target)
+        self.slot_target_in_attack_range(skill_ref, Some(slot), target)
             && self.fight_actor(target).is_some_and(|view| {
                 view.alive
                     && rotation_distance_q32(
@@ -279,56 +298,62 @@ impl Simulation {
             })
     }
 
-    fn slot_lock_target(&self, owner: FightActorRef, slot: Option<usize>) -> Option<FightActorRef> {
-        self.skill(owner).slot_lock(slot.unwrap_or(0))
+    fn slot_lock_target(&self, skill_ref: SkillRef, slot: Option<usize>) -> Option<FightActorRef> {
+        self.skill(skill_ref).slot_lock(slot.unwrap_or(0))
     }
 
     fn slot_attack_target(
         &self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         slot: Option<usize>,
     ) -> Option<FightActorRef> {
-        self.skill(owner).group_attack_target(slot.unwrap_or(0))
+        self.skill(skill_ref).group_attack_target(slot.unwrap_or(0))
     }
 
-    fn search_slot_attack_target(&mut self, owner: FightActorRef, slot: Option<usize>) {
+    fn search_slot_attack_target(&mut self, skill_ref: SkillRef, slot: Option<usize>) {
         if slot.is_some_and(|slot| slot > 0) {
             self.refresh_group_walls(
-                owner.unit_id().expect("only a unit's skill is grouped"),
+                skill_ref
+                    .owner
+                    .unit_id()
+                    .expect("only a unit's skill is grouped"),
                 slot,
             );
         } else {
-            self.search_attack_target(owner);
+            self.search_attack_target(skill_ref);
         }
     }
 
     fn search_lock_target(
         &mut self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         slot: Option<usize>,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<bool> {
         let Some(slot) = slot else {
-            return self.search_normal_lock_target(owner, target_search_order);
+            return self.search_normal_lock_target(skill_ref, target_search_order);
         };
-        let actor_id = owner.unit_id().expect("only a unit's skill is grouped");
+        let actor_id = skill_ref
+            .owner
+            .unit_id()
+            .expect("only a unit's skill is grouped");
         let selected = self.select_group_lock_replacement(actor_id, slot, target_search_order)?;
         if slot == 0 {
             self.take_from_siblings(actor_id, selected);
         }
         let idle = selected.is_none();
         let selected = if idle {
-            self.select_alive_target(owner, Some(slot), target_search_order)?
+            self.select_alive_target(skill_ref, Some(slot), target_search_order)?
         } else {
             selected
         };
         let actor = self.actors.get_mut(&actor_id).expect("actor exists");
         if slot == 0 {
-            actor.skill.idle = idle;
-            actor.skill.write_lock(selected);
-            self.search_attack_target(FightActorRef::Unit(actor_id));
+            actor.skills.main.idle = idle;
+            actor.skills.main.write_lock(selected);
+            self.search_attack_target(SkillRef::main(FightActorRef::Unit(actor_id)));
         } else {
-            let sibling = actor.skill.sibling_mut(slot);
+            let sibling = actor.skills.main.sibling_mut(slot);
             sibling.idle = idle;
             sibling.lock_target = selected;
             sibling.attack_target_left = None;
@@ -344,8 +369,8 @@ impl Simulation {
     /// performed; not through a burst after its first shot, nor during the
     /// backswing. Every `Check` call the game made across the 82 fights of
     /// `tests/regression/fights/` falls on one of these updates.
-    pub(in crate::fight) fn between_blows(&self, owner: FightActorRef, step: u64) -> bool {
-        let skill = self.skill(owner);
+    pub(in crate::fight) fn between_blows(&self, skill_ref: SkillRef, step: u64) -> bool {
+        let skill = self.skill(skill_ref);
         let waiting = skill.pending().is_none()
             && skill.performer.pending().is_empty()
             && !skill.performer.sweeping()
@@ -370,29 +395,29 @@ impl Simulation {
     /// block falls.
     pub(in crate::fight) fn attack_state_check_attackable(
         &mut self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<bool> {
-        if let Some(target @ FightActorRef::Building(_)) = self.skill(owner).attack_target()
+        if let Some(target @ FightActorRef::Building(_)) = self.skill(skill_ref).attack_target()
             && !self.is_tower(target)
             && !self.fight_actor_is_alive(target)
         {
             return Ok(false);
         }
-        self.check_attackable(owner, target_search_order)
+        self.check_attackable(skill_ref, target_search_order)
     }
 
     /// `SkillAttackState.Finish`: `StopAttack` drops the lock, the weapons
     /// keeping what they fired at; the skill then cools for its cooling time
     /// and enters `SkillIdleState` with its targets cleared.
-    pub(in crate::fight) fn finish_attack(&mut self, owner: FightActorRef, step: u64) {
+    pub(in crate::fight) fn finish_attack(&mut self, skill_ref: SkillRef, step: u64) {
         let cooling_steps = native_time_units_to_steps(
-            self.attacker(owner)
+            self.attacker(skill_ref.owner)
                 .expect("skill owner identity is stable")
                 .attack
                 .cooling_time_units(),
         );
-        let skill = self.skill_mut(owner);
+        let skill = self.skill_mut(skill_ref);
         // A skill firing at a shield has no attack target to go on naming.
         let fired_at = skill
             .attack_target()
@@ -410,7 +435,7 @@ impl Simulation {
         }
         // `MotionIdleState.Enter` publishes the stop once; a unit whose
         // motion is idle already keeps the point it stopped at.
-        if let Some(actor) = self.moving_mut(owner) {
+        if let Some(actor) = self.moving_mut(skill_ref.owner) {
             let entered_idle = actor.motion.state != MotionState::Idle;
             actor.lose_target_motion(entered_idle);
         }
@@ -429,24 +454,28 @@ impl Simulation {
     /// that has itself died since is searched past with live positions.
     pub(in crate::fight) fn select_lock_replacement(
         &self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<Option<FightActorRef>> {
-        let skill = self.skill(owner);
-        let prepared = search_prepared(owner)
+        let skill = self.skill(skill_ref);
+        let prepared = search_prepared(skill_ref.owner)
             && skill.phase() == FightSkillPhase::Attack
             && skill
                 .lock_target
                 .and_then(|lock| self.fight_actor(lock))
                 .is_none_or(|lock| !lock.query_alive);
         let selected =
-            self.select_normal_target_with_order(owner, target_search_order, !prepared)?;
+            self.select_normal_target_with_order(skill_ref.owner, target_search_order, !prepared)?;
         if prepared
             && selected
                 .and_then(|candidate| self.fight_actor(candidate))
                 .is_some_and(|target| target.query_alive && !target.alive)
         {
-            return self.select_normal_target_with_order(owner, target_search_order, true);
+            return self.select_normal_target_with_order(
+                skill_ref.owner,
+                target_search_order,
+                true,
+            );
         }
         Ok(selected)
     }
@@ -455,32 +484,32 @@ impl Simulation {
     /// runs them; no lock found clears the targets.
     fn search_normal_lock_target(
         &mut self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<bool> {
-        let selected = self.select_lock_replacement(owner, target_search_order)?;
+        let selected = self.select_lock_replacement(skill_ref, target_search_order)?;
         let idle = selected.is_none();
         let selected = if idle {
-            self.select_alive_target(owner, None, target_search_order)?
+            self.select_alive_target(skill_ref, None, target_search_order)?
         } else {
             selected
         };
-        let skill = self.skill_mut(owner);
+        let skill = self.skill_mut(skill_ref);
         skill.idle = idle;
         let Some(selected) = selected else {
             skill.drop_lock();
             return Ok(false);
         };
         skill.write_lock(Some(selected));
-        self.search_attack_target(owner);
+        self.search_attack_target(skill_ref);
         Ok(true)
     }
 
     /// Enters `SkillIdleState` with `needClearTarget`, as a failed check does:
     /// the lock and the attack target are cleared, and the next update
     /// searches.
-    pub(in crate::fight) fn enter_idle_clearing_targets(&mut self, owner: FightActorRef) {
-        let skill = self.skill_mut(owner);
+    pub(in crate::fight) fn enter_idle_clearing_targets(&mut self, skill_ref: SkillRef) {
+        let skill = self.skill_mut(skill_ref);
         skill.drop_lock();
         skill.set_phase(FightSkillPhase::Idle);
         skill.search_target_time = 0;
@@ -489,7 +518,7 @@ impl Simulation {
         if skill.standalone() {
             return;
         }
-        if let Some(actor) = self.moving_mut(owner) {
+        if let Some(actor) = self.moving_mut(skill_ref.owner) {
             actor.lose_target_motion(true);
         }
     }

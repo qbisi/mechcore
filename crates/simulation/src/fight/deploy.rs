@@ -691,7 +691,8 @@ impl Simulation {
             self.actors
                 .get_mut(&actor_id)
                 .expect("initial actor identity is stable")
-                .skill
+                .skills
+                .main
                 .search_target_time = i32::try_from(ordinal / count_per_time)
                 .expect("presearch batch ordinal is at most nine");
             let Some(target) = target else {
@@ -708,8 +709,8 @@ impl Simulation {
                 .actors
                 .get_mut(&actor_id)
                 .expect("initial actor identity is stable");
-            actor.skill.lock_target = Some(target);
-            actor.skill.set_mech_lock(Some(target));
+            actor.skills.main.lock_target = Some(target);
+            actor.skills.main.set_mech_lock(Some(target));
             // A unit with a command faces its point rather than its lock.
             if actor.command.is_none() {
                 actor.set_body_rotation(target_rotation_q32);
@@ -721,13 +722,13 @@ impl Simulation {
             if actor.travelling {
                 continue;
             }
-            self.search_attack_target(FightActorRef::Unit(actor_id));
+            self.search_attack_target(SkillRef::main(FightActorRef::Unit(actor_id)));
         }
         // A weapon fixed to the body enters the fight with the body's
         // rotation.
         for actor in self.actors.values_mut() {
             let rotation_q32 = actor.body_rotation_q32;
-            if let Some(group) = &mut actor.skill.group {
+            if let Some(group) = &mut actor.skills.main.group {
                 group.sibling_weapon_rotations_q32.fill(rotation_q32);
             }
         }
@@ -827,7 +828,7 @@ impl Simulation {
                 tx.saturating_sub(source.x_q32),
                 tz.saturating_sub(source.z_q32),
             );
-            self.skill_mut(FightActorRef::Building(id))
+            self.skill_mut(SkillRef::main(FightActorRef::Building(id)))
                 .turn_weapons_towards(bearing, 360_i64 << 32);
         }
     }

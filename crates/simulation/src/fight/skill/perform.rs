@@ -29,30 +29,31 @@ impl Simulation {
     /// it.
     pub(in crate::fight) fn release(
         &mut self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         events: &mut Vec<Event>,
     ) -> Result<bool> {
         let pending = self
-            .skill(owner)
+            .skill(skill_ref)
             .pending()
             .ok_or_else(|| Error::new("attack release has no pending action"))?;
-        let release_attackable_invalid = self.bodyless_attackable_invalid(owner, pending.target);
+        let release_attackable_invalid =
+            self.bodyless_attackable_invalid(skill_ref, pending.target);
         if release_attackable_invalid {
             // SkillAttackState rechecks CheckAttackable and target angle at
             // the attack point. A failed check skips PerformAttack; the skill
             // phase can then finish and MotionAttackState returns to Idle in
             // the same logic update.
-            let skill = self.skill_mut(owner);
+            let skill = self.skill_mut(skill_ref);
             skill.set_pending(None);
             skill.set_phase(FightSkillPhase::Idle);
             return Ok(true);
         }
         let attack = self
-            .attacker(owner)
+            .attacker(skill_ref.owner)
             .expect("skill owner identity is stable")
             .attack;
         let backswing_steps = native_time_units_to_steps(attack.backswing_time_units());
-        let skill = self.skill_mut(owner);
+        let skill = self.skill_mut(skill_ref);
         let kind = skill.kind;
         skill.set_pending(None);
         skill.fire_round();
@@ -75,22 +76,28 @@ impl Simulation {
         skill.set_phase(FightSkillPhase::Attack);
         match kind {
             SkillKind::Sweep => {
-                let actor_id = owner
+                let actor_id = skill_ref
+                    .owner
                     .unit_id()
                     .ok_or_else(|| Error::new("a construction's sweep is not supported"))?;
                 let actor = &self.actors[&actor_id];
-                let aimed = actor.skill.attack_target().or(actor.skill.lock_target);
+                let aimed = actor
+                    .skills
+                    .main
+                    .attack_target()
+                    .or(actor.skills.main.lock_target);
                 let sweep = super::super::sweep::Sweep::starting(
                     &actor.rules.attack,
                     actor.placement.sweep,
                     aimed,
-                    actor.skill.total_attack_count,
+                    actor.skills.main.total_attack_count,
                 );
                 if let Some(sweep) = sweep {
                     self.actors
                         .get_mut(&actor_id)
                         .expect("actor identity is stable")
-                        .skill
+                        .skills
+                        .main
                         .performer = Performer::Sweep(Box::new(sweep));
                     // `SkillAttackController.ChangeToNextPhase` starts the
                     // attacking phase and updates it on the same update.
@@ -98,18 +105,19 @@ impl Simulation {
                 }
             }
             SkillKind::Strike => {
-                let actor_id = owner.unit_id().ok_or_else(|| {
+                let actor_id = skill_ref.owner.unit_id().ok_or_else(|| {
                     Error::new("a construction's skill that strikes is not supported")
                 })?;
                 self.direct_effect(actor_id, pending.target, 0, events)?;
             }
             SkillKind::Laser => {
-                let actor_id = owner
+                let actor_id = skill_ref
+                    .owner
                     .unit_id()
                     .ok_or_else(|| Error::new("a construction's laser is not supported"))?;
                 let target = pending.target;
                 let target_was_alive = self.fight_actor_is_alive(target);
-                let target_was_lock = self.skill(owner).lock_target == Some(target);
+                let target_was_lock = self.skill(skill_ref).lock_target == Some(target);
                 self.laser_effect(actor_id, target, events)?;
                 // A lock the beam kills stops the motion on that tick, whatever
                 // it is: the Steel Ball that fells a tower in the tower-loss
@@ -127,10 +135,11 @@ impl Simulation {
                 }
             }
             SkillKind::Projectile => {
-                self.start_projectile_burst(owner, pending.target, pending.step, events)?;
+                self.start_projectile_burst(skill_ref, pending.target, pending.step, events)?;
             }
             SkillKind::ControlBeam => {
-                let actor_id = owner
+                let actor_id = skill_ref
+                    .owner
                     .unit_id()
                     .ok_or_else(|| Error::new("a construction's control beam is not supported"))?;
                 self.control_effect(actor_id, pending.target, events)?;
@@ -141,7 +150,7 @@ impl Simulation {
 
     pub(in crate::fight) fn start_projectile_burst(
         &mut self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         target: FightActorRef,
         step: u64,
         events: &mut Vec<Event>,
@@ -152,7 +161,7 @@ impl Simulation {
         let target_x_q32 = target_view.x_q32;
         let target_z_q32 = target_view.z_q32;
         let attack = self
-            .attacker(owner)
+            .attacker(skill_ref.owner)
             .ok_or_else(|| Error::new("projectile owner is absent"))?
             .attack;
         let count = usize::try_from(attack.projectile_count())
@@ -163,7 +172,7 @@ impl Simulation {
         let radius = attack.projectile_target_offset_radius();
         let climb_target = self.climb_target(target)?;
         let source_y = self
-            .attacker(owner)
+            .attacker(skill_ref.owner)
             .ok_or_else(|| Error::new("projectile owner is absent"))?
             .y;
         let target_y = match target {
@@ -171,7 +180,7 @@ impl Simulation {
             FightActorRef::Building(_) => 0,
         };
         let offsets = self.projectile_target_offsets(
-            owner,
+            skill_ref.owner,
             target_x_q32,
             target_z_q32,
             (space_to_q32(source_y), space_to_q32(target_y)),
@@ -197,11 +206,11 @@ impl Simulation {
         let first = releases
             .next()
             .ok_or_else(|| Error::new("projectile burst contains no release"))?;
-        let Performer::Projectile { pending } = &mut self.skill_mut(owner).performer else {
+        let Performer::Projectile { pending } = &mut self.skill_mut(skill_ref).performer else {
             return Err(Error::new("a burst needs a projectile performer"));
         };
         pending.extend(releases);
-        self.release_pending_projectile(owner, first, events)
+        self.release_pending_projectile(skill_ref.owner, first, events)
     }
 
     /// Where a burst's target stands as the burst begins, and its height:

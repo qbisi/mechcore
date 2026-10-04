@@ -196,7 +196,7 @@ impl Simulation {
         if actor.rules.attack.crosses_shields {
             return None;
         }
-        let lock = actor.skill.lock_target?;
+        let lock = actor.skills.main.lock_target?;
         let team = self.fight_actor(lock)?.team;
         self.shield
             .standing
@@ -216,7 +216,7 @@ impl Simulation {
         attack_count: i32,
     ) -> VecDeque<SweepStretch> {
         let actor = &self.actors[&actor_id];
-        let skill = &actor.skill;
+        let skill = &actor.skills.main;
         // Its construction target where it fires at one, its lock otherwise.
         let center_of = skill
             .attack_target()
@@ -291,7 +291,7 @@ impl Simulation {
         let Some(shape) = shape_of(&actor.rules.attack, actor.placement.sweep) else {
             return Ok(true);
         };
-        let Performer::Sweep(sweep) = &self.actors[&actor_id].skill.performer else {
+        let Performer::Sweep(sweep) = &self.actors[&actor_id].skills.main.performer else {
             return Ok(true);
         };
         if sweep.updated_step == Some(self.step_now) || sweep.over() {
@@ -325,7 +325,8 @@ impl Simulation {
         self.actors
             .get_mut(&actor_id)
             .expect("actor identity is stable")
-            .skill
+            .skills
+            .main
             .performer = Performer::Sweep(Box::new(sweep));
         Ok(over)
     }
