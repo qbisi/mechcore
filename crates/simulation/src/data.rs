@@ -170,7 +170,7 @@ pub(crate) enum Correction {
 
 impl Correction {
     /// Whether this correction changes nothing.
-    const fn neutral(self) -> bool {
+    pub(crate) const fn neutral(self) -> bool {
         match self {
             Self::Rate { add, reduce } => add == 0 && reduce == 0,
             Self::Value(value) => value == 0,

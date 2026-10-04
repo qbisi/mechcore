@@ -114,6 +114,13 @@ pub(crate) struct ExtraWeaponConfig {
     /// The fire its hit leaves, for a row whose `rangeItemType` is a fire.
     #[serde(default)]
     pub(crate) fire: Option<ExtraWeaponFire>,
+    /// The oil its hit leaves, for a row whose `rangeItemType` is an oil.
+    #[serde(default)]
+    pub(crate) oil: Option<ExtraWeaponOil>,
+    /// The `buffDatas` row its `buffID` names: the buff its hit writes on
+    /// what it struck, and its oil on what stands in it.
+    #[serde(default)]
+    pub(crate) buff: Option<BuffConfig>,
     /// A permanent preemptive skill: locked until its condition holds, then
     /// in the main skill's place.
     #[serde(default)]
@@ -131,17 +138,18 @@ pub(crate) struct ExtraWeaponConfig {
 #[serde(deny_unknown_fields)]
 pub(crate) struct PermanentPreemptive {
     pub(crate) life_below: f64,
-    pub(crate) buff: PreemptiveBuff,
+    pub(crate) buff: BuffConfig,
 }
 
-/// The `buffDatas` row `permanentPreemptiveActiveBuffID` names.
+/// A `buffDatas` row a technology's skill writes: a permanent preemptive
+/// skill's `permanentPreemptiveActiveBuffID`, an extra weapon's `buffID`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 #[allow(
     clippy::struct_excessive_bools,
     reason = "the buff row's flags are independent fields"
 )]
-pub(crate) struct PreemptiveBuff {
+pub(crate) struct BuffConfig {
     pub(crate) id: u32,
     /// Seconds.
     pub(crate) duration: f64,
@@ -151,6 +159,8 @@ pub(crate) struct PreemptiveBuff {
     pub(crate) invincible: bool,
     /// `speedChangeValue`, whole metres a second.
     pub(crate) move_speed_value: i64,
+    /// `speedChangeRate`, an `FPoint` raw rate.
+    pub(crate) move_speed_rate: i64,
 }
 
 /// An `ExplosionSkillData` as `IDeadExplosive`: its unit's death deals the
@@ -180,6 +190,16 @@ pub(crate) struct DeadFire {
 #[serde(deny_unknown_fields)]
 pub(crate) struct ExtraWeaponFire {
     pub(crate) life_time: Vec<f64>,
+}
+
+/// What `ExtraWeaponTech` answers `IRangeItemProvider` and `IFireProvider`
+/// with for an oil: `fireLifeTime`, how long the oil burns once a fire
+/// reaches it, in seconds. It stands as wide as its skill splashes, for no
+/// set time, and one round.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ExtraWeaponOil {
+    pub(crate) fire_life_time: Vec<f64>,
 }
 
 /// The four numbers `UndergroundMoveAbility`'s constructor reads from the

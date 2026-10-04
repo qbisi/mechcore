@@ -18,7 +18,7 @@ use crate::{
     },
     rules::{ExtraWeaponConfig, UnitConfig, UnitConfigs},
 };
-use commander_skills::CommanderSkillEffects;
+use commander_skills::{CommanderSkillEffects, technology_buff};
 pub(crate) use commander_skills::{
     Scatter, SkillBuff, SkillEffect, SkillRelease, StandingOil, SubEffect, Summon, TerrainEffect,
     TerrainKind, TerrainSpec,
@@ -98,7 +98,10 @@ pub(crate) struct Placement {
 #[derive(Debug, Clone)]
 pub(crate) struct ExtraWeapon {
     pub(crate) rules: ExtraWeaponConfig,
-    pub(crate) fire: Option<TerrainSpec>,
+    /// The terrain its hit leaves: a fire or an oil.
+    pub(crate) terrain: Option<TerrainSpec>,
+    /// The buff its hit writes on what it struck.
+    pub(crate) buff: Option<SkillBuff>,
     /// The fire an explosion skill's unit's death leaves.
     pub(crate) dead_fire: Option<TerrainSpec>,
 }
@@ -997,19 +1000,46 @@ fn worn(
 /// (`ExtraSkillProvider.AddEffect` writes `GetSplashRange` onto the unit as
 /// the fire's range) and burning its row's first `fireLifeTime`
 /// (`ExtraWeaponTechnologyData.GetFireLifeTime`).
-fn extra_weapon_fire(
-    weapon: &ExtraWeaponConfig,
-    fire: &crate::rules::ExtraWeaponFire,
-    loadouts: &Loadouts,
-) -> Result<TerrainSpec> {
-    let [range, life] = ground_fire(weapon, fire);
+fn extra_weapon_fire(weapon: &ExtraWeaponConfig, loadouts: &Loadouts) -> Result<TerrainSpec> {
+    let [range, life] = ground_fire(weapon);
     loadouts.skill_effects.unit_fire(range, life)
 }
 
+/// The terrain an extra weapon's hit leaves: the unit's fire, or the
+/// technology's oil, which writes the row's buff.
+fn extra_weapon_terrain(
+    weapon: &ExtraWeaponConfig,
+    named: &str,
+    buff: Option<SkillBuff>,
+    loadouts: &Loadouts,
+) -> Result<Option<TerrainSpec>> {
+    match (&weapon.fire, &weapon.oil, buff) {
+        (None, None, _) => Ok(None),
+        (Some(_), None, _) => extra_weapon_fire(weapon, loadouts).map(Some),
+        (None, Some(_), Some(buff)) => {
+            let [range, life] = ground_fire(weapon);
+            loadouts
+                .skill_effects
+                .unit_oil(named, range, buff, life)
+                .map(Some)
+        }
+        _ => Err(Error::new(
+            "a hit that leaves an oil with no buff, or a fire and an oil, is not read",
+        )),
+    }
+}
+
 /// The fire's range and life time, Q32.32 metres and seconds, as
-/// `ExtraSkillProvider.AddEffect` writes them onto the unit.
-fn ground_fire(weapon: &ExtraWeaponConfig, fire: &crate::rules::ExtraWeaponFire) -> [i64; 2] {
-    let life = fire.life_time.first().copied().unwrap_or(0.0);
+/// `ExtraSkillProvider.AddEffect` writes them onto the unit: the skill's
+/// splash, and the row's first `fireLifeTime`, a fire's or an oil's.
+fn ground_fire(weapon: &ExtraWeaponConfig) -> [i64; 2] {
+    let life = weapon
+        .fire
+        .as_ref()
+        .map(|fire| &fire.life_time)
+        .or_else(|| weapon.oil.as_ref().map(|oil| &oil.fire_life_time))
+        .and_then(|life| life.first().copied())
+        .unwrap_or(0.0);
     [
         crate::rules::metres_q32(weapon.attack.splash_radius),
         crate::rules::metres_q32(life),
@@ -1021,10 +1051,7 @@ fn ground_fire(weapon: &ExtraWeaponConfig, fire: &crate::rules::ExtraWeaponFire)
 /// fire's range and life time through `MechDataModifer.AddData`, which the
 /// recording keeps among the unit's modifiers.
 fn extra_weapon_corrections(weapon: &ExtraWeaponConfig) -> Vec<(Channel, Entry)> {
-    let Some(fire) = &weapon.fire else {
-        return Vec::new();
-    };
-    let [range, life] = ground_fire(weapon, fire);
+    let [range, life] = ground_fire(weapon);
     if life <= 0 {
         return Vec::new();
     }
@@ -1070,17 +1097,19 @@ fn extra_weapons(
         .iter()
         .filter(|weapon| side.techs.units.contains(&weapon.technology))
     {
-        let fire = match &weapon.fire {
-            None => None,
-            Some(fire) => Some(
-                refused.hold(extra_weapon_fire(weapon, fire, loadouts).map_err(|error| {
-                    Error::new(format!(
-                        "side {side_name} unit type {type_name:?} technology {}: {error}",
-                        weapon.technology
-                    ))
-                }))?,
-            ),
+        let named = format!("technology {}", weapon.technology);
+        let on_unit = |error: Error| {
+            Error::new(format!(
+                "side {side_name} unit type {type_name:?} technology {}: {error}",
+                weapon.technology
+            ))
         };
+        let buff = match &weapon.buff {
+            None => None,
+            Some(buff) => Some(refused.hold(technology_buff(&named, buff).map_err(on_unit))?),
+        };
+        let terrain =
+            refused.hold(extra_weapon_terrain(weapon, &named, buff, loadouts).map_err(on_unit))?;
         let dead_fire = match weapon
             .explosion
             .as_ref()
@@ -1095,18 +1124,14 @@ fn extra_weapons(
                             crate::rules::metres_q32(fire.radius),
                             crate::rules::metres_q32(fire.life_time),
                         )
-                        .map_err(|error| {
-                            Error::new(format!(
-                                "side {side_name} unit type {type_name:?} technology {}: {error}",
-                                weapon.technology
-                            ))
-                        }),
+                        .map_err(on_unit),
                 )?,
             ),
         };
         weapons.push(ExtraWeapon {
             rules: weapon.clone(),
-            fire,
+            terrain,
+            buff,
             dead_fire,
         });
     }

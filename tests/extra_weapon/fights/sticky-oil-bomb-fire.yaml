@@ -1,0 +1,26 @@
+# Sticky Oil Bomb on a fire: the oil burns at once.
+#
+# `sticky-oil-bomb.yaml` with a Hound with Incendiary Bomb beside the
+# Phantom Rays. The Hound's fires land first; the three bombs that land on
+# them at t48 to t54 leave fires 40 metres wide, the oil's, that burn the
+# row's 7 seconds, and the later bombs, landing on no fire, leave oils.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 435
+hash: {profile: mcfr-content-0.7.0, result: 05777df3824d98f38d9618a4005a46277f4b45925b68443852946c2872a86b14}
+blue:
+  techs:
+    phantom_ray: [sticky_oil_bomb]
+    hound: [incendiary_bomb]
+  units:
+  - {name: phantom_ray, index: 0, position: {x: 5, y: -50}, exp: 0/800/1000}
+  - {name: hound, index: 1, position: {x: 70, y: -50}}
+red:
+  core_damage: 201
+  units:
+  - {name: rhino, index: 0, position: {x: -45, y: -95}, exp: 0/130/1150}
+  - {name: rhino, index: 1, position: {x: 45, y: -95}, exp: 0/70/1150}

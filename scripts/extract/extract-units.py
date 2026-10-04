@@ -194,18 +194,23 @@ def extra_weapon_lines(mech, technology, kind, skill, row):
 
     `ExtraWeaponTech` adds the row's `skillID` beside the unit's main skill
     (`ExtraSkillSystem.AddMech`). A row whose hit leaves a fire states how long
-    the fire burns (`fireLifeTime`); a row that leaves another terrain, writes
-    a buff, changes a shield's damage or reduces every weapon's damage is left
-    out, and the simulator refuses the technology by name.
+    the fire burns (`fireLifeTime`), and one whose hit leaves an oil how long
+    the oil burns once a fire reaches it. A row's `buffID` is the buff its hit
+    writes on what it struck, and an oil's on what stands in it. A row that
+    leaves another terrain, writes a buff the simulator does not read, changes
+    a shield's damage or reduces every weapon's damage is left out, and the
+    simulator refuses the technology by name.
     """
     if kind == "explosionSkillDatas":
         return explosion_lines(mech, technology, skill, row)
-    # `rangeItemType` -1 leaves nothing, 0 a fire; `energyShieldDamage` -1
-    # leaves a shield's damage as it is.
-    fire = row.get("rangeItemType", -1) == 0
-    if (row.get("rangeItemType", -1) not in (-1, 0) or row.get("buffID")
+    # `rangeItemType` -1 leaves nothing, 0 a fire, 1 an oil;
+    # `energyShieldDamage` -1 leaves a shield's damage as it is.
+    item = row.get("rangeItemType", -1)
+    fire, oil = item == 0, item == 1
+    buff = buff_row(row["buffID"]) if row.get("buffID") else None
+    if (item not in (-1, 0, 1) or (row.get("buffID") and buff is None) or (oil and buff is None)
             or row.get("energyShieldDamage", -1) != -1
-            or (not fire and any(raw(value) for value in row.get("fireLifeTime") or []))
+            or (not fire and not oil and any(raw(value) for value in row.get("fireLifeTime") or []))
             or raw(row.get("fogAttackRangeChangeRate")) or raw(row.get("allWeaponReduceDamageRate"))):
         return []
     # A skill with no damage rate deals its own damage, one entry a level, or
@@ -227,20 +232,44 @@ def extra_weapon_lines(mech, technology, kind, skill, row):
         f"    use_main_skill_range: {boolean(row.get('useMainSkillRange', False))}",
         f"    damage_by_level: [{', '.join(str(value) for value in skill['damage'])}]",
     ]
+    life = ", ".join(str(grid(value, 2000)) for value in row.get("fireLifeTime") or [])
     if fire:
-        life = ", ".join(str(grid(value, 2000)) for value in row["fireLifeTime"])
         lines.append(f"    fire: {{life_time: [{life}]}}")
+    if oil:
+        lines.append(f"    oil: {{fire_life_time: [{life}]}}")
+    if buff:
+        lines += ["    buff:"] + buff_lines(buff, "      ")
     return lines + ["    attack:"] + attack
 
 
-# The `buffDatas` fields a skill's permanent preemptive buff may set, as the
+# The `buffDatas` fields a technology's skill's buff may set, as the
 # simulator reads them; a buff that sets any other is left out.
-PREEMPTIVE_BUFF_READ = {
+BUFF_READ = {
     "buffDivide": "divide", "isAdditiveMode": "additive", "debuff": "debuff",
     "invincible": "invincible", "speedChangeValue": "move_speed_value",
+    "speedChangeRate": "move_speed_rate",
 }
-PREEMPTIVE_BUFF_DESCRIPTIVE = {"id", "name", "isTestData", "duration", "stepTime", "effectType",
-                               "isClearSelfBuffWhenDisableTech"}
+BUFF_DESCRIPTIVE = {"id", "name", "isTestData", "duration", "stepTime", "effectType",
+                    "isClearSelfBuffWhenDisableTech"}
+
+
+def buff_row(identifier):
+    """The `buffDatas` row a technology's skill writes, when the simulator
+    reads every field it sets."""
+    buff = {buff["id"]: buff for buff in build_data.container()["buffDatas"]}[identifier]
+    if any(raw(value) not in (0, False, None, "", [], {}) for field, value in buff.items()
+           if field not in BUFF_READ and field not in BUFF_DESCRIPTIVE):
+        return None
+    return buff
+
+
+def buff_lines(buff, indent):
+    """A buff as `config/units/` states it, each line indented."""
+    lines = [f"{indent}id: {buff['id']}", f"{indent}duration: {readable(buff['duration'])}"]
+    for field, name in BUFF_READ.items():
+        value = raw(buff[field])
+        lines.append(f"{indent}{name}: {boolean(value) if isinstance(value, bool) else value}")
+    return lines
 
 
 def explosion_lines(mech, technology, skill, row):
@@ -269,10 +298,8 @@ def explosion_lines(mech, technology, skill, row):
             or skill["damage"] or raw(skill["initialCoolDownTime"])
             or any(skill[field] for field in ("isLoadingType", "isDiffusion", "useSelfSplash"))):
         return []
-    buffs = {buff["id"]: buff for buff in build_data.container()["buffDatas"]}
-    buff = buffs[skill["permanentPreemptiveActiveBuffID"][0]]
-    if any(raw(value) not in (0, False, None, "", [], {}) for field, value in buff.items()
-           if field not in PREEMPTIVE_BUFF_READ and field not in PREEMPTIVE_BUFF_DESCRIPTIVE):
+    buff = buff_row(skill["permanentPreemptiveActiveBuffID"][0])
+    if buff is None:
         return []
     try:
         attack = attack_lines(mech["id"], "explosionSkillDatas", skill, "base_damage: 0",
@@ -287,12 +314,7 @@ def explosion_lines(mech, technology, skill, row):
         "    preemptive:",
         f"      life_below: {readable(skill['permanentPreemptiveActiveConditionParamFloat'])}",
         "      buff:",
-        f"        id: {buff['id']}",
-        f"        duration: {readable(buff['duration'])}",
-    ]
-    for field, name in PREEMPTIVE_BUFF_READ.items():
-        value = raw(buff[field])
-        lines.append(f"        {name}: {boolean(value) if isinstance(value, bool) else value}")
+    ] + buff_lines(buff, "        ")
     lines += [
         "    explosion:",
         f"      damage_multiplier: {readable(skill['damageMultiplier'])}",

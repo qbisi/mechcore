@@ -619,7 +619,8 @@ fn extra_skills(placement: &Placement) -> Vec<ExtraSkill> {
                 ExtraSkill {
                     skill,
                     rules: rules.clone(),
-                    fire: weapon.fire,
+                    terrain: weapon.terrain,
+                    buff: weapon.buff,
                     dead_fire: weapon.dead_fire,
                     weapon: index,
                 }

@@ -94,16 +94,20 @@ impl Simulation {
             )))
             .unwrap_or(u32::MAX),
             source: PREEMPTIVE_SOURCE,
-            entries: (buff.move_speed_value != 0)
-                .then(|| Entry {
-                    index: Index::MoveSpeed,
-                    source: PREEMPTIVE_SOURCE,
-                    correction: Correction::Value(
-                        buff.move_speed_value * crate::rules::SPACE_UNITS_PER_METER_SCALE,
-                    ),
-                })
-                .into_iter()
-                .collect(),
+            entries: [
+                Correction::Value(
+                    buff.move_speed_value * crate::rules::SPACE_UNITS_PER_METER_SCALE,
+                ),
+                super::super::tower::rate(buff.move_speed_rate),
+            ]
+            .into_iter()
+            .filter(|correction| !correction.neutral())
+            .map(|correction| Entry {
+                index: Index::MoveSpeed,
+                source: PREEMPTIVE_SOURCE,
+                correction,
+            })
+            .collect(),
             disables_technology: false,
             debuff: buff.debuff,
             invincible: buff.invincible,
