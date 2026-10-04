@@ -7,8 +7,8 @@ writes under the unit's `extra_weapons` in `config/units/` where its shape is
 one that file can state. The simulator fights Secondary Armament, the
 Sabertooth's two guns, Anti-Air Missile, its missile at the air, Incendiary
 Bomb, the Hound's, Scorching Charge, the Fire Badger's self-destruct, Homing
-Missile, the Centurion's, and Sticky Oil Bomb, the Phantom Ray's and the
-Vulcan's, and refuses every other member by name: the members' skills differ
+Missile, the Centurion's, Sticky Oil Bomb, the Phantom Ray's and the
+Vulcan's, and Whirlwind, the Rhino's, and refuses every other member by name: the members' skills differ
 in kind, a projectile, an explosion, a laser, a summon, a sweep around the
 unit, and many leave a terrain or write a buff, so each joins once a recording
 of it agrees.
@@ -173,6 +173,36 @@ and slowed again by the oil every 19 ticks while it stands in it. Each time
 the buff is written again it keeps the unit that first wrote it as its
 source, so the oil's renewals name the Phantom Ray whose bomb struck first.
 
+## A preemptive strike about its unit
+
+An around skill (`FightAroundSkill`, an `aroundSkillData` row) is a
+preemptive one that is not permanent. It starts only where three things
+hold, checked by `AroundSkillStartAttackChecker` as the skill's idle state
+would start its attack:
+
+- **No preemptive skill runs, and the main skill rests.** The main skill is
+  idle with its target not yet in its attack area, or between two blows of
+  an attack that has struck: its backswing has run out and its next blow has
+  not begun.
+- **The skill's own target is in its attack area.**
+- **Enough enemies stand near.** Of the enemy units the side's unit quadtree
+  answers for a square of the select radius about the unit, a node at a
+  time, as many as `targetNumCondition` are alive, of a domain the skill
+  takes, and have their edge within the radius, the three-dimensional
+  distance less their radius.
+
+Leaving its idle state the skill takes the main skill's place: the main skill
+locks, letting its lock go, and the skill searches, taking the motion. It
+strikes once, about its own unit rather than its target, out to its splash,
+for its rate of the unit's base damage at its level, truncated. Its attack
+check fails once it has struck, so it returns to its idle state with its
+targets cleared and hands the main skill back, idle with its search due at
+once.
+
+Whirlwind starts with two enemies within 25 metres and strikes out to 35 for
+1.4 times its Rhino's damage, a 3560 blow becoming 4983. A Rhino against one
+enemy never starts it.
+
 ## A permanent preemptive explosion
 
 Scorching Charge adds an explosion skill (`FightExplosionSkill`) that is
@@ -312,6 +342,16 @@ equipment or an Energy Tower skill writes a skill correction onto.
   skills fire side by side:
   `tests/extra_weapon/fights/anti-air-missile-mixed.yaml` and
   `tests/corpus/fights/201340110-r3.yaml`.
+- Whirlwind starts once two Crawlers' edges are within 25 metres as the
+  Rhino's unit quadtree answers them, locks the main skill and strikes about
+  the Rhino out to 35 metres, felling all 24 Crawlers:
+  `tests/extra_weapon/fights/whirlwind.yaml`, beside its control
+  `tests/rhino/fights/m3-crawler-4242.yaml`. It starts as the main skill's
+  first backswing runs out, strikes two Rhinos for 1.4 times the Rhino's
+  damage truncated, returns to idle once it has struck and hands the main
+  skill back, which attacks on the next tick:
+  `tests/extra_weapon/fights/whirlwind-rhinos.yaml`. Against one enemy it
+  never starts: `tests/extra_weapon/fights/whirlwind-one-enemy.yaml`.
 - Sticky Oil Bomb's bomb writes its buff on the Rhino it strikes, from the
   Phantom Ray, and leaves an oil of its splash that renews the buff every 19
   ticks, keeping the Phantom Ray as its source, and stands to the fight's
@@ -381,6 +421,17 @@ equipment or an Energy Tower skill writes a skill correction onto.
   `AutoMoveBehaviour.IsActive`, `FightSkillBase.IsLockTargetAvaliable`,
   `MotionAttackState.Update`, `MotionAttackState.AttackRotate`,
   `MotionIdleState.Update`, `MotionMoveState.Update`.
+- An around skill: `FightAroundSkill.CreateStartAttackChecker`,
+  `AroundSkillStartAttackChecker.Check`, `PreemptiveSkillStartAttackChecker.Check`,
+  `PreemptiveSkillStartAttackChecker.IsMainSkillIdleState`,
+  `FightUtility.CalculateDistance3D`, `FightQuadtree.Query`,
+  `PreemptiveSkillExitIdleBehaviour.Execute`, `PreemptiveSkillEnterIdleBehaviour.Execute`,
+  `PreemptiveSkillController.SetPreemptiveSkill`, `PreemptiveSkillController.RemovePreemptiveSkill`,
+  `SkillLockState.Exit`, `SkillAttackState.CheckAttackable`,
+  `SkillIdleState.TryPerform`, `SkillManager.SortSkills`,
+  `SkillDamageProvider.CalculateDamagePosition` (its `IsSelfSplash`),
+  `DamageProperty.RefreshBaseDamage`, `FightAroundSkill.StartForObject`,
+  `AroundSkillExitAttack.Execute`.
 - A permanent preemptive skill: `PreemptiveSkillController.Update`,
   `PreemptiveSkillController.GetActiveTransitionDuration`,
   `PermanentPreemptiveActiveConditionLifeController.CheckCanActive`,
@@ -413,6 +464,13 @@ equipment or an Energy Tower skill writes a skill correction onto.
 - **What invincibility keeps off.** A fire burns an invincible Fire Badger;
   whether a shot or a blow does is not recorded, and the simulator lets every
   hit through.
+- **An around skill's `preemptiveInterval`**, which no fought member sets
+  and the extraction refuses, and its self splash at a target that is not
+  visible (`SkillAttackRangeChecker.IsAttackTargetInAttackRange`), which no
+  recording reaches.
+- **A correction on a skill with a damage rate.** Such a skill takes what
+  reaches the main skill as well (`IsMainSkillEffect`), an officer's and a
+  technology's, and how it composes there is not recorded. Refused.
 - **The other preemptive skills and conditions.** A transition to wait out
   (condition type 2), an ammunition condition, an extra weapon buff and an
   incompatible skill are read in part and refused by the extraction.

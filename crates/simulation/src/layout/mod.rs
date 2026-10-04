@@ -1029,6 +1029,66 @@ fn extra_weapon_terrain(
     }
 }
 
+/// What writes onto an extra skill's numbers (`SkillDataModifier.AvaliableCheck`):
+/// an equipment through its `extraSkillEffect` and an Energy Tower skill
+/// always, and, onto a skill with a damage rate, what reaches the main skill
+/// too (`IsMainSkillEffect`): an officer's and a technology's.
+fn reaching_extra_skills(
+    type_name: &str,
+    equipment: &[i32],
+    rules: &UnitConfig,
+    side: &SidePlan,
+    loadouts: &Loadouts,
+    weapons: &[ExtraWeapon],
+) -> Vec<String> {
+    let on_skill = |written: &[(Channel, Entry)]| {
+        written
+            .iter()
+            .any(|(channel, _)| *channel == Channel::Skill)
+    };
+    let mut reaching = Vec::new();
+    for &id in equipment {
+        if loadouts.equipment.reaches_extra_skills(id)
+            && loadouts
+                .equipment
+                .corrections(id, rules)
+                .is_ok_and(|written| on_skill(&written))
+        {
+            reaching.push(format!("equipment {id}"));
+        }
+    }
+    for &id in &side.energy_tower_skills {
+        if loadouts
+            .energy_tower
+            .corrections(std::slice::from_ref(&id), rules)
+            .is_ok_and(|written| on_skill(&written))
+        {
+            reaching.push(format!("energy tower skill {id}"));
+        }
+    }
+    if weapons.iter().any(|weapon| weapon.rules.damage_rate > 0.0) {
+        for &id in &side.techs.officers {
+            if loadouts
+                .officers
+                .corrections(std::slice::from_ref(&id), rules)
+                .is_ok_and(|written| on_skill(&written))
+            {
+                reaching.push(format!("officer {id}"));
+            }
+        }
+        for &id in &side.techs.units {
+            if loadouts
+                .technologies
+                .corrections(std::slice::from_ref(&id), type_name)
+                .is_ok_and(|written| on_skill(&written))
+            {
+                reaching.push(format!("technology {id}"));
+            }
+        }
+    }
+    reaching
+}
+
 /// The fire's range and life time, Q32.32 metres and seconds, as
 /// `ExtraSkillProvider.AddEffect` writes them onto the unit: the skill's
 /// splash, and the row's first `fireLifeTime`, a fire's or an oil's.
@@ -1077,11 +1137,11 @@ fn extra_weapon_corrections(weapon: &ExtraWeaponConfig) -> Vec<(Channel, Entry)>
 /// (`ExtraWeaponTech`), or `None` with a refusal kept.
 ///
 /// What a source writes onto a skill reaches an extra skill only where
-/// `SkillDataModifier.AvaliableCheck` lets it: an officer never does, nor a
-/// technology of the units these weapons serve, and an equipment through its
-/// `extraSkillEffect` and an Energy Tower skill always. How such a correction
-/// composes on an extra skill is not measured, so a unit it reaches is
-/// refused.
+/// `SkillDataModifier.AvaliableCheck` lets it ([`reaching_extra_skills`]):
+/// an officer and a technology of the units these weapons serve only a skill
+/// with a damage rate, and an equipment through its `extraSkillEffect` and
+/// an Energy Tower skill always. How such a correction composes on an extra
+/// skill is not measured, so a unit it reaches is refused.
 fn extra_weapons(
     side_name: &str,
     type_name: &str,
@@ -1138,31 +1198,7 @@ fn extra_weapons(
     if weapons.is_empty() {
         return Some(weapons);
     }
-    let on_skill = |written: &[(Channel, Entry)]| {
-        written
-            .iter()
-            .any(|(channel, _)| *channel == Channel::Skill)
-    };
-    let mut reaching = Vec::new();
-    for &id in equipment {
-        if loadouts.equipment.reaches_extra_skills(id)
-            && loadouts
-                .equipment
-                .corrections(id, rules)
-                .is_ok_and(|written| on_skill(&written))
-        {
-            reaching.push(format!("equipment {id}"));
-        }
-    }
-    for &id in &side.energy_tower_skills {
-        if loadouts
-            .energy_tower
-            .corrections(std::slice::from_ref(&id), rules)
-            .is_ok_and(|written| on_skill(&written))
-        {
-            reaching.push(format!("energy tower skill {id}"));
-        }
-    }
+    let reaching = reaching_extra_skills(type_name, equipment, rules, side, loadouts, &weapons);
     if reaching.is_empty() {
         Some(weapons)
     } else {

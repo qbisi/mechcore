@@ -272,7 +272,7 @@ impl Reach {
 
 impl Simulation {
     /// Whether an object flies (`IsFly`): a building stands on the ground.
-    fn domain_of(&self, target: FightActorRef) -> UnitDomain {
+    pub(in crate::fight) fn domain_of(&self, target: FightActorRef) -> UnitDomain {
         match target {
             FightActorRef::Unit(id) => self
                 .actors

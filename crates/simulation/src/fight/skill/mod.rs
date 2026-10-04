@@ -1,3 +1,4 @@
+mod around;
 mod check;
 mod extra;
 mod group;
@@ -50,6 +51,8 @@ pub(in crate::fight) enum SkillKind {
     Strike,
     /// `SuicideEffect`: a blow that takes its own unit's life.
     Suicide,
+    /// `FightAroundSkill`: a preemptive strike about its own unit.
+    Around,
     Laser,
     Projectile,
     ControlBeam,
@@ -61,6 +64,7 @@ impl SkillKind {
         match path {
             AttackPath::Direct => Self::Strike,
             AttackPath::Suicide => Self::Suicide,
+            AttackPath::Around { .. } => Self::Around,
             AttackPath::Laser { .. } => Self::Laser,
             AttackPath::Projectile { .. } => Self::Projectile,
             AttackPath::ControlBeam { .. } => Self::ControlBeam,
@@ -96,6 +100,7 @@ impl Performer {
             },
             SkillKind::Strike
             | SkillKind::Suicide
+            | SkillKind::Around
             | SkillKind::Laser
             | SkillKind::ControlBeam
             | SkillKind::Sweep => Self::Normal,
@@ -254,6 +259,10 @@ pub(in crate::fight) struct SkillManager {
     /// `PreemptiveSkillController.isPermanentPreemptiveSkillSet`: the
     /// permanent preemptive skill has taken the main skill's place.
     pub(in crate::fight) preemptive_active: bool,
+    /// `PreemptiveSkillController.preemptiveSkill` of a skill that is not
+    /// permanent: the extra skill that has the main skill locked while it
+    /// attacks.
+    pub(in crate::fight) running_preemptive: Option<usize>,
 }
 
 /// One `FightSkill` an extra weapon technology adds (`ExtraSkillSystem.AddMech`):
@@ -281,6 +290,7 @@ impl SkillManager {
             main,
             extras: Vec::new(),
             preemptive_active: false,
+            running_preemptive: None,
         }
     }
 
@@ -490,6 +500,13 @@ impl Skill {
             search_target_time: 0,
             ..Self::new(Vec::new(), None, None, kind)
         }
+    }
+
+    /// `SkillAttackController.performCount` above zero: a blow of this
+    /// attack has been performed, which `PerformAttack` counts as the blow
+    /// starts.
+    pub(in crate::fight) const fn performed(&self) -> bool {
+        self.attack_count > ATTACK_COUNT_RESET
     }
 
     /// A blow performed takes a round from the magazine, if the skill has one.
@@ -1724,7 +1741,9 @@ impl Simulation {
             && skill.backswing_finish_step().is_none()
             && skill
                 .attack_target()
-                .is_some_and(|target_id| self.target_in_attack_area(skill_ref, target_id));
+                .is_some_and(|target_id| self.target_in_attack_area(skill_ref, target_id))
+            // `SkillIdleState.TryStartAttack` asks the skill's start checker.
+            && self.may_start_attack(skill_ref);
         if bodyless_skill_starts_before_idle_search {
             self.skill_mut(skill_ref).started_from_idle = Some(step);
             self.skill_mut(skill_ref).set_phase(if prepare_steps == 0 {

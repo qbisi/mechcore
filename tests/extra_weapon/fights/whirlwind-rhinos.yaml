@@ -1,0 +1,26 @@
+# Whirlwind beside the main skill: it waits for the main skill between blows,
+# strikes once and hands the main skill back.
+#
+# A Rhino with Whirlwind against two Rhinos. The main skill strikes first
+# (t122, 3560). As its backswing runs out with both Rhinos within 25 metres,
+# the Whirlwind starts and locks it (t131), strikes both for 4983, 1.4 times
+# 3560 truncated (t144), and once it has struck returns to idle, the main
+# skill with it (t155), which takes its target and attacks on the next tick.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 174
+hash: {profile: mcfr-content-0.7.0, result: 5231678b822d0756a39b635ab26ce92d7fd4ccb21e1c287a768163e361cdb51b}
+blue:
+  core_damage: 400
+  techs:
+    rhino: [whirlwind]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: -25, y: -95}, exp: 0/100/1150}
+  - {name: rhino, index: 1, position: {x: 35, y: -95}, exp: 0/300/1150}

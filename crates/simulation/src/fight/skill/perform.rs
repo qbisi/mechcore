@@ -105,6 +105,7 @@ impl Simulation {
                 }
             }
             SkillKind::Suicide => self.suicide(skill_ref, events)?,
+            SkillKind::Around => self.around_effect(skill_ref, pending.target, events)?,
             SkillKind::Strike => {
                 let actor_id = skill_ref.owner.unit_id().ok_or_else(|| {
                     Error::new("a construction's skill that strikes is not supported")

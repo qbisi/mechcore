@@ -745,8 +745,10 @@ impl Simulation {
                     .as_ref()
                     .and_then(|arcs| arcs.get(extra.weapon))
                     .map_or(0, |arc| i64::from(arc.default) << 32);
-                extra.skill.weapon_rotations_q32[0] =
-                    parent.saturating_add(default).rem_euclid(360_i64 << 32);
+                // A skill with no weapon, an around skill, has none to turn.
+                if let Some(rotation) = extra.skill.weapon_rotations_q32.first_mut() {
+                    *rotation = parent.saturating_add(default).rem_euclid(360_i64 << 32);
+                }
             }
         }
         Ok(())
