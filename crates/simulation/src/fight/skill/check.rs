@@ -25,14 +25,17 @@ impl Simulation {
         // Whatever the lock is, a unit or a building: `SearchAttackTarget`
         // asks `CheckWallConstruction` before it looks at the lock at all.
         let found = self.skill(skill_ref).lock_target.and_then(|target| {
-            self.wall_in_the_way(skill_ref.owner, target)
+            self.wall_in_the_way(skill_ref, target)
                 .map(|building| (building, target))
         });
         // `SearchTargetShield`: with no construction in the way, a lock its
         // side's shield covers makes the shield what the skill fires at.
         let shield = if found.is_none() {
+            let range = self
+                .skill_attacker(skill_ref)
+                .map_or(0, |attacker| attacker.attack_range);
             self.skill(skill_ref).lock_target.and_then(|target| {
-                self.search_target_shield(skill_ref.owner, target)
+                self.search_target_shield_in(skill_ref.owner, target, range)
                     .map(|shield| (shield, target))
             })
         } else {
@@ -532,10 +535,12 @@ impl Simulation {
     /// not the nearest construction and not the one nearest the line.
     pub(in crate::fight) fn wall_in_the_way(
         &self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         target: FightActorRef,
     ) -> Option<u64> {
-        let actor = self.attacker(owner)?;
+        // The skill's own reach: a Centurion's Homing Missile meets a block
+        // its main gun is too short for.
+        let actor = self.skill_attacker(skill_ref)?;
         let aimed = self.fight_actor(target)?;
         // A wall is considered when it is within reach edge to edge: the
         // attacker's range plus its own radius and the block's. A constant
