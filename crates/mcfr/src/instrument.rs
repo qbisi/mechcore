@@ -145,10 +145,11 @@ impl InstrumentRow for SkillAttackableCheck {
     const CHANNEL: &'static str = "skill_attackable_checker";
 }
 
-/// One skill of a grouped unit at a snapshot: a Wraith's four slots are four
-/// `FightSkill`s, each with its own lock, attack target and state machine,
-/// which `target_refs` cannot show because the unit's main skill is their
-/// `SkillGroup`.
+/// One skill of a unit with more than one at a snapshot: a Wraith's four
+/// slots are four `FightSkill`s, each with its own lock, attack target and
+/// state machine, which `target_refs` cannot show because the unit's main
+/// skill is their `SkillGroup`; a unit with an extra weapon holds the extra
+/// skill's beside its main one.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GroupSlot {
     pub unit: ObjectRef,
