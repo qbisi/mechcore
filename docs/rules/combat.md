@@ -911,6 +911,9 @@ not the game's native attack-type enum.
 - A Stormcaller whose live lock walks inside its minimum range taking blue's
   interceptor on that tick, and a second doing the same three ticks later:
   `tests/search/fights/lock-inside-min-range.yaml`.
+- A Phantom Ray whose next lock stands inside the enemy's shield naming no
+  unit for its whole cooling: `tests/corpus/fights/201370830-r5.yaml`, ticks
+  113 to 130.
 - A Melting Point's beam at a Phoenix splashing no Tarantula under it:
   `tests/corpus/fights/67159970-r6.yaml`, tick 371.
 - Summons that join on one tick searching where everything stands then, and

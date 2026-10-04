@@ -229,6 +229,9 @@ kind ends its own way:
   that broke it loses its lock the tick after:
   `tests/shield/fights/blows-break-it.yaml`.
 - A beam at a covered unit lands on the shield: `tests/shield/fights/beam.yaml`.
+- Wasps attacking a shield that breaks between their checks stand attacking
+  it until the next: `tests/corpus/fights/201370830-r5.yaml`, ticks 203 to
+  218.
 - A grouped unit's weapons each fire at the shield covering their own lock,
   and name no target while they do, cooling included, until they search
   again: `tests/shield/fights/grouped-weapons.yaml`.

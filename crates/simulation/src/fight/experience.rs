@@ -226,11 +226,15 @@ impl Simulation {
     fn gain(&mut self, formation: u64, amount: i64) {
         if let Some(state) = self.exp.formations.get_mut(&formation) {
             let rate = q32_mul(ONE_Q32.saturating_add(state.rate.add), state.rate.remaining);
-            state.experience = state
-                .experience
-                .max(0)
-                .saturating_add(q32_mul(amount, rate))
-                .min(state.bar);
+            // `FPoint.Min` caps it: a formation that comes within 43 raw of
+            // its bar reaches it.
+            state.experience = fpoint_min(
+                state
+                    .experience
+                    .max(0)
+                    .saturating_add(q32_mul(amount, rate)),
+                state.bar,
+            );
         }
     }
 
