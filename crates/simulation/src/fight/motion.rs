@@ -950,13 +950,19 @@ impl Simulation {
             MotionState::Attacking if !in_range => actor.motion.state = MotionState::Moving,
             MotionState::Attacking => {
                 // `RVOControllerFixed.StopMove`, and `AttackRotate` turning
-                // the body to the lock (`CalculateTargetDirection`).
+                // to the lock (`CalculateTargetDirection`): a unit with a
+                // body its body (`FightMech.RotateBodyTo`), one without its
+                // root (`ISkillOwner.RotateTo`).
                 actor.motion.next_target_x_q32 = actor.x_q32;
                 actor.motion.next_target_z_q32 = actor.z_q32;
                 actor.motion.next_speed_q32 = 0;
                 actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
+                let bearing_q32 = direction_degrees_q32_raw(dx, dz);
                 if actor.rules.has_body {
-                    actor.rotate_body_towards(direction_degrees_q32_raw(dx, dz));
+                    actor.rotate_weapons_towards(bearing_q32);
+                } else {
+                    actor.rotate_body_towards(bearing_q32);
+                    actor.aim_rotation = actor.body_rotation;
                 }
             }
             MotionState::Idle if idle && in_touch => {}

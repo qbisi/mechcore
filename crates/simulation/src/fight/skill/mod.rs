@@ -1176,7 +1176,7 @@ impl Simulation {
         let (extras_before, extras_after) = self.extra_skills_around_main(actor_id);
         self.step_extra_skills(actor_id, &extras_before, step, target_search_order, events)?;
         let core_lock = self.actors[&actor_id].skills.main.lock_target;
-        let was_moving = self.actors[&actor_id].motion.state == MotionState::Moving;
+        let motion_before = self.actors[&actor_id].motion.state;
         let core_was_attacking =
             self.actors[&actor_id].skills.main.phase() == FightSkillPhase::Attack;
         let body_rotation_q32 = self.actors[&actor_id].body_rotation_q32;
@@ -1241,7 +1241,7 @@ impl Simulation {
         // parent made as it was.
         let arc_parent_before = self.actors[&actor_id].arc_parent_q32();
         self.aim_standalone_turret(actor_id);
-        self.step_motion(actor_id, step, events, update, was_moving)?;
+        self.step_motion(actor_id, step, events, update, motion_before)?;
         self.turn_arc_weapons(actor_id, arc_parent_before);
         if self.actors[&actor_id].skills.main.is_grouped() && fusillade {
             let skill = &mut self
@@ -1276,8 +1276,20 @@ impl Simulation {
         step: u64,
         events: &mut Vec<Event>,
         update: Option<SkillUpdate>,
-        was_moving: bool,
+        motion_before: MotionState,
     ) -> Result<()> {
+        let was_moving = motion_before == MotionState::Moving;
+        if let SkillSlot::Extra(_) = self.actors[&actor_id].motion.attacker {
+            // The main skill letting its target go idles the motion in its
+            // own update here, where the build's motion asks its attacker as
+            // it updates: an extra skill that took the motion since finds it
+            // in the state the skills found it.
+            self.actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable")
+                .motion
+                .state = motion_before;
+        }
         if let Flow::Done = self.update_transition(actor_id) {
             // `TransitionState.Update` is the motion's whole update.
         } else if let Some(update) = update {
