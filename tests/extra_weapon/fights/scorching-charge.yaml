@@ -1,0 +1,27 @@
+# Scorching Charge: a Fire Badger's permanent preemptive self-destruct.
+#
+# A squad of three Fire Badgers with Scorching Charge, life raised by 80%,
+# against three Marksmen. Each Badger the Marksmen bring to half its life
+# locks its main skill, writes its buff (60 metres a second onto its speed,
+# invincible) and charges what its explosion skill finds. The first to arrive
+# takes its own life: its death explodes with the life it had, within 46
+# metres, its own side too, and fells every unit on the field. The fight is
+# decided, so no fire is left.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 109
+hash: {profile: mcfr-content-0.7.0, result: 5dc7019c883576d70dff168d621f33c2496e775897a8aa2d009b069b9edfefec}
+blue:
+  techs:
+    fire_badger: [scorching_charge]
+  units:
+  - {name: fire_badger, index: 0, position: {x: 5, y: -40}, exp: 0/300/1400}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: -40, y: -100}, exp: 0/55/650}
+  - {name: marksman, index: 1, position: {x: 0, y: -100}, exp: 0/55/650}
+  - {name: marksman, index: 2, position: {x: 40, y: -100}, exp: 0/22/650}

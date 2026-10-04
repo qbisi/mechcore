@@ -2,6 +2,7 @@ mod check;
 mod extra;
 mod group;
 mod perform;
+mod preemptive;
 
 pub(in crate::fight) use perform::Launch;
 
@@ -47,6 +48,8 @@ pub(in crate::fight) struct PendingProjectileRelease {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::fight) enum SkillKind {
     Strike,
+    /// `SuicideEffect`: a blow that takes its own unit's life.
+    Suicide,
     Laser,
     Projectile,
     ControlBeam,
@@ -57,6 +60,7 @@ impl SkillKind {
     pub(in crate::fight) const fn of(path: &AttackPath) -> Self {
         match path {
             AttackPath::Direct => Self::Strike,
+            AttackPath::Suicide => Self::Suicide,
             AttackPath::Laser { .. } => Self::Laser,
             AttackPath::Projectile { .. } => Self::Projectile,
             AttackPath::ControlBeam { .. } => Self::ControlBeam,
@@ -90,9 +94,11 @@ impl Performer {
             SkillKind::Projectile => Self::Projectile {
                 pending: Vec::new(),
             },
-            SkillKind::Strike | SkillKind::Laser | SkillKind::ControlBeam | SkillKind::Sweep => {
-                Self::Normal
-            }
+            SkillKind::Strike
+            | SkillKind::Suicide
+            | SkillKind::Laser
+            | SkillKind::ControlBeam
+            | SkillKind::Sweep => Self::Normal,
         }
     }
 
@@ -162,6 +168,9 @@ pub(in crate::fight) enum SkillState {
     /// `SkillReloadingState`: a skill that fires from a magazine and has
     /// emptied it, until the step its reload is over.
     Reloading { finish_step: u64 },
+    /// `SkillLockState`: a permanent preemptive skill not yet active, or the
+    /// main skill one has replaced. It does not update.
+    Locked,
 }
 
 /// Where `SkillAttackController` is in a blow.
@@ -237,6 +246,9 @@ pub(in crate::fight) struct SkillManager {
     pub(in crate::fight) main: Skill,
     /// `SkillManager.extraSkills`.
     pub(in crate::fight) extras: Vec<ExtraSkill>,
+    /// `PreemptiveSkillController.isPermanentPreemptiveSkillSet`: the
+    /// permanent preemptive skill has taken the main skill's place.
+    pub(in crate::fight) preemptive_active: bool,
 }
 
 /// One `FightSkill` an extra weapon technology adds (`ExtraSkillSystem.AddMech`):
@@ -249,6 +261,8 @@ pub(in crate::fight) struct ExtraSkill {
     pub(in crate::fight) rules: ExtraWeaponConfig,
     /// The fire its hit leaves, if its row's is a fire.
     pub(in crate::fight) fire: Option<crate::layout::TerrainSpec>,
+    /// The fire its unit's death leaves, for an explosion.
+    pub(in crate::fight) dead_fire: Option<crate::layout::TerrainSpec>,
     /// The first of the row's weapons this skill fires: its one weapon of a
     /// standalone row, the first of every other.
     pub(in crate::fight) weapon: usize,
@@ -259,6 +273,7 @@ impl SkillManager {
         Self {
             main,
             extras: Vec::new(),
+            preemptive_active: false,
         }
     }
 
@@ -508,9 +523,10 @@ impl Skill {
     /// The coarse phase: idle (a cooling reads idle), preparing, attacking.
     pub(in crate::fight) const fn phase(&self) -> FightSkillPhase {
         match self.state {
-            SkillState::Idle { .. } | SkillState::Cooling { .. } | SkillState::Reloading { .. } => {
-                FightSkillPhase::Idle
-            }
+            SkillState::Idle { .. }
+            | SkillState::Cooling { .. }
+            | SkillState::Reloading { .. }
+            | SkillState::Locked => FightSkillPhase::Idle,
             SkillState::Prepare { finish_step } => FightSkillPhase::Prepare { finish_step },
             SkillState::Attack(_) => FightSkillPhase::Attack,
         }
@@ -1254,6 +1270,10 @@ impl Simulation {
             )?;
         }
         self.step_extra_skills(actor_id, &extras_after, step, target_search_order, events)?;
+        // A unit whose own blow took its life updates no further.
+        if !self.actors[&actor_id].alive() {
+            return Ok(());
+        }
         // `FightSkill.Update` turns its weapons after its state has updated,
         // and before the motion turns the body: the skill's checks on this
         // update see the weapons as they were, and their arc is the one its
@@ -1309,6 +1329,9 @@ impl Simulation {
                 .motion
                 .state = motion_before;
         }
+        // `SkillManager.Update` ends with `PreemptiveSkillController.Update`,
+        // before the motion updates.
+        self.update_preemptive(actor_id, events)?;
         if let Flow::Done = self.update_transition(actor_id) {
             // `TransitionState.Update` is the motion's whole update.
         } else if let Some(update) = update {
@@ -1354,6 +1377,10 @@ impl Simulation {
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
         events: &mut Vec<Event>,
     ) -> Result<Option<SkillUpdate>> {
+        // `SkillLockState` does not update.
+        if self.skill(skill_ref).state == SkillState::Locked {
+            return Ok(None);
+        }
         let backswing_just_finished = self
             .skill(skill_ref)
             .backswing_finish_step()

@@ -1,0 +1,28 @@
+# Scorching Charge with a Marksman beyond the explosion.
+#
+# As scorching-charge.yaml, with a fourth Marksman far off. The first Badger
+# to explode fells a Badger of its own and the three Marksmen near it, and
+# both Badgers' deaths leave a fire where they fell, reaching 40 metres for 7
+# seconds. The Badger its ally's explosion felled hands its loot to the
+# enemies about it; the one that took its own life hands out none. The last Badger burns in a fire, charges the
+# enemy tower, and its explosion strikes it.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 156
+hash: {profile: mcfr-content-0.7.0, result: 099769625f994ea9404ff5cab1665b8cf5bb7fe986706edecd6a70c606fdbf7b}
+blue:
+  core_damage: 100
+  techs:
+    fire_badger: [scorching_charge]
+  units:
+  - {name: fire_badger, index: 0, position: {x: 5, y: -40}, exp: 0/300/1400}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: -40, y: -100}, exp: 0/22/650}
+  - {name: marksman, index: 1, position: {x: 0, y: -100}, exp: 0/22/650}
+  - {name: marksman, index: 2, position: {x: 40, y: -100}, exp: 0/22/650}
+  - {name: marksman, index: 3, position: {x: 160, y: -180}}

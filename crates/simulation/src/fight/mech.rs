@@ -94,6 +94,7 @@ impl Actor {
             summoned: false,
             travelling: false,
             searched_attack: true,
+            last_life_before_suicide: 0,
             command: None,
             buffs: Vec::new(),
             start_buffs_pending,
@@ -178,6 +179,21 @@ impl Actor {
             self.motion.current_velocity_z_q32,
         );
         self.motion.next_max_speed_q32 = self.motion.next_speed_q32;
+    }
+
+    /// `FightMech.lockTarget`, which the unit's main searcher hands it: an
+    /// active permanent preemptive skill's lock, or the main skill's.
+    pub(in crate::fight) fn mech_lock(&self) -> Option<FightActorRef> {
+        if self.skills.preemptive_active
+            && let Some(extra) = self
+                .skills
+                .extras
+                .iter()
+                .find(|extra| extra.rules.preemptive.is_some())
+        {
+            return extra.skill.lock_target;
+        }
+        self.skills.main.unit_lock()
     }
 
     pub(in crate::fight) fn alive(&self) -> bool {
@@ -432,7 +448,7 @@ impl Actor {
                 z: self.motion.current_velocity_z_q32,
             },
             motion_state: self.motion.state,
-            mech_lock_target: self.skills.main.unit_lock().map(FightActorRef::object_ref),
+            mech_lock_target: self.mech_lock().map(FightActorRef::object_ref),
             collision_radius: space_to_q32(self.rules.collision_radius()),
             life: GaugeI32 {
                 current: i32::try_from(self.life).expect("unit life fits i32"),
@@ -588,16 +604,25 @@ fn extra_skills(placement: &Placement) -> Vec<ExtraSkill> {
             } else {
                 (1, count)
             };
-            (0..skills).map(move |index| ExtraSkill {
-                skill: Skill::new(
+            (0..skills).map(move |index| {
+                let mut skill = Skill::new(
                     vec![mdeg_to_degrees_q32(placement.rotation); per_skill],
                     None,
                     rules.attack.magazine,
                     SkillKind::of(&rules.attack.path),
-                ),
-                rules: rules.clone(),
-                fire: weapon.fire,
-                weapon: index,
+                );
+                // `PreemptiveSkillController.MarkPermanentPreemptiveSkill`
+                // locks a permanent preemptive skill until its condition holds.
+                if rules.preemptive.is_some() {
+                    skill.enter(super::skill::SkillState::Locked);
+                }
+                ExtraSkill {
+                    skill,
+                    rules: rules.clone(),
+                    fire: weapon.fire,
+                    dead_fire: weapon.dead_fire,
+                    weapon: index,
+                }
             })
         })
         .collect()

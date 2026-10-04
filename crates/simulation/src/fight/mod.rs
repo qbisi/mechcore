@@ -43,6 +43,7 @@ mod control;
 mod damage;
 mod deploy;
 mod experience;
+mod explosion;
 mod grid;
 mod important_unit;
 mod intercept;
@@ -245,6 +246,9 @@ struct Actor {
     /// Whether its skill has searched an attack target: every unit at the
     /// fight's presearch, and a travelling one only at its first update.
     searched_attack: bool,
+    /// `FightActor.lastLifeBeforeSuicide`: the life a unit had as its own
+    /// blow took it, which its explosion deals.
+    last_life_before_suicide: i64,
     /// `PilotAI`'s command: the path a Mobile Beacon walks it along, which
     /// its motion follows rather than its lock until it arrives.
     command: Option<pilot::MoveCommand>,
@@ -344,6 +348,7 @@ struct Identities {
 
 /// `FightingState` as the fight ends: the step it stops on, and what its end
 /// tore down and still owes the recording.
+#[derive(Default)]
 struct Ending {
     /// The step the fight stops on: a side had already won when it began,
     /// and no skill updates on it.
@@ -364,6 +369,10 @@ struct Simulation {
     /// The turned units that died this tick, in the order they died, whose
     /// `OnDead` hands them back to their side once every unit has updated.
     turned_fallen: Vec<u64>,
+    /// `DeadEffectSystem.deadEffectMeches` of `DeadExplosiveController`: the
+    /// units with an explosion that died this tick, in the order they died,
+    /// and whether each took its own life.
+    dead_explosions: Vec<(u64, bool)>,
     /// The step being simulated, which what happens inside a hit reads.
     step_now: u64,
     /// The order the fight updates its deployed units in, which is not their
@@ -481,6 +490,7 @@ impl Simulation {
             actors,
             translations: Vec::new(),
             turned_fallen: Vec::new(),
+            dead_explosions: Vec::new(),
             step_now: 0,
             unit_update_order,
             team_random: BTreeMap::new(),
@@ -504,12 +514,7 @@ impl Simulation {
                 next_unit: 0,
                 next_formation: 0,
             },
-            ending: Ending {
-                stop_step: None,
-                terminal_drain_pending: false,
-                late_building_events_pending: false,
-                torn_down_buildings: Vec::new(),
-            },
+            ending: Ending::default(),
             buildings,
             target_quadtrees,
             mech_quadtrees,
@@ -773,6 +778,9 @@ impl Simulation {
         // on what died this tick: a tower's loss reaches its side after every
         // unit has updated, and counts from the next tick whichever side felled
         // it.
+        // Its dead effects first, the explosions among them, and then each
+        // dead actor's `OnDead`.
+        self.step_dead_explosions(&mut events)?;
         for building_id in std::mem::take(&mut self.towers.fallen) {
             self.lose_tower(building_id)?;
         }
@@ -1059,14 +1067,16 @@ impl Simulation {
     /// A side with a summon still appearing has not lost:
     /// `FightCoreSystem.TryDstroyTower` passes over a team that
     /// `HaveProcessingMech`.
+    /// Whether a side has a unit left in the fight, or one still to appear.
+    fn standing(&self, team: u32) -> bool {
+        self.actors
+            .values()
+            .any(|actor| actor.placement.team == team && actor.alive())
+            || self.appearing_on(team)
+    }
+
     fn winner(&self) -> Option<u32> {
-        let standing = |team| {
-            self.actors
-                .values()
-                .any(|actor| actor.placement.team == team && actor.alive())
-                || self.appearing_on(team)
-        };
-        let (blue, red) = (standing(0), standing(1));
+        let (blue, red) = (self.standing(0), self.standing(1));
         match (blue, red) {
             (true, false) => Some(0),
             (false, true) => Some(1),

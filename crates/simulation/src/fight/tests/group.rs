@@ -475,6 +475,7 @@ mod slots {
             SkillState::Attack(_) => "SkillAttackState",
             SkillState::Cooling { .. } => "SkillCoolingState",
             SkillState::Reloading { .. } => "SkillReloadingState",
+            SkillState::Locked => "SkillLockState",
         }
     }
 

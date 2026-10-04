@@ -882,17 +882,38 @@ impl Stats {
         Ok(())
     }
 
-    /// The buffs' aggregate: move speed's rate, damage's rate and the rate on
-    /// damage taken.
+    /// The buffs' aggregate: move speed's value and rate, damage's rate and
+    /// the rate on damage taken.
     fn buff_modifiers(&self, modifiers: &mut Vec<Modifier>) -> Result<()> {
         let buff = &self.overlays.buff;
+        // `BuffManager.GetMoveSpeedChangeValue`: whole metres, as the unit's
+        // own `DataSet` keeps them.
+        if let Some(speed) = buff.aggregate(Index::MoveSpeed)
+            && speed.value != 0
+        {
+            let metres = i128::from(crate::rules::SPACE_UNITS_PER_METER_SCALE);
+            if speed.value % metres != 0 {
+                return Err(Error::new(
+                    "a buff's move-speed value is a whole number of metres",
+                ));
+            }
+            push(
+                modifiers,
+                ModifierChannel::Buff,
+                None,
+                "move_speed_value",
+                ModifierPart::Value,
+                i64::try_from(speed.value / metres)
+                    .map_err(|_| Error::new("a buff's move-speed value is outside i64"))?,
+            );
+        }
         for (index, field) in [
             (Index::MoveSpeed, "move_speed_rate"),
             (Index::AttackDamage, "damage_rate"),
             (Index::AmplifyDamage, "amplify_damage_rate"),
         ] {
             if let Some(aggregate) = buff.aggregate(index) {
-                if aggregate.value != 0 {
+                if aggregate.value != 0 && index != Index::MoveSpeed {
                     return Err(Error::new(format!(
                         "a buff's {} value is not a field this build records",
                         index.name()

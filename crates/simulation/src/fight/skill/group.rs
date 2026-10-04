@@ -273,7 +273,7 @@ impl Simulation {
                             .enter(SkillState::Idle { ready_step: None });
                     }
                 }
-                SkillState::Reloading { .. } => {}
+                SkillState::Reloading { .. } | SkillState::Locked => {}
             }
             self.settle_group_slot(actor_id, slot, before, step, body_rotation_q32);
         }

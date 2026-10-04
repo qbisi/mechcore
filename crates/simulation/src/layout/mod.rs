@@ -99,6 +99,8 @@ pub(crate) struct Placement {
 pub(crate) struct ExtraWeapon {
     pub(crate) rules: ExtraWeaponConfig,
     pub(crate) fire: Option<TerrainSpec>,
+    /// The fire an explosion skill's unit's death leaves.
+    pub(crate) dead_fire: Option<TerrainSpec>,
 }
 
 /// A production line a unit runs, with what it makes resolved: the unit's
@@ -1074,9 +1076,33 @@ fn extra_weapons(
                 }))?,
             ),
         };
+        let dead_fire = match weapon
+            .explosion
+            .as_ref()
+            .and_then(|explosion| explosion.dead_fire)
+        {
+            None => None,
+            Some(fire) => Some(
+                refused.hold(
+                    loadouts
+                        .skill_effects
+                        .unit_fire(
+                            crate::rules::metres_q32(fire.radius),
+                            crate::rules::metres_q32(fire.life_time),
+                        )
+                        .map_err(|error| {
+                            Error::new(format!(
+                                "side {side_name} unit type {type_name:?} technology {}: {error}",
+                                weapon.technology
+                            ))
+                        }),
+                )?,
+            ),
+        };
         weapons.push(ExtraWeapon {
             rules: weapon.clone(),
             fire,
+            dead_fire,
         });
     }
     if weapons.is_empty() {

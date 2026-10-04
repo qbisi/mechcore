@@ -5,8 +5,8 @@ unit's main one, the rows of `TechnologyGroupData.extraWeaponTechnologies`.
 Each row names the skill it adds in `skillID`, which `scripts/extract/extract-units.py`
 writes under the unit's `extra_weapons` in `config/units/` where its shape is
 one that file can state. The simulator fights Secondary Armament, the
-Sabertooth's two guns, and Incendiary Bomb, the Hound's, and refuses every
-other member by name: the members'
+Sabertooth's two guns, Incendiary Bomb, the Hound's, and Scorching Charge, the
+Fire Badger's self-destruct, and refuses every other member by name: the members'
 skills differ in kind, a projectile, an explosion, a laser, a summon, a sweep
 around the unit, and many leave a terrain or write a buff, so each joins once a
 recording of it agrees.
@@ -126,6 +126,55 @@ keeps them among the unit's modifiers, `gf_range_value` and
 ([terrain.md](terrain.md)), at the shared fire's damage and period. Incendiary
 Bomb's fire reaches 12 metres from where it lands and burns for 10 seconds.
 
+## A permanent preemptive explosion
+
+Scorching Charge adds an explosion skill (`FightExplosionSkill`) that is
+permanent and preemptive (`isPreemptivePermanent`): it waits locked
+(`SkillLockState`) until its condition holds and then takes the main skill's
+place for the rest of the fight. The row also raises the unit's life by 80%.
+
+- **It activates once the unit's life is half its maximum or less.**
+  `SkillManager.Update` ends with `PreemptiveSkillController.Update`, after
+  every skill of the unit and before its motion. Its condition,
+  `PermanentPreemptiveActiveConditionLifeController.CheckCanActive`, divides
+  the life by the maximum as `FPoint`s and holds at the skill's share (0.5) or
+  below. A Fire Badger hit below half on one update activates on the next.
+- **Activating, the main skill locks and the skill takes over.**
+  `SkillManager.ActivePermanentPreemptiveSkill` locks the main skill, which
+  lets its lock and target go and updates no more. The skill writes its buff
+  on the unit, from the unit (`FightSkill.OnPermanentPreemptiveSkillActive`),
+  takes the motion (`FightExplosionSkill.OnPermanentPreemptiveSkillActive`
+  gives the unit an `AutoMoveBehaviour` that asks it), and, a life condition
+  having no transition to wait out, leaves its lock for its idle state with
+  its search timer restarted while the motion stops idle. It searches and
+  locks on the next update, and from then on it is the unit's main searcher
+  (`FightSkillBase.IsMainSearcher`): its lock is the unit's.
+- **Its buff makes the unit fast and invincible.** Buff 6020 adds 60 metres a
+  second to the unit's speed, which a recording keeps as the buff's
+  `move_speed_value`, and makes it invincible for as long as the fight lasts.
+  Invincibility does not keep a fire from burning it.
+- **Its blow is the unit's own death.** The skill is a melee one of range 1:
+  the unit charges what it locks, unit or building, and its blow
+  (`SuicideEffect`) takes the whole of its life from itself. Who last hurt the
+  unit keeps the credit for its death. Its agent still moves on that update,
+  as it was moving, and the unit dies where that leaves it.
+- **Its death explodes, however it dies.** `FightExplosionSkill.EnterFight`
+  hands the unit to `DeadEffectSystem` with the skill as its dead effect, or,
+  for a unit still travelling in from a rear deployment, once it arrives
+  (`OnTravelFinished`): one killed on its way neither explodes nor burns.
+  When that module updates, before it calls the dead units' `OnDead`,
+  `DeadExplosiveController.PerformDeadEffect` strikes everything within the
+  unit's radius and the skill's splash of where it fell, its own side too
+  (`enableFriendlyFire`), buildings included, with the life the unit had
+  before it took its own (`explosiveDamageCondition` 2) times the skill's
+  multiplier. A unit some other hit killed had no such life and deals
+  nothing. A unit the explosion kills explodes in turn on the same update, and
+  what it kills reads after what the tick's shots killed.
+- **Every such death leaves a fire.** The explosion leaves a fire of the
+  skill's own, reaching 40 metres for 7 seconds, where the unit fell, under
+  its side, unless the fight is already decided: the explosion that fells a
+  side's last unit leaves none, nor does that unit's own death.
+
 ## What reaches an extra skill
 
 `SkillDataModifier.AvaliableCheck` decides, skill by skill, whether a source
@@ -156,6 +205,19 @@ equipment or an Energy Tower skill writes a skill correction onto.
   motion moves after the gun's target out of its reach:
   `tests/extra_weapon/fights/secondary-armament-takes-motion.yaml`, beside its
   control `tests/extra_weapon/fights/secondary-armament-takes-motion-control.yaml`.
+- A Fire Badger brought to half its life locks its main skill, writes its
+  buff, charges, and takes its own life against what it reached; its death
+  explodes within its radius and the skill's splash with the life it had,
+  felling its own side's Badgers and the enemies about it, and the fight it
+  decides keeps no fire: `tests/extra_weapon/fights/scorching-charge.yaml`,
+  beside its control `tests/extra_weapon/fights/scorching-charge-control.yaml`.
+- Each Fire Badger's death leaves a fire where it fell, one an ally's explosion
+  felled as well as the one that exploded, and the fire burns an invincible
+  Badger; a Badger charges a tower when no unit is left to it, and its
+  explosion strikes the tower: `tests/extra_weapon/fights/scorching-charge-survivor.yaml`.
+- A Fire Badger killed while travelling in leaves no fire, and what an
+  explosion kills reads after the units a turret's shots killed on that tick:
+  `tests/corpus/fights/134259672-r3.yaml`.
 - A Hound's main skill releases before its bombs on the update both release:
   `tests/extra_weapon/fights/incendiary-bomb-with-main.yaml`.
 - A Hound's bomb skill scores every search from the unit's rotation as it
@@ -196,6 +258,20 @@ equipment or an Energy Tower skill writes a skill correction onto.
   `AutoMoveBehaviour.IsActive`, `FightSkillBase.IsLockTargetAvaliable`,
   `MotionAttackState.Update`, `MotionAttackState.AttackRotate`,
   `MotionIdleState.Update`, `MotionMoveState.Update`.
+- A permanent preemptive skill: `PreemptiveSkillController.Update`,
+  `PreemptiveSkillController.GetActiveTransitionDuration`,
+  `PermanentPreemptiveActiveConditionLifeController.CheckCanActive`,
+  `SkillManager.ActivePermanentPreemptiveSkill`, `SkillLockState.Enter`,
+  `SkillLockState.Exit`, `FightSkill.OnPermanentPreemptiveSkillActive`,
+  `FightExplosionSkill.OnPermanentPreemptiveSkillActive`,
+  `FightSkillBase.IsMainSearcher`, `FightMech.GetMainSearcherSkill`.
+- An explosion: `FightExplosionSkill.EnterFight`, `FightExplosionSkill.OnTravelFinished`,
+  `FightExplosionSkill.GetAttackEffect`, `SuicideEffect.Perform`,
+  `DeadEffectSystem.Update`, `DeadExplosiveController.PerformDeadEffect`,
+  `DeadExplosiveDamageProvider.GetDamage`,
+  `DeadExplosiveDamageProvider.GetSplashRange`,
+  `DeadExplosiveDamageProvider.GetEffectTargetType`,
+  `DeadExplosiveDamageProvider.GetMainTarget`.
 - What reaches it: `SkillDataModifier.AvaliableCheck`,
   `OfficerData.IsExtraSkillEffect`, `TechnologyData.IsExtraSkillEffect`,
   `EquipmentData.IsExtraSkillEffect`, `EnergyTowerSkillData.IsExtraSkillEffect`.
@@ -211,4 +287,13 @@ equipment or an Energy Tower skill writes a skill correction onto.
   that turn.
 - **A correction composing on an extra skill**, an equipment's or an Energy
   Tower skill's. Refused.
+- **What invincibility keeps off.** A fire burns an invincible Fire Badger;
+  whether a shot or a blow does is not recorded, and the simulator lets every
+  hit through.
+- **Why a decided fight leaves no fire.** Both recordings agree that the
+  explosion and the death that decide a fight leave none; the code that stops
+  `RangeItemSystem.AddItem` then is not read.
+- **The other preemptive skills and conditions.** A transition to wait out
+  (condition type 2), an ammunition condition, an extra weapon buff and an
+  incompatible skill are read in part and refused by the extraction.
 - **Every other member of the list.** Refused by name.

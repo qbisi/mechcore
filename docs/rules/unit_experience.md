@@ -119,6 +119,14 @@ starts from zero. A kill hands out its amount twice over:
   drop's hit has no owner, and the side it counts for is the one the dead unit
   fought, whichever side dropped it: a Vulcan landing among its own side's
   Crawlers hands their experience to the other side.
+- **A kill by the dead one's own side shares with its enemies.** Where the hit
+  is of the target's own side, the pool's nearby formations are the side's
+  opponents standing within 65 metres of the target, beside every formation
+  that hit it: a Fire Badger its ally's explosion fells hands its experience to
+  the enemies about it. The killer, an exploded unit, is dead and takes nothing.
+- **A unit's own blow taking its life hands out nothing.** The hit of
+  `SuicideEffect` is no side's, and no one takes the Fire Badger's experience
+  as it takes its own life.
 
 "Within 65 metres" is asked of the side's unit quadtree first, for a square 65
 metres wide around the target. The tree answers with whole nodes, so a unit is
@@ -161,6 +169,10 @@ what the formation carries into the next round.
   included, and a summon's own kills leave its side's formations their whole
   share: `tests/battle_skill/fights/rhino-drop.yaml`,
   `tests/battle_skill/fights/vulcans-descent.yaml`.
+- A Fire Badger an ally's explosion fells hands its pool to every formation
+  that hit it and to the enemies within 65 metres of it, and one that took its
+  own life hands out nothing: `tests/extra_weapon/fights/scorching-charge.yaml`,
+  `tests/extra_weapon/fights/scorching-charge-survivor.yaml`.
 - An officer's experience rate multiplies its formation's every gain, the
   whole and the share, and no other formation's, and leaves the bar the table's:
   `tests/modifier/fights/officer-exp-rate-marksman.yaml`,
@@ -193,7 +205,9 @@ what the formation carries into the next round.
   `ExpSystem.OnActorHitted`, `ExpSystem.DoCalculateExp`, `Config.assistKillExpRate`.
 - Who shares it, by attack and by distance: `ExpSystem.AddAttackData`,
   `ExpSystem.AddRangeUnit`, `Config.assistExpRange`, `RectRange.Overlaps`,
-  `FightTeam.CreateQuadtree`.
+  `FightTeam.CreateQuadtree`; a hit of the target's own group shares with its
+  opponents' units: `ExpSystem.OnActorHitted`, `GroupManager.GetOpponentGroups`.
+- A unit's own blow takes its life from itself: `SuicideEffect.Perform`.
 - A gain starts from zero and stops at the bar, and is the amount times
   `(1 + expAddRate + add) × expReduceRate × reduce`, `add` and `reduce` being
   the unit's own `MechDataChangeFloatRate.ExpChangeRate`, of the killer or,
