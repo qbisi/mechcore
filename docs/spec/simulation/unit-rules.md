@@ -78,7 +78,7 @@ attack:
 | --- | --- |
 | `type_name`, `unit_type_id` | Layout name and stable MCFR unit type ID. |
 | `main_skill` | `MechData.mainSkillID`, which orders the main skill among the unit's skills. |
-| `extra_weapons` | The skill each extra weapon technology the unit may research adds beside its main one, where its shape is one this file can state: the technology, the skill, `use_main_skill_range`, `damage_by_level` and an `attack` of the main skill's shape. [`docs/rules/extra_weapons.md`](../../rules/extra_weapons.md) says what they do. Absent means none. |
+| `extra_weapons` | The skill each extra weapon technology the unit may research adds beside its main one, where its shape is one this file can state: the technology, the skill, `use_main_skill_range`, `damage_by_level`, an `attack` of the main skill's shape, and for a row that leaves a fire, its `fire.life_time` (`fireLifeTime`), in seconds. [`docs/rules/extra_weapons.md`](../../rules/extra_weapons.md) says what they do. Absent means none. |
 | `formation.members` | Number of native members created for one Formation. |
 | `formation.slot_size` | Native member-grid slot size used to derive row and column counts. |
 | `formation.footprint` | Native card base width and depth used to generate member positions. |

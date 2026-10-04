@@ -111,7 +111,18 @@ pub(crate) struct ExtraWeaponConfig {
     /// `SkillData.damage`: a skill with no damage rate deals its own, one
     /// entry for each unit level.
     pub(crate) damage_by_level: Vec<i64>,
+    /// The fire its hit leaves, for a row whose `rangeItemType` is a fire.
+    #[serde(default)]
+    pub(crate) fire: Option<ExtraWeaponFire>,
     pub(crate) attack: AttackConfig,
+}
+
+/// `ExtraWeaponTechnologyData.fireLifeTime`: how long the fire its hit leaves
+/// burns, in seconds.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ExtraWeaponFire {
+    pub(crate) life_time: Vec<f64>,
 }
 
 /// The four numbers `UndergroundMoveAbility`'s constructor reads from the
@@ -1208,6 +1219,12 @@ fn validate_signed_scaled(value: f64, scale: f64, field: &str) -> Result<()> {
 #[allow(clippy::cast_possible_truncation)]
 fn quantize_i64(value: f64, scale: f64) -> i64 {
     (value * scale).round() as i64
+}
+
+/// Metres, or seconds, as an `FPoint`'s Q32.32 raw value: exact for any
+/// value a table writes, which `config/` states in whole or few decimals.
+pub(crate) fn metres_q32(value: f64) -> i64 {
+    quantize_i64(value, 4_294_967_296.0)
 }
 
 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]

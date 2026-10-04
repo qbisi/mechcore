@@ -514,6 +514,33 @@ impl CommanderSkillEffects {
         })
     }
 
+    /// The fire a unit's extra weapon leaves where its shot lands
+    /// (`GroundFireController.GetFireMech`): of the range and the lifetime its
+    /// technology wrote onto the unit, the skill's splash and its row's
+    /// `fireLifeTime`, dealing `Config`'s fire as any fire does.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when a time is no whole number of ticks within a
+    /// fight.
+    pub(crate) fn unit_fire(&self, radius_q32: i64, life_seconds_raw: i64) -> Result<TerrainSpec> {
+        let period_ticks = i32::try_from(ticks(self.ground_fire.interval)?)
+            .map_err(|_| Error::new("a fire's interval outlasts a fight"))?;
+        let life_ticks = i32::try_from(ticks(life_seconds_raw)?)
+            .map_err(|_| Error::new("a unit's fire outlasts a fight"))?;
+        Ok(TerrainSpec {
+            kind: TerrainKind::Fire,
+            radius_q32,
+            life_ticks: Some(life_ticks),
+            rounds: 0,
+            effect: TerrainEffect::Fire {
+                damage: self.ground_fire.damage,
+                period_ticks,
+            },
+            burns: None,
+        })
+    }
+
     /// A Shield Airdrop an earlier round left standing, full: the shield
     /// resets to its maximum as each round's fight ends.
     ///

@@ -193,35 +193,42 @@ def extra_weapon_lines(mech, technology, kind, skill, row):
     """An extra weapon technology's skill, when the simulator's shape can state it.
 
     `ExtraWeaponTech` adds the row's `skillID` beside the unit's main skill
-    (`ExtraSkillSystem.AddMech`). A row that also leaves a terrain, writes a
-    buff, changes a shield's damage, reduces every weapon's damage or reaches
-    with the main skill's range in a way this cannot state is left out, and
-    the simulator refuses the technology by name.
+    (`ExtraSkillSystem.AddMech`). A row whose hit leaves a fire states how long
+    the fire burns (`fireLifeTime`); a row that leaves another terrain, writes
+    a buff, changes a shield's damage or reduces every weapon's damage is left
+    out, and the simulator refuses the technology by name.
     """
-    # `energyShieldDamage` -1 leaves a shield's damage as it is.
-    if (row.get("rangeItemType", -1) != -1 or row.get("buffID") or row.get("energyShieldDamage", -1) != -1
-            or any(raw(value) for value in row.get("fireLifeTime") or [])
+    # `rangeItemType` -1 leaves nothing, 0 a fire; `energyShieldDamage` -1
+    # leaves a shield's damage as it is.
+    fire = row.get("rangeItemType", -1) == 0
+    if (row.get("rangeItemType", -1) not in (-1, 0) or row.get("buffID")
+            or row.get("energyShieldDamage", -1) != -1
+            or (not fire and any(raw(value) for value in row.get("fireLifeTime") or []))
             or raw(row.get("fogAttackRangeChangeRate")) or raw(row.get("allWeaponReduceDamageRate"))):
         return []
-    # A skill with no damage rate deals its own damage, one entry a level; one
-    # whose damage is the unit's times its rate is not stated here yet.
-    if raw(skill["damageRate"]) or not skill["damage"]:
+    # A skill with no damage rate deals its own damage, one entry a level, or
+    # none when its row lists none; one whose damage is the unit's times its
+    # rate is not stated here yet.
+    if raw(skill["damageRate"]):
         return []
     if raw(skill["initialCoolDownTime"]) or any(
             skill[field] for field in ("isLoadingType", "isDiffusion", "useSelfSplash")):
         return []
     try:
-        attack = attack_lines(mech["id"], kind, skill, f"base_damage: {skill['damage'][0]}",
+        attack = attack_lines(mech["id"], kind, skill, f"base_damage: {(skill['damage'] or [0])[0]}",
                               skill["canAttackAngle"], "      ", angle_absent=360 * ONE)
     except SystemExit:
         return []
-    return [
+    lines = [
         f"  - technology: {technology}",
         f"    skill: {skill['id']}",
         f"    use_main_skill_range: {boolean(row.get('useMainSkillRange', False))}",
         f"    damage_by_level: [{', '.join(str(value) for value in skill['damage'])}]",
-        "    attack:",
-    ] + attack
+    ]
+    if fire:
+        life = ", ".join(str(grid(value, 2000)) for value in row["fireLifeTime"])
+        lines.append(f"    fire: {{life_time: [{life}]}}")
+    return lines + ["    attack:"] + attack
 
 
 def attack_lines(unit, kind, skill, damage_line, attack_angle, indent, angle_absent=None):

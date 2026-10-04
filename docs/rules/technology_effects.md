@@ -68,7 +68,7 @@ simulator applies a plain technology's numbers, a lifesteal technology's
 with the life steal [combat.md](combat.md#lifesteal) states, and a repair
 technology's with [its repair](combat.md#repair), a sweep technology's with
 the strip it changes ([sweep.md](sweep.md#technology)), Secondary Armament
-with the skill it adds ([extra_weapons.md](extra_weapons.md)), and refuses
+and Incendiary Bomb with the skill each adds ([extra_weapons.md](extra_weapons.md)), and refuses
 every other technology by name and kind, since applying a subclass's numbers
 alone would fight it as something it is not.
 

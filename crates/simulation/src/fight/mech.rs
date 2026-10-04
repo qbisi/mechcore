@@ -546,18 +546,23 @@ impl Actor {
             .extras
             .iter()
             .enumerate()
-            .map(move |(index, extra)| WeaponAimState {
-                skill_slot: u16::try_from(main_slots + index).expect("skill slot fits u16"),
-                weapon_index: extra.rules.attack.weapons.index(extra.weapon),
-                attack_target: extra
+            .flat_map(move |(index, extra)| {
+                let attack_target = extra
                     .skill
                     .named_attack_target()
                     .filter(|_| self.searched_attack)
-                    .map(FightActorRef::object_ref),
-                pose: Some(QPose {
-                    position,
-                    rotation: extra.skill.weapon_rotations_q32[0],
-                }),
+                    .map(FightActorRef::object_ref);
+                // Only a weapon that turns within an arc has a transform of
+                // its own.
+                let arcs = extra.rules.attack.weapons.arcs.is_some();
+                extra.skill.weapon_rotations_q32.iter().enumerate().map(
+                    move |(offset, &rotation)| WeaponAimState {
+                        skill_slot: u16::try_from(main_slots + index).expect("skill slot fits u16"),
+                        weapon_index: extra.rules.attack.weapons.index(extra.weapon + offset),
+                        attack_target,
+                        pose: arcs.then_some(QPose { position, rotation }),
+                    },
+                )
             })
     }
 }
@@ -568,22 +573,31 @@ impl Actor {
 /// come. A standalone row makes one skill for each weapon; each starts
 /// pointing as the unit faces, as the main skill's weapons do.
 fn extra_skills(placement: &Placement) -> Vec<ExtraSkill> {
-    let mut weapons: Vec<&ExtraWeaponConfig> = placement.extra_weapons.iter().collect();
-    weapons.sort_by_key(|weapon| weapon.skill);
+    let mut weapons: Vec<&crate::layout::ExtraWeapon> = placement.extra_weapons.iter().collect();
+    weapons.sort_by_key(|weapon| weapon.rules.skill);
     weapons
         .into_iter()
-        .flat_map(|rules| {
+        .flat_map(|weapon| {
+            let rules = &weapon.rules;
             let count = usize::try_from(rules.attack.weapons.count())
                 .expect("u32 weapon count fits the supported host");
-            (0..count).map(move |weapon| ExtraSkill {
+            // A standalone row makes a skill of each weapon; any other one
+            // skill that fires them all.
+            let (skills, per_skill) = if rules.attack.weapons.mode == WeaponMode::Standalone {
+                (count, 1)
+            } else {
+                (1, count)
+            };
+            (0..skills).map(move |index| ExtraSkill {
                 skill: Skill::new(
-                    vec![mdeg_to_degrees_q32(placement.rotation)],
+                    vec![mdeg_to_degrees_q32(placement.rotation); per_skill],
                     None,
                     rules.attack.magazine,
                     SkillKind::of(&rules.attack.path),
                 ),
                 rules: rules.clone(),
-                weapon,
+                fire: weapon.fire,
+                weapon: index,
             })
         })
         .collect()

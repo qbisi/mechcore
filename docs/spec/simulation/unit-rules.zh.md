@@ -85,7 +85,7 @@ attack:
 | `has_body` | 原生 `MechData` 是否具有独立 mech body。 |
 | `independent_aim` | 主武器是否接收独立于 mech body 方向生成的瞄准方向。当前 P0 目录中仅具有 mech body 的单位填写；省略表示不适用，不表示 `false`。 |
 | `main_skill` | `MechData.mainSkillID`，决定主技能在单位各技能中的顺序。 |
-| `extra_weapons` | 单位可研究的每个附加武器科技在主技能旁加上的技能（仅限本文件能表达的形状）：科技、技能、`use_main_skill_range`、`damage_by_level`，以及与主技能同形的 `attack`。作用见 [`docs/rules/extra_weapons.md`](../../rules/extra_weapons.md)。缺省为无。 |
+| `extra_weapons` | 单位可研究的每个附加武器科技在主技能旁加上的技能（仅限本文件能表达的形状）：科技、技能、`use_main_skill_range`、`damage_by_level`、与主技能同形的 `attack`，以及留火的行的 `fire.life_time`（`fireLifeTime`，秒）。作用见 [`docs/rules/extra_weapons.md`](../../rules/extra_weapons.md)。缺省为无。 |
 | `underground` | 只出现在 `MechData.moveType` 为 `Underground` 的单位上：入地用时（`enter`）、出地用时（`exit`）、出地后多久仍然隐身（`exit_keep`），以及在地下给它的射程（`attack_range`）。它们的作用见 [`docs/rules/underground.md`](../../rules/underground.md)。 |
 | `base_damage` | 路径专用攻击次数倍率生效前的一级、无修正 mech 基础伤害。 |
 | `min_range`、`range`、`attack_half_angle` | 原生交战距离边界和主技能有效半角。 |

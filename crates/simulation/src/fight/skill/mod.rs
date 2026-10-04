@@ -247,7 +247,10 @@ pub(in crate::fight) struct ExtraSkill {
     pub(in crate::fight) skill: Skill,
     /// The technology's row, which the skill is run from.
     pub(in crate::fight) rules: ExtraWeaponConfig,
-    /// Which of the row's weapons this skill fires.
+    /// The fire its hit leaves, if its row's is a fire.
+    pub(in crate::fight) fire: Option<crate::layout::TerrainSpec>,
+    /// The first of the row's weapons this skill fires: its one weapon of a
+    /// standalone row, the first of every other.
     pub(in crate::fight) weapon: usize,
 }
 

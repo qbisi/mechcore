@@ -68,6 +68,8 @@ struct Terrain {
     provider_area: Option<usize>,
     team: u32,
     x_q32: i64,
+    /// Its height: where a projectile left it, the ground otherwise.
+    y_q32: i64,
     z_q32: i64,
     spec: TerrainSpec,
     /// `time`, counted by each update when the terrain has a life.
@@ -141,7 +143,7 @@ impl Simulation {
         team: u32,
         name: &str,
         spec: TerrainSpec,
-        position: (i64, i64),
+        position: (i64, i64, i64),
     ) -> Result<()> {
         let key = self.add_item(
             (team, name, None),
@@ -151,7 +153,7 @@ impl Simulation {
             Layout::Cut { converted: false },
         )?;
         if let Some(fire) = spec.burning()
-            && self.fire_reaches((position.0, position.1, spec.radius_q32))?
+            && self.fire_reaches((position.0, position.2, spec.radius_q32))?
         {
             let layout = self.terrain.terrains[&key]
                 .grid
@@ -190,7 +192,7 @@ impl Simulation {
                     (oil.team, &oil.name, Some(area)),
                     oil.team,
                     oil.spec,
-                    position,
+                    (position.0, 0, position.1),
                     layout,
                 )?;
                 self.terrain
@@ -214,7 +216,7 @@ impl Simulation {
         (provider_team, name, provider_area): (u32, &str, Option<usize>),
         team: u32,
         spec: TerrainSpec,
-        (x_q32, z_q32): (i64, i64),
+        (x_q32, y_q32, z_q32): (i64, i64, i64),
         layout: Layout,
     ) -> Result<u64> {
         if spec.kind == TerrainKind::Fire
@@ -228,7 +230,8 @@ impl Simulation {
                         terrain.provider_team == provider_team
                             && terrain.provider_area == provider_area
                             && terrain.name == name
-                            && (terrain.x_q32, terrain.z_q32) == (x_q32, z_q32)
+                            && (terrain.x_q32, terrain.y_q32, terrain.z_q32)
+                                == (x_q32, y_q32, z_q32)
                     })
             })
         {
@@ -257,6 +260,7 @@ impl Simulation {
                 provider_area,
                 team,
                 x_q32,
+                y_q32,
                 z_q32,
                 spec,
                 elapsed: 0,
@@ -296,7 +300,7 @@ impl Simulation {
             let (provider, spec, position) = (
                 (oil.provider_team, oil.name.clone(), oil.provider_area),
                 oil.spec.burning().expect("an oil burns"),
-                (oil.x_q32, oil.z_q32),
+                (oil.x_q32, oil.y_q32, oil.z_q32),
             );
             let layout = oil
                 .grid
@@ -441,7 +445,7 @@ impl Simulation {
                     terrain_type: terrain_type(terrain.spec.kind),
                     position: QVec3 {
                         x: terrain.x_q32,
-                        y: 0,
+                        y: terrain.y_q32,
                         z: terrain.z_q32,
                     },
                     radius: terrain.spec.radius_q32,
@@ -464,7 +468,7 @@ impl Simulation {
                 EventPayload::TerrainRemoved {
                     position: QVec3 {
                         x: terrain.x_q32,
-                        y: 0,
+                        y: terrain.y_q32,
                         z: terrain.z_q32,
                     },
                     reason: self
@@ -769,7 +773,7 @@ impl Simulation {
                     terrain_type: terrain_type(terrain.spec.kind),
                     position: QVec3 {
                         x: terrain.x_q32,
-                        y: 0,
+                        y: terrain.y_q32,
                         z: terrain.z_q32,
                     },
                     radius: terrain.spec.radius_q32,

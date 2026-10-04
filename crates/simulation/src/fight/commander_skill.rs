@@ -324,7 +324,7 @@ impl Simulation {
                 }
             }
             if sub_effect.lands_on == tick {
-                self.add_terrain(release.team, &release.name, spec, (x_q32, z_q32))?;
+                self.add_terrain(release.team, &release.name, spec, (x_q32, 0, z_q32))?;
                 continue;
             }
             falling.push(*sub_effect);
