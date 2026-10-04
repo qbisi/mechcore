@@ -44,13 +44,7 @@ impl Simulation {
         self.skill_mut(skill_ref).in_the_way = found;
         self.skill_mut(skill_ref).target_shield = shield;
         if !self.skill(skill_ref).siblings().is_empty() {
-            self.refresh_group_walls(
-                skill_ref
-                    .owner
-                    .unit_id()
-                    .expect("only a unit's skill is grouped"),
-                None,
-            );
+            self.refresh_group_walls(skill_ref, None);
         }
     }
 
@@ -109,14 +103,7 @@ impl Simulation {
             if let Some(slot) = slot.filter(|slot| *slot > 0)
                 && attacking_check
                 && !self.skill(skill_ref).standalone()
-                && self.sibling_yields(
-                    skill_ref
-                        .owner
-                        .unit_id()
-                        .expect("only a unit's skill is grouped"),
-                    slot,
-                    target_search_order,
-                )?
+                && self.sibling_yields(skill_ref, slot, target_search_order)?
             {
                 return Ok(false);
             }
@@ -193,10 +180,17 @@ impl Simulation {
     /// (10 metres) in the build's `FightSkill.GetAttackRange`. The first
     /// grouped skill has no parent and keeps the ordinary range, as does
     /// every standalone weapon's skill, which no `SkillGroup` parents.
-    pub(in crate::fight) fn slot_attack_range(&self, actor_id: u64, slot: Option<usize>) -> i64 {
-        let actor = &self.actors[&actor_id];
-        actor.stats.attack_range().saturating_add(
-            if slot.is_some_and(|slot| slot > 0) && !actor.skills.main.standalone() {
+    pub(in crate::fight) fn slot_attack_range(
+        &self,
+        skill_ref: SkillRef,
+        slot: Option<usize>,
+    ) -> i64 {
+        let range = self
+            .skill_attacker(skill_ref)
+            .expect("skill owner identity is stable")
+            .attack_range;
+        range.saturating_add(
+            if slot.is_some_and(|slot| slot > 0) && !self.skill(skill_ref).standalone() {
                 10_000
             } else {
                 0
@@ -218,11 +212,11 @@ impl Simulation {
             .unit_id()
             .expect("only a unit's skill is grouped");
         let source = &self.actors[&actor_id];
+        let min_range = self.skill_rules(skill_ref).min_range();
         // A slot firing at a shield reaches it once the shield's surface on
         // its way to the lock is in its range, as the core does.
-        if let Some(shield) = source
-            .skills
-            .main
+        if let Some(shield) = self
+            .skill(skill_ref)
             .sibling(slot.unwrap_or(0))
             .shield_target()
         {
@@ -234,8 +228,8 @@ impl Simulation {
                             native_q32_magnitude(x_q32 - source.x_q32, z_q32 - source.z_q32)
                                 .saturating_sub(space_to_q32(source.rules.collision_radius()))
                                 .max(0);
-                        distance >= space_to_q32(source.rules.attack.min_range())
-                            && distance <= space_to_q32(self.slot_attack_range(actor_id, slot))
+                        distance >= space_to_q32(min_range)
+                            && distance <= space_to_q32(self.slot_attack_range(skill_ref, slot))
                     });
         }
         let Some(target) = self.fight_actor(target) else {
@@ -248,8 +242,8 @@ impl Simulation {
                 .max(0);
         target.alive
             && target.targetable
-            && distance >= space_to_q32(source.rules.attack.min_range())
-            && distance <= space_to_q32(self.slot_attack_range(actor_id, slot))
+            && distance >= space_to_q32(min_range)
+            && distance <= space_to_q32(self.slot_attack_range(skill_ref, slot))
     }
 
     /// `IsInAttackRange`'s `isMissing`: the target stands nearer than the
@@ -283,12 +277,14 @@ impl Simulation {
             .unit_id()
             .expect("only a unit's skill is grouped");
         let actor = &self.actors[&actor_id];
+        let skill = self.skill(skill_ref);
+        let attack = self.skill_rules(skill_ref);
         let slot = slot.unwrap_or(0);
         // A standalone weapon's skill measures its angle from its own weapon.
-        let rotation = if actor.skills.main.standalone() {
-            actor.skills.main.weapon_rotations_q32[slot]
+        let rotation = if skill.standalone() {
+            skill.weapon_rotations_q32[slot]
         } else {
-            actor.slot_main_rotation_q32(slot)
+            actor.slot_main_rotation_q32(attack, skill, slot)
         };
         self.slot_target_in_attack_range(skill_ref, Some(slot), target)
             && self.fight_actor(target).is_some_and(|view| {
@@ -299,7 +295,7 @@ impl Simulation {
                             view.x_q32.saturating_sub(actor.x_q32),
                             view.z_q32.saturating_sub(actor.z_q32),
                         ),
-                    ) <= mdeg_to_degrees_q32(actor.rules.attack.attack_half_angle_mdeg())
+                    ) <= mdeg_to_degrees_q32(attack.attack_half_angle_mdeg())
             })
     }
 
@@ -317,13 +313,7 @@ impl Simulation {
 
     fn search_slot_attack_target(&mut self, skill_ref: SkillRef, slot: Option<usize>) {
         if slot.is_some_and(|slot| slot > 0) {
-            self.refresh_group_walls(
-                skill_ref
-                    .owner
-                    .unit_id()
-                    .expect("only a unit's skill is grouped"),
-                slot,
-            );
+            self.refresh_group_walls(skill_ref, slot);
         } else {
             self.search_attack_target(skill_ref);
         }
@@ -338,13 +328,9 @@ impl Simulation {
         let Some(slot) = slot else {
             return self.search_normal_lock_target(skill_ref, target_search_order);
         };
-        let actor_id = skill_ref
-            .owner
-            .unit_id()
-            .expect("only a unit's skill is grouped");
-        let selected = self.select_group_lock_replacement(actor_id, slot, target_search_order)?;
+        let selected = self.select_group_lock_replacement(skill_ref, slot, target_search_order)?;
         if slot == 0 {
-            self.take_from_siblings(actor_id, selected);
+            self.take_from_siblings(skill_ref, selected);
         }
         let idle = selected.is_none();
         let selected = if idle {
@@ -352,19 +338,19 @@ impl Simulation {
         } else {
             selected
         };
-        let actor = self.actors.get_mut(&actor_id).expect("actor exists");
         if slot == 0 {
-            actor.skills.main.idle = idle;
-            actor.skills.main.write_lock(selected);
-            self.search_attack_target(SkillRef::main(FightActorRef::Unit(actor_id)));
-            self.hand_motion_after_lock_search(SkillRef::main(FightActorRef::Unit(actor_id)));
+            let skill = self.skill_mut(skill_ref);
+            skill.idle = idle;
+            skill.write_lock(selected);
+            self.search_attack_target(skill_ref);
+            self.hand_motion_after_lock_search(skill_ref);
         } else {
-            let sibling = actor.skills.main.sibling_mut(slot);
+            let sibling = self.skill_mut(skill_ref).sibling_mut(slot);
             sibling.idle = idle;
             sibling.lock_target = selected;
             sibling.attack_target_left = None;
-            self.refresh_group_walls(actor_id, Some(slot));
-            self.hand_standalone_motion(actor_id, slot);
+            self.refresh_group_walls(skill_ref, Some(slot));
+            self.hand_standalone_motion(skill_ref, slot);
         }
         Ok(selected.is_some())
     }

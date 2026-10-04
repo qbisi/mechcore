@@ -390,12 +390,18 @@ impl Actor {
             .flatten()
     }
 
-    /// `FightSkill.GetMainTransform`'s rotation for a slot's search: a weapon
-    /// with a transform of its own, which `CanRotate` answers for, is
-    /// measured from; a slot without one is measured from the root.
-    pub(in crate::fight) fn slot_main_rotation_q32(&self, slot: usize) -> i64 {
-        if self.rules.attack.weapons.fixed_to_body && slot > 0 {
-            self.skills.main.sibling_weapon_rotation_q32(slot)
+    /// `FightSkill.GetMainTransform`'s rotation for a search by a slot of a
+    /// grouped skill run from `attack`: a weapon with a transform of its own,
+    /// which `CanRotate` answers for, is measured from; a slot without one is
+    /// measured from the root.
+    pub(in crate::fight) fn slot_main_rotation_q32(
+        &self,
+        attack: &AttackConfig,
+        skill: &Skill,
+        slot: usize,
+    ) -> i64 {
+        if attack.weapons.fixed_to_body && slot > 0 {
+            skill.sibling_weapon_rotation_q32(slot)
         } else {
             self.body_rotation_q32
         }
@@ -413,18 +419,19 @@ impl Actor {
     /// not be the same: the War Factory's arcs are not.
     pub(in crate::fight) fn default_search_frame(
         &self,
+        attack: &AttackConfig,
         slot: usize,
     ) -> Option<(i64, Option<(i64, i64)>)> {
-        if !self.rules.attack.default_rotation_search {
+        if !attack.default_rotation_search {
             return None;
         }
-        let arc = self.rules.attack.weapons.arcs.as_ref()?.get(slot)?;
+        let arc = attack.weapons.arcs.as_ref()?.get(slot)?;
         let rest = self
             .arc_parent_q32()?
             .saturating_add(i64::from(arc.default) << 32)
             .rem_euclid(360_i64 << 32);
         let window = arc.left.zip(arc.right).map(|(left, right)| {
-            let angle = mdeg_to_degrees_q32(self.rules.attack.attack_half_angle_mdeg());
+            let angle = mdeg_to_degrees_q32(attack.attack_half_angle_mdeg());
             (
                 (i64::from(left) << 32).saturating_add(angle),
                 (i64::from(right) << 32).saturating_add(angle),
