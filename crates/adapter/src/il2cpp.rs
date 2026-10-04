@@ -487,6 +487,41 @@ impl Api {
         Ok(values.to_vec())
     }
 
+    /// The live entries of a `Dictionary<K, V>`, keys and values, in the order
+    /// the build holds them. The caller binds `K` and `V` to the dictionary's
+    /// key and value types, a reference as `usize`.
+    pub fn dictionary_entries<K: Copy, V: Copy>(
+        self,
+        dictionary: *mut Object,
+    ) -> Result<Vec<(K, V)>, Error> {
+        /// `Dictionary<K, V>.Entry`.
+        #[repr(C)]
+        #[derive(Clone, Copy)]
+        struct Entry<K, V> {
+            hash_code: i32,
+            next: i32,
+            key: K,
+            value: V,
+        }
+        let class = self
+            .object_class(dictionary)
+            .ok_or_else(|| Error::NullResult("dictionary".into()))?;
+        let array: *mut Object = self.field_value(dictionary, self.field(class, "_entries")?)?;
+        let count: i32 = self.field_value(dictionary, self.field(class, "_count")?)?;
+        if array.is_null() || count <= 0 {
+            return Ok(Vec::new());
+        }
+        let count = usize::try_from(count).map_err(|_| {
+            Error::InvalidValue(format!("a dictionary's count {count} is negative"))
+        })?;
+        Ok(self
+            .value_array_range::<Entry<K, V>>(array, 0, count)?
+            .into_iter()
+            .filter(|entry| entry.hash_code >= 0)
+            .map(|entry| (entry.key, entry.value))
+            .collect())
+    }
+
     /// A static field's value.
     pub fn static_value<T: Copy + Default>(self, field: *mut FieldInfo) -> T {
         let mut value = T::default();

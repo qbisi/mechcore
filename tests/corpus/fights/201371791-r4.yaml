@@ -1,9 +1,7 @@
 # Replay 2324_20260925--201371791, round 4, map 1021. Red's Hounds with
 # Incendiary Bomb: a bomb skill whose target walks inside its own minimum range
 # takes another on that update (t564), and, dealing nothing, passes blue's
-# towers over as it searches (t621). The game's read-back layout leaves out
-# red's Centurion range_enhancement, which its Centurions carry (their skill's
-# attack_range_value of 40), and it is written back here.
+# towers over as it searches (t621).
 
 kind: fight
 map_id: 1021

@@ -1692,46 +1692,30 @@ fn validate_tech_catalog(
     Ok(())
 }
 
-#[cfg(test)]
-fn encoded_technology_owner(technology_id: i32) -> Result<i32, OperationError> {
-    // The build encodes the owning ordinary unit ID in the final two decimal
-    // digits of every unit TechnologyData.ID.
-    let unit_id = technology_id % 100;
-    if (1..=31).contains(&unit_id) {
-        Ok(unit_id)
-    } else {
-        Err(OperationError::InvalidArguments(format!(
-            "unit technology ID {technology_id} has no encoded ordinary-unit owner"
-        )))
-    }
-}
-
 fn technology_owner(
     runtime: &Runtime,
     config: *mut Object,
     technology_id: i32,
 ) -> Result<i32, OperationError> {
     let mut owners = Vec::new();
-    for unit_id in 1..=31 {
-        let mut candidate = unit_id;
-        let unit = runtime
-            .api
-            .invoke(config, "GetUnitData", &mut [argument(&mut candidate)])?;
-        if unit.is_null() {
-            continue;
-        }
+    let cards = runtime.api.invoke(config, "GetAllCardData", &mut [])?;
+    for index in 0..list_count(runtime.api, cards)? {
+        let card = list_item(runtime.api, cards, index)?;
         let mut id = technology_id;
         if runtime
             .api
-            .invoke_value::<bool>(unit, "HaveTechnology", &mut [argument(&mut id)])?
+            .invoke_value::<bool>(card, "HaveTechnology", &mut [argument(&mut id)])?
         {
-            owners.push(unit_id);
+            let unit_id = runtime.api.invoke_value::<i32>(card, "GetID", &mut [])?;
+            if !owners.contains(&unit_id) {
+                owners.push(unit_id);
+            }
         }
     }
     match owners.as_slice() {
         [unit_id] => Ok(*unit_id),
         [] => Err(OperationError::InvalidArguments(format!(
-            "unit technology ID {technology_id} has no ordinary-unit owner in the runtime catalog"
+            "unit technology ID {technology_id} has no unit owner in the runtime catalog"
         ))),
         _ => Err(OperationError::Rejected(format!(
             "unit technology ID {technology_id} belongs to multiple runtime units {owners:?}"
@@ -4271,22 +4255,6 @@ mod tests {
         let plan = layout::compile_layout(parsed).expect("the fixture compiles");
         assert_eq!(plan.red.tower_strengthen_levels, vec![0, 2]);
         assert!(plan.blue.tower_strengthen_levels.is_empty());
-    }
-
-    #[test]
-    fn decodes_build_2227_unit_technology_owners() {
-        for (technology_id, unit_id) in [
-            (10213, 13),
-            (10202, 2),
-            (10209, 9),
-            (10206, 6),
-            (10215, 15),
-            (180_110, 10),
-        ] {
-            assert_eq!(encoded_technology_owner(technology_id).unwrap(), unit_id);
-        }
-        assert!(encoded_technology_owner(10200).is_err());
-        assert!(encoded_technology_owner(10232).is_err());
     }
 
     #[test]
