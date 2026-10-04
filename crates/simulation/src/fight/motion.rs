@@ -1016,12 +1016,18 @@ impl Simulation {
                 }
             }
             MotionState::Idle if idle && in_touch => {}
-            MotionState::Idle if !idle && in_range => actor.motion.state = MotionState::Attacking,
+            // `MotionAttackState.Enter` calls `RVOControllerFixed.StopMove`:
+            // a unit walking on its lock submits no speed on the update it
+            // comes into range, and stands at the next boundary.
+            MotionState::Idle | MotionState::Moving if !idle && in_range => {
+                actor.motion.state = MotionState::Attacking;
+                actor.motion.next_target_x_q32 = actor.x_q32;
+                actor.motion.next_target_z_q32 = actor.z_q32;
+                actor.motion.next_speed_q32 = 0;
+                actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
+            }
             MotionState::Idle => actor.motion.state = MotionState::Moving,
             MotionState::Moving if idle && in_touch => self.enter_motion_idle(actor_id),
-            MotionState::Moving if !idle && in_range => {
-                actor.motion.state = MotionState::Attacking;
-            }
             MotionState::Moving => {
                 // `NormalRotate` and the move towards the lock, to the
                 // extra skill's range.
