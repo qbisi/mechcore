@@ -1715,6 +1715,7 @@ impl Simulation {
             && skill.phase() == FightSkillPhase::Attack
             && skill.backswing_finish_step().is_none()
             && !skill.performer.sweeping()
+            && !self.self_splash_winding_up(skill_ref, step)
             && skill
                 .attack_target()
                 .is_some_and(|target| !self.fight_actor_is_alive(target));
@@ -1916,10 +1917,16 @@ impl Simulation {
         skill_ref: SkillRef,
         target: FightActorRef,
     ) -> bool {
-        let has_body = self
-            .skill_attacker(skill_ref)
-            .is_some_and(|attacker| attacker.has_body);
-        !has_body && !self.target_in_attack_area(skill_ref, target)
+        let Some(attacker) = self.skill_attacker(skill_ref) else {
+            return false;
+        };
+        // A skill that splashes about itself checks no target through its
+        // blow (`SkillAttackController`'s waits and `NormalAttackPerformer.
+        // IsEnableCheckTarget` answer `!IsSelfSplash`): a Whirlwind strikes
+        // about its Rhino though the lock it wound up on has died.
+        !attacker.has_body
+            && !attacker.attack.self_splash
+            && !self.target_in_attack_area(skill_ref, target)
     }
 
     /// Schedules the next attack and remembers the interval it used.

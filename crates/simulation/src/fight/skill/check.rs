@@ -384,8 +384,23 @@ impl Simulation {
             && skill
                 .backswing_finish_step()
                 .is_none_or(|finish| finish < step);
-        let winding_up = skill.pending().is_some_and(|pending| step <= pending.step);
+        let winding_up = skill.pending().is_some_and(|pending| step <= pending.step)
+            && !self.self_splash_winding_up(skill_ref, step);
         skill.phase() == FightSkillPhase::Attack && (waiting || winding_up)
+    }
+
+    /// Whether a skill that splashes about itself is in the wait before its
+    /// blow, which checks nothing: `SkillAttackController` makes that wait
+    /// (`AttackWaitController`) with `isEnableCheckTarget` set to
+    /// `!IsSelfSplash`. A Whirlwind winding up goes on naming a lock another
+    /// unit kills, and its motion idles on the dead lock until it strikes.
+    pub(in crate::fight) fn self_splash_winding_up(&self, skill_ref: SkillRef, step: u64) -> bool {
+        self.skill_attacker(skill_ref)
+            .is_some_and(|attacker| attacker.attack.self_splash)
+            && self
+                .skill(skill_ref)
+                .pending()
+                .is_some_and(|pending| step <= pending.step)
     }
 
     /// `SkillAttackState.CheckAttackable`: an attack on a construction that
