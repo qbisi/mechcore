@@ -398,6 +398,26 @@ impl Simulation {
         ))
     }
 
+    /// `SummonSystem.RemoveMech`, which a summon's `OnMechDead` raises as
+    /// `DeadEffectSystem` calls its `OnDead`: a summon that died this tick is
+    /// destroyed (`FightController.DestroyMech`), and
+    /// `FightEffectSystem.ClearEffect` takes away what its side's officers,
+    /// technologies and Energy Tower skills wrote onto it. A shot it fired
+    /// that lands later strikes without them. A deployed unit is no summon,
+    /// and keeps them.
+    pub(in crate::fight) fn clear_dead_summons(&mut self) -> Result<()> {
+        for actor in self.actors.values_mut() {
+            if !actor.summoned || actor.alive() || actor.placement.corrections.is_empty() {
+                continue;
+            }
+            for (channel, entry) in std::mem::take(&mut actor.placement.corrections) {
+                actor.stats.overlays.channel(channel).withdraw(entry.source);
+            }
+            actor.stats.refresh(&actor.rules)?;
+        }
+        Ok(())
+    }
+
     /// `SummonSystem.AddMechDelay` for every summon whose second is up, in
     /// the order they were created: an air drop's damage, then
     /// `FightTeam.ActiveMech`, which puts it in its side's trees.
