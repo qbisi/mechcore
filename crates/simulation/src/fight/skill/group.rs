@@ -328,7 +328,8 @@ impl Simulation {
         // `ChangeAttackTarget(null, shield)` cleared it.
         let skill = &self.actors[&actor_id].skills.main;
         let candidate = skill
-            .group_attack_target(slot)
+            .group_skill(slot)
+            .checked_attack_target()
             .filter(|_| skill.group_skill(slot).shield_target().is_none());
         self.idle_group_slot(actor_id, slot);
         // `StopAttack` hands the owner the dropped lock.
@@ -708,10 +709,11 @@ impl Simulation {
                 .turret_aim_q32 = aim;
             return;
         }
+        // `CalculateTargetDirection` asks the weapon holding the motion for
+        // its lock (`GetLockTarget`), idle or not.
         let holder = skill.group.as_ref().map_or(0, |group| group.motion_slot);
         let aim = skill
             .slot_lock(holder)
-            .and_then(|_| skill.group_attack_target(holder))
             .and_then(|target| self.fight_actor(target))
             .map(|view| {
                 direction_degrees_q32_raw(

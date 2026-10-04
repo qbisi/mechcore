@@ -705,6 +705,20 @@ impl Skill {
         }
     }
 
+    /// What `FightSkill.SearchAttackTarget` leaves the skill firing at, idle
+    /// or not: the construction in the way of the lock, or the lock. A
+    /// failed check ends its search with it (`CheckWhenLoseTarget`), so an
+    /// attack a check ends hands it to the cooling even when the lock came
+    /// from `TrySearchAliveTarget`, which leaves the skill idle.
+    pub(in crate::fight) fn checked_attack_target(&self) -> Option<FightActorRef> {
+        match self.in_the_way {
+            Some((building, found_for)) if self.lock_target == Some(found_for) => {
+                Some(FightActorRef::Building(building))
+            }
+            _ => self.lock_target,
+        }
+    }
+
     /// Drops the mech's target, and every grouped slot with it.
     ///
     /// A group whose mech holds no target holds no slots: every time a Wraith

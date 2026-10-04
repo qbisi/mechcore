@@ -427,7 +427,7 @@ impl Simulation {
         let skill = self.skill_mut(skill_ref);
         // A skill firing at a shield has no attack target to go on naming.
         let fired_at = skill
-            .attack_target()
+            .checked_attack_target()
             .filter(|_| skill.shield_target().is_none());
         skill.drop_lock();
         skill.set_phase(FightSkillPhase::Idle);

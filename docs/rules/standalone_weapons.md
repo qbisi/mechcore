@@ -78,7 +78,10 @@ on its side, its left side to the left and its right to the right, as a
 candidate out of range is passed over; a weapon that turns freely has no such
 window but is still scored from its rest. So the Mountain's first gun,
 resting ten degrees off the turret, takes a target to that side of one
-straight ahead.
+straight ahead. Each gun's skill searches so from its own rest, whatever the
+others hold: when every gun's check fails on one tick, the last to search
+still scores from its own rest and window, and a building inside its window
+but out of its range can outscore a unit in range outside it.
 
 ## The turret and the motion
 
@@ -132,7 +135,8 @@ The Mountain's motion follows one of its weapons, the one whose skill is
   none, whatever the others hold. An attacking motion stays in its attack
   while that weapon's target is in its range.
 - **The turret turns to that weapon's lock**
-  (`MotionController.CalculateTargetDirection`).
+  (`MotionController.CalculateTargetDirection`), even while the weapon is
+  idle on a lock its fallback search took and names no target.
 - **The first weapon starts from the motion.** As the motion attacks, the
   first weapon's skill starts its attack on its own target once that target
   is in its range and its weapon's angle; the others start in their own
