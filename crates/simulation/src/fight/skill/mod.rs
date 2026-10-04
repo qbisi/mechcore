@@ -322,7 +322,10 @@ impl SkillRef {
 
 /// `FightSkill`: the lock and what the weapons fire at, the state the skill
 /// is in, and the attack it is making.
-
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "each is a separate field of `FightSkill` or its controllers"
+)]
 #[derive(Debug, Clone)]
 pub(in crate::fight) struct Skill {
     pub(in crate::fight) weapon_rotations_q32: Vec<i64>,
@@ -358,6 +361,11 @@ pub(in crate::fight) struct Skill {
     pub(in crate::fight) target_shield: Option<(u64, FightActorRef)>,
     pub(in crate::fight) search_target_time: i32,
     pub(in crate::fight) searched_this_tick: bool,
+    /// Whether `FightCoreSystem.PreCalculate` put this skill among the
+    /// attackers it prepared at the tick's start. `TrySelect` answers only for
+    /// one of them; any other search is `PerformSearch`. See
+    /// [`Simulation::search_prepared`].
+    pub(in crate::fight) search_prepared: bool,
     /// The step a bodyless skill whose motion already attacks started its
     /// attack state on, from its own update: the state is not updated on the
     /// tick it is entered, so its first blow waits for the next.
@@ -435,6 +443,7 @@ impl Skill {
             // replaces this constructor value with the presearch batch ordinal.
             search_target_time: SEARCH_TARGET_RESET_TICKS,
             searched_this_tick: false,
+            search_prepared: false,
             started_from_idle: None,
             state: SkillState::Idle { ready_step: None },
             group,
@@ -1045,12 +1054,12 @@ impl Simulation {
             self.select_normal_target_with_order(
                 skill_ref,
                 target_search_order,
-                target_died_during_tick || !search_prepared(skill_ref),
+                target_died_during_tick || !self.search_prepared(skill_ref),
             )
             .map_err(located)?
         };
         if !target_died_during_tick
-            && search_prepared(skill_ref)
+            && self.search_prepared(skill_ref)
             && selected_candidate
                 .and_then(|candidate| self.fight_actor(candidate))
                 .is_some_and(|target| target.query_alive && !target.alive)

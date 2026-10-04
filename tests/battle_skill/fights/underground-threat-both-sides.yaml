@@ -1,0 +1,27 @@
+# Summons that join on one tick search for each other at once.
+#
+# Both sides release Underground Threat on one point, and each creator makes
+# four Crawlers every five ticks from tick 28. The first eight join on tick
+# 48, and each locks an enemy Crawler that joined with it, not the Marksman
+# the searches prepared at the tick's start would answer: a summon that joins
+# after `FightCoreSystem.PreCalculate` searches with `Select`, where everything
+# stands then. All 72 summons search that way on the tick they join.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 551
+hash: {profile: mcfr-content-0.7.0, result: ae9aa8ff9f840d756d1f2ecc131275c4bca14aff0bfc807ec6956f656e52413f}
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: -100, y: -150}, exp: 0/32/650}
+  battle_skills:
+  - {name: underground_threat, positions: [{x: 0, y: -60}]}
+red:
+  core_damage: 104
+  units:
+  - {name: marksman, index: 0, position: {x: -100, y: -150}, exp: 0/48/650}
+  battle_skills:
+  - {name: underground_threat, positions: [{x: 0, y: 60}]}

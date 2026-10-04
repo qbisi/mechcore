@@ -507,23 +507,6 @@ pub(in crate::fight) fn full_rotation_target_score_q32(
     )
 }
 
-/// Whether a search of this owner's skill may be one `FightCoreSystem.PreCalculate`
-/// prepared on the tick's query snapshot. It prepares the skills of the
-/// fight's mechs, and no construction's: a turret's skill searches with
-/// `Select` whenever it searches, scoring candidates where they stand by
-/// then, after every unit of the sides that update before its own has moved.
-/// Every one of 565 recorded searches of a construction took that path, and
-/// the Anti-Armor Turret of replay 268477093 round 2 locks a Hound that the
-/// tick-start positions put 0.33 metres out of its reach. Only a mech's main
-/// skill is prepared (`MainSkillSearchTargetController.PrepareSearch`): an
-/// extra skill's `PrepareSearch` does nothing, and its search is a `Select`.
-pub(in crate::fight) const fn search_prepared(skill_ref: SkillRef) -> bool {
-    matches!(
-        (skill_ref.owner, skill_ref.slot),
-        (FightActorRef::Unit(_), SkillSlot::Main)
-    )
-}
-
 /// The window `CalculateScore` is handed for a source whose window is its
 /// rotation widened by `half_width_q32` either side, if it checks it: it
 /// checks a window only when it starts above `Angle0` and ends below
@@ -680,8 +663,27 @@ impl Simulation {
             actor.target_query_alive = actor.alive();
             actor.target_query_visible = actor.visibility == Visibility::Normal;
             actor.skills.main.searched_this_tick = false;
+            actor.skills.main.search_prepared = actor.alive() && !actor.travelling;
         }
         self.buildings_query_alive = super::standing_buildings(&self.buildings);
+    }
+
+    /// Whether this skill's search is one `FightCoreSystem.PreCalculate`
+    /// prepared on the tick's query snapshot. It prepares the skills of the
+    /// mechs in the fight as the tick opens, alive and not travelling, and no
+    /// construction's: a turret's skill searches with `Select` whenever it
+    /// searches, scoring candidates where they stand by then, after every
+    /// unit of the sides that update before its own has moved. Every one of
+    /// 565 recorded searches of a construction took that path, and the
+    /// Anti-Armor Turret of replay 268477093 round 2 locks a Hound that the
+    /// tick-start positions put 0.33 metres out of its reach. Only a mech's
+    /// main skill is prepared (`MainSkillSearchTargetController.PrepareSearch`):
+    /// an extra skill's `PrepareSearch` does nothing, and its search is a
+    /// `Select`. A summon that joins after the preparation is not among the
+    /// attackers `TrySelect` answers for, and its first search is a `Select`
+    /// too, which finds the summons that joined with it.
+    pub(in crate::fight) fn search_prepared(&self, skill_ref: SkillRef) -> bool {
+        self.skill(skill_ref).search_prepared
     }
 
     pub(in crate::fight) fn target_search_order(&self) -> BTreeMap<u32, Vec<FightActorRef>> {

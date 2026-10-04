@@ -459,7 +459,7 @@ impl Simulation {
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<Option<FightActorRef>> {
         let skill = self.skill(skill_ref);
-        let prepared = search_prepared(skill_ref)
+        let prepared = self.search_prepared(skill_ref)
             && skill.phase() == FightSkillPhase::Attack
             && skill
                 .lock_target

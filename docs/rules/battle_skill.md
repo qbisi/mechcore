@@ -240,7 +240,9 @@ stream when it joins, not when it is made.
 
 **Joining.** At the start of the tick a second on, before anything updates,
 the summon joins. The searches of that tick were prepared without it, so it is
-found from the next. Its agent, locked while it appeared, was handed no speed,
+found from the next, and its own was not prepared: it searches where
+everything stands as it updates, and finds the summons of either side that
+joined with it. Its agent, locked while it appeared, was handed no speed,
 and keeps the place it has in the solver's tree. A solve on the tick it joins
 gives it a speed only if entering a state handed it one first: a summon that
 attacks at once is handed one by `StopMove` and is pushed off the summons it
@@ -451,6 +453,9 @@ drawn from any stream, and no event is written.
   to 52.
 - A creator makes its summons in batches, and a surfacing summon is a locked
   obstacle: `tests/battle_skill/fights/underground-threat.yaml`.
+- Summons of both sides that join on one tick lock each other on it, and all
+  72 search with `Select` on the tick they join:
+  `tests/battle_skill/fights/underground-threat-both-sides.yaml`, tick 48.
 - A summon is no neighbour of the first solve after it is made: the
   Crawlers made on tick 53 are not among a Crawler's twenty neighbours on
   tick 56, and are on tick 60, `tests/corpus/fights/67156354-r3.yaml`.

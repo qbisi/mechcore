@@ -646,9 +646,10 @@ impl Simulation {
         self.refresh_target_query_snapshot();
         // `GRTimerManager.Update` runs before any module: the summons whose
         // second is up join the fight first. The tick's searches were
-        // prepared without them, and find them from the next: the Crawlers
-        // around a Rhino that has just dropped go on searching for what they
-        // were after.
+        // prepared without them, after the last tick's modules, and find them
+        // from the next: the Crawlers around a Rhino that has just dropped go
+        // on searching for what they were after. Their own searches were not
+        // prepared, and find the summons that joined with them.
         let mut joined = Vec::new();
         self.join_summons(step, &mut joined)?;
         let mut events = Vec::new();
