@@ -1872,6 +1872,7 @@ fn append_instrument(
             InstrumentChannel::UnitPose => rows.unit_pose.is_some(),
             InstrumentChannel::ProjectileReach => rows.projectile_reach.is_some(),
             InstrumentChannel::ControlProgress => rows.control_progress.is_some(),
+            InstrumentChannel::ExpRange => rows.exp_range.is_some(),
         };
         if present != asked.contains(&channel) {
             return Err((
@@ -1920,6 +1921,9 @@ fn append_instrument(
         writer.append_instrument(rows.as_slice()).map_err(mcfr)?;
     }
     if let Some(rows) = rows.control_progress {
+        writer.append_instrument(rows.as_slice()).map_err(mcfr)?;
+    }
+    if let Some(rows) = rows.exp_range {
         writer.append_instrument(rows.as_slice()).map_err(mcfr)?;
     }
     Ok(())

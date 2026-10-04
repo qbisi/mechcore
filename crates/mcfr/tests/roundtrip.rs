@@ -3,7 +3,7 @@ use std::io::Read;
 use bytes::Bytes;
 use mechcore_mcfr::{
     BuildingState, CheckedSkill, ControlProgress, DerivedStats, Domain, DurableContext, Event,
-    EventPayload, GaugeI32, GroupSlot, HASH_PROFILE, Hashes, LiveUnitState, MCFR_FORMAT,
+    EventPayload, ExpRange, GaugeI32, GroupSlot, HASH_PROFILE, Hashes, LiveUnitState, MCFR_FORMAT,
     McfrReader, McfrWriter, Modifier, ModifierChannel, ModifierPart, MotionState, ObjectKind,
     ObjectRef, PersonalShieldState, PoseClip, Producer, ProjectileReach, QPlanar, QVec3, Rational,
     RvoExit, RvoNeighbour, RvoNeighbourKind, RvoSolve, RvoVec, RvoVo, ShieldDestroyedReason,
@@ -788,6 +788,35 @@ fn control_progress_rows_read_back() {
     assert_eq!(
         reader.instrument::<ControlProgress>().unwrap(),
         Some(rows.into_iter().map(|row| (1, row)).collect())
+    );
+}
+
+/// An experience search row carries two lists of formations and reads back
+/// as written.
+#[test]
+fn exp_range_rows_read_back() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("exp.mcfr");
+    let mut writer =
+        McfrWriter::create(&path, Producer::Game, "build-a", &context(), LAYOUT_YAML).unwrap();
+    writer.append_tick(state(75), &damage_events()).unwrap();
+    let range = ExpRange {
+        target: Some(ObjectRef::new(ObjectKind::Unit, 129)),
+        before: vec![],
+        added: vec![17, 18],
+    };
+    writer
+        .append_instrument(std::slice::from_ref(&range))
+        .unwrap();
+    writer.finish().unwrap();
+    let reader = McfrReader::open(&path).unwrap();
+    assert_eq!(
+        reader.instrument_channels().collect::<Vec<_>>(),
+        ["exp_range"]
+    );
+    assert_eq!(
+        reader.instrument::<ExpRange>().unwrap(),
+        Some(vec![(1, range)])
     );
 }
 
