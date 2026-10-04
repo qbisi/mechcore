@@ -1,0 +1,17 @@
+# Anti-Air Missile's control: `anti-air-missile.yaml` without the technology.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 156
+hash: {profile: mcfr-content-0.7.0, result: e9297197769117857e6111c9c6287e3f5fe2873d7b3015d3385f6fe21b3d9b1e}
+blue:
+  core_damage: 405
+  units:
+  - {name: sabertooth, index: 0, position: {x: 5, y: -45}}
+red:
+  units:
+  - {name: phantom_ray, index: 0, position: {x: -45, y: -100}, exp: 0/100/1000}
+  - {name: wasp, index: 1, position: {x: 45, y: -100}, exp: 0/300/900}

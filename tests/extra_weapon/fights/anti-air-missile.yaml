@@ -1,0 +1,25 @@
+# Anti-Air Missile: a Sabertooth's missile at what its main gun cannot reach.
+#
+# A Sabertooth with Anti-Air Missile against Phantom Rays and Wasps, which its
+# ground gun cannot take. Its missile skill reaches as far as the main gun,
+# takes the air alone, and fires one missile every 3 seconds: at t39 and t99,
+# both at a Phantom Ray, the first taking 2000 and the second its last 1412.
+# The control is `anti-air-missile-control.yaml`.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 157
+hash: {profile: mcfr-content-0.7.0, result: 23e9db90043d9c9116f999c025d6fcf11d5176d46381dc0dc71176f1e9dfb44f}
+blue:
+  core_damage: 338
+  techs:
+    sabertooth: [anti_air_missile]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 5, y: -45}, exp: 0/134/1300}
+red:
+  units:
+  - {name: phantom_ray, index: 0, position: {x: -45, y: -100}, exp: 0/300/1000}
+  - {name: wasp, index: 1, position: {x: 45, y: -100}, exp: 0/100/900}

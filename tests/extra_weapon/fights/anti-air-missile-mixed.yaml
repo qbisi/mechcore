@@ -1,0 +1,24 @@
+# Anti-Air Missile beside the main gun, with the ground and the air in reach.
+#
+# A Sabertooth with Anti-Air Missile against two Marksmen and Wasps. The
+# missiles take a Wasp each at t54 and t109, while the main gun fires at a
+# Marksman and kills it at t110.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 135
+hash: {profile: mcfr-content-0.7.0, result: 69574a945c533c7c86ffc2b92394f80602930d62affdacf065fd5610a47f2acf}
+blue:
+  core_damage: 270
+  techs:
+    sabertooth: [anti_air_missile]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 5, y: -45}, exp: 0/268/1300}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: -40, y: -100}}
+  - {name: marksman, index: 1, position: {x: 40, y: -100}, exp: 0/300/650}
+  - {name: wasp, index: 2, position: {x: 5, y: -100}, exp: 0/100/900}
