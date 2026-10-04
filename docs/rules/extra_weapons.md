@@ -73,7 +73,9 @@ the whole of the difference:
   speed on that very update and stands at the next solve's boundary.
   Attacking, it turns to what the skill fires at (`AttackRotate`), a
   block in the way before the lock behind it: a unit without a body its root,
-  one with a body its body. A Sabertooth whose main
+  one with a body its body, whose chassis still turns to where it moves, as
+  under the main skill: a Centurion walking on while its missile skill holds
+  the motion. A Sabertooth whose main
   gun has just felled its target and found nothing reads moving on the next
   update when an extra gun took a target beyond its reach on it, and idle
   without the guns; a Hound whose main skill's target burnt to death stays
