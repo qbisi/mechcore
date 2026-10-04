@@ -164,11 +164,7 @@ impl Simulation {
             self.record_ends(struck.ends, &mut ends);
             self.fallen_buildings.extend(ends);
         }
-        // A fight one side has already lost adds no terrain: the explosion that
-        // fells its last unit leaves no fire, nor does that unit's own death.
-        if let Some(fire) = dead_fire
-            && [0_u32, 1].into_iter().all(|team| self.standing(team))
-        {
+        if let Some(fire) = dead_fire {
             self.add_terrain(
                 team,
                 &format!("unit {actor_id}"),

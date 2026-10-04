@@ -1,0 +1,49 @@
+# Replay 2324_20260925--67160729, round 4, map 1011. Red's Mountain turns and
+# moves by whichever weapon holds its motion, each standalone weapon searching
+# from its own rest, cooling on the lock a failed check left it and turning
+# its turret to the holder's lock. Red's last Fire Badger with Scorching
+# Charge, killed by a blow, leaves its fire (t1678), and the fight ends on the
+# next tick with it standing.
+
+kind: fight
+map_id: 1011
+seed: 2074685504
+round: 4
+source: game
+ticks: 1679
+hash: {profile: mcfr-content-0.7.0, result: cef72d0ec68ab93276cbdbfa9d1c21e5b0be6686b423a1bc3485a69dc3508b31}
+blue:
+  officers: [supply_specialist, additional_deployment_slot, mass_production_heavy_armor]
+  techs:
+    sledgehammer: [armor_enhancement]
+  legacy_index: 12
+  units:
+  - {name: fang, index: 0, position: {x: 180, y: -115}, exp: 266/372/600, rotated: true}
+  - {name: fang, index: 1, position: {x: -120, y: -185}, exp: 156/196/600, rotated: true}
+  - {name: fang, index: 2, position: {x: 120, y: -185}, exp: 283/339/600, rotated: true}
+  - {name: crawler, index: 5, position: {x: 140, y: -205}, exp: 386/450/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: -140, y: -205}, exp: 450/450/450, rotated: true}
+  - {name: wasp, index: 7, position: {x: -255, y: -300}, exp: 900/900/900}
+  - {name: sledgehammer, index: 8, position: {x: -105, y: -70}, exp: 677/679/1300, equipment: [secondary_heavy_armor]}
+  - {name: sledgehammer, index: 9, position: {x: -235, y: -70}, exp: 1022/1300/1300}
+  - {name: sledgehammer, index: 10, position: {x: 245, y: -70}, exp: 1084/1300/1300, equipment: [secondary_heavy_armor]}
+  - {name: sledgehammer, index: 11, position: {x: 105, y: -70}, exp: 495/866/1300, equipment: [secondary_heavy_armor]}
+  - {name: abyss, index: 12, position: {x: 225, y: -115}, exp: 0/2329/4800}
+red:
+  core_damage: 500
+  officers: [mass_production_fire_control_system, giant_specialist]
+  techs:
+    fire_badger: [scorching_charge]
+    mountain: [extended_range_ammo]
+  legacy_index: 10
+  units:
+  - {name: crawler, index: 0, position: {x: -290, y: -285}, exp: 428/428/450, rotated: true}
+  - {name: crawler, index: 1, position: {x: 0, y: -285}, exp: 87/327/450, rotated: true}
+  - {name: crawler, index: 2, position: {x: 290, y: -285}, exp: 372/408/450, rotated: true}
+  - {name: mustang, index: 3, position: {x: 235, y: -300}, exp: 1147/1200/1200, equipment: [secondary_fire_control_system]}
+  - {name: mustang, index: 4, position: {x: -235, y: -300}, exp: 1135/1135/1200, equipment: [secondary_fire_control_system]}
+  - {name: fang, index: 7, position: {x: -155, y: -90}, exp: 37/37/600}
+  - {name: fire_badger, index: 8, position: {x: 235, y: -40}, exp: 15/26/1400}
+  - {name: fire_badger, index: 9, position: {x: 105, y: -40}, exp: 84/770/1400}
+  - {name: mountain, index: 10, position: {x: 95, y: -145}, exp: 0/1950/3200}
+  - {name: crawler, index: 11, position: {x: -310, y: 195}, travelling: true}

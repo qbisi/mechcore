@@ -219,8 +219,9 @@ place for the rest of the fight. The row also raises the unit's life by 80%.
   what it kills reads after what the tick's shots killed.
 - **Every such death leaves a fire.** The explosion leaves a fire of the
   skill's own, reaching 40 metres for 7 seconds, where the unit fell, under
-  its side, unless the fight is already decided: the explosion that fells a
-  side's last unit leaves none, nor does that unit's own death.
+  its side, the death of a side's last unit too. A fight decided on the tick
+  the fire is left ends on that tick, and the fire goes with it before any
+  snapshot holds it.
 
 ## What reaches an extra skill
 
@@ -255,13 +256,17 @@ equipment or an Energy Tower skill writes a skill correction onto.
 - A Fire Badger brought to half its life locks its main skill, writes its
   buff, charges, and takes its own life against what it reached; its death
   explodes within its radius and the skill's splash with the life it had,
-  felling its own side's Badgers and the enemies about it, and the fight it
-  decides keeps no fire: `tests/extra_weapon/fights/scorching-charge.yaml`,
+  felling its own side's Badgers and the enemies about it, and the fire it
+  leaves goes with the fight it ends on that tick:
+  `tests/extra_weapon/fights/scorching-charge.yaml`,
   beside its control `tests/extra_weapon/fights/scorching-charge-control.yaml`.
 - Each Fire Badger's death leaves a fire where it fell, one an ally's explosion
   felled as well as the one that exploded, and the fire burns an invincible
   Badger; a Badger charges a tower when no unit is left to it, and its
   explosion strikes the tower: `tests/extra_weapon/fights/scorching-charge-survivor.yaml`.
+- A side's last Fire Badger, killed by a blow, leaves its fire, and the fight
+  ends on the next tick with it standing (t1678):
+  `tests/corpus/fights/67160729-r4.yaml`.
 - A Fire Badger killed while travelling in leaves no fire, and what an
   explosion kills reads after the units a turret's shots killed on that tick:
   `tests/corpus/fights/134259672-r3.yaml`.
@@ -398,9 +403,6 @@ equipment or an Energy Tower skill writes a skill correction onto.
 - **What invincibility keeps off.** A fire burns an invincible Fire Badger;
   whether a shot or a blow does is not recorded, and the simulator lets every
   hit through.
-- **Why a decided fight leaves no fire.** Both recordings agree that the
-  explosion and the death that decide a fight leave none; the code that stops
-  `RangeItemSystem.AddItem` then is not read.
 - **The other preemptive skills and conditions.** A transition to wait out
   (condition type 2), an ammunition condition, an extra weapon buff and an
   incompatible skill are read in part and refused by the extraction.
