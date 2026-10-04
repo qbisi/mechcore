@@ -533,6 +533,9 @@ impl Simulation {
     /// it: of the enemy's constructions, the ones within reach edge to edge and
     /// within the width of the line of fire, the **nearest to the attacker** —
     /// not the nearest construction and not the one nearest the line.
+    /// `WallConstructionTargetChecker.CheckWallConstruction` then asks the
+    /// skill's `IsTowerAttackable` of the block it found, and an extra skill
+    /// that deals nothing, a Sticky Oil Bomb's, fires past it.
     pub(in crate::fight) fn wall_in_the_way(
         &self,
         skill_ref: SkillRef,
@@ -576,6 +579,8 @@ impl Simulation {
                 nearest = Some((distance, building.building_id));
             }
         }
-        nearest.map(|(_, building_id)| building_id)
+        nearest
+            .map(|(_, building_id)| building_id)
+            .filter(|_| self.tower_attackable(skill_ref))
     }
 }
