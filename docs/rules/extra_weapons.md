@@ -31,6 +31,11 @@ adds one, with the Hound's two launchers.
   skill's updates before it. Two skills of one row share an ID and keep the
   order the row's weapons come in.
 - **Each draws its first attack interval in that order** as the fight starts.
+- **A main skill already attacking performs its next blow in its own
+  update** (`SkillAttackState.TryPerformAttack`): it draws the blow's
+  interval, and releases one due at once, before an extra skill with a higher
+  ID updates. A Hound's shot leaves before its bomb on the update both
+  release.
 
 ## What sets an extra skill apart
 
@@ -143,6 +148,8 @@ equipment or an Energy Tower skill writes a skill correction onto.
   motion moves after the gun's target out of its reach:
   `tests/extra_weapon/fights/secondary-armament-takes-motion.yaml`, beside its
   control `tests/extra_weapon/fights/secondary-armament-takes-motion-control.yaml`.
+- A Hound's main skill releases before its bombs on the update both release:
+  `tests/extra_weapon/fights/incendiary-bomb-with-main.yaml`.
 - Incendiary Bomb is one skill beside the Hound's main one, its shell deals
   nothing, and each lands a fire of its splash and its row's life time at the
   height it landed at, which burns the Marksman in it; the unit carries the

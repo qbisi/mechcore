@@ -1,0 +1,26 @@
+# Incendiary Bomb beside a main skill firing on the same update.
+#
+# A Hound with Incendiary Bomb against three Marksmen, two of them in reach
+# of its main skill from the start. Each member's main skill and bombs enter
+# their attacks together and release on the same update, the main skill's
+# shot first: the main skill performs its blow in its own update, before the
+# bombs' skill, whose ID is higher, fires.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 155
+hash: {profile: mcfr-content-0.7.0, result: 2546c997a42b9617c9f8c7a19d6dda0895d1c0d77da46453ba80ab37b272b3fb}
+blue:
+  core_damage: 100
+  techs:
+    hound: [incendiary_bomb]
+  units:
+  - {name: hound, index: 0, position: {x: 0, y: -40}, exp: 0/400/750}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: -30, y: -20}, exp: 0/80/650}
+  - {name: marksman, index: 1, position: {x: 30, y: -20}, exp: 0/40/650}
+  - {name: marksman, index: 2, position: {x: 40, y: -60}, exp: 0/80/650}
