@@ -1154,15 +1154,39 @@ fn validate_unique_positive_ids(side_name: &str, field: &str, ids: &[i32]) -> Re
 }
 
 fn validate_side_modifiers(side_name: &str, side: &Side) -> Result<(), String> {
+    let named = |officer: i32| {
+        let name = <crate::names::Officer as crate::names::Kind>::name(officer).unwrap_or("?");
+        format!("{name} ({officer})")
+    };
     for (index, &officer) in side.officers.iter().enumerate() {
         if side.officers[..index].contains(&officer) && !crate::reinforcement::repeatable(officer)?
         {
-            let name = <crate::names::Officer as crate::names::Kind>::name(officer).unwrap_or("?");
             return Err(format!(
-                "side {side_name} holds officer {name} ({officer}) more than once: the pool deals \
-                 it once, so no side of a standard 1v1 holds it twice"
+                "side {side_name} holds officer {} more than once: the pool deals it once, so no \
+                 side of a standard 1v1 holds it twice",
+                named(officer)
             ));
         }
+    }
+    // A side picks one opening in round 0, a team of units or a specialist.
+    let economy = crate::economy::Economy::embedded()?;
+    let specialists: Vec<i32> = side
+        .officers
+        .iter()
+        .copied()
+        .filter(|officer| {
+            economy
+                .advance_team(*officer)
+                .is_some_and(|team| team.kind == crate::economy::OpeningKind::Officer)
+        })
+        .collect();
+    if let [first, second, ..] = specialists[..] {
+        return Err(format!(
+            "side {side_name} holds opening specialists {} and {}: a side of a standard 1v1 picks \
+             one opening",
+            named(first),
+            named(second)
+        ));
     }
 
     let skills = &side.energy_tower_skills;

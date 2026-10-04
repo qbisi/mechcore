@@ -393,7 +393,10 @@ entry and reads the count back, rather than reading a presence.
 
 Any other Officer appears once. The pool takes a card out once it is chosen,
 and a side opens with one opening, so no side of a standard 1v1 holds such an
-Officer twice, and a layout that repeats one is refused.
+Officer twice, and a layout that repeats one is refused. For the same reason a
+side holds at most one opening specialist, the officers
+[`config/advance_teams.yaml`](../../../config/advance_teams.yaml) lists, and a
+layout that holds two is refused.
 
 Canonical layouts order Officers by ascending ID; that order is then the
 deterministic application order. Commander skills, equipment, and extra
