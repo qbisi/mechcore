@@ -119,25 +119,24 @@ makes the unit itself its motion's attacker:
 
 ### A unit that does not search for itself
 
-What the Mountain's motion follows is, as recorded:
+The Mountain's motion follows one of its weapons, the one whose skill is
+`MotionController.attacker`:
 
-- **The motion goes after the batch's lock**, the attack target of the first
-  weapon holding one, but only while the mech holds a lock of its own. The
-  mech's lock, `FightMech.lockTarget`, is the latest lock any weapon took or
-  dropped (`FightSkill.ChangeLockTarget` hands the owner each). Without one
-  the motion goes idle, even with weapons locked; a weapon that drops its
-  lock as it cools, updating after the others, leaves the mech none.
-- **An attacking motion holds while a weapon attacks**, mech lock or not, and
-  stays in its attack while any weapon's attack target is in that weapon's
-  range. A weapon going into its cooling does not end it.
+- **The first weapon holds the motion as the unit is made**
+  (`FightMech.SetMotionAttackerAfterSkill` takes the batch's first skill).
+- **A weapon takes it when its search ends** (`FightSkill.SearchLockTarget`
+  calls `ISkillOwner.SetAttacker`), unless the weapon that holds it is
+  another that holds a lock. A weapon taking a fresh lock does not draw the
+  motion off one that keeps its own.
+- **The motion goes after that weapon's lock**, and is idle while it holds
+  none, whatever the others hold. An attacking motion stays in its attack
+  while that weapon's target is in its range.
+- **The turret turns to that weapon's lock**
+  (`MotionController.CalculateTargetDirection`).
 - **The first weapon starts from the motion.** As the motion attacks, the
   first weapon's skill starts its attack on its own target once that target
   is in its range and its weapon's angle; the others start in their own
   updates.
-- **The turret turns to a weapon's lock.** It turns to the lock of the first
-  weapon that holds one; while the motion attacks, a weapon in its attack
-  state comes before one that holds a lock idle, so a weapon taking a fresh
-  lock does not draw the turret off one firing.
 
 ## Evidence
 
@@ -204,6 +203,9 @@ What the Mountain's motion follows is, as recorded:
   `FightCoreSystem.PreCalculate`.
 - The turret: `MotionAttackState.AttackRotate`, `FightMech.RotateBodyTo`,
   `MotionController.CalculateTargetDirection`.
+- The weapon that holds the motion: `FightMech.SetMotionAttackerAfterSkill`,
+  `FightSkillBatch.GetSkills`, `FightSkill.SearchLockTarget`,
+  `FightMech.SetAttacker`, `MotionController.SetAttacker`.
 - The unit's own search: `MechSearchTargetController.Update`,
   `MechSearchTargetController.SearchLockTarget`,
   `SearchTargetController.CanStartSearch`, `MechData.isEnableMechSearchTarget`,
