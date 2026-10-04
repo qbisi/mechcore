@@ -446,6 +446,8 @@ impl Simulation {
                     .find(|building| building.building_id == pending.target)
                     .ok_or_else(|| Error::new("projectile building target is absent"))?;
                 let (target_x_q32, target_z_q32) = (pending.target_x_q32, pending.target_z_q32);
+                let radius = building_radius(building);
+                let climb_q32 = self.projectile_climb_q32(skill_ref, pending.climb_target)?;
                 self.release_projectile_to(
                     skill_ref,
                     ObjectKind::Building,
@@ -455,11 +457,20 @@ impl Simulation {
                     q32_to_space_rounded(target_z_q32),
                     target_x_q32,
                     target_z_q32,
-                    building_radius(building),
-                    0,
+                    radius,
+                    pending.skill_slot,
                     pending.weapon_index,
                     events,
-                )
+                )?;
+                // A projectile that climbs first climbs at a block as at a
+                // unit: an extra skill's always does.
+                let projectile = self
+                    .projectiles
+                    .last_mut()
+                    .expect("a projectile was just released");
+                projectile.climb_to_q32 =
+                    climb_q32.map(|climb_q32| projectile.y_q32.saturating_add(climb_q32));
+                Ok(())
             }
             ObjectKind::Projectile | ObjectKind::Shield | ObjectKind::Terrain => {
                 Err(Error::new("projectile target kind is unsupported"))

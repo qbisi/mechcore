@@ -82,7 +82,8 @@ the whole of the difference:
   as a main skill's pre-flight height is, whatever its row's height, and the
   projectile's first update is that climb (`FightProjectile.IsFlying`): a
   Secondary Armament shot stands where it left on the tick it is released, and
-  takes up its target from the next.
+  takes up its target from the next. A projectile it fires at a building climbs
+  as one at a unit does, and is recorded under its own skill.
 - **The fight's end lets its target go**, as it does the main skill's.
 
 ## Its weapon
@@ -268,6 +269,9 @@ equipment or an Energy Tower skill writes a skill correction onto.
 - A Centurion's Homing Missile takes a block in the way that its main gun is
   too short for: replay 2324_20260925--67159970 round 6, fought by the game
   with `scripts/corpus/match-replays.py`.
+- A Homing Missile fired at a block in the way names its missile skill and
+  climbs first: replay 2324_20260925--67159970 round 6, fought by the game with
+  `scripts/corpus/match-replays.py`.
 
 ### Read
 
