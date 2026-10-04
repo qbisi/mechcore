@@ -5,14 +5,7 @@ fight-coverage 按系统的贪心顺序重排。
 
 ## 栈
 
-1. **清掉标准 1v1 以外的军官和战场技能。** 标准 1v1 能发出的军官和战场技能
-   （[`config/reinforcements.yaml`](../config/reinforcements.yaml) 的卡池，加上蓝图授予的军官）
-   都已覆盖。效果表和代码里剩下的是池外的：`commander_skill_effects.yaml` 的 `other_skills` 和池外
-   的行、`officer_effects.yaml` 里池外的军官，以及只为它们存在的"不支持"分支。它们不在
-   layout 的契约里（[battle_skill.md](../docs/rules/battle_skill.md)），所以清掉而不是标成不支持：
-   抽取只写池里的行，只为池外行而在的拒绝分支连同代码一起删，池外的名字在 layout 编译时按
-   "不属于标准 1v1" 拒绝。
-2. **单位科技，按系统排。** 一个系统是 `TechnologyGroupData` 的一个子类列表（附加武器、buff、
+1. **单位科技，按系统排。** 一个系统是 `TechnologyGroupData` 的一个子类列表（附加武器、buff、
    装甲强化、对空攻击、索敌专精、导弹拦截、重生效果……）或科技的一个字段（`isInverseIsLockTarget`、
    `expChangeRate`）：实现它一次放行表里的所有成员，所以顺序按 fight-coverage 的
    "by system, greedily ordered" 排，而不是按单条理由；"by layout field" 说明剩下的距离几乎都
@@ -23,10 +16,10 @@ fight-coverage 按系统的贪心顺序重排。
 
    每个系统先录每个成员至少一场探针；成员机制各不相同的系统（附加武器）按成员分 PR。沙虫、深渊、
    泰山和骇客的控制光束是单位，归 [units.md](units.md)。
-3. **剩下的非科技拒绝。** 有护盾时导弹装置开火（护盾对导弹弹体做什么）、召唤和 buff 类战场技能
+2. **剩下的非科技拒绝。** 有护盾时导弹装置开火（护盾对导弹弹体做什么）、召唤和 buff 类战场技能
    落在有战场护盾的战斗里、单位编组的技能槽打建筑。各自只挡零星几回合，按它在 fight-coverage
    里独占的回合排进上一项的贪心顺序。
-4. **平台。** `arena`、`shell --json` 和 `game` 后端。
+3. **平台。** `arena`、`shell --json` 和 `game` 后端。
 
 ## 语料打错的回合
 

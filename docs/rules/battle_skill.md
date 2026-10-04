@@ -9,11 +9,10 @@ list says what kind of skill it is (`damageCommanderSkills`,
 
 ## ID and type
 
-The layout names a skill by its `type`, not its native ID. When several
-native IDs share a `type`, the canonical one is the ID the Training Ground
-compiler releases; the others are equivalent standard-1v1 sources, such as a
-Blueprint or a Research Center result, whose acquisition route or cooldown
-does not create another type.
+The layout names a skill by its `type`, not its native ID, and each type is
+one ID: the skill a standard 1v1 side can hold. The build's other rows of the
+same name, such as an Electromagnetic Blast whose cooldown is eight rounds
+rather than four, reach no standard side and are in no table.
 
 A skill reaches a side by one of two routes, and both name it by this ID. A
 reinforcement card's own ID is the skill it grants, which
@@ -24,30 +23,30 @@ blueprint costs. A state names the same ID in `battle_skills`, so the panel,
 the card and the blueprint speak one ID space. A skill's two cooldowns are
 [`config/commander_skills.yaml`](../../config/commander_skills.yaml)'s.
 
-| Layout `type` | Canonical ID | Other IDs | Positions | Geometry | Map rule |
-| --- | ---: | --- | ---: | --- | --- |
-| `incendiary_bomb` | 100002 | | 2 | line | overlap |
-| `electromagnetic_impact` | 200001 | | 1 | circle | overlap |
-| `electromagnetic_blast` | 200002 | 200004 | 1 | circle | overlap |
-| `photon_emission` | 200003 | | 1 | circle | overlap |
-| `missile_strike` | 300001 | | 1 | circle | overlap |
-| `orbital_bombardment` | 300003 | | 1 | random circle | overlap |
-| `nuke` | 300004 | 300008 | 1 | circle | overlap |
-| `lightning_storm` | 300005 | 300009 | 1 | random circle | overlap |
-| `ion_blast` | 300006 | 300010 | 2 | line | overlap |
-| `orbital_javelin` | 300007 | | 1 | circle | overlap |
-| `heavy_missile_strike` | 300016 | | 1 | circle | overlap |
-| `sticky_oil_bomb` | 400002 | | 2 | line | overlap |
-| `acid_blast` | 500002 | | 2 | line | overlap |
-| `smoke_bomb` | 600002 | | 2 | line | overlap |
-| `shield_airdrop` | 800001 | | 1 | circle | center |
-| `underground_threat` | 1200001 | | 1 | support circle | summon |
-| `rhino_assault` | 1200002 | | 1 | support circle | summon |
-| `wasp_swarm` | 1200003 | | 1 | support circle | summon |
-| `mobilize_battleship` | 1200004 | | 1 | support circle | summon |
-| `vulcans_descent` | 1200005 | | 1 | support circle | summon |
-| `mobile_beacon` | 1500001 | | 3 | path | contained |
-| `mobile_beacon_card` | 1500002 | | 3 | path | contained |
+| Layout `type` | ID | Positions | Geometry | Map rule |
+| --- | ---: | ---: | --- | --- |
+| `incendiary_bomb` | 100002 | 2 | line | overlap |
+| `electromagnetic_impact` | 200001 | 1 | circle | overlap |
+| `electromagnetic_blast` | 200002 | 1 | circle | overlap |
+| `photon_emission` | 200003 | 1 | circle | overlap |
+| `missile_strike` | 300001 | 1 | circle | overlap |
+| `orbital_bombardment` | 300003 | 1 | random circle | overlap |
+| `nuke` | 300004 | 1 | circle | overlap |
+| `lightning_storm` | 300005 | 1 | random circle | overlap |
+| `ion_blast` | 300006 | 2 | line | overlap |
+| `orbital_javelin` | 300007 | 1 | circle | overlap |
+| `heavy_missile_strike` | 300016 | 1 | circle | overlap |
+| `sticky_oil_bomb` | 400002 | 2 | line | overlap |
+| `acid_blast` | 500002 | 2 | line | overlap |
+| `smoke_bomb` | 600002 | 2 | line | overlap |
+| `shield_airdrop` | 800001 | 1 | circle | center |
+| `underground_threat` | 1200001 | 1 | support circle | summon |
+| `rhino_assault` | 1200002 | 1 | support circle | summon |
+| `wasp_swarm` | 1200003 | 1 | support circle | summon |
+| `mobilize_battleship` | 1200004 | 1 | support circle | summon |
+| `vulcans_descent` | 1200005 | 1 | support circle | summon |
+| `mobile_beacon` | 1500001 | 3 | path | contained |
+| `mobile_beacon_card` | 1500002 | 3 | path | contained |
 
 Mobile Beacon has two independent standard-1v1 sources: `1500001` is granted
 by Research Center Blueprint 3, while `1500002` is granted by the ordinary
@@ -59,8 +58,7 @@ name to its own ID. The two share one path and one cooldown.
 
 Heavy Missile Strike (`300016`) is no card: Missile Specialist hands it out,
 in place of the two Missile Strikes it once did. Its row is Missile Strike's in
-every field that places or times it, and differs in damage alone. Unit Recycle
-(`900010`) targets a friendly unit, and is not a layout type.
+every field that places or times it, and differs in damage alone.
 
 ## Effect geometry and target regions
 
@@ -655,8 +653,6 @@ drawn from any stream, and no event is written.
 - **How a beacon's `LineRange` meets a unit's circle.** The simulator reads it
   as the distance to the segment against the width and the radius, which the
   recordings agree with and the build's `LineRange.Overlaps` is not read for.
-- **The Jamming Beacon** (`1500003`), which walks enemy units and writes a
-  buff: refused.
 
 - **Why a summon's first intervals are drawn as it joins,** and that its
   agent is handed no speed while it appears. Both are measured, not read: the

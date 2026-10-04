@@ -13,7 +13,9 @@ subEffectMoveTime)` above the ground at that speed, and its landing asks
 every unit within `effectRange`, of either side. `docs/rules/battle_skill.md`
 states what each field does.
 
-The table holds the rows the simulator fights: the buff skills whose buff
+Only the skills a standard 1v1 side can hold are written
+(`extract_prices.standard_commander_skills`). The table holds the rows the
+simulator fights: the buff skills whose buff
 moves only what the table carries, a slow, a rate on the damage taken,
 invincibility and disabled technology, and every
 support skill, which `SupportUnitSystem` summons units for, and every shield
@@ -31,6 +33,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 import build_data  # noqa: E402
+from extract_prices import standard_commander_skills  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 OUTPUT = ROOT / "config/commander_skill_effects.yaml"
@@ -83,6 +86,11 @@ BUFF_ZERO = (
     "extraAttackRangeChangeRate", "summonUnitID", "freeze", "disableRecover",
     "isAdditiveEffect", "isDeadingLeavingRangeItem", "disableSkill",
 )
+
+
+def kept(row, standard):
+    """A row a standard side can hold, and no test data."""
+    return not row.get("isTestData") and row["id"] in standard
 
 
 def raw(value):
@@ -139,10 +147,10 @@ SUPPORT_FIXED = (
 )
 
 
-def support_lines(group):
+def support_lines(group, standard):
     lines = ["", "support_skills:"]
     for row in group["supportUnitCommanderSkills"]:
-        if row["isTestData"]:
+        if not kept(row, standard):
             continue
         if row["positions"]:
             raise SystemExit(f"support skill {row['id']} places its summons at {row['positions']}")
@@ -172,10 +180,10 @@ SHIELD_FIXED = (
 )
 
 
-def shield_lines(group):
+def shield_lines(group, standard):
     lines = ["", "shield_skills:"]
     for row in group["energyShieldCommanderSkills"]:
-        if row["isTestData"]:
+        if not kept(row, standard):
             continue
         lines += [f"  - id: {row['id']}", f"    name: {row['name']}"]
         for field, name in SHIELD_INTEGERS:
@@ -241,11 +249,11 @@ TERRAIN_FIXED = (
 )
 
 
-def terrain_lines(group, buffs):
+def terrain_lines(group, buffs, standard):
     lines = ["", "terrain_skills:"]
     for kind_list, kind in TERRAIN_KINDS:
         for row in group[kind_list]:
-            if row["isTestData"]:
+            if not kept(row, standard):
                 continue
             lines += [f"  - id: {row['id']}", f"    name: {row['name']}", f"    kind: {kind}"]
             for field, name in TERRAIN_INTEGERS:
@@ -277,10 +285,10 @@ def ground_fire_lines():
     ]
 
 
-def damage_lines(group, buffs):
+def damage_lines(group, buffs, standard):
     lines = ["", "damage_skills:"]
     for row in group["damageCommanderSkills"]:
-        if row["isTestData"]:
+        if not kept(row, standard):
             continue
         circle = row["effectRangeType"] == 0
         lines += [f"  - id: {row['id']}", f"    name: {row['name']}"]
@@ -302,36 +310,36 @@ def damage_lines(group, buffs):
 # A waypoint skill's row: `CSRC_WayPoint` selects the units within
 # `subEffectRange` of the first position and walks them along the path, a
 # segment of that width between each two positions. `startTime` and
-# `effectRange` are the release's, which the fight does not read.
-WAYPOINT_INTEGERS = (
-    ("effectTargetType", "effect_target_type"),
-    ("subEffectBuffID", "sub_effect_buff_id"),
-)
+# `effectRange` are the release's, which the fight does not read. A standard
+# beacon walks its own side's units, `effectTargetType` 0, and writes no buff;
+# the script refuses a row that does otherwise.
 WAYPOINT_FIXED = (("subEffectRange", "sub_effect_range"),)
 
 
-def waypoint_lines(group):
+def waypoint_lines(group, standard):
     lines = ["", "waypoint_skills:"]
     for row in group["wayPointCommanderSkills"]:
-        if row["isTestData"]:
+        if not kept(row, standard):
             continue
+        if row.get("effectTargetType", 0) or row.get("subEffectBuffID", 0):
+            raise SystemExit(f"waypoint skill {row['id']} selects target type "
+                             f"{row.get('effectTargetType', 0)} and writes buff "
+                             f"{row.get('subEffectBuffID', 0)}")
         lines += [f"  - id: {row['id']}", f"    name: {row['name']}"]
-        for field, name in WAYPOINT_INTEGERS:
-            lines.append(f"    {name}: {row.get(field, 0)}")
         for field, name in WAYPOINT_FIXED:
             value = raw(row[field])
             lines.append(f"    {name}: {value}{reading(value)}")
     return lines
 
 
-def other_lines(group, written):
+def other_lines(group, written, standard):
     """Every other row, by the list it comes from, which a refusal names."""
     ids = {int(line.split(": ")[1]) for line in written if line.startswith("  - id: ")}
     lines = [
         "",
-        "# The skills of every other kind, and the rows of the lists above this",
-        "# build does not release, by the CommanderSkillGroupData list each comes",
-        "# from.",
+        "# The standard skills of every other kind, and the rows of the lists",
+        "# above this build does not release, by the CommanderSkillGroupData",
+        "# list each comes from.",
         "other_skills:",
     ]
     rows = []
@@ -339,7 +347,7 @@ def other_lines(group, written):
         if not isinstance(entries, list):
             continue
         for row in entries:
-            if isinstance(row, dict) and "id" in row and not row.get("isTestData") and row["id"] not in ids:
+            if isinstance(row, dict) and "id" in row and kept(row, standard) and row["id"] not in ids:
                 rows.append((row["id"], row["name"], kind))
     for identifier, name, kind in sorted(rows):
         lines.append(f"  - {{id: {identifier}, name: {name}, kind: {kind}}}")
@@ -347,10 +355,11 @@ def other_lines(group, written):
 
 
 def render(group):
+    standard = standard_commander_skills(build_data.container())
     buffs = {buff["id"]: buff for buff in build_data.container()["buffDatas"]}
     rows = [
         row for row in group["buffCommanderSkills"]
-        if not row["isTestData"] and carried(buffs[row["subEffectBuffID"]])
+        if kept(row, standard) and carried(buffs[row["subEffectBuffID"]])
     ]
     if not any(row["subEffectBuffID"] == BUFF for row in rows):
         raise SystemExit(f"no buff commander skill writes buff {BUFF}")
@@ -373,13 +382,13 @@ def render(group):
             value = raw(row[field])
             lines.append(f"    {name}: {value}{reading(value)}")
         lines += buff_lines(buffs[row["subEffectBuffID"]])
-    lines += support_lines(group)
-    lines += shield_lines(group)
-    lines += damage_lines(group, buffs)
-    lines += waypoint_lines(group)
-    lines += terrain_lines(group, buffs)
+    lines += support_lines(group, standard)
+    lines += shield_lines(group, standard)
+    lines += damage_lines(group, buffs, standard)
+    lines += waypoint_lines(group, standard)
+    lines += terrain_lines(group, buffs, standard)
     lines += ground_fire_lines()
-    lines += other_lines(group, lines)
+    lines += other_lines(group, lines, standard)
     return "\n".join(lines) + "\n"
 
 

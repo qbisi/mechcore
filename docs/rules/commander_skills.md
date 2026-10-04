@@ -4,8 +4,9 @@ How a commander skill's cooldown counts, per skill and per round.
 
 [`config/commander_skills.yaml`](../../config/commander_skills.yaml) holds each
 skill's two cooldowns in rounds, which `scripts/extract/extract_prices.py` reads out of
-every `CommanderSkillGroupData` row: `initial_cooldown` is `initialCoolDown`
-and `cooldown` is `releaseInterval`.
+the `CommanderSkillGroupData` row of every skill a standard 1v1 side can hold,
+a card the pool deals, a blueprint's or a standard officer's:
+`initial_cooldown` is `initialCoolDown` and `cooldown` is `releaseInterval`.
 
 ## The rule
 

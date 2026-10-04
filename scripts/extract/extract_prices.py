@@ -121,10 +121,13 @@ def commander_skill_cooldowns():
     }
 
 
-def write_commander_skills():
-    rows = commander_skill_cooldowns()
+def write_commander_skills(structure):
+    standard = standard_commander_skills(structure)
+    rows = {identifier: row for identifier, row in commander_skill_cooldowns().items()
+            if identifier in standard}
     lines = ["schema: mechcore.commander_skills", "",
-             "# Every commander skill and its two cooldowns, in rounds.",
+             "# Every commander skill a standard side can hold and its two",
+             "# cooldowns, in rounds.",
              "# `initial_cooldown` is `initialCoolDown`, where a slot starts when",
              "# the skill joins the panel. `cooldown` is `releaseInterval`, where it",
              "# goes when a round spends the skill. docs/rules/commander_skills.md",
@@ -341,6 +344,24 @@ def standard_officers(structure):
              if row.get("bpType") == 1}
     held |= {supply for row in structure["unitReinforceRoundPool"] if in_standard_scene(row)
              for supply in row["supplyReinforceID"]}
+    return held
+
+
+def standard_commander_skills(structure):
+    """The commander skills a side of a standard 1v1 can hold.
+
+    A card the reinforcement pool deals, the skill a blueprint on the
+    reference map puts on the panel, and one a standard officer hands out.
+    No other skill reaches a standard side, so no table carries one.
+    """
+    held = {row["id"] for row in reinforce_items("CommanderSkillGroupData").values()
+            if (not row["scenes"] or STANDARD_SCENE in row["scenes"])
+            and row["scope"] == DEALT_SCOPE}
+    held |= {row.get("mapID", 0) for row in standard_blueprints(structure)
+             if row.get("bpType") != 1}
+    officers = standard_officers(structure)
+    held |= {skill for row in structure["officerDatas"] if row["id"] in officers
+             for skill in row.get("commanderSkillIds") or []}
     return held
 
 
@@ -632,7 +653,7 @@ def main():
     REINFORCE.write_text("\n".join(lines) + "\n")
     print(f"cards a standard match can offer: {len(offered)}")
 
-    write_commander_skills()
+    write_commander_skills(structure)
     write_unit_reinforcements(structure, by_level)
     write_advance_teams(structure)
     write_officers(structure)
