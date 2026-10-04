@@ -6,7 +6,8 @@ Each row names the skill it adds in `skillID`, which `scripts/extract/extract-un
 writes under the unit's `extra_weapons` in `config/units/` where its shape is
 one that file can state. The simulator fights Secondary Armament, the
 Sabertooth's two guns, Incendiary Bomb, the Hound's, Scorching Charge, the
-Fire Badger's self-destruct, and Homing Missile, the Centurion's, and refuses
+Fire Badger's self-destruct, Homing Missile, the Centurion's, and Sticky Oil
+Bomb, the Phantom Ray's and the Vulcan's, and refuses
 every other member by name: the members'
 skills differ in kind, a projectile, an explosion, a laser, a summon, a sweep
 around the unit, and many leave a terrain or write a buff, so each joins once a
@@ -144,11 +145,30 @@ its height kept, under the unit's side. The fire is the unit's own numbers:
 `ExtraSkillProvider.AddEffect` writes the skill's splash and the row's first
 `fireLifeTime` (`ExtraWeaponTechnologyData.GetFireLifeTime`) onto the unit's
 `DataSet` as the fire's range and life time (`MechDataModifer.AddData`) when
-that life time is above zero, and `GetFireMech` reads them back. A recording
+that life time is above zero, an oil's row's too, and `GetFireMech` reads them
+back. A recording
 keeps them among the unit's modifiers, `gf_range_value` and
 `gf_life_time_value`, from the first tick. The fire burns as any fire does
 ([terrain.md](terrain.md)), at the shared fire's damage and period. Incendiary
 Bomb's fire reaches 12 metres from where it lands and burns for 10 seconds.
+
+## An oil where it lands, and a buff on what it strikes
+
+A row with a `buffID` writes that buff on every unit its hit struck, from the
+unit that fired, before anything else its hit does. A row whose
+`rangeItemType` is oil then leaves an oil where the hit lands, at the height
+it landed at, under the unit's side. The oil is the technology's own: it
+reaches as far as the skill splashes, stands for no set time and until the
+fight ends, and writes the row's buff on every unit that stands in it, as a
+battle skill's oil does ([terrain.md](terrain.md)). A fire reaching it turns
+it to a fire as wide that burns the row's first `fireLifeTime`, and a bomb
+landing on a fire leaves that fire at once.
+
+Sticky Oil Bomb's buff is the battle skill's oil's: a second of -0.55 of move
+speed. Its bomb deals nothing, so a Rhino it lands beside is struck, slowed,
+and slowed again by the oil every 19 ticks while it stands in it. Each time
+the buff is written again it keeps the unit that first wrote it as its
+source, so the oil's renewals name the Phantom Ray whose bomb struck first.
 
 ## A permanent preemptive explosion
 
@@ -266,6 +286,18 @@ equipment or an Energy Tower skill writes a skill correction onto.
   `tests/extra_weapon/fights/incendiary-bomb.yaml`, beside its control
   `tests/extra_weapon/fights/incendiary-bomb-control.yaml`.
 
+- Sticky Oil Bomb's bomb writes its buff on the Rhino it strikes, from the
+  Phantom Ray, and leaves an oil of its splash that renews the buff every 19
+  ticks, keeping the Phantom Ray as its source, and stands to the fight's
+  end; the unit carries the oil's fire's range and life time:
+  `tests/extra_weapon/fights/sticky-oil-bomb.yaml`, beside its control
+  `tests/extra_weapon/fights/sticky-oil-bomb-control.yaml`.
+- A Sticky Oil Bomb landing on a Hound's fire leaves a fire of its splash
+  that burns the row's 7 seconds:
+  `tests/extra_weapon/fights/sticky-oil-bomb-fire.yaml`.
+- A Vulcan's Sticky Oil Bomb, which does not lock its target, leaves its
+  oils: `tests/extra_weapon/fights/sticky-oil-bomb-vulcan.yaml`.
+
 ### Replayed
 
 - A Centurion's Homing Missile takes a block in the way that its main gun is
@@ -303,6 +335,15 @@ equipment or an Energy Tower skill writes a skill correction onto.
   `ExtraWeaponTechnologyData.GetFireLifeTime`, `MechDataModifer.AddData`,
   `GroundFireController.GetFireMech`, `RangeItemSystem.AddItem`,
   `RangeItemSystem.DoAddItem`, `RangeItemSystem.GetRepeatItem`.
+- Its buff and oil: `ExtraSkillProvider.PerformHitEffect` writes
+  `IBuffDataSource.GetBuffData` through `BuffSystem.AddBuff` from the skill's
+  owner, then adds the range item of `IExtraSkill.GetRangeItemType` with the
+  technology as its provider; `ExtraWeaponTech` answers
+  `IRangeItemProvider.GetLifeTime` zero, `GetRangeItemRange` its skill's
+  `splashRange`, `GetRoundDuration` one and `IFireProvider.GetFireLifeTime`
+  its row's first `fireLifeTime`. `BuffItemController.PerformItemEffect` adds
+  the buff with no source, and `Buff.Reset` keeps a buff's source unless its
+  data summons (`IBuffData.IsSummoning`).
 - Its taking the motion: `FightSkill.SearchLockTarget`,
   `FightSkillBase.IsMainTargetProvider`, `FightMech.SetAttacker`,
   `FightMech.SetMotionAttackerAfterSkill`, `AutoMoveBehaviour.IsIdle`,

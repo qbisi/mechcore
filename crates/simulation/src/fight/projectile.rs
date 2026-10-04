@@ -435,32 +435,53 @@ impl Simulation {
             super::damage::Struck::default()
         } else {
             let struck = self.perform_damage(hit, events)?;
-            self.leave_extra_weapon_fire(skill_ref, center)?;
+            self.extra_hit_effect(skill_ref, &struck.targets, center, events)?;
             struck
         };
         Ok(struck)
     }
 
-    /// `ExtraSkillProvider.PerformHitEffect`: an extra skill whose row leaves
-    /// a fire leaves one where its hit lands, of its side, the unit's own
-    /// fire (`GroundFireController.GetFireMech`), through `RangeItemSystem.AddItem`.
-    fn leave_extra_weapon_fire(
+    /// `ExtraSkillProvider.PerformHitEffect`: an extra skill whose row names
+    /// a buff writes it on every unit the hit struck, from the skill's unit
+    /// (`BuffSystem.AddBuff`), and one whose row leaves a terrain leaves it
+    /// where the hit lands, of its side, through `RangeItemSystem.AddItem`: a
+    /// fire is the unit's own (`GroundFireController.GetFireMech`), any other
+    /// the technology's.
+    fn extra_hit_effect(
         &mut self,
         skill_ref: SkillRef,
+        struck: &[FightActorRef],
         center: (i64, i64, i64),
+        events: &mut Vec<Event>,
     ) -> Result<()> {
         let (FightActorRef::Unit(id), SkillSlot::Extra(index)) = (skill_ref.owner, skill_ref.slot)
         else {
             return Ok(());
         };
-        let Some((team, fire)) = self.actors.get(&id).and_then(|actor| {
-            actor.skills.extras[index]
-                .fire
-                .map(|fire| (actor.placement.team, fire))
-        }) else {
+        let Some(actor) = self.actors.get(&id) else {
             return Ok(());
         };
-        self.add_terrain(team, &format!("unit {id}"), fire, center)
+        let team = actor.placement.team;
+        let extra = &actor.skills.extras[index];
+        let (buff, terrain) = (extra.buff, extra.terrain);
+        let name = format!("unit {id}");
+        if let Some(buff) = buff {
+            let units = struck
+                .iter()
+                .filter_map(|target| target.unit_id())
+                .collect::<Vec<_>>();
+            self.write_skill_buff(
+                (&name, team),
+                Some(ObjectRef::new(ObjectKind::Unit, id)),
+                &buff,
+                &units,
+                events,
+            )?;
+        }
+        if let Some(terrain) = terrain {
+            self.add_terrain(team, &name, terrain, center)?;
+        }
+        Ok(())
     }
 }
 

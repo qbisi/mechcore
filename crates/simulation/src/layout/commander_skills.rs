@@ -13,7 +13,7 @@ use super::contraptions::{ShieldKind, ShieldPlacement};
 use crate::{
     Error, Result,
     data::{Channel, Entry},
-    rules::{UnitConfig, UnitConfigs},
+    rules::{BuffConfig, UnitConfig, UnitConfigs},
 };
 
 const DEFAULT_EFFECTS: &str = include_str!("../../../../config/commander_skill_effects.yaml");
@@ -541,6 +541,44 @@ impl CommanderSkillEffects {
         })
     }
 
+    /// The oil a unit's extra weapon leaves where its shot lands
+    /// (`ExtraWeaponTech` as its `IRangeItemProvider`): as wide as the
+    /// skill's splash, standing for no set time and one round, writing the
+    /// row's buff on what stands in it, and burning its `fireLifeTime` once a
+    /// fire reaches it, dealing `Config`'s fire as any fire does.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when a time is no whole number of ticks within a
+    /// fight.
+    pub(crate) fn unit_oil(
+        &self,
+        named: &str,
+        radius_q32: i64,
+        buff: SkillBuff,
+        fire_life_seconds_raw: i64,
+    ) -> Result<TerrainSpec> {
+        let period_ticks = i32::try_from(ticks(self.ground_fire.interval)?)
+            .map_err(|_| Error::new("a fire's interval outlasts a fight"))?;
+        let life_ticks = i32::try_from(ticks(fire_life_seconds_raw)?)
+            .map_err(|_| Error::new(format!("{named}'s oil burns past a fight")))?;
+        if life_ticks <= 0 {
+            return Err(Error::new(format!("{named}'s oil burns for no time")));
+        }
+        Ok(TerrainSpec {
+            kind: TerrainKind::Oil,
+            radius_q32,
+            life_ticks: None,
+            rounds: 1,
+            effect: buff_terrain(named, buff)?,
+            burns: Some(Burning {
+                life_ticks,
+                damage: self.ground_fire.damage,
+                period_ticks,
+            }),
+        })
+    }
+
     /// A Shield Airdrop an earlier round left standing, full: the shield
     /// resets to its maximum as each round's fight ends.
     ///
@@ -823,16 +861,7 @@ fn terrain_effect(named: &str, row: &TerrainSkillRow, fire: GroundFire) -> Resul
                     "{named} leaves a terrain that writes no buff"
                 )));
             };
-            let buff = skill_buff(named, buff)?;
-            TerrainEffect::Buff {
-                buff,
-                // `BuffItemController.Add`: the buff's duration in ticks,
-                // less one, and never under one.
-                period_ticks: i32::try_from(buff.ticks)
-                    .map_err(|_| Error::new(format!("{named}'s buff outlasts a fight")))?
-                    .saturating_sub(1)
-                    .max(1),
-            }
+            buff_terrain(named, skill_buff(named, buff)?)?
         }
         TerrainKind::Fire => TerrainEffect::Fire {
             damage: fire.damage,
@@ -1001,6 +1030,48 @@ fn buff_effect(named: &str, row: &BuffSkillRow) -> Result<SkillEffect> {
 }
 
 /// The buff a sub-effect writes, as `BuffSystem.AddBuff` reads its row.
+/// A terrain that writes its buff on what stands in it.
+fn buff_terrain(named: &str, buff: SkillBuff) -> Result<TerrainEffect> {
+    Ok(TerrainEffect::Buff {
+        buff,
+        // `BuffItemController.Add`: the buff's duration in ticks, less one,
+        // and never under one.
+        period_ticks: i32::try_from(buff.ticks)
+            .map_err(|_| Error::new(format!("{named}'s buff outlasts a fight")))?
+            .saturating_sub(1)
+            .max(1),
+    })
+}
+
+/// A technology's skill's buff, as a battle skill's is written.
+///
+/// # Errors
+///
+/// Returns an error naming the buff when it corrects a speed by a value,
+/// which a skill's buff here does not write, or outlasts a fight.
+pub(crate) fn technology_buff(named: &str, buff: &BuffConfig) -> Result<SkillBuff> {
+    if buff.move_speed_value != 0 {
+        return Err(Error::new(format!(
+            "{named}'s buff {} adds a move speed value, which a skill's buff here does not write",
+            buff.id
+        )));
+    }
+    Ok(SkillBuff {
+        id: buff.id,
+        divide: buff.divide,
+        additive: buff.additive,
+        ticks: u32::try_from(ticks(crate::rules::metres_q32(buff.duration))?)
+            .map_err(|_| Error::new(format!("{named}'s buff outlasts a fight")))?,
+        move_speed_rate: buff.move_speed_rate,
+        disable_technology: false,
+        debuff: buff.debuff,
+        invincible: buff.invincible,
+        amplify_damage_rate: 0,
+        life_change_rate: 0,
+        step_ticks: 0,
+    })
+}
+
 fn skill_buff(named: &str, buff: &BuffRow) -> Result<SkillBuff> {
     if buff.life_change_rate > 0 {
         return Err(Error::new(format!(

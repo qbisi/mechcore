@@ -1,0 +1,17 @@
+# Sticky Oil Bomb's control: `sticky-oil-bomb.yaml` without the technology.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 942
+hash: {profile: mcfr-content-0.7.0, result: 9fc95a734fa76fd57483a635a2e502b2e6f3c4c3636b78ea5c73d3db47fcbe5d}
+blue:
+  units:
+  - {name: phantom_ray, index: 0, position: {x: 5, y: -50}, exp: 0/800/1000}
+red:
+  core_damage: 201
+  units:
+  - {name: rhino, index: 0, position: {x: -45, y: -95}, exp: 0/200/1150}
+  - {name: rhino, index: 1, position: {x: 45, y: -95}, exp: 0/200/1150}

@@ -52,6 +52,9 @@ pub(in crate::fight) struct RunningBuff {
     /// What tags the entries it wrote, so that its end takes them away
     /// and leaves every other buff's.
     source: &'static str,
+    /// `Buff.source`: the actor that first added it, which `Buff.Reset`
+    /// keeps unless the buff summons.
+    source_actor: Option<ObjectRef>,
     /// `IsDisableTechnology`: while it runs, `BuffManager` holds the unit's
     /// `DisableTechnology` count above zero.
     disables_technology: bool,
@@ -286,10 +289,9 @@ impl Simulation {
                 .building_buffs
                 .entry(construction_id)
                 .or_default();
-            let (running, added) = add_buff(&mut buffed.buffs, &row, loss.team);
+            let (running, added) = add_buff(&mut buffed.buffs, &row, None, loss.team);
             applied.push(buff_applied(
                 ObjectRef::new(ObjectKind::Building, construction_id),
-                None,
                 loss.team,
                 &running,
             ));
@@ -333,7 +335,7 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
-        let (running, added) = add_buff(&mut actor.buffs, row, team);
+        let (running, added) = add_buff(&mut actor.buffs, row, source, team);
         if added {
             for entry in &row.entries {
                 actor
@@ -346,7 +348,6 @@ impl Simulation {
         }
         Ok(buff_applied(
             ObjectRef::new(ObjectKind::Unit, actor_id),
-            source,
             team,
             &running,
         ))
@@ -625,7 +626,12 @@ pub(in crate::fight) struct BuildingBuffs {
 /// lengthened by the new row's duration when additive and started over
 /// otherwise; any other is added. The running buff is returned, with whether
 /// it is new.
-fn add_buff(buffs: &mut Vec<RunningBuff>, row: &BuffRow, team: u32) -> (RunningBuff, bool) {
+fn add_buff(
+    buffs: &mut Vec<RunningBuff>,
+    row: &BuffRow,
+    source_actor: Option<ObjectRef>,
+    team: u32,
+) -> (RunningBuff, bool) {
     if let Some(running) = buffs.iter_mut().find(|running| {
         running.buff_id == row.buff_id || (row.divide != 0 && running.divide == row.divide)
     }) {
@@ -643,6 +649,7 @@ fn add_buff(buffs: &mut Vec<RunningBuff>, row: &BuffRow, team: u32) -> (RunningB
         elapsed: 0,
         duration: row.ticks,
         source: row.source,
+        source_actor,
         disables_technology: row.disables_technology,
         invincible: row.invincible,
         life_change: row.life_change.map(|life_change| LifeChangeStep {
@@ -689,15 +696,10 @@ fn tick_buffs(
     ended
 }
 
-fn buff_applied(
-    subject: ObjectRef,
-    source: Option<ObjectRef>,
-    team: u32,
-    running: &RunningBuff,
-) -> Event {
+fn buff_applied(subject: ObjectRef, team: u32, running: &RunningBuff) -> Event {
     event(
         None,
-        source,
+        running.source_actor,
         Some(team),
         Some(subject),
         EventPayload::BuffApplied {

@@ -1,0 +1,28 @@
+# Sticky Oil Bomb: a Phantom Ray's bomb slows what it strikes and leaves an
+# oil.
+#
+# Three Phantom Rays with Sticky Oil Bomb against two Rhinos, which cannot
+# reach them. Every 12 seconds each fires a bomb that deals nothing: its hit
+# writes the oil's buff, a second of -0.55 of move speed, on the Rhino it
+# struck, from the Phantom Ray, and leaves an oil 40 metres wide where it
+# lands. The oil writes the buff again every 19 ticks on what stands in it,
+# the buff keeping the Phantom Ray as its source, and stands until the fight
+# ends. The control is `sticky-oil-bomb-control.yaml`.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 707
+hash: {profile: mcfr-content-0.7.0, result: 5f67876486547137390f9cd454322791c337f8a00c3341c0ff3b69d3fef64a10}
+blue:
+  techs:
+    phantom_ray: [sticky_oil_bomb]
+  units:
+  - {name: phantom_ray, index: 0, position: {x: 5, y: -50}, exp: 0/800/1000}
+red:
+  core_damage: 201
+  units:
+  - {name: rhino, index: 0, position: {x: -45, y: -95}}
+  - {name: rhino, index: 1, position: {x: 45, y: -95}, exp: 0/200/1150}

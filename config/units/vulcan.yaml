@@ -95,3 +95,52 @@ extra_weapons:
         simulated_motion: false
         interceptible: true
         max_life: 145800
+  - technology: 11010
+    skill: 3003
+    use_main_skill_range: false
+    damage_by_level: []
+    oil: {fire_life_time: [12]}
+    buff:
+      id: 400001
+      duration: 1
+      divide: 0
+      additive: false
+      debuff: false
+      invincible: false
+      move_speed_value: 0
+      move_speed_rate: -2362232012
+    attack:
+      base_damage: 0
+      min_range: 40
+      range: 180
+      attack_half_angle: 360
+      targets: {ground: true, air: false}
+      lock_target: false
+      quick_switch_target: true
+      timing:
+        interval: 16
+        interval_offset: 0
+        initial_cooldown: 0
+        prepare: 0
+        attack_point: 0
+        backswing: 0
+        cooling: 0
+      splash_radius: 18
+      weapons:
+        mode: normal
+        indices: [2, 3]
+        per_skill: 2
+      melee: false
+      crosses_shields: false
+      path:
+        type: projectile
+        count: 10
+        release_interval: 0.12
+        speed: 60
+        target_offset_radius: 70
+        evenly_allocate_targets: false
+        extra_search_range: 0
+        pre_flight_height: 60
+        simulated_motion: false
+        interceptible: true
+        max_life: 145800

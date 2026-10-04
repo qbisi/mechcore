@@ -653,7 +653,7 @@ impl Simulation {
             // object under the terrain's side, `BuffSystem.AddBuff`.
             TerrainEffect::Buff { buff, .. } => {
                 let name = self.terrain.terrains[&item].name.clone();
-                self.write_skill_buff((&name, team), &buff, &[unit], events)
+                self.write_skill_buff((&name, team), None, &buff, &[unit], events)
             }
             // `GroundFireController.PerformItemEffect`: a hit of the fire's
             // damage through `PerformHitTargetEffect`, with no owner, under

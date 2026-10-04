@@ -210,7 +210,7 @@ impl Simulation {
                     if !buff.harmful() {
                         reached.retain(|id| self.actors[id].placement.team == release.team);
                     }
-                    self.write_skill_buff((&release.name, release.team), buff, &reached, events)?;
+                    self.write_release_buff(&release, buff, &reached, events)?;
                 }
                 // A strike's sub-effects land above, and a path is given out
                 // as the fight starts and never lands.
@@ -286,7 +286,7 @@ impl Simulation {
                 let point = (x_q32, 0, z_q32);
                 self.strike_circle(release, range_q32, damage, crosses_shields, point, events)?;
                 if let Some(buff) = buff {
-                    self.write_skill_buff((&release.name, release.team), buff, &reached, events)?;
+                    self.write_release_buff(release, buff, &reached, events)?;
                 }
                 continue;
             }
@@ -423,10 +423,24 @@ impl Simulation {
             .collect()
     }
 
-    /// `BuffSystem.AddBuff` of the skill's row on every unit it reached.
+    /// A released battle skill's buff on every unit it reached, which no
+    /// actor adds.
+    fn write_release_buff(
+        &mut self,
+        release: &SkillRelease,
+        buff: &SkillBuff,
+        reached: &[u64],
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        self.write_skill_buff((&release.name, release.team), None, buff, reached, events)
+    }
+
+    /// `BuffSystem.AddBuff` of the skill's row on every unit it reached,
+    /// from `source`, the actor that adds it, if one does.
     pub(in crate::fight) fn write_skill_buff(
         &mut self,
         (name, team): (&str, u32),
+        source: Option<ObjectRef>,
         buff: &SkillBuff,
         reached: &[u64],
         events: &mut Vec<Event>,
@@ -477,7 +491,7 @@ impl Simulation {
                      another is not measured"
                 )));
             }
-            events.push(self.write_buff(id, None, team, &row)?);
+            events.push(self.write_buff(id, source, team, &row)?);
         }
         Ok(())
     }

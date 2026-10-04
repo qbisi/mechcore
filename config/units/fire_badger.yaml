@@ -68,6 +68,7 @@ extra_weapons:
         debuff: false
         invincible: true
         move_speed_value: 60
+        move_speed_rate: 0
     explosion:
       damage_multiplier: 1
       friendly_fire: true

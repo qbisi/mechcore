@@ -259,8 +259,10 @@ pub(in crate::fight) struct ExtraSkill {
     pub(in crate::fight) skill: Skill,
     /// The technology's row, which the skill is run from.
     pub(in crate::fight) rules: ExtraWeaponConfig,
-    /// The fire its hit leaves, if its row's is a fire.
-    pub(in crate::fight) fire: Option<crate::layout::TerrainSpec>,
+    /// The terrain its hit leaves, a fire or an oil, if its row leaves one.
+    pub(in crate::fight) terrain: Option<crate::layout::TerrainSpec>,
+    /// The buff its hit writes on what it struck.
+    pub(in crate::fight) buff: Option<crate::layout::SkillBuff>,
     /// The fire its unit's death leaves, for an explosion.
     pub(in crate::fight) dead_fire: Option<crate::layout::TerrainSpec>,
     /// The first of the row's weapons this skill fires: its one weapon of a

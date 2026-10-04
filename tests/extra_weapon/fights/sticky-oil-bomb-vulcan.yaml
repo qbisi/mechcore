@@ -1,0 +1,22 @@
+# Sticky Oil Bomb on a Vulcan: the same technology on another unit.
+#
+# A Vulcan with Sticky Oil Bomb against two Rhinos. Its bombs, which do not
+# lock their target, leave ten oils, none of which a Rhino enters.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 236
+hash: {profile: mcfr-content-0.7.0, result: 34db0a8c4ddcbc96b0480135affa26d581abd549aa6015009e98c9b97df33347}
+blue:
+  core_damage: 400
+  techs:
+    vulcan: [sticky_oil_bomb]
+  units:
+  - {name: vulcan, index: 0, position: {x: 0, y: -50}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: -45, y: -95}, exp: 0/200/1150}
+  - {name: rhino, index: 1, position: {x: 45, y: -95}, exp: 0/600/1150}
