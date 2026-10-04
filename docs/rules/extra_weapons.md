@@ -67,8 +67,9 @@ the whole of the difference:
   from the state the motion was in as the unit's skills began to update: the
   motion idles when the skill is idle or its lock is dead, attacks while what
   the skill fires at is in the skill's range, and otherwise moves after that
-  lock. Attacking, it turns to the skill's lock (`AttackRotate`): a unit
-  without a body its root, one with a body its body. A Sabertooth whose main
+  lock. Attacking, it turns to what the skill fires at (`AttackRotate`), a
+  block in the way before the lock behind it: a unit without a body its root,
+  one with a body its body. A Sabertooth whose main
   gun has just felled its target and found nothing reads moving on the next
   update when an extra gun took a target beyond its reach on it, and idle
   without the guns; a Hound whose main skill's target burnt to death stays
@@ -276,6 +277,10 @@ equipment or an Energy Tower skill writes a skill correction onto.
 - A Centurion's missile skill scores its search from its turret's rotation,
   and takes the target its main gun takes: replay 2324_20260925--67159970
   round 6, fought by the game with `scripts/corpus/match-replays.py`.
+- A Centurion whose missile skill holds its motion turns its turret to the
+  block its missiles fire at, not to the lock behind it: replay
+  2324_20260925--67159970 round 6, fought by the game with
+  `scripts/corpus/match-replays.py`.
 
 ### Read
 
