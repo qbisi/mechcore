@@ -1,6 +1,7 @@
 schema: mechcore.unit
 type_name: typhoon
 unit_type_id: 22
+main_skill: 22001
 
 formation:
   members: 2

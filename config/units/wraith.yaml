@@ -1,6 +1,7 @@
 schema: mechcore.unit
 type_name: wraith
 unit_type_id: 18
+main_skill: 18001
 
 formation:
   members: 1

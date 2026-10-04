@@ -129,6 +129,7 @@ impl Actor {
             },
             skills: SkillManager::new(Skill::new(weapon_rotations_q32, group, magazine, kind)),
         };
+        actor.skills.extras = extra_skills(&actor.placement);
         if actor.rules.mech_search
             && let Some(group) = &mut actor.skills.main.group
         {
@@ -314,7 +315,7 @@ impl Actor {
 
     /// A unit with a body turns its turret, whose rotation every weapon of
     /// it shares; one without a body has none.
-    fn turret_rotation(&self) -> Option<i64> {
+    pub(in crate::fight) fn turret_rotation(&self) -> Option<i64> {
         if self.turret_q32.is_some() {
             return self.turret_q32;
         }
@@ -411,43 +412,7 @@ impl Actor {
             y: space_to_q32(height),
             z: self.z_q32,
         };
-        let weapon_aims = (0..self.skills.main.weapon_rotations_q32.len())
-            .map(|weapon_index| {
-                let group_mode = self.rules.attack.weapons.mode != WeaponMode::Normal;
-                let attack_target = if group_mode {
-                    // A slot firing at a shield names no target the
-                    // recording can.
-                    self.skills
-                        .main
-                        .group_attack_target(weapon_index)
-                        .filter(|_| {
-                            weapon_index >= self.skills.main.group_size().max(1)
-                                || self
-                                    .skills
-                                    .main
-                                    .group_skill(weapon_index)
-                                    .shield_target()
-                                    .is_none()
-                        })
-                } else {
-                    self.skills.main.named_attack_target()
-                };
-                // A unit that travelled in has run no update to search an
-                // attack target with until its first: `SearchAttackTarget`
-                // answers only in one.
-                let attack_target = attack_target.filter(|_| self.searched_attack);
-                WeaponAimState {
-                    skill_slot: if group_mode {
-                        u16::try_from(weapon_index).expect("weapon index fits u16")
-                    } else {
-                        0
-                    },
-                    weapon_index: self.rules.attack.weapons.index(weapon_index),
-                    attack_target: attack_target.map(FightActorRef::object_ref),
-                    pose: self.fixed_weapon_pose(weapon_index, position),
-                }
-            })
-            .collect();
+        let weapon_aims = self.weapon_aims(position);
         LiveUnitState {
             unit_id: self.placement.unit_id,
             team_id: self.placement.team,
@@ -525,6 +490,102 @@ impl Actor {
             },
         }
     }
+}
+
+impl Actor {
+    /// Every weapon channel the unit records, the main skill's and then its
+    /// extra skills'.
+    fn weapon_aims(&self, position: QVec3) -> Vec<WeaponAimState> {
+        (0..self.skills.main.weapon_rotations_q32.len())
+            .map(|weapon_index| {
+                let group_mode = self.rules.attack.weapons.mode != WeaponMode::Normal;
+                let attack_target = if group_mode {
+                    // A slot firing at a shield names no target the
+                    // recording can.
+                    self.skills
+                        .main
+                        .group_attack_target(weapon_index)
+                        .filter(|_| {
+                            weapon_index >= self.skills.main.group_size().max(1)
+                                || self
+                                    .skills
+                                    .main
+                                    .group_skill(weapon_index)
+                                    .shield_target()
+                                    .is_none()
+                        })
+                } else {
+                    self.skills.main.named_attack_target()
+                };
+                // A unit that travelled in has run no update to search an
+                // attack target with until its first: `SearchAttackTarget`
+                // answers only in one.
+                let attack_target = attack_target.filter(|_| self.searched_attack);
+                WeaponAimState {
+                    skill_slot: if group_mode {
+                        u16::try_from(weapon_index).expect("weapon index fits u16")
+                    } else {
+                        0
+                    },
+                    weapon_index: self.rules.attack.weapons.index(weapon_index),
+                    attack_target: attack_target.map(FightActorRef::object_ref),
+                    pose: self.fixed_weapon_pose(weapon_index, position),
+                }
+            })
+            .chain(self.extra_weapon_aims(position))
+            .collect()
+    }
+
+    /// The weapon channel of each extra skill, after the main skill's: the
+    /// weapon its row names, at its own rotation on a transform of its own
+    /// where the unit stands, firing at what its skill does.
+    fn extra_weapon_aims(&self, position: QVec3) -> impl Iterator<Item = WeaponAimState> + '_ {
+        let main_slots = self.skills.main_slots();
+        self.skills
+            .extras
+            .iter()
+            .enumerate()
+            .map(move |(index, extra)| WeaponAimState {
+                skill_slot: u16::try_from(main_slots + index).expect("skill slot fits u16"),
+                weapon_index: extra.rules.attack.weapons.index(extra.weapon),
+                attack_target: extra
+                    .skill
+                    .named_attack_target()
+                    .filter(|_| self.searched_attack)
+                    .map(FightActorRef::object_ref),
+                pose: Some(QPose {
+                    position,
+                    rotation: extra.skill.weapon_rotations_q32[0],
+                }),
+            })
+    }
+}
+
+/// The skills a unit's extra weapon technologies add beside its main one, in
+/// `SkillManager.extraSkills`' order: ascending skill ID
+/// (`SkillManager.SortSkills`), and a row's skills in the order its weapons
+/// come. A standalone row makes one skill for each weapon; each starts
+/// pointing as the unit faces, as the main skill's weapons do.
+fn extra_skills(placement: &Placement) -> Vec<ExtraSkill> {
+    let mut weapons: Vec<&ExtraWeaponConfig> = placement.extra_weapons.iter().collect();
+    weapons.sort_by_key(|weapon| weapon.skill);
+    weapons
+        .into_iter()
+        .flat_map(|rules| {
+            let count = usize::try_from(rules.attack.weapons.count())
+                .expect("u32 weapon count fits the supported host");
+            (0..count).map(move |weapon| ExtraSkill {
+                skill: Skill::new(
+                    vec![mdeg_to_degrees_q32(placement.rotation)],
+                    None,
+                    rules.attack.magazine,
+                    SkillKind::of(&rules.attack.path),
+                ),
+                rules: rules.clone(),
+                weapon,
+            })
+        })
+        .collect()
 }
 
 /// How many skills a unit's weapons make and how they take turns, or `None`

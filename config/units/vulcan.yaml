@@ -1,6 +1,7 @@
 schema: mechcore.unit
 type_name: vulcan
 unit_type_id: 3
+main_skill: 3001
 
 formation:
   members: 1

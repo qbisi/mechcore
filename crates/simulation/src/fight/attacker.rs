@@ -50,6 +50,8 @@ impl Facing<'_> {
 #[derive(Debug, Clone, Copy)]
 pub(in crate::fight) struct Attacker<'a> {
     pub(in crate::fight) owner: FightActorRef,
+    /// The skill whose view of its owner this is.
+    pub(in crate::fight) skill: SkillRef,
     pub(in crate::fight) team: u32,
     /// Where it stands, in space units and in Q32.32.
     pub(in crate::fight) x: i64,
@@ -194,6 +196,7 @@ impl Simulation {
                 let actor = self.actors.get(&id)?;
                 Some(Attacker {
                     owner,
+                    skill: SkillRef::main(owner),
                     team: actor.placement.team,
                     x: actor.x,
                     z: actor.z,
@@ -244,6 +247,7 @@ impl Simulation {
                     .unwrap_or(0);
                 Some(Attacker {
                     owner,
+                    skill: SkillRef::main(owner),
                     team: construction.team,
                     x: construction.x,
                     z: construction.z,
@@ -272,6 +276,99 @@ impl Simulation {
                     searches: construction.searches,
                 })
             }
+        }
+    }
+
+    /// One skill's owner as that skill sees it. An owner's main skill is what
+    /// [`Self::attacker`] answers. An extra skill answers from its own row:
+    /// its reach (`FightSkill.GetAttackRange`, the main skill's where its row
+    /// uses the main skill's range), the damage its row states for the
+    /// unit's level, its splash and its interval, and its own weapon, which
+    /// turns on a transform of its own, as what its attack angle is measured
+    /// against. No correction reaches an extra skill here: the layout refuses
+    /// a unit one would.
+    pub(in crate::fight) fn skill_attacker(&self, skill_ref: SkillRef) -> Option<Attacker<'_>> {
+        let SkillSlot::Extra(index) = skill_ref.slot else {
+            return self.attacker(skill_ref.owner);
+        };
+        let FightActorRef::Unit(id) = skill_ref.owner else {
+            return None;
+        };
+        let actor = self.actors.get(&id)?;
+        let extra = actor.skills.extras.get(index)?;
+        let rules = &extra.rules;
+        let mut attacker = self.attacker(skill_ref.owner)?;
+        attacker.skill = skill_ref;
+        attacker.attack = &rules.attack;
+        // A row that uses the main skill's range reaches its own range
+        // beyond it: the Secondary Armament's 2 metres past the main gun's,
+        // 107 against 105 in the recorded searches.
+        attacker.attack_range = if rules.use_main_skill_range {
+            actor
+                .stats
+                .attack_range()
+                .saturating_add(rules.attack.range())
+        } else {
+            rules.attack.range()
+        };
+        attacker.attack_damage = usize::try_from(actor.placement.level - 1)
+            .ok()
+            .and_then(|level| rules.damage_by_level.get(level))
+            .copied()?;
+        attacker.splash_radius = rules.attack.splash_radius();
+        attacker.attack_interval_q32 =
+            time_units_to_seconds_q32(rules.attack.interval_time_units());
+        attacker.facing = Facing::Weapons(&extra.skill.weapon_rotations_q32);
+        attacker.has_body = true;
+        // `SkillSearchTargetController.PrepareSearch` does nothing: an extra
+        // skill's search scores where everything stands as it updates, from
+        // its own weapon's rotation. A weapon held to an arc passes over what
+        // lies outside the arc widened by the attack angle either side, the
+        // arc about its rest as the unit stands now, whichever way the
+        // weapon points: the window is stated about the weapon's rotation.
+        let rotation = extra.skill.weapon_rotations_q32[0];
+        attacker.query_x_q32 = actor.x_q32;
+        attacker.query_z_q32 = actor.z_q32;
+        attacker.query_rotation_q32 = rotation;
+        attacker.rotation_window_q32 = extra.arc().and_then(|arc| {
+            let (left, right) = arc.left.zip(arc.right)?;
+            let parent = match (rules.attack.weapons.mount, actor.turret_rotation()) {
+                (WeaponMount::MechBody, Some(turret)) => turret,
+                _ => actor.body_rotation_q32,
+            };
+            let rest = parent.saturating_add(i64::from(arc.default) << 32);
+            let off_rest =
+                (rotation - rest + (180_i64 << 32)).rem_euclid(360_i64 << 32) - (180_i64 << 32);
+            let angle = mdeg_to_degrees_q32(rules.attack.attack_half_angle_mdeg());
+            Some((
+                off_rest + (i64::from(left) << 32) + angle,
+                (i64::from(right) << 32) + angle - off_rest,
+            ))
+        });
+        Some(attacker)
+    }
+
+    /// A skill's index in its owner's `FightMech.GetSkills()`, which a
+    /// recording names it by: the main skill, or each of its group's skills,
+    /// comes first, and the extra skills after it in their order.
+    pub(in crate::fight) fn skill_slot(&self, skill_ref: SkillRef) -> usize {
+        match skill_ref.slot {
+            SkillSlot::Main => 0,
+            SkillSlot::Extra(index) => self.skills(skill_ref.owner).main_slots() + index,
+        }
+    }
+
+    /// The skill a slot of an owner's `GetSkills()` names: one of the main
+    /// skill's for a slot among its group's, an extra skill's after them.
+    pub(in crate::fight) fn skill_at_slot(&self, owner: FightActorRef, slot: usize) -> SkillRef {
+        let main_slots = self.skills(owner).main_slots();
+        SkillRef {
+            owner,
+            slot: if slot < main_slots {
+                SkillSlot::Main
+            } else {
+                SkillSlot::Extra(slot - main_slots)
+            },
         }
     }
 
@@ -307,8 +404,8 @@ impl Simulation {
 
     /// `ISkillData`'s quick switch: whether the skill takes the next target
     /// in the middle of its attack.
-    pub(in crate::fight) fn quick_switch_target(&self, owner: FightActorRef) -> bool {
-        self.attacker(owner)
+    pub(in crate::fight) fn quick_switch_target(&self, skill_ref: SkillRef) -> bool {
+        self.skill_attacker(skill_ref)
             .expect("skill owner identity is stable")
             .attack
             .quick_switch_target
@@ -323,10 +420,14 @@ impl Simulation {
     /// idle, and nothing it would publish moves anything. The skill machine
     /// itself asks no motion anything; what reaches the motion here is the
     /// kernel's, where a unit's motion stops with its attack.
-    pub(in crate::fight) fn moving_mut(&mut self, owner: FightActorRef) -> Option<&mut Actor> {
-        match owner {
-            FightActorRef::Unit(id) => self.actors.get_mut(&id),
-            FightActorRef::Building(_) => None,
+    ///
+    /// Only the main skill's decisions reach the motion: `ChangeLockTarget`
+    /// hands the owner a lock only from its main searcher
+    /// (`FightSkillBase.IsMainSearcher`), and an extra skill is not one.
+    pub(in crate::fight) fn moving_mut(&mut self, skill_ref: SkillRef) -> Option<&mut Actor> {
+        match (skill_ref.owner, skill_ref.slot) {
+            (FightActorRef::Unit(id), SkillSlot::Main) => self.actors.get_mut(&id),
+            _ => None,
         }
     }
 
@@ -354,7 +455,7 @@ impl Simulation {
         target: FightActorRef,
     ) -> bool {
         let (Some(attacker), Some(view)) =
-            (self.attacker(skill_ref.owner), self.fight_actor(target))
+            (self.skill_attacker(skill_ref), self.fight_actor(target))
         else {
             return false;
         };
@@ -393,10 +494,12 @@ impl Simulation {
     /// `SkillAttackAngleChecker`.
     pub(in crate::fight) fn target_in_attack_angle(
         &self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         target: FightActorRef,
     ) -> bool {
-        let (Some(attacker), Some(view)) = (self.attacker(owner), self.fight_actor(target)) else {
+        let (Some(attacker), Some(view)) =
+            (self.skill_attacker(skill_ref), self.fight_actor(target))
+        else {
             return false;
         };
         view.alive && attacker.faces(attacker.bearing_q32(view.x_q32, view.z_q32))
@@ -409,14 +512,14 @@ impl Simulation {
         target: FightActorRef,
     ) -> bool {
         self.target_in_attack_range(skill_ref, target)
-            && self.target_in_attack_angle(skill_ref.owner, target)
+            && self.target_in_attack_angle(skill_ref, target)
     }
 
     /// `SkillManager.UpdateWeaponRotateion`: every weapon turns towards a
     /// bearing at the owner's rotate speed.
     pub(in crate::fight) fn turn_weapons_towards(&mut self, skill_ref: SkillRef, bearing_q32: i64) {
         let turn_q32 = self
-            .attacker(skill_ref.owner)
+            .skill_attacker(skill_ref)
             .expect("skill owner identity is stable")
             .turn_q32;
         self.skill_mut(skill_ref)
@@ -426,9 +529,9 @@ impl Simulation {
     /// Draws an attack interval for an owner's skill from its side's stream:
     /// the description plus a stagger, never under one tick. A skill without a
     /// stagger leaves the stream to the next owner.
-    pub(in crate::fight) fn draw_attack_interval(&mut self, owner: FightActorRef) -> Result<u64> {
+    pub(in crate::fight) fn draw_attack_interval(&mut self, skill_ref: SkillRef) -> Result<u64> {
         let attacker = self
-            .attacker(owner)
+            .skill_attacker(skill_ref)
             .ok_or_else(|| Error::new("attack interval owner is absent"))?;
         let team = attacker.team;
         let interval_steps = seconds_q32_to_steps(attacker.attack_interval_q32);
@@ -481,7 +584,32 @@ impl Simulation {
             )
             .collect::<Vec<_>>();
         for owner in owners {
-            self.draw_first_intervals(SkillRef::main(owner))?;
+            self.draw_owner_first_intervals(owner)?;
+        }
+        Ok(())
+    }
+
+    /// Every skill of one owner draws its first interval in its
+    /// `SkillManager`'s order, ascending skill ID: the extra skills an extra
+    /// weapon technology adds draw before or after the main one.
+    pub(in crate::fight) fn draw_owner_first_intervals(
+        &mut self,
+        owner: FightActorRef,
+    ) -> Result<()> {
+        let (before, after) = match owner {
+            FightActorRef::Unit(id) => self.extra_skills_around_main(id),
+            FightActorRef::Building(_) => (Vec::new(), Vec::new()),
+        };
+        let extra = |index| SkillRef {
+            owner,
+            slot: SkillSlot::Extra(index),
+        };
+        for index in before {
+            self.draw_first_intervals(extra(index))?;
+        }
+        self.draw_first_intervals(SkillRef::main(owner))?;
+        for index in after {
+            self.draw_first_intervals(extra(index))?;
         }
         Ok(())
     }
@@ -490,15 +618,18 @@ impl Simulation {
     /// kept as its current interval.
     pub(in crate::fight) fn draw_first_intervals(&mut self, skill_ref: SkillRef) -> Result<()> {
         let attacker = self
-            .attacker(skill_ref.owner)
+            .skill_attacker(skill_ref)
             .expect("skill owner identity is stable");
-        let skills = if attacker.attack.weapons.mode == WeaponMode::Normal {
+        // An extra skill is one `FightSkill`, whatever its row's weapons.
+        let skills = if attacker.attack.weapons.mode == WeaponMode::Normal
+            || skill_ref.slot != SkillSlot::Main
+        {
             1
         } else {
             attacker.attack.weapons.count()
         };
         for index in 0..skills {
-            let interval = self.draw_attack_interval(skill_ref.owner)?;
+            let interval = self.draw_attack_interval(skill_ref)?;
             if index == 0 {
                 self.skill_mut(skill_ref).current_attack_interval = interval;
             }

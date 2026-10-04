@@ -1,6 +1,7 @@
 schema: mechcore.unit
 type_name: war_factory
 unit_type_id: 17
+main_skill: 17001
 
 formation:
   members: 1

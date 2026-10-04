@@ -1,6 +1,7 @@
 schema: mechcore.unit
 type_name: abyss
 unit_type_id: 29
+main_skill: 29001
 
 formation:
   members: 1
@@ -51,3 +52,44 @@ attack:
     hit_caps:
       - {radius: 3.9, hits: 1}
       - {radius: 4.1, hits: 2}
+
+extra_weapons:
+  - technology: 110291
+    skill: 29003
+    use_main_skill_range: false
+    damage_by_level: [400, 800, 1200, 1600, 2000, 2400, 2800, 3200, 3600]
+    attack:
+      base_damage: 400
+      min_range: 0
+      range: 180
+      attack_half_angle: 360
+      targets: {ground: true, air: false}
+      lock_target: false
+      quick_switch_target: true
+      timing:
+        interval: 15
+        interval_offset: 0
+        initial_cooldown: 0
+        prepare: 0
+        attack_point: 0
+        backswing: 0
+        cooling: 0
+      splash_radius: 4.5
+      weapons:
+        mode: standalone
+        indices: [0, 1]
+        per_skill: 2
+      melee: false
+      crosses_shields: false
+      path:
+        type: projectile
+        count: 46
+        release_interval: 0.05
+        speed: 75
+        target_offset_radius: 3
+        evenly_allocate_targets: true
+        extra_search_range: 20
+        pre_flight_height: 40
+        simulated_motion: false
+        interceptible: true
+        max_life: 44373

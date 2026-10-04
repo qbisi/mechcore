@@ -303,7 +303,13 @@ impl Simulation {
         };
         let (struck, source) = match &projectile.shooter {
             Shooter::Actor(owner) => (
-                self.actor_hit(projectile, *owner, aimed, reach, events)?,
+                self.actor_hit(
+                    projectile,
+                    self.skill_at_slot(*owner, usize::from(projectile.skill_slot)),
+                    aimed,
+                    reach,
+                    events,
+                )?,
                 Some((owner.object_ref(), projectile.team)),
             ),
             Shooter::Missile(shot) => (
@@ -356,13 +362,13 @@ impl Simulation {
     fn actor_hit(
         &mut self,
         projectile: &Projectile,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         aimed: FightActorRef,
         reach: Reach,
         events: &mut Vec<Event>,
     ) -> Result<super::damage::Struck> {
         let (owner_team, splash_radius) = self
-            .attacker(owner)
+            .skill_attacker(skill_ref)
             .map(|attacker| (attacker.team, attacker.splash_radius))
             .ok_or_else(|| Error::new("projectile owner is absent"))?;
         // A projectile carries no damage of its own: it takes its owner's as
@@ -370,11 +376,11 @@ impl Simulation {
         // whose debuff ends, or who die, while a shot is in the air land it
         // for the full 63.
         let amount = self
-            .attacker(owner)
+            .skill_attacker(skill_ref)
             .ok_or_else(|| Error::new("projectile owner is absent"))?
             .attack_damage;
         let crosses_shields = self
-            .attacker(owner)
+            .skill_attacker(skill_ref)
             .is_some_and(|attacker| attacker.attack.crosses_shields);
         // A shot that took no shield on its way and lands without a splash
         // is still taken by the shield of its target's side that covers the
@@ -386,14 +392,14 @@ impl Simulation {
         }
         if splash_radius == 0
             && let Some(covering) = shield
-            && self.shield_holds(covering, owner)
+            && self.shield_holds(covering, skill_ref.owner)
         {
             shield = None;
         }
         // A unit's projectile is owned by the unit, and strikes for the side
         // the unit is on as it lands.
         let hit = DamageHit {
-            source: Some(owner.object_ref()),
+            source: Some(skill_ref.owner.object_ref()),
             team: owner_team,
             skill_slot: Some(projectile.skill_slot),
             shield,
@@ -407,7 +413,7 @@ impl Simulation {
         // leaves the Crawlers around it untouched, and so does a Fire
         // Badger's at a wall block that fell. Any other projectile still
         // strikes where it lands, as an Arclight's does.
-        let simulated = self.attacker(owner).is_some_and(|attacker| {
+        let simulated = self.skill_attacker(skill_ref).is_some_and(|attacker| {
             matches!(
                 attacker.attack.path,
                 crate::rules::AttackPath::Projectile {

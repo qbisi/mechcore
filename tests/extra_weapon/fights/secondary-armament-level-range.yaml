@@ -1,0 +1,30 @@
+# What reaches Secondary Armament through the main gun, and what its level
+# changes.
+#
+# Round 2, a level 2 Sabertooth with Secondary Armament and Advanced Targeting
+# System, whose range reaches the main skill only, against two Marksmen. The
+# extra guns reach the main gun's corrected range plus their row's own, and
+# each searches as it updates, from its gun's rotation, passing over what lies
+# outside its arc widened by its attack angle: the two guns take different
+# Marksmen. Each shot deals the row's damage for level 2.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: game
+ticks: 96
+hash: {profile: mcfr-content-0.7.0, result: d39aff2027acfd8be07c005ac8e3d9885d21327b502e5c665d3ade1731cc4357}
+blue:
+  officers: [advanced_targeting_system]
+  techs:
+    sabertooth: [secondary_armament]
+  legacy_index: 1
+  units:
+  - {name: sabertooth, index: 0, position: {x: 5, y: -45}, level: 2, exp: 0/400/2929}
+red:
+  core_damage: 200
+  legacy_index: 2
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -100}}
+  - {name: marksman, index: 1, position: {x: 40, y: -100}}

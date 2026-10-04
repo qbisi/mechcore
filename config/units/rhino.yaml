@@ -1,6 +1,7 @@
 schema: mechcore.unit
 type_name: rhino
 unit_type_id: 5
+main_skill: 5001
 
 formation:
   members: 1

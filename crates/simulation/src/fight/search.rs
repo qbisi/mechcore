@@ -514,9 +514,14 @@ pub(in crate::fight) fn full_rotation_target_score_q32(
 /// then, after every unit of the sides that update before its own has moved.
 /// Every one of 565 recorded searches of a construction took that path, and
 /// the Anti-Armor Turret of replay 268477093 round 2 locks a Hound that the
-/// tick-start positions put 0.33 metres out of its reach.
-pub(in crate::fight) const fn search_prepared(owner: FightActorRef) -> bool {
-    matches!(owner, FightActorRef::Unit(_))
+/// tick-start positions put 0.33 metres out of its reach. Only a mech's main
+/// skill is prepared (`MainSkillSearchTargetController.PrepareSearch`): an
+/// extra skill's `PrepareSearch` does nothing, and its search is a `Select`.
+pub(in crate::fight) const fn search_prepared(skill_ref: SkillRef) -> bool {
+    matches!(
+        (skill_ref.owner, skill_ref.slot),
+        (FightActorRef::Unit(_), SkillSlot::Main)
+    )
 }
 
 /// The window `CalculateScore` is handed for a source whose window is its
@@ -702,7 +707,7 @@ impl Simulation {
         use_live_candidate_positions: bool,
     ) -> Result<Option<u64>> {
         match self.select_normal_target_with_order(
-            FightActorRef::Unit(actor_id),
+            SkillRef::main(FightActorRef::Unit(actor_id)),
             target_search_order,
             use_live_candidate_positions,
         )? {
@@ -742,12 +747,12 @@ impl Simulation {
     /// a construction's ask the same selector.
     pub(in crate::fight) fn select_normal_target_with_order(
         &self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
         use_live_candidate_positions: bool,
     ) -> Result<Option<FightActorRef>> {
         let source = self
-            .attacker(owner)
+            .skill_attacker(skill_ref)
             .ok_or_else(|| Error::new("target selector source is absent"))?;
         Ok(self.select_normal_target_from(
             &source,
@@ -840,7 +845,7 @@ impl Simulation {
             }
         }
 
-        scoring.chosen(|next| self.target_in_attack_range(SkillRef::main(owner), next))
+        scoring.chosen(|next| self.target_in_attack_range(source.skill, next))
     }
 
     /// `MechSearchTargetController.Update`, before the unit's skills: a unit
@@ -920,7 +925,7 @@ impl Simulation {
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<Option<FightActorRef>> {
         let source = self
-            .attacker(skill_ref.owner)
+            .skill_attacker(skill_ref)
             .ok_or_else(|| Error::new("target selector source is absent"))?;
         let (rotation_q32, attack_range, rotation_window_q32) = match (skill_ref.owner, slot) {
             (FightActorRef::Unit(actor_id), Some(slot)) if slot > 0 => {

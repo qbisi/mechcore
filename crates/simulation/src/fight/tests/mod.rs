@@ -59,6 +59,7 @@ pub(super) fn placement(
         important: false,
         ignores_control_beam: false,
         travelling: false,
+        extra_weapons: Vec::new(),
     }
 }
 

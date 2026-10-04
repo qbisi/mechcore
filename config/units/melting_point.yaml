@@ -1,6 +1,7 @@
 schema: mechcore.unit
 type_name: melting_point
 unit_type_id: 4
+main_skill: 4001
 
 formation:
   members: 1

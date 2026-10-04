@@ -1,6 +1,7 @@
 schema: mechcore.unit
 type_name: vortex
 unit_type_id: 31
+main_skill: 31001
 
 formation:
   members: 1

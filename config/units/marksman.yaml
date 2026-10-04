@@ -1,6 +1,7 @@
 schema: mechcore.unit
 type_name: marksman
 unit_type_id: 2
+main_skill: 2001
 
 formation:
   members: 1

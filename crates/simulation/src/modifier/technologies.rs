@@ -57,6 +57,14 @@ const ENERGY_SHIELD: &str = "energyShieldTechnologies";
 /// The list a sweep technology comes from.
 const SWEEP: &str = "sweepSkillIntensifyTechDatas";
 
+/// The list whose `ExtraWeaponTech` adds a skill beside its unit's main one.
+const EXTRA_WEAPON: &str = "extraWeaponTechnologies";
+
+/// The extra weapon technologies the fight runs. Each member's skill and
+/// what it does beyond a projectile differ, so each joins once a recording
+/// of it agrees: Secondary Armament, the Sabertooth's two guns.
+pub(crate) const FOUGHT_EXTRA_WEAPONS: [i32; 1] = [110_211];
+
 /// `EnergyShieldTech.GetLifeRate`: `FPoint.One`, whatever its row, so the
 /// shield holds the unit's whole maximum life.
 const SHIELD_LIFE_RATE: i64 = 1 << 32;
@@ -344,7 +352,10 @@ impl TechnologyEffects {
 
 /// What a row writes at rank one, or why this build will not apply it.
 fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correction)>, String> {
-    if ![PLAIN, LIFESTEAL, AUTO_RECOVERY, ENERGY_SHIELD, SWEEP].contains(&row.kind.as_str()) {
+    let fought_extra_weapon = row.kind == EXTRA_WEAPON && FOUGHT_EXTRA_WEAPONS.contains(&row.id);
+    if ![PLAIN, LIFESTEAL, AUTO_RECOVERY, ENERGY_SHIELD, SWEEP].contains(&row.kind.as_str())
+        && !fought_extra_weapon
+    {
         return Err(format!(
             "technology {} ({}) comes from TechnologyGroupData's {} list, and what \
              it does beyond its unit's numbers is not implemented",

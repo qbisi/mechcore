@@ -152,6 +152,10 @@ struct Equipment {
     /// `IIgnoreBuffDataSouce.IgnoreControllerBeam`, which every
     /// `IgnoreBuffEquipment` answers true: no control beam turns its unit.
     ignores_control_beam: bool,
+    /// `ISkillDataChangeDataSource.IsExtraSkillEffect`: whether what it
+    /// writes onto a skill reaches its unit's extra skills too
+    /// (`SkillDataModifier.AvaliableCheck`).
+    reaches_extra_skills: bool,
 }
 
 /// One row of the table, with every field the extraction writes.
@@ -175,10 +179,6 @@ struct Row {
     #[serde(default)]
     main_skill_effect: bool,
     #[serde(default)]
-    #[allow(
-        dead_code,
-        reason = "names skills the simulator does not give a unit; see corrections_of"
-    )]
     extra_skill_effect: bool,
     #[serde(default)]
     permanent_effect: bool,
@@ -485,6 +485,14 @@ impl EquipmentEffects {
             .is_some_and(|equipment| equipment.ignores_control_beam))
     }
 
+    /// Whether what one equipment writes onto its unit's skills reaches the
+    /// unit's extra skills too.
+    pub(crate) fn reaches_extra_skills(&self, id: i32) -> bool {
+        self.equipment
+            .get(&id)
+            .is_some_and(|equipment| equipment.reaches_extra_skills)
+    }
+
     /// One equipment's row, once its effect is known to apply, or nothing
     /// when its targeting does not reach the unit.
     fn worn(&self, id: i32, unit: &UnitConfig) -> Result<Option<&Equipment>> {
@@ -564,6 +572,7 @@ impl Equipment {
             }),
             important: row.important_unit,
             ignores_control_beam: row.kind == IGNORE_BUFF,
+            reaches_extra_skills: row.extra_skill_effect,
         }
     }
 }
@@ -660,9 +669,9 @@ fn production_of(row: &Row, who: &str) -> std::result::Result<Option<ProductionL
 
 /// What a row writes, or why this build will not apply it.
 ///
-/// The simulator gives a unit one skill, its main one, so a row reaches it
-/// only through `mainSkillEffect`; `extraSkillEffect` names skills this
-/// simulator does not give a unit, and is read neither way.
+/// A row reaches a unit's main skill only through `mainSkillEffect`; what
+/// it writes reaches an extra skill through `extraSkillEffect`, which
+/// [`EquipmentEffects::reaches_extra_skills`] answers.
 fn corrections_of(
     row: &Row,
     who: &str,

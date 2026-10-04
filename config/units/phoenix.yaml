@@ -1,6 +1,7 @@
 schema: mechcore.unit
 type_name: phoenix
 unit_type_id: 16
+main_skill: 16001
 
 formation:
   members: 2

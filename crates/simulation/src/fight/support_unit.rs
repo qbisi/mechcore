@@ -327,6 +327,7 @@ impl Simulation {
             important: false,
             ignores_control_beam: false,
             travelling: false,
+            extra_weapons: Vec::new(),
         };
         let mut actor = Actor::at_generated_position(placement, rules, x_q32, z_q32);
         if let Some(facing) = facing {
@@ -418,7 +419,7 @@ impl Simulation {
             let unit_id = actor.placement.unit_id;
             let team = actor.placement.team;
             self.actors.insert(unit_id, actor);
-            self.draw_first_intervals(SkillRef::main(FightActorRef::Unit(unit_id)))?;
+            self.draw_owner_first_intervals(FightActorRef::Unit(unit_id))?;
             if drop_damage && self.actors[&unit_id].rules.domain == UnitDomain::Ground {
                 self.drop_damage(unit_id, events)?;
             }

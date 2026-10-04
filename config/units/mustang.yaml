@@ -1,6 +1,7 @@
 schema: mechcore.unit
 type_name: mustang
 unit_type_id: 7
+main_skill: 7001
 
 formation:
   members: 12

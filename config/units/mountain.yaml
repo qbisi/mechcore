@@ -1,6 +1,7 @@
 schema: mechcore.unit
 type_name: mountain
 unit_type_id: 2002
+main_skill: 2002001
 
 formation:
   members: 1
@@ -59,3 +60,47 @@ attack:
     simulated_motion: false
     interceptible: false
     max_life: 0
+
+extra_weapons:
+  - technology: 11020021
+    skill: 2002002
+    use_main_skill_range: false
+    damage_by_level: [22500, 45000, 67500, 90000, 112500, 135000, 157500, 180000, 202500]
+    attack:
+      base_damage: 22500
+      min_range: 0
+      range: 180
+      attack_half_angle: 360
+      targets: {ground: true, air: false}
+      lock_target: true
+      quick_switch_target: true
+      timing:
+        interval: 14
+        interval_offset: 0.4
+        initial_cooldown: 0
+        prepare: 0
+        attack_point: 0.12
+        backswing: 0.2
+        cooling: 0
+      splash_radius: 15
+      weapons:
+        mode: group
+        indices: [0, 1]
+        per_skill: 2
+        fusillade: false
+        allow_same_target: true
+        mount: mech_body
+      melee: false
+      crosses_shields: false
+      path:
+        type: projectile
+        count: 1
+        release_interval: 0.12
+        speed: 160
+        target_offset_radius: 0
+        evenly_allocate_targets: false
+        extra_search_range: 0
+        pre_flight_height: 0
+        simulated_motion: false
+        interceptible: true
+        max_life: 583200

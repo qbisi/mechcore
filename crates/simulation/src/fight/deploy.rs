@@ -680,7 +680,7 @@ impl Simulation {
                 Ok((
                     actor_id,
                     self.select_normal_target_with_order(
-                        FightActorRef::Unit(actor_id),
+                        SkillRef::main(FightActorRef::Unit(actor_id)),
                         &target_search_order,
                         false,
                     )?,
@@ -725,11 +725,28 @@ impl Simulation {
             self.search_attack_target(SkillRef::main(FightActorRef::Unit(actor_id)));
         }
         // A weapon fixed to the body enters the fight with the body's
-        // rotation.
+        // rotation, and an extra skill's weapon at its rest: what it is
+        // mounted on plus its default angle, a child of it that turned with
+        // it (`RotationLimitFightTransform`).
         for actor in self.actors.values_mut() {
             let rotation_q32 = actor.body_rotation_q32;
             if let Some(group) = &mut actor.skills.main.group {
                 group.sibling_weapon_rotations_q32.fill(rotation_q32);
+            }
+            let turret = actor.turret_rotation();
+            for extra in &mut actor.skills.extras {
+                let weapons = &extra.rules.attack.weapons;
+                let parent = match (weapons.mount, turret) {
+                    (WeaponMount::MechBody, Some(turret)) => turret,
+                    _ => rotation_q32,
+                };
+                let default = weapons
+                    .arcs
+                    .as_ref()
+                    .and_then(|arcs| arcs.get(extra.weapon))
+                    .map_or(0, |arc| i64::from(arc.default) << 32);
+                extra.skill.weapon_rotations_q32[0] =
+                    parent.saturating_add(default).rem_euclid(360_i64 << 32);
             }
         }
         Ok(())

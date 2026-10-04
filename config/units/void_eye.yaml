@@ -1,6 +1,7 @@
 schema: mechcore.unit
 type_name: void_eye
 unit_type_id: 30
+main_skill: 30001
 
 formation:
   members: 3
