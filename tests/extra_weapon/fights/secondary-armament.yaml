@@ -1,0 +1,26 @@
+# Does a Sabertooth's Secondary Armament fire beside its main gun?
+#
+# Round 1, a Sabertooth with Secondary Armament against a Rhino.
+# The technology adds its skill's two guns as two skills after the main one:
+# slots 1 and 2, weapons 4 and 5. Each starts at its rest, the chassis plus its
+# default angle, turns at its own rotate speed within its arc, and fires once
+# it faces the Rhino within its attack angle: both first fire well after the
+# main gun. Each shot deals the row's damage for level 1, and stands where it
+# left on the tick it is released, its first update its climb.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 95
+hash: {profile: mcfr-content-0.7.0, result: 669cf7c995535c002f9e08d38fe9a79b85d6c5f8a81500ccf7c4d9075a858534}
+blue:
+  techs:
+    sabertooth: [secondary_armament]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 5, y: -45}, exp: 0/400/1300}
+red:
+  core_damage: 200
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}

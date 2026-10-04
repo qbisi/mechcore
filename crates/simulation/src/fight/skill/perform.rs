@@ -49,7 +49,7 @@ impl Simulation {
             return Ok(true);
         }
         let attack = self
-            .attacker(skill_ref.owner)
+            .skill_attacker(skill_ref)
             .expect("skill owner identity is stable")
             .attack;
         let backswing_steps = native_time_units_to_steps(attack.backswing_time_units());
@@ -161,7 +161,7 @@ impl Simulation {
         let target_x_q32 = target_view.x_q32;
         let target_z_q32 = target_view.z_q32;
         let attack = self
-            .attacker(skill_ref.owner)
+            .skill_attacker(skill_ref)
             .ok_or_else(|| Error::new("projectile owner is absent"))?
             .attack;
         let count = usize::try_from(attack.projectile_count())
@@ -171,8 +171,16 @@ impl Simulation {
         let interval = native_time_units_to_steps(attack.projectile_release_interval_time_units());
         let radius = attack.projectile_target_offset_radius();
         let climb_target = self.climb_target(target)?;
+        // An extra skill fires the one weapon of its row it was made for.
+        let (first_weapon, skill_slot) = (
+            match skill_ref.slot {
+                SkillSlot::Main => 0,
+                SkillSlot::Extra(index) => self.skills(skill_ref.owner).extras[index].weapon,
+            },
+            self.skill_slot(skill_ref),
+        );
         let source_y = self
-            .attacker(skill_ref.owner)
+            .skill_attacker(skill_ref)
             .ok_or_else(|| Error::new("projectile owner is absent"))?
             .y;
         let target_y = match target {
@@ -200,8 +208,8 @@ impl Simulation {
                     offset_x_q32: x,
                     offset_z_q32: z,
                     climb_target,
-                    weapon_index: index % weapon_count,
-                    skill_slot: 0,
+                    weapon_index: (first_weapon + index) % weapon_count,
+                    skill_slot,
                 });
         let first = releases
             .next()
@@ -210,7 +218,7 @@ impl Simulation {
             return Err(Error::new("a burst needs a projectile performer"));
         };
         pending.extend(releases);
-        self.release_pending_projectile(skill_ref.owner, first, events)
+        self.release_pending_projectile(skill_ref, first, events)
     }
 
     /// Where a burst's target stands as the burst begins, and its height:
@@ -236,16 +244,21 @@ impl Simulation {
     /// for each projectile as it is created, from where its owner stands
     /// then: an Overlord pushed aside between two releases of one burst
     /// climbs its later projectiles to another height.
+    ///
+    /// `Create` hands every projectile of a skill that is not the main one
+    /// such a flight, whatever its height, and the projectile's first update
+    /// is its climb (`FightProjectile.IsFlying`): a Sabertooth's Secondary
+    /// Armament shot stands where it left on the tick it is released.
     fn projectile_climb_q32(
         &self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         (target_x_q32, target_z_q32, target_y): (i64, i64, i64),
     ) -> Result<Option<i64>> {
         let source = self
-            .attacker(owner)
+            .skill_attacker(skill_ref)
             .ok_or_else(|| Error::new("projectile owner is absent"))?
             .launch();
-        if source.climb <= 0 {
+        if source.climb <= 0 && skill_ref.slot == SkillSlot::Main {
             return Ok(None);
         }
         let distance_q32 = native_q32_magnitude_3d(
@@ -349,7 +362,7 @@ impl Simulation {
             .next()
             .ok_or_else(|| Error::new("a standalone blow draws one offset"))?;
         self.release_pending_projectile(
-            owner,
+            SkillRef::main(owner),
             PendingProjectileRelease {
                 step,
                 target_kind: target.kind(),
@@ -368,7 +381,7 @@ impl Simulation {
 
     pub(in crate::fight) fn release_projectile(
         &mut self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         target_id: u64,
         skill_slot: usize,
         weapon_index: usize,
@@ -378,7 +391,7 @@ impl Simulation {
         let target_x_q32 = target.x_q32;
         let target_z_q32 = target.z_q32;
         self.release_projectile_at(
-            owner,
+            skill_ref,
             target_id,
             target_x_q32,
             target_z_q32,
@@ -390,7 +403,7 @@ impl Simulation {
 
     pub(in crate::fight) fn release_pending_projectile(
         &mut self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         pending: PendingProjectileRelease,
         events: &mut Vec<Event>,
     ) -> Result<()> {
@@ -403,9 +416,9 @@ impl Simulation {
                 // which climbs first, still names the point the burst aimed
                 // at when it levels off.
                 let (target_x_q32, target_z_q32) = (pending.target_x_q32, pending.target_z_q32);
-                let climb_q32 = self.projectile_climb_q32(owner, pending.climb_target)?;
+                let climb_q32 = self.projectile_climb_q32(skill_ref, pending.climb_target)?;
                 self.release_projectile_at(
-                    owner,
+                    skill_ref,
                     pending.target,
                     target_x_q32,
                     target_z_q32,
@@ -433,7 +446,7 @@ impl Simulation {
                     .ok_or_else(|| Error::new("projectile building target is absent"))?;
                 let (target_x_q32, target_z_q32) = (pending.target_x_q32, pending.target_z_q32);
                 self.release_projectile_to(
-                    owner,
+                    skill_ref,
                     ObjectKind::Building,
                     pending.target,
                     q32_to_space_rounded(target_x_q32),
@@ -459,7 +472,7 @@ impl Simulation {
     )]
     pub(in crate::fight) fn release_projectile_at(
         &mut self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         target_id: u64,
         target_x_q32: i64,
         target_z_q32: i64,
@@ -473,7 +486,7 @@ impl Simulation {
         let target_x = q32_to_space_rounded(target_x_q32);
         let target_z = q32_to_space_rounded(target_z_q32);
         self.release_projectile_to(
-            owner,
+            skill_ref,
             ObjectKind::Unit,
             target_id,
             target_x,
@@ -491,7 +504,7 @@ impl Simulation {
     #[allow(clippy::too_many_arguments)]
     pub(in crate::fight) fn release_projectile_to(
         &mut self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         target_kind: ObjectKind,
         target_id: u64,
         target_x: i64,
@@ -505,7 +518,7 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let attacker = self
-            .attacker(owner)
+            .skill_attacker(skill_ref)
             .ok_or_else(|| Error::new("projectile owner is absent"))?;
         // The weapon is fired by its position and named by the build's index.
         let weapon = attacker.attack.weapons.index(weapon_index);

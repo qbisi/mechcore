@@ -570,7 +570,7 @@ impl Simulation {
                     )?;
                 } else {
                     self.release_projectile(
-                        FightActorRef::Unit(actor_id),
+                        SkillRef::main(FightActorRef::Unit(actor_id)),
                         target_id,
                         skill_index,
                         skill_index,
@@ -609,7 +609,7 @@ impl Simulation {
                 }
                 self.refresh_group_skill_attack_interval(actor_id, skill_index, step)?;
                 self.release_projectile_to(
-                    FightActorRef::Unit(actor_id),
+                    SkillRef::main(FightActorRef::Unit(actor_id)),
                     ObjectKind::Building,
                     building_id,
                     q32_to_space_rounded(x_q32),
@@ -673,17 +673,7 @@ impl Simulation {
                 .skills
                 .main;
             let turned = rotate_towards_q32(skill.weapon_rotations_q32[slot], bearing, turn);
-            skill.weapon_rotations_q32[slot] = match (arc.left, arc.right) {
-                (Some(left), Some(right)) => {
-                    let rest = turret.saturating_add(i64::from(arc.default) << 32);
-                    let full = 360_i64 << 32;
-                    let half = 180_i64 << 32;
-                    let delta = (turned - rest + half).rem_euclid(full) - half;
-                    let delta = delta.clamp(-(i64::from(left) << 32), i64::from(right) << 32);
-                    (rest + delta).rem_euclid(full)
-                }
-                _ => turned,
-            };
+            skill.weapon_rotations_q32[slot] = held_within_arc(turned, turret, arc);
         }
     }
 
@@ -735,5 +725,23 @@ impl Simulation {
             .get_mut(&actor_id)
             .expect("actor identity is stable")
             .turret_aim_q32 = aim;
+    }
+}
+
+/// A weapon's rotation held within its arc: `RotationLimitFightTransform`
+/// keeps it within its left and right limits of its rest, its parent's
+/// rotation plus its default angle (`CalculateDefaultRotation`); a weapon
+/// without limits turns freely.
+pub(in crate::fight) fn held_within_arc(turned: i64, parent: i64, arc: &WeaponArc) -> i64 {
+    match (arc.left, arc.right) {
+        (Some(left), Some(right)) => {
+            let rest = parent.saturating_add(i64::from(arc.default) << 32);
+            let full = 360_i64 << 32;
+            let half = 180_i64 << 32;
+            let delta = (turned - rest + half).rem_euclid(full) - half;
+            let delta = delta.clamp(-(i64::from(left) << 32), i64::from(right) << 32);
+            (rest + delta).rem_euclid(full)
+        }
+        _ => turned,
     }
 }

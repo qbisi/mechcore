@@ -137,7 +137,7 @@ impl Simulation {
     /// motion, on the update `MotionAttackState` finds the target in range
     /// (`attack_in_range`); a construction has no motion that runs, so its
     /// skill asks them here, with the same answers to the same questions.
-    fn attack_in_reach(
+    pub(in crate::fight) fn attack_in_reach(
         &mut self,
         skill_ref: SkillRef,
         step: u64,
@@ -154,7 +154,7 @@ impl Simulation {
         // The attack is entered from idle; the state is not updated on the
         // tick it is entered.
         let entered_attack = skill.phase() == FightSkillPhase::Idle;
-        let in_attack_angle = self.target_in_attack_angle(skill_ref.owner, target);
+        let in_attack_angle = self.target_in_attack_angle(skill_ref, target);
         self.try_start_attack(
             skill_ref,
             step,

@@ -16,7 +16,7 @@ use crate::{
         LifeSteal, OfficerEffects, ProductionLine, StartBuff, SweepIntensify, TechnologyEffects,
         current_source,
     },
-    rules::{UnitConfig, UnitConfigs},
+    rules::{ExtraWeaponConfig, UnitConfig, UnitConfigs},
 };
 use commander_skills::CommanderSkillEffects;
 pub(crate) use commander_skills::{
@@ -90,6 +90,8 @@ pub(crate) struct Placement {
     /// Whether it opens the fight travelling: a unit deployed into an ambush
     /// zone, which `SuperDeploymentSystem` holds until its side arrives.
     pub(crate) travelling: bool,
+    /// The extra weapons its technologies add beside its main skill.
+    pub(crate) extra_weapons: Vec<ExtraWeaponConfig>,
 }
 
 /// A production line a unit runs, with what it makes resolved: the unit's
@@ -686,6 +688,7 @@ fn compile_formation(
         important: worn.important,
         ignores_control_beam: worn.ignores_control_beam,
         travelling: formation.travelling,
+        extra_weapons: worn.extra_weapons,
     })
 }
 
@@ -770,6 +773,7 @@ struct Worn {
     ignored_buffs: Vec<u32>,
     important: bool,
     ignores_control_beam: bool,
+    extra_weapons: Vec<ExtraWeaponConfig>,
 }
 
 /// What this side's loadout and a formation's equipment write onto it.
@@ -938,6 +942,9 @@ fn worn(
         auto_recovery
             .extend(refused.hold(loadouts.equipment.auto_recovery(id, rules).map_err(on_side))?);
     }
+    let extra_weapons = extra_weapons(
+        side_name, type_name, equipment, rules, side, loadouts, refused,
+    )?;
     let in_force = |error: String| refusal(Error::new(error));
     Some(Worn {
         corrections,
@@ -961,7 +968,72 @@ fn worn(
         ignored_buffs,
         important,
         ignores_control_beam,
+        extra_weapons,
     })
+}
+
+/// The extra weapons a unit's technologies add beside its main skill
+/// (`ExtraWeaponTech`), or `None` with a refusal kept.
+///
+/// What a source writes onto a skill reaches an extra skill only where
+/// `SkillDataModifier.AvaliableCheck` lets it: an officer never does, nor a
+/// technology of the units these weapons serve, and an equipment through its
+/// `extraSkillEffect` and an Energy Tower skill always. How such a correction
+/// composes on an extra skill is not measured, so a unit it reaches is
+/// refused.
+fn extra_weapons(
+    side_name: &str,
+    type_name: &str,
+    equipment: &[i32],
+    rules: &UnitConfig,
+    side: &SidePlan,
+    loadouts: &Loadouts,
+    refused: &mut Refusals,
+) -> Option<Vec<ExtraWeaponConfig>> {
+    let weapons: Vec<ExtraWeaponConfig> = rules
+        .extra_weapons
+        .iter()
+        .filter(|weapon| side.techs.units.contains(&weapon.technology))
+        .cloned()
+        .collect();
+    if weapons.is_empty() {
+        return Some(weapons);
+    }
+    let on_skill = |written: &[(Channel, Entry)]| {
+        written
+            .iter()
+            .any(|(channel, _)| *channel == Channel::Skill)
+    };
+    let mut reaching = Vec::new();
+    for &id in equipment {
+        if loadouts.equipment.reaches_extra_skills(id)
+            && loadouts
+                .equipment
+                .corrections(id, rules)
+                .is_ok_and(|written| on_skill(&written))
+        {
+            reaching.push(format!("equipment {id}"));
+        }
+    }
+    for &id in &side.energy_tower_skills {
+        if loadouts
+            .energy_tower
+            .corrections(std::slice::from_ref(&id), rules)
+            .is_ok_and(|written| on_skill(&written))
+        {
+            reaching.push(format!("energy tower skill {id}"));
+        }
+    }
+    if reaching.is_empty() {
+        Some(weapons)
+    } else {
+        refused.push(format!(
+            "side {side_name} unit type {type_name:?} carries an extra weapon that {} \
+             reaches, and how a correction composes on an extra skill is not measured",
+            reaching.join(" and ")
+        ));
+        None
+    }
 }
 
 fn validate_formation_footprint(

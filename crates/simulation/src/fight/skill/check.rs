@@ -122,7 +122,7 @@ impl Simulation {
             if !self.search_lock_target(skill_ref, slot, target_search_order)? {
                 return Ok(false);
             }
-            if !self.quick_switch_target(skill_ref.owner)
+            if !self.quick_switch_target(skill_ref)
                 && self.slot_attack_target(skill_ref, slot) != before
             {
                 return Ok(false);
@@ -175,7 +175,7 @@ impl Simulation {
         let started = skill
             .next_attack_step
             .saturating_sub(skill.current_attack_interval);
-        let interval = self.draw_attack_interval(skill_ref.owner)?;
+        let interval = self.draw_attack_interval(skill_ref)?;
         let skill = self.skill_mut(skill_ref);
         skill.current_attack_interval = interval;
         skill.next_attack_step = if refresh {
@@ -412,7 +412,7 @@ impl Simulation {
     /// and enters `SkillIdleState` with its targets cleared.
     pub(in crate::fight) fn finish_attack(&mut self, skill_ref: SkillRef, step: u64) {
         let cooling_steps = native_time_units_to_steps(
-            self.attacker(skill_ref.owner)
+            self.skill_attacker(skill_ref)
                 .expect("skill owner identity is stable")
                 .attack
                 .cooling_time_units(),
@@ -435,7 +435,7 @@ impl Simulation {
         }
         // `MotionIdleState.Enter` publishes the stop once; a unit whose
         // motion is idle already keeps the point it stopped at.
-        if let Some(actor) = self.moving_mut(skill_ref.owner) {
+        if let Some(actor) = self.moving_mut(skill_ref) {
             let entered_idle = actor.motion.state != MotionState::Idle;
             actor.lose_target_motion(entered_idle);
         }
@@ -458,24 +458,20 @@ impl Simulation {
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<Option<FightActorRef>> {
         let skill = self.skill(skill_ref);
-        let prepared = search_prepared(skill_ref.owner)
+        let prepared = search_prepared(skill_ref)
             && skill.phase() == FightSkillPhase::Attack
             && skill
                 .lock_target
                 .and_then(|lock| self.fight_actor(lock))
                 .is_none_or(|lock| !lock.query_alive);
         let selected =
-            self.select_normal_target_with_order(skill_ref.owner, target_search_order, !prepared)?;
+            self.select_normal_target_with_order(skill_ref, target_search_order, !prepared)?;
         if prepared
             && selected
                 .and_then(|candidate| self.fight_actor(candidate))
                 .is_some_and(|target| target.query_alive && !target.alive)
         {
-            return self.select_normal_target_with_order(
-                skill_ref.owner,
-                target_search_order,
-                true,
-            );
+            return self.select_normal_target_with_order(skill_ref, target_search_order, true);
         }
         Ok(selected)
     }
@@ -518,7 +514,7 @@ impl Simulation {
         if skill.standalone() {
             return;
         }
-        if let Some(actor) = self.moving_mut(skill_ref.owner) {
+        if let Some(actor) = self.moving_mut(skill_ref) {
             actor.lose_target_motion(true);
         }
     }

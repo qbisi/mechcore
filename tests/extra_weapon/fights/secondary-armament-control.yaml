@@ -1,0 +1,17 @@
+# The control for `secondary-armament.yaml`: the same Sabertooth and Rhino
+# without the technology, the main gun alone.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 128
+hash: {profile: mcfr-content-0.7.0, result: 09fc34919ba203f523fde27c3cb100f5385f45a5cd849671270f115edbfaec54}
+blue:
+  units:
+  - {name: sabertooth, index: 0, position: {x: 5, y: -45}, exp: 0/400/1300}
+red:
+  core_damage: 200
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}

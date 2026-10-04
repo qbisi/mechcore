@@ -29,9 +29,9 @@ use crate::{
         Placement,
     },
     rules::{
-        AttackConfig, AttackPath, AttackTargets, Magazine, MapBuilding, MapsConfig, RvoSize,
-        SimulationConfig, TowersConfig, UnitConfig, UnitConfigs, UnitDomain, WeaponMode,
-        WeaponMount,
+        AttackConfig, AttackPath, AttackTargets, ExtraWeaponConfig, Magazine, MapBuilding,
+        MapsConfig, RvoSize, SimulationConfig, TowersConfig, UnitConfig, UnitConfigs, UnitDomain,
+        WeaponArc, WeaponMode, WeaponMount,
     },
 };
 
@@ -93,7 +93,8 @@ use skill::ATTACK_COUNT_RESET;
 #[cfg(test)]
 use skill::Performer;
 use skill::{
-    FightSkillPhase, GroupBehaviour, Launch, Skill, SkillKind, SkillManager, SkillRef, SkillUpdate,
+    ExtraSkill, FightSkillPhase, GroupBehaviour, Launch, Skill, SkillKind, SkillManager, SkillRef,
+    SkillSlot, SkillUpdate,
 };
 use tower::{RunningBuff, TowerLoss};
 
@@ -842,22 +843,24 @@ impl Simulation {
                     // which no skill drops, and its motion goes on after it.
                     actor.lose_target_motion(entered_idle);
                 }
-                actor.skills.main.drop_lock();
-                actor.skills.main.attack_target_left = None;
                 actor.skills.main.clear_slots();
-                // A won fight runs on without `FightSkill.ExitFight` until it
-                // ends: a skill already cooling goes on cooling at what it
-                // named, and only the end of the fight ends it. A cooling
-                // this very tick would have begun is not one the build's
-                // attack state has entered yet, and goes idle with it.
-                let cooling_before = actor
-                    .skills
-                    .main
-                    .cooling()
-                    .is_some_and(|(started, _)| started < step);
-                if ready_to_finish || !cooling_before {
-                    actor.skills.main.set_cooling(None);
-                    actor.skills.main.set_phase(FightSkillPhase::Idle);
+                // Every skill of the unit lets its target go, its extra
+                // skills' as its main one's. A won fight runs on without
+                // `FightSkill.ExitFight` until it ends: a skill already
+                // cooling goes on cooling at what it named, and only the end
+                // of the fight ends it. A cooling this very tick would have
+                // begun is not one the build's attack state has entered yet,
+                // and goes idle with it.
+                let skills = std::iter::once(&mut actor.skills.main)
+                    .chain(actor.skills.extras.iter_mut().map(|extra| &mut extra.skill));
+                for skill in skills {
+                    skill.drop_lock();
+                    skill.attack_target_left = None;
+                    let cooling_before = skill.cooling().is_some_and(|(started, _)| started < step);
+                    if ready_to_finish || !cooling_before {
+                        skill.set_cooling(None);
+                        skill.set_phase(FightSkillPhase::Idle);
+                    }
                 }
                 if ready_to_finish {
                     actor.motion.current_velocity_x_q32 = 0;
