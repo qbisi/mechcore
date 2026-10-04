@@ -1010,6 +1010,10 @@ impl Simulation {
                 );
                 if actor.rules.has_body {
                     actor.rotate_weapons_towards(bearing_q32);
+                    // The body still turns to where the unit moves, as the
+                    // main skill's attack turns it: a Centurion walking on
+                    // as its missile skill holds the motion.
+                    actor.turn_to_move_direction();
                 } else {
                     actor.rotate_body_towards(bearing_q32);
                     actor.aim_rotation = actor.body_rotation;
