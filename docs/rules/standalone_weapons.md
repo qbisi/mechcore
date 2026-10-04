@@ -135,7 +135,8 @@ The Mountain's motion follows one of its weapons, the one whose skill is
   none, whatever the others hold. An attacking motion stays in its attack
   while that weapon's target is in its range.
 - **The turret turns to that weapon's lock**
-  (`MotionController.CalculateTargetDirection`).
+  (`MotionController.CalculateTargetDirection`), even while the weapon is
+  idle on a lock its fallback search took and names no target.
 - **The first weapon starts from the motion.** As the motion attacks, the
   first weapon's skill starts its attack on its own target once that target
   is in its range and its weapon's angle; the others start in their own

@@ -709,10 +709,11 @@ impl Simulation {
                 .turret_aim_q32 = aim;
             return;
         }
+        // `CalculateTargetDirection` asks the weapon holding the motion for
+        // its lock (`GetLockTarget`), idle or not.
         let holder = skill.group.as_ref().map_or(0, |group| group.motion_slot);
         let aim = skill
             .slot_lock(holder)
-            .and_then(|_| skill.group_attack_target(holder))
             .and_then(|target| self.fight_actor(target))
             .map(|view| {
                 direction_degrees_q32_raw(
