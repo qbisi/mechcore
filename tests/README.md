@@ -9,6 +9,7 @@ out to show:
 
 | Directory | What it holds |
 | --- | --- |
+| [`armor/`](armor/README.md) | what an armour technology takes off each hit on its unit |
 | [`battle_skill/`](battle_skill/README.md) | when a released battle skill lands, what it reaches, and what it writes or summons |
 | [`construction/`](construction/README.md) | what a construction becomes in a fight, and what attacks it |
 | [`control/`](control/README.md) | what a control beam turns, what it strikes instead, and what an item or a shield changes about it |

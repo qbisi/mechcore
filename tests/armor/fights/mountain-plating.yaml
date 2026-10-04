@@ -1,0 +1,23 @@
+# Mountain Plating: a hit the reduction would leave below 1 deals 1.
+#
+# A Mountain with Mountain Plating, 700 off every hit at level 1, against
+# two Arclights whose hits deal 365. Each of the four hits that reach the
+# Mountain before it kills them takes 1 of its life.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 50
+hash: {profile: mcfr-content-0.7.0, result: 64acb03178959720239fb8244772e149d9f2219bf95c89ec57dc256c9a0a4f61}
+blue:
+  techs:
+    mountain: [mountain_plating]
+  units:
+  - {name: mountain, index: 0, position: {x: 5, y: -45}, exp: 0/400/3200}
+red:
+  core_damage: 500
+  units:
+  - {name: arclight, index: 0, position: {x: -40, y: -60}}
+  - {name: arclight, index: 1, position: {x: 40, y: -60}}

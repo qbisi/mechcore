@@ -12,9 +12,10 @@
 //! but correct its unit's numbers, and is applied unless its row names a field
 //! in `special`. One of any other list is a subclass that does more (a buff, a
 //! splash, a second weapon, a summon). A `LifestealTech` is applied for its
-//! numbers and hands its unit a [`LifeSteal`], and an `AutoRecoveryTech` that
-//! repairs in any state an [`AutoRecovery`]; any other is refused by name
-//! rather than applied for its numbers alone.
+//! numbers and hands its unit a [`LifeSteal`], an `AutoRecoveryTech` that
+//! repairs in any state an [`AutoRecovery`], and an `ArmorStrengthenTech` a
+//! reduction of every hit on it; any other is refused by name rather than
+//! applied for its numbers alone.
 //!
 //! A technology belongs to one unit type, which is how a side's flat list of
 //! technologies reaches the units it corrects: a technology the side holds
@@ -25,6 +26,8 @@
 //! read at index zero, because which index a fight reads for a given rank is
 //! `docs/rules/technology_effects.md`'s unresolved question and a layout's
 //! units above rank one are refused by the module registry anyway.
+//! An armour technology's reduction is not one of these effects: the build
+//! reads it at the unit's level itself.
 
 use std::collections::BTreeMap;
 
@@ -56,6 +59,9 @@ const ENERGY_SHIELD: &str = "energyShieldTechnologies";
 
 /// The list a sweep technology comes from.
 const SWEEP: &str = "sweepSkillIntensifyTechDatas";
+
+/// The list whose `ArmorStrengthenTech` is an `IArmorStrengthen` as well.
+const ARMOR: &str = "armorStrengthenTechnologyDatas";
 
 /// The list whose `ExtraWeaponTech` adds a skill beside its unit's main one.
 const EXTRA_WEAPON: &str = "extraWeaponTechnologies";
@@ -101,6 +107,9 @@ struct Technology {
     energy_shield: Option<EnergyShield>,
     /// What it hands its unit's sweep, if its class is a sweep's.
     sweep: Option<SweepIntensify>,
+    /// What it answers `IArmorStrengthen.GetReduceDamageValue` with, by its
+    /// unit's level, if its class is one.
+    reduce_damage: Option<Vec<i64>>,
 }
 
 /// One row of the table. Every effect is a list because a technology's effect
@@ -151,6 +160,10 @@ struct Row {
     recovery_duration: Vec<i64>,
     #[serde(default)]
     recovery_life_rate: Vec<i64>,
+    /// `ArmorStrengthenTechnologyData.reduceDamageValue`, on an armour row:
+    /// one entry per unit level.
+    #[serde(default)]
+    reduce_damage_value: Vec<i64>,
     #[serde(default)]
     sweep_skill_id: i64,
     #[serde(default)]
@@ -228,6 +241,7 @@ impl TechnologyEffects {
                 fixed_direction: row.sweep_fixed_direction,
             });
             let _ = row.sweep_skill_id;
+            let reduce_damage = (row.kind == ARMOR).then(|| row.reduce_damage_value.clone());
             let technology = Technology {
                 unit: row.unit.clone(),
                 effect: corrections_of(&row),
@@ -235,6 +249,7 @@ impl TechnologyEffects {
                 auto_recovery,
                 energy_shield,
                 sweep,
+                reduce_damage,
             };
             if technologies.insert(id, technology).is_some() {
                 return Err(Error::new(format!(
@@ -334,6 +349,46 @@ impl TechnologyEffects {
             .find_map(|technology| technology.sweep))
     }
 
+    /// What this side's armour technologies write onto one unit type at one
+    /// level: `ArmorStrengthenEffectProvider.EnableEffect` adds each one's
+    /// `GetReduceDamageValue` to the unit's `ReduceDamageValue`, which
+    /// `ArmorStrengthenTechnologyData` reads at the unit's level, as
+    /// `SkillData.GetDamage` reads a skill's damage, its last entry for a
+    /// level beyond the list.
+    ///
+    /// # Errors
+    ///
+    /// Returns the error [`Self::corrections`] does.
+    pub(crate) fn armor(
+        &self,
+        held: &[i32],
+        unit_type: &str,
+        level: i64,
+    ) -> Result<Vec<(Channel, Entry)>> {
+        self.corrections(held, unit_type)?;
+        Ok(held
+            .iter()
+            .filter_map(|id| self.technologies.get(id))
+            .filter(|technology| technology.unit == unit_type)
+            .filter_map(|technology| technology.reduce_damage.as_deref())
+            .filter_map(|values| {
+                let last = values.last()?;
+                let at_level = usize::try_from(level - 1)
+                    .ok()
+                    .and_then(|index| values.get(index))
+                    .unwrap_or(last);
+                (*at_level != 0).then_some((
+                    Channel::Unit,
+                    Entry {
+                        index: Index::ReduceDamage,
+                        source: SOURCE,
+                        correction: Correction::Value(*at_level),
+                    },
+                ))
+            })
+            .collect())
+    }
+
     /// What this side's technologies answer `IAutoRecovery` with on one unit
     /// type, each that is one.
     ///
@@ -354,7 +409,7 @@ impl TechnologyEffects {
 /// What a row writes at rank one, or why this build will not apply it.
 fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correction)>, String> {
     let fought_extra_weapon = row.kind == EXTRA_WEAPON && FOUGHT_EXTRA_WEAPONS.contains(&row.id);
-    if ![PLAIN, LIFESTEAL, AUTO_RECOVERY, ENERGY_SHIELD, SWEEP].contains(&row.kind.as_str())
+    if ![PLAIN, LIFESTEAL, AUTO_RECOVERY, ENERGY_SHIELD, SWEEP, ARMOR].contains(&row.kind.as_str())
         && !fought_extra_weapon
     {
         return Err(format!(
@@ -463,6 +518,9 @@ mod tests {
     /// Machine Learning for the Vortex, a plain technology that corrects the
     /// experience its unit gains.
     const MACHINE_LEARNING: i32 = 10131;
+    /// Armor Enhancement for the Rhino, an `armorStrengthenTechnologyDatas`
+    /// row: +0.5 of life and 60 off each hit a level.
+    const ARMOR_ENHANCEMENT: i32 = 3005;
 
     #[test]
     fn a_technology_writes_onto_the_unit_whose_table_row_names_it() {
@@ -528,5 +586,28 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(refused.contains("expChangeRate"), "{refused}");
+    }
+
+    /// An armour technology writes its reduction at the unit's level, the
+    /// last entry beyond its list, beside its life rate.
+    #[test]
+    fn an_armour_technology_reduces_by_the_units_level() {
+        let table = TechnologyEffects::load().unwrap();
+        let written = table.corrections(&[ARMOR_ENHANCEMENT], "rhino").unwrap();
+        assert_eq!(written.len(), 1);
+        assert_eq!(written[0].1.index, Index::MaxLife);
+        for (level, reduction) in [(1, 60), (3, 180), (12, 540)] {
+            let armour = table.armor(&[ARMOR_ENHANCEMENT], "rhino", level).unwrap();
+            assert_eq!(armour.len(), 1);
+            assert_eq!(armour[0].0, Channel::Unit);
+            assert_eq!(armour[0].1.index, Index::ReduceDamage);
+            assert_eq!(armour[0].1.correction, Correction::Value(reduction));
+        }
+        assert!(
+            table
+                .armor(&[ARMOR_ENHANCEMENT], "marksman", 1)
+                .unwrap()
+                .is_empty()
+        );
     }
 }

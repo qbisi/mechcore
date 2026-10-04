@@ -81,6 +81,11 @@ pub(crate) enum Index {
     /// `MechDataChangeFloat` 1, `gf_life_time_value`: how long that fire
     /// burns. Q32.32 seconds.
     GroundFireLifeTime,
+    /// `MechDataChangeInt.ReduceDamageValue`, `reduce_damage_value`: what
+    /// each hit on the unit loses, which `ArmorStrengthenEffectProvider`
+    /// writes onto its unit and `PerformHitTargetEffect` reads back. Whole
+    /// damage.
+    ReduceDamage,
 }
 
 impl Index {
@@ -109,6 +114,7 @@ impl Index {
             Self::DamagePerKill => "damage per kill",
             Self::GroundFireRange => "ground fire range",
             Self::GroundFireLifeTime => "ground fire life time",
+            Self::ReduceDamage => "damage reduction",
         }
     }
 }
@@ -288,6 +294,7 @@ fn refuse_unrecorded_skill_fields(skill: &Overlay) -> Result<()> {
         Index::AmplifyDamage,
         Index::GroundFireRange,
         Index::GroundFireLifeTime,
+        Index::ReduceDamage,
     ] {
         if skill.aggregate(index).is_some() {
             return Err(Error::new(format!(
@@ -764,10 +771,24 @@ impl Stats {
                 speed,
             )?;
         }
-        // `DataSet.floatDatas`, Q32.32 as the fire reads them.
-        for (index, field) in [
-            (Index::GroundFireRange, "gf_range_value"),
-            (Index::GroundFireLifeTime, "gf_life_time_value"),
+        // `DataSet.floatDatas`, Q32.32 as the fire reads them, and
+        // `DataSet.intDatas`' damage reduction, whole damage.
+        for (index, channel, field) in [
+            (
+                Index::GroundFireRange,
+                ModifierChannel::MechFloat,
+                "gf_range_value",
+            ),
+            (
+                Index::GroundFireLifeTime,
+                ModifierChannel::MechFloat,
+                "gf_life_time_value",
+            ),
+            (
+                Index::ReduceDamage,
+                ModifierChannel::MechInt,
+                "reduce_damage_value",
+            ),
         ] {
             if let Some(aggregate) = unit.aggregate(index) {
                 if aggregate.rate()? != (0, 0) {
@@ -778,7 +799,7 @@ impl Stats {
                 }
                 push(
                     modifiers,
-                    ModifierChannel::MechFloat,
+                    channel,
                     None,
                     field,
                     ModifierPart::Value,
@@ -930,6 +951,7 @@ impl Stats {
             Index::DamagePerKill,
             Index::GroundFireRange,
             Index::GroundFireLifeTime,
+            Index::ReduceDamage,
         ] {
             if buff.aggregate(index).is_some() {
                 return Err(Error::new(format!(
@@ -960,6 +982,17 @@ impl Stats {
     /// Returns an error when the raised hit leaves the signed range.
     pub(crate) fn damage_taken_raised(&self, amount: i64) -> Result<i64> {
         self.overlays.resolve_raised(Index::AmplifyDamage, amount)
+    }
+
+    /// What each hit on this unit loses, `FightMech.GetDataInt` of
+    /// `ReduceDamageValue`: the values its `DataSet` holds, summed.
+    pub(crate) fn reduce_damage(&self) -> i64 {
+        self.overlays
+            .unit
+            .aggregate(Index::ReduceDamage)
+            .map_or(0, |aggregate| {
+                i64::try_from(aggregate.value).unwrap_or(i64::MAX)
+            })
     }
 
     pub(crate) const fn attack_interval_q32(&self) -> i64 {

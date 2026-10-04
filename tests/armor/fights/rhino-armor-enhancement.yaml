@@ -1,0 +1,25 @@
+# Armor Enhancement: a level-1 Rhino's every hit taken loses 60.
+#
+# A Rhino with Armor Enhancement against three Marksmen, each of whose
+# shots deals 2329. The technology writes 60, its first entry, onto the
+# Rhino's `reduce_damage_value`, and each of the twelve shots that reach the
+# Rhino takes 2269 of its life.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 311
+hash: {profile: mcfr-content-0.7.0, result: 855f925479fff9b9112e25d4129b199679752762289cf7fa826fa30704f62f91}
+blue:
+  techs:
+    rhino: [armor_enhancement]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/600/1150}
+red:
+  core_damage: 200
+  units:
+  - {name: marksman, index: 0, position: {x: -40, y: -100}}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}}
+  - {name: marksman, index: 2, position: {x: 40, y: -100}}

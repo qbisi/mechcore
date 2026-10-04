@@ -63,6 +63,7 @@ SUBCLASS_LISTS = (
     ("lifesteal_multiplier", "lifestealMultiplier", "lifestealTechnologies"),
     ("recovery_duration", "recoveryDuration", "autoRecoveryTechnologies"),
     ("recovery_life_rate", "recoveryLifeRate", "autoRecoveryTechnologies"),
+    ("reduce_damage_value", "reduceDamageValue", "armorStrengthenTechnologyDatas"),
 )
 # The same for a field that is one value rather than a rank list.
 SUBCLASS_SCALARS = (
@@ -78,7 +79,8 @@ SUBCLASS_SCALARS = (
 # The lists whose rows say in `special` what they set beyond the fields
 # this table carries: the plain one, and each subclass's the simulator reads.
 IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnologies",
-               "energyShieldTechnologies", "sweepSkillIntensifyTechDatas")
+               "energyShieldTechnologies", "sweepSkillIntensifyTechDatas",
+               "armorStrengthenTechnologyDatas")
 # The list of `TechnologyGroupData` a plain technology comes from. A row of any
 # other list is a subclass (`BuffTechnologyData`, `SplashTechnologyData` and
 # the rest) that does something beyond its unit's numbers.
@@ -93,7 +95,7 @@ DESCRIPTIVE = {
 }
 RATES = {"life_rate", "damage_rate", "attack_range_rate", "attack_interval_rate", "projectile_life_rate",
          "lifesteal_multiplier", "recovery_life_rate"}
-INTEGERS = {"speed_value", "min_attack_range_value"}
+INTEGERS = {"speed_value", "min_attack_range_value", "reduce_damage_value"}
 
 
 def raw(value):
@@ -278,7 +280,9 @@ def main() -> int:
         "# share of maximum life each restores. A sweep technology names the",
         "# skill it changes and the metres it adds to the strip's width and",
         "# length, and sets whether the strip lies across the line to the",
-        "# target, runs backwards, and keeps one direction.",
+        "# target, runs backwards, and keeps one direction. An armour technology",
+        "# carries its `reduce_damage_value`, the damage each hit on its unit",
+        "# loses, one entry per unit level.",
         "",
         "technologies:",
     ]

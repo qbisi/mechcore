@@ -24,6 +24,9 @@ pub(in crate::fight) struct DamageHit {
     /// Whose objects it strikes, `IDamageProvider.GetEffectTargetType`.
     pub(in crate::fight) effect: EffectTarget,
     pub(in crate::fight) amount: i64,
+    /// The class of `IDamageProvider` that deals it, where
+    /// `PerformHitTargetEffect` tests it.
+    pub(in crate::fight) provider: Provider,
     /// The projectile that carried the hit, if one did.
     pub(in crate::fight) projectile: Option<ObjectRef>,
     /// The index of the skill that dealt it in its owner's skills.
@@ -78,6 +81,7 @@ impl DamageHit {
             team: attacker.placement.team,
             effect: EffectTarget::Opponent,
             amount,
+            provider: Provider::Other,
             projectile: None,
             skill_slot: Some(skill_slot),
             aimed: Some(aimed),
@@ -108,6 +112,7 @@ impl DamageHit {
             team: projectile.team,
             effect: EffectTarget::Opponent,
             amount,
+            provider: Provider::Other,
             projectile: Some(projectile.object_ref()),
             skill_slot: None,
             aimed: Some(aimed),
@@ -152,6 +157,7 @@ impl DamageHit {
             team,
             effect: EffectTarget::Both,
             amount,
+            provider: Provider::Other,
             projectile: None,
             skill_slot: None,
             aimed: None,
@@ -168,6 +174,15 @@ impl DamageHit {
             }),
         }
     }
+}
+
+/// The class of `IDamageProvider` behind a hit, where shared code tests it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::fight) enum Provider {
+    /// `SupportUnitDamageProvider`: a summon's drop.
+    SupportUnit,
+    /// Any other.
+    Other,
 }
 
 /// Whose objects a hit strikes: `DamagePerformer.PrepareRangeTargets` takes
@@ -412,7 +427,7 @@ impl Simulation {
         hit: (i64, bool),
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let stroke = self.strike(target, None, team, hit)?;
+        let stroke = self.strike(target, None, team, hit, Provider::Other)?;
         self.count_hit(None, team, target, &stroke)?;
         self.turned_unit_fell(target, &stroke);
         if stroke.actual > 0 {
@@ -439,13 +454,15 @@ impl Simulation {
     /// The one place this simulator takes life away. A unit remembers who hurt
     /// it and leaves the fight when it dies; a building stops being a target
     /// when it falls. `amplified` is `PerformHitTargetEffect`'s
-    /// `isAmplifyDamageAffected`.
+    /// `isAmplifyDamageAffected`, and `provider` the class of what deals
+    /// the hit.
     pub(in crate::fight) fn strike(
         &mut self,
         target: FightActorRef,
         source: Option<ObjectRef>,
         source_team: u32,
         (amount, amplified): (i64, bool),
+        provider: Provider,
     ) -> Result<Stroke> {
         match target {
             FightActorRef::Unit(unit_id) => {
@@ -465,6 +482,9 @@ impl Simulation {
                 } else {
                     (amount, amount)
                 };
+                // Then the unit's damage reduction comes off it, though
+                // never to below 1, and off a summon's drop only so far.
+                let amount = reduced(amount, unit.stats.reduce_damage(), provider);
                 let previous_life = unit.life;
                 // `FightMech.OnHitted`: a shield with energy left takes the
                 // hit, as much of it as it holds, and the unit loses no life;
@@ -604,7 +624,13 @@ impl Simulation {
                 struck.targets.push(target);
                 continue;
             }
-            let stroke = self.strike(target, hit.source, hit.source_team, (hit.amount, true))?;
+            let stroke = self.strike(
+                target,
+                hit.source,
+                hit.source_team,
+                (hit.amount, true),
+                hit.provider,
+            )?;
             self.count_hit(hit.source, hit.source_team, target, &stroke)?;
             self.turned_unit_fell(target, &stroke);
             struck.targets.push(target);
@@ -950,7 +976,13 @@ impl Simulation {
         // Balls of `wall-laser.yaml` read `damage` and then
         // `building_destroyed`. A beam that took no life records no damage,
         // as no other hit does.
-        let stroke = self.strike(target, Some(attacker_ref), attacker_team, (damage, true))?;
+        let stroke = self.strike(
+            target,
+            Some(attacker_ref),
+            attacker_team,
+            (damage, true),
+            Provider::Other,
+        )?;
         self.count_hit(Some(attacker_ref), attacker_team, target, &stroke)?;
         self.turned_unit_fell(target, &stroke);
         if let Some(position) = stroke.death {
@@ -993,5 +1025,18 @@ impl Simulation {
             ));
         }
         Ok(())
+    }
+}
+
+/// `PerformHitTargetEffect` on a unit, after the rates: a hit its damage
+/// reduction would leave below 1 deals 1, and any other loses the whole
+/// reduction, unless a summon's drop deals it.
+fn reduced(amount: i64, reduction: i64, provider: Provider) -> i64 {
+    if amount > 0 && amount - reduction < 1 {
+        1
+    } else if amount != 0 && provider != Provider::SupportUnit {
+        amount - reduction
+    } else {
+        amount
     }
 }

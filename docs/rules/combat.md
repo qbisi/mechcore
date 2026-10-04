@@ -655,6 +655,26 @@ Shield technology a source of rate 1, whatever its row: the technology's
 class answers the rate with a constant. A unit holds one source in force, an
 item's over a technology's, as for lifesteal.
 
+## Armour
+
+**A unit with an armour technology loses a fixed amount less to each hit,
+though never less than 1.** Once the rates on its damage taken have scaled a
+hit, the unit's damage reduction comes off it, and a hit the reduction would
+leave below 1 deals 1. The reduction is what its technologies write onto
+its `reduce_damage_value`, summed: each its row's entry for the unit's level,
+the last for a level beyond the list, as a skill reads its damage. A level-1
+Rhino with Armor Enhancement takes 2269 of a Marksman's 2329, a level-3 one
+2149, and a Mountain with Mountain Plating's 700 takes 1 of an Arclight's
+365.
+
+A summon's drop is the one hit the reduction does not take from, unless it
+would leave less than 1. The reduction comes off before a shield takes the
+hit, and a fire's, a buff's and an explosion's hits lose it too.
+
+The rows are [`config/technology_effects.yaml`](../../config/technology_effects.yaml)'s
+`reduce_damage_value`; an armour technology also writes its row's
+corrections, as any technology does.
+
 ## Ordinary first-attack delay
 
 The ordinary first-attack branches divide `prepareTime` and `attackPoint`
@@ -925,6 +945,11 @@ not the game's native attack-type enum.
 - A shield of the whole maximum life takes hits before life, its last hit
   only what it held: `tests/energy_shield/fights/portable-shield.yaml` and
   `tests/energy_shield/fights/energy-shield-technology.yaml`.
+- An armour technology's reduction is its entry for the unit's level, taken
+  off each hit and leaving at least 1: 60 and 180 off a Marksman's shot on a
+  level-1 and a level-3 Rhino, `tests/armor/fights/rhino-armor-enhancement.yaml`
+  and `tests/armor/fights/rhino-armor-enhancement-3.yaml`, and 1 left of an
+  Arclight's hit on a Mountain, `tests/armor/fights/mountain-plating.yaml`.
 
 ### Read
 
@@ -1112,6 +1137,18 @@ not the game's native attack-type enum.
   `EnergyShieldController.ReduceEnergy` while `EnergyShieldBehaviour.IsAvaliable`,
   and calls `FightActor.ReduceLife` only otherwise.
 
+- Armour: `ArmorStrengthenEffectProvider.EnableEffect` adds
+  `IArmorStrengthen.GetReduceDamageValue` to a `FightMech`'s
+  `MechDataChangeInt.ReduceDamageValue`, which
+  `ArmorStrengthenTechnologyData.GetReduceDamageValue` reads from its list at
+  `ISkillOwner.GetLevel`, clamped to its last entry, as
+  `SkillData.GetDamage` reads a skill's. `FightCalculator.PerformHitTargetEffect`
+  on a `FightMech`, after the amplification, sets a positive hit that
+  `FightMech.GetDataInt` of it would leave below 1 to 1, and otherwise takes
+  it off unless the hit's provider is a `SupportUnitDamageProvider`; every
+  caller passes `isFirstHit` true, and `FightMech.OnHitted` takes the shield's
+  energy afterwards.
+
 ### Not established
 
 - **Repair with its technologies disabled**, which stops the clocks
@@ -1170,6 +1207,10 @@ not the game's native attack-type enum.
 - **Damage**: building splash, the area boundary of a hit other than a splash,
   ordering, modifier chains,
   shields, and other providers or target domains.
+- **Armour** under a shield, on a summon's drop, against a fire, a buff or an
+  explosion, and with its unit's technologies disabled
+  (`ArmorStrengthenEffectProvider.DisableEffect`), which no recorded fight
+  does; an item's armour (`ArmorStrengthenEquipment`) is refused.
 - **A personal shield's** refresh when its unit's maximum life changes
   (`EnergyShieldController.Refresh`), which no simulated buff does, and its
   disabling with its unit's technologies.
