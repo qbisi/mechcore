@@ -333,6 +333,13 @@ pub(crate) struct Overlays {
 }
 
 impl Overlays {
+    /// Whether the buffs' overlay holds an entry of `source` for `index`.
+    pub(crate) fn buff_writes(&self, source: &str, index: Index) -> bool {
+        self.buff
+            .corrections(index)
+            .any(|entry| entry.source == source)
+    }
+
     #[allow(dead_code, reason = "a mechanism reaches for a channel to write it")]
     pub(crate) const fn channel(&mut self, channel: Channel) -> &mut Overlay {
         match channel {

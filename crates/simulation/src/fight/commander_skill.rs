@@ -485,10 +485,10 @@ impl Simulation {
                      a technology mid-fight is not measured"
                 )));
             }
-            if let Some(running) = actor.other_buff(buff.id) {
+            if let Some(running) = actor.buff_not_beside(&row) {
                 return Err(Error::new(format!(
-                    "{name} reaches unit {id}, which runs buff {running}, and a skill's buff over \
-                     another is not measured"
+                    "{name} reaches unit {id}, which runs buff {running}, and a skill's buff \
+                     beside it is not measured"
                 )));
             }
             events.push(self.write_buff(id, source, team, &row)?);

@@ -54,6 +54,16 @@ A second loss while the buff runs does not add a second buff. `BuffManager`
 finds the running one in the same `buffDivide`, and `Buff.Reset` lengthens it
 by the new row's duration, because the row is additive. The rates never stack.
 
+**Another buff runs beside the loss's, and their speeds compose.** A buff of
+another divide, a Sticky Oil Bomb's slow, is a second buff on the unit, and
+its rate on move speed composes with the loss's as two impairments do, each
+multiplying what the other leaves: the oil's -0.55 on a Fang running the
+loss's -0.8 leaves it 0.09 of its speed. A unit that dies
+running both has them cleared last first, the oil's before the loss's. How
+another buff's damage rates compose with the loss's, which `BuffManager` keeps
+apart, is not recorded, and a skill's buff that corrects one of the loss's
+numbers other than speed is refused.
+
 ## A construction takes the loss too
 
 The side's actor list holds its constructions as well as its units, so a
@@ -139,6 +149,9 @@ gets the debuffed speed through `Move`.
   construction's side has lost its last unit:
   `tests/corpus/fights/134266831-r1.yaml`,
   `tests/tower/fights/turret-buff-cleared-as-fight-ends.yaml`.
+- A Sticky Oil Bomb's slow runs beside the loss's buff on blue's Fangs, the
+  two speeds composing, and a Fang dying under both has the oil's cleared
+  first: `tests/tower/fights/loss-beside-oil.yaml`.
 - The losing side's projectiles that land after the fall, on the tick the tower
   falls, land for their full damage: a Fire Badger's shot fells a tower and two
   Mustang shots of the losing side land after it, undebuffed:
@@ -167,7 +180,7 @@ gets the debuffed speed through `Move`.
 - A construction runs its buffs last in its update: `FightConstruction.Update`,
   `BuffManager.Update`.
 - Each holder, unit or construction, has its own `BuffManager`, whose
-  `Clear` removes every buff it holds: `BuffManager.Clear`,
+  `Clear` removes every buff it holds, the last first: `BuffManager.Clear`,
   `BuffManager.RemoveBuff`.
 - A unit or a construction runs no buff once the fight is over:
   `FightMech.Update` and `FightConstruction.Update`, which return before
@@ -187,7 +200,8 @@ gets the debuffed speed through `Move`.
   above: they land without the buff, as its projectiles are recorded to. No
   recording has a unit of the losing side strike directly after the fall
   within that tick.
-- **Whether a tower's separate buff set changes the composition.** Not recorded.
+- **Whether a tower's separate buff set changes the composition** of damage
+  rates. Speeds compose as any two buffs' do; damage is not recorded.
 - **`isClearSelfBuffWhenDisableTech`**, set on the buff: nothing this simulator
   places disables a unit's technologies.
 - **The officer that lengthens the debuff**, which stays refused.

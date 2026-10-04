@@ -200,12 +200,25 @@ impl TowersConfig {
 }
 
 impl super::Actor {
-    /// The row of a buff running on this unit other than `row`, if any runs.
-    pub(in crate::fight) fn other_buff(&self, row: u32) -> Option<u32> {
+    /// The row of a buff running on this unit beside which `row` is not
+    /// measured, if one runs: one whose entries share `row`'s tag, which
+    /// would take them away together, or that corrects a number `row` does
+    /// other than the speed. Two buffs run side by side in `BuffManager`, and
+    /// their speeds compose in `MoveSpeedProperty.Refresh`; how their other
+    /// rates do, a tower's kept apart in `towerBuffDatas`, is not recorded.
+    pub(in crate::fight) fn buff_not_beside(&self, row: &BuffRow) -> Option<u32> {
+        let buffs = &self.stats.overlays;
         self.buffs
             .iter()
+            .filter(|running| running.buff_id != row.buff_id)
+            .find(|running| {
+                running.source == row.source
+                    || row.entries.iter().any(|entry| {
+                        entry.index != Index::MoveSpeed
+                            && buffs.buff_writes(running.source, entry.index)
+                    })
+            })
             .map(|running| running.buff_id)
-            .find(|&running| running != row)
     }
 
     /// `BuffManager.IsInvincible`: whether a running buff makes the unit
@@ -411,7 +424,7 @@ impl Simulation {
     }
 
     /// The buffs a construction had when it fell, `cleared`, to follow its
-    /// `building_destroyed`.
+    /// `building_destroyed`: last first, as `BuffManager.Clear` removes them.
     pub(in crate::fight) fn construction_buffs_cleared(&mut self, building_id: u64) -> Vec<Event> {
         let subject = ObjectRef::new(ObjectKind::Building, building_id);
         self.buffs
@@ -421,6 +434,7 @@ impl Simulation {
                 buffed
                     .buffs
                     .iter()
+                    .rev()
                     .map(|buff| buff_removed(subject, buff.buff_id, BuffRemovedReason::Cleared))
                     .collect()
             })
@@ -429,7 +443,7 @@ impl Simulation {
 
     /// The buffs a unit that died this tick had, `cleared`, to follow its
     /// `unit_died`: the ones it still runs, or the ones its update already
-    /// dropped.
+    /// dropped, last first, as `BuffManager.Clear` removes them.
     pub(in crate::fight) fn buffs_cleared_by_death(&mut self, actor_id: u64) -> Vec<Event> {
         let running = self
             .actors
@@ -438,6 +452,7 @@ impl Simulation {
                 actor
                     .buffs
                     .iter()
+                    .rev()
                     .map(|buff| buff.buff_id)
                     .collect::<Vec<_>>()
             })
@@ -458,7 +473,8 @@ impl Simulation {
     /// Every buff a live unit still runs, taken off and written as cleared
     /// in unit order, as the fight is left, and then every buff a standing
     /// construction runs, in building order: each actor's `BuffManager.Clear`
-    /// as the fight's objects are let go.
+    /// as the fight's objects are let go, which removes an actor's buffs last
+    /// first.
     pub(in crate::fight) fn clear_buffs_as_the_fight_ends(
         &mut self,
         events: &mut Vec<Event>,
@@ -467,7 +483,7 @@ impl Simulation {
             if !actor.alive() || actor.buffs.is_empty() {
                 continue;
             }
-            events.extend(actor.buffs.iter().map(|buff| {
+            events.extend(actor.buffs.iter().rev().map(|buff| {
                 buff_removed(
                     ObjectRef::new(ObjectKind::Unit, actor_id),
                     buff.buff_id,
@@ -489,6 +505,7 @@ impl Simulation {
                 buffed
                     .buffs
                     .iter()
+                    .rev()
                     .map(|buff| buff_removed(subject, buff.buff_id, BuffRemovedReason::Cleared)),
             );
             self.refresh_construction(building_id)?;
@@ -512,7 +529,7 @@ impl Simulation {
         }
         self.buffs.dropped.insert(
             actor_id,
-            actor.buffs.iter().map(|buff| buff.buff_id).collect(),
+            actor.buffs.iter().rev().map(|buff| buff.buff_id).collect(),
         );
         for buff in std::mem::take(&mut actor.buffs) {
             actor
