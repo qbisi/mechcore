@@ -515,10 +515,12 @@ impl Simulation {
 
     /// `BuffManager.Update` on a unit that is no longer alive: its buffs go.
     ///
-    /// Not on the tick it dies but on its next update. A Fang of the
-    /// two-tower fight killed by a Steel Ball's beam lands its projectile the
-    /// same tick for the debuffed 6; one that died two ticks before its
-    /// projectile landed lands it for the full 63.
+    /// Not on the tick it dies but on its first update of a later tick, even
+    /// one it reaches dead on the tick it died. A Fang of the two-tower fight
+    /// killed by a Steel Ball's beam lands its projectile the same tick for
+    /// the debuffed 6; one that died two ticks before its projectile landed
+    /// lands it for the full 63; and a Vulcan of 67158166 r4 killed before its
+    /// own update lands its shell that tick for the debuffed 7, not 74.
     pub(in crate::fight) fn drop_buffs_of_the_dead(&mut self, actor_id: u64) -> Result<()> {
         let actor = self
             .actors

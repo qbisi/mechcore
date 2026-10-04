@@ -1208,7 +1208,13 @@ impl Simulation {
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
             actor.exit_fight_on_death();
+            // A unit that died earlier on this tick keeps its buffs through
+            // it: what it fired lands as they leave its damage.
+            let died_this_tick = actor.target_query_alive;
             self.sync_beam(actor_id);
+            if died_this_tick {
+                return Ok(());
+            }
             return self.drop_buffs_of_the_dead(actor_id);
         }
         // `FightMech.Update` runs the unit's own search before its skills.
