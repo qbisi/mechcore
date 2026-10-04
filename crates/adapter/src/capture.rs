@@ -6608,16 +6608,22 @@ fn read_unit(
     } else {
         None
     };
-    // A unit whose main skill is not a `FightSkill` is a grouped one: its
-    // slots are the `FightSkill`s its `GetSkills()` holds.
-    let group_slots = if instruments.group_slots
-        && !api.class_is_or_inherits(
+    // A unit whose main skill is not a `FightSkill` is a grouped one, and one
+    // that carries an extra weapon holds the extra skill beside its main
+    // one: either way its slots are the `FightSkill`s its `GetSkills()` holds.
+    let group_slots = if instruments.group_slots {
+        let grouped = !api.class_is_or_inherits(
             api.object_class(main_skill).unwrap_or(ptr::null_mut()),
             metadata
                 .fight_skill_class
                 .expect("profile fields checked at capture start") as *mut _,
-        ) {
-        read_group_slots(api, metadata, unit)?
+        );
+        let slots = read_group_slots(api, metadata, unit)?;
+        if grouped || slots.len() > 1 {
+            slots
+        } else {
+            Vec::new()
+        }
     } else {
         Vec::new()
     };

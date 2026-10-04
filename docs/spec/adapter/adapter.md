@@ -537,14 +537,17 @@ the skill's current `SkillStateController` state (`SkillIdleState`,
 reads `FightSkillBase.IsIdle`. All three are plain field reads at the snapshot
 boundary; they are null for a skill that is not a `FightSkill`.
 
-`group_slots` shows what `target_refs` cannot for a grouped unit, whose main
-skill is a `SkillGroup` rather than a `FightSkill`: a Wraith's four slots are
-four `FightSkill`s, each with its own lock, attack target and state machine.
-For every unit whose main skill is not a `FightSkill`, it records one row per
-`FightSkill` in the unit's `GetSkills()`: the skill's index there, its
+`group_slots` shows what `target_refs` cannot for a unit with more than one
+skill. A grouped unit's main skill is a `SkillGroup` rather than a
+`FightSkill`: a Wraith's four slots are four `FightSkill`s, each with its own
+lock, attack target and state machine. A unit that carries an extra weapon
+holds the extra skill's `FightSkill`s beside its main one: a Sabertooth with
+Secondary Armament holds three. For every unit whose main skill is not a
+`FightSkill`, or whose `GetSkills()` holds more than one, it records one row
+per `FightSkill` in the unit's `GetSkills()`: the skill's index there, its
 `lockTarget` and `attackTarget`, and the same `skill_state`,
-`skill_attack_phase` and `skill_is_idle` reads. A unit with an ordinary main
-skill has no rows.
+`skill_attack_phase` and `skill_is_idle` reads. A unit with one ordinary skill
+has no rows.
 
 `unit_pose` records how the view animates each unit's model: the pose a unit
 is drawn in, which the fight never reads. `FightMech.GetMechEventListener()` is
