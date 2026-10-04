@@ -406,6 +406,7 @@ impl Simulation {
             sibling.attack_target_left = None;
             sibling.search_target_time = SEARCH_TARGET_RESET_TICKS;
             self.refresh_group_walls(actor_id, Some(slot));
+            self.hand_standalone_motion(actor_id, slot);
         }
         self.try_start_group_slot(actor_id, slot, step, prepare_steps);
         Ok(())
@@ -707,13 +708,10 @@ impl Simulation {
                 .turret_aim_q32 = aim;
             return;
         }
-        let locked = |slot: &usize| skill.slot_lock(*slot).is_some();
-        let attacking = actor.motion.state == MotionState::Attacking;
-        let aim = (0..skill.group_size())
-            .filter(locked)
-            .find(|&slot| attacking && skill.group_skill(slot).phase() == FightSkillPhase::Attack)
-            .or_else(|| (0..skill.group_size()).find(locked))
-            .and_then(|slot| skill.group_attack_target(slot))
+        let holder = skill.group.as_ref().map_or(0, |group| group.motion_slot);
+        let aim = skill
+            .slot_lock(holder)
+            .and_then(|_| skill.group_attack_target(holder))
             .and_then(|target| self.fight_actor(target))
             .map(|view| {
                 direction_degrees_q32_raw(

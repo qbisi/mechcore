@@ -222,6 +222,11 @@ pub(in crate::fight) struct Group {
     /// search writes `mech_lock`, and no skill hands it one
     /// (`FightSkill.ChangeLockTarget` asks `IsMechSearchTargetEnabled`).
     pub(in crate::fight) mech_search_time: Option<i32>,
+    /// For a batch of standalone weapons, the slot whose skill is the
+    /// motion's attacker (`MotionController.attacker`): the first as the
+    /// unit is made (`SetMotionAttackerAfterSkill` takes `GetSkills()[0]`),
+    /// then whichever searched last while the one holding it held no lock.
+    pub(in crate::fight) motion_slot: usize,
 }
 
 /// `SkillGroup.attackBehaviour`: how the group's skills take turns.
@@ -448,6 +453,7 @@ impl Skill {
             core_blow_step: None,
             behaviour,
             mech_search_time: None,
+            motion_slot: 0,
         });
         Self {
             weapon_rotations_q32,

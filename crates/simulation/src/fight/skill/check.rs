@@ -364,6 +364,7 @@ impl Simulation {
             sibling.lock_target = selected;
             sibling.attack_target_left = None;
             self.refresh_group_walls(actor_id, Some(slot));
+            self.hand_standalone_motion(actor_id, slot);
         }
         Ok(selected.is_some())
     }

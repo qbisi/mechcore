@@ -593,12 +593,13 @@ impl Simulation {
         if skill.mech_searches() {
             return skill.unit_lock();
         }
-        let attacking = actor.motion.state == MotionState::Attacking
-            && (0..skill.group_size())
-                .any(|slot| skill.group_skill(slot).phase() == FightSkillPhase::Attack);
-        skill
-            .batch_attack_target()
-            .filter(|_| !skill.standalone() || skill.unit_lock().is_some() || attacking)
+        if skill.standalone() {
+            let holder = skill.group.as_ref().map_or(0, |group| group.motion_slot);
+            return skill
+                .slot_lock(holder)
+                .and_then(|_| skill.group_attack_target(holder));
+        }
+        skill.batch_attack_target()
     }
 
     /// A batch of standalone weapons already attacking stays in its attack
@@ -612,14 +613,13 @@ impl Simulation {
             && !skill.mech_searches()
             && actor.motion.state == MotionState::Attacking)
             .then(|| {
-                (0..skill.group_size()).any(|slot| {
-                    skill.group_attack_target(slot).is_some_and(|aimed| {
-                        self.slot_target_in_attack_range(
-                            SkillRef::main(FightActorRef::Unit(actor_id)),
-                            Some(slot),
-                            aimed,
-                        )
-                    })
+                let holder = skill.group.as_ref().map_or(0, |group| group.motion_slot);
+                skill.group_attack_target(holder).is_some_and(|aimed| {
+                    self.slot_target_in_attack_range(
+                        SkillRef::main(FightActorRef::Unit(actor_id)),
+                        Some(holder),
+                        aimed,
+                    )
                 })
             })
     }
@@ -901,12 +901,37 @@ impl Simulation {
             return;
         }
         match skill_ref.slot {
-            SkillSlot::Main => actor.motion.attacker = SkillSlot::Main,
+            SkillSlot::Main => {
+                actor.motion.attacker = SkillSlot::Main;
+                self.hand_standalone_motion(actor_id, 0);
+            }
             SkillSlot::Extra(_) => {
                 if actor.skills.main.slot_lock(0).is_none() {
                     actor.motion.attacker = skill_ref.slot;
                 }
             }
+        }
+    }
+
+    /// The end of `FightSkill.SearchLockTarget` for one of a batch's
+    /// standalone weapons, each of them a main searcher: it takes the motion
+    /// (`ISkillOwner.SetAttacker`) unless another weapon holds it and holds a
+    /// lock (`IAttacker.IsMainTargetProvider`, `GetLockTarget`). A weapon
+    /// taking a fresh lock does not draw the turret off the one that has it.
+    pub(in crate::fight) fn hand_standalone_motion(&mut self, actor_id: u64, slot: usize) {
+        let Some(actor) = self.actors.get_mut(&actor_id) else {
+            return;
+        };
+        let skill = &actor.skills.main;
+        if !skill.standalone() || skill.mech_searches() {
+            return;
+        }
+        let holder = skill.group.as_ref().map_or(0, |group| group.motion_slot);
+        if holder != slot && skill.slot_lock(holder).is_some() {
+            return;
+        }
+        if let Some(group) = actor.skills.main.group.as_mut() {
+            group.motion_slot = slot;
         }
     }
 
