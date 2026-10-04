@@ -137,7 +137,7 @@ impl Simulation {
         if self.slot_target_in_attack_range(skill_ref, slot, target) {
             return Ok(false);
         }
-        if !self.target_inside_min_range(skill_ref.owner, target) {
+        if !self.target_inside_min_range(skill_ref, target) {
             return Ok(false);
         }
         let attackable = self.search_lock_target(skill_ref, slot, target_search_order)?
@@ -252,8 +252,10 @@ impl Simulation {
     /// `IsInAttackRange`'s `isMissing`: the target stands nearer than the
     /// skill's minimum range, the only miss of distance
     /// `CheckWhenLoseTarget` searches again for.
-    fn target_inside_min_range(&self, owner: FightActorRef, target: FightActorRef) -> bool {
-        let (Some(source), Some(target)) = (self.attacker(owner), self.fight_actor(target)) else {
+    fn target_inside_min_range(&self, skill_ref: SkillRef, target: FightActorRef) -> bool {
+        let (Some(source), Some(target)) =
+            (self.skill_attacker(skill_ref), self.fight_actor(target))
+        else {
             return false;
         };
         let distance =

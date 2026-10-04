@@ -112,6 +112,11 @@ unit; it does not turn towards its lock.
   at all, so its Hound does not share a kill for having struck the target
   ([unit_experience.md](unit_experience.md#what-a-kill-hands-out)).
 - **Splash and interval** are the row's.
+- **Its minimum range is its own.** When an attacking check finds its target
+  out of its area, `CheckWhenLoseTarget` searches again at once only for a
+  target standing nearer than the skill's minimum range (`IsInAttackRange`'s
+  `isMissing`), and that range is the extra skill's: an Incendiary Bomb skill
+  whose target walks inside its 40 metres takes another on that update.
 
 ## A fire where it lands
 
@@ -249,7 +254,8 @@ equipment or an Energy Tower skill writes a skill correction onto.
   `SkillSearchTargetController.PerformNormalSkillSearch`,
   `FightSkill.ChangeLockTarget`, `FightSkillBase.IsMainSearcher`,
   `SkillIdleState.Update`, `ProjectileSystem.Create`, `FightProjectile.IsFlying`.
-- Its range: `FightSkill.GetAttackRange`.
+- Its range: `FightSkill.GetAttackRange`; the attacking check's minimum range,
+  `SkillAttackableChecker.CheckWhenLoseTarget`.
 - Its fire: `ExtraSkillProvider.PerformHitEffect`, `ExtraSkillProvider.AddEffect`,
   `ExtraWeaponTechnologyData.GetFireLifeTime`, `MechDataModifer.AddData`,
   `GroundFireController.GetFireMech`, `RangeItemSystem.AddItem`,
