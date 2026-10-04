@@ -1,0 +1,26 @@
+# An extra gun taking the motion while the main gun holds no lock.
+#
+# A Sabertooth with Secondary Armament against two Marksmen and a Rhino. The
+# main gun fells a Marksman, finds nothing it may fire at on the next update
+# and holds no lock; the second extra gun searches after it on that update,
+# takes the Rhino, beyond its reach, and the motion with it, and the motion,
+# asking that gun, moves. The main gun takes the motion back on its next
+# search. Its control, without the extra guns, reads idle on that update.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 188
+hash: {profile: mcfr-content-0.7.0, result: 5fee517d33c6a07b5a87a67dc746bfb1b259e9916b8a007a144ec1747ca58980}
+blue:
+  techs:
+    sabertooth: [secondary_armament]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 5, y: -45}, exp: 0/600/1300}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: -50, y: -40}}
+  - {name: marksman, index: 1, position: {x: 60, y: -40}}
+  - {name: rhino, index: 2, position: {x: 5, y: -75}, exp: 0/400/1150}

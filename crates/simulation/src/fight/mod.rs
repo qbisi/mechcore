@@ -844,6 +844,9 @@ impl Simulation {
                     actor.lose_target_motion(entered_idle);
                 }
                 actor.skills.main.clear_slots();
+                // `FightMech.OnFightEnd` hands the motion back to the main
+                // skill (`SetMotionAttackerAfterSkill`).
+                actor.motion.attacker = SkillSlot::Main;
                 // Every skill of the unit lets its target go, its extra
                 // skills' as its main one's. A won fight runs on without
                 // `FightSkill.ExitFight` until it ends: a skill already

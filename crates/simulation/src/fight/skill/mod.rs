@@ -1072,6 +1072,7 @@ impl Simulation {
             skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
             skill.set_phase(FightSkillPhase::Idle);
             self.search_attack_target(skill_ref);
+            self.hand_motion_after_lock_search(skill_ref);
             return Ok(());
         }
         let selected = selected_candidate;
@@ -1106,6 +1107,7 @@ impl Simulation {
         skill.write_lock(selected);
         skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
         self.search_attack_target(skill_ref);
+        self.hand_motion_after_lock_search(skill_ref);
         Ok(())
     }
 
@@ -1239,29 +1241,7 @@ impl Simulation {
         // parent made as it was.
         let arc_parent_before = self.actors[&actor_id].arc_parent_q32();
         self.aim_standalone_turret(actor_id);
-        if let Flow::Done = self.update_transition(actor_id) {
-            // `TransitionState.Update` is the motion's whole update.
-        } else if let Some(update) = update {
-            self.update_motion(actor_id, step, events, update)?;
-        } else if self.actors[&actor_id].skills.main.standalone()
-            && (self.ending.stop_step.is_none()
-                || self.actors[&actor_id].skills.main.mech_searches())
-        {
-            // `MotionController.Update` asks the batch, which the first
-            // weapon's cooling does not hold: another weapon may lock. A unit
-            // that searches for itself goes on after its own lock, a tower
-            // the fight's last tick has not yet torn down.
-            self.update_motion(actor_id, step, events, SkillUpdate::default())?;
-        } else if was_moving
-            && self.actors[&actor_id].command.is_some()
-            && self.actors[&actor_id].skills.main.attack_target().is_none()
-        {
-            // `MotionController.Update` runs whatever the skill did: a
-            // command walks its path while the skill cools or reloads, and
-            // once a won fight has stopped it. A move state entered on this
-            // update is not updated on it.
-            self.follow_command(actor_id);
-        }
+        self.step_motion(actor_id, step, events, update, was_moving)?;
         self.turn_arc_weapons(actor_id, arc_parent_before);
         if self.actors[&actor_id].skills.main.is_grouped() && fusillade {
             let skill = &mut self
@@ -1283,6 +1263,47 @@ impl Simulation {
                 target_search_order,
                 events,
             )?;
+        }
+        Ok(())
+    }
+
+    /// `MotionController.Update` after the unit's skills: a transition's,
+    /// or the motion's own when the main skill's update or an extra skill
+    /// that took the motion asks for it, a batch's, or a command's path.
+    fn step_motion(
+        &mut self,
+        actor_id: u64,
+        step: u64,
+        events: &mut Vec<Event>,
+        update: Option<SkillUpdate>,
+        was_moving: bool,
+    ) -> Result<()> {
+        if let Flow::Done = self.update_transition(actor_id) {
+            // `TransitionState.Update` is the motion's whole update.
+        } else if let Some(update) = update {
+            self.update_motion(actor_id, step, events, update)?;
+        } else if let SkillSlot::Extra(_) = self.actors[&actor_id].motion.attacker {
+            // `MotionController.Update` asks an extra skill that took the
+            // motion, whatever the main skill did.
+            self.update_motion(actor_id, step, events, SkillUpdate::default())?;
+        } else if self.actors[&actor_id].skills.main.standalone()
+            && (self.ending.stop_step.is_none()
+                || self.actors[&actor_id].skills.main.mech_searches())
+        {
+            // `MotionController.Update` asks the batch, which the first
+            // weapon's cooling does not hold: another weapon may lock. A unit
+            // that searches for itself goes on after its own lock, a tower
+            // the fight's last tick has not yet torn down.
+            self.update_motion(actor_id, step, events, SkillUpdate::default())?;
+        } else if was_moving
+            && self.actors[&actor_id].command.is_some()
+            && self.actors[&actor_id].skills.main.attack_target().is_none()
+        {
+            // `MotionController.Update` runs whatever the skill did: a
+            // command walks its path while the skill cools or reloads, and
+            // once a won fight has stopped it. A move state entered on this
+            // update is not updated on it.
+            self.follow_command(actor_id);
         }
         Ok(())
     }

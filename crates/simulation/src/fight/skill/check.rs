@@ -352,6 +352,7 @@ impl Simulation {
             actor.skills.main.idle = idle;
             actor.skills.main.write_lock(selected);
             self.search_attack_target(SkillRef::main(FightActorRef::Unit(actor_id)));
+            self.hand_motion_after_lock_search(SkillRef::main(FightActorRef::Unit(actor_id)));
         } else {
             let sibling = actor.skills.main.sibling_mut(slot);
             sibling.idle = idle;
@@ -494,10 +495,12 @@ impl Simulation {
         skill.idle = idle;
         let Some(selected) = selected else {
             skill.drop_lock();
+            self.hand_motion_after_lock_search(skill_ref);
             return Ok(false);
         };
         skill.write_lock(Some(selected));
         self.search_attack_target(skill_ref);
+        self.hand_motion_after_lock_search(skill_ref);
         Ok(true)
     }
 

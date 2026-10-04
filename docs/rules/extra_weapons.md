@@ -47,7 +47,19 @@ the whole of the difference:
   whole circle and a main skill its owner's.
 - **It hands its owner no lock.** `FightSkill.ChangeLockTarget` hands the
   owner a lock only from its main searcher (`FightSkillBase.IsMainSearcher`),
-  so the unit's body and motion follow the main skill alone.
+  so the unit's lock is the main skill's alone.
+- **It takes the motion while the main skill holds no lock.** Each
+  `FightSkill.SearchLockTarget` ends by handing the motion its attacker
+  (`ISkillOwner.SetAttacker`). An extra skill takes it when the unit's main
+  searcher holds no lock, and the main skill takes it back on its next search,
+  whatever the extra skill holds, since an extra skill is no main target
+  provider. While an extra skill holds it, `AutoMoveBehaviour` asks that skill:
+  the motion idles when the skill is idle or its lock is dead, attacks while
+  what the skill fires at is in the skill's range, turning the body to the
+  skill's lock, and otherwise moves after that lock. A Sabertooth whose main
+  gun has just felled its target and found nothing reads moving on the next
+  update when an extra gun took a target beyond its reach on it, and idle
+  without the guns.
 - **It starts and performs its own attack.** `SkillIdleState.Update` starts an
   attack once `CanStartAttack` lets it, unless the manager holds its fire, and
   nothing waits for the motion: the extra skill fires from where it stands, as
@@ -106,6 +118,10 @@ equipment or an Energy Tower skill writes a skill correction onto.
   different targets, they reach the main gun's corrected range plus their
   row's own, and a level 2 unit's deal the row's level 2 damage:
   `tests/extra_weapon/fights/secondary-armament-level-range.yaml`.
+- An extra gun takes the motion while the main gun holds no lock, and the
+  motion moves after the gun's target out of its reach:
+  `tests/extra_weapon/fights/secondary-armament-takes-motion.yaml`, beside its
+  control `tests/extra_weapon/fights/secondary-armament-takes-motion-control.yaml`.
 
 ### Read
 
@@ -121,18 +137,24 @@ equipment or an Energy Tower skill writes a skill correction onto.
   `FightSkill.ChangeLockTarget`, `FightSkillBase.IsMainSearcher`,
   `SkillIdleState.Update`, `ProjectileSystem.Create`, `FightProjectile.IsFlying`.
 - Its range: `FightSkill.GetAttackRange`.
+- Its taking the motion: `FightSkill.SearchLockTarget`,
+  `FightSkillBase.IsMainTargetProvider`, `FightMech.SetAttacker`,
+  `FightMech.SetMotionAttackerAfterSkill`, `AutoMoveBehaviour.IsIdle`,
+  `AutoMoveBehaviour.IsActive`, `FightSkillBase.IsLockTargetAvaliable`,
+  `MotionAttackState.Update`, `MotionAttackState.AttackRotate`,
+  `MotionIdleState.Update`, `MotionMoveState.Update`.
 - What reaches it: `SkillDataModifier.AvaliableCheck`,
   `OfficerData.IsExtraSkillEffect`, `TechnologyData.IsExtraSkillEffect`,
   `EquipmentData.IsExtraSkillEffect`, `EnergyTowerSkillData.IsExtraSkillEffect`.
 
 ### Not established
 
-- **The motion when the main skill loses its target while an extra skill
-  attacks.** A Sabertooth whose main gun's target dies, with its extra guns
-  attacking other units, reads moving on the next tick in the game where the
-  simulator reads idle; without the guns both read idle. The main skill's
-  checks and state are the same in both games, and `MotionAttackState.Update`
-  as read would leave it idle.
+- **The motion an extra skill leads beyond one update.** Every recording
+  shows the main skill taking the motion back on the update after; how a
+  moving or idle unit walks after an extra skill's lock is read, not recorded.
+  `AttackRotate` also turns the extra skill's own weapons
+  (`FightSkill.RotateWeaponTo`) unless they are standalone; no recording reads
+  that turn.
 - **A correction composing on an extra skill**, an equipment's or an Energy
   Tower skill's. Refused.
 - **Every other member of the list.** Refused by name.
