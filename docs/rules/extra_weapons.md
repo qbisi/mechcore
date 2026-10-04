@@ -5,13 +5,13 @@ unit's main one, the rows of `TechnologyGroupData.extraWeaponTechnologies`.
 Each row names the skill it adds in `skillID`, which `scripts/extract/extract-units.py`
 writes under the unit's `extra_weapons` in `config/units/` where its shape is
 one that file can state. The simulator fights Secondary Armament, the
-Sabertooth's two guns, Incendiary Bomb, the Hound's, Scorching Charge, the
-Fire Badger's self-destruct, Homing Missile, the Centurion's, and Sticky Oil
-Bomb, the Phantom Ray's and the Vulcan's, and refuses
-every other member by name: the members'
-skills differ in kind, a projectile, an explosion, a laser, a summon, a sweep
-around the unit, and many leave a terrain or write a buff, so each joins once a
-recording of it agrees.
+Sabertooth's two guns, Anti-Air Missile, its missile at the air, Incendiary
+Bomb, the Hound's, Scorching Charge, the Fire Badger's self-destruct, Homing
+Missile, the Centurion's, and Sticky Oil Bomb, the Phantom Ray's and the
+Vulcan's, and refuses every other member by name: the members' skills differ
+in kind, a projectile, an explosion, a laser, a summon, a sweep around the
+unit, and many leave a terrain or write a buff, so each joins once a recording
+of it agrees.
 
 ## A skill beside the main one
 
@@ -289,6 +289,14 @@ equipment or an Energy Tower skill writes a skill correction onto.
   `tests/extra_weapon/fights/incendiary-bomb.yaml`, beside its control
   `tests/extra_weapon/fights/incendiary-bomb-control.yaml`.
 
+- Anti-Air Missile is one skill beside the Sabertooth's main gun, reaching
+  as far as it and taking the air alone, a missile every 3 seconds; with no
+  ground target the missile skill takes the motion:
+  `tests/extra_weapon/fights/anti-air-missile.yaml`, beside its control
+  `tests/extra_weapon/fights/anti-air-missile-control.yaml`; with one, the two
+  skills fire side by side:
+  `tests/extra_weapon/fights/anti-air-missile-mixed.yaml` and
+  `tests/corpus/fights/201340110-r3.yaml`.
 - Sticky Oil Bomb's bomb writes its buff on the Rhino it strikes, from the
   Phantom Ray, and leaves an oil of its splash that renews the buff every 19
   ticks, keeping the Phantom Ray as its source, and stands to the fight's
