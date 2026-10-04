@@ -346,7 +346,13 @@ impl Simulation {
                         // `FightProjectile.Update` strikes what it aimed at
                         // only while `IsValidTarget(Stealth)`: a Wasp's shot
                         // that reaches a Sandworm as it burrows is spent.
+                        // A hit with a splash strikes only what the splash
+                        // reaches (`DamagePerformer.Perform` takes
+                        // `PerformRangeEffect` over `PerformSingleEffect`): a
+                        // Homing Missile landing its offset 20 metres from its
+                        // target strikes nothing.
                         && ((hit.hits_aimed
+                            && hit.splash_radius == 0
                             && Some(*candidate_ref) == hit.aimed
                             && candidate.visibility != Visibility::Hide)
                             || (hit.splash_radius > 0

@@ -5,8 +5,9 @@ unit's main one, the rows of `TechnologyGroupData.extraWeaponTechnologies`.
 Each row names the skill it adds in `skillID`, which `scripts/extract/extract-units.py`
 writes under the unit's `extra_weapons` in `config/units/` where its shape is
 one that file can state. The simulator fights Secondary Armament, the
-Sabertooth's two guns, Incendiary Bomb, the Hound's, and Scorching Charge, the
-Fire Badger's self-destruct, and refuses every other member by name: the members'
+Sabertooth's two guns, Incendiary Bomb, the Hound's, Scorching Charge, the
+Fire Badger's self-destruct, and Homing Missile, the Centurion's, and refuses
+every other member by name: the members'
 skills differ in kind, a projectile, an explosion, a laser, a summon, a sweep
 around the unit, and many leave a terrain or write a buff, so each joins once a
 recording of it agrees.
@@ -107,8 +108,10 @@ unit; it does not turn towards its lock.
   correction of the main skill's range reaches it that way. Any other extra
   skill reaches its row's range.
 - **Damage.** A skill whose row's `damageRate` is zero deals its own damage,
-  the row's `damage` entry for the unit's level, and none where the row has
-  no entries: Incendiary Bomb's shell harms nothing by itself, and is no hit
+  the row's `damage` entry for the unit's level, the last entry for a level
+  beyond the list (`SkillData.GetDamage`), and none where the row has no
+  entries: Homing Missile's one entry, 800, is every level's, and Incendiary
+  Bomb's shell harms nothing by itself, and is no hit
   at all, so its Hound does not share a kill for having struck the target
   ([unit_experience.md](unit_experience.md#what-a-kill-hands-out)).
 - **Splash and interval** are the row's.
@@ -230,6 +233,11 @@ equipment or an Energy Tower skill writes a skill correction onto.
 - A Fire Badger killed while travelling in leaves no fire, and what an
   explosion kills reads after the units a turret's shots killed on that tick:
   `tests/corpus/fights/134259672-r3.yaml`.
+- A Centurion's Homing Missile fires its four missiles at its own interval,
+  each landing its offset of up to 20 metres from its target, and a missile
+  landing beyond its 7 metre splash of every unit strikes nothing:
+  `tests/extra_weapon/fights/homing-missile.yaml`, beside its control
+  `tests/extra_weapon/fights/homing-missile-control.yaml`.
 - A Hound's bomb skill whose target walks inside its 40 metre minimum range
   takes another on that update, and its search passes towers over:
   `tests/corpus/fights/201371791-r4.yaml`, `tests/corpus/fights/201371791-r5.yaml`.
@@ -262,6 +270,7 @@ equipment or an Energy Tower skill writes a skill correction onto.
   `SkillSearchTargetController.PerformNormalSkillSearch`,
   `FightSkill.ChangeLockTarget`, `FightSkillBase.IsMainSearcher`,
   `SkillIdleState.Update`, `ProjectileSystem.Create`, `FightProjectile.IsFlying`.
+- Its damage: `SkillData.GetDamage`.
 - Its range: `FightSkill.GetAttackRange`; the attacking check's minimum range,
   `SkillAttackableChecker.CheckWhenLoseTarget`; the towers it may take,
   `FightSkill.IsTowerAttackable`.

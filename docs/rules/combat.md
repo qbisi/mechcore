@@ -463,6 +463,15 @@ from where a charging Rhino stands by then. A target already dead when the
 projectile is released is not followed: the projectile goes to the point the
 burst aimed it at when it began.
 
+**A projectile with a splash strikes only what its splash reaches.**
+`DamagePerformer.Perform` performs a hit with a splash as `PerformRangeEffect`,
+over everything within the splash of where it lands, and only a hit without
+one as `PerformSingleEffect` on what it was aimed at, wherever that stands. A
+projectile that follows its target lands its offset from it, so one whose
+offset passes its splash misses: a Centurion's Homing Missile, landing up to
+20 metres off with a splash of 7, strikes nothing when it lands beyond every
+unit's reach (`tests/extra_weapon/fights/homing-missile.yaml`).
+
 **A projectile leaves for where its burst aimed it.** Every projectile of a
 burst is released toward the target's position when the burst began plus its
 offset; one that follows its target takes the target's position up again from
