@@ -1154,6 +1154,17 @@ fn validate_unique_positive_ids(side_name: &str, field: &str, ids: &[i32]) -> Re
 }
 
 fn validate_side_modifiers(side_name: &str, side: &Side) -> Result<(), String> {
+    for (index, &officer) in side.officers.iter().enumerate() {
+        if side.officers[..index].contains(&officer) && !crate::reinforcement::repeatable(officer)?
+        {
+            let name = <crate::names::Officer as crate::names::Kind>::name(officer).unwrap_or("?");
+            return Err(format!(
+                "side {side_name} holds officer {name} ({officer}) more than once: the pool deals \
+                 it once, so no side of a standard 1v1 holds it twice"
+            ));
+        }
+    }
+
     let skills = &side.energy_tower_skills;
     for (index, &skill) in skills.iter().enumerate() {
         if !FIGHT_VISIBLE_ENERGY_TOWER_SKILLS.contains(&skill) {

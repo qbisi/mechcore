@@ -143,6 +143,17 @@ impl OfficerEffects {
                 )));
             }
         }
+        // Which of two officers that set the travel time rate holds is not
+        // measured, and no standard side can hold two.
+        let setters = officers
+            .values()
+            .filter(|officer| officer.super_deployment_time_rate != 0)
+            .count();
+        if setters > 1 {
+            return Err(Error::new(format!(
+                "officer effect table holds {setters} officers that set the travel time rate"
+            )));
+        }
         Ok(Self { officers })
     }
 
@@ -150,25 +161,15 @@ impl OfficerEffects {
     /// set on its travel time, `SystemOfficerFightController` through
     /// `FightTeam.SetSuperDeploymentTimeChangeRate`.
     ///
-    /// # Errors
-    ///
-    /// Refuses a side holding two officers that set it: the setter sets
-    /// rather than adds, and which of two wins is not measured.
-    pub(crate) fn super_deployment_time_rate(&self, held: &[i32]) -> Result<i64> {
-        let setting = held
-            .iter()
+    /// The setter sets rather than adds, so it is the rate of the one officer
+    /// that sets it: the table holds one, and a layout never holds that
+    /// officer twice, since the pool deals it once.
+    pub(crate) fn super_deployment_time_rate(&self, held: &[i32]) -> i64 {
+        held.iter()
             .filter_map(|id| self.officers.get(id))
             .map(|officer| officer.super_deployment_time_rate)
-            .filter(|rate| *rate != 0)
-            .collect::<Vec<_>>();
-        match setting.as_slice() {
-            [] => Ok(0),
-            [rate] => Ok(*rate),
-            _ => Err(Error::new(
-                "two officers set the side's travel time rate, and which of them \
-                 holds is not measured",
-            )),
-        }
+            .find(|rate| *rate != 0)
+            .unwrap_or(0)
     }
 
     /// What this side's officers add onto its contraptions:

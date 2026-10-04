@@ -1,9 +1,9 @@
-# Two copies of Cost Control Specialist on red, `-0.11` of `damage_rate` and
-# `life_rate` each; `officer-impair-once.yaml` says where a negative rate
-# lands. This separates the rule from the obvious alternative: two
-# impairments compound, 0.89 x 0.89 = 0.7921 of the number, where summing as
-# enhancements do would leave 1 - 0.22 = 0.78. On the Rhino's 19297 that is
-# 15285 against 15051.
+# Cost Control Specialist, `-0.11` of `damage_rate` and `life_rate` on every
+# unit, and Mass-Produced Rhino, `-0.2` of both on the Rhino;
+# `officer-impair-once.yaml` says where a negative rate lands. This separates
+# the rule from the obvious alternative: two impairments compound into one
+# stored reduction, 1 - 0.89 x 0.8 = 0.288, where summing as enhancements do
+# would store 0.31. On the Rhino's 3560 damage that is 2534 against 2456.
 
 kind: fight
 map_id: 1021
@@ -11,12 +11,12 @@ seed: 4242
 round: 1
 source: game
 ticks: 120
-hash: {profile: mcfr-content-0.7.0, result: af7de5c4b30a0f54b04d208abcdcb88ac0affc21ea5794c7181c039c8df9aaee}
+hash: {profile: mcfr-content-0.7.0, result: cbad2ff017000251216268cf7d646eef0f2655a41a41e153936f2ee27312c335}
 blue:
   core_damage: 200
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -50}}
 red:
-  officers: [cost_control_specialist, cost_control_specialist]
+  officers: [cost_control_specialist, mass_produced_rhino]
   units:
   - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150}

@@ -65,9 +65,10 @@ recording holds one entry of their sum, not two entries. Summing entries in a
 simulator mirrors the build rather than inventing an order over them.
 
 **An impairment is not a negative enhancement.** Enhancements sum inside one
-bracket; impairments each contribute their own factor. Two of `0.11` leave
-`0.89 × 0.89 = 0.7921`, not `1 − 0.22 = 0.78`, and the build stores the
-combined reduction `1 − 0.89²`.
+bracket; impairments each contribute their own factor. Cost Control
+Specialist's `0.11` and Mass-Produced Rhino's `0.2` on one Rhino leave
+`0.89 × 0.8 = 0.712`, not `1 − 0.31 = 0.69`, and the build stores the combined
+reduction `1 − 0.89 × 0.8`.
 
 **A value is added in the number's own unit**, a range value in metres, and it
 sums across sources: a technology's range value and an officer's are stored as
