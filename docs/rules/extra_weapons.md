@@ -197,10 +197,15 @@ would start its attack:
 Leaving its idle state the skill takes the main skill's place: the main skill
 locks, letting its lock go, and the skill searches, taking the motion. It
 strikes once, about its own unit rather than its target, out to its splash,
-for its rate of the unit's base damage at its level, truncated. Its attack
-check fails once it has struck, so it returns to its idle state with its
-targets cleared and hands the main skill back, idle with its search due at
-once.
+for its rate of the unit's base damage at its level, truncated. Nothing
+checks its target until it has struck: a skill that splashes about itself
+waits for its attack point, and strikes, with its checks off
+(`SkillAttackController`'s waits and `NormalAttackPerformer.IsEnableCheckTarget`
+answer `!IsSelfSplash`), so a lock another unit kills while it winds up is
+not let go, its motion idles on the dead lock, and it strikes at its attack
+point all the same. Its attack check fails once it has struck, so it returns
+to its idle state with its targets cleared and hands the main skill back, idle
+with its search due at once.
 
 Whirlwind starts with two enemies within 25 metres and strikes out to 35 for
 1.4 times its Rhino's damage, a 3560 blow becoming 4983. A Rhino against one
@@ -412,6 +417,9 @@ simulator refuses it.
 
 ### Read
 
+- A self splash's blow checks no target: `SkillAttackController..ctor`,
+  `NormalAttackPerformer.IsEnableCheckTarget`,
+  `NormalAttackPerformer.IsInterruptedByInvalidTarget`.
 - An extra weapon technology adds its skill through its provider:
   `ExtraWeaponTech`, `ExtraSkillProvider.AddEffect`,
   `ExtraSkillSystem.AddMech`, `SkillManager.AddSkill`, `FightSkill.EnableUseMainSkillRange`.
