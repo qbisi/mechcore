@@ -324,15 +324,28 @@ impl Simulation {
         attacker.splash_radius = rules.attack.splash_radius();
         attacker.attack_interval_q32 =
             time_units_to_seconds_q32(rules.attack.interval_time_units());
-        attacker.facing = Facing::Weapons(&extra.skill.weapon_rotations_q32);
-        attacker.has_body = true;
+        // A weapon without an arc has no transform of its own, and points
+        // where what it is mounted on points: the turret it is mounted on, or
+        // the unit. The Hound's bombs score from the unit's rotation, as its
+        // main skill does.
+        let mount_rotation = match (rules.attack.weapons.mount, actor.turret_rotation()) {
+            (WeaponMount::MechBody, Some(turret)) => turret,
+            _ => actor.body_rotation_q32,
+        };
+        let rotation = if extra.arc().is_some() {
+            attacker.facing = Facing::Weapons(&extra.skill.weapon_rotations_q32);
+            attacker.has_body = true;
+            extra.skill.weapon_rotations_q32[0]
+        } else {
+            attacker.facing = Facing::Root(mount_rotation);
+            mount_rotation
+        };
         // `SkillSearchTargetController.PrepareSearch` does nothing: an extra
         // skill's search scores where everything stands as it updates, from
         // its own weapon's rotation. A weapon held to an arc passes over what
         // lies outside the arc widened by the attack angle either side, the
         // arc about its rest as the unit stands now, whichever way the
         // weapon points: the window is stated about the weapon's rotation.
-        let rotation = extra.skill.weapon_rotations_q32[0];
         attacker.query_x_q32 = actor.x_q32;
         attacker.query_z_q32 = actor.z_q32;
         attacker.query_rotation_q32 = rotation;

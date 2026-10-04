@@ -45,10 +45,12 @@ the whole of the difference:
 - **It searches as it updates.** Its search controller is a plain
   `SkillSearchTargetController`, whose `PrepareSearch` does nothing, so its
   search is a `Select` that scores every candidate where it stands as the skill
-  updates, never the tick's prepared snapshot. It scores from its own weapon's
-  rotation, and a weapon held to an arc passes over what lies outside the arc
-  widened by the skill's attack angle either side, the arc about the weapon's
-  rest as the unit stands then, whichever way the weapon points.
+  updates, never the tick's prepared snapshot; over 51 candidates or more it
+  scores on worker threads (`select_job`), the same scores. It scores from its
+  own weapon's rotation, and a weapon held to an arc passes over what lies
+  outside the arc widened by the skill's attack angle either side, the arc
+  about the weapon's rest as the unit stands then, whichever way the weapon
+  points.
 - **Its attack angle is its row's.** `Init` takes a skill's attack angle from
   its own row where the row sets one, and otherwise gives an extra skill the
   whole circle and a main skill its owner's.
@@ -91,6 +93,12 @@ its mount's rotation plus its default angle, as a child that turned with the
 chassis before the fight, and turns towards its skill's lock at the row's
 `extraWeaponRotateSpeed` after the skill's state has updated, held within its
 arc about its rest as the chassis pointed before the motion turned it.
+
+A weapon whose row gives it no arc has no transform of its own and points
+where its mount points: the Hound's bomb launchers point as the unit does.
+Its skill scores its searches from the unit's rotation as it stands then, the
+same rotation the main skill scores from, and asks its attack angle of the
+unit; it does not turn towards its lock.
 
 ## Its numbers
 
@@ -150,6 +158,12 @@ equipment or an Energy Tower skill writes a skill correction onto.
   control `tests/extra_weapon/fights/secondary-armament-takes-motion-control.yaml`.
 - A Hound's main skill releases before its bombs on the update both release:
   `tests/extra_weapon/fights/incendiary-bomb-with-main.yaml`.
+- A Hound's bomb skill scores every search from the unit's rotation as it
+  stands then: recorded with `target_search,target_candidate`,
+  `tests/extra_weapon/fights/incendiary-bomb-with-main.yaml` reads each bomb
+  search's source rotation equal to the body rotation the update began with.
+  That fight's result does not turn on it; a corpus round does, where the
+  bomb's search over 125 candidates scored each exactly as the main skill's.
 - Incendiary Bomb is one skill beside the Hound's main one, its shell deals
   nothing, and each lands a fire of its splash and its row's life time at the
   height it landed at, which burns the Marksman in it; the unit carries the
