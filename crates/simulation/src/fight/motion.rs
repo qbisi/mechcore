@@ -1035,6 +1035,7 @@ impl Simulation {
             MotionState::Moving => {
                 // `NormalRotate` and the move towards the lock, to the
                 // extra skill's range.
+                actor.turn_extra_weapons_to(aimed.map(|aimed| (aimed.x_q32, aimed.z_q32)));
                 let (x_q32, z_q32) = native_auto_move_target_point(
                     actor.x_q32,
                     actor.z_q32,

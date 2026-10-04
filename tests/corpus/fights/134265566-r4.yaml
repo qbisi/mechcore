@@ -1,0 +1,60 @@
+# Replay 2324_20260925--134265566, round 4, map 1031. Red's Centurions with
+# Homing Missile walk on as their missile skill holds the motion, the chassis
+# turning to where they move (t309). One whose main skill has just lost its
+# lock turns its turret to the missile skill's lock from t515, a tick before
+# the main skill locks it.
+
+kind: fight
+map_id: 1031
+seed: 505043195
+round: 4
+source: game
+ticks: 1155
+hash: {profile: mcfr-content-0.7.0, result: 72fe178c5a4521901258bd6708758ebe5b1a3d2924104388b1c7f7ca9f264876}
+blue:
+  officers: [mass_production_fire_control_system, giant_specialist]
+  techs:
+    void_eye: [range_enhancement]
+  legacy_index: 12
+  units:
+  - {name: void_eye, index: 0, position: {x: -190, y: -150}, level: 2, exp: 253/1465/1465}
+  - {name: void_eye, index: 1, position: {x: -20, y: -150}, exp: 81/650/650}
+  - {name: void_eye, index: 2, position: {x: -100, y: -150}, level: 2, exp: 135/1465/1465}
+  - {name: crawler, index: 5, position: {x: -190, y: -185}, exp: 389/425/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: -100, y: -185}, exp: 344/363/450, rotated: true}
+  - {name: mustang, index: 7, position: {x: 145, y: -300}, exp: 337/405/1200, equipment: [secondary_fire_control_system]}
+  - {name: mustang, index: 8, position: {x: -135, y: -300}, exp: 374/724/1200, equipment: [secondary_fire_control_system]}
+  - {name: vulcan, index: 9, position: {x: 140, y: -140}, exp: 1759/2001/2200, equipment: [secondary_fire_control_system]}
+  - {name: void_eye, index: 10, position: {x: 100, y: -150}, exp: 21/253/650}
+  - {name: crawler, index: 11, position: {x: 135, y: -190}, exp: 16/26/450}
+  - {name: fire_badger, index: 12, position: {x: -350, y: 285}, level: 3, exp: 0/840/4987, travelling: true}
+  - {name: vulcan, index: 13, position: {x: -140, y: -140}, exp: 0/283/2200}
+  - {name: fang, index: 14, position: {x: -140, y: -95}, exp: 0/6/600, rotated: true}
+  - {name: crawler, index: 15, position: {x: -310, y: 255}, exp: 0/29/450, travelling: true}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+red:
+  core_damage: 366
+  officers: [mass_production_fire_control_system, cost_control_specialist]
+  techs:
+    arclight: [range_enhancement]
+    centurion: [homing_missile]
+  blueprints: [attack_enhancement, defense_enhancement]
+  legacy_index: 13
+  units:
+  - {name: crawler, index: 0, position: {x: 135, y: -190}, exp: 54/87/450}
+  - {name: crawler, index: 1, position: {x: -140, y: -135}, exp: 328/328/450, rotated: true}
+  - {name: crawler, index: 2, position: {x: 140, y: -135}, exp: 35/39/450, rotated: true}
+  - {name: arclight, index: 5, position: {x: 140, y: -100}, level: 2, exp: 0/208/1690}
+  - {name: arclight, index: 6, position: {x: -140, y: -100}, level: 2, exp: 0/1043/1690}
+  - {name: crawler, index: 7, position: {x: 140, y: -285}, exp: 87/94/450, rotated: true}
+  - {name: mustang, index: 8, position: {x: 195, y: -300}, exp: 1044/1200/1200}
+  - {name: mustang, index: 9, position: {x: -195, y: -300}, exp: 599/947/1200}
+  - {name: arclight, index: 10, position: {x: 70, y: -100}, level: 2, exp: 0/268/1690}
+  - {name: arclight, index: 11, position: {x: 210, y: -100}, level: 2, exp: 0/226/1690}
+  - {name: arclight, index: 12, position: {x: -210, y: -100}, exp: 245/662/750}
+  - {name: centurion, index: 14, position: {x: -115, y: -145}, exp: 0/1141/2250, equipment: [secondary_fire_control_system]}
+  - {name: centurion, index: 15, position: {x: 115, y: -145}, exp: 0/244/2250, equipment: [secondary_fire_control_system]}
+  - {name: arclight, index: 16, position: {x: -70, y: -100}, exp: 0/137/750}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}

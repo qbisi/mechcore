@@ -140,6 +140,36 @@ impl Actor {
         actor
     }
 
+    /// `MotionMoveState.NormalRotate`'s `IAttacker.RotateWeaponTo` under an
+    /// extra skill: its weapons turn to what it fires at, or else to where
+    /// the unit moves (`CalculateTargetDirection`). With a body they are the
+    /// turret every weapon shares, which a Centurion turns to its missile
+    /// skill's lock before its main skill holds one; without, they are the
+    /// skill's own, which no recording carries.
+    pub(in crate::fight) fn turn_extra_weapons_to(&mut self, aimed: Option<(i64, i64)>) {
+        if !self.rules.has_body {
+            return;
+        }
+        let bearing_q32 = aimed.map_or_else(
+            || {
+                let (vx, vz) = (
+                    self.motion.current_velocity_x_q32,
+                    self.motion.current_velocity_z_q32,
+                );
+                (vx != 0 || vz != 0).then(|| direction_degrees_q32_raw(vx, vz))
+            },
+            |(x_q32, z_q32)| {
+                Some(direction_degrees_q32_raw(
+                    x_q32.saturating_sub(self.x_q32),
+                    z_q32.saturating_sub(self.z_q32),
+                ))
+            },
+        );
+        if let Some(bearing_q32) = bearing_q32 {
+            self.rotate_weapons_towards(bearing_q32);
+        }
+    }
+
     /// `MotionMoveState.MoveUpdate`'s `NormalRotate`: the facing turned to
     /// the velocity, before `Move` reads it for the speed.
     pub(in crate::fight) fn turn_to_move_direction(&mut self) {
