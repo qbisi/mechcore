@@ -60,10 +60,16 @@ impl DamageHit {
     /// it, it strikes the other side, and what it was aimed at is struck
     /// wherever that stands. It splashes and crosses shields as the unit's
     /// skill does, from where the unit stands, with no shield of its own.
+    ///
+    /// It touches only the domain of what it was aimed at, `aimed_domain`:
+    /// `GetTargetType` of a skill that does not diffuse, and the simulator
+    /// fights no skill that does, is whether the skill's attack target, or
+    /// its lock, flies. A Melting Point's beam at a Phoenix splashes no
+    /// Tarantula standing under it.
     pub(in crate::fight) fn of_skill(
         attacker: &Actor,
         skill_slot: u16,
-        aimed: FightActorRef,
+        (aimed, aimed_domain): (FightActorRef, UnitDomain),
         amount: i64,
     ) -> Self {
         Self {
@@ -82,7 +88,7 @@ impl DamageHit {
             crosses_shields: attacker.rules.attack.crosses_shields,
             strikes_buildings: true,
             splash_radius: attacker.stats.splash_radius(),
-            reach: Reach::Targets(attacker.rules.attack.targets),
+            reach: Reach::Domain(aimed_domain),
         }
     }
 
@@ -250,6 +256,17 @@ impl Reach {
 }
 
 impl Simulation {
+    /// Whether an object flies (`IsFly`): a building stands on the ground.
+    fn domain_of(&self, target: FightActorRef) -> UnitDomain {
+        match target {
+            FightActorRef::Unit(id) => self
+                .actors
+                .get(&id)
+                .map_or(UnitDomain::Ground, |actor| actor.rules.domain),
+            FightActorRef::Building(_) => UnitDomain::Ground,
+        }
+    }
+
     /// Every object one hit strikes, in the order it strikes them.
     ///
     /// The build's `DamagePerformer.PrepareRangeTargets`: what the hit was
@@ -792,7 +809,7 @@ impl Simulation {
             ..DamageHit::of_skill(
                 attacker,
                 u16::try_from(skill_slot).expect("skill slot fits u16"),
-                target,
+                (target, self.domain_of(target)),
                 amount,
             )
         };
@@ -825,7 +842,7 @@ impl Simulation {
             shield: Some(shield),
             crosses_shields: false,
             splash_radius: 0,
-            ..DamageHit::of_skill(attacker, 0, target, damage)
+            ..DamageHit::of_skill(attacker, 0, (target, self.domain_of(target)), damage)
         };
         self.perform_damage(hit, events)?;
         Ok(())
@@ -921,7 +938,7 @@ impl Simulation {
             let hit = DamageHit {
                 center_q32,
                 center_y_q32: self.target_height_q32(target),
-                ..DamageHit::of_skill(attacker, 0, target, damage)
+                ..DamageHit::of_skill(attacker, 0, (target, self.domain_of(target)), damage)
             };
             let struck = self.perform_damage(hit, events)?;
             self.record_ends(struck.ends, events);
