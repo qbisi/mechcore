@@ -430,12 +430,37 @@ impl Simulation {
             && !self
                 .fight_actor(target)
                 .is_some_and(|view| view.alive && view.visible);
+        let center = (hit.center_q32.0, hit.center_y_q32, hit.center_q32.1);
         let struck = if lands_on_nothing {
             super::damage::Struck::default()
         } else {
-            self.perform_damage(hit, events)?
+            let struck = self.perform_damage(hit, events)?;
+            self.leave_extra_weapon_fire(skill_ref, center)?;
+            struck
         };
         Ok(struck)
+    }
+
+    /// `ExtraSkillProvider.PerformHitEffect`: an extra skill whose row leaves
+    /// a fire leaves one where its hit lands, of its side, the unit's own
+    /// fire (`GroundFireController.GetFireMech`), through `RangeItemSystem.AddItem`.
+    fn leave_extra_weapon_fire(
+        &mut self,
+        skill_ref: SkillRef,
+        center: (i64, i64, i64),
+    ) -> Result<()> {
+        let (FightActorRef::Unit(id), SkillSlot::Extra(index)) = (skill_ref.owner, skill_ref.slot)
+        else {
+            return Ok(());
+        };
+        let Some((team, fire)) = self.actors.get(&id).and_then(|actor| {
+            actor.skills.extras[index]
+                .fire
+                .map(|fire| (actor.placement.team, fire))
+        }) else {
+            return Ok(());
+        };
+        self.add_terrain(team, &format!("unit {id}"), fire, center)
     }
 }
 

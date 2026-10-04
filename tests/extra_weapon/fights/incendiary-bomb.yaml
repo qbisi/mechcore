@@ -1,0 +1,28 @@
+# Incendiary Bomb: an extra skill whose shell deals nothing and leaves a fire.
+#
+# A Hound with Incendiary Bomb against two Marksmen. Each member throws one
+# bomb a few updates in; where each lands, a fire of the bomb's splash burns
+# for its row's life time under the Hound's side, at the height the bomb
+# landed at. The Marksman standing in the fires burns until it falls, and the
+# unit carries the fire's range and life time among its modifiers from the
+# start. That Marksman was what the main skills held: the bombs' skills,
+# holding the other, take the motion for an update, and the Hounds, which have
+# no body, turn their roots to it.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 212
+hash: {profile: mcfr-content-0.7.0, result: 37769a594eb406e685184e657a4c1e982953a09633c3c7cde9023dd2854aeade}
+blue:
+  core_damage: 100
+  techs:
+    hound: [incendiary_bomb]
+  units:
+  - {name: hound, index: 0, position: {x: 0, y: -40}, exp: 0/200/750}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -60}, exp: 0/80/650}
+  - {name: marksman, index: 1, position: {x: 30, y: -70}, exp: 0/120/650}

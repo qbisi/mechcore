@@ -34,11 +34,11 @@ battle skill ground impact
 `PerformEffect` calls `AddItem` directly, which is what fixes the entry point
 rather than merely suggesting it.
 
-A unit technology projectile also creates a `RangeItem`. Its path is not closed
-on a static call edge, and it is reconstructed from position and timing instead:
-a projectile's removal and a terrain's creation coincide in tick and position.
-That is a correspondence, not a proven call chain, and it cannot distinguish the
-projectile from another cause acting at the same place on the same tick.
+An extra weapon technology's shot creates a `RangeItem` through a second entry
+point: `ExtraSkillProvider.PerformHitEffect` calls `RangeItemSystem.AddItem`
+with the unit's fire where the hit struck, height included
+([extra_weapons.md](extra_weapons.md#a-fire-where-it-lands)). A fire's repeat
+test (`GetRepeatItem`) compares the whole point, height too.
 
 ## Which units a terrain affects
 
@@ -414,5 +414,3 @@ already exists.
 - **`recovery_zone` and `fog_sand` behaviour.**
 - **A type conversion within one identity**: whether a native producer for one
   exists.
-- **A technology projectile's terrain.** Whether the projectile causes the
-  terrain it coincides with, as opposed to being a reliable correlate of it.

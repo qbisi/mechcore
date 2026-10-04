@@ -73,6 +73,14 @@ pub(crate) enum Index {
     /// on its own; `DamageProperty.CalculateDamage` multiplies its enhancement
     /// by the skill's `DamageCalculator.killCount`.
     DamagePerKill,
+    /// `MechDataChangeFloat` 0, `gf_range_value`: the radius of the fire an
+    /// extra weapon's hit leaves, which `ExtraSkillProvider.AddEffect` writes
+    /// onto its unit and `GroundFireController.GetFireMech` reads back. Q32.32
+    /// metres.
+    GroundFireRange,
+    /// `MechDataChangeFloat` 1, `gf_life_time_value`: how long that fire
+    /// burns. Q32.32 seconds.
+    GroundFireLifeTime,
 }
 
 impl Index {
@@ -99,6 +107,8 @@ impl Index {
             Self::SplashRange => "splash range",
             Self::AmplifyDamage => "damage taken",
             Self::DamagePerKill => "damage per kill",
+            Self::GroundFireRange => "ground fire range",
+            Self::GroundFireLifeTime => "ground fire life time",
         }
     }
 }
@@ -272,7 +282,13 @@ const DAMAGE_RATES: [(Index, &str); 2] = [
 
 /// What a skill overlay may carry that its `DataSet` has no field for.
 fn refuse_unrecorded_skill_fields(skill: &Overlay) -> Result<()> {
-    for index in [Index::MoveSpeed, Index::MaxLife, Index::AmplifyDamage] {
+    for index in [
+        Index::MoveSpeed,
+        Index::MaxLife,
+        Index::AmplifyDamage,
+        Index::GroundFireRange,
+        Index::GroundFireLifeTime,
+    ] {
         if skill.aggregate(index).is_some() {
             return Err(Error::new(format!(
                 "the skill DataSet has no field for {}",
@@ -748,6 +764,30 @@ impl Stats {
                 speed,
             )?;
         }
+        // `DataSet.floatDatas`, Q32.32 as the fire reads them.
+        for (index, field) in [
+            (Index::GroundFireRange, "gf_range_value"),
+            (Index::GroundFireLifeTime, "gf_life_time_value"),
+        ] {
+            if let Some(aggregate) = unit.aggregate(index) {
+                if aggregate.rate()? != (0, 0) {
+                    return Err(Error::new(format!(
+                        "the unit DataSet has no field for a rate of {}",
+                        index.name()
+                    )));
+                }
+                push(
+                    modifiers,
+                    ModifierChannel::MechFloat,
+                    None,
+                    field,
+                    ModifierPart::Value,
+                    i64::try_from(aggregate.value).map_err(|_| {
+                        Error::new(format!("a unit's {} is outside i64", index.name()))
+                    })?,
+                );
+            }
+        }
         for index in [
             Index::AttackDamage,
             Index::AttackInterval,
@@ -867,6 +907,8 @@ impl Stats {
             Index::AttackRange,
             Index::SplashRange,
             Index::DamagePerKill,
+            Index::GroundFireRange,
+            Index::GroundFireLifeTime,
         ] {
             if buff.aggregate(index).is_some() {
                 return Err(Error::new(format!(

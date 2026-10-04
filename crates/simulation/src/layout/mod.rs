@@ -10,7 +10,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::{
     Error, Result,
-    data::{Channel, Entry, ExperienceRate, Stats},
+    data::{Channel, Correction, Entry, ExperienceRate, Index, Stats},
     modifier::{
         AutoRecovery, CarriedShield, EnergyShield, EnergyTowerSkillEffects, EquipmentEffects,
         LifeSteal, OfficerEffects, ProductionLine, StartBuff, SweepIntensify, TechnologyEffects,
@@ -91,7 +91,14 @@ pub(crate) struct Placement {
     /// zone, which `SuperDeploymentSystem` holds until its side arrives.
     pub(crate) travelling: bool,
     /// The extra weapons its technologies add beside its main skill.
-    pub(crate) extra_weapons: Vec<ExtraWeaponConfig>,
+    pub(crate) extra_weapons: Vec<ExtraWeapon>,
+}
+
+/// An extra weapon a unit's technology adds, and the fire its hit leaves.
+#[derive(Debug, Clone)]
+pub(crate) struct ExtraWeapon {
+    pub(crate) rules: ExtraWeaponConfig,
+    pub(crate) fire: Option<TerrainSpec>,
 }
 
 /// A production line a unit runs, with what it makes resolved: the unit's
@@ -209,12 +216,14 @@ fn compile(bytes: &[u8], units: &UnitConfigs) -> Result<CompiledLayout> {
 /// The tables a side's corrections are read from.
 ///
 /// One per source of an `ICommonMechDataChangeDataSource`: officers,
-/// technologies, equipment and the energy tower's skills.
+/// technologies, equipment and the energy tower's skills; and the battle
+/// skills', whose `Config` fire an extra weapon's fire deals.
 struct Loadouts {
     officers: OfficerEffects,
     technologies: TechnologyEffects,
     equipment: EquipmentEffects,
     energy_tower: EnergyTowerSkillEffects,
+    skill_effects: CommanderSkillEffects,
 }
 
 impl Loadouts {
@@ -224,6 +233,7 @@ impl Loadouts {
             technologies: TechnologyEffects::load()?,
             equipment: EquipmentEffects::load()?,
             energy_tower: EnergyTowerSkillEffects::load()?,
+            skill_effects: CommanderSkillEffects::load()?,
         })
     }
 }
@@ -299,7 +309,7 @@ pub(crate) fn compile_with_seed(
     let loadouts = Loadouts::load()?;
     let table = Constructions::load()?;
     let contraptions = Contraptions::load()?;
-    let skill_effects = CommanderSkillEffects::load()?;
+    let skill_effects = &loadouts.skill_effects;
 
     // Both sides are asked everything before either is refused. The registry
     // speaks first, one clause a side naming every field it owes; what the
@@ -350,14 +360,14 @@ pub(crate) fn compile_with_seed(
         if !side.techs.units.is_empty() {
             researched.insert(team);
         }
-        let standing = compile_standing(name, team, side, &skill_effects, &mut refused);
+        let standing = compile_standing(name, team, side, skill_effects, &mut refused);
         shields.extend(standing.0);
         standing_oil.extend(standing.1);
         battle_skills.extend(compile_battle_skills(
             name,
             team,
             side,
-            &skill_effects,
+            skill_effects,
             units,
             &loadouts,
             &mut refused,
@@ -773,7 +783,7 @@ struct Worn {
     ignored_buffs: Vec<u32>,
     important: bool,
     ignores_control_beam: bool,
-    extra_weapons: Vec<ExtraWeaponConfig>,
+    extra_weapons: Vec<ExtraWeapon>,
 }
 
 /// What this side's loadout and a formation's equipment write onto it.
@@ -846,10 +856,6 @@ fn loadout(
             .experience_rate(&side.techs.officers, rules)
             .map_err(on_side),
     )?;
-    let stats = refused.hold(Stats::corrected(rules, level, &corrections).map_err(refusal))?;
-    // A snapshot carries each `DataSet`'s aggregate; one this build cannot
-    // record is refused here, where the side and the officer can be named.
-    refused.hold(stats.modifiers(1).map_err(refusal))?;
     let mut worn = worn(
         side_name,
         type_name,
@@ -860,6 +866,10 @@ fn loadout(
         corrections,
         refused,
     )?;
+    let stats = refused.hold(Stats::corrected(rules, level, &worn.corrections).map_err(refusal))?;
+    // A snapshot carries each `DataSet`'s aggregate; one this build cannot
+    // record is refused here, where the side and the officer can be named.
+    refused.hold(stats.modifiers(1).map_err(refusal))?;
     worn.experience_rate = experience_rate;
     Some(worn)
 }
@@ -945,6 +955,10 @@ fn worn(
     let extra_weapons = extra_weapons(
         side_name, type_name, equipment, rules, side, loadouts, refused,
     )?;
+    let mut corrections = corrections;
+    for weapon in &extra_weapons {
+        corrections.extend(extra_weapon_corrections(&weapon.rules));
+    }
     let in_force = |error: String| refusal(Error::new(error));
     Some(Worn {
         corrections,
@@ -972,6 +986,59 @@ fn worn(
     })
 }
 
+/// The fire an extra weapon's hit leaves: its skill's splash wide
+/// (`ExtraSkillProvider.AddEffect` writes `GetSplashRange` onto the unit as
+/// the fire's range) and burning its row's first `fireLifeTime`
+/// (`ExtraWeaponTechnologyData.GetFireLifeTime`).
+fn extra_weapon_fire(
+    weapon: &ExtraWeaponConfig,
+    fire: &crate::rules::ExtraWeaponFire,
+    loadouts: &Loadouts,
+) -> Result<TerrainSpec> {
+    let [range, life] = ground_fire(weapon, fire);
+    loadouts.skill_effects.unit_fire(range, life)
+}
+
+/// The fire's range and life time, Q32.32 metres and seconds, as
+/// `ExtraSkillProvider.AddEffect` writes them onto the unit.
+fn ground_fire(weapon: &ExtraWeaponConfig, fire: &crate::rules::ExtraWeaponFire) -> [i64; 2] {
+    let life = fire.life_time.first().copied().unwrap_or(0.0);
+    [
+        crate::rules::metres_q32(weapon.attack.splash_radius),
+        crate::rules::metres_q32(life),
+    ]
+}
+
+/// What an extra weapon writes onto its unit's `DataSet`: where its row burns
+/// (`GetFireLifeTime` above zero), `ExtraSkillProvider.AddEffect` adds the
+/// fire's range and life time through `MechDataModifer.AddData`, which the
+/// recording keeps among the unit's modifiers.
+fn extra_weapon_corrections(weapon: &ExtraWeaponConfig) -> Vec<(Channel, Entry)> {
+    let Some(fire) = &weapon.fire else {
+        return Vec::new();
+    };
+    let [range, life] = ground_fire(weapon, fire);
+    if life <= 0 {
+        return Vec::new();
+    }
+    [
+        (Index::GroundFireRange, range),
+        (Index::GroundFireLifeTime, life),
+    ]
+    .into_iter()
+    .map(|(index, value)| {
+        (
+            Channel::Unit,
+            Entry {
+                index,
+                source: "extra weapon",
+                correction: Correction::Value(value),
+            },
+        )
+    })
+    .collect()
+}
+
 /// The extra weapons a unit's technologies add beside its main skill
 /// (`ExtraWeaponTech`), or `None` with a refusal kept.
 ///
@@ -989,13 +1056,29 @@ fn extra_weapons(
     side: &SidePlan,
     loadouts: &Loadouts,
     refused: &mut Refusals,
-) -> Option<Vec<ExtraWeaponConfig>> {
-    let weapons: Vec<ExtraWeaponConfig> = rules
+) -> Option<Vec<ExtraWeapon>> {
+    let mut weapons = Vec::new();
+    for weapon in rules
         .extra_weapons
         .iter()
         .filter(|weapon| side.techs.units.contains(&weapon.technology))
-        .cloned()
-        .collect();
+    {
+        let fire = match &weapon.fire {
+            None => None,
+            Some(fire) => Some(
+                refused.hold(extra_weapon_fire(weapon, fire, loadouts).map_err(|error| {
+                    Error::new(format!(
+                        "side {side_name} unit type {type_name:?} technology {}: {error}",
+                        weapon.technology
+                    ))
+                }))?,
+            ),
+        };
+        weapons.push(ExtraWeapon {
+            rules: weapon.clone(),
+            fire,
+        });
+    }
     if weapons.is_empty() {
         return Some(weapons);
     }

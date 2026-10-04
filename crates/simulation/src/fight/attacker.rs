@@ -311,10 +311,16 @@ impl Simulation {
         } else {
             rules.attack.range()
         };
-        attacker.attack_damage = usize::try_from(actor.placement.level - 1)
-            .ok()
-            .and_then(|level| rules.damage_by_level.get(level))
-            .copied()?;
+        // A row that lists no damage deals none: an Incendiary Bomb's hit
+        // leaves its fire and nothing else.
+        attacker.attack_damage = if rules.damage_by_level.is_empty() {
+            0
+        } else {
+            usize::try_from(actor.placement.level - 1)
+                .ok()
+                .and_then(|level| rules.damage_by_level.get(level))
+                .copied()?
+        };
         attacker.splash_radius = rules.attack.splash_radius();
         attacker.attack_interval_q32 =
             time_units_to_seconds_q32(rules.attack.interval_time_units());

@@ -1,0 +1,17 @@
+# The control of incendiary-bomb.yaml: the same Hound without its bombs.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 144
+hash: {profile: mcfr-content-0.7.0, result: a48478316ff08503c82d3d1ad2d574e349af8c48e25a3e2748db67234f656d65}
+blue:
+  core_damage: 200
+  units:
+  - {name: hound, index: 0, position: {x: 0, y: -40}}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -60}, exp: 0/120/650}
+  - {name: marksman, index: 1, position: {x: 30, y: -70}, exp: 0/80/650}
