@@ -92,7 +92,9 @@ use search::*;
 use skill::ATTACK_COUNT_RESET;
 #[cfg(test)]
 use skill::Performer;
-use skill::{FightSkillPhase, GroupBehaviour, Launch, Skill, SkillKind, SkillUpdate};
+use skill::{
+    FightSkillPhase, GroupBehaviour, Launch, Skill, SkillKind, SkillManager, SkillRef, SkillUpdate,
+};
 use tower::{RunningBuff, TowerLoss};
 
 const SPACE_UNITS_PER_METER: i64 = 1_000;
@@ -279,7 +281,7 @@ struct Actor {
     /// and is counted in again when it dies.
     original_formation: u64,
     pub(in crate::fight) motion: Motion,
-    pub(in crate::fight) skill: Skill,
+    pub(in crate::fight) skills: SkillManager,
 }
 
 /// A unit's own shield, `EnergyShieldController`.
@@ -603,9 +605,9 @@ impl Simulation {
         for actor in self.actors.values_mut().filter(|actor| actor.alive()) {
             let team = actor.placement.team;
             if alive_teams.iter().all(|&other| other == team)
-                && (every_unit || actor.skill.lock_target.is_some())
+                && (every_unit || actor.skills.main.lock_target.is_some())
             {
-                actor.skill.current_attack_interval =
+                actor.skills.main.current_attack_interval =
                     seconds_q32_to_steps(actor.stats.attack_interval_q32());
             }
         }
@@ -832,29 +834,30 @@ impl Simulation {
                     actor.exit_fight_move_ability();
                     actor.stop_in_place(entered_idle);
                     // Leaving the fight drops the unit's own lock too.
-                    if let Some(group) = &mut actor.skill.group {
+                    if let Some(group) = &mut actor.skills.main.group {
                         group.mech_lock = None;
                     }
-                } else if !actor.skill.mech_searches() {
+                } else if !actor.skills.main.mech_searches() {
                     // A unit that searches for itself keeps its own lock,
                     // which no skill drops, and its motion goes on after it.
                     actor.lose_target_motion(entered_idle);
                 }
-                actor.skill.drop_lock();
-                actor.skill.attack_target_left = None;
-                actor.skill.clear_slots();
+                actor.skills.main.drop_lock();
+                actor.skills.main.attack_target_left = None;
+                actor.skills.main.clear_slots();
                 // A won fight runs on without `FightSkill.ExitFight` until it
                 // ends: a skill already cooling goes on cooling at what it
                 // named, and only the end of the fight ends it. A cooling
                 // this very tick would have begun is not one the build's
                 // attack state has entered yet, and goes idle with it.
                 let cooling_before = actor
-                    .skill
+                    .skills
+                    .main
                     .cooling()
                     .is_some_and(|(started, _)| started < step);
                 if ready_to_finish || !cooling_before {
-                    actor.skill.set_cooling(None);
-                    actor.skill.set_phase(FightSkillPhase::Idle);
+                    actor.skills.main.set_cooling(None);
+                    actor.skills.main.set_phase(FightSkillPhase::Idle);
                 }
                 if ready_to_finish {
                     actor.motion.current_velocity_x_q32 = 0;
@@ -862,8 +865,8 @@ impl Simulation {
                 }
             }
             for construction in self.constructions.values_mut() {
-                construction.skill.drop_lock();
-                construction.skill.set_phase(FightSkillPhase::Idle);
+                construction.skills.main.drop_lock();
+                construction.skills.main.set_phase(FightSkillPhase::Idle);
             }
         }
         if !ready_to_finish {

@@ -22,8 +22,8 @@ impl Actor {
     #[cfg(test)]
     pub(in crate::fight) fn describe(&mut self, rules: UnitConfig) {
         self.stats = crate::data::Stats::of(&rules).expect("an uncorrected description resolves");
-        self.skill.kind = SkillKind::of(&rules.attack.path);
-        self.skill.performer = Performer::of(self.skill.kind);
+        self.skills.main.kind = SkillKind::of(&rules.attack.path);
+        self.skills.main.performer = Performer::of(self.skills.main.kind);
         self.rules = rules;
     }
 
@@ -127,10 +127,10 @@ impl Actor {
                 transition_to: None,
                 attack_hold_fire: false,
             },
-            skill: Skill::new(weapon_rotations_q32, group, magazine, kind),
+            skills: SkillManager::new(Skill::new(weapon_rotations_q32, group, magazine, kind)),
         };
         if actor.rules.mech_search
-            && let Some(group) = &mut actor.skill.group
+            && let Some(group) = &mut actor.skills.main.group
         {
             group.mech_search_time = Some(0);
         }
@@ -184,12 +184,12 @@ impl Actor {
 
     pub(in crate::fight) fn exit_fight_on_death(&mut self) {
         self.motion.state = MotionState::Idle;
-        self.skill.set_pending(None);
-        self.skill.lock_target = None;
-        self.skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
-        self.skill.set_phase(FightSkillPhase::Idle);
-        self.skill.clear_slots();
-        self.skill.performer.stop();
+        self.skills.main.set_pending(None);
+        self.skills.main.lock_target = None;
+        self.skills.main.search_target_time = SEARCH_TARGET_RESET_TICKS;
+        self.skills.main.set_phase(FightSkillPhase::Idle);
+        self.skills.main.clear_slots();
+        self.skills.main.performer.stop();
         self.motion.attack_hold_fire = false;
         self.motion.current_velocity_x_q32 = 0;
         self.motion.current_velocity_z_q32 = 0;
@@ -235,7 +235,7 @@ impl Actor {
     }
 
     pub(in crate::fight) fn set_weapon_rotation(&mut self, rotation_q32: i64) {
-        self.skill.weapon_rotations_q32.fill(rotation_q32);
+        self.skills.main.weapon_rotations_q32.fill(rotation_q32);
         if let Some(turret) = &mut self.turret_q32 {
             *turret = rotation_q32;
         }
@@ -298,7 +298,7 @@ impl Actor {
         // The motion turns the mech body; weapons with arcs of their own
         // turn in their skills' update (`Simulation::turn_arc_weapons`).
         if let Some(turret) = &mut self.turret_q32 {
-            let aim = if self.skill.standalone() {
+            let aim = if self.skills.main.standalone() {
                 let Some(aim) = self.turret_aim_q32 else {
                     return;
                 };
@@ -309,7 +309,7 @@ impl Actor {
             *turret = rotate_towards_q32(*turret, aim, turn_q32);
             return;
         }
-        self.skill.turn_weapons_towards(target_q32, turn_q32);
+        self.skills.main.turn_weapons_towards(target_q32, turn_q32);
     }
 
     /// A unit with a body turns its turret, whose rotation every weapon of
@@ -320,7 +320,7 @@ impl Actor {
         }
         self.rules
             .has_body
-            .then(|| self.skill.weapon_rotations_q32.first().copied())
+            .then(|| self.skills.main.weapon_rotations_q32.first().copied())
             .flatten()
     }
 
@@ -329,7 +329,7 @@ impl Actor {
     /// measured from; a slot without one is measured from the root.
     pub(in crate::fight) fn slot_main_rotation_q32(&self, slot: usize) -> i64 {
         if self.rules.attack.weapons.fixed_to_body && slot > 0 {
-            self.skill.sibling_weapon_rotation_q32(slot)
+            self.skills.main.sibling_weapon_rotation_q32(slot)
         } else {
             self.body_rotation_q32
         }
@@ -392,14 +392,14 @@ impl Actor {
         if self.rules.attack.weapons.arcs.is_some() {
             return Some(QPose {
                 position,
-                rotation: self.skill.weapon_rotations_q32[weapon_index],
+                rotation: self.skills.main.weapon_rotations_q32[weapon_index],
             });
         }
         self.rules.attack.weapons.fixed_to_body.then(|| QPose {
             position,
             rotation: match weapon_index {
                 0 => self.body_rotation_q32,
-                slot => self.skill.sibling_weapon_rotation_q32(slot),
+                slot => self.skills.main.sibling_weapon_rotation_q32(slot),
             },
         })
     }
@@ -411,22 +411,26 @@ impl Actor {
             y: space_to_q32(height),
             z: self.z_q32,
         };
-        let weapon_aims = (0..self.skill.weapon_rotations_q32.len())
+        let weapon_aims = (0..self.skills.main.weapon_rotations_q32.len())
             .map(|weapon_index| {
                 let group_mode = self.rules.attack.weapons.mode != WeaponMode::Normal;
                 let attack_target = if group_mode {
                     // A slot firing at a shield names no target the
                     // recording can.
-                    self.skill.group_attack_target(weapon_index).filter(|_| {
-                        weapon_index >= self.skill.group_size().max(1)
-                            || self
-                                .skill
-                                .group_skill(weapon_index)
-                                .shield_target()
-                                .is_none()
-                    })
+                    self.skills
+                        .main
+                        .group_attack_target(weapon_index)
+                        .filter(|_| {
+                            weapon_index >= self.skills.main.group_size().max(1)
+                                || self
+                                    .skills
+                                    .main
+                                    .group_skill(weapon_index)
+                                    .shield_target()
+                                    .is_none()
+                        })
                 } else {
-                    self.skill.named_attack_target()
+                    self.skills.main.named_attack_target()
                 };
                 // A unit that travelled in has run no update to search an
                 // attack target with until its first: `SearchAttackTarget`
@@ -462,7 +466,7 @@ impl Actor {
                 z: self.motion.current_velocity_z_q32,
             },
             motion_state: self.motion.state,
-            mech_lock_target: self.skill.unit_lock().map(FightActorRef::object_ref),
+            mech_lock_target: self.skills.main.unit_lock().map(FightActorRef::object_ref),
             collision_radius: space_to_q32(self.rules.collision_radius()),
             life: GaugeI32 {
                 current: i32::try_from(self.life).expect("unit life fits i32"),
@@ -479,7 +483,7 @@ impl Actor {
                 },
             modifiers: self
                 .stats
-                .modifiers(self.skill.group_size().max(1))
+                .modifiers(self.skills.main.group_size().max(1))
                 .expect("the layout refused every correction a snapshot cannot record"),
             personal_shield: PersonalShieldState {
                 active: self.shield.is_some(),
@@ -516,7 +520,7 @@ impl Actor {
                 // cycle in progress was scheduled with, stagger included, the
                 // core's for a group, and the composed interval once no enemy
                 // is left. `docs/rules/combat.md` says how each was read.
-                current_attack_interval: i32::try_from(self.skill.current_attack_interval)
+                current_attack_interval: i32::try_from(self.skills.main.current_attack_interval)
                     .unwrap_or(i32::MAX),
             },
         }

@@ -862,7 +862,7 @@ impl Simulation {
             (
                 attacker.stats.laser_damage(
                     &attacker.rules,
-                    usize::try_from(attacker.skill.attack_count).unwrap_or(0),
+                    usize::try_from(attacker.skills.main.attack_count).unwrap_or(0),
                 ),
                 attacker.object_ref(),
                 attacker.placement.team,

@@ -42,7 +42,8 @@ impl Simulation {
         searching: Option<usize>,
     ) {
         let siblings = self.actors[&actor_id]
-            .skill
+            .skills
+            .main
             .siblings()
             .iter()
             .map(|slot| slot.lock_target)
@@ -79,7 +80,8 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable")
-            .skill
+            .skills
+            .main
             .siblings_mut()
             .iter_mut()
             .zip(found)
@@ -110,7 +112,7 @@ impl Simulation {
         slot: usize,
         order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<bool> {
-        let skill = &self.actors[&actor_id].skill;
+        let skill = &self.actors[&actor_id].skills.main;
         let Some(locks) = skill.slot_locks().into_iter().collect::<Option<Vec<_>>>() else {
             return Ok(false);
         };
@@ -147,7 +149,8 @@ impl Simulation {
         self.actors
             .get_mut(&actor_id)
             .expect("actor identity is stable")
-            .skill
+            .skills
+            .main
             .sibling_mut(slot)
             .search_target_time = SEARCH_TARGET_RESET_TICKS;
         Ok(found.is_some_and(|found| holders.iter().all(|(held, _)| *held != found)))
@@ -185,13 +188,14 @@ impl Simulation {
     ) -> Result<()> {
         #[cfg(test)]
         self.replay_group_checker_calls(actor_id);
+        let main = SkillRef::main(FightActorRef::Unit(actor_id));
         let prepare_steps =
             native_time_units_to_steps(self.actors[&actor_id].rules.attack.prepare_time_units());
-        let fusillade = self.actors[&actor_id].skill.fusillade();
+        let fusillade = self.skill(main).fusillade();
         let cooling_steps =
             native_time_units_to_steps(self.actors[&actor_id].rules.attack.cooling_time_units());
-        let core_blew = self.actors[&actor_id]
-            .skill
+        let core_blew = self
+            .skill(main)
             .group
             .as_ref()
             .is_some_and(|group| group.core_blow_step == Some(step));
@@ -199,15 +203,16 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable")
-            .skill;
+            .skills
+            .main;
         if fusillade && core_entered_attack {
             skill.align_slots_to_core();
         }
-        for slot in 1..self.actors[&actor_id].skill.group_size() {
-            let before = self.actors[&actor_id].skill.sibling(slot).lock_target;
-            match self.actors[&actor_id].skill.sibling(slot).state {
+        for slot in 1..self.skill(main).group_size() {
+            let before = self.skill(main).sibling(slot).lock_target;
+            match self.skill(main).sibling(slot).state {
                 SkillState::Idle { .. } => {
-                    if may_start_group_slot(fusillade, &self.actors[&actor_id].skill) {
+                    if may_start_group_slot(fusillade, self.skill(main)) {
                         self.start_group_slot(
                             actor_id,
                             slot,
@@ -218,19 +223,15 @@ impl Simulation {
                     }
                 }
                 SkillState::Prepare { finish_step } => {
-                    if !self.check_attackable_slot(
-                        FightActorRef::Unit(actor_id),
-                        Some(slot),
-                        false,
-                        target_search_order,
-                    )? {
+                    if !self.check_attackable_slot(main, Some(slot), false, target_search_order)? {
                         self.idle_group_slot(actor_id, slot);
                     } else if step >= finish_step {
                         let sibling = self
                             .actors
                             .get_mut(&actor_id)
                             .expect("actor identity is stable")
-                            .skill
+                            .skills
+                            .main
                             .sibling_mut(slot);
                         sibling.enter(SkillState::Attack(Blow::Waiting));
                         sibling.next_attack_step =
@@ -238,27 +239,22 @@ impl Simulation {
                     }
                 }
                 SkillState::Attack(_) => {
-                    if !self.check_attackable_slot(
-                        FightActorRef::Unit(actor_id),
-                        Some(slot),
-                        true,
-                        target_search_order,
-                    )? {
+                    if !self.check_attackable_slot(main, Some(slot), true, target_search_order)? {
                         self.finish_group_slot(actor_id, slot, step, cooling_steps);
                     } else if (!fusillade || core_blew)
-                        && step >= self.actors[&actor_id].skill.sibling(slot).next_attack_step
-                        && let Some(target) = self.actors[&actor_id].skill.group_attack_target(slot)
+                        && step >= self.skill(main).sibling(slot).next_attack_step
+                        && let Some(target) = self.skill(main).group_attack_target(slot)
                     {
                         self.release_group_slot(actor_id, slot, target, step, events)?;
                     }
                     // `SkillAttackState.Update` counts the search timer down
                     // after the check and the blow.
-                    if let SkillState::Attack(_) = self.actors[&actor_id].skill.sibling(slot).state
-                    {
+                    if let SkillState::Attack(_) = self.skill(main).sibling(slot).state {
                         self.actors
                             .get_mut(&actor_id)
                             .expect("actor identity is stable")
-                            .skill
+                            .skills
+                            .main
                             .sibling_mut(slot)
                             .search_target_time -= 1;
                     }
@@ -271,7 +267,8 @@ impl Simulation {
                         self.actors
                             .get_mut(&actor_id)
                             .expect("actor identity is stable")
-                            .skill
+                            .skills
+                            .main
                             .sibling_mut(slot)
                             .enter(SkillState::Idle { ready_step: None });
                     }
@@ -284,7 +281,8 @@ impl Simulation {
             self.actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable")
-                .skill
+                .skills
+                .main
                 .align_slots_to_core();
         }
         Ok(())
@@ -304,9 +302,9 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
-        let after = actor.skill.sibling(slot).lock_target;
+        let after = actor.skills.main.sibling(slot).lock_target;
         if after != before {
-            actor.skill.set_mech_lock(after);
+            actor.skills.main.set_mech_lock(after);
         }
         // `FightSkill.Update` turns a skill's weapons toward its lock
         // after its state has updated, and a weapon fixed to the body
@@ -316,7 +314,7 @@ impl Simulation {
         if actor.rules.attack.weapons.fixed_to_body
             && after.is_some()
             && self.ending.stop_step != Some(step)
-            && let Some(group) = &mut actor.skill.group
+            && let Some(group) = &mut actor.skills.main.group
         {
             group.sibling_weapon_rotations_q32[slot - 1] = body_rotation_q32;
         }
@@ -328,7 +326,7 @@ impl Simulation {
     fn finish_group_slot(&mut self, actor_id: u64, slot: usize, step: u64, cooling_steps: u64) {
         // A slot firing at a shield has no attack target to go on naming:
         // `ChangeAttackTarget(null, shield)` cleared it.
-        let skill = &self.actors[&actor_id].skill;
+        let skill = &self.actors[&actor_id].skills.main;
         let candidate = skill
             .group_attack_target(slot)
             .filter(|_| skill.group_skill(slot).shield_target().is_none());
@@ -337,13 +335,15 @@ impl Simulation {
         self.actors
             .get_mut(&actor_id)
             .expect("actor identity is stable")
-            .skill
+            .skills
+            .main
             .set_mech_lock(None);
         if cooling_steps > 0 {
             self.actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable")
-                .skill
+                .skills
+                .main
                 .sibling_mut(slot)
                 .enter(SkillState::Cooling {
                     started: step,
@@ -367,7 +367,8 @@ impl Simulation {
         // search timer is up or what it holds is gone, and holds the lock in
         // between.
         let held_alive = self.actors[&actor_id]
-            .skill
+            .skills
+            .main
             .sibling(slot)
             .lock_target
             .is_some_and(|lock| self.fight_actor_is_alive(lock));
@@ -375,7 +376,8 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable")
-            .skill
+            .skills
+            .main
             .sibling_mut(slot);
         if held_alive && sibling.search_target_time > 0 {
             sibling.search_target_time -= 1;
@@ -385,7 +387,7 @@ impl Simulation {
             let idle = selected.is_none();
             let selected = if idle {
                 self.select_alive_target(
-                    FightActorRef::Unit(actor_id),
+                    SkillRef::main(FightActorRef::Unit(actor_id)),
                     Some(slot),
                     target_search_order,
                 )?
@@ -396,7 +398,8 @@ impl Simulation {
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable")
-                .skill
+                .skills
+                .main
                 .sibling_mut(slot);
             sibling.idle = idle;
             sibling.lock_target = selected;
@@ -411,14 +414,19 @@ impl Simulation {
     /// The start itself: a slot whose target is in its attack area prepares,
     /// or with no prepare is attacking and fires on the next update.
     fn try_start_group_slot(&mut self, actor_id: u64, slot: usize, step: u64, prepare_steps: u64) {
-        if let Some(target) = self.actors[&actor_id].skill.group_attack_target(slot)
-            && self.slot_target_in_attack_area(FightActorRef::Unit(actor_id), Some(slot), target)
+        if let Some(target) = self.actors[&actor_id].skills.main.group_attack_target(slot)
+            && self.slot_target_in_attack_area(
+                SkillRef::main(FightActorRef::Unit(actor_id)),
+                Some(slot),
+                target,
+            )
         {
             let sibling = self
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable")
-                .skill
+                .skills
+                .main
                 .sibling_mut(slot);
             // `SkillIdleState.Exit` resets the search timer. A skill with no
             // prepare is attacking on the update it starts.
@@ -439,14 +447,14 @@ impl Simulation {
     /// its motion comes into its attack: each is a main skill of its own,
     /// and starts in the same update.
     pub(in crate::fight) fn start_standalone_slots(&mut self, actor_id: u64, step: u64) {
-        if !self.actors[&actor_id].skill.standalone() {
+        if !self.actors[&actor_id].skills.main.standalone() {
             return;
         }
         let prepare_steps =
             native_time_units_to_steps(self.actors[&actor_id].rules.attack.prepare_time_units());
-        for slot in 1..self.actors[&actor_id].skill.group_size() {
+        for slot in 1..self.actors[&actor_id].skills.main.group_size() {
             if matches!(
-                self.actors[&actor_id].skill.sibling(slot).state,
+                self.actors[&actor_id].skills.main.sibling(slot).state,
                 SkillState::Idle { .. }
             ) {
                 self.try_start_group_slot(actor_id, slot, step, prepare_steps);
@@ -463,7 +471,8 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable")
-            .skill
+            .skills
+            .main
             .sibling_mut(slot);
         *sibling = Skill {
             next_attack_step: sibling.next_attack_step,
@@ -479,14 +488,14 @@ impl Simulation {
     ) -> Result<()> {
         // What a recording reads as the unit's current interval is its core
         // skill's, so a sibling's draw does not replace it.
-        let core_interval = self.actors[&actor_id].skill.current_attack_interval;
+        let core_interval = self.actors[&actor_id].skills.main.current_attack_interval;
         let sampled_step = self.sample_actor_attack_interval(actor_id, step)?;
         let actor = self
             .actors
             .get_mut(&actor_id)
             .expect("group skill owner identity is stable");
-        actor.skill.current_attack_interval = core_interval;
-        actor.skill.sibling_mut(skill_index).next_attack_step = sampled_step;
+        actor.skills.main.current_attack_interval = core_interval;
+        actor.skills.main.sibling_mut(skill_index).next_attack_step = sampled_step;
         Ok(())
     }
 
@@ -501,34 +510,35 @@ impl Simulation {
     ) -> Result<()> {
         let group_core_target = {
             let actor = &self.actors[&actor_id];
-            (actor.skill.is_grouped()
+            (actor.skills.main.is_grouped()
                 && !entered_attack
                 && actor.motion.state == MotionState::Attacking
                 && !actor.motion.attack_hold_fire
-                && actor.skill.pending().is_none()
-                && actor.skill.backswing_finish_step().is_none()
-                && actor.skill.phase() == FightSkillPhase::Attack
-                && step >= actor.skill.next_attack_step)
-                .then(|| actor.skill.attack_target())
+                && actor.skills.main.pending().is_none()
+                && actor.skills.main.backswing_finish_step().is_none()
+                && actor.skills.main.phase() == FightSkillPhase::Attack
+                && step >= actor.skills.main.next_attack_step)
+                .then(|| actor.skills.main.attack_target())
                 .flatten()
         };
         if let Some(target_id) = group_core_target
-            && self.target_in_attack_area(FightActorRef::Unit(actor_id), target_id)
+            && self.target_in_attack_area(SkillRef::main(FightActorRef::Unit(actor_id)), target_id)
         {
             let next_attack_step = self.sample_actor_attack_interval(actor_id, step)?;
             let actor = self
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
-            actor.skill.next_attack_step = next_attack_step;
-            if let Some(group) = &mut actor.skill.group {
+            actor.skills.main.next_attack_step = next_attack_step;
+            if let Some(group) = &mut actor.skills.main.group {
                 group.core_blow_step = Some(step);
             }
-            actor.skill.set_pending(Some(PendingRelease {
+            actor.skills.main.set_pending(Some(PendingRelease {
                 step,
                 target: target_id,
             }));
-            let _attack_point_rejected = self.release(FightActorRef::Unit(actor_id), events)?;
+            let _attack_point_rejected =
+                self.release(SkillRef::main(FightActorRef::Unit(actor_id)), events)?;
         }
         Ok(())
     }
@@ -548,9 +558,9 @@ impl Simulation {
                 if self.actors.get(&target_id).is_some_and(Actor::alive) =>
             {
                 self.refresh_group_skill_attack_interval(actor_id, skill_index, step)?;
-                if self.actors[&actor_id].skill.kind == SkillKind::Strike {
+                if self.actors[&actor_id].skills.main.kind == SkillKind::Strike {
                     self.direct_effect(actor_id, target, skill_index, events)?;
-                } else if self.actors[&actor_id].skill.standalone() {
+                } else if self.actors[&actor_id].skills.main.standalone() {
                     self.release_standalone_projectile(
                         actor_id,
                         skill_index,
@@ -591,7 +601,7 @@ impl Simulation {
                 // recorded against a Defensive Wall strike no block where
                 // this path would, so which construction a striking slot
                 // takes is not established.
-                if self.actors[&actor_id].skill.kind == SkillKind::Strike {
+                if self.actors[&actor_id].skills.main.kind == SkillKind::Strike {
                     return Err(Error::new(format!(
                         "unit {actor_id}'s grouped slot {skill_index} strikes construction \
                          {building_id}, and a striking slot at a construction is not measured"
@@ -619,7 +629,8 @@ impl Simulation {
         self.actors
             .get_mut(&actor_id)
             .expect("actor identity is stable")
-            .skill
+            .skills
+            .main
             .sibling_mut(skill_index)
             .attack_count += 1;
         Ok(())
@@ -645,7 +656,7 @@ impl Simulation {
         for (slot, arc) in arcs.iter().enumerate() {
             // `FightSkill.Update` turns the weapon to the skill's lock, and a
             // skill without one, idle or cooling, leaves it where it points.
-            let Some(target) = self.actors[&actor_id].skill.slot_lock(slot) else {
+            let Some(target) = self.actors[&actor_id].skills.main.slot_lock(slot) else {
                 continue;
             };
             let Some(view) = self.fight_actor(target) else {
@@ -659,7 +670,8 @@ impl Simulation {
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable")
-                .skill;
+                .skills
+                .main;
             let turned = rotate_towards_q32(skill.weapon_rotations_q32[slot], bearing, turn);
             skill.weapon_rotations_q32[slot] = match (arc.left, arc.right) {
                 (Some(left), Some(right)) => {
@@ -683,10 +695,10 @@ impl Simulation {
     /// fresh lock does not draw the body off a weapon firing.
     pub(in crate::fight) fn aim_standalone_turret(&mut self, actor_id: u64) {
         let actor = &self.actors[&actor_id];
-        if !actor.skill.standalone() || actor.turret_q32.is_none() {
+        if !actor.skills.main.standalone() || actor.turret_q32.is_none() {
             return;
         }
-        let skill = &actor.skill;
+        let skill = &actor.skills.main;
         if skill.mech_searches() {
             // `CalculateTargetDirection` with the unit as the motion's
             // attacker: towards its own lock.

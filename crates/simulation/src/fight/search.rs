@@ -664,7 +664,7 @@ impl Simulation {
                 // root's facing, as a Vortex's does in `m6-formations`.
                 if actor.rules.has_body {
                     actor
-                        .skill
+                        .skills.main
                         .weapon_rotations_q32
                         .first()
                         .copied()
@@ -674,7 +674,7 @@ impl Simulation {
                 };
             actor.target_query_alive = actor.alive();
             actor.target_query_visible = actor.visibility == Visibility::Normal;
-            actor.skill.searched_this_tick = false;
+            actor.skills.main.searched_this_tick = false;
         }
         self.buildings_query_alive = super::standing_buildings(&self.buildings);
     }
@@ -840,7 +840,7 @@ impl Simulation {
             }
         }
 
-        scoring.chosen(|next| self.target_in_attack_range(owner, next))
+        scoring.chosen(|next| self.target_in_attack_range(SkillRef::main(owner), next))
     }
 
     /// `MechSearchTargetController.Update`, before the unit's skills: a unit
@@ -855,7 +855,7 @@ impl Simulation {
         actor_id: u64,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<()> {
-        let skill = &self.actors[&actor_id].skill;
+        let skill = &self.actors[&actor_id].skills.main;
         let Some(group) = skill.group.as_ref() else {
             return Ok(());
         };
@@ -875,7 +875,7 @@ impl Simulation {
                 match self.select_normal_target_from(&source, target_search_order, true) {
                     Some(found) => Some(found),
                     None => self.select_alive_target(
-                        FightActorRef::Unit(actor_id),
+                        SkillRef::main(FightActorRef::Unit(actor_id)),
                         None,
                         target_search_order,
                     )?,
@@ -886,7 +886,8 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable")
-            .skill
+            .skills
+            .main
             .group
             .as_mut()
             .expect("checked above");
@@ -914,14 +915,14 @@ impl Simulation {
     /// the last tower with only aircraft left locks onto one and walks on it.
     pub(in crate::fight) fn select_alive_target(
         &self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         slot: Option<usize>,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<Option<FightActorRef>> {
         let source = self
-            .attacker(owner)
+            .attacker(skill_ref.owner)
             .ok_or_else(|| Error::new("target selector source is absent"))?;
-        let (rotation_q32, attack_range, rotation_window_q32) = match (owner, slot) {
+        let (rotation_q32, attack_range, rotation_window_q32) = match (skill_ref.owner, slot) {
             (FightActorRef::Unit(actor_id), Some(slot)) if slot > 0 => {
                 let actor = &self.actors[&actor_id];
                 let (rotation, window) = actor
@@ -972,7 +973,7 @@ impl Simulation {
                     scoring.consider(candidate, score, target.visible);
                 }
             }
-            scoring.chosen(|next| self.target_in_attack_range(owner, next))
+            scoring.chosen(|next| self.target_in_attack_range(skill_ref, next))
         };
         Ok(select(false).or_else(|| select(true)))
     }
@@ -992,13 +993,18 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
-        if !actor.skill.fusillade() {
+        if !actor.skills.main.fusillade() {
             return;
         }
         let Some(found) = found else {
             return;
         };
-        let group = actor.skill.group.as_mut().expect("a fusillade is a group");
+        let group = actor
+            .skills
+            .main
+            .group
+            .as_mut()
+            .expect("a fusillade is a group");
         for sibling in &mut group.siblings {
             if sibling.lock_target == Some(found) {
                 // `ChangeAttackTarget(null, shield)` left the skill no attack
@@ -1024,20 +1030,25 @@ impl Simulation {
         let source = &self.actors[&actor_id];
         // A standalone weapon's skill searches as a skill of its own: no
         // group keeps it off what the others hold.
-        if source.skill.standalone() && slot == 0 {
-            return self
-                .select_lock_replacement(FightActorRef::Unit(actor_id), target_search_order);
+        if source.skills.main.standalone() && slot == 0 {
+            return self.select_lock_replacement(
+                SkillRef::main(FightActorRef::Unit(actor_id)),
+                target_search_order,
+            );
         }
         let held = source
-            .skill
+            .skills
+            .main
             .slot_locks()
             .into_iter()
             .enumerate()
             .filter_map(|(index, target)| (index != slot).then_some(target).flatten())
             .collect::<Vec<_>>();
         if held.is_empty() {
-            return self
-                .select_lock_replacement(FightActorRef::Unit(actor_id), target_search_order);
+            return self.select_lock_replacement(
+                SkillRef::main(FightActorRef::Unit(actor_id)),
+                target_search_order,
+            );
         }
         let select = |shared: bool| {
             let mut scoring = Scoring::default();
@@ -1051,7 +1062,7 @@ impl Simulation {
                     let Some(target) = self.fight_actor(candidate) else {
                         continue;
                     };
-                    if (held.contains(&candidate) != shared && !source.skill.standalone())
+                    if (held.contains(&candidate) != shared && !source.skills.main.standalone())
                         || !target.alive
                         || !target.targetable
                         || matches!(candidate, FightActorRef::Building(id)
@@ -1066,7 +1077,7 @@ impl Simulation {
                     // A standalone weapon's skill is a main skill: its search
                     // is the one `FightCoreSystem.PreCalculate` prepared, on
                     // where everything stood as the tick opened.
-                    let (target_x_q32, target_z_q32, visible) = if source.skill.standalone() {
+                    let (target_x_q32, target_z_q32, visible) = if source.skills.main.standalone() {
                         (target.query_x_q32, target.query_z_q32, target.query_visible)
                     } else {
                         (target.x_q32, target.z_q32, target.visible)
@@ -1089,16 +1100,22 @@ impl Simulation {
                     scoring.consider(candidate, score, visible);
                 }
             }
-            scoring.chosen(|next| self.target_in_attack_range(FightActorRef::Unit(actor_id), next))
+            scoring.chosen(|next| {
+                self.target_in_attack_range(SkillRef::main(FightActorRef::Unit(actor_id)), next)
+            })
         };
         // A fusillade's core falls back on what its siblings hold as a
         // group that shares does, and takes what it finds from them
         // (`take_from_siblings`).
-        let fusillade_core = slot == 0 && source.skill.fusillade();
+        let fusillade_core = slot == 0 && source.skills.main.fusillade();
         let selected = select(false);
         if (source.rules.attack.weapons.allow_same_target == Some(true) || fusillade_core)
             && selected.is_none_or(|target| {
-                !self.slot_target_in_attack_range(FightActorRef::Unit(actor_id), Some(slot), target)
+                !self.slot_target_in_attack_range(
+                    SkillRef::main(FightActorRef::Unit(actor_id)),
+                    Some(slot),
+                    target,
+                )
             })
         {
             return Ok(select(true).or(selected));

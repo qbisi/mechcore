@@ -77,32 +77,38 @@ fn grouped_slots_follow_the_native_exclusion_and_fallback() {
             sim.step(step).unwrap();
             if ticks == 10 && step == 9 {
                 assert_eq!(
-                    sim.actors[&1].skill.slot_locks(),
+                    sim.actors[&1].skills.main.slot_locks(),
                     [3, 2, 3, 3].map(|unit| Some(unit_target(unit)))
                 );
             }
             if ticks == 206 && step == 130 {
                 assert_eq!(
-                    sim.actors[&30].skill.slot_locks(),
+                    sim.actors[&30].skills.main.slot_locks(),
                     [23, 19, 25, 21].map(|unit| Some(unit_target(unit)))
                 );
             }
             if ticks == 206 && step == 205 {
                 assert_eq!(
-                    sim.actors[&29].skill.slot_locks(),
+                    sim.actors[&29].skills.main.slot_locks(),
                     [41, 30, 48, 55].map(|unit| Some(unit_target(unit)))
                 );
                 // The core keeps its own lock; the unit's is the latest a
                 // slot took, the fourth's.
-                assert_eq!(sim.actors[&29].skill.lock_target, Some(unit_target(41)));
-                assert_eq!(sim.actors[&29].skill.unit_lock(), Some(unit_target(55)));
+                assert_eq!(
+                    sim.actors[&29].skills.main.lock_target,
+                    Some(unit_target(41))
+                );
+                assert_eq!(
+                    sim.actors[&29].skills.main.unit_lock(),
+                    Some(unit_target(55))
+                );
                 assert!(!sim.slot_target_in_attack_range(
-                    FightActorRef::Unit(29),
+                    SkillRef::main(FightActorRef::Unit(29)),
                     Some(0),
                     unit_target(55)
                 ));
                 assert!(sim.slot_target_in_attack_range(
-                    FightActorRef::Unit(29),
+                    SkillRef::main(FightActorRef::Unit(29)),
                     Some(3),
                     unit_target(55)
                 ));
@@ -122,15 +128,32 @@ fn grouped_child_range_is_parent_range_plus_ten_metres() {
     set_actor_position(sim.actors.get_mut(&1).unwrap(), 0, 0);
     let radii = sim.actors[&1].rules.collision_radius() + sim.actors[&2].rules.collision_radius();
     set_actor_position(sim.actors.get_mut(&2).unwrap(), 0, radii + 70_000);
-    assert!(!sim.slot_target_in_attack_range(FightActorRef::Unit(1), Some(0), unit_target(2)));
-    assert!(sim.slot_target_in_attack_range(FightActorRef::Unit(1), Some(1), unit_target(2)));
+    assert!(!sim.slot_target_in_attack_range(
+        SkillRef::main(FightActorRef::Unit(1)),
+        Some(0),
+        unit_target(2)
+    ));
+    assert!(sim.slot_target_in_attack_range(
+        SkillRef::main(FightActorRef::Unit(1)),
+        Some(1),
+        unit_target(2)
+    ));
     set_actor_position(sim.actors.get_mut(&2).unwrap(), 0, radii + 70_100);
-    assert!(!sim.slot_target_in_attack_range(FightActorRef::Unit(1), Some(1), unit_target(2)));
+    assert!(!sim.slot_target_in_attack_range(
+        SkillRef::main(FightActorRef::Unit(1)),
+        Some(1),
+        unit_target(2)
+    ));
 }
 
 /// A Wraith's sibling slot, to set up and read in place.
 fn slot(sim: &mut Simulation, slot: usize) -> &mut Skill {
-    sim.actors.get_mut(&1).unwrap().skill.sibling_mut(slot)
+    sim.actors
+        .get_mut(&1)
+        .unwrap()
+        .skills
+        .main
+        .sibling_mut(slot)
 }
 
 /// An attacking sibling gives up a unit it shares when every other sharer but
@@ -152,7 +175,7 @@ fn an_attacking_sibling_gives_up_a_shared_unit_by_its_blows() {
         ],
     );
     let mut sim = raw_test_simulation(&layout, &config, 7);
-    let skill = &mut sim.actors.get_mut(&1).unwrap().skill;
+    let skill = &mut sim.actors.get_mut(&1).unwrap().skills.main;
     skill.lock_target = Some(unit_target(2));
     for (slot, unit) in [(1, 2), (2, 3), (3, 4)] {
         skill.sibling_mut(slot).lock_target = Some(unit_target(unit));
@@ -296,7 +319,7 @@ mod oracle {
                 return;
             };
             if let Some(calls) = replay.calls.remove(&(replay.tick, actor_id)) {
-                let saved = self.actors[&actor_id].skill.clone();
+                let saved = self.actors[&actor_id].skills.main.clone();
                 // Each call names its slot. The captures visit slots in their
                 // group order, and each before snapshot restores only that
                 // slot, preserving the previous shadow call's changes to its
@@ -312,7 +335,7 @@ mod oracle {
                 for call in &calls {
                     let slot = slot_of(call);
                     let lock = target(&call["before"]["lock_target"]);
-                    let skill = &mut self.actors.get_mut(&actor_id).unwrap().skill;
+                    let skill = &mut self.actors.get_mut(&actor_id).unwrap().skills.main;
                     if slot == 0 {
                         skill.lock_target = lock;
                     } else {
@@ -325,7 +348,7 @@ mod oracle {
                     let before = &call["before"];
                     let lock = target(&before["lock_target"]);
                     let attack = target(&before["attack_target"]);
-                    let skill = &mut self.actors.get_mut(&actor_id).unwrap().skill;
+                    let skill = &mut self.actors.get_mut(&actor_id).unwrap().skills.main;
                     let in_the_way = match (attack, lock) {
                         (Some(FightActorRef::Building(b)), Some(lock @ FightActorRef::Unit(_))) => {
                             Some((b, lock))
@@ -342,7 +365,7 @@ mod oracle {
                     }
                     let result = self
                         .check_attackable_slot(
-                            FightActorRef::Unit(actor_id),
+                            SkillRef::main(FightActorRef::Unit(actor_id)),
                             Some(slot),
                             call["is_attacking_check"].as_bool().unwrap(),
                             &order,
@@ -350,8 +373,8 @@ mod oracle {
                         .unwrap();
                     let actual = (
                         result,
-                        self.actors[&actor_id].skill.slot_lock(slot),
-                        self.actors[&actor_id].skill.group_attack_target(slot),
+                        self.actors[&actor_id].skills.main.slot_lock(slot),
+                        self.actors[&actor_id].skills.main.group_attack_target(slot),
                     );
                     let expected = (
                         call["check_return"].as_bool().unwrap(),
@@ -366,7 +389,7 @@ mod oracle {
                     }
                     replay.checked += 1;
                 }
-                self.actors.get_mut(&actor_id).unwrap().skill = saved;
+                self.actors.get_mut(&actor_id).unwrap().skills.main = saved;
             }
             REPLAY.with(|cell| *cell.borrow_mut() = Some(replay));
         }
@@ -490,18 +513,18 @@ mod slots {
                     continue;
                 };
                 let slot = usize::from(row.skill_slot);
-                if slot >= actor.skill.group_size() {
+                if slot >= actor.skills.main.group_size() {
                     differences.push(format!("u{} has no slot {slot}", row.unit.id));
                     continue;
                 }
                 // The core is the unit's own skill.
                 let (lock, attack, state) = if slot == 0 {
                     (
-                        object(actor.skill.lock_target),
-                        object(actor.skill.group_attack_target(0)),
+                        object(actor.skills.main.lock_target),
+                        object(actor.skills.main.group_attack_target(0)),
                         // A cooling's last step reads idle, its weapon
                         // cleared, as a sibling's does.
-                        match actor.skill.state {
+                        match actor.skills.main.state {
                             SkillState::Cooling { started, .. }
                                 if u64::from(tick)
                                     > started.saturating_add(native_time_units_to_steps(
@@ -514,7 +537,7 @@ mod slots {
                         },
                     )
                 } else {
-                    let held = actor.skill.sibling(slot);
+                    let held = actor.skills.main.sibling(slot);
                     (
                         object(held.lock_target),
                         object(held.attack_target()),

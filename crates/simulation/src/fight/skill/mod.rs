@@ -226,6 +226,67 @@ pub(in crate::fight) enum GroupBehaviour {
     Standalone,
 }
 
+/// `SkillManager`: the skills an owner runs, a unit's or a construction's
+/// alike. Its main skill is the one its data names; an extra skill is one a
+/// source such as an extra weapon technology adds beside it
+/// (`ExtraSkillSystem.AddMech`), kept in ascending skill ID.
+#[derive(Debug, Clone)]
+pub(in crate::fight) struct SkillManager {
+    /// `SkillManager.mainSkill`.
+    pub(in crate::fight) main: Skill,
+    /// `SkillManager.extraSkills`.
+    pub(in crate::fight) extras: Vec<Skill>,
+}
+
+impl SkillManager {
+    pub(in crate::fight) const fn new(main: Skill) -> Self {
+        Self {
+            main,
+            extras: Vec::new(),
+        }
+    }
+
+    pub(in crate::fight) fn get(&self, slot: SkillSlot) -> &Skill {
+        match slot {
+            SkillSlot::Main => &self.main,
+            SkillSlot::Extra(index) => &self.extras[index],
+        }
+    }
+
+    pub(in crate::fight) fn get_mut(&mut self, slot: SkillSlot) -> &mut Skill {
+        match slot {
+            SkillSlot::Main => &mut self.main,
+            SkillSlot::Extra(index) => &mut self.extras[index],
+        }
+    }
+}
+
+/// Which of an owner's skills: its `SkillManager`'s main skill, or the extra
+/// skill at an index of its `extraSkills`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub(in crate::fight) enum SkillSlot {
+    Main,
+    #[allow(dead_code, reason = "an extra weapon technology adds the first")]
+    Extra(usize),
+}
+
+/// One skill of one owner: what the skill machine runs on.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub(in crate::fight) struct SkillRef {
+    pub(in crate::fight) owner: FightActorRef,
+    pub(in crate::fight) slot: SkillSlot,
+}
+
+impl SkillRef {
+    /// An owner's main skill.
+    pub(in crate::fight) const fn main(owner: FightActorRef) -> Self {
+        Self {
+            owner,
+            slot: SkillSlot::Main,
+        }
+    }
+}
+
 /// `FightSkill`: the lock and what the weapons fire at, the state the skill
 /// is in, and the attack it is making.
 
@@ -808,32 +869,36 @@ impl Simulation {
     /// (`layouts/wall-line-width.yaml`).
     pub(in crate::fight) fn hold_through_cooling(
         &mut self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         step: u64,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<bool> {
-        let Some((started, held)) = self.skill(owner).cooling() else {
+        let Some((started, held)) = self.skill(skill_ref).cooling() else {
             return Ok(false);
         };
         let cooling_steps = native_time_units_to_steps(
-            self.attacker(owner)
+            self.attacker(skill_ref.owner)
                 .expect("skill owner identity is stable")
                 .attack
                 .cooling_time_units(),
         );
         if step > started.saturating_add(cooling_steps) {
-            self.skill_mut(owner).set_cooling(None);
+            self.skill_mut(skill_ref).set_cooling(None);
             return Ok(false);
         }
         let candidate = if step < started.saturating_add(cooling_steps) {
             match held {
                 Some(candidate) => Some(candidate),
-                None => self.select_normal_target_with_order(owner, target_search_order, true)?,
+                None => self.select_normal_target_with_order(
+                    skill_ref.owner,
+                    target_search_order,
+                    true,
+                )?,
             }
         } else {
             None
         };
-        let skill = self.skill_mut(owner);
+        let skill = self.skill_mut(skill_ref);
         // Cooling holds no lock; it hands the owner nothing while it has
         // none to drop, so a grouped unit keeps what a sibling took.
         if skill.lock_target.is_some() {
@@ -843,10 +908,10 @@ impl Simulation {
         skill.search_target_time = 0;
         // A standalone weapon's skill leaves the motion to the batch, which
         // may hold a lock through another weapon.
-        if self.skill(owner).standalone() {
+        if self.skill(skill_ref).standalone() {
             return Ok(true);
         }
-        if let Some(actor) = self.moving_mut(owner) {
+        if let Some(actor) = self.moving_mut(skill_ref.owner) {
             // The motion stops where it enters `MotionIdleState`; one already
             // idle is not entered again, and keeps its target point.
             let entered_idle = actor.motion.state != MotionState::Idle;
@@ -861,7 +926,7 @@ impl Simulation {
     )]
     pub(in crate::fight) fn update_fight_skill_target_search(
         &mut self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         step: u64,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<()> {
@@ -871,10 +936,10 @@ impl Simulation {
         // Attack only enters the selector when its private attack target is no
         // longer alive.
         let attacker = self
-            .attacker(owner)
+            .attacker(skill_ref.owner)
             .expect("skill owner identity is stable");
         let (quick_switch_target, team) = (attacker.attack.quick_switch_target, attacker.team);
-        let skill = self.skill(owner);
+        let skill = self.skill(skill_ref);
         let target = skill
             .attack_target()
             .and_then(|target| self.fight_actor(target));
@@ -893,9 +958,9 @@ impl Simulation {
             if !quick_switch_interval_due {
                 return Ok(());
             }
-            self.skill_mut(owner).set_backswing_finish_step(None);
+            self.skill_mut(skill_ref).set_backswing_finish_step(None);
         }
-        let skill = self.skill(owner);
+        let skill = self.skill(skill_ref);
         if (matches!(skill.phase(), FightSkillPhase::Prepare { .. })
             || skill.phase() == FightSkillPhase::Attack)
             && (!quick_switch_target || target_alive)
@@ -912,22 +977,26 @@ impl Simulation {
         // A skill left idle by its last search fires at nothing by design,
         // so only its lock and the timer are asked.
         if (target_alive || skill.idle) && lock_alive && skill.search_target_time > 0 {
-            self.skill_mut(owner).search_target_time -= 1;
+            self.skill_mut(skill_ref).search_target_time -= 1;
             return Ok(());
         }
 
-        self.skill_mut(owner).searched_this_tick = true;
+        self.skill_mut(skill_ref).searched_this_tick = true;
 
         // With no enemy unit left the selector answers the defeated side's
         // towers, as any search does: nothing in target selection asks
         // `FightCrystal.IsTower`. A unit that updates after the last enemy
         // died takes one on the tick the fight is decided.
-        let located =
-            |error: Error| Error::new(format!("logic step {step} actor {}: {error}", owner.id()));
-        let grouped_core = owner.unit_id().filter(|_| {
-            self.skill(owner).is_grouped()
+        let located = |error: Error| {
+            Error::new(format!(
+                "logic step {step} actor {}: {error}",
+                skill_ref.owner.id()
+            ))
+        };
+        let grouped_core = skill_ref.owner.unit_id().filter(|_| {
+            self.skill(skill_ref).is_grouped()
                 && self
-                    .skill(owner)
+                    .skill(skill_ref)
                     .siblings()
                     .iter()
                     .any(|slot| slot.lock_target.is_some())
@@ -940,20 +1009,20 @@ impl Simulation {
                 .map_err(located)?
         } else {
             self.select_normal_target_with_order(
-                owner,
+                skill_ref.owner,
                 target_search_order,
-                target_died_during_tick || !search_prepared(owner),
+                target_died_during_tick || !search_prepared(skill_ref.owner),
             )
             .map_err(located)?
         };
         if !target_died_during_tick
-            && search_prepared(owner)
+            && search_prepared(skill_ref.owner)
             && selected_candidate
                 .and_then(|candidate| self.fight_actor(candidate))
                 .is_some_and(|target| target.query_alive && !target.alive)
         {
             selected_candidate = self
-                .select_normal_target_with_order(owner, target_search_order, true)
+                .select_normal_target_with_order(skill_ref.owner, target_search_order, true)
                 .map_err(located)?;
         }
         if let Some(actor_id) = grouped_core {
@@ -962,33 +1031,33 @@ impl Simulation {
         let idle = selected_candidate.is_none();
         if idle {
             selected_candidate = self
-                .select_alive_target(owner, grouped_core.map(|_| 0), target_search_order)
+                .select_alive_target(skill_ref, grouped_core.map(|_| 0), target_search_order)
                 .map_err(located)?;
         }
-        self.skill_mut(owner).idle = idle;
+        self.skill_mut(skill_ref).idle = idle;
         if let Some(FightActorRef::Building(building_id)) = selected_candidate {
-            let skill = self.skill_mut(owner);
+            let skill = self.skill_mut(skill_ref);
             // A building lock is written as any lock is, and the construction
             // in its way is asked for at once, as `SkillIdleState.TryPerform`
             // does after `TrySearchLockTarget`.
             skill.write_lock(Some(FightActorRef::Building(building_id)));
             skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
             skill.set_phase(FightSkillPhase::Idle);
-            self.search_attack_target(owner);
+            self.search_attack_target(skill_ref);
             return Ok(());
         }
         let selected = selected_candidate;
-        let skill = self.skill(owner);
+        let skill = self.skill(skill_ref);
         let selected = if target_alive
             && !quick_switch_target
-            && self.motion_state(owner) == MotionState::Attacking
-            && !self.attack_hold_fire(owner)
+            && self.motion_state(skill_ref.owner) == MotionState::Attacking
+            && !self.attack_hold_fire(skill_ref.owner)
             && skill.pending().is_none()
             && skill.backswing_finish_step().is_none()
             && selected != skill.lock_target
             && skill
                 .lock_target
-                .is_some_and(|lock| self.target_in_attack_area(owner, lock))
+                .is_some_and(|lock| self.target_in_attack_area(skill_ref, lock))
         {
             // An attacking unit keeps the lock it has while it can fire at
             // it, unless its skill switches targets quickly: a quick switch
@@ -1005,10 +1074,10 @@ impl Simulation {
         } else {
             selected
         };
-        let skill = self.skill_mut(owner);
+        let skill = self.skill_mut(skill_ref);
         skill.write_lock(selected);
         skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
-        self.search_attack_target(owner);
+        self.search_attack_target(skill_ref);
         Ok(())
     }
 
@@ -1072,17 +1141,19 @@ impl Simulation {
             let _ = self.update_transition(actor_id);
             return Ok(());
         }
-        let core_lock = self.actors[&actor_id].skill.lock_target;
+        let core_lock = self.actors[&actor_id].skills.main.lock_target;
         let was_moving = self.actors[&actor_id].motion.state == MotionState::Moving;
-        let core_was_attacking = self.actors[&actor_id].skill.phase() == FightSkillPhase::Attack;
+        let core_was_attacking =
+            self.actors[&actor_id].skills.main.phase() == FightSkillPhase::Attack;
         let body_rotation_q32 = self.actors[&actor_id].body_rotation_q32;
         self.actors
             .get_mut(&actor_id)
             .expect("actor identity is stable")
-            .skill
+            .skills
+            .main
             .lock_written = false;
         let update = self.update_skill(
-            FightActorRef::Unit(actor_id),
+            SkillRef::main(FightActorRef::Unit(actor_id)),
             step,
             target_search_order,
             events,
@@ -1091,31 +1162,34 @@ impl Simulation {
         // first weapon's skill starts and fires in its own update
         // (`SkillIdleState.TryStartAttack`, `SkillAttackState.TryPerformAttack`),
         // as the others do.
-        if self.actors[&actor_id].skill.mech_searches()
+        if self.actors[&actor_id].skills.main.mech_searches()
             && matches!(
-                self.actors[&actor_id].skill.phase(),
+                self.actors[&actor_id].skills.main.phase(),
                 FightSkillPhase::Idle | FightSkillPhase::Attack
             )
             && let Some(update) = update
         {
             self.start_standalone_core(actor_id, step, false, update.prepare_finished);
             if self.actors[&actor_id]
-                .skill
+                .skills
+                .main
                 .pending()
                 .is_some_and(|pending| pending.step == step)
             {
-                let _attack_point_rejected = self.release(FightActorRef::Unit(actor_id), events)?;
+                let _attack_point_rejected =
+                    self.release(SkillRef::main(FightActorRef::Unit(actor_id)), events)?;
             }
         }
-        let fusillade = self.actors[&actor_id].skill.fusillade();
-        if self.actors[&actor_id].skill.is_grouped() && !fusillade {
+        let fusillade = self.actors[&actor_id].skills.main.fusillade();
+        if self.actors[&actor_id].skills.main.is_grouped() && !fusillade {
             // The core's `ChangeLockTarget` reaches the owner first; its
             // siblings update after it and may overwrite it.
             let skill = &mut self
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable")
-                .skill;
+                .skills
+                .main;
             if skill.lock_written || skill.lock_target != core_lock {
                 skill.set_mech_lock(skill.lock_target);
             }
@@ -1140,8 +1214,9 @@ impl Simulation {
             // `TransitionState.Update` is the motion's whole update.
         } else if let Some(update) = update {
             self.update_motion(actor_id, step, events, update)?;
-        } else if self.actors[&actor_id].skill.standalone()
-            && (self.ending.stop_step.is_none() || self.actors[&actor_id].skill.mech_searches())
+        } else if self.actors[&actor_id].skills.main.standalone()
+            && (self.ending.stop_step.is_none()
+                || self.actors[&actor_id].skills.main.mech_searches())
         {
             // `MotionController.Update` asks the batch, which the first
             // weapon's cooling does not hold: another weapon may lock. A unit
@@ -1150,7 +1225,7 @@ impl Simulation {
             self.update_motion(actor_id, step, events, SkillUpdate::default())?;
         } else if was_moving
             && self.actors[&actor_id].command.is_some()
-            && self.actors[&actor_id].skill.attack_target().is_none()
+            && self.actors[&actor_id].skills.main.attack_target().is_none()
         {
             // `MotionController.Update` runs whatever the skill did: a
             // command walks its path while the skill cools or reloads, and
@@ -1159,12 +1234,13 @@ impl Simulation {
             self.follow_command(actor_id);
         }
         self.turn_arc_weapons(actor_id, arc_parent_before);
-        if self.actors[&actor_id].skill.is_grouped() && fusillade {
+        if self.actors[&actor_id].skills.main.is_grouped() && fusillade {
             let skill = &mut self
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable")
-                .skill;
+                .skills
+                .main;
             if skill.lock_written || skill.lock_target != core_lock {
                 skill.set_mech_lock(skill.lock_target);
             }
@@ -1192,42 +1268,42 @@ impl Simulation {
     /// whether the update goes on; `None` is an update that ended here.
     pub(in crate::fight) fn update_skill(
         &mut self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         step: u64,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
         events: &mut Vec<Event>,
     ) -> Result<Option<SkillUpdate>> {
         let backswing_just_finished = self
-            .skill(owner)
+            .skill(skill_ref)
             .backswing_finish_step()
             .is_some_and(|finish_step| finish_step < step);
-        let burst_releasing = !self.skill(owner).performer.pending().is_empty();
+        let burst_releasing = !self.skill(skill_ref).performer.pending().is_empty();
         // A sweep that struck its last stretch on the update before is over.
-        if let Performer::Sweep(sweep) = &self.skill(owner).performer
+        if let Performer::Sweep(sweep) = &self.skill(skill_ref).performer
             && sweep.over()
         {
-            self.skill_mut(owner).performer = Performer::Normal;
+            self.skill_mut(skill_ref).performer = Performer::Normal;
         }
-        if let Flow::Done = self.exit_fight_when_over(owner) {
+        if let Flow::Done = self.exit_fight_when_over(skill_ref) {
             return Ok(None);
         }
-        if let Flow::Done = self.update_reload(owner, step) {
+        if let Flow::Done = self.update_reload(skill_ref, step) {
             return Ok(None);
         }
-        if let Flow::Done = self.update_skill_checks(owner, step, target_search_order)? {
+        if let Flow::Done = self.update_skill_checks(skill_ref, step, target_search_order)? {
             return Ok(None);
         }
-        if let Flow::Done = self.finish_attack_at_dead_target(owner, step) {
+        if let Flow::Done = self.finish_attack_at_dead_target(skill_ref, step) {
             return Ok(None);
         }
-        self.start_bodyless_skill(owner, step);
+        self.start_bodyless_skill(skill_ref, step);
         let quick_switch_target = self
-            .attacker(owner)
+            .attacker(skill_ref.owner)
             .expect("skill owner identity is stable")
             .attack
             .quick_switch_target;
         let quick_switch_backswing_due = {
-            let skill = self.skill(owner);
+            let skill = self.skill(skill_ref);
             quick_switch_target
                 && skill
                     .backswing_finish_step()
@@ -1236,30 +1312,30 @@ impl Simulation {
         };
         let quick_switch_dead_backswing_due = quick_switch_backswing_due
             && self
-                .skill(owner)
+                .skill(skill_ref)
                 .attack_target()
                 .is_some_and(|target| !self.fight_actor_is_alive(target));
-        if let Flow::Done = self.projectile_burst_lost_target(owner, step, events)? {
+        if let Flow::Done = self.projectile_burst_lost_target(skill_ref, step, events)? {
             return Ok(None);
         }
         // `SkillIdleState.TryPerform` reaches `SearchAttackTarget` on every
         // update the skill is idle with a lock.
-        if self.skill(owner).phase() == FightSkillPhase::Idle {
-            self.search_attack_target(owner);
+        if self.skill(skill_ref).phase() == FightSkillPhase::Idle {
+            self.search_attack_target(skill_ref);
         }
-        self.update_fight_skill_target_search(owner, step, target_search_order)?;
+        self.update_fight_skill_target_search(skill_ref, step, target_search_order)?;
         let prepare_finished = self.advance_skill_state(
-            owner,
+            skill_ref,
             step,
             backswing_just_finished,
             quick_switch_backswing_due,
             quick_switch_dead_backswing_due,
         );
-        if let Flow::Done = self.retarget_pending_blow(owner) {
+        if let Flow::Done = self.retarget_pending_blow(skill_ref) {
             return Ok(None);
         }
         let (flow, attack_point_rejected) =
-            self.perform_due_blows(owner, step, prepare_finished, events)?;
+            self.perform_due_blows(skill_ref, step, prepare_finished, events)?;
         if let Flow::Done = flow {
             return Ok(None);
         }
@@ -1277,16 +1353,16 @@ impl Simulation {
     /// hands the skill back to idle, full, its search timer reset
     /// (`SkillReloadingState.Exit`). The state's update is the skill's whole
     /// update. A skill without a magazine never reloads.
-    fn update_reload(&mut self, owner: FightActorRef, step: u64) -> Flow {
+    fn update_reload(&mut self, skill_ref: SkillRef, step: u64) -> Flow {
         let Some(magazine) = self
-            .attacker(owner)
+            .attacker(skill_ref.owner)
             .expect("skill owner identity is stable")
             .attack
             .magazine
         else {
             return Flow::Next;
         };
-        let skill = self.skill_mut(owner);
+        let skill = self.skill_mut(skill_ref);
         match skill.state {
             SkillState::Reloading { finish_step } => {
                 if step >= finish_step {
@@ -1321,7 +1397,7 @@ impl Simulation {
     /// waits for the tick after.
     pub(in crate::fight) fn try_start_attack(
         &mut self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         step: u64,
         target: FightActorRef,
         entered_attack: bool,
@@ -1329,13 +1405,13 @@ impl Simulation {
         prepare_finished: bool,
     ) {
         let attack = self
-            .attacker(owner)
+            .attacker(skill_ref.owner)
             .expect("skill owner identity is stable")
             .attack;
         let prepare_steps = native_time_units_to_steps(attack.prepare_time_units());
         let attack_point_steps = native_time_units_to_steps(attack.attack_point_time_units());
         let backswing_steps = native_time_units_to_steps(attack.backswing_time_units());
-        let skill = self.skill_mut(owner);
+        let skill = self.skill_mut(skill_ref);
         let mut entered_skill_phase = false;
         // `SkillIdleState.TryStartAttack` enters the attack or prepare
         // state on the tick the unit comes into its attack area,
@@ -1390,11 +1466,11 @@ impl Simulation {
             // `FightSkill.ResetAttackData` draws the interval before
             // `SkillAttackController.PerformAttack` fits the blow into it.
             let interval = self
-                .draw_attack_interval(owner)
+                .draw_attack_interval(skill_ref.owner)
                 .expect("every skill owner's team owns one attack random stream");
             let attack_point_steps =
                 fitted_attack_point(attack_point_steps, backswing_steps, interval);
-            self.skill_mut(owner)
+            self.skill_mut(skill_ref)
                 .schedule_blow(step, interval, attack_point_steps, target);
         }
     }
@@ -1404,33 +1480,35 @@ impl Simulation {
     /// asking `CheckAttackable`.
     fn update_skill_checks(
         &mut self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         step: u64,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<Flow> {
-        if self.hold_through_cooling(owner, step, target_search_order)? {
+        if self.hold_through_cooling(skill_ref, step, target_search_order)? {
             return Ok(Flow::Done);
         }
         // `SkillPrepareState.Update` asks `SkillAttackableChecker.Check` on
         // every update; a failed check leaves the skill idle with its targets
         // cleared. The check decides the attack target again on the way,
         // which is where a block coming into the line of fire is met.
-        if matches!(self.skill(owner).phase(), FightSkillPhase::Prepare { .. })
-            && !self.check_attackable(owner, target_search_order)?
+        if matches!(
+            self.skill(skill_ref).phase(),
+            FightSkillPhase::Prepare { .. }
+        ) && !self.check_attackable(skill_ref, target_search_order)?
         {
-            self.enter_idle_clearing_targets(owner);
+            self.enter_idle_clearing_targets(skill_ref);
             return Ok(Flow::Done);
         }
         // `SkillAttackState.Update` asks `CheckAttackable` between two blows,
         // and a failed check finishes the attack.
-        if self.between_blows(owner, step) {
-            if !self.attack_state_check_attackable(owner, target_search_order)? {
-                self.finish_attack(owner, step);
+        if self.between_blows(skill_ref, step) {
+            if !self.attack_state_check_attackable(skill_ref, target_search_order)? {
+                self.finish_attack(skill_ref, step);
                 return Ok(Flow::Done);
             }
             // The blow being wound up is performed on the skill's attack
             // target, which the check may just have changed.
-            let skill = self.skill_mut(owner);
+            let skill = self.skill_mut(skill_ref);
             if !skill.is_grouped()
                 && let Some(target) = skill.attack_target()
                 && let Some(pending) = skill.pending_mut()
@@ -1448,17 +1526,17 @@ impl Simulation {
     /// (`FightSkill.ExitFight`): `StopAttack`, which also ends a burst still
     /// firing, its idle state and its lock cleared. The rest are left as they
     /// are, a cooling one still cooling.
-    fn exit_fight_when_over(&mut self, owner: FightActorRef) -> Flow {
+    fn exit_fight_when_over(&mut self, skill_ref: SkillRef) -> Flow {
         if self.ending.stop_step.is_none() {
             return Flow::Next;
         }
-        if self.skill(owner).lock_target.is_some() {
+        if self.skill(skill_ref).lock_target.is_some() {
             let clear_velocity = self.ending.terminal_drain_pending;
-            let skill = self.skill_mut(owner);
+            let skill = self.skill_mut(skill_ref);
             skill.drop_lock();
             skill.set_phase(FightSkillPhase::Idle);
             skill.performer.stop();
-            if let Some(actor) = self.moving_mut(owner) {
+            if let Some(actor) = self.moving_mut(skill_ref.owner) {
                 if clear_velocity {
                     actor.motion.current_velocity_x_q32 = 0;
                     actor.motion.current_velocity_z_q32 = 0;
@@ -1482,13 +1560,13 @@ impl Simulation {
     /// Nothing clears a lock when its target dies, and the skill updates
     /// before the motion, so a skill's own kill is seen here the update
     /// after it, while the motion has already gone idle on it.
-    fn finish_attack_at_dead_target(&mut self, owner: FightActorRef, step: u64) -> Flow {
+    fn finish_attack_at_dead_target(&mut self, skill_ref: SkillRef, step: u64) -> Flow {
         let quick_switch_target = self
-            .attacker(owner)
+            .attacker(skill_ref.owner)
             .expect("skill owner identity is stable")
             .attack
             .quick_switch_target;
-        let skill = self.skill(owner);
+        let skill = self.skill(skill_ref);
         // A sweep under way runs on whatever becomes of its target.
         let dead_target = !quick_switch_target
             && skill.phase() == FightSkillPhase::Attack
@@ -1498,7 +1576,7 @@ impl Simulation {
                 .attack_target()
                 .is_some_and(|target| !self.fight_actor_is_alive(target));
         if dead_target {
-            self.finish_attack(owner, step);
+            self.finish_attack(skill_ref, step);
             return Flow::Done;
         }
         Flow::Next
@@ -1506,26 +1584,26 @@ impl Simulation {
 
     /// A bodyless skill attacking by its motion starts its state before the
     /// idle search, when what it fires at is already in its attack area.
-    fn start_bodyless_skill(&mut self, owner: FightActorRef, step: u64) {
+    fn start_bodyless_skill(&mut self, skill_ref: SkillRef, step: u64) {
         let attacker = self
-            .attacker(owner)
+            .attacker(skill_ref.owner)
             .expect("skill owner identity is stable");
         let has_body = attacker.has_body;
         let prepare_steps = native_time_units_to_steps(attacker.attack.prepare_time_units());
-        let skill = self.skill(owner);
-        let bodyless_skill_starts_before_idle_search = self.motion_state(owner)
+        let skill = self.skill(skill_ref);
+        let bodyless_skill_starts_before_idle_search = self.motion_state(skill_ref.owner)
             == MotionState::Attacking
             && skill.phase() == FightSkillPhase::Idle
             && !has_body
-            && !self.attack_hold_fire(owner)
+            && !self.attack_hold_fire(skill_ref.owner)
             && skill.pending().is_none()
             && skill.backswing_finish_step().is_none()
             && skill
                 .attack_target()
-                .is_some_and(|target_id| self.target_in_attack_area(owner, target_id));
+                .is_some_and(|target_id| self.target_in_attack_area(skill_ref, target_id));
         if bodyless_skill_starts_before_idle_search {
-            self.skill_mut(owner).started_from_idle = Some(step);
-            self.skill_mut(owner).set_phase(if prepare_steps == 0 {
+            self.skill_mut(skill_ref).started_from_idle = Some(step);
+            self.skill_mut(skill_ref).set_phase(if prepare_steps == 0 {
                 FightSkillPhase::Attack
             } else {
                 FightSkillPhase::Prepare {
@@ -1540,34 +1618,34 @@ impl Simulation {
     /// while the unit stands.
     fn projectile_burst_lost_target(
         &mut self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         step: u64,
         events: &mut Vec<Event>,
     ) -> Result<Flow> {
-        let skill = self.skill(owner);
+        let skill = self.skill(skill_ref);
         let active_projectile_burst_lost_target = !skill.performer.pending().is_empty()
             && skill
                 .attack_target()
                 .is_some_and(|target| !self.fight_actor_is_alive(target));
         if active_projectile_burst_lost_target {
             let owner_team = self
-                .attacker(owner)
+                .attacker(skill_ref.owner)
                 .expect("skill owner identity is stable")
                 .team;
             let has_alive_enemy = self
                 .actors
                 .values()
                 .any(|actor| actor.placement.team != owner_team && actor.alive());
-            if let Some(actor) = self.moving_mut(owner) {
+            if let Some(actor) = self.moving_mut(skill_ref.owner) {
                 actor.lose_target_motion(true);
             }
             if !has_alive_enemy {
-                self.skill_mut(owner).performer.stop();
+                self.skill_mut(skill_ref).performer.stop();
                 return Ok(Flow::Done);
             }
-            let due = self.skill_mut(owner).performer.take_due(step);
+            let due = self.skill_mut(skill_ref).performer.take_due(step);
             for pending in due {
-                self.release_pending_projectile(owner, pending, events)?;
+                self.release_pending_projectile(skill_ref.owner, pending, events)?;
             }
             return Ok(Flow::Done);
         }
@@ -1578,13 +1656,13 @@ impl Simulation {
     /// ended, a prepare that has ended. Answers whether the prepare ended.
     fn advance_skill_state(
         &mut self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         step: u64,
         backswing_just_finished: bool,
         quick_switch_backswing_due: bool,
         quick_switch_dead_backswing_due: bool,
     ) -> bool {
-        let skill = self.skill_mut(owner);
+        let skill = self.skill_mut(skill_ref);
         if quick_switch_backswing_due && !quick_switch_dead_backswing_due {
             skill.set_backswing_finish_step(None);
         }
@@ -1607,35 +1685,35 @@ impl Simulation {
 
     /// The blow being wound up follows what the skill fires at, and a bodyless
     /// one whose target left its attack area is dropped.
-    fn retarget_pending_blow(&mut self, owner: FightActorRef) -> Flow {
+    fn retarget_pending_blow(&mut self, skill_ref: SkillRef) -> Flow {
         let attacker = self
-            .attacker(owner)
+            .attacker(skill_ref.owner)
             .expect("skill owner identity is stable");
         let follows = attacker.has_body && attacker.attack.quick_switch_target;
-        let skill = self.skill(owner);
+        let skill = self.skill(skill_ref);
         let bodyful_quick_switch_target = (follows && skill.pending().is_some())
             .then_some(skill.attack_target())
             .flatten()
-            .filter(|&target_id| self.target_in_attack_area(owner, target_id));
+            .filter(|&target_id| self.target_in_attack_area(skill_ref, target_id));
         if let Some(target_id) = bodyful_quick_switch_target {
-            self.skill_mut(owner)
+            self.skill_mut(skill_ref)
                 .pending_mut()
                 .expect("pending attack identity is stable")
                 .target = target_id;
         }
         let active_attack_rejected = self
-            .skill(owner)
+            .skill(skill_ref)
             .pending()
-            .is_some_and(|pending| self.bodyless_attackable_invalid(owner, pending.target));
+            .is_some_and(|pending| self.bodyless_attackable_invalid(skill_ref, pending.target));
         if active_attack_rejected {
             // The build's SkillPrepareState and SkillAttackState both run
             // CheckAttackable before advancing their current attack phase.
             // A failed check enters SkillIdleState in the same update.
-            let skill = self.skill_mut(owner);
+            let skill = self.skill_mut(skill_ref);
             skill.drop_lock();
             skill.set_pending(None);
             skill.set_phase(FightSkillPhase::Idle);
-            if let Some(actor) = self.moving_mut(owner) {
+            if let Some(actor) = self.moving_mut(skill_ref.owner) {
                 actor.lose_target_motion(true);
             }
             return Flow::Done;
@@ -1648,34 +1726,37 @@ impl Simulation {
     /// was rejected at its attack point.
     fn perform_due_blows(
         &mut self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         step: u64,
         entered_attack: bool,
         events: &mut Vec<Event>,
     ) -> Result<(Flow, bool)> {
         let released_this_step = self
-            .skill(owner)
+            .skill(skill_ref)
             .pending()
             .is_some_and(|pending| pending.step <= step);
         let attack_point_rejected = if released_this_step {
-            self.release(owner, events)?
+            self.release(skill_ref, events)?
         } else {
             false
         };
-        if released_this_step && self.motion_state(owner) != MotionState::Attacking {
+        if released_this_step && self.motion_state(skill_ref.owner) != MotionState::Attacking {
             return Ok((Flow::Done, attack_point_rejected));
         }
-        let due = self.skill_mut(owner).performer.take_due(step);
+        let due = self.skill_mut(skill_ref).performer.take_due(step);
         for pending in due {
-            self.release_pending_projectile(owner, pending, events)?;
+            self.release_pending_projectile(skill_ref.owner, pending, events)?;
         }
-        if self.skill(owner).performer.sweeping()
-            && let Some(actor_id) = owner.unit_id()
+        if self.skill(skill_ref).performer.sweeping()
+            && let Some(actor_id) = skill_ref.owner.unit_id()
         {
             self.update_sweep(actor_id, events)?;
         }
-        if self.skill(owner).is_grouped() {
-            let actor_id = owner.unit_id().expect("only a unit's skill is grouped");
+        if self.skill(skill_ref).is_grouped() {
+            let actor_id = skill_ref
+                .owner
+                .unit_id()
+                .expect("only a unit's skill is grouped");
             self.perform_group_blows(actor_id, step, entered_attack, events)?;
         }
         Ok((Flow::Next, attack_point_rejected))
@@ -1687,13 +1768,13 @@ impl Simulation {
     /// turn on their own goes on.
     pub(in crate::fight) fn bodyless_attackable_invalid(
         &self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         target: FightActorRef,
     ) -> bool {
         let has_body = self
-            .attacker(owner)
+            .attacker(skill_ref.owner)
             .is_some_and(|attacker| attacker.has_body);
-        !has_body && !self.target_in_attack_area(owner, target)
+        !has_body && !self.target_in_attack_area(skill_ref, target)
     }
 
     /// Schedules the next attack and remembers the interval it used.
@@ -1704,7 +1785,8 @@ impl Simulation {
     ) -> Result<u64> {
         let owner = FightActorRef::Unit(actor_id);
         let sampled = self.draw_attack_interval(owner)?;
-        self.skill_mut(owner).current_attack_interval = sampled;
+        self.skill_mut(SkillRef::main(owner))
+            .current_attack_interval = sampled;
         Ok(step.saturating_add(sampled))
     }
 }

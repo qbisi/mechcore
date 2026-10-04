@@ -581,7 +581,7 @@ impl Simulation {
     /// dropped, or while it attacks with a weapon in its attack.
     fn motion_target(&self, actor_id: u64) -> Option<FightActorRef> {
         let actor = &self.actors[&actor_id];
-        let skill = &actor.skill;
+        let skill = &actor.skills.main;
         // A unit that searches for itself is its motion's attacker
         // (`FightMech.SetMotionAttackerAfterSkill`): the motion goes after
         // the unit's own lock.
@@ -602,7 +602,7 @@ impl Simulation {
     /// unit.
     fn batch_in_reach(&self, actor_id: u64) -> Option<bool> {
         let actor = &self.actors[&actor_id];
-        let skill = &actor.skill;
+        let skill = &actor.skills.main;
         (skill.standalone()
             && !skill.mech_searches()
             && actor.motion.state == MotionState::Attacking)
@@ -610,7 +610,7 @@ impl Simulation {
                 (0..skill.group_size()).any(|slot| {
                     skill.group_attack_target(slot).is_some_and(|aimed| {
                         self.slot_target_in_attack_range(
-                            FightActorRef::Unit(actor_id),
+                            SkillRef::main(FightActorRef::Unit(actor_id)),
                             Some(slot),
                             aimed,
                         )
@@ -622,10 +622,10 @@ impl Simulation {
     /// What the body walks on: the skill's lock, or the unit's own for a
     /// unit that searches for itself.
     fn walked_on(&self, actor_id: u64, target: FightActorRef) -> Option<FightActorRef> {
-        if self.actors[&actor_id].skill.mech_searches() {
+        if self.actors[&actor_id].skills.main.mech_searches() {
             Some(target)
         } else {
-            self.actors[&actor_id].skill.lock_target
+            self.actors[&actor_id].skills.main.lock_target
         }
     }
 
@@ -638,7 +638,7 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
-        if actor.skill.mech_searches() && actor.motion.state == MotionState::Attacking {
+        if actor.skills.main.mech_searches() && actor.motion.state == MotionState::Attacking {
             actor.motion.state = MotionState::Moving;
             return Flow::Done;
         }
@@ -657,7 +657,7 @@ impl Simulation {
         let actor = &self.actors[&actor_id];
         if let Some(batch_in_reach) = self.batch_in_reach(actor_id) {
             batch_in_reach
-        } else if actor.skill.mech_searches() {
+        } else if actor.skills.main.mech_searches() {
             // `FightMech.IsActorInAttackRange`: the unit's own lock is in
             // reach nearer than its main skill's range less a metre.
             sees_target
@@ -665,10 +665,10 @@ impl Simulation {
                     edge_distance_q32,
                     space_to_q32(actor.stats.attack_range()).saturating_sub(1_i64 << 32),
                 )
-        } else if actor.skill.shield_target().is_some() {
+        } else if actor.skills.main.shield_target().is_some() {
             // A skill firing at a shield stops its unit once the shield's
             // surface is in reach, however far the lock stands behind it.
-            self.target_in_attack_range(FightActorRef::Unit(actor_id), target)
+            self.target_in_attack_range(SkillRef::main(FightActorRef::Unit(actor_id)), target)
         } else {
             sees_target
                 && edge_distance_q32 >= space_to_q32(actor.rules.attack.min_range())
@@ -741,9 +741,10 @@ impl Simulation {
             .expect("actor identity is stable");
         if actor.rules.attack.weapons.mode == WeaponMode::Group
             && actor.motion.state == MotionState::Attacking
-            && actor.skill.lock_target.is_none()
+            && actor.skills.main.lock_target.is_none()
             && actor
-                .skill
+                .skills
+                .main
                 .siblings()
                 .iter()
                 .any(|slot| slot.lock_target.is_some())
@@ -810,11 +811,12 @@ impl Simulation {
     /// once it is not.
     fn walk_on_idle_lock(&mut self, actor_id: u64, update: SkillUpdate) -> Flow {
         let actor = &self.actors[&actor_id];
-        if !actor.skill.idle {
+        if !actor.skills.main.idle {
             return Flow::Next;
         }
         let Some(view) = actor
-            .skill
+            .skills
+            .main
             .lock_target
             .filter(|&lock| self.fight_actor_is_alive(lock))
             .and_then(|lock| self.fight_actor(lock))
@@ -869,7 +871,7 @@ impl Simulation {
         if actor.command.is_none() || actor.motion.state != MotionState::Attacking {
             return Flow::Next;
         }
-        let Some(target) = actor.skill.attack_target() else {
+        let Some(target) = actor.skills.main.attack_target() else {
             return Flow::Next;
         };
         if self.fight_actor_is_alive(target) {
@@ -948,7 +950,7 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
-        if !actor.skill.performer.sweeping() {
+        if !actor.skills.main.performer.sweeping() {
             return Flow::Next;
         }
         actor.motion.state = MotionState::Idle;
@@ -958,7 +960,7 @@ impl Simulation {
     }
 
     fn hold_dead_target(&mut self, actor_id: u64, backswing_just_finished: bool) -> Flow {
-        let lock_target = self.actors[&actor_id].skill.attack_target();
+        let lock_target = self.actors[&actor_id].skills.main.attack_target();
         if let Some(target) = lock_target {
             let target_alive = self.fight_actor_is_alive(target);
             // `MotionAttackState.Update` asks the lock, not what the weapons
@@ -967,7 +969,7 @@ impl Simulation {
             // check finishes the attack: a Vortex that fells a block with a
             // single blow reads attacking on it that tick, with no backswing
             // to wait out.
-            let lock = self.actors[&actor_id].skill.lock_target;
+            let lock = self.actors[&actor_id].skills.main.lock_target;
             let block_before_live_lock = !target_alive
                 && matches!(target, FightActorRef::Building(_))
                 && lock != Some(target)
@@ -983,7 +985,8 @@ impl Simulation {
             if !target_alive
                 && (block_before_live_lock
                     || self.actors[&actor_id]
-                        .skill
+                        .skills
+                        .main
                         .backswing_finish_step()
                         .is_some())
             {
@@ -1029,7 +1032,7 @@ impl Simulation {
                     .get_mut(&actor_id)
                     .expect("actor identity is stable");
                 let entered_idle = actor.motion.state != MotionState::Idle;
-                actor.skill.drop_lock();
+                actor.skills.main.drop_lock();
                 actor.motion.state = MotionState::Idle;
                 if entered_idle {
                     actor.motion.next_target_x_q32 = actor.x_q32;
@@ -1064,7 +1067,8 @@ impl Simulation {
                 self.actors
                     .get_mut(&actor_id)
                     .expect("actor identity is stable")
-                    .skill
+                    .skills
+                    .main
                     .drop_lock();
             }
             // And the other way round: a lock that died behind a block that
@@ -1107,7 +1111,7 @@ impl Simulation {
     }
 
     fn turn_past_fallen_wall(&mut self, actor_id: u64, target: FightActorRef) {
-        let skill = &self.actors[&actor_id].skill;
+        let skill = &self.actors[&actor_id].skills.main;
         let FightActorRef::Building(building) = target else {
             return;
         };
@@ -1142,7 +1146,8 @@ impl Simulation {
         if has_body {
             actor.aim_rotation = degrees_q32_to_mdeg(
                 actor
-                    .skill
+                    .skills
+                    .main
                     .weapon_rotations_q32
                     .first()
                     .copied()
@@ -1165,7 +1170,8 @@ impl Simulation {
             return None;
         }
         let lock = actor
-            .skill
+            .skills
+            .main
             .lock_target
             .filter(|lock| self.fight_actor_is_alive(*lock))?;
         let view = self.fight_actor(lock)?;
@@ -1188,16 +1194,16 @@ impl Simulation {
         prepare_finished: bool,
     ) {
         let owner = FightActorRef::Unit(actor_id);
-        let Some(own) = self.actors[&actor_id].skill.attack_target() else {
+        let Some(own) = self.actors[&actor_id].skills.main.attack_target() else {
             return;
         };
-        if !self.slot_target_in_attack_range(owner, Some(0), own) {
+        if !self.slot_target_in_attack_range(SkillRef::main(owner), Some(0), own) {
             return;
         }
         let actor = &self.actors[&actor_id];
         let in_own_angle = self.fight_actor(own).is_some_and(|view| {
             rotation_distance_q32(
-                actor.skill.weapon_rotations_q32[0],
+                actor.skills.main.weapon_rotations_q32[0],
                 direction_degrees_q32_raw(
                     view.x_q32.saturating_sub(actor.x_q32),
                     view.z_q32.saturating_sub(actor.z_q32),
@@ -1205,7 +1211,7 @@ impl Simulation {
             ) <= mdeg_to_degrees_q32(actor.rules.attack.attack_half_angle_mdeg())
         });
         self.try_start_attack(
-            owner,
+            SkillRef::main(owner),
             step,
             own,
             entered_attack,
@@ -1263,8 +1269,8 @@ impl Simulation {
                 && !in_attack_angle;
             if completed_attack_reentry_rejected {
                 actor.motion.state = MotionState::Idle;
-                actor.skill.drop_lock();
-                actor.skill.set_phase(FightSkillPhase::Idle);
+                actor.skills.main.drop_lock();
+                actor.skills.main.set_phase(FightSkillPhase::Idle);
                 actor.motion.next_target_x_q32 = actor.x_q32;
                 actor.motion.next_target_z_q32 = actor.z_q32;
                 actor.motion.next_speed_q32 = 0;
@@ -1282,9 +1288,9 @@ impl Simulation {
                 && !entered_attack
                 && !actor.motion.attack_hold_fire
                 && !in_attack_angle
-                && actor.skill.pending().is_none()
-                && actor.skill.backswing_finish_step().is_none()
-                && actor.skill.phase() == FightSkillPhase::Attack;
+                && actor.skills.main.pending().is_none()
+                && actor.skills.main.backswing_finish_step().is_none()
+                && actor.skills.main.phase() == FightSkillPhase::Attack;
             if invalid_attack_angle_barrier {
                 // MotionAttackState returns to Idle when an active bodyless
                 // skill loses its root-transform attack angle. The new
@@ -1295,8 +1301,8 @@ impl Simulation {
                 // turns the unit to its target: a Crawler whose target a beam
                 // turned takes the next and turns to it.
                 actor.motion.state = MotionState::Idle;
-                actor.skill.drop_lock();
-                actor.skill.set_phase(FightSkillPhase::Idle);
+                actor.skills.main.drop_lock();
+                actor.skills.main.set_phase(FightSkillPhase::Idle);
                 actor.motion.next_target_x_q32 = actor.x_q32;
                 actor.motion.next_target_z_q32 = actor.z_q32;
                 actor.motion.next_speed_q32 = 0;
@@ -1304,13 +1310,13 @@ impl Simulation {
                 return Ok(());
             }
             let clear_hold_after_motion = actor.motion.attack_hold_fire && in_attack_angle;
-            if self.actors[&actor_id].skill.mech_searches() {
+            if self.actors[&actor_id].skills.main.mech_searches() {
                 // Its first weapon's skill starts in its own update.
-            } else if self.actors[&actor_id].skill.standalone() {
+            } else if self.actors[&actor_id].skills.main.standalone() {
                 self.start_standalone_core(actor_id, step, entered_attack, prepare_finished);
             } else {
                 self.try_start_attack(
-                    FightActorRef::Unit(actor_id),
+                    SkillRef::main(FightActorRef::Unit(actor_id)),
                     step,
                     target,
                     entered_attack,
@@ -1322,14 +1328,16 @@ impl Simulation {
             (
                 entered_attack,
                 self.actors[&actor_id]
-                    .skill
+                    .skills
+                    .main
                     .pending()
                     .is_some_and(|pending| pending.step == step),
                 clear_hold_after_motion,
             )
         };
         if release_now {
-            let _attack_point_rejected = self.release(FightActorRef::Unit(actor_id), events)?;
+            let _attack_point_rejected =
+                self.release(SkillRef::main(FightActorRef::Unit(actor_id)), events)?;
         }
         if self.actors[&actor_id].motion.state != MotionState::Attacking {
             // FightSkill runs before MotionController. A laser own-kill
@@ -1376,7 +1384,8 @@ impl Simulation {
         if actor.rules.has_body {
             actor.aim_rotation = degrees_q32_to_mdeg(
                 actor
-                    .skill
+                    .skills
+                    .main
                     .weapon_rotations_q32
                     .first()
                     .copied()
@@ -1489,7 +1498,8 @@ impl Simulation {
         if actor.rules.has_body {
             actor.aim_rotation = degrees_q32_to_mdeg(
                 actor
-                    .skill
+                    .skills
+                    .main
                     .weapon_rotations_q32
                     .first()
                     .copied()
@@ -1536,7 +1546,8 @@ impl Simulation {
         if actor.rules.attack.weapons.mode == WeaponMode::Group
             && actor.motion.state == MotionState::Attacking
             && actor
-                .skill
+                .skills
+                .main
                 .siblings()
                 .iter()
                 .any(|slot| slot.lock_target.is_some())
@@ -1552,12 +1563,12 @@ impl Simulation {
         if actor.motion.state == MotionState::Attacking
             && !actor.rules.has_body
             && !actor.motion.attack_hold_fire
-            && actor.skill.pending().is_none()
+            && actor.skills.main.pending().is_none()
             && !burst_releasing
-            && actor.skill.performer.pending().is_empty()
-            && !actor.skill.performer.sweeping()
-            && actor.skill.backswing_finish_step().is_none()
-            && actor.skill.phase() == FightSkillPhase::Attack
+            && actor.skills.main.performer.pending().is_empty()
+            && !actor.skills.main.performer.sweeping()
+            && actor.skills.main.backswing_finish_step().is_none()
+            && actor.skills.main.phase() == FightSkillPhase::Attack
         {
             // FightSkill updates before MotionController. An active bodyless
             // attack rejects an out-of-range retained target and enters
@@ -1573,8 +1584,8 @@ impl Simulation {
             // `MotionMoveState`: a Crawler whose target a beam turned walks
             // on the next one it finds.
             actor.motion.state = MotionState::Idle;
-            actor.skill.drop_lock();
-            actor.skill.set_phase(FightSkillPhase::Idle);
+            actor.skills.main.drop_lock();
+            actor.skills.main.set_phase(FightSkillPhase::Idle);
             actor.motion.attack_hold_fire = false;
             actor.motion.next_target_x_q32 = actor.x_q32;
             actor.motion.next_target_z_q32 = actor.z_q32;
@@ -1586,15 +1597,15 @@ impl Simulation {
             && actor.rules.attack.melee
             && !actor.rules.has_body
             && actor.motion.state == MotionState::Attacking
-            && actor.skill.pending().is_none()
-            && actor.skill.backswing_finish_step().is_none()
+            && actor.skills.main.pending().is_none()
+            && actor.skills.main.backswing_finish_step().is_none()
         {
             // MotionAttackState leaves through Idle when its current attack
             // target is no longer in range. Idle target acquisition runs on
             // the following update rather than recursively entering Moving.
             actor.motion.state = MotionState::Idle;
-            actor.skill.drop_lock();
-            actor.skill.set_phase(FightSkillPhase::Idle);
+            actor.skills.main.drop_lock();
+            actor.skills.main.set_phase(FightSkillPhase::Idle);
             actor.motion.next_target_x_q32 = actor.x_q32;
             actor.motion.next_target_z_q32 = actor.z_q32;
             actor.motion.next_speed_q32 = 0;
@@ -1608,8 +1619,8 @@ impl Simulation {
             // not update the new state recursively, so MotionController sees
             // one targetless Idle tick before reacquisition on the next tick.
             actor.motion.state = MotionState::Idle;
-            actor.skill.drop_lock();
-            actor.skill.set_phase(FightSkillPhase::Idle);
+            actor.skills.main.drop_lock();
+            actor.skills.main.set_phase(FightSkillPhase::Idle);
             actor.motion.next_target_x_q32 = actor.x_q32;
             actor.motion.next_target_z_q32 = actor.z_q32;
             actor.motion.next_speed_q32 = 0;
@@ -1641,7 +1652,7 @@ impl Simulation {
         // it attacked died during it, was not the target its update tracked:
         // the Melting Point whose Crawler an ally kills keeps its turret still
         // on the tick it sets off for the next one.
-        let retargeted_this_tick = entered_move && actor.skill.searched_this_tick;
+        let retargeted_this_tick = entered_move && actor.skills.main.searched_this_tick;
         if !entered_move_from_idle && !entered_move_below_min_range && !retargeted_this_tick {
             // FightSkill.Update tracks an existing target before MotionController updates movement.
             // A target acquired by MotionIdleState is not visible to FightSkill until the next tick.
@@ -1649,7 +1660,8 @@ impl Simulation {
             if actor.rules.has_body {
                 actor.aim_rotation = degrees_q32_to_mdeg(
                     actor
-                        .skill
+                        .skills
+                        .main
                         .weapon_rotations_q32
                         .first()
                         .copied()

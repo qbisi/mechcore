@@ -71,7 +71,7 @@ fn a_block_that_comes_into_the_way_ends_a_prepared_attack() {
         simulation.step(step).unwrap();
     }
     assert!(matches!(
-        simulation.actors[&4].skill.phase(),
+        simulation.actors[&4].skills.main.phase(),
         FightSkillPhase::Prepare { .. }
     ));
     simulation.step(145).unwrap();
@@ -183,7 +183,7 @@ fn a_wall_in_the_way_takes_the_weapon_and_leaves_the_lock() {
     );
     assert_eq!(state.motion_state, MotionState::Attacking);
     assert_eq!(
-        marksman.skill.lock_target,
+        marksman.skills.main.lock_target,
         Some(FightActorRef::Unit(behind_the_wall)),
         "the lock is never overwritten by the block"
     );

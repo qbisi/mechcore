@@ -68,19 +68,19 @@ impl Simulation {
     /// holds follows the attack state and its target.
     pub(in crate::fight) fn sync_beam(&mut self, actor_id: u64) {
         let actor = &self.actors[&actor_id];
-        if actor.skill.kind != SkillKind::ControlBeam {
+        if actor.skills.main.kind != SkillKind::ControlBeam {
             return;
         }
         // `FightControllBeamSkill.GetAttackEffect`: the control effect for a
         // unit that may be turned, the skill's damage effect for anything
         // else, a shield the skill fires at in place of its lock among it.
-        let wanted = (actor.alive() && matches!(actor.skill.state, SkillState::Attack(_)))
-            .then(|| actor.skill.attack_target())
+        let wanted = (actor.alive() && matches!(actor.skills.main.state, SkillState::Attack(_)))
+            .then(|| actor.skills.main.attack_target())
             .flatten()
             .map(|target| {
                 let control = match target {
                     FightActorRef::Unit(id) => {
-                        !self.ignores_control(id) && actor.skill.shield_target().is_none()
+                        !self.ignores_control(id) && actor.skills.main.shield_target().is_none()
                     }
                     FightActorRef::Building(_) => false,
                 };
@@ -167,7 +167,7 @@ impl Simulation {
     /// whatever the beam is on. The Hacker reads 1 against a unit it may
     /// turn, a unit wearing the Anti-Interference Module and a shield alike.
     pub(in crate::fight) fn beam_snapshot_damage(&self, actor: &Actor) -> Option<i32> {
-        if actor.skill.kind != SkillKind::ControlBeam {
+        if actor.skills.main.kind != SkillKind::ControlBeam {
             return None;
         }
         let damage = self.beam_damage(actor.placement.unit_id, 0);
@@ -186,7 +186,7 @@ impl Simulation {
     ) -> Result<()> {
         self.sync_beam(actor_id);
         let actor = &self.actors[&actor_id];
-        let attack_count = actor.skill.attack_count;
+        let attack_count = actor.skills.main.attack_count;
         let damage = self.beam_damage(actor_id, attack_count);
         let control = actor.beam.is_some_and(|beam| beam.control);
         if !control {
@@ -199,7 +199,7 @@ impl Simulation {
             return self.direct_effect_dealing(actor_id, target, amount, events);
         }
         // `ControllEffect.Perform` turns the skill's lock.
-        let Some(FightActorRef::Unit(lock)) = actor.skill.lock_target else {
+        let Some(FightActorRef::Unit(lock)) = actor.skills.main.lock_target else {
             return Ok(());
         };
         let power = i32::try_from(damage).unwrap_or(i32::MAX);
@@ -331,7 +331,7 @@ impl Simulation {
         let locked = self
             .actors
             .iter()
-            .filter(|(id, actor)| **id != unit_id && actor.skill.lock_target == Some(unit))
+            .filter(|(id, actor)| **id != unit_id && actor.skills.main.lock_target == Some(unit))
             .map(|(&id, _)| id)
             .collect::<Vec<_>>();
         for id in locked {
@@ -355,7 +355,8 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable")
-            .skill;
+            .skills
+            .main;
         let fired_at = skill.attack_target();
         skill.drop_lock();
         skill.performer.stop();
@@ -426,7 +427,7 @@ impl Simulation {
         locked.extend(
             self.actors
                 .iter()
-                .filter(|(_, actor)| actor.skill.lock_target == Some(unit))
+                .filter(|(_, actor)| actor.skills.main.lock_target == Some(unit))
                 .map(|(&id, _)| id),
         );
         // The change runs before any unit updates, so a skill it sends into

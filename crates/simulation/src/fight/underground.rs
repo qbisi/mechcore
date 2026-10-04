@@ -124,12 +124,12 @@ impl Actor {
     /// the weapon still names what it fired at.
     fn deactivate_skills(&mut self) {
         self.skills_active = false;
-        self.skill.attack_target_left = self.skill.attack_target();
-        self.skill.set_pending(None);
-        self.skill.drop_lock();
-        self.skill.set_phase(FightSkillPhase::Idle);
-        self.skill.clear_slots();
-        self.skill.performer.stop();
+        self.skills.main.attack_target_left = self.skills.main.attack_target();
+        self.skills.main.set_pending(None);
+        self.skills.main.drop_lock();
+        self.skills.main.set_phase(FightSkillPhase::Idle);
+        self.skills.main.clear_slots();
+        self.skills.main.performer.stop();
     }
 }
 

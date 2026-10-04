@@ -77,14 +77,17 @@ Three sentences carry it:
 the build, and each file declares the data it owns. A unit is `Actor` in
 `mod.rs` — the mech: its placement, position, facing and life — holding a
 `Motion` (`motion.rs`, the `MotionController`: its state, where it was asked to
-go, and what the RVO solver made of that) and a `Skill` (`skill/mod.rs`, the
-`FightSkill`: the lock and what the weapons fire at, the skill's state, the
-attack being made). A path through a unit reads as the build's does:
-`actor.skill.lock_target`, `actor.motion.state`.
+go, and what the RVO solver made of that) and a `SkillManager` (`skill/mod.rs`:
+its main skill and the extra skills a source such as an extra weapon
+technology adds beside it), each a `Skill` (the `FightSkill`: the lock and what
+the weapons fire at, the skill's state, the attack being made). A path through
+a unit reads as the build's does: `actor.skills.main.lock_target`,
+`actor.motion.state`.
 
 A skill has one machine whoever owns it. A construction that fires
-(`construction.rs`, the `FightConstruction`) holds the same `Skill`, and
-`update_skill` is `SkillManager.Update` for either owner. What differs between
+(`construction.rs`, the `FightConstruction`) holds the same `SkillManager`, and
+`update_skill` is `SkillManager.Update` for either owner. The machine runs on
+one skill of one owner, a `SkillRef`: the owner and which of its skills. What differs between
 the two reaches the skill only through `attacker.rs`, the build's
 `ISkillOwner` and `IAttacker`: where the owner stands, its radius and reach,
 what its attack angle is measured against, how fast its weapons turn, and

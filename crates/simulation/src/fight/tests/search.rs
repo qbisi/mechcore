@@ -248,8 +248,8 @@ fn fight_skill_adopts_a_selected_building_and_enters_moving() {
     set_actor_position(simulation.actors.get_mut(&1).unwrap(), 0, 0);
     set_actor_position(simulation.actors.get_mut(&2).unwrap(), 0, 200_000);
     let source = simulation.actors.get_mut(&1).unwrap();
-    source.skill.lock_target = None;
-    source.skill.search_target_time = 0;
+    source.skills.main.lock_target = None;
+    source.skills.main.search_target_time = 0;
     source.motion.state = MotionState::Idle;
     let building = simulation
         .buildings
@@ -264,7 +264,7 @@ fn fight_skill_adopts_a_selected_building_and_enters_moving() {
     let source = &simulation.actors[&1];
     assert_eq!(source.motion.state, MotionState::Moving);
     assert_eq!(
-        source.skill.lock_target,
+        source.skills.main.lock_target,
         Some(FightActorRef::Building(building_id))
     );
     assert_eq!(
@@ -293,14 +293,14 @@ fn fight_skill_adopts_a_selected_building_and_enters_moving() {
     for step in 1..=10 {
         simulation.step_actor(1, step, &mut Vec::new()).unwrap();
         assert_eq!(
-            simulation.actors[&1].skill.lock_target,
+            simulation.actors[&1].skills.main.lock_target,
             Some(FightActorRef::Building(building_id))
         );
     }
     simulation.step_actor(1, 11, &mut Vec::new()).unwrap();
 
     assert_eq!(
-        simulation.actors[&1].skill.lock_target,
+        simulation.actors[&1].skills.main.lock_target,
         Some(FightActorRef::Building(other_building_id))
     );
 }
@@ -404,8 +404,8 @@ fn same_tick_target_death_scores_live_candidate_positions() {
     set_actor_position(simulation.actors.get_mut(&3).unwrap(), 0, 40_000);
     set_actor_position(simulation.actors.get_mut(&4).unwrap(), 0, 60_000);
     let source = simulation.actors.get_mut(&1).unwrap();
-    source.skill.lock_target = Some(unit_target(2));
-    source.skill.search_target_time = 10;
+    source.skills.main.lock_target = Some(unit_target(2));
+    source.skills.main.search_target_time = 10;
     simulation.refresh_target_query_snapshot();
     let target_search_order = simulation.target_search_order();
 
@@ -413,11 +413,15 @@ fn same_tick_target_death_scores_live_candidate_positions() {
     simulation.actors.get_mut(&3).unwrap().z_q32 = space_to_q32(100_000);
     simulation.actors.get_mut(&4).unwrap().z_q32 = space_to_q32(10_000);
     simulation
-        .update_fight_skill_target_search(FightActorRef::Unit(1), 1, &target_search_order)
+        .update_fight_skill_target_search(
+            SkillRef::main(FightActorRef::Unit(1)),
+            1,
+            &target_search_order,
+        )
         .unwrap();
 
     assert_eq!(
-        simulation.actors[&1].skill.lock_target,
+        simulation.actors[&1].skills.main.lock_target,
         Some(unit_target(4))
     );
 
@@ -432,11 +436,15 @@ fn same_tick_target_death_scores_live_candidate_positions() {
     simulation.actors.get_mut(&3).unwrap().z_q32 = space_to_q32(100_000);
     simulation.actors.get_mut(&4).unwrap().z_q32 = space_to_q32(10_000);
     simulation
-        .update_fight_skill_target_search(FightActorRef::Unit(1), 1, &target_search_order)
+        .update_fight_skill_target_search(
+            SkillRef::main(FightActorRef::Unit(1)),
+            1,
+            &target_search_order,
+        )
         .unwrap();
 
     assert_eq!(
-        simulation.actors[&1].skill.lock_target,
+        simulation.actors[&1].skills.main.lock_target,
         Some(unit_target(4))
     );
 }

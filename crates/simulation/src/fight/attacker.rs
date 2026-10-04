@@ -215,10 +215,10 @@ impl Simulation {
                     attack_interval_q32: actor.stats.attack_interval_q32(),
                     // A standalone weapon's skill faces with its own weapon:
                     // the unit's main skill is the first gun's.
-                    facing: if actor.rules.has_body && actor.skill.standalone() {
-                        Facing::Weapons(&actor.skill.weapon_rotations_q32[..1])
+                    facing: if actor.rules.has_body && actor.skills.main.standalone() {
+                        Facing::Weapons(&actor.skills.main.weapon_rotations_q32[..1])
                     } else if actor.rules.has_body {
-                        Facing::Weapons(&actor.skill.weapon_rotations_q32)
+                        Facing::Weapons(&actor.skills.main.weapon_rotations_q32)
                     } else {
                         Facing::Root(actor.body_rotation_q32)
                     },
@@ -236,7 +236,8 @@ impl Simulation {
                 // after its own skill has searched, so where it stood and
                 // pointed at the tick's start is where it stands and points.
                 let rotation = construction
-                    .skill
+                    .skills
+                    .main
                     .weapon_rotations_q32
                     .first()
                     .copied()
@@ -260,7 +261,7 @@ impl Simulation {
                     attack_interval_q32: time_units_to_seconds_q32(
                         construction.attack.interval_time_units(),
                     ),
-                    facing: Facing::Weapons(&construction.skill.weapon_rotations_q32),
+                    facing: Facing::Weapons(&construction.skills.main.weapon_rotations_q32),
                     has_body: true,
                     turn_q32: construction.turn_q32,
                     rotation_window_q32: Some({
@@ -274,30 +275,33 @@ impl Simulation {
         }
     }
 
-    /// The skill an owner runs.
-    pub(in crate::fight) fn skill(&self, owner: FightActorRef) -> &Skill {
+    /// An owner's skills.
+    pub(in crate::fight) fn skills(&self, owner: FightActorRef) -> &SkillManager {
         match owner {
-            FightActorRef::Unit(id) => &self.actors[&id].skill,
-            FightActorRef::Building(id) => &self.constructions[&id].skill,
+            FightActorRef::Unit(id) => &self.actors[&id].skills,
+            FightActorRef::Building(id) => &self.constructions[&id].skills,
         }
     }
 
-    pub(in crate::fight) fn skill_mut(&mut self, owner: FightActorRef) -> &mut Skill {
-        match owner {
-            FightActorRef::Unit(id) => {
-                &mut self
-                    .actors
-                    .get_mut(&id)
-                    .expect("actor identity is stable")
-                    .skill
-            }
-            FightActorRef::Building(id) => {
-                &mut self
-                    .constructions
-                    .get_mut(&id)
-                    .expect("construction identity is stable")
-                    .skill
-            }
+    /// One skill an owner runs.
+    pub(in crate::fight) fn skill(&self, skill_ref: SkillRef) -> &Skill {
+        self.skills(skill_ref.owner).get(skill_ref.slot)
+    }
+
+    pub(in crate::fight) fn skill_mut(&mut self, skill_ref: SkillRef) -> &mut Skill {
+        match skill_ref.owner {
+            FightActorRef::Unit(id) => self
+                .actors
+                .get_mut(&id)
+                .expect("actor identity is stable")
+                .skills
+                .get_mut(skill_ref.slot),
+            FightActorRef::Building(id) => self
+                .constructions
+                .get_mut(&id)
+                .expect("construction identity is stable")
+                .skills
+                .get_mut(skill_ref.slot),
         }
     }
 
@@ -346,26 +350,28 @@ impl Simulation {
     /// `SkillAttackRangeChecker`.
     pub(in crate::fight) fn target_in_attack_range(
         &self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         target: FightActorRef,
     ) -> bool {
-        let (Some(attacker), Some(view)) = (self.attacker(owner), self.fight_actor(target)) else {
+        let (Some(attacker), Some(view)) =
+            (self.attacker(skill_ref.owner), self.fight_actor(target))
+        else {
             return false;
         };
         // A skill firing at a shield reaches it once the point of the
         // shield's surface on its way to the lock is in range, from the
         // owner's edge: `SkillAttackRangeChecker.IsAttackTargetInAttackRange`.
-        if let Some(shield) = self.skill(owner).shield_target()
-            && Some(target) == self.skill(owner).lock_target
+        if let Some(shield) = self.skill(skill_ref).shield_target()
+            && Some(target) == self.skill(skill_ref).lock_target
         {
             return view.alive
                 && self
-                    .shield_attack_point(shield, owner, target)
+                    .shield_attack_point(shield, skill_ref, target)
                     .is_some_and(|(x_q32, z_q32)| attacker.reaches(x_q32, z_q32, 0));
         }
         view.alive
             && view.targetable
-            && self.reaches_hidden(owner, view.visible)
+            && self.reaches_hidden(skill_ref.owner, view.visible)
             && attacker.reaches(view.x_q32, view.z_q32, view.radius)
     }
 
@@ -399,24 +405,21 @@ impl Simulation {
     /// Both: `FightSkill.IsAttackTargetInAttackArea`.
     pub(in crate::fight) fn target_in_attack_area(
         &self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         target: FightActorRef,
     ) -> bool {
-        self.target_in_attack_range(owner, target) && self.target_in_attack_angle(owner, target)
+        self.target_in_attack_range(skill_ref, target)
+            && self.target_in_attack_angle(skill_ref.owner, target)
     }
 
     /// `SkillManager.UpdateWeaponRotateion`: every weapon turns towards a
     /// bearing at the owner's rotate speed.
-    pub(in crate::fight) fn turn_weapons_towards(
-        &mut self,
-        owner: FightActorRef,
-        bearing_q32: i64,
-    ) {
+    pub(in crate::fight) fn turn_weapons_towards(&mut self, skill_ref: SkillRef, bearing_q32: i64) {
         let turn_q32 = self
-            .attacker(owner)
+            .attacker(skill_ref.owner)
             .expect("skill owner identity is stable")
             .turn_q32;
-        self.skill_mut(owner)
+        self.skill_mut(skill_ref)
             .turn_weapons_towards(bearing_q32, turn_q32);
     }
 
@@ -478,16 +481,16 @@ impl Simulation {
             )
             .collect::<Vec<_>>();
         for owner in owners {
-            self.draw_first_intervals(owner)?;
+            self.draw_first_intervals(SkillRef::main(owner))?;
         }
         Ok(())
     }
 
     /// One owner's first intervals: one draw per skill it runs, the first
     /// kept as its current interval.
-    pub(in crate::fight) fn draw_first_intervals(&mut self, owner: FightActorRef) -> Result<()> {
+    pub(in crate::fight) fn draw_first_intervals(&mut self, skill_ref: SkillRef) -> Result<()> {
         let attacker = self
-            .attacker(owner)
+            .attacker(skill_ref.owner)
             .expect("skill owner identity is stable");
         let skills = if attacker.attack.weapons.mode == WeaponMode::Normal {
             1
@@ -495,9 +498,9 @@ impl Simulation {
             attacker.attack.weapons.count()
         };
         for index in 0..skills {
-            let interval = self.draw_attack_interval(owner)?;
+            let interval = self.draw_attack_interval(skill_ref.owner)?;
             if index == 0 {
-                self.skill_mut(owner).current_attack_interval = interval;
+                self.skill_mut(skill_ref).current_attack_interval = interval;
             }
         }
         Ok(())
