@@ -45,6 +45,16 @@
   谁、走到第几段）。模拟器在这些地方出错，哈希抓不到，或者只能从很多 tick 之后的位置反推。
   reopen_when：换版本的全量重录开始，搭它一起录；或广度的战场技能、地形节点有一场分叉因此定位不了。
 
+- **技能系统进内容哈希。** 录像的单位行只记武器通道（`weapon_aims`）和修正（`modifiers`），
+  任何技能的状态机、锁定、攻击计时与间隔都不在里面，只能开 `group_slots`、
+  `skill_attackable_checker` 这类 instrument 去看；`derived` 的射程、伤害、攻击间隔也只记槽 0。
+  单位科技补上附加武器之类的多技能机制后，副武器的这些状态哈希抓不到。把 `GetSkills()` 每个槽的
+  锁定、攻击目标、状态机状态、攻击计时与间隔、射程和伤害做成单位行的一部分并进哈希，`derived`
+  随之按槽记录，改 `hashed-content.txt` 的那个 PR 由 owner 合并；格式升级一次，全部钉子在有游戏的机器上
+  批量重录重钉，不为单个机制零碎升级。
+  reopen_when：platform 栈"单位科技，按系统排"一项弹出栈，或 fight-coverage 的 by system 里
+  `TechnologyGroupData` 的系统只剩独占回合为 0 的。
+
 - **模拟器写 instrument 通道。** RVO 求解与目标搜索由模拟器写成同样的行，游戏与模拟器的内部过程
   逐 tick 对照。reopen_when：单位 lane 的一个研究卡在 RVO 或选目标的分歧上，而逐 tick 的状态
   对照定位不到是哪一步。
