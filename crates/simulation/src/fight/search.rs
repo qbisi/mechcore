@@ -775,6 +775,7 @@ impl Simulation {
             return None;
         }
         let nearby = self.search_candidates(owner);
+        let tower_attackable = self.tower_attackable(source.skill);
         let mut scoring = Scoring::default();
 
         for (&team, candidates) in target_search_order {
@@ -815,6 +816,7 @@ impl Simulation {
                     || !candidate_targetable
                     || matches!(candidate, FightActorRef::Building(id)
                         if self.unsearchable_buildings.contains(&id))
+                    || (!tower_attackable && self.is_tower(candidate))
                     || !source.attack.accepts(target.domain)
                 {
                     continue;
