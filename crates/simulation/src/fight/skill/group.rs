@@ -328,7 +328,8 @@ impl Simulation {
         // `ChangeAttackTarget(null, shield)` cleared it.
         let skill = &self.actors[&actor_id].skills.main;
         let candidate = skill
-            .group_attack_target(slot)
+            .group_skill(slot)
+            .checked_attack_target()
             .filter(|_| skill.group_skill(slot).shield_target().is_none());
         self.idle_group_slot(actor_id, slot);
         // `StopAttack` hands the owner the dropped lock.
