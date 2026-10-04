@@ -202,6 +202,13 @@ pub(crate) struct Overlay {
     reason = "a mechanism writes and withdraws; both are tested now"
 )]
 impl Overlay {
+    /// An overlay of these entries alone.
+    pub(crate) fn of(entries: &[Entry]) -> Self {
+        Self {
+            entries: entries.to_vec(),
+        }
+    }
+
     pub(crate) fn write(&mut self, entry: Entry) {
         self.entries.push(entry);
     }
@@ -320,6 +327,83 @@ fn refuse_unrecorded_skill_fields(skill: &Overlay) -> Result<()> {
         return Err(Error::new(
             "the skill DataSet has no field for a splash rate",
         ));
+    }
+    Ok(())
+}
+
+/// One skill's `DataSet` as a recording stores it, under its slot of
+/// `FightMech.GetSkills()`.
+fn skill_modifiers(skill: &Overlay, slot: usize, modifiers: &mut Vec<Modifier>) -> Result<()> {
+    let q32 = |value: i128, units_per_one: i128| {
+        i64::try_from(value * ONE / units_per_one)
+            .map_err(|_| Error::new("a skill value is outside the signed range"))
+    };
+    refuse_unrecorded_skill_fields(skill)?;
+    {
+        let slot =
+            Some(u16::try_from(slot).map_err(|_| Error::new("a skill slot is outside u16"))?);
+        for (index, field) in DAMAGE_RATES {
+            if let Some(rate) = skill.aggregate(index) {
+                push_rate(
+                    modifiers,
+                    ModifierChannel::SkillFloatRate,
+                    slot,
+                    field,
+                    rate,
+                )?;
+            }
+        }
+        if let Some(range) = skill.aggregate(Index::AttackRange) {
+            push(
+                modifiers,
+                ModifierChannel::SkillFloat,
+                slot,
+                "attack_range_value",
+                ModifierPart::Value,
+                q32(
+                    range.value,
+                    i128::from(crate::rules::SPACE_UNITS_PER_METER_SCALE),
+                )?,
+            );
+            push_rate(
+                modifiers,
+                ModifierChannel::SkillFloatRate,
+                slot,
+                "attack_range_rate",
+                range,
+            )?;
+        }
+        if let Some(splash) = skill.aggregate(Index::SplashRange) {
+            push(
+                modifiers,
+                ModifierChannel::SkillFloat,
+                slot,
+                "splash_range_value",
+                ModifierPart::Value,
+                q32(
+                    splash.value,
+                    i128::from(crate::rules::SPACE_UNITS_PER_METER_SCALE),
+                )?,
+            );
+        }
+        if let Some(interval) = skill.aggregate(Index::AttackInterval) {
+            push(
+                modifiers,
+                ModifierChannel::SkillFloat,
+                slot,
+                "attack_interval_value",
+                ModifierPart::Value,
+                i64::try_from(interval.value)
+                    .map_err(|_| Error::new("an interval value is outside i64"))?,
+            );
+            push_rate(
+                modifiers,
+                ModifierChannel::SkillFloatRate,
+                slot,
+                "attack_interval_rate",
+                interval,
+            )?;
+        }
     }
     Ok(())
 }
@@ -704,6 +788,22 @@ impl Stats {
         self.overlays.resolve_damage(base, 0)
     }
 
+    /// Another skill's damage from its own base, with its own skill
+    /// corrections in place of the main skill's, and the unit's and the
+    /// buffs': `DamageProperty.CalculateDamage` over an extra skill whose
+    /// `DataSet` holds what reaches it alone.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the damage leaves the signed range.
+    pub(crate) fn damage_with(&self, base: i64, skill: &[Entry]) -> Result<i64> {
+        let overlays = Overlays {
+            skill: Overlay::of(skill),
+            ..self.overlays.clone()
+        };
+        overlays.resolve_damage(base, 0)
+    }
+
     /// The laser's base damage is truncated after its ramp multiplier, before
     /// the dynamic damage rates. `DamageProperty.CalculateBaseDamage` and
     /// `CalculateDamage` are separate stages in the build.
@@ -740,10 +840,19 @@ impl Stats {
     ///
     /// Returns an error for a correction the build has no field for, rather
     /// than dropping it from what the recording is compared with.
-    pub(crate) fn modifiers(&self, slots: &[usize]) -> Result<Vec<Modifier>> {
+    pub(crate) fn modifiers(
+        &self,
+        slots: &[usize],
+        own: &[(usize, &[Entry])],
+    ) -> Result<Vec<Modifier>> {
         let mut modifiers = Vec::new();
         self.unit_modifiers(&mut modifiers)?;
-        self.skill_modifiers(slots, &mut modifiers)?;
+        for &slot in slots {
+            skill_modifiers(&self.overlays.skill, slot, &mut modifiers)?;
+        }
+        for &(slot, entries) in own {
+            skill_modifiers(&Overlay::of(entries), slot, &mut modifiers)?;
+        }
         self.buff_modifiers(&mut modifiers)?;
         mechcore_mcfr::sort_modifiers(&mut modifiers);
         Ok(modifiers)
@@ -841,82 +950,6 @@ impl Stats {
                     "the unit DataSet has no field for {}",
                     index.name()
                 )));
-            }
-        }
-        Ok(())
-    }
-
-    fn skill_modifiers(&self, slots: &[usize], modifiers: &mut Vec<Modifier>) -> Result<()> {
-        let skill = &self.overlays.skill;
-        let q32 = |value: i128, units_per_one: i128| {
-            i64::try_from(value * ONE / units_per_one)
-                .map_err(|_| Error::new("a skill value is outside the signed range"))
-        };
-        refuse_unrecorded_skill_fields(skill)?;
-        for &slot in slots {
-            let slot =
-                Some(u16::try_from(slot).map_err(|_| Error::new("a skill slot is outside u16"))?);
-            for (index, field) in DAMAGE_RATES {
-                if let Some(rate) = skill.aggregate(index) {
-                    push_rate(
-                        modifiers,
-                        ModifierChannel::SkillFloatRate,
-                        slot,
-                        field,
-                        rate,
-                    )?;
-                }
-            }
-            if let Some(range) = skill.aggregate(Index::AttackRange) {
-                push(
-                    modifiers,
-                    ModifierChannel::SkillFloat,
-                    slot,
-                    "attack_range_value",
-                    ModifierPart::Value,
-                    q32(
-                        range.value,
-                        i128::from(crate::rules::SPACE_UNITS_PER_METER_SCALE),
-                    )?,
-                );
-                push_rate(
-                    modifiers,
-                    ModifierChannel::SkillFloatRate,
-                    slot,
-                    "attack_range_rate",
-                    range,
-                )?;
-            }
-            if let Some(splash) = skill.aggregate(Index::SplashRange) {
-                push(
-                    modifiers,
-                    ModifierChannel::SkillFloat,
-                    slot,
-                    "splash_range_value",
-                    ModifierPart::Value,
-                    q32(
-                        splash.value,
-                        i128::from(crate::rules::SPACE_UNITS_PER_METER_SCALE),
-                    )?,
-                );
-            }
-            if let Some(interval) = skill.aggregate(Index::AttackInterval) {
-                push(
-                    modifiers,
-                    ModifierChannel::SkillFloat,
-                    slot,
-                    "attack_interval_value",
-                    ModifierPart::Value,
-                    i64::try_from(interval.value)
-                        .map_err(|_| Error::new("an interval value is outside i64"))?,
-                );
-                push_rate(
-                    modifiers,
-                    ModifierChannel::SkillFloatRate,
-                    slot,
-                    "attack_interval_rate",
-                    interval,
-                )?;
             }
         }
         Ok(())

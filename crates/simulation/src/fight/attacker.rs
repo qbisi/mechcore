@@ -334,13 +334,20 @@ impl Simulation {
                 .damage_from(q32_mul(base << 32, crate::rules::metres_q32(rules.damage_rate)) >> 32)
                 .ok()?
         } else {
-            rules.damage_by_level.last().map_or(0, |last| {
+            let own = rules.damage_by_level.last().map_or(0, |last| {
                 usize::try_from(actor.placement.level - 1)
                     .ok()
                     .and_then(|level| rules.damage_by_level.get(level))
                     .unwrap_or(last)
                     .to_owned()
-            })
+            });
+            // `DamageProperty.CalculateDamage` corrects it by what its own
+            // `DataSet` holds, an equipment's and an Energy Tower skill's,
+            // and the buffs'.
+            actor
+                .stats
+                .damage_with(own, &extra.skill_corrections)
+                .ok()?
         };
         attacker.splash_radius = rules.attack.splash_radius();
         attacker.attack_interval_q32 =

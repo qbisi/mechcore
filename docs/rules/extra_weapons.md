@@ -268,10 +268,15 @@ So a skill with a damage rate holds the main skill's damage corrections, an
 officer's, a blueprint's and a technology's, and its damage composes them as
 the main skill's does: its rate of the unit's base damage, truncated, then
 raised and impaired by them and the buffs'. Whirlwind's 4983 becomes 5580
-under Attack Enhancement's +0.12. Any other number they correct on such a
-skill is not read, so the simulator refuses it, and it refuses a unit whose
-extra weapon an equipment or an Energy Tower skill writes a skill correction
-onto.
+under Attack Enhancement's +0.12.
+
+A skill without a damage rate holds what reaches it alone, an equipment's
+through its `extraSkillEffect` and an Energy Tower skill's, and its damage,
+its row's entry for the unit's level, composes them and the buffs' the same
+way: Secondary Fire Control System's +0.25 makes a Homing Missile's 800 a
+1000. A recording holds each skill's corrections on its own slot. Any other
+number than damage a source corrects on an extra skill is not read, so the
+simulator refuses it.
 
 ## Evidence
 
@@ -365,6 +370,12 @@ onto.
   damage as on the main skill's:
   `tests/extra_weapon/fights/whirlwind-attack-enhancement.yaml` and
   `tests/extra_weapon/fights/whirlwind-cost-control.yaml`.
+- An item's damage rate reaching extra skills through its `extraSkillEffect`
+  composes on a Homing Missile's own damage and on Whirlwind's, and the
+  recording holds it on every slot it reaches:
+  `tests/extra_weapon/fights/homing-missile-secondary-fire-control.yaml`,
+  `tests/extra_weapon/fights/whirlwind-haste-module.yaml` and
+  `tests/extra_weapon/fights/sabertooth-amplifying-core.yaml`.
 - Sticky Oil Bomb's bomb writes its buff on the Rhino it strikes, from the
   Phantom Ray, and leaves an oil of its splash that renews the buff every 19
   ticks, keeping the Phantom Ray as its source, and stands to the fight's
@@ -473,8 +484,8 @@ onto.
   attack. `AttackRotate` also turns the extra skill's own weapons
   (`FightSkill.RotateWeaponTo`) unless they are standalone; no recording reads
   that turn.
-- **A correction composing on an extra skill**, an equipment's or an Energy
-  Tower skill's. Refused.
+- **A correction other than damage composing on an extra skill**, an Energy
+  Tower skill's range among them. Refused.
 - **What invincibility keeps off.** A fire burns an invincible Fire Badger;
   whether a shot or a blow does is not recorded, and the simulator lets every
   hit through.

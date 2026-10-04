@@ -279,6 +279,8 @@ pub(in crate::fight) struct ExtraSkill {
     pub(in crate::fight) buff: Option<crate::layout::SkillBuff>,
     /// The fire its unit's death leaves, for an explosion.
     pub(in crate::fight) dead_fire: Option<crate::layout::TerrainSpec>,
+    /// What its own `DataSet` holds, for a skill without a damage rate.
+    pub(in crate::fight) skill_corrections: Vec<crate::data::Entry>,
     /// The first of the row's weapons this skill fires: its one weapon of a
     /// standalone row, the first of every other.
     pub(in crate::fight) weapon: usize,

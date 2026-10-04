@@ -104,6 +104,10 @@ pub(crate) struct ExtraWeapon {
     pub(crate) buff: Option<SkillBuff>,
     /// The fire an explosion skill's unit's death leaves.
     pub(crate) dead_fire: Option<TerrainSpec>,
+    /// What its own `DataSet` holds, for a skill without a damage rate: the
+    /// skill corrections of the equipment and Energy Tower skills that reach
+    /// it. A skill with a damage rate holds the main skill's.
+    pub(crate) skill_corrections: Vec<Entry>,
 }
 
 /// A production line a unit runs, with what it makes resolved: the unit's
@@ -879,7 +883,7 @@ fn loadout(
     let stats = refused.hold(Stats::corrected(rules, level, &worn.corrections).map_err(refusal))?;
     // A snapshot carries each `DataSet`'s aggregate; one this build cannot
     // record is refused here, where the side and the officer can be named.
-    refused.hold(stats.modifiers(&[0]).map_err(refusal))?;
+    refused.hold(stats.modifiers(&[0], &[]).map_err(refusal))?;
     worn.experience_rate = experience_rate;
     Some(worn)
 }
@@ -1029,84 +1033,6 @@ fn extra_weapon_terrain(
     }
 }
 
-/// What writes onto an extra skill's numbers (`SkillDataModifier.AvaliableCheck`):
-/// an equipment through its `extraSkillEffect` and an Energy Tower skill
-/// always, and, onto a skill with a damage rate, what reaches the main skill
-/// too (`IsMainSkillEffect`): an officer's and a technology's.
-fn reaching_extra_skills(
-    type_name: &str,
-    equipment: &[i32],
-    rules: &UnitConfig,
-    side: &SidePlan,
-    loadouts: &Loadouts,
-    weapons: &[ExtraWeapon],
-) -> Vec<String> {
-    let on_skill = |written: &[(Channel, Entry)]| {
-        written
-            .iter()
-            .any(|(channel, _)| *channel == Channel::Skill)
-    };
-    let mut reaching = Vec::new();
-    for &id in equipment {
-        if loadouts.equipment.reaches_extra_skills(id)
-            && loadouts
-                .equipment
-                .corrections(id, rules)
-                .is_ok_and(|written| on_skill(&written))
-        {
-            reaching.push(format!("equipment {id}"));
-        }
-    }
-    for &id in &side.energy_tower_skills {
-        if loadouts
-            .energy_tower
-            .corrections(std::slice::from_ref(&id), rules)
-            .is_ok_and(|written| on_skill(&written))
-        {
-            reaching.push(format!("energy tower skill {id}"));
-        }
-    }
-    // What reaches a skill with a damage rate through the main skill composes
-    // on its damage as on the main skill's; any other number it corrects there
-    // is not read.
-    if weapons.iter().any(|weapon| weapon.rules.damage_rate > 0.0) {
-        let beyond_damage = |written: &[(Channel, Entry)]| {
-            written.iter().any(|(channel, entry)| {
-                *channel == Channel::Skill && entry.index != Index::AttackDamage
-            })
-        };
-        for &id in &side.techs.officers {
-            if loadouts
-                .officers
-                .corrections(std::slice::from_ref(&id), rules)
-                .is_ok_and(|written| beyond_damage(&written))
-            {
-                reaching.push(format!("officer {id}"));
-            }
-        }
-        for &id in &side.techs.units {
-            if loadouts
-                .technologies
-                .corrections(std::slice::from_ref(&id), type_name)
-                .is_ok_and(|written| beyond_damage(&written))
-            {
-                reaching.push(format!("technology {id}"));
-            }
-        }
-        for &id in equipment {
-            if !loadouts.equipment.reaches_extra_skills(id)
-                && loadouts
-                    .equipment
-                    .corrections(id, rules)
-                    .is_ok_and(|written| on_skill(&written))
-            {
-                reaching.push(format!("equipment {id}"));
-            }
-        }
-    }
-    reaching
-}
-
 /// The fire's range and life time, Q32.32 metres and seconds, as
 /// `ExtraSkillProvider.AddEffect` writes them onto the unit: the skill's
 /// splash, and the row's first `fireLifeTime`, a fire's or an oil's.
@@ -1206,27 +1132,101 @@ fn extra_weapons(
                 )?,
             ),
         };
+        let (skill_corrections, reaching) =
+            reaching_extra_skill(weapon, type_name, equipment, rules, side, loadouts);
+        if !reaching.is_empty() {
+            refused.push(format!(
+                "side {side_name} unit type {type_name:?} carries an extra weapon that {} \
+                 reaches with a correction other than damage, and how one composes on an \
+                 extra skill is not measured",
+                reaching.join(" and ")
+            ));
+            return None;
+        }
         weapons.push(ExtraWeapon {
             rules: weapon.clone(),
             terrain,
             buff,
             dead_fire,
+            skill_corrections,
         });
     }
-    if weapons.is_empty() {
-        return Some(weapons);
+    Some(weapons)
+}
+
+/// What writes onto one extra skill's numbers (`SkillDataModifier.AvaliableCheck`):
+/// an equipment through its `extraSkillEffect` and an Energy Tower skill
+/// always, and, onto a skill with a damage rate, what reaches the main skill
+/// too (`IsMainSkillEffect`), which every officer, technology of a unit and
+/// equipment answers: the skill corrections that reach a skill without a
+/// damage rate, and the sources that write it a number other than damage,
+/// which no skill here reads.
+fn reaching_extra_skill(
+    weapon: &ExtraWeaponConfig,
+    type_name: &str,
+    equipment: &[i32],
+    rules: &UnitConfig,
+    side: &SidePlan,
+    loadouts: &Loadouts,
+) -> (Vec<Entry>, Vec<String>) {
+    let rated = weapon.damage_rate > 0.0;
+    let mut sources = Vec::new();
+    for &id in equipment {
+        if rated || loadouts.equipment.reaches_extra_skills(id) {
+            sources.push((
+                format!("equipment {id}"),
+                loadouts.equipment.corrections(id, rules),
+            ));
+        }
     }
-    let reaching = reaching_extra_skills(type_name, equipment, rules, side, loadouts, &weapons);
-    if reaching.is_empty() {
-        Some(weapons)
-    } else {
-        refused.push(format!(
-            "side {side_name} unit type {type_name:?} carries an extra weapon that {} \
-             reaches, and how a correction composes on an extra skill is not measured",
-            reaching.join(" and ")
+    for &id in &side.energy_tower_skills {
+        sources.push((
+            format!("energy tower skill {id}"),
+            loadouts
+                .energy_tower
+                .corrections(std::slice::from_ref(&id), rules),
         ));
-        None
     }
+    if rated {
+        for &id in &side.techs.officers {
+            sources.push((
+                format!("officer {id}"),
+                loadouts
+                    .officers
+                    .corrections(std::slice::from_ref(&id), rules),
+            ));
+        }
+        for &id in &side.techs.units {
+            sources.push((
+                format!("technology {id}"),
+                loadouts
+                    .technologies
+                    .corrections(std::slice::from_ref(&id), type_name),
+            ));
+        }
+    }
+    let mut corrections = Vec::new();
+    let mut reaching = Vec::new();
+    for (named, written) in sources {
+        // A source this build cannot apply is refused where it is asked for.
+        let Ok(written) = written else {
+            continue;
+        };
+        let on_skill = written
+            .into_iter()
+            .filter(|(channel, _)| *channel == Channel::Skill)
+            .map(|(_, entry)| entry)
+            .collect::<Vec<_>>();
+        if on_skill
+            .iter()
+            .any(|entry| entry.index != Index::AttackDamage)
+        {
+            reaching.push(named);
+        } else if !rated {
+            corrections.extend(on_skill);
+        }
+    }
+    (corrections, reaching)
 }
 
 fn validate_formation_footprint(

@@ -1,0 +1,25 @@
+# An item's damage rate on both of a Sabertooth's extra weapons.
+#
+# `anti-air-missile-mixed.yaml` with Secondary Armament beside the missile and
+# Amplifying Core, +0.5 of damage and life. The recording holds the item's
+# rate on every slot, the main gun's, the two extra guns' and the missile's;
+# each blow takes what is left of its target's life.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 210
+hash: {profile: mcfr-content-0.7.0, result: 1c9637c8ddef97805a6bebfdc56aec798b72eb9549e4684629780fa96deb5a71}
+blue:
+  core_damage: 153
+  techs:
+    sabertooth: [secondary_armament, anti_air_missile]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 5, y: -45}, exp: 0/502/1300, equipment: [amplifying_core]}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: -40, y: -100}}
+  - {name: marksman, index: 1, position: {x: 40, y: -100}}
+  - {name: wasp, index: 2, position: {x: 5, y: -100}, exp: 0/400/900}
