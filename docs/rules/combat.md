@@ -421,7 +421,11 @@ which a square 800 m wide leaves out. An attacking skill is prepared only while 
 absent or dead, an idle one when it can start a search, and a preparing or
 cooling one never; the prepared scores are cleared every tick. So a
 Stormcaller whose live lock walks inside its minimum range during a tick
-searches past it and takes the next target that very tick.
+searches past it and takes the next target that very tick. `PreCalculate`
+prepares only the mechs of the fight as it runs, alive and not travelling, and
+`FightingState.Update` runs it after the modules, before the next update's
+timers join the summons that are due: a summon that joins is no attacker
+`TrySelect` answers for, and its search on that tick is a `PerformSearch`.
 
 **A blow that loses its target inside the minimum range gives its interval
 back.** That search is `SkillAttackableChecker.CheckWhenLoseTarget`, and on an
@@ -865,6 +869,9 @@ not the game's native attack-type enum.
 - A Stormcaller whose live lock walks inside its minimum range taking blue's
   interceptor on that tick, and a second doing the same three ticks later:
   `tests/search/fights/lock-inside-min-range.yaml`.
+- Summons that join on one tick searching where everything stands then, and
+  locking the enemy summons that joined with them:
+  `tests/battle_skill/fights/underground-threat-both-sides.yaml`, tick 48.
 - A Stormcaller's blow that lost its target inside the minimum range giving
   its interval back, and one whose target died keeping it:
   `tests/corpus/fights/201372157-r2.yaml`.
@@ -951,6 +958,10 @@ not the game's native attack-type enum.
   `ScoreRatingTargetSelector.TrySelect`,
   `SkillSearchTargetController.PerformNormalSkillSearch`,
   `ScoreRatingTargetSelector.ClearDatas`.
+- A search is prepared for the mechs alive and not travelling as the modules
+  finish, and answered only for them: `FightingState.Update`,
+  `FightCoreSystem.PreCalculate`, `SuperDeploymentSystem.IsTravelling`,
+  `ScoreRatingTargetSelector.TrySelect`.
 - A projectile's climb is scaled by the distance from where it leaves, as it
   is created: `ProjectileSystem.Create`, `IProjectileSkillData.GetPreFlyHeight`,
   `ProjectileFlyData.GetPosition`.
