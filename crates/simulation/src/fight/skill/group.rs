@@ -54,7 +54,7 @@ impl Simulation {
             .enumerate()
             .map(|(index, lock)| {
                 let wall = lock.and_then(|lock| {
-                    self.wall_in_the_way(owner, lock)
+                    self.wall_in_the_way(SkillRef::main(owner), lock)
                         .map(|building| (building, lock))
                 });
                 // Each slot's `SearchTargetShield`, as the core's.

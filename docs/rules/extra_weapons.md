@@ -120,6 +120,12 @@ unit; it does not turn towards its lock.
   target standing nearer than the skill's minimum range (`IsInAttackRange`'s
   `isMissing`), and that range is the extra skill's: an Incendiary Bomb skill
   whose target walks inside its 40 metres takes another on that update.
+- **It asks for a block or a shield in the way with its own reach.**
+  `FightSkill.SearchAttackTarget` asks whether an enemy construction stands in
+  the line of fire, within the skill's reach, and with none whether a shield
+  covers the lock, as the main skill does with its own: a Centurion's Homing
+  Missile, reaching 160 metres, fires at a block in the way that its 110 metre
+  main gun passes by.
 - **A skill that deals nothing takes no tower.** `FightSkill.IsTowerAttackable`
   lets an extra skill take a tower only where it deals damage of its own or a
   share of its unit's: Incendiary Bomb's skill searches the units alone,
@@ -256,6 +262,12 @@ equipment or an Energy Tower skill writes a skill correction onto.
   skill's target burns to death, and the Hound turns its root:
   `tests/extra_weapon/fights/incendiary-bomb.yaml`, beside its control
   `tests/extra_weapon/fights/incendiary-bomb-control.yaml`.
+
+### Replayed
+
+- A Centurion's Homing Missile takes a block in the way that its main gun is
+  too short for: replay 2324_20260925--67159970 round 6, fought by the game
+  with `scripts/corpus/match-replays.py`.
 
 ### Read
 
