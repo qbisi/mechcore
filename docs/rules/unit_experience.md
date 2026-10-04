@@ -154,7 +154,9 @@ and the card hands both halves to its formation. Each gain is then the amount
 times `(1 + enhancement) × remaining`, and the bar still caps it; the bar
 itself is the table's whatever the rate.
 
-No gain carries a formation past its bar, and a full formation takes no share,
+No gain carries a formation past its bar, and one that brings it within 43
+raw of its bar, `FPoint.Min`'s tolerance, brings it to its bar exactly. A
+full formation takes no share,
 though a share is still set aside for it when it stands near. As the fight
 ends, each formation's experience is cut down to a whole number, and that is
 what the formation carries into the next round.
@@ -183,6 +185,8 @@ what the formation carries into the next round.
   `tests/modifier/fights/officer-exp-rate-marksman.yaml`,
   `tests/modifier/fights/officer-exp-rate-arclight.yaml`, against
   `tests/modifier/fights/officer-exp-rate-none.yaml`.
+- A kill that brings a formation within 4 raw of its bar brings it to the
+  bar: `tests/corpus/fights/201370830-r5.yaml`, tick 403.
 
 ### Replayed
 
@@ -220,6 +224,8 @@ what the formation carries into the next round.
   `FightTeam.CreateQuadtree`; a hit of the target's own group shares with its
   opponents' units: `ExpSystem.OnActorHitted`, `GroupManager.GetOpponentGroups`.
 - A unit's own blow takes its life from itself: `SuicideEffect.Perform`.
+- The bar caps a gain through `FPoint.Min`, which answers the bar for a sum
+  within 43 raw below it: `MechTeam.AddExp`, `FPoint.Min`.
 - A gain starts from zero and stops at the bar, and is the amount times
   `(1 + expAddRate + add) × expReduceRate × reduce`, `add` and `reduce` being
   the unit's own `MechDataChangeFloatRate.ExpChangeRate`, of the killer or,
