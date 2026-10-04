@@ -2,9 +2,7 @@
 # Incendiary Bomb: unit 230's bomb skill, its target inside the skill's 40
 # metre minimum range, takes unit 4 on that update (t410), and unit 223's,
 # its target dead, searches nine units and no tower, and takes unit 117 where
-# its main skill takes blue's tower (t528). The game's read-back layout leaves
-# out red's Centurion range_enhancement, which its Centurions carry, and it is
-# written back here.
+# its main skill takes blue's tower (t528).
 
 kind: fight
 map_id: 1021

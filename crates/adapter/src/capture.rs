@@ -4834,19 +4834,30 @@ fn read_native_officers(api: Api, controller: *mut Object) -> Result<Vec<i32>, S
     Ok(ids)
 }
 
+/// The active technologies of every unit the side has a
+/// `UnitTechnologyManager` for, read from `TechnologyManager.technologyManagers`.
 fn read_native_unit_technologies(api: Api, controller: *mut Object) -> Result<Vec<i32>, String> {
     let technology_manager = invoke_object(api, controller, "GetTechnologyManager")?;
+    let class = api
+        .object_class(technology_manager)
+        .ok_or("TechnologyManager has no class")?;
+    let field = api
+        .field(class, "technologyManagers")
+        .map_err(|error| error.to_string())?;
+    let managers: *mut Object = api
+        .field_value(technology_manager, field)
+        .map_err(|error| error.to_string())?;
+    if managers.is_null() {
+        return Err("TechnologyManager.technologyManagers is null".into());
+    }
     let mut active = BTreeSet::new();
-    for mut unit_type_id in (1..=31).chain(std::iter::once(2_002)) {
-        let manager = api
-            .invoke(
-                technology_manager,
-                "GetTechnologyManager",
-                &mut [argument(&mut unit_type_id)],
-            )
-            .map_err(|error| error.to_string())?;
+    for (unit_id, manager) in api
+        .dictionary_entries::<i32, usize>(managers)
+        .map_err(|error| error.to_string())?
+    {
+        let manager = manager as *mut Object;
         if manager.is_null() {
-            continue;
+            return Err(format!("unit {unit_id} has a null UnitTechnologyManager"));
         }
         let technologies = invoke_object(api, manager, "GetTechnologies")?;
         for index in 0..list_count(api, technologies, 10_000)? {
