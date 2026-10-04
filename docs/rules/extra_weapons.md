@@ -68,7 +68,10 @@ the whole of the difference:
   from the state the motion was in as the unit's skills began to update: the
   motion idles when the skill is idle or its lock is dead, attacks while what
   the skill fires at is in the skill's range, and otherwise moves after that
-  lock. Attacking, it turns to what the skill fires at (`AttackRotate`), a
+  lock. Entering its attack it stops (`MotionAttackState.Enter` calls
+  `RVOControllerFixed.StopMove`), so a unit walking on the lock submits no
+  speed on that very update and stands at the next solve's boundary.
+  Attacking, it turns to what the skill fires at (`AttackRotate`), a
   block in the way before the lock behind it: a unit without a body its root,
   one with a body its body. A Sabertooth whose main
   gun has just felled its target and found nothing reads moving on the next
