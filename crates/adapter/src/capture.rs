@@ -1,4 +1,5 @@
 use crate::control::{self, ControlMetadata};
+use crate::exp_range;
 use crate::reach::{self, ReachMetadata};
 use crate::rvo::{self, RawSolve, RvoChannels, RvoMetadata, RvoRows};
 use crate::selector::{self, RawSearch, SelectorMetadata, TargetChannels};
@@ -24,8 +25,8 @@ use mechcore_mcfr::{
     WorldSnapshot,
 };
 use mechcore_mcfr::{
-    CheckedSkill, ControlProgress, GroupSlot, PoseClip, ProjectileReach, RvoNeighbour, RvoSolve,
-    RvoVo, SkillAttackableCheck, TargetCandidate, TargetRefs, TargetSearch, UnitPose,
+    CheckedSkill, ControlProgress, ExpRange, GroupSlot, PoseClip, ProjectileReach, RvoNeighbour,
+    RvoSolve, RvoVo, SkillAttackableCheck, TargetCandidate, TargetRefs, TargetSearch, UnitPose,
 };
 use mechcore_protocol::InstrumentChannel;
 use std::{
@@ -183,6 +184,7 @@ pub(crate) struct Instruments {
     unit_pose: bool,
     pub(crate) projectile_reach: bool,
     control_progress: bool,
+    pub(crate) exp_range: bool,
     pub(crate) target: TargetChannels,
     pub(crate) rvo: RvoChannels,
 }
@@ -196,6 +198,7 @@ impl Instruments {
             unit_pose: channels.contains(&InstrumentChannel::UnitPose),
             projectile_reach: channels.contains(&InstrumentChannel::ProjectileReach),
             control_progress: channels.contains(&InstrumentChannel::ControlProgress),
+            exp_range: channels.contains(&InstrumentChannel::ExpRange),
             target: TargetChannels {
                 search: channels.contains(&InstrumentChannel::TargetSearch),
                 candidate: channels.contains(&InstrumentChannel::TargetCandidate),
@@ -224,6 +227,7 @@ pub(crate) struct InstrumentRows {
     pub(crate) unit_pose: Option<Vec<UnitPose>>,
     pub(crate) projectile_reach: Option<Vec<ProjectileReach>>,
     pub(crate) control_progress: Option<Vec<ControlProgress>>,
+    pub(crate) exp_range: Option<Vec<ExpRange>>,
 }
 
 #[allow(
@@ -337,6 +341,8 @@ pub(crate) struct Metadata {
     reach_error: Option<String>,
     control: Option<ControlMetadata>,
     control_error: Option<String>,
+    exp_range: bool,
+    exp_range_error: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -445,6 +451,8 @@ pub(crate) struct CaptureState {
     completed_checker_calls: Vec<CompletedCheckerCall>,
     /// This tick's projectile reach checks, in the order they were asked.
     pub(crate) projectile_reaches: Vec<ProjectileReach>,
+    /// This tick's searches for the formations sharing a kill, in order.
+    pub(crate) exp_ranges: Vec<ExpRange>,
     visual: Option<VisualCapture>,
     pending_visual: Option<PendingVisualMessage>,
     render_completed: bool,
@@ -466,6 +474,8 @@ impl CaptureState {
         rvo::arm(RvoChannels::default());
         reach::arm(false);
         self.projectile_reaches.clear();
+        exp_range::arm(false);
+        self.exp_ranges.clear();
         self.rvo_solves.clear();
         self.rvo_agent_owners.clear();
         self.queue.clear();
@@ -1643,6 +1653,10 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             Ok(control) => (Some(control), None),
             Err(error) => (None, Some(error)),
         };
+        let (exp_range, exp_range_error) = match exp_range::initialize(api) {
+            Ok(()) => (true, None),
+            Err(error) => (false, Some(error)),
+        };
         Ok(Metadata {
             projectile_system_class: projectile_system as usize,
             range_item_system_class: range_item_system as usize,
@@ -1692,6 +1706,8 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             reach_error,
             control,
             control_error,
+            exp_range,
+            exp_range_error,
         })
     }
 }
@@ -1759,6 +1775,7 @@ pub(crate) fn start(
     validate_checker_availability(instruments, &state.metadata)?;
     validate_reach_availability(instruments, &state.metadata)?;
     validate_control_availability(instruments, &state.metadata)?;
+    validate_exp_range_availability(instruments, &state.metadata)?;
     if instruments.rvo.any() && state.metadata.rvo.is_none() {
         return Err(format!(
             "the RVO channels are unavailable: {}",
@@ -1806,6 +1823,7 @@ pub(crate) fn start(
     state.armed = true;
     rvo::arm(instruments.rvo);
     reach::arm(instruments.projectile_reach);
+    exp_range::arm(instruments.exp_range);
     selector::arm(instruments.target);
     let scaled = state.restore_time_scale.is_some();
     drop(state);
@@ -1882,6 +1900,24 @@ fn validate_control_availability(
                 .control_error
                 .as_deref()
                 .unwrap_or("TeamTranslationSystem could not be resolved")
+        ))
+    } else {
+        Ok(())
+    }
+}
+
+fn validate_exp_range_availability(
+    instruments: Instruments,
+    metadata: &Metadata,
+) -> Result<(), String> {
+    if instruments.exp_range && !metadata.exp_range {
+        Err(format!(
+            "{} is unavailable: {}",
+            InstrumentChannel::ExpRange.as_str(),
+            metadata
+                .exp_range_error
+                .as_deref()
+                .unwrap_or("ExpSystem.AddRangeUnit could not be hooked")
         ))
     } else {
         Ok(())
@@ -6019,6 +6055,10 @@ fn snapshot(
         } else {
             None
         },
+        exp_range: capture
+            .instruments
+            .exp_range
+            .then(|| std::mem::take(&mut capture.exp_ranges)),
     };
     let projectiles = read_projectiles(runtime, capture)?;
     let pending = capture.pending_projectile_absorptions.len()

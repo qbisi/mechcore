@@ -5,6 +5,7 @@
 
 mod capture;
 mod control;
+mod exp_range;
 mod headless;
 mod il2cpp;
 mod offline;

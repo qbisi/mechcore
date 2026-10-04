@@ -589,6 +589,15 @@ skill, `ControllEffect.Perform` adds each hit's power through
 `TeamTranslationSystem.Translate`, and the entry goes with its last beam. The
 field is a `SyncDictionary`, read through the two lists it keeps side by side.
 
+`exp_range` records each kill's search for the formations near enough to share
+its experience. `ExpSystem.DoCalculateExp` lists the formations that hit the
+target and then calls `ExpSystem.AddRangeUnit`, which asks the killer's side's
+`mechQuadtree` for a square `assistExpRange` wide around the target and appends
+the formation of each unit it finds in range. The method is hooked, and the
+list is read before and after it: a row holds the target, the formations
+listed `before` the search and the formations it `added`, each by the
+recording's formation number.
+
 `skill_attackable_checker` records every call of
 `SkillAttackableChecker.Check(bool isAttackingCheck)` made during the update a
 row closes, in call order: the skill's owner, the skill's index in the

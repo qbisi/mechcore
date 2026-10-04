@@ -214,6 +214,25 @@ impl InstrumentRow for ControlProgress {
     const CHANNEL: &'static str = "control_progress";
 }
 
+/// One kill's search for the formations near enough to share its experience:
+/// a call of `ExpSystem.AddRangeUnit`, which asks the killer's side's
+/// `mechQuadtree` for a square `assistExpRange` wide around the target and
+/// adds the formation of each unit it finds whose edge stands in range.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ExpRange {
+    /// The unit or building killed.
+    pub target: Option<ObjectRef>,
+    /// The formations sharing before the search, those that hit the target,
+    /// in the order the build lists them.
+    pub before: Vec<u64>,
+    /// The formations the search added, in the order it added them.
+    pub added: Vec<u64>,
+}
+
+impl InstrumentRow for ExpRange {
+    const CHANNEL: &'static str = "exp_range";
+}
+
 /// One animator layer of a unit's model at a snapshot: the state the view's
 /// `Animator` plays on that layer, how far through it, and the clips it
 /// blends there. The pose a unit is drawn in is the view's, which the fight
