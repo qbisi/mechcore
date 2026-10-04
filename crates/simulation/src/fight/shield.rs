@@ -69,8 +69,8 @@ pub(in crate::fight) struct ShieldSystem {
     pub(in crate::fight) created: Vec<Event>,
     /// The identity the next shield made in the fight takes.
     pub(in crate::fight) next_id: u64,
-    /// The shields broken this tick, which a skill firing at one still aims
-    /// at until the tick is over.
+    /// The shields broken in the fight, where they stood: a skill firing at
+    /// one still aims at it until its next check.
     pub(in crate::fight) broken: Vec<EnergyShield>,
 }
 
@@ -506,9 +506,11 @@ impl Simulation {
             };
             return Some((x, z));
         }
-        // A shield broken this tick is still the skill's target until its
-        // next check: the Vortex whose blow breaks one reads attacking on
-        // its lock that tick, and loses it the next.
+        // A broken shield is still the skill's target until its next check
+        // (`FightSkill.SearchAttackTarget`): the Vortex whose blow breaks one
+        // reads attacking on its lock that tick, and loses it the next, and
+        // a Wasp, which checks once a blow, goes on attacking it, its lock
+        // out of reach, until its next blow's check.
         if !self
             .shield
             .standing

@@ -141,9 +141,13 @@ is one as a unit is:
   Rhino's) passes every shield, and a unit whose attack does not, aiming at a
   covered unit or tower, fires at the shield: it stops once the point of the
   shield's surface on its way to its target is within its range, and its
-  weapons name no target while it does, cooling included. Each weapon of a grouped unit
-  searches its own shield, with its own range, and keeps the one it last found
-  until it searches again itself, one broken since included.
+  weapons name no target while it does, cooling included. It keeps the shield
+  it last found until its skill searches again, one broken since included,
+  and goes on attacking it, measured to where its surface stood: a Wasp, which
+  checks once a blow, stands attacking a shield that broke after its last
+  check, its lock out of its reach, until its next. Each weapon of a grouped
+  unit searches its own shield, with its own range, and keeps the one it last
+  found until it searches again itself, one broken since included.
 
 A Shield Airdrop's shield is the same object, made where the skill lands;
 [`battle_skill.md`](battle_skill.md) states when.
