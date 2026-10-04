@@ -906,6 +906,48 @@ red:
         );
     }
 
+    /// A layout holds no officers a standard side cannot.
+    #[test]
+    fn refuses_officers_no_standard_side_holds() {
+        // Any other card leaves the pool once taken, so holding it twice is no
+        // standard side's.
+        let error = compile(&json!({
+            "kind": "layout",
+            "round": 1,
+            "blue": {"officers": ["quick_teleport", "quick_teleport"], "units": [{"index": 0,
+                "name": "marksman", "position": {"x": 0, "y": -50}
+            }]},
+            "red": {"units": [{"index": 0,
+                "name": "marksman", "position": {"x": 0, "y": -50}
+            }]}
+        }))
+        .unwrap_err();
+        assert!(
+            error.contains("quick_teleport (10009) more than once"),
+            "{error}"
+        );
+
+        // A side opens with one opening, so two specialists are no standard
+        // side's either.
+        let error = compile(&json!({
+            "kind": "layout",
+            "round": 1,
+            "blue": {"officers": ["supply_specialist", "cost_control_specialist"], "units": [{"index": 0,
+                "name": "marksman", "position": {"x": 0, "y": -50}
+            }]},
+            "red": {"units": [{"index": 0,
+                "name": "marksman", "position": {"x": 0, "y": -50}
+            }]}
+        }))
+        .unwrap_err();
+        assert!(
+            error.contains(
+                "opening specialists supply_specialist (10002) and cost_control_specialist (20034)"
+            ),
+            "{error}"
+        );
+    }
+
     #[test]
     fn validates_tech_ids() {
         let valid = compile(&json!({
@@ -952,24 +994,6 @@ red:
         }))
         .unwrap();
         assert_eq!(repeated.blue.techs.officers, [20002, 20002]);
-
-        // Any other card leaves the pool once taken, so holding it twice is no
-        // standard side's.
-        let error = compile(&json!({
-            "kind": "layout",
-            "round": 1,
-            "blue": {"officers": ["quick_teleport", "quick_teleport"], "units": [{"index": 0,
-                "name": "marksman", "position": {"x": 0, "y": -50}
-            }]},
-            "red": {"units": [{"index": 0,
-                "name": "marksman", "position": {"x": 0, "y": -50}
-            }]}
-        }))
-        .unwrap_err();
-        assert!(
-            error.contains("quick_teleport (10009) more than once"),
-            "{error}"
-        );
 
         let error = compile(&json!({
             "kind": "layout",
