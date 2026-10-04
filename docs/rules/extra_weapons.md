@@ -261,9 +261,17 @@ writes onto it. An extra skill takes a source that names its skill
 one that answers `IsExtraSkillEffect`, and, where its row's `damageRate` is
 above zero, one that answers `IsMainSkillEffect`. No officer answers
 `IsExtraSkillEffect`, and an Energy Tower skill always does; an equipment and
-a technology answer from their rows. How a correction composes on an extra
-skill is not measured, so the simulator refuses a unit whose extra weapon an
-equipment or an Energy Tower skill writes a skill correction onto.
+a technology answer from their rows. Every officer answers
+`IsMainSkillEffect`, and so does every technology of a unit.
+
+So a skill with a damage rate holds the main skill's damage corrections, an
+officer's, a blueprint's and a technology's, and its damage composes them as
+the main skill's does: its rate of the unit's base damage, truncated, then
+raised and impaired by them and the buffs'. Whirlwind's 4983 becomes 5580
+under Attack Enhancement's +0.12. Any other number they correct on such a
+skill is not read, so the simulator refuses it, and it refuses a unit whose
+extra weapon an equipment or an Energy Tower skill writes a skill correction
+onto.
 
 ## Evidence
 
@@ -352,6 +360,11 @@ equipment or an Energy Tower skill writes a skill correction onto.
   skill back, which attacks on the next tick:
   `tests/extra_weapon/fights/whirlwind-rhinos.yaml`. Against one enemy it
   never starts: `tests/extra_weapon/fights/whirlwind-one-enemy.yaml`.
+- A blueprint's and an officer's damage rates on the main skill reach
+  Whirlwind, the recording holding them on its skill too, and compose on its
+  damage as on the main skill's:
+  `tests/extra_weapon/fights/whirlwind-attack-enhancement.yaml` and
+  `tests/extra_weapon/fights/whirlwind-cost-control.yaml`.
 - Sticky Oil Bomb's bomb writes its buff on the Rhino it strikes, from the
   Phantom Ray, and leaves an oil of its splash that renews the buff every 19
   ticks, keeping the Phantom Ray as its source, and stands to the fight's
@@ -446,7 +459,8 @@ equipment or an Energy Tower skill writes a skill correction onto.
   `DeadExplosiveDamageProvider.GetSplashRange`,
   `DeadExplosiveDamageProvider.GetEffectTargetType`,
   `DeadExplosiveDamageProvider.GetMainTarget`.
-- What reaches it: `SkillDataModifier.AvaliableCheck`,
+- What reaches it: `SkillDataModifier.AvaliableCheck`, `OfficerData.IsMainSkillEffect`,
+  `TechnologyData.IsMainSkillEffect`, `DamageProperty.CalculateDamage`,
   `OfficerData.IsExtraSkillEffect`, `TechnologyData.IsExtraSkillEffect`,
   `EquipmentData.IsExtraSkillEffect`, `EnergyTowerSkillData.IsExtraSkillEffect`.
 
@@ -468,9 +482,8 @@ equipment or an Energy Tower skill writes a skill correction onto.
   and the extraction refuses, and its self splash at a target that is not
   visible (`SkillAttackRangeChecker.IsAttackTargetInAttackRange`), which no
   recording reaches.
-- **A correction on a skill with a damage rate.** Such a skill takes what
-  reaches the main skill as well (`IsMainSkillEffect`), an officer's and a
-  technology's, and how it composes there is not recorded. Refused.
+- **A correction other than damage on a skill with a damage rate**, a range
+  or an interval reaching it through the main skill. Refused.
 - **The other preemptive skills and conditions.** A transition to wait out
   (condition type 2), an ammunition condition, an extra weapon buff and an
   incompatible skill are read in part and refused by the extraction.

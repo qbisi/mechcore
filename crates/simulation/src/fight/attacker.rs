@@ -286,8 +286,9 @@ impl Simulation {
     /// unit's level or its rate of the unit's base damage, its splash and its
     /// interval, and its own weapon, which
     /// turns on a transform of its own, as what its attack angle is measured
-    /// against. No correction reaches an extra skill here: the layout refuses
-    /// a unit one would.
+    /// against. No correction reaches an extra skill here but a damage one on
+    /// a skill with a damage rate: the layout refuses a unit any other would
+    /// reach.
     pub(in crate::fight) fn skill_attacker(&self, skill_ref: SkillRef) -> Option<Attacker<'_>> {
         let SkillSlot::Extra(index) = skill_ref.slot else {
             return self.attacker(skill_ref.owner);
@@ -325,7 +326,13 @@ impl Simulation {
                 .attack
                 .base_damage
                 .saturating_mul(actor.placement.level);
-            q32_mul(base << 32, crate::rules::metres_q32(rules.damage_rate)) >> 32
+            // `DamageProperty.CalculateDamage` then corrects it by the
+            // skill's `DataSet`, which holds what reaches the main skill, and
+            // the buffs'.
+            actor
+                .stats
+                .damage_from(q32_mul(base << 32, crate::rules::metres_q32(rules.damage_rate)) >> 32)
+                .ok()?
         } else {
             rules.damage_by_level.last().map_or(0, |last| {
                 usize::try_from(actor.placement.level - 1)

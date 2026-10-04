@@ -1,0 +1,26 @@
+# Two damage rates reaching Whirlwind: an enhancement and an impairment.
+#
+# `whirlwind-rhinos.yaml` with Attack Enhancement II, +0.36, and Cost Control
+# Specialist, -0.11 of damage. Both reach the Whirlwind as they reach the main
+# skill, and compose there as there: the main skill strikes for 4309 and the
+# Whirlwind for 6031, 4983 times 1.36 and 0.89, truncated once.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 158
+hash: {profile: mcfr-content-0.7.0, result: dd6cd4a1ef3bf75ead2a62401f1f20819da36478423e1473887745d88fb5baf5}
+blue:
+  core_damage: 400
+  officers: [cost_control_specialist]
+  techs:
+    rhino: [whirlwind]
+  blueprints: [attack_enhancement_ii]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: -25, y: -95}, exp: 0/300/1150}
+  - {name: rhino, index: 1, position: {x: 35, y: -95}, exp: 0/100/1150}
