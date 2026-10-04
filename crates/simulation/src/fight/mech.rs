@@ -181,6 +181,24 @@ impl Actor {
         self.motion.next_max_speed_q32 = self.motion.next_speed_q32;
     }
 
+    /// The skills of `FightMech.GetSkills()` whose `DataSet` holds the unit's
+    /// skill corrections: the main skill's slots, and each extra skill with a
+    /// damage rate, which takes what reaches the main skill
+    /// (`SkillDataModifier.AvaliableCheck`, `IsMainSkillEffect`).
+    pub(in crate::fight) fn corrected_skill_slots(&self) -> Vec<usize> {
+        let main_slots = self.skills.main_slots();
+        (0..main_slots)
+            .chain(
+                self.skills
+                    .extras
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, extra)| extra.rules.damage_rate > 0.0)
+                    .map(|(index, _)| main_slots + index),
+            )
+            .collect()
+    }
+
     /// `FightMech.lockTarget`, which the unit's main searcher hands it: an
     /// active permanent preemptive skill's lock, or the main skill's.
     pub(in crate::fight) fn mech_lock(&self) -> Option<FightActorRef> {
@@ -465,7 +483,7 @@ impl Actor {
                 },
             modifiers: self
                 .stats
-                .modifiers(self.skills.main.group_size().max(1))
+                .modifiers(&self.corrected_skill_slots())
                 .expect("the layout refused every correction a snapshot cannot record"),
             personal_shield: PersonalShieldState {
                 active: self.shield.is_some(),

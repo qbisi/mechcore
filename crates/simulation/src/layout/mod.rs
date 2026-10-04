@@ -879,7 +879,7 @@ fn loadout(
     let stats = refused.hold(Stats::corrected(rules, level, &worn.corrections).map_err(refusal))?;
     // A snapshot carries each `DataSet`'s aggregate; one this build cannot
     // record is refused here, where the side and the officer can be named.
-    refused.hold(stats.modifiers(1).map_err(refusal))?;
+    refused.hold(stats.modifiers(&[0]).map_err(refusal))?;
     worn.experience_rate = experience_rate;
     Some(worn)
 }
@@ -1066,12 +1066,20 @@ fn reaching_extra_skills(
             reaching.push(format!("energy tower skill {id}"));
         }
     }
+    // What reaches a skill with a damage rate through the main skill composes
+    // on its damage as on the main skill's; any other number it corrects there
+    // is not read.
     if weapons.iter().any(|weapon| weapon.rules.damage_rate > 0.0) {
+        let beyond_damage = |written: &[(Channel, Entry)]| {
+            written.iter().any(|(channel, entry)| {
+                *channel == Channel::Skill && entry.index != Index::AttackDamage
+            })
+        };
         for &id in &side.techs.officers {
             if loadouts
                 .officers
                 .corrections(std::slice::from_ref(&id), rules)
-                .is_ok_and(|written| on_skill(&written))
+                .is_ok_and(|written| beyond_damage(&written))
             {
                 reaching.push(format!("officer {id}"));
             }
@@ -1080,9 +1088,19 @@ fn reaching_extra_skills(
             if loadouts
                 .technologies
                 .corrections(std::slice::from_ref(&id), type_name)
-                .is_ok_and(|written| on_skill(&written))
+                .is_ok_and(|written| beyond_damage(&written))
             {
                 reaching.push(format!("technology {id}"));
+            }
+        }
+        for &id in equipment {
+            if !loadouts.equipment.reaches_extra_skills(id)
+                && loadouts
+                    .equipment
+                    .corrections(id, rules)
+                    .is_ok_and(|written| on_skill(&written))
+            {
+                reaching.push(format!("equipment {id}"));
             }
         }
     }

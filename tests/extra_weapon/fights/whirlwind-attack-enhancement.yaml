@@ -1,0 +1,26 @@
+# What reaches Whirlwind through the main skill: a blueprint's damage rate.
+#
+# `whirlwind-rhinos.yaml` with Attack Enhancement, +0.12 of damage on the
+# main skill. Whirlwind has a damage rate, so it takes what reaches the main
+# skill as well (`IsMainSkillEffect`): the recording holds the rate on both
+# skills, the main skill strikes for 3987, 3560 raised, and the Whirlwind for
+# 5580, its 4983 raised the same way.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 174
+hash: {profile: mcfr-content-0.7.0, result: 5119544936262b6234011b1a72635d3e5fb79daa87dabb7336f4f2db81b39634}
+blue:
+  core_damage: 400
+  techs:
+    rhino: [whirlwind]
+  blueprints: [attack_enhancement]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: -25, y: -95}, exp: 0/100/1150}
+  - {name: rhino, index: 1, position: {x: 35, y: -95}, exp: 0/300/1150}

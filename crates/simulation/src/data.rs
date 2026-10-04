@@ -692,6 +692,18 @@ impl Stats {
         self.attack_damage
     }
 
+    /// Another skill's damage from its own base, as this unit's corrections
+    /// leave it: `DamageProperty.CalculateDamage` over a skill whose `DataSet`
+    /// holds the same corrections as the main skill's, and the buffs', with
+    /// none of the main skill's kills.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the damage leaves the signed range.
+    pub(crate) fn damage_from(&self, base: i64) -> Result<i64> {
+        self.overlays.resolve_damage(base, 0)
+    }
+
     /// The laser's base damage is truncated after its ramp multiplier, before
     /// the dynamic damage rates. `DamageProperty.CalculateBaseDamage` and
     /// `CalculateDamage` are separate stages in the build.
@@ -728,7 +740,7 @@ impl Stats {
     ///
     /// Returns an error for a correction the build has no field for, rather
     /// than dropping it from what the recording is compared with.
-    pub(crate) fn modifiers(&self, slots: usize) -> Result<Vec<Modifier>> {
+    pub(crate) fn modifiers(&self, slots: &[usize]) -> Result<Vec<Modifier>> {
         let mut modifiers = Vec::new();
         self.unit_modifiers(&mut modifiers)?;
         self.skill_modifiers(slots, &mut modifiers)?;
@@ -834,14 +846,14 @@ impl Stats {
         Ok(())
     }
 
-    fn skill_modifiers(&self, slots: usize, modifiers: &mut Vec<Modifier>) -> Result<()> {
+    fn skill_modifiers(&self, slots: &[usize], modifiers: &mut Vec<Modifier>) -> Result<()> {
         let skill = &self.overlays.skill;
         let q32 = |value: i128, units_per_one: i128| {
             i64::try_from(value * ONE / units_per_one)
                 .map_err(|_| Error::new("a skill value is outside the signed range"))
         };
         refuse_unrecorded_skill_fields(skill)?;
-        for slot in 0..slots {
+        for &slot in slots {
             let slot =
                 Some(u16::try_from(slot).map_err(|_| Error::new("a skill slot is outside u16"))?);
             for (index, field) in DAMAGE_RATES {
