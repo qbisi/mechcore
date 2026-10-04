@@ -108,7 +108,9 @@ unit; it does not turn towards its lock.
   skill reaches its row's range.
 - **Damage.** A skill whose row's `damageRate` is zero deals its own damage,
   the row's `damage` entry for the unit's level, and none where the row has
-  no entries: Incendiary Bomb's shell harms nothing by itself.
+  no entries: Incendiary Bomb's shell harms nothing by itself, and is no hit
+  at all, so its Hound does not share a kill for having struck the target
+  ([unit_experience.md](unit_experience.md#what-a-kill-hands-out)).
 - **Splash and interval** are the row's.
 
 ## A fire where it lands

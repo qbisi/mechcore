@@ -561,6 +561,15 @@ impl Simulation {
             }
         }
         for target in targets {
+            // `DamagePerformer.PerformHitTargetEffect` hands a hit on to
+            // `FightCalculator` only when it deals at least 1: one that deals
+            // nothing, an Incendiary Bomb's, takes no life and is no hit
+            // `ExpSystem.OnActorHitted` hears of, so its owner does not share
+            // what the target is worth when it dies.
+            if hit.amount < 1 {
+                struck.targets.push(target);
+                continue;
+            }
             let stroke = self.strike(target, hit.source, hit.source_team, (hit.amount, true))?;
             self.count_hit(hit.source, hit.source_team, target, &stroke)?;
             self.turned_unit_fell(target, &stroke);

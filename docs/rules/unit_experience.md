@@ -115,6 +115,11 @@ starts from zero. A kill hands out its amount twice over:
   A kill no unit made with no one to share it goes to every formation of the
   killer's side that may take experience. A summon takes no share and is not
   counted among those that do.
+- **A hit that deals nothing hit no one.** A skill's hit goes on to take life
+  and to be counted only if it deals at least 1: an Incendiary Bomb's shell,
+  which deals nothing and leaves only its fire, does not make its Hound's
+  formation one that hit the target, and a unit the fire then kills with no
+  formation near counts for every formation of the Hound's side.
 - **A kill with no owner at all counts for the dead one's enemies.** An air
   drop's hit has no owner, and the side it counts for is the one the dead unit
   fought, whichever side dropped it: a Vulcan landing among its own side's
@@ -169,6 +174,10 @@ what the formation carries into the next round.
 
 ### Replayed
 
+- A unit an Incendiary Bomb's fire kills is shared by no formation the shell
+  struck: `scripts/corpus/verify-matches.py` fights round 5 of replay
+  201371791 as the match says only with the shell's hit left uncounted.
+
 - A formation ends the fight on its experience cut down to a whole number, and
   opens the next round holding it: `scripts/corpus/match-replays.py` with `--recordings`
   converts every recorded round of the corpus to its fight document and
@@ -191,6 +200,9 @@ what the formation carries into the next round.
 - A full unit takes no share of a fight's experience: `ExpSystem.IsValidOwner`.
 - A kill's experience, the killer's whole and the shared pool:
   `ExpSystem.OnActorHitted`, `ExpSystem.DoCalculateExp`, `Config.assistKillExpRate`.
+- A hit under 1 stops before the calculator and is never heard of:
+  `DamagePerformer.PerformHitTargetEffect`,
+  `FightCalculator.PerformHitTargetEffect`, `ExpSystem.OnActorHitted`.
 - Who shares it, by attack and by distance: `ExpSystem.AddAttackData`,
   `ExpSystem.AddRangeUnit`, `Config.assistExpRange`, `RectRange.Overlaps`,
   `FightTeam.CreateQuadtree`.
@@ -217,6 +229,11 @@ what the formation carries into the next round.
 
 ### Not established
 
+- **A hit a unit's own energy shield takes whole.** `DamagePerformer` lets the
+  shield take its part before it asks whether the hit deals at least 1, so
+  such a hit may leave its owner out of the share as a shell that deals
+  nothing does; the simulator counts it, and no recording shows a kill after
+  one.
 - **Intensive Training's refusals in play.** That it refuses a level 9 unit
   and a full one was observed in the Training Ground on another version; no
   test pins it.
