@@ -130,11 +130,14 @@ unit; it does not turn towards its lock.
   covers the lock, as the main skill does with its own: a Centurion's Homing
   Missile, reaching 160 metres, fires at a block in the way that its 110 metre
   main gun passes by.
-- **A skill that deals nothing takes no tower.** `FightSkill.IsTowerAttackable`
-  lets an extra skill take a tower only where it deals damage of its own or a
-  share of its unit's: Incendiary Bomb's skill searches the units alone,
-  passing over a tower its main skill takes, and Scorching Charge's, of
-  damage rate one, charges a tower.
+- **A skill that deals nothing takes no tower, and no block in the way.**
+  `FightSkill.IsTowerAttackable` lets an extra skill take a tower only where
+  it deals damage of its own or a share of its unit's: Incendiary Bomb's skill
+  searches the units alone, passing over a tower its main skill takes, and
+  Scorching Charge's, of damage rate one, charges a tower.
+  `WallConstructionTargetChecker.CheckWallConstruction` asks the same of the
+  block it finds in the line of fire, so a Sticky Oil Bomb fires past a
+  Rapid-Fire Turret at the unit behind it.
 
 ## A fire where it lands
 
@@ -297,6 +300,9 @@ equipment or an Energy Tower skill writes a skill correction onto.
   `tests/extra_weapon/fights/sticky-oil-bomb-fire.yaml`.
 - A Vulcan's Sticky Oil Bomb, which does not lock its target, leaves its
   oils: `tests/extra_weapon/fights/sticky-oil-bomb-vulcan.yaml`.
+- A Phantom Ray's Sticky Oil Bomb fires past a Rapid-Fire Turret standing in
+  its line of fire, at the unit behind it:
+  `tests/corpus/fights/268447927-r2.yaml`.
 
 ### Replayed
 
@@ -330,7 +336,9 @@ equipment or an Energy Tower skill writes a skill correction onto.
 - Its damage: `SkillData.GetDamage`.
 - Its range: `FightSkill.GetAttackRange`; the attacking check's minimum range,
   `SkillAttackableChecker.CheckWhenLoseTarget`; the towers it may take,
-  `FightSkill.IsTowerAttackable`.
+  `FightSkill.IsTowerAttackable`, which
+  `WallConstructionTargetChecker.CheckWallConstruction` asks of the block in
+  the way it found.
 - Its fire: `ExtraSkillProvider.PerformHitEffect`, `ExtraSkillProvider.AddEffect`,
   `ExtraWeaponTechnologyData.GetFireLifeTime`, `MechDataModifer.AddData`,
   `GroundFireController.GetFireMech`, `RangeItemSystem.AddItem`,

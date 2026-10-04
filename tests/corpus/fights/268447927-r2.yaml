@@ -1,0 +1,51 @@
+# Replay 2324_20260924--268447927, round 2, map 1011. Red's Phantom Rays with
+# Sticky Oil Bomb fire past blue's Rapid-Fire Turret, which stands in the line
+# of fire, at the units behind it (t1): a skill that deals nothing takes no
+# block in the way. Their bombs and three oils write the slow 1033 times,
+# from t690 beside the buff a side's lost tower writes.
+
+kind: fight
+map_id: 1011
+seed: 857911261
+round: 2
+source: game
+ticks: 1334
+hash: {profile: mcfr-content-0.7.0, result: 6813cdaa081ca946867f2b1ae02616943f28a93d545cf5cbd174b09b9fa2e11b}
+blue:
+  core_damage: 420
+  officers: [secondary_equipment_expert]
+  legacy_index: 7
+  units:
+  - {name: marksman, index: 0, position: {x: -220, y: -130}, exp: 650/650/650}
+  - {name: marksman, index: 1, position: {x: -140, y: -100}, exp: 82/436/650}
+  - {name: marksman, index: 2, position: {x: -70, y: -120}, exp: 63/235/650}
+  - {name: tarantula, index: 3, position: {x: -105, y: -75}, exp: 89/145/1500, equipment: [secondary_heavy_armor]}
+  - {name: tarantula, index: 4, position: {x: -185, y: -75}, exp: 355/643/1500, rotated: true, equipment: [secondary_fire_control_system]}
+  - {name: crawler, index: 5, position: {x: -90, y: -115}, exp: 277/321/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: -200, y: -115}, exp: 326/419/450, rotated: true}
+  - {name: phantom_ray, index: 7, position: {x: -215, y: -220}, exp: 0/551/1000}
+  - {name: fang, index: 8, position: {x: 160, y: -165}, rotated: true}
+  - {name: crawler, index: 9, position: {x: -140, y: -215}, exp: 0/211/450, rotated: true}
+  - {name: crawler, index: 10, position: {x: 15, y: -300}, exp: 0/101/450}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
+red:
+  officers: [typhoon_specialist]
+  techs:
+    phantom_ray: [sticky_oil_bomb]
+  legacy_index: 7
+  units:
+  - {name: marksman, index: 0, position: {x: -140, y: -150}, exp: 258/650/650}
+  - {name: marksman, index: 1, position: {x: 140, y: -150}, exp: 13/121/650}
+  - {name: marksman, index: 2, position: {x: -100, y: -150}, exp: 388/650/650}
+  - {name: sledgehammer, index: 3, position: {x: 105, y: -130}, exp: 137/549/1300}
+  - {name: sledgehammer, index: 4, position: {x: -105, y: -130}, exp: 317/665/1300}
+  - {name: marksman, index: 5, position: {x: -60, y: -150}, exp: 323/650/650}
+  - {name: marksman, index: 6, position: {x: 100, y: -150}, exp: 53/377/650}
+  - {name: phantom_ray, index: 7, position: {x: 135, y: -70}}
+  - {name: arclight, index: 8, position: {x: 70, y: -130}, exp: 0/172/750}
+  - {name: arclight, index: 9, position: {x: 160, y: -130}, exp: 0/137/750}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
