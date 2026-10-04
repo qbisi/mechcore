@@ -95,6 +95,12 @@ tick after that, on whatever the selector answers then. A shot that kills later
 in its flight, or a replacement already in the attack area, is followed at
 once, and a unit whose cooling is nothing never holds.
 
+**A cooling searches for nothing.** Its weapon names what the attack left it
+for the whole cooling, and nothing when the attack left it firing at a
+battlefield shield: a Phantom Ray whose lock dies, and whose next lock stands
+inside the enemy's shield, names no unit while it cools, however long, and
+locks again only once the cooling is over.
+
 ## A unit with nothing it can fire at walks on any enemy
 
 A skill whose search finds nothing it can attack falls back on any live enemy,
@@ -1015,6 +1021,10 @@ not the game's native attack-type enum.
   `ProjectileFlyData.GetPosition`.
 - Entering idle stops a moving unit: `MotionIdleState.Enter`,
   `RVOControllerFixed.StopMove`.
+- A cooling only counts its time: `SkillCoolingState.Update`; what the
+  weapons go on naming is what `FightSkill.SearchAttackTarget` left, the
+  shield in place of the lock: `SkillSearchTargetController.SearchTargetShield`,
+  `FightSkill.ChangeAttackTarget`.
 - Leaving the fight ends a cooling: `FightSkill.ExitFight`,
   `SkillStateController.ChangeToIdleState`.
 - The presearch faces a unit by the direction to its target, and a facing is

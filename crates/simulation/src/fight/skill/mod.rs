@@ -932,10 +932,9 @@ impl Simulation {
         &mut self,
         skill_ref: SkillRef,
         step: u64,
-        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
-    ) -> Result<bool> {
+    ) -> bool {
         let Some((started, held)) = self.skill(skill_ref).cooling() else {
-            return Ok(false);
+            return false;
         };
         let cooling_steps = native_time_units_to_steps(
             self.skill_attacker(skill_ref)
@@ -945,18 +944,12 @@ impl Simulation {
         );
         if step > started.saturating_add(cooling_steps) {
             self.skill_mut(skill_ref).set_cooling(None);
-            return Ok(false);
+            return false;
         }
-        let candidate = if step < started.saturating_add(cooling_steps) {
-            match held {
-                Some(candidate) => Some(candidate),
-                None => {
-                    self.select_normal_target_with_order(skill_ref, target_search_order, true)?
-                }
-            }
-        } else {
-            None
-        };
+        // `SkillCoolingState.Update` only counts its time: the weapons go on
+        // naming what the attack left them, and a skill that left them
+        // firing at a shield names nothing until it searches again.
+        let candidate = held.filter(|_| step < started.saturating_add(cooling_steps));
         let skill = self.skill_mut(skill_ref);
         // Cooling holds no lock; it hands the owner nothing while it has
         // none to drop, so a grouped unit keeps what a sibling took.
@@ -968,7 +961,7 @@ impl Simulation {
         // A standalone weapon's skill leaves the motion to the batch, which
         // may hold a lock through another weapon.
         if self.skill(skill_ref).standalone() {
-            return Ok(true);
+            return true;
         }
         if let Some(actor) = self.moving_mut(skill_ref) {
             // The motion stops where it enters `MotionIdleState`; one already
@@ -976,7 +969,7 @@ impl Simulation {
             let entered_idle = actor.motion.state != MotionState::Idle;
             actor.lose_target_motion(entered_idle);
         }
-        Ok(true)
+        true
     }
 
     #[allow(
@@ -1593,7 +1586,7 @@ impl Simulation {
         step: u64,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<Flow> {
-        if self.hold_through_cooling(skill_ref, step, target_search_order)? {
+        if self.hold_through_cooling(skill_ref, step) {
             return Ok(Flow::Done);
         }
         // `SkillPrepareState.Update` asks `SkillAttackableChecker.Check` on
