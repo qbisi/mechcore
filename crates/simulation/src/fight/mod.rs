@@ -988,7 +988,6 @@ impl Simulation {
         events.append(&mut self.shield.created);
         events.append(&mut self.shield.destroyed);
         events.extend(self.take_terrain_events());
-        self.shield.broken.clear();
         Ok(TransitionEvents { events })
     }
 
