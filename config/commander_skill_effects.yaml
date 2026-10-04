@@ -79,30 +79,6 @@ buff_skills:
       amplify_damage_rate: -1288490188  # -0.3
       life_change_rate: 0  # 0
       step_time: 0  # 0
-  - id: 200004
-    name: 巨型电磁冲击
-    effect_range_type: 0
-    effect_type: 0
-    sub_effect_damage: 0
-    start_time: 11596411699  # 2.7
-    effect_range: 558345748480  # 130
-    sub_effect_move_speed: 2791728742400  # 650
-    sub_effect_move_time: 19327352832  # 4.5
-    buff:
-      id: 200001
-      name: 战场技能-电磁干扰
-      divide: 0
-      duration: 107374182400  # 25
-      additive: false
-      debuff: true
-      disable_technology: true
-      invincible: false
-      can_affect_construction: false
-      can_affect_tower: false
-      move_speed_rate: -1717986918  # -0.4
-      amplify_damage_rate: 0  # 0
-      life_change_rate: 0  # 0
-      step_time: 0  # 0
 
 support_skills:
   - id: 1200001
@@ -175,139 +151,9 @@ support_skills:
     sub_effect_move_speed: 0  # 0
     sub_effect_move_time: 0  # 0
     create_interval: 0  # 0
-  - id: 1200006
-    name: 犀牛来袭
-    effect_range_type: 0
-    effect_type: 0
-    unit_type_id: 5
-    max_count: 1
-    create_count_per_time: 1
-    max_batch: 0
-    appear_type: 2
-    start_time: 5583457484  # 1.3
-    effect_range: 85899345920  # 20
-    sub_effect_move_speed: 0  # 0
-    sub_effect_move_time: 0  # 0
-    create_interval: 0  # 0
-  - id: 1200007
-    name: 呼叫凤凰
-    effect_range_type: 0
-    effect_type: 0
-    unit_type_id: 16
-    max_count: 2
-    create_count_per_time: 2
-    max_batch: 0
-    appear_type: 5
-    start_time: 5583457484  # 1.3
-    effect_range: 107374182400  # 25
-    sub_effect_move_speed: 0  # 0
-    sub_effect_move_time: 0  # 0
-    create_interval: 0  # 0
-  - id: 1200008
-    name: 呼叫恶灵
-    effect_range_type: 0
-    effect_type: 0
-    unit_type_id: 18
-    max_count: 1
-    create_count_per_time: 1
-    max_batch: 0
-    appear_type: 5
-    start_time: 5583457484  # 1.3
-    effect_range: 85899345920  # 20
-    sub_effect_move_speed: 0  # 0
-    sub_effect_move_time: 0  # 0
-    create_interval: 0  # 0
-  - id: 1200009
-    name: 狂蝎来袭
-    effect_range_type: 0
-    effect_type: 0
-    unit_type_id: 19
-    max_count: 1
-    create_count_per_time: 1
-    max_batch: 0
-    appear_type: 2
-    start_time: 5583457484  # 1.3
-    effect_range: 85899345920  # 20
-    sub_effect_move_speed: 0  # 0
-    sub_effect_move_time: 0  # 0
-    create_interval: 0  # 0
-  - id: 1200010
-    name: 台风来袭
-    effect_range_type: 0
-    effect_type: 0
-    unit_type_id: 22
-    max_count: 2
-    create_count_per_time: 2
-    max_batch: 0
-    appear_type: 2
-    start_time: 5583457484  # 1.3
-    effect_range: 107374182400  # 25
-    sub_effect_move_speed: 0  # 0
-    sub_effect_move_time: 0  # 0
-    create_interval: 0  # 0
-  - id: 1200011
-    name: 火獾来袭
-    effect_range_type: 0
-    effect_type: 0
-    unit_type_id: 20
-    max_count: 3
-    create_count_per_time: 3
-    max_batch: 0
-    appear_type: 2
-    start_time: 5583457484  # 1.3
-    effect_range: 128849018880  # 30
-    sub_effect_move_speed: 0  # 0
-    sub_effect_move_time: 0  # 0
-    create_interval: 0  # 0
-  - id: 1200012
-    name: 天降堡垒
-    effect_range_type: 0
-    effect_type: 0
-    unit_type_id: 1
-    max_count: 1
-    create_count_per_time: 1
-    max_batch: 0
-    appear_type: 2
-    start_time: 5583457484  # 1.3
-    effect_range: 107374182400  # 25
-    sub_effect_move_speed: 0  # 0
-    sub_effect_move_time: 0  # 0
-    create_interval: 0  # 0
-  - id: 1200013
-    name: 天降熔点
-    effect_range_type: 0
-    effect_type: 0
-    unit_type_id: 4
-    max_count: 1
-    create_count_per_time: 1
-    max_batch: 0
-    appear_type: 2
-    start_time: 5583457484  # 1.3
-    effect_range: 107374182400  # 25
-    sub_effect_move_speed: 0  # 0
-    sub_effect_move_time: 0  # 0
-    create_interval: 0  # 0
 
 shield_skills:
   - id: 800001
-    name: 空投护盾
-    effect_range_type: 0
-    effect_type: 0
-    energy: 50000
-    start_time: 4294967296  # 1
-    effect_range: 300647710720  # 70
-    sub_effect_move_speed: 42949672960  # 10
-    sub_effect_move_time: 4294967296  # 1
-  - id: 800011
-    name: 空投护盾
-    effect_range_type: 0
-    effect_type: 0
-    energy: 50000
-    start_time: 4294967296  # 1
-    effect_range: 300647710720  # 70
-    sub_effect_move_speed: 42949672960  # 10
-    sub_effect_move_time: 4294967296  # 1
-  - id: 800012
     name: 空投护盾
     effect_range_type: 0
     effect_type: 0
@@ -423,156 +269,6 @@ damage_skills:
     sub_effect_default_height: 0  # 0
     sub_effect_interval_time: 0  # 0
     cross_advanced_shield: true
-  - id: 300008
-    name: 核弹
-    effect_range_type: 0
-    effect_type: 0
-    sub_effect_damage: 70000
-    sub_effect_buff_id: 0
-    sub_effect_count: 1
-    sub_effect_range: 429496729600  # 100
-    start_time: 64424509440  # 15
-    effect_range: 429496729600  # 100
-    sub_effect_move_speed: 2791728742400  # 650
-    sub_effect_move_time: 19327352832  # 4.5
-    sub_effect_default_height: 0  # 0
-    sub_effect_interval_time: 0  # 0
-    cross_advanced_shield: false
-  - id: 300009
-    name: 闪电风暴
-    effect_range_type: 2
-    effect_type: 0
-    sub_effect_damage: 2000
-    sub_effect_buff_id: 20002
-    sub_effect_count: 30
-    sub_effect_range: 128849018880  # 30
-    start_time: 12884901888  # 3
-    effect_range: 558345748480  # 130
-    sub_effect_move_speed: 42949672960000  # 10000
-    sub_effect_move_time: 429496729  # 0.1
-    sub_effect_default_height: 0  # 0
-    sub_effect_interval_time: 1717986918  # 0.4
-    cross_advanced_shield: false
-    buff:
-      id: 20002
-      name: 减速-战场技能-闪电风暴
-      divide: 0
-      duration: 85899345920  # 20
-      additive: false
-      debuff: false
-      disable_technology: false
-      invincible: false
-      can_affect_construction: false
-      can_affect_tower: false
-      move_speed_rate: -2791728742  # -0.65
-      amplify_damage_rate: 0  # 0
-      life_change_rate: 0  # 0
-      step_time: 0  # 0
-  - id: 300010
-    name: 离子轰炸
-    effect_range_type: 1
-    effect_type: 0
-    sub_effect_damage: 2400
-    sub_effect_buff_id: 0
-    sub_effect_count: 60
-    sub_effect_range: 85899345920  # 20
-    start_time: 12884901888  # 3
-    effect_range: 773094113280  # 180
-    sub_effect_move_speed: 858993459200  # 200
-    sub_effect_move_time: 4294967296  # 1
-    sub_effect_default_height: 0  # 0
-    sub_effect_interval_time: 1288490188  # 0.3
-    cross_advanced_shield: false
-  - id: 300011
-    name: 导弹打击
-    effect_range_type: 0
-    effect_type: 0
-    sub_effect_damage: 3000
-    sub_effect_buff_id: 0
-    sub_effect_count: 1
-    sub_effect_range: 171798691840  # 40
-    start_time: 12884901888  # 3
-    effect_range: 171798691840  # 40
-    sub_effect_move_speed: 2791728742400  # 650
-    sub_effect_move_time: 19327352832  # 4.5
-    sub_effect_default_height: 0  # 0
-    sub_effect_interval_time: 0  # 0
-    cross_advanced_shield: false
-  - id: 300012
-    name: 核弹
-    effect_range_type: 0
-    effect_type: 0
-    sub_effect_damage: 70000
-    sub_effect_buff_id: 0
-    sub_effect_count: 1
-    sub_effect_range: 429496729600  # 100
-    start_time: 64424509440  # 15
-    effect_range: 429496729600  # 100
-    sub_effect_move_speed: 2791728742400  # 650
-    sub_effect_move_time: 19327352832  # 4.5
-    sub_effect_default_height: 0  # 0
-    sub_effect_interval_time: 0  # 0
-    cross_advanced_shield: false
-  - id: 300013
-    name: 闪电风暴
-    effect_range_type: 2
-    effect_type: 0
-    sub_effect_damage: 2000
-    sub_effect_buff_id: 20002
-    sub_effect_count: 30
-    sub_effect_range: 128849018880  # 30
-    start_time: 12884901888  # 3
-    effect_range: 558345748480  # 130
-    sub_effect_move_speed: 42949672960000  # 10000
-    sub_effect_move_time: 429496729  # 0.1
-    sub_effect_default_height: 0  # 0
-    sub_effect_interval_time: 1717986918  # 0.4
-    cross_advanced_shield: false
-    buff:
-      id: 20002
-      name: 减速-战场技能-闪电风暴
-      divide: 0
-      duration: 85899345920  # 20
-      additive: false
-      debuff: false
-      disable_technology: false
-      invincible: false
-      can_affect_construction: false
-      can_affect_tower: false
-      move_speed_rate: -2791728742  # -0.65
-      amplify_damage_rate: 0  # 0
-      life_change_rate: 0  # 0
-      step_time: 0  # 0
-  - id: 300014
-    name: 离子轰炸
-    effect_range_type: 1
-    effect_type: 0
-    sub_effect_damage: 2400
-    sub_effect_buff_id: 0
-    sub_effect_count: 60
-    sub_effect_range: 85899345920  # 20
-    start_time: 12884901888  # 3
-    effect_range: 773094113280  # 180
-    sub_effect_move_speed: 858993459200  # 200
-    sub_effect_move_time: 4294967296  # 1
-    sub_effect_default_height: 0  # 0
-    sub_effect_interval_time: 1288490188  # 0.3
-    cross_advanced_shield: false
-  - id: 300015
-    name: 轨道标枪
-    effect_range_type: 0
-    effect_type: 0
-    sub_effect_damage: 70000
-    sub_effect_buff_id: 0
-    sub_effect_count: 1
-    sub_effect_range: 128849018880  # 30
-    start_time: 12884901888  # 3
-    effect_range: 128849018880  # 30
-    sub_effect_move_speed: 4294967296000  # 1000
-    sub_effect_move_time: 8589934592  # 2
-    sub_effect_default_height: 0  # 0
-    sub_effect_interval_time: 0  # 0
-    cross_advanced_shield: true
   - id: 300016
     name: 重型导弹打击
     effect_range_type: 0
@@ -592,19 +288,10 @@ damage_skills:
 waypoint_skills:
   - id: 1500001
     name: 移动信标
-    effect_target_type: 0
-    sub_effect_buff_id: 0
     sub_effect_range: 171798691840  # 40
   - id: 1500002
     name: 移动信标
-    effect_target_type: 0
-    sub_effect_buff_id: 0
     sub_effect_range: 171798691840  # 40
-  - id: 1500003
-    name: 干扰信标
-    effect_target_type: 1
-    sub_effect_buff_id: 9005
-    sub_effect_range: 128849018880  # 30
 
 terrain_skills:
   - id: 100002
@@ -624,56 +311,7 @@ terrain_skills:
     fire_life_time: 0  # 0
     attack_range_change_rate: 0  # 0
     cross_advanced_shield: false
-  - id: 100003
-    name: 燃烧弹
-    kind: fire
-    effect_range_type: 1
-    effect_type: 0
-    sub_effect_count: 7
-    effect_duration: 0
-    start_time: 12884901888  # 3
-    sub_effect_range: 171798691840  # 40
-    sub_effect_move_speed: 2791728742400  # 650
-    sub_effect_move_time: 19327352832  # 4.5
-    sub_effect_default_height: 0  # 0
-    sub_effect_interval_time: 858993459  # 0.2
-    life_time: 150323855360  # 35
-    fire_life_time: 0  # 0
-    attack_range_change_rate: 0  # 0
-    cross_advanced_shield: false
   - id: 400002
-    name: 黏油弹
-    kind: oil
-    effect_range_type: 1
-    effect_type: 0
-    sub_effect_count: 7
-    effect_duration: 2
-    start_time: 12884901888  # 3
-    sub_effect_range: 128849018880  # 30
-    sub_effect_move_speed: 2791728742400  # 650
-    sub_effect_move_time: 19327352832  # 4.5
-    sub_effect_default_height: 0  # 0
-    sub_effect_interval_time: 858993459  # 0.2
-    life_time: 0  # 0
-    fire_life_time: 150323855360  # 35
-    attack_range_change_rate: 0  # 0
-    cross_advanced_shield: false
-    buff:
-      id: 400001
-      name: 战场技能-粘油
-      divide: 0
-      duration: 4294967296  # 1
-      additive: false
-      debuff: false
-      disable_technology: false
-      invincible: false
-      can_affect_construction: false
-      can_affect_tower: false
-      move_speed_rate: -2362232012  # -0.55
-      amplify_damage_rate: 0  # 0
-      life_change_rate: 0  # 0
-      step_time: 0  # 0
-  - id: 400003
     name: 黏油弹
     kind: oil
     effect_range_type: 1
@@ -761,21 +399,10 @@ ground_fire:
   damage: 54
   interval: 858993459  # 0.2
 
-# The skills of every other kind, and the rows of the lists above this
-# build does not release, by the CommanderSkillGroupData list each comes
-# from.
+# The standard skills of every other kind, and the rows of the lists
+# above this build does not release, by the CommanderSkillGroupData
+# list each comes from.
 other_skills:
   - {id: 900001, name: 战地回收, kind: sellUnitCommanderSkills}
-  - {id: 900002, name: 低效回收, kind: sellUnitCommanderSkills}
-  - {id: 900003, name: 低效回收, kind: sellUnitCommanderSkills}
-  - {id: 900004, name: 机械进化, kind: sellUnitCommanderSkills}
-  - {id: 900010, name: 单位回收, kind: sellUnitCommanderSkills}
-  - {id: 900011, name: 机械进化, kind: sellUnitCommanderSkills}
-  - {id: 900012, name: 机械进化, kind: sellUnitCommanderSkills}
   - {id: 1000001, name: 再部署, kind: moveUnitCommanderSkills}
-  - {id: 1000002, name: 再部署, kind: moveUnitCommanderSkills}
-  - {id: 1000011, name: 再部署, kind: moveUnitCommanderSkills}
-  - {id: 1000012, name: 再部署, kind: moveUnitCommanderSkills}
   - {id: 1100001, name: 强化训练, kind: addExpCommanderSkills}
-  - {id: 1100002, name: 强化训练, kind: addExpCommanderSkills}
-  - {id: 1100003, name: 强化训练, kind: addExpCommanderSkills}

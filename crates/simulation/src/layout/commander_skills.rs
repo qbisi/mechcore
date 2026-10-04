@@ -140,7 +140,7 @@ impl TerrainSpec {
     }
 }
 
-/// A skill of another kind, or a row this build does not release: which
+/// A standard skill of a kind the fight does not release: which
 /// `CommanderSkillGroupData` list it comes from, which its refusal names.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -150,14 +150,13 @@ struct OtherSkillRow {
     kind: String,
 }
 
-/// A `CSD_WayPoint` row: the units it selects and the width of its path.
+/// A `CSD_WayPoint` row: the width of its path. Every standard beacon walks
+/// its own side's units and writes no buff, which the extraction checks.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct WaypointSkillRow {
     id: i32,
     name: String,
-    effect_target_type: i32,
-    sub_effect_buff_id: i32,
     sub_effect_range: i64,
 }
 
@@ -1207,13 +1206,6 @@ fn path_release(
     skill: &BattleSkill,
     row: &WaypointSkillRow,
 ) -> Result<SkillRelease> {
-    if row.effect_target_type != 0 || row.sub_effect_buff_id != 0 {
-        return Err(Error::new(format!(
-            "{named} selects effect target type {} and writes buff {}, which \
-             this build does not read",
-            row.effect_target_type, row.sub_effect_buff_id
-        )));
-    }
     if skill.positions.len() < 2 {
         return Err(Error::new(format!(
             "{named} is released at {} positions, which make no path",
