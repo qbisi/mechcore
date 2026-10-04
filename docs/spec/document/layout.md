@@ -391,6 +391,10 @@ are +20 m of range, both of which a fight sees. One side in the local replay set
 holds three copies of `20022`. The executor therefore adds one Officer per
 entry and reads the count back, rather than reading a presence.
 
+Any other Officer appears once. The pool takes a card out once it is chosen,
+and a side opens with one opening, so no side of a standard 1v1 holds such an
+Officer twice, and a layout that repeats one is refused.
+
 Canonical layouts order Officers by ascending ID; that order is then the
 deterministic application order. Commander skills, equipment, and extra
 units granted by an Officer are not themselves Officer modifiers. Their

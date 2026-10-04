@@ -953,6 +953,24 @@ red:
         .unwrap();
         assert_eq!(repeated.blue.techs.officers, [20002, 20002]);
 
+        // Any other card leaves the pool once taken, so holding it twice is no
+        // standard side's.
+        let error = compile(&json!({
+            "kind": "layout",
+            "round": 1,
+            "blue": {"officers": ["quick_teleport", "quick_teleport"], "units": [{"index": 0,
+                "name": "marksman", "position": {"x": 0, "y": -50}
+            }]},
+            "red": {"units": [{"index": 0,
+                "name": "marksman", "position": {"x": 0, "y": -50}
+            }]}
+        }))
+        .unwrap_err();
+        assert!(
+            error.contains("quick_teleport (10009) more than once"),
+            "{error}"
+        );
+
         let error = compile(&json!({
             "kind": "layout",
             "round": 1,

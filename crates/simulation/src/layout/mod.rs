@@ -317,11 +317,7 @@ pub(crate) fn compile_with_seed(
     let mut researched = BTreeSet::new();
     let mut tower_levels = BTreeMap::new();
     let mut delivered = BTreeSet::new();
-    let mut travel_time_rates = BTreeMap::new();
     for (name, team, side) in sides {
-        if let Some(rate) = travel_time_rate(name, side, &loadouts, &mut refused) {
-            travel_time_rates.insert(team, rate);
-        }
         for (index, formation) in side.units.iter().enumerate() {
             placements.extend(compile_formation(
                 name,
@@ -392,7 +388,8 @@ pub(crate) fn compile_with_seed(
                 .map(|(_, team, side)| (*team, side.legacy_unit))
                 .collect(),
             delivered,
-            travel_time_rates,
+            // The rate a side's officers set on its travel time, where one does.
+            travel_time_rates: travel_time_rates(&sides, &loadouts.officers),
             tower_levels,
             map_id: plan
                 .map_id
@@ -401,18 +398,21 @@ pub(crate) fn compile_with_seed(
     ))
 }
 
-/// The rate a side's officers set on its travel time, where one does.
-fn travel_time_rate(
-    name: &str,
-    side: &SidePlan,
-    loadouts: &Loadouts,
-    refused: &mut Refusals,
-) -> Option<i64> {
-    let rate = loadouts
-        .officers
-        .super_deployment_time_rate(&side.techs.officers)
-        .map_err(|error| Error::new(format!("side {name}: {error}")));
-    refused.hold(rate).filter(|rate| *rate != 0)
+/// The rate each side's officers set on its travel time, where one does.
+fn travel_time_rates(
+    sides: &[(&str, u32, &SidePlan); 2],
+    officers: &OfficerEffects,
+) -> BTreeMap<u32, i64> {
+    sides
+        .iter()
+        .map(|(_, team, side)| {
+            (
+                *team,
+                officers.super_deployment_time_rate(&side.techs.officers),
+            )
+        })
+        .filter(|(_, rate)| *rate != 0)
+        .collect()
 }
 
 /// A side's contraptions: an interceptor released as `CRC_Interceptor`

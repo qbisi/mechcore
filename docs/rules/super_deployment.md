@@ -60,8 +60,10 @@ remainder has run out. The eighth heal and the arrival share tick 161.
 `TravelTime()` is the travel time times one plus the side's
 `FightTeam.superDeploymentTimeChangeRate`. Quick Teleport's `-0.5` sets that
 rate through `FightTeam.SetSuperDeploymentTimeChangeRate` and halves the
-travel. A side holding two officers that set the rate is refused, because the
-setter does not add and which one holds is not measured.
+travel. Quick Teleport is the one officer that sets it, and the pool deals it
+once, so a side has at most one rate to set; the setter does not add, and a
+layout cannot hold Quick Teleport twice
+([layout.md](../spec/document/layout.md#officers)).
 
 A unit that dies while travelling leaves the list through
 `SuperDeploymentController.OnMechDead`. A side whose travelling units all
@@ -120,4 +122,3 @@ starts on its share of its corrected life and heals by its corrected maximum.
 - **A travelling unit whose buffs, summons or generic effect providers
   activate on arrival**, which travel's `ActiveCheck` does gate. Every such
   source is refused before a fight reaches it.
-- **Two officers that set the travel rate on one side.** Refused.

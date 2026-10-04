@@ -228,6 +228,17 @@ pub struct Pool {
     pub excluded: Vec<i32>,
 }
 
+/// Whether a side may hold `card` more than once: the pool deals a repeatable
+/// card again, and takes any other out once it is chosen
+/// (`ReinforcePool.SelectReinforce`). An officer the pool never deals, an
+/// opening's specialist, is held once.
+///
+/// # Errors
+/// Refuses a reinforcement configuration that does not parse.
+pub fn repeatable(card: i32) -> Result<bool, String> {
+    Config::embedded().map(|config| config.cards.get(&card).is_some_and(|card| card.repeated))
+}
+
 /// Every level-4 commander skill, in the order a replay's
 /// `RoundExcludeReinforce` lists them under each round it excludes them from.
 ///
