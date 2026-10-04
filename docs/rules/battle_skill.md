@@ -456,6 +456,9 @@ drawn from any stream, and no event is written.
   to 52.
 - A creator makes its summons in batches, and a surfacing summon is a locked
   obstacle: `tests/battle_skill/fights/underground-threat.yaml`.
+- A Production Line's Sledgehammer that dies with a shell in the air lands
+  it without its side's 30% on damage: `tests/corpus/fights/67159970-r6.yaml`,
+  tick 318.
 - Summons of both sides that join on one tick lock each other on it, and all
   72 search with `Select` on the tick they join:
   `tests/battle_skill/fights/underground-threat-both-sides.yaml`, tick 48.

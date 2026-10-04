@@ -546,6 +546,13 @@ A beam with a splash strikes as any other hit does: a Melting Point's beam at
 one Crawler takes the Crawlers around it too, in the order the target trees
 hold them. A Steel Ball's beam has no splash and strikes its target alone.
 
+**A skill's own hit strikes only the domain of what it attacks.** A blow or a
+beam asks the skill whether its attack target, or its lock when it has none,
+flies, and its splash takes only units of that domain, as a projectile's
+takes only its target's: a Melting Point's beam at a Phoenix in the air
+splashes no Tarantula standing under it, whatever the beam could attack
+otherwise.
+
 **A query reads a tree a node at a time.** It takes a node's own before its
 children's, the children in order, wherever a query reads a side's tree, as
 a terrain finding who stands in it and a kill's shares of experience do.
@@ -878,6 +885,8 @@ not the game's native attack-type enum.
 - A Stormcaller whose live lock walks inside its minimum range taking blue's
   interceptor on that tick, and a second doing the same three ticks later:
   `tests/search/fights/lock-inside-min-range.yaml`.
+- A Melting Point's beam at a Phoenix splashing no Tarantula under it:
+  `tests/corpus/fights/67159970-r6.yaml`, tick 371.
 - Summons that join on one tick searching where everything stands then, and
   locking the enemy summons that joined with them:
   `tests/battle_skill/fights/underground-threat-both-sides.yaml`, tick 48.
@@ -958,6 +967,9 @@ not the game's native attack-type enum.
 - An idle motion stops its unit when it is entered and not while it runs:
   `MotionIdleState.Enter` calls `RVOControllerFixed.StopMove` and
   `MotionIdleState.Update` does not.
+- A skill's own hit takes the domain of its attack target, or its lock, for
+  a skill that does not diffuse: `SkillDamageProvider.GetTargetType`,
+  `ISkillData.IsDiffusion`, `DamagePerformer.PrepareRangeTargets`.
 - A search's angle is measured from the skill's main transform, a weapon's
   or the root's: `FightSkill.GetMainTransform`.
 - A search reads the tick's start only for a skill its state prepared, and
