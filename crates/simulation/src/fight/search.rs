@@ -663,7 +663,14 @@ impl Simulation {
             actor.target_query_alive = actor.alive();
             actor.target_query_visible = actor.visibility == Visibility::Normal;
             actor.skills.main.searched_this_tick = false;
-            actor.skills.main.search_prepared = actor.alive() && !actor.travelling;
+            // `MainSkillSearchTargetController.PrepareSearch` prepares no
+            // skill a `SkillGroup` holds: a Wraith's or a Raiden's search is
+            // a `Select` whenever it searches. A unit with one grouped skill,
+            // the Vortex, and a batch of standalone weapons have none.
+            let skill = &actor.skills.main;
+            actor.skills.main.search_prepared = actor.alive()
+                && !actor.travelling
+                && (skill.group_size() <= 1 || skill.standalone());
         }
         self.buildings_query_alive = super::standing_buildings(&self.buildings);
     }
@@ -677,9 +684,9 @@ impl Simulation {
     /// 565 recorded searches of a construction took that path, and the
     /// Anti-Armor Turret of replay 268477093 round 2 locks a Hound that the
     /// tick-start positions put 0.33 metres out of its reach. Only a mech's
-    /// main skill is prepared (`MainSkillSearchTargetController.PrepareSearch`):
-    /// an extra skill's `PrepareSearch` does nothing, and its search is a
-    /// `Select`. A summon that joins after the preparation is not among the
+    /// main skill is prepared (`MainSkillSearchTargetController.PrepareSearch`),
+    /// and only one no `SkillGroup` holds: an extra skill's `PrepareSearch`
+    /// does nothing, nor does a Wraith's, and their search is a `Select`. A summon that joins after the preparation is not among the
     /// attackers `TrySelect` answers for, and its first search is a `Select`
     /// too, which finds the summons that joined with it.
     pub(in crate::fight) fn search_prepared(&self, skill_ref: SkillRef) -> bool {

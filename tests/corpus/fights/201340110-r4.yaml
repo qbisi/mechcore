@@ -1,0 +1,64 @@
+# Replay 2324_20260925--201340110, round 4, map 1021. Red's Wraith, unit 277,
+# searches on tick 121 with its idle main skill, which a `SkillGroup` holds and
+# `PreCalculate` never prepares: it scores blue's units where they stand after
+# blue has moved that tick, and takes the Crawler, unit 122, over the Fang it
+# held, unit 161, by 36 points of 208,461.
+
+kind: fight
+map_id: 1032
+seed: 1833688968
+round: 4
+source: game
+ticks: 1251
+hash: {profile: mcfr-content-0.7.0, result: 207a700db8d5313efcd287c929ea652aa70d870cf39ab1e5009ecb6784a78a21}
+blue:
+  officers: [quick_supply_specialist]
+  techs:
+    sabertooth: [secondary_armament, anti_air_missile]
+  blueprints: [defense_enhancement]
+  legacy_index: 13
+  units:
+  - {name: hound, index: 0, position: {x: 10, y: -120}, exp: 386/586/750}
+  - {name: hound, index: 1, position: {x: -180, y: -140}, exp: 564/645/750}
+  - {name: hound, index: 2, position: {x: -90, y: -120}, exp: 360/642/750}
+  - {name: sabertooth, index: 3, position: {x: -135, y: -95}, level: 2, exp: 0/543/2929}
+  - {name: sabertooth, index: 4, position: {x: -225, y: -115}, exp: 947/1300/1300}
+  - {name: sabertooth, index: 5, position: {x: -45, y: -85}, level: 2, exp: 0/2882/2929}
+  - {name: crawler, index: 6, position: {x: -90, y: -155}, exp: 153/194/450, rotated: true}
+  - {name: crawler, index: 7, position: {x: 140, y: -205}, exp: 50/151/450, rotated: true}
+  - {name: crawler, index: 8, position: {x: -190, y: -285}, exp: 386/450/450, rotated: true}
+  - {name: fang, index: 9, position: {x: -270, y: -85}, exp: 170/240/600, rotated: true}
+  - {name: typhoon, index: 10, position: {x: -130, y: -150}, exp: 1656/1950/1950}
+  - {name: sabertooth, index: 11, position: {x: 55, y: -85}, exp: 343/1300/1300}
+  - {name: fang, index: 12, position: {x: 0, y: -35}, exp: 293/359/600, rotated: true}
+  - {name: crawler, index: 13, position: {x: -140, y: -205}, exp: 0/44/450, rotated: true}
+  - {name: crawler, index: 14, position: {x: 0, y: -155}, exp: 0/111/450, rotated: true}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+red:
+  core_damage: 450
+  officers: [sabertooth_specialist, mass_produced_wraith]
+  techs:
+    vortex: [range_enhancement]
+  blueprints: [attack_enhancement]
+  legacy_index: 14
+  units:
+  - {name: vortex, index: 0, position: {x: 150, y: -70}, exp: 392/411/750}
+  - {name: vortex, index: 1, position: {x: 170, y: -70}, exp: 315/750/750}
+  - {name: vortex, index: 2, position: {x: 80, y: -70}, exp: 90/168/750}
+  - {name: fire_badger, index: 3, position: {x: 205, y: -70}, exp: 732/1080/1400}
+  - {name: fire_badger, index: 4, position: {x: 115, y: -70}, exp: 217/318/1400}
+  - {name: crawler, index: 5, position: {x: 160, y: -35}, exp: 14/14/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 210, y: -105}, exp: 112/168/450, rotated: true}
+  - {name: wraith, index: 7, position: {x: 125, y: -95}, level: 2, exp: 246/1225/5070}
+  - {name: crawler, index: 8, position: {x: 80, y: -105}, exp: 62/113/450, rotated: true}
+  - {name: sabertooth, index: 9, position: {x: -195, y: -75}, exp: 548/1300/1300}
+  - {name: mustang, index: 10, position: {x: -245, y: -130}, level: 2, exp: 812/1339/2704}
+  - {name: vortex, index: 11, position: {x: 40, y: -70}, exp: 204/377/750}
+  - {name: vortex, index: 12, position: {x: 0, y: -70}, exp: 119/326/750}
+  - {name: crawler, index: 13, position: {x: 40, y: -35}, exp: 25/73/450, rotated: true}
+  - {name: vortex, index: 14, position: {x: -40, y: -70}, level: 2, exp: 0/209/1690}
+  - {name: crawler, index: 15, position: {x: -145, y: -20}, exp: 0/11/450}
+  - {name: wraith, index: 16, position: {x: -45, y: -95}, exp: 0/132/2250}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}

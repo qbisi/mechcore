@@ -433,6 +433,9 @@ prepares only the mechs of the fight as it runs, alive and not travelling, and
 `FightingState.Update` runs it after the modules, before the next update's
 timers join the summons that are due: a summon that joins is no attacker
 `TrySelect` answers for, and its search on that tick is a `PerformSearch`.
+Nor does it prepare a skill a `SkillGroup` holds, a Wraith's or a Raiden's:
+their every search scores candidates where they stand as it runs, after the
+units of the sides that update first have moved.
 
 **A blow that loses its target inside the minimum range gives its interval
 back.** That search is `SkillAttackableChecker.CheckWhenLoseTarget`, and on an
@@ -912,6 +915,9 @@ not the game's native attack-type enum.
 - A Stormcaller whose live lock walks inside its minimum range taking blue's
   interceptor on that tick, and a second doing the same three ticks later:
   `tests/search/fights/lock-inside-min-range.yaml`.
+- A red Wraith's search scoring blue's units where they stand after they
+  moved, and taking another than the tick's start would give it:
+  `tests/corpus/fights/201340110-r4.yaml`, tick 121.
 - A Phantom Ray whose next lock stands inside the enemy's shield naming no
   unit for its whole cooling: `tests/corpus/fights/201370830-r5.yaml`, ticks
   113 to 130.
@@ -1016,6 +1022,8 @@ not the game's native attack-type enum.
   `ScoreRatingTargetSelector.TrySelect`,
   `SkillSearchTargetController.PerformNormalSkillSearch`,
   `ScoreRatingTargetSelector.ClearDatas`.
+- A skill a `SkillGroup` holds is never prepared:
+  `MainSkillSearchTargetController.PrepareSearch`.
 - A search is prepared for the mechs alive and not travelling as the modules
   finish, and answered only for them: `FightingState.Update`,
   `FightCoreSystem.PreCalculate`, `SuperDeploymentSystem.IsTravelling`,
