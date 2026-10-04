@@ -67,9 +67,12 @@ impl Simulation {
     /// `RotationLimitFightTransform.RotateTo`: an extra skill's weapon turns
     /// towards its lock at the skill's weapon rotation speed, held within its
     /// arc about what it is mounted on, as that pointed before the motion
-    /// turned it. A skill without a lock leaves it where it points.
+    /// turned it. A skill without a lock leaves it where it points, and a
+    /// weapon without an arc has no transform of its own to turn.
     fn turn_extra_weapon(&mut self, actor_id: u64, index: usize, chassis: i64) {
-        if self.ending.stop_step.is_some() {
+        if self.ending.stop_step.is_some()
+            || self.actors[&actor_id].skills.extras[index].arc().is_none()
+        {
             return;
         }
         let actor = &self.actors[&actor_id];
