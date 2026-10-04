@@ -367,6 +367,24 @@ impl Simulation {
         Some(attacker)
     }
 
+    /// `FightSkill.IsTowerAttackable`: a main skill may take a tower; an
+    /// extra skill only where it deals damage of its own or a share of its
+    /// unit's (`GetDamage`, `GetDamageRate`), which an explosion's rate of
+    /// one does. Incendiary Bomb's shell, dealing nothing, passes towers over.
+    pub(in crate::fight) fn tower_attackable(&self, skill_ref: SkillRef) -> bool {
+        let SkillSlot::Extra(index) = skill_ref.slot else {
+            return true;
+        };
+        let FightActorRef::Unit(id) = skill_ref.owner else {
+            return true;
+        };
+        let rules = &self.actors[&id].skills.extras[index].rules;
+        rules.explosion.is_some()
+            || self
+                .skill_attacker(skill_ref)
+                .is_some_and(|attacker| attacker.attack_damage != 0)
+    }
+
     /// A skill's index in its owner's `FightMech.GetSkills()`, which a
     /// recording names it by: the main skill, or each of its group's skills,
     /// comes first, and the extra skills after it in their order.

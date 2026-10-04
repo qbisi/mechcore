@@ -117,6 +117,11 @@ unit; it does not turn towards its lock.
   target standing nearer than the skill's minimum range (`IsInAttackRange`'s
   `isMissing`), and that range is the extra skill's: an Incendiary Bomb skill
   whose target walks inside its 40 metres takes another on that update.
+- **A skill that deals nothing takes no tower.** `FightSkill.IsTowerAttackable`
+  lets an extra skill take a tower only where it deals damage of its own or a
+  share of its unit's: Incendiary Bomb's skill searches the units alone,
+  passing over a tower its main skill takes, and Scorching Charge's, of
+  damage rate one, charges a tower.
 
 ## A fire where it lands
 
@@ -225,6 +230,9 @@ equipment or an Energy Tower skill writes a skill correction onto.
 - A Fire Badger killed while travelling in leaves no fire, and what an
   explosion kills reads after the units a turret's shots killed on that tick:
   `tests/corpus/fights/134259672-r3.yaml`.
+- A Hound's bomb skill whose target walks inside its 40 metre minimum range
+  takes another on that update, and its search passes towers over:
+  `tests/corpus/fights/201371791-r4.yaml`, `tests/corpus/fights/201371791-r5.yaml`.
 - A Hound's main skill releases before its bombs on the update both release:
   `tests/extra_weapon/fights/incendiary-bomb-with-main.yaml`.
 - A Hound's bomb skill scores every search from the unit's rotation as it
@@ -255,7 +263,8 @@ equipment or an Energy Tower skill writes a skill correction onto.
   `FightSkill.ChangeLockTarget`, `FightSkillBase.IsMainSearcher`,
   `SkillIdleState.Update`, `ProjectileSystem.Create`, `FightProjectile.IsFlying`.
 - Its range: `FightSkill.GetAttackRange`; the attacking check's minimum range,
-  `SkillAttackableChecker.CheckWhenLoseTarget`.
+  `SkillAttackableChecker.CheckWhenLoseTarget`; the towers it may take,
+  `FightSkill.IsTowerAttackable`.
 - Its fire: `ExtraSkillProvider.PerformHitEffect`, `ExtraSkillProvider.AddEffect`,
   `ExtraWeaponTechnologyData.GetFireLifeTime`, `MechDataModifer.AddData`,
   `GroundFireController.GetFireMech`, `RangeItemSystem.AddItem`,

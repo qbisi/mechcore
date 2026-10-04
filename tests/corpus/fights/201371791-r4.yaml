@@ -1,0 +1,66 @@
+# Replay 2324_20260925--201371791, round 4, map 1021. Red's Hounds with
+# Incendiary Bomb: a bomb skill whose target walks inside its own minimum range
+# takes another on that update (t564), and, dealing nothing, passes blue's
+# towers over as it searches (t621). The game's read-back layout leaves out
+# red's Centurion range_enhancement, which its Centurions carry (their skill's
+# attack_range_value of 40), and it is written back here.
+
+kind: fight
+map_id: 1021
+seed: 802997336
+round: 4
+source: game
+ticks: 1057
+hash: {profile: mcfr-content-0.7.0, result: 56ffa041a33c0211a102155d7c181528d728cd6046df09739ad67fc989480610}
+blue:
+  officers: [sabertooth_specialist]
+  techs:
+    sabertooth: [field_maintenance]
+    hound: [range_enhancement]
+  blueprints: [attack_enhancement, defense_enhancement]
+  legacy_index: 14
+  units:
+  - {name: fang, index: 0, position: {x: 160, y: -175}, exp: 365/435/600, rotated: true}
+  - {name: fang, index: 1, position: {x: -140, y: -225}, exp: 50/96/600, rotated: true}
+  - {name: fang, index: 2, position: {x: -160, y: -35}, exp: 276/316/600, rotated: true}
+  - {name: sabertooth, index: 3, position: {x: -165, y: -75}, level: 2, exp: 0/2026/2929}
+  - {name: sabertooth, index: 4, position: {x: -75, y: -75}, exp: 339/700/1300}
+  - {name: hound, index: 5, position: {x: -120, y: -80}, level: 2, exp: 0/1627/1690}
+  - {name: hound, index: 6, position: {x: -210, y: -80}, level: 2, exp: 0/648/1690}
+  - {name: hound, index: 7, position: {x: 130, y: -150}, exp: 315/750/750}
+  - {name: hound, index: 8, position: {x: -270, y: -90}, level: 2, exp: 0/757/1690}
+  - {name: hound, index: 9, position: {x: -30, y: -80}, exp: 72/250/750}
+  - {name: sabertooth, index: 10, position: {x: -265, y: -45}, exp: 1003/1196/1300}
+  - {name: centurion, index: 11, position: {x: -125, y: -115}, exp: 714/1888/2250}
+  - {name: crawler, index: 12, position: {x: -135, y: -190}, exp: 49/83/450}
+  - {name: crawler, index: 13, position: {x: -170, y: -115}, exp: 67/67/450, rotated: true}
+  - {name: hound, index: 14, position: {x: 70, y: -120}, exp: 0/64/750}
+  - {name: sabertooth, index: 15, position: {x: 25, y: -95}, exp: 0/8/1300}
+  battle_skills:
+  - {name: underground_threat, positions: [{x: 2, y: -278}]}
+red:
+  core_damage: 870
+  officers: [training_specialist]
+  techs:
+    hound: [incendiary_bomb]
+    centurion: [range_enhancement]
+  legacy_index: 12
+  units:
+  - {name: void_eye, index: 0, position: {x: 110, y: -170}, level: 2, exp: 27/104/1465}
+  - {name: void_eye, index: 1, position: {x: -110, y: -170}, exp: 650/650/650}
+  - {name: void_eye, index: 2, position: {x: 0, y: -170}, exp: 559/650/650}
+  - {name: mustang, index: 3, position: {x: 95, y: -280}, level: 2, exp: 0/107/2704}
+  - {name: mustang, index: 4, position: {x: -65, y: -280}, level: 2, exp: 1034/1587/2704}
+  - {name: crawler, index: 5, position: {x: 120, y: -225}, exp: 99/136/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: -120, y: -225}, exp: 242/311/450, rotated: true}
+  - {name: crawler, index: 7, position: {x: 290, y: -285}, exp: 11/63/450, rotated: true}
+  - {name: sledgehammer, index: 8, position: {x: 140, y: -135}, exp: 421/458/1300, rotated: true}
+  - {name: centurion, index: 9, position: {x: -55, y: -165}, level: 2, exp: 1286/2165/5070}
+  - {name: hound, index: 10, position: {x: -120, y: -190}, exp: 0/368/750}
+  - {name: hound, index: 11, position: {x: 120, y: -190}, exp: 86/129/750}
+  - {name: centurion, index: 12, position: {x: 55, y: -165}, exp: 0/406/2250}
+  - {name: hound, index: 13, position: {x: 160, y: -20}, exp: 0/137/750}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  battle_skills:
+  - {name: underground_threat, positions: [{x: -2, y: 273}]}
