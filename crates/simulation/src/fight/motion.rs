@@ -929,6 +929,11 @@ impl Simulation {
         let in_range = skill
             .attack_target()
             .is_some_and(|target| self.target_in_attack_range(skill_ref, target));
+        // `CalculateTargetDirection` turns to what the skill fires at: a block
+        // in the way before the lock behind it.
+        let aimed = skill
+            .attack_target()
+            .and_then(|target| self.fight_actor(target));
         let Some(lock) = lock else {
             // `IsActive` fails: the attack and the move states go idle, and
             // the idle state stays.
@@ -962,14 +967,22 @@ impl Simulation {
             MotionState::Attacking if !in_range => actor.motion.state = MotionState::Moving,
             MotionState::Attacking => {
                 // `RVOControllerFixed.StopMove`, and `AttackRotate` turning
-                // to the lock (`CalculateTargetDirection`): a unit with a
-                // body its body (`FightMech.RotateBodyTo`), one without its
-                // root (`ISkillOwner.RotateTo`).
+                // to what the skill fires at (`CalculateTargetDirection`): a
+                // unit with a body its body (`FightMech.RotateBodyTo`), one
+                // without its root (`ISkillOwner.RotateTo`).
                 actor.motion.next_target_x_q32 = actor.x_q32;
                 actor.motion.next_target_z_q32 = actor.z_q32;
                 actor.motion.next_speed_q32 = 0;
                 actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
-                let bearing_q32 = direction_degrees_q32_raw(dx, dz);
+                let bearing_q32 = aimed.map_or_else(
+                    || direction_degrees_q32_raw(dx, dz),
+                    |aimed| {
+                        direction_degrees_q32_raw(
+                            aimed.x_q32.saturating_sub(actor.x_q32),
+                            aimed.z_q32.saturating_sub(actor.z_q32),
+                        )
+                    },
+                );
                 if actor.rules.has_body {
                     actor.rotate_weapons_towards(bearing_q32);
                 } else {
