@@ -887,6 +887,9 @@ pub(in crate::fight) struct SkillUpdate {
     /// its skill was not checked on it, the update the last one leaves
     /// included.
     pub(in crate::fight) burst_releasing: bool,
+    /// The main skill released its blow in its own update
+    /// ([`Simulation::perform_main_blow`]).
+    pub(in crate::fight) blow_released: bool,
 }
 
 impl Simulation {
@@ -1191,6 +1194,10 @@ impl Simulation {
             target_search_order,
             events,
         )?;
+        let update = match update {
+            Some(update) => Some(self.perform_main_blow(actor_id, step, events, update)?),
+            None => None,
+        };
         // A unit that searches for itself is its motion's attacker, so its
         // first weapon's skill starts and fires in its own update
         // (`SkillIdleState.TryStartAttack`, `SkillAttackState.TryPerformAttack`),
@@ -1409,6 +1416,7 @@ impl Simulation {
             prepare_finished,
             attack_point_rejected,
             burst_releasing,
+            blow_released: false,
         }))
     }
 

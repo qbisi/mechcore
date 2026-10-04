@@ -774,6 +774,7 @@ impl Simulation {
                 target_rotation_q32,
                 backswing_just_finished,
                 prepare_finished,
+                update.blow_released,
             )?;
             self.attack_move(actor_id, was_attacking);
             return Ok(());
@@ -989,6 +990,77 @@ impl Simulation {
             }
             MotionState::Stopped | MotionState::Transitioning => {}
         }
+    }
+
+    /// `SkillAttackState.TryPerformAttack` of a main skill already attacking,
+    /// in the skill's own update: the next blow's interval is drawn, the
+    /// blow scheduled, and one due at once released, before the skills that
+    /// update after it. It asks what the motion asks before it: the motion's
+    /// target, alive and in reach, and the attack angle. A skill entering
+    /// its attack, a grouped skill, a batch and a unit that searches for
+    /// itself are left to the motion.
+    pub(in crate::fight) fn perform_main_blow(
+        &mut self,
+        actor_id: u64,
+        step: u64,
+        events: &mut Vec<Event>,
+        mut update: SkillUpdate,
+    ) -> Result<SkillUpdate> {
+        let actor = &self.actors[&actor_id];
+        let skill = &actor.skills.main;
+        if actor.motion.state != MotionState::Attacking
+            || actor.motion.attacker != SkillSlot::Main
+            || skill.phase() != FightSkillPhase::Attack
+            || skill.is_grouped()
+            || skill.standalone()
+            || skill.mech_searches()
+            || actor.rules.attack.weapons.mode == WeaponMode::Group
+        {
+            return Ok(update);
+        }
+        let Some(target) = self.motion_target(actor_id) else {
+            return Ok(update);
+        };
+        let Some(view) = self
+            .fight_actor(target)
+            .filter(|_| self.fight_actor_is_alive(target))
+        else {
+            return Ok(update);
+        };
+        let sees_target = self.reaches_hidden(FightActorRef::Unit(actor_id), view.visible);
+        let (dx, dz) = (
+            view.x_q32.saturating_sub(actor.x_q32),
+            view.z_q32.saturating_sub(actor.z_q32),
+        );
+        let edge_distance_q32 = native_q32_magnitude(dx, dz)
+            .saturating_sub(space_to_q32(actor.rules.collision_radius()))
+            .saturating_sub(space_to_q32(view.radius))
+            .max(0);
+        if !self.motion_in_reach(actor_id, target, sees_target, edge_distance_q32) {
+            return Ok(update);
+        }
+        let in_attack_angle = self
+            .attacker(FightActorRef::Unit(actor_id))
+            .expect("actor identity is stable")
+            .faces(direction_degrees_q32_raw(dx, dz));
+        let skill_ref = SkillRef::main(FightActorRef::Unit(actor_id));
+        self.try_start_attack(
+            skill_ref,
+            step,
+            target,
+            false,
+            in_attack_angle,
+            update.prepare_finished,
+        );
+        if self
+            .skill(skill_ref)
+            .pending()
+            .is_some_and(|pending| pending.step == step)
+        {
+            let _attack_point_rejected = self.release(skill_ref, events)?;
+            update.blow_released = true;
+        }
+        Ok(update)
     }
 
     /// `MotionAttackState.Update` under a command, whose `IsIdle` and
@@ -1364,6 +1436,7 @@ impl Simulation {
         target_rotation_q32: i64,
         backswing_just_finished: bool,
         prepare_finished: bool,
+        blow_released: bool,
     ) -> Result<()> {
         // `SkillAttackAngleChecker`, against the weapons or, for a unit
         // without a body, its root: the motion does not turn anything before
@@ -1466,6 +1539,7 @@ impl Simulation {
                 clear_hold_after_motion,
             )
         };
+        let released = release_now || blow_released;
         if release_now {
             let _attack_point_rejected =
                 self.release(SkillRef::main(FightActorRef::Unit(actor_id)), events)?;
@@ -1487,7 +1561,7 @@ impl Simulation {
         // `CalculateTargetDirection`: the lock, once the blow just released
         // has felled what it fired at. The Steel Ball of `wall-laser.yaml`
         // turns onto the Marksman on the tick its beam fells block 4.
-        let target_rotation_q32 = if release_now && !self.fight_actor_is_alive(target) {
+        let target_rotation_q32 = if released && !self.fight_actor_is_alive(target) {
             self.lock_rotation_for_bodyless(actor_id)
                 .unwrap_or(target_rotation_q32)
         } else {
