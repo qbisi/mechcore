@@ -12,16 +12,6 @@ use crate::capture::{CaptureState, list_count, list_item};
 use crate::il2cpp::{Api, Class, FieldInfo, Object};
 use mechcore_mcfr::{DamageStatistics, FormationState, RecorderKind};
 
-/// A `Dictionary<IDamageRecorder, UnitDamageStatisticData>` entry.
-#[repr(C)]
-#[derive(Clone, Copy, Default)]
-struct Entry {
-    hash_code: i32,
-    next: i32,
-    key: usize,
-    value: usize,
-}
-
 /// The fields and classes the reader uses, resolved once.
 #[derive(Clone, Copy)]
 pub(crate) struct StatisticsMetadata {
@@ -82,28 +72,11 @@ fn value<T: Copy>(api: Api, object: *mut Object, field: usize, name: &str) -> Re
         .map_err(|error| format!("{name}: {error}"))
 }
 
-/// The live entries of a dictionary, in the order the build holds them.
-fn entries(api: Api, dictionary: *mut Object) -> Result<Vec<Entry>, String> {
-    let class = api
-        .object_class(dictionary)
-        .ok_or("a dictionary has no class")?;
-    let field = |name: &str| api.field(class, name).map_err(|error| error.to_string());
-    let array: *mut Object = api
-        .field_value(dictionary, field("_entries")?)
-        .map_err(|error| error.to_string())?;
-    let count: i32 = api
-        .field_value(dictionary, field("_count")?)
-        .map_err(|error| error.to_string())?;
-    if array.is_null() || count <= 0 {
-        return Ok(Vec::new());
-    }
-    let count = usize::try_from(count).map_err(|_| "a dictionary's count is negative")?;
-    Ok(api
-        .value_array_range::<Entry>(array, 0, count)
-        .map_err(|error| error.to_string())?
-        .into_iter()
-        .filter(|entry| entry.hash_code >= 0)
-        .collect())
+/// The entries of a `Dictionary<IDamageRecorder, UnitDamageStatisticData>`,
+/// recorder and data, in the order the build holds them.
+fn entries(api: Api, dictionary: *mut Object) -> Result<Vec<(usize, usize)>, String> {
+    api.dictionary_entries(dictionary)
+        .map_err(|error| error.to_string())
 }
 
 /// The current round's counters, one row per recorder, in stored order.
@@ -155,10 +128,10 @@ fn row(
     metadata: &StatisticsMetadata,
     capture: &CaptureState,
     team_id: Option<u32>,
-    entry: Entry,
+    (key, data): (usize, usize),
 ) -> Result<DamageStatistics, String> {
-    let key = entry.key as *mut Object;
-    let data = entry.value as *mut Object;
+    let key = key as *mut Object;
+    let data = data as *mut Object;
     if key.is_null() || data.is_null() {
         return Err("a statistics entry has a null key or value".into());
     }
