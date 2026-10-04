@@ -1053,7 +1053,10 @@ impl Simulation {
             .enumerate()
             .filter_map(|(index, target)| (index != slot).then_some(target).flatten())
             .collect::<Vec<_>>();
-        if held.is_empty() {
+        // A grouped slot whose siblings hold nothing searches as the core
+        // does; a standalone weapon searches from its own weapon whatever
+        // the others hold.
+        if held.is_empty() && !source.skills.main.standalone() {
             return self.select_lock_replacement(
                 SkillRef::main(FightActorRef::Unit(actor_id)),
                 target_search_order,

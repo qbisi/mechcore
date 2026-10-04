@@ -78,7 +78,10 @@ on its side, its left side to the left and its right to the right, as a
 candidate out of range is passed over; a weapon that turns freely has no such
 window but is still scored from its rest. So the Mountain's first gun,
 resting ten degrees off the turret, takes a target to that side of one
-straight ahead.
+straight ahead. Each gun's skill searches so from its own rest, whatever the
+others hold: when every gun's check fails on one tick, the last to search
+still scores from its own rest and window, and a building inside its window
+but out of its range can outscore a unit in range outside it.
 
 ## The turret and the motion
 
