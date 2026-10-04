@@ -214,12 +214,21 @@ def extra_weapon_lines(mech, technology, kind, skill, row):
             or raw(row.get("fogAttackRangeChangeRate")) or raw(row.get("allWeaponReduceDamageRate"))):
         return []
     # A skill with no damage rate deals its own damage, one entry a level, or
-    # none when its row lists none; one whose damage is the unit's times its
-    # rate is not stated here yet.
-    if raw(skill["damageRate"]):
+    # none when its row lists none; an around skill with a rate deals that
+    # share of the unit's base damage, and lists none of its own. Any other
+    # skill with a rate is not stated here yet.
+    if raw(skill["damageRate"]) and (skill["damage"] or kind != "aroundSkillData"):
         return []
     if raw(skill["initialCoolDownTime"]) or any(
-            skill[field] for field in ("isLoadingType", "isDiffusion", "useSelfSplash")):
+            skill[field] for field in ("isLoadingType", "isDiffusion")):
+        return []
+    # An around skill is a preemptive one (`AroundSkillStartAttackChecker`
+    # extends the preemptive checker), here one that is not permanent and is
+    # ready again at once (`preemptiveInterval` zero).
+    if kind == "aroundSkillData" and (
+            not skill["isPreemptive"] or skill["isPreemptivePermanent"] or raw(skill["preemptiveInterval"])):
+        return []
+    if kind != "aroundSkillData" and (skill["isPreemptive"] or skill["useSelfSplash"]):
         return []
     try:
         attack = attack_lines(mech["id"], kind, skill, f"base_damage: {(skill['damage'] or [0])[0]}",
@@ -232,6 +241,8 @@ def extra_weapon_lines(mech, technology, kind, skill, row):
         f"    use_main_skill_range: {boolean(row.get('useMainSkillRange', False))}",
         f"    damage_by_level: [{', '.join(str(value) for value in skill['damage'])}]",
     ]
+    if raw(skill["damageRate"]):
+        lines.append(f"    damage_rate: {readable(skill['damageRate'])}")
     life = ", ".join(str(grid(value, 2000)) for value in row.get("fireLifeTime") or [])
     if fire:
         lines.append(f"    fire: {{life_time: [{life}]}}")
@@ -391,6 +402,8 @@ def attack_lines(unit, kind, skill, damage_line, attack_angle, indent, angle_abs
     ]
     if skill["useDefaultRotationSearchTarget"]:
         lines.append("  default_rotation_search: true")
+    if skill.get("useSelfSplash"):
+        lines.append("  self_splash: true")
     lines.append("  path:")
     if kind == "projectileSkillDatas":
         life = skill["maxLife"] or [0]
@@ -411,6 +424,12 @@ def attack_lines(unit, kind, skill, damage_line, attack_angle, indent, angle_abs
         lines.append("    type: direct")
     elif kind == "explosionSkillDatas":
         lines.append("    type: suicide")
+    elif kind == "aroundSkillData":
+        lines += [
+            "    type: around",
+            f"    select_radius: {grid(skill['radiusForSelectTarget'], 1000)}",
+            f"    target_count: {skill['targetNumCondition']}",
+        ]
     elif kind == "laserSkillDatas":
         lines += [
             "    type: laser",

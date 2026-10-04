@@ -69,10 +69,11 @@ const EXTRA_WEAPON: &str = "extraWeaponTechnologies";
 /// The extra weapon technologies the fight runs. Each member's skill and
 /// what it does beyond a projectile differ, so each joins once a recording
 /// of it agrees: Secondary Armament and Anti-Air Missile, the Sabertooth's,
-/// Incendiary Bomb, Scorching Charge, Homing Missile, and Sticky Oil Bomb,
-/// the Phantom Ray's and the Vulcan's.
-pub(crate) const FOUGHT_EXTRA_WEAPONS: [i32; 7] =
-    [11_010, 11_020, 11_025, 11_028, 110_211, 110_212, 110_322];
+/// Incendiary Bomb, Scorching Charge, Homing Missile, Sticky Oil Bomb, the
+/// Phantom Ray's and the Vulcan's, and Whirlwind, the Rhino's.
+pub(crate) const FOUGHT_EXTRA_WEAPONS: [i32; 8] = [
+    1_109, 11_010, 11_020, 11_025, 11_028, 110_211, 110_212, 110_322,
+];
 
 /// `EnergyShieldTech.GetLifeRate`: `FPoint.One`, whatever its row, so the
 /// shield holds the unit's whole maximum life.

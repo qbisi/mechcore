@@ -283,7 +283,8 @@ impl Simulation {
     /// [`Self::attacker`] answers. An extra skill answers from its own row:
     /// its reach (`FightSkill.GetAttackRange`, the main skill's where its row
     /// uses the main skill's range), the damage its row states for the
-    /// unit's level, its splash and its interval, and its own weapon, which
+    /// unit's level or its rate of the unit's base damage, its splash and its
+    /// interval, and its own weapon, which
     /// turns on a transform of its own, as what its attack angle is measured
     /// against. No correction reaches an extra skill here: the layout refuses
     /// a unit one would.
@@ -315,13 +316,25 @@ impl Simulation {
         // a level beyond the list, and none for a row that lists none: an
         // Incendiary Bomb's hit leaves its fire and nothing else, and a
         // Homing Missile deals its one entry at every level.
-        attacker.attack_damage = rules.damage_by_level.last().map_or(0, |last| {
-            usize::try_from(actor.placement.level - 1)
-                .ok()
-                .and_then(|level| rules.damage_by_level.get(level))
-                .unwrap_or(last)
-                .to_owned()
-        });
+        attacker.attack_damage = if rules.damage_rate > 0.0 {
+            // `DamageProperty.RefreshBaseDamage`: the unit's base damage at
+            // its level (`FightMech.GetBaseDamage`) times the skill's rate,
+            // truncated: a Rhino's Whirlwind deals 4983 of its 3560 at 1.4.
+            let base = actor
+                .rules
+                .attack
+                .base_damage
+                .saturating_mul(actor.placement.level);
+            q32_mul(base << 32, crate::rules::metres_q32(rules.damage_rate)) >> 32
+        } else {
+            rules.damage_by_level.last().map_or(0, |last| {
+                usize::try_from(actor.placement.level - 1)
+                    .ok()
+                    .and_then(|level| rules.damage_by_level.get(level))
+                    .unwrap_or(last)
+                    .to_owned()
+            })
+        };
         attacker.splash_radius = rules.attack.splash_radius();
         attacker.attack_interval_q32 =
             time_units_to_seconds_q32(rules.attack.interval_time_units());

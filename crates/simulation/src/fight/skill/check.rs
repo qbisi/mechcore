@@ -405,6 +405,11 @@ impl Simulation {
         skill_ref: SkillRef,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<bool> {
+        // A preemptive skill attacks once: its check fails once it has
+        // performed (`SkillAttackController.IsPerformedOnce`).
+        if self.skill_is_preemptive(skill_ref) && self.skill(skill_ref).performed() {
+            return Ok(false);
+        }
         if let Some(target @ FightActorRef::Building(_)) = self.skill(skill_ref).attack_target()
             && !self.is_tower(target)
             && !self.fight_actor_is_alive(target)
@@ -485,7 +490,7 @@ impl Simulation {
 
     /// `SearchLockTarget` followed by `SearchAttackTarget`, as the checker
     /// runs them; no lock found clears the targets.
-    fn search_normal_lock_target(
+    pub(in crate::fight) fn search_normal_lock_target(
         &mut self,
         skill_ref: SkillRef,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,

@@ -151,6 +151,14 @@ impl Simulation {
         if !self.target_in_attack_range(skill_ref, target) {
             return Ok(());
         }
+        // `SkillIdleState.TryStartAttack` asks the skill's start checker.
+        if matches!(
+            self.skill(skill_ref).state,
+            super::skill::SkillState::Idle { .. }
+        ) && !self.may_start_attack(skill_ref)
+        {
+            return Ok(());
+        }
         // The attack is entered from idle; the state is not updated on the
         // tick it is entered.
         let entered_attack = skill.phase() == FightSkillPhase::Idle;

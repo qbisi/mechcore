@@ -111,6 +111,10 @@ pub(crate) struct ExtraWeaponConfig {
     /// `SkillData.damage`: a skill with no damage rate deals its own, one
     /// entry for each unit level.
     pub(crate) damage_by_level: Vec<i64>,
+    /// `SkillData.damageRate`: a skill with one deals that share of its
+    /// unit's base damage at its level.
+    #[serde(default)]
+    pub(crate) damage_rate: f64,
     /// The fire its hit leaves, for a row whose `rangeItemType` is a fire.
     #[serde(default)]
     pub(crate) fire: Option<ExtraWeaponFire>,
@@ -352,6 +356,10 @@ pub(crate) struct AttackConfig {
     /// searches are scored from each weapon's default rotation.
     #[serde(default)]
     pub(crate) default_rotation_search: bool,
+    /// `SkillData.useSelfSplash`: the splash is measured from the skill's
+    /// own unit rather than from what it struck.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub(crate) self_splash: bool,
     pub(crate) path: AttackPath,
     /// A skill that fires from a magazine: `SkillData.isLoadingType`, which a
     /// turret's is and no unit this build places reads.
@@ -471,6 +479,13 @@ pub(crate) enum AttackPath {
     Direct,
     /// `SuicideEffect`: the blow takes its own unit's life.
     Suicide,
+    /// `FightAroundSkill`, a preemptive skill that starts only where
+    /// `target_count` enemies stand within `select_radius` metres of its unit
+    /// (`IAroundAttackSkillData`), and strikes about the unit.
+    Around {
+        select_radius: f64,
+        target_count: u32,
+    },
     Laser {
         damage_multipliers: Vec<f64>,
     },
@@ -1072,6 +1087,20 @@ impl AttackConfig {
                 )
             }
             AttackPath::Direct | AttackPath::Suicide => Ok(()),
+            AttackPath::Around {
+                select_radius,
+                target_count,
+            } => {
+                if *target_count == 0 {
+                    return Err(Error::new("around path requires a target count"));
+                }
+                validate_scaled(
+                    *select_radius,
+                    SPACE_UNITS_PER_METER,
+                    "path.select_radius",
+                    false,
+                )
+            }
             AttackPath::Laser { damage_multipliers } => {
                 if damage_multipliers.is_empty()
                     || damage_multipliers

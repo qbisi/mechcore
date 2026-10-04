@@ -1,0 +1,206 @@
+//! A preemptive skill about its unit (`FightAroundSkill`).
+//!
+//! An around skill starts only through `AroundSkillStartAttackChecker`: the
+//! preemptive checker first (`PreemptiveSkillStartAttackChecker`), which
+//! asks for no preemptive skill running, the main skill at rest and the
+//! skill's own target in its attack area, and then for enough enemies within
+//! its select radius. Leaving its idle state it takes the main skill's place
+//! (`PreemptiveSkillExitIdleBehaviour`): the main skill locks and the skill
+//! searches, taking the motion. It strikes once, about its unit
+//! (`SkillDamageProvider.CalculateDamagePosition` of a self splash), and its
+//! attack check fails once it has (`SkillAttackState.CheckAttackable`), so it
+//! returns to its idle state and hands the main skill back
+//! (`PreemptiveSkillEnterIdleBehaviour`).
+
+use super::*;
+
+impl Simulation {
+    /// The skill's `SkillStartAttackChecker.Check`: an around skill's
+    /// `AroundSkillStartAttackChecker`, every other skill's none.
+    pub(in crate::fight) fn may_start_attack(&self, skill_ref: SkillRef) -> bool {
+        match self.skill(skill_ref).kind {
+            SkillKind::Around => self.around_may_start(skill_ref),
+            _ => true,
+        }
+    }
+
+    /// `FightSkill.IsPreemptive`: an around skill, or a permanent preemptive
+    /// one.
+    pub(in crate::fight) fn skill_is_preemptive(&self, skill_ref: SkillRef) -> bool {
+        let SkillSlot::Extra(index) = skill_ref.slot else {
+            return false;
+        };
+        let extra = &self.skills(skill_ref.owner).extras[index];
+        extra.skill.kind == SkillKind::Around || extra.rules.preemptive.is_some()
+    }
+
+    /// `AroundSkillStartAttackChecker.Check`.
+    fn around_may_start(&self, skill_ref: SkillRef) -> bool {
+        let FightActorRef::Unit(actor_id) = skill_ref.owner else {
+            return false;
+        };
+        let actor = &self.actors[&actor_id];
+        // `PreemptiveSkillStartAttackChecker.Check`: with a preemptive skill
+        // set, only a permanent one may start, which an around skill is not.
+        if actor.skills.running_preemptive.is_some() || actor.skills.preemptive_active {
+            return false;
+        }
+        if !self.main_skill_at_rest(actor_id) {
+            return false;
+        }
+        let skill = self.skill(skill_ref);
+        if !skill
+            .attack_target()
+            .is_some_and(|target| self.target_in_attack_range(skill_ref, target))
+        {
+            return false;
+        }
+        let Some(attacker) = self.skill_attacker(skill_ref) else {
+            return false;
+        };
+        let AttackPath::Around {
+            select_radius,
+            target_count,
+        } = attacker.attack.path
+        else {
+            return false;
+        };
+        // The enemy units that `FightTeam`'s unit quadtree answers for a square
+        // of the select radius about the unit (`RectRange`), in its order:
+        // each alive and of a type the skill takes, whose edge is within the
+        // radius, `FightUtility.CalculateDistance3D` less its radius, counts,
+        // up to the condition.
+        let radius_q32 = crate::rules::metres_q32(select_radius);
+        let own_y = space_to_q32(unit_height(actor.rules.domain));
+        let found = self
+            .mech_quadtrees
+            .iter()
+            .filter(|(team, _)| **team != actor.placement.team)
+            .flat_map(|(_, tree)| tree.query_square(actor.x_q32, actor.z_q32, radius_q32))
+            .collect::<Vec<_>>();
+        let count = found
+            .into_iter()
+            .filter_map(FightActorRef::unit_id)
+            .filter_map(|id| self.actors.get(&id))
+            .filter(|enemy| {
+                enemy.alive()
+                    && enemy.visibility == Visibility::Normal
+                    && attacker.attack.accepts(enemy.rules.domain)
+                    && native_q32_magnitude_3d(
+                        enemy.x_q32.saturating_sub(actor.x_q32),
+                        space_to_q32(unit_height(enemy.rules.domain)).saturating_sub(own_y),
+                        enemy.z_q32.saturating_sub(actor.z_q32),
+                    )
+                    .saturating_sub(space_to_q32(enemy.rules.collision_radius()))
+                        <= radius_q32
+            })
+            .take(usize::try_from(target_count).unwrap_or(usize::MAX))
+            .count();
+        u32::try_from(count).is_ok_and(|count| count >= target_count)
+    }
+
+    /// `PreemptiveSkillExitIdleBehaviour.Execute`: the skill is set as the
+    /// unit's preemptive skill, the main skill locks
+    /// (`ChangeToLockState`), and the skill searches its lock
+    /// (`SearchLockTarget`), taking the motion as the main skill holds none.
+    pub(in crate::fight) fn preemptive_leaves_idle(
+        &mut self,
+        skill_ref: SkillRef,
+        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
+    ) -> Result<()> {
+        let (FightActorRef::Unit(actor_id), SkillSlot::Extra(index)) =
+            (skill_ref.owner, skill_ref.slot)
+        else {
+            return Ok(());
+        };
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        actor.skills.running_preemptive = Some(index);
+        super::preemptive::lock(&mut actor.skills.main);
+        self.search_normal_lock_target(skill_ref, target_search_order)?;
+        Ok(())
+    }
+
+    /// `PreemptiveSkillEnterIdleBehaviour.Execute`: the unit's preemptive
+    /// skill is removed and the main skill returns to its idle state
+    /// (`ChangeToIdleState`), `SkillLockState.Exit` restarting its search
+    /// timer.
+    pub(in crate::fight) fn preemptive_enters_idle(&mut self, actor_id: u64) {
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        actor.skills.running_preemptive = None;
+        let main = &mut actor.skills.main;
+        main.enter(SkillState::Idle { ready_step: None });
+        main.search_target_time = SEARCH_TARGET_RESET_TICKS;
+    }
+
+    /// An around skill's blow: `DamageEffect` from its unit's own position,
+    /// `SkillDamageProvider.CalculateDamagePosition` of a self splash, at
+    /// the skill's splash, dealing the skill's damage, of the skill that
+    /// struck.
+    pub(in crate::fight) fn around_effect(
+        &mut self,
+        skill_ref: SkillRef,
+        target: FightActorRef,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        let FightActorRef::Unit(actor_id) = skill_ref.owner else {
+            return Err(Error::new("a construction's around skill is not supported"));
+        };
+        let attacker = self
+            .skill_attacker(skill_ref)
+            .ok_or_else(|| Error::new("around skill owner is absent"))?;
+        if !attacker.attack.self_splash || attacker.splash_radius <= 0 {
+            return Err(Error::new(
+                "an around skill that splashes about its target is not measured",
+            ));
+        }
+        let (amount, splash_radius, crosses_shields) = (
+            attacker.attack_damage,
+            attacker.splash_radius,
+            attacker.attack.crosses_shields,
+        );
+        let skill_slot = u16::try_from(self.skill_slot(skill_ref))
+            .map_err(|_| Error::new("a skill slot is outside u16"))?;
+        let actor = &self.actors[&actor_id];
+        let hit = DamageHit {
+            center_q32: (actor.x_q32, actor.z_q32),
+            center_y_q32: space_to_q32(unit_height(actor.rules.domain)),
+            splash_radius,
+            crosses_shields,
+            ..DamageHit::of_skill(actor, skill_slot, (target, self.domain_of(target)), amount)
+        };
+        let struck = self.perform_damage(hit, events)?;
+        self.record_ends(struck.ends, events);
+        Ok(())
+    }
+}
+
+/// `PreemptiveSkillStartAttackChecker.IsMainSkillIdleState` for a skill that
+/// is not permanent: the main skill idle, or attacking between two blows
+/// after its first (`performCount` above zero and no `currentController`).
+///
+/// A backswing that ends on this update has ended for the build: the Rhino of
+/// `whirlwind-rhinos.yaml` whose first backswing runs out as its Whirlwind
+/// checks starts the Whirlwind then. And an idle main skill whose target is
+/// in its attack area has started its attack in its own update
+/// (`SkillIdleState.TryPerform`), which this simulator leaves to the motion:
+/// the same Rhino, handed back its main skill, does not start its Whirlwind
+/// again as the main skill takes its target.
+impl Simulation {
+    fn main_skill_at_rest(&self, actor_id: u64) -> bool {
+        let main = &self.actors[&actor_id].skills.main;
+        match main.state {
+            SkillState::Idle { .. } => !main.attack_target().is_some_and(|target| {
+                self.target_in_attack_area(SkillRef::main(FightActorRef::Unit(actor_id)), target)
+            }),
+            SkillState::Attack(Blow::Waiting) => main.performed(),
+            SkillState::Attack(Blow::After { finish_step }) => finish_step <= self.step_now,
+            _ => false,
+        }
+    }
+}

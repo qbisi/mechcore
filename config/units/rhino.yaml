@@ -42,3 +42,38 @@ attack:
   crosses_shields: true
   path:
     type: direct
+
+extra_weapons:
+  - technology: 1109
+    skill: 5002
+    use_main_skill_range: false
+    damage_by_level: []
+    damage_rate: 1.4
+    attack:
+      base_damage: 0
+      min_range: 0
+      range: 25
+      attack_half_angle: 360
+      targets: {ground: true, air: false}
+      lock_target: true
+      quick_switch_target: false
+      timing:
+        interval: 1.5
+        interval_offset: 0
+        initial_cooldown: 0
+        prepare: 0
+        attack_point: 0.6
+        backswing: 0.5
+        cooling: 0
+      splash_radius: 35
+      weapons:
+        mode: normal
+        indices: []
+        per_skill: 0
+      melee: true
+      crosses_shields: true
+      self_splash: true
+      path:
+        type: around
+        select_radius: 25
+        target_count: 2

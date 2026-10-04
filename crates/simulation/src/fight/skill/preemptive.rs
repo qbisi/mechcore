@@ -120,7 +120,7 @@ impl Simulation {
 
 /// `SkillLockState.Enter`: the skill lets its lock and what it fires at go,
 /// and anything under way with them.
-fn lock(skill: &mut Skill) {
+pub(super) fn lock(skill: &mut Skill) {
     skill.drop_lock();
     skill.attack_target_left = None;
     skill.performer.stop();
