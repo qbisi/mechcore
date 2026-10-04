@@ -104,6 +104,7 @@ impl Simulation {
                     self.update_sweep(actor_id, events)?;
                 }
             }
+            SkillKind::Suicide => self.suicide(skill_ref, events)?,
             SkillKind::Strike => {
                 let actor_id = skill_ref.owner.unit_id().ok_or_else(|| {
                     Error::new("a construction's skill that strikes is not supported")

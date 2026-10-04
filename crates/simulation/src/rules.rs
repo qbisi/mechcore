@@ -114,7 +114,64 @@ pub(crate) struct ExtraWeaponConfig {
     /// The fire its hit leaves, for a row whose `rangeItemType` is a fire.
     #[serde(default)]
     pub(crate) fire: Option<ExtraWeaponFire>,
+    /// A permanent preemptive skill: locked until its condition holds, then
+    /// in the main skill's place.
+    #[serde(default)]
+    pub(crate) preemptive: Option<PermanentPreemptive>,
+    /// An explosion skill: the effect its unit's death has.
+    #[serde(default)]
+    pub(crate) explosion: Option<ExplosionConfig>,
     pub(crate) attack: AttackConfig,
+}
+
+/// `SkillData.isPreemptivePermanent`, of `permanentPreemptiveActiveConditionType`
+/// life: the skill activates once its unit's life is no more than
+/// `life_below` of its maximum, and writes its buff on the unit.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct PermanentPreemptive {
+    pub(crate) life_below: f64,
+    pub(crate) buff: PreemptiveBuff,
+}
+
+/// The `buffDatas` row `permanentPreemptiveActiveBuffID` names.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "the buff row's flags are independent fields"
+)]
+pub(crate) struct PreemptiveBuff {
+    pub(crate) id: u32,
+    /// Seconds.
+    pub(crate) duration: f64,
+    pub(crate) divide: i32,
+    pub(crate) additive: bool,
+    pub(crate) debuff: bool,
+    pub(crate) invincible: bool,
+    /// `speedChangeValue`, whole metres a second.
+    pub(crate) move_speed_value: i64,
+}
+
+/// An `ExplosionSkillData` as `IDeadExplosive`: its unit's death deals the
+/// life the unit had before it took its own (`explosiveDamageCondition` 2)
+/// times `damage_multiplier`, within the skill's splash, and leaves a fire.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ExplosionConfig {
+    pub(crate) damage_multiplier: f64,
+    /// `enableFriendlyFire`: the explosion strikes its own side too.
+    pub(crate) friendly_fire: bool,
+    #[serde(default)]
+    pub(crate) dead_fire: Option<DeadFire>,
+}
+
+/// `deadRangeItemLifeTime` in seconds and `deadRangeItemRange` in metres.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct DeadFire {
+    pub(crate) life_time: f64,
+    pub(crate) radius: f64,
 }
 
 /// `ExtraWeaponTechnologyData.fireLifeTime`: how long the fire its hit leaves
@@ -392,6 +449,8 @@ pub(crate) enum AttackPath {
         max_life: i64,
     },
     Direct,
+    /// `SuicideEffect`: the blow takes its own unit's life.
+    Suicide,
     Laser {
         damage_multipliers: Vec<f64>,
     },
@@ -992,7 +1051,7 @@ impl AttackConfig {
                     true,
                 )
             }
-            AttackPath::Direct => Ok(()),
+            AttackPath::Direct | AttackPath::Suicide => Ok(()),
             AttackPath::Laser { damage_multipliers } => {
                 if damage_multipliers.is_empty()
                     || damage_multipliers

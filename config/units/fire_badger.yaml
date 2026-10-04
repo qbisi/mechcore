@@ -52,3 +52,48 @@ attack:
     simulated_motion: true
     interceptible: false
     max_life: 0
+
+extra_weapons:
+  - technology: 11020
+    skill: 20002
+    use_main_skill_range: false
+    damage_by_level: []
+    preemptive:
+      life_below: 0.5
+      buff:
+        id: 6020
+        duration: 9999
+        divide: 0
+        additive: false
+        debuff: false
+        invincible: true
+        move_speed_value: 60
+    explosion:
+      damage_multiplier: 1
+      friendly_fire: true
+      dead_fire: {life_time: 7, radius: 40}
+    attack:
+      base_damage: 0
+      min_range: 0
+      range: 1
+      attack_half_angle: 360
+      targets: {ground: true, air: false}
+      lock_target: false
+      quick_switch_target: false
+      timing:
+        interval: 0
+        interval_offset: 0
+        initial_cooldown: 0
+        prepare: 0
+        attack_point: 0
+        backswing: 0
+        cooling: 0
+      splash_radius: 40
+      weapons:
+        mode: normal
+        indices: [0]
+        per_skill: 1
+      melee: true
+      crosses_shields: false
+      path:
+        type: suicide

@@ -245,6 +245,7 @@ pub(in crate::fight) fn clamp_magnitude_q32_raw(dx: i64, dz: i64, maximum: i64) 
 impl Simulation {
     pub(in crate::fight) fn step_actor_rvo_position(&mut self, actor_id: u64) {
         let rvo_boundary_due = self.rvo.counter == 3;
+        let suicided = self.suicided_this_tick(actor_id);
         let changed = {
             let actor = self
                 .actors
@@ -252,7 +253,7 @@ impl Simulation {
                 .expect("actor identity is stable");
             // A locked agent stands where it is: `DoCalculateNextPosition`
             // moves it nowhere.
-            if !actor.alive() || actor.agent_locked() {
+            if (!actor.alive() && !suicided) || actor.agent_locked() {
                 return;
             }
             let maximum_delta_q32 =
@@ -799,7 +800,7 @@ impl Simulation {
     /// `MotionIdleState`: its `Enter` stops the move, and its `Update` does
     /// not, so an idle unit an RVO solve nudged keeps the target point it
     /// stopped at, and the next solve steers it back there.
-    fn enter_motion_idle(&mut self, actor_id: u64) {
+    pub(in crate::fight) fn enter_motion_idle(&mut self, actor_id: u64) {
         let actor = self
             .actors
             .get_mut(&actor_id)
@@ -887,6 +888,16 @@ impl Simulation {
             return;
         };
         if actor.skills.main.mech_searches() {
+            return;
+        }
+        // An active permanent preemptive skill is the main searcher, and
+        // the motion's whoever else searches.
+        if actor.skills.preemptive_active {
+            if let SkillSlot::Extra(index) = skill_ref.slot
+                && actor.skills.extras[index].rules.preemptive.is_some()
+            {
+                actor.motion.attacker = skill_ref.slot;
+            }
             return;
         }
         match skill_ref.slot {

@@ -198,6 +198,8 @@ def extra_weapon_lines(mech, technology, kind, skill, row):
     a buff, changes a shield's damage or reduces every weapon's damage is left
     out, and the simulator refuses the technology by name.
     """
+    if kind == "explosionSkillDatas":
+        return explosion_lines(mech, technology, skill, row)
     # `rangeItemType` -1 leaves nothing, 0 a fire; `energyShieldDamage` -1
     # leaves a shield's damage as it is.
     fire = row.get("rangeItemType", -1) == 0
@@ -228,6 +230,77 @@ def extra_weapon_lines(mech, technology, kind, skill, row):
     if fire:
         life = ", ".join(str(grid(value, 2000)) for value in row["fireLifeTime"])
         lines.append(f"    fire: {{life_time: [{life}]}}")
+    return lines + ["    attack:"] + attack
+
+
+# The `buffDatas` fields a skill's permanent preemptive buff may set, as the
+# simulator reads them; a buff that sets any other is left out.
+PREEMPTIVE_BUFF_READ = {
+    "buffDivide": "divide", "isAdditiveMode": "additive", "debuff": "debuff",
+    "invincible": "invincible", "speedChangeValue": "move_speed_value",
+}
+PREEMPTIVE_BUFF_DESCRIPTIVE = {"id", "name", "isTestData", "duration", "stepTime", "effectType",
+                               "isClearSelfBuffWhenDisableTech"}
+
+
+def explosion_lines(mech, technology, skill, row):
+    """An explosion skill an extra weapon technology adds as its unit's
+    permanent preemptive skill, when the simulator's shape can state it.
+
+    The skill stays locked until its unit's life falls to its condition's
+    share (`PermanentPreemptiveActiveConditionLifeController`), then takes the
+    main skill's place and writes its buff; its attack is the unit's own death
+    (`SuicideEffect`), and its explosion that death's effect
+    (`DeadExplosiveController`), dealing the life the unit had before it and
+    leaving a fire where it stood.
+    """
+    if (row.get("rangeItemType", -1) != -1 or row.get("buffID")
+            or row.get("energyShieldDamage", -1) != -1
+            or any(raw(value) for value in row.get("fireLifeTime") or [])
+            or raw(row.get("fogAttackRangeChangeRate")) or raw(row.get("allWeaponReduceDamageRate"))):
+        return []
+    if (not skill["isPreemptive"] or not skill["isPreemptivePermanent"]
+            or skill["permanentPreemptiveActiveConditionType"] != 1
+            or skill["permanentPreemptiveExtraWeaponActiveBuffID"]
+            or skill["permanentPreemptiveIncompatibleSkillID"]
+            or len(skill["permanentPreemptiveActiveBuffID"]) != 1
+            or skill["explosiveDamageCondition"] != 2
+            or (skill["hasDeadRangeItem"] and skill["deadRangeItemType"] != 0)
+            or skill["damage"] or raw(skill["initialCoolDownTime"])
+            or any(skill[field] for field in ("isLoadingType", "isDiffusion", "useSelfSplash"))):
+        return []
+    buffs = {buff["id"]: buff for buff in build_data.container()["buffDatas"]}
+    buff = buffs[skill["permanentPreemptiveActiveBuffID"][0]]
+    if any(raw(value) not in (0, False, None, "", [], {}) for field, value in buff.items()
+           if field not in PREEMPTIVE_BUFF_READ and field not in PREEMPTIVE_BUFF_DESCRIPTIVE):
+        return []
+    try:
+        attack = attack_lines(mech["id"], "explosionSkillDatas", skill, "base_damage: 0",
+                              skill["canAttackAngle"], "      ", angle_absent=360 * ONE)
+    except SystemExit:
+        return []
+    lines = [
+        f"  - technology: {technology}",
+        f"    skill: {skill['id']}",
+        f"    use_main_skill_range: {boolean(row.get('useMainSkillRange', False))}",
+        "    damage_by_level: []",
+        "    preemptive:",
+        f"      life_below: {readable(skill['permanentPreemptiveActiveConditionParamFloat'])}",
+        "      buff:",
+        f"        id: {buff['id']}",
+        f"        duration: {readable(buff['duration'])}",
+    ]
+    for field, name in PREEMPTIVE_BUFF_READ.items():
+        value = raw(buff[field])
+        lines.append(f"        {name}: {boolean(value) if isinstance(value, bool) else value}")
+    lines += [
+        "    explosion:",
+        f"      damage_multiplier: {readable(skill['damageMultiplier'])}",
+        f"      friendly_fire: {boolean(skill['enableFriendlyFire'])}",
+    ]
+    if skill["hasDeadRangeItem"]:
+        lines.append(f"      dead_fire: {{life_time: {readable(skill['deadRangeItemLifeTime'])}, "
+                     f"radius: {grid(skill['deadRangeItemRange'], 1000)}}}")
     return lines + ["    attack:"] + attack
 
 
@@ -314,6 +387,8 @@ def attack_lines(unit, kind, skill, damage_line, attack_angle, indent, angle_abs
         ]
     elif kind == "skillDatas":
         lines.append("    type: direct")
+    elif kind == "explosionSkillDatas":
+        lines.append("    type: suicide")
     elif kind == "laserSkillDatas":
         lines += [
             "    type: laser",

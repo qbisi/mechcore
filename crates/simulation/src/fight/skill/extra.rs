@@ -55,10 +55,17 @@ impl Simulation {
             owner: FightActorRef::Unit(actor_id),
             slot: SkillSlot::Extra(index),
         };
+        // `SkillLockState` does not update.
+        if self.skill(skill_ref).state == SkillState::Locked {
+            return Ok(());
+        }
         let parent = self.actors[&actor_id].body_rotation_q32;
         self.skill_mut(skill_ref).lock_written = false;
         if let Some(update) = self.update_skill(skill_ref, step, target_search_order, events)? {
             self.attack_in_reach(skill_ref, step, update, events)?;
+        }
+        if !self.actors[&actor_id].alive() {
+            return Ok(());
         }
         self.turn_extra_weapon(actor_id, index, parent);
         Ok(())

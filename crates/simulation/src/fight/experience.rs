@@ -317,9 +317,17 @@ impl Simulation {
             Some(source) => self.side_of(source).or(Some(source_team)),
             None => self.side_of(target.object_ref()).map(|team| team ^ 1),
         };
-        if let Some(side) = side
-            && side != self.side_of(target.object_ref()).unwrap_or(side ^ 1)
-        {
+        // A kill by the target's own side shares with that side's opponents
+        // standing near (`GroupManager.GetOpponentGroups`): the Fire Badger
+        // an ally's explosion fells hands its loot to the enemies about it.
+        let side = side.map(|side| {
+            if Some(side) == self.side_of(target.object_ref()) {
+                side ^ 1
+            } else {
+                side
+            }
+        });
+        if let Some(side) = side {
             self.add_nearby(side, target, &mut shared)?;
             // A kill no unit made, with no one to share it, goes to every unit
             // of the killer's side that may take experience.

@@ -64,7 +64,7 @@ const EXTRA_WEAPON: &str = "extraWeaponTechnologies";
 /// what it does beyond a projectile differ, so each joins once a recording
 /// of it agrees: Secondary Armament, the Sabertooth's two guns, and the
 /// Hound's Incendiary Bomb, whose hit leaves a fire.
-pub(crate) const FOUGHT_EXTRA_WEAPONS: [i32; 2] = [11_028, 110_211];
+pub(crate) const FOUGHT_EXTRA_WEAPONS: [i32; 3] = [11_020, 11_028, 110_211];
 
 /// `EnergyShieldTech.GetLifeRate`: `FPoint.One`, whatever its row, so the
 /// shield holds the unit's whole maximum life.

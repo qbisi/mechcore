@@ -476,6 +476,17 @@ impl Simulation {
                     unit.exit_fight_on_death();
                     position
                 });
+                // `DeadEffectSystem.OnActorDead` queues the unit's dead effect
+                // for the module's update: an explosion explodes however its
+                // unit died, once the unit has arrived
+                // (`FightExplosionSkill.EnterFight`, `OnTravelFinished`).
+                if death.is_some()
+                    && previous_life > 0
+                    && !self.actors[&unit_id].travelling
+                    && self.explosion_of(unit_id).is_some()
+                {
+                    self.dead_explosions.push((unit_id, false));
+                }
                 Ok(Stroke {
                     actual,
                     dealt: amount,
