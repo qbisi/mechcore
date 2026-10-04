@@ -483,7 +483,22 @@ impl Actor {
                 },
             modifiers: self
                 .stats
-                .modifiers(&self.corrected_skill_slots())
+                .modifiers(
+                    &self.corrected_skill_slots(),
+                    &self
+                        .skills
+                        .extras
+                        .iter()
+                        .enumerate()
+                        .filter(|(_, extra)| !extra.skill_corrections.is_empty())
+                        .map(|(index, extra)| {
+                            (
+                                self.skills.main_slots() + index,
+                                extra.skill_corrections.as_slice(),
+                            )
+                        })
+                        .collect::<Vec<_>>(),
+                )
                 .expect("the layout refused every correction a snapshot cannot record"),
             personal_shield: PersonalShieldState {
                 active: self.shield.is_some(),
@@ -640,6 +655,7 @@ fn extra_skills(placement: &Placement) -> Vec<ExtraSkill> {
                     terrain: weapon.terrain,
                     buff: weapon.buff,
                     dead_fire: weapon.dead_fire,
+                    skill_corrections: weapon.skill_corrections.clone(),
                     weapon: index,
                 }
             })

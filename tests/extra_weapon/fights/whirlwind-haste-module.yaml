@@ -1,0 +1,23 @@
+# An item's damage rate on Whirlwind, through the main skill and its own.
+#
+# `whirlwind-rhinos.yaml` with Haste Module, +0.35 of damage and +5 of speed.
+# The Whirlwind strikes for 6727, its 4983 raised by the item as the main
+# skill's 3560 is, to 4805.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 161
+hash: {profile: mcfr-content-0.7.0, result: 40243dafacdda073fee9c451e2b518213bd0950bcb600f85e4208daf2e667e2e}
+blue:
+  core_damage: 400
+  techs:
+    rhino: [whirlwind]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, equipment: [haste_module]}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: -25, y: -95}, exp: 0/100/1150}
+  - {name: rhino, index: 1, position: {x: 35, y: -95}, exp: 0/300/1150}

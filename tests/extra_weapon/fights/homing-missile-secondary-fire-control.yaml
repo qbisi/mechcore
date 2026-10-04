@@ -1,0 +1,25 @@
+# An item's damage rate on Homing Missile, an extra skill without a rate.
+#
+# `homing-missile.yaml` with Secondary Fire Control System, +0.25 of damage,
+# whose `extraSkillEffect` lets it reach the unit's extra skills. The missile
+# skill's own `DataSet` holds it, as the recording does on its slot, and its
+# 800 a missile becomes 1000.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 80
+hash: {profile: mcfr-content-0.7.0, result: a67bc6c23162298a361148595a45087d1c1189d33434fbcc17a4f21ad09eed71}
+blue:
+  techs:
+    centurion: [homing_missile]
+  units:
+  - {name: centurion, index: 0, position: {x: 5, y: -45}, exp: 0/600/2250, equipment: [secondary_fire_control_system]}
+red:
+  core_damage: 250
+  units:
+  - {name: marksman, index: 0, position: {x: -40, y: -100}}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}}
+  - {name: marksman, index: 2, position: {x: 40, y: -100}}
