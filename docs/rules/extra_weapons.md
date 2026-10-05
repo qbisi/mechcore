@@ -304,7 +304,10 @@ place for the rest of the fight. The row also raises the unit's life by 80%.
   When that module updates, before it calls the dead units' `OnDead`,
   `DeadExplosiveController.PerformDeadEffect` strikes everything within the
   unit's radius and the skill's splash of where it fell, its own side too
-  (`enableFriendlyFire`), buildings included, with the life the unit had
+  (`enableFriendlyFire`), buildings included, for the side the unit was
+  deployed on whether a beam has turned it or not
+  (`DeadExplosiveDamageProvider.GetTeamController` answers the unit's
+  `originTeamController`), with the life the unit had
   before it took its own (`explosiveDamageCondition` 2) times the skill's
   multiplier. A unit some other hit killed had no such life and deals
   nothing. A unit the explosion kills explodes in turn on the same update, and
@@ -528,7 +531,9 @@ simulator refuses it.
 - An officer's damage rate reaches a Fire Badger's Scorching Charge slot:
   replay 2324_20260925--134259672 round 5, tick 1, fought by the game with
   `scripts/corpus/match-replays.py`.
-
+- A Spider Mine a Hacker turned explodes for the side it was made on:
+  replay 2324_20260925--134259672 round 5, tick 156, fought by the game with
+  `scripts/corpus/match-replays.py`.
 - A Centurion's Homing Missile takes a block in the way that its main gun is
   too short for: replay 2324_20260925--67159970 round 6, fought by the game
   with `scripts/corpus/match-replays.py`.
@@ -617,6 +622,7 @@ simulator refuses it.
   `DeadEffectSystem.Update`, `DeadExplosiveController.PerformDeadEffect`,
   `DeadExplosiveDamageProvider.GetDamage`,
   `DeadExplosiveDamageProvider.GetSplashRange`,
+  `DeadExplosiveDamageProvider.GetTeamController`,
   `DeadExplosiveDamageProvider.GetEffectTargetType`,
   `DeadExplosiveDamageProvider.GetMainTarget`.
 - A support skill: `FightSupportSkill.CreateStartAttackChecker`,
