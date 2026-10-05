@@ -13,10 +13,10 @@ use crate::{
     data::{Channel, Correction, Entry, ExperienceRate, Index, Stats},
     modifier::{
         AutoRecovery, CarriedShield, EnergyShield, EnergyTowerSkillEffects, EquipmentEffects,
-        LifeSteal, OfficerEffects, ProductionLine, StartBuff, SweepIntensify, TechnologyEffects,
-        current_source,
+        LifeSteal, MainSkill, OfficerEffects, ProductionLine, StartBuff, SweepIntensify,
+        TECHNOLOGY_SOURCE, TechnologyEffects, current_source,
     },
-    rules::{ExtraWeaponConfig, UnitConfig, UnitConfigs},
+    rules::{ExtraWeaponConfig, UnitConfig, UnitConfigs, UnitDomain},
 };
 use commander_skills::{CommanderSkillEffects, technology_buff};
 pub(crate) use commander_skills::{
@@ -968,7 +968,7 @@ fn worn(
             .energy_shield(&side.techs.units, type_name)
             .map_err(on_side),
     )?;
-    let (sweep, distance_intensify) = refused.hold(
+    let main_skill = refused.hold(
         loadouts
             .technologies
             .main_skill(&side.techs.units, type_name)
@@ -1005,13 +1005,14 @@ fn worn(
         auto_recovery
             .extend(refused.hold(loadouts.equipment.auto_recovery(id, rules).map_err(on_side))?);
     }
-    let extra_weapons = extra_weapons(
+    let mut extra_weapons = extra_weapons(
         side_name, type_name, equipment, rules, side, loadouts, refused,
     )?;
     let mut corrections = corrections;
     for weapon in &extra_weapons {
         corrections.extend(extra_weapon_corrections(&weapon.rules));
     }
+    switch_air_attack(&main_skill, rules, &mut corrections, &mut extra_weapons);
     let in_force = |error: String| refusal(Error::new(error));
     Some(Worn {
         corrections,
@@ -1019,8 +1020,8 @@ fn worn(
         lifesteal: refused.hold(current_source(&lifesteal).map_err(in_force))?,
         auto_recovery: refused.hold(current_source(&auto_recovery).map_err(in_force))?,
         energy_shield: refused.hold(current_source(&energy_shield).map_err(in_force))?,
-        sweep,
-        distance_intensify,
+        sweep: main_skill.sweep,
+        distance_intensify: main_skill.distance_intensify,
         carried_shield: match carried_shields.as_slice() {
             [] => None,
             [one] => Some(*one),
@@ -1192,6 +1193,38 @@ fn extra_weapons(
         });
     }
     Some(weapons)
+}
+
+/// `AirAttackEffectProvider.SwitchMechAirAttackEnabled`: an air-attack
+/// technology adds -1 to the main skill's `AirAttackValue` if its row attacks
+/// aircraft and 1 otherwise, so a Fang with Grenade Launcher attacks none and
+/// an Arclight with Anti-Aircraft Ammunition attacks them. Where the row's
+/// `extraSkillEffect` says so, each extra skill holding its own `DataSet`
+/// gains the same, as a Tarantula's Spider Mine does; one with a damage rate
+/// holds the main skill's.
+fn switch_air_attack(
+    main_skill: &MainSkill,
+    rules: &UnitConfig,
+    corrections: &mut Vec<(Channel, Entry)>,
+    extra_weapons: &mut [ExtraWeapon],
+) {
+    let Some(air_attack) = main_skill.air_attack else {
+        return;
+    };
+    let entry = Entry {
+        index: Index::AttackValueFor(UnitDomain::Air),
+        source: TECHNOLOGY_SOURCE,
+        correction: Correction::Value(if rules.attack.targets.air { -1 } else { 1 }),
+    };
+    corrections.push((Channel::Skill, entry.clone()));
+    if air_attack.extra_skills {
+        for weapon in extra_weapons
+            .iter_mut()
+            .filter(|weapon| weapon.rules.damage_rate <= 0.0)
+        {
+            weapon.skill_corrections.push(entry.clone());
+        }
+    }
 }
 
 /// What writes onto one extra skill's numbers (`SkillDataModifier.AvaliableCheck`):

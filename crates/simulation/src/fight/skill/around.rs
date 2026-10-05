@@ -89,7 +89,7 @@ impl Simulation {
             .filter(|enemy| {
                 enemy.alive()
                     && enemy.visibility == Visibility::Normal
-                    && attacker.attack.accepts(enemy.rules.domain)
+                    && attacker.targets.accepts(enemy.rules.domain)
                     && native_q32_magnitude_3d(
                         enemy.x_q32.saturating_sub(actor.x_q32),
                         space_to_q32(unit_height(enemy.rules.domain)).saturating_sub(own_y),

@@ -48,6 +48,10 @@ pub(crate) struct Fields {
     /// `ExtraSkillProvider.EnableEffect` writes as the skill's
     /// `SkillDataChangeFloatRate.DamageReduceRateBase`.
     pub(crate) damage_reduce_rate_base: Option<i64>,
+    /// A technology's `projectileSpeedChangeValue`, which
+    /// `SkillDataModifier.AddData` writes into the skill's
+    /// `SkillDataChangeFloat.ProjectileSpeedValue`.
+    pub(crate) projectile_speed_value: Option<i64>,
 }
 
 /// What the fields write, in the channels the recording keeps them in.
@@ -116,6 +120,13 @@ pub(crate) fn corrections(fields: Fields) -> Vec<(Channel, Index, Correction)> {
         written.push((
             Channel::Skill,
             Index::SplashRange,
+            Correction::Value(fixed_to(raw, METERS)),
+        ));
+    }
+    if let Some(raw) = fields.projectile_speed_value.filter(|raw| *raw != 0) {
+        written.push((
+            Channel::Skill,
+            Index::ProjectileSpeed,
             Correction::Value(fixed_to(raw, METERS)),
         ));
     }

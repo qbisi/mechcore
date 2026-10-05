@@ -297,6 +297,7 @@ fn corrections_of(row: &Row) -> Vec<(Channel, Index, Correction)> {
         splash_range_value: row.splash_range_value,
         speed_value: row.speed_value,
         damage_reduce_rate_base: None,
+        projectile_speed_value: None,
     })
 }
 

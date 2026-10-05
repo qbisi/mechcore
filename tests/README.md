@@ -9,7 +9,7 @@ out to show:
 
 | Directory | What it holds |
 | --- | --- |
-| [`anti_air/`](anti_air/README.md) | what a technology changes about its unit's skill against aircraft: reach, damage and search |
+| [`anti_air/`](anti_air/README.md) | what a technology changes about its unit's skill against aircraft: whether it attacks them, reach, damage and search |
 | [`armor/`](armor/README.md) | what an armour technology takes off each hit on its unit |
 | [`battle_skill/`](battle_skill/README.md) | when a released battle skill lands, what it reaches, and what it writes or summons |
 | [`construction/`](construction/README.md) | what a construction becomes in a fight, and what attacks it |

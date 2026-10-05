@@ -828,7 +828,7 @@ impl Simulation {
                     || matches!(candidate, FightActorRef::Building(id)
                         if self.unsearchable_buildings.contains(&id))
                     || (!tower_attackable && self.is_tower(candidate))
-                    || !source.attack.accepts(target.domain)
+                    || !source.targets.accepts(target.domain)
                 {
                     continue;
                 }
@@ -1081,10 +1081,10 @@ impl Simulation {
         }
         // The group's skill searches with its own selector, which a
         // technology may have turned to `DistanceIntensify`.
-        let score_offsets = self
+        let (score_offsets, targets) = self
             .skill_attacker(skill_ref)
-            .map(|attacker| attacker.score_offsets)
-            .unwrap_or_default();
+            .map(|attacker| (attacker.score_offsets, attacker.targets))
+            .ok_or_else(|| Error::new("a grouped skill's owner is absent"))?;
         let select = |shared: bool| {
             let mut scoring = Scoring::default();
             for (&team, candidates) in target_search_order {
@@ -1102,7 +1102,7 @@ impl Simulation {
                         || !target.targetable
                         || matches!(candidate, FightActorRef::Building(id)
                             if self.unsearchable_buildings.contains(&id))
-                        || !attack.accepts(target.domain)
+                        || !targets.accepts(target.domain)
                     {
                         continue;
                     }

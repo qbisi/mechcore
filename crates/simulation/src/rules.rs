@@ -1308,16 +1308,18 @@ impl AttackConfig {
         };
         quantize_i64(target_offset_radius, SPACE_UNITS_PER_METER)
     }
+}
 
+impl AttackTargets {
     /// `FightCalculator.IsValidTarget` of `FightSkillBase.GetAttackTargetType`:
     /// a skill that attacks no air attacks the ground, whatever its ground
     /// flag says, and one that attacks the air attacks the ground too only
     /// where its ground flag says so. A Spider Mine's support skill, with
     /// neither flag, locks a Rhino.
-    pub(crate) const fn accepts(&self, domain: UnitDomain) -> bool {
+    pub(crate) const fn accepts(self, domain: UnitDomain) -> bool {
         match domain {
-            UnitDomain::Ground => self.targets.ground || !self.targets.air,
-            UnitDomain::Air => self.targets.air,
+            UnitDomain::Ground => self.ground || !self.air,
+            UnitDomain::Air => self.air,
         }
     }
 }

@@ -1,0 +1,24 @@
+# Anti-Aerial: a Sandworm attacks aircraft, and its range stays its row's.
+#
+# The technology adds 1 to the Sandworm's air_attack_value and 20 metres to
+# its attack_range_value. The Sandworm strikes the Overlord, 9726 a blow,
+# and its range reads 60 throughout: a melee skill's range property reads
+# no correction.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 374
+hash: {profile: mcfr-content-0.7.0, result: 1b344ce9c8122c4fd3e20c22f36c19b5140dcd9dc7471ed235c4c4184afdf655}
+blue:
+  techs:
+    sandworm: [anti_aerial]
+  units:
+  - {name: sandworm, index: 0, position: {x: 0, y: -100}, exp: 0/1200/2000}
+red:
+  core_damage: 350
+  units:
+  - {name: overlord, index: 0, position: {x: -35, y: -75}}
+  - {name: arclight, index: 1, position: {x: 30, y: -80}}

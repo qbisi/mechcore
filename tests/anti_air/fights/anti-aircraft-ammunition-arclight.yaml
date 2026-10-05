@@ -1,0 +1,22 @@
+# Anti-Aircraft Ammunition: an Arclight attacks aircraft.
+#
+# The technology adds 1 to the Arclight's air_attack_value, which its row's
+# air flag of 0 raises to attacking aircraft: its chain takes three Wasps
+# at a time, 311 each.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 180
+hash: {profile: mcfr-content-0.7.0, result: 067360ca0d22eb5c66a082c1337d9a000e9a68b00713a49b5e87bdbb6a7cfb30}
+blue:
+  techs:
+    arclight: [anti_aircraft_ammunition]
+  units:
+  - {name: arclight, index: 0, position: {x: 0, y: -100}, exp: 0/408/750}
+red:
+  core_damage: 100
+  units:
+  - {name: wasp, index: 0, position: {x: 15, y: -90}}

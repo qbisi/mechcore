@@ -71,7 +71,8 @@ the strip it changes ([sweep.md](sweep.md#technology)), an armour
 technology's with the reduction of each hit [combat.md](combat.md#armour)
 states, which its row's `reduce_damage_value` gives by unit level, a
 search-target technology's with its numbers against aircraft and its search
-by distance ([combat.md](combat.md#aerial-and-ground-targets)), Secondary Armament,
+by distance, an air-attack technology's with its skills turned onto or off
+aircraft ([combat.md](combat.md#aerial-and-ground-targets)), Secondary Armament,
 Anti-Air Missile, Incendiary Bomb, Scorching Charge, Homing Missile, Sticky
 Oil Bomb, Whirlwind and Energy Diffraction with
 the skill each adds, and Energy Diffraction's `all_weapon_reduce_damage_rate`
@@ -118,7 +119,7 @@ measured the order in the composition rule, which
 [officer_effects.md](officer_effects.md#how-a-correction-composes) carries.
 
 The simulator refuses a side holding a technology whose correction it does not
-derive (a minimum range, a projectile's speed or life) or
+derive (a minimum range, a projectile's life) or
 whose effect grows with rank, rather than read index zero:
 `crates/simulation/src/modifier/technologies.rs` names each refusal.
 
@@ -154,5 +155,5 @@ whose effect grows with rank, rather than read index zero:
   document does not state what a unit's rank is at the moment a technology is
   applied, nor whether raising a rank mid-fight re-reads it. Rank one is the
   only case any recording has covered.
-- **`min_attack_range_value`, `projectile_speed_value` and
-  `projectile_life_rate`**, which no mechanism in `crates/simulation` reads.
+- **`min_attack_range_value` and `projectile_life_rate`**, which no
+  mechanism in `crates/simulation` reads.

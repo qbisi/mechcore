@@ -807,7 +807,7 @@ impl Simulation {
                 if building.team_id != source.team
                     && found
                     && building_alive(building)
-                    && source.attack.accepts(UnitDomain::Ground)
+                    && source.targets.accepts(UnitDomain::Ground)
                 {
                     consider(
                         building.position.x,
@@ -823,7 +823,7 @@ impl Simulation {
                 if actor.placement.team != source.team
                     && legacy
                     && actor.alive()
-                    && source.attack.accepts(actor.rules.domain)
+                    && source.targets.accepts(actor.rules.domain)
                 {
                     // A squad an officer delivered as the round opened still
                     // stands at the origin for this: the selector scores it

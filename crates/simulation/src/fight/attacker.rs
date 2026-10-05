@@ -17,6 +17,7 @@
 //! needs an owner's kind is a question these interfaces do not ask.
 
 use super::*;
+use crate::data::{Index, Overlay, switched_targets};
 
 /// What an owner's attack angle is measured against.
 #[derive(Debug, Clone, Copy)]
@@ -69,6 +70,12 @@ pub(in crate::fight) struct Attacker<'a> {
     pub(in crate::fight) y: i64,
     /// The skill row.
     pub(in crate::fight) attack: &'a AttackConfig,
+    /// Which domains it attacks: the row's, switched by its `DataSet`
+    /// (`FightSkill.IsAirAttack`, `IsGroundAttack`).
+    pub(in crate::fight) targets: AttackTargets,
+    /// What its `ProjectileSpeedValue` adds to the row's projectile speed,
+    /// millimetres a second.
+    pub(in crate::fight) projectile_speed_add: i64,
     /// `IAttacker.GetAttackRange`, with whatever corrects it.
     pub(in crate::fight) attack_range: i64,
     /// What one blow deals, with whatever corrects it.
@@ -174,7 +181,10 @@ impl Attacker<'_> {
             x_q32: self.x_q32,
             y: self.y,
             z_q32: self.z_q32,
-            speed: self.attack.projectile_speed(),
+            speed: self
+                .attack
+                .projectile_speed()
+                .saturating_add(self.projectile_speed_add),
             life: self.attack.projectile_life(),
             interceptible: self.attack.projectile_interceptible(),
             lock_target: self.attack.lock_target,
@@ -294,6 +304,8 @@ impl Simulation {
                     radius: actor.rules.collision_radius(),
                     y: unit_height(actor.rules.domain),
                     attack: &actor.rules.attack,
+                    targets: actor.stats.targets(actor.rules.attack.targets),
+                    projectile_speed_add: actor.stats.projectile_speed_add(),
                     attack_range: self.main_attack_range(id),
                     attack_damage: self.main_attack_damage(id),
                     splash_radius: actor.stats.splash_radius(),
@@ -352,6 +364,8 @@ impl Simulation {
                     radius: construction.radius,
                     y: 0,
                     attack: &construction.attack,
+                    targets: construction.attack.targets,
+                    projectile_speed_add: 0,
                     attack_range: construction.attack.range(),
                     attack_damage: construction.attack_damage,
                     splash_radius: construction.attack.splash_radius(),
@@ -396,6 +410,20 @@ impl Simulation {
         let mut attacker = self.attacker(skill_ref.owner)?;
         attacker.skill = skill_ref;
         attacker.attack = &rules.attack;
+        // A skill with a damage rate holds the main skill's `DataSet`; any
+        // other holds what reaches it alone.
+        (attacker.targets, attacker.projectile_speed_add) = if rules.damage_rate > 0.0 {
+            (
+                actor.stats.targets(rules.attack.targets),
+                actor.stats.projectile_speed_add(),
+            )
+        } else {
+            let own = Overlay::of(&extra.skill_corrections);
+            (
+                switched_targets(rules.attack.targets, &own),
+                own.value(Index::ProjectileSpeed),
+            )
+        };
         // Only the main skill's search is turned to `DistanceIntensify`.
         attacker.score_offsets = ScoreOffsets::default();
         // A row that uses the main skill's range reaches its own range

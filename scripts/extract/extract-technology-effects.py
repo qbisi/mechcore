@@ -79,6 +79,7 @@ SUBCLASS_SCALARS = (
     ("sweep_fixed_direction", "isDiableDirectionChange", "sweepSkillIntensifyTechDatas"),
     ("air_target_score_offset", "airTargetScoreOffset", "searchTargetSpecificDatas"),
     ("ground_target_score_offset", "groundTargetScoreOffset", "searchTargetSpecificDatas"),
+    ("extra_skill_effect", "extraSkillEffect", "airAttackTechnologyDatas"),
 )
 # A field of one list's rows that is one rate, written only where it is set:
 # an extra weapon's `allWeaponReduceDamageRate`, which
@@ -91,7 +92,8 @@ SET_SCALARS = (
 # this table carries: the plain one, and each subclass's the simulator reads.
 IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnologies",
                "energyShieldTechnologies", "sweepSkillIntensifyTechDatas",
-               "armorStrengthenTechnologyDatas", "searchTargetSpecificDatas")
+               "armorStrengthenTechnologyDatas", "searchTargetSpecificDatas",
+               "airAttackTechnologyDatas")
 # The list of `TechnologyGroupData` a plain technology comes from. A row of any
 # other list is a subclass (`BuffTechnologyData`, `SplashTechnologyData` and
 # the rest) that does something beyond its unit's numbers.
@@ -300,7 +302,9 @@ def main() -> int:
         "# further at, and its search counts off, an aerial and a ground target",
         "# (`air_target_score_offset`, `ground_target_score_offset`), and the",
         "# rate it adds to its damage on each (`air_damage_change_rate`,",
-        "# `ground_damage_change_rate`).",
+        "# `ground_damage_change_rate`). A technology that turns its unit's",
+        "# skill on or off aircraft says whether it turns the extra skills too",
+        "# (`extra_skill_effect`).",
         "",
         "technologies:",
     ]
