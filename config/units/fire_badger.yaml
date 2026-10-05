@@ -70,6 +70,8 @@ extra_weapons:
         invincible: true
         move_speed_value: 60
         move_speed_rate: 0
+        amplify_damage_rate: 0
+        attack_range_value: 0
     explosion:
       damage: current_life
       damage_multiplier: 1

@@ -1,0 +1,28 @@
+# Air Defense Mark: the Typhoon's marking shot at aircraft.
+#
+# A Typhoon formation with Air Defense Mark against two Wraiths. Each
+# member's marker, a standalone weapon turning freely on a transform of its
+# own, fires every ten seconds at an aircraft within 160 metres; its hit
+# deals nothing and writes buff 11022 on every aircraft within 100 metres
+# (t139, both Wraiths, from each member's shot). The mark makes a Wraith
+# take 0.3 more damage and takes 20 metres off its main skill's range, 60 to
+# 40 (`BuffManager.GetAttackRangeReduceValue`, -20); it lasts ten seconds,
+# is written again while it runs (t325), and goes as its Wraith dies.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 606
+hash: {profile: mcfr-content-0.7.0, result: ac426e70758b665b7bc593e0e54f81e13641e76558768695c11a84c829b3f89e}
+blue:
+  core_damage: 250
+  techs:
+    typhoon: [air_defense_mark]
+  units:
+  - {name: typhoon, index: 0, position: {x: 0, y: -100}, exp: 0/600/1950}
+red:
+  units:
+  - {name: wraith, index: 0, position: {x: 5, y: -175}}
+  - {name: wraith, index: 1, position: {x: -55, y: -175}, exp: 0/600/2250}

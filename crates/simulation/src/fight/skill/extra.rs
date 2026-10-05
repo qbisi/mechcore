@@ -118,7 +118,7 @@ impl Simulation {
     /// weapon without an arc has no transform of its own to turn.
     fn turn_extra_weapon(&mut self, actor_id: u64, index: usize, chassis: i64) {
         if self.ending.stop_step.is_some()
-            || self.actors[&actor_id].skills.extras[index].arc().is_none()
+            || !self.actors[&actor_id].skills.extras[index].own_transform()
         {
             return;
         }

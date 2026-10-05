@@ -68,6 +68,8 @@ extra_weapons:
       invincible: false
       move_speed_value: 0
       move_speed_rate: -2362232012
+      amplify_damage_rate: 0
+      attack_range_value: 0
     attack:
       base_damage: 0
       min_range: 0

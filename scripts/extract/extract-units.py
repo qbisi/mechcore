@@ -333,7 +333,8 @@ def extra_weapon_lines(mech, technology, kind, skill, row):
 BUFF_READ = {
     "buffDivide": "divide", "isAdditiveMode": "additive", "debuff": "debuff",
     "invincible": "invincible", "speedChangeValue": "move_speed_value",
-    "speedChangeRate": "move_speed_rate",
+    "speedChangeRate": "move_speed_rate", "amplifyDamageRate": "amplify_damage_rate",
+    "attackRangeChangeValue": "attack_range_value",
 }
 BUFF_DESCRIPTIVE = {"id", "name", "isTestData", "duration", "stepTime", "effectType",
                     "isClearSelfBuffWhenDisableTech"}

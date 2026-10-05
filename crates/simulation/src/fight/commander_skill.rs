@@ -462,6 +462,16 @@ impl Simulation {
                 source: SKILL_SOURCE,
                 correction: super::tower::rate(rate),
             })
+            // `attackRangeChangeValue`: whole metres on the main skill's
+            // range, which `AttackRangeProperty.GetAttackRange` adds to the
+            // skill's own value before its rates.
+            .chain((buff.attack_range_value != 0).then(|| Entry {
+                index: Index::AttackRange,
+                source: SKILL_SOURCE,
+                correction: crate::data::Correction::Value(
+                    buff.attack_range_value * crate::rules::SPACE_UNITS_PER_METER_SCALE,
+                ),
+            }))
             .collect(),
             disables_technology: buff.disable_technology,
             debuff: buff.debuff,

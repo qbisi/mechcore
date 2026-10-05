@@ -217,6 +217,11 @@ pub(crate) struct BuffConfig {
     pub(crate) move_speed_value: i64,
     /// `speedChangeRate`, an `FPoint` raw rate.
     pub(crate) move_speed_rate: i64,
+    /// `amplifyDamageRate`, an `FPoint` raw rate on the damage the unit
+    /// takes.
+    pub(crate) amplify_damage_rate: i64,
+    /// `attackRangeChangeValue`, whole metres on the main skill's range.
+    pub(crate) attack_range_value: i64,
 }
 
 /// An `ExplosionSkillData` as `IDeadExplosive`: its unit's death deals what

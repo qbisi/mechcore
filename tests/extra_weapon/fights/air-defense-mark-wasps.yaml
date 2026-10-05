@@ -1,0 +1,26 @@
+# Air Defense Mark against Wasps beside a Rhino.
+#
+# A Typhoon formation with Air Defense Mark against two Wasp squads and a
+# Rhino. The two markers fire at t28 and t30 and mark all 24 Wasps, the
+# Rhino none. Once the Wasps are gone the marker has nothing it may take:
+# an extra skill is no main searcher, and `TrySearchAliveTarget` answers it
+# nothing, so it holds no lock and its weapon stays where it points (t194).
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 432
+hash: {profile: mcfr-content-0.7.0, result: 9df77f94e0febf3bae05ff4a60c23cb3dcb184b67cdcdda06466dbde8e353c1b}
+blue:
+  core_damage: 200
+  techs:
+    typhoon: [air_defense_mark]
+  units:
+  - {name: typhoon, index: 0, position: {x: 0, y: -100}, exp: 0/816/1950}
+red:
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -100}}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}}
+  - {name: rhino, index: 2, position: {x: 5, y: -215}, exp: 0/600/1150}

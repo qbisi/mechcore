@@ -461,6 +461,9 @@ pub(crate) struct SkillBuff {
     pub(crate) life_change_rate: i64,
     /// `stepTime` in ticks, `Buff.Init`'s `stepTimeConfig`.
     pub(crate) step_ticks: u32,
+    /// `attackRangeChangeValue`, whole metres the main skill's range changes
+    /// by (`BuffManager.GetAttackRangeAddValue`, `GetAttackRangeReduceValue`).
+    pub(crate) attack_range_value: i64,
 }
 
 impl SkillBuff {
@@ -469,7 +472,10 @@ impl SkillBuff {
     /// on every unit in reach, of either side (`PerformNegativeEffect`), and
     /// any other on the releasing side's alone (`PerformPositiveEffect`).
     pub(crate) const fn harmful(&self) -> bool {
-        self.life_change_rate < 0 || self.move_speed_rate < 0 || self.amplify_damage_rate > 0
+        self.life_change_rate < 0
+            || self.move_speed_rate < 0
+            || self.amplify_damage_rate > 0
+            || self.attack_range_value < 0
     }
 }
 
@@ -1066,9 +1072,10 @@ pub(crate) fn technology_buff(named: &str, buff: &BuffConfig) -> Result<SkillBuf
         disable_technology: false,
         debuff: buff.debuff,
         invincible: buff.invincible,
-        amplify_damage_rate: 0,
+        amplify_damage_rate: buff.amplify_damage_rate,
         life_change_rate: 0,
         step_ticks: 0,
+        attack_range_value: buff.attack_range_value,
     })
 }
 
@@ -1099,6 +1106,7 @@ fn skill_buff(named: &str, buff: &BuffRow) -> Result<SkillBuff> {
         life_change_rate: buff.life_change_rate,
         step_ticks: u32::try_from(ticks(buff.step_time)?)
             .map_err(|_| Error::new(format!("{named}'s buff steps beyond a fight")))?,
+        attack_range_value: 0,
     })
 }
 

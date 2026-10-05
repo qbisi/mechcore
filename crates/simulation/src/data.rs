@@ -1313,10 +1313,44 @@ impl Stats {
                 push_rate(modifiers, ModifierChannel::Buff, None, field, aggregate)?;
             }
         }
+        // `BuffManager.GetAttackRangeAddValue` and `GetAttackRangeReduceValue`:
+        // the buffs' whole metres on the main skill's range, the ones that
+        // add and the ones that take away kept apart, a reduction signed.
+        let metres = crate::rules::SPACE_UNITS_PER_METER_SCALE;
+        let range_values = buff
+            .corrections(Index::AttackRange)
+            .map(|entry| match entry.correction {
+                Correction::Value(value) if value % metres == 0 => Ok(value / metres),
+                Correction::Value(_) => Err(Error::new(
+                    "a buff's attack-range value is a whole number of metres",
+                )),
+                Correction::Rate { .. } => {
+                    Err(Error::new("no buff here corrects attack range by a rate"))
+                }
+            })
+            .collect::<Result<Vec<_>>>()?;
+        for (field, value) in [
+            (
+                "attack_range_add_value",
+                range_values.iter().filter(|value| **value > 0).sum::<i64>(),
+            ),
+            (
+                "attack_range_reduce_value",
+                range_values.iter().filter(|value| **value < 0).sum::<i64>(),
+            ),
+        ] {
+            push(
+                modifiers,
+                ModifierChannel::Buff,
+                None,
+                field,
+                ModifierPart::Value,
+                value,
+            );
+        }
         for index in [
             Index::MaxLife,
             Index::AttackInterval,
-            Index::AttackRange,
             Index::SplashRange,
             Index::DamagePerKill,
             Index::GroundFireRange,
