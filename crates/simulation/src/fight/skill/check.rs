@@ -100,7 +100,10 @@ impl Simulation {
         let lock = self.slot_lock_target(skill_ref, slot);
         let before = self.slot_attack_target(skill_ref, slot);
         if lock.is_some_and(|lock| self.fight_actor_is_alive(lock)) {
-            if let Some(slot) = slot.filter(|slot| *slot > 0)
+            // Every skill of a group checks whether it gives its lock up but
+            // the main skill's own first, which no `ParentSkill` parents: an
+            // extra skill's group's first does.
+            if let Some(slot) = slot.filter(|&slot| slot > 0 || skill_ref.slot != SkillSlot::Main)
                 && attacking_check
                 && !self.skill(skill_ref).standalone()
                 && self.sibling_yields(skill_ref, slot, target_search_order)?

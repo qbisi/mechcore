@@ -135,16 +135,16 @@ impl Simulation {
             .flat_map(|(_, skills)| skills.iter().copied())
             .filter(|&other| other != slot && (other != 0 || skill_ref.slot != SkillSlot::Main))
             .collect::<Vec<_>>();
-        let own = skill.sibling(slot).attack_count;
+        let own = skill.group_skill(slot).attack_count;
         let blows = |other: usize| skill.group_skill(other).attack_count;
         if others.iter().any(|&other| blows(other) <= own)
-            || skill.sibling(slot).search_target_time > 0
+            || skill.group_skill(slot).search_target_time > 0
         {
             return Ok(false);
         }
         let found = self.select_group_lock_replacement(skill_ref, slot, order)?;
         self.skill_mut(skill_ref)
-            .sibling_mut(slot)
+            .group_skill_mut(slot)
             .search_target_time = SEARCH_TARGET_RESET_TICKS;
         Ok(found.is_some_and(|found| holders.iter().all(|(held, _)| *held != found)))
     }
