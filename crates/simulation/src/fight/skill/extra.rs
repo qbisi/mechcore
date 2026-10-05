@@ -140,11 +140,9 @@ impl Simulation {
             (WeaponMount::MechBody, Some(turret)) => turret,
             _ => chassis,
         };
-        let arc = weapons
-            .arcs
-            .as_ref()
-            .and_then(|arcs| arcs.get(extra.weapon))
-            .copied();
+        let arcs = (0..extra.skill.weapon_rotations_q32.len())
+            .map(|offset| extra.arc(offset).copied())
+            .collect::<Vec<_>>();
         let bearing = direction_degrees_q32_raw(
             view.x_q32.saturating_sub(actor.x_q32),
             view.z_q32.saturating_sub(actor.z_q32),
@@ -156,8 +154,10 @@ impl Simulation {
             .skills
             .extras[index]
             .skill;
-        let turned = rotate_towards_q32(skill.weapon_rotations_q32[0], bearing, turn);
-        skill.weapon_rotations_q32[0] =
-            arc.map_or(turned, |arc| held_within_arc(turned, parent, &arc));
+        // `FightSkill.RotateWeaponTo` turns each of the skill's weapons.
+        for (rotation, arc) in skill.weapon_rotations_q32.iter_mut().zip(arcs) {
+            let turned = rotate_towards_q32(*rotation, bearing, turn);
+            *rotation = arc.map_or(turned, |arc| held_within_arc(turned, parent, &arc));
+        }
     }
 }

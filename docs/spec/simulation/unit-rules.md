@@ -126,7 +126,7 @@ create a default for future units or weapon modes.
 Weapon scheduling is orthogonal to the effect path:
 
 - `weapons.mode` is `normal`, `group`, or `standalone`. A `standalone` unit's
-  weapons are each a skill of their own, side by side
+  weapons are skills of their own, side by side, `per_skill` weapons each
   ([`docs/rules/standalone_weapons.md`](../../rules/standalone_weapons.md)).
 - `indices` lists each weapon's own index in the build, in the order the
   skill lists them; how many there are is the weapon count. A weapon is

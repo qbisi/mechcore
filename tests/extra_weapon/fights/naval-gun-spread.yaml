@@ -1,0 +1,26 @@
+# Naval Gun from two Overlords against Rhinos, a Sledgehammer, Crawlers and
+# Fangs spread across the field.
+#
+# Each Overlord's guns turn onto targets on either side of it, and each
+# searches and fires from where its first gun points.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 364
+hash: {profile: mcfr-content-0.7.0, result: a0c18c6e147143224253fdce006f7f4f5e72ad1b8baae190e0851b4805414d63}
+blue:
+  techs:
+    overlord: [overlord_artillery]
+  units:
+  - {name: overlord, index: 0, position: {x: -95, y: -95}, exp: 0/736/1750}
+  - {name: overlord, index: 1, position: {x: 105, y: -95}, exp: 0/472/1750}
+red:
+  core_damage: 800
+  units:
+  - {name: rhino, index: 0, position: {x: -135, y: -55}}
+  - {name: sledgehammer, index: 1, position: {x: 115, y: -60}}
+  - {name: crawler, index: 2, position: {x: 5, y: -70}}
+  - {name: fang, index: 3, position: {x: 185, y: -130}}

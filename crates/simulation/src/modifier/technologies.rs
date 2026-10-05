@@ -105,10 +105,11 @@ const EXTRA_WEAPON: &str = "extraWeaponTechnologies";
 /// Phantom Ray's and the Vulcan's, Whirlwind, the Rhino's, Energy
 /// Diffraction, the Melting Point's, Spider Mine, the Tarantula's, Matrix
 /// Bombardment, the Wraith's, Anti-Air Barrage, the Fortress's, Air Defense
-/// Mark, the Typhoon's, and Disintegration, the Abyss's.
-pub(crate) const FOUGHT_EXTRA_WEAPONS: [i32; 14] = [
-    1_105, 1_107, 1_109, 11_010, 11_020, 11_024, 11_025, 11_028, 11_029, 110_181, 110_211, 110_212,
-    110_322, 1_102_022,
+/// Mark, the Typhoon's, Disintegration, the Abyss's, and Naval Gun, the
+/// Overlord's.
+pub(crate) const FOUGHT_EXTRA_WEAPONS: [i32; 15] = [
+    1_105, 1_107, 1_108, 1_109, 11_010, 11_020, 11_024, 11_025, 11_028, 11_029, 110_181, 110_211,
+    110_212, 110_322, 1_102_022,
 ];
 
 /// `EnergyShieldTech.GetLifeRate`: `FPoint.One`, whatever its row, so the

@@ -741,13 +741,13 @@ impl Simulation {
                     (WeaponMount::MechBody, Some(turret)) => turret,
                     _ => rotation_q32,
                 };
-                let default = weapons
-                    .arcs
-                    .as_ref()
-                    .and_then(|arcs| arcs.get(extra.weapon))
-                    .map_or(0, |arc| i64::from(arc.default) << 32);
                 // A skill with no weapon, an around skill, has none to turn.
-                if let Some(rotation) = extra.skill.weapon_rotations_q32.first_mut() {
+                for (offset, rotation) in extra.skill.weapon_rotations_q32.iter_mut().enumerate() {
+                    let default = weapons
+                        .arcs
+                        .as_ref()
+                        .and_then(|arcs| arcs.get(extra.weapon + offset))
+                        .map_or(0, |arc| i64::from(arc.default) << 32);
                     *rotation = parent.saturating_add(default).rem_euclid(360_i64 << 32);
                 }
             }
