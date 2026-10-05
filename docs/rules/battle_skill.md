@@ -366,7 +366,13 @@ which scores from that facing. It then takes the place of the unit's
   lives: the command's `IsIdle` and `IsActive` are constants, and the attack
   ends only once its target is out of range. A lock that dies within range
   keeps the unit attacking, turning to the dead unit and walking on or
-  stopping as above, until its skill takes another.
+  stopping as above, until its skill takes another. A skill whose attack
+  ends without a lock cools naming what its last check found, and a target it
+  names in range keeps the unit attacking through the cooling, walking on or
+  stopping as above. With no lock `MotionController.CalculateTargetDirection`
+  answers the velocity, so the unit turns only to where it walks, and a unit
+  standing still turns nothing; it changes to moving as the cooling ends and
+  names nothing.
 - A command outlives a won fight. When the skill lets its target go as the
   fight stops, an attacking unit changes to moving, and a unit on the beacon
   goes on moving and turning to where it moves until the fight ends, which
@@ -655,6 +661,11 @@ drawn from any stream, and no event is written.
   `MotionAttackState.AttackMove`, `MoveAttackCommand.IsIdle`,
   `MoveAttackCommand.IsActive`, `LineRange.Overlaps`, `FightActor.Distance2D`,
   `FightTransform.Distance2D`.
+- Without a lock a unit attacking under a command turns to its velocity, and
+  a cooling's attack target keeps its attack in range:
+  `MotionController.CalculateTargetDirection`,
+  `FightSkill.IsAttackTargetInAttackRange`,
+  `SkillAttackRangeChecker.IsAttackTargetInAttackRange`.
 - `MotionController.Move` hands the agent nothing but on the update the RVO
   counter reads 3: `MotionController.Move`, `RVOSimulatorFixed.IsUpdateFrame`,
   `RVOSimulatorFixed.DoFixedUpdate`, `RVOControllerFixed.Move`.

@@ -1137,18 +1137,29 @@ impl Simulation {
     /// attack only once its target is out of range, so a dead target still in
     /// range keeps the unit attacking, turning to it (`AttackRotate`) and
     /// walking on or stopping as `AttackMove` decides, until its skill takes
-    /// another.
-    fn attack_dead_lock_under_command(&mut self, actor_id: u64) -> Flow {
+    /// another. A skill cooling without a lock goes on naming what its
+    /// check found (`IsAttackTargetInAttackRange` asks the skill's attack
+    /// target), and the motion attacks it the same way, except that with no
+    /// lock `CalculateTargetDirection` answers the velocity: a unit under a
+    /// Mobile Beacon whose lock another unit killed holds its attack through
+    /// the cooling, turning only to where it walks, and changes to
+    /// `MotionMoveState` as the cooling ends and names nothing.
+    fn attack_under_command(&mut self, actor_id: u64) -> Flow {
         let actor = &self.actors[&actor_id];
         if actor.command.is_none() || actor.motion.state != MotionState::Attacking {
             return Flow::Next;
         }
-        let Some(target) = actor.skills.main.attack_target() else {
+        let skill = &actor.skills.main;
+        let cooling = skill.cooling();
+        let target = match cooling {
+            Some((_, named)) => named,
+            None => skill
+                .attack_target()
+                .filter(|&target| !self.fight_actor_is_alive(target)),
+        };
+        let Some(target) = target else {
             return Flow::Next;
         };
-        if self.fight_actor_is_alive(target) {
-            return Flow::Next;
-        }
         let Some(view) = self.fight_actor(target) else {
             return Flow::Next;
         };
@@ -1178,18 +1189,47 @@ impl Simulation {
             actor.motion.next_speed_q32 = 0;
             actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
         }
-        self.track_target_in_range(actor_id, target_rotation_q32, false);
+        if cooling.is_none() {
+            self.track_target_in_range(actor_id, target_rotation_q32, false);
+        } else {
+            self.attack_rotate_to_velocity(actor_id);
+        }
         self.attack_move(actor_id, true);
         Flow::Done
     }
 
+    /// `MotionAttackState.AttackRotate` without a lock: it turns to the
+    /// velocity (`CalculateTargetDirection`), a unit with a body its body
+    /// and weapons, one without its root, and a unit standing still turns
+    /// nothing.
+    fn attack_rotate_to_velocity(&mut self, actor_id: u64) {
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        let (dx, dz) = (
+            actor.motion.current_velocity_x_q32,
+            actor.motion.current_velocity_z_q32,
+        );
+        if dx == 0 && dz == 0 {
+            return;
+        }
+        let bearing_q32 = direction_degrees_q32_raw(dx, dz);
+        actor.rotate_body_towards(bearing_q32);
+        if actor.rules.has_body {
+            actor.rotate_weapons_towards(bearing_q32);
+        } else {
+            actor.aim_rotation = actor.body_rotation;
+        }
+    }
+
     /// `hold_dead_target`, and under a command, which stays active with a
     /// dead target: in range it keeps attacking
-    /// ([`Self::attack_dead_lock_under_command`]); out of range, where
+    /// ([`Self::attack_under_command`]); out of range, where
     /// `AutoMoveBehaviour` goes idle, the unit changes to `MotionMoveState`,
     /// or walks on in it.
     fn hold_dead_target_moving(&mut self, actor_id: u64, backswing_just_finished: bool) -> Flow {
-        if let Flow::Done = self.attack_dead_lock_under_command(actor_id) {
+        if let Flow::Done = self.attack_under_command(actor_id) {
             return Flow::Done;
         }
         let was_moving = self.actors[&actor_id].motion.state == MotionState::Moving;
