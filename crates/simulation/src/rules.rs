@@ -1363,6 +1363,13 @@ impl WeaponTopology {
         u32::try_from(self.indices.len()).expect("a weapon list fits u32")
     }
 
+    /// Whether a grouped row's skills make a group: more than one of them,
+    /// `weaponCountPerSkill` weapons each (`FightSkillFactory.PrepareGroupedSkill`
+    /// makes none of one skill where the main skill holds none).
+    pub(crate) fn makes_group(&self) -> bool {
+        self.mode == WeaponMode::Group && self.count() / self.per_skill > 1
+    }
+
     /// The build's index of the weapon at this position.
     pub(crate) fn index(&self, position: usize) -> i32 {
         self.indices[position]

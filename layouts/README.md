@@ -30,6 +30,11 @@ grouped slot that strikes a construction: the game's Raiden there strikes a
 wall block with its core slot alone, where the simulator's slots would have
 struck one each.
 
+`gun-launched-missile-spread.yaml` is the probe behind the batch's first gun
+that `docs/rules/extra_weapons.md` leaves not established: the game's
+Mountain starts it in its own update with its motion idle, four ticks before
+the simulator.
+
 `crowd.yaml` is the large scene the simulator's speed is followed on: 1302
 units, mirrored, under a fixed seed, whose `convert --to mcfr` profiling
 splits what the fight cost by phase and states it per unit-tick.

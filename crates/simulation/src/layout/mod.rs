@@ -1291,8 +1291,7 @@ fn reaching_extra_skill(
     loadouts: &Loadouts,
 ) -> (Vec<Entry>, Vec<String>) {
     let rated = weapon.damage_rate > 0.0;
-    let parent_range = weapon.use_main_skill_range
-        || weapon.attack.weapons.mode == crate::rules::WeaponMode::Group;
+    let parent_range = weapon.use_main_skill_range || weapon.attack.weapons.makes_group();
     let read = |index: Index| {
         matches!(index, Index::AttackDamage | Index::DamageReduceRateBase)
             || (index == Index::AttackRange && parent_range)

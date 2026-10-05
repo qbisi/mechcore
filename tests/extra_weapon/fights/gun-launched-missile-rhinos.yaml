@@ -1,0 +1,28 @@
+# Gun-launched Missile against two Rhinos and a Crawler squad.
+#
+# A Mountain with Gun-launched Missile. The row is grouped, but its two
+# launchers are one skill (`weaponCountPerSkill` 2), slot 4 after the
+# Mountain's four guns, and one skill makes no group: it draws one first
+# interval, reaches its own 180 metres and fires one missile a blow from its
+# first launcher (t4). When the guns kill their Rhino and cool without a lock
+# (t97), the missile skill takes the motion, which goes on attacking and
+# turns the turret onto its lock (t98).
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 225
+hash: {profile: mcfr-content-0.7.0, result: 533612b7f07f1edf5a1e0ec266afbfa6f501881eb21084af14a3675a0135ca0b}
+blue:
+  techs:
+    mountain: [gun_launched_missile]
+  units:
+  - {name: mountain, index: 0, position: {x: 5, y: -125}, exp: 0/992/3200}
+red:
+  core_damage: 500
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: rhino, index: 1, position: {x: 65, y: -95}}
+  - {name: crawler, index: 2, position: {x: -55, y: -130}}

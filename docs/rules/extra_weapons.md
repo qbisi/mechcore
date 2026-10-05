@@ -11,8 +11,8 @@ Missile, the Centurion's, Sticky Oil Bomb, the Phantom Ray's and the
 Vulcan's, Whirlwind, the Rhino's, Energy Diffraction, the Melting Point's,
 Spider Mine, the Tarantula's, Matrix Bombardment, the Wraith's, and
 Anti-Air Barrage, the Fortress's, Air Defense Mark, the Typhoon's,
-Disintegration, the Abyss's, and Naval Gun, the Overlord's, and refuses every
-other member by name: the members' skills differ
+Disintegration, the Abyss's, Naval Gun, the Overlord's, and Gun-launched
+Missile, the Mountain's, and refuses every other member by name: the members' skills differ
 in kind, a projectile, an explosion, a laser, a summon, a sweep around the
 unit, and many leave a terrain or write a buff, so each joins once a recording
 of it agrees.
@@ -26,10 +26,14 @@ adds the row's skill through `SkillManager.AddSkill`. The first skill a
 skills. `AddSkill` adds each `FightSkill` the row's skill makes, so a
 standalone row adds one skill for each `weaponCountPerSkill` of its weapons:
 Secondary Armament adds two, of one gun each, and Naval Gun one, of its two
-guns. A grouped row adds one for each of its weapons too, and
-`FightSkillFactory.PrepareGroupedSkill` puts them in a `SkillGroup` whose
-every skill has the main skill for its `ParentSkill`: Energy Diffraction adds
-four beams. Any other row adds one skill that fires all its weapons:
+guns. A grouped row adds one for each `weaponCountPerSkill` of its weapons
+too, and `FightSkillFactory.PrepareGroupedSkill` puts them in a `SkillGroup`
+whose every skill has the main skill for its `ParentSkill`: Energy
+Diffraction adds four beams. A grouped row of one skill whose unit's main
+skill holds no group makes none, and is a skill like any other, with no
+parent: Gun-launched Missile's two launchers are one skill, which draws one
+first interval, reaches its own 180 metres and takes the motion as any extra
+skill does. Any other row adds one skill that fires all its weapons:
 Incendiary Bomb adds one, with the Hound's two launchers.
 
 - **Its slots follow the main skill's.** A recording names a skill by its
@@ -85,7 +89,9 @@ the whole of the difference:
   block in the way before the lock behind it: a unit without a body its root,
   one with a body its body, whose chassis still turns to where it moves, as
   under the main skill: a Centurion walking on while its missile skill holds
-  the motion. Moving, it turns the skill's weapons to what the skill fires
+  the motion. A unit whose main skill is a batch of standalone guns turns its
+  turret to what the extra skill fires at: the Mountain's turret onto
+  Gun-launched Missile's lock while its guns cool without one. Moving, it turns the skill's weapons to what the skill fires
   at, or to where the unit moves when it fires at nothing
   (`MotionMoveState.NormalRotate`, `CalculateTargetDirection`); with a body
   they are the turret every weapon shares, so a Centurion whose main skill
@@ -656,6 +662,12 @@ simulator refuses it.
   turn onto targets spread wide, each searching from where its first gun
   points: `tests/extra_weapon/fights/naval-gun-spread.yaml`.
 
+- Gun-launched Missile's two launchers are one skill, slot 4 after the
+  Mountain's guns, firing one missile a blow from its first launcher at its
+  own 180 metres; it takes the motion as the guns cool without a lock and
+  the turret turns onto its lock:
+  `tests/extra_weapon/fights/gun-launched-missile-rhinos.yaml`.
+
 ### Replayed
 
 - A Tarantula's Spider Mine skill that locks a new enemy as it leaves its
@@ -725,6 +737,7 @@ simulator refuses it.
   the buff with no source, and `Buff.Reset` keeps a buff's source unless its
   data summons (`IBuffData.IsSummoning`).
 - Its taking the motion: `FightSkill.SearchLockTarget`,
+  `FightSkillBase.IsMainTargetProvider`,
   `FightSkillBase.IsMainTargetProvider`, `FightMech.SetAttacker`,
   `FightMech.SetMotionAttackerAfterSkill`, `AutoMoveBehaviour.IsIdle`,
   `AutoMoveBehaviour.IsActive`, `FightSkillBase.IsLockTargetAvaliable`,
@@ -793,10 +806,19 @@ simulator refuses it.
 - **The motion an extra skill leads beyond one update.** Every recording
   shows the main skill taking the motion back on the update after; how a
   moving or idle unit walks after an extra skill's lock is read, not recorded,
-  and so is how a unit with a body turns while an extra skill holds its
-  attack. `AttackRotate` also turns the extra skill's own weapons
+  and so is how a unit with a body whose main skill is no batch turns while
+  an extra skill holds its attack. `AttackRotate` also turns the extra skill's own weapons
   (`FightSkill.RotateWeaponTo`) unless they are standalone; no recording reads
   that turn.
+- **When a batch's first gun starts after an extra skill held the motion.**
+  The build starts an idle skill whose target is in its attack area in its
+  own update (`SkillIdleState.TryPerform`, `SkillStartAttackChecker.Check`),
+  holding fire only under a move ability (`SkillManager.IsHoldFire`), and the
+  simulator starts a batch's first gun from the motion. A Mountain whose
+  Gun-launched Missile held the motion and whose motion is idle starts its
+  first gun in the game as soon as its target turns into its 10 degrees, four
+  ticks before the simulator: `layouts/gun-launched-missile-spread.yaml`,
+  t532, not pinned.
 - **A wave that deals damage.** Disintegration's deals none, and the
   simulator strikes with a wave's damage as a splash does, the shields too.
   Nor is a shield covering what the blow was aimed at recorded, nor a wave's
