@@ -337,7 +337,10 @@ The skill is the line's gate.
   80.
 - **It holds the main skill while it winds up.** Leaving its idle state, it
   takes the main skill's place, as an around skill does: the main skill locks
-  and lets its lock go. The skill prepares its 1.5 seconds and attacks. Its
+  and lets its lock go. Its search there is `FightSkill.SearchLockTarget`
+  alone, which changes the lock and leaves the attack target its idle state
+  took: a skill that locks a new enemy fires at, and turns the turret to,
+  the one it held. The skill prepares its 1.5 seconds and attacks. Its
   attack check is only that its lock lives
   (`SkillAttackableChecker.Check` tests for a `FightSupportSkill`). It
   performs once, does nothing, and returns to idle, handing the main skill
@@ -528,6 +531,10 @@ simulator refuses it.
 
 ### Replayed
 
+- A Tarantula's Spider Mine skill that locks a new enemy as it leaves its
+  idle state keeps its attack target, and its turret turns to the enemy it
+  held: replay 2324_20260925--134259672 round 5, ticks 301 to 332, fought by
+  the game with `scripts/corpus/match-replays.py`.
 - An officer's damage rate reaches a Fire Badger's Scorching Charge slot:
   replay 2324_20260925--134259672 round 5, tick 1, fought by the game with
   `scripts/corpus/match-replays.py`.
