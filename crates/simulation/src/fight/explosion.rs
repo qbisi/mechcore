@@ -117,7 +117,9 @@ impl Simulation {
             .splash_radius()
             .saturating_add(actor.rules.collision_radius());
         let reach = Reach::Targets(attack.targets);
-        let team = actor.placement.team;
+        // `DeadExplosiveDamageProvider.GetTeamController`: the side the unit
+        // was deployed on, a beam having turned it or not.
+        let team = actor.original_team;
         let center_y_q32 = space_to_q32(unit_height(actor.rules.domain));
         let (x_q32, z_q32) = (actor.x_q32, actor.z_q32);
         // `explosiveDamageCondition` 2: the life the unit had before it took
