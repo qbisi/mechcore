@@ -1,0 +1,25 @@
+# Ground Targeting: a Phantom Ray reaches a ground unit 60 metres further,
+# and its search counts 60 off a ground unit's distance.
+#
+# At its first search the Phantom Ray's range is 125, its 65 and the 60 of
+# its AttackGroundRangeAddValue, and it scores the Arclight 145.2 metres off
+# at 85.2 and the Phoenixes at their distance, 175.9 and 178.8: it takes the
+# Arclight.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 240
+hash: {profile: mcfr-content-0.7.0, result: aec7d2a97607dc293c3b93912ff429a5c6cd3a0fd6d46de2a7bfb5d036f0a252}
+blue:
+  techs:
+    phantom_ray: [ground_targeting]
+  units:
+  - {name: phantom_ray, index: 0, position: {x: 5, y: -100}, exp: 0/600/1000}
+red:
+  core_damage: 67
+  units:
+  - {name: arclight, index: 0, position: {x: 30, y: -60}}
+  - {name: phoenix, index: 1, position: {x: -20, y: -90}, exp: 0/268/1300}

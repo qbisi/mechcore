@@ -1,0 +1,25 @@
+# Ground Specialization: a Wasp squad deals a ground unit three times its
+# damage.
+#
+# The technology writes 2 into the Wasps' damage_chagne_rate_ground. Each
+# hit on the Arclight deals 606 of their 202, each on the Phoenix 202, and
+# a killing hit what life was left. The damage the recording reads stays
+# 202.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 215
+hash: {profile: mcfr-content-0.7.0, result: b577de8d34e130a54165f2d6def0a3ff656530e5a5871c89b9f9ab246099359a}
+blue:
+  techs:
+    wasp: [ground_specialization]
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/600/900}
+red:
+  core_damage: 136
+  units:
+  - {name: arclight, index: 0, position: {x: 30, y: -80}}
+  - {name: phoenix, index: 1, position: {x: -20, y: -90}, exp: 0/136/1300}

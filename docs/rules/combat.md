@@ -714,19 +714,24 @@ target is in range, whether its unit's motion stops for it, and the range past
 which its search penalises a candidate. Its damage is two numbers the same
 way, each its damage with a rate of its own added to the rates that correct
 it: what it deals the target it attacks is the air one while that target
-flies, and the damage a recording reads is the ground one. Aerial
+flies, and the damage a recording reads has neither rate in it. Aerial
 Specialization writes 30 metres onto the air range and 0.9 onto the air rate:
 a Marksman reaches an Overlord at 170 metres and deals it 4425 of its 2329.
+Ground Specialization writes 2 onto a Wasp's ground rate, which deals an
+Arclight 606 of its 202 and still reads 202, and Ground Targeting 60 metres
+onto a Phantom Ray's ground range, 125 of its 65.
 
 **A search by distance counts an offset off a candidate's distance.** Aerial
 Specialization writes its metres into the skill's `AttackRangeValueAir` as
-well, and then turns its unit's main skill's search from `Normal` to
+well, and Ground Targeting into its `AttackRangeValueGround`, and each then
+turns its unit's main skill's search from `Normal` to
 `DistanceIntensify`, whose selector takes the skill's `AttackRangeValueAir`
 and `AttackRangeValueGround` as it is made. Scoring a candidate, the selector
 counts the offset for the candidate's domain off its distance, as it counts
 the 40 metres it adds for one that is not visible. Only that term moves: the
 distance added after it, and the range the out-of-range penalty compares,
-are the candidate's own. So a Marksman takes an Overlord 11 metres further
+are the candidate's own. So a Phantom Ray scores an Arclight 145 metres off
+at 85 and takes it over Phoenixes 176 metres off, a Marksman takes an Overlord 11 metres further
 off than a Mountain, and takes the Mountain over an Overlord scored nearer
 but standing beyond its range. Its extra skills, the search a unit makes for
 itself, and the fallback search over every live enemy keep the `Normal`
@@ -1060,6 +1065,10 @@ not the game's native attack-type enum.
   Mountain, `tests/anti_air/fights/aerial-specialization-pick.yaml`, and the
   Mountain within its range over an Overlord beyond it,
   `tests/anti_air/fights/aerial-specialization-out-of-range.yaml`.
+- The same against the ground: a Wasp's ground rate,
+  `tests/ground_attack/fights/ground-specialization-wasp.yaml`, and a Phantom
+  Ray's ground range and search offset,
+  `tests/ground_attack/fights/ground-targeting-phantom-ray.yaml`.
 - An air-attack technology turns a skill off aircraft,
   `tests/anti_air/fights/grenade-launcher-overlord.yaml`, or onto them,
   `tests/anti_air/fights/anti-aircraft-ammunition-arclight.yaml`,
@@ -1296,7 +1305,9 @@ not the game's native attack-type enum.
   for one not visible, to `DistanceScoreCalculator.Calculate`, which takes it
   off the distance. `SearchTargetController.Change` replaces
   `SearchTargetController.targetSelector` alone. `SearchTargetSpecificTech.AddData`
-  writes the row's `SearchTargetSpecificData.airDamageChangeRate`.
+  writes the row's `SearchTargetSpecificData.airDamageChangeRate`, and
+  `DamageIntensifyTech.AddData` the rows' `DamageIntensifyTechnologyData.groundDamageChangeRate`
+  and `DamageIntensifyTechnologyData.airDamageChangeRate` the same way.
 - Turning onto or off aircraft: `FightSkill.IsAirAttack` sums the row's
   flag, `SkillDataChangeInt.AirAttackValue` and `SkillDataChangeInt.CanAttackAir`;
   `AirAttackEffectProvider.SwitchMechAirAttackEnabled` adds -1 to a
@@ -1310,8 +1321,6 @@ not the game's native attack-type enum.
 
 ### Not established
 
-- **A ground offset**: Ground Lock, the Phantom Ray's, is a row of the same
-  list and runs through the same code, and no fight records it.
 - **Repair with its technologies disabled**, which stops the clocks
   (`AutoRecoveryEffectProvider.DisableEffect`) and which no recorded fight
   does; and which of an item and a technology a unit with both keeps, since

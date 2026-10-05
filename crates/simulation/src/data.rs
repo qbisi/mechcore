@@ -646,7 +646,8 @@ impl Overlays {
     /// 0.17 of its beam's ramp, `trunc(20 × 0.17)` = 3 at its third blow.
     /// `DamageCalculator.GetNormalDamage`, what a recording reads as the
     /// unit's damage, leaves that rate out (`normal`): the same Melting
-    /// Point's reads 1, its ramp's first step whole.
+    /// Point's reads 1, its ramp's first step whole. It leaves out the extra
+    /// enhancement too: a Wasp with Ground Specialization reads 202.
     ///
     /// Which of the skill's two damage properties answers is `against`'s:
     /// `AirDamageProperty` hands `CalculateDamage` the skill's
@@ -666,6 +667,7 @@ impl Overlays {
         let extra_add = self
             .skill
             .aggregate(Index::DamageRateAgainst(against))
+            .filter(|_| !normal)
             .map_or(0, |aggregate| aggregate.value);
         let reduce_base = self
             .skill
@@ -1004,8 +1006,8 @@ impl Stats {
     }
 
     /// `DamageCalculator.GetNormalDamage`: the damage without the skill's
-    /// `DamageReduceRateBase`, which a recording reads. It reads the
-    /// `GroundDamageProperty` whatever the skill attacks.
+    /// `DamageReduceRateBase` and either property's extra enhancement, which
+    /// a recording reads.
     pub(crate) fn normal_damage(&self, rules: &UnitConfig) -> i64 {
         self.base(rules.attack.base_damage)
             .and_then(|base| {

@@ -35,7 +35,8 @@ schema: mechcore.technology_effects
 # further at, and its search counts off, an aerial and a ground target
 # (`air_target_score_offset`, `ground_target_score_offset`), and the
 # rate it adds to its damage on each (`air_damage_change_rate`,
-# `ground_damage_change_rate`). A technology that turns its unit's
+# `ground_damage_change_rate`), which a damage-intensify technology
+# carries alone. A technology that turns its unit's
 # skill on or off aircraft says whether it turns the extra skills too
 # (`extra_skill_effect`).
 
@@ -126,6 +127,8 @@ technologies:
     name: 对地专精
     unit: wasp
     kind: damageIntensifyTechnologies
+    air_damage_change_rate: [0]  # +0
+    ground_damage_change_rate: [8589934592]  # +2
   - id: 608
     name: 伤害分摊
     unit: steel_ball
