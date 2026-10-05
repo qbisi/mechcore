@@ -161,6 +161,12 @@ the unit behind the wall. The core takes the block first and the others follow
 when the group allocates its children, the same delay the group shows against
 units.
 
+**Each slot's block is its own.** A slot's check asks again for its own block
+alone, and every other slot goes on naming the block it last took, even one
+that has since fallen. A slot whose block falls ends its attack on its own
+check, its lock dropped though the unit it was found for lives, as a lone
+skill's does.
+
 **A shot at a block splashes the next one.** A splash that reaches a
 neighbouring block's edge damages it too: a shot at a building takes every
 other enemy building whose edge its splash reaches.
@@ -226,7 +232,10 @@ The map's own buildings are the exception and are named: each side gets one
 - A unit with four weapon slots takes the block in its way with every slot,
   splashes the next block, and drops its slots with the lock when a block falls:
   `tests/construction/fights/`.
-
+- A Wraith's slot takes a block ten metres further off than its core, and a
+  slot whose block another slot fells drops its lock on its own check, while
+  the others keep theirs: `tests/corpus/fights/134258634-r5.yaml`,
+  `tests/corpus/fights/134258634-r7.yaml`.
 - A blow takes the block in its line, and the unit reads idle for a tick before
   the next: `tests/construction/fights/`.
 - A beam takes the block in its line, a block holds off a unit of the other
@@ -258,9 +267,11 @@ The map's own buildings are the exception and are named: each side gets one
   `FightSkill.SearchAttackTarget`,
   `WallConstructionTargetChecker.CheckWallConstruction`,
   `WallConstructionTargetChecker.GetNearestWall`.
-- A grouped slot asks for a wall with its own range:
+- A grouped slot asks for its own wall with its own range, and its own attack
+  state ends an attack on a fallen block before the checker:
   `FightSkill.GetAttackRange`,
-  `WallConstructionTargetChecker.CheckWallConstructionForGroupedSkill`.
+  `WallConstructionTargetChecker.CheckWallConstructionForGroupedSkill`,
+  `SkillAttackState.CheckAttackable`.
 - A wall is not searched for: `ConstructionData.enableSearchTarget`.
 - Collision is a property of a building's data:
   `BuildingData.EnableCollision`.

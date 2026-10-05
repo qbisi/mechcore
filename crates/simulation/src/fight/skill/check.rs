@@ -428,13 +428,29 @@ impl Simulation {
         if self.skill_is_preemptive(skill_ref) && self.skill(skill_ref).performed() {
             return Ok(false);
         }
-        if let Some(target) = self.skill(skill_ref).attack_target()
-            && self.is_construction(target)
-            && !self.fight_actor_is_alive(target)
-        {
+        if self.attacks_fallen_construction(skill_ref, None) {
             return Ok(false);
         }
         self.check_attackable(skill_ref, target_search_order)
+    }
+
+    /// `SkillAttackState.CheckAttackable`'s own test, before it asks the
+    /// checker: an attack on a construction that has fallen is over. Every
+    /// skill of a group is in a state of its own and asks it of what it
+    /// fires at: a Wraith's gun whose block falls stops with its lock
+    /// dropped, though the unit it was found for lives.
+    pub(in crate::fight) fn attacks_fallen_construction(
+        &self,
+        skill_ref: SkillRef,
+        slot: Option<usize>,
+    ) -> bool {
+        let target = match slot {
+            Some(slot) => self.slot_attack_target(skill_ref, Some(slot)),
+            None => self.skill(skill_ref).attack_target(),
+        };
+        target.is_some_and(|target| {
+            self.is_construction(target) && !self.fight_actor_is_alive(target)
+        })
     }
 
     /// `SkillAttackState.Finish`: `StopAttack` drops the lock, the weapons
