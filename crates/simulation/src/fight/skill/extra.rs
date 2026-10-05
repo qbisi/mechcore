@@ -69,12 +69,10 @@ impl Simulation {
         }
         // `SkillAttackState.Update` counts the search timer down after the
         // check and the blow, which a skill of a group reads to give its
-        // lock up, as its siblings' do; a state is not updated on the update
-        // it is entered.
-        if self.skill(skill_ref).is_grouped()
-            && attack_state_before
-            && matches!(self.skill(skill_ref).state, SkillState::Attack(_))
-        {
+        // lock up, as its siblings' do, and a weapon held at the edge of its
+        // arc to search again; a state is not updated on the update it is
+        // entered.
+        if attack_state_before && matches!(self.skill(skill_ref).state, SkillState::Attack(_)) {
             self.skill_mut(skill_ref).search_target_time -= 1;
         }
         // The skills of its group update after it, each its own

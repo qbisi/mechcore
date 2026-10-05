@@ -125,6 +125,16 @@ chassis before the fight, and turns towards its skill's lock at the row's
 `extraWeaponRotateSpeed` after the skill's state has updated, held within its
 arc about its rest as the chassis pointed before the motion turned it.
 
+**A weapon held at the edge of its arc searches again.** A target in range
+but out of the attack angle fails an attack's check, unless the weapon stands
+at an end of its arc (`SkillAttackAngleChecker.IsWeaponInAttackAngle`'s
+`isMissing`, `CalculateRotationRange`) and the skill's search timer has run
+out (`SearchTargetController.CanStartSearch`): then the check searches again
+(`CheckWhenLoseTarget`) and goes on if what it finds is in the area. The
+timer counts down in the attack state as in the idle one
+(`SkillAttackState.Update`), so a Secondary Armament gun pinned at its arc's
+edge by a Crawler walking past it takes the next Crawler within the arc.
+
 A standalone row's weapon has a transform of its own whatever its arc, and
 one with no arc turns freely: Air Defense Mark's marker turns onto its lock
 at the unit's rotate speed, and stays where it points while it holds none.
@@ -510,6 +520,9 @@ simulator refuses it.
 
 ### Recorded
 
+- A Secondary Armament gun at the edge of its arc whose Crawler walks out of
+  it takes the next Crawler within the arc on its check:
+  `tests/corpus/fights/201340110-r5.yaml`, blue's Sabertooth 179, tick 143.
 - Secondary Armament's two guns are skills 1 and 2 beside the main gun, start
   at their rest, turn at their own speed, fire on their own once they face
   their target, deal their row's damage for the unit's level, and stand where
@@ -730,6 +743,12 @@ simulator refuses it.
 
 ### Read
 
+- A weapon held at the edge of its arc searches again once its timer has run
+  out, and the timer counts down while it attacks:
+  `SkillAttackableChecker.Check`, `SkillAttackableChecker.CheckWhenLoseTarget`,
+  `SkillAttackAngleChecker.IsActorInAttackAngle`,
+  `SkillAttackAngleChecker.IsWeaponInAttackAngle`,
+  `SearchTargetController.CanStartSearch`, `SkillAttackState.Update`.
 - A self splash's blow checks no target: `SkillAttackController..ctor`,
   `NormalAttackPerformer.IsEnableCheckTarget`,
   `NormalAttackPerformer.IsInterruptedByInvalidTarget`.

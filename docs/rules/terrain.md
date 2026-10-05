@@ -295,6 +295,8 @@ already exists.
 
 ### Recorded
 
+- A Fire Badger's shot burns the oil its splash reaches, and the first fire
+  the line beyond it: `tests/corpus/fights/201340110-r5.yaml`, tick 140.
 - A Smoke Bomb's fogs land along its line every four ticks, take ground units
   of either side whose edge they reach one fog at a time, hold a ranged
   attack's range to 0.65 of it, leave melee units alone, and go as the fight
@@ -331,12 +333,6 @@ already exists.
   counting last first, burns out after 700 ticks, and its removal is the
   last event of its tick: `tests/terrain/fights/fire.yaml`,
   `tests/terrain/fights/fire-burns-out.yaml`.
-
-### Replayed
-
-- A Fire Badger's shot burns the oil its splash reaches, and the first fire
-  the line beyond it: `scripts/corpus/verify-matches.py`, replay 201340110's
-  round 5, whose sticky oil a red Fire Badger's shot burns on tick 140.
 
 ### Read
 
