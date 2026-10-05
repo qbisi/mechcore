@@ -12,6 +12,10 @@ use crate::{data::Index, modifier::SecondaryDamage};
 /// damage of any provider — skills, projectiles, commander skills, mines,
 /// explosions — against `FightActor`s, and a unit and a building are both.
 #[derive(Debug, Clone, Copy)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "a hit's flags are its provider's, independent of each other"
+)]
 pub(in crate::fight) struct DamageHit {
     /// Its owner, `IDamageProvider.GetOwner`: none for a hit no object
     /// dealt, which is recorded under its team alone.
@@ -56,6 +60,9 @@ pub(in crate::fight) struct DamageHit {
     /// a missile's does, and a battle skill's reaches units alone.
     pub(in crate::fight) strikes_buildings: bool,
     pub(in crate::fight) splash_radius: i64,
+    /// Its `IDamageProvider.GetDamageType` is `EDamageType.Fire`: it sets
+    /// alight the oil its splash reaches.
+    pub(in crate::fight) fire: bool,
     pub(in crate::fight) reach: Reach,
 }
 
@@ -93,6 +100,8 @@ impl DamageHit {
             crosses_shields: attacker.rules.attack.crosses_shields,
             strikes_buildings: true,
             splash_radius: attacker.stats.splash_radius(),
+            fire: usize::from(skill_slot) < attacker.skills.main_slots()
+                && attacker.rules.attack.fire_damage,
             reach: Reach::Domain(aimed_domain),
         }
     }
@@ -124,6 +133,7 @@ impl DamageHit {
             crosses_shields: false,
             strikes_buildings: true,
             splash_radius: 0,
+            fire: false,
             reach,
         }
     }
@@ -182,6 +192,7 @@ impl DamageHit {
             crosses_shields: false,
             strikes_buildings: true,
             splash_radius,
+            fire: false,
             reach: Reach::Targets(AttackTargets {
                 ground: true,
                 air: true,
@@ -684,6 +695,11 @@ impl Simulation {
             }
         }
         self.dispatch_hit_damage(hit, struck.lost, events)?;
+        // A hit that deals fire sets alight the oil its splash reaches.
+        if hit.fire {
+            let (x_q32, z_q32) = hit.center_q32;
+            self.ignite_oils_hit((x_q32, z_q32, space_to_q32(hit.splash_radius)), hit.team)?;
+        }
         Ok(struck)
     }
 

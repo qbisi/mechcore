@@ -390,6 +390,9 @@ impl Simulation {
         let crosses_shields = self
             .skill_attacker(skill_ref)
             .is_some_and(|attacker| attacker.attack.crosses_shields);
+        let fire = self
+            .skill_attacker(skill_ref)
+            .is_some_and(|attacker| attacker.attack.fire_damage);
         // A shot that took no shield on its way and lands without a splash
         // is still taken by the shield of its target's side that covers the
         // target, and neither is when the one who fired it stands inside that
@@ -414,6 +417,7 @@ impl Simulation {
             shield,
             crosses_shields,
             splash_radius,
+            fire,
             ..DamageHit::of_projectile(projectile, aimed, amount, reach)
         };
         // A projectile in simulated motion (`isSimulateMode`) that lands on a

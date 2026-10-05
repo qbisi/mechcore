@@ -97,6 +97,7 @@ attack:
 | `quick_switch_target` | Whether a periodic search may replace a still-alive attack target without first leaving the active attack state. Dead or invalid target replacement follows a separate native branch. |
 | `timing.*` | Native attack interval, random offset, initial cooldown, prepare, attack point, backswing and cooling phases. |
 | `splash_radius` | Native base effect radius; zero means no area effect. |
+| `fire_damage` | The skill's `ProjectileSkillData.damageType` is `Fire`: its hits set alight the oil their splash reaches. [`docs/rules/terrain.md`](../../rules/terrain.md) says how. Absent means `false`. |
 | `self_splash`, `diffusion` | `useSelfSplash`: the splash is measured from the skill's own unit. `diffusion`, `isDiffusion`'s `interval` in seconds and `speed` in metres: the splash grows from where it lands, `speed` further each `interval`. [`docs/rules/extra_weapons.md`](../../rules/extra_weapons.md) says what they do. Absent means neither. |
 | `melee` | The main skill's `SkillData.isMeleeAttack`. The fight's melee branches read it, and the Melee and Ranged targeting categories are answered from it. |
 | `default_rotation_search` | The main skill's `useDefaultRotationSearchTarget`: a search scores its candidates from each weapon's resting direction rather than from where the weapon points. [`docs/rules/standalone_weapons.md`](../../rules/standalone_weapons.md) says what it changes. Absent means `false`. |

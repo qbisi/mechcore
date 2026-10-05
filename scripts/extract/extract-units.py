@@ -67,6 +67,8 @@ MOVE_NORMAL, MOVE_UNDERGROUND = 0, 1
 # unit's own. No table column says so.
 FIXED_TO_BODY_UNIT = 27
 WEAPON_MODES = {0: "normal", 1: "group", 2: "standalone"}
+# `EDamageType.Fire`.
+DAMAGE_FIRE = 1
 # `WeaponMountNode`, which the skill's `weaponMountNode` names: what a weapon
 # that turns within an arc turns about. `Default` is written as nothing.
 WEAPON_MOUNTS = {1: "mech", 2: "mech_body"}
@@ -453,6 +455,12 @@ def attack_lines(unit, kind, skill, damage_line, attack_angle, indent, angle_abs
         f"    backswing: {grid(skill['attackBackswing'], 2000)}",
         f"    cooling: {grid(skill['coolingTime'], 2000)}",
         f"  splash_radius: {grid(skill['splashRange'], 1000)}",
+    ]
+    # `ProjectileSkillData.damageType`: a Vulcan's and a Fire Badger's hits
+    # are `EDamageType.Fire`, which sets alight the oil their splash reaches.
+    if skill.get("damageType", 0) == DAMAGE_FIRE:
+        lines.append("  fire_damage: true")
+    lines += [
         "  weapons:",
         f"    mode: {WEAPON_MODES[skill['weaponMode']]}",
         f"    indices: [{', '.join(str(weapon['index']) for weapon in skill['weapons'])}]",

@@ -167,6 +167,7 @@ impl Simulation {
                 crosses_shields: false,
                 strikes_buildings: true,
                 splash_radius,
+                fire: false,
                 reach,
             };
             let struck = self.perform_damage(hit, events)?;

@@ -279,12 +279,40 @@ impl Simulation {
     /// controller's order, goes, and each turns to a fire of its own
     /// provider where it stood, under the new fire's side.
     fn ignite_oils(&mut self, fire: u64) -> Result<()> {
-        let Some(index) = self.controller_of(TerrainKind::Oil) else {
-            return Ok(());
-        };
         let (x_q32, z_q32, radius_q32, team) = {
             let fire = &self.terrain.terrains[&fire];
             (fire.x_q32, fire.z_q32, fire.spec.radius_q32, fire.team)
+        };
+        self.ignite_oils_in((x_q32, z_q32, radius_q32), team)
+    }
+
+    /// `RangeItemSystem.TriggerInteractableItem` for a hit that deals fire
+    /// (`DamagePerformer.PerformHitTargetsEffect`, `EDamageType.Fire`): every
+    /// oil its splash reaches from where it lands burns, for the hitting
+    /// side, as a new fire's do. The oils it reaches are taken together
+    /// before any burns, so the first fire's own reach takes the rest of a
+    /// line first: a Fire Badger's shot that lands among the first three
+    /// oils of a line burns the first, then the line beyond the third, then
+    /// the second and the third. A battlefield shield standing is asked of
+    /// each oil in a way not read, and such a hit is refused.
+    pub(in crate::fight) fn ignite_oils_hit(&mut self, circle: Circle, team: u32) -> Result<()> {
+        let Some(index) = self.controller_of(TerrainKind::Oil) else {
+            return Ok(());
+        };
+        if self.terrain.controllers[index].items.is_empty() {
+            return Ok(());
+        }
+        if self.shield.standing.iter().any(|shield| shield.active) {
+            return Err(Error::new(
+                "a fire hit on oil beside a battlefield shield is not supported",
+            ));
+        }
+        self.ignite_oils_in(circle, team)
+    }
+
+    fn ignite_oils_in(&mut self, (x_q32, z_q32, radius_q32): Circle, team: u32) -> Result<()> {
+        let Some(index) = self.controller_of(TerrainKind::Oil) else {
+            return Ok(());
         };
         let mut reached = Vec::new();
         for &key in &self.terrain.controllers[index].items {
