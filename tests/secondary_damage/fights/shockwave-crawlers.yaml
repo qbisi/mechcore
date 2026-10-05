@@ -1,0 +1,24 @@
+# Shockwave: an Arclight's shell deals 75 to every Crawler within 30 metres
+# of where it lands that the shell itself did not strike.
+#
+# The first shell fells six Crawlers (t98) and deals the eighteen others
+# around them 75 each, after its own damage; the next fells five of those
+# for the 175 each has left (t114). The Arclight reaches 90 metres, its 95
+# less 5.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 157
+hash: {profile: mcfr-content-0.7.0, result: 22df77e7ed4cbd38d5681ec7a46a86445a965d0ede842ba9b24cda6e31eaa75f}
+blue:
+  techs:
+    arclight: [shockwave]
+  units:
+  - {name: arclight, index: 0, position: {x: 0, y: -100}, exp: 0/192/750}
+red:
+  core_damage: 100
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}}

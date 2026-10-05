@@ -32,6 +32,7 @@ out to show:
 | [`sweep/`](sweep/README.md) | what a sweep strikes beyond the standard fights: shields, buildings, aircraft beside ground units, its technology |
 | [`shield/`](shield/README.md) | what a battlefield shield does to the hits meant for what it covers, and when it breaks |
 | [`search/`](search/README.md) | which positions a skill's target search scores |
+| [`secondary_damage/`](secondary_damage/README.md) | what a technology's second damage deals around each of its unit's hits |
 | [`production/`](production/README.md) | what a production line makes, where its makes stand, and how often they come |
 | [`repair/`](repair/README.md) | how a unit repairs itself while hurt: when it starts, how often and by how much |
 | [`projectile/`](projectile/README.md) | how a projectile leaves its weapon, climbs and flies, and a burst still releasing |

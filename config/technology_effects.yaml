@@ -38,7 +38,11 @@ schema: mechcore.technology_effects
 # `ground_damage_change_rate`), which a damage-intensify technology
 # carries alone. A technology that turns its unit's
 # skill on or off aircraft says whether it turns the extra skills too
-# (`extra_skill_effect`).
+# (`extra_skill_effect`). A technology whose unit's hit deals a second
+# damage around it carries that damage, the FPoint metres it reaches,
+# whether it reaches what the first hit struck, whether the attacker's
+# and the target's buffs scale it, whether it disables the struck
+# units' technologies, and the buff it writes on them (`secondary_*`).
 
 technologies:
   - id: 206
@@ -654,11 +658,23 @@ technologies:
     name: 震荡波
     unit: arclight
     kind: secondaryDamageIntensifyTechDatas
+    secondary_damage: 75
+    secondary_splash_range: 128849018880
+    secondary_hits_main_target: false
+    secondary_buffed: true
+    secondary_disables_technology: false
+    secondary_buff_id: 0
     attack_range_value: [-21474836480]  # -5
   - id: 4531
     name: 电磁云
     unit: vortex
     kind: secondaryDamageIntensifyTechDatas
+    secondary_damage: 0
+    secondary_splash_range: 42949672960
+    secondary_hits_main_target: false
+    secondary_buffed: true
+    secondary_disables_technology: true
+    secondary_buff_id: 1031
   - id: 4607
     name: 斩杀弹
     unit: mustang

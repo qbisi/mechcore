@@ -82,6 +82,12 @@ SUBCLASS_SCALARS = (
     ("air_target_score_offset", "airTargetScoreOffset", "searchTargetSpecificDatas"),
     ("ground_target_score_offset", "groundTargetScoreOffset", "searchTargetSpecificDatas"),
     ("extra_skill_effect", "extraSkillEffect", "airAttackTechnologyDatas"),
+    ("secondary_damage", "damage", "secondaryDamageIntensifyTechDatas"),
+    ("secondary_splash_range", "splashRange", "secondaryDamageIntensifyTechDatas"),
+    ("secondary_hits_main_target", "canMainTargetBeHit", "secondaryDamageIntensifyTechDatas"),
+    ("secondary_buffed", "canBeAffectedByBuff", "secondaryDamageIntensifyTechDatas"),
+    ("secondary_disables_technology", "canDisableTech", "secondaryDamageIntensifyTechDatas"),
+    ("secondary_buff_id", "hitEMPBuffID", "secondaryDamageIntensifyTechDatas"),
 )
 # A field of one list's rows that is one rate, written only where it is set:
 # an extra weapon's `allWeaponReduceDamageRate`, which
@@ -95,7 +101,8 @@ SET_SCALARS = (
 IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnologies",
                "energyShieldTechnologies", "sweepSkillIntensifyTechDatas",
                "armorStrengthenTechnologyDatas", "searchTargetSpecificDatas",
-               "airAttackTechnologyDatas", "damageIntensifyTechnologies")
+               "airAttackTechnologyDatas", "damageIntensifyTechnologies",
+               "secondaryDamageIntensifyTechDatas")
 # The list of `TechnologyGroupData` a plain technology comes from. A row of any
 # other list is a subclass (`BuffTechnologyData`, `SplashTechnologyData` and
 # the rest) that does something beyond its unit's numbers.
@@ -307,7 +314,11 @@ def main() -> int:
         "# `ground_damage_change_rate`), which a damage-intensify technology",
         "# carries alone. A technology that turns its unit's",
         "# skill on or off aircraft says whether it turns the extra skills too",
-        "# (`extra_skill_effect`).",
+        "# (`extra_skill_effect`). A technology whose unit's hit deals a second",
+        "# damage around it carries that damage, the FPoint metres it reaches,",
+        "# whether it reaches what the first hit struck, whether the attacker's",
+        "# and the target's buffs scale it, whether it disables the struck",
+        "# units' technologies, and the buff it writes on them (`secondary_*`).",
         "",
         "technologies:",
     ]

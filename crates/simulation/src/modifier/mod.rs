@@ -26,5 +26,5 @@ pub(crate) use sources::{
     SweepIntensify, current as current_source,
 };
 pub(crate) use technologies::{
-    ARMOR_SOURCE, MainSkill, SOURCE as TECHNOLOGY_SOURCE, TechnologyEffects,
+    ARMOR_SOURCE, MainSkill, SOURCE as TECHNOLOGY_SOURCE, SecondaryDamage, TechnologyEffects,
 };

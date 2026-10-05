@@ -13,8 +13,8 @@ use crate::{
     data::{Channel, Correction, Entry, ExperienceRate, Index, Stats},
     modifier::{
         AutoRecovery, CarriedShield, EnergyShield, EnergyTowerSkillEffects, EquipmentEffects,
-        LifeSteal, MainSkill, OfficerEffects, ProductionLine, StartBuff, SweepIntensify,
-        TECHNOLOGY_SOURCE, TechnologyEffects, current_source,
+        LifeSteal, MainSkill, OfficerEffects, ProductionLine, SecondaryDamage, StartBuff,
+        SweepIntensify, TECHNOLOGY_SOURCE, TechnologyEffects, current_source,
     },
     rules::{ExtraWeaponConfig, UnitConfig, UnitConfigs, UnitDomain},
 };
@@ -75,6 +75,9 @@ pub(crate) struct Placement {
     /// Whether its technologies turn its main skill's search to
     /// `DistanceIntensify` (`SearchTargetSpecificTech`).
     pub(crate) distance_intensify: bool,
+    /// The second damage its technologies make its main skill deal around
+    /// each hit (`SecondaryDamageIntensifyTech`).
+    pub(crate) secondary_damage: Option<SecondaryDamage>,
     /// The battlefield shield its equipment makes it carry.
     pub(crate) carried_shield: Option<CarriedShield>,
     /// The production line its equipment makes it run.
@@ -678,15 +681,7 @@ fn compile_formation(
     } else {
         (-local_x, -local_z)
     };
-    // A formation faces the enemy from its side's half, and the middle from
-    // a flank: the world's left flank faces +x and its right flank -x,
-    // whichever side stands there.
-    let rotation = match mechcore_document::Region::of(formation.position) {
-        mechcore_document::Region::Main if team == 0 => 0,
-        mechcore_document::Region::Main => 180_000,
-        _ if world_x < 0 => 90_000,
-        _ => 270_000,
-    };
+    let rotation = formation_rotation(formation.position, team, world_x);
     Some(Placement {
         team,
         unit_id: 0,
@@ -706,6 +701,7 @@ fn compile_formation(
         energy_shield: worn.energy_shield,
         sweep: worn.sweep,
         distance_intensify: worn.distance_intensify,
+        secondary_damage: worn.secondary_damage,
         carried_shield: worn.carried_shield,
         production,
         start_buffs: worn.start_buffs,
@@ -715,6 +711,18 @@ fn compile_formation(
         travelling: formation.travelling,
         extra_weapons: worn.extra_weapons,
     })
+}
+
+/// A formation faces the enemy from its side's half, and the middle from a
+/// flank: the world's left flank faces +x and its right flank -x, whichever
+/// side stands there.
+fn formation_rotation(position: mechcore_document::Position, team: u32, world_x: i64) -> i64 {
+    match mechcore_document::Region::of(position) {
+        mechcore_document::Region::Main if team == 0 => 0,
+        mechcore_document::Region::Main => 180_000,
+        _ if world_x < 0 => 90_000,
+        _ => 270_000,
+    }
 }
 
 /// The production line a formation's equipment runs, resolved, or `None`
@@ -783,11 +791,12 @@ fn production_of(
         || worn.auto_recovery.is_some()
         || worn.energy_shield.is_some()
         || worn.distance_intensify
+        || worn.secondary_damage.is_some()
     {
         refused.push(format!(
             "side {side_name} makes a {} that its technologies give lifesteal, repair, a \
-             shield or a search by distance, and what a made unit's effect providers carry \
-             is not measured",
+             shield, a search by distance or a second damage, and what a made unit's effect \
+             providers carry is not measured",
             made.type_name
         ));
         return None;
@@ -829,6 +838,7 @@ struct Worn {
     energy_shield: Option<EnergyShield>,
     sweep: Option<SweepIntensify>,
     distance_intensify: bool,
+    secondary_damage: Option<SecondaryDamage>,
     carried_shield: Option<CarriedShield>,
     start_buffs: Vec<StartBuff>,
     ignored_buffs: Vec<u32>,
@@ -1025,6 +1035,7 @@ fn worn(
         energy_shield: refused.hold(current_source(&energy_shield).map_err(in_force))?,
         sweep: main_skill.sweep,
         distance_intensify: main_skill.distance_intensify,
+        secondary_damage: main_skill.secondary_damage,
         carried_shield: match carried_shields.as_slice() {
             [] => None,
             [one] => Some(*one),
