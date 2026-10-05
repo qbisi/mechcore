@@ -1760,6 +1760,17 @@ impl Simulation {
         if self.ending.stop_step.is_none() {
             return Flow::Next;
         }
+        // A manager holding fire (`isHoldFire`) updates its main skill
+        // whatever the fight does: a Sandworm below goes on searching once
+        // the fight is decided, and walks on to the defeated side's tower.
+        if let (FightActorRef::Unit(actor_id), SkillSlot::Main) = (skill_ref.owner, skill_ref.slot)
+            && self.actors[&actor_id]
+                .underground
+                .as_ref()
+                .is_some_and(|underground| underground.below)
+        {
+            return Flow::Next;
+        }
         if self.skill(skill_ref).lock_target.is_some() {
             let clear_velocity = self.ending.terminal_drain_pending;
             let skill = self.skill_mut(skill_ref);

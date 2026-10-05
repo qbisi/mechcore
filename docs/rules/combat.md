@@ -889,7 +889,11 @@ last death has already searched this tick and holds what it held.
 unit, every unit updates with the fight off, and no skill runs its state
 machine. A skill that holds a lock leaves the fight: its attack stops, a
 burst still firing included, it goes idle, and its lock is cleared. A skill
-that holds none is not updated at all.
+that holds none is not updated at all. A manager holding fire, a Sandworm's
+below, is the exception (`SkillManager.Update` asks `isHoldFire` first): it
+updates its main skill as in a fight, so a Sandworm below whose lock died
+with the fight searches, takes the defeated side's tower and walks on to it
+until the fight ends.
 
 **When the fight stops, a unit's motion loses its target, and one that was
 moving stops.** `MotionIdleState.Enter` calls `RVOControllerFixed.StopMove`,
@@ -928,6 +932,10 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- A Sledgehammer whose lock walks out of its reach sets off with its turret
+  still, and a Sandworm below when the fight is decided takes the defeated
+  side's tower and walks on to it until the fight ends:
+  `tests/corpus/fights/201373545-r4.yaml`, ticks 504 and 1028.
 - A main skill starts its attack in its own update: a Melting Point prepares
   on the Crawler it locks, and goes idle when its own beam fells it first:
   `tests/extra_weapon/fights/energy-diffraction-crawler.yaml`, tick 283, and
@@ -1122,6 +1130,8 @@ not the game's native attack-type enum.
   nothing turns the tick the motion changes to moving: `FightWeapon.CanRotate`,
   `FightSkill.Update`, `MotionAttackState.AttackRotate`,
   `MotionMoveState.NormalRotate`.
+- A manager holding fire updates its main skill whatever the fight does:
+  `SkillManager.Update`, `SkillManager.EnterHoldFire`.
 - A projectile that locks its target is released with no damage out of its
   owner's reach: `FightProjectile.Update`, `FightProjectile.Init`,
   `FightProjectile.CalculateMaxMoveDistance`, `FightCalculator.IsInRange3D`,

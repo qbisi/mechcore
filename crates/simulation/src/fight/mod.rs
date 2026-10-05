@@ -873,6 +873,14 @@ impl Simulation {
                 // while a won fight runs on, and the fight's end idles every
                 // motion.
                 let entered_idle = actor.motion.state != MotionState::Idle;
+                // A manager holding fire updates its main skill all the same
+                // (`SkillManager.Update`, `isHoldFire`): a Sandworm below
+                // keeps its lock and walks on until the fight ends.
+                let holding_fire = !ready_to_finish
+                    && actor
+                        .underground
+                        .as_ref()
+                        .is_some_and(|underground| underground.below);
                 if ready_to_finish {
                     actor.exit_fight_move_ability(attack_ranges[&actor.placement.unit_id]);
                     actor.stop_in_place(entered_idle);
@@ -880,7 +888,7 @@ impl Simulation {
                     if let Some(group) = &mut actor.skills.main.group {
                         group.mech_lock = None;
                     }
-                } else if !actor.skills.main.mech_searches() {
+                } else if !actor.skills.main.mech_searches() && !holding_fire {
                     // A unit that searches for itself keeps its own lock,
                     // which no skill drops, and its motion goes on after it.
                     actor.lose_target_motion(entered_idle);
@@ -897,6 +905,7 @@ impl Simulation {
                 // begun is not one the build's attack state has entered yet,
                 // and goes idle with it.
                 let skills = std::iter::once(&mut actor.skills.main)
+                    .filter(|_| !holding_fire)
                     .chain(actor.skills.extras.iter_mut().map(|extra| &mut extra.skill));
                 for skill in skills {
                     skill.drop_lock();

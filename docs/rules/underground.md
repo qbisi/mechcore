@@ -108,6 +108,10 @@ stands where it was on that tick while every other unit moves.
 
 ### Recorded
 
+- A Sandworm's attack interval stands still through its transitions: unit 265
+  of `tests/corpus/fights/201373545-r4.yaml` begins its next attack fifty
+  updates after the last began, the twenty ticks of its burrow and the thirty
+  of its surfacing not counted.
 - A Sandworm burrows for twenty ticks from its first, its lock dropped and its
   agent still; it reads hidden, untargetable and corrected by the underground
   range from the tick it is below, keeps locking from the next, surfaces for
