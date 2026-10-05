@@ -226,6 +226,7 @@ pub(in crate::fight) fn initialize_actors(
         };
         actor.placement.unit_id = unit_id;
         actor.placement.formation_id = formation_id;
+        actor.original_formation = formation_id;
         actors.insert(unit_id, actor);
     }
     Ok(actors)
