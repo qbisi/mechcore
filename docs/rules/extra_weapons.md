@@ -368,7 +368,9 @@ So a skill with a damage rate holds the main skill's damage corrections, an
 officer's, a blueprint's and a technology's, and its damage composes them as
 the main skill's does: its rate of the unit's base damage, truncated, then
 raised and impaired by them and the buffs'. Whirlwind's 4983 becomes 5580
-under Attack Enhancement's +0.12.
+under Attack Enhancement's +0.12. Scorching Charge's explosion skill has a
+damage rate of 1 too, so it holds an officer's damage rate on its slot,
+though what its explosion deals is its unit's life.
 
 A skill whose range is the main skill's with its own added, of a row that
 uses the main skill's range or a grouped row's, never reads its own range, so
@@ -522,6 +524,10 @@ simulator refuses it.
   between blows: `tests/extra_weapon/fights/spider-mine-sledgehammers.yaml`.
 
 ### Replayed
+
+- An officer's damage rate reaches a Fire Badger's Scorching Charge slot:
+  replay 2324_20260925--134259672 round 5, tick 1, fought by the game with
+  `scripts/corpus/match-replays.py`.
 
 - A Centurion's Homing Missile takes a block in the way that its main gun is
   too short for: replay 2324_20260925--67159970 round 6, fought by the game

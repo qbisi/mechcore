@@ -58,6 +58,7 @@ extra_weapons:
     skill: 20002
     use_main_skill_range: false
     damage_by_level: []
+    damage_rate: 1
     preemptive:
       life_below: 0.5
       buff:
