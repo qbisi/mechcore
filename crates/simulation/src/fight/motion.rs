@@ -1428,13 +1428,9 @@ impl Simulation {
             return;
         }
         let has_body = self.actors[&actor_id].rules.has_body;
-        let facing = if has_body {
-            Some(target)
-        } else {
-            skill
-                .lock_target
-                .filter(|lock| self.fight_actor_is_alive(*lock))
-        };
+        let facing = skill
+            .lock_target
+            .filter(|lock| self.fight_actor_is_alive(*lock));
         let Some(rotation) = facing
             .and_then(|facing| self.fight_actor(facing))
             .map(|view| {
