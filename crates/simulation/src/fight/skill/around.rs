@@ -123,7 +123,7 @@ impl Simulation {
             .expect("actor identity is stable");
         actor.skills.running_preemptive = Some(index);
         super::preemptive::lock(&mut actor.skills.main);
-        self.search_normal_lock_target(skill_ref, target_search_order)?;
+        self.search_skill_lock_target(skill_ref, target_search_order)?;
         Ok(())
     }
 

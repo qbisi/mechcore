@@ -43,6 +43,7 @@ impl Simulation {
         };
         self.skill_mut(skill_ref).in_the_way = found;
         self.skill_mut(skill_ref).target_shield = shield;
+        self.skill_mut(skill_ref).kept_attack_target = None;
         if !self.skill(skill_ref).siblings().is_empty() {
             self.refresh_group_walls(skill_ref, None);
         }
@@ -509,6 +510,24 @@ impl Simulation {
         skill_ref: SkillRef,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<bool> {
+        if !self.search_skill_lock_target(skill_ref, target_search_order)? {
+            return Ok(false);
+        }
+        self.search_attack_target(skill_ref);
+        Ok(true)
+    }
+
+    /// `FightSkill.SearchLockTarget`: the lock changes to what the search
+    /// finds and the owner's motion is handed on; the attack target is left
+    /// as it was unless nothing is found. A preemptive skill leaving its idle
+    /// state runs this alone, and goes on firing at the attack target its
+    /// idle state took: a Tarantula's Spider Mine skill that locks a new
+    /// enemy keeps its turret on the one it held.
+    pub(in crate::fight) fn search_skill_lock_target(
+        &mut self,
+        skill_ref: SkillRef,
+        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
+    ) -> Result<bool> {
         let selected = self.select_lock_replacement(skill_ref, target_search_order)?;
         let idle = selected.is_none();
         let selected = if idle {
@@ -516,6 +535,7 @@ impl Simulation {
         } else {
             selected
         };
+        let firing_at = self.skill(skill_ref).attack_target();
         let skill = self.skill_mut(skill_ref);
         skill.idle = idle;
         let Some(selected) = selected else {
@@ -524,7 +544,11 @@ impl Simulation {
             return Ok(false);
         };
         skill.write_lock(Some(selected));
-        self.search_attack_target(skill_ref);
+        // `ChangeLockTarget` alone: the attack target stays, and only a skill
+        // left idle has it cleared.
+        skill.kept_attack_target = firing_at
+            .filter(|&target| !idle && target != selected)
+            .map(|target| (target, selected));
         self.hand_motion_after_lock_search(skill_ref);
         Ok(true)
     }
