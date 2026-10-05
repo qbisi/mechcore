@@ -200,16 +200,17 @@ impl Simulation {
             .skill_attacker(skill_ref)
             .expect("skill owner identity is stable")
             .attack_range;
-        range.saturating_add(
-            if slot.is_some_and(|slot| slot > 0)
-                && !self.skill(skill_ref).standalone()
-                && skill_ref.slot == SkillSlot::Main
-            {
-                10_000
-            } else {
-                0
-            },
-        )
+        // A main skill's slot reaches beyond its parent's range by what its
+        // row adds (`FightSkill.GetAttackRange`); an extra row's own group
+        // is checked against its own range already.
+        range.saturating_add(match (slot, skill_ref.slot) {
+            (Some(slot), SkillSlot::Main) if slot > 0 && !self.skill(skill_ref).standalone() => {
+                self.skill(skill_ref)
+                    .joined_range(slot)
+                    .unwrap_or(super::MAIN_SLOT_RANGE_ADDEND)
+            }
+            _ => 0,
+        })
     }
 
     pub(in crate::fight) fn slot_target_in_attack_range(

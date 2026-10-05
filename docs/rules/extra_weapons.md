@@ -9,7 +9,8 @@ Sabertooth's two guns, Anti-Air Missile, its missile at the air, Incendiary
 Bomb, the Hound's, Scorching Charge, the Fire Badger's self-destruct, Homing
 Missile, the Centurion's, Sticky Oil Bomb, the Phantom Ray's and the
 Vulcan's, Whirlwind, the Rhino's, Energy Diffraction, the Melting Point's,
-and Spider Mine, the Tarantula's, and refuses every other member by name: the members' skills differ
+Spider Mine, the Tarantula's, and Matrix Bombardment, the Wraith's, and
+refuses every other member by name: the members' skills differ
 in kind, a projectile, an explosion, a laser, a summon, a sweep around the
 unit, and many leave a terrain or write a buff, so each joins once a recording
 of it agrees.
@@ -195,6 +196,31 @@ its first skill in the core's place:
   main one's among them, deals 0.17 of its ramp,
   trunc(trunc(168 × m) × 0.17). `DamageCalculator.GetNormalDamage`, what a
   recording reads as the unit's damage, leaves it out.
+
+## A group that joins the main skill's
+
+`FightSkillFactory.PrepareGroupedSkill` gives a grouped row's skills the main
+skill's `SkillGroup` where the main skill holds one, and makes a group of
+their own only where it does not, as for Energy Diffraction. Matrix
+Bombardment's four guns join the Wraith's four: one group of eight, the core
+the main skill's first, the row's skills slots 4 to 7 after the main row's.
+
+- **They are the group's slots.** They search around what the others hold
+  and start as the group attacks, as the main row's slots do, and they deal
+  the unit's base damage at their row's rate of one.
+- **Each reaches its own range beyond its parent's.** A slot of the row
+  reaches the main skill's 60 metres and the row's own 5 beyond them, 65,
+  where a slot of the main row reaches 10 beyond (`FightSkill.GetAttackRange`).
+- **Each is its row's skill, not the main skill's.** It draws its own first
+  interval, as each skill of a grouped row does. It is no main searcher
+  (`FightSkillBase.IsMainSearcher` asks `isMainSkill`): a lock it takes or
+  drops does not reach the unit, whose lock is the last the main row's slots
+  took. Its projectile climbs first, as every extra skill's does, and leaves
+  on the tick after its release.
+
+The simulator runs the row's slots on the main skill's numbers, so a row
+joins only where its own are the same but for its range and its weapons, and
+it refuses any other by name.
 
 ## A fire where it lands
 
@@ -528,6 +554,15 @@ simulator refuses it.
 - The line makes a batch every 15 seconds (t1, t301, t601), the skill
   starting each time. At t601 it starts while the main skill is attacking
   between blows: `tests/extra_weapon/fights/spider-mine-sledgehammers.yaml`.
+
+- Matrix Bombardment's four guns join the Wraith's group as slots 4 to 7,
+  prepare with the main row's as the core attacks and deal 381 each; their
+  projectiles leave the tick after their release:
+  `tests/extra_weapon/fights/matrix-bombardment-rhino.yaml`, beside its
+  control `tests/wraith/fights/m2-rhino-4242.yaml`. The eight slots share
+  seven Crawlers out, and the Wraith's lock is the last the main row's slots
+  took: `tests/extra_weapon/fights/matrix-bombardment-crawlers.yaml`. Over
+  two formations: `tests/extra_weapon/fights/matrix-bombardment-formations.yaml`.
 
 ### Replayed
 

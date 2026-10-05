@@ -808,13 +808,14 @@ impl Simulation {
         let attacker = self
             .skill_attacker(skill_ref)
             .expect("skill owner identity is stable");
-        // An extra skill is one `FightSkill`, whatever its row's weapons.
-        let skills = if attacker.attack.weapons.mode == WeaponMode::Normal
-            || skill_ref.slot != SkillSlot::Main
-        {
-            1
-        } else {
-            attacker.attack.weapons.count()
+        // A row's skill is one `FightSkill` whatever its weapons, unless the
+        // row is grouped: `FightSkillFactory.Create` then makes one for each
+        // weapon, a main row's or an extra row's, and each draws its own. A
+        // main row's standalone weapons are one skill here and draw for each;
+        // an extra row's are a skill each already.
+        let skills = match (attacker.attack.weapons.mode, skill_ref.slot) {
+            (WeaponMode::Normal, _) | (WeaponMode::Standalone, SkillSlot::Extra(_)) => 1,
+            _ => attacker.attack.weapons.count(),
         };
         for index in 0..skills {
             let interval = self.draw_attack_interval(skill_ref)?;

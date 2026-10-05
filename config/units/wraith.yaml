@@ -56,3 +56,48 @@ attack:
     simulated_motion: false
     interceptible: false
     max_life: 0
+
+extra_weapons:
+  - technology: 110181
+    skill: 18002
+    use_main_skill_range: false
+    damage_by_level: []
+    damage_rate: 1
+    attack:
+      base_damage: 0
+      min_range: 0
+      range: 5
+      attack_half_angle: 360
+      targets: {ground: true, air: true}
+      lock_target: true
+      quick_switch_target: true
+      timing:
+        interval: 1.6
+        interval_offset: 0.2
+        initial_cooldown: 0
+        prepare: 0.4
+        attack_point: 0
+        backswing: 0
+        cooling: 0
+      splash_radius: 8
+      weapons:
+        mode: group
+        indices: [4, 5, 6, 7]
+        per_skill: 1
+        fusillade: false
+        allow_same_target: true
+        rotation_speed: 90
+      melee: false
+      crosses_shields: false
+      path:
+        type: projectile
+        count: 1
+        release_interval: 0
+        speed: 200
+        target_offset_radius: 0
+        evenly_allocate_targets: false
+        extra_search_range: 0
+        pre_flight_height: 0
+        simulated_motion: false
+        interceptible: false
+        max_life: 0

@@ -267,7 +267,11 @@ impl Simulation {
     ) {
         let fixed_to_body = self.skill_rules(skill_ref).weapons.fixed_to_body;
         let stopping = self.ending.stop_step == Some(step);
-        let main_searcher = skill_ref.slot == SkillSlot::Main;
+        // A joined row's slot is its row's skill, which is no main searcher
+        // (`FightSkillBase.IsMainSearcher` asks `isMainSkill`): its lock
+        // does not reach the owner.
+        let main_searcher =
+            skill_ref.slot == SkillSlot::Main && self.skill(skill_ref).joined_range(slot).is_none();
         let skill = self.skill_mut(skill_ref);
         let after = skill.sibling(slot).lock_target;
         if after != before && main_searcher {
@@ -305,8 +309,9 @@ impl Simulation {
             .checked_attack_target()
             .filter(|_| skill.group_skill(slot).shield_target().is_none());
         self.idle_group_slot(skill_ref, slot);
-        // `StopAttack` hands a main searcher's owner the dropped lock.
-        if skill_ref.slot == SkillSlot::Main {
+        // `StopAttack` hands a main searcher's owner the dropped lock, which
+        // a joined row's slot is not.
+        if skill_ref.slot == SkillSlot::Main && self.skill(skill_ref).joined_range(slot).is_none() {
             self.skill_mut(skill_ref).set_mech_lock(None);
         }
         if cooling_steps > 0 {
@@ -538,6 +543,7 @@ impl Simulation {
                         skill_index,
                         events,
                     )?;
+                    self.climb_joined_slot_projectile(skill_ref, skill_index, target)?;
                 }
             }
             // A slot whose line of fire a construction stands in fires at
@@ -583,6 +589,11 @@ impl Simulation {
                     skill_index,
                     skill_index,
                     events,
+                )?;
+                self.climb_joined_slot_projectile(
+                    skill_ref,
+                    skill_index,
+                    FightActorRef::Building(building_id),
                 )?;
             }
             FightActorRef::Unit(_) => return Ok(()),
