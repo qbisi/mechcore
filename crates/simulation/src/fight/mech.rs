@@ -689,10 +689,16 @@ fn extra_skills(placement: &Placement) -> Vec<ExtraSkill> {
             let rules = &weapon.rules;
             let count = usize::try_from(rules.attack.weapons.count())
                 .expect("u32 weapon count fits the supported host");
-            // A standalone row makes a skill of each weapon; any other one
-            // skill that fires them all, or holds the group that does.
+            // A standalone row makes a skill of each `weaponCountPerSkill` of
+            // its weapons: the Naval Gun's two guns are one skill. Any other
+            // row makes one skill that fires them all, or holds the group that
+            // does.
             let (skills, per_skill, group) = match rules.attack.weapons.mode {
-                WeaponMode::Standalone => (count, 1, None),
+                WeaponMode::Standalone => {
+                    let per_skill = usize::try_from(rules.attack.weapons.per_skill)
+                        .expect("u32 weapon count fits the supported host");
+                    (count / per_skill, per_skill, None)
+                }
                 WeaponMode::Group => (1, count, group_shape(&rules.attack)),
                 WeaponMode::Normal => (1, count, None),
             };
@@ -715,7 +721,7 @@ fn extra_skills(placement: &Placement) -> Vec<ExtraSkill> {
                     buff: weapon.buff,
                     dead_fire: weapon.dead_fire,
                     skill_corrections: weapon.skill_corrections.clone(),
-                    weapon: index,
+                    weapon: index * per_skill,
                 }
             })
         })

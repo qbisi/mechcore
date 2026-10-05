@@ -194,12 +194,19 @@ impl Simulation {
             .attack;
         let count = usize::try_from(attack.projectile_count())
             .expect("u32 projectile count fits the supported host");
-        let weapon_count = usize::try_from(attack.weapons.count())
-            .expect("u32 weapon count fits the supported host");
+        // A standalone skill fires its own weapons, `weaponCountPerSkill` of
+        // its row's; any other all of them.
+        let weapon_count = usize::try_from(if attack.weapons.mode == WeaponMode::Standalone {
+            attack.weapons.per_skill
+        } else {
+            attack.weapons.count()
+        })
+        .expect("u32 weapon count fits the supported host");
         let interval = native_time_units_to_steps(attack.projectile_release_interval_time_units());
         let radius = attack.projectile_target_offset_radius();
         let climb_target = self.climb_target(target)?;
-        // An extra skill fires the one weapon of its row it was made for.
+        // An extra skill fires from the first of its row's weapons it was
+        // made for.
         let (first_weapon, skill_slot) = (
             match skill_ref.slot {
                 SkillSlot::Main => 0,
@@ -236,7 +243,7 @@ impl Simulation {
                     offset_x_q32: x,
                     offset_z_q32: z,
                     climb_target,
-                    weapon_index: (first_weapon + index) % weapon_count,
+                    weapon_index: first_weapon + index % weapon_count,
                     skill_slot,
                 });
         let first = releases

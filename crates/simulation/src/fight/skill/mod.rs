@@ -295,8 +295,8 @@ pub(in crate::fight) struct ExtraSkill {
     pub(in crate::fight) dead_fire: Option<crate::layout::TerrainSpec>,
     /// What its own `DataSet` holds, for a skill without a damage rate.
     pub(in crate::fight) skill_corrections: Vec<crate::data::Entry>,
-    /// The first of the row's weapons this skill fires: its one weapon of a
-    /// standalone row, the first of every other.
+    /// The first of the row's weapons this skill fires: the first of its own
+    /// for a standalone row, the first of every other.
     pub(in crate::fight) weapon: usize,
 }
 
@@ -362,14 +362,14 @@ impl SkillManager {
 }
 
 impl ExtraSkill {
-    /// The arc its weapon turns within, if its row gives one.
-    pub(in crate::fight) fn arc(&self) -> Option<&WeaponArc> {
+    /// The arc one of its weapons turns within, if its row gives one.
+    pub(in crate::fight) fn arc(&self, offset: usize) -> Option<&WeaponArc> {
         self.rules
             .attack
             .weapons
             .arcs
             .as_ref()
-            .and_then(|arcs| arcs.get(self.weapon))
+            .and_then(|arcs| arcs.get(self.weapon + offset))
     }
 
     /// Whether its weapon turns on a transform of its own: one that turns

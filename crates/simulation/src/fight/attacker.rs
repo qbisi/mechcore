@@ -483,12 +483,13 @@ impl Simulation {
         attacker.splash_radius = rules.attack.splash_radius();
         attacker.attack_interval_q32 =
             time_units_to_seconds_q32(rules.attack.interval_time_units());
-        // A weapon without an arc has no transform of its own, and points
-        // where what it is mounted on points: the turret it is mounted on, or
-        // the unit. The Hound's bombs score from the unit's rotation, as its
-        // main skill does.
+        // A weapon without a transform of its own points where what it is
+        // mounted on points: the turret it is mounted on, or the unit. The
+        // Hound's bombs score from the unit's rotation, as its main skill
+        // does. One with a transform scores from its first weapon's
+        // (`FightSkill.GetMainTransform`): the Naval Gun's turned guns.
         let mount_rotation = actor.mount_rotation_q32(rules.attack.weapons.mount);
-        let rotation = if extra.arc().is_some() {
+        let rotation = if extra.own_transform() {
             attacker.facing = Facing::Weapons(&extra.skill.weapon_rotations_q32);
             attacker.has_body = true;
             extra.skill.weapon_rotations_q32[0]
@@ -505,7 +506,7 @@ impl Simulation {
         attacker.query_x_q32 = actor.x_q32;
         attacker.query_z_q32 = actor.z_q32;
         attacker.query_rotation_q32 = rotation;
-        attacker.rotation_window_q32 = extra.arc().and_then(|arc| {
+        attacker.rotation_window_q32 = extra.arc(0).and_then(|arc| {
             let (left, right) = arc.left.zip(arc.right)?;
             let parent = match (rules.attack.weapons.mount, actor.turret_rotation()) {
                 (WeaponMount::MechBody, Some(turret)) => turret,

@@ -10,8 +10,9 @@ Bomb, the Hound's, Scorching Charge, the Fire Badger's self-destruct, Homing
 Missile, the Centurion's, Sticky Oil Bomb, the Phantom Ray's and the
 Vulcan's, Whirlwind, the Rhino's, Energy Diffraction, the Melting Point's,
 Spider Mine, the Tarantula's, Matrix Bombardment, the Wraith's, and
-Anti-Air Barrage, the Fortress's, Air Defense Mark, the Typhoon's, and
-Disintegration, the Abyss's, and refuses every other member by name: the members' skills differ
+Anti-Air Barrage, the Fortress's, Air Defense Mark, the Typhoon's,
+Disintegration, the Abyss's, and Naval Gun, the Overlord's, and refuses every
+other member by name: the members' skills differ
 in kind, a projectile, an explosion, a laser, a summon, a sweep around the
 unit, and many leave a terrain or write a buff, so each joins once a recording
 of it agrees.
@@ -23,8 +24,9 @@ of it agrees.
 adds the row's skill through `SkillManager.AddSkill`. The first skill a
 `SkillManager` is given is its main skill; every later one joins its extra
 skills. `AddSkill` adds each `FightSkill` the row's skill makes, so a
-standalone row adds one skill for each of its weapons: Secondary Armament adds
-two. A grouped row adds one for each of its weapons too, and
+standalone row adds one skill for each `weaponCountPerSkill` of its weapons:
+Secondary Armament adds two, of one gun each, and Naval Gun one, of its two
+guns. A grouped row adds one for each of its weapons too, and
 `FightSkillFactory.PrepareGroupedSkill` puts them in a `SkillGroup` whose
 every skill has the main skill for its `ParentSkill`: Energy Diffraction adds
 four beams. Any other row adds one skill that fires all its weapons:
@@ -121,7 +123,11 @@ one with no arc turns freely: Air Defense Mark's marker turns onto its lock
 at the unit's rotate speed, and stays where it points while it holds none.
 One whose arc is no wider than its rest is held there: Disintegration's
 emitter points as the Abyss pointed before the motion turned it, on every
-update its skill holds a lock.
+update its skill holds a lock. A skill of two such weapons turns both towards
+its lock (`FightSkill.RotateWeaponTo`), scores its searches and asks its
+attack angle from the first (`FightSkill.GetMainTransform`), and fires a burst
+from its own weapons in turn: Naval Gun's one shell a blow leaves its first
+gun, and its 20 degrees either side are measured from where that gun points.
 Any other weapon whose row gives it no arc has no transform of its own and
 points where its mount points: the Hound's bomb launchers point as the unit does, and
 the Centurion's missile launcher, mounted by default, as its turret does.
@@ -642,6 +648,13 @@ simulator refuses it.
   the Marksman it covers out of every firing that reaches it, until the
   Abyss's sweep breaks it, and a shield struck for nothing records nothing:
   `tests/extra_weapon/fights/disintegration-shield.yaml`.
+
+- Naval Gun's two guns are one skill, slot 1 after the Overlord's main
+  skill, that fires one shell a blow from its first gun, every three seconds
+  give or take 0.3, for 7000:
+  `tests/extra_weapon/fights/naval-gun-rhinos.yaml`. Two Overlords whose guns
+  turn onto targets spread wide, each searching from where its first gun
+  points: `tests/extra_weapon/fights/naval-gun-spread.yaml`.
 
 ### Replayed
 
