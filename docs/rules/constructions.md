@@ -144,8 +144,11 @@ It is **the nearest wall the line reaches**, not the nearest wall and not the
 wall nearest the line. **The width does not belong to the attacker**: units of
 different collision radius take and pass up blocks at the same distance from
 the line. **The reach does belong to the attacker, edge to edge**: its range
-plus its radius plus the block's. The distance is the build's fast fixed-point
-magnitude, which reads a little short of the true one.
+plus its radius plus the block's. It is the range of the skill that asks, so a
+slot of a main skill's group, which reaches ten metres beyond its core
+(`FightSkill.GetAttackRange`), takes a block ten metres further off. The
+distance is the build's fast fixed-point magnitude, which reads a little short
+of the true one.
 
 **A blow and a beam take a wall the way a shot does**, each on the block in its
 own line. A block falls after every hit its tick resolves, a blow's as a
@@ -223,6 +226,7 @@ The map's own buildings are the exception and are named: each side gets one
 - A unit with four weapon slots takes the block in its way with every slot,
   splashes the next block, and drops its slots with the lock when a block falls:
   `tests/construction/fights/`.
+
 - A blow takes the block in its line, and the unit reads idle for a tick before
   the next: `tests/construction/fights/`.
 - A beam takes the block in its line, a block holds off a unit of the other
@@ -254,6 +258,9 @@ The map's own buildings are the exception and are named: each side gets one
   `FightSkill.SearchAttackTarget`,
   `WallConstructionTargetChecker.CheckWallConstruction`,
   `WallConstructionTargetChecker.GetNearestWall`.
+- A grouped slot asks for a wall with its own range:
+  `FightSkill.GetAttackRange`,
+  `WallConstructionTargetChecker.CheckWallConstructionForGroupedSkill`.
 - A wall is not searched for: `ConstructionData.enableSearchTarget`.
 - Collision is a property of a building's data:
   `BuildingData.EnableCollision`.
