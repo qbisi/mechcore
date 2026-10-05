@@ -98,9 +98,11 @@ const EXTRA_WEAPON: &str = "extraWeaponTechnologies";
 /// Incendiary Bomb, Scorching Charge, Homing Missile, Sticky Oil Bomb, the
 /// Phantom Ray's and the Vulcan's, Whirlwind, the Rhino's, Energy
 /// Diffraction, the Melting Point's, Spider Mine, the Tarantula's, Matrix
-/// Bombardment, the Wraith's, and Anti-Air Barrage, the Fortress's.
-pub(crate) const FOUGHT_EXTRA_WEAPONS: [i32; 12] = [
-    1_105, 1_107, 1_109, 11_010, 11_020, 11_024, 11_025, 11_028, 110_181, 110_211, 110_212, 110_322,
+/// Bombardment, the Wraith's, Anti-Air Barrage, the Fortress's, and Air
+/// Defense Mark, the Typhoon's.
+pub(crate) const FOUGHT_EXTRA_WEAPONS: [i32; 13] = [
+    1_105, 1_107, 1_109, 11_010, 11_020, 11_024, 11_025, 11_028, 110_181, 110_211, 110_212,
+    110_322, 1_102_022,
 ];
 
 /// `EnergyShieldTech.GetLifeRate`: `FPoint.One`, whatever its row, so the

@@ -644,9 +644,8 @@ impl Actor {
             .flat_map(move |(index, extra)| {
                 let first = self.skills.extra_first_slot(index);
                 let grouped = extra.skill.is_grouped();
-                // Only a weapon that turns within an arc has a transform of
-                // its own.
-                let arcs = extra.rules.attack.weapons.arcs.is_some();
+                // Only a weapon with a transform of its own records a pose.
+                let arcs = extra.own_transform();
                 extra.skill.weapon_rotations_q32.iter().enumerate().map(
                     move |(offset, &rotation)| {
                         // A grouped row's weapon is its group's skill of the

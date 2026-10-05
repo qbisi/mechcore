@@ -10,7 +10,8 @@ Bomb, the Hound's, Scorching Charge, the Fire Badger's self-destruct, Homing
 Missile, the Centurion's, Sticky Oil Bomb, the Phantom Ray's and the
 Vulcan's, Whirlwind, the Rhino's, Energy Diffraction, the Melting Point's,
 Spider Mine, the Tarantula's, Matrix Bombardment, the Wraith's, and
-Anti-Air Barrage, the Fortress's, and refuses every other member by name: the members' skills differ
+Anti-Air Barrage, the Fortress's, and Air Defense Mark, the Typhoon's, and
+refuses every other member by name: the members' skills differ
 in kind, a projectile, an explosion, a laser, a summon, a sweep around the
 unit, and many leave a terrain or write a buff, so each joins once a recording
 of it agrees.
@@ -115,8 +116,11 @@ chassis before the fight, and turns towards its skill's lock at the row's
 `extraWeaponRotateSpeed` after the skill's state has updated, held within its
 arc about its rest as the chassis pointed before the motion turned it.
 
-A weapon whose row gives it no arc has no transform of its own and points
-where its mount points: the Hound's bomb launchers point as the unit does, and
+A standalone row's weapon has a transform of its own whatever its arc, and
+one with no arc turns freely: Air Defense Mark's marker turns onto its lock
+at the unit's rotate speed, and stays where it points while it holds none.
+Any other weapon whose row gives it no arc has no transform of its own and
+points where its mount points: the Hound's bomb launchers point as the unit does, and
 the Centurion's missile launcher, mounted by default, as its turret does.
 Its skill scores its searches from the unit's rotation as it stands then, the
 same rotation the main skill scores from, and asks its attack angle of the
@@ -555,6 +559,15 @@ simulator refuses it.
   starting each time. At t601 it starts while the main skill is attacking
   between blows: `tests/extra_weapon/fights/spider-mine-sledgehammers.yaml`.
 
+- Air Defense Mark's marker strikes for nothing and writes its mark on
+  every aircraft within 100 metres of where it lands: 0.3 more damage taken
+  and 20 metres off the main skill's range, a Wraith's 60 to 40, the buffs'
+  `attack_range_reduce_value` reading -20:
+  `tests/extra_weapon/fights/air-defense-mark-wraiths.yaml`. It marks the
+  Wasps and not the Rhino beside them, and once no aircraft is left it holds
+  no lock, an extra skill being no main searcher that
+  `TrySearchAliveTarget` would answer:
+  `tests/extra_weapon/fights/air-defense-mark-wasps.yaml`.
 - Anti-Air Barrage releases its sixteen projectiles every ten seconds, its
   two weapons in turn, one every two ticks, scattered 55 metres about its
   target and climbing first, and strikes aircraft alone, 900 a hit:
@@ -606,6 +619,10 @@ simulator refuses it.
   `ExtraSkillSystem.AddMech`, `SkillManager.AddSkill`, `FightSkill.EnableUseMainSkillRange`.
 - The manager's skills update in ascending skill ID: `SkillManager.Update`,
   `SkillManager.SortSkills`.
+- A buff's range: `AttackRangeProperty.GetAttackRange`,
+  `BuffManager.GetAttackRangeAddValue`, `BuffManager.GetAttackRangeReduceValue`,
+  `BuffManager.GetExtraAttackRangeAddValue`; an extra skill's fallback search,
+  `SkillSearchTargetController.TrySearchAliveTarget`.
 - An extra skill's differences: `FightSkill.Init`,
   `SkillSearchTargetController.PrepareSearch`,
   `MainSkillSearchTargetController.PrepareSearch`,

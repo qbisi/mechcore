@@ -371,6 +371,14 @@ impl ExtraSkill {
             .as_ref()
             .and_then(|arcs| arcs.get(self.weapon))
     }
+
+    /// Whether its weapon turns on a transform of its own: one that turns
+    /// within an arc, and a standalone row's, which `FightWeapon` gives a
+    /// transform whatever its arc, turning freely where it has none.
+    pub(in crate::fight) fn own_transform(&self) -> bool {
+        self.rules.attack.weapons.arcs.is_some()
+            || self.rules.attack.weapons.mode == crate::rules::WeaponMode::Standalone
+    }
 }
 
 /// Which of an owner's skills: its `SkillManager`'s main skill, or the extra

@@ -933,6 +933,20 @@ impl Simulation {
         Ok(())
     }
 
+    /// `FightSkillBase.IsMainSearcher`: the main skill's slots but a joined
+    /// row's, or, while it is active, the permanent preemptive skill.
+    fn searches_for_owner(&self, skill_ref: SkillRef, slot: Option<usize>) -> bool {
+        match skill_ref.slot {
+            SkillSlot::Main => {
+                slot.is_none_or(|slot| self.skill(skill_ref).joined_range(slot).is_none())
+            }
+            SkillSlot::Extra(index) => {
+                let skills = self.skills(skill_ref.owner);
+                skills.preemptive_active && skills.extras[index].rules.preemptive.is_some()
+            }
+        }
+    }
+
     /// `SkillSearchTargetController.TrySearchAliveTarget`, which
     /// `SearchLockTarget` falls back on when the skill's own search answers
     /// nothing, leaving the skill idle.
@@ -951,6 +965,12 @@ impl Simulation {
         slot: Option<usize>,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<Option<FightActorRef>> {
+        // It answers nothing for a skill that is no main searcher: an extra
+        // skill's, unless it is the active permanent preemptive one, and a
+        // slot of a row that joined the main skill's group.
+        if !self.searches_for_owner(skill_ref, slot) {
+            return Ok(None);
+        }
         let source = self
             .skill_attacker(skill_ref)
             .ok_or_else(|| Error::new("target selector source is absent"))?;
