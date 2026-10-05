@@ -1,0 +1,24 @@
+# Anti-Air Barrage against ground and air.
+#
+# A Fortress with Anti-Air Barrage against a Rhino and two Wraiths. The
+# barrage takes aircraft alone: its hits land on the Wraiths, 900 each,
+# while the main gun strikes the Rhino three times and a Wraith once.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 979
+hash: {profile: mcfr-content-0.7.0, result: 1fa03441113fea29d1f5c092599ea5ea2205526f75d93b998e713a15f6ae92bc}
+blue:
+  techs:
+    fortress: [anti_air_barrage]
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/1600/1600}
+red:
+  core_damage: 350
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+  - {name: wraith, index: 1, position: {x: 5, y: -175}}
+  - {name: wraith, index: 2, position: {x: -55, y: -175}}

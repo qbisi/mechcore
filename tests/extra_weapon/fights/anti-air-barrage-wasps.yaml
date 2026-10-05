@@ -1,0 +1,27 @@
+# Anti-Air Barrage: the Fortress's sixteen shots at aircraft.
+#
+# A Fortress with Anti-Air Barrage against three Wasp squads, the standard
+# `../../fortress/fights/m4-wasp-4242.yaml` with the technology. Every ten
+# seconds the barrage releases sixteen projectiles, its two weapons in turn,
+# one every two ticks (t20 to t50, then t220, t420, t620), each aimed 55
+# metres about its target at random and climbing 60 metres first. A hit
+# deals 900, which a Wasp's 311 holds to that.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 664
+hash: {profile: mcfr-content-0.7.0, result: a7a7e11e0adc90534a4ed9e8790da8bf3c47c7706b4d549e50ef7fb5569af83c}
+blue:
+  techs:
+    fortress: [anti_air_barrage]
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/1424/1600}
+red:
+  core_damage: 350
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -100}}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}}
+  - {name: wasp, index: 2, position: {x: 5, y: -180}}

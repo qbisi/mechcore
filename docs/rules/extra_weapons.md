@@ -9,8 +9,8 @@ Sabertooth's two guns, Anti-Air Missile, its missile at the air, Incendiary
 Bomb, the Hound's, Scorching Charge, the Fire Badger's self-destruct, Homing
 Missile, the Centurion's, Sticky Oil Bomb, the Phantom Ray's and the
 Vulcan's, Whirlwind, the Rhino's, Energy Diffraction, the Melting Point's,
-Spider Mine, the Tarantula's, and Matrix Bombardment, the Wraith's, and
-refuses every other member by name: the members' skills differ
+Spider Mine, the Tarantula's, Matrix Bombardment, the Wraith's, and
+Anti-Air Barrage, the Fortress's, and refuses every other member by name: the members' skills differ
 in kind, a projectile, an explosion, a laser, a summon, a sweep around the
 unit, and many leave a terrain or write a buff, so each joins once a recording
 of it agrees.
@@ -555,6 +555,12 @@ simulator refuses it.
   starting each time. At t601 it starts while the main skill is attacking
   between blows: `tests/extra_weapon/fights/spider-mine-sledgehammers.yaml`.
 
+- Anti-Air Barrage releases its sixteen projectiles every ten seconds, its
+  two weapons in turn, one every two ticks, scattered 55 metres about its
+  target and climbing first, and strikes aircraft alone, 900 a hit:
+  `tests/extra_weapon/fights/anti-air-barrage-wasps.yaml`, beside its
+  control `tests/fortress/fights/m4-wasp-4242.yaml`, and
+  `tests/extra_weapon/fights/anti-air-barrage-mixed.yaml`.
 - Matrix Bombardment's four guns join the Wraith's group as slots 4 to 7,
   prepare with the main row's as the core attacks and deal 381 each; their
   projectiles leave the tick after their release:
