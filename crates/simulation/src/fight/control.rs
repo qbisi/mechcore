@@ -330,6 +330,7 @@ impl Simulation {
             .expect("actor identity is stable");
         actor.placement.team = team;
         actor.placement.formation_id = actor.original_formation;
+        self.joins_side_last(unit_id);
         let step = self.step_now;
         let locked = self
             .actors
@@ -429,6 +430,7 @@ impl Simulation {
             .expect("actor identity is stable");
         actor.placement.team = team;
         actor.placement.formation_id = formation_id;
+        self.joins_side_last(unit_id);
         // Its own attack ends as a skill's whose lock changed side: what it
         // was striking stands on its side now. A Hacker turned on its
         // Hacker reads cooling at it on the tick it turns, and a Crawler,
