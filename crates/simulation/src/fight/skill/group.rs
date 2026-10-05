@@ -51,9 +51,9 @@ impl Simulation {
         let found = siblings
             .iter()
             .enumerate()
-            .map(|(index, lock)| {
+            .map(|(index, &lock)| {
                 let wall = lock.and_then(|lock| {
-                    self.wall_in_the_way(skill_ref, lock)
+                    self.wall_in_the_way(skill_ref, Some(index + 1), lock)
                         .map(|building| (building, lock))
                 });
                 // Each slot's `SearchTargetShield`, as the core's.
