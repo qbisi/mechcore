@@ -1,0 +1,30 @@
+# Spider Mine: the Tarantula's support skill and the mines it makes.
+#
+# A Tarantula with Spider Mine against a Rhino 201 metres off. The support
+# skill starts on the first tick with its lock far out of its 80 metres: its
+# start checker (`SupportSkillStartAttackChecker`) asks only that no
+# preemptive skill runs, that its line's next update makes a batch and that
+# the main skill rests, and its attack check only that its lock lives. It
+# locks the main skill (t1 to t32), prepares 1.5 seconds, attacks at t31, does
+# nothing with its blow, and hands the main skill back at t33. Its line makes
+# two Spider Mines on t1, at the turret's ±20 metres right and 40 forward, at
+# the Tarantula's level; they take two seconds to appear (t41). At t109 both
+# explode on the Rhino for 2500 each, and the first one's blast reaches the
+# second mine for 750, its whole life.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 250
+hash: {profile: mcfr-content-0.7.0, result: 3f6a42ac48608254be19e2852c6044368349c7e99dc578980da3899c7f11e6fb}
+blue:
+  core_damage: 200
+  techs:
+    tarantula: [spider_mine]
+  units:
+  - {name: tarantula, index: 0, position: {x: -5, y: -105}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/406/1150}

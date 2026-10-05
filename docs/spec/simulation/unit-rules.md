@@ -78,7 +78,8 @@ attack:
 | --- | --- |
 | `type_name`, `unit_type_id` | Layout name and stable MCFR unit type ID. |
 | `main_skill` | `MechData.mainSkillID`, which orders the main skill among the unit's skills. |
-| `extra_weapons` | The skill each extra weapon technology the unit may research adds beside its main one, where its shape is one this file can state: the technology, the skill, `use_main_skill_range`, `damage_by_level`, an `attack` of the main skill's shape, for a row that leaves a fire, its `fire.life_time` (`fireLifeTime`), in seconds, and for a permanent preemptive explosion skill, its `preemptive` condition (`life_below`) and `buff` (`buffDatas`: `id`, `duration` in seconds, `divide`, `additive`, `debuff`, `invincible`, `move_speed_value` in metres a second) and its `explosion` (`damage_multiplier`, `friendly_fire`, and the `dead_fire` its unit's death leaves, `life_time` in seconds and `radius` in metres). [`docs/rules/extra_weapons.md`](../../rules/extra_weapons.md) says what they do. Absent means none. |
+| `extra_weapons` | The skill each extra weapon technology the unit may research adds beside its main one, where its shape is one this file can state: the technology, the skill, `use_main_skill_range`, `damage_by_level`, an `attack` of the main skill's shape, for a row that leaves a fire, its `fire.life_time` (`fireLifeTime`), in seconds, and for a permanent preemptive explosion skill, its `preemptive` condition (`life_below`) and `buff` (`buffDatas`: `id`, `duration` in seconds, `divide`, `additive`, `debuff`, `invincible`, `move_speed_value` in metres a second) and its `explosion` (`damage`, `damage_multiplier`, `friendly_fire`, and the `dead_fire` its unit's death leaves, `life_time` in seconds and `radius` in metres), and for a support skill, the `production` line it gates: the unit it makes (`unit_type_id`) and at what `level` (`parent`, its owner's), how many batches (`max_batch`) and how many alive (`max_alive`) at most, none for no bound, how many a batch (`per_time`) and how often (`interval`, in seconds), how long each takes to appear (`appear`, in seconds), and where each stands, `offsets` in metres right and forward of the owner's root or body (`frame`). [`docs/rules/extra_weapons.md`](../../rules/extra_weapons.md) says what they do. Absent means none. |
+| `explosion` | For a unit whose main skill is an explosion, what its death deals: `damage`, the skill's `attack` damage or the life the unit had before its blow (`current_life`), times `damage_multiplier`, to its own side too where `friendly_fire`. Absent means none. |
 | `formation.members` | Number of native members created for one Formation. |
 | `formation.slot_size` | Native member-grid slot size used to derive row and column counts. |
 | `formation.footprint` | Native card base width and depth used to generate member positions. |
@@ -151,13 +152,17 @@ Weapon scheduling is orthogonal to the effect path:
   own fixed to the body. The table has no column for it; the extraction
   script writes it from the id, and it defaults to `false`.
 
-The `path` tagged union has six variants:
+The `path` tagged union has eight variants:
 
 - `projectile`: count, release interval, movement and target-offset data,
   interception flag, and projectile life;
 - `direct`: direct effect;
 - `suicide`: the blow takes its own unit's life (`SuicideEffect`), for an
   explosion skill;
+- `around`: a preemptive strike about its own unit, with the radius it
+  selects enemies in and how many it waits for;
+- `support`: a preemptive skill whose blow does nothing, for a support
+  skill that gates a production line;
 - `laser`: attack-count damage multipliers;
 - `control_beam`: warmup attack count and warmup damage multiplier;
 - `sweep`: the strip a `FightSweepSkill` sweeps across its target, whether

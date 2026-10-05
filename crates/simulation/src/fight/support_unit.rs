@@ -57,6 +57,15 @@ pub(in crate::fight) struct Creator {
     owner: Option<u64>,
     /// `GetPositionDatas`, Q32.32 metres right and forward of the owner.
     offsets: Vec<(i64, i64)>,
+    /// How many ticks a make takes to appear before it joins the fight.
+    appear_ticks: u64,
+    /// Whether a make takes its owner's level.
+    parent_level: bool,
+    /// Whether an offset turns with the owner's body rather than its root.
+    body_frame: bool,
+    /// Whether its owner's support skill lets each batch out, and whether
+    /// it holds the line locked.
+    gate: Gate,
     /// `GetBatchMaxCount`: how many batches it makes in all, none for no
     /// bound.
     max_batch: u32,
@@ -73,6 +82,18 @@ pub(in crate::fight) struct Creator {
     created: u32,
     /// `lifeTime`: the updates it has run.
     updates: u64,
+}
+
+/// What a support skill makes of its production line.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Gate {
+    /// No skill gates the line: an item's or a battle skill's.
+    None,
+    /// A support skill gates it, and it runs.
+    Open,
+    /// `isLocked`: its support skill locked it while a batch was due and the
+    /// skill could not start; it does not count until unlocked.
+    Locked,
 }
 
 /// Which of a `TeamSupportUnitManager`'s lists a creator is in.
@@ -118,6 +139,10 @@ impl Creator {
             summon,
             owner: None,
             offsets: Vec::new(),
+            appear_ticks: APPEAR_TICKS,
+            parent_level: false,
+            body_frame: false,
+            gate: Gate::None,
             max_batch: 0,
             batches: 0,
             max_alive: 0,
@@ -154,6 +179,10 @@ impl Creator {
             summon,
             owner: Some(owner.placement.unit_id),
             offsets: line.offsets.clone(),
+            appear_ticks: seconds_q32_to_steps(line.appear_q32),
+            parent_level: line.parent_level,
+            body_frame: line.body_frame,
+            gate: if line.gated { Gate::Open } else { Gate::None },
             max_batch: line.max_batch,
             batches: 0,
             max_alive: line.max_alive,
@@ -220,20 +249,11 @@ impl Simulation {
             if self.support.list(list)[index].team != team {
                 continue;
             }
-            let alive = {
-                let creator = &self.support.list(list)[index];
-                let appearing = |id: u64| {
-                    self.support
-                        .appearing
-                        .iter()
-                        .any(|appearing| appearing.actor.placement.unit_id == id)
-                };
-                creator
-                    .made
-                    .iter()
-                    .filter(|&&id| appearing(id) || self.actors.get(&id).is_some_and(Actor::alive))
-                    .count()
-            };
+            // `SupportUnitCreator.Update` does nothing while locked.
+            if self.support.list(list)[index].gate == Gate::Locked {
+                continue;
+            }
+            let alive = self.creator_alive(&self.support.list(list)[index]);
             let batch = {
                 let creator = &mut self.support.list_mut(list)[index];
                 // `IsBatchMax` stops it for good, before its life counts.
@@ -270,6 +290,55 @@ impl Simulation {
         Ok(())
     }
 
+    /// `aliveMechCount`: a creator's makes still appearing or alive.
+    fn creator_alive(&self, creator: &Creator) -> usize {
+        let appearing = |id: u64| {
+            self.support
+                .appearing
+                .iter()
+                .any(|appearing| appearing.actor.placement.unit_id == id)
+        };
+        creator
+            .made
+            .iter()
+            .filter(|&&id| appearing(id) || self.actors.get(&id).is_some_and(Actor::alive))
+            .count()
+    }
+
+    /// `SupportSkillStartAttackChecker.Check` of a unit's support skill: no
+    /// preemptive skill runs, its line's next update makes a batch
+    /// (`SupportUnitCreator.PreCalculate`), and the main skill is at rest,
+    /// which unlocks the line and starts the skill; a batch due while the main
+    /// skill is not at rest locks the line instead.
+    pub(in crate::fight) fn support_gate(&mut self, actor_id: u64) -> bool {
+        let actor = &self.actors[&actor_id];
+        if actor.skills.running_preemptive.is_some() || actor.skills.preemptive_active {
+            return false;
+        }
+        let at_rest = self.main_skill_at_rest(actor_id);
+        let Some(index) = self
+            .support
+            .lines
+            .iter()
+            .position(|creator| creator.owner == Some(actor_id) && creator.gate != Gate::None)
+        else {
+            return false;
+        };
+        let creator = &self.support.lines[index];
+        let full = creator.max_alive > 0
+            && self.creator_alive(creator)
+                >= usize::try_from(creator.max_alive).unwrap_or(usize::MAX);
+        let due = (creator.max_batch == 0 || creator.batches < creator.max_batch)
+            && !full
+            && creator.created < creator.summon.count
+            && creator.counter + 1 >= creator.summon.interval_ticks;
+        if !due {
+            return false;
+        }
+        self.support.lines[index].gate = if at_rest { Gate::Open } else { Gate::Locked };
+        at_rest
+    }
+
     /// `SummonSystem.CreateMech` for one summon: scattered by two draws of
     /// its side's stream when the skill summons several, then
     /// `DoCreateMech`, whose `FightMech` draws its skills' first intervals,
@@ -298,6 +367,12 @@ impl Simulation {
             }
         }
         let rules = creator.summon.rules.clone();
+        // `CreateSummonMechInfo.level`: the owner's, for a make of
+        // `DynamicMechLevel.Parent`.
+        let level = match creator.owner {
+            Some(owner) if creator.parent_level => self.actors[&owner].placement.level,
+            _ => 1,
+        };
         let unit_id = self.ids.next_unit;
         self.ids.next_unit += 1;
         let formation_id = self.ids.next_formation;
@@ -312,7 +387,7 @@ impl Simulation {
             world_z: q32_to_space_rounded(z_q32),
             rotation: if team == 0 { 0 } else { 180_000 },
             rotated: false,
-            level: 1,
+            level,
             exp: 0,
             experience_rate: crate::data::ExperienceRate::default(),
             corrections: creator.summon.corrections.clone(),
@@ -362,7 +437,7 @@ impl Simulation {
         ));
         self.support.appearing.push(Appearing {
             actor,
-            joins_on: tick + APPEAR_TICKS,
+            joins_on: tick + creator.appear_ticks,
             drop_damage: creator.summon.drop_damage,
         });
         Ok(unit_id)
@@ -389,7 +464,13 @@ impl Simulation {
         let Some(&(right, forward)) = creator.offsets.get(index) else {
             return Err(Error::new("a production line holds no offset"));
         };
-        let facing = owner_actor.body_rotation_q32;
+        let facing = if creator.body_frame {
+            owner_actor
+                .turret_rotation()
+                .unwrap_or(owner_actor.body_rotation_q32)
+        } else {
+            owner_actor.body_rotation_q32
+        };
         let (x, z) = turn_about_vertical(facing, right, forward);
         Ok((
             owner_actor.x_q32.saturating_add(x),

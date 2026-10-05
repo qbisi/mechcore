@@ -15,13 +15,18 @@ use super::*;
 
 impl Simulation {
     /// The explosion a unit's death sets off, if one of its skills is an
-    /// explosion: its extra skill's index.
-    pub(in crate::fight) fn explosion_of(&self, actor_id: u64) -> Option<usize> {
-        self.actors[&actor_id]
+    /// explosion: the skill's slot.
+    pub(in crate::fight) fn explosion_of(&self, actor_id: u64) -> Option<SkillSlot> {
+        let actor = &self.actors[&actor_id];
+        if actor.rules.explosion.is_some() {
+            return Some(SkillSlot::Main);
+        }
+        actor
             .skills
             .extras
             .iter()
             .position(|extra| extra.rules.explosion.is_some())
+            .map(SkillSlot::Extra)
     }
 
     /// `SuicideEffect.Perform`: the unit's blow takes its whole life, from
@@ -100,37 +105,36 @@ impl Simulation {
                 position.z = z_q32;
             }
         }
-        let Some(index) = self.explosion_of(actor_id) else {
+        let Some(slot) = self.explosion_of(actor_id) else {
             return Ok(());
         };
         let actor = &self.actors[&actor_id];
-        let extra = &actor.skills.extras[index];
-        let explosion = extra
-            .rules
-            .explosion
-            .clone()
-            .expect("an explosion skill has its explosion");
+        let (explosion, attack, dead_fire) = explosion_skill(actor, slot);
+        let explosion = explosion.clone();
         // `DeadExplosiveDamageProvider.GetSplashRange`: the unit's radius and
         // the explosion's range.
-        let splash_radius = extra
-            .rules
-            .attack
+        let splash_radius = attack
             .splash_radius()
             .saturating_add(actor.rules.collision_radius());
-        let reach = Reach::Targets(extra.rules.attack.targets);
-        let dead_fire = extra.dead_fire;
+        let reach = Reach::Targets(attack.targets);
         let team = actor.placement.team;
         let center_y_q32 = space_to_q32(unit_height(actor.rules.domain));
         let (x_q32, z_q32) = (actor.x_q32, actor.z_q32);
         // `explosiveDamageCondition` 2: the life the unit had before it took
-        // its own, which a unit any other blow killed never had.
-        let life = if suicide {
-            actor.last_life_before_suicide
-        } else {
-            0
+        // its own, which a unit any other blow killed never had; 0: the
+        // skill's attack damage, a Spider Mine's 2500 at level one.
+        let base = match explosion.damage {
+            crate::rules::ExplosionDamage::CurrentLife if suicide => actor.last_life_before_suicide,
+            crate::rules::ExplosionDamage::CurrentLife => 0,
+            crate::rules::ExplosionDamage::Attack => self
+                .skill_attacker(SkillRef {
+                    owner: FightActorRef::Unit(actor_id),
+                    slot,
+                })
+                .map_or(0, |attacker| attacker.attack_damage),
         };
         let amount = q32_mul(
-            life << 32,
+            base << 32,
             crate::rules::metres_q32(explosion.damage_multiplier),
         ) >> 32;
         if amount > 0 {
@@ -174,4 +178,32 @@ impl Simulation {
         }
         Ok(())
     }
+}
+
+/// An explosion skill's explosion, its attack and the fire its unit's death
+/// leaves: a main skill's leaves none.
+fn explosion_skill(
+    actor: &Actor,
+    slot: SkillSlot,
+) -> (
+    &crate::rules::ExplosionConfig,
+    &crate::rules::AttackConfig,
+    Option<crate::layout::TerrainSpec>,
+) {
+    let (explosion, attack, dead_fire) = match slot {
+        SkillSlot::Main => (actor.rules.explosion.as_ref(), &actor.rules.attack, None),
+        SkillSlot::Extra(index) => {
+            let extra = &actor.skills.extras[index];
+            (
+                extra.rules.explosion.as_ref(),
+                &extra.rules.attack,
+                extra.dead_fire,
+            )
+        }
+    };
+    (
+        explosion.expect("an explosion skill has its explosion"),
+        attack,
+        dead_fire,
+    )
 }

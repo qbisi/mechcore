@@ -1,0 +1,23 @@
+# Spider Mine against a Crawler swarm.
+#
+# The Tarantula's support skill starts at t1, its main skill locked until
+# t33, as in `spider-mine-rhino.yaml`. The two mines appear at t41 and explode
+# at t111 among the Crawlers, 250 to each within reach, the attack damage the
+# Crawlers' life caps.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 139
+hash: {profile: mcfr-content-0.7.0, result: 0f31d33835a603c6683a195e5316622935abe1075e8db8639ceae2494e819cdd}
+blue:
+  techs:
+    tarantula: [spider_mine]
+  units:
+  - {name: tarantula, index: 0, position: {x: -5, y: -105}, exp: 0/56/1500}
+red:
+  core_damage: 200
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}}

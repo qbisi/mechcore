@@ -662,7 +662,15 @@ def main():
     UNIT_TECHS.write_text(yaml_units("mechcore.unit_techs", techs))
     UNIT_PRICES.write_text(yaml_units("mechcore.unit_prices", economy))
     sold = {row["id"] for row in structure["cardDatas"]}
-    write_unit_experience({unit: name for unit, name in names.items() if unit in sold},
+    # A unit only a technology makes has no catalog name, and its unit file
+    # names it: the Spider Mine.
+    made = {}
+    for path in sorted((ROOT / "config/units").glob("*.yaml")):
+        text = path.read_text()
+        unit_id = int(re.search(r"^unit_type_id: (\d+)$", text, re.M).group(1))
+        if unit_id not in names:
+            made[unit_id] = re.search(r"^type_name: (\w+)$", text, re.M).group(1)
+    write_unit_experience({unit: name for unit, name in {**names, **made}.items() if unit in sold},
                           levels)
     write_reactor_damage(names, levels)
     for path in (UNIT_TECHS, UNIT_PRICES, UNIT_EXPERIENCE, REACTOR_DAMAGE, COMMANDER_SKILLS,

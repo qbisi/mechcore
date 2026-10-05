@@ -16,22 +16,26 @@ use super::*;
 
 impl Simulation {
     /// The skill's `SkillStartAttackChecker.Check`: an around skill's
-    /// `AroundSkillStartAttackChecker`, every other skill's none.
-    pub(in crate::fight) fn may_start_attack(&self, skill_ref: SkillRef) -> bool {
-        match self.skill(skill_ref).kind {
-            SkillKind::Around => self.around_may_start(skill_ref),
+    /// `AroundSkillStartAttackChecker`, a support skill's
+    /// `SupportSkillStartAttackChecker`, every other skill's none.
+    pub(in crate::fight) fn may_start_attack(&mut self, skill_ref: SkillRef) -> bool {
+        match (self.skill(skill_ref).kind, skill_ref.owner) {
+            (SkillKind::Around, _) => self.around_may_start(skill_ref),
+            (SkillKind::Support, FightActorRef::Unit(actor_id)) => self.support_gate(actor_id),
+            (SkillKind::Support, FightActorRef::Building(_)) => false,
             _ => true,
         }
     }
 
-    /// `FightSkill.IsPreemptive`: an around skill, or a permanent preemptive
-    /// one.
+    /// `FightSkill.IsPreemptive`: an around or a support skill, or a
+    /// permanent preemptive one.
     pub(in crate::fight) fn skill_is_preemptive(&self, skill_ref: SkillRef) -> bool {
         let SkillSlot::Extra(index) = skill_ref.slot else {
             return false;
         };
         let extra = &self.skills(skill_ref.owner).extras[index];
-        extra.skill.kind == SkillKind::Around || extra.rules.preemptive.is_some()
+        matches!(extra.skill.kind, SkillKind::Around | SkillKind::Support)
+            || extra.rules.preemptive.is_some()
     }
 
     /// `AroundSkillStartAttackChecker.Check`.
@@ -192,7 +196,7 @@ impl Simulation {
 /// handed back its main skill, does not start its Whirlwind again as the main
 /// skill takes its target.
 impl Simulation {
-    fn main_skill_at_rest(&self, actor_id: u64) -> bool {
+    pub(in crate::fight) fn main_skill_at_rest(&self, actor_id: u64) -> bool {
         let main = &self.actors[&actor_id].skills.main;
         match main.state {
             SkillState::Idle { .. } => true,

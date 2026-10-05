@@ -84,8 +84,9 @@ attack:
 | `move_speed`、`rotate_speed` | 成员移动速度和主体旋转速度。 |
 | `has_body` | 原生 `MechData` 是否具有独立 mech body。 |
 | `independent_aim` | 主武器是否接收独立于 mech body 方向生成的瞄准方向。当前 P0 目录中仅具有 mech body 的单位填写；省略表示不适用，不表示 `false`。 |
+| `explosion` | 主技能是爆炸的单位，死亡时造成的伤害：`damage` 为技能的 `attack` 伤害或自杀前的生命（`current_life`），乘以 `damage_multiplier`；`friendly_fire` 时也伤及己方。缺省为无。 |
 | `main_skill` | `MechData.mainSkillID`，决定主技能在单位各技能中的顺序。 |
-| `extra_weapons` | 单位可研究的每个附加武器科技在主技能旁加上的技能（仅限本文件能表达的形状）：科技、技能、`use_main_skill_range`、`damage_by_level`、与主技能同形的 `attack`；留火的行还有 `fire.life_time`（`fireLifeTime`，秒）；常驻先发的爆炸技能还有 `preemptive` 的激活条件（`life_below`）与 `buff`（`buffDatas`：`id`、`duration` 秒、`divide`、`additive`、`debuff`、`invincible`、`move_speed_value` 米每秒），以及 `explosion`（`damage_multiplier`、`friendly_fire`，单位死亡留下的 `dead_fire`：`life_time` 秒、`radius` 米）。作用见 [`docs/rules/extra_weapons.md`](../../rules/extra_weapons.md)。缺省为无。 |
+| `extra_weapons` | 单位可研究的每个附加武器科技在主技能旁加上的技能（仅限本文件能表达的形状）：科技、技能、`use_main_skill_range`、`damage_by_level`、与主技能同形的 `attack`；留火的行还有 `fire.life_time`（`fireLifeTime`，秒）；常驻先发的爆炸技能还有 `preemptive` 的激活条件（`life_below`）与 `buff`（`buffDatas`：`id`、`duration` 秒、`divide`、`additive`、`debuff`、`invincible`、`move_speed_value` 米每秒），以及 `explosion`（`damage`、`damage_multiplier`、`friendly_fire`，单位死亡留下的 `dead_fire`：`life_time` 秒、`radius` 米）；支援技能还有它把关的生产线 `production`：生产的单位（`unit_type_id`）及其等级 `level`（`parent` 为所有者的等级）、最多几批（`max_batch`）与最多同时存活几个（`max_alive`，0 为不限）、每批几个（`per_time`）与间隔（`interval`，秒）、每个出现所需时间（`appear`，秒），以及站位 `offsets`（相对所有者根节点或机身 `frame` 的右、前米数）。作用见 [`docs/rules/extra_weapons.md`](../../rules/extra_weapons.md)。缺省为无。 |
 | `underground` | 只出现在 `MechData.moveType` 为 `Underground` 的单位上：入地用时（`enter`）、出地用时（`exit`）、出地后多久仍然隐身（`exit_keep`），以及在地下给它的射程（`attack_range`）。它们的作用见 [`docs/rules/underground.md`](../../rules/underground.md)。 |
 | `base_damage` | 路径专用攻击次数倍率生效前的一级、无修正 mech 基础伤害。 |
 | `min_range`、`range`、`attack_half_angle` | 原生交战距离边界和主技能有效半角。 |
@@ -123,11 +124,13 @@ body 方向，因此必须省略该字段。当前 P0 数据中所有适用值�
 - `fixed_to_body` 只对单位数据为 27 的 Raiden 为 `true`：`FightWeapon` 的构造器给它的每件
   武器一个固定在机身上的独立变换。表里没有这一列，由抽取脚本按 id 写出，缺省为 `false`。
 
-`path` 是六种变体的标签联合：
+`path` 是八种变体的标签联合：
 
 - `projectile`：投射物数量、释放间隔、运动、目标偏移、可拦截标记与投射物生命；
 - `direct`：直接效果；
 - `suicide`：攻击取走自身单位的生命（`SuicideEffect`），用于爆炸技能；
+- `around`：围绕自身单位的先发打击，带选敌半径与所需敌人数；
+- `support`：攻击什么也不做的先发技能，用于把关生产线的支援技能；
 - `laser`：按攻击次数使用的伤害倍率；
 - `control_beam`：预热攻击次数和预热伤害倍率；
 - `sweep`：`FightSweepSkill` 扫过目标的条带：是否横向、长宽、分几段扫及间隔、延迟，以及每种半径的单位最多被扫几次。作用见 [`docs/rules/sweep.md`](../../rules/sweep.md)。

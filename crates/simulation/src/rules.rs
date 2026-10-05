@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result};
 
-const DEFAULT_UNITS: [&str; 33] = [
+const DEFAULT_UNITS: [&str; 34] = [
     include_str!("../../../config/units/marksman.yaml"),
     include_str!("../../../config/units/rhino.yaml"),
     include_str!("../../../config/units/wasp.yaml"),
@@ -38,6 +38,7 @@ const DEFAULT_UNITS: [&str; 33] = [
     include_str!("../../../config/units/mountain.yaml"),
     include_str!("../../../config/units/war_factory.yaml"),
     include_str!("../../../config/units/abyss.yaml"),
+    include_str!("../../../config/units/spider_mine.yaml"),
 ];
 const DEFAULT_TOWERS: &str = include_str!("../../../config/towers.yaml");
 const DEFAULT_MAPS: &str = include_str!("../../../config/maps.yaml");
@@ -97,6 +98,53 @@ pub(crate) struct UnitConfig {
     /// where its shape is one this file can state.
     #[serde(default)]
     pub(crate) extra_weapons: Vec<ExtraWeaponConfig>,
+    /// A main skill that is an explosion (`FightExplosionSkill`): the unit's
+    /// blow is its own death, and its death strikes about it.
+    #[serde(default)]
+    pub(crate) explosion: Option<ExplosionConfig>,
+}
+
+/// A support skill's production line (`SupportUnitCreator`): the unit it
+/// makes at its owner's level (`DynamicMechLevel.Parent`), how many batches
+/// and how many alive at once (none for no bound), how many a batch makes and
+/// the seconds between two, the seconds each takes to appear (`productTime`),
+/// and the offsets, metres right and forward of what `frame` names, each make
+/// stands at.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct TechnologyProduction {
+    pub(crate) unit_type_id: u32,
+    pub(crate) level: ProductionLevel,
+    pub(crate) max_batch: u32,
+    pub(crate) max_alive: u32,
+    pub(crate) per_time: u32,
+    pub(crate) interval: f64,
+    pub(crate) appear: f64,
+    pub(crate) frame: ProductionFrame,
+    pub(crate) offsets: Vec<ProductionOffset>,
+}
+
+/// `DynamicMechLevel`: the level a make takes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum ProductionLevel {
+    Parent,
+}
+
+/// `SupportUnitPositionSpace`: what a make's offset turns with, its owner's
+/// root or its owner's body.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum ProductionFrame {
+    Parent,
+    ParentBody,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ProductionOffset {
+    pub(crate) x: f64,
+    pub(crate) y: f64,
 }
 
 /// An `ExtraWeaponTechnologyData` row and the skill its `skillID` names.
@@ -125,6 +173,10 @@ pub(crate) struct ExtraWeaponConfig {
     /// what it struck, and its oil on what stands in it.
     #[serde(default)]
     pub(crate) buff: Option<BuffConfig>,
+    /// A support skill's production line: the skill starts as a batch is
+    /// due, and lets the line make it.
+    #[serde(default)]
+    pub(crate) production: Option<TechnologyProduction>,
     /// A permanent preemptive skill: locked until its condition holds, then
     /// in the main skill's place.
     #[serde(default)]
@@ -167,17 +219,27 @@ pub(crate) struct BuffConfig {
     pub(crate) move_speed_rate: i64,
 }
 
-/// An `ExplosionSkillData` as `IDeadExplosive`: its unit's death deals the
-/// life the unit had before it took its own (`explosiveDamageCondition` 2)
-/// times `damage_multiplier`, within the skill's splash, and leaves a fire.
+/// An `ExplosionSkillData` as `IDeadExplosive`: its unit's death deals what
+/// `damage` names times `damage_multiplier`, within the skill's splash, and
+/// may leave a fire.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct ExplosionConfig {
+    pub(crate) damage: ExplosionDamage,
     pub(crate) damage_multiplier: f64,
     /// `enableFriendlyFire`: the explosion strikes its own side too.
     pub(crate) friendly_fire: bool,
     #[serde(default)]
     pub(crate) dead_fire: Option<DeadFire>,
+}
+
+/// `ExplosiveDamageCondition`: the skill's attack damage, or the life its
+/// unit had before it took its own.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum ExplosionDamage {
+    Attack,
+    CurrentLife,
 }
 
 /// `deadRangeItemLifeTime` in seconds and `deadRangeItemRange` in metres.
@@ -479,6 +541,9 @@ pub(crate) enum AttackPath {
     Direct,
     /// `SuicideEffect`: the blow takes its own unit's life.
     Suicide,
+    /// `FightSupportSkill`: a preemptive skill whose blow does nothing; its
+    /// production line makes its units.
+    Support,
     /// `FightAroundSkill`, a preemptive skill that starts only where
     /// `target_count` enemies stand within `select_radius` metres of its unit
     /// (`IAroundAttackSkillData`), and strikes about the unit.
@@ -991,7 +1056,8 @@ impl WeaponTopology {
 impl AttackConfig {
     #[allow(clippy::too_many_lines)]
     fn validate(&self) -> Result<()> {
-        if !self.targets.ground && !self.targets.air {
+        // A support skill sets neither flag, and searches the ground.
+        if !self.targets.ground && !self.targets.air && !matches!(self.path, AttackPath::Support) {
             return Err(Error::new("attack must target ground, air, or both"));
         }
         validate_scaled(self.min_range, SPACE_UNITS_PER_METER, "min_range", true)?;
@@ -1008,11 +1074,12 @@ impl AttackConfig {
         if self.attack_half_angle > 360.0 {
             return Err(Error::new("attack_half_angle must not exceed 360 degrees"));
         }
+        // A suicide blows once, and its row may set no interval.
         validate_scaled(
             self.timing.interval,
             TIME_UNITS_PER_SECOND,
             "timing.interval",
-            false,
+            matches!(self.path, AttackPath::Suicide | AttackPath::Support),
         )?;
         validate_scaled(
             self.timing.interval_offset,
@@ -1086,7 +1153,7 @@ impl AttackConfig {
                     true,
                 )
             }
-            AttackPath::Direct | AttackPath::Suicide => Ok(()),
+            AttackPath::Direct | AttackPath::Suicide | AttackPath::Support => Ok(()),
             AttackPath::Around {
                 select_radius,
                 target_count,
@@ -1242,9 +1309,14 @@ impl AttackConfig {
         quantize_i64(target_offset_radius, SPACE_UNITS_PER_METER)
     }
 
+    /// `FightCalculator.IsValidTarget` of `FightSkillBase.GetAttackTargetType`:
+    /// a skill that attacks no air attacks the ground, whatever its ground
+    /// flag says, and one that attacks the air attacks the ground too only
+    /// where its ground flag says so. A Spider Mine's support skill, with
+    /// neither flag, locks a Rhino.
     pub(crate) const fn accepts(&self, domain: UnitDomain) -> bool {
         match domain {
-            UnitDomain::Ground => self.targets.ground,
+            UnitDomain::Ground => self.targets.ground || !self.targets.air,
             UnitDomain::Air => self.targets.air,
         }
     }
@@ -1358,7 +1430,7 @@ mod tests {
     fn si_values_quantize_to_the_internal_integer_grid() {
         let config = SimulationConfig::load().unwrap();
         assert_eq!(config.game_build, mechcore_document::game_build());
-        assert_eq!(config.units.units.len(), 33);
+        assert_eq!(config.units.units.len(), 34);
         let arclight = config.units.get("arclight").unwrap();
         assert_eq!(arclight.collision_radius(), 9_000);
         assert_eq!(arclight.move_speed(), 7_000);

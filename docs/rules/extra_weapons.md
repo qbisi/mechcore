@@ -8,8 +8,8 @@ one that file can state. The simulator fights Secondary Armament, the
 Sabertooth's two guns, Anti-Air Missile, its missile at the air, Incendiary
 Bomb, the Hound's, Scorching Charge, the Fire Badger's self-destruct, Homing
 Missile, the Centurion's, Sticky Oil Bomb, the Phantom Ray's and the
-Vulcan's, Whirlwind, the Rhino's, and Energy Diffraction, the Melting
-Point's, and refuses every other member by name: the members' skills differ
+Vulcan's, Whirlwind, the Rhino's, Energy Diffraction, the Melting Point's,
+and Spider Mine, the Tarantula's, and refuses every other member by name: the members' skills differ
 in kind, a projectile, an explosion, a laser, a summon, a sweep around the
 unit, and many leave a terrain or write a buff, so each joins once a recording
 of it agrees.
@@ -315,6 +315,44 @@ place for the rest of the fight. The row also raises the unit's life by 80%.
   the fire is left ends on that tick, and the fire goes with it before any
   snapshot holds it.
 
+## A support skill and the units it makes
+
+Spider Mine adds a support skill (`FightSupportSkill`, a `supportSkillDatas`
+row): a preemptive skill that is not permanent, whose blow does nothing, and
+which owns a production line (`SupportUnitCreator`) that makes the row's unit.
+The skill is the line's gate.
+
+- **It starts when a batch is due and the main skill rests.**
+  `SupportSkillStartAttackChecker` replaces the default start check, which
+  asks for the target in the attack area, with its own. No preemptive skill
+  runs, the line's next update makes a batch
+  (`SupportUnitCreator.PreCalculate`), and the main skill rests, as an
+  around skill asks it to. A batch due while the main skill is busy locks the
+  line instead (`SupportUnitCreator.Lock`), which then counts nothing until
+  the skill starts and unlocks it. The skill needs a lock to start but not
+  its range: a Tarantula starts it at t1 at a Rhino 201 metres off, its range
+  80.
+- **It holds the main skill while it winds up.** Leaving its idle state, it
+  takes the main skill's place, as an around skill does: the main skill locks
+  and lets its lock go. The skill prepares its 1.5 seconds and attacks. Its
+  attack check is only that its lock lives
+  (`SkillAttackableChecker.Check` tests for a `FightSupportSkill`). It
+  performs once, does nothing, and returns to idle, handing the main skill
+  back: 32 ticks of the Tarantula's main skill locked for each batch.
+- **The line makes its batch on the update it is due.** `SupportUnitSystem`
+  updates after every unit. Spider Mine's line makes two mines every 15
+  seconds, the first on the first tick, with no bound on batches and 99 alive
+  at most. Each stands at its offset, 20 metres right or left and 40
+  forward, turned by the turret (`SupportUnitPositionSpace.ParentBody`). Each
+  is at its owner's level (`DynamicMechLevel.Parent`). Each takes the row's
+  `productTime`, 2 seconds, to appear (`appearType` 8), where an item's line
+  takes `APPEAR_DURATION`'s second.
+- **A Spider Mine is an explosion.** Its main skill is a suicide that explodes
+  as it dies (`DeadExplosiveController`). It deals the skill's attack damage
+  (`explosiveDamageCondition` 0), 2500 at level one, to everything within its
+  radius and its 12 metres of splash, its own side too: a mine's blast
+  reaches the mine beside it.
+
 ## What reaches an extra skill
 
 `SkillDataModifier.AvaliableCheck` decides, skill by skill, whether a source
@@ -473,6 +511,15 @@ simulator refuses it.
 - A Phantom Ray's Sticky Oil Bomb fires past a Rapid-Fire Turret standing in
   its line of fire, at the unit behind it:
   `tests/corpus/fights/268447927-r2.yaml`.
+- Spider Mine's support skill starts at t1 at a Rhino 201 metres off. It
+  locks the main skill until t33, prepares to t31 and returns to idle at t33.
+  Its line makes two mines at t1, which appear at t41 and explode at t109 for
+  2500 each, one blast reaching the other mine for its 750:
+  `tests/extra_weapon/fights/spider-mine-rhino.yaml`. Against Crawlers:
+  `tests/extra_weapon/fights/spider-mine-crawlers.yaml`.
+- The line makes a batch every 15 seconds (t1, t301, t601), the skill
+  starting each time. At t601 it starts while the main skill is attacking
+  between blows: `tests/extra_weapon/fights/spider-mine-sledgehammers.yaml`.
 
 ### Replayed
 
@@ -566,6 +613,13 @@ simulator refuses it.
   `DeadExplosiveDamageProvider.GetSplashRange`,
   `DeadExplosiveDamageProvider.GetEffectTargetType`,
   `DeadExplosiveDamageProvider.GetMainTarget`.
+- A support skill: `FightSupportSkill.CreateStartAttackChecker`,
+  `SupportSkillStartAttackChecker.Check`, `SkillStartAttackChecker.Check`,
+  `FightSkill.CanStartAttack`, `SkillIdleState.TryStartAttack`,
+  `FightSkill.CheckAttackable`, `SkillPrepareState.Update`,
+  `SupportUnitCreator.PreCalculate`, `SupportUnitCreator.Update`,
+  `SupportUnitCreator.CreateMech`, `FightSupportSkill.Init`,
+  `FightSupportSkill.Enable`, `SupportSkillData.PreProcess`.
 - What reaches it: `SkillDataModifier.AvaliableCheck`, `OfficerData.IsMainSkillEffect`,
   `TechnologyData.IsMainSkillEffect`, `DamageProperty.CalculateDamage`,
   `OfficerData.IsExtraSkillEffect`, `TechnologyData.IsExtraSkillEffect`,
@@ -595,4 +649,8 @@ simulator refuses it.
 - **The other preemptive skills and conditions.** A transition to wait out
   (condition type 2), an ammunition condition, an extra weapon buff and an
   incompatible skill are read in part and refused by the extraction.
+- **A support skill's line locked.** A batch due while the main skill is
+  busy locks the line until the skill starts. This is read, and no recording
+  reaches it: the main skill rests between its blows, and that is when each
+  batch fell due.
 - **Every other member of the list.** Refused by name.

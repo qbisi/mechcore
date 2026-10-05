@@ -734,6 +734,15 @@ fn production_of(
             )?,
         );
     }
+    // A researched technology's support skill runs its line beside them.
+    lines.extend(
+        rules
+            .extra_weapons
+            .iter()
+            .filter(|weapon| side.techs.units.contains(&weapon.technology))
+            .filter_map(|weapon| weapon.production.as_ref())
+            .map(technology_line),
+    );
     let line = match lines.as_slice() {
         [] => return Some(None),
         [line] => line.clone(),
@@ -777,6 +786,27 @@ fn production_of(
         rules: made,
         corrections: worn.corrections,
     }))
+}
+
+/// A technology's support skill as the production line it runs.
+fn technology_line(production: &crate::rules::TechnologyProduction) -> ProductionLine {
+    let metres = crate::rules::metres_q32;
+    ProductionLine {
+        unit_type_id: production.unit_type_id,
+        max_batch: production.max_batch,
+        max_alive: production.max_alive,
+        per_time: production.per_time,
+        interval_q32: metres(production.interval),
+        offsets: production
+            .offsets
+            .iter()
+            .map(|offset| (metres(offset.x), metres(offset.y)))
+            .collect(),
+        appear_q32: metres(production.appear),
+        parent_level: production.level == crate::rules::ProductionLevel::Parent,
+        body_frame: production.frame == crate::rules::ProductionFrame::ParentBody,
+        gated: true,
+    }
 }
 
 /// What this side's loadout and a formation's equipment hand one unit.
