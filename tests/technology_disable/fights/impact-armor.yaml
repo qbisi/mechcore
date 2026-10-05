@@ -1,0 +1,26 @@
+# An Electromagnetic Impact on a Rhino with Armor Enhancement, which blue's
+# Wasps and Marksman shoot.
+#
+# Before the impact a Wasp's 202 lands as 142, Armor Enhancement taking its
+# 60 off (t55). From the impact (t57) the armour is switched off with the
+# technology, and every Wasp's hit lands whole, 202.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 207
+hash: {profile: mcfr-content-0.7.0, result: c98bfdb127fd865caf40858e5db62c5e5df82c1ec1a32a57be98b88332274e5f}
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/100/650}
+  - {name: wasp, index: 1, position: {x: 65, y: -60}, exp: 0/300/900}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: -5, y: 55}]}
+red:
+  core_damage: 304
+  techs:
+    rhino: [armor_enhancement]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}

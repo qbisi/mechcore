@@ -240,7 +240,9 @@ whose effect grows with rank, rather than read index zero:
   out or as the fight is left:
   `tests/technology_disable/fights/barrage-assault-mode.yaml`,
   `tests/technology_disable/fights/impact-to-fight-end.yaml`,
-  `tests/technology_disable/fights/impact-expires.yaml`. A unit with no
+  `tests/technology_disable/fights/impact-expires.yaml`. An armour's reduction
+  leaves with it, a Wasp's 142 on an armoured Rhino becoming 202:
+  `tests/technology_disable/fights/impact-armor.yaml`. A unit with no
   technology keeps its drawn interval:
   `tests/technology_disable/fights/impact-on-both-sides.yaml`.
 
