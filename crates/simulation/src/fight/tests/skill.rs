@@ -758,8 +758,10 @@ fn laser_own_kill_retains_then_clears_the_dead_target() {
         .release(SkillRef::main(FightActorRef::Unit(1)), &mut events)
         .unwrap();
 
+    // A beam that kills the unit it locked leaves the motion attacking on
+    // that tick, as a blow's dead target does.
     let source = &simulation.actors[&1];
-    assert_eq!(source.motion.state, MotionState::Idle);
+    assert_eq!(source.motion.state, MotionState::Attacking);
     assert_eq!(source.skills.main.lock_target, Some(unit_target(2)));
     assert_eq!(source.skills.main.attack_count, 0);
     assert!(matches!(events[0].payload, EventPayload::UnitDied { .. }));
