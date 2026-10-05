@@ -16,13 +16,10 @@ use crate::{
     layout::{Scatter, SkillBuff, SkillEffect, SkillRelease, SubEffect, TerrainSpec},
 };
 
-/// `CommanderSkillSystem`: the releases still to land, and which sides a
-/// technology-disabling skill would find researched.
+/// `CommanderSkillSystem`: the releases still to land.
 pub(in crate::fight) struct CommanderSkillSystem {
     /// Each side's released battle skills, in side order.
     pub(in crate::fight) releases: Vec<SkillRelease>,
-    /// The sides that researched a unit technology.
-    pub(in crate::fight) researched: BTreeSet<u32>,
 }
 
 impl CommanderSkillSystem {
@@ -30,10 +27,7 @@ impl CommanderSkillSystem {
     pub(in crate::fight) fn new(layout: &CompiledLayout) -> Self {
         let mut releases = layout.battle_skills.clone();
         releases.sort_by_key(|release| release.team);
-        Self {
-            releases,
-            researched: layout.researched.clone(),
-        }
+        Self { releases }
     }
 }
 
@@ -482,11 +476,12 @@ impl Simulation {
                 continue;
             }
             let actor = &self.actors[&id];
-            if buff.disable_technology && self.commander.researched.contains(&actor.placement.team)
-            {
+            let unmeasured = &actor.placement.technology_disable.unmeasured;
+            if buff.disable_technology && !unmeasured.is_empty() {
                 return Err(Error::new(format!(
-                    "{name} reaches unit {id}, whose side researched a technology, and disabling \
-                     a technology mid-fight is not measured"
+                    "{name} reaches unit {id}, which carries {}, and switching that off \
+                     mid-fight is not measured",
+                    unmeasured.join(" and ")
                 )));
             }
             if let Some(running) = actor.buff_not_beside(&row) {

@@ -1,0 +1,27 @@
+# An Electromagnetic Impact from blue on its own Wasps and on red's Marksmen
+# with Assault Mode.
+#
+# It disables both sides' units (t57). The Wasps carry no technology: nothing
+# is switched off, and they keep the intervals they drew, 26 and 29. Each
+# Marksman loses Assault Mode's numbers and its interval is made again, a
+# drawn 60 becoming its plain 62.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 187
+hash: {profile: mcfr-content-0.7.0, result: 7bf86c3b189196c6cf3afdfde4e8c1bb2e61b97736674ccbb09e34a09344d532}
+blue:
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -40}, exp: 0/400/900}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: 0, y: 60}]}
+red:
+  core_damage: 68
+  techs:
+    marksman: [assault_mode]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -60}, exp: 0/153/650}
+  - {name: marksman, index: 1, position: {x: 30, y: -60}, exp: 0/119/650}

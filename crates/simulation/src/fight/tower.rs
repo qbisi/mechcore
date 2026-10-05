@@ -508,6 +508,7 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
+        let was_disabled = actor.technology_disabled();
         let (running, added) = add_buff(&mut actor.buffs, row, source, team);
         if added {
             if row.stacking.is_none() {
@@ -521,6 +522,11 @@ impl Simulation {
                 actor.stats.overlays.channel(Channel::Unit).write(entry);
             }
             actor.refresh_life_data()?;
+        }
+        // The first buff that disables technology switches the unit's
+        // technologies off as it enters (`CBEC_DisableTechnology.Enter`).
+        if !was_disabled && self.actors[&actor_id].technology_disabled() {
+            self.switch_technologies(actor_id, false)?;
         }
         if row.current_life_rate != 0 {
             self.change_current_life(actor_id, team, row.current_life_rate, events)?;
@@ -671,9 +677,13 @@ impl Simulation {
         &mut self,
         events: &mut Vec<Event>,
     ) -> Result<()> {
+        let mut disabled = Vec::new();
         for (&actor_id, actor) in &mut self.actors {
             if !actor.alive() || actor.buffs.is_empty() {
                 continue;
+            }
+            if actor.technology_disabled() {
+                disabled.push(actor_id);
             }
             events.extend(actor.buffs.iter().rev().map(|buff| {
                 buff_removed(
@@ -689,6 +699,12 @@ impl Simulation {
             // refreshed: a Rhino with Combat Evolvement ends the fight at its
             // share of its bare maximum.
             actor.refresh_life_data()?;
+        }
+        // And a unit whose technologies a buff had switched off has them
+        // again: a Rhino's Mechanical Rage reads in its corrections on the
+        // fight's last tick.
+        for actor_id in disabled {
+            self.switch_technologies(actor_id, true)?;
         }
         for (building_id, buffed) in std::mem::take(&mut self.buffs.building_buffs) {
             let subject = ObjectRef::new(ObjectKind::Building, building_id);
@@ -791,6 +807,7 @@ impl Simulation {
             .get_mut(&actor_id)
             .expect("actor identity is stable");
         let subject = ObjectRef::new(ObjectKind::Unit, actor_id);
+        let was_disabled = actor.technology_disabled();
         let ended = tick_buffs(&mut actor.buffs, from, subject, events);
         if !ended.is_empty() {
             // A buff's end takes what it wrote, among the buffs' and in the
@@ -799,6 +816,57 @@ impl Simulation {
                 actor.withdraw_buff(buff);
             }
             actor.refresh_life_data()?;
+            // The last buff that disables technology switches them on again
+            // as it leaves (`CBEC_DisableTechnology.Exit`).
+            if was_disabled && !actor.technology_disabled() {
+                self.switch_technologies(actor_id, true)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// `FightEffectSystem.DisableEffect` and `EnableEffect` of a unit's
+    /// technologies: what they wrote taken away or written again
+    /// (`IEffectProviderDataSource.RemoveData`, `AddData`), its life
+    /// refreshed to the maximum that leaves it (`FightMech.RefreshLifeData`),
+    /// and its skill's current interval made again without its stagger
+    /// (`FightSkill.RefreshAttackInterval`): a Rhino with Mechanical Rage
+    /// waits 18 ticks between blows where it waited 12, and a Marksman with
+    /// Assault Mode's drawn 69 becomes its plain 62.
+    pub(in crate::fight) fn switch_technologies(&mut self, actor_id: u64, on: bool) -> Result<()> {
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        let corrections = actor.placement.technology_disable.corrections.clone();
+        // A unit whose technologies wrote nothing has nothing to refresh:
+        // the Wasps an Electromagnetic Impact reaches keep the intervals they
+        // drew.
+        if corrections.is_empty() {
+            return Ok(());
+        }
+        for (channel, entry) in corrections {
+            let channel = actor.stats.overlays.channel(channel);
+            if on {
+                channel.write(entry);
+            } else {
+                channel.remove(entry);
+            }
+        }
+        actor.refresh_life_data()?;
+        let skill_ref = super::skill::SkillRef::main(super::FightActorRef::Unit(actor_id));
+        let interval_q32 = self
+            .skill_attacker(skill_ref)
+            .ok_or_else(|| Error::new("a unit whose technologies switch is absent"))?
+            .attack_interval_q32;
+        let interval = super::math::seconds_q32_to_steps(interval_q32).max(1);
+        let skill = self.skill_mut(skill_ref);
+        let started = skill
+            .next_attack_step
+            .saturating_sub(skill.current_attack_interval);
+        skill.current_attack_interval = interval;
+        if skill.next_attack_step > 0 {
+            skill.next_attack_step = started.saturating_add(interval);
         }
         Ok(())
     }

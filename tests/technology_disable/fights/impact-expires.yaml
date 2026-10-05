@@ -1,0 +1,27 @@
+# An Electromagnetic Impact on a Rhino with Mechanical Rage and Crawlers with
+# Mechanical Rage, under Wasps they cannot strike.
+#
+# The impact lands at t57 on the Rhino, hurt to 17883: its interval goes to
+# 18. Its 25 seconds run out at t556, and as the buff leaves its technology
+# is on again, its corrections back and its interval 12, at 9097 of its life.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 874
+hash: {profile: mcfr-content-0.7.0, result: e031176a95c587a33a4a2a92d0538eec55f7373e966ec3098a9ce368e25ba81d}
+blue:
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -60}, exp: 0/592/900}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: -5, y: 55}]}
+red:
+  core_damage: 204
+  techs:
+    rhino: [mechanical_rage]
+    crawler: [mechanical_rage]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150}
+  - {name: crawler, index: 1, position: {x: -45, y: -60}, exp: 0/200/450}

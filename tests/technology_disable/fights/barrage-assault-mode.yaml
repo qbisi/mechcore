@@ -1,0 +1,30 @@
+# Electromagnetic Barrage's shells disable a Marksman with Assault Mode and a
+# Sledgehammer with Range Enhancement and Armor-Piercing Bullets.
+#
+# On the tick the buff is written (the Marksman at t81) every number its
+# technologies wrote leaves its corrections: Assault Mode's sixfold life, its
+# range, splash, speed and damage. Its maximum life falls from 9732 to 1622
+# and its whole life with it, its range goes back to 140 metres, and its
+# current interval is made again without its stagger. Officers' and
+# equipment's corrections would stay; it carries none.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 556
+hash: {profile: mcfr-content-0.7.0, result: e067d89d27736482aad3f78bd812ea7d4e320e13fd68a256a397fb8a50181b19}
+blue:
+  techs:
+    melting_point: [electromagnetic_barrage]
+  units:
+  - {name: melting_point, index: 0, position: {x: 0, y: -170}, exp: 0/600/1400}
+red:
+  core_damage: 350
+  techs:
+    marksman: [assault_mode]
+    sledgehammer: [range_enhancement, armor_piercing_bullets]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -60}}
+  - {name: sledgehammer, index: 1, position: {x: 65, y: -60}}

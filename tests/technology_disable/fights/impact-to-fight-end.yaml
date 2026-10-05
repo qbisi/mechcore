@@ -1,0 +1,29 @@
+# An Electromagnetic Impact on a Rhino with Mechanical Rage and a Marksman
+# with Assault Mode, which a blue Marksman shoots at.
+#
+# The impact lands at t57: the Rhino's two corrections leave it and its
+# current interval goes from 12 ticks to its plain 18; the Marksman's from a
+# drawn 69 to its plain 62. The fight ends at t126 with the buff still
+# running, and clearing it switches the technologies on again: both read
+# their corrections, in their first order, and their intervals made again.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 126
+hash: {profile: mcfr-content-0.7.0, result: 40536ddcce08d25ad1526d0bf150c0736da614305cd3553eb4aedb08bf159f93}
+blue:
+  core_damage: 300
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: 15, y: 58}]}
+red:
+  techs:
+    marksman: [assault_mode]
+    rhino: [mechanical_rage]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: marksman, index: 1, position: {x: -30, y: -60}, exp: 0/200/650}

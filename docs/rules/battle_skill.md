@@ -702,8 +702,9 @@ drawn from any stream, and no event is written.
   releases no other.
 - **A later sub-effect.** When a skill with several sub-effects activates each
   after the first is not stated.
-- **What disabling a technology switches off.** No pinned fight hits a unit
-  that carries one; the simulator refuses such a fight.
+- **What disabling a technology switches off** beyond a plain technology's
+  numbers ([technology_effects.md](technology_effects.md)); the simulator
+  refuses a unit that carries any other.
 - **An Electromagnetic Impact on a unit running another buff.** The two run
   side by side, and how their rates compose is not read; the simulator
   refuses it.
