@@ -186,7 +186,9 @@ struct Technology {
 /// (`IEffectProviderDataSource.RemoveData`) and `EnableEffect` adds it, and
 /// an armour's `ArmorStrengthenEffectProvider` its reduction. A lifesteal's
 /// and a second damage's providers take their hit effect away, which the
-/// fight asks of the unit at each hit. Every other list's provider does more,
+/// fight asks of the unit at each hit. An extra weapon's provider takes its
+/// numbers and disables its skills, which the layout refuses for the shapes
+/// it does not fight switched off. Every other list's provider does more,
 /// which is not measured.
 const DISABLED_AS_NUMBERS: [&str; 5] =
     [PLAIN, ARMOR, DAMAGE_INTENSIFY, LIFESTEAL, SECONDARY_DAMAGE];
@@ -457,7 +459,8 @@ impl TechnologyEffects {
                     hits_main_target: row.secondary_hits_main_target,
                     buffed: row.secondary_buffed,
                 }),
-                disabled_as_numbers: DISABLED_AS_NUMBERS.contains(&row.kind.as_str()),
+                disabled_as_numbers: DISABLED_AS_NUMBERS.contains(&row.kind.as_str())
+                    || row.kind == EXTRA_WEAPON,
             };
             if technologies.insert(id, technology).is_some() {
                 return Err(Error::new(format!(

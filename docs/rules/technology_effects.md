@@ -185,11 +185,20 @@ false. So the officers' and the items' corrections stay.
   nothing keeps the interval it drew.
 - **A lifesteal's and a second damage's** providers take their hit effect
   away, which the fight asks of the unit at each hit.
+- **An extra weapon's skills are disabled** (`ExtraSkillProvider.DisableSkill`,
+  `FightSkill.Disable`), and enabled as it is switched on. A disabled skill
+  that is idle searches for no lock or attack target and starts no attack
+  (`SkillIdleState.Update` asks `isEnable`), keeping what it named; one
+  attacking fails its check between blows (`SkillAttackState.CheckAttackable`),
+  so the blow under way runs out, a burst's every projectile, and its attack
+  ends. Enabled again, it starts as any idle skill does: a Centurion's Homing
+  Missile, due while disabled, fires two ticks after its buff runs out.
 
-What switching off does to any other technology, an extra weapon's skills, a
-repair, a shield, a buff technology's buffs, a sweep's or a search's change,
-is read below and refused: a buff that disables technology reaching a unit
-that carries one is refused by name.
+What switching off does to any other technology, an extra weapon's
+production line, explosion, preemptive skill or group, a repair, a shield, a
+buff technology's buffs, a sweep's or a search's change, is read below and
+refused: a buff that disables technology reaching a unit that carries one is
+refused by name.
 
 ## What the recordings show
 
@@ -245,6 +254,10 @@ whose effect grows with rank, rather than read index zero:
   `tests/technology_disable/fights/impact-armor.yaml`. A unit with no
   technology keeps its drawn interval:
   `tests/technology_disable/fights/impact-on-both-sides.yaml`.
+- A disabled extra skill lets the burst under way run out, starts no attack
+  while disabled, and fires again as it is enabled:
+  `tests/technology_disable/fights/barrage-homing-missile.yaml`,
+  `tests/technology_disable/fights/barrage-homing-missile-held.yaml`.
 
 ### Read
 
@@ -298,7 +311,10 @@ whose effect grows with rank, rather than read index zero:
   `ArmorStrengthenEffectProvider.DisableEffect`,
   `LifeStealEffectProvider.DoDisableEffect`,
   `SecondaryDamageIntensifyEffectProvider.DisableEffect`,
-  `FightMech.RefreshLifeData`, `FightSkill.RefreshAttackInterval`.
+  `FightMech.RefreshLifeData`, `FightSkill.RefreshAttackInterval`,
+  `ExtraSkillProvider.DisableSkill`, `ExtraSkillProvider.EnableSkill`,
+  `FightSkill.Disable`, `FightSkill.Enable`, `SkillIdleState.Update`,
+  `SkillAttackState.CheckAttackable`.
 
 ### Not established
 
@@ -310,8 +326,8 @@ whose effect grows with rank, rather than read index zero:
 - **A hurt unit's life as a disable moves its maximum.** The share rule is
   the one a buff's maximum life measured; no disable has been recorded on a
   hurt unit whose technology moves its maximum.
-- **What switching off does beyond numbers**: an extra weapon's skills
-  (`ExtraSkillProvider.DisableSkill`, `FightSkill.Disable`), a repair
+- **What switching off does beyond numbers**: an extra weapon's production
+  line (`SupportUnitCreator`), explosion, preemptive skill or group, a repair
   (`AutoRecoverySystem.DisableMech`), a unit's own shield and a Barrier's
   (`EnergyShieldProvider.DisableEffect`,
   `AdvancedEnergyShieldSystem.DeactiveEnergyShield`), a buff technology's

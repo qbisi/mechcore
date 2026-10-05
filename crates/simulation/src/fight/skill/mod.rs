@@ -489,6 +489,9 @@ pub(in crate::fight) struct Skill {
     /// search that finds the unit it already holds still hands it to the
     /// owner.
     pub(in crate::fight) lock_written: bool,
+    /// Not `FightSkill.isEnable`: an extra skill whose technology a buff
+    /// switched off (`ExtraSkillProvider.DisableSkill`, `FightSkill.Disable`).
+    pub(in crate::fight) disabled: bool,
     pub(in crate::fight) kind: SkillKind,
     pub(in crate::fight) performer: Performer,
     /// `SkillAttackController.attackCount`: the blows started since the
@@ -559,6 +562,7 @@ impl Skill {
             state: SkillState::Idle { ready_step: None },
             group,
             lock_written: false,
+            disabled: false,
             kind,
             performer,
             attack_count: ATTACK_COUNT_RESET,
@@ -1523,6 +1527,14 @@ impl Simulation {
             return Ok(None);
         }
         if let Flow::Done = self.finish_attack_at_dead_target(skill_ref, step) {
+            return Ok(None);
+        }
+        // `SkillIdleState.Update` performs nothing for a skill that is not
+        // enabled: it searches for no lock, no attack target, and starts no
+        // attack, and keeps what it named.
+        if self.skill(skill_ref).disabled
+            && matches!(self.skill(skill_ref).state, SkillState::Idle { .. })
+        {
             return Ok(None);
         }
         let quick_switch_target = self

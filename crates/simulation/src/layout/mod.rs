@@ -943,11 +943,38 @@ fn loadout(
         corrections,
         refused,
     )?;
-    // What its technologies wrote, which resolved above, and what of them a
-    // disabling buff does more to than take its numbers away.
+    worn.technology_disable = technology_disable(
+        type_name,
+        level,
+        side,
+        loadouts,
+        &worn.extra_weapons,
+        &on_side,
+        refused,
+    )?;
+    let stats = refused.hold(Stats::corrected(rules, level, &worn.corrections).map_err(refusal))?;
+    // A snapshot carries each `DataSet`'s aggregate; one this build cannot
+    // record is refused here, where the side and the officer can be named.
+    refused.hold(stats.modifiers(&[0], &[]).map_err(refusal))?;
+    worn.experience_rate = experience_rate;
+    Some(worn)
+}
+
+/// What a buff that disables technology takes from one unit: what its
+/// technologies wrote, which resolved with the rest of its loadout, and what
+/// of them a disabling buff does more to than take its numbers away.
+fn technology_disable(
+    type_name: &str,
+    level: i64,
+    side: &SidePlan,
+    loadouts: &Loadouts,
+    extra_weapons: &[ExtraWeapon],
+    on_side: &dyn Fn(Error) -> Error,
+    refused: &mut Refusals,
+) -> Option<TechnologyDisable> {
     let technologies = &loadouts.technologies;
     let held = &side.techs.units;
-    worn.technology_disable = TechnologyDisable {
+    Some(TechnologyDisable {
         corrections: refused.hold(
             technologies
                 .corrections(held, type_name)
@@ -961,14 +988,31 @@ fn loadout(
             .disabled_unmeasured(held, type_name)
             .into_iter()
             .map(|id| format!("technology {id}"))
+            // An extra skill switched off neither searches nor starts from
+            // idle and ends its attack between blows; a production line's, an
+            // explosion's, a preemptive skill's and a group's own paths are
+            // not measured switched off.
+            .chain(
+                extra_weapons
+                    .iter()
+                    .filter(|weapon| {
+                        let rules = &weapon.rules;
+                        rules.production.is_some()
+                            || rules.explosion.is_some()
+                            || rules.preemptive.is_some()
+                            || rules.attack.weapons.makes_group()
+                            || weapon.joins_main_group
+                            || !matches!(
+                                rules.attack.path,
+                                crate::rules::AttackPath::Direct
+                                    | crate::rules::AttackPath::Projectile { .. }
+                                    | crate::rules::AttackPath::Laser { .. }
+                            )
+                    })
+                    .map(|weapon| format!("technology {}", weapon.rules.technology)),
+            )
             .collect(),
-    };
-    let stats = refused.hold(Stats::corrected(rules, level, &worn.corrections).map_err(refusal))?;
-    // A snapshot carries each `DataSet`'s aggregate; one this build cannot
-    // record is refused here, where the side and the officer can be named.
-    refused.hold(stats.modifiers(&[0], &[]).map_err(refusal))?;
-    worn.experience_rate = experience_rate;
-    Some(worn)
+    })
 }
 
 /// What a unit's technologies and equipment hand it beyond its numbers, the

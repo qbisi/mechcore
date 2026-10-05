@@ -1,0 +1,30 @@
+# Electromagnetic Barrage on a Centurion with Homing Missile behind a Rhino
+# the Melting Point's beam takes.
+#
+# The barrage's buff reaches the Centurion at t57, the tick its missile skill
+# releases the first of a burst: the burst's other three missiles still leave
+# (t62 to t72), a blow under way running out. Disabled, the skill starts no
+# attack when its next falls due, and fires again two ticks after the buff
+# runs out (t225, t227). A second buff at t329 reaches it mid-burst as well,
+# and that burst runs out too.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 357
+hash: {profile: mcfr-content-0.7.0, result: 3c808dda4eb7a75b244a515ea080f33690f697282842766ef198b350b1493c5e}
+blue:
+  techs:
+    melting_point: [electromagnetic_barrage]
+  units:
+  - {name: melting_point, index: 0, position: {x: 0, y: -150}, level: 6, exp: 0/8118/8118}
+  - {name: rhino, index: 1, position: {x: 65, y: -145}, level: 9, exp: 0/5100/7736}
+red:
+  core_damage: 350
+  techs:
+    centurion: [homing_missile]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -35}, level: 9}
+  - {name: centurion, index: 1, position: {x: 5, y: -75}, level: 9, exp: 0/6800/15137}
