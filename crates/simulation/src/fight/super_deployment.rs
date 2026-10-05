@@ -15,6 +15,7 @@ use std::collections::BTreeMap;
 
 use serde::Deserialize;
 
+use crate::data::{Channel, Entry};
 use crate::{Error, Result};
 
 use super::{
@@ -64,6 +65,10 @@ pub(in crate::fight) struct Travel {
     duration_q32: i64,
     /// `superDeploymentLifeRate`.
     life_rate_q32: i64,
+    /// What each unit's effect providers write, which
+    /// `FightEffectSystem.ActiveEffect` enables only as the unit leaves its
+    /// travel (`ExitTravel`): its armour.
+    withheld: BTreeMap<u64, Vec<Entry>>,
 }
 
 /// `SuperDeploymentController.EnterTravel` for every travelling unit: each
@@ -80,6 +85,11 @@ pub(in crate::fight) fn enter_travel(
         }
         actor.travelling = true;
         actor.searched_attack = false;
+        let withheld = actor
+            .stats
+            .overlays
+            .channel(Channel::Unit)
+            .take(crate::modifier::ARMOR_SOURCE);
         let max_life_q32 = actor.stats.max_life() << 32;
         actor.life = q32_mul(max_life_q32, config.life_rate) >> 32;
         travels
@@ -99,9 +109,15 @@ pub(in crate::fight) fn enter_travel(
                     ),
                 ),
                 life_rate_q32: config.life_rate,
-            })
-            .units
-            .push(unit_id);
+                withheld: BTreeMap::new(),
+            });
+        let travel = travels
+            .get_mut(&actor.placement.team)
+            .expect("the side's travel was just made");
+        travel.units.push(unit_id);
+        if !withheld.is_empty() {
+            travel.withheld.insert(unit_id, withheld);
+        }
     }
     Ok(travels)
 }
@@ -152,20 +168,23 @@ impl Simulation {
     }
 
     /// `FinishTranvel`: each unit's movement activated where it stands, and
-    /// the unit taken out of travel, in the list's order.
+    /// the unit taken out of travel (`ExitTravel`), its effects enabled
+    /// (`FightEffectSystem.ActiveEffect`), in the list's order.
     fn finish_travel(&mut self, team: u32) {
-        let units = std::mem::take(
-            &mut self
-                .travels
-                .get_mut(&team)
-                .expect("a side's travel is kept")
-                .units,
-        );
+        let travel = self
+            .travels
+            .get_mut(&team)
+            .expect("a side's travel is kept");
+        let units = std::mem::take(&mut travel.units);
+        let mut withheld = std::mem::take(&mut travel.withheld);
         for unit_id in units {
             let actor = self
                 .actors
                 .get_mut(&unit_id)
                 .expect("a travelling unit is an actor");
+            for entry in withheld.remove(&unit_id).unwrap_or_default() {
+                actor.stats.overlays.channel(Channel::Unit).write(entry);
+            }
             actor.travelling = false;
             actor.motion.rvo_new_agent = true;
             actor.rvo_max_speed_q32 = actor.stats.move_speed_q32();

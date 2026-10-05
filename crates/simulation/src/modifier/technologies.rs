@@ -91,6 +91,11 @@ const PRIORITY: i32 = 0;
 /// The module that tags every entry a technology writes.
 pub(crate) const SOURCE: &str = "Modifier";
 
+/// What an armour technology writes is its effect provider's,
+/// `ArmorStrengthenEffectProvider`, which `FightEffectSystem.ActiveEffect`
+/// enables: a unit that travels in holds it once it arrives.
+pub(crate) const ARMOR_SOURCE: &str = "ArmorStrengthenEffectProvider";
+
 /// Every technology's combat effect, by the id a layout compiles to.
 #[derive(Debug, Clone)]
 pub(crate) struct TechnologyEffects {
@@ -389,7 +394,7 @@ impl TechnologyEffects {
                     Channel::Unit,
                     Entry {
                         index: Index::ReduceDamage,
-                        source: SOURCE,
+                        source: ARMOR_SOURCE,
                         correction: Correction::Value(*at_level),
                     },
                 ))

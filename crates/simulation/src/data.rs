@@ -224,6 +224,15 @@ impl Overlay {
         self.entries.retain(|entry| entry.source != source);
     }
 
+    /// Takes away everything one module wrote, handing it back.
+    pub(crate) fn take(&mut self, source: &str) -> Vec<Entry> {
+        let (taken, kept) = std::mem::take(&mut self.entries)
+            .into_iter()
+            .partition(|entry| entry.source == source);
+        self.entries = kept;
+        taken
+    }
+
     fn corrections(&self, index: Index) -> impl Iterator<Item = &Entry> {
         self.entries
             .iter()
