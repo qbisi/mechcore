@@ -32,10 +32,12 @@ impl Simulation {
     /// the build's `CheckWallConstructionForGroupedSkill` keeps a list of walls
     /// already checked, which suggests it might, and nothing here assumes so.
     ///
-    /// A slot's shield is its own `SearchAttackTarget`'s, which only that
-    /// slot asks: `searching` names the slot, if one, whose search this is,
-    /// and every other slot keeps the shield it last found, even one that
-    /// has since broken.
+    /// A slot's wall and shield are its own `SearchAttackTarget`'s, which
+    /// only that slot asks: `searching` names the slot, if one, whose search
+    /// this is, and every other slot keeps the wall and the shield it last
+    /// found, even ones that have since fallen or broken. A Wraith's gun
+    /// whose block another gun fells goes on naming the block until its own
+    /// check ends its attack.
     pub(in crate::fight) fn refresh_group_walls(
         &mut self,
         skill_ref: SkillRef,
@@ -45,15 +47,18 @@ impl Simulation {
             .skill(skill_ref)
             .siblings()
             .iter()
-            .map(|slot| slot.lock_target)
+            .map(|slot| (slot.lock_target, slot.in_the_way))
             .collect::<Vec<_>>();
         let owner = skill_ref.owner;
         let found = siblings
             .iter()
             .enumerate()
-            .map(|(index, lock)| {
+            .map(|(index, &(lock, kept))| {
+                if searching.is_some_and(|slot| slot != index + 1) {
+                    return (kept, None, false);
+                }
                 let wall = lock.and_then(|lock| {
-                    self.wall_in_the_way(skill_ref, lock)
+                    self.wall_in_the_way(skill_ref, Some(index + 1), lock)
                         .map(|building| (building, lock))
                 });
                 // Each slot's `SearchTargetShield`, as the core's.
@@ -220,7 +225,14 @@ impl Simulation {
                     }
                 }
                 SkillState::Attack(_) => {
-                    if !self.check_attackable_slot(main, Some(slot), true, target_search_order)? {
+                    if self.attacks_fallen_construction(main, Some(slot))
+                        || !self.check_attackable_slot(
+                            main,
+                            Some(slot),
+                            true,
+                            target_search_order,
+                        )?
+                    {
                         self.finish_group_slot(main, slot, step, cooling_steps);
                     } else if (!fusillade || core_blew)
                         && step >= self.skill(main).sibling(slot).next_attack_step

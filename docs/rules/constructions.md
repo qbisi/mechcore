@@ -144,8 +144,11 @@ It is **the nearest wall the line reaches**, not the nearest wall and not the
 wall nearest the line. **The width does not belong to the attacker**: units of
 different collision radius take and pass up blocks at the same distance from
 the line. **The reach does belong to the attacker, edge to edge**: its range
-plus its radius plus the block's. The distance is the build's fast fixed-point
-magnitude, which reads a little short of the true one.
+plus its radius plus the block's. It is the range of the skill that asks, so a
+slot of a main skill's group, which reaches ten metres beyond its core
+(`FightSkill.GetAttackRange`), takes a block ten metres further off. The
+distance is the build's fast fixed-point magnitude, which reads a little short
+of the true one.
 
 **A blow and a beam take a wall the way a shot does**, each on the block in its
 own line. A block falls after every hit its tick resolves, a blow's as a
@@ -157,6 +160,12 @@ attacking, every slot points at the block in its way while its lock stays on
 the unit behind the wall. The core takes the block first and the others follow
 when the group allocates its children, the same delay the group shows against
 units.
+
+**Each slot's block is its own.** A slot's check asks again for its own block
+alone, and every other slot goes on naming the block it last took, even one
+that has since fallen. A slot whose block falls ends its attack on its own
+check, its lock dropped though the unit it was found for lives, as a lone
+skill's does.
 
 **A shot at a block splashes the next one.** A splash that reaches a
 neighbouring block's edge damages it too: a shot at a building takes every
@@ -223,6 +232,10 @@ The map's own buildings are the exception and are named: each side gets one
 - A unit with four weapon slots takes the block in its way with every slot,
   splashes the next block, and drops its slots with the lock when a block falls:
   `tests/construction/fights/`.
+- A Wraith's slot takes a block ten metres further off than its core, and a
+  slot whose block another slot fells drops its lock on its own check, while
+  the others keep theirs: `tests/corpus/fights/134258634-r5.yaml`,
+  `tests/corpus/fights/134258634-r7.yaml`.
 - A blow takes the block in its line, and the unit reads idle for a tick before
   the next: `tests/construction/fights/`.
 - A beam takes the block in its line, a block holds off a unit of the other
@@ -254,6 +267,11 @@ The map's own buildings are the exception and are named: each side gets one
   `FightSkill.SearchAttackTarget`,
   `WallConstructionTargetChecker.CheckWallConstruction`,
   `WallConstructionTargetChecker.GetNearestWall`.
+- A grouped slot asks for its own wall with its own range, and its own attack
+  state ends an attack on a fallen block before the checker:
+  `FightSkill.GetAttackRange`,
+  `WallConstructionTargetChecker.CheckWallConstructionForGroupedSkill`,
+  `SkillAttackState.CheckAttackable`.
 - A wall is not searched for: `ConstructionData.enableSearchTarget`.
 - Collision is a property of a building's data:
   `BuildingData.EnableCollision`.

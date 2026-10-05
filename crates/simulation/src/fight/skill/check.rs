@@ -25,7 +25,7 @@ impl Simulation {
         // Whatever the lock is, a unit or a building: `SearchAttackTarget`
         // asks `CheckWallConstruction` before it looks at the lock at all.
         let found = self.skill(skill_ref).lock_target.and_then(|target| {
-            self.wall_in_the_way(skill_ref, target)
+            self.wall_in_the_way(skill_ref, None, target)
                 .map(|building| (building, target))
         });
         // `SearchTargetShield`: with no construction in the way, a lock its
@@ -428,13 +428,29 @@ impl Simulation {
         if self.skill_is_preemptive(skill_ref) && self.skill(skill_ref).performed() {
             return Ok(false);
         }
-        if let Some(target) = self.skill(skill_ref).attack_target()
-            && self.is_construction(target)
-            && !self.fight_actor_is_alive(target)
-        {
+        if self.attacks_fallen_construction(skill_ref, None) {
             return Ok(false);
         }
         self.check_attackable(skill_ref, target_search_order)
+    }
+
+    /// `SkillAttackState.CheckAttackable`'s own test, before it asks the
+    /// checker: an attack on a construction that has fallen is over. Every
+    /// skill of a group is in a state of its own and asks it of what it
+    /// fires at: a Wraith's gun whose block falls stops with its lock
+    /// dropped, though the unit it was found for lives.
+    pub(in crate::fight) fn attacks_fallen_construction(
+        &self,
+        skill_ref: SkillRef,
+        slot: Option<usize>,
+    ) -> bool {
+        let target = match slot {
+            Some(slot) => self.slot_attack_target(skill_ref, Some(slot)),
+            None => self.skill(skill_ref).attack_target(),
+        };
+        target.is_some_and(|target| {
+            self.is_construction(target) && !self.fight_actor_is_alive(target)
+        })
     }
 
     /// `SkillAttackState.Finish`: `StopAttack` drops the lock, the weapons
@@ -603,20 +619,26 @@ impl Simulation {
     /// `WallConstructionTargetChecker.CheckWallConstruction` then asks the
     /// skill's `IsTowerAttackable` of the block it found, and an extra skill
     /// that deals nothing, a Sticky Oil Bomb's, fires past it.
+    ///
+    /// `slot` names a grouped slot, which asks with its own range
+    /// (`FightSkill.GetAttackRange`): a Wraith's sibling gun meets a block
+    /// ten metres further off than its core does.
     pub(in crate::fight) fn wall_in_the_way(
         &self,
         skill_ref: SkillRef,
+        slot: Option<usize>,
         target: FightActorRef,
     ) -> Option<u64> {
         // The skill's own reach: a Centurion's Homing Missile meets a block
         // its main gun is too short for.
         let actor = self.skill_attacker(skill_ref)?;
+        let range = self.slot_attack_range(skill_ref, slot);
         let aimed = self.fight_actor(target)?;
         // A wall is considered when it is within reach edge to edge: the
         // attacker's range plus its own radius and the block's. A constant
         // allowance fits a Crawler and not a Wraith, which attacks a block 73.8
         // metres off with a reach of 60.
-        let reach = space_to_q32(actor.attack_range.saturating_add(actor.radius));
+        let reach = space_to_q32(range.saturating_add(actor.radius));
         let width = space_to_q32(WALL_IN_THE_WAY_WIDTH);
         let mut nearest: Option<(i64, u64)> = None;
         for building in &self.buildings {
