@@ -68,6 +68,11 @@ The turn (`TeamTranslationSystem.ChangeTeam`):
   recorder of its own. A summon, a Spider Mine among them, has no `MechTeam`
   to leave: it is recorded under the formation it was made with, before the
   turn and after.
+- **leaves its shots in the air on the side they were fired from.** A
+  projectile strikes for the side its controller was handed as it was
+  released (`ProjectileSystem.Create`, `ProjectileController.Init`), so one
+  the unit fired before the turn still strikes the side it now stands on;
+  its removal names the side the unit stands on as it lands.
 - **stops every skill locked on it** (`FightSkill.OnChangeTeam`): `StopAttack`
   drops the lock and keeps the attack target. A skill idle already stays idle,
   its weapons naming what they named until it takes another; a cooling one
@@ -189,6 +194,9 @@ the shield does not count against the turn.
   again with a `Select` and takes the nearer of two blue Crawlers as they
   stand after blue's update: replay 2324_20260925--134259672 round 5, tick
   210, fought by the game with `scripts/corpus/match-replays.py`.
+- A blue Tarantula turned while its shot flies kills the red Mustang it
+  fired at: replay 2324_20260925--134259672 round 5, tick 366, fought by the
+  game with `scripts/corpus/match-replays.py`.
 
 ### Read
 
@@ -200,7 +208,9 @@ the shield does not count against the turn.
   `ControllEffect.Perform`, `TeamTranslationSystem.Add`,
   `TeamTranslationSystem.Remove`, `TeamTranslationSystem.Translate`,
   `TeamTranslationSystem.translatingDatas`.
-- The turn: `TeamTranslationSystem.Update`, `TeamTranslationSystem.ChangeTeam`,
+- The turn: `ProjectileSystem.Create`, `ProjectileController.Init`,
+  `ProjectileController.GetTeamController`, `TeamTranslationSystem.Update`,
+  `TeamTranslationSystem.ChangeTeam`,
   `FightActor.ChangeTeam`, `FightTeamController.AddActor`, `ExpSystem.CalculateExp`, `ExpSystem.IsValidOwner`,
   `TeamTranslationSystem.IsTranslatedMech`, `FightMech.GetMechTeam`.
 - The skills it stops: `FightSkill.OnChangeTeam`, `FightSkill.StopAttack`,
