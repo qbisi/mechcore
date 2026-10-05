@@ -257,6 +257,7 @@ impl Simulation {
                 .map(|owner| owner.placement.team);
             if let (true, Some(team)) = (due, team)
                 && self.change_team(target, team, step)
+                && !self.actors[&target].summoned
             {
                 turned.push(target);
             }
@@ -302,7 +303,9 @@ impl Simulation {
         let Some(actor) = self.actors.get(&unit_id) else {
             return;
         };
-        if actor.placement.team == actor.original_team {
+        // `TeamTranslationSystem.IsMechInFightGroup`: a summon stands in no
+        // side's `FightTeam`, and dies on the side that turned it.
+        if actor.placement.team == actor.original_team || actor.summoned {
             return;
         }
         let (team, x_q32, z_q32, radius) = (
@@ -408,10 +411,18 @@ impl Simulation {
                 tree.insert(unit, x_q32, z_q32, radius);
             }
         }
-        // It leaves its `MechTeam` for one of its own on the new side, and
-        // its skill lets go of what it was after and searches again.
-        let formation_id = self.ids.next_formation;
-        self.ids.next_formation += 1;
+        // It leaves its `MechTeam` for one of its own on the new side
+        // (`FightMech.GetMechTeam` answers none for a turned unit), and its
+        // skill lets go of what it was after and searches again. A summon
+        // has no `MechTeam` to leave, and keeps the formation it is recorded
+        // under.
+        let formation_id = if self.actors[&unit_id].summoned {
+            self.actors[&unit_id].placement.formation_id
+        } else {
+            let formation_id = self.ids.next_formation;
+            self.ids.next_formation += 1;
+            formation_id
+        };
         let actor = self
             .actors
             .get_mut(&unit_id)
