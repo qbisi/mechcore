@@ -67,7 +67,8 @@ The turn (`TeamTranslationSystem.ChangeTeam`):
   identity order. Its damage and its kills from then are recorded under a
   recorder of its own. A summon, a Spider Mine among them, has no `MechTeam`
   to leave: it is recorded under the formation it was made with, before the
-  turn and after.
+  turn and after, and it counts under the recorder of its own it had, which
+  moves to the new side with what it has counted.
 - **leaves its shots in the air on the side they were fired from.** A
   projectile strikes for the side its controller was handed as it was
   released (`ProjectileSystem.Create`, `ProjectileController.Init`), so one
@@ -187,6 +188,9 @@ the shield does not count against the turn.
   is not handed back, so the Crawlers locked on it hold the lock for a tick:
   replay 2324_20260925--134259672 round 5, ticks 122 and 156, fought by the
   game with `scripts/corpus/match-replays.py`.
+- A turned Spider Mine's statistics, the damage it has taken, move to red's
+  side with it: replay 2324_20260925--134259672 round 5, tick 122, fought by
+  the game with `scripts/corpus/match-replays.py`.
 - A blue Crawler a Hacker turned updates after every red unit: replay
   2324_20260925--134259672 round 5, tick 161, fought by the game with
   `scripts/corpus/match-replays.py`.
