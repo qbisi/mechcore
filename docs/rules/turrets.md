@@ -232,10 +232,11 @@ mid-swing when the turret falls go idle holding it, and one that was not
 mid-swing drops it and walks on.
 
 A beam is the same: the Steel Ball whose beam fells the turret it locked reads
-idle on that tick, as one whose beam kills a unit or fells a tower does. What
-decides it is that the fallen building was the lock, not what kind of building
-it is; a block the beam fells while it only stood in the way of the lock leaves
-the Steel Ball attacking until the next tick.
+idle on that tick, as one whose beam fells a tower does. What decides it is
+that the fallen building was the lock, not what kind of building it is; a
+block the beam fells while it only stood in the way of the lock leaves the
+Steel Ball attacking until the next tick. A beam that kills the unit it locked
+leaves it attacking on that tick too, as a blow does.
 
 ## Scope
 

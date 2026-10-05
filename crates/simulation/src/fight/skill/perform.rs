@@ -143,17 +143,20 @@ impl Simulation {
         let target_was_lock = self.skill(skill_ref).lock_target == Some(target);
         let blow = usize::try_from(self.skill(skill_ref).attack_count).unwrap_or(0);
         self.laser_effect(skill_ref, 0, blow, target, events)?;
-        // A lock the beam kills stops the motion on that tick, whatever
-        // it is: the Steel Ball that fells a tower in the tower-loss
-        // fights, or the turret of `laser-fells-turret.yaml`, reads idle
-        // on that tick. A block that only stood in the way is left to
-        // the fallen-block rule on the next tick, as a blow's is: the
-        // Steel Ball of `wall-laser.yaml` that fells block 4 reads
-        // attacking on that tick, idle on the next. Only the skill the
-        // motion follows stops it.
+        // A building lock the beam fells stops the motion on that tick,
+        // whatever building it is: the Steel Ball that fells a tower in the
+        // tower-loss fights, or the turret of `laser-fells-turret.yaml`,
+        // reads idle on that tick. A block that only stood in the way is
+        // left to the fallen-block rule on the next tick, as a blow's is:
+        // the Steel Ball of `wall-laser.yaml` that fells block 4 reads
+        // attacking on that tick, idle on the next. So is a unit lock the
+        // beam kills, as a blow's dead target is: the Steel Ball of replay
+        // 201370830 round 6 reads attacking on the tick its beam kills its
+        // Sledgehammer. Only the skill the motion follows stops it.
         if target_was_alive
             && !self.fight_actor_is_alive(target)
             && target_was_lock
+            && matches!(target, FightActorRef::Building(_))
             && self.actors[&actor_id].motion.attacker == skill_ref.slot
         {
             let actor = self
