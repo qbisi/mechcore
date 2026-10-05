@@ -222,13 +222,14 @@ impl Simulation {
             debuff: shot.buff.debuff,
             invincible: false,
             life_change: None,
+            current_life_rate: 0,
         };
         for &target in &struck.targets {
             if let FightActorRef::Unit(id) = target
                 && self.actors[&id].alive()
                 && self.buff_reaches(id, &row)
             {
-                events.push(self.write_buff(id, None, projectile.team, &row)?);
+                self.write_buff(id, None, projectile.team, &row, events)?;
             }
         }
         Ok(struck)

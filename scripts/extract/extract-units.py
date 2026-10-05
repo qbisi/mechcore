@@ -269,7 +269,9 @@ def extra_weapon_lines(mech, technology, kind, skill, row):
     the oil burns once a fire reaches it. A row's `buffID` is the buff its hit
     writes on what it struck, and an oil's on what stands in it. A row's
     `allWeaponReduceDamageRate` is its technology's number, which
-    `config/technology_effects.yaml` carries. A row that leaves another
+    `config/technology_effects.yaml` carries. A skill that sets
+    `ignoreEquipmentEffect` takes no equipment's correction
+    (`SkillDataModifier.AvaliableCheck`). A row that leaves another
     terrain, writes a buff the simulator does not read, or changes a shield's
     damage is left out, and the simulator refuses the technology by name.
     """
@@ -294,8 +296,10 @@ def extra_weapon_lines(mech, technology, kind, skill, row):
     if raw(skill["damageRate"]) and (
             skill["damage"] or kind not in ("aroundSkillData", "laserSkillDatas", "projectileSkillDatas")):
         return []
-    if raw(skill["initialCoolDownTime"]) or any(
-            skill[field] for field in ("isLoadingType", "isDiffusion")):
+    # A direct skill may splash about its own unit and diffuse: its splash
+    # grows from it a step at a time (`DamagePerformer.PerformDiffusionRangeEffect`).
+    if raw(skill["initialCoolDownTime"]) or skill["isLoadingType"] or (
+            skill["isDiffusion"] and kind != "skillDatas"):
         return []
     # An around skill is a preemptive one (`AroundSkillStartAttackChecker`
     # extends the preemptive checker), here one that is not permanent and is
@@ -303,7 +307,8 @@ def extra_weapon_lines(mech, technology, kind, skill, row):
     if kind == "aroundSkillData" and (
             not skill["isPreemptive"] or skill["isPreemptivePermanent"] or raw(skill["preemptiveInterval"])):
         return []
-    if kind != "aroundSkillData" and (skill["isPreemptive"] or skill["useSelfSplash"]):
+    if kind != "aroundSkillData" and (
+            skill["isPreemptive"] or (skill["useSelfSplash"] and kind != "skillDatas")):
         return []
     try:
         attack = attack_lines(mech["id"], kind, skill, f"base_damage: {(skill['damage'] or [0])[0]}",
@@ -318,6 +323,8 @@ def extra_weapon_lines(mech, technology, kind, skill, row):
     ]
     if raw(skill["damageRate"]):
         lines.append(f"    damage_rate: {readable(skill['damageRate'])}")
+    if skill["ignoreEquipmentEffect"]:
+        lines.append("    ignore_equipment: true")
     life = ", ".join(str(grid(value, 2000)) for value in row.get("fireLifeTime") or [])
     if fire:
         lines.append(f"    fire: {{life_time: [{life}]}}")
@@ -335,6 +342,7 @@ BUFF_READ = {
     "invincible": "invincible", "speedChangeValue": "move_speed_value",
     "speedChangeRate": "move_speed_rate", "amplifyDamageRate": "amplify_damage_rate",
     "attackRangeChangeValue": "attack_range_value",
+    "currentLifeDisposableChangeRate": "current_life_rate",
 }
 BUFF_DESCRIPTIVE = {"id", "name", "isTestData", "duration", "stepTime", "effectType",
                     "isClearSelfBuffWhenDisableTech"}
@@ -461,15 +469,17 @@ def attack_lines(unit, kind, skill, damage_line, attack_angle, indent, angle_abs
         lines.append("    fixed_to_body: true")
     # A weapon whose arc is no wider than its rest straight ahead points as
     # its unit does, as one that turns freely from it does when nothing else
-    # turns it: `FightWeapon` gives it no transform of its own.
+    # turns it: `FightWeapon` gives it no transform of its own, but for a
+    # standalone skill's, which has one and is held to that arc.
     fixed = [(weapon["defaultAngle"], weapon["rotateAngleLeft"], weapon["rotateAngleRight"]) == (0, 0, 0)
              for weapon in skill["weapons"]]
     if any(fixed) and not all(fixed):
         refuse(unit, "fixes some weapons straight ahead and not others")
     if skill["weaponMountNode"]:
         lines.append(f"    mount: {WEAPON_MOUNTS[skill['weaponMountNode']]}")
-    if not all(fixed) and any((weapon["defaultAngle"], weapon["rotateAngleLeft"], weapon["rotateAngleRight"])
-                              != (0, -1, -1) for weapon in skill["weapons"]):
+    if (not all(fixed) or skill["weaponMode"] == 2) and any(
+            (weapon["defaultAngle"], weapon["rotateAngleLeft"], weapon["rotateAngleRight"]) != (0, -1, -1)
+            for weapon in skill["weapons"]):
         lines.append("    arcs:")
         for weapon in skill["weapons"]:
             arc = [f"default: {weapon['defaultAngle']}"]
@@ -485,6 +495,9 @@ def attack_lines(unit, kind, skill, damage_line, attack_angle, indent, angle_abs
         lines.append("  default_rotation_search: true")
     if skill.get("useSelfSplash"):
         lines.append("  self_splash: true")
+    if skill["isDiffusion"]:
+        lines.append(f"  diffusion: {{interval: {readable(skill['diffusionInteval'])}, "
+                     f"speed: {readable(skill['diffusionSpeed'])}}}")
     lines.append("  path:")
     if kind == "projectileSkillDatas":
         life = skill["maxLife"] or [0]

@@ -464,6 +464,9 @@ pub(crate) struct SkillBuff {
     /// `attackRangeChangeValue`, whole metres the main skill's range changes
     /// by (`BuffManager.GetAttackRangeAddValue`, `GetAttackRangeReduceValue`).
     pub(crate) attack_range_value: i64,
+    /// `currentLifeDisposableChangeRate`, an `FPoint` raw rate of the unit's
+    /// life it changes by once, as it is written.
+    pub(crate) current_life_rate: i64,
 }
 
 impl SkillBuff {
@@ -1076,6 +1079,7 @@ pub(crate) fn technology_buff(named: &str, buff: &BuffConfig) -> Result<SkillBuf
         life_change_rate: 0,
         step_ticks: 0,
         attack_range_value: buff.attack_range_value,
+        current_life_rate: buff.current_life_rate,
     })
 }
 
@@ -1107,6 +1111,7 @@ fn skill_buff(named: &str, buff: &BuffRow) -> Result<SkillBuff> {
         step_ticks: u32::try_from(ticks(buff.step_time)?)
             .map_err(|_| Error::new(format!("{named}'s buff steps beyond a fight")))?,
         attack_range_value: 0,
+        current_life_rate: 0,
     })
 }
 

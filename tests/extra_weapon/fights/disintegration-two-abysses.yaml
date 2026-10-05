@@ -1,0 +1,30 @@
+# Disintegration from two Abysses against Rhinos, Crawlers and a Wasp.
+#
+# Both waves land on t62 and reach the Crawlers on t112, the first Abyss's
+# before the second's. The second writes the buff again on what the first
+# wrote it on: a Crawler loses 40 of the 200 it has left, and the buff
+# applied names the first Abyss, whose buff it renews (`Buff.Reset`). So
+# does a Rhino the second Abyss's wave reached at t92 for 1544: the first's
+# takes 1236 more at t112, and the buff names the second. The waves strike
+# the ground alone: the Wasp is never struck.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 545
+hash: {profile: mcfr-content-0.7.0, result: bf740e489be4e1f88bd8d6a6eb2b1f14b082b26a1f98b3b2606f6c1585a8663d}
+blue:
+  techs:
+    abyss: [disintegration]
+  units:
+  - {name: abyss, index: 0, position: {x: 5, y: -95}, exp: 0/802/4800}
+  - {name: abyss, index: 1, position: {x: 85, y: -125}, exp: 0/598/4800}
+red:
+  core_damage: 1000
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: wasp, index: 1, position: {x: 65, y: -40}}
+  - {name: crawler, index: 2, position: {x: -55, y: -100}}
+  - {name: rhino, index: 3, position: {x: 105, y: -85}, exp: 0/200/1150}

@@ -163,6 +163,10 @@ pub(crate) struct ExtraWeaponConfig {
     /// unit's base damage at its level.
     #[serde(default)]
     pub(crate) damage_rate: f64,
+    /// `SkillData.ignoreEquipmentEffect`: no equipment writes onto the
+    /// skill (`SkillDataModifier.AvaliableCheck`).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub(crate) ignore_equipment: bool,
     /// The fire its hit leaves, for a row whose `rangeItemType` is a fire.
     #[serde(default)]
     pub(crate) fire: Option<ExtraWeaponFire>,
@@ -222,6 +226,9 @@ pub(crate) struct BuffConfig {
     pub(crate) amplify_damage_rate: i64,
     /// `attackRangeChangeValue`, whole metres on the main skill's range.
     pub(crate) attack_range_value: i64,
+    /// `currentLifeDisposableChangeRate`, an `FPoint` raw rate of the unit's
+    /// life, taken once as the buff is written.
+    pub(crate) current_life_rate: i64,
 }
 
 /// An `ExplosionSkillData` as `IDeadExplosive`: its unit's death deals what
@@ -427,11 +434,32 @@ pub(crate) struct AttackConfig {
     /// own unit rather than from what it struck.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub(crate) self_splash: bool,
+    /// `SkillData.isDiffusion`: the splash grows from where it lands a step
+    /// at a time.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) diffusion: Option<Diffusion>,
     pub(crate) path: AttackPath,
     /// A skill that fires from a magazine: `SkillData.isLoadingType`, which a
     /// turret's is and no unit this build places reads.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) magazine: Option<Magazine>,
+}
+
+/// `SkillData.diffusionInteval` and `diffusionSpeed`: every `interval`
+/// seconds the splash reaches `speed` metres further, until it reaches the
+/// skill's whole splash.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct Diffusion {
+    pub(crate) interval: f64,
+    pub(crate) speed: f64,
+}
+
+impl Diffusion {
+    /// How much further the splash reaches each step, in space units.
+    pub(crate) fn step_radius(&self) -> i64 {
+        quantize_i64(self.speed, SPACE_UNITS_PER_METER)
+    }
 }
 
 /// `SkillData.loadingCapacity` and `reloadingTime`: the rounds a skill fires

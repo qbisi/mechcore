@@ -42,6 +42,7 @@ mod construction;
 mod control;
 mod damage;
 mod deploy;
+mod diffusion;
 mod experience;
 mod explosion;
 mod grid;
@@ -372,6 +373,9 @@ struct Simulation {
     /// `FightTeam.AddMech` put them in that side's trees after the dead had
     /// left them, and nothing takes them out again.
     returned_dead: BTreeSet<u64>,
+    /// The splashes under way that diffuse, in the order they started: the
+    /// `GRTimerManager` timers of their performers.
+    diffusions: Vec<diffusion::Diffusion>,
     turned_fallen: Vec<u64>,
     /// `DeadEffectSystem.deadEffectMeches` of `DeadExplosiveController`: the
     /// units with an explosion that died this tick, in the order they died,
@@ -498,6 +502,7 @@ impl Simulation {
             translations: Vec::new(),
             turned_fallen: Vec::new(),
             returned_dead: BTreeSet::new(),
+            diffusions: Vec::new(),
             dead_explosions: Vec::new(),
             step_now: 0,
             unit_update_order,
@@ -700,6 +705,10 @@ impl Simulation {
             }
         }
         events.extend(joined);
+        // Then the timers of the splashes that diffuse, which started after
+        // any summon now joining was due: a splash strikes where its
+        // enemies stood as the tick opened.
+        self.update_diffusions(&mut events)?;
         // Native search jobs retain the actor-quadtree candidate order
         // prepared at the start of this FightCore update.
         let target_search_order = self.target_search_order();

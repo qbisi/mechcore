@@ -10,8 +10,8 @@ Bomb, the Hound's, Scorching Charge, the Fire Badger's self-destruct, Homing
 Missile, the Centurion's, Sticky Oil Bomb, the Phantom Ray's and the
 Vulcan's, Whirlwind, the Rhino's, Energy Diffraction, the Melting Point's,
 Spider Mine, the Tarantula's, Matrix Bombardment, the Wraith's, and
-Anti-Air Barrage, the Fortress's, and Air Defense Mark, the Typhoon's, and
-refuses every other member by name: the members' skills differ
+Anti-Air Barrage, the Fortress's, Air Defense Mark, the Typhoon's, and
+Disintegration, the Abyss's, and refuses every other member by name: the members' skills differ
 in kind, a projectile, an explosion, a laser, a summon, a sweep around the
 unit, and many leave a terrain or write a buff, so each joins once a recording
 of it agrees.
@@ -119,6 +119,9 @@ arc about its rest as the chassis pointed before the motion turned it.
 A standalone row's weapon has a transform of its own whatever its arc, and
 one with no arc turns freely: Air Defense Mark's marker turns onto its lock
 at the unit's rotate speed, and stays where it points while it holds none.
+One whose arc is no wider than its rest is held there: Disintegration's
+emitter points as the Abyss pointed before the motion turned it, on every
+update its skill holds a lock.
 Any other weapon whose row gives it no arc has no transform of its own and
 points where its mount points: the Hound's bomb launchers point as the unit does, and
 the Centurion's missile launcher, mounted by default, as its turret does.
@@ -259,6 +262,45 @@ speed. Its bomb deals nothing, so a Rhino it lands beside is struck, slowed,
 and slowed again by the oil every 19 ticks while it stands in it. Each time
 the buff is written again it keeps the unit that first wrote it as its
 source, so the oil's renewals name the Phantom Ray whose bomb struck first.
+
+## A wave from its unit
+
+Disintegration's skill strikes (`skillDatas`), splashes about its own unit
+(`useSelfSplash`) and diffuses (`isDiffusion`). Its blow, three seconds after
+it starts, deals nothing where it lands; `DamagePerformer.Perform` hands a
+diffusing splash to `PerformDiffusionRangeEffect`, which measures it from
+where the Abyss stands as the blow lands and starts a `GRTimer` of the
+performer's own.
+
+- **The wave grows a step every half second.** The timer fires every
+  `diffusionInteval`, 10 ticks, from the update after the blow, ahead of the
+  tick's modules. Its `n`th firing reaches `n` times `diffusionSpeed`, 30
+  metres, and never past the skill's 280 metres of splash. A Rhino whose edge
+  stands 85 metres off is reached at the third firing, a second and a half
+  after the blow.
+- **Each firing strikes what it reaches and no firing struck before**, of
+  the other side and the domains the skill attacks, the ground alone
+  (`PrepareRangeTargetsInDiffusion`, `SkillDamageProvider.GetTargetType` of a
+  skill that diffuses). What it was aimed at is not struck unless the wave
+  reaches it. Its splash takes 10 steps, 9 of 30 metres and the 10 left; the
+  timer fires once more, striking nothing (`DiffusionCompleteCallBack`).
+- **A firing while the Abyss is dead strikes nothing**, and the wave goes on
+  growing.
+- **Every unit struck takes the row's buff**, a slow of -0.4 of move speed
+  for 5 seconds, which first takes 0.2 of its life now:
+  `IBEC_ChangeCurrentLife.Perform` takes the whole part of the unit's life
+  times `currentLifeDisposableChangeRate`, and deals it as a hit of no unit
+  under the buff's side that the unit's damage taken raises. A Rhino of 19297
+  loses 3860, the whole part of −3859.4. The hit is recorded before the
+  buff applied. A buff the unit already runs is renewed, and takes its share
+  again (`Buff.ReEnableDisposableEffect` before `Buff.Reset`): two Abysses'
+  waves reaching a Crawler on one tick take 50 of its 250 and then 40.
+- **The skill names its target through its wind-up.** A skill that splashes
+  about itself checks no target as it winds up, so it neither finishes nor
+  searches anew when its target dies: Disintegration goes on naming a Fang
+  that died a second into its wind-up until its blow.
+- **No equipment writes onto it** (`ignoreEquipmentEffect`,
+  `SkillDataModifier.AvaliableCheck`).
 
 ## A preemptive strike about its unit
 
@@ -583,6 +625,14 @@ simulator refuses it.
   took: `tests/extra_weapon/fights/matrix-bombardment-crawlers.yaml`. Over
   two formations: `tests/extra_weapon/fights/matrix-bombardment-formations.yaml`.
 
+- Disintegration's wave strikes the ground about the Abyss 30 metres further
+  every half second after its blow, each unit once, the Rhinos and Crawlers
+  each losing 0.2 of their life as the slow is written:
+  `tests/extra_weapon/fights/disintegration-rhinos.yaml`. Two Abysses' waves
+  renew each other's buff and take their share again, the buff keeping its
+  first source, and leave the Wasp among them alone:
+  `tests/extra_weapon/fights/disintegration-two-abysses.yaml`.
+
 ### Replayed
 
 - A Tarantula's Spider Mine skill that locks a new enemy as it leaves its
@@ -604,6 +654,9 @@ simulator refuses it.
 - A Centurion's missile skill scores its search from its turret's rotation,
   and takes the target its main gun takes: replay 2324_20260925--67159970
   round 6, fought by the game with `scripts/corpus/match-replays.py`.
+- Disintegration goes on naming the Fang it winds up on after the Fang dies,
+  until its blow: replay 2324_20260925--67161951 round 4, ticks 21 to 62,
+  fought by the game with `scripts/corpus/match-replays.py`.
 - A Centurion whose missile skill holds its motion turns its turret to the
   block its missiles fire at, not to the lock behind it: replay
   2324_20260925--67159970 round 6, fought by the game with
@@ -697,6 +750,14 @@ simulator refuses it.
   `SupportUnitCreator.PreCalculate`, `SupportUnitCreator.Update`,
   `SupportUnitCreator.CreateMech`, `FightSupportSkill.Init`,
   `FightSupportSkill.Enable`, `SupportSkillData.PreProcess`.
+- A wave: `DamagePerformer.Perform`, `DamagePerformer.PerformDiffusionRangeEffect`,
+  `DamagePerformer.DiffusionIntevalCallBack`, `DamagePerformer.DiffusionCompleteCallBack`,
+  `DamagePerformer.PrepareRangeTargetsInDiffusion`, `GRTimerManager.Update`,
+  `GRTimer.Init`, `GRTimer.Update`, `SkillDamageProvider.GetTargetType`; its
+  buff's share of life, `BuffManager.AddBuff`, `Buff.ReEnableDisposableEffect`,
+  `Buff.Reset`, `IBEC_ChangeCurrentLife.Enter`,
+  `IBEC_ChangeCurrentLife.ReEnableDisposableEffect`,
+  `IBEC_ChangeCurrentLife.Perform`; its weapon, `FightWeapon..ctor`.
 - What reaches it: `SkillDataModifier.AvaliableCheck`, `OfficerData.IsMainSkillEffect`,
   `TechnologyData.IsMainSkillEffect`, `DamageProperty.CalculateDamage`,
   `OfficerData.IsExtraSkillEffect`, `TechnologyData.IsExtraSkillEffect`,
@@ -711,6 +772,11 @@ simulator refuses it.
   attack. `AttackRotate` also turns the extra skill's own weapons
   (`FightSkill.RotateWeaponTo`) unless they are standalone; no recording reads
   that turn.
+- **A wave that deals damage, or meets a battlefield shield.**
+  Disintegration's deals none, and the simulator strikes with a wave's
+  damage as a splash does; a wave in a fight with a battlefield shield is
+  refused. Nor is a wave's timer ordered against a summon's that is due on
+  the same tick: the simulator runs the summons first.
 - **A correction other than damage composing on an extra skill**, an Energy
   Tower skill's range among them. Refused.
 - **What invincibility keeps off.** A fire burns an invincible Fire Badger;

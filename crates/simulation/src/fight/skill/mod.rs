@@ -1125,10 +1125,15 @@ impl Simulation {
             }
             self.skill_mut(skill_ref).set_backswing_finish_step(None);
         }
+        // A skill that splashes about itself checks nothing as it winds up
+        // ([`Self::self_splash_winding_up`]): Disintegration goes on naming
+        // the Fang that died a second into its wind-up until its blow.
         let skill = self.skill(skill_ref);
         if (matches!(skill.phase(), FightSkillPhase::Prepare { .. })
             || skill.phase() == FightSkillPhase::Attack)
-            && (!quick_switch_target || target_alive)
+            && (!quick_switch_target
+                || target_alive
+                || self.self_splash_winding_up(skill_ref, step))
         {
             return Ok(());
         }

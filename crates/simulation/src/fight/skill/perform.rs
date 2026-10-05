@@ -113,7 +113,12 @@ impl Simulation {
                 let actor_id = skill_ref.owner.unit_id().ok_or_else(|| {
                     Error::new("a construction's skill that strikes is not supported")
                 })?;
-                self.direct_effect(actor_id, pending.target, 0, events)?;
+                match skill_ref.slot {
+                    SkillSlot::Main => self.direct_effect(actor_id, pending.target, 0, events)?,
+                    SkillSlot::Extra(_) => {
+                        self.extra_direct_effect(skill_ref, pending.target, events)?;
+                    }
+                }
             }
             SkillKind::Laser => self.release_beam(skill_ref, pending.target, events)?,
             SkillKind::Projectile => {

@@ -54,6 +54,52 @@ attack:
       - {radius: 4.1, hits: 2}
 
 extra_weapons:
+  - technology: 11029
+    skill: 29002
+    use_main_skill_range: false
+    damage_by_level: []
+    ignore_equipment: true
+    buff:
+      id: 4029
+      duration: 5
+      divide: 0
+      additive: false
+      debuff: false
+      invincible: false
+      move_speed_value: 0
+      move_speed_rate: -1717986918
+      amplify_damage_rate: 0
+      attack_range_value: 0
+      current_life_rate: -858993459
+    attack:
+      base_damage: 0
+      min_range: 0
+      range: 190
+      attack_half_angle: 360
+      targets: {ground: true, air: false}
+      lock_target: true
+      quick_switch_target: true
+      timing:
+        interval: 15
+        interval_offset: 0
+        initial_cooldown: 0
+        prepare: 0
+        attack_point: 3
+        backswing: 0
+        cooling: 0
+      splash_radius: 280
+      weapons:
+        mode: standalone
+        indices: [2]
+        per_skill: 1
+        arcs:
+          - {default: 0, left: 0, right: 0}
+      melee: false
+      crosses_shields: false
+      self_splash: true
+      diffusion: {interval: 0.5, speed: 30}
+      path:
+        type: direct
   - technology: 110291
     skill: 29003
     use_main_skill_range: false
@@ -79,6 +125,9 @@ extra_weapons:
         mode: standalone
         indices: [0, 1]
         per_skill: 2
+        arcs:
+          - {default: 0, left: 0, right: 0}
+          - {default: 0, left: 0, right: 0}
       melee: false
       crosses_shields: false
       path:

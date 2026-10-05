@@ -86,7 +86,7 @@ attack:
 | `independent_aim` | 主武器是否接收独立于 mech body 方向生成的瞄准方向。当前 P0 目录中仅具有 mech body 的单位填写；省略表示不适用，不表示 `false`。 |
 | `explosion` | 主技能是爆炸的单位，死亡时造成的伤害：`damage` 为技能的 `attack` 伤害或自杀前的生命（`current_life`），乘以 `damage_multiplier`；`friendly_fire` 时也伤及己方。缺省为无。 |
 | `main_skill` | `MechData.mainSkillID`，决定主技能在单位各技能中的顺序。 |
-| `extra_weapons` | 单位可研究的每个附加武器科技在主技能旁加上的技能（仅限本文件能表达的形状）：科技、技能、`use_main_skill_range`、`damage_by_level`、与主技能同形的 `attack`；留火的行还有 `fire.life_time`（`fireLifeTime`，秒）；常驻先发的爆炸技能还有 `preemptive` 的激活条件（`life_below`）与 `buff`（`buffDatas`：`id`、`duration` 秒、`divide`、`additive`、`debuff`、`invincible`、`move_speed_value` 米每秒，`move_speed_rate` 与 `amplify_damage_rate` 为 `FPoint` 原始比率，`attack_range_value` 为整米），以及 `explosion`（`damage`、`damage_multiplier`、`friendly_fire`，单位死亡留下的 `dead_fire`：`life_time` 秒、`radius` 米）；支援技能还有它把关的生产线 `production`：生产的单位（`unit_type_id`）及其等级 `level`（`parent` 为所有者的等级）、最多几批（`max_batch`）与最多同时存活几个（`max_alive`，0 为不限）、每批几个（`per_time`）与间隔（`interval`，秒）、每个出现所需时间（`appear`，秒），以及站位 `offsets`（相对所有者根节点或机身 `frame` 的右、前米数）。作用见 [`docs/rules/extra_weapons.md`](../../rules/extra_weapons.md)。缺省为无。 |
+| `extra_weapons` | 单位可研究的每个附加武器科技在主技能旁加上的技能（仅限本文件能表达的形状）：科技、技能、`use_main_skill_range`、`damage_by_level`、不受装备写入的技能的 `ignore_equipment`（`ignoreEquipmentEffect`）、与主技能同形的 `attack`；留火的行还有 `fire.life_time`（`fireLifeTime`，秒）；常驻先发的爆炸技能还有 `preemptive` 的激活条件（`life_below`）与 `buff`（`buffDatas`：`id`、`duration` 秒、`divide`、`additive`、`debuff`、`invincible`、`move_speed_value` 米每秒，`move_speed_rate` 与 `amplify_damage_rate` 为 `FPoint` 原始比率，`attack_range_value` 为整米，`current_life_rate` 为写上时一次性按单位当前生命扣除的 `FPoint` 原始比率；附加武器的 `buff` 是其 `buffID` 指向的行，字段相同），以及 `explosion`（`damage`、`damage_multiplier`、`friendly_fire`，单位死亡留下的 `dead_fire`：`life_time` 秒、`radius` 米）；支援技能还有它把关的生产线 `production`：生产的单位（`unit_type_id`）及其等级 `level`（`parent` 为所有者的等级）、最多几批（`max_batch`）与最多同时存活几个（`max_alive`，0 为不限）、每批几个（`per_time`）与间隔（`interval`，秒）、每个出现所需时间（`appear`，秒），以及站位 `offsets`（相对所有者根节点或机身 `frame` 的右、前米数）。作用见 [`docs/rules/extra_weapons.md`](../../rules/extra_weapons.md)。缺省为无。 |
 | `underground` | 只出现在 `MechData.moveType` 为 `Underground` 的单位上：入地用时（`enter`）、出地用时（`exit`）、出地后多久仍然隐身（`exit_keep`），以及在地下给它的射程（`attack_range`）。它们的作用见 [`docs/rules/underground.md`](../../rules/underground.md)。 |
 | `base_damage` | 路径专用攻击次数倍率生效前的一级、无修正 mech 基础伤害。 |
 | `min_range`、`range`、`attack_half_angle` | 原生交战距离边界和主技能有效半角。 |
@@ -94,6 +94,7 @@ attack:
 | `quick_switch_target` | 周期搜索发现不同且仍存活的目标时，是否允许不先退出当前攻击状态而直接替换；死亡或失效目标的替换走另一条原生分支。 |
 | `timing.*` | 原生攻击间隔、随机偏移、初始冷却、准备、前摇、后摇与退出冷却阶段。 |
 | `splash_radius` | 原生基础作用半径；零表示没有范围效果。 |
+| `self_splash`、`diffusion` | `useSelfSplash`：溅射从技能自己的单位量起。`diffusion` 是 `isDiffusion` 的 `interval`（秒）与 `speed`（米）：溅射从落点向外扩，每过 `interval` 多扩 `speed`。作用见 [`docs/rules/extra_weapons.md`](../../rules/extra_weapons.md)。缺省为都没有。 |
 | `melee` | 主技能的 `SkillData.isMeleeAttack`。战斗里的近战分支读它，近战和远程两个目标类别也由它回答。 |
 
 Formation 行列数由 `members`、`slot_size` 和 `footprint` 推导：`footprint.width / slot_size`
