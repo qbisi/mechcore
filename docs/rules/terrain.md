@@ -153,6 +153,16 @@ is not made again; the standing one burns from the start
 release the units in it: its controller lets them go on its next update. In
 a tick, a side's battle skills land in the order it released them.
 
+**A hit that deals fire burns the oil its splash reaches.** A Vulcan's and a
+Fire Badger's skills deal `EDamageType.Fire`, and
+`DamagePerformer.PerformHitTargetsEffect` ends such a hit by handing where it
+landed and its splash to `RangeItemSystem.TriggerInteractableItem`, which
+takes every oil that circle reaches and burns each, for the hitting side, as
+a new fire burns them. The oils it reaches are taken together before any
+burns, so the first one's fire takes the rest of its line first: a Fire
+Badger's shot that lands among the first three oils of a line burns the
+first, then the line beyond the third, then the second and the third.
+
 **Standing oil.** An oil an earlier round left is restored before the fight
 from its release's panel skill, which keeps it in its `rangeItems`: the line
 between its two control points is expanded as the release expanded it
@@ -322,7 +332,18 @@ already exists.
   last event of its tick: `tests/terrain/fights/fire.yaml`,
   `tests/terrain/fights/fire-burns-out.yaml`.
 
+### Replayed
+
+- A Fire Badger's shot burns the oil its splash reaches, and the first fire
+  the line beyond it: `scripts/corpus/verify-matches.py`, replay 201340110's
+  round 5, whose sticky oil a red Fire Badger's shot burns on tick 140.
+
 ### Read
+
+- A hit that deals fire burns the oil its splash reaches:
+  `ProjectileSkillData.damageType`, `EDamageType`,
+  `IDamageProvider.GetDamageType`, `DamagePerformer.PerformHitTargetsEffect`,
+  `RangeItemSystem.TriggerInteractableItem`.
 
 - A controller ages its terrains, then finds who stands in them, then runs its
   periodic effects: `RangeItemController.Update`,
@@ -402,6 +423,10 @@ already exists.
   `CommanderSkillManager.CalculateAttackPositions`.
 
 ### Not established
+
+- **A fire hit beside a battlefield shield.** `TriggerInteractableItem` asks
+  each side's active shields of the oils it takes in a way not read, and the
+  simulator refuses such a hit.
 
 - **A buff that heals**, a positive `lifeChangeRate`: the controller's other
   branch, which the simulator refuses.

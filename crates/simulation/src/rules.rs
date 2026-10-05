@@ -418,6 +418,11 @@ pub(crate) struct AttackConfig {
     pub(crate) quick_switch_target: bool,
     pub(crate) timing: AttackTiming,
     pub(crate) splash_radius: f64,
+    /// `ProjectileSkillData.damageType` is `EDamageType.Fire`: a hit sets
+    /// alight the oil its splash reaches
+    /// (`DamagePerformer.PerformHitTargetsEffect`).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub(crate) fire_damage: bool,
     pub(crate) weapons: WeaponTopology,
     /// `SkillData.isMeleeAttack` of the main skill. The fight's melee
     /// branches read it, and `UnitUtility.IsEffectTarget` answers the Melee
