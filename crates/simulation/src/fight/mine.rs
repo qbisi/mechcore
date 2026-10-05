@@ -53,20 +53,30 @@ impl Mine {
 }
 
 impl Simulation {
-    /// `MineSystem`'s update: each side's missiles, in the order they were
-    /// released, each fired at most once.
+    /// `MineSystem`'s update: each side's `TeamMineManager.Update`, which
+    /// walks the side's missiles from the last released to the first, each
+    /// fired at most once.
     pub(in crate::fight) fn step_mines(
         &mut self,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let mut index = 0;
-        while index < self.mines.len() {
-            if let Some(target) = self.mine_trigger(&self.mines[index], target_search_order) {
-                let mine = self.mines.remove(index);
-                self.fire_mine(&mine, target, events)?;
-            } else {
-                index += 1;
+        let teams = self
+            .mines
+            .iter()
+            .map(Mine::team)
+            .collect::<std::collections::BTreeSet<_>>();
+        for team in teams {
+            let mut index = self.mines.len();
+            while index > 0 {
+                index -= 1;
+                if self.mines[index].team != team {
+                    continue;
+                }
+                if let Some(target) = self.mine_trigger(&self.mines[index], target_search_order) {
+                    let mine = self.mines.remove(index);
+                    self.fire_mine(&mine, target, events)?;
+                }
             }
         }
         Ok(())

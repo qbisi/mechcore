@@ -1,0 +1,25 @@
+# Two of a side's missiles firing on one tick.
+#
+# Red sets two missiles 35 metres from two Crawler squads, so both fire on
+# the first tick. `TeamMineManager.Update` walks the side's missiles from the
+# last placed to the first: the second missile's projectile is released first
+# (projectile 1, at the squad by it), then the first one's.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 24
+hash: {profile: mcfr-content-0.7.0, result: a6f73a25f1b30e14004bee6ec651c68b34678e5fe0f1f48e3a3bde502e5a35e4}
+blue:
+  core_damage: 200
+  units:
+  - {name: crawler, index: 0, position: {x: -95, y: -20}}
+  - {name: crawler, index: 1, position: {x: 105, y: -20}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -295}, exp: 0/384/1150}
+  contraptions:
+  - {name: missile, index: 1, position: {x: -100, y: -40}, retained: false}
+  - {name: missile, index: 2, position: {x: 100, y: -40}, retained: false}

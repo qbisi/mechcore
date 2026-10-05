@@ -85,8 +85,9 @@ building, so nothing targets it and it takes no part in movement.
 and the buff its hit writes.
 
 **When it fires.** `MineSystem` updates before `FightCoreSystem`, so on every
-tick, before any unit has moved, each side's missiles in the order they were
-released ask whether an enemy is in range: the object of the other side whose
+tick, before any unit has moved, each side's missiles ask whether an enemy is
+in range, the last released first (`TeamMineManager.Update` walks its list
+from the end): the object of the other side whose
 edge is nearest, a unit of either domain or a building that is not a tower,
 its distance measured in two dimensions from the missile to its centre less
 its radius and required to be under the row's `range`. The first of equals is
@@ -215,6 +216,8 @@ kind ends its own way:
   `tests/missile/fights/wasps.yaml`, `tests/missile/fights/turret.yaml`.
 - Interceptors take missiles' projectiles out of the air:
   `tests/interceptor/fights/missiles.yaml`.
+- Two missiles of one side firing on one tick fire the last released first:
+  `tests/missile/fights/two-at-once.yaml`.
 - A fallen interceptor intercepts nothing more, falls among the tick's deaths,
   and does not stand into the next round:
   `tests/interceptor/fights/interceptor-falls.yaml`.
@@ -386,8 +389,6 @@ kind ends its own way:
 
 - **Where 60 metres comes from.** `Config.mineFlyHeight` is private and the
   export does not carry it; the height is what the recordings show.
-- **Two missiles of one side.** Which asks first is taken as the order the
-  layout releases them in, and no recording has two.
 - **Which call spends a fired missile.** `TeamMineManager.Remove` takes a
   missile off its side's list and has no caller the index resolves, so the
   step from firing to being gone is read from the corpus, not the build.
