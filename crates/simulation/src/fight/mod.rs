@@ -368,6 +368,10 @@ struct Simulation {
     translations: Vec<control::Translation>,
     /// The turned units that died this tick, in the order they died, whose
     /// `OnDead` hands them back to their side once every unit has updated.
+    /// The units a death handed back to the side they were deployed on:
+    /// `FightTeam.AddMech` put them in that side's trees after the dead had
+    /// left them, and nothing takes them out again.
+    returned_dead: BTreeSet<u64>,
     turned_fallen: Vec<u64>,
     /// `DeadEffectSystem.deadEffectMeches` of `DeadExplosiveController`: the
     /// units with an explosion that died this tick, in the order they died,
@@ -490,6 +494,7 @@ impl Simulation {
             actors,
             translations: Vec::new(),
             turned_fallen: Vec::new(),
+            returned_dead: BTreeSet::new(),
             dead_explosions: Vec::new(),
             step_now: 0,
             unit_update_order,
@@ -976,7 +981,7 @@ impl Simulation {
         let dead = self
             .actors
             .iter()
-            .filter(|(_, actor)| !actor.alive())
+            .filter(|(actor_id, actor)| !actor.alive() && !self.returned_dead.contains(actor_id))
             .map(|(&actor_id, actor)| (actor.placement.team, actor_id))
             .collect::<Vec<_>>();
         for (team, actor_id) in dead {
