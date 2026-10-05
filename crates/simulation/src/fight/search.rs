@@ -791,15 +791,19 @@ impl Simulation {
                 continue;
             }
             for &candidate in candidates {
-                if nearby
-                    .as_ref()
-                    .is_some_and(|nearby| !nearby.contains(&candidate))
-                {
-                    continue;
-                }
                 let Some(target) = self.fight_actor(candidate) else {
                     continue;
                 };
+                // A unit turned since the tick opened has left the tree the
+                // job's candidates came from; the job still holds it.
+                let turned_since = !use_live_candidate_positions && target.team != team;
+                if !turned_since
+                    && nearby
+                        .as_ref()
+                        .is_some_and(|nearby| !nearby.contains(&candidate))
+                {
+                    continue;
+                }
                 if use_live_candidate_positions && target.team == source.team {
                     continue;
                 }
@@ -816,8 +820,10 @@ impl Simulation {
                         FightActorRef::Building(_) => target.targetable,
                     }
                 };
-                if (target.team != team && !use_live_candidate_positions)
-                    || !candidate_alive
+                // The prepared job scores each unit as the tick opened, on
+                // the side it stood on then, a unit a beam has turned since
+                // among them.
+                if !candidate_alive
                     || !candidate_targetable
                     || matches!(candidate, FightActorRef::Building(id)
                         if self.unsearchable_buildings.contains(&id))
@@ -854,7 +860,19 @@ impl Simulation {
             }
         }
 
-        scoring.chosen(|next| self.target_in_attack_range(source.skill, next))
+        let chosen = scoring.chosen(|next| self.target_in_attack_range(source.skill, next))?;
+        // `ScoreRatingTargetSelector.TrySelect` takes the prepared winner only
+        // while its target data holds; a winner a beam has turned to the
+        // searcher's side since sends the search to `Select`, which scores
+        // where everything stands by then.
+        if !use_live_candidate_positions
+            && self
+                .fight_actor(chosen)
+                .is_some_and(|target| target.team == source.team)
+        {
+            return self.select_normal_target_from(source, target_search_order, true);
+        }
+        Some(chosen)
     }
 
     /// `MechSearchTargetController.Update`, before the unit's skills: a unit

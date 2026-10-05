@@ -108,6 +108,12 @@ which nothing else in a fight makes:
   every unit on the side it stood on then. One made in the middle of the tick
   (`PerformSearch`) asks the side each stands on now, and takes a unit turned
   on that tick.
+- A prepared search whose winner a beam has turned to the searcher's side
+  since does not take it, nor the runner-up:
+  `ScoreRatingTargetSelector.TrySelect` refuses the prepared result, and the
+  search is a `Select` over where everything stands by then. A Crawler whose
+  lock was turned before its side updated scores the enemies after they have
+  moved this tick.
 
 ## Shields
 
@@ -173,6 +179,10 @@ the shield does not count against the turn.
   is not handed back, so the Crawlers locked on it hold the lock for a tick:
   replay 2324_20260925--134259672 round 5, ticks 122 and 156, fought by the
   game with `scripts/corpus/match-replays.py`.
+- A red Crawler whose prepared winner, its own lock, was turned searches
+  again with a `Select` and takes the nearer of two blue Crawlers as they
+  stand after blue's update: replay 2324_20260925--134259672 round 5, tick
+  210, fought by the game with `scripts/corpus/match-replays.py`.
 
 ### Read
 
@@ -191,6 +201,8 @@ the shield does not count against the turn.
   `SkillIdleState.Enter`, `SkillAttackState.Update`.
 - A turned unit's death: `TeamTranslationSystem.OnMechDead`,
   `TeamTranslationSystem.IsMechInFightGroup`, `DeadEffectSystem.Update`.
+- The search after it: `ScoreRatingTargetSelector.TrySelect`,
+  `MainSkillSearchTargetController.PrepareSearch`.
 - The motion around it: `MotionAttackState.Update`,
   `MotionAttackState.AttackRotate`, `SkillIdleState.CanStartSearchTarget`.
 
