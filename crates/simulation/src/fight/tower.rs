@@ -40,7 +40,7 @@ pub(in crate::fight) const SOURCE: &str = "BuffSystem";
 
 /// A buff running on a unit: `Buff.durationTime` against `maxDurationtime`,
 /// both in ticks.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::fight) struct RunningBuff {
     /// The `buffDatas` row it was added with, which a later one it merges
     /// into does not change.
@@ -49,9 +49,12 @@ pub(in crate::fight) struct RunningBuff {
     additive: bool,
     elapsed: u32,
     duration: u32,
-    /// What tags the entries it wrote, so that its end takes them away
-    /// and leaves every other buff's.
+    /// What tags the entries it writes.
     source: &'static str,
+    /// What it writes among the buffs': its row's entries, or one stack's
+    /// when it stacks. Its end takes away these and leaves every other
+    /// buff's, whatever module wrote them.
+    entries: Vec<Entry>,
     /// `Buff.source`: the actor that first added it, which `Buff.Reset`
     /// keeps unless the buff summons.
     source_actor: Option<ObjectRef>,
@@ -72,16 +75,47 @@ pub(in crate::fight) struct RunningBuff {
     stack: Option<StackStep>,
 }
 
+impl RunningBuff {
+    /// The stacks it has written among the buffs': one for a buff that does
+    /// not stack, and none before a stacking one's first step.
+    fn stacks(&self) -> u32 {
+        self.stack.map_or(1, |stack| stack.count)
+    }
+
+    /// What `IBEC_ChangeMaxLife` holds in the unit's own life rate: its rate
+    /// as it entered, and the rate times the stack once it has stacked.
+    fn life_entry(&self) -> Option<Entry> {
+        (self.max_life_rate != 0).then(|| Entry {
+            index: Index::MaxLife,
+            source: self.source,
+            correction: rate(
+                self.max_life_rate
+                    .saturating_mul(i64::from(self.stacks().max(1))),
+            ),
+        })
+    }
+
+    /// What it wrote taken out of `overlays`: each of its entries among the
+    /// buffs' once a stack, and its life rate.
+    fn withdraw_from(&self, overlays: &mut Overlays) {
+        for _ in 0..self.stacks() {
+            for entry in &self.entries {
+                overlays.channel(Channel::Buff).remove(*entry);
+            }
+        }
+        if let Some(entry) = self.life_entry() {
+            overlays.channel(Channel::Unit).remove(entry);
+        }
+    }
+}
+
 /// A stacking buff as it runs: `Buff.stepTime` counting to `stepTimeConfig`,
-/// the stack it has reached, and the entries one stack writes.
+/// and the stack it has reached.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct StackStep {
     rule: StackRule,
     elapsed: u32,
     count: u32,
-    /// What one stack writes in the buffs' channel: its damage rate and its
-    /// rate on damage taken, where set.
-    entries: [Option<Entry>; 2],
 }
 
 /// A buff's `lifeChangeRate` as it runs: `Buff.stepTime` counting to
@@ -236,9 +270,8 @@ impl TowersConfig {
 
 impl super::Actor {
     /// The row of a buff running on this unit beside which `row` is not
-    /// measured, if one runs: one whose entries share `row`'s tag, which
-    /// would take them away together, or that corrects a number `row` does
-    /// other than the speed. Two buffs run side by side in `BuffManager`, and
+    /// measured, if one runs: one that corrects a number `row` does other
+    /// than the speed. Two buffs run side by side in `BuffManager`, and
     /// their speeds compose in `MoveSpeedProperty.Refresh`; how their other
     /// rates do, a tower's kept apart in `towerBuffDatas`, is not recorded.
     pub(in crate::fight) fn buff_not_beside(&self, row: &BuffRow) -> Option<u32> {
@@ -247,11 +280,10 @@ impl super::Actor {
             .iter()
             .filter(|running| running.buff_id != row.buff_id)
             .find(|running| {
-                running.source == row.source
-                    || row.entries.iter().any(|entry| {
-                        entry.index != Index::MoveSpeed
-                            && buffs.buff_writes(running.source, entry.index)
-                    })
+                row.entries.iter().any(|entry| {
+                    entry.index != Index::MoveSpeed
+                        && buffs.buff_writes(running.source, entry.index)
+                })
             })
             .map(|running| running.buff_id)
     }
@@ -290,45 +322,30 @@ impl super::Actor {
         if stack.rule.max > 0 && stack.count >= stack.rule.max {
             return Ok(());
         }
-        stack.count += 1;
-        let (count, entries, max_life_rate, source) = (
-            stack.count,
-            stack.entries,
-            running.max_life_rate,
-            running.source,
-        );
-        for entry in entries.into_iter().flatten() {
-            self.stats.overlays.channel(Channel::Buff).write(entry);
+        let before = running.life_entry();
+        if let Some(stack) = running.stack.as_mut() {
+            stack.count += 1;
         }
-        if max_life_rate == 0 {
+        let after = running.life_entry();
+        for entry in &running.entries {
+            self.stats.overlays.channel(Channel::Buff).write(*entry);
+        }
+        let (Some(before), Some(after)) = (before, after) else {
             return self.stats.refresh(&self.rules);
-        }
+        };
         // `MechDataModifer.RemoveData` and then `AddData`, each refreshing
         // the life: the share is taken twice, through the maximum without
         // the buff.
-        self.stats.overlays.channel(Channel::Unit).withdraw(source);
+        self.stats.overlays.channel(Channel::Unit).remove(before);
         self.refresh_life_data()?;
-        self.stats.overlays.channel(Channel::Unit).write(Entry {
-            index: Index::MaxLife,
-            source,
-            correction: rate(max_life_rate.saturating_mul(i64::from(count))),
-        });
+        self.stats.overlays.channel(Channel::Unit).write(after);
         self.refresh_life_data()
     }
 
     /// What a running buff wrote taken away: its entries among the buffs',
     /// and its rate in the unit's own life rate.
     fn withdraw_buff(&mut self, buff: &RunningBuff) {
-        self.stats
-            .overlays
-            .channel(Channel::Buff)
-            .withdraw(buff.source);
-        if buff.max_life_rate != 0 {
-            self.stats
-                .overlays
-                .channel(Channel::Unit)
-                .withdraw(buff.source);
-        }
+        buff.withdraw_from(&mut self.stats.overlays);
     }
 
     /// The numbers again, and `FightMech.RefreshLifeData` when the maximum
@@ -500,12 +517,8 @@ impl Simulation {
             }
             // `IBEC_ChangeMaxLife.Enter`: the rate once, into the unit's own
             // `DataSet`, whether the buff stacks or not.
-            if row.max_life_rate != 0 {
-                actor.stats.overlays.channel(Channel::Unit).write(Entry {
-                    index: Index::MaxLife,
-                    source: row.source,
-                    correction: rate(row.max_life_rate),
-                });
+            if let Some(entry) = running.life_entry() {
+                actor.stats.overlays.channel(Channel::Unit).write(entry);
             }
             actor.refresh_life_data()?;
         }
@@ -591,8 +604,8 @@ impl Simulation {
         let subject = ObjectRef::new(ObjectKind::Building, building_id);
         let ended = tick_buffs(&mut buffed.buffs, 0, subject, events);
         if !ended.is_empty() {
-            for source in ended {
-                buffed.overlays.channel(Channel::Buff).withdraw(source);
+            for buff in &ended {
+                buff.withdraw_from(&mut buffed.overlays);
             }
             if buffed.buffs.is_empty() {
                 self.buffs.building_buffs.remove(&building_id);
@@ -782,9 +795,8 @@ impl Simulation {
         if !ended.is_empty() {
             // A buff's end takes what it wrote, among the buffs' and in the
             // unit's own life rate, and every other buff's entries stay.
-            for source in ended {
-                actor.stats.overlays.channel(Channel::Buff).withdraw(source);
-                actor.stats.overlays.channel(Channel::Unit).withdraw(source);
+            for buff in &ended {
+                actor.withdraw_buff(buff);
             }
             actor.refresh_life_data()?;
         }
@@ -835,7 +847,7 @@ fn add_buff(
         } else {
             running.elapsed = 0;
         }
-        return (*running, false);
+        return (running.clone(), false);
     }
     let running = RunningBuff {
         buff_id: row.buff_id,
@@ -844,6 +856,7 @@ fn add_buff(
         elapsed: 0,
         duration: row.ticks,
         source: row.source,
+        entries: row.entries.clone(),
         source_actor,
         disables_technology: row.disables_technology,
         invincible: row.invincible,
@@ -857,15 +870,14 @@ fn add_buff(
             rule,
             elapsed: 0,
             count: 0,
-            entries: [row.entries.first().copied(), row.entries.get(1).copied()],
         }),
     };
-    buffs.push(running);
+    buffs.push(running.clone());
     (running, true)
 }
 
 /// Every running buff one tick older, and those whose time is up removed
-/// with an `expired` event; what the ended ones wrote their entries under.
+/// with an `expired` event and handed back.
 ///
 /// Only the buffs from `from` on run: `BuffManager.Update` runs them last
 /// first and stops at one whose step killed the unit.
@@ -874,27 +886,24 @@ fn tick_buffs(
     from: usize,
     subject: ObjectRef,
     events: &mut Vec<Event>,
-) -> Vec<&'static str> {
+) -> Vec<RunningBuff> {
     if buffs.is_empty() {
         return Vec::new();
     }
     for running in &mut buffs[from..] {
         running.elapsed = running.elapsed.saturating_add(1);
     }
-    let before = buffs.len();
-    let mut ended = Vec::new();
-    for running in buffs.iter() {
-        if running.elapsed >= running.duration {
-            events.push(buff_removed(
-                subject,
-                running.buff_id,
-                BuffRemovedReason::Expired,
-            ));
-            ended.push(running.source);
-        }
+    let (ended, kept) = std::mem::take(buffs)
+        .into_iter()
+        .partition::<Vec<_>, _>(|running| running.elapsed >= running.duration);
+    *buffs = kept;
+    for running in &ended {
+        events.push(buff_removed(
+            subject,
+            running.buff_id,
+            BuffRemovedReason::Expired,
+        ));
     }
-    buffs.retain(|running| running.elapsed < running.duration);
-    debug_assert_eq!(buffs.len() + ended.len(), before);
     ended
 }
 

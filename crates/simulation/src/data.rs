@@ -267,6 +267,14 @@ impl Overlay {
         self.entries.retain(|entry| entry.source != source);
     }
 
+    /// Takes away one entry equal to `entry`, if one is there: what one
+    /// writer wrote, whatever else its module wrote beside it.
+    pub(crate) fn remove(&mut self, entry: Entry) {
+        if let Some(position) = self.entries.iter().position(|written| *written == entry) {
+            self.entries.remove(position);
+        }
+    }
+
     /// Takes away everything one module wrote, handing it back.
     pub(crate) fn take(&mut self, source: &str) -> Vec<Entry> {
         let (taken, kept) = std::mem::take(&mut self.entries)
