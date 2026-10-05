@@ -963,24 +963,15 @@ fn worn(
     // Every source of an interface reaches the unit's one provider of it,
     // which enables the one of the highest priority whatever order they came
     // in.
-    let mut lifesteal = refused.hold(
+    let sources = refused.hold(
         loadouts
             .technologies
-            .lifesteal(&side.techs.units, type_name)
+            .sources(&side.techs.units, type_name)
             .map_err(on_side),
     )?;
-    let mut auto_recovery = refused.hold(
-        loadouts
-            .technologies
-            .auto_recovery(&side.techs.units, type_name)
-            .map_err(on_side),
-    )?;
-    let mut energy_shield = refused.hold(
-        loadouts
-            .technologies
-            .energy_shield(&side.techs.units, type_name)
-            .map_err(on_side),
-    )?;
+    let mut lifesteal = sources.lifesteal;
+    let mut auto_recovery = sources.auto_recovery;
+    let mut energy_shield = sources.energy_shield;
     let main_skill = refused.hold(
         loadouts
             .technologies
@@ -988,7 +979,8 @@ fn worn(
             .map_err(on_side),
     )?;
     let mut carried_shields = Vec::new();
-    let mut start_buffs = Vec::new();
+    // The buffs its technologies add as the fight starts, then its items'.
+    let mut start_buffs = sources.start_buffs;
     let mut ignored_buffs = Vec::new();
     let mut important = false;
     let mut ignores_control_beam = false;
@@ -1270,13 +1262,13 @@ fn switch_air_attack(
         source: TECHNOLOGY_SOURCE,
         correction: Correction::Value(if rules.attack.targets.air { -1 } else { 1 }),
     };
-    corrections.push((Channel::Skill, entry.clone()));
+    corrections.push((Channel::Skill, entry));
     if air_attack.extra_skills {
         for weapon in extra_weapons
             .iter_mut()
             .filter(|weapon| weapon.rules.damage_rate <= 0.0)
         {
-            weapon.skill_corrections.push(entry.clone());
+            weapon.skill_corrections.push(entry);
         }
     }
 }

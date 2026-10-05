@@ -87,6 +87,8 @@ impl Simulation {
         let buff = &preemptive.buff;
         let row = super::super::tower::BuffRow {
             buff_id: buff.id,
+            max_life_rate: 0,
+            stacking: None,
             divide: buff.divide,
             additive: buff.additive,
             ticks: u32::try_from(seconds_q32_to_steps(crate::rules::metres_q32(

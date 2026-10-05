@@ -18,7 +18,8 @@
 //! against aerial and ground targets and a search by distance, a
 //! `DamageIntensifyTech` its damage against them, and an
 //! `AirAttackTech` its skills turned onto or off aircraft, and a
-//! `SecondaryDamageIntensifyTech` a second damage around its hits; any other is
+//! `SecondaryDamageIntensifyTech` a second damage around its hits, and a
+//! `BuffTech` the buff it adds its unit as the fight starts; any other is
 //! refused by name rather than applied for its numbers alone.
 //!
 //! A technology belongs to one unit type, which is how a side's flat list of
@@ -44,8 +45,9 @@ use crate::{
 };
 
 use super::{
+    buffs::{self, BuffBlock},
     effects::{self, Fields, PROJECTILE, VALUE_ELSEWHERE},
-    sources::{AutoRecovery, EnergyShield, LifeSteal, SweepIntensify},
+    sources::{AutoRecovery, EnergyShield, LifeSteal, StartBuff, SweepIntensify},
 };
 
 const DEFAULT_TECHNOLOGY_EFFECTS: &str = include_str!("../../../../config/technology_effects.yaml");
@@ -72,7 +74,7 @@ const ARMOR: &str = "armorStrengthenTechnologyDatas";
 const SEARCH_TARGET_SPECIFIC: &str = "searchTargetSpecificDatas";
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 10] = [
+const IMPLEMENTED: [&str; 11] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -83,6 +85,7 @@ const IMPLEMENTED: [&str; 10] = [
     AIR_ATTACK,
     DAMAGE_INTENSIFY,
     SECONDARY_DAMAGE,
+    BUFF,
 ];
 
 /// The list whose `DamageIntensifyTech` writes its damage against one domain.
@@ -91,6 +94,9 @@ const DAMAGE_INTENSIFY: &str = "damageIntensifyTechnologies";
 /// The list whose `SecondaryDamageIntensifyTech` is an
 /// `ISecondaryDamageIntensifyEffectDataSource`.
 const SECONDARY_DAMAGE: &str = "secondaryDamageIntensifyTechDatas";
+
+/// The list whose `BuffTech` is an `IEffectBuffDataSource`.
+const BUFF: &str = "buffTechnologies";
 
 /// The list whose `AirAttackTech` is an `IAirAttackDataSource`.
 const AIR_ATTACK: &str = "airAttackTechnologyDatas";
@@ -165,6 +171,9 @@ struct Technology {
     /// The second damage its unit's main skill deals around each hit, if its
     /// class is an `ISecondaryDamageIntensifyEffectDataSource`.
     secondary_damage: Option<SecondaryDamage>,
+    /// The buff it adds its unit as the fight starts, if its class is an
+    /// `IEffectBuffDataSource`.
+    start_buff: Option<StartBuff>,
 }
 
 /// What `SecondaryDamageIntensifyEffectProvider` hands its unit's main skill
@@ -192,6 +201,15 @@ pub(crate) struct SecondaryDamage {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct AirAttack {
     pub(crate) extra_skills: bool,
+}
+
+/// The sources a side's technologies hand one unit type's effect providers.
+#[derive(Debug, Clone, Default)]
+pub(crate) struct UnitSources {
+    pub(crate) lifesteal: Vec<LifeSteal>,
+    pub(crate) auto_recovery: Vec<AutoRecovery>,
+    pub(crate) energy_shield: Vec<EnergyShield>,
+    pub(crate) start_buffs: Vec<StartBuff>,
 }
 
 /// What a side's technologies change about one unit type's main skill
@@ -294,6 +312,18 @@ struct Row {
     secondary_disables_technology: bool,
     #[serde(default)]
     secondary_buff_id: i64,
+    /// `BuffTechnologyData`'s source fields and the `buffDatas` row it adds,
+    /// on a row of its list.
+    #[serde(default)]
+    buff_trigger: Option<i32>,
+    #[serde(default)]
+    buff_targets: Vec<i32>,
+    #[serde(default)]
+    probability: Option<i64>,
+    #[serde(default)]
+    buff_special: Vec<String>,
+    #[serde(default)]
+    buff: Option<BuffBlock>,
     /// `ExtraWeaponTechnologyData.allWeaponReduceDamageRate`, on an extra
     /// weapon row that sets it.
     #[serde(default)]
@@ -376,9 +406,23 @@ impl TechnologyEffects {
             });
             let _ = row.sweep_skill_id;
             let reduce_damage = (row.kind == ARMOR).then(|| row.reduce_damage_value.clone());
+            let who = format!("technology {} ({})", row.id, row.name);
+            let start_buff = (row.kind == BUFF).then(|| {
+                buffs::start_buff(
+                    &who,
+                    (row.buff_trigger, &row.buff_targets, row.probability),
+                    &row.buff_special,
+                    row.buff.as_ref(),
+                )
+            });
+            let (start_buff, effect) = match start_buff {
+                Some(Err(why)) => (None, Err(why)),
+                Some(Ok(buff)) => (Some(buff), corrections_of(&row)),
+                None => (None, corrections_of(&row)),
+            };
             let technology = Technology {
                 unit: row.unit.clone(),
-                effect: corrections_of(&row),
+                effect,
                 lifesteal,
                 auto_recovery,
                 energy_shield,
@@ -388,6 +432,7 @@ impl TechnologyEffects {
                 air_attack: (row.kind == AIR_ATTACK).then_some(AirAttack {
                     extra_skills: row.extra_skill_effect,
                 }),
+                start_buff,
                 secondary_damage: (row.kind == SECONDARY_DAMAGE).then_some(SecondaryDamage {
                     damage: row.secondary_damage,
                     splash_radius: effects::fixed_to(row.secondary_splash_range, effects::METERS),
@@ -446,36 +491,28 @@ impl TechnologyEffects {
         Ok(written)
     }
 
-    /// What this side's technologies answer `ILifeSteal` with on one unit
-    /// type, each that is one.
+    /// The sources this side's technologies hand one unit type's effect
+    /// providers, each that is one: what they answer `ILifeSteal`,
+    /// `IAutoRecovery` and `IEnergyShieldSource` with, and the buffs they add
+    /// as the fight starts, in the order the side holds them.
     ///
     /// # Errors
     ///
     /// Returns the error [`Self::corrections`] does.
-    pub(crate) fn lifesteal(&self, held: &[i32], unit_type: &str) -> Result<Vec<LifeSteal>> {
+    pub(crate) fn sources(&self, held: &[i32], unit_type: &str) -> Result<UnitSources> {
         self.corrections(held, unit_type)?;
-        Ok(held
+        let own = held
             .iter()
             .filter_map(|id| self.technologies.get(id))
-            .filter(|technology| technology.unit == unit_type)
-            .filter_map(|technology| technology.lifesteal)
-            .collect())
-    }
-
-    /// What this side's technologies answer `IEnergyShieldSource` with on
-    /// one unit type, each that is one.
-    ///
-    /// # Errors
-    ///
-    /// Returns the error [`Self::corrections`] does.
-    pub(crate) fn energy_shield(&self, held: &[i32], unit_type: &str) -> Result<Vec<EnergyShield>> {
-        self.corrections(held, unit_type)?;
-        Ok(held
-            .iter()
-            .filter_map(|id| self.technologies.get(id))
-            .filter(|technology| technology.unit == unit_type)
-            .filter_map(|technology| technology.energy_shield)
-            .collect())
+            .filter(|technology| technology.unit == unit_type);
+        let mut sources = UnitSources::default();
+        for technology in own {
+            sources.lifesteal.extend(technology.lifesteal);
+            sources.auto_recovery.extend(technology.auto_recovery);
+            sources.energy_shield.extend(technology.energy_shield);
+            sources.start_buffs.extend(technology.start_buff);
+        }
+        Ok(sources)
     }
 
     /// What this side's technologies change about one unit type's main skill
@@ -536,22 +573,6 @@ impl TechnologyEffects {
                     },
                 ))
             })
-            .collect())
-    }
-
-    /// What this side's technologies answer `IAutoRecovery` with on one unit
-    /// type, each that is one.
-    ///
-    /// # Errors
-    ///
-    /// Returns the error [`Self::corrections`] does.
-    pub(crate) fn auto_recovery(&self, held: &[i32], unit_type: &str) -> Result<Vec<AutoRecovery>> {
-        self.corrections(held, unit_type)?;
-        Ok(held
-            .iter()
-            .filter_map(|id| self.technologies.get(id))
-            .filter(|technology| technology.unit == unit_type)
-            .filter_map(|technology| technology.auto_recovery)
             .collect())
     }
 }
@@ -734,6 +755,11 @@ mod tests {
     /// Shockwave for the Arclight, a `secondaryDamageIntensifyTechDatas` row:
     /// 75 within 30 metres, and 5 metres off its range.
     const SHOCKWAVE: i32 = 4515;
+    /// Combat Evolvement for the Rhino, a `buffTechnologies` row whose buff
+    /// stacks every second.
+    const COMBAT_EVOLVEMENT: i32 = 180_805;
+    /// Kinetic Charge for the Steel Ball, whose buff stacks on distance.
+    const KINETIC_CHARGE: i32 = 180_808;
     /// Electromagnetic Cloud for the Vortex, whose second damage disables
     /// technologies and writes a buff.
     const ELECTROMAGNETIC_CLOUD: i32 = 4531;
@@ -959,5 +985,34 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(refused.contains("4531"), "{refused}");
+    }
+
+    /// A buff technology hands its unit the buff it adds as the fight starts;
+    /// one whose buff stacks on distance is refused by name.
+    #[test]
+    fn combat_evolvement_adds_a_stacking_buff() {
+        let table = TechnologyEffects::load().unwrap();
+        let buffs = table
+            .sources(&[COMBAT_EVOLVEMENT], "rhino")
+            .unwrap()
+            .start_buffs;
+        assert_eq!(buffs.len(), 1);
+        assert_eq!(buffs[0].buff_id, 8005);
+        assert_eq!(buffs[0].damage_rate, 193_273_528);
+        assert_eq!(buffs[0].max_life_rate, 107_374_182);
+        assert_eq!(buffs[0].step_q32, 1 << 32);
+        assert!(buffs[0].stacking.is_some());
+        assert!(
+            table
+                .sources(&[COMBAT_EVOLVEMENT], "marksman")
+                .unwrap()
+                .start_buffs
+                .is_empty()
+        );
+        let refused = table
+            .corrections(&[KINETIC_CHARGE], "steel_ball")
+            .unwrap_err()
+            .to_string();
+        assert!(refused.contains("8008"), "{refused}");
     }
 }

@@ -1,0 +1,48 @@
+# Replay 2324_20260925--134260717, round 3, map 1011. Red's Rhinos with
+# Combat Evolvement stack their buff while they are hit.
+
+kind: fight
+map_id: 1011
+seed: 1231717251
+round: 3
+source: game
+ticks: 1018
+hash: {profile: mcfr-content-0.7.0, result: e1d4c77c103b5cab2beb95027b5cbaf8240b89cde4ebce98cd243860bcf36c02}
+blue:
+  core_damage: 800
+  officers: [aerial_specialist]
+  legacy_index: 10
+  units:
+  - {name: fang, index: 0, position: {x: 200, y: -235}, exp: 0/566/600, rotated: true}
+  - {name: fang, index: 1, position: {x: 0, y: -205}, exp: 100/100/600, rotated: true}
+  - {name: fang, index: 2, position: {x: -190, y: -225}, rotated: true}
+  - {name: fire_badger, index: 3, position: {x: -30, y: -205}, exp: 116/216/1400, rotated: true}
+  - {name: hound, index: 5, position: {x: -190, y: -190}}
+  - {name: hound, index: 6, position: {x: 200, y: -200}}
+  - {name: centurion, index: 8, position: {x: -65, y: -215}, exp: 866/966/2250}
+  - {name: centurion, index: 9, position: {x: 35, y: -215}, exp: 2116/2250/2250}
+  - {name: centurion, index: 10, position: {x: 235, y: -245}, exp: 0/66/2250, equipment: [amplifying_core]}
+  - {name: fang, index: 11, position: {x: 140, y: -205}, exp: 0/166/600, rotated: true}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+red:
+  officers: [cost_control_specialist]
+  techs:
+    marksman: [range_enhancement]
+    rhino: [combat_evolvement]
+  blueprints: [attack_enhancement]
+  legacy_index: 10
+  units:
+  - {name: marksman, index: 0, position: {x: 160, y: -170}, exp: 287/386/650}
+  - {name: marksman, index: 1, position: {x: 140, y: -150}, exp: 482/650/650}
+  - {name: marksman, index: 2, position: {x: -140, y: -150}, exp: 412/650/650}
+  - {name: tarantula, index: 3, position: {x: 115, y: -165}, exp: 314/540/1500}
+  - {name: tarantula, index: 4, position: {x: -115, y: -165}, exp: 965/1326/1500}
+  - {name: tarantula, index: 5, position: {x: 5, y: -155}, exp: 471/471/1500}
+  - {name: marksman, index: 6, position: {x: 30, y: -160}, exp: 246/650/650}
+  - {name: rhino, index: 7, position: {x: 265, y: -295}, exp: 256/651/1150, equipment: [amplifying_core]}
+  - {name: rhino, index: 8, position: {x: -265, y: -295}, exp: 517/536/1150}
+  - {name: marksman, index: 9, position: {x: -20, y: -160}, exp: 33/100/650}
+  - {name: marksman, index: 10, position: {x: 90, y: -170}, exp: 0/650/650}
+  - {name: marksman, index: 11, position: {x: 60, y: -170}, exp: 0/427/650}

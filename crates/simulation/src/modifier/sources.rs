@@ -44,10 +44,10 @@ pub(crate) struct AutoRecovery {
     pub(crate) can_disable: bool,
 }
 
-/// The `buffDatas` row a `BuffEquipment` adds to its unit as the fight
-/// starts: one whose `BuffTechListener` is `FightStart`, whose target is the
-/// unit itself, and which always triggers. `BuffEffectProvider` holds every
-/// such source, not one.
+/// The `buffDatas` row a `BuffEquipment` or a `BuffTech` adds to its unit as
+/// the fight starts: one whose `BuffTechListener` is `FightStart`, whose
+/// target is the unit itself, and which always triggers. `BuffEffectProvider`
+/// holds every such source, not one.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct StartBuff {
     pub(crate) buff_id: u32,
@@ -61,6 +61,23 @@ pub(crate) struct StartBuff {
     pub(crate) invincible: bool,
     /// `amplifyDamageRate`, Q32.32: the rate on the damage the unit takes.
     pub(crate) amplify_damage_rate: i64,
+    /// `damageChangeRate`, Q32.32: the rate on the damage the unit deals.
+    pub(crate) damage_rate: i64,
+    /// `maxLifeChangeRate`, Q32.32: what `IBEC_ChangeMaxLife` adds to the
+    /// unit's own life rate.
+    pub(crate) max_life_rate: i64,
+    /// `stepTime`, Q32.32 seconds: how often its controllers update.
+    pub(crate) step_q32: i64,
+    /// How it stacks, if it does (`IsAdditiveEffect`).
+    pub(crate) stacking: Option<Stacking>,
+}
+
+/// A buff that stacks a step at a time, `IBEC_AdditiveEffectBuff` under
+/// `BuffAdditiveStackConditionTimeController`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct Stacking {
+    /// `maxAdditiveStack`: the most it stacks, none for no bound.
+    pub(crate) max: u32,
 }
 
 /// What a `SweepSkillIntensifyTech` hands its unit's sweep

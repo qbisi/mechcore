@@ -1,0 +1,25 @@
+# Combat Evolvement: a Rhino's buff stacks a second at a time.
+#
+# The buff is on the Rhino from the first tick, with its 2.5% of life. Each
+# second it stacks once: 4.5% more damage a stack (3720 of 3560 at t20, 3880
+# at t40), and from the second stack 2.5% more life a stack (20261 of 19297
+# at t40). Each step takes the life rate out and puts it back, refreshing
+# the Rhino's life against its maximum each time: hit by Crawlers, it reads
+# 21543 at t140 and 18790 at t180. The fight's end takes the rate away.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 376
+hash: {profile: mcfr-content-0.7.0, result: ca65ad8a5a904ba6cc721479d6587fcbe44e1da9a7a65995ec5eec08c71b38cb}
+blue:
+  techs:
+    rhino: [combat_evolvement]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -105}, exp: 0/192/1150}
+red:
+  core_damage: 200
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}}

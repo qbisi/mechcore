@@ -64,6 +64,24 @@ pub(in crate::fight) struct RunningBuff {
     /// `IBEC_ChangeLIfe`, the controller `Buff.Init` gives a buff of a
     /// nonzero `lifeChangeRate`, and its step.
     life_change: Option<LifeChangeStep>,
+    /// `IBEC_ChangeMaxLife`'s rate, which it writes into the unit's own life
+    /// rate as it enters.
+    max_life_rate: i64,
+    /// `IBEC_AdditiveEffectBuff`, the controller of a buff that stacks, and
+    /// its step.
+    stack: Option<StackStep>,
+}
+
+/// A stacking buff as it runs: `Buff.stepTime` counting to `stepTimeConfig`,
+/// the stack it has reached, and the entries one stack writes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct StackStep {
+    rule: StackRule,
+    elapsed: u32,
+    count: u32,
+    /// What one stack writes in the buffs' channel: its damage rate and its
+    /// rate on damage taken, where set.
+    entries: [Option<Entry>; 2],
 }
 
 /// A buff's `lifeChangeRate` as it runs: `Buff.stepTime` counting to
@@ -74,6 +92,14 @@ struct LifeChangeStep {
     life_change: LifeChange,
     team: u32,
     elapsed: u32,
+}
+
+/// How a buff row stacks: `stepTime` in ticks, a stack each, and
+/// `maxAdditiveStack`, none for no bound.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::fight) struct StackRule {
+    pub(in crate::fight) step_ticks: u32,
+    pub(in crate::fight) max: u32,
 }
 
 /// A buff row's `lifeChangeRate` and `stepTime`, the latter in ticks.
@@ -106,6 +132,13 @@ pub(in crate::fight) struct BuffRow {
     pub(in crate::fight) life_change: Option<LifeChange>,
     /// `currentLifeDisposableChangeRate`, an `FPoint` raw rate.
     pub(in crate::fight) current_life_rate: i64,
+    /// `maxLifeChangeRate`, Q32.32, which `IBEC_ChangeMaxLife` writes into
+    /// the unit's own life rate rather than among the buffs'.
+    pub(in crate::fight) max_life_rate: i64,
+    /// How it stacks, when `IsAdditiveEffect`: its `entries` are then one
+    /// stack's, of which `IBEC_AdditiveEffectBuff.GetData` answers the stack
+    /// times as many, none before the first step.
+    pub(in crate::fight) stacking: Option<StackRule>,
 }
 
 /// The towers of both sides: what their table says, what each one's loss
@@ -236,6 +269,105 @@ impl super::Actor {
     }
 }
 
+impl super::Actor {
+    /// `IBEC_AdditiveEffectBuff.Update` on the step of the `index`th running
+    /// buff: a stack more, below its bound, and what one stack writes written
+    /// again, since a stack's enhancements sum. `IBEC_ChangeMaxLife.DoAdditiveEffect`
+    /// takes its rate out of the unit's own life rate and puts it back times
+    /// the stack, the life refreshed after each. A Rhino with Combat
+    /// Evolvement deals 4.5% more a second and, from its second second, has
+    /// 2.5% more life a second.
+    fn step_stack(&mut self, index: usize) -> Result<()> {
+        let running = &mut self.buffs[index];
+        let Some(stack) = running.stack.as_mut() else {
+            return Ok(());
+        };
+        stack.elapsed += 1;
+        if stack.elapsed < stack.rule.step_ticks {
+            return Ok(());
+        }
+        stack.elapsed = 0;
+        if stack.rule.max > 0 && stack.count >= stack.rule.max {
+            return Ok(());
+        }
+        stack.count += 1;
+        let (count, entries, max_life_rate, source) = (
+            stack.count,
+            stack.entries,
+            running.max_life_rate,
+            running.source,
+        );
+        for entry in entries.into_iter().flatten() {
+            self.stats.overlays.channel(Channel::Buff).write(entry);
+        }
+        if max_life_rate == 0 {
+            return self.stats.refresh(&self.rules);
+        }
+        // `MechDataModifer.RemoveData` and then `AddData`, each refreshing
+        // the life: the share is taken twice, through the maximum without
+        // the buff.
+        self.stats.overlays.channel(Channel::Unit).withdraw(source);
+        self.refresh_life_data()?;
+        self.stats.overlays.channel(Channel::Unit).write(Entry {
+            index: Index::MaxLife,
+            source,
+            correction: rate(max_life_rate.saturating_mul(i64::from(count))),
+        });
+        self.refresh_life_data()
+    }
+
+    /// What a running buff wrote taken away: its entries among the buffs',
+    /// and its rate in the unit's own life rate.
+    fn withdraw_buff(&mut self, buff: &RunningBuff) {
+        self.stats
+            .overlays
+            .channel(Channel::Buff)
+            .withdraw(buff.source);
+        if buff.max_life_rate != 0 {
+            self.stats
+                .overlays
+                .channel(Channel::Unit)
+                .withdraw(buff.source);
+        }
+    }
+
+    /// The numbers again, and `FightMech.RefreshLifeData` when the maximum
+    /// life moved: a unit at its whole life keeps its whole life, and any
+    /// other keeps its share of it, an `FPoint` quotient times the new
+    /// maximum, at least 1 while it lives.
+    pub(in crate::fight) fn refresh_life_data(&mut self) -> Result<()> {
+        let before = self.stats.max_life();
+        self.stats.refresh(&self.rules)?;
+        self.life_to_new_maximum(before)
+    }
+
+    /// `RefreshLifeData` from a maximum of `before` to the one the numbers
+    /// hold now: the share is an `FPoint` quotient, rounded, and the life its
+    /// product with the maximum, truncated.
+    fn life_to_new_maximum(&mut self, before: i64) -> Result<()> {
+        let after = self.stats.max_life();
+        if after == before {
+            return Ok(());
+        }
+        if self.shield.is_some() {
+            return Err(Error::new(
+                "a buff moves the maximum life of a unit with its own shield, and what its \
+                 shield does then is not measured",
+            ));
+        }
+        self.life = if self.life >= before {
+            after
+        } else {
+            let share =
+                ((i128::from(self.life) << 32) + i128::from(before) / 2) / i128::from(before);
+            let life = i64::try_from((share * i128::from(after)) >> 32)
+                .map_err(|_| Error::new("a unit's life is outside i64"))?;
+            if self.life > 0 { life.max(1) } else { life }
+        };
+        Ok(())
+    }
+}
+
 impl Simulation {
     /// Whether this target is one of the map's towers (`FightCrystal.IsTower`),
     /// which is an actor of its own rather than one block of a construction.
@@ -259,6 +391,8 @@ impl Simulation {
         }
         let row = BuffRow {
             buff_id: loss.buff_id,
+            max_life_rate: 0,
+            stacking: None,
             divide: self.towers.config.destroyed_buff.buff_divide,
             additive: self.towers.config.destroyed_buff.additive,
             ticks: loss.ticks,
@@ -316,7 +450,7 @@ impl Simulation {
             ));
             if added {
                 for entry in &row.entries {
-                    buffed.overlays.channel(Channel::Buff).write(entry.clone());
+                    buffed.overlays.channel(Channel::Buff).write(*entry);
                 }
                 self.refresh_construction(construction_id)?;
             }
@@ -359,14 +493,21 @@ impl Simulation {
             .expect("actor identity is stable");
         let (running, added) = add_buff(&mut actor.buffs, row, source, team);
         if added {
-            for entry in &row.entries {
-                actor
-                    .stats
-                    .overlays
-                    .channel(Channel::Buff)
-                    .write(entry.clone());
+            if row.stacking.is_none() {
+                for entry in &row.entries {
+                    actor.stats.overlays.channel(Channel::Buff).write(*entry);
+                }
             }
-            actor.stats.refresh(&actor.rules)?;
+            // `IBEC_ChangeMaxLife.Enter`: the rate once, into the unit's own
+            // `DataSet`, whether the buff stacks or not.
+            if row.max_life_rate != 0 {
+                actor.stats.overlays.channel(Channel::Unit).write(Entry {
+                    index: Index::MaxLife,
+                    source: row.source,
+                    correction: rate(row.max_life_rate),
+                });
+            }
+            actor.refresh_life_data()?;
         }
         if row.current_life_rate != 0 {
             self.change_current_life(actor_id, team, row.current_life_rate, events)?;
@@ -529,13 +670,12 @@ impl Simulation {
                 )
             }));
             for buff in std::mem::take(&mut actor.buffs) {
-                actor
-                    .stats
-                    .overlays
-                    .channel(Channel::Buff)
-                    .withdraw(buff.source);
+                actor.withdraw_buff(&buff);
             }
-            actor.stats.refresh(&actor.rules)?;
+            // `IBEC_ChangeMaxLife.Exit` takes its rate out, and the life is
+            // refreshed: a Rhino with Combat Evolvement ends the fight at its
+            // share of its bare maximum.
+            actor.refresh_life_data()?;
         }
         for (building_id, buffed) in std::mem::take(&mut self.buffs.building_buffs) {
             let subject = ObjectRef::new(ObjectKind::Building, building_id);
@@ -572,13 +712,9 @@ impl Simulation {
             actor.buffs.iter().rev().map(|buff| buff.buff_id).collect(),
         );
         for buff in std::mem::take(&mut actor.buffs) {
-            actor
-                .stats
-                .overlays
-                .channel(Channel::Buff)
-                .withdraw(buff.source);
+            actor.withdraw_buff(&buff);
         }
-        actor.stats.refresh(&actor.rules)
+        actor.refresh_life_data()
     }
 
     /// `Buff.Update`'s step of every buff on a unit, last first as
@@ -595,6 +731,7 @@ impl Simulation {
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
+            actor.step_stack(index)?;
             let max_life = actor.stats.max_life();
             let Some(step) = actor.buffs[index].life_change.as_mut() else {
                 continue;
@@ -643,12 +780,13 @@ impl Simulation {
         let subject = ObjectRef::new(ObjectKind::Unit, actor_id);
         let ended = tick_buffs(&mut actor.buffs, from, subject, events);
         if !ended.is_empty() {
-            // A buff's end takes what it wrote, and every other buff's
-            // entries stay.
+            // A buff's end takes what it wrote, among the buffs' and in the
+            // unit's own life rate, and every other buff's entries stay.
             for source in ended {
                 actor.stats.overlays.channel(Channel::Buff).withdraw(source);
+                actor.stats.overlays.channel(Channel::Unit).withdraw(source);
             }
-            actor.stats.refresh(&actor.rules)?;
+            actor.refresh_life_data()?;
         }
         Ok(())
     }
@@ -713,6 +851,13 @@ fn add_buff(
             life_change,
             team,
             elapsed: 0,
+        }),
+        max_life_rate: row.max_life_rate,
+        stack: row.stacking.map(|rule| StackStep {
+            rule,
+            elapsed: 0,
+            count: 0,
+            entries: [row.entries.first().copied(), row.entries.get(1).copied()],
         }),
     };
     buffs.push(running);

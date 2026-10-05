@@ -10,6 +10,7 @@
 //! row's targeting category reaches, and [`sources`] is what an equipment or
 //! a technology hands its unit beyond its numbers.
 
+mod buffs;
 mod effects;
 mod energy_tower;
 mod equipment;
