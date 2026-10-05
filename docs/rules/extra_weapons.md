@@ -175,7 +175,9 @@ its first skill in the core's place:
   its lock gives it up to the first of the others that has struck fewer
   blows (`SkillAttackableChecker.TrySearchGroupSkillLockTarget`); the one it
   passes over is the owner's main skill's first, which the group does not
-  hold, so the group's first counts among the others.
+  hold, so the group's first counts among the others, and gives its own lock
+  up as they do, its search timer counting down through its attack
+  (`SkillAttackState.Update`) as theirs does.
 - **Each beam ramps on its own blows.** A beam's damage is its row's rate of
   the unit's base damage at its level times its ramp's multiplier for the
   blow, truncated, then corrected as the main skill's is, which a skill with

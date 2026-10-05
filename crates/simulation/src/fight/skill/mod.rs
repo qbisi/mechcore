@@ -893,6 +893,14 @@ impl Skill {
         }
     }
 
+    pub(in crate::fight) fn group_skill_mut(&mut self, slot: usize) -> &mut Self {
+        if slot == 0 {
+            self
+        } else {
+            &mut self.siblings_mut()[slot - 1]
+        }
+    }
+
     /// A slot of the group, the core's siblings only.
     pub(in crate::fight) fn sibling(&self, slot: usize) -> &Self {
         &self.siblings()[slot - 1]
