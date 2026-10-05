@@ -813,11 +813,15 @@ out takes the nearer unit the search answers. A grouped or standalone main
 skill, and a unit that searches for itself, are still started from the
 simulator's motion.
 
-**A turret does not turn on the tick its skill retargets after a kill.** When
-the target a skill attacked dies during a tick and the skill's own search
-answers a new one, the skill's update that tick tracked the dead target: a
-Melting Point whose Crawler an ally kills sets off for the next one with its
-turret still.
+**A turret does not turn on the tick its unit sets off.** A weapon turns in
+its skill's update only if it has a transform of its own
+(`FightWeapon.CanRotate`), which a unit's ordinary weapon has not; its turret
+is turned by the motion, `MotionAttackState.AttackRotate` and
+`MotionMoveState.NormalRotate`. The tick the motion changes to
+`MotionMoveState` the old state returns as it changes and the new one is not
+updated, so nothing turns, whichever state the unit leaves: a Melting Point
+whose Crawler an ally kills sets off for the next one with its turret still,
+and so does a Sledgehammer whose lock walks out of its reach.
 
 **A group of one weapon is fired as one weapon.** A Vortex's grouped skill has
 a single direct weapon, so its fusillade is one blow; its target scoring reads
@@ -1114,6 +1118,10 @@ not the game's native attack-type enum.
 
 ### Read
 
+- A weapon without a transform of its own turns only with the motion, and
+  nothing turns the tick the motion changes to moving: `FightWeapon.CanRotate`,
+  `FightSkill.Update`, `MotionAttackState.AttackRotate`,
+  `MotionMoveState.NormalRotate`.
 - A projectile that locks its target is released with no damage out of its
   owner's reach: `FightProjectile.Update`, `FightProjectile.Init`,
   `FightProjectile.CalculateMaxMoveDistance`, `FightCalculator.IsInRange3D`,

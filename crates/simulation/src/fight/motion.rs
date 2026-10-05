@@ -547,7 +547,6 @@ impl Simulation {
 /// its body goes if it moves.
 #[derive(Debug, Clone, Copy)]
 struct Approach {
-    edge_distance_q32: i64,
     target_rotation_q32: i64,
     body_x_q32: i64,
     body_z_q32: i64,
@@ -787,7 +786,6 @@ impl Simulation {
         self.leave_or_approach(
             actor_id,
             Approach {
-                edge_distance_q32,
                 target_rotation_q32,
                 body_x_q32,
                 body_z_q32,
@@ -862,7 +860,6 @@ impl Simulation {
         self.leave_or_approach(
             actor_id,
             Approach {
-                edge_distance_q32,
                 target_rotation_q32,
                 body_x_q32: view.x_q32,
                 body_z_q32: view.z_q32,
@@ -1954,7 +1951,6 @@ impl Simulation {
     /// `MotionMoveState`: moves towards where the lock stands, turning first.
     fn approach(&mut self, actor_id: u64, approach: Approach) {
         let Approach {
-            edge_distance_q32,
             target_rotation_q32,
             body_x_q32,
             body_z_q32,
@@ -1966,18 +1962,13 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
-        let entered_move_from_idle = actor.motion.state == MotionState::Idle;
         let entered_move = actor.motion.state != MotionState::Moving;
-        let entered_move_below_min_range =
-            entered_move && edge_distance_q32 < space_to_q32(actor.rules.attack.min_range());
-        // A target the skill's own search answered this tick, because the one
-        // it attacked died during it, was not the target its update tracked:
-        // the Melting Point whose Crawler an ally kills keeps its turret still
-        // on the tick it sets off for the next one.
-        let retargeted_this_tick = entered_move && actor.skills.main.searched_this_tick;
-        if !entered_move_from_idle && !entered_move_below_min_range && !retargeted_this_tick {
-            // FightSkill.Update tracks an existing target before MotionController updates movement.
-            // A target acquired by MotionIdleState is not visible to FightSkill until the next tick.
+        // `MotionMoveState.NormalRotate` turns the weapons to the lock
+        // (`CalculateTargetDirection`). A state entered is not updated on
+        // the update it is entered, and `FightSkill.Update` turns only a
+        // weapon with a transform of its own (`FightWeapon.CanRotate`): a
+        // unit setting off turns nothing, whichever state it leaves.
+        if !entered_move {
             actor.rotate_weapons_towards(target_rotation_q32);
             if actor.rules.has_body {
                 actor.aim_rotation = degrees_q32_to_mdeg(
