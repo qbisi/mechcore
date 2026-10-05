@@ -1801,14 +1801,21 @@ impl Simulation {
             return;
         }
         self.move_to_command_point(actor_id);
-        // `NormalRotate` with nothing to face turns the weapons to where the
-        // body faces.
+        // `NormalRotate` with no lock turns the weapons to the velocity
+        // (`CalculateTargetDirection`), and a unit standing still turns
+        // them nothing: a Centurion cooling under a Mobile Beacon keeps its
+        // turret where its last shot left it.
         let actor = self
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
-        let facing = actor.body_rotation_q32;
-        actor.rotate_weapons_towards(facing);
+        let (vx, vz) = (
+            actor.motion.current_velocity_x_q32,
+            actor.motion.current_velocity_z_q32,
+        );
+        if vx != 0 || vz != 0 {
+            actor.rotate_weapons_towards(direction_degrees_q32_raw(vx, vz));
+        }
         if actor.rules.has_body {
             actor.aim_rotation = degrees_q32_to_mdeg(
                 actor

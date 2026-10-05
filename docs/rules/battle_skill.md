@@ -377,7 +377,8 @@ which scores from that facing. It then takes the place of the unit's
   fight stops, an attacking unit changes to moving, and a unit on the beacon
   goes on moving and turning to where it moves until the fight ends, which
   idles it ([combat.md](combat.md)).
-- With no target, its weapons turn to where its body faces.
+- With no lock, `MotionMoveState.NormalRotate` turns its weapons to its
+  velocity, and a unit standing still turns them nothing.
 
 `PilotAI.Update`, after the unit's motion, moves the command on once the unit,
 less its radius, is within 20 m of the point. After the last segment the command
@@ -513,6 +514,11 @@ drawn from any stream, and no event is written.
 - Wasps still on a beacon when the fight is won go on moving until it ends:
   `tests/battle_skill/fights/beacon-wasps-won.yaml`,
   `tests/corpus/fights/134270595-r4.yaml`.
+- A Centurion on a beacon whose lock an ally kills attacks on through its
+  cooling while what the cooling names is in range, standing still and
+  turning nothing, and walks on as the cooling ends; one moving through its
+  cooling with nothing locked keeps its turret still:
+  `tests/corpus/fights/67157394-r7.yaml`.
 
 ### Replayed
 
@@ -661,10 +667,10 @@ drawn from any stream, and no event is written.
   `MotionAttackState.AttackMove`, `MoveAttackCommand.IsIdle`,
   `MoveAttackCommand.IsActive`, `LineRange.Overlaps`, `FightActor.Distance2D`,
   `FightTransform.Distance2D`.
-- Without a lock a unit attacking under a command turns to its velocity, and
-  a cooling's attack target keeps its attack in range:
-  `MotionController.CalculateTargetDirection`,
-  `FightSkill.IsAttackTargetInAttackRange`,
+- Without a lock a unit under a command turns to its velocity, attacking or
+  moving, and its weapons with it; a cooling's attack target keeps its attack
+  in range: `MotionController.CalculateTargetDirection`,
+  `MotionMoveState.NormalRotate`, `FightSkill.IsAttackTargetInAttackRange`,
   `SkillAttackRangeChecker.IsAttackTargetInAttackRange`.
 - `MotionController.Move` hands the agent nothing but on the update the RVO
   counter reads 3: `MotionController.Move`, `RVOSimulatorFixed.IsUpdateFrame`,
