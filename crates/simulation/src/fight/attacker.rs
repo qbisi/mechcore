@@ -192,8 +192,17 @@ impl Simulation {
             .ok_or_else(|| Error::new(format!("side {team} has no random stream")))
     }
 
-    /// Every unit, deployed ones in the fight's update order and the ones
-    /// made since in identity order after them.
+    /// `FightActor.ChangeTeam`: a unit changing side leaves its old side's
+    /// list and `FightTeamController.AddActor` appends it to its new one's,
+    /// so it updates after every unit already there.
+    pub(in crate::fight) fn joins_side_last(&mut self, unit_id: u64) {
+        self.unit_update_order.retain(|&id| id != unit_id);
+        self.unit_update_order.push(unit_id);
+    }
+
+    /// Every unit in the order its side updates it: the deployed ones in the
+    /// fight's update order, then each summon and each unit turned in the
+    /// order it joined, and anything else made since in identity order.
     pub(in crate::fight) fn units_in_update_order(&self) -> Vec<u64> {
         let deployed = self
             .unit_update_order

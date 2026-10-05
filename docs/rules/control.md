@@ -58,7 +58,10 @@ The turn (`TeamTranslationSystem.ChangeTeam`):
   shared among its attackers and the units in range on the side it goes to.
   A unit a beam has turned takes no share, nor thins the others'
   (`ExpSystem.IsValidOwner`).
-- **moves it** to the other side's lists (`FightActor.ChangeTeam`). It leaves
+- **moves it** to the other side's lists (`FightActor.ChangeTeam`), at
+  their end (`FightTeamController.AddActor`): it updates after every unit
+  already on that side, its summons among them, and a unit handed back on
+  its death after every unit of the side it returns to. It leaves
   its formation for one of its own on the new side, made when first asked for
   (`FightMech.GetMechTeam`): the units turned on one tick take theirs in
   identity order. Its damage and its kills from then are recorded under a
@@ -179,6 +182,9 @@ the shield does not count against the turn.
   is not handed back, so the Crawlers locked on it hold the lock for a tick:
   replay 2324_20260925--134259672 round 5, ticks 122 and 156, fought by the
   game with `scripts/corpus/match-replays.py`.
+- A blue Crawler a Hacker turned updates after every red unit: replay
+  2324_20260925--134259672 round 5, tick 161, fought by the game with
+  `scripts/corpus/match-replays.py`.
 - A red Crawler whose prepared winner, its own lock, was turned searches
   again with a `Select` and takes the nearer of two blue Crawlers as they
   stand after blue's update: replay 2324_20260925--134259672 round 5, tick
@@ -195,7 +201,7 @@ the shield does not count against the turn.
   `TeamTranslationSystem.Remove`, `TeamTranslationSystem.Translate`,
   `TeamTranslationSystem.translatingDatas`.
 - The turn: `TeamTranslationSystem.Update`, `TeamTranslationSystem.ChangeTeam`,
-  `FightActor.ChangeTeam`, `ExpSystem.CalculateExp`, `ExpSystem.IsValidOwner`,
+  `FightActor.ChangeTeam`, `FightTeamController.AddActor`, `ExpSystem.CalculateExp`, `ExpSystem.IsValidOwner`,
   `TeamTranslationSystem.IsTranslatedMech`, `FightMech.GetMechTeam`.
 - The skills it stops: `FightSkill.OnChangeTeam`, `FightSkill.StopAttack`,
   `SkillIdleState.Enter`, `SkillAttackState.Update`.

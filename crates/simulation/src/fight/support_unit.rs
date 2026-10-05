@@ -521,6 +521,7 @@ impl Simulation {
             let unit_id = actor.placement.unit_id;
             let team = actor.placement.team;
             self.actors.insert(unit_id, actor);
+            self.unit_update_order.push(unit_id);
             self.draw_owner_first_intervals(FightActorRef::Unit(unit_id))?;
             if drop_damage && self.actors[&unit_id].rules.domain == UnitDomain::Ground {
                 self.drop_damage(unit_id, events)?;
