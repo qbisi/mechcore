@@ -15,7 +15,8 @@
 //! numbers and hands its unit a [`LifeSteal`], an `AutoRecoveryTech` that
 //! repairs in any state an [`AutoRecovery`], an `ArmorStrengthenTech` a
 //! reduction of every hit on it, and a `SearchTargetSpecificTech` its numbers
-//! against aerial and ground targets and a search by distance; any other is
+//! against aerial and ground targets and a search by distance, and an
+//! `AirAttackTech` its skills turned onto or off aircraft; any other is
 //! refused by name rather than applied for its numbers alone.
 //!
 //! A technology belongs to one unit type, which is how a side's flat list of
@@ -69,7 +70,7 @@ const ARMOR: &str = "armorStrengthenTechnologyDatas";
 const SEARCH_TARGET_SPECIFIC: &str = "searchTargetSpecificDatas";
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 7] = [
+const IMPLEMENTED: [&str; 8] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -77,7 +78,11 @@ const IMPLEMENTED: [&str; 7] = [
     SWEEP,
     ARMOR,
     SEARCH_TARGET_SPECIFIC,
+    AIR_ATTACK,
 ];
+
+/// The list whose `AirAttackTech` is an `IAirAttackDataSource`.
+const AIR_ATTACK: &str = "airAttackTechnologyDatas";
 
 /// The list whose `ExtraWeaponTech` adds a skill beside its unit's main one.
 const EXTRA_WEAPON: &str = "extraWeaponTechnologies";
@@ -139,12 +144,42 @@ struct Technology {
     /// `DistanceIntensify`: an `ISearchTargetSpecific`, whose
     /// `GetSearchTargetType` answers that whatever its row.
     distance_intensify: bool,
+    /// Whether it turns its unit's skill onto or off aircraft, and its
+    /// extra skills too: an `IAirAttackDataSource`.
+    air_attack: Option<AirAttack>,
+}
+
+/// What an `AirAttackEffectProvider` does with one technology: it turns the
+/// main skill onto aircraft if it attacks none and off them if it does,
+/// adding 1 or -1 to its `AirAttackValue`, and the same to each extra
+/// skill's where the row's `extraSkillEffect` says so.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct AirAttack {
+    pub(crate) extra_skills: bool,
+}
+
+/// What a side's technologies change about one unit type's main skill
+/// beyond its numbers.
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct MainSkill {
+    /// What the first that hands its sweep anything hands it.
+    pub(crate) sweep: Option<SweepIntensify>,
+    /// Whether one turns its search to `DistanceIntensify`
+    /// (`SearchTargetSpecificProvider.DoEnable`,
+    /// `FightSkill.ChangeSearchTargetType`).
+    pub(crate) distance_intensify: bool,
+    /// The first that turns it onto or off aircraft.
+    pub(crate) air_attack: Option<AirAttack>,
 }
 
 /// One row of the table. Every effect is a list because a technology's effect
 /// can grow with the unit's rank.
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "each is a column of the build's row"
+)]
 struct Row {
     id: i32,
     name: String,
@@ -203,6 +238,9 @@ struct Row {
     air_damage_change_rate: Vec<i64>,
     #[serde(default)]
     ground_damage_change_rate: Vec<i64>,
+    /// `TechnologyData.extraSkillEffect`, on an air-attack row.
+    #[serde(default)]
+    extra_skill_effect: bool,
     /// `ExtraWeaponTechnologyData.allWeaponReduceDamageRate`, on an extra
     /// weapon row that sets it.
     #[serde(default)]
@@ -294,6 +332,9 @@ impl TechnologyEffects {
                 sweep,
                 reduce_damage,
                 distance_intensify: row.kind == SEARCH_TARGET_SPECIFIC,
+                air_attack: (row.kind == AIR_ATTACK).then_some(AirAttack {
+                    extra_skills: row.extra_skill_effect,
+                }),
             };
             if technologies.insert(id, technology).is_some() {
                 return Err(Error::new(format!(
@@ -379,29 +420,23 @@ impl TechnologyEffects {
     }
 
     /// What this side's technologies change about one unit type's main skill
-    /// beyond its numbers: what the first that hands its sweep anything hands
-    /// it, and whether one turns its search to `DistanceIntensify`
-    /// (`SearchTargetSpecificProvider.DoEnable`,
-    /// `FightSkill.ChangeSearchTargetType`).
+    /// beyond its numbers.
     ///
     /// # Errors
     ///
     /// Returns the error [`Self::corrections`] does.
-    pub(crate) fn main_skill(
-        &self,
-        held: &[i32],
-        unit_type: &str,
-    ) -> Result<(Option<SweepIntensify>, bool)> {
+    pub(crate) fn main_skill(&self, held: &[i32], unit_type: &str) -> Result<MainSkill> {
         self.corrections(held, unit_type)?;
         let own = || {
             held.iter()
                 .filter_map(|id| self.technologies.get(id))
                 .filter(|technology| technology.unit == unit_type)
         };
-        Ok((
-            own().find_map(|technology| technology.sweep),
-            own().any(|technology| technology.distance_intensify),
-        ))
+        Ok(MainSkill {
+            sweep: own().find_map(|technology| technology.sweep),
+            distance_intensify: own().any(|technology| technology.distance_intensify),
+            air_attack: own().find_map(|technology| technology.air_attack),
+        })
     }
 
     /// What this side's armour technologies write onto one unit type at one
@@ -522,11 +557,6 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
             VALUE_ELSEWHERE,
         ),
         (
-            &row.projectile_speed_value,
-            "projectile_speed_value",
-            PROJECTILE,
-        ),
-        (
             &row.projectile_life_rate,
             "projectile_life_rate",
             PROJECTILE,
@@ -555,6 +585,7 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
         splash_range_value: at_rank_one(&row.splash_range_value),
         speed_value: at_rank_one(&row.speed_value),
         damage_reduce_rate_base: Some(row.all_weapon_reduce_damage_rate),
+        projectile_speed_value: at_rank_one(&row.projectile_speed_value),
     }));
     Ok(written)
 }
@@ -610,8 +641,15 @@ mod tests {
     /// Assault Mode for the Marksman, a plain technology that corrects a
     /// splash radius.
     const ASSAULT_MODE: i32 = 10102;
-    /// Grenade Launcher for the Fang, an `airAttackTechnologyDatas` row.
+    /// Grenade Launcher for the Fang, an `airAttackTechnologyDatas` row that
+    /// also writes a range, a splash and a projectile speed.
     const GRENADE_LAUNCHER: i32 = 3109;
+    /// Anti-Aircraft Ammunition for the Arclight, an
+    /// `airAttackTechnologyDatas` row that reaches no extra skill.
+    const ANTI_AIRCRAFT_AMMUNITION: i32 = 3115;
+    /// Missile Interception for the Mustang, an
+    /// `interceptMissileTechnologyDatas` row.
+    const MISSILE_INTERCEPTION: i32 = 3307;
     /// Machine Learning for the Vortex, a plain technology that corrects the
     /// experience its unit gains.
     const MACHINE_LEARNING: i32 = 10131;
@@ -674,7 +712,11 @@ mod tests {
     fn a_technology_that_does_more_than_numbers_is_refused() {
         let table = TechnologyEffects::load().unwrap();
         for (id, unit, kind) in [
-            (GRENADE_LAUNCHER, "fang", "airAttackTechnologyDatas"),
+            (
+                MISSILE_INTERCEPTION,
+                "mustang",
+                "interceptMissileTechnologyDatas",
+            ),
             (1201, "fortress", "supportUnitTechnologies"),
         ] {
             let refused = table.corrections(&[id], unit).unwrap_err().to_string();
@@ -748,13 +790,48 @@ mod tests {
             table
                 .main_skill(&[AERIAL_SPECIALIZATION], "marksman")
                 .unwrap()
-                .1
+                .distance_intensify
         );
         assert!(
             !table
                 .main_skill(&[AERIAL_SPECIALIZATION], "wasp")
                 .unwrap()
-                .1
+                .distance_intensify
+        );
+    }
+
+    /// An air-attack technology turns its unit's skill onto or off aircraft,
+    /// its extra skills where its row says so, and writes its numbers.
+    #[test]
+    fn an_air_attack_technology_switches_and_writes_its_numbers() {
+        let table = TechnologyEffects::load().unwrap();
+        let fang = table.main_skill(&[GRENADE_LAUNCHER], "fang").unwrap();
+        assert_eq!(
+            fang.air_attack,
+            Some(super::AirAttack { extra_skills: true })
+        );
+        let indices = table
+            .corrections(&[GRENADE_LAUNCHER], "fang")
+            .unwrap()
+            .into_iter()
+            .map(|(_, entry)| entry.index)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            indices,
+            [
+                Index::AttackRange,
+                Index::SplashRange,
+                Index::ProjectileSpeed
+            ]
+        );
+        let arclight = table
+            .main_skill(&[ANTI_AIRCRAFT_AMMUNITION], "arclight")
+            .unwrap();
+        assert_eq!(
+            arclight.air_attack,
+            Some(super::AirAttack {
+                extra_skills: false
+            })
         );
     }
 }

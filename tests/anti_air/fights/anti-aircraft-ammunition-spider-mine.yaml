@@ -1,0 +1,25 @@
+# Anti-Aircraft Ammunition with Spider Mine: the mine's skill turns onto
+# aircraft too.
+#
+# The row's extraSkillEffect adds the same 1 to the Spider Mine skill's
+# air_attack_value, slot 1 of the recording. That skill, whose row attacks
+# neither domain, now attacks aircraft only, and every search it makes
+# takes the Overlord; the mines it lays still go off under the Arclight.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 264
+hash: {profile: mcfr-content-0.7.0, result: 7dfe50383ea02a4c52fc2627d0acc7d3655be534e4e2d27baaa89fdacb6fb319}
+blue:
+  core_damage: 500
+  techs:
+    tarantula: [anti_aircraft_ammunition, spider_mine]
+  units:
+  - {name: tarantula, index: 0, position: {x: 5, y: -105}}
+red:
+  units:
+  - {name: overlord, index: 0, position: {x: -35, y: -75}, exp: 0/306/1750}
+  - {name: arclight, index: 1, position: {x: 30, y: -80}, exp: 0/118/750}

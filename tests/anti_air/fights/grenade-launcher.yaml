@@ -1,0 +1,22 @@
+# Grenade Launcher: a Fang's shell flies at its row's speed less 140.
+#
+# The one shell a Fang fires at the Arclights before they kill the squad
+# moves 7 metres a tick, 140 metres a second of its row's 280.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 192
+hash: {profile: mcfr-content-0.7.0, result: bfcff992db1c66efc82eaf97c07d4be3d8c1332d1afda34a972d11d1924992c2}
+blue:
+  core_damage: 200
+  techs:
+    fang: [grenade_launcher]
+  units:
+  - {name: fang, index: 0, position: {x: 5, y: -100}}
+red:
+  units:
+  - {name: arclight, index: 0, position: {x: -30, y: -80}, exp: 0/132/750}
+  - {name: arclight, index: 1, position: {x: 30, y: -80}, exp: 0/84/750}

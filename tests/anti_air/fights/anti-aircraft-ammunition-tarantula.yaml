@@ -1,0 +1,21 @@
+# Anti-Aircraft Ammunition: a Tarantula attacks aircraft.
+#
+# The Tarantula's air_attack_value of 1 lets it fire at the Phoenixes, 496
+# a shot.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 203
+hash: {profile: mcfr-content-0.7.0, result: 613578be2db13a02660ccfe524a2b0f6940750ab275c55f41cd7ac8fbf2859c4}
+blue:
+  core_damage: 100
+  techs:
+    tarantula: [anti_aircraft_ammunition]
+  units:
+  - {name: tarantula, index: 0, position: {x: 5, y: -105}, exp: 0/200/1500}
+red:
+  units:
+  - {name: phoenix, index: 0, position: {x: 20, y: -90}, exp: 0/400/1300}

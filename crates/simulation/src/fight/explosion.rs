@@ -116,7 +116,13 @@ impl Simulation {
         let splash_radius = attack
             .splash_radius()
             .saturating_add(actor.rules.collision_radius());
-        let reach = Reach::Targets(attack.targets);
+        let reach = Reach::Targets(
+            self.skill_attacker(SkillRef {
+                owner: FightActorRef::Unit(actor_id),
+                slot,
+            })
+            .map_or(attack.targets, |attacker| attacker.targets),
+        );
         // `DeadExplosiveDamageProvider.GetTeamController`: the side the unit
         // was deployed on, a beam having turned it or not.
         let team = actor.original_team;

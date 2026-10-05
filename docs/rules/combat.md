@@ -732,6 +732,26 @@ but standing beyond its range. Its extra skills, the search a unit makes for
 itself, and the fallback search over every live enemy keep the `Normal`
 selector they were made with.
 
+**A technology turns a skill onto or off aircraft.** A skill attacks
+aircraft while its row's air flag, its `AirAttackValue` and its
+`CanAttackAir` sum above zero, and the ground likewise. An air-attack
+technology adds -1 to the main skill's `AirAttackValue` if its row attacks
+aircraft and 1 if not: a Fang with Grenade Launcher passes an Overlord over,
+and an Arclight, a Tarantula or a Sandworm with its technology attacks one.
+Where the technology's row sets `extraSkillEffect`, each extra skill gains the
+same value: a Tarantula's Spider Mine skill, whose row attacks neither domain,
+then attacks aircraft only, and searches for them.
+
+**A projectile's speed is its row's with the skill's value added.** Grenade
+Launcher's -140 sends a Fang's shell 140 metres a second of its row's 280.
+
+## A melee skill's range
+
+**A melee skill reaches its row's range, whatever corrects it.** Its range
+property reads neither the skill's `AttackRangeValue` and rate nor a buff's:
+a Sandworm with Anti-Aerial records the technology's 20 metres and reaches 60,
+its row's.
+
 ## Ordinary first-attack delay
 
 The ordinary first-attack branches divide `prepareTime` and `attackPoint`
@@ -1040,6 +1060,17 @@ not the game's native attack-type enum.
   Mountain, `tests/anti_air/fights/aerial-specialization-pick.yaml`, and the
   Mountain within its range over an Overlord beyond it,
   `tests/anti_air/fights/aerial-specialization-out-of-range.yaml`.
+- An air-attack technology turns a skill off aircraft,
+  `tests/anti_air/fights/grenade-launcher-overlord.yaml`, or onto them,
+  `tests/anti_air/fights/anti-aircraft-ammunition-arclight.yaml`,
+  `tests/anti_air/fights/anti-aircraft-ammunition-tarantula.yaml` and
+  `tests/anti_air/fights/anti-aerial-sandworm.yaml`, and an extra skill with
+  it where its row says so,
+  `tests/anti_air/fights/anti-aircraft-ammunition-spider-mine.yaml`.
+- A projectile flies at its row's speed with the skill's value added:
+  `tests/anti_air/fights/grenade-launcher.yaml`.
+- A melee skill's range reads no correction:
+  `tests/anti_air/fights/anti-aerial-sandworm.yaml`.
 
 ### Read
 
@@ -1266,6 +1297,16 @@ not the game's native attack-type enum.
   off the distance. `SearchTargetController.Change` replaces
   `SearchTargetController.targetSelector` alone. `SearchTargetSpecificTech.AddData`
   writes the row's `SearchTargetSpecificData.airDamageChangeRate`.
+- Turning onto or off aircraft: `FightSkill.IsAirAttack` sums the row's
+  flag, `SkillDataChangeInt.AirAttackValue` and `SkillDataChangeInt.CanAttackAir`;
+  `AirAttackEffectProvider.SwitchMechAirAttackEnabled` adds -1 to a
+  `FightMech`'s main skill's `AirAttackValue` when `ISkillData.IsAirAttack` and 1
+  otherwise, and, when `ISkillDataChangeDataSource.IsExtraSkillEffect`, the
+  same to each of `ISkillOwner.GetExtralSkills` that does not hold it already.
+- A melee skill's range: `AttackRangeProperty.GetAttackRange` adds
+  `SkillDataChangeFloat.AttackRangeValue` only when not
+  `ISkillData.IsMeleeAttack`, and `AttackRangeProperty.Refresh` applies the
+  rates only then.
 
 ### Not established
 

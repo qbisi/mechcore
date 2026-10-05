@@ -35,7 +35,9 @@ schema: mechcore.technology_effects
 # further at, and its search counts off, an aerial and a ground target
 # (`air_target_score_offset`, `ground_target_score_offset`), and the
 # rate it adds to its damage on each (`air_damage_change_rate`,
-# `ground_damage_change_rate`).
+# `ground_damage_change_rate`). A technology that turns its unit's
+# skill on or off aircraft says whether it turns the extra skills too
+# (`extra_skill_effect`).
 
 technologies:
   - id: 206
@@ -509,6 +511,7 @@ technologies:
     name: 榴弹发射器
     unit: fang
     kind: airAttackTechnologyDatas
+    extra_skill_effect: true
     attack_range_value: [42949672960]  # +10
     splash_range_value: [30064771072]  # +7
     projectile_speed_value: [-601295421440]  # -140
@@ -516,15 +519,18 @@ technologies:
     name: 防空弹药
     unit: arclight
     kind: airAttackTechnologyDatas
+    extra_skill_effect: false
   - id: 3123
     name: 对空
     unit: sandworm
     kind: airAttackTechnologyDatas
+    extra_skill_effect: false
     attack_range_value: [85899345920]  # +20
   - id: 3124
     name: 防空弹药
     unit: tarantula
     kind: airAttackTechnologyDatas
+    extra_skill_effect: true
   - id: 3202
     name: 防空专精
     unit: marksman
@@ -1239,6 +1245,7 @@ technologies:
     name: 防空弹药
     unit: mountain
     kind: airAttackTechnologyDatas
+    extra_skill_effect: false
     damage_rate: [-1717986918]  # -0.4
   - id: 493101
     name: 储能护盾

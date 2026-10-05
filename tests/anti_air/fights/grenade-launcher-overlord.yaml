@@ -1,0 +1,24 @@
+# Grenade Launcher: a Fang squad attacks no aircraft.
+#
+# The technology adds -1 to the Fangs' air_attack_value, which their row's
+# air flag of 1 leaves at none: every search of the squad takes the
+# Arclight, never the Overlord nearer to it, and the Overlord kills them
+# unanswered.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 178
+hash: {profile: mcfr-content-0.7.0, result: efdb0510185a15e5c0bcf81913fd6b87a8c9271d2450b639a5f1589fa52401cd}
+blue:
+  core_damage: 500
+  techs:
+    fang: [grenade_launcher]
+  units:
+  - {name: fang, index: 0, position: {x: 5, y: -100}}
+red:
+  units:
+  - {name: overlord, index: 0, position: {x: -35, y: -75}, exp: 0/84/1750}
+  - {name: arclight, index: 1, position: {x: 30, y: -80}, exp: 0/132/750}

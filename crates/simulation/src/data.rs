@@ -23,7 +23,7 @@
 
 use crate::{
     Error, Result,
-    rules::{AttackPath, UnitConfig, UnitDomain},
+    rules::{AttackPath, AttackTargets, UnitConfig, UnitDomain},
 };
 use mechcore_mcfr::{Modifier, ModifierChannel, ModifierPart};
 
@@ -109,6 +109,15 @@ pub(crate) enum Index {
     /// `DamageCalculator.GetAttackDamage` reads while the skill attacks a unit
     /// that flies and the other otherwise. A plain value, Q32.32.
     DamageRateAgainst(UnitDomain),
+    /// `SkillDataChangeInt.AirAttackValue` and `GroundAttackValue`: what
+    /// `FightSkill.IsAirAttack` and `IsGroundAttack` add to the row's flag,
+    /// the skill attacking that domain while the sum is above zero. A whole
+    /// number.
+    AttackValueFor(UnitDomain),
+    /// `SkillDataChangeFloat.ProjectileSpeedValue`: what the skill's
+    /// projectiles' speed gains. Q32.32 metres a second in the build,
+    /// millimetres a second here as the speed is.
+    ProjectileSpeed,
 }
 
 impl Index {
@@ -145,6 +154,9 @@ impl Index {
             Self::ScoreOffsetFor(UnitDomain::Ground) => "search offset for a ground unit",
             Self::DamageRateAgainst(UnitDomain::Air) => "damage rate against an aerial unit",
             Self::DamageRateAgainst(UnitDomain::Ground) => "damage rate against a ground unit",
+            Self::AttackValueFor(UnitDomain::Air) => "air attack",
+            Self::AttackValueFor(UnitDomain::Ground) => "ground attack",
+            Self::ProjectileSpeed => "projectile speed",
         }
     }
 }
@@ -243,6 +255,13 @@ impl Overlay {
         self.entries.push(entry);
     }
 
+    /// The values it sums for one number.
+    pub(crate) fn value(&self, index: Index) -> i64 {
+        self.aggregate(index).map_or(0, |aggregate| {
+            i64::try_from(aggregate.value).expect("the layout verified the skill's values")
+        })
+    }
+
     /// Takes away everything one module wrote.
     pub(crate) fn withdraw(&mut self, source: &str) {
         self.entries.retain(|entry| entry.source != source);
@@ -333,11 +352,11 @@ const DAMAGE_RATES: [(Index, &str); 3] = [
     (Index::DamageReduceRateBase, "damage_reduce_rate_base"),
 ];
 
-/// The skill numbers kept once for an aerial target and once for a ground
-/// one, the `DataSet` channel and field each is recorded in, and how many of
-/// the overlay's units make one of the recording's: Q32.32 metres for a range,
-/// whole metres for a search offset, and the rate itself for damage.
-const AGAINST_DOMAIN: [(Index, ModifierChannel, &str, Recorded); 6] = [
+/// The skill numbers its `DataSet` keeps as values alone, the channel and
+/// field each is recorded in, and how the overlay's units are written there:
+/// Q32.32 metres for a range or a speed, whole metres for a search offset,
+/// and as they are for a damage rate or a switch.
+const SKILL_VALUES: [(Index, ModifierChannel, &str, Recorded); 9] = [
     (
         Index::RangeAgainst(UnitDomain::Air),
         ModifierChannel::SkillFloat,
@@ -374,6 +393,24 @@ const AGAINST_DOMAIN: [(Index, ModifierChannel, &str, Recorded); 6] = [
         ModifierChannel::SkillFloat,
         "damage_chagne_rate_ground",
         Recorded::Raw,
+    ),
+    (
+        Index::AttackValueFor(UnitDomain::Air),
+        ModifierChannel::SkillInt,
+        "air_attack_value",
+        Recorded::Raw,
+    ),
+    (
+        Index::AttackValueFor(UnitDomain::Ground),
+        ModifierChannel::SkillInt,
+        "ground_attack_value",
+        Recorded::Raw,
+    ),
+    (
+        Index::ProjectileSpeed,
+        ModifierChannel::SkillFloat,
+        "projectile_speed_value",
+        Recorded::Q32Metres,
     ),
 ];
 
@@ -415,9 +452,9 @@ fn refuse_unrecorded_skill_fields(skill: &Overlay) -> Result<()> {
             )));
         }
     }
-    for (index, ..) in AGAINST_DOMAIN {
-        if let Some(against) = skill.aggregate(index)
-            && against.rate()? != (0, 0)
+    for (index, ..) in SKILL_VALUES {
+        if let Some(value) = skill.aggregate(index)
+            && value.rate()? != (0, 0)
         {
             return Err(Error::new(format!(
                 "the skill DataSet has no field for a rate of {}",
@@ -491,15 +528,16 @@ fn skill_modifiers(skill: &Overlay, slot: usize, modifiers: &mut Vec<Modifier>) 
                 )?,
             );
         }
-        for (index, channel, field, scale) in AGAINST_DOMAIN {
-            if let Some(against) = skill.aggregate(index) {
+        for (index, channel, field, scale) in SKILL_VALUES {
+            if let Some(value) = skill.aggregate(index) {
                 let metres = i128::from(crate::rules::SPACE_UNITS_PER_METER_SCALE);
                 let value = match scale {
-                    Recorded::Q32Metres => q32(against.value, metres)?,
-                    Recorded::WholeMetres => i64::try_from(against.value / metres)
+                    Recorded::Q32Metres => q32(value.value, metres)?,
+                    Recorded::WholeMetres => i64::try_from(value.value / metres)
                         .map_err(|_| Error::new("a skill's search offset is outside i64"))?,
-                    Recorded::Raw => i64::try_from(against.value)
-                        .map_err(|_| Error::new("a skill's damage rate is outside i64"))?,
+                    Recorded::Raw => i64::try_from(value.value).map_err(|_| {
+                        Error::new(format!("a skill's {} is outside i64", index.name()))
+                    })?,
                 };
                 push(modifiers, channel, slot, field, ModifierPart::Value, value);
             }
@@ -524,6 +562,25 @@ fn skill_modifiers(skill: &Overlay, slot: usize, modifiers: &mut Vec<Modifier>) 
         }
     }
     Ok(())
+}
+
+/// Which domains a skill attacks, `FightSkill.IsAirAttack` and
+/// `IsGroundAttack`: each the row's flag with the skill's `AirAttackValue` or
+/// `GroundAttackValue` added, attacked while the sum is above zero. Arclight
+/// with Anti-Aircraft Ammunition holds 1 and attacks aircraft; a Fang with
+/// Grenade Launcher holds -1 and does not.
+pub(crate) fn switched_targets(row: AttackTargets, skill: &Overlay) -> AttackTargets {
+    let on = |flag: bool, domain| {
+        i128::from(flag)
+            + skill
+                .aggregate(Index::AttackValueFor(domain))
+                .map_or(0, |aggregate| aggregate.value)
+            > 0
+    };
+    AttackTargets {
+        ground: on(row.ground, UnitDomain::Ground),
+        air: on(row.air, UnitDomain::Air),
+    }
 }
 
 /// The three overlays a unit carries.
@@ -876,14 +933,22 @@ impl Stats {
         if self.attack_interval_q32 < 0 {
             return Err(Error::new("attack interval resolved below zero"));
         }
-        self.attack_range = resolve(Index::AttackRange, rules.attack.range())?;
-        self.attack_range_q32 = self.overlays.resolve_scaled(
-            Index::AttackRange,
-            space_to_q32(rules.attack.range()),
-            |value| value * ONE / metres,
-            0,
-            ONE,
-        )?;
+        // `AttackRangeProperty` reads no correction of a melee skill's range,
+        // neither its `DataSet`'s values and rates nor a buff's: a Sandworm
+        // with Anti-Aerial records the technology's 20 metres and reaches 60.
+        if rules.attack.melee {
+            self.attack_range = rules.attack.range();
+            self.attack_range_q32 = space_to_q32(rules.attack.range());
+        } else {
+            self.attack_range = resolve(Index::AttackRange, rules.attack.range())?;
+            self.attack_range_q32 = self.overlays.resolve_scaled(
+                Index::AttackRange,
+                space_to_q32(rules.attack.range()),
+                |value| value * ONE / metres,
+                0,
+                ONE,
+            )?;
+        }
         self.splash_radius = resolve(Index::SplashRange, rules.attack.splash_radius())?;
         Ok(())
     }
@@ -1173,7 +1238,7 @@ impl Stats {
             Index::DamagePerKill,
         ]
         .into_iter()
-        .chain(AGAINST_DOMAIN.map(|(index, ..)| index))
+        .chain(SKILL_VALUES.map(|(index, ..)| index))
         {
             if unit.aggregate(index).is_some() {
                 return Err(Error::new(format!(
@@ -1236,7 +1301,7 @@ impl Stats {
             Index::ReduceDamage,
         ]
         .into_iter()
-        .chain(AGAINST_DOMAIN.map(|(index, ..)| index))
+        .chain(SKILL_VALUES.map(|(index, ..)| index))
         {
             if buff.aggregate(index).is_some() {
                 return Err(Error::new(format!(
@@ -1312,11 +1377,20 @@ impl Stats {
         self.skill_value(Index::ScoreOffsetFor(domain))
     }
 
+    /// Which domains the main skill attacks: its row's, switched by what its
+    /// `DataSet` holds ([`switched_targets`]).
+    pub(crate) fn targets(&self, row: AttackTargets) -> AttackTargets {
+        switched_targets(row, &self.overlays.skill)
+    }
+
+    /// What the main skill's projectiles' speed gains, millimetres a second.
+    pub(crate) fn projectile_speed_add(&self) -> i64 {
+        self.skill_value(Index::ProjectileSpeed)
+    }
+
     /// The values the skill's `DataSet` sums for one number.
     fn skill_value(&self, index: Index) -> i64 {
-        self.overlays.skill.aggregate(index).map_or(0, |aggregate| {
-            i64::try_from(aggregate.value).expect("the layout verified the skill's values")
-        })
+        self.overlays.skill.value(index)
     }
 
     /// The splash radius, `FightSkill.GetSplashRange`: the description's with
