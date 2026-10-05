@@ -411,11 +411,13 @@ impl Simulation {
     /// target for `FightConstruction`, the class `FightTeamController.RemoveActor`
     /// hands to `RemoveConstruction`, and rejects a dead one before asking the
     /// checker. A dead unit goes on to the checker and may be switched from,
-    /// and so does a tower, which is a `FightCrystal`: the Marksman of
-    /// `crawlers-vs-marksman.yaml` stays attacking onto the next Crawler, the
-    /// one of `anti-armor-head-on.yaml` onto a Crawler the tick after it fells
-    /// red's tower, and the one of `wall-line-of-fire.yaml` finishes when its
-    /// block falls.
+    /// and so do a tower, a `FightTower`, and an interceptor, a plain
+    /// `FightCrystal`: the Marksman of `crawlers-vs-marksman.yaml` stays
+    /// attacking onto the next Crawler, the one of `anti-armor-head-on.yaml`
+    /// onto a Crawler the tick after it fells red's tower, the Fortress of
+    /// `intercepted-control.yaml` cools naming red's tower after it fells red's
+    /// interceptor, and the Marksman of `wall-line-of-fire.yaml` finishes when
+    /// its block falls.
     pub(in crate::fight) fn attack_state_check_attackable(
         &mut self,
         skill_ref: SkillRef,
@@ -426,8 +428,8 @@ impl Simulation {
         if self.skill_is_preemptive(skill_ref) && self.skill(skill_ref).performed() {
             return Ok(false);
         }
-        if let Some(target @ FightActorRef::Building(_)) = self.skill(skill_ref).attack_target()
-            && !self.is_tower(target)
+        if let Some(target) = self.skill(skill_ref).attack_target()
+            && self.is_construction(target)
             && !self.fight_actor_is_alive(target)
         {
             return Ok(false);

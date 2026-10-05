@@ -1,0 +1,29 @@
+# A unit whose shot fells an interceptor searches again in its attack, as it
+# does when it fells a tower; a fallen construction block ends the attack
+# without a search.
+#
+# Blue's Fortress fires on red's interceptor, its nearest building, and its
+# one shell takes all 4000 of its life at tick 384. Its attack state checks
+# the dead target: the interceptor is a plain `FightCrystal`, not a
+# `FightConstruction`, so the check searches, finds red's tower, and the
+# attack ends on the changed target. Its weapons name the tower from tick 385
+# while it cools, and nothing at tick 395. It fells that tower at tick 705
+# the same way and names red's other one; red's Wraiths kill it at tick 882.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 883
+hash: {profile: mcfr-content-0.7.0, result: 1eef23cfca7f4e0531f5ccda481e7c9c6e5bf2e7ed3c7871957e2840eb29efeb}
+blue:
+  core_damage: 500
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/200/1600}
+red:
+  units:
+  - {name: wraith, index: 0, position: {x: 5, y: -175}, exp: 0/200/2250}
+  - {name: wraith, index: 1, position: {x: -55, y: -175}, exp: 0/600/2250}
+  contraptions:
+  - {name: interceptor, index: 2, position: {x: 5, y: -125}, retained: false}
