@@ -719,11 +719,19 @@ already attacks reads `SkillAttackState` on the tick they come within the
 angle and releases on the next; so does a Sledgehammer or Typhoon that locks a
 new target after a kill. A skill leaving its cooling does not wait.
 
-**An idle skill keeps its lock only while it can fire at it.** The idle
-skill's periodic search answers a new lock when the one it holds is outside
-its attack area, even while its motion attacks: a Melting Point whose weapons
-are still turning onto one Crawler takes the Crawler they already face and
-prepares against it.
+**A main skill starts its attack in its own update.** `SkillIdleState.TryPerform`
+searches first, when its timer is up or its lock is gone, and then starts the
+attack if what the skill fires at is in its attack area (`CanStartAttack`),
+whatever the motion does after it. A Melting Point that locks a Crawler
+prepares on that update; when one of its own beams fells the Crawler before
+its motion updates, the prepare's check fails on the next update and leaves
+it idle. So an idle skill holds no lock in its attack area, and its periodic
+search takes what the search answers: a Melting Point whose weapons are still
+turning onto one Crawler takes the Crawler they already face and prepares
+against it, and one whose turret has just come onto its lock as its timer runs
+out takes the nearer unit the search answers. A grouped or standalone main
+skill, and a unit that searches for itself, are still started from the
+simulator's motion.
 
 **A turret does not turn on the tick its skill retargets after a kill.** When
 the target a skill attacked dies during a tick and the skill's own search
@@ -835,6 +843,13 @@ not the game's native attack-type enum.
 ## Evidence
 
 ### Recorded
+
+- A main skill starts its attack in its own update: a Melting Point prepares
+  on the Crawler it locks, and goes idle when its own beam fells it first:
+  `tests/extra_weapon/fights/energy-diffraction-crawler.yaml`, tick 283, and
+  `tests/corpus/fights/67158166-r5.yaml`, tick 234. Its idle search takes
+  what the search answers as its turret comes onto its lock:
+  `tests/corpus/fights/67158166-r5.yaml`, tick 316.
 
 - A Mustang's shot at a Crawler running away is spent on nothing out of its
   owner's reach: `tests/corpus/fights/67156074-r5.yaml`, tick 539; and

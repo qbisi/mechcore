@@ -510,14 +510,6 @@ impl Simulation {
         }
     }
 
-    /// Whether the owner's motion holds its fire while it turns to face.
-    pub(in crate::fight) fn attack_hold_fire(&self, owner: FightActorRef) -> bool {
-        match owner {
-            FightActorRef::Unit(id) => self.actors[&id].motion.attack_hold_fire,
-            FightActorRef::Building(_) => false,
-        }
-    }
-
     /// Whether a target is alive, targetable and within the owner's reach:
     /// `SkillAttackRangeChecker`.
     pub(in crate::fight) fn target_in_attack_range(
