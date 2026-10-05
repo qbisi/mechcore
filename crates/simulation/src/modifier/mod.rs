@@ -25,4 +25,4 @@ pub(crate) use sources::{
     AutoRecovery, CarriedShield, EnergyShield, LifeSteal, ProductionLine, StartBuff,
     SweepIntensify, current as current_source,
 };
-pub(crate) use technologies::TechnologyEffects;
+pub(crate) use technologies::{ARMOR_SOURCE, TechnologyEffects};

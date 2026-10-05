@@ -692,6 +692,13 @@ A summon's drop is the one hit the reduction does not take from, unless it
 would leave less than 1. The reduction comes off before a shield takes the
 hit, and a fire's, a buff's and an explosion's hits lose it too.
 
+**A unit that travels in holds its armour once it arrives.** The reduction is
+`ArmorStrengthenEffectProvider`'s, which `FightEffectSystem.ActiveEffect`
+enables for a travelling unit only as it leaves its travel
+(`SuperDeploymentController.ExitTravel`): a Rhino with Armor Enhancement that
+travels in records no `reduce_damage_value` until the tick it arrives, while
+its technologies' corrections are on it from the start.
+
 The rows are [`config/technology_effects.yaml`](../../config/technology_effects.yaml)'s
 `reduce_damage_value`; an armour technology also writes its row's
 corrections, as any technology does.
