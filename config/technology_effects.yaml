@@ -30,7 +30,12 @@ schema: mechcore.technology_effects
 # carries its `reduce_damage_value`, the damage each hit on its unit
 # loses, one entry per unit level. An extra weapon technology that
 # lowers the damage of its unit's skills carries its
-# `all_weapon_reduce_damage_rate`, a rate.
+# `all_weapon_reduce_damage_rate`, a rate. A technology that changes
+# how its unit's skill searches carries the whole metres it reaches
+# further at, and its search counts off, an aerial and a ground target
+# (`air_target_score_offset`, `ground_target_score_offset`), and the
+# rate it adds to its damage on each (`air_damage_change_rate`,
+# `ground_damage_change_rate`).
 
 technologies:
   - id: 206
@@ -524,22 +529,42 @@ technologies:
     name: 防空专精
     unit: marksman
     kind: searchTargetSpecificDatas
+    air_target_score_offset: 30
+    ground_target_score_offset: 0
+    air_damage_change_rate: [3865470566]  # +0.9
+    ground_damage_change_rate: [0]  # +0
   - id: 3206
     name: 防空专精
     unit: wasp
     kind: searchTargetSpecificDatas
+    air_target_score_offset: 30
+    ground_target_score_offset: 0
+    air_damage_change_rate: [3865470566]  # +0.9
+    ground_damage_change_rate: [0]  # +0
   - id: 3207
     name: 防空专精
     unit: mustang
     kind: searchTargetSpecificDatas
+    air_target_score_offset: 30
+    ground_target_score_offset: 0
+    air_damage_change_rate: [3865470566]  # +0.9
+    ground_damage_change_rate: [0]  # +0
   - id: 3225
     name: 对地锁定
     unit: phantom_ray
     kind: searchTargetSpecificDatas
+    air_target_score_offset: 0
+    ground_target_score_offset: 60
+    air_damage_change_rate: [0]  # +0
+    ground_damage_change_rate: [0]  # +0
   - id: 3226
     name: 防空专精
     unit: farseer
     kind: searchTargetSpecificDatas
+    air_target_score_offset: 30
+    ground_target_score_offset: 0
+    air_damage_change_rate: [3865470566]  # +0.9
+    ground_damage_change_rate: [0]  # +0
   - id: 3307
     name: 导弹拦截
     unit: mustang

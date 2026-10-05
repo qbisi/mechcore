@@ -374,7 +374,7 @@ pub(crate) struct FormationFootprint {
     pub(crate) depth: f64,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
 pub(crate) enum UnitDomain {
     Ground,
@@ -1571,11 +1571,14 @@ mod tests {
         let rules = config.units.get("steel_ball").unwrap();
         let stats = crate::data::Stats::of(rules).unwrap();
         let damage = (0..7)
-            .map(|attack_count| stats.laser_damage(rules, attack_count))
+            .map(|attack_count| stats.laser_damage(rules, attack_count, UnitDomain::Ground))
             .collect::<Vec<_>>();
 
         assert_eq!(damage, [2, 3, 8, 17, 31, 51, 77]);
-        assert_eq!(stats.laser_damage(rules, usize::MAX), 2_604);
+        assert_eq!(
+            stats.laser_damage(rules, usize::MAX, UnitDomain::Ground),
+            2_604
+        );
     }
 
     /// The kernel fires projectiles, blows and lasers, groups several

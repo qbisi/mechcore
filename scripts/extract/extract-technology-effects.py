@@ -64,6 +64,8 @@ SUBCLASS_LISTS = (
     ("recovery_duration", "recoveryDuration", "autoRecoveryTechnologies"),
     ("recovery_life_rate", "recoveryLifeRate", "autoRecoveryTechnologies"),
     ("reduce_damage_value", "reduceDamageValue", "armorStrengthenTechnologyDatas"),
+    ("air_damage_change_rate", "airDamageChangeRate", "searchTargetSpecificDatas"),
+    ("ground_damage_change_rate", "groundDamageChangeRate", "searchTargetSpecificDatas"),
 )
 # The same for a field that is one value rather than a rank list.
 SUBCLASS_SCALARS = (
@@ -75,6 +77,8 @@ SUBCLASS_SCALARS = (
     ("sweep_perpendicular", "isAttackDirectionPerpendicular", "sweepSkillIntensifyTechDatas"),
     ("sweep_reverse", "isReverse", "sweepSkillIntensifyTechDatas"),
     ("sweep_fixed_direction", "isDiableDirectionChange", "sweepSkillIntensifyTechDatas"),
+    ("air_target_score_offset", "airTargetScoreOffset", "searchTargetSpecificDatas"),
+    ("ground_target_score_offset", "groundTargetScoreOffset", "searchTargetSpecificDatas"),
 )
 # A field of one list's rows that is one rate, written only where it is set:
 # an extra weapon's `allWeaponReduceDamageRate`, which
@@ -87,7 +91,7 @@ SET_SCALARS = (
 # this table carries: the plain one, and each subclass's the simulator reads.
 IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnologies",
                "energyShieldTechnologies", "sweepSkillIntensifyTechDatas",
-               "armorStrengthenTechnologyDatas")
+               "armorStrengthenTechnologyDatas", "searchTargetSpecificDatas")
 # The list of `TechnologyGroupData` a plain technology comes from. A row of any
 # other list is a subclass (`BuffTechnologyData`, `SplashTechnologyData` and
 # the rest) that does something beyond its unit's numbers.
@@ -101,7 +105,7 @@ DESCRIPTIVE = {
     "mainSkillEffect", "extraSkillEffect", "extraSkillNumericalEffect",
 }
 RATES = {"life_rate", "damage_rate", "attack_range_rate", "attack_interval_rate", "projectile_life_rate",
-         "lifesteal_multiplier", "recovery_life_rate"}
+         "lifesteal_multiplier", "recovery_life_rate", "air_damage_change_rate", "ground_damage_change_rate"}
 INTEGERS = {"speed_value", "min_attack_range_value", "reduce_damage_value"}
 
 
@@ -291,7 +295,12 @@ def main() -> int:
         "# carries its `reduce_damage_value`, the damage each hit on its unit",
         "# loses, one entry per unit level. An extra weapon technology that",
         "# lowers the damage of its unit's skills carries its",
-        "# `all_weapon_reduce_damage_rate`, a rate.",
+        "# `all_weapon_reduce_damage_rate`, a rate. A technology that changes",
+        "# how its unit's skill searches carries the whole metres it reaches",
+        "# further at, and its search counts off, an aerial and a ground target",
+        "# (`air_target_score_offset`, `ground_target_score_offset`), and the",
+        "# rate it adds to its damage on each (`air_damage_change_rate`,",
+        "# `ground_damage_change_rate`).",
         "",
         "technologies:",
     ]

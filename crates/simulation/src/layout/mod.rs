@@ -72,6 +72,9 @@ pub(crate) struct Placement {
     pub(crate) energy_shield: Option<EnergyShield>,
     /// What its technologies hand its sweep (`SweepSkillIntensifyTech`).
     pub(crate) sweep: Option<SweepIntensify>,
+    /// Whether its technologies turn its main skill's search to
+    /// `DistanceIntensify` (`SearchTargetSpecificTech`).
+    pub(crate) distance_intensify: bool,
     /// The battlefield shield its equipment makes it carry.
     pub(crate) carried_shield: Option<CarriedShield>,
     /// The production line its equipment makes it run.
@@ -665,7 +668,6 @@ fn compile_formation(
         ));
         return None;
     }
-    let rotated = formation.rotated;
     let local_x = i64::from(formation.position.x);
     let local_z = i64::from(formation.position.y);
     let (world_x, world_z) = if team == 0 {
@@ -691,7 +693,7 @@ fn compile_formation(
         world_x,
         world_z,
         rotation,
-        rotated,
+        rotated: formation.rotated,
         level,
         exp: i64::from(formation.exp.unwrap_or(0)),
         experience_rate: worn.experience_rate,
@@ -700,6 +702,7 @@ fn compile_formation(
         auto_recovery: worn.auto_recovery,
         energy_shield: worn.energy_shield,
         sweep: worn.sweep,
+        distance_intensify: worn.distance_intensify,
         carried_shield: worn.carried_shield,
         production,
         start_buffs: worn.start_buffs,
@@ -773,10 +776,15 @@ fn production_of(
         loadouts,
         refused,
     )?;
-    if worn.lifesteal.is_some() || worn.auto_recovery.is_some() || worn.energy_shield.is_some() {
+    if worn.lifesteal.is_some()
+        || worn.auto_recovery.is_some()
+        || worn.energy_shield.is_some()
+        || worn.distance_intensify
+    {
         refused.push(format!(
-            "side {side_name} makes a {} that its technologies give lifesteal, repair or a \
-             shield, and what a made unit's effect providers carry is not measured",
+            "side {side_name} makes a {} that its technologies give lifesteal, repair, a \
+             shield or a search by distance, and what a made unit's effect providers carry \
+             is not measured",
             made.type_name
         ));
         return None;
@@ -817,6 +825,7 @@ struct Worn {
     auto_recovery: Option<AutoRecovery>,
     energy_shield: Option<EnergyShield>,
     sweep: Option<SweepIntensify>,
+    distance_intensify: bool,
     carried_shield: Option<CarriedShield>,
     start_buffs: Vec<StartBuff>,
     ignored_buffs: Vec<u32>,
@@ -959,10 +968,10 @@ fn worn(
             .energy_shield(&side.techs.units, type_name)
             .map_err(on_side),
     )?;
-    let sweep = refused.hold(
+    let (sweep, distance_intensify) = refused.hold(
         loadouts
             .technologies
-            .sweep(&side.techs.units, type_name)
+            .main_skill(&side.techs.units, type_name)
             .map_err(on_side),
     )?;
     let mut carried_shields = Vec::new();
@@ -1011,6 +1020,7 @@ fn worn(
         auto_recovery: refused.hold(current_source(&auto_recovery).map_err(in_force))?,
         energy_shield: refused.hold(current_source(&energy_shield).map_err(in_force))?,
         sweep,
+        distance_intensify,
         carried_shield: match carried_shields.as_slice() {
             [] => None,
             [one] => Some(*one),

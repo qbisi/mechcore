@@ -669,7 +669,7 @@ impl Simulation {
             sees_target
                 && rvo::fpoint_less_than(
                     edge_distance_q32,
-                    space_to_q32(actor.stats.attack_range()).saturating_sub(1_i64 << 32),
+                    space_to_q32(self.main_attack_range(actor_id)).saturating_sub(1_i64 << 32),
                 )
         } else if actor.skills.main.shield_target().is_some() {
             // A skill firing at a shield stops its unit once the shield's
@@ -678,7 +678,7 @@ impl Simulation {
         } else {
             sees_target
                 && edge_distance_q32 >= space_to_q32(actor.rules.attack.min_range())
-                && edge_distance_q32 <= space_to_q32(actor.stats.attack_range())
+                && edge_distance_q32 <= space_to_q32(self.main_attack_range(actor_id))
         }
     }
 
@@ -1164,7 +1164,7 @@ impl Simulation {
         .saturating_sub(space_to_q32(view.radius))
         .max(0);
         let in_reach = edge_distance_q32 >= space_to_q32(actor.rules.attack.min_range())
-            && edge_distance_q32 <= space_to_q32(actor.stats.attack_range());
+            && edge_distance_q32 <= space_to_q32(self.main_attack_range(actor_id));
         if !in_reach {
             return Flow::Next;
         }
@@ -1914,6 +1914,7 @@ impl Simulation {
             body_radius,
         } = approach;
         let solve_due = self.rvo_solve_due();
+        let attack_range = self.main_attack_range(actor_id);
         let actor = self
             .actors
             .get_mut(&actor_id)
@@ -1960,7 +1961,7 @@ impl Simulation {
             body_x_q32,
             body_z_q32,
             body_radius,
-            actor.stats.attack_range(),
+            attack_range,
         );
         actor.turn_to_move_direction();
         actor.move_to(move_target_x_q32, move_target_z_q32, solve_due);

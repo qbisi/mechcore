@@ -69,7 +69,9 @@ with the life steal [combat.md](combat.md#lifesteal) states, and a repair
 technology's with [its repair](combat.md#repair), a sweep technology's with
 the strip it changes ([sweep.md](sweep.md#technology)), an armour
 technology's with the reduction of each hit [combat.md](combat.md#armour)
-states, which its row's `reduce_damage_value` gives by unit level, Secondary Armament,
+states, which its row's `reduce_damage_value` gives by unit level, a
+search-target technology's with its numbers against aircraft and its search
+by distance ([combat.md](combat.md#aerial-and-ground-targets)), Secondary Armament,
 Anti-Air Missile, Incendiary Bomb, Scorching Charge, Homing Missile, Sticky
 Oil Bomb, Whirlwind and Energy Diffraction with
 the skill each adds, and Energy Diffraction's `all_weapon_reduce_damage_rate`
@@ -89,10 +91,6 @@ A technology that is not plain does something that is not a correction on its
 unit's own numbers. It may instead:
 
 - **summon or fire something**, as Fang Production and Anti-Air Barrage do;
-- **change a skill rather than the unit**: Aerial Specialization's "ATK against
-  aerial units" is a damage rate against one domain, which is
-  `ISkillDataChangeDataSource`'s and lives in the skill the technology points
-  at with `targetSkillID`;
 - **apply something to the enemy**, as Electromagnetic Explosion disables the
   target's technologies on hit.
 

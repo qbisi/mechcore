@@ -52,6 +52,7 @@ pub(super) fn placement(
         auto_recovery: None,
         energy_shield: None,
         sweep: None,
+        distance_intensify: false,
         carried_shield: None,
         production: None,
         start_buffs: Vec::new(),
@@ -73,8 +74,9 @@ pub(super) fn test_placement(
     placement(team, "arclight", formation_index, world_x, world_z)
 }
 
+/// A unit's recorded velocity, which reads nothing its range changes.
 pub(super) fn snapshot_velocity_q32(actor: &Actor) -> (i64, i64) {
-    let velocity = actor.snapshot().velocity;
+    let velocity = actor.snapshot(0).velocity;
     (velocity.x, velocity.z)
 }
 

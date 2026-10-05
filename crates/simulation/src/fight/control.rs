@@ -142,7 +142,7 @@ impl Simulation {
     /// damage times the warm-up multiplier, at least one.
     fn beam_damage(&self, actor_id: u64, attack_count: i32) -> i64 {
         let actor = &self.actors[&actor_id];
-        let damage = actor.stats.attack_damage();
+        let damage = self.main_attack_damage(actor_id);
         let AttackPath::ControlBeam {
             warmup_attack_count,
             warmup_damage_multiplier,

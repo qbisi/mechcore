@@ -1,3 +1,4 @@
+use super::attacker::ScoreOffsets;
 use super::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -446,12 +447,12 @@ pub(in crate::fight) fn initialize_target_quadtrees(
     trees
 }
 
-/// `ScoreRatingTargetSelector.invisibleActorDistanceScoreOffset`: a
-/// candidate that is not visible is scored as if it stood 40 metres
-/// further off, by `DistanceScoreCalculator.Calculate`. It is offered all
-/// the same: a Rhino searching while the Sandworm it locked is burrowed
+/// `ScoreRatingTargetSelector.invisibleActorDistanceScoreOffset`, negated,
+/// millimetres: a candidate that is not visible is scored as if it stood 40
+/// metres further off, by `DistanceScoreCalculator.Calculate`. It is offered
+/// all the same: a Rhino searching while the Sandworm it locked is burrowed
 /// keeps it.
-const INVISIBLE_DISTANCE_SCORE_OFFSET_Q32: i64 = 40 << 32;
+pub(in crate::fight) const INVISIBLE_DISTANCE_SCORE_OFFSET: i64 = 40_000;
 
 #[allow(clippy::too_many_arguments)]
 pub(in crate::fight) fn full_rotation_target_score_q32(
@@ -462,7 +463,7 @@ pub(in crate::fight) fn full_rotation_target_score_q32(
     target_x_q32: i64,
     target_z_q32: i64,
     target_radius: i64,
-    target_visible: bool,
+    distance_score_offset: i64,
     min_range: i64,
     max_range: i64,
     rotation_window_q32: Option<(i64, i64)>,
@@ -495,11 +496,7 @@ pub(in crate::fight) fn full_rotation_target_score_q32(
         .is_some_and(|(min_q32, max_q32)| !is_in_range_rotation(bearing_q32, min_q32, max_q32));
     full_rotation_score_from_distance_and_angle_q32(
         distance_q32,
-        if target_visible {
-            0
-        } else {
-            INVISIBLE_DISTANCE_SCORE_OFFSET_Q32
-        },
+        space_to_q32(distance_score_offset),
         angle_q32,
         space_to_q32(min_range),
         space_to_q32(max_range),
@@ -559,12 +556,13 @@ pub(in crate::fight) fn full_rotation_score_from_distance_and_angle_q32(
     if distance_q32 < min_range_q32 {
         return None;
     }
+    // `DistanceScoreCalculator.Calculate`: the offset counted off.
     let angle_score_q32 = q32_mul(
         angle_q32.min(TARGET_SCORE_ANGLE_LIMIT_Q32),
         TARGET_SCORE_ANGLE_FACTOR_Q32,
     );
     let distance_score_q32 = distance_q32
-        .saturating_add(distance_score_offset_q32)
+        .saturating_sub(distance_score_offset_q32)
         .max(TARGET_SCORE_MIN_DISTANCE_Q32);
     let mut score_q32 = q32_mul(
         distance_score_q32,
@@ -846,7 +844,7 @@ impl Simulation {
                     candidate_x_q32,
                     candidate_z_q32,
                     target.radius,
-                    visible,
+                    source.score_offsets.for_candidate(target.domain, visible),
                     source.attack.min_range(),
                     source.attack_range,
                     source.rotation_window_q32,
@@ -981,7 +979,9 @@ impl Simulation {
                         target.x_q32,
                         target.z_q32,
                         target.radius,
-                        target.visible,
+                        // `aliveTargetSelector` is the one the controller was
+                        // made with, which no change of search type touches.
+                        ScoreOffsets::default().for_candidate(target.domain, target.visible),
                         source.attack.min_range(),
                         attack_range,
                         rotation_window_q32,
@@ -1061,6 +1061,12 @@ impl Simulation {
         if held.is_empty() && !skill.standalone() {
             return self.select_lock_replacement(skill_ref, target_search_order);
         }
+        // The group's skill searches with its own selector, which a
+        // technology may have turned to `DistanceIntensify`.
+        let score_offsets = self
+            .skill_attacker(skill_ref)
+            .map(|attacker| attacker.score_offsets)
+            .unwrap_or_default();
         let select = |shared: bool| {
             let mut scoring = Scoring::default();
             for (&team, candidates) in target_search_order {
@@ -1101,7 +1107,7 @@ impl Simulation {
                         target_x_q32,
                         target_z_q32,
                         target.radius,
-                        visible,
+                        score_offsets.for_candidate(target.domain, visible),
                         attack.min_range(),
                         self.slot_attack_range(skill_ref, Some(slot)),
                         window,

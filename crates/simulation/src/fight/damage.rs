@@ -784,7 +784,7 @@ impl Simulation {
         skill_slot: usize,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let amount = self.actors[&actor_id].stats.attack_damage();
+        let amount = self.main_attack_damage(actor_id);
         self.blow(actor_id, target, skill_slot, amount, events)
     }
 
@@ -930,8 +930,9 @@ impl Simulation {
             .unit_id()
             .ok_or_else(|| Error::new("a construction's laser is not supported"))?;
         let actor = &self.actors[&actor_id];
+        let against = self.attack_domain(self.skill(skill_ref).attack_target());
         let SkillSlot::Extra(index) = skill_ref.slot else {
-            return Ok(actor.stats.laser_damage(&actor.rules, blow));
+            return Ok(actor.stats.laser_damage(&actor.rules, blow, against));
         };
         let rules = &actor.skills.extras[index].rules;
         let AttackPath::Laser { damage_multipliers } = &rules.attack.path else {
@@ -946,7 +947,7 @@ impl Simulation {
             actor.rules.attack.base_damage,
             damage_multipliers,
             (rules.damage_rate, blow),
-            0,
+            (0, against),
             false,
         ))
     }

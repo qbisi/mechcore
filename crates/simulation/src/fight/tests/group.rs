@@ -268,8 +268,8 @@ fn grouped_slots_take_the_wall_and_are_dropped_with_the_lock() {
             .actors
             .values()
             .find(|actor| actor.placement.team == 1)
-            .unwrap()
-            .snapshot();
+            .map(|actor| simulation.unit_snapshot(actor.placement.unit_id))
+            .unwrap();
         (
             wraith.mech_lock_target,
             wraith

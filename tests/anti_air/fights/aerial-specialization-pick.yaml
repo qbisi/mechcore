@@ -1,0 +1,23 @@
+# Aerial Specialization: a search counts 30 metres off an aircraft's distance.
+#
+# At the Marksman's first search the Overlord stands 156.9 metres off, edge
+# to edge, and the Mountain 145.6; the search scores the Overlord at 126.9
+# and takes it. The same fight without the technology takes the Mountain.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 119
+hash: {profile: mcfr-content-0.7.0, result: 38e5761c3a8996b55bbf616d45b8dc7b6874ee6db956005f214b804603ea79d5}
+blue:
+  core_damage: 900
+  techs:
+    marksman: [aerial_specialization]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -100}}
+red:
+  units:
+  - {name: overlord, index: 0, position: {x: -35, y: -75}, exp: 0/200/1750}
+  - {name: mountain, index: 1, position: {x: 35, y: -85}}

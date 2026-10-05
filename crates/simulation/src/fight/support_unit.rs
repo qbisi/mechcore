@@ -395,6 +395,7 @@ impl Simulation {
             auto_recovery: None,
             energy_shield: None,
             sweep: None,
+            distance_intensify: false,
             carried_shield: None,
             production: None,
             start_buffs: Vec::new(),

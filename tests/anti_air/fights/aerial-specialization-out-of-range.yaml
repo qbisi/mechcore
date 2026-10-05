@@ -1,0 +1,24 @@
+# Aerial Specialization: an aircraft counted nearer is still out of range.
+#
+# At the Marksman's first search, while it locks the Overlord, its range is
+# 170 metres. The Overlord stands 174.6 off, scored at 144.6 but beyond
+# that range, and the Mountain 155.5 within it: the search takes the
+# Mountain, as it does without the technology.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 133
+hash: {profile: mcfr-content-0.7.0, result: dfdbb5c82fb5ae90da30bec818e676e39a5a4ef0978ef0b4cb6215f0f963dba8}
+blue:
+  core_damage: 900
+  techs:
+    marksman: [aerial_specialization]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -100}}
+red:
+  units:
+  - {name: overlord, index: 0, position: {x: 25, y: -95}, exp: 0/200/1750}
+  - {name: mountain, index: 1, position: {x: -35, y: -95}}

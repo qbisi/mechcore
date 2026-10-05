@@ -163,7 +163,7 @@ mod tests {
     use super::EnergyTowerSkillEffects;
     use crate::{
         data::Stats,
-        rules::{UnitConfig, UnitConfigs},
+        rules::{UnitConfig, UnitConfigs, UnitDomain},
     };
 
     const ENHANCED_RANGE: i32 = 5;
@@ -182,13 +182,16 @@ mod tests {
         let marksman = unit("marksman");
         let corrected =
             Stats::corrected(&marksman, 1, &skills.corrections(&both, &marksman).unwrap()).unwrap();
-        assert_eq!(corrected.attack_range(), 155_000);
+        assert_eq!(corrected.attack_range_against(UnitDomain::Ground), 155_000);
         assert_eq!(corrected.move_speed_q32(), 11 << 32);
         let rhino = unit("rhino");
         let corrected =
             Stats::corrected(&rhino, 1, &skills.corrections(&both, &rhino).unwrap()).unwrap();
         let plain = Stats::corrected(&rhino, 1, &[]).unwrap();
-        assert_eq!(corrected.attack_range(), plain.attack_range());
+        assert_eq!(
+            corrected.attack_range_against(UnitDomain::Ground),
+            plain.attack_range_against(UnitDomain::Ground)
+        );
         assert_eq!(
             corrected.move_speed_q32(),
             plain.move_speed_q32() + (3 << 32)

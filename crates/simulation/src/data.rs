@@ -23,7 +23,7 @@
 
 use crate::{
     Error, Result,
-    rules::{AttackPath, UnitConfig},
+    rules::{AttackPath, UnitConfig, UnitDomain},
 };
 use mechcore_mcfr::{Modifier, ModifierChannel, ModifierPart};
 
@@ -91,6 +91,24 @@ pub(crate) enum Index {
     /// in after the damage rates have met. An extra weapon technology's
     /// `allWeaponReduceDamageRate` writes it (`ExtraSkillProvider.EnableEffect`).
     DamageReduceRateBase,
+    /// `SkillDataChangeFloat.AttackAirRangeAddValue` and
+    /// `AttackGroundRangeAddValue`: what `AttackRangeAirProperty` and
+    /// `AttackRangeGroundProperty` add to the skill's range, the one
+    /// `FightSkill.GetAttackRange` answers while it locks a unit that flies
+    /// and the other otherwise. Q32.32 metres in the build, millimetres here
+    /// as the range is.
+    RangeAgainst(UnitDomain),
+    /// `SkillDataChangeInt.AttackRangeValueAir` and `AttackRangeValueGround`:
+    /// whole metres, which a skill searching by `DistanceIntensify` counts
+    /// off a candidate of that domain's distance
+    /// (`SearchTargetController.SetTargetSelector`). Millimetres here.
+    ScoreOffsetFor(UnitDomain),
+    /// `SkillDataChangeFloat.DamageChangeRateAir` and `DamageChagneRateGround`:
+    /// the rate `AirDamageProperty` and `GroundDamageProperty` hand
+    /// `DamageProperty.CalculateDamage` as its extra enhancement, the one
+    /// `DamageCalculator.GetAttackDamage` reads while the skill attacks a unit
+    /// that flies and the other otherwise. A plain value, Q32.32.
+    DamageRateAgainst(UnitDomain),
 }
 
 impl Index {
@@ -121,6 +139,12 @@ impl Index {
             Self::GroundFireLifeTime => "ground fire life time",
             Self::ReduceDamage => "damage reduction",
             Self::DamageReduceRateBase => "damage reduce rate base",
+            Self::RangeAgainst(UnitDomain::Air) => "attack range against an aerial unit",
+            Self::RangeAgainst(UnitDomain::Ground) => "attack range against a ground unit",
+            Self::ScoreOffsetFor(UnitDomain::Air) => "search offset for an aerial unit",
+            Self::ScoreOffsetFor(UnitDomain::Ground) => "search offset for a ground unit",
+            Self::DamageRateAgainst(UnitDomain::Air) => "damage rate against an aerial unit",
+            Self::DamageRateAgainst(UnitDomain::Ground) => "damage rate against a ground unit",
         }
     }
 }
@@ -309,6 +333,61 @@ const DAMAGE_RATES: [(Index, &str); 3] = [
     (Index::DamageReduceRateBase, "damage_reduce_rate_base"),
 ];
 
+/// The skill numbers kept once for an aerial target and once for a ground
+/// one, the `DataSet` channel and field each is recorded in, and how many of
+/// the overlay's units make one of the recording's: Q32.32 metres for a range,
+/// whole metres for a search offset, and the rate itself for damage.
+const AGAINST_DOMAIN: [(Index, ModifierChannel, &str, Recorded); 6] = [
+    (
+        Index::RangeAgainst(UnitDomain::Air),
+        ModifierChannel::SkillFloat,
+        "attack_air_range_add_value",
+        Recorded::Q32Metres,
+    ),
+    (
+        Index::RangeAgainst(UnitDomain::Ground),
+        ModifierChannel::SkillFloat,
+        "attack_ground_range_add_value",
+        Recorded::Q32Metres,
+    ),
+    (
+        Index::ScoreOffsetFor(UnitDomain::Air),
+        ModifierChannel::SkillInt,
+        "attack_range_value_air",
+        Recorded::WholeMetres,
+    ),
+    (
+        Index::ScoreOffsetFor(UnitDomain::Ground),
+        ModifierChannel::SkillInt,
+        "attack_range_value_ground",
+        Recorded::WholeMetres,
+    ),
+    (
+        Index::DamageRateAgainst(UnitDomain::Air),
+        ModifierChannel::SkillFloat,
+        "damage_change_rate_air",
+        Recorded::Raw,
+    ),
+    // The build's own spelling.
+    (
+        Index::DamageRateAgainst(UnitDomain::Ground),
+        ModifierChannel::SkillFloat,
+        "damage_chagne_rate_ground",
+        Recorded::Raw,
+    ),
+];
+
+/// How a skill value held here is written in a recording.
+#[derive(Clone, Copy)]
+enum Recorded {
+    /// Millimetres as Q32.32 metres, a `DataSet.floatDatas` distance.
+    Q32Metres,
+    /// Millimetres as whole metres, a `DataSet.intDatas` distance.
+    WholeMetres,
+    /// As it is.
+    Raw,
+}
+
 /// What a skill overlay may carry that its `DataSet` has no field for.
 fn refuse_unrecorded_skill_fields(skill: &Overlay) -> Result<()> {
     for index in [
@@ -332,6 +411,16 @@ fn refuse_unrecorded_skill_fields(skill: &Overlay) -> Result<()> {
         {
             return Err(Error::new(format!(
                 "the skill DataSet has no field for a value of {}",
+                index.name()
+            )));
+        }
+    }
+    for (index, ..) in AGAINST_DOMAIN {
+        if let Some(against) = skill.aggregate(index)
+            && against.rate()? != (0, 0)
+        {
+            return Err(Error::new(format!(
+                "the skill DataSet has no field for a rate of {}",
                 index.name()
             )));
         }
@@ -401,6 +490,19 @@ fn skill_modifiers(skill: &Overlay, slot: usize, modifiers: &mut Vec<Modifier>) 
                     i128::from(crate::rules::SPACE_UNITS_PER_METER_SCALE),
                 )?,
             );
+        }
+        for (index, channel, field, scale) in AGAINST_DOMAIN {
+            if let Some(against) = skill.aggregate(index) {
+                let metres = i128::from(crate::rules::SPACE_UNITS_PER_METER_SCALE);
+                let value = match scale {
+                    Recorded::Q32Metres => q32(against.value, metres)?,
+                    Recorded::WholeMetres => i64::try_from(against.value / metres)
+                        .map_err(|_| Error::new("a skill's search offset is outside i64"))?,
+                    Recorded::Raw => i64::try_from(against.value)
+                        .map_err(|_| Error::new("a skill's damage rate is outside i64"))?,
+                };
+                push(modifiers, channel, slot, field, ModifierPart::Value, value);
+            }
         }
         if let Some(interval) = skill.aggregate(Index::AttackInterval) {
             push(
@@ -488,11 +590,26 @@ impl Overlays {
     /// `DamageCalculator.GetNormalDamage`, what a recording reads as the
     /// unit's damage, leaves that rate out (`normal`): the same Melting
     /// Point's reads 1, its ramp's first step whole.
-    fn resolve_damage(&self, base: i64, kills: i64, normal: bool) -> Result<i64> {
+    ///
+    /// Which of the skill's two damage properties answers is `against`'s:
+    /// `AirDamageProperty` hands `CalculateDamage` the skill's
+    /// `DamageChangeRateAir` as its extra enhancement and
+    /// `GroundDamageProperty` its `DamageChagneRateGround`.
+    fn resolve_damage(
+        &self,
+        base: i64,
+        kills: i64,
+        normal: bool,
+        against: UnitDomain,
+    ) -> Result<i64> {
         let per_kill = self
             .skill
             .aggregate(Index::DamagePerKill)
             .map_or(0, |aggregate| aggregate.enhance);
+        let extra_add = self
+            .skill
+            .aggregate(Index::DamageRateAgainst(against))
+            .map_or(0, |aggregate| aggregate.value);
         let reduce_base = self
             .skill
             .aggregate(Index::DamageReduceRateBase)
@@ -502,7 +619,7 @@ impl Overlays {
             Index::AttackDamage,
             base,
             |value| value,
-            per_kill * i128::from(kills),
+            per_kill * i128::from(kills) + extra_add,
             reduce_base,
         )
     }
@@ -647,7 +764,10 @@ pub(crate) struct Stats {
     /// `FPoint`, and a rate on it lands between two millimetres.
     move_speed_q32: i64,
     max_life: i64,
+    /// What the main skill deals a ground unit and an aerial one, by its
+    /// `GroundDamageProperty` and `AirDamageProperty`.
     attack_damage: i64,
+    attack_damage_air: i64,
     /// Q32.32 seconds: `AttackIntervalProperty` keeps the interval as an
     /// `FPoint`, and a rate on it lands between two time units.
     attack_interval_q32: i64,
@@ -683,6 +803,7 @@ impl Stats {
             move_speed_q32: 0,
             max_life: 0,
             attack_damage: 0,
+            attack_damage_air: 0,
             attack_interval_q32: 0,
             attack_range: 0,
             attack_range_q32: 0,
@@ -737,11 +858,13 @@ impl Stats {
             ONE,
         )?;
         self.max_life = resolve(Index::MaxLife, self.base(rules.max_life)?)?;
-        self.attack_damage = self.overlays.resolve_damage(
-            self.base(rules.attack.base_damage)?,
-            self.kills,
-            false,
-        )?;
+        let base_damage = self.base(rules.attack.base_damage)?;
+        self.attack_damage =
+            self.overlays
+                .resolve_damage(base_damage, self.kills, false, UnitDomain::Ground)?;
+        self.attack_damage_air =
+            self.overlays
+                .resolve_damage(base_damage, self.kills, false, UnitDomain::Air)?;
         // A value is Q32.32 seconds already, and so is the interval.
         self.attack_interval_q32 = self.overlays.resolve(
             Index::AttackInterval,
@@ -806,15 +929,24 @@ impl Stats {
         self.max_life
     }
 
-    pub(crate) const fn attack_damage(&self) -> i64 {
-        self.attack_damage
+    /// `DamageCalculator.GetAttackDamage`: the main skill's damage on a
+    /// unit of `against`'s domain.
+    pub(crate) const fn attack_damage_against(&self, against: UnitDomain) -> i64 {
+        match against {
+            UnitDomain::Ground => self.attack_damage,
+            UnitDomain::Air => self.attack_damage_air,
+        }
     }
 
     /// `DamageCalculator.GetNormalDamage`: the damage without the skill's
-    /// `DamageReduceRateBase`, which a recording reads.
+    /// `DamageReduceRateBase`, which a recording reads. It reads the
+    /// `GroundDamageProperty` whatever the skill attacks.
     pub(crate) fn normal_damage(&self, rules: &UnitConfig) -> i64 {
         self.base(rules.attack.base_damage)
-            .and_then(|base| self.overlays.resolve_damage(base, self.kills, true))
+            .and_then(|base| {
+                self.overlays
+                    .resolve_damage(base, self.kills, true, UnitDomain::Ground)
+            })
             .expect("the layout verified the damage corrections")
     }
 
@@ -826,8 +958,8 @@ impl Stats {
     /// # Errors
     ///
     /// Returns an error when the damage leaves the signed range.
-    pub(crate) fn damage_from(&self, base: i64) -> Result<i64> {
-        self.overlays.resolve_damage(base, 0, false)
+    pub(crate) fn damage_from(&self, base: i64, against: UnitDomain) -> Result<i64> {
+        self.overlays.resolve_damage(base, 0, false, against)
     }
 
     /// Another skill's damage from its own base, with its own skill
@@ -838,12 +970,17 @@ impl Stats {
     /// # Errors
     ///
     /// Returns an error when the damage leaves the signed range.
-    pub(crate) fn damage_with(&self, base: i64, skill: &[Entry]) -> Result<i64> {
+    pub(crate) fn damage_with(
+        &self,
+        base: i64,
+        skill: &[Entry],
+        against: UnitDomain,
+    ) -> Result<i64> {
         let overlays = Overlays {
             skill: Overlay::of(skill),
             ..self.overlays.clone()
         };
-        overlays.resolve_damage(base, 0, false)
+        overlays.resolve_damage(base, 0, false, against)
     }
 
     /// The laser's base damage is truncated after its ramp multiplier, before
@@ -854,7 +991,12 @@ impl Stats {
         clippy::cast_possible_truncation,
         reason = "preserve the existing native laser ramp's float truncation"
     )]
-    pub(crate) fn laser_damage(&self, rules: &UnitConfig, attack_count: usize) -> i64 {
+    pub(crate) fn laser_damage(
+        &self,
+        rules: &UnitConfig,
+        attack_count: usize,
+        against: UnitDomain,
+    ) -> i64 {
         let AttackPath::Laser { damage_multipliers } = &rules.attack.path else {
             unreachable!("laser damage requires the laser attack path")
         };
@@ -862,7 +1004,7 @@ impl Stats {
             rules.attack.base_damage,
             damage_multipliers,
             (1.0, attack_count),
-            self.kills,
+            (self.kills, against),
             false,
         )
     }
@@ -877,7 +1019,7 @@ impl Stats {
             rules.attack.base_damage,
             damage_multipliers,
             (1.0, attack_count),
-            self.kills,
+            (self.kills, UnitDomain::Ground),
             true,
         )
     }
@@ -885,8 +1027,9 @@ impl Stats {
     /// A beam's blow from the unit's base damage at its level, times the
     /// skill's damage rate and its ramp's multiplier for the blow
     /// (`FightLaserSkill.CalculateDamageRate`), truncated, then corrected by
-    /// the rates that reach the skill. A skill other than the main one counts
-    /// its own kills, of which no correction here reads any.
+    /// the rates that reach the skill, its damage property's the one for what
+    /// it attacks. A skill other than the main one counts its own kills, of
+    /// which no correction here reads any.
     #[allow(
         clippy::cast_precision_loss,
         clippy::cast_possible_truncation,
@@ -897,7 +1040,7 @@ impl Stats {
         base_damage: i64,
         damage_multipliers: &[f64],
         (damage_rate, attack_count): (f64, usize),
-        kills: i64,
+        (kills, against): (i64, UnitDomain),
         normal: bool,
     ) -> i64 {
         let base = self
@@ -906,7 +1049,7 @@ impl Stats {
         let multiplier = damage_multipliers[attack_count.min(damage_multipliers.len() - 1)];
         let ramped = (base as f64 * damage_rate * multiplier).trunc() as i64;
         self.overlays
-            .resolve_damage(ramped, kills, normal)
+            .resolve_damage(ramped, kills, normal, against)
             .expect("the layout verified the damage corrections")
     }
 
@@ -1028,7 +1171,10 @@ impl Stats {
             Index::SplashRange,
             Index::AmplifyDamage,
             Index::DamagePerKill,
-        ] {
+        ]
+        .into_iter()
+        .chain(AGAINST_DOMAIN.map(|(index, ..)| index))
+        {
             if unit.aggregate(index).is_some() {
                 return Err(Error::new(format!(
                     "the unit DataSet has no field for {}",
@@ -1088,7 +1234,10 @@ impl Stats {
             Index::GroundFireRange,
             Index::GroundFireLifeTime,
             Index::ReduceDamage,
-        ] {
+        ]
+        .into_iter()
+        .chain(AGAINST_DOMAIN.map(|(index, ..)| index))
+        {
             if buff.aggregate(index).is_some() {
                 return Err(Error::new(format!(
                     "no buff here corrects {}",
@@ -1135,13 +1284,39 @@ impl Stats {
         self.attack_interval_q32
     }
 
-    /// Q32.32 metres.
-    pub(crate) const fn attack_range_q32(&self) -> i64 {
-        self.attack_range_q32
+    /// `FightSkill.GetAttackRange` of the main skill while it locks a unit
+    /// of `against`'s domain, or nothing for a ground one: its
+    /// `AttackRangeAirProperty` or `AttackRangeGroundProperty`, each
+    /// `AttackRangeProperty`'s range with the skill's add for that domain.
+    pub(crate) fn attack_range_against(&self, against: UnitDomain) -> i64 {
+        self.attack_range.saturating_add(self.range_add(against))
     }
 
-    pub(crate) const fn attack_range(&self) -> i64 {
-        self.attack_range
+    /// [`Self::attack_range_against`] in Q32.32 metres.
+    pub(crate) fn attack_range_q32_against(&self, against: UnitDomain) -> i64 {
+        self.attack_range_q32
+            .saturating_add(space_to_q32(self.range_add(against)))
+    }
+
+    /// The skill's `AttackAirRangeAddValue` or `AttackGroundRangeAddValue`,
+    /// millimetres.
+    fn range_add(&self, against: UnitDomain) -> i64 {
+        self.skill_value(Index::RangeAgainst(against))
+    }
+
+    /// What a search by `DistanceIntensify` counts off a candidate of
+    /// `domain`'s distance, millimetres: the skill's `AttackRangeValueAir` or
+    /// `AttackRangeValueGround`, which `SetTargetSelector` hands the selector
+    /// as it makes it.
+    pub(crate) fn score_offset_for(&self, domain: UnitDomain) -> i64 {
+        self.skill_value(Index::ScoreOffsetFor(domain))
+    }
+
+    /// The values the skill's `DataSet` sums for one number.
+    fn skill_value(&self, index: Index) -> i64 {
+        self.overlays.skill.aggregate(index).map_or(0, |aggregate| {
+            i64::try_from(aggregate.value).expect("the layout verified the skill's values")
+        })
     }
 
     /// The splash radius, `FightSkill.GetSplashRange`: the description's with
@@ -1203,7 +1378,7 @@ fn push_rate(
 #[cfg(test)]
 mod tests {
     use super::{Channel, Correction, Entry, Index, Stats};
-    use crate::rules::SimulationConfig;
+    use crate::rules::{SimulationConfig, UnitDomain};
 
     fn marksman() -> crate::rules::UnitConfig {
         SimulationConfig::load()
@@ -1225,12 +1400,18 @@ mod tests {
             super::space_to_q32(rules.move_speed())
         );
         assert_eq!(stats.max_life(), rules.max_life);
-        assert_eq!(stats.attack_damage(), rules.attack.base_damage);
+        assert_eq!(
+            stats.attack_damage_against(UnitDomain::Ground),
+            rules.attack.base_damage
+        );
         assert_eq!(
             stats.attack_interval_q32(),
             super::time_to_q32(i64::try_from(rules.attack.interval_time_units()).unwrap())
         );
-        assert_eq!(stats.attack_range(), rules.attack.range());
+        assert_eq!(
+            stats.attack_range_against(UnitDomain::Ground),
+            rules.attack.range()
+        );
     }
 
     /// A level multiplies the description's life and damage, and nothing
@@ -1259,13 +1440,17 @@ mod tests {
             },
         );
         let mut stats = Stats::corrected(&rhino, 1, &[per_kill]).unwrap();
-        assert_eq!(stats.attack_damage(), 3560, "no kill, no change");
+        assert_eq!(
+            stats.attack_damage_against(UnitDomain::Ground),
+            3560,
+            "no kill, no change"
+        );
         for _ in 0..4 {
             stats.add_kill(&rhino).unwrap();
         }
-        assert_eq!(stats.attack_damage(), 4983);
+        assert_eq!(stats.attack_damage_against(UnitDomain::Ground), 4983);
         stats.clear_kills(&rhino).unwrap();
-        assert_eq!(stats.attack_damage(), 3560);
+        assert_eq!(stats.attack_damage_against(UnitDomain::Ground), 3560);
     }
 
     #[test]
@@ -1273,7 +1458,13 @@ mod tests {
         let rules = marksman();
         for (level, life, damage) in [(2, 3244, 4658), (3, 4866, 6987)] {
             let stats = Stats::at_level(&rules, level).unwrap();
-            assert_eq!((stats.max_life(), stats.attack_damage()), (life, damage));
+            assert_eq!(
+                (
+                    stats.max_life(),
+                    stats.attack_damage_against(UnitDomain::Ground)
+                ),
+                (life, damage)
+            );
             assert_eq!(
                 stats.move_speed_q32(),
                 super::space_to_q32(rules.move_speed())
@@ -1282,7 +1473,10 @@ mod tests {
                 stats.attack_interval_q32(),
                 super::time_to_q32(i64::try_from(rules.attack.interval_time_units()).unwrap())
             );
-            assert_eq!(stats.attack_range(), rules.attack.range());
+            assert_eq!(
+                stats.attack_range_against(UnitDomain::Ground),
+                rules.attack.range()
+            );
         }
     }
 
@@ -1302,7 +1496,7 @@ mod tests {
             },
         };
         let stats = Stats::corrected(&rules, 2, &[(Channel::Skill, officer)]).unwrap();
-        assert_eq!(stats.attack_damage(), 6055);
+        assert_eq!(stats.attack_damage_against(UnitDomain::Ground), 6055);
     }
 
     /// Advanced Offensive Tactics' `+0.3`, in the Q32.32 raw the build stores
@@ -1338,11 +1532,11 @@ mod tests {
             .channel(Channel::Skill)
             .write(officer.clone());
         stats.refresh(&rules).unwrap();
-        assert_eq!(stats.attack_damage(), 3027);
+        assert_eq!(stats.attack_damage_against(UnitDomain::Ground), 3027);
 
         stats.overlays.channel(Channel::Skill).write(officer);
         stats.refresh(&rules).unwrap();
-        assert_eq!(stats.attack_damage(), 3726);
+        assert_eq!(stats.attack_damage_against(UnitDomain::Ground), 3726);
     }
 
     /// A correction that changes nothing needs no composition rule at all.
@@ -1377,7 +1571,11 @@ mod tests {
             });
         }
         stats.refresh(&rules).unwrap();
-        assert_eq!(stats.attack_range(), base + 20_000, "ten metres, twice");
+        assert_eq!(
+            stats.attack_range_against(UnitDomain::Ground),
+            base + 20_000,
+            "ten metres, twice"
+        );
 
         stats.overlays.channel(Channel::Skill).write(Entry {
             index: Index::AttackRange,
@@ -1392,7 +1590,11 @@ mod tests {
             (i128::from(base + 20_000) * (i128::from(THIRTY_PERCENT) + (1 << 32))) >> 32,
         )
         .unwrap();
-        assert_eq!(stats.attack_range(), expected, "the rate takes the sum");
+        assert_eq!(
+            stats.attack_range_against(UnitDomain::Ground),
+            expected,
+            "the rate takes the sum"
+        );
     }
 
     /// An impairment is not a negative enhancement: two of them compound,
@@ -1415,14 +1617,22 @@ mod tests {
         let mut once = Stats::of(&rules).unwrap();
         once.overlays.channel(Channel::Skill).write(impair.clone());
         once.refresh(&rules).unwrap();
-        assert_eq!(once.attack_damage(), 2072, "2329 x 0.89");
+        assert_eq!(
+            once.attack_damage_against(UnitDomain::Ground),
+            2072,
+            "2329 x 0.89"
+        );
 
         let mut twice = Stats::of(&rules).unwrap();
         for _ in 0..2 {
             twice.overlays.channel(Channel::Skill).write(impair.clone());
         }
         twice.refresh(&rules).unwrap();
-        assert_eq!(twice.attack_damage(), 1844, "2329 x 0.89 x 0.89");
+        assert_eq!(
+            twice.attack_damage_against(UnitDomain::Ground),
+            1844,
+            "2329 x 0.89 x 0.89"
+        );
         let summed = i64::try_from(
             (i128::from(base) * ((1_i128 << 32) - 2 * i128::from(eleven_percent))) >> 32,
         )
@@ -1480,7 +1690,7 @@ mod tests {
         });
         stats.refresh(&rules).unwrap();
         // 2329 × trunc_q32(1.3 × 0.1) = 302.77…
-        assert_eq!(stats.attack_damage(), 302);
+        assert_eq!(stats.attack_damage_against(UnitDomain::Ground), 302);
     }
 
     /// An overlay is a set of tagged entries and not a running total, so what

@@ -758,7 +758,7 @@ mod tests {
     use crate::{
         data::{Channel, Stats},
         modifier::OfficerEffects,
-        rules::{UnitConfig, UnitConfigs},
+        rules::{UnitConfig, UnitConfigs, UnitDomain},
     };
 
     const LASER_SIGHTS: i32 = 13_030_001;
@@ -806,16 +806,25 @@ mod tests {
             .corrections(IMPROVED_FIREPOWER, &marksman)
             .unwrap();
         assert_eq!(damage[0].0, Channel::Skill);
-        assert_eq!(resolve(&damage).attack_damage(), 3842);
+        assert_eq!(
+            resolve(&damage).attack_damage_against(UnitDomain::Ground),
+            3842
+        );
         damage.extend(
             officers
                 .corrections(&[ADVANCED_OFFENSIVE_TACTICS], &marksman)
                 .unwrap(),
         );
-        assert_eq!(resolve(&damage).attack_damage(), 4541);
+        assert_eq!(
+            resolve(&damage).attack_damage_against(UnitDomain::Ground),
+            4541
+        );
 
         let range = equipment.corrections(LASER_SIGHTS, &marksman).unwrap();
-        assert_eq!(resolve(&range).attack_range(), 160_000);
+        assert_eq!(
+            resolve(&range).attack_range_against(UnitDomain::Ground),
+            160_000
+        );
     }
 
     /// Laser Sights is a Ranged row, and reaches a melee unit as nothing.

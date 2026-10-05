@@ -562,6 +562,11 @@ impl Simulation {
             .map_or(1, |id| id + 1);
     }
 
+    /// What a recording holds of one unit.
+    pub(in crate::fight) fn unit_snapshot(&self, id: u64) -> LiveUnitState {
+        self.actors[&id].snapshot(self.main_attack_range_q32(id))
+    }
+
     fn snapshot(&self) -> WorldSnapshot {
         WorldSnapshot {
             live_units: self
@@ -569,7 +574,7 @@ impl Simulation {
                 .values()
                 .filter(|actor| actor.alive())
                 .map(|actor| {
-                    let mut state = actor.snapshot();
+                    let mut state = self.unit_snapshot(actor.placement.unit_id);
                     if let Some(damage) = self.beam_snapshot_damage(actor) {
                         state.derived.attack_damage = damage;
                     }
@@ -642,8 +647,12 @@ impl Simulation {
             // The fight ends on this tick, and every mech has left it
             // (`MotionController.ExitFight`) before any updates: a Sandworm
             // still underground is cleared and stands where it was.
-            for actor in self.actors.values_mut() {
-                actor.exit_fight_move_ability();
+            for id in self.actors.keys().copied().collect::<Vec<_>>() {
+                let attack_range = self.main_attack_range(id);
+                self.actors
+                    .get_mut(&id)
+                    .expect("actor identity is stable")
+                    .exit_fight_move_ability(attack_range);
             }
         }
         let winner_was_decided = self.winner().is_some();
@@ -833,6 +842,12 @@ impl Simulation {
         let ready_to_finish = self.ready_to_finish();
         let stop_fight = ready_to_finish || winner_was_decided;
         if stop_fight {
+            // Each unit's lock as the fight stops is what its range reads.
+            let attack_ranges = self
+                .actors
+                .keys()
+                .map(|&id| (id, self.main_attack_range(id)))
+                .collect::<BTreeMap<_, _>>();
             for actor in self.actors.values_mut() {
                 // Every motion loses its target: one without a command enters
                 // `MotionIdleState`, whose `Enter` asks `StopMove`, so a unit
@@ -842,7 +857,7 @@ impl Simulation {
                 // motion.
                 let entered_idle = actor.motion.state != MotionState::Idle;
                 if ready_to_finish {
-                    actor.exit_fight_move_ability();
+                    actor.exit_fight_move_ability(attack_ranges[&actor.placement.unit_id]);
                     actor.stop_in_place(entered_idle);
                     // Leaving the fight drops the unit's own lock too.
                     if let Some(group) = &mut actor.skills.main.group {
