@@ -38,6 +38,13 @@ active again when the transition ends. A unit that burrows on its first tick
 has searched and locked on that tick, and reads no lock until the tick after
 it is below.
 
+**An attack interval stands still while the manager is not active.** A skill
+counts towards its next attack in its own update (`FightSkill.Update` adds to
+`attackTime`), so the ticks a transition lasts are not counted: a Sandworm
+that set off burrowing as its attack began, and surfaced on another unit,
+waits through the ticks it updated below and after it surfaced, and none of
+the transitions'.
+
 **Both ends lock the agent.** `RVOControllerFixed.Lock(false, false)` puts the
 agent on collider priority 11 at full priority, locked: it does not move,
 `RVOAgentFixed.CalculateVelocity` gives it no speed, `Agent.BufferSwitch`
@@ -129,6 +136,9 @@ stands where it was on that tick while every other unit moves.
 
 ### Read
 
+- A skill counts towards its next attack in its own update, and its count is
+  cleared only as an attack starts or the fight begins: `FightSkill.Update`,
+  `FightSkill.ResetAttackData`, `SkillManager.Update`.
 - The transitions and what each end does: `MoveAbility.Create`,
   `MotionController.ChangeToMoveState`, `MotionController.ChangeToAttackState`,
   `MotionMoveState.ChangeToIdle`, `MotionIdleState.Update`,
