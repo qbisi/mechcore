@@ -62,7 +62,9 @@ The turn (`TeamTranslationSystem.ChangeTeam`):
   its formation for one of its own on the new side, made when first asked for
   (`FightMech.GetMechTeam`): the units turned on one tick take theirs in
   identity order. Its damage and its kills from then are recorded under a
-  recorder of its own.
+  recorder of its own. A summon, a Spider Mine among them, has no `MechTeam`
+  to leave: it is recorded under the formation it was made with, before the
+  turn and after.
 - **stops every skill locked on it** (`FightSkill.OnChangeTeam`): `StopAttack`
   drops the lock and keeps the attack target. A skill idle already stays idle,
   its weapons naming what they named until it takes another; a cooling one
@@ -82,7 +84,10 @@ update comes after every unit and projectile: what it took until then is
 counted under its own recorder. Its `OnDead` then hands it back to the side it
 was deployed on (`TeamTranslationSystem.OnMechDead`), and every skill still
 locked on it stops its attack as above. A unit that updated after the blow
-has met the death in its own update already.
+has met the death in its own update already. A summon stands in no side's
+`FightTeam` (`TeamTranslationSystem.IsMechInFightGroup`), so it is not handed
+back: it dies on the side that turned it, and the skills locked on it hold
+their lock on it until they next update.
 
 When the fight ends there, the weapons of the units left name nothing.
 
@@ -162,6 +167,13 @@ the shield does not count against the turn.
   `tests/control/fights/battlefield-shield.yaml`,
   `tests/control/fights/barrier.yaml`.
 
+### Replayed
+
+- A Hacker turns a Spider Mine, which stays in its formation, and its death
+  is not handed back, so the Crawlers locked on it hold the lock for a tick:
+  replay 2324_20260925--134259672 round 5, ticks 122 and 156, fought by the
+  game with `scripts/corpus/match-replays.py`.
+
 ### Read
 
 - The two effects and their damage: `FightControllBeamSkill.GetAttackEffect`,
@@ -178,7 +190,7 @@ the shield does not count against the turn.
 - The skills it stops: `FightSkill.OnChangeTeam`, `FightSkill.StopAttack`,
   `SkillIdleState.Enter`, `SkillAttackState.Update`.
 - A turned unit's death: `TeamTranslationSystem.OnMechDead`,
-  `DeadEffectSystem.Update`.
+  `TeamTranslationSystem.IsMechInFightGroup`, `DeadEffectSystem.Update`.
 - The motion around it: `MotionAttackState.Update`,
   `MotionAttackState.AttackRotate`, `SkillIdleState.CanStartSearchTarget`.
 
