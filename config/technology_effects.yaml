@@ -359,7 +359,8 @@ technologies:
     buff_trigger: 0
     buff_targets: []
     probability: 4294967296  # +1
-    buff_special: [targetFlyType]
+    buff_cycle:
+      fly_type: 2
     buff:
       id: 1002
       name: 电磁冲击-长弓
@@ -371,13 +372,13 @@ technologies:
       disable_technology: true
       amplify_damage_rate: 0
       damage_rate: 0
+      speed_rate: -1717986918  # -0.4
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
-      special: [speedChangeRate]
   - id: 1806
     name: 电磁弹
     unit: wasp
@@ -385,7 +386,8 @@ technologies:
     buff_trigger: 0
     buff_targets: []
     probability: 4294967296  # +1
-    buff_special: [targetFlyType]
+    buff_cycle:
+      fly_type: 2
     buff:
       id: 1006
       name: 电磁冲击-兵蜂
@@ -397,13 +399,13 @@ technologies:
       disable_technology: true
       amplify_damage_rate: 0
       damage_rate: 0
+      speed_rate: -1717986918  # -0.4
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
-      special: [speedChangeRate]
   - id: 1812
     name: 电磁爆炸
     unit: stormcaller
@@ -411,7 +413,8 @@ technologies:
     buff_trigger: 0
     buff_targets: []
     probability: 4294967296  # +1
-    buff_special: [targetFlyType]
+    buff_cycle:
+      fly_type: 2
     buff:
       id: 1012
       name: 电磁冲击-暴雨
@@ -423,13 +426,13 @@ technologies:
       disable_technology: true
       amplify_damage_rate: 0
       damage_rate: 0
+      speed_rate: -1717986918  # -0.4
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
-      special: [speedChangeRate]
   - id: 1813
     name: 电磁弹
     unit: sledgehammer
@@ -437,7 +440,8 @@ technologies:
     buff_trigger: 0
     buff_targets: []
     probability: 4294967296  # +1
-    buff_special: [targetFlyType]
+    buff_cycle:
+      fly_type: 2
     buff:
       id: 1013
       name: 电磁冲击-铁锤
@@ -449,13 +453,13 @@ technologies:
       disable_technology: true
       amplify_damage_rate: 0
       damage_rate: 0
+      speed_rate: -1717986918  # -0.4
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
-      special: [speedChangeRate]
   - id: 1814
     name: 电磁干扰
     unit: hacker
@@ -463,7 +467,8 @@ technologies:
     buff_trigger: 0
     buff_targets: []
     probability: 4294967296  # +1
-    buff_special: [targetFlyType]
+    buff_cycle:
+      fly_type: 2
     buff:
       id: 1014
       name: 电磁冲击-骇客
@@ -475,13 +480,13 @@ technologies:
       disable_technology: true
       amplify_damage_rate: 0
       damage_rate: 0
+      speed_rate: -1717986918  # -0.4
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
-      special: [speedChangeRate]
   - id: 1815
     name: 电磁弹
     unit: arclight
@@ -489,7 +494,8 @@ technologies:
     buff_trigger: 0
     buff_targets: []
     probability: 4294967296  # +1
-    buff_special: [targetFlyType]
+    buff_cycle:
+      fly_type: 2
     buff:
       id: 1015
       name: 电磁冲击-弧光
@@ -501,13 +507,13 @@ technologies:
       disable_technology: true
       amplify_damage_rate: 0
       damage_rate: 0
+      speed_rate: -1717986918  # -0.4
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
-      special: [speedChangeRate]
   - id: 1816
     name: 电磁弹
     unit: phoenix
@@ -515,7 +521,8 @@ technologies:
     buff_trigger: 0
     buff_targets: []
     probability: 4294967296  # +1
-    buff_special: [targetFlyType]
+    buff_cycle:
+      fly_type: 2
     buff:
       id: 1016
       name: 电磁冲击-凤凰
@@ -527,13 +534,13 @@ technologies:
       disable_technology: true
       amplify_damage_rate: 0
       damage_rate: 0
+      speed_rate: -1717986918  # -0.4
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
-      special: [speedChangeRate]
   - id: 1826
     name: 电磁爆炸
     unit: farseer
@@ -541,7 +548,8 @@ technologies:
     buff_trigger: 0
     buff_targets: []
     probability: 4294967296  # +1
-    buff_special: [targetFlyType]
+    buff_cycle:
+      fly_type: 2
     buff:
       id: 1026
       name: 电磁冲击-先知
@@ -553,13 +561,13 @@ technologies:
       disable_technology: true
       amplify_damage_rate: 0
       damage_rate: 0
+      speed_rate: -1717986918  # -0.4
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
-      special: [speedChangeRate]
   - id: 1827
     name: 电磁弹
     unit: raiden
@@ -567,7 +575,8 @@ technologies:
     buff_trigger: 0
     buff_targets: []
     probability: 4294967296  # +1
-    buff_special: [targetFlyType]
+    buff_cycle:
+      fly_type: 2
     buff:
       id: 1027
       name: 电磁冲击-雷霆
@@ -579,13 +588,13 @@ technologies:
       disable_technology: true
       amplify_damage_rate: 0
       damage_rate: 0
+      speed_rate: -1717986918  # -0.4
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
-      special: [speedChangeRate]
   - id: 2305
     name: 残骸利用
     unit: rhino
@@ -1380,7 +1389,8 @@ technologies:
     buff_trigger: 0
     buff_targets: []
     probability: 4294967296  # +1
-    buff_special: [targetFlyType]
+    buff_cycle:
+      fly_type: 2
     buff:
       id: 2010
       name: 复制-爬虫
@@ -1392,6 +1402,7 @@ technologies:
       disable_technology: false
       amplify_damage_rate: 0
       damage_rate: 0
+      speed_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -1406,7 +1417,8 @@ technologies:
     buff_trigger: 0
     buff_targets: []
     probability: 4294967296  # +1
-    buff_special: [targetFlyType]
+    buff_cycle:
+      fly_type: 2
     buff:
       id: 3000
       name: 引燃
@@ -1418,6 +1430,7 @@ technologies:
       disable_technology: false
       amplify_damage_rate: 0
       damage_rate: 0
+      speed_rate: 0
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: false
@@ -1432,7 +1445,8 @@ technologies:
     buff_trigger: 0
     buff_targets: []
     probability: 1503238553  # +0.35
-    buff_special: [targetFlyType]
+    buff_cycle:
+      fly_type: 2
     buff:
       id: 3000
       name: 引燃
@@ -1444,6 +1458,7 @@ technologies:
       disable_technology: false
       amplify_damage_rate: 0
       damage_rate: 0
+      speed_rate: 0
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: false
@@ -1458,7 +1473,8 @@ technologies:
     buff_trigger: 0
     buff_targets: []
     probability: 601295421  # +0.14
-    buff_special: [targetFlyType]
+    buff_cycle:
+      fly_type: 2
     buff:
       id: 3000
       name: 引燃
@@ -1470,6 +1486,7 @@ technologies:
       disable_technology: false
       amplify_damage_rate: 0
       damage_rate: 0
+      speed_rate: 0
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: false
@@ -1484,7 +1501,8 @@ technologies:
     buff_trigger: 0
     buff_targets: []
     probability: 3006477107  # +0.7
-    buff_special: [targetFlyType]
+    buff_cycle:
+      fly_type: 2
     buff:
       id: 3000
       name: 引燃
@@ -1496,6 +1514,7 @@ technologies:
       disable_technology: false
       amplify_damage_rate: 0
       damage_rate: 0
+      speed_rate: 0
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: false
@@ -1511,7 +1530,8 @@ technologies:
     buff_trigger: 1
     buff_targets: [1]
     probability: 4294967296  # +1
-    buff_special: [targetFlyType]
+    buff_cycle:
+      fly_type: 2
     buff:
       id: 4000
       name: 光子涂层通用
@@ -1523,6 +1543,7 @@ technologies:
       disable_technology: false
       amplify_damage_rate: -1288490188  # -0.3
       damage_rate: 0
+      speed_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -1537,7 +1558,11 @@ technologies:
     buff_trigger: 1
     buff_targets: [3, 2]
     probability: 4294967296  # +1
-    buff_special: [max, delayTime, targetFlyType, isDistanceCalculateTargetRadius]
+    buff_cycle:
+      range: 429496729600  # +100
+      delay: 2576980377  # +0.6
+      fly_type: 2
+      target_radius: true
     buff:
       id: 40000
       name: 光子投射通用
@@ -1549,6 +1574,7 @@ technologies:
       disable_technology: false
       amplify_damage_rate: -1288490188  # -0.3
       damage_rate: 0
+      speed_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -1563,7 +1589,8 @@ technologies:
     buff_trigger: 1
     buff_targets: [1]
     probability: 4294967296  # +1
-    buff_special: [targetFlyType]
+    buff_cycle:
+      fly_type: 2
     buff:
       id: 4000
       name: 光子涂层通用
@@ -1575,6 +1602,7 @@ technologies:
       disable_technology: false
       amplify_damage_rate: -1288490188  # -0.3
       damage_rate: 0
+      speed_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -1589,7 +1617,10 @@ technologies:
     buff_trigger: 1
     buff_targets: [3, 2]
     probability: 4294967296  # +1
-    buff_special: [max, delayTime, isDistanceCalculateTargetRadius]
+    buff_cycle:
+      range: 429496729600  # +100
+      delay: 2576980377  # +0.6
+      target_radius: true
     buff:
       id: 40000
       name: 光子投射通用
@@ -1601,6 +1632,7 @@ technologies:
       disable_technology: false
       amplify_damage_rate: -1288490188  # -0.3
       damage_rate: 0
+      speed_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -1614,7 +1646,8 @@ technologies:
     buff_trigger: 1
     buff_targets: [1]
     probability: 4294967296  # +1
-    buff_special: [targetFlyType]
+    buff_cycle:
+      fly_type: 2
     buff:
       id: 4000
       name: 光子涂层通用
@@ -1626,6 +1659,7 @@ technologies:
       disable_technology: false
       amplify_damage_rate: -1288490188  # -0.3
       damage_rate: 0
+      speed_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -1639,7 +1673,12 @@ technologies:
     buff_trigger: 1
     buff_targets: [4]
     probability: 4294967296  # +1
-    buff_special: [max, intervalTime, targetFlyType, buffTargetUpdateModel, isDistanceCalculateTargetRadius]
+    buff_cycle:
+      range: 515396075520  # +120
+      interval: 8589934592  # +2
+      fly_type: 2
+      update_model: 1
+      target_radius: true
     buff:
       id: 20003
       name: 减速-退化光束
@@ -1651,13 +1690,13 @@ technologies:
       disable_technology: false
       amplify_damage_rate: 1288490188  # +0.3
       damage_rate: -858993459  # -0.2
+      speed_rate: -1717986918  # -0.4
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
-      special: [speedChangeRate]
   - id: 180430
     name: 压制射击
     unit: void_eye
@@ -1665,7 +1704,9 @@ technologies:
     buff_trigger: 0
     buff_targets: []
     probability: 4294967296  # +1
-    buff_special: [targetFlyType, targetDamageDistanceType]
+    buff_cycle:
+      fly_type: 2
+      distance_type: 2
     buff:
       id: 10301
       name: 压制射击-魔眼
@@ -1677,6 +1718,7 @@ technologies:
       disable_technology: false
       amplify_damage_rate: 0
       damage_rate: 0
+      speed_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -1704,6 +1746,7 @@ technologies:
       disable_technology: false
       amplify_damage_rate: 6442450944  # +1.5
       damage_rate: 0
+      speed_rate: 0
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: false
@@ -1718,7 +1761,12 @@ technologies:
     buff_trigger: 1
     buff_targets: [3, 2, 1]
     probability: 4294967296  # +1
-    buff_special: [max, intervalTime, targetDamageDistanceType, buffTargetUpdateModel, isDistanceCalculateTargetRadius]
+    buff_cycle:
+      range: 429496729600  # +100
+      interval: 8589934592  # +2
+      distance_type: 2
+      update_model: 1
+      target_radius: true
     buff:
       id: 5026
       name: 先知雷达
@@ -1730,6 +1778,7 @@ technologies:
       disable_technology: false
       amplify_damage_rate: 0
       damage_rate: 0
+      speed_rate: 0
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: false
@@ -1744,7 +1793,9 @@ technologies:
     buff_trigger: 2
     buff_targets: [4]
     probability: 4294967296  # +1
-    buff_special: [targetFlyType, buffTargetUpdateModel]
+    buff_cycle:
+      fly_type: 2
+      update_model: 1
     buff:
       id: 10302
       name: 电磁-魔眼
@@ -1756,13 +1807,13 @@ technologies:
       disable_technology: true
       amplify_damage_rate: 0
       damage_rate: 0
+      speed_rate: -1717986918  # -0.4
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
-      special: [speedChangeRate]
   - id: 180620
     name: 逆火 
     unit: fire_badger
@@ -1770,7 +1821,9 @@ technologies:
     buff_trigger: 3
     buff_targets: [1]
     probability: 4294967296  # +1
-    buff_special: [targetFlyType, buffTargetUpdateModel]
+    buff_cycle:
+      fly_type: 2
+      update_model: 1
     buff:
       id: 7020
       name: 逆火-火獾
@@ -1782,6 +1835,7 @@ technologies:
       disable_technology: false
       amplify_damage_rate: 0
       damage_rate: 0
+      speed_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -1808,6 +1862,7 @@ technologies:
       disable_technology: false
       amplify_damage_rate: 0
       damage_rate: 193273528  # +0.045
+      speed_rate: 0
       max_life_rate: 107374182  # +0.025
       step_time: 4294967296  # +1
       additive_effect: true
@@ -1832,6 +1887,7 @@ technologies:
       disable_technology: false
       amplify_damage_rate: 0
       damage_rate: 0
+      speed_rate: 0
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: true
@@ -1857,6 +1913,7 @@ technologies:
       disable_technology: false
       amplify_damage_rate: 0
       damage_rate: 279172874  # +0.065
+      speed_rate: 0
       max_life_rate: 0
       step_time: 429496729  # +0.1
       additive_effect: true
@@ -1872,7 +1929,11 @@ technologies:
     buff_trigger: 1
     buff_targets: [3, 2, 1]
     probability: 4294967296  # +1
-    buff_special: [max, intervalTime, buffTargetUpdateModel, isDistanceCalculateTargetRadius]
+    buff_cycle:
+      range: 429496729600  # +100
+      interval: 8589934592  # +2
+      update_model: 1
+      target_radius: true
     buff:
       id: 10001
       name: 磁暴-充能站
@@ -1884,6 +1945,7 @@ technologies:
       disable_technology: false
       amplify_damage_rate: 0
       damage_rate: 1288490188  # +0.3
+      speed_rate: 0
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: false
@@ -1941,7 +2003,9 @@ technologies:
     buff_trigger: 1
     buff_targets: [1]
     probability: 4294967296  # +1
-    buff_special: [intervalTime, targetFlyType]
+    buff_cycle:
+      interval: 128849018880  # +30
+      fly_type: 2
     buff:
       id: 40002002
       name: 泰山光子涂层
@@ -1953,6 +2017,7 @@ technologies:
       disable_technology: false
       amplify_damage_rate: -1288490188  # -0.3
       damage_rate: 0
+      speed_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false

@@ -698,6 +698,49 @@ impl Simulation {
             .collect()
     }
 
+    /// `RangeTargetCalculator.CalculateRangeActors` of units alone, about a
+    /// point: every unit of either side, side by side in the order each
+    /// side's objects are searched, that `FightCalculator.IsValidTarget`
+    /// passes, alive, of a domain `domains` accepts and not underground
+    /// (`ActorVisibility.Stealth`), and whose distance from the point, less
+    /// its radius when `target_radius`, is within the range by
+    /// `FPoint.op_LessThanOrEqual` (`IsInRange2D`).
+    pub(in crate::fight) fn units_in_range(
+        &self,
+        (x_q32, z_q32): (i64, i64),
+        range_q32: i64,
+        (domains, target_radius): (crate::rules::AttackTargets, bool),
+        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
+    ) -> Vec<u64> {
+        target_search_order
+            .values()
+            .flatten()
+            .filter_map(|&candidate| {
+                let FightActorRef::Unit(id) = candidate else {
+                    return None;
+                };
+                let actor = &self.actors[&id];
+                if !actor.alive()
+                    || actor.visibility == Visibility::Hide
+                    || !domains.accepts(actor.rules.domain)
+                {
+                    return None;
+                }
+                let radius = if target_radius {
+                    space_to_q32(actor.rules.collision_radius())
+                } else {
+                    0
+                };
+                let distance = native_q32_magnitude(
+                    actor.x_q32.saturating_sub(x_q32),
+                    actor.z_q32.saturating_sub(z_q32),
+                )
+                .saturating_sub(radius);
+                fpoint_less_or_equal(distance, range_q32).then_some(id)
+            })
+            .collect()
+    }
+
     /// The selector, restricted to units. A test asks for one; the fight
     /// itself takes whatever stands nearest, buildings included.
     #[cfg(test)]

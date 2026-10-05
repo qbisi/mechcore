@@ -49,7 +49,8 @@ impl Actor {
         let recovery = placement
             .auto_recovery
             .map(|_| super::recovery::RecoveryClock::reset());
-        let start_buffs_pending = !placement.start_buffs.is_empty();
+        let buff_cycles =
+            vec![super::buff_cycle::BuffCycle::Starting; placement.buff_sources.len()];
         let shield = placement.energy_shield.map(|source| {
             let maximum = q32_mul(max_life << 32, source.life_rate_q32) >> 32;
             PersonalShield {
@@ -91,7 +92,7 @@ impl Actor {
             last_life_before_suicide: 0,
             command: None,
             buffs: Vec::new(),
-            start_buffs_pending,
+            buff_cycles,
             shield,
             recovery,
             rvo_max_speed_q32: max_speed_q32,

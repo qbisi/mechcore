@@ -34,7 +34,7 @@ use crate::{
 use super::{
     buffs,
     effects::{self, Fields, PROJECTILE, VALUE_ELSEWHERE},
-    sources::{AutoRecovery, CarriedShield, EnergyShield, LifeSteal, ProductionLine, StartBuff},
+    sources::{AutoRecovery, BuffSource, CarriedShield, EnergyShield, LifeSteal, ProductionLine},
     targets::Targets,
 };
 
@@ -97,7 +97,7 @@ const AUTO_RECOVERY: &str = "autoRecoveryEquipmentDatas";
 
 /// The list whose `BuffEquipment` is an `IEffectBuffDataSource`: a buff it
 /// adds on a trigger. The one trigger read is the fight's start, onto the
-/// unit itself, which hands its unit a [`StartBuff`].
+/// unit itself, which hands its unit a [`BuffSource`].
 const BUFF: &str = "buffEquipmentDatas";
 
 /// The list whose `SplashEquipment.AddData` writes its row's correction and
@@ -127,7 +127,7 @@ struct Equipment {
     /// What it answers `IAutoRecovery` with, if its class is one.
     auto_recovery: Option<AutoRecovery>,
     /// The buff it adds as the fight starts, if its class is a buff item's.
-    start_buff: Option<StartBuff>,
+    buff_source: Option<BuffSource>,
     /// The `buffDatas` rows its unit ignores, if its class is an
     /// anti-interference item's.
     ignored_buffs: Vec<u32>,
@@ -224,6 +224,9 @@ struct Row {
     buff_targets: Vec<i32>,
     #[serde(default)]
     probability: Option<i64>,
+    /// What its `BuffCycleController` reads, on a buff row.
+    #[serde(default)]
+    buff_cycle: buffs::CycleBlock,
     /// The other `BuffEquipmentData` fields a buff row sets.
     #[serde(default)]
     buff_special: Vec<String>,
@@ -366,10 +369,10 @@ impl EquipmentEffects {
     /// # Errors
     ///
     /// Returns the error [`Self::corrections`] does.
-    pub(crate) fn start_buff(&self, id: i32, unit: &UnitConfig) -> Result<Option<StartBuff>> {
+    pub(crate) fn buff_source(&self, id: i32, unit: &UnitConfig) -> Result<Option<BuffSource>> {
         Ok(self
             .worn(id, unit)?
-            .and_then(|equipment| equipment.start_buff))
+            .and_then(|equipment| equipment.buff_source))
     }
 
     /// What one equipment answers `IEnergyShieldSource` with on the unit
@@ -502,13 +505,13 @@ impl Equipment {
             priority: PRIORITY,
             can_disable: false,
         });
-        let (effect, start_buff, production) = match (
+        let (effect, buff_source, production) = match (
             corrections_of(row, &who),
-            start_buff_of(row, &who),
+            buff_source_of(row, &who),
             production_of(row, &who),
         ) {
-            (Ok(corrections), Ok(start_buff), Ok(production)) => {
-                (Ok(corrections), start_buff, production)
+            (Ok(corrections), Ok(buff_source), Ok(production)) => {
+                (Ok(corrections), buff_source, production)
             }
             (Err(why), _, _) | (_, Err(why), _) | (_, _, Err(why)) => (Err(why), None, None),
         };
@@ -517,7 +520,7 @@ impl Equipment {
             effect,
             lifesteal,
             auto_recovery,
-            start_buff,
+            buff_source,
             ignored_buffs: row.ignored_buffs.clone(),
             // `EnergyShieldEquipment.GetLifeRate` answers its row's.
             energy_shield: (row.kind == ENERGY_SHIELD).then(|| EnergyShield {
@@ -539,14 +542,15 @@ impl Equipment {
     }
 }
 
-/// The buff a buff row adds as the fight starts ([`buffs::start_buff`]).
-fn start_buff_of(row: &Row, who: &str) -> std::result::Result<Option<StartBuff>, String> {
+/// The buff a buff row adds as the fight starts ([`buffs::buff_source`]).
+fn buff_source_of(row: &Row, who: &str) -> std::result::Result<Option<BuffSource>, String> {
     if row.kind != BUFF {
         return Ok(None);
     }
-    buffs::start_buff(
+    buffs::buff_source(
         who,
         (row.buff_trigger, &row.buff_targets, row.probability),
+        &row.buff_cycle,
         &row.buff_special,
         row.buff.as_ref(),
     )
@@ -841,7 +845,7 @@ mod tests {
         let equipment = EquipmentEffects::load().unwrap();
         let marksman = unit("marksman");
         let buff = equipment
-            .start_buff(PHOTON_COATING, &marksman)
+            .buff_source(PHOTON_COATING, &marksman)
             .unwrap()
             .unwrap();
         assert_eq!(buff.buff_id, 4000);

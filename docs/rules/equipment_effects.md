@@ -98,8 +98,9 @@ debuff and still reaches it. `debuff` is
 [`config/contraptions.yaml`](../../config/contraptions.yaml)'s, and the item's
 buff is [`config/equipment_effects.yaml`](../../config/equipment_effects.yaml)'s.
 
-Its buff may also raise the unit's damage, and its maximum life, and stack
-a step at a time, as a buff technology's does
+Its buff may also raise the unit's damage, its speed and its maximum life,
+and stack a step at a time, and the item may keep it on the units around its
+unit, as a buff technology's does
 ([technology_effects.md](technology_effects.md#buff-technologies)). A buff
 item with any other trigger, target or chance, or whose buff sets a field
 beyond these, is refused by name, and so is a travelling formation wearing

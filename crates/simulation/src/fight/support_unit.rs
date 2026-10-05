@@ -399,7 +399,7 @@ impl Simulation {
             secondary_damage: None,
             carried_shield: None,
             production: None,
-            start_buffs: Vec::new(),
+            buff_sources: Vec::new(),
             ignored_buffs: Vec::new(),
             important: false,
             ignores_control_beam: false,

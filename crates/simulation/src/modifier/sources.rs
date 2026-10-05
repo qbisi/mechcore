@@ -44,12 +44,12 @@ pub(crate) struct AutoRecovery {
     pub(crate) can_disable: bool,
 }
 
-/// The `buffDatas` row a `BuffEquipment` or a `BuffTech` adds to its unit as
-/// the fight starts: one whose `BuffTechListener` is `FightStart`, whose
-/// target is the unit itself, and which always triggers. `BuffEffectProvider`
-/// holds every such source, not one.
+/// A `BuffEquipment` or a `BuffTech` as `BuffEffectProvider` reads it: one
+/// whose `BuffTechListener` is `FightStart` and which always triggers, the
+/// targets its `BuffCycleController` gives the buff, and the `buffDatas` row
+/// it adds. `BuffEffectProvider` holds every such source, not one.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct StartBuff {
+pub(crate) struct BuffSource {
     pub(crate) buff_id: u32,
     pub(crate) divide: i32,
     pub(crate) additive: bool,
@@ -63,6 +63,8 @@ pub(crate) struct StartBuff {
     pub(crate) amplify_damage_rate: i64,
     /// `damageChangeRate`, Q32.32: the rate on the damage the unit deals.
     pub(crate) damage_rate: i64,
+    /// `speedChangeRate`, Q32.32: the rate on the unit's speed.
+    pub(crate) speed_rate: i64,
     /// `maxLifeChangeRate`, Q32.32: what `IBEC_ChangeMaxLife` adds to the
     /// unit's own life rate.
     pub(crate) max_life_rate: i64,
@@ -70,6 +72,40 @@ pub(crate) struct StartBuff {
     pub(crate) step_q32: i64,
     /// How it stacks, if it does (`IsAdditiveEffect`).
     pub(crate) stacking: Option<Stacking>,
+    /// Whom the controller gives it: the unit itself once, as the fight
+    /// starts, or, under `BuffTargetUpdateModel.Each`, every unit in reach.
+    pub(crate) reach: Option<BuffReach>,
+}
+
+/// The units a `RangeUnitCycle` keeps a buff on: those
+/// `RangeTargetCalculator.CalculateRangeActors` finds around the source's
+/// unit that `BuffCycleController.AvailableCheck` passes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct BuffReach {
+    /// `GetMax`, Q32.32 metres.
+    pub(crate) range_q32: i64,
+    /// `GetAttackTargetFlyType`: the domains it reaches.
+    pub(crate) domains: crate::rules::AttackTargets,
+    /// `IsDistanceCalculateTargetRadius`: the distance is to a unit's edge.
+    pub(crate) target_radius: bool,
+    /// `GetEffectTargetTypes`: which units of those it passes.
+    pub(crate) targets: BuffTargets,
+}
+
+/// The `TargetType`s a source names among the units: `MechUnit` (its own
+/// unit), `OtherSelfUnits` (its side's others), `FriendUnits` (its group's,
+/// which in a fight of one team a side are its side's), and
+/// `OpponentUnits`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "each target type is named or not on its own"
+)]
+pub(crate) struct BuffTargets {
+    pub(crate) itself: bool,
+    pub(crate) own_others: bool,
+    pub(crate) friends: bool,
+    pub(crate) opponents: bool,
 }
 
 /// A buff that stacks a step at a time, `IBEC_AdditiveEffectBuff` under

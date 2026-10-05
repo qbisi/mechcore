@@ -1,0 +1,30 @@
+# Three buffs on one Rhino, each taking back only what it wrote.
+#
+# The Rhino runs its own Combat Evolvement from the first tick, the Vortex's
+# Mobile Power Station from the ninth, and the enemy Wraith's Degeneration
+# Beam from t82. The Vortex dies at t317, and the Rhino's 10001 runs out at
+# t356 while the other two keep their rates until it dies at t377.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 384
+hash: {profile: mcfr-content-0.7.0, result: 37c31a5e35d7c57ca2a51f7b3b383275f4612b4dff8fe5dc93c23808a70469de}
+blue:
+  core_damage: 450
+  techs:
+    rhino: [combat_evolvement]
+    vortex: [mobile_power_station]
+  units:
+  - {name: vortex, index: 0, position: {x: 0, y: -120}, exp: 0/46/750}
+  - {name: rhino, index: 1, position: {x: 35, y: -115}, exp: 0/146/1150}
+  - {name: marksman, index: 2, position: {x: -40, y: -120}}
+red:
+  techs:
+    wraith: [degeneration_beam]
+  units:
+  - {name: wraith, index: 0, position: {x: 5, y: -105}, exp: 0/300/2250}
+  - {name: rhino, index: 1, position: {x: 45, y: -115}, exp: 0/500/1150}
+  - {name: crawler, index: 2, position: {x: -35, y: -100}}
