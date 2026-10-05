@@ -62,6 +62,7 @@ pub(super) fn placement(
         ignores_control_beam: false,
         travelling: false,
         extra_weapons: Vec::new(),
+        technology_disable: crate::layout::TechnologyDisable::default(),
     }
 }
 

@@ -855,10 +855,10 @@ simulator refuses it.
   first gun in the game as soon as its target turns into its 10 degrees, four
   ticks before the simulator: `layouts/gun-launched-missile-spread.yaml`,
   t532, not pinned.
-- **What Electromagnetic Barrage's buff switches off.** A unit that carries
-  a technology is refused, as an Electromagnetic Impact's is
-  ([battle_skill.md](battle_skill.md)), and so is a unit's own shield taking
-  a shell, which only a technology gives it.
+- **What Electromagnetic Barrage's buff switches off** beyond a plain
+  technology's numbers ([technology_effects.md](technology_effects.md)): a
+  unit that carries any other is refused, and so is a unit's own shield
+  taking a shell, which only a technology gives it.
 - **A wave that deals damage.** Disintegration's deals none, and the
   simulator strikes with a wave's damage as a splash does, the shields too.
   Nor is a shield covering what the blow was aimed at recorded, nor a wave's

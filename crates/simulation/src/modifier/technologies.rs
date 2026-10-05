@@ -175,7 +175,21 @@ struct Technology {
     /// The buff it adds its unit as the fight starts, if its class is an
     /// `IEffectBuffDataSource`.
     buff_source: Option<BuffSource>,
+    /// Whether switching it off takes away no more than its numbers, as this
+    /// build does it: [`DISABLED_AS_NUMBERS`].
+    disabled_as_numbers: bool,
 }
+
+/// The lists whose technologies a disabling buff switches off by taking their
+/// numbers away and gives back by writing them again, which the fight does:
+/// `EffectProvider.DisableEffect` removes a source's data
+/// (`IEffectProviderDataSource.RemoveData`) and `EnableEffect` adds it, and
+/// an armour's `ArmorStrengthenEffectProvider` its reduction. A lifesteal's
+/// and a second damage's providers take their hit effect away, which the
+/// fight asks of the unit at each hit. Every other list's provider does more,
+/// which is not measured.
+const DISABLED_AS_NUMBERS: [&str; 5] =
+    [PLAIN, ARMOR, DAMAGE_INTENSIFY, LIFESTEAL, SECONDARY_DAMAGE];
 
 /// What `SecondaryDamageIntensifyEffectProvider` hands its unit's main skill
 /// (`FightSkill.SetSecondaryDamageInfo`), and `DamagePerformer.PerformSecondaryEffect`
@@ -443,6 +457,7 @@ impl TechnologyEffects {
                     hits_main_target: row.secondary_hits_main_target,
                     buffed: row.secondary_buffed,
                 }),
+                disabled_as_numbers: DISABLED_AS_NUMBERS.contains(&row.kind.as_str()),
             };
             if technologies.insert(id, technology).is_some() {
                 return Err(Error::new(format!(
@@ -538,6 +553,19 @@ impl TechnologyEffects {
             air_attack: own().find_map(|technology| technology.air_attack),
             secondary_damage: own().find_map(|technology| technology.secondary_damage),
         })
+    }
+
+    /// This side's technologies on one unit type whose switching off by a
+    /// disabling buff is not measured, by id.
+    pub(crate) fn disabled_unmeasured(&self, held: &[i32], unit_type: &str) -> Vec<i32> {
+        held.iter()
+            .copied()
+            .filter(|id| {
+                self.technologies.get(id).is_some_and(|technology| {
+                    technology.unit == unit_type && !technology.disabled_as_numbers
+                })
+            })
+            .collect()
     }
 
     /// What this side's armour technologies write onto one unit type at one

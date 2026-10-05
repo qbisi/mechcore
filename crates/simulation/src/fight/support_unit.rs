@@ -405,6 +405,13 @@ impl Simulation {
             ignores_control_beam: false,
             travelling: false,
             extra_weapons: Vec::new(),
+            technology_disable: crate::layout::TechnologyDisable {
+                corrections: Vec::new(),
+                unmeasured: (!creator.summon.corrections.is_empty())
+                    .then(|| "a summon's technologies".to_owned())
+                    .into_iter()
+                    .collect(),
+            },
         };
         let mut actor = Actor::at_generated_position(placement, rules, x_q32, z_q32);
         if let Some(facing) = facing {

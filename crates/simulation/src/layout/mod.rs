@@ -98,6 +98,8 @@ pub(crate) struct Placement {
     pub(crate) travelling: bool,
     /// The extra weapons its technologies add beside its main skill.
     pub(crate) extra_weapons: Vec<ExtraWeapon>,
+    /// What a buff that disables technology switches off on it.
+    pub(crate) technology_disable: TechnologyDisable,
 }
 
 /// An extra weapon a unit's technology adds, and the fire its hit leaves.
@@ -154,9 +156,6 @@ pub(crate) struct CompiledLayout {
     /// The oil earlier rounds left, blue's and then red's, each side's in the
     /// order its layout lists them.
     pub(crate) standing_oil: Vec<StandingOil>,
-    /// The sides that researched a unit technology, whose units carry what an
-    /// Electromagnetic Impact would disable.
-    pub(crate) researched: BTreeSet<u32>,
     /// Each side's `legacy_index`: a formation of a lower index is one the
     /// side carried into the round.
     pub(crate) legacy_units: BTreeMap<u32, i32>,
@@ -187,7 +186,6 @@ impl CompiledLayout {
             shields: Vec::new(),
             battle_skills: Vec::new(),
             standing_oil: Vec::new(),
-            researched: BTreeSet::new(),
             legacy_units: BTreeMap::new(),
             delivered: BTreeSet::new(),
             travel_time_rates: BTreeMap::new(),
@@ -344,7 +342,6 @@ pub(crate) fn compile_with_seed(
     let mut shields = Vec::new();
     let mut battle_skills = Vec::new();
     let mut standing_oil = Vec::new();
-    let mut researched = BTreeSet::new();
     let mut tower_levels = BTreeMap::new();
     let mut delivered = BTreeSet::new();
     for (name, team, side) in sides {
@@ -375,9 +372,6 @@ pub(crate) fn compile_with_seed(
             &mut refused,
             (&mut interceptors, &mut missiles, &mut shields),
         );
-        if !side.techs.units.is_empty() {
-            researched.insert(team);
-        }
         let standing = compile_standing(name, team, side, skill_effects, &mut refused);
         shields.extend(standing.0);
         standing_oil.extend(standing.1);
@@ -412,7 +406,6 @@ pub(crate) fn compile_with_seed(
             shields,
             battle_skills,
             standing_oil,
-            researched,
             legacy_units: sides
                 .iter()
                 .map(|(_, team, side)| (*team, side.legacy_unit))
@@ -710,6 +703,7 @@ fn compile_formation(
         ignores_control_beam: worn.ignores_control_beam,
         travelling: formation.travelling,
         extra_weapons: worn.extra_weapons,
+        technology_disable: worn.technology_disable,
     })
 }
 
@@ -829,6 +823,22 @@ fn technology_line(production: &crate::rules::TechnologyProduction) -> Productio
     }
 }
 
+/// What a buff that disables technology takes from a unit while it runs
+/// (`CBEC_DisableTechnology`, `FightEffectSystem.DisableEffect`): of its
+/// sources, only its technologies, whose `Technology.CanDisable` answers
+/// `ignoreElectricEffect` false, and none of its officers', equipment's or
+/// Energy Tower skills', which answer false.
+#[derive(Debug, Clone, Default)]
+pub(crate) struct TechnologyDisable {
+    /// What its technologies wrote onto its numbers, which their providers
+    /// take away and write again (`IEffectProviderDataSource.RemoveData`,
+    /// `AddData`).
+    pub(crate) corrections: Vec<(Channel, Entry)>,
+    /// What it carries whose switching off is not measured, by name: a
+    /// technology whose provider does more than take its numbers away.
+    pub(crate) unmeasured: Vec<String>,
+}
+
 /// What this side's loadout and a formation's equipment hand one unit.
 struct Worn {
     corrections: Vec<(Channel, Entry)>,
@@ -845,6 +855,7 @@ struct Worn {
     important: bool,
     ignores_control_beam: bool,
     extra_weapons: Vec<ExtraWeapon>,
+    technology_disable: TechnologyDisable,
 }
 
 /// What this side's loadout and a formation's equipment write onto it.
@@ -932,6 +943,26 @@ fn loadout(
         corrections,
         refused,
     )?;
+    // What its technologies wrote, which resolved above, and what of them a
+    // disabling buff does more to than take its numbers away.
+    let technologies = &loadouts.technologies;
+    let held = &side.techs.units;
+    worn.technology_disable = TechnologyDisable {
+        corrections: refused.hold(
+            technologies
+                .corrections(held, type_name)
+                .and_then(|mut written| {
+                    written.extend(technologies.armor(held, type_name, level)?);
+                    Ok(written)
+                })
+                .map_err(on_side),
+        )?,
+        unmeasured: technologies
+            .disabled_unmeasured(held, type_name)
+            .into_iter()
+            .map(|id| format!("technology {id}"))
+            .collect(),
+    };
     let stats = refused.hold(Stats::corrected(rules, level, &worn.corrections).map_err(refusal))?;
     // A snapshot carries each `DataSet`'s aggregate; one this build cannot
     // record is refused here, where the side and the officer can be named.
@@ -1044,6 +1075,7 @@ fn worn(
         important,
         ignores_control_beam,
         extra_weapons,
+        technology_disable: TechnologyDisable::default(),
     })
 }
 

@@ -151,6 +151,46 @@ Its numbers may also be only half of what it does: Photon Coating's reduction
 of damage received is not here even though the technology also carries numbers
 that are.
 
+## Switched off
+
+A buff that disables technology switches a unit's technologies off while it
+runs: an Electromagnetic Impact's, Electromagnetic Barrage's. It is a common
+buff effect over a count of such buffs (`CBEC_DisableTechnology`), so the
+first to reach a unit switches them off as it is written and the last to
+leave switches them on again, as its time runs out or as the fight is left
+and its buffs are cleared. The unit's `status_mask` reads
+`technology_disabled` the while, whether it carries a technology or not.
+
+Switching off is each of the unit's effect providers' `DisableEffect` on each
+of its sources that `CanDisable` (`FightEffectMananger.DisableEffect`), and
+only a technology does: `Technology.CanDisable` answers `ignoreElectricEffect`
+false, which every row but a few buff, Dual Wield and melee-mode rows does;
+an officer, an equipment, an Energy Tower skill and a battle skill answer
+false. So the officers' and the items' corrections stay.
+
+- **A plain technology's numbers leave its unit.** The provider removes its
+  source's data (`IEffectProviderDataSource.RemoveData`) and writes it again
+  as it is switched on (`AddData`); an armour's provider its reduction, a
+  damage intensify's its damage. A Marksman with Assault Mode reads none of
+  its corrections from the tick the buff is written: its range is 140 metres
+  again, and its maximum life 1622 for 9732. Switched on, the corrections are
+  back in their first order.
+- **Its life follows its maximum** as any change of the maximum moves it
+  (`FightMech.RefreshLifeData`): a unit at its whole life keeps its whole life,
+  any other its share.
+- **Its current interval is made again without its stagger** as its numbers
+  change (`FightSkill.RefreshAttackInterval`), both ways: a Rhino with
+  Mechanical Rage waits 18 ticks between blows for 12 while it is off, and a
+  Marksman's drawn 69 becomes its plain 62. A unit whose technologies wrote
+  nothing keeps the interval it drew.
+- **A lifesteal's and a second damage's** providers take their hit effect
+  away, which the fight asks of the unit at each hit.
+
+What switching off does to any other technology, an extra weapon's skills, a
+repair, a shield, a buff technology's buffs, a sweep's or a search's change,
+is read below and refused: a buff that disables technology reaching a unit
+that carries one is refused by name.
+
 ## What the recordings show
 
 One Arclight researching Range Enhancement while its side holds Extended Range
@@ -195,6 +235,14 @@ whose effect grows with rank, rather than read index zero:
   `tests/technology_buff/fights/degeneration-beam.yaml`.
 - Three buffs run on one Rhino, and one ending leaves the others' rates:
   `tests/technology_buff/fights/three-buffs.yaml`.
+- A disabling buff takes a plain technology's numbers off its unit as it is
+  written, life and current interval with them, and they come back as it runs
+  out or as the fight is left:
+  `tests/technology_disable/fights/barrage-assault-mode.yaml`,
+  `tests/technology_disable/fights/impact-to-fight-end.yaml`,
+  `tests/technology_disable/fights/impact-expires.yaml`. A unit with no
+  technology keeps its drawn interval:
+  `tests/technology_disable/fights/impact-on-both-sides.yaml`.
 
 ### Read
 
@@ -241,6 +289,15 @@ whose effect grows with rank, rather than read index zero:
   adds the buff through `BuffCycleController.TriggerBuffOrBuffRangeItemFromSelector`
   and `BuffSystem.AddBuffByCheck`.
 
+- Switching off: `CBEC_DisableTechnology.Enter`, `CBEC_DisableTechnology.Exit`,
+  `FightEffectSystem.DisableEffect`, `FightEffectMananger.DisableEffect`,
+  `EffectProvider.EnableCheck`, `EffectProvider.DisableEffect`,
+  `EffectProvider.EnableEffect`, `Technology.CanDisable`,
+  `ArmorStrengthenEffectProvider.DisableEffect`,
+  `LifeStealEffectProvider.DoDisableEffect`,
+  `SecondaryDamageIntensifyEffectProvider.DisableEffect`,
+  `FightMech.RefreshLifeData`, `FightSkill.RefreshAttackInterval`.
+
 ### Not established
 
 - **Which units `FriendUnits` names in a fight of two teams a side.**
@@ -248,6 +305,15 @@ whose effect grows with rank, rather than read index zero:
   their teams, and with one team a side the simulator reads it as the side;
   Mobile Power Station names it beside `OtherSelfUnits` and `MechUnit`, whose
   union is the side either way.
+- **A hurt unit's life as a disable moves its maximum.** The share rule is
+  the one a buff's maximum life measured; no disable has been recorded on a
+  hurt unit whose technology moves its maximum.
+- **What switching off does beyond numbers**: an extra weapon's skills
+  (`ExtraSkillProvider.DisableSkill`, `FightSkill.Disable`), a repair
+  (`AutoRecoverySystem.DisableMech`), a unit's own shield and a Barrier's
+  (`EnergyShieldProvider.DisableEffect`,
+  `AdvancedEnergyShieldSystem.DeactiveEnergyShield`), a buff technology's
+  buffs, a sweep's and a search's change, an air attack's switch. Refused.
 - **How the life share rounds.** The quotient rounded and the product
   truncated is what the recordings fit; the arithmetic of `FPoint` division
   and multiplication was not read.
