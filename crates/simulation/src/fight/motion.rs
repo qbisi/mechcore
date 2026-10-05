@@ -879,7 +879,9 @@ impl Simulation {
     /// (`IsMainTargetProvider` answers `isMainSkill`). An extra skill takes it
     /// only while the main searcher holds no lock
     /// (`GetMainSearcherSkill().GetLockTarget()`), and hands the unit no lock
-    /// with it.
+    /// with it; a skill of a `SkillGroup` that is no main searcher never
+    /// takes it: Energy Diffraction's beams leave a Melting Point idle while
+    /// its main beam holds no lock.
     pub(in crate::fight) fn hand_motion_after_lock_search(&mut self, skill_ref: SkillRef) {
         let FightActorRef::Unit(actor_id) = skill_ref.owner else {
             return;
@@ -905,8 +907,10 @@ impl Simulation {
                 actor.motion.attacker = SkillSlot::Main;
                 self.hand_standalone_motion(SkillRef::main(FightActorRef::Unit(actor_id)), 0);
             }
-            SkillSlot::Extra(_) => {
-                if actor.skills.main.slot_lock(0).is_none() {
+            SkillSlot::Extra(index) => {
+                if actor.skills.main.slot_lock(0).is_none()
+                    && !actor.skills.extras[index].skill.is_grouped()
+                {
                     actor.motion.attacker = skill_ref.slot;
                 }
             }
