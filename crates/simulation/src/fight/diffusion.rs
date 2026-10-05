@@ -22,6 +22,9 @@ pub(in crate::fight) struct Diffusion {
     skill_ref: SkillRef,
     /// The blow, as it landed: where, for how much, of which side.
     hit: DamageHit,
+    /// What the blow was aimed at, `mainTargetActor`: a battlefield shield
+    /// covering it takes every firing, wherever it stands.
+    aimed: Option<FightActorRef>,
     /// The skill's whole splash, and how much further each firing reaches,
     /// in space units.
     splash_radius: i64,
@@ -47,11 +50,6 @@ impl Simulation {
         hit: DamageHit,
         diffusion: crate::rules::Diffusion,
     ) -> Result<()> {
-        if !self.shield.standing.is_empty() {
-            return Err(Error::new(
-                "a diffusing splash in a fight with a battlefield shield is not measured",
-            ));
-        }
         let targets = self
             .skill_attacker(skill_ref)
             .ok_or_else(|| Error::new("a diffusing skill's owner is absent"))?
@@ -73,6 +71,7 @@ impl Simulation {
                 reach: Reach::Targets(targets),
                 ..hit
             },
+            aimed: hit.aimed,
             splash_radius: hit.splash_radius,
             step_radius,
             interval: seconds_q32_to_steps(crate::rules::metres_q32(diffusion.interval)),
@@ -111,6 +110,13 @@ impl Simulation {
     /// otherwise the splash this far, on what it reaches that it has not
     /// struck, which then takes the skill's hit effects
     /// (`DispatchHitDamageEvent`): Disintegration's buff.
+    ///
+    /// Battlefield shields stand in its way as in any splash's
+    /// (`ProcessAdvancedEnergyShieldEffect`): what an enemy shield covers is
+    /// taken out of the firing, and is not counted struck, so a later firing
+    /// reaches it once the shield is gone. Each firing then strikes the shield
+    /// covering what the blow was aimed at, and every other the whole splash
+    /// reaches, not only this firing's.
     fn diffuse(&mut self, index: usize, events: &mut Vec<Event>) -> Result<()> {
         let diffusion = &self.diffusions[index];
         let (skill_ref, struck) = (diffusion.skill_ref, &diffusion.struck);
@@ -129,12 +135,25 @@ impl Simulation {
                 .min(diffusion.splash_radius),
             ..diffusion.hit
         };
-        let targets = self
+        let mut targets = self
             .damage_targets(&hit)?
             .into_iter()
             .filter(|target| !struck.contains(target))
             .collect::<Vec<_>>();
+        let shields = if hit.crosses_shields {
+            Vec::new()
+        } else {
+            let whole = DamageHit {
+                aimed: diffusion.aimed,
+                splash_radius: diffusion.splash_radius,
+                ..hit
+            };
+            self.shields_in_the_way(&whole, &mut targets)
+        };
         self.diffusions[index].struck.extend(&targets);
+        for shield in shields {
+            self.hit_shield(shield, &hit, events)?;
+        }
         let struck = self.strike_targets(&hit, targets, events)?;
         let center = (hit.center_q32.0, hit.center_y_q32, hit.center_q32.1);
         self.extra_hit_effect(skill_ref, &struck.targets, center, events)?;

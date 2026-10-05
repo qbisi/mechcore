@@ -171,7 +171,8 @@ is written. The Barrier's shield neither recovers nor refills.
 
 A shield takes a hit's damage up to the energy it has left, and a hit that
 empties it destroys it for the rest of the fight: the excess goes nowhere. The
-recording names the shield as the target of that `damage`, and removes a
+recording names the shield as the target of that `damage`, and records none
+for a hit that takes nothing (a Disintegration wave's), and removes a
 projectile whose hit took energy from a shield `absorbed_by` the last shield it
 took energy from, whether the projectile crossed that shield's surface or its
 splash reached it from outside.

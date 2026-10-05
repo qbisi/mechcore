@@ -1,0 +1,31 @@
+# Disintegration against a Marksman under red's shield.
+#
+# An Abyss with Disintegration sweeps red's Rhinos, beside which a Marksman
+# stands under a shield. Each wave reaches the Marksman (t122 to
+# t162, t422 to t462, t712 to t742), and the shield, which does not hold
+# where the wave started, takes it out of every firing: it is not counted
+# struck, so each later firing reaches it again, and it never takes the buff.
+# The shield takes every firing for nothing, which records nothing. The
+# Abyss's sweep breaks it at t742.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 747
+hash: {profile: mcfr-content-0.7.0, result: 752c73baea4c8401bd45d5c97f959615b9a9e7a86fd6445a196324dbbda42981}
+blue:
+  techs:
+    abyss: [disintegration]
+  units:
+  - {name: abyss, index: 0, position: {x: 5, y: -45}, exp: 0/1192/4800}
+red:
+  core_damage: 500
+  units:
+  - {name: rhino, index: 0, position: {x: -35, y: -25}}
+  - {name: rhino, index: 1, position: {x: -75, y: -25}}
+  - {name: marksman, index: 2, position: {x: 120, y: -80}}
+  - {name: crawler, index: 3, position: {x: -45, y: -110}}
+  contraptions:
+  - {name: shield, index: 4, position: {x: 125, y: -85}, retained: false}

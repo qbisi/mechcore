@@ -286,6 +286,13 @@ performer's own.
   timer fires once more, striking nothing (`DiffusionCompleteCallBack`).
 - **A firing while the Abyss is dead strikes nothing**, and the wave goes on
   growing.
+- **A battlefield shield stands in each firing's way** as in any splash's
+  (`ProcessAdvancedEnergyShieldEffect`): what an enemy shield covers that
+  does not hold where the wave started is taken out of the firing, and is not
+  counted struck, so every later firing reaches it again. Each firing then
+  strikes the shield covering what the blow was aimed at, and every other the
+  whole 280 metres reach, not only that firing's; Disintegration's strikes
+  it for nothing, which no recording reads.
 - **Every unit struck takes the row's buff**, a slow of -0.4 of move speed
   for 5 seconds, which first takes 0.2 of its life now:
   `IBEC_ChangeCurrentLife.Perform` takes the whole part of the unit's life
@@ -631,7 +638,10 @@ simulator refuses it.
   `tests/extra_weapon/fights/disintegration-rhinos.yaml`. Two Abysses' waves
   renew each other's buff and take their share again, the buff keeping its
   first source, and leave the Wasp among them alone:
-  `tests/extra_weapon/fights/disintegration-two-abysses.yaml`.
+  `tests/extra_weapon/fights/disintegration-two-abysses.yaml`. A shield keeps
+  the Marksman it covers out of every firing that reaches it, until the
+  Abyss's sweep breaks it, and a shield struck for nothing records nothing:
+  `tests/extra_weapon/fights/disintegration-shield.yaml`.
 
 ### Replayed
 
@@ -752,7 +762,9 @@ simulator refuses it.
   `FightSupportSkill.Enable`, `SupportSkillData.PreProcess`.
 - A wave: `DamagePerformer.Perform`, `DamagePerformer.PerformDiffusionRangeEffect`,
   `DamagePerformer.DiffusionIntevalCallBack`, `DamagePerformer.DiffusionCompleteCallBack`,
-  `DamagePerformer.PrepareRangeTargetsInDiffusion`, `GRTimerManager.Update`,
+  `DamagePerformer.PrepareRangeTargetsInDiffusion`,
+  `DamagePerformer.ProcessAdvancedEnergyShieldEffect`,
+  `DamagePerformer.PerformHitAdvancedEndergyShieldEffect`, `GRTimerManager.Update`,
   `GRTimer.Init`, `GRTimer.Update`, `SkillDamageProvider.GetTargetType`; its
   buff's share of life, `BuffManager.AddBuff`, `Buff.ReEnableDisposableEffect`,
   `Buff.Reset`, `IBEC_ChangeCurrentLife.Enter`,
@@ -772,11 +784,11 @@ simulator refuses it.
   attack. `AttackRotate` also turns the extra skill's own weapons
   (`FightSkill.RotateWeaponTo`) unless they are standalone; no recording reads
   that turn.
-- **A wave that deals damage, or meets a battlefield shield.**
-  Disintegration's deals none, and the simulator strikes with a wave's
-  damage as a splash does; a wave in a fight with a battlefield shield is
-  refused. Nor is a wave's timer ordered against a summon's that is due on
-  the same tick: the simulator runs the summons first.
+- **A wave that deals damage.** Disintegration's deals none, and the
+  simulator strikes with a wave's damage as a splash does, the shields too.
+  Nor is a shield covering what the blow was aimed at recorded, nor a wave's
+  timer ordered against a summon's that is due on the same tick: the
+  simulator runs the summons first.
 - **A correction other than damage composing on an extra skill**, an Energy
   Tower skill's range among them. Refused.
 - **What invincibility keeps off.** A fire burns an invincible Fire Badger;
