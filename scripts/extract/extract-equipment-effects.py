@@ -18,6 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import build_data  # noqa: E402
+from buff_rows import buff_lines  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 # The build's field for each column this table writes.
@@ -47,65 +48,6 @@ SUBCLASS_FIELDS = {
 }
 # The subclass fields that are plain integers rather than FPoint raw values.
 SUBCLASS_INTEGERS = {"barrier_radius", "barrier_energy"}
-
-
-# A buff item's trigger, read by the simulator, and the rest of its
-# BuffEquipmentData fields, any of which set is named in `buff_special`. The
-# effect's name and whether it follows are what the client shows.
-BUFF_TRIGGER = {
-    "buff_trigger": "buffTechTrigger", "buff_targets": "effectTargetTypes",
-    "probability": "probability",
-}
-BUFF_ITEM_OTHER = (
-    "energyShieldDamageMultiplier", "min", "max", "intervalTime", "delayTime", "targetFlyType",
-    "targetDamageDistanceType", "buffTargetUpdateModel", "triggerRangeItemBuffId",
-    "triggerRangeItemType", "triggerLifeTime", "triggerRangeItemRange", "triggerRoundDuration",
-    "isDistanceCalculateTargetRadius", "isDistanceCalculateSelfRadius",
-)
-# The fields of the buffDatas row a buff item names that the simulator
-# reads; any other set is named in the buff's `special`.
-BUFF_READ = {
-    "buffDivide": "divide", "isAdditiveMode": "additive", "debuff": "debuff",
-    "invincible": "invincible", "disableTechnology": "disable_technology",
-    "amplifyDamageRate": "amplify_damage_rate",
-    "isClearSelfBuffWhenDisableTech": "clear_when_technologies_disabled",
-}
-BUFF_DESCRIPTIVE = {"id", "name", "isTestData", "duration", "effectType"}
-
-
-def set_fields(row, fields):
-    return [field for field in fields if raw(row.get(field)) not in (0, False, None, "", [], {})]
-
-
-def buff_lines(row, buffs):
-    """A buff item's trigger and the buffDatas row it adds."""
-    lines = [
-        f"    buff_trigger: {row['buffTechTrigger']}",
-        f"    buff_targets: [{', '.join(map(str, row['effectTargetTypes']))}]",
-        f"    probability: {raw(row['probability'])}{reading(raw(row['probability']))}",
-    ]
-    special = set_fields(row, BUFF_ITEM_OTHER)
-    if special:
-        lines.append(f"    buff_special: [{', '.join(special)}]")
-    buff = buffs[row["buffID"]]
-    lines += [
-        "    buff:",
-        f"      id: {buff['id']}",
-        f"      name: {buff['name']}",
-        f"      duration: {raw(buff['duration'])}{reading(raw(buff['duration']))}",
-    ]
-    for field, name in BUFF_READ.items():
-        value = raw(buff[field])
-        if isinstance(value, bool):
-            lines.append(f"      {name}: {str(value).lower()}")
-        elif field == "amplifyDamageRate":
-            lines.append(f"      {name}: {value}{reading(value) if value else ''}")
-        else:
-            lines.append(f"      {name}: {value}")
-    special = set_fields(buff, [field for field in buff if field not in BUFF_READ and field not in BUFF_DESCRIPTIVE])
-    if special:
-        lines.append(f"      special: [{', '.join(special)}]")
-    return lines
 
 
 # A production line's SupportUnitEquipmentData: what it makes, how many and

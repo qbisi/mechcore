@@ -51,6 +51,12 @@ equipment:
       invincible: false
       disable_technology: true
       amplify_damage_rate: 0
+      damage_rate: 0
+      max_life_rate: 0
+      step_time: 0
+      additive_effect: false
+      additive_condition: 0
+      max_additive_stack: 0
       clear_when_technologies_disabled: false
       special: [speedChangeRate]
   - id: 1305002
@@ -72,6 +78,12 @@ equipment:
       invincible: false
       disable_technology: false
       amplify_damage_rate: 0
+      damage_rate: 0
+      max_life_rate: 0
+      step_time: 0
+      additive_effect: false
+      additive_condition: 0
+      max_additive_stack: 0
       clear_when_technologies_disabled: false
       special: [summonUnitID]
   - id: 1305003
@@ -93,6 +105,12 @@ equipment:
       invincible: true
       disable_technology: false
       amplify_damage_rate: -1288490188  # -0.3
+      damage_rate: 0
+      max_life_rate: 0
+      step_time: 0
+      additive_effect: false
+      additive_condition: 0
+      max_additive_stack: 0
       clear_when_technologies_disabled: true
   - id: 1305004
     name: 先进电磁弹药
@@ -115,6 +133,12 @@ equipment:
       invincible: false
       disable_technology: true
       amplify_damage_rate: 0
+      damage_rate: 0
+      max_life_rate: 0
+      step_time: 0
+      additive_effect: false
+      additive_condition: 0
+      max_additive_stack: 0
       clear_when_technologies_disabled: false
       special: [speedChangeRate]
   - id: 1305005
@@ -138,6 +162,12 @@ equipment:
       invincible: false
       disable_technology: false
       amplify_damage_rate: 0
+      damage_rate: 0
+      max_life_rate: 0
+      step_time: 0
+      additive_effect: false
+      additive_condition: 0
+      max_additive_stack: 0
       clear_when_technologies_disabled: false
       special: [summonUnitID]
   - id: 1305006
@@ -161,6 +191,12 @@ equipment:
       invincible: false
       disable_technology: false
       amplify_damage_rate: 0
+      damage_rate: 0
+      max_life_rate: 0
+      step_time: 0
+      additive_effect: false
+      additive_condition: 0
+      max_additive_stack: 0
       clear_when_technologies_disabled: true
       special: [attackRangeChangeRate]
   - id: 1305007
@@ -183,8 +219,13 @@ equipment:
       invincible: false
       disable_technology: false
       amplify_damage_rate: 0
+      damage_rate: 128849018  # +0.03
+      max_life_rate: 128849018  # +0.03
+      step_time: 4294967296  # +1
+      additive_effect: true
+      additive_condition: 1
+      max_additive_stack: 0
       clear_when_technologies_disabled: false
-      special: [stepTime, maxLifeChangeRate, damageChangeRate, isAdditiveEffect, buffEffectAdditiveCondition]
   - id: 1305008
     name: 光子投射装置
     kind: buffEquipmentDatas
@@ -206,6 +247,12 @@ equipment:
       invincible: true
       disable_technology: false
       amplify_damage_rate: -1288490188  # -0.3
+      damage_rate: 0
+      max_life_rate: 0
+      step_time: 0
+      additive_effect: false
+      additive_condition: 0
+      max_additive_stack: 0
       clear_when_technologies_disabled: true
   - id: 1305009
     name: 先进酸性弹药
@@ -228,8 +275,13 @@ equipment:
       invincible: false
       disable_technology: false
       amplify_damage_rate: 0
+      damage_rate: 0
+      max_life_rate: 0
+      step_time: 2147483648  # +0.5
+      additive_effect: false
+      additive_condition: 0
+      max_additive_stack: 0
       clear_when_technologies_disabled: false
-      special: [stepTime]
   - id: 1305010
     name: 先进引导雷达
     kind: buffEquipmentDatas
@@ -251,8 +303,14 @@ equipment:
       invincible: false
       disable_technology: false
       amplify_damage_rate: 0
+      damage_rate: 0
+      max_life_rate: 0
+      step_time: 2147483648  # +0.5
+      additive_effect: false
+      additive_condition: 0
+      max_additive_stack: 0
       clear_when_technologies_disabled: false
-      special: [stepTime, attackRangeChangeValue]
+      special: [attackRangeChangeValue]
   - id: 1306001
     name: 坦克生产线
     kind: supportUnitEquipmentDatas

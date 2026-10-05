@@ -34,6 +34,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 import build_data  # noqa: E402
+from buff_rows import SOURCE_OTHER, buff_lines  # noqa: E402
 
 REPOSITORY = pathlib.Path(__file__).resolve().parents[2]
 OUTPUT = REPOSITORY / "config/technology_effects.yaml"
@@ -102,7 +103,12 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "energyShieldTechnologies", "sweepSkillIntensifyTechDatas",
                "armorStrengthenTechnologyDatas", "searchTargetSpecificDatas",
                "airAttackTechnologyDatas", "damageIntensifyTechnologies",
-               "secondaryDamageIntensifyTechDatas")
+               "secondaryDamageIntensifyTechDatas", "buffTechnologies")
+# The list whose `BuffTech` adds a buff, and the fields its rows carry for
+# `buff_lines` rather than as corrections.
+BUFF = "buffTechnologies"
+BUFF_SOURCE = {"buffID", "buffTechTrigger", "effectTargetTypes", "probability", "energyShieldDamage",
+               *SOURCE_OTHER}
 # The list of `TechnologyGroupData` a plain technology comes from. A row of any
 # other list is a subclass (`BuffTechnologyData`, `SplashTechnologyData` and
 # the rest) that does something beyond its unit's numbers.
@@ -148,10 +154,12 @@ def special(row: dict) -> list[str]:
     number this table carries nor descriptive: what it does beyond numbers."""
     numeric = ({source for _, source in LISTS} | {source for _, source, _ in SUBCLASS_LISTS}
                | {source for _, source, _ in SUBCLASS_SCALARS + SET_SCALARS})
+    source = BUFF_SOURCE if row["kind"] == BUFF else set()
     return sorted(
         field
         for field, value in row["row"].items()
-        if field not in numeric | DESCRIPTIVE and raw(value) not in (0, False, "", None, [], {})
+        if field not in numeric | DESCRIPTIVE | source
+        and raw(value) not in (0, False, "", None, [], {})
     )
 
 
@@ -319,10 +327,15 @@ def main() -> int:
         "# whether it reaches what the first hit struck, whether the attacker's",
         "# and the target's buffs scale it, whether it disables the struck",
         "# units' technologies, and the buff it writes on them (`secondary_*`).",
+        "# A buff technology carries what triggers its buff (`buff_trigger`, a",
+        "# BuffTechListener: 1 is the fight's start), whom it reaches",
+        "# (`buff_targets`, TargetTypes: 1 is the unit itself), how likely, and",
+        "# the buffDatas row it adds, as a buff item does.",
         "",
         "technologies:",
     ]
     written = plain = 0
+    buffs = {buff["id"]: buff for buff in build_data.container()["buffDatas"]}
     for identifier, row in sorted(rows.items()):
         held = [
             (field, row[field])
@@ -353,6 +366,8 @@ def main() -> int:
         for field, source, owner in SET_SCALARS:
             if row["kind"] == owner and row[field]:
                 lines.append(f"    {field}: {row[field]}  # {reading(field, row[field])}")
+        if row["kind"] == BUFF:
+            lines += buff_lines(row["row"], buffs)
         for field, values in held:
             raw = ", ".join(str(value) for value in values)
             if field in INTEGERS:

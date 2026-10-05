@@ -32,6 +32,7 @@ use crate::{
 };
 
 use super::{
+    buffs,
     effects::{self, Fields, PROJECTILE, VALUE_ELSEWHERE},
     sources::{AutoRecovery, CarriedShield, EnergyShield, LifeSteal, ProductionLine, StartBuff},
     targets::Targets,
@@ -98,15 +99,6 @@ const AUTO_RECOVERY: &str = "autoRecoveryEquipmentDatas";
 /// adds on a trigger. The one trigger read is the fight's start, onto the
 /// unit itself, which hands its unit a [`StartBuff`].
 const BUFF: &str = "buffEquipmentDatas";
-
-/// `BuffTechListener.FightStart`.
-const FIGHT_START: i32 = 1;
-
-/// `TargetType.MechUnit`: the unit the buff's source is on.
-const MECH_UNIT: i32 = 1;
-
-/// One, Q32.32.
-const ONE: i64 = 1 << 32;
 
 /// The list whose `SplashEquipment.AddData` writes its row's correction and
 /// then its `range` into the skill's `SkillDataChangeFloat.SplashRangeValue`.
@@ -237,7 +229,7 @@ struct Row {
     buff_special: Vec<String>,
     /// The `buffDatas` row a buff row adds.
     #[serde(default)]
-    buff: Option<BuffBlock>,
+    buff: Option<buffs::BuffBlock>,
     /// The buffs of an anti-interference row's group.
     #[serde(default)]
     ignored_buffs: Vec<u32>,
@@ -280,36 +272,6 @@ struct ProductionRow {
 struct Offset {
     x: i64,
     z: i64,
-}
-
-/// A `buffDatas` row a buff item adds, with the fields the simulator reads.
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-#[allow(
-    clippy::struct_excessive_bools,
-    reason = "the buff row's flags are independent fields"
-)]
-struct BuffBlock {
-    id: u32,
-    name: String,
-    duration: i64,
-    divide: i32,
-    additive: bool,
-    debuff: bool,
-    invincible: bool,
-    disable_technology: bool,
-    amplify_damage_rate: i64,
-    /// `isClearSelfBuffWhenDisableTech`. A buff is cleared by it only when
-    /// its unit's technologies are disabled, which no buff here can do to an
-    /// invincible unit; nothing reads it.
-    #[allow(
-        dead_code,
-        reason = "no read buff runs on a unit whose technologies go off"
-    )]
-    clear_when_technologies_disabled: bool,
-    /// The other fields it sets.
-    #[serde(default)]
-    special: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -577,58 +539,18 @@ impl Equipment {
     }
 }
 
-/// The buff a buff row adds as the fight starts, or why this build will not
-/// apply the row. `BuffCycleController.OnEnterFight` runs a controller whose
-/// listener is `FightStart`, and its first `Update` triggers once, since a
-/// row with no delay and no interval does not cycle.
+/// The buff a buff row adds as the fight starts ([`buffs::start_buff`]).
 fn start_buff_of(row: &Row, who: &str) -> std::result::Result<Option<StartBuff>, String> {
     if row.kind != BUFF {
         return Ok(None);
     }
-    let Some(buff) = &row.buff else {
-        return Err(format!("{who} names no buff"));
-    };
-    if row.buff_trigger != Some(FIGHT_START) || row.buff_targets != [MECH_UNIT] {
-        return Err(format!(
-            "{who} adds its buff on BuffTechListener {:?} to TargetTypes {:?}, and only the \
-             fight's start onto the unit itself is read",
-            row.buff_trigger, row.buff_targets
-        ));
-    }
-    if row.probability != Some(ONE) {
-        return Err(format!(
-            "{who} adds its buff with probability {:?}, and only a certain one is read",
-            row.probability
-        ));
-    }
-    if !row.buff_special.is_empty() {
-        return Err(format!(
-            "{who} sets {}, which no mechanism here reads",
-            row.buff_special.join(", ")
-        ));
-    }
-    if !buff.special.is_empty() || buff.disable_technology {
-        return Err(format!(
-            "{who} adds buff {} ({}), which sets {}, and no mechanism here reads it on a \
-             unit's own buff",
-            buff.id,
-            buff.name,
-            if buff.disable_technology {
-                "disableTechnology".to_owned()
-            } else {
-                buff.special.join(", ")
-            }
-        ));
-    }
-    Ok(Some(StartBuff {
-        buff_id: buff.id,
-        divide: buff.divide,
-        additive: buff.additive,
-        duration_q32: buff.duration,
-        debuff: buff.debuff,
-        invincible: buff.invincible,
-        amplify_damage_rate: buff.amplify_damage_rate,
-    }))
+    buffs::start_buff(
+        who,
+        (row.buff_trigger, &row.buff_targets, row.probability),
+        &row.buff_special,
+        row.buff.as_ref(),
+    )
+    .map(Some)
 }
 
 /// The production line a production row runs, or why this build will not

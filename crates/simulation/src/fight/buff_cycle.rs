@@ -1,6 +1,8 @@
-//! `BuffSystem`: the buffs a unit's equipment adds on a trigger.
+//! `BuffSystem`: the buffs a unit's technologies and equipment add on a
+//! trigger.
 //!
-//! A `BuffEquipment` hands its unit's `BuffEffectProvider` a source, and
+//! A `BuffTech` or a `BuffEquipment` hands its unit's `BuffEffectProvider` a
+//! source, and
 //! `BuffEffectProvider.RegisterEffectEvent` a `BuffCycleController` in its
 //! side's `TeamBuffCycleManager`. The one trigger read is the fight's start:
 //! `BuffCycleController.OnEnterFight` starts the controller of a unit not
@@ -9,16 +11,19 @@
 //! itself through `BuffSystem.AddBuffByCheck`, once. `docs/rules/equipment_effects.md`
 //! states the rule.
 
-use super::{tower::BuffRow, *};
+use super::{
+    tower::{BuffRow, StackRule},
+    *,
+};
 use crate::data::{Entry, Index};
 
-/// What tags the entries an equipment's buff writes.
-const SOURCE: &str = "EquipmentBuff";
+/// What tags the entries a technology's or an equipment's buff writes.
+const SOURCE: &str = "BuffEffectProvider";
 
 impl Simulation {
     /// `TeamBuffCycleManager.Update` on the fight's first tick: every unit
-    /// whose equipment adds a buff as the fight starts takes it, blue's units
-    /// first, each recorded as written by the unit itself.
+    /// whose technologies or equipment add a buff as the fight starts takes
+    /// it, blue's units first, each recorded as written by the unit itself.
     pub(in crate::fight) fn step_buff_cycles(&mut self, events: &mut Vec<Event>) -> Result<()> {
         let mut started = self
             .actors
@@ -32,21 +37,32 @@ impl Simulation {
             actor.start_buffs_pending = false;
             let source = actor.object_ref();
             for buff in actor.placement.start_buffs.clone() {
+                let step_ticks = u32::try_from(seconds_q32_to_steps(buff.step_q32))
+                    .map_err(|_| Error::new("a buff's step outlasts a fight"))?;
                 let row = BuffRow {
                     buff_id: buff.buff_id,
+                    max_life_rate: buff.max_life_rate,
+                    stacking: buff.stacking.map(|stacking| StackRule {
+                        step_ticks,
+                        max: stacking.max,
+                    }),
                     divide: buff.divide,
                     additive: buff.additive,
                     ticks: u32::try_from(seconds_q32_to_steps(buff.duration_q32))
                         .map_err(|_| Error::new("an equipment's buff outlasts a fight"))?,
                     source: SOURCE,
-                    entries: (buff.amplify_damage_rate != 0)
-                        .then(|| Entry {
-                            index: Index::AmplifyDamage,
-                            source: SOURCE,
-                            correction: super::tower::rate(buff.amplify_damage_rate),
-                        })
-                        .into_iter()
-                        .collect(),
+                    entries: [
+                        (Index::AttackDamage, buff.damage_rate),
+                        (Index::AmplifyDamage, buff.amplify_damage_rate),
+                    ]
+                    .into_iter()
+                    .filter(|&(_, rate)| rate != 0)
+                    .map(|(index, rate)| Entry {
+                        index,
+                        source: SOURCE,
+                        correction: super::tower::rate(rate),
+                    })
+                    .collect(),
                     disables_technology: false,
                     debuff: buff.debuff,
                     invincible: buff.invincible,

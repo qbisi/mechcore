@@ -1,0 +1,44 @@
+# Replay 2324_20260925--134260717, round 2, map 1011. Red's Rhinos with
+# Combat Evolvement stack their buff through the round. One under a life
+# rate of its own besides reads 25742 of its life at t420, refreshed
+# through its maximum without the buff.
+
+kind: fight
+map_id: 1011
+seed: 1231717251
+round: 2
+source: game
+ticks: 1467
+hash: {profile: mcfr-content-0.7.0, result: 4169673842880e0a0a9c2ef137ab694c62978498f8d7e230cc59dc4cd7251255}
+blue:
+  officers: [aerial_specialist]
+  legacy_index: 7
+  units:
+  - {name: fang, index: 0, position: {x: 200, y: -235}, rotated: true}
+  - {name: fang, index: 1, position: {x: 0, y: -205}, exp: 0/100/600, rotated: true}
+  - {name: fang, index: 2, position: {x: -190, y: -225}, rotated: true}
+  - {name: fire_badger, index: 3, position: {x: -30, y: -205}, exp: 0/116/1400, rotated: true}
+  - {name: hound, index: 5, position: {x: -190, y: -190}}
+  - {name: hound, index: 6, position: {x: 200, y: -200}}
+  - {name: centurion, index: 8, position: {x: -65, y: -215}, exp: 0/866/2250}
+  - {name: centurion, index: 9, position: {x: 35, y: -215}, exp: 0/2116/2250}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+red:
+  core_damage: 250
+  officers: [cost_control_specialist]
+  techs:
+    rhino: [combat_evolvement]
+  legacy_index: 7
+  units:
+  - {name: marksman, index: 0, position: {x: 160, y: -170}, exp: 80/287/650}
+  - {name: marksman, index: 1, position: {x: 140, y: -150}, exp: 212/482/650}
+  - {name: marksman, index: 2, position: {x: -140, y: -150}, exp: 146/412/650}
+  - {name: tarantula, index: 3, position: {x: 115, y: -165}, exp: 244/314/1500}
+  - {name: tarantula, index: 4, position: {x: -115, y: -165}, exp: 294/965/1500}
+  - {name: tarantula, index: 5, position: {x: 5, y: -155}, exp: 371/471/1500}
+  - {name: marksman, index: 6, position: {x: 30, y: -160}, exp: 246/246/650}
+  - {name: rhino, index: 7, position: {x: 265, y: -295}, exp: 0/256/1150}
+  - {name: rhino, index: 8, position: {x: -265, y: -295}, exp: 0/517/1150}
+  - {name: marksman, index: 9, position: {x: -20, y: -160}, exp: 0/33/650}

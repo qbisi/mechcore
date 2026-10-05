@@ -221,7 +221,7 @@ impl Correction {
 }
 
 /// One entry of an overlay: what it corrects, and what put it there.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct Entry {
     pub(crate) index: Index,
     /// The module that wrote it, which is how it is taken away again.
@@ -906,7 +906,7 @@ impl Stats {
     ) -> Result<Self> {
         let mut stats = Self::at_level(rules, level)?;
         for (channel, entry) in written {
-            stats.overlays.channel(*channel).write(entry.clone());
+            stats.overlays.channel(*channel).write(*entry);
         }
         stats.refresh(rules)?;
         Ok(stats)
@@ -1658,10 +1658,7 @@ mod tests {
                 reduce: 0,
             },
         };
-        stats
-            .overlays
-            .channel(Channel::Skill)
-            .write(officer.clone());
+        stats.overlays.channel(Channel::Skill).write(officer);
         stats.refresh(&rules).unwrap();
         assert_eq!(stats.attack_damage_against(UnitDomain::Ground), 3027);
 
@@ -1746,7 +1743,7 @@ mod tests {
         };
 
         let mut once = Stats::of(&rules).unwrap();
-        once.overlays.channel(Channel::Skill).write(impair.clone());
+        once.overlays.channel(Channel::Skill).write(impair);
         once.refresh(&rules).unwrap();
         assert_eq!(
             once.attack_damage_against(UnitDomain::Ground),
@@ -1756,7 +1753,7 @@ mod tests {
 
         let mut twice = Stats::of(&rules).unwrap();
         for _ in 0..2 {
-            twice.overlays.channel(Channel::Skill).write(impair.clone());
+            twice.overlays.channel(Channel::Skill).write(impair);
         }
         twice.refresh(&rules).unwrap();
         assert_eq!(

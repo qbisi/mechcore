@@ -88,6 +88,32 @@ table carries, and names it in `special`: Siege Mode's `isInverseIsLockTarget`, 
 Learning's `expChangeRate`, which speeds up the experience its unit gains. The
 simulator refuses those too.
 
+## Buff technologies
+
+**A buff technology whose trigger is the fight's start adds its buff to its
+unit on the fight's first tick, once,** as a buff item does
+([equipment_effects.md](equipment_effects.md#buff-items)): both are the same
+buff source. Combat Evolvement is one, on the Rhino.
+
+**A buff that stacks adds a stack every step.** A buff marked additive in
+effect, stacking on time, counts its stacks up by one each `stepTime`, to its
+bound if it has one, and each rate it writes is the buff's rate times the
+stack: none before the first step. Combat Evolvement's buff steps every
+second, and the Rhino deals 4.5% more damage a stack.
+
+**A buff's maximum life rate goes into the unit's own life rate, and the life
+follows it.** The buff writes its rate once as it starts; a stacking buff takes
+it out at each step and puts it back times the stack, from the second stack
+on twice the first. Each change refreshes the unit's life: a unit at its whole
+life keeps its whole life, and any other keeps its share, the quotient rounded
+and its product with the new maximum truncated, at least 1 while it lives. A
+Rhino with Combat Evolvement has 2.5% more life a stack, and a hit Rhino's
+life passes through its maximum without the buff on each step. When the buff
+ends, the fight's end among, the rate goes and the life is refreshed again.
+
+Any other trigger, target or chance, a buff that stacks on distance or lowers
+what it stacks, and a buff field beyond these is refused by name.
+
 ## What this table does not carry
 
 A technology that is not plain does something that is not a correction on its
@@ -134,6 +160,11 @@ whose effect grows with rank, rather than read index zero:
 - An interval value lands as the table's `FPoint`, and the Rhino's blows follow
   the interval it composes: `tests/modifier/fights/technology-interval-value.yaml`.
 
+- A buff technology's buff stacks every second and raises its unit's damage
+  and maximum life: `tests/technology_buff/fights/combat-evolvement.yaml`, and
+  on hit Rhinos `tests/corpus/fights/134260717-r2.yaml` and
+  `tests/corpus/fights/134260717-r3.yaml`.
+
 ### Read
 
 - A technology answers the same correction interface an officer does, so its
@@ -145,7 +176,24 @@ whose effect grows with rank, rather than read index zero:
 - The numbers a technology states appear in its own description, which the
   extraction checks: `TechnologyData.lifeChangeRate`.
 
+- A buff technology is the buff source a buff item is:
+  `BuffTech` and `BuffEquipment` both answer `IEffectBuffDataSource`, which
+  `BuffEffectProvider` reads. `Buff.Update` updates its controllers each
+  `stepTime`; `IBEC_AdditiveEffectBuff.Update` raises its stack through
+  `BuffAdditiveStackConditionTimeController.TryAddStack` below
+  `IBEC_AdditiveEffectBuff.maxAdditiveStack`; `IBEC_ChangeMaxLife.Enter`
+  adds `IBuffData.GetMaxLifeChangeRate` through `MechDataModifer.AddData`,
+  and `IBEC_ChangeMaxLife.DoAdditiveEffect` calls `MechDataModifer.RemoveData`
+  and then `MechDataModifer.AddData` with `Buff.GetAdditiveStack`;
+  `FightMech.AddData` and `FightMech.RemoveData` call
+  `FightMech.RefreshLifeData`, which keeps a full `FightActor.lifeGauge` full
+  and any other at its share of the new maximum.
+
 ### Not established
+
+- **How the life share rounds.** The quotient rounded and the product
+  truncated is what the recordings fit; the arithmetic of `FPoint` division
+  and multiplication was not read.
 
 - **A value applies before a rate, for a technology.** Measured on the
   Sledgehammer's interval technologies, whose fights no test pins because the
