@@ -107,6 +107,9 @@ pub(crate) struct ExtraWeapon {
     pub(crate) buff: Option<SkillBuff>,
     /// The fire an explosion skill's unit's death leaves.
     pub(crate) dead_fire: Option<TerrainSpec>,
+    /// Whether its skills join the main skill's group: a grouped row on a
+    /// unit whose main skill is grouped (`FightSkillFactory.PrepareGroupedSkill`).
+    pub(crate) joins_main_group: bool,
     /// What its own `DataSet` holds, for a skill without a damage rate: the
     /// skill corrections of the equipment and Energy Tower skills that reach
     /// it. A skill with a damage rate holds the main skill's.
@@ -1041,6 +1044,29 @@ fn worn(
     })
 }
 
+/// Whether a grouped row's skills are the main skill's slots in all but
+/// their range and their weapons: the main skill's base damage at a rate of
+/// one, nothing left behind or written, and no weapon turning within an arc.
+fn joins_as_main_slots(weapon: &ExtraWeaponConfig, rules: &UnitConfig) -> bool {
+    let mut attack = weapon.attack.clone();
+    attack.base_damage = rules.attack.base_damage;
+    attack.range = rules.attack.range;
+    attack
+        .weapons
+        .indices
+        .clone_from(&rules.attack.weapons.indices);
+    attack == rules.attack
+        && rules.attack.weapons.arcs.is_none()
+        && (weapon.damage_rate - 1.0).abs() < f64::EPSILON
+        && weapon.damage_by_level.is_empty()
+        && weapon.fire.is_none()
+        && weapon.oil.is_none()
+        && weapon.buff.is_none()
+        && weapon.production.is_none()
+        && weapon.preemptive.is_none()
+        && weapon.explosion.is_none()
+}
+
 /// The fire an extra weapon's hit leaves: its skill's splash wide
 /// (`ExtraSkillProvider.AddEffect` writes `GetSplashRange` onto the unit as
 /// the fire's range) and burning its row's first `fireLifeTime`
@@ -1184,11 +1210,28 @@ fn extra_weapons(
             ));
             return None;
         }
+        // A grouped row on a unit whose main skill holds a group joins that
+        // group (`FightSkillFactory.PrepareGroupedSkill`): its skills are the
+        // group's next slots, which run on the main skill's numbers here, so
+        // a row joins only where its numbers are those but for its range and
+        // its weapons.
+        let joins_main_group = weapon.attack.weapons.mode == crate::rules::WeaponMode::Group
+            && rules.attack.weapons.mode == crate::rules::WeaponMode::Group;
+        if joins_main_group && !joins_as_main_slots(weapon, rules) {
+            refused.push(format!(
+                "side {side_name} unit type {type_name:?} technology {}: its skills join the \
+                 main skill's group with numbers of their own beyond their range and weapons, \
+                 which is not measured",
+                weapon.technology
+            ));
+            return None;
+        }
         weapons.push(ExtraWeapon {
             rules: weapon.clone(),
             terrain,
             buff,
             dead_fire,
+            joins_main_group,
             skill_corrections,
         });
     }

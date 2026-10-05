@@ -33,23 +33,17 @@ impl Actor {
         x_q32: i64,
         z_q32: i64,
     ) -> Self {
+        let rules = joined_main_group(rules, &placement);
+        let main_skill = main_skill(&rules, &placement);
         // The layout resolved these when it compiled the placement, which is
         // where a refusal can name the side and the officer; reaching here
         // means they resolve.
         let stats = crate::data::Stats::corrected(&rules, placement.level, &placement.corrections)
             .expect("the layout verified this loadout resolves");
         let max_life = stats.max_life();
-        let magazine = rules.attack.magazine;
         let x = q32_to_space_rounded(x_q32);
         let z = q32_to_space_rounded(z_q32);
         let max_speed_q32 = stats.move_speed_q32();
-        let weapon_rotations_q32 = vec![
-            mdeg_to_degrees_q32(placement.rotation);
-            usize::try_from(rules.attack.weapons.count())
-                .expect("u32 weapon count fits the supported host")
-        ];
-        let group = group_shape(&rules.attack);
-        let kind = SkillKind::of(&rules.attack.path);
         // `AutoRecoveryEffectProvider.DoActive` hands a unit with a repair
         // source in force a controller, which its constructor resets.
         let recovery = placement
@@ -129,7 +123,7 @@ impl Actor {
                 attack_hold_fire: false,
                 attacker: SkillSlot::Main,
             },
-            skills: SkillManager::new(Skill::new(weapon_rotations_q32, group, magazine, kind)),
+            skills: SkillManager::new(main_skill),
         };
         actor.skills.extras = extra_skills(&actor.placement);
         if actor.rules.mech_search
@@ -684,7 +678,11 @@ impl Actor {
 /// (`FightSkillFactory.PrepareGroupedSkill`), as a grouped main skill does;
 /// each starts pointing as the unit faces, as the main skill's weapons do.
 fn extra_skills(placement: &Placement) -> Vec<ExtraSkill> {
-    let mut weapons: Vec<&crate::layout::ExtraWeapon> = placement.extra_weapons.iter().collect();
+    let mut weapons: Vec<&crate::layout::ExtraWeapon> = placement
+        .extra_weapons
+        .iter()
+        .filter(|weapon| !weapon.joins_main_group)
+        .collect();
     weapons.sort_by_key(|weapon| weapon.rules.skill);
     weapons
         .into_iter()
@@ -723,6 +721,66 @@ fn extra_skills(placement: &Placement) -> Vec<ExtraSkill> {
             })
         })
         .collect()
+}
+
+/// The unit's description with the weapons of every grouped extra row that
+/// joins its main skill's group after the main skill's own:
+/// `FightSkillFactory.PrepareGroupedSkill` adds a grouped row's skills to the
+/// main skill's `SkillGroup` where it has one, in ascending skill ID, so a
+/// Wraith with Matrix Bombardment fires eight guns as one group, slots 4 to 7
+/// the row's. The layout lets a row join only where its numbers are the main
+/// skill's but for its range and its weapons.
+fn joined_main_group(mut rules: UnitConfig, placement: &Placement) -> UnitConfig {
+    let mut joined = placement
+        .extra_weapons
+        .iter()
+        .filter(|weapon| weapon.joins_main_group)
+        .collect::<Vec<_>>();
+    joined.sort_by_key(|weapon| weapon.rules.skill);
+    for weapon in joined {
+        rules
+            .attack
+            .weapons
+            .indices
+            .extend(&weapon.rules.attack.weapons.indices);
+    }
+    rules
+}
+
+/// The unit's main skill, pointing as the unit faces, its group's slots each
+/// reaching its parent's range and its own beyond it
+/// (`FightSkill.GetAttackRange`): ten metres for a slot of the main row, the
+/// row's own range for a slot of a row that joined it.
+fn main_skill(rules: &UnitConfig, placement: &Placement) -> Skill {
+    let count = usize::try_from(rules.attack.weapons.count())
+        .expect("u32 weapon count fits the supported host");
+    let mut skill = Skill::new(
+        vec![mdeg_to_degrees_q32(placement.rotation); count],
+        group_shape(&rules.attack),
+        rules.attack.magazine,
+        SkillKind::of(&rules.attack.path),
+    );
+    if let Some(group) = skill.group.as_mut() {
+        let mut joined = placement
+            .extra_weapons
+            .iter()
+            .filter(|weapon| weapon.joins_main_group)
+            .collect::<Vec<_>>();
+        joined.sort_by_key(|weapon| weapon.rules.skill);
+        let own = count.saturating_sub(
+            joined
+                .iter()
+                .map(|weapon| weapon.rules.attack.weapons.indices.len())
+                .sum(),
+        );
+        group.joined_ranges = (1..own)
+            .map(|_| None)
+            .chain(joined.iter().flat_map(|weapon| {
+                vec![Some(weapon.rules.attack.range()); weapon.rules.attack.weapons.indices.len()]
+            }))
+            .collect();
+    }
+    skill
 }
 
 /// How many skills a row's weapons make and how they take turns, or `None`

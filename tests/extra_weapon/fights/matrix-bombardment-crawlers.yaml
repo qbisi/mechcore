@@ -1,0 +1,27 @@
+# Matrix Bombardment against a Crawler swarm.
+#
+# Three Wraiths with Matrix Bombardment, the standard
+# `../../wraith/fights/m3-crawler-4242.yaml` with the technology. The eight
+# slots take seven Crawlers between them as the core attacks (t118). The
+# row's slots are no main searchers (`FightSkillBase.IsMainSearcher` asks
+# `isMainSkill`): the Wraith's own lock is the last the main row's slots
+# took, slot 3's, not slot 7's.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 258
+hash: {profile: mcfr-content-0.7.0, result: 871e4aba42b88b138669806d50bcbc5a0089f26548cc3881d18c80f75412fdef}
+blue:
+  techs:
+    wraith: [floating_artillery_array]
+  units:
+  - {name: wraith, index: 0, position: {x: 5, y: -175}, exp: 0/8/2250}
+  - {name: wraith, index: 1, position: {x: 5, y: -135}, exp: 0/40/2250}
+  - {name: wraith, index: 2, position: {x: 5, y: -95}, exp: 0/144/2250}
+red:
+  core_damage: 750
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}}

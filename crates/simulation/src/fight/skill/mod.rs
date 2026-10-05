@@ -236,7 +236,17 @@ pub(in crate::fight) struct Group {
     /// unit is made (`SetMotionAttackerAfterSkill` takes `GetSkills()[0]`),
     /// then whichever searched last while the one holding it held no lock.
     pub(in crate::fight) motion_slot: usize,
+    /// Which siblings are a joined row's, slot 1 first, with the row's own
+    /// range in space units; `None` for a slot of the main row. A joined
+    /// row's slot is its row's `FightSkill`, not the main skill's: it reaches
+    /// its own range beyond its parent's rather than ten metres, and its
+    /// projectile climbs first, as every extra skill's does.
+    pub(in crate::fight) joined_ranges: Vec<Option<i64>>,
 }
+
+/// `FightSkill.GetAttackRange` of a main row's grouped slot: ten metres
+/// beyond its parent's, hard-coded.
+pub(in crate::fight) const MAIN_SLOT_RANGE_ADDEND: i64 = 10_000;
 
 /// `SkillGroup.attackBehaviour`: how the group's skills take turns.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -505,6 +515,7 @@ impl Skill {
             behaviour,
             mech_search_time: None,
             motion_slot: 0,
+            joined_ranges: Vec::new(),
         });
         Self {
             weapon_rotations_q32,
@@ -846,6 +857,16 @@ impl Skill {
         self.group
             .as_ref()
             .is_some_and(|group| group.behaviour == GroupBehaviour::Fusillade)
+    }
+
+    /// A joined row's own range for a slot of it, `None` for a slot of the
+    /// main row or a skill no row joined.
+    pub(in crate::fight) fn joined_range(&self, slot: usize) -> Option<i64> {
+        slot.checked_sub(1).and_then(|sibling| {
+            self.group
+                .as_ref()
+                .and_then(|group| group.joined_ranges.get(sibling).copied().flatten())
+        })
     }
 
     /// The core's siblings, none for a skill that is not grouped.

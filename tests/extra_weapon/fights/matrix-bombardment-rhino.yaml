@@ -1,0 +1,33 @@
+# Matrix Bombardment: the Wraith's four more guns, in its own group.
+#
+# Five Wraiths with Matrix Bombardment against a Rhino, the standard
+# `../../wraith/fights/m2-rhino-4242.yaml` with the technology. The row's
+# four skills join the main skill's group (`FightSkillFactory.PrepareGroupedSkill`
+# finds it has one): eight slots, the row's 4 to 7, each a skill of the
+# row's, reaching the main skill's 60 metres and their own 5 beyond it where
+# the main row's slots reach 10. They prepare as the core attacks, with the
+# main row's (t115 for the front Wraith), and deal the Wraith's 381 at the
+# row's rate of one. Each of the row's skills draws its own first interval.
+# Their projectiles leave on the tick after their release, as an extra
+# skill's do; the main row's on the tick of it.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 238
+hash: {profile: mcfr-content-0.7.0, result: 8a1e7c645314d6e765d4636017b34f24b5bc6e49b7bc9d77988690e05abb8420}
+blue:
+  techs:
+    wraith: [floating_artillery_array]
+  units:
+  - {name: wraith, index: 0, position: {x: 5, y: -255}}
+  - {name: wraith, index: 1, position: {x: 5, y: -215}}
+  - {name: wraith, index: 2, position: {x: 5, y: -175}, exp: 0/66/2250}
+  - {name: wraith, index: 3, position: {x: 5, y: -135}, exp: 0/266/2250}
+  - {name: wraith, index: 4, position: {x: 5, y: -95}, exp: 0/66/2250}
+red:
+  core_damage: 1250
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}

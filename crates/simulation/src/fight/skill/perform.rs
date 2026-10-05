@@ -272,16 +272,45 @@ impl Simulation {
     /// such a flight, whatever its height, and the projectile's first update
     /// is its climb (`FightProjectile.IsFlying`): a Sabertooth's Secondary
     /// Armament shot stands where it left on the tick it is released.
+    /// A projectile a grouped slot has just released, climbing first where
+    /// the slot is a row's that joined the main skill's group, as an extra
+    /// skill's projectile does: it leaves on the tick after its release.
+    pub(in crate::fight) fn climb_joined_slot_projectile(
+        &mut self,
+        skill_ref: SkillRef,
+        slot: usize,
+        target: FightActorRef,
+    ) -> Result<()> {
+        if self.skill(skill_ref).joined_range(slot).is_none() {
+            return Ok(());
+        }
+        let climb_target = self.climb_target(target)?;
+        let climb_q32 = self.projectile_climb_q32(skill_ref, slot, climb_target)?;
+        let projectile = self
+            .projectiles
+            .last_mut()
+            .expect("a projectile was just released");
+        projectile.climb_to_q32 =
+            climb_q32.map(|climb_q32| projectile.y_q32.saturating_add(climb_q32));
+        Ok(())
+    }
+
     fn projectile_climb_q32(
         &self,
         skill_ref: SkillRef,
+        slot: usize,
         (target_x_q32, target_z_q32, target_y): (i64, i64, i64),
     ) -> Result<Option<i64>> {
         let source = self
             .skill_attacker(skill_ref)
             .ok_or_else(|| Error::new("projectile owner is absent"))?
             .launch();
-        if source.climb <= 0 && skill_ref.slot == SkillSlot::Main {
+        // A slot of a row that joined the main skill's group is its row's
+        // skill, and climbs as an extra skill's projectile does.
+        if source.climb <= 0
+            && skill_ref.slot == SkillSlot::Main
+            && self.skill(skill_ref).joined_range(slot).is_none()
+        {
             return Ok(None);
         }
         let distance_q32 = native_q32_magnitude_3d(
@@ -439,7 +468,8 @@ impl Simulation {
                 // which climbs first, still names the point the burst aimed
                 // at when it levels off.
                 let (target_x_q32, target_z_q32) = (pending.target_x_q32, pending.target_z_q32);
-                let climb_q32 = self.projectile_climb_q32(skill_ref, pending.climb_target)?;
+                let climb_q32 =
+                    self.projectile_climb_q32(skill_ref, pending.skill_slot, pending.climb_target)?;
                 self.release_projectile_at(
                     skill_ref,
                     pending.target,
@@ -469,7 +499,8 @@ impl Simulation {
                     .ok_or_else(|| Error::new("projectile building target is absent"))?;
                 let (target_x_q32, target_z_q32) = (pending.target_x_q32, pending.target_z_q32);
                 let radius = building_radius(building);
-                let climb_q32 = self.projectile_climb_q32(skill_ref, pending.climb_target)?;
+                let climb_q32 =
+                    self.projectile_climb_q32(skill_ref, pending.skill_slot, pending.climb_target)?;
                 self.release_projectile_to(
                     skill_ref,
                     ObjectKind::Building,
