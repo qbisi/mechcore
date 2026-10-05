@@ -310,7 +310,12 @@ impl Simulation {
                     reach,
                     events,
                 )?,
-                Some((owner.object_ref(), projectile.team)),
+                // Its removal names the side the owner stands on as it lands.
+                Some((
+                    owner.object_ref(),
+                    self.fight_actor(*owner)
+                        .map_or(projectile.team, |owner| owner.team),
+                )),
             ),
             Shooter::Missile(shot) => (
                 self.missile_hit(projectile, shot, aimed, reach, events)?,
@@ -367,9 +372,9 @@ impl Simulation {
         reach: Reach,
         events: &mut Vec<Event>,
     ) -> Result<super::damage::Struck> {
-        let (owner_team, splash_radius) = self
+        let splash_radius = self
             .skill_attacker(skill_ref)
-            .map(|attacker| (attacker.team, attacker.splash_radius))
+            .map(|attacker| attacker.splash_radius)
             .ok_or_else(|| Error::new("projectile owner is absent"))?;
         // A projectile carries no damage of its own: it takes its owner's as
         // the owner has it when it lands. The Fangs of the two-tower fight
@@ -397,10 +402,11 @@ impl Simulation {
             shield = None;
         }
         // A unit's projectile is owned by the unit, and strikes for the side
-        // the unit is on as it lands.
+        // the unit was on as it released it: `ProjectileSystem.Create` hands
+        // the projectile's controller that side (`ProjectileController.Init`),
+        // which a beam turning the unit while the shot flies does not change.
         let hit = DamageHit {
             source: Some(skill_ref.owner.object_ref()),
-            team: owner_team,
             skill_slot: Some(projectile.skill_slot),
             shield,
             crosses_shields,
