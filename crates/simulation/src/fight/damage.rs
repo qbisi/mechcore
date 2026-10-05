@@ -1,4 +1,5 @@
 use super::*;
+use crate::{data::Index, modifier::SecondaryDamage};
 
 /// One hit, as the fight's damage pipeline reads it.
 ///
@@ -140,6 +141,19 @@ impl DamageHit {
         )
         .saturating_sub(radius_q32)
             <= range_q32
+    }
+
+    /// Whether a splash of this radius takes a unit: one within it, and
+    /// not underground, as `RangeTargetCalculator.CalculateRangeActors` asks
+    /// `IsValidTarget(Stealth)` of each.
+    fn splashes(&self, unit: &Actor, splash_q32: i64) -> bool {
+        unit.visibility != Visibility::Hide
+            && self.reaches(
+                unit.x_q32,
+                unit.z_q32,
+                space_to_q32(unit.rules.collision_radius()),
+                splash_q32,
+            )
     }
 
     /// A hit no object deals, recorded under its team alone: it strikes both
@@ -333,12 +347,7 @@ impl Simulation {
                         let unit = &self.actors[&unit_id];
                         unit.alive()
                             && hit.reach.touches(unit.rules.domain)
-                            && hit.reaches(
-                                unit.x_q32,
-                                unit.z_q32,
-                                space_to_q32(unit.rules.collision_radius()),
-                                splash_q32,
-                            )
+                            && hit.splashes(unit, splash_q32)
                     }
                     FightActorRef::Building(other_id) => self
                         .buildings
@@ -360,7 +369,8 @@ impl Simulation {
         }
         // A shot at a unit takes what it was aimed at and, with a splash,
         // everything of the other side around it — buildings as well as units,
-        // in the order the target trees hold them. An Arclight's shot at a
+        // in the order the target trees hold them, and none underground
+        // ([`DamageHit::splashes`]). An Arclight's shot at a
         // Crawler standing just in front of a wall reads the block between the
         // Crawlers around it, for the shot's full damage.
         let splash_reaches_buildings =
@@ -387,13 +397,7 @@ impl Simulation {
                             && hit.splash_radius == 0
                             && Some(*candidate_ref) == hit.aimed
                             && candidate.visibility != Visibility::Hide)
-                            || (hit.splash_radius > 0
-                                && hit.reaches(
-                                    candidate.x_q32,
-                                    candidate.z_q32,
-                                    space_to_q32(candidate.rules.collision_radius()),
-                                    splash_q32,
-                                )))
+                            || (hit.splash_radius > 0 && hit.splashes(candidate, splash_q32)))
                 }
                 FightActorRef::Building(building_id) => {
                     splash_reaches_buildings
@@ -661,7 +665,123 @@ impl Simulation {
             }
         }
         self.dispatch_hit_damage(&hit, struck.lost, events)?;
+        if let Some(secondary) = self.secondary_damage_of(&hit) {
+            self.perform_secondary(&hit, secondary, &mut struck, events)?;
+        }
         Ok(struck)
+    }
+
+    /// `DamagePerformer.CheckSecondaryDamageApplied`: the second damage of the
+    /// skill that dealt a hit, itself or through its projectile, unless its
+    /// owner has died or its technologies are disabled: an Arclight's shell
+    /// that lands after the Arclight fell deals no Shockwave. Only a unit's
+    /// main skill is handed one (`SecondaryDamageIntensifyEffectProvider`).
+    fn secondary_damage_of(&self, hit: &DamageHit) -> Option<SecondaryDamage> {
+        let source = hit
+            .source
+            .filter(|source| source.kind == ObjectKind::Unit)?;
+        let owner = self.actors.get(&source.id)?;
+        (hit.skill_slot == Some(0) && owner.alive() && !owner.technology_disabled())
+            .then_some(owner.placement.secondary_damage)
+            .flatten()
+    }
+
+    /// `DamagePerformer.PerformSecondaryRangeEffect`, after a hit has struck
+    /// what it strikes: every object of the other side within the second
+    /// damage's range of where the hit landed, of the domain the hit was
+    /// aimed at, less what the hit itself struck, takes the second damage.
+    /// The damage is raised by the owner's tower buffs and then by each
+    /// struck unit's damage taken where the row says the buffs reach it
+    /// (`CalculateSecondaryDamageByAttackerBuff`,
+    /// `CalculateSecondaryDamageByTargetBuff`), and `PerformHitTargetEffect`
+    /// takes it with `isAmplifyDamageAffected` false, scaling it no further.
+    /// An Arclight with Shockwave fells the
+    /// Crawlers its shell lands among and deals 75 to every other Crawler
+    /// within 30 metres.
+    fn perform_secondary(
+        &mut self,
+        hit: &DamageHit,
+        secondary: SecondaryDamage,
+        struck: &mut Struck,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        if !self.shield.standing.is_empty() {
+            return Err(Error::new(
+                "a second damage lands in a fight with a battlefield shield, which is not \
+                 measured",
+            ));
+        }
+        let owner = hit.source.expect("a second damage has its unit").id;
+        if self.actors[&owner].placement.lifesteal.is_some() {
+            return Err(Error::new(
+                "a second damage is dealt by a unit with lifesteal, and whether its hit \
+                 hands life back is not measured",
+            ));
+        }
+        let amount = if secondary.buffed {
+            self.actors[&owner].stats.overlays.scaled_by_buffs_of(
+                super::tower::SOURCE,
+                Index::AttackDamage,
+                secondary.damage,
+            )
+        } else {
+            secondary.damage
+        };
+        let around = DamageHit {
+            amount,
+            splash_radius: secondary.splash_radius,
+            hits_aimed: false,
+            ..*hit
+        };
+        let targets = self
+            .damage_targets(&around)?
+            .into_iter()
+            .filter(|target| secondary.hits_main_target || !struck.targets.contains(target))
+            .collect::<Vec<_>>();
+        for target in targets {
+            let amount = match target {
+                _ if !secondary.buffed => amount,
+                FightActorRef::Unit(id) => self.actors[&id].stats.damage_taken(amount)?,
+                FightActorRef::Building(id) => self.construction_damage_taken(id, amount)?.0,
+            };
+            if amount < 1 {
+                continue;
+            }
+            let stroke = self.strike(
+                target,
+                hit.source,
+                hit.source_team,
+                (amount, false),
+                hit.provider,
+            )?;
+            self.count_hit(hit.source, hit.source_team, target, &stroke)?;
+            self.turned_unit_fell(target, &stroke);
+            if stroke.actual > 0 {
+                events.push(event(
+                    hit.projectile,
+                    hit.source,
+                    Some(hit.source_team),
+                    Some(target.object_ref()),
+                    EventPayload::Damage {
+                        amount: i32::try_from(stroke.actual)
+                            .map_err(|_| Error::new("damage exceeds i32"))?,
+                        skill_slot: hit.skill_slot,
+                    },
+                ));
+            }
+            let id = match target {
+                FightActorRef::Unit(id) | FightActorRef::Building(id) => id,
+            };
+            if let Some(position) = stroke.death {
+                struck.deaths.push((id, position));
+                struck.ends.push((target, position));
+            }
+            if let Some(position) = stroke.fallen {
+                struck.fallen.push((id, position));
+                struck.ends.push((target, position));
+            }
+        }
+        Ok(())
     }
 
     /// `IDamageProvider.DispatchHitDamageEvent` after a hit: a unit's skill,

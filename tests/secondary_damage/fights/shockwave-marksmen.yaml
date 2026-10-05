@@ -1,0 +1,26 @@
+# Shockwave: three Arclights among Crawlers while Marksmen shoot them.
+#
+# Each shell's second damage deals every Crawler within 30 metres that the
+# shell itself missed 75, or the life it has left.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 364
+hash: {profile: mcfr-content-0.7.0, result: a47c6d6434563a93ab43431ba368a033dec3d74b34baee27bddf2a14870f4d75}
+blue:
+  core_damage: 300
+  techs:
+    arclight: [shockwave]
+  units:
+  - {name: arclight, index: 0, position: {x: -40, y: -100}, exp: 0/71/750}
+  - {name: arclight, index: 1, position: {x: 0, y: -100}, exp: 0/71/750}
+  - {name: arclight, index: 2, position: {x: 40, y: -100}, exp: 0/49/750}
+red:
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}}
+  - {name: marksman, index: 1, position: {x: -40, y: -200}, exp: 0/200/650}
+  - {name: marksman, index: 2, position: {x: 0, y: -200}, exp: 0/200/650}
+  - {name: marksman, index: 3, position: {x: 40, y: -200}, exp: 0/200/650}

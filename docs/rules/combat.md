@@ -585,6 +585,10 @@ hundred thousand. On the edge that decides it: a Crawler 6.99976 metres from
 where a Tarantula's 5-metre splash lands, with its own 2, reads 7.00034 and is
 spared.
 
+**A splash passes over a unit underground.** The units a splash takes are
+those valid as targets visible down to stealth, and a burrowed Sandworm is
+hidden below that: a Shockwave landing beside one spares it.
+
 **A skill's splash is its description's plus every splash value written onto
 it.** An officer's, a technology's and an item's `splash_range_value` land in
 the skill's `SplashRangeValue`, as Explosive Ammo's `splash_range` does, and
@@ -749,6 +753,28 @@ then attacks aircraft only, and searches for them.
 
 **A projectile's speed is its row's with the skill's value added.** Grenade
 Launcher's -140 sends a Fang's shell 140 metres a second of its row's 280.
+
+## A second damage around a hit
+
+**A unit's second damage strikes around each of its main skill's hits, after
+the hit.** Once a hit has struck what it strikes and handed its damage to the
+skill's hit effects, every object of the other side within the second
+damage's range of where it landed, of the domain the hit was aimed at, takes
+the second damage, except what the hit itself struck unless the row says the
+main target may be hit too. Shockwave's 75 reaches 30 metres: an Arclight's
+shell that fells six Crawlers deals the eighteen others around them 75 each,
+as `damage` events of the shell after its own.
+
+**The second damage is the row's, raised by tower buffs and damage taken.**
+Where the row says buffs reach it, the damage is the attacker's tower buffs'
+rate on it, and then each struck unit's rate on the damage it takes; the
+attacker's other damage rates never reach it, and the struck unit's rate
+does not apply a second time as the hit is taken. An Arclight whose skill
+deals 3.12 times its damage still deals 75, and a Sandworm under a 0.5 rate on
+its damage taken takes 112.
+
+**A second damage needs its unit alive.** A shell an Arclight fired before it
+fell lands and deals its own damage, and no second damage.
 
 ## A melee skill's range
 
@@ -1080,6 +1106,11 @@ not the game's native attack-type enum.
   `tests/anti_air/fights/grenade-launcher.yaml`.
 - A melee skill's range reads no correction:
   `tests/anti_air/fights/anti-aerial-sandworm.yaml`.
+- A second damage strikes what lies around a hit and the hit did not strike:
+  `tests/secondary_damage/fights/shockwave-crawlers.yaml` and
+  `tests/secondary_damage/fights/shockwave-marksmen.yaml`; raised by the
+  struck unit's damage taken and not by the attacker's damage rate,
+  `tests/corpus/fights/268447927-r6.yaml`, tick 820.
 
 ### Read
 
@@ -1314,6 +1345,24 @@ not the game's native attack-type enum.
   `FightMech`'s main skill's `AirAttackValue` when `ISkillData.IsAirAttack` and 1
   otherwise, and, when `ISkillDataChangeDataSource.IsExtraSkillEffect`, the
   same to each of `ISkillOwner.GetExtralSkills` that does not hold it already.
+- A second damage: `DamagePerformer.PerformRangeEffect` calls
+  `DamagePerformer.PerformSecondaryEffect` after `IDamageProvider.DispatchHitDamageEvent`;
+  `DamagePerformer.CheckSecondaryDamageApplied` refuses it while
+  `ISkillOwner.IsTechnologyDisabled`; `DamagePerformer.PerformSecondaryRangeEffect`
+  takes `DamagePerformer.PrepareRangeTargets` within `SecondaryDamageInfo.SplashRange`
+  for the main target's `FightActor.IsFly`, less the hit's targets unless
+  `SecondaryDamageInfo.CanMainTargetBeHit`;
+  `DamagePerformer.CalculateSecondaryDamageByAttackerBuff` scales
+  `SecondaryDamageInfo.Damage` by `BuffManager.GetTowerBuffDamageChangeAddRate`
+  and `BuffManager.GetTowerBuffDamageChangeReduceRate`,
+  `DamagePerformer.CalculateSecondaryDamageByTargetBuff` by the struck unit's
+  `BuffManager.GetAmplifyDamageAddRate` and `BuffManager.GetAmplifyDamageReduceRate`,
+  each when `SecondaryDamageInfo.CanBeAffectedByBuff`, and
+  `DamagePerformer.PerformSecondaryHitTargetEffect` hands it to
+  `FightCalculator.PerformHitTargetEffect` with `isAmplifyDamageAffected` false.
+- A splash over a unit underground: `RangeTargetCalculator.CalculateRangeActors`
+  asks `FightCalculator.IsValidTarget` with `ActorVisibility.Stealth`, and
+  `FightActor.IsValidTarget` refuses a visibility above it.
 - A melee skill's range: `AttackRangeProperty.GetAttackRange` adds
   `SkillDataChangeFloat.AttackRangeValue` only when not
   `ISkillData.IsMeleeAttack`, and `AttackRangeProperty.Refresh` applies the
@@ -1321,6 +1370,12 @@ not the game's native attack-type enum.
 
 ### Not established
 
+- **Why a dead unit's shell deals no second damage.** The corpus round
+  268447927 round 7 shows it at tick 197, and the simulator follows it; no
+  read call names the check, and no pinned fight records it.
+- **A second damage with battlefield shields, lifesteal, or a row that
+  disables technologies or writes a buff** (Electromagnetic Cloud). The
+  simulator refuses each.
 - **Repair with its technologies disabled**, which stops the clocks
   (`AutoRecoveryEffectProvider.DisableEffect`) and which no recorded fight
   does; and which of an item and a technology a unit with both keeps, since

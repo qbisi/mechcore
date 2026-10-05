@@ -592,6 +592,27 @@ pub(crate) struct Overlays {
 }
 
 impl Overlays {
+    /// An amount scaled by the rate one source's buffs put on `index`, as an
+    /// `FPoint` times one plus their enhancements and then times their
+    /// remainder, truncated: `DamagePerformer.CalculateSecondaryDamageByAttackerBuff`
+    /// reads the tower buffs' `GetTowerBuffDamageChangeAddRate` and
+    /// `GetTowerBuffDamageChangeReduceRate` so.
+    pub(crate) fn scaled_by_buffs_of(&self, source: &str, index: Index, amount: i64) -> i64 {
+        let mut aggregate = Aggregate::default();
+        for entry in self
+            .buff
+            .corrections(index)
+            .filter(|entry| entry.source == source)
+        {
+            if let Correction::Rate { add, reduce } = entry.correction {
+                aggregate.enhance += i128::from(add);
+                aggregate.remaining = aggregate.remaining * (ONE - i128::from(reduce)) / ONE;
+            }
+        }
+        let raised = (i128::from(amount) << 32) * (ONE + aggregate.enhance) / ONE;
+        i64::try_from((raised * aggregate.remaining / ONE) >> 32).unwrap_or(i64::MAX)
+    }
+
     /// Whether the buffs' overlay holds an entry of `source` for `index`.
     pub(crate) fn buff_writes(&self, source: &str, index: Index) -> bool {
         self.buff

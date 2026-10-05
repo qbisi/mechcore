@@ -17,7 +17,8 @@
 //! reduction of every hit on it, and a `SearchTargetSpecificTech` its numbers
 //! against aerial and ground targets and a search by distance, a
 //! `DamageIntensifyTech` its damage against them, and an
-//! `AirAttackTech` its skills turned onto or off aircraft; any other is
+//! `AirAttackTech` its skills turned onto or off aircraft, and a
+//! `SecondaryDamageIntensifyTech` a second damage around its hits; any other is
 //! refused by name rather than applied for its numbers alone.
 //!
 //! A technology belongs to one unit type, which is how a side's flat list of
@@ -71,7 +72,7 @@ const ARMOR: &str = "armorStrengthenTechnologyDatas";
 const SEARCH_TARGET_SPECIFIC: &str = "searchTargetSpecificDatas";
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 9] = [
+const IMPLEMENTED: [&str; 10] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -81,10 +82,15 @@ const IMPLEMENTED: [&str; 9] = [
     SEARCH_TARGET_SPECIFIC,
     AIR_ATTACK,
     DAMAGE_INTENSIFY,
+    SECONDARY_DAMAGE,
 ];
 
 /// The list whose `DamageIntensifyTech` writes its damage against one domain.
 const DAMAGE_INTENSIFY: &str = "damageIntensifyTechnologies";
+
+/// The list whose `SecondaryDamageIntensifyTech` is an
+/// `ISecondaryDamageIntensifyEffectDataSource`.
+const SECONDARY_DAMAGE: &str = "secondaryDamageIntensifyTechDatas";
 
 /// The list whose `AirAttackTech` is an `IAirAttackDataSource`.
 const AIR_ATTACK: &str = "airAttackTechnologyDatas";
@@ -153,6 +159,27 @@ struct Technology {
     /// Whether it turns its unit's skill onto or off aircraft, and its
     /// extra skills too: an `IAirAttackDataSource`.
     air_attack: Option<AirAttack>,
+    /// The second damage its unit's main skill deals around each hit, if its
+    /// class is an `ISecondaryDamageIntensifyEffectDataSource`.
+    secondary_damage: Option<SecondaryDamage>,
+}
+
+/// What `SecondaryDamageIntensifyEffectProvider` hands its unit's main skill
+/// (`FightSkill.SetSecondaryDamageInfo`), and `DamagePerformer.PerformSecondaryEffect`
+/// deals after each of the skill's hits.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct SecondaryDamage {
+    /// `SecondaryDamageInfo.Damage`: what it deals each unit it reaches.
+    pub(crate) damage: i64,
+    /// `SecondaryDamageInfo.SplashRange`, millimetres: how far from where the
+    /// hit landed it reaches.
+    pub(crate) splash_radius: i64,
+    /// `SecondaryDamageInfo.CanMainTargetBeHit`: whether it strikes what the
+    /// hit itself struck.
+    pub(crate) hits_main_target: bool,
+    /// `SecondaryDamageInfo.CanBeAffectedByBuff`: whether the attacker's
+    /// tower buffs and the struck unit's damage taken scale it.
+    pub(crate) buffed: bool,
 }
 
 /// What an `AirAttackEffectProvider` does with one technology: it turns the
@@ -176,6 +203,8 @@ pub(crate) struct MainSkill {
     pub(crate) distance_intensify: bool,
     /// The first that turns it onto or off aircraft.
     pub(crate) air_attack: Option<AirAttack>,
+    /// The second damage the first that hands it one hands it.
+    pub(crate) secondary_damage: Option<SecondaryDamage>,
 }
 
 /// One row of the table. Every effect is a list because a technology's effect
@@ -248,6 +277,20 @@ struct Row {
     /// `TechnologyData.extraSkillEffect`, on an air-attack row.
     #[serde(default)]
     extra_skill_effect: bool,
+    /// `SecondaryDamageIntensifyTechData`'s fields, on a row of its list:
+    /// whole damage, `FPoint` metres, and its flags and buff.
+    #[serde(default)]
+    secondary_damage: i64,
+    #[serde(default)]
+    secondary_splash_range: i64,
+    #[serde(default)]
+    secondary_hits_main_target: bool,
+    #[serde(default)]
+    secondary_buffed: bool,
+    #[serde(default)]
+    secondary_disables_technology: bool,
+    #[serde(default)]
+    secondary_buff_id: i64,
     /// `ExtraWeaponTechnologyData.allWeaponReduceDamageRate`, on an extra
     /// weapon row that sets it.
     #[serde(default)]
@@ -341,6 +384,12 @@ impl TechnologyEffects {
                 distance_intensify: row.kind == SEARCH_TARGET_SPECIFIC,
                 air_attack: (row.kind == AIR_ATTACK).then_some(AirAttack {
                     extra_skills: row.extra_skill_effect,
+                }),
+                secondary_damage: (row.kind == SECONDARY_DAMAGE).then_some(SecondaryDamage {
+                    damage: row.secondary_damage,
+                    splash_radius: effects::fixed_to(row.secondary_splash_range, effects::METERS),
+                    hits_main_target: row.secondary_hits_main_target,
+                    buffed: row.secondary_buffed,
                 }),
             };
             if technologies.insert(id, technology).is_some() {
@@ -443,6 +492,7 @@ impl TechnologyEffects {
             sweep: own().find_map(|technology| technology.sweep),
             distance_intensify: own().any(|technology| technology.distance_intensify),
             air_attack: own().find_map(|technology| technology.air_attack),
+            secondary_damage: own().find_map(|technology| technology.secondary_damage),
         })
     }
 
@@ -519,6 +569,13 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
             row.id,
             row.name,
             row.special.join(", ")
+        ));
+    }
+    if row.secondary_disables_technology || row.secondary_buff_id != 0 {
+        return Err(format!(
+            "technology {} ({}) disables the technologies of the units its second damage \
+             strikes, or writes a buff on them, which is not measured",
+            row.id, row.name
         ));
     }
     if row.kind == AUTO_RECOVERY && row.auto_recovery_state_type != NORMAL {
@@ -671,6 +728,12 @@ mod tests {
     /// Ground Specialization for the Wasp, a `damageIntensifyTechnologies`
     /// row: 2 of damage against the ground.
     const GROUND_SPECIALIZATION: i32 = 506;
+    /// Shockwave for the Arclight, a `secondaryDamageIntensifyTechDatas` row:
+    /// 75 within 30 metres, and 5 metres off its range.
+    const SHOCKWAVE: i32 = 4515;
+    /// Electromagnetic Cloud for the Vortex, whose second damage disables
+    /// technologies and writes a buff.
+    const ELECTROMAGNETIC_CLOUD: i32 = 4531;
 
     #[test]
     fn a_technology_writes_onto_the_unit_whose_table_row_names_it() {
@@ -867,5 +930,31 @@ mod tests {
                 Correction::Value(2 << 32)
             )]
         );
+    }
+
+    /// A secondary-damage technology hands its unit's main skill its second
+    /// damage and writes its numbers; one whose second damage disables
+    /// technologies is refused by name.
+    #[test]
+    fn shockwave_hands_a_second_damage() {
+        let table = TechnologyEffects::load().unwrap();
+        let shockwave = table.main_skill(&[SHOCKWAVE], "arclight").unwrap();
+        assert_eq!(
+            shockwave.secondary_damage,
+            Some(super::SecondaryDamage {
+                damage: 75,
+                splash_radius: 30_000,
+                hits_main_target: false,
+                buffed: true,
+            })
+        );
+        let written = table.corrections(&[SHOCKWAVE], "arclight").unwrap();
+        assert_eq!(written.len(), 1);
+        assert_eq!(written[0].1.correction, Correction::Value(-5_000));
+        let refused = table
+            .corrections(&[ELECTROMAGNETIC_CLOUD], "vortex")
+            .unwrap_err()
+            .to_string();
+        assert!(refused.contains("4531"), "{refused}");
     }
 }
