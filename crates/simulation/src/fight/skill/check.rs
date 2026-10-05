@@ -98,6 +98,11 @@ impl Simulation {
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<bool> {
         let lock = self.slot_lock_target(skill_ref, slot);
+        // `SkillAttackableChecker.Check` of a `FightSupportSkill`: its lock
+        // lives.
+        if self.skill(skill_ref).kind == SkillKind::Support {
+            return Ok(lock.is_some_and(|lock| self.fight_actor_is_alive(lock)));
+        }
         let before = self.slot_attack_target(skill_ref, slot);
         if lock.is_some_and(|lock| self.fight_actor_is_alive(lock)) {
             // Every skill of a group checks whether it gives its lock up but

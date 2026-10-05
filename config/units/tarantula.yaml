@@ -53,3 +53,44 @@ attack:
     simulated_motion: false
     interceptible: false
     max_life: 0
+
+extra_weapons:
+  - technology: 11024
+    skill: 24002
+    use_main_skill_range: false
+    damage_by_level: []
+    production:
+      unit_type_id: 1002
+      level: parent
+      max_batch: 0
+      max_alive: 99
+      per_time: 2
+      interval: 15
+      appear: 2
+      frame: parent_body
+      offsets: [{x: 20, y: 40}, {x: -20, y: 40}]
+    attack:
+      base_damage: 0
+      min_range: 0
+      range: 80
+      attack_half_angle: 360
+      targets: {ground: false, air: false}
+      lock_target: false
+      quick_switch_target: false
+      timing:
+        interval: 0
+        interval_offset: 0
+        initial_cooldown: 0
+        prepare: 1.5
+        attack_point: 0
+        backswing: 0
+        cooling: 0
+      splash_radius: 0
+      weapons:
+        mode: normal
+        indices: []
+        per_skill: 0
+      melee: false
+      crosses_shields: false
+      path:
+        type: support

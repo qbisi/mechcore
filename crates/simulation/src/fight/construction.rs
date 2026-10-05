@@ -144,11 +144,15 @@ impl Simulation {
         update: SkillUpdate,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let skill = self.skill(skill_ref);
-        let Some(target) = skill.attack_target() else {
+        let Some(target) = self.skill(skill_ref).attack_target() else {
             return Ok(());
         };
-        if !self.target_in_attack_range(skill_ref, target) {
+        // `SkillStartAttackChecker.Check` asks for the target in range, and
+        // so does an around skill's; a support skill's asks nothing of it,
+        // and its attack check only that its lock lives.
+        if self.skill(skill_ref).kind != super::skill::SkillKind::Support
+            && !self.target_in_attack_range(skill_ref, target)
+        {
             return Ok(());
         }
         // `SkillIdleState.TryStartAttack` asks the skill's start checker.
@@ -161,7 +165,7 @@ impl Simulation {
         }
         // The attack is entered from idle; the state is not updated on the
         // tick it is entered.
-        let entered_attack = skill.phase() == FightSkillPhase::Idle;
+        let entered_attack = self.skill(skill_ref).phase() == FightSkillPhase::Idle;
         let in_attack_angle = self.target_in_attack_angle(skill_ref, target);
         self.try_start_attack(
             skill_ref,

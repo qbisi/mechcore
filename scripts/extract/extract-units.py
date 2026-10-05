@@ -123,9 +123,11 @@ def refuse(unit, reason):
     raise SystemExit(f"unit {unit}: {reason}")
 
 
-def render(mech, card, kind, skill, rvo, type_name, extra_weapons):
+def render(mech, card, kind, skill, rvo, type_name, extra_weapons, summoned):
     unit = mech["id"]
-    if card["specialUnit"] > 0 or card["isTestUnit"]:
+    # A special or test unit is written only where a technology's support
+    # skill makes it: the Spider Mine a Tarantula's Spider Mine makes.
+    if (card["specialUnit"] > 0 or card["isTestUnit"]) and not summoned:
         refuse(unit, "is a special or test unit")
     if raw(skill["damageRate"]) != ONE or skill["damage"]:
         refuse(unit, "main skill carries its own damage")
@@ -179,6 +181,8 @@ def render(mech, card, kind, skill, rvo, type_name, extra_weapons):
         ]
     lines += ["", "attack:"]
     lines += attack_lines(unit, kind, skill, f"base_damage: {mech['damage']}", mech["attackAngle"], "  ")
+    if kind == "explosionSkillDatas":
+        lines += main_explosion_lines(unit, skill)
     extras = []
     for technology, (extra_kind, extra_skill, row) in extra_weapons.items():
         written = extra_weapon_lines(mech, technology, extra_kind, extra_skill, row)
@@ -187,6 +191,73 @@ def render(mech, card, kind, skill, rvo, type_name, extra_weapons):
     if extras:
         lines += ["", "extra_weapons:"] + extras
     return "\n".join(lines) + "\n"
+
+
+# `ExplosiveDamageCondition`: what an explosion deals, the skill's attack
+# damage or the life its unit had before it took its own.
+EXPLOSION_DAMAGE = {0: "attack", 2: "current_life"}
+# `SupportUnitPositionSpace` and `DynamicMechLevel` as `config/units/` names
+# them.
+POSITION_SPACES = {1: "parent", 2: "parent_body"}
+PARENT_LEVEL = 3
+# `SupportUnitAppearType`: an appear type whose make waits out the row's
+# `productTime` (`SupportUnitCreator.CreateMech`), and the one the simulator
+# reads, `ShellWithAnimator`.
+APPEAR_PRODUCT_TIME = 8
+
+
+def main_explosion_lines(unit, skill):
+    """A main skill that is an explosion: the unit's blow is its own death
+    (`SuicideEffect`), and its death strikes everything within the skill's
+    splash (`DeadExplosiveController`)."""
+    if (skill["isPreemptive"] or skill["hasDeadRangeItem"]
+            or skill["explosiveDamageCondition"] not in EXPLOSION_DAMAGE):
+        refuse(unit, "main skill is an explosion this shape cannot state")
+    return [
+        "",
+        "explosion:",
+        f"  damage: {EXPLOSION_DAMAGE[skill['explosiveDamageCondition']]}",
+        f"  damage_multiplier: {readable(skill['damageMultiplier'])}",
+        f"  friendly_fire: {boolean(skill['enableFriendlyFire'])}",
+    ]
+
+
+def support_lines(mech, technology, skill, row):
+    """A technology's support skill, a preemptive skill beside the main one
+    (`FightSupportSkill`) whose production line (`SupportUnitCreator`) makes
+    a unit at its own level each time a batch is due and the skill may start:
+    how many at once and how often, how long each takes to appear, and where
+    about its unit. A row the simulator's shape cannot state is left out, and
+    the simulator refuses the technology by name."""
+    if (skill["appearType"] != APPEAR_PRODUCT_TIME or skill["unitLevel"] != PARENT_LEVEL
+            or skill["positionSpace"] not in POSITION_SPACES or not skill["positions"]
+            or not skill["isPreemptive"] or skill["isPreemptivePermanent"]
+            or row.get("buffID") or row.get("rangeItemType", -1) != -1):
+        return []
+    try:
+        attack = attack_lines(mech["id"], "supportSkillDatas", skill, "base_damage: 0",
+                              skill["canAttackAngle"], "      ", angle_absent=360 * ONE)
+    except SystemExit:
+        return []
+    offsets = ", ".join(f"{{x: {grid(position['x'], 1000)}, y: {grid(position['y'], 1000)}}}"
+                        for position in skill["positions"])
+    return [
+        f"  - technology: {technology}",
+        f"    skill: {skill['id']}",
+        f"    use_main_skill_range: {boolean(row.get('useMainSkillRange', False))}",
+        "    damage_by_level: []",
+        "    production:",
+        f"      unit_type_id: {skill['unitID']}",
+        "      level: parent",
+        f"      max_batch: {skill['maxBatch']}",
+        f"      max_alive: {skill['maxCount']}",
+        f"      per_time: {skill['createCountPerTime']}",
+        f"      interval: {grid(skill['createDuration'], 2000)}",
+        f"      appear: {grid(skill['productTime'], 2000)}",
+        f"      frame: {POSITION_SPACES[skill['positionSpace']]}",
+        f"      offsets: [{offsets}]",
+        "    attack:",
+    ] + attack
 
 
 def extra_weapon_lines(mech, technology, kind, skill, row):
@@ -204,6 +275,8 @@ def extra_weapon_lines(mech, technology, kind, skill, row):
     """
     if kind == "explosionSkillDatas":
         return explosion_lines(mech, technology, skill, row)
+    if kind == "supportSkillDatas":
+        return support_lines(mech, technology, skill, row)
     # `rangeItemType` -1 leaves nothing, 0 a fire, 1 an oil;
     # `energyShieldDamage` -1 leaves a shield's damage as it is.
     item = row.get("rangeItemType", -1)
@@ -329,6 +402,7 @@ def explosion_lines(mech, technology, skill, row):
     ] + buff_lines(buff, "        ")
     lines += [
         "    explosion:",
+        f"      damage: {EXPLOSION_DAMAGE[skill['explosiveDamageCondition']]}",
         f"      damage_multiplier: {readable(skill['damageMultiplier'])}",
         f"      friendly_fire: {boolean(skill['enableFriendlyFire'])}",
     ]
@@ -425,6 +499,8 @@ def attack_lines(unit, kind, skill, damage_line, attack_angle, indent, angle_abs
         lines.append("    type: direct")
     elif kind == "explosionSkillDatas":
         lines.append("    type: suicide")
+    elif kind == "supportSkillDatas":
+        lines.append("    type: support")
     elif kind == "aroundSkillData":
         lines += [
             "    type: around",
@@ -476,6 +552,12 @@ def main():
     for entry in yaml.safe_load(UNIT_TECHS.read_text())["units"]:
         researched[entry["unit_id"]] = [tech["id"] for tech in entry["technologies"]]
     rvos = build_data.shared("RVOControllerFixed")
+    # The units a researched technology's support skill makes.
+    summoned = {
+        skills[row["skillID"]][1]["unitID"]
+        for technologies in researched.values() for technology in technologies
+        if (row := extra_rows.get(technology)) and skills[row["skillID"]][0] == "supportSkillDatas"
+    }
 
     files = {}
     for path in sorted(UNITS.glob("*.yaml")):
@@ -492,7 +574,7 @@ def main():
             for technology in researched.get(unit, []) if technology in extra_rows
         }
         text = render(mechs[unit], cards[unit], kind, skill, rvos[mechs[unit]["prefabName"]], type_name,
-                      extra_weapons)
+                      extra_weapons, unit in summoned)
         if arguments.check:
             if path.read_text() != text:
                 differing.append(path.name)

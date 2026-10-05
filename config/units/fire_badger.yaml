@@ -70,6 +70,7 @@ extra_weapons:
         move_speed_value: 60
         move_speed_rate: 0
     explosion:
+      damage: current_life
       damage_multiplier: 1
       friendly_fire: true
       dead_fire: {life_time: 7, radius: 40}

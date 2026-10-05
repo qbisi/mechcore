@@ -1,0 +1,28 @@
+# Spider Mine over three batches.
+#
+# A Tarantula with Spider Mine against two Sledgehammer squads at the far end
+# of the board, which keeps the fight going 728 ticks. The line makes a batch
+# every 15 seconds (t1, t301, t601), each time the support skill starts and
+# locks the main skill for 32 ticks. At t601 the main skill is attacking
+# between blows, which the checker counts as at rest
+# (`PreemptiveSkillStartAttackChecker.IsMainSkillIdleState`): the support
+# skill starts and the main skill returns to its attack at t634. The mines
+# appear 40 ticks after each batch.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 728
+hash: {profile: mcfr-content-0.7.0, result: 42f87f1e6c3c05295c4b87e73fcb2cccd5870b6a26ff3477664efa583ff6b081}
+blue:
+  core_damage: 280
+  techs:
+    tarantula: [spider_mine]
+  units:
+  - {name: tarantula, index: 0, position: {x: -5, y: -105}, exp: 0/240/1500}
+red:
+  units:
+  - {name: sledgehammer, index: 0, position: {x: -5, y: -300}, exp: 0/100/1300}
+  - {name: sledgehammer, index: 1, position: {x: 55, y: -300}, exp: 0/330/1300}

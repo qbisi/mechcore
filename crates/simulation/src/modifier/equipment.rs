@@ -664,6 +664,11 @@ fn production_of(row: &Row, who: &str) -> std::result::Result<Option<ProductionL
             .iter()
             .map(|offset| (offset.x, offset.z))
             .collect(),
+        // `SupportUnitCreator.APPEAR_DURATION` of `appearType` 5.
+        appear_q32: 1 << 32,
+        parent_level: false,
+        body_frame: false,
+        gated: false,
     }))
 }
 

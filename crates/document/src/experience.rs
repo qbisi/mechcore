@@ -59,11 +59,12 @@ pub fn full(type_name: &str, level: i32) -> Option<i32> {
 mod tests {
     use super::{full, table};
 
-    /// Every unit a standard match sells has a row, and every row holds the
-    /// eight levels that have a next one.
+    /// Every unit a standard match sells has a row, and so does the Spider
+    /// Mine a Tarantula's support skill makes; every row holds the eight
+    /// levels that have a next one.
     #[test]
     fn every_sold_unit_has_eight_levels() {
-        assert_eq!(table().len(), 33);
+        assert_eq!(table().len(), 34);
         assert!(table().values().all(|row| row.len() == 8));
         assert_eq!(full("marksman", 1), Some(650));
         assert_eq!(full("marksman", 4), Some(2919));

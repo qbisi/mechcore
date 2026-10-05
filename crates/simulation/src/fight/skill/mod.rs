@@ -53,6 +53,8 @@ pub(in crate::fight) enum SkillKind {
     Suicide,
     /// `FightAroundSkill`: a preemptive strike about its own unit.
     Around,
+    /// `FightSupportSkill`: a preemptive skill whose blow does nothing.
+    Support,
     Laser,
     Projectile,
     ControlBeam,
@@ -64,6 +66,7 @@ impl SkillKind {
         match path {
             AttackPath::Direct => Self::Strike,
             AttackPath::Suicide => Self::Suicide,
+            AttackPath::Support => Self::Support,
             AttackPath::Around { .. } => Self::Around,
             AttackPath::Laser { .. } => Self::Laser,
             AttackPath::Projectile { .. } => Self::Projectile,
@@ -101,6 +104,7 @@ impl Performer {
             SkillKind::Strike
             | SkillKind::Suicide
             | SkillKind::Around
+            | SkillKind::Support
             | SkillKind::Laser
             | SkillKind::ControlBeam
             | SkillKind::Sweep => Self::Normal,

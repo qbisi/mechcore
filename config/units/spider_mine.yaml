@@ -1,0 +1,49 @@
+schema: mechcore.unit
+type_name: spider_mine
+unit_type_id: 1002
+main_skill: 1002001
+
+formation:
+  members: 6
+  slot_size: 20
+  footprint: {width: 20, depth: 20}
+
+domain: ground
+size: small
+max_life: 750
+collision_radius: 2.64
+move_speed: 24
+rotate_speed: 100
+has_body: false
+rvo: {outer_radius: 2, inner_radius: 1.5, size: xs, collider_priority: 3, priority: 0.002}
+
+attack:
+  base_damage: 2500
+  min_range: 0
+  range: 1
+  attack_half_angle: 40
+  targets: {ground: true, air: false}
+  lock_target: false
+  quick_switch_target: false
+  timing:
+    interval: 0
+    interval_offset: 0
+    initial_cooldown: 0
+    prepare: 0
+    attack_point: 0
+    backswing: 0
+    cooling: 0
+  splash_radius: 12
+  weapons:
+    mode: normal
+    indices: [0]
+    per_skill: 1
+  melee: true
+  crosses_shields: false
+  path:
+    type: suicide
+
+explosion:
+  damage: attack
+  damage_multiplier: 1
+  friendly_fire: true

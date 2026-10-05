@@ -120,6 +120,20 @@ pub(crate) struct ProductionLine {
     /// `GetPositionDatas`: each make's offset from its wearer, Q32.32
     /// metres, right and forward of its facing.
     pub(crate) offsets: Vec<(i64, i64)>,
+    /// How long each make takes to appear (`SupportUnitCreator.CreateMech`),
+    /// Q32.32 seconds: `APPEAR_DURATION`, a second, or the row's
+    /// `productTime`.
+    pub(crate) appear_q32: i64,
+    /// Whether each make takes its wearer's level (`DynamicMechLevel.Parent`)
+    /// rather than the first.
+    pub(crate) parent_level: bool,
+    /// Whether an offset turns with the wearer's body rather than its root
+    /// (`SupportUnitPositionSpace.ParentBody`).
+    pub(crate) body_frame: bool,
+    /// Whether a support skill of its wearer's lets each batch out
+    /// (`SupportSkillStartAttackChecker`), locking the line while it may not
+    /// start.
+    pub(crate) gated: bool,
 }
 
 /// An `IEffectProviderDataSource` a `SingleEffectProvider` sorts.
