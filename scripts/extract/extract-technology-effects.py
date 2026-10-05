@@ -76,6 +76,13 @@ SUBCLASS_SCALARS = (
     ("sweep_reverse", "isReverse", "sweepSkillIntensifyTechDatas"),
     ("sweep_fixed_direction", "isDiableDirectionChange", "sweepSkillIntensifyTechDatas"),
 )
+# A field of one list's rows that is one rate, written only where it is set:
+# an extra weapon's `allWeaponReduceDamageRate`, which
+# `ExtraSkillProvider.EnableEffect` writes on the main skill as its
+# `DamageReduceRateBase`.
+SET_SCALARS = (
+    ("all_weapon_reduce_damage_rate", "allWeaponReduceDamageRate", "extraWeaponTechnologies"),
+)
 # The lists whose rows say in `special` what they set beyond the fields
 # this table carries: the plain one, and each subclass's the simulator reads.
 IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnologies",
@@ -114,7 +121,7 @@ def rows_by_id() -> dict[int, dict]:
                 for field, source, owner in SUBCLASS_LISTS:
                     if kind == owner:
                         effect[field] = [raw(value) for value in row[source]]
-                for field, source, owner in SUBCLASS_SCALARS:
+                for field, source, owner in SUBCLASS_SCALARS + SET_SCALARS:
                     if kind == owner:
                         effect[field] = raw(row[source])
                 rows[row["id"]] = effect
@@ -125,7 +132,7 @@ def special(row: dict) -> list[str]:
     """The fields of a plain technology's row that are set and are neither a
     number this table carries nor descriptive: what it does beyond numbers."""
     numeric = ({source for _, source in LISTS} | {source for _, source, _ in SUBCLASS_LISTS}
-               | {source for _, source, _ in SUBCLASS_SCALARS})
+               | {source for _, source, _ in SUBCLASS_SCALARS + SET_SCALARS})
     return sorted(
         field
         for field, value in row["row"].items()
@@ -282,7 +289,9 @@ def main() -> int:
         "# length, and sets whether the strip lies across the line to the",
         "# target, runs backwards, and keeps one direction. An armour technology",
         "# carries its `reduce_damage_value`, the damage each hit on its unit",
-        "# loses, one entry per unit level.",
+        "# loses, one entry per unit level. An extra weapon technology that",
+        "# lowers the damage of its unit's skills carries its",
+        "# `all_weapon_reduce_damage_rate`, a rate.",
         "",
         "technologies:",
     ]
@@ -314,6 +323,9 @@ def main() -> int:
             if row["kind"] == owner:
                 value = row[field]
                 lines.append(f"    {field}: {str(value).lower() if isinstance(value, bool) else value}")
+        for field, source, owner in SET_SCALARS:
+            if row["kind"] == owner and row[field]:
+                lines.append(f"    {field}: {row[field]}  # {reading(field, row[field])}")
         for field, values in held:
             raw = ", ".join(str(value) for value in values)
             if field in INTEGERS:

@@ -920,31 +920,75 @@ impl Simulation {
         }
     }
 
+    /// What the `blow`th blow of a laser skill's attack deals: the main
+    /// skill's from its unit's numbers, and an extra skill's with a damage
+    /// rate from the unit's base damage at that rate, corrected by what
+    /// reaches the main skill, which its `DataSet` holds too.
+    fn laser_damage(&self, skill_ref: SkillRef, blow: usize) -> Result<i64> {
+        let actor_id = skill_ref
+            .owner
+            .unit_id()
+            .ok_or_else(|| Error::new("a construction's laser is not supported"))?;
+        let actor = &self.actors[&actor_id];
+        let SkillSlot::Extra(index) = skill_ref.slot else {
+            return Ok(actor.stats.laser_damage(&actor.rules, blow));
+        };
+        let rules = &actor.skills.extras[index].rules;
+        let AttackPath::Laser { damage_multipliers } = &rules.attack.path else {
+            return Err(Error::new("a laser blow from a skill that is no laser"));
+        };
+        if rules.damage_rate <= 0.0 {
+            return Err(Error::new(
+                "an extra laser skill without a damage rate is not measured",
+            ));
+        }
+        Ok(actor.stats.ramped_laser_damage(
+            actor.rules.attack.base_damage,
+            damage_multipliers,
+            (rules.damage_rate, blow),
+            0,
+            false,
+        ))
+    }
+
+    /// A beam's blow: the `blow`th of its skill's attack, from the skill
+    /// `skill_ref` holds or the `member`th skill of its group, which the
+    /// recording names by its own slot.
     pub(in crate::fight) fn laser_effect(
         &mut self,
-        actor_id: u64,
+        skill_ref: SkillRef,
+        member: usize,
+        blow: usize,
         target: FightActorRef,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let (damage, attacker_ref, attacker_team) = {
+        let actor_id = skill_ref
+            .owner
+            .unit_id()
+            .ok_or_else(|| Error::new("a construction's laser is not supported"))?;
+        let damage = self.laser_damage(skill_ref, blow)?;
+        let skill_slot = u16::try_from(self.skill_slot(skill_ref) + member)
+            .map_err(|_| Error::new("a skill slot is outside u16"))?;
+        let (attacker_ref, attacker_team) = {
             let attacker = &self.actors[&actor_id];
-            (
-                attacker.stats.laser_damage(
-                    &attacker.rules,
-                    usize::try_from(attacker.skills.main.attack_count).unwrap_or(0),
-                ),
-                attacker.object_ref(),
-                attacker.placement.team,
-            )
+            (attacker.object_ref(), attacker.placement.team)
         };
         // A beam that splashes strikes as any other hit does, what it was
         // aimed at and everything of the other side around it, in the order
         // the target trees hold them: a Melting Point's beam at one Crawler
         // reads the Crawler beside it first.
-        let splash_radius = self.actors[&actor_id].stats.splash_radius();
+        let splash_radius = self
+            .skill_attacker(skill_ref)
+            .ok_or_else(|| Error::new("laser owner is absent"))?
+            .splash_radius;
         // A beam at a unit its side's shield covers strikes the shield, as a
         // blow does: `DamageEffect.Perform`.
         if let Some(shield) = self.blow_shield(actor_id, target) {
+            if skill_ref.slot != SkillSlot::Main {
+                return Err(Error::new(
+                    "an extra skill's beam at a unit its side's shield covers is not measured",
+                ));
+            }
             return self.beam_at_shield(actor_id, target, shield, damage, events);
         }
         if splash_radius > 0 {
@@ -964,7 +1008,13 @@ impl Simulation {
             let hit = DamageHit {
                 center_q32,
                 center_y_q32: self.target_height_q32(target),
-                ..DamageHit::of_skill(attacker, 0, (target, self.domain_of(target)), damage)
+                splash_radius,
+                ..DamageHit::of_skill(
+                    attacker,
+                    skill_slot,
+                    (target, self.domain_of(target)),
+                    damage,
+                )
             };
             let struck = self.perform_damage(hit, events)?;
             self.record_ends(struck.ends, events);
@@ -1003,7 +1053,7 @@ impl Simulation {
                 EventPayload::Damage {
                     amount: i32::try_from(stroke.actual)
                         .map_err(|_| Error::new("laser damage exceeds i32"))?,
-                    skill_slot: Some(0),
+                    skill_slot: Some(skill_slot),
                 },
             ));
         }

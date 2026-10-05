@@ -296,6 +296,7 @@ fn corrections_of(row: &Row) -> Vec<(Channel, Index, Correction)> {
         attack_interval_value: row.attack_interval_value,
         splash_range_value: row.splash_range_value,
         speed_value: row.speed_value,
+        damage_reduce_rate_base: None,
     })
 }
 

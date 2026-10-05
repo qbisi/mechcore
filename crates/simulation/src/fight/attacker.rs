@@ -304,8 +304,14 @@ impl Simulation {
         attacker.attack = &rules.attack;
         // A row that uses the main skill's range reaches its own range
         // beyond it: the Secondary Armament's 2 metres past the main gun's,
-        // 107 against 105 in the recorded searches.
-        attacker.attack_range = if rules.use_main_skill_range {
+        // 107 against 105 in the recorded searches. So does every skill of a
+        // grouped row, whose `ParentSkill` is the main skill
+        // (`FightSkillFactory.PrepareGroupedSkill`) and whose
+        // `FightSkill.GetAttackRange` is its parent's with its own
+        // `SkillDataFloat.AttackRange` added: Energy Diffraction's beams
+        // reach 10 metres past the Melting Point's 85.
+        let parented = rules.attack.weapons.mode == WeaponMode::Group;
+        attacker.attack_range = if rules.use_main_skill_range || parented {
             actor
                 .stats
                 .attack_range()
@@ -356,10 +362,7 @@ impl Simulation {
         // where what it is mounted on points: the turret it is mounted on, or
         // the unit. The Hound's bombs score from the unit's rotation, as its
         // main skill does.
-        let mount_rotation = match (rules.attack.weapons.mount, actor.turret_rotation()) {
-            (WeaponMount::MechBody | WeaponMount::Default, Some(turret)) => turret,
-            _ => actor.body_rotation_q32,
-        };
+        let mount_rotation = actor.mount_rotation_q32(rules.attack.weapons.mount);
         let rotation = if extra.arc().is_some() {
             attacker.facing = Facing::Weapons(&extra.skill.weapon_rotations_q32);
             attacker.has_body = true;
@@ -419,21 +422,16 @@ impl Simulation {
     pub(in crate::fight) fn skill_slot(&self, skill_ref: SkillRef) -> usize {
         match skill_ref.slot {
             SkillSlot::Main => 0,
-            SkillSlot::Extra(index) => self.skills(skill_ref.owner).main_slots() + index,
+            SkillSlot::Extra(index) => self.skills(skill_ref.owner).extra_first_slot(index),
         }
     }
 
     /// The skill a slot of an owner's `GetSkills()` names: one of the main
     /// skill's for a slot among its group's, an extra skill's after them.
     pub(in crate::fight) fn skill_at_slot(&self, owner: FightActorRef, slot: usize) -> SkillRef {
-        let main_slots = self.skills(owner).main_slots();
         SkillRef {
             owner,
-            slot: if slot < main_slots {
-                SkillSlot::Main
-            } else {
-                SkillSlot::Extra(slot - main_slots)
-            },
+            slot: self.skills(owner).at_slot(slot).0,
         }
     }
 

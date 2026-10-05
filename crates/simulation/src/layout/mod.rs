@@ -1160,7 +1160,9 @@ fn extra_weapons(
 /// too (`IsMainSkillEffect`), which every officer, technology of a unit and
 /// equipment answers: the skill corrections that reach a skill without a
 /// damage rate, and the sources that write it a number other than damage,
-/// which no skill here reads.
+/// which no skill here reads. A skill whose range is the main skill's with its
+/// own added (`useMainSkillRange`, or a grouped row's `ParentSkill`) never
+/// reads its own range property, so a range reaching it changes nothing.
 fn reaching_extra_skill(
     weapon: &ExtraWeaponConfig,
     type_name: &str,
@@ -1170,6 +1172,12 @@ fn reaching_extra_skill(
     loadouts: &Loadouts,
 ) -> (Vec<Entry>, Vec<String>) {
     let rated = weapon.damage_rate > 0.0;
+    let parent_range = weapon.use_main_skill_range
+        || weapon.attack.weapons.mode == crate::rules::WeaponMode::Group;
+    let read = |index: Index| {
+        matches!(index, Index::AttackDamage | Index::DamageReduceRateBase)
+            || (index == Index::AttackRange && parent_range)
+    };
     let mut sources = Vec::new();
     for &id in equipment {
         if rated || loadouts.equipment.reaches_extra_skills(id) {
@@ -1217,10 +1225,7 @@ fn reaching_extra_skill(
             .filter(|(channel, _)| *channel == Channel::Skill)
             .map(|(_, entry)| entry)
             .collect::<Vec<_>>();
-        if on_skill
-            .iter()
-            .any(|entry| entry.index != Index::AttackDamage)
-        {
+        if on_skill.iter().any(|entry| !read(entry.index)) {
             reaching.push(named);
         } else if !rated {
             corrections.extend(on_skill);

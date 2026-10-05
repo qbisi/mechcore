@@ -71,8 +71,9 @@ the strip it changes ([sweep.md](sweep.md#technology)), an armour
 technology's with the reduction of each hit [combat.md](combat.md#armour)
 states, which its row's `reduce_damage_value` gives by unit level, Secondary Armament,
 Anti-Air Missile, Incendiary Bomb, Scorching Charge, Homing Missile, Sticky
-Oil Bomb and Whirlwind with
-the skill each adds
+Oil Bomb, Whirlwind and Energy Diffraction with
+the skill each adds, and Energy Diffraction's `all_weapon_reduce_damage_rate`
+on the damage of its unit's skills
 ([extra_weapons.md](extra_weapons.md)), and refuses
 every other technology by name and kind, since applying a subclass's numbers
 alone would fight it as something it is not.

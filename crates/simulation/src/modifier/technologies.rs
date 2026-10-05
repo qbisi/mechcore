@@ -70,9 +70,10 @@ const EXTRA_WEAPON: &str = "extraWeaponTechnologies";
 /// what it does beyond a projectile differ, so each joins once a recording
 /// of it agrees: Secondary Armament and Anti-Air Missile, the Sabertooth's,
 /// Incendiary Bomb, Scorching Charge, Homing Missile, Sticky Oil Bomb, the
-/// Phantom Ray's and the Vulcan's, and Whirlwind, the Rhino's.
-pub(crate) const FOUGHT_EXTRA_WEAPONS: [i32; 8] = [
-    1_109, 11_010, 11_020, 11_025, 11_028, 110_211, 110_212, 110_322,
+/// Phantom Ray's and the Vulcan's, Whirlwind, the Rhino's, and Energy
+/// Diffraction, the Melting Point's.
+pub(crate) const FOUGHT_EXTRA_WEAPONS: [i32; 9] = [
+    1_107, 1_109, 11_010, 11_020, 11_025, 11_028, 110_211, 110_212, 110_322,
 ];
 
 /// `EnergyShieldTech.GetLifeRate`: `FPoint.One`, whatever its row, so the
@@ -167,6 +168,10 @@ struct Row {
     /// one entry per unit level.
     #[serde(default)]
     reduce_damage_value: Vec<i64>,
+    /// `ExtraWeaponTechnologyData.allWeaponReduceDamageRate`, on an extra
+    /// weapon row that sets it.
+    #[serde(default)]
+    all_weapon_reduce_damage_rate: i64,
     #[serde(default)]
     sweep_skill_id: i64,
     #[serde(default)]
@@ -501,6 +506,7 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
         attack_interval_value: at_rank_one(&row.attack_interval_value),
         splash_range_value: at_rank_one(&row.splash_range_value),
         speed_value: at_rank_one(&row.speed_value),
+        damage_reduce_rate_base: Some(row.all_weapon_reduce_damage_rate),
     }))
 }
 

@@ -28,7 +28,9 @@ schema: mechcore.technology_effects
 # length, and sets whether the strip lies across the line to the
 # target, runs backwards, and keeps one direction. An armour technology
 # carries its `reduce_damage_value`, the damage each hit on its unit
-# loses, one entry per unit level.
+# loses, one entry per unit level. An extra weapon technology that
+# lowers the damage of its unit's skills carries its
+# `all_weapon_reduce_damage_rate`, a rate.
 
 technologies:
   - id: 206
@@ -275,6 +277,7 @@ technologies:
     name: 能量散射
     unit: melting_point
     kind: extraWeaponTechnologies
+    all_weapon_reduce_damage_rate: -3564822855  # -0.83
     attack_range_value: [-128849018880]  # -30
   - id: 1108
     name: 舰炮
@@ -1030,6 +1033,7 @@ technologies:
     name: 多重控制
     unit: hacker
     kind: extraWeaponTechnologies
+    all_weapon_reduce_damage_rate: -3564822855  # -0.83
     attack_range_value: [-107374182400]  # -25
   - id: 11020
     name: 焦土冲击

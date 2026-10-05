@@ -196,10 +196,11 @@ def extra_weapon_lines(mech, technology, kind, skill, row):
     (`ExtraSkillSystem.AddMech`). A row whose hit leaves a fire states how long
     the fire burns (`fireLifeTime`), and one whose hit leaves an oil how long
     the oil burns once a fire reaches it. A row's `buffID` is the buff its hit
-    writes on what it struck, and an oil's on what stands in it. A row that
-    leaves another terrain, writes a buff the simulator does not read, changes
-    a shield's damage or reduces every weapon's damage is left out, and the
-    simulator refuses the technology by name.
+    writes on what it struck, and an oil's on what stands in it. A row's
+    `allWeaponReduceDamageRate` is its technology's number, which
+    `config/technology_effects.yaml` carries. A row that leaves another
+    terrain, writes a buff the simulator does not read, or changes a shield's
+    damage is left out, and the simulator refuses the technology by name.
     """
     if kind == "explosionSkillDatas":
         return explosion_lines(mech, technology, skill, row)
@@ -211,13 +212,13 @@ def extra_weapon_lines(mech, technology, kind, skill, row):
     if (item not in (-1, 0, 1) or (row.get("buffID") and buff is None) or (oil and buff is None)
             or row.get("energyShieldDamage", -1) != -1
             or (not fire and not oil and any(raw(value) for value in row.get("fireLifeTime") or []))
-            or raw(row.get("fogAttackRangeChangeRate")) or raw(row.get("allWeaponReduceDamageRate"))):
+            or raw(row.get("fogAttackRangeChangeRate"))):
         return []
     # A skill with no damage rate deals its own damage, one entry a level, or
-    # none when its row lists none; an around skill with a rate deals that
-    # share of the unit's base damage, and lists none of its own. Any other
-    # skill with a rate is not stated here yet.
-    if raw(skill["damageRate"]) and (skill["damage"] or kind != "aroundSkillData"):
+    # none when its row lists none; an around skill or a laser with a rate
+    # deals that share of the unit's base damage, and lists none of its own.
+    # Any other skill with a rate is not stated here yet.
+    if raw(skill["damageRate"]) and (skill["damage"] or kind not in ("aroundSkillData", "laserSkillDatas")):
         return []
     if raw(skill["initialCoolDownTime"]) or any(
             skill[field] for field in ("isLoadingType", "isDiffusion")):
