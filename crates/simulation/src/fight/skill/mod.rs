@@ -279,6 +279,23 @@ pub(in crate::fight) struct SkillManager {
     pub(in crate::fight) running_preemptive: Option<usize>,
 }
 
+impl SkillManager {
+    /// A tick on which no skill updates: `FightSkill.Update` adds nothing
+    /// to any skill's `attackTime`, so the attack each is waiting for comes
+    /// a tick later. A Sandworm's interval stands still while it burrows and
+    /// surfaces.
+    pub(in crate::fight) fn pause_attack_intervals(&mut self) {
+        let skills = std::iter::once(&mut self.main)
+            .chain(self.extras.iter_mut().map(|extra| &mut extra.skill));
+        for skill in skills {
+            skill.next_attack_step = skill.next_attack_step.saturating_add(1);
+            for sibling in skill.siblings_mut() {
+                sibling.next_attack_step = sibling.next_attack_step.saturating_add(1);
+            }
+        }
+    }
+}
+
 /// One `FightSkill` an extra weapon technology adds (`ExtraSkillSystem.AddMech`):
 /// `SkillManager.AddSkill` adds every skill its row makes, one for each weapon
 /// of a standalone row.
@@ -1288,7 +1305,14 @@ impl Simulation {
     ) -> Result<()> {
         if !self.actors[&actor_id].skills_active {
             // `SkillManager.Update` returns at once while its manager is not
-            // active; the motion updates all the same.
+            // active; the motion updates all the same. No skill counts its
+            // `attackTime` towards its interval (`FightSkill.Update`), so
+            // each next attack waits a tick more.
+            self.actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable")
+                .skills
+                .pause_attack_intervals();
             let _ = self.update_transition(actor_id);
             return Ok(());
         }
