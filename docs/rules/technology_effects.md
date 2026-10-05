@@ -71,7 +71,8 @@ the strip it changes ([sweep.md](sweep.md#technology)), an armour
 technology's with the reduction of each hit [combat.md](combat.md#armour)
 states, which its row's `reduce_damage_value` gives by unit level, a
 search-target technology's with its numbers against aircraft and its search
-by distance, an air-attack technology's with its skills turned onto or off
+by distance, a damage-intensify technology's with its damage against one
+domain, an air-attack technology's with its skills turned onto or off
 aircraft ([combat.md](combat.md#aerial-and-ground-targets)), Secondary Armament,
 Anti-Air Missile, Incendiary Bomb, Scorching Charge, Homing Missile, Sticky
 Oil Bomb, Whirlwind and Energy Diffraction with

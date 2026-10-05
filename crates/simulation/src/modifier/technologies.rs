@@ -15,7 +15,8 @@
 //! numbers and hands its unit a [`LifeSteal`], an `AutoRecoveryTech` that
 //! repairs in any state an [`AutoRecovery`], an `ArmorStrengthenTech` a
 //! reduction of every hit on it, and a `SearchTargetSpecificTech` its numbers
-//! against aerial and ground targets and a search by distance, and an
+//! against aerial and ground targets and a search by distance, a
+//! `DamageIntensifyTech` its damage against them, and an
 //! `AirAttackTech` its skills turned onto or off aircraft; any other is
 //! refused by name rather than applied for its numbers alone.
 //!
@@ -70,7 +71,7 @@ const ARMOR: &str = "armorStrengthenTechnologyDatas";
 const SEARCH_TARGET_SPECIFIC: &str = "searchTargetSpecificDatas";
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 8] = [
+const IMPLEMENTED: [&str; 9] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -79,7 +80,11 @@ const IMPLEMENTED: [&str; 8] = [
     ARMOR,
     SEARCH_TARGET_SPECIFIC,
     AIR_ATTACK,
+    DAMAGE_INTENSIFY,
 ];
+
+/// The list whose `DamageIntensifyTech` writes its damage against one domain.
+const DAMAGE_INTENSIFY: &str = "damageIntensifyTechnologies";
 
 /// The list whose `AirAttackTech` is an `IAirAttackDataSource`.
 const AIR_ATTACK: &str = "airAttackTechnologyDatas";
@@ -229,7 +234,8 @@ struct Row {
     #[serde(default)]
     reduce_damage_value: Vec<i64>,
     /// `SearchTargetSpecificData`'s fields, on a row of its list: whole
-    /// metres, and a rate by the unit's rank.
+    /// metres, and a rate by the unit's rank, which a
+    /// `DamageIntensifyTechnologyData` row carries too.
     #[serde(default)]
     air_target_score_offset: i64,
     #[serde(default)]
@@ -572,7 +578,7 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
     }
 
     let at_rank_one = |values: &Vec<i64>| values.first().copied().filter(|value| *value != 0);
-    let mut written = search_target_specific(row, at_rank_one);
+    let mut written = against_domains(row, at_rank_one);
     written.extend(effects::corrections(Fields {
         life_rate: at_rank_one(&row.life_rate),
         damage_rate: at_rank_one(&row.damage_rate),
@@ -590,13 +596,15 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
     Ok(written)
 }
 
-/// What a `SearchTargetSpecificTech` writes onto its unit's skill: for each
-/// domain it reaches further at, the metres both into the range its
-/// `AttackRangeAirProperty` or `AttackRangeGroundProperty` adds and into what
-/// its search counts off a candidate of that domain
-/// (`SearchTargetSpecificProvider.DoEnable`), and the rate its damage on that
-/// domain gains (`SearchTargetSpecificTech.AddData`).
-fn search_target_specific(
+/// What a technology writes onto its unit's skill against one domain: for
+/// each domain a `SearchTargetSpecificTech` reaches further at, the metres
+/// both into the range its `AttackRangeAirProperty` or
+/// `AttackRangeGroundProperty` adds and into what its search counts off a
+/// candidate of that domain (`SearchTargetSpecificProvider.DoEnable`), and
+/// the rate its damage on that domain gains, which
+/// `SearchTargetSpecificTech.AddData` and `DamageIntensifyTech.AddData` write
+/// alike: Ground Specialization's 2 triples a Wasp's damage on the ground.
+fn against_domains(
     row: &Row,
     at_rank_one: impl Fn(&Vec<i64>) -> Option<i64>,
 ) -> Vec<(Channel, Index, Correction)> {
@@ -659,6 +667,9 @@ mod tests {
     /// Aerial Specialization for the Marksman, a `searchTargetSpecificDatas`
     /// row: 30 metres and 0.9 of damage against aircraft.
     const AERIAL_SPECIALIZATION: i32 = 3202;
+    /// Ground Specialization for the Wasp, a `damageIntensifyTechnologies`
+    /// row: 2 of damage against the ground.
+    const GROUND_SPECIALIZATION: i32 = 506;
 
     #[test]
     fn a_technology_writes_onto_the_unit_whose_table_row_names_it() {
@@ -832,6 +843,28 @@ mod tests {
             Some(super::AirAttack {
                 extra_skills: false
             })
+        );
+    }
+
+    /// A damage-intensify technology writes its rate against one domain and
+    /// nothing else: Ground Specialization's 2 on a Wasp's ground damage.
+    #[test]
+    fn ground_specialization_writes_its_ground_rate() {
+        use crate::rules::UnitDomain::Ground;
+        let table = TechnologyEffects::load().unwrap();
+        let written = table
+            .corrections(&[GROUND_SPECIALIZATION], "wasp")
+            .unwrap()
+            .into_iter()
+            .map(|(channel, entry)| (channel, entry.index, entry.correction))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            written,
+            [(
+                Channel::Skill,
+                Index::DamageRateAgainst(Ground),
+                Correction::Value(2 << 32)
+            )]
         );
     }
 }

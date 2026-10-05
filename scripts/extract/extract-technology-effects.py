@@ -66,6 +66,8 @@ SUBCLASS_LISTS = (
     ("reduce_damage_value", "reduceDamageValue", "armorStrengthenTechnologyDatas"),
     ("air_damage_change_rate", "airDamageChangeRate", "searchTargetSpecificDatas"),
     ("ground_damage_change_rate", "groundDamageChangeRate", "searchTargetSpecificDatas"),
+    ("air_damage_change_rate", "airDamageChangeRate", "damageIntensifyTechnologies"),
+    ("ground_damage_change_rate", "groundDamageChangeRate", "damageIntensifyTechnologies"),
 )
 # The same for a field that is one value rather than a rank list.
 SUBCLASS_SCALARS = (
@@ -93,7 +95,7 @@ SET_SCALARS = (
 IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnologies",
                "energyShieldTechnologies", "sweepSkillIntensifyTechDatas",
                "armorStrengthenTechnologyDatas", "searchTargetSpecificDatas",
-               "airAttackTechnologyDatas")
+               "airAttackTechnologyDatas", "damageIntensifyTechnologies")
 # The list of `TechnologyGroupData` a plain technology comes from. A row of any
 # other list is a subclass (`BuffTechnologyData`, `SplashTechnologyData` and
 # the rest) that does something beyond its unit's numbers.
@@ -302,7 +304,8 @@ def main() -> int:
         "# further at, and its search counts off, an aerial and a ground target",
         "# (`air_target_score_offset`, `ground_target_score_offset`), and the",
         "# rate it adds to its damage on each (`air_damage_change_rate`,",
-        "# `ground_damage_change_rate`). A technology that turns its unit's",
+        "# `ground_damage_change_rate`), which a damage-intensify technology",
+        "# carries alone. A technology that turns its unit's",
         "# skill on or off aircraft says whether it turns the extra skills too",
         "# (`extra_skill_effect`).",
         "",
