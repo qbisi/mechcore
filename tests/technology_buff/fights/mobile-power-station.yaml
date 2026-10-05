@@ -1,0 +1,29 @@
+# Mobile Power Station: a Vortex keeps its buff on its side's ground units
+# around it.
+#
+# From the fight's ninth tick the Vortex adds buff 10001 to itself and to the
+# Marksman beside it on every tick; the Wasps, in the air, and the Marksman
+# 130 m behind are not reached. The Marksman's shots read 3027 under the
+# buff, its bare 2329 times 1.3. The Vortex dies at t270 and its buff with it;
+# the Marksman's runs out 40 ticks after the last, at t309, and its shots read
+# 2329 again.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 514
+hash: {profile: mcfr-content-0.7.0, result: 81ac5fa8d02a765926da2a4a1ed06fa6f3159c379d5ab36e70227251214f607a}
+blue:
+  techs:
+    vortex: [mobile_power_station]
+  units:
+  - {name: vortex, index: 0, position: {x: 0, y: -120}}
+  - {name: marksman, index: 1, position: {x: 20, y: -120}}
+  - {name: wasp, index: 2, position: {x: -45, y: -120}, exp: 0/600/900}
+  - {name: marksman, index: 3, position: {x: 60, y: -250}, exp: 0/200/650}
+red:
+  core_damage: 304
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -150}, exp: 0/400/1600}

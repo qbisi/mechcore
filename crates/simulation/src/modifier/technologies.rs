@@ -45,9 +45,9 @@ use crate::{
 };
 
 use super::{
-    buffs::{self, BuffBlock},
+    buffs::{self, BuffBlock, CycleBlock},
     effects::{self, Fields, PROJECTILE, VALUE_ELSEWHERE},
-    sources::{AutoRecovery, EnergyShield, LifeSteal, StartBuff, SweepIntensify},
+    sources::{AutoRecovery, BuffSource, EnergyShield, LifeSteal, SweepIntensify},
 };
 
 const DEFAULT_TECHNOLOGY_EFFECTS: &str = include_str!("../../../../config/technology_effects.yaml");
@@ -173,7 +173,7 @@ struct Technology {
     secondary_damage: Option<SecondaryDamage>,
     /// The buff it adds its unit as the fight starts, if its class is an
     /// `IEffectBuffDataSource`.
-    start_buff: Option<StartBuff>,
+    buff_source: Option<BuffSource>,
 }
 
 /// What `SecondaryDamageIntensifyEffectProvider` hands its unit's main skill
@@ -209,7 +209,7 @@ pub(crate) struct UnitSources {
     pub(crate) lifesteal: Vec<LifeSteal>,
     pub(crate) auto_recovery: Vec<AutoRecovery>,
     pub(crate) energy_shield: Vec<EnergyShield>,
-    pub(crate) start_buffs: Vec<StartBuff>,
+    pub(crate) buff_sources: Vec<BuffSource>,
 }
 
 /// What a side's technologies change about one unit type's main skill
@@ -321,6 +321,8 @@ struct Row {
     #[serde(default)]
     probability: Option<i64>,
     #[serde(default)]
+    buff_cycle: CycleBlock,
+    #[serde(default)]
     buff_special: Vec<String>,
     #[serde(default)]
     buff: Option<BuffBlock>,
@@ -407,15 +409,16 @@ impl TechnologyEffects {
             let _ = row.sweep_skill_id;
             let reduce_damage = (row.kind == ARMOR).then(|| row.reduce_damage_value.clone());
             let who = format!("technology {} ({})", row.id, row.name);
-            let start_buff = (row.kind == BUFF).then(|| {
-                buffs::start_buff(
+            let buff_source = (row.kind == BUFF).then(|| {
+                buffs::buff_source(
                     &who,
                     (row.buff_trigger, &row.buff_targets, row.probability),
+                    &row.buff_cycle,
                     &row.buff_special,
                     row.buff.as_ref(),
                 )
             });
-            let (start_buff, effect) = match start_buff {
+            let (buff_source, effect) = match buff_source {
                 Some(Err(why)) => (None, Err(why)),
                 Some(Ok(buff)) => (Some(buff), corrections_of(&row)),
                 None => (None, corrections_of(&row)),
@@ -432,7 +435,7 @@ impl TechnologyEffects {
                 air_attack: (row.kind == AIR_ATTACK).then_some(AirAttack {
                     extra_skills: row.extra_skill_effect,
                 }),
-                start_buff,
+                buff_source,
                 secondary_damage: (row.kind == SECONDARY_DAMAGE).then_some(SecondaryDamage {
                     damage: row.secondary_damage,
                     splash_radius: effects::fixed_to(row.secondary_splash_range, effects::METERS),
@@ -510,7 +513,7 @@ impl TechnologyEffects {
             sources.lifesteal.extend(technology.lifesteal);
             sources.auto_recovery.extend(technology.auto_recovery);
             sources.energy_shield.extend(technology.energy_shield);
-            sources.start_buffs.extend(technology.start_buff);
+            sources.buff_sources.extend(technology.buff_source);
         }
         Ok(sources)
     }
@@ -760,6 +763,9 @@ mod tests {
     const COMBAT_EVOLVEMENT: i32 = 180_805;
     /// Kinetic Charge for the Steel Ball, whose buff stacks on distance.
     const KINETIC_CHARGE: i32 = 180_808;
+    /// Mobile Power Station and Degeneration Beam.
+    const MOBILE_POWER_STATION: i32 = 180_931;
+    const DEGENERATION_BEAM: i32 = 180_418;
     /// Electromagnetic Cloud for the Vortex, whose second damage disables
     /// technologies and writes a buff.
     const ELECTROMAGNETIC_CLOUD: i32 = 4531;
@@ -995,7 +1001,7 @@ mod tests {
         let buffs = table
             .sources(&[COMBAT_EVOLVEMENT], "rhino")
             .unwrap()
-            .start_buffs;
+            .buff_sources;
         assert_eq!(buffs.len(), 1);
         assert_eq!(buffs[0].buff_id, 8005);
         assert_eq!(buffs[0].damage_rate, 193_273_528);
@@ -1006,7 +1012,7 @@ mod tests {
             table
                 .sources(&[COMBAT_EVOLVEMENT], "marksman")
                 .unwrap()
-                .start_buffs
+                .buff_sources
                 .is_empty()
         );
         let refused = table
@@ -1014,5 +1020,34 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(refused.contains("8008"), "{refused}");
+    }
+
+    /// A buff technology of the update model `Each` keeps its buff on the
+    /// units in reach: Mobile Power Station on its side's ground units within
+    /// 100 m, Degeneration Beam on the enemies of either domain within 120 m,
+    /// each to the unit's edge.
+    #[test]
+    fn a_buff_kept_on_the_units_around() {
+        let table = TechnologyEffects::load().unwrap();
+        let station = table
+            .sources(&[MOBILE_POWER_STATION], "vortex")
+            .unwrap()
+            .buff_sources;
+        let reach = station[0].reach.unwrap();
+        assert_eq!(station[0].buff_id, 10001);
+        assert_eq!(reach.range_q32, 100 << 32);
+        assert!(reach.domains.ground && !reach.domains.air);
+        assert!(reach.target_radius);
+        let targets = reach.targets;
+        assert!(targets.itself && targets.own_others && targets.friends && !targets.opponents);
+        let beam = table
+            .sources(&[DEGENERATION_BEAM], "wraith")
+            .unwrap()
+            .buff_sources;
+        let reach = beam[0].reach.unwrap();
+        assert_eq!(beam[0].speed_rate, -1_717_986_918);
+        assert_eq!(reach.range_q32, 120 << 32);
+        assert!(reach.domains.ground && reach.domains.air);
+        assert!(reach.targets.opponents && !reach.targets.itself);
     }
 }

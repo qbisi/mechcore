@@ -12,8 +12,8 @@ use crate::{
     Error, Result,
     data::{Channel, Correction, Entry, ExperienceRate, Index, Stats},
     modifier::{
-        AutoRecovery, CarriedShield, EnergyShield, EnergyTowerSkillEffects, EquipmentEffects,
-        LifeSteal, MainSkill, OfficerEffects, ProductionLine, SecondaryDamage, StartBuff,
+        AutoRecovery, BuffSource, CarriedShield, EnergyShield, EnergyTowerSkillEffects,
+        EquipmentEffects, LifeSteal, MainSkill, OfficerEffects, ProductionLine, SecondaryDamage,
         SweepIntensify, TECHNOLOGY_SOURCE, TechnologyEffects, current_source,
     },
     rules::{ExtraWeaponConfig, UnitConfig, UnitConfigs, UnitDomain},
@@ -83,7 +83,7 @@ pub(crate) struct Placement {
     /// The production line its equipment makes it run.
     pub(crate) production: Option<Production>,
     /// The buffs its equipment adds to it as the fight starts.
-    pub(crate) start_buffs: Vec<StartBuff>,
+    pub(crate) buff_sources: Vec<BuffSource>,
     /// The `buffDatas` rows its equipment makes it ignore,
     /// `BuffManager.ignoredBuffs`.
     pub(crate) ignored_buffs: Vec<u32>,
@@ -666,7 +666,7 @@ fn compile_formation(
     };
     // `BuffCycleController.OnEnterFight` starts no controller on a unit still
     // travelling, and when one that arrives starts it is not read.
-    if formation.travelling && !worn.start_buffs.is_empty() {
+    if formation.travelling && !worn.buff_sources.is_empty() {
         refused.push(format!(
             "side {side_name} unit type {:?} travels in with a buff its equipment adds as \
              the fight starts, and when a travelling unit's starts is not measured",
@@ -704,7 +704,7 @@ fn compile_formation(
         secondary_damage: worn.secondary_damage,
         carried_shield: worn.carried_shield,
         production,
-        start_buffs: worn.start_buffs,
+        buff_sources: worn.buff_sources,
         ignored_buffs: worn.ignored_buffs,
         important: worn.important,
         ignores_control_beam: worn.ignores_control_beam,
@@ -840,7 +840,7 @@ struct Worn {
     distance_intensify: bool,
     secondary_damage: Option<SecondaryDamage>,
     carried_shield: Option<CarriedShield>,
-    start_buffs: Vec<StartBuff>,
+    buff_sources: Vec<BuffSource>,
     ignored_buffs: Vec<u32>,
     important: bool,
     ignores_control_beam: bool,
@@ -980,7 +980,7 @@ fn worn(
     )?;
     let mut carried_shields = Vec::new();
     // The buffs its technologies add as the fight starts, then its items'.
-    let mut start_buffs = sources.start_buffs;
+    let mut buff_sources = sources.buff_sources;
     let mut ignored_buffs = Vec::new();
     let mut important = false;
     let mut ignores_control_beam = false;
@@ -994,8 +994,8 @@ fn worn(
         )?;
         ignored_buffs
             .extend(refused.hold(loadouts.equipment.ignored_buffs(id, rules).map_err(on_side))?);
-        start_buffs
-            .extend(refused.hold(loadouts.equipment.start_buff(id, rules).map_err(on_side))?);
+        buff_sources
+            .extend(refused.hold(loadouts.equipment.buff_source(id, rules).map_err(on_side))?);
         energy_shield
             .extend(refused.hold(loadouts.equipment.energy_shield(id, rules).map_err(on_side))?);
         carried_shields.extend(
@@ -1039,7 +1039,7 @@ fn worn(
                 return None;
             }
         },
-        start_buffs,
+        buff_sources,
         ignored_buffs,
         important,
         ignores_control_beam,

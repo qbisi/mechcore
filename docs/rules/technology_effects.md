@@ -95,6 +95,27 @@ unit on the fight's first tick, once,** as a buff item does
 ([equipment_effects.md](equipment_effects.md#buff-items)): both are the same
 buff source. Combat Evolvement is one, on the Rhino.
 
+**A buff source that keeps its buff on the units around its unit adds it
+again on every tick.** Under the update model `Each`, the source's controller
+leaves its delay on its first update, selects nothing on the next seven, and
+from its eighth, the fight's ninth tick, takes on every update the units in
+reach: every live unit of either side, not underground, of a domain the
+source's fly type takes, within the source's range of its unit (to the unit's
+edge where the source says so), and of a target type it names: its unit, its
+side's others, its side, or the enemy. Each of them takes the buff again, the
+ones it held before first and new ones after. The source's interval and delay
+never reach the cycle, so the buff is added on every tick, and its duration is
+how long it outlasts its unit leaving reach. The cycle stops while its unit is
+dead or its technologies are disabled. Mobile Power Station keeps 30% more
+damage on its Vortex and its side's ground units within 100 m; Degeneration
+Beam keeps 40% less speed, 20% less damage and 30% more damage taken on the
+enemies of either domain within 120 m of the Wraith.
+
+**A buff takes back only what it wrote.** When a buff ends, its entries go and
+every other buff's stay, whichever source wrote them: a Rhino with Combat
+Evolvement, Mobile Power Station and Degeneration Beam keeps two when the
+third runs out.
+
 **A buff that stacks adds a stack every step.** A buff marked additive in
 effect, stacking on time, counts its stacks up by one each `stepTime`, to its
 bound if it has one, and each rate it writes is the buff's rate times the
@@ -111,8 +132,11 @@ Rhino with Combat Evolvement has 2.5% more life a stack, and a hit Rhino's
 life passes through its maximum without the buff on each step. When the buff
 ends, the fight's end among, the rate goes and the life is refreshed again.
 
-Any other trigger, target or chance, a buff that stacks on distance or lowers
-what it stacks, and a buff field beyond these is refused by name.
+Any other trigger or chance, a source that adds its buff once to other units
+or cycles under the update model `All`, one that reaches crystals, measures
+from its unit's edge or keeps to a distance type, a buff that stacks on
+distance or lowers what it stacks, and a buff field beyond these is refused by
+name.
 
 ## What this table does not carry
 
@@ -164,6 +188,13 @@ whose effect grows with rank, rather than read index zero:
   and maximum life: `tests/technology_buff/fights/combat-evolvement.yaml`, and
   on hit Rhinos `tests/corpus/fights/134260717-r2.yaml` and
   `tests/corpus/fights/134260717-r3.yaml`.
+- A source of the update model `Each` adds its buff to the units in reach on
+  every tick from the ninth, its side's ground units or the enemies of either
+  domain, and stops with its unit's death:
+  `tests/technology_buff/fights/mobile-power-station.yaml` and
+  `tests/technology_buff/fights/degeneration-beam.yaml`.
+- Three buffs run on one Rhino, and one ending leaves the others' rates:
+  `tests/technology_buff/fights/three-buffs.yaml`.
 
 ### Read
 
@@ -188,9 +219,35 @@ whose effect grows with rank, rather than read index zero:
   `FightMech.AddData` and `FightMech.RemoveData` call
   `FightMech.RefreshLifeData`, which keeps a full `FightActor.lifeGauge` full
   and any other at its share of the new maximum.
+- A source's controller runs a range cycle under the update model `Each`:
+  `BuffCycleController.useUpdateFinder` is set by its constructor, which hands
+  `BuffCycleController.rangeUnitCycle` the owner, the fight and the source but
+  never `RangeUnitCycle.delayTimeConfig` or
+  `RangeUnitCycle.intervalTimeConfig`. `BuffCycleController.Update` runs it
+  while `BuffCycleController.isAvailable`, which
+  `BuffCycleController.DisableEffect` clears. `RangeUnitCycle.Update` leaves
+  `BuffCycleState.Delaying` once `RangeUnitCycle.curTime` reaches the delay and
+  returns; then each update calls `RangeUnitCycle.UpdateSelector`, which
+  returns until `RangeUnitCycle.currentFrame` reaches
+  `RangeUnitCycle.selectRangeInterval` and never sets it back, and counts up
+  `RangeUnitCycle.times`, invoking `RangeUnitCycle.OnActorTrigger` for each of
+  `RangeUnitCycle.fightMeches` past the interval.
+  `RangeUnitCycle.UpdateSelector` asks
+  `RangeTargetCalculator.CalculateRangeActors` with
+  `IEffectBuffDataSource.GetMax`, `IEffectBuffDataSource.GetAttackTargetFlyType`
+  and `IEffectBuffDataSource.IsDistanceCalculateTargetRadius`, keeps what
+  `BuffCycleController.AvailableCheck` passes, drops from its list the units
+  no longer found and appends the new. `BuffCycleController.BuffEffectCallBack`
+  adds the buff through `BuffCycleController.TriggerBuffOrBuffRangeItemFromSelector`
+  and `BuffSystem.AddBuffByCheck`.
 
 ### Not established
 
+- **Which units `FriendUnits` names in a fight of two teams a side.**
+  `BuffCycleController.AvailableCheck` compares the units' groups and then
+  their teams, and with one team a side the simulator reads it as the side;
+  Mobile Power Station names it beside `OtherSelfUnits` and `MechUnit`, whose
+  union is the side either way.
 - **How the life share rounds.** The quotient rounded and the product
   truncated is what the recordings fit; the arithmetic of `FPoint` division
   and multiplication was not read.

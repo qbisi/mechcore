@@ -1,0 +1,25 @@
+# Degeneration Beam: a Wraith keeps its debuff on the enemies around it, in
+# the air and on the ground.
+#
+# Each Wasp, and the Rhino, takes buff 20003 on every tick from the one its
+# edge comes within 120 m of the Wraith, from t78 on, until it dies; the
+# debuff's speed rate slows each of them while it runs.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 570
+hash: {profile: mcfr-content-0.7.0, result: 597258c59c052868e28252f63ff2cb78c13103f09915305e04b4a996261f819c}
+blue:
+  core_damage: 100
+  techs:
+    wraith: [degeneration_beam]
+  units:
+  - {name: wraith, index: 0, position: {x: 5, y: -105}, exp: 0/808/2250}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -115}}
+  - {name: wasp, index: 1, position: {x: 45, y: -110}}
+  - {name: marksman, index: 2, position: {x: -40, y: -160}, exp: 0/600/650}

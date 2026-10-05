@@ -52,13 +52,13 @@ equipment:
       disable_technology: true
       amplify_damage_rate: 0
       damage_rate: 0
+      speed_rate: -1717986918  # -0.4
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: false
-      special: [speedChangeRate]
   - id: 1305002
     name: 寄生弹药
     kind: buffEquipmentDatas
@@ -79,6 +79,7 @@ equipment:
       disable_technology: false
       amplify_damage_rate: 0
       damage_rate: 0
+      speed_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -106,6 +107,7 @@ equipment:
       disable_technology: false
       amplify_damage_rate: -1288490188  # -0.3
       damage_rate: 0
+      speed_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -134,13 +136,13 @@ equipment:
       disable_technology: true
       amplify_damage_rate: 0
       damage_rate: 0
+      speed_rate: -1717986918  # -0.4
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: false
-      special: [speedChangeRate]
   - id: 1305005
     name: 先进寄生弹药
     kind: buffEquipmentDatas
@@ -163,6 +165,7 @@ equipment:
       disable_technology: false
       amplify_damage_rate: 0
       damage_rate: 0
+      speed_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -192,6 +195,7 @@ equipment:
       disable_technology: false
       amplify_damage_rate: 0
       damage_rate: 0
+      speed_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -220,6 +224,7 @@ equipment:
       disable_technology: false
       amplify_damage_rate: 0
       damage_rate: 128849018  # +0.03
+      speed_rate: 0
       max_life_rate: 128849018  # +0.03
       step_time: 4294967296  # +1
       additive_effect: true
@@ -236,7 +241,12 @@ equipment:
     buff_trigger: 1
     buff_targets: [3, 2]
     probability: 4294967296  # +1
-    buff_special: [max, intervalTime, delayTime, targetFlyType, isDistanceCalculateTargetRadius]
+    buff_cycle:
+      range: 429496729600  # +100
+      interval: 64424509440  # +15
+      delay: 4724464025  # +1.1
+      fly_type: 2
+      target_radius: true
     buff:
       id: 40000
       name: 光子投射通用
@@ -248,6 +258,7 @@ equipment:
       disable_technology: false
       amplify_damage_rate: -1288490188  # -0.3
       damage_rate: 0
+      speed_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -276,6 +287,7 @@ equipment:
       disable_technology: false
       amplify_damage_rate: 0
       damage_rate: 0
+      speed_rate: 0
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: false
@@ -292,7 +304,12 @@ equipment:
     buff_trigger: 1
     buff_targets: [3, 2, 1]
     probability: 4294967296  # +1
-    buff_special: [max, intervalTime, delayTime, targetDamageDistanceType, isDistanceCalculateTargetRadius]
+    buff_cycle:
+      range: 558345748480  # +130
+      interval: 4294967296  # +1
+      delay: 4724464025  # +1.1
+      distance_type: 2
+      target_radius: true
     buff:
       id: 9002
       name: 试验级雷达
@@ -304,6 +321,7 @@ equipment:
       disable_technology: false
       amplify_damage_rate: 0
       damage_rate: 0
+      speed_rate: 0
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: false

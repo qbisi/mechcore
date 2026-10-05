@@ -260,9 +260,8 @@ struct Actor {
     /// controller's `lifeRate`, and its `Open` fills it to the whole part of
     /// the unit's maximum life times that rate.
     shield: Option<PersonalShield>,
-    /// Whether its equipment's fight-start buffs are still to be added:
-    /// its `BuffCycleController`s are running and have not updated.
-    start_buffs_pending: bool,
+    /// Its `BuffCycleController`s, one for each of its buff sources.
+    buff_cycles: Vec<buff_cycle::BuffCycle>,
     /// Its `AutoRecoveryController`'s clocks, when a repair source is in
     /// force on it.
     recovery: Option<recovery::RecoveryClock>,
@@ -713,7 +712,7 @@ impl Simulation {
         // prepared at the start of this FightCore update.
         let target_search_order = self.target_search_order();
         // `BuffSystem` updates before `CommanderSkillSystem`.
-        self.step_buff_cycles(&mut events)?;
+        self.step_buff_cycles(&target_search_order, &mut events)?;
         // `CommanderSkillSystem` and then `MineSystem` update before
         // `FightCoreSystem`: a skill lands, and a missile fires, on where
         // their enemies stood as the tick opened.

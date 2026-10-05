@@ -10,7 +10,6 @@
 //! from the next tick. The layout compiled the tick it lands on;
 //! `docs/rules/battle_skill.md` states the rule.
 
-use super::rvo::fpoint_less_or_equal;
 use super::*;
 use crate::{
     data::{Entry, Index},
@@ -391,36 +390,28 @@ impl Simulation {
     }
 
     /// `RangeTargetCalculator.CalculateRangeActors` as the sub-effect asks it,
-    /// and what `PerformNegativeEffect` keeps of it: every live unit of either
+    /// and what `PerformNegativeEffect` keeps of it: the units of either
     /// side, ground or air, whose edge is within the range of where the skill
-    /// landed by `FPoint.op_LessThanOrEqual`, side by side in the order each
-    /// side's objects are searched. The calculator is given no team, and
-    /// `IsBuffTarget` keeps units alone.
+    /// landed. The calculator is given no team, and `IsBuffTarget` keeps
+    /// units alone.
     fn skill_reach(
         &self,
-        (x_q32, z_q32): (i64, i64),
+        center_q32: (i64, i64),
         range_q32: i64,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Vec<u64> {
-        target_search_order
-            .values()
-            .flatten()
-            .filter_map(|&candidate| {
-                let FightActorRef::Unit(id) = candidate else {
-                    return None;
-                };
-                if !self.actors[&id].alive() {
-                    return None;
-                }
-                let view = self.fight_actor(candidate)?;
-                let distance = native_q32_magnitude(
-                    view.x_q32.saturating_sub(x_q32),
-                    view.z_q32.saturating_sub(z_q32),
-                )
-                .saturating_sub(space_to_q32(view.radius));
-                fpoint_less_or_equal(distance, range_q32).then_some(id)
-            })
-            .collect()
+        self.units_in_range(
+            center_q32,
+            range_q32,
+            (
+                crate::rules::AttackTargets {
+                    ground: true,
+                    air: true,
+                },
+                true,
+            ),
+            target_search_order,
+        )
     }
 
     /// A released battle skill's buff on every unit it reached, which no
