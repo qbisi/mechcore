@@ -72,7 +72,8 @@ The turn (`TeamTranslationSystem.ChangeTeam`):
   projectile strikes for the side its controller was handed as it was
   released (`ProjectileSystem.Create`, `ProjectileController.Init`), so one
   the unit fired before the turn still strikes the side it now stands on;
-  its removal names the side the unit stands on as it lands.
+  its removal names the side the unit stands on as it lands, or, the unit
+  dead by then, the side the recording last saw it on.
 - **stops every skill locked on it** (`FightSkill.OnChangeTeam`): `StopAttack`
   drops the lock and keeps the attack target. A skill idle already stays idle,
   its weapons naming what they named until it takes another; a cooling one

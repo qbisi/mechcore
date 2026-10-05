@@ -310,10 +310,13 @@ impl Simulation {
                     reach,
                     events,
                 )?,
-                // Its removal names the side the owner stands on as it lands.
+                // Its removal names the side the owner stands on as it lands,
+                // as the recording last saw it: an owner already dead is
+                // named on the side it fired from.
                 Some((
                     owner.object_ref(),
                     self.fight_actor(*owner)
+                        .filter(|owner| owner.alive)
                         .map_or(projectile.team, |owner| owner.team),
                 )),
             ),
