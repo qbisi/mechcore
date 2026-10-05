@@ -93,7 +93,12 @@ A hit that kills a turned unit only queues it with `DeadEffectSystem`, whose
 update comes after every unit and projectile: what it took until then is
 counted under its own recorder. Its `OnDead` then hands it back to the side it
 was deployed on (`TeamTranslationSystem.OnMechDead`), and every skill still
-locked on it stops its attack as above. A unit that updated after the blow
+locked on it stops its attack as above. Handing it back puts it in that
+side's trees again (`FightTeam.AddMech`), after the dead have left them, and
+nothing takes it out: it stays there dead for the rest of the fight, where a
+kill's search for formations to share experience with
+(`ExpSystem.AddRangeUnit`, which asks for no life) finds it and counts its
+formation. A unit that updated after the blow
 has met the death in its own update already. A summon stands in no side's
 `FightTeam` (`TeamTranslationSystem.IsMechInFightGroup`), so it is not handed
 back: it dies on the side that turned it, and the skills locked on it hold
@@ -192,6 +197,11 @@ the shield does not count against the turn.
 - A turned Spider Mine's statistics, the damage it has taken, move to red's
   side with it: replay 2324_20260925--134259672 round 5, tick 122, fought by
   the game with `scripts/corpus/match-replays.py`.
+- A blue Crawler turned and killed on red's side stays in blue's tree where
+  it died, and hands its formation a share of later kills near it: replay
+  2324_20260925--134259672 round 5, ticks 385 and 494, fought by the game
+  with `scripts/corpus/match-replays.py`; recorded in
+  `tests/corpus/fights/134259672-r5.yaml`.
 - A blue Crawler a Hacker turned updates after every red unit: replay
   2324_20260925--134259672 round 5, tick 161, fought by the game with
   `scripts/corpus/match-replays.py`.
@@ -220,7 +230,8 @@ the shield does not count against the turn.
   `TeamTranslationSystem.IsTranslatedMech`, `FightMech.GetMechTeam`.
 - The skills it stops: `FightSkill.OnChangeTeam`, `FightSkill.StopAttack`,
   `SkillIdleState.Enter`, `SkillAttackState.Update`.
-- A turned unit's death: `TeamTranslationSystem.OnMechDead`,
+- A turned unit's death: `FightTeamController.AddActor`, `FightTeam.AddMech`,
+  `ExpSystem.AddRangeUnit`, `TeamTranslationSystem.OnMechDead`,
   `TeamTranslationSystem.IsMechInFightGroup`, `DeadEffectSystem.Update`.
 - The search after it: `ScoreRatingTargetSelector.TrySelect`,
   `MainSkillSearchTargetController.PrepareSearch`.

@@ -330,6 +330,7 @@ impl Simulation {
             .expect("actor identity is stable");
         actor.placement.team = team;
         actor.placement.formation_id = actor.original_formation;
+        self.returned_dead.insert(unit_id);
         self.joins_side_last(unit_id);
         let step = self.step_now;
         let locked = self
