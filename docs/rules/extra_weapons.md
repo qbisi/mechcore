@@ -8,7 +8,8 @@ one that file can state. The simulator fights Secondary Armament, the
 Sabertooth's two guns, Anti-Air Missile, its missile at the air, Incendiary
 Bomb, the Hound's, Scorching Charge, the Fire Badger's self-destruct, Homing
 Missile, the Centurion's, Sticky Oil Bomb, the Phantom Ray's and the
-Vulcan's, and Whirlwind, the Rhino's, and refuses every other member by name: the members' skills differ
+Vulcan's, Whirlwind, the Rhino's, and Energy Diffraction, the Melting
+Point's, and refuses every other member by name: the members' skills differ
 in kind, a projectile, an explosion, a laser, a summon, a sweep around the
 unit, and many leave a terrain or write a buff, so each joins once a recording
 of it agrees.
@@ -21,12 +22,16 @@ adds the row's skill through `SkillManager.AddSkill`. The first skill a
 `SkillManager` is given is its main skill; every later one joins its extra
 skills. `AddSkill` adds each `FightSkill` the row's skill makes, so a
 standalone row adds one skill for each of its weapons: Secondary Armament adds
-two. Any other row adds one skill that fires all its weapons: Incendiary Bomb
-adds one, with the Hound's two launchers.
+two. A grouped row adds one for each of its weapons too, and
+`FightSkillFactory.PrepareGroupedSkill` puts them in a `SkillGroup` whose
+every skill has the main skill for its `ParentSkill`: Energy Diffraction adds
+four beams. Any other row adds one skill that fires all its weapons:
+Incendiary Bomb adds one, with the Hound's two launchers.
 
 - **Its slots follow the main skill's.** A recording names a skill by its
   index in `FightMech.GetSkills()`: the main skill, or each skill of its group,
-  comes first, and the extra skills after it, in their order.
+  comes first, and the extra skills after it, in their order, each skill of
+  an extra skill's group its own.
 - **Every skill updates in ascending skill ID.** `SkillManager.Update` runs
   `allSkills`, which `SortSkills` keeps in ascending skill ID, and the motion
   updates after all of them. An extra skill whose ID is below the main
@@ -119,8 +124,11 @@ unit; it does not turn towards its lock.
 
 - **Range.** `FightSkill.GetAttackRange` of an extra skill whose row sets
   `useMainSkillRange` is the main skill's range with the row's own added: a
-  correction of the main skill's range reaches it that way. Any other extra
-  skill reaches its row's range.
+  correction of the main skill's range reaches it that way. So is that of a
+  skill whose `ParentSkill` is the main skill, its own `SkillDataFloat`
+  range added: every beam of Energy Diffraction reaches 95 metres, the
+  Melting Point's 85 and its row's 10. Any other extra skill reaches its
+  row's range.
 - **Damage.** A skill whose row's `damageRate` is zero deals its own damage,
   the row's `damage` entry for the unit's level, the last entry for a level
   beyond the list (`SkillData.GetDamage`), and none where the row has no
@@ -148,6 +156,38 @@ unit; it does not turn towards its lock.
   `WallConstructionTargetChecker.CheckWallConstruction` asks the same of the
   block it finds in the line of fire, so a Sticky Oil Bomb fires past a
   Rapid-Fire Turret at the unit behind it.
+
+## A group of beams
+
+Energy Diffraction's four beams are lasers, a group of the four skills its row
+makes, each the main skill's child. The group behaves as a grouped main
+skill's does ([combat.md](combat.md#a-grouped-slot-searches-around-its-siblings-locks)),
+its first skill in the core's place:
+
+- **The first starts on its own, the others as the group attacks.** The first
+  beam starts once its target is in its 95 metres; the other three only while
+  a skill of the group attacks (`GroupedSkillAttackBehaviour.CanStartAttackCheck`,
+  `SkillGroup.IsAttacking`), each then searching around what the others hold,
+  so that they share a formation out.
+- **They search from their mount.** A beam has no transform of its own, and
+  scores its search from the turret it is mounted on, as the first does.
+- **The group's first shares a lock as any other does.** A beam that shares
+  its lock gives it up to the first of the others that has struck fewer
+  blows (`SkillAttackableChecker.TrySearchGroupSkillLockTarget`); the one it
+  passes over is the owner's main skill's first, which the group does not
+  hold, so the group's first counts among the others.
+- **Each beam ramps on its own blows.** A beam's damage is its row's rate of
+  the unit's base damage at its level times its ramp's multiplier for the
+  blow, truncated, then corrected as the main skill's is, which a skill with
+  a damage rate holds.
+- **The technology lowers every skill's damage.** Its
+  `allWeaponReduceDamageRate`, −0.83, is the rate `ExtraSkillProvider.EnableEffect`
+  writes on the main skill (`IExtraSkill.GetReduceDamageRateBase`) as its
+  `DamageReduceRateBase`, which the beams hold too. `DamageProperty.CalculateDamage`
+  multiplies the factor the damage rates meet in by it last: every beam, the
+  main one's among them, deals 0.17 of its ramp,
+  trunc(trunc(168 × m) × 0.17). `DamageCalculator.GetNormalDamage`, what a
+  recording reads as the unit's damage, leaves it out.
 
 ## A fire where it lands
 
@@ -285,6 +325,11 @@ the main skill's does: its rate of the unit's base damage, truncated, then
 raised and impaired by them and the buffs'. Whirlwind's 4983 becomes 5580
 under Attack Enhancement's +0.12.
 
+A skill whose range is the main skill's with its own added, of a row that
+uses the main skill's range or a grouped row's, never reads its own range, so
+a range that reaches it changes nothing: Energy Diffraction's own −30 metres
+lands on its beams as on the main beam, and leaves them reaching 95.
+
 A skill without a damage rate holds what reaches it alone, an equipment's
 through its `extraSkillEffect` and an Energy Tower skill's, and its damage,
 its row's entry for the unit's level, composes them and the buffs' the same
@@ -383,6 +428,16 @@ simulator refuses it.
   skill back, which attacks on the next tick:
   `tests/extra_weapon/fights/whirlwind-rhinos.yaml`. Against one enemy it
   never starts: `tests/extra_weapon/fights/whirlwind-one-enemy.yaml`.
+- Energy Diffraction's beams reach 95 metres, the main beam's 85 and their
+  own 10: the first prepares a tick after the Rhino comes within 95 and the
+  main beam a tick after it comes within 85; the other three start as the
+  first attacks, and every beam, the main one's among them, deals 0.17 of its
+  ramp, the recorded damage leaving the rate out:
+  `tests/extra_weapon/fights/energy-diffraction-rhino.yaml`, beside its
+  control `tests/melting_point/fights/m2-rhino-4242.yaml`. The beams share a
+  formation out, searching from the turret:
+  `tests/extra_weapon/fights/energy-diffraction-formations.yaml`, beside its
+  control `tests/melting_point/fights/m6-formations-4242.yaml`.
 - A blueprint's and an officer's damage rates on the main skill reach
   Whirlwind, the recording holding them on its skill too, and compose on its
   damage as on the main skill's:
@@ -468,6 +523,14 @@ simulator refuses it.
   `MotionIdleState.Update`, `MotionMoveState.Update`,
   `MotionMoveState.NormalRotate`, `MotionController.CalculateTargetDirection`,
   `MotionController.RotateWeaponTo`, `FightSkill.RotateWeaponTo`.
+- A grouped extra row: `FightSkillFactory.Create`,
+  `FightSkillFactory.PrepareGroupedSkill`, `FightSkill.GetAttackRange`,
+  `FightSkillBatch.GetAttackRange`, `SkillAttackableChecker.TrySearchGroupSkillLockTarget`;
+  its technology's damage rate: `ExtraSkillProvider.EnableEffect`,
+  `IExtraSkill.GetReduceDamageRateBase`, `ExtraWeaponTech.GetReduceDamageRateBase`,
+  `DamageProperty.Refresh`, `DamageProperty.RegisterDataChangeEvent`,
+  `DamageProperty.CalculateDamage`, `DamageCalculator.GetNormalDamage`,
+  `LaserDamageCalculator.GetNormalDamage`, `LaserDamageCalculator.GetAttackDamage`.
 - An around skill: `FightAroundSkill.CreateStartAttackChecker`,
   `AroundSkillStartAttackChecker.Check`, `PreemptiveSkillStartAttackChecker.Check`,
   `PreemptiveSkillStartAttackChecker.IsMainSkillIdleState`,
@@ -517,7 +580,13 @@ simulator refuses it.
   visible (`SkillAttackRangeChecker.IsAttackTargetInAttackRange`), which no
   recording reaches.
 - **A correction other than damage on a skill with a damage rate**, a range
-  or an interval reaching it through the main skill. Refused.
+  on a skill that reads its own range or an interval reaching it through the
+  main skill. Refused.
+- **A main skill starting in its own update while its motion does not.**
+  `SkillIdleState.TryPerform` starts the main skill's attack in its own
+  update, and the simulator starts it from the motion: a Melting Point whose
+  fresh lock one of its beams fells before the motion asks prepares in the
+  build and stays idle here.
 - **The other preemptive skills and conditions.** A transition to wait out
   (condition type 2), an ammunition condition, an extra weapon buff and an
   incompatible skill are read in part and refused by the extraction.

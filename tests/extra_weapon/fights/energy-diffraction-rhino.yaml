@@ -1,0 +1,29 @@
+# Energy Diffraction: the Melting Point's four beams beside its own.
+#
+# A Melting Point with Energy Diffraction against a Rhino, the standard
+# `../../melting_point/fights/m2-rhino-4242.yaml` with the technology. It
+# takes 30 metres off the main beam (85) and writes its -0.83 on the damage of
+# every skill (`DamageReduceRateBase`): each beam deals 0.17 of its ramp,
+# trunc(trunc(168 × m) × 0.17), 0, 0, 3, 8, 15 and on, and the recorded
+# damage, which leaves that rate out, stays the ramp's first step, 1. The
+# four beams are a group whose parent is the main skill, reaching its 85
+# metres and their own 10 beyond: the first prepares a tick after the Rhino
+# comes within 95 metres (t80), before the main beam does within 85 (t89),
+# and the other three start as the first attacks (t86), the group attacking.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 174
+hash: {profile: mcfr-content-0.7.0, result: 03f950b006e960cbdf6fb2e996e848b92ed4072aefcedd54b7dd86c43f6d712f}
+blue:
+  techs:
+    melting_point: [energy_diffraction]
+  units:
+  - {name: melting_point, index: 0, position: {x: 0, y: -100}, exp: 0/400/1400}
+red:
+  core_damage: 350
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}

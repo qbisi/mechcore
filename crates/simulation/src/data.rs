@@ -86,6 +86,11 @@ pub(crate) enum Index {
     /// writes onto its unit and `PerformHitTargetEffect` reads back. Whole
     /// damage.
     ReduceDamage,
+    /// `SkillDataChangeFloatRate.DamageReduceRateBase`: a rate on the skill's
+    /// damage of its own, which `DamageProperty.CalculateDamage` multiplies
+    /// in after the damage rates have met. An extra weapon technology's
+    /// `allWeaponReduceDamageRate` writes it (`ExtraSkillProvider.EnableEffect`).
+    DamageReduceRateBase,
 }
 
 impl Index {
@@ -115,6 +120,7 @@ impl Index {
             Self::GroundFireRange => "ground fire range",
             Self::GroundFireLifeTime => "ground fire life time",
             Self::ReduceDamage => "damage reduction",
+            Self::DamageReduceRateBase => "damage reduce rate base",
         }
     }
 }
@@ -286,11 +292,12 @@ impl Aggregate {
     }
 }
 
-/// Damage and its kill-count rate, which a skill's `DataSet` keeps as rates
-/// alone, and the field each is recorded in.
-const DAMAGE_RATES: [(Index, &str); 2] = [
+/// Damage, its kill-count rate and its reduce rate base, which a skill's
+/// `DataSet` keeps as rates alone, and the field each is recorded in.
+const DAMAGE_RATES: [(Index, &str); 3] = [
     (Index::AttackDamage, "damage_rate"),
     (Index::DamagePerKill, "damage_rate_by_kill_count"),
+    (Index::DamageReduceRateBase, "damage_reduce_rate_base"),
 ];
 
 /// What a skill overlay may carry that its `DataSet` has no field for.
@@ -460,22 +467,34 @@ impl Overlays {
     /// not measured, so an interval corrected twice is refused rather than
     /// assumed to compose like damage.
     pub(crate) fn resolve(&self, index: Index, base: i64) -> Result<i64> {
-        self.resolve_scaled(index, base, |value| value, 0)
+        self.resolve_scaled(index, base, |value| value, 0, ONE)
     }
 
     /// A damage with its skill's kills in it: `DamageProperty.CalculateDamage`
     /// adds the skill's `DamageRateByKillCount` enhancement times its
     /// `killCount` to the enhancements it sums, and reads no impairment of it.
-    fn resolve_damage(&self, base: i64, kills: i64) -> Result<i64> {
+    /// The factor the rates meet in is then multiplied by the skill's
+    /// `DamageReduceRateBase`: a Melting Point with Energy Diffraction deals
+    /// 0.17 of its beam's ramp, `trunc(20 × 0.17)` = 3 at its third blow.
+    /// `DamageCalculator.GetNormalDamage`, what a recording reads as the
+    /// unit's damage, leaves that rate out (`normal`): the same Melting
+    /// Point's reads 1, its ramp's first step whole.
+    fn resolve_damage(&self, base: i64, kills: i64, normal: bool) -> Result<i64> {
         let per_kill = self
             .skill
             .aggregate(Index::DamagePerKill)
             .map_or(0, |aggregate| aggregate.enhance);
+        let reduce_base = self
+            .skill
+            .aggregate(Index::DamageReduceRateBase)
+            .filter(|_| !normal)
+            .map_or(ONE, |aggregate| aggregate.remaining);
         self.resolve_scaled(
             Index::AttackDamage,
             base,
             |value| value,
             per_kill * i128::from(kills),
+            reduce_base,
         )
     }
 
@@ -504,6 +523,7 @@ impl Overlays {
         base: i64,
         value_scale: impl Fn(i128) -> i128,
         extra_enhance: i128,
+        reduce_base: i128,
     ) -> Result<i64> {
         let mut corrected: Option<&'static str> = None;
         let mut total = Aggregate::default();
@@ -531,14 +551,15 @@ impl Overlays {
             total.enhance += aggregate.enhance;
             total.remaining = total.remaining * aggregate.remaining / ONE;
         }
-        if corrected.is_none() && extra_enhance == 0 {
+        if corrected.is_none() && extra_enhance == 0 && reduce_base == ONE {
             return Ok(base);
         }
         total.enhance += extra_enhance;
         // The rates meet first, as one FPoint factor, and the number is
         // multiplied by it once: `CalculateDamage` multiplies its summed
-        // enhancement by the reduce rates before it reaches the damage.
-        let factor = (ONE + total.enhance) * total.remaining / ONE;
+        // enhancement by the reduce rates, and that by the reduce rate base,
+        // before it reaches the damage.
+        let factor = (ONE + total.enhance) * total.remaining / ONE * reduce_base / ONE;
         let scaled = (i128::from(base) + value_scale(total.value)) * factor / ONE;
         i64::try_from(scaled).map_err(|_| {
             Error::new(format!(
@@ -704,11 +725,14 @@ impl Stats {
             space_to_q32(rules.move_speed()),
             |value| value * ONE / metres,
             0,
+            ONE,
         )?;
         self.max_life = resolve(Index::MaxLife, self.base(rules.max_life)?)?;
-        self.attack_damage = self
-            .overlays
-            .resolve_damage(self.base(rules.attack.base_damage)?, self.kills)?;
+        self.attack_damage = self.overlays.resolve_damage(
+            self.base(rules.attack.base_damage)?,
+            self.kills,
+            false,
+        )?;
         // A value is Q32.32 seconds already, and so is the interval.
         self.attack_interval_q32 = self.overlays.resolve(
             Index::AttackInterval,
@@ -726,6 +750,7 @@ impl Stats {
             space_to_q32(rules.attack.range()),
             |value| value * ONE / metres,
             0,
+            ONE,
         )?;
         self.splash_radius = resolve(Index::SplashRange, rules.attack.splash_radius())?;
         Ok(())
@@ -776,6 +801,14 @@ impl Stats {
         self.attack_damage
     }
 
+    /// `DamageCalculator.GetNormalDamage`: the damage without the skill's
+    /// `DamageReduceRateBase`, which a recording reads.
+    pub(crate) fn normal_damage(&self, rules: &UnitConfig) -> i64 {
+        self.base(rules.attack.base_damage)
+            .and_then(|base| self.overlays.resolve_damage(base, self.kills, true))
+            .expect("the layout verified the damage corrections")
+    }
+
     /// Another skill's damage from its own base, as this unit's corrections
     /// leave it: `DamageProperty.CalculateDamage` over a skill whose `DataSet`
     /// holds the same corrections as the main skill's, and the buffs', with
@@ -785,7 +818,7 @@ impl Stats {
     ///
     /// Returns an error when the damage leaves the signed range.
     pub(crate) fn damage_from(&self, base: i64) -> Result<i64> {
-        self.overlays.resolve_damage(base, 0)
+        self.overlays.resolve_damage(base, 0, false)
     }
 
     /// Another skill's damage from its own base, with its own skill
@@ -801,7 +834,7 @@ impl Stats {
             skill: Overlay::of(skill),
             ..self.overlays.clone()
         };
-        overlays.resolve_damage(base, 0)
+        overlays.resolve_damage(base, 0, false)
     }
 
     /// The laser's base damage is truncated after its ramp multiplier, before
@@ -816,13 +849,55 @@ impl Stats {
         let AttackPath::Laser { damage_multipliers } = &rules.attack.path else {
             unreachable!("laser damage requires the laser attack path")
         };
+        self.ramped_laser_damage(
+            rules.attack.base_damage,
+            damage_multipliers,
+            (1.0, attack_count),
+            self.kills,
+            false,
+        )
+    }
+
+    /// [`Self::laser_damage`] as `DamageCalculator.GetNormalDamage` answers
+    /// it, without the skill's `DamageReduceRateBase`.
+    pub(crate) fn laser_normal_damage(&self, rules: &UnitConfig, attack_count: usize) -> i64 {
+        let AttackPath::Laser { damage_multipliers } = &rules.attack.path else {
+            unreachable!("laser damage requires the laser attack path")
+        };
+        self.ramped_laser_damage(
+            rules.attack.base_damage,
+            damage_multipliers,
+            (1.0, attack_count),
+            self.kills,
+            true,
+        )
+    }
+
+    /// A beam's blow from the unit's base damage at its level, times the
+    /// skill's damage rate and its ramp's multiplier for the blow
+    /// (`FightLaserSkill.CalculateDamageRate`), truncated, then corrected by
+    /// the rates that reach the skill. A skill other than the main one counts
+    /// its own kills, of which no correction here reads any.
+    #[allow(
+        clippy::cast_precision_loss,
+        clippy::cast_possible_truncation,
+        reason = "preserve the existing native laser ramp's float truncation"
+    )]
+    pub(crate) fn ramped_laser_damage(
+        &self,
+        base_damage: i64,
+        damage_multipliers: &[f64],
+        (damage_rate, attack_count): (f64, usize),
+        kills: i64,
+        normal: bool,
+    ) -> i64 {
         let base = self
-            .base(rules.attack.base_damage)
+            .base(base_damage)
             .expect("the layout verified the level-scaled base");
         let multiplier = damage_multipliers[attack_count.min(damage_multipliers.len() - 1)];
-        let ramped = (base as f64 * multiplier).trunc() as i64;
+        let ramped = (base as f64 * damage_rate * multiplier).trunc() as i64;
         self.overlays
-            .resolve_damage(ramped, self.kills)
+            .resolve_damage(ramped, kills, normal)
             .expect("the layout verified the damage corrections")
     }
 

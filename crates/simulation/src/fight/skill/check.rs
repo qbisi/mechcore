@@ -179,7 +179,9 @@ impl Simulation {
     /// Main child skills read their parent's range plus Q32 `0xA00000000`
     /// (10 metres) in the build's `FightSkill.GetAttackRange`. The first
     /// grouped skill has no parent and keeps the ordinary range, as does
-    /// every standalone weapon's skill, which no `SkillGroup` parents.
+    /// every standalone weapon's skill, which no `SkillGroup` parents. Every
+    /// skill of an extra skill's group is parented by the main skill and
+    /// reads its own range past the main skill's, as its first does.
     pub(in crate::fight) fn slot_attack_range(
         &self,
         skill_ref: SkillRef,
@@ -190,7 +192,10 @@ impl Simulation {
             .expect("skill owner identity is stable")
             .attack_range;
         range.saturating_add(
-            if slot.is_some_and(|slot| slot > 0) && !self.skill(skill_ref).standalone() {
+            if slot.is_some_and(|slot| slot > 0)
+                && !self.skill(skill_ref).standalone()
+                && skill_ref.slot == SkillSlot::Main
+            {
                 10_000
             } else {
                 0

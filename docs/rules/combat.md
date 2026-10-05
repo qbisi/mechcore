@@ -304,7 +304,10 @@ own range; the unit's recorded range remains its core's.
 `GroupedSkillAttackBehaviour.Update` and `OnStartAttack` are empty. The hooks
 do not perform a separate allocation pass. The checker's
 redistribution path, `TrySearchGroupSkillLockTarget`, is the rule above and
-not the ordinary search's sibling-exclusion loop. The fixtures
+not the ordinary search's sibling-exclusion loop. It passes over the slot
+itself and the owner's main skill's first skill, the core of a main skill's
+group; an extra skill's group, which does not hold that skill, passes over
+none of its own ([extra_weapons.md](extra_weapons.md#a-group-of-beams)). The fixtures
 that separated the rest are [the Wraith fixtures](../../tests/wraith/README.md).
 
 ## A fusillade fires with its core
@@ -594,6 +597,14 @@ A Rhino's main skill, under those same baseline constraints and as a
 single-target direct effect, reaches its description's damage through
 `SkillDamageProvider -> FightSkill.GetDamage -> DamageProperty`. The killing
 blow is clamped to the remaining life.
+
+**A skill's damage reduce rate base comes last.** `DamageProperty.CalculateDamage`
+multiplies the factor its damage rates meet in by the skill's
+`DamageReduceRateBase` before it reaches the damage, and
+`DamageCalculator.GetNormalDamage`, which a recording reads as the unit's
+damage, leaves that rate out. An extra weapon technology's
+`allWeaponReduceDamageRate` writes it
+([extra_weapons.md](extra_weapons.md#a-group-of-beams)).
 
 ## Lifesteal
 

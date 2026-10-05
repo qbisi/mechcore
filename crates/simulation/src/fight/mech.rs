@@ -48,7 +48,7 @@ impl Actor {
             usize::try_from(rules.attack.weapons.count())
                 .expect("u32 weapon count fits the supported host")
         ];
-        let group = group_shape(&rules);
+        let group = group_shape(&rules.attack);
         let kind = SkillKind::of(&rules.attack.path);
         // `AutoRecoveryEffectProvider.DoActive` hands a unit with a repair
         // source in force a controller, which its constructor resets.
@@ -216,17 +216,23 @@ impl Actor {
     /// damage rate, which takes what reaches the main skill
     /// (`SkillDataModifier.AvaliableCheck`, `IsMainSkillEffect`).
     pub(in crate::fight) fn corrected_skill_slots(&self) -> Vec<usize> {
-        let main_slots = self.skills.main_slots();
-        (0..main_slots)
+        (0..self.skills.main_slots())
             .chain(
                 self.skills
                     .extras
                     .iter()
                     .enumerate()
                     .filter(|(_, extra)| extra.rules.damage_rate > 0.0)
-                    .map(|(index, _)| main_slots + index),
+                    .flat_map(|(index, extra)| self.extra_slots(index, extra)),
             )
             .collect()
+    }
+
+    /// The slots of `FightMech.GetSkills()` an extra skill holds: its own,
+    /// and its group's skills' after it.
+    fn extra_slots(&self, index: usize, extra: &ExtraSkill) -> std::ops::Range<usize> {
+        let first = self.skills.extra_first_slot(index);
+        first..first + extra.skill.group_size().max(1)
     }
 
     /// `FightMech.lockTarget`, which the unit's main searcher hands it: an
@@ -393,7 +399,7 @@ impl Actor {
     /// `FightSkill.GetMainTransform`'s rotation for a search by a slot of a
     /// grouped skill run from `attack`: a weapon with a transform of its own,
     /// which `CanRotate` answers for, is measured from; a slot without one is
-    /// measured from the root.
+    /// measured from what its weapon is mounted on.
     pub(in crate::fight) fn slot_main_rotation_q32(
         &self,
         attack: &AttackConfig,
@@ -403,7 +409,17 @@ impl Actor {
         if attack.weapons.fixed_to_body && slot > 0 {
             skill.sibling_weapon_rotation_q32(slot)
         } else {
-            self.body_rotation_q32
+            self.mount_rotation_q32(attack.weapons.mount)
+        }
+    }
+
+    /// Where a weapon without a transform of its own points: where what it
+    /// is mounted on points, the turret it is mounted on, or the unit's root.
+    /// A unit without a body has no turret, and its weapons point as it does.
+    pub(in crate::fight) fn mount_rotation_q32(&self, mount: WeaponMount) -> i64 {
+        match (mount, self.turret_rotation()) {
+            (WeaponMount::MechBody | WeaponMount::Default, Some(turret)) => turret,
+            _ => self.body_rotation_q32,
         }
     }
 
@@ -528,11 +544,9 @@ impl Actor {
                         .iter()
                         .enumerate()
                         .filter(|(_, extra)| !extra.skill_corrections.is_empty())
-                        .map(|(index, extra)| {
-                            (
-                                self.skills.main_slots() + index,
-                                extra.skill_corrections.as_slice(),
-                            )
+                        .flat_map(|(index, extra)| {
+                            self.extra_slots(index, extra)
+                                .map(|slot| (slot, extra.skill_corrections.as_slice()))
                         })
                         .collect::<Vec<_>>(),
                 )
@@ -563,8 +577,8 @@ impl Actor {
                 // is on: the Steel Balls of `wall-laser.yaml` read 2, which
                 // is 55 at its first multiplier, on every tick of their fight.
                 attack_damage: i32::try_from(match &self.rules.attack.path {
-                    AttackPath::Laser { .. } => self.stats.laser_damage(&self.rules, 0),
-                    _ => self.stats.attack_damage(),
+                    AttackPath::Laser { .. } => self.stats.laser_normal_damage(&self.rules, 0),
+                    _ => self.stats.normal_damage(&self.rules),
                 })
                 .unwrap_or(i32::MAX),
                 // The recording counts an interval in logic ticks, which is
@@ -627,26 +641,33 @@ impl Actor {
     /// weapon its row names, at its own rotation on a transform of its own
     /// where the unit stands, firing at what its skill does.
     fn extra_weapon_aims(&self, position: QVec3) -> impl Iterator<Item = WeaponAimState> + '_ {
-        let main_slots = self.skills.main_slots();
         self.skills
             .extras
             .iter()
             .enumerate()
             .flat_map(move |(index, extra)| {
-                let attack_target = extra
-                    .skill
-                    .named_attack_target()
-                    .filter(|_| self.searched_attack)
-                    .map(FightActorRef::object_ref);
+                let first = self.skills.extra_first_slot(index);
+                let grouped = extra.skill.is_grouped();
                 // Only a weapon that turns within an arc has a transform of
                 // its own.
                 let arcs = extra.rules.attack.weapons.arcs.is_some();
                 extra.skill.weapon_rotations_q32.iter().enumerate().map(
-                    move |(offset, &rotation)| WeaponAimState {
-                        skill_slot: u16::try_from(main_slots + index).expect("skill slot fits u16"),
-                        weapon_index: extra.rules.attack.weapons.index(extra.weapon + offset),
-                        attack_target,
-                        pose: arcs.then_some(QPose { position, rotation }),
+                    move |(offset, &rotation)| {
+                        // A grouped row's weapon is its group's skill of the
+                        // same place, and names what that skill fires at.
+                        let (slot, attack_target) = if grouped {
+                            (first + offset, extra.skill.group_attack_target(offset))
+                        } else {
+                            (first, extra.skill.named_attack_target())
+                        };
+                        WeaponAimState {
+                            skill_slot: u16::try_from(slot).expect("skill slot fits u16"),
+                            weapon_index: extra.rules.attack.weapons.index(extra.weapon + offset),
+                            attack_target: attack_target
+                                .filter(|_| self.searched_attack)
+                                .map(FightActorRef::object_ref),
+                            pose: arcs.then_some(QPose { position, rotation }),
+                        }
                     },
                 )
             })
@@ -656,8 +677,10 @@ impl Actor {
 /// The skills a unit's extra weapon technologies add beside its main one, in
 /// `SkillManager.extraSkills`' order: ascending skill ID
 /// (`SkillManager.SortSkills`), and a row's skills in the order its weapons
-/// come. A standalone row makes one skill for each weapon; each starts
-/// pointing as the unit faces, as the main skill's weapons do.
+/// come. A standalone row makes one skill for each weapon, and a grouped row
+/// one skill holding the group of its weapons' skills
+/// (`FightSkillFactory.PrepareGroupedSkill`), as a grouped main skill does;
+/// each starts pointing as the unit faces, as the main skill's weapons do.
 fn extra_skills(placement: &Placement) -> Vec<ExtraSkill> {
     let mut weapons: Vec<&crate::layout::ExtraWeapon> = placement.extra_weapons.iter().collect();
     weapons.sort_by_key(|weapon| weapon.rules.skill);
@@ -668,16 +691,16 @@ fn extra_skills(placement: &Placement) -> Vec<ExtraSkill> {
             let count = usize::try_from(rules.attack.weapons.count())
                 .expect("u32 weapon count fits the supported host");
             // A standalone row makes a skill of each weapon; any other one
-            // skill that fires them all.
-            let (skills, per_skill) = if rules.attack.weapons.mode == WeaponMode::Standalone {
-                (count, 1)
-            } else {
-                (1, count)
+            // skill that fires them all, or holds the group that does.
+            let (skills, per_skill, group) = match rules.attack.weapons.mode {
+                WeaponMode::Standalone => (count, 1, None),
+                WeaponMode::Group => (1, count, group_shape(&rules.attack)),
+                WeaponMode::Normal => (1, count, None),
             };
             (0..skills).map(move |index| {
                 let mut skill = Skill::new(
                     vec![mdeg_to_degrees_q32(placement.rotation); per_skill],
-                    None,
+                    group,
                     rules.attack.magazine,
                     SkillKind::of(&rules.attack.path),
                 );
@@ -700,10 +723,10 @@ fn extra_skills(placement: &Placement) -> Vec<ExtraSkill> {
         .collect()
 }
 
-/// How many skills a unit's weapons make and how they take turns, or `None`
+/// How many skills a row's weapons make and how they take turns, or `None`
 /// for one skill alone.
-fn group_shape(rules: &UnitConfig) -> Option<(usize, GroupBehaviour)> {
-    let weapons = &rules.attack.weapons;
+fn group_shape(attack: &AttackConfig) -> Option<(usize, GroupBehaviour)> {
+    let weapons = &attack.weapons;
     (weapons.mode != WeaponMode::Normal).then(|| {
         (
             usize::try_from(weapons.count()).expect("u32 weapon count fits the supported host"),

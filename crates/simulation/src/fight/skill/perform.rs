@@ -112,30 +112,7 @@ impl Simulation {
                 })?;
                 self.direct_effect(actor_id, pending.target, 0, events)?;
             }
-            SkillKind::Laser => {
-                let actor_id = skill_ref
-                    .owner
-                    .unit_id()
-                    .ok_or_else(|| Error::new("a construction's laser is not supported"))?;
-                let target = pending.target;
-                let target_was_alive = self.fight_actor_is_alive(target);
-                let target_was_lock = self.skill(skill_ref).lock_target == Some(target);
-                self.laser_effect(actor_id, target, events)?;
-                // A lock the beam kills stops the motion on that tick, whatever
-                // it is: the Steel Ball that fells a tower in the tower-loss
-                // fights, or the turret of `laser-fells-turret.yaml`, reads idle
-                // on that tick. A block that only stood in the way is left to
-                // the fallen-block rule on the next tick, as a blow's is: the
-                // Steel Ball of `wall-laser.yaml` that fells block 4 reads
-                // attacking on that tick, idle on the next.
-                if target_was_alive && !self.fight_actor_is_alive(target) && target_was_lock {
-                    let actor = self
-                        .actors
-                        .get_mut(&actor_id)
-                        .expect("actor identity is stable");
-                    actor.motion.state = MotionState::Idle;
-                }
-            }
+            SkillKind::Laser => self.release_beam(skill_ref, pending.target, events)?,
             SkillKind::Projectile => {
                 self.start_projectile_burst(skill_ref, pending.target, pending.step, events)?;
             }
@@ -148,6 +125,44 @@ impl Simulation {
             }
         }
         Ok(false)
+    }
+
+    /// A laser skill's blow, the skill's own: the `attack_count`th of its
+    /// attack, at what it fires at.
+    fn release_beam(
+        &mut self,
+        skill_ref: SkillRef,
+        target: FightActorRef,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        let actor_id = skill_ref
+            .owner
+            .unit_id()
+            .ok_or_else(|| Error::new("a construction's laser is not supported"))?;
+        let target_was_alive = self.fight_actor_is_alive(target);
+        let target_was_lock = self.skill(skill_ref).lock_target == Some(target);
+        let blow = usize::try_from(self.skill(skill_ref).attack_count).unwrap_or(0);
+        self.laser_effect(skill_ref, 0, blow, target, events)?;
+        // A lock the beam kills stops the motion on that tick, whatever
+        // it is: the Steel Ball that fells a tower in the tower-loss
+        // fights, or the turret of `laser-fells-turret.yaml`, reads idle
+        // on that tick. A block that only stood in the way is left to
+        // the fallen-block rule on the next tick, as a blow's is: the
+        // Steel Ball of `wall-laser.yaml` that fells block 4 reads
+        // attacking on that tick, idle on the next. Only the skill the
+        // motion follows stops it.
+        if target_was_alive
+            && !self.fight_actor_is_alive(target)
+            && target_was_lock
+            && self.actors[&actor_id].motion.attacker == skill_ref.slot
+        {
+            let actor = self
+                .actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable");
+            actor.motion.state = MotionState::Idle;
+        }
+        Ok(())
     }
 
     pub(in crate::fight) fn start_projectile_burst(

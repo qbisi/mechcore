@@ -62,8 +62,23 @@ impl Simulation {
         let parent = self.actors[&actor_id].body_rotation_q32;
         self.skill_mut(skill_ref).lock_written = false;
         let was_idle = matches!(self.skill(skill_ref).state, SkillState::Idle { .. });
+        let was_attacking = self.skill(skill_ref).phase() == FightSkillPhase::Attack;
         if let Some(update) = self.update_skill(skill_ref, step, target_search_order, events)? {
             self.attack_in_reach(skill_ref, step, update, events)?;
+        }
+        // The skills of its group update after it, each its own
+        // `FightSkill`, in the order of their IDs.
+        if self.skill(skill_ref).is_grouped() && self.actors[&actor_id].alive() {
+            let core_entered_attack =
+                !was_attacking && self.skill(skill_ref).phase() == FightSkillPhase::Attack;
+            self.update_group_slots(
+                skill_ref,
+                step,
+                core_entered_attack,
+                parent,
+                target_search_order,
+                events,
+            )?;
         }
         // A preemptive skill's state behaviours: leaving its idle state it
         // takes the main skill's place, and entering it hands it back.

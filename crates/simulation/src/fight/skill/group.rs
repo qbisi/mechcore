@@ -95,7 +95,9 @@ impl Simulation {
     ///
     /// Every skill of the group must hold a lock and two must share one, and
     /// the slot must not hold its unit alone. Of the skills sharing a lock,
-    /// less the slot and the core, the first that has struck fewer blows in
+    /// less the slot and the main skill's first (`ISkillOwner.GetMainSkill`,
+    /// `GetSkills`), which only the main skill's own group holds as its
+    /// core, the first that has struck fewer blows in
     /// its attack than the slot gives up instead, and failing one, the last
     /// that has struck as many; only when every other has struck more is it
     /// this slot, and only when its search timer is up. It then searches,
@@ -131,10 +133,10 @@ impl Simulation {
             .iter()
             .filter(|(_, skills)| skills.len() >= 2)
             .flat_map(|(_, skills)| skills.iter().copied())
-            .filter(|&other| other != slot && other != 0)
+            .filter(|&other| other != slot && (other != 0 || skill_ref.slot != SkillSlot::Main))
             .collect::<Vec<_>>();
         let own = skill.sibling(slot).attack_count;
-        let blows = |other: usize| skill.sibling(other).attack_count;
+        let blows = |other: usize| skill.group_skill(other).attack_count;
         if others.iter().any(|&other| blows(other) <= own)
             || skill.sibling(slot).search_target_time > 0
         {
@@ -499,6 +501,20 @@ impl Simulation {
             .owner
             .unit_id()
             .expect("only a unit's skill is grouped");
+        // A beam strikes what it fires at, a unit or a construction, as the
+        // core's does, and counts as its blow starts
+        // (`SkillAttackController.PerformAttack`): its ramp's multiplier is
+        // the one of its own count.
+        if self.skill(skill_ref).kind == SkillKind::Laser {
+            if !self.fight_actor_is_alive(target) {
+                return Ok(());
+            }
+            self.refresh_group_skill_attack_interval(skill_ref, skill_index, step)?;
+            let sibling = self.skill_mut(skill_ref).sibling_mut(skill_index);
+            sibling.attack_count += 1;
+            let blow = usize::try_from(sibling.attack_count).unwrap_or(0);
+            return self.laser_effect(skill_ref, skill_index, blow, target, events);
+        }
         match target {
             FightActorRef::Unit(target_id)
                 if self.actors.get(&target_id).is_some_and(Actor::alive) =>

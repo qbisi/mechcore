@@ -44,6 +44,10 @@ pub(crate) struct Fields {
     pub(crate) attack_interval_value: Option<i64>,
     pub(crate) splash_range_value: Option<i64>,
     pub(crate) speed_value: Option<i64>,
+    /// An extra weapon technology's `allWeaponReduceDamageRate`, which
+    /// `ExtraSkillProvider.EnableEffect` writes as the skill's
+    /// `SkillDataChangeFloatRate.DamageReduceRateBase`.
+    pub(crate) damage_reduce_rate_base: Option<i64>,
 }
 
 /// What the fields write, in the channels the recording keeps them in.
@@ -75,6 +79,11 @@ pub(crate) fn corrections(fields: Fields) -> Vec<(Channel, Index, Correction)> {
         )),
     };
     rate(fields.damage_rate, Channel::Skill, Index::AttackDamage);
+    rate(
+        fields.damage_reduce_rate_base,
+        Channel::Skill,
+        Index::DamageReduceRateBase,
+    );
     // `SkillDataModifier.AddData` writes it where it writes the damage rate,
     // into the skill's `SkillDataChangeFloatRate.DamageRateByKillCount`.
     rate(

@@ -734,6 +734,7 @@ fn corrections_of(
         attack_interval_value: row.attack_interval_value,
         splash_range_value: row.splash_range_value,
         speed_value: row.speed_value,
+        damage_reduce_rate_base: None,
     });
     // `SplashEquipment.AddData`'s second write, `AddSkillData` of its range,
     // which lands where a splash value does.

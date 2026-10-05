@@ -302,6 +302,36 @@ impl SkillManager {
         self.main.group_size().max(1)
     }
 
+    /// The first of `GetSkills()`' slots an extra skill holds: after the
+    /// main skill's and every earlier extra skill's, one each or one for
+    /// each skill of its group.
+    pub(in crate::fight) fn extra_first_slot(&self, index: usize) -> usize {
+        self.main_slots()
+            + self.extras[..index]
+                .iter()
+                .map(|extra| extra.skill.group_size().max(1))
+                .sum::<usize>()
+    }
+
+    /// The skill holding a slot of `GetSkills()`, and which of its group's
+    /// skills the slot is: the main skill's for a slot among its group's, an
+    /// extra skill's after them.
+    pub(in crate::fight) fn at_slot(&self, slot: usize) -> (SkillSlot, usize) {
+        let main_slots = self.main_slots();
+        if slot < main_slots {
+            return (SkillSlot::Main, slot);
+        }
+        let mut first = main_slots;
+        for (index, extra) in self.extras.iter().enumerate() {
+            let held = extra.skill.group_size().max(1);
+            if slot < first + held {
+                return (SkillSlot::Extra(index), slot - first);
+            }
+            first += held;
+        }
+        (SkillSlot::Extra(slot - first + self.extras.len()), 0)
+    }
+
     pub(in crate::fight) fn get(&self, slot: SkillSlot) -> &Skill {
         match slot {
             SkillSlot::Main => &self.main,
