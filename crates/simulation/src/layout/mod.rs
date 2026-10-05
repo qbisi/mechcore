@@ -1282,8 +1282,8 @@ fn switch_air_attack(
 }
 
 /// What writes onto one extra skill's numbers (`SkillDataModifier.AvaliableCheck`):
-/// an equipment through its `extraSkillEffect` and an Energy Tower skill
-/// always, and, onto a skill with a damage rate, what reaches the main skill
+/// an equipment through its `extraSkillEffect`, unless the skill ignores
+/// equipment, and an Energy Tower skill always, and, onto a skill with a damage rate, what reaches the main skill
 /// too (`IsMainSkillEffect`), which every officer, technology of a unit and
 /// equipment answers: the skill corrections that reach a skill without a
 /// damage rate, and the sources that write it a number other than damage,
@@ -1307,7 +1307,7 @@ fn reaching_extra_skill(
     };
     let mut sources = Vec::new();
     for &id in equipment {
-        if rated || loadouts.equipment.reaches_extra_skills(id) {
+        if !weapon.ignore_equipment && (rated || loadouts.equipment.reaches_extra_skills(id)) {
             sources.push((
                 format!("equipment {id}"),
                 loadouts.equipment.corrections(id, rules),

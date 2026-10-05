@@ -104,6 +104,8 @@ pub(in crate::fight) struct BuffRow {
     pub(in crate::fight) invincible: bool,
     /// `lifeChangeRate` and `stepTime`, when the rate is not zero.
     pub(in crate::fight) life_change: Option<LifeChange>,
+    /// `currentLifeDisposableChangeRate`, an `FPoint` raw rate.
+    pub(in crate::fight) current_life_rate: i64,
 }
 
 /// The towers of both sides: what their table says, what each one's loss
@@ -266,6 +268,7 @@ impl Simulation {
             debuff: self.towers.config.destroyed_buff.debuff,
             invincible: false,
             life_change: None,
+            current_life_rate: 0,
         };
         let mut applied = Vec::new();
         // `activeActors` holds a side's units in the order they joined it: a
@@ -280,7 +283,7 @@ impl Simulation {
             .collect::<Vec<_>>();
         for actor_id in actor_ids {
             if self.buff_reaches(actor_id, &row) {
-                applied.push(self.write_buff(actor_id, None, loss.team, &row)?);
+                self.write_buff(actor_id, None, loss.team, &row, &mut applied)?;
             }
         }
         let reached = if self.towers.config.reaches_constructions() {
@@ -339,14 +342,17 @@ impl Simulation {
     }
 
     /// `BuffManager.AddBuff` of a buff that reaches the unit, recorded with
-    /// the object that wrote it when one did.
+    /// the object that wrote it when one did, after what the buff did as it
+    /// was written: a new buff's `Enter` and a running one's
+    /// `ReEnableDisposableEffect` both perform its once-only effects.
     pub(in crate::fight) fn write_buff(
         &mut self,
         actor_id: u64,
         source: Option<ObjectRef>,
         team: u32,
         row: &BuffRow,
-    ) -> Result<Event> {
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
         let actor = self
             .actors
             .get_mut(&actor_id)
@@ -362,11 +368,40 @@ impl Simulation {
             }
             actor.stats.refresh(&actor.rules)?;
         }
-        Ok(buff_applied(
+        if row.current_life_rate != 0 {
+            self.change_current_life(actor_id, team, row.current_life_rate, events)?;
+        }
+        events.push(buff_applied(
             ObjectRef::new(ObjectKind::Unit, actor_id),
             team,
             &running,
-        ))
+        ));
+        Ok(())
+    }
+
+    /// `IBEC_ChangeCurrentLife.Perform`: the unit's life now times the rate,
+    /// its whole part. A loss is a hit of no object under the buff's side,
+    /// which the rate on damage taken raises (`PerformHitTargetEffect` with
+    /// `isAmplifyDamageAffected`): a Rhino of 19297 loses 3860 to
+    /// Disintegration's −0.2.
+    fn change_current_life(
+        &mut self,
+        actor_id: u64,
+        team: u32,
+        rate: i64,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        let change = self.actors[&actor_id].life.saturating_mul(rate) >> 32;
+        match change.cmp(&0) {
+            std::cmp::Ordering::Less => {
+                let target = super::FightActorRef::Unit(actor_id);
+                self.hit_with_no_object(target, team, (-change, true), events)
+            }
+            std::cmp::Ordering::Equal => Ok(()),
+            std::cmp::Ordering::Greater => Err(Error::new(format!(
+                "a buff heals unit {actor_id}, and a buff's healing is not measured"
+            ))),
+        }
     }
 
     /// A firing construction's damage, as its buffs leave it.

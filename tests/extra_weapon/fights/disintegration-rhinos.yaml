@@ -1,0 +1,29 @@
+# Disintegration against two Rhinos and a Crawler squad.
+#
+# An Abyss with Disintegration. Its wave starts on t2 and lands as its attack
+# point ends (t62), from where the Abyss stands, and reaches 30 metres further
+# every half second from t72: the Rhino whose edge stands 85 metres off takes
+# it at t92, the other Rhino and six Crawlers at t112, the rest at t122. Each
+# loses the whole part of its life times −0.2, a damage of no unit recorded
+# before the buff: the Rhino three sweeps left at 7720 loses 1544, the other
+# 3860 of 19297, a Crawler 50 of 250. The next waves land at t362 and t662,
+# and take 40 of a Crawler's 200.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 700
+hash: {profile: mcfr-content-0.7.0, result: f3c17e420b11ca96c991beeef15c4c87b3ad14f1d1cc870609ba6cbc9c3fd64d}
+blue:
+  techs:
+    abyss: [disintegration]
+  units:
+  - {name: abyss, index: 0, position: {x: 5, y: -95}, exp: 0/992/4800}
+red:
+  core_damage: 500
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: rhino, index: 1, position: {x: 65, y: -95}}
+  - {name: crawler, index: 2, position: {x: -55, y: -130}, exp: 0/200/450}

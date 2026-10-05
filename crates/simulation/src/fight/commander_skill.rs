@@ -480,6 +480,7 @@ impl Simulation {
                 rate: buff.life_change_rate,
                 step_ticks: buff.step_ticks,
             }),
+            current_life_rate: buff.current_life_rate,
         };
         for &id in reached {
             // `BuffSystem.AddBuff` passes over the dead: a strike's damage
@@ -501,7 +502,7 @@ impl Simulation {
                      beside it is not measured"
                 )));
             }
-            events.push(self.write_buff(id, source, team, &row)?);
+            self.write_buff(id, source, team, &row, events)?;
         }
         Ok(())
     }

@@ -456,7 +456,7 @@ impl Simulation {
     /// where the hit lands, of its side, through `RangeItemSystem.AddItem`: a
     /// fire is the unit's own (`GroundFireController.GetFireMech`), any other
     /// the technology's.
-    fn extra_hit_effect(
+    pub(in crate::fight) fn extra_hit_effect(
         &mut self,
         skill_ref: SkillRef,
         struck: &[FightActorRef],

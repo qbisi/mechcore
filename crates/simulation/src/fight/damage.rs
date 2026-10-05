@@ -599,25 +599,44 @@ impl Simulation {
         hit: DamageHit,
         events: &mut Vec<Event>,
     ) -> Result<Struck> {
-        let mut struck = Struck::default();
         // `PerformSingleEffect` on a shield: it takes the hit, and no unit
         // does.
         if let Some(shield) = hit.shield
             && hit.splash_radius == 0
         {
+            let mut struck = Struck::default();
             if self.hit_shield(shield, &hit, events)? > 0 {
                 struck.shield = Some(shield);
             }
             return Ok(struck);
         }
         let mut targets = self.damage_targets(&hit)?;
+        let mut shield = None;
         if hit.splash_radius > 0 && !hit.crosses_shields {
-            for shield in self.shields_in_the_way(&hit, &mut targets) {
-                if self.hit_shield(shield, &hit, events)? > 0 {
-                    struck.shield = Some(shield);
+            for standing in self.shields_in_the_way(&hit, &mut targets) {
+                if self.hit_shield(standing, &hit, events)? > 0 {
+                    shield = Some(standing);
                 }
             }
         }
+        let mut struck = self.strike_targets(&hit, targets, events)?;
+        struck.shield = shield;
+        if let Some(secondary) = self.secondary_damage_of(&hit) {
+            self.perform_secondary(&hit, secondary, &mut struck, events)?;
+        }
+        Ok(struck)
+    }
+
+    /// `DamagePerformer.PerformHitTargetsEffect` and `DispatchHitDamageEvent`:
+    /// one hit on each of its targets in turn, and then its skill's hit
+    /// effects.
+    pub(in crate::fight) fn strike_targets(
+        &mut self,
+        hit: &DamageHit,
+        targets: Vec<FightActorRef>,
+        events: &mut Vec<Event>,
+    ) -> Result<Struck> {
+        let mut struck = Struck::default();
         for target in targets {
             // `DamagePerformer.PerformHitTargetEffect` hands a hit on to
             // `FightCalculator` only when it deals at least 1: one that deals
@@ -664,10 +683,7 @@ impl Simulation {
                 struck.ends.push((target, position));
             }
         }
-        self.dispatch_hit_damage(&hit, struck.lost, events)?;
-        if let Some(secondary) = self.secondary_damage_of(&hit) {
-            self.perform_secondary(&hit, secondary, &mut struck, events)?;
-        }
+        self.dispatch_hit_damage(hit, struck.lost, events)?;
         Ok(struck)
     }
 
@@ -905,7 +921,24 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let amount = self.main_attack_damage(actor_id);
-        self.blow(actor_id, target, skill_slot, amount, events)
+        let skill_ref = SkillRef::main(FightActorRef::Unit(actor_id));
+        self.blow(skill_ref, skill_slot, target, amount, events)
+    }
+
+    /// An extra skill's strike: its own `DamageEffect`, dealing its own
+    /// damage, of its own slot.
+    pub(in crate::fight) fn extra_direct_effect(
+        &mut self,
+        skill_ref: SkillRef,
+        target: FightActorRef,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        let amount = self
+            .skill_attacker(skill_ref)
+            .ok_or_else(|| Error::new("an extra skill's owner is absent"))?
+            .attack_damage;
+        let skill_slot = self.skill_slot(skill_ref);
+        self.blow(skill_ref, skill_slot, target, amount, events)
     }
 
     /// A blow dealing what a beam's damage effect deals: the main skill's
@@ -917,32 +950,58 @@ impl Simulation {
         amount: i64,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        self.blow(actor_id, target, 0, amount, events)
+        let skill_ref = SkillRef::main(FightActorRef::Unit(actor_id));
+        self.blow(skill_ref, 0, target, amount, events)
     }
 
+    /// `DamagePerformer.Perform` of a skill's `SkillDamageProvider`: the
+    /// splash is measured from what the blow struck, or from the skill's
+    /// own unit for a skill that splashes about itself
+    /// (`CalculateDamagePosition`), and a splash that diffuses grows from
+    /// there over the updates to come (`PerformDiffusionRangeEffect`).
     fn blow(
         &mut self,
-        actor_id: u64,
-        target: FightActorRef,
+        skill_ref: SkillRef,
         skill_slot: usize,
+        target: FightActorRef,
         amount: i64,
         events: &mut Vec<Event>,
     ) -> Result<()> {
+        let actor_id = skill_ref
+            .owner
+            .unit_id()
+            .ok_or_else(|| Error::new("a construction's strike is not supported"))?;
+        let skill = self
+            .skill_attacker(skill_ref)
+            .ok_or_else(|| Error::new("a striking skill's owner is absent"))?;
+        let (splash_radius, self_splash, diffusion) = (
+            skill.splash_radius,
+            skill.attack.self_splash,
+            skill.attack.diffusion,
+        );
         let attacker = &self.actors[&actor_id];
-        let center_q32 = match target {
-            FightActorRef::Unit(target_id) => {
-                let aimed = &self.actors[&target_id];
-                (aimed.x_q32, aimed.z_q32)
-            }
-            FightActorRef::Building(building_id) => self
-                .buildings
-                .iter()
-                .find(|building| building.building_id == building_id)
-                .map(|building| (building.position.x, building.position.z))
-                .ok_or_else(|| Error::new("direct attack target is absent"))?,
+        let (center_q32, center_y_q32) = if self_splash && splash_radius > 0 {
+            (
+                (attacker.x_q32, attacker.z_q32),
+                space_to_q32(unit_height(attacker.rules.domain)),
+            )
+        } else {
+            let center_q32 = match target {
+                FightActorRef::Unit(target_id) => {
+                    let aimed = &self.actors[&target_id];
+                    (aimed.x_q32, aimed.z_q32)
+                }
+                FightActorRef::Building(building_id) => self
+                    .buildings
+                    .iter()
+                    .find(|building| building.building_id == building_id)
+                    .map(|building| (building.position.x, building.position.z))
+                    .ok_or_else(|| Error::new("direct attack target is absent"))?,
+            };
+            (center_q32, self.target_height_q32(target))
         };
         let shield = self.blow_shield(actor_id, target);
-        if shield.is_some() && attacker.stats.splash_radius() > 0 {
+        if shield.is_some() && splash_radius > 0 {
             return Err(Error::new(
                 "a splashing blow at a unit its side's shield covers is not measured",
             ));
@@ -950,8 +1009,9 @@ impl Simulation {
         // A blow is `SkillDamageProvider`'s, of the skill that struck.
         let hit = DamageHit {
             center_q32,
-            center_y_q32: self.target_height_q32(target),
+            center_y_q32,
             shield,
+            splash_radius,
             ..DamageHit::of_skill(
                 attacker,
                 u16::try_from(skill_slot).expect("skill slot fits u16"),
@@ -959,6 +1019,9 @@ impl Simulation {
                 amount,
             )
         };
+        if let Some(diffusion) = diffusion.filter(|_| splash_radius > 0) {
+            return self.start_diffusion(skill_ref, hit, diffusion);
+        }
         let struck = self.perform_damage(hit, events)?;
         // A block a blow fells falls after every hit the tick resolves, as a
         // shot's does: the Crawlers of `wall-block.yaml` read three more blows

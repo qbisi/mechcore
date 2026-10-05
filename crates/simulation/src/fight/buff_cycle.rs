@@ -51,9 +51,10 @@ impl Simulation {
                     debuff: buff.debuff,
                     invincible: buff.invincible,
                     life_change: None,
+                    current_life_rate: 0,
                 };
                 if self.buff_reaches(id, &row) {
-                    events.push(self.write_buff(id, Some(source), team, &row)?);
+                    self.write_buff(id, Some(source), team, &row, events)?;
                 }
             }
         }
