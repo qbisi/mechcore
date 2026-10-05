@@ -75,7 +75,14 @@ cools for `coolingTime` and then gives back `attackNum × rise` every
 
 **When it falls.** It intercepts nothing more, and its `building_destroyed` is
 read among the tick's deaths and falls in the order they came, as every
-building's and unit's is.
+building's and unit's is. It is no construction: `CreateFightBuilding` makes it
+a plain `FightCrystal`, and `SkillAttackState.CheckAttackable` rejects a dead
+attack target outright only of the `FightConstruction` class. So a unit
+attacking it when it falls goes on to `FightSkill.CheckAttackable`, as for a
+fallen tower or a dead unit, and searches again; a skill that cannot switch
+quickly finds its target changed and finishes the attack, its weapons naming
+what the search found while it cools. A fallen block of a construction ends
+the attack without a search, and the weapons go on naming the block.
 
 ## A missile
 
@@ -221,6 +228,9 @@ kind ends its own way:
 - A fallen interceptor intercepts nothing more, falls among the tick's deaths,
   and does not stand into the next round:
   `tests/interceptor/fights/interceptor-falls.yaml`.
+- A unit whose shot fells the interceptor it attacks searches again, and
+  cools naming what the search found:
+  `tests/interceptor/fights/fortress-fells-interceptor.yaml`.
 - An officer's rate raises a side's shield's energy and its missile's damage,
   cut to an integer: `tests/shield/fights/advanced-shield-device.yaml` against
   `tests/shield/fights/projectiles.yaml`, and
@@ -340,6 +350,11 @@ kind ends its own way:
 - It is built with the row's life, its `pathRadius` for a radius and its
   collider priority: `InterceptSystem.DoCreateFightInterceptor`,
   `FightController.CreateFightBuilding`, `InterceptContraption.GetBuildingData`.
+- It is a plain `FightCrystal`, which `FightController.CreateFightBuilding`
+  constructs, where a construction's block is a `FightConstruction` from
+  `FightController.CreateFightConstruction`; an attack on a dead one fails
+  only for the latter: `SkillAttackState.CheckAttackable`,
+  `FightSkill.CheckAttackable`.
 - A projectile that can be intercepted and is aimed at the other side joins the
   interceptors it is in reach of after it moves: `FightProjectile.Update`,
   `ProjectileController.UpdateIsInInterceptSources`,

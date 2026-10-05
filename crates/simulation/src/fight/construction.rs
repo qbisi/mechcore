@@ -102,6 +102,14 @@ pub(in crate::fight) fn initialize_constructions(
 }
 
 impl Simulation {
+    /// Whether this target is a construction's block, an object the build
+    /// makes a `FightConstruction` (`FightController.CreateFightConstruction`).
+    /// A tower is a `FightTower` and an interceptor a plain `FightCrystal`
+    /// (`CreateFightBuilding`), and neither is one.
+    pub(in crate::fight) fn is_construction(&self, target: FightActorRef) -> bool {
+        matches!(target, FightActorRef::Building(id) if self.construction_blocks.contains(&id))
+    }
+
     /// One construction's update, in the order `FightConstruction.Update`
     /// runs it: `SkillManager.Update`, the skill a unit's is, and then
     /// `UpdateWeaponRotateion`, the weapon turning towards the lock.

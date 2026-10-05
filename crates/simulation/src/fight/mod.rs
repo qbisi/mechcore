@@ -405,6 +405,9 @@ struct Simulation {
     /// The buildings no unit searches for, which the target trees hold all
     /// the same.
     unsearchable_buildings: BTreeSet<u64>,
+    /// Every construction's blocks, the buildings that are a
+    /// `FightConstruction`: not a tower, nor an interceptor.
+    construction_blocks: BTreeSet<u64>,
     /// The constructions whose skill fires, by building.
     constructions: BTreeMap<u64, Construction>,
     /// `BattleStatisticManager`'s counters.
@@ -527,6 +530,7 @@ impl Simulation {
             fallen_buildings: Vec::new(),
             buildings_query_alive,
             unsearchable_buildings: unsearchable.clone(),
+            construction_blocks: construction_groups.keys().copied().collect(),
             constructions,
             towers: tower::TowerSystem {
                 config: towers.clone(),

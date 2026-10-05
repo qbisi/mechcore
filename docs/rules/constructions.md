@@ -70,8 +70,8 @@ rather than a state. It is in who avoids the block.
 the build's attack state, not something about walls. `SkillAttackState` checks
 its attack target between blows and while the next one winds up, and a dead
 attack target of the construction class (`FightConstruction`) fails that
-check outright, where a dead unit, or a dead tower, goes on to the checker and
-may be switched from. A failed check finishes the attack: `FightSkill.StopAttack`
+check outright, where a dead unit, a dead tower or a dead interceptor, none of
+them a construction, goes on to the checker and may be switched from. A failed check finishes the attack: `FightSkill.StopAttack`
 clears the lock, the weapons keep naming what they fired at, the skill cools
 for its cooling time, and it then enters idle with its targets cleared and
 searches again. A unit therefore shows no lock for its cooling time plus one
