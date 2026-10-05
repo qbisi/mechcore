@@ -104,6 +104,31 @@ fn normal_target_score_adds_raw_distance_after_weighted_term() {
     );
 }
 
+/// A `DistanceIntensify` selector counts its offset off the distance score
+/// alone: the raw distance added after it and the range the penalty compares
+/// are the candidate's own.
+#[test]
+fn a_distance_score_offset_moves_only_the_distance_score() {
+    let distance_q32 = 174_i64 << 32;
+    let score = |offset_q32| {
+        full_rotation_score_from_distance_and_angle_q32(
+            distance_q32,
+            offset_q32,
+            0,
+            0,
+            170_i64 << 32,
+            false,
+        )
+        .unwrap()
+    };
+    assert_eq!(
+        score(30_i64 << 32),
+        q32_mul(144_i64 << 32, TARGET_SCORE_BASE_Q32)
+            .saturating_add(TARGET_SCORE_OUT_OF_RANGE_PENALTY_Q32)
+            .saturating_add(distance_q32)
+    );
+}
+
 #[test]
 fn rotation_window_wraps_through_zero_and_tolerates_43_raw() {
     let degrees = |value: i64| value << 32;
@@ -153,7 +178,7 @@ fn a_candidate_in_range_outside_the_rotation_window_takes_the_range_penalty() {
             x << 32,
             z << 32,
             0,
-            true,
+            0,
             0,
             115_000,
             window,
@@ -179,7 +204,7 @@ fn a_window_is_checked_only_between_angle0_and_angle360() {
             -50 << 32,
             0,
             0,
-            true,
+            0,
             0,
             115_000,
             window,
@@ -268,7 +293,7 @@ fn fight_skill_adopts_a_selected_building_and_enters_moving() {
         Some(FightActorRef::Building(building_id))
     );
     assert_eq!(
-        source.snapshot().mech_lock_target,
+        simulation.unit_snapshot(1).mech_lock_target,
         Some(ObjectRef::new(ObjectKind::Building, building_id))
     );
 

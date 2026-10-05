@@ -169,7 +169,7 @@ impl Simulation {
         if actor.rules.attack.melee {
             return false;
         }
-        let reach = space_to_q32(actor.stats.attack_range().min(ATTACK_MOVE_REACH));
+        let reach = space_to_q32(self.main_attack_range(actor_id).min(ATTACK_MOVE_REACH));
         let (start, end) = command.remaining_segment(actor.x_q32, actor.z_q32);
         !self
             .opponents_of(actor.placement.team)

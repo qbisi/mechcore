@@ -144,12 +144,12 @@ impl Actor {
     /// was burrowing on when the fight ended stands still on its last tick,
     /// while every other unit moves. A transition under way is ended as its
     /// state's `Exit` ends it.
-    pub(in crate::fight) fn exit_fight_move_ability(&mut self) {
+    pub(in crate::fight) fn exit_fight_move_ability(&mut self, attack_range: i64) {
         if self.underground.is_none() {
             return;
         }
         if self.motion.state == MotionState::Transitioning {
-            self.end_transition_state();
+            self.end_transition_state(attack_range);
         }
         let underground = self.underground.as_mut().expect("checked above");
         if underground.state == AbilityState::Moving {
@@ -260,19 +260,19 @@ impl Simulation {
     /// `TransitionState.Exit`, the ability's `OnTransitionEnd`, and the next
     /// state entered.
     fn end_transition(&mut self, actor_id: u64) {
+        let attack_range = self.main_attack_range(actor_id);
         self.actors
             .get_mut(&actor_id)
             .expect("actor identity is stable")
-            .end_transition_state();
+            .end_transition_state(attack_range);
     }
 }
 
 impl Actor {
     /// `TransitionState.Exit`, the ability's `OnTransitionEnd`, and the next
-    /// state entered.
-    fn end_transition_state(&mut self) {
+    /// state entered, `range` what its main skill's `GetAttackRange` answers.
+    fn end_transition_state(&mut self, range: i64) {
         let alive = self.alive();
-        let range = self.stats.attack_range();
         let underground = self
             .underground
             .as_mut()

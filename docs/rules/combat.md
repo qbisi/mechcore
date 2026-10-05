@@ -703,6 +703,35 @@ The rows are [`config/technology_effects.yaml`](../../config/technology_effects.
 `reduce_damage_value`; an armour technology also writes its row's
 corrections, as any technology does.
 
+## Aerial and ground targets
+
+**A skill reaches and hurts a unit that flies by numbers of its own.** A
+skill keeps two ranges, each its range with a value of its own added: the
+ground one with its `AttackGroundRangeAddValue`, the air one with its
+`AttackAirRangeAddValue`. While it locks a unit that flies it answers the air
+one, and otherwise the ground one, for every check of reach: whether its
+target is in range, whether its unit's motion stops for it, and the range past
+which its search penalises a candidate. Its damage is two numbers the same
+way, each its damage with a rate of its own added to the rates that correct
+it: what it deals the target it attacks is the air one while that target
+flies, and the damage a recording reads is the ground one. Aerial
+Specialization writes 30 metres onto the air range and 0.9 onto the air rate:
+a Marksman reaches an Overlord at 170 metres and deals it 4425 of its 2329.
+
+**A search by distance counts an offset off a candidate's distance.** Aerial
+Specialization writes its metres into the skill's `AttackRangeValueAir` as
+well, and then turns its unit's main skill's search from `Normal` to
+`DistanceIntensify`, whose selector takes the skill's `AttackRangeValueAir`
+and `AttackRangeValueGround` as it is made. Scoring a candidate, the selector
+counts the offset for the candidate's domain off its distance, as it counts
+the 40 metres it adds for one that is not visible. Only that term moves: the
+distance added after it, and the range the out-of-range penalty compares,
+are the candidate's own. So a Marksman takes an Overlord 11 metres further
+off than a Mountain, and takes the Mountain over an Overlord scored nearer
+but standing beyond its range. Its extra skills, the search a unit makes for
+itself, and the fallback search over every live enemy keep the `Normal`
+selector they were made with.
+
 ## Ordinary first-attack delay
 
 The ordinary first-attack branches divide `prepareTime` and `attackPoint`
@@ -1001,6 +1030,16 @@ not the game's native attack-type enum.
   Arclight's hit on a Mountain, `tests/armor/fights/mountain-plating.yaml`;
   577 hits on six armoured Phantom Rays, 21 of them left at 1,
   `tests/corpus/fights/134258634-r4.yaml`.
+- A skill locking a unit that flies reaches it by its air range and deals it
+  its air damage: a Marksman with Aerial Specialization fires at an Overlord
+  from 170 metres for 4425, `tests/anti_air/fights/aerial-specialization-overlord.yaml`,
+  and a Wasp, a Mustang and a Farseer squad deal aircraft 1.9 times what they
+  deal a Rhino, `tests/anti_air/fights/aerial-specialization-squads.yaml`.
+- A search by distance counts the air offset off an aircraft's distance score
+  and nothing else: the Marksman takes an Overlord further off than a
+  Mountain, `tests/anti_air/fights/aerial-specialization-pick.yaml`, and the
+  Mountain within its range over an Overlord beyond it,
+  `tests/anti_air/fights/aerial-specialization-out-of-range.yaml`.
 
 ### Read
 
@@ -1206,8 +1245,32 @@ not the game's native attack-type enum.
   caller passes `isFirstHit` true, and `FightMech.OnHitted` takes the shield's
   energy afterwards.
 
+- Aerial and ground targets: `FightSkill.GetAttackRange` answers
+  `FightSkill.attackRangeAirProperty` while `FightActor.IsFly` of its lock and
+  `FightSkill.attackRangeGroundProperty` otherwise;
+  `AttackRangeAirProperty.GetAttackRange` adds `SkillDataChangeFloat.AttackAirRangeAddValue`
+  to `AttackRangeProperty.GetAttackRange`. `DamageCalculator.GetAttackDamage`
+  reads `DamageCalculator.airDamageProperty` while its skill's attack target
+  flies, `DamageCalculator.GetNormalDamage` always `DamageCalculator.groundDamageProperty`,
+  and `AirDamageProperty.GetExtraAddRate` answers `SkillDataChangeFloat.DamageChangeRateAir`.
+  `SearchTargetSpecificProvider.DoEnable` adds `ISearchTargetSpecific.GetAirTargetOffset`
+  to `SkillDataChangeInt.AttackRangeValueAir` and the skill's air range, then
+  calls `FightSkill.ChangeSearchTargetType` with
+  `SearchTargetSpecificTech.GetSearchTargetType`, `SkillSearchTargetType.DistanceIntensify`;
+  `SearchTargetController.SetTargetSelector` hands that selector
+  `SearchTargetController.GetAttackRangeValueAir` as its
+  `ScoreRatingTargetSelector.airTargetDistanceScoreOffset`, which
+  `ScoreRatingTargetSelector.Selector.Calculate` passes for a candidate that
+  flies, less `ScoreRatingTargetSelector.invisibleActorDistanceScoreOffset`
+  for one not visible, to `DistanceScoreCalculator.Calculate`, which takes it
+  off the distance. `SearchTargetController.Change` replaces
+  `SearchTargetController.targetSelector` alone. `SearchTargetSpecificTech.AddData`
+  writes the row's `SearchTargetSpecificData.airDamageChangeRate`.
+
 ### Not established
 
+- **A ground offset**: Ground Lock, the Phantom Ray's, is a row of the same
+  list and runs through the same code, and no fight records it.
 - **Repair with its technologies disabled**, which stops the clocks
   (`AutoRecoveryEffectProvider.DisableEffect`) and which no recorded fight
   does; and which of an item and a technology a unit with both keeps, since

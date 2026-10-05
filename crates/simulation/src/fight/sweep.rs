@@ -394,7 +394,7 @@ impl Simulation {
         }
         .filter(|&shield| !self.shield_holds(shield, owner));
         if let Some(shield) = shield_struck {
-            let damage = self.actors[&actor_id].stats.attack_damage();
+            let damage = self.main_attack_damage(actor_id);
             let aimed = sweep.aimed.unwrap_or(owner);
             self.beam_at_shield(actor_id, aimed, shield, damage, events)?;
             sweep.previous = Some(stretch);

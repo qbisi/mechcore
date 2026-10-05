@@ -22,8 +22,8 @@ fn a_fallen_block_leaves_its_attacker_idle_and_still_aimed_at_it() {
             .actors
             .values()
             .find(|actor| actor.placement.team == 1)
+            .map(|actor| simulation.unit_snapshot(actor.placement.unit_id))
             .unwrap()
-            .snapshot()
     };
     for step in 0..18 {
         simulation.step(step).unwrap();
@@ -75,13 +75,13 @@ fn a_block_that_comes_into_the_way_ends_a_prepared_attack() {
         FightSkillPhase::Prepare { .. }
     ));
     simulation.step(145).unwrap();
-    let interrupted = simulation.actors[&4].snapshot();
+    let interrupted = simulation.unit_snapshot(4);
     assert_eq!(interrupted.motion_state, MotionState::Idle);
     assert_eq!(interrupted.mech_lock_target, None);
     assert_eq!(interrupted.weapon_aims[0].attack_target, None);
 
     simulation.step(146).unwrap();
-    let turned = simulation.actors[&4].snapshot();
+    let turned = simulation.unit_snapshot(4);
     assert_eq!(turned.motion_state, MotionState::Attacking);
     assert_eq!(
         turned.mech_lock_target,
@@ -111,7 +111,7 @@ fn crawlers_change_blocks_between_blows_and_only_a_striker_idles() {
     );
     let mut simulation =
         Simulation::new(&layout, &config.units, &config.towers, &config.maps, 4242).unwrap();
-    let read = |simulation: &Simulation, id: u64| simulation.actors[&id].snapshot();
+    let read = |simulation: &Simulation, id: u64| simulation.unit_snapshot(id);
     for step in 0..96 {
         simulation.step(step).unwrap();
     }
@@ -169,7 +169,7 @@ fn a_wall_in_the_way_takes_the_weapon_and_leaves_the_lock() {
         .unwrap()
         .placement
         .unit_id;
-    let state = marksman.snapshot();
+    let state = simulation.unit_snapshot(marksman.placement.unit_id);
 
     assert_eq!(
         state.mech_lock_target,

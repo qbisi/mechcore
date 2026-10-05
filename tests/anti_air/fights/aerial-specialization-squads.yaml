@@ -1,0 +1,28 @@
+# Aerial Specialization on a Wasp, a Mustang and a Farseer squad.
+#
+# Each squad's hit on the Overlord or a Phoenix deals 1.9 times what it deals
+# the Rhino: a Wasp 383 of 202, a Mustang 68 of 36, the Farseer 2561 of
+# 1348. A killing hit deals what life was left.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 273
+hash: {profile: mcfr-content-0.7.0, result: 287b9ba95650d9ce8178582eb2d0a6bc33009821c9e96a9fa29c116828967eb5}
+blue:
+  techs:
+    wasp: [aerial_specialization]
+    mustang: [aerial_specialization]
+    farseer: [aerial_specialization]
+  units:
+  - {name: wasp, index: 0, position: {x: -65, y: -100}, exp: 0/666/900}
+  - {name: mustang, index: 1, position: {x: 5, y: -100}, exp: 0/316/1200}
+  - {name: farseer, index: 2, position: {x: 65, y: -105}, exp: 0/816/1800}
+red:
+  core_damage: 522
+  units:
+  - {name: overlord, index: 0, position: {x: -35, y: -75}, exp: 0/136/1750}
+  - {name: phoenix, index: 1, position: {x: 20, y: -90}, exp: 0/102/1300}
+  - {name: rhino, index: 2, position: {x: 35, y: -165}, exp: 0/34/1150}

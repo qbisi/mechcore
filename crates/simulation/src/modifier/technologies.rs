@@ -13,9 +13,10 @@
 //! in `special`. One of any other list is a subclass that does more (a buff, a
 //! splash, a second weapon, a summon). A `LifestealTech` is applied for its
 //! numbers and hands its unit a [`LifeSteal`], an `AutoRecoveryTech` that
-//! repairs in any state an [`AutoRecovery`], and an `ArmorStrengthenTech` a
-//! reduction of every hit on it; any other is refused by name rather than
-//! applied for its numbers alone.
+//! repairs in any state an [`AutoRecovery`], an `ArmorStrengthenTech` a
+//! reduction of every hit on it, and a `SearchTargetSpecificTech` its numbers
+//! against aerial and ground targets and a search by distance; any other is
+//! refused by name rather than applied for its numbers alone.
 //!
 //! A technology belongs to one unit type, which is how a side's flat list of
 //! technologies reaches the units it corrects: a technology the side holds
@@ -36,6 +37,7 @@ use serde::Deserialize;
 use crate::{
     Error, Result,
     data::{Channel, Correction, Entry, Index},
+    rules::UnitDomain,
 };
 
 use super::{
@@ -62,6 +64,20 @@ const SWEEP: &str = "sweepSkillIntensifyTechDatas";
 
 /// The list whose `ArmorStrengthenTech` is an `IArmorStrengthen` as well.
 const ARMOR: &str = "armorStrengthenTechnologyDatas";
+
+/// The list whose `SearchTargetSpecificTech` is an `ISearchTargetSpecific`.
+const SEARCH_TARGET_SPECIFIC: &str = "searchTargetSpecificDatas";
+
+/// The lists whose rows this build applies, each with its mechanism.
+const IMPLEMENTED: [&str; 7] = [
+    PLAIN,
+    LIFESTEAL,
+    AUTO_RECOVERY,
+    ENERGY_SHIELD,
+    SWEEP,
+    ARMOR,
+    SEARCH_TARGET_SPECIFIC,
+];
 
 /// The list whose `ExtraWeaponTech` adds a skill beside its unit's main one.
 const EXTRA_WEAPON: &str = "extraWeaponTechnologies";
@@ -119,6 +135,10 @@ struct Technology {
     /// What it answers `IArmorStrengthen.GetReduceDamageValue` with, by its
     /// unit's level, if its class is one.
     reduce_damage: Option<Vec<i64>>,
+    /// Whether it turns its unit's main skill's search to
+    /// `DistanceIntensify`: an `ISearchTargetSpecific`, whose
+    /// `GetSearchTargetType` answers that whatever its row.
+    distance_intensify: bool,
 }
 
 /// One row of the table. Every effect is a list because a technology's effect
@@ -173,6 +193,16 @@ struct Row {
     /// one entry per unit level.
     #[serde(default)]
     reduce_damage_value: Vec<i64>,
+    /// `SearchTargetSpecificData`'s fields, on a row of its list: whole
+    /// metres, and a rate by the unit's rank.
+    #[serde(default)]
+    air_target_score_offset: i64,
+    #[serde(default)]
+    ground_target_score_offset: i64,
+    #[serde(default)]
+    air_damage_change_rate: Vec<i64>,
+    #[serde(default)]
+    ground_damage_change_rate: Vec<i64>,
     /// `ExtraWeaponTechnologyData.allWeaponReduceDamageRate`, on an extra
     /// weapon row that sets it.
     #[serde(default)]
@@ -263,6 +293,7 @@ impl TechnologyEffects {
                 energy_shield,
                 sweep,
                 reduce_damage,
+                distance_intensify: row.kind == SEARCH_TARGET_SPECIFIC,
             };
             if technologies.insert(id, technology).is_some() {
                 return Err(Error::new(format!(
@@ -347,19 +378,30 @@ impl TechnologyEffects {
             .collect())
     }
 
-    /// What this side's technologies hand one unit type's sweep, the first
-    /// that does.
+    /// What this side's technologies change about one unit type's main skill
+    /// beyond its numbers: what the first that hands its sweep anything hands
+    /// it, and whether one turns its search to `DistanceIntensify`
+    /// (`SearchTargetSpecificProvider.DoEnable`,
+    /// `FightSkill.ChangeSearchTargetType`).
     ///
     /// # Errors
     ///
     /// Returns the error [`Self::corrections`] does.
-    pub(crate) fn sweep(&self, held: &[i32], unit_type: &str) -> Result<Option<SweepIntensify>> {
+    pub(crate) fn main_skill(
+        &self,
+        held: &[i32],
+        unit_type: &str,
+    ) -> Result<(Option<SweepIntensify>, bool)> {
         self.corrections(held, unit_type)?;
-        Ok(held
-            .iter()
-            .filter_map(|id| self.technologies.get(id))
-            .filter(|technology| technology.unit == unit_type)
-            .find_map(|technology| technology.sweep))
+        let own = || {
+            held.iter()
+                .filter_map(|id| self.technologies.get(id))
+                .filter(|technology| technology.unit == unit_type)
+        };
+        Ok((
+            own().find_map(|technology| technology.sweep),
+            own().any(|technology| technology.distance_intensify),
+        ))
     }
 
     /// What this side's armour technologies write onto one unit type at one
@@ -422,9 +464,7 @@ impl TechnologyEffects {
 /// What a row writes at rank one, or why this build will not apply it.
 fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correction)>, String> {
     let fought_extra_weapon = row.kind == EXTRA_WEAPON && FOUGHT_EXTRA_WEAPONS.contains(&row.id);
-    if ![PLAIN, LIFESTEAL, AUTO_RECOVERY, ENERGY_SHIELD, SWEEP, ARMOR].contains(&row.kind.as_str())
-        && !fought_extra_weapon
-    {
+    if !IMPLEMENTED.contains(&row.kind.as_str()) && !fought_extra_weapon {
         return Err(format!(
             "technology {} ({}) comes from TechnologyGroupData's {} list, and what \
              it does beyond its unit's numbers is not implemented",
@@ -461,6 +501,8 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
         ("lifesteal_multiplier", &row.lifesteal_multiplier),
         ("recovery_duration", &row.recovery_duration),
         ("recovery_life_rate", &row.recovery_life_rate),
+        ("air_damage_change_rate", &row.air_damage_change_rate),
+        ("ground_damage_change_rate", &row.ground_damage_change_rate),
     ];
     for (field, values) in every {
         if values.len() > 1 {
@@ -500,7 +542,8 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
     }
 
     let at_rank_one = |values: &Vec<i64>| values.first().copied().filter(|value| *value != 0);
-    Ok(effects::corrections(Fields {
+    let mut written = search_target_specific(row, at_rank_one);
+    written.extend(effects::corrections(Fields {
         life_rate: at_rank_one(&row.life_rate),
         damage_rate: at_rank_one(&row.damage_rate),
         // The table has no such column.
@@ -512,7 +555,47 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
         splash_range_value: at_rank_one(&row.splash_range_value),
         speed_value: at_rank_one(&row.speed_value),
         damage_reduce_rate_base: Some(row.all_weapon_reduce_damage_rate),
-    }))
+    }));
+    Ok(written)
+}
+
+/// What a `SearchTargetSpecificTech` writes onto its unit's skill: for each
+/// domain it reaches further at, the metres both into the range its
+/// `AttackRangeAirProperty` or `AttackRangeGroundProperty` adds and into what
+/// its search counts off a candidate of that domain
+/// (`SearchTargetSpecificProvider.DoEnable`), and the rate its damage on that
+/// domain gains (`SearchTargetSpecificTech.AddData`).
+fn search_target_specific(
+    row: &Row,
+    at_rank_one: impl Fn(&Vec<i64>) -> Option<i64>,
+) -> Vec<(Channel, Index, Correction)> {
+    let mut written = Vec::new();
+    for (domain, offset, damage_rate) in [
+        (
+            UnitDomain::Air,
+            row.air_target_score_offset,
+            &row.air_damage_change_rate,
+        ),
+        (
+            UnitDomain::Ground,
+            row.ground_target_score_offset,
+            &row.ground_damage_change_rate,
+        ),
+    ] {
+        if offset > 0 {
+            let metres = Correction::Value(offset.saturating_mul(effects::METERS));
+            written.push((Channel::Skill, Index::ScoreOffsetFor(domain), metres));
+            written.push((Channel::Skill, Index::RangeAgainst(domain), metres));
+        }
+        if let Some(rate) = at_rank_one(damage_rate) {
+            written.push((
+                Channel::Skill,
+                Index::DamageRateAgainst(domain),
+                Correction::Value(rate),
+            ));
+        }
+    }
+    written
 }
 
 #[cfg(test)]
@@ -535,6 +618,9 @@ mod tests {
     /// Armor Enhancement for the Rhino, an `armorStrengthenTechnologyDatas`
     /// row: +0.5 of life and 60 off each hit a level.
     const ARMOR_ENHANCEMENT: i32 = 3005;
+    /// Aerial Specialization for the Marksman, a `searchTargetSpecificDatas`
+    /// row: 30 metres and 0.9 of damage against aircraft.
+    const AERIAL_SPECIALIZATION: i32 = 3202;
 
     #[test]
     fn a_technology_writes_onto_the_unit_whose_table_row_names_it() {
@@ -622,6 +708,53 @@ mod tests {
                 .armor(&[ARMOR_ENHANCEMENT], "marksman", 1)
                 .unwrap()
                 .is_empty()
+        );
+    }
+
+    /// A search-target technology writes its metres into the skill's air
+    /// range and air search offset and its rate into the air damage rate, and
+    /// turns the unit's search to `DistanceIntensify`.
+    #[test]
+    fn aerial_specialization_writes_its_numbers_against_aircraft() {
+        use crate::rules::UnitDomain::Air;
+        let table = TechnologyEffects::load().unwrap();
+        let written = table
+            .corrections(&[AERIAL_SPECIALIZATION], "marksman")
+            .unwrap()
+            .into_iter()
+            .map(|(channel, entry)| (channel, entry.index, entry.correction))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            written,
+            [
+                (
+                    Channel::Skill,
+                    Index::ScoreOffsetFor(Air),
+                    Correction::Value(30_000)
+                ),
+                (
+                    Channel::Skill,
+                    Index::RangeAgainst(Air),
+                    Correction::Value(30_000)
+                ),
+                (
+                    Channel::Skill,
+                    Index::DamageRateAgainst(Air),
+                    Correction::Value(3_865_470_566)
+                ),
+            ]
+        );
+        assert!(
+            table
+                .main_skill(&[AERIAL_SPECIALIZATION], "marksman")
+                .unwrap()
+                .1
+        );
+        assert!(
+            !table
+                .main_skill(&[AERIAL_SPECIALIZATION], "wasp")
+                .unwrap()
+                .1
         );
     }
 }

@@ -1,0 +1,25 @@
+# Aerial Specialization: a Marksman against an Overlord reaches 30 metres
+# further and deals 1.9 times its damage.
+#
+# While it locks the Overlord the Marksman's range is its 140 with the 30
+# of its AttackAirRangeAddValue, and each shot deals 4425, its 2329 with
+# the 0.9 of its DamageChangeRateAir added to its rate. It first fires at
+# tick 34; the same fight without the technology first fires at tick 66,
+# for 2329.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 142
+hash: {profile: mcfr-content-0.7.0, result: 18dfa61539b3640284cc3806fdd43bbadf23f892dfa8b50e9b3efc5175c742d6}
+blue:
+  core_damage: 400
+  techs:
+    marksman: [aerial_specialization]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -100}}
+red:
+  units:
+  - {name: overlord, index: 0, position: {x: 5, y: -95}, exp: 0/200/1750}

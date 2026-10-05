@@ -979,7 +979,7 @@ fn a_marksman_holds_through_its_cooling_after_a_kill_it_cannot_follow() {
     for step in 0..142u64 {
         simulation.step(step).unwrap();
         if step + 1 >= 137 {
-            states.insert(step + 1, simulation.actors[&1].snapshot());
+            states.insert(step + 1, simulation.unit_snapshot(1));
         }
     }
     for tick in 137..=140 {

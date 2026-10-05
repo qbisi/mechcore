@@ -100,6 +100,38 @@ pub(in crate::fight) struct Attacker<'a> {
     /// `ConstructionSearchTargetController`, which its row's
     /// `IsEnableSearchTarget` decides, never finds a target.
     pub(in crate::fight) searches: bool,
+    /// What its search counts off a candidate's distance by the candidate's
+    /// domain, millimetres: the `airTargetDistanceScoreOffset` and
+    /// `groundTargetDistanceScoreOffset` that
+    /// `SearchTargetController.SetTargetSelector` hands a `DistanceIntensify`
+    /// selector from the skill's `AttackRangeValueAir` and
+    /// `AttackRangeValueGround`, and none a `Normal` one gets.
+    pub(in crate::fight) score_offsets: ScoreOffsets,
+}
+
+/// A selector's distance offsets by domain, millimetres.
+#[derive(Debug, Clone, Copy, Default)]
+pub(in crate::fight) struct ScoreOffsets {
+    air: i64,
+    ground: i64,
+}
+
+impl ScoreOffsets {
+    /// What `Selector.Calculate` hands `DistanceScoreCalculator.Calculate`
+    /// for a candidate, which counts it off the distance: the offset for its
+    /// domain, less `ScoreRatingTargetSelector.invisibleActorDistanceScoreOffset`
+    /// for one that is not visible, which is minus 40 metres.
+    pub(in crate::fight) fn for_candidate(self, domain: UnitDomain, visible: bool) -> i64 {
+        let offset = match domain {
+            UnitDomain::Air => self.air,
+            UnitDomain::Ground => self.ground,
+        };
+        if visible {
+            offset
+        } else {
+            offset.saturating_sub(INVISIBLE_DISTANCE_SCORE_OFFSET)
+        }
+    }
 }
 
 impl Attacker<'_> {
@@ -187,7 +219,48 @@ impl Simulation {
         source.query_z_q32 = actor.z_q32;
         source.query_rotation_q32 = actor.body_rotation_q32;
         source.rotation_window_q32 = None;
+        // `MechSearchTargetController` keeps the selector it was made with.
+        source.score_offsets = ScoreOffsets::default();
         Some(source)
+    }
+
+    /// `FightSkill.GetAttackRange` of a unit's main skill, which
+    /// `FightMech.GetAttackRange` answers too: its `AttackRangeAirProperty`
+    /// while it locks a unit that flies, and its `AttackRangeGroundProperty`
+    /// otherwise.
+    pub(in crate::fight) fn main_attack_range(&self, actor_id: u64) -> i64 {
+        let actor = &self.actors[&actor_id];
+        actor
+            .stats
+            .attack_range_against(self.main_lock_domain(actor))
+    }
+
+    /// [`Self::main_attack_range`] in Q32.32 metres.
+    pub(in crate::fight) fn main_attack_range_q32(&self, actor_id: u64) -> i64 {
+        let actor = &self.actors[&actor_id];
+        actor
+            .stats
+            .attack_range_q32_against(self.main_lock_domain(actor))
+    }
+
+    /// `DamageCalculator.GetAttackDamage` of a unit's main skill: its
+    /// `AirDamageProperty` while it attacks a unit that flies, and its
+    /// `GroundDamageProperty` otherwise.
+    pub(in crate::fight) fn main_attack_damage(&self, actor_id: u64) -> i64 {
+        let actor = &self.actors[&actor_id];
+        actor
+            .stats
+            .attack_damage_against(self.attack_domain(actor.skills.main.attack_target()))
+    }
+
+    /// Whether what a unit's main skill locks flies (`lockTarget.IsFly`).
+    fn main_lock_domain(&self, actor: &Actor) -> UnitDomain {
+        self.attack_domain(actor.skills.main.lock_target)
+    }
+
+    /// Whether a skill's target flies, none standing on the ground.
+    pub(in crate::fight) fn attack_domain(&self, target: Option<FightActorRef>) -> UnitDomain {
+        target.map_or(UnitDomain::Ground, |target| self.domain_of(target))
     }
 
     pub(in crate::fight) fn attacker(&self, owner: FightActorRef) -> Option<Attacker<'_>> {
@@ -212,8 +285,8 @@ impl Simulation {
                     radius: actor.rules.collision_radius(),
                     y: unit_height(actor.rules.domain),
                     attack: &actor.rules.attack,
-                    attack_range: actor.stats.attack_range(),
-                    attack_damage: actor.stats.attack_damage(),
+                    attack_range: self.main_attack_range(id),
+                    attack_damage: self.main_attack_damage(id),
                     splash_radius: actor.stats.splash_radius(),
                     attack_interval_q32: actor.stats.attack_interval_q32(),
                     // A standalone weapon's skill faces with its own weapon:
@@ -231,6 +304,17 @@ impl Simulation {
                         .default_search_frame(&actor.rules.attack, 0)
                         .and_then(|(_, window)| window),
                     searches: true,
+                    // `SearchTargetSpecificProvider.DoEnable` turns the main
+                    // skill's selector to `DistanceIntensify` after it has
+                    // written the values the selector reads.
+                    score_offsets: if actor.placement.distance_intensify {
+                        ScoreOffsets {
+                            air: actor.stats.score_offset_for(UnitDomain::Air),
+                            ground: actor.stats.score_offset_for(UnitDomain::Ground),
+                        }
+                    } else {
+                        ScoreOffsets::default()
+                    },
                 })
             }
             FightActorRef::Building(id) => {
@@ -274,6 +358,7 @@ impl Simulation {
                         (half, half)
                     }),
                     searches: construction.searches,
+                    score_offsets: ScoreOffsets::default(),
                 })
             }
         }
@@ -302,6 +387,8 @@ impl Simulation {
         let mut attacker = self.attacker(skill_ref.owner)?;
         attacker.skill = skill_ref;
         attacker.attack = &rules.attack;
+        // Only the main skill's search is turned to `DistanceIntensify`.
+        attacker.score_offsets = ScoreOffsets::default();
         // A row that uses the main skill's range reaches its own range
         // beyond it: the Secondary Armament's 2 metres past the main gun's,
         // 107 against 105 in the recorded searches. So does every skill of a
@@ -312,10 +399,7 @@ impl Simulation {
         // reach 10 metres past the Melting Point's 85.
         let parented = rules.attack.weapons.mode == WeaponMode::Group;
         attacker.attack_range = if rules.use_main_skill_range || parented {
-            actor
-                .stats
-                .attack_range()
-                .saturating_add(rules.attack.range())
+            attacker.attack_range.saturating_add(rules.attack.range())
         } else {
             rules.attack.range()
         };
@@ -323,6 +407,7 @@ impl Simulation {
         // a level beyond the list, and none for a row that lists none: an
         // Incendiary Bomb's hit leaves its fire and nothing else, and a
         // Homing Missile deals its one entry at every level.
+        let against = self.attack_domain(extra.skill.attack_target());
         attacker.attack_damage = if rules.damage_rate > 0.0 {
             // `DamageProperty.RefreshBaseDamage`: the unit's base damage at
             // its level (`FightMech.GetBaseDamage`) times the skill's rate,
@@ -334,10 +419,13 @@ impl Simulation {
                 .saturating_mul(actor.placement.level);
             // `DamageProperty.CalculateDamage` then corrects it by the
             // skill's `DataSet`, which holds what reaches the main skill, and
-            // the buffs'.
+            // the buffs', its damage property the one for what it attacks.
             actor
                 .stats
-                .damage_from(q32_mul(base << 32, crate::rules::metres_q32(rules.damage_rate)) >> 32)
+                .damage_from(
+                    q32_mul(base << 32, crate::rules::metres_q32(rules.damage_rate)) >> 32,
+                    against,
+                )
                 .ok()?
         } else {
             let own = rules.damage_by_level.last().map_or(0, |last| {
@@ -352,7 +440,7 @@ impl Simulation {
             // and the buffs'.
             actor
                 .stats
-                .damage_with(own, &extra.skill_corrections)
+                .damage_with(own, &extra.skill_corrections, against)
                 .ok()?
         };
         attacker.splash_radius = rules.attack.splash_radius();
