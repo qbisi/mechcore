@@ -856,7 +856,11 @@ impl Simulation {
     /// units and towers it covers out of the hit; the one covering what the
     /// hit was aimed at is its main shield. The main shield, and every other
     /// the splash reaches in the plane, take the hit, before any unit does.
-    fn shields_in_the_way(&self, hit: &DamageHit, targets: &mut Vec<FightActorRef>) -> Vec<u64> {
+    pub(in crate::fight) fn shields_in_the_way(
+        &self,
+        hit: &DamageHit,
+        targets: &mut Vec<FightActorRef>,
+    ) -> Vec<u64> {
         let (x_q32, z_q32) = hit.center_q32;
         let mut main = hit.shield;
         let mut listed = Vec::new();

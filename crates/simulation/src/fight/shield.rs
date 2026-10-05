@@ -328,16 +328,20 @@ impl Simulation {
         let shield = &mut self.shield.standing[index];
         let taken = hit.amount.min(shield.energy).max(0);
         shield.energy -= taken;
-        events.push(event(
-            hit.projectile,
-            hit.source,
-            Some(hit.source_team),
-            Some(shield.object_ref()),
-            EventPayload::Damage {
-                amount: i32::try_from(taken).map_err(|_| Error::new("damage exceeds i32"))?,
-                skill_slot: hit.skill_slot,
-            },
-        ));
+        // A hit that takes nothing records nothing, as a unit's does: a
+        // Disintegration wave strikes a shield every firing for none.
+        if taken > 0 {
+            events.push(event(
+                hit.projectile,
+                hit.source,
+                Some(hit.source_team),
+                Some(shield.object_ref()),
+                EventPayload::Damage {
+                    amount: i32::try_from(taken).map_err(|_| Error::new("damage exceeds i32"))?,
+                    skill_slot: hit.skill_slot,
+                },
+            ));
+        }
         if shield.energy <= 0 && shield.owner.is_some() {
             // `AdvancedEnergyShieldSystem.DeactiveEnergyShield`.
             shield.active = false;
