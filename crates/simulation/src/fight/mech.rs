@@ -363,8 +363,12 @@ impl Actor {
         let turn_q32 = self.turn_q32();
         // The motion turns the mech body; weapons with arcs of their own
         // turn in their skills' update (`Simulation::turn_arc_weapons`).
+        // A standalone batch's turret turns to the lock of the weapon whose
+        // skill holds the motion (`MotionController.CalculateTargetDirection`),
+        // and to what an extra skill holding it fires at: the Mountain's turret
+        // turns onto Gun-launched Missile's lock once its guns hold none.
         if let Some(turret) = &mut self.turret_q32 {
-            let aim = if self.skills.main.standalone() {
+            let aim = if self.skills.main.standalone() && self.motion.attacker == SkillSlot::Main {
                 let Some(aim) = self.turret_aim_q32 else {
                     return;
                 };
@@ -699,7 +703,15 @@ fn extra_skills(placement: &Placement) -> Vec<ExtraSkill> {
                         .expect("u32 weapon count fits the supported host");
                     (count / per_skill, per_skill, None)
                 }
-                WeaponMode::Group => (1, count, group_shape(&rules.attack)),
+                // `FightSkillFactory.PrepareGroupedSkill` makes no group of a
+                // row's one skill where the main skill holds none: the
+                // Mountain's Gun-launched Missile is a skill of two launchers
+                // like any other, and takes the motion as one.
+                WeaponMode::Group => (
+                    1,
+                    count,
+                    group_shape(&rules.attack).filter(|&(skills, _)| skills > 1),
+                ),
                 WeaponMode::Normal => (1, count, None),
             };
             (0..skills).map(move |index| {
@@ -792,9 +804,11 @@ fn main_skill(rules: &UnitConfig, placement: &Placement) -> Skill {
 /// for one skill alone.
 fn group_shape(attack: &AttackConfig) -> Option<(usize, GroupBehaviour)> {
     let weapons = &attack.weapons;
+    // Each of a row's skills holds `weaponCountPerSkill` of its weapons.
     (weapons.mode != WeaponMode::Normal).then(|| {
         (
-            usize::try_from(weapons.count()).expect("u32 weapon count fits the supported host"),
+            usize::try_from(weapons.count() / weapons.per_skill)
+                .expect("u32 weapon count fits the supported host"),
             if weapons.mode == WeaponMode::Standalone {
                 GroupBehaviour::Standalone
             } else if weapons.fusillade == Some(true) {

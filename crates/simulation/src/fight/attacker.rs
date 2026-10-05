@@ -434,7 +434,9 @@ impl Simulation {
         // `FightSkill.GetAttackRange` is its parent's with its own
         // `SkillDataFloat.AttackRange` added: Energy Diffraction's beams
         // reach 10 metres past the Melting Point's 85.
-        let parented = rules.attack.weapons.mode == WeaponMode::Group;
+        // A grouped row of one skill makes no group, and has no parent:
+        // Gun-launched Missile reaches its own 180 metres.
+        let parented = extra.skill.is_grouped();
         attacker.attack_range = if rules.use_main_skill_range || parented {
             attacker.attack_range.saturating_add(rules.attack.range())
         } else {
@@ -811,12 +813,14 @@ impl Simulation {
             .expect("skill owner identity is stable");
         // A row's skill is one `FightSkill` whatever its weapons, unless the
         // row is grouped: `FightSkillFactory.Create` then makes one for each
-        // weapon, a main row's or an extra row's, and each draws its own. A
-        // main row's standalone weapons are one skill here and draw for each;
-        // an extra row's are a skill each already.
-        let skills = match (attacker.attack.weapons.mode, skill_ref.slot) {
+        // `weaponCountPerSkill` of its weapons, a main row's or an extra
+        // row's, and each draws its own. A main row's standalone skills are
+        // one skill here and draw for each; an extra row's are skills of
+        // their own already.
+        let weapons = &attacker.attack.weapons;
+        let skills = match (weapons.mode, skill_ref.slot) {
             (WeaponMode::Normal, _) | (WeaponMode::Standalone, SkillSlot::Extra(_)) => 1,
-            _ => attacker.attack.weapons.count(),
+            _ => weapons.count() / weapons.per_skill,
         };
         for index in 0..skills {
             let interval = self.draw_attack_interval(skill_ref)?;
