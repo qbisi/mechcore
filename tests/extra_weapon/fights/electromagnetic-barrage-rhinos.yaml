@@ -1,0 +1,29 @@
+# Electromagnetic Barrage against a Rhino and two Crawler squads.
+#
+# A Melting Point with Electromagnetic Barrage. Its skill fires sixteen
+# shells a blow, one every two ticks from its two launchers in turn,
+# scattered 55 metres about its target as two launchers split a burst
+# (t2 to t32, t303 to t333). They deal nothing; each writes the row's buff on
+# what its 7.5 metres reach, -0.4 of move speed for 8 seconds that turns the
+# unit's technologies off, `status_mask` reading it though the unit carries
+# none (the Rhino from t34). The beam kills the Crawler the second burst is
+# aimed at (t330), and the skill names it until its last shell is out.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 463
+hash: {profile: mcfr-content-0.7.0, result: 56eb1cea7ff7a28b52b669e51d7c251ff60c1d2c0b849cbd828bd495a5d5bff5}
+blue:
+  core_damage: 116
+  techs:
+    melting_point: [electromagnetic_barrage]
+  units:
+  - {name: melting_point, index: 0, position: {x: 0, y: -120}, exp: 0/552/1400}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: crawler, index: 1, position: {x: 65, y: -90}, exp: 0/200/450}
+  - {name: crawler, index: 2, position: {x: -55, y: -130}, exp: 0/450/450}

@@ -1,0 +1,28 @@
+# Electromagnetic Barrage against Crawlers under red's shield.
+#
+# The Melting Point's beam takes red's Abyss, and its barrage, which strikes
+# the ground alone, the Crawlers under the shield. The shield takes the
+# shells that fall into it, each for the row's 6000 in place of the nothing
+# a shell deals (`energyShieldDamage`), the seventh for the 4000 it has left,
+# which breaks it (t38). The shells after it reach the Crawlers and write
+# their buff (t58).
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 107
+hash: {profile: mcfr-content-0.7.0, result: a601a517d4f3af70292e2323aa796dcce19d87a43d8178e64148848426a8525e}
+blue:
+  core_damage: 596
+  techs:
+    melting_point: [electromagnetic_barrage]
+  units:
+  - {name: melting_point, index: 0, position: {x: 0, y: -50}}
+red:
+  units:
+  - {name: abyss, index: 0, position: {x: 5, y: -45}, exp: 0/800/4800}
+  - {name: crawler, index: 1, position: {x: 125, y: -90}}
+  contraptions:
+  - {name: shield, index: 2, position: {x: 125, y: -85}, retained: false}

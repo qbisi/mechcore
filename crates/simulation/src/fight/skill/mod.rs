@@ -1808,11 +1808,15 @@ impl Simulation {
             .attack
             .quick_switch_target;
         let skill = self.skill(skill_ref);
-        // A sweep under way runs on whatever becomes of its target.
+        // A sweep under way runs on whatever becomes of its target, and so
+        // does a burst still releasing, which goes on naming it
+        // ([`Self::projectile_burst_lost_target`]): Electromagnetic Barrage
+        // names the Crawler the beam killed until its last shell is out.
         let dead_target = !quick_switch_target
             && skill.phase() == FightSkillPhase::Attack
             && skill.backswing_finish_step().is_none()
             && !skill.performer.sweeping()
+            && skill.performer.pending().is_empty()
             && !self.self_splash_winding_up(skill_ref, step)
             && skill
                 .attack_target()

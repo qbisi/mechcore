@@ -113,6 +113,7 @@ extra_weapons:
       amplify_damage_rate: 0
       attack_range_value: 0
       current_life_rate: 0
+      disable_technology: false
     attack:
       base_damage: 0
       min_range: 40

@@ -418,6 +418,7 @@ impl Simulation {
             crosses_shields,
             splash_radius,
             fire,
+            shield_damage: self.skill_shield_damage(skill_ref),
             ..DamageHit::of_projectile(projectile, aimed, amount, reach)
         };
         // A projectile in simulated motion (`isSimulateMode`) that lands on a

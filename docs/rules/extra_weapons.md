@@ -11,8 +11,9 @@ Missile, the Centurion's, Sticky Oil Bomb, the Phantom Ray's and the
 Vulcan's, Whirlwind, the Rhino's, Energy Diffraction, the Melting Point's,
 Spider Mine, the Tarantula's, Matrix Bombardment, the Wraith's, and
 Anti-Air Barrage, the Fortress's, Air Defense Mark, the Typhoon's,
-Disintegration, the Abyss's, Naval Gun, the Overlord's, and Gun-launched
-Missile, the Mountain's, and refuses every other member by name: the members' skills differ
+Disintegration, the Abyss's, Naval Gun, the Overlord's, Gun-launched
+Missile, the Mountain's, and Electromagnetic Barrage, the Melting Point's, and
+refuses every other member by name: the members' skills differ
 in kind, a projectile, an explosion, a laser, a summon, a sweep around the
 unit, and many leave a terrain or write a buff, so each joins once a recording
 of it agrees.
@@ -320,6 +321,29 @@ performer's own.
   that died a second into its wind-up until its blow.
 - **No equipment writes onto it** (`ignoreEquipmentEffect`,
   `SkillDataModifier.AvaliableCheck`).
+
+## Shells that strike shields
+
+Electromagnetic Barrage's skill fires sixteen shells a blow from the Melting
+Point's two launchers in turn, one every two ticks, scattered 55 metres about
+its target as any burst of two weapons is: the skill's own two weapons, not
+the main beam's one. They deal nothing, and each writes the row's buff on
+what its 7.5 metres of splash reach: -0.4 of move speed for 8 seconds, which
+turns the unit's technologies off while it runs (`disableTechnology`), so
+`status_mask` reads `technology_disabled` though the unit carries none.
+
+- **A shield takes the row's `energyShieldDamage`.** The row is the skill's
+  damage modifier, and where its `energyShieldDamage` is not negative
+  (`IsChangeHitEnergyShieldDamage`) a hit deals that to a shield in place of
+  its damage (`DamagePerformer.CalculateHitEnergyShieldDamage`): a
+  battlefield shield it strikes, and a unit whose own shield has energy left,
+  before what the hit deals is asked. Each shell red's shield absorbs takes
+  6000 off it, the last as much as it has left.
+- **A burst names its target until its last shell is out.** The rest of a
+  burst whose target died is fired where it was aimed, and the skill names
+  the dead target until then rather than finishing its attack: the Melting
+  Point's beam kills the Crawler the barrage aims at, and the barrage fires
+  its last two shells at it and names it until they are out.
 
 ## A preemptive strike about its unit
 
@@ -668,6 +692,13 @@ simulator refuses it.
   the turret turns onto its lock:
   `tests/extra_weapon/fights/gun-launched-missile-rhinos.yaml`.
 
+- Electromagnetic Barrage's sixteen shells a blow write the slow that turns
+  technologies off on what they reach, the Rhino and the Crawlers carrying
+  none, and its skill names the Crawler the beam killed through the rest of
+  its burst: `tests/extra_weapon/fights/electromagnetic-barrage-rhinos.yaml`.
+  Red's shield takes its shells for 6000 each, the seventh for the 4000 it has
+  left, which breaks it: `tests/extra_weapon/fights/electromagnetic-barrage-shield.yaml`.
+
 ### Replayed
 
 - A Tarantula's Spider Mine skill that locks a new enemy as it leaves its
@@ -796,6 +827,11 @@ simulator refuses it.
   `Buff.Reset`, `IBEC_ChangeCurrentLife.Enter`,
   `IBEC_ChangeCurrentLife.ReEnableDisposableEffect`,
   `IBEC_ChangeCurrentLife.Perform`; its weapon, `FightWeapon..ctor`.
+- A shield's damage: `DamagePerformer.CalculateHitEnergyShieldDamage`,
+  `DamagePerformer.PerformHitTargetEffect`,
+  `DamagePerformer.PerformHitAdvancedEndergyShieldEffect`,
+  `ExtraWeaponTech.IsChangeHitEnergyShieldDamage`,
+  `ExtraWeaponTech.ChangeHitEnergyShieldDamage`.
 - What reaches it: `SkillDataModifier.AvaliableCheck`, `OfficerData.IsMainSkillEffect`,
   `TechnologyData.IsMainSkillEffect`, `DamageProperty.CalculateDamage`,
   `OfficerData.IsExtraSkillEffect`, `TechnologyData.IsExtraSkillEffect`,
@@ -819,6 +855,10 @@ simulator refuses it.
   first gun in the game as soon as its target turns into its 10 degrees, four
   ticks before the simulator: `layouts/gun-launched-missile-spread.yaml`,
   t532, not pinned.
+- **What Electromagnetic Barrage's buff switches off.** A unit that carries
+  a technology is refused, as an Electromagnetic Impact's is
+  ([battle_skill.md](battle_skill.md)), and so is a unit's own shield taking
+  a shell, which only a technology gives it.
 - **A wave that deals damage.** Disintegration's deals none, and the
   simulator strikes with a wave's damage as a splash does, the shields too.
   Nor is a shield covering what the blow was aimed at recorded, nor a wave's

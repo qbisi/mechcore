@@ -326,7 +326,12 @@ impl Simulation {
             .position(|shield| shield.id == shield_id)
             .ok_or_else(|| Error::new("a hit shield is absent"))?;
         let shield = &mut self.shield.standing[index];
-        let taken = hit.amount.min(shield.energy).max(0);
+        // `CalculateHitEnergyShieldDamage`: what the hit deals a shield.
+        let taken = hit
+            .shield_damage
+            .unwrap_or(hit.amount)
+            .min(shield.energy)
+            .max(0);
         shield.energy -= taken;
         // A hit that takes nothing records nothing, as a unit's does: a
         // Disintegration wave strikes a shield every firing for none.
