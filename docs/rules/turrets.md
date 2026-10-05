@@ -296,6 +296,9 @@ content, as `tests/turret/fights/` replays them.
   then looks for the next target: `tests/turret/fights/`.
 - A Steel Ball whose beam fells the turret it locked reads idle on that tick:
   `tests/turret/fights/laser-fells-turret.yaml`.
+- A Steel Ball whose beam kills the unit it locked reads attacking on that
+  tick: `tests/corpus/fights/201370830-r6.yaml` and
+  `tests/corpus/fights/201370830-r7.yaml`.
 - A turret fires with its row's damage and reach beside Advanced Offensive
   Tactics, Advanced Targeting System and a unit technology on its side:
   `tests/turret/fights/anti-armor-beside-officers.yaml`.

@@ -67,7 +67,8 @@ the whole of the difference:
 - **It takes the motion while the main skill holds no lock.** Each
   `FightSkill.SearchLockTarget` ends by handing the motion its attacker
   (`ISkillOwner.SetAttacker`). An extra skill takes it when the unit's main
-  searcher holds no lock, and the main skill takes it back on its next search,
+  searcher holds no lock, unless it is a skill of a `SkillGroup`, which never
+  takes it, and the main skill takes it back on its next search,
   whatever the extra skill holds, since an extra skill is no main target
   provider. While an extra skill holds it, `AutoMoveBehaviour` asks that skill,
   from the state the motion was in as the unit's skills began to update: the
@@ -178,6 +179,10 @@ its first skill in the core's place:
   hold, so the group's first counts among the others, and gives its own lock
   up as they do, its search timer counting down through its attack
   (`SkillAttackState.Update`) as theirs does.
+- **They take no motion.** A beam that searches while the main beam holds
+  no lock does not take the motion (`FightSkill.SearchLockTarget`), so the
+  Melting Point stays idle while its first beam prepares, until its main
+  beam locks again.
 - **Each beam ramps on its own blows.** A beam's damage is its row's rate of
   the unit's base damage at its level times its ramp's multiplier for the
   blow, truncated, then corrected as the main skill's is, which a skill with
@@ -439,7 +444,10 @@ simulator refuses it.
   control `tests/melting_point/fights/m2-rhino-4242.yaml`. The beams share a
   formation out, searching from the turret:
   `tests/extra_weapon/fights/energy-diffraction-formations.yaml`, beside its
-  control `tests/melting_point/fights/m6-formations-4242.yaml`.
+  control `tests/melting_point/fights/m6-formations-4242.yaml`. A group's
+  first beam gives up a lock it shares, and the beams take no motion while
+  the main beam holds no lock: `tests/corpus/fights/201370830-r6.yaml` and
+  `tests/corpus/fights/201370830-r7.yaml`.
 - A blueprint's and an officer's damage rates on the main skill reach
   Whirlwind, the recording holding them on its skill too, and compose on its
   damage as on the main skill's:

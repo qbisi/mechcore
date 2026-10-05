@@ -1,0 +1,87 @@
+# Replay 2324_20260925--201370830, round 7, map 1011. Blue's Melting Points
+# with Energy Diffraction and its Steel Balls. A Steel Ball whose beam kills
+# the unit it locked reads attacking on that tick (t162); a Melting Point's
+# first beam gives up a lock it shares with another of its group (t309); and
+# a Melting Point whose main beam holds no lock stays idle as its first beam
+# prepares on another (t1311): the beams of a group take no motion.
+
+kind: fight
+map_id: 1011
+seed: 865572396
+round: 7
+source: game
+ticks: 1429
+hash: {profile: mcfr-content-0.7.0, result: 27c80a3edf0d39e2047b2af3f64bb3157f689f1204d07510223764946fcd8d28}
+blue:
+  core_damage: 200
+  officers: [elite_specialist, fortified_mustang]
+  techs:
+    melting_point: [energy_diffraction]
+    mustang: [armor_piercing_bullets]
+    crawler: [mechanical_rage]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  legacy_index: 20
+  units:
+  - {name: arclight, index: 0, position: {x: -90, y: -60}, exp: 750/750/750}
+  - {name: arclight, index: 1, position: {x: -190, y: -60}, exp: 750/750/750}
+  - {name: arclight, index: 2, position: {x: 180, y: -210}, exp: 750/750/750}
+  - {name: steel_ball, index: 3, position: {x: -225, y: -50}, level: 2, exp: 0/1447/2253}
+  - {name: steel_ball, index: 4, position: {x: -125, y: -70}, level: 2, exp: 0/181/2253}
+  - {name: crawler, index: 5, position: {x: -125, y: -50}, level: 2, exp: 366/552/1014}
+  - {name: crawler, index: 6, position: {x: -225, y: -70}, level: 2, exp: 878/1014/1014}
+  - {name: crawler, index: 7, position: {x: -310, y: 35}, level: 2, exp: 193/292/1014}
+  - {name: crawler, index: 8, position: {x: -170, y: -35}, level: 2, exp: 162/311/1014, rotated: true}
+  - {name: wasp, index: 9, position: {x: -260, y: -205}, exp: 900/900/900, rotated: true}
+  - {name: wasp, index: 10, position: {x: 235, y: -50}, exp: 900/900/900}
+  - {name: steel_ball, index: 11, position: {x: 235, y: -70}, level: 3, exp: 0/47/3562}
+  - {name: crawler, index: 12, position: {x: 235, y: -20}, level: 2, exp: 916/916/1014}
+  - {name: crawler, index: 13, position: {x: 290, y: -205}, level: 2, exp: 684/767/1014, rotated: true}
+  - {name: mustang, index: 14, position: {x: 210, y: -205}, level: 3, exp: 0/1322/4274, rotated: true}
+  - {name: mustang, index: 15, position: {x: -125, y: -90}, level: 2, exp: 1883/2704/2704}
+  - {name: mustang, index: 16, position: {x: 210, y: -255}, level: 2, exp: 1877/2116/2704, rotated: true}
+  - {name: vulcan, index: 17, position: {x: -280, y: -30}, exp: 734/1922/2200}
+  - {name: melting_point, index: 18, position: {x: 180, y: -240}, level: 2, exp: 2270/3154/3154}
+  - {name: crawler, index: 19, position: {x: -235, y: -20}, level: 2, exp: 74/407/1014}
+  - {name: melting_point, index: 20, position: {x: 190, y: -60}, level: 2, exp: 0/3067/3154}
+  - {name: crawler, index: 21, position: {x: 290, y: -255}, level: 2, exp: 0/89/1014, rotated: true}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: missile, index: 1, position: {x: -297, y: -187}}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: 228, y: -38}, {x: 180, y: 79}, {x: 166, y: 115}]}
+red:
+  officers: [fortified_specialist]
+  techs:
+    rhino: [whirlwind]
+    wasp: [range_enhancement]
+    phantom_ray: [armor_enhancement]
+  blueprints: [defense_enhancement, attack_enhancement_ii]
+  legacy_index: 22
+  units:
+  - {name: void_eye, index: 0, position: {x: 80, y: -70}, level: 2, exp: 1243/1465/1465}
+  - {name: void_eye, index: 1, position: {x: 180, y: -70}, level: 2, exp: 1330/1465/1465}
+  - {name: void_eye, index: 2, position: {x: 280, y: -70}, level: 2, exp: 529/685/1465}
+  - {name: tarantula, index: 3, position: {x: 85, y: -115}, level: 3, exp: 0/3483/5343}
+  - {name: tarantula, index: 4, position: {x: 185, y: -115}, level: 3, exp: 0/3608/5343}
+  - {name: vortex, index: 5, position: {x: 110, y: -130}, level: 3, exp: 2438/2671/2671}
+  - {name: vortex, index: 6, position: {x: 150, y: -130}, level: 3, exp: 0/1183/2671}
+  - {name: crawler, index: 7, position: {x: 80, y: -155}, level: 2, exp: 655/932/1014, rotated: true}
+  - {name: crawler, index: 8, position: {x: 190, y: -155}, level: 2, exp: 508/699/1014, rotated: true}
+  - {name: wasp, index: 9, position: {x: -350, y: 175}, level: 2, exp: 0/1043/2028}
+  - {name: wasp, index: 10, position: {x: -350, y: 255}, level: 2, exp: 2014/2028/2028, equipment: [laser_sights]}
+  - {name: tarantula, index: 11, position: {x: 275, y: -95}, level: 2, exp: 1640/2299/3380}
+  - {name: crawler, index: 12, position: {x: 190, y: -205}, exp: 296/397/450, rotated: true}
+  - {name: phantom_ray, index: 13, position: {x: -330, y: 175}, exp: 777/1000/1000}
+  - {name: phantom_ray, index: 14, position: {x: -330, y: 255}, exp: 781/1000/1000}
+  - {name: crawler, index: 15, position: {x: -310, y: 255}, exp: 88/174/450}
+  - {name: crawler, index: 16, position: {x: -310, y: 175}, exp: 137/195/450}
+  - {name: mustang, index: 17, position: {x: 195, y: -240}, level: 2, exp: 0/2235/2704}
+  - {name: centurion, index: 18, position: {x: -165, y: -185}, exp: 1257/1852/2250}
+  - {name: centurion, index: 19, position: {x: -115, y: -185}, exp: 1092/2018/2250}
+  - {name: sledgehammer, index: 20, position: {x: -105, y: -140}, exp: 758/1100/1300}
+  - {name: sledgehammer, index: 21, position: {x: -175, y: -140}, level: 2, exp: 0/980/2929}
+  - {name: rhino, index: 22, position: {x: -325, y: 215}, exp: 0/114/1150, travelling: true}
+  - {name: crawler, index: 23, position: {x: -170, y: -225}, exp: 0/139/450, rotated: true}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
