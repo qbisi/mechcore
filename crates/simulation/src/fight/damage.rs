@@ -63,6 +63,12 @@ pub(in crate::fight) struct DamageHit {
     /// Its `IDamageProvider.GetDamageType` is `EDamageType.Fire`: it sets
     /// alight the oil its splash reaches.
     pub(in crate::fight) fire: bool,
+    /// What it deals a shield it strikes in place of `amount`, where its
+    /// provider's `IDamageModifier.IsChangeHitEnergyShieldDamage` says so: a
+    /// battlefield shield, or a unit's own shield with energy left
+    /// (`DamagePerformer.CalculateHitEnergyShieldDamage`). Electromagnetic
+    /// Barrage's shells deal nothing but 6000 to a shield.
+    pub(in crate::fight) shield_damage: Option<i64>,
     pub(in crate::fight) reach: Reach,
 }
 
@@ -102,6 +108,7 @@ impl DamageHit {
             splash_radius: attacker.stats.splash_radius(),
             fire: usize::from(skill_slot) < attacker.skills.main_slots()
                 && attacker.rules.attack.fire_damage,
+            shield_damage: None,
             reach: Reach::Domain(aimed_domain),
         }
     }
@@ -134,6 +141,7 @@ impl DamageHit {
             strikes_buildings: true,
             splash_radius: 0,
             fire: false,
+            shield_damage: None,
             reach,
         }
     }
@@ -193,6 +201,7 @@ impl DamageHit {
             strikes_buildings: true,
             splash_radius,
             fire: false,
+            shield_damage: None,
             reach: Reach::Targets(AttackTargets {
                 ground: true,
                 air: true,
@@ -638,6 +647,19 @@ impl Simulation {
         Ok(struck)
     }
 
+    /// What an extra skill's hit deals a shield in place of its damage: its
+    /// technology's `energyShieldDamage`, the skill's damage modifier
+    /// (`ExtraWeaponTech.ChangeHitEnergyShieldDamage`).
+    pub(in crate::fight) fn skill_shield_damage(&self, skill_ref: SkillRef) -> Option<i64> {
+        let SkillSlot::Extra(index) = skill_ref.slot else {
+            return None;
+        };
+        self.skills(skill_ref.owner)
+            .extras
+            .get(index)
+            .and_then(|extra| extra.rules.shield_damage)
+    }
+
     /// `DamagePerformer.PerformHitTargetsEffect` and `DispatchHitDamageEvent`:
     /// one hit on each of its targets in turn, and then its skill's hit
     /// effects.
@@ -654,7 +676,21 @@ impl Simulation {
             // nothing, an Incendiary Bomb's, takes no life and is no hit
             // `ExpSystem.OnActorHitted` hears of, so its owner does not share
             // what the target is worth when it dies.
-            if hit.amount < 1 {
+            // A unit whose own shield has energy left takes what the hit
+            // deals a shield, before what it deals is asked
+            // (`CalculateHitEnergyShieldDamage`).
+            let amount = match (hit.shield_damage, target) {
+                (Some(damage), FightActorRef::Unit(id))
+                    if self.actors[&id]
+                        .shield
+                        .as_ref()
+                        .is_some_and(|shield| shield.energy > 0) =>
+                {
+                    damage
+                }
+                _ => hit.amount,
+            };
+            if amount < 1 {
                 struck.targets.push(target);
                 continue;
             }
@@ -662,7 +698,7 @@ impl Simulation {
                 target,
                 hit.source,
                 hit.source_team,
-                (hit.amount, true),
+                (amount, true),
                 hit.provider,
             )?;
             self.count_hit(hit.source, hit.source_team, target, &stroke)?;
@@ -1032,6 +1068,7 @@ impl Simulation {
             center_y_q32,
             shield,
             splash_radius,
+            shield_damage: self.skill_shield_damage(skill_ref),
             ..DamageHit::of_skill(
                 attacker,
                 u16::try_from(skill_slot).expect("skill slot fits u16"),

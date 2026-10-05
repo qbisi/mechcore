@@ -167,6 +167,11 @@ pub(crate) struct ExtraWeaponConfig {
     /// skill (`SkillDataModifier.AvaliableCheck`).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub(crate) ignore_equipment: bool,
+    /// `ExtraWeaponTechnologyData.energyShieldDamage`, where it is not
+    /// negative: what its hit deals a shield it strikes, in place of the
+    /// hit's damage (`ExtraWeaponTech.ChangeHitEnergyShieldDamage`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) shield_damage: Option<i64>,
     /// The fire its hit leaves, for a row whose `rangeItemType` is a fire.
     #[serde(default)]
     pub(crate) fire: Option<ExtraWeaponFire>,
@@ -229,6 +234,8 @@ pub(crate) struct BuffConfig {
     /// `currentLifeDisposableChangeRate`, an `FPoint` raw rate of the unit's
     /// life, taken once as the buff is written.
     pub(crate) current_life_rate: i64,
+    /// `disableTechnology`: while it runs, the unit's technologies are off.
+    pub(crate) disable_technology: bool,
 }
 
 /// An `ExplosionSkillData` as `IDeadExplosive`: its unit's death deals what

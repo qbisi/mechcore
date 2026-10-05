@@ -223,7 +223,7 @@ impl Simulation {
             FightActorRef::Building(_) => 0,
         };
         let offsets = self.projectile_target_offsets(
-            skill_ref.owner,
+            skill_ref,
             target_x_q32,
             target_z_q32,
             (space_to_q32(source_y), space_to_q32(target_y)),
@@ -337,7 +337,7 @@ impl Simulation {
 
     pub(in crate::fight) fn projectile_target_offsets(
         &mut self,
-        owner: FightActorRef,
+        skill_ref: SkillRef,
         target_x_q32: i64,
         target_z_q32: i64,
         (source_y_q32, target_y_q32): (i64, i64),
@@ -347,13 +347,20 @@ impl Simulation {
         if radius == 0 {
             return Ok(vec![(0, 0); count]);
         }
+        // The skill's own weapons split its burst: Electromagnetic Barrage's
+        // two launchers, whatever the Melting Point's main beam has.
         let source = self
-            .attacker(owner)
+            .skill_attacker(skill_ref)
             .ok_or_else(|| Error::new("projectile owner is absent"))?;
         let team = source.team;
         let source_x_q32 = source.x_q32;
         let source_z_q32 = source.z_q32;
-        let weapon_count = source.attack.weapons.count();
+        let weapons = &source.attack.weapons;
+        let weapon_count = if weapons.mode == WeaponMode::Standalone {
+            weapons.per_skill
+        } else {
+            weapons.count()
+        };
         let radius_centimeters = i32::try_from(radius / 10)
             .map_err(|_| Error::new("projectile target offset radius exceeds native range"))?;
         let random = self
@@ -415,7 +422,7 @@ impl Simulation {
         let climb_target = self.climb_target(target)?;
         let (x, z) = self
             .projectile_target_offsets(
-                owner,
+                SkillRef::main(owner),
                 target_x_q32,
                 target_z_q32,
                 (space_to_q32(source_y), space_to_q32(target_y)),

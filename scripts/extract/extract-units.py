@@ -273,21 +273,22 @@ def extra_weapon_lines(mech, technology, kind, skill, row):
     `allWeaponReduceDamageRate` is its technology's number, which
     `config/technology_effects.yaml` carries. A skill that sets
     `ignoreEquipmentEffect` takes no equipment's correction
-    (`SkillDataModifier.AvaliableCheck`). A row that leaves another
-    terrain, writes a buff the simulator does not read, or changes a shield's
-    damage is left out, and the simulator refuses the technology by name.
+    (`SkillDataModifier.AvaliableCheck`). A row whose `energyShieldDamage` is
+    not negative deals that to a shield its hit strikes in place of the hit's
+    damage (`ExtraWeaponTech.ChangeHitEnergyShieldDamage`). A row that leaves
+    another terrain or writes a buff the simulator does not read is left out,
+    and the simulator refuses the technology by name.
     """
     if kind == "explosionSkillDatas":
         return explosion_lines(mech, technology, skill, row)
     if kind == "supportSkillDatas":
         return support_lines(mech, technology, skill, row)
     # `rangeItemType` -1 leaves nothing, 0 a fire, 1 an oil;
-    # `energyShieldDamage` -1 leaves a shield's damage as it is.
+    # `energyShieldDamage` below zero leaves a shield's damage as it is.
     item = row.get("rangeItemType", -1)
     fire, oil = item == 0, item == 1
     buff = buff_row(row["buffID"]) if row.get("buffID") else None
     if (item not in (-1, 0, 1) or (row.get("buffID") and buff is None) or (oil and buff is None)
-            or row.get("energyShieldDamage", -1) != -1
             or (not fire and not oil and any(raw(value) for value in row.get("fireLifeTime") or []))
             or raw(row.get("fogAttackRangeChangeRate"))):
         return []
@@ -327,6 +328,8 @@ def extra_weapon_lines(mech, technology, kind, skill, row):
         lines.append(f"    damage_rate: {readable(skill['damageRate'])}")
     if skill["ignoreEquipmentEffect"]:
         lines.append("    ignore_equipment: true")
+    if row.get("energyShieldDamage", -1) >= 0:
+        lines.append(f"    shield_damage: {row['energyShieldDamage']}")
     life = ", ".join(str(grid(value, 2000)) for value in row.get("fireLifeTime") or [])
     if fire:
         lines.append(f"    fire: {{life_time: [{life}]}}")
@@ -345,6 +348,7 @@ BUFF_READ = {
     "speedChangeRate": "move_speed_rate", "amplifyDamageRate": "amplify_damage_rate",
     "attackRangeChangeValue": "attack_range_value",
     "currentLifeDisposableChangeRate": "current_life_rate",
+    "disableTechnology": "disable_technology",
 }
 BUFF_DESCRIPTIVE = {"id", "name", "isTestData", "duration", "stepTime", "effectType",
                     "isClearSelfBuffWhenDisableTech"}

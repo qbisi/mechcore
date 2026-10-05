@@ -1072,7 +1072,7 @@ pub(crate) fn technology_buff(named: &str, buff: &BuffConfig) -> Result<SkillBuf
         ticks: u32::try_from(ticks(crate::rules::metres_q32(buff.duration))?)
             .map_err(|_| Error::new(format!("{named}'s buff outlasts a fight")))?,
         move_speed_rate: buff.move_speed_rate,
-        disable_technology: false,
+        disable_technology: buff.disable_technology,
         debuff: buff.debuff,
         invincible: buff.invincible,
         amplify_damage_rate: buff.amplify_damage_rate,
