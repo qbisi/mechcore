@@ -1073,12 +1073,7 @@ impl Simulation {
         if self.skill(skill_ref).standalone() {
             return true;
         }
-        if let Some(actor) = self.moving_mut(skill_ref) {
-            // The motion stops where it enters `MotionIdleState`; one already
-            // idle is not entered again, and keeps its target point.
-            let entered_idle = actor.motion.state != MotionState::Idle;
-            actor.lose_target_motion(entered_idle);
-        }
+        self.cool_motion(skill_ref);
         true
     }
 
@@ -1430,6 +1425,13 @@ impl Simulation {
             // weapon's cooling does not hold: another weapon may lock. A unit
             // that searches for itself goes on after its own lock, a tower
             // the fight's last tick has not yet torn down.
+            self.update_motion(actor_id, step, events, SkillUpdate::default())?;
+        } else if self.actors[&actor_id].command.is_some()
+            && self.actors[&actor_id].motion.state == MotionState::Attacking
+            && self.actors[&actor_id].skills.main.cooling().is_some()
+        {
+            // `MotionAttackState.Update` under a command asks what the
+            // cooling still names.
             self.update_motion(actor_id, step, events, SkillUpdate::default())?;
         } else if was_moving
             && self.actors[&actor_id].command.is_some()

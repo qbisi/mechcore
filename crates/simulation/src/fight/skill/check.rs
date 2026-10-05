@@ -461,9 +461,29 @@ impl Simulation {
         if skill.standalone() {
             return;
         }
-        // `MotionIdleState.Enter` publishes the stop once; a unit whose
-        // motion is idle already keeps the point it stopped at.
+        self.cool_motion(skill_ref);
+    }
+
+    /// The motion as the skill cools without a lock. `AutoMoveBehaviour`
+    /// is no longer active and the motion stops idle, publishing the stop
+    /// once as `MotionIdleState.Enter` does: a unit whose motion is idle
+    /// already keeps the point it stopped at. A command stays active
+    /// (`MoveAttackCommand.IsActive` answers true): an attack motion goes on
+    /// in its own update while the cooling names a target
+    /// ([`Self::attack_under_command`]), and otherwise changes to
+    /// `MotionMoveState`.
+    pub(in crate::fight) fn cool_motion(&mut self, skill_ref: SkillRef) {
+        let names_target = self
+            .skill(skill_ref)
+            .cooling()
+            .is_some_and(|(_, named)| named.is_some());
         if let Some(actor) = self.moving_mut(skill_ref) {
+            if names_target
+                && actor.command.is_some()
+                && actor.motion.state == MotionState::Attacking
+            {
+                return;
+            }
             let entered_idle = actor.motion.state != MotionState::Idle;
             actor.lose_target_motion(entered_idle);
         }
