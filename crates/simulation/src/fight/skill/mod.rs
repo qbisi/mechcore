@@ -1178,33 +1178,6 @@ impl Simulation {
             return Ok(());
         }
         let selected = selected_candidate;
-        let skill = self.skill(skill_ref);
-        let selected = if target_alive
-            && !quick_switch_target
-            && self.motion_state(skill_ref.owner) == MotionState::Attacking
-            && !self.attack_hold_fire(skill_ref.owner)
-            && skill.pending().is_none()
-            && skill.backswing_finish_step().is_none()
-            && selected != skill.lock_target
-            && skill
-                .lock_target
-                .is_some_and(|lock| self.target_in_attack_area(skill_ref, lock))
-        {
-            // An attacking unit keeps the lock it has while it can fire at
-            // it, unless its skill switches targets quickly: a quick switch
-            // takes what the search answers, as an idle Arclight with its lock
-            // in its area takes a better-scored target in replay 67156074
-            // round 2. What its weapons fire at is asked
-            // again below, so a
-            // construction still in the way is handed back to them rather
-            // than written into the lock. One whose weapons are still turning
-            // onto its lock takes what the search answers: a Melting Point
-            // turning onto one Crawler takes the one its weapons already
-            // face, and prepares against it.
-            skill.lock_target
-        } else {
-            selected
-        };
         let skill = self.skill_mut(skill_ref);
         skill.write_lock(selected);
         skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
@@ -1228,9 +1201,10 @@ impl Simulation {
     /// One unit's update, in the order `FightMech.Update` runs it: its skill,
     /// then its motion, then, while the fight is on, its buffs.
     ///
-    /// The motion's part, `update_motion`, is where a target in range starts
-    /// the skill (`SkillIdleState.TryStartAttack`) and one out of range is
-    /// left or walked towards. `BuffManager.Update` runs whichever way the two
+    /// The skill's part starts its attack once what it fires at is in its
+    /// attack area (`SkillIdleState.TryPerform`); the motion's part,
+    /// `update_motion`, attacks a target in range and leaves one out of range
+    /// or walks towards it. `BuffManager.Update` runs whichever way the two
     /// before it ended.
     pub(in crate::fight) fn step_actor_with_target_order(
         &mut self,
@@ -1481,7 +1455,6 @@ impl Simulation {
         if let Flow::Done = self.finish_attack_at_dead_target(skill_ref, step) {
             return Ok(None);
         }
-        self.start_bodyless_skill(skill_ref, step);
         let quick_switch_target = self
             .skill_attacker(skill_ref)
             .expect("skill owner identity is stable")
@@ -1509,6 +1482,7 @@ impl Simulation {
             self.search_attack_target(skill_ref);
         }
         self.update_fight_skill_target_search(skill_ref, step, target_search_order)?;
+        self.try_perform_main(skill_ref, step);
         let prepare_finished = self.advance_skill_state(
             skill_ref,
             step,
@@ -1769,37 +1743,54 @@ impl Simulation {
         Flow::Next
     }
 
-    /// A bodyless skill attacking by its motion starts its state before the
-    /// idle search, when what it fires at is already in its attack area.
-    fn start_bodyless_skill(&mut self, skill_ref: SkillRef, step: u64) {
-        let attacker = self
-            .skill_attacker(skill_ref)
-            .expect("skill owner identity is stable");
-        let has_body = attacker.has_body;
-        let prepare_steps = native_time_units_to_steps(attacker.attack.prepare_time_units());
-        let skill = self.skill(skill_ref);
-        let bodyless_skill_starts_before_idle_search = self.motion_state(skill_ref.owner)
-            == MotionState::Attacking
-            && skill.phase() == FightSkillPhase::Idle
-            && !has_body
-            && !self.attack_hold_fire(skill_ref.owner)
-            && skill.pending().is_none()
-            && skill.backswing_finish_step().is_none()
-            && skill
-                .attack_target()
-                .is_some_and(|target_id| self.target_in_attack_area(skill_ref, target_id))
-            // `SkillIdleState.TryStartAttack` asks the skill's start checker.
-            && self.may_start_attack(skill_ref);
-        if bodyless_skill_starts_before_idle_search {
-            self.skill_mut(skill_ref).started_from_idle = Some(step);
-            self.skill_mut(skill_ref).set_phase(if prepare_steps == 0 {
-                FightSkillPhase::Attack
-            } else {
-                FightSkillPhase::Prepare {
-                    finish_step: step.saturating_add(prepare_steps),
-                }
-            });
+    /// `SkillIdleState.TryPerform` of a unit's main skill, after its search:
+    /// a skill that holds what it fires at in its attack area enters its
+    /// prepare, or its attack with no prepare, in its own update, whatever
+    /// its motion does after it (`CanStartAttack`, `TryStartAttack`). The
+    /// state is not updated on the update it is entered: the first blow
+    /// waits for the next.
+    fn try_perform_main(&mut self, skill_ref: SkillRef, step: u64) {
+        let FightActorRef::Unit(actor_id) = skill_ref.owner else {
+            return;
+        };
+        if skill_ref.slot != SkillSlot::Main {
+            return;
         }
+        let actor = &self.actors[&actor_id];
+        let skill = &actor.skills.main;
+        if skill.standalone()
+            || skill.mech_searches()
+            || skill.is_grouped()
+            || actor.travelling
+            || skill.idle
+            || skill.phase() != FightSkillPhase::Idle
+            || !matches!(skill.state, SkillState::Idle { ready_step: None })
+            || skill.pending().is_some()
+            || skill.backswing_finish_step().is_some()
+        {
+            return;
+        }
+        let Some(target) = skill.attack_target() else {
+            return;
+        };
+        if !self.target_in_attack_area(skill_ref, target) || !self.may_start_attack(skill_ref) {
+            return;
+        }
+        let prepare_steps = native_time_units_to_steps(
+            self.skill_attacker(skill_ref)
+                .expect("skill owner identity is stable")
+                .attack
+                .prepare_time_units(),
+        );
+        let skill = self.skill_mut(skill_ref);
+        skill.started_from_idle = Some(step);
+        skill.set_phase(if prepare_steps == 0 {
+            FightSkillPhase::Attack
+        } else {
+            FightSkillPhase::Prepare {
+                finish_step: step.saturating_add(prepare_steps),
+            }
+        });
     }
 
     /// A burst whose target died while it was still firing: with no enemy

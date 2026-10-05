@@ -186,18 +186,16 @@ impl Simulation {
 ///
 /// A backswing that ends on this update has ended for the build: the Rhino of
 /// `whirlwind-rhinos.yaml` whose first backswing runs out as its Whirlwind
-/// checks starts the Whirlwind then. And an idle main skill whose target is
-/// in its attack area has started its attack in its own update
-/// (`SkillIdleState.TryPerform`), which this simulator leaves to the motion:
-/// the same Rhino, handed back its main skill, does not start its Whirlwind
-/// again as the main skill takes its target.
+/// checks starts the Whirlwind then. An idle main skill whose target is in
+/// its attack area has started its attack in its own update
+/// (`SkillIdleState.TryPerform`), before the Whirlwind checks: the same Rhino,
+/// handed back its main skill, does not start its Whirlwind again as the main
+/// skill takes its target.
 impl Simulation {
     fn main_skill_at_rest(&self, actor_id: u64) -> bool {
         let main = &self.actors[&actor_id].skills.main;
         match main.state {
-            SkillState::Idle { .. } => !main.attack_target().is_some_and(|target| {
-                self.target_in_attack_area(SkillRef::main(FightActorRef::Unit(actor_id)), target)
-            }),
+            SkillState::Idle { .. } => true,
             SkillState::Attack(Blow::Waiting) => main.performed(),
             SkillState::Attack(Blow::After { finish_step }) => finish_step <= self.step_now,
             _ => false,

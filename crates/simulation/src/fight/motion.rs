@@ -555,9 +555,10 @@ struct Approach {
 }
 
 impl Simulation {
-    /// `MotionController`'s update, with the `SkillIdleState.TryStartAttack`
-    /// it runs into: holding a target that died, attacking one in range, and
-    /// leaving one or moving towards it.
+    /// `MotionController`'s update: holding a target that died, attacking one
+    /// in range, and leaving one or moving towards it. A grouped or standalone
+    /// main skill is still started here (`SkillIdleState.TryStartAttack`);
+    /// any other starts in its own update (`try_perform_main`).
     pub(in crate::fight) fn update_motion(
         &mut self,
         actor_id: u64,

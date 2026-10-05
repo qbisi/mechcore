@@ -592,11 +592,6 @@ simulator refuses it.
 - **A correction other than damage on a skill with a damage rate**, a range
   on a skill that reads its own range or an interval reaching it through the
   main skill. Refused.
-- **A main skill starting in its own update while its motion does not.**
-  `SkillIdleState.TryPerform` starts the main skill's attack in its own
-  update, and the simulator starts it from the motion: a Melting Point whose
-  fresh lock one of its beams fells before the motion asks prepares in the
-  build and stays idle here.
 - **The other preemptive skills and conditions.** A transition to wait out
   (condition type 2), an ammunition condition, an extra weapon buff and an
   incompatible skill are read in part and refused by the extraction.
