@@ -396,6 +396,10 @@ def explosion_lines(mech, technology, skill, row):
         f"    skill: {skill['id']}",
         f"    use_main_skill_range: {boolean(row.get('useMainSkillRange', False))}",
         "    damage_by_level: []",
+    ]
+    if raw(skill["damageRate"]):
+        lines.append(f"    damage_rate: {readable(skill['damageRate'])}")
+    lines += [
         "    preemptive:",
         f"      life_below: {readable(skill['permanentPreemptiveActiveConditionParamFloat'])}",
         "      buff:",
