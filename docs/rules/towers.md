@@ -28,7 +28,8 @@ The hit that fells a tower runs its `OnDead`, and
 `BuffSystem.AddBuff(buff, targets, team)` call. `targets` is the side's own
 actor list when `isAddTowerBuffToOwnerTeam` is set (`SetAddTowerBuffTarget`,
 which `towerDefaultDatas.addBufToOwner` feeds), and the group's actor list
-otherwise. Every live unit of the side takes it. A tower is a
+otherwise. Every live unit of the side takes it, in the order the units
+joined the side: the deployed ones, then a unit a beam turned onto it. A tower is a
 `FightTower : FightCrystal, IBuffTarget` with a `BuffManager` of its own, and
 `buffDatas` rows carry `canAffectTower`, so the standing tower may take the
 loss as well.
@@ -156,6 +157,12 @@ gets the debuffed speed through `Move`.
   falls, land for their full damage: a Fire Badger's shot fells a tower and two
   Mustang shots of the losing side land after it, undebuffed:
   `tests/corpus/fights/67160729-r1.yaml`.
+
+### Replayed
+
+- A tower's loss writes its buff on two blue units turned to red after every
+  red unit deployed: replay 2324_20260925--134259672 round 5, tick 377,
+  fought by the game with `scripts/corpus/match-replays.py`.
 
 ### Read
 

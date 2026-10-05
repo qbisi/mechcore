@@ -268,11 +268,14 @@ impl Simulation {
             life_change: None,
         };
         let mut applied = Vec::new();
+        // `activeActors` holds a side's units in the order they joined it: a
+        // unit a beam turned onto it comes after every unit already there.
         let actor_ids = self
-            .actors
-            .iter()
-            .filter_map(|(&id, actor)| {
-                (actor.placement.team == loss.team && actor.alive()).then_some(id)
+            .units_in_update_order()
+            .into_iter()
+            .filter(|id| {
+                let actor = &self.actors[id];
+                actor.placement.team == loss.team && actor.alive()
             })
             .collect::<Vec<_>>();
         for actor_id in actor_ids {
