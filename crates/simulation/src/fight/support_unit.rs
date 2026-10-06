@@ -511,7 +511,7 @@ impl Simulation {
         } else {
             owner_actor.body_rotation_q32
         };
-        let (x, z) = turn_about_vertical(facing, right, forward);
+        let (x, z) = turn_about_vertical(facing, Q32_ONE, right, forward);
         Ok((
             owner_actor.x_q32.saturating_add(x),
             owner_actor.z_q32.saturating_add(z),
@@ -872,13 +872,19 @@ impl Simulation {
     }
 }
 
-/// `FQuaternion.AngleAxis(angle, FVector3.up) * (x, 0, z)`, in the build's
-/// fixed point: the half angle's `SinFastest` is the quaternion's `y`, a
+/// `FQuaternion.AngleAxis(angle, axis) * (x, 0, z)` about `FVector3.up`
+/// (`axis_y` one) or `down` (minus one), in the build's fixed point: the
+/// half angle's `SinFastest` times the axis is the quaternion's `y`, a
 /// quarter turn on its `w`, and `FQuaternion.Transform` expands the product
 /// term by term.
-fn turn_about_vertical(angle_q32: i64, x: i64, z: i64) -> (i64, i64) {
+pub(in crate::fight) fn turn_about_vertical(
+    angle_q32: i64,
+    axis_y: i64,
+    x: i64,
+    z: i64,
+) -> (i64, i64) {
     let half = q32_div(q32_mul(angle_q32, DEG_TO_RAD), 2 << 32);
-    let qy = fpcs_sin_fastest(half);
+    let qy = q32_mul(axis_y, fpcs_sin_fastest(half));
     let w = fpcs_sin_fastest(half.saturating_add(QUARTER_TURN));
     let y2 = qy.saturating_mul(2);
     let yy = q32_mul(qy, y2);

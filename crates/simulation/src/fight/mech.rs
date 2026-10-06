@@ -60,6 +60,7 @@ impl Actor {
         let underground = rules.underground.as_ref().map(underground::Underground::of);
         let original_team = placement.team;
         let original_formation = placement.formation_id;
+        let path_finding = path_finding::PathFinding::of(&rules);
         let mut actor = Self {
             x,
             z,
@@ -125,6 +126,7 @@ impl Actor {
                 transition_to: None,
                 attack_hold_fire: false,
                 attacker: SkillSlot::Main,
+                path_finding,
             },
             skills: SkillManager::new(main_skill),
         };
