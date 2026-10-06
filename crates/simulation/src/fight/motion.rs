@@ -1157,25 +1157,9 @@ impl Simulation {
         let Some(target) = target else {
             return Flow::Next;
         };
-        let Some(view) = self.fight_actor(target) else {
+        let Some(target_rotation_q32) = self.command_target_in_reach(actor_id, target) else {
             return Flow::Next;
         };
-        let target_rotation_q32 = direction_degrees_q32_raw(
-            view.x_q32.saturating_sub(actor.x_q32),
-            view.z_q32.saturating_sub(actor.z_q32),
-        );
-        let edge_distance_q32 = native_q32_magnitude(
-            view.x_q32.saturating_sub(actor.x_q32),
-            view.z_q32.saturating_sub(actor.z_q32),
-        )
-        .saturating_sub(space_to_q32(actor.rules.collision_radius()))
-        .saturating_sub(space_to_q32(view.radius))
-        .max(0);
-        let in_reach = edge_distance_q32 >= space_to_q32(actor.rules.attack.min_range())
-            && edge_distance_q32 <= space_to_q32(self.main_attack_range(actor_id));
-        if !in_reach {
-            return Flow::Next;
-        }
         if !self.command_attack_moves(actor_id) {
             let actor = self
                 .actors
@@ -1192,6 +1176,59 @@ impl Simulation {
             self.attack_rotate_to_velocity(actor_id);
         }
         self.attack_move(actor_id, true);
+        Flow::Done
+    }
+
+    /// `IsAttackTargetInAttackRange` as a command's motion asks it of the
+    /// skill's attack target, edge to edge against the main skill's range,
+    /// whether the target lives or not: the bearing to it when it is in
+    /// range.
+    fn command_target_in_reach(&self, actor_id: u64, target: FightActorRef) -> Option<i64> {
+        let actor = &self.actors[&actor_id];
+        let view = self.fight_actor(target)?;
+        let edge_distance_q32 = native_q32_magnitude(
+            view.x_q32.saturating_sub(actor.x_q32),
+            view.z_q32.saturating_sub(actor.z_q32),
+        )
+        .saturating_sub(space_to_q32(actor.rules.collision_radius()))
+        .saturating_sub(space_to_q32(view.radius))
+        .max(0);
+        let in_reach = edge_distance_q32 >= space_to_q32(actor.rules.attack.min_range())
+            && edge_distance_q32 <= space_to_q32(self.main_attack_range(actor_id));
+        in_reach.then(|| {
+            direction_degrees_q32_raw(
+                view.x_q32.saturating_sub(actor.x_q32),
+                view.z_q32.saturating_sub(actor.z_q32),
+            )
+        })
+    }
+
+    /// `MotionMoveState.Update` under a command while the skill cools without
+    /// a lock, naming what its check found: `IsAttackTargetInAttackRange`
+    /// asks that target, and one in range changes the motion to
+    /// `MotionAttackState`, which is not updated on the update it is entered.
+    /// A Phantom Ray on a Mobile Beacon, cooling on the Tarantula its last
+    /// check found, stops walking and turning as the Tarantula comes into
+    /// range, and then attacks it as [`Self::attack_under_command`] does.
+    pub(in crate::fight) fn move_into_cooled_target(&mut self, actor_id: u64) -> Flow {
+        let actor = &self.actors[&actor_id];
+        let Some((_, Some(target))) = actor.skills.main.cooling() else {
+            return Flow::Next;
+        };
+        if actor.motion.state != MotionState::Moving
+            || self.command_target_in_reach(actor_id, target).is_none()
+        {
+            return Flow::Next;
+        }
+        if self.transits(actor_id, MotionState::Moving, MotionState::Attacking) {
+            self.begin_transition(actor_id, MotionState::Moving, MotionState::Attacking);
+            return Flow::Done;
+        }
+        self.actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable")
+            .motion
+            .state = MotionState::Attacking;
         Flow::Done
     }
 

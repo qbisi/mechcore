@@ -1469,10 +1469,16 @@ impl Simulation {
             self.update_motion(actor_id, step, events, SkillUpdate::default())?;
         } else if self.actors[&actor_id].command.is_some()
             && self.actors[&actor_id].motion.state == MotionState::Attacking
-            && self.actors[&actor_id].skills.main.cooling().is_some()
+            && (self.actors[&actor_id].skills.main.cooling().is_some()
+                || self.actors[&actor_id]
+                    .skills
+                    .main
+                    .attack_target()
+                    .is_some_and(|target| !self.fight_actor_is_alive(target)))
         {
             // `MotionAttackState.Update` under a command asks what the
-            // cooling still names.
+            // cooling still names, or the dead target a burst still fires
+            // at.
             self.update_motion(actor_id, step, events, SkillUpdate::default())?;
         } else if was_moving
             && self.actors[&actor_id].command.is_some()
@@ -1480,9 +1486,12 @@ impl Simulation {
         {
             // `MotionController.Update` runs whatever the skill did: a
             // command walks its path while the skill cools or reloads, and
-            // once a won fight has stopped it. A move state entered on this
-            // update is not updated on it.
-            self.follow_command(actor_id);
+            // once a won fight has stopped it, unless what the cooling names
+            // has come into range. A move state entered on this update is not
+            // updated on it.
+            if let Flow::Next = self.move_into_cooled_target(actor_id) {
+                self.follow_command(actor_id);
+            }
         }
         Ok(())
     }
@@ -1913,7 +1922,16 @@ impl Simulation {
                 .actors
                 .values()
                 .any(|actor| actor.placement.team != owner_team && actor.alive());
-            if let Some(actor) = self.moving_mut(skill_ref) {
+            // The skill still names its dead target. With no command the
+            // motion's lock is dead and it stops idle; a command keeps the
+            // motion active on it (`attack_under_command`), so a unit under
+            // one stays attacking until the burst is out and the skill lets
+            // the target go: a Phantom Ray on a Mobile Beacon reads attacking
+            // on the tick its burst's second shot goes out at the Vortex that
+            // died after its first, and moving the next.
+            if let Some(actor) = self.moving_mut(skill_ref)
+                && actor.command.is_none()
+            {
                 actor.lose_target_motion(true);
             }
             if !has_alive_enemy {
