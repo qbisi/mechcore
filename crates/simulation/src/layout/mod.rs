@@ -1360,10 +1360,12 @@ fn switch_air_attack(
 /// equipment, and an Energy Tower skill always, and, onto a skill with a damage rate, what reaches the main skill
 /// too (`IsMainSkillEffect`), which every officer, technology of a unit and
 /// equipment answers: the skill corrections that reach a skill without a
-/// damage rate, and the sources that write it a number other than damage,
-/// which no skill here reads. A skill whose range is the main skill's with its
-/// own added (`useMainSkillRange`, or a grouped row's `ParentSkill`) never
-/// reads its own range property, so a range reaching it changes nothing.
+/// damage rate, and the sources that write it a number other than damage and
+/// range, which no skill here reads. A skill whose range is the main skill's
+/// with its own added (`useMainSkillRange`, or a grouped row's `ParentSkill`)
+/// never reads its own range property, and a melee skill's reads no
+/// correction, so a range reaching either changes nothing; one of its own
+/// range without a damage rate composes it, and one with a rate is refused.
 fn reaching_extra_skill(
     weapon: &ExtraWeaponConfig,
     type_name: &str,
@@ -1374,9 +1376,12 @@ fn reaching_extra_skill(
 ) -> (Vec<Entry>, Vec<String>) {
     let rated = weapon.damage_rate > 0.0;
     let parent_range = weapon.use_main_skill_range || weapon.attack.weapons.makes_group();
+    // A range reaches a skill of its own range without a damage rate, which
+    // holds what reaches it alone; a melee skill's range reads no correction.
+    let range_read = parent_range || weapon.attack.melee || !rated;
     let read = |index: Index| {
         matches!(index, Index::AttackDamage | Index::DamageReduceRateBase)
-            || (index == Index::AttackRange && parent_range)
+            || (index == Index::AttackRange && range_read)
     };
     let mut sources = Vec::new();
     for &id in equipment {
