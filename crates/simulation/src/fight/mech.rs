@@ -49,8 +49,7 @@ impl Actor {
         let recovery = placement
             .auto_recovery
             .map(|_| super::recovery::RecoveryClock::reset());
-        let buff_cycles =
-            vec![super::buff_cycle::BuffCycle::Starting; placement.buff_sources.len()];
+        let buff_cycles = super::buff_cycle::BuffCycle::of(&placement.buff_sources);
         let shield = placement.energy_shield.map(|source| {
             let maximum = q32_mul(max_life << 32, source.life_rate_q32) >> 32;
             PersonalShield {

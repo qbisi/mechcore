@@ -730,7 +730,7 @@ impl Simulation {
                 struck.ends.push((target, position));
             }
         }
-        self.dispatch_hit_damage(hit, struck.lost, events)?;
+        self.dispatch_hit_damage(hit, &struck.targets, struck.lost, events)?;
         // A hit that deals fire sets alight the oil its splash reaches.
         if hit.fire {
             let (x_q32, z_q32) = hit.center_q32;
@@ -854,20 +854,22 @@ impl Simulation {
 
     /// `IDamageProvider.DispatchHitDamageEvent` after a hit: a unit's skill,
     /// struck directly (`SkillDamageProvider`) or through its projectile
-    /// (`FightProjectile`), hands the life the hit took in all to the skill's
-    /// hit effects, `FightSkill.DispatchHitDamageEvent`. The one hit effect
-    /// this simulator gives a skill is `LifeStealEffectProvider`'s. A hit no
-    /// unit's skill dealt — a turret's, a mine's, a battle skill's — reaches
-    /// no unit's skill.
+    /// (`FightProjectile`), hands what the hit struck and the life it took in
+    /// all to the skill's hit effects, `FightSkill.DispatchHitDamageEvent`:
+    /// `LifeStealEffectProvider`'s and a buff source's `BuffCycleController`.
+    /// A hit no unit's skill dealt — a turret's, a mine's, a battle skill's —
+    /// reaches no unit's skill.
     pub(in crate::fight) fn dispatch_hit_damage(
         &mut self,
         hit: &DamageHit,
+        targets: &[FightActorRef],
         damage: i64,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        match hit.source {
-            Some(owner) if owner.kind == ObjectKind::Unit && hit.skill_slot.is_some() => {
-                self.steal_life(owner.id, damage, events)
+        match (hit.source, hit.skill_slot) {
+            (Some(owner), Some(slot)) if owner.kind == ObjectKind::Unit => {
+                self.steal_life(owner.id, damage, events)?;
+                self.add_hit_buffs(owner.id, slot, targets, events)
             }
             _ => Ok(()),
         }

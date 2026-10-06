@@ -374,6 +374,7 @@ technologies:
       damage_rate: 0
       speed_rate: -1717986918  # -0.4
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -403,6 +404,7 @@ technologies:
       damage_rate: 0
       speed_rate: -1717986918  # -0.4
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -432,6 +434,7 @@ technologies:
       damage_rate: 0
       speed_rate: -1717986918  # -0.4
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -461,6 +464,7 @@ technologies:
       damage_rate: 0
       speed_rate: -1717986918  # -0.4
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -490,6 +494,7 @@ technologies:
       damage_rate: 0
       speed_rate: -1717986918  # -0.4
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -519,6 +524,7 @@ technologies:
       damage_rate: 0
       speed_rate: -1717986918  # -0.4
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -548,6 +554,7 @@ technologies:
       damage_rate: 0
       speed_rate: -1717986918  # -0.4
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -577,6 +584,7 @@ technologies:
       damage_rate: 0
       speed_rate: -1717986918  # -0.4
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -606,6 +614,7 @@ technologies:
       damage_rate: 0
       speed_rate: -1717986918  # -0.4
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -1422,6 +1431,7 @@ technologies:
       damage_rate: 0
       speed_rate: 0
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -1452,6 +1462,7 @@ technologies:
       damage_rate: 0
       speed_rate: 0
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: false
@@ -1482,6 +1493,7 @@ technologies:
       damage_rate: 0
       speed_rate: 0
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: false
@@ -1512,6 +1524,7 @@ technologies:
       damage_rate: 0
       speed_rate: 0
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: false
@@ -1542,6 +1555,7 @@ technologies:
       damage_rate: 0
       speed_rate: 0
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: false
@@ -1573,6 +1587,7 @@ technologies:
       damage_rate: 0
       speed_rate: 0
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -1606,6 +1621,7 @@ technologies:
       damage_rate: 0
       speed_rate: 0
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -1636,6 +1652,7 @@ technologies:
       damage_rate: 0
       speed_rate: 0
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -1668,6 +1685,7 @@ technologies:
       damage_rate: 0
       speed_rate: 0
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -1697,6 +1715,7 @@ technologies:
       damage_rate: 0
       speed_rate: 0
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -1730,6 +1749,7 @@ technologies:
       damage_rate: -858993459  # -0.2
       speed_rate: -1717986918  # -0.4
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -1760,6 +1780,7 @@ technologies:
       damage_rate: 0
       speed_rate: 0
       attack_range_value: 0
+      attack_range_rate: -1288490188  # -0.3
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -1767,7 +1788,6 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
-      special: [attackRangeChangeRate]
     attack_range_value: [42949672960]  # +10
   - id: 180519
     name: 酸性攻击
@@ -1790,6 +1810,7 @@ technologies:
       damage_rate: 0
       speed_rate: 0
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: false
@@ -1824,6 +1845,7 @@ technologies:
       damage_rate: 0
       speed_rate: 0
       attack_range_value: 10
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: false
@@ -1854,6 +1876,7 @@ technologies:
       damage_rate: 0
       speed_rate: -1717986918  # -0.4
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -1884,6 +1907,7 @@ technologies:
       damage_rate: 0
       speed_rate: 0
       attack_range_value: 70
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -1912,6 +1936,7 @@ technologies:
       damage_rate: 193273528  # +0.045
       speed_rate: 0
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 107374182  # +0.025
       step_time: 4294967296  # +1
       additive_effect: true
@@ -1939,6 +1964,7 @@ technologies:
       damage_rate: 0
       speed_rate: 0
       attack_range_value: 1
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: true
@@ -1966,6 +1992,7 @@ technologies:
       damage_rate: 279172874  # +0.065
       speed_rate: 0
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 429496729  # +0.1
       additive_effect: true
@@ -2000,6 +2027,7 @@ technologies:
       damage_rate: 1288490188  # +0.3
       speed_rate: 0
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: false
@@ -2074,6 +2102,7 @@ technologies:
       damage_rate: 0
       speed_rate: 0
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false

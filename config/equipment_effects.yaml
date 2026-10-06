@@ -54,6 +54,7 @@ equipment:
       damage_rate: 0
       speed_rate: -1717986918  # -0.4
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -83,6 +84,7 @@ equipment:
       damage_rate: 0
       speed_rate: 0
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -113,6 +115,7 @@ equipment:
       damage_rate: 0
       speed_rate: 0
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -144,6 +147,7 @@ equipment:
       damage_rate: 0
       speed_rate: -1717986918  # -0.4
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -175,6 +179,7 @@ equipment:
       damage_rate: 0
       speed_rate: 0
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -207,6 +212,7 @@ equipment:
       damage_rate: 0
       speed_rate: 0
       attack_range_value: 0
+      attack_range_rate: -1288490188  # -0.3
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -214,7 +220,6 @@ equipment:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
-      special: [attackRangeChangeRate]
   - id: 1305007
     name: 战斗进化系统
     kind: buffEquipmentDatas
@@ -238,6 +243,7 @@ equipment:
       damage_rate: 128849018  # +0.03
       speed_rate: 0
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 128849018  # +0.03
       step_time: 4294967296  # +1
       additive_effect: true
@@ -274,6 +280,7 @@ equipment:
       damage_rate: 0
       speed_rate: 0
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
@@ -305,6 +312,7 @@ equipment:
       damage_rate: 0
       speed_rate: 0
       attack_range_value: 0
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: false
@@ -341,6 +349,7 @@ equipment:
       damage_rate: 0
       speed_rate: 0
       attack_range_value: 30
+      attack_range_rate: 0
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: false

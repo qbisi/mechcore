@@ -1,0 +1,24 @@
+# Suppression Shots: a Void Eye's hit cuts the range of what it strikes.
+#
+# Each hit on the Fortress adds buff 10301 for 70 ticks, as written by the
+# Void Eye that first added it: at t301, t307 and t370. While it runs the
+# Fortress's range is 100 times 0.7, 70 metres, until the buff is cleared
+# at t389.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 389
+hash: {profile: mcfr-content-0.7.0, result: 1d9077ad157e40128a420203949f9c4b318169bb4c46f47a20f586cfe313dd1f}
+blue:
+  core_damage: 450
+  techs:
+    void_eye: [suppression_shots]
+  units:
+  - {name: void_eye, index: 0, position: {x: 0, y: -170}}
+red:
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -150}}
+  - {name: marksman, index: 1, position: {x: 60, y: -170}, exp: 0/198/650}

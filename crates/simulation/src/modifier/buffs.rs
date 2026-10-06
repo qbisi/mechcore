@@ -9,10 +9,11 @@
 
 use serde::Deserialize;
 
-use super::sources::{BuffReach, BuffSource, BuffTargets, StackCondition, Stacking};
+use super::sources::{BuffReach, BuffSource, BuffTargets, BuffTrigger, StackCondition, Stacking};
 use crate::rules::AttackTargets;
 
-/// `BuffTechListener.FightStart`.
+/// `BuffTechListener.Hit` and `FightStart`.
+const HIT: i32 = 0;
 const FIGHT_START: i32 = 1;
 
 /// `TargetType.MechUnit`: the unit the buff's source is on.
@@ -81,6 +82,7 @@ pub(crate) struct BuffBlock {
     damage_rate: i64,
     speed_rate: i64,
     attack_range_value: i64,
+    attack_range_rate: i64,
     max_life_rate: i64,
     step_time: i64,
     additive_effect: bool,
@@ -95,14 +97,18 @@ pub(crate) struct BuffBlock {
     special: Vec<String>,
 }
 
-/// The buff a source adds as the fight starts, and to whom, or why this build
-/// will not apply it. `BuffCycleController.OnEnterFight` runs a controller
-/// whose listener is `FightStart`. Under `BuffTargetUpdateModel.All` its first
+/// The buff a source adds, when and to whom, or why this build will not apply
+/// it. `BuffCycleController.OnEnterFight` runs a controller whose listener is
+/// `FightStart`. Under `BuffTargetUpdateModel.All` its first
 /// `Update` triggers once onto the unit itself, since a source with no delay
 /// and no interval does not cycle. Under `Each` it hands its `Update` to a
 /// `RangeUnitCycle`, which keeps the buff on every unit in reach; the
 /// controller's constructor never gives the cycle the source's delay or
-/// interval, so neither is read.
+/// interval, so neither is read. `RegisterMechEvent` hands a controller whose
+/// listener is `Hit` to its unit's skills as a hit effect, and
+/// `TriggerBuffOrBuffRangeItemFromHit` adds its buff through
+/// `BuffSystem.AddBuff` to whatever a hit struck, reading none of the
+/// source's targets, domains or distance type.
 ///
 /// A buff that stacks (`IsAdditiveEffect`) is read when it stacks a step at
 /// a time (`BuffAdditiveStackConditionTimeController`) and every rate it
@@ -112,19 +118,28 @@ pub(crate) fn buff_source(
     who: &str,
     (trigger, targets, probability): (Option<i32>, &[i32], Option<i64>),
     cycle: &CycleBlock,
+    can_disable: bool,
     source_special: &[String],
     buff: Option<&BuffBlock>,
 ) -> std::result::Result<BuffSource, String> {
     let Some(buff) = buff else {
         return Err(format!("{who} names no buff"));
     };
-    if trigger != Some(FIGHT_START) {
-        return Err(format!(
-            "{who} adds its buff on BuffTechListener {trigger:?}, and only the fight's start \
-             is read"
-        ));
-    }
-    let reach = reach(who, targets, cycle)?;
+    let trigger = match trigger {
+        Some(FIGHT_START) => match reach(who, targets, cycle)? {
+            Some(reach) => BuffTrigger::Around(reach),
+            None => BuffTrigger::Itself,
+        },
+        Some(HIT) if cycle.update_model != EACH && cycle.interval == 0 && cycle.delay == 0 => {
+            BuffTrigger::Hit
+        }
+        _ => {
+            return Err(format!(
+                "{who} adds its buff on BuffTechListener {trigger:?}, and only the fight's start \
+                 and a hit are read"
+            ));
+        }
+    };
     if probability != Some(ONE) {
         return Err(format!(
             "{who} adds its buff with probability {probability:?}, and only a certain one is \
@@ -165,6 +180,7 @@ pub(crate) fn buff_source(
             buff.damage_rate,
             buff.speed_rate,
             buff.attack_range_value,
+            buff.attack_range_rate,
             buff.max_life_rate,
         ]
         .iter()
@@ -197,10 +213,12 @@ pub(crate) fn buff_source(
         damage_rate: buff.damage_rate,
         speed_rate: buff.speed_rate,
         attack_range_value: buff.attack_range_value,
+        attack_range_rate: buff.attack_range_rate,
         max_life_rate: buff.max_life_rate,
         step_q32: buff.step_time,
         stacking,
-        reach,
+        trigger,
+        can_disable,
         clears_when_technologies_disabled: buff.clear_when_technologies_disabled,
     })
 }

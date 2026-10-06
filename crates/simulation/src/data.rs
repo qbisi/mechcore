@@ -126,12 +126,23 @@ impl Index {
     /// `DamageProperty.CalculateDamage` does for damage, adding the buff's
     /// `GetDamageChangeAddRate` to the skill's rate and multiplying the two
     /// reduce rates; `MoveSpeedProperty.Refresh` does for speed, over the
-    /// unit's `DataSet` and the buffs'; a hit's amplification has one source.
+    /// unit's `DataSet` and the buffs'; `AttackRangeProperty` does for the
+    /// main skill's range, its `GetAttackRange` summing the skill's value and
+    /// the buffs' and its `Refresh` the rates; a hit's amplification has one
+    /// source.
     const fn composes_across_channels(self) -> bool {
         matches!(
             self,
-            Self::AttackDamage | Self::MoveSpeed | Self::AmplifyDamage
+            Self::AttackDamage | Self::MoveSpeed | Self::AmplifyDamage | Self::AttackRange
         )
+    }
+
+    /// Whether this number's property multiplies by its enhancements and then
+    /// by its remainders, rather than by one factor they make:
+    /// `AttackRangeProperty.Refresh` multiplies the range by one plus the
+    /// summed add rates, and that by the reduce rates' product.
+    const fn multiplies_rates_in_turn(self) -> bool {
+        matches!(self, Self::AttackRange)
     }
 
     const fn name(self) -> &'static str {
@@ -773,8 +784,13 @@ impl Overlays {
         // multiplied by it once: `CalculateDamage` multiplies its summed
         // enhancement by the reduce rates, and that by the reduce rate base,
         // before it reaches the damage.
-        let factor = (ONE + total.enhance) * total.remaining / ONE * reduce_base / ONE;
-        let scaled = (i128::from(base) + value_scale(total.value)) * factor / ONE;
+        let corrected_base = i128::from(base) + value_scale(total.value);
+        let scaled = if index.multiplies_rates_in_turn() {
+            corrected_base * (ONE + total.enhance) / ONE * total.remaining / ONE * reduce_base / ONE
+        } else {
+            let factor = (ONE + total.enhance) * total.remaining / ONE * reduce_base / ONE;
+            corrected_base * factor / ONE
+        };
         i64::try_from(scaled).map_err(|_| {
             Error::new(format!(
                 "{} resolved outside the range a number can hold",
@@ -1321,20 +1337,34 @@ impl Stats {
                 push_rate(modifiers, ModifierChannel::Buff, None, field, aggregate)?;
             }
         }
+        // `BuffManager.GetAttackRangeAddRate` and `GetAttackRangeReduceRate`:
+        // the buffs' rates on the main skill's range.
+        let range_rates = buff
+            .corrections(Index::AttackRange)
+            .filter(|entry| matches!(entry.correction, Correction::Rate { .. }))
+            .copied()
+            .collect::<Vec<_>>();
+        if let Some(aggregate) = Overlay::of(&range_rates).aggregate(Index::AttackRange) {
+            push_rate(
+                modifiers,
+                ModifierChannel::Buff,
+                None,
+                "attack_range_rate",
+                aggregate,
+            )?;
+        }
         // `BuffManager.GetAttackRangeAddValue` and `GetAttackRangeReduceValue`:
         // the buffs' whole metres on the main skill's range, the ones that
         // add and the ones that take away kept apart, a reduction signed.
         let metres = crate::rules::SPACE_UNITS_PER_METER_SCALE;
         let range_values = buff
             .corrections(Index::AttackRange)
-            .map(|entry| match entry.correction {
-                Correction::Value(value) if value % metres == 0 => Ok(value / metres),
-                Correction::Value(_) => Err(Error::new(
+            .filter_map(|entry| match entry.correction {
+                Correction::Value(value) if value % metres == 0 => Some(Ok(value / metres)),
+                Correction::Value(_) => Some(Err(Error::new(
                     "a buff's attack-range value is a whole number of metres",
-                )),
-                Correction::Rate { .. } => {
-                    Err(Error::new("no buff here corrects attack range by a rate"))
-                }
+                ))),
+                Correction::Rate { .. } => None,
             })
             .collect::<Result<Vec<_>>>()?;
         for (field, value) in [
@@ -1838,7 +1868,7 @@ mod tests {
         let before = stats.clone();
         for channel in [Channel::Unit, Channel::Skill, Channel::Buff] {
             stats.overlays.channel(channel).write(Entry {
-                index: Index::AttackRange,
+                index: Index::SplashRange,
                 source: "CommanderSkillSystem",
                 correction: Correction::Value(40),
             });

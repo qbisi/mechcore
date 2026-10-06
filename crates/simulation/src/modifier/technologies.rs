@@ -446,6 +446,7 @@ impl TechnologyEffects {
                     &who,
                     (row.buff_trigger, &row.buff_targets, row.probability),
                     &row.buff_cycle,
+                    true,
                     &row.buff_special,
                     row.buff.as_ref(),
                 )
@@ -455,9 +456,12 @@ impl TechnologyEffects {
                 Some(Ok(buff)) => (Some(buff), corrections_of(&row)),
                 None => (None, corrections_of(&row)),
             };
-            let self_buff = buff_source
-                .as_ref()
-                .is_some_and(|buff: &BuffSource| buff.reach.is_none());
+            let self_buff = buff_source.as_ref().is_some_and(|buff: &BuffSource| {
+                matches!(
+                    buff.trigger,
+                    crate::modifier::BuffTrigger::Itself | crate::modifier::BuffTrigger::Hit
+                )
+            });
             let technology = Technology {
                 unit: row.unit.clone(),
                 effect,
@@ -817,6 +821,8 @@ mod tests {
     /// Mobile Power Station and Degeneration Beam.
     const MOBILE_POWER_STATION: i32 = 180_931;
     const DEGENERATION_BEAM: i32 = 180_418;
+    /// Suppression Shots for the Void Eye, whose buff comes with a hit.
+    const SUPPRESSION_SHOTS: i32 = 180_430;
     /// Electromagnetic Cloud for the Vortex, whose second damage disables
     /// technologies and writes a buff.
     const ELECTROMAGNETIC_CLOUD: i32 = 4531;
@@ -1082,6 +1088,21 @@ mod tests {
         );
     }
 
+    /// Suppression Shots adds its buff on a hit, cutting the struck unit's
+    /// range by 30%.
+    #[test]
+    fn a_buff_added_on_a_hit() {
+        let table = TechnologyEffects::load().unwrap();
+        let shots = table
+            .sources(&[SUPPRESSION_SHOTS], "void_eye")
+            .unwrap()
+            .buff_sources;
+        assert_eq!(shots[0].trigger, crate::modifier::BuffTrigger::Hit);
+        assert_eq!(shots[0].buff_id, 10301);
+        assert_eq!(shots[0].attack_range_rate, -1_288_490_188);
+        assert!(shots[0].can_disable);
+    }
+
     /// A buff technology of the update model `Each` keeps its buff on the
     /// units in reach: Mobile Power Station on its side's ground units within
     /// 100 m, Degeneration Beam on the enemies of either domain within 120 m,
@@ -1093,7 +1114,9 @@ mod tests {
             .sources(&[MOBILE_POWER_STATION], "vortex")
             .unwrap()
             .buff_sources;
-        let reach = station[0].reach.unwrap();
+        let crate::modifier::BuffTrigger::Around(reach) = station[0].trigger else {
+            panic!("Mobile Power Station keeps its buff on the units around");
+        };
         assert_eq!(station[0].buff_id, 10001);
         assert_eq!(reach.range_q32, 100 << 32);
         assert!(reach.domains.ground && !reach.domains.air);
@@ -1104,7 +1127,9 @@ mod tests {
             .sources(&[DEGENERATION_BEAM], "wraith")
             .unwrap()
             .buff_sources;
-        let reach = beam[0].reach.unwrap();
+        let crate::modifier::BuffTrigger::Around(reach) = beam[0].trigger else {
+            panic!("Degeneration Beam keeps its buff on the units around");
+        };
         assert_eq!(beam[0].speed_rate, -1_717_986_918);
         assert_eq!(reach.range_q32, 120 << 32);
         assert!(reach.domains.ground && reach.domains.air);

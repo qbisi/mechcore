@@ -111,6 +111,17 @@ damage on its Vortex and its side's ground units within 100 m; Degeneration
 Beam keeps 40% less speed, 20% less damage and 30% more damage taken on the
 enemies of either domain within 120 m of the Wraith.
 
+**A buff source triggered by a hit adds its buff to what the hit struck.**
+Its controller is a hit effect of each of its unit's skills its corrections
+reach, and after a hit it adds the buff, under the unit's side and as written
+by it, to every live unit the hit struck, in the order it struck them: no
+construction, and none at all while the unit's technologies are disabled.
+Neither the source's targets nor its domains nor its distance type are read
+on a hit. Suppression Shots cuts a struck unit's range by 30% for 3.5
+seconds: the range's add rates sum with its skill's and its reduce rates
+multiply with them, the range times one plus the adds and that times the
+reduces, which a melee reach does not take.
+
 **A buff takes back only what it wrote.** When a buff ends, its entries go and
 every other buff's stay, whichever source wrote them: a Rhino with Combat
 Evolvement, Mobile Power Station and Degeneration Beam keeps two when the
@@ -139,7 +150,8 @@ Rhino with Combat Evolvement has 2.5% more life a stack, and a hit Rhino's
 life passes through its maximum without the buff on each step. When the buff
 ends, the fight's end among, the rate goes and the life is refreshed again.
 
-Any other trigger or chance, a source that adds its buff once to other units
+Any other trigger or chance, a source that steals life beside a hit buff, one
+that adds its buff once to other units
 or cycles under the update model `All`, one that reaches crystals, measures
 from its unit's edge or keeps to a distance type, a buff that stacks on
 another condition or lowers what it stacks, and a buff field beyond these is
@@ -287,6 +299,9 @@ whose effect grows with rank, rather than read index zero:
   domain, and stops with its unit's death:
   `tests/technology_buff/fights/mobile-power-station.yaml` and
   `tests/technology_buff/fights/degeneration-beam.yaml`.
+- A hit adds its buff to the unit struck, ranged or melee, and a Fortress's
+  range reads 70 of 100 under it: `tests/technology_buff/fights/suppression-shots.yaml`,
+  `tests/technology_buff/fights/suppression-shots-melee.yaml`.
 - Three buffs run on one Rhino, and one ending leaves the others' rates:
   `tests/technology_buff/fights/three-buffs.yaml`.
 - A buff stacking on distance adds a metre of range for every 7 metres its
@@ -344,6 +359,26 @@ whose effect grows with rank, rather than read index zero:
   `FightMech.AddData` and `FightMech.RemoveData` call
   `FightMech.RefreshLifeData`, which keeps a full `FightActor.lifeGauge` full
   and any other at its share of the new maximum.
+- A source of the listener `Hit`: `BuffCycleController.RegisterMechEvent`
+  calls `FightSkill.AddHitEffectProvider` on the main skill when
+  `SkillDataModifier.AvaliableCheck` passes, and on its extra skills, grouped
+  or passing the check. `FightSkill.DispatchHitDamageEvent` hands the hit's
+  targets to `SkillHitEffectController.PerformHitEffect`, which calls each
+  `IHitEffectPerformer.PerformHitEffect`. `BuffCycleController.PerformHitEffect`
+  returns when `isTechnologyDisabled` and `IEffectProviderDataSource.CanDisable`,
+  or on a secondary hit unless the source is a second damage's, and otherwise
+  calls
+  `BuffCycleController.TriggerBuffOrBuffRangeItemFromHit`, which hands the
+  targets to `BuffSystem.AddBuff`; that calls `BuffSystem.DoAddBuff` for each
+  target `FightActor.IsAlive`, under the source actor's
+  `FightActor.currentTeamController`.
+- The range's corrections: `AttackRangeProperty.GetAttackRange` sums
+  `ISkillData.GetAttackRange`, the skill's data and
+  `BuffManager.GetAttackRangeAddValue` with `BuffManager.GetAttackRangeReduceValue`;
+  `AttackRangeProperty.Refresh` adds `BuffManager.GetAttackRangeAddRate` to
+  `FightSkill.GetDataFloatAddRate`, multiplies `FightSkill.GetDataFloatReduceRate`
+  by `BuffManager.GetAttackRangeReduceRate`, and multiplies the range by one
+  plus the first and then by the second.
 - A stack on distance: `IBEC_AdditiveEffectBuff.Update` returns at
   `IBEC_AdditiveEffectBuff.maxAdditiveStack`, and otherwise asks
   `BuffAdditiveStackConditionDistanceController.TryAddStack`, which sets the
