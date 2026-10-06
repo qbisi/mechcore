@@ -185,6 +185,16 @@ false. So the officers' and the items' corrections stay.
   nothing keeps the interval it drew.
 - **A lifesteal's and a second damage's** providers take their hit effect
   away, which the fight asks of the unit at each hit.
+- **A search technology's reach and preference leave its unit.** Its
+  provider takes away the metres it added to the main skill's range against
+  a domain and to what its search counts off a candidate of that domain, and
+  turns the skill's selector back to `Normal`
+  (`SearchTargetSpecificProvider.DoDisable`, `FightSkill.ChangeSearchTargetType`);
+  the base takes its damage rates away. Switched on, it writes them again and
+  turns the selector to `DistanceIntensify`, which takes the offsets as they
+  then stand. A `Normal` selector is the `DistanceIntensify` one with no
+  offsets. Phantom Rays with Ground Targeting drop the Arclight they locked,
+  133 metres off, as their range falls from 125 metres to 65.
 - **An extra weapon's skills are disabled** (`ExtraSkillProvider.DisableSkill`,
   `FightSkill.Disable`), and enabled as it is switched on. A disabled skill
   that is idle searches for no lock or attack target and starts no attack
@@ -196,7 +206,7 @@ false. So the officers' and the items' corrections stay.
 
 What switching off does to any other technology, an extra weapon's
 production line, explosion, preemptive skill or group, a repair, a shield, a
-buff technology's buffs, a sweep's or a search's change, is read below and
+buff technology's buffs, a sweep's change, is read below and
 refused: a buff that disables technology reaching a unit that carries one is
 refused by name.
 
@@ -258,6 +268,8 @@ whose effect grows with rank, rather than read index zero:
   while disabled, and fires again as it is enabled:
   `tests/technology_disable/fights/barrage-homing-missile.yaml`,
   `tests/technology_disable/fights/barrage-homing-missile-held.yaml`.
+- A search technology's ranges and offsets leave with it:
+  `tests/technology_disable/fights/impact-ground-targeting.yaml`.
 
 ### Read
 
@@ -311,6 +323,10 @@ whose effect grows with rank, rather than read index zero:
   `ArmorStrengthenEffectProvider.DisableEffect`,
   `LifeStealEffectProvider.DoDisableEffect`,
   `SecondaryDamageIntensifyEffectProvider.DisableEffect`,
+  `SearchTargetSpecificProvider.DisableEffect`,
+  `SearchTargetSpecificProvider.DoDisable`,
+  `SearchTargetSpecificProvider.DoEnable`,
+  `SearchTargetController.SetTargetSelector`,
   `FightMech.RefreshLifeData`, `FightSkill.RefreshAttackInterval`,
   `ExtraSkillProvider.DisableSkill`, `ExtraSkillProvider.EnableSkill`,
   `FightSkill.Disable`, `FightSkill.Enable`, `SkillIdleState.Update`,
@@ -331,7 +347,7 @@ whose effect grows with rank, rather than read index zero:
   (`AutoRecoverySystem.DisableMech`), a unit's own shield and a Barrier's
   (`EnergyShieldProvider.DisableEffect`,
   `AdvancedEnergyShieldSystem.DeactiveEnergyShield`), a buff technology's
-  buffs, a sweep's and a search's change, an air attack's switch. Refused.
+  buffs, a sweep's change, an air attack's switch. Refused.
 - **How the life share rounds.** The quotient rounded and the product
   truncated is what the recordings fit; the arithmetic of `FPoint` division
   and multiplication was not read.

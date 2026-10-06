@@ -186,12 +186,22 @@ struct Technology {
 /// (`IEffectProviderDataSource.RemoveData`) and `EnableEffect` adds it, and
 /// an armour's `ArmorStrengthenEffectProvider` its reduction. A lifesteal's
 /// and a second damage's providers take their hit effect away, which the
-/// fight asks of the unit at each hit. An extra weapon's provider takes its
-/// numbers and disables its skills, which the layout refuses for the shapes
-/// it does not fight switched off. Every other list's provider does more,
-/// which is not measured.
-const DISABLED_AS_NUMBERS: [&str; 5] =
-    [PLAIN, ARMOR, DAMAGE_INTENSIFY, LIFESTEAL, SECONDARY_DAMAGE];
+/// fight asks of the unit at each hit. A search technology's
+/// `SearchTargetSpecificProvider.DoDisable` takes its ranges and score
+/// offsets away and turns its unit's selector back to `Normal`, which is the
+/// selector it turned to with no offsets, and `DoEnable` writes them and
+/// turns it to `DistanceIntensify` again, which reads them as they now stand.
+/// An extra weapon's provider takes its numbers and disables its skills,
+/// which the layout refuses for the shapes it does not fight switched off.
+/// Every other list's provider does more, which is not measured.
+const DISABLED_AS_NUMBERS: [&str; 6] = [
+    PLAIN,
+    ARMOR,
+    DAMAGE_INTENSIFY,
+    LIFESTEAL,
+    SECONDARY_DAMAGE,
+    SEARCH_TARGET_SPECIFIC,
+];
 
 /// What `SecondaryDamageIntensifyEffectProvider` hands its unit's main skill
 /// (`FightSkill.SetSecondaryDamageInfo`), and `DamagePerformer.PerformSecondaryEffect`
