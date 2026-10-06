@@ -14,7 +14,10 @@ same buff sources on an item.
   enemies of either domain.
 - `three-buffs.yaml` holds all three on one Rhino at once, and one of them
   ending while the others run.
+- `kinetic-charge.yaml` and `kinetic-charge-stops.yaml` stack Kinetic
+  Charge's range on Steel Balls as they roll, and hold it as they stop; the
+  corpus round `tests/corpus/fights/268477093-r4.yaml` stacks it to 80.
 
 A recording holds the buffs' damage rate in the `buff` channel's
-`damage_rate`, their speed rate in its `move_speed_rate`, and a life rate in
-the unit's own `life_rate`.
+`damage_rate`, their speed rate in its `move_speed_rate`, their range in its
+`attack_range_add_value`, and a life rate in the unit's own `life_rate`.

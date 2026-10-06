@@ -1,0 +1,23 @@
+# Kinetic Charge: a Steel Ball's range grows with the distance it rolls.
+#
+# The Steel Balls take buff 8008 on the first tick. Every half second the
+# buff's stack becomes the whole number of 7-metre lengths each has rolled,
+# counted at every move before a solve, and each stack adds a metre to its
+# range: 1 at t20, 6 at t70, and 8 at t80, two stacks in one step.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 332
+hash: {profile: mcfr-content-0.7.0, result: 66b602e5cb82ac7f7516c3dce68edd869467a1a6900e0b4a0958411948a49f57}
+blue:
+  core_damage: 350
+  techs:
+    steel_ball: [kinetic_charge]
+  units:
+  - {name: steel_ball, index: 0, position: {x: 5, y: -170}}
+red:
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -170}, exp: 0/400/1600}

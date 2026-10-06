@@ -93,6 +93,8 @@ impl Actor {
             command: None,
             buffs: Vec::new(),
             buff_cycles,
+            moved_q32: 0,
+            move_mark_q32: (0, 0),
             shield,
             recovery,
             rvo_max_speed_q32: max_speed_q32,
@@ -193,6 +195,7 @@ impl Actor {
         if !solve_due {
             return;
         }
+        self.count_move_distance();
         self.motion.next_target_x_q32 = target_x_q32;
         self.motion.next_target_z_q32 = target_z_q32;
         self.motion.next_speed_q32 = turn_limited_move_speed_q32(
@@ -204,6 +207,22 @@ impl Actor {
             self.motion.current_velocity_z_q32,
         );
         self.motion.next_max_speed_q32 = self.motion.next_speed_q32;
+    }
+
+    /// `Move`'s distance record: from where its last `Move` found the unit,
+    /// none the first time, to where it stands, added to what it has moved
+    /// while its technologies were not disabled.
+    fn count_move_distance(&mut self) {
+        let position = (self.x_q32, self.z_q32);
+        if self.move_mark_q32 != (0, 0) && !self.technology_disabled() {
+            let moved = native_q32_magnitude_3d(
+                position.0.saturating_sub(self.move_mark_q32.0),
+                0,
+                position.1.saturating_sub(self.move_mark_q32.1),
+            );
+            self.moved_q32 = self.moved_q32.saturating_add(moved);
+        }
+        self.move_mark_q32 = position;
     }
 
     /// The skills of `FightMech.GetSkills()` whose `DataSet` holds the unit's

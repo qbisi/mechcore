@@ -262,6 +262,10 @@ struct Actor {
     shield: Option<PersonalShield>,
     /// Its `BuffCycleController`s, one for each of its buff sources.
     buff_cycles: Vec<buff_cycle::BuffCycle>,
+    /// `MotionController.totalMoveDistanceWithoutDisableTech`, Q32.32 metres,
+    /// and `prevPosition`, where its last `Move` before a solve found it.
+    moved_q32: i64,
+    move_mark_q32: (i64, i64),
     /// Its `AutoRecoveryController`'s clocks, when a repair source is in
     /// force on it.
     recovery: Option<recovery::RecoveryClock>,

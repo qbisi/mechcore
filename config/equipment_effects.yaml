@@ -53,10 +53,12 @@ equipment:
       amplify_damage_rate: 0
       damage_rate: 0
       speed_rate: -1717986918  # -0.4
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: false
   - id: 1305002
@@ -80,10 +82,12 @@ equipment:
       amplify_damage_rate: 0
       damage_rate: 0
       speed_rate: 0
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: false
       special: [summonUnitID]
@@ -108,10 +112,12 @@ equipment:
       amplify_damage_rate: -1288490188  # -0.3
       damage_rate: 0
       speed_rate: 0
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
   - id: 1305004
@@ -137,10 +143,12 @@ equipment:
       amplify_damage_rate: 0
       damage_rate: 0
       speed_rate: -1717986918  # -0.4
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: false
   - id: 1305005
@@ -166,10 +174,12 @@ equipment:
       amplify_damage_rate: 0
       damage_rate: 0
       speed_rate: 0
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: false
       special: [summonUnitID]
@@ -196,10 +206,12 @@ equipment:
       amplify_damage_rate: 0
       damage_rate: 0
       speed_rate: 0
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
       special: [attackRangeChangeRate]
@@ -225,10 +237,12 @@ equipment:
       amplify_damage_rate: 0
       damage_rate: 128849018  # +0.03
       speed_rate: 0
+      attack_range_value: 0
       max_life_rate: 128849018  # +0.03
       step_time: 4294967296  # +1
       additive_effect: true
       additive_condition: 1
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: false
   - id: 1305008
@@ -259,10 +273,12 @@ equipment:
       amplify_damage_rate: -1288490188  # -0.3
       damage_rate: 0
       speed_rate: 0
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
   - id: 1305009
@@ -288,10 +304,12 @@ equipment:
       amplify_damage_rate: 0
       damage_rate: 0
       speed_rate: 0
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: false
   - id: 1305010
@@ -322,13 +340,14 @@ equipment:
       amplify_damage_rate: 0
       damage_rate: 0
       speed_rate: 0
+      attack_range_value: 30
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: false
-      special: [attackRangeChangeValue]
   - id: 1306001
     name: 坦克生产线
     kind: supportUnitEquipmentDatas

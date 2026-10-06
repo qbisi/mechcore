@@ -30,16 +30,17 @@ BUFF_READ = {
     "buffDivide": "divide", "isAdditiveMode": "additive", "debuff": "debuff",
     "invincible": "invincible", "disableTechnology": "disable_technology",
     "amplifyDamageRate": "amplify_damage_rate", "damageChangeRate": "damage_rate",
-    "speedChangeRate": "speed_rate",
+    "speedChangeRate": "speed_rate", "attackRangeChangeValue": "attack_range_value",
     "maxLifeChangeRate": "max_life_rate", "stepTime": "step_time",
     "isAdditiveEffect": "additive_effect",
     "buffEffectAdditiveCondition": "additive_condition",
+    "buffEffectAdditiveConditionParam": "additive_condition_param",
     "maxAdditiveStack": "max_additive_stack",
     "isClearSelfBuffWhenDisableTech": "clear_when_technologies_disabled",
 }
 # The ones that are Q32.32 raw values, read beside them as a decimal.
 BUFF_RATES = {"amplifyDamageRate", "damageChangeRate", "speedChangeRate", "maxLifeChangeRate",
-              "stepTime"}
+              "stepTime", "buffEffectAdditiveConditionParam"}
 BUFF_DESCRIPTIVE = {"id", "name", "isTestData", "duration", "effectType"}
 
 

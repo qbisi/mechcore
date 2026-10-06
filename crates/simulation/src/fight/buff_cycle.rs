@@ -186,6 +186,7 @@ fn buff_row(buff: &BuffSource) -> Result<BuffRow> {
         stacking: buff.stacking.map(|stacking| StackRule {
             step_ticks,
             max: stacking.max,
+            condition: stacking.condition,
         }),
         divide: buff.divide,
         additive: buff.additive,
@@ -204,6 +205,14 @@ fn buff_row(buff: &BuffSource) -> Result<BuffRow> {
             source: SOURCE,
             correction: super::tower::rate(rate),
         })
+        // `attackRangeChangeValue`: whole metres on the main skill's range.
+        .chain((buff.attack_range_value != 0).then(|| Entry {
+            index: Index::AttackRange,
+            source: SOURCE,
+            correction: crate::data::Correction::Value(
+                buff.attack_range_value * crate::rules::SPACE_UNITS_PER_METER_SCALE,
+            ),
+        }))
         .collect(),
         disables_technology: false,
         debuff: buff.debuff,
