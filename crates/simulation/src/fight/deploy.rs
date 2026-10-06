@@ -665,7 +665,12 @@ pub(in crate::fight) const fn rvo_collides(building: &BuildingState) -> bool {
 
 impl Simulation {
     pub(in crate::fight) fn initialize_presearch_targets(&mut self) -> Result<()> {
-        let actor_ids = self.actors.keys().copied().collect::<Vec<_>>();
+        // `PresearchTargetController.CreateMechDatas` takes each side's
+        // mechs in their team's order, the order they update in
+        // ([`update_order`]), not their identities': a Mustang a few raw
+        // units behind its neighbour in `z` and left of it in `x` falls in
+        // the earlier batch and searches a tick sooner.
+        let actor_ids = self.unit_update_order.clone();
         // The build's PresearchTargetController::CalculateCountPerTime returns
         // ceil(mech_count / 10). SearchTarget assigns the zero-based batch
         // ordinal to the main FightSkill search controller before selecting
