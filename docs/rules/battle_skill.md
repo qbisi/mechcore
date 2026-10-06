@@ -376,10 +376,15 @@ which scores from that facing. It then takes the place of the unit's
   lives: the command's `IsIdle` and `IsActive` are constants, and the attack
   ends only once its target is out of range. A lock that dies within range
   keeps the unit attacking, turning to the dead unit and walking on or
-  stopping as above, until its skill takes another. A skill whose attack
+  stopping as above, until its skill takes another, a burst it still fires at
+  the dead unit among it: the unit changes to moving only as the burst's last
+  shot is out and the skill lets the target go. A skill whose attack
   ends without a lock cools naming what its last check found, and a target it
   names in range keeps the unit attacking through the cooling, walking on or
-  stopping as above. With no lock `MotionController.CalculateTargetDirection`
+  stopping as above; a unit moving through such a cooling changes to
+  attacking once what it names comes into range (`MotionMoveState.Update`
+  asks `IsAttackTargetInAttackRange`), a state not updated the update it is
+  entered. With no lock `MotionController.CalculateTargetDirection`
   answers the velocity, so the unit turns only to where it walks, and a unit
   standing still turns nothing; it changes to moving as the cooling ends and
   names nothing.
@@ -534,6 +539,11 @@ drawn from any stream, and no event is written.
   turning nothing, and walks on as the cooling ends; one moving through its
   cooling with nothing locked keeps its turret still:
   `tests/corpus/fights/67157394-r7.yaml`.
+- Phantom Rays on a beacon keep attacking a Vortex that dies between two
+  shots of a burst, turning to it, and change to moving only once the burst
+  is out; one moving through its cooling with no lock changes to attacking
+  as the Tarantula its cooling names comes into range:
+  `tests/corpus/fights/67160345-r4.yaml`, ticks 237, 246 and 357.
 
 ### Replayed
 
