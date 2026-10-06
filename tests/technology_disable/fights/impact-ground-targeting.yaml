@@ -1,0 +1,27 @@
+# Ground Targeting switched off.
+#
+# Blue's three Phantom Rays carry Ground Targeting and lock red's Arclight,
+# 133 metres off, on their first search. Red's Electromagnetic Impact lands on
+# them on tick 57: their range falls from 125 metres to 65, their search counts
+# nothing off a ground unit's distance, and they drop the Arclight. The
+# technology stays off until each dies.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 249
+hash: {profile: mcfr-content-0.7.0, result: 9dead7334d61184ccf7a3664cb1a5a7d3c36cf2fcdff63902e033c8b73a5c1c3}
+blue:
+  core_damage: 200
+  techs:
+    phantom_ray: [ground_targeting]
+  units:
+  - {name: phantom_ray, index: 0, position: {x: 5, y: -150}, exp: 0/100/1000}
+red:
+  units:
+  - {name: arclight, index: 0, position: {x: 30, y: -30}}
+  - {name: phoenix, index: 1, position: {x: -20, y: -90}, exp: 0/402/1300}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: -5, y: 130}]}
