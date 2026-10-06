@@ -210,6 +210,17 @@ false. So the officers' and the items' corrections stay.
   so the blow under way runs out, a burst's every projectile, and its attack
   ends. Enabled again, it starts as any idle skill does: a Centurion's Homing
   Missile, due while disabled, fires two ticks after its buff runs out.
+- **A permanent preemptive explosion neither activates nor explodes.** Its
+  condition holds nothing while the unit's technologies are disabled, its
+  skill being a technology's
+  (`PermanentPreemptiveActiveConditionLifeController.CheckCanActive`), and a
+  unit that dies so, not invincible, sets off no dead effect that is a
+  technology's (`DeadEffectController.IsAvaliable`), as its explosion is.
+  Fire Badgers with Scorching Charge lose their 80% more life with the
+  plain numbers, fall to 14% of what is left without charging, and die
+  neither exploding nor burning; switched on again, they charge below half
+  and explode as before. An active one is invincible, so no debuff reaches
+  it.
 - **A buff its unit added itself is cleared, if its row says so**
   (`isClearSelfBuffWhenDisableTech`): `FightMech.DisableTechnology` raises
   `BuffManager.ClearSelfResourceBuffByDisableTech` after the effects are off.
@@ -229,8 +240,8 @@ false. So the officers' and the items' corrections stay.
   stack is removed, neither measured.
 
 What switching off does to any other technology, an extra weapon's
-production line, explosion, preemptive skill or group, a repair, a shield, a
-cycling buff source, a sweep's change, is read below and
+production line, other explosion or preemptive skill, or group, a repair, a
+shield, a cycling buff source, a sweep's change, is read below and
 refused: a buff that disables technology reaching a unit that carries one is
 refused by name.
 
@@ -304,6 +315,11 @@ whose effect grows with rank, rather than read index zero:
   life, and stacks on from the stack it kept:
   `tests/technology_disable/fights/impact-combat-evolvement.yaml`,
   `tests/technology_disable/fights/impact-combat-evolvement-expires.yaml`.
+- A permanent preemptive explosion does not activate, and its unit's death
+  neither explodes nor burns, while the technologies are off; switched on,
+  both come back:
+  `tests/technology_disable/fights/impact-scorching-charge.yaml`,
+  `tests/technology_disable/fights/impact-scorching-charge-expires.yaml`.
 
 ### Read
 
@@ -379,6 +395,10 @@ whose effect grows with rank, rather than read index zero:
   `IBEC_AdditiveEffectBuff.AddAdditiveStack`,
   `IBEC_AdditiveEffectBuff.RefreshAdditiveEffect`,
   `IBEC_ChangeMaxLife.DoAdditiveEffect`,
+  `PermanentPreemptiveActiveConditionLifeController.CheckCanActive`,
+  `PreemptiveSkillController.Update`,
+  `DeadEffectSystem.OnActorDead`, `DeadEffectController.IsAvaliable`,
+  `ExplosionSkillData.IsTechnologyEffect`,
   `FightMech.RefreshLifeData`, `FightSkill.RefreshAttackInterval`,
   `ExtraSkillProvider.DisableSkill`, `ExtraSkillProvider.EnableSkill`,
   `FightSkill.Disable`, `FightSkill.Enable`, `SkillIdleState.Update`,
@@ -395,7 +415,9 @@ whose effect grows with rank, rather than read index zero:
   the one a buff's maximum life measured; no disable has been recorded on a
   hurt unit whose technology moves its maximum.
 - **What switching off does beyond numbers**: an extra weapon's production
-  line (`SupportUnitCreator`), explosion, preemptive skill or group, a repair
+  line (`SupportUnitCreator`), an explosion or preemptive skill other than a
+  permanent preemptive explosion, an active permanent preemptive skill
+  (`PreemptiveSkillController.Update` gives it up), a group, a repair
   (`AutoRecoverySystem.DisableMech`), a unit's own shield and a Barrier's
   (`EnergyShieldProvider.DisableEffect`,
   `AdvancedEnergyShieldSystem.DeactiveEnergyShield`), a buff source that

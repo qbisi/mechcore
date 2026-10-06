@@ -39,7 +39,10 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let actor = &self.actors[&actor_id];
-        if actor.skills.preemptive_active || !actor.alive() {
+        // `PermanentPreemptiveActiveConditionLifeController.CheckCanActive`
+        // holds nothing while the unit's technologies are disabled, the skill
+        // being a technology's (`canDisable`).
+        if actor.skills.preemptive_active || !actor.alive() || actor.technology_disabled() {
             return Ok(());
         }
         let Some(index) = self.permanent_preemptive(actor_id) else {

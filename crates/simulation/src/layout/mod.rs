@@ -989,25 +989,31 @@ fn technology_disable(
             .into_iter()
             .map(|id| format!("technology {id}"))
             // An extra skill switched off neither searches nor starts from
-            // idle and ends its attack between blows; a production line's, an
-            // explosion's, a preemptive skill's and a group's own paths are
-            // not measured switched off.
+            // idle and ends its attack between blows. A permanent preemptive
+            // explosion, Scorching Charge's, does not activate and its death
+            // does not explode while its unit's technologies are off; a
+            // production line's, any other explosion's or preemptive skill's
+            // and a group's own paths are not measured switched off.
             .chain(
                 extra_weapons
                     .iter()
                     .filter(|weapon| {
                         let rules = &weapon.rules;
+                        let preemptive_explosion =
+                            rules.explosion.is_some() && rules.preemptive.is_some();
+                        let read_path = matches!(
+                            rules.attack.path,
+                            crate::rules::AttackPath::Direct
+                                | crate::rules::AttackPath::Projectile { .. }
+                                | crate::rules::AttackPath::Laser { .. }
+                        );
                         rules.production.is_some()
-                            || rules.explosion.is_some()
-                            || rules.preemptive.is_some()
                             || rules.attack.weapons.makes_group()
                             || weapon.joins_main_group
-                            || !matches!(
-                                rules.attack.path,
-                                crate::rules::AttackPath::Direct
-                                    | crate::rules::AttackPath::Projectile { .. }
-                                    | crate::rules::AttackPath::Laser { .. }
-                            )
+                            || !preemptive_explosion
+                                && (rules.explosion.is_some()
+                                    || rules.preemptive.is_some()
+                                    || !read_path)
                     })
                     .map(|weapon| format!("technology {}", weapon.rules.technology)),
             )

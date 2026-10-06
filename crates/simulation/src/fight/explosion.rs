@@ -29,6 +29,21 @@ impl Simulation {
             .map(SkillSlot::Extra)
     }
 
+    /// Whether the unit's death queues its explosion:
+    /// `DeadEffectController.IsAvaliable` as the unit dies. An invincible
+    /// unit's dead effect and that of a unit whose technologies are on go
+    /// off, and a unit whose technologies are disabled has none that is a
+    /// technology's (`IDeadEffect.IsTechnologyEffect`), as an extra skill's
+    /// explosion is: a Fire Badger with Scorching Charge that dies switched
+    /// off neither explodes nor burns. Whether a main skill's explosion is a
+    /// technology's is not read; it is taken to go off.
+    pub(in crate::fight) fn explodes_on_death(&self, actor_id: u64) -> bool {
+        let actor = &self.actors[&actor_id];
+        self.explosion_of(actor_id).is_some_and(|slot| {
+            actor.invincible() || !actor.technology_disabled() || slot == SkillSlot::Main
+        })
+    }
+
     /// `SuicideEffect.Perform`: the unit's blow takes its whole life, from
     /// itself. Who last hurt it keeps the credit for its death: the blow is
     /// its own. Its agent still moves on this update, as it was moving
