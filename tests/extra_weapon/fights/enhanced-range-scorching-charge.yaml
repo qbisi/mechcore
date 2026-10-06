@@ -1,0 +1,26 @@
+# Enhanced Range on Scorching Charge.
+#
+# Blue's Fire Badgers carry Scorching Charge, and their side Enhanced Range.
+# The charge's skill has a damage rate, so its slot records the main skill's
+# corrections, the Energy Tower skill's 15 metres among them; a melee skill
+# reads no correction of its range, so the Badgers charge on ticks 73, 80 and
+# 86 and strike at their 1 metre, every unit of both sides dead on tick 109.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 109
+hash: {profile: mcfr-content-0.7.0, result: 4f3176b6c7a13ae4ef38065a82f2e8bce5f08869df526f5b112dd61d1d302f56}
+blue:
+  techs:
+    fire_badger: [scorching_charge]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: fire_badger, index: 0, position: {x: 5, y: -40}, exp: 0/300/1400}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: -40, y: -100}, exp: 0/55/650}
+  - {name: marksman, index: 1, position: {x: 0, y: -100}, exp: 0/55/650}
+  - {name: marksman, index: 2, position: {x: 40, y: -100}, exp: 0/22/650}

@@ -1074,6 +1074,24 @@ impl Stats {
         self.overlays.resolve_damage(base, 0, false, against)
     }
 
+    /// An extra skill's range from its own, millimetres, as
+    /// `AttackRangeProperty.GetAttackRange` reads it for a skill whose
+    /// `DataSet` holds what reaches it alone: what that holds, and no buff's.
+    /// A buff's `attackRangeChangeValue` is the main skill's
+    /// (`BuffManager.GetAttackRangeAddValue`); an extra skill reads
+    /// `extraAttackRangeChangeValue`, which no buff here writes.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the range leaves the signed range.
+    pub(crate) fn extra_attack_range(base: i64, skill: &[Entry]) -> Result<i64> {
+        Overlays {
+            skill: Overlay::of(skill),
+            ..Overlays::default()
+        }
+        .resolve(Index::AttackRange, base)
+    }
+
     /// Another skill's damage from its own base, with its own skill
     /// corrections in place of the main skill's, and the unit's and the
     /// buffs': `DamageProperty.CalculateDamage` over an extra skill whose

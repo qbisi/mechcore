@@ -1,0 +1,26 @@
+# Enhanced Range on a Homing Missile.
+#
+# Blue's Centurion carries Homing Missile, and its side Enhanced Range, the
+# Energy Tower skill that adds 15 metres to every ranged unit. The recording
+# holds the 15 metres on the missile's slot as on the main gun's, and the
+# missile reaches 175 metres for its 160: closing on red's Rhino from across
+# the map, the Centurion fires its first missile on tick 351, 172 metres from
+# the Rhino's edge.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 539
+hash: {profile: mcfr-content-0.7.0, result: efe310e1f5d733bd1ebc87e76c9e3268fb740c3e67499f584bc4107c3c9e9bc3}
+blue:
+  techs:
+    centurion: [homing_missile]
+  energy_tower_skills: [enhanced_range]
+  units:
+  - {name: centurion, index: 0, position: {x: 5, y: -295}, exp: 0/400/2250}
+red:
+  core_damage: 250
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -295}}

@@ -516,14 +516,29 @@ A skill without a damage rate holds what reaches it alone, an equipment's
 through its `extraSkillEffect` and an Energy Tower skill's, and its damage,
 its row's entry for the unit's level, composes them and the buffs' the same
 way: Secondary Fire Control System's +0.25 makes a Homing Missile's 800 a
-1000. A recording holds each skill's corrections on its own slot. Any other
-number than damage a source corrects on an extra skill is not read, so the
-simulator refuses it.
+1000. A recording holds each skill's corrections on its own slot.
+
+Its range of its own composes what it holds the same way, as the main skill's
+does (`AttackRangeProperty.GetAttackRange`), and no buff's: a buff's
+`attackRangeChangeValue` is the main skill's, and an extra skill would read
+`extraAttackRangeChangeValue`, which no buff here writes. Enhanced Range, the
+Energy Tower skill that adds 15 metres to every ranged unit, takes a Homing
+Missile's 160 metres to 175: a Centurion's first missile leaves 172 metres
+from its Rhino's edge. A melee skill reads no correction of its range, so
+Scorching Charge's charge still strikes at its 1 metre, though the skill's
+slot records the main skill's 15 metres with its other numbers. Any other
+number than damage and range a source corrects on an extra skill is not read,
+nor a range on a skill with a damage rate whose range is its own and that is
+not melee, so the simulator refuses it.
 
 ## Evidence
 
 ### Recorded
 
+- An Energy Tower skill's range reaches an extra skill of its own range
+  without a damage rate, and a melee one's slot records it without its range
+  moving: `tests/extra_weapon/fights/enhanced-range-homing-missile.yaml`,
+  `tests/extra_weapon/fights/enhanced-range-scorching-charge.yaml`.
 - A Secondary Armament gun at the edge of its arc whose Crawler walks out of
   it takes the next Crawler within the arc on its check:
   `tests/corpus/fights/201340110-r5.yaml`, blue's Sabertooth 179, tick 143.
@@ -747,6 +762,9 @@ simulator refuses it.
 
 ### Read
 
+- An extra skill's range: `FightSkill.GetAttackRange`,
+  `AttackRangeProperty.RegisterDataChangeEvent`, `AttackRangeProperty.Refresh`,
+  `SkillDataModifier.AddData`.
 - A weapon held at the edge of its arc searches again once its timer has run
   out, and the timer counts down while it attacks:
   `SkillAttackableChecker.Check`, `SkillAttackableChecker.CheckWhenLoseTarget`,
