@@ -250,10 +250,12 @@ struct BuffSkillRow {
     effect_range_type: i32,
     effect_type: i32,
     sub_effect_damage: i32,
+    energy_shield_damage: i64,
     start_time: i64,
     effect_range: i64,
     sub_effect_move_speed: i64,
     sub_effect_move_time: i64,
+    cross_advanced_shield: bool,
     buff: BuffRow,
 }
 
@@ -300,16 +302,11 @@ pub(crate) struct SkillRelease {
 /// creates.
 #[derive(Debug, Clone)]
 pub(crate) enum SkillEffect {
-    /// `CommanderSkillSubEffectController`: a buff on every unit in range.
-    Buff {
-        /// A unit's edge this near, `FPoint` raw metres, is reached.
-        range_q32: i64,
-        /// What it writes on every unit it reaches.
-        buff: SkillBuff,
-    },
     /// `SupportUnitEffectController`: a creator of summons.
     Summon(Box<Summon>),
-    /// `CS_Damage`'s: the skill's damage over each sub-effect's circle.
+    /// `CommanderSkillSubEffectController`, which `CS_Damage` and `CS_Buff`
+    /// both create: the skill's damage over each sub-effect's circle, and
+    /// its buff on the units the circle reaches.
     Strike {
         /// `FPoint` raw metres, each circle's radius: `subEffectRange`, which
         /// `CommanderSkillData.PreProcess` makes a circle's `effectRange`.
@@ -317,6 +314,17 @@ pub(crate) enum SkillEffect {
         damage: i64,
         /// `isCrossAdvancedShield`: it passes shields, falling and landing.
         crosses_shields: bool,
+        /// `CS_Buff`'s `energyShieldDamage`, as its damage modifier holds
+        /// it; none for a skill that is no damage modifier. A modifier makes
+        /// the sub-effect a hit even when its damage is nothing
+        /// (`IsDamageEffect`), and adds this to what the hit deals a shield
+        /// when it is above zero (`ChangeHitEnergyShieldDamage`).
+        shield_damage: Option<i64>,
+        /// `ICommanderSkill.IsHarmful`: the circle reaches either side, and
+        /// strikes; a skill that is not reaches its own side's units with its
+        /// buff alone (`PerformHitEffect`). `CS_Damage` always is, and
+        /// `CS_Buff` is as its buff is.
+        harmful: bool,
         /// What each sub-effect writes on the units it reaches, after its
         /// damage.
         buff: Option<SkillBuff>,
@@ -949,6 +957,8 @@ fn strike_effect(named: &str, row: &DamageSkillRow) -> Result<SkillEffect> {
         range_q32: row.sub_effect_range,
         damage: row.sub_effect_damage,
         crosses_shields: row.cross_advanced_shield,
+        shield_damage: None,
+        harmful: true,
         buff,
         scatter,
         sub_effects: schedule(&Timing::of_strike(row))?
@@ -1025,16 +1035,38 @@ impl Common {
 }
 
 /// A buff skill's sub-effect: its buff on every unit within its range, which
-/// `CommanderSkillData.PreProcess` made the circle's one sub-effect's.
+/// `CommanderSkillData.PreProcess` made the circle's one sub-effect's, and
+/// its damage modifier's hit over it.
 fn buff_effect(named: &str, row: &BuffSkillRow) -> Result<SkillEffect> {
     if row.sub_effect_damage != 0 {
         return Err(Error::new(format!(
             "{named} deals damage this build does not read"
         )));
     }
-    Ok(SkillEffect::Buff {
+    if row.effect_range_type != 0 {
+        return Err(Error::new(format!(
+            "{named} has range type {}, which this build does not read",
+            row.effect_range_type
+        )));
+    }
+    let buff = skill_buff(named, &row.buff)?;
+    Ok(SkillEffect::Strike {
         range_q32: row.effect_range,
-        buff: skill_buff(named, &row.buff)?,
+        damage: 0,
+        crosses_shields: row.cross_advanced_shield,
+        shield_damage: Some(row.energy_shield_damage),
+        harmful: buff.harmful(),
+        buff: Some(buff),
+        scatter: Scatter::Point,
+        sub_effects: schedule(&Timing::of_buff(row))?
+            .into_iter()
+            .map(|(lands_on, fall)| SubEffect {
+                x_q32: 0,
+                z_q32: 0,
+                lands_on,
+                fall,
+            })
+            .collect(),
     })
 }
 
@@ -1246,6 +1278,18 @@ struct Timing {
 }
 
 impl Timing {
+    /// A buff skill's circle: one sub-effect, falling to the ground.
+    const fn of_buff(row: &BuffSkillRow) -> Self {
+        Self {
+            start_time: row.start_time,
+            sub_effect_move_time: row.sub_effect_move_time,
+            sub_effect_move_speed: row.sub_effect_move_speed,
+            sub_effect_default_height: 0,
+            sub_effect_interval_time: 0,
+            sub_effect_count: 1,
+        }
+    }
+
     const fn of_strike(row: &DamageSkillRow) -> Self {
         Self {
             start_time: row.start_time,
