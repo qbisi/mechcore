@@ -431,6 +431,12 @@ impl Simulation {
         skill_ref: SkillRef,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<bool> {
+        // A skill that is not enabled fails between its blows: the blow under
+        // way runs out, and its attack ends (`SkillAttackState.CheckAttackable`
+        // asks `FightSkill.isEnable` while its controller is idle).
+        if self.skill(skill_ref).disabled {
+            return Ok(false);
+        }
         // A preemptive skill attacks once: its check fails once it has
         // performed (`SkillAttackController.IsPerformedOnce`).
         if self.skill_is_preemptive(skill_ref) && self.skill(skill_ref).performed() {

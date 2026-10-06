@@ -1,0 +1,26 @@
+# Electromagnetic Barrage on two Centurions with Homing Missile.
+#
+# The first Centurion's missiles leave t57 to t72; the buff reaches it at
+# t73, and renewed to t99 it runs until the Centurion dies at t246. Its
+# missile skill, due again at t157, starts no attack while disabled.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 328
+hash: {profile: mcfr-content-0.7.0, result: 38a42996fc57b5a2a0ed8e4c9cacb5aec30005bec4a1655960a5977af0686b7f}
+blue:
+  techs:
+    melting_point: [electromagnetic_barrage]
+  units:
+  - {name: melting_point, index: 0, position: {x: 0, y: -150}, level: 6, exp: 0/8118/8118}
+  - {name: rhino, index: 1, position: {x: 65, y: -145}, level: 6}
+red:
+  core_damage: 350
+  techs:
+    centurion: [homing_missile]
+  units:
+  - {name: centurion, index: 0, position: {x: 5, y: -75}, level: 6, exp: 0/1100/13047}
+  - {name: centurion, index: 1, position: {x: -45, y: -75}, level: 6, exp: 0/3300/13047}

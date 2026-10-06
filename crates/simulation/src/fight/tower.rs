@@ -838,6 +838,11 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
+        // `ExtraSkillProvider.DisableSkill` and `EnableSkill`: every extra
+        // skill of a technology is disabled and enabled with it.
+        for extra in &mut actor.skills.extras {
+            extra.skill.disabled = !on;
+        }
         let corrections = actor.placement.technology_disable.corrections.clone();
         // A unit whose technologies wrote nothing has nothing to refresh:
         // the Wasps an Electromagnetic Impact reaches keep the intervals they
