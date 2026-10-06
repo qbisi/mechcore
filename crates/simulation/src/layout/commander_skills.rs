@@ -439,6 +439,9 @@ pub(crate) struct Summon {
     /// registered for its mech, as for a unit of its type deployed without
     /// equipment. The layout fills it in, where the side is known.
     pub(crate) corrections: Vec<(Channel, Entry)>,
+    /// What a buff that disables technology takes from it, as from a unit
+    /// of its type deployed without equipment.
+    pub(crate) technology_disable: crate::layout::TechnologyDisable,
 }
 
 /// The buff a released skill writes: the Electromagnetic Impact's slow,
@@ -1192,6 +1195,7 @@ fn summon(named: &str, row: &SupportSkillRow, units: &UnitConfigs) -> Result<Sum
         )
         .map_err(|_| Error::new(format!("{named} creates for no time")))?,
         corrections: Vec::new(),
+        technology_disable: crate::layout::TechnologyDisable::default(),
     })
 }
 

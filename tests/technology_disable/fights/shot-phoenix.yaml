@@ -1,0 +1,26 @@
+# Phoenixes with Electromagnetic Shot shooting a Rhino with Armor
+# Enhancement.
+#
+# The first hit adds buff 1016 and lands as 2754, the armour on (t83); from
+# the next on the armour is off and each lands whole, 2814. The buff is
+# written by the squad's first Phoenix whichever of its two shot.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 232
+hash: {profile: mcfr-content-0.7.0, result: 91b67d3191ea8e7297ac05f90f810f2e797d35293513fa9d316fbfb7bc73713c}
+blue:
+  core_damage: 300
+  techs:
+    phoenix: [electromagnetic_shot]
+  units:
+  - {name: phoenix, index: 0, position: {x: 0, y: -150}}
+red:
+  techs:
+    rhino: [armor_enhancement]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: marksman, index: 1, position: {x: 60, y: -100}, exp: 0/400/650}

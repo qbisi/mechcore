@@ -1,0 +1,23 @@
+# A Marksman with Electromagnetic Shot killing Crawlers with single shots.
+#
+# A hit that kills its Crawler still adds buff 1002 to it
+# (`BuffSystem.IsAvaliableWhenActorDead`, a buff that disables technology),
+# and the buff is cleared on the same tick after the death (t148, t211,
+# t265).
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 322
+hash: {profile: mcfr-content-0.7.0, result: 275ba62eb30576c4eee166cd2151cd382f25aee2bf9d1ac3d98b7ae1696a203f}
+blue:
+  core_damage: 84
+  techs:
+    marksman: [electromagnetic_shot]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/24/650}
+red:
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -150}, exp: 0/200/450}

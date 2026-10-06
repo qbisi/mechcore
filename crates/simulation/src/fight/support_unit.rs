@@ -201,6 +201,7 @@ impl Creator {
             drop_damage: false,
             updates: u64::MAX,
             corrections: production.corrections.clone(),
+            technology_disable: production.technology_disable.clone(),
         };
         Self {
             team: owner.placement.team,
@@ -436,13 +437,7 @@ impl Simulation {
             ignores_control_beam: false,
             travelling: false,
             extra_weapons: Vec::new(),
-            technology_disable: crate::layout::TechnologyDisable {
-                corrections: Vec::new(),
-                unmeasured: (!creator.summon.corrections.is_empty())
-                    .then(|| "a summon's technologies".to_owned())
-                    .into_iter()
-                    .collect(),
-            },
+            technology_disable: creator.summon.technology_disable.clone(),
         };
         let mut actor = Actor::at_generated_position(placement, rules, x_q32, z_q32);
         if let Some(facing) = facing {
@@ -548,6 +543,9 @@ impl Simulation {
             for (channel, entry) in std::mem::take(&mut actor.placement.corrections) {
                 actor.stats.overlays.channel(channel).withdraw(entry.source);
             }
+            // Its technologies' providers are gone with the rest: a disable
+            // that leaves it later writes nothing back.
+            actor.placement.technology_disable.corrections.clear();
             actor.stats.refresh(&actor.rules)?;
         }
         Ok(())

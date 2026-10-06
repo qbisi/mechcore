@@ -295,7 +295,7 @@ fn buff_row(buff: &BuffSource) -> Result<BuffRow> {
             ),
         }))
         .collect(),
-        disables_technology: false,
+        disables_technology: buff.disables_technology,
         debuff: buff.debuff,
         invincible: buff.invincible,
         life_change: None,
