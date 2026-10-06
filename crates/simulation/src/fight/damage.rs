@@ -534,14 +534,10 @@ impl Simulation {
                 if actual > 0 {
                     unit.last_damage_source = Some((source, source_team));
                 }
-                let death = (unit.life == 0).then(|| {
-                    let position = QVec3 {
-                        x: unit.x_q32,
-                        y: space_to_q32(unit_height(unit.rules.domain)),
-                        z: unit.z_q32,
-                    };
-                    unit.exit_fight_on_death();
-                    position
+                let death = (unit.life == 0).then(|| QVec3 {
+                    x: unit.x_q32,
+                    y: space_to_q32(unit_height(unit.rules.domain)),
+                    z: unit.z_q32,
                 });
                 if death.is_some() && previous_life > 0 {
                     self.on_actor_dead(unit_id);
@@ -1136,6 +1132,7 @@ impl Simulation {
     /// (`FightExplosionSkill.EnterFight`, `OnTravelFinished`), and its
     /// `OnDead`, whose `BuffManager.OnMechDead` lets a buff it runs summon.
     fn on_actor_dead(&mut self, unit_id: u64) {
+        self.dead_exits.push(unit_id);
         if !self.actors[&unit_id].travelling && self.explodes_on_death(unit_id) {
             self.dead_explosions.push((unit_id, false));
         }

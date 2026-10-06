@@ -176,6 +176,10 @@ rest of the fight. A unit with no lock goes straight to its point.
   Mustang shots of the losing side land after it, undebuffed:
   `tests/corpus/fights/67160729-r1.yaml`.
 
+- A huge unit walks two of its radii aside around its own side's tower in its
+  way, finding the point anew on every move, and straight on once no tower of
+  its side is near: red's Fortress, `tests/corpus/fights/67154636-r6.yaml`.
+
 ### Replayed
 
 - A tower's loss writes its buff on two blue units turned to red after every
