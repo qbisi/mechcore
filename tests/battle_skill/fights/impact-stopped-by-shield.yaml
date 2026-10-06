@@ -1,0 +1,28 @@
+# An Electromagnetic Impact stopped by a shield.
+#
+# Blue drops an Electromagnetic Impact onto the centre of red's shield. On
+# tick 54, three ticks before it would land, its fall comes inside the shield
+# and it performs there: the shield takes 20000 of its 40000, the skill's
+# `energyShieldDamage`, and the Marksman and the Rhino the shield holds take
+# no buff. Red's other Marksman stands beyond the skill's 60 metres.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 758
+hash: {profile: mcfr-content-0.7.0, result: 1ce2789bcb97d8bbad7e5f06546f088696ebb6fb450f1429c5d4be599a100193}
+blue:
+  units:
+  - {name: fortress, index: 0, position: {x: 60, y: -150}, exp: 0/800/1600}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: -1, y: 81}]}
+red:
+  core_damage: 350
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -80}}
+  - {name: rhino, index: 1, position: {x: 5, y: -135}}
+  - {name: marksman, index: 2, position: {x: 60, y: -150}, exp: 0/200/650}
+  contraptions:
+  - {name: shield, index: 3, position: {x: 1, y: -81}, retained: false}

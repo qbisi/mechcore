@@ -1,0 +1,29 @@
+# An Electromagnetic Impact landing beside a shield.
+#
+# Blue's Electromagnetic Impact lands on tick 57, 110 metres from the centre
+# of red's 70-metre shield, so its 60-metre circle reaches the shield's edge:
+# the shield takes 20000, the skill's `energyShieldDamage`. The circle also
+# reaches the Rhino outside the shield, which takes the buff, and the
+# Marksman just inside it, which does not. Red's other Marksman stands
+# beyond the circle.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 417
+hash: {profile: mcfr-content-0.7.0, result: 048dbd731d060cedd1ab970c80148b179115c7a78de437a5d5a195fd60f16732}
+blue:
+  units:
+  - {name: fortress, index: 0, position: {x: 60, y: -150}, exp: 0/800/1600}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: -1, y: 30}]}
+red:
+  core_damage: 350
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -90}}
+  - {name: rhino, index: 1, position: {x: 35, y: -45}}
+  - {name: marksman, index: 2, position: {x: -60, y: -150}}
+  contraptions:
+  - {name: shield, index: 3, position: {x: 1, y: -141}}

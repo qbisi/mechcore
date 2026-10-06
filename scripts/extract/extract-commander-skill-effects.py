@@ -43,17 +43,18 @@ BUFF = 200001
 
 # (field in the row, name here). What is left out is the panel's (icon,
 # description, story, audio, prices, the rounds a skill can be dealt in, and
-# `scope`, when the card may be used), a
-# shield's (`energyShieldDamage`, `isCrossAdvancedShield`: a side carrying a
-# shield is refused before a skill is released), and what
+# `scope`, when the card may be used), and what
 # `CommanderSkillData.PreProcess` overwrites for a circle (`subEffectCount`,
 # `subEffectRange`, `subEffectIntervalTime`). `subEffectDefaultHeight` is where
 # a sub-effect's fall stops and the fall starts that much higher, so it moves
-# nothing the fight reads.
+# nothing the fight reads. `energyShieldDamage` is what `CS_Buff`, a damage
+# modifier, adds to its hit on a shield, and `isCrossAdvancedShield` whether
+# its fall passes shields.
 INTEGERS = (
     ("effectRangeType", "effect_range_type"),
     ("effectType", "effect_type"),
     ("subEffectDamage", "sub_effect_damage"),
+    ("energyShieldDamage", "energy_shield_damage"),
 )
 FIXED = (
     ("startTime", "start_time"),
@@ -381,6 +382,8 @@ def render(group):
         for field, name in FIXED:
             value = raw(row[field])
             lines.append(f"    {name}: {value}{reading(value)}")
+        for field, name in DAMAGE_FLAGS:
+            lines.append(f"    {name}: {str(row[field]).lower()}")
         lines += buff_lines(buffs[row["subEffectBuffID"]])
     lines += support_lines(group, standard)
     lines += shield_lines(group, standard)

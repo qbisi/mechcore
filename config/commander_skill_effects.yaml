@@ -12,10 +12,12 @@ buff_skills:
     effect_range_type: 0
     effect_type: 0
     sub_effect_damage: 0
+    energy_shield_damage: 20000
     start_time: 11596411699  # 2.7
     effect_range: 257698037760  # 60
     sub_effect_move_speed: 2791728742400  # 650
     sub_effect_move_time: 19327352832  # 4.5
+    cross_advanced_shield: false
     buff:
       id: 200001
       name: 战场技能-电磁干扰
@@ -36,10 +38,12 @@ buff_skills:
     effect_range_type: 0
     effect_type: 0
     sub_effect_damage: 0
+    energy_shield_damage: 20000
     start_time: 11596411699  # 2.7
     effect_range: 558345748480  # 130
     sub_effect_move_speed: 2791728742400  # 650
     sub_effect_move_time: 19327352832  # 4.5
+    cross_advanced_shield: false
     buff:
       id: 200001
       name: 战场技能-电磁干扰
@@ -60,10 +64,12 @@ buff_skills:
     effect_range_type: 0
     effect_type: 0
     sub_effect_damage: 0
+    energy_shield_damage: 0
     start_time: 2576980377  # 0.6
     effect_range: 472446402560  # 110
     sub_effect_move_speed: 0  # 0
     sub_effect_move_time: 0  # 0
+    cross_advanced_shield: false
     buff:
       id: 40000
       name: 光子投射通用

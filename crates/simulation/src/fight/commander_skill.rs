@@ -34,6 +34,17 @@ impl CommanderSkillSystem {
 /// What tags a battle skill's buff, so that its end takes it away.
 const SKILL_SOURCE: &str = "BuffSystem.CommanderSkill";
 
+/// What a `CommanderSkillSubEffectController` does where one of its
+/// sub-effects lands, read off its release's `SkillEffect::Strike`.
+struct Circle<'a> {
+    range_q32: i64,
+    damage: i64,
+    crosses_shields: bool,
+    shield_damage: Option<i64>,
+    harmful: bool,
+    buff: Option<&'a SkillBuff>,
+}
+
 /// `CalculateAttackPositions`' line: the `step`th of `count` points
 /// `length / (count - 1)` apart from `from` towards `to`, the way there
 /// clamped to its distance, so the last falls a fraction of a millimetre off
@@ -127,14 +138,32 @@ impl Simulation {
                 range_q32,
                 damage,
                 crosses_shields,
+                shield_damage,
+                harmful,
                 buff,
                 sub_effects,
                 ..
             } = &release.effect
             {
+                // A skill that is not harmful stops at a shield as any other
+                // does, which is not measured for one that falls nowhere.
+                if !harmful && !self.shield.standing.is_empty() {
+                    return Err(Error::new(format!(
+                        "{} lands in a fight with a battlefield shield, which is not measured",
+                        release.name
+                    )));
+                }
+                let circle = Circle {
+                    range_q32: *range_q32,
+                    damage: *damage,
+                    crosses_shields: *crosses_shields,
+                    shield_damage: *shield_damage,
+                    harmful: *harmful,
+                    buff: buff.as_ref(),
+                };
                 let falling = self.step_sub_effects(
                     &release,
-                    (*range_q32, *damage, *crosses_shields, buff.as_ref()),
+                    &circle,
                     sub_effects,
                     (tick, target_search_order),
                     events,
@@ -178,16 +207,11 @@ impl Simulation {
             if release.lands_on != tick {
                 continue;
             }
-            // A falling sub-effect of any other kind stops at the first
-            // shield it enters too, and a buff skill's damage modifier
-            // strikes shields: neither is measured. A Shield Airdrop's
-            // crosses shields whatever its row says
+            // A support skill's falling sub-effect stops at the first
+            // shield it enters too, which is not measured. A Shield
+            // Airdrop's crosses shields whatever its row says
             // (`CS_EnergyShield.CanCrossAdvancedEnergyShield`).
-            if !self.shield.standing.is_empty()
-                && matches!(
-                    release.effect,
-                    SkillEffect::Buff { .. } | SkillEffect::Summon(_)
-                )
+            if !self.shield.standing.is_empty() && matches!(release.effect, SkillEffect::Summon(_))
             {
                 return Err(Error::new(format!(
                     "{} lands in a fight with a battlefield shield, which is not measured",
@@ -195,16 +219,6 @@ impl Simulation {
                 )));
             }
             match &release.effect {
-                SkillEffect::Buff { range_q32, buff } => {
-                    let point = (space_to_q32(release.x), space_to_q32(release.z));
-                    let mut reached = self.skill_reach(point, *range_q32, target_search_order);
-                    // `PerformPositiveEffect` asks the calculator of the
-                    // releasing side's group alone.
-                    if !buff.harmful() {
-                        reached.retain(|id| self.actors[id].placement.team == release.team);
-                    }
-                    self.write_release_buff(&release, buff, &reached, events)?;
-                }
                 // A strike's sub-effects land above, and a path is given out
                 // as the fight starts and never lands.
                 SkillEffect::Strike { .. }
@@ -231,35 +245,23 @@ impl Simulation {
         Ok(())
     }
 
-    /// `CSRS_Perform`'s update of a strike's agents, in the order they were
-    /// activated: one that lands on this tick strikes where it lands, and one
-    /// that cannot cross shields stops at the first it comes inside as it
-    /// falls, before it would land, and strikes there. Answers the ones still
-    /// to land.
-    ///
-    /// A strike that writes a buff (`PerformNegativeEffect`) takes the units
-    /// its circle reaches before it deals its damage, and writes the buff on
-    /// those still alive after, as `BuffSystem.AddBuff` skips the dead. The
-    /// list also leaves out the units a shield covers, which is not measured,
-    /// so such a strike is refused beside a battlefield shield.
+    /// `CSRS_Perform`'s update of a skill's agents, in the order they were
+    /// activated: one that lands on this tick performs where it lands, and
+    /// one that cannot cross shields stops at the first it comes inside as it
+    /// falls, before it would land, and performs there (`InterruptEffect`).
+    /// Answers the ones still to land.
     fn step_sub_effects(
         &mut self,
         release: &SkillRelease,
-        (range_q32, damage, crosses_shields, buff): (i64, i64, bool, Option<&SkillBuff>),
+        circle: &Circle<'_>,
         sub_effects: &[SubEffect],
         (tick, target_search_order): (u64, &BTreeMap<u32, Vec<FightActorRef>>),
         events: &mut Vec<Event>,
     ) -> Result<Vec<SubEffect>> {
-        if buff.is_some() && !self.shield.standing.is_empty() {
-            return Err(Error::new(format!(
-                "{} writes a buff in a fight with a battlefield shield, which is not measured",
-                release.name
-            )));
-        }
         let mut falling = Vec::new();
         for sub_effect in sub_effects {
             let (x_q32, z_q32, fall) = (sub_effect.x_q32, sub_effect.z_q32, sub_effect.fall);
-            if !crosses_shields
+            if !circle.crosses_shields
                 && tick <= sub_effect.lands_on
                 && let Some(height) = fall.height_on(tick)
             {
@@ -267,25 +269,64 @@ impl Simulation {
                 if let Some((_, point)) =
                     self.falling_into_shield((x_q32, height, z_q32), (x_q32, last, z_q32))
                 {
-                    self.strike_circle(release, range_q32, damage, false, point, events)?;
+                    self.perform_hit_effect(release, circle, point, target_search_order, events)?;
                     continue;
                 }
             }
             if sub_effect.lands_on == tick {
-                let reached = match buff {
-                    Some(_) => self.skill_reach((x_q32, z_q32), range_q32, target_search_order),
-                    None => Vec::new(),
-                };
                 let point = (x_q32, 0, z_q32);
-                self.strike_circle(release, range_q32, damage, crosses_shields, point, events)?;
-                if let Some(buff) = buff {
-                    self.write_release_buff(release, buff, &reached, events)?;
-                }
+                self.perform_hit_effect(release, circle, point, target_search_order, events)?;
                 continue;
             }
             falling.push(*sub_effect);
         }
         Ok(falling)
+    }
+
+    /// `CommanderSkillSubEffectController.PerformHitEffect` where a
+    /// sub-effect landed or stopped. A skill that is not harmful writes its
+    /// buff on its own side's units its circle reaches
+    /// (`PerformPositiveEffect`, which asks the calculator of the releasing
+    /// side's group alone).
+    ///
+    /// A harmful one (`PerformNegativeEffect`) first takes the units its
+    /// circle reaches, of either side, less each that one of its own side's
+    /// shields holds (`FightCalculator.IsActorInEnergyShield`). It then
+    /// strikes the circle, when its damage is above nothing or it is a damage
+    /// modifier (`IsDamageEffect`), and writes its buff on the units it took
+    /// that are still alive, as `BuffSystem.AddBuff` skips the dead.
+    fn perform_hit_effect(
+        &mut self,
+        release: &SkillRelease,
+        circle: &Circle<'_>,
+        point: (i64, i64, i64),
+        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        let center = (point.0, point.2);
+        if !circle.harmful {
+            if let Some(buff) = circle.buff {
+                let mut reached = self.skill_reach(center, circle.range_q32, target_search_order);
+                reached.retain(|id| self.actors[id].placement.team == release.team);
+                self.write_release_buff(release, buff, &reached, events)?;
+            }
+            return Ok(());
+        }
+        let reached = match circle.buff {
+            Some(_) => self
+                .skill_reach(center, circle.range_q32, target_search_order)
+                .into_iter()
+                .filter(|&id| self.shield_around(FightActorRef::Unit(id)).is_none())
+                .collect(),
+            None => Vec::new(),
+        };
+        if circle.damage > 0 || circle.shield_damage.is_some() {
+            self.strike_circle(release, circle, point, events)?;
+        }
+        if let Some(buff) = circle.buff {
+            self.write_release_buff(release, buff, &reached, events)?;
+        }
+        Ok(())
     }
 
     /// `RangeItemEffectController.PerformEffect` for each of a terrain
@@ -325,35 +366,40 @@ impl Simulation {
         Ok(falling)
     }
 
-    /// `CommanderSkillSubEffectController.PerformNegativeEffect` for a damage
-    /// skill: `CommanderSkillDamageProvider`'s damage over the skill's circle
-    /// where it landed, on everything of either side it reaches, with no
-    /// owner.
+    /// `PerformNegativeEffect`'s hit: `CommanderSkillDamageProvider`'s damage
+    /// over the skill's circle where it landed or stopped, on everything of
+    /// either side it reaches, with no owner. A shield takes what the skill's
+    /// damage modifier adds to it.
     fn strike_circle(
         &mut self,
         release: &SkillRelease,
-        range_q32: i64,
-        damage: i64,
-        crosses_shields: bool,
+        circle: &Circle<'_>,
         (x_q32, y_q32, z_q32): (i64, i64, i64),
         events: &mut Vec<Event>,
     ) -> Result<()> {
         // A battle skill's circle reaches units alone.
         let hit = DamageHit {
-            crosses_shields,
+            crosses_shields: circle.crosses_shields,
             strikes_buildings: false,
+            shield_damage: circle
+                .shield_damage
+                .filter(|&added| added > 0)
+                .map(|added| circle.damage + added),
             ..DamageHit::unowned(
                 release.team,
-                damage,
+                circle.damage,
                 (x_q32, z_q32),
                 y_q32,
-                q32_to_space_rounded(range_q32),
+                q32_to_space_rounded(circle.range_q32),
             )
         };
         // `PrepareRangeTargets` asks `CalculateRangeActors` with
         // `includeBuilding` off: a tower is never struck. Whether a
-        // construction is, as one of its side's actors, is not measured.
-        if let Some(block) = self.construction_in_reach(x_q32, z_q32, range_q32) {
+        // construction is, as one of its side's actors, is not measured;
+        // a hit that deals a unit nothing takes nothing from it either way.
+        if circle.damage > 0
+            && let Some(block) = self.construction_in_reach(x_q32, z_q32, circle.range_q32)
+        {
             return Err(Error::new(format!(
                 "{} reaches construction building {block}, and whether a battle skill strikes \
                  a construction is not measured",

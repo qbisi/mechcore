@@ -174,6 +174,16 @@ by `FPoint`'s tolerant comparison. A construction or a tower is never reached.
 The units are taken side by side, blue's first, each side in the order its
 target tree holds them, and the buff is written on each in that order.
 
+It meets battlefield shields as a damage strike does, for its row does not
+cross them. Its fall stops at the first shield it comes inside, and it
+performs there, at the point its way met the shield's surface. It is a
+damage modifier, so where it performs it strikes its circle as a damage
+strike does, with no damage: a shield the circle reaches takes the row's
+`energyShieldDamage`, 20000, added to that nothing. A unit one of its own
+side's shields holds, by the shield holding its centre, is left out of the
+units it reaches, though the circle reaches its edge; the list is taken
+before the strike, so a shield the strike breaks still spares it.
+
 The buff slows the unit by its `move_speed_rate` for its `duration`, and while
 it runs the unit's technologies are off: `status_mask` reads
 `technology_disabled` whether the unit carries a technology or not. A second
@@ -307,8 +317,8 @@ A strike whose row names a buff, Lightning Storm's slow, takes the units its
 circle reaches as it lands, deals its damage, and then writes the buff on
 those of them still alive. A unit struck again takes the buff again, as a
 missile's slow does ([`contraptions.md`](contraptions.md)). The list leaves
-out the units a shield covers, which is not measured, so the simulator refuses
-such a strike in a fight with a battlefield shield.
+out each unit one of its own side's shields holds, as an Electromagnetic
+Impact's does, for both skills' sub-effects are one controller's.
 
 
 
@@ -488,6 +498,11 @@ drawn from any stream, and no event is written.
 - A falling strike stops at a shield, and one that crosses shields does not:
   `tests/battle_skill/fights/strike-stopped-by-shield.yaml`,
   `tests/battle_skill/fights/javelin-crosses-shield.yaml`.
+- An Electromagnetic Impact stops at a shield as it falls, a shield its
+  circle reaches takes 20000, and a unit its own side's shield holds takes no
+  buff, whether the Impact stopped or landed:
+  `tests/battle_skill/fights/impact-stopped-by-shield.yaml`,
+  `tests/battle_skill/fights/impact-beside-shield.yaml`.
 - A Shield Airdrop lands on tick `s + 3`, and stands a full shield on the
   ground at its release point, which takes shots until it breaks:
   `tests/shield/fights/airdrop-lands.yaml`.
@@ -564,7 +579,7 @@ drawn from any stream, and no event is written.
   `CSRC_Common.ActiveSubEffect`, `CommanderSkillSubEffectAgent.Update`.
 - A sub-effect reaches every live, visible actor of every group in its range
   by edge distance in the plane, group by group and team by team in tree
-  order, and keeps the units outside an energy shield:
+  order, and keeps the units no shield of their own side holds:
   `CommanderSkillSubEffectController.PerformNegativeEffect`,
   `RangeTargetCalculator.CalculateRangeActors`,
   `RangeTargetCalculator.CalculateRangeActorsInternal`,
@@ -637,6 +652,20 @@ drawn from any stream, and no event is written.
   on the living: `CommanderSkillSubEffectController.PerformNegativeEffect`,
   `CommanderSkillSubEffectController.PerformHitEffect`,
   `BuffSystem.AddBuff`.
+- A buff skill's sub-effect is the same controller as a damage skill's,
+  whose harmful landing strikes when the skill deals damage or modifies it,
+  as `CS_Buff` always does; its modifier adds `energyShieldDamage` to what a
+  shield takes when that is above zero, and its fall passes shields as its
+  row's `isCrossAdvancedShield` says: `CS_Buff.CreateSubEffectController`,
+  `CS_Damage.CreateSubEffectController`,
+  `CommanderSkillSubEffectController.IsDamageEffect`,
+  `CS_Buff.ChangeHitEnergyShieldDamage`,
+  `CS_Buff.IsChangeHitEnergyShieldDamage`,
+  `CommanderSkillBase.CanCrossAdvancedEnergyShield`,
+  `CommanderSkillBase.IsHarmful`, `CS_Buff.IsHarmful`.
+- A sub-effect stopped by a shield performs where it stopped:
+  `CommanderSkillSubEffectAgent.OnHitEnergyShield`,
+  `CommanderSkillSubEffectController.InterruptEffect`.
 - Its fall stops at the first shield it comes inside:
   `CommanderSkillSubEffectAgent.Update`,
   `CommanderSkillSubEffectAgent.IsHitEnergyShield`,
@@ -680,8 +709,13 @@ drawn from any stream, and no event is written.
 
 - **A strike reaching a construction.** Whether a construction is among the
   actors a battle skill's circle takes is not read; the simulator refuses it.
-- **A strike's buff beside a shield.** Which units a shield takes off a
-  strike's buff list is not recorded; the simulator refuses it.
+- **A strike's buff beside a shield.** A Lightning Storm's list is read to
+  leave out what its own side's shields hold, as an Electromagnetic Impact's
+  is recorded to, and no fight pins it.
+- **A skill that is not harmful beside a shield.** Photon Emission's
+  sub-effect does not fall, and whether it stops at a shield it stands
+  inside is not read; the simulator refuses it in a fight with a
+  battlefield shield.
 - **How a beacon's `LineRange` meets a unit's circle.** The simulator reads it
   as the distance to the segment against the width and the radius, which the
   recordings agree with and the build's `LineRange.Overlaps` is not read for.
@@ -708,8 +742,6 @@ drawn from any stream, and no event is written.
 - **An Electromagnetic Impact on a unit running another buff.** The two run
   side by side, and how their rates compose is not read; the simulator
   refuses it.
-- **A unit inside an energy shield.** It is read to be spared, and no fight
-  pins it.
 - **The Electromagnetic Blast.** Its row differs in its range alone, and no
   fight pins it.
 - **A Training Ground release of Heavy Missile Strike.** Its geometry and map
