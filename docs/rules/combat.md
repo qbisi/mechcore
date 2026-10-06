@@ -40,6 +40,15 @@ the skill's `attackDurationRandomValue`, which
   replays 201370830 and 67152171, round 1: two units 6 raw apart in `z` draw
   their first intervals, and act each tick, in `x` order, the later identity
   first.
+- **The first searches are staggered in the same order.** The presearch
+  (`PresearchTargetController.CreateMechDatas`) takes each side's mechs in
+  that order and gives the n-th, counting from 0, a search timer of
+  n / ⌈count / 10⌉ updates, so the units search for the first time in ten
+  batches. Two units within 43 raw of each other in `z` fall in their `x`
+  order here too: in replay 67152171, round 3, blue's Mustang 27, 6 raw
+  behind Mustang 26 and left of it, is in the first batch and 26 in the
+  second, and every search of 27's comes a tick sooner than its identity
+  would put it.
 - **Every cycle draws again.** The number is the interval the cycle in progress
   was scheduled with, so a unit's cadence jitters from cycle to cycle rather
   than being staggered once at deployment.
@@ -938,6 +947,9 @@ not the game's native attack-type enum.
   `tests/corpus/fights/201373545-r4.yaml`, ticks 504 and 1028. A Farseer
   sets off as a Sledgehammer does: `tests/corpus/fights/134267654-r3.yaml`,
   tick 1739.
+- The presearch staggers each side's first searches in its update order, not
+  its identities': `tests/corpus/fights/67152171-r3.yaml`, blue's Mustang 27,
+  whose searches fall on ticks 1, 12, …, 133.
 - A main skill starts its attack in its own update: a Melting Point prepares
   on the Crawler it locks, and goes idle when its own beam fells it first:
   `tests/extra_weapon/fights/energy-diffraction-crawler.yaml`, tick 283, and
@@ -1128,6 +1140,13 @@ not the game's native attack-type enum.
 
 ### Read
 
+- The presearch takes each side's mechs in their team's order, which
+  `PrepareActors` sorts by `FightUtility.ActorComparer`, and staggers their
+  first searches in ten batches:
+  `PresearchTargetController.CreateMechDatas`,
+  `PresearchTargetController.CalculateCountPerTime`,
+  `PresearchTargetController.SearchTarget`, `FightTeam.PrepareActors`,
+  `FightUtility.ActorComparer`.
 - A weapon without a transform of its own turns only with the motion, and
   nothing turns the tick the motion changes to moving: `FightWeapon.CanRotate`,
   `FightSkill.Update`, `MotionAttackState.AttackRotate`,

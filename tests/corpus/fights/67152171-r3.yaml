@@ -1,0 +1,62 @@
+# Replay 2324_20260925--67152171, round 3, map 1011. Blue's Mustang 27 stands 6
+# raw units behind Mustang 26 in z and left of it in x: the presearch, which
+# takes each side's units in their update order, puts 27 in the first batch,
+# and its searches fall on ticks 1, 12, ..., 133. On tick 133, turned towards
+# the Crawlers, it takes Crawler 80 over red's building 11.
+
+kind: fight
+map_id: 1011
+seed: 584983421
+round: 3
+source: game
+ticks: 1561
+hash: {profile: mcfr-content-0.7.0, result: 4c6ef59659be0d12be7e38c234cc63c6f277bc73d45e46cc1d4e07b1f9820071}
+blue:
+  officers: [missile_specialist]
+  techs:
+    void_eye: [range_enhancement]
+  legacy_index: 8
+  units:
+  - {name: void_eye, index: 0, position: {x: 70, y: -180}, level: 2, exp: 0/929/1465}
+  - {name: void_eye, index: 1, position: {x: 110, y: -180}, exp: 578/650/650}
+  - {name: void_eye, index: 2, position: {x: 170, y: -180}, exp: 342/650/650}
+  - {name: mustang, index: 3, position: {x: 140, y: -285}, exp: 934/1200/1200, rotated: true}
+  - {name: mustang, index: 4, position: {x: -140, y: -285}, exp: 299/702/1200, rotated: true}
+  - {name: mustang, index: 5, position: {x: 255, y: -300}, exp: 1176/1200/1200}
+  - {name: mustang, index: 6, position: {x: 50, y: -285}, exp: 551/822/1200, rotated: true}
+  - {name: mustang, index: 7, position: {x: -65, y: -300}, exp: 229/493/1200}
+  - {name: arclight, index: 8, position: {x: 140, y: -150}, level: 2, exp: 0/449/1690}
+  - {name: arclight, index: 9, position: {x: -140, y: -150}, level: 2, exp: 0/402/1690}
+  - {name: void_eye, index: 10, position: {x: -110, y: -180}, exp: 0/580/650}
+  - {name: void_eye, index: 11, position: {x: -170, y: -180}, exp: 0/168/650}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  battle_skills:
+  - {name: heavy_missile_strike, positions: [{x: -168, y: 218}]}
+red:
+  core_damage: 571
+  officers: [secondary_equipment_expert]
+  techs:
+    steel_ball: [kinetic_charge]
+  legacy_index: 9
+  units:
+  - {name: crawler, index: 0, position: {x: -140, y: -265}, exp: 117/272/450, rotated: true}
+  - {name: crawler, index: 1, position: {x: 140, y: -265}, exp: 136/231/450, rotated: true}
+  - {name: crawler, index: 2, position: {x: 0, y: -265}, exp: 144/211/450, rotated: true}
+  - {name: steel_ball, index: 3, position: {x: -185, y: -280}, exp: 397/1000/1000}
+  - {name: steel_ball, index: 4, position: {x: 185, y: -280}, level: 2, exp: 0/1529/2253}
+  - {name: vortex, index: 5, position: {x: -140, y: -140}, exp: 68/68/750}
+  - {name: vortex, index: 6, position: {x: 140, y: -140}, exp: 526/750/750}
+  - {name: mustang, index: 7, position: {x: -185, y: -250}, exp: 422/680/1200, equipment: [secondary_fire_control_system]}
+  - {name: mustang, index: 8, position: {x: 185, y: -250}, exp: 657/1200/1200, equipment: [secondary_fire_control_system]}
+  - {name: wasp, index: 9, position: {x: 280, y: -165}, exp: 0/11/900, rotated: true}
+  - {name: wasp, index: 10, position: {x: -280, y: -175}, rotated: true, equipment: [small_amplifying_core]}
+  - {name: crawler, index: 11, position: {x: 250, y: -155}, exp: 0/3/450, rotated: true}
+  - {name: crawler, index: 12, position: {x: -250, y: -165}, rotated: true}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 159, y: -230}}
+  - {name: shield, index: 1, position: {x: -161, y: -229}, retained: false}
