@@ -551,6 +551,7 @@ fn buff_source_of(row: &Row, who: &str) -> std::result::Result<Option<BuffSource
         who,
         (row.buff_trigger, &row.buff_targets, row.probability),
         &row.buff_cycle,
+        false,
         &row.buff_special,
         row.buff.as_ref(),
     )
@@ -855,7 +856,7 @@ mod tests {
             .corrections(CHARGED_AMMO, &marksman)
             .unwrap_err()
             .to_string();
-        assert!(refused.contains("BuffTechListener"), "{refused}");
+        assert!(refused.contains("disableTechnology"), "{refused}");
     }
 
     /// Anti-Interference Module, a permanent effect, makes its unit ignore

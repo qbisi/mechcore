@@ -51,7 +51,7 @@ pub(crate) struct AutoRecovery {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(
     clippy::struct_excessive_bools,
-    reason = "the buff row's flags are independent fields"
+    reason = "the buff row's and its source's flags are independent fields"
 )]
 pub(crate) struct BuffSource {
     pub(crate) buff_id: u32,
@@ -71,6 +71,8 @@ pub(crate) struct BuffSource {
     pub(crate) speed_rate: i64,
     /// `attackRangeChangeValue`: whole metres on the main skill's range.
     pub(crate) attack_range_value: i64,
+    /// `attackRangeChangeRate`, Q32.32: the rate on the main skill's range.
+    pub(crate) attack_range_rate: i64,
     /// `maxLifeChangeRate`, Q32.32: what `IBEC_ChangeMaxLife` adds to the
     /// unit's own life rate.
     pub(crate) max_life_rate: i64,
@@ -78,12 +80,26 @@ pub(crate) struct BuffSource {
     pub(crate) step_q32: i64,
     /// How it stacks, if it does (`IsAdditiveEffect`).
     pub(crate) stacking: Option<Stacking>,
-    /// Whom the controller gives it: the unit itself once, as the fight
-    /// starts, or, under `BuffTargetUpdateModel.Each`, every unit in reach.
-    pub(crate) reach: Option<BuffReach>,
     /// `isClearSelfBuffWhenDisableTech`: as its unit's technologies are
     /// disabled, the buff its unit added itself is cleared.
     pub(crate) clears_when_technologies_disabled: bool,
+    /// When and to whom the controller gives it.
+    pub(crate) trigger: BuffTrigger,
+    /// `CanDisable`, as [`LifeSteal::can_disable`]: whether a hit of a unit
+    /// whose technologies are disabled adds no buff.
+    pub(crate) can_disable: bool,
+}
+
+/// When a buff source's `BuffCycleController` adds its buff, and to whom.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum BuffTrigger {
+    /// `FightStart` under `BuffTargetUpdateModel.All`: the unit itself, once.
+    Itself,
+    /// `FightStart` under `Each`: every unit in reach, on every update.
+    Around(BuffReach),
+    /// `Hit`: what each hit of its unit's skills strikes, the controller
+    /// being one of the skills' hit effects.
+    Hit,
 }
 
 /// The units a `RangeUnitCycle` keeps a buff on: those

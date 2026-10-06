@@ -22,7 +22,7 @@ use super::{
 };
 use crate::{
     data::{Entry, Index},
-    modifier::{BuffReach, BuffSource},
+    modifier::{BuffReach, BuffSource, BuffTrigger},
 };
 
 /// What tags the entries a technology's or an equipment's buff writes.
@@ -38,11 +38,26 @@ pub(in crate::fight) enum BuffCycle {
     /// Started by `TriggerCycleStart` (`BuffCycleState.Delaying`), before its
     /// first update.
     Starting,
-    /// Under `All`, triggered and done.
+    /// Under `All`, triggered and done; or never started, its listener not
+    /// being the fight's start.
     Done,
     /// Under `Each`, its `RangeUnitCycle` past its delay: `currentFrame`, and
     /// `fightMeches`, the units it holds in the order it took them.
     Running { frame: u32, members: Vec<u64> },
+}
+
+impl BuffCycle {
+    /// A unit's controllers as the fight starts: `OnEnterFight` starts each
+    /// whose listener is the fight's start, and no other.
+    pub(in crate::fight) fn of(sources: &[BuffSource]) -> Vec<Self> {
+        sources
+            .iter()
+            .map(|source| match source.trigger {
+                BuffTrigger::Hit => Self::Done,
+                BuffTrigger::Itself | BuffTrigger::Around(_) => Self::Starting,
+            })
+            .collect()
+    }
 }
 
 impl Simulation {
@@ -84,19 +99,19 @@ impl Simulation {
         let source = actor.placement.buff_sources[index];
         let owner = actor.object_ref();
         let cycle = actor.buff_cycles[index].clone();
-        let (next, reached) = match (source.reach, cycle) {
+        let (next, reached) = match (source.trigger, cycle) {
             (_, BuffCycle::Done) => return Ok(()),
-            (None, BuffCycle::Starting) => (BuffCycle::Done, vec![id]),
+            (BuffTrigger::Itself, BuffCycle::Starting) => (BuffCycle::Done, vec![id]),
             // `RangeUnitCycle.Update` in `Delay`: a delay never set is over
             // on the first update, which selects nothing.
-            (Some(_), BuffCycle::Starting) => (
+            (BuffTrigger::Around(_), BuffCycle::Starting) => (
                 BuffCycle::Running {
                     frame: 0,
                     members: Vec::new(),
                 },
                 Vec::new(),
             ),
-            (Some(reach), BuffCycle::Running { frame, members }) => {
+            (BuffTrigger::Around(reach), BuffCycle::Running { frame, members }) => {
                 let frame = frame.saturating_add(1);
                 if frame < SELECT_RANGE_INTERVAL {
                     (BuffCycle::Running { frame, members }, Vec::new())
@@ -111,8 +126,8 @@ impl Simulation {
                     )
                 }
             }
-            (None, BuffCycle::Running { .. }) => {
-                unreachable!("a buff source with no reach never runs a range cycle")
+            (_, BuffCycle::Running { .. } | BuffCycle::Starting) => {
+                unreachable!("only a source that reaches the units around runs a range cycle")
             }
         };
         self.actors
@@ -176,6 +191,60 @@ impl Simulation {
     }
 }
 
+impl Simulation {
+    /// `BuffCycleController.PerformHitEffect` of each source of the skill's
+    /// owner whose listener is `Hit`, after a hit of its skill in `slot`:
+    /// `RegisterMechEvent` made it a hit effect of each skill
+    /// `SkillDataModifier.AvaliableCheck` passes, and a source that
+    /// `CanDisable` does nothing while the owner's technologies are disabled.
+    /// `BuffSystem.AddBuff` then adds the buff, under the owner's side and
+    /// as written by it, to every live unit the hit struck, in the order it
+    /// struck them; a construction takes none, the buff not reaching one. A
+    /// Void Eye with Suppression Shots cuts a struck Fortress's range from
+    /// 100 to 70, and a struck Rhino's melee reach not at all.
+    pub(in crate::fight) fn add_hit_buffs(
+        &mut self,
+        owner_id: u64,
+        slot: u16,
+        targets: &[FightActorRef],
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        let Some(owner) = self.actors.get(&owner_id) else {
+            return Ok(());
+        };
+        let sources = owner
+            .placement
+            .buff_sources
+            .iter()
+            .filter(|source| source.trigger == BuffTrigger::Hit)
+            .filter(|source| !(source.can_disable && owner.technology_disabled()))
+            .copied()
+            .collect::<Vec<_>>();
+        if sources.is_empty() || !owner.corrected_skill_slots().contains(&usize::from(slot)) {
+            return Ok(());
+        }
+        if owner.placement.lifesteal.is_some() {
+            return Err(Error::new(format!(
+                "unit {owner_id} steals life and adds a buff on a hit, and in which order its \
+                 skill's hit effects run is not read"
+            )));
+        }
+        let (source, team) = (owner.object_ref(), owner.placement.team);
+        for buff in sources {
+            let row = buff_row(&buff)?;
+            for target in targets {
+                let FightActorRef::Unit(id) = *target else {
+                    continue;
+                };
+                if self.actors[&id].alive() && self.buff_reaches(id, &row) {
+                    self.write_buff(id, Some(source), team, &row, events)?;
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
 /// The `buffDatas` row a source adds, as `BuffManager.AddBuff` adds it.
 fn buff_row(buff: &BuffSource) -> Result<BuffRow> {
     let step_ticks = u32::try_from(seconds_q32_to_steps(buff.step_q32))
@@ -206,6 +275,12 @@ fn buff_row(buff: &BuffSource) -> Result<BuffRow> {
             source: SOURCE,
             correction: super::tower::rate(rate),
         })
+        // `attackRangeChangeRate`: a rate on the main skill's range.
+        .chain((buff.attack_range_rate != 0).then(|| Entry {
+            index: Index::AttackRange,
+            source: SOURCE,
+            correction: super::tower::rate(buff.attack_range_rate),
+        }))
         // `attackRangeChangeValue`: whole metres on the main skill's range.
         .chain((buff.attack_range_value != 0).then(|| Entry {
             index: Index::AttackRange,

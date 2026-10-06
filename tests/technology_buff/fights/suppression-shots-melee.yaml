@@ -1,0 +1,24 @@
+# Suppression Shots on a Rhino: a melee unit takes the buff too.
+#
+# The source names no targets, domains or distance type the hit reads: every
+# hit of the Void Eyes on the Rhino adds buff 10301 from t151, though its
+# melee reach of 6 metres takes no range correction.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 299
+hash: {profile: mcfr-content-0.7.0, result: c38177e1c0727273910ae1468bd39bf99ecce3b8b898ac2fb03cb94d60c7c9f8}
+blue:
+  core_damage: 650
+  techs:
+    void_eye: [suppression_shots]
+  units:
+  - {name: void_eye, index: 0, position: {x: 0, y: -170}}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -120}, exp: 0/99/650}
+  - {name: rhino, index: 1, position: {x: -45, y: -105}, exp: 0/99/1150}
+  - {name: fortress, index: 2, position: {x: 70, y: -150}}
