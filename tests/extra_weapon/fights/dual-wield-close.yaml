@@ -1,0 +1,27 @@
+# Dual Wield: a Centurion's side arm beside its main gun.
+#
+# A Centurion with Dual Wield against three Marksmen. The side arm fires in
+# turn with the main gun: it begins a blow 0.2 seconds, four ticks, after the
+# main gun begins one (t136, its prepare from t140), and the main gun waits
+# for it in turn. Its first search finds no other Marksman in its reach
+# within 40 metres of the main gun's lock, so it takes that lock and keeps it
+# while it suits.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 174
+hash: {profile: mcfr-content-0.7.0, result: 9327b0c979661f95da20799c5115b085490189acf848ea554e8398b70bec277f}
+blue:
+  core_damage: 200
+  techs:
+    centurion: [dual_wield]
+  units:
+  - {name: centurion, index: 0, position: {x: 5, y: -45}, exp: 0/200/2250}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -130}}
+  - {name: marksman, index: 1, position: {x: 0, y: -140}, exp: 0/150/650}
+  - {name: marksman, index: 2, position: {x: 30, y: -130}, exp: 0/450/650}

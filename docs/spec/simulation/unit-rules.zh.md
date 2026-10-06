@@ -95,6 +95,7 @@ attack:
 | `timing.*` | 原生攻击间隔、随机偏移、初始冷却、准备、前摇、后摇与退出冷却阶段。 |
 | `splash_radius` | 原生基础作用半径；零表示没有范围效果。 |
 | `self_splash`、`diffusion` | `useSelfSplash`：溅射从技能自己的单位量起。`diffusion` 是 `isDiffusion` 的 `interval`（秒）与 `speed`（米）：溅射从落点向外扩，每过 `interval` 多扩 `speed`。作用见 [`docs/rules/extra_weapons.md`](../../rules/extra_weapons.md)。缺省为都没有。 |
+| `side_arm` | 武器为副手的额外技能：`sideArmSearchRange` 是它离主技能锁定目标多少米内另取目标，`sideArmFireDelay` 是主技能开始一击后多少秒它才能开始自己的一击。作用见 [`docs/rules/extra_weapons.md`](../../rules/extra_weapons.md#a-side-arm)。恰在 `weapons.mode` 为 `side_arm` 时出现。 |
 | `melee` | 主技能的 `SkillData.isMeleeAttack`。战斗里的近战分支读它，近战和远程两个目标类别也由它回答。 |
 
 Formation 行列数由 `members`、`slot_size` 和 `footprint` 推导：`footprint.width / slot_size`
@@ -115,7 +116,8 @@ body 方向，因此必须省略该字段。当前 P0 数据中所有适用值�
 
 武器调度与效果路径是正交关系：
 
-- `weapons.mode` 为 `normal`、`group` 或 `standalone`；
+- `weapons.mode` 为 `normal`、`group`、`standalone` 或 `side_arm`；`side_arm`
+  只用于额外技能，和 `normal` 一样是其武器的一个技能，与主技能轮流开火；
 - `indices` 按技能列出的顺序写每件武器在 build 里的下标，个数就是武器数量。武器按它在列表里
   的位置开火，按下标命名，录像的武器瞄准和弹丸释放带的都是下标：Hound 唯一的武器是 2 号。
   `per_skill` 决定多少武器组成一个 `FightSkill`；

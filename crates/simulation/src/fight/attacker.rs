@@ -826,7 +826,8 @@ impl Simulation {
         // their own already.
         let weapons = &attacker.attack.weapons;
         let skills = match (weapons.mode, skill_ref.slot) {
-            (WeaponMode::Normal, _) | (WeaponMode::Standalone, SkillSlot::Extra(_)) => 1,
+            (WeaponMode::Normal | WeaponMode::SideArm, _)
+            | (WeaponMode::Standalone, SkillSlot::Extra(_)) => 1,
             _ => weapons.count() / weapons.per_skill,
         };
         for index in 0..skills {

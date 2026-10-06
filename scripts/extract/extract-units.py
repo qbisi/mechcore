@@ -66,7 +66,10 @@ MOVE_NORMAL, MOVE_UNDERGROUND = 0, 1
 # the Raiden, a transform of its own of `RotateType.Fixed`, parented to the
 # unit's own. No table column says so.
 FIXED_TO_BODY_UNIT = 27
-WEAPON_MODES = {0: "normal", 1: "group", 2: "standalone"}
+WEAPON_MODES = {0: "normal", 1: "group", 2: "standalone", 3: "side_arm"}
+# `WeaponMode.SideArm`: an extra skill that fires in turn with its unit's main
+# one, at what stands about the main skill's lock (`FightSkill.IsSideArmSkill`).
+SIDE_ARM = 3
 # `EDamageType.Fire`.
 DAMAGE_FIRE = 1
 # `WeaponMountNode`, which the skill's `weaponMountNode` names: what a weapon
@@ -139,7 +142,7 @@ def render(mech, card, kind, skill, rvo, type_name, extra_weapons, summoned):
     for field in ("isLoadingType", "isDiffusion", "useSelfSplash"):
         if skill[field]:
             refuse(unit, f"main skill sets {field}")
-    if skill["weaponMode"] not in WEAPON_MODES:
+    if skill["weaponMode"] not in WEAPON_MODES or skill["weaponMode"] == SIDE_ARM:
         refuse(unit, f"main skill has weapon mode {skill['weaponMode']}")
     if mech["moveType"] not in (MOVE_NORMAL, MOVE_UNDERGROUND):
         refuse(unit, "moves cloaked")
@@ -301,7 +304,9 @@ def extra_weapon_lines(mech, technology, kind, skill, row):
         return []
     # A direct skill may splash about its own unit and diffuse: its splash
     # grows from it a step at a time (`DamagePerformer.PerformDiffusionRangeEffect`).
-    if raw(skill["initialCoolDownTime"]) or skill["isLoadingType"] or (
+    # A magazine whose reload takes no time is never reloaded
+    # (`FightSkill.CanAutoReload`), and nothing else reads it: the side arm's.
+    if raw(skill["initialCoolDownTime"]) or (skill["isLoadingType"] and raw(skill["reloadingTime"])) or (
             skill["isDiffusion"] and kind != "skillDatas"):
         return []
     # An around skill is a preemptive one (`AroundSkillStartAttackChecker`
@@ -521,6 +526,9 @@ def attack_lines(unit, kind, skill, damage_line, attack_angle, indent, angle_abs
     if skill["isDiffusion"]:
         lines.append(f"  diffusion: {{interval: {readable(skill['diffusionInteval'])}, "
                      f"speed: {readable(skill['diffusionSpeed'])}}}")
+    if skill["weaponMode"] == SIDE_ARM:
+        lines.append(f"  side_arm: {{search_range: {grid(skill['sideArmSearchRange'], 1000)}, "
+                     f"fire_delay: {grid(skill['sideArmFireDelay'], 2000)}}}")
     lines.append("  path:")
     if kind == "projectileSkillDatas":
         life = skill["maxLife"] or [0]

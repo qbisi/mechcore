@@ -1,0 +1,27 @@
+# Dual Wield: a side arm among Marksmen and Wasps.
+#
+# A Centurion with Dual Wield against two Marksmen and two Wasp squads. The
+# side arm takes, of the units within 40 metres of the main gun's lock, one
+# of the lock's own domain in its reach, and so fires at a Wasp beside the
+# Wasp the main gun fires at (t49, t85, t101); the main gun out of its
+# cooling takes the side arm's lock (t96).
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 162
+hash: {profile: mcfr-content-0.7.0, result: 52c2a1d5b6ebf19aa9c2694cba6742d4fc44be92cda271c23d6e6050fdf2cf4b}
+blue:
+  core_damage: 438
+  techs:
+    centurion: [dual_wield]
+  units:
+  - {name: centurion, index: 0, position: {x: 5, y: -45}, exp: 0/340/2250}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: -30, y: -110}, exp: 0/75/650}
+  - {name: wasp, index: 1, position: {x: 5, y: -110}, exp: 0/75/900}
+  - {name: marksman, index: 2, position: {x: -30, y: -140}, exp: 0/75/650}
+  - {name: wasp, index: 3, position: {x: 5, y: -140}, exp: 0/375/900}
