@@ -116,11 +116,18 @@ every other buff's stay, whichever source wrote them: a Rhino with Combat
 Evolvement, Mobile Power Station and Degeneration Beam keeps two when the
 third runs out.
 
-**A buff that stacks adds a stack every step.** A buff marked additive in
-effect, stacking on time, counts its stacks up by one each `stepTime`, to its
-bound if it has one, and each rate it writes is the buff's rate times the
-stack: none before the first step. Combat Evolvement's buff steps every
-second, and the Rhino deals 4.5% more damage a stack.
+**A buff that stacks counts its stack every step.** A buff marked additive in
+effect sets its stack each `stepTime`, below its bound if it has one, and
+each rate or value it writes is the buff's times the stack: none before the
+first stack. Stacking on time, it counts up by one a step: Combat
+Evolvement's buff steps every second, and the Rhino deals 4.5% more damage a
+stack. Stacking on distance, the stack is the whole number of the condition's
+lengths its unit has moved while its technologies were not disabled, at most
+the bound, and it may rise by more than one in a step. The distance is
+counted where the unit's movement is handed on before each solve, every
+fourth tick: the straight line from where the last such count found it, none
+on the first. Kinetic Charge's buff steps every half second with a metre of
+range for every 7 metres rolled, to 100.
 
 **A buff's maximum life rate goes into the unit's own life rate, and the life
 follows it.** The buff writes its rate once as it starts; a stacking buff takes
@@ -135,8 +142,8 @@ ends, the fight's end among, the rate goes and the life is refreshed again.
 Any other trigger or chance, a source that adds its buff once to other units
 or cycles under the update model `All`, one that reaches crystals, measures
 from its unit's edge or keeps to a distance type, a buff that stacks on
-distance or lowers what it stacks, and a buff field beyond these is refused by
-name.
+another condition or lowers what it stacks, and a buff field beyond these is
+refused by name.
 
 ## What this table does not carry
 
@@ -254,6 +261,11 @@ whose effect grows with rank, rather than read index zero:
   `tests/technology_buff/fights/degeneration-beam.yaml`.
 - Three buffs run on one Rhino, and one ending leaves the others' rates:
   `tests/technology_buff/fights/three-buffs.yaml`.
+- A buff stacking on distance adds a metre of range for every 7 metres its
+  Steel Ball has rolled, two in a step where it rolled that far, and holds
+  while it stands: `tests/technology_buff/fights/kinetic-charge.yaml`,
+  `tests/technology_buff/fights/kinetic-charge-stops.yaml`, and to 80 metres
+  `tests/corpus/fights/268477093-r4.yaml`.
 - A disabling buff takes a plain technology's numbers off its unit as it is
   written, life and current interval with them, and they come back as it runs
   out or as the fight is left:
@@ -294,6 +306,18 @@ whose effect grows with rank, rather than read index zero:
   `FightMech.AddData` and `FightMech.RemoveData` call
   `FightMech.RefreshLifeData`, which keeps a full `FightActor.lifeGauge` full
   and any other at its share of the new maximum.
+- A stack on distance: `IBEC_AdditiveEffectBuff.Update` returns at
+  `IBEC_AdditiveEffectBuff.maxAdditiveStack`, and otherwise asks
+  `BuffAdditiveStackConditionDistanceController.TryAddStack`, which sets the
+  stack to the integer part of `FightMech.GetTotalMoveDistanceWithoutDisableTech`
+  over `IBuffData.GetBuffEffectAdditiveConditionParam`, at most the bound, and
+  answers whether it moved; then `Buff.RefreshEffect` writes it.
+  `MotionController.Move` returns unless `RVOSimulatorFixed.counter` is 3,
+  and otherwise adds the magnitude from `MotionController.prevPosition`,
+  unless that is zero, to `MotionController.totalMoveDistance` and, while
+  `ISkillOwner.IsTechnologyDisabled` is false, to
+  `MotionController.totalMoveDistanceWithoutDisableTech`, and sets
+  `MotionController.prevPosition` to `FightTransform._position2D`.
 - A source's controller runs a range cycle under the update model `Each`:
   `BuffCycleController.useUpdateFinder` is set by its constructor, which hands
   `BuffCycleController.rangeUnitCycle` the owner, the fight and the source but

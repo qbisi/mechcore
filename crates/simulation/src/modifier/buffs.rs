@@ -9,7 +9,7 @@
 
 use serde::Deserialize;
 
-use super::sources::{BuffReach, BuffSource, BuffTargets, Stacking};
+use super::sources::{BuffReach, BuffSource, BuffTargets, StackCondition, Stacking};
 use crate::rules::AttackTargets;
 
 /// `BuffTechListener.FightStart`.
@@ -37,6 +37,9 @@ const ONE: i64 = 1 << 32;
 
 /// `BuffEffectAdditiveCondition.Time`: a stack a step.
 const STACK_BY_TIME: i32 = 1;
+
+/// `BuffEffectAdditiveCondition.Distance`: a stack for so many metres moved.
+const STACK_BY_DISTANCE: i32 = 2;
 
 /// The fields of a buff source its `BuffCycleController` reads, those set.
 #[derive(Debug, Default, Deserialize)]
@@ -77,10 +80,13 @@ pub(crate) struct BuffBlock {
     amplify_damage_rate: i64,
     damage_rate: i64,
     speed_rate: i64,
+    attack_range_value: i64,
     max_life_rate: i64,
     step_time: i64,
     additive_effect: bool,
     additive_condition: i32,
+    /// `buffEffectAdditiveConditionParam`, Q32.32.
+    additive_condition_param: i64,
     max_additive_stack: u32,
     /// `isClearSelfBuffWhenDisableTech`. A buff is cleared by it only when
     /// its unit's technologies are disabled, which no fight here does to a
@@ -151,26 +157,38 @@ pub(crate) fn buff_source(
         ));
     }
     let stacking = if buff.additive_effect {
-        if buff.additive_condition != STACK_BY_TIME
-            || buff.step_time <= 0
-            || [
-                buff.amplify_damage_rate,
-                buff.damage_rate,
-                buff.speed_rate,
-                buff.max_life_rate,
-            ]
-            .iter()
-            .any(|rate| *rate < 0)
-        {
-            return Err(format!(
-                "{who} adds buff {} ({}), which stacks on condition {} or lowers what it \
-                 stacks, and only a stack a step raising its rates is read",
-                buff.id, buff.name, buff.additive_condition
-            ));
+        let condition = match buff.additive_condition {
+            STACK_BY_TIME => Some(StackCondition::Time),
+            STACK_BY_DISTANCE if buff.additive_condition_param > 0 => {
+                Some(StackCondition::Distance {
+                    metres_q32: buff.additive_condition_param,
+                })
+            }
+            _ => None,
+        };
+        let lowers = [
+            buff.amplify_damage_rate,
+            buff.damage_rate,
+            buff.speed_rate,
+            buff.attack_range_value,
+            buff.max_life_rate,
+        ]
+        .iter()
+        .any(|rate| *rate < 0);
+        match condition {
+            Some(condition) if buff.step_time > 0 && !lowers => Some(Stacking {
+                max: buff.max_additive_stack,
+                condition,
+            }),
+            _ => {
+                return Err(format!(
+                    "{who} adds buff {} ({}), which stacks on condition {} or lowers what it \
+                     stacks, and only a stack by time or distance raising what it writes is \
+                     read",
+                    buff.id, buff.name, buff.additive_condition
+                ));
+            }
         }
-        Some(Stacking {
-            max: buff.max_additive_stack,
-        })
     } else {
         None
     };
@@ -184,6 +202,7 @@ pub(crate) fn buff_source(
         amplify_damage_rate: buff.amplify_damage_rate,
         damage_rate: buff.damage_rate,
         speed_rate: buff.speed_rate,
+        attack_range_value: buff.attack_range_value,
         max_life_rate: buff.max_life_rate,
         step_q32: buff.step_time,
         stacking,

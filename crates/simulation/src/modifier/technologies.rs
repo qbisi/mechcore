@@ -1035,10 +1035,11 @@ mod tests {
         assert!(refused.contains("4531"), "{refused}");
     }
 
-    /// A buff technology hands its unit the buff it adds as the fight starts;
-    /// one whose buff stacks on distance is refused by name.
+    /// A buff technology hands its unit the buff it adds as the fight starts:
+    /// Combat Evolvement's stacks every second, and Kinetic Charge's a metre
+    /// of range for every 7 rolled, to 100.
     #[test]
-    fn combat_evolvement_adds_a_stacking_buff() {
+    fn a_buff_technology_adds_a_stacking_buff() {
         let table = TechnologyEffects::load().unwrap();
         let buffs = table
             .sources(&[COMBAT_EVOLVEMENT], "rhino")
@@ -1057,11 +1058,19 @@ mod tests {
                 .buff_sources
                 .is_empty()
         );
-        let refused = table
-            .corrections(&[KINETIC_CHARGE], "steel_ball")
-            .unwrap_err()
-            .to_string();
-        assert!(refused.contains("8008"), "{refused}");
+        let rolled = table
+            .sources(&[KINETIC_CHARGE], "steel_ball")
+            .unwrap()
+            .buff_sources;
+        let stacking = rolled[0].stacking.unwrap();
+        assert_eq!(rolled[0].attack_range_value, 1);
+        assert_eq!(stacking.max, 100);
+        assert_eq!(
+            stacking.condition,
+            crate::modifier::StackCondition::Distance {
+                metres_q32: 7 << 32
+            }
+        );
     }
 
     /// A buff technology of the update model `Each` keeps its buff on the

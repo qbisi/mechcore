@@ -373,10 +373,12 @@ technologies:
       amplify_damage_rate: 0
       damage_rate: 0
       speed_rate: -1717986918  # -0.4
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
   - id: 1806
@@ -400,10 +402,12 @@ technologies:
       amplify_damage_rate: 0
       damage_rate: 0
       speed_rate: -1717986918  # -0.4
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
   - id: 1812
@@ -427,10 +431,12 @@ technologies:
       amplify_damage_rate: 0
       damage_rate: 0
       speed_rate: -1717986918  # -0.4
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
   - id: 1813
@@ -454,10 +460,12 @@ technologies:
       amplify_damage_rate: 0
       damage_rate: 0
       speed_rate: -1717986918  # -0.4
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
   - id: 1814
@@ -481,10 +489,12 @@ technologies:
       amplify_damage_rate: 0
       damage_rate: 0
       speed_rate: -1717986918  # -0.4
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
   - id: 1815
@@ -508,10 +518,12 @@ technologies:
       amplify_damage_rate: 0
       damage_rate: 0
       speed_rate: -1717986918  # -0.4
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
   - id: 1816
@@ -535,10 +547,12 @@ technologies:
       amplify_damage_rate: 0
       damage_rate: 0
       speed_rate: -1717986918  # -0.4
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
   - id: 1826
@@ -562,10 +576,12 @@ technologies:
       amplify_damage_rate: 0
       damage_rate: 0
       speed_rate: -1717986918  # -0.4
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
   - id: 1827
@@ -589,10 +605,12 @@ technologies:
       amplify_damage_rate: 0
       damage_rate: 0
       speed_rate: -1717986918  # -0.4
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
   - id: 2305
@@ -1403,10 +1421,12 @@ technologies:
       amplify_damage_rate: 0
       damage_rate: 0
       speed_rate: 0
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
       special: [summonUnitID]
@@ -1431,10 +1451,12 @@ technologies:
       amplify_damage_rate: 0
       damage_rate: 0
       speed_rate: 0
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
       special: [lifeChangeRate, disableRecover]
@@ -1459,10 +1481,12 @@ technologies:
       amplify_damage_rate: 0
       damage_rate: 0
       speed_rate: 0
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
       special: [lifeChangeRate, disableRecover]
@@ -1487,10 +1511,12 @@ technologies:
       amplify_damage_rate: 0
       damage_rate: 0
       speed_rate: 0
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
       special: [lifeChangeRate, disableRecover]
@@ -1515,10 +1541,12 @@ technologies:
       amplify_damage_rate: 0
       damage_rate: 0
       speed_rate: 0
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
       special: [lifeChangeRate, disableRecover]
@@ -1544,10 +1572,12 @@ technologies:
       amplify_damage_rate: -1288490188  # -0.3
       damage_rate: 0
       speed_rate: 0
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
   - id: 180311
@@ -1575,10 +1605,12 @@ technologies:
       amplify_damage_rate: -1288490188  # -0.3
       damage_rate: 0
       speed_rate: 0
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
   - id: 180317
@@ -1603,10 +1635,12 @@ technologies:
       amplify_damage_rate: -1288490188  # -0.3
       damage_rate: 0
       speed_rate: 0
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
   - id: 180326
@@ -1633,10 +1667,12 @@ technologies:
       amplify_damage_rate: -1288490188  # -0.3
       damage_rate: 0
       speed_rate: 0
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
   - id: 180329
@@ -1660,10 +1696,12 @@ technologies:
       amplify_damage_rate: -1288490188  # -0.3
       damage_rate: 0
       speed_rate: 0
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
   - id: 180418
@@ -1691,10 +1729,12 @@ technologies:
       amplify_damage_rate: 1288490188  # +0.3
       damage_rate: -858993459  # -0.2
       speed_rate: -1717986918  # -0.4
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
   - id: 180430
@@ -1719,10 +1759,12 @@ technologies:
       amplify_damage_rate: 0
       damage_rate: 0
       speed_rate: 0
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
       special: [attackRangeChangeRate]
@@ -1747,10 +1789,12 @@ technologies:
       amplify_damage_rate: 6442450944  # +1.5
       damage_rate: 0
       speed_rate: 0
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
       special: [lifeChangeRate]
@@ -1779,13 +1823,14 @@ technologies:
       amplify_damage_rate: 0
       damage_rate: 0
       speed_rate: 0
+      attack_range_value: 10
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
-      special: [attackRangeChangeValue]
   - id: 180530
     name: 电磁装甲
     unit: void_eye
@@ -1808,10 +1853,12 @@ technologies:
       amplify_damage_rate: 0
       damage_rate: 0
       speed_rate: -1717986918  # -0.4
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
   - id: 180620
@@ -1836,13 +1883,14 @@ technologies:
       amplify_damage_rate: 0
       damage_rate: 0
       speed_rate: 0
+      attack_range_value: 70
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
-      special: [attackRangeChangeValue]
     life_rate: [2147483648]  # +0.5
   - id: 180805
     name: 战斗进化
@@ -1863,10 +1911,12 @@ technologies:
       amplify_damage_rate: 0
       damage_rate: 193273528  # +0.045
       speed_rate: 0
+      attack_range_value: 0
       max_life_rate: 107374182  # +0.025
       step_time: 4294967296  # +1
       additive_effect: true
       additive_condition: 1
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
   - id: 180808
@@ -1888,13 +1938,14 @@ technologies:
       amplify_damage_rate: 0
       damage_rate: 0
       speed_rate: 0
+      attack_range_value: 1
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: true
       additive_condition: 2
+      additive_condition_param: 30064771072  # +7
       max_additive_stack: 100
       clear_when_technologies_disabled: true
-      special: [attackRangeChangeValue, buffEffectAdditiveConditionParam]
   - id: 180828
     name: 枪膛增压
     unit: hound
@@ -1914,10 +1965,12 @@ technologies:
       amplify_damage_rate: 0
       damage_rate: 279172874  # +0.065
       speed_rate: 0
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 429496729  # +0.1
       additive_effect: true
       additive_condition: 1
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
       special: [buffEffectAdditiveResetCondition]
@@ -1946,10 +1999,12 @@ technologies:
       amplify_damage_rate: 0
       damage_rate: 1288490188  # +0.3
       speed_rate: 0
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 2147483648  # +0.5
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
     attack_range_value: [42949672960]  # +10
@@ -2018,9 +2073,11 @@ technologies:
       amplify_damage_rate: -1288490188  # -0.3
       damage_rate: 0
       speed_rate: 0
+      attack_range_value: 0
       max_life_rate: 0
       step_time: 0
       additive_effect: false
       additive_condition: 0
+      additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true

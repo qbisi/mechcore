@@ -1,0 +1,24 @@
+# Kinetic Charge on two squads of Steel Balls that stop to fight Crawlers.
+#
+# Each Steel Ball's stack grows while it rolls, 10 to 12 by the time it
+# stops near t110, and holds while it stands and fights.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 642
+hash: {profile: mcfr-content-0.7.0, result: f34cc9674318e20e2d2160243de8a122b921b62b89c27cd93b1b324e404134c0}
+blue:
+  core_damage: 406
+  techs:
+    steel_ball: [kinetic_charge]
+  units:
+  - {name: steel_ball, index: 0, position: {x: 5, y: -170}, exp: 0/114/1000}
+  - {name: steel_ball, index: 1, position: {x: 65, y: -170}, exp: 0/158/1000}
+red:
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -60}, exp: 0/233/450}
+  - {name: crawler, index: 1, position: {x: 65, y: -60}, exp: 0/450/450}
+  - {name: fortress, index: 2, position: {x: 40, y: -200}, exp: 0/133/1600}

@@ -32,7 +32,8 @@ use crate::{
     rules::{TowerLevel, TowersConfig},
 };
 
-use super::{LOGIC_TICK_TIME_UNITS, Simulation, TIME_UNITS_PER_SECOND, event};
+use super::{LOGIC_TICK_TIME_UNITS, Simulation, TIME_UNITS_PER_SECOND, event, math::q32_div};
+use crate::modifier::StackCondition;
 use mechcore_mcfr::{BuffRemovedReason, Event, EventPayload, ObjectKind, ObjectRef};
 
 /// What tags a tower's loss writes, so that its end takes it away.
@@ -128,12 +129,13 @@ struct LifeChangeStep {
     elapsed: u32,
 }
 
-/// How a buff row stacks: `stepTime` in ticks, a stack each, and
-/// `maxAdditiveStack`, none for no bound.
+/// How a buff row stacks: `stepTime` in ticks, what a step's stack counts,
+/// and `maxAdditiveStack`, none for no bound.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::fight) struct StackRule {
     pub(in crate::fight) step_ticks: u32,
     pub(in crate::fight) max: u32,
+    pub(in crate::fight) condition: StackCondition,
 }
 
 /// A buff row's `lifeChangeRate` and `stepTime`, the latter in ticks.
@@ -303,13 +305,16 @@ impl super::Actor {
 
 impl super::Actor {
     /// `IBEC_AdditiveEffectBuff.Update` on the step of the `index`th running
-    /// buff: a stack more, below its bound, and what one stack writes written
-    /// again, since a stack's enhancements sum. `IBEC_ChangeMaxLife.DoAdditiveEffect`
-    /// takes its rate out of the unit's own life rate and puts it back times
-    /// the stack, the life refreshed after each. A Rhino with Combat
-    /// Evolvement deals 4.5% more a second and, from its second second, has
-    /// 2.5% more life a second.
+    /// buff, below its bound: the stack its condition's `TryAddStack` answers,
+    /// and, when that moved, `Buff.RefreshEffect` writing what one stack
+    /// writes as many times, since a stack's enhancements sum.
+    /// `IBEC_ChangeMaxLife.DoAdditiveEffect` takes its rate out of the unit's
+    /// own life rate and puts it back times the stack, the life refreshed
+    /// after each. A Rhino with Combat Evolvement deals 4.5% more a second
+    /// and, from its second second, has 2.5% more life a second; a Steel Ball
+    /// with Kinetic Charge reaches a metre further for every 7 it has rolled.
     fn step_stack(&mut self, index: usize) -> Result<()> {
+        let moved_q32 = self.moved_q32;
         let running = &mut self.buffs[index];
         let Some(stack) = running.stack.as_mut() else {
             return Ok(());
@@ -322,13 +327,30 @@ impl super::Actor {
         if stack.rule.max > 0 && stack.count >= stack.rule.max {
             return Ok(());
         }
+        let count = match stack.rule.condition {
+            StackCondition::Time => stack.count + 1,
+            // `BuffAdditiveStackConditionDistanceController.TryAddStack`: the
+            // whole part of the distance over the condition's metres, at most
+            // the bound.
+            StackCondition::Distance { metres_q32 } => {
+                u32::try_from(q32_div(moved_q32, metres_q32) >> 32)
+                    .unwrap_or(0)
+                    .min(stack.rule.max)
+            }
+        };
+        if count == stack.count {
+            return Ok(());
+        }
+        let added = count.saturating_sub(stack.count);
         let before = running.life_entry();
         if let Some(stack) = running.stack.as_mut() {
-            stack.count += 1;
+            stack.count = count;
         }
         let after = running.life_entry();
-        for entry in &running.entries {
-            self.stats.overlays.channel(Channel::Buff).write(*entry);
+        for _ in 0..added {
+            for entry in &running.entries {
+                self.stats.overlays.channel(Channel::Buff).write(*entry);
+            }
         }
         let (Some(before), Some(after)) = (before, after) else {
             return self.stats.refresh(&self.rules);
