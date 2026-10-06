@@ -145,7 +145,12 @@ as `free_move`. A Wraith drifting 100° off its facing in its M3 with seed
 
 ## Attack scheduling
 
-`RefreshAttackInterval` converts by the logical step and floors at one tick.
+`RefreshAttackInterval` converts by the logical step. The interval it
+converts is never under one tick: `AttackIntervalProperty` holds a skill's
+interval, its corrections in, to the logical step at least, so a Spider Mine,
+whose explosion's row has an interval of 0, reads 1 to the fight's last tick.
+A staggered interval is floored at one tick again after its draw; one with no
+stagger is the property's.
 After a unit first enters Attack, the next update is the earliest release.
 
 **A blow is fitted into its interval.** A blow starts by drawing its interval
@@ -996,6 +1001,10 @@ not the game's native attack-type enum.
 - Every unit's current interval, its stagger and the three readings that
   complete it, on every tick of the standard unit fights, one directory per
   unit, `tests/marksman/fights/` among them.
+- A skill whose row's interval is 0 reads one tick, on the fight's last tick
+  too: Spider Mines that outlive the fight,
+  `tests/extra_weapon/fights/spider-mine-outlives-the-fight.yaml`,
+  `tests/corpus/fights/67159970-r7.yaml`.
 - A grouped skill's slots, their locks and their reach, and a grouped unit's
   core interval: `tests/wraith/fights/`.
 - Each slot's own states, the core leaving its attack while its siblings go
@@ -1239,9 +1248,14 @@ not the game's native attack-type enum.
   `FPoint.op_LessThan`, `FPoint.op_GreaterThan`.
 - The team's interval stream is seeded by round and team:
   `FightTeam.RefreshRandomData`.
-- The interval is converted by the logical step, truncated and floored at a
-  tick, and the offset is the skill's: `FightSkill.RefreshAttackInterval`,
+- The interval is converted by the logical step and truncated, and the offset
+  is the skill's: `FightSkill.RefreshAttackInterval`,
   `FightSkill.GetCurrentAttackInterval`, `SkillData.attackDurationRandomValue`.
+  A staggered interval below two ticks becomes one; with no offset the
+  property's stands.
+- A skill's interval is its row's with its corrections, held to one logical
+  step: `AttackIntervalProperty.Refresh` ends in `FPoint.Max` with
+  `FightUtility.DeltaTime`.
 - A disabled technology is a unit's state: `FightMech.IsTechnologyDisabled`.
 - Attacking stops the body, and only moving moves it:
   `MotionAttackState.Enter`, `RVOControllerFixed.StopMove`,

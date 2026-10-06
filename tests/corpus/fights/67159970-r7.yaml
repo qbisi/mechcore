@@ -1,0 +1,78 @@
+# Replay 2324_20260925--67159970, round 7, map 1032. Red's Spider Mines, made at t901,
+# stand when the fight ends on t1037, and read an attack interval of 1 there:
+# their explosion's row has an interval of 0, and `AttackIntervalProperty`
+# holds a skill's interval to one logic tick.
+
+kind: fight
+map_id: 1032
+seed: 886311192
+round: 7
+source: game
+ticks: 1037
+hash: {profile: mcfr-content-0.7.0, result: af434e0731c8e42bcaf1dad377f577e03445911518f109501cf54f862a5e711e}
+blue:
+  core_damage: 1754
+  officers: [advanced_offensive_tactics, giant_specialist, efficient_giant_manufacturing]
+  techs:
+    vulcan: [range_enhancement, scorching_fire]
+    melting_point: [range_enhancement]
+  legacy_index: 22
+  units:
+  - {name: void_eye, index: 2, position: {x: -140, y: -110}, exp: 612/650/650, rotated: true}
+  - {name: fang, index: 5, position: {x: -120, y: -185}, exp: 600/600/600, rotated: true}
+  - {name: fang, index: 6, position: {x: 120, y: -185}, exp: 600/600/600, rotated: true}
+  - {name: crawler, index: 8, position: {x: 140, y: -205}, exp: 326/450/450, rotated: true}
+  - {name: crawler, index: 9, position: {x: -140, y: -205}, exp: 197/450/450, rotated: true}
+  - {name: fang, index: 10, position: {x: -180, y: -115}, exp: 591/600/600, rotated: true}
+  - {name: vulcan, index: 11, position: {x: -170, y: -160}, exp: 1451/1830/2200}
+  - {name: fang, index: 12, position: {x: -120, y: -235}, exp: 90/105/600, rotated: true}
+  - {name: crawler, index: 13, position: {x: -290, y: -285}, exp: 182/450/450, rotated: true}
+  - {name: vulcan, index: 14, position: {x: 170, y: -160}, level: 2, exp: 1497/1851/5453, equipment: [tank_production_line]}
+  - {name: fang, index: 15, position: {x: 120, y: -235}, exp: 0/34/600, rotated: true}
+  - {name: crawler, index: 16, position: {x: 290, y: -285}, exp: 111/450/450, rotated: true}
+  - {name: melting_point, index: 17, position: {x: 50, y: -160}, level: 2, exp: 2986/3154/3154}
+  - {name: vulcan, index: 18, position: {x: 90, y: -160}, level: 2, exp: 0/604/5453}
+  - {name: fang, index: 19, position: {x: 80, y: -115}, exp: 430/450/600, rotated: true}
+  - {name: vulcan, index: 20, position: {x: -90, y: -160}, exp: 1376/1758/2200}
+  - {name: melting_point, index: 21, position: {x: -50, y: -160}, level: 2, exp: 0/38/3154}
+  - {name: typhoon, index: 23, position: {x: 0, y: -120}, exp: 0/277/1950, rotated: true}
+  - {name: vulcan, index: 24, position: {x: 0, y: -160}, exp: 0/431/2200}
+  - {name: mustang, index: 25, position: {x: 175, y: -300}, exp: 0/385/1200}
+  - {name: mustang, index: 26, position: {x: -175, y: -300}, exp: 0/337/1200}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+red:
+  officers: [advanced_offensive_tactics, speed_specialist]
+  techs:
+    phoenix: [electromagnetic_shot]
+    tarantula: [range_enhancement, spider_mine]
+    centurion: [homing_missile]
+  blueprints: [attack_enhancement, defense_enhancement]
+  legacy_index: 21
+  units:
+  - {name: tarantula, index: 3, position: {x: -95, y: -135}, level: 3, exp: 672/1234/5343, equipment: [absorption_module]}
+  - {name: tarantula, index: 4, position: {x: 95, y: -135}, level: 3, exp: 0/611/5343}
+  - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 87/93/450}
+  - {name: crawler, index: 6, position: {x: -135, y: -190}, exp: 450/450/450}
+  - {name: phoenix, index: 7, position: {x: -90, y: -210}, level: 2, exp: 106/1646/2929}
+  - {name: centurion, index: 8, position: {x: -115, y: -165}, exp: 1787/2250/2250}
+  - {name: crawler, index: 9, position: {x: 0, y: -205}, exp: 401/401/450, rotated: true}
+  - {name: centurion, index: 10, position: {x: 115, y: -165}, level: 2, exp: 286/1244/5070}
+  - {name: crawler, index: 11, position: {x: 290, y: -285}, exp: 316/450/450, rotated: true}
+  - {name: crawler, index: 12, position: {x: -290, y: -285}, exp: 145/445/450, rotated: true}
+  - {name: crawler, index: 13, position: {x: 140, y: -235}, exp: 60/97/450, rotated: true}
+  - {name: centurion, index: 14, position: {x: 165, y: -165}, exp: 1797/2250/2250}
+  - {name: tarantula, index: 15, position: {x: 195, y: -135}, level: 2, exp: 0/1923/3380}
+  - {name: crawler, index: 16, position: {x: 0, y: -285}, exp: 34/34/450, rotated: true}
+  - {name: crawler, index: 17, position: {x: 0, y: -135}, exp: 42/42/450, rotated: true}
+  - {name: centurion, index: 18, position: {x: -165, y: -165}, exp: 256/2250/2250}
+  - {name: crawler, index: 19, position: {x: -290, y: -185}, exp: 4/4/450, rotated: true}
+  - {name: phoenix, index: 20, position: {x: 90, y: -210}, exp: 48/461/1300}
+  - {name: sledgehammer, index: 21, position: {x: 350, y: 285}, level: 2, exp: 0/224/2929, travelling: true}
+  - {name: sledgehammer, index: 22, position: {x: -350, y: 285}, level: 2, exp: 0/192/2929, travelling: true}
+  - {name: tarantula, index: 23, position: {x: -195, y: -135}, exp: 0/1500/1500}
+  - {name: crawler, index: 24, position: {x: 310, y: 245}, travelling: true}
+  - {name: crawler, index: 25, position: {x: -310, y: 245}, travelling: true}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
