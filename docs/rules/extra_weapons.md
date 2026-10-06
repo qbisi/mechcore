@@ -482,6 +482,13 @@ The skill is the line's gate.
   is at its owner's level (`DynamicMechLevel.Parent`). Each takes the row's
   `productTime`, 2 seconds, to appear (`appearType` 8), where an item's line
   takes `APPEAR_DURATION`'s second.
+- **The line dies with its unit.** As `DeadEffectSystem` calls the unit's
+  `OnDead`, after `SupportUnitSystem` has updated on that tick,
+  `FightEffectSystem.DeactiveEffect` takes its effects off and its support
+  skill's line leaves its side's creators
+  (`SupportUnitSystem.RemoveSkillOwner`): a dead Tarantula makes no more
+  mines, and the ones it made stay. A batch due on the tick the unit dies is
+  not measured.
 - **A Spider Mine is an explosion.** Its main skill is a suicide that explodes
   as it dies (`DeadExplosiveController`). It deals the skill's attack damage
   (`explosiveDamageCondition` 0), 2500 at level one, to everything within its
@@ -535,6 +542,8 @@ not melee, so the simulator refuses it.
 
 ### Recorded
 
+- A dead Tarantula's line makes no more mines, its living partner's makes
+  on: `tests/corpus/fights/67160345-r2.yaml`, ticks 191 and 301.
 - An Energy Tower skill's range reaches an extra skill of its own range
   without a damage rate, and a melee one's slot records it without its range
   moving: `tests/extra_weapon/fights/enhanced-range-homing-missile.yaml`,
@@ -762,6 +771,9 @@ not melee, so the simulator refuses it.
 
 ### Read
 
+- A dead unit's line: `FightMech.OnDead`, `FightEffectSystem.DeactiveEffect`,
+  `FightSupportSkill.Destroy`, `SupportUnitSystem.RemoveSkillOwner`,
+  `TeamSupportUnitManager.RemoveCreator`.
 - An extra skill's range: `FightSkill.GetAttackRange`,
   `AttackRangeProperty.RegisterDataChangeEvent`, `AttackRangeProperty.Refresh`,
   `SkillDataModifier.AddData`.

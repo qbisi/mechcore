@@ -465,8 +465,8 @@ impl Simulation {
     ) -> Result<(i64, i64, i64)> {
         let Some(owner_actor) = self.actors.get(&owner).filter(|actor| actor.alive()) else {
             return Err(Error::new(format!(
-                "unit {owner}'s production line makes a unit after it died, which is not \
-                 measured"
+                "unit {owner}'s production line makes a unit on the tick it died, before its \
+                 `OnDead` takes the line away, which is not measured"
             )));
         };
         let index = usize::try_from(member).unwrap_or(usize::MAX) % creator.offsets.len().max(1);
@@ -486,6 +486,20 @@ impl Simulation {
             owner_actor.z_q32.saturating_add(z),
             facing,
         ))
+    }
+
+    /// A dead unit's production lines go as `DeadEffectSystem` calls its
+    /// `OnDead`: `FightEffectSystem.DeactiveEffect` takes its effects off, and
+    /// its support skill's line leaves its side's creators
+    /// (`SupportUnitSystem.RemoveSkillOwner`). A Tarantula's Spider Mine line
+    /// makes nothing after it dies; the mines it made stay.
+    pub(in crate::fight) fn drop_dead_owners_lines(&mut self) {
+        let actors = &self.actors;
+        self.support.lines.retain(|creator| {
+            creator
+                .owner
+                .is_none_or(|owner| actors.get(&owner).is_some_and(Actor::alive))
+        });
     }
 
     /// `SummonSystem.RemoveMech`, which a summon's `OnMechDead` raises as

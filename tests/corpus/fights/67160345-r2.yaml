@@ -1,0 +1,50 @@
+# Replay 2324_20260925--67160345, round 2, map 1031. Blue's two Tarantulas
+# with Spider Mine each make two mines on the first tick. Tarantula 79 dies on
+# tick 191, and its line goes with it: on tick 301 only Tarantula 78 makes
+# its two, 20 metres to either side of it and 40 ahead.
+
+kind: fight
+map_id: 1031
+seed: 2086664373
+round: 2
+source: game
+ticks: 575
+hash: {profile: mcfr-content-0.7.0, result: 2464574fe0953fddc430fe3bba47ec4497c15765db79c6846c2d6a786dadfaec}
+blue:
+  core_damage: 913
+  officers: [cost_control_specialist]
+  techs:
+    tarantula: [spider_mine]
+  legacy_index: 7
+  units:
+  - {name: vortex, index: 0, position: {x: 140, y: -150}, exp: 168/221/750}
+  - {name: vortex, index: 1, position: {x: 0, y: -150}, exp: 625/750/750}
+  - {name: vortex, index: 2, position: {x: -140, y: -150}, exp: 147/205/750}
+  - {name: tarantula, index: 3, position: {x: 95, y: -135}, exp: 488/495/1500}
+  - {name: tarantula, index: 4, position: {x: -95, y: -135}, exp: 473/574/1500}
+  - {name: crawler, index: 5, position: {x: -135, y: -190}, exp: 22/43/450}
+  - {name: crawler, index: 6, position: {x: 135, y: -190}, exp: 117/169/450}
+  - {name: vortex, index: 7, position: {x: -190, y: -150}, exp: 0/43/750}
+  - {name: vortex, index: 8, position: {x: -90, y: -160}, exp: 0/130/750}
+  - {name: crawler, index: 9, position: {x: -290, y: -185}, rotated: true}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: -137, y: 26}]}
+red:
+  officers: [marksman_specialist]
+  blueprints: [attack_enhancement]
+  legacy_index: 8
+  units:
+  - {name: hound, index: 0, position: {x: 70, y: -60}, exp: 2/38/750}
+  - {name: hound, index: 1, position: {x: 150, y: -70}, exp: 372/544/750}
+  - {name: hound, index: 2, position: {x: 230, y: -70}, exp: 407/610/750}
+  - {name: sledgehammer, index: 3, position: {x: 110, y: -45}, exp: 113/381/1300, rotated: true}
+  - {name: sledgehammer, index: 4, position: {x: 195, y: -40}, exp: 136/293/1300}
+  - {name: crawler, index: 5, position: {x: 150, y: -35}, exp: 34/61/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 160, y: -175}, exp: 30/204/450, rotated: true}
+  - {name: marksman, index: 7, position: {x: 70, y: -80}, level: 3, exp: 0/705/2315}
+  - {name: phantom_ray, index: 8, position: {x: 235, y: -90}, exp: 0/591/1000}
+  - {name: crawler, index: 9, position: {x: -140, y: -285}, exp: 0/288/450, rotated: true}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}

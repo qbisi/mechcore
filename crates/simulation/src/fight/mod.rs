@@ -818,6 +818,7 @@ impl Simulation {
             self.turned_unit_died(unit_id);
         }
         self.clear_dead_summons()?;
+        self.drop_dead_owners_lines();
         // Its `TryProcessDeadImportantUnit` too: a side whose last important
         // unit died this tick loses every unit it has left.
         self.lose_important_units(&events)?;
