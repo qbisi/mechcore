@@ -53,6 +53,7 @@ mod math;
 mod mech;
 mod mine;
 mod motion;
+mod path_finding;
 mod pilot;
 mod projectile;
 mod random;

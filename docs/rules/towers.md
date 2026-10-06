@@ -1,8 +1,8 @@
 # Towers
 
 A side's two towers, the Energy Tower and the Research Center, can be
-strengthened before a fight, and losing one in a fight writes a debuff on the
-side.
+strengthened before a fight, a huge unit of the side walks around them, and
+losing one in a fight writes a debuff on the side.
 
 ## Strengthening
 
@@ -119,6 +119,24 @@ as `_maxSpeed`, and `StopMove` hands the agent that. A unit stopped to attack
 under the debuff is pushed by its neighbours as at full speed; one that moves
 gets the debuffed speed through `Move`.
 
+## A huge unit walks around its own side's towers
+
+A huge unit that does not fly turns aside where one of its own side's towers
+stands between it and what it walks to. Every move that hands its agent a
+point asks first: on the move a tower within three of the unit's radii, edge
+to edge, stands in the strip from the unit to its target as wide as the larger
+of the two radii, the unit is sent two of its radii from where it stands,
+square to the tower on the target's side, and turned towards the tower by up
+to 60 degrees as the tower's edge is further than those two radii. The first
+such tower in the side's list is the one turned around.
+
+The point found is meant to hold for ten moves while the target stays within
+twice its radius of where it stood, but the record of where it stood keeps the
+target's `x` and nought for its depth, so a target away from the map's middle
+line is never inside it and the point is found anew on every move. A unit with
+no tower of its side within three of its radii on a move stops asking for the
+rest of the fight. A unit with no lock goes straight to its point.
+
 ## Evidence
 
 ### Recorded
@@ -193,8 +211,33 @@ gets the debuffed speed through `Move`.
   `FightMech.Update` and `FightConstruction.Update`, which return before
   `BuffManager.Update` when `isFighting` is false.
 
+- A huge unit that does not fly has a `SimplePathFindingController`, every
+  other a `PathFindingController` that passes the point on:
+  `MotionController..ctor`, `ISkillOwner.IsEnableAvoidanceAssist`,
+  `MechData.IsEnableAvoidanceAssist`, `MechData.mechType`, `MechData.isFly`.
+- `MotionController.Move` passes the point it hands the agent through
+  `PathFindingController.CalculateNextPoint`, with
+  `IMoveBehaviour.IsStaticTarget`: a command's point stands still
+  (`MoveAttackCommand`), a lock moves (`AutoMoveBehaviour`).
+- The point: `SimplePathFindingController.CalculateNextPoint`,
+  `SimplePathFindingController.IsAvoidancePointAvaliable`,
+  `SimplePathFindingController.FindAvoidanceActor`,
+  `SimplePathFindingController.GetNeighbours`,
+  `SimplePathFindingController.CalculateAvoidancePoint`, `LineRange.Contains`,
+  `FPlane.GetSide`, `FQuaternion.AngleAxis`. The record's centre goes through
+  `FVector3.op_Implicit`, which keeps `x` and `y`, and
+  `FVector2.ToVector3XZ`. No tower near sets
+  `SimplePathFindingController.checkCount` to -1, which only
+  `SimplePathFindingController.EnableAvoidanceCheck` resets.
+
 ### Not established
 
+- **What calls `SimplePathFindingController.EnableAvoidanceCheck`**, which
+  would let a unit that stopped asking ask again; the call graph shows no
+  caller.
+- **`LineRange.Contains` at its edge.** The build measures the angles and the
+  sine in its fixed point; the simulator asks the exact products, which may
+  answer differently for a tower on the strip's edge.
 - **What clears the buffs as the fight ends.** `BuffManager.Clear` is reached
   through `FightBehaviour.Clear`, whose caller the call graph does not show,
   so that units clear before constructions is recorded, not read, and two

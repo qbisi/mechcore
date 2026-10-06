@@ -91,6 +91,9 @@ pub(in crate::fight) struct Motion {
     /// is, except while one of the unit's extra skills has taken it
     /// ([`Simulation::hand_motion_after_lock_search`]).
     pub(in crate::fight) attacker: SkillSlot,
+    /// `MotionController.pathFindingController`, a
+    /// `SimplePathFindingController` for a unit that has one.
+    pub(in crate::fight) path_finding: Option<path_finding::PathFinding>,
 }
 
 pub(in crate::fight) fn rvo_profile(rules: &UnitConfig) -> RvoProfile {
@@ -1052,7 +1055,7 @@ impl Simulation {
                     attack_range,
                 );
                 actor.turn_to_move_direction();
-                actor.move_to(x_q32, z_q32, solve_due);
+                self.move_body_to(actor_id, (x_q32, z_q32), false, solve_due);
             }
             MotionState::Stopped | MotionState::Transitioning => {}
         }
@@ -1804,10 +1807,12 @@ impl Simulation {
                 return;
             };
             let solve_due = self.rvo_solve_due();
-            self.actors
-                .get_mut(&actor_id)
-                .expect("actor identity is stable")
-                .move_to(move_target_x_q32, move_target_z_q32, solve_due);
+            self.move_body_to(
+                actor_id,
+                (move_target_x_q32, move_target_z_q32),
+                true,
+                solve_due,
+            );
         }
     }
 
@@ -1871,7 +1876,33 @@ impl Simulation {
             .get_mut(&actor_id)
             .expect("actor identity is stable");
         actor.turn_to_move_direction();
-        actor.move_to(move_target_x_q32, move_target_z_q32, solve_due);
+        self.move_body_to(
+            actor_id,
+            (move_target_x_q32, move_target_z_q32),
+            true,
+            solve_due,
+        );
+    }
+
+    /// `MotionController.Move` handing the agent its point: through the
+    /// unit's path finding, which only a move that hands the agent anything
+    /// asks.
+    fn move_body_to(
+        &mut self,
+        actor_id: u64,
+        point: (i64, i64),
+        static_target: bool,
+        solve_due: bool,
+    ) {
+        let (x_q32, z_q32) = if solve_due {
+            self.next_move_point(actor_id, point, static_target)
+        } else {
+            point
+        };
+        self.actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable")
+            .move_to(x_q32, z_q32, solve_due);
     }
 
     /// Whether this update is the one before the RVO solve, the only one on
@@ -2035,6 +2066,11 @@ impl Simulation {
             attack_range,
         );
         actor.turn_to_move_direction();
-        actor.move_to(move_target_x_q32, move_target_z_q32, solve_due);
+        self.move_body_to(
+            actor_id,
+            (move_target_x_q32, move_target_z_q32),
+            false,
+            solve_due,
+        );
     }
 }

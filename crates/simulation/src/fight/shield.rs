@@ -604,7 +604,7 @@ const RAD_TO_DEG: i64 = 0x39_4BB8_34C8;
 const NORMALIZE_EPSILON: i64 = 0xA7C5;
 const ANGLE_EPSILON: i64 = 4;
 
-type Vector = (i64, i64, i64);
+pub(in crate::fight) type Vector = (i64, i64, i64);
 
 const fn sub(left: Vector, right: Vector) -> Vector {
     (
@@ -622,7 +622,7 @@ const fn add(left: Vector, right: Vector) -> Vector {
     )
 }
 
-fn scale(vector: Vector, factor: i64) -> Vector {
+pub(in crate::fight) fn scale(vector: Vector, factor: i64) -> Vector {
     (
         rvo::q32_mul(vector.0, factor),
         rvo::q32_mul(vector.1, factor),
@@ -642,7 +642,7 @@ fn magnitude(vector: Vector) -> i64 {
 }
 
 /// `FVector3.get_normalized`.
-fn normalized(vector: Vector) -> Vector {
+pub(in crate::fight) fn normalized(vector: Vector) -> Vector {
     let length = magnitude(vector);
     if length < NORMALIZE_EPSILON {
         return (0, 0, 0);
