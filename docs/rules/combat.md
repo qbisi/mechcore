@@ -935,7 +935,9 @@ not the game's native attack-type enum.
 - A Sledgehammer whose lock walks out of its reach sets off with its turret
   still, and a Sandworm below when the fight is decided takes the defeated
   side's tower and walks on to it until the fight ends:
-  `tests/corpus/fights/201373545-r4.yaml`, ticks 504 and 1028.
+  `tests/corpus/fights/201373545-r4.yaml`, ticks 504 and 1028. A Farseer
+  sets off as a Sledgehammer does: `tests/corpus/fights/134267654-r3.yaml`,
+  tick 1739.
 - A main skill starts its attack in its own update: a Melting Point prepares
   on the Crawler it locks, and goes idle when its own beam fells it first:
   `tests/extra_weapon/fights/energy-diffraction-crawler.yaml`, tick 283, and
