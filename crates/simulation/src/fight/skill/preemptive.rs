@@ -86,6 +86,7 @@ impl Simulation {
         // unit, from the unit.
         let buff = &preemptive.buff;
         let row = super::super::tower::BuffRow {
+            clears_when_technologies_disabled: false,
             buff_id: buff.id,
             max_life_rate: 0,
             stacking: None,

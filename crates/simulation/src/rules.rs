@@ -701,9 +701,8 @@ pub(crate) struct DestroyedBuff {
     pub(crate) debuff: bool,
     pub(crate) max_additive_stack: i32,
     pub(crate) can_affect_construction: bool,
-    /// `isClearSelfBuffWhenDisableTech`. Nothing this simulator places
-    /// disables a unit's technologies, so nothing reads it.
-    #[allow(dead_code, reason = "no mechanism here disables technologies")]
+    /// `isClearSelfBuffWhenDisableTech`: a tower's loss is written by no
+    /// unit, so it never clears one.
     pub(crate) clear_when_technologies_disabled: bool,
     pub(crate) move_speed_rate: i64,
     pub(crate) damage_rate: i64,

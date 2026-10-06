@@ -88,13 +88,7 @@ pub(crate) struct BuffBlock {
     /// `buffEffectAdditiveConditionParam`, Q32.32.
     additive_condition_param: i64,
     max_additive_stack: u32,
-    /// `isClearSelfBuffWhenDisableTech`. A buff is cleared by it only when
-    /// its unit's technologies are disabled, which no fight here does to a
-    /// unit with such a buff; nothing reads it.
-    #[allow(
-        dead_code,
-        reason = "no read buff runs on a unit whose technologies go off"
-    )]
+    /// `isClearSelfBuffWhenDisableTech`.
     clear_when_technologies_disabled: bool,
     /// The other fields it sets.
     #[serde(default)]
@@ -207,6 +201,7 @@ pub(crate) fn buff_source(
         step_q32: buff.step_time,
         stacking,
         reach,
+        clears_when_technologies_disabled: buff.clear_when_technologies_disabled,
     })
 }
 

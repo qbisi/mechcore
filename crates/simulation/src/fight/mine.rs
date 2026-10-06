@@ -208,6 +208,7 @@ impl Simulation {
         };
         let struck = self.perform_damage(hit, events)?;
         let row = super::tower::BuffRow {
+            clears_when_technologies_disabled: false,
             buff_id: shot.buff.id,
             max_life_rate: 0,
             stacking: None,

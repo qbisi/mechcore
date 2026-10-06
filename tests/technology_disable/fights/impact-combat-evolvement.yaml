@@ -1,0 +1,29 @@
+# Combat Evolvement switched off.
+#
+# Red's Rhino carries Combat Evolvement and stands at two stacks, 9% more
+# damage and 5% more life, when blue's Electromagnetic Impact lands on it on
+# tick 57. Its damage rate goes as the buff is written; its life rate stays
+# until its next second, tick 60, which takes it out and refreshes the hurt
+# Rhino's life twice, 18847 of 20261 becoming 17949 of 19297. It stacks no
+# more until the Wasps kill it on tick 359. The other Rhino, out of reach,
+# stacks on.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 1362
+hash: {profile: mcfr-content-0.7.0, result: 9a09ef6ce8500adb4e879b367a6a7c8ec33e53bf89007051421f15c6a2450d00}
+blue:
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -60}, exp: 0/900/900}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: -5, y: 55}]}
+red:
+  core_damage: 204
+  techs:
+    rhino: [combat_evolvement]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: rhino, index: 1, position: {x: -85, y: -135}, exp: 0/400/1150}

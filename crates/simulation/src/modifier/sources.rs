@@ -49,6 +49,10 @@ pub(crate) struct AutoRecovery {
 /// targets its `BuffCycleController` gives the buff, and the `buffDatas` row
 /// it adds. `BuffEffectProvider` holds every such source, not one.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "the buff row's flags are independent fields"
+)]
 pub(crate) struct BuffSource {
     pub(crate) buff_id: u32,
     pub(crate) divide: i32,
@@ -77,6 +81,9 @@ pub(crate) struct BuffSource {
     /// Whom the controller gives it: the unit itself once, as the fight
     /// starts, or, under `BuffTargetUpdateModel.Each`, every unit in reach.
     pub(crate) reach: Option<BuffReach>,
+    /// `isClearSelfBuffWhenDisableTech`: as its unit's technologies are
+    /// disabled, the buff its unit added itself is cleared.
+    pub(crate) clears_when_technologies_disabled: bool,
 }
 
 /// The units a `RangeUnitCycle` keeps a buff on: those
