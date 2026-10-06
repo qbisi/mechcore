@@ -12,8 +12,8 @@ Vulcan's, Whirlwind, the Rhino's, Energy Diffraction, the Melting Point's,
 Spider Mine, the Tarantula's, Matrix Bombardment, the Wraith's, and
 Anti-Air Barrage, the Fortress's, Air Defense Mark, the Typhoon's,
 Disintegration, the Abyss's, Naval Gun, the Overlord's, Gun-launched
-Missile, the Mountain's, and Electromagnetic Barrage, the Melting Point's, and
-refuses every other member by name: the members' skills differ
+Missile, the Mountain's, Electromagnetic Barrage, the Melting Point's, and
+Dual Wield, the Centurion's, and refuses every other member by name: the members' skills differ
 in kind, a projectile, an explosion, a laser, a summon, a sweep around the
 unit, and many leave a terrain or write a buff, so each joins once a recording
 of it agrees.
@@ -145,6 +145,10 @@ its lock (`FightSkill.RotateWeaponTo`), scores its searches and asks its
 attack angle from the first (`FightSkill.GetMainTransform`), and fires a burst
 from its own weapons in turn: Naval Gun's one shell a blow leaves its first
 gun, and its 20 degrees either side are measured from where that gun points.
+A side arm's weapon (`WeaponMode.SideArm`) has a transform of its own as a
+standalone row's has, and one whose arc is no wider than its rest turns
+freely (`RotateType.Free`, where any other such weapon is `Fixed`): Dual
+Wield's gun turns onto its lock at the unit's rotate speed.
 Any other weapon whose row gives it no arc has no transform of its own and
 points where its mount points: the Hound's bomb launchers point as the unit does, and
 the Centurion's missile launcher, mounted by default, as its turret does.
@@ -495,6 +499,55 @@ The skill is the line's gate.
   radius and its 12 metres of splash, its own side too: a mine's blast
   reaches the mine beside it.
 
+## A side arm
+
+Dual Wield adds a side arm: a skill whose weapons are `WeaponMode.SideArm`
+(`FightSkill.IsSideArmSkill`), here the main gun's own projectile from a
+second gun, dealing the unit's damage and reaching as far as the main skill
+(`useMainSkillRange`). `FightSkill.EnterFight` hands it to the main skill
+(`SetSideArmSkill`). Its row is a magazine whose reload takes no time
+(`isLoadingType`, `reloadingTime` 0), which `FightSkill.CanAutoReload` never
+reloads and nothing else reads.
+
+- **The two fire in turn.** The main skill beginning a blow
+  (`SkillAttackController.PerformAttack`, `SetFireTurnsMark`) makes the turn
+  the side arm's, to wait `sideArmFireDelay` over the tick, the fraction
+  dropped: 0.2 seconds, four ticks. The main skill's `FightSkill.Update`
+  counts the wait down before its state updates. The side arm beginning a
+  blow gives the turn back. Neither begins one out of turn
+  (`CanFireByTakeTurns`, which `SkillIdleState.Update` asks before it starts
+  an attack and `SkillAttackState.TryPerformAttack` before each blow): the
+  main skill waits for the side arm, and the side arm for its turn and its
+  wait.
+- **A side arm that cannot take its turn gives it back.** Its idle and its
+  cooling states ask as they update (`TrySideArmResetFireMark`): it keeps the
+  turn while it is enabled, not cooling, reloading or locked, its lock lives,
+  and it still waits or what it fires at is in its attack area, or it fires
+  at nothing yet while its lock is. A failed check in its prepare state
+  gives the turn back (`ForceSideArmEndFireTurn`), and so does its attack
+  ending, or its blow coming due out of its angle, in its turn with no blow
+  under way.
+- **It searches about the main skill's lock**
+  (`SideArmSearchTargetController.PerformNormalSkillSearch`), or about the
+  lock the main skill last changed from while it holds none
+  (`prevLockTargetForSideArm`). It keeps a live lock of its own within its
+  `sideArmSearchRange`, 40 metres, of that anchor and in its attack area;
+  otherwise it takes, of the other sides' units of the anchor's domain within
+  that range of it less their radius (`RangeTargetCalculator.CalculateRangeTargets`,
+  buildings left out), the anchor aside, those in its attack area as its
+  selector scores them; with none, the anchor while it lives.
+- **It searches only when its lock no longer suits**
+  (`NeedRefreshSideArmTarget`), in its idle state in place of the search
+  timer and in its attack state on every update before its check: when the
+  main skill holds no live lock and it holds one, when its lock is dead or
+  out of its attack area, and when its lock is not the main skill's and
+  stands further from it than its search range. A side arm on the main
+  skill's lock keeps it while it is in its area.
+- **The main skill takes the side arm's lock.** A main skill with a side arm
+  whose own lock is gone takes the side arm's live lock in place of a search
+  (`FightSkill.SearchLockTarget`, `TrySetSideArmTargetAsMainTarget` inlined
+  there).
+
 ## What reaches an extra skill
 
 `SkillDataModifier.AvaliableCheck` decides, skill by skill, whether a source
@@ -739,6 +792,17 @@ not melee, so the simulator refuses it.
   its burst: `tests/extra_weapon/fights/electromagnetic-barrage-rhinos.yaml`.
   Red's shield takes its shells for 6000 each, the seventh for the 4000 it has
   left, which breaks it: `tests/extra_weapon/fights/electromagnetic-barrage-shield.yaml`.
+
+- Dual Wield's side arm begins its blow four ticks after the main gun
+  begins one, and takes the main gun's lock where nothing else is in its
+  reach within 40 metres of it: `tests/extra_weapon/fights/dual-wield-close.yaml`.
+  Attacking, it waits for its turn however long its interval is over, and
+  searches about the main gun's last lock while it holds none:
+  `tests/extra_weapon/fights/dual-wield-spread.yaml`. The main gun out of its
+  cooling takes the side arm's lock in place of a search:
+  `tests/extra_weapon/fights/dual-wield-near.yaml`. Among Marksmen and Wasps
+  it fires at a Wasp beside the main gun's:
+  `tests/extra_weapon/fights/dual-wield-mixed.yaml`.
 
 ### Replayed
 

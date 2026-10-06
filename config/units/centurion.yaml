@@ -55,6 +55,47 @@ attack:
     max_life: 0
 
 extra_weapons:
+  - technology: 110321
+    skill: 32003
+    use_main_skill_range: true
+    damage_by_level: []
+    damage_rate: 1
+    attack:
+      base_damage: 0
+      min_range: 0
+      range: 0
+      attack_half_angle: 360
+      targets: {ground: true, air: true}
+      lock_target: true
+      quick_switch_target: true
+      timing:
+        interval: 0.8
+        interval_offset: 0
+        initial_cooldown: 0
+        prepare: 0.1
+        attack_point: 0.1
+        backswing: 0
+        cooling: 0.1
+      splash_radius: 0
+      weapons:
+        mode: side_arm
+        indices: [2]
+        per_skill: 1
+      melee: false
+      crosses_shields: false
+      side_arm: {search_range: 40, fire_delay: 0.2}
+      path:
+        type: projectile
+        count: 1
+        release_interval: 0
+        speed: 500
+        target_offset_radius: 0
+        evenly_allocate_targets: false
+        extra_search_range: 0
+        pre_flight_height: 0
+        simulated_motion: false
+        interceptible: false
+        max_life: 0
   - technology: 110322
     skill: 32004
     use_main_skill_range: false

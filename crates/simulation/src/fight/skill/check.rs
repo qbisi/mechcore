@@ -503,6 +503,17 @@ impl Simulation {
     /// keeping what they fired at; the skill then cools for its cooling time
     /// and enters `SkillIdleState` with its targets cleared.
     pub(in crate::fight) fn finish_attack(&mut self, skill_ref: SkillRef, step: u64) {
+        // A side arm whose turn it is, with no blow under way, gives the turn
+        // back.
+        let skill = self.skill(skill_ref);
+        if skill.pending().is_none()
+            && skill
+                .backswing_finish_step()
+                .is_none_or(|finish| finish < step)
+            && self.can_fire_by_take_turns(skill_ref)
+        {
+            self.force_side_arm_end_fire_turn(skill_ref);
+        }
         let cooling_steps = native_time_units_to_steps(
             self.skill_attacker(skill_ref)
                 .expect("skill owner identity is stable")
@@ -613,7 +624,10 @@ impl Simulation {
         skill_ref: SkillRef,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<bool> {
-        let selected = self.select_lock_replacement(skill_ref, target_search_order)?;
+        let selected = match self.side_arm_lock_for_main(skill_ref) {
+            Some(side_arm_lock) => Some(side_arm_lock),
+            None => self.select_lock_replacement(skill_ref, target_search_order)?,
+        };
         let idle = selected.is_none();
         let selected = if idle {
             self.select_alive_target(skill_ref, None, target_search_order)?

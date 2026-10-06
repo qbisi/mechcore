@@ -801,6 +801,11 @@ impl Simulation {
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
         use_live_candidate_positions: bool,
     ) -> Result<Option<FightActorRef>> {
+        // A side arm's `SideArmSearchTargetController` overrides
+        // `PerformNormalSkillSearch`.
+        if self.is_side_arm(skill_ref) {
+            return Ok(self.select_side_arm_target(skill_ref, target_search_order));
+        }
         let source = self
             .skill_attacker(skill_ref)
             .ok_or_else(|| Error::new("target selector source is absent"))?;

@@ -4,6 +4,7 @@ mod extra;
 mod group;
 mod perform;
 mod preemptive;
+mod side_arm;
 
 pub(in crate::fight) use perform::Launch;
 
@@ -390,11 +391,16 @@ impl ExtraSkill {
     }
 
     /// Whether its weapon turns on a transform of its own: one that turns
-    /// within an arc, and a standalone row's, which `FightWeapon` gives a
-    /// transform whatever its arc, turning freely where it has none.
+    /// within an arc, and a standalone row's or a side arm's, which
+    /// `FightWeapon` gives a transform whatever its arc, turning freely where
+    /// it has none: a side arm's weapon whose arc is no wider than its rest
+    /// is `RotateType.Free`, not `Fixed`.
     pub(in crate::fight) fn own_transform(&self) -> bool {
         self.rules.attack.weapons.arcs.is_some()
-            || self.rules.attack.weapons.mode == crate::rules::WeaponMode::Standalone
+            || matches!(
+                self.rules.attack.weapons.mode,
+                crate::rules::WeaponMode::Standalone | crate::rules::WeaponMode::SideArm
+            )
     }
 }
 
@@ -524,6 +530,15 @@ pub(in crate::fight) struct Skill {
     /// then clears what the skill fires at, so the lock is only where the
     /// mech goes.
     pub(in crate::fight) idle: bool,
+    /// A main skill's `shouldSideArmFire`: the turn is its side arm's.
+    pub(in crate::fight) side_arm_fires: bool,
+    /// A main skill's `sideArmFireDelayTicks`: the ticks its side arm waits
+    /// in its turn before it may begin a blow.
+    pub(in crate::fight) side_arm_fire_delay: u64,
+    /// `FightSkill.prevLockTargetForSideArm`: the lock `ChangeLockTarget`
+    /// last changed from, which a side arm searches about while the main
+    /// skill holds none.
+    pub(in crate::fight) prev_lock_for_side_arm: Option<FightActorRef>,
 }
 
 impl Skill {
@@ -571,6 +586,9 @@ impl Skill {
             rounds: magazine.map(|magazine| magazine.capacity),
             attack_target_left: None,
             idle: false,
+            side_arm_fires: false,
+            side_arm_fire_delay: 0,
+            prev_lock_for_side_arm: None,
         }
     }
 
@@ -845,6 +863,9 @@ impl Skill {
         if lock.is_some() {
             self.attack_target_left = None;
         }
+        if lock != self.lock_target && self.lock_target.is_some() {
+            self.prev_lock_for_side_arm = self.lock_target;
+        }
         self.lock_target = lock;
         self.lock_written = true;
     }
@@ -1116,6 +1137,9 @@ impl Simulation {
         step: u64,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<()> {
+        if self.is_side_arm(skill_ref) {
+            return self.update_side_arm_idle_search(skill_ref, target_search_order);
+        }
         // Target-build MechData disables MechSearchTargetController for every
         // supported non-supergiant unit, so live periodic selection belongs to
         // the main FightSkill. Prepare and Attack retain this private counter;
@@ -1191,7 +1215,10 @@ impl Simulation {
                 .siblings()
                 .iter()
                 .any(|slot| slot.lock_target.is_some());
-        let mut selected_candidate = if grouped_core {
+        let side_arm_lock = self.side_arm_lock_for_main(skill_ref);
+        let mut selected_candidate = if side_arm_lock.is_some() {
+            side_arm_lock
+        } else if grouped_core {
             // A grouped core's search is `PerformGroupedSkillSearch` as its
             // siblings' is: around what they hold, and among it when
             // nothing else answers in reach.
@@ -1205,7 +1232,8 @@ impl Simulation {
             )
             .map_err(located)?
         };
-        if !target_died_during_tick
+        if side_arm_lock.is_none()
+            && !target_died_during_tick
             && self.search_prepared(skill_ref)
             && selected_candidate
                 .and_then(|candidate| self.fight_actor(candidate))
@@ -1331,6 +1359,7 @@ impl Simulation {
         let body_rotation_q32 = self.actors[&actor_id].body_rotation_q32;
         self.skill_mut(SkillRef::main(FightActorRef::Unit(actor_id)))
             .lock_written = false;
+        self.count_side_arm_fire_delay(FightActorRef::Unit(actor_id));
         let update = self.update_skill(
             SkillRef::main(FightActorRef::Unit(actor_id)),
             step,
@@ -1544,6 +1573,7 @@ impl Simulation {
         if self.skill(skill_ref).disabled
             && matches!(self.skill(skill_ref).state, SkillState::Idle { .. })
         {
+            self.try_side_arm_reset_fire_mark(skill_ref);
             return Ok(None);
         }
         let quick_switch_target = self
@@ -1662,6 +1692,10 @@ impl Simulation {
         let prepare_steps = native_time_units_to_steps(attack.prepare_time_units());
         let attack_point_steps = native_time_units_to_steps(attack.attack_point_time_units());
         let backswing_steps = native_time_units_to_steps(attack.backswing_time_units());
+        // `SkillIdleState.Update` and `SkillAttackState.TryPerformAttack` ask
+        // `CanFireByTakeTurns` before they begin anything.
+        let in_turn = self.can_fire_by_take_turns(skill_ref);
+        let side_arm = self.is_side_arm(skill_ref);
         let skill = self.skill_mut(skill_ref);
         let mut entered_skill_phase = false;
         // `SkillIdleState.TryStartAttack` enters the attack or prepare
@@ -1671,7 +1705,8 @@ impl Simulation {
         // blow's wait begins.
         // A bodyless unit whose facing its motion is still correcting
         // enters it all the same; only the blow waits for the facing.
-        if in_attack_angle
+        if in_turn
+            && in_attack_angle
             && skill.pending().is_none()
             && skill.backswing_finish_step().is_none()
             && skill.phase() == FightSkillPhase::Idle
@@ -1703,7 +1738,7 @@ impl Simulation {
         // nothing of the motion, so a bodyless unit back in its attack out
         // of angle is not held once the angle answers: a Wasp moved during
         // its backswing fires on the first tick its target is in its angle.
-        if in_attack_angle
+        let blow_due = in_turn
             && skill.pending().is_none()
             && skill.backswing_finish_step().is_none()
             && skill.phase() == FightSkillPhase::Attack
@@ -1712,8 +1747,13 @@ impl Simulation {
             // A state is not updated on the tick it is entered: the
             // first blow waits for the tick after the prepare ends.
             && !prepare_finished
-            && step >= skill.next_attack_step
-        {
+            && step >= skill.next_attack_step;
+        // A side arm whose turn has come with its target out of its angle
+        // gives the turn back.
+        if blow_due && !in_attack_angle && side_arm {
+            self.force_side_arm_end_fire_turn(skill_ref);
+        }
+        if blow_due && in_attack_angle {
             // `FightSkill.ResetAttackData` draws the interval before
             // `SkillAttackController.PerformAttack` fits the blow into it.
             let interval = self
@@ -1723,6 +1763,7 @@ impl Simulation {
                 fitted_attack_point(attack_point_steps, backswing_steps, interval);
             self.skill_mut(skill_ref)
                 .schedule_blow(step, interval, attack_point_steps, target);
+            self.set_fire_turns_mark(skill_ref);
         }
     }
 
@@ -1735,6 +1776,11 @@ impl Simulation {
         step: u64,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<Flow> {
+        // `SkillCoolingState.Update` asks a side arm whether it keeps its
+        // turn before its time.
+        if matches!(self.skill(skill_ref).state, SkillState::Cooling { .. }) {
+            self.try_side_arm_reset_fire_mark(skill_ref);
+        }
         if self.hold_through_cooling(skill_ref, step) {
             return Ok(Flow::Done);
         }
@@ -1747,8 +1793,17 @@ impl Simulation {
             FightSkillPhase::Prepare { .. }
         ) && !self.check_attackable(skill_ref, target_search_order)?
         {
+            self.force_side_arm_end_fire_turn(skill_ref);
             self.enter_idle_clearing_targets(skill_ref);
             return Ok(Flow::Done);
+        }
+        // `SkillAttackState.Update` has a side arm search again, where its
+        // lock no longer suits, before anything else it asks.
+        if matches!(self.skill(skill_ref).state, SkillState::Attack(_))
+            && self.is_side_arm(skill_ref)
+            && self.need_refresh_side_arm_target(skill_ref)
+        {
+            self.search_skill_lock_target(skill_ref, target_search_order)?;
         }
         // `SkillAttackState.Update` asks `CheckAttackable` between two blows,
         // and a failed check finishes the attack.

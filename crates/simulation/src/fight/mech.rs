@@ -732,7 +732,7 @@ fn extra_skills(placement: &Placement) -> Vec<ExtraSkill> {
                     count,
                     group_shape(&rules.attack).filter(|&(skills, _)| skills > 1),
                 ),
-                WeaponMode::Normal => (1, count, None),
+                WeaponMode::Normal | WeaponMode::SideArm => (1, count, None),
             };
             (0..skills).map(move |index| {
                 let mut skill = Skill::new(

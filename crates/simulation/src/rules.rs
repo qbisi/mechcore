@@ -450,6 +450,10 @@ pub(crate) struct AttackConfig {
     /// at a time.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) diffusion: Option<Diffusion>,
+    /// `SkillData.sideArmSearchRange` and `sideArmFireDelay`, for a skill
+    /// whose weapons are a side arm.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) side_arm: Option<SideArm>,
     pub(crate) path: AttackPath,
     /// A skill that fires from a magazine: `SkillData.isLoadingType`, which a
     /// turret's is and no unit this build places reads.
@@ -471,6 +475,26 @@ impl Diffusion {
     /// How much further the splash reaches each step, in space units.
     pub(crate) fn step_radius(&self) -> i64 {
         quantize_i64(self.speed, SPACE_UNITS_PER_METER)
+    }
+}
+
+/// A side arm's `SkillData.sideArmSearchRange`, how far from the main
+/// skill's lock it takes a target of its own, and `sideArmFireDelay`, how
+/// long after the main skill begins a blow it may begin its own.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct SideArm {
+    pub(crate) search_range: f64,
+    pub(crate) fire_delay: f64,
+}
+
+impl SideArm {
+    pub(crate) fn search_range_units(&self) -> i64 {
+        quantize_i64(self.search_range, SPACE_UNITS_PER_METER)
+    }
+
+    pub(crate) fn fire_delay_time_units(&self) -> u64 {
+        quantize_u64(self.fire_delay, TIME_UNITS_PER_SECOND)
     }
 }
 
@@ -514,6 +538,11 @@ pub(crate) enum WeaponMode {
     Normal,
     Group,
     Standalone,
+    /// `WeaponMode.SideArm`: an extra skill that fires in turn with its
+    /// unit's main skill, at what stands about the main skill's lock. It is
+    /// one skill of its weapons, as a normal row's is
+    /// (`FightSkillFactory.Create` groups only `Group`).
+    SideArm,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -1039,6 +1068,7 @@ impl UnitConfig {
             (_, WeaponMode::Normal) | (AttackPath::Projectile { .. }, WeaponMode::Standalone) => {
                 return Ok(());
             }
+            (_, WeaponMode::SideArm) => "fires a side arm as its main skill",
             (_, WeaponMode::Group) if weapons.fusillade == Some(true) => {
                 "fires a fusillade of weapons that do not strike"
             }
@@ -1151,6 +1181,25 @@ impl AttackConfig {
             true,
         )?;
         self.weapons.validate()?;
+        if (self.weapons.mode == WeaponMode::SideArm) != self.side_arm.is_some() {
+            return Err(Error::new(
+                "attack states side_arm exactly when its weapons are a side arm",
+            ));
+        }
+        if let Some(side_arm) = &self.side_arm {
+            validate_scaled(
+                side_arm.search_range,
+                SPACE_UNITS_PER_METER,
+                "side_arm.search_range",
+                true,
+            )?;
+            validate_scaled(
+                side_arm.fire_delay,
+                TIME_UNITS_PER_SECOND,
+                "side_arm.fire_delay",
+                true,
+            )?;
+        }
         match &self.path {
             AttackPath::Projectile {
                 count,
