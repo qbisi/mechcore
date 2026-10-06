@@ -823,6 +823,8 @@ mod tests {
     const DEGENERATION_BEAM: i32 = 180_418;
     /// Suppression Shots for the Void Eye, whose buff comes with a hit.
     const SUPPRESSION_SHOTS: i32 = 180_430;
+    /// Replicate for the Crawler, whose hit's buff summons as its unit dies.
+    const REPLICATE: i32 = 180_110;
     /// Electromagnetic Cloud for the Vortex, whose second damage disables
     /// technologies and writes a buff.
     const ELECTROMAGNETIC_CLOUD: i32 = 4531;
@@ -1101,6 +1103,12 @@ mod tests {
         assert_eq!(shots[0].buff_id, 10301);
         assert_eq!(shots[0].attack_range_rate, -1_288_490_188);
         assert!(shots[0].can_disable);
+        let replicate = table.sources(&[REPLICATE], "crawler").unwrap().buff_sources;
+        assert_eq!(replicate[0].trigger, crate::modifier::BuffTrigger::Hit);
+        assert_eq!(
+            replicate[0].summons,
+            Some(crate::modifier::DeadSummon::SourceType)
+        );
     }
 
     /// A buff technology of the update model `Each` keeps its buff on the

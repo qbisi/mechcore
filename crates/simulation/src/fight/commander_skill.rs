@@ -481,6 +481,7 @@ impl Simulation {
             buff_id: buff.id,
             max_life_rate: 0,
             stacking: None,
+            summons: None,
             divide: buff.divide,
             additive: buff.additive,
             ticks: buff.ticks,

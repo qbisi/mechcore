@@ -9,7 +9,9 @@
 
 use serde::Deserialize;
 
-use super::sources::{BuffReach, BuffSource, BuffTargets, BuffTrigger, StackCondition, Stacking};
+use super::sources::{
+    BuffReach, BuffSource, BuffTargets, BuffTrigger, DeadSummon, StackCondition, Stacking,
+};
 use crate::rules::AttackTargets;
 
 /// `BuffTechListener.Hit` and `FightStart`.
@@ -92,6 +94,9 @@ pub(crate) struct BuffBlock {
     max_additive_stack: u32,
     /// `isClearSelfBuffWhenDisableTech`.
     clear_when_technologies_disabled: bool,
+    /// `summonUnitID` and `isSummonUnitLevelInherit`.
+    summon_unit: i32,
+    summon_level_inherit: bool,
     /// The other fields it sets.
     #[serde(default)]
     special: Vec<String>,
@@ -217,10 +222,32 @@ pub(crate) fn buff_source(
         max_life_rate: buff.max_life_rate,
         step_q32: buff.step_time,
         stacking,
+        summons: summons(who, buff)?,
         trigger,
         can_disable,
         clears_when_technologies_disabled: buff.clear_when_technologies_disabled,
     })
+}
+
+/// What a buff's unit summons as it dies, `IBEC_DeadSummon`, which `Buff.Init`
+/// gives a buff of a nonzero `summonUnitID`. A summon that takes the adding
+/// unit's level is not read.
+fn summons(who: &str, buff: &BuffBlock) -> std::result::Result<Option<DeadSummon>, String> {
+    if buff.summon_unit == 0 {
+        return Ok(None);
+    }
+    let summon = if buff.summon_unit < 1 {
+        DeadSummon::SourceType
+    } else {
+        DeadSummon::Unit(buff.summon_unit)
+    };
+    if buff.summon_level_inherit && buff.summon_unit > 0 {
+        return Err(format!(
+            "{who} adds buff {} ({}), whose summon takes its adder's level, which is not read",
+            buff.id, buff.name
+        ));
+    }
+    Ok(Some(summon))
 }
 
 /// Whom a source's controller gives its buff: under `All`, the unit itself

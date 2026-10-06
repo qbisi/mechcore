@@ -38,6 +38,7 @@ BUFF_READ = {
     "buffEffectAdditiveConditionParam": "additive_condition_param",
     "maxAdditiveStack": "max_additive_stack",
     "isClearSelfBuffWhenDisableTech": "clear_when_technologies_disabled",
+    "summonUnitID": "summon_unit", "isSummonUnitLevelInherit": "summon_level_inherit",
 }
 # The ones that are Q32.32 raw values, read beside them as a decimal.
 BUFF_RATES = {"amplifyDamageRate", "damageChangeRate", "speedChangeRate", "maxLifeChangeRate",

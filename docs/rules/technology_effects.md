@@ -122,6 +122,22 @@ seconds: the range's add rates sum with its skill's and its reduce rates
 multiply with them, the range times one plus the adds and that times the
 reduces, which a melee reach does not take.
 
+**A buff that summons makes its unit summon as it dies.** A buff with a
+summon reaches even a unit the hit that adds it killed, and a unit that dies
+running it summons, as the tick's dead effects come after every unit and
+projectile has updated, units of
+the type the row names, or below 1 the type of the unit that added the buff:
+`max(1, (dead radius / summon radius) ^ 1.5)` of them, the whole part, in
+`FPoint`'s power. They stand where it died, scattered by two draws each of
+the adding unit's side's stream within its radius, join that side at once at
+level 1, each in a formation of its own and with what its side's technologies
+give the type, and appear in a recording right after the death, numbered by
+side and then where they stand. A summon has no speed until a move before a
+solve hands it one. Neither one a buff summoned nor a unit of another domain
+summons. When a summoning buff is added again, the unit adding it becomes its
+source if its level is the higher. Replicate is one: a Marksman killed by
+Crawlers leaves 7, and a Rhino 12.
+
 **A buff takes back only what it wrote.** When a buff ends, its entries go and
 every other buff's stay, whichever source wrote them: a Rhino with Combat
 Evolvement, Mobile Power Station and Degeneration Beam keeps two when the
@@ -302,6 +318,10 @@ whose effect grows with rank, rather than read index zero:
 - A hit adds its buff to the unit struck, ranged or melee, and a Fortress's
   range reads 70 of 100 under it: `tests/technology_buff/fights/suppression-shots.yaml`,
   `tests/technology_buff/fights/suppression-shots-melee.yaml`.
+- A unit killed under Replicate leaves Crawlers by its radius, 7 for a
+  Marksman and 12 for a Rhino, which join at once and move from the second
+  move before a solve: `tests/technology_buff/fights/replicate.yaml`,
+  `tests/technology_buff/fights/replicate-swarm.yaml`.
 - Three buffs run on one Rhino, and one ending leaves the others' rates:
   `tests/technology_buff/fights/three-buffs.yaml`.
 - A buff stacking on distance adds a metre of range for every 7 metres its
@@ -359,6 +379,23 @@ whose effect grows with rank, rather than read index zero:
   `FightMech.AddData` and `FightMech.RemoveData` call
   `FightMech.RefreshLifeData`, which keeps a full `FightActor.lifeGauge` full
   and any other at its share of the new maximum.
+- A buff that summons: `Buff.Init` gives a buff whose `IBuffData.IsSummoning`
+  an `IBEC_DeadSummon`, and `BuffSystem.IsAvaliableWhenActorDead` lets
+  `BuffSystem.AddBuff` add it to a dead target. `FightMech.OnDead` calls
+  `BuffManager.OnMechDead`, `Buff.OnMechDead` and `IBEC_DeadSummon.OnMechDead`,
+  which returns for a dead unit whose `FightMech.mechCreateType` is
+  `MechCreateType.ParasiticalSummon` or whose domain the summon's
+  `IMechData.IsFly` does not match, and otherwise counts
+  `FPoint.Pow` of the radii's ratio and `IBEC_DeadSummon.DEAD_FACTOR`, at
+  least 1, for `SummonSystem.CreateMech` at the dead unit's position, with
+  its radius as `CreateSummonMechInfo.randomRange` and the buff's
+  `Buff.source` as parent. `Buff.GetSummonMechID` answers the source's type
+  below 1. `SummonSystem.DoCreateMech` calls `FightController.CreateMech`
+  with the parent's `MechData.IsChildInheritTechnologyEffect` and, with no
+  `CreateSummonMechInfo.delayTime`, `SummonSystem.AddMech`. `Buff.Reset`
+  takes the new source of a buff that summons when its `FightMech.level` is
+  the higher. `FPCSMath.PowFastest` is `FPCSMath.LogFastest` times the
+  exponent times log2 e through `FPCSMath.Exp2Fastest`.
 - A source of the listener `Hit`: `BuffCycleController.RegisterMechEvent`
   calls `FightSkill.AddHitEffectProvider` on the main skill when
   `SkillDataModifier.AvaliableCheck` passes, and on its extra skills, grouped
@@ -440,6 +477,12 @@ whose effect grows with rank, rather than read index zero:
   `SkillAttackState.CheckAttackable`.
 
 ### Not established
+
+- **Which way a buff's summon faces.** `CreateSummonMechInfo`'s constructor
+  reads its rotation from a static the build was not read for; a summon
+  faces its side's way here, which only blue's summons have recorded.
+- **That one a buff summoned summons nothing as it dies.** Read from the
+  build, and no recording holds a summoned unit dying under the buff.
 
 - **Which units `FriendUnits` names in a fight of two teams a side.**
   `BuffCycleController.AvailableCheck` compares the units' groups and then

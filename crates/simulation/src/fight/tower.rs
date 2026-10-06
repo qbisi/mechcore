@@ -33,7 +33,7 @@ use crate::{
 };
 
 use super::{LOGIC_TICK_TIME_UNITS, Simulation, TIME_UNITS_PER_SECOND, event, math::q32_div};
-use crate::modifier::StackCondition;
+use crate::modifier::{DeadSummon, StackCondition};
 use mechcore_mcfr::{BuffRemovedReason, Event, EventPayload, ObjectKind, ObjectRef};
 
 /// What tags a tower's loss writes, so that its end takes it away.
@@ -78,12 +78,23 @@ pub(in crate::fight) struct RunningBuff {
     /// `IBEC_AdditiveEffectBuff`, the controller of a buff that stacks, and
     /// its step.
     stack: Option<StackStep>,
+    /// `IBEC_DeadSummon`, the controller of a buff that summons as its unit
+    /// dies, and what it summons.
+    summons: Option<DeadSummon>,
     /// `IsClearSelfBuffWhenDisableTech`: a buff its own unit added is
     /// cleared as that unit's technologies are disabled.
     clears_when_technologies_disabled: bool,
 }
 
 impl RunningBuff {
+    /// Its `IBEC_DeadSummon`'s summon and the buff's source.
+    pub(in crate::fight) const fn dead_summon(&self) -> Option<(DeadSummon, Option<ObjectRef>)> {
+        match self.summons {
+            Some(summon) => Some((summon, self.source_actor)),
+            None => None,
+        }
+    }
+
     /// The stacks it has written among the buffs': one for a buff that does
     /// not stack, and none before a stacking one's first step.
     fn stacks(&self) -> u32 {
@@ -203,6 +214,8 @@ pub(in crate::fight) struct BuffRow {
     /// stack's, of which `IBEC_AdditiveEffectBuff.GetData` answers the stack
     /// times as many, none before the first step.
     pub(in crate::fight) stacking: Option<StackRule>,
+    /// What its unit summons as it dies, when `IsSummoning`.
+    pub(in crate::fight) summons: Option<DeadSummon>,
 }
 
 /// The towers of both sides: what their table says, what each one's loss
@@ -550,6 +563,7 @@ impl Simulation {
                 .clear_when_technologies_disabled,
             max_life_rate: 0,
             stacking: None,
+            summons: None,
             divide: self.towers.config.destroyed_buff.buff_divide,
             additive: self.towers.config.destroyed_buff.additive,
             ticks: loss.ticks,
@@ -599,7 +613,7 @@ impl Simulation {
                 .building_buffs
                 .entry(construction_id)
                 .or_default();
-            let (running, added) = add_buff(&mut buffed.buffs, &row, None, loss.team);
+            let (running, added) = add_buff(&mut buffed.buffs, &row, (None, false), loss.team);
             applied.push(buff_applied(
                 ObjectRef::new(ObjectKind::Building, construction_id),
                 loss.team,
@@ -644,12 +658,27 @@ impl Simulation {
         row: &BuffRow,
         events: &mut Vec<Event>,
     ) -> Result<()> {
+        // `Buff.Reset` of a buff that summons: the unit that adds it again
+        // becomes its source when its level is above the source's.
+        let level = |unit: Option<ObjectRef>| {
+            unit.filter(|unit| unit.kind == ObjectKind::Unit)
+                .and_then(|unit| self.actors.get(&unit.id))
+                .map(|actor| actor.placement.level)
+        };
+        let takes_source = row.summons.is_some()
+            && self.actors[&actor_id]
+                .buffs
+                .iter()
+                .find(|running| same_buff(running, row))
+                .is_some_and(|running| {
+                    matches!((level(running.source_actor), level(source)), (Some(was), Some(now)) if was < now)
+                });
         let actor = self
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
         let was_disabled = actor.technology_disabled();
-        let (running, added) = add_buff(&mut actor.buffs, row, source, team);
+        let (running, added) = add_buff(&mut actor.buffs, row, (source, takes_source), team);
         if added {
             if row.stacking.is_none() {
                 for entry in &row.entries {
@@ -1106,12 +1135,13 @@ pub(in crate::fight) struct BuildingBuffs {
 fn add_buff(
     buffs: &mut Vec<RunningBuff>,
     row: &BuffRow,
-    source_actor: Option<ObjectRef>,
+    (source_actor, takes_source): (Option<ObjectRef>, bool),
     team: u32,
 ) -> (RunningBuff, bool) {
-    if let Some(running) = buffs.iter_mut().find(|running| {
-        running.buff_id == row.buff_id || (row.divide != 0 && running.divide == row.divide)
-    }) {
+    if let Some(running) = buffs.iter_mut().find(|running| same_buff(running, row)) {
+        if takes_source {
+            running.source_actor = source_actor;
+        }
         if running.additive {
             running.duration = running.duration.saturating_add(row.ticks);
         } else {
@@ -1136,6 +1166,7 @@ fn add_buff(
             elapsed: 0,
         }),
         max_life_rate: row.max_life_rate,
+        summons: row.summons,
         stack: row.stacking.map(|rule| StackStep {
             rule,
             elapsed: 0,
@@ -1148,6 +1179,11 @@ fn add_buff(
     };
     buffs.push(running.clone());
     (running, true)
+}
+
+/// `Buff.IsSameBuff`: the same row, or one of the same nonzero divide.
+fn same_buff(running: &RunningBuff, row: &BuffRow) -> bool {
+    running.buff_id == row.buff_id || (row.divide != 0 && running.divide == row.divide)
 }
 
 /// Every running buff one tick older, and those whose time is up removed

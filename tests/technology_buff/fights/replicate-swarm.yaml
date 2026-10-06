@@ -1,0 +1,28 @@
+# Replicate on four squads of Crawlers against a Rhino and two Marksmen.
+#
+# The Rhino dies at t268, a tick that solves, and leaves 12 Crawlers; the
+# Marksmen die at t383, the tick before one, and at t393, and leave 7 each.
+# A summon has no speed until a move before a solve hands it one: the
+# Rhino's Crawlers first move at t276 and the first Marksman's at t392.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 394
+hash: {profile: mcfr-content-0.7.0, result: c287113d4b576d736068feff6fead235a7cc33c735d241a02bcc95bb1dac1866}
+blue:
+  techs:
+    crawler: [replicate]
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -120}, exp: 0/300/450}
+  - {name: crawler, index: 1, position: {x: -55, y: -120}, exp: 0/100/450}
+  - {name: crawler, index: 2, position: {x: 65, y: -120}, exp: 0/200/450}
+  - {name: crawler, index: 3, position: {x: 5, y: -150}, exp: 0/100/450}
+red:
+  core_damage: 202
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -115}, exp: 0/344/1150}
+  - {name: marksman, index: 1, position: {x: -40, y: -120}, exp: 0/32/650}
+  - {name: marksman, index: 2, position: {x: 50, y: -120}, exp: 0/40/650}

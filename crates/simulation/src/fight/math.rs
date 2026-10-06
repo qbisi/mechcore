@@ -233,6 +233,77 @@ pub(in crate::fight) fn native_q32_magnitude_3d(x: i64, y: i64, z: i64) -> i64 {
     )
 }
 
+/// `FPCSMath.LogFastest`: the natural log of a positive Q32.32 number, its
+/// mantissa's by a polynomial and its exponent's by ln 2.
+pub(in crate::fight) fn fpcs_log_fastest(value: i64) -> i64 {
+    debug_assert!(value > 0, "a logarithm of a positive number");
+    let exponent = 31 - i64::from(value.leading_zeros());
+    let normalized = if exponent >= 0 {
+        value >> exponent
+    } else {
+        value.wrapping_shl(u32::try_from(-exponent).unwrap_or(0))
+    };
+    let fraction = normalized
+        .wrapping_mul(0x4000_0000)
+        .wrapping_sub(0x4000_0000_0000_0000);
+    let x = (fraction >> 32).wrapping_mul(4);
+    let mut y = i64::from((fraction >> 32) as i32)
+        .wrapping_mul(0x084E_2FD8)
+        .wrapping_sub(0x08E1_E9C8_0000_0000)
+        >> 32;
+    y = y.wrapping_mul(x).wrapping_add(0x12D0_23B3_0000_0000) >> 32;
+    y = y.wrapping_mul(x).wrapping_sub(0x1FA2_CDC8_0000_0000) >> 32;
+    y = y.wrapping_mul(x).wrapping_add(0x3FFD_8DE6_0000_0000) >> 32;
+    ((x.wrapping_mul(y) >> 30) & !3).wrapping_add(exponent.wrapping_mul(0xB172_17F7))
+}
+
+/// `FPCSMath.Exp2Fastest`: two to a Q32.32 power, its fraction's by a
+/// polynomial, shifted by its whole part.
+pub(in crate::fight) fn fpcs_exp2_fastest(value: i64) -> i64 {
+    if value > 0x1F_FFFF_FFFF {
+        return 0x7FFF_FFFF_FFFF_FFFE;
+    }
+    if value < -0x1F_FFFF_FFFF {
+        return 0;
+    }
+    let fraction = (value >> 2) & 0x3FFF_FFFF;
+    let small = i64::from(fraction as i32);
+    let inner = i64::from(
+        (small
+            .wrapping_mul(0x1409_5EA4)
+            .wrapping_add(0x0E7B_D338_0000_0000)
+            >> 32) as i32,
+    );
+    let term = small
+        .wrapping_mul(inner)
+        .wrapping_mul(4)
+        .cast_unsigned()
+        .wrapping_add(0x2C81_D51F_0000_0000)
+        >> 32;
+    let mantissa =
+        ((term.wrapping_mul(fraction.cast_unsigned()) >> 28) + 0x1_0000_0000) & 0x3_FFFF_FFFC;
+    let whole = value >> 32;
+    if value < 0 {
+        (mantissa >> ((-whole) & 63)).cast_signed()
+    } else {
+        (mantissa << (whole & 63)).cast_signed()
+    }
+}
+
+/// `FPoint.Pow` of a positive base, `FPCSMath.PowFastest`: two to the
+/// exponent times the base's natural log times log2 e. Four to the 1.5 is
+/// 7.99999998.
+pub(in crate::fight) fn fpcs_pow_fastest(base: i64, exponent: i64) -> i64 {
+    if exponent == 0 {
+        return 1 << 32;
+    }
+    if base == 0 {
+        return 0;
+    }
+    let power = q32_mul(fpcs_log_fastest(base), exponent);
+    fpcs_exp2_fastest(q32_mul(power, 0x1_7154_7652))
+}
+
 pub(crate) fn fpcs_sqrt_fastest(value: i64) -> i64 {
     if value <= 0 {
         return 0;
@@ -457,4 +528,21 @@ pub(in crate::fight) fn direction_degrees_q32_raw(dx: i64, dz: i64) -> i64 {
         degrees
     };
     degrees.rem_euclid(360_i64 << 32)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::fpcs_pow_fastest;
+
+    /// `FPoint.Pow` falls just short of a whole power: four to the 1.5 is
+    /// 7.99999998, and five to it, of a 10-metre radius over a Crawler's 2,
+    /// 11.18; a Marksman killed under Replicate leaves 7 Crawlers.
+    #[test]
+    fn fpoint_pow_falls_short_of_a_whole_power() {
+        let half = 0x1_8000_0000;
+        assert_eq!(fpcs_pow_fastest(4 << 32, half), 34_359_738_304);
+        assert_eq!(fpcs_pow_fastest(4 << 32, half) >> 32, 7);
+        assert_eq!(fpcs_pow_fastest(5 << 32, half) >> 32, 11);
+        assert_eq!(fpcs_pow_fastest(1 << 32, half), 1 << 32);
+    }
 }

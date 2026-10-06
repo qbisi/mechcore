@@ -1,0 +1,26 @@
+# Replicate: a Marksman killed under a Crawler's buff leaves Crawlers.
+#
+# The Crawlers' hits add buff 2010 to the Marksman, and the last adds it to
+# the Marksman it kills. As it dies at t293 the buff summons Crawlers of the
+# Crawler's side where it stood: max(1, (8 / 2) ^ 1.5), the whole part, is 7,
+# FPoint.Pow giving 7.99999998. Each joins at once in a formation of its own,
+# scattered within the Marksman's 8 metres, numbered by where it stands as a
+# recording numbers new units, and first moves at t300.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 492
+hash: {profile: mcfr-content-0.7.0, result: 277919d3c2cd367768ce024a0d7eed517643aeaca512032c08aacc3ea3b0e3d7}
+blue:
+  core_damage: 350
+  techs:
+    crawler: [replicate]
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -120}, exp: 0/200/450}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -120}, exp: 0/46/650}
+  - {name: fortress, index: 1, position: {x: 70, y: -150}, exp: 0/202/1600}

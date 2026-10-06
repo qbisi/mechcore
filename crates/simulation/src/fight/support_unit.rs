@@ -15,7 +15,7 @@
 //! deals its whole life to everything its edge covers, of either side, and
 //! loses as much as it dealt. `docs/rules/battle_skill.md` states the rule.
 
-use super::math::fpcs_sin_fastest;
+use super::math::{fpcs_pow_fastest, fpcs_sin_fastest, q32_div};
 use super::*;
 use crate::layout::Summon;
 
@@ -25,6 +25,10 @@ const DEG_TO_RAD: i64 = 0x0477_D1A9;
 /// A quarter turn, Q32.32 radians: `SinFastest` of an angle a quarter turn
 /// on is its cosine.
 const QUARTER_TURN: i64 = 0x1_921F_B544;
+
+/// `IBEC_DeadSummon.DEAD_FACTOR`, 1.5: the power of the ratio of the radii a
+/// dying unit's summons count by.
+const DEAD_FACTOR: i64 = 0x1_8000_0000;
 
 /// `SupportUnitCreator.APPEAR_DURATION`, one second, in ticks.
 const APPEAR_TICKS: u64 = 20;
@@ -43,6 +47,33 @@ pub(in crate::fight) struct SupportUnitSystem {
     /// The summons created and not yet let into the fight, in the order they
     /// were created.
     pub(in crate::fight) appearing: Vec<Appearing>,
+    /// What each side's buffs make a dying unit summon, by side and type id.
+    pub(in crate::fight) death_summons: BTreeMap<(u32, u32), crate::layout::DeathSummon>,
+    /// The units that died this tick running a buff that summons, in the
+    /// order they died: `DeadEffectSystem.deadActors`, whose `OnDead` waits
+    /// for that module's update.
+    pub(in crate::fight) dying: Vec<u64>,
+    /// The `unit_created` of what each unit that died this tick summoned, to
+    /// follow its `unit_died`.
+    pub(in crate::fight) summoned_events: BTreeMap<u64, Vec<Event>>,
+}
+
+impl SupportUnitSystem {
+    /// The production lines units carry, and what the side's buffs make a
+    /// dying unit summon; nothing created yet.
+    pub(in crate::fight) fn new(
+        lines: Vec<Creator>,
+        layout: &crate::layout::CompiledLayout,
+    ) -> Self {
+        Self {
+            lines,
+            creators: Vec::new(),
+            appearing: Vec::new(),
+            death_summons: layout.death_summons.clone(),
+            dying: Vec::new(),
+            summoned_events: BTreeMap::new(),
+        }
+    }
 }
 
 /// One `SupportUnitCreator` still creating or still alive.
@@ -540,24 +571,251 @@ impl Simulation {
             let Appearing {
                 actor, drop_damage, ..
             } = self.support.appearing.remove(0);
-            let unit_id = actor.placement.unit_id;
-            let team = actor.placement.team;
-            self.actors.insert(unit_id, actor);
-            self.unit_update_order.push(unit_id);
-            self.draw_owner_first_intervals(FightActorRef::Unit(unit_id))?;
-            if drop_damage && self.actors[&unit_id].rules.domain == UnitDomain::Ground {
-                self.drop_damage(unit_id, events)?;
-            }
-            let actor = &self.actors[&unit_id];
-            let (x_q32, z_q32, radius) = (actor.x_q32, actor.z_q32, actor.rules.collision_radius());
-            for trees in [&mut self.target_quadtrees, &mut self.mech_quadtrees] {
-                trees
-                    .entry(team)
-                    .or_insert_with(TargetActorQuadtree::new)
-                    .insert(FightActorRef::Unit(unit_id), x_q32, z_q32, radius);
-            }
+            self.let_in(actor, drop_damage, events)?;
         }
         Ok(())
+    }
+
+    /// `SummonSystem.AddMech`: the summon joins its side, an air-dropped one
+    /// deals its drop, and `FightTeam.ActiveMech` puts it in its side's
+    /// trees.
+    fn let_in(&mut self, actor: Actor, drop_damage: bool, events: &mut Vec<Event>) -> Result<()> {
+        let unit_id = actor.placement.unit_id;
+        self.join(actor)?;
+        if drop_damage && self.actors[&unit_id].rules.domain == UnitDomain::Ground {
+            self.drop_damage(unit_id, events)?;
+        }
+        self.plant(unit_id);
+        Ok(())
+    }
+
+    /// The summon in the fight and its side's update order, its skills'
+    /// first intervals drawn.
+    fn join(&mut self, actor: Actor) -> Result<()> {
+        let unit_id = actor.placement.unit_id;
+        self.actors.insert(unit_id, actor);
+        self.unit_update_order.push(unit_id);
+        self.draw_owner_first_intervals(FightActorRef::Unit(unit_id))
+    }
+
+    /// The summon in its side's trees.
+    fn plant(&mut self, unit_id: u64) {
+        let actor = &self.actors[&unit_id];
+        let team = actor.placement.team;
+        let (x_q32, z_q32, radius) = (actor.x_q32, actor.z_q32, actor.rules.collision_radius());
+        for trees in [&mut self.target_quadtrees, &mut self.mech_quadtrees] {
+            trees
+                .entry(team)
+                .or_insert_with(TargetActorQuadtree::new)
+                .insert(FightActorRef::Unit(unit_id), x_q32, z_q32, radius);
+        }
+    }
+
+    /// The units made this tick numbered as a recording numbers the units
+    /// a snapshot finds new: by side, then where they stand, `z` and then
+    /// `x`, each taking the next unit and formation in turn. They were made,
+    /// and are recorded as made, in their own order.
+    fn number_as_recorded(&mut self, made: &[u64]) -> BTreeMap<u64, (u64, u64)> {
+        let mut sorted = made.to_vec();
+        sorted.sort_by_key(|id| {
+            let actor = &self.actors[id];
+            (actor.placement.team, actor.z_q32, actor.x_q32)
+        });
+        let renamed = sorted
+            .iter()
+            .zip(made)
+            .map(|(&old, &new)| (old, (new, self.actors[&new].placement.formation_id)))
+            .collect::<BTreeMap<_, _>>();
+        let mut moved = renamed
+            .keys()
+            .map(|id| self.actors.remove(id).expect("a summon just made"))
+            .collect::<Vec<_>>();
+        for actor in &mut moved {
+            let (unit_id, formation_id) = renamed[&actor.placement.unit_id];
+            actor.placement.unit_id = unit_id;
+            actor.placement.formation_id = formation_id;
+        }
+        for actor in moved {
+            self.actors.insert(actor.placement.unit_id, actor);
+        }
+        for id in &mut self.unit_update_order {
+            if let Some(&(unit_id, _)) = renamed.get(id) {
+                *id = unit_id;
+            }
+        }
+        renamed
+    }
+}
+
+/// What a recording names in events made before their units were numbered
+/// as it numbers them: each unit made and its formation, by the name it was
+/// made under.
+fn rename_created(renamed: &BTreeMap<u64, (u64, u64)>, events: &mut [Event]) {
+    {
+        for event in events.iter_mut() {
+            let Some(subject) = event
+                .subject
+                .filter(|subject| subject.kind == ObjectKind::Unit)
+            else {
+                continue;
+            };
+            let Some(&(unit_id, formation)) = renamed.get(&subject.id) else {
+                continue;
+            };
+            if let EventPayload::UnitCreated { formation_id, .. } = &mut event.payload {
+                event.subject = Some(ObjectRef::new(ObjectKind::Unit, unit_id));
+                *formation_id = formation;
+            }
+        }
+    }
+}
+
+impl Simulation {
+    /// `BuffManager.OnMechDead` of every unit that died this tick running a
+    /// buff that summons, as `DeadEffectSystem` calls its `OnDead`, and each
+    /// such buff's `IBEC_DeadSummon.OnMechDead`: a unit a buff itself summoned
+    /// (`MechCreateType.ParasiticalSummon`) summons nothing, nor one of
+    /// another domain than the summon. The buff's source summons
+    /// `Max(1, (dead radius / summon radius) ^ 1.5)` units of its type
+    /// (`DEAD_FACTOR`), the whole part, where the dead unit stood, scattered
+    /// within its radius, each joining its side at once. A Marksman killed
+    /// under Replicate leaves 7 Crawlers, four to the 1.5 being 7.99999998.
+    pub(in crate::fight) fn summon_from_the_dead(&mut self) -> Result<()> {
+        let mut made = Vec::new();
+        let mut created = Vec::new();
+        for dead_id in std::mem::take(&mut self.support.dying) {
+            let dead = &self.actors[&dead_id];
+            if dead.parasitic {
+                continue;
+            }
+            let summons = dead
+                .buffs
+                .iter()
+                .filter_map(super::tower::RunningBuff::dead_summon)
+                .collect::<Vec<_>>();
+            let mut events = Vec::new();
+            for (summon, source) in summons {
+                made.extend(self.summon_where_dead(dead_id, summon, source, &mut events)?);
+            }
+            created.push((dead_id, events));
+        }
+        let renamed = self.number_as_recorded(&made);
+        for (_, events) in &mut created {
+            rename_created(&renamed, events);
+        }
+        // `FightTeam.ActiveMech` put each in its side's trees as it was made.
+        for unit_id in &made {
+            self.plant(
+                renamed
+                    .get(unit_id)
+                    .map_or(*unit_id, |&(renamed, _)| renamed),
+            );
+        }
+        self.support.summoned_events.extend(created);
+        Ok(())
+    }
+
+    /// One `IBEC_DeadSummon.OnMechDead`: `SummonSystem.CreateMech` of the
+    /// parent's side, each summon at `CardLevel.Level1` and in a formation of
+    /// its own, scattered by two draws of that side's stream.
+    fn summon_where_dead(
+        &mut self,
+        dead_id: u64,
+        summon: crate::modifier::DeadSummon,
+        source: Option<ObjectRef>,
+        events: &mut Vec<Event>,
+    ) -> Result<Vec<u64>> {
+        let Some(parent) = source
+            .filter(|source| source.kind == ObjectKind::Unit)
+            .and_then(|source| self.actors.get(&source.id))
+        else {
+            return Err(Error::new(format!(
+                "unit {dead_id} dies under a buff that summons and that no unit added"
+            )));
+        };
+        let type_id = match summon {
+            crate::modifier::DeadSummon::SourceType => parent.rules.unit_type_id,
+            crate::modifier::DeadSummon::Unit(id) => u32::try_from(id)
+                .map_err(|_| Error::new("a buff summons a unit of a negative type"))?,
+        };
+        let team = parent.placement.team;
+        let Some(made) = self.support.death_summons.get(&(team, type_id)).cloned() else {
+            return Err(Error::new(format!(
+                "unit {dead_id} dies under a buff that has team {team} summon unit {type_id}, \
+                 which that side's layout did not prepare"
+            )));
+        };
+        let dead = &self.actors[&dead_id];
+        if made.rules.domain != dead.rules.domain {
+            return Ok(Vec::new());
+        }
+        let radius_q32 = space_to_q32(dead.rules.collision_radius());
+        let ratio = q32_div(radius_q32, space_to_q32(made.rules.collision_radius()));
+        let count = (fpcs_pow_fastest(ratio, DEAD_FACTOR) >> 32).max(1);
+        let (centre_x_q32, centre_z_q32) = (dead.x_q32, dead.z_q32);
+        let span = i32::try_from((radius_q32 >> 32) * 100)
+            .map_err(|_| Error::new("a dead unit's radius exceeds i32"))?;
+        let mut joined = Vec::new();
+        for _ in 0..count {
+            let mut position = (centre_x_q32, centre_z_q32);
+            for axis in [&mut position.0, &mut position.1] {
+                let draw = self.side_random(team)?.next_in_range(span);
+                *axis = axis.saturating_add(hundredths(draw));
+            }
+            let actor = self.make_parasite(&made, position, events);
+            joined.push(actor.placement.unit_id);
+            self.join(actor)?;
+        }
+        Ok(joined)
+    }
+
+    /// `FightController.CreateMech` of a parasitic summon: its side's
+    /// placement for its type, a unit and a formation of its own.
+    fn make_parasite(
+        &mut self,
+        made: &crate::layout::DeathSummon,
+        (x_q32, z_q32): (i64, i64),
+        events: &mut Vec<Event>,
+    ) -> Actor {
+        let unit_id = self.ids.next_unit;
+        self.ids.next_unit += 1;
+        let formation_id = self.ids.next_formation;
+        self.ids.next_formation += 1;
+        let placement = Placement {
+            unit_id,
+            formation_id,
+            world_x: q32_to_space_rounded(x_q32),
+            world_z: q32_to_space_rounded(z_q32),
+            ..made.placement.clone()
+        };
+        let mut actor = Actor::at_generated_position(placement, made.rules.clone(), x_q32, z_q32);
+        actor.summoned = true;
+        actor.parasitic = true;
+        // Its agent is made with it, so the first tree built after reads its
+        // position as zero, as any new agent's, and it reaches its first
+        // solve with no speed until `Move`, on the update before a solve,
+        // hands it one: a Rhino's Crawlers, made on a tick that solves, and a
+        // Marksman's, made on the tick before one, first move two solves on.
+        actor.motion.rvo_new_agent = true;
+        actor.motion.next_max_speed_q32 = 0;
+        actor.target_query_alive = false;
+        events.push(event(
+            Some(ObjectRef::new(ObjectKind::Unit, unit_id)),
+            None,
+            None,
+            None,
+            EventPayload::UnitCreated {
+                team_id: actor.placement.team,
+                formation_id,
+                unit_type_id: actor.rules.unit_type_id,
+                position: QVec3 {
+                    x: x_q32,
+                    y: space_to_q32(unit_height(actor.rules.domain)),
+                    z: z_q32,
+                },
+            },
+        ));
+        actor
     }
 
     /// `SupportUnitCreator.PerformAirDropDamage`: `SupportUnitDamageProvider`

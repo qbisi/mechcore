@@ -212,6 +212,7 @@ impl Simulation {
             buff_id: shot.buff.id,
             max_life_rate: 0,
             stacking: None,
+            summons: None,
             divide: shot.buff.divide,
             additive: shot.buff.additive,
             ticks: shot.buff.ticks,

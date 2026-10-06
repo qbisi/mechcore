@@ -262,6 +262,9 @@ struct Actor {
     shield: Option<PersonalShield>,
     /// Its `BuffCycleController`s, one for each of its buff sources.
     buff_cycles: Vec<buff_cycle::BuffCycle>,
+    /// `FightMech.mechCreateType` is `ParasiticalSummon`: a buff summoned it
+    /// as a unit died, and it summons nothing as it dies.
+    parasitic: bool,
     /// `MotionController.totalMoveDistanceWithoutDisableTech`, Q32.32 metres,
     /// and `prevPosition`, where its last `Move` before a solve found it.
     moved_q32: i64,
@@ -519,11 +522,7 @@ impl Simulation {
             },
             shield: shield::ShieldSystem::new(&layout.shields, &carried),
             commander: commander_skill::CommanderSkillSystem::new(layout),
-            support: support_unit::SupportUnitSystem {
-                lines: productions,
-                creators: Vec::new(),
-                appearing: Vec::new(),
-            },
+            support: support_unit::SupportUnitSystem::new(productions, layout),
             travels,
             ids: Identities {
                 objects: IdentityAllocator::new(),
@@ -811,6 +810,7 @@ impl Simulation {
         // Its dead effects first, the explosions among them, and then each
         // dead actor's `OnDead`.
         self.step_dead_explosions(&mut events)?;
+        self.summon_from_the_dead()?;
         for building_id in std::mem::take(&mut self.towers.fallen) {
             self.lose_tower(building_id)?;
         }
@@ -1043,8 +1043,16 @@ impl Simulation {
     /// follows it.
     fn around_an_end(&mut self, end: &Event) -> (Vec<Event>, Vec<Event>) {
         match (end.subject, &end.payload) {
+            // What a buff made a dying unit summon is made as it dies, before
+            // its buffs are cleared.
             (Some(subject), EventPayload::UnitDied { .. }) if subject.kind == ObjectKind::Unit => {
-                (Vec::new(), self.buffs_cleared_by_death(subject.id))
+                let mut follows = self
+                    .support
+                    .summoned_events
+                    .remove(&subject.id)
+                    .unwrap_or_default();
+                follows.extend(self.buffs_cleared_by_death(subject.id));
+                (Vec::new(), follows)
             }
             (Some(subject), EventPayload::BuildingDestroyed { .. })
                 if subject.kind == ObjectKind::Building =>
