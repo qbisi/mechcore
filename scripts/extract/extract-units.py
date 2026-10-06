@@ -354,6 +354,17 @@ BUFF_DESCRIPTIVE = {"id", "name", "isTestData", "duration", "stepTime", "effectT
                     "isClearSelfBuffWhenDisableTech"}
 
 
+def turn_kept_buffs():
+    """The buffs a unit a control beam turns keeps, `TeamTranslationSystem.ignoredBuffs`:
+    `Config.GetTeamTranslationIgnoredBuffs` reads the `BuffGroup` that the common
+    parameter `hacker_cannot_clear_bufflist` names, and `BuffManager.RemoveBuffEffect`
+    removes every other as the unit turns."""
+    structure = build_data.container()
+    group = int(next(row["value"] for row in structure["commonParms"]
+                     if row["key"] == "hacker_cannot_clear_bufflist"))
+    return next(row["buffs"] for row in structure["buffGroups"] if row["id"] == group)
+
+
 def buff_row(identifier):
     """The `buffDatas` row a technology's skill writes, when the simulator
     reads every field it sets."""
@@ -548,6 +559,7 @@ def attack_lines(unit, kind, skill, damage_line, attack_angle, indent, angle_abs
             "    type: control_beam",
             f"    warmup_attack_count: {skill['prepareAttackCount']}",
             f"    warmup_damage_multiplier: {single(skill['prepareAttackDamageMultiplier'])}",
+            f"    keeps_buffs: [{', '.join(str(buff) for buff in turn_kept_buffs())}]",
         ]
     elif kind == "sweepSkillDatas":
         if len(skill["unitRadiusList"]) != len(skill["maxDamageTimesList"]):

@@ -722,7 +722,7 @@ impl Simulation {
         // their enemies stood as the tick opened.
         // `TeamTranslationSystem` updates before `FightCoreSystem`: a unit a
         // beam's last hit turned acts on its new side on the next tick.
-        self.update_translations(step);
+        self.update_translations(step, &mut events)?;
         self.step_battle_skills(step, &target_search_order, &mut events)?;
         self.step_mines(&target_search_order, &mut events)?;
         // `RangeItemSystem` updates after `MineSystem` and before
