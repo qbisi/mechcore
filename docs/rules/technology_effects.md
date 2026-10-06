@@ -210,10 +210,27 @@ false. So the officers' and the items' corrections stay.
   so the blow under way runs out, a burst's every projectile, and its attack
   ends. Enabled again, it starts as any idle skill does: a Centurion's Homing
   Missile, due while disabled, fires two ticks after its buff runs out.
+- **A buff its unit added itself is cleared, if its row says so**
+  (`isClearSelfBuffWhenDisableTech`): `FightMech.DisableTechnology` raises
+  `BuffManager.ClearSelfResourceBuffByDisableTech` after the effects are off.
+  One that stacks keeps its stack and writes its rates at none
+  (`ResetAdditiveEffectStackByDisableTech`), and adds no stack at its steps
+  while the technologies are off (`AddAdditiveStack`). Its life rate stays
+  until its next step, which takes it out and refreshes the life once more at
+  the same maximum, taking the share a second time
+  (`IBEC_ChangeMaxLife.DoAdditiveEffect`). Switched on, nothing is written
+  back: the next step puts the old life rate back, takes it out, adds a stack
+  to the one kept and writes the rates and life rate at it. A Rhino with
+  Combat Evolvement at two stacks loses its 9% damage as the Electromagnetic
+  Impact lands and its 5% life at its next second; the buff run out, its next
+  second writes three stacks. A buff source that adds its buff once onto its
+  unit is the only kind read: one that cycles over the units around stops
+  (`BuffEffectProvider.DoDisableCycle`), and a cleared buff that does not
+  stack is removed, neither measured.
 
 What switching off does to any other technology, an extra weapon's
 production line, explosion, preemptive skill or group, a repair, a shield, a
-buff technology's buffs, a sweep's change, is read below and
+cycling buff source, a sweep's change, is read below and
 refused: a buff that disables technology reaching a unit that carries one is
 refused by name.
 
@@ -282,6 +299,11 @@ whose effect grows with rank, rather than read index zero:
   `tests/technology_disable/fights/barrage-homing-missile-held.yaml`.
 - A search technology's ranges and offsets leave with it:
   `tests/technology_disable/fights/impact-ground-targeting.yaml`.
+- A stacking buff its unit added writes no stack while the technologies are
+  off, takes its life rate out at its next step with a second share of the
+  life, and stacks on from the stack it kept:
+  `tests/technology_disable/fights/impact-combat-evolvement.yaml`,
+  `tests/technology_disable/fights/impact-combat-evolvement-expires.yaml`.
 
 ### Read
 
@@ -351,6 +373,12 @@ whose effect grows with rank, rather than read index zero:
   `SearchTargetSpecificProvider.DoDisable`,
   `SearchTargetSpecificProvider.DoEnable`,
   `SearchTargetController.SetTargetSelector`,
+  `BuffEffectProvider.DisableEffect`, `BuffEffectProvider.DoDisableCycle`,
+  `BuffManager.ClearSelfResourceBuffByDisableTech`,
+  `Buff.ResetAdditiveEffectStackByDisableTech`,
+  `IBEC_AdditiveEffectBuff.AddAdditiveStack`,
+  `IBEC_AdditiveEffectBuff.RefreshAdditiveEffect`,
+  `IBEC_ChangeMaxLife.DoAdditiveEffect`,
   `FightMech.RefreshLifeData`, `FightSkill.RefreshAttackInterval`,
   `ExtraSkillProvider.DisableSkill`, `ExtraSkillProvider.EnableSkill`,
   `FightSkill.Disable`, `FightSkill.Enable`, `SkillIdleState.Update`,
@@ -370,8 +398,9 @@ whose effect grows with rank, rather than read index zero:
   line (`SupportUnitCreator`), explosion, preemptive skill or group, a repair
   (`AutoRecoverySystem.DisableMech`), a unit's own shield and a Barrier's
   (`EnergyShieldProvider.DisableEffect`,
-  `AdvancedEnergyShieldSystem.DeactiveEnergyShield`), a buff technology's
-  buffs, a sweep's change, an air attack's switch. Refused.
+  `AdvancedEnergyShieldSystem.DeactiveEnergyShield`), a buff source that
+  cycles over the units around its unit, a cleared buff that does not
+  stack, a sweep's change, an air attack's switch. Refused.
 - **How the life share rounds.** The quotient rounded and the product
   truncated is what the recordings fit; the arithmetic of `FPoint` division
   and multiplication was not read.

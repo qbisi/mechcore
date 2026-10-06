@@ -42,6 +42,10 @@ pub(in crate::fight) const SOURCE: &str = "BuffSystem";
 /// A buff running on a unit: `Buff.durationTime` against `maxDurationtime`,
 /// both in ticks.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "the buff row's flags are independent fields"
+)]
 pub(in crate::fight) struct RunningBuff {
     /// The `buffDatas` row it was added with, which a later one it merges
     /// into does not change.
@@ -74,26 +78,41 @@ pub(in crate::fight) struct RunningBuff {
     /// `IBEC_AdditiveEffectBuff`, the controller of a buff that stacks, and
     /// its step.
     stack: Option<StackStep>,
+    /// `IsClearSelfBuffWhenDisableTech`: a buff its own unit added is
+    /// cleared as that unit's technologies are disabled.
+    clears_when_technologies_disabled: bool,
 }
 
 impl RunningBuff {
     /// The stacks it has written among the buffs': one for a buff that does
     /// not stack, and none before a stacking one's first step.
     fn stacks(&self) -> u32 {
-        self.stack.map_or(1, |stack| stack.count)
+        self.stack.map_or(1, |stack| stack.written)
     }
 
     /// What `IBEC_ChangeMaxLife` holds in the unit's own life rate: its rate
-    /// as it entered, and the rate times the stack once it has stacked.
+    /// as it entered, and the rate times the stack written at its last step,
+    /// none at a stack of none.
     fn life_entry(&self) -> Option<Entry> {
-        (self.max_life_rate != 0).then(|| Entry {
+        self.life_entry_at(
+            self.stack
+                .map_or(1, |stack| if stack.life_held { 0 } else { stack.life }),
+        )
+    }
+
+    /// Its life rate times `stacks`, none at none.
+    fn life_entry_at(&self, stacks: u32) -> Option<Entry> {
+        (self.max_life_rate != 0 && stacks > 0).then(|| Entry {
             index: Index::MaxLife,
             source: self.source,
-            correction: rate(
-                self.max_life_rate
-                    .saturating_mul(i64::from(self.stacks().max(1))),
-            ),
+            correction: rate(self.max_life_rate.saturating_mul(i64::from(stacks))),
         })
+    }
+
+    /// Whether `ClearSelfResourceBuffByDisableTech` clears it from `unit`:
+    /// `unit` added it, and its row says so.
+    fn cleared_from(&self, unit: ObjectRef) -> bool {
+        self.clears_when_technologies_disabled && self.source_actor == Some(unit)
     }
 
     /// What it wrote taken out of `overlays`: each of its entries among the
@@ -111,12 +130,19 @@ impl RunningBuff {
 }
 
 /// A stacking buff as it runs: `Buff.stepTime` counting to `stepTimeConfig`,
-/// and the stack it has reached.
+/// the stack it has reached (`additiveStack`), the stack its rates are
+/// written at (`additiveStackRecord`), which a disable clears while the
+/// stack stays, the stack `IBEC_ChangeMaxLife.maxLifeChangeRate` holds its
+/// rate at, one as it enters, and whether a disable has taken that rate out
+/// (`isDisableTech`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct StackStep {
     rule: StackRule,
     elapsed: u32,
     count: u32,
+    written: u32,
+    life: u32,
+    life_held: bool,
 }
 
 /// A buff's `lifeChangeRate` as it runs: `Buff.stepTime` counting to
@@ -154,6 +180,8 @@ pub(in crate::fight) struct LifeChange {
 )]
 pub(in crate::fight) struct BuffRow {
     pub(in crate::fight) buff_id: u32,
+    /// `IsClearSelfBuffWhenDisableTech`.
+    pub(in crate::fight) clears_when_technologies_disabled: bool,
     pub(in crate::fight) divide: i32,
     pub(in crate::fight) additive: bool,
     pub(in crate::fight) ticks: u32,
@@ -306,15 +334,17 @@ impl super::Actor {
 impl super::Actor {
     /// `IBEC_AdditiveEffectBuff.Update` on the step of the `index`th running
     /// buff, below its bound: the stack its condition's `TryAddStack` answers,
-    /// and, when that moved, `Buff.RefreshEffect` writing what one stack
-    /// writes as many times, since a stack's enhancements sum.
-    /// `IBEC_ChangeMaxLife.DoAdditiveEffect` takes its rate out of the unit's
-    /// own life rate and puts it back times the stack, the life refreshed
-    /// after each. A Rhino with Combat Evolvement deals 4.5% more a second
-    /// and, from its second second, has 2.5% more life a second; a Steel Ball
-    /// with Kinetic Charge reaches a metre further for every 7 it has rolled.
+    /// and, when that moved, its rates written at the stack
+    /// (`Buff.RefreshEffect`), since a stack's enhancements sum. A buff its
+    /// unit added that a disable clears adds no stack while the unit's
+    /// technologies are disabled (`AddAdditiveStack`). Its life rate then
+    /// follows ([`Self::step_max_life`]). A Rhino with Combat Evolvement
+    /// deals 4.5% more a second and, from its second second, has 2.5% more
+    /// life a second; a Steel Ball with Kinetic Charge reaches a metre further
+    /// for every 7 it has rolled.
     fn step_stack(&mut self, index: usize) -> Result<()> {
         let moved_q32 = self.moved_q32;
+        let held = self.technology_disabled() && self.buffs[index].cleared_from(self.object_ref());
         let running = &mut self.buffs[index];
         let Some(stack) = running.stack.as_mut() else {
             return Ok(());
@@ -324,46 +354,121 @@ impl super::Actor {
             return Ok(());
         }
         stack.elapsed = 0;
-        if stack.rule.max > 0 && stack.count >= stack.rule.max {
-            return Ok(());
-        }
-        let count = match stack.rule.condition {
-            StackCondition::Time => stack.count + 1,
-            // `BuffAdditiveStackConditionDistanceController.TryAddStack`: the
-            // whole part of the distance over the condition's metres, at most
-            // the bound.
-            StackCondition::Distance { metres_q32 } => {
-                u32::try_from(q32_div(moved_q32, metres_q32) >> 32)
-                    .unwrap_or(0)
-                    .min(stack.rule.max)
+        if !held {
+            if stack.rule.max > 0 && stack.count >= stack.rule.max {
+                return Ok(());
             }
-        };
-        if count == stack.count {
-            return Ok(());
-        }
-        let added = count.saturating_sub(stack.count);
-        let before = running.life_entry();
-        if let Some(stack) = running.stack.as_mut() {
+            let count = match stack.rule.condition {
+                StackCondition::Time => stack.count + 1,
+                // `BuffAdditiveStackConditionDistanceController.TryAddStack`:
+                // the whole part of the distance over the condition's metres,
+                // at most the bound.
+                StackCondition::Distance { metres_q32 } => {
+                    u32::try_from(q32_div(moved_q32, metres_q32) >> 32)
+                        .unwrap_or(0)
+                        .min(stack.rule.max)
+                }
+            };
+            if count == stack.count {
+                return Ok(());
+            }
             stack.count = count;
+            self.write_stacks(index, count);
         }
-        let after = running.life_entry();
-        for _ in 0..added {
-            for entry in &running.entries {
-                self.stats.overlays.channel(Channel::Buff).write(*entry);
-            }
-        }
-        let (Some(before), Some(after)) = (before, after) else {
+        if self.buffs[index].max_life_rate == 0 {
             return self.stats.refresh(&self.rules);
-        };
-        // `MechDataModifer.RemoveData` and then `AddData`, each refreshing
-        // the life: the share is taken twice, through the maximum without
-        // the buff.
-        self.stats.overlays.channel(Channel::Unit).remove(before);
-        self.refresh_life_data()?;
-        self.stats.overlays.channel(Channel::Unit).write(after);
-        self.refresh_life_data()
+        }
+        self.step_max_life(index, held)
     }
 
+    /// `IBEC_ChangeMaxLife.DoAdditiveEffect`: the rate it holds taken out of
+    /// the unit's own life rate and put back times the stack written, each
+    /// `MechDataModifer` call refreshing the life, so the share is taken
+    /// through the maximum without the buff. On the first step its unit's
+    /// technologies hold it, it takes the rate out alone and refreshes the
+    /// life once more at that maximum (`FightMech.RefreshLifeData`), which
+    /// takes the share again; while they hold it, a step does nothing; on the
+    /// first after, it puts back the rate it took out before it steps.
+    fn step_max_life(&mut self, index: usize, held: bool) -> Result<()> {
+        let Some(stack) = self.buffs[index].stack else {
+            return Ok(());
+        };
+        if stack.life_held && held {
+            return self.stats.refresh(&self.rules);
+        }
+        let held_entry = self.buffs[index].life_entry_at(stack.life);
+        if let Some(step) = self.buffs[index].stack.as_mut() {
+            step.life_held = held;
+        }
+        if stack.life_held {
+            if let Some(entry) = held_entry {
+                self.stats.overlays.channel(Channel::Unit).write(entry);
+            }
+            self.refresh_life_data()?;
+        }
+        if let Some(entry) = held_entry {
+            self.stats.overlays.channel(Channel::Unit).remove(entry);
+        }
+        self.refresh_life_data()?;
+        if held {
+            return self.share_life(self.stats.max_life(), self.stats.max_life());
+        }
+        let written = stack.written;
+        if let Some(step) = self.buffs[index].stack.as_mut() {
+            step.life = written;
+        }
+        if let Some(entry) = self.buffs[index].life_entry_at(written) {
+            self.stats.overlays.channel(Channel::Unit).write(entry);
+            self.refresh_life_data()?;
+        }
+        Ok(())
+    }
+
+    /// `IBEC_AdditiveEffectBuff.RefreshAdditiveEffect`: the `index`th running
+    /// buff's rates written at `stacks`, among the buffs'.
+    fn write_stacks(&mut self, index: usize, stacks: u32) {
+        let running = &mut self.buffs[index];
+        let Some(stack) = running.stack.as_mut() else {
+            return;
+        };
+        let written = std::mem::replace(&mut stack.written, stacks);
+        let buffs = self.stats.overlays.channel(Channel::Buff);
+        for _ in stacks..written {
+            for entry in &running.entries {
+                buffs.remove(*entry);
+            }
+        }
+        for _ in written..stacks {
+            for entry in &running.entries {
+                buffs.write(*entry);
+            }
+        }
+    }
+
+    /// `BuffManager.ClearSelfResourceBuffByDisableTech`, which
+    /// `FightMech.DisableTechnology` raises after the unit's effects are
+    /// switched off: each buff the unit added itself whose row clears it,
+    /// last first, written at no stack when it stacks
+    /// (`ResetAdditiveEffectStackByDisableTech`), which leaves its stack and
+    /// its life rate until its next step. Any other such buff is removed,
+    /// which is not measured.
+    pub(in crate::fight) fn clear_self_buffs(&mut self) -> Result<()> {
+        let unit = self.object_ref();
+        for index in (0..self.buffs.len()).rev() {
+            if !self.buffs[index].cleared_from(unit) {
+                continue;
+            }
+            if self.buffs[index].stack.is_none() {
+                return Err(Error::new(format!(
+                    "unit {}'s technologies are disabled while it runs buff {}, which they \
+                     clear, and clearing it is not measured",
+                    unit.id, self.buffs[index].buff_id
+                )));
+            }
+            self.write_stacks(index, 0);
+        }
+        self.stats.refresh(&self.rules)
+    }
     /// What a running buff wrote taken away: its entries among the buffs',
     /// and its rate in the unit's own life rate.
     fn withdraw_buff(&mut self, buff: &RunningBuff) {
@@ -388,6 +493,14 @@ impl super::Actor {
         if after == before {
             return Ok(());
         }
+        self.share_life(before, after)
+    }
+
+    /// The life `FightMech.RefreshLifeData` leaves as the maximum moves from
+    /// `before` to `after`: the whole of `after` for a unit at its whole
+    /// life, and its share of it for any other, which a maximum that did not
+    /// move can take one off.
+    fn share_life(&mut self, before: i64, after: i64) -> Result<()> {
         if self.shield.is_some() {
             return Err(Error::new(
                 "a buff moves the maximum life of a unit with its own shield, and what its \
@@ -430,6 +543,11 @@ impl Simulation {
         }
         let row = BuffRow {
             buff_id: loss.buff_id,
+            clears_when_technologies_disabled: self
+                .towers
+                .config
+                .destroyed_buff
+                .clear_when_technologies_disabled,
             max_life_rate: 0,
             stacking: None,
             divide: self.towers.config.destroyed_buff.buff_divide,
@@ -549,6 +667,10 @@ impl Simulation {
         // technologies off as it enters (`CBEC_DisableTechnology.Enter`).
         if !was_disabled && self.actors[&actor_id].technology_disabled() {
             self.switch_technologies(actor_id, false)?;
+            self.actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable")
+                .clear_self_buffs()?;
         }
         if row.current_life_rate != 0 {
             self.change_current_life(actor_id, team, row.current_life_rate, events)?;
@@ -965,7 +1087,11 @@ fn add_buff(
             rule,
             elapsed: 0,
             count: 0,
+            written: 0,
+            life: 1,
+            life_held: false,
         }),
+        clears_when_technologies_disabled: row.clears_when_technologies_disabled,
     };
     buffs.push(running.clone());
     (running, true)

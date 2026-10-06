@@ -175,9 +175,14 @@ struct Technology {
     /// The buff it adds its unit as the fight starts, if its class is an
     /// `IEffectBuffDataSource`.
     buff_source: Option<BuffSource>,
-    /// Whether switching it off takes away no more than its numbers, as this
-    /// build does it: [`DISABLED_AS_NUMBERS`].
-    disabled_as_numbers: bool,
+    /// Whether what switching it off does is read and fought: its numbers
+    /// taken away, as [`DISABLED_AS_NUMBERS`] lists, an extra weapon's skills
+    /// disabled, or the buff a fight-start buff technology adds its own unit
+    /// cleared (`BuffManager.ClearSelfResourceBuffByDisableTech`). A source
+    /// that keeps its buff on the units around its unit stops its cycle
+    /// (`BuffEffectProvider.DoDisableCycle`), and how it starts again is not
+    /// measured.
+    switch_off_read: bool,
 }
 
 /// The lists whose technologies a disabling buff switches off by taking their
@@ -450,6 +455,9 @@ impl TechnologyEffects {
                 Some(Ok(buff)) => (Some(buff), corrections_of(&row)),
                 None => (None, corrections_of(&row)),
             };
+            let self_buff = buff_source
+                .as_ref()
+                .is_some_and(|buff: &BuffSource| buff.reach.is_none());
             let technology = Technology {
                 unit: row.unit.clone(),
                 effect,
@@ -469,8 +477,9 @@ impl TechnologyEffects {
                     hits_main_target: row.secondary_hits_main_target,
                     buffed: row.secondary_buffed,
                 }),
-                disabled_as_numbers: DISABLED_AS_NUMBERS.contains(&row.kind.as_str())
-                    || row.kind == EXTRA_WEAPON,
+                switch_off_read: DISABLED_AS_NUMBERS.contains(&row.kind.as_str())
+                    || row.kind == EXTRA_WEAPON
+                    || self_buff,
             };
             if technologies.insert(id, technology).is_some() {
                 return Err(Error::new(format!(
@@ -575,7 +584,7 @@ impl TechnologyEffects {
             .copied()
             .filter(|id| {
                 self.technologies.get(id).is_some_and(|technology| {
-                    technology.unit == unit_type && !technology.disabled_as_numbers
+                    technology.unit == unit_type && !technology.switch_off_read
                 })
             })
             .collect()

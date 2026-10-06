@@ -1,0 +1,28 @@
+# Combat Evolvement switched on again.
+#
+# Blue's Electromagnetic Impact lands on tick 57 on red's rear Rhino, at two
+# stacks of Combat Evolvement, while the Wasps fight the two Rhinos ahead.
+# The buff runs out on tick 556 and nothing changes until its next second,
+# tick 560, which writes three stacks: 13.5% more damage and 7.5% more life,
+# the hurt Rhino's 13269 of 19297 becoming 14262 of 20744.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 1985
+hash: {profile: mcfr-content-0.7.0, result: 1646c7d26ec5b0c6ac81707fd7f707e9f6e9d35366140f8cb10856dbfd5a320e}
+blue:
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -60}, exp: 0/900/900}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: -5, y: 135}]}
+red:
+  core_damage: 204
+  techs:
+    rhino: [combat_evolvement]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -135}}
+  - {name: rhino, index: 1, position: {x: 5, y: -55}, exp: 0/200/1150}
+  - {name: rhino, index: 2, position: {x: -45, y: -55}, exp: 0/200/1150}
