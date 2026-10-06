@@ -369,8 +369,8 @@ impl Simulation {
                     attack_range: construction.attack.range(),
                     attack_damage: construction.attack_damage,
                     splash_radius: construction.attack.splash_radius(),
-                    attack_interval_q32: time_units_to_seconds_q32(
-                        construction.attack.interval_time_units(),
+                    attack_interval_q32: crate::data::attack_interval_property(
+                        time_units_to_seconds_q32(construction.attack.interval_time_units()),
                     ),
                     facing: Facing::Weapons(&construction.skills.main.weapon_rotations_q32),
                     has_body: true,
@@ -490,8 +490,9 @@ impl Simulation {
                 .ok()?
         };
         attacker.splash_radius = rules.attack.splash_radius();
-        attacker.attack_interval_q32 =
-            time_units_to_seconds_q32(rules.attack.interval_time_units());
+        attacker.attack_interval_q32 = crate::data::attack_interval_property(
+            time_units_to_seconds_q32(rules.attack.interval_time_units()),
+        );
         // A weapon without a transform of its own points where what it is
         // mounted on points: the turret it is mounted on, or the unit. The
         // Hound's bombs score from the unit's rotation, as its main skill
@@ -841,17 +842,18 @@ impl Simulation {
 }
 
 /// An interval of `interval_steps` staggered by a draw in
-/// `[-offset_steps, offset_steps]`, never under one tick.
+/// `[-offset_steps, offset_steps]` (`FightSkill.RefreshAttackInterval`): a
+/// drawn one is never under one tick, and one with no offset is the
+/// interval, which its property already holds to one tick.
 pub(in crate::fight) fn draw_interval(
     random: &mut GrRandom,
     interval_steps: u64,
     offset_steps: u64,
 ) -> u64 {
-    let sample = if offset_steps == 0 {
-        0
-    } else {
-        i64::from(random.next_in_range(i32::try_from(offset_steps).unwrap_or(i32::MAX)))
-    };
+    if offset_steps == 0 {
+        return interval_steps;
+    }
+    let sample = i64::from(random.next_in_range(i32::try_from(offset_steps).unwrap_or(i32::MAX)));
     i64::try_from(interval_steps)
         .unwrap_or(i64::MAX)
         .saturating_add(sample)

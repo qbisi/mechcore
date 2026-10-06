@@ -41,6 +41,22 @@ fn space_to_q32(millimetres: i64) -> i64 {
 
 /// Time units to Q32.32 seconds, as a description's interval becomes the
 /// `FPoint` `AttackIntervalProperty` holds.
+/// `FightUtility.DeltaTime`, one logic tick, Q32.32 seconds.
+const LOGIC_DELTA_Q32: i64 = 0x0CCC_CCCC;
+
+/// `AttackIntervalProperty.Refresh`'s last step: a skill's interval, once its
+/// corrections are in, is never under one logic tick
+/// (`FPoint.Max(value, FightUtility.DeltaTime)`). `FPoint.Max` answers its
+/// second argument unless the first is greater beyond `FPoint`'s tolerance of
+/// 43 raw units. A Spider Mine's explosion, whose row's interval is 0, reads 1.
+pub(crate) const fn attack_interval_property(composed_q32: i64) -> i64 {
+    if composed_q32.saturating_sub(LOGIC_DELTA_Q32) > 43 {
+        composed_q32
+    } else {
+        LOGIC_DELTA_Q32
+    }
+}
+
 fn time_to_q32(time_units: i64) -> i64 {
     i64::try_from(
         i128::from(time_units) * ONE / i128::from(crate::rules::TIME_UNITS_PER_SECOND_SCALE),
@@ -970,16 +986,17 @@ impl Stats {
             self.overlays
                 .resolve_damage(base_damage, self.kills, false, UnitDomain::Air)?;
         // A value is Q32.32 seconds already, and so is the interval.
-        self.attack_interval_q32 = self.overlays.resolve(
+        let composed = self.overlays.resolve(
             Index::AttackInterval,
             time_to_q32(
                 i64::try_from(rules.attack.interval_time_units())
                     .map_err(|_| Error::new("attack interval is outside the signed range"))?,
             ),
         )?;
-        if self.attack_interval_q32 < 0 {
+        if composed < 0 {
             return Err(Error::new("attack interval resolved below zero"));
         }
+        self.attack_interval_q32 = attack_interval_property(composed);
         // `AttackRangeProperty` reads no correction of a melee skill's range,
         // neither its `DataSet`'s values and rates nor a buff's: a Sandworm
         // with Anti-Aerial records the technology's 20 metres and reaches 60.

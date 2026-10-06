@@ -1,0 +1,26 @@
+# Spider Mines outliving the fight.
+#
+# The Tarantula's two mines appear at t41 and find nothing on the ground to go
+# for: red's Wasps fly, and the Mustangs shoot them down. Both mines stand on
+# the last tick and read an attack interval of 1: their explosion's row has an
+# interval of 0, and `AttackIntervalProperty.Refresh` holds a skill's interval
+# to one logic tick.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 341
+hash: {profile: mcfr-content-0.7.0, result: fb8f7a1c99e28940cc7c6d144ee14dc7095348335fa879d6c1e187e1d58f7fcc}
+blue:
+  techs:
+    tarantula: [spider_mine]
+  units:
+  - {name: tarantula, index: 0, position: {x: -5, y: -105}, exp: 0/17/1500}
+  - {name: mustang, index: 1, position: {x: 65, y: -110}, exp: 0/200/1200}
+  - {name: mustang, index: 2, position: {x: -75, y: -110}, exp: 0/374/1200}
+red:
+  core_damage: 542
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -250}, exp: 0/137/900}
