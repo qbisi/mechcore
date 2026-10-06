@@ -157,17 +157,13 @@ pub(crate) fn buff_source(
             source_special.join(", ")
         ));
     }
-    if !buff.special.is_empty() || buff.disable_technology {
+    if !buff.special.is_empty() {
         return Err(format!(
             "{who} adds buff {} ({}), which sets {}, and no mechanism here reads it on a \
              source's buff",
             buff.id,
             buff.name,
-            if buff.disable_technology {
-                "disableTechnology".to_owned()
-            } else {
-                buff.special.join(", ")
-            }
+            buff.special.join(", ")
         ));
     }
     let stacking = if buff.additive_effect {
@@ -214,6 +210,7 @@ pub(crate) fn buff_source(
         duration_q32: buff.duration,
         debuff: buff.debuff,
         invincible: buff.invincible,
+        disables_technology: buff.disable_technology,
         amplify_damage_rate: buff.amplify_damage_rate,
         damage_rate: buff.damage_rate,
         speed_rate: buff.speed_rate,

@@ -130,6 +130,7 @@ pub(crate) struct Production {
     pub(crate) line: ProductionLine,
     pub(crate) rules: UnitConfig,
     pub(crate) corrections: Vec<(Channel, Entry)>,
+    pub(crate) technology_disable: TechnologyDisable,
 }
 
 #[derive(Debug, Clone)]
@@ -689,6 +690,7 @@ fn compile_battle_skills(
                 continue;
             }
             summon.corrections = worn.corrections;
+            summon.technology_disable = worn.technology_disable;
         }
         battle_skills.push(release);
     }
@@ -926,6 +928,7 @@ fn production_of(
         line,
         rules: made,
         corrections: worn.corrections,
+        technology_disable: worn.technology_disable,
     }))
 }
 

@@ -523,16 +523,7 @@ impl Simulation {
             if !self.actors[&id].alive() || !self.buff_reaches(id, &row) {
                 continue;
             }
-            let actor = &self.actors[&id];
-            let unmeasured = &actor.placement.technology_disable.unmeasured;
-            if buff.disable_technology && !unmeasured.is_empty() {
-                return Err(Error::new(format!(
-                    "{name} reaches unit {id}, which carries {}, and switching that off \
-                     mid-fight is not measured",
-                    unmeasured.join(" and ")
-                )));
-            }
-            if let Some(running) = actor.buff_not_beside(&row) {
+            if let Some(running) = self.actors[&id].buff_not_beside(&row) {
                 return Err(Error::new(format!(
                     "{name} reaches unit {id}, which runs buff {running}, and a skill's buff \
                      beside it is not measured"

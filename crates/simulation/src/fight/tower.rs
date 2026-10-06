@@ -673,6 +673,18 @@ impl Simulation {
                 .is_some_and(|running| {
                     matches!((level(running.source_actor), level(source)), (Some(was), Some(now)) if was < now)
                 });
+        let unmeasured = &self.actors[&actor_id]
+            .placement
+            .technology_disable
+            .unmeasured;
+        if row.disables_technology && !unmeasured.is_empty() {
+            return Err(Error::new(format!(
+                "buff {} disables the technologies of unit {actor_id}, which carries {}, and \
+                 switching that off mid-fight is not measured",
+                row.buff_id,
+                unmeasured.join(" and ")
+            )));
+        }
         let actor = self
             .actors
             .get_mut(&actor_id)
@@ -943,7 +955,11 @@ impl Simulation {
     /// killed by a Steel Ball's beam lands its projectile the same tick for
     /// the debuffed 6; one that died two ticks before its projectile landed
     /// lands it for the full 63; and a Vulcan of 67158166 r4 killed before its
-    /// own update lands its shell that tick for the debuffed 7, not 74.
+    /// own update lands its shell that tick for the debuffed 7, not 74. The
+    /// last buff that disabled technology switches them on again as it goes
+    /// (`CBEC_DisableTechnology.Exit`): a Vulcan with Scorching Fire that an
+    /// Electromagnetic Shot struck deals 97 while they are off, and the shot
+    /// it left in the air as it died lands for its 161.
     pub(in crate::fight) fn drop_buffs_of_the_dead(&mut self, actor_id: u64) -> Result<()> {
         let actor = self
             .actors
@@ -956,10 +972,15 @@ impl Simulation {
             actor_id,
             actor.buffs.iter().rev().map(|buff| buff.buff_id).collect(),
         );
+        let was_disabled = actor.technology_disabled();
         for buff in std::mem::take(&mut actor.buffs) {
             actor.withdraw_buff(&buff);
         }
-        actor.refresh_life_data()
+        actor.refresh_life_data()?;
+        if was_disabled {
+            self.switch_technologies(actor_id, true)?;
+        }
+        Ok(())
     }
 
     /// `Buff.Update`'s step of every buff on a unit, last first as

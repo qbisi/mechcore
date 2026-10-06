@@ -99,9 +99,11 @@ debuff and still reaches it. `debuff` is
 buff is [`config/equipment_effects.yaml`](../../config/equipment_effects.yaml)'s.
 
 Its buff may also raise the unit's damage, its speed and its maximum life,
-and stack a step at a time, and the item may keep it on the units around its
-unit, as a buff technology's does
-([technology_effects.md](technology_effects.md#buff-technologies)). A buff
+and stack a step at a time, the item may keep it on the units around its
+unit, and a hit may add it, Charged Ammo's a buff that disables technology,
+as a buff technology's does
+([technology_effects.md](technology_effects.md#buff-technologies)); an item's
+is not switched off with its unit's technologies. A buff
 item with any other trigger, target or chance, or whose buff sets a field
 beyond these, is refused by name, and so is a travelling formation wearing
 one.

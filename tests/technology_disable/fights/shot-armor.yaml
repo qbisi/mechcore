@@ -1,0 +1,28 @@
+# A Marksman with Electromagnetic Shot shooting a Rhino with Armor
+# Enhancement.
+#
+# Each hit adds buff 1002 to the Rhino, as written by the Marksman, and the
+# first switches its technologies off as it is written: that hit lands as
+# 2269, Armor Enhancement taking its 60 off (t68), and every later one whole,
+# 2329. The buff's four seconds never run out between hits, and the fight's
+# end clears it (t262).
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 262
+hash: {profile: mcfr-content-0.7.0, result: 8e689c751038dbf4ae8b274c81636e158b08537b503bbc9a694fbd9fc7d8e532}
+blue:
+  core_damage: 404
+  techs:
+    marksman: [electromagnetic_shot]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+red:
+  techs:
+    rhino: [armor_enhancement]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/50/1150}
+  - {name: wasp, index: 1, position: {x: 65, y: -100}, exp: 0/150/900}

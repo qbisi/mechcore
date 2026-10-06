@@ -116,11 +116,15 @@ Its controller is a hit effect of each of its unit's skills its corrections
 reach, and after a hit it adds the buff, under the unit's side and as written
 by it, to every live unit the hit struck, in the order it struck them: no
 construction, and none at all while the unit's technologies are disabled.
+A buff that disables technology reaches even a unit the hit killed, and is
+cleared with the rest of its buffs on the same tick.
 Neither the source's targets nor its domains nor its distance type are read
 on a hit. Suppression Shots cuts a struck unit's range by 30% for 3.5
 seconds: the range's add rates sum with its skill's and its reduce rates
 multiply with them, the range times one plus the adds and that times the
-reduces, which a melee reach does not take.
+reduces, which a melee reach does not take. Electromagnetic Shot
+switches a struck unit's technologies off for some seconds and takes 40% off
+its speed; an item's buff of the kind, Charged Ammo's, is the same source.
 
 **A buff that summons makes its unit summon as it dies.** A buff with a
 summon reaches even a unit the hit that adds it killed, and a unit that dies
@@ -189,11 +193,15 @@ that are.
 ## Switched off
 
 A buff that disables technology switches a unit's technologies off while it
-runs: an Electromagnetic Impact's, Electromagnetic Barrage's. It is a common
-buff effect over a count of such buffs (`CBEC_DisableTechnology`), so the
-first to reach a unit switches them off as it is written and the last to
-leave switches them on again, as its time runs out or as the fight is left
-and its buffs are cleared. The unit's `status_mask` reads
+runs: an Electromagnetic Impact's, Electromagnetic Barrage's, Electromagnetic
+Shot's. It is a common buff effect over a count of such buffs
+(`CBEC_DisableTechnology`), so the first to reach a unit switches them off as
+it is written and the last to leave switches them on again, as its time runs
+out, as its unit's buffs go at its first update after it died, or as the fight
+is left and its buffs are cleared. A shot the unit left in the air as it died
+lands with the technologies on again. A summon's technologies are those its
+side's give a unit of its type, as a deployed one's; a dead summon's go with
+it, and nothing comes back. The unit's `status_mask` reads
 `technology_disabled` the while, whether it carries a technology or not.
 
 Switching off is each of the unit's effect providers' `DisableEffect` on each
@@ -318,6 +326,11 @@ whose effect grows with rank, rather than read index zero:
 - A hit adds its buff to the unit struck, ranged or melee, and a Fortress's
   range reads 70 of 100 under it: `tests/technology_buff/fights/suppression-shots.yaml`,
   `tests/technology_buff/fights/suppression-shots-melee.yaml`.
+- A hit's buff that disables technology switches the struck unit's off, a
+  squad's buff written by its first unit, and reaches the unit the hit
+  killed: `tests/technology_disable/fights/shot-armor.yaml`,
+  `tests/technology_disable/fights/shot-phoenix.yaml`,
+  `tests/technology_disable/fights/shot-kills.yaml`.
 - A unit killed under Replicate leaves Crawlers by its radius, 7 for a
   Marksman and 12 for a Rhino, which join at once and move from the second
   move before a solve: `tests/technology_buff/fights/replicate.yaml`,
@@ -338,7 +351,10 @@ whose effect grows with rank, rather than read index zero:
   leaves with it, a Wasp's 142 on an armoured Rhino becoming 202:
   `tests/technology_disable/fights/impact-armor.yaml`. A unit with no
   technology keeps its drawn interval:
-  `tests/technology_disable/fights/impact-on-both-sides.yaml`.
+  `tests/technology_disable/fights/impact-on-both-sides.yaml`. A unit that
+  dies disabled has its technologies back as its buffs go, and its shots
+  still in the air land with them:
+  `tests/technology_disable/fights/shot-dies-with-shots-in-flight.yaml`.
 - A disabled extra skill lets the burst under way run out, starts no attack
   while disabled, and fires again as it is enabled:
   `tests/technology_disable/fights/barrage-homing-missile.yaml`,
@@ -381,7 +397,8 @@ whose effect grows with rank, rather than read index zero:
   and any other at its share of the new maximum.
 - A buff that summons: `Buff.Init` gives a buff whose `IBuffData.IsSummoning`
   an `IBEC_DeadSummon`, and `BuffSystem.IsAvaliableWhenActorDead` lets
-  `BuffSystem.AddBuff` add it to a dead target. `FightMech.OnDead` calls
+  `BuffSystem.AddBuff` add it to a dead target, as it does one whose
+  `IBuffData.IsDisableTechnology` holds. `FightMech.OnDead` calls
   `BuffManager.OnMechDead`, `Buff.OnMechDead` and `IBEC_DeadSummon.OnMechDead`,
   which returns for a dead unit whose `FightMech.mechCreateType` is
   `MechCreateType.ParasiticalSummon` or whose domain the summon's

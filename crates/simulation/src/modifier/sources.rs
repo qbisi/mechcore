@@ -63,6 +63,8 @@ pub(crate) struct BuffSource {
     pub(crate) debuff: bool,
     /// `IsInvincible`: while it runs, no debuff reaches the unit.
     pub(crate) invincible: bool,
+    /// `disableTechnology`: while it runs, the unit's technologies are off.
+    pub(crate) disables_technology: bool,
     /// `amplifyDamageRate`, Q32.32: the rate on the damage the unit takes.
     pub(crate) amplify_damage_rate: i64,
     /// `damageChangeRate`, Q32.32: the rate on the damage the unit deals.

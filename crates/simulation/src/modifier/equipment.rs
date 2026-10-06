@@ -839,8 +839,9 @@ mod tests {
         );
     }
 
-    /// Photon Coating adds buff 4000 to its unit as the fight starts; a buff
-    /// item that adds its buff on a hit, Charged Ammo, is refused by name.
+    /// Photon Coating adds buff 4000 to its unit as the fight starts; Charged
+    /// Ammo adds buff 1100, which disables technology, on a hit, and an item
+    /// is not switched off with its unit's technologies.
     #[test]
     fn a_buff_item_adds_its_buff_as_the_fight_starts() {
         let equipment = EquipmentEffects::load().unwrap();
@@ -852,11 +853,12 @@ mod tests {
         assert_eq!(buff.buff_id, 4000);
         assert!(buff.invincible && !buff.debuff);
         assert_eq!(buff.amplify_damage_rate, -1_288_490_188);
-        let refused = equipment
-            .corrections(CHARGED_AMMO, &marksman)
-            .unwrap_err()
-            .to_string();
-        assert!(refused.contains("disableTechnology"), "{refused}");
+        let charged = equipment
+            .buff_source(CHARGED_AMMO, &marksman)
+            .unwrap()
+            .unwrap();
+        assert_eq!(charged.trigger, crate::modifier::BuffTrigger::Hit);
+        assert!(charged.disables_technology && charged.debuff && !charged.can_disable);
     }
 
     /// Anti-Interference Module, a permanent effect, makes its unit ignore
