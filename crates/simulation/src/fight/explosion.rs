@@ -67,12 +67,18 @@ impl Simulation {
         }
         unit.last_life_before_suicide = unit.life;
         unit.life = 0;
+        let turned = unit.placement.team != unit.original_team;
         let position = QVec3 {
             x: unit.x_q32,
             y: space_to_q32(unit_height(unit.rules.domain)),
             z: unit.z_q32,
         };
         self.dead_explosions.push((actor_id, true));
+        // `DeadEffectSystem` calls a turned unit's `OnDead` however it died:
+        // `TeamTranslationSystem.OnMechDead` takes it back to its side.
+        if turned {
+            self.turned_fallen.push(actor_id);
+        }
         // `ExpSystem.OnActorHitted` of a hit with no side hands nothing out.
         self.record_deaths(vec![(actor_id, position)], events);
         Ok(())
@@ -193,9 +199,12 @@ impl Simulation {
             self.record_ends(struck.ends, &mut ends);
             self.fallen_buildings.extend(ends);
         }
+        // `RangeItemSystem.AddItem` under the unit's own side as it died,
+        // `currentTeamController`: a turned unit's fire is its new side's.
         if let Some(fire) = dead_fire {
+            let side = self.actors[&actor_id].placement.team;
             self.add_terrain(
-                team,
+                side,
                 &format!("unit {actor_id}"),
                 fire,
                 (x_q32, center_y_q32, z_q32),

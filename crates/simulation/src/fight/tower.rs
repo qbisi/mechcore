@@ -783,6 +783,49 @@ impl Simulation {
             .unwrap_or_default()
     }
 
+    /// `BuffManager.RemoveBuffEffect` as a beam turns the unit: every running
+    /// buff, last first, but those `kept` names, is removed (`RemoveBuff`)
+    /// and recorded `team_changed`. What each wrote goes, the life is
+    /// refreshed, and the last that disabled technology switches them on
+    /// again as it leaves (`CBEC_DisableTechnology.Exit`). The build keeps a
+    /// buff `IsSameBuff` matches with a kept one; none of the kept rows
+    /// shares a divide here, so their ids are what is matched.
+    pub(in crate::fight) fn remove_buffs_on_turn(
+        &mut self,
+        actor_id: u64,
+        kept: &[u32],
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        let was_disabled = actor.technology_disabled();
+        let subject = ObjectRef::new(ObjectKind::Unit, actor_id);
+        let mut removed = false;
+        for index in (0..actor.buffs.len()).rev() {
+            if kept.contains(&actor.buffs[index].buff_id) {
+                continue;
+            }
+            let buff = actor.buffs.remove(index);
+            events.push(buff_removed(
+                subject,
+                buff.buff_id,
+                BuffRemovedReason::TeamChanged,
+            ));
+            actor.withdraw_buff(&buff);
+            removed = true;
+        }
+        if !removed {
+            return Ok(());
+        }
+        actor.refresh_life_data()?;
+        if was_disabled && !actor.technology_disabled() {
+            self.switch_technologies(actor_id, true)?;
+        }
+        Ok(())
+    }
+
     /// The buffs a unit that died this tick had, `cleared`, to follow its
     /// `unit_died`: the ones it still runs, or the ones its update already
     /// dropped, last first, as `BuffManager.Clear` removes them.

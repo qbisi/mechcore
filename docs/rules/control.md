@@ -58,6 +58,13 @@ The turn (`TeamTranslationSystem.ChangeTeam`):
   shared among its attackers and the units in range on the side it goes to.
   A unit a beam has turned takes no share, nor thins the others'
   (`ExpSystem.IsValidOwner`).
+- **takes its buffs off** first (`BuffManager.RemoveBuffEffect`), last first,
+  each recorded `team_changed`, but for the ones the common parameter
+  `hacker_cannot_clear_bufflist` names: buff group 150002, Photon Emission's
+  invincibility, Scorching Charge's charge, Combat Evolvement's and Kinetic
+  Charge's stacks, and 8028. What each wrote goes with it, and the last that
+  disabled the unit's technologies switches them on again: a Fire Badger an
+  Electromagnetic Impact switched off has its 80% more life back as it turns.
 - **moves it** to the other side's lists (`FightActor.ChangeTeam`), at
   their end (`FightTeamController.AddActor`): it updates after every unit
   already on that side, its summons among them, and a unit handed back on
@@ -79,17 +86,20 @@ The turn (`TeamTranslationSystem.ChangeTeam`):
   drops the lock and keeps the attack target. A skill idle already stays idle,
   its weapons naming what they named until it takes another; a cooling one
   goes on cooling. Any other enters its cooling, naming what it fired at, or
-  without one enters `SkillIdleState` with its targets cleared. The motion is
-  left alone. The turned unit's own skill ends the same way: the beam's change
-  runs before any unit updates, so a skill sent cooling is updated in it on
-  the same tick.
+  without one enters `SkillIdleState` with its targets cleared, unless it is
+  a main skill whose unit's permanent preemptive skill is active, which stays
+  locked. The motion is left alone. The turned unit's own skill ends the same
+  way: the beam's change runs before any unit updates, so a skill sent
+  cooling is updated in it on the same tick, and a Fire Badger turned while it
+  charges keeps its main skill locked and its charge's buff.
 
 A side whose every unit a beam has turned has none left, and loses as a
 wiped-out side does: its towers are torn down.
 
 ## A turned unit's death
 
-A hit that kills a turned unit only queues it with `DeadEffectSystem`, whose
+A hit that kills a turned unit, or its own blow, only queues it with
+`DeadEffectSystem`, whose
 update comes after every unit and projectile: what it took until then is
 counted under its own recorder. Its `OnDead` then hands it back to the side it
 was deployed on (`TeamTranslationSystem.OnMechDead`), and every skill still
@@ -105,6 +115,12 @@ back: it dies on the side that turned it, and the skills locked on it hold
 their lock on it until they next update.
 
 When the fight ends there, the weapons of the units left name nothing.
+
+A turned Fire Badger that takes its own life explodes before it is handed
+back, and its fire stands under the side that turned it: the fire is left
+under the unit's side as it dies (`DeadExplosiveController.PerformDeadEffect`
+hands `RangeItemSystem.AddItem` its `currentTeamController`), though its
+blast strikes for the side it was deployed on.
 
 ## The skills around a turn
 
@@ -187,6 +203,11 @@ the shield does not count against the turn.
 - A battlefield shield and a Barrier take the beam's damage effect:
   `tests/control/fights/battlefield-shield.yaml`,
   `tests/control/fights/barrier.yaml`.
+- A blue Fire Badger turned while it charges keeps its main skill locked and
+  its charge's buff; its own blow hands it back on that tick, its fire under
+  red's side; a blue Fire Badger an Electromagnetic Impact switched off has
+  the Impact's buff taken off as it turns, and its technologies back on:
+  `tests/corpus/fights/134259672-r4.yaml`, ticks 51, 76 and 142.
 
 ### Replayed
 
@@ -228,7 +249,11 @@ the shield does not count against the turn.
   `TeamTranslationSystem.ChangeTeam`,
   `FightActor.ChangeTeam`, `FightTeamController.AddActor`, `ExpSystem.CalculateExp`, `ExpSystem.IsValidOwner`,
   `TeamTranslationSystem.IsTranslatedMech`, `FightMech.GetMechTeam`.
+- The buffs it takes off: `TeamTranslationSystem.ChangeTeam`,
+  `BuffManager.RemoveBuffEffect`, `Config.GetTeamTranslationIgnoredBuffs`,
+  `IBuffData.IsSameBuff`.
 - The skills it stops: `FightSkill.OnChangeTeam`, `FightSkill.StopAttack`,
+  `SkillManager.IsPermanentPreemptiveSkillActive`,
   `SkillIdleState.Enter`, `SkillAttackState.Update`.
 - A turned unit's death: `FightTeamController.AddActor`, `FightTeam.AddMech`,
   `ExpSystem.AddRangeUnit`, `TeamTranslationSystem.OnMechDead`,

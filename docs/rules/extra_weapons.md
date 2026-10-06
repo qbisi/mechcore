@@ -439,7 +439,8 @@ place for the rest of the fight. The row also raises the unit's life by 80%.
   what it kills reads after what the tick's shots killed.
 - **Every such death leaves a fire.** The explosion leaves a fire of the
   skill's own, reaching 40 metres for 7 seconds, where the unit fell, under
-  its side, the death of a side's last unit too. A fight decided on the tick
+  the side it stands on as it dies, a beam's if one turned it
+  ([control.md](control.md)), the death of a side's last unit too. A fight decided on the tick
   the fire is left ends on that tick, and the fire goes with it before any
   snapshot holds it.
 - **Switched off, it waits.** While a disabling buff holds the unit's

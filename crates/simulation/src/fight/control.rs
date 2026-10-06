@@ -146,6 +146,7 @@ impl Simulation {
         let AttackPath::ControlBeam {
             warmup_attack_count,
             warmup_damage_multiplier,
+            ..
         } = actor.rules.attack.path
         else {
             unreachable!("a control beam's damage needs a control beam's path")
@@ -227,7 +228,11 @@ impl Simulation {
     /// entry away or change the side its owner stands on. Two Hackers that
     /// turn each other on one tick leave both on the side of the first one
     /// turned.
-    pub(in crate::fight) fn update_translations(&mut self, step: u64) {
+    pub(in crate::fight) fn update_translations(
+        &mut self,
+        step: u64,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
         // `TeamTranslationSystem.OnMechDead`: a dead unit's entry goes.
         let actors = &self.actors;
         self.translations
@@ -250,13 +255,19 @@ impl Simulation {
                 .actors
                 .get(&target)
                 .is_some_and(|actor| actor.alive() && actor.life <= i64::from(entry.progress));
-            let team = entry
+            let turner = entry
                 .sources
                 .first()
                 .and_then(|owner| self.actors.get(owner))
-                .map(|owner| owner.placement.team);
-            if let (true, Some(team)) = (due, team)
-                && self.change_team(target, team, step)
+                .map(|owner| {
+                    let kept = match &owner.rules.attack.path {
+                        AttackPath::ControlBeam { keeps_buffs, .. } => keeps_buffs.clone(),
+                        _ => Vec::new(),
+                    };
+                    (owner.placement.team, kept)
+                });
+            if let (true, Some((team, kept))) = (due, turner)
+                && self.change_team(target, (team, &kept), step, events)?
                 && !self.actors[&target].summoned
             {
                 turned.push(target);
@@ -279,6 +290,7 @@ impl Simulation {
                 .placement
                 .formation_id = formation_id;
         }
+        Ok(())
     }
 
     /// A stroke that killed a turned unit: `DeadEffectSystem` queues it, and
@@ -365,6 +377,13 @@ impl Simulation {
         let fired_at = skill.attack_target();
         skill.drop_lock();
         skill.performer.stop();
+        // A main skill that a permanent preemptive skill has locked stays
+        // locked: `OnChangeTeam` returns after `StopAttack` while
+        // `SkillManager.IsPermanentPreemptiveSkillActive`.
+        if skill.state == SkillState::Locked {
+            self.sync_beam(actor_id);
+            return;
+        }
         match skill.state {
             SkillState::Idle { .. } => skill.attack_target_left = fired_at,
             SkillState::Cooling { .. } if cooling_steps > 0 => {}
@@ -388,11 +407,17 @@ impl Simulation {
     /// `TeamTranslationSystem.ChangeTeam` and `FightActor.ChangeTeam`: the
     /// unit leaves its side's lists for the other's, and every skill locked
     /// on it stops its attack (`FightSkill.OnChangeTeam`).
-    fn change_team(&mut self, unit_id: u64, team: u32, step: u64) -> bool {
+    fn change_team(
+        &mut self,
+        unit_id: u64,
+        (team, kept): (u32, &[u32]),
+        step: u64,
+        events: &mut Vec<Event>,
+    ) -> Result<bool> {
         let (old_team, x_q32, z_q32, radius) = {
             let actor = &self.actors[&unit_id];
             if actor.placement.team == team {
-                return false;
+                return Ok(false);
             }
             (
                 actor.placement.team,
@@ -404,6 +429,8 @@ impl Simulation {
         // The unit is handed out while it still stands on its old side, as a
         // kill with no killer: the beam's owner shares it as an attacker.
         let _ = self.hand_out_turned(team, unit_id);
+        // `TeamTranslationSystem.ChangeTeam` first takes its buffs off.
+        self.remove_buffs_on_turn(unit_id, kept, events)?;
         let unit = FightActorRef::Unit(unit_id);
         for trees in [&mut self.target_quadtrees, &mut self.mech_quadtrees] {
             if let Some(tree) = trees.get_mut(&old_team) {
@@ -453,6 +480,6 @@ impl Simulation {
         for id in locked {
             self.lock_changed_team(id, step.saturating_sub(1));
         }
-        true
+        Ok(true)
     }
 }

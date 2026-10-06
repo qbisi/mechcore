@@ -602,6 +602,10 @@ pub(crate) enum AttackPath {
     ControlBeam {
         warmup_attack_count: u32,
         warmup_damage_multiplier: f64,
+        /// The buffs a unit it turns keeps: `TeamTranslationSystem.ignoredBuffs`,
+        /// the `BuffGroup` the common parameter `hacker_cannot_clear_bufflist`
+        /// names.
+        keeps_buffs: Vec<u32>,
     },
     /// `FightSweepSkill`: a strip of `length` by `width` metres swept across
     /// the target, `damage_times` strikes `damage_interval` apart after
@@ -1237,6 +1241,7 @@ impl AttackConfig {
             AttackPath::ControlBeam {
                 warmup_attack_count,
                 warmup_damage_multiplier,
+                ..
             } => {
                 if *warmup_attack_count == 0
                     || !warmup_damage_multiplier.is_finite()

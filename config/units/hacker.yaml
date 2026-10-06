@@ -45,3 +45,4 @@ attack:
     type: control_beam
     warmup_attack_count: 2
     warmup_damage_multiplier: 0.001
+    keeps_buffs: [40001, 6020, 8005, 8008, 8028]
