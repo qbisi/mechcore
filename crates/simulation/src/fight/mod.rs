@@ -388,6 +388,11 @@ struct Simulation {
     /// units with an explosion that died this tick, in the order they died,
     /// and whether each took its own life.
     dead_explosions: Vec<(u64, bool)>,
+    /// `DeadEffectSystem.deadActors` of the units a hit killed this tick, in
+    /// the order they died: each one's `FightMech.OnDead` leaves the fight
+    /// (`ExitFight`) when that module updates, and until then its skill
+    /// keeps what it fired at.
+    dead_exits: Vec<u64>,
     /// The step being simulated, which what happens inside a hit reads.
     step_now: u64,
     /// The order the fight updates its deployed units in, which is not their
@@ -511,6 +516,7 @@ impl Simulation {
             returned_dead: BTreeSet::new(),
             diffusions: Vec::new(),
             dead_explosions: Vec::new(),
+            dead_exits: Vec::new(),
             step_now: 0,
             unit_update_order,
             team_random: BTreeMap::new(),
@@ -811,6 +817,12 @@ impl Simulation {
         // Its dead effects first, the explosions among them, and then each
         // dead actor's `OnDead`.
         self.step_dead_explosions(&mut events)?;
+        for unit_id in std::mem::take(&mut self.dead_exits) {
+            self.actors
+                .get_mut(&unit_id)
+                .expect("actor identity is stable")
+                .exit_fight_on_death();
+        }
         self.summon_from_the_dead()?;
         for building_id in std::mem::take(&mut self.towers.fallen) {
             self.lose_tower(building_id)?;

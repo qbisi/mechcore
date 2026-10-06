@@ -734,6 +734,15 @@ Ground Specialization writes 2 onto a Wasp's ground rate, which deals an
 Arclight 606 of its 202 and still reads 202, and Ground Targeting 60 metres
 onto a Phantom Ray's ground range, 125 of its 65.
 
+**A dead unit's shot lands by what it aimed at until the unit's `OnDead`.**
+A projectile takes its owner's damage as it lands, the air one while the
+owner's skill attacks a unit that flies. Only a living unit updates, and a
+unit a hit kills leaves the fight when its `OnDead` comes, after every unit
+and every projectile of the tick: its skill attacks what it attacked until
+then. A Mustang's shot landing on a Phantom Ray on the tick the Mustang died
+deals its air damage; one landing on a later tick, its skill having left the
+fight, deals its ground damage.
+
 **A search by distance counts an offset off a candidate's distance.** Aerial
 Specialization writes its metres into the skill's `AttackRangeValueAir` as
 well, and Ground Targeting into its `AttackRangeValueGround`, and each then
@@ -1112,6 +1121,9 @@ not the game's native attack-type enum.
   from 170 metres for 4425, `tests/anti_air/fights/aerial-specialization-overlord.yaml`,
   and a Wasp, a Mustang and a Farseer squad deal aircraft 1.9 times what they
   deal a Rhino, `tests/anti_air/fights/aerial-specialization-squads.yaml`.
+- A dead unit's shot landing on the tick it died deals the air damage it was
+  fired with, and one landing later the ground damage: a Mustang's on a
+  Phantom Ray, `tests/corpus/fights/67154636-r6.yaml`.
 - A search by distance counts the air offset off an aircraft's distance score
   and nothing else: the Marksman takes an Overlord further off than a
   Mountain, `tests/anti_air/fights/aerial-specialization-pick.yaml`, and the
@@ -1355,6 +1367,11 @@ not the game's native attack-type enum.
   caller passes `isFirstHit` true, and `FightMech.OnHitted` takes the shield's
   energy afterwards.
 
+- A dead unit keeps its skill until its `OnDead`: `FightCoreSystem.TeamUpdate`
+  updates a `FightMech` only while `FightActor.IsAlive`; `FightActor.ReduceLife`
+  hands an emptied actor to `DeadEffectSystem.OnActorDead`, and
+  `DeadEffectSystem.Update` calls `FightMech.OnDead`, which calls
+  `FightMech.ExitFight`, after `ProjectileSystem`.
 - Aerial and ground targets: `FightSkill.GetAttackRange` answers
   `FightSkill.attackRangeAirProperty` while `FightActor.IsFly` of its lock and
   `FightSkill.attackRangeGroundProperty` otherwise;
