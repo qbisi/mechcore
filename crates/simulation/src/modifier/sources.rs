@@ -83,11 +83,25 @@ pub(crate) struct BuffSource {
     /// `isClearSelfBuffWhenDisableTech`: as its unit's technologies are
     /// disabled, the buff its unit added itself is cleared.
     pub(crate) clears_when_technologies_disabled: bool,
+    /// `summonUnitID`, through `Buff.GetSummonMechID`: what the unit the
+    /// buff is on summons as it dies, if anything (`IBEC_DeadSummon`).
+    pub(crate) summons: Option<DeadSummon>,
     /// When and to whom the controller gives it.
     pub(crate) trigger: BuffTrigger,
     /// `CanDisable`, as [`LifeSteal::can_disable`]: whether a hit of a unit
     /// whose technologies are disabled adds no buff.
     pub(crate) can_disable: bool,
+}
+
+/// The unit a buff makes its unit summon as it dies: `Buff.GetSummonMechID`
+/// answers the row's `summonUnitID`, or below 1 the type of the unit that
+/// added the buff.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum DeadSummon {
+    /// The type of the unit that added the buff.
+    SourceType,
+    /// A unit type, by its id.
+    Unit(i32),
 }
 
 /// When a buff source's `BuffCycleController` adds its buff, and to whom.

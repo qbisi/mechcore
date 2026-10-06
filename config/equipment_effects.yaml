@@ -62,6 +62,8 @@ equipment:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: false
+      summon_unit: 0
+      summon_level_inherit: false
   - id: 1305002
     name: 寄生弹药
     kind: buffEquipmentDatas
@@ -92,7 +94,8 @@ equipment:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: false
-      special: [summonUnitID]
+      summon_unit: 10
+      summon_level_inherit: false
   - id: 1305003
     name: 光子涂层
     kind: buffEquipmentDatas
@@ -123,6 +126,8 @@ equipment:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
   - id: 1305004
     name: 先进电磁弹药
     kind: buffEquipmentDatas
@@ -155,6 +160,8 @@ equipment:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: false
+      summon_unit: 0
+      summon_level_inherit: false
   - id: 1305005
     name: 先进寄生弹药
     kind: buffEquipmentDatas
@@ -187,7 +194,8 @@ equipment:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: false
-      special: [summonUnitID]
+      summon_unit: 10
+      summon_level_inherit: false
   - id: 1305006
     name: 先进压制弹药
     kind: buffEquipmentDatas
@@ -220,6 +228,8 @@ equipment:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
   - id: 1305007
     name: 战斗进化系统
     kind: buffEquipmentDatas
@@ -251,6 +261,8 @@ equipment:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: false
+      summon_unit: 0
+      summon_level_inherit: false
   - id: 1305008
     name: 光子投射装置
     kind: buffEquipmentDatas
@@ -288,6 +300,8 @@ equipment:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
   - id: 1305009
     name: 先进酸性弹药
     kind: buffEquipmentDatas
@@ -320,6 +334,8 @@ equipment:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: false
+      summon_unit: 0
+      summon_level_inherit: false
   - id: 1305010
     name: 先进引导雷达
     kind: buffEquipmentDatas
@@ -357,6 +373,8 @@ equipment:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: false
+      summon_unit: 0
+      summon_level_inherit: false
   - id: 1306001
     name: 坦克生产线
     kind: supportUnitEquipmentDatas

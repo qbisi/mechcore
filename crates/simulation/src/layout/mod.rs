@@ -12,7 +12,7 @@ use crate::{
     Error, Result,
     data::{Channel, Correction, Entry, ExperienceRate, Index, Stats},
     modifier::{
-        AutoRecovery, BuffSource, CarriedShield, EnergyShield, EnergyTowerSkillEffects,
+        AutoRecovery, BuffSource, CarriedShield, DeadSummon, EnergyShield, EnergyTowerSkillEffects,
         EquipmentEffects, LifeSteal, MainSkill, OfficerEffects, ProductionLine, SecondaryDamage,
         SweepIntensify, TECHNOLOGY_SOURCE, TechnologyEffects, current_source,
     },
@@ -171,6 +171,17 @@ pub(crate) struct CompiledLayout {
     /// The map the fight is on: the layout's, or the Training Ground's when
     /// it names none, as a layout replay loads it.
     pub(crate) map_id: i32,
+    /// What each side's buffs make a unit summon as it dies, by side and the
+    /// summoned unit's type id ([`compile_death_summons`]).
+    pub(crate) death_summons: BTreeMap<(u32, u32), DeathSummon>,
+}
+
+/// A unit a side's buff makes a dying unit summon: its description, and its
+/// placement but for where it stands and who it is.
+#[derive(Debug, Clone)]
+pub(crate) struct DeathSummon {
+    pub(crate) rules: UnitConfig,
+    pub(crate) placement: Placement,
 }
 
 impl CompiledLayout {
@@ -191,6 +202,7 @@ impl CompiledLayout {
             travel_time_rates: BTreeMap::new(),
             tower_levels: BTreeMap::new(),
             map_id: mechcore_document::layout_replay::DEFAULT_MAP_ID,
+            death_summons: BTreeMap::new(),
         }
     }
 }
@@ -344,6 +356,7 @@ pub(crate) fn compile_with_seed(
     let mut standing_oil = Vec::new();
     let mut tower_levels = BTreeMap::new();
     let mut delivered = BTreeSet::new();
+    let mut death_summons = BTreeMap::new();
     for (name, team, side) in sides {
         for (index, formation) in side.units.iter().enumerate() {
             placements.extend(compile_formation(
@@ -357,6 +370,13 @@ pub(crate) fn compile_with_seed(
                 &mut refused,
             ));
         }
+        death_summons.extend(compile_death_summons(
+            (name, team, side),
+            &placements,
+            units,
+            &loadouts,
+            &mut refused,
+        ));
         constructions.extend(compile_constructions(
             name,
             team,
@@ -417,8 +437,115 @@ pub(crate) fn compile_with_seed(
             map_id: plan
                 .map_id
                 .unwrap_or(mechcore_document::layout_replay::DEFAULT_MAP_ID),
+            death_summons,
         },
     ))
+}
+
+/// The units a side's buffs make a unit summon as it dies
+/// (`IBEC_DeadSummon`), by side and type id: each type a buff of one of the
+/// side's placements summons, and each a buff of one of these summons in
+/// turn. `SummonSystem.DoCreateMech` makes it at `CardLevel.Level1` with no
+/// equipment, and `FightController.CreateMech` gives it its side's
+/// technologies when its parent `IsChildInheritTechnologyEffect`, which
+/// `MechData` answers for every unit but types 4001 and 5203.
+fn compile_death_summons(
+    (name, team, side): (&str, u32, &SidePlan),
+    placements: &[Placement],
+    units: &UnitConfigs,
+    loadouts: &Loadouts,
+    refused: &mut Refusals,
+) -> BTreeMap<(u32, u32), DeathSummon> {
+    let summoned = |placement: &Placement| -> Vec<u32> {
+        let own = units
+            .get(&placement.type_name)
+            .map(|rules| rules.unit_type_id);
+        placement
+            .buff_sources
+            .iter()
+            .filter_map(|source| match source.summons? {
+                DeadSummon::SourceType => own,
+                DeadSummon::Unit(id) => u32::try_from(id).ok(),
+            })
+            .collect()
+    };
+    let mut pending = placements
+        .iter()
+        .filter(|placement| placement.team == team)
+        .flat_map(summoned)
+        .collect::<Vec<_>>();
+    let mut templates = BTreeMap::new();
+    while let Some(type_id) = pending.pop() {
+        if templates.contains_key(&(team, type_id)) {
+            continue;
+        }
+        let Some(rules) = units.by_type_id(type_id) else {
+            refused.push(format!(
+                "side {name} summons unit {type_id} as a buffed unit dies, which has no unit \
+                 configuration"
+            ));
+            continue;
+        };
+        if matches!(rules.unit_type_id, 4001 | 5203) {
+            refused.push(format!(
+                "side {name} summons a {} as a buffed unit dies, whose parent lends it no \
+                 technologies, which is not read",
+                rules.type_name
+            ));
+            continue;
+        }
+        let Some(worn) = loadout(
+            name,
+            &rules.type_name,
+            1,
+            &[],
+            rules,
+            side,
+            loadouts,
+            refused,
+        ) else {
+            continue;
+        };
+        let template = Placement {
+            team,
+            unit_id: 0,
+            formation_id: 0,
+            formation_index: -1,
+            type_name: rules.type_name.clone(),
+            world_x: 0,
+            world_z: 0,
+            rotation: if team == 0 { 0 } else { 180_000 },
+            rotated: false,
+            level: 1,
+            exp: 0,
+            experience_rate: worn.experience_rate,
+            corrections: worn.corrections,
+            lifesteal: worn.lifesteal,
+            auto_recovery: worn.auto_recovery,
+            energy_shield: worn.energy_shield,
+            sweep: worn.sweep,
+            distance_intensify: worn.distance_intensify,
+            secondary_damage: worn.secondary_damage,
+            carried_shield: worn.carried_shield,
+            production: None,
+            buff_sources: worn.buff_sources,
+            ignored_buffs: worn.ignored_buffs,
+            important: worn.important,
+            ignores_control_beam: worn.ignores_control_beam,
+            travelling: false,
+            extra_weapons: worn.extra_weapons,
+            technology_disable: worn.technology_disable,
+        };
+        pending.extend(summoned(&template));
+        templates.insert(
+            (team, type_id),
+            DeathSummon {
+                rules: rules.clone(),
+                placement: template,
+            },
+        );
+    }
+    templates
 }
 
 /// The rate each side's officers set on its travel time, where one does.

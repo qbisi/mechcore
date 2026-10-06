@@ -92,6 +92,7 @@ impl Actor {
             command: None,
             buffs: Vec::new(),
             buff_cycles,
+            parasitic: false,
             moved_q32: 0,
             move_mark_q32: (0, 0),
             shield,

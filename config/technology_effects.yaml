@@ -382,6 +382,8 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
   - id: 1806
     name: 电磁弹
     unit: wasp
@@ -412,6 +414,8 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
   - id: 1812
     name: 电磁爆炸
     unit: stormcaller
@@ -442,6 +446,8 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
   - id: 1813
     name: 电磁弹
     unit: sledgehammer
@@ -472,6 +478,8 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
   - id: 1814
     name: 电磁干扰
     unit: hacker
@@ -502,6 +510,8 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
   - id: 1815
     name: 电磁弹
     unit: arclight
@@ -532,6 +542,8 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
   - id: 1816
     name: 电磁弹
     unit: phoenix
@@ -562,6 +574,8 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
   - id: 1826
     name: 电磁爆炸
     unit: farseer
@@ -592,6 +606,8 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
   - id: 1827
     name: 电磁弹
     unit: raiden
@@ -622,6 +638,8 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
   - id: 2305
     name: 残骸利用
     unit: rhino
@@ -1439,7 +1457,8 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
-      special: [summonUnitID]
+      summon_unit: -1
+      summon_level_inherit: false
   - id: 180203
     name: 引燃
     unit: vulcan
@@ -1470,6 +1489,8 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
       special: [lifeChangeRate, disableRecover]
   - id: 180206
     name: 引燃
@@ -1501,6 +1522,8 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
       special: [lifeChangeRate, disableRecover]
   - id: 180209
     name: 引燃
@@ -1532,6 +1555,8 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
       special: [lifeChangeRate, disableRecover]
   - id: 180220
     name: 引燃
@@ -1563,6 +1588,8 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
       special: [lifeChangeRate, disableRecover]
   - id: 180305
     name: 光子涂层
@@ -1595,6 +1622,8 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
   - id: 180311
     name: 光子投射
     unit: overlord
@@ -1629,6 +1658,8 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
   - id: 180317
     name: 光子涂层
     unit: war_factory
@@ -1660,6 +1691,8 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
   - id: 180326
     name: 光子投射
     unit: farseer
@@ -1693,6 +1726,8 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
   - id: 180329
     name: 光子涂层
     unit: abyss
@@ -1723,6 +1758,8 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
   - id: 180418
     name: 退化光束
     unit: wraith
@@ -1757,6 +1794,8 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
   - id: 180430
     name: 压制射击
     unit: void_eye
@@ -1788,6 +1827,8 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
     attack_range_value: [42949672960]  # +10
   - id: 180519
     name: 酸性攻击
@@ -1818,6 +1859,8 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
       special: [lifeChangeRate]
   - id: 180526
     name: 搜索雷达
@@ -1853,6 +1896,8 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
   - id: 180530
     name: 电磁装甲
     unit: void_eye
@@ -1884,6 +1929,8 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
   - id: 180620
     name: 逆火 
     unit: fire_badger
@@ -1915,6 +1962,8 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
     life_rate: [2147483648]  # +0.5
   - id: 180805
     name: 战斗进化
@@ -1944,6 +1993,8 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
   - id: 180808
     name: 滚动充能
     unit: steel_ball
@@ -1972,6 +2023,8 @@ technologies:
       additive_condition_param: 30064771072  # +7
       max_additive_stack: 100
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
   - id: 180828
     name: 枪膛增压
     unit: hound
@@ -2000,6 +2053,8 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
       special: [buffEffectAdditiveResetCondition]
     attack_interval_value: [2576980377]  # +0.6
   - id: 180931
@@ -2035,6 +2090,8 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
     attack_range_value: [42949672960]  # +10
   - id: 302002
     name: 巨山装甲
@@ -2110,3 +2167,5 @@ technologies:
       additive_condition_param: 0
       max_additive_stack: 0
       clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false

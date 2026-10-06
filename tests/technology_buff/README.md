@@ -17,6 +17,8 @@ same buff sources on an item.
 - `suppression-shots.yaml` and `suppression-shots-melee.yaml` add a Void
   Eye's buff to what its hits strike, cutting a Fortress's range and leaving
   a Rhino's melee reach.
+- `replicate.yaml` and `replicate-swarm.yaml` make Crawlers of a Marksman
+  and a Rhino killed under the Crawlers' buff.
 - `kinetic-charge.yaml` and `kinetic-charge-stops.yaml` stack Kinetic
   Charge's range on Steel Balls as they roll, and hold it as they stop; the
   corpus round `tests/corpus/fights/268477093-r4.yaml` stacks it to 80.

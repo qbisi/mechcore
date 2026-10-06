@@ -198,8 +198,9 @@ impl Simulation {
     /// `SkillDataModifier.AvaliableCheck` passes, and a source that
     /// `CanDisable` does nothing while the owner's technologies are disabled.
     /// `BuffSystem.AddBuff` then adds the buff, under the owner's side and
-    /// as written by it, to every live unit the hit struck, in the order it
-    /// struck them; a construction takes none, the buff not reaching one. A
+    /// as written by it, to every unit the hit struck, in the order it
+    /// struck them, a dead one only when the buff summons; a construction
+    /// takes none, the buff not reaching one. A
     /// Void Eye with Suppression Shots cuts a struck Fortress's range from
     /// 100 to 70, and a struck Rhino's melee reach not at all.
     pub(in crate::fight) fn add_hit_buffs(
@@ -236,7 +237,10 @@ impl Simulation {
                 let FightActorRef::Unit(id) = *target else {
                     continue;
                 };
-                if self.actors[&id].alive() && self.buff_reaches(id, &row) {
+                // `BuffSystem.IsAvaliableWhenActorDead`: a buff that summons
+                // or disables technology reaches a unit the hit killed.
+                let reaches_the_dead = row.summons.is_some() || row.disables_technology;
+                if (self.actors[&id].alive() || reaches_the_dead) && self.buff_reaches(id, &row) {
                     self.write_buff(id, Some(source), team, &row, events)?;
                 }
             }
@@ -253,6 +257,7 @@ fn buff_row(buff: &BuffSource) -> Result<BuffRow> {
         buff_id: buff.buff_id,
         clears_when_technologies_disabled: buff.clears_when_technologies_disabled,
         max_life_rate: buff.max_life_rate,
+        summons: buff.summons,
         stacking: buff.stacking.map(|stacking| StackRule {
             step_ticks,
             max: stacking.max,

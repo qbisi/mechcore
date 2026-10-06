@@ -543,16 +543,8 @@ impl Simulation {
                     unit.exit_fight_on_death();
                     position
                 });
-                // `DeadEffectSystem.OnActorDead` queues the unit's dead effect
-                // for the module's update: an explosion explodes however its
-                // unit died, once the unit has arrived
-                // (`FightExplosionSkill.EnterFight`, `OnTravelFinished`).
-                if death.is_some()
-                    && previous_life > 0
-                    && !self.actors[&unit_id].travelling
-                    && self.explodes_on_death(unit_id)
-                {
-                    self.dead_explosions.push((unit_id, false));
+                if death.is_some() && previous_life > 0 {
+                    self.on_actor_dead(unit_id);
                 }
                 Ok(Stroke {
                     actual,
@@ -1136,6 +1128,18 @@ impl Simulation {
                 .map_or(0, |actor| space_to_q32(unit_height(actor.rules.domain))),
             FightActorRef::Building(_) => 0,
         }
+    }
+
+    /// `DeadEffectSystem.OnActorDead` of a unit a hit killed: it queues the
+    /// unit's dead effect for the module's update, an explosion exploding
+    /// however its unit died once the unit has arrived
+    /// (`FightExplosionSkill.EnterFight`, `OnTravelFinished`), and its
+    /// `OnDead`, whose `BuffManager.OnMechDead` lets a buff it runs summon.
+    fn on_actor_dead(&mut self, unit_id: u64) {
+        if !self.actors[&unit_id].travelling && self.explodes_on_death(unit_id) {
+            self.dead_explosions.push((unit_id, false));
+        }
+        self.support.dying.push(unit_id);
     }
 
     /// A hit's deaths and falls, in the order it struck them, among the
