@@ -1,0 +1,27 @@
+# Scorching Charge switched on again.
+#
+# Blue's Electromagnetic Impact lands on red's Fire Badgers on tick 57 while
+# the Wasps fight the Rhinos ahead, and runs out on tick 556. Once the Wasps
+# bring them below half, the Badgers charge as before, on ticks 964, 989 and
+# 1158, and each death explodes and leaves a fire.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 1637
+hash: {profile: mcfr-content-0.7.0, result: 47d6d4c5bb58676cb064bc8924faf0733b142104cdd4b939f925e46e9ad04e75}
+blue:
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -60}, exp: 0/900/900}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: -5, y: 135}]}
+red:
+  core_damage: 204
+  techs:
+    fire_badger: [scorching_charge]
+  units:
+  - {name: fire_badger, index: 0, position: {x: 5, y: -130}}
+  - {name: rhino, index: 1, position: {x: 5, y: -55}, exp: 0/200/1150}
+  - {name: rhino, index: 2, position: {x: -45, y: -55}, exp: 0/200/1150}

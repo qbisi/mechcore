@@ -442,6 +442,9 @@ place for the rest of the fight. The row also raises the unit's life by 80%.
   its side, the death of a side's last unit too. A fight decided on the tick
   the fire is left ends on that tick, and the fire goes with it before any
   snapshot holds it.
+- **Switched off, it waits.** While a disabling buff holds the unit's
+  technologies off, the condition holds nothing and a death sets off neither
+  explosion nor fire: [technology_effects.md](technology_effects.md#switched-off).
 
 ## A support skill and the units it makes
 

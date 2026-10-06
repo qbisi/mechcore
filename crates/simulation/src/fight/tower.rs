@@ -982,6 +982,16 @@ impl Simulation {
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
+        // `PreemptiveSkillController.Update` gives an active permanent
+        // preemptive skill back up while the technologies are off
+        // (`OnPermanentPreemptiveSkillDeactive`), which is not measured; its
+        // buff makes the unit invincible, so no debuff reaches it.
+        if !on && actor.skills.preemptive_active {
+            return Err(Error::new(format!(
+                "unit {actor_id}'s technologies are disabled while its permanent preemptive \
+                 skill is active, and giving it up is not measured"
+            )));
+        }
         // `ExtraSkillProvider.DisableSkill` and `EnableSkill`: every extra
         // skill of a technology is disabled and enabled with it.
         for extra in &mut actor.skills.extras {

@@ -1,0 +1,28 @@
+# Scorching Charge switched off.
+#
+# Red's three Fire Badgers carry Scorching Charge and have taken one shot
+# each, 5270 of 7599, when blue's Electromagnetic Impact lands on them on
+# tick 57: the 80% more life goes, 2928 of 4222. The Marksmen bring each to
+# 599, below half, and none charges; each dies, on ticks 134, 137 and 160,
+# neither exploding nor leaving a fire.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 160
+hash: {profile: mcfr-content-0.7.0, result: b74887ddca4b15c942ebe057d9bc679b65d56dd340402eb67cca24073eb04e86}
+blue:
+  units:
+  - {name: marksman, index: 0, position: {x: -40, y: -100}, exp: 0/134/650}
+  - {name: marksman, index: 1, position: {x: 0, y: -100}, exp: 0/134/650}
+  - {name: marksman, index: 2, position: {x: 40, y: -100}, exp: 0/134/650}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: -5, y: 30}]}
+red:
+  core_damage: 300
+  techs:
+    fire_badger: [scorching_charge]
+  units:
+  - {name: fire_badger, index: 0, position: {x: 5, y: -40}}

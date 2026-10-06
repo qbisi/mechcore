@@ -550,7 +550,7 @@ impl Simulation {
                 if death.is_some()
                     && previous_life > 0
                     && !self.actors[&unit_id].travelling
-                    && self.explosion_of(unit_id).is_some()
+                    && self.explodes_on_death(unit_id)
                 {
                     self.dead_explosions.push((unit_id, false));
                 }
