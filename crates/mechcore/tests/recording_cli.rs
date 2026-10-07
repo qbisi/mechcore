@@ -589,13 +589,17 @@ fn stats_read_a_tick_and_answer_both_halves() {
         .unwrap();
     assert!(read.status.success());
     let written: serde_json::Value = serde_json::from_slice(&read.stdout).unwrap();
-    assert_eq!(written["schema"], "mechcore.fight-stats.v1");
+    assert_eq!(written["schema"], "mechcore.fight-stats.v2");
     assert_eq!(written["tick"], 1, "the first tick is the default");
     assert!(written["ticks"].as_u64().unwrap() > 1);
     // Every formation answers. A Marksman's description gives 8 m/s, 140 m
     // and 2329 of damage, and nothing here corrects any of them.
-    let blue = &written["sides"]["blue"][0];
-    assert_eq!(blue["name"], "marksman", "{written}");
+    assert_eq!(written["sides"]["blue"][0]["name"], "marksman", "{written}");
+    // Nothing is written onto one member alone, so the formation reads as one.
+    let readings = written["sides"]["blue"][0]["readings"].as_array().unwrap();
+    assert_eq!(readings.len(), 1, "{written}");
+    let blue = &readings[0];
+    assert!(!blue["units"].as_array().unwrap().is_empty(), "{written}");
     assert_eq!(blue["derived"]["move_speed"], 8_i64 << 32);
     assert_eq!(blue["derived"]["attack_range"], 140_i64 << 32);
     assert_eq!(blue["derived"]["attack_damage"], 2329);
