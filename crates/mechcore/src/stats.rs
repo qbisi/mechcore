@@ -32,7 +32,7 @@ use crate::{
     turn::Side,
 };
 
-pub(crate) const SCHEMA: &str = "mechcore.fight-stats.v1";
+pub(crate) const SCHEMA: &str = "mechcore.fight-stats.v2";
 
 /// Every correction one tick of a recording holds.
 #[derive(Serialize)]
@@ -51,7 +51,8 @@ struct Sides {
     red: Vec<Formation>,
 }
 
-/// One formation, what was written onto it, and what the build computed.
+/// One formation, what was written onto its members, and what the build
+/// computed.
 ///
 /// A formation answers whether or not it survives the fight: the side that
 /// spends a correction attacking is commonly the side that loses the unit
@@ -61,7 +62,20 @@ struct Sides {
 struct Formation {
     index: i32,
     name: String,
-    /// Whether this formation's technologies are switched off, which is the
+    /// One reading for each distinct state its standing members are in, in
+    /// the order of the first member in each. A correction handed to the
+    /// formation is written onto every member alike and reads as one; one
+    /// the build hands a single member — a buff it takes on being hit —
+    /// splits that member off rather than being lost behind another.
+    readings: Vec<Reading>,
+}
+
+/// The state some members of a formation share at this tick.
+#[derive(Serialize, Clone, PartialEq)]
+struct Reading {
+    /// The members in this state, by the unit id the recording names them by.
+    units: Vec<u64>,
+    /// Whether these members' technologies are switched off, which is the
     /// state a correction's absence is explained by rather than a correction
     /// of its own. Electromagnetic interference sets it for as long as it
     /// lasts. Absent when they are not.
@@ -82,7 +96,7 @@ struct Formation {
 ///
 /// A neutral channel is left out rather than printed as zeroes, so what a
 /// reading says is what was written.
-#[derive(Serialize, Clone, Default)]
+#[derive(Serialize, Clone, Default, PartialEq)]
 struct Modifiers {
     #[serde(skip_serializing_if = "Map::is_empty")]
     buff: Map<String, Value>,
@@ -92,14 +106,14 @@ struct Modifiers {
     skill: Vec<SkillModifiers>,
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, PartialEq)]
 struct SkillModifiers {
     skill_slot: u16,
     modifiers: Map<String, Value>,
 }
 
 impl Modifiers {
-    fn of(unit: &LiveUnitState) -> Option<Self> {
+    fn of(unit: &LiveUnitState) -> Self {
         let mut held = Self::default();
         for modifier in &unit.modifiers {
             let fields = match (modifier.channel, modifier.skill_slot) {
@@ -138,7 +152,7 @@ impl Modifiers {
                 }
             }
         }
-        (!held.buff.is_empty() || !held.unit.is_empty() || !held.skill.is_empty()).then_some(held)
+        held
     }
 }
 
@@ -169,13 +183,10 @@ pub(crate) fn read(path: &Path, tick: Option<u32>) -> Result<Written, Failure> {
             scene::units_of(&layout, side)
                 .iter()
                 .filter_map(|placement| {
-                    let (derived, disabled, modifiers) = held.get(&(side, placement.index))?;
                     Some(Formation {
                         index: placement.index,
                         name: placement.type_name.clone(),
-                        technologies_disabled: *disabled,
-                        derived: *derived,
-                        held: modifiers.clone().unwrap_or_default(),
+                        readings: held.get(&(side, placement.index))?.clone(),
                     })
                 })
                 .collect(),
@@ -192,29 +203,38 @@ pub(crate) fn read(path: &Path, tick: Option<u32>) -> Result<Written, Failure> {
     })
 }
 
-/// What each formation holds at this tick, for every formation that stands.
+/// What each formation's members hold at this tick, for every formation that
+/// stands, members in the same state read together.
 ///
-/// One member answers for its formation: a correction is written onto the
-/// formation the build hands it to, so its members hold the same entries and
-/// derive the same numbers from them. A formation carrying no correction is
-/// still answered, because its numbers are the description itself and that is
-/// what a control is read for.
+/// A formation carrying no correction is still answered, because its numbers
+/// are the description itself and that is what a control is read for.
 fn carried(
     formations: &BTreeMap<u64, (Side, i32)>,
     state: &WorldSnapshot,
-) -> BTreeMap<(Side, i32), (DerivedStats, bool, Option<Modifiers>)> {
-    let mut held: BTreeMap<(Side, i32), (DerivedStats, bool, Option<Modifiers>)> = BTreeMap::new();
+) -> BTreeMap<(Side, i32), Vec<Reading>> {
+    let mut held: BTreeMap<(Side, i32), Vec<Reading>> = BTreeMap::new();
     for unit in &state.live_units {
         let Some(formation) = formations.get(&unit.formation_id) else {
             continue;
         };
-        held.entry(*formation).or_insert_with(|| {
-            (
-                unit.derived,
-                unit.status_mask & TECHNOLOGY_DISABLED != 0,
-                Modifiers::of(unit),
-            )
-        });
+        let reading = Reading {
+            units: vec![unit.unit_id],
+            technologies_disabled: unit.status_mask & TECHNOLOGY_DISABLED != 0,
+            derived: unit.derived,
+            held: Modifiers::of(unit),
+        };
+        let readings = held.entry(*formation).or_default();
+        match readings.iter_mut().find(|known| {
+            (known.technologies_disabled, known.derived, &known.held)
+                == (
+                    reading.technologies_disabled,
+                    reading.derived,
+                    &reading.held,
+                )
+        }) {
+            Some(known) => known.units.push(unit.unit_id),
+            None => readings.push(reading),
+        }
     }
     held
 }

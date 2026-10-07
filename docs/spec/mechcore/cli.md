@@ -426,8 +426,11 @@ reads them that way.
 
 Every formation answers, whether or not it carries a correction: a unit with
 nothing written onto it still has numbers, and that is what a control is read
-for. A formation whose technologies are switched off says so with
-`technologies_disabled`, which is the state a correction's absence is
+for. It answers one reading per distinct state its standing members are in,
+each naming its members by unit id: a correction handed to the formation reads
+once, and one the build hands a single member, a buff it takes on being hit,
+splits that member off. Members whose technologies are switched off say so
+with `technologies_disabled`, which is the state a correction's absence is
 explained by rather than a correction of its own.
 
 `--tick <n>` picks the tick to read; the default is the first, where a
