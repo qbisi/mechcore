@@ -50,7 +50,7 @@
   `skill_attackable_checker` 这类 instrument 去看；`derived` 的射程、伤害、攻击间隔也只记槽 0。
   单位科技补上附加武器之类的多技能机制后，副武器的这些状态哈希抓不到。把 `GetSkills()` 每个槽的
   锁定、攻击目标、状态机状态、攻击计时与间隔、射程和伤害做成单位行的一部分并进哈希，`derived`
-  随之按槽记录，改 `hashed-content.txt` 的那个 PR 由 owner 合并；格式升级一次，全部钉子在有游戏的机器上
+  随之按槽记录，改 `hashed-content.txt` 的那个 PR 写明每行满足的准入条件；格式升级一次，全部钉子在有游戏的机器上
   批量重录重钉，不为单个机制零碎升级。
   reopen_when：platform 栈"单位科技，按系统排"一项弹出栈，或 fight-coverage 的 by system 里
   `TechnologyGroupData` 的系统只剩独占回合为 0 的。
