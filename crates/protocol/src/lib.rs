@@ -381,8 +381,6 @@ pub enum InstrumentChannel {
     RvoNeighbour,
     /// Each solve's VOs, field by field.
     RvoVo,
-    /// Each grouped unit's skills, one row per slot: lock, attack target and state.
-    GroupSlots,
     /// Each unit's model as the view animates it: per animator layer, the state,
     /// its progress and the clips it blends, every tick.
     UnitPose,
@@ -397,7 +395,7 @@ pub enum InstrumentChannel {
 }
 
 impl InstrumentChannel {
-    pub const ALL: [Self; 12] = [
+    pub const ALL: [Self; 11] = [
         Self::TargetRefs,
         Self::SkillAttackableChecker,
         Self::TargetSearch,
@@ -405,7 +403,6 @@ impl InstrumentChannel {
         Self::RvoSolve,
         Self::RvoNeighbour,
         Self::RvoVo,
-        Self::GroupSlots,
         Self::UnitPose,
         Self::ProjectileReach,
         Self::ControlProgress,
@@ -423,7 +420,6 @@ impl InstrumentChannel {
             Self::RvoSolve => "rvo_solve",
             Self::RvoNeighbour => "rvo_neighbour",
             Self::RvoVo => "rvo_vo",
-            Self::GroupSlots => "group_slots",
             Self::UnitPose => "unit_pose",
             Self::ProjectileReach => "projectile_reach",
             Self::ControlProgress => "control_progress",

@@ -183,8 +183,14 @@ impl Simulation {
             .next_attack_step
             .saturating_sub(skill.current_attack_interval);
         let interval = self.draw_attack_interval(skill_ref)?;
+        let now = i64::try_from(self.step_now).unwrap_or(i64::MAX);
         let skill = self.skill_mut(skill_ref);
         skill.current_attack_interval = interval;
+        // `RefreshAttackInterval(true, refresh)`: a refreshed clock reads the
+        // new interval, ready to attack.
+        if refresh {
+            skill.attack_time_anchor = now - i64::try_from(interval).unwrap_or(i64::MAX);
+        }
         skill.next_attack_step = if refresh {
             0
         } else {

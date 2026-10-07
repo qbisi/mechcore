@@ -31,13 +31,13 @@ use tempfile::TempDir;
 use zip::{CompressionMethod, ZipArchive, ZipWriter, write::SimpleFileOptions};
 
 use crate::{
-    BuildingState, DamageStatistics, DerivedStats, Domain, DurableContext, Error, Event,
-    EventPayload, FormationState, GaugeI32, HASH_PROFILE, Hashes, LiveUnitState, MCFR_FORMAT,
-    Modifier, ModifierChannel, ModifierPart, MotionState, ObjectKind, ObjectRef,
+    AttackPhase, BuildingState, DamageStatistics, Domain, DurableContext, EnabledSkill, Error,
+    Event, EventPayload, FormationState, GaugeI32, HASH_PROFILE, Hashes, LiveUnitState,
+    MCFR_FORMAT, Modifier, ModifierChannel, ModifierPart, MotionState, ObjectKind, ObjectRef,
     PersonalShieldState, Producer, ProjectileState, QPlanar, QPose, QVec3, RecorderKind, Result,
-    ShieldRoundPolicy, ShieldSourceKind, ShieldState, TerrainApplicationState, TerrainEffectClock,
-    TerrainGridState, TerrainLogicLifetime, TerrainState, TerrainType, TransitionEvents,
-    Visibility, WeaponAimState, WorldSnapshot, canonical,
+    ShieldRoundPolicy, ShieldSourceKind, ShieldState, SkillMachineState, SkillState,
+    TerrainApplicationState, TerrainEffectClock, TerrainGridState, TerrainLogicLifetime,
+    TerrainState, TerrainType, TransitionEvents, Visibility, WeaponState, WorldSnapshot, canonical,
     event_table::{batch_events, event_batch, event_schema},
     instrument::{self, ChannelSchema, InstrumentRow},
 };
@@ -583,8 +583,8 @@ fn unit_batch(rows: &[(u32, LiveUnitState)]) -> Result<Option<RecordBatch>> {
             u64_values(units.iter().map(|row| row.status_mask)),
             modifier_list_values(units.iter().map(|row| &row.modifiers))?,
             shield_values(units.iter().map(|row| row.personal_shield)),
-            weapon_aim_list_values(units.iter().map(|row| &row.weapon_aims))?,
-            derived_values(units.iter().map(|row| row.derived)),
+            i64_values(units.iter().map(|row| row.move_speed)),
+            skill_list_values(units.iter().map(|row| &row.skills))?,
         ],
     )?))
 }
@@ -848,20 +848,6 @@ fn gauge_values(values: impl IntoIterator<Item = GaugeI32>) -> ArrayRef {
     ))
 }
 
-fn derived_values(values: impl IntoIterator<Item = DerivedStats>) -> ArrayRef {
-    let values = values.into_iter().collect::<Vec<_>>();
-    Arc::new(StructArray::new(
-        derived_fields(),
-        vec![
-            i64_values(values.iter().map(|value| value.move_speed)),
-            i64_values(values.iter().map(|value| value.attack_range)),
-            i32_values(values.iter().map(|value| value.attack_damage)),
-            i32_values(values.iter().map(|value| value.current_attack_interval)),
-        ],
-        None,
-    ))
-}
-
 fn object_ref_values(values: impl IntoIterator<Item = Option<ObjectRef>>) -> ArrayRef {
     let values = values.into_iter().collect::<Vec<_>>();
     Arc::new(StructArray::new(
@@ -1115,41 +1101,159 @@ fn encode_modifier_part(part: ModifierPart) -> u8 {
         .expect("every modifier part has a tag")
 }
 
-fn weapon_aim_list_values<'a>(
-    values: impl IntoIterator<Item = &'a Vec<WeaponAimState>>,
+fn skill_list_values<'a>(
+    values: impl IntoIterator<Item = &'a Vec<SkillState>>,
 ) -> Result<ArrayRef> {
     let values = values.into_iter().collect::<Vec<_>>();
     let flat = values
         .iter()
         .flat_map(|value| value.iter())
         .collect::<Vec<_>>();
+    let enabled = flat
+        .iter()
+        .map(|skill| skill.enabled.as_ref())
+        .collect::<Vec<_>>();
+    let enabled_items = enabled_skill_values(&enabled)?;
     let items = StructArray::new(
-        weapon_aim_fields(),
+        skill_fields(),
         vec![
-            u16_values(flat.iter().map(|value| value.skill_slot)),
-            i32_values(flat.iter().map(|value| value.weapon_index)),
-            object_ref_values(flat.iter().map(|value| value.attack_target)),
-            optional_vec3_values(
-                flat.iter()
-                    .map(|value| value.pose.map(|pose| pose.position)),
-            ),
-            optional_i64_values(
-                flat.iter()
-                    .map(|value| value.pose.map(|pose| pose.rotation)),
-            ),
+            u16_values(flat.iter().map(|skill| skill.skill_slot)),
+            Arc::new(enabled_items),
         ],
         None,
     );
     Ok(Arc::new(ListArray::new(
-        Arc::new(Field::new(
-            "item",
-            DataType::Struct(weapon_aim_fields()),
-            false,
-        )),
+        Arc::new(Field::new("item", DataType::Struct(skill_fields()), false)),
         list_offsets(values.iter().map(|value| value.len()))?,
         Arc::new(items),
         None,
     )))
+}
+
+/// The `enabled` struct of each skill, null for a switched-off one.
+fn enabled_skill_values(enabled: &[Option<&EnabledSkill>]) -> Result<StructArray> {
+    let weapons = enabled
+        .iter()
+        .flat_map(|skill| skill.map_or(&[][..], |skill| skill.weapons.as_slice()))
+        .collect::<Vec<_>>();
+    let weapon_items = StructArray::new(
+        weapon_fields(),
+        vec![
+            i32_values(weapons.iter().map(|weapon| weapon.weapon_index)),
+            optional_vec3_values(
+                weapons
+                    .iter()
+                    .map(|weapon| weapon.pose.map(|pose| pose.position)),
+            ),
+            optional_i64_values(
+                weapons
+                    .iter()
+                    .map(|weapon| weapon.pose.map(|pose| pose.rotation)),
+            ),
+        ],
+        None,
+    );
+    let weapon_lists = ListArray::new(
+        Arc::new(Field::new("item", DataType::Struct(weapon_fields()), false)),
+        list_offsets(
+            enabled
+                .iter()
+                .map(|skill| skill.map_or(0, |skill| skill.weapons.len())),
+        )?,
+        Arc::new(weapon_items),
+        None,
+    );
+    let field = |read: fn(&EnabledSkill) -> i64| {
+        enabled
+            .iter()
+            .map(move |skill| skill.map_or(0, read))
+            .collect::<Vec<_>>()
+    };
+    let enabled_items = StructArray::new(
+        enabled_skill_fields(),
+        vec![
+            object_ref_values(
+                enabled
+                    .iter()
+                    .map(|skill| skill.and_then(|skill| skill.lock_target)),
+            ),
+            object_ref_values(
+                enabled
+                    .iter()
+                    .map(|skill| skill.and_then(|skill| skill.attack_target)),
+            ),
+            u8_values(
+                enabled
+                    .iter()
+                    .map(|skill| skill.map_or(0, |skill| encode_skill_machine_state(skill.state))),
+            ),
+            Arc::new(UInt8Array::from(
+                enabled
+                    .iter()
+                    .map(|skill| {
+                        skill
+                            .and_then(|skill| skill.attack_phase)
+                            .map(encode_attack_phase)
+                    })
+                    .collect::<Vec<_>>(),
+            )),
+            i32_values(
+                enabled
+                    .iter()
+                    .map(|skill| skill.map_or(0, |skill| skill.attack_time)),
+            ),
+            i32_values(
+                enabled
+                    .iter()
+                    .map(|skill| skill.map_or(0, |skill| skill.current_attack_interval)),
+            ),
+            i32_values(
+                enabled
+                    .iter()
+                    .map(|skill| skill.map_or(0, |skill| skill.attack_count)),
+            ),
+            i64_values(field(|skill| skill.attack_range)),
+            i32_values(
+                enabled
+                    .iter()
+                    .map(|skill| skill.map_or(0, |skill| skill.attack_damage)),
+            ),
+            Arc::new(weapon_lists),
+        ],
+        Some(enabled.iter().map(Option::is_some).collect::<NullBuffer>()),
+    );
+    Ok(enabled_items)
+}
+
+const SKILL_MACHINE_STATES: [SkillMachineState; 6] = [
+    SkillMachineState::Idle,
+    SkillMachineState::Prepare,
+    SkillMachineState::Attack,
+    SkillMachineState::Cooling,
+    SkillMachineState::Reloading,
+    SkillMachineState::Lock,
+];
+
+const ATTACK_PHASES: [AttackPhase; 3] = [
+    AttackPhase::Before,
+    AttackPhase::Attacking,
+    AttackPhase::After,
+];
+
+fn encode_skill_machine_state(state: SkillMachineState) -> u8 {
+    SKILL_MACHINE_STATES
+        .iter()
+        .position(|candidate| *candidate == state)
+        .and_then(|index| u8::try_from(index).ok())
+        .expect("every skill state has a tag")
+}
+
+fn encode_attack_phase(phase: AttackPhase) -> u8 {
+    ATTACK_PHASES
+        .iter()
+        .position(|candidate| *candidate == phase)
+        .and_then(|index| u8::try_from(index).ok())
+        .expect("every attack phase has a tag")
 }
 
 fn tick_fields() -> Vec<Field> {
@@ -1182,8 +1286,8 @@ fn unit_schema() -> SchemaRef {
         Field::new("status_mask", DataType::UInt64, false),
         list_field("modifiers", modifier_fields()),
         struct_field("personal_shield", shield_fields(), false),
-        list_field("weapon_aims", weapon_aim_fields()),
-        struct_field("derived", derived_fields(), false),
+        Field::new("move_speed", DataType::Int64, false),
+        list_field("skills", skill_fields()),
     ]))
 }
 
@@ -1306,16 +1410,6 @@ fn shield_fields() -> Fields {
     .into()
 }
 
-fn derived_fields() -> Fields {
-    vec![
-        Field::new("move_speed", DataType::Int64, false),
-        Field::new("attack_range", DataType::Int64, false),
-        Field::new("attack_damage", DataType::Int32, false),
-        Field::new("current_attack_interval", DataType::Int32, false),
-    ]
-    .into()
-}
-
 fn gauge_fields() -> Fields {
     vec![
         Field::new("current", DataType::Int32, false),
@@ -1374,11 +1468,33 @@ fn modifier_fields() -> Fields {
     .into()
 }
 
-fn weapon_aim_fields() -> Fields {
+fn skill_fields() -> Fields {
     vec![
         Field::new("skill_slot", DataType::UInt16, false),
-        Field::new("weapon_index", DataType::Int32, false),
+        struct_field("enabled", enabled_skill_fields(), true),
+    ]
+    .into()
+}
+
+fn enabled_skill_fields() -> Fields {
+    vec![
+        struct_field("lock_target", object_ref_fields(), true),
         struct_field("attack_target", object_ref_fields(), true),
+        Field::new("state", DataType::UInt8, false),
+        Field::new("attack_phase", DataType::UInt8, true),
+        Field::new("attack_time", DataType::Int32, false),
+        Field::new("current_attack_interval", DataType::Int32, false),
+        Field::new("attack_count", DataType::Int32, false),
+        Field::new("attack_range", DataType::Int64, false),
+        Field::new("attack_damage", DataType::Int32, false),
+        list_field("weapons", weapon_fields()),
+    ]
+    .into()
+}
+
+fn weapon_fields() -> Fields {
+    vec![
+        Field::new("weapon_index", DataType::Int32, false),
         struct_field("position", vec3_fields(), true),
         Field::new("rotation", DataType::Int64, true),
     ]
@@ -2013,8 +2129,8 @@ fn read_units(member: MemberSlice) -> Result<Vec<(u32, LiveUnitState)>> {
         let status_mask = column::<UInt64Array>(&batch, "status_mask")?;
         let modifiers = column::<ListArray>(&batch, "modifiers")?;
         let shield = struct_column(&batch, "personal_shield")?;
-        let weapon_aims = column::<ListArray>(&batch, "weapon_aims")?;
-        let derived = struct_column(&batch, "derived")?;
+        let move_speed = column::<Int64Array>(&batch, "move_speed")?;
+        let skills = column::<ListArray>(&batch, "skills")?;
         for index in 0..batch.num_rows() {
             rows.push((
                 tick.value(index),
@@ -2041,8 +2157,8 @@ fn read_units(member: MemberSlice) -> Result<Vec<(u32, LiveUnitState)>> {
                     status_mask: status_mask.value(index),
                     modifiers: read_modifier_list(modifiers, index)?,
                     personal_shield: read_shield(shield, index)?,
-                    derived: read_derived(derived, index)?,
-                    weapon_aims: read_weapon_aim_list(weapon_aims, index)?,
+                    move_speed: move_speed.value(index),
+                    skills: read_skill_list(skills, index)?,
                 },
             ));
         }
@@ -2344,16 +2460,6 @@ fn read_shield(array: &StructArray, index: usize) -> Result<PersonalShieldState>
     })
 }
 
-fn read_derived(array: &StructArray, index: usize) -> Result<DerivedStats> {
-    Ok(DerivedStats {
-        move_speed: struct_child::<Int64Array>(array, "move_speed")?.value(index),
-        attack_range: struct_child::<Int64Array>(array, "attack_range")?.value(index),
-        attack_damage: struct_child::<Int32Array>(array, "attack_damage")?.value(index),
-        current_attack_interval: struct_child::<Int32Array>(array, "current_attack_interval")?
-            .value(index),
-    })
-}
-
 fn read_gauge(array: &StructArray, index: usize) -> Result<GaugeI32> {
     Ok(GaugeI32 {
         current: struct_child::<Int32Array>(array, "current")?.value(index),
@@ -2388,26 +2494,77 @@ fn read_modifier_list(array: &ListArray, index: usize) -> Result<Vec<Modifier>> 
         .collect()
 }
 
-fn read_weapon_aim_list(array: &ListArray, index: usize) -> Result<Vec<WeaponAimState>> {
-    let items = list_struct_items(array, index, "weapon_aims")?;
+fn read_skill_list(array: &ListArray, index: usize) -> Result<Vec<SkillState>> {
+    let items = list_struct_items(array, index, "skills")?;
     let slots = struct_child::<UInt16Array>(&items, "skill_slot")?;
+    let enabled = struct_child::<StructArray>(&items, "enabled")?;
+    let locks = struct_child::<StructArray>(enabled, "lock_target")?;
+    let targets = struct_child::<StructArray>(enabled, "attack_target")?;
+    let states = struct_child::<UInt8Array>(enabled, "state")?;
+    let phases = struct_child::<UInt8Array>(enabled, "attack_phase")?;
+    let times = struct_child::<Int32Array>(enabled, "attack_time")?;
+    let intervals = struct_child::<Int32Array>(enabled, "current_attack_interval")?;
+    let counts = struct_child::<Int32Array>(enabled, "attack_count")?;
+    let ranges = struct_child::<Int64Array>(enabled, "attack_range")?;
+    let damages = struct_child::<Int32Array>(enabled, "attack_damage")?;
+    let weapons = struct_child::<ListArray>(enabled, "weapons")?;
+    (0..items.len())
+        .map(|item| {
+            let tag = |tags: &UInt8Array, what: &str| {
+                Error::invalid(format!("skill {what} tag {}", tags.value(item)))
+            };
+            let read = if enabled.is_null(item) {
+                if weapons.value_length(item) != 0 {
+                    return Err(Error::invalid("a switched-off skill carries weapons"));
+                }
+                None
+            } else {
+                Some(EnabledSkill {
+                    lock_target: read_optional_ref(locks, item)?,
+                    attack_target: read_optional_ref(targets, item)?,
+                    state: *SKILL_MACHINE_STATES
+                        .get(usize::from(states.value(item)))
+                        .ok_or_else(|| tag(states, "state"))?,
+                    attack_phase: if phases.is_null(item) {
+                        None
+                    } else {
+                        Some(
+                            *ATTACK_PHASES
+                                .get(usize::from(phases.value(item)))
+                                .ok_or_else(|| tag(phases, "attack phase"))?,
+                        )
+                    },
+                    attack_time: times.value(item),
+                    current_attack_interval: intervals.value(item),
+                    attack_count: counts.value(item),
+                    attack_range: ranges.value(item),
+                    attack_damage: damages.value(item),
+                    weapons: read_weapon_list(weapons, item)?,
+                })
+            };
+            Ok(SkillState {
+                skill_slot: slots.value(item),
+                enabled: read,
+            })
+        })
+        .collect()
+}
+
+fn read_weapon_list(array: &ListArray, index: usize) -> Result<Vec<WeaponState>> {
+    let items = list_struct_items(array, index, "weapons")?;
     let weapon_indexes = struct_child::<Int32Array>(&items, "weapon_index")?;
-    let targets = struct_child::<StructArray>(&items, "attack_target")?;
     let positions = struct_child::<StructArray>(&items, "position")?;
     let rotations = struct_child::<Int64Array>(&items, "rotation")?;
     (0..items.len())
         .map(|item| {
             let position_is_null = positions.is_null(item);
-            let rotation_is_null = rotations.is_null(item);
-            if position_is_null != rotation_is_null {
+            if position_is_null != rotations.is_null(item) {
                 return Err(Error::invalid(
-                    "weapon aim position and rotation nullability differ",
+                    "weapon position and rotation nullability differ",
                 ));
             }
-            Ok(WeaponAimState {
-                skill_slot: slots.value(item),
+            Ok(WeaponState {
                 weapon_index: weapon_indexes.value(item),
-                attack_target: read_optional_ref(targets, item)?,
                 pose: if position_is_null {
                     None
                 } else {

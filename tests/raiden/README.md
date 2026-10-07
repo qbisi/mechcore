@@ -5,19 +5,12 @@ fusillade [`combat.md`](../../docs/rules/combat.md#a-fusillade-fires-with-its-co
 describes. `fights/fang-in-reach.yaml` asks it; the other twelve fights are
 the Raiden's [standard fights](../README.md#standard-unit-layouts).
 
-All thirteen are recorded with two channels: `skill_attackable_checker`, every
-`Check` call with the slot that made it and its lock before and after, and
-`group_slots`, each slot's lock, attack target and state on every tick.
+Every slot's lock, attack target, state and clock are in each recording's
+`skills` on every tick, and in its hash, so verifying a fight compares them.
+The checker calls are the `skill_attackable_checker` channel: every `Check`
+call with the slot that made it and its lock before and after.
 
 ```sh
-scripts/record-fights.py --instrument skill_attackable_checker,group_slots \
+scripts/record-fights.py --instrument skill_attackable_checker \
     --out /tmp/mechcore/raiden/slots tests/raiden/fights/*.yaml
-```
-
-An ignored test reads those recordings, beside the Wraith's, simulates each
-fight and compares every slot's lock, attack target and state with
-`group_slots` on every tick. All thirteen agree.
-
-```sh
-cargo test -p mechcore-simulation grouped_slots_match_every_recorded_tick -- --ignored --nocapture
 ```

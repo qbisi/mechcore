@@ -2,11 +2,11 @@
 //!
 //! A hash says whether two recordings agree; this says where they do not. Every
 //! object a tick holds is flattened into its leaves — a unit's
-//! `motion_state`, a weapon's `attack_target`, a building's `life.current` —
+//! `motion_state`, a skill's `attack_target`, a building's `life.current` —
 //! and the two recordings are compared leaf by leaf over every tick they both
 //! hold. A leaf's **field group** is its path with the object and any list
-//! position removed, so `unit 2`'s `weapon_aims[0].attack_target` is counted
-//! under `units.weapon_aims.attack_target`: one group answers for that field
+//! position removed, so `unit 2`'s `skills[0].enabled.attack_target` is counted
+//! under `units.skills.enabled.attack_target`: one group answers for that field
 //! across every object and every tick.
 //!
 //! The groups are what make a difference readable. The hash says only that
@@ -580,18 +580,18 @@ mod tests {
     #[test]
     fn a_group_is_the_path_without_positions() {
         assert_eq!(
-            without_positions("weapon_aims[0].attack_target"),
-            "weapon_aims.attack_target"
+            without_positions("skills[0].enabled.attack_target"),
+            "skills.enabled.attack_target"
         );
         assert_eq!(without_positions("life.current"), "life.current");
     }
 
     #[test]
     fn a_selection_takes_a_group_and_everything_under_it() {
-        let selection = Selection::of(["units.weapon_aims".to_owned(), "events".to_owned()]);
-        assert!(selection.admits("units.weapon_aims.attack_target"));
+        let selection = Selection::of(["units.skills".to_owned(), "events".to_owned()]);
+        assert!(selection.admits("units.skills.enabled.attack_target"));
         assert!(selection.admits("events"));
-        assert!(!selection.admits("units.weapon_aims_extra"));
+        assert!(!selection.admits("units.skills_extra"));
         assert!(!selection.admits("units.motion_state"));
         assert!(Selection::default().admits("anything"));
     }

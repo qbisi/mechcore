@@ -8,26 +8,23 @@ describes. `fights/two-targets.yaml` and the regression fight
 ask it; the other twelve fights are the Wraith's
 [standard fights](../README.md#standard-unit-layouts).
 
-All fourteen are recorded with two channels: `skill_attackable_checker`, every
-`Check` call with the slot that made it and its lock before and after, and
-`group_slots`, each slot's lock, attack target and state on every tick.
+Every slot's lock, attack target and state are in each recording's `skills`
+on every tick, and in its hash. The checker is an instrument channel,
+`skill_attackable_checker`: every `Check` call with the slot that made it and
+its lock before and after.
 
 ```sh
-scripts/record-fights.py --instrument skill_attackable_checker,group_slots \
+scripts/record-fights.py --instrument skill_attackable_checker \
     --out /tmp/mechcore/wraith/slots tests/regression/fights/wraith-group-attack-01.yaml \
     tests/wraith/fights/*.yaml
 ```
 
-Two ignored tests read those recordings. The first replays the checker
-channel: before each grouped call it restores the targets the slot held, on a
-shadow skill at the kernel's checker site, and compares the call's answer,
-lock and attack target, 4,188 calls in the regression fight and 344 in two
-targets. Observed targets never advance the simulation itself. The second
-simulates each fight and compares every slot's lock, attack target and state
-with `group_slots` on every tick, beside the unit's lock and motion, and names
-the first tick a fight parts on. Both fixtures and every standard fight agree.
+An ignored test replays the checker channel: before each grouped call it
+restores the targets the slot held, on a shadow skill at the kernel's checker
+site, and compares the call's answer, lock and attack target, 4,188 calls in
+the regression fight and 344 in two targets. Observed targets never advance
+the simulation itself.
 
 ```sh
 cargo test -p mechcore-simulation grouped_checker_matches_every_captured_call -- --ignored --nocapture
-cargo test -p mechcore-simulation grouped_slots_match_every_recorded_tick -- --ignored --nocapture
 ```

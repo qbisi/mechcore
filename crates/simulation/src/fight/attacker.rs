@@ -831,11 +831,22 @@ impl Simulation {
             | (WeaponMode::Standalone, SkillSlot::Extra(_)) => 1,
             _ => weapons.count() / weapons.per_skill,
         };
+        // Each skill's clock stands at its interval, ready to attack, before
+        // the first update it joins in adds one to it.
+        let now = i64::try_from(self.step_now).unwrap_or(i64::MAX);
         for index in 0..skills {
             let interval = self.draw_attack_interval(skill_ref)?;
-            if index == 0 {
-                self.skill_mut(skill_ref).current_attack_interval = interval;
-            }
+            let index = usize::try_from(index).expect("u32 skill count fits the supported host");
+            let skill = self.skill_mut(skill_ref);
+            let skill = if index > 0 && index < skill.group_size() {
+                skill.sibling_mut(index)
+            } else if index == 0 {
+                skill
+            } else {
+                continue;
+            };
+            skill.current_attack_interval = interval;
+            skill.attack_time_anchor = now - 1 - i64::try_from(interval).unwrap_or(i64::MAX);
         }
         Ok(())
     }

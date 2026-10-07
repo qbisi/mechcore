@@ -16,17 +16,17 @@ use mechcore_document::{
     chain_blueprint, construction_type_from_id, contraption_type_from_id, unit_type_from_id,
 };
 use mechcore_mcfr::{
-    BuffRemovedReason, BuildingState, DerivedStats, Domain, DurableContext, Event, EventPayload,
-    GaugeI32, LiveUnitState, Modifier, ModifierChannel, ModifierPart, MotionState, ObjectKind,
-    ObjectRef, PersonalShieldState, ProjectileState, QPlanar, QPose, QVec3, Rational,
-    ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind, ShieldState,
-    TerrainApplicationState, TerrainEffectClock, TerrainGridState, TerrainLogicLifetime,
-    TerrainRemovedReason, TerrainState, TerrainType, TransitionEvents, Visibility, WeaponAimState,
-    WorldSnapshot,
+    AttackPhase, BuffRemovedReason, BuildingState, Domain, DurableContext, EnabledSkill, Event,
+    EventPayload, GaugeI32, LiveUnitState, Modifier, ModifierChannel, ModifierPart, MotionState,
+    ObjectKind, ObjectRef, PersonalShieldState, ProjectileState, QPlanar, QPose, QVec3, Rational,
+    ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind, ShieldState, SkillMachineState,
+    SkillState, TerrainApplicationState, TerrainEffectClock, TerrainGridState,
+    TerrainLogicLifetime, TerrainRemovedReason, TerrainState, TerrainType, TransitionEvents,
+    Visibility, WeaponState, WorldSnapshot,
 };
 use mechcore_mcfr::{
-    CheckedSkill, ControlProgress, ExpRange, GroupSlot, PoseClip, ProjectileReach, RvoNeighbour,
-    RvoSolve, RvoVo, SkillAttackableCheck, TargetCandidate, TargetRefs, TargetSearch, UnitPose,
+    CheckedSkill, ControlProgress, ExpRange, PoseClip, ProjectileReach, RvoNeighbour, RvoSolve,
+    RvoVo, SkillAttackableCheck, TargetCandidate, TargetRefs, TargetSearch, UnitPose,
 };
 use mechcore_protocol::InstrumentChannel;
 use std::{
@@ -180,7 +180,6 @@ impl RawFrame {
 pub(crate) struct Instruments {
     target_refs: bool,
     skill_attackable_checker: bool,
-    group_slots: bool,
     unit_pose: bool,
     pub(crate) projectile_reach: bool,
     control_progress: bool,
@@ -194,7 +193,6 @@ impl Instruments {
         Self {
             target_refs: channels.contains(&InstrumentChannel::TargetRefs),
             skill_attackable_checker: channels.contains(&InstrumentChannel::SkillAttackableChecker),
-            group_slots: channels.contains(&InstrumentChannel::GroupSlots),
             unit_pose: channels.contains(&InstrumentChannel::UnitPose),
             projectile_reach: channels.contains(&InstrumentChannel::ProjectileReach),
             control_progress: channels.contains(&InstrumentChannel::ControlProgress),
@@ -223,7 +221,6 @@ pub(crate) struct InstrumentRows {
     pub(crate) rvo_solve: Option<Vec<RvoSolve>>,
     pub(crate) rvo_neighbour: Option<Vec<RvoNeighbour>>,
     pub(crate) rvo_vo: Option<Vec<RvoVo>>,
-    pub(crate) group_slots: Option<Vec<GroupSlot>>,
     pub(crate) unit_pose: Option<Vec<UnitPose>>,
     pub(crate) projectile_reach: Option<Vec<ProjectileReach>>,
     pub(crate) control_progress: Option<Vec<ControlProgress>>,
@@ -1758,7 +1755,7 @@ pub(crate) fn start(
     if state.armed {
         return Err("a fight recording is already active".into());
     }
-    if (instruments.target_refs || instruments.skill_attackable_checker || instruments.group_slots)
+    if (instruments.target_refs || instruments.skill_attackable_checker)
         && (state.metadata.fight_skill_class.is_none()
             || state.metadata.fight_skill_lock_target.is_none()
             || state.metadata.fight_skill_attack_target.is_none())
@@ -4265,22 +4262,13 @@ struct RawUnit {
     pointer: usize,
     formation: usize,
     mech_lock_target: usize,
-    weapon_targets: Vec<usize>,
+    /// Each enabled skill's lock and attack target, by its index in
+    /// `state.skills`, still to be numbered.
+    skill_targets: Vec<(usize, usize, usize)>,
     state: LiveUnitState,
     target_refs: Option<RawTargetRefs>,
-    group_slots: Vec<RawGroupSlot>,
     /// The model's animator layers, each row's unit still to be numbered.
     poses: Vec<UnitPose>,
-}
-
-/// One skill of a grouped unit, before its targets are named.
-struct RawGroupSlot {
-    skill_slot: u16,
-    lock_target: usize,
-    attack_target: usize,
-    skill_state: Option<String>,
-    skill_attack_phase: Option<&'static str>,
-    skill_is_idle: Option<bool>,
 }
 
 struct RawTargetRefs {
@@ -5824,9 +5812,8 @@ fn snapshot(
     };
     let mut units = Vec::with_capacity(raw_units.len());
     let mut raw_mech_lock_targets = Vec::with_capacity(raw_units.len());
-    let mut raw_weapon_targets = Vec::new();
+    let mut raw_skill_targets = Vec::new();
     let mut raw_target_refs = Vec::new();
-    let mut raw_group_slots = Vec::new();
     let mut unit_pose = capture.instruments.unit_pose.then(Vec::new);
     for mut unit in raw_units {
         let unit_id = match capture.unit_ids.get(&unit.pointer) {
@@ -5870,16 +5857,14 @@ fn snapshot(
         );
         unit.state.formation_id = formation_id;
         raw_mech_lock_targets.push((units.len(), unit.mech_lock_target));
-        raw_weapon_targets.extend(
-            unit.weapon_targets
+        raw_skill_targets.extend(
+            unit.skill_targets
                 .into_iter()
-                .enumerate()
-                .map(|(aim_index, target)| (units.len(), aim_index, target)),
+                .map(|(skill_index, lock, attack)| (units.len(), skill_index, lock, attack)),
         );
         if let Some(target_refs) = unit.target_refs {
             raw_target_refs.push((unit_id, target_refs));
         }
-        raw_group_slots.extend(unit.group_slots.into_iter().map(|slot| (unit_id, slot)));
         if let Some(rows) = &mut unit_pose {
             rows.extend(unit.poses.into_iter().map(|mut pose| {
                 pose.unit = ObjectRef::new(ObjectKind::Unit, unit_id);
@@ -5965,13 +5950,16 @@ fn snapshot(
         units[unit_index].mech_lock_target =
             resolve_target_ref(runtime.api, target_pointer, "FightMech.lockTarget", capture)?;
     }
-    for (unit_index, aim_index, target_pointer) in raw_weapon_targets {
-        units[unit_index].weapon_aims[aim_index].attack_target = resolve_target_ref(
-            runtime.api,
-            target_pointer,
-            "FightSkill.attackTarget",
-            capture,
-        )?;
+    for (unit_index, skill_index, lock, attack) in raw_skill_targets {
+        let lock_target = resolve_target_ref(runtime.api, lock, "FightSkill.lockTarget", capture)?;
+        let attack_target =
+            resolve_target_ref(runtime.api, attack, "FightSkill.attackTarget", capture)?;
+        let skill = units[unit_index].skills[skill_index]
+            .enabled
+            .as_mut()
+            .expect("targets are kept for enabled skills only");
+        skill.lock_target = lock_target;
+        skill.attack_target = attack_target;
     }
     let target_refs = if capture.instruments.target_refs {
         let mut rows = Vec::with_capacity(raw_target_refs.len());
@@ -6006,33 +5994,6 @@ fn snapshot(
     } else {
         None
     };
-    let group_slots = if capture.instruments.group_slots {
-        let mut rows = Vec::with_capacity(raw_group_slots.len());
-        for (unit_id, slot) in raw_group_slots {
-            rows.push(GroupSlot {
-                unit: ObjectRef::new(ObjectKind::Unit, unit_id),
-                skill_slot: slot.skill_slot,
-                lock_target: resolve_target_ref(
-                    runtime.api,
-                    slot.lock_target,
-                    "FightSkill.lockTarget",
-                    capture,
-                )?,
-                attack_target: resolve_target_ref(
-                    runtime.api,
-                    slot.attack_target,
-                    "FightSkill.attackTarget",
-                    capture,
-                )?,
-                skill_state: slot.skill_state,
-                skill_attack_phase: slot.skill_attack_phase.map(str::to_owned),
-                skill_is_idle: slot.skill_is_idle,
-            });
-        }
-        Some(rows)
-    } else {
-        None
-    };
     let (target_search, target_candidate) = selector::drain(capture);
     let RvoRows {
         solve: rvo_solve,
@@ -6055,7 +6016,6 @@ fn snapshot(
         rvo_solve,
         rvo_neighbour,
         rvo_vo,
-        group_slots,
         unit_pose,
         projectile_reach: capture
             .instruments
@@ -6659,25 +6619,6 @@ fn read_unit(
     } else {
         None
     };
-    // A unit whose main skill is not a `FightSkill` is a grouped one, and one
-    // that carries an extra weapon holds the extra skill beside its main
-    // one: either way its slots are the `FightSkill`s its `GetSkills()` holds.
-    let group_slots = if instruments.group_slots {
-        let grouped = !api.class_is_or_inherits(
-            api.object_class(main_skill).unwrap_or(ptr::null_mut()),
-            metadata
-                .fight_skill_class
-                .expect("profile fields checked at capture start") as *mut _,
-        );
-        let slots = read_group_slots(api, metadata, unit)?;
-        if grouped || slots.len() > 1 {
-            slots
-        } else {
-            Vec::new()
-        }
-    } else {
-        Vec::new()
-    };
     let poses = if instruments.unit_pose {
         read_unit_pose(api, unit)?
     } else {
@@ -6698,17 +6639,18 @@ fn read_unit(
         | (u64::from(invoke_value::<bool>(api, buff_manager, "IsFreeze")?) << 1)
         | (u64::from(invoke_value::<bool>(api, unit, "IsTechnologyDisabled")?) << 2)
         | (u64::from(invoke_value::<bool>(api, unit, "IsRecoverDisabled")?) << 3);
-    let (skills, weapon_aims, weapon_targets, skill_derived) = read_skill_state(api, unit)?;
-    let modifiers = read_modifiers(api, unit, buff_manager, &skills, &metadata.modifier_enums)?;
-    // The numbers the fight reads, from the build's own properties. A
-    // recording that carries these answers how a correction composes without
-    // a fight being arranged to distinguish the candidates.
-    let derived = DerivedStats {
-        move_speed: invoke_value::<FixedPoint>(api, unit, "GetMoveSpeed")?.raw,
-        attack_range: skill_derived.range,
-        attack_damage: skill_derived.damage,
-        current_attack_interval: skill_derived.interval,
-    };
+    let (skill_objects, skills, skill_targets) =
+        read_skills(api, metadata, unit).map_err(|error| {
+            let unit_type = invoke_value::<i32>(api, unit, "GetMechID").unwrap_or(-1);
+            format!("unit type {unit_type}: {error}")
+        })?;
+    let modifiers = read_modifiers(
+        api,
+        unit,
+        buff_manager,
+        &skill_objects,
+        &metadata.modifier_enums,
+    )?;
     let formation = api
         .invoke(unit, "GetMechTeam", &mut [])
         .map_err(|error| error.to_string())?;
@@ -6719,7 +6661,7 @@ fn read_unit(
         pointer: unit as usize,
         formation: formation as usize,
         mech_lock_target,
-        weapon_targets,
+        skill_targets,
         state: LiveUnitState {
             unit_id: 0,
             team_id,
@@ -6752,86 +6694,157 @@ fn read_unit(
             status_mask,
             modifiers,
             personal_shield,
-            weapon_aims,
-            derived,
+            move_speed: invoke_value::<FixedPoint>(api, unit, "GetMoveSpeed")?.raw,
+            skills,
         },
         target_refs,
-        group_slots,
         poses,
     })
 }
 
-type SkillState = (
+/// Each `FightSkill` a unit's `GetSkills()` holds, what each records, and
+/// each enabled one's lock and attack target pointers by its index.
+type SkillsRead = (
     Vec<*mut Object>,
-    Vec<WeaponAimState>,
-    Vec<usize>,
-    SkillDerived,
+    Vec<SkillState>,
+    Vec<(usize, usize, usize)>,
 );
 
-/// What the first skill's properties answer, which is the skill the simulator
-/// models. A unit with no skill at all answers zeroes.
-#[derive(Default)]
-struct SkillDerived {
-    range: i64,
-    damage: i32,
-    interval: i32,
-}
-
-fn read_skill_state(api: Api, unit: *mut Object) -> Result<SkillState, String> {
+fn read_skills(api: Api, metadata: &Metadata, unit: *mut Object) -> Result<SkillsRead, String> {
+    let fields = metadata
+        .skill_state_fields
+        .ok_or("FightSkill's state fields are unresolved")?;
+    let fight_skill = metadata
+        .fight_skill_class
+        .ok_or("FightSkill is unresolved")? as *mut _;
+    let lock_field = metadata
+        .fight_skill_lock_target
+        .ok_or("FightSkill.lockTarget is unresolved")?;
     let all_skills = invoke_object(api, unit, "GetSkills")?;
     let count = list_count(api, all_skills, i32::from(u16::MAX))?;
     let capacity = usize::try_from(count).map_err(|_| "skill count is negative".to_owned())?;
+    let mut objects = Vec::with_capacity(capacity);
     let mut skills = Vec::with_capacity(capacity);
-    let mut aims = Vec::new();
     let mut targets = Vec::new();
-    let mut derived = SkillDerived::default();
     for slot in 0..count {
         let skill = list_item(api, all_skills, slot)?;
+        if skill.is_null()
+            || !api
+                .object_class(skill)
+                .is_some_and(|class| api.class_is_or_inherits(class, fight_skill))
+        {
+            return Err(format!("GetSkills()[{slot}] is not a FightSkill"));
+        }
         let skill_slot = u16::try_from(slot).map_err(|_| "skill slot overflow".to_owned())?;
-        if slot == 0 {
-            derived = SkillDerived {
-                range: invoke_value::<FixedPoint>(api, skill, "GetAttackRange")?.raw,
-                damage: invoke_int_value(api, skill, "GetNormalDamage", 0)?,
-                interval: invoke_value::<i32>(api, skill, "GetCurrentAttackInterval")?,
-            };
-        }
-        skills.push(skill);
-        let target = api
-            .invoke(skill, "GetAttackTarget", &mut [])
-            .map_err(|error| error.to_string())? as usize;
-        let weapons = invoke_object(api, skill, "GetWeapons")?;
-        for weapon_slot in 0..list_count(api, weapons, 1_024)? {
-            let weapon = list_item(api, weapons, weapon_slot)?;
-            let weapon_data = invoke_object(api, weapon, "GetWeaponData")?;
-            let weapon_index = invoke_value::<i32>(api, weapon_data, "get_Index")?;
-            let transform = api
-                .invoke(weapon, "GetFightTransform", &mut [])
-                .map_err(|error| error.to_string())?;
-            let pose = if transform.is_null() {
-                None
-            } else {
-                Some(QPose {
-                    position: vec3(invoke_value::<FixedVec3>(
-                        api,
-                        transform,
-                        "GetPositionInt3D",
-                    )?),
-                    rotation: invoke_value::<FixedPoint>(api, transform, "GetRotationInt")?.raw,
-                })
-            };
-            aims.push(WeaponAimState {
+        objects.push(skill);
+        if !named(
+            slot,
+            "IsEnable",
+            invoke_value::<bool>(api, skill, "IsEnable"),
+        )? {
+            skills.push(SkillState {
                 skill_slot,
-                weapon_index,
-                attack_target: None,
-                pose,
+                enabled: None,
             });
-            targets.push(target);
+            continue;
         }
+        let (machine, phase, _) = named(slot, "state", read_skill_fsm_state(api, skill, fields))?;
+        let state = match machine.as_deref() {
+            Some("SkillIdleState") => SkillMachineState::Idle,
+            Some("SkillPrepareState") => SkillMachineState::Prepare,
+            Some("SkillAttackState") => SkillMachineState::Attack,
+            Some("SkillCoolingState") => SkillMachineState::Cooling,
+            Some("SkillReloadingState") => SkillMachineState::Reloading,
+            Some("SkillLockState") => SkillMachineState::Lock,
+            other => return Err(format!("skill slot {slot} is in state {other:?}")),
+        };
+        let attack_phase = match phase {
+            None => None,
+            Some("before") => Some(AttackPhase::Before),
+            Some("attacking") => Some(AttackPhase::Attacking),
+            Some("after") => Some(AttackPhase::After),
+            Some(other) => return Err(format!("skill slot {slot} is in attack phase {other}")),
+        };
+        let lock = api
+            .field_value::<*mut Object>(skill, lock_field as *mut FieldInfo)
+            .map_err(|error| error.to_string())? as usize;
+        let attack = api
+            .invoke(skill, "GetAttackTarget", &mut [])
+            .map_err(|error| format!("GetSkills()[{slot}].GetAttackTarget: {error}"))?
+            as usize;
+        let weapons = named(slot, "GetWeapons", read_weapons(api, skill))?;
+        targets.push((skills.len(), lock, attack));
+        skills.push(SkillState {
+            skill_slot,
+            enabled: Some(EnabledSkill {
+                lock_target: None,
+                attack_target: None,
+                state,
+                attack_phase,
+                attack_time: api
+                    .field_value::<i32>(skill, fields.attack_time as *mut FieldInfo)
+                    .map_err(|error| error.to_string())?,
+                current_attack_interval: named(
+                    slot,
+                    "GetCurrentAttackInterval",
+                    invoke_value::<i32>(api, skill, "GetCurrentAttackInterval"),
+                )?,
+                attack_count: named(
+                    slot,
+                    "GetAttackCount",
+                    invoke_value::<i32>(api, skill, "GetAttackCount"),
+                )?,
+                attack_range: named(
+                    slot,
+                    "GetAttackRange",
+                    invoke_value::<FixedPoint>(api, skill, "GetAttackRange"),
+                )?
+                .raw,
+                attack_damage: named(
+                    slot,
+                    "GetNormalDamage",
+                    invoke_int_value(api, skill, "GetNormalDamage", 0),
+                )?,
+                weapons,
+            }),
+        });
     }
-    let mut paired = aims.into_iter().zip(targets).collect::<Vec<_>>();
-    paired.sort_by_key(|(aim, _)| (aim.skill_slot, aim.weapon_index));
-    let (aims, targets) = paired.into_iter().unzip();
-    Ok((skills, aims, targets, derived))
+    Ok((objects, skills, targets))
+}
+
+/// A skill's weapons, ascending by index: each one's pose, null for one
+/// without a `FightTransform`.
+fn read_weapons(api: Api, skill: *mut Object) -> Result<Vec<WeaponState>, String> {
+    let weapon_list = invoke_object(api, skill, "GetWeapons")?;
+    let mut weapons = Vec::new();
+    for weapon_slot in 0..list_count(api, weapon_list, 1_024)? {
+        let weapon = list_item(api, weapon_list, weapon_slot)?;
+        let weapon_data = invoke_object(api, weapon, "GetWeaponData")?;
+        let weapon_index = invoke_value::<i32>(api, weapon_data, "get_Index")?;
+        let transform = api
+            .invoke(weapon, "GetFightTransform", &mut [])
+            .map_err(|error| error.to_string())?;
+        let pose = if transform.is_null() {
+            None
+        } else {
+            Some(QPose {
+                position: vec3(invoke_value::<FixedVec3>(
+                    api,
+                    transform,
+                    "GetPositionInt3D",
+                )?),
+                rotation: invoke_value::<FixedPoint>(api, transform, "GetRotationInt")?.raw,
+            })
+        };
+        weapons.push(WeaponState { weapon_index, pose });
+    }
+    weapons.sort_by_key(|weapon| weapon.weapon_index);
+    Ok(weapons)
+}
+
+/// Names the call a skill's read failed in, and the skill's slot.
+fn named<T>(slot: i32, call: &str, result: Result<T, String>) -> Result<T, String> {
+    result.map_err(|error| format!("GetSkills()[{slot}].{call}: {error}"))
 }
 
 /// Calls a method that takes one `System.Int32` and answers one.
@@ -8241,51 +8254,6 @@ fn clip_name(api: Api, instance: i32) -> Result<String, String> {
 /// The main skill's state machine state, its attack phase, and `IsIdle`.
 type SkillStateReading = (Option<String>, Option<&'static str>, Option<bool>);
 
-/// Each `FightSkill` of a grouped unit's `GetSkills()`, field by field.
-fn read_group_slots(
-    api: Api,
-    metadata: &Metadata,
-    unit: *mut Object,
-) -> Result<Vec<RawGroupSlot>, String> {
-    let fight_skill = metadata
-        .fight_skill_class
-        .expect("profile fields checked at capture start") as *mut _;
-    let field = |skill: *mut Object, field: Option<usize>| {
-        api.field_value::<*mut Object>(
-            skill,
-            field.expect("profile fields checked at capture start") as *mut FieldInfo,
-        )
-        .map(|pointer| pointer as usize)
-        .map_err(|error| error.to_string())
-    };
-    let skills = invoke_object(api, unit, "GetSkills")?;
-    let count = list_count(api, skills, i32::from(u16::MAX))?;
-    let mut slots = Vec::new();
-    for index in 0..count {
-        let skill = list_item(api, skills, index)?;
-        if skill.is_null()
-            || !api
-                .object_class(skill)
-                .is_some_and(|class| api.class_is_or_inherits(class, fight_skill))
-        {
-            continue;
-        }
-        let (skill_state, skill_attack_phase, skill_is_idle) = match metadata.skill_state_fields {
-            Some(fields) => read_skill_fsm_state(api, skill, fields)?,
-            None => (None, None, None),
-        };
-        slots.push(RawGroupSlot {
-            skill_slot: u16::try_from(index).map_err(|_| "skill slot overflow".to_owned())?,
-            lock_target: field(skill, metadata.fight_skill_lock_target)?,
-            attack_target: field(skill, metadata.fight_skill_attack_target)?,
-            skill_state,
-            skill_attack_phase,
-            skill_is_idle,
-        });
-    }
-    Ok(slots)
-}
-
 fn read_skill_fsm_state(
     api: Api,
     skill: *mut Object,
@@ -9229,8 +9197,8 @@ mod tests {
                     maximum: 0,
                 },
             },
-            weapon_aims: Vec::new(),
-            derived: DerivedStats::default(),
+            move_speed: 0,
+            skills: Vec::new(),
         }
     }
 

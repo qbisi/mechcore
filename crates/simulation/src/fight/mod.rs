@@ -13,11 +13,11 @@ use std::{
 };
 
 use mechcore_mcfr::{
-    BuildingState, DamageStatistics, DerivedStats, Domain, DurableContext, Event, EventPayload,
-    FormationState, GaugeI32, Hashes, IdentityAllocator, LiveUnitState, McfrReader, McfrWriter,
-    MemoryRecording, MotionState, ObjectKind, ObjectRef, PersonalShieldState, Producer,
-    ProjectileState, QPlanar, QPose, QVec3, Rational, RecorderKind, Recording, TickSlice,
-    TransitionEvents, Visibility, WeaponAimState, WorldSnapshot,
+    AttackPhase, BuildingState, DamageStatistics, Domain, DurableContext, EnabledSkill, Event,
+    EventPayload, FormationState, GaugeI32, Hashes, IdentityAllocator, LiveUnitState, McfrReader,
+    McfrWriter, MemoryRecording, MotionState, ObjectKind, ObjectRef, PersonalShieldState, Producer,
+    ProjectileState, QPlanar, QPose, QVec3, Rational, RecorderKind, Recording, SkillMachineState,
+    SkillState, TickSlice, TransitionEvents, Visibility, WeaponState, WorldSnapshot,
 };
 
 use serde::Serialize;
@@ -587,7 +587,140 @@ impl Simulation {
 
     /// What a recording holds of one unit.
     pub(in crate::fight) fn unit_snapshot(&self, id: u64) -> LiveUnitState {
-        self.actors[&id].snapshot(self.main_attack_range_q32(id))
+        self.actors[&id].snapshot(self.skill_states(id))
+    }
+
+    /// Every skill a unit's `GetSkills()` holds, slot by slot: the main
+    /// skill's group, then each extra skill's.
+    fn skill_states(&self, id: u64) -> Vec<SkillState> {
+        let actor = &self.actors[&id];
+        let owner = FightActorRef::Unit(id);
+        let slots = actor.skills.main_slots()
+            + actor
+                .skills
+                .extras
+                .iter()
+                .map(|extra| extra.skill.group_size().max(1))
+                .sum::<usize>();
+        let mut weapons = actor.slot_weapons();
+        weapons.sort_by_key(|(slot, weapon)| (*slot, weapon.weapon_index));
+        (0..slots)
+            .map(|slot| {
+                let (held_by, offset) = actor.skills.at_slot(slot);
+                let holder = actor.skills.get(held_by);
+                let skill = holder.group_skill(offset);
+                let skill_ref = SkillRef {
+                    owner,
+                    slot: held_by,
+                };
+                let enabled = (!holder.disabled).then(|| EnabledSkill {
+                    lock_target: skill.lock_target.map(FightActorRef::object_ref),
+                    attack_target: actor
+                        .slot_attack_target(slot)
+                        .map(FightActorRef::object_ref),
+                    state: recorded_machine_state(
+                        &skill.state,
+                        self.step_now,
+                        math::native_time_units_to_steps(
+                            self.skill_rules(skill_ref).cooling_time_units(),
+                        ),
+                    ),
+                    attack_phase: recorded_attack_phase(skill, self.step_now),
+                    attack_time: i32::try_from(
+                        i64::try_from(self.step_now).unwrap_or(i64::MAX) - skill.attack_time_anchor,
+                    )
+                    .unwrap_or(i32::MAX),
+                    current_attack_interval: i32::try_from(skill.current_attack_interval)
+                        .unwrap_or(i32::MAX),
+                    // `SkillAttackController.attackCount` counts a blow as it
+                    // starts; this simulator counts it as its attack point
+                    // lets it through.
+                    attack_count: skill.attack_count
+                        + i32::from(matches!(
+                            skill.state,
+                            skill::SkillState::Attack(skill::Blow::Before(_))
+                        )),
+                    attack_range: self.slot_attack_range_q32(skill_ref, offset),
+                    attack_damage: self.slot_normal_damage(actor, skill_ref),
+                    weapons: weapons
+                        .iter()
+                        .filter(|(held, _)| *held == slot)
+                        .map(|(_, weapon)| weapon.clone())
+                        .collect(),
+                });
+                SkillState {
+                    skill_slot: u16::try_from(slot).expect("skill slot fits u16"),
+                    enabled,
+                }
+            })
+            .collect()
+    }
+
+    /// `FightSkill.GetAttackRange` of the skill at a place of its group, in
+    /// Q32.32 metres: the main skill's for what it locks, a main slot's
+    /// beyond it, and an extra skill's.
+    fn slot_attack_range_q32(&self, skill_ref: SkillRef, offset: usize) -> i64 {
+        let FightActorRef::Unit(id) = skill_ref.owner else {
+            unreachable!("only a unit records skills")
+        };
+        match skill_ref.slot {
+            SkillSlot::Main => {
+                let main = self.main_attack_range_q32(id);
+                let addend = self.slot_attack_range(skill_ref, Some(offset))
+                    - self.slot_attack_range(skill_ref, Some(0));
+                main.saturating_add(math::space_to_q32(addend))
+            }
+            SkillSlot::Extra(_) => math::space_to_q32(
+                self.skill_attacker(skill_ref)
+                    .expect("skill owner identity is stable")
+                    .attack_range,
+            ),
+        }
+    }
+
+    /// `FightSkill.GetNormalDamage(0)` of a skill: a beam's at its ramp's
+    /// first step, whatever step it is on.
+    fn slot_normal_damage(&self, actor: &Actor, skill_ref: SkillRef) -> i32 {
+        let damage = match skill_ref.slot {
+            SkillSlot::Main => {
+                if let Some(damage) = self.beam_snapshot_damage(actor) {
+                    return damage;
+                }
+                match &actor.rules.attack.path {
+                    // The Steel Balls of `wall-laser.yaml` read 2, which is
+                    // 55 at its first multiplier, on every tick of their
+                    // fight.
+                    crate::rules::AttackPath::Laser { .. } => {
+                        actor.stats.laser_normal_damage(&actor.rules, 0)
+                    }
+                    _ => actor.stats.normal_damage(&actor.rules),
+                }
+            }
+            SkillSlot::Extra(index) => {
+                let rules = &actor.skills.extras[index].rules;
+                match &rules.attack.path {
+                    // An extra beam with a damage rate ramps from the unit's
+                    // base damage at that rate: Energy Diffraction's read 1.
+                    crate::rules::AttackPath::Laser { damage_multipliers }
+                        if rules.damage_rate > 0.0 =>
+                    {
+                        actor.stats.ramped_laser_damage(
+                            actor.rules.attack.base_damage,
+                            damage_multipliers,
+                            (rules.damage_rate, 0),
+                            (0, UnitDomain::Ground),
+                            true,
+                        )
+                    }
+                    _ => {
+                        self.skill_attacker(skill_ref)
+                            .expect("skill owner identity is stable")
+                            .attack_damage
+                    }
+                }
+            }
+        };
+        i32::try_from(damage).unwrap_or(i32::MAX)
     }
 
     fn snapshot(&self) -> WorldSnapshot {
@@ -596,13 +729,7 @@ impl Simulation {
                 .actors
                 .values()
                 .filter(|actor| actor.alive())
-                .map(|actor| {
-                    let mut state = self.unit_snapshot(actor.placement.unit_id);
-                    if let Some(damage) = self.beam_snapshot_damage(actor) {
-                        state.derived.attack_damage = damage;
-                    }
-                    state
-                })
+                .map(|actor| self.unit_snapshot(actor.placement.unit_id))
                 .collect(),
             projectiles: self.projectiles.iter().map(Projectile::snapshot).collect(),
             buildings: self
@@ -629,20 +756,65 @@ impl Simulation {
     /// 1787720817) whose own target died the tick before the last enemy did
     /// stands idle and lockless, and reads its drawn 6 until the fight's final
     /// tick, where every unit reads its composed interval.
-    fn settle_intervals(&mut self, every_unit: bool) {
+    fn settle_intervals(&mut self, every_unit: bool, step: u64) {
         let alive_teams = self
             .actors
             .values()
             .filter(|actor| actor.alive())
             .map(|actor| actor.placement.team)
             .collect::<BTreeSet<_>>();
-        for actor in self.actors.values_mut().filter(|actor| actor.alive()) {
-            let team = actor.placement.team;
-            if alive_teams.iter().all(|&other| other == team)
-                && (every_unit || actor.skills.main.lock_target.is_some())
-            {
-                actor.skills.main.current_attack_interval =
-                    seconds_q32_to_steps(actor.stats.attack_interval_q32());
+        let settled = self
+            .actors
+            .values()
+            .filter(|actor| {
+                actor.alive()
+                    && alive_teams
+                        .iter()
+                        .all(|&other| other == actor.placement.team)
+            })
+            .map(|actor| {
+                let id = actor.placement.unit_id;
+                let extras = (0..actor.skills.extras.len())
+                    .map(|index| {
+                        self.skill_attacker(SkillRef {
+                            owner: FightActorRef::Unit(id),
+                            slot: SkillSlot::Extra(index),
+                        })
+                        .map_or(0, |attacker| {
+                            seconds_q32_to_steps(attacker.attack_interval_q32)
+                        })
+                    })
+                    .collect::<Vec<_>>();
+                (
+                    id,
+                    seconds_q32_to_steps(actor.stats.attack_interval_q32()),
+                    extras,
+                )
+            })
+            .collect::<Vec<_>>();
+        // `RefreshAttackInterval` with the clock refreshed: each skill, and
+        // each slot of its group, that holds a lock, and on the fight's last
+        // tick every one, reads its own composed interval.
+        let refresh = |skill: &mut Skill, interval: u64| {
+            let anchor = i64::try_from(step).unwrap_or(i64::MAX)
+                - i64::try_from(interval).unwrap_or(i64::MAX);
+            let held = skill.lock_target.is_some();
+            if every_unit || held {
+                skill.current_attack_interval = interval;
+                skill.attack_time_anchor = anchor;
+            }
+            for sibling in skill.siblings_mut() {
+                if every_unit || sibling.lock_target.is_some() {
+                    sibling.current_attack_interval = interval;
+                    sibling.attack_time_anchor = anchor;
+                }
+            }
+        };
+        for (id, main, extras) in settled {
+            let actor = self.actors.get_mut(&id).expect("actor identity is stable");
+            refresh(&mut actor.skills.main, main);
+            for (extra, interval) in actor.skills.extras.iter_mut().zip(extras) {
+                refresh(&mut extra.skill, interval);
             }
         }
     }
@@ -651,13 +823,19 @@ impl Simulation {
     /// is written.
     fn settle_intervals_if_finishing(&mut self) {
         if self.ready_to_finish() {
-            self.settle_intervals(true);
+            self.settle_intervals(true, self.step_now);
         }
     }
 
     #[allow(clippy::too_many_lines)]
     fn step(&mut self, step: u64) -> Result<TransitionEvents> {
-        self.settle_intervals(false);
+        if self.winner().is_some() {
+            // A fight already won updates no skill: no `attackTime` counts.
+            for actor in self.actors.values_mut() {
+                actor.skills.hold_attack_clocks();
+            }
+        }
+        self.settle_intervals(false, step);
         let publish_late_building_events = self.ending.late_building_events_pending;
         self.ending.late_building_events_pending = false;
         let drain_tick = self.ending.terminal_drain_pending;
@@ -753,6 +931,12 @@ impl Simulation {
                 .collect::<Vec<_>>();
             for actor_id in actor_ids {
                 if self.actors[&actor_id].travelling {
+                    // A unit travelling in updates no skill.
+                    self.actors
+                        .get_mut(&actor_id)
+                        .expect("actor identity is stable")
+                        .skills
+                        .hold_attack_clocks();
                     continue;
                 }
                 self.actors
@@ -1244,4 +1428,55 @@ pub(in crate::fight) fn standing_buildings(
         .filter(|building| building_alive(building))
         .map(|building| building.building_id)
         .collect()
+}
+
+/// The `SkillStateController` state a recording names for a skill's: a
+/// cooling has handed back to the idle state on its last step.
+fn recorded_machine_state(
+    state: &skill::SkillState,
+    step: u64,
+    cooling_steps: u64,
+) -> SkillMachineState {
+    match state {
+        skill::SkillState::Cooling { started, .. }
+            if step >= started.saturating_add(cooling_steps) =>
+        {
+            SkillMachineState::Idle
+        }
+        skill::SkillState::Idle { .. } => SkillMachineState::Idle,
+        skill::SkillState::Prepare { .. } => SkillMachineState::Prepare,
+        skill::SkillState::Attack(_) => SkillMachineState::Attack,
+        skill::SkillState::Cooling { .. } => SkillMachineState::Cooling,
+        skill::SkillState::Reloading { .. } => SkillMachineState::Reloading,
+        skill::SkillState::Locked => SkillMachineState::Lock,
+    }
+}
+
+/// The `SkillAttackController` phase a recording names for a skill: the wait
+/// for its attack point, whose last update the attacking controller takes
+/// over, the release of a burst or a sweep still under way, and its
+/// backswing.
+fn recorded_attack_phase(skill: &Skill, step: u64) -> Option<AttackPhase> {
+    match skill.state {
+        skill::SkillState::Attack(skill::Blow::Before(pending)) => {
+            Some(if step.saturating_add(1) >= pending.step {
+                AttackPhase::Attacking
+            } else {
+                AttackPhase::Before
+            })
+        }
+        // The backswing's controller has handed back on its last step.
+        skill::SkillState::Attack(skill::Blow::After { finish_step }) => {
+            (step < finish_step).then_some(AttackPhase::After)
+        }
+        skill::SkillState::Attack(skill::Blow::Waiting) => match &skill.performer {
+            skill::Performer::Projectile { pending } if !pending.is_empty() => {
+                Some(AttackPhase::Attacking)
+            }
+            // A sweep is released stretch by stretch until its last.
+            skill::Performer::Sweep(sweep) if !sweep.over() => Some(AttackPhase::Attacking),
+            _ => None,
+        },
+        _ => None,
+    }
 }

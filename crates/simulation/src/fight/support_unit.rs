@@ -761,8 +761,16 @@ impl Simulation {
                 *axis = axis.saturating_add(hundredths(draw));
             }
             let actor = self.make_parasite(&made, position, events);
-            joined.push(actor.placement.unit_id);
+            let unit_id = actor.placement.unit_id;
+            joined.push(unit_id);
             self.join(actor)?;
+            // It joins after this tick's updates: its clock reads its
+            // interval until its first.
+            self.actors
+                .get_mut(&unit_id)
+                .expect("the summon has just joined")
+                .skills
+                .hold_attack_clocks();
         }
         Ok(joined)
     }

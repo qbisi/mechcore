@@ -78,7 +78,7 @@ pub(super) fn test_placement(
 
 /// A unit's recorded velocity, which reads nothing its range changes.
 pub(super) fn snapshot_velocity_q32(actor: &Actor) -> (i64, i64) {
-    let velocity = actor.snapshot(0).velocity;
+    let velocity = actor.snapshot(Vec::new()).velocity;
     (velocity.x, velocity.z)
 }
 

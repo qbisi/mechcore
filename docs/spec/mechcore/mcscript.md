@@ -178,7 +178,7 @@ state to a recording while other fields still differ, which the hash cannot:
 - diff:
     left: $out/game.mcfr
     right: $out/simulated.mcfr
-    fields: [units.mech_lock_target, units.motion_state, units.weapon_aims]
+    fields: [units.mech_lock_target, units.motion_state, units.skills]
   expect:
     fields_equal: true
 ```

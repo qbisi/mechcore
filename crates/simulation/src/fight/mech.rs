@@ -513,16 +513,19 @@ impl Actor {
         })
     }
 
-    /// What a recording holds of the unit, its main skill's range as
-    /// `FightSkill.GetAttackRange` answers for what it locks.
-    pub(in crate::fight) fn snapshot(&self, attack_range_q32: i64) -> LiveUnitState {
-        let height = unit_height(self.rules.domain);
-        let position = QVec3 {
+    /// Where a recording stands the unit: its weapons stand there too.
+    pub(in crate::fight) fn recorded_position(&self) -> QVec3 {
+        QVec3 {
             x: self.x_q32,
-            y: space_to_q32(height),
+            y: space_to_q32(unit_height(self.rules.domain)),
             z: self.z_q32,
-        };
-        let weapon_aims = self.weapon_aims(position);
+        }
+    }
+
+    /// What a recording holds of the unit, with the skills its
+    /// `GetSkills()` holds.
+    pub(in crate::fight) fn snapshot(&self, skills: Vec<SkillState>) -> LiveUnitState {
+        let position = self.recorded_position();
         LiveUnitState {
             unit_id: self.placement.unit_id,
             team_id: self.placement.team,
@@ -585,85 +588,29 @@ impl Actor {
                     }),
                 },
             },
-            weapon_aims,
-            // What this fight reads, in the units the recording keeps them
-            // in: a distance is `FPoint`, and damage is the integer the
-            // build's own `DamageProperty` answers. Writing them here is what
-            // lets a capture compare the number the game computed with the
-            // number this simulator computed, one tick at a time, instead of
-            // arranging a fight whose outcome happens to tell them apart.
-            derived: DerivedStats {
-                move_speed: self.stats.move_speed_q32(),
-                attack_range: attack_range_q32,
-                // A beam's damage is its ramp's first step, whatever step it
-                // is on: the Steel Balls of `wall-laser.yaml` read 2, which
-                // is 55 at its first multiplier, on every tick of their fight.
-                attack_damage: i32::try_from(match &self.rules.attack.path {
-                    AttackPath::Laser { .. } => self.stats.laser_normal_damage(&self.rules, 0),
-                    _ => self.stats.normal_damage(&self.rules),
-                })
-                .unwrap_or(i32::MAX),
-                // The recording counts an interval in logic ticks, which is
-                // the unit the build's own integer uses: the interval the
-                // cycle in progress was scheduled with, stagger included, the
-                // core's for a group, and the composed interval once no enemy
-                // is left. `docs/rules/combat.md` says how each was read.
-                current_attack_interval: i32::try_from(self.skills.main.current_attack_interval)
-                    .unwrap_or(i32::MAX),
-            },
+            move_speed: self.stats.move_speed_q32(),
+            skills,
         }
     }
 }
 
 impl Actor {
-    /// Every weapon channel the unit records, the main skill's and then its
-    /// extra skills'.
-    fn weapon_aims(&self, position: QVec3) -> Vec<WeaponAimState> {
-        (0..self.skills.main.weapon_rotations_q32.len())
-            .map(|weapon_index| {
-                let group_mode = self.rules.attack.weapons.mode != WeaponMode::Normal;
-                let attack_target = if group_mode {
-                    // A slot firing at a shield names no target the
-                    // recording can.
-                    self.skills
-                        .main
-                        .group_attack_target(weapon_index)
-                        .filter(|_| {
-                            weapon_index >= self.skills.main.group_size().max(1)
-                                || self
-                                    .skills
-                                    .main
-                                    .group_skill(weapon_index)
-                                    .shield_target()
-                                    .is_none()
-                        })
-                } else {
-                    self.skills.main.named_attack_target()
-                };
-                // A unit that travelled in has run no update to search an
-                // attack target with until its first: `SearchAttackTarget`
-                // answers only in one.
-                let attack_target = attack_target.filter(|_| self.searched_attack);
-                WeaponAimState {
-                    skill_slot: if group_mode {
-                        u16::try_from(weapon_index).expect("weapon index fits u16")
-                    } else {
-                        0
-                    },
+    /// Every weapon the unit records, by the slot of `GetSkills()` whose
+    /// skill holds it: the main skill's and then its extra skills'.
+    pub(in crate::fight) fn slot_weapons(&self) -> Vec<(usize, WeaponState)> {
+        let position = self.recorded_position();
+        let group_mode = self.rules.attack.weapons.mode != WeaponMode::Normal;
+        let main = (0..self.skills.main.weapon_rotations_q32.len()).map(|weapon_index| {
+            (
+                if group_mode { weapon_index } else { 0 },
+                WeaponState {
                     weapon_index: self.rules.attack.weapons.index(weapon_index),
-                    attack_target: attack_target.map(FightActorRef::object_ref),
                     pose: self.fixed_weapon_pose(weapon_index, position),
-                }
-            })
-            .chain(self.extra_weapon_aims(position))
-            .collect()
-    }
-
-    /// The weapon channel of each extra skill, after the main skill's: the
-    /// weapon its row names, at its own rotation on a transform of its own
-    /// where the unit stands, firing at what its skill does.
-    fn extra_weapon_aims(&self, position: QVec3) -> impl Iterator<Item = WeaponAimState> + '_ {
-        self.skills
+                },
+            )
+        });
+        let extras = self
+            .skills
             .extras
             .iter()
             .enumerate()
@@ -674,24 +621,51 @@ impl Actor {
                 let arcs = extra.own_transform();
                 extra.skill.weapon_rotations_q32.iter().enumerate().map(
                     move |(offset, &rotation)| {
-                        // A grouped row's weapon is its group's skill of the
-                        // same place, and names what that skill fires at.
-                        let (slot, attack_target) = if grouped {
-                            (first + offset, extra.skill.group_attack_target(offset))
-                        } else {
-                            (first, extra.skill.named_attack_target())
-                        };
-                        WeaponAimState {
-                            skill_slot: u16::try_from(slot).expect("skill slot fits u16"),
-                            weapon_index: extra.rules.attack.weapons.index(extra.weapon + offset),
-                            attack_target: attack_target
-                                .filter(|_| self.searched_attack)
-                                .map(FightActorRef::object_ref),
-                            pose: arcs.then_some(QPose { position, rotation }),
-                        }
+                        (
+                            if grouped { first + offset } else { first },
+                            WeaponState {
+                                weapon_index: extra
+                                    .rules
+                                    .attack
+                                    .weapons
+                                    .index(extra.weapon + offset),
+                                pose: arcs.then_some(QPose { position, rotation }),
+                            },
+                        )
                     },
                 )
-            })
+            });
+        main.chain(extras).collect()
+    }
+
+    /// What the skill at a slot of `GetSkills()` fires at,
+    /// `FightSkill.GetAttackTarget`.
+    pub(in crate::fight) fn slot_attack_target(&self, slot: usize) -> Option<FightActorRef> {
+        let (held_by, offset) = self.skills.at_slot(slot);
+        let target = match held_by {
+            SkillSlot::Main if self.rules.attack.weapons.mode != WeaponMode::Normal => {
+                // A slot firing at a shield names no target the recording
+                // can.
+                let main = &self.skills.main;
+                main.group_attack_target(offset).filter(|_| {
+                    offset >= main.group_size().max(1)
+                        || main.group_skill(offset).shield_target().is_none()
+                })
+            }
+            SkillSlot::Main => self.skills.main.named_attack_target(),
+            SkillSlot::Extra(index) => {
+                let skill = &self.skills.extras[index].skill;
+                if skill.is_grouped() {
+                    skill.group_attack_target(offset)
+                } else {
+                    skill.named_attack_target()
+                }
+            }
+        };
+        // A unit that travelled in has run no update to search an attack
+        // target with until its first: `SearchAttackTarget` answers only in
+        // one.
+        target.filter(|_| self.searched_attack)
     }
 }
 
