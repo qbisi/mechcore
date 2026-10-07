@@ -4,8 +4,9 @@
 //! `BuffEffectProvider` reads one the same way whichever it is: what triggers
 //! the buff (`GetBuffTechListener`), whom it reaches (`GetEffectTargetTypes`),
 //! how likely (`GetProbablity`), how its `BuffCycleController` finds and
-//! times its targets, and the `buffDatas` row it adds (`GetBuffData`). The one
-//! trigger read is the fight's start, which hands its unit a [`BuffSource`].
+//! times its targets, and the `buffDatas` row it adds (`GetBuffData`). The
+//! triggers read are the fight's start, a hit and the unit's losing life, each
+//! of which hands its unit a [`BuffSource`].
 
 use serde::Deserialize;
 
@@ -14,9 +15,10 @@ use super::sources::{
 };
 use crate::rules::AttackTargets;
 
-/// `BuffTechListener.Hit` and `FightStart`.
+/// `BuffTechListener.Hit`, `FightStart` and `GetDamage`.
 const HIT: i32 = 0;
 const FIGHT_START: i32 = 1;
+const GET_DAMAGE: i32 = 3;
 
 /// `TargetType.MechUnit`: the unit the buff's source is on.
 const MECH_UNIT: i32 = 1;
@@ -113,7 +115,12 @@ pub(crate) struct BuffBlock {
 /// listener is `Hit` to its unit's skills as a hit effect, and
 /// `TriggerBuffOrBuffRangeItemFromHit` adds its buff through
 /// `BuffSystem.AddBuff` to whatever a hit struck, reading none of the
-/// source's targets, domains or distance type.
+/// source's targets, domains or distance type. `AddListener` hands a
+/// controller whose listener is `GetDamage` to its unit's `OnLifeChange`,
+/// and `OnGetDamage` adds the buff to the unit itself
+/// (`BuffSystem.AddBuffByCheck`) when its targets are `MechUnit` alone,
+/// reading none of the cycle; one that reaches the unit's attacker is not
+/// read.
 ///
 /// A buff that stacks (`IsAdditiveEffect`) is read when it stacks a step at
 /// a time (`BuffAdditiveStackConditionTimeController`) and every rate it
@@ -138,10 +145,11 @@ pub(crate) fn buff_source(
         Some(HIT) if cycle.update_model != EACH && cycle.interval == 0 && cycle.delay == 0 => {
             BuffTrigger::Hit
         }
+        Some(GET_DAMAGE) if targets == [MECH_UNIT] => BuffTrigger::Damaged,
         _ => {
             return Err(format!(
-                "{who} adds its buff on BuffTechListener {trigger:?}, and only the fight's start \
-                 and a hit are read"
+                "{who} adds its buff on BuffTechListener {trigger:?} to {targets:?}, and only \
+                 the fight's start, a hit and the unit's own losing life are read"
             ));
         }
     };

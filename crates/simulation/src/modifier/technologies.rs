@@ -459,7 +459,9 @@ impl TechnologyEffects {
             let self_buff = buff_source.as_ref().is_some_and(|buff: &BuffSource| {
                 matches!(
                     buff.trigger,
-                    crate::modifier::BuffTrigger::Itself | crate::modifier::BuffTrigger::Hit
+                    crate::modifier::BuffTrigger::Itself
+                        | crate::modifier::BuffTrigger::Hit
+                        | crate::modifier::BuffTrigger::Damaged
                 )
             });
             let technology = Technology {
