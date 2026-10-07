@@ -126,6 +126,14 @@ reduces, which a melee reach does not take. Electromagnetic Shot
 switches a struck unit's technologies off for some seconds and takes 40% off
 its speed; an item's buff of the kind, Charged Ammo's, is the same source.
 
+**A buff source triggered by its unit's losing life adds its buff to the unit
+itself, each time a hit takes life from it.** The buff is added as the life
+goes, before the unit's death is handled, so a unit the hit killed takes it
+only when it summons or disables technology; a hit a shield holds takes no
+life and adds nothing, and nothing is added while the unit's technologies are
+disabled. The source's cycle is not read. Counter-Fire is one: a Fire Badger
+hit reaches 70 m further for 20 seconds. A source that reaches the unit's attacker instead is refused.
+
 **A buff that summons makes its unit summon as it dies.** A buff with a
 summon reaches even a unit the hit that adds it killed, and a unit that dies
 running it summons, as the tick's dead effects come after every unit and
@@ -326,6 +334,10 @@ whose effect grows with rank, rather than read index zero:
 - A hit adds its buff to the unit struck, ranged or melee, and a Fortress's
   range reads 70 of 100 under it: `tests/technology_buff/fights/suppression-shots.yaml`,
   `tests/technology_buff/fights/suppression-shots-melee.yaml`.
+- Counter-Fire's buff is on a Fire Badger from the tick a Marksman's hit
+  takes life from it, its range 145 of 75; without it the simulator parts
+  from the recording on that tick, on that range:
+  `tests/technology_buff/fights/counter-fire.yaml`.
 - A hit's buff that disables technology switches the struck unit's off, a
   squad's buff written by its first unit, and reaches the unit the hit
   killed: `tests/technology_disable/fights/shot-armor.yaml`,
@@ -466,6 +478,18 @@ whose effect grows with rank, rather than read index zero:
   no longer found and appends the new. `BuffCycleController.BuffEffectCallBack`
   adds the buff through `BuffCycleController.TriggerBuffOrBuffRangeItemFromSelector`
   and `BuffSystem.AddBuffByCheck`.
+- Losing life: `BuffCycleController.AddListener` hands a controller whose
+  `IEffectBuffDataSource.GetBuffTechListener` is `BuffTechListener.GetDamage`
+  to its unit's `FightActor.OnLifeChange`, which `FightActor.ReduceLife`
+  invokes once it has taken life. `BuffCycleController.OnGetDamage` returns
+  on no damage, while the unit's technologies are disabled
+  (`FightMech.CanDiableTargetTechnology`, `ISkillOwner.IsTechnologyEnterDisabled`)
+  and while it travels (`SuperDeploymentSystem.IsTravelling`), and for each of
+  `IEffectBuffDataSource.GetEffectTargetTypes` adds the buff through
+  `BuffSystem.AddBuffByCheck`: `TargetType.MechUnit` to the unit itself,
+  `TargetType.OpponentUnits` to the unit that dealt the damage, or through
+  `BuffManager.AddBeHitDelayBuffInfo`. `BuffSystem.AddBuffByCheck` returns for
+  a dead target unless `BuffSystem.IsAvaliableWhenActorDead`.
 
 - Switching off: `CBEC_DisableTechnology.Enter`, `CBEC_DisableTechnology.Exit`,
   `FightEffectSystem.DisableEffect`, `FightEffectMananger.DisableEffect`,

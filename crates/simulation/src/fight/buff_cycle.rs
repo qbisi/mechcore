@@ -4,8 +4,9 @@
 //! A `BuffTech` or a `BuffEquipment` hands its unit's `BuffEffectProvider` a
 //! source, and
 //! `BuffEffectProvider.RegisterEffectEvent` a `BuffCycleController` in its
-//! side's `TeamBuffCycleManager`. The one trigger read is the fight's start:
-//! `BuffCycleController.OnEnterFight` starts the controller of a unit not
+//! side's `TeamBuffCycleManager`. A controller whose listener is a hit or the
+//! unit's losing life never cycles; one whose listener is the fight's start
+//! does: `BuffCycleController.OnEnterFight` starts the controller of a unit not
 //! travelling, and `BuffSystem` updates it on every tick, first in the tick
 //! and before `CommanderSkillSystem`, while its unit lives and its
 //! technologies are not disabled (`isAvailable`). Under
@@ -53,7 +54,7 @@ impl BuffCycle {
         sources
             .iter()
             .map(|source| match source.trigger {
-                BuffTrigger::Hit => Self::Done,
+                BuffTrigger::Hit | BuffTrigger::Damaged => Self::Done,
                 BuffTrigger::Itself | BuffTrigger::Around(_) => Self::Starting,
             })
             .collect()
@@ -243,6 +244,42 @@ impl Simulation {
                 if (self.actors[&id].alive() || reaches_the_dead) && self.buff_reaches(id, &row) {
                     self.write_buff(id, Some(source), team, &row, events)?;
                 }
+            }
+        }
+        Ok(())
+    }
+}
+
+impl Simulation {
+    /// `BuffCycleController.OnGetDamage` of each source of unit `id` whose
+    /// listener is `GetDamage`, after `FightActor.ReduceLife` took life from
+    /// it and invoked its `OnLifeChange`: a source that `CanDisable` does
+    /// nothing while the unit's technologies are disabled, and
+    /// `BuffSystem.AddBuffByCheck` adds the buff to the unit itself, as
+    /// written by it, while it lives or when the buff reaches the dead. A
+    /// Fire Badger with Counter-Fire hit by anything reaches 70 m further
+    /// for the next 20 seconds.
+    pub(in crate::fight) fn add_damaged_buffs(
+        &mut self,
+        id: u64,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        let owner = &self.actors[&id];
+        let sources = owner
+            .placement
+            .buff_sources
+            .iter()
+            .filter(|source| source.trigger == BuffTrigger::Damaged)
+            .filter(|source| !(source.can_disable && owner.technology_disabled()))
+            .copied()
+            .collect::<Vec<_>>();
+        let (source, team) = (owner.object_ref(), owner.placement.team);
+        for buff in sources {
+            let row = buff_row(&buff)?;
+            // `BuffSystem.IsAvaliableWhenActorDead`.
+            let reaches_the_dead = row.summons.is_some() || row.disables_technology;
+            if (self.actors[&id].alive() || reaches_the_dead) && self.buff_reaches(id, &row) {
+                self.write_buff(id, Some(source), team, &row, events)?;
             }
         }
         Ok(())

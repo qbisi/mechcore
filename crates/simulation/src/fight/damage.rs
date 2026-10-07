@@ -451,7 +451,7 @@ impl Simulation {
         hit: (i64, bool),
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let stroke = self.strike(target, None, team, hit, Provider::Other)?;
+        let stroke = self.strike(target, None, team, hit, Provider::Other, events)?;
         self.count_hit(None, team, target, &stroke)?;
         self.turned_unit_fell(target, &stroke);
         if stroke.actual > 0 {
@@ -487,6 +487,7 @@ impl Simulation {
         source_team: u32,
         (amount, amplified): (i64, bool),
         provider: Provider,
+        events: &mut Vec<Event>,
     ) -> Result<Stroke> {
         match target {
             FightActorRef::Unit(unit_id) => {
@@ -534,12 +535,19 @@ impl Simulation {
                 if actual > 0 {
                     unit.last_damage_source = Some((source, source_team));
                 }
+                let killed = unit.life == 0 && previous_life > 0;
+                // `ReduceLife` invokes `OnLifeChange` as soon as it took
+                // life, before the unit's death is handled.
+                if actual > 0 {
+                    self.add_damaged_buffs(unit_id, events)?;
+                }
+                let unit = &self.actors[&unit_id];
                 let death = (unit.life == 0).then(|| QVec3 {
                     x: unit.x_q32,
                     y: space_to_q32(unit_height(unit.rules.domain)),
                     z: unit.z_q32,
                 });
-                if death.is_some() && previous_life > 0 {
+                if killed {
                     self.on_actor_dead(unit_id);
                 }
                 Ok(Stroke {
@@ -688,6 +696,7 @@ impl Simulation {
                 hit.source_team,
                 (amount, true),
                 hit.provider,
+                events,
             )?;
             self.count_hit(hit.source, hit.source_team, target, &stroke)?;
             self.turned_unit_fell(target, &stroke);
@@ -809,6 +818,7 @@ impl Simulation {
                 hit.source_team,
                 (amount, false),
                 hit.provider,
+                events,
             )?;
             self.count_hit(hit.source, hit.source_team, target, &stroke)?;
             self.turned_unit_fell(target, &stroke);
@@ -1276,6 +1286,7 @@ impl Simulation {
             attacker_team,
             (damage, true),
             Provider::Other,
+            events,
         )?;
         self.count_hit(Some(attacker_ref), attacker_team, target, &stroke)?;
         self.turned_unit_fell(target, &stroke);

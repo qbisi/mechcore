@@ -1,0 +1,24 @@
+# Counter-Fire: a Fire Badger hit reaches 70 m further.
+#
+# A Marksman 130 m away hits the Fire Badger at t19, and from that tick the
+# badger's range is 145 (75 + 70, the buff's `attack_range_add_value`);
+# the Marksman dies at t127. Without the buff the simulator parts from this
+# recording at t19, on that range. The same layout without Counter-Fire
+# lasts 174 ticks.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 127
+hash: {profile: mcfr-content-0.7.0, result: edc0b5664a74df6950a1965e79d1ae4f51d7a43a990296076182a6819f4582d6}
+blue:
+  techs:
+    fire_badger: [counter_fire]
+  units:
+  - {name: fire_badger, index: 0, position: {x: 5, y: -100}, exp: 0/200/1400}
+red:
+  core_damage: 201
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -30}}
