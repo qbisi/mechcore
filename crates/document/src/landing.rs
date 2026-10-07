@@ -18,17 +18,11 @@
 //! not blue's mirrored and the side has to be named.
 
 use crate::catalog::{resolve_construction_type, resolve_contraption_type, resolve_unit_type};
-use crate::layout::{
-    AMBUSH_LEFT_MAX_X, AMBUSH_LEFT_MIN_X, AMBUSH_MAX_Y, AMBUSH_MIN_Y, AMBUSH_RIGHT_MAX_X,
-    AMBUSH_RIGHT_MIN_X, Position, Region,
-};
+use crate::layout::{Position, Region};
 use crate::r#match::SideState;
 
 /// The grid a position aligns to, in metres.
 const GRID: i64 = 10;
-/// The local main deployment region, `x=[-300,300], y=[-310,-10]`.
-const MAIN_MIN: (i64, i64) = (-300, -310);
-const MAIN_MAX: (i64, i64) = (300, -10);
 
 /// A rectangle, as its two corners.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -73,27 +67,23 @@ impl Region {
     /// The region's rectangle in its side's own frame, in metres: its least
     /// corner and its greatest, `x` across and `y` toward the other side.
     #[must_use]
-    pub const fn bounds(self) -> ((i64, i64), (i64, i64)) {
+    pub fn bounds(self) -> ((i64, i64), (i64, i64)) {
         let rect = bounds(self);
         (rect.min, rect.max)
     }
 }
 
 /// A region's rectangle in the side's own frame.
-const fn bounds(region: Region) -> Rect {
-    match region {
-        Region::Main => Rect {
-            min: MAIN_MIN,
-            max: MAIN_MAX,
-        },
-        Region::LeftFlank => Rect {
-            min: (AMBUSH_LEFT_MIN_X, AMBUSH_MIN_Y),
-            max: (AMBUSH_LEFT_MAX_X, AMBUSH_MAX_Y),
-        },
-        Region::RightFlank => Rect {
-            min: (AMBUSH_RIGHT_MIN_X, AMBUSH_MIN_Y),
-            max: (AMBUSH_RIGHT_MAX_X, AMBUSH_MAX_Y),
-        },
+fn bounds(region: Region) -> Rect {
+    let territory = crate::territory::territory();
+    let rect = match region {
+        Region::Main => territory.main,
+        Region::LeftFlank => territory.left_flank,
+        Region::RightFlank => territory.right_flank,
+    };
+    Rect {
+        min: (rect.min_x, rect.min_y),
+        max: (rect.max_x, rect.max_y),
     }
 }
 

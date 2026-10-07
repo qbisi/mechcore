@@ -41,6 +41,7 @@ pub mod reactor_damage;
 pub mod record;
 pub mod reinforcement;
 mod spelling;
+pub mod territory;
 pub mod transition;
 
 pub use catalog::{
@@ -1689,13 +1690,13 @@ red:
     fn battle_skill_circle_requires_only_map_overlap() {
         compile(&layout_with_blue_battle_skill(
             "electromagnetic_impact",
-            json!([{"x": 460, "y": 0}]),
+            json!([{"x": 420, "y": 0}]),
         ))
         .unwrap();
 
         let error = compile(&layout_with_blue_battle_skill(
             "electromagnetic_impact",
-            json!([{"x": 461, "y": 0}]),
+            json!([{"x": 421, "y": 0}]),
         ))
         .unwrap_err();
         assert!(error.contains("violates its battlefield map rule"));
@@ -1705,13 +1706,13 @@ red:
     fn random_circle_overlap_includes_the_sub_effect_radius() {
         compile(&layout_with_blue_battle_skill(
             "orbital_bombardment",
-            json!([{"x": 560, "y": 0}]),
+            json!([{"x": 520, "y": 0}]),
         ))
         .unwrap();
 
         let error = compile(&layout_with_blue_battle_skill(
             "orbital_bombardment",
-            json!([{"x": 561, "y": 0}]),
+            json!([{"x": 521, "y": 0}]),
         ))
         .unwrap_err();
         assert!(error.contains("violates its battlefield map rule"));
@@ -1721,13 +1722,13 @@ red:
     fn line_skill_requires_its_full_width_to_overlap_the_map() {
         compile(&layout_with_blue_battle_skill(
             "ion_blast",
-            json!([{"x": -500, "y": 360}, {"x": 500, "y": 360}]),
+            json!([{"x": -500, "y": 320}, {"x": 500, "y": 320}]),
         ))
         .unwrap();
 
         let error = compile(&layout_with_blue_battle_skill(
             "ion_blast",
-            json!([{"x": -500, "y": 361}, {"x": 500, "y": 361}]),
+            json!([{"x": -500, "y": 321}, {"x": 500, "y": 321}]),
         ))
         .unwrap_err();
         assert!(error.contains("violates its battlefield map rule"));
@@ -1747,13 +1748,13 @@ red:
     fn shield_airdrop_requires_its_center_inside_the_map() {
         compile(&layout_with_blue_battle_skill(
             "shield_airdrop",
-            json!([{"x": 400, "y": 0}]),
+            json!([{"x": 360, "y": 0}]),
         ))
         .unwrap();
 
         let error = compile(&layout_with_blue_battle_skill(
             "shield_airdrop",
-            json!([{"x": 401, "y": 0}]),
+            json!([{"x": 361, "y": 0}]),
         ))
         .unwrap_err();
         assert!(error.contains("violates its battlefield map rule"));
@@ -1764,9 +1765,9 @@ red:
         compile(&layout_with_blue_battle_skill(
             "mobile_beacon",
             json!([
-                {"x": 380, "y": -100},
-                {"x": 380, "y": 0},
-                {"x": 380, "y": 100}
+                {"x": 340, "y": -100},
+                {"x": 340, "y": 0},
+                {"x": 340, "y": 100}
             ]),
         ))
         .unwrap();
@@ -1774,9 +1775,9 @@ red:
         let error = compile(&layout_with_blue_battle_skill(
             "mobile_beacon",
             json!([
-                {"x": 381, "y": -100},
-                {"x": 380, "y": 0},
-                {"x": 380, "y": 100}
+                {"x": 341, "y": -100},
+                {"x": 340, "y": 0},
+                {"x": 340, "y": 100}
             ]),
         ))
         .unwrap_err();
@@ -1787,12 +1788,12 @@ red:
     fn summon_skills_use_their_effect_range_for_map_and_tower_clearance() {
         compile(&layout_with_blue_battle_skill(
             "rhino_assault",
-            json!([{"x": 380, "y": 0}]),
+            json!([{"x": 340, "y": 0}]),
         ))
         .unwrap();
         let map_error = compile(&layout_with_blue_battle_skill(
             "rhino_assault",
-            json!([{"x": 381, "y": 0}]),
+            json!([{"x": 341, "y": 0}]),
         ))
         .unwrap_err();
         assert!(map_error.contains("violates its battlefield map rule"));

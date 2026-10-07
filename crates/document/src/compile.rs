@@ -10,11 +10,10 @@ use crate::catalog::{
     resolve_unit_type,
 };
 use crate::layout::{
-    AMBUSH_LEFT_MAX_X, AMBUSH_LEFT_MIN_X, AMBUSH_MAX_Y, AMBUSH_MIN_Y, AMBUSH_RIGHT_MAX_X,
-    AMBUSH_RIGHT_MIN_X, BattleSkillEntry, BattleSkillRelease, ContraptionPlacement,
-    FIGHT_VISIBLE_ENERGY_TOWER_SKILLS, Layout, MAX_TOWER_STRENGTHEN_LEVEL, OIL_TERRAIN_GRID_MASK,
-    OIL_TERRAIN_GRID_SIZE, OIL_TERRAIN_POINT_COUNT, OilArea, Position, Region, Side, Standing,
-    StaticPlacement, TOWER_COUNT, Techs, UnitPlacement, require_layout_kind,
+    BattleSkillEntry, BattleSkillRelease, ContraptionPlacement, FIGHT_VISIBLE_ENERGY_TOWER_SKILLS,
+    Layout, MAX_TOWER_STRENGTHEN_LEVEL, OIL_TERRAIN_GRID_MASK, OIL_TERRAIN_GRID_SIZE,
+    OIL_TERRAIN_POINT_COUNT, OilArea, Position, Region, Side, Standing, StaticPlacement,
+    TOWER_COUNT, Techs, UnitPlacement, require_layout_kind,
 };
 use serde_json::Value;
 #[derive(Debug, PartialEq, Eq)]
@@ -67,15 +66,25 @@ pub struct Plan {
     pub red: SidePlan,
 }
 
-const DEPLOYMENT_MIN_X: i64 = -300;
-const DEPLOYMENT_MAX_X: i64 = 300;
-const DEPLOYMENT_MIN_Y: i64 = -310;
-const DEPLOYMENT_MAX_Y: i64 = -10;
 const SHIELD_RADIUS: i64 = 70;
-const BATTLEFIELD_MIN_X: i64 = -400;
-const BATTLEFIELD_MAX_X: i64 = 400;
-const BATTLEFIELD_MIN_Y: i64 = -350;
-const BATTLEFIELD_MAX_Y: i64 = 350;
+
+/// The map's bound, which a battle skill's map rule measures against.
+fn battlefield() -> crate::territory::Rect {
+    crate::territory::territory().bound
+}
+
+/// A side's main deployment region, in its own frame.
+fn deployment() -> crate::territory::Rect {
+    crate::territory::territory().main
+}
+
+fn left_flank() -> crate::territory::Rect {
+    crate::territory::territory().left_flank
+}
+
+fn right_flank() -> crate::territory::Rect {
+    crate::territory::territory().right_flank
+}
 const OIL_TERRAIN_RADIUS: i64 = 30;
 const ENEMY_TOWER_X: [i64; 2] = [-140, 140];
 const ENEMY_TOWER_Y: i64 = 170;
@@ -497,10 +506,10 @@ fn compile_standing_shields(side_name: &str, shields: &[Position]) -> Result<(),
     for (shield_index, &position) in shields.iter().enumerate() {
         if !position_within(
             position,
-            BATTLEFIELD_MIN_X,
-            BATTLEFIELD_MAX_X,
-            BATTLEFIELD_MIN_Y,
-            BATTLEFIELD_MAX_Y,
+            battlefield().min_x,
+            battlefield().max_x,
+            battlefield().min_y,
+            battlefield().max_y,
         ) {
             return Err(format!(
                 "side {side_name} standing shield_airdrop[{shield_index}] center ({}, {}) is \
@@ -534,10 +543,10 @@ fn compile_standing_oil(side_name: &str, areas: &[OilArea]) -> Result<(), String
             .map(|position| i64::from(position.y));
         let (min_x, max_x) = (xs.clone().min().expect("two"), xs.max().expect("two"));
         let (min_y, max_y) = (ys.clone().min().expect("two"), ys.max().expect("two"));
-        if max_x + radius < BATTLEFIELD_MIN_X
-            || min_x - radius > BATTLEFIELD_MAX_X
-            || max_y + radius < BATTLEFIELD_MIN_Y
-            || min_y - radius > BATTLEFIELD_MAX_Y
+        if max_x + radius < battlefield().min_x
+            || min_x - radius > battlefield().max_x
+            || max_y + radius < battlefield().min_y
+            || min_y - radius > battlefield().max_y
         {
             return Err(format!("{at} path does not overlap the battlefield"));
         }
@@ -626,10 +635,10 @@ fn validate_battle_skill_positions(
         BattleSkillMapRule::Center => positions.iter().all(|&position| {
             position_within(
                 position,
-                BATTLEFIELD_MIN_X,
-                BATTLEFIELD_MAX_X,
-                BATTLEFIELD_MIN_Y,
-                BATTLEFIELD_MAX_Y,
+                battlefield().min_x,
+                battlefield().max_x,
+                battlefield().min_y,
+                battlefield().max_y,
             )
         }),
         BattleSkillMapRule::Contained => {
@@ -637,17 +646,21 @@ fn validate_battle_skill_positions(
             positions.iter().all(|&position| {
                 position_within(
                     position,
-                    BATTLEFIELD_MIN_X + margin,
-                    BATTLEFIELD_MAX_X - margin,
-                    BATTLEFIELD_MIN_Y + margin,
-                    BATTLEFIELD_MAX_Y - margin,
+                    battlefield().min_x + margin,
+                    battlefield().max_x - margin,
+                    battlefield().min_y + margin,
+                    battlefield().max_y - margin,
                 )
             })
         }
     };
     if !valid_map_position {
         return Err(format!(
-            "side {side_name} battle skill type {type_name:?} at {positions:?} violates its battlefield map rule within x=[{BATTLEFIELD_MIN_X},{BATTLEFIELD_MAX_X}], y=[{BATTLEFIELD_MIN_Y},{BATTLEFIELD_MAX_Y}]"
+            "side {side_name} battle skill type {type_name:?} at {positions:?} violates its battlefield map rule within x=[{},{}], y=[{},{}]",
+            battlefield().min_x,
+            battlefield().max_x,
+            battlefield().min_y,
+            battlefield().max_y,
         ));
     }
 
@@ -703,8 +716,8 @@ fn battle_skill_overlaps_map(positions: &[Position], shape: BattleSkillShape) ->
 fn circle_overlaps_map(position: Position, radius: i64) -> bool {
     let x = i64::from(position.x);
     let y = i64::from(position.y);
-    let nearest_x = x.clamp(BATTLEFIELD_MIN_X, BATTLEFIELD_MAX_X);
-    let nearest_y = y.clamp(BATTLEFIELD_MIN_Y, BATTLEFIELD_MAX_Y);
+    let nearest_x = x.clamp(battlefield().min_x, battlefield().max_x);
+    let nearest_y = y.clamp(battlefield().min_y, battlefield().max_y);
     let dx = i128::from(x - nearest_x);
     let dy = i128::from(y - nearest_y);
     dx * dx + dy * dy <= i128::from(radius).pow(2)
@@ -714,10 +727,10 @@ fn thick_segment_overlaps_map(start: Position, end: Position, radius: i64) -> bo
     let start = (i64::from(start.x), i64::from(start.y));
     let end = (i64::from(end.x), i64::from(end.y));
     let corners = [
-        (BATTLEFIELD_MIN_X, BATTLEFIELD_MIN_Y),
-        (BATTLEFIELD_MIN_X, BATTLEFIELD_MAX_Y),
-        (BATTLEFIELD_MAX_X, BATTLEFIELD_MAX_Y),
-        (BATTLEFIELD_MAX_X, BATTLEFIELD_MIN_Y),
+        (battlefield().min_x, battlefield().min_y),
+        (battlefield().min_x, battlefield().max_y),
+        (battlefield().max_x, battlefield().max_y),
+        (battlefield().max_x, battlefield().min_y),
     ];
     if point_in_battlefield(start)
         || point_in_battlefield(end)
@@ -741,13 +754,13 @@ fn thick_segment_overlaps_map(start: Position, end: Position, radius: i64) -> bo
 }
 
 fn point_in_battlefield((x, y): (i64, i64)) -> bool {
-    (BATTLEFIELD_MIN_X..=BATTLEFIELD_MAX_X).contains(&x)
-        && (BATTLEFIELD_MIN_Y..=BATTLEFIELD_MAX_Y).contains(&y)
+    (battlefield().min_x..=battlefield().max_x).contains(&x)
+        && (battlefield().min_y..=battlefield().max_y).contains(&y)
 }
 
 fn point_to_map_distance_squared((x, y): (i64, i64)) -> i128 {
-    let nearest_x = x.clamp(BATTLEFIELD_MIN_X, BATTLEFIELD_MAX_X);
-    let nearest_y = y.clamp(BATTLEFIELD_MIN_Y, BATTLEFIELD_MAX_Y);
+    let nearest_x = x.clamp(battlefield().min_x, battlefield().max_x);
+    let nearest_y = y.clamp(battlefield().min_y, battlefield().max_y);
     let dx = i128::from(x - nearest_x);
     let dy = i128::from(y - nearest_y);
     dx * dx + dy * dy
@@ -857,25 +870,33 @@ fn validate_placement_footprints(side_name: &str, placements: &[Placement]) -> R
                 max_x,
                 min_y,
                 max_y,
-                AMBUSH_LEFT_MIN_X,
-                AMBUSH_LEFT_MAX_X,
-                AMBUSH_MIN_Y,
-                AMBUSH_MAX_Y,
+                left_flank().min_x,
+                left_flank().max_x,
+                left_flank().min_y,
+                left_flank().max_y,
             );
             let inside_right = rectangle_within(
                 min_x,
                 max_x,
                 min_y,
                 max_y,
-                AMBUSH_RIGHT_MIN_X,
-                AMBUSH_RIGHT_MAX_X,
-                AMBUSH_MIN_Y,
-                AMBUSH_MAX_Y,
+                right_flank().min_x,
+                right_flank().max_x,
+                left_flank().min_y,
+                left_flank().max_y,
             );
             if !inside_left && !inside_right {
                 return Err(format!(
-                    "side {side_name} placement type {:?} at ({}, {}) footprint {width}x{height} must fit completely inside one ambush zone: left x=[{AMBUSH_LEFT_MIN_X},{AMBUSH_LEFT_MAX_X}] or right x=[{AMBUSH_RIGHT_MIN_X},{AMBUSH_RIGHT_MAX_X}], y=[{AMBUSH_MIN_Y},{AMBUSH_MAX_Y}]",
-                    placement.type_name, placement.position.x, placement.position.y
+                    "side {side_name} placement type {:?} at ({}, {}) footprint {width}x{height} must fit completely inside one ambush zone: left x=[{},{}] or right x=[{},{}], y=[{},{}]",
+                    placement.type_name,
+                    placement.position.x,
+                    placement.position.y,
+                    left_flank().min_x,
+                    left_flank().max_x,
+                    right_flank().min_x,
+                    right_flank().max_x,
+                    left_flank().min_y,
+                    left_flank().max_y,
                 ));
             }
         } else if !rectangle_within(
@@ -883,14 +904,20 @@ fn validate_placement_footprints(side_name: &str, placements: &[Placement]) -> R
             max_x,
             min_y,
             max_y,
-            DEPLOYMENT_MIN_X,
-            DEPLOYMENT_MAX_X,
-            DEPLOYMENT_MIN_Y,
-            DEPLOYMENT_MAX_Y,
+            deployment().min_x,
+            deployment().max_x,
+            deployment().min_y,
+            deployment().max_y,
         ) {
             return Err(format!(
-                "side {side_name} placement type {:?} at ({}, {}) footprint {width}x{height} exceeds the main deployment boundary x=[{DEPLOYMENT_MIN_X},{DEPLOYMENT_MAX_X}], y=[{DEPLOYMENT_MIN_Y},{DEPLOYMENT_MAX_Y}]",
-                placement.type_name, placement.position.x, placement.position.y
+                "side {side_name} placement type {:?} at ({}, {}) footprint {width}x{height} exceeds the main deployment boundary x=[{},{}], y=[{},{}]",
+                placement.type_name,
+                placement.position.x,
+                placement.position.y,
+                deployment().min_x,
+                deployment().max_x,
+                deployment().min_y,
+                deployment().max_y,
             ));
         }
     }
@@ -898,10 +925,10 @@ fn validate_placement_footprints(side_name: &str, placements: &[Placement]) -> R
 }
 
 fn validate_shield_position(side_name: &str, placement: &Placement) -> Result<(), String> {
-    let min_x = DEPLOYMENT_MIN_X + SHIELD_RADIUS;
-    let max_x = DEPLOYMENT_MAX_X - SHIELD_RADIUS;
-    let min_y = DEPLOYMENT_MIN_Y + SHIELD_RADIUS;
-    let max_y = DEPLOYMENT_MAX_Y - SHIELD_RADIUS;
+    let min_x = deployment().min_x + SHIELD_RADIUS;
+    let max_x = deployment().max_x - SHIELD_RADIUS;
+    let min_y = deployment().min_y + SHIELD_RADIUS;
+    let max_y = deployment().max_y - SHIELD_RADIUS;
     if position_within(placement.position, min_x, max_x, min_y, max_y) {
         Ok(())
     } else {
@@ -915,16 +942,22 @@ fn validate_shield_position(side_name: &str, placement: &Placement) -> Result<()
 fn validate_missile_position(side_name: &str, placement: &Placement) -> Result<(), String> {
     if position_within(
         placement.position,
-        DEPLOYMENT_MIN_X,
-        DEPLOYMENT_MAX_X,
-        DEPLOYMENT_MIN_Y,
-        DEPLOYMENT_MAX_Y,
+        deployment().min_x,
+        deployment().max_x,
+        deployment().min_y,
+        deployment().max_y,
     ) {
         Ok(())
     } else {
         Err(format!(
-            "side {side_name} placement type {:?} at ({}, {}) is outside the own-side deployment boundary x=[{DEPLOYMENT_MIN_X},{DEPLOYMENT_MAX_X}], y=[{DEPLOYMENT_MIN_Y},{DEPLOYMENT_MAX_Y}]",
-            placement.type_name, placement.position.x, placement.position.y
+            "side {side_name} placement type {:?} at ({}, {}) is outside the own-side deployment boundary x=[{},{}], y=[{},{}]",
+            placement.type_name,
+            placement.position.x,
+            placement.position.y,
+            deployment().min_x,
+            deployment().max_x,
+            deployment().min_y,
+            deployment().max_y,
         ))
     }
 }

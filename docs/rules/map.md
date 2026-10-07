@@ -35,6 +35,49 @@ loads that map before creating the Training Ground. An explicit ID is used as
 given. Omitting `map_id` selects 1021, which keeps a result from depending on
 whatever default the game itself might change.
 
+## The board
+
+Every standard map lays out the same board: each map data names
+`map_layout_1V1_default` as its `MapLayout`, and
+[`config/maps.yaml`](../../config/maps.yaml) holds it. The layout gives each
+seat a `PlayerTerritory` of three `MapRegion`s, six regions in all, each a
+rectangle on whole metres with a facing and the round it opens. In blue's
+frame, which is the world's:
+
+| Region | `x` | `y` | Size | Facing |
+| --- | --- | --- | --- | --- |
+| main | -300 to 300 | -310 to -10 | 600 × 300 | forward |
+| left flank | -360 to -300 | 10 to 310 | 60 × 300 | right |
+| right flank | 300 to 360 | 10 to 310 | 60 × 300 | left |
+
+Red's territory is blue's turned half a turn: its main region is `y` 10 to
+310, facing back, and its flanks stand at world `y` -310 to -10, red's left
+one at world `x` 300 to 360. A side's main region is its own half of the
+board, short of the middle by 10 metres; its flanks are the two strips beyond
+the middle, past either end of the other side's main region, facing in. The
+20-metre strip about the middle is in no region. Every region of the layout
+opens in round 2.
+
+A unit deployed stands in one of its side's three regions, and a unit on a
+flank travels ([`super_deployment.md`](super_deployment.md)).
+[`landing.md`](landing.md) says where a new unit lands and which moves a
+region allows; [`unit-rules.md`](../spec/simulation/unit-rules.md) how a
+formation on a flank is turned to face the middle.
+
+**The map is the least rectangle holding the six regions**: `x` -360 to 360
+and `y` -310 to 310, 720 by 620 metres. `Map.RefreshBound` takes the union of
+each territory's bound, and `PlayerTerritory.RefreshBound` the union of the
+territory's regions; neither pads them. A battle skill's map rule measures
+against it ([`battle_skill.md`](battle_skill.md#effect-geometry-and-target-regions)):
+the region `PlayerController.GetRegionForCommanderSkill` hands a release is
+the map shrunk by the skill's effective `subEffectRange` on every side, or the
+whole map for a skill that extends its area.
+
+The regions do not change size during a match. A match setting's
+`regionSizeOffset` and `regionSizeOffsetRound`, 2 and 1 on every standard map,
+are read only by `MapSystem.TryLoadNewMapData` and `BattleSetting`, which load
+a map data of `newMapMode`, and no standard map data is one.
+
 ## A map is its buildings
 
 Every map places the same four towers where the Training Ground does, and
@@ -119,8 +162,24 @@ place crystals of priority 1 only, so a fight on 1011 is the same fight as on
 - 1001, 1031 and 1032 fight alike: each fight under `tests/map/fights/`
   recorded on 1031 and 1032 has 1001's hash.
 
+### Replayed
+
+- Every arrival, move, purchase and contraption of this version's corpus
+  stands where the board's regions allow it: `scripts/corpus/verify-matches.py`
+  ([`landing.md`](landing.md)).
+
 ### Read
 
+- A map data names its layout, whose territories are a seat's regions:
+  `MapData.layoutName`, `MapLayout.playerTerritories`,
+  `PlayerTerritory.mainRegionID`, `MapRegion.activeRound`.
+- The map's bound is the union of the territories' regions, unpadded:
+  `Map.RefreshBound`, `PlayerTerritory.RefreshBound`, `MapRegion..ctor`.
+- A battle skill's region is the bound shrunk by its sub-effect range unless
+  it extends its area: `PlayerController.GetRegionForCommanderSkill`,
+  `CommanderSkillBase.IsEnableAreaExtend`.
+- A region size offset is read only for a new-mode map data:
+  `MatchSetting.get_RegionSizeOffset`, `MapSystem.TryLoadNewMapData`.
 - A map is a match setting naming its `MapData`: `MatchSetting.mapData`.
 - A map's crystals are its building entries with no team:
   `MapData.buildingDatas`, `BuildingData.teamType`.
@@ -136,6 +195,9 @@ place crystals of priority 1 only, so a fight on 1011 is the same fight as on
   `FightController.CreateFightBuilding`.
 
 ### Not established
+
+- **A battle skill released at the map's edge.** No recording has released
+  one within a skill's range of the bound; the 720 by 620 metres are read.
 
 - **Why a crystal of priority 1 is not in the tree.** Its controller is built
   like any other's, and nothing read leaves it out. With the Training Ground's

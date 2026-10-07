@@ -538,13 +538,6 @@ pub struct Position {
 /// They share their `y` span and differ only in `x`, and each is a deployment
 /// region of its own rather than two halves of one ambush zone. [`Region`] is
 /// what reads them.
-pub(crate) const AMBUSH_LEFT_MIN_X: i64 = -360;
-pub(crate) const AMBUSH_LEFT_MAX_X: i64 = -300;
-pub(crate) const AMBUSH_RIGHT_MIN_X: i64 = 300;
-pub(crate) const AMBUSH_RIGHT_MAX_X: i64 = 360;
-pub(crate) const AMBUSH_MIN_Y: i64 = 10;
-pub(crate) const AMBUSH_MAX_Y: i64 = 310;
-
 /// Which of a side's three deployment regions a position lies in.
 ///
 /// The game does not read a coordinate where it decides a flank deployment. It
@@ -574,7 +567,7 @@ impl Region {
     /// Which region holds a position.
     #[must_use]
     pub fn of(position: Position) -> Self {
-        if i64::from(position.y) < AMBUSH_MIN_Y {
+        if i64::from(position.y) < crate::territory::territory().left_flank.min_y {
             Self::Main
         } else if position.x < 0 {
             Self::LeftFlank

@@ -944,8 +944,8 @@ hashes. They are not pinned as fights, because a pinned fight is verified by
 simulating it and the Simulator has no battle-skill feature slice yet.
 
 Before any mutation, the compiler applies the build-pinned geometry and map
-rule from the battle-skill index against the `800 x 700` battlefield bound
-`x=[-400,400], y=[-350,350]`. Circle and line footprints use their documented
+rule from the battle-skill index against the map's `720 x 620` bound
+`x=[-360,360], y=[-310,310]` ([map.md](../../rules/map.md#the-board)). Circle and line footprints use their documented
 effective range or full width; random-circle overlap includes both the outer
 distribution radius and the sub-effect radius. In side-local coordinates the
 enemy tower centers are always `(-140,170)` and `(140,170)`, so the same strict
@@ -1014,7 +1014,7 @@ shield is never recorded twice.
 
 Because a standing shield is an existing world object rather than a new
 release, it only has to stand on the battlefield: its centre must be inside
-`x=[-400,400], y=[-350,350]` in side-local coordinates, and its radius-70 body
+`x=[-360,360], y=[-310,310]` in side-local coordinates, and its radius-70 body
 may extend outside the deployment area.
 
 A standing oil area's fields:
@@ -1045,7 +1045,7 @@ A standing oil area's fields:
   bit 11 are rejected, and at least one cell must be active.
 
 The control-point path, expanded by the 30 m radius, must overlap the battlefield
-rectangle `x=[-400,400], y=[-350,350]`; edge contact is accepted. The compiler
+rectangle `x=[-360,360], y=[-310,310]`; edge contact is accepted. The compiler
 validates this bound, the two-point arity, native index range and grid shape. It
 does not accept `active_sub_effects` or `remaining_rounds`: the non-empty map's
 keys already encode the active set, while remaining lifetime is not meaningful

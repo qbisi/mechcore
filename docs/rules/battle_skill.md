@@ -77,7 +77,8 @@ The values are the row's after runtime preprocessing:
 `CommanderSkillData.PreProcess()` rewrites every `CircleSingle` skill before use
 by assigning `subEffectRange = effectRange` and `subEffectCount = 1`.
 
-The map rules:
+The map rules, the map being the board's 720 by 620 metre bound
+([map.md](map.md#the-board)):
 
 - `contained`: the complete path or effect footprint must remain inside the
   battlefield map.
