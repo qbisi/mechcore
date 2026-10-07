@@ -79,6 +79,24 @@ about travel. What travel holds back is `EffectProvider.ActiveCheck`, and for
 these sources activation only announces the effect. So a travelling unit
 starts on its share of its corrected life and heals by its corrected maximum.
 
+**A travelling unit's extra weapons are switched off until it arrives.** A
+unit placed on a flank has its effects switched off
+(`BattleSystem.OnEnterSuperDeployment`, `FightEffectSystem.DeactiveEffect`),
+and the skills an extra weapon technology adds go with them
+(`ExtraSkillProvider.DisableSkill`): they keep their slots and do nothing. All
+are switched on as the unit arrives (`SuperDeploymentController.ExitTravel`,
+`FightEffectSystem.ActiveEffect`). A layout states a unit's travel and nothing
+of the order it was placed in, and the game fights every travelling unit of a
+layout this way, on either flank of either side.
+
+A replayed round can differ: the effects are switched off as a deployment
+action passes the unit, so a technology researched after the unit's last such
+action stays on through its travel. Blue's two Fire Badgers of replay
+`2324_20260925--134259672` bought onto the two flanks in round 3, Scorching
+Charge researched after both, read their charge switched off on the one a
+commander skill, an item and an upgrade passed after the research, and
+switched on, in its lock state, on the other.
+
 ## Evidence
 
 ### Recorded
@@ -95,6 +113,8 @@ starts on its share of its corrected life and heals by its corrected maximum.
   `tests/super_deployment/fights/officers-and-equipment.yaml`,
   `tests/super_deployment/fights/technologies.yaml`,
   `tests/super_deployment/fights/energy-tower-skills.yaml`.
+- A travelling unit's extra weapons are switched off until it arrives, on
+  either flank of either side: `tests/super_deployment/fights/extra-weapons.yaml`.
 - Quick Teleport halves the travel, with four heals of a quarter of 0.6:
   `tests/super_deployment/fights/quick-teleport.yaml`.
 - A squad that arrives together is solved once with none of its members among
@@ -114,8 +134,16 @@ starts on its share of its corrected life and heals by its corrected maximum.
 - The order of the systems: `FightController.AddModules`.
 - Corrections are written without regard to travel: `EffectProvider.AddEffect`,
   `EffectProvider.ActiveCheck`.
+- Placing a unit on a flank switches its effects off and arriving switches
+  them on: `BattleSystem.OnEnterSuperDeployment`,
+  `FightEffectSystem.DeactiveEffect`, `SuperDeploymentController.ExitTravel`,
+  `FightEffectSystem.ActiveEffect`, `ExtraSkillProvider.DisableSkill`.
 
 ### Not established
+
+- **A replayed round whose travelling unit had a technology researched after
+  its last deployment action**, which a layout cannot state: the corpus rounds
+  `134259672-r3` and `201370830-r7` each hold one.
 
 - **The order of two sides' travelling units in the list**, beyond the
   identity order the recordings agree with.

@@ -1,0 +1,27 @@
+# Sabertooths with Secondary Armament travelling on both flanks of both sides,
+# beside one each in the main region: every travelling one holds its two
+# secondary guns switched off until all arrive on tick 161, and the two that
+# do not travel hold them on from the first tick.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: game
+ticks: 1128
+hash: {profile: mcfr-content-0.7.0, result: aa27b935785c24f99234159d47fe96297cfc74fd41673a27e4542c12320128a0}
+blue:
+  core_damage: 200
+  techs:
+    sabertooth: [secondary_armament]
+  units:
+  - {name: sabertooth, index: 0, position: {x: -335, y: 205}, exp: 0/600/1300, travelling: true}
+  - {name: sabertooth, index: 1, position: {x: 335, y: 205}, exp: 0/200/1300, travelling: true}
+  - {name: sabertooth, index: 2, position: {x: 5, y: -95}}
+red:
+  techs:
+    sabertooth: [secondary_armament]
+  units:
+  - {name: sabertooth, index: 0, position: {x: -335, y: 205}, exp: 0/600/1300, travelling: true}
+  - {name: sabertooth, index: 1, position: {x: 335, y: 205}, exp: 0/200/1300, travelling: true}
+  - {name: sabertooth, index: 2, position: {x: 5, y: -95}, exp: 0/400/1300}
