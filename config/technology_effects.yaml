@@ -788,7 +788,7 @@ technologies:
     unit: sandworm
     kind: airAttackTechnologyDatas
     extra_skill_effect: false
-    attack_range_value: [85899345920]  # +20
+    damage_rate: [1288490188]  # +0.3
   - id: 3124
     name: 防空弹药
     unit: tarantula

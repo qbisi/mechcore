@@ -11,8 +11,8 @@ map_id: 1011
 seed: 167380757
 round: 4
 source: game
-ticks: 853
-hash: {profile: mcfr-content-0.7.0, result: d28a9edbc1889479fab3f13e32fcd6bed6e9b3495b23d1d506d58dcd6c464fd1}
+ticks: 869
+hash: {profile: mcfr-content-0.7.0, result: 1d7050a285536abc913c9dbfd50ead767db11b26475da5fc9a827a578eceaf84}
 blue:
   core_damage: 1067
   officers: [giant_specialist]

@@ -684,6 +684,7 @@ impl Simulation {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     fn update_motion_states(
         &mut self,
         actor_id: u64,
@@ -767,7 +768,11 @@ impl Simulation {
             actor.aim_rotation = actor.body_rotation;
             return Ok(());
         }
-        let in_reach = self.motion_in_reach(actor_id, target, sees_target, edge_distance_q32);
+        let Some(in_reach) =
+            self.reach_or_surface(actor_id, target, sees_target, edge_distance_q32)?
+        else {
+            return Ok(());
+        };
         if in_reach {
             let was_attacking = self.actors[&actor_id].motion.state == MotionState::Attacking;
             self.attack_in_range(
@@ -797,6 +802,46 @@ impl Simulation {
             update,
         );
         Ok(())
+    }
+
+    /// `MotionMoveState.Update` of a unit moving below: it asks its ability
+    /// alone whether its lock, `edge_distance_q32` off, is in range
+    /// (`UndergroundMoveAbility.IsLockTargetInRange`), within the exit range,
+    /// and when it is changes to attack through the ability, which surfaces
+    /// it; out of it, it walks on, whatever its skill's range. No attack
+    /// starts on that tick: a Sandworm that travelled below with its target
+    /// already in its range strikes as soon as it has surfaced. Any other
+    /// unit asks whether its target is in reach ([`Self::motion_in_reach`]);
+    /// `None` once the unit surfaces. A lock within an energy shield, which
+    /// the ability measures through the shield, is refused.
+    fn reach_or_surface(
+        &mut self,
+        actor_id: u64,
+        target: FightActorRef,
+        sees_target: bool,
+        edge_distance_q32: i64,
+    ) -> Result<Option<bool>> {
+        let actor = &self.actors[&actor_id];
+        let below = actor
+            .underground
+            .as_ref()
+            .filter(|_| actor.motion.state == MotionState::Moving)
+            .and_then(|underground| underground.lock_in_exit_range(edge_distance_q32));
+        if below == Some(true) && self.shield_around(target).is_some() {
+            return Err(Error::new(format!(
+                "unit {actor_id} moves below on a lock within an energy shield, and what \
+                 UndergroundMoveAbility.IsLockTargetInRange reads through a shield is not \
+                 measured"
+            )));
+        }
+        Ok(match below {
+            Some(true) => {
+                self.begin_transition(actor_id, MotionState::Moving, MotionState::Attacking);
+                None
+            }
+            Some(false) => Some(false),
+            None => Some(self.motion_in_reach(actor_id, target, sees_target, edge_distance_q32)),
+        })
     }
 
     /// `MotionIdleState`: its `Enter` stops the move, and its `Update` does

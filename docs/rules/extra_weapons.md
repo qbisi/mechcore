@@ -168,7 +168,7 @@ unit; it does not turn towards its lock.
 - **Damage.** A skill whose row's `damageRate` is zero deals its own damage,
   the row's `damage` entry for the unit's level, the last entry for a level
   beyond the list (`SkillData.GetDamage`), and none where the row has no
-  entries: Homing Missile's one entry, 800, is every level's, and Incendiary
+  entries: Homing Missile's one entry, 2000, is every level's, and Incendiary
   Bomb's shell harms nothing by itself, and is no hit
   at all, so its Hound does not share a kill for having struck the target
   ([unit_experience.md](unit_experience.md#what-a-kill-hands-out)).
@@ -575,8 +575,8 @@ lands on its beams as on the main beam, and leaves them reaching 95.
 A skill without a damage rate holds what reaches it alone, an equipment's
 through its `extraSkillEffect` and an Energy Tower skill's, and its damage,
 its row's entry for the unit's level, composes them and the buffs' the same
-way: Secondary Fire Control System's +0.25 makes a Homing Missile's 800 a
-1000. A recording holds each skill's corrections on its own slot.
+way: Secondary Fire Control System's +0.25 makes a Homing Missile's 2000 a
+2500. A recording holds each skill's corrections on its own slot.
 
 Its range of its own composes what it holds the same way, as the main skill's
 does (`AttackRangeProperty.GetAttackRange`), and no buff's: a buff's
@@ -645,10 +645,11 @@ not melee, so the simulator refuses it.
 - A Fire Badger killed while travelling in leaves no fire, and what an
   explosion kills reads after the units a turret's shots killed on that tick:
   `tests/corpus/fights/134259672-r3.yaml`.
-- A Centurion's Homing Missile fires its four missiles at its own interval,
-  each landing its offset of up to 20 metres from its target, and a missile
-  landing beyond its 7 metre splash of every unit strikes nothing:
-  `tests/extra_weapon/fights/homing-missile.yaml`, beside its control
+- A Centurion's Homing Missile fires its two missiles at its own interval,
+  with no offset, the second leaving for where its target stood the tick
+  before: `tests/extra_weapon/fights/homing-missile.yaml`,
+  `tests/extra_weapon/fights/enhanced-range-homing-missile.yaml`, beside its
+  control
   `tests/extra_weapon/fights/homing-missile-control.yaml`.
 - A Centurion whose missile skill holds its motion turns its turret to the
   missile skill's lock as it moves, a tick before its main skill locks it:

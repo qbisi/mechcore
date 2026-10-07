@@ -3,15 +3,15 @@
 # `homing-missile.yaml` with Secondary Fire Control System, +0.25 of damage,
 # whose `extraSkillEffect` lets it reach the unit's extra skills. The missile
 # skill's own `DataSet` holds it, as the recording does on its slot, and its
-# 800 a missile becomes 1000.
+# 2000 a missile becomes 2500.
 
 kind: fight
 map_id: 1021
 seed: 4242
 round: 1
 source: game
-ticks: 80
-hash: {profile: mcfr-content-0.7.0, result: a67bc6c23162298a361148595a45087d1c1189d33434fbcc17a4f21ad09eed71}
+ticks: 84
+hash: {profile: mcfr-content-0.7.0, result: 6c7d563e332664564ff7287e57814749c4eda24075870fc3bb98fb0cdbe60ebc}
 blue:
   techs:
     centurion: [homing_missile]

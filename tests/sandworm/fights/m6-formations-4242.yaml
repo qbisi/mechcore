@@ -6,12 +6,12 @@ map_id: 1021
 seed: 4242
 round: 1
 source: game
-ticks: 335
-hash: {profile: mcfr-content-0.7.0, result: 5e265101a0d3f28d2a2a2d86de3db55619db2c8b514bc6d181c56992b9d88cd4}
+ticks: 366
+hash: {profile: mcfr-content-0.7.0, result: 0d224006cb3e55026b97843e5f5dad5231214a39fdb3accbef28c59fbd215a29}
 blue:
   units:
-  - {name: sandworm, index: 0, position: {x: 0, y: -130}, exp: 0/80/2000}
-  - {name: sandworm, index: 1, position: {x: 0, y: -80}, exp: 0/312/2000}
+  - {name: sandworm, index: 0, position: {x: 0, y: -130}, exp: 0/134/2000}
+  - {name: sandworm, index: 1, position: {x: 0, y: -80}, exp: 0/258/2000}
 red:
   core_damage: 700
   units:

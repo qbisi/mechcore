@@ -8,8 +8,8 @@ map_id: 1011
 seed: 1231717251
 round: 2
 source: game
-ticks: 1467
-hash: {profile: mcfr-content-0.7.0, result: 4169673842880e0a0a9c2ef137ab694c62978498f8d7e230cc59dc4cd7251255}
+ticks: 1473
+hash: {profile: mcfr-content-0.7.0, result: d309b09bcc368e505e430deb4d16cfa7179704216c6e29c1a137cc0395c3b9be}
 blue:
   officers: [aerial_specialist]
   legacy_index: 7
@@ -32,13 +32,13 @@ red:
     rhino: [combat_evolvement]
   legacy_index: 7
   units:
-  - {name: marksman, index: 0, position: {x: 160, y: -170}, exp: 80/287/650}
-  - {name: marksman, index: 1, position: {x: 140, y: -150}, exp: 212/482/650}
-  - {name: marksman, index: 2, position: {x: -140, y: -150}, exp: 146/412/650}
+  - {name: marksman, index: 0, position: {x: 160, y: -170}, exp: 80/299/650}
+  - {name: marksman, index: 1, position: {x: 140, y: -150}, exp: 212/494/650}
+  - {name: marksman, index: 2, position: {x: -140, y: -150}, exp: 146/650/650}
   - {name: tarantula, index: 3, position: {x: 115, y: -165}, exp: 244/314/1500}
-  - {name: tarantula, index: 4, position: {x: -115, y: -165}, exp: 294/965/1500}
+  - {name: tarantula, index: 4, position: {x: -115, y: -165}, exp: 294/614/1500}
   - {name: tarantula, index: 5, position: {x: 5, y: -155}, exp: 371/471/1500}
   - {name: marksman, index: 6, position: {x: 30, y: -160}, exp: 246/246/650}
   - {name: rhino, index: 7, position: {x: 265, y: -295}, exp: 0/256/1150}
-  - {name: rhino, index: 8, position: {x: -265, y: -295}, exp: 0/517/1150}
+  - {name: rhino, index: 8, position: {x: -265, y: -295}, exp: 0/541/1150}
   - {name: marksman, index: 9, position: {x: -20, y: -160}, exp: 0/33/650}

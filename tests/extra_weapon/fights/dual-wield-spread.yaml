@@ -2,25 +2,25 @@
 #
 # A Centurion with Dual Wield against three Marksmen farther than 40 metres
 # apart. The side arm, attacking, begins its next blow four ticks after the
-# main gun begins one (t169, t173), however long its own interval is over;
+# main gun begins one, however long its own interval is over;
 # with the main gun's lock dead it searches about the lock the main gun held
-# last (t162).
+# last.
 
 kind: fight
 map_id: 1021
 seed: 4242
 round: 1
 source: game
-ticks: 176
-hash: {profile: mcfr-content-0.7.0, result: 2092480f02ee0329b3d7e247c6a0b9e07caf30b68fe673e93e083a5c46a73d3a}
+ticks: 180
+hash: {profile: mcfr-content-0.7.0, result: edcb779ed4dcc201080422cc86f827f1b0c08d42f77919f36a905728bb745724}
 blue:
-  core_damage: 200
+  core_damage: 100
   techs:
     centurion: [dual_wield]
   units:
   - {name: centurion, index: 0, position: {x: 5, y: -45}, exp: 0/200/2250}
 red:
   units:
-  - {name: marksman, index: 0, position: {x: -60, y: -120}, exp: 0/150/650}
+  - {name: marksman, index: 0, position: {x: -60, y: -120}, exp: 0/450/650}
   - {name: marksman, index: 1, position: {x: 0, y: -140}}
-  - {name: marksman, index: 2, position: {x: 70, y: -120}, exp: 0/450/650}
+  - {name: marksman, index: 2, position: {x: 70, y: -120}, exp: 0/150/650}

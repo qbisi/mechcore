@@ -243,6 +243,7 @@ impl Simulation {
                     offset_x_q32: x,
                     offset_z_q32: z,
                     climb_target,
+                    aims_at_release: radius == 0,
                     weapon_index: first_weapon + index % weapon_count,
                     skill_slot,
                 });
@@ -443,6 +444,7 @@ impl Simulation {
                 offset_x_q32: x,
                 offset_z_q32: z,
                 climb_target,
+                aims_at_release: false,
                 weapon_index: slot,
                 skill_slot: slot,
             },
@@ -486,7 +488,14 @@ impl Simulation {
                 // up again from its first update: a Farseer's second shot,
                 // which climbs first, still names the point the burst aimed
                 // at when it levels off.
-                let (target_x_q32, target_z_q32) = (pending.target_x_q32, pending.target_z_q32);
+                let (target_x_q32, target_z_q32) = match self
+                    .actors
+                    .get(&pending.target)
+                    .filter(|_| pending.aims_at_release)
+                {
+                    Some(target) => (target.x_q32, target.z_q32),
+                    None => (pending.target_x_q32, pending.target_z_q32),
+                };
                 let climb_q32 =
                     self.projectile_climb_q32(skill_ref, pending.skill_slot, pending.climb_target)?;
                 self.release_projectile_at(

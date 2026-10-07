@@ -9,38 +9,38 @@ map_id: 1032
 seed: 886311192
 round: 2
 source: game
-ticks: 1520
-hash: {profile: mcfr-content-0.7.0, result: a937d387e14c4650319b09b4e56fcbeb34dcc8549cf74f958cf626da165fe146}
+ticks: 1493
+hash: {profile: mcfr-content-0.7.0, result: a653e59710e539f8807171cd3660e2f887744f1e8189e6fef282cdb9122055d3}
 blue:
+  core_damage: 300
   officers: [giant_specialist]
   legacy_index: 7
   units:
   - {name: void_eye, index: 1, position: {x: 150, y: -120}, exp: 70/135/650}
-  - {name: void_eye, index: 2, position: {x: -140, y: -110}, exp: 55/537/650, rotated: true}
-  - {name: tarantula, index: 3, position: {x: -135, y: -145}, exp: 131/414/1500}
+  - {name: void_eye, index: 2, position: {x: -140, y: -110}, exp: 55/405/650, rotated: true}
+  - {name: tarantula, index: 3, position: {x: -135, y: -145}, exp: 131/339/1500}
   - {name: tarantula, index: 4, position: {x: 135, y: -145}, exp: 280/439/1500}
-  - {name: fang, index: 5, position: {x: -120, y: -185}, exp: 21/319/600, rotated: true}
+  - {name: fang, index: 5, position: {x: -120, y: -185}, exp: 21/185/600, rotated: true}
   - {name: fang, index: 6, position: {x: 120, y: -185}, exp: 411/465/600, rotated: true}
-  - {name: sabertooth, index: 7, position: {x: -85, y: -145}, exp: 0/1265/1300}
+  - {name: sabertooth, index: 7, position: {x: -85, y: -145}, exp: 0/1106/1300}
   - {name: crawler, index: 8, position: {x: 140, y: -205}, exp: 0/30/450, rotated: true}
   - {name: crawler, index: 9, position: {x: -140, y: -205}, exp: 0/38/450, rotated: true}
-  - {name: fang, index: 10, position: {x: -180, y: -115}, exp: 0/157/600, rotated: true}
+  - {name: fang, index: 10, position: {x: -180, y: -115}, exp: 0/257/600, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
 red:
-  core_damage: 275
   officers: [speed_specialist]
   legacy_index: 7
   units:
   - {name: vortex, index: 1, position: {x: 140, y: -150}, exp: 536/691/750}
   - {name: vortex, index: 2, position: {x: -140, y: -150}, exp: 687/750/750}
-  - {name: tarantula, index: 3, position: {x: -95, y: -135}, exp: 93/1080/1500}
+  - {name: tarantula, index: 3, position: {x: -95, y: -135}, exp: 93/1330/1500}
   - {name: tarantula, index: 4, position: {x: 95, y: -135}, exp: 711/873/1500}
   - {name: crawler, index: 5, position: {x: 135, y: -190}, exp: 19/46/450}
   - {name: crawler, index: 6, position: {x: -135, y: -190}, exp: 27/77/450}
-  - {name: phoenix, index: 7, position: {x: 180, y: -210}, exp: 0/166/1300}
-  - {name: centurion, index: 8, position: {x: -115, y: -165}, exp: 0/622/2250}
+  - {name: phoenix, index: 7, position: {x: 180, y: -210}, exp: 0/566/1300}
+  - {name: centurion, index: 8, position: {x: -115, y: -165}, exp: 0/458/2250}
   - {name: crawler, index: 9, position: {x: 0, y: -205}, exp: 0/73/450, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}

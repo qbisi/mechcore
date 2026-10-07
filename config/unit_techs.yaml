@@ -329,7 +329,7 @@ units:
       - {id: 5532, supply: 100}
       - {id: 10232, supply: 300}
       - {id: 110321, supply: 300}
-      - {id: 110322, supply: 200}
+      - {id: 110322, supply: 250}
   - type: mountain
     unit_id: 2002
     technologies:

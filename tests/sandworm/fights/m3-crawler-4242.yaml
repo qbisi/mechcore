@@ -5,8 +5,8 @@ map_id: 1021
 seed: 4242
 round: 1
 source: game
-ticks: 266
-hash: {profile: mcfr-content-0.7.0, result: b43debc02f04c597ae8550da0a6ddb8bb949f6535711268e24aba04ba0f99f0e}
+ticks: 285
+hash: {profile: mcfr-content-0.7.0, result: 3603344e343d0f2ffdbfa457c3903b57115a240f2004e8d2c740b786cea314b8}
 blue:
   units:
   - {name: sandworm, index: 0, position: {x: 0, y: -100}, exp: 0/192/2000}
