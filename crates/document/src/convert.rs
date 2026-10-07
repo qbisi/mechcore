@@ -154,7 +154,7 @@ pub fn match_from_grbr(grbr: &[u8]) -> Result<Match, String> {
     // opening round's snapshot carries. `crate::opening` rebuilds them.
     let dealt = opening_offers(economy, &record.match_rounds.entries[0])?;
 
-    check_concession(&turns)?;
+    settle_concession(&mut turns)?;
 
     Ok(Match {
         game_build: crate::economy::game_build().to_owned(),
@@ -421,41 +421,37 @@ fn opening_offers(economy: &Economy, round: &record::MatchRound) -> Result<openi
     opening::deal(economy, &mut stream)
 }
 
-/// Refuses a replay whose concession does not end it.
+/// Lets a concession stand for its side's whole round.
 ///
 /// `PAD_GiveUp` is the one recorded action that overrides `IsExitMatchAction`,
-/// and the override returns true unconditionally: it leaves the match. So a
-/// match holds at most one, as the last decision its side takes in the last
-/// round.
+/// and the override returns true unconditionally: it leaves the match. A
+/// replay may still record decisions of the conceding side around it in the
+/// same round, which no fight follows; the concession replaces them all, and
+/// the round is not fought.
 ///
 /// # Errors
 ///
-/// Returns an error when a side decides after conceding, a round follows a
-/// concession, or more than one side concedes.
-fn check_concession(turns: &[Turn]) -> Result<(), String> {
+/// Returns an error when a round follows a concession, or more than one side
+/// concedes.
+fn settle_concession(turns: &mut [Turn]) -> Result<(), String> {
+    let last = turns.len().saturating_sub(1);
     let mut conceded = 0;
-    for (at, turn) in turns.iter().enumerate() {
-        for (side, actions) in [("blue", &turn.actions.blue), ("red", &turn.actions.red)] {
-            let count = actions
-                .iter()
-                .filter(|action| matches!(action, Action::Concede))
-                .count();
-            if count == 0 {
+    for (at, turn) in turns.iter_mut().enumerate() {
+        for (side, actions) in [
+            ("blue", &mut turn.actions.blue),
+            ("red", &mut turn.actions.red),
+        ] {
+            if !actions.contains(&Action::Concede) {
                 continue;
             }
-            conceded += count;
-            if actions.last() != Some(&Action::Concede) {
-                return Err(format!(
-                    "round {} {side} decides after conceding",
-                    turn.round
-                ));
-            }
-            if at + 1 != turns.len() {
+            conceded += 1;
+            if at != last {
                 return Err(format!(
                     "round {} {side} concedes, and the replay continues",
                     turn.round
                 ));
             }
+            *actions = vec![Action::Concede];
         }
     }
     if conceded > 1 {
