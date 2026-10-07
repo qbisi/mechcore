@@ -18,6 +18,7 @@ written down a second time.
     python3 scripts/corpus/fight-coverage.py [--binary target/release/mechcore]
 
 A round the projection itself refuses is reported rather than skipped silently.
+A round in which a side concedes is not counted: the match ends with it, unfought.
 
 Two more views group the same refusals. *By system* owes a member refusal to
 the build list it comes from, since one mechanism clears the whole list, and a
@@ -140,8 +141,17 @@ def named(what: str, owner: str) -> str:
     return f"{what} ({owner})" if what != owner else what.split(", and ")[0]
 
 
-def rounds_of(match_doc: pathlib.Path) -> int:
-    return sum(1 for line in match_doc.read_text().splitlines() if line == "kind: state")
+def rounds_of(match_doc: pathlib.Path) -> list[int]:
+    """The rounds a match states, less the one a side concedes: a concession
+    ends the match with no fight."""
+    text = match_doc.read_text()
+    stated = sum(1 for line in text.splitlines() if line == "kind: state")
+    conceded = set()
+    for segment in re.split(r"^---$", text, flags=re.MULTILINE):
+        found = re.match(r"\s*kind: action\nround: (\d+)$", segment, flags=re.MULTILINE)
+        if found and re.search(r"^- \{type: concede\}$", segment, flags=re.MULTILINE):
+            conceded.add(int(found.group(1)))
+    return [number for number in range(1, stated + 1) if number not in conceded]
 
 
 def main() -> int:
@@ -162,7 +172,7 @@ def main() -> int:
         layout = pathlib.Path(room) / "deployment.yaml"
         matches = REPOSITORY / (arguments.matches or f"work/match/{build_data.configured_build()}")
         for match_doc in sorted(matches.glob("*.yaml")):
-            for round_number in range(1, rounds_of(match_doc) + 1):
+            for round_number in rounds_of(match_doc):
                 projected = subprocess.run(
                     [binary, "convert", match_doc, "--to", "layout", "--round", str(round_number),
                      layout, "--force"],

@@ -545,8 +545,11 @@ and conversion does not simulate one.
 
 A concession is the exception that needs no fight. The side's decision list ends
 with `concede`, and the match ends with that segment. At most one concession
-exists, because the first one ends the match. A replay in which a side decides
-after conceding, a round follows a concession, or both sides concede is refused.
+exists, because the first one ends the match. A replay may record decisions of
+the conceding side before or after its concession in that round; conversion
+writes the concession as that side's only decision, since no fight follows it.
+A replay in which a round follows a concession, or both sides concede, is
+refused.
 
 ### What conversion rebuilds
 

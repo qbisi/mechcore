@@ -15,7 +15,7 @@ here make the corpus, fetch it, and read it:
 | `verify-matches.py` | runs `mechcore verify` over those matches, adds up the transition coverage, and lists every round the simulator fights whose result differs from the match, with whether `tests/corpus/fights/` pins it |
 | `match-replays.py` | fights every round of both replays, the corpus's and the one its match writes, in the game, and compares the two |
 | `corpus-fights.py` | fights every corpus round in the game into the fight document it records, under `work/fight/<version>/`, each a fixture candidate for `tests/corpus/`; it needs the game |
-| `fight-coverage.py` | how many recorded rounds the simulator fights, and what it names as missing for the rest, by refusal, by system and by layout field |
+| `fight-coverage.py` | how many recorded rounds the simulator fights, a round a side concedes left out, and what it names as missing for the rest, by refusal, by system and by layout field |
 | `distance-report.py` | the two reports above as one Markdown table, beside an earlier commit's, with the rounds fought wrong and which of them the change brings or fixes |
 
 The test suite and the gate read no replay: the converter is not bound to
