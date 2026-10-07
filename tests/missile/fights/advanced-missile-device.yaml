@@ -12,7 +12,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 259
-hash: {profile: mcfr-content-0.7.0, result: f4bb26d9d7d2490a29bba6eac2d54515f43aff3744aab084004f7028e70de813}
+hash: {profile: mcfr-content-0.7.0, result: 7fac91f2f8b2f1f784f112a14449e5846e01092db712b5900e3e604e1eb0fe5c}
 blue:
   core_damage: 224
   officers: [advanced_missile_device]

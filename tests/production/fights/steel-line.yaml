@@ -9,7 +9,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 344
-hash: {profile: mcfr-content-0.7.0, result: 62322b120dcb64a1e11247a91d441c99dddcdfa10c803c1415a9f446d39c141e}
+hash: {profile: mcfr-content-0.7.0, result: 87bb9cd0e183b116e3421dd2d5526aebad57ef7432fabb873e37384cff72ea47}
 blue:
   units:
   - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/400/1600, equipment: [steel_ball_production_line]}

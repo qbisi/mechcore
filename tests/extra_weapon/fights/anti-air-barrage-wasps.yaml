@@ -13,7 +13,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 664
-hash: {profile: mcfr-content-0.7.0, result: a7a7e11e0adc90534a4ed9e8790da8bf3c47c7706b4d549e50ef7fb5569af83c}
+hash: {profile: mcfr-content-0.7.0, result: 8908539e365715707ac3bbc7a6971dcdb7bfbc2937d567d1fe5278f0a41cd51e}
 blue:
   techs:
     fortress: [anti_air_barrage]

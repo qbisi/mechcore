@@ -8,7 +8,7 @@ seed: 2020722719
 round: 3
 source: game
 ticks: 1267
-hash: {profile: mcfr-content-0.7.0, result: bf29b853ba6408f2a1de2aed688baaf84ec616ebeac708438f7f7a9809da164f}
+hash: {profile: mcfr-content-0.7.0, result: 166401439a53948f968cd1784d44b62eddb66cdef3b0a1e7766964e2dfb61b04}
 blue:
   core_damage: 952
   officers: [fortified_specialist]

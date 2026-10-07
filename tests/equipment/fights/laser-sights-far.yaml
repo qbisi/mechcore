@@ -17,7 +17,7 @@ seed: 1787720817
 round: 1
 source: game
 ticks: 140
-hash: {profile: mcfr-content-0.7.0, result: 885538becfc2f454b5658a108e16055aea440713b4968e1e4ebf1f941a06e784}
+hash: {profile: mcfr-content-0.7.0, result: 16b71f011aba4a4db7198ee26508d86778dc5503402ded9b8a1fce4e98b8397f}
 blue:
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 0/200/650, equipment: [laser_sights]}

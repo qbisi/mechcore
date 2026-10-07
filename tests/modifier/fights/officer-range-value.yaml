@@ -16,7 +16,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 137
-hash: {profile: mcfr-content-0.7.0, result: 974c22a7aa6b1199507a4e25888afc8bd7c312e70b2b3132063e8f16f3140187}
+hash: {profile: mcfr-content-0.7.0, result: 7687c636c415b9d34d57584c3b6d65aa07ff2b8265c56ee5783b8981aa72b204}
 blue:
   core_damage: 200
   officers: [extended_range_arclight]

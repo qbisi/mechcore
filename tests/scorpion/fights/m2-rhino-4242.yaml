@@ -6,7 +6,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 183
-hash: {profile: mcfr-content-0.7.0, result: 82c5a1351e215013c4b370116c0fdaaf2acf06c4bf50523a2c97f267740d7588}
+hash: {profile: mcfr-content-0.7.0, result: 59d57f498211d2006ba862c320e3e934932176795aa7ea4246fde127cf20187c}
 blue:
   units:
   - {name: scorpion, index: 0, position: {x: -5, y: -105}, exp: 0/400/1500}

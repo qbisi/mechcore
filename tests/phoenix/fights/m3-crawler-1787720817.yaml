@@ -6,7 +6,7 @@ seed: 1787720817
 round: 1
 source: game
 ticks: 462
-hash: {profile: mcfr-content-0.7.0, result: 7f9cdb4d24fd16df787998e9668cfae7faca4ac7525fd9a83aa90add32ab58f9}
+hash: {profile: mcfr-content-0.7.0, result: 6f98b6976f159d692182ac010f1251c1c9a70747ffb1a433f35e7808b253997f}
 blue:
   units:
   - {name: phoenix, index: 0, position: {x: 0, y: -180}, exp: 0/56/1300}

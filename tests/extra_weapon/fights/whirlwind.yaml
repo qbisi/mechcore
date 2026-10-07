@@ -14,7 +14,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 127
-hash: {profile: mcfr-content-0.7.0, result: 9020906f08262f49eddef54a8fe6a968167d877dace606ea36b271dd30f62c2d}
+hash: {profile: mcfr-content-0.7.0, result: 5783f32175cc58c3eb6bb4bfd972936fe5991e78fd157fd5a12e1c6645584ee9}
 blue:
   techs:
     rhino: [whirlwind]

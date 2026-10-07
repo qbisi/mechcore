@@ -12,7 +12,7 @@ seed: 953550766
 round: 4
 source: game
 ticks: 816
-hash: {profile: mcfr-content-0.7.0, result: 78cbbf0f445ecdf161cfd9e7047009eed53a6e6b02e75b4ffc4c3688b4874d52}
+hash: {profile: mcfr-content-0.7.0, result: 8f5e8180db1e3e31ab5283d0117423fa967443c390f1b095cefb4180e88b2dff}
 blue:
   officers: [quick_supply_specialist]
   techs:

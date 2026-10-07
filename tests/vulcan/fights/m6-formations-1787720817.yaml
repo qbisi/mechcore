@@ -7,7 +7,7 @@ seed: 1787720817
 round: 1
 source: game
 ticks: 264
-hash: {profile: mcfr-content-0.7.0, result: 3de8cf971998f96717977ea959c32cd3b02c06855ee43262fba60924175b0510}
+hash: {profile: mcfr-content-0.7.0, result: a52dd14b979d2539202f0496c686e42d1c938a1b0f72c53eb18fcbbf109855f2}
 blue:
   units:
   - {name: vulcan, index: 0, position: {x: 0, y: -130}}

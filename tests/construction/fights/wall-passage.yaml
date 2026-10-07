@@ -25,7 +25,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 341
-hash: {profile: mcfr-content-0.7.0, result: 8981b6798c2d5e51e61a57a61e2b44bd68b3204daf8383fd1d958625ad0e5e91}
+hash: {profile: mcfr-content-0.7.0, result: 2bbe9122eb61afa6016e460ec271ba372ad9ddace55fe8984bc104ac2ddd2037}
 blue:
   units:
   - {name: crawler, index: 0, position: {x: -145, y: -100}, exp: 0/200/450}
