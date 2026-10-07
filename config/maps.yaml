@@ -12,6 +12,29 @@ maps:
   1031: map_1V1Desert_default
   1032: map_1V1Desert_default
 
+# The layout each map data lays its territories out by.
+layouts:
+  map_1V1Desert_default: map_layout_1V1_default
+  map_1V1Grass: map_layout_1V1_default
+  map_1V1MilitaryBase: map_layout_1V1_default
+
+# Each layout's territories, one per seat in seat order: the id of its
+# main region, and every region by id with its rectangle in world
+# metres (least corner and size), the way it faces and the round it
+# opens.
+map_layouts:
+  map_layout_1V1_default:
+    - main_region: 1
+      regions:
+        - {id: 1, x_min: -300, y_min: -310, width: 600, height: 300, facing: forward, active_round: 2}
+        - {id: 2, x_min: -360, y_min: 10, width: 60, height: 300, facing: right, active_round: 2}
+        - {id: 3, x_min: 300, y_min: 10, width: 60, height: 300, facing: left, active_round: 2}
+    - main_region: 4
+      regions:
+        - {id: 4, x_min: -300, y_min: 10, width: 600, height: 300, facing: back, active_round: 2}
+        - {id: 5, x_min: -360, y_min: -310, width: 60, height: 300, facing: right, active_round: 2}
+        - {id: 6, x_min: 300, y_min: -310, width: 60, height: 300, facing: left, active_round: 2}
+
 # Each map data's buildings in the order the game creates them: a
 # tower, config/towers.yaml's, by team and type and where it stands in
 # metres; a neutral crystal that runs an RVO controller by its centre,

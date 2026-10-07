@@ -20,6 +20,12 @@ in the order `FightBuildingLoader.Load` creates them:
 A position and a radius are the FPoint Q32.32 raw integers the build stores,
 because a crystal stands at fractions of a metre. `docs/rules/map.md` states
 what a crystal does in a fight.
+
+A map data also names its `MapLayout` (`layoutName`): one `PlayerTerritory`
+per seat, each a main region and the regions beside it. A region is a
+`MapRegion`: an id, a rectangle in whole world metres (`MapRect`, its least
+corner and its size), the way it faces (`Facing`), and the round it opens
+(`activeRound`). `docs/rules/map.md` states what the regions are.
 """
 
 import pathlib
@@ -32,6 +38,7 @@ from extract_opening import MAPS  # noqa: E402
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 OUTPUT = ROOT / "config/maps.yaml"
 ONE = 1 << 32
+FACINGS = ["forward", "right", "back", "left"]
 
 
 def raw(value):
@@ -43,7 +50,6 @@ def render(structure):
     missing = [map_id for map_id in MAPS if map_id not in settings]
     if missing:
         raise SystemExit(f"matchSettings holds no row for {missing}")
-    all_data = build_data.shared("MapData")
     lines = [
         "schema: mechcore.maps",
         "",
@@ -62,6 +68,45 @@ def render(structure):
             names.append(name)
     lines += [
         "",
+        "# The layout each map data lays its territories out by.",
+        "layouts:",
+    ]
+    all_data = build_data.shared("MapData")
+    layouts = []
+    for name in names:
+        if name not in all_data:
+            raise SystemExit(f"sharedassets0 holds no MapData {name}")
+        layout = all_data[name]["layoutName"]
+        lines.append(f"  {name}: {layout}")
+        if layout not in layouts:
+            layouts.append(layout)
+    lines += [
+        "",
+        "# Each layout's territories, one per seat in seat order: the id of its",
+        "# main region, and every region by id with its rectangle in world",
+        "# metres (least corner and size), the way it faces and the round it",
+        "# opens.",
+        "map_layouts:",
+    ]
+    all_layouts = build_data.shared("MapLayout")
+    for layout in layouts:
+        if layout not in all_layouts:
+            raise SystemExit(f"sharedassets0 holds no MapLayout {layout}")
+        lines.append(f"  {layout}:")
+        for territory in all_layouts[layout]["playerTerritories"]:
+            if territory["useCustomStartPosition"]:
+                raise SystemExit(f"{layout} starts a territory at a custom position")
+            lines.append(f"    - main_region: {territory['mainRegionID']}")
+            lines.append("      regions:")
+            for region in territory["regions"]:
+                rect = region["bound"]["rect"]
+                lines.append(
+                    f"        - {{id: {region['id']}, x_min: {rect['m_XMin']}, y_min: {rect['m_YMin']}, "
+                    f"width: {rect['m_Width']}, height: {rect['m_Height']}, "
+                    f"facing: {FACINGS[region['facing']]}, active_round: {region['activeRound']}}}"
+                )
+    lines += [
+        "",
         "# Each map data's buildings in the order the game creates them: a",
         "# tower, config/towers.yaml's, by team and type and where it stands in",
         "# metres; a neutral crystal that runs an RVO controller by its centre,",
@@ -69,8 +114,6 @@ def render(structure):
         "map_data:",
     ]
     for name in names:
-        if name not in all_data:
-            raise SystemExit(f"sharedassets0 holds no MapData {name}")
         rows = all_data[name]["buildingDatas"]
         if [row["index"] for row in rows] != list(range(len(rows))):
             raise SystemExit(f"{name} does not list its buildings in index order")

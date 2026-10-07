@@ -678,6 +678,11 @@ pub(crate) struct MapsConfig {
     schema: String,
     /// The map data each map id plays on; several share one.
     maps: BTreeMap<i32, String>,
+    /// The `MapLayout` each map data lays its territories out by.
+    layouts: BTreeMap<String, String>,
+    /// Each layout's territories, one per seat. The fight reads none of it;
+    /// the board does (`docs/rules/map.md`).
+    map_layouts: BTreeMap<String, serde_yaml::Value>,
     /// Each map data's buildings, in the order `FightBuildingLoader.Load`
     /// creates them.
     map_data: BTreeMap<String, Vec<MapBuilding>>,
@@ -873,6 +878,15 @@ impl MapsConfig {
             })
             .collect::<Vec<_>>();
         for (map_id, name) in &self.maps {
+            if !self
+                .layouts
+                .get(name)
+                .is_some_and(|layout| self.map_layouts.contains_key(layout))
+            {
+                return Err(Error::new(format!(
+                    "map {map_id} names map data {name}, whose layout is not in the config"
+                )));
+            }
             let buildings = self.map_data.get(name).ok_or_else(|| {
                 Error::new(format!(
                     "map {map_id} names map data {name}, which is not in the config"
