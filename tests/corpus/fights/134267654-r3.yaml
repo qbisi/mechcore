@@ -8,7 +8,7 @@ seed: 1804683452
 round: 3
 source: game
 ticks: 1816
-hash: {profile: mcfr-content-0.7.0, result: 0758cff2da6a71901bd7c52c8e716754cf4e96b498743c19cd939ba4e93aee3d}
+hash: {profile: mcfr-content-0.7.0, result: eb55f8b01fb4a810540bb451ceeb438afc54a7d2931c02f413531616c0c8046d}
 blue:
   officers: [speed_specialist]
   techs:

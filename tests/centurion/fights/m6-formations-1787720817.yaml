@@ -6,14 +6,14 @@ map_id: 1021
 seed: 1787720817
 round: 1
 source: game
-ticks: 421
-hash: {profile: mcfr-content-0.7.0, result: 9a679e7202fcca563c10bb1257da3a122637569a162fea9e3e2086253bd66620}
+ticks: 420
+hash: {profile: mcfr-content-0.7.0, result: 2bba763eb5b35be19f99ffa646aea53bae648d1b93462d520c35ebdb7ecb2fa8}
 blue:
   units:
-  - {name: centurion, index: 0, position: {x: -5, y: -125}, exp: 0/282/2250}
-  - {name: centurion, index: 1, position: {x: -5, y: -85}, exp: 0/110/2250}
+  - {name: centurion, index: 0, position: {x: -5, y: -125}, exp: 0/266/2250}
+  - {name: centurion, index: 1, position: {x: -5, y: -85}, exp: 0/126/2250}
 red:
   core_damage: 250
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -70}, exp: 0/450/450}
-  - {name: marksman, index: 1, position: {x: 0, y: -110}, exp: 0/150/650}
+  - {name: crawler, index: 0, position: {x: 5, y: -70}}
+  - {name: marksman, index: 1, position: {x: 0, y: -110}, exp: 0/600/650}

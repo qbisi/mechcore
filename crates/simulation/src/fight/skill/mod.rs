@@ -38,6 +38,12 @@ pub(in crate::fight) struct PendingProjectileRelease {
     /// Where the burst's target stood when it began, which each
     /// projectile's climb is measured to.
     pub(in crate::fight) climb_target: (i64, i64, i64),
+    /// Whether it leaves for where its target stands as it is released, not
+    /// where the burst aimed it: a burst with no target offset draws no
+    /// points as it begins. A Centurion's second Homing Missile, a quarter
+    /// second after the first, leaves for where its target stood the tick
+    /// before, and the first for where it stood as the burst began.
+    pub(in crate::fight) aims_at_release: bool,
     pub(in crate::fight) weapon_index: usize,
     /// The skill of the unit that fires it: a standalone weapon's own.
     pub(in crate::fight) skill_slot: usize,

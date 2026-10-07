@@ -495,14 +495,17 @@ burst aimed it at when it began.
 over everything within the splash of where it lands, and only a hit without
 one as `PerformSingleEffect` on what it was aimed at, wherever that stands. A
 projectile that follows its target lands its offset from it, so one whose
-offset passes its splash misses: a Centurion's Homing Missile, landing up to
-20 metres off with a splash of 7, strikes nothing when it lands beyond every
-unit's reach (`tests/extra_weapon/fights/homing-missile.yaml`).
+offset passes its splash misses.
 
 **A projectile leaves for where its burst aimed it.** Every projectile of a
 burst is released toward the target's position when the burst began plus its
 offset; one that follows its target takes the target's position up again from
-its first update, which is why the rule above reads as the live position.
+its first update, which is why the rule above reads as the live position. A
+burst with no offset draws no points as it begins, and each of its projectiles
+leaves for where its target stands as it is released, a dead target where it
+died: a Centurion's second Homing Missile, a quarter second after the first,
+leaves for where its target stood the tick before
+(`tests/extra_weapon/fights/enhanced-range-homing-missile.yaml`).
 
 **Two weapons split a burst's offsets in three dimensions.** Each weapon takes
 the half of the offsets on its side of the line from the weapon to the target,
@@ -802,9 +805,7 @@ fell lands and deals its own damage, and no second damage.
 ## A melee skill's range
 
 **A melee skill reaches its row's range, whatever corrects it.** Its range
-property reads neither the skill's `AttackRangeValue` and rate nor a buff's:
-a Sandworm with Anti-Aerial records the technology's 20 metres and reaches 60,
-its row's.
+property reads neither the skill's `AttackRangeValue` and rate nor a buff's.
 
 ## Ordinary first-attack delay
 
@@ -899,7 +900,12 @@ no projectile is in flight.** A Missile Strike landing among both sides'
 Crawlers, before any unit updates, leaves both teams' counts at zero, and all
 four towers fall on that tick. Two sides that kill each other's last units
 while shots are still in the air end the fight as the drain ends it, with
-their towers standing.
+their towers standing. A side whose last unit dies on the tick a shot in the
+air lands still loses its towers then, the fight ending on the next: a
+Sandworm's blow killing the last Overlord as a tower's shot lands
+(`tests/anti_air/fights/anti-aerial-sandworm.yaml`). Only a fight that waited
+on its shots alone, every last unit gone on an earlier tick, ends with its
+towers standing.
 
 **On the tick a side loses its last unit, a winner's unit that updates after
 that death takes one of the loser's towers.** It searches as it would on any
@@ -1003,8 +1009,7 @@ not the game's native attack-type enum.
   unit, `tests/marksman/fights/` among them.
 - A skill whose row's interval is 0 reads one tick, on the fight's last tick
   too: Spider Mines that outlive the fight,
-  `tests/extra_weapon/fights/spider-mine-outlives-the-fight.yaml`,
-  `tests/corpus/fights/67159970-r7.yaml`.
+  `tests/extra_weapon/fights/spider-mine-outlives-the-fight.yaml`.
 - A grouped skill's slots, their locks and their reach, and a grouped unit's
   core interval: `tests/wraith/fights/`.
 - Each slot's own states, the core leaving its attack while its siblings go
@@ -1151,13 +1156,9 @@ not the game's native attack-type enum.
   `tests/anti_air/fights/anti-aircraft-ammunition-spider-mine.yaml`.
 - A projectile flies at its row's speed with the skill's value added:
   `tests/anti_air/fights/grenade-launcher.yaml`.
-- A melee skill's range reads no correction:
-  `tests/anti_air/fights/anti-aerial-sandworm.yaml`.
 - A second damage strikes what lies around a hit and the hit did not strike:
   `tests/secondary_damage/fights/shockwave-crawlers.yaml` and
-  `tests/secondary_damage/fights/shockwave-marksmen.yaml`; raised by the
-  struck unit's damage taken and not by the attacker's damage rate,
-  `tests/corpus/fights/268447927-r6.yaml`, tick 820.
+  `tests/secondary_damage/fights/shockwave-marksmen.yaml`.
 
 ### Read
 
@@ -1440,6 +1441,16 @@ not the game's native attack-type enum.
 
 ### Not established
 
+- **A projectile's offset beyond its splash.** That one misses every unit
+  follows from the read hit; no pinned fight of this version records it, the
+  Homing Missile that showed it now drawing no offset.
+- **A melee skill's range against a correction.** No pinned fight of this
+  version records a melee skill with a range correction: Anti-Aerial, whose
+  20 metres a Sandworm recorded and did not reach, now raises its damage.
+- **A second damage raised by the struck unit's damage taken and not by the
+  attacker's damage rate.** The corpus round 268447927 round 6 showed it on
+  the previous version; on this one the simulator diverges from the round on
+  tick 236, and it is not pinned.
 - **Why a dead unit's shell deals no second damage.** The corpus round
   268447927 round 7 shows it at tick 197, and the simulator follows it; no
   read call names the check, and no pinned fight records it.

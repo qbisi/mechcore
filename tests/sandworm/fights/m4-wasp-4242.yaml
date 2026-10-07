@@ -6,8 +6,8 @@ map_id: 1021
 seed: 4242
 round: 1
 source: game
-ticks: 1025
-hash: {profile: mcfr-content-0.7.0, result: e07d121fb515eb2f436604ba7514aebeaf1e5320fc16b59c90a3487a8799662d}
+ticks: 1091
+hash: {profile: mcfr-content-0.7.0, result: f932068e26b218ee3601054336251d566dba7c0a3a869a6695941b0f06880306}
 blue:
   core_damage: 612
   units:

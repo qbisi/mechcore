@@ -8,8 +8,8 @@ map_id: 1011
 seed: 718623077
 round: 5
 source: game
-ticks: 863
-hash: {profile: mcfr-content-0.7.0, result: 4f1739293ede73466b36151151056456b762c1e1211b838a09e89ae2260f5f62}
+ticks: 873
+hash: {profile: mcfr-content-0.7.0, result: e2b0b7bbc4f4c40cc7c78858fe4461010266edcd21e0277799f89fcbb4e767eb}
 blue:
   core_damage: 1406
   officers: [training_specialist, mass_production_fire_control_system]
@@ -21,20 +21,20 @@ blue:
   - {name: void_eye, index: 0, position: {x: 50, y: -140}, level: 2, exp: 29/53/1465}
   - {name: void_eye, index: 1, position: {x: -10, y: -140}, level: 2, exp: 96/151/1465}
   - {name: void_eye, index: 2, position: {x: 110, y: -140}, level: 2, exp: 999/1028/1465}
-  - {name: mustang, index: 3, position: {x: 225, y: -240}, level: 2, exp: 0/504/2704}
-  - {name: mustang, index: 4, position: {x: 105, y: -240}, level: 2, exp: 739/1338/2704}
+  - {name: mustang, index: 3, position: {x: 225, y: -240}, level: 2, exp: 0/508/2704}
+  - {name: mustang, index: 4, position: {x: 105, y: -240}, level: 2, exp: 739/1313/2704}
   - {name: crawler, index: 5, position: {x: 140, y: -285}, exp: 397/450/450, rotated: true}
   - {name: crawler, index: 6, position: {x: 140, y: -205}, exp: 239/244/450, rotated: true}
   - {name: marksman, index: 7, position: {x: -120, y: -170}, exp: 444/650/650}
-  - {name: marksman, index: 8, position: {x: -60, y: -170}, exp: 278/349/650}
-  - {name: mustang, index: 9, position: {x: -105, y: -240}, level: 2, exp: 0/715/2704}
+  - {name: marksman, index: 8, position: {x: -60, y: -170}, exp: 278/312/650}
+  - {name: mustang, index: 9, position: {x: -105, y: -240}, level: 2, exp: 0/649/2704}
   - {name: crawler, index: 10, position: {x: -140, y: -205}, exp: 73/84/450, rotated: true}
-  - {name: mustang, index: 11, position: {x: 35, y: -240}, level: 2, exp: 1191/1648/2704, equipment: [secondary_fire_control_system]}
-  - {name: mustang, index: 12, position: {x: -35, y: -240}, level: 2, exp: 1517/2053/2704, equipment: [secondary_fire_control_system]}
+  - {name: mustang, index: 11, position: {x: 35, y: -240}, level: 2, exp: 1191/1675/2704, equipment: [secondary_fire_control_system]}
+  - {name: mustang, index: 12, position: {x: -35, y: -240}, level: 2, exp: 1517/2068/2704, equipment: [secondary_fire_control_system]}
   - {name: crawler, index: 13, position: {x: -140, y: -285}, exp: 75/109/450, rotated: true}
-  - {name: mustang, index: 14, position: {x: -225, y: -240}, exp: 399/769/1200, equipment: [secondary_fire_control_system]}
-  - {name: centurion, index: 15, position: {x: -185, y: -175}, level: 2, exp: 0/149/5070}
-  - {name: centurion, index: 16, position: {x: -95, y: -175}, level: 2, exp: 0/730/5070}
+  - {name: mustang, index: 14, position: {x: -225, y: -240}, exp: 399/766/1200, equipment: [secondary_fire_control_system]}
+  - {name: centurion, index: 15, position: {x: -185, y: -175}, level: 2, exp: 0/155/5070}
+  - {name: centurion, index: 16, position: {x: -95, y: -175}, level: 2, exp: 0/750/5070}
   - {name: void_eye, index: 17, position: {x: -130, y: -140}, exp: 0/47/650}
   - {name: void_eye, index: 18, position: {x: -70, y: -140}, exp: 0/18/650}
   constructions:
@@ -46,25 +46,25 @@ red:
     arclight: [range_enhancement]
   legacy_index: 17
   units:
-  - {name: fang, index: 0, position: {x: -155, y: -120}, exp: 493/556/600}
+  - {name: fang, index: 0, position: {x: -155, y: -120}, exp: 493/573/600}
   - {name: fang, index: 1, position: {x: 155, y: -120}, exp: 400/600/600}
   - {name: fang, index: 2, position: {x: 0, y: -105}, exp: 181/181/600, rotated: true}
-  - {name: steel_ball, index: 3, position: {x: -185, y: -280}, exp: 670/894/1000}
-  - {name: steel_ball, index: 4, position: {x: 185, y: -280}, level: 2, exp: 812/2099/2253}
-  - {name: crawler, index: 5, position: {x: 140, y: -285}, level: 2, exp: 203/533/1014, rotated: true}
+  - {name: steel_ball, index: 3, position: {x: -185, y: -280}, exp: 670/886/1000}
+  - {name: steel_ball, index: 4, position: {x: 185, y: -280}, level: 2, exp: 812/2087/2253}
+  - {name: crawler, index: 5, position: {x: 140, y: -285}, level: 2, exp: 203/530/1014, rotated: true}
   - {name: crawler, index: 6, position: {x: -140, y: -285}, exp: 205/285/450, rotated: true}
   - {name: phantom_ray, index: 7, position: {x: -185, y: -250}, exp: 535/543/1000}
-  - {name: arclight, index: 8, position: {x: -140, y: -150}, level: 3, exp: 0/1356/2671}
-  - {name: arclight, index: 9, position: {x: 0, y: -150}, level: 3, exp: 0/2241/2671}
+  - {name: arclight, index: 8, position: {x: -140, y: -150}, level: 3, exp: 0/1053/2671}
+  - {name: arclight, index: 9, position: {x: 0, y: -150}, level: 3, exp: 0/2547/2671}
   - {name: arclight, index: 10, position: {x: 140, y: -150}, level: 2, exp: 1018/1690/1690}
   - {name: sabertooth, index: 11, position: {x: -175, y: -165}, exp: 424/503/1300}
-  - {name: crawler, index: 12, position: {x: 260, y: -285}, level: 2, exp: 392/856/1014, rotated: true}
+  - {name: crawler, index: 12, position: {x: 260, y: -285}, level: 2, exp: 392/845/1014, rotated: true}
   - {name: crawler, index: 13, position: {x: -260, y: -285}, exp: 272/450/450, rotated: true}
   - {name: arclight, index: 14, position: {x: -270, y: -170}, exp: 736/750/750}
   - {name: crawler, index: 15, position: {x: 0, y: -285}, exp: 36/45/450, rotated: true}
   - {name: arclight, index: 16, position: {x: 270, y: -170}, exp: 242/750/750}
-  - {name: vulcan, index: 17, position: {x: -100, y: -160}, level: 2, exp: 0/2999/5453}
-  - {name: vulcan, index: 18, position: {x: 100, y: -160}, exp: 0/990/2200}
+  - {name: vulcan, index: 17, position: {x: -100, y: -160}, level: 2, exp: 0/2945/5453}
+  - {name: vulcan, index: 18, position: {x: 100, y: -160}, exp: 0/1092/2200}
   - {name: crawler, index: 19, position: {x: -140, y: -235}, exp: 0/19/450, rotated: true}
   - {name: crawler, index: 20, position: {x: 140, y: -235}, exp: 0/16/450, rotated: true}
   constructions:

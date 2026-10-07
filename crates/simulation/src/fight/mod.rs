@@ -670,12 +670,8 @@ impl Simulation {
             // The fight ends on this tick, and every mech has left it
             // (`MotionController.ExitFight`) before any updates: a Sandworm
             // still underground is cleared and stands where it was.
-            for id in self.actors.keys().copied().collect::<Vec<_>>() {
-                let attack_range = self.main_attack_range(id);
-                self.actors
-                    .get_mut(&id)
-                    .expect("actor identity is stable")
-                    .exit_fight_move_ability(attack_range);
+            for actor in self.actors.values_mut() {
+                actor.exit_fight_move_ability();
             }
         }
         let winner_was_decided = self.winner().is_some();
@@ -835,8 +831,17 @@ impl Simulation {
         // Its `TryProcessDeadImportantUnit` too: a side whose last important
         // unit died this tick loses every unit it has left.
         self.lose_important_units(&events)?;
-        let projectile_finished_fight =
-            !naturally_finished_before_projectiles && self.naturally_finished();
+        // A side whose last unit died this tick loses its towers even when
+        // a shot landing on the same tick is what leaves the fight finished:
+        // a Sandworm's blow that kills the last Overlord as a tower's shot
+        // lands. Only a fight that waited on its shots alone, its last unit
+        // gone earlier, drains without them.
+        let unit_died_this_tick = events
+            .iter()
+            .any(|event| matches!(&event.payload, EventPayload::UnitDied { .. }));
+        let projectile_finished_fight = !naturally_finished_before_projectiles
+            && self.naturally_finished()
+            && !unit_died_this_tick;
         // `FightingState.Update` runs `FightCoreSystem.TryDstroyTower` after
         // every module has updated: a side that has lost its last unit loses
         // its towers on that tick, whatever dealt the last blow, and their
@@ -877,12 +882,6 @@ impl Simulation {
         let ready_to_finish = self.ready_to_finish();
         let stop_fight = ready_to_finish || winner_was_decided;
         if stop_fight {
-            // Each unit's lock as the fight stops is what its range reads.
-            let attack_ranges = self
-                .actors
-                .keys()
-                .map(|&id| (id, self.main_attack_range(id)))
-                .collect::<BTreeMap<_, _>>();
             for actor in self.actors.values_mut() {
                 // Every motion loses its target: one without a command enters
                 // `MotionIdleState`, whose `Enter` asks `StopMove`, so a unit
@@ -900,7 +899,7 @@ impl Simulation {
                         .as_ref()
                         .is_some_and(|underground| underground.below);
                 if ready_to_finish {
-                    actor.exit_fight_move_ability(attack_ranges[&actor.placement.unit_id]);
+                    actor.exit_fight_move_ability();
                     actor.stop_in_place(entered_idle);
                     // Leaving the fight drops the unit's own lock too.
                     if let Some(group) = &mut actor.skills.main.group {

@@ -2,7 +2,7 @@
 #
 # A Centurion with Dual Wield against three Marksmen. The side arm fires in
 # turn with the main gun: it begins a blow 0.2 seconds, four ticks, after the
-# main gun begins one (t136, its prepare from t140), and the main gun waits
+# main gun begins one, and the main gun waits
 # for it in turn. Its first search finds no other Marksman in its reach
 # within 40 metres of the main gun's lock, so it takes that lock and keeps it
 # while it suits.
@@ -12,8 +12,8 @@ map_id: 1021
 seed: 4242
 round: 1
 source: game
-ticks: 174
-hash: {profile: mcfr-content-0.7.0, result: 9327b0c979661f95da20799c5115b085490189acf848ea554e8398b70bec277f}
+ticks: 182
+hash: {profile: mcfr-content-0.7.0, result: aa0ed99543546a9e7b2502e8f521ce65ce5ce75fb8875bf30a15ba1af1d385f2}
 blue:
   core_damage: 200
   techs:
@@ -23,5 +23,5 @@ blue:
 red:
   units:
   - {name: marksman, index: 0, position: {x: -20, y: -130}}
-  - {name: marksman, index: 1, position: {x: 0, y: -140}, exp: 0/150/650}
-  - {name: marksman, index: 2, position: {x: 30, y: -130}, exp: 0/450/650}
+  - {name: marksman, index: 1, position: {x: 0, y: -140}, exp: 0/450/650}
+  - {name: marksman, index: 2, position: {x: 30, y: -130}, exp: 0/150/650}

@@ -1,18 +1,17 @@
-# Homing Missile: a Centurion's four missiles beside its main gun.
+# Homing Missile: a Centurion's two missiles beside its main gun.
 #
-# A Centurion with Homing Missile against three Marksmen. Every five seconds
-# its missile skill fires four missiles a quarter of a second apart, each
-# landing its offset of up to 20 metres from its target, which it follows: a
-# missile within its 7 metre splash of a Marksman strikes it for 800, and one
-# beyond every unit's strikes nothing.
+# A Centurion with Homing Missile against three Marksmen. Its missile skill
+# fires two missiles a quarter of a second apart, with no offset, each
+# leaving for where its target stands as it is released and following it;
+# a missile's 2000 kills the Marksman it strikes, at 1622.
 
 kind: fight
 map_id: 1021
 seed: 4242
 round: 1
 source: game
-ticks: 126
-hash: {profile: mcfr-content-0.7.0, result: c919c0aec6248be0e986c1038d5e99f1e2f561fd600a1bce8098a1c4faec64c8}
+ticks: 120
+hash: {profile: mcfr-content-0.7.0, result: 047a70b939626de418ef1f09b6978df3d64363ef062d867106f94972e5b22a26}
 blue:
   techs:
     centurion: [homing_missile]

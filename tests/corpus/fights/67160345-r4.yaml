@@ -11,10 +11,10 @@ map_id: 1031
 seed: 2086664373
 round: 4
 source: game
-ticks: 1342
-hash: {profile: mcfr-content-0.7.0, result: ae299747cddcf44b0ea66b612e8aac2bb8ab9d6c61ac786a6e9a4f14fa1bb024}
+ticks: 1274
+hash: {profile: mcfr-content-0.7.0, result: 7eda1ff31422b2af0926753a5a987aa6530cad80fd596aed8260fdfa3e46fdf3}
 blue:
-  core_damage: 592
+  core_damage: 564
   officers: [cost_control_specialist]
   techs:
     tarantula: [spider_mine]
@@ -25,17 +25,17 @@ blue:
   - {name: vortex, index: 2, position: {x: -140, y: -150}, exp: 440/503/750}
   - {name: tarantula, index: 3, position: {x: 95, y: -135}, exp: 764/842/1500}
   - {name: tarantula, index: 4, position: {x: -95, y: -135}, exp: 790/936/1500}
-  - {name: crawler, index: 5, position: {x: -135, y: -190}, exp: 59/269/450}
+  - {name: crawler, index: 5, position: {x: -135, y: -190}, exp: 59/221/450}
   - {name: crawler, index: 6, position: {x: 135, y: -190}, exp: 439/450/450}
   - {name: vortex, index: 7, position: {x: -190, y: -150}, exp: 188/202/750}
   - {name: vortex, index: 8, position: {x: -90, y: -160}, exp: 255/306/750}
   - {name: crawler, index: 9, position: {x: -290, y: -185}, exp: 450/450/450, rotated: true}
   - {name: crawler, index: 10, position: {x: -335, y: 160}, exp: 16/16/450, rotated: true}
-  - {name: centurion, index: 11, position: {x: -165, y: -165}, exp: 359/1169/2250}
-  - {name: crawler, index: 12, position: {x: -140, y: -225}, exp: 29/165/450, rotated: true}
-  - {name: typhoon, index: 13, position: {x: -180, y: -190}, level: 2, exp: 0/339/4394}
+  - {name: centurion, index: 11, position: {x: -165, y: -165}, exp: 359/1117/2250}
+  - {name: crawler, index: 12, position: {x: -140, y: -225}, exp: 29/185/450, rotated: true}
+  - {name: typhoon, index: 13, position: {x: -180, y: -190}, level: 2, exp: 0/466/4394}
   - {name: centurion, index: 14, position: {x: -115, y: -165}, exp: 0/218/2250}
-  - {name: centurion, index: 15, position: {x: 115, y: -165}, exp: 0/410/2250}
+  - {name: centurion, index: 15, position: {x: 115, y: -165}, exp: 0/490/2250}
   - {name: crawler, index: 16, position: {x: 290, y: -285}, exp: 0/408/450, rotated: true}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
@@ -47,17 +47,17 @@ red:
   blueprints: [attack_enhancement, defense_enhancement]
   legacy_index: 12
   units:
-  - {name: hound, index: 0, position: {x: 70, y: -60}, exp: 38/191/750}
+  - {name: hound, index: 0, position: {x: 70, y: -60}, exp: 38/186/750}
   - {name: hound, index: 1, position: {x: 150, y: -70}, exp: 596/750/750}
   - {name: hound, index: 2, position: {x: 230, y: -70}, exp: 750/750/750}
   - {name: crawler, index: 5, position: {x: 150, y: -35}, exp: 103/113/450, rotated: true}
   - {name: crawler, index: 6, position: {x: 160, y: -175}, exp: 423/450/450, rotated: true}
-  - {name: marksman, index: 7, position: {x: 70, y: -80}, level: 3, exp: 1089/1945/2315}
-  - {name: phantom_ray, index: 8, position: {x: 235, y: -90}, level: 2, exp: 0/831/2253}
+  - {name: marksman, index: 7, position: {x: 70, y: -80}, level: 3, exp: 1089/2245/2315}
+  - {name: phantom_ray, index: 8, position: {x: 235, y: -90}, level: 2, exp: 0/997/2253}
   - {name: crawler, index: 9, position: {x: -140, y: -285}, exp: 450/450/450, rotated: true}
   - {name: phantom_ray, index: 10, position: {x: 35, y: -110}, exp: 974/1000/1000}
-  - {name: fang, index: 11, position: {x: 125, y: -190}, exp: 65/83/600}
-  - {name: typhoon, index: 12, position: {x: 220, y: -180}, level: 2, exp: 0/1877/4394}
+  - {name: fang, index: 11, position: {x: 125, y: -190}, exp: 65/85/600}
+  - {name: typhoon, index: 12, position: {x: 220, y: -180}, level: 2, exp: 0/2142/4394}
   - {name: hound, index: 13, position: {x: 350, y: 290}, exp: 0/120/750, travelling: true}
   - {name: phantom_ray, index: 14, position: {x: 145, y: -100}, exp: 0/1000/1000}
   constructions:

@@ -5,12 +5,12 @@ map_id: 1021
 seed: 1787720817
 round: 1
 source: game
-ticks: 259
-hash: {profile: mcfr-content-0.7.0, result: b9dd33edce4ec2d928890b2661f29a639aeb9e999c75b2eae986b153c9e6d079}
+ticks: 267
+hash: {profile: mcfr-content-0.7.0, result: 5e5bd2daa9c9cdaa9656d7826e1f9590a9667a97b876873dada69f3e9f4b54c9}
 blue:
+  core_damage: 200
   units:
-  - {name: centurion, index: 0, position: {x: -5, y: -105}, exp: 0/400/2250}
+  - {name: centurion, index: 0, position: {x: -5, y: -105}}
 red:
-  core_damage: 250
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/600/1150}

@@ -7,8 +7,8 @@ attacked.
 The four numbers it reads are its `config/units/` file's `underground` block,
 which `scripts/extract/extract-units.py` writes from the unit's `MechData`:
 how long burrowing takes (`enter`), how long surfacing takes (`exit`), how far
-into surfacing it stays hidden (`exit_keep`), and the attack range it is given
-below (`attack_range`).
+into surfacing it stays hidden (`exit_keep`), and how near its lock it
+surfaces (`attack_range`, the row's `undergroundExitRange`).
 
 ## Burrowing and surfacing are transitions of the motion
 
@@ -59,12 +59,15 @@ avoids only what is also underground. Surfacing shows it again once
 `exit_keep` has passed (`NormalExitMoveBehviour`), and its end puts the agent
 back on the ground layer.
 
-**The underground range is written and not read.** `EnterMoveEnd` corrects the
-main skill's `AttackRangeValue` by the underground range less the skill's
-range, and surfacing takes the correction away. `FightSkill.AddData` marks no
-property dirty, so the range every check reads is the one read before: the
-unit surfaces when its target comes into its ordinary range. A recording
-carries the correction among the unit's modifiers.
+**Below, it surfaces at its exit range, not its attack range.** A unit moving
+below does not ask whether its target is in its skill's range:
+`MotionMoveState.Update` asks its ability alone
+(`UndergroundMoveAbility.IsLockTargetInRange`) whether its lock is within the
+exit range, `Distance2D` edge to edge, and if it is changes to attack through
+the ability, which surfaces it; otherwise it walks on, though its target be
+well within its skill's range. Nothing corrects the skill's range. No attack
+starts on the tick it sets off surfacing, so a Sandworm that travelled below
+with its target already in range strikes as soon as it has surfaced.
 
 **A skill starts whatever the motion does.** `SkillIdleState.TryStartAttack`
 starts the attack of a skill whose target is in range from the skill's own
@@ -112,31 +115,15 @@ stands where it was on that tick while every other unit moves.
   of `tests/corpus/fights/201373545-r4.yaml` begins its next attack fifty
   updates after the last began, the twenty ticks of its burrow and the thirty
   of its surfacing not counted.
-- A Sandworm burrows for twenty ticks from its first, its lock dropped and its
-  agent still; it reads hidden, untargetable and corrected by the underground
-  range from the tick it is below, keeps locking from the next, surfaces for
-  thirty ticks once its target is in its ordinary range, shows itself twenty
-  ticks in, and locks and strikes once its attack state is entered:
-  `tests/sandworm/fights/m2-rhino-4242.yaml`, ticks 1 to 142.
-- A Rhino keeps its lock on a Sandworm that burrows and walks on towards it:
-  `tests/sandworm/fights/m2-rhino-4242.yaml`, ticks 21 to 156.
-- Two Sandworms, both below, surface on each other at their ordinary range:
-  `tests/sandworm/fights/m1-mirror-4242.yaml`, tick 101.
-- A Sandworm coming into range from idle enters the one-tick transition and
-  starts its attack as it does, its attack point counted from that tick:
-  `tests/sandworm/fights/m6-formations-4242.yaml`, ticks 145 to 165.
-- A Sandworm moving below turns aside from an ally surfacing in front of it,
-  whose agent is locked: `tests/sandworm/fights/m6-formations-4242.yaml`,
-  ticks 64 to 68.
-- A Marksman whose Sandworm burrows locks it again while the other Sandworm is
-  out of its range, and takes the other as soon as it is in range:
-  `tests/sandworm/fights/m6-formations-4242.yaml`, ticks 228 and 239.
-- A Wasp's shot that arrives as its Sandworm finishes burrowing is spent:
-  `tests/sandworm/fights/m4-wasp-4242.yaml`, tick 410.
-- A Sandworm still below when the fight ends stands still on its last tick and
-  reads visible, idle and uncorrected:
-  `tests/sandworm/fights/m6-formations-4242.yaml`, tick 335;
-  `tests/sandworm/fights/m6-formations-1787720817.yaml`, tick 386.
+- A Sandworm burrows, its lock dropped and its agent still, reads hidden and
+  untargetable below with no range correction, walks on below with its Rhino
+  inside its attack range, surfaces once the Rhino is within its exit range
+  (from tick 108), and strikes it as soon as it is up (tick 160):
+  `tests/sandworm/fights/m2-rhino-4242.yaml`.
+- Burrowing and surfacing, a lock kept on a burrowing Sandworm, Sandworms
+  surfacing on each other, a Sandworm turning aside from an ally surfacing,
+  a shot spent on a burrowed Sandworm, and a Sandworm below as the fight
+  ends, each as above: `tests/sandworm/fights/`, both seeds of each layout.
 
 ### Read
 
@@ -150,6 +137,8 @@ stands where it was on that tick while every other unit moves.
   `MoveAbility.ExitMoveBegin`, `UndergroundMoveAbility.EnterMoveBegin`,
   `UndergroundMoveAbility.EnterMoveEnd`, `UndergroundMoveAbility.DoExitMoveBegin`,
   `UndergroundMoveAbility.DoExitMoveEnd`, `UndergroundMoveAbility.Update`.
+- Surfacing at the exit range: `MotionMoveState.Update`,
+  `UndergroundMoveAbility.IsLockTargetInRange`, `FightTransform.Distance2D`.
 - The skills stopped and held: `SkillManager.Deactive`,
   `SkillManager.Update`, `FightSkill.StopAttack`,
   `SkillIdleState.TryStartAttack`.
@@ -168,9 +157,15 @@ stands where it was on that tick while every other unit moves.
 - **Splash on a hidden unit.** Whether a splash strikes a burrowed unit
   standing in it is not recorded; the simulator strikes it.
 - **A command.** A Sandworm a Mobile Beacon walks has not been recorded.
-- **The underground range made live.** Something that marks the main skill's
-  range property dirty while the Sandworm is below would make its correction
-  read; no recording does.
+- **A skill not idle on the lock.** `IsLockTargetInRange` answers false while
+  any of the unit's skills locked on the lock is not idle, which the simulator
+  does not read: its skill below does not keep the state the build's does.
+- **A new lock taken below.** In the corpus round 268447927 round 6 a
+  Sandworm moving below takes a new lock on tick 236 and walks on, where the
+  simulator leaves it idle without one; why is not read, and the round is not
+  pinned.
+- **A lock within an energy shield.** `IsLockTargetInRange` then measures to
+  the shield's edge; the simulator refuses it by name.
 - **Technology and equipment.** A technology or an equipment that changes the
   move ability (`MoveAbilityDynamicTech`, `BurrowTech`, the surfacing time's
   reduce rate) is not read.

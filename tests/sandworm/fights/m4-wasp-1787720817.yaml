@@ -6,14 +6,14 @@ map_id: 1021
 seed: 1787720817
 round: 1
 source: game
-ticks: 1018
-hash: {profile: mcfr-content-0.7.0, result: 479e23de0cab3f7214191a0a6a58b7c768896c8e0cd43475a577a65339318779}
+ticks: 1101
+hash: {profile: mcfr-content-0.7.0, result: cb44c2efe3fcf50f1c887555e568171097e1aa13bcd2fc55633250b69db34fec}
 blue:
   core_damage: 612
   units:
   - {name: sandworm, index: 0, position: {x: 0, y: -100}, exp: 0/400/2000}
 red:
   units:
-  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/133/900}
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/533/900}
   - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/133/900}
-  - {name: wasp, index: 2, position: {x: 5, y: -180}, exp: 0/533/900}
+  - {name: wasp, index: 2, position: {x: 5, y: -180}, exp: 0/133/900}

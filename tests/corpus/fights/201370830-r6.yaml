@@ -11,8 +11,8 @@ map_id: 1011
 seed: 865572396
 round: 6
 source: game
-ticks: 991
-hash: {profile: mcfr-content-0.7.0, result: 4267116d58cbe9b6e25799a12a40968049074c2d30a0338e8e531a3d39a61c65}
+ticks: 997
+hash: {profile: mcfr-content-0.7.0, result: 957a92e2e01ec0cff788d85936494cced3f23ecf3057819abe076764eeba0c89}
 blue:
   core_damage: 1659
   officers: [elite_specialist, fortified_mustang]
@@ -74,9 +74,9 @@ red:
   - {name: crawler, index: 15, position: {x: -310, y: 255}, exp: 28/88/450}
   - {name: crawler, index: 16, position: {x: -310, y: 175}, exp: 61/137/450}
   - {name: mustang, index: 17, position: {x: 195, y: -240}, exp: 1081/1200/1200}
-  - {name: centurion, index: 18, position: {x: -165, y: -185}, exp: 0/1257/2250}
-  - {name: centurion, index: 19, position: {x: -115, y: -185}, exp: 0/1092/2250}
-  - {name: sledgehammer, index: 20, position: {x: -105, y: -140}, exp: 0/758/1300}
-  - {name: sledgehammer, index: 21, position: {x: -175, y: -140}, exp: 0/1300/1300}
+  - {name: centurion, index: 18, position: {x: -165, y: -185}, exp: 0/1040/2250}
+  - {name: centurion, index: 19, position: {x: -115, y: -185}, exp: 0/2125/2250}
+  - {name: sledgehammer, index: 20, position: {x: -105, y: -140}, exp: 0/742/1300}
+  - {name: sledgehammer, index: 21, position: {x: -175, y: -140}, exp: 0/1123/1300}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
