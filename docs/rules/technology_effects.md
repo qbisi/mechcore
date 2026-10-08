@@ -209,8 +209,8 @@ out, as its unit's buffs go at its first update after it died, or as the fight
 is left and its buffs are cleared. A shot the unit left in the air as it died
 lands with the technologies on again. A summon's technologies are those its
 side's give a unit of its type, as a deployed one's; a dead summon's go with
-it, and nothing comes back. The unit's `status_mask` reads
-`technology_disabled` the while, whether it carries a technology or not.
+it, and nothing comes back. `FightMech.IsTechnologyDisabled` answers true the
+while, whether the unit carries a technology or not.
 
 Switching off is each of the unit's effect providers' `DisableEffect` on each
 of its sources that `CanDisable` (`FightEffectMananger.DisableEffect`), and

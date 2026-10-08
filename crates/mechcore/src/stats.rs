@@ -1,17 +1,10 @@
-//! What a recording holds about a unit's numbers at one tick: the corrections
-//! written onto it, and the numbers the build then computed from them.
+//! What a recording holds about a unit's numbers at one tick: the buffs it
+//! holds, and the numbers the build computed after every correction on it.
 //!
 //! This is not what a fight decided — [`crate::outcome`] answers that, and a
-//! correction is an input to a fight rather than an outcome of one. These are
-//! the two halves of a measurement, and they are one reader because a capture
-//! wants them together: a rate that reads `+0.6` in one channel beside a
-//! damage that reads 1.6 times the description is one fact seen twice, and a
-//! rate that reads `+0.3` twice over is a different one.
-//!
-//! The three channels stay apart because the build keeps them apart and MCFR
-//! records them apart: the unit's own `DataSet`, its skills', and the
-//! `BuffManager`'s aggregate. Which one a correction lands in is half of what
-//! a capture is taken to find out.
+//! correction is an input to a fight rather than an outcome of one. The
+//! corrections a technology, an officer or an equipment writes are not
+//! recorded; the numbers they come to are.
 //!
 //! The default tick is the first, where a correction applied as the fight is
 //! built has landed and nothing the fight does has moved it yet. A mechanism
@@ -20,9 +13,8 @@
 
 use std::{collections::BTreeMap, path::Path};
 
-use mechcore_mcfr::{LiveUnitState, McfrReader, ModifierChannel, ModifierPart, WorldSnapshot};
+use mechcore_mcfr::{BuffDataKind, LiveUnitState, McfrReader, WorldSnapshot};
 use serde::Serialize;
-use serde_json::{Map, Value};
 
 use crate::{
     cli::Failure,
@@ -30,7 +22,7 @@ use crate::{
     turn::Side,
 };
 
-pub(crate) const SCHEMA: &str = "mechcore.fight-stats.v3";
+pub(crate) const SCHEMA: &str = "mechcore.fight-stats.v4";
 
 /// Every correction one tick of a recording holds.
 #[derive(Serialize)]
@@ -61,10 +53,9 @@ struct Formation {
     index: i32,
     name: String,
     /// One reading for each distinct state its standing members are in, in
-    /// the order of the first member in each. A correction handed to the
-    /// formation is written onto every member alike and reads as one; one
-    /// the build hands a single member — a buff it takes on being hit —
-    /// splits that member off rather than being lost behind another.
+    /// the order of the first member in each. A buff the build hands a single
+    /// member, one it takes on being hit, splits that member off rather than
+    /// being lost behind another.
     readings: Vec<Reading>,
 }
 
@@ -73,18 +64,54 @@ struct Formation {
 struct Reading {
     /// The members in this state, by the unit id the recording names them by.
     units: Vec<u64>,
-    /// Whether these members' technologies are switched off, which is the
-    /// state a correction's absence is explained by rather than a correction
-    /// of its own. Electromagnetic interference sets it for as long as it
-    /// lasts. Absent when they are not.
-    #[serde(skip_serializing_if = "std::ops::Not::not")]
-    technologies_disabled: bool,
+    /// The buffs these members hold, in the build's order. Absent when they
+    /// hold none.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    buffs: Vec<HeldBuff>,
     /// The numbers the fight reads, after every correction on them: the
     /// unit's speed, Q32.32, and each of its skills'.
     move_speed: i64,
     skills: Vec<SkillNumbers>,
-    #[serde(flatten)]
-    held: Modifiers,
+}
+
+/// One buff a unit holds: its `buffDatas` row, or the technology that serves
+/// as its own buff data, and its stack when it stacks.
+#[derive(Serialize, Clone, PartialEq)]
+struct HeldBuff {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    buff_id: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    technology_id: Option<u32>,
+    #[serde(skip_serializing_if = "is_zero")]
+    stacks: i32,
+}
+
+impl HeldBuff {
+    fn of(unit: &LiveUnitState) -> Vec<Self> {
+        unit.buffs
+            .iter()
+            .map(|buff| {
+                let id = Some(buff.data.id);
+                let (buff_id, technology_id) = match buff.data.kind {
+                    BuffDataKind::Buff => (id, None),
+                    BuffDataKind::Technology => (None, id),
+                };
+                Self {
+                    buff_id,
+                    technology_id,
+                    stacks: buff.stacks,
+                }
+            })
+            .collect()
+    }
+}
+
+#[allow(
+    clippy::trivially_copy_pass_by_ref,
+    reason = "serde passes a reference"
+)]
+const fn is_zero(value: &i32) -> bool {
+    *value == 0
 }
 
 /// What one skill's own properties answer, by its slot; a skill a buff has
@@ -122,73 +149,7 @@ impl SkillNumbers {
     }
 }
 
-/// What a mechanism wrote onto a unit, as the recording holds it: its
-/// modifiers grouped by where they are written, each field a number for a
-/// value and its non-zero `add` and `reduce` for a rate.
-///
-/// A neutral channel is left out rather than printed as zeroes, so what a
-/// reading says is what was written.
-#[derive(Serialize, Clone, Default, PartialEq)]
-struct Modifiers {
-    #[serde(skip_serializing_if = "Map::is_empty")]
-    buff: Map<String, Value>,
-    #[serde(skip_serializing_if = "Map::is_empty")]
-    unit: Map<String, Value>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    skill: Vec<SkillModifiers>,
-}
-
-#[derive(Serialize, Clone, PartialEq)]
-struct SkillModifiers {
-    skill_slot: u16,
-    modifiers: Map<String, Value>,
-}
-
-impl Modifiers {
-    fn of(unit: &LiveUnitState) -> Self {
-        let mut held = Self::default();
-        for modifier in &unit.modifiers {
-            let fields = match (modifier.channel, modifier.skill_slot) {
-                (ModifierChannel::Buff, _) => &mut held.buff,
-                (channel, Some(slot)) if channel.is_skill() => {
-                    if held
-                        .skill
-                        .last()
-                        .is_none_or(|skill| skill.skill_slot != slot)
-                    {
-                        held.skill.push(SkillModifiers {
-                            skill_slot: slot,
-                            modifiers: Map::new(),
-                        });
-                    }
-                    &mut held.skill.last_mut().expect("just pushed").modifiers
-                }
-                _ => &mut held.unit,
-            };
-            match modifier.part {
-                ModifierPart::Value => {
-                    fields.insert(modifier.field.clone(), Value::from(modifier.value));
-                }
-                ModifierPart::Add | ModifierPart::Reduce => {
-                    let part = if modifier.part == ModifierPart::Add {
-                        "add"
-                    } else {
-                        "reduce"
-                    };
-                    if let Value::Object(parts) = fields
-                        .entry(modifier.field.clone())
-                        .or_insert_with(|| Value::Object(Map::new()))
-                    {
-                        parts.insert(part.to_owned(), Value::from(modifier.value));
-                    }
-                }
-            }
-        }
-        held
-    }
-}
-
-/// Reads one tick of a recording for the corrections it holds.
+/// Reads one tick of a recording for its units' buffs and numbers.
 ///
 /// # Errors
 ///
@@ -251,24 +212,14 @@ fn carried(
         };
         let reading = Reading {
             units: vec![unit.unit_id],
-            technologies_disabled: unit.status_mask & TECHNOLOGY_DISABLED != 0,
+            buffs: HeldBuff::of(unit),
             move_speed: unit.move_speed,
             skills: SkillNumbers::of(unit),
-            held: Modifiers::of(unit),
         };
         let readings = held.entry(*formation).or_default();
         match readings.iter_mut().find(|known| {
-            (
-                known.technologies_disabled,
-                known.move_speed,
-                &known.skills,
-                &known.held,
-            ) == (
-                reading.technologies_disabled,
-                reading.move_speed,
-                &reading.skills,
-                &reading.held,
-            )
+            (&known.buffs, known.move_speed, &known.skills)
+                == (&reading.buffs, reading.move_speed, &reading.skills)
         }) {
             Some(known) => known.units.push(unit.unit_id),
             None => readings.push(reading),
@@ -276,6 +227,3 @@ fn carried(
     }
     held
 }
-
-/// The bit `status_mask` keeps `FightMech.IsTechnologyDisabled` in.
-const TECHNOLOGY_DISABLED: u64 = 1 << 2;

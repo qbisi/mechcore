@@ -2,8 +2,8 @@
 #
 # Red releases it on where blue's Rhino stands. Its sub-effect lands on tick
 # 57 and writes buff 200001 on the Rhino for its full 500 ticks: the move
-# speed falls by 0.4 in the buff channel, and `status_mask` reads
-# technology_disabled from that tick, on a Rhino that carries no technology.
+# speed falls by 0.4 in the buff channel, and its technologies are off from
+# that tick, on a Rhino that carries no technology.
 # The fight ends first, and the buff is cleared on its last tick.
 
 kind: fight

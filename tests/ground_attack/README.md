@@ -10,9 +10,8 @@ Each fight puts a ground technology on the unit that researches it against an
 Arclight and Phoenixes: Ground Specialization on a Wasp squad, and Ground
 Targeting on a Phantom Ray.
 
-A recording holds the technology's numbers in the skill's
-`damage_chagne_rate_ground`, `attack_ground_range_add_value` and
-`attack_range_value_ground` modifiers, and what a search scored in the
+A recording holds the range and damage the technology comes to in each skill's
+`attack_range` and `attack_damage`, and what a search scored in the
 `target_search` and `target_candidate` instrument channels:
 
 ```sh

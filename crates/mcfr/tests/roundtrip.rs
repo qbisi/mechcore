@@ -2,16 +2,16 @@ use std::io::Read;
 
 use bytes::Bytes;
 use mechcore_mcfr::{
-    AttackPhase, BuildingState, CheckedSkill, ControlState, Domain, DurableContext, EnabledSkill,
-    Event, EventPayload, ExpRange, GaugeI32, HASH_PROFILE, Hashes, LiveUnitState, MCFR_FORMAT,
-    McfrReader, McfrWriter, Modifier, ModifierChannel, ModifierPart, MotionState, ObjectKind,
-    ObjectRef, PersonalShieldState, PoseClip, Producer, ProjectileReach, QPlanar, QPose, QVec3,
-    Rational, RvoExit, RvoNeighbour, RvoNeighbourKind, RvoSolve, RvoVec, RvoVo,
-    ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind, ShieldState, SkillAttackableCheck,
-    SkillMachineState, SkillState, TargetCandidate, TargetRefs, TargetSearch, TargetSearchPath,
+    AttackPhase, BuffDataKind, BuffDataRef, BuffState, BuildingState, CheckedSkill, ControlState,
+    Domain, DurableContext, EnabledSkill, Event, EventPayload, ExpRange, GaugeI32, HASH_PROFILE,
+    Hashes, LiveUnitState, MCFR_FORMAT, McfrReader, McfrWriter, MotionState, ObjectKind, ObjectRef,
+    PersonalShieldState, PoseClip, Producer, ProjectileReach, QPlanar, QPose, QVec3, Rational,
+    RvoExit, RvoNeighbour, RvoNeighbourKind, RvoSolve, RvoVec, RvoVo, ShieldDestroyedReason,
+    ShieldRoundPolicy, ShieldSourceKind, ShieldState, SkillAttackableCheck, SkillMachineState,
+    SkillState, TargetCandidate, TargetRefs, TargetSearch, TargetSearchPath,
     TerrainApplicationState, TerrainEffectClock, TerrainGridState, TerrainLogicLifetime,
     TerrainRemovedReason, TerrainState, TerrainType, TransitionEvents, UnitPose, Visibility,
-    WeaponState, WorldSnapshot, sort_modifiers,
+    WeaponState, WorldSnapshot,
 };
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use serde_json::json;
@@ -49,7 +49,7 @@ fn writes_and_reads_every_table() {
     );
 
     let reader = McfrReader::open(&path).unwrap();
-    assert_eq!(MCFR_FORMAT, "0.19.0");
+    assert_eq!(MCFR_FORMAT, "0.20.0");
     assert_eq!(reader.producer(), Producer::Game);
     assert_eq!(reader.tick_count(), 1);
     assert_eq!(reader.terminal_tick(), 1);
@@ -269,7 +269,7 @@ fn the_result_hash_is_golden() {
     let hashes = hash_tick(&context(), state(75), &damage_events());
     assert_eq!(
         hashes.result_hash,
-        "d370b9457f358f3424672d6bd13e92411b8489ef9ad327f548ac72196cf1af5f"
+        "605c1ab2c1f566482014f39b9a360dd616f1aa2cbc3c79de11823ec7af9e2eb3"
     );
 }
 
@@ -286,8 +286,17 @@ fn hash_reads_every_field_of_the_state_and_events() {
         |state: &mut WorldSnapshot| state.live_units[0].velocity.z += 1,
         |state: &mut WorldSnapshot| state.live_units[0].life.current -= 1,
         |state: &mut WorldSnapshot| state.live_units[0].motion_state = MotionState::Attacking,
-        |state: &mut WorldSnapshot| state.live_units[0].status_mask = 1,
-        |state: &mut WorldSnapshot| state.live_units[0].modifiers[0].value += 1,
+        |state: &mut WorldSnapshot| state.live_units[0].buffs[0].elapsed += 1,
+        |state: &mut WorldSnapshot| state.live_units[0].buffs[0].stacks += 1,
+        |state: &mut WorldSnapshot| state.live_units[0].buffs[0].source = None,
+        |state: &mut WorldSnapshot| state.live_units[0].buffs[0].source_team += 1,
+        |state: &mut WorldSnapshot| state.live_units[0].buffs[0].duration -= 1,
+        |state: &mut WorldSnapshot| state.live_units[0].buffs[0].step += 1,
+        |state: &mut WorldSnapshot| state.live_units[0].buffs[0].data.id += 1,
+        |state: &mut WorldSnapshot| {
+            state.live_units[0].buffs[0].data.kind = BuffDataKind::Technology;
+        },
+        |state: &mut WorldSnapshot| state.live_units[0].buffs.reverse(),
     ] {
         let mut changed = baseline_state.clone();
         mutate(&mut changed);
@@ -397,22 +406,6 @@ fn writer_rejects_initial_formation_ids_outside_zx_first_appearance_order() {
         error
             .to_string()
             .contains("first appearance in unit identity order")
-    );
-    assert!(!path.exists());
-}
-
-#[test]
-fn writer_rejects_reserved_status_bits() {
-    let directory = tempfile::tempdir().unwrap();
-    let path = directory.path().join("invalid.mcfr");
-    let mut invalid = state(100);
-    invalid.live_units[0].status_mask = 1 << 4;
-    let mut writer =
-        McfrWriter::create(&path, Producer::Game, "build-a", &context(), LAYOUT_YAML).unwrap();
-    assert!(
-        writer
-            .append_tick(invalid, &TransitionEvents { events: Vec::new() })
-            .is_err()
     );
     assert!(!path.exists());
 }
@@ -964,81 +957,33 @@ fn target_channels_round_trip_with_unseen_terms() {
     );
 }
 
-fn unit_modifiers(skill_count: u16) -> Vec<Modifier> {
-    let mut modifiers = vec![
-        modifier(
-            ModifierChannel::MechFloat,
-            None,
-            "gf_range_value",
-            ModifierPart::Value,
-            1,
-        ),
-        modifier(
-            ModifierChannel::MechFloatRate,
-            None,
-            "life_rate",
-            ModifierPart::Add,
-            4,
-        ),
-        modifier(
-            ModifierChannel::MechFloatRate,
-            None,
-            "life_rate",
-            ModifierPart::Reduce,
-            5,
-        ),
-        modifier(
-            ModifierChannel::MechInt,
-            None,
-            "move_speed_value",
-            ModifierPart::Value,
-            -10,
-        ),
-        modifier(
-            ModifierChannel::Buff,
-            None,
-            "damage_rate",
-            ModifierPart::Reduce,
-            9,
-        ),
-    ];
-    modifiers.extend((0..skill_count).flat_map(|skill_slot| {
-        let base = i64::from(skill_slot) * 100;
-        [
-            modifier(
-                ModifierChannel::SkillFloat,
-                Some(skill_slot),
-                "attack_range_value",
-                ModifierPart::Value,
-                base + 1,
-            ),
-            modifier(
-                ModifierChannel::SkillInt,
-                Some(skill_slot),
-                "is_lock_target",
-                ModifierPart::Value,
-                base + 2,
-            ),
-        ]
-    }));
-    sort_modifiers(&mut modifiers);
-    modifiers
-}
-
-fn modifier(
-    channel: ModifierChannel,
-    skill_slot: Option<u16>,
-    field: &str,
-    part: ModifierPart,
-    value: i64,
-) -> Modifier {
-    Modifier {
-        channel,
-        skill_slot,
-        field: field.to_owned(),
-        part,
-        value,
-    }
+fn unit_buffs() -> Vec<BuffState> {
+    vec![
+        BuffState {
+            data: BuffDataRef {
+                kind: BuffDataKind::Buff,
+                id: 8005,
+            },
+            source: Some(ObjectRef::new(ObjectKind::Unit, 1)),
+            source_team: 0,
+            elapsed: 30,
+            duration: i32::MAX,
+            step: 10,
+            stacks: 2,
+        },
+        BuffState {
+            data: BuffDataRef {
+                kind: BuffDataKind::Technology,
+                id: 1101,
+            },
+            source: None,
+            source_team: 1,
+            elapsed: 0,
+            duration: 20,
+            step: 0,
+            stacks: 0,
+        },
+    ]
 }
 
 fn write_fight(
@@ -1161,8 +1106,7 @@ fn unit(id: u64, team: u32, x: i64, life: i32, with_secondary: bool) -> LiveUnit
         active: true,
         targetable: true,
         visibility: Visibility::Normal,
-        status_mask: 0,
-        modifiers: unit_modifiers(skill_count),
+        buffs: unit_buffs(),
         personal_shield: PersonalShieldState {
             active: false,
             enabled: false,

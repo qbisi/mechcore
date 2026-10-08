@@ -13,10 +13,8 @@ aircraft, a Tarantula with its Spider Mine among them.
 The same layouts without the technology are the control each fight's comment
 cites; the simulator plays them back already, and no test pins them.
 
-A recording holds the technology's numbers in the skill's
-`attack_air_range_add_value`, `damage_change_rate_air` and
-`attack_range_value_air` modifiers, an air-attack technology's switch in
-`air_attack_value`, and what a search scored in the
+A recording holds the range and damage the technology comes to in each skill's
+`attack_range` and `attack_damage`, and what a search scored in the
 `target_search` and `target_candidate` instrument channels:
 
 ```sh

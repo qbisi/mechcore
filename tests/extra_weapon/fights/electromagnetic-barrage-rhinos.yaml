@@ -5,8 +5,7 @@
 # scattered 55 metres about its target as two launchers split a burst
 # (t2 to t32, t303 to t333). They deal nothing; each writes the row's buff on
 # what its 7.5 metres reach, -0.4 of move speed for 8 seconds that turns the
-# unit's technologies off, `status_mask` reading it though the unit carries
-# none (the Rhino from t34). The beam kills the Crawler the second burst is
+# unit's technologies off though the unit carries none (the Rhino from t34). The beam kills the Crawler the second burst is
 # aimed at (t330), and the skill names it until its last shell is out.
 
 kind: fight

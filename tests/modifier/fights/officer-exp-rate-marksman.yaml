@@ -6,8 +6,8 @@
 # whole a kill hands its killer and the share it takes of another's kill
 # alike: 14 for its first kill instead of 8, and 7 instead of 4 for a share,
 # up to 59.5 as the fight ends, cut to 59. The Arclight's formation gains
-# exactly what it gains in the control. No unit's modifiers carry the rate:
-# it is the formation's, from the unit's card.
+# exactly what it gains in the control. The rate is the formation's, from the
+# unit's card, not a unit's.
 
 kind: fight
 map_id: 1021

@@ -1,12 +1,23 @@
 AttackPhase::after
 AttackPhase::attacking
 AttackPhase::before
+BuffDataKind::buff
+BuffDataKind::technology
+BuffDataRef.id: integer(uint32)
+BuffDataRef.kind: BuffDataKind
 BuffRemovedReason::cleared
 BuffRemovedReason::expired
 BuffRemovedReason::removed
 BuffRemovedReason::team_changed
 BuffRemovedReason::technology_disabled
 BuffRemovedReason::unknown
+BuffState.data: BuffDataRef
+BuffState.duration: integer(int32)
+BuffState.elapsed: integer(int32)
+BuffState.source: ObjectRef | null
+BuffState.source_team: integer(uint32)
+BuffState.stacks: integer(int32)
+BuffState.step: integer(int32)
 BuildingState.available: boolean
 BuildingState.bounds_height: integer(int64)
 BuildingState.bounds_width: integer(int64)
@@ -99,24 +110,19 @@ GaugeI32.current: integer(int32)
 GaugeI32.maximum: integer(int32)
 LiveUnitState.active: boolean
 LiveUnitState.body_rotation: integer(int64)
+LiveUnitState.buffs: [BuffState]
 LiveUnitState.collision_radius: integer(int64)
 LiveUnitState.control: ControlState | null
 LiveUnitState.domain: Domain
 LiveUnitState.formation_id: integer(uint64)
 LiveUnitState.life: GaugeI32
 LiveUnitState.mech_lock_target: ObjectRef | null
-LiveUnitState.modifiers: [Modifier]
 LiveUnitState.motion_state: MotionState
 LiveUnitState.move_speed: integer(int64)
 LiveUnitState.original_team_id: integer(uint32)
 LiveUnitState.personal_shield: PersonalShieldState
 LiveUnitState.position: QVec3
 LiveUnitState.skills: [SkillState]
-LiveUnitState.status_mask: integer(uint64)
-LiveUnitState.status_mask::0: invincible
-LiveUnitState.status_mask::1: frozen
-LiveUnitState.status_mask::2: technology_disabled
-LiveUnitState.status_mask::3: recovery_disabled
 LiveUnitState.targetable: boolean
 LiveUnitState.team_id: integer(uint32)
 LiveUnitState.turret_rotation: integer(int64) | null
@@ -124,21 +130,6 @@ LiveUnitState.unit_id: integer(uint64)
 LiveUnitState.unit_type_id: integer(uint32)
 LiveUnitState.velocity: QPlanar
 LiveUnitState.visibility: Visibility
-Modifier.channel: ModifierChannel
-Modifier.field: string
-Modifier.part: ModifierPart
-Modifier.skill_slot: integer(uint16) | null
-Modifier.value: integer(int64)
-ModifierChannel::buff
-ModifierChannel::mech_float
-ModifierChannel::mech_float_rate
-ModifierChannel::mech_int
-ModifierChannel::skill_float
-ModifierChannel::skill_float_rate
-ModifierChannel::skill_int
-ModifierPart::add
-ModifierPart::reduce
-ModifierPart::value
 MotionState::attacking
 MotionState::idle
 MotionState::moving

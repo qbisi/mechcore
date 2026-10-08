@@ -1112,7 +1112,8 @@ pub(crate) fn technology_buff(named: &str, buff: &BuffConfig) -> Result<SkillBuf
         invincible: buff.invincible,
         amplify_damage_rate: buff.amplify_damage_rate,
         life_change_rate: 0,
-        step_ticks: 0,
+        step_ticks: u32::try_from(ticks(crate::rules::metres_q32(buff.step_time))?)
+            .map_err(|_| Error::new(format!("{named}'s buff steps beyond a fight")))?,
         attack_range_value: buff.attack_range_value,
         current_life_rate: buff.current_life_rate,
     })

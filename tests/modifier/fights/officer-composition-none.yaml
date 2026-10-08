@@ -2,7 +2,7 @@
 # no officer on either side. A Marksman that hits the Rhino n times for d
 # leaves `19297 - n * d`, so the Rhino's life at the end is the measurement,
 # and a failure here is about the description or the pipeline, not about
-# modifiers.
+# corrections.
 
 kind: fight
 map_id: 1021

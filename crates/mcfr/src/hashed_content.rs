@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 use schemars::{JsonSchema, schema_for};
 use serde_json::Value;
 
-use crate::{STATUS_MASK_BITS, TransitionEvents, WorldSnapshot};
+use crate::{TransitionEvents, WorldSnapshot};
 
 const PINNED: &str = include_str!("../hashed-content.txt");
 
@@ -34,7 +34,7 @@ fn the_hash_reads_exactly_the_pinned_fields() {
     );
 }
 
-/// One line per field, variant, value or `status_mask` bit the hash reads,
+/// One line per field, variant or value the hash reads,
 /// sorted.
 fn listing() -> Vec<String> {
     let mut definitions = BTreeMap::new();
@@ -44,12 +44,6 @@ fn listing() -> Vec<String> {
     for (name, schema) in &definitions {
         describe_definition(name, schema, &mut lines);
     }
-    lines.extend(
-        STATUS_MASK_BITS
-            .iter()
-            .enumerate()
-            .map(|(bit, name)| format!("LiveUnitState.status_mask::{bit}: {name}")),
-    );
     lines.sort();
     lines
 }

@@ -286,23 +286,21 @@ entry, addressed by an index:
 
 Every write carries its source: `ChangeDataFloat(index, IDataModifier, value)`.
 That is how a technology, an equipment or a buff can be added and removed
-without anyone recomputing a base, and it is why a recording can say which
-channel a correction came from.
+without anyone recomputing a base.
 
 The indices are the `MechDataChange{Float,FloatRate,Int}` and
 `SkillDataChange{Float,FloatRate,Int}` enums, and a skill's own mutation is
-`FightSkill.AddData(SkillDataChangeFloat, IDataModifier, value)`. Those enums
-are exactly the channels MCFR records as a unit's `modifiers`, member by
-member.
+`FightSkill.AddData(SkillDataChangeFloat, IDataModifier, value)`.
 
 **Buffs aggregate separately.** `BuffManager` sums the active `Buff`s of an
 owner and exposes the total through getters — `GetAmplifyDamageAddRate`,
-`GetAttackIntervalChangeAddRate`, and the rest of the set MCFR records as the
-`buff` channel of a unit's `modifiers`. It is not a `DataSet`, and that is the point: a buff and a
-data change that produce the same number stay distinguishable.
+`GetAttackIntervalChangeAddRate`, and the rest. It is not a `DataSet`, and
+that is the point: a buff and a data change that produce the same number stay
+distinguishable.
 
-So a unit's state is **one shared description and three overlays**, and a
-recording dumps all three every tick.
+So a unit's state is **one shared description and three overlays**. A
+recording keeps none of the overlays: it keeps the buffs the third is summed
+from, and the numbers the properties below compute from all three.
 
 ## Derived values
 

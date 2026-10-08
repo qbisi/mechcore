@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result, canonical};
 
-pub const MCFR_FORMAT: &str = "0.19.0";
+pub const MCFR_FORMAT: &str = "0.20.0";
 /// Names the hash definition, which is older than the format: the domain
 /// strings and canonical inputs have not moved since format 0.7.0.
 pub const HASH_PROFILE: &str = "mcfr-content-0.7.0";
@@ -218,10 +218,6 @@ impl DamageStatistics {
 
 impl WorldSnapshot {
     pub fn canonicalize(&mut self) {
-        for unit in &mut self.live_units {
-            unit.modifiers.retain(|modifier| modifier.value != 0);
-            sort_modifiers(&mut unit.modifiers);
-        }
         self.live_units.sort_by_key(|value| value.unit_id);
         self.projectiles.sort_by_key(|value| value.projectile_id);
         self.buildings.sort_by_key(|value| value.building_id);
@@ -255,13 +251,6 @@ impl WorldSnapshot {
             }
         }
         for unit in &self.live_units {
-            if unit.status_mask >> STATUS_MASK_BITS.len() != 0 {
-                return Err(Error::invalid(format!(
-                    "unit {} status_mask uses reserved bits",
-                    unit.unit_id
-                )));
-            }
-            validate_modifiers(unit.unit_id, &unit.modifiers)?;
             if unit
                 .skills
                 .windows(2)
@@ -684,14 +673,6 @@ pub enum Visibility {
     Hide,
 }
 
-/// The bits of [`LiveUnitState::status_mask`], lowest first.
-pub const STATUS_MASK_BITS: [&str; 4] = [
-    "invincible",
-    "frozen",
-    "technology_disabled",
-    "recovery_disabled",
-];
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
@@ -717,11 +698,9 @@ pub struct LiveUnitState {
     pub active: bool,
     pub targetable: bool,
     pub visibility: Visibility,
-    /// Native boolean state, bit `i` named by [`STATUS_MASK_BITS`]`[i]`.
-    pub status_mask: u64,
-    /// Every non-zero correction on the unit and its skills.
+    /// Every buff in the unit's `BuffManager.buffs`, in the build's order.
     #[serde(default)]
-    pub modifiers: Vec<Modifier>,
+    pub buffs: Vec<BuffState>,
     pub personal_shield: PersonalShieldState,
     /// `FightMech.GetMoveSpeed()`, Q32.32 raw: the speed the fight moves the
     /// unit at, after every correction on it.
@@ -918,130 +897,48 @@ pub struct PersonalShieldState {
     pub energy: GaugeI32,
 }
 
-/// Which native store a modifier lives in.
+/// What a buff's numbers come from: `Buff.data`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
-pub enum ModifierChannel {
-    /// `BuffManager`'s aggregate getters over the unit's live buffs.
+pub enum BuffDataKind {
+    /// A `BuffData` row, by its `id`.
     Buff,
-    /// The unit's `DataSet`, keyed by `MechDataChangeFloat`.
-    MechFloat,
-    /// Keyed by `MechDataChangeFloatRate`.
-    MechFloatRate,
-    /// Keyed by `MechDataChangeInt`.
-    MechInt,
-    /// A skill's `DataSet`, keyed by `SkillDataChangeFloat`.
-    SkillFloat,
-    /// Keyed by `SkillDataChangeFloatRate`.
-    SkillFloatRate,
-    /// Keyed by `SkillDataChangeInt`.
-    SkillInt,
+    /// A technology that serves as its own buff data, `BurrowTech`, by its id.
+    Technology,
 }
 
-impl ModifierChannel {
-    /// Whether the channel belongs to one of the unit's skills.
-    #[must_use]
-    pub const fn is_skill(self) -> bool {
-        matches!(
-            self,
-            Self::SkillFloat | Self::SkillFloatRate | Self::SkillInt
-        )
-    }
-
-    /// Whether the channel's fields are rates, kept as enhancements and
-    /// impairments apart.
-    #[must_use]
-    pub const fn is_rate(self) -> bool {
-        matches!(self, Self::MechFloatRate | Self::SkillFloatRate)
-    }
-}
-
-/// Which part of a field a modifier is.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+/// `Buff.data`: the row, or the technology, whose numbers the buff writes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(test, derive(schemars::JsonSchema))]
-#[serde(rename_all = "snake_case")]
-pub enum ModifierPart {
-    /// A signed value: an int, a fixed-point value, or a buff's signed sum.
-    Value,
-    /// The sum of the enhancements of a rate or split value, nonnegative.
-    Add,
-    /// What the impairments take off, nonnegative: for a rate, one minus the
-    /// product of what each keeps.
-    Reduce,
+#[serde(deny_unknown_fields)]
+pub struct BuffDataRef {
+    pub kind: BuffDataKind,
+    pub id: u32,
 }
 
-/// One non-zero correction written onto a unit or one of its skills.
-///
-/// A unit's modifiers are a sparse list: what the build holds as zero is not
-/// written, so a field any content can set costs nothing where none sets it.
+/// One `Buff` a unit holds: what it carries from tick to tick.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
-pub struct Modifier {
-    pub channel: ModifierChannel,
-    /// The skill's index in the unit's `GetSkills()`, for a skill channel.
+pub struct BuffState {
+    pub data: BuffDataRef,
+    /// `Buff.source`: the unit or building it counts as from, null for one
+    /// no object wrote.
     #[serde(default)]
-    pub skill_slot: Option<u16>,
-    /// The native enum member in `snake_case`, spelled as the build spells
-    /// it; for the buff channel, the aggregate the getters name.
-    pub field: String,
-    pub part: ModifierPart,
-    /// Raw: Q32.32 for a float or rate, the integer itself for an int.
-    pub value: i64,
-}
-
-impl Modifier {
-    fn order(&self) -> (ModifierChannel, Option<u16>, &str, ModifierPart) {
-        (self.channel, self.skill_slot, &self.field, self.part)
-    }
-}
-
-/// Puts a unit's modifiers in their stored order: by channel, skill slot,
-/// field and part.
-pub fn sort_modifiers(modifiers: &mut [Modifier]) {
-    modifiers.sort_by(|left, right| left.order().cmp(&right.order()));
-}
-
-/// Checks a unit's modifiers: non-zero, rates nonnegative, a skill slot on
-/// exactly the skill channels, and strictly ordered by channel, slot, field
-/// and part.
-fn validate_modifiers(unit_id: u64, modifiers: &[Modifier]) -> Result<()> {
-    for modifier in modifiers {
-        let bad = if modifier.value == 0 {
-            Some("is zero and must be omitted")
-        } else if modifier.part != ModifierPart::Value && modifier.value < 0 {
-            Some("is a negative add or reduce")
-        } else if modifier.channel.is_skill() != modifier.skill_slot.is_some() {
-            Some("has a skill slot on the wrong channel")
-        } else if modifier.channel.is_rate() && modifier.part == ModifierPart::Value {
-            Some("is a rate without add or reduce")
-        } else if modifier.field.is_empty()
-            || !modifier
-                .field
-                .chars()
-                .all(|next| next.is_ascii_lowercase() || next.is_ascii_digit() || next == '_')
-        {
-            Some("has a field that is not a snake_case name")
-        } else {
-            None
-        };
-        if let Some(bad) = bad {
-            return Err(Error::invalid(format!(
-                "unit {unit_id} modifier {:?} {:?} {} {bad}",
-                modifier.channel, modifier.skill_slot, modifier.field
-            )));
-        }
-    }
-    if modifiers
-        .windows(2)
-        .any(|pair| pair[0].order() >= pair[1].order())
-    {
-        return Err(Error::invalid(format!(
-            "unit {unit_id} modifiers are not strictly ordered by channel, skill slot, field and part"
-        )));
-    }
-    Ok(())
+    pub source: Option<ObjectRef>,
+    /// `Buff.sourceTeamController`: the side it is from.
+    pub source_team: u32,
+    /// `Buff.durationTime`: ticks run since it was written or last reset.
+    pub elapsed: i32,
+    /// `Buff.maxDurationtime`: ticks it runs for in all, lengthened by each
+    /// reset.
+    pub duration: i32,
+    /// `Buff.stepTime`: its periodic clock.
+    pub step: i32,
+    /// `IBEC_AdditiveEffectBuff.additiveStack`, 0 for a buff that does not
+    /// stack.
+    pub stacks: i32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

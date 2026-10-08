@@ -240,20 +240,18 @@ value composes with a description is not measured
 | Int | `GetDataInt(index)` | 一个整数 |
 
 每一次写入都带着来源：`ChangeDataFloat(index, IDataModifier, value)`。这就是一项科技、
-一件装备、一个 buff 能被加上又摘掉而无需任何人重算基础值的原因，也是录像能说出一条
-修正来自哪条通道的原因。
+一件装备、一个 buff 能被加上又摘掉而无需任何人重算基础值的原因。
 
 那些下标就是 `MechDataChange{Float,FloatRate,Int}` 和
 `SkillDataChange{Float,FloatRate,Int}` 这几个枚举，技能自身的改动入口是
-`FightSkill.AddData(SkillDataChangeFloat, IDataModifier, value)`。这些枚举正好就是
-MCFR 逐成员记入单位 `modifiers` 的那些通道。
+`FightSkill.AddData(SkillDataChangeFloat, IDataModifier, value)`。
 
 **Buff 单独聚合。** `BuffManager` 把一个拥有者身上生效的 `Buff` 加总，通过 getter
-暴露总量——`GetAmplifyDamageAddRate`、`GetAttackIntervalChangeAddRate`，以及 MCFR
-记作单位 `modifiers` 中 `buff` 通道的其余那些。它**不是**一个 `DataSet`，这正是要点：一个 buff 和
-一条数据改动即使产生同一个数字，也仍然可以区分。
+暴露总量——`GetAmplifyDamageAddRate`、`GetAttackIntervalChangeAddRate` 等。它**不是**一个
+`DataSet`，这正是要点：一个 buff 和一条数据改动即使产生同一个数字，也仍然可以区分。
 
-所以一个单位的状态是**一份共享描述加三层覆盖**，而录像每一 tick 把三层都 dump 下来。
+所以一个单位的状态是**一份共享描述加三层覆盖**。录像不记任何一层覆盖：它记第三层所由加总的
+那些 buff，以及下文的属性从三层算出的数值。
 
 ## 派生值
 

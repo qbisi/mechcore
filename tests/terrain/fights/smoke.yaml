@@ -3,7 +3,7 @@
 # Its seven sub-effects fall along the line every four ticks from tick 63,
 # each leaving a fog of 50 metres. A ground unit whose edge a fog reaches
 # enters it, one fog at a time, and a Sledgehammer in fog shoots at 0.65 of its
-# 95 metres, `attack_range_rate` 0.35 in its skill's modifiers; a Crawler,
+# 95 metres, an `attack_range_rate` of 0.35 on its skill; a Crawler,
 # whose attack is a melee one, enters and is left alone. Each fog goes as the
 # fight ends, and takes its rate back on that tick.
 

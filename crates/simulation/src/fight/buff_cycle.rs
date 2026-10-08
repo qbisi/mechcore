@@ -296,7 +296,6 @@ fn buff_row(buff: &BuffSource) -> Result<BuffRow> {
         max_life_rate: buff.max_life_rate,
         summons: buff.summons,
         stacking: buff.stacking.map(|stacking| StackRule {
-            step_ticks,
             max: stacking.max,
             condition: stacking.condition,
         }),
@@ -304,6 +303,7 @@ fn buff_row(buff: &BuffSource) -> Result<BuffRow> {
         additive: buff.additive,
         ticks: u32::try_from(seconds_q32_to_steps(buff.duration_q32))
             .map_err(|_| Error::new("a source's buff outlasts a fight"))?,
+        step_ticks,
         source: SOURCE,
         entries: [
             (Index::MoveSpeed, buff.speed_rate),
@@ -335,7 +335,7 @@ fn buff_row(buff: &BuffSource) -> Result<BuffRow> {
         disables_technology: buff.disables_technology,
         debuff: buff.debuff,
         invincible: buff.invincible,
-        life_change: None,
+        life_change_rate: 0,
         current_life_rate: 0,
     })
 }

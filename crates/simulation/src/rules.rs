@@ -226,6 +226,8 @@ pub(crate) struct BuffConfig {
     pub(crate) id: u32,
     /// Seconds.
     pub(crate) duration: f64,
+    /// `stepTime`, seconds.
+    pub(crate) step_time: f64,
     pub(crate) divide: i32,
     pub(crate) additive: bool,
     pub(crate) debuff: bool,

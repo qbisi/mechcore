@@ -1083,9 +1083,9 @@ fn loadout(
         refused,
     )?;
     let stats = refused.hold(Stats::corrected(rules, level, &worn.corrections).map_err(refusal))?;
-    // A snapshot carries each `DataSet`'s aggregate; one this build cannot
-    // record is refused here, where the side and the officer can be named.
-    refused.hold(stats.modifiers(&[0], &[]).map_err(refusal))?;
+    // A correction the build has no field for is refused here, where the
+    // side and the officer can be named.
+    refused.hold(stats.refuse_fieldless_corrections().map_err(refusal))?;
     worn.experience_rate = experience_rate;
     Some(worn)
 }
@@ -1349,8 +1349,7 @@ fn ground_fire(weapon: &ExtraWeaponConfig) -> [i64; 2] {
 
 /// What an extra weapon writes onto its unit's `DataSet`: where its row burns
 /// (`GetFireLifeTime` above zero), `ExtraSkillProvider.AddEffect` adds the
-/// fire's range and life time through `MechDataModifer.AddData`, which the
-/// recording keeps among the unit's modifiers.
+/// fire's range and life time through `MechDataModifer.AddData`.
 fn extra_weapon_corrections(weapon: &ExtraWeaponConfig) -> Vec<(Channel, Entry)> {
     let [range, life] = ground_fire(weapon);
     if life <= 0 {

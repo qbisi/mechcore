@@ -186,8 +186,8 @@ units it reaches, though the circle reaches its edge; the list is taken
 before the strike, so a shield the strike breaks still spares it.
 
 The buff slows the unit by its `move_speed_rate` for its `duration`, and while
-it runs the unit's technologies are off: `status_mask` reads
-`technology_disabled` whether the unit carries a technology or not. A second
+it runs the unit's technologies are off, whether it carries a technology or
+not. A second
 one on a unit it still runs on restarts it. A buff of divide 0 merges only
 with its own row, so another divide-0 buff, a missile's slow among them, runs
 beside it rather than merging.

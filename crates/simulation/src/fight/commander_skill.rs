@@ -485,6 +485,7 @@ impl Simulation {
             divide: buff.divide,
             additive: buff.additive,
             ticks: buff.ticks,
+            step_ticks: buff.step_ticks,
             source: SKILL_SOURCE,
             entries: [
                 (Index::MoveSpeed, buff.move_speed_rate),
@@ -511,10 +512,7 @@ impl Simulation {
             disables_technology: buff.disable_technology,
             debuff: buff.debuff,
             invincible: buff.invincible,
-            life_change: (buff.life_change_rate != 0).then_some(super::tower::LifeChange {
-                rate: buff.life_change_rate,
-                step_ticks: buff.step_ticks,
-            }),
+            life_change_rate: buff.life_change_rate,
             current_life_rate: buff.current_life_rate,
         };
         for &id in reached {

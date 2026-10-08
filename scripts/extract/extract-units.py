@@ -420,7 +420,8 @@ def buff_row(identifier):
 
 def buff_lines(buff, indent):
     """A buff as `config/units/` states it, each line indented."""
-    lines = [f"{indent}id: {buff['id']}", f"{indent}duration: {readable(buff['duration'])}"]
+    lines = [f"{indent}id: {buff['id']}", f"{indent}duration: {readable(buff['duration'])}",
+             f"{indent}step_time: {readable(buff['stepTime'])}"]
     for field, name in BUFF_READ.items():
         value = raw(buff[field])
         lines.append(f"{indent}{name}: {boolean(value) if isinstance(value, bool) else value}")

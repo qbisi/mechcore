@@ -558,14 +558,14 @@ fn verify_compares_a_game_fight_and_answers_a_refusal() {
 ///
 /// Both halves of a unit's numbers, read out of a recording.
 ///
-/// This layout carries no officer, so nothing is written onto either unit and
-/// the corrections are neutral — and every formation still answers, with the
-/// numbers its description alone gives. That is the case a control is read
+/// This layout carries no officer and no buff reaches either unit at the first
+/// tick — and every formation still answers, with the numbers its description
+/// alone gives. That is the case a control is read
 /// for, and it is also what says the derived numbers are recorded rather than
 /// inferred. The corrected cases are measured against the game by the scripts
 /// under `tests/modifier/`.
 #[test]
-fn stats_read_a_tick_and_answer_both_halves() {
+fn stats_read_a_tick_and_answer_every_formation() {
     let directory = tempfile::tempdir().unwrap();
     let recording = directory.path().join("fight.mcfr");
     let layout =
@@ -589,13 +589,13 @@ fn stats_read_a_tick_and_answer_both_halves() {
         .unwrap();
     assert!(read.status.success());
     let written: serde_json::Value = serde_json::from_slice(&read.stdout).unwrap();
-    assert_eq!(written["schema"], "mechcore.fight-stats.v3");
+    assert_eq!(written["schema"], "mechcore.fight-stats.v4");
     assert_eq!(written["tick"], 1, "the first tick is the default");
     assert!(written["ticks"].as_u64().unwrap() > 1);
     // Every formation answers. A Marksman's description gives 8 m/s, 140 m
     // and 2329 of damage, and nothing here corrects any of them.
     assert_eq!(written["sides"]["blue"][0]["name"], "marksman", "{written}");
-    // Nothing is written onto one member alone, so the formation reads as one.
+    // No buff reaches one member alone, so the formation reads as one.
     let readings = written["sides"]["blue"][0]["readings"].as_array().unwrap();
     assert_eq!(readings.len(), 1, "{written}");
     let blue = &readings[0];
@@ -604,8 +604,8 @@ fn stats_read_a_tick_and_answer_both_halves() {
     assert_eq!(blue["skills"][0]["attack_range"], 140_i64 << 32);
     assert_eq!(blue["skills"][0]["attack_damage"], 2329);
     assert!(
-        blue.get("unit").is_none() && blue.get("skill").is_none(),
-        "a neutral channel is left out: {written}"
+        blue.get("buffs").is_none(),
+        "a unit holding no buff leaves them out: {written}"
     );
     assert_eq!(written["sides"]["red"][0]["name"], "arclight", "{written}");
 
