@@ -25,6 +25,13 @@ is already underground, `ChangeToAttackState` always, and
 - otherwise, from idle to attack, nothing happens, and the next state is
   entered on the transition's first update, one tick later.
 
+The state a transition leads to is entered only as the transition ends, so
+what its `Enter` asks of the agent waits until then: `MotionAttackState.Enter`
+calls `RVOControllerFixed.StopMove`, which hands the agent its speed. A
+summon that joins never handed one, and changes to attack through the
+transition, goes into the solve its transition spans with no speed, and
+stands however it is pushed.
+
 While the transition lasts the motion does nothing else: `TransitionState`
 updates only the ability, whose `Update` adds a tick to its time and answers
 whether the time has reached what the transition lasts, by `FPoint`'s
@@ -73,7 +80,35 @@ with its target already in range strikes as soon as it has surfaced.
 starts the attack of a skill whose target is in range from the skill's own
 update. A unit coming into range from idle starts its attack as its motion
 enters the one-tick transition; one coming into range underground starts it
-and has it stopped at once by the surfacing's `SkillManager.Deactive`.
+and has it stopped at once by the surfacing's `SkillManager.Deactive`. Its
+blow does not wait for the motion either: `SkillAttackState.TryPerformAttack`
+asks the attack angle alone, so a unit whose skills are active fires on the
+tick its idle-to-attack transition ends, before the motion has entered the
+attack state.
+
+## Units made as it surfaces
+
+A row of `moveAbilitySummonTechDatas` is a `MoveAbilitySummonTech`. Its
+`MoveAbilitySummonProvider` registers it with its unit's move ability
+(`MotionController.RegisterMoveAbilityChange`), and when the ability reaches
+the row's `moveAbilityTimeType`, `OnExitMoveBegin` for every row of this
+version, `MoveAbilitySummonSystem` hands the unit's side a
+`SupportUnitCreator` of a `SpecialSupportUnitData` of it
+(`TeamSupportUnitManager.AddTemporaryCreator`). The creator runs as a
+production line does
+([equipment_effects.md](equipment_effects.md#production-lines)):
+
+- its offsets turn with the unit's root (`GetSupportUnitPositionSpace`
+  answers `Parent`);
+- its makes take the unit's level for `DynamicMechLevel.Parent`;
+- a make of `appearType` 3 or 4 (`UndergroundStrike`,
+  `UndergroundStrikeAnimator`) takes `APPEAR_DURATION`, as only the client
+  tells them from a transition.
+
+Its source's `GetLifeTime` answers -1, so `SupportUnitCreator.IsFinished`
+ends it after its first update, which makes its first batch. Replicate makes
+one Larva at the Sandworm's level, 35 metres ahead of it, each time the
+Sandworm begins to surface: `tests/move_ability/fights/replicate.yaml`.
 
 ## A hidden unit as a target
 
@@ -120,6 +155,10 @@ stands where it was on that tick while every other unit moves.
   inside its attack range, surfaces once the Rhino is within its exit range
   (from tick 108), and strikes it as soon as it is up (tick 160):
   `tests/sandworm/fights/m2-rhino-4242.yaml`.
+- A Larva Replicate makes joins on tick 128, changes to attack through its
+  transition, fires on tick 129 as the transition ends, and stands through
+  the solve of tick 128 with no speed while a Rhino charges through it:
+  `tests/move_ability/fights/replicate.yaml`.
 - Burrowing and surfacing, a lock kept on a burrowing Sandworm, Sandworms
   surfacing on each other, a Sandworm turning aside from an ally surfacing,
   a shot spent on a burrowed Sandworm, and a Sandworm below as the fight
@@ -142,6 +181,9 @@ stands where it was on that tick while every other unit moves.
 - The skills stopped and held: `SkillManager.Deactive`,
   `SkillManager.Update`, `FightSkill.StopAttack`,
   `SkillIdleState.TryStartAttack`.
+- The units made as it surfaces: `MoveAbilitySummonSystem.AddMech`,
+  `MoveAbilitySummonSystem.GetPerformAction`, `SupportUnitCreator.IsFinished`,
+  `SupportUnitCreator.CreateMech`.
 - The agent locked: `RVOControllerFixed.Lock`, `Agent.BufferSwitch`,
   `RVOAgentFixed.CalculateVelocity`.
 - The hidden candidate: `ScoreRatingTargetSelector.Select`,

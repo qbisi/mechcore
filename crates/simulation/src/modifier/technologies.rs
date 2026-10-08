@@ -83,8 +83,12 @@ const SUPPORT: &str = "supportUnitTechnologies";
 /// The list whose `DeadSummonTech` summons where its unit dies.
 const DEAD_SUMMON: &str = "deadSummonTechnologies";
 
+/// The list whose `MoveAbilitySummonTech` makes units as its unit's move
+/// ability reaches a time.
+const MOVE_SUMMON: &str = "moveAbilitySummonTechDatas";
+
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 16] = [
+const IMPLEMENTED: [&str; 17] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -101,6 +105,7 @@ const IMPLEMENTED: [&str; 16] = [
     SPLASH,
     MOBILITY,
     DEAD_SUMMON,
+    MOVE_SUMMON,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -221,6 +226,9 @@ struct Technology {
     /// What its unit summons where it dies, if its class is an
     /// `IDeadSummon`.
     dead_summon: Option<UnitDeadSummon>,
+    /// The line its unit runs once each time it begins to surface, if its
+    /// class is an `IMoveAbilitySummon`.
+    surfacing_line: Option<ProductionLine>,
     /// Whether what switching it off does is read and fought: its numbers
     /// taken away, as [`DISABLED_AS_NUMBERS`] lists, an extra weapon's skills
     /// disabled, or the buff a fight-start buff technology adds its own unit
@@ -304,6 +312,99 @@ pub(crate) struct UnitSources {
     pub(crate) buff_sources: Vec<BuffSource>,
     pub(crate) interception: Vec<UnitInterception>,
     pub(crate) dead_summon: Option<UnitDeadSummon>,
+    /// The line it runs once each time it begins to surface
+    /// (`MoveAbilitySummonTech`).
+    pub(crate) surfacing_line: Option<ProductionLine>,
+}
+
+/// What a move ability summon row answers `IMoveAbilitySummon` and
+/// `ISupportDataSource` with.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct MoveSummonBlock {
+    /// `MoveAbilityTimeType`.
+    summon_time: i32,
+    support_unit_id: u32,
+    /// `DynamicMechLevel`.
+    unit_level: i32,
+    max_batch: u32,
+    max_alive: u32,
+    create_count_per_time: u32,
+    /// `MoveAbilitySummonTech.GetStartTime`; what it delays is not read.
+    #[allow(dead_code, reason = "every row's is 0")]
+    start_time: i64,
+    /// `SupportUnitAppearType`.
+    appear_type: i32,
+    product_time: i64,
+    create_duration: i64,
+    positions: Vec<SupportOffset>,
+}
+
+/// `MoveAbilityTimeType.OnExitMoveBegin`: as its unit begins to surface.
+const ON_EXIT_MOVE_BEGIN: i32 = 2;
+
+/// The line a move ability summon row runs as its unit begins to surface,
+/// or why this build will not. `MoveAbilitySummonSystem` hands the unit's
+/// side a creator of a `SpecialSupportUnitData` of it then
+/// (`TeamSupportUnitManager.AddTemporaryCreator`), whose offsets turn with
+/// the unit's root (`GetSupportUnitPositionSpace` answers `Parent`) and
+/// which `SupportUnitCreator.IsFinished` ends after its first update, its
+/// `GetLifeTime` being -1.
+fn surfacing_line_of(row: &Row, who: &str) -> std::result::Result<Option<ProductionLine>, String> {
+    if row.kind != MOVE_SUMMON {
+        return Ok(None);
+    }
+    let block = row
+        .move_summon
+        .as_ref()
+        .ok_or_else(|| format!("{who} carries no move ability summon"))?;
+    let unread = [
+        (
+            block.summon_time != ON_EXIT_MOVE_BEGIN,
+            "makes its units at a moveAbilityTimeType other than 2",
+        ),
+        (
+            ![
+                IMMEDIATE,
+                IMMEDIATE_WITH_EFFECT,
+                UNDERGROUND_STRIKE,
+                UNDERGROUND_STRIKE_ANIMATOR,
+                TRANSITION,
+            ]
+            .contains(&block.appear_type)
+                && !PRODUCED.contains(&block.appear_type),
+            "makes its units appear by an appearType other than 0, 1, 3, 4, 5, 6 or 8",
+        ),
+        (
+            block.positions.is_empty(),
+            "makes its units at no positions",
+        ),
+        (
+            ![LEVEL_ONE, PARENT_LEVEL].contains(&block.unit_level),
+            "makes its units at a unitLevel of their own",
+        ),
+    ];
+    if let Some((_, what)) = unread.iter().find(|(set, _)| *set) {
+        return Err(format!("{who} {what}, which is not read"));
+    }
+    Ok(Some(ProductionLine {
+        unit_type_id: block.support_unit_id,
+        max_batch: block.max_batch,
+        max_alive: block.max_alive,
+        per_time: block.create_count_per_time,
+        interval_q32: block.create_duration,
+        offsets: block
+            .positions
+            .iter()
+            .map(|offset| (offset.x, offset.z))
+            .collect(),
+        appear_q32: appear_q32(block.appear_type, block.product_time),
+        parent_level: block.unit_level == PARENT_LEVEL,
+        body_frame: false,
+        arrival: super::sources::Arrival::InPlace,
+        make_corrections: Vec::new(),
+        gated: false,
+    }))
 }
 
 /// What a `DeadSummonTech` answers `IDeadSummon` with: the unit type its unit
@@ -513,6 +614,9 @@ struct Row {
     /// `DeadSummonTechnologyData`'s fields, on a row of its list.
     #[serde(default)]
     dead_summon: Option<DeadSummonBlock>,
+    /// `MoveAbilitySummonTechData`'s fields, on a row of its list.
+    #[serde(default)]
+    move_summon: Option<MoveSummonBlock>,
 }
 
 /// What a production row answers `ISupportDataSource` with.
@@ -563,6 +667,10 @@ const PARENT_LEVEL: i32 = 3;
 const IMMEDIATE: i32 = 0;
 const IMMEDIATE_WITH_EFFECT: i32 = 1;
 const TRANSITION: i32 = 5;
+/// `SupportUnitAppearType.UndergroundStrike` and `UndergroundStrikeAnimator`,
+/// which only the client tells apart from a transition.
+const UNDERGROUND_STRIKE: i32 = 3;
+const UNDERGROUND_STRIKE_ANIMATOR: i32 = 4;
 /// The two types `SupportUnitCreator.CreateMech` gives the row's
 /// `productTime` to appear, through `SupportUnitData.GetProductMoveTime`.
 const PRODUCED: [i32; 2] = [6, 8];
@@ -577,18 +685,23 @@ const NO_SPACE: i32 = 0;
 const PARENT_SPACE: i32 = 1;
 const PARENT_BODY_SPACE: i32 = 2;
 
+/// `SupportUnitCreator.CreateMech`: a make appears at once for types 0 and
+/// 1, in the row's `productTime` for 6, 7 and 8, and in `APPEAR_DURATION`, a
+/// second, otherwise.
+fn appear_q32(appear_type: i32, product_time: i64) -> i64 {
+    if [IMMEDIATE, IMMEDIATE_WITH_EFFECT].contains(&appear_type) {
+        0
+    } else if PRODUCED.contains(&appear_type) || appear_type == COMES_OUT {
+        product_time
+    } else {
+        1 << 32
+    }
+}
+
 impl SupportBlock {
-    /// `SupportUnitCreator.CreateMech`: a make appears at once for types 0
-    /// and 1, in the row's `productTime` for 6, 7 and 8, and in
-    /// `APPEAR_DURATION`, a second, otherwise.
+    /// How long its makes take to appear, [`appear_q32`] of its row.
     fn appear_q32(&self) -> i64 {
-        if [IMMEDIATE, IMMEDIATE_WITH_EFFECT].contains(&self.appear_type) {
-            0
-        } else if PRODUCED.contains(&self.appear_type) || self.appear_type == COMES_OUT {
-            self.product_time
-        } else {
-            1 << 32
-        }
+        appear_q32(self.appear_type, self.product_time)
     }
 
     fn takes_time_to_appear(&self) -> bool {
@@ -805,9 +918,11 @@ impl TechnologyEffects {
                 Ok(subclass) => (subclass, effect),
                 Err(why) => ((None, None), Err(why)),
             };
-            let (dead_summon, effect) = match dead_summon_of(&row, &who) {
-                Ok(dead_summon) => (dead_summon, effect),
-                Err(why) => (None, Err(why)),
+            let summons = dead_summon_of(&row, &who)
+                .and_then(|dead| surfacing_line_of(&row, &who).map(|line| (dead, line)));
+            let ((dead_summon, surfacing_line), effect) = match summons {
+                Ok(summons) => (summons, effect),
+                Err(why) => ((None, None), Err(why)),
             };
             let self_buff = buff_source.as_ref().is_some_and(adds_its_unit_a_buff);
             let technology = Technology {
@@ -827,6 +942,7 @@ impl TechnologyEffects {
                 interception,
                 production,
                 dead_summon,
+                surfacing_line,
                 secondary_damage: (row.kind == SECONDARY_DAMAGE).then_some(SecondaryDamage {
                     damage: row.secondary_damage,
                     splash_radius: effects::fixed_to(row.secondary_splash_range, effects::METERS),
@@ -930,6 +1046,15 @@ impl TechnologyEffects {
                     )));
                 }
                 sources.dead_summon = Some(dead_summon.clone());
+            }
+            if let Some(line) = &technology.surfacing_line {
+                if sources.surfacing_line.is_some() {
+                    return Err(Error::new(format!(
+                        "unit type {unit_type:?} makes units as it surfaces by two \
+                         technologies, which is not measured"
+                    )));
+                }
+                sources.surfacing_line = Some(line.clone());
             }
         }
         Ok(sources)

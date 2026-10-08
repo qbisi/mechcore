@@ -1,0 +1,30 @@
+# Replicate on blue's Sandworm: each time it begins to surface
+# (`MoveAbilityTimeType.OnExitMoveBegin`), `MoveAbilitySummonSystem` hands
+# blue a creator that makes one Larva at the Sandworm's level, 35 metres
+# ahead of it and scattered by up to a metre each way, which appears in a
+# second and ends after its first update. It surfaces twice: Larvas made at
+# ticks 108 and 370.
+#
+# The first Larva joins idle with its agent handed no speed and changes to
+# attacking through its move ability's transition, which does nothing from
+# idle. The solve that transition spans gives it none: the attack state's
+# `StopMove` comes only as the transition ends. Its skill, active, fires on
+# the tick the transition ends, as the rhino charges through it.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 425
+hash: {profile: mcfr-content-0.7.0, result: 9907ecf047c5c77f13893f3cd0e2fc0a1cee12901c04f9a7807180519519065e}
+blue:
+  techs:
+    sandworm: [replicate]
+  units:
+  - {name: sandworm, index: 0, position: {x: 0, y: -140}, exp: 0/600/2000}
+red:
+  core_damage: 362
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/100/650}

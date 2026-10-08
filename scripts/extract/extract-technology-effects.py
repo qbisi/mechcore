@@ -165,6 +165,22 @@ DEAD_SUMMON_FIELDS = (
     ("unit_count", "unitCount"),
     ("unit_level", "unitLevel"),
 )
+# The list whose `MoveAbilitySummonTech` makes units as its unit's move ability
+# reaches a time, and what its rows answer `IMoveAbilitySummon` and
+# `ISupportDataSource` with.
+MOVE_SUMMON = "moveAbilitySummonTechDatas"
+MOVE_SUMMON_FIELDS = (
+    ("summon_time", "moveAbilityTimeType"),
+    ("support_unit_id", "unitID"),
+    ("unit_level", "unitLevel"),
+    ("max_batch", "maxBatch"),
+    ("max_alive", "maxCount"),
+    ("create_count_per_time", "createCountPerTime"),
+    ("start_time", "startTime"),
+    ("appear_type", "appearType"),
+    ("product_time", "productTime"),
+    ("create_duration", "createDuration"),
+)
 # The list of `TechnologyGroupData` a plain technology comes from. A row of any
 # other list is a subclass (`BuffTechnologyData`, `SplashTechnologyData` and
 # the rest) that does something beyond its unit's numbers.
@@ -397,7 +413,10 @@ def main() -> int:
         "# skill while it intercepts (`weapon_count`, `preemptive`). A",
         "# technology that summons where its unit dies carries the unit type,",
         "# how many by its unit's level, and the DynamicMechLevel they take",
-        "# (`dead_summon`: 0 the first level, 3 its unit's).",
+        "# (`dead_summon`: 0 the first level, 3 its unit's). A technology that",
+        "# makes units as its unit's move ability reaches a time (a",
+        "# MoveAbilityTimeType: 2 as it begins to surface) carries that time and",
+        "# the line it makes them by (`move_summon`), as a production row does.",
         "",
         "technologies:",
     ]
@@ -451,9 +470,10 @@ def main() -> int:
                 f"{field}: {row['row'][source]}".replace("'", "") for field, source in DEAD_SUMMON_FIELDS
             )
             lines.append(f"    dead_summon: {{{fields}}}")
-        if row["kind"] == SUPPORT:
-            lines.append("    production:")
-            for field, source in SUPPORT_FIELDS:
+        if row["kind"] in (SUPPORT, MOVE_SUMMON):
+            block, fields = ("production", SUPPORT_FIELDS) if row["kind"] == SUPPORT else ("move_summon", MOVE_SUMMON_FIELDS)
+            lines.append(f"    {block}:")
+            for field, source in fields:
                 value = row["row"][source]
                 if isinstance(value, bool):
                     lines.append(f"      {field}: {str(value).lower()}")

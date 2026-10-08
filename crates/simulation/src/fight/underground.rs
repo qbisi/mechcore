@@ -224,6 +224,12 @@ impl Simulation {
             underground.agent_locked = true;
             underground.showing_q32 = Some(underground.exit_keep_q32);
             actor.deactivate_skills();
+            // `OnExitMoveBegin`: `MoveAbilitySummonSystem` hands the side a
+            // creator of the unit's surfacing line.
+            if let Some(production) = &actor.placement.surfacing {
+                let creator = super::support_unit::Creator::surfacing(actor, production);
+                self.support.creators.push(creator);
+            }
         }
     }
 

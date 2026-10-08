@@ -27,6 +27,7 @@ out to show:
 | [`lifesteal/`](lifesteal/README.md) | how a hit hands life back to the unit whose skill dealt it, and which lifesteal source does |
 | [`missile/`](missile/README.md) | when a missile fires, at what, and what its hit writes |
 | [`map/`](map/README.md) | what a map's neutral crystals do to a fight |
+| [`move_ability/`](move_ability/README.md) | what a technology adds to its unit's move ability, and what it makes as the unit surfaces |
 | [`modifier/`](modifier/README.md) | how officers and technologies correct a unit's numbers |
 | [`splash/`](splash/README.md) | how a correction widens a skill's splash, and a skill with none given one |
 | [`super_deployment/`](super_deployment/README.md) | what a formation deployed on a flank does in a fight, travelling in or settled |
