@@ -321,10 +321,24 @@ Companion makes one at the Abyss's level, 40 metres ahead of it, appearing at
 once with no effect (`appear_type` 0), once; the two types differ only in the
 duration of the effect `SupportUnitCreator.CreateMech` hands the client.
 
+The War Factory's three lines make theirs at its level, each taking the row's
+`productTime`, a second, to appear (`SupportUnitData.GetProductMoveTime`).
+Phoenix Production's (`appear_type` 6) appears as a transition does, at the
+War Factory itself, a Phoenix every 17.2 seconds. Steel Ball Production's and
+Sledgehammer Production's (`appear_type` 7) come out of it, every 9.7 and 6.6
+seconds (`SummonSystem.CreateMechDelaySetPos`). Each is made where the War
+Factory stands, with no agent, and draws two hundredths of a metre of its
+side's stream, x then z, a draw of up to a metre each way. As it joins
+(`SummonSystem.AddMechDelay`) it gets its agent
+(`MotionController.ActiveMoveFunction`) and stands at its offset, the row's
+whole metres with its draws added, turned by the War Factory's facing from
+where the War Factory then stands, facing as it faces
+(`FightMech.UpdatePositionAndRotation`).
+
 A row whose makes appear any other way, take a level of their own, are
 corrected by the row, are capped in all, come in its `intensifyMode` or
-without their side's technologies is refused by name: the War Factory's lines
-rise out of it, and Electromagnetic Twin corrects its make.
+without their side's technologies is refused by name: Electromagnetic Twin
+corrects its make.
 
 ## What this table does not carry
 

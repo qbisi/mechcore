@@ -94,6 +94,9 @@ pub(in crate::fight) struct Creator {
     parent_level: bool,
     /// Whether an offset turns with the owner's body rather than its root.
     body_frame: bool,
+    /// Whether its makes come out of their owner, taking their places as
+    /// they join.
+    comes_out: bool,
     /// Whether its owner's support skill lets each batch out, and whether
     /// it holds the line locked.
     gate: Gate,
@@ -157,6 +160,18 @@ pub(in crate::fight) struct Appearing {
     /// The tick at whose start it joins the fight.
     joins_on: u64,
     drop_damage: bool,
+    /// Where one that comes out of its owner stands as it joins.
+    coming_out: Option<ComingOut>,
+}
+
+/// `SummonSystem.DelayedMechInfo` with `isPositionAdjust`: the owner, and
+/// the make's offset from it, its row's whole metres and the make's draws,
+/// Q32.32 metres right and forward of the owner's facing.
+#[derive(Debug, Clone, Copy)]
+struct ComingOut {
+    owner: u64,
+    right_q32: i64,
+    forward_q32: i64,
 }
 
 impl Creator {
@@ -173,6 +188,7 @@ impl Creator {
             appear_ticks: APPEAR_TICKS,
             parent_level: false,
             body_frame: false,
+            comes_out: false,
             gate: Gate::None,
             max_batch: 0,
             batches: 0,
@@ -221,6 +237,7 @@ impl Creator {
             appear_ticks: seconds_q32_to_steps(line.appear_q32),
             parent_level: line.parent_level,
             body_frame: line.body_frame,
+            comes_out: line.arrival == crate::modifier::Arrival::ComesOut,
             gate: if line.gated { Gate::Open } else { Gate::None },
             max_batch: line.max_batch,
             batches: 0,
@@ -390,14 +407,7 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<u64> {
         let team = creator.team;
-        let (mut x_q32, mut z_q32, facing) = match creator.owner {
-            Some(owner) => {
-                let (x, z, facing) = self.production_position(creator, owner, member)?;
-                (x, z, Some(facing))
-            }
-            None => (creator.x_q32, creator.z_q32, None),
-        };
-        self.scatter(creator, &mut x_q32, &mut z_q32)?;
+        let (x_q32, z_q32, facing, coming_out) = self.made_at(creator, member)?;
         let rules = creator.summon.rules.clone();
         // `CreateSummonMechInfo.level`: the owner's, for a make of
         // `DynamicMechLevel.Parent`.
@@ -472,7 +482,12 @@ impl Simulation {
                 position,
             },
         ));
-        self.rvo.added_units.push(unit_id);
+        // `SummonSystem.DoCreateMech` makes its agent with it
+        // (`MotionController.ActiveMoveFunction`); one that comes out has
+        // none until it joins.
+        if coming_out.is_none() {
+            self.rvo.added_units.push(unit_id);
+        }
         // `SummonSystem.DoCreateMech`: a summon that takes no time to appear
         // joins at once (`AddMech`) rather than by `CreateMechDelay`, its
         // skills' first intervals drawn before the next make's scatter.
@@ -490,9 +505,61 @@ impl Simulation {
                 actor,
                 joins_on: tick + creator.appear_ticks,
                 drop_damage: creator.summon.drop_damage,
+                coming_out,
             });
         }
         Ok(unit_id)
+    }
+
+    /// Where a make is made, which way it faces, and, for one that comes out
+    /// of its owner, where it will stand.
+    fn made_at(
+        &mut self,
+        creator: &Creator,
+        member: u32,
+    ) -> Result<(i64, i64, Option<i64>, Option<ComingOut>)> {
+        match creator.owner {
+            // `SummonSystem.CreateMechDelaySetPos` makes it where the owner
+            // stands (`SupportUnitData.GetPosition`).
+            Some(owner) if creator.comes_out => {
+                let owner_actor = &self.actors[&owner];
+                let (x, z, facing) = (
+                    owner_actor.x_q32,
+                    owner_actor.z_q32,
+                    owner_actor.body_rotation_q32,
+                );
+                let coming_out = self.come_out(creator, owner, member)?;
+                Ok((x, z, Some(facing), Some(coming_out)))
+            }
+            Some(owner) => {
+                let (mut x, mut z, facing) = self.production_position(creator, owner, member)?;
+                self.scatter(creator, &mut x, &mut z)?;
+                Ok((x, z, Some(facing), None))
+            }
+            None => {
+                let (mut x, mut z) = (creator.x_q32, creator.z_q32);
+                self.scatter(creator, &mut x, &mut z)?;
+                Ok((x, z, None, None))
+            }
+        }
+    }
+
+    /// A make that comes out of its owner: its offset, the row's next
+    /// position in whole metres (`Vector2Int`), and two draws of its side's
+    /// stream of up to a metre each way, a hundredth a step, x then z, made
+    /// as it is (`SummonSystem.CreateMechDelaySetPos`).
+    fn come_out(&mut self, creator: &Creator, owner: u64, member: u32) -> Result<ComingOut> {
+        let index = usize::try_from(member).unwrap_or(usize::MAX) % creator.offsets.len().max(1);
+        let (right, forward) = creator.offsets.get(index).copied().unwrap_or((0, 0));
+        let mut drawn = [0_i64; 2];
+        for axis in &mut drawn {
+            *axis = hundredths(self.side_random(creator.team)?.next_in_range(100));
+        }
+        Ok(ComingOut {
+            owner,
+            right_q32: ((right >> 32) << 32).saturating_add(drawn[0]),
+            forward_q32: ((forward >> 32) << 32).saturating_add(drawn[1]),
+        })
     }
 
     /// Where a summon stands once scattered: a line of one position that may
@@ -610,10 +677,40 @@ impl Simulation {
             .is_some_and(|appearing| appearing.joins_on <= tick)
         {
             let Appearing {
-                actor, drop_damage, ..
+                mut actor,
+                drop_damage,
+                coming_out,
+                ..
             } = self.support.appearing.remove(0);
+            if let Some(coming_out) = coming_out {
+                self.take_place(&mut actor, coming_out)?;
+            }
             self.let_in(actor, drop_damage, events)?;
         }
+        Ok(())
+    }
+
+    /// `SummonSystem.AddMechDelay` with `isPositionAdjust`: a make that comes
+    /// out of its owner gets its agent (`MotionController.ActiveMoveFunction`)
+    /// and stands at its offset turned by `FQuaternion.AngleAxis` of the
+    /// owner's facing about the vertical, from where the owner stands, facing
+    /// as it faces (`FightMech.UpdatePositionAndRotation`).
+    fn take_place(&mut self, actor: &mut Actor, coming_out: ComingOut) -> Result<()> {
+        let owner = self
+            .actors
+            .get(&coming_out.owner)
+            .ok_or_else(|| Error::new("a make comes out of a unit that has left the fight"))?;
+        let facing = owner.body_rotation_q32;
+        let (x, z) = turn_about_vertical(
+            facing,
+            Q32_ONE,
+            coming_out.right_q32,
+            coming_out.forward_q32,
+        );
+        actor.set_position(owner.x_q32.saturating_add(x), owner.z_q32.saturating_add(z));
+        actor.face(facing);
+        actor.motion.rvo_new_agent = true;
+        self.rvo.added_units.push(actor.placement.unit_id);
         Ok(())
     }
 

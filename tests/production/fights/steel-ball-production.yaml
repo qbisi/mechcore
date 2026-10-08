@@ -1,0 +1,26 @@
+# Steel Ball Production on blue's War Factory: a technology's production line
+# whose makes come out of their unit (`appearType` 7,
+# `SummonSystem.CreateMechDelaySetPos`). Each is made where the War Factory
+# stands, draws two hundredths of a metre of blue's stream, x then z, and
+# appears in the row's `productTime`, a second, with no agent. As it joins
+# (`SummonSystem.AddMechDelay`) it gets one and stands 40 metres ahead of
+# where the War Factory then stands, its draws added, turned by the War
+# Factory's facing, and faces as it faces. Two come out, 9.7 seconds apart.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 384
+hash: {profile: mcfr-content-0.7.0, result: 70b11a07b38909e05fcc4c84c27e7fa6c581e93d05c4bfc44021ad9127fcde1a}
+blue:
+  techs:
+    war_factory: [steel_ball_production]
+  units:
+  - {name: war_factory, index: 0, position: {x: 5, y: -145}, exp: 0/600/3200}
+red:
+  core_damage: 500
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/200/650}

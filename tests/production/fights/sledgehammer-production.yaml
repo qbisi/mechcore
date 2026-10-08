@@ -1,0 +1,21 @@
+# Sledgehammer Production on red's War Factory: as
+# `steel-ball-production.yaml`, a Sledgehammer every 6.6 seconds, on the side
+# that faces the other way, so each offset is turned half a circle.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 349
+hash: {profile: mcfr-content-0.7.0, result: 7451fc5ca316abdbae2e89cff45ce3ad588593411f7977880f1c17ec5039d37c}
+blue:
+  core_damage: 520
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/80/650}
+red:
+  techs:
+    war_factory: [sledgehammer_production]
+  units:
+  - {name: war_factory, index: 0, position: {x: 5, y: -145}, exp: 0/600/3200}

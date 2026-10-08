@@ -977,6 +977,7 @@ fn technology_line(production: &crate::rules::TechnologyProduction) -> Productio
         appear_q32: metres(production.appear),
         parent_level: production.level == crate::rules::ProductionLevel::Parent,
         body_frame: production.frame == crate::rules::ProductionFrame::ParentBody,
+        arrival: crate::modifier::Arrival::InPlace,
         gated: true,
     }
 }
