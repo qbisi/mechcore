@@ -1,0 +1,21 @@
+# High-Explosive Ammo on blue's Overlord against two Crawler formations: 7 metres
+# of splash on its skill, which reads 14 where it read 7, and 40% off its
+# damage. Its blows strike up to 9 Crawlers on one tick.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 619
+hash: {profile: mcfr-content-0.7.0, result: 7ccbd87a4b3bb5487136a6deec46db39c3a405ad38fd8ec114cad375b95ad0bc}
+blue:
+  techs:
+    overlord: [high_explosive_ammo]
+  units:
+  - {name: overlord, index: 0, position: {x: -5, y: -105}, exp: 0/384/1750}
+red:
+  core_damage: 400
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -70}, exp: 0/150/450}
+  - {name: crawler, index: 1, position: {x: 5, y: -100}, exp: 0/50/450}

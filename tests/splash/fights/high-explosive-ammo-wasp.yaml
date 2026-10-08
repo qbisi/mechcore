@@ -1,0 +1,21 @@
+# High-Explosive Ammo on blue's Wasp against two Crawler formations: 7 metres
+# of splash on its skill, which reads 7 where it read 0, and 30% off its
+# damage. A shot that struck one Crawler strikes those around it, up to 8 on one tick.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 404
+hash: {profile: mcfr-content-0.7.0, result: 0ff9375870240509ac3f946cf2ed3889afe6b903880b57c75959e5bef6fb8d74}
+blue:
+  techs:
+    wasp: [high_explosive_ammo]
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/384/900}
+red:
+  core_damage: 204
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -70}}
+  - {name: crawler, index: 1, position: {x: 5, y: -100}}

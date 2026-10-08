@@ -86,7 +86,9 @@ Anti-Air Missile, Incendiary Bomb, Scorching Charge, Homing Missile, Sticky
 Oil Bomb, Whirlwind and Energy Diffraction with
 the skill each adds, and Energy Diffraction's `all_weapon_reduce_damage_rate`
 on the damage of its unit's skills
-([extra_weapons.md](extra_weapons.md)), a missile interception technology's
+([extra_weapons.md](extra_weapons.md)), a splash technology's with its
+`splash_range` added to its unit's skills' splash as a splash value is
+([splash](#splash-technologies)), a missile interception technology's
 with the interceptors it makes its unit
 ([below](#missile-interception)), a production technology's with the line it
 runs ([below](#production-lines)), and refuses
@@ -258,6 +260,15 @@ buff, one that reaches crystals, measures
 from its unit's edge, a buff that stacks on
 another condition or lowers what it stacks, and a buff field beyond these is
 refused by name.
+
+## Splash technologies
+
+High-Explosive Ammo is a plain technology and a splash: `SplashTech.AddData`
+writes its row's numbers, then adds its `range`, read at the unit's level as
+its numbers are, to the skill's `SplashRangeValue`, as a splash item does.
+The skill's splash is its row's plus that range: a Stormcaller's 5.5 metres
+reads 10.5 with its 5, a Wasp's none reads 7, and a War Factory's four
+skills and a Wraith's four slots each read theirs.
 
 ## Missile Interception
 
@@ -550,6 +561,16 @@ derive (a minimum range):
   life, and stacks on from the stack it kept:
   `tests/technology_disable/fights/impact-combat-evolvement.yaml`,
   `tests/technology_disable/fights/impact-combat-evolvement-expires.yaml`.
+- High-Explosive Ammo's range lands in each skill's `splash_range` beside its
+  damage rate, and its shots strike the Crawlers around their target:
+  `tests/splash/fights/high-explosive-ammo-wasp.yaml`,
+  `tests/splash/fights/high-explosive-ammo-mustang.yaml`,
+  `tests/splash/fights/high-explosive-ammo-overlord.yaml`,
+  `tests/splash/fights/high-explosive-ammo-stormcaller.yaml`,
+  `tests/splash/fights/high-explosive-ammo-war_factory.yaml`,
+  `tests/splash/fights/high-explosive-ammo-wraith.yaml`,
+  `tests/splash/fights/high-explosive-ammo-tarantula.yaml`,
+  `tests/splash/fights/high-explosive-ammo-phantom_ray.yaml`.
 - A unit's interceptors take rockets out of the air from where it stands, a
   War Factory's four each on its own, and a Mustang's lock its main skill,
   which stands its unit idle on the next update:
@@ -790,6 +811,10 @@ derive (a minimum range):
   `FightSkill.Disable`, `FightSkill.Enable`, `SkillIdleState.Update`,
   `SkillAttackState.CheckAttackable`.
 
+- A splash technology writes its numbers as a plain technology does and adds
+  its range to the skill's splash: `SplashTech.AddData`,
+  `SplashTechnologyData.GetRange`, `Technology.AddData`,
+  `SkillDataModifier.AddData`, `FightSkill.GetSplashRange`.
 - A unit's interceptors: `InterceptMissileTech` answers `IInterceptData`
   from its row, and `InterceptMissileEffectProvider.DoActive` adds the unit's
   group to its side's (`TeamInterceptSourceManager.GetInterceptSource`),

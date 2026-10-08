@@ -70,6 +70,7 @@ SUBCLASS_LISTS = (
     ("ground_damage_change_rate", "groundDamageChangeRate", "searchTargetSpecificDatas"),
     ("air_damage_change_rate", "airDamageChangeRate", "damageIntensifyTechnologies"),
     ("ground_damage_change_rate", "groundDamageChangeRate", "damageIntensifyTechnologies"),
+    ("splash_range", "range", "splashTechnologies"),
 )
 # The same for a field that is one value rather than a rank list.
 SUBCLASS_SCALARS = (
@@ -105,7 +106,7 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "armorStrengthenTechnologyDatas", "searchTargetSpecificDatas",
                "airAttackTechnologyDatas", "damageIntensifyTechnologies",
                "secondaryDamageIntensifyTechDatas", "buffTechnologies",
-               "interceptMissileTechnologyDatas")
+               "interceptMissileTechnologyDatas", "splashTechnologies")
 # The list whose `BuffTech` adds a buff, and the fields its rows carry for
 # `buff_lines` rather than as corrections.
 BUFF = "buffTechnologies"
@@ -350,6 +351,8 @@ def main() -> int:
         "# `exp_rate` is a rate on what the unit gains, not a correction.",
         "#",
         "# A subclass's row also carries what it answers its own interface with:",
+        "# a splash technology the FPoint metres of splash it adds its unit's",
+        "# skill (`splash_range`),",
         "# a lifesteal technology its `lifesteal_multiplier`, the share of a hit's",
         "# damage its unit takes back as life, and a repair technology the",
         "# seconds hurt before it repairs, the state it repairs in (0 always,",
