@@ -14,7 +14,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 109
-hash: {profile: mcfr-content-0.7.0, result: dac31cbb4e8b9e522548c937b2768889ce0fa6a1966a250d9239760bba944ad4}
+hash: {profile: mcfr-content-0.22.0, result: 05f6b844b0e5e7611f979a12f533fab50f8e108f2e5496400123072f675fbf51}
 blue:
   techs:
     fire_badger: [scorching_charge]

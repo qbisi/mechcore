@@ -9,7 +9,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 366
-hash: {profile: mcfr-content-0.7.0, result: 2d070eadc981f3775ea155f4ad12352910c41a165c894c86fb4cef029708a1d7}
+hash: {profile: mcfr-content-0.22.0, result: 7a8b188395dd037eecff1ef8e22ed5667685bfbe7ebc9a051dbd70835b7e6d3f}
 blue:
   units:
   - {name: raiden, index: 0, position: {x: 0, y: -200}, exp: 0/56/2400}

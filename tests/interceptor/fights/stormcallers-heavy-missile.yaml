@@ -12,7 +12,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 238
-hash: {profile: mcfr-content-0.7.0, result: c9afba6e2893b4796a41534b3b59f2616456ff1ac1ce64aefc471665883abb24}
+hash: {profile: mcfr-content-0.22.0, result: af05ea26410f7377f4797dc272f813b203142ec1b4cd171b53be287e3052c933}
 blue:
   techs:
     stormcaller: [heavy_missile]

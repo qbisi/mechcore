@@ -6,7 +6,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 193
-hash: {profile: mcfr-content-0.7.0, result: d0708a647211da8dcd99720486d9e6ae99d8ff5b0aea162ee4563068d8353a77}
+hash: {profile: mcfr-content-0.22.0, result: fa0b0ae5c2d0c7c3d4a4dce5a4c718f3cd6600531126179eeb756b74ff60e161}
 blue:
   units:
   - {name: sledgehammer, index: 0, position: {x: -5, y: -100}, exp: 0/192/1300}

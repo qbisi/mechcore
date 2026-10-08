@@ -11,7 +11,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 298
-hash: {profile: mcfr-content-0.7.0, result: e4d7b57e6374d7f738e25b9b2505bab66b0414bb3498c9f18287a5b68ef9f304}
+hash: {profile: mcfr-content-0.22.0, result: acd052e42f4c91a9d7801147008b0922729f8af3757b1fd3f091273ec3291628}
 blue:
   units:
   - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/400/1600, equipment: [tank_production_line]}

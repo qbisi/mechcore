@@ -8,7 +8,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 448
-hash: {profile: mcfr-content-0.7.0, result: 4b28694f7e9f6a6b21119643250f69da21a8dcc78a624fa872d4f281f59a193b}
+hash: {profile: mcfr-content-0.22.0, result: 0a73ab0bcda0f6f2ff6a4717642845a941ade40d3514cf1764b0e9a8c83e2efc}
 blue:
   techs:
     phantom_ray: [high_explosive_ammo]

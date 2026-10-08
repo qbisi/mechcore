@@ -11,7 +11,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 350
-hash: {profile: mcfr-content-0.7.0, result: cf92fc94aa0f91a1a905fc06b1ca6dcdd00b1938ae9a27b488eb4e2f4f9ab90d}
+hash: {profile: mcfr-content-0.22.0, result: 0c53980da15a5a1d660fffc5316c766dbe5b0dfe519db72b060fd5fa0675e75c}
 blue:
   techs:
     abyss: [dark_companion]

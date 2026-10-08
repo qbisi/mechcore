@@ -8,7 +8,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 404
-hash: {profile: mcfr-content-0.7.0, result: 0ff9375870240509ac3f946cf2ed3889afe6b903880b57c75959e5bef6fb8d74}
+hash: {profile: mcfr-content-0.22.0, result: 0e6d3d1b6d45f5859861808dc390e3a1d303f5ee6f73847ada363099a3fd6b49}
 blue:
   techs:
     wasp: [high_explosive_ammo]

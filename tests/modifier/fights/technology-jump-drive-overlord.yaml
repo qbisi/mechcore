@@ -8,7 +8,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 361
-hash: {profile: mcfr-content-0.7.0, result: b55610df9e8c865223f58b90929af012a435b37fada01bc6c8f804daafdb3797}
+hash: {profile: mcfr-content-0.22.0, result: bd255af265b03e018e82982af02890ad34d814e6701a6068025f902fff993373}
 blue:
   techs:
     overlord: [jump_drive]

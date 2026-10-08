@@ -8,7 +8,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 445
-hash: {profile: mcfr-content-0.7.0, result: 9b3ea3b956abfa7d5dea9edc329b512b10a3dd473d3759173feeac0370e4e9c3}
+hash: {profile: mcfr-content-0.22.0, result: 72716a68efd5da40b1ac81933dca83f4feb37387696d5b9778da668960f6feea}
 blue:
   techs:
     wraith: [high_explosive_ammo]
