@@ -1,0 +1,26 @@
+# Acid Attack: a Scorpion's hits on the ground leave an acid where they land.
+#
+# A hit adds buff 2019 to what it struck (150% more damage taken, and 1.5% of
+# its maximum life every half second for a second). It also leaves an acid of
+# 15 m for 18 seconds under the Scorpion's side, which keeps the same buff on
+# a unit standing in it, every 19 ticks. The first hit at t131 leaves acid 1
+# and the second at t219 acid 2; both are cleared as the fight is left at
+# t302.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 302
+hash: {profile: mcfr-content-0.7.0, result: 8ce4e28cf50fd9ccbaf5b8b465294e5c438ad10f76e532d8f345a98e957e308a}
+blue:
+  techs:
+    scorpion: [acid_attack]
+  units:
+  - {name: scorpion, index: 0, position: {x: 5, y: -145}, exp: 0/800/1500}
+red:
+  core_damage: 250
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+  - {name: rhino, index: 1, position: {x: 45, y: -95}}

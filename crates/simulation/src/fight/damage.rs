@@ -867,7 +867,8 @@ impl Simulation {
         match (hit.source, hit.skill_slot) {
             (Some(owner), Some(slot)) if owner.kind == ObjectKind::Unit => {
                 self.steal_life(owner.id, damage, events)?;
-                self.add_hit_buffs(owner.id, slot, targets, events)
+                let center = (hit.center_q32.0, hit.center_y_q32, hit.center_q32.1);
+                self.add_hit_buffs(owner.id, slot, (targets, center), events)
             }
             _ => Ok(()),
         }

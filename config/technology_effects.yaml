@@ -1871,7 +1871,36 @@ technologies:
     buff_trigger: 0
     buff_targets: []
     probability: 4294967296  # +1
-    buff_special: [triggerRangeItemBuffId, triggerRangeItemType, triggerLifeTime, triggerRangeItemRange]
+    buff_range_item:
+      kind: 3
+      range: 15
+      life: 77309411328  # +18
+      rounds: 0
+      buff:
+        id: 2019
+        name: 酸性弹药
+        duration: 4294967296  # +1
+        divide: 0
+        additive: false
+        debuff: true
+        invincible: false
+        disable_technology: false
+        amplify_damage_rate: 6442450944  # +1.5
+        damage_rate: 0
+        speed_rate: 0
+        attack_range_value: 0
+        attack_range_rate: 0
+        max_life_rate: 0
+        step_time: 2147483648  # +0.5
+        additive_effect: false
+        additive_condition: 0
+        additive_condition_param: 0
+        max_additive_stack: 0
+        clear_when_technologies_disabled: true
+        summon_unit: 0
+        summon_level_inherit: false
+        life_change_rate: -64424509  # -0.015
+        disable_recover: false
     buff:
       id: 2019
       name: 酸性弹药

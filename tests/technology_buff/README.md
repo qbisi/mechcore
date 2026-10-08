@@ -28,6 +28,7 @@ same buff sources on an item.
   delay to the units around an Overlord and a Farseer, and every 30 seconds
   to a Mountain itself. The Farseer's fight holds its buff while a last
   projectile is in flight after the towers fell.
+- `acid-attack.yaml` leaves a Scorpion's acid where its hits on Rhinos land.
 - `counter-fire.yaml` adds Counter-Fire's range to a Fire Badger from the
   tick a Marksman's hit takes life from it.
 - `replicate.yaml` and `replicate-swarm.yaml` make Crawlers of a Marksman

@@ -143,6 +143,16 @@ reduces, which a melee reach does not take. Electromagnetic Shot
 switches a struck unit's technologies off for some seconds and takes 40% off
 its speed; an item's buff of the kind, Charged Ammo's, is the same source.
 
+**A hit source that names a range item leaves an acid where the hit lands.**
+After its buff, the source leaves an acid of the range item's radius and
+life, under its unit's side, at the point the hit lands, when what the skill
+fires at (its attack target, or else its lock) is on the ground. The acid
+keeps the range item's buff on the units standing in it, as a battle skill's
+acid does ([terrain.md](terrain.md)). Acid Attack's hit adds buff 2019 to what
+it struck and leaves 15 m of acid for 18 seconds with the same buff; Advanced
+Acid Ammo, an item, leaves one for 10 seconds. A range item of another kind,
+or one whose buff writes what a terrain's buff does not, is refused.
+
 **A buff that burns takes a share of its unit's maximum life every step, and
 one that disables recovery stops its repair and lifesteal.** Each `stepTime`,
 the buff takes the whole part of the unit's maximum life times its life
@@ -391,6 +401,9 @@ whose effect grows with rank, rather than read index zero:
   `tests/technology_buff/fights/photon-emission.yaml`,
   `tests/technology_buff/fights/photon-emission-farseer.yaml`,
   `tests/technology_buff/fights/photon-loop.yaml`.
+- Each of a Scorpion's hits with Acid Attack adds its buff to the Rhino it
+  struck and leaves an acid at t131 and t219, which keeps the buff on a Rhino
+  standing in it every 19 ticks: `tests/technology_buff/fights/acid-attack.yaml`.
 - Counter-Fire's buff is on a Fire Badger from the tick a Marksman's hit
   takes life from it, its range 145 of 75; without it the simulator parts
   from the recording on that tick, on that range:
@@ -485,6 +498,16 @@ whose effect grows with rank, rather than read index zero:
   answers `BuffTechnologyData.get_EffectName`, and the call index names no
   caller of a `GetEffectName` in the fight's assembly; the client's
   `ResourceManager.CreateBuffTechEffect` reads `BuffTechEffect.GetEffectName`.
+- A hit source's range item: the `BuffTech` constructor makes a range item
+  of its row when the row names a trigger buff, which
+  `BuffTech.GetBuffRangeItem` answers, and each of `BuffRangeItem.GetLifeTime`,
+  `BuffRangeItem.GetShowRangeItemType`, `BuffRangeItem.GetRangeItemRange` and
+  `BuffRangeItem.GetRoundDuration` reads the row. After
+  `BuffSystem.AddBuff`, `BuffCycleController.TriggerBuffOrBuffRangeItemFromHit`
+  takes `FightSkill.attackTarget`, or `FightSkill.GetLockTarget` when there is
+  none, and when it is not `FightActor.IsFly` and the source answers a range
+  item, calls `RangeItemSystem.AddItem` at the hit's point with the team of
+  the source's unit.
 - A buff that summons: `Buff.Init` gives a buff whose `IBuffData.IsSummoning`
   an `IBEC_DeadSummon`, and `BuffSystem.IsAvaliableWhenActorDead` lets
   `BuffSystem.AddBuff` add it to a dead target, as it does one whose

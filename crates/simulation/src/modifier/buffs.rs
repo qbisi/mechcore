@@ -13,12 +13,15 @@ use serde::Deserialize;
 use super::sources::{
     AllCycle, BuffReach, BuffSource, BuffTargets, BuffTrigger, DeadSummon, StackCondition, Stacking,
 };
-use crate::rules::AttackTargets;
+use crate::{layout::TerrainSpec, rules::AttackTargets};
 
 /// `BuffTechListener.Hit`, `FightStart` and `GetDamage`.
 const HIT: i32 = 0;
 const FIGHT_START: i32 = 1;
 const GET_DAMAGE: i32 = 3;
+
+/// `RangeItemType.Acid`.
+const ACID: i32 = 3;
 
 /// `TargetType.MechUnit`: the unit the buff's source is on.
 const MECH_UNIT: i32 = 1;
@@ -109,6 +112,23 @@ pub(crate) struct BuffBlock {
     special: Vec<String>,
 }
 
+/// A source's `BuffRangeItem`, which its constructor makes when the row names
+/// a `triggerRangeItemBuffId`: what a hit leaves where it lands.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct RangeItemBlock {
+    /// `GetShowRangeItemType`, a `RangeItemType`.
+    kind: i32,
+    /// `GetRangeItemRange`, whole metres.
+    range: i64,
+    /// `GetLifeTime`, Q32.32 seconds.
+    life: i64,
+    /// `GetRoundDuration`.
+    rounds: i32,
+    /// The `buffDatas` row of `triggerRangeItemBuffId`.
+    buff: BuffBlock,
+}
+
 /// The buff a source adds, when and to whom, or why this build will not apply
 /// it. `BuffCycleController.OnEnterFight` runs a controller whose listener is
 /// `FightStart`. Under `BuffTargetUpdateModel.All` its `UpdateModel1`
@@ -138,7 +158,7 @@ pub(crate) fn buff_source(
     cycle: &CycleBlock,
     can_disable: bool,
     source_special: &[String],
-    buff: Option<&BuffBlock>,
+    (buff, range_item): (Option<&BuffBlock>, Option<&RangeItemBlock>),
 ) -> std::result::Result<BuffSource, String> {
     let Some(buff) = buff else {
         return Err(format!("{who} names no buff"));
@@ -221,6 +241,9 @@ pub(crate) fn buff_source(
         stacking,
         summons: summons(who, buff)?,
         probability: convert_probability(probability),
+        range_item: range_item
+            .map(|item| range_item_terrain(who, item, trigger))
+            .transpose()?,
         trigger,
         can_disable,
         clears_when_technologies_disabled: buff.clear_when_technologies_disabled,
@@ -262,6 +285,71 @@ fn stacking(who: &str, buff: &BuffBlock) -> std::result::Result<Option<Stacking>
             buff.id, buff.name, buff.additive_condition
         )),
     }
+}
+
+/// The terrain a source's `BuffRangeItem` is: an acid whose
+/// `BuffItemController` keeps its buff on the units standing in it. Only
+/// `TriggerBuffOrBuffRangeItemFromHit` leaves one, so a source of another
+/// trigger, or a range item of another kind or whose buff writes what a
+/// terrain's buff here does not, is refused.
+fn range_item_terrain(
+    who: &str,
+    item: &RangeItemBlock,
+    trigger: BuffTrigger,
+) -> std::result::Result<TerrainSpec, String> {
+    let buff = &item.buff;
+    if trigger != BuffTrigger::Hit {
+        return Err(format!(
+            "{who} leaves a range item on a trigger other than a hit, which leaves none"
+        ));
+    }
+    if item.kind != ACID {
+        return Err(format!(
+            "{who} leaves a range item of RangeItemType {}, and only an acid is read",
+            item.kind
+        ));
+    }
+    let unread = [
+        ("damageChangeRate", buff.damage_rate != 0),
+        ("attackRangeChangeRate", buff.attack_range_rate != 0),
+        ("maxLifeChangeRate", buff.max_life_rate != 0),
+        ("isAdditiveEffect", buff.additive_effect),
+        ("summonUnitID", buff.summon_unit != 0),
+        ("disableRecover", buff.disable_recover),
+        ("a heal", buff.life_change_rate > 0),
+    ]
+    .into_iter()
+    .filter_map(|(field, set)| set.then_some(field))
+    .chain(buff.special.iter().map(String::as_str))
+    .collect::<Vec<_>>();
+    if !unread.is_empty() {
+        return Err(format!(
+            "{who} leaves an acid whose buff {} ({}) sets {}, which a terrain's buff here does \
+             not write",
+            buff.id,
+            buff.name,
+            unread.join(", ")
+        ));
+    }
+    crate::layout::buff_item_terrain(
+        who,
+        (item.range, item.life, item.rounds),
+        &crate::layout::ItemBuff {
+            id: buff.id,
+            divide: buff.divide,
+            additive: buff.additive,
+            duration_raw: buff.duration,
+            debuff: buff.debuff,
+            invincible: buff.invincible,
+            disable_technology: buff.disable_technology,
+            amplify_damage_rate: buff.amplify_damage_rate,
+            move_speed_rate: buff.speed_rate,
+            life_change_rate: buff.life_change_rate,
+            step_time_raw: buff.step_time,
+            attack_range_value: buff.attack_range_value,
+        },
+    )
+    .map_err(|error| error.to_string())
 }
 
 /// `Utility.ConvertProbability`: an `FPoint` chance in whole thousandths,

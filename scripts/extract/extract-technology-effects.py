@@ -34,7 +34,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 import build_data  # noqa: E402
-from buff_rows import SOURCE_CLIENT, SOURCE_CYCLE, SOURCE_OTHER, buff_lines  # noqa: E402
+from buff_rows import SOURCE_CLIENT, SOURCE_CYCLE, SOURCE_OTHER, SOURCE_RANGE_ITEM, buff_lines  # noqa: E402
 
 REPOSITORY = pathlib.Path(__file__).resolve().parents[2]
 OUTPUT = REPOSITORY / "config/technology_effects.yaml"
@@ -108,7 +108,7 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
 # `buff_lines` rather than as corrections.
 BUFF = "buffTechnologies"
 BUFF_SOURCE = {"buffID", "buffTechTrigger", "effectTargetTypes", "probability", "energyShieldDamage",
-               *SOURCE_CYCLE, *SOURCE_OTHER, *SOURCE_CLIENT}
+               "triggerRangeItemBuffId", *SOURCE_CYCLE, *SOURCE_OTHER, *SOURCE_CLIENT, *SOURCE_RANGE_ITEM}
 # The list of `TechnologyGroupData` a plain technology comes from. A row of any
 # other list is a subclass (`BuffTechnologyData`, `SplashTechnologyData` and
 # the rest) that does something beyond its unit's numbers.
