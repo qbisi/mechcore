@@ -1738,7 +1738,17 @@ impl Simulation {
                 .attack_target()
                 .is_some_and(|target| !self.fight_actor_is_alive(target));
         if let Flow::Done = self.projectile_burst_lost_target(skill_ref, step, events)? {
-            return Ok(None);
+            // A burst at a block that fell in the way of a live lock leaves
+            // the motion's update to it, which holds the block and turns past
+            // it to the lock.
+            let lock_lives = self
+                .skill(skill_ref)
+                .lock_target
+                .is_some_and(|lock| self.fight_actor_is_alive(lock));
+            return Ok(lock_lives.then(|| SkillUpdate {
+                burst_releasing,
+                ..SkillUpdate::default()
+            }));
         }
         // `SkillIdleState.TryPerform` reaches `SearchAttackTarget` on every
         // update the skill is idle with a lock.
@@ -2131,9 +2141,18 @@ impl Simulation {
             // one stays attacking until the burst is out and the skill lets
             // the target go: a Phantom Ray on a Mobile Beacon reads attacking
             // on the tick its burst's second shot goes out at the Vortex that
-            // died after its first, and moving the next.
+            // died after its first, and moving the next. A block that fell in
+            // the way of a live lock leaves the lock alive, and the motion,
+            // which asks the lock, attacking: two Stormcallers whose burst
+            // went on at a fallen block of replay 134369439 round 8 read
+            // attacking through it, turning to their lock.
+            let lock_lives = self
+                .skill(skill_ref)
+                .lock_target
+                .is_some_and(|lock| self.fight_actor_is_alive(lock));
             if let Some(actor) = self.moving_mut(skill_ref)
                 && actor.command.is_none()
+                && !lock_lives
             {
                 actor.lose_target_motion(true);
             }
