@@ -37,7 +37,10 @@ and its splash nothing either.
 `ControllEffect.Start`, as the beam's attack begins or changes target, adds the
 skill to its target's entry in `TeamTranslationSystem.translatingDatas`, which
 keeps its entries in the order they were added; `ControllEffect.Stop` takes it
-away, and the entry goes with its last skill. A beam's owner that dies stops
+away, and the entry goes with its last skill. Each skill is listed, so a unit
+whose several beams hold one unit is listed once for each, in the order they
+started; Multi Control's beams are each a skill of their own
+([extra_weapons.md](extra_weapons.md#a-group-of-control-beams)). A beam's owner that dies stops
 its beam on that tick (`FightMech.OnDead`, `SkillManager.OnOwnerDead`): the
 Rhino a Hacker was turning holds no entry from the tick the Hacker dies. Each
 hit that turns adds its
@@ -72,9 +75,11 @@ The turn (`TeamTranslationSystem.ChangeTeam`):
   their end (`FightTeamController.AddActor`): it updates after every unit
   already on that side, its summons among them, and a unit handed back on
   its death after every unit of the side it returns to. It leaves
-  its formation for one of its own on the new side, made when first asked for
-  (`FightMech.GetMechTeam`): the units turned on one tick take theirs in
-  identity order. Its damage and its kills from then are recorded under a
+  its formation for one of its own on the new side. `FightMech.GetMechTeam`
+  answers none for a turned unit, so the recorder numbers a formation for
+  the unit itself as it first records it, walking each side's units by where
+  they stand, `z` before `x`: the units turned on one tick take theirs in that
+  order as the tick ends. Its damage and its kills from then are recorded under a
   recorder of its own. A summon, a Spider Mine among them, has no `MechTeam`
   to leave: it is recorded under the formation it was made with, before the
   turn and after, and it counts under the recorder of its own it had, which
@@ -189,8 +194,17 @@ the shield does not count against the turn.
   `tests/hacker/fights/m3-crawler-1787720817.yaml`, ticks 199 to 203, and
   `tests/hacker/fights/m3-crawler-4242.yaml`, tick 126. A bodyless start fires
   a tick later: `tests/hacker/fights/m6-formations-4242.yaml`, tick 156.
-- Two Hackers turned on one tick take their formations in identity order:
-  `tests/hacker/fights/m6-formations-1787720817.yaml`, tick 189.
+- Two Hackers turned on one tick take their formations in the recorder's
+  order, which is their identity order there:
+  `tests/hacker/fights/m6-formations-1787720817.yaml`, tick 189. Six Crawlers
+  turned on one tick take theirs by where they stand, units 5, 4, 9, 10, 7
+  and 14, not by identity: `tests/extra_weapon/fights/multi-control-crawlers.yaml`,
+  tick 216.
+- A skill that searches while the unit it would take was turned on that tick
+  passes over it, a grouped skill as a skill of its own does:
+  `tests/extra_weapon/fights/multi-control-crawlers.yaml`, tick 320.
+- A skill of a group locked on a unit that turns hears it as a skill of its
+  own (`FightSkill.OnChangeTeam`): `tests/extra_weapon/fights/multi-control-crawlers.yaml`.
 - Two Hackers that turn each other on one tick end both on blue's side:
   `tests/hacker/fights/m1-mirror-1787720817.yaml`, tick 166.
 - A Hacker turned with its side's last unit reads cooling at its target, and
@@ -258,7 +272,8 @@ the shield does not count against the turn.
   `ProjectileController.GetTeamController`, `TeamTranslationSystem.Update`,
   `TeamTranslationSystem.ChangeTeam`,
   `FightActor.ChangeTeam`, `FightTeamController.AddActor`, `ExpSystem.CalculateExp`, `ExpSystem.IsValidOwner`,
-  `TeamTranslationSystem.IsTranslatedMech`, `FightMech.GetMechTeam`.
+  `TeamTranslationSystem.IsTranslatedMech`, `FightMech.GetMechTeam`, which
+  answers none for a turned unit.
 - The buffs it takes off: `TeamTranslationSystem.ChangeTeam`,
   `BuffManager.RemoveBuffEffect`, `Config.GetTeamTranslationIgnoredBuffs`,
   `IBuffData.IsSameBuff`.
@@ -280,8 +295,6 @@ the shield does not count against the turn.
   own reads as if `FightSkill.OnChangeTeam` had run on it, cooling where it
   cools and idle and searching where it does not; which method does it is not
   read.
-- **When a turned unit's formation is made.** That the recorder makes it, in
-  identity order, is inferred from one recording of two turns on one tick.
 - **The weapons at the fight's end.** That the end clears what an idle skill
   names is recorded where a turned unit's death ends the fight; which method
   clears it is not read.

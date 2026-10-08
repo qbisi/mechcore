@@ -618,6 +618,9 @@ pub(in crate::fight) struct Skill {
     /// last changed from, which a side arm searches about while the main
     /// skill holds none.
     pub(in crate::fight) prev_lock_for_side_arm: Option<FightActorRef>,
+    /// The effect a control beam's attack holds, while it attacks
+    /// (`NormalAttackPerformer`'s effect).
+    pub(in crate::fight) beam: Option<super::control::Beam>,
 }
 
 impl Skill {
@@ -670,6 +673,7 @@ impl Skill {
             side_arm_fires: false,
             side_arm_fire_delay: 0,
             prev_lock_for_side_arm: None,
+            beam: None,
         }
     }
 
@@ -954,6 +958,7 @@ impl Skill {
             *sibling = Self {
                 current_attack_interval: sibling.current_attack_interval,
                 attack_time_anchor: sibling.attack_time_anchor,
+                beam: sibling.beam,
                 ..Self::sibling_entering(kind)
             };
         }

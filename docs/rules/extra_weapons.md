@@ -14,7 +14,8 @@ Anti-Air Barrage, the Fortress's, Air Defense Mark, the Typhoon's,
 Disintegration, the Abyss's, Naval Gun, the Overlord's, Gun-launched
 Missile, the Mountain's, Electromagnetic Barrage, the Melting Point's,
 Dual Wield, the Centurion's, Fork, the Raiden's, Smoke Bomb, the Mountain's,
-Swarm Missiles, the Abyss's, and Rocket Punch, the Fortress's, and refuses every other member by name: the members' skills differ
+Swarm Missiles, the Abyss's, Rocket Punch, the Fortress's, and Multi Control,
+the Hacker's, and refuses every other member by name: the members' skills differ
 in kind, a projectile, an explosion, a laser, a summon, a sweep around the
 unit, and many leave a terrain or write a buff, so each joins once a recording
 of it agrees.
@@ -231,6 +232,37 @@ its first skill in the core's place:
   main one's among them, deals 0.17 of its ramp,
   trunc(trunc(168 × m) × 0.17). `DamageCalculator.GetNormalDamage`, what a
   recording reads as the unit's damage, leaves it out.
+
+## A group of control beams
+
+Multi Control's four beams are control beams, a group of their own as Energy
+Diffraction's are: the Hacker's main skill holds no group, so the row's four
+skills make one, each the main skill's child, slots 1 to 4. They start, search
+and share out targets as a group of beams does, and may share a target
+(`canAttackSameTarget`): four can hold one Rhino.
+
+- **Each reaches its own range beyond its parent's.** The main beam reaches
+  85 metres, the technology's −25 on the Hacker's 110, and each of the row's
+  95, its own 10 beyond.
+- **Each is a beam of its own.** Each skill's `ControllEffect` adds the skill
+  to its target's entry and takes it away
+  ([control.md](control.md#progress-and-the-turn)), so an entry lists the
+  Hacker once for each beam on it, and each counts its own warm-up hits.
+- **Each winds up its blow.** A skill of the group starts a blow when its
+  interval is up and lands it at the attack point, 0.2 seconds on, as the
+  main beam does (`SkillAttackController`): it counts the blow, its phase is
+  the before phase and then the attacking one, and `performCount` counts the
+  blow as it lands.
+- **The technology lowers every beam.** Its `allWeaponReduceDamageRate`,
+  −0.83, is the main skill's `DamageReduceRateBase`, which the group holds
+  too: every beam, the main one's among them, turns by trunc(600 × 0.17) =
+  102 a hit, and a warm-up hit by 1, the multiplier's 0.001 of 102 raised to
+  one. A recording reads each beam's damage as 1, its calculator's at count
+  zero.
+
+A beam of the row that strikes what it may not turn, a unit wearing the
+Anti-Interference Module or a construction, is not recorded, and the
+simulator refuses the fight when one does.
 
 ## A group that joins the main skill's
 
@@ -825,6 +857,12 @@ not melee, so the simulator refuses it.
   each fist striking what its splash reaches for 12000; with the first
   condition for both punches the second is thrown from tick 377:
   `tests/extra_weapon/fights/rocket-punch-rhinos.yaml`.
+- Multi Control's four beams reach 95 metres beside the main beam's 85,
+  share a Rhino four to one, each winds up its blow and counts its own
+  warm-up, and every beam turns by 102 a hit:
+  `tests/extra_weapon/fights/multi-control-rhinos.yaml`. Two Hackers with it
+  turn a Crawler swarm, and every beam locked on a unit that turns hears it:
+  `tests/extra_weapon/fights/multi-control-crawlers.yaml`.
 - Fork's two bolts join the Raiden's group as slots 3 and 4 and strike with
   the main row's from the first blow, five Crawlers a blow; with the Raiden's
   60 degrees in place of the whole circle on the row's slots the Raidens'

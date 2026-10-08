@@ -290,8 +290,6 @@ struct Actor {
     skills_active: bool,
     /// Its move ability, for a unit whose description moves underground.
     underground: Option<underground::Underground>,
-    /// The effect a control beam's attack holds, while it attacks.
-    beam: Option<control::Beam>,
     /// The side it was deployed on, which a control beam may have turned it
     /// from.
     original_team: u32,
@@ -389,6 +387,9 @@ struct Simulation {
     /// `GRTimerManager` timers of their performers.
     diffusions: Vec<diffusion::Diffusion>,
     turned_fallen: Vec<u64>,
+    /// The units a beam turned on this tick, whose formations of their own
+    /// the recorder numbers as it records the tick.
+    turned_unnamed: Vec<u64>,
     /// `DeadEffectSystem.deadEffectMeches` of `DeadExplosiveController`: the
     /// units with an explosion that died this tick, in the order they died,
     /// and whether each took its own life.
@@ -521,6 +522,7 @@ impl Simulation {
             actors,
             translations: Vec::new(),
             turned_fallen: Vec::new(),
+            turned_unnamed: Vec::new(),
             returned_dead: BTreeSet::new(),
             diffusions: Vec::new(),
             dead_explosions: Vec::new(),
@@ -606,7 +608,7 @@ impl Simulation {
                 sources: entry
                     .sources
                     .iter()
-                    .map(|&source| ObjectRef::new(ObjectKind::Unit, source))
+                    .map(|source| ObjectRef::new(ObjectKind::Unit, source.owner))
                     .collect(),
             });
         state
@@ -712,11 +714,11 @@ impl Simulation {
     /// `FightSkill.GetNormalDamage(0)` of a skill: a beam's at its ramp's
     /// first step, whatever step it is on.
     fn slot_normal_damage(&self, actor: &Actor, skill_ref: SkillRef) -> i32 {
+        if let Some(damage) = self.beam_snapshot_damage(skill_ref) {
+            return damage;
+        }
         let damage = match skill_ref.slot {
             SkillSlot::Main => {
-                if let Some(damage) = self.beam_snapshot_damage(actor) {
-                    return damage;
-                }
                 match &actor.rules.attack.path {
                     // The Steel Balls of `wall-laser.yaml` read 2, which is
                     // 55 at its first multiplier, on every tick of their
@@ -1395,6 +1397,7 @@ impl Simulation {
     /// formation's experience to a whole number and clears every skill's
     /// kills before the last state is read.
     fn close_tick(&mut self, out_of_time: bool) -> Result<()> {
+        self.name_turned_formations();
         self.settle_intervals_if_finishing();
         if self.ready_to_finish() || out_of_time {
             self.prune_experience();

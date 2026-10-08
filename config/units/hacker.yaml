@@ -46,3 +46,40 @@ attack:
     warmup_attack_count: 2
     warmup_damage_multiplier: 0.001
     keeps_buffs: [40001, 6020, 8005, 8008, 8028]
+
+extra_weapons:
+  - technology: 11014
+    skill: 14002
+    use_main_skill_range: false
+    damage_by_level: []
+    damage_rate: 1
+    attack:
+      base_damage: 0
+      min_range: 0
+      range: 10
+      attack_half_angle: 360
+      targets: {ground: true, air: false}
+      lock_target: true
+      quick_switch_target: false
+      timing:
+        interval: 0.3
+        interval_offset: 0
+        initial_cooldown: 0
+        prepare: 0.3
+        attack_point: 0.2
+        backswing: 0
+        cooling: 0.1
+      splash_radius: 0
+      weapons:
+        mode: group
+        indices: [0, 1, 2, 3]
+        per_skill: 1
+        fusillade: false
+        allow_same_target: true
+      melee: false
+      crosses_shields: false
+      path:
+        type: control_beam
+        warmup_attack_count: 2
+        warmup_damage_multiplier: 0.001
+        keeps_buffs: [40001, 6020, 8005, 8008, 8028]

@@ -1252,7 +1252,12 @@ impl Simulation {
                     let Some(target) = self.fight_actor(candidate) else {
                         continue;
                     };
+                    // A grouped slot searches as it updates, where everything
+                    // stands now: a unit a beam turned since the tick opened
+                    // stands on its own side, though the prepared trees
+                    // still hold it on the other.
                     if (held.contains(&candidate) != shared && !skill.standalone())
+                        || (!skill.standalone() && target.team != team)
                         || !target.alive
                         || !target.targetable
                         || matches!(candidate, FightActorRef::Building(id)

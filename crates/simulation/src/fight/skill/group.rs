@@ -224,7 +224,7 @@ impl Simulation {
                             sibling.next_attack_step.max(step.saturating_add(1));
                     }
                 }
-                SkillState::Attack(_) => {
+                SkillState::Attack(blow) => {
                     if self.attacks_fallen_construction(main, Some(slot))
                         || !self.check_attackable_slot(
                             main,
@@ -234,6 +234,10 @@ impl Simulation {
                         )?
                     {
                         self.finish_group_slot(main, slot, step, cooling_steps);
+                    } else if let Blow::Before(pending) = blow {
+                        if step >= pending.step {
+                            self.land_group_slot(main, slot, pending.target, events)?;
+                        }
                     } else if (!fusillade || core_blew)
                         && step >= self.skill(main).sibling(slot).next_attack_step
                         && let Some(target) = self.skill(main).group_attack_target(slot)
@@ -442,6 +446,7 @@ impl Simulation {
             next_attack_step: sibling.next_attack_step,
             current_attack_interval: sibling.current_attack_interval,
             attack_time_anchor: sibling.attack_time_anchor,
+            beam: sibling.beam,
             ..Skill::sibling_entering(sibling.kind)
         };
     }
@@ -520,6 +525,9 @@ impl Simulation {
             .owner
             .unit_id()
             .expect("only a unit's skill is grouped");
+        if self.skill_rules(skill_ref).attack_point_time_units() > 0 {
+            return self.wind_up_group_slot(skill_ref, skill_index, target, step);
+        }
         // A beam strikes what it fires at, a unit or a construction, as the
         // core's does, and counts as its blow starts
         // (`SkillAttackController.PerformAttack`): its ramp's multiplier is
@@ -620,6 +628,62 @@ impl Simulation {
         let sibling = self.skill_mut(skill_ref).sibling_mut(skill_index);
         sibling.attack_count += 1;
         sibling.perform_count += 1;
+        Ok(())
+    }
+
+    /// A sibling's blow with an attack point, which winds up first, as the
+    /// core's does (`SkillAttackController`'s before phase): it lands on what
+    /// it fired at once the attack point is out, a control beam's 0.2
+    /// seconds. Its clock starts as the blow starts.
+    fn wind_up_group_slot(
+        &mut self,
+        skill_ref: SkillRef,
+        skill_index: usize,
+        target: FightActorRef,
+        step: u64,
+    ) -> Result<()> {
+        if !self.fight_actor_is_alive(target) {
+            return Ok(());
+        }
+        self.refresh_group_skill_attack_interval(skill_ref, skill_index, step)?;
+        let attack_point_steps =
+            native_time_units_to_steps(self.skill_rules(skill_ref).attack_point_time_units());
+        self.skill_mut(skill_ref)
+            .sibling_mut(skill_index)
+            .set_pending(Some(PendingRelease {
+                step: step.saturating_add(attack_point_steps),
+                target,
+            }));
+        Ok(())
+    }
+
+    /// A sibling's wound-up blow at its attack point: `PerformAttack` counts
+    /// it, the skill's effect lands, and with no backswing its cycle runs out
+    /// (`ChangeToIdle`), where `performCount` counts it. Only a control beam
+    /// winds up here.
+    fn land_group_slot(
+        &mut self,
+        skill_ref: SkillRef,
+        skill_index: usize,
+        target: FightActorRef,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        if self.skill(skill_ref).kind != SkillKind::ControlBeam
+            || self.skill_rules(skill_ref).backswing_time_units() > 0
+        {
+            return Err(Error::new(format!(
+                "a grouped {:?} skill's slot with an attack point or a backswing is not \
+                 measured",
+                self.skill(skill_ref).kind
+            )));
+        }
+        let sibling = self.skill_mut(skill_ref).sibling_mut(skill_index);
+        sibling.set_pending(None);
+        sibling.attack_count += 1;
+        self.control_effect(skill_ref, skill_index, target, events)?;
+        self.skill_mut(skill_ref)
+            .sibling_mut(skill_index)
+            .perform_count += 1;
         Ok(())
     }
 

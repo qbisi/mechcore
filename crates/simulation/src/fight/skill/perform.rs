@@ -132,11 +132,7 @@ impl Simulation {
                 self.start_projectile_burst(skill_ref, pending.target, pending.step, events)?;
             }
             SkillKind::ControlBeam => {
-                let actor_id = skill_ref
-                    .owner
-                    .unit_id()
-                    .ok_or_else(|| Error::new("a construction's control beam is not supported"))?;
-                self.control_effect(actor_id, pending.target, events)?;
+                self.control_effect(skill_ref, 0, pending.target, events)?;
             }
         }
         self.finish_attacking(skill_ref);

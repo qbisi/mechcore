@@ -115,11 +115,12 @@ const EXTRA_WEAPON: &str = "extraWeaponTechnologies";
 /// Naval Gun, the Overlord's, Gun-launched Missile, the Mountain's,
 /// Electromagnetic Barrage, the Melting Point's, Dual Wield, the
 /// Centurion's, Fork, the Raiden's, Smoke Bomb, the Mountain's, Swarm
-/// Missiles, the Abyss's, and Rocket Punch, the Fortress's.
-pub(crate) const FOUGHT_EXTRA_WEAPONS: [i32; 23] = [
-    1_103, 1_105, 1_106, 1_107, 1_108, 1_109, 11_010, 11_020, 11_024, 11_025, 11_028, 11_029,
-    110_181, 110_201, 110_211, 110_212, 110_271, 110_291, 110_321, 110_322, 1_102_022, 11_020_021,
-    11_020_022,
+/// Missiles, the Abyss's, Rocket Punch, the Fortress's, and Multi Control, the
+/// Hacker's.
+pub(crate) const FOUGHT_EXTRA_WEAPONS: [i32; 24] = [
+    1_103, 1_105, 1_106, 1_107, 1_108, 1_109, 11_010, 11_014, 11_020, 11_024, 11_025, 11_028,
+    11_029, 110_181, 110_201, 110_211, 110_212, 110_271, 110_291, 110_321, 110_322, 1_102_022,
+    11_020_021, 11_020_022,
 ];
 
 /// `EnergyShieldTech.GetLifeRate`: `FPoint.One`, whatever its row, so the

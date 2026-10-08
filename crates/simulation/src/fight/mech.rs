@@ -102,7 +102,6 @@ impl Actor {
             visibility: Visibility::Normal,
             skills_active: true,
             underground,
-            beam: None,
             original_team,
             original_formation,
             motion: Motion {

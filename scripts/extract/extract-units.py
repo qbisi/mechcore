@@ -330,12 +330,13 @@ def extra_weapon_lines(mech, technology, kind, skill, row):
             or (fog and (row.get("buffID") or not raw(row.get("fogAttackRangeChangeRate"))))):
         return []
     # A skill with no damage rate deals its own damage, one entry a level, or
-    # none when its row lists none; an around skill, a laser, a projectile or
-    # a direct skill with a rate deals that share of the unit's base damage,
-    # and lists none of its own. Any other skill with a rate is not stated
-    # here yet.
+    # none when its row lists none; an around skill, a control beam, a laser,
+    # a projectile or a direct skill with a rate deals that share of the
+    # unit's base damage, and lists none of its own. Any other skill with a
+    # rate is not stated here yet.
     if raw(skill["damageRate"]) and (
-            skill["damage"] or kind not in ("aroundSkillData", "laserSkillDatas", "projectileSkillDatas", "skillDatas")):
+            skill["damage"] or kind not in ("aroundSkillData", "controllBeamSkillDatas", "laserSkillDatas",
+                                            "projectileSkillDatas", "skillDatas")):
         return []
     # A direct skill may splash about its own unit and diffuse: its splash
     # grows from it a step at a time (`DamagePerformer.PerformDiffusionRangeEffect`).
