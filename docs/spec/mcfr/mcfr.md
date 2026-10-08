@@ -1,4 +1,4 @@
-# MCFR, format 0.17.0
+# MCFR, format 0.18.0
 
 [简体中文](mcfr.zh.md)
 
@@ -9,7 +9,7 @@ schema of each, the identity and ordering rules that make two recordings of one
 fight the same recording, and what a reader must validate before trusting one.
 
 ```text
-format = "0.17.0"
+format = "0.18.0"
 ```
 
 The native field mapping is bound to the game version the repository pins in
@@ -122,7 +122,7 @@ Parquet key-value metadata keys and values are both UTF-8 strings.
 
 | Key | Data | Meaning |
 | --- | --- | --- |
-| `format` | exactly `0.17.0` | the logical and physical contract version |
+| `format` | exactly `0.18.0` | the logical and physical contract version |
 | `producer` | `game` or `simulator` | what wrote the recording: the game, through the adapter, or the simulator |
 | `game_build` | non-empty UTF-8 | capture provenance; the adapter reads `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | the context `D` that holds steady for one round |
@@ -181,50 +181,8 @@ death survives as a `unit_died` event.
 | `status_mask` | `UINT64 required` | four native booleans | below |
 | `modifiers` | required sparse list | every non-zero correction on the unit, its skills and its buffs | below |
 | `personal_shield` | required struct | the unit's own energy shield | below |
-| `weapon_aims` | required list | per-weapon channel state across main and sub skills | below |
-| `derived` | required struct | the numbers the fight reads, after every correction | below |
-
-### `derived`
-
-The modifiers above say what was **written onto** a unit; this says what
-the build then **computed** from them. The two together are what a capture
-measuring a composition rule reads, and carrying both means the reading is one
-tick of one recording rather than a fight arranged so that its outcome
-distinguishes the candidates.
-
-| Field | Type | Native source |
-| --- | --- | --- |
-| `move_speed` | `INT64 required`, Q32.32 raw | `FightMech.GetMoveSpeed()` |
-| `attack_range` | `INT64 required`, Q32.32 raw | `FightSkill.GetAttackRange()` of skill slot 0 |
-| `attack_damage` | `INT32 required` | `FightSkill.GetNormalDamage(0)` of skill slot 0 |
-
-Slot 0 is the skill the simulator models. A unit whose skills differ per slot
-is outside the closure today; when one enters it, this grows a per-slot list
-and the divergence shows up in these fields first, which is what they are
-for.
-
-An attack interval is the build's own integer rather than the `FPoint` seconds
-its property answers, because `RefreshAttackInterval` divides the property by
-the step and truncates, and an integer is the one form both sides can hold
-without deciding whose rounding is authoritative. It counts logic ticks: one
-second is twenty.
-
-**It is the interval of the cycle in progress, not the description's.** Every
-cycle draws a stagger from the team's random stream, so the number changes as
-a fight runs and two units of one kind read different numbers at one tick:
-three Marksmen read 55, 65 and 56 at tick one against a description of 62, and
-62, 70 and 52 once their first shot has gone.
-[`combat.md`](../../rules/combat.md) measures the draw.
-
-Both backends answer it, and they agree. The simulator remembers the interval
-each cycle was scheduled with, which is the same quantity the build keeps, so a
-native recording and a simulated one of the same fight carry the same sequence
-— which makes the field a check on the stagger rather than a difference to
-explain.
-
-`layouts/technology-interval*.yaml` measured the composition
-rule's order through this field without ever locating that zero: three fixtures
-pin the line and the fourth is read against it.
+| `move_speed` | `INT64 required` | the speed the fight moves the unit at, after every correction, Q32.32 raw | `FightMech.GetMoveSpeed()` |
+| `skills` | required list | every skill the unit holds, its state and its weapons | below |
 
 ### `status_mask`
 
@@ -324,26 +282,104 @@ The adapter reads `IsActive()`, `IsEnable()`, `GetEnergy()` and
 `GetMaxEnergy()` through `GetEnergyShieldController()`. A unit's own shield gets
 no Shield ID and never appears in `shields.parquet`.
 
-### `weapon_aims`
+### `skills`
 
 ```text
-skill_slot   : UINT16 required
-weapon_index : INT32 required
-attack_target: ObjectRef nullable
-position     : QVec3 nullable
-rotation     : INT64 nullable
+skill_slot : UINT16 required   the skill's index in FightMech.GetSkills()
+enabled    : nullable struct   null while FightSkill.IsEnable() is false or the unit travels
+  lock_target             : ObjectRef nullable   FightSkill.lockTarget
+  attack_target           : ObjectRef nullable   FightSkill.GetAttackTarget()
+  state                   : UINT8 required       SkillStateController state
+  attack_phase            : UINT8 nullable       SkillAttackController phase
+  attack_time             : INT32 required       FightSkill.attackTime
+  current_attack_interval : INT32 required       FightSkill.GetCurrentAttackInterval()
+  attack_count            : INT32 required       FightSkill.GetAttackCount()
+  attack_range            : INT64 required       FightSkill.GetAttackRange(), Q32.32 raw
+  attack_damage           : INT32 required       FightSkill.GetNormalDamage(0)
+  weapons                 : required list
+    weapon_index : INT32 required    WeaponData.get_Index()
+    position     : QVec3 nullable    the weapon's FightTransform GetPositionInt3D()
+    rotation     : INT64 nullable    the weapon's FightTransform GetRotationInt()
 ```
 
-The adapter walks `FightMech.GetSkills()` across main and sub skills, then each
-skill's `GetWeapons()`. `skill_slot` is the skill channel; `weapon_index` comes
-from `WeaponData.get_Index()` and numbers the native weapon channel inside that
-skill. `attack_target` comes from the skill's `GetAttackTarget()`, and the pose
-from the weapon's `GetFightTransform()`. A weapon with no FightTransform has
-null position and null rotation together, never one of the two.
+The list holds every `FightSkill` that `GetSkills()` returns, strictly
+ascending by `skill_slot`. A grouped unit's skills are its group's slots: a
+Wraith's four, eight with Floating Artillery Array. An extra weapon's skills
+follow the main skill's, a grouped row's slots each its own: a Melting Point
+with Electromagnetic Barrage and Energy Diffraction holds its beam at slot 0,
+the barrage at 1, and the four diffracted beams at 2 to 5.
 
-The list is strictly ascending by `(skill_slot, weapon_index)`. It enumerates
-weapon channels independently, so it may carry a skill slot that the sparse
-modifiers leave out.
+**A switched-off skill keeps its slot and nothing else.** A buff that disables
+technology switches off the extra weapon skills its technologies added
+(`ExtraSkillProvider.DisableSkill`, `FightSkill.Disable`), and the skill's
+`enabled` is null for as long as it lasts: nothing it holds meanwhile is in the
+hash. The build keeps running the skill's clock while it is off, and the skill
+takes up where that clock is when it is switched on again, so a clock that
+drifted while the skill was off shows on the tick it comes back. A Melting
+Point whose barrage and diffracted beams are switched off at tick 36 counts
+their `attack_time` on every tick until 219, and switched on again they read the
+count they reached, neither reset nor stopped. The barrage, mid-attack when it
+was switched off, is back in its idle state with its `attack_count` cleared one
+tick later, and that is what tick 219 shows.
+
+**A travelling unit's skills are not read.** While `FightMech.IsSuperDeployment`
+holds, every skill's `enabled` is null, the skill enabled or not: a travelling
+unit does not update (`FightCoreSystem.TeamUpdate`), so nothing its skills hold
+changes what it does, and all of it shows from the tick it arrives. Whether its
+extra weapons are on through the travel depends on the order a match placed it
+and researched them, which no layout states
+([`super_deployment.md`](../../rules/super_deployment.md)), and two recordings
+of one fight differing in it alone would otherwise hash apart.
+
+`state` is the class of the state `SkillStateController` holds:
+
+| Tag | State | Native class |
+| ---: | --- | --- |
+| 0 | `idle` | `SkillIdleState` |
+| 1 | `prepare` | `SkillPrepareState` |
+| 2 | `attack` | `SkillAttackState` |
+| 3 | `cooling` | `SkillCoolingState` |
+| 4 | `reloading` | `SkillReloadingState` |
+| 5 | `lock` | `SkillLockState` |
+
+`attack_phase` is which of `SkillAttackController`'s phase controllers is
+current: `0=before`, the wait for the attack point; `1=attacking`, the blow
+being released; `2=after`, the backswing. It is null while no blow is under
+way, which is most of an attack state: between one blow and the next, and
+throughout a blow that begins and ends inside one update, as one with neither
+attack point nor backswing does. A Sandworm reads `before` for 19 ticks,
+`attacking` for one and `after` for 30, its attack point of 1 s and backswing
+of 1.5 s; a Phantom Ray's burst reads `attacking` for the seven ticks its
+projectiles leave over.
+
+`attack_time` counts the logic ticks since the skill's last blow began, and
+the skill attacks once it reaches `current_attack_interval`, the interval the
+cycle in progress was scheduled with. **The interval is not the
+description's.** Every cycle draws a stagger from the team's random stream, so
+the number changes as a fight runs and two units of one kind read different
+numbers at one tick: three Marksmen read 55, 65 and 56 at tick one against a
+description of 62. [`combat.md`](../../rules/combat.md) measures the draw. An
+interval is the build's own integer rather than the `FPoint` seconds its
+property answers, because `RefreshAttackInterval` divides the property by the
+step and truncates, and an integer is the one form both sides can hold without
+deciding whose rounding is authoritative.
+
+`attack_count` is the blows started since the skill entered its attack state,
+less one: `-1` outside it. A beam's damage multiplier is the one at that index.
+
+`attack_range` and `attack_damage` are what the skill's own properties answer
+after every correction on it, beside the `modifiers` that say what was written
+onto it: a recording carrying both answers how a correction composes in one
+tick, rather than by a fight arranged so that its outcome distinguishes the
+candidates. A slot of a grouped main skill other than its first reaches 10 m
+beyond the main skill (a Wraith's slots read 60 and 70), and an extra skill
+parented by the main skill reaches its own range beyond the main skill's. The
+damage is the normal damage at attack count zero: a beam's first step, whatever
+step it is on.
+
+`weapons` lists the skill's `GetWeapons()`, strictly ascending by
+`weapon_index`. A weapon with no FightTransform has null position and null
+rotation together, never one of the two.
 
 ### What a unit is directed at
 
@@ -353,7 +389,7 @@ reader who takes any one of them for another misreads the fight.
 | Field | Answers | Owned by |
 | --- | --- | --- |
 | `mech_lock_target` | what the unit's **body** is directed at | the mech |
-| `weapon_aims[].attack_target` | what each **weapon channel** fires at | the skill that owns the channel |
+| `skills[].enabled.attack_target` | what each **skill's weapons** fire at | the skill |
 | `motion_state` | whether the body is travelling, holding to attack, idle or stopped, or between two of those while a move ability runs | the mech's motion state machine |
 
 **`mech_lock_target` is the body's target.** It is what the mech's own search
@@ -791,7 +827,7 @@ channel's schema can change without a format version.
   entities are not recorded.
 
 The channels the Adapter records are `target_refs`,
-`skill_attackable_checker`, `group_slots`, `target_search`, `target_candidate`,
+`skill_attackable_checker`, `target_search`, `target_candidate`,
 `rvo_solve`, `rvo_neighbour`, `rvo_vo`, `unit_pose`, `projectile_reach`,
 `control_progress` and `exp_range`
 ([adapter.md](../adapter/adapter.md#record_replay_round)).
@@ -905,7 +941,7 @@ Identity is what makes two recordings of one fight the same recording, so
 every namespace numbers its objects by a rule that depends on the scene rather
 than on the pointer that happened to be observed first.
 
-Format `0.17.0` uses `team_zx_sequential_v1`.
+Format `0.18.0` uses `team_zx_sequential_v1`.
 
 **Units.** Initial units sort strictly ascending by `(team_id, position.z,
 position.x)` and take `unit_id = 1..N` in that order. Initial units on one team
@@ -952,8 +988,8 @@ Once a shield or terrain leaves its authoritative collection, its native pointer
 is tombstoned so that the historical ID stays unique.
 
 **Ordering inside a snapshot.** State snapshots sort by object ID.
-`modifiers` sort by `(channel, skill_slot, field, part)`, `weapon_aims` by
-`(skill_slot, weapon_index)`, and a projectile's `spawn_containing_shields` by
+`modifiers` sort by `(channel, skill_slot, field, part)`, `skills` by
+`skill_slot` and a skill's `weapons` by `weapon_index`, and a projectile's `spawn_containing_shields` by
 Shield ObjectRef.
 
 **States and events in one frame.** `E(t)` is what hooks observed directly
@@ -1068,7 +1104,7 @@ Sticky oil's slow lands in BuffManager's aggregate `move_speed_rate`. The
 incoming-damage change from a photon projection lands in `amplify_damage_rate`,
 while the present value of `IsInvincible()` lands in `status_mask.invincible`. A
 sub-skill such as the Sabertooth technology's secondary cannon uses its own
-`skill_slot` in both `modifiers` and `weapon_aims`, and a round's
+`skill_slot` in both `modifiers` and `skills`, and a round's
 `+15` range bonus stays in that skill's modifier field.
 
 The point of the examples is the attribution boundary. A BuffManager aggregate,

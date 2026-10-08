@@ -2,15 +2,16 @@ use std::io::Read;
 
 use bytes::Bytes;
 use mechcore_mcfr::{
-    BuildingState, CheckedSkill, ControlProgress, DerivedStats, Domain, DurableContext, Event,
-    EventPayload, ExpRange, GaugeI32, GroupSlot, HASH_PROFILE, Hashes, LiveUnitState, MCFR_FORMAT,
-    McfrReader, McfrWriter, Modifier, ModifierChannel, ModifierPart, MotionState, ObjectKind,
-    ObjectRef, PersonalShieldState, PoseClip, Producer, ProjectileReach, QPlanar, QVec3, Rational,
-    RvoExit, RvoNeighbour, RvoNeighbourKind, RvoSolve, RvoVec, RvoVo, ShieldDestroyedReason,
-    ShieldRoundPolicy, ShieldSourceKind, ShieldState, SkillAttackableCheck, TargetCandidate,
-    TargetRefs, TargetSearch, TargetSearchPath, TerrainApplicationState, TerrainEffectClock,
-    TerrainGridState, TerrainLogicLifetime, TerrainRemovedReason, TerrainState, TerrainType,
-    TransitionEvents, UnitPose, Visibility, WeaponAimState, WorldSnapshot, sort_modifiers,
+    AttackPhase, BuildingState, CheckedSkill, ControlProgress, Domain, DurableContext,
+    EnabledSkill, Event, EventPayload, ExpRange, GaugeI32, HASH_PROFILE, Hashes, LiveUnitState,
+    MCFR_FORMAT, McfrReader, McfrWriter, Modifier, ModifierChannel, ModifierPart, MotionState,
+    ObjectKind, ObjectRef, PersonalShieldState, PoseClip, Producer, ProjectileReach, QPlanar,
+    QPose, QVec3, Rational, RvoExit, RvoNeighbour, RvoNeighbourKind, RvoSolve, RvoVec, RvoVo,
+    ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind, ShieldState, SkillAttackableCheck,
+    SkillMachineState, SkillState, TargetCandidate, TargetRefs, TargetSearch, TargetSearchPath,
+    TerrainApplicationState, TerrainEffectClock, TerrainGridState, TerrainLogicLifetime,
+    TerrainRemovedReason, TerrainState, TerrainType, TransitionEvents, UnitPose, Visibility,
+    WeaponState, WorldSnapshot, sort_modifiers,
 };
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use serde_json::json;
@@ -48,7 +49,7 @@ fn writes_and_reads_every_table() {
     );
 
     let reader = McfrReader::open(&path).unwrap();
-    assert_eq!(MCFR_FORMAT, "0.17.0");
+    assert_eq!(MCFR_FORMAT, "0.18.0");
     assert_eq!(reader.producer(), Producer::Game);
     assert_eq!(reader.tick_count(), 1);
     assert_eq!(reader.terminal_tick(), 1);
@@ -268,7 +269,7 @@ fn the_result_hash_is_golden() {
     let hashes = hash_tick(&context(), state(75), &damage_events());
     assert_eq!(
         hashes.result_hash,
-        "4f2928dc11779b421ccf2f3dd464564b8a5d6ca7905d77c30dcc10eed721fb8a"
+        "2fe1a888fb93c114ffbf8986a882435e43c64c1b1419af618f50c8feace8edca"
     );
 }
 
@@ -669,18 +670,6 @@ fn instrument_channels_ride_in_the_recording_outside_the_hash() {
     writer
         .append_instrument(std::slice::from_ref(&check))
         .unwrap();
-    let slot = GroupSlot {
-        unit: ObjectRef::new(ObjectKind::Unit, 1),
-        skill_slot: 2,
-        lock_target: Some(ObjectRef::new(ObjectKind::Unit, 2)),
-        attack_target: Some(ObjectRef::new(ObjectKind::Unit, 2)),
-        skill_state: Some("SkillPrepareState".into()),
-        skill_attack_phase: None,
-        skill_is_idle: Some(false),
-    };
-    writer
-        .append_instrument(std::slice::from_ref(&slot))
-        .unwrap();
     // Asked for and never filled: the channel is published empty.
     writer.append_instrument::<TargetSearch>(&[]).unwrap();
     assert_eq!(writer.finish().unwrap(), plain);
@@ -688,12 +677,7 @@ fn instrument_channels_ride_in_the_recording_outside_the_hash() {
     let reader = McfrReader::open(&path).unwrap();
     assert_eq!(
         reader.instrument_channels().collect::<Vec<_>>(),
-        [
-            "group_slots",
-            "skill_attackable_checker",
-            "target_refs",
-            "target_search"
-        ]
+        ["skill_attackable_checker", "target_refs", "target_search"]
     );
     assert_eq!(
         reader.instrument::<TargetRefs>().unwrap(),
@@ -702,10 +686,6 @@ fn instrument_channels_ride_in_the_recording_outside_the_hash() {
     assert_eq!(
         reader.instrument::<SkillAttackableCheck>().unwrap(),
         Some(vec![(1, check)])
-    );
-    assert_eq!(
-        reader.instrument::<GroupSlot>().unwrap(),
-        Some(vec![(1, slot)])
     );
     assert_eq!(
         reader.instrument::<TargetSearch>().unwrap(),
@@ -1223,20 +1203,36 @@ fn unit(id: u64, team: u32, x: i64, life: i32, with_secondary: bool) -> LiveUnit
                 maximum: 0,
             },
         },
-        weapon_aims: (0..skill_count)
-            .map(|skill_slot| WeaponAimState {
+        move_speed: 8 << 32,
+        // The main skill attacks; a secondary one is switched off, which
+        // keeps its slot and nothing else.
+        skills: (0..skill_count)
+            .map(|skill_slot| SkillState {
                 skill_slot,
-                weapon_index: 0,
-                attack_target: None,
-                pose: None,
+                enabled: (skill_slot == 0).then(|| EnabledSkill {
+                    lock_target: Some(ObjectRef::new(ObjectKind::Unit, 3 - id)),
+                    attack_target: Some(ObjectRef::new(ObjectKind::Unit, 3 - id)),
+                    state: SkillMachineState::Attack,
+                    attack_phase: Some(AttackPhase::Before),
+                    attack_time: 1,
+                    current_attack_interval: 62,
+                    attack_count: 0,
+                    attack_range: 140 << 32,
+                    attack_damage: 2329,
+                    weapons: vec![WeaponState {
+                        weapon_index: 0,
+                        pose: Some(QPose {
+                            position: QVec3 {
+                                x,
+                                y: 3 << 32,
+                                z: 0,
+                            },
+                            rotation: 5 << 32,
+                        }),
+                    }],
+                }),
             })
             .collect(),
-        derived: DerivedStats {
-            move_speed: 8 << 32,
-            attack_range: 140 << 32,
-            attack_damage: 2329,
-            current_attack_interval: 62,
-        },
     }
 }
 

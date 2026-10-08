@@ -1,5 +1,5 @@
-# Wraiths among a crowd, read with the `skill_attackable_checker` and
-# `group_slots` channels (`tests/wraith/README.md`). At tick 131 u30's fourth
+# Wraiths among a crowd, read with each unit's `skills` and the
+# `skill_attackable_checker` channel (`tests/wraith/README.md`). At tick 131 u30's fourth
 # slot switches to u21, leaving out u25, which a sibling holds. At tick 205
 # u29's fourth slot takes u55 at an edge distance of 60.9585 m, past the
 # core's 60: a main child skill reaches its parent's range plus 10 m.
@@ -10,7 +10,7 @@ seed: 1787857041
 round: 1
 source: game
 ticks: 647
-hash: {profile: mcfr-content-0.7.0, result: 8782500b2d1f0769e185f02ce66a9b390631b48c4beab1ad41de83fea057d039}
+hash: {profile: mcfr-content-0.7.0, result: 6e7064743e72ceb4b0a926c9de3f1b3fc0ff21bde455dc16d00304f2ea4f9fc3}
 blue:
   units:
   - {name: wraith, index: 0, position: {x: -5, y: -95}, exp: 0/869/2250}

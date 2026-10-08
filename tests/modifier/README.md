@@ -15,7 +15,8 @@ technology and the four Sledgehammer intervals, which the simulator does not
 fight, are layouts in [`../../layouts/`](../../layouts/README.md).
 
 These fights were designed so that the outcome separates the candidates, which
-is why one reads a tick count and another the life left. Since MCFR 0.4.0 a
-recording carries each unit's derived numbers beside its corrections, so a new
+is why one reads a tick count and another the life left. A recording carries
+each unit's speed and each skill's range, damage and interval, as the build
+computed them, beside its corrections, so a new
 clause needs no such design: put the correction on a unit, record one tick,
 and read both with `show --view stats`.

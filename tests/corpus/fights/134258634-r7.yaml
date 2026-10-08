@@ -9,7 +9,7 @@ seed: 364136800
 round: 7
 source: game
 ticks: 801
-hash: {profile: mcfr-content-0.7.0, result: a7ddf45f85bc0bcbe082d7e7679f9a760f1484db7121816b6d4d7a3ad0c16d34}
+hash: {profile: mcfr-content-0.7.0, result: 7253c173b38c15308ab13a10afda159bc133208796273323c0947ee45b8db6f2}
 blue:
   core_damage: 1000
   officers: [fortified_specialist, assault_scorpion]

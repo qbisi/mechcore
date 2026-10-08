@@ -9,7 +9,7 @@ seed: 1231717251
 round: 2
 source: game
 ticks: 1473
-hash: {profile: mcfr-content-0.7.0, result: d309b09bcc368e505e430deb4d16cfa7179704216c6e29c1a137cc0395c3b9be}
+hash: {profile: mcfr-content-0.7.0, result: 827a582553f811ed133f1f7876bf83fc7a4d95948def8994d2c77feece2ddd11}
 blue:
   officers: [aerial_specialist]
   legacy_index: 7

@@ -11,7 +11,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 139
-hash: {profile: mcfr-content-0.7.0, result: 0f31d33835a603c6683a195e5316622935abe1075e8db8639ceae2494e819cdd}
+hash: {profile: mcfr-content-0.7.0, result: 2fc4a909b516b1d91707c8cc476c604e48bab975733ef2b7841fde0ec0300412}
 blue:
   techs:
     tarantula: [spider_mine]

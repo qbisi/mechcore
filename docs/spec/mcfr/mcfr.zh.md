@@ -1,11 +1,11 @@
-# MCFR 格式规范（format 0.17.0）
+# MCFR 格式规范（format 0.18.0）
 
 [English](mcfr.md)
 
 本文描述仓库当前实现的 MCFR 逻辑模型、物理容器、Adapter 原生采集来源和 Reader/Writer 校验契约。统一格式标识为：
 
 ```text
-format = "0.17.0"
+format = "0.18.0"
 ```
 
 当前 Adapter 原生字段映射绑定仓库在 `GAME_VERSION` 钉住的游戏版本。其他版本可以生成同格式录像，前提是 Producer 已验证所用原生接口与本文语义一致。
@@ -101,7 +101,7 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 
 | key | 数据规范 | 含义 |
 | --- | --- | --- |
-| `format` | 精确值 `0.17.0` | MCFR 逻辑与物理契约版本 |
+| `format` | 精确值 `0.18.0` | MCFR 逻辑与物理契约版本 |
 | `producer` | `game` 或 `simulator` | 录像由谁写出：经 Adapter 的游戏，或模拟器 |
 | `game_build` | 非空 UTF-8 | 采集构建 provenance；Adapter 来自 `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | 单回合保持稳定的上下文 `D` |
@@ -135,7 +135,7 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 | 字段 | Parquet 类型 | 含义 | Adapter 原生来源 |
 | --- | --- | --- | --- |
 | `tick` | `UINT32 required` | 状态所属逻辑时刻 | Adapter 逻辑帧计数 |
-| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.17.0 身份规则，见附录 B |
+| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.18.0 身份规则，见附录 B |
 | `team_id` | `UINT32 required` | 当前所属队伍 | `FightTeam` controller index |
 | `original_team_id` | `UINT32 required` | 首次出现时的队伍 | 首次采样的 `team_id` |
 | `formation_id` | `UINT64 required` | 编队身份 | `FightMech.GetMechTeam()` 指针映射 |
@@ -155,40 +155,8 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 | `status_mask` | `UINT64 required` | 四个原生布尔状态 | 见 2.3 |
 | `modifiers` | required sparse list | 单位、其技能与其 buff 上的全部非零修正 | 见 2.4 |
 | `personal_shield` | required struct | 单位个人能量盾状态 | 见 2.5 |
-| `weapon_aims` | required list | 主技能与子技能的各武器通道状态 | 见 2.6 |
-| `derived` | required struct | 战斗实际读取的那几个数，即所有修正作用之后的结果 | 见 2.7 |
-
-## 2.7 `derived`
-
-上面那几个 modifier 结构说的是**写到**单位身上的东西；这一个说的是 build 由它们**算出来**
-的东西。测量一条合成规则时要读的正是这两半，而把两半都记下来意味着读数是"一份录像的一个
-tick"，而不是"一场被设计成结果能区分候选假设的战斗"。
-
-| 字段 | 类型 | 原生来源 |
-| --- | --- | --- |
-| `move_speed` | `INT64 required`，Q32.32 原始值 | `FightMech.GetMoveSpeed()` |
-| `attack_range` | `INT64 required`，Q32.32 原始值 | 0 号技能槽的 `FightSkill.GetAttackRange()` |
-| `attack_damage` | `INT32 required` | 0 号技能槽的 `FightSkill.GetNormalDamage(0)` |
-| `current_attack_interval` | `INT32 required` | 0 号技能槽的 `FightSkill.GetCurrentAttackInterval()` |
-
-0 号槽就是模拟器所建模的那个技能。各槽不同的单位目前不在闭包内；等它进来时这里会长成
-按槽的列表，而分歧会先在这些字段上暴露出来——那正是它们的用途。
-
-**攻击间隔记的是 build 自己的整数**，不是它的 property 给出的 `FPoint` 秒——
-`RefreshAttackInterval` 就是把 property 除以步长再截断，而整数是两边都能持有、又不必裁定
-"谁的舍入算数"的那种形式。它数的是逻辑 tick：一秒二十个。
-
-**它是"正在进行的那个周期"的间隔，不是描述里的那个。** 每个周期都会从队伍随机流里抽一次
-错开，所以这个数会随着战斗推进而变，而且同一类型的两个单位在同一 tick 上读到的数也不同：
-三只长弓在第 1 tick 读作 55、65、56（描述是 62），第一枪打完之后变成 62、70、52。
-[`combat.md`](../../rules/combat.md) 量了这次抽取。
-
-两个后端都答它，而且答得一样。模拟器会记住每个周期排定时所用的那个间隔——和 build 存的是
-同一个量——所以同一场仗的原生录像和模拟录像携带的是同一串数。**这让这个字段从"一处需要解释
-的差异"变成了"一道对错开的校验"。**
-
-`layouts/technology-interval*.yaml` 正是**在没有定位那个零点的情况下**，用这个
-字段量出了合成规则里的顺序：三份 fixture 把那条直线钉死，第四份对着它读。
+| `move_speed` | `INT64 required` | 战斗移动单位所用的速度，所有修正之后，Q32.32 原始值 | `FightMech.GetMoveSpeed()` |
+| `skills` | required list | 单位持有的每个技能、其状态与武器 | 见 2.6 |
 
 ## 2.3 `status_mask`
 
@@ -234,21 +202,39 @@ personal_shield = {
 
 Adapter 通过 `GetEnergyShieldController()` 读取 `IsActive()`、`IsEnable()`、`GetEnergy()` 和 `GetMaxEnergy()`。
 
-## 2.6 `weapon_aims`
-
-列表项 schema：
+## 2.6 `skills`
 
 ```text
-skill_slot   : UINT16 required
-weapon_index : INT32 required
-attack_target: ObjectRef nullable
-position     : QVec3 nullable
-rotation     : INT64 nullable
+skill_slot : UINT16 required   技能在 FightMech.GetSkills() 中的下标
+enabled    : nullable struct   FightSkill.IsEnable() 为 false 或单位旅行中时为 null
+  lock_target             : ObjectRef nullable   FightSkill.lockTarget
+  attack_target           : ObjectRef nullable   FightSkill.GetAttackTarget()
+  state                   : UINT8 required       SkillStateController 状态
+  attack_phase            : UINT8 nullable       SkillAttackController 阶段
+  attack_time             : INT32 required       FightSkill.attackTime
+  current_attack_interval : INT32 required       FightSkill.GetCurrentAttackInterval()
+  attack_count            : INT32 required       FightSkill.GetAttackCount()
+  attack_range            : INT64 required       FightSkill.GetAttackRange()，Q32.32 原始值
+  attack_damage           : INT32 required       FightSkill.GetNormalDamage(0)
+  weapons                 : required list
+    weapon_index : INT32 required    WeaponData.get_Index()
+    position     : QVec3 nullable    武器 FightTransform 的 GetPositionInt3D()
+    rotation     : INT64 nullable    武器 FightTransform 的 GetRotationInt()
 ```
 
-Adapter 遍历 `FightMech.GetSkills()`，覆盖主技能与子技能，再遍历各技能的 `GetWeapons()`。`skill_slot` 表示技能通道；`weapon_index` 来自 `WeaponData.get_Index()`，表示该技能内的原生武器通道编号。`attack_target` 来自技能的 `GetAttackTarget()`；姿态来自武器 `GetFightTransform()`。武器缺少 FightTransform 时，position 与 rotation 同时为 null。
+列表包含 `GetSkills()` 返回的每个 `FightSkill`，按 `skill_slot` 严格升序。分组单位的技能就是其分组的各槽：恶灵四个，带浮游炮阵时八个。额外武器的技能排在主技能之后，分组行的每个槽各占一个：带电磁弹幕与能量散射的熔点，0 号槽是主光束，1 号是弹幕，2 到 5 号是四道散射光束。
 
-列表按 `(skill_slot, weapon_index)` 严格升序。`weapon_aims` 独立枚举当前武器通道，因此可以包含 `modifiers` 中没有出现的 skill slot。
+**被关闭的技能只保留槽位。** 禁用科技的 buff 会关掉其科技加上的额外武器技能（`ExtraSkillProvider.DisableSkill`、`FightSkill.Disable`），在此期间该技能的 `enabled` 为 null，其间它持有的一切都不进哈希。build 在技能关闭期间照常推进它的计时，重新开启后从计时所在处接着走，所以关闭期间漂移的计时会在它回来的那个 tick 暴露出来。
+
+**旅行中单位的技能不读取。** `FightMech.IsSuperDeployment` 成立期间，每个技能的 `enabled` 都为 null，无论技能开着与否：旅行中的单位不更新（`FightCoreSystem.TeamUpdate`），它的技能持有的一切都不改变它做什么，全部从抵达那个 tick 起显现。额外武器在旅行期间开着与否取决于对局放置单位与研究科技的先后，任何 layout 都不陈述它（[`super_deployment.md`](../../rules/super_deployment.md)），否则同一场仗只因此不同的两份录像就会哈希不同。
+
+`state` 是 `SkillStateController` 当前状态的类：`0=idle`（`SkillIdleState`）、`1=prepare`、`2=attack`、`3=cooling`、`4=reloading`、`5=lock`（`SkillLockState`）。`attack_phase` 是 `SkillAttackController` 当前的阶段控制器：`0=before` 等待攻击点，`1=attacking` 正在释放，`2=after` 后摇；没有出手进行中时为 null，攻击状态的大部分时间都是如此：两次出手之间，以及在一次更新里开始又结束的出手。
+
+`attack_time` 数自上次出手开始以来的逻辑 tick，到达 `current_attack_interval` 时技能出手。**这个间隔不是描述里的那个：** 每个周期都会从队伍随机流里抽一次错开，三只长弓在第 1 tick 读作 55、65、56（描述是 62），[`combat.md`](../../rules/combat.md) 量了这次抽取。间隔记的是 build 自己的整数，不是 property 的 `FPoint` 秒。`attack_count` 是进入攻击状态以来开始的出手数减一，攻击状态之外为 `-1`。
+
+`attack_range` 与 `attack_damage` 是技能自身 property 在所有修正之后的答案，与写入它的 `modifiers` 并列：一份录像在一个 tick 里就能回答一条修正如何合成。
+
+`weapons` 按 `weapon_index` 严格升序。武器缺少 FightTransform 时，position 与 rotation 同时为 null。
 
 ## 2.8 单位指向什么
 
@@ -257,7 +243,7 @@ Adapter 遍历 `FightMech.GetSkills()`，覆盖主技能与子技能，再遍历
 | 字段 | 回答 | 归属 |
 | --- | --- | --- |
 | `mech_lock_target` | 单位**本体**指向什么 | 机甲 |
-| `weapon_aims[].attack_target` | 每个**武器通道**朝什么开火 | 拥有该通道的技能 |
+| `skills[].enabled.attack_target` | 每个**技能的武器**朝什么开火 | 该技能 |
 | `motion_state` | 本体是在行进、停下攻击、空闲还是停止 | 机甲的运动状态机 |
 
 **`mech_lock_target` 是本体的目标。** 它是机甲自己的搜索找到的对象；成组技能则是它
@@ -634,9 +620,9 @@ ObjectRef = { kind: ObjectKind, id: u64 }
 
 # 附录 B — 身份与排序约定
 
-## B.1 format 0.17.0 身份规则
+## B.1 format 0.18.0 身份规则
 
-format `0.17.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
+format `0.18.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
 
 战斗期间首次出现的 Unit 按首次观察顺序取得当前 Unit namespace 的下一个连续编号。Unit namespace 从 1 开始单调递增；历史引用持续使用对象首次取得的编号。
 
@@ -657,7 +643,7 @@ format `0.17.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, posi
 
 初始 Shield 在 S(1) 按队伍分组：活跃盾按 `active_order` 升序，同队 inactive 盾随后。首 tick 已移除但事件仍可能引用的盾排在全部 S(1) 对象之后，再按队伍分组，确保初始状态中的 ID 从 1 连续。inactive/已移除组内按 `(source_kind, owner, position.x/y/z, radius, round_policy, energy.maximum, energy.current)` 排序，已移除项使用最后观测状态；无法区分的相同键使采集失败。编号仅规范化一次，并同步转换 E(1) 与缓存引用，不能每 tick 用 active_order 重新编号。此后新盾按首次观察顺序追加，ID 不因失活、重激活或 active_order 变化而改变。初始 Terrain 按 `(terrain_type, native controller item index)` 分配，动态 Terrain 按首次观察顺序追加。Shield 与 Terrain 从各自权威集合移除后，原生指针进入 tombstone 并保持历史 ID 唯一。
 
-状态快照最终统一按对象 ID 排序；`modifiers` 按 `(channel, skill_slot, field, part)`，`weapon_aims` 按 `(skill_slot, weapon_index)`，投射物 `spawn_containing_shields` 按 Shield ObjectRef 排序。
+状态快照最终统一按对象 ID 排序；`modifiers` 按 `(channel, skill_slot, field, part)`，`skills` 按 `skill_slot`、技能的 `weapons` 按 `weapon_index`，投射物 `spawn_containing_shields` 按 Shield ObjectRef 排序。
 
 ## B.2 状态与事件的同帧约定
 
@@ -720,6 +706,6 @@ result_hash  = H_content-result-0.7.0(
 
 # 附录 E — 原生 modifier 映射示例
 
-粘油减速进入 BuffManager 的 `move_speed_rate` 综合值。光子投射产生的承伤变化进入 `amplify_damage_rate`，其 `IsInvincible()` 当前值进入 `status_mask.invincible`。剑齿虎科技副炮等子技能在 `modifiers` 和 `weapon_aims` 中使用各自 `skill_slot`；回合 `+15` 射程增益形成的技能级动态变化保留在对应 skill modifier 字段。
+粘油减速进入 BuffManager 的 `move_speed_rate` 综合值。光子投射产生的承伤变化进入 `amplify_damage_rate`，其 `IsInvincible()` 当前值进入 `status_mask.invincible`。剑齿虎科技副炮等子技能在 `modifiers` 和 `skills` 中使用各自 `skill_slot`；回合 `+15` 射程增益形成的技能级动态变化保留在对应 skill modifier 字段。
 
 这些例子说明三个采集通道的归因边界：BuffManager 综合效果、FightMech 单位级动态修正、FightSkill 技能级动态修正分别持久化，原生字段归属保持可观察。

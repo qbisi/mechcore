@@ -31,7 +31,7 @@ fn a_fallen_block_leaves_its_attacker_idle_and_still_aimed_at_it() {
     let shooting = state(&simulation);
     assert_eq!(shooting.motion_state, MotionState::Attacking);
     assert_eq!(
-        shooting.weapon_aims[0].attack_target,
+        shooting.skills[0].enabled.as_ref().unwrap().attack_target,
         Some(ObjectRef::new(ObjectKind::Building, 6))
     );
 
@@ -43,7 +43,7 @@ fn a_fallen_block_leaves_its_attacker_idle_and_still_aimed_at_it() {
         "the lock falls with the block"
     );
     assert_eq!(
-        fallen.weapon_aims[0].attack_target,
+        fallen.skills[0].enabled.as_ref().unwrap().attack_target,
         Some(ObjectRef::new(ObjectKind::Building, 6)),
         "the weapon still names the block it felled"
     );
@@ -78,7 +78,14 @@ fn a_block_that_comes_into_the_way_ends_a_prepared_attack() {
     let interrupted = simulation.unit_snapshot(4);
     assert_eq!(interrupted.motion_state, MotionState::Idle);
     assert_eq!(interrupted.mech_lock_target, None);
-    assert_eq!(interrupted.weapon_aims[0].attack_target, None);
+    assert_eq!(
+        interrupted.skills[0]
+            .enabled
+            .as_ref()
+            .unwrap()
+            .attack_target,
+        None
+    );
 
     simulation.step(146).unwrap();
     let turned = simulation.unit_snapshot(4);
@@ -88,7 +95,7 @@ fn a_block_that_comes_into_the_way_ends_a_prepared_attack() {
         Some(ObjectRef::new(ObjectKind::Unit, 1))
     );
     assert_eq!(
-        turned.weapon_aims[0].attack_target,
+        turned.skills[0].enabled.as_ref().unwrap().attack_target,
         Some(ObjectRef::new(ObjectKind::Building, 3))
     );
 }
@@ -120,7 +127,11 @@ fn crawlers_change_blocks_between_blows_and_only_a_striker_idles() {
     assert_eq!(switching.mech_lock_target, None);
     simulation.step(96).unwrap();
     assert_eq!(
-        read(&simulation, 2).weapon_aims[0].attack_target,
+        read(&simulation, 2).skills[0]
+            .enabled
+            .as_ref()
+            .unwrap()
+            .attack_target,
         Some(ObjectRef::new(ObjectKind::Building, 3))
     );
     for step in 97..119 {
@@ -177,7 +188,7 @@ fn a_wall_in_the_way_takes_the_weapon_and_leaves_the_lock() {
         "the body keeps the unit it searched for"
     );
     assert_eq!(
-        state.weapon_aims[0].attack_target,
+        state.skills[0].enabled.as_ref().unwrap().attack_target,
         Some(ObjectRef::new(ObjectKind::Building, 6)),
         "the weapon holds the block in the way"
     );

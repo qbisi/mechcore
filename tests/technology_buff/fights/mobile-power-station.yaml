@@ -14,7 +14,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 514
-hash: {profile: mcfr-content-0.7.0, result: 81ac5fa8d02a765926da2a4a1ed06fa6f3159c379d5ab36e70227251214f607a}
+hash: {profile: mcfr-content-0.7.0, result: fe283ef54b7de1a5486ca58cc991a1c0f61afda1088f4988b6909212537454d4}
 blue:
   techs:
     vortex: [mobile_power_station]

@@ -1868,7 +1868,6 @@ fn append_instrument(
             InstrumentChannel::RvoSolve => rows.rvo_solve.is_some(),
             InstrumentChannel::RvoNeighbour => rows.rvo_neighbour.is_some(),
             InstrumentChannel::RvoVo => rows.rvo_vo.is_some(),
-            InstrumentChannel::GroupSlots => rows.group_slots.is_some(),
             InstrumentChannel::UnitPose => rows.unit_pose.is_some(),
             InstrumentChannel::ProjectileReach => rows.projectile_reach.is_some(),
             InstrumentChannel::ControlProgress => rows.control_progress.is_some(),
@@ -1909,9 +1908,6 @@ fn append_instrument(
         writer.append_instrument(rows.as_slice()).map_err(mcfr)?;
     }
     if let Some(rows) = rows.rvo_vo {
-        writer.append_instrument(rows.as_slice()).map_err(mcfr)?;
-    }
-    if let Some(rows) = rows.group_slots {
         writer.append_instrument(rows.as_slice()).map_err(mcfr)?;
     }
     if let Some(rows) = rows.unit_pose {

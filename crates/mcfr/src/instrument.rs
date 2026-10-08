@@ -145,30 +145,6 @@ impl InstrumentRow for SkillAttackableCheck {
     const CHANNEL: &'static str = "skill_attackable_checker";
 }
 
-/// One skill of a unit with more than one at a snapshot: a Wraith's four
-/// slots are four `FightSkill`s, each with its own lock, attack target and
-/// state machine, which `target_refs` cannot show because the unit's main
-/// skill is their `SkillGroup`; a unit with an extra weapon holds the extra
-/// skill's beside its main one.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct GroupSlot {
-    pub unit: ObjectRef,
-    /// The skill's index in the unit's `GetSkills()`.
-    pub skill_slot: u16,
-    pub lock_target: Option<ObjectRef>,
-    pub attack_target: Option<ObjectRef>,
-    /// The skill's `SkillStateController` state, by class name.
-    pub skill_state: Option<String>,
-    /// Which of `SkillAttackController`'s phases is current.
-    pub skill_attack_phase: Option<String>,
-    /// `FightSkillBase.IsIdle`.
-    pub skill_is_idle: Option<bool>,
-}
-
-impl InstrumentRow for GroupSlot {
-    const CHANNEL: &'static str = "group_slots";
-}
-
 /// One projectile's reach check: the `FightCalculator.IsInRange3D` that
 /// `FightProjectile.Update` asks right after `CalculateMaxMoveDistance`,
 /// against what that returned. A projectile out of reach is released with no

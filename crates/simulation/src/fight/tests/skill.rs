@@ -987,12 +987,19 @@ fn a_marksman_holds_through_its_cooling_after_a_kill_it_cannot_follow() {
         assert_eq!(state.motion_state, MotionState::Idle, "tick {tick}");
         assert_eq!(state.mech_lock_target, None, "tick {tick}");
         assert_eq!(
-            state.weapon_aims[0].attack_target,
+            state.skills[0].enabled.as_ref().unwrap().attack_target,
             Some(ObjectRef::new(ObjectKind::Unit, 4)),
             "tick {tick}"
         );
     }
-    assert_eq!(states[&141].weapon_aims[0].attack_target, None);
+    assert_eq!(
+        states[&141].skills[0]
+            .enabled
+            .as_ref()
+            .unwrap()
+            .attack_target,
+        None
+    );
     assert_eq!(
         states[&142].mech_lock_target,
         Some(ObjectRef::new(ObjectKind::Unit, 7))

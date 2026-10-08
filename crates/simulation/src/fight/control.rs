@@ -345,14 +345,8 @@ impl Simulation {
         self.returned_dead.insert(unit_id);
         self.joins_side_last(unit_id);
         let step = self.step_now;
-        let locked = self
-            .actors
-            .iter()
-            .filter(|(id, actor)| **id != unit_id && actor.skills.main.lock_target == Some(unit))
-            .map(|(&id, _)| id)
-            .collect::<Vec<_>>();
-        for id in locked {
-            self.lock_changed_team(id, step);
+        for skill_ref in self.skills_locked_on(unit, Some(unit_id)) {
+            self.lock_changed_team(skill_ref, step);
         }
     }
 
@@ -365,15 +359,13 @@ impl Simulation {
     /// clears them, as the Hacker's do; a Crawler that was striking a turned
     /// Crawler names nothing from the tick it falls. The motion is left to
     /// its own update.
-    fn lock_changed_team(&mut self, actor_id: u64, cooling_from: u64) {
+    fn lock_changed_team(&mut self, skill_ref: SkillRef, cooling_from: u64) {
+        let FightActorRef::Unit(actor_id) = skill_ref.owner else {
+            unreachable!("only a unit's skill locks a unit that changes side")
+        };
         let cooling_steps =
-            native_time_units_to_steps(self.actors[&actor_id].rules.attack.cooling_time_units());
-        let skill = &mut self
-            .actors
-            .get_mut(&actor_id)
-            .expect("actor identity is stable")
-            .skills
-            .main;
+            native_time_units_to_steps(self.skill_rules(skill_ref).cooling_time_units());
+        let skill = self.skill_mut(skill_ref);
         let fired_at = skill.attack_target();
         skill.drop_lock();
         skill.performer.stop();
@@ -381,7 +373,9 @@ impl Simulation {
         // locked: `OnChangeTeam` returns after `StopAttack` while
         // `SkillManager.IsPermanentPreemptiveSkillActive`.
         if skill.state == SkillState::Locked {
-            self.sync_beam(actor_id);
+            if skill_ref.slot == SkillSlot::Main {
+                self.sync_beam(actor_id);
+            }
             return;
         }
         match skill.state {
@@ -401,7 +395,36 @@ impl Simulation {
                 skill.search_target_time = 0;
             }
         }
-        self.sync_beam(actor_id);
+        if skill_ref.slot == SkillSlot::Main {
+            self.sync_beam(actor_id);
+        }
+    }
+
+    /// Every unit's skill locked on a unit, the main skill's and each extra
+    /// skill's, each a `FightSkill` that hears its lock change side
+    /// (`FightSkill.OnChangeTeam`): a Tarantula's Spider Mine skill drops a
+    /// turned Crawler that dies and goes back to its side. `except` leaves
+    /// one unit's out.
+    fn skills_locked_on(&self, unit: FightActorRef, except: Option<u64>) -> Vec<SkillRef> {
+        self.actors
+            .iter()
+            .filter(|(id, _)| Some(**id) != except)
+            .flat_map(|(&id, actor)| {
+                let owner = FightActorRef::Unit(id);
+                std::iter::once((SkillSlot::Main, &actor.skills.main))
+                    .chain(
+                        actor
+                            .skills
+                            .extras
+                            .iter()
+                            .enumerate()
+                            .map(|(index, extra)| (SkillSlot::Extra(index), &extra.skill)),
+                    )
+                    .filter(|(_, skill)| skill.lock_target == Some(unit))
+                    .map(move |(slot, _)| SkillRef { owner, slot })
+                    .collect::<Vec<_>>()
+            })
+            .collect()
     }
 
     /// `TeamTranslationSystem.ChangeTeam` and `FightActor.ChangeTeam`: the
@@ -467,18 +490,13 @@ impl Simulation {
         // Hacker reads cooling at it on the tick it turns, and a Crawler,
         // which has no cooling, idle and searched again. Which build method
         // ends it is not established.
-        let mut locked = vec![unit_id];
-        locked.extend(
-            self.actors
-                .iter()
-                .filter(|(_, actor)| actor.skills.main.lock_target == Some(unit))
-                .map(|(&id, _)| id),
-        );
+        let mut locked = vec![SkillRef::main(unit)];
+        locked.extend(self.skills_locked_on(unit, None));
         // The change runs before any unit updates, so a skill it sends into
         // its cooling is updated in it on this tick, as if it had entered it
         // on the last.
-        for id in locked {
-            self.lock_changed_team(id, step.saturating_sub(1));
+        for skill_ref in locked {
+            self.lock_changed_team(skill_ref, step.saturating_sub(1));
         }
         Ok(true)
     }

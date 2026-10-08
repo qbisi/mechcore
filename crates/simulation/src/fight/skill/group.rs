@@ -198,7 +198,7 @@ impl Simulation {
             .as_ref()
             .is_some_and(|group| group.core_blow_step == Some(step));
         if fusillade && core_entered_attack {
-            self.skill_mut(main).align_slots_to_core();
+            self.skill_mut(main).align_slots_to_core(true);
         }
         for slot in 1..self.skill(main).group_size() {
             let before = self.skill(main).sibling(slot).lock_target;
@@ -261,7 +261,7 @@ impl Simulation {
             self.settle_group_slot(main, slot, before, step, body_rotation_q32);
         }
         if fusillade && core_blew {
-            self.skill_mut(main).align_slots_to_core();
+            self.skill_mut(main).align_slots_to_core(false);
         }
         Ok(())
     }
@@ -433,12 +433,15 @@ impl Simulation {
 
     /// A sibling whose check failed: `SkillAttackState.Finish` and
     /// `StopAttack`, its lock dropped. The time its next blow is due is the
-    /// skill's own and stays: a Wraith's slot that leaves its attack and
-    /// comes back to it fires when its interval is up, not on its return.
+    /// skill's own and stays, with its interval and its clock: a Wraith's
+    /// slot that leaves its attack and comes back to it fires when its
+    /// interval is up, not on its return.
     fn idle_group_slot(&mut self, skill_ref: SkillRef, slot: usize) {
         let sibling = self.skill_mut(skill_ref).sibling_mut(slot);
         *sibling = Skill {
             next_attack_step: sibling.next_attack_step,
+            current_attack_interval: sibling.current_attack_interval,
+            attack_time_anchor: sibling.attack_time_anchor,
             ..Skill::sibling_entering(sibling.kind)
         };
     }
@@ -449,13 +452,12 @@ impl Simulation {
         skill_index: usize,
         step: u64,
     ) -> Result<()> {
-        // What a recording reads as the unit's current interval is its core
-        // skill's, so a sibling's draw does not replace it.
-        let core_interval = self.skill(skill_ref).current_attack_interval;
-        let sampled_step = self.sample_attack_interval(skill_ref, step)?;
-        let skill = self.skill_mut(skill_ref);
-        skill.current_attack_interval = core_interval;
-        skill.sibling_mut(skill_index).next_attack_step = sampled_step;
+        // The sibling draws its own interval, and its clock starts again.
+        let sampled = self.draw_attack_interval(skill_ref)?;
+        let sibling = self.skill_mut(skill_ref).sibling_mut(skill_index);
+        sibling.current_attack_interval = sampled;
+        sibling.attack_time_anchor = i64::try_from(step).unwrap_or(i64::MAX);
+        sibling.next_attack_step = step.saturating_add(sampled);
         Ok(())
     }
 

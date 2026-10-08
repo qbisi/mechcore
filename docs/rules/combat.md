@@ -196,7 +196,7 @@ or in a fight with nobody on the other side's flanks, is not turned.
 
 A unit has two targets and the build keeps them apart: the mech's lock
 (`FightMech.lockTarget`, recorded as `mech_lock_target`) and each skill's attack
-target (`GetAttackTarget()`, recorded per weapon channel in `weapon_aims`).
+target (`GetAttackTarget()`, recorded per skill in `skills`).
 [mcfr.md](../spec/mcfr/mcfr.md#what-a-unit-is-directed-at) defines the fields.
 They coincide in an ordinary fight and part company when an enemy construction
 stands in the line of fire.

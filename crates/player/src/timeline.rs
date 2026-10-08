@@ -494,9 +494,9 @@ impl<'a> Builder<'a> {
         }
         unit.motion.push(motion(state.motion_state));
         let aim = state
-            .weapon_aims
+            .skills
             .iter()
-            .find_map(|aim| aim.attack_target)
+            .find_map(|skill| skill.enabled.as_ref()?.attack_target)
             .or(state.mech_lock_target);
         unit.aim.push(Ref::number(aim));
         if let (Some(pose), Some(poses)) = (&mut unit.pose, &self.poses) {

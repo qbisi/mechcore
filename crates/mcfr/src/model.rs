@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result, canonical};
 
-pub const MCFR_FORMAT: &str = "0.17.0";
+pub const MCFR_FORMAT: &str = "0.18.0";
 /// Names the hash definition, which is older than the format: the domain
 /// strings and canonical inputs have not moved since format 0.7.0.
 pub const HASH_PROFILE: &str = "mcfr-content-0.7.0";
@@ -262,16 +262,28 @@ impl WorldSnapshot {
                 )));
             }
             validate_modifiers(unit.unit_id, &unit.modifiers)?;
-            let mut previous_weapon = None;
-            for weapon in &unit.weapon_aims {
-                let key = (weapon.skill_slot, weapon.weapon_index);
-                if previous_weapon.is_some_and(|previous| key <= previous) {
+            if unit
+                .skills
+                .windows(2)
+                .any(|pair| pair[0].skill_slot >= pair[1].skill_slot)
+            {
+                return Err(Error::invalid(format!(
+                    "unit {} skills are not strictly ordered by slot",
+                    unit.unit_id
+                )));
+            }
+            for skill in &unit.skills {
+                if skill.enabled.as_ref().is_some_and(|enabled| {
+                    enabled
+                        .weapons
+                        .windows(2)
+                        .any(|pair| pair[0].weapon_index >= pair[1].weapon_index)
+                }) {
                     return Err(Error::invalid(format!(
-                        "unit {} weapon aims are not strictly ordered",
-                        unit.unit_id
+                        "unit {} skill {} weapons are not strictly ordered",
+                        unit.unit_id, skill.skill_slot
                     )));
                 }
-                previous_weapon = Some(key);
             }
         }
         for projectile in &self.projectiles {
@@ -711,44 +723,102 @@ pub struct LiveUnitState {
     #[serde(default)]
     pub modifiers: Vec<Modifier>,
     pub personal_shield: PersonalShieldState,
+    /// `FightMech.GetMoveSpeed()`, Q32.32 raw: the speed the fight moves the
+    /// unit at, after every correction on it.
+    pub move_speed: i64,
+    /// Every skill `FightMech.GetSkills()` holds, strictly ascending by slot.
     #[serde(default)]
-    pub weapon_aims: Vec<WeaponAimState>,
-    /// The numbers the fight reads, after every correction on them.
-    #[serde(default)]
-    pub derived: DerivedStats,
+    pub skills: Vec<SkillState>,
 }
 
-/// A unit's derived numbers, as the build's own properties answer them.
+/// One skill of a unit: a `FightSkill` its `GetSkills()` holds.
 ///
-/// The modifier sets beside these say what was *written onto* a unit; these
-/// say what the build then *computed* from them, which is the other half of
-/// any measurement of how a correction composes. A recording that carries both
-/// answers `(base + Σ value) × (1 + Σ enhance) × Π (1 − impair)` in one tick,
-/// rather than by arranging a fight whose outcome happens to distinguish the
-/// candidates.
-///
-/// Only numbers that are exactly representable on both sides are here, which
-/// is why an interval is the build's own integer rather than the `FPoint`
-/// seconds its property answers.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// A grouped unit's skills are the group's slots, and a unit with an extra
+/// weapon holds the extra skill's slots after its main skill's.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
-pub struct DerivedStats {
-    /// `MoveSpeedProperty`, `FPoint` raw.
-    pub move_speed: i64,
-    /// `AttackRangeProperty` of the skill the simulator models, `FPoint` raw.
-    pub attack_range: i64,
-    /// `DamageProperty.GetDamage()`, which the build keeps as a plain integer.
-    pub attack_damage: i32,
-    /// `FightSkill.GetCurrentAttackInterval()`: the interval **this cycle**
-    /// was scheduled with, in whole logic ticks.
-    ///
-    /// It is not the description's interval and not a constant. Every cycle
-    /// draws a stagger from the team's random stream and this carries the
-    /// result, so one unit reads a different number from one cycle to the
-    /// next and two units of a kind read different numbers at the same tick.
-    /// `docs/rules/combat.md` measures the draw.
+pub struct SkillState {
+    /// The skill's index in `GetSkills()`.
+    pub skill_slot: u16,
+    /// What the skill holds while `FightSkill.IsEnable()`, and null while a
+    /// buff has switched it off: a switched-off skill keeps its slot and
+    /// nothing else of it is read.
+    pub enabled: Option<EnabledSkill>,
+}
+
+/// What an enabled skill holds at the sampling boundary.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct EnabledSkill {
+    /// `FightSkill.lockTarget`.
+    pub lock_target: Option<ObjectRef>,
+    /// `FightSkill.GetAttackTarget()`: what the skill's weapons fire at.
+    pub attack_target: Option<ObjectRef>,
+    /// The `SkillStateController` state.
+    pub state: SkillMachineState,
+    /// The `SkillAttackController` phase, null while no blow is under way.
+    pub attack_phase: Option<AttackPhase>,
+    /// `FightSkill.attackTime`, logic ticks.
+    pub attack_time: i32,
+    /// `FightSkill.GetCurrentAttackInterval()`: the interval this cycle was
+    /// scheduled with, stagger included, in logic ticks.
     pub current_attack_interval: i32,
+    /// `FightSkill.GetAttackCount()`: the blows started since the skill
+    /// entered its attack state, less one.
+    pub attack_count: i32,
+    /// `FightSkill.GetAttackRange()`, Q32.32 raw.
+    pub attack_range: i64,
+    /// `FightSkill.GetNormalDamage(0)`.
+    pub attack_damage: i32,
+    /// The skill's weapons, strictly ascending by index.
+    #[serde(default)]
+    pub weapons: Vec<WeaponState>,
+}
+
+/// A `SkillStateController` state, by its class.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum SkillMachineState {
+    /// `SkillIdleState`.
+    Idle,
+    /// `SkillPrepareState`.
+    Prepare,
+    /// `SkillAttackState`.
+    Attack,
+    /// `SkillCoolingState`.
+    Cooling,
+    /// `SkillReloadingState`.
+    Reloading,
+    /// `SkillLockState`.
+    Lock,
+}
+
+/// A `SkillAttackController` phase, by its controller.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum AttackPhase {
+    /// `attackWaitBeforeController`: the wait for the attack point.
+    Before,
+    /// `attackingController`: the blow being released.
+    Attacking,
+    /// `attackWaitAfterController`: the backswing.
+    After,
+}
+
+/// One weapon of a skill.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct WeaponState {
+    /// `WeaponData.get_Index()`.
+    pub weapon_index: i32,
+    /// The weapon's `FightTransform`, null for a weapon without one.
+    #[serde(default)]
+    pub pose: Option<QPose>,
 }
 
 /// Compares initial units in format 0.3.0 identity order.
@@ -826,18 +896,6 @@ pub struct PersonalShieldState {
     pub active: bool,
     pub enabled: bool,
     pub energy: GaugeI32,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(test, derive(schemars::JsonSchema))]
-#[serde(deny_unknown_fields)]
-pub struct WeaponAimState {
-    pub skill_slot: u16,
-    pub weapon_index: i32,
-    #[serde(default)]
-    pub attack_target: Option<ObjectRef>,
-    #[serde(default)]
-    pub pose: Option<QPose>,
 }
 
 /// Which native store a modifier lives in.

@@ -14,7 +14,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 608
-hash: {profile: mcfr-content-0.7.0, result: 3d93864f0bfc7c5a065badcd6e2004a812f1e6dcce80a7a3daf9a0b313b37744}
+hash: {profile: mcfr-content-0.7.0, result: 805aba43b515ce1346bce24df623a93451aeda90a36528b8f2ba6202e8e6eecd}
 blue:
   techs:
     overlord: [overlord_artillery]

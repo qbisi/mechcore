@@ -589,7 +589,7 @@ fn stats_read_a_tick_and_answer_both_halves() {
         .unwrap();
     assert!(read.status.success());
     let written: serde_json::Value = serde_json::from_slice(&read.stdout).unwrap();
-    assert_eq!(written["schema"], "mechcore.fight-stats.v2");
+    assert_eq!(written["schema"], "mechcore.fight-stats.v3");
     assert_eq!(written["tick"], 1, "the first tick is the default");
     assert!(written["ticks"].as_u64().unwrap() > 1);
     // Every formation answers. A Marksman's description gives 8 m/s, 140 m
@@ -600,9 +600,9 @@ fn stats_read_a_tick_and_answer_both_halves() {
     assert_eq!(readings.len(), 1, "{written}");
     let blue = &readings[0];
     assert!(!blue["units"].as_array().unwrap().is_empty(), "{written}");
-    assert_eq!(blue["derived"]["move_speed"], 8_i64 << 32);
-    assert_eq!(blue["derived"]["attack_range"], 140_i64 << 32);
-    assert_eq!(blue["derived"]["attack_damage"], 2329);
+    assert_eq!(blue["move_speed"], 8_i64 << 32);
+    assert_eq!(blue["skills"][0]["attack_range"], 140_i64 << 32);
+    assert_eq!(blue["skills"][0]["attack_damage"], 2329);
     assert!(
         blue.get("unit").is_none() && blue.get("skill").is_none(),
         "a neutral channel is left out: {written}"

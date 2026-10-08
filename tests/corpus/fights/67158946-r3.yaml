@@ -11,7 +11,7 @@ seed: 1010934271
 round: 3
 source: game
 ticks: 1248
-hash: {profile: mcfr-content-0.7.0, result: fdd31f13a6760ac29890114ae1bac72ff95d12d967753a1c4af52fae9ad70bfb}
+hash: {profile: mcfr-content-0.7.0, result: f214952cd9002b9c2747621377974c472df7b4bded1de41714e0a4bfbeeeb9ad}
 blue:
   officers: [typhoon_specialist]
   techs:

@@ -8,7 +8,7 @@ the fixture's own name, for a study to read, usually with instrument channels.
 Checking fixtures against the game keeps no recording: that is ``mechcore
 verify --backend game``.
 
-    scripts/record-fights.py --instrument skill_attackable_checker,group_slots \\
+    scripts/record-fights.py --instrument skill_attackable_checker \\
         --out /tmp/mechcore/wraith/slots tests/wraith/fights/*.yaml
 
 A command joins a game somebody started, so the first fight that finds none

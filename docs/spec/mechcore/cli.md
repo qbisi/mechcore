@@ -374,8 +374,8 @@ every field, as `equal` and `first_divergence`; `left` and `right` carry each
 recording's `result_hash` and tick count. Then every tick both recordings hold is
 compared **field by field**: each object is flattened into its leaves, and a
 leaf's field group is its path with the object and any list position removed,
-so `unit 2`'s `weapon_aims[0].attack_target` counts under
-`units.weapon_aims.attack_target`. An object only one side holds differs in
+so `unit 2`'s `skills[0].enabled.attack_target` counts under
+`units.skills.enabled.attack_target`. An object only one side holds differs in
 `<collection>.present`, and a tick's event list in `events`. `fields` holds
 every group that differs, nested by its dotted path, with the first and last
 tick it differs on and how many; `fields_equal` says none does.
@@ -417,8 +417,9 @@ and a fight document has no place for them.
 **`stats`** reads the same recording for a unit's numbers at one tick, in
 both halves: the corrections **written onto** it, in the three channels the
 recording keeps apart — the unit's own overlay, its skills', and the buff
-aggregate — and the numbers the build then **computed** from them, which
-`derived` carries. Neither is something the fight decided, which is why neither
+aggregate — and the numbers the build then **computed** from them: the
+unit's `move_speed`, and each skill's `attack_range`, `attack_damage` and
+`current_attack_interval`, by its slot. Neither is something the fight decided, which is why neither
 belongs in the outcome, and they are one view because a capture reads them
 together: a rate of `+0.6` beside a damage of 1.6 times the description is one
 fact seen twice. [officer_effects.md](../../rules/officer_effects.md) is what

@@ -20,9 +20,7 @@
 
 use std::{collections::BTreeMap, path::Path};
 
-use mechcore_mcfr::{
-    DerivedStats, LiveUnitState, McfrReader, ModifierChannel, ModifierPart, WorldSnapshot,
-};
+use mechcore_mcfr::{LiveUnitState, McfrReader, ModifierChannel, ModifierPart, WorldSnapshot};
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -32,7 +30,7 @@ use crate::{
     turn::Side,
 };
 
-pub(crate) const SCHEMA: &str = "mechcore.fight-stats.v2";
+pub(crate) const SCHEMA: &str = "mechcore.fight-stats.v3";
 
 /// Every correction one tick of a recording holds.
 #[derive(Serialize)]
@@ -81,13 +79,47 @@ struct Reading {
     /// lasts. Absent when they are not.
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     technologies_disabled: bool,
-    /// The numbers the fight reads, after every correction on them. A
-    /// recording older than this build's format answers zeroes, which is why
-    /// they are printed rather than skipped: a zero here is a reading, not an
-    /// absence.
-    derived: DerivedStats,
+    /// The numbers the fight reads, after every correction on them: the
+    /// unit's speed, Q32.32, and each of its skills'.
+    move_speed: i64,
+    skills: Vec<SkillNumbers>,
     #[serde(flatten)]
     held: Modifiers,
+}
+
+/// What one skill's own properties answer, by its slot; a skill a buff has
+/// switched off answers nothing but that.
+#[derive(Serialize, Clone, PartialEq)]
+struct SkillNumbers {
+    skill_slot: u16,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    switched_off: bool,
+    /// Q32.32 metres.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    attack_range: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    attack_damage: Option<i32>,
+    /// Logic ticks, stagger included.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    current_attack_interval: Option<i32>,
+}
+
+impl SkillNumbers {
+    fn of(unit: &LiveUnitState) -> Vec<Self> {
+        unit.skills
+            .iter()
+            .map(|skill| {
+                let enabled = skill.enabled.as_ref();
+                Self {
+                    skill_slot: skill.skill_slot,
+                    switched_off: enabled.is_none(),
+                    attack_range: enabled.map(|skill| skill.attack_range),
+                    attack_damage: enabled.map(|skill| skill.attack_damage),
+                    current_attack_interval: enabled.map(|skill| skill.current_attack_interval),
+                }
+            })
+            .collect()
+    }
 }
 
 /// What a mechanism wrote onto a unit, as the recording holds it: its
@@ -220,17 +252,23 @@ fn carried(
         let reading = Reading {
             units: vec![unit.unit_id],
             technologies_disabled: unit.status_mask & TECHNOLOGY_DISABLED != 0,
-            derived: unit.derived,
+            move_speed: unit.move_speed,
+            skills: SkillNumbers::of(unit),
             held: Modifiers::of(unit),
         };
         let readings = held.entry(*formation).or_default();
         match readings.iter_mut().find(|known| {
-            (known.technologies_disabled, known.derived, &known.held)
-                == (
-                    reading.technologies_disabled,
-                    reading.derived,
-                    &reading.held,
-                )
+            (
+                known.technologies_disabled,
+                known.move_speed,
+                &known.skills,
+                &known.held,
+            ) == (
+                reading.technologies_disabled,
+                reading.move_speed,
+                &reading.skills,
+                &reading.held,
+            )
         }) {
             Some(known) => known.units.push(unit.unit_id),
             None => readings.push(reading),

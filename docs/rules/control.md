@@ -103,7 +103,8 @@ A hit that kills a turned unit, or its own blow, only queues it with
 update comes after every unit and projectile: what it took until then is
 counted under its own recorder. Its `OnDead` then hands it back to the side it
 was deployed on (`TeamTranslationSystem.OnMechDead`), and every skill still
-locked on it stops its attack as above. Handing it back puts it in that
+locked on it stops its attack as above, an extra weapon's as a main skill's:
+each is a `FightSkill` that hears its lock change side. Handing it back puts it in that
 side's trees again (`FightTeam.AddMech`), after the dead have left them, and
 nothing takes it out: it stays there dead for the rest of the fight, where a
 kill's search for formations to share experience with
@@ -170,6 +171,10 @@ the shield does not count against the turn.
   one that updated after the blow searches only on the next tick, and its last
   blow is counted under its own recorder:
   `tests/hacker/fights/m3-crawler-4242.yaml`, ticks 125 and 126.
+- An extra weapon locked on a turned unit that dies drops its lock and keeps
+  naming it until its next search: a Tarantula's Spider Mine skill on a turned
+  Crawler that a projectile kills, in round 5 of replay 134259672, ticks 126
+  and 127: `tests/corpus/fights/134259672-r5.yaml`.
 - An idle turned Crawler whose lock is the Hacker searches at once:
   `tests/hacker/fights/m6-formations-4242.yaml`, tick 61. A turned Crawler
   caught in its backswing goes idle as it turns, turns to its new lock and

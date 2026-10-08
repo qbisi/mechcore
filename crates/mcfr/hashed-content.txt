@@ -1,3 +1,6 @@
+AttackPhase::after
+AttackPhase::attacking
+AttackPhase::before
 BuffRemovedReason::cleared
 BuffRemovedReason::expired
 BuffRemovedReason::removed
@@ -21,12 +24,18 @@ DamageStatistics.kills: integer(int32)
 DamageStatistics.recorder: RecorderKind
 DamageStatistics.recorder_id: integer(uint64)
 DamageStatistics.team_id: integer(uint32)
-DerivedStats.attack_damage: integer(int32)
-DerivedStats.attack_range: integer(int64)
-DerivedStats.current_attack_interval: integer(int32)
-DerivedStats.move_speed: integer(int64)
 Domain::air
 Domain::ground
+EnabledSkill.attack_count: integer(int32)
+EnabledSkill.attack_damage: integer(int32)
+EnabledSkill.attack_phase: AttackPhase | null
+EnabledSkill.attack_range: integer(int64)
+EnabledSkill.attack_target: ObjectRef | null
+EnabledSkill.attack_time: integer(int32)
+EnabledSkill.current_attack_interval: integer(int32)
+EnabledSkill.lock_target: ObjectRef | null
+EnabledSkill.state: SkillMachineState
+EnabledSkill.weapons: [WeaponState]
 Event.payload: EventPayload
 Event.source: ObjectRef | null
 Event.source_team_id: integer(uint32) | null
@@ -88,16 +97,17 @@ GaugeI32.maximum: integer(int32)
 LiveUnitState.active: boolean
 LiveUnitState.body_rotation: integer(int64)
 LiveUnitState.collision_radius: integer(int64)
-LiveUnitState.derived: DerivedStats
 LiveUnitState.domain: Domain
 LiveUnitState.formation_id: integer(uint64)
 LiveUnitState.life: GaugeI32
 LiveUnitState.mech_lock_target: ObjectRef | null
 LiveUnitState.modifiers: [Modifier]
 LiveUnitState.motion_state: MotionState
+LiveUnitState.move_speed: integer(int64)
 LiveUnitState.original_team_id: integer(uint32)
 LiveUnitState.personal_shield: PersonalShieldState
 LiveUnitState.position: QVec3
+LiveUnitState.skills: [SkillState]
 LiveUnitState.status_mask: integer(uint64)
 LiveUnitState.status_mask::0: invincible
 LiveUnitState.status_mask::1: frozen
@@ -110,7 +120,6 @@ LiveUnitState.unit_id: integer(uint64)
 LiveUnitState.unit_type_id: integer(uint32)
 LiveUnitState.velocity: QPlanar
 LiveUnitState.visibility: Visibility
-LiveUnitState.weapon_aims: [WeaponAimState]
 Modifier.channel: ModifierChannel
 Modifier.field: string
 Modifier.part: ModifierPart
@@ -182,6 +191,14 @@ ShieldState.round_policy: ShieldRoundPolicy
 ShieldState.shield_id: integer(uint64)
 ShieldState.source_kind: ShieldSourceKind
 ShieldState.team_id: integer(uint32)
+SkillMachineState::attack
+SkillMachineState::cooling
+SkillMachineState::idle
+SkillMachineState::lock
+SkillMachineState::prepare
+SkillMachineState::reloading
+SkillState.enabled: EnabledSkill | null
+SkillState.skill_slot: integer(uint16)
 TerrainApplicationState.periodic_clock: TerrainEffectClock | null
 TerrainApplicationState.unit_id: integer(uint64)
 TerrainEffectClock.duration: integer(int32)
@@ -218,10 +235,8 @@ Visibility::disappear
 Visibility::hide
 Visibility::normal
 Visibility::stealth
-WeaponAimState.attack_target: ObjectRef | null
-WeaponAimState.pose: QPose | null
-WeaponAimState.skill_slot: integer(uint16)
-WeaponAimState.weapon_index: integer(int32)
+WeaponState.pose: QPose | null
+WeaponState.weapon_index: integer(int32)
 WorldSnapshot.buildings: [BuildingState]
 WorldSnapshot.formations: [FormationState]
 WorldSnapshot.live_units: [LiveUnitState]

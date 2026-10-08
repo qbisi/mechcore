@@ -65,6 +65,12 @@ impl Simulation {
         // backswing what is left of the interval, and a Wasp's 1.5-second
         // backswing reads 27 ticks, its interval, in the game's own states.
         let next_attack_step = skill.next_attack_step;
+        // A blow with no backswing runs its cycle out with its release
+        // (`SkillAttackController.ChangeToIdle`), where `performCount` counts
+        // it: a Stormcaller's second wind-up reads 1.
+        if backswing_steps == 0 {
+            skill.perform_count += 1;
+        }
         skill.set_backswing_finish_step((backswing_steps > 0).then(|| {
             pending
                 .step
