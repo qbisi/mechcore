@@ -7,7 +7,7 @@ seed: 1787720817
 round: 1
 source: game
 ticks: 302
-hash: {profile: mcfr-content-0.7.0, result: 685af38fbd71bdb9efef25daf8b2828854c494ebfbca4b7119ba5569417ed9dc}
+hash: {profile: mcfr-content-0.7.0, result: d5a932a17e0c804bb39a9b72a7243b18573d98acafc991e39933bc536c129fbd}
 blue:
   units:
   - {name: phantom_ray, index: 0, position: {x: -5, y: -120}, exp: 0/76/1000}

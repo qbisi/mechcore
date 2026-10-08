@@ -9,7 +9,7 @@ seed: 505043195
 round: 1
 source: game
 ticks: 1019
-hash: {profile: mcfr-content-0.7.0, result: 17fc44bd8f8a383da04a3518d885f9875f530743554b899238688352951f6133}
+hash: {profile: mcfr-content-0.7.0, result: 68675480766e8a7d51d5ac203be2f9f85b5cd7cb1513a3c32172d3f982e30156}
 blue:
   officers: [giant_specialist]
   units:

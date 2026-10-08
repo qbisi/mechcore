@@ -13,7 +13,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 302
-hash: {profile: mcfr-content-0.7.0, result: 8ce4e28cf50fd9ccbaf5b8b465294e5c438ad10f76e532d8f345a98e957e308a}
+hash: {profile: mcfr-content-0.7.0, result: abe8f9aa827b66f0d553090b306f0f7f0f9fa7f4e897eb2ca397c0f8779c94a7}
 blue:
   techs:
     scorpion: [acid_attack]

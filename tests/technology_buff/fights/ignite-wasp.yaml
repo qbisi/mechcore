@@ -13,7 +13,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 917
-hash: {profile: mcfr-content-0.7.0, result: 8481249fb94b1f31808ccec94f49ae0a1fce06602dfdcaa05757fc61e4b9fa6d}
+hash: {profile: mcfr-content-0.7.0, result: 3f11009b462561ea6430950c589cd8c891817c471c0296320a25ce97b40360d1}
 blue:
   techs:
     wasp: [ignite]

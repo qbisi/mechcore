@@ -6,7 +6,7 @@ seed: 1787720817
 round: 1
 source: game
 ticks: 211
-hash: {profile: mcfr-content-0.7.0, result: 63e239791e3e2fedcf24cf69b85c7be33075761655f97f4a6f9c27fc00909e13}
+hash: {profile: mcfr-content-0.7.0, result: dfd9e12ce95f9dbbe8bc3bd8184d26cadccc8e3124e603853d1afd47e5657954}
 blue:
   units:
   - {name: sandworm, index: 0, position: {x: 0, y: -100}, exp: 0/400/2000}

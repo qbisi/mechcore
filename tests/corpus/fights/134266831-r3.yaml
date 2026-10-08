@@ -9,7 +9,7 @@ seed: 746343185
 round: 3
 source: game
 ticks: 675
-hash: {profile: mcfr-content-0.7.0, result: 106b58afab6a905e8fc0d61f623cb58f0e8a9f8c095e3ae63e379abc5219166d}
+hash: {profile: mcfr-content-0.7.0, result: abd4315a7ca3579b84633f951cdaf6889e7d0e70a71cc1cda923f2cd3c5e92ab}
 blue:
   officers: [quick_supply_specialist]
   blueprints: [attack_enhancement, defense_enhancement]

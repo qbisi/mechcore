@@ -14,7 +14,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 417
-hash: {profile: mcfr-content-0.7.0, result: cf225cb74118dedc019d5bb6d934bcd8cbe8b1dc7fd0d7a88dd10fc7b4ee0cba}
+hash: {profile: mcfr-content-0.7.0, result: b0dffcbf337c32689b27910db1df2979476ce4d254cfee5c41d1dab352634034}
 blue:
   techs:
     fortress: [rocket_punch]

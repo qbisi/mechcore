@@ -9,7 +9,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 194
-hash: {profile: mcfr-content-0.7.0, result: d09ffebd1756f6b901162e3f9c52019ceb2eb69244125d82ea75e9342ca6f015}
+hash: {profile: mcfr-content-0.7.0, result: d9d2a56087c8276c36d48e38e30a1034dd87f877c339c2bff076c7571764a8fd}
 blue:
   techs:
     wasp: [energy_shield]

@@ -12,7 +12,7 @@ seed: 2064454657
 round: 8
 source: game
 ticks: 807
-hash: {profile: mcfr-content-0.7.0, result: c45f9c68ee1a196e458cb4df1c40e385807e81da83f6223f7f05fa767efcd9ae}
+hash: {profile: mcfr-content-0.7.0, result: 72f94528be4360b4a9dded54aafb8cb3e2d2e11042ab6ceb7d0d5344f874fd40}
 blue:
   officers: [efficient_tech_research, elite_specialist]
   techs:

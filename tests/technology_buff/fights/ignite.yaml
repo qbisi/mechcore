@@ -12,7 +12,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 286
-hash: {profile: mcfr-content-0.7.0, result: 89d4c2f31cc2ebe9ba8093911d31ad1c7ab0c8bdf455077b82ff5a61b4c8d11c}
+hash: {profile: mcfr-content-0.7.0, result: 213443cea220454093d773786a0d4ea17b068bdac0f392e58fbff713cf04bae6}
 blue:
   techs:
     vulcan: [ignite]

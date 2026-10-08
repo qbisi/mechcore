@@ -6,7 +6,7 @@ seed: 1787720817
 round: 1
 source: game
 ticks: 445
-hash: {profile: mcfr-content-0.7.0, result: f71053ee4349714dfec2ad4cd6db205598adcf4bb3cd95bd4e86d0932b359385}
+hash: {profile: mcfr-content-0.7.0, result: 7c9f54cd7aa64242925eb3b618a83b92c7f9a612679f68cfbb296f4fdf754cfb}
 blue:
   core_damage: 40
   units:
