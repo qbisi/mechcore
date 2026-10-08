@@ -13,6 +13,8 @@ Learning on a Vortex in the Marksman's place. The three `officer-kills-*` fights
 Rhinos that kill Crawlers, Fangs and Sledgehammers, and read the damage each
 kill adds. `technology-elite-marksman` puts a technology whose effect grows
 with level on a level-3 and a level-1 Marksman, and reads the entry each takes.
+The three `technology-jump-drive-*` fights put High-Speed Engine on a Wasp, an
+Overlord and a Phoenix, and read the speed it adds.
 The disabled
 technology and the four Sledgehammer intervals, which the simulator does not
 fight, are layouts in [`../../layouts/`](../../layouts/README.md).

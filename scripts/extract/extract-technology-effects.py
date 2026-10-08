@@ -106,7 +106,8 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "armorStrengthenTechnologyDatas", "searchTargetSpecificDatas",
                "airAttackTechnologyDatas", "damageIntensifyTechnologies",
                "secondaryDamageIntensifyTechDatas", "buffTechnologies",
-               "interceptMissileTechnologyDatas", "splashTechnologies")
+               "interceptMissileTechnologyDatas", "splashTechnologies",
+               "mobilityIntensifyTechnologies")
 # The list whose `BuffTech` adds a buff, and the fields its rows carry for
 # `buff_lines` rather than as corrections.
 BUFF = "buffTechnologies"

@@ -1,0 +1,21 @@
+# High-Speed Engine on blue's Phoenix, against a Rhino and a Marksman: the
+# technology's 5 lands in the unit's move speed, which reads 21 where it
+# reads 16, as a plain technology's speed value does.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 232
+hash: {profile: mcfr-content-0.7.0, result: 17ac966fd8fb0203a4e3a7f3c3fa01169395ae397d0c29f3437b72445c30352b}
+blue:
+  core_damage: 300
+  techs:
+    phoenix: [jump_drive]
+  units:
+  - {name: phoenix, index: 0, position: {x: 0, y: -100}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/50/1150}
+  - {name: marksman, index: 1, position: {x: 60, y: -150}, exp: 0/350/650}
