@@ -173,7 +173,10 @@ is one as a unit is:
   checks once a blow, stands attacking a shield that broke after its last
   check, its lock out of its reach, until its next. Each weapon of a grouped
   unit searches its own shield, with its own range, and keeps the one it last
-  found until it searches again itself, one broken since included.
+  found until it searches again itself, one broken since included. The shield
+  measures only the lock it was found for: any other target a weapon's search
+  offers is measured to itself, so a Wraith's gun whose lock stood inside a
+  Shield Airdrop takes the Tarantula outside it that its search offers.
 
 A Shield Airdrop's shield is the same object, made where the skill lands;
 [`battle_skill.md`](battle_skill.md) states when.
@@ -265,6 +268,10 @@ kind ends its own way:
   cut to an integer: `tests/shield/fights/advanced-shield-device.yaml` against
   `tests/shield/fights/projectiles.yaml`, and
   `tests/missile/fights/advanced-missile-device.yaml`.
+- A Whirlwind beside a Shield Airdrop strikes the shield and the units in it,
+  and a Wraith's gun whose lock stood in the shield measures the next target
+  its search offers to that target: `tests/corpus/fights/67252808-r4.yaml`,
+  tick 100.
 - A shield takes projectiles at its surface, a splashing one's included, and
   its side's covered unit takes nothing; units whose target it covers stop at
   its surface: `tests/shield/fights/projectiles.yaml`.
