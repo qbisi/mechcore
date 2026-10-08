@@ -1,0 +1,21 @@
+# Phoenix Production on a level-4 War Factory: as `phoenix-production.yaml`,
+# the Phoenix made at the War Factory's own level (`unit_level` 3,
+# `DynamicMechLevel.Parent`), four times a first-level Phoenix's life.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 200
+hash: {profile: mcfr-content-0.7.0, result: 7efc1df7648e22536ad6718167482f2fe43adea70bcb67014353a013378f514e}
+blue:
+  techs:
+    war_factory: [phoenix_production]
+  units:
+  - {name: war_factory, index: 0, position: {x: 5, y: -145}, level: 4, exp: 0/400/14369}
+red:
+  core_damage: 525
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}}

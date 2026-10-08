@@ -105,9 +105,8 @@ pub(crate) struct Placement {
     pub(crate) extra_weapons: Vec<ExtraWeapon>,
     /// What a buff that disables technology switches off on it.
     pub(crate) technology_disable: TechnologyDisable,
-    /// The unit type its technology summons where it dies, and how many
-    /// (`DeadSummonTech`).
-    pub(crate) dead_summon: Option<(u32, u32)>,
+    /// What its technology summons where it dies (`DeadSummonTech`).
+    pub(crate) dead_summon: Option<DeadSummonOnDeath>,
     /// The line its technology runs once each time it begins to surface,
     /// and what it makes (`MoveAbilitySummonTech`).
     pub(crate) surfacing: Option<Production>,
@@ -183,9 +182,10 @@ pub(crate) struct CompiledLayout {
     /// The map the fight is on: the layout's, or the Training Ground's when
     /// it names none, as a layout replay loads it.
     pub(crate) map_id: i32,
-    /// What each side's buffs make a unit summon as it dies, by side and the
-    /// summoned unit's type id ([`compile_death_summons`]).
-    pub(crate) death_summons: BTreeMap<(u32, u32), DeathSummon>,
+    /// What each side's buffs and technologies make a unit summon as it
+    /// dies, by side, the summoned unit's type id and its level
+    /// ([`compile_death_summons`]).
+    pub(crate) death_summons: BTreeMap<(u32, u32, i64), DeathSummon>,
 }
 
 /// A unit a side's buff makes a dying unit summon: its description, and its
@@ -194,6 +194,15 @@ pub(crate) struct CompiledLayout {
 pub(crate) struct DeathSummon {
     pub(crate) rules: UnitConfig,
     pub(crate) placement: Placement,
+}
+
+/// The unit type a technology makes its unit summon where it dies, how many,
+/// and at what level.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct DeadSummonOnDeath {
+    pub(crate) unit_type_id: u32,
+    pub(crate) count: u32,
+    pub(crate) level: i64,
 }
 
 impl CompiledLayout {
@@ -456,7 +465,7 @@ pub(crate) fn compile_with_seed(
 
 /// The unit types a placement summons as it dies: its buffs' and its
 /// technology's.
-fn death_summoned(placement: &Placement, units: &UnitConfigs) -> Vec<u32> {
+fn death_summoned(placement: &Placement, units: &UnitConfigs) -> Vec<(u32, i64)> {
     let own = units
         .get(&placement.type_name)
         .map(|rules| rules.unit_type_id);
@@ -467,7 +476,12 @@ fn death_summoned(placement: &Placement, units: &UnitConfigs) -> Vec<u32> {
             DeadSummon::SourceType => own,
             DeadSummon::Unit(id) => u32::try_from(id).ok(),
         })
-        .chain(placement.dead_summon.map(|(type_id, _)| type_id))
+        .map(|type_id| (type_id, 1))
+        .chain(
+            placement
+                .dead_summon
+                .map(|summon| (summon.unit_type_id, summon.level)),
+        )
         .collect()
 }
 
@@ -484,15 +498,15 @@ fn compile_death_summons(
     units: &UnitConfigs,
     loadouts: &Loadouts,
     refused: &mut Refusals,
-) -> BTreeMap<(u32, u32), DeathSummon> {
+) -> BTreeMap<(u32, u32, i64), DeathSummon> {
     let mut pending = placements
         .iter()
         .filter(|placement| placement.team == team)
         .flat_map(|placement| death_summoned(placement, units))
         .collect::<Vec<_>>();
     let mut templates = BTreeMap::new();
-    while let Some(type_id) = pending.pop() {
-        if templates.contains_key(&(team, type_id)) {
+    while let Some((type_id, level)) = pending.pop() {
+        if templates.contains_key(&(team, type_id, level)) {
             continue;
         }
         let Some(rules) = units.by_type_id(type_id) else {
@@ -513,7 +527,7 @@ fn compile_death_summons(
         let Some(worn) = loadout(
             name,
             &rules.type_name,
-            1,
+            level,
             &[],
             rules,
             side,
@@ -540,7 +554,7 @@ fn compile_death_summons(
             world_z: 0,
             rotation: if team == 0 { 0 } else { 180_000 },
             rotated: false,
-            level: 1,
+            level,
             exp: 0,
             experience_rate: worn.experience_rates.0,
             unit_experience_rate: worn.experience_rates.1,
@@ -566,7 +580,7 @@ fn compile_death_summons(
         };
         pending.extend(death_summoned(&template, units));
         templates.insert(
-            (team, type_id),
+            (team, type_id, level),
             DeathSummon {
                 rules: rules.clone(),
                 placement: template,
@@ -1135,7 +1149,7 @@ struct Worn {
     ignores_control_beam: bool,
     extra_weapons: Vec<ExtraWeapon>,
     technology_disable: TechnologyDisable,
-    dead_summon: Option<(u32, u32)>,
+    dead_summon: Option<DeadSummonOnDeath>,
 }
 
 /// What this side's loadout and a formation's equipment write onto it.
@@ -1415,9 +1429,7 @@ fn worn(
         ignores_control_beam,
         extra_weapons,
         technology_disable: TechnologyDisable::default(),
-        dead_summon: sources
-            .dead_summon
-            .map(|summon| (summon.unit_type_id, summon.count(level))),
+        dead_summon: sources.dead_summon.map(|summon| summon.at(level)),
     })
 }
 

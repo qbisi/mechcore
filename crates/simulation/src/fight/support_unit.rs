@@ -48,7 +48,7 @@ pub(in crate::fight) struct SupportUnitSystem {
     /// were created.
     pub(in crate::fight) appearing: Vec<Appearing>,
     /// What each side's buffs make a dying unit summon, by side and type id.
-    pub(in crate::fight) death_summons: BTreeMap<(u32, u32), crate::layout::DeathSummon>,
+    pub(in crate::fight) death_summons: BTreeMap<(u32, u32, i64), crate::layout::DeathSummon>,
     /// The units that died this tick, in the order they died:
     /// `DeadEffectSystem.deadActors`, whose `OnDead` waits for that module's
     /// update.
@@ -858,8 +858,8 @@ impl Simulation {
                 continue;
             }
             let (mut before, mut after) = (Vec::new(), Vec::new());
-            if let Some((type_id, count)) = technology {
-                made.extend(self.summon_by_technology(dead_id, type_id, count, &mut before)?);
+            if let Some(summon) = technology {
+                made.extend(self.summon_by_technology(dead_id, summon, &mut before)?);
             }
             for (summon, source) in summons {
                 made.extend(self.summon_where_dead(dead_id, summon, source, &mut after)?);
@@ -907,7 +907,7 @@ impl Simulation {
                 .map_err(|_| Error::new("a buff summons a unit of a negative type"))?,
         };
         let team = parent.placement.team;
-        let Some(made) = self.support.death_summons.get(&(team, type_id)).cloned() else {
+        let Some(made) = self.support.death_summons.get(&(team, type_id, 1)).cloned() else {
             return Err(Error::new(format!(
                 "unit {dead_id} dies under a buff that has team {team} summon unit {type_id}, \
                  which that side's layout did not prepare"
@@ -924,20 +924,21 @@ impl Simulation {
     }
 
     /// One `DeadSummonController.PerformDeadEffect`: `SummonSystem.CreateMech`
-    /// of the dead unit's side, `count` of the technology's unit type at the
-    /// first level, facing as the dead unit faced, scattered within its
-    /// radius.
+    /// of the dead unit's side, as many of the technology's unit type as it
+    /// says, at the first level or the dead unit's, facing as the dead unit
+    /// faced, scattered within its radius.
     fn summon_by_technology(
         &mut self,
         dead_id: u64,
-        type_id: u32,
-        count: u32,
+        summon: crate::layout::DeadSummonOnDeath,
         events: &mut Vec<Event>,
     ) -> Result<Vec<u64>> {
         let dead = &self.actors[&dead_id];
         let team = dead.placement.team;
         let facing = dead.body_rotation_q32;
-        let Some(made) = self.support.death_summons.get(&(team, type_id)).cloned() else {
+        let (type_id, count) = (summon.unit_type_id, summon.count);
+        let key = (team, type_id, summon.level);
+        let Some(made) = self.support.death_summons.get(&key).cloned() else {
             return Err(Error::new(format!(
                 "unit {dead_id} dies with a technology that has team {team} summon unit \
                  {type_id}, which that side's layout did not prepare"

@@ -324,7 +324,8 @@ duration of the effect `SupportUnitCreator.CreateMech` hands the client.
 The War Factory's three lines make theirs at its level, each taking the row's
 `productTime`, a second, to appear (`SupportUnitData.GetProductMoveTime`).
 Phoenix Production's (`appear_type` 6) appears as a transition does, at the
-War Factory itself, a Phoenix every 17.2 seconds. Steel Ball Production's and
+War Factory itself, a Phoenix every 17.2 seconds; a level-4 War Factory's
+Phoenix is level 4 (`tests/production/fights/phoenix-production-level-4.yaml`). Steel Ball Production's and
 Sledgehammer Production's (`appear_type` 7) come out of it, every 9.7 and 6.6
 seconds (`SummonSystem.CreateMechDelaySetPos`). Each is made where the War
 Factory stands, with no agent, and draws two hundredths of a metre of its
@@ -358,17 +359,17 @@ A row of `deadSummonTechnologies` is a `DeadSummonTech`, an `IDeadSummon`.
 As its unit dies, `DeadSummonController.PerformDeadEffect` has
 `SummonSystem.CreateMech` make, for the unit's side, the row's `unit_count`
 entry for the unit's level of its `unit_id`. Each is a unit at the first level
-for `unit_level` 0, where the unit stood and facing as it faced. Each is moved
+for `unit_level` 0 and at the unit's own for 3 (`DynamicMechLevel.Parent`),
+where the unit stood and facing as it faced. Each is moved
 within the whole metres of the unit's radius by two draws of its side's
 stream, x then z, as a buff's dead summon is, and joins at once. Unlike a
 buff's, it is made whatever the unit's domain and whether or not a buff
 summoned the unit, and the recording writes its `unit_created` before its
 unit's `unit_died` rather than after. Mechanical Division leaves five Crawlers
 where a Steel Ball dies:
-`tests/dead_summon/fights/mechanical-division.yaml`.
-
-The Sandworm's Mechanical Division, at its unit's level (`unit_level` 3) and of
-unit 1001, which has no unit configuration, is refused by name.
+`tests/dead_summon/fights/mechanical-division.yaml`. The Sandworm's leaves
+four Larvas at its own level:
+`tests/dead_summon/fights/sandworm-mechanical-division.yaml`.
 
 ## What this table does not carry
 
