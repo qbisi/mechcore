@@ -54,13 +54,14 @@ simulator alone, without the game.
 
 - **Off.** Switched off in the simulator, the mechanism moves the probe's hash.
   If the hash holds, the probe did not exercise it or the recording cannot see
-  it. Find a probe that does, or propose a channel that sees it.
+  it. Find a probe that does, or, when none can, propose the admission that
+  lets the hash see it.
 - **Late.** Shifted by one tick, or with one of its numbers nudged, the
   mechanism's first divergence lands near the tick it first acts. One that
-  lands far later, or only in what the round settles, cannot be located from
-  the recording. Propose an instrument channel that locates it, or, if the
-  quantity settles the fight or names a cause, an admission to the hash
-  ([mcfr.md](../../docs/spec/mcfr/mcfr.md#admission-to-the-hash)).
+  lands far later, or only in what the round settles, means the hash lacks the
+  state that carried the error: propose its admission
+  ([mcfr.md](../../docs/spec/mcfr/mcfr.md#admission-to-the-hash)). An
+  instrument channel may locate it meanwhile, but does not pass this check.
 - **Cause.** A damage, buff or unit the mechanism makes carries the cause the
   build has. An event whose cause is null where the build's call has one is a
   gap in the format.
@@ -72,8 +73,8 @@ The pull request that lands a mechanism names its witness: the recorded fields
 or events that see it, and for each mutation the tick of its first divergence
 beside the tick the mechanism first acts. A format change the witness needs
 blocks the mechanism: it goes on the stack above it, and the mechanism waits.
-Instrument channels an agent adds on its own. A change to what the hash reads
-waits for the owner.
+Instrument channels an agent adds on its own, and an admission lands as
+[mcfr.md](../../docs/spec/mcfr/mcfr.md#admission-to-the-hash) says.
 
 ## Status and confidence are separate axes
 
