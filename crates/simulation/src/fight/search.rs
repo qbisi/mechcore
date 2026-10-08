@@ -1232,7 +1232,27 @@ impl Simulation {
         // does; a standalone weapon searches from its own weapon whatever
         // the others hold.
         if held.is_empty() && !skill.standalone() {
-            return self.select_lock_replacement(skill_ref, target_search_order);
+            if slot == 0 {
+                return self.select_lock_replacement(skill_ref, target_search_order);
+            }
+            // `PerformGroupedSkillSearch` hands the slot's own search
+            // controller to `PerformNormalSkillSearch`: the slot's skill is
+            // the attacker, scoring from its own weapon and reaching its own
+            // range. A Raiden's second gun whose Crawler died with its core's
+            // takes the Crawler in its own reach that the core's would not.
+            let mut source = self
+                .skill_attacker(skill_ref)
+                .ok_or_else(|| Error::new("a grouped skill's owner is absent"))?;
+            let (rotation, window) = self.actors[&actor_id]
+                .default_search_frame(attack, slot)
+                .unwrap_or((
+                    self.actors[&actor_id].slot_main_rotation_q32(attack, skill, slot),
+                    None,
+                ));
+            source.query_rotation_q32 = rotation;
+            source.rotation_window_q32 = window;
+            source.attack_range = self.slot_attack_range(skill_ref, Some(slot));
+            return Ok(self.perform_normal_skill_search(&source, target_search_order, false));
         }
         // The group's skill searches with its own selector, which a
         // technology may have turned to `DistanceIntensify`.
