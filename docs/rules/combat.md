@@ -583,13 +583,17 @@ check fails.
 **A single weapon lands its offsets last drawn first.** A Phantom Ray's first
 projectile lands the second offset its burst drew, and its second the first.
 
-**A projectile in simulated motion that lands on a dead target does nothing.**
-A skill with `isSimulateMode=true` whose projectile arrives after its target
-died deals no damage, splash included: a Fire Badger's or a Typhoon's shot at a
+**A projectile that lands on a dead target does nothing, unless it splashes
+outside simulated motion.** `FightProjectile.Update` releases a projectile that
+arrives after its target is no longer valid (`IsValidTarget`) when it has no
+splash, or when its skill has `isSimulateMode=true`: no damage, splash
+included, and no shield asked. A Fire Badger's or a Typhoon's shot at a
 Crawler another shot killed while it flew leaves the Crawlers beside it
-untouched, and so does a Fire Badger's shot at a wall block that fell while it
-flew. Any other projectile still strikes where it lands, as an Arclight's
-does.
+untouched, a Fire Badger's shot at a wall block that fell while it flew does
+too, and a Fang's shot at a Fire Badger that died inside a shield is taken by
+no shield. A projectile that splashes, outside simulated motion, still strikes
+where it lands, as an Arclight's does; and one that flew into a shield on its
+way is taken by it, its target dead or not.
 
 **A shot that follows its target is spent on nothing out of its owner's
 reach.** Each update, before it lands, a projectile of a skill with
@@ -1015,6 +1019,10 @@ not the game's native attack-type enum.
   `tests/corpus/fights/201373545-r4.yaml`, ticks 504 and 1028. A Farseer
   sets off as a Sledgehammer does: `tests/corpus/fights/134267654-r3.yaml`,
   tick 1739.
+- A Fang's shot landing where the Fire Badger it was fired at died does
+  nothing, though a shield holds the spot, and another flying into a shield on
+  its way is taken by it: `tests/corpus/fights/67252976-r7.yaml`, ticks 137
+  and 84.
 - A prepared search scores the candidates the tree held about the searcher as
   the tick opened: `tests/corpus/fights/67260372-r4.yaml`, tick 42, where
   Crawler 311 locks Centurion 159, which the tree by its turn no longer
@@ -1304,6 +1312,10 @@ not the game's native attack-type enum.
   finish, and answered only for them: `FightingState.Update`,
   `FightCoreSystem.PreCalculate`, `SuperDeploymentSystem.IsTravelling`,
   `ScoreRatingTargetSelector.TrySelect`.
+- A projectile arriving at a target no longer valid is released with nothing
+  done when it has no splash or is in simulated motion:
+  `FightProjectile.Update`, `FightActor.IsValidTarget`,
+  `IProjectileDataSource.GetSplashRange`, `IProjectileDataSource.IsSimulateMode`.
 - A projectile's climb is scaled by the distance from where it leaves, as it
   is created: `ProjectileSystem.Create`, `IProjectileSkillData.GetPreFlyHeight`,
   `ProjectileFlyData.GetPosition`.
@@ -1574,9 +1586,7 @@ not the game's native attack-type enum.
   to score the candidates where they stand; every recorded searcher that
   searched that way had not moved during the tick, so whether its own position
   and facing are also read anew is not measured.
-- **Projectiles**: why a projectile in simulated motion spares a dead
-  target's neighbours, which is recorded and not read; interception; and every other
-  projectile type.
+- **Projectiles**: interception, and every other projectile type.
 - **A fixed weapon's transform**: that `RotationLimitFightTransform` refreshed
   for `RotateType.Fixed` copies its parent's rotation exactly, and which call
   keeps the core's weapon on the body's rotation, are measured, not read; the

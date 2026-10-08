@@ -209,6 +209,16 @@ impl Simulation {
         // `CanCrossAdvancedEnergyShield` no): the shield it flew into takes
         // it, and one without a splash is taken by the shield covering its
         // target, as a unit's shot is. No owner stands inside a shield.
+        // One without a splash whose target is gone does nothing, as any
+        // projectile's (`FightProjectile.Update`).
+        if shot.splash_radius == 0
+            && projectile.absorbed_by.is_none()
+            && !self
+                .fight_actor(aimed)
+                .is_some_and(|view| view.alive && view.visible)
+        {
+            return Ok(super::damage::Struck::default());
+        }
         let mut shield = projectile.absorbed_by;
         if shield.is_none() && shot.splash_radius == 0 {
             shield = self.shield_around(aimed);
