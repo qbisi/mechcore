@@ -691,6 +691,28 @@ impl Simulation {
         self.skill(skill_ref).search_prepared
     }
 
+    /// Whether the skill's state prepared its search as the tick opened, on
+    /// a skill [`Self::search_prepared`] lets prepare.
+    /// `SkillIdleState.PreCalculate` prepares it when `CanStartSearchTarget`
+    /// held then: its search timer due (`SearchTargetController.
+    /// CanStartSearch`), or its lock absent or dead; `SkillAttackState.
+    /// PreCalculate` only when its lock is absent or dead. A Crawler walking
+    /// on a tower whose timer was due searches with `TrySelect` when the
+    /// tower falls that tick; one whose timer was not, with `Select`.
+    pub(in crate::fight) fn prepared_at_tick_start(&self, skill_ref: SkillRef) -> bool {
+        let skill = self.skill(skill_ref);
+        let lock_gone = skill
+            .lock_target
+            .and_then(|lock| self.fight_actor(lock))
+            .is_none_or(|lock| !lock.query_alive);
+        self.search_prepared(skill_ref)
+            && match skill.phase() {
+                FightSkillPhase::Idle => lock_gone || skill.search_target_time < 1,
+                FightSkillPhase::Attack => lock_gone,
+                FightSkillPhase::Prepare { .. } => false,
+            }
+    }
+
     pub(in crate::fight) fn target_search_order(&self) -> BTreeMap<u32, Vec<FightActorRef>> {
         self.target_quadtrees
             .iter()
@@ -783,9 +805,15 @@ impl Simulation {
         &self,
         owner: FightActorRef,
         prepared: bool,
+        widening: i64,
     ) -> Option<BTreeSet<FightActorRef>> {
         let source = self.attacker(owner)?;
-        let radius_q32 = space_to_q32(source.attack_range.max(SEARCH_MIN_RADIUS));
+        let radius_q32 = space_to_q32(
+            source
+                .attack_range
+                .max(SEARCH_MIN_RADIUS)
+                .saturating_add(widening),
+        );
         let (trees, x_q32, z_q32) = if prepared {
             (
                 &self.prepared_target_quadtrees,
@@ -823,11 +851,52 @@ impl Simulation {
         let source = self
             .skill_attacker(skill_ref)
             .ok_or_else(|| Error::new("target selector source is absent"))?;
-        Ok(self.select_normal_target_from(
+        Ok(self.perform_normal_skill_search(
             &source,
             target_search_order,
-            use_live_candidate_positions,
+            !use_live_candidate_positions,
         ))
+    }
+
+    /// `SkillSearchTargetController.PerformNormalSkillSearch`.
+    ///
+    /// A search prepared at the tick's start is `TrySelect`'s: its winner,
+    /// while it lives and is still of another side. A winner that has died
+    /// since, or no winner, sends it to `Select` over every enemy the skill
+    /// attacks (`OpponentController.GetActors`), not to the square: a Crawler
+    /// of replay 201477923's round 5 whose tower fell that tick locks a Fang
+    /// no square about it holds. A winner a beam has turned to the
+    /// searcher's side sends it to `PerformSearch`, as does a search not
+    /// prepared: `Select` over the square of `max(range, 400)`, then one 200
+    /// metres wider, then one 300 wider again, each where everything stands
+    /// by then, and `Select` over every enemy when all three answer nothing.
+    fn perform_normal_skill_search(
+        &self,
+        source: &super::attacker::Attacker<'_>,
+        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
+        prepared: bool,
+    ) -> Option<FightActorRef> {
+        if !source.searches {
+            return None;
+        }
+        if prepared {
+            match self.select_in_square(source, target_search_order, false, Some(0)) {
+                Some(chosen)
+                    if self
+                        .fight_actor(chosen)
+                        .is_some_and(|target| target.team == source.team) => {}
+                Some(chosen) if self.fight_actor(chosen).is_some_and(|target| target.alive) => {
+                    return Some(chosen);
+                }
+                _ => return self.select_in_square(source, target_search_order, true, None),
+            }
+        }
+        [0, 200, 500]
+            .into_iter()
+            .find_map(|widening| {
+                self.select_in_square(source, target_search_order, true, Some(widening))
+            })
+            .or_else(|| self.select_in_square(source, target_search_order, true, None))
     }
 
     /// [`Simulation::select_normal_target_with_order`] for a given source.
@@ -837,11 +906,32 @@ impl Simulation {
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
         use_live_candidate_positions: bool,
     ) -> Option<FightActorRef> {
-        let owner = source.owner;
         if !source.searches {
             return None;
         }
-        let nearby = self.search_candidates(owner, !use_live_candidate_positions);
+        self.select_in_square(
+            source,
+            target_search_order,
+            use_live_candidate_positions,
+            Some(0),
+        )
+    }
+
+    /// `ScoreRatingTargetSelector.Select`, or `TrySelect` for a search
+    /// prepared at the tick's start, over the candidates the target trees
+    /// answer for the search's square widened by `widening` metres, or over
+    /// every enemy for none.
+    fn select_in_square(
+        &self,
+        source: &super::attacker::Attacker<'_>,
+        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
+        use_live_candidate_positions: bool,
+        widening: Option<i64>,
+    ) -> Option<FightActorRef> {
+        let owner = source.owner;
+        let nearby = widening.and_then(|widening| {
+            self.search_candidates(owner, !use_live_candidate_positions, widening * 1000)
+        });
         let tower_attackable = self.tower_attackable(source.skill);
         let mut scoring = Scoring::default();
 
@@ -877,10 +967,7 @@ impl Simulation {
                 let candidate_targetable = if use_live_candidate_positions {
                     target.targetable
                 } else {
-                    match candidate {
-                        FightActorRef::Unit(_) => target.query_alive,
-                        FightActorRef::Building(_) => target.targetable,
-                    }
+                    target.query_targetable
                 };
                 // The prepared job scores each unit as the tick opened, on
                 // the side it stood on then, a unit a beam has turned since
@@ -922,19 +1009,7 @@ impl Simulation {
             }
         }
 
-        let chosen = scoring.chosen(|next| self.target_in_attack_range(source.skill, next))?;
-        // `ScoreRatingTargetSelector.TrySelect` takes the prepared winner only
-        // while its target data holds; a winner a beam has turned to the
-        // searcher's side since sends the search to `Select`, which scores
-        // where everything stands by then.
-        if !use_live_candidate_positions
-            && self
-                .fight_actor(chosen)
-                .is_some_and(|target| target.team == source.team)
-        {
-            return self.select_normal_target_from(source, target_search_order, true);
-        }
-        Some(chosen)
+        scoring.chosen(|next| self.target_in_attack_range(source.skill, next))
     }
 
     /// `MechSearchTargetController.Update`, before the unit's skills: a unit

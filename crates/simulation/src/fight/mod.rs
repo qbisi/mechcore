@@ -199,6 +199,10 @@ struct FightActorView {
     /// `ScoreRatingTargetSelector` passes over a unit that is not.
     query_visible: bool,
     targetable: bool,
+    /// Whether it could be targeted as the tick opened, which the scores a
+    /// search prepared then read: a tower that falls during the tick is
+    /// still its winner.
+    query_targetable: bool,
     /// `FightActor.IsVisible`, which the selectors and the range check ask
     /// and a lock already held does not: a Rhino keeps its lock on a
     /// Sandworm that burrows and walks on towards it.
@@ -1313,6 +1317,7 @@ impl Simulation {
                     query_alive: actor.target_query_alive,
                     query_visible: actor.target_query_visible,
                     targetable: actor.alive(),
+                    query_targetable: actor.target_query_alive,
                     visible: actor.visibility == Visibility::Normal,
                     domain: actor.rules.domain,
                 })
@@ -1336,6 +1341,8 @@ impl Simulation {
                     query_visible: true,
                     visible: true,
                     targetable: building.targetable && building.available,
+                    query_targetable: self.buildings_query_alive.contains(&id)
+                        && building.available,
                     domain: UnitDomain::Ground,
                 })
             }

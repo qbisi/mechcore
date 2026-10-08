@@ -435,18 +435,26 @@ scores from its root's facing, not from where its first weapon points.
 tick's start `FightCoreSystem.PreCalculate` lets each skill state prepare a
 search, scored on where everything stands at that moment, and
 `ScoreRatingTargetSelector.TrySelect` answers a prepared skill from those
-scores. A skill that was not prepared, or whose prepared answer has died since,
-falls through to `PerformSearch`, which scores every candidate where it stands
-when the search runs. Either way a candidate is scored only if the target tree
+scores. A prepared answer that has died since, a tower that fell that tick
+among them, or no prepared answer at all, sends the search to `Select` over
+every enemy the skill attacks, with no square: a Crawler walking on a tower
+that falls takes the best-scored Fang anywhere. A skill that was not prepared,
+or whose prepared answer a beam has turned to its side, falls through to
+`PerformSearch`, which scores every candidate where it stands when the search
+runs, in the square below; when the square answers nothing it tries one 200 m
+wider and then one 300 m wider again, and then every enemy. In the square a
+candidate is scored only if the target tree
 holds it in a node that a square around the searcher overlaps, a square twice
 `max(range, 400)` wide: at the fight's first tick, a Crawler of replay 134266831
 round 3 scores 13 candidates, and not the enemy 538 m straight ahead of it,
 which a square 800 m wide leaves out. A prepared search gathers its
 candidates as it is prepared, from the tree and about where the searcher stood
 then; units that update before the searcher may have moved to other nodes by
-its turn, and the candidates stay the ones prepared. An attacking skill is prepared only while its lock is
-absent or dead, an idle one when it can start a search, and a preparing or
-cooling one never; the prepared scores are cleared every tick. So a
+its turn, and the candidates stay the ones prepared. An attacking skill is
+prepared only while its lock is absent or dead, an idle one when it can start a
+search as the tick opens, its search timer run out or its lock absent or dead,
+and a preparing or cooling one never: an idle Crawler whose lock dies during a
+tick its timer was not due searches with `PerformSearch`; the prepared scores are cleared every tick. So a
 Stormcaller whose live lock walks inside its minimum range during a tick
 searches past it and takes the next target that very tick. `PreCalculate`
 prepares only the mechs of the fight as it runs, alive and not travelling, and
@@ -1242,6 +1250,16 @@ not the game's native attack-type enum.
   `ScoreRatingTargetSelector.TrySelect`,
   `SkillSearchTargetController.PerformNormalSkillSearch`,
   `ScoreRatingTargetSelector.ClearDatas`.
+- A prepared answer that has died, or none, sends the search to `Select` over
+  every enemy the skill attacks; a search not prepared tries the square, a
+  square 200 wider and one 300 wider again, and then every enemy:
+  `SkillSearchTargetController.PerformNormalSkillSearch`,
+  `SkillSearchTargetController.PerformSearch`,
+  `ScoreRatingTargetSelector.TrySelect`, `OpponentController.GetActors`.
+- An idle skill prepares its search when its timer has run out or its lock
+  is absent or dead: `SkillIdleState.PreCalculate`,
+  `SkillIdleState.CanStartSearchTarget`, `FightSkill.CanStartSearchTarget`,
+  `SearchTargetController.CanStartSearch`.
 - A prepared search gathers its candidates as it is prepared:
   `MainSkillSearchTargetController.PrepareSearch`,
   `SkillSearchTargetController.PrepareAvailableTargets`,

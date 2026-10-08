@@ -1239,8 +1239,6 @@ impl Simulation {
         // finds what it was after on its own side, and searches.
         let target_alive =
             target.is_some_and(|target| target.alive && target.targetable && target.team != team);
-        let target_died_during_tick =
-            target.is_some_and(|target| target.query_alive && !target.alive);
         if !target_alive
             && skill
                 .backswing_finish_step()
@@ -1310,21 +1308,10 @@ impl Simulation {
             self.select_normal_target_with_order(
                 skill_ref,
                 target_search_order,
-                target_died_during_tick || !self.search_prepared(skill_ref),
+                !self.prepared_at_tick_start(skill_ref),
             )
             .map_err(located)?
         };
-        if side_arm_lock.is_none()
-            && !target_died_during_tick
-            && self.search_prepared(skill_ref)
-            && selected_candidate
-                .and_then(|candidate| self.fight_actor(candidate))
-                .is_some_and(|target| target.query_alive && !target.alive)
-        {
-            selected_candidate = self
-                .select_normal_target_with_order(skill_ref, target_search_order, true)
-                .map_err(located)?;
-        }
         if grouped_core {
             self.take_from_siblings(skill_ref, selected_candidate);
         }
