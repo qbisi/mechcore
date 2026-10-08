@@ -222,6 +222,14 @@ fourth tick: the straight line from where the last such count found it, none
 on the first. Kinetic Charge's buff steps every half second with a metre of
 range for every 7 metres rolled, to 100.
 
+**A stack that resets on a hit goes back to none each time its unit's main
+skill hits.** After the hit's effects, its stack and the stack its rates are
+written at are none, and it builds again from its next step, which runs on.
+Chamber Compression's buff stacks every 0.1 seconds, 6.5% more damage a
+stack and with no bound, and a Hound's shot that lands sets it back to none.
+A reset on another condition, or on a buff that holds a life rate, is
+refused.
+
 **A buff's maximum life rate goes into the unit's own life rate, and the life
 follows it.** The buff writes its rate once as it starts; a stacking buff takes
 it out at each step and puts it back times the stack, from the second stack
@@ -416,6 +424,9 @@ whose effect grows with rank, rather than read index zero:
 - Electromagnetic Armor's buff is on a Rhino from the tick its blow lands
   on a Void Eye, at t244 and again at t264:
   `tests/technology_buff/fights/electromagnetic-armor.yaml`.
+- Chamber Compression's stack goes back to none as each of a Hound's shots
+  lands; without the reset the simulator parts from the recording at t189:
+  `tests/technology_buff/fights/chamber-compression.yaml`.
 - Counter-Fire's buff is on a Fire Badger from the tick a Marksman's hit
   takes life from it, its range 145 of 75; without it the simulator parts
   from the recording on that tick, on that range:
@@ -532,6 +543,17 @@ whose effect grows with rank, rather than read index zero:
   `BuffManager.InvokeDelayAddBuff`, which adds each queued buff through
   `BuffSystem.DoAddBuff` while its unit lives or
   `BuffSystem.IsAvaliableWhenActorDead` holds, and clears the queue.
+- A stack that resets on a hit: `IBEC_AdditiveEffectBuff.Enter` hands
+  `IBEC_AdditiveEffectBuff.ResetAdditiveStackNormal` to the reset controller
+  `BuffAdditiveStackResetControllerFactory.Create` made, whose
+  `BuffAdditiveStackResetHittedController.Register` passes it to
+  `FightMech.RegisterMainSkillHittedAttack`, the unit's
+  `FightMech.OnMainSkillPerformHitted`, which `FightMech.PerformMainSkillHitted`
+  raises. A projectile's dispatch of its hit calls it on its owner after the
+  skill's hit effects. `ResetAdditiveStackNormal` sets
+  `IBEC_AdditiveEffectBuff.additiveStack` and
+  `IBEC_AdditiveEffectBuff.additiveStackRecord` to zero and calls
+  `Buff.RefreshEffect`.
 - A buff that summons: `Buff.Init` gives a buff whose `IBuffData.IsSummoning`
   an `IBEC_DeadSummon`, and `BuffSystem.IsAvaliableWhenActorDead` lets
   `BuffSystem.AddBuff` add it to a dead target, as it does one whose

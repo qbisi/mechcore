@@ -453,6 +453,7 @@ fn buff_row(buff: &BuffSource) -> Result<BuffRow> {
         stacking: buff.stacking.map(|stacking| StackRule {
             max: stacking.max,
             condition: stacking.condition,
+            resets_on_main_hit: stacking.resets_on_main_hit,
         }),
         divide: buff.divide,
         additive: buff.additive,

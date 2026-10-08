@@ -16,6 +16,10 @@ use super::sources::{
 };
 use crate::{layout::TerrainSpec, rules::AttackTargets};
 
+/// `BuffEffectAdditiveResetCondition.None` and `Hitted`.
+const NO_RESET: i32 = 0;
+const RESET_ON_HIT: i32 = 1;
+
 /// `BuffTechListener.Hit`, `FightStart` and `GetDamage`.
 const HIT: i32 = 0;
 const FIGHT_START: i32 = 1;
@@ -111,6 +115,8 @@ pub(crate) struct BuffBlock {
     life_change_rate: i64,
     /// `disableRecover`.
     disable_recover: bool,
+    /// `buffEffectAdditiveResetCondition`.
+    additive_reset_condition: i32,
     /// The other fields it sets.
     #[serde(default)]
     special: Vec<String>,
@@ -280,10 +286,25 @@ fn stacking(who: &str, buff: &BuffBlock) -> std::result::Result<Option<Stacking>
     ]
     .iter()
     .any(|rate| *rate < 0);
+    // `BuffAdditiveStackResetControllerFactory.Create`: a stack that resets
+    // on a hit registers with its unit's main skill's hits.
+    let resets_on_main_hit = match buff.additive_reset_condition {
+        NO_RESET => false,
+        RESET_ON_HIT if buff.max_life_rate == 0 => true,
+        other => {
+            return Err(format!(
+                "{who} adds buff {} ({}), which resets its stack on \
+                 BuffEffectAdditiveResetCondition {other} or holds a life rate, and only a \
+                 reset on its unit's main skill's hit of a buff with no life rate is read",
+                buff.id, buff.name
+            ));
+        }
+    };
     match condition {
         Some(condition) if buff.step_time > 0 && !lowers => Ok(Some(Stacking {
             max: buff.max_additive_stack,
             condition,
+            resets_on_main_hit,
         })),
         _ => Err(format!(
             "{who} adds buff {} ({}), which stacks on condition {} or lowers what it stacks, \

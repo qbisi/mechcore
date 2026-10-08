@@ -386,6 +386,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: 0
       disable_recover: false
+      additive_reset_condition: 0
   - id: 1806
     name: 电磁弹
     unit: wasp
@@ -420,6 +421,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: 0
       disable_recover: false
+      additive_reset_condition: 0
   - id: 1812
     name: 电磁爆炸
     unit: stormcaller
@@ -454,6 +456,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: 0
       disable_recover: false
+      additive_reset_condition: 0
   - id: 1813
     name: 电磁弹
     unit: sledgehammer
@@ -488,6 +491,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: 0
       disable_recover: false
+      additive_reset_condition: 0
   - id: 1814
     name: 电磁干扰
     unit: hacker
@@ -522,6 +526,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: 0
       disable_recover: false
+      additive_reset_condition: 0
   - id: 1815
     name: 电磁弹
     unit: arclight
@@ -556,6 +561,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: 0
       disable_recover: false
+      additive_reset_condition: 0
   - id: 1816
     name: 电磁弹
     unit: phoenix
@@ -590,6 +596,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: 0
       disable_recover: false
+      additive_reset_condition: 0
   - id: 1826
     name: 电磁爆炸
     unit: farseer
@@ -624,6 +631,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: 0
       disable_recover: false
+      additive_reset_condition: 0
   - id: 1827
     name: 电磁弹
     unit: raiden
@@ -658,6 +666,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: 0
       disable_recover: false
+      additive_reset_condition: 0
   - id: 2305
     name: 残骸利用
     unit: rhino
@@ -1479,6 +1488,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: 0
       disable_recover: false
+      additive_reset_condition: 0
   - id: 180203
     name: 引燃
     unit: vulcan
@@ -1513,6 +1523,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: -128849018  # -0.03
       disable_recover: true
+      additive_reset_condition: 0
   - id: 180206
     name: 引燃
     unit: wasp
@@ -1547,6 +1558,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: -128849018  # -0.03
       disable_recover: true
+      additive_reset_condition: 0
   - id: 180209
     name: 引燃
     unit: fang
@@ -1581,6 +1593,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: -128849018  # -0.03
       disable_recover: true
+      additive_reset_condition: 0
   - id: 180220
     name: 引燃
     unit: fire_badger
@@ -1615,6 +1628,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: -128849018  # -0.03
       disable_recover: true
+      additive_reset_condition: 0
   - id: 180305
     name: 光子涂层
     unit: rhino
@@ -1649,6 +1663,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: 0
       disable_recover: false
+      additive_reset_condition: 0
   - id: 180311
     name: 光子投射
     unit: overlord
@@ -1686,6 +1701,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: 0
       disable_recover: false
+      additive_reset_condition: 0
   - id: 180317
     name: 光子涂层
     unit: war_factory
@@ -1720,6 +1736,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: 0
       disable_recover: false
+      additive_reset_condition: 0
   - id: 180326
     name: 光子投射
     unit: farseer
@@ -1756,6 +1773,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: 0
       disable_recover: false
+      additive_reset_condition: 0
   - id: 180329
     name: 光子涂层
     unit: abyss
@@ -1790,6 +1808,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: 0
       disable_recover: false
+      additive_reset_condition: 0
   - id: 180418
     name: 退化光束
     unit: wraith
@@ -1828,6 +1847,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: 0
       disable_recover: false
+      additive_reset_condition: 0
   - id: 180430
     name: 压制射击
     unit: void_eye
@@ -1863,6 +1883,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: 0
       disable_recover: false
+      additive_reset_condition: 0
     attack_range_value: [42949672960]  # +10
   - id: 180519
     name: 酸性攻击
@@ -1901,6 +1922,7 @@ technologies:
         summon_level_inherit: false
         life_change_rate: -64424509  # -0.015
         disable_recover: false
+        additive_reset_condition: 0
     buff:
       id: 2019
       name: 酸性弹药
@@ -1926,6 +1948,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: -64424509  # -0.015
       disable_recover: false
+      additive_reset_condition: 0
   - id: 180526
     name: 搜索雷达
     unit: farseer
@@ -1964,6 +1987,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: 0
       disable_recover: false
+      additive_reset_condition: 0
   - id: 180530
     name: 电磁装甲
     unit: void_eye
@@ -1999,6 +2023,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: 0
       disable_recover: false
+      additive_reset_condition: 0
   - id: 180620
     name: 逆火 
     unit: fire_badger
@@ -2034,6 +2059,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: 0
       disable_recover: false
+      additive_reset_condition: 0
     life_rate: [2147483648]  # +0.5
   - id: 180805
     name: 战斗进化
@@ -2067,6 +2093,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: 0
       disable_recover: false
+      additive_reset_condition: 0
   - id: 180808
     name: 滚动充能
     unit: steel_ball
@@ -2099,6 +2126,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: 0
       disable_recover: false
+      additive_reset_condition: 0
   - id: 180828
     name: 枪膛增压
     unit: hound
@@ -2131,7 +2159,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: 0
       disable_recover: false
-      special: [buffEffectAdditiveResetCondition]
+      additive_reset_condition: 1
     attack_interval_value: [2576980377]  # +0.6
   - id: 180931
     name: 移动电站
@@ -2170,6 +2198,7 @@ technologies:
       summon_level_inherit: false
       life_change_rate: 0
       disable_recover: false
+      additive_reset_condition: 0
     attack_range_value: [42949672960]  # +10
   - id: 302002
     name: 巨山装甲
@@ -2248,3 +2277,4 @@ technologies:
       summon_level_inherit: false
       life_change_rate: 0
       disable_recover: false
+      additive_reset_condition: 0
