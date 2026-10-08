@@ -1,0 +1,26 @@
+# Ignite by chance: a Fire Badger's hits burn a Rhino 70% of the time.
+#
+# Fire Badger's Ignite has a probability of 0.7, 699 thousandths once
+# truncated. Of the 236 hits on the Rhino, 164 add the buff, each drawn from
+# the Rhino's side's stream, and the burns keep Field Maintenance off
+# throughout. The Rhino wins at t301. Drawn from the Fire Badger's side
+# instead, the simulator parts from this recording at t98.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 301
+hash: {profile: mcfr-content-0.7.0, result: a5cde43ab6b86a15d8d09d994f389f08bb3505def56c4bdbc0fa36fc04c3a3dd}
+blue:
+  core_damage: 200
+  techs:
+    fire_badger: [ignite]
+  units:
+  - {name: fire_badger, index: 0, position: {x: 5, y: -100}}
+red:
+  techs:
+    rhino: [field_maintenance]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/402/1150}

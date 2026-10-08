@@ -121,6 +121,7 @@ impl Simulation {
             .collect(),
             disables_technology: false,
             debuff: buff.debuff,
+            probability: crate::fight::tower::CERTAIN,
             invincible: buff.invincible,
             disables_recover: false,
             life_change_rate: 0,

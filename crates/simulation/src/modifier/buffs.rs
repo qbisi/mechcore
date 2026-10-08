@@ -37,9 +37,6 @@ const GROUND: i32 = 0;
 const AIR: i32 = 1;
 const BOTH: i32 = 2;
 
-/// One, Q32.32.
-const ONE: i64 = 1 << 32;
-
 /// `BuffEffectAdditiveCondition.Time`: a stack a step.
 const STACK_BY_TIME: i32 = 1;
 
@@ -157,12 +154,9 @@ pub(crate) fn buff_source(
             ));
         }
     };
-    if probability != Some(ONE) {
-        return Err(format!(
-            "{who} adds its buff with probability {probability:?}, and only a certain one is \
-             read"
-        ));
-    }
+    let Some(probability) = probability else {
+        return Err(format!("{who} names no probability"));
+    };
     if !source_special.is_empty() {
         return Err(format!(
             "{who} sets {}, which no mechanism here reads",
@@ -204,6 +198,7 @@ pub(crate) fn buff_source(
         disables_recover: buff.disable_recover,
         stacking,
         summons: summons(who, buff)?,
+        probability: convert_probability(probability),
         trigger,
         can_disable,
         clears_when_technologies_disabled: buff.clear_when_technologies_disabled,
@@ -245,6 +240,14 @@ fn stacking(who: &str, buff: &BuffBlock) -> std::result::Result<Option<Stacking>
             buff.id, buff.name, buff.additive_condition
         )),
     }
+}
+
+/// `Utility.ConvertProbability`: an `FPoint` chance in whole thousandths,
+/// truncated, so the 0.35 a table writes, a raw value just short of it, is
+/// 349.
+fn convert_probability(raw: i64) -> i32 {
+    let thousandths = (i128::from(raw) * 1000) >> 32;
+    i32::try_from(thousandths).unwrap_or(if thousandths < 0 { i32::MIN } else { i32::MAX })
 }
 
 /// What a buff's unit summons as it dies, `IBEC_DeadSummon`, which `Buff.Init`
@@ -333,4 +336,19 @@ fn reach(
         target_radius: cycle.target_radius,
         targets: named,
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::convert_probability;
+
+    #[test]
+    fn a_chance_is_truncated_to_thousandths() {
+        // The raw values the Ignites' tables write for 0.35, 0.14 and 0.7,
+        // each just short of the decimal, and a certainty.
+        assert_eq!(convert_probability(1_503_238_553), 349);
+        assert_eq!(convert_probability(601_295_421), 139);
+        assert_eq!(convert_probability(3_006_477_107), 699);
+        assert_eq!(convert_probability(1 << 32), 1000);
+    }
 }

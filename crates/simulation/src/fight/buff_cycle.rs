@@ -137,7 +137,7 @@ impl Simulation {
             .buff_cycles[index] = next;
         let row = buff_row(&source)?;
         for target in reached {
-            if self.buff_reaches(target, &row) {
+            if self.buff_reaches(target, &row)? {
                 self.write_buff(target, Some(owner), team, &row, events)?;
             }
         }
@@ -241,7 +241,7 @@ impl Simulation {
                 // `BuffSystem.IsAvaliableWhenActorDead`: a buff that summons
                 // or disables technology reaches a unit the hit killed.
                 let reaches_the_dead = row.summons.is_some() || row.disables_technology;
-                if (self.actors[&id].alive() || reaches_the_dead) && self.buff_reaches(id, &row) {
+                if (self.actors[&id].alive() || reaches_the_dead) && self.buff_reaches(id, &row)? {
                     self.write_buff(id, Some(source), team, &row, events)?;
                 }
             }
@@ -278,7 +278,7 @@ impl Simulation {
             let row = buff_row(&buff)?;
             // `BuffSystem.IsAvaliableWhenActorDead`.
             let reaches_the_dead = row.summons.is_some() || row.disables_technology;
-            if (self.actors[&id].alive() || reaches_the_dead) && self.buff_reaches(id, &row) {
+            if (self.actors[&id].alive() || reaches_the_dead) && self.buff_reaches(id, &row)? {
                 self.write_buff(id, Some(source), team, &row, events)?;
             }
         }
@@ -334,6 +334,7 @@ fn buff_row(buff: &BuffSource) -> Result<BuffRow> {
         .collect(),
         disables_technology: buff.disables_technology,
         debuff: buff.debuff,
+        probability: buff.probability,
         invincible: buff.invincible,
         disables_recover: buff.disables_recover,
         life_change_rate: buff.life_change_rate,
