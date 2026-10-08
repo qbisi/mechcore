@@ -1,11 +1,11 @@
-# MCFR 格式规范（format 0.18.0）
+# MCFR 格式规范（format 0.19.0）
 
 [English](mcfr.md)
 
 本文描述仓库当前实现的 MCFR 逻辑模型、物理容器、Adapter 原生采集来源和 Reader/Writer 校验契约。统一格式标识为：
 
 ```text
-format = "0.18.0"
+format = "0.19.0"
 ```
 
 当前 Adapter 原生字段映射绑定仓库在 `GAME_VERSION` 钉住的游戏版本。其他版本可以生成同格式录像，前提是 Producer 已验证所用原生接口与本文语义一致。
@@ -101,7 +101,7 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 
 | key | 数据规范 | 含义 |
 | --- | --- | --- |
-| `format` | 精确值 `0.18.0` | MCFR 逻辑与物理契约版本 |
+| `format` | 精确值 `0.19.0` | MCFR 逻辑与物理契约版本 |
 | `producer` | `game` 或 `simulator` | 录像由谁写出：经 Adapter 的游戏，或模拟器 |
 | `game_build` | 非空 UTF-8 | 采集构建 provenance；Adapter 来自 `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | 单回合保持稳定的上下文 `D` |
@@ -135,7 +135,7 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 | 字段 | Parquet 类型 | 含义 | Adapter 原生来源 |
 | --- | --- | --- | --- |
 | `tick` | `UINT32 required` | 状态所属逻辑时刻 | Adapter 逻辑帧计数 |
-| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.18.0 身份规则，见附录 B |
+| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.19.0 身份规则，见附录 B |
 | `team_id` | `UINT32 required` | 当前所属队伍 | `FightTeam` controller index |
 | `original_team_id` | `UINT32 required` | 首次出现时的队伍 | 首次采样的 `team_id` |
 | `formation_id` | `UINT64 required` | 编队身份 | `FightMech.GetMechTeam()` 指针映射 |
@@ -157,6 +157,7 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 | `personal_shield` | required struct | 单位个人能量盾状态 | 见 2.5 |
 | `move_speed` | `INT64 required` | 战斗移动单位所用的速度，所有修正之后，Q32.32 原始值 | `FightMech.GetMoveSpeed()` |
 | `skills` | required list | 单位持有的每个技能、其状态与武器 | 见 2.6 |
+| `control` | nullable struct | 控制光束正在转化该单位时：`progress`（`INT32`，光束命中累加的力量）与 `sources`（`list<ObjectRef>`，持有它的光束所属技能的拥有者，按 build 保存的顺序）；没有光束时为 null | 该单位在 `TeamTranslationSystem.translatingDatas` 中的条目：`TranslationData.progress` 与 `sources` |
 
 ## 2.3 `status_mask`
 
@@ -214,6 +215,7 @@ enabled    : nullable struct   FightSkill.IsEnable() 为 false 或单位旅行�
   attack_time             : INT32 required       FightSkill.attackTime
   current_attack_interval : INT32 required       FightSkill.GetCurrentAttackInterval()
   attack_count            : INT32 required       FightSkill.GetAttackCount()
+  perform_count           : INT32 required       SkillAttackController.performCount
   attack_range            : INT64 required       FightSkill.GetAttackRange()，Q32.32 原始值
   attack_damage           : INT32 required       FightSkill.GetNormalDamage(0)
   weapons                 : required list
@@ -230,7 +232,7 @@ enabled    : nullable struct   FightSkill.IsEnable() 为 false 或单位旅行�
 
 `state` 是 `SkillStateController` 当前状态的类：`0=idle`（`SkillIdleState`）、`1=prepare`、`2=attack`、`3=cooling`、`4=reloading`、`5=lock`（`SkillLockState`）。`attack_phase` 是 `SkillAttackController` 当前的阶段控制器：`0=before` 等待攻击点，`1=attacking` 正在释放，`2=after` 后摇；没有出手进行中时为 null，攻击状态的大部分时间都是如此：两次出手之间，以及在一次更新里开始又结束的出手。
 
-`attack_time` 数自上次出手开始以来的逻辑 tick，到达 `current_attack_interval` 时技能出手。**这个间隔不是描述里的那个：** 每个周期都会从队伍随机流里抽一次错开，三只长弓在第 1 tick 读作 55、65、56（描述是 62），[`combat.md`](../../rules/combat.md) 量了这次抽取。间隔记的是 build 自己的整数，不是 property 的 `FPoint` 秒。`attack_count` 是进入攻击状态以来开始的出手数减一，攻击状态之外为 `-1`。
+`attack_time` 数自上次出手开始以来的逻辑 tick，到达 `current_attack_interval` 时技能出手。**这个间隔不是描述里的那个：** 每个周期都会从队伍随机流里抽一次错开，三只长弓在第 1 tick 读作 55、65、56（描述是 62），[`combat.md`](../../rules/combat.md) 量了这次抽取。间隔记的是 build 自己的整数，不是 property 的 `FPoint` 秒。`attack_count` 是进入攻击状态以来开始的出手数减一，攻击状态之外为 `-1`。`perform_count` 是进入攻击状态以来连同后摇整个跑完的出手数，攻击状态之外为 0：丢失目标的出手是否交还间隔取决于它（[`combat.md`](../../rules/combat.md)）。
 
 `attack_range` 与 `attack_damage` 是技能自身 property 在所有修正之后的答案，与写入它的 `modifiers` 并列：一份录像在一个 tick 里就能回答一条修正如何合成。
 
@@ -291,6 +293,7 @@ enabled    : nullable struct   FightSkill.IsEnable() 为 false 或单位旅行�
 | `target` | nullable `ObjectRef` | 当前目标 | `FightProjectile.GetTarget()` |
 | `cached_target_position` | `QVec3 required` | 弹体缓存的目标坐标 | `GetTargetInfo().GetPosition()` |
 | `cached_target_radius` | `INT64 required` | 弹体缓存的目标半径 | `GetTargetInfo().GetRadius()` |
+| `move_range` | `INT64 required` | 弹体生成时被给定的射程，Q32.32 原始值：锁定目标的弹体只在离拥有者这个距离内才能命中 | `FightProjectile.moveRange` |
 | `life` | `GaugeI32 required` | 弹体当前/最大生命 | `GetLife()` / `GetMaxLife()` |
 | `spawn_containing_shields` | required `list<ObjectRef>` | 弹体自身命中检测会看的、创建时已包含它的盾，按 Shield ID 排序 | `ProjectileController.inEnergyShields` |
 
@@ -620,9 +623,9 @@ ObjectRef = { kind: ObjectKind, id: u64 }
 
 # 附录 B — 身份与排序约定
 
-## B.1 format 0.18.0 身份规则
+## B.1 format 0.19.0 身份规则
 
-format `0.18.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
+format `0.19.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
 
 战斗期间首次出现的 Unit 按首次观察顺序取得当前 Unit namespace 的下一个连续编号。Unit namespace 从 1 开始单调递增；历史引用持续使用对象首次取得的编号。
 

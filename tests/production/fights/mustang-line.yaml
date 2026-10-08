@@ -9,7 +9,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 319
-hash: {profile: mcfr-content-0.7.0, result: 33617dae55fa5ff01edeac9a1351c8ba8a37ab81870de2c976dbdccccf1f392a}
+hash: {profile: mcfr-content-0.7.0, result: fd4127a4c0513543fd34f5ddb624ce63cac0eeb8393734143275962aec915aef}
 blue:
   units:
   - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/400/1600, equipment: [mustang_production_line]}

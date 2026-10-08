@@ -103,7 +103,10 @@ taken. A missile fires once, and is spent.
 **What it fires.** A projectile of its own, which no unit owns: it leaves from
 `mineFlyHeight`, 60 metres, above where the missile stands, at the row's
 `moveSpeed`, locked on what set it off, with the row's `maxLife`, and an
-interceptor may take it out of the air. Its release and its removal name no
+interceptor may take it out of the air. Its reach (`FightProjectile.Init`'s
+`moveRange`) is the row's trigger range and its target's radius, as a unit's
+projectile's is its skill's range and its target's; no owner holds it to it.
+Its release and its removal name no
 source; its damage and the deaths it causes are credited to the projectile.
 
 **What its hit does.** It deals the row's `damage`, raised by its side's

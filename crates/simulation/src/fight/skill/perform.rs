@@ -65,12 +65,11 @@ impl Simulation {
         // backswing what is left of the interval, and a Wasp's 1.5-second
         // backswing reads 27 ticks, its interval, in the game's own states.
         let next_attack_step = skill.next_attack_step;
-        // A blow with no backswing runs its cycle out with its release
-        // (`SkillAttackController.ChangeToIdle`), where `performCount` counts
-        // it: a Stormcaller's second wind-up reads 1.
-        if backswing_steps == 0 {
-            skill.perform_count += 1;
-        }
+        // A blow with no backswing runs its cycle out as its attacking phase
+        // ends (`SkillAttackController.ChangeToIdle`), where `performCount`
+        // counts it: a Farseer's two-projectile burst released on tick 2
+        // reads 0 until its last projectile goes out, and 1 from tick 6.
+        skill.attacking_unfinished = backswing_steps == 0;
         skill.set_backswing_finish_step((backswing_steps > 0).then(|| {
             pending
                 .step
@@ -138,7 +137,19 @@ impl Simulation {
                 self.control_effect(actor_id, pending.target, events)?;
             }
         }
+        self.finish_attacking(skill_ref);
         Ok(false)
+    }
+
+    /// `SkillAttackController.ChangeToIdle` after an attacking phase with no
+    /// backswing: once the performer's work is done, the blow has run its
+    /// cycle out and `performCount` counts it.
+    pub(in crate::fight) fn finish_attacking(&mut self, skill_ref: SkillRef) {
+        let skill = self.skill_mut(skill_ref);
+        if skill.attacking_unfinished && skill.performer.done() {
+            skill.attacking_unfinished = false;
+            skill.perform_count += 1;
+        }
     }
 
     /// A laser skill's blow, the skill's own: the `attack_count`th of its
@@ -655,6 +666,22 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let projectile_id = self.ids.objects.allocate_object(ObjectKind::Projectile)?.id;
+        // `FightProjectile.Init`: its data source's `GetAttackRange()`, the
+        // releasing slot's own: a Wraith's slot reaches 85 metres where its
+        // main skill reaches 75.
+        let data_source_range_q32 = match source.owner {
+            FightActorRef::Unit(id) => {
+                let (held_by, offset) = self.actors[&id].skills.at_slot(skill_slot);
+                self.slot_attack_range_q32(
+                    SkillRef {
+                        owner: source.owner,
+                        slot: held_by,
+                    },
+                    offset,
+                )
+            }
+            FightActorRef::Building(_) => space_to_q32(source.range),
+        };
         let skill_slot =
             u16::try_from(skill_slot).map_err(|_| Error::new("skill slot exceeds u16"))?;
         let projectile = Projectile {
@@ -689,9 +716,7 @@ impl Simulation {
             climb_to_q32: None,
             spawn_shields: Vec::new(),
             absorbed_by: None,
-            move_range_q32: Some(
-                space_to_q32(source.range).saturating_add(space_to_q32(target_radius)),
-            ),
+            move_range_q32: data_source_range_q32.saturating_add(space_to_q32(target_radius)),
         };
         let mut projectile = projectile;
         // `ProjectileController.Init`: the enemy shields that already hold it.

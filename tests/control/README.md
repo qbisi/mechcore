@@ -7,9 +7,9 @@ another Hacker, are its standard fights in [`../hacker/`](../hacker/fights/).
 
 Each fight here is its layout fought once in the game, read back as a fight.
 A hit the beam strikes is a `damage` from the Hacker; a hit that turns writes
-none, and shows only in the `control_progress` instrument channel, which these
-were recorded with:
+none, and shows in the unit's `control`, the progress its beams have added and
+whose beams they are. They were recorded with:
 
 ```sh
-mechcore convert <layout> --to mcfr --backend game <out.mcfr> --seed 4242 --instrument control_progress,target_refs
+mechcore convert <layout> --to mcfr --backend game <out.mcfr> --seed 4242 --instrument target_refs
 ```

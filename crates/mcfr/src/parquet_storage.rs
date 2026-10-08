@@ -31,11 +31,11 @@ use tempfile::TempDir;
 use zip::{CompressionMethod, ZipArchive, ZipWriter, write::SimpleFileOptions};
 
 use crate::{
-    AttackPhase, BuildingState, DamageStatistics, Domain, DurableContext, EnabledSkill, Error,
-    Event, EventPayload, FormationState, GaugeI32, HASH_PROFILE, Hashes, LiveUnitState,
-    MCFR_FORMAT, Modifier, ModifierChannel, ModifierPart, MotionState, ObjectKind, ObjectRef,
-    PersonalShieldState, Producer, ProjectileState, QPlanar, QPose, QVec3, RecorderKind, Result,
-    ShieldRoundPolicy, ShieldSourceKind, ShieldState, SkillMachineState, SkillState,
+    AttackPhase, BuildingState, ControlState, DamageStatistics, Domain, DurableContext,
+    EnabledSkill, Error, Event, EventPayload, FormationState, GaugeI32, HASH_PROFILE, Hashes,
+    LiveUnitState, MCFR_FORMAT, Modifier, ModifierChannel, ModifierPart, MotionState, ObjectKind,
+    ObjectRef, PersonalShieldState, Producer, ProjectileState, QPlanar, QPose, QVec3, RecorderKind,
+    Result, ShieldRoundPolicy, ShieldSourceKind, ShieldState, SkillMachineState, SkillState,
     TerrainApplicationState, TerrainEffectClock, TerrainGridState, TerrainLogicLifetime,
     TerrainState, TerrainType, TransitionEvents, Visibility, WeaponState, WorldSnapshot, canonical,
     event_table::{batch_events, event_batch, event_schema},
@@ -585,6 +585,7 @@ fn unit_batch(rows: &[(u32, LiveUnitState)]) -> Result<Option<RecordBatch>> {
             shield_values(units.iter().map(|row| row.personal_shield)),
             i64_values(units.iter().map(|row| row.move_speed)),
             skill_list_values(units.iter().map(|row| &row.skills))?,
+            control_values(units.iter().map(|row| row.control.as_ref()))?,
         ],
     )?))
 }
@@ -605,6 +606,7 @@ fn projectile_batch(rows: &[(u32, ProjectileState)]) -> Result<Option<RecordBatc
             object_ref_values(values.iter().map(|row| row.target)),
             vec3_values(values.iter().map(|row| row.cached_target_position)),
             i64_values(values.iter().map(|row| row.cached_target_radius)),
+            i64_values(values.iter().map(|row| row.move_range)),
             gauge_values(values.iter().map(|row| row.life)),
             object_ref_list_values(values.iter().map(|row| &row.spawn_containing_shields))?,
         ],
@@ -1212,6 +1214,11 @@ fn enabled_skill_values(enabled: &[Option<&EnabledSkill>]) -> Result<StructArray
                     .iter()
                     .map(|skill| skill.map_or(0, |skill| skill.attack_count)),
             ),
+            i32_values(
+                enabled
+                    .iter()
+                    .map(|skill| skill.map_or(0, |skill| skill.perform_count)),
+            ),
             i64_values(field(|skill| skill.attack_range)),
             i32_values(
                 enabled
@@ -1288,6 +1295,7 @@ fn unit_schema() -> SchemaRef {
         struct_field("personal_shield", shield_fields(), false),
         Field::new("move_speed", DataType::Int64, false),
         list_field("skills", skill_fields()),
+        struct_field("control", control_fields(), true),
     ]))
 }
 
@@ -1355,6 +1363,7 @@ fn projectile_schema() -> SchemaRef {
         struct_field("target", object_ref_fields(), true),
         struct_field("cached_target_position", vec3_fields(), false),
         Field::new("cached_target_radius", DataType::Int64, false),
+        Field::new("move_range", DataType::Int64, false),
         struct_field("life", gauge_fields(), false),
         list_field("spawn_containing_shields", object_ref_fields()),
     ]))
@@ -1485,6 +1494,7 @@ fn enabled_skill_fields() -> Fields {
         Field::new("attack_time", DataType::Int32, false),
         Field::new("current_attack_interval", DataType::Int32, false),
         Field::new("attack_count", DataType::Int32, false),
+        Field::new("perform_count", DataType::Int32, false),
         Field::new("attack_range", DataType::Int64, false),
         Field::new("attack_damage", DataType::Int32, false),
         list_field("weapons", weapon_fields()),
@@ -1499,6 +1509,53 @@ fn weapon_fields() -> Fields {
         Field::new("rotation", DataType::Int64, true),
     ]
     .into()
+}
+
+fn control_fields() -> Fields {
+    vec![
+        Field::new("progress", DataType::Int32, false),
+        list_field("sources", object_ref_fields()),
+    ]
+    .into()
+}
+
+fn control_values<'a>(
+    values: impl IntoIterator<Item = Option<&'a ControlState>>,
+) -> Result<ArrayRef> {
+    let values = values.into_iter().collect::<Vec<_>>();
+    let empty = Vec::new();
+    Ok(Arc::new(StructArray::new(
+        control_fields(),
+        vec![
+            i32_values(
+                values
+                    .iter()
+                    .map(|value| value.map_or(0, |value| value.progress)),
+            ),
+            object_ref_list_values(
+                values
+                    .iter()
+                    .map(|value| value.map_or(&empty, |value| &value.sources)),
+            )?,
+        ],
+        Some(values.iter().map(Option::is_some).collect::<NullBuffer>()),
+    )))
+}
+
+fn read_control(array: &StructArray, index: usize) -> Result<Option<ControlState>> {
+    let sources = struct_child::<ListArray>(array, "sources")?;
+    if array.is_null(index) {
+        if sources.value_length(index) != 0 {
+            return Err(Error::invalid(
+                "a unit no beam turns carries control sources",
+            ));
+        }
+        return Ok(None);
+    }
+    Ok(Some(ControlState {
+        progress: struct_child::<Int32Array>(array, "progress")?.value(index),
+        sources: read_object_ref_list(sources, index, "control sources")?,
+    }))
 }
 
 fn struct_field(name: &str, fields: Fields, nullable: bool) -> Field {
@@ -2131,6 +2188,7 @@ fn read_units(member: MemberSlice) -> Result<Vec<(u32, LiveUnitState)>> {
         let shield = struct_column(&batch, "personal_shield")?;
         let move_speed = column::<Int64Array>(&batch, "move_speed")?;
         let skills = column::<ListArray>(&batch, "skills")?;
+        let control = struct_column(&batch, "control")?;
         for index in 0..batch.num_rows() {
             rows.push((
                 tick.value(index),
@@ -2159,6 +2217,7 @@ fn read_units(member: MemberSlice) -> Result<Vec<(u32, LiveUnitState)>> {
                     personal_shield: read_shield(shield, index)?,
                     move_speed: move_speed.value(index),
                     skills: read_skill_list(skills, index)?,
+                    control: read_control(control, index)?,
                 },
             ));
         }
@@ -2375,6 +2434,7 @@ fn read_projectiles(member: MemberSlice) -> Result<Vec<(u32, ProjectileState)>> 
         let target = struct_column(&batch, "target")?;
         let cached = struct_column(&batch, "cached_target_position")?;
         let radius = column::<Int64Array>(&batch, "cached_target_radius")?;
+        let move_range = column::<Int64Array>(&batch, "move_range")?;
         let life = struct_column(&batch, "life")?;
         let spawn_containing_shields = column::<ListArray>(&batch, "spawn_containing_shields")?;
         for index in 0..batch.num_rows() {
@@ -2388,6 +2448,7 @@ fn read_projectiles(member: MemberSlice) -> Result<Vec<(u32, ProjectileState)>> 
                     target: read_optional_ref(target, index)?,
                     cached_target_position: read_vec3(cached, index)?,
                     cached_target_radius: radius.value(index),
+                    move_range: move_range.value(index),
                     life: read_gauge(life, index)?,
                     spawn_containing_shields: read_object_ref_list(
                         spawn_containing_shields,
@@ -2505,6 +2566,7 @@ fn read_skill_list(array: &ListArray, index: usize) -> Result<Vec<SkillState>> {
     let times = struct_child::<Int32Array>(enabled, "attack_time")?;
     let intervals = struct_child::<Int32Array>(enabled, "current_attack_interval")?;
     let counts = struct_child::<Int32Array>(enabled, "attack_count")?;
+    let performed = struct_child::<Int32Array>(enabled, "perform_count")?;
     let ranges = struct_child::<Int64Array>(enabled, "attack_range")?;
     let damages = struct_child::<Int32Array>(enabled, "attack_damage")?;
     let weapons = struct_child::<ListArray>(enabled, "weapons")?;
@@ -2537,6 +2599,7 @@ fn read_skill_list(array: &ListArray, index: usize) -> Result<Vec<SkillState>> {
                     attack_time: times.value(item),
                     current_attack_interval: intervals.value(item),
                     attack_count: counts.value(item),
+                    perform_count: performed.value(item),
                     attack_range: ranges.value(item),
                     attack_damage: damages.value(item),
                     weapons: read_weapon_list(weapons, item)?,

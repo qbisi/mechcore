@@ -1,6 +1,6 @@
-//! The `control_progress` instrument channel: the units a control beam is
-//! turning, read from `TeamTranslationSystem.translatingDatas` at each
-//! snapshot.
+//! The units a control beam is turning, read from
+//! `TeamTranslationSystem.translatingDatas` at each snapshot into the unit
+//! row's `control`.
 //!
 //! The field is a `SyncDictionary<FightMech, TranslationData>`, which keeps
 //! its keys and values in two lists side by side. `ControllEffect.Start` adds
@@ -12,7 +12,7 @@
 
 use crate::capture::{CaptureState, list_count, list_item, object_ref_from_pointer};
 use crate::il2cpp::{Api, FieldInfo, Object};
-use mechcore_mcfr::ControlProgress;
+use mechcore_mcfr::{ControlState, ObjectRef};
 
 /// A `TranslationData`, as a `List<TranslationData>` holds it.
 #[repr(C)]
@@ -24,7 +24,7 @@ struct Data {
 }
 
 /// The classes and fields the reader uses, resolved once.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub(crate) struct ControlMetadata {
     pub(crate) system_class: usize,
     translating: usize,
@@ -62,13 +62,13 @@ fn own_field<T: Copy>(api: Api, object: *mut Object, name: &str) -> Result<T, St
         .map_err(|error| format!("{name}: {error}"))
 }
 
-/// Every unit being turned, ordered by unit.
+/// Every unit being turned, with its entry.
 pub(crate) fn read(
     api: Api,
     system: *mut Object,
     metadata: &ControlMetadata,
     capture: &CaptureState,
-) -> Result<Vec<ControlProgress>, String> {
+) -> Result<Vec<(ObjectRef, ControlState)>, String> {
     let translating: *mut Object = field(
         api,
         system,
@@ -117,12 +117,13 @@ pub(crate) fn read(
                 );
             }
         }
-        rows.push(ControlProgress {
+        rows.push((
             unit,
-            progress: data.progress,
-            sources,
-        });
+            ControlState {
+                progress: data.progress,
+                sources,
+            },
+        ));
     }
-    rows.sort_by_key(|row| row.unit);
     Ok(rows)
 }

@@ -387,15 +387,13 @@ pub enum InstrumentChannel {
     /// Each projectile's reach check: how far from its owner it may be and
     /// still land, against where it stands.
     ProjectileReach,
-    /// Each unit a control beam is turning: how far, and by whose skills.
-    ControlProgress,
     /// Each kill's search for the formations standing near enough to share its
     /// experience: which formations shared already, and which it added.
     ExpRange,
 }
 
 impl InstrumentChannel {
-    pub const ALL: [Self; 11] = [
+    pub const ALL: [Self; 10] = [
         Self::TargetRefs,
         Self::SkillAttackableChecker,
         Self::TargetSearch,
@@ -405,7 +403,6 @@ impl InstrumentChannel {
         Self::RvoVo,
         Self::UnitPose,
         Self::ProjectileReach,
-        Self::ControlProgress,
         Self::ExpRange,
     ];
 
@@ -422,7 +419,6 @@ impl InstrumentChannel {
             Self::RvoVo => "rvo_vo",
             Self::UnitPose => "unit_pose",
             Self::ProjectileReach => "projectile_reach",
-            Self::ControlProgress => "control_progress",
             Self::ExpRange => "exp_range",
         }
     }

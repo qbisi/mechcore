@@ -44,10 +44,11 @@ pub(in crate::fight) struct Projectile {
     pub(in crate::fight) spawn_shields: Vec<u64>,
     /// The shield that took it, once one has.
     pub(in crate::fight) absorbed_by: Option<u64>,
-    /// `FightProjectile.moveRange`: the releasing skill's attack range and
-    /// its target's radius, set as it is made. None for a missile's, which
-    /// no `ISkillOwner` released.
-    pub(in crate::fight) move_range_q32: Option<i64>,
+    /// `FightProjectile.moveRange`: its data source's attack range and its
+    /// target's radius, set as it is made (`FightProjectile.Init`). The data
+    /// source is the releasing skill, or a missile's row, whose range is its
+    /// trigger range.
+    pub(in crate::fight) move_range_q32: i64,
 }
 
 /// What released a projectile.
@@ -92,6 +93,7 @@ impl Projectile {
                 z: self.cached_target_z_q32,
             },
             cached_target_radius: space_to_q32(self.cached_target_radius),
+            move_range: self.move_range_q32,
             life: GaugeI32 {
                 current: i32::try_from(self.life).expect("projectile life fits i32"),
                 maximum: i32::try_from(self.max_life).expect("projectile life fits i32"),
@@ -242,7 +244,7 @@ impl Simulation {
     /// running away is spent on nothing once it is farther from the Mustang
     /// than that; a Stormcaller's shells, which lock nothing, are not asked.
     fn within_owner_reach(&self, projectile: &Projectile) -> bool {
-        let (Shooter::Actor(owner), Some(move_range_q32), true) = (
+        let (Shooter::Actor(owner), move_range_q32, true) = (
             &projectile.shooter,
             projectile.move_range_q32,
             projectile.lock_target,

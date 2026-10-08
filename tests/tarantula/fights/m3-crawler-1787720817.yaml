@@ -6,7 +6,7 @@ seed: 1787720817
 round: 1
 source: game
 ticks: 184
-hash: {profile: mcfr-content-0.7.0, result: 8f05b476583e35541f3195b56979ace43c8a29db2c2bb9000ea796456ee96b69}
+hash: {profile: mcfr-content-0.7.0, result: 6a2e69cad64cfa806021bf5fdfe1993a971509d775c520c891e9a08deaee4d49}
 blue:
   units:
   - {name: tarantula, index: 0, position: {x: -5, y: -105}, exp: 0/192/1500}

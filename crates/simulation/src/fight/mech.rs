@@ -590,6 +590,7 @@ impl Actor {
             },
             move_speed: self.stats.move_speed_q32(),
             skills,
+            control: None,
         }
     }
 }

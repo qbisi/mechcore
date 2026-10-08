@@ -172,24 +172,6 @@ impl InstrumentRow for ProjectileReach {
     const CHANNEL: &'static str = "projectile_reach";
 }
 
-/// One unit a control beam is turning, at a snapshot: an entry of
-/// `TeamTranslationSystem.translatingDatas`. Each hit of a beam adds its power
-/// to `progress`, and the unit changes side once `progress` reaches its life;
-/// the entry goes when the last beam on it stops.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ControlProgress {
-    pub unit: ObjectRef,
-    /// `TranslationData.progress`: the power its beams have added.
-    pub progress: i32,
-    /// The owners of the skills whose beams hold it, `TranslationData.sources`
-    /// in the order the build keeps them.
-    pub sources: Vec<ObjectRef>,
-}
-
-impl InstrumentRow for ControlProgress {
-    const CHANNEL: &'static str = "control_progress";
-}
-
 /// One kill's search for the formations near enough to share its experience:
 /// a call of `ExpSystem.AddRangeUnit`, which asks the killer's side's
 /// `mechQuadtree` for a square `assistExpRange` wide around the target and

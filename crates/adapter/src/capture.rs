@@ -16,17 +16,17 @@ use mechcore_document::{
     chain_blueprint, construction_type_from_id, contraption_type_from_id, unit_type_from_id,
 };
 use mechcore_mcfr::{
-    AttackPhase, BuffRemovedReason, BuildingState, Domain, DurableContext, EnabledSkill, Event,
-    EventPayload, GaugeI32, LiveUnitState, Modifier, ModifierChannel, ModifierPart, MotionState,
-    ObjectKind, ObjectRef, PersonalShieldState, ProjectileState, QPlanar, QPose, QVec3, Rational,
-    ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind, ShieldState, SkillMachineState,
-    SkillState, TerrainApplicationState, TerrainEffectClock, TerrainGridState,
-    TerrainLogicLifetime, TerrainRemovedReason, TerrainState, TerrainType, TransitionEvents,
-    Visibility, WeaponState, WorldSnapshot,
+    AttackPhase, BuffRemovedReason, BuildingState, ControlState, Domain, DurableContext,
+    EnabledSkill, Event, EventPayload, GaugeI32, LiveUnitState, Modifier, ModifierChannel,
+    ModifierPart, MotionState, ObjectKind, ObjectRef, PersonalShieldState, ProjectileState,
+    QPlanar, QPose, QVec3, Rational, ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind,
+    ShieldState, SkillMachineState, SkillState, TerrainApplicationState, TerrainEffectClock,
+    TerrainGridState, TerrainLogicLifetime, TerrainRemovedReason, TerrainState, TerrainType,
+    TransitionEvents, Visibility, WeaponState, WorldSnapshot,
 };
 use mechcore_mcfr::{
-    CheckedSkill, ControlProgress, ExpRange, PoseClip, ProjectileReach, RvoNeighbour, RvoSolve,
-    RvoVo, SkillAttackableCheck, TargetCandidate, TargetRefs, TargetSearch, UnitPose,
+    CheckedSkill, ExpRange, PoseClip, ProjectileReach, RvoNeighbour, RvoSolve, RvoVo,
+    SkillAttackableCheck, TargetCandidate, TargetRefs, TargetSearch, UnitPose,
 };
 use mechcore_protocol::InstrumentChannel;
 use std::{
@@ -182,7 +182,6 @@ pub(crate) struct Instruments {
     skill_attackable_checker: bool,
     unit_pose: bool,
     pub(crate) projectile_reach: bool,
-    control_progress: bool,
     pub(crate) exp_range: bool,
     pub(crate) target: TargetChannels,
     pub(crate) rvo: RvoChannels,
@@ -195,7 +194,6 @@ impl Instruments {
             skill_attackable_checker: channels.contains(&InstrumentChannel::SkillAttackableChecker),
             unit_pose: channels.contains(&InstrumentChannel::UnitPose),
             projectile_reach: channels.contains(&InstrumentChannel::ProjectileReach),
-            control_progress: channels.contains(&InstrumentChannel::ControlProgress),
             exp_range: channels.contains(&InstrumentChannel::ExpRange),
             target: TargetChannels {
                 search: channels.contains(&InstrumentChannel::TargetSearch),
@@ -223,7 +221,6 @@ pub(crate) struct InstrumentRows {
     pub(crate) rvo_vo: Option<Vec<RvoVo>>,
     pub(crate) unit_pose: Option<Vec<UnitPose>>,
     pub(crate) projectile_reach: Option<Vec<ProjectileReach>>,
-    pub(crate) control_progress: Option<Vec<ControlProgress>>,
     pub(crate) exp_range: Option<Vec<ExpRange>>,
 }
 
@@ -303,6 +300,7 @@ pub(crate) struct Metadata {
     fight_team_constructions: usize,
     projectile_controllers: usize,
     projectile_in_energy_shields: usize,
+    projectile_move_range: usize,
     range_item_affected_units: usize,
     range_item_affected_unit_times: usize,
     range_item_effect_time_duration: usize,
@@ -336,8 +334,7 @@ pub(crate) struct Metadata {
     rvo_error: Option<String>,
     pub(crate) reach: Option<ReachMetadata>,
     reach_error: Option<String>,
-    control: Option<ControlMetadata>,
-    control_error: Option<String>,
+    control: ControlMetadata,
     exp_range: bool,
     exp_range_error: Option<String>,
 }
@@ -1398,6 +1395,10 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             .class("GRFight.dll", "GameRiver.Fight", "ProjectileController")
             .and_then(|class| api.field(class, "inEnergyShields"))
             .map_err(|error| error.to_string())?;
+        let projectile_move_range = api
+            .class("GRFight.dll", "GameRiver.Fight", "FightProjectile")
+            .and_then(|class| api.field(class, "moveRange"))
+            .map_err(|error| error.to_string())?;
         let range_item_affected_units = api
             .field(range_item_controller, "affectedUnits")
             .map_err(|error| error.to_string())?;
@@ -1646,10 +1647,7 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             Ok(reach) => (Some(reach), None),
             Err(error) => (None, Some(error)),
         };
-        let (control, control_error) = match control::initialize(api) {
-            Ok(control) => (Some(control), None),
-            Err(error) => (None, Some(error)),
-        };
+        let control = control::initialize(api)?;
         let (exp_range, exp_range_error) = match exp_range::initialize(api) {
             Ok(()) => (true, None),
             Err(error) => (false, Some(error)),
@@ -1668,6 +1666,7 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             fight_team_constructions: fight_team_constructions as usize,
             projectile_controllers: projectile_controllers as usize,
             projectile_in_energy_shields: projectile_in_energy_shields as usize,
+            projectile_move_range: projectile_move_range as usize,
             range_item_affected_units: range_item_affected_units as usize,
             range_item_affected_unit_times: range_item_affected_unit_times as usize,
             range_item_effect_time_duration: range_item_effect_time_duration as usize,
@@ -1702,7 +1701,6 @@ fn initialize_inner(runtime: &Runtime) -> Result<Metadata, String> {
             reach,
             reach_error,
             control,
-            control_error,
             exp_range,
             exp_range_error,
         })
@@ -1771,7 +1769,6 @@ pub(crate) fn start(
     validate_target_availability(instruments, &state.metadata)?;
     validate_checker_availability(instruments, &state.metadata)?;
     validate_reach_availability(instruments, &state.metadata)?;
-    validate_control_availability(instruments, &state.metadata)?;
     validate_exp_range_availability(instruments, &state.metadata)?;
     if instruments.rvo.any() && state.metadata.rvo.is_none() {
         return Err(format!(
@@ -1879,24 +1876,6 @@ fn validate_target_availability(
                 .selector_error
                 .as_deref()
                 .unwrap_or("native selector methods or hooks could not be resolved")
-        ))
-    } else {
-        Ok(())
-    }
-}
-
-fn validate_control_availability(
-    instruments: Instruments,
-    metadata: &Metadata,
-) -> Result<(), String> {
-    if instruments.control_progress && metadata.control.is_none() {
-        Err(format!(
-            "{} is unavailable: {}",
-            InstrumentChannel::ControlProgress.as_str(),
-            metadata
-                .control_error
-                .as_deref()
-                .unwrap_or("TeamTranslationSystem could not be resolved")
         ))
     } else {
         Ok(())
@@ -5946,6 +5925,13 @@ fn snapshot(
     capture.live_shield_pointers = current_shield_pointers;
     let terrains = read_terrains(runtime.api, range_item_system, capture, initial)
         .map_err(|error| format!("dynamic terrain snapshot failed: {error}"))?;
+    for (unit, control) in read_control(runtime, capture)? {
+        units
+            .iter_mut()
+            .find(|state| state.unit_id == unit.id)
+            .ok_or("a unit being turned is not live")?
+            .control = Some(control);
+    }
     for (unit_index, target_pointer) in raw_mech_lock_targets {
         units[unit_index].mech_lock_target =
             resolve_target_ref(runtime.api, target_pointer, "FightMech.lockTarget", capture)?;
@@ -6021,11 +6007,6 @@ fn snapshot(
             .instruments
             .projectile_reach
             .then(|| std::mem::take(&mut capture.projectile_reaches)),
-        control_progress: if capture.instruments.control_progress {
-            Some(read_control_progress(runtime, capture)?)
-        } else {
-            None
-        },
         exp_range: capture
             .instruments
             .exp_range
@@ -6696,6 +6677,7 @@ fn read_unit(
             personal_shield,
             move_speed: invoke_value::<FixedPoint>(api, unit, "GetMoveSpeed")?.raw,
             skills,
+            control: None,
         },
         target_refs,
         poses,
@@ -6785,6 +6767,7 @@ fn read_skills(api: Api, metadata: &Metadata, unit: *mut Object) -> Result<Skill
                     "GetAttackCount",
                     invoke_value::<i32>(api, skill, "GetAttackCount"),
                 )?,
+                perform_count: named(slot, "performCount", read_perform_count(api, skill, fields))?,
                 attack_range: named(
                     slot,
                     "GetAttackRange",
@@ -6801,6 +6784,22 @@ fn read_skills(api: Api, metadata: &Metadata, unit: *mut Object) -> Result<Skill
         });
     }
     Ok((objects, skills, targets))
+}
+
+/// `SkillAttackController.performCount` of a skill's attack controller.
+fn read_perform_count(
+    api: Api,
+    skill: *mut Object,
+    fields: SkillStateFields,
+) -> Result<i32, String> {
+    let controller = api
+        .field_value::<*mut Object>(skill, fields.attack_controller as *mut FieldInfo)
+        .map_err(|error| error.to_string())?;
+    if controller.is_null() {
+        return Err("the skill has no attack controller".into());
+    }
+    api.field_value::<i32>(controller, fields.perform_count as *mut FieldInfo)
+        .map_err(|error| error.to_string())
 }
 
 /// The recorded state of a skill from its state class and phase controller.
@@ -7453,15 +7452,12 @@ fn read_projectiles(
     Ok(projectiles)
 }
 
-/// The `control_progress` rows: `TeamTranslationSystem`'s units being turned.
-fn read_control_progress(
+/// `TeamTranslationSystem`'s units being turned, each with its entry.
+fn read_control(
     runtime: &Runtime,
     capture: &CaptureState,
-) -> Result<Vec<ControlProgress>, String> {
-    let metadata = capture
-        .metadata
-        .control
-        .ok_or("the control_progress channel was not resolved")?;
+) -> Result<Vec<(ObjectRef, ControlState)>, String> {
+    let metadata = capture.metadata.control;
     let modules = runtime
         .api
         .invoke(runtime.current_fight(), "GetModules", &mut [])
@@ -7557,6 +7553,12 @@ fn read_projectile(
         target: target_ref,
         cached_target_position,
         cached_target_radius,
+        move_range: api
+            .field_value::<i64>(
+                projectile,
+                capture.metadata.projectile_move_range as *mut FieldInfo,
+            )
+            .map_err(|error| format!("FightProjectile.moveRange: {error}"))?,
         life: GaugeI32 {
             current: life,
             maximum: max_life,
@@ -9214,6 +9216,7 @@ mod tests {
             },
             move_speed: 0,
             skills: Vec::new(),
+            control: None,
         }
     }
 

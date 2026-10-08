@@ -12,7 +12,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 187
-hash: {profile: mcfr-content-0.7.0, result: fd81a03fbc6171f51c683ba5ab3a1232f3585b6a1029f5ae34dbeaa4e35c2692}
+hash: {profile: mcfr-content-0.7.0, result: df38d973fca9681e023e08eac8c427162130dbbee83f973e9281a49a2a39c095}
 blue:
   units:
   - {name: wasp, index: 0, position: {x: 5, y: -40}, exp: 0/400/900}

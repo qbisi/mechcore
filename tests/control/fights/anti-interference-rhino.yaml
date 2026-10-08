@@ -2,8 +2,8 @@
 # `../../hacker/fights/m2-rhino-4242.yaml`. No beam turns a unit wearing it:
 # the beam deals its damage effect instead, three tenths of its damage rounded
 # down. Its three warmup hits of 1 deal nothing and write no damage, and each
-# later hit deals 179 of 600. Nothing is turned and no `control_progress` row
-# is written; the Rhino wins.
+# later hit deals 179 of 600. Nothing is turned, the Rhino's `control` stays
+# null, and the Rhino wins.
 
 kind: fight
 map_id: 1021
@@ -11,7 +11,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 203
-hash: {profile: mcfr-content-0.7.0, result: 8ff1b5a362664e712d4da560d38043e22c2ed1cd0d2d1ff4570f9d8ba8d57a0d}
+hash: {profile: mcfr-content-0.7.0, result: fb09e45426186f00d93e753dfa08c9b12db07a8f265a1d4b9e8b7dc60a1c48a7}
 blue:
   core_damage: 200
   units:

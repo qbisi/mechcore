@@ -8,7 +8,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 821
-hash: {profile: mcfr-content-0.7.0, result: 099be34425d5be2d585fad3dbe36f805c4386ec770b7507c68d4f5e03b6ab975}
+hash: {profile: mcfr-content-0.7.0, result: c54bfe0df314fbb8c0181992b343d371596acd71ef3f358eb3348a27e1e54d81}
 blue:
   officers: [improved_overlord]
   units:

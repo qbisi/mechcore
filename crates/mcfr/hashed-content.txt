@@ -17,6 +17,8 @@ BuildingState.life: GaugeI32
 BuildingState.position: QVec3
 BuildingState.targetable: boolean
 BuildingState.team_id: integer(uint32)
+ControlState.progress: integer(int32)
+ControlState.sources: [ObjectRef]
 DamageStatistics.damage: integer(int32)
 DamageStatistics.damage_real: integer(int32)
 DamageStatistics.damage_taken: integer(int32)
@@ -34,6 +36,7 @@ EnabledSkill.attack_target: ObjectRef | null
 EnabledSkill.attack_time: integer(int32)
 EnabledSkill.current_attack_interval: integer(int32)
 EnabledSkill.lock_target: ObjectRef | null
+EnabledSkill.perform_count: integer(int32)
 EnabledSkill.state: SkillMachineState
 EnabledSkill.weapons: [WeaponState]
 Event.payload: EventPayload
@@ -97,6 +100,7 @@ GaugeI32.maximum: integer(int32)
 LiveUnitState.active: boolean
 LiveUnitState.body_rotation: integer(int64)
 LiveUnitState.collision_radius: integer(int64)
+LiveUnitState.control: ControlState | null
 LiveUnitState.domain: Domain
 LiveUnitState.formation_id: integer(uint64)
 LiveUnitState.life: GaugeI32
@@ -153,6 +157,7 @@ PersonalShieldState.energy: GaugeI32
 ProjectileState.cached_target_position: QVec3
 ProjectileState.cached_target_radius: integer(int64)
 ProjectileState.life: GaugeI32
+ProjectileState.move_range: integer(int64)
 ProjectileState.owner: ObjectRef | null
 ProjectileState.position: QVec3
 ProjectileState.projectile_id: integer(uint64)

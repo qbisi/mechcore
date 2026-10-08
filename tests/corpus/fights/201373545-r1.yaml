@@ -14,7 +14,7 @@ seed: 953550766
 round: 1
 source: game
 ticks: 1385
-hash: {profile: mcfr-content-0.7.0, result: 6aeb922bc731a009c75ae205bd1db4ac3922593a04661ae37f078afe084fb976}
+hash: {profile: mcfr-content-0.7.0, result: 0da55d06de0d2d9763934bd530f2c5449a668744ded6ea4221870fcc419747ed}
 blue:
   core_damage: 284
   officers: [quick_supply_specialist]

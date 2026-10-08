@@ -12,7 +12,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 215
-hash: {profile: mcfr-content-0.7.0, result: 8a1fc5dc902283836a4a177ef2e4040574fb8093023d20f733325524efb058ed}
+hash: {profile: mcfr-content-0.7.0, result: 6a1918ad1104d216cdd3b1b57617dabf1cfe862959d3cfdf81931c22f3809847}
 blue:
   techs:
     wasp: [ground_specialization]
