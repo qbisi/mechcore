@@ -161,7 +161,10 @@ is one as a unit is:
   lands inside a shield reaches the units inside. A splash that lands on a
   unit no shield covers, beside a shield it reaches, strikes both.
 - A skill whose hits cross shields (`canCrossAdvancedShield`: a Crawler's, a
-  Rhino's) passes every shield, and a unit whose attack does not, aiming at a
+  Rhino's) passes every shield, reaching the units it covers, and its splash
+  still strikes every shield it reaches from outside, as any splash does: a
+  Rhino's Whirlwind beside an enemy Shield Airdrop strikes the shield and the
+  units in it alike. A unit whose attack does not, aiming at a
   covered unit or tower, fires at the shield: it stops once the point of the
   shield's surface on its way to its target is within its range, and its
   weapons name no target while it does, cooling included. It keeps the shield
@@ -367,6 +370,9 @@ kind ends its own way:
 - A splash spares what a shield covers unless it lands inside it:
   `DamagePerformer.ProcessAdvancedEnergyShieldEffect`,
   `DamagePerformer.PerformRangeEffect`.
+- A splash that crosses shields still lists every shield that does not hold
+  where it lands, and asks `CanCrossAdvancedEnergyShield` only to keep what
+  they cover in it: `DamagePerformer.ProcessAdvancedEnergyShieldEffect`.
 - A hit takes the energy it can, and one that empties a shield destroys it:
   `DamagePerformer.PerformHitAdvancedEndergyShieldEffect`,
   `FightEnergyShield.ReduceEnergy`, `AdvancedEnergyShieldSystem.Destroy`.
