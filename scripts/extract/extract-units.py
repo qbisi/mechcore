@@ -274,7 +274,10 @@ def extra_weapon_lines(mech, technology, kind, skill, row):
     the oil burns once a fire reaches it. A row's `buffID` is the buff its hit
     writes on what it struck, and an oil's on what stands in it. A row's
     `allWeaponReduceDamageRate` is its technology's number, which
-    `config/technology_effects.yaml` carries. A skill that sets
+    `config/technology_effects.yaml` carries. A row whose hit leaves a fog
+    states the rate on attack range it writes on what stands in it
+    (`ExtraWeaponTech` answers `IFogProvider.GetAttackRangeChangeRate` with
+    its `fogAttackRangeChangeRate`). A skill that sets
     `ignoreEquipmentEffect` takes no equipment's correction
     (`SkillDataModifier.AvaliableCheck`). A row whose `energyShieldDamage` is
     not negative deals that to a shield its hit strikes in place of the hit's
@@ -286,14 +289,15 @@ def extra_weapon_lines(mech, technology, kind, skill, row):
         return explosion_lines(mech, technology, skill, row)
     if kind == "supportSkillDatas":
         return support_lines(mech, technology, skill, row)
-    # `rangeItemType` -1 leaves nothing, 0 a fire, 1 an oil;
+    # `rangeItemType` -1 leaves nothing, 0 a fire, 1 an oil, 2 a fog;
     # `energyShieldDamage` below zero leaves a shield's damage as it is.
     item = row.get("rangeItemType", -1)
-    fire, oil = item == 0, item == 1
+    fire, oil, fog = item == 0, item == 1, item == 2
     buff = buff_row(row["buffID"]) if row.get("buffID") else None
-    if (item not in (-1, 0, 1) or (row.get("buffID") and buff is None) or (oil and buff is None)
+    if (item not in (-1, 0, 1, 2) or (row.get("buffID") and buff is None) or (oil and buff is None)
             or (not fire and not oil and any(raw(value) for value in row.get("fireLifeTime") or []))
-            or raw(row.get("fogAttackRangeChangeRate"))):
+            or (not fog and raw(row.get("fogAttackRangeChangeRate")))
+            or (fog and (row.get("buffID") or not raw(row.get("fogAttackRangeChangeRate"))))):
         return []
     # A skill with no damage rate deals its own damage, one entry a level, or
     # none when its row lists none; an around skill, a laser, a projectile or
@@ -341,6 +345,8 @@ def extra_weapon_lines(mech, technology, kind, skill, row):
         lines.append(f"    fire: {{life_time: [{life}]}}")
     if oil:
         lines.append(f"    oil: {{fire_life_time: [{life}]}}")
+    if fog:
+        lines.append(f"    fog: {{attack_range_rate: {readable(row['fogAttackRangeChangeRate'])}}}")
     if buff:
         lines += ["    buff:"] + buff_lines(buff, "      ")
     return lines + ["    attack:"] + attack

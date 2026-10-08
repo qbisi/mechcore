@@ -1,0 +1,29 @@
+# Smoke Bomb against two Marksmen and a Rhino.
+#
+# The Mountain's Smoke Bomb fires eight shells at once, and each leaves a
+# fog where it lands (`ExtraSkillProvider.PerformHitEffect`), eight between
+# t228 and t252. A fog is the technology's own (`ExtraWeaponTech`'s
+# `IRangeItemProvider` and `IFogProvider`): 18 metres wide, its skill's
+# splash, it writes the row's `fogAttackRangeChangeRate`, -0.35, on the
+# ranged skills of a unit standing in it, and it stands one round. The
+# Marksman at (40, -100) enters one at t229, its range 140 metres to 91,
+# and leaves it at t269; every fog goes, `round_expired`, as the fight ends.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 377
+hash: {profile: mcfr-content-0.7.0, result: 6f926bdc71a0a8894912b45dfda7f6500a9b352821655cec332e5f2db6d1d93a}
+blue:
+  techs:
+    mountain: [smoke_bomb]
+  units:
+  - {name: mountain, index: 0, position: {x: 5, y: -205}, exp: 0/800/3200}
+red:
+  core_damage: 500
+  units:
+  - {name: marksman, index: 0, position: {x: -40, y: -100}}
+  - {name: marksman, index: 1, position: {x: 40, y: -100}}
+  - {name: rhino, index: 2, position: {x: 5, y: -155}}

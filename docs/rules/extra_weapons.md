@@ -13,7 +13,7 @@ Spider Mine, the Tarantula's, Matrix Bombardment, the Wraith's, and
 Anti-Air Barrage, the Fortress's, Air Defense Mark, the Typhoon's,
 Disintegration, the Abyss's, Naval Gun, the Overlord's, Gun-launched
 Missile, the Mountain's, Electromagnetic Barrage, the Melting Point's,
-Dual Wield, the Centurion's, and Fork, the Raiden's, and refuses every other member by name: the members' skills differ
+Dual Wield, the Centurion's, Fork, the Raiden's, and Smoke Bomb, the Mountain's, and refuses every other member by name: the members' skills differ
 in kind, a projectile, an explosion, a laser, a summon, a sweep around the
 unit, and many leave a terrain or write a buff, so each joins once a recording
 of it agrees.
@@ -296,6 +296,21 @@ speed. Its bomb deals nothing, so a Rhino it lands beside is struck, slowed,
 and slowed again by the oil every 19 ticks while it stands in it. Each time
 the buff is written again it keeps the unit that first wrote it as its
 source, so the oil's renewals name the Phantom Ray whose bomb struck first.
+
+## A fog where it lands
+
+A row whose `rangeItemType` is a fog leaves one where each of its shots
+lands, as an oil's row leaves an oil: `ExtraSkillProvider.PerformHitEffect`
+adds the range item with the technology as its provider, at the point the
+hit struck, its height kept, under the unit's side. `ExtraWeaponTech` answers
+`IRangeItemProvider` for it as for an oil, as wide as its skill splashes, for
+no set time, and one round, and `IFogProvider.GetAttackRangeChangeRate` with
+its row's `fogAttackRangeChangeRate`. The fog then does what a battle skill's
+does ([terrain.md](terrain.md)): it rates the range of every ranged skill of a
+ground unit standing in it, of either side, and goes as the fight ends.
+
+Smoke Bomb's eight shells leave eight fogs of 18 metres, each taking 35% off
+the range of what stands in it: a Marksman's 140 metres become 91.
 
 ## A wave from its unit
 
@@ -736,6 +751,11 @@ not melee, so the simulator refuses it.
 - A Phantom Ray's Sticky Oil Bomb fires past a Rapid-Fire Turret standing in
   its line of fire, at the unit behind it:
   `tests/corpus/fights/268447927-r2.yaml`.
+- Smoke Bomb's eight shells leave eight fogs of 18 metres, a Marksman
+  standing in one ranges 91 metres for its 140 and 140 again once it leaves,
+  and every fog goes as the fight ends; with fogs half as wide the events
+  part on the tick the first lands:
+  `tests/extra_weapon/fights/smoke-bomb-marksmen.yaml`.
 - Spider Mine's support skill starts at t1 at a Rhino 201 metres off. It
   locks the main skill until t33, prepares to t31 and returns to idle at t33.
   Its line makes two mines at t1, which appear at t41 and explode at t109 for
@@ -890,6 +910,9 @@ not melee, so the simulator refuses it.
   `ExtraWeaponTechnologyData.GetFireLifeTime`, `MechDataModifer.AddData`,
   `GroundFireController.GetFireMech`, `RangeItemSystem.AddItem`,
   `RangeItemSystem.DoAddItem`, `RangeItemSystem.GetRepeatItem`.
+- Its fog: `ExtraWeaponTech`'s `IFogProvider.GetAttackRangeChangeRate`,
+  which reads its row's `fogAttackRangeChangeRate`, and its
+  `IRangeItemProvider` as for an oil.
 - Its buff and oil: `ExtraSkillProvider.PerformHitEffect` writes
   `IBuffDataSource.GetBuffData` through `BuffSystem.AddBuff` from the skill's
   owner, then adds the range item of `IExtraSkill.GetRangeItemType` with the

@@ -1278,6 +1278,7 @@ fn joins_as_main_slots(weapon: &ExtraWeaponConfig, rules: &UnitConfig) -> bool {
         && weapon.damage_by_level.is_empty()
         && weapon.fire.is_none()
         && weapon.oil.is_none()
+        && weapon.fog.is_none()
         && weapon.buff.is_none()
         && weapon.production.is_none()
         && weapon.preemptive.is_none()
@@ -1293,8 +1294,11 @@ fn extra_weapon_fire(weapon: &ExtraWeaponConfig, loadouts: &Loadouts) -> Result<
     loadouts.skill_effects.unit_fire(range, life)
 }
 
-/// The terrain an extra weapon's hit leaves: the unit's fire, or the
-/// technology's oil, which writes the row's buff.
+/// The terrain an extra weapon's hit leaves: the unit's fire, the
+/// technology's oil, which writes the row's buff, or the technology's fog,
+/// which rates the attack range of what stands in it, as wide as the skill
+/// splashes and standing one round (`ExtraWeaponTech`'s `IRangeItemProvider`
+/// and `IFogProvider`).
 fn extra_weapon_terrain(
     weapon: &ExtraWeaponConfig,
     named: &str,
@@ -1302,9 +1306,18 @@ fn extra_weapon_terrain(
     loadouts: &Loadouts,
 ) -> Result<Option<TerrainSpec>> {
     match (&weapon.fire, &weapon.oil, buff) {
-        (None, None, _) => Ok(None),
-        (Some(_), None, _) => extra_weapon_fire(weapon, loadouts).map(Some),
-        (None, Some(_), Some(buff)) => {
+        (None, None, _) => Ok(weapon.fog.as_ref().map(|fog| TerrainSpec {
+            kind: TerrainKind::Fog,
+            radius_q32: crate::rules::metres_q32(weapon.attack.splash_radius),
+            life_ticks: None,
+            rounds: 1,
+            effect: TerrainEffect::Fog {
+                attack_range_rate: fog.attack_range_rate_q32(),
+            },
+            burns: None,
+        })),
+        (Some(_), None, _) if weapon.fog.is_none() => extra_weapon_fire(weapon, loadouts).map(Some),
+        (None, Some(_), Some(buff)) if weapon.fog.is_none() => {
             let [range, life] = ground_fire(weapon);
             loadouts
                 .skill_effects
@@ -1312,7 +1325,7 @@ fn extra_weapon_terrain(
                 .map(Some)
         }
         _ => Err(Error::new(
-            "a hit that leaves an oil with no buff, or a fire and an oil, is not read",
+            "a hit that leaves an oil with no buff, or two terrains, is not read",
         )),
     }
 }
