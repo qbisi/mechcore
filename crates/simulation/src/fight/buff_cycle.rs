@@ -335,7 +335,8 @@ fn buff_row(buff: &BuffSource) -> Result<BuffRow> {
         disables_technology: buff.disables_technology,
         debuff: buff.debuff,
         invincible: buff.invincible,
-        life_change_rate: 0,
+        disables_recover: buff.disables_recover,
+        life_change_rate: buff.life_change_rate,
         current_life_rate: 0,
     })
 }

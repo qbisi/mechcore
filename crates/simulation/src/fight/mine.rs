@@ -239,6 +239,7 @@ impl Simulation {
             disables_technology: false,
             debuff: shot.buff.debuff,
             invincible: false,
+            disables_recover: false,
             life_change_rate: 0,
             current_life_rate: 0,
         };

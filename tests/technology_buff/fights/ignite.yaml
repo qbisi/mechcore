@@ -1,0 +1,26 @@
+# Ignite: a Vulcan's hits burn a Rhino and stop its repair.
+#
+# The Vulcan's first hit lands at t86 and adds Ignite (buff 3000), which takes
+# 3% of the Rhino's maximum life (578 of 19297) every half second for two
+# seconds. Every later hit starts it over. While it burns, Field Maintenance
+# repairs nothing, and the Rhino dies at t286. The same layout without Ignite
+# repairs the Rhino from t106, and the Rhino wins at t342.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 286
+hash: {profile: mcfr-content-0.7.0, result: 89d4c2f31cc2ebe9ba8093911d31ad1c7ab0c8bdf455077b82ff5a61b4c8d11c}
+blue:
+  techs:
+    vulcan: [ignite]
+  units:
+  - {name: vulcan, index: 0, position: {x: 0, y: -100}, exp: 0/400/2200}
+red:
+  core_damage: 350
+  techs:
+    rhino: [field_maintenance]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}

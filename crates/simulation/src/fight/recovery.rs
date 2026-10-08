@@ -85,8 +85,7 @@ impl Simulation {
     /// `FightMech.RecoveryLife` and `FightMech.StealLife`: `FightActor.
     /// AddLife`, capped at the unit's maximum, recorded as a `healing` event
     /// on the unit for the life it gained. Both give nothing while a buff
-    /// disables recovery, and only the Ignite buffs do, which no simulated
-    /// mechanism runs.
+    /// disables recovery (`BuffManager.IsRecoverDisabled`).
     pub(in crate::fight) fn add_life(
         &mut self,
         id: u64,
@@ -94,6 +93,9 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let actor = self.actors.get_mut(&id).expect("actor identity is stable");
+        if actor.recover_disabled() {
+            return Ok(());
+        }
         let before = actor.life;
         actor.life = (actor.life + value).min(actor.stats.max_life());
         if actor.life > before {
