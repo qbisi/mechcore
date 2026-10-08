@@ -1,0 +1,60 @@
+# Replay 2328_20261007--67252629, round 4, map 1001. Blue's travelling Crawlers
+# land and their agents join `Simulator.agents` behind every unit of red's,
+# though their IDs are lower, which orders the RVO quadtree's inserts.
+
+kind: fight
+map_id: 1001
+seed: 896303705
+round: 4
+source: game
+ticks: 752
+hash: {profile: mcfr-content-0.7.0, result: f34cf1bd40b1d948be385fb778b6705d79cfcd7dd4d22d8c4428cbab6223f8e9}
+blue:
+  core_damage: 1110
+  officers: [mass_produced_laser_sight, aerial_specialist]
+  techs:
+    void_eye: [suppression_shots]
+  blueprints: [attack_enhancement, defense_enhancement]
+  tower_strengthen_levels: [1, 0]
+  legacy_index: 12
+  units:
+  - {name: void_eye, index: 0, position: {x: 50, y: -90}, level: 2, exp: 395/483/1465}
+  - {name: void_eye, index: 1, position: {x: 150, y: -70}, level: 2, exp: 0/761/1465, equipment: [secondary_laser_sight]}
+  - {name: void_eye, index: 2, position: {x: 240, y: -80}, level: 2, exp: 251/370/1465}
+  - {name: fire_badger, index: 3, position: {x: 105, y: -70}, exp: 875/1007/1400}
+  - {name: fire_badger, index: 4, position: {x: 195, y: -70}, exp: 895/1105/1400}
+  - {name: crawler, index: 5, position: {x: 50, y: -125}, exp: 450/450/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: 240, y: -115}, exp: 450/450/450, rotated: true}
+  - {name: phoenix, index: 7, position: {x: 110, y: -150}, level: 2, equipment: [secondary_laser_sight]}
+  - {name: crawler, index: 8, position: {x: -275, y: -20}, exp: 166/182/450}
+  - {name: wasp, index: 9, position: {x: -275, y: -40}, level: 2, exp: 0/165/2028, equipment: [secondary_laser_sight]}
+  - {name: crawler, index: 10, position: {x: 335, y: 210}, exp: 49/49/450, rotated: true}
+  - {name: crawler, index: 11, position: {x: 250, y: -285}, exp: 183/211/450, rotated: true}
+  - {name: fire_badger, index: 12, position: {x: 5, y: -70}, exp: 0/79/1400}
+  - {name: crawler, index: 13, position: {x: 310, y: 35}, travelling: true}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: -269, y: -35}, {x: -74, y: -81}, {x: 122, y: -42}]}
+red:
+  officers: [fortified_specialist]
+  techs:
+    hound: [range_enhancement]
+  legacy_index: 13
+  units:
+  - {name: crawler, index: 0, position: {x: -90, y: -225}, exp: 98/240/450, rotated: true}
+  - {name: crawler, index: 1, position: {x: -5, y: -300}, exp: 149/341/450}
+  - {name: crawler, index: 2, position: {x: 80, y: -225}, exp: 118/288/450, rotated: true}
+  - {name: hound, index: 5, position: {x: -120, y: -190}, exp: 515/750/750}
+  - {name: hound, index: 6, position: {x: 120, y: -190}, exp: 216/573/750}
+  - {name: centurion, index: 8, position: {x: -115, y: -165}, exp: 873/1277/2250}
+  - {name: hound, index: 9, position: {x: -210, y: -190}, exp: 79/750/750}
+  - {name: centurion, index: 10, position: {x: -205, y: -165}, exp: 238/1792/2250}
+  - {name: centurion, index: 11, position: {x: 115, y: -165}, exp: 377/528/2250}
+  - {name: hound, index: 12, position: {x: 210, y: -190}, exp: 163/284/750}
+  - {name: hound, index: 13, position: {x: -280, y: -190}, exp: 0/750/750}
+  - {name: hound, index: 14, position: {x: 0, y: -190}, exp: 0/661/750}
+  - {name: centurion, index: 15, position: {x: 5, y: -165}, exp: 0/964/2250}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}
+  battle_skills:
+  - {name: orbital_bombardment, positions: [{x: -125, y: 52}]}

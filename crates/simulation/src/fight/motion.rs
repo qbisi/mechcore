@@ -37,6 +37,12 @@ pub(in crate::fight) struct RvoState {
     /// the map lists them, which is the order they enter the RVO tree after
     /// the towers.
     pub(in crate::fight) map_crystals: Vec<MapCrystal>,
+    /// The units whose agents joined after the fight started, in the order
+    /// `Simulator.DoAddAgents` appended them: a summon as it is made, a
+    /// travelling unit as it lands. `List.Remove` keeps the rest in order,
+    /// so they stay behind the agents the fight started with, whatever their
+    /// IDs.
+    pub(in crate::fight) added_units: Vec<u64>,
 }
 
 impl RvoState {
@@ -52,6 +58,7 @@ impl RvoState {
             construction_colliders,
             passable_constructions,
             map_crystals,
+            added_units: Vec::new(),
         }
     }
 }
@@ -451,15 +458,25 @@ impl Simulation {
         // A summon still appearing has its agent already, where it was made,
         // locked: `CreateMechDelay` locks its movement. Crawlers still
         // surfacing turn the Crawlers already up aside.
+        // The units the fight started with by ID, then those added since in
+        // the order they were added.
+        let added = &self.rvo.added_units;
         let units = self
             .actors
             .iter()
-            .filter(|(_, actor)| actor.alive() && !actor.travelling)
+            .filter(|(actor_id, _)| !added.contains(actor_id))
             .map(|(&actor_id, actor)| (actor_id, actor, false))
-            .chain(
-                self.appearing_actors()
-                    .map(|actor| (actor.placement.unit_id, actor, true)),
-            );
+            .chain(added.iter().filter_map(|actor_id| {
+                self.actors
+                    .get(actor_id)
+                    .map(|actor| (*actor_id, actor, false))
+                    .or_else(|| {
+                        self.appearing_actors()
+                            .find(|actor| actor.placement.unit_id == *actor_id)
+                            .map(|actor| (*actor_id, actor, true))
+                    })
+            }))
+            .filter(|(_, actor, appearing)| *appearing || (actor.alive() && !actor.travelling));
         for (actor_id, actor, appearing) in units {
             let mut profile = rvo_profile(&actor.rules);
             // A move ability's `Lock` takes the agent to its own collider

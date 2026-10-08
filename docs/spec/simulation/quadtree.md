@@ -104,9 +104,16 @@ A value equal to the centre, or differing by only 43 raw, falls to the low side.
 
 ## Insertion and splitting
 
-Agents insert strictly in input array order. The kernel adds the live towers,
-then the map's crystals in the order `config/maps.yaml` lists them, then the
-live constructions, then the live units from a `BTreeMap` ordered by Unit ID.
+Agents insert strictly in input array order, which is `Simulator.agents`'
+order. The kernel adds each side's live towers and then its live
+constructions, then the map's crystals in the order `config/maps.yaml` lists
+them, then the live units the fight started with by Unit ID, and last the units
+whose agents joined since, in the order they joined (`RvoState.added_units`):
+`DoAddAgents` appends a summon's agent as the summon is made and a travelling
+unit's as it lands, and `List.Remove` keeps the order of the rest. A unit
+landing from travel joins behind every unit of the other side, though its ID
+is lower; replay 201475290's round 3 splits its tree in another order
+otherwise.
 
 At a leaf:
 

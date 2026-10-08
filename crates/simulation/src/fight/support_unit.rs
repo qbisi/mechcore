@@ -470,6 +470,7 @@ impl Simulation {
                 position,
             },
         ));
+        self.rvo.added_units.push(unit_id);
         self.support.appearing.push(Appearing {
             actor,
             joins_on: tick + creator.appear_ticks,
@@ -797,6 +798,7 @@ impl Simulation {
         let mut actor = Actor::at_generated_position(placement, made.rules.clone(), x_q32, z_q32);
         actor.summoned = true;
         actor.parasitic = true;
+        self.rvo.added_units.push(unit_id);
         // Its agent is made with it, so the first tree built after reads its
         // position as zero, as any new agent's, and it reaches its first
         // solve with no speed until `Move`, on the update before a solve,

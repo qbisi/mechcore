@@ -1,0 +1,60 @@
+# Replay 2328_20261007--201475290, round 3, map 1031. Blue's travelling units
+# land on tick 162, and their agents join `Simulator.agents` behind every unit
+# of red's, though their IDs are lower: the RVO quadtree splits its nodes in
+# that order. On tick 637 building 8 falls and buff 2 slows the units about
+# it to a fifth; with the slower query speed, which leaf a Fang's query
+# narrows on decides its neighbours, and on tick 640 Fang 244 holds twenty.
+
+kind: fight
+map_id: 1031
+seed: 967292045
+round: 3
+source: game
+ticks: 1653
+hash: {profile: mcfr-content-0.7.0, result: 5435ff3779f50c362d0ed1d4edf9d2590d1fba7034b6b5b7bec4765dd152201f}
+blue:
+  officers: [secondary_equipment_expert]
+  techs:
+    fang: [range_enhancement]
+  blueprints: [defense_enhancement]
+  legacy_index: 11
+  units:
+  - {name: fang, index: 0, position: {x: -245, y: -80}, exp: 0/600/600, equipment: [secondary_fire_control_system]}
+  - {name: fang, index: 1, position: {x: -155, y: -80}, exp: 13/168/600}
+  - {name: fang, index: 2, position: {x: -140, y: -205}, exp: 12/129/600, rotated: true}
+  - {name: fire_badger, index: 4, position: {x: -110, y: -85}, exp: 147/255/1400, rotated: true, equipment: [small_amplifying_core]}
+  - {name: fang, index: 5, position: {x: -65, y: -80}, exp: 148/362/600}
+  - {name: fang, index: 6, position: {x: 140, y: -205}, exp: 80/80/600, rotated: true}
+  - {name: wasp, index: 7, position: {x: 330, y: 285}, exp: 354/900/900, equipment: [deployment_module], travelling: true}
+  - {name: fang, index: 8, position: {x: -350, y: 35}, exp: 80/258/600}
+  - {name: fang, index: 9, position: {x: -275, y: -20}, exp: 0/498/600}
+  - {name: fang, index: 10, position: {x: -350, y: 285}, exp: 194/194/600}
+  - {name: sabertooth, index: 11, position: {x: -235, y: -25}, exp: 0/769/1300, equipment: [small_amplifying_core]}
+  - {name: fang, index: 12, position: {x: -310, y: 35}, exp: 0/209/600, travelling: true}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+red:
+  core_damage: 530
+  officers: [missile_specialist]
+  tower_strengthen_levels: [1, 1]
+  legacy_index: 11
+  units:
+  - {name: fang, index: 0, position: {x: 0, y: -205}, exp: 97/122/600, rotated: true}
+  - {name: fang, index: 1, position: {x: 0, y: -115}, exp: 176/201/600, rotated: true}
+  - {name: fang, index: 2, position: {x: 145, y: -190}, exp: 377/402/600}
+  - {name: sledgehammer, index: 3, position: {x: -55, y: -130}, exp: 690/1230/1300}
+  - {name: sledgehammer, index: 4, position: {x: 55, y: -130}, exp: 814/1300/1300}
+  - {name: arclight, index: 5, position: {x: 180, y: -170}, exp: 730/750/750}
+  - {name: arclight, index: 6, position: {x: 40, y: -170}, exp: 594/750/750}
+  - {name: vortex, index: 7, position: {x: 110, y: -130}, exp: 539/721/750}
+  - {name: vortex, index: 8, position: {x: 140, y: -150}, exp: 163/188/750}
+  - {name: sledgehammer, index: 9, position: {x: 210, y: -115}, exp: 951/1096/1300, rotated: true}
+  - {name: crawler, index: 10, position: {x: 140, y: -225}, exp: 42/115/450, rotated: true}
+  - {name: arclight, index: 11, position: {x: -350, y: 170}, exp: 0/441/750, travelling: true}
+  - {name: crawler, index: 12, position: {x: 110, y: -165}, exp: 0/47/450, rotated: true}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: missile, index: 1, position: {x: 181, y: -95}, retained: false}
+  battle_skills:
+  - {name: heavy_missile_strike, positions: [{x: 315, y: -267}]}

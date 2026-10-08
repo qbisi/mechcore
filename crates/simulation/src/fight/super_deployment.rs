@@ -191,6 +191,7 @@ impl Simulation {
             actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
             actor.motion.rvo_tree_x_q32 = actor.x_q32;
             actor.motion.rvo_tree_z_q32 = actor.z_q32;
+            self.rvo.added_units.push(unit_id);
         }
     }
 }
