@@ -368,10 +368,13 @@ pub(in crate::fight) fn execute(
         let state = simulation.recorded(tick, &mut numbering, &mut events.events);
         costs.snapshot += snapshot_started.elapsed();
         costs.stepped(tick, stepped, state.live_units.len());
+        // The writer takes the state; only a run held to a recording keeps a
+        // copy, to show the tick it parts from it at.
+        let compared = recording.map(|_| state.clone());
         let record_started = Instant::now();
-        let tick_hashes = writer.append_tick(state.clone(), &events)?;
+        let tick_hashes = writer.append_tick(state, &events)?;
         costs.record += record_started.elapsed();
-        if let Some(recording) = recording {
+        if let (Some(recording), Some(state)) = (recording, compared) {
             let expected_hash = if tick <= recording.tick_count() {
                 Some(recording.tick_hash(tick)?)
             } else {
