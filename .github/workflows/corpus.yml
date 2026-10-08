@@ -56,7 +56,9 @@ jobs:
       - name: Convert this version's replays into match documents
         run: python3 scripts/corpus/export-replay-corpus.py
 
-      # What the simulator accepts, and what it names as missing for the rest.
+      # What the simulator accepts, and what it names as missing for the rest;
+      # and which of the unit technologies the game has it fights, which reads
+      # no replay.
       - name: Rounds the simulator fights
         run: |
           mkdir -p distance

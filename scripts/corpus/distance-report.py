@@ -4,8 +4,9 @@
 Reads the reports `fight-coverage.py` and `verify-matches.py` print, saved as
 `fight-coverage.txt` and `verify-matches.txt` in one directory, and writes a
 table of the numbers `plan/README.md` steers by: the rounds the simulator
-accepts, the rounds fought as the match says, where the matches stop, and the
-refusals that hold the most rounds. With `--before`, a directory holding the
+accepts, the rounds fought as the match says, where the matches stop, the
+refusals that hold the most rounds, and the unit technologies the game has
+that the simulator fights, the rest by kind. With `--before`, a directory holding the
 same two reports of an earlier commit, each number carries its change.
 
     python3 scripts/corpus/distance-report.py <after> [--before <dir>] [--title TEXT]
@@ -30,6 +31,12 @@ EVERY = re.compile(
     r"^(\d+) of (\d+) rounds the simulator fights come out as the match says; (\d+) differ$", re.M
 )
 DIFFERING = "rounds the simulator fights whose result differs from the match"
+TECHNOLOGIES = re.compile(
+    r"^(\d+) unit technologies the game lets a unit research, (\d+) of them the simulator accepts$",
+    re.M,
+)
+TECHNOLOGY_KIND = re.compile(r"^\s+(\d+)  (\w+)$", re.M)
+REFUSED_HEADING = "unit technologies the simulator refuses, by kind and cause"
 SHOWN = 12
 
 
@@ -42,6 +49,10 @@ def read(directory: pathlib.Path) -> dict:
     if not (accepted and fought and verified):
         sys.exit(f"{directory} does not hold both reports whole")
     every = EVERY.search(matches)
+    technologies = TECHNOLOGIES.search(coverage)
+    kinds = (
+        coverage[coverage.index(REFUSED_HEADING):] if REFUSED_HEADING in coverage else ""
+    )
     summary_line = matches[fought.start():].splitlines()[0]
     stopped = {kind: int(count) for count, kind in STOPPED.findall(summary_line)}
     return {
@@ -60,6 +71,12 @@ def read(directory: pathlib.Path) -> dict:
         "equal": int(every.group(1)) if every else None,
         "differ": int(every.group(3)) if every else None,
         "differing": differing(matches),
+        # A report from before the technologies were counted has neither.
+        "technologies": int(technologies.group(1)) if technologies else None,
+        "technologies_accepted": int(technologies.group(2)) if technologies else None,
+        "technology_kinds": {
+            kind: int(count) for count, kind in TECHNOLOGY_KIND.findall(kinds)
+        },
         "coverage": coverage,
         "verify": matches,
     }
@@ -108,8 +125,15 @@ def report(after: dict, before: dict | None, title: str) -> str:
         ("matches stopped where a round differs", "differs", ""),
         ("matches stopped at a round it refuses", "unsupported", ""),
         ("matches that verify", "verified", f" of {after['matches']}"),
+        (
+            "unit technologies the simulator accepts",
+            "technologies_accepted",
+            f" of {after['technologies']}",
+        ),
     ]
     for label, key, suffix in rows:
+        if after[key] is None:
+            continue
         cells = [f"{change(after[key], was(key))}{suffix}"]
         if before:
             cells.insert(0, "" if before[key] is None else f"{before[key]}")
@@ -133,6 +157,7 @@ def report(after: dict, before: dict | None, title: str) -> str:
             f"| {shown} | {change(rounds, held_before.get(name) if before else None)} "
             f"| {change(alone, alone_before.get(name) if before else None)} |"
         )
+    lines += technology_table(after, before)
     for heading, key in (("fight-coverage.py", "coverage"), ("verify-matches.py", "verify")):
         lines += [
             "",
@@ -144,6 +169,32 @@ def report(after: dict, before: dict | None, title: str) -> str:
             "</details>",
         ]
     return "\n".join(lines) + "\n"
+
+
+def technology_table(after: dict, before: dict | None) -> list[str]:
+    """The unit technologies the simulator refuses, by the list of
+    `TechnologyGroupData` each comes from: one kind of technology, which one
+    mechanism clears. Each one is named in `fight-coverage.py`'s report."""
+    kinds = after["technology_kinds"]
+    if after["technologies"] is None:
+        return []
+    was = before["technology_kinds"] if before and before["technologies"] is not None else None
+    lines = [
+        "",
+        "The unit technologies the game has and the simulator refuses, by kind; "
+        "each is named, with its cause, in `fight-coverage.py`'s report below:",
+        "",
+    ]
+    if not kinds and not was:
+        return [*lines, "None."]
+    lines += ["| kind | refused |", "| --- | ---: |"]
+    for kind, count in kinds.items():
+        lines.append(f"| {kind} | {change(count, was.get(kind, 0) if was is not None else None)} |")
+    if was is not None:
+        gone = sorted(set(was) - set(kinds))
+        if gone:
+            lines += ["", "No longer refused: " + ", ".join(gone)]
+    return lines
 
 
 def differing_table(

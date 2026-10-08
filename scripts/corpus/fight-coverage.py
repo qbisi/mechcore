@@ -25,6 +25,12 @@ the build list it comes from, since one mechanism clears the whole list, and a
 registry clause to its module. *By layout field* says which field of the
 layout each refusal is about. Each is printed as the rounds a group touches
 and alone holds, and the order that opens the most rounds as groups land.
+
+*What the game has* is the third number, and it reads no replay: every
+technology `config/unit_techs.yaml` lets a unit research, fought on one unit
+of its type against a Rhino. It counts the ones the simulator accepts, and
+classifies the rest by the `TechnologyGroupData` list each comes from, one
+kind of technology, and within a kind by the cause its refusal names.
 """
 
 import argparse
@@ -139,6 +145,131 @@ def named(what: str, owner: str) -> str:
     return f"{what} ({owner})" if what != owner else what.split(", and ")[0]
 
 
+# The tables a unit technology is read from. They are read line by line: the
+# scripts here use no YAML library, and these lines are the extractors' own.
+UNIT_TYPE = re.compile(r"^  - type: (\w+)$")
+RESEARCHED = re.compile(r"^      - \{id: (\d+),")
+NAME_UNIT = re.compile(r"^  (\w+):$")
+NAME = re.compile(r"^    (\d+): (\w+)$")
+ROW = re.compile(r"^  - id: (\d+)\n    name: (.+)\n    unit: \w+\n    kind: (\w+)$", re.M)
+
+# Where a probe's unit may stand: a footprint's centre sits on one of these
+# parities of the 10-metre grid.
+SPOTS = ((0, -150), (5, -155), (0, -155), (5, -150))
+
+# A refusal's cause, short enough to group by, each the pattern a refusal
+# clause names it with and its label; any other is its first words.
+CAUSES = (
+    (r"comes from TechnologyGroupData's \w+ list", "system not implemented"),
+    (r"grows (?:\w+ )?with the unit's (?:rank|level)", "grows with level"),
+    (r"adds its buff with probability", "buff probability"),
+    (r"adds its buff on BuffTechListener (\S+)", "buff listener {0}"),
+    (r"adds buff \d+ \([^)]*\), which sets ([\w, ]+), and", "buff row sets {0}"),
+    (r"^sets ([\w, ]+), which no mechanism", "sets {0}"),
+    (r"^writes (\w+), and no mechanism", "writes {0}"),
+    (r"runs a production line with (.+?), which is not read", "production line with {0}"),
+    (r"repairs only in autoRecoveryStateType", "repair state type"),
+    (r"disables the technologies of the units its second damage", "second damage writes a buff"),
+)
+
+
+def researched() -> list[tuple[str, int]]:
+    """Every technology a unit may research, as (unit type, id), in table order."""
+    pairs = []
+    unit = None
+    for line in (REPOSITORY / "config/unit_techs.yaml").read_text().splitlines():
+        if found := UNIT_TYPE.match(line):
+            unit = found.group(1)
+        elif (found := RESEARCHED.match(line)) and unit:
+            pairs.append((unit, int(found.group(1))))
+    return pairs
+
+
+def technology_names() -> dict[tuple[str, int], str]:
+    """The name a layout gives each unit's technology."""
+    names = {}
+    unit = None
+    text = (REPOSITORY / "config/names.yaml").read_text()
+    for line in text[text.index("\ntechnologies:\n"):].splitlines()[2:]:
+        if line and not line.startswith(" "):
+            break
+        if found := NAME_UNIT.match(line):
+            unit = found.group(1)
+        elif (found := NAME.match(line)) and unit:
+            names[(unit, int(found.group(1)))] = found.group(2)
+    return names
+
+
+def cause_of(reason: str) -> str:
+    """The cause a technology's refusal names."""
+    clause = re.sub(r"^.*?technology \d+ \([^)]*\) ", "", WHERE.sub("", reason))
+    for pattern, label in CAUSES:
+        if found := re.search(pattern, clause):
+            return label.format(*found.groups())
+    return clause[:80]
+
+
+def probe(binary: pathlib.Path, room: pathlib.Path, unit: str, name: str) -> str | None:
+    """The refusal of one unit of the type researching the technology against
+    a Rhino, or None when the simulator fights it."""
+    layout = room / "technology.yaml"
+    reason = ""
+    for x, y in SPOTS:
+        layout.write_text(
+            "kind: layout\nmap_id: 1021\nseed: 4242\nround: 1\n"
+            f"blue:\n  techs:\n    {unit}: [{name}]\n"
+            f"  units:\n  - {{name: {unit}, index: 0, position: {{x: {x}, y: {y}}}}}\n"
+            "red:\n  units:\n  - {name: rhino, index: 0, position: {x: 5, y: -155}}\n"
+        )
+        fought = subprocess.run(
+            [binary, "convert", layout, "--to", "mcfr", room / "technology.mcfr", "--force"],
+            capture_output=True,
+        )
+        if fought.returncode == 0:
+            return None
+        reason = json.loads(fought.stderr.decode())["reason"]
+        if "grid" not in reason:
+            return reason
+    return reason
+
+
+def technology_coverage(binary: pathlib.Path) -> None:
+    """How many of the technologies the game has the simulator fights, and the
+    rest by kind and cause."""
+    names = technology_names()
+    rows = {
+        int(found.group(1)): (found.group(2), found.group(3))
+        for found in ROW.finditer((REPOSITORY / "config/technology_effects.yaml").read_text())
+    }
+    refused: dict[str, dict[str, list[str]]] = collections.defaultdict(
+        lambda: collections.defaultdict(list)
+    )
+    every = researched()
+    with tempfile.TemporaryDirectory() as room:
+        for unit, identifier in every:
+            chinese, kind = rows.get(identifier, ("?", "?"))
+            name = names.get((unit, identifier))
+            reason = (
+                probe(binary, pathlib.Path(room), unit, name)
+                if name
+                else "no name in config/names.yaml"
+            )
+            if reason is not None:
+                refused[kind][cause_of(reason)].append(f"{unit} {name} ({chinese}, {identifier})")
+    count = sum(len(members) for causes in refused.values() for members in causes.values())
+    print(
+        f"\n{len(every)} unit technologies the game lets a unit research, "
+        f"{len(every) - count} of them the simulator accepts"
+    )
+    print("\nunit technologies the simulator refuses, by kind and cause")
+    for kind, causes in sorted(
+        refused.items(), key=lambda item: (-sum(map(len, item[1].values())), item[0])
+    ):
+        print(f"  {sum(map(len, causes.values())):4}  {kind}")
+        for cause, members in sorted(causes.items(), key=lambda item: -len(item[1])):
+            print(f"          {cause}: {', '.join(members)}")
+
+
 def rounds_of(match_doc: pathlib.Path) -> list[int]:
     """The rounds a match states, less the one a side concedes: a concession
     ends the match with no fight."""
@@ -233,6 +364,7 @@ def main() -> int:
 
     view("by system", blockers, system_of)
     view("by layout field", blockers, field_of)
+    technology_coverage(binary)
     return 0
 
 
