@@ -316,12 +316,41 @@ and Summon Hounds make their units at the unit's own level
 
 Fang Production, Crawler Production and Mothership make theirs at the
 unit's first level about where it stands, appearing with an effect
-(`appear_type` 1) at once, each batch every 32 to 36 seconds.
+(`appear_type` 1) at once, each batch every 32 to 36 seconds. Dark
+Companion makes one at the Abyss's level, 40 metres ahead of it, appearing at
+once with no effect (`appear_type` 0), once; the two types differ only in the
+duration of the effect `SupportUnitCreator.CreateMech` hands the client.
 
-A row whose makes appear any other way, take a level of their own, are
-corrected by the row, are capped in all, come in its `intensifyMode` or
-without their side's technologies is refused by name: the War Factory's lines
-rise out of it, and Electromagnetic Twin corrects its make.
+The War Factory's three lines make theirs at its level, each taking the row's
+`productTime`, a second, to appear (`SupportUnitData.GetProductMoveTime`).
+Phoenix Production's (`appear_type` 6) appears as a transition does, at the
+War Factory itself, a Phoenix every 17.2 seconds. Steel Ball Production's and
+Sledgehammer Production's (`appear_type` 7) come out of it, every 9.7 and 6.6
+seconds (`SummonSystem.CreateMechDelaySetPos`). Each is made where the War
+Factory stands, with no agent, and draws two hundredths of a metre of its
+side's stream, x then z, a draw of up to a metre each way. As it joins
+(`SummonSystem.AddMechDelay`) it gets its agent
+(`MotionController.ActiveMoveFunction`) and stands at its offset, the row's
+whole metres with its draws added, turned by the War Factory's facing from
+where the War Factory then stands, facing as it faces
+(`FightMech.UpdatePositionAndRotation`).
+
+Electromagnetic Twin makes a Vortex Mirage at the unit's first level, 25
+metres behind it, by a transition, once. Its `position_space` 0
+(`SupportUnitPositionSpace.None`) turns the offset by the unit's root, as 1
+does: `SpecialSupportUnitData.GetRotation` turns by the body for 2 alone. The
+row corrects its make (`SupportUnitCreator.CreateMech`): its
+`unit_life_rate` joins the make's `MechDataChangeFloatRate.LifeRate`, and its
+`unit_damage_rate` its main skill's `SkillDataChangeFloatRate.DamageRate`,
+both written by the line, so no technology switch takes them away. The
+Mirage's life rate of -1 leaves it 1 point of life, the least
+`FightMech.CalculateMaxLife` gives any unit, and its damage rate of -0.7
+leaves it 30% of a Vortex's damage.
+
+A row whose makes appear any other way, take a level of their own, have their
+attack range corrected by the row, are capped in all, come in its
+`intensifyMode` or without their side's technologies is refused by name; no
+row of this version does.
 
 ## What this table does not carry
 

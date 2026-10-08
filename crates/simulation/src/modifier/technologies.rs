@@ -158,6 +158,10 @@ const PRIORITY: i32 = 0;
 /// The module that tags every entry a technology writes.
 pub(crate) const SOURCE: &str = "Modifier";
 
+/// What a production line writes onto its makes is its
+/// `SupportUnitData.modifyData`'s, which no technology switch takes away.
+const MAKE_SOURCE: &str = "SupportUnitData";
+
 /// What an armour technology writes is its effect provider's,
 /// `ArmorStrengthenEffectProvider`, which `FightEffectSystem.ActiveEffect`
 /// enables: a unit that travels in holds it once it arrives.
@@ -458,8 +462,7 @@ struct SupportBlock {
     start_time: i64,
     /// `SupportUnitAppearType`.
     appear_type: i32,
-    /// What a transition and an appearance at once do not read.
-    #[allow(dead_code, reason = "only lines that do not read it are run")]
+    /// How long a make of type 6 or 8 takes to appear.
     product_time: i64,
     max_create_count: u32,
     create_duration: i64,
@@ -484,47 +487,73 @@ struct SupportOffset {
 const LEVEL_ONE: i32 = 0;
 const PARENT_LEVEL: i32 = 3;
 
-/// `SupportUnitAppearType.ImmediateWithEffect` and `Transition`.
+/// `SupportUnitAppearType.Immediate`, `ImmediateWithEffect` and
+/// `Transition`. The first two differ only in what the client shows: in
+/// `SupportUnitCreator.CreateMech` neither takes time to appear, and only the
+/// event a view reads carries an effect's duration.
+const IMMEDIATE: i32 = 0;
 const IMMEDIATE_WITH_EFFECT: i32 = 1;
 const TRANSITION: i32 = 5;
+/// The two types `SupportUnitCreator.CreateMech` gives the row's
+/// `productTime` to appear, through `SupportUnitData.GetProductMoveTime`.
+const PRODUCED: [i32; 2] = [6, 8];
+/// `appearType` 7, which comes out of its unit: as long to appear, the
+/// row's `productTime`, and made by `SummonSystem.CreateMechDelaySetPos`.
+const COMES_OUT: i32 = 7;
 
-/// `SupportUnitPositionSpace.Parent` and `ParentBody`.
+/// `SupportUnitPositionSpace.None`, `Parent` and `ParentBody`.
+/// `SpecialSupportUnitData.GetRotation` turns an offset by the unit's body for
+/// `ParentBody` and by its root otherwise.
+const NO_SPACE: i32 = 0;
 const PARENT_SPACE: i32 = 1;
 const PARENT_BODY_SPACE: i32 = 2;
 
 impl SupportBlock {
+    /// `SupportUnitCreator.CreateMech`: a make appears at once for types 0
+    /// and 1, in the row's `productTime` for 6, 7 and 8, and in
+    /// `APPEAR_DURATION`, a second, otherwise.
+    fn appear_q32(&self) -> i64 {
+        if [IMMEDIATE, IMMEDIATE_WITH_EFFECT].contains(&self.appear_type) {
+            0
+        } else if PRODUCED.contains(&self.appear_type) || self.appear_type == COMES_OUT {
+            self.product_time
+        } else {
+            1 << 32
+        }
+    }
+
+    fn takes_time_to_appear(&self) -> bool {
+        self.appear_q32() > 0
+    }
+
     /// The line it runs, or why this build will not run it: one whose makes
-    /// appear any way but by a transition at their offsets or at once about
-    /// their unit, at a level of their own, corrected by the row, capped in
+    /// appear any way but at once or in their time at their offsets, at a
+    /// level of their own, whose attack range the row corrects, capped in
     /// all, made in its intensify mode or without its side's technologies.
     fn line(&self, who: &str) -> std::result::Result<ProductionLine, String> {
         let unread = [
             (
-                ![IMMEDIATE_WITH_EFFECT, TRANSITION].contains(&self.appear_type),
-                "an appearType other than 1 or 5",
+                ![IMMEDIATE, IMMEDIATE_WITH_EFFECT, TRANSITION, COMES_OUT]
+                    .contains(&self.appear_type)
+                    && !PRODUCED.contains(&self.appear_type),
+                "an appearType other than 0, 1, 5, 6, 7 or 8",
             ),
             (
-                self.appear_type == TRANSITION && self.positions.is_empty(),
-                "a transition and no positions",
-            ),
-            (
-                self.appear_type == IMMEDIATE_WITH_EFFECT && !self.positions.is_empty(),
-                "an appearance at once at positions",
+                self.takes_time_to_appear() && self.positions.is_empty(),
+                "an appearance that takes time and no positions",
             ),
             (
                 ![LEVEL_ONE, PARENT_LEVEL].contains(&self.unit_level),
                 "a unitLevel of its own",
             ),
             (
-                ![PARENT_SPACE, PARENT_BODY_SPACE].contains(&self.position_space),
-                "a positionSpace other than its unit's",
+                ![NO_SPACE, PARENT_SPACE, PARENT_BODY_SPACE].contains(&self.position_space),
+                "a positionSpace other than 0, 1 or 2",
             ),
             (self.max_create_count != 0, "a maxCreateCount"),
             (
-                self.unit_life_rate != 0
-                    || self.unit_damage_rate != 0
-                    || self.unit_attack_range_value != 0,
-                "a correction of its makes",
+                self.unit_attack_range_value != 0,
+                "a correction of its makes' attack range",
             ),
             (self.intensify_mode, "its intensifyMode"),
             (
@@ -548,15 +577,31 @@ impl SupportBlock {
                 .iter()
                 .map(|offset| (offset.x, offset.z))
                 .collect(),
-            // `SupportUnitCreator.CreateMech`: a transition takes
-            // `APPEAR_DURATION`, a second, and `ImmediateWithEffect` none.
-            appear_q32: if self.appear_type == TRANSITION {
-                1 << 32
-            } else {
-                0
-            },
+            appear_q32: self.appear_q32(),
             parent_level: self.unit_level == PARENT_LEVEL,
             body_frame: self.position_space == PARENT_BODY_SPACE,
+            arrival: if self.appear_type == COMES_OUT {
+                super::sources::Arrival::ComesOut
+            } else {
+                super::sources::Arrival::InPlace
+            },
+            make_corrections: effects::corrections(Fields {
+                life_rate: Some(self.unit_life_rate),
+                damage_rate: Some(self.unit_damage_rate),
+                ..Fields::default()
+            })
+            .into_iter()
+            .map(|(channel, index, correction)| {
+                (
+                    channel,
+                    Entry {
+                        index,
+                        source: MAKE_SOURCE,
+                        correction,
+                    },
+                )
+            })
+            .collect(),
             gated: false,
         })
     }
@@ -1270,8 +1315,7 @@ mod tests {
     }
 
     /// Best Partner hands the Vulcan a line of one Marksman at its level, and
-    /// Phoenix Production's, whose makes rise out of the War Factory, is
-    /// refused by name.
+    /// a line whose makes appear in a way not read is refused by name.
     #[test]
     fn a_production_technology_hands_its_unit_a_line() {
         let table = TechnologyEffects::load().unwrap();
@@ -1280,10 +1324,18 @@ mod tests {
         assert_eq!(lines[0].unit_type_id, 2);
         assert!(lines[0].parent_level);
         assert_eq!(lines[0].offsets, vec![(25 << 32, -30 << 32)]);
-        let refused = table
-            .production(&[12017], "war_factory")
-            .unwrap_err()
-            .to_string();
+        let probe = TechnologyEffects::parse(
+            "schema: mechcore.technology_effects\n\
+             technologies:\n\
+             - id: 9\n  name: probe\n  unit: vulcan\n  kind: supportUnitTechnologies\n  \
+             production: {support_unit_id: 2, unit_level: 3, max_batch: 1, max_alive: 1, \
+             create_count_per_time: 1, start_time: 0, appear_type: 3, product_time: 0, \
+             max_create_count: 0, create_duration: 0, position_space: 1, unit_life_rate: 0, \
+             unit_damage_rate: 0, unit_attack_range_value: 0, intensify_mode: false, \
+             inherit_technology: true, positions: [{x: 0, z: 0}]}\n",
+        )
+        .unwrap();
+        let refused = probe.production(&[9], "vulcan").unwrap_err().to_string();
         assert!(refused.contains("appearType"), "{refused}");
     }
 

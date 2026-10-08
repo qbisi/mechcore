@@ -342,6 +342,26 @@ impl Actor {
 
     /// Turns the whole unit, body, aim, weapons and the rotation its search
     /// scores from, to one facing, as it stands before the fight.
+    /// `FightMech.SetPosition`: the unit stands somewhere else, where its
+    /// searches and its agent find it.
+    pub(in crate::fight) fn set_position(&mut self, x_q32: i64, z_q32: i64) {
+        self.x_q32 = x_q32;
+        self.z_q32 = z_q32;
+        self.x = q32_to_space_rounded(x_q32);
+        self.z = q32_to_space_rounded(z_q32);
+        self.target_query_x_q32 = x_q32;
+        self.target_query_z_q32 = z_q32;
+        let motion = &mut self.motion;
+        motion.rvo_tree_x_q32 = x_q32;
+        motion.rvo_tree_z_q32 = z_q32;
+        motion.next_target_x_q32 = x_q32;
+        motion.next_target_z_q32 = z_q32;
+        motion.solver_target_x_q32 = x_q32;
+        motion.solver_target_z_q32 = z_q32;
+        motion.published_target_x_q32 = x_q32;
+        motion.published_target_z_q32 = z_q32;
+    }
+
     pub(in crate::fight) fn face(&mut self, rotation_q32: i64) {
         self.set_body_rotation(rotation_q32);
         self.aim_rotation = self.body_rotation;

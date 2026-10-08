@@ -246,9 +246,9 @@ pub(crate) struct CarriedShield {
     pub(crate) energy: i64,
 }
 
-/// What a `SupportUnitEquipment` answers `ISupportDataSource` with: a
-/// production line its wearer runs, `appearType` 5, whose makes stand at
-/// set offsets from it.
+/// What a `SupportUnitEquipment` or a `SupportUnitTech` answers
+/// `ISupportDataSource` with: a production line its wearer runs, whose makes
+/// stand at set offsets from it or about it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ProductionLine {
     /// `GetUnitID`: the unit type it makes.
@@ -274,10 +274,29 @@ pub(crate) struct ProductionLine {
     /// Whether an offset turns with the wearer's body rather than its root
     /// (`SupportUnitPositionSpace.ParentBody`).
     pub(crate) body_frame: bool,
+    /// Where each make appears.
+    pub(crate) arrival: Arrival,
+    /// What the row writes onto each make, `SupportUnitData.modifyData`'s:
+    /// `SupportUnitCreator.CreateMech` adds its `GetUnitLifeChangeRate` to
+    /// the make's `MechDataChangeFloatRate.LifeRate` and its
+    /// `GetUnitDamageChangeRate` to its main skill's
+    /// `SkillDataChangeFloatRate.DamageRate`.
+    pub(crate) make_corrections: Vec<(crate::data::Channel, crate::data::Entry)>,
     /// Whether a support skill of its wearer's lets each batch out
     /// (`SupportSkillStartAttackChecker`), locking the line while it may not
     /// start.
     pub(crate) gated: bool,
+}
+
+/// Where a production line's make appears.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Arrival {
+    /// At its offset from its wearer as it is made.
+    InPlace,
+    /// Out of its wearer, `appearType` 7 (`SummonSystem.CreateMechDelaySetPos`):
+    /// made where the wearer stands, it takes its place at its offset from
+    /// where the wearer stands as it joins.
+    ComesOut,
 }
 
 /// An `IEffectProviderDataSource` a `SingleEffectProvider` sorts.

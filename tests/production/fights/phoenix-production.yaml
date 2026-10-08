@@ -1,0 +1,24 @@
+# Phoenix Production on blue's War Factory: a technology's production line of
+# one position, at the War Factory itself, whose make appears in the row's
+# `productTime` (`appearType` 6, through `SupportUnitData.GetProductMoveTime`),
+# a second here, as a transition takes `APPEAR_DURATION`. The line keeps up to
+# a hundred alive, so its make is scattered by up to a metre each way by two
+# draws of blue's stream, x then z. The fight ends before its next batch.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 341
+hash: {profile: mcfr-content-0.7.0, result: cbb5762d6b576e977134d2a5ec2a0ecaf0aa621745af826ec3cec01ba4e4ef7e}
+blue:
+  techs:
+    war_factory: [phoenix_production]
+  units:
+  - {name: war_factory, index: 0, position: {x: 5, y: -145}, exp: 0/600/3200}
+red:
+  core_damage: 500
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/200/650}

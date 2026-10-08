@@ -952,10 +952,12 @@ fn production_of(
         ));
         return None;
     }
+    let mut corrections = worn.corrections;
+    corrections.extend(line.make_corrections.iter().copied());
     Some(Some(Production {
         line,
         rules: made,
-        corrections: worn.corrections,
+        corrections,
         technology_disable: worn.technology_disable,
     }))
 }
@@ -977,6 +979,8 @@ fn technology_line(production: &crate::rules::TechnologyProduction) -> Productio
         appear_q32: metres(production.appear),
         parent_level: production.level == crate::rules::ProductionLevel::Parent,
         body_frame: production.frame == crate::rules::ProductionFrame::ParentBody,
+        arrival: crate::modifier::Arrival::InPlace,
+        make_corrections: Vec::new(),
         gated: true,
     }
 }
