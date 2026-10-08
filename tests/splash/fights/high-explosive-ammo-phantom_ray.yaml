@@ -1,0 +1,21 @@
+# High-Explosive Ammo on blue's Phantom Ray against two Crawler formations: 7 metres
+# of splash on its skill, which reads 10 where it read 3, and 40% off its
+# damage. Its bombs strike up to 19 Crawlers on one tick.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 448
+hash: {profile: mcfr-content-0.7.0, result: 4b28694f7e9f6a6b21119643250f69da21a8dcc78a624fa872d4f281f59a193b}
+blue:
+  techs:
+    phantom_ray: [high_explosive_ammo]
+  units:
+  - {name: phantom_ray, index: 0, position: {x: -5, y: -100}, exp: 0/384/1000}
+red:
+  core_damage: 201
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -70}}
+  - {name: crawler, index: 1, position: {x: 5, y: -100}}

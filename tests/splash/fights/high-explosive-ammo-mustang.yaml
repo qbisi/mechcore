@@ -1,0 +1,21 @@
+# High-Explosive Ammo on blue's Mustang against two Crawler formations: 7 metres
+# of splash on its skill, which reads 7 where it read 0, and 35% off its
+# damage. The squad's shots strike up to 14 Crawlers on one tick.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 200
+hash: {profile: mcfr-content-0.7.0, result: 318d61562400bbd750569a3e9f53c1cd1b77e476213190c774284ac2e5046271}
+blue:
+  techs:
+    mustang: [high_explosive_ammo]
+  units:
+  - {name: mustang, index: 0, position: {x: 5, y: -100}, exp: 0/384/1200}
+red:
+  core_damage: 204
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -70}}
+  - {name: crawler, index: 1, position: {x: 5, y: -100}}

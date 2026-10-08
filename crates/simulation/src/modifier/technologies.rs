@@ -81,7 +81,7 @@ const INTERCEPT: &str = "interceptMissileTechnologyDatas";
 const SUPPORT: &str = "supportUnitTechnologies";
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 13] = [
+const IMPLEMENTED: [&str; 14] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -95,7 +95,12 @@ const IMPLEMENTED: [&str; 13] = [
     BUFF,
     INTERCEPT,
     SUPPORT,
+    SPLASH,
 ];
+
+/// The list whose `SplashTech` adds its row's `range` to its unit's skill's
+/// `SplashRangeValue` beside its numbers.
+const SPLASH: &str = "splashTechnologies";
 
 /// The list whose `DamageIntensifyTech` writes its damage against one domain.
 const DAMAGE_INTENSIFY: &str = "damageIntensifyTechnologies";
@@ -418,6 +423,10 @@ struct Row {
     sweep_reverse: bool,
     #[serde(default)]
     sweep_fixed_direction: bool,
+    /// `SplashTechnologyData.range`, on a splash row: `FPoint` metres by the
+    /// unit's level.
+    #[serde(default)]
+    splash_range: Vec<i64>,
     /// `InterceptMissileTechnologyData`'s fields, on a row of its list.
     #[serde(default)]
     intercept: Option<InterceptBlock>,
@@ -1009,6 +1018,7 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<Written>, String> {
         &row.attack_interval_value,
         &row.attack_interval_rate,
         &row.splash_range_value,
+        &row.splash_range,
         &row.projectile_speed_value,
         &row.projectile_life_rate,
         &row.air_damage_change_rate,
@@ -1041,7 +1051,15 @@ fn at_level(row: &Row, level: usize) -> Written {
         attack_interval_rate: at_level(&row.attack_interval_rate),
         attack_range_value: at_level(&row.attack_range_value),
         attack_interval_value: at_level(&row.attack_interval_value),
-        splash_range_value: at_level(&row.splash_range_value),
+        // `SplashTech.AddData` adds its range to what the row's numbers add,
+        // through `SkillDataModifier.AddData` as they go.
+        splash_range_value: [
+            at_level(&row.splash_range_value),
+            at_level(&row.splash_range),
+        ]
+        .into_iter()
+        .flatten()
+        .reduce(i64::saturating_add),
         speed_value: at_level(&row.speed_value),
         damage_reduce_rate_base: Some(row.all_weapon_reduce_damage_rate),
         projectile_speed_value: at_level(&row.projectile_speed_value),
@@ -1189,6 +1207,27 @@ mod tests {
                 .iter()
                 .any(|(channel, entry)| *channel == Channel::Skill
                     && entry.index == Index::SplashRange),
+            "{written:?}"
+        );
+    }
+
+    /// High-Explosive Ammo's range lands in the skill's splash beside its
+    /// damage rate, as a splash value does: 7 metres on the Wasp.
+    #[test]
+    fn a_splash_technology_adds_its_range_to_the_splash() {
+        let table = TechnologyEffects::load().unwrap();
+        let written = table.corrections(&[406], "wasp", 1).unwrap();
+        let splash = written
+            .iter()
+            .find(|(channel, entry)| {
+                *channel == Channel::Skill && entry.index == Index::SplashRange
+            })
+            .map(|(_, entry)| entry.correction);
+        assert_eq!(splash, Some(Correction::Value(7_000)), "{written:?}");
+        assert!(
+            written
+                .iter()
+                .any(|(_, entry)| entry.index == Index::AttackDamage),
             "{written:?}"
         );
     }

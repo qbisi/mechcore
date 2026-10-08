@@ -1,0 +1,21 @@
+# High-Explosive Ammo on blue's Stormcaller against two Crawler formations: 5 metres
+# of splash on its skill, which reads 10.5 where it read 5.5, and 50% off its
+# damage. Its rockets strike up to 12 Crawlers on one tick.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 285
+hash: {profile: mcfr-content-0.7.0, result: 49cc3d6fee9f64aa8220f03578532394366a07439d6c0701fb553de3ad9cb61b}
+blue:
+  core_damage: 84
+  techs:
+    stormcaller: [high_explosive_ammo]
+  units:
+  - {name: stormcaller, index: 0, position: {x: 5, y: -100}, exp: 0/216/1100}
+red:
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -70}, exp: 0/400/450}
+  - {name: crawler, index: 1, position: {x: 5, y: -100}}

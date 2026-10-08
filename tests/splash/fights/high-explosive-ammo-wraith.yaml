@@ -1,0 +1,21 @@
+# High-Explosive Ammo on blue's Wraith against two Crawler formations: 7 metres
+# of splash on its skill, which reads 15 where it read 8, and 30% off its
+# damage. Each of its four slots reads it; they strike up to 13 Crawlers on one tick.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 445
+hash: {profile: mcfr-content-0.7.0, result: 9b3ea3b956abfa7d5dea9edc329b512b10a3dd473d3759173feeac0370e4e9c3}
+blue:
+  techs:
+    wraith: [high_explosive_ammo]
+  units:
+  - {name: wraith, index: 0, position: {x: 5, y: -95}, exp: 0/384/2250}
+red:
+  core_damage: 250
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -70}}
+  - {name: crawler, index: 1, position: {x: 5, y: -100}}

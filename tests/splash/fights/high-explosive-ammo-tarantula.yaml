@@ -1,0 +1,21 @@
+# High-Explosive Ammo on blue's Tarantula against two Crawler formations: 7 metres
+# of splash on its skill, which reads 12 where it read 5, and 45% off its
+# damage. Its shots strike up to 13 Crawlers on one tick.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 149
+hash: {profile: mcfr-content-0.7.0, result: c4d40d261e411666d240202f53a81a08aa2f21334eb0f3cb7760392eb386b9bb}
+blue:
+  techs:
+    tarantula: [high_explosive_ammo]
+  units:
+  - {name: tarantula, index: 0, position: {x: -5, y: -105}, exp: 0/384/1500}
+red:
+  core_damage: 200
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -70}}
+  - {name: crawler, index: 1, position: {x: 5, y: -100}}

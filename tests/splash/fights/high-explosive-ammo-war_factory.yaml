@@ -1,0 +1,21 @@
+# High-Explosive Ammo on blue's War Factory against two Crawler formations: 7 metres
+# of splash on its skill, which reads 11.5 where it read 4.5, and 40% off its
+# damage. Each of its four skills reads it; they strike up to 8 Crawlers on one tick.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 189
+hash: {profile: mcfr-content-0.7.0, result: d91aa1a5d27e2cd80907bd3e889b100dbcd9160babb99fb61a5989b088e083de}
+blue:
+  techs:
+    war_factory: [high_explosive_ammo]
+  units:
+  - {name: war_factory, index: 0, position: {x: 5, y: -105}, exp: 0/384/3200}
+red:
+  core_damage: 500
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -70}}
+  - {name: crawler, index: 1, position: {x: 5, y: -100}}

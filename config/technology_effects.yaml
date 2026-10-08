@@ -20,6 +20,8 @@ schema: mechcore.technology_effects
 # `exp_rate` is a rate on what the unit gains, not a correction.
 #
 # A subclass's row also carries what it answers its own interface with:
+# a splash technology the FPoint metres of splash it adds its unit's
+# skill (`splash_range`),
 # a lifesteal technology its `lifesteal_multiplier`, the share of a hit's
 # damage its unit takes back as life, and a repair technology the
 # seconds hurt before it repairs, the state it repairs in (0 always,
@@ -101,41 +103,49 @@ technologies:
     unit: wasp
     kind: splashTechnologies
     damage_rate: [-1288490188]  # -0.3
+    splash_range: [30064771072]  # +7
   - id: 407
     name: 高爆弹药
     unit: mustang
     kind: splashTechnologies
     damage_rate: [-1503238553]  # -0.35
+    splash_range: [30064771072]  # +7
   - id: 411
     name: 高爆弹药
     unit: overlord
     kind: splashTechnologies
     damage_rate: [-1717986918]  # -0.4
+    splash_range: [30064771072]  # +7
   - id: 412
     name: 高爆弹药
     unit: stormcaller
     kind: splashTechnologies
     damage_rate: [-2147483648]  # -0.5
+    splash_range: [21474836480]  # +5
   - id: 417
     name: 高爆弹药
     unit: war_factory
     kind: splashTechnologies
     damage_rate: [-1717986918]  # -0.4
+    splash_range: [30064771072]  # +7
   - id: 418
     name: 高爆弹药
     unit: wraith
     kind: splashTechnologies
     damage_rate: [-1288490188]  # -0.3
+    splash_range: [30064771072]  # +7
   - id: 424
     name: 高爆弹药
     unit: tarantula
     kind: splashTechnologies
     damage_rate: [-1932735283]  # -0.45
+    splash_range: [30064771072]  # +7
   - id: 425
     name: 高爆弹药
     unit: phantom_ray
     kind: splashTechnologies
     damage_rate: [-1717986918]  # -0.4
+    splash_range: [30064771072]  # +7
   - id: 506
     name: 对地专精
     unit: wasp
