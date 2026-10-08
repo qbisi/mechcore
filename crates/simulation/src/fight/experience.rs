@@ -220,12 +220,34 @@ impl Simulation {
     ///
     /// The rate is `(1 + expAddRate + add) × expReduceRate × reduce`, where
     /// `add` and `reduce` are the `MechDataChangeFloatRate.ExpChangeRate` of
-    /// the unit the gain is for, the killer or the formation's first. No
-    /// source here writes that one: an officer's `GetExpChangeRate` answers
-    /// zero, and its rate is the card's.
-    fn gain(&mut self, formation: u64, amount: i64) {
+    /// the unit the gain is for: the killer, or for a share none, and then
+    /// the formation's first (`meches[0]`). Only a technology writes that
+    /// one, and a formation's units share their type and so their
+    /// technologies; an officer's `GetExpChangeRate` answers zero, and its
+    /// rate is the card's.
+    fn gain(&mut self, formation: u64, amount: i64, unit: Option<u64>) {
+        let own = unit
+            .or_else(|| {
+                self.actors
+                    .values()
+                    .find(|actor| actor.placement.formation_id == formation)
+                    .map(|actor| actor.placement.unit_id)
+            })
+            .and_then(|unit| self.actors.get(&unit))
+            // A technology switched off takes its data away.
+            .filter(|actor| !actor.technology_disabled())
+            .map(|actor| actor.placement.unit_experience_rate)
+            .unwrap_or_default();
         if let Some(state) = self.exp.formations.get_mut(&formation) {
-            let rate = q32_mul(ONE_Q32.saturating_add(state.rate.add), state.rate.remaining);
+            let rate = q32_mul(
+                q32_mul(
+                    ONE_Q32
+                        .saturating_add(state.rate.add)
+                        .saturating_add(own.add),
+                    state.rate.remaining,
+                ),
+                own.remaining,
+            );
             // `FPoint.Min` caps it: a formation that comes within 43 raw of
             // its bar reaches it.
             state.experience = fpoint_min(
@@ -290,7 +312,7 @@ impl Simulation {
         match killer {
             Some(unit) => {
                 if let Some(formation) = self.may_gain(unit) {
-                    self.gain(formation, base);
+                    self.gain(formation, base, Some(unit));
                 }
             }
             None => pool = pool.saturating_add(base),
@@ -357,7 +379,7 @@ impl Simulation {
         let count = i64::try_from(shared.len()).map_err(|_| Error::new("too many sharers"))?;
         let share = q32_div(pool, count << 32);
         for formation in shared {
-            self.gain(formation, share);
+            self.gain(formation, share, None);
         }
         self.exp.attackers.remove(&target.object_ref());
         Ok(())

@@ -8,7 +8,8 @@ answered. Most are one Marksman shooting one Rhino, differing only in their
 fields six formations to ask which a Ranged row reaches. The three
 `officer-exp-rate-*` fights put a Marksman and an Arclight against a squad of
 Crawlers, with no officer and with an experience rate on each in turn, and read
-each formation's experience. The three `officer-kills-*` fights put Berserk Rhino on
+each formation's experience, and `technology-exp-rate` does so with Machine
+Learning on a Vortex in the Marksman's place. The three `officer-kills-*` fights put Berserk Rhino on
 Rhinos that kill Crawlers, Fangs and Sledgehammers, and read the damage each
 kill adds. `technology-elite-marksman` puts a technology whose effect grows
 with level on a level-3 and a level-1 Marksman, and reads the entry each takes.

@@ -17,6 +17,7 @@ schema: mechcore.technology_effects
 # technology whose effect is flat, and one per rank for a technology that
 # grows with it. A rate is an FPoint Q32.32 raw integer, a value is an
 # FPoint in the number's own units, and speed is a plain integer.
+# `exp_rate` is a rate on what the unit gains, not a correction.
 #
 # A subclass's row also carries what it answers its own interface with:
 # a lifesteal technology its `lifesteal_multiplier`, the share of a hit's
@@ -1074,7 +1075,7 @@ technologies:
     name: 机器学习
     unit: vortex
     kind: technologyDatas
-    special: [expChangeRate]
+    exp_rate: [4294967296]  # +1
   - id: 10201
     name: 射程强化
     unit: fortress

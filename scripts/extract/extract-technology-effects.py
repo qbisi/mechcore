@@ -56,6 +56,7 @@ LISTS = (
     ("splash_range_value", "splashRangeChangeValue"),
     ("projectile_speed_value", "projectileSpeedChangeValue"),
     ("projectile_life_rate", "projectileLifeChangeRate"),
+    ("exp_rate", "expChangeRate"),
 )
 # What a subclass's row answers its own interface with, by the build's field
 # and the list of `TechnologyGroupData` whose rows carry it: a rank list, as
@@ -142,7 +143,7 @@ DESCRIPTIVE = {
     "limitedScene", "supply", "previousTechID", "activeLevel", "unlockCost",
     "mainSkillEffect", "extraSkillEffect", "extraSkillNumericalEffect",
 }
-RATES = {"life_rate", "damage_rate", "attack_range_rate", "attack_interval_rate", "projectile_life_rate",
+RATES = {"life_rate", "damage_rate", "attack_range_rate", "attack_interval_rate", "projectile_life_rate", "exp_rate",
          "lifesteal_multiplier", "recovery_life_rate", "air_damage_change_rate", "ground_damage_change_rate"}
 INTEGERS = {"speed_value", "min_attack_range_value", "reduce_damage_value"}
 
@@ -323,6 +324,7 @@ def main() -> int:
         "# technology whose effect is flat, and one per rank for a technology that",
         "# grows with it. A rate is an FPoint Q32.32 raw integer, a value is an",
         "# FPoint in the number's own units, and speed is a plain integer.",
+        "# `exp_rate` is a rate on what the unit gains, not a correction.",
         "#",
         "# A subclass's row also carries what it answers its own interface with:",
         "# a lifesteal technology its `lifesteal_multiplier`, the share of a hit's",

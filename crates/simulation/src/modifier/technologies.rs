@@ -38,7 +38,7 @@ use serde::Deserialize;
 
 use crate::{
     Error, Result,
-    data::{Channel, Correction, Entry, Index},
+    data::{Channel, Correction, Entry, ExperienceRate, Index},
     layout::{InterceptNumbers, Interception},
     rules::UnitDomain,
 };
@@ -162,6 +162,8 @@ struct Technology {
     /// What it writes at each entry of its lists, the first level's first,
     /// or why this build will not apply it.
     effect: std::result::Result<Vec<Written>, String>,
+    /// Its `expChangeRate`, one entry per level.
+    exp_rate: Vec<i64>,
     /// What it answers `ILifeSteal` with, if its class is one.
     lifesteal: Option<LifeSteal>,
     /// What it answers `IAutoRecovery` with, if its class is one.
@@ -327,6 +329,10 @@ struct Row {
     projectile_speed_value: Vec<i64>,
     #[serde(default)]
     projectile_life_rate: Vec<i64>,
+    /// `expChangeRate`, which `GetExpChangeRate` answers the unit's
+    /// `MechDataModifer.TryAddCommonData` with.
+    #[serde(default)]
+    exp_rate: Vec<i64>,
     /// `LifestealTechnologyData.lifestealMultiplier`, on a lifesteal row.
     #[serde(default)]
     lifesteal_multiplier: Vec<i64>,
@@ -537,19 +543,10 @@ impl TechnologyEffects {
                 Ok(interception) => (interception, effect),
                 Err(why) => (None, Err(why)),
             };
-            let self_buff = buff_source.as_ref().is_some_and(|buff: &BuffSource| {
-                matches!(
-                    buff.trigger,
-                    crate::modifier::BuffTrigger::All(crate::modifier::AllCycle {
-                        reach: None,
-                        ..
-                    }) | crate::modifier::BuffTrigger::Hit
-                        | crate::modifier::BuffTrigger::BeHit
-                        | crate::modifier::BuffTrigger::Damaged
-                )
-            });
+            let self_buff = buff_source.as_ref().is_some_and(adds_its_unit_a_buff);
             let technology = Technology {
                 unit: row.unit.clone(),
+                exp_rate: row.exp_rate.clone(),
                 effect,
                 lifesteal,
                 auto_recovery,
@@ -695,6 +692,38 @@ impl TechnologyEffects {
             .collect()
     }
 
+    /// The rate this side's technologies put on what one unit of this type
+    /// gains. `TechnologyData.GetExpChangeRate` answers the unit's own
+    /// `TryAddCommonData` with its entry at the unit's level, so the rate is
+    /// the unit's `MechDataChangeFloatRate.ExpChangeRate` and not its card's,
+    /// whose `IUnitDataChangeDataSource` a technology is not.
+    ///
+    /// # Errors
+    ///
+    /// Returns the error [`Self::corrections`] does.
+    pub(crate) fn experience_rate(
+        &self,
+        held: &[i32],
+        unit_type: &str,
+        level: i64,
+    ) -> Result<ExperienceRate> {
+        self.effects(held, unit_type)?;
+        Ok(held
+            .iter()
+            .filter_map(|id| self.technologies.get(id))
+            .filter(|technology| technology.unit == unit_type)
+            .filter_map(|technology| {
+                let last = technology.exp_rate.last()?;
+                Some(
+                    *usize::try_from(level - 1)
+                        .ok()
+                        .and_then(|index| technology.exp_rate.get(index))
+                        .unwrap_or(last),
+                )
+            })
+            .fold(ExperienceRate::default(), ExperienceRate::with))
+    }
+
     /// What this side's armour technologies write onto one unit type at one
     /// level: `ArmorStrengthenEffectProvider.EnableEffect` adds each one's
     /// `GetReduceDamageValue` to the unit's `ReduceDamageValue`, which
@@ -745,6 +774,18 @@ fn interception_of(row: &Row, who: &str) -> std::result::Result<Option<UnitInter
         .ok_or_else(|| format!("{who} carries no interception"))?
         .interception(who)
         .map(Some)
+}
+
+/// Whether a buff technology's buff goes on its own unit: one of a range
+/// cycle that reaches only it, or one its unit's hit or being hit adds.
+fn adds_its_unit_a_buff(buff: &BuffSource) -> bool {
+    matches!(
+        buff.trigger,
+        crate::modifier::BuffTrigger::All(crate::modifier::AllCycle { reach: None, .. })
+            | crate::modifier::BuffTrigger::Hit
+            | crate::modifier::BuffTrigger::BeHit
+            | crate::modifier::BuffTrigger::Damaged
+    )
 }
 
 /// What a row writes at each level, or why this build will not apply it.
@@ -1016,11 +1057,24 @@ mod tests {
             assert!(refused.contains(&id.to_string()), "{refused}");
             assert!(refused.contains(kind), "{refused}");
         }
-        let refused = table
-            .corrections(&[MACHINE_LEARNING], "vortex", 1)
-            .unwrap_err()
-            .to_string();
-        assert!(refused.contains("expChangeRate"), "{refused}");
+    }
+
+    /// Machine Learning writes no correction, and doubles what its unit gains
+    /// as the unit's own rate.
+    #[test]
+    fn machine_learning_rates_its_units_experience() {
+        let table = TechnologyEffects::load().unwrap();
+        assert!(
+            table
+                .corrections(&[MACHINE_LEARNING], "vortex", 1)
+                .unwrap()
+                .is_empty()
+        );
+        let rate = table
+            .experience_rate(&[MACHINE_LEARNING], "vortex", 1)
+            .unwrap();
+        assert_eq!(rate.add, 1 << 32);
+        assert_eq!(rate.remaining, 1 << 32);
     }
 
     /// An armour technology writes its reduction at the unit's level, the

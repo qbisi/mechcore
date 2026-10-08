@@ -157,6 +157,19 @@ and the card hands both halves to its formation. Each gain is then the amount
 times `(1 + enhancement) × remaining`, and the bar still caps it; the bar
 itself is the table's whatever the rate.
 
+## A technology's rate
+
+A technology's `exp_rate`, Machine Learning's `+1` on the Vortex, lands on the
+unit instead, as its own `MechDataChangeFloatRate.ExpChangeRate`: a technology
+is not one of the sources that write a card. Each gain takes it beside the
+card's, as `(1 + card enhancement + unit enhancement) × card remaining × unit
+remaining`. The unit is the killer for what a kill hands it, and the
+formation's first unit for a share, which is handed no unit; a formation's
+units are one type with one side's technologies, so each answers the same
+rate. A unit whose technologies are switched off answers none. Machine
+Learning doubles the Vortex formation's gains and leaves every other
+formation's as they are.
+
 No gain carries a formation past its bar, and one that brings it within 43
 raw of its bar, `FPoint.Min`'s tolerance, brings it to its bar exactly. A
 full formation takes no share,
@@ -188,6 +201,9 @@ what the formation carries into the next round.
   `tests/modifier/fights/officer-exp-rate-marksman.yaml`,
   `tests/modifier/fights/officer-exp-rate-arclight.yaml`, against
   `tests/modifier/fights/officer-exp-rate-none.yaml`.
+- A technology's experience rate multiplies its unit's formation's gains and
+  no other formation's: `tests/modifier/fights/technology-exp-rate.yaml`, where
+  the Vortex ends with 112 and with 56 without Machine Learning.
 - A kill that brings a formation within 4 raw of its bar brings it to the
   bar: `tests/corpus/fights/201370830-r5.yaml`, tick 403.
 - A Steel Ball whose beam dealt the Crawler it then left nothing takes no
@@ -240,6 +256,14 @@ what the formation carries into the next round.
 - A formation's `expAddRate` and `expReduceRate` are its card's
   `UnitDataChangeFloatRate.ExpChangeRate`, and start at zero and one:
   `CardElement.RefreshExpRate`, `MechTeam.ChangeExpRate`, `MechTeam..ctor`.
+- A technology's rate reaches the unit and not the card: `TechnologyData`
+  answers `ICommonMechDataChangeDataSource` and not
+  `IUnitDataChangeDataSource`, and `TechnologyData.GetExpChangeRate` answers
+  its entry at the unit's level.
+- `MechTeam.AddExp` reads `FightMech.GetDataFloatAddRate` and
+  `FightMech.GetDataFloatReduceRate` of `MechDataChangeFloatRate.ExpChangeRate`
+  off the unit it is handed, or off `MechTeam.meches`' first when it is handed
+  none, which `ExpSystem.DoCalculateExp` does for a share: `MechTeam.AddExp`.
 - An officer's rate reaches the card and not the unit:
   `OfficerData.get_ExpChangeRate`, and `OfficerData.GetExpChangeRate`, which
   answers zero to `MechDataModifer.TryAddCommonData`.

@@ -1,0 +1,29 @@
+# Machine Learning on blue's Vortex: `config/technology_effects.yaml` gives it
+# an `exp_rate` of +1, and nothing else. The squad is the one the
+# `officer-exp-rate-*` fights field, with a Vortex for the Marksman.
+#
+# The Vortex's formation ends with 112 experience, twice the 56 it gains
+# without the technology, and the Arclight's with the 136 it gains either
+# way. `TechnologyData.GetExpChangeRate` answers the unit's own
+# `MechDataChangeFloatRate.ExpChangeRate`, not its card's as an officer's
+# rate does; `MechTeam.AddExp` reads it off the killer, and off the
+# formation's first unit for a share. Without it the fight parts from the
+# game at t84, the first gain.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 193
+hash: {profile: mcfr-content-0.7.0, result: 09e7ac05550c1bf32384c1adc8d0395679dbe231991fe89e7d83b1c599f39048}
+blue:
+  techs:
+    vortex: [machine_learning]
+  units:
+  - {name: vortex, index: 0, position: {x: -20, y: -150}, exp: 0/112/750}
+  - {name: arclight, index: 1, position: {x: 20, y: -150}, exp: 0/136/750}
+red:
+  core_damage: 200
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -40}}
