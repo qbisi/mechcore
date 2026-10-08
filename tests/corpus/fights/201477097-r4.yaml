@@ -1,0 +1,70 @@
+# Replay 2328_20261007--201477097, round 4, map 1011. Red's Steel Ball 370
+# lays its beam on blue's Crawler 117 for one blow, whose ramp deals nothing,
+# and turns away; Steel Balls 373 and 368 of the formation beside it burn the
+# Crawler down, and 373 kills it on tick 715. The blow that dealt nothing is
+# no hit, so formation 32 takes no share and formation 31 the whole pool.
+
+kind: fight
+map_id: 1011
+seed: 314316270
+round: 4
+source: game
+ticks: 1419
+hash: {profile: mcfr-content-0.7.0, result: 014183e756298a39b330a2c6fe0c2fda294ba82d11332ed150558619da0e4b54}
+blue:
+  core_damage: 500
+  officers: [additional_deployment_slot, rhino_specialist]
+  techs:
+    hound: [range_enhancement]
+  blueprints: [attack_enhancement]
+  legacy_index: 15
+  units:
+  - {name: hound, index: 0, position: {x: 130, y: -190}, exp: 656/750/750}
+  - {name: hound, index: 1, position: {x: -130, y: -190}, exp: 544/750/750}
+  - {name: hound, index: 2, position: {x: 0, y: -190}, exp: 437/750/750}
+  - {name: sledgehammer, index: 3, position: {x: -90, y: -115}, exp: 990/1300/1300, rotated: true}
+  - {name: sledgehammer, index: 4, position: {x: 90, y: -115}, exp: 754/1077/1300, rotated: true}
+  - {name: crawler, index: 5, position: {x: 130, y: -225}, exp: 169/231/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: -130, y: -225}, exp: 450/450/450, rotated: true}
+  - {name: phoenix, index: 7, position: {x: -200, y: -80}, level: 2, exp: 0/1417/2929}
+  - {name: crawler, index: 8, position: {x: 0, y: -285}, exp: 172/174/450, rotated: true}
+  - {name: crawler, index: 9, position: {x: -245, y: -20}}
+  - {name: hound, index: 10, position: {x: -200, y: -60}, exp: 509/750/750}
+  - {name: crawler, index: 11, position: {x: -200, y: -115}, exp: 36/54/450, rotated: true}
+  - {name: mustang, index: 12, position: {x: -215, y: -150}, exp: 846/1200/1200}
+  - {name: fang, index: 13, position: {x: 170, y: -225}, exp: 163/174/600, rotated: true}
+  - {name: rhino, index: 14, position: {x: -245, y: -65}, level: 2, exp: 0/565/2591}
+  - {name: crawler, index: 15, position: {x: -290, y: -155}, exp: 0/151/450, rotated: true}
+  - {name: crawler, index: 16, position: {x: 290, y: -285}, exp: 0/54/450, rotated: true}
+  - {name: crawler, index: 17, position: {x: -140, y: -35}, exp: 0/6/450, rotated: true}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+red:
+  officers: [additional_deployment_slot, fire_badger_specialist]
+  techs:
+    arclight: [charged_shot]
+  legacy_index: 15
+  units:
+  - {name: arclight, index: 0, position: {x: -140, y: -80}, level: 2, exp: 0/1192/1690}
+  - {name: arclight, index: 1, position: {x: -230, y: -80}, level: 2, exp: 0/1083/1690}
+  - {name: arclight, index: 2, position: {x: -50, y: -80}, level: 2, exp: 0/336/1690}
+  - {name: steel_ball, index: 3, position: {x: -185, y: -160}, level: 2, exp: 0/637/2253}
+  - {name: steel_ball, index: 4, position: {x: -95, y: -160}, level: 2, exp: 0/355/2253}
+  - {name: crawler, index: 5, position: {x: -50, y: -115}, exp: 73/121/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: -230, y: -115}, exp: 228/272/450, rotated: true}
+  - {name: phoenix, index: 7, position: {x: -230, y: -170}, exp: 285/1300/1300}
+  - {name: arclight, index: 8, position: {x: 50, y: -120}, exp: 157/279/750}
+  - {name: arclight, index: 9, position: {x: 160, y: -150}, exp: 371/479/750}
+  - {name: fang, index: 10, position: {x: 160, y: -185}, exp: 145/175/600, rotated: true}
+  - {name: fang, index: 12, position: {x: 110, y: -95}, exp: 84/228/600, rotated: true}
+  - {name: fang, index: 13, position: {x: -140, y: -205}, exp: 565/600/600, rotated: true}
+  - {name: arclight, index: 14, position: {x: 250, y: -150}, exp: 144/333/750}
+  - {name: crawler, index: 15, position: {x: 250, y: -115}, exp: 0/13/450, rotated: true}
+  - {name: crawler, index: 16, position: {x: 50, y: -155}, exp: 0/36/450, rotated: true}
+  - {name: arclight, index: 17, position: {x: 110, y: -130}, exp: 0/134/750}
+  - {name: steel_ball, index: 18, position: {x: 255, y: -170}, exp: 0/85/1000}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 6, y: -246}, retained: false}
+  - {name: missile, index: 1, position: {x: 248, y: -11}, retained: false}

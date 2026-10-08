@@ -120,6 +120,9 @@ starts from zero. A kill hands out its amount twice over:
   which deals nothing and leaves only its fire, does not make its Hound's
   formation one that hit the target, and a unit the fire then kills with no
   formation near counts for every formation of the Hound's side.
+  A beam's blow is no different: a Steel Ball's first blow, its ramp's
+  multiplier truncated to nothing, deals nothing, and a Steel Ball that turns
+  to another target after it is not one that hit the first.
 - **A kill with no owner at all counts for the dead one's enemies.** An air
   drop's hit has no owner, and the side it counts for is the one the dead unit
   fought, whichever side dropped it: a Vulcan landing among its own side's
@@ -187,6 +190,9 @@ what the formation carries into the next round.
   `tests/modifier/fights/officer-exp-rate-none.yaml`.
 - A kill that brings a formation within 4 raw of its bar brings it to the
   bar: `tests/corpus/fights/201370830-r5.yaml`, tick 403.
+- A Steel Ball whose beam dealt the Crawler it then left nothing takes no
+  share of it: `tests/corpus/fights/201477097-r4.yaml`, tick 715, where only
+  the killer's formation takes the Crawler's pool.
 
 ### Replayed
 
