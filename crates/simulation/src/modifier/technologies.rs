@@ -412,20 +412,29 @@ fn surfacing_line_of(row: &Row, who: &str) -> std::result::Result<Option<Product
 /// level.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct UnitDeadSummon {
-    pub(crate) unit_type_id: u32,
+    unit_type_id: u32,
     counts: Vec<u32>,
+    /// Whether they take its unit's level (`DynamicMechLevel.Parent`).
+    parent_level: bool,
 }
 
 impl UnitDeadSummon {
-    /// `DeadSummonTechnologyData.GetUnitCount`: the entry of its unit's
-    /// level, the last past it.
-    pub(crate) fn count(&self, level: i64) -> u32 {
+    /// What it summons from a unit of `level`: as many as
+    /// `DeadSummonTechnologyData.GetUnitCount` answers, the entry of the
+    /// level, the last past it, at the first level or the unit's
+    /// (`DeadSummonController.PerformDeadEffect`).
+    pub(crate) fn at(&self, level: i64) -> crate::layout::DeadSummonOnDeath {
         let index = usize::try_from(level - 1).unwrap_or(0);
-        self.counts
-            .get(index)
-            .or(self.counts.last())
-            .copied()
-            .unwrap_or(0)
+        crate::layout::DeadSummonOnDeath {
+            unit_type_id: self.unit_type_id,
+            count: self
+                .counts
+                .get(index)
+                .or(self.counts.last())
+                .copied()
+                .unwrap_or(0),
+            level: if self.parent_level { level } else { 1 },
+        }
     }
 }
 
@@ -453,7 +462,7 @@ fn dead_summon_of(row: &Row, who: &str) -> std::result::Result<Option<UnitDeadSu
         .ok_or_else(|| format!("{who} carries no dead summon"))?;
     // `DeadSummonController.PerformDeadEffect` takes its unit's level for
     // `DynamicMechLevel.Parent`.
-    if block.level != LEVEL_ONE {
+    if ![LEVEL_ONE, PARENT_LEVEL].contains(&block.level) {
         return Err(format!(
             "{who} summons where its unit dies at a unitLevel of {}, which is not read",
             block.level
@@ -462,6 +471,7 @@ fn dead_summon_of(row: &Row, who: &str) -> std::result::Result<Option<UnitDeadSu
     Ok(Some(UnitDeadSummon {
         unit_type_id: block.type_id,
         counts: block.counts.clone(),
+        parent_level: block.level == PARENT_LEVEL,
     }))
 }
 

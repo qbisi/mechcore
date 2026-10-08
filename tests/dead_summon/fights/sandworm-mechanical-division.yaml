@@ -1,0 +1,24 @@
+# Mechanical Division on blue's level-3 Sandworm: as it dies, on tick 254,
+# four Larvas at its own level (`DynamicMechLevel.Parent`) are made where it
+# stood, each moved within its radius by two draws of blue's stream, facing
+# as it faced (`DeadSummonController.PerformDeadEffect`). Each has three times
+# a first-level Larva's life.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 371
+hash: {profile: mcfr-content-0.7.0, result: 3bcbf6a7eea407f60b365e43f4597c8aaf951338fa124c8e0ad43939769b3c12}
+blue:
+  core_damage: 650
+  techs:
+    sandworm: [mechanical_division]
+  units:
+  - {name: sandworm, index: 0, position: {x: 0, y: -140}, level: 3}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, level: 5, exp: 0/5000/5992}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, level: 5, exp: 0/1000/3387}
+  - {name: fortress, index: 2, position: {x: 40, y: -140}, level: 5}
