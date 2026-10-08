@@ -979,9 +979,13 @@ moves. The fight's end idles every motion and stops every unit.
 was already cooling has no lock left, since finishing its attack cleared it,
 so the fight's end does not reach it. It goes on cooling and goes on naming
 what it named, the dead last enemy included: three Phantom Rays cooling on a
-Crawler that died with the fight still name it for the five ticks after. A
-skill that was attacking still holds its lock, leaves the fight, and names
-nothing.
+Crawler that died with the fight still name it for the five ticks after.
+No skill updates once the fight is won, so the cooling does not run either:
+a Phantom Ray that would have finished cooling three ticks after the
+decision is still cooling when the fight ends. A slot of a grouped skill is a
+skill of its own: a Raiden's second gun cooling as the fight is decided goes
+on naming the Vortex it fired at, as its core lets its lock go. A skill that was attacking
+still holds its lock, leaves the fight, and names nothing.
 
 ## Reference unit fields
 
@@ -1101,6 +1105,9 @@ not the game's native attack-type enum.
   `tests/projectile/fights/phantom-ray-rhino-walks-off.yaml`.
 - A cooling that goes on through a won fight, and an attack that goes idle,
   in the Phantom Ray's standard fights: `tests/phantom_ray/fights/`.
+- A cooling that does not run through a won fight, a Raiden's grouped slot's
+  among them: `tests/corpus/fights/201477923-r5.yaml`, ticks 1618 to 1625,
+  Phantom Rays 56 and 58 and Raiden 19's second gun.
 - Wasps still on a Mobile Beacon when the fight is won going on moving and
   turning until the fight ends, and idle at its end:
   `tests/battle_skill/fights/beacon-wasps-won.yaml`,
