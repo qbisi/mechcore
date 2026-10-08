@@ -167,18 +167,18 @@ impl Simulation {
             offset_x_q32: 0,
             offset_z_q32: 0,
             climb_to_q32: None,
-            spawn_shields: Vec::new(),
+            // `ProjectileController.inEnergyShields`, as for any projectile.
+            spawn_shields: self.enemy_shields_at(
+                mine.team,
+                mine.x_q32,
+                space_to_q32(MINE_FLY_HEIGHT),
+                mine.z_q32,
+            ),
             absorbed_by: None,
             move_range_q32: mine
                 .trigger_range_q32
                 .saturating_add(space_to_q32(view.radius)),
         };
-        if !self.shield.standing.is_empty() {
-            return Err(Error::new(
-                "a missile fires in a fight with a shield, and what a shield does to a \
-                 missile's projectile is not measured",
-            ));
-        }
         events.push(event(
             Some(projectile.object_ref()),
             None,
@@ -204,7 +204,16 @@ impl Simulation {
         reach: Reach,
         events: &mut Vec<Event>,
     ) -> Result<super::damage::Struck> {
+        // A missile's hits cross no shield (`FightLandMine` answers
+        // `CanCrossAdvancedEnergyShield` no): the shield it flew into takes
+        // it, and one without a splash is taken by the shield covering its
+        // target, as a unit's shot is. No owner stands inside a shield.
+        let mut shield = projectile.absorbed_by;
+        if shield.is_none() && shot.splash_radius == 0 {
+            shield = self.shield_around(aimed);
+        }
         let hit = DamageHit {
+            shield,
             splash_radius: shot.splash_radius,
             ..DamageHit::of_projectile(projectile, aimed, shot.damage, reach)
         };
