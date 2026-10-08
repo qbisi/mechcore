@@ -1,0 +1,24 @@
+# Missile Interception on the Farseer: one interceptor that stands where the
+# Farseer stands and leaves its main skill be.
+#
+# It takes the first rocket at t22 and one every 3 ticks while rockets are in
+# reach, 18 in all, the last at t187, and the Farseer's main skill never
+# locks.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 260
+hash: {profile: mcfr-content-0.7.0, result: 44d8f58e9d4f9718d1783fe6e6bbf9de0b02dd80820837e8c92a1dccf88563b9}
+blue:
+  techs:
+    farseer: [missile_interceptor]
+  units:
+  - {name: farseer, index: 0, position: {x: 5, y: -105}, exp: 0/800/1800}
+red:
+  core_damage: 250
+  units:
+  - {name: stormcaller, index: 0, position: {x: 5, y: -40}}
+  - {name: stormcaller, index: 1, position: {x: -55, y: -40}}

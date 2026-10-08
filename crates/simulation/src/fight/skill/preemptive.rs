@@ -81,8 +81,7 @@ impl Simulation {
         // timer.
         let skill = &mut actor.skills.extras[index].skill;
         lock(skill);
-        skill.enter(SkillState::Idle { ready_step: None });
-        skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
+        unlock(skill);
         // `MotionController.ChangeToStopState`, then its idle state.
         self.enter_motion_idle(actor_id);
         // `FightSkill.OnPermanentPreemptiveSkillActive`: its buff, on the
@@ -134,10 +133,17 @@ impl Simulation {
 
 /// `SkillLockState.Enter`: the skill lets its lock and what it fires at go,
 /// and anything under way with them.
-pub(super) fn lock(skill: &mut Skill) {
+pub(in crate::fight) fn lock(skill: &mut Skill) {
     skill.drop_lock();
     skill.attack_target_left = None;
     skill.performer.stop();
     skill.idle = false;
     skill.enter(SkillState::Locked);
+}
+
+/// `ChangeToIdleState` out of `SkillLockState`: the skill idles, and
+/// `SkillLockState.Exit` restarts its search timer.
+pub(in crate::fight) fn unlock(skill: &mut Skill) {
+    skill.enter(SkillState::Idle { ready_step: None });
+    skill.search_target_time = SEARCH_TARGET_RESET_TICKS;
 }

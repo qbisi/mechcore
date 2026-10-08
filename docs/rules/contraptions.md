@@ -73,7 +73,9 @@ each product truncated to whole points. An interceptor idle with nothing to lock
 cools for `coolingTime` and then gives back `attackNum × rise` every
 `riseInterval`, up to `attackNum`; locking anything ends the cooling.
 
-**When it falls.** It intercepts nothing more, and its `building_destroyed` is
+**When it falls.** It intercepts nothing more, and no projectile joins it;
+what it had locked stays locked by it, which counts against what the others
+lock (`TeamInterceptSourceManager.DoRemove`). Its `building_destroyed` is
 read among the tick's deaths and falls in the order they came, as every
 building's and unit's is. It is no construction: `CreateFightBuilding` makes it
 a plain `FightCrystal`, and `SkillAttackState.CheckAttackable` rejects a dead

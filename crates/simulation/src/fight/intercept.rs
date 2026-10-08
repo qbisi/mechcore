@@ -1,7 +1,10 @@
 //! `InterceptSystem`: an interceptor takes enemy projectiles out of the air.
 //!
-//! An interceptor is a building of its side, and `InterceptEffectBase` is what
-//! it does. Each projectile that can be intercepted keeps the interceptors it
+//! `InterceptEffectBase` is what an interceptor does, and an
+//! `InterceptCtr_Group` of them is what a side's `TeamInterceptSourceManager`
+//! keeps for one owner: an interceptor building's one, or the interceptors a
+//! unit's interception technology makes it, which stand where the unit
+//! stands. Each projectile that can be intercepted keeps the interceptors it
 //! is in reach of up to date as it moves (`ProjectileController.
 //! GetInInterceptSources`), and each interceptor keeps the projectiles in its
 //! reach in the order they came into it. `InterceptSystem` updates after
@@ -13,11 +16,14 @@
 //! a hit takes its attack off the projectile's life, and the attack falls. It
 //! then resets and is idle again. An interceptor idle with nothing to lock
 //! gives its attack back a little at a time. A projectile whose life is gone
-//! is removed as intercepted on the spot. `docs/rules/contraptions.md` states
-//! the rule.
+//! is removed as intercepted on the spot. A preemptive unit's interceptor
+//! locks its unit's main skill while it prepares and resets, and lets it go
+//! idle as it does. `docs/rules/contraptions.md` states the rule for a
+//! building, and `docs/rules/technology_effects.md` for a unit.
 
 use super::*;
 use crate::layout::{Interception, InterceptorBuilding};
+use crate::modifier::UnitInterception;
 
 /// `InterceptEffectBase.InterceptState`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -27,15 +33,40 @@ pub(in crate::fight) enum InterceptState {
     Resetting,
 }
 
+/// Whose an interceptor is: an `InterceptEffect_FightInterceptor` stands
+/// where its building does, and an `InterceptEffect_FightMech_Preemptive` or
+/// `_NoPreemptive` where its unit does, on the unit's side.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::fight) enum InterceptorOwner {
+    Building {
+        building_id: u64,
+        team: u32,
+        x_q32: i64,
+        z_q32: i64,
+    },
+    Unit {
+        actor_id: u64,
+        preemptive: bool,
+    },
+}
+
 /// One interceptor's `InterceptEffectBase`.
 #[derive(Debug, Clone)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "each is a field of `InterceptEffectBase`"
+)]
 pub(in crate::fight) struct Interceptor {
-    pub(in crate::fight) building_id: u64,
-    pub(in crate::fight) team: u32,
-    x_q32: i64,
-    z_q32: i64,
+    /// What names it in a projectile's lists.
+    key: u64,
+    pub(in crate::fight) owner: InterceptorOwner,
     interception: Interception,
+    /// `isEnable`.
     enabled: bool,
+    /// Whether its group has left its side's `interceptControllerRecords`
+    /// (`TeamInterceptSourceManager.DoRemove`): it updates no more and no
+    /// projectile joins it, and what it holds stays as it was.
+    removed: bool,
     /// The projectiles in reach, in the order they came into it.
     in_reach: Vec<u64>,
     target: Option<u64>,
@@ -48,38 +79,41 @@ pub(in crate::fight) struct Interceptor {
 }
 
 impl Interceptor {
-    pub(in crate::fight) fn new(building_id: u64, placed: &InterceptorBuilding) -> Self {
+    /// `InterceptCtr_Group.Init` and `DoAdd`: enabled and idle, its attack
+    /// whole.
+    fn new(key: u64, owner: InterceptorOwner, interception: Interception) -> Self {
         Self {
-            building_id,
-            team: placed.team,
-            x_q32: space_to_q32(placed.x),
-            z_q32: space_to_q32(placed.z),
-            interception: placed.interception,
-            // `DoAdd` enables it idle, and `OnBaseEnterFight` fills its attack.
+            key,
+            owner,
+            interception,
             enabled: true,
+            removed: false,
             in_reach: Vec::new(),
             target: None,
             state: InterceptState::Idle,
             hits: false,
             sum_time: 0,
-            attack: placed.interception.attack,
+            attack: interception.attack,
             sum_cooling: 0,
             cooling: false,
         }
     }
 
-    /// `IsInSourceRange`: at least the reach's minimum away, and under its
-    /// maximum, measured in three dimensions from where it stands.
-    fn reaches(&self, x_q32: i64, y_q32: i64, z_q32: i64) -> bool {
-        let distance = self.distance_q32(x_q32, y_q32, z_q32);
-        distance < self.interception.range_max_q32 && distance >= self.interception.range_min_q32
-    }
-
-    fn distance_q32(&self, x_q32: i64, y_q32: i64, z_q32: i64) -> i64 {
-        native_q32_magnitude_3d(
-            x_q32.saturating_sub(self.x_q32),
-            y_q32,
-            z_q32.saturating_sub(self.z_q32),
+    /// An interceptor building's, as the fight is built.
+    pub(in crate::fight) fn building(
+        key: u64,
+        building_id: u64,
+        placed: &InterceptorBuilding,
+    ) -> Self {
+        Self::new(
+            key,
+            InterceptorOwner::Building {
+                building_id,
+                team: placed.team,
+                x_q32: space_to_q32(placed.x),
+                z_q32: space_to_q32(placed.z),
+            },
+            placed.interception,
         )
     }
 
@@ -116,13 +150,156 @@ impl Interceptor {
 }
 
 impl Simulation {
-    /// `InterceptSystem`'s update: every interceptor, side by side in the
-    /// order they were released.
+    /// `InterceptSystem`'s update: every side's groups in the order its
+    /// `interceptControllerRecords` keeps them, each group's interceptors in
+    /// turn. Each side draws from its own stream and locks only the other
+    /// side's projectiles, so the sides' order changes nothing.
     pub(in crate::fight) fn step_interceptors(&mut self, events: &mut Vec<Event>) -> Result<()> {
         for index in 0..self.interceptors.len() {
-            self.update_interceptor(index, events)?;
+            if !self.interceptors[index].removed {
+                self.update_interceptor(index, events)?;
+            }
         }
         Ok(())
+    }
+
+    /// `InterceptMissileEffectProvider.DoActive`: a unit whose technologies
+    /// make it an interceptor adds its group to its side's
+    /// (`TeamInterceptSourceManager.GetInterceptSource`), one interceptor
+    /// for each of its weapons, each enabled and idle with its attack whole
+    /// (`InterceptCtr_Group.Init`, `DoAdd`).
+    pub(in crate::fight) fn activate_interception(&mut self, actor_id: u64) {
+        let Some(UnitInterception {
+            interception,
+            weapons,
+            preemptive,
+        }) = self.actors[&actor_id].placement.interception
+        else {
+            return;
+        };
+        for _ in 0..weapons {
+            let key = self.next_interceptor_key();
+            self.interceptors.push(Interceptor::new(
+                key,
+                InterceptorOwner::Unit {
+                    actor_id,
+                    preemptive,
+                },
+                interception,
+            ));
+        }
+    }
+
+    /// The units that start the fight on the ground activate their
+    /// interception as `FightEffectSystem.OnEnterFight` activates their
+    /// effects. A unit that travels in activates it as it arrives.
+    pub(in crate::fight) fn activate_interceptions(&mut self) {
+        let units = self
+            .actors
+            .iter()
+            .filter(|(_, actor)| !actor.travelling && actor.placement.interception.is_some())
+            .map(|(&id, _)| id)
+            .collect::<Vec<_>>();
+        for actor_id in units {
+            self.activate_interception(actor_id);
+        }
+    }
+
+    /// `InterceptMissileEffectProvider.DoDeactive`, as `DeadEffectSystem`
+    /// calls a dead unit's `OnDead` and `FightEffectSystem.DeactiveEffect`
+    /// takes its effects off: its group leaves its side's.
+    pub(in crate::fight) fn deactivate_dead_interceptions(&mut self) {
+        let dead = self
+            .interceptors
+            .iter()
+            .filter_map(|interceptor| match interceptor.owner {
+                InterceptorOwner::Unit { actor_id, .. }
+                    if !interceptor.removed && !self.actors[&actor_id].alive() =>
+                {
+                    Some(actor_id)
+                }
+                _ => None,
+            })
+            .collect::<BTreeSet<_>>();
+        for actor_id in dead {
+            self.remove_interceptors(|owner| {
+                matches!(owner, InterceptorOwner::Unit { actor_id: id, .. } if id == actor_id)
+            });
+        }
+    }
+
+    /// `InterceptSystem.OnChangeTeam`: a turned unit's group leaves its old
+    /// side's records for the end of its new side's.
+    pub(in crate::fight) fn interceptors_change_side(&mut self, actor_id: u64) {
+        let (turned, kept): (Vec<_>, Vec<_>) = std::mem::take(&mut self.interceptors)
+            .into_iter()
+            .partition(|interceptor| {
+                !interceptor.removed
+                    && matches!(interceptor.owner, InterceptorOwner::Unit { actor_id: id, .. } if id == actor_id)
+            });
+        self.interceptors = kept;
+        self.interceptors.extend(turned);
+    }
+
+    /// `TeamInterceptSourceManager.DoRemove`: the owner's group leaves its
+    /// side's records, and `InterceptCtr_Group.DoRemove` tells its
+    /// interceptors no more than that. What each holds stays: its lock
+    /// still counts against what the others lock.
+    fn remove_interceptors(&mut self, owned: impl Fn(InterceptorOwner) -> bool) {
+        for interceptor in &mut self.interceptors {
+            if owned(interceptor.owner) {
+                interceptor.removed = true;
+            }
+        }
+    }
+
+    fn next_interceptor_key(&self) -> u64 {
+        self.interceptors
+            .iter()
+            .map(|interceptor| interceptor.key)
+            .max()
+            .map_or(1, |key| key + 1)
+    }
+
+    /// `GetTeamController`: a building's side, or its unit's as it stands.
+    fn interceptor_team(&self, index: usize) -> u32 {
+        match self.interceptors[index].owner {
+            InterceptorOwner::Building { team, .. } => team,
+            InterceptorOwner::Unit { actor_id, .. } => self.actors[&actor_id].placement.team,
+        }
+    }
+
+    /// `GetPos`: a building's centre on the ground, or where its unit's
+    /// transform stands.
+    fn interceptor_position(&self, index: usize) -> (i64, i64, i64) {
+        match self.interceptors[index].owner {
+            InterceptorOwner::Building { x_q32, z_q32, .. } => (x_q32, 0, z_q32),
+            InterceptorOwner::Unit { actor_id, .. } => {
+                let actor = &self.actors[&actor_id];
+                (
+                    actor.x_q32,
+                    space_to_q32(unit_height(actor.rules.domain)),
+                    actor.z_q32,
+                )
+            }
+        }
+    }
+
+    /// `IsInSourceRange`: at least the reach's minimum away, and under its
+    /// maximum, measured in three dimensions from where it stands.
+    fn interceptor_reaches(&self, index: usize, x_q32: i64, y_q32: i64, z_q32: i64) -> bool {
+        let distance = self.interceptor_distance(index, x_q32, y_q32, z_q32);
+        let interception = &self.interceptors[index].interception;
+        distance < interception.range_max_q32 && distance >= interception.range_min_q32
+    }
+
+    fn interceptor_distance(&self, index: usize, x_q32: i64, y_q32: i64, z_q32: i64) -> i64 {
+        let (x, y, z) = self.interceptor_position(index);
+        native_q32_magnitude_3d(
+            x_q32.saturating_sub(x),
+            y_q32.saturating_sub(y),
+            z_q32.saturating_sub(z),
+        )
     }
 
     /// `InterceptEffectBase.Update`.
@@ -159,8 +336,7 @@ impl Simulation {
                 .saturating_sub(interceptor.interception.prepare_ticks);
             if interceptor.sum_time >= reset {
                 interceptor.sum_time = 0;
-                self.set_intercept_target(index, None);
-                self.interceptors[index].state = InterceptState::Idle;
+                self.enter_intercept_idle(index);
             }
         }
         Ok(())
@@ -185,8 +361,12 @@ impl Simulation {
             if projectile.life < locked {
                 continue;
             }
-            let distance =
-                interceptor.distance_q32(projectile.x_q32, projectile.y_q32, projectile.z_q32);
+            let distance = self.interceptor_distance(
+                index,
+                projectile.x_q32,
+                projectile.y_q32,
+                projectile.z_q32,
+            );
             if nearest > distance {
                 nearest = distance;
                 chosen = Some(projectile_id);
@@ -198,33 +378,68 @@ impl Simulation {
     /// `SetTarget`: the lock moves from the old projectile to the new.
     fn set_intercept_target(&mut self, index: usize, target: Option<u64>) {
         let interceptor = &self.interceptors[index];
-        let (building_id, previous) = (interceptor.building_id, interceptor.target);
+        let (key, previous) = (interceptor.key, interceptor.target);
         if previous == target {
             return;
         }
         if let Some(projectile) = previous.and_then(|id| self.projectile_mut(id)) {
-            projectile.locked_by.retain(|&source| source != building_id);
+            projectile.locked_by.retain(|&source| source != key);
         }
         if let Some(projectile) = target.and_then(|id| self.projectile_mut(id)) {
-            projectile.locked_by.push(building_id);
+            projectile.locked_by.push(key);
         }
         self.interceptors[index].target = target;
     }
 
     /// `EnterPrepare`: whether the attack will hit is drawn now, from the
     /// side's stream, `GRRandom.IsProbabilityPass` drawing `Next(1000)` even
-    /// when the probability is a certainty.
+    /// when the probability is a certainty. A preemptive unit's interceptor
+    /// hears it (`OnEnterPrepare`) and locks its unit's main skill
+    /// (`InterceptEffect_FightMech_Preemptive.ChangeMechToLockState`).
     fn enter_prepare(&mut self, index: usize) -> Result<()> {
-        let (team, probability) = {
-            let interceptor = &self.interceptors[index];
-            (interceptor.team, interceptor.interception.probability)
-        };
+        let team = self.interceptor_team(index);
+        let probability = self.interceptors[index].interception.probability;
         let draw = self.side_random(team)?.next_between_inclusive(0, 999);
         let interceptor = &mut self.interceptors[index];
         interceptor.hits = draw < probability;
         interceptor.cooling = false;
         interceptor.state = InterceptState::Preparing;
+        if let InterceptorOwner::Unit {
+            actor_id,
+            preemptive: true,
+        } = interceptor.owner
+        {
+            let actor = self
+                .actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable");
+            super::skill::lock(&mut actor.skills.main);
+        }
         Ok(())
+    }
+
+    /// `EnterIdle`: the lock goes, and an interceptor that was not idle
+    /// becomes so. A preemptive unit's interceptor hears it (`OnEnterIdle`)
+    /// and lets its unit's main skill idle
+    /// (`InterceptEffect_FightMech_Preemptive.ChangeMechToUnlockState`).
+    fn enter_intercept_idle(&mut self, index: usize) {
+        self.set_intercept_target(index, None);
+        let interceptor = &mut self.interceptors[index];
+        if interceptor.state == InterceptState::Idle {
+            return;
+        }
+        interceptor.state = InterceptState::Idle;
+        if let InterceptorOwner::Unit {
+            actor_id,
+            preemptive: true,
+        } = interceptor.owner
+        {
+            let actor = self
+                .actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable");
+            super::skill::unlock(&mut actor.skills.main);
+        }
     }
 
     /// `TryAttack`: a hit takes the attack off the projectile's life, which
@@ -270,30 +485,35 @@ impl Simulation {
 
     /// `ProjectileController.GetInInterceptSources`, after a projectile that
     /// can be intercepted has moved: it leaves the interceptors it has left
-    /// the reach of, and joins every opposing one it is in the reach of.
+    /// the reach of, or that stand on its side now, and joins every one in
+    /// the records of the other side that it is in the reach of
+    /// (`TeamInterceptSourceManager.GetCurrentTeamInterceptSources`, which
+    /// takes a unit's group while the unit stands on that side).
     pub(in crate::fight) fn track_interceptors(&mut self, projectile: &mut Projectile) {
         if !projectile.interceptible {
             return;
         }
         let (x, y, z) = (projectile.x_q32, projectile.y_q32, projectile.z_q32);
         for source in std::mem::take(&mut projectile.sources) {
-            let keeps = self.interceptor(source).is_some_and(|interceptor| {
-                interceptor.team != projectile.team && interceptor.reaches(x, y, z)
+            let keeps = self.interceptor_index(source).is_some_and(|index| {
+                self.interceptor_team(index) != projectile.team
+                    && self.interceptor_reaches(index, x, y, z)
             });
             if !keeps {
                 self.leave_interceptor(source, projectile);
             }
         }
-        for interceptor in self
-            .interceptors
-            .iter_mut()
-            .filter(|interceptor| interceptor.enabled && interceptor.team != projectile.team)
-        {
-            if interceptor.reaches(x, y, z) {
-                projectile.sources.push(interceptor.building_id);
-                if !interceptor.in_reach.contains(&projectile.id) {
-                    interceptor.in_reach.push(projectile.id);
-                }
+        for index in 0..self.interceptors.len() {
+            if self.interceptors[index].removed
+                || self.interceptor_team(index) == projectile.team
+                || !self.interceptor_reaches(index, x, y, z)
+            {
+                continue;
+            }
+            let interceptor = &mut self.interceptors[index];
+            projectile.sources.push(interceptor.key);
+            if !interceptor.in_reach.contains(&projectile.id) {
+                interceptor.in_reach.push(projectile.id);
             }
         }
     }
@@ -309,11 +529,7 @@ impl Simulation {
     /// `RemoveProjectileController`: an interceptor whose lock leaves it
     /// drops the lock and resets.
     fn leave_interceptor(&mut self, source: u64, projectile: &mut Projectile) {
-        let Some(index) = self
-            .interceptors
-            .iter()
-            .position(|interceptor| interceptor.building_id == source)
-        else {
+        let Some(index) = self.interceptor_index(source) else {
             return;
         };
         let interceptor = &mut self.interceptors[index];
@@ -327,35 +543,38 @@ impl Simulation {
     }
 
     /// `InterceptSystem.DoRemoveFightInterceptor`, when its building falls:
-    /// it intercepts nothing more and lets go of its lock.
+    /// its group leaves its side's.
     pub(in crate::fight) fn lose_interceptor(&mut self, building_id: u64) {
-        let Some(index) = self
-            .interceptors
-            .iter()
-            .position(|interceptor| interceptor.building_id == building_id)
-        else {
-            return;
-        };
-        self.set_intercept_target(index, None);
-        let interceptor = &mut self.interceptors[index];
-        interceptor.enabled = false;
-        interceptor.in_reach.clear();
-        interceptor.state = InterceptState::Idle;
+        self.remove_interceptors(|owner| {
+            matches!(owner, InterceptorOwner::Building { building_id: id, .. } if id == building_id)
+        });
     }
 
-    /// Whether this building is an interceptor that still stands.
+    /// The interceptor building of this side that still stands.
     pub(in crate::fight) fn standing_interceptor(&self, team: u32) -> Option<u64> {
         self.interceptors
             .iter()
-            .find(|interceptor| interceptor.team == team && interceptor.enabled)
-            .map(|interceptor| interceptor.building_id)
+            .filter(|interceptor| !interceptor.removed)
+            .find_map(|interceptor| match interceptor.owner {
+                InterceptorOwner::Building {
+                    building_id,
+                    team: own,
+                    ..
+                } if own == team => Some(building_id),
+                _ => None,
+            })
     }
 
-    /// The interceptor this building is, standing or not.
-    fn interceptor(&self, building_id: u64) -> Option<&Interceptor> {
+    /// The interceptor a projectile's list names by its key.
+    fn interceptor_index(&self, key: u64) -> Option<usize> {
         self.interceptors
             .iter()
-            .find(|interceptor| interceptor.building_id == building_id)
+            .position(|interceptor| interceptor.key == key)
+    }
+
+    fn interceptor(&self, key: u64) -> Option<&Interceptor> {
+        self.interceptor_index(key)
+            .map(|index| &self.interceptors[index])
     }
 
     fn projectile(&self, id: u64) -> Option<&Projectile> {

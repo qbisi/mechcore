@@ -574,6 +574,7 @@ impl Simulation {
             terrain: terrain::TerrainSystem::default(),
         };
         simulation.number_joiners();
+        simulation.activate_interceptions();
         simulation.restore_standing_oil(&layout.standing_oil)?;
         // `CommanderSkillManager.OnFightStart`: a path is given out before
         // the first tick, and lands nothing.
@@ -1068,6 +1069,7 @@ impl Simulation {
         }
         self.clear_dead_summons()?;
         self.drop_dead_owners_lines();
+        self.deactivate_dead_interceptions();
         // Its `TryProcessDeadImportantUnit` too: a side whose last important
         // unit died this tick loses every unit it has left.
         self.lose_important_units(&events)?;

@@ -401,12 +401,6 @@ impl Contraptions {
                 ))
             })?;
         let named = format!("interceptor {id} ({})", row.name);
-        if row.judgment_probability != FIXED_ONE {
-            return Err(Error::new(format!(
-                "{named} hits with probability {}, and a hit that can miss is not measured",
-                row.judgment_probability
-            )));
-        }
         if (row.effect_type, row.effect_range_type) != (7, 0) {
             return Err(Error::new(format!(
                 "{named} has effect type {} over range type {}, which this build does not read",
@@ -428,7 +422,20 @@ impl Contraptions {
         } else {
             (-local_x, -local_z)
         };
-        let attack = i64::from(row.attack);
+        let interception = InterceptNumbers {
+            attack: row.attack,
+            range_max: row.range_max,
+            range_min: row.range_min,
+            prepare_time: row.prepare_time,
+            interval: row.interval,
+            cooling_time: row.cooling_time,
+            rise_interval: row.rise_interval,
+            decline: row.decline,
+            lower_limit: row.lower_limit,
+            rise: row.rise,
+            judgment_probability: row.judgment_probability,
+        }
+        .interception(&named)?;
         Ok(InterceptorBuilding {
             team,
             x: x * SPACE,
@@ -437,19 +444,58 @@ impl Contraptions {
             life: row.max_life,
             exp: row.exp,
             collider_priority: row.collider_priority,
-            interception: Interception {
-                attack,
-                decline: scaled(attack, row.decline),
-                lower: scaled(attack, row.lower_limit),
-                rise: scaled(attack, row.rise),
-                range_min_q32: row.range_min,
-                range_max_q32: row.range_max,
-                prepare_ticks: ticks(row.prepare_time)?,
-                interval_ticks: ticks(row.interval)?,
-                cooling_ticks: ticks(row.cooling_time)?,
-                rise_ticks: ticks(row.rise_interval)?,
-                probability: 1_000,
-            },
+            interception,
+        })
+    }
+}
+
+/// What a source answers `IInterceptData` with, as its row stores it: whole
+/// points of attack, and `FPoint` raw seconds, metres and rates. An
+/// interceptor's `InterceptContraption` and a technology's
+/// `InterceptMissileTech` both answer from their row.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct InterceptNumbers {
+    pub(crate) attack: i32,
+    pub(crate) range_max: i64,
+    pub(crate) range_min: i64,
+    pub(crate) prepare_time: i64,
+    pub(crate) interval: i64,
+    pub(crate) cooling_time: i64,
+    pub(crate) rise_interval: i64,
+    pub(crate) decline: i64,
+    pub(crate) lower_limit: i64,
+    pub(crate) rise: i64,
+    pub(crate) judgment_probability: i64,
+}
+
+impl InterceptNumbers {
+    /// `InterceptEffectBase.Init`'s numbers: times in ticks, and the rates
+    /// times the attack, truncated.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error naming the source when a hit can miss, which no
+    /// recording has measured, or a time is no tick count.
+    pub(crate) fn interception(&self, named: &str) -> Result<Interception> {
+        if self.judgment_probability != FIXED_ONE {
+            return Err(Error::new(format!(
+                "{named} hits with probability {}, and a hit that can miss is not measured",
+                self.judgment_probability
+            )));
+        }
+        let attack = i64::from(self.attack);
+        Ok(Interception {
+            attack,
+            decline: scaled(attack, self.decline),
+            lower: scaled(attack, self.lower_limit),
+            rise: scaled(attack, self.rise),
+            range_min_q32: self.range_min,
+            range_max_q32: self.range_max,
+            prepare_ticks: ticks(self.prepare_time)?,
+            interval_ticks: ticks(self.interval)?,
+            cooling_ticks: ticks(self.cooling_time)?,
+            rise_ticks: ticks(self.rise_interval)?,
+            probability: 1_000,
         })
     }
 }

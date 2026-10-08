@@ -1,0 +1,26 @@
+# Missile Interception on the Mustang: each of the twelve is an interceptor that
+# locks its main skill while it intercepts.
+#
+# The Mustangs lock the first rockets that come into reach at t20, and their
+# main skills lock with them (`SkillLockState`): each lets its target go,
+# and its motion stands idle from t21. Six rockets are taken at t24, after the
+# 4 ticks of `prepareTime`, and 21 in all, the last at t173. Each interceptor
+# that goes idle lets its main skill idle too, which searches again.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 341
+hash: {profile: mcfr-content-0.7.0, result: 3a6b4568624a048fb5002bdf233ebf0556a85689bb513bc13d82ddff1ffd7156}
+blue:
+  core_damage: 400
+  techs:
+    mustang: [missile_interceptor]
+  units:
+  - {name: mustang, index: 0, position: {x: 5, y: -100}}
+red:
+  units:
+  - {name: stormcaller, index: 0, position: {x: 5, y: -40}, exp: 0/170/1100}
+  - {name: stormcaller, index: 1, position: {x: -55, y: -40}, exp: 0/238/1100}

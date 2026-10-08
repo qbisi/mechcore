@@ -39,6 +39,7 @@ use serde::Deserialize;
 use crate::{
     Error, Result,
     data::{Channel, Correction, Entry, Index},
+    layout::{InterceptNumbers, Interception},
     rules::UnitDomain,
 };
 
@@ -71,8 +72,11 @@ const ARMOR: &str = "armorStrengthenTechnologyDatas";
 /// The list whose `SearchTargetSpecificTech` is an `ISearchTargetSpecific`.
 const SEARCH_TARGET_SPECIFIC: &str = "searchTargetSpecificDatas";
 
+/// The list whose `InterceptMissileTech` is an `IInterceptData`.
+const INTERCEPT: &str = "interceptMissileTechnologyDatas";
+
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 11] = [
+const IMPLEMENTED: [&str; 12] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -84,6 +88,7 @@ const IMPLEMENTED: [&str; 11] = [
     DAMAGE_INTENSIFY,
     SECONDARY_DAMAGE,
     BUFF,
+    INTERCEPT,
 ];
 
 /// The list whose `DamageIntensifyTech` writes its damage against one domain.
@@ -181,6 +186,8 @@ struct Technology {
     /// The buff it adds its unit as the fight starts, if its class is an
     /// `IEffectBuffDataSource`.
     buff_source: Option<BuffSource>,
+    /// What its unit intercepts with, if its class is an `IInterceptData`.
+    interception: Option<UnitInterception>,
     /// Whether what switching it off does is read and fought: its numbers
     /// taken away, as [`DISABLED_AS_NUMBERS`] lists, an extra weapon's skills
     /// disabled, or the buff a fight-start buff technology adds its own unit
@@ -232,6 +239,19 @@ pub(crate) struct SecondaryDamage {
     pub(crate) buffed: bool,
 }
 
+/// What `InterceptMissileEffectProvider` makes of one technology: the
+/// `InterceptCtrGroup_Mech` it adds its unit's side, `weapons` interceptors
+/// that each intercept with the same numbers from where the unit stands, and
+/// whether each locks the unit's main skill while it intercepts
+/// (`InterceptEffect_FightMech_Preemptive`) or leaves it be
+/// (`InterceptEffect_FightMech_NoPreemptive`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct UnitInterception {
+    pub(crate) interception: Interception,
+    pub(crate) weapons: u32,
+    pub(crate) preemptive: bool,
+}
+
 /// What an `AirAttackEffectProvider` does with one technology: it turns the
 /// main skill onto aircraft if it attacks none and off them if it does,
 /// adding 1 or -1 to its `AirAttackValue`, and the same to each extra
@@ -248,6 +268,7 @@ pub(crate) struct UnitSources {
     pub(crate) auto_recovery: Vec<AutoRecovery>,
     pub(crate) energy_shield: Vec<EnergyShield>,
     pub(crate) buff_sources: Vec<BuffSource>,
+    pub(crate) interception: Vec<UnitInterception>,
 }
 
 /// What a side's technologies change about one unit type's main skill
@@ -382,6 +403,54 @@ struct Row {
     sweep_reverse: bool,
     #[serde(default)]
     sweep_fixed_direction: bool,
+    /// `InterceptMissileTechnologyData`'s fields, on a row of its list.
+    #[serde(default)]
+    intercept: Option<InterceptBlock>,
+}
+
+/// What an interception row answers `IInterceptData` with, named as
+/// `config/contraptions.yaml`'s interceptor names them.
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct InterceptBlock {
+    attack: i32,
+    range_max: i64,
+    range_min: i64,
+    prepare_time: i64,
+    interval: i64,
+    cooling_time: i64,
+    rise_interval: i64,
+    decline: i64,
+    lower_limit: i64,
+    rise: i64,
+    judgment_probability: i64,
+    weapon_count: u32,
+    preemptive: bool,
+}
+
+impl InterceptBlock {
+    fn interception(&self, named: &str) -> std::result::Result<UnitInterception, String> {
+        let interception = InterceptNumbers {
+            attack: self.attack,
+            range_max: self.range_max,
+            range_min: self.range_min,
+            prepare_time: self.prepare_time,
+            interval: self.interval,
+            cooling_time: self.cooling_time,
+            rise_interval: self.rise_interval,
+            decline: self.decline,
+            lower_limit: self.lower_limit,
+            rise: self.rise,
+            judgment_probability: self.judgment_probability,
+        }
+        .interception(named)
+        .map_err(|error| error.to_string())?;
+        Ok(UnitInterception {
+            interception,
+            weapons: self.weapon_count,
+            preemptive: self.preemptive,
+        })
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -464,6 +533,10 @@ impl TechnologyEffects {
                 Some(Ok(buff)) => (Some(buff), corrections_of(&row)),
                 None => (None, corrections_of(&row)),
             };
+            let (interception, effect) = match interception_of(&row, &who) {
+                Ok(interception) => (interception, effect),
+                Err(why) => (None, Err(why)),
+            };
             let self_buff = buff_source.as_ref().is_some_and(|buff: &BuffSource| {
                 matches!(
                     buff.trigger,
@@ -488,6 +561,7 @@ impl TechnologyEffects {
                     extra_skills: row.extra_skill_effect,
                 }),
                 buff_source,
+                interception,
                 secondary_damage: (row.kind == SECONDARY_DAMAGE).then_some(SecondaryDamage {
                     damage: row.secondary_damage,
                     splash_radius: effects::fixed_to(row.secondary_splash_range, effects::METERS),
@@ -582,6 +656,7 @@ impl TechnologyEffects {
             sources.auto_recovery.extend(technology.auto_recovery);
             sources.energy_shield.extend(technology.energy_shield);
             sources.buff_sources.extend(technology.buff_source);
+            sources.interception.extend(technology.interception);
         }
         Ok(sources)
     }
@@ -659,6 +734,17 @@ impl TechnologyEffects {
             })
             .collect())
     }
+}
+
+/// What an interception row makes its unit, or why this build will not.
+fn interception_of(row: &Row, who: &str) -> std::result::Result<Option<UnitInterception>, String> {
+    if row.kind != INTERCEPT {
+        return Ok(None);
+    }
+    row.intercept
+        .ok_or_else(|| format!("{who} carries no interception"))?
+        .interception(who)
+        .map(Some)
 }
 
 /// What a row writes at each level, or why this build will not apply it.
@@ -928,12 +1014,8 @@ mod tests {
     fn a_technology_that_does_more_than_numbers_is_refused() {
         let table = TechnologyEffects::load().unwrap();
         for (id, unit, kind) in [
-            (
-                MISSILE_INTERCEPTION,
-                "mustang",
-                "interceptMissileTechnologyDatas",
-            ),
             (1201, "fortress", "supportUnitTechnologies"),
+            (812, "stormcaller", "fireIntensifyTechnologies"),
         ] {
             let refused = table.corrections(&[id], unit, 1).unwrap_err().to_string();
             assert!(refused.contains(&id.to_string()), "{refused}");
@@ -1097,6 +1179,33 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(refused.contains("4531"), "{refused}");
+    }
+
+    /// An interception technology hands its unit the interceptors it adds:
+    /// the Mustang's one locks its main skill, and the War Factory's four
+    /// leave it be.
+    #[test]
+    fn an_interception_technology_hands_its_unit_interceptors() {
+        let table = TechnologyEffects::load().unwrap();
+        let mustang = table
+            .sources(&[MISSILE_INTERCEPTION], "mustang")
+            .unwrap()
+            .interception;
+        assert_eq!(mustang.len(), 1);
+        assert_eq!((mustang[0].weapons, mustang[0].preemptive), (1, true));
+        let interception = mustang[0].interception;
+        assert_eq!(interception.attack, 21067);
+        assert_eq!(
+            (interception.prepare_ticks, interception.interval_ticks),
+            (4, 8)
+        );
+        // `attackNum × 0.08` and `× 0.4`, each rate a hair under its value.
+        assert_eq!((interception.decline, interception.lower), (1685, 8426));
+        let war_factory = table.sources(&[3317], "war_factory").unwrap().interception;
+        assert_eq!(
+            (war_factory[0].weapons, war_factory[0].preemptive),
+            (4, false)
+        );
     }
 
     /// A buff technology hands its unit the buff it adds as the fight starts:
