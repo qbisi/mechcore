@@ -441,7 +441,10 @@ when the search runs. Either way a candidate is scored only if the target tree
 holds it in a node that a square around the searcher overlaps, a square twice
 `max(range, 400)` wide: at the fight's first tick, a Crawler of replay 134266831
 round 3 scores 13 candidates, and not the enemy 538 m straight ahead of it,
-which a square 800 m wide leaves out. An attacking skill is prepared only while its lock is
+which a square 800 m wide leaves out. A prepared search gathers its
+candidates as it is prepared, from the tree and about where the searcher stood
+then; units that update before the searcher may have moved to other nodes by
+its turn, and the candidates stay the ones prepared. An attacking skill is prepared only while its lock is
 absent or dead, an idle one when it can start a search, and a preparing or
 cooling one never; the prepared scores are cleared every tick. So a
 Stormcaller whose live lock walks inside its minimum range during a tick
@@ -976,6 +979,10 @@ not the game's native attack-type enum.
   `tests/corpus/fights/201373545-r4.yaml`, ticks 504 and 1028. A Farseer
   sets off as a Sledgehammer does: `tests/corpus/fights/134267654-r3.yaml`,
   tick 1739.
+- A prepared search scores the candidates the tree held about the searcher as
+  the tick opened: `tests/corpus/fights/67260372-r4.yaml`, tick 42, where
+  Crawler 311 locks Centurion 159, which the tree by its turn no longer
+  answers for its square.
 - The presearch staggers each side's first searches in its update order, not
   its identities': `tests/corpus/fights/67152171-r3.yaml`, blue's Mustang 27,
   whose searches fall on ticks 1, 12, …, 133.
@@ -1235,6 +1242,10 @@ not the game's native attack-type enum.
   `ScoreRatingTargetSelector.TrySelect`,
   `SkillSearchTargetController.PerformNormalSkillSearch`,
   `ScoreRatingTargetSelector.ClearDatas`.
+- A prepared search gathers its candidates as it is prepared:
+  `MainSkillSearchTargetController.PrepareSearch`,
+  `SkillSearchTargetController.PrepareAvailableTargets`,
+  `ScoreRatingTargetSelector.Prepare`.
 - A skill a `SkillGroup` holds is never prepared:
   `MainSkillSearchTargetController.PrepareSearch`.
 - A search is prepared for the mechs alive and not travelling as the modules
