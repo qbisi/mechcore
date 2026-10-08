@@ -126,6 +126,16 @@ reduces, which a melee reach does not take. Electromagnetic Shot
 switches a struck unit's technologies off for some seconds and takes 40% off
 its speed; an item's buff of the kind, Charged Ammo's, is the same source.
 
+**A buff that burns takes a share of its unit's maximum life every step, and
+one that disables recovery stops its repair and lifesteal.** Each `stepTime`,
+the buff takes the whole part of the unit's maximum life times its life
+change rate, as a hit of no object under the side that added it, which the
+rate on damage taken does not touch. While a buff that disables recovery
+runs, the unit's repair and lifesteal add nothing, though their clocks run on.
+Ignite, a Vulcan's hits, takes 3% of the struck unit's maximum life every half
+second for two seconds and disables its recovery; every hit starts it over. A
+buff that heals is refused.
+
 **A buff source triggered by its unit's losing life adds its buff to the unit
 itself, each time a hit takes life from it.** The buff is added as the life
 goes, before the unit's death is handled, so a unit the hit killed takes it
@@ -334,6 +344,10 @@ whose effect grows with rank, rather than read index zero:
 - A hit adds its buff to the unit struck, ranged or melee, and a Fortress's
   range reads 70 of 100 under it: `tests/technology_buff/fights/suppression-shots.yaml`,
   `tests/technology_buff/fights/suppression-shots-melee.yaml`.
+- Ignite burns a Rhino 3% of its maximum life every half second from the
+  Vulcan's first hit, and Field Maintenance repairs nothing while it burns;
+  without Ignite the Rhino repairs from tick 106 and wins:
+  `tests/technology_buff/fights/ignite.yaml`.
 - Counter-Fire's buff is on a Fire Badger from the tick a Marksman's hit
   takes life from it, its range 145 of 75; without it the simulator parts
   from the recording on that tick, on that range:
@@ -407,6 +421,12 @@ whose effect grows with rank, rather than read index zero:
   `FightMech.AddData` and `FightMech.RemoveData` call
   `FightMech.RefreshLifeData`, which keeps a full `FightActor.lifeGauge` full
   and any other at its share of the new maximum.
+- A buff that burns or disables recovery: `Buff.Init` gives a buff whose
+  `IBuffData.GetLifeChangeRate` is nonzero an `IBEC_ChangeLIfe`, which
+  `Buff.Update` updates each `stepTime`. `FightMech.RecoveryLife` and
+  `FightMech.StealLife` return before `FightActor.AddLife` while
+  `BuffManager.IsRecoverDisabled`, which `FightMech.IsRecoverDisabled` reads
+  as the buffs' `IBuffData.IsDisableRecover` count above zero.
 - A buff that summons: `Buff.Init` gives a buff whose `IBuffData.IsSummoning`
   an `IBEC_DeadSummon`, and `BuffSystem.IsAvaliableWhenActorDead` lets
   `BuffSystem.AddBuff` add it to a dead target, as it does one whose

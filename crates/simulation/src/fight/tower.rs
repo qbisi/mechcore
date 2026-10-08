@@ -78,6 +78,9 @@ pub(in crate::fight) struct RunningBuff {
     /// `IsInvincible`: while it runs, `BuffManager` holds the unit's
     /// `Invincible` count above zero.
     invincible: bool,
+    /// `IsDisableRecover`: while it runs, `BuffManager` holds the unit's
+    /// `DisableRecover` count above zero.
+    disables_recover: bool,
     /// `lifeChangeRate`, an `FPoint` raw rate: a nonzero one gives the buff
     /// `IBEC_ChangeLIfe`.
     life_change_rate: i64,
@@ -210,6 +213,8 @@ pub(in crate::fight) struct BuffRow {
     pub(in crate::fight) debuff: bool,
     /// `IsInvincible`.
     pub(in crate::fight) invincible: bool,
+    /// `IsDisableRecover`.
+    pub(in crate::fight) disables_recover: bool,
     /// `lifeChangeRate`, an `FPoint` raw rate of the unit's maximum life it
     /// changes by every step.
     pub(in crate::fight) life_change_rate: i64,
@@ -349,6 +354,12 @@ impl super::Actor {
     /// unit's technologies off.
     pub(in crate::fight) fn technology_disabled(&self) -> bool {
         self.buffs.iter().any(|running| running.disables_technology)
+    }
+
+    /// `IsRecoverDisabled`: whether a running buff holds the unit's
+    /// recovery off.
+    pub(in crate::fight) fn recover_disabled(&self) -> bool {
+        self.buffs.iter().any(|running| running.disables_recover)
     }
 }
 
@@ -577,6 +588,7 @@ impl Simulation {
             disables_technology: false,
             debuff: self.towers.config.destroyed_buff.debuff,
             invincible: false,
+            disables_recover: false,
             life_change_rate: 0,
             current_life_rate: 0,
         };
@@ -1192,6 +1204,7 @@ fn add_buff(
         source_actor,
         disables_technology: row.disables_technology,
         invincible: row.invincible,
+        disables_recover: row.disables_recover,
         life_change_rate: row.life_change_rate,
         max_life_rate: row.max_life_rate,
         summons: row.summons,

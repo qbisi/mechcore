@@ -1534,8 +1534,10 @@ not the game's native attack-type enum.
   does; and which of an item and a technology a unit with both keeps, since
   every standard source repairs by the same numbers.
 - **Lifesteal under a recovery-disabling buff or with its technologies
-  disabled.** Only the Ignite buffs disable recovery and no recorded fight runs
-  one; no recorded lifesteal unit had its technologies disabled. Which of two
+  disabled.** Only the Ignite buffs disable recovery, and the recorded fight
+  that runs one stops a repair
+  ([technology_effects.md](technology_effects.md#buff-technologies)), not a
+  lifesteal; no recorded lifesteal unit had its technologies disabled. Which of two
   sources of one priority that answer differently a provider enables is not
   read, and a summon's lifesteal is not measured.
 

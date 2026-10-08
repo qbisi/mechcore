@@ -80,6 +80,12 @@ pub(crate) struct BuffSource {
     pub(crate) max_life_rate: i64,
     /// `stepTime`, Q32.32 seconds: how often its controllers update.
     pub(crate) step_q32: i64,
+    /// `lifeChangeRate`, Q32.32: the rate of the unit's maximum life
+    /// `IBEC_ChangeLIfe` changes it by every step.
+    pub(crate) life_change_rate: i64,
+    /// `disableRecover`: while it runs, the unit's repair and lifesteal add
+    /// nothing.
+    pub(crate) disables_recover: bool,
     /// How it stacks, if it does (`IsAdditiveEffect`).
     pub(crate) stacking: Option<Stacking>,
     /// `isClearSelfBuffWhenDisableTech`: as its unit's technologies are

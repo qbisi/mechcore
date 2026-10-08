@@ -99,6 +99,10 @@ pub(crate) struct BuffBlock {
     /// `summonUnitID` and `isSummonUnitLevelInherit`.
     summon_unit: i32,
     summon_level_inherit: bool,
+    /// `lifeChangeRate`, Q32.32.
+    life_change_rate: i64,
+    /// `disableRecover`.
+    disable_recover: bool,
     /// The other fields it sets.
     #[serde(default)]
     special: Vec<String>,
@@ -174,43 +178,13 @@ pub(crate) fn buff_source(
             buff.special.join(", ")
         ));
     }
-    let stacking = if buff.additive_effect {
-        let condition = match buff.additive_condition {
-            STACK_BY_TIME => Some(StackCondition::Time),
-            STACK_BY_DISTANCE if buff.additive_condition_param > 0 => {
-                Some(StackCondition::Distance {
-                    metres_q32: buff.additive_condition_param,
-                })
-            }
-            _ => None,
-        };
-        let lowers = [
-            buff.amplify_damage_rate,
-            buff.damage_rate,
-            buff.speed_rate,
-            buff.attack_range_value,
-            buff.attack_range_rate,
-            buff.max_life_rate,
-        ]
-        .iter()
-        .any(|rate| *rate < 0);
-        match condition {
-            Some(condition) if buff.step_time > 0 && !lowers => Some(Stacking {
-                max: buff.max_additive_stack,
-                condition,
-            }),
-            _ => {
-                return Err(format!(
-                    "{who} adds buff {} ({}), which stacks on condition {} or lowers what it \
-                     stacks, and only a stack by time or distance raising what it writes is \
-                     read",
-                    buff.id, buff.name, buff.additive_condition
-                ));
-            }
-        }
-    } else {
-        None
-    };
+    if buff.life_change_rate > 0 {
+        return Err(format!(
+            "{who} adds buff {} ({}), which heals, and a buff's healing is not measured",
+            buff.id, buff.name
+        ));
+    }
+    let stacking = stacking(who, buff)?;
     Ok(BuffSource {
         buff_id: buff.id,
         divide: buff.divide,
@@ -226,12 +200,51 @@ pub(crate) fn buff_source(
         attack_range_rate: buff.attack_range_rate,
         max_life_rate: buff.max_life_rate,
         step_q32: buff.step_time,
+        life_change_rate: buff.life_change_rate,
+        disables_recover: buff.disable_recover,
         stacking,
         summons: summons(who, buff)?,
         trigger,
         can_disable,
         clears_when_technologies_disabled: buff.clear_when_technologies_disabled,
     })
+}
+
+/// How a buff stacks, when it is additive in effect
+/// (`BuffAdditiveStackConditionTimeController` or
+/// `BuffAdditiveStackConditionDistanceController`), or why it is not read.
+fn stacking(who: &str, buff: &BuffBlock) -> std::result::Result<Option<Stacking>, String> {
+    if !buff.additive_effect {
+        return Ok(None);
+    }
+    let condition = match buff.additive_condition {
+        STACK_BY_TIME => Some(StackCondition::Time),
+        STACK_BY_DISTANCE if buff.additive_condition_param > 0 => Some(StackCondition::Distance {
+            metres_q32: buff.additive_condition_param,
+        }),
+        _ => None,
+    };
+    let lowers = [
+        buff.amplify_damage_rate,
+        buff.damage_rate,
+        buff.speed_rate,
+        buff.attack_range_value,
+        buff.attack_range_rate,
+        buff.max_life_rate,
+    ]
+    .iter()
+    .any(|rate| *rate < 0);
+    match condition {
+        Some(condition) if buff.step_time > 0 && !lowers => Ok(Some(Stacking {
+            max: buff.max_additive_stack,
+            condition,
+        })),
+        _ => Err(format!(
+            "{who} adds buff {} ({}), which stacks on condition {} or lowers what it stacks, \
+             and only a stack by time or distance raising what it writes is read",
+            buff.id, buff.name, buff.additive_condition
+        )),
+    }
 }
 
 /// What a buff's unit summons as it dies, `IBEC_DeadSummon`, which `Buff.Init`

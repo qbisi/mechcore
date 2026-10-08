@@ -122,6 +122,7 @@ impl Simulation {
             disables_technology: false,
             debuff: buff.debuff,
             invincible: buff.invincible,
+            disables_recover: false,
             life_change_rate: 0,
             current_life_rate: buff.current_life_rate,
         };
