@@ -107,17 +107,17 @@ const EXTRA_WEAPON: &str = "extraWeaponTechnologies";
 /// The extra weapon technologies the fight runs. Each member's skill and
 /// what it does beyond a projectile differ, so each joins once a recording
 /// of it agrees: Secondary Armament and Anti-Air Missile, the Sabertooth's,
-/// Incendiary Bomb, Scorching Charge, Homing Missile, Sticky Oil Bomb, the
-/// Phantom Ray's and the Vulcan's, Whirlwind, the Rhino's, Energy
-/// Diffraction, the Melting Point's, Spider Mine, the Tarantula's, Matrix
-/// Bombardment, the Wraith's, Anti-Air Barrage, the Fortress's, Air Defense
-/// Mark, the Typhoon's, Disintegration, the Abyss's, Naval Gun, the
-/// Overlord's, Gun-launched Missile, the Mountain's, Electromagnetic
-/// Barrage, the Melting Point's, Dual Wield, the Centurion's, Fork, the
-/// Raiden's, and Smoke Bomb, the Mountain's.
-pub(crate) const FOUGHT_EXTRA_WEAPONS: [i32; 20] = [
-    1_105, 1_106, 1_107, 1_108, 1_109, 11_010, 11_020, 11_024, 11_025, 11_028, 11_029, 110_181,
-    110_211, 110_212, 110_271, 110_321, 110_322, 1_102_022, 11_020_021, 11_020_022,
+/// Incendiary Bomb, the Hound's and the Vulcan's, Scorching Charge, Homing
+/// Missile, Sticky Oil Bomb, the Phantom Ray's and the Vulcan's, Whirlwind,
+/// the Rhino's, Energy Diffraction, the Melting Point's, Spider Mine, the
+/// Tarantula's, Matrix Bombardment, the Wraith's, Anti-Air Barrage, the
+/// Fortress's, Air Defense Mark, the Typhoon's, Disintegration, the Abyss's,
+/// Naval Gun, the Overlord's, Gun-launched Missile, the Mountain's,
+/// Electromagnetic Barrage, the Melting Point's, Dual Wield, the
+/// Centurion's, Fork, the Raiden's, and Smoke Bomb, the Mountain's.
+pub(crate) const FOUGHT_EXTRA_WEAPONS: [i32; 21] = [
+    1_103, 1_105, 1_106, 1_107, 1_108, 1_109, 11_010, 11_020, 11_024, 11_025, 11_028, 11_029,
+    110_181, 110_211, 110_212, 110_271, 110_321, 110_322, 1_102_022, 11_020_021, 11_020_022,
 ];
 
 /// `EnergyShieldTech.GetLifeRate`: `FPoint.One`, whatever its row, so the

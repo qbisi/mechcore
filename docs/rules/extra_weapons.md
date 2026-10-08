@@ -6,7 +6,7 @@ Each row names the skill it adds in `skillID`, which `scripts/extract/extract-un
 writes under the unit's `extra_weapons` in `config/units/` where its shape is
 one that file can state. The simulator fights Secondary Armament, the
 Sabertooth's two guns, Anti-Air Missile, its missile at the air, Incendiary
-Bomb, the Hound's, Scorching Charge, the Fire Badger's self-destruct, Homing
+Bomb, the Hound's and the Vulcan's, Scorching Charge, the Fire Badger's self-destruct, Homing
 Missile, the Centurion's, Sticky Oil Bomb, the Phantom Ray's and the
 Vulcan's, Whirlwind, the Rhino's, Energy Diffraction, the Melting Point's,
 Spider Mine, the Tarantula's, Matrix Bombardment, the Wraith's, and
@@ -277,7 +277,9 @@ back. A recording
 keeps them among the unit's modifiers, `gf_range_value` and
 `gf_life_time_value`, from the first tick. The fire burns as any fire does
 ([terrain.md](terrain.md)), at the shared fire's damage and period. Incendiary
-Bomb's fire reaches 12 metres from where it lands and burns for 10 seconds.
+Bomb's fire reaches 12 metres from where it lands and burns for 10 seconds;
+the Vulcan's, of its own row, 18 metres for 12 seconds, ten shells a volley
+scattered within 70 metres of the target.
 
 ## An oil where it lands, and a buff on what it strikes
 
@@ -748,6 +750,10 @@ not melee, so the simulator refuses it.
   `tests/extra_weapon/fights/sticky-oil-bomb-fire.yaml`.
 - A Vulcan's Sticky Oil Bomb, which does not lock its target, leaves its
   oils: `tests/extra_weapon/fights/sticky-oil-bomb-vulcan.yaml`.
+- The Vulcan's Incendiary Bomb fires ten shells a volley from one skill of
+  both its launchers, each leaving a fire of 18 metres that burns 12
+  seconds, and a Marksman burns in them:
+  `tests/extra_weapon/fights/incendiary-bomb-vulcan.yaml`.
 - A Phantom Ray's Sticky Oil Bomb fires past a Rapid-Fire Turret standing in
   its line of fire, at the unit behind it:
   `tests/corpus/fights/268447927-r2.yaml`.
