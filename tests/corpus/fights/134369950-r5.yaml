@@ -1,0 +1,66 @@
+# Replay 2328_20261007--134369950, round 5, map 1021. Blue's Overlords 36 and
+# 37 fire at red's Fortress 77 through its own shield, the Fortress itself
+# beyond their reach: each burst aims at the point of its reach on the way
+# (`CalculateAttackPosition`), which its projectiles name until their first
+# update, from tick 121.
+
+kind: fight
+map_id: 1021
+seed: 1966074706
+round: 5
+source: game
+ticks: 833
+hash: {profile: mcfr-content-0.7.0, result: 9b80a0b0c142e30782fa5740f16abe465bef12dd74044b068040d38ed7cfbcbd}
+blue:
+  officers: [aerial_specialist]
+  techs:
+    overlord: [overlord_artillery]
+    fire_badger: [scorching_charge]
+  legacy_index: 14
+  units:
+  - {name: fang, index: 0, position: {x: 0, y: -205}, exp: 205/247/600, rotated: true}
+  - {name: fang, index: 1, position: {x: -210, y: -185}, exp: 236/453/600, rotated: true}
+  - {name: fang, index: 2, position: {x: 220, y: -185}, exp: 228/270/600, rotated: true}
+  - {name: fire_badger, index: 3, position: {x: -125, y: -150}, exp: 270/270/1400}
+  - {name: fire_badger, index: 4, position: {x: 125, y: -150}, exp: 926/1248/1400}
+  - {name: marksman, index: 5, position: {x: 90, y: -150}, exp: 650/650/650}
+  - {name: marksman, index: 6, position: {x: -90, y: -150}, exp: 619/650/650}
+  - {name: sabertooth, index: 7, position: {x: -55, y: -225}, exp: 1300/1300/1300}
+  - {name: marksman, index: 8, position: {x: 50, y: -150}, level: 2, exp: 0/554/1465}
+  - {name: marksman, index: 9, position: {x: -50, y: -150}, exp: 347/650/650}
+  - {name: fire_badger, index: 10, position: {x: -310, y: 285}, exp: 380/380/1400}
+  - {name: fire_badger, index: 11, position: {x: 310, y: 185}, exp: 550/550/1400}
+  - {name: overlord, index: 12, position: {x: -105, y: -185}, exp: 1750/1750/1750}
+  - {name: overlord, index: 13, position: {x: 105, y: -185}, exp: 1357/1750/1750}
+  - {name: overlord, index: 14, position: {x: -175, y: -185}, exp: 0/1750/1750}
+  - {name: overlord, index: 15, position: {x: 175, y: -185}, exp: 0/1132/1750}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+red:
+  core_damage: 1932
+  officers: [giant_specialist]
+  legacy_index: 14
+  units:
+  - {name: arclight, index: 0, position: {x: 10, y: -190}, level: 2, exp: 172/246/1690}
+  - {name: arclight, index: 1, position: {x: 120, y: -190}, exp: 531/569/750}
+  - {name: arclight, index: 2, position: {x: -120, y: -190}, exp: 447/507/750}
+  - {name: steel_ball, index: 3, position: {x: 95, y: -300}, exp: 593/697/1000}
+  - {name: steel_ball, index: 4, position: {x: -85, y: -300}, exp: 596/634/1000}
+  - {name: hound, index: 5, position: {x: 90, y: -230}, exp: 340/402/750}
+  - {name: hound, index: 6, position: {x: -90, y: -230}, exp: 356/379/750}
+  - {name: stormcaller, index: 7, position: {x: 85, y: -170}, level: 2, exp: 0/784/2479}
+  - {name: stormcaller, index: 8, position: {x: -105, y: -170}, exp: 977/1100/1100}
+  - {name: hound, index: 9, position: {x: 10, y: -230}, exp: 393/431/750}
+  - {name: fortress, index: 10, position: {x: 110, y: -120}, level: 2, exp: 0/392/3605, equipment: [nano_repair_kit]}
+  - {name: hound, index: 11, position: {x: -40, y: -230}, exp: 241/369/750}
+  - {name: fortress, index: 12, position: {x: -100, y: -120}, exp: 299/456/1600, equipment: [barrier]}
+  - {name: stormcaller, index: 13, position: {x: -35, y: -170}, exp: 369/407/1100}
+  - {name: phoenix, index: 14, position: {x: 210, y: -210}, level: 3, exp: 0/305/4630, rotated: true}
+  - {name: melting_point, index: 15, position: {x: 170, y: -200}, exp: 0/78/1400}
+  - {name: hound, index: 16, position: {x: 50, y: -210}, exp: 0/38/750}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: missile, index: 2, position: {x: -281, y: -179}, retained: false}
+  - {name: missile, index: 3, position: {x: -297, y: -173}, retained: false}
+  - {name: missile, index: 4, position: {x: 295, y: -210}, retained: false}

@@ -531,6 +531,24 @@ died: a Centurion's second Homing Missile, a quarter second after the first,
 leaves for where its target stood the tick before
 (`tests/extra_weapon/fights/enhanced-range-homing-missile.yaml`).
 
+**Where a burst aims is held within the skill's reach.** Every projectile
+performer asks `ProjectileAttackPerformer.CalculateAttackPosition` where to
+aim: at the burst's first projectile, at each projectile of a burst with no
+offset, and at each unit of an evenly allocated burst. It holds the way from
+the owner to the target to the skill's range plus both radii
+(`FVector3.ClampMagnitude`). An evenly allocated burst adds its
+`extraSearchRange`. When exactly one of owner and target flies, the reach is
+the hypotenuse of that length and the air height (`FPoint.Pow`, `Sqrt`).
+Ordinary bursts measure between the two positions in space. An evenly
+allocated burst measures from the target's ground point: to the owner's
+ground point when neither flies, and to its point in space otherwise. A skill
+that attacks only the air aims at the air height. A target within reach is
+aimed at where it stands. An Overlord firing at a Fortress's shield, with the
+Fortress itself beyond reach, aims at the point of its reach on the way. The
+projectile names that point until its first update, and one that follows its
+target takes the target's position up again then, a construction as a unit
+(`FightProjectile.Update`).
+
 **Two weapons split a burst's offsets in three dimensions.** Each weapon takes
 the half of the offsets on its side of the line from the weapon to the target,
 ordered by the angle it sees, and the angle and the side are measured from the

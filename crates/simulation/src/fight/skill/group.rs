@@ -572,19 +572,13 @@ impl Simulation {
             // A slot whose line of fire a construction stands in fires at
             // the construction, as the core does.
             FightActorRef::Building(building_id) => {
-                let Some((x_q32, z_q32, radius)) = self
+                let Some(radius) = self
                     .buildings
                     .iter()
                     .find(|building| {
                         building.building_id == building_id && building_alive(building)
                     })
-                    .map(|building| {
-                        (
-                            building.position.x,
-                            building.position.z,
-                            building_radius(building),
-                        )
-                    })
+                    .map(building_radius)
                 else {
                     return Ok(());
                 };
@@ -599,15 +593,18 @@ impl Simulation {
                     )));
                 }
                 self.refresh_group_skill_attack_interval(skill_ref, skill_index, step)?;
+                let aimed = self.attack_position(
+                    skill_ref.owner,
+                    skill_index,
+                    FightActorRef::Building(building_id),
+                    0,
+                    true,
+                )?;
                 self.release_projectile_to(
                     skill_ref,
                     ObjectKind::Building,
                     building_id,
-                    q32_to_space_rounded(x_q32),
-                    0,
-                    q32_to_space_rounded(z_q32),
-                    x_q32,
-                    z_q32,
+                    aimed,
                     radius,
                     skill_index,
                     skill_index,
