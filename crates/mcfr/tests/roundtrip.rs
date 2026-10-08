@@ -2,11 +2,11 @@ use std::io::Read;
 
 use bytes::Bytes;
 use mechcore_mcfr::{
-    AttackPhase, BuildingState, CheckedSkill, ControlProgress, Domain, DurableContext,
-    EnabledSkill, Event, EventPayload, ExpRange, GaugeI32, HASH_PROFILE, Hashes, LiveUnitState,
-    MCFR_FORMAT, McfrReader, McfrWriter, Modifier, ModifierChannel, ModifierPart, MotionState,
-    ObjectKind, ObjectRef, PersonalShieldState, PoseClip, Producer, ProjectileReach, QPlanar,
-    QPose, QVec3, Rational, RvoExit, RvoNeighbour, RvoNeighbourKind, RvoSolve, RvoVec, RvoVo,
+    AttackPhase, BuildingState, CheckedSkill, ControlState, Domain, DurableContext, EnabledSkill,
+    Event, EventPayload, ExpRange, GaugeI32, HASH_PROFILE, Hashes, LiveUnitState, MCFR_FORMAT,
+    McfrReader, McfrWriter, Modifier, ModifierChannel, ModifierPart, MotionState, ObjectKind,
+    ObjectRef, PersonalShieldState, PoseClip, Producer, ProjectileReach, QPlanar, QPose, QVec3,
+    Rational, RvoExit, RvoNeighbour, RvoNeighbourKind, RvoSolve, RvoVec, RvoVo,
     ShieldDestroyedReason, ShieldRoundPolicy, ShieldSourceKind, ShieldState, SkillAttackableCheck,
     SkillMachineState, SkillState, TargetCandidate, TargetRefs, TargetSearch, TargetSearchPath,
     TerrainApplicationState, TerrainEffectClock, TerrainGridState, TerrainLogicLifetime,
@@ -49,7 +49,7 @@ fn writes_and_reads_every_table() {
     );
 
     let reader = McfrReader::open(&path).unwrap();
-    assert_eq!(MCFR_FORMAT, "0.18.0");
+    assert_eq!(MCFR_FORMAT, "0.19.0");
     assert_eq!(reader.producer(), Producer::Game);
     assert_eq!(reader.tick_count(), 1);
     assert_eq!(reader.terminal_tick(), 1);
@@ -269,7 +269,7 @@ fn the_result_hash_is_golden() {
     let hashes = hash_tick(&context(), state(75), &damage_events());
     assert_eq!(
         hashes.result_hash,
-        "2fe1a888fb93c114ffbf8986a882435e43c64c1b1419af618f50c8feace8edca"
+        "d370b9457f358f3424672d6bd13e92411b8489ef9ad327f548ac72196cf1af5f"
     );
 }
 
@@ -596,6 +596,7 @@ fn writer_rejects_non_shield_projectile_containment_reference() {
         target: None,
         cached_target_position: QVec3 { x: 0, y: 0, z: 0 },
         cached_target_radius: 0,
+        move_range: 140 << 32,
         life: GaugeI32 {
             current: 1,
             maximum: 1,
@@ -735,39 +736,6 @@ fn projectile_reach_rows_read_back() {
     assert_eq!(
         reader.instrument::<ProjectileReach>().unwrap(),
         Some(vec![(1, reach)])
-    );
-}
-
-/// A control row carries a list of sources and reads back as written.
-#[test]
-fn control_progress_rows_read_back() {
-    let directory = tempfile::tempdir().unwrap();
-    let path = directory.path().join("control.mcfr");
-    let mut writer =
-        McfrWriter::create(&path, Producer::Game, "build-a", &context(), LAYOUT_YAML).unwrap();
-    writer.append_tick(state(75), &damage_events()).unwrap();
-    let rows = vec![
-        ControlProgress {
-            unit: ObjectRef::new(ObjectKind::Unit, 7),
-            progress: 602,
-            sources: vec![ObjectRef::new(ObjectKind::Unit, 1)],
-        },
-        ControlProgress {
-            unit: ObjectRef::new(ObjectKind::Unit, 9),
-            progress: 0,
-            sources: Vec::new(),
-        },
-    ];
-    writer.append_instrument(&rows).unwrap();
-    writer.finish().unwrap();
-    let reader = McfrReader::open(&path).unwrap();
-    assert_eq!(
-        reader.instrument_channels().collect::<Vec<_>>(),
-        ["control_progress"]
-    );
-    assert_eq!(
-        reader.instrument::<ControlProgress>().unwrap(),
-        Some(rows.into_iter().map(|row| (1, row)).collect())
     );
 }
 
@@ -1217,6 +1185,7 @@ fn unit(id: u64, team: u32, x: i64, life: i32, with_secondary: bool) -> LiveUnit
                     attack_time: 1,
                     current_attack_interval: 62,
                     attack_count: 0,
+                    perform_count: 0,
                     attack_range: 140 << 32,
                     attack_damage: 2329,
                     weapons: vec![WeaponState {
@@ -1233,6 +1202,11 @@ fn unit(id: u64, team: u32, x: i64, life: i32, with_secondary: bool) -> LiveUnit
                 }),
             })
             .collect(),
+        // A control beam of unit 1 is turning unit 2.
+        control: (id == 2).then(|| ControlState {
+            progress: 600,
+            sources: vec![ObjectRef::new(ObjectKind::Unit, 1)],
+        }),
     }
 }
 

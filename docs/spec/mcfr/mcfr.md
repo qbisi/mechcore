@@ -1,4 +1,4 @@
-# MCFR, format 0.18.0
+# MCFR, format 0.19.0
 
 [简体中文](mcfr.zh.md)
 
@@ -9,7 +9,7 @@ schema of each, the identity and ordering rules that make two recordings of one
 fight the same recording, and what a reader must validate before trusting one.
 
 ```text
-format = "0.18.0"
+format = "0.19.0"
 ```
 
 The native field mapping is bound to the game version the repository pins in
@@ -122,7 +122,7 @@ Parquet key-value metadata keys and values are both UTF-8 strings.
 
 | Key | Data | Meaning |
 | --- | --- | --- |
-| `format` | exactly `0.18.0` | the logical and physical contract version |
+| `format` | exactly `0.19.0` | the logical and physical contract version |
 | `producer` | `game` or `simulator` | what wrote the recording: the game, through the adapter, or the simulator |
 | `game_build` | non-empty UTF-8 | capture provenance; the adapter reads `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | the context `D` that holds steady for one round |
@@ -183,6 +183,7 @@ death survives as a `unit_died` event.
 | `personal_shield` | required struct | the unit's own energy shield | below |
 | `move_speed` | `INT64 required` | the speed the fight moves the unit at, after every correction, Q32.32 raw | `FightMech.GetMoveSpeed()` |
 | `skills` | required list | every skill the unit holds, its state and its weapons | below |
+| `control` | nullable struct | while a control beam is turning the unit: `progress`, `INT32`, the power its beams' hits have added, and `sources`, `list<ObjectRef>`, the owners of the skills whose beams hold it, in the order the build keeps them; null while none is | the unit's entry in `TeamTranslationSystem.translatingDatas`: `TranslationData.progress` and `sources` |
 
 ### `status_mask`
 
@@ -294,6 +295,7 @@ enabled    : nullable struct   null while FightSkill.IsEnable() is false or the 
   attack_time             : INT32 required       FightSkill.attackTime
   current_attack_interval : INT32 required       FightSkill.GetCurrentAttackInterval()
   attack_count            : INT32 required       FightSkill.GetAttackCount()
+  perform_count           : INT32 required       SkillAttackController.performCount
   attack_range            : INT64 required       FightSkill.GetAttackRange(), Q32.32 raw
   attack_damage           : INT32 required       FightSkill.GetNormalDamage(0)
   weapons                 : required list
@@ -366,6 +368,10 @@ deciding whose rounding is authoritative.
 
 `attack_count` is the blows started since the skill entered its attack state,
 less one: `-1` outside it. A beam's damage multiplier is the one at that index.
+`perform_count` is the blows whose cycle has run out, backswing and all, since
+the skill entered its attack state, and 0 outside it: whether a blow that
+loses its target gives its interval back turns on it
+([combat.md](../../rules/combat.md)).
 
 `attack_range` and `attack_damage` are what the skill's own properties answer
 after every correction on it, beside the `modifiers` that say what was written
@@ -442,6 +448,7 @@ the complete set the system enumerates.
 | `target` | nullable `ObjectRef` | the current target | `FightProjectile.GetTarget()` |
 | `cached_target_position` | `QVec3 required` | the target position the projectile cached | `GetTargetInfo().GetPosition()` |
 | `cached_target_radius` | `INT64 required` | the target radius it cached | `GetTargetInfo().GetRadius()` |
+| `move_range` | `INT64 required` | the reach it was given as it was made, Q32.32 raw: a projectile that locks its target lands only within it of its owner | `FightProjectile.moveRange` |
 | `life` | `GaugeI32 required` | current and maximum life | `GetLife()` / `GetMaxLife()` |
 | `spawn_containing_shields` | required `list<ObjectRef>` | the shields its own hit test considers that already contained it at creation, by Shield ID | `ProjectileController.inEnergyShields` |
 
@@ -828,8 +835,8 @@ channel's schema can change without a format version.
 
 The channels the Adapter records are `target_refs`,
 `skill_attackable_checker`, `target_search`, `target_candidate`,
-`rvo_solve`, `rvo_neighbour`, `rvo_vo`, `unit_pose`, `projectile_reach`,
-`control_progress` and `exp_range`
+`rvo_solve`, `rvo_neighbour`, `rvo_vo`, `unit_pose`, `projectile_reach` and
+`exp_range`
 ([adapter.md](../adapter/adapter.md#record_replay_round)).
 
 ## Writing, reading and validation
@@ -941,7 +948,7 @@ Identity is what makes two recordings of one fight the same recording, so
 every namespace numbers its objects by a rule that depends on the scene rather
 than on the pointer that happened to be observed first.
 
-Format `0.18.0` uses `team_zx_sequential_v1`.
+Format `0.19.0` uses `team_zx_sequential_v1`.
 
 **Units.** Initial units sort strictly ascending by `(team_id, position.z,
 position.x)` and take `unit_id = 1..N` in that order. Initial units on one team
@@ -1172,18 +1179,14 @@ than an omission.
   format stores state rather than the engine's internal buff instances.
 
 - **What instrument channels read.** A channel's rows are not in the hash.
-  Most of them fail the first condition: `target_search`, `target_candidate`,
+  They fail the first condition: `target_search`, `target_candidate`,
   `skill_attackable_checker`, `exp_range`, `projectile_reach` and the `rvo_*`
   channels show how a decision was reached, which the build works out afresh
   each time, and `unit_pose` is the view's, which the fight does not read.
-  What `target_refs` reads is in the unit row. Three members a channel reads
-  are carried state, meet every condition, and wait for their admission:
-  - `TranslationData.progress` and `sources`, a unit's control progress and
-    the beams that hold it (`control_progress`);
-  - `SkillAttackController.performCount`, the blows whose cycle has run out
-    since the skill entered its attack state (`skill_attackable_checker`);
-  - `FightProjectile.moveRange`, the reach a projectile was given as it was
-    made (`projectile_reach`).
+  The carried state some of them read is in the rows: what `target_refs`
+  reads in the unit's, the `performCount` that `skill_attackable_checker`
+  reads on either side of a call in the skill's, and the `moveRange` that
+  `projectile_reach` reads in the projectile's.
 
 ## Unresolved
 

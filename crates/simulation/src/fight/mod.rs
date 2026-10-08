@@ -13,11 +13,12 @@ use std::{
 };
 
 use mechcore_mcfr::{
-    AttackPhase, BuildingState, DamageStatistics, Domain, DurableContext, EnabledSkill, Event,
-    EventPayload, FormationState, GaugeI32, Hashes, IdentityAllocator, LiveUnitState, McfrReader,
-    McfrWriter, MemoryRecording, MotionState, ObjectKind, ObjectRef, PersonalShieldState, Producer,
-    ProjectileState, QPlanar, QPose, QVec3, Rational, RecorderKind, Recording, SkillMachineState,
-    SkillState, TickSlice, TransitionEvents, Visibility, WeaponState, WorldSnapshot,
+    AttackPhase, BuildingState, ControlState, DamageStatistics, Domain, DurableContext,
+    EnabledSkill, Event, EventPayload, FormationState, GaugeI32, Hashes, IdentityAllocator,
+    LiveUnitState, McfrReader, McfrWriter, MemoryRecording, MotionState, ObjectKind, ObjectRef,
+    PersonalShieldState, Producer, ProjectileState, QPlanar, QPose, QVec3, Rational, RecorderKind,
+    Recording, SkillMachineState, SkillState, TickSlice, TransitionEvents, Visibility, WeaponState,
+    WorldSnapshot,
 };
 
 use serde::Serialize;
@@ -587,7 +588,20 @@ impl Simulation {
 
     /// What a recording holds of one unit.
     pub(in crate::fight) fn unit_snapshot(&self, id: u64) -> LiveUnitState {
-        self.actors[&id].snapshot(self.skill_states(id))
+        let mut state = self.actors[&id].snapshot(self.skill_states(id));
+        state.control = self
+            .translations
+            .iter()
+            .find(|entry| entry.target == id)
+            .map(|entry| ControlState {
+                progress: entry.progress,
+                sources: entry
+                    .sources
+                    .iter()
+                    .map(|&source| ObjectRef::new(ObjectKind::Unit, source))
+                    .collect(),
+            });
+        state
     }
 
     /// Every skill a unit's `GetSkills()` holds, slot by slot: the main
@@ -643,6 +657,8 @@ impl Simulation {
                             skill.state,
                             skill::SkillState::Attack(skill::Blow::Before(_))
                         )),
+                    perform_count: i32::try_from(skill.performed_count(self.step_now))
+                        .unwrap_or(i32::MAX),
                     attack_range: self.slot_attack_range_q32(skill_ref, offset),
                     attack_damage: self.slot_normal_damage(actor, skill_ref),
                     weapons: weapons
@@ -662,7 +678,11 @@ impl Simulation {
     /// `FightSkill.GetAttackRange` of the skill at a place of its group, in
     /// Q32.32 metres: the main skill's for what it locks, a main slot's
     /// beyond it, and an extra skill's.
-    fn slot_attack_range_q32(&self, skill_ref: SkillRef, offset: usize) -> i64 {
+    pub(in crate::fight) fn slot_attack_range_q32(
+        &self,
+        skill_ref: SkillRef,
+        offset: usize,
+    ) -> i64 {
         let FightActorRef::Unit(id) = skill_ref.owner else {
             unreachable!("only a unit records skills")
         };
@@ -1005,6 +1025,10 @@ impl Simulation {
                 .get_mut(&unit_id)
                 .expect("actor identity is stable")
                 .exit_fight_on_death();
+            // `SkillManager.OnOwnerDead` stops its skills, a control beam's
+            // `ControllEffect` among them: the Rhino a Hacker was turning
+            // holds no entry from the tick the Hacker dies.
+            self.sync_beam(unit_id);
         }
         self.summon_from_the_dead()?;
         for building_id in std::mem::take(&mut self.towers.fallen) {

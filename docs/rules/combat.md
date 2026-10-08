@@ -468,6 +468,15 @@ walked inside its 70 m minimum range two ticks into the wind-up read
 again at tick 558, 49 ticks later rather than the interval's 132; twelve ticks into an earlier wind-up
 whose target died, the same check left `attackTime` at 12.
 
+**A blow is counted as it hands back its last phase.**
+`SkillAttackController.ChangeToIdle` adds it to `performCount`: a blow with no
+backswing as its attacking phase ends, once its burst's last projectile is
+released or its sweep is over, and a blow with a backswing as the backswing's
+controller hands back on its last tick. A Farseer's two-projectile burst
+released on tick 2 reads 0 until its last projectile goes out on tick 6, and
+the Rhino it fires at, whose backswing ends on tick 107, reads 1 on that tick:
+`tests/projectile/fights/farseer-rhino-closing.yaml`.
+
 `FightPrepareState` completes the first acquisition and syncs initial facing
 before the first persisted state S(1).
 

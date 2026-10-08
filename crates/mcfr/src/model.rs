@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result, canonical};
 
-pub const MCFR_FORMAT: &str = "0.18.0";
+pub const MCFR_FORMAT: &str = "0.19.0";
 /// Names the hash definition, which is older than the format: the domain
 /// strings and canonical inputs have not moved since format 0.7.0.
 pub const HASH_PROFILE: &str = "mcfr-content-0.7.0";
@@ -729,6 +729,23 @@ pub struct LiveUnitState {
     /// Every skill `FightMech.GetSkills()` holds, strictly ascending by slot.
     #[serde(default)]
     pub skills: Vec<SkillState>,
+    /// The unit's entry in `TeamTranslationSystem.translatingDatas` while a
+    /// control beam is turning it, and null while none is.
+    #[serde(default)]
+    pub control: Option<ControlState>,
+}
+
+/// A unit a control beam is turning: a `TranslationData`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct ControlState {
+    /// `TranslationData.progress`: the power its beams' hits have added. The
+    /// unit changes side once it reaches the unit's life.
+    pub progress: i32,
+    /// The owners of the skills in `TranslationData.sources`, in the order
+    /// the build keeps them: the unit goes to the first one's side.
+    pub sources: Vec<ObjectRef>,
 }
 
 /// One skill of a unit: a `FightSkill` its `GetSkills()` holds.
@@ -768,6 +785,9 @@ pub struct EnabledSkill {
     /// `FightSkill.GetAttackCount()`: the blows started since the skill
     /// entered its attack state, less one.
     pub attack_count: i32,
+    /// `SkillAttackController.performCount`: the blows whose cycle has run
+    /// out, backswing and all, since the skill entered its attack state.
+    pub perform_count: i32,
     /// `FightSkill.GetAttackRange()`, Q32.32 raw.
     pub attack_range: i64,
     /// `FightSkill.GetNormalDamage(0)`.
@@ -1037,6 +1057,10 @@ pub struct ProjectileState {
     pub target: Option<ObjectRef>,
     pub cached_target_position: QVec3,
     pub cached_target_radius: i64,
+    /// `FightProjectile.moveRange`, Q32.32 raw: the reach it was given as it
+    /// was made, which a projectile locking its target must stay within of
+    /// its owner to land.
+    pub move_range: i64,
     pub life: GaugeI32,
     #[serde(default)]
     pub spawn_containing_shields: Vec<ObjectRef>,

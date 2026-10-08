@@ -1870,7 +1870,6 @@ fn append_instrument(
             InstrumentChannel::RvoVo => rows.rvo_vo.is_some(),
             InstrumentChannel::UnitPose => rows.unit_pose.is_some(),
             InstrumentChannel::ProjectileReach => rows.projectile_reach.is_some(),
-            InstrumentChannel::ControlProgress => rows.control_progress.is_some(),
             InstrumentChannel::ExpRange => rows.exp_range.is_some(),
         };
         if present != asked.contains(&channel) {
@@ -1914,9 +1913,6 @@ fn append_instrument(
         writer.append_instrument(rows.as_slice()).map_err(mcfr)?;
     }
     if let Some(rows) = rows.projectile_reach {
-        writer.append_instrument(rows.as_slice()).map_err(mcfr)?;
-    }
-    if let Some(rows) = rows.control_progress {
         writer.append_instrument(rows.as_slice()).map_err(mcfr)?;
     }
     if let Some(rows) = rows.exp_range {

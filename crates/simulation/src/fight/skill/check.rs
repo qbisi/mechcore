@@ -178,7 +178,8 @@ impl Simulation {
         if blow == Blow::Waiting {
             return Ok(());
         }
-        let refresh = skill.perform_count == 0 && !(matches!(blow, Blow::Before(_)) && attackable);
+        let refresh = skill.performed_count(self.step_now) == 0
+            && !(matches!(blow, Blow::Before(_)) && attackable);
         let started = skill
             .next_attack_step
             .saturating_sub(skill.current_attack_interval);

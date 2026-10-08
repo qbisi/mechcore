@@ -118,6 +118,16 @@ impl Performer {
         }
     }
 
+    /// Whether the performer's work is done: no projectile of a burst left
+    /// to release, no sweep under way.
+    pub(in crate::fight) fn done(&self) -> bool {
+        match self {
+            Self::Normal => true,
+            Self::Projectile { pending } => pending.is_empty(),
+            Self::Sweep(sweep) => sweep.over(),
+        }
+    }
+
     /// The burst's projectiles still to be released.
     pub(in crate::fight) fn pending(&self) -> &[PendingProjectileRelease] {
         match self {
@@ -541,6 +551,11 @@ pub(in crate::fight) struct Skill {
     /// backswing and all (`ChangeToIdle`), since the skill entered its
     /// attack state; leaving it (`Exit`) clears it.
     pub(in crate::fight) perform_count: u32,
+    /// A blow with no backswing whose attacking phase is still under way:
+    /// `SkillAttackController.ChangeToIdle` counts it in `performCount` once
+    /// the performer's work is done, the last projectile of its burst
+    /// released or its sweep over.
+    pub(in crate::fight) attacking_unfinished: bool,
     /// The rounds left in a skill that fires from a magazine
     /// (`SkillData.isLoadingType`), and none for one that does not.
     pub(in crate::fight) rounds: Option<u32>,
@@ -610,6 +625,7 @@ impl Skill {
             attack_count: ATTACK_COUNT_RESET,
             total_attack_count: 0,
             perform_count: 0,
+            attacking_unfinished: false,
             rounds: magazine.map(|magazine| magazine.capacity),
             attack_target_left: None,
             idle: false,
@@ -736,6 +752,7 @@ impl Skill {
         if matches!(self.state, SkillState::Attack(_)) && !matches!(state, SkillState::Attack(_)) {
             self.attack_count = ATTACK_COUNT_RESET;
             self.perform_count = 0;
+            self.attacking_unfinished = false;
         }
         if matches!(self.state, SkillState::Attack(Blow::After { .. }))
             && state == SkillState::Attack(Blow::Waiting)
@@ -743,6 +760,19 @@ impl Skill {
             self.perform_count += 1;
         }
         self.state = state;
+    }
+
+    /// `SkillAttackController.performCount` at a step: the blows whose cycle
+    /// has run out. The backswing's controller hands back on its last step,
+    /// where `ChangeToIdle` counts the blow, while this simulator leaves the
+    /// backswing on the update after: a Rhino whose backswing ends on tick
+    /// 107 reads 1 there.
+    pub(in crate::fight) fn performed_count(&self, step: u64) -> u32 {
+        self.perform_count
+            + u32::from(matches!(
+                self.state,
+                SkillState::Attack(Blow::After { finish_step }) if step >= finish_step
+            ))
     }
 
     /// The blow being wound up, if one is.
@@ -2048,6 +2078,7 @@ impl Simulation {
             for pending in due {
                 self.release_pending_projectile(skill_ref, pending, events)?;
             }
+            self.finish_attacking(skill_ref);
             return Ok(Flow::Done);
         }
         Ok(Flow::Next)
@@ -2153,6 +2184,7 @@ impl Simulation {
         {
             self.update_sweep(actor_id, events)?;
         }
+        self.finish_attacking(skill_ref);
         if self.skill(skill_ref).is_grouped() {
             let actor_id = skill_ref
                 .owner

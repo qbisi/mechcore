@@ -531,6 +531,7 @@ impl Simulation {
             self.refresh_group_skill_attack_interval(skill_ref, skill_index, step)?;
             let sibling = self.skill_mut(skill_ref).sibling_mut(skill_index);
             sibling.attack_count += 1;
+            sibling.perform_count += 1;
             let blow = usize::try_from(sibling.attack_count).unwrap_or(0);
             return self.laser_effect(skill_ref, skill_index, blow, target, events);
         }
@@ -612,10 +613,13 @@ impl Simulation {
             }
             FightActorRef::Unit(_) => return Ok(()),
         }
-        // `SkillAttackController.PerformAttack` counts the blow.
-        self.skill_mut(skill_ref)
-            .sibling_mut(skill_index)
-            .attack_count += 1;
+        // `SkillAttackController.PerformAttack` counts the blow, and a
+        // slot's blow, with neither wind-up nor backswing, runs its cycle
+        // out in the update it starts (`ChangeToIdle`): a Wraith's slots
+        // read `performCount` 1 from the tick they fire.
+        let sibling = self.skill_mut(skill_ref).sibling_mut(skill_index);
+        sibling.attack_count += 1;
+        sibling.perform_count += 1;
         Ok(())
     }
 

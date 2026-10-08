@@ -37,7 +37,10 @@ and its splash nothing either.
 `ControllEffect.Start`, as the beam's attack begins or changes target, adds the
 skill to its target's entry in `TeamTranslationSystem.translatingDatas`, which
 keeps its entries in the order they were added; `ControllEffect.Stop` takes it
-away, and the entry goes with its last skill. Each hit that turns adds its
+away, and the entry goes with its last skill. A beam's owner that dies stops
+its beam on that tick (`FightMech.OnDead`, `SkillManager.OnOwnerDead`): the
+Rhino a Hacker was turning holds no entry from the tick the Hacker dies. Each
+hit that turns adds its
 damage to the entry's progress (`TeamTranslationSystem.Translate`) and lists
 the beam's owner among the unit's attackers, as a hit does.
 
@@ -162,6 +165,8 @@ the shield does not count against the turn.
 - The Hacker turns a Crawler whose progress reaches its life on tick 103, cools
   for a tick naming it, and searches again; the turned Crawler takes a new lock
   on that tick: `tests/hacker/fights/m3-crawler-4242.yaml`, ticks 101 to 105.
+- The Rhino a Hacker was turning holds no entry from tick 203, when its blow
+  kills the Hacker: `tests/hacker/fights/m2-rhino-4242.yaml`.
 - A turn with one Hacker hands its formation the Crawler's 4 and the whole
   assist pool, 8 in all; with two, 4 to each formation in range:
   `tests/hacker/fights/m3-crawler-4242.yaml`, tick 103;

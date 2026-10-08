@@ -169,7 +169,9 @@ impl Simulation {
             climb_to_q32: None,
             spawn_shields: Vec::new(),
             absorbed_by: None,
-            move_range_q32: None,
+            move_range_q32: mine
+                .trigger_range_q32
+                .saturating_add(space_to_q32(view.radius)),
         };
         if !self.shield.standing.is_empty() {
             return Err(Error::new(
