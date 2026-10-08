@@ -1074,8 +1074,11 @@ again is recorded then, such as the state of a switched-off skill.
    terms of a solve, is not part of the fight. It is an
    [instrument channel](#instrument-channels).
 2. **It is the game's own.** A producer reads it at a build member, as every
-   field above names one. A value computed from other recorded values is not
-   stored.
+   field above names one. A value the same tick's other recorded values
+   determine is not stored. One the build fixed at an earlier moment is, such
+   as the reach a projectile was given as it was made: what it was computed
+   from may have changed since, and a wrong formula would show only when the
+   value is next read.
 3. **It is one value per fight, whoever writes it.** A recording made from a
    replay and one made from its layout agree on it, and a simulator of the
    same fight writes it too.
