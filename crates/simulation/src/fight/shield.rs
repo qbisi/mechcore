@@ -296,6 +296,16 @@ impl Simulation {
     }
 
     /// Whether a shield holds an actor's centre.
+    /// Where a standing shield's centre stands, Q32.32 metres:
+    /// `FightEnergyShield.GetFightTransform`'s position.
+    pub(in crate::fight) fn shield_centre(&self, shield_id: u64) -> Option<(i64, i64)> {
+        self.shield
+            .standing
+            .iter()
+            .find(|shield| shield.id == shield_id)
+            .map(|shield| (shield.x_q32, shield.z_q32))
+    }
+
     pub(in crate::fight) fn shield_holds(&self, shield_id: u64, actor: FightActorRef) -> bool {
         let (Some(shield), Some((x_q32, y_q32, z_q32))) = (
             self.shield

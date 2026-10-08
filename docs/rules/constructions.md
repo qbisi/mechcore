@@ -120,8 +120,13 @@ among the enemy's constructions,
 ```
 
 **It is asked wherever the skill asks what to fire at**, which is one method,
-`FightSkill.SearchAttackTarget`: it takes the lock and hands the weapons a
-shield, else a wall in the way, else the lock itself. It asks whatever the lock
+`FightSkill.SearchAttackTarget`: it takes the lock, finds the shield that
+covers it (`SearchTargetShield`), then the wall in the way, and hands the
+weapons the wall, else the shield, else the lock itself. The wall is looked for
+on the line to the lock, or, when a shield covers the lock, on the line to the
+shield's centre, passing over a block inside that shield: a Fire Badger whose
+lock stands in a shield beside a wall off that line goes on firing at the
+shield. It asks whatever the lock
 is, a unit or a building: a unit locked on a tower out of its reach attacks the
 block in reach between them.
 `WallConstructionTargetChecker` has no other caller. The skill asks it every
@@ -263,10 +268,14 @@ The map's own buildings are the exception and are named: each side gets one
   fells its target releases it before turning:
   `MotionController.CalculateTargetDirection`,
   `FightSkill.TryGetValidAttackTarget`, `MotionAttackState.AttackRotate`.
-- The weapons are handed a shield, else a wall in the way, else the lock:
+- The weapons are handed the wall in the way, else the lock's shield, else
+  the lock; the wall is looked for toward the shield's centre when a shield
+  covers the lock, and one inside that shield is passed over:
   `FightSkill.SearchAttackTarget`,
+  `SkillSearchTargetController.SearchTargetShield`,
   `WallConstructionTargetChecker.CheckWallConstruction`,
-  `WallConstructionTargetChecker.GetNearestWall`.
+  `WallConstructionTargetChecker.GetNearestWall`,
+  `FightEnergyShield.GetFightTransform`, `FightCalculator.IsActorInEnergyShield`.
 - A grouped slot asks for its own wall with its own range, and its own attack
   state ends an attack on a fallen block before the checker:
   `FightSkill.GetAttackRange`,
