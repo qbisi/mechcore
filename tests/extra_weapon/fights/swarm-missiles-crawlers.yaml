@@ -1,0 +1,26 @@
+# Swarm Missiles against a Crawler swarm.
+#
+# Three volleys of 46 missiles shared out among the Crawlers in reach. The
+# units are shuffled by the side's stream (`ShuffleSync`), each takes the
+# volley's count over theirs, and the rest go one each to units drawn from
+# them (`GetRandomTargetsByRemain`); a missile whose unit has died passes it
+# over for the next that lives. Without the shuffle the missiles part from
+# t828; with the rest given in order rather than drawn, from t187.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 829
+hash: {profile: mcfr-content-0.7.0, result: 6caab5cce18ad6af6d82f8a2d548a18001cdc10c957309ad26a6d321c22f8999}
+blue:
+  techs:
+    abyss: [swarm_missiles]
+  units:
+  - {name: abyss, index: 0, position: {x: 5, y: -205}, exp: 0/384/4800}
+red:
+  core_damage: 500
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/200/450}
+  - {name: crawler, index: 1, position: {x: -45, y: -100}, exp: 0/200/450}

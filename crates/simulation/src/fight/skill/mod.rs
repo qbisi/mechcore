@@ -95,6 +95,9 @@ pub(in crate::fight) enum Performer {
     /// it into a single and a multiple performer, which is not read.
     Projectile {
         pending: Vec<PendingProjectileRelease>,
+        /// The burst's `EvenlyAllocatedAttackTargetPositionController`, for
+        /// a skill whose row allocates its projectiles evenly.
+        evenly: Option<Box<EvenlyAllocated>>,
     },
     /// A `SweepAttackPerformer` under way: the strip it sweeps and what it
     /// has struck.
@@ -107,6 +110,7 @@ impl Performer {
         match kind {
             SkillKind::Projectile => Self::Projectile {
                 pending: Vec::new(),
+                evenly: None,
             },
             SkillKind::Strike
             | SkillKind::Suicide
@@ -123,7 +127,7 @@ impl Performer {
     pub(in crate::fight) fn done(&self) -> bool {
         match self {
             Self::Normal => true,
-            Self::Projectile { pending } => pending.is_empty(),
+            Self::Projectile { pending, .. } => pending.is_empty(),
             Self::Sweep(sweep) => sweep.over(),
         }
     }
@@ -132,7 +136,7 @@ impl Performer {
     pub(in crate::fight) fn pending(&self) -> &[PendingProjectileRelease] {
         match self {
             Self::Normal | Self::Sweep(_) => &[],
-            Self::Projectile { pending } => pending,
+            Self::Projectile { pending, .. } => pending,
         }
     }
 
@@ -146,7 +150,10 @@ impl Performer {
     /// Stops the burst: `StopAttack` ends a performer's work.
     pub(in crate::fight) fn stop(&mut self) {
         match self {
-            Self::Projectile { pending } => pending.clear(),
+            Self::Projectile { pending, evenly } => {
+                pending.clear();
+                *evenly = None;
+            }
             Self::Sweep(_) => *self = Self::Normal,
             Self::Normal => {}
         }
@@ -154,7 +161,7 @@ impl Performer {
 
     /// Takes out the projectiles due by this step, in order.
     pub(in crate::fight) fn take_due(&mut self, step: u64) -> Vec<PendingProjectileRelease> {
-        let Self::Projectile { pending } = self else {
+        let Self::Projectile { pending, .. } = self else {
             return Vec::new();
         };
         let mut due = Vec::new();
@@ -168,6 +175,24 @@ impl Performer {
         });
         due
     }
+}
+
+/// `ProjectileMultiAttackPerformer.EvenlyAllocatedAttackTargetPositionController`:
+/// the units a burst shares its projectiles among, and the offsets drawn for
+/// each as the burst began.
+#[derive(Debug, Clone)]
+pub(in crate::fight) struct EvenlyAllocated {
+    /// `targets`: the units it fires at, the next one first. Each
+    /// projectile takes the first that lives and puts it last.
+    pub(in crate::fight) targets: Vec<u64>,
+    /// `positionOffsets`: what is left of each unit's offsets, the next one
+    /// first.
+    pub(in crate::fight) offsets: BTreeMap<u64, Vec<(i64, i64)>>,
+    /// `WeaponIndex`: the weapon the next projectile leaves, of the two.
+    pub(in crate::fight) weapon: usize,
+    /// `lastAttackPos`: where the last projectile was aimed, before its
+    /// offset.
+    pub(in crate::fight) last_attack: (i64, i64),
 }
 
 /// The skill's state, as `SkillStateController` holds it.

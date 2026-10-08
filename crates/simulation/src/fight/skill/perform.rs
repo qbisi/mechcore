@@ -209,6 +209,21 @@ impl Simulation {
             .skill_attacker(skill_ref)
             .ok_or_else(|| Error::new("projectile owner is absent"))?
             .attack;
+        if let AttackPath::Projectile {
+            evenly_allocate_targets: true,
+            extra_search_range,
+            ..
+        } = attack.path
+        {
+            return self.start_evenly_allocated_burst(
+                skill_ref,
+                target,
+                (target_x_q32, target_z_q32),
+                crate::rules::metres_q32(extra_search_range),
+                step,
+                events,
+            );
+        }
         let count = usize::try_from(attack.projectile_count())
             .expect("u32 projectile count fits the supported host");
         // A standalone skill fires its own weapons, `weaponCountPerSkill` of
@@ -267,11 +282,242 @@ impl Simulation {
         let first = releases
             .next()
             .ok_or_else(|| Error::new("projectile burst contains no release"))?;
-        let Performer::Projectile { pending } = &mut self.skill_mut(skill_ref).performer else {
+        let Performer::Projectile { pending, .. } = &mut self.skill_mut(skill_ref).performer else {
             return Err(Error::new("a burst needs a projectile performer"));
         };
         pending.extend(releases);
         self.release_pending_projectile(skill_ref, first, events)
+    }
+
+    /// A burst whose row allocates its projectiles evenly
+    /// (`EvenlyAllocatedAttackTargetPositionController.Prepare`, on the first
+    /// perform): the other sides' units within the skill's range and its
+    /// extra search range of the unit, each measured less both radii
+    /// (`RangeTargetCalculator.CalculateRangeTargets`), in the order their
+    /// trees answer, shuffled by the unit's side's stream (`ShuffleSync`),
+    /// or the attack target alone when none is. Each takes the burst's count
+    /// over theirs, and the rest go one each to units drawn from them
+    /// (`GetRandomTargetsByRemain`). The offsets are drawn then, round by
+    /// round over the units and then for the units drawn, each about where
+    /// the attack target stands (`RandomInsideSphere`). The projectiles
+    /// leave on the burst's schedule, and each takes its unit as it leaves
+    /// ([`Simulation::allocate_evenly`]).
+    fn start_evenly_allocated_burst(
+        &mut self,
+        skill_ref: SkillRef,
+        target: FightActorRef,
+        target_q32: (i64, i64),
+        extra_range_q32: i64,
+        step: u64,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        let source = self
+            .skill_attacker(skill_ref)
+            .ok_or_else(|| Error::new("projectile owner is absent"))?;
+        let (team, x_q32, z_q32) = (source.team, source.x_q32, source.z_q32);
+        let self_radius_q32 = space_to_q32(source.radius);
+        let range_q32 = space_to_q32(source.attack_range).saturating_add(extra_range_q32);
+        let targets_accepted = source.targets;
+        let attack = source.attack;
+        let count = usize::try_from(attack.projectile_count())
+            .expect("u32 projectile count fits the supported host");
+        let interval = native_time_units_to_steps(attack.projectile_release_interval_time_units());
+        let radius_centimeters = i32::try_from(attack.projectile_target_offset_radius() / 10)
+            .map_err(|_| Error::new("projectile target offset radius exceeds native range"))?;
+        let mut targets = self.range_targets(
+            team,
+            (x_q32, z_q32),
+            self_radius_q32,
+            range_q32,
+            targets_accepted,
+        );
+        let random = self
+            .team_random
+            .get_mut(&team)
+            .ok_or_else(|| Error::new("projectile owner team random stream is absent"))?;
+        // `IListExtensions.ShuffleSync`: each place swaps with one drawn
+        // from the whole list.
+        let len = i32::try_from(targets.len()).map_err(|_| Error::new("too many targets"))?;
+        for index in 0..targets.len() {
+            let drawn = usize::try_from(random.next_between_inclusive(0, len - 1))
+                .expect("a draw within the list is an index");
+            targets.swap(index, drawn);
+        }
+        if targets.is_empty()
+            && let FightActorRef::Unit(id) = target
+        {
+            targets.push(id);
+        }
+        let each = count.checked_div(targets.len()).unwrap_or(0);
+        let left = count - each * targets.len();
+        // `GetRandomTargetsByRemain`: each drawn from those not drawn yet
+        // (`RandomElementSync`).
+        let mut undrawn = targets.clone();
+        let mut drawn = Vec::with_capacity(left);
+        for _ in 0..left.min(undrawn.len()) {
+            let len = i32::try_from(undrawn.len()).map_err(|_| Error::new("too many targets"))?;
+            let index = usize::try_from(random.next_between_inclusive(0, len - 1))
+                .expect("a draw within the list is an index");
+            drawn.push(undrawn.remove(index));
+        }
+        let mut offsets = BTreeMap::<u64, Vec<(i64, i64)>>::new();
+        for _ in 0..each {
+            for &unit in &targets {
+                offsets
+                    .entry(unit)
+                    .or_default()
+                    .push(random_inside_sphere(random, radius_centimeters));
+            }
+        }
+        for &unit in &drawn {
+            offsets
+                .entry(unit)
+                .or_default()
+                .push(random_inside_sphere(random, radius_centimeters));
+        }
+        let skill_slot = self.skill_slot(skill_ref);
+        let first_weapon = match skill_ref.slot {
+            SkillSlot::Main => 0,
+            SkillSlot::Extra(index) => self.skills(skill_ref.owner).extras[index].weapon,
+        };
+        let Performer::Projectile { pending, evenly } = &mut self.skill_mut(skill_ref).performer
+        else {
+            return Err(Error::new("a burst needs a projectile performer"));
+        };
+        *evenly = Some(Box::new(EvenlyAllocated {
+            targets,
+            offsets,
+            weapon: 0,
+            last_attack: target_q32,
+        }));
+        // What each projectile fires at is taken as it leaves.
+        let placeholder = |index: usize| PendingProjectileRelease {
+            step: step.saturating_add(interval.saturating_mul(index as u64)),
+            target_kind: target.kind(),
+            target: target.id(),
+            target_x_q32: target_q32.0,
+            target_z_q32: target_q32.1,
+            offset_x_q32: 0,
+            offset_z_q32: 0,
+            climb_target: (target_q32.0, target_q32.1, 0),
+            aims_at_release: false,
+            weapon_index: first_weapon,
+            skill_slot,
+        };
+        pending.extend((1..count).map(placeholder));
+        self.release_pending_projectile(skill_ref, placeholder(0), events)
+    }
+
+    /// `RangeTargetCalculator.CalculateRangeTargets` of units alone, fully
+    /// visible: the other sides' units, side by side in the order their trees
+    /// answer a square twice the range wide, each whose distance from the
+    /// point less its radius and the source's is within the range
+    /// (`FightCalculator.IsInRange2D`).
+    fn range_targets(
+        &self,
+        team: u32,
+        (x_q32, z_q32): (i64, i64),
+        self_radius_q32: i64,
+        range_q32: i64,
+        accepted: AttackTargets,
+    ) -> Vec<u64> {
+        self.target_quadtrees
+            .iter()
+            .filter(|(side, _)| **side != team)
+            .flat_map(|(_, tree)| tree.query_square(x_q32, z_q32, range_q32.saturating_mul(2)))
+            .filter_map(|candidate| {
+                let FightActorRef::Unit(id) = candidate else {
+                    return None;
+                };
+                let actor = self.actors.get(&id)?;
+                let distance = native_q32_magnitude(
+                    actor.x_q32.saturating_sub(x_q32),
+                    actor.z_q32.saturating_sub(z_q32),
+                )
+                .saturating_sub(space_to_q32(actor.rules.collision_radius()))
+                .saturating_sub(self_radius_q32);
+                (actor.alive()
+                    && actor.visibility == Visibility::Normal
+                    && accepted.accepts(actor.rules.domain)
+                    && fpoint_less_or_equal(distance, range_q32))
+                .then_some(id)
+            })
+            .collect()
+    }
+
+    /// `EvenlyAllocatedAttackTargetPositionController` as a projectile
+    /// leaves: `UpdateCurrentTarget` takes the first unit of its list that
+    /// lives, dropping the dead, and puts it last; `GetWeaponIndex` hands out
+    /// the two weapons in turn; `GetTargetPosition` aims at where the unit
+    /// stands now; and `GetAndDeletePositionOffsets` takes the unit's next
+    /// offset, none when its own have run out. A burst whose every unit is
+    /// gone is not measured. A burst allocated otherwise leaves as it was
+    /// scheduled.
+    fn allocate_evenly(
+        &mut self,
+        skill_ref: SkillRef,
+        pending: PendingProjectileRelease,
+    ) -> Result<PendingProjectileRelease> {
+        let alive =
+            |simulation: &Self, id: u64| simulation.actors.get(&id).is_some_and(Actor::alive);
+        let Performer::Projectile {
+            evenly: Some(evenly),
+            ..
+        } = &self.skill(skill_ref).performer
+        else {
+            return Ok(pending);
+        };
+        let mut targets = evenly.targets.clone();
+        let current = loop {
+            if targets.is_empty() {
+                break None;
+            }
+            let first = targets.remove(0);
+            if alive(self, first) {
+                targets.push(first);
+                break Some(first);
+            }
+        };
+        let Some(current) = current else {
+            return Err(Error::new(
+                "an evenly allocated burst whose every unit is gone is not measured",
+            ));
+        };
+        let actor = &self.actors[&current];
+        let (x_q32, z_q32) = (actor.x_q32, actor.z_q32);
+        let height = unit_height(actor.rules.domain);
+        let Performer::Projectile {
+            evenly: Some(evenly),
+            ..
+        } = &mut self.skill_mut(skill_ref).performer
+        else {
+            unreachable!("checked above");
+        };
+        evenly.targets = targets;
+        let weapon = evenly.weapon;
+        evenly.weapon = usize::from(weapon == 0);
+        evenly.last_attack = (x_q32, z_q32);
+        let (offset_x_q32, offset_z_q32) = match evenly.offsets.get_mut(&current) {
+            Some(offsets) if !offsets.is_empty() => {
+                let offset = offsets.remove(0);
+                if offsets.is_empty() {
+                    evenly.offsets.remove(&current);
+                }
+                offset
+            }
+            _ => (0, 0),
+        };
+        Ok(PendingProjectileRelease {
+            target_kind: ObjectKind::Unit,
+            target: current,
+            target_x_q32: x_q32.saturating_add(offset_x_q32),
+            target_z_q32: z_q32.saturating_add(offset_z_q32),
+            offset_x_q32,
+            offset_z_q32,
+            climb_target: (x_q32, z_q32, height),
+            weapon_index: pending.weapon_index + weapon,
+            ..pending
+        })
     }
 
     /// Where a burst's target stands as the burst begins, and its height:
@@ -387,16 +633,7 @@ impl Simulation {
             .ok_or_else(|| Error::new("projectile owner team random stream is absent"))?;
         let mut offsets = Vec::with_capacity(count);
         for _ in 0..count {
-            let x_centimeters =
-                random.next_between_inclusive(-radius_centimeters, radius_centimeters);
-            let z_centimeters =
-                random.next_between_inclusive(-radius_centimeters, radius_centimeters);
-            let clamp_centimeters = random.next_between_inclusive(0, radius_centimeters - 1);
-            let x_q32 = q32_mul(i64::from(x_centimeters) << 32, C0_01_RAW);
-            let z_q32 = q32_mul(i64::from(z_centimeters) << 32, C0_01_RAW);
-            let clamp_q32 = q32_mul(i64::from(clamp_centimeters) << 32, C0_01_RAW);
-            let (x_q32, z_q32) = clamp_magnitude_q32_raw(x_q32, z_q32, clamp_q32);
-            offsets.push((x_q32, z_q32));
+            offsets.push(random_inside_sphere(random, radius_centimeters));
         }
         if weapon_count == 2 && offsets.len() >= 2 {
             offsets = split_between_two_weapons(
@@ -497,6 +734,7 @@ impl Simulation {
         pending: PendingProjectileRelease,
         events: &mut Vec<Event>,
     ) -> Result<()> {
+        let pending = self.allocate_evenly(skill_ref, pending)?;
         match pending.target_kind {
             ObjectKind::Unit => {
                 // A projectile leaves for where its burst aimed it, the
@@ -745,6 +983,22 @@ impl Simulation {
 /// How two weapons share a burst's offsets: each weapon takes the half on its
 /// side of the line from the weapon to the target, ordered by the angle it
 /// sees, and they take turns from the ends of their halves.
+/// `FightUtility.RandomInsideSphere` about a point, less the point: an
+/// offset within the radius, in centimetres, its `x` and `z` drawn first and
+/// then the length it is held to.
+fn random_inside_sphere(
+    random: &mut super::super::random::GrRandom,
+    radius_centimeters: i32,
+) -> (i64, i64) {
+    let x_centimeters = random.next_between_inclusive(-radius_centimeters, radius_centimeters);
+    let z_centimeters = random.next_between_inclusive(-radius_centimeters, radius_centimeters);
+    let clamp_centimeters = random.next_between_inclusive(0, radius_centimeters - 1);
+    let x_q32 = q32_mul(i64::from(x_centimeters) << 32, C0_01_RAW);
+    let z_q32 = q32_mul(i64::from(z_centimeters) << 32, C0_01_RAW);
+    let clamp_q32 = q32_mul(i64::from(clamp_centimeters) << 32, C0_01_RAW);
+    clamp_magnitude_q32_raw(x_q32, z_q32, clamp_q32)
+}
+
 fn split_between_two_weapons(
     mut offsets: Vec<(i64, i64)>,
     (source_x_q32, source_y_q32, source_z_q32): (i64, i64, i64),
