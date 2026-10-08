@@ -1042,27 +1042,61 @@ of its own. `crates/mcfr/hashed-content.txt` lists every field, variant, enum
 value and `status_mask` bit that `S(t)` and `E(t)` carry, and a test holds the
 types to it: a change to what the hash reads is a change to that file.
 
+**The hash reports a divergence on the tick it happens.** A simulator that
+gets a mechanism wrong is wrong first in some quantity the build keeps, and
+only later, or never, in what the round settles. The hash reads the state the
+fight goes on from, so a wrong turn shows on the tick it is taken and
+`first_divergence()` points at it, rather than at the tick its consequences
+surface.
+
 **What the hash reads only grows.** Every fight it has compared was compared
 on all of it, so taking a field out, or loosening what one means, weakens every
-comparison already made. Two changes are not removals: re-encoding the same
-information, when the old encoding and the new each determine the other, and
-correcting a field a producer read wrong.
+comparison already made. Three changes are not removals: re-encoding the same
+information, when the old encoding and the new each determine the other;
+correcting a field a producer read wrong; and leaving out a value while the
+build neither updates nor reads it, when what it holds once the build does
+again is recorded then, such as the state of a switched-off skill.
 
 **A quantity enters when it meets all four conditions.**
 
-1. **It settles the fight or names a cause.** It feeds what a round settles:
-   core damage, the statistics, experience, a score. Or it names what caused a
-   change the timeline already records, such as the skill, projectile or
-   landing behind a damage, a buff or a new unit. A quantity that only helps
-   find where two fights part is an [instrument channel](#instrument-channels).
+1. **It is part of the fight.** It is one of:
+   - **settled**: it feeds what a round settles, core damage, the statistics,
+     experience, a score;
+   - **a cause**: it names what caused a change the timeline already records,
+     such as the skill, projectile or landing behind a damage, a buff or a new
+     unit;
+   - **carried state**: the build keeps it from one tick to the next and a
+     later tick depends on it, such as a timer, a counter, a progress, or a
+     state machine's state.
+
+   A quantity the build works out afresh each tick, or that only shows how a
+   decision was reached, such as the candidates a search weighed or the
+   terms of a solve, is not part of the fight. It is an
+   [instrument channel](#instrument-channels).
 2. **It is the game's own.** A producer reads it at a build member, as every
-   field above names one. A value computed from other recorded values is not
-   stored.
+   field above names one. A value the same tick's other recorded values
+   determine is not stored. One the build fixed at an earlier moment is, such
+   as the reach a projectile was given as it was made: what it was computed
+   from may have changed since, and a wrong formula would show only when the
+   value is next read.
 3. **It is one value per fight, whoever writes it.** A recording made from a
    replay and one made from its layout agree on it, and a simulator of the
    same fight writes it too.
 4. **Its volume per tick is bounded** by a constant times the number of
    entities.
+
+**A late divergence is a missing admission.** When a mechanism nudged by a
+tick or a number first diverges far after the tick it acts, or only in what
+the round settles, the state that carried the error is not in the hash, and
+the gap is closed by admitting it. An instrument channel can locate the error
+meanwhile, but does not close the gap. So a channel that reads a member the
+build carries from tick to tick names, in [Excluded fields](#excluded-fields),
+the condition the member fails.
+
+**How an admission lands.** A pull request that changes `hashed-content.txt`
+names, for each line it adds or removes, the condition above it meets or the
+kind of change that is not a removal. It needs no other sign-off. It re-records
+on the game every fixture whose pin it moves, and merges like any other.
 
 **What an admission moves.** A new event kind, enum value or `status_mask` bit
 appears only in the fights where it happens, and moves only their pins. A new
@@ -1136,6 +1170,20 @@ than an omission.
 - **Buff objects.** There is no buff track. A buff is observable as the change
   in `status_mask` and the `buff` modifiers between adjacent snapshots, so the
   format stores state rather than the engine's internal buff instances.
+
+- **What instrument channels read.** A channel's rows are not in the hash.
+  Most of them fail the first condition: `target_search`, `target_candidate`,
+  `skill_attackable_checker`, `exp_range`, `projectile_reach` and the `rvo_*`
+  channels show how a decision was reached, which the build works out afresh
+  each time, and `unit_pose` is the view's, which the fight does not read.
+  What `target_refs` reads is in the unit row. Three members a channel reads
+  are carried state, meet every condition, and wait for their admission:
+  - `TranslationData.progress` and `sources`, a unit's control progress and
+    the beams that hold it (`control_progress`);
+  - `SkillAttackController.performCount`, the blows whose cycle has run out
+    since the skill entered its attack state (`skill_attackable_checker`);
+  - `FightProjectile.moveRange`, the reach a projectile was given as it was
+    made (`projectile_reach`).
 
 ## Unresolved
 
