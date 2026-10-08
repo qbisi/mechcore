@@ -7,7 +7,7 @@ seed: 1231717251
 round: 3
 source: game
 ticks: 1180
-hash: {profile: mcfr-content-0.7.0, result: 4eeb793346069b1c455db3821d00ef8cd561559a81ade9b606147057241eef22}
+hash: {profile: mcfr-content-0.7.0, result: 0b3a08d5189b36b4b8696c0c5a30b3f3c87d5d408fe4208e1119990c8b474ddb}
 blue:
   core_damage: 800
   officers: [aerial_specialist]

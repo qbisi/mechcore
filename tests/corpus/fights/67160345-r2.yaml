@@ -9,7 +9,7 @@ seed: 2086664373
 round: 2
 source: game
 ticks: 575
-hash: {profile: mcfr-content-0.7.0, result: 24c06ba8930d8763ab7f016ebe52e4f60ae8c92ce1fe416d61c9e63ce259cba9}
+hash: {profile: mcfr-content-0.7.0, result: 9040ffbc2b969c6fcabb17e2e8766b321932e36ceab6673e56e01c6c447d6049}
 blue:
   core_damage: 913
   officers: [cost_control_specialist]

@@ -8,7 +8,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 151
-hash: {profile: mcfr-content-0.7.0, result: 7e9945048e150a4603991f67643a9610dc5716f01ed3d5e166968cd4ea9bee95}
+hash: {profile: mcfr-content-0.7.0, result: 6b83e4ac309995ebbabb0ee7fe3ee24ce333bddf450e67abe009750a7c408c59}
 blue:
   officers: [improved_tarantula]
   units:

@@ -9,7 +9,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 212
-hash: {profile: mcfr-content-0.7.0, result: 008b2218de0f951dd26623be78a81226de64ed80f5af7ec096c4482b75a36705}
+hash: {profile: mcfr-content-0.7.0, result: bf9af0cd9dbc5ad610d2b46d5ed269c94384064d80c9b6bd67f11f1ccde9211c}
 blue:
   techs:
     rhino: [field_maintenance]

@@ -15,7 +15,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 293
-hash: {profile: mcfr-content-0.7.0, result: ee4da18b030cee964c079b0758165a6eb9fcbe3561777068e9f485f058eb2d4d}
+hash: {profile: mcfr-content-0.7.0, result: e4f4c1f9525f71f5b42aed406f2b72e2e5eda73f17ed71587b56f0c073c4c18e}
 blue:
   officers: [berserk_rhino]
   units:
