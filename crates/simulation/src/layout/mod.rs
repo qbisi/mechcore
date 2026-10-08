@@ -20,8 +20,8 @@ use crate::{
 };
 use commander_skills::{CommanderSkillEffects, technology_buff};
 pub(crate) use commander_skills::{
-    Scatter, SkillBuff, SkillEffect, SkillRelease, StandingOil, SubEffect, Summon, TerrainEffect,
-    TerrainKind, TerrainSpec,
+    ItemBuff, Scatter, SkillBuff, SkillEffect, SkillRelease, StandingOil, SubEffect, Summon,
+    TerrainEffect, TerrainKind, TerrainSpec, buff_item_terrain,
 };
 pub(crate) use constructions::ConstructionBuilding;
 use constructions::Constructions;

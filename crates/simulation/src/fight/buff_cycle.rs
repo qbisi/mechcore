@@ -271,7 +271,7 @@ impl Simulation {
         &mut self,
         owner_id: u64,
         slot: u16,
-        targets: &[FightActorRef],
+        (targets, center): (&[FightActorRef], (i64, i64, i64)),
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let Some(owner) = self.actors.get(&owner_id) else {
@@ -306,6 +306,17 @@ impl Simulation {
                 let reaches_the_dead = row.summons.is_some() || row.disables_technology;
                 if (self.actors[&id].alive() || reaches_the_dead) && self.buff_reaches(id, &row)? {
                     self.write_buff(id, Some(source), team, &row, events)?;
+                }
+            }
+            // `GetBuffRangeItem`: what the hit leaves where it lands, under
+            // the owner's side, when what the skill fires at
+            // (`attackTarget`, or its lock) stands on the ground.
+            if let Some(terrain) = buff.range_item {
+                let skill = self
+                    .skill(self.skill_at_slot(FightActorRef::Unit(owner_id), usize::from(slot)));
+                let aimed = skill.attack_target().or(skill.lock_target);
+                if aimed.is_some_and(|aimed| self.domain_of(aimed) == UnitDomain::Ground) {
+                    self.add_terrain(team, &format!("unit {owner_id}"), terrain, center)?;
                 }
             }
         }

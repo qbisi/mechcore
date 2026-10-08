@@ -22,11 +22,16 @@ SOURCE_CYCLE_RATES = {"max", "intervalTime", "delayTime"}
 # (`ResourceManager.CreateBuffTechEffect` through `GetEffectName`) and whether
 # that follows its unit. Neither is written.
 SOURCE_CLIENT = ("effectName", "isEffectFollow")
+# The fields of a source's `BuffRangeItem`, which its constructor makes when
+# `triggerRangeItemBuffId` is set and a hit leaves where it lands: written
+# under `buff_range_item` with the buffDatas row it names; `triggerLifeTime`
+# is Q32.32 seconds and `triggerRangeItemRange` whole metres.
+SOURCE_RANGE_ITEM = {
+    "triggerRangeItemType": "kind", "triggerRangeItemRange": "range",
+    "triggerLifeTime": "life", "triggerRoundDuration": "rounds",
+}
 # The rest of a source's fields, any of which set is named in `buff_special`.
-SOURCE_OTHER = (
-    "energyShieldDamageMultiplier", "min", "triggerRangeItemBuffId", "triggerRangeItemType",
-    "triggerLifeTime", "triggerRangeItemRange", "triggerRoundDuration",
-)
+SOURCE_OTHER = ("energyShieldDamageMultiplier", "min")
 # The fields of the buffDatas row a source names that the simulator reads;
 # any other set is named in the buff's `special`.
 BUFF_READ = {
@@ -85,8 +90,18 @@ def buff_lines(row, buffs, indent="    "):
     special = set_fields(row, SOURCE_OTHER)
     if special:
         lines.append(f"{indent}buff_special: [{', '.join(special)}]")
-    buff = buffs[row["buffID"]]
-    lines += [
+    if row.get("triggerRangeItemBuffId"):
+        lines.append(f"{indent}buff_range_item:")
+        for field, name in SOURCE_RANGE_ITEM.items():
+            value = raw(row[field])
+            lines.append(f"{indent}  {name}: {value}{reading(value) if field == 'triggerLifeTime' else ''}")
+        lines += buff_row_lines(buffs[row["triggerRangeItemBuffId"]], f"{indent}  ")
+    return lines + buff_row_lines(buffs[row["buffID"]], indent)
+
+
+def buff_row_lines(buff, indent):
+    """A buffDatas row, under `buff`."""
+    lines = [
         f"{indent}buff:",
         f"{indent}  id: {buff['id']}",
         f"{indent}  name: {buff['name']}",

@@ -97,6 +97,8 @@ pub(crate) struct BuffSource {
     /// `GetProbablity`: the chance, in thousandths, that `BuffSystem.
     /// DoAddBuff` adds it to a unit it reaches.
     pub(crate) probability: i32,
+    /// What a hit leaves where it lands (`GetBuffRangeItem`), if anything.
+    pub(crate) range_item: Option<crate::layout::TerrainSpec>,
     /// When and to whom the controller gives it.
     pub(crate) trigger: BuffTrigger,
     /// `CanDisable`, as [`LifeSteal::can_disable`]: whether a hit of a unit

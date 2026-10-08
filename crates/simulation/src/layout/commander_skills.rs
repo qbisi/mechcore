@@ -82,7 +82,7 @@ pub(crate) enum TerrainKind {
 }
 
 /// What a terrain does to the units standing in it, read off its row.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum TerrainEffect {
     /// `FogController`: an attack range rate on every ranged skill.
     Fog { attack_range_rate: i64 },
@@ -95,7 +95,7 @@ pub(crate) enum TerrainEffect {
 }
 
 /// A terrain one sub-effect leaves where it lands.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct TerrainSpec {
     pub(crate) kind: TerrainKind,
     /// `GetRangeItemRange`, `FPoint` raw metres.
@@ -113,7 +113,7 @@ pub(crate) struct TerrainSpec {
 /// it with the oil's provider, so it takes the oil's range and rounds and
 /// burns the oil row's `fireLifeTime` (`CS_Oil.GetFireLifeTime`), dealing
 /// `Config`'s fire as any fire does.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct Burning {
     pub(crate) life_ticks: i32,
     pub(crate) damage: i64,
@@ -446,7 +446,7 @@ pub(crate) struct Summon {
 
 /// The buff a released skill writes: the Electromagnetic Impact's slow,
 /// Lightning Storm's, or Photon Emission's protection.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(
     clippy::struct_excessive_bools,
     reason = "the buff row's flags are independent fields"
@@ -1084,6 +1084,76 @@ fn buff_terrain(named: &str, buff: SkillBuff) -> Result<TerrainEffect> {
             .map_err(|_| Error::new(format!("{named}'s buff outlasts a fight")))?
             .saturating_sub(1)
             .max(1),
+    })
+}
+
+/// A buff source's range item's buff, its fields as `buffDatas` writes them.
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "the buff row's flags are independent fields"
+)]
+pub(crate) struct ItemBuff {
+    pub(crate) id: u32,
+    pub(crate) divide: i32,
+    pub(crate) additive: bool,
+    /// `duration` and `stepTime`, `FPoint` raw seconds.
+    pub(crate) duration_raw: i64,
+    pub(crate) debuff: bool,
+    pub(crate) invincible: bool,
+    pub(crate) disable_technology: bool,
+    pub(crate) amplify_damage_rate: i64,
+    pub(crate) move_speed_rate: i64,
+    pub(crate) life_change_rate: i64,
+    pub(crate) step_time_raw: i64,
+    pub(crate) attack_range_value: i64,
+}
+
+/// A buff source's `BuffRangeItem` as the terrain it leaves: an acid of
+/// `range` whole metres, `life` `FPoint` raw seconds and `rounds`, whose
+/// `BuffItemController` keeps its buff on the units in it as a battle
+/// skill's acid does.
+///
+/// # Errors
+///
+/// Returns an error when the terrain or its buff outlasts a fight.
+pub(crate) fn buff_item_terrain(
+    named: &str,
+    (range, life, rounds): (i64, i64, i32),
+    buff: &ItemBuff,
+) -> Result<TerrainSpec> {
+    let fight_ticks = |raw: i64, what: &str| -> Result<u32> {
+        u32::try_from(ticks(raw)?)
+            .map_err(|_| Error::new(format!("{named}'s {what} outlasts a fight")))
+    };
+    let skill_buff = SkillBuff {
+        id: buff.id,
+        divide: buff.divide,
+        additive: buff.additive,
+        ticks: fight_ticks(buff.duration_raw, "buff")?,
+        move_speed_rate: buff.move_speed_rate,
+        disable_technology: buff.disable_technology,
+        debuff: buff.debuff,
+        invincible: buff.invincible,
+        amplify_damage_rate: buff.amplify_damage_rate,
+        life_change_rate: buff.life_change_rate,
+        step_ticks: fight_ticks(buff.step_time_raw, "buff's step")?,
+        attack_range_value: buff.attack_range_value,
+        current_life_rate: 0,
+    };
+    let life_ticks = match life {
+        0 => None,
+        life => Some(
+            i32::try_from(fight_ticks(life, "terrain")?)
+                .map_err(|_| Error::new(format!("{named}'s terrain outlasts a fight")))?,
+        ),
+    };
+    Ok(TerrainSpec {
+        kind: TerrainKind::Acid,
+        radius_q32: range << 32,
+        life_ticks,
+        rounds,
+        effect: buff_terrain(named, skill_buff)?,
+        burns: None,
     })
 }
 

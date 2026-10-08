@@ -362,6 +362,8 @@ struct Row {
     buff_special: Vec<String>,
     #[serde(default)]
     buff: Option<BuffBlock>,
+    #[serde(default)]
+    buff_range_item: Option<buffs::RangeItemBlock>,
     /// `ExtraWeaponTechnologyData.allWeaponReduceDamageRate`, on an extra
     /// weapon row that sets it.
     #[serde(default)]
@@ -452,7 +454,7 @@ impl TechnologyEffects {
                     &row.buff_cycle,
                     true,
                     &row.buff_special,
-                    row.buff.as_ref(),
+                    (row.buff.as_ref(), row.buff_range_item.as_ref()),
                 )
             });
             let (buff_source, effect) = match buff_source {

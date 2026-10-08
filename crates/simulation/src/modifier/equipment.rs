@@ -233,6 +233,9 @@ struct Row {
     /// The `buffDatas` row a buff row adds.
     #[serde(default)]
     buff: Option<buffs::BuffBlock>,
+    /// What a hit of a buff row leaves where it lands.
+    #[serde(default)]
+    buff_range_item: Option<buffs::RangeItemBlock>,
     /// The buffs of an anti-interference row's group.
     #[serde(default)]
     ignored_buffs: Vec<u32>,
@@ -553,7 +556,7 @@ fn buff_source_of(row: &Row, who: &str) -> std::result::Result<Option<BuffSource
         &row.buff_cycle,
         false,
         &row.buff_special,
-        row.buff.as_ref(),
+        (row.buff.as_ref(), row.buff_range_item.as_ref()),
     )
     .map(Some)
 }
