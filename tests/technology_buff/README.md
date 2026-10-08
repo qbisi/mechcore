@@ -33,6 +33,8 @@ same buff sources on an item.
   blows land on it.
 - `chamber-compression.yaml` resets a Hound's stack of damage as each of its
   shots lands.
+- `scanning-radar.yaml` keeps a Farseer's range on its side's ranged units
+  around it, and off a melee Rhino.
 - `counter-fire.yaml` adds Counter-Fire's range to a Fire Badger from the
   tick a Marksman's hit takes life from it.
 - `replicate.yaml` and `replicate-swarm.yaml` make Crawlers of a Marksman
