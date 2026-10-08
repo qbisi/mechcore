@@ -52,6 +52,10 @@ pub(crate) struct Fields {
     /// `SkillDataModifier.AddData` writes into the skill's
     /// `SkillDataChangeFloat.ProjectileSpeedValue`.
     pub(crate) projectile_speed_value: Option<i64>,
+    /// A technology's `projectileLifeChangeRate`, which
+    /// `SkillDataModifier.AddData` writes into the skill's
+    /// `SkillDataChangeFloatRate.ProjectileLifeRate`.
+    pub(crate) projectile_life_rate: Option<i64>,
 }
 
 /// What the fields write, in the channels the recording keeps them in.
@@ -102,6 +106,11 @@ pub(crate) fn corrections(fields: Fields) -> Vec<(Channel, Index, Correction)> {
     );
     rate(fields.attack_range_rate, Channel::Skill, Index::AttackRange);
     rate(fields.life_rate, Channel::Unit, Index::MaxLife);
+    rate(
+        fields.projectile_life_rate,
+        Channel::Skill,
+        Index::ProjectileLife,
+    );
 
     // An FPoint value in metres reaches the simulator in millimetres, which
     // is what `Stats` resolves a range against. One in seconds stays the

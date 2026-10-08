@@ -133,6 +133,10 @@ pub(crate) enum Index {
     /// projectiles' speed gains. Q32.32 metres a second in the build,
     /// millimetres a second here as the speed is.
     ProjectileSpeed,
+    /// `SkillDataChangeFloatRate.ProjectileLifeRate`: a rate on the life its
+    /// projectiles leave with, which `FightProjectileSkill.GetMaxLife`
+    /// multiplies the row's by. Q32.32.
+    ProjectileLife,
 }
 
 impl Index {
@@ -183,6 +187,7 @@ impl Index {
             Self::AttackValueFor(UnitDomain::Air) => "air attack",
             Self::AttackValueFor(UnitDomain::Ground) => "ground attack",
             Self::ProjectileSpeed => "projectile speed",
+            Self::ProjectileLife => "projectile life",
         }
     }
 }
@@ -288,6 +293,15 @@ impl Overlay {
         })
     }
 
+    /// What this `DataSet` holds for its projectiles' life.
+    pub(crate) fn projectile_life_rate(&self) -> ProjectileLifeRate {
+        let rate = self.aggregate(Index::ProjectileLife).unwrap_or_default();
+        ProjectileLifeRate {
+            enhance: rate.enhance,
+            remaining: rate.remaining,
+        }
+    }
+
     /// Takes away everything one module wrote.
     pub(crate) fn withdraw(&mut self, source: &str) {
         self.entries.retain(|entry| entry.source != source);
@@ -344,6 +358,33 @@ impl Overlay {
     }
 }
 
+/// A skill's `ProjectileLifeRate`: Σ enhance and Π (1 − impair), Q32.32.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct ProjectileLifeRate {
+    enhance: i128,
+    remaining: i128,
+}
+
+impl Default for ProjectileLifeRate {
+    fn default() -> Self {
+        Self {
+            enhance: 0,
+            remaining: ONE,
+        }
+    }
+}
+
+impl ProjectileLifeRate {
+    /// `FightProjectileSkill.GetMaxLife`: the row's life, as an `FPoint`,
+    /// times one plus the enhancements and then times the remainder, cut to
+    /// a whole number and at least 1.
+    pub(crate) fn life(self, base: i64) -> i64 {
+        let life = ((i128::from(base) << 32) * (ONE + self.enhance)) >> 32;
+        let life = (life * self.remaining) >> 32;
+        i64::try_from(life >> 32).unwrap_or(i64::MAX).max(1)
+    }
+}
+
 /// One number's aggregate in one overlay.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct Aggregate {
@@ -372,12 +413,13 @@ impl Aggregate {
     }
 }
 
-/// Damage, its kill-count rate and its reduce rate base, which a skill's
-/// `DataSet` keeps as rates alone.
-const DAMAGE_RATES: [Index; 3] = [
+/// Damage, its kill-count rate and its reduce rate base, and its
+/// projectiles' life, which a skill's `DataSet` keeps as rates alone.
+const SKILL_RATES: [Index; 4] = [
     Index::AttackDamage,
     Index::DamagePerKill,
     Index::DamageReduceRateBase,
+    Index::ProjectileLife,
 ];
 
 /// The skill numbers its `DataSet` keeps as values alone.
@@ -410,7 +452,7 @@ fn refuse_fieldless_skill_corrections(skill: &Overlay) -> Result<()> {
             )));
         }
     }
-    for index in DAMAGE_RATES {
+    for index in SKILL_RATES {
         if let Some(damage) = skill.aggregate(index)
             && damage.value != 0
         {
@@ -1082,6 +1124,7 @@ impl Stats {
             Index::SplashRange,
             Index::AmplifyDamage,
             Index::DamagePerKill,
+            Index::ProjectileLife,
         ]
         .into_iter()
         .chain(SKILL_VALUES)
@@ -1171,6 +1214,11 @@ impl Stats {
         self.skill_value(Index::ProjectileSpeed)
     }
 
+    /// What the main skill's `DataSet` holds for its projectiles' life.
+    pub(crate) fn projectile_life_rate(&self) -> ProjectileLifeRate {
+        self.overlays.skill.projectile_life_rate()
+    }
+
     /// The values the skill's `DataSet` sums for one number.
     fn skill_value(&self, index: Index) -> i64 {
         self.overlays.skill.value(index)
@@ -1186,7 +1234,7 @@ impl Stats {
 
 #[cfg(test)]
 mod tests {
-    use super::{Channel, Correction, Entry, Index, Stats};
+    use super::{Channel, Correction, Entry, Index, Overlay, Stats};
     use crate::rules::{SimulationConfig, UnitDomain};
 
     fn marksman() -> crate::rules::UnitConfig {
@@ -1196,6 +1244,26 @@ mod tests {
             .get("marksman")
             .unwrap()
             .clone()
+    }
+
+    /// Heavy Missile's +2 triples a Stormcaller rocket's 42000, and a rate
+    /// that leaves less than 1 leaves 1.
+    #[test]
+    fn a_projectile_life_rate_multiplies_the_rows_life() {
+        let rated = |add, reduce| {
+            Overlay::of(&[Entry {
+                index: Index::ProjectileLife,
+                source: "test",
+                correction: Correction::Rate { add, reduce },
+            }])
+            .projectile_life_rate()
+        };
+        assert_eq!(
+            Overlay::default().projectile_life_rate().life(42_000),
+            42_000
+        );
+        assert_eq!(rated(2 << 32, 0).life(42_000), 126_000);
+        assert_eq!(rated(0, 1 << 32).life(42_000), 1);
     }
 
     /// With nothing written, every derived number is the description's own.

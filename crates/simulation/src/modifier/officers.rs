@@ -298,6 +298,7 @@ fn corrections_of(row: &Row) -> Vec<(Channel, Index, Correction)> {
         speed_value: row.speed_value,
         damage_reduce_rate_base: None,
         projectile_speed_value: None,
+        projectile_life_rate: None,
     })
 }
 

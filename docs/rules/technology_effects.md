@@ -378,8 +378,14 @@ and Armour Piercing Bullets are the one pair that do, and they are what
 measured the order in the composition rule, which
 [officer_effects.md](officer_effects.md#how-a-correction-composes) carries.
 
+A projectile's life is the one a skill's projectiles leave with, which an
+interceptor's hits take off: Heavy Missile's `projectile_life_rate` lands in
+the skill's `ProjectileLifeRate`, and the life is the row's times one plus its
+enhancements and then times their remainder, cut to a whole number and at
+least 1. Heavy Missile's +2 triples a Stormcaller rocket's 42000.
+
 The simulator refuses a side holding a technology whose correction it does not
-derive (a minimum range, a projectile's life):
+derive (a minimum range):
 `crates/simulation/src/modifier/technologies.rs` names each refusal.
 
 ## Evidence
@@ -392,6 +398,10 @@ derive (a minimum range, a projectile's life):
   gives a level-3 Marksman 155 metres of range and a level-1 one 145, and
   reading the first entry on both parts from the game at t1:
   `tests/modifier/fights/technology-elite-marksman.yaml`.
+- A projectile life rate multiplies the life a skill's projectiles leave with:
+  Heavy Missile's rockets leave with 126000, and fought without the rate the
+  simulator parts from the game at t20:
+  `tests/interceptor/fights/stormcallers-heavy-missile.yaml`.
 - An interval value lands as the table's `FPoint`, and the Rhino's blows follow
   the interval it composes: `tests/modifier/fights/technology-interval-value.yaml`.
 
@@ -504,6 +514,11 @@ derive (a minimum range, a projectile's life):
   and the first when it is given no unit: `TechnologyData.GetDamageChangeRate`.
 - A unit's level changes only between rounds, through `MechTeam.ChangeLevel`,
   which `UnitSystem.ChangeLevel` calls: `UnitSystem.ChangeLevel`.
+- A skill's projectiles leave with the row's life at the unit's level, times
+  one plus the skill's `SkillDataChangeFloatRate.ProjectileLifeRate`
+  enhancements and then their remainder, cut to a whole number and at least 1:
+  `FightProjectileSkill.GetMaxLife`, `DataSet.GetDataFloatAddRate`,
+  `DataSet.GetDataFloatReduceRate`.
 - The numbers a technology states appear in its own description, which the
   extraction checks: `TechnologyData.lifeChangeRate`.
 
@@ -738,5 +753,5 @@ derive (a minimum range, a projectile's life):
 - **What the other technologies do**, in the terms a simulator needs. Each
   one owes the mechanism it belongs to: a summon, a skill's own numbers, a
   debuff on the target.
-- **`min_attack_range_value` and `projectile_life_rate`**, which no
-  mechanism in `crates/simulation` reads.
+- **`min_attack_range_value`**, which no mechanism in `crates/simulation`
+  reads.

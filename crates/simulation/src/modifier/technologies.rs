@@ -44,7 +44,7 @@ use crate::{
 
 use super::{
     buffs::{self, BuffBlock, CycleBlock},
-    effects::{self, Fields, PROJECTILE, VALUE_ELSEWHERE},
+    effects::{self, Fields, VALUE_ELSEWHERE},
     sources::{AutoRecovery, BuffSource, EnergyShield, LifeSteal, SweepIntensify},
 };
 
@@ -710,18 +710,11 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<Written>, String> {
         }
     }
 
-    let unsupported = [
-        (
-            &row.min_attack_range_value,
-            "min_attack_range_value",
-            VALUE_ELSEWHERE,
-        ),
-        (
-            &row.projectile_life_rate,
-            "projectile_life_rate",
-            PROJECTILE,
-        ),
-    ];
+    let unsupported = [(
+        &row.min_attack_range_value,
+        "min_attack_range_value",
+        VALUE_ELSEWHERE,
+    )];
     for (values, field, why) in unsupported {
         if values.iter().any(|value| *value != 0) {
             return Err(format!(
@@ -741,6 +734,7 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<Written>, String> {
         &row.attack_interval_rate,
         &row.splash_range_value,
         &row.projectile_speed_value,
+        &row.projectile_life_rate,
         &row.air_damage_change_rate,
         &row.ground_damage_change_rate,
     ]
@@ -775,6 +769,7 @@ fn at_level(row: &Row, level: usize) -> Written {
         speed_value: at_level(&row.speed_value),
         damage_reduce_rate_base: Some(row.all_weapon_reduce_damage_rate),
         projectile_speed_value: at_level(&row.projectile_speed_value),
+        projectile_life_rate: at_level(&row.projectile_life_rate),
     }));
     written
 }

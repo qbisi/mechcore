@@ -17,7 +17,7 @@
 //! needs an owner's kind is a question these interfaces do not ask.
 
 use super::*;
-use crate::data::{Index, Overlay, switched_targets};
+use crate::data::{Index, Overlay, ProjectileLifeRate, switched_targets};
 
 /// What an owner's attack angle is measured against.
 #[derive(Debug, Clone, Copy)]
@@ -76,6 +76,8 @@ pub(in crate::fight) struct Attacker<'a> {
     /// What its `ProjectileSpeedValue` adds to the row's projectile speed,
     /// millimetres a second.
     pub(in crate::fight) projectile_speed_add: i64,
+    /// Its `ProjectileLifeRate`.
+    pub(in crate::fight) projectile_life_rate: ProjectileLifeRate,
     /// `IAttacker.GetAttackRange`, with whatever corrects it.
     pub(in crate::fight) attack_range: i64,
     /// What one blow deals, with whatever corrects it.
@@ -185,7 +187,9 @@ impl Attacker<'_> {
                 .attack
                 .projectile_speed()
                 .saturating_add(self.projectile_speed_add),
-            life: self.attack.projectile_life(),
+            life: self
+                .projectile_life_rate
+                .life(self.attack.projectile_life()),
             interceptible: self.attack.projectile_interceptible(),
             lock_target: self.attack.lock_target,
             climb: self.attack.projectile_pre_flight_height(),
@@ -306,6 +310,7 @@ impl Simulation {
                     attack: &actor.rules.attack,
                     targets: actor.stats.targets(actor.rules.attack.targets),
                     projectile_speed_add: actor.stats.projectile_speed_add(),
+                    projectile_life_rate: actor.stats.projectile_life_rate(),
                     attack_range: self.main_attack_range(id),
                     attack_damage: self.main_attack_damage(id),
                     splash_radius: actor.stats.splash_radius(),
@@ -366,6 +371,7 @@ impl Simulation {
                     attack: &construction.attack,
                     targets: construction.attack.targets,
                     projectile_speed_add: 0,
+                    projectile_life_rate: ProjectileLifeRate::default(),
                     attack_range: construction.attack.range(),
                     attack_damage: construction.attack_damage,
                     splash_radius: construction.attack.splash_radius(),
@@ -412,16 +418,22 @@ impl Simulation {
         attacker.attack = &rules.attack;
         // A skill with a damage rate holds the main skill's `DataSet`; any
         // other holds what reaches it alone.
-        (attacker.targets, attacker.projectile_speed_add) = if rules.damage_rate > 0.0 {
+        (
+            attacker.targets,
+            attacker.projectile_speed_add,
+            attacker.projectile_life_rate,
+        ) = if rules.damage_rate > 0.0 {
             (
                 actor.stats.targets(rules.attack.targets),
                 actor.stats.projectile_speed_add(),
+                actor.stats.projectile_life_rate(),
             )
         } else {
             let own = Overlay::of(&extra.skill_corrections);
             (
                 switched_targets(rules.attack.targets, &own),
                 own.value(Index::ProjectileSpeed),
+                own.projectile_life_rate(),
             )
         };
         // Only the main skill's search is turned to `DistanceIntensify`.

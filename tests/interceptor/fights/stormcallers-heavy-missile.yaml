@@ -1,0 +1,28 @@
+# `stormcallers.yaml` with Heavy Missile on blue's Stormcaller: its
+# `projectile_life_rate` of +2 is the skill's `ProjectileLifeRate`, and
+# `FightProjectileSkill.GetMaxLife` multiplies the row's 42000 by 1 + 2.
+#
+# Blue's rockets leave with 126000 of life and red's with 42000, from the
+# first volley at t20. Fought without the rate, the simulator parts from the
+# game at t20 on the rockets' life. Blue wins at t238.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 238
+hash: {profile: mcfr-content-0.7.0, result: e453dc847859ee98bb2fdd36db3e942cf868c682dfe455405f7477677598cfe4}
+blue:
+  techs:
+    stormcaller: [heavy_missile]
+  units:
+  - {name: stormcaller, index: 0, position: {x: 5, y: -40}, exp: 0/400/1100}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 5, y: -85}}
+red:
+  core_damage: 200
+  units:
+  - {name: stormcaller, index: 0, position: {x: 5, y: -40}}
+  contraptions:
+  - {name: interceptor, index: 0, position: {x: 5, y: -85}}
