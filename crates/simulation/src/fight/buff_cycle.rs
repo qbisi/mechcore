@@ -10,8 +10,10 @@
 //! travelling, and `BuffSystem` updates it on every tick, first in the tick
 //! and before `CommanderSkillSystem`, while its unit lives and its
 //! technologies are not disabled (`isAvailable`). Under
-//! `BuffTargetUpdateModel.All` its first `Update` adds the buff to the unit
-//! itself through `BuffSystem.AddBuffByCheck`, once. Under `Each` its
+//! `BuffTargetUpdateModel.All` its `UpdateModel1` counts the updates: once
+//! they reach its delay it triggers, and when it cycles, again every interval
+//! after; each trigger adds the buff through `BuffSystem.AddBuffByCheck` to
+//! the unit itself, or to the units in reach. Under `Each` its
 //! `RangeUnitCycle` leaves its delay on its first update and, from its eighth
 //! update on, takes every update the units in reach and adds the buff to each
 //! of them again. `docs/rules/equipment_effects.md` and
@@ -23,7 +25,7 @@ use super::{
 };
 use crate::{
     data::{Entry, Index},
-    modifier::{BuffReach, BuffSource, BuffTrigger},
+    modifier::{AllCycle, BuffReach, BuffSource, BuffTrigger},
 };
 
 /// What tags the entries a technology's or an equipment's buff writes.
@@ -33,14 +35,21 @@ const SOURCE: &str = "BuffEffectProvider";
 /// counts before it first selects, which it never sets back.
 const SELECT_RANGE_INTERVAL: u32 = 8;
 
+/// `FPoint`'s equality tolerance, in raw units: `get_IsCycle` takes an
+/// interval within it of zero for none.
+const FPOINT_EQUALITY_RAW: i64 = 43;
+
 /// A `BuffCycleController` as it runs.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::fight) enum BuffCycle {
-    /// Started by `TriggerCycleStart` (`BuffCycleState.Delaying`), before its
-    /// first update.
+    /// Under `Each`, started by `TriggerCycleStart`
+    /// (`BuffCycleState.Delaying`), before its first update.
     Starting,
-    /// Under `All`, triggered and done; or never started, its listener not
-    /// being the fight's start.
+    /// Under `All`, counting: `timeSum`, and whether it is past its delay
+    /// (`BuffCycleState.Cycleing`).
+    Counting { cycling: bool, time_sum: u32 },
+    /// Under `All`, triggered and not cycling; or never started, its
+    /// listener not being the fight's start.
     Done,
     /// Under `Each`, its `RangeUnitCycle` past its delay: `currentFrame`, and
     /// `fightMeches`, the units it holds in the order it took them.
@@ -55,7 +64,11 @@ impl BuffCycle {
             .iter()
             .map(|source| match source.trigger {
                 BuffTrigger::Hit | BuffTrigger::Damaged => Self::Done,
-                BuffTrigger::Itself | BuffTrigger::Around(_) => Self::Starting,
+                BuffTrigger::All(_) => Self::Counting {
+                    cycling: false,
+                    time_sum: 0,
+                },
+                BuffTrigger::Around(_) => Self::Starting,
             })
             .collect()
     }
@@ -102,7 +115,18 @@ impl Simulation {
         let cycle = actor.buff_cycles[index].clone();
         let (next, reached) = match (source.trigger, cycle) {
             (_, BuffCycle::Done) => return Ok(()),
-            (BuffTrigger::Itself, BuffCycle::Starting) => (BuffCycle::Done, vec![id]),
+            (BuffTrigger::All(all), BuffCycle::Counting { cycling, time_sum }) => {
+                match count_all(&all, cycling, time_sum) {
+                    (next, false) => (next, Vec::new()),
+                    (next, true) => {
+                        let reached = match all.reach {
+                            None => vec![id],
+                            Some(reach) => self.units_reached(id, &reach, target_search_order),
+                        };
+                        (next, reached)
+                    }
+                }
+            }
             // `RangeUnitCycle.Update` in `Delay`: a delay never set is over
             // on the first update, which selects nothing.
             (BuffTrigger::Around(_), BuffCycle::Starting) => (
@@ -127,8 +151,8 @@ impl Simulation {
                     )
                 }
             }
-            (_, BuffCycle::Running { .. } | BuffCycle::Starting) => {
-                unreachable!("only a source that reaches the units around runs a range cycle")
+            (_, BuffCycle::Running { .. } | BuffCycle::Starting | BuffCycle::Counting { .. }) => {
+                unreachable!("a cycle runs as its source's update model does")
             }
         };
         self.actors
@@ -159,29 +183,7 @@ impl Simulation {
         mut members: Vec<u64>,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Vec<u64> {
-        let owner = &self.actors[&id];
-        let team = owner.placement.team;
-        let found = self
-            .units_in_range(
-                (owner.x_q32, owner.z_q32),
-                reach.range_q32,
-                (reach.domains, reach.target_radius),
-                target_search_order,
-            )
-            .into_iter()
-            .filter(|&target| {
-                let same_side = self.actors[&target].placement.team == team;
-                let targets = reach.targets;
-                // `AvailableCheck`: `MechUnit` the unit itself,
-                // `OtherSelfUnits` its side's others, `FriendUnits` its
-                // group's, a group being one side here, and `OpponentUnits`
-                // the other side's.
-                (targets.itself && target == id)
-                    || (targets.own_others && same_side && target != id)
-                    || (targets.friends && same_side)
-                    || (targets.opponents && !same_side)
-            })
-            .collect::<Vec<_>>();
+        let found = self.units_reached(id, reach, target_search_order);
         members.retain(|member| found.contains(member));
         for target in found {
             if !members.contains(&target) {
@@ -190,6 +192,67 @@ impl Simulation {
         }
         members
     }
+
+    /// `RangeTargetCalculator.CalculateRangeActors` around unit `id` within
+    /// the source's reach, in the order it finds them, of those
+    /// `BuffCycleController.AvailableCheck` passes.
+    fn units_reached(
+        &self,
+        id: u64,
+        reach: &BuffReach,
+        target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
+    ) -> Vec<u64> {
+        let owner = &self.actors[&id];
+        let team = owner.placement.team;
+        self.units_in_range(
+            (owner.x_q32, owner.z_q32),
+            reach.range_q32,
+            (reach.domains, reach.target_radius),
+            target_search_order,
+        )
+        .into_iter()
+        .filter(|&target| {
+            let same_side = self.actors[&target].placement.team == team;
+            let targets = reach.targets;
+            // `AvailableCheck`: `MechUnit` the unit itself,
+            // `OtherSelfUnits` its team's others, and `OpponentUnits` the
+            // other side's.
+            (targets.itself && target == id)
+                || (targets.own_others && same_side && target != id)
+                || (targets.opponents && !same_side)
+        })
+        .collect()
+    }
+}
+
+/// `BuffCycleController.UpdateModel1`'s count: `timeSum` a tick on, and the
+/// controller's next state with whether it triggers. Before its delay is
+/// over (`delayTimeConfig`, the delay in whole ticks) it waits; then it
+/// triggers, keeps what the delay left over, and cycles if it has an
+/// interval (`IsCycle`, `FPoint`'s tolerant inequality to zero) or is done.
+/// Cycling, it triggers each time `timeSum` reaches `intervalTimeConfig`
+/// and keeps the rest.
+fn count_all(all: &AllCycle, cycling: bool, time_sum: u32) -> (BuffCycle, bool) {
+    let ticks = |seconds_q32| u32::try_from(seconds_q32_to_steps(seconds_q32)).unwrap_or(u32::MAX);
+    let time_sum = time_sum.saturating_add(1);
+    let limit = ticks(if cycling {
+        all.interval_q32
+    } else {
+        all.delay_q32
+    });
+    if time_sum < limit {
+        return (BuffCycle::Counting { cycling, time_sum }, false);
+    }
+    let time_sum = time_sum - limit;
+    let next = if cycling || all.interval_q32.abs() > FPOINT_EQUALITY_RAW {
+        BuffCycle::Counting {
+            cycling: true,
+            time_sum,
+        }
+    } else {
+        BuffCycle::Done
+    };
+    (next, true)
 }
 
 impl Simulation {
@@ -340,4 +403,50 @@ fn buff_row(buff: &BuffSource) -> Result<BuffRow> {
         life_change_rate: buff.life_change_rate,
         current_life_rate: 0,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{AllCycle, BuffCycle, count_all};
+
+    /// The updates on which a controller under `All` triggers, of the first
+    /// `updates`.
+    fn triggers(all: &AllCycle, updates: u32) -> Vec<u32> {
+        let mut state = BuffCycle::Counting {
+            cycling: false,
+            time_sum: 0,
+        };
+        let mut fired = Vec::new();
+        for update in 1..=updates {
+            let BuffCycle::Counting { cycling, time_sum } = state else {
+                break;
+            };
+            let (next, triggered) = count_all(all, cycling, time_sum);
+            if triggered {
+                fired.push(update);
+            }
+            state = next;
+        }
+        fired
+    }
+
+    #[test]
+    fn a_delay_triggers_once_and_an_interval_again_and_again() {
+        let second = 1_i64 << 32;
+        // Photon Emission: 0.6 s, 12 ticks, and no interval.
+        let emission = AllCycle {
+            delay_q32: 2_576_980_377,
+            interval_q32: 0,
+            reach: None,
+        };
+        assert_eq!(triggers(&emission, 100), [12]);
+        // Photon Loop: no delay, so the first update, and every 30 s after,
+        // the count keeping the tick the delay left over.
+        let looped = AllCycle {
+            delay_q32: 0,
+            interval_q32: 30 * second,
+            reach: None,
+        };
+        assert_eq!(triggers(&looped, 1300), [1, 600, 1200]);
+    }
 }

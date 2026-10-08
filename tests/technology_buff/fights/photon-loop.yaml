@@ -1,0 +1,31 @@
+# Photon Loop: a Mountain covers itself again every 30 seconds.
+#
+# The source adds buff 40002002 (25 s of invincibility and 30% less damage
+# taken) to the Mountain on the fight's first tick, and again every 600
+# ticks after: it runs out at t500 and comes back at t600. The fight lasts
+# 647 ticks.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 647
+hash: {profile: mcfr-content-0.7.0, result: 2430b4a748083f96ef228164541b196ec2238403dab622376338fe8549f35342}
+blue:
+  techs:
+    mountain: [photon_loop]
+  units:
+  - {name: mountain, index: 0, position: {x: 5, y: -145}, exp: 0/3200/3200}
+red:
+  core_damage: 500
+  techs:
+    vulcan: [ignite]
+  units:
+  - {name: vulcan, index: 0, position: {x: 0, y: -80}}
+  - {name: rhino, index: 1, position: {x: 45, y: -75}}
+  - {name: rhino, index: 2, position: {x: -45, y: -75}}
+  - {name: fortress, index: 3, position: {x: 0, y: -200}}
+  - {name: fortress, index: 4, position: {x: 100, y: -200}}
+  - {name: fortress, index: 5, position: {x: -100, y: -200}}
+  - {name: rhino, index: 6, position: {x: 105, y: -75}}

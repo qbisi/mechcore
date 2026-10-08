@@ -23,6 +23,11 @@ same buff sources on an item.
   from the struck Rhino's side's stream.
 - `photon-coating.yaml` and `photon-coating-war-factory.yaml` keep a Vulcan's
   Ignite off a coated Rhino and War Factory.
+- `photon-emission.yaml`, `photon-emission-farseer.yaml` and
+  `photon-loop.yaml` add a buff under the update model `All`: once after a
+  delay to the units around an Overlord and a Farseer, and every 30 seconds
+  to a Mountain itself. The Farseer's fight holds its buff while a last
+  projectile is in flight after the towers fell.
 - `counter-fire.yaml` adds Counter-Fire's range to a Fire Badger from the
   tick a Marksman's hit takes life from it.
 - `replicate.yaml` and `replicate-swarm.yaml` make Crawlers of a Marksman

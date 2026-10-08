@@ -1,0 +1,32 @@
+# Photon Emission: an Overlord covers the units of its side around it.
+#
+# At t12, after its 0.6 s delay, the Overlord adds buff 40000 (20 s of
+# invincibility and 30% less damage taken) once to its side's other units
+# within 100 m of it, to their edge: the Rhino and the Wasps, not the
+# Marksman 155 m away. Its targets are FriendUnits and OtherSelfUnits, and
+# FriendUnits takes a unit of its group but not of its team, so the Overlord
+# itself takes none. Under the buff no Ignite reaches a covered unit. The
+# fight is left at t348 with the buff still running.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 348
+hash: {profile: mcfr-content-0.7.0, result: 84232ee7f4e94486f7dd33f955276e5c7eca6af20e6be78641b7edf2eca98917}
+blue:
+  techs:
+    overlord: [photon_emission]
+  units:
+  - {name: overlord, index: 0, position: {x: 5, y: -145}, exp: 0/666/1750}
+  - {name: rhino, index: 1, position: {x: 55, y: -145}, exp: 0/666/1150}
+  - {name: wasp, index: 2, position: {x: -45, y: -150}, exp: 0/266/900}
+  - {name: marksman, index: 3, position: {x: 160, y: -150}}
+red:
+  core_damage: 904
+  techs:
+    vulcan: [ignite]
+  units:
+  - {name: vulcan, index: 0, position: {x: 0, y: -80}}
+  - {name: vulcan, index: 1, position: {x: 100, y: -80}}
