@@ -18,7 +18,9 @@ same buff sources on an item.
   Eye's buff to what its hits strike, cutting a Fortress's range and leaving
   a Rhino's melee reach.
 - `ignite.yaml` burns a Rhino with a Vulcan's hits and holds its Field
-  Maintenance off while it burns.
+  Maintenance off while it burns. `ignite-wasp.yaml`, `ignite-fang.yaml` and
+  `ignite-fire-badger.yaml` add the same buff by chance, each hit drawing
+  from the struck Rhino's side's stream.
 - `counter-fire.yaml` adds Counter-Fire's range to a Fire Badger from the
   tick a Marksman's hit takes life from it.
 - `replicate.yaml` and `replicate-swarm.yaml` make Crawlers of a Marksman

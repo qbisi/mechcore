@@ -238,6 +238,7 @@ impl Simulation {
             }],
             disables_technology: false,
             debuff: shot.buff.debuff,
+            probability: super::tower::CERTAIN,
             invincible: false,
             disables_recover: false,
             life_change_rate: 0,
@@ -246,7 +247,7 @@ impl Simulation {
         for &target in &struck.targets {
             if let FightActorRef::Unit(id) = target
                 && self.actors[&id].alive()
-                && self.buff_reaches(id, &row)
+                && self.buff_reaches(id, &row)?
             {
                 self.write_buff(id, None, projectile.team, &row, events)?;
             }

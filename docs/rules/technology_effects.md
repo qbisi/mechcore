@@ -136,6 +136,14 @@ Ignite, a Vulcan's hits, takes 3% of the struck unit's maximum life every half
 second for two seconds and disables its recovery; every hit starts it over. A
 buff that heals is refused.
 
+**A buff source that is not certain draws for each unit it reaches.** The
+source's chance is truncated to whole thousandths, so the 0.35 a table writes
+is 349. A buff that reaches a unit (not ignored, and no debuff on a unit made
+invincible) is added outright at a chance of 1000, never at 0, and otherwise
+when a draw below 1000 from the unit's own side's stream falls under the
+chance. Every other buff source is certain, and draws nothing. The Wasp's,
+Fang's and Fire Badger's Ignites add the Vulcan's buff at 35%, 14% and 70%.
+
 **A buff source triggered by its unit's losing life adds its buff to the unit
 itself, each time a hit takes life from it.** The buff is added as the life
 goes, before the unit's death is handled, so a unit the hit killed takes it
@@ -188,7 +196,7 @@ Rhino with Combat Evolvement has 2.5% more life a stack, and a hit Rhino's
 life passes through its maximum without the buff on each step. When the buff
 ends, the fight's end among, the rate goes and the life is refreshed again.
 
-Any other trigger or chance, a source that steals life beside a hit buff, one
+Any other trigger, a source that steals life beside a hit buff, one
 that adds its buff once to other units
 or cycles under the update model `All`, one that reaches crystals, measures
 from its unit's edge or keeps to a distance type, a buff that stacks on
@@ -348,6 +356,13 @@ whose effect grows with rank, rather than read index zero:
   Vulcan's first hit, and Field Maintenance repairs nothing while it burns;
   without Ignite the Rhino repairs from tick 106 and wins:
   `tests/technology_buff/fights/ignite.yaml`.
+- An uncertain Ignite draws from the struck Rhino's side's stream on each
+  hit: 67 of a Wasp's 131 hits add it, 17 of a Fang squad's 97 and 164 of a
+  Fire Badger's 236; drawn from the attacker's side, the simulator parts from
+  each recording at its first draw:
+  `tests/technology_buff/fights/ignite-wasp.yaml`,
+  `tests/technology_buff/fights/ignite-fang.yaml`,
+  `tests/technology_buff/fights/ignite-fire-badger.yaml`.
 - Counter-Fire's buff is on a Fire Badger from the tick a Marksman's hit
   takes life from it, its range 145 of 75; without it the simulator parts
   from the recording on that tick, on that range:
@@ -427,6 +442,17 @@ whose effect grows with rank, rather than read index zero:
   `FightMech.StealLife` return before `FightActor.AddLife` while
   `BuffManager.IsRecoverDisabled`, which `FightMech.IsRecoverDisabled` reads
   as the buffs' `IBuffData.IsDisableRecover` count above zero.
+- A buff source's chance: `BuffTechnologyData.PreProcess` stores
+  `Utility.ConvertProbability` of its probability, the `FPoint` times 1000
+  truncated, which `BuffTech.GetProbablity` answers. `BuffSystem.DoAddBuff`,
+  after `FightActor.IsBuffTarget`, its building checks and
+  `FightMech.IsIgnoredBuff`, adds nothing when `IBuffDataSource.GetProbablity`
+  is not above 0, adds the buff when it is above 999, and otherwise returns
+  when `GRRandom.IsProbabilityFail` on the target's `FightTeam.random` holds,
+  which is `GRRandom.Next` of 1000 not below the chance.
+  `CommanderSkillBase.GetProbablity`, `LandMineContraption.GetProbablity`,
+  `TowerStrengthenData.GetProbablity` and `FightTrapSkill.GetProbablity`
+  answer 1000.
 - A buff that summons: `Buff.Init` gives a buff whose `IBuffData.IsSummoning`
   an `IBEC_DeadSummon`, and `BuffSystem.IsAvaliableWhenActorDead` lets
   `BuffSystem.AddBuff` add it to a dead target, as it does one whose

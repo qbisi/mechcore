@@ -94,6 +94,9 @@ pub(crate) struct BuffSource {
     /// `summonUnitID`, through `Buff.GetSummonMechID`: what the unit the
     /// buff is on summons as it dies, if anything (`IBEC_DeadSummon`).
     pub(crate) summons: Option<DeadSummon>,
+    /// `GetProbablity`: the chance, in thousandths, that `BuffSystem.
+    /// DoAddBuff` adds it to a unit it reaches.
+    pub(crate) probability: i32,
     /// When and to whom the controller gives it.
     pub(crate) trigger: BuffTrigger,
     /// `CanDisable`, as [`LifeSteal::can_disable`]: whether a hit of a unit

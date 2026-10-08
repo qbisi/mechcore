@@ -1,0 +1,25 @@
+# Ignite by chance: a Fang squad's hits burn a Rhino 14% of the time.
+#
+# Fang's Ignite has a probability of 0.14, 139 thousandths once truncated. Of
+# the 97 hits on the Rhino, 17 add the buff, each drawn from the Rhino's
+# side's stream. The Rhino wins at t358. Drawn from the Fangs' side instead,
+# the simulator parts from this recording at t114.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 358
+hash: {profile: mcfr-content-0.7.0, result: efc4bdd78037e314f8db517c2be40de5124b8dc9c3226b150b8cd6e0237ee538}
+blue:
+  core_damage: 200
+  techs:
+    fang: [ignite]
+  units:
+  - {name: fang, index: 0, position: {x: 5, y: -100}}
+red:
+  techs:
+    rhino: [field_maintenance]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/216/1150}

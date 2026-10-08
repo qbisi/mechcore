@@ -190,6 +190,10 @@ pub(in crate::fight) struct StackRule {
     pub(in crate::fight) condition: StackCondition,
 }
 
+/// A buff source's chance that is never drawn: `BuffSystem.DoAddBuff` adds
+/// the buff outright when `GetProbablity` is above 999.
+pub(in crate::fight) const CERTAIN: i32 = 1_000;
+
 /// One `buffDatas` row as `BuffManager.AddBuff` adds it: which it is, how it
 /// merges with one already running, how long it lasts, and what it writes.
 #[derive(Debug, Clone)]
@@ -211,6 +215,9 @@ pub(in crate::fight) struct BuffRow {
     pub(in crate::fight) disables_technology: bool,
     /// `IsDebuff`: a unit a buff makes invincible does not take it.
     pub(in crate::fight) debuff: bool,
+    /// Its source's `GetProbablity`, in thousandths: [`CERTAIN`] or more is
+    /// never drawn.
+    pub(in crate::fight) probability: i32,
     /// `IsInvincible`.
     pub(in crate::fight) invincible: bool,
     /// `IsDisableRecover`.
@@ -587,6 +594,7 @@ impl Simulation {
             entries: self.towers.config.entries(),
             disables_technology: false,
             debuff: self.towers.config.destroyed_buff.debuff,
+            probability: CERTAIN,
             invincible: false,
             disables_recover: false,
             life_change_rate: 0,
@@ -604,7 +612,7 @@ impl Simulation {
             })
             .collect::<Vec<_>>();
         for actor_id in actor_ids {
-            if self.buff_reaches(actor_id, &row) {
+            if self.buff_reaches(actor_id, &row)? {
                 self.write_buff(actor_id, None, loss.team, &row, &mut applied)?;
             }
         }
@@ -654,13 +662,26 @@ impl Simulation {
     /// `BuffManager.AddBuff`, and the head of that: whether the buff reaches
     /// the unit at all. A buff the unit ignores (`FightMech.IsIgnoredBuff`)
     /// does not, nor does a debuff a running buff makes it invincible to, and
-    /// nothing is recorded.
-    pub(in crate::fight) fn buff_reaches(&self, actor_id: u64, row: &BuffRow) -> bool {
+    /// nothing is recorded. Of one that does, a source's chance of none
+    /// adds nothing, a certain one adds it, and any other is drawn from the
+    /// unit's side's stream: `GRRandom.IsProbabilityFail` fails when
+    /// `Next(1000)` is not below the chance.
+    pub(in crate::fight) fn buff_reaches(&mut self, actor_id: u64, row: &BuffRow) -> Result<bool> {
         let actor = &self.actors[&actor_id];
-        if actor.placement.ignored_buffs.contains(&row.buff_id) {
-            return false;
+        if actor.placement.ignored_buffs.contains(&row.buff_id)
+            || (row.debuff && actor.invincible())
+            || row.probability <= 0
+        {
+            return Ok(false);
         }
-        !row.debuff || !actor.invincible()
+        if row.probability >= CERTAIN {
+            return Ok(true);
+        }
+        let team = actor.placement.team;
+        let draw = self
+            .side_random(team)?
+            .next_between_inclusive(0, CERTAIN - 1);
+        Ok(draw < row.probability)
     }
 
     /// `BuffManager.AddBuff` of a buff that reaches the unit, recorded with

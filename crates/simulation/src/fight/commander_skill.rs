@@ -511,6 +511,7 @@ impl Simulation {
             .collect(),
             disables_technology: buff.disable_technology,
             debuff: buff.debuff,
+            probability: super::tower::CERTAIN,
             invincible: buff.invincible,
             disables_recover: false,
             life_change_rate: buff.life_change_rate,
@@ -519,7 +520,7 @@ impl Simulation {
         for &id in reached {
             // `BuffSystem.AddBuff` passes over the dead: a strike's damage
             // may have killed what its circle reached.
-            if !self.actors[&id].alive() || !self.buff_reaches(id, &row) {
+            if !self.actors[&id].alive() || !self.buff_reaches(id, &row)? {
                 continue;
             }
             if let Some(running) = self.actors[&id].buff_not_beside(&row) {

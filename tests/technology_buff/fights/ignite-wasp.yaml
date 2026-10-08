@@ -1,0 +1,27 @@
+# Ignite by chance: a Wasp's hits burn a Rhino 35% of the time.
+#
+# Wasp's Ignite adds the Vulcan's buff with a probability of 0.35, which the
+# build truncates to 349 thousandths. Each hit draws once from the Rhino's
+# side's stream. Of the 131 hits on the Rhino, 67 add the buff, and Field
+# Maintenance repairs between burns (189 healings). The Wasp wins at t917.
+# Drawn from the Wasp's side instead, the simulator parts from this recording
+# at t103.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 917
+hash: {profile: mcfr-content-0.7.0, result: 8481249fb94b1f31808ccec94f49ae0a1fce06602dfdcaa05757fc61e4b9fa6d}
+blue:
+  techs:
+    wasp: [ignite]
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/400/900}
+red:
+  core_damage: 204
+  techs:
+    rhino: [field_maintenance]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/400/1150}
