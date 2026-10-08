@@ -1,0 +1,26 @@
+# The Vulcan's Incendiary Bomb against two Rhinos and a Marksman.
+#
+# The Vulcan's row is the Hound's mechanism with its own numbers: one skill
+# firing both its launchers, ten shells a volley scattered within 70 metres
+# of the target, 40 to 180 metres out, each leaving a fire of its 18 metre
+# splash that burns the row's 12 seconds. The ten fires land between t243
+# and t268, and the Marksman burns in them, 54 a time, from then on.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 434
+hash: {profile: mcfr-content-0.7.0, result: 37bbdc6d1f1203de6340e908bc2f22cddc2625427dffefe957ac80fc8fdc4c39}
+blue:
+  core_damage: 400
+  techs:
+    vulcan: [incendiary_bomb]
+  units:
+  - {name: vulcan, index: 0, position: {x: 0, y: -200}, exp: 0/200/2200}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -155}, exp: 0/800/1150}
+  - {name: rhino, index: 1, position: {x: 45, y: -155}, exp: 0/200/1150}
+  - {name: marksman, index: 2, position: {x: -40, y: -100}}
