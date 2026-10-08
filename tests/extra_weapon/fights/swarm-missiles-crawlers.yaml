@@ -13,7 +13,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 829
-hash: {profile: mcfr-content-0.7.0, result: 6caab5cce18ad6af6d82f8a2d548a18001cdc10c957309ad26a6d321c22f8999}
+hash: {profile: mcfr-content-0.7.0, result: 070b22281275bc8ed519a32783e026044cb7d5a9c5365b6c0ae11eefc13ad06d}
 blue:
   techs:
     abyss: [swarm_missiles]

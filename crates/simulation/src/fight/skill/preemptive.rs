@@ -100,6 +100,10 @@ impl Simulation {
                 buff.duration,
             )))
             .unwrap_or(u32::MAX),
+            step_ticks: u32::try_from(seconds_q32_to_steps(crate::rules::metres_q32(
+                buff.step_time,
+            )))
+            .unwrap_or(u32::MAX),
             source: PREEMPTIVE_SOURCE,
             entries: [
                 Correction::Value(
@@ -118,7 +122,7 @@ impl Simulation {
             disables_technology: false,
             debuff: buff.debuff,
             invincible: buff.invincible,
-            life_change: None,
+            life_change_rate: 0,
             current_life_rate: buff.current_life_rate,
         };
         self.write_buff(actor_id, Some(object), team, &row, events)?;

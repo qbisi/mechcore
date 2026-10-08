@@ -3,9 +3,8 @@
 # A Hound with Incendiary Bomb against two Marksmen. Each member throws one
 # bomb a few updates in; where each lands, a fire of the bomb's splash burns
 # for its row's life time under the Hound's side, at the height the bomb
-# landed at. The Marksman standing in the fires burns until it falls, and the
-# unit carries the fire's range and life time among its modifiers from the
-# start. That Marksman was what the main skills held: the bombs' skills,
+# landed at. The Marksman standing in the fires burns until it falls. That
+# Marksman was what the main skills held: the bombs' skills,
 # holding the other, take the motion for an update, and the Hounds, which have
 # no body, turn their roots to it.
 
@@ -15,7 +14,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 212
-hash: {profile: mcfr-content-0.7.0, result: 1607f5f4b1e9cc9b4ec10df76ab19b0b8e9424f627536d6ef2b0c384e9917b20}
+hash: {profile: mcfr-content-0.7.0, result: cbceefac92e1b4289ae1318928d109cf927b3c9f1e0ff7023eb06f764487cde9}
 blue:
   core_damage: 100
   techs:

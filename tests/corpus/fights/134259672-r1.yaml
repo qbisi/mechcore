@@ -12,7 +12,7 @@ seed: 1685333659
 round: 1
 source: game
 ticks: 756
-hash: {profile: mcfr-content-0.7.0, result: efbc696f6bfc24c40ea796230cafc91c9418a9a46ccac44511de330b103016a0}
+hash: {profile: mcfr-content-0.7.0, result: 7ccdd84bee0c89ff0a5641e0e3b342e4940256b98bdbdfd56f43f02edfe576e0}
 blue:
   core_damage: 472
   officers: [typhoon_specialist]

@@ -414,25 +414,23 @@ What the fight decided is the fight document itself; the view stays because a
 recording's survivors are what a capture of a mechanism is commonly read for,
 and a fight document has no place for them.
 
-**`stats`** reads the same recording for a unit's numbers at one tick, in
-both halves: the corrections **written onto** it, in the three channels the
-recording keeps apart — the unit's own overlay, its skills', and the buff
-aggregate — and the numbers the build then **computed** from them: the
+**`stats`** reads the same recording for a unit's numbers at one tick: the
+`buffs` it holds, each by its `buff_id` (or the `technology_id` of a
+technology that serves as its own buff data) and its `stacks` when it stacks,
+and the numbers the build **computed** after every correction on it: the
 unit's `move_speed`, and each skill's `attack_range`, `attack_damage` and
-`current_attack_interval`, by its slot. Neither is something the fight decided, which is why neither
-belongs in the outcome, and they are one view because a capture reads them
-together: a rate of `+0.6` beside a damage of 1.6 times the description is one
-fact seen twice. [officer_effects.md](../../rules/officer_effects.md) is what
-reads them that way.
+`current_attack_interval`, by its slot. None is something the fight decided,
+which is why none belongs in the outcome. A recording keeps no correction a
+technology, an officer or an equipment writes, so a capture reads a correction
+off the number it comes to: a damage of 1.6 times the description is a rate
+of `+0.6`. [officer_effects.md](../../rules/officer_effects.md) is what reads
+them that way.
 
-Every formation answers, whether or not it carries a correction: a unit with
-nothing written onto it still has numbers, and that is what a control is read
-for. It answers one reading per distinct state its standing members are in,
-each naming its members by unit id: a correction handed to the formation reads
-once, and one the build hands a single member, a buff it takes on being hit,
-splits that member off. Members whose technologies are switched off say so
-with `technologies_disabled`, which is the state a correction's absence is
-explained by rather than a correction of its own.
+Every formation answers, whether or not anything corrects it: a unit with
+nothing on it still has numbers, and that is what a control is read for. It
+answers one reading per distinct state its standing members are in, each
+naming its members by unit id: a buff the build hands a single member, one it
+takes on being hit, splits that member off.
 
 `--tick <n>` picks the tick to read; the default is the first, where a
 correction applied as the fight is built has landed and nothing the fight does

@@ -1,4 +1,4 @@
-# MCFR, format 0.19.0
+# MCFR, format 0.20.0
 
 [简体中文](mcfr.zh.md)
 
@@ -9,7 +9,7 @@ schema of each, the identity and ordering rules that make two recordings of one
 fight the same recording, and what a reader must validate before trusting one.
 
 ```text
-format = "0.19.0"
+format = "0.20.0"
 ```
 
 The native field mapping is bound to the game version the repository pins in
@@ -122,7 +122,7 @@ Parquet key-value metadata keys and values are both UTF-8 strings.
 
 | Key | Data | Meaning |
 | --- | --- | --- |
-| `format` | exactly `0.19.0` | the logical and physical contract version |
+| `format` | exactly `0.20.0` | the logical and physical contract version |
 | `producer` | `game` or `simulator` | what wrote the recording: the game, through the adapter, or the simulator |
 | `game_build` | non-empty UTF-8 | capture provenance; the adapter reads `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | the context `D` that holds steady for one round |
@@ -178,96 +178,52 @@ death survives as a `unit_died` event.
 | `active` | `BOOLEAN required` | current activation | `get_IsActive()` |
 | `targetable` | `BOOLEAN required` | whether it is a legal target now | `IsValidTarget(visibility=0)` |
 | `visibility` | `UINT8 required` | native visibility state | `GetVisibility()` |
-| `status_mask` | `UINT64 required` | four native booleans | below |
-| `modifiers` | required sparse list | every non-zero correction on the unit, its skills and its buffs | below |
+| `buffs` | required list | every buff the unit holds, as the build carries it from tick to tick | below |
 | `personal_shield` | required struct | the unit's own energy shield | below |
 | `move_speed` | `INT64 required` | the speed the fight moves the unit at, after every correction, Q32.32 raw | `FightMech.GetMoveSpeed()` |
 | `skills` | required list | every skill the unit holds, its state and its weapons | below |
 | `control` | nullable struct | while a control beam is turning the unit: `progress`, `INT32`, the power its beams' hits have added, and `sources`, `list<ObjectRef>`, the owners of the skills whose beams hold it, in the order the build keeps them; null while none is | the unit's entry in `TeamTranslationSystem.translatingDatas`: `TranslationData.progress` and `sources` |
 
-### `status_mask`
-
-The mask holds four native bits as of the sampling boundary. A legal mask is
-`0x0..=0xF`.
-
-| Bit | Name | Native source | Meaning |
-| ---: | --- | --- | --- |
-| 0 | `invincible` | `BuffManager.IsInvincible()` | the native predicate's value at the sampling boundary |
-| 1 | `frozen` | `BuffManager.IsFreeze()` | the native predicate's value at the sampling boundary |
-| 2 | `technology_disabled` | `FightMech.IsTechnologyDisabled()` | unit technology effects are off |
-| 3 | `recovery_disabled` | `FightMech.IsRecoverDisabled()` | unit recovery is off |
-
-These four record the present value of native boolean state. `invincible` and
-`frozen` keep the native predicates' names, and the names are the safest thing
-to call them: what each does in combat is read from build-bound native branches
-and controlled observation rather than from the word. Numeric buffs express
-their aggregate effect through the `buff` modifiers instead.
-
-### `modifiers`
+### `buffs`
 
 ```text
-channel    : UINT8 required    (0=buff, 1=mech_float, 2=mech_float_rate, 3=mech_int,
-                                4=skill_float, 5=skill_float_rate, 6=skill_int)
-skill_slot : UINT16 nullable   the skill's index in GetSkills(), on a skill channel only
-field      : UTF8 required     the native member in snake_case, as the build spells it
-part       : UINT8 required    (0=value, 1=add, 2=reduce)
-value      : INT64 required    Q32.32 raw for a float or rate, the integer for an int
+buffs = list<{
+  data        : struct required  { kind : UINT8 (0=buff, 1=technology), id : UINT32 }
+  source      : nullable ObjectRef
+  source_team : UINT32 required
+  elapsed     : INT32 required   ticks the buff has run since it was written or last reset
+  duration    : INT32 required   ticks it runs for in all
+  step        : INT32 required   its periodic clock
+  stacks      : INT32 required   its additive stack, 0 for a buff that does not stack
+}>
 ```
 
-A unit's modifiers are one sparse list of what the build holds as non-zero,
-strictly ascending by `(channel, skill_slot, field, part)`. A field no content
-sets costs nothing, and a member the build adds is recorded without a change to
-the format.
+One row for each `Buff` in the unit's `BuffManager.buffs`, in the order the
+build keeps them. A row holds what the buff carries from tick to tick and
+nothing the build works out from it:
 
-The six `DataSet` channels are keyed by the build's own enums, and the adapter
-reads every member they define, found by enumerating each enum when it starts:
-
-| Channel | Native enum | Read with |
+| Field | Native source | Why it is stored |
 | --- | --- | --- |
-| `mech_float` | `MechDataChangeFloat` | `FightMech.GetDataFloat` |
-| `mech_float_rate` | `MechDataChangeFloatRate` | `GetDataFloatAddRate` / `GetDataFloatReduceRate` |
-| `mech_int` | `MechDataChangeInt` | `FightMech.GetDataInt` |
-| `skill_float` | `SkillDataChangeFloat` | `FightSkill.GetData` |
-| `skill_float_rate` | `SkillDataChangeFloatRate` | `GetDataFloatAddRate` / `GetDataFloatReduceRate` |
-| `skill_int` | `SkillDataChangeInt` | `FightSkill.GetData` |
+| `data` | `Buff.data`: a `BuffData` row by its `id`, or the `BurrowTech` technology that serves as its own buff data | which numbers the buff writes: `BuffData.GetData` answers the row's `floatDatas` whatever unit it is asked about |
+| `source` | `Buff.source` | who the buff counts as from; null for a buff no unit wrote, an oil's or an acid's |
+| `source_team` | `Buff.sourceTeamController` | the side it is from, which a sourceless buff still has |
+| `elapsed` | `Buff.durationTime` | counts up each update, and back to 0 on a `Reset` of a row not in additive mode |
+| `duration` | `Buff.maxDurationtime` | fixed as it is written, from `BuffManager.GetBuffDuration` (the row's, or the match's for a tower buff), and lengthened by a `Reset` of a row in additive mode: a value fixed at an earlier moment |
+| `step` | `Buff.stepTime` | the phase of its periodic effect against the row's `stepTime`: an acid's loss, a time-stacking buff's next stack |
+| `stacks` | `IBEC_AdditiveEffectBuff.additiveStack` | Combat Evolvement's and Kinetic Charge's stacks, which change with no event |
 
-A member's name is the enum member's in `snake_case`, spelled as the build
-spells it: `CBLifeRecoveryRate` is `cb_life_recovery_rate`, and
-`DamageChagneRateGround` keeps its typo. The skill channels are read for every
-skill `FightMech.GetSkills()` returns.
-
-A rate is two parts. `add` is the sum of the enhancements, and `reduce` is what
-the impairments take off: the native reduce getters return the remaining
-multiplier, and MCFR stores
-
-```text
-reduce = 1.0_q32_32 - native_reduce_factor
-```
-
-Both are non-negative. A float or an int is one signed `value`.
-
-The `buff` channel is the aggregate getters on `FightMech.GetBuffManager()`,
-over every live buff, kept apart from the `DataSet` channels so which store an
-effect came from stays attributable:
-
-| Field | Parts | Native source |
-| --- | --- | --- |
-| `move_speed_rate` | add, reduce | `GetMoveSpeedChangeAddRate/ReduceRate` |
-| `damage_rate` | add, reduce | `GetDamageChangeAddRate/ReduceRate` |
-| `attack_interval_rate` | add, reduce | `GetAttackIntervalChangeAddRate/ReduceRate` |
-| `extra_attack_interval_rate` | add, reduce | `GetExtraAttackIntervalChangeAddRate/ReduceRate` |
-| `amplify_damage_rate` | add, reduce | `GetAmplifyDamageAddRate/ReduceRate` |
-| `attack_range_rate` | add, reduce | `GetAttackRangeAddRate/ReduceRate` |
-| `extra_attack_range_rate` | add, reduce | `GetExtraAttackRangeAddRate/ReduceRate` |
-| `move_speed_value` | value | `GetMoveSpeedChangeValue` |
-| `attack_range_add_value`, `attack_range_reduce_value` | value | `GetAttackRangeAddValue`, `GetAttackRangeReduceValue` |
-| `extra_attack_range_add_value`, `extra_attack_range_reduce_value` | value | `GetExtraAttackRangeAddValue`, `GetExtraAttackRangeReduceValue` |
-
-The buff's value getters are signed: a recorded round has shown
-`GetAttackRangeReduceValue` at -20. `amplify_damage_rate` is the incoming-damage
-multiplier applied to this unit. A buff's application, duration and expiry are
-observed as changes to `status_mask` and the `buff` channel across consecutive
-snapshots, because the format records state rather than buff objects.
+The buffs answer what the build reads from them. Every number a buff writes,
+on the unit's `BuffManager` or on its `DataSet`, is the row's times the stack
+it last wrote (`additiveStackRecord`), which is `stacks` except after a
+disable has written it at none and before its next step writes it again; what
+those numbers come to is recorded where the fight reads them, in `life`,
+`move_speed` and each skill's `attack_range` and `attack_damage`, so a stack
+written wrong diverges on its tick. Whether the unit is invincible, frozen, has its technologies off or
+its recovery off (`BuffManager.IsInvincible`, `IsFreeze`,
+`FightMech.IsTechnologyDisabled`, `IsRecoverDisabled`) is whether a live buff's
+row sets `invincible`, `freeze`, `disableTechnology` or `disableRecover`.
+Rebuilt from the buff events, that holds on every unit and tick of the 795
+recordings of format 0.19.0.
 
 ### `personal_shield`
 
@@ -374,10 +330,7 @@ loses its target gives its interval back turns on it
 ([combat.md](../../rules/combat.md)).
 
 `attack_range` and `attack_damage` are what the skill's own properties answer
-after every correction on it, beside the `modifiers` that say what was written
-onto it: a recording carrying both answers how a correction composes in one
-tick, rather than by a fight arranged so that its outcome distinguishes the
-candidates. A slot of a grouped main skill other than its first reaches 10 m
+after every correction on it. A slot of a grouped main skill other than its first reaches 10 m
 beyond the main skill (a Wraith's slots read 60 and 70), and an extra skill
 parented by the main skill reaches its own range beyond the main skill's. The
 damage is the normal damage at attack count zero: a beam's first step, whatever
@@ -806,8 +759,7 @@ to its pool. Its reason is the method it runs under: `RemoveBuff(IBuffData)`,
 `BuffManager.Update` finding the buff's time run out. Buffs a fight starts
 with, put on before its first tick, have no event.
 
-What a buff does is still on the unit state track: boolean state in
-`status_mask` and aggregate numeric corrections in the `buff` modifiers. The
+What a buff does is on the unit state track, in the unit's `buffs`. The
 pinned fights exercise the buff a tower's loss writes, and nothing else; which
 other buffs reach these methods, and whether each removal reason is the one
 the build means, is checked as each mechanism is researched.
@@ -870,8 +822,7 @@ this way when its reader is the only use it has, as `verify` and
 `convert --to fight` read a layout's fight.
 
 Before each write, the WorldSnapshot is canonicalised into the order under
-[Normal form](#normal-form), then checked for object IDs, list order, state bits
-and modifier constraints. One failed partial write poisons the writer, and only
+[Normal form](#normal-form), then checked for object IDs and list order. One failed partial write poisons the writer, and only
 a successful `finish()` publishes a file.
 
 ### What a reader validates
@@ -888,8 +839,7 @@ On opening a container, a reader verifies:
 - `producer`, `game_build`, the DurableContext canonical JSON, metadata types
   and the format identifier;
 - tick contiguity, state table ordering, event ordering and ordinal contiguity;
-- ObjectRefs, enum tags, initial identity order, list order, `status_mask`
-  reserved bits and modifier components;
+- ObjectRefs, enum tags, initial identity order and list order;
 - the contiguity, width and encoding of the tick hash column, the encoding of
   the result hash and its profile, and that the result hash is the digest of
   the tick hash column.
@@ -911,7 +861,7 @@ against `1..=tick_count`.
 
 ## Common types and enum tags
 
-Space, rotation and native fixed-point modifiers use signed `i64` raw bits:
+Space, rotation and native fixed-point values use signed `i64` raw bits:
 
 ```text
 real_value = raw / 2^32
@@ -948,7 +898,7 @@ Identity is what makes two recordings of one fight the same recording, so
 every namespace numbers its objects by a rule that depends on the scene rather
 than on the pointer that happened to be observed first.
 
-Format `0.19.0` uses `team_zx_sequential_v1`.
+Format `0.20.0` uses `team_zx_sequential_v1`.
 
 **Units.** Initial units sort strictly ascending by `(team_id, position.z,
 position.x)` and take `unit_id = 1..N` in that order. Initial units on one team
@@ -995,7 +945,7 @@ Once a shield or terrain leaves its authoritative collection, its native pointer
 is tombstoned so that the historical ID stays unique.
 
 **Ordering inside a snapshot.** State snapshots sort by object ID.
-`modifiers` sort by `(channel, skill_slot, field, part)`, `skills` by
+`buffs` keep the build's order, `skills` sort by
 `skill_slot` and a skill's `weapons` by `weapon_index`, and a projectile's `spawn_containing_shields` by
 Shield ObjectRef.
 
@@ -1046,7 +996,7 @@ differ field by field, which a hash cannot:
 
 The hash is what a simulator is scored against, so what it reads is a decision
 of its own. `crates/mcfr/hashed-content.txt` lists every field, variant, enum
-value and `status_mask` bit that `S(t)` and `E(t)` carry, and a test holds the
+and enum value that `S(t)` and `E(t)` carry, and a test holds the
 types to it: a change to what the hash reads is a change to that file.
 
 **The hash reports a divergence on the tick it happens.** A simulator that
@@ -1105,12 +1055,12 @@ names, for each line it adds or removes, the condition above it meets or the
 kind of change that is not a removal. It needs no other sign-off. It re-records
 on the game every fixture whose pin it moves, and merges like any other.
 
-**What an admission moves.** A new event kind, enum value or `status_mask` bit
+**What an admission moves.** A new event kind or enum value
 appears only in the fights where it happens, and moves only their pins. A new
 field of a state object or of an event, or a new state collection, is written
 in every tick, null or empty where nothing has it, and moves every pin. A new
-value of a field already admitted, such as a modifier's `field` naming another
-native field, is not an admission.
+value of a field already admitted, such as a buff's `data` naming another
+buff row, is not an admission.
 
 ## Physical encoding
 
@@ -1128,9 +1078,6 @@ native field, is not an admission.
 - Every `tick` column uses `DELTA_BINARY_PACKED`.
 - A required list expresses "this object currently has none" as an empty list; a
   nullable struct expresses `Option<T>`.
-- Modifier numeric leaves are nullable with a canonical null of 0. The buff and
-  unit dynamic root structs are null when wholly zero, and the skill dynamic
-  list keeps only non-zero slots.
 - State hashing uses the expanded zero defaults, and canonicalisation drops an
   all-zero skill entry, so the sparse physical encoding rebuilds exactly the
   same canonical state.
@@ -1138,20 +1085,6 @@ native field, is not an admission.
   one tick rebuilds `S(t)` without replaying the ones before it.
 - An event's field set is determined exactly by its type, and a reader checks
   required references and the field set row by row.
-
-### Native modifier mapping, by example
-
-Sticky oil's slow lands in BuffManager's aggregate `move_speed_rate`. The
-incoming-damage change from a photon projection lands in `amplify_damage_rate`,
-while the present value of `IsInvincible()` lands in `status_mask.invincible`. A
-sub-skill such as the Sabertooth technology's secondary cannon uses its own
-`skill_slot` in both `modifiers` and `skills`, and a round's
-`+15` range bonus stays in that skill's modifier field.
-
-The point of the examples is the attribution boundary. A BuffManager aggregate,
-a FightMech unit-level dynamic correction and a FightSkill skill-level dynamic
-correction persist separately, so which native field produced an effect stays
-observable.
 
 ## Excluded fields
 
@@ -1174,9 +1107,24 @@ than an omission.
 - **The layout in the hash.** `layout.yaml` does not enter the hash. It is the
   scene's input, not its outcome, and a
   recording's identity is what happened rather than what was asked for.
-- **Buff objects.** There is no buff track. A buff is observable as the change
-  in `status_mask` and the `buff` modifiers between adjacent snapshots, so the
-  format stores state rather than the engine's internal buff instances.
+- **The distance a unit has moved.** Kinetic Charge stacks by
+  `FightMech.GetTotalMoveDistanceWithoutDisableTech`, the planar distance
+  between where successive `Move` calls found the unit, those on the update
+  before an RVO solve, counted only while its technologies are on. Every
+  term is recorded: the positions, the motion state, the buffs that answer
+  whether its technologies are off, and the tick the solve counter follows.
+  A simulator that counts it wrong with every position right is found at the
+  next stack, which `buffs` holds, rather than on the tick: a late divergence
+  kept on purpose, since the stack is the only thing that reads the distance.
+
+- **Corrections.** No unit records what was written onto it, by a buff, a
+  technology, an officer or an equipment. A buff's writes follow from the
+  unit's `buffs` and their rows, and the rest from the layout: a technology,
+  an officer or an equipment writes once, as the unit enters the fight or, one
+  travelling in, as it arrives, which its `skills` show as they are enabled,
+  and the writes go and come back with `IsTechnologyDisabled`, which the
+  buffs answer. Each skill's `attack_range` and `attack_damage` and the unit's
+  `move_speed` hold the values a fight reads.
 
 - **What instrument channels read.** A channel's rows are not in the hash.
   They fail the first condition: `target_search`, `target_candidate`,
@@ -1190,12 +1138,14 @@ than an omission.
 
 ## Unresolved
 
-**Should `status_mask` bits be named after predicates or after effects?** Bits 0
-and 1 carry the native predicate names `invincible` and `frozen`, and what each
-actually does in combat is still being narrowed. A name is a claim readers will
-act on. Keeping the predicate name is honest about provenance and misleading
-about meaning; renaming to the observed effect is the reverse, and cannot be
-undone cheaply once recordings exist.
+**What else a unit's `BuffManager` carries.** `beHitDelayBuffInfos` holds
+buffs a hit will write after a delay, and `ignoredBuffs` the buffs the unit
+is kept from; neither is in `buffs`. No recorded fight is known to fill the
+first, and the second follows from the layout's equipment; each is admitted
+once a fight shows it changing.
+
+**A building's buffs.** A tower or a construction has a `BuffManager` too,
+and `towerBuffDatas` holds a tower's own; buildings record none of it.
 
 **Should a derived value be stored at all?** `remaining_rounds` holds
 `GetDuration() - get_Round()` rather than the two operands. It is the only

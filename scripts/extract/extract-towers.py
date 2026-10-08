@@ -84,6 +84,8 @@ def render(structure):
         if differs:
             raise SystemExit(f"buff {row['id']} differs from buff {first['id']} in {sorted(differs)}")
     for row in rows:
+        if raw(row["stepTime"]):
+            raise SystemExit(f"buff {row['id']} steps, which this table does not carry")
         if raw(row["duration"]) % ONE:
             raise SystemExit(f"buff {row['id']} lasts a fraction of a second")
 

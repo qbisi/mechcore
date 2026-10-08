@@ -9,7 +9,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 240
-hash: {profile: mcfr-content-0.7.0, result: a8b8f99ec5b6e8264ae659b9bf1341e2cbebe753e01acdd2bf8c65dd55e2f78f}
+hash: {profile: mcfr-content-0.7.0, result: 63942a93c98f6dd4315a00f437b7136476cb11ccb3d22dd0124361d8863bbc14}
 blue:
   units:
   - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/200/450, equipment: [photon_coating]}

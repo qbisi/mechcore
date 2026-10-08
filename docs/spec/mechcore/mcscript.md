@@ -208,10 +208,11 @@ refused, so a pattern that matched nothing fails the step instead of
 verifying nothing.
 
 `show` with `view: outcome` and `view: stats` reads a recording for the two
-halves a capture is taken for: what the fight left of its units, and what was
-written onto them before it moved them. Both answer the same object the command
-prints, so `expect` asserts a measurement directly — `sides.red.survivors.0.life` for
-the one, `sides.blue.0.skill.0.modifiers.damage_rate.add` for the other. That
+halves a capture is taken for: what the fight left of its units, and the
+numbers the build computed for them at a tick. Both answer the same object the
+command prints, so `expect` asserts a measurement directly —
+`sides.red.survivors.0.life` for the one,
+`sides.blue.0.readings.0.skills.0.attack_damage` for the other. That
 is what turns a capture script from a probe of the build into a regression
 against it.
 

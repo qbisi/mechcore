@@ -8,7 +8,7 @@ use std::{
 
 use arrow_array::{
     Array, ArrayRef, BooleanArray, FixedSizeBinaryArray, Int32Array, Int64Array, ListArray,
-    RecordBatch, StringArray, StructArray, UInt8Array, UInt16Array, UInt32Array, UInt64Array,
+    RecordBatch, StructArray, UInt8Array, UInt16Array, UInt32Array, UInt64Array,
 };
 use arrow_buffer::{NullBuffer, OffsetBuffer, ScalarBuffer};
 use arrow_schema::{DataType, Field, Fields, Schema, SchemaRef};
@@ -31,13 +31,14 @@ use tempfile::TempDir;
 use zip::{CompressionMethod, ZipArchive, ZipWriter, write::SimpleFileOptions};
 
 use crate::{
-    AttackPhase, BuildingState, ControlState, DamageStatistics, Domain, DurableContext,
-    EnabledSkill, Error, Event, EventPayload, FormationState, GaugeI32, HASH_PROFILE, Hashes,
-    LiveUnitState, MCFR_FORMAT, Modifier, ModifierChannel, ModifierPart, MotionState, ObjectKind,
-    ObjectRef, PersonalShieldState, Producer, ProjectileState, QPlanar, QPose, QVec3, RecorderKind,
-    Result, ShieldRoundPolicy, ShieldSourceKind, ShieldState, SkillMachineState, SkillState,
-    TerrainApplicationState, TerrainEffectClock, TerrainGridState, TerrainLogicLifetime,
-    TerrainState, TerrainType, TransitionEvents, Visibility, WeaponState, WorldSnapshot, canonical,
+    AttackPhase, BuffDataKind, BuffDataRef, BuffState, BuildingState, ControlState,
+    DamageStatistics, Domain, DurableContext, EnabledSkill, Error, Event, EventPayload,
+    FormationState, GaugeI32, HASH_PROFILE, Hashes, LiveUnitState, MCFR_FORMAT, MotionState,
+    ObjectKind, ObjectRef, PersonalShieldState, Producer, ProjectileState, QPlanar, QPose, QVec3,
+    RecorderKind, Result, ShieldRoundPolicy, ShieldSourceKind, ShieldState, SkillMachineState,
+    SkillState, TerrainApplicationState, TerrainEffectClock, TerrainGridState,
+    TerrainLogicLifetime, TerrainState, TerrainType, TransitionEvents, Visibility, WeaponState,
+    WorldSnapshot, canonical,
     event_table::{batch_events, event_batch, event_schema},
     instrument::{self, ChannelSchema, InstrumentRow},
 };
@@ -580,8 +581,7 @@ fn unit_batch(rows: &[(u32, LiveUnitState)]) -> Result<Option<RecordBatch>> {
             bool_values(units.iter().map(|row| row.active)),
             bool_values(units.iter().map(|row| row.targetable)),
             u8_values(units.iter().map(|row| encode_visibility(row.visibility))),
-            u64_values(units.iter().map(|row| row.status_mask)),
-            modifier_list_values(units.iter().map(|row| &row.modifiers))?,
+            buff_list_values(units.iter().map(|row| &row.buffs))?,
             shield_values(units.iter().map(|row| row.personal_shield)),
             i64_values(units.iter().map(|row| row.move_speed)),
             skill_list_values(units.iter().map(|row| &row.skills))?,
@@ -1032,75 +1032,58 @@ fn list_offsets(lengths: impl IntoIterator<Item = usize>) -> Result<OffsetBuffer
     Ok(OffsetBuffer::new(ScalarBuffer::from(offsets)))
 }
 
-fn modifier_list_values<'a>(
-    values: impl IntoIterator<Item = &'a Vec<Modifier>>,
-) -> Result<ArrayRef> {
+fn buff_list_values<'a>(values: impl IntoIterator<Item = &'a Vec<BuffState>>) -> Result<ArrayRef> {
     let values = values.into_iter().collect::<Vec<_>>();
     let flat = values
         .iter()
         .flat_map(|value| value.iter())
         .collect::<Vec<_>>();
-    let items = StructArray::new(
-        modifier_fields(),
+    let data = StructArray::new(
+        buff_data_fields(),
         vec![
             u8_values(
                 flat.iter()
-                    .map(|value| encode_modifier_channel(value.channel)),
+                    .map(|value| encode_buff_data_kind(value.data.kind)),
             ),
-            Arc::new(UInt16Array::from(
+            Arc::new(UInt32Array::from(
+                flat.iter().map(|value| value.data.id).collect::<Vec<_>>(),
+            )),
+        ],
+        None,
+    );
+    let items = StructArray::new(
+        buff_fields(),
+        vec![
+            Arc::new(data),
+            object_ref_values(flat.iter().map(|value| value.source)),
+            Arc::new(UInt32Array::from(
                 flat.iter()
-                    .map(|value| value.skill_slot)
+                    .map(|value| value.source_team)
                     .collect::<Vec<_>>(),
             )),
-            Arc::new(StringArray::from(
-                flat.iter()
-                    .map(|value| value.field.as_str())
-                    .collect::<Vec<_>>(),
-            )),
-            u8_values(flat.iter().map(|value| encode_modifier_part(value.part))),
-            i64_values(flat.iter().map(|value| value.value)),
+            i32_values(flat.iter().map(|value| value.elapsed)),
+            i32_values(flat.iter().map(|value| value.duration)),
+            i32_values(flat.iter().map(|value| value.step)),
+            i32_values(flat.iter().map(|value| value.stacks)),
         ],
         None,
     );
     Ok(Arc::new(ListArray::new(
-        Arc::new(Field::new(
-            "item",
-            DataType::Struct(modifier_fields()),
-            false,
-        )),
+        Arc::new(Field::new("item", DataType::Struct(buff_fields()), false)),
         list_offsets(values.iter().map(|value| value.len()))?,
         Arc::new(items),
         None,
     )))
 }
 
-const MODIFIER_CHANNELS: [ModifierChannel; 7] = [
-    ModifierChannel::Buff,
-    ModifierChannel::MechFloat,
-    ModifierChannel::MechFloatRate,
-    ModifierChannel::MechInt,
-    ModifierChannel::SkillFloat,
-    ModifierChannel::SkillFloatRate,
-    ModifierChannel::SkillInt,
-];
+const BUFF_DATA_KINDS: [BuffDataKind; 2] = [BuffDataKind::Buff, BuffDataKind::Technology];
 
-const MODIFIER_PARTS: [ModifierPart; 3] =
-    [ModifierPart::Value, ModifierPart::Add, ModifierPart::Reduce];
-
-fn encode_modifier_channel(channel: ModifierChannel) -> u8 {
-    MODIFIER_CHANNELS
+fn encode_buff_data_kind(kind: BuffDataKind) -> u8 {
+    BUFF_DATA_KINDS
         .iter()
-        .position(|candidate| *candidate == channel)
+        .position(|candidate| *candidate == kind)
         .and_then(|index| u8::try_from(index).ok())
-        .expect("every modifier channel has a tag")
-}
-
-fn encode_modifier_part(part: ModifierPart) -> u8 {
-    MODIFIER_PARTS
-        .iter()
-        .position(|candidate| *candidate == part)
-        .and_then(|index| u8::try_from(index).ok())
-        .expect("every modifier part has a tag")
+        .expect("every buff data kind has a tag")
 }
 
 fn skill_list_values<'a>(
@@ -1290,8 +1273,7 @@ fn unit_schema() -> SchemaRef {
         Field::new("active", DataType::Boolean, false),
         Field::new("targetable", DataType::Boolean, false),
         Field::new("visibility", DataType::UInt8, false),
-        Field::new("status_mask", DataType::UInt64, false),
-        list_field("modifiers", modifier_fields()),
+        list_field("buffs", buff_fields()),
         struct_field("personal_shield", shield_fields(), false),
         Field::new("move_speed", DataType::Int64, false),
         list_field("skills", skill_fields()),
@@ -1466,13 +1448,23 @@ fn terrain_effect_clock_fields() -> Fields {
     .into()
 }
 
-fn modifier_fields() -> Fields {
+fn buff_data_fields() -> Fields {
     vec![
-        Field::new("channel", DataType::UInt8, false),
-        Field::new("skill_slot", DataType::UInt16, true),
-        Field::new("field", DataType::Utf8, false),
-        Field::new("part", DataType::UInt8, false),
-        Field::new("value", DataType::Int64, false),
+        Field::new("kind", DataType::UInt8, false),
+        Field::new("id", DataType::UInt32, false),
+    ]
+    .into()
+}
+
+fn buff_fields() -> Fields {
+    vec![
+        struct_field("data", buff_data_fields(), false),
+        struct_field("source", object_ref_fields(), true),
+        Field::new("source_team", DataType::UInt32, false),
+        Field::new("elapsed", DataType::Int32, false),
+        Field::new("duration", DataType::Int32, false),
+        Field::new("step", DataType::Int32, false),
+        Field::new("stacks", DataType::Int32, false),
     ]
     .into()
 }
@@ -2183,8 +2175,7 @@ fn read_units(member: MemberSlice) -> Result<Vec<(u32, LiveUnitState)>> {
         let active = column::<BooleanArray>(&batch, "active")?;
         let targetable = column::<BooleanArray>(&batch, "targetable")?;
         let visibility = column::<UInt8Array>(&batch, "visibility")?;
-        let status_mask = column::<UInt64Array>(&batch, "status_mask")?;
-        let modifiers = column::<ListArray>(&batch, "modifiers")?;
+        let buffs = column::<ListArray>(&batch, "buffs")?;
         let shield = struct_column(&batch, "personal_shield")?;
         let move_speed = column::<Int64Array>(&batch, "move_speed")?;
         let skills = column::<ListArray>(&batch, "skills")?;
@@ -2212,8 +2203,7 @@ fn read_units(member: MemberSlice) -> Result<Vec<(u32, LiveUnitState)>> {
                     active: active.value(index),
                     targetable: targetable.value(index),
                     visibility: decode_visibility(visibility.value(index))?,
-                    status_mask: status_mask.value(index),
-                    modifiers: read_modifier_list(modifiers, index)?,
+                    buffs: read_buff_list(buffs, index)?,
                     personal_shield: read_shield(shield, index)?,
                     move_speed: move_speed.value(index),
                     skills: read_skill_list(skills, index)?,
@@ -2528,28 +2518,34 @@ fn read_gauge(array: &StructArray, index: usize) -> Result<GaugeI32> {
     })
 }
 
-fn read_modifier_list(array: &ListArray, index: usize) -> Result<Vec<Modifier>> {
-    let items = list_struct_items(array, index, "modifiers")?;
-    let channels = struct_child::<UInt8Array>(&items, "channel")?;
-    let slots = struct_child::<UInt16Array>(&items, "skill_slot")?;
-    let fields = struct_child::<StringArray>(&items, "field")?;
-    let parts = struct_child::<UInt8Array>(&items, "part")?;
-    let values = struct_child::<Int64Array>(&items, "value")?;
+fn read_buff_list(array: &ListArray, index: usize) -> Result<Vec<BuffState>> {
+    let items = list_struct_items(array, index, "buffs")?;
+    let data = struct_child::<StructArray>(&items, "data")?;
+    let kinds = struct_child::<UInt8Array>(data, "kind")?;
+    let ids = struct_child::<UInt32Array>(data, "id")?;
+    let sources = struct_child::<StructArray>(&items, "source")?;
+    let teams = struct_child::<UInt32Array>(&items, "source_team")?;
+    let elapsed = struct_child::<Int32Array>(&items, "elapsed")?;
+    let durations = struct_child::<Int32Array>(&items, "duration")?;
+    let steps = struct_child::<Int32Array>(&items, "step")?;
+    let stacks = struct_child::<Int32Array>(&items, "stacks")?;
     (0..items.len())
         .map(|item| {
-            let tag = |tags: &UInt8Array, what: &str| {
-                Error::invalid(format!("modifier {what} tag {}", tags.value(item)))
-            };
-            Ok(Modifier {
-                channel: *MODIFIER_CHANNELS
-                    .get(usize::from(channels.value(item)))
-                    .ok_or_else(|| tag(channels, "channel"))?,
-                skill_slot: (!slots.is_null(item)).then(|| slots.value(item)),
-                field: fields.value(item).to_owned(),
-                part: *MODIFIER_PARTS
-                    .get(usize::from(parts.value(item)))
-                    .ok_or_else(|| tag(parts, "part"))?,
-                value: values.value(item),
+            Ok(BuffState {
+                data: BuffDataRef {
+                    kind: *BUFF_DATA_KINDS
+                        .get(usize::from(kinds.value(item)))
+                        .ok_or_else(|| {
+                            Error::invalid(format!("buff data kind tag {}", kinds.value(item)))
+                        })?,
+                    id: ids.value(item),
+                },
+                source: read_optional_ref(sources, item)?,
+                source_team: teams.value(item),
+                elapsed: elapsed.value(item),
+                duration: durations.value(item),
+                step: steps.value(item),
+                stacks: stacks.value(item),
             })
         })
         .collect()

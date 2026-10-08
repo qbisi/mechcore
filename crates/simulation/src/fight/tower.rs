@@ -54,6 +54,15 @@ pub(in crate::fight) struct RunningBuff {
     additive: bool,
     elapsed: u32,
     duration: u32,
+    /// `Buff.stepTime`, counting each update to `stepTimeConfig`, the row's
+    /// `stepTime` in ticks, at which it goes back to none and the buff's
+    /// controllers update.
+    step: u32,
+    step_ticks: u32,
+    /// The side of `Buff.sourceTeamController`, which `Buff.Reset` does not
+    /// change: what a sourceless buff is from, and the side its life change
+    /// is dealt under.
+    team: u32,
     /// What tags the entries it writes.
     source: &'static str,
     /// What it writes among the buffs': its row's entries, or one stack's
@@ -69,14 +78,13 @@ pub(in crate::fight) struct RunningBuff {
     /// `IsInvincible`: while it runs, `BuffManager` holds the unit's
     /// `Invincible` count above zero.
     invincible: bool,
-    /// `IBEC_ChangeLIfe`, the controller `Buff.Init` gives a buff of a
-    /// nonzero `lifeChangeRate`, and its step.
-    life_change: Option<LifeChangeStep>,
+    /// `lifeChangeRate`, an `FPoint` raw rate: a nonzero one gives the buff
+    /// `IBEC_ChangeLIfe`.
+    life_change_rate: i64,
     /// `IBEC_ChangeMaxLife`'s rate, which it writes into the unit's own life
     /// rate as it enters.
     max_life_rate: i64,
-    /// `IBEC_AdditiveEffectBuff`, the controller of a buff that stacks, and
-    /// its step.
+    /// `IBEC_AdditiveEffectBuff`, the controller of a buff that stacks.
     stack: Option<StackStep>,
     /// `IBEC_DeadSummon`, the controller of a buff that summons as its unit
     /// dies, and what it summons.
@@ -87,6 +95,23 @@ pub(in crate::fight) struct RunningBuff {
 }
 
 impl RunningBuff {
+    /// The buff as a unit's state records it.
+    pub(in crate::fight) fn state(&self) -> mechcore_mcfr::BuffState {
+        let ticks = |value: u32| i32::try_from(value).unwrap_or(i32::MAX);
+        mechcore_mcfr::BuffState {
+            data: mechcore_mcfr::BuffDataRef {
+                kind: mechcore_mcfr::BuffDataKind::Buff,
+                id: self.buff_id,
+            },
+            source: self.source_actor,
+            source_team: self.team,
+            elapsed: ticks(self.elapsed),
+            duration: ticks(self.duration),
+            step: ticks(self.step),
+            stacks: ticks(self.stack.map_or(0, |stack| stack.count)),
+        }
+    }
+
     /// Its `IBEC_DeadSummon`'s summon and the buff's source.
     pub(in crate::fight) const fn dead_summon(&self) -> Option<(DeadSummon, Option<ObjectRef>)> {
         match self.summons {
@@ -140,8 +165,7 @@ impl RunningBuff {
     }
 }
 
-/// A stacking buff as it runs: `Buff.stepTime` counting to `stepTimeConfig`,
-/// the stack it has reached (`additiveStack`), the stack its rates are
+/// A stacking buff as it runs: the stack it has reached (`additiveStack`), the stack its rates are
 /// written at (`additiveStackRecord`), which a disable clears while the
 /// stack stays, the stack `IBEC_ChangeMaxLife.maxLifeChangeRate` holds its
 /// rate at, one as it enters, and whether a disable has taken that rate out
@@ -149,37 +173,18 @@ impl RunningBuff {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct StackStep {
     rule: StackRule,
-    elapsed: u32,
     count: u32,
     written: u32,
     life: u32,
     life_held: bool,
 }
 
-/// A buff's `lifeChangeRate` as it runs: `Buff.stepTime` counting to
-/// `stepTimeConfig`, and the side whose `sourceTeamController` the hit is
-/// dealt under, which `Buff.Reset` does not change.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct LifeChangeStep {
-    life_change: LifeChange,
-    team: u32,
-    elapsed: u32,
-}
-
-/// How a buff row stacks: `stepTime` in ticks, what a step's stack counts,
-/// and `maxAdditiveStack`, none for no bound.
+/// How a buff row stacks: what a step's stack counts, and
+/// `maxAdditiveStack`, none for no bound.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::fight) struct StackRule {
-    pub(in crate::fight) step_ticks: u32,
     pub(in crate::fight) max: u32,
     pub(in crate::fight) condition: StackCondition,
-}
-
-/// A buff row's `lifeChangeRate` and `stepTime`, the latter in ticks.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(in crate::fight) struct LifeChange {
-    pub(in crate::fight) rate: i64,
-    pub(in crate::fight) step_ticks: u32,
 }
 
 /// One `buffDatas` row as `BuffManager.AddBuff` adds it: which it is, how it
@@ -196,6 +201,8 @@ pub(in crate::fight) struct BuffRow {
     pub(in crate::fight) divide: i32,
     pub(in crate::fight) additive: bool,
     pub(in crate::fight) ticks: u32,
+    /// `stepTime` in ticks, `Buff.Init`'s `stepTimeConfig`.
+    pub(in crate::fight) step_ticks: u32,
     pub(in crate::fight) source: &'static str,
     pub(in crate::fight) entries: Vec<Entry>,
     pub(in crate::fight) disables_technology: bool,
@@ -203,8 +210,9 @@ pub(in crate::fight) struct BuffRow {
     pub(in crate::fight) debuff: bool,
     /// `IsInvincible`.
     pub(in crate::fight) invincible: bool,
-    /// `lifeChangeRate` and `stepTime`, when the rate is not zero.
-    pub(in crate::fight) life_change: Option<LifeChange>,
+    /// `lifeChangeRate`, an `FPoint` raw rate of the unit's maximum life it
+    /// changes by every step.
+    pub(in crate::fight) life_change_rate: i64,
     /// `currentLifeDisposableChangeRate`, an `FPoint` raw rate.
     pub(in crate::fight) current_life_rate: i64,
     /// `maxLifeChangeRate`, Q32.32, which `IBEC_ChangeMaxLife` writes into
@@ -362,11 +370,6 @@ impl super::Actor {
         let Some(stack) = running.stack.as_mut() else {
             return Ok(());
         };
-        stack.elapsed += 1;
-        if stack.elapsed < stack.rule.step_ticks {
-            return Ok(());
-        }
-        stack.elapsed = 0;
         if !held {
             if stack.rule.max > 0 && stack.count >= stack.rule.max {
                 return Ok(());
@@ -567,12 +570,14 @@ impl Simulation {
             divide: self.towers.config.destroyed_buff.buff_divide,
             additive: self.towers.config.destroyed_buff.additive,
             ticks: loss.ticks,
+            // `extract-towers.py` refuses a tower buff that steps.
+            step_ticks: 0,
             source: SOURCE,
             entries: self.towers.config.entries(),
             disables_technology: false,
             debuff: self.towers.config.destroyed_buff.debuff,
             invincible: false,
-            life_change: None,
+            life_change_rate: 0,
             current_life_rate: 0,
         };
         let mut applied = Vec::new();
@@ -997,21 +1002,24 @@ impl Simulation {
                 .actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable");
-            actor.step_stack(index)?;
-            let max_life = actor.stats.max_life();
-            let Some(step) = actor.buffs[index].life_change.as_mut() else {
-                continue;
-            };
-            step.elapsed += 1;
-            if step.elapsed < step.life_change.step_ticks {
+            // `Buff.Update`: its step one tick on, and its controllers'
+            // update as the step comes round.
+            let running = &mut actor.buffs[index];
+            running.step += 1;
+            if running.step < running.step_ticks {
                 continue;
             }
-            step.elapsed = 0;
+            running.step = 0;
+            actor.step_stack(index)?;
+            let running = &actor.buffs[index];
+            let (rate, team) = (running.life_change_rate, running.team);
+            if rate == 0 {
+                continue;
+            }
             // `IBEC_ChangeLIfe.Update`: the unit's maximum life times the
             // rate, its whole part. A loss is a hit of no object under the
             // buff's side that the rate on damage taken does not affect.
-            let change = max_life.saturating_mul(step.life_change.rate) >> 32;
-            let team = step.team;
+            let change = actor.stats.max_life().saturating_mul(rate) >> 32;
             match change.cmp(&0) {
                 std::cmp::Ordering::Less => {
                     let target = super::FightActorRef::Unit(actor_id);
@@ -1176,21 +1184,19 @@ fn add_buff(
         additive: row.additive,
         elapsed: 0,
         duration: row.ticks,
+        step: 0,
+        step_ticks: row.step_ticks,
+        team,
         source: row.source,
         entries: row.entries.clone(),
         source_actor,
         disables_technology: row.disables_technology,
         invincible: row.invincible,
-        life_change: row.life_change.map(|life_change| LifeChangeStep {
-            life_change,
-            team,
-            elapsed: 0,
-        }),
+        life_change_rate: row.life_change_rate,
         max_life_rate: row.max_life_rate,
         summons: row.summons,
         stack: row.stacking.map(|rule| StackStep {
             rule,
-            elapsed: 0,
             count: 0,
             written: 0,
             life: 1,

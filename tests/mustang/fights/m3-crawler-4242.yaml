@@ -6,7 +6,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 210
-hash: {profile: mcfr-content-0.7.0, result: 3bf72d73034b5d00b4c9eb42fda450f54687b8800fde4e604000b8c737a4dd04}
+hash: {profile: mcfr-content-0.7.0, result: ade15c775999ef34ac98213bef3dbc12d1e376c0748536c77ff4b9663a73f679}
 blue:
   units:
   - {name: mustang, index: 0, position: {x: 5, y: -100}, exp: 0/192/1200}

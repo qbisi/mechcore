@@ -9,7 +9,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 175
-hash: {profile: mcfr-content-0.7.0, result: 9ea4d645e6fb7560ecbfdfc830c8849a1884fe6024daadd8b6a6a5c409a935fc}
+hash: {profile: mcfr-content-0.7.0, result: 57fe5243b3fd1301e7335bb459b1e30aaad17a46de2d05d4c523e723a63ec12a}
 blue:
   techs:
     steel_ball: [energy_absorption]

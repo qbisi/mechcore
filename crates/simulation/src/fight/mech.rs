@@ -1,11 +1,5 @@
 use super::*;
 
-/// The bit of `status_mask` that holds `BuffManager.IsInvincible`.
-const INVINCIBLE: u64 = 1;
-
-/// The bit of `status_mask` that holds `FightMech.IsTechnologyDisabled`.
-const TECHNOLOGY_DISABLED: u64 = 1 << 2;
-
 impl Actor {
     #[cfg(test)]
     pub(in crate::fight) fn new(placement: Placement, rules: UnitConfig, seed: i32) -> Self {
@@ -552,29 +546,7 @@ impl Actor {
             active: true,
             targetable: self.visibility == Visibility::Normal,
             visibility: self.visibility,
-            status_mask: if self.invincible() { INVINCIBLE } else { 0 }
-                | if self.technology_disabled() {
-                    TECHNOLOGY_DISABLED
-                } else {
-                    0
-                },
-            modifiers: self
-                .stats
-                .modifiers(
-                    &self.corrected_skill_slots(),
-                    &self
-                        .skills
-                        .extras
-                        .iter()
-                        .enumerate()
-                        .filter(|(_, extra)| !extra.skill_corrections.is_empty())
-                        .flat_map(|(index, extra)| {
-                            self.extra_slots(index, extra)
-                                .map(|slot| (slot, extra.skill_corrections.as_slice()))
-                        })
-                        .collect::<Vec<_>>(),
-                )
-                .expect("the layout refused every correction a snapshot cannot record"),
+            buffs: self.buffs.iter().map(RunningBuff::state).collect(),
             personal_shield: PersonalShieldState {
                 active: self.shield.is_some(),
                 enabled: true,

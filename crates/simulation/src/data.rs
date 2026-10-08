@@ -25,7 +25,6 @@ use crate::{
     Error, Result,
     rules::{AttackPath, AttackTargets, UnitConfig, UnitDomain},
 };
-use mechcore_mcfr::{Modifier, ModifierChannel, ModifierPart};
 
 /// One, in the Q32.32 fixed point a rate is stored in.
 const ONE: i128 = 1 << 32;
@@ -367,101 +366,35 @@ impl Default for Aggregate {
 }
 
 impl Aggregate {
-    /// The rate half as a recording stores it: the enhancements' sum, and one
-    /// less the compounded remainder.
-    fn rate(self) -> Result<(i64, i64)> {
-        Ok((
-            i64::try_from(self.enhance)
-                .map_err(|_| Error::new("an enhancement is outside the signed range"))?,
-            i64::try_from(ONE - self.remaining)
-                .map_err(|_| Error::new("an impairment is outside the signed range"))?,
-        ))
+    /// Whether a rate corrects the number.
+    fn rated(self) -> bool {
+        self.enhance != 0 || self.remaining != ONE
     }
 }
 
 /// Damage, its kill-count rate and its reduce rate base, which a skill's
-/// `DataSet` keeps as rates alone, and the field each is recorded in.
-const DAMAGE_RATES: [(Index, &str); 3] = [
-    (Index::AttackDamage, "damage_rate"),
-    (Index::DamagePerKill, "damage_rate_by_kill_count"),
-    (Index::DamageReduceRateBase, "damage_reduce_rate_base"),
+/// `DataSet` keeps as rates alone.
+const DAMAGE_RATES: [Index; 3] = [
+    Index::AttackDamage,
+    Index::DamagePerKill,
+    Index::DamageReduceRateBase,
 ];
 
-/// The skill numbers its `DataSet` keeps as values alone, the channel and
-/// field each is recorded in, and how the overlay's units are written there:
-/// Q32.32 metres for a range or a speed, whole metres for a search offset,
-/// and as they are for a damage rate or a switch.
-const SKILL_VALUES: [(Index, ModifierChannel, &str, Recorded); 9] = [
-    (
-        Index::RangeAgainst(UnitDomain::Air),
-        ModifierChannel::SkillFloat,
-        "attack_air_range_add_value",
-        Recorded::Q32Metres,
-    ),
-    (
-        Index::RangeAgainst(UnitDomain::Ground),
-        ModifierChannel::SkillFloat,
-        "attack_ground_range_add_value",
-        Recorded::Q32Metres,
-    ),
-    (
-        Index::ScoreOffsetFor(UnitDomain::Air),
-        ModifierChannel::SkillInt,
-        "attack_range_value_air",
-        Recorded::WholeMetres,
-    ),
-    (
-        Index::ScoreOffsetFor(UnitDomain::Ground),
-        ModifierChannel::SkillInt,
-        "attack_range_value_ground",
-        Recorded::WholeMetres,
-    ),
-    (
-        Index::DamageRateAgainst(UnitDomain::Air),
-        ModifierChannel::SkillFloat,
-        "damage_change_rate_air",
-        Recorded::Raw,
-    ),
-    // The build's own spelling.
-    (
-        Index::DamageRateAgainst(UnitDomain::Ground),
-        ModifierChannel::SkillFloat,
-        "damage_chagne_rate_ground",
-        Recorded::Raw,
-    ),
-    (
-        Index::AttackValueFor(UnitDomain::Air),
-        ModifierChannel::SkillInt,
-        "air_attack_value",
-        Recorded::Raw,
-    ),
-    (
-        Index::AttackValueFor(UnitDomain::Ground),
-        ModifierChannel::SkillInt,
-        "ground_attack_value",
-        Recorded::Raw,
-    ),
-    (
-        Index::ProjectileSpeed,
-        ModifierChannel::SkillFloat,
-        "projectile_speed_value",
-        Recorded::Q32Metres,
-    ),
+/// The skill numbers its `DataSet` keeps as values alone.
+const SKILL_VALUES: [Index; 9] = [
+    Index::RangeAgainst(UnitDomain::Air),
+    Index::RangeAgainst(UnitDomain::Ground),
+    Index::ScoreOffsetFor(UnitDomain::Air),
+    Index::ScoreOffsetFor(UnitDomain::Ground),
+    Index::DamageRateAgainst(UnitDomain::Air),
+    Index::DamageRateAgainst(UnitDomain::Ground),
+    Index::AttackValueFor(UnitDomain::Air),
+    Index::AttackValueFor(UnitDomain::Ground),
+    Index::ProjectileSpeed,
 ];
-
-/// How a skill value held here is written in a recording.
-#[derive(Clone, Copy)]
-enum Recorded {
-    /// Millimetres as Q32.32 metres, a `DataSet.floatDatas` distance.
-    Q32Metres,
-    /// Millimetres as whole metres, a `DataSet.intDatas` distance.
-    WholeMetres,
-    /// As it is.
-    Raw,
-}
 
 /// What a skill overlay may carry that its `DataSet` has no field for.
-fn refuse_unrecorded_skill_fields(skill: &Overlay) -> Result<()> {
+fn refuse_fieldless_skill_corrections(skill: &Overlay) -> Result<()> {
     for index in [
         Index::MoveSpeed,
         Index::MaxLife,
@@ -477,7 +410,7 @@ fn refuse_unrecorded_skill_fields(skill: &Overlay) -> Result<()> {
             )));
         }
     }
-    for (index, _) in DAMAGE_RATES {
+    for index in DAMAGE_RATES {
         if let Some(damage) = skill.aggregate(index)
             && damage.value != 0
         {
@@ -487,10 +420,8 @@ fn refuse_unrecorded_skill_fields(skill: &Overlay) -> Result<()> {
             )));
         }
     }
-    for (index, ..) in SKILL_VALUES {
-        if let Some(value) = skill.aggregate(index)
-            && value.rate()? != (0, 0)
-        {
+    for index in SKILL_VALUES {
+        if skill.aggregate(index).is_some_and(Aggregate::rated) {
             return Err(Error::new(format!(
                 "the skill DataSet has no field for a rate of {}",
                 index.name()
@@ -498,103 +429,13 @@ fn refuse_unrecorded_skill_fields(skill: &Overlay) -> Result<()> {
         }
     }
     // `SkillDataChangeFloatRate` has no member for a splash.
-    if let Some(splash) = skill.aggregate(Index::SplashRange)
-        && splash.rate()? != (0, 0)
+    if skill
+        .aggregate(Index::SplashRange)
+        .is_some_and(Aggregate::rated)
     {
         return Err(Error::new(
             "the skill DataSet has no field for a splash rate",
         ));
-    }
-    Ok(())
-}
-
-/// One skill's `DataSet` as a recording stores it, under its slot of
-/// `FightMech.GetSkills()`.
-fn skill_modifiers(skill: &Overlay, slot: usize, modifiers: &mut Vec<Modifier>) -> Result<()> {
-    let q32 = |value: i128, units_per_one: i128| {
-        i64::try_from(value * ONE / units_per_one)
-            .map_err(|_| Error::new("a skill value is outside the signed range"))
-    };
-    refuse_unrecorded_skill_fields(skill)?;
-    {
-        let slot =
-            Some(u16::try_from(slot).map_err(|_| Error::new("a skill slot is outside u16"))?);
-        for (index, field) in DAMAGE_RATES {
-            if let Some(rate) = skill.aggregate(index) {
-                push_rate(
-                    modifiers,
-                    ModifierChannel::SkillFloatRate,
-                    slot,
-                    field,
-                    rate,
-                )?;
-            }
-        }
-        if let Some(range) = skill.aggregate(Index::AttackRange) {
-            push(
-                modifiers,
-                ModifierChannel::SkillFloat,
-                slot,
-                "attack_range_value",
-                ModifierPart::Value,
-                q32(
-                    range.value,
-                    i128::from(crate::rules::SPACE_UNITS_PER_METER_SCALE),
-                )?,
-            );
-            push_rate(
-                modifiers,
-                ModifierChannel::SkillFloatRate,
-                slot,
-                "attack_range_rate",
-                range,
-            )?;
-        }
-        if let Some(splash) = skill.aggregate(Index::SplashRange) {
-            push(
-                modifiers,
-                ModifierChannel::SkillFloat,
-                slot,
-                "splash_range_value",
-                ModifierPart::Value,
-                q32(
-                    splash.value,
-                    i128::from(crate::rules::SPACE_UNITS_PER_METER_SCALE),
-                )?,
-            );
-        }
-        for (index, channel, field, scale) in SKILL_VALUES {
-            if let Some(value) = skill.aggregate(index) {
-                let metres = i128::from(crate::rules::SPACE_UNITS_PER_METER_SCALE);
-                let value = match scale {
-                    Recorded::Q32Metres => q32(value.value, metres)?,
-                    Recorded::WholeMetres => i64::try_from(value.value / metres)
-                        .map_err(|_| Error::new("a skill's search offset is outside i64"))?,
-                    Recorded::Raw => i64::try_from(value.value).map_err(|_| {
-                        Error::new(format!("a skill's {} is outside i64", index.name()))
-                    })?,
-                };
-                push(modifiers, channel, slot, field, ModifierPart::Value, value);
-            }
-        }
-        if let Some(interval) = skill.aggregate(Index::AttackInterval) {
-            push(
-                modifiers,
-                ModifierChannel::SkillFloat,
-                slot,
-                "attack_interval_value",
-                ModifierPart::Value,
-                i64::try_from(interval.value)
-                    .map_err(|_| Error::new("an interval value is outside i64"))?,
-            );
-            push_rate(
-                modifiers,
-                ModifierChannel::SkillFloatRate,
-                slot,
-                "attack_interval_rate",
-                interval,
-            )?;
-        }
     }
     Ok(())
 }
@@ -1200,115 +1041,38 @@ impl Stats {
             .expect("the layout verified the damage corrections")
     }
 
-    /// Every correction on the unit, its skills and its buffs, as a recording
-    /// stores it: the sparse list of native fields, the skill's repeated for
-    /// each of `slots` skill slots.
-    ///
-    /// Each number a channel corrects lands in the field the build keeps its
-    /// aggregate in. A value is the number's own units here and, in the
-    /// recording, Q32.32 metres or seconds for a skill float and whole metres
-    /// for the unit's move-speed int. Level ratings are in the base channel
-    /// and never appear here.
+    /// Refuses a correction the build's unit and skill `DataSet`s have no
+    /// field for, which the build would not apply where this simulator would.
     ///
     /// # Errors
     ///
-    /// Returns an error for a correction the build has no field for, rather
-    /// than dropping it from what the recording is compared with.
-    pub(crate) fn modifiers(
-        &self,
-        slots: &[usize],
-        own: &[(usize, &[Entry])],
-    ) -> Result<Vec<Modifier>> {
-        let mut modifiers = Vec::new();
-        self.unit_modifiers(&mut modifiers)?;
-        for &slot in slots {
-            skill_modifiers(&self.overlays.skill, slot, &mut modifiers)?;
-        }
-        for &(slot, entries) in own {
-            skill_modifiers(&Overlay::of(entries), slot, &mut modifiers)?;
-        }
-        self.buff_modifiers(&mut modifiers)?;
-        mechcore_mcfr::sort_modifiers(&mut modifiers);
-        Ok(modifiers)
-    }
-
-    fn unit_modifiers(&self, modifiers: &mut Vec<Modifier>) -> Result<()> {
+    /// Returns an error naming the number and the field it lacks.
+    pub(crate) fn refuse_fieldless_corrections(&self) -> Result<()> {
         let unit = &self.overlays.unit;
-        if let Some(life) = unit.aggregate(Index::MaxLife) {
-            if life.value != 0 {
-                return Err(Error::new("the unit DataSet has no field for a life value"));
-            }
-            push_rate(
-                modifiers,
-                ModifierChannel::MechFloatRate,
-                None,
-                "life_rate",
-                life,
-            )?;
+        if unit
+            .aggregate(Index::MaxLife)
+            .is_some_and(|life| life.value != 0)
+        {
+            return Err(Error::new("the unit DataSet has no field for a life value"));
         }
-        if let Some(speed) = unit.aggregate(Index::MoveSpeed) {
-            // `DataSet.intDatas`: whole metres, which is how the officer's
-            // integer reaches the recording (3 for one Advanced Power System,
-            // 6 for two, in `tests/modifier/`).
-            let metres = i128::from(crate::rules::SPACE_UNITS_PER_METER_SCALE);
-            if speed.value % metres != 0 {
-                return Err(Error::new(
-                    "a unit's move-speed value is a whole number of metres",
-                ));
-            }
-            push(
-                modifiers,
-                ModifierChannel::MechInt,
-                None,
-                "move_speed_value",
-                ModifierPart::Value,
-                i64::try_from(speed.value / metres)
-                    .map_err(|_| Error::new("a unit's move-speed value is outside i64"))?,
-            );
-            push_rate(
-                modifiers,
-                ModifierChannel::MechFloatRate,
-                None,
-                "move_speed_change_rate",
-                speed,
-            )?;
+        // `DataSet.intDatas` keeps a unit's move-speed value in whole metres.
+        if unit.aggregate(Index::MoveSpeed).is_some_and(|speed| {
+            speed.value % i128::from(crate::rules::SPACE_UNITS_PER_METER_SCALE) != 0
+        }) {
+            return Err(Error::new(
+                "a unit's move-speed value is a whole number of metres",
+            ));
         }
-        // `DataSet.floatDatas`, Q32.32 as the fire reads them, and
-        // `DataSet.intDatas`' damage reduction, whole damage.
-        for (index, channel, field) in [
-            (
-                Index::GroundFireRange,
-                ModifierChannel::MechFloat,
-                "gf_range_value",
-            ),
-            (
-                Index::GroundFireLifeTime,
-                ModifierChannel::MechFloat,
-                "gf_life_time_value",
-            ),
-            (
-                Index::ReduceDamage,
-                ModifierChannel::MechInt,
-                "reduce_damage_value",
-            ),
+        for index in [
+            Index::GroundFireRange,
+            Index::GroundFireLifeTime,
+            Index::ReduceDamage,
         ] {
-            if let Some(aggregate) = unit.aggregate(index) {
-                if aggregate.rate()? != (0, 0) {
-                    return Err(Error::new(format!(
-                        "the unit DataSet has no field for a rate of {}",
-                        index.name()
-                    )));
-                }
-                push(
-                    modifiers,
-                    channel,
-                    None,
-                    field,
-                    ModifierPart::Value,
-                    i64::try_from(aggregate.value).map_err(|_| {
-                        Error::new(format!("a unit's {} is outside i64", index.name()))
-                    })?,
-                );
+            if unit.aggregate(index).is_some_and(Aggregate::rated) {
+                return Err(Error::new(format!(
+                    "the unit DataSet has no field for a rate of {}",
+                    index.name()
+                )));
             }
         }
         for index in [
@@ -1320,7 +1084,7 @@ impl Stats {
             Index::DamagePerKill,
         ]
         .into_iter()
-        .chain(SKILL_VALUES.map(|(index, ..)| index))
+        .chain(SKILL_VALUES)
         {
             if unit.aggregate(index).is_some() {
                 return Err(Error::new(format!(
@@ -1329,118 +1093,7 @@ impl Stats {
                 )));
             }
         }
-        Ok(())
-    }
-
-    /// The buffs' aggregate: move speed's value and rate, damage's rate and
-    /// the rate on damage taken.
-    fn buff_modifiers(&self, modifiers: &mut Vec<Modifier>) -> Result<()> {
-        let buff = &self.overlays.buff;
-        // `BuffManager.GetMoveSpeedChangeValue`: whole metres, as the unit's
-        // own `DataSet` keeps them.
-        if let Some(speed) = buff.aggregate(Index::MoveSpeed)
-            && speed.value != 0
-        {
-            let metres = i128::from(crate::rules::SPACE_UNITS_PER_METER_SCALE);
-            if speed.value % metres != 0 {
-                return Err(Error::new(
-                    "a buff's move-speed value is a whole number of metres",
-                ));
-            }
-            push(
-                modifiers,
-                ModifierChannel::Buff,
-                None,
-                "move_speed_value",
-                ModifierPart::Value,
-                i64::try_from(speed.value / metres)
-                    .map_err(|_| Error::new("a buff's move-speed value is outside i64"))?,
-            );
-        }
-        for (index, field) in [
-            (Index::MoveSpeed, "move_speed_rate"),
-            (Index::AttackDamage, "damage_rate"),
-            (Index::AmplifyDamage, "amplify_damage_rate"),
-        ] {
-            if let Some(aggregate) = buff.aggregate(index) {
-                if aggregate.value != 0 && index != Index::MoveSpeed {
-                    return Err(Error::new(format!(
-                        "a buff's {} value is not a field this build records",
-                        index.name()
-                    )));
-                }
-                push_rate(modifiers, ModifierChannel::Buff, None, field, aggregate)?;
-            }
-        }
-        // `BuffManager.GetAttackRangeAddRate` and `GetAttackRangeReduceRate`:
-        // the buffs' rates on the main skill's range.
-        let range_rates = buff
-            .corrections(Index::AttackRange)
-            .filter(|entry| matches!(entry.correction, Correction::Rate { .. }))
-            .copied()
-            .collect::<Vec<_>>();
-        if let Some(aggregate) = Overlay::of(&range_rates).aggregate(Index::AttackRange) {
-            push_rate(
-                modifiers,
-                ModifierChannel::Buff,
-                None,
-                "attack_range_rate",
-                aggregate,
-            )?;
-        }
-        // `BuffManager.GetAttackRangeAddValue` and `GetAttackRangeReduceValue`:
-        // the buffs' whole metres on the main skill's range, the ones that
-        // add and the ones that take away kept apart, a reduction signed.
-        let metres = crate::rules::SPACE_UNITS_PER_METER_SCALE;
-        let range_values = buff
-            .corrections(Index::AttackRange)
-            .filter_map(|entry| match entry.correction {
-                Correction::Value(value) if value % metres == 0 => Some(Ok(value / metres)),
-                Correction::Value(_) => Some(Err(Error::new(
-                    "a buff's attack-range value is a whole number of metres",
-                ))),
-                Correction::Rate { .. } => None,
-            })
-            .collect::<Result<Vec<_>>>()?;
-        for (field, value) in [
-            (
-                "attack_range_add_value",
-                range_values.iter().filter(|value| **value > 0).sum::<i64>(),
-            ),
-            (
-                "attack_range_reduce_value",
-                range_values.iter().filter(|value| **value < 0).sum::<i64>(),
-            ),
-        ] {
-            push(
-                modifiers,
-                ModifierChannel::Buff,
-                None,
-                field,
-                ModifierPart::Value,
-                value,
-            );
-        }
-        for index in [
-            Index::MaxLife,
-            Index::AttackInterval,
-            Index::SplashRange,
-            Index::DamagePerKill,
-            Index::GroundFireRange,
-            Index::GroundFireLifeTime,
-            Index::ReduceDamage,
-        ]
-        .into_iter()
-        .chain(SKILL_VALUES.map(|(index, ..)| index))
-        {
-            if buff.aggregate(index).is_some() {
-                return Err(Error::new(format!(
-                    "no buff here corrects {}",
-                    index.name()
-                )));
-            }
-        }
-        Ok(())
+        refuse_fieldless_skill_corrections(&self.overlays.skill)
     }
 
     /// What one hit of `amount` takes off this unit: the amount scaled by
@@ -1529,54 +1182,6 @@ impl Stats {
     pub(crate) fn splash_radius(&self) -> i64 {
         self.splash_radius.max(0)
     }
-}
-
-/// Adds one non-zero modifier.
-fn push(
-    modifiers: &mut Vec<Modifier>,
-    channel: ModifierChannel,
-    skill_slot: Option<u16>,
-    field: &str,
-    part: ModifierPart,
-    value: i64,
-) {
-    if value != 0 {
-        modifiers.push(Modifier {
-            channel,
-            skill_slot,
-            field: field.to_owned(),
-            part,
-            value,
-        });
-    }
-}
-
-/// Adds a rate's enhancement and impairment, each when non-zero.
-fn push_rate(
-    modifiers: &mut Vec<Modifier>,
-    channel: ModifierChannel,
-    skill_slot: Option<u16>,
-    field: &str,
-    aggregate: Aggregate,
-) -> Result<()> {
-    let (add, reduce) = aggregate.rate()?;
-    push(
-        modifiers,
-        channel,
-        skill_slot,
-        field,
-        ModifierPart::Add,
-        add,
-    );
-    push(
-        modifiers,
-        channel,
-        skill_slot,
-        field,
-        ModifierPart::Reduce,
-        reduce,
-    );
-    Ok(())
 }
 
 #[cfg(test)]

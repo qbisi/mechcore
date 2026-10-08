@@ -228,6 +228,8 @@ impl Simulation {
             divide: shot.buff.divide,
             additive: shot.buff.additive,
             ticks: shot.buff.ticks,
+            // `extract-contraptions.py` refuses a missile buff that steps.
+            step_ticks: 0,
             source: MISSILE_SOURCE,
             entries: vec![Entry {
                 index: Index::MoveSpeed,
@@ -237,7 +239,7 @@ impl Simulation {
             disables_technology: false,
             debuff: shot.buff.debuff,
             invincible: false,
-            life_change: None,
+            life_change_rate: 0,
             current_life_rate: 0,
         };
         for &target in &struck.targets {

@@ -7,7 +7,7 @@ seed: 4242
 round: 2
 source: game
 ticks: 1041
-hash: {profile: mcfr-content-0.7.0, result: 329d9f8b9da48f02d31557b2856cbad1c9b0c28e48f40b6c55688dc9318c94eb}
+hash: {profile: mcfr-content-0.7.0, result: aaeea2e31d6a2be88f58f81bce8d33399b1ed2fcf46ceab1afd1583faf25337d}
 blue:
   techs:
     arclight: [range_enhancement, charged_shot]

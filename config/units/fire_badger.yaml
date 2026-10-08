@@ -65,6 +65,7 @@ extra_weapons:
       buff:
         id: 6020
         duration: 9999
+        step_time: 0.5
         divide: 0
         additive: false
         debuff: false

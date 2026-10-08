@@ -10,7 +10,7 @@ seed: 314316270
 round: 4
 source: game
 ticks: 1419
-hash: {profile: mcfr-content-0.7.0, result: 014183e756298a39b330a2c6fe0c2fda294ba82d11332ed150558619da0e4b54}
+hash: {profile: mcfr-content-0.7.0, result: 60b2a10b4bdeeec2c175711f36717dda40c781753e3bb131d433b31519001747}
 blue:
   core_damage: 500
   officers: [additional_deployment_slot, rhino_specialist]

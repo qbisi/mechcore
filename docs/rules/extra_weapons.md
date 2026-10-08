@@ -306,9 +306,7 @@ its height kept, under the unit's side. The fire is the unit's own numbers:
 `fireLifeTime` (`ExtraWeaponTechnologyData.GetFireLifeTime`) onto the unit's
 `DataSet` as the fire's range and life time (`MechDataModifer.AddData`) when
 that life time is above zero, an oil's row's too, and `GetFireMech` reads them
-back. A recording
-keeps them among the unit's modifiers, `gf_range_value` and
-`gf_life_time_value`, from the first tick. The fire burns as any fire does
+back. The fire burns as any fire does
 ([terrain.md](terrain.md)), at the shared fire's damage and period. Incendiary
 Bomb's fire reaches 12 metres from where it lands and burns for 10 seconds;
 the Vulcan's, of its own row, 18 metres for 12 seconds, ten shells a volley
@@ -400,8 +398,8 @@ Point's two launchers in turn, one every two ticks, scattered 55 metres about
 its target as any burst of two weapons is: the skill's own two weapons, not
 the main beam's one. They deal nothing, and each writes the row's buff on
 what its 7.5 metres of splash reach: -0.4 of move speed for 8 seconds, which
-turns the unit's technologies off while it runs (`disableTechnology`), so
-`status_mask` reads `technology_disabled` though the unit carries none.
+turns the unit's technologies off while it runs (`disableTechnology`), though
+the unit carries none.
 
 - **A shield takes the row's `energyShieldDamage`.** The row is the skill's
   damage modifier, and where its `energyShieldDamage` is not negative

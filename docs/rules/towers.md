@@ -40,8 +40,7 @@ Its rows correct three rates: `speedChangeRate` on move speed,
 All share one `buffDivide`, and `isAdditiveMode` is set. The values are in
 `config/towers.yaml`.
 
-The rates land in the buff channel, which a recording keeps as the `buff`
-channel of a unit's `modifiers`. A number corrected in the buff channel and another composes
+The rates land in the buff channel. A number corrected in the buff channel and another composes
 as it does within one channel: `DamageProperty.CalculateDamage` adds the buff's
 enhancement to the skill's and multiplies the two reduce rates, as one factor,
 before the damage; `MoveSpeedProperty.Refresh` does the same over the unit's
