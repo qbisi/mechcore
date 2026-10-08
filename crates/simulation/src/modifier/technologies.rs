@@ -484,7 +484,11 @@ struct SupportOffset {
 const LEVEL_ONE: i32 = 0;
 const PARENT_LEVEL: i32 = 3;
 
-/// `SupportUnitAppearType.ImmediateWithEffect` and `Transition`.
+/// `SupportUnitAppearType.Immediate`, `ImmediateWithEffect` and
+/// `Transition`. The first two differ only in what the client shows: in
+/// `SupportUnitCreator.CreateMech` neither takes time to appear, and only the
+/// event a view reads carries an effect's duration.
+const IMMEDIATE: i32 = 0;
 const IMMEDIATE_WITH_EFFECT: i32 = 1;
 const TRANSITION: i32 = 5;
 
@@ -494,22 +498,18 @@ const PARENT_BODY_SPACE: i32 = 2;
 
 impl SupportBlock {
     /// The line it runs, or why this build will not run it: one whose makes
-    /// appear any way but by a transition at their offsets or at once about
-    /// their unit, at a level of their own, corrected by the row, capped in
+    /// appear any way but at once or by a transition at their offsets, at a
+    /// level of their own, corrected by the row, capped in
     /// all, made in its intensify mode or without its side's technologies.
     fn line(&self, who: &str) -> std::result::Result<ProductionLine, String> {
         let unread = [
             (
-                ![IMMEDIATE_WITH_EFFECT, TRANSITION].contains(&self.appear_type),
-                "an appearType other than 1 or 5",
+                ![IMMEDIATE, IMMEDIATE_WITH_EFFECT, TRANSITION].contains(&self.appear_type),
+                "an appearType other than 0, 1 or 5",
             ),
             (
                 self.appear_type == TRANSITION && self.positions.is_empty(),
                 "a transition and no positions",
-            ),
-            (
-                self.appear_type == IMMEDIATE_WITH_EFFECT && !self.positions.is_empty(),
-                "an appearance at once at positions",
             ),
             (
                 ![LEVEL_ONE, PARENT_LEVEL].contains(&self.unit_level),
@@ -549,7 +549,7 @@ impl SupportBlock {
                 .map(|offset| (offset.x, offset.z))
                 .collect(),
             // `SupportUnitCreator.CreateMech`: a transition takes
-            // `APPEAR_DURATION`, a second, and `ImmediateWithEffect` none.
+            // `APPEAR_DURATION`, a second, and an appearance at once none.
             appear_q32: if self.appear_type == TRANSITION {
                 1 << 32
             } else {

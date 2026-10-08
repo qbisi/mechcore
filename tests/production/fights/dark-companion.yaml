@@ -1,0 +1,24 @@
+# Dark Companion on blue's Abyss: a technology's production line of one
+# position, 40 metres ahead of the Abyss, whose make appears at once
+# (`appearType` 0, which differs from 1 only in what the client shows). The
+# line keeps up to a hundred alive, so its one make is scattered by up to a
+# metre each way by two draws of blue's stream, x then z, and joins at once,
+# an initial unit to the recording numbered between the Abyss and red's.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 350
+hash: {profile: mcfr-content-0.7.0, result: cf92fc94aa0f91a1a905fc06b1ca6dcdd00b1938ae9a27b488eb4e2f4f9ab90d}
+blue:
+  techs:
+    abyss: [dark_companion]
+  units:
+  - {name: abyss, index: 0, position: {x: 5, y: -145}, exp: 0/600/4800}
+red:
+  core_damage: 562
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}}

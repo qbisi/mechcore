@@ -6,6 +6,6 @@ and whether a line holds the fight.
 is the rule. Each fight puts one line on blue's Fortress and names what it
 fights; the three lines each make their own unit, at their own offsets and
 interval. `best-partner`, `shooting-squad`, `summon-hounds`,
-`fang-production`, `crawler-production` and `mothership` put a technology's
+`fang-production`, `crawler-production`, `mothership` and `dark-companion` put a technology's
 line on its own unit instead
 ([technology_effects.md](../../docs/rules/technology_effects.md#production-lines)).

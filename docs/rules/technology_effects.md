@@ -316,7 +316,10 @@ and Summon Hounds make their units at the unit's own level
 
 Fang Production, Crawler Production and Mothership make theirs at the
 unit's first level about where it stands, appearing with an effect
-(`appear_type` 1) at once, each batch every 32 to 36 seconds.
+(`appear_type` 1) at once, each batch every 32 to 36 seconds. Dark
+Companion makes one at the Abyss's level, 40 metres ahead of it, appearing at
+once with no effect (`appear_type` 0), once; the two types differ only in the
+duration of the effect `SupportUnitCreator.CreateMech` hands the client.
 
 A row whose makes appear any other way, take a level of their own, are
 corrected by the row, are capped in all, come in its `intensifyMode` or
