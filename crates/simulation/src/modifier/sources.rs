@@ -118,8 +118,10 @@ pub(crate) enum DeadSummon {
 /// When a buff source's `BuffCycleController` adds its buff, and to whom.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum BuffTrigger {
-    /// `FightStart` under `BuffTargetUpdateModel.All`: the unit itself, once.
-    Itself,
+    /// `FightStart` under `BuffTargetUpdateModel.All`: after its delay, and
+    /// then every interval if it has one, the unit itself or the units in
+    /// reach.
+    All(AllCycle),
     /// `FightStart` under `Each`: every unit in reach, on every update.
     Around(BuffReach),
     /// `Hit`: what each hit of its unit's skills strikes, the controller
@@ -128,6 +130,18 @@ pub(crate) enum BuffTrigger {
     /// `GetDamage` onto `MechUnit`: the unit itself, each time it loses life,
     /// the controller listening to its `OnLifeChange`.
     Damaged,
+}
+
+/// A `BuffCycleController` under `BuffTargetUpdateModel.All`, which
+/// `UpdateModel1` counts through itself.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct AllCycle {
+    /// `GetDelayTime` and `GetIntervalTime`, Q32.32 seconds.
+    pub(crate) delay_q32: i64,
+    pub(crate) interval_q32: i64,
+    /// Whom it gives the buff: the unit itself when its targets are
+    /// `MechUnit` alone, and otherwise the units in reach.
+    pub(crate) reach: Option<BuffReach>,
 }
 
 /// The units a `RangeUnitCycle` keeps a buff on: those
@@ -145,10 +159,10 @@ pub(crate) struct BuffReach {
     pub(crate) targets: BuffTargets,
 }
 
-/// The `TargetType`s a source names among the units: `MechUnit` (its own
-/// unit), `OtherSelfUnits` (its side's others), `FriendUnits` (its group's,
-/// which in a fight of one team a side are its side's), and
-/// `OpponentUnits`.
+/// The `TargetType`s a source names among the units that reach any:
+/// `MechUnit` (its own unit), `OtherSelfUnits` (its team's others) and
+/// `OpponentUnits`. `FriendUnits` takes a unit of its group but not of its
+/// team, and in a fight of one team a side reaches none.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[allow(
     clippy::struct_excessive_bools,
@@ -157,7 +171,6 @@ pub(crate) struct BuffReach {
 pub(crate) struct BuffTargets {
     pub(crate) itself: bool,
     pub(crate) own_others: bool,
-    pub(crate) friends: bool,
     pub(crate) opponents: bool,
 }
 

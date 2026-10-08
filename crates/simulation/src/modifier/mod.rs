@@ -23,8 +23,9 @@ pub(crate) use energy_tower::EnergyTowerSkillEffects;
 pub(crate) use equipment::EquipmentEffects;
 pub(crate) use officers::{ContraptionRates, OfficerEffects};
 pub(crate) use sources::{
-    AutoRecovery, BuffReach, BuffSource, BuffTrigger, CarriedShield, DeadSummon, EnergyShield,
-    LifeSteal, ProductionLine, StackCondition, SweepIntensify, current as current_source,
+    AllCycle, AutoRecovery, BuffReach, BuffSource, BuffTrigger, CarriedShield, DeadSummon,
+    EnergyShield, LifeSteal, ProductionLine, StackCondition, SweepIntensify,
+    current as current_source,
 };
 pub(crate) use technologies::{
     ARMOR_SOURCE, MainSkill, SOURCE as TECHNOLOGY_SOURCE, SecondaryDamage, TechnologyEffects,

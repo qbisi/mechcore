@@ -463,8 +463,10 @@ impl TechnologyEffects {
             let self_buff = buff_source.as_ref().is_some_and(|buff: &BuffSource| {
                 matches!(
                     buff.trigger,
-                    crate::modifier::BuffTrigger::Itself
-                        | crate::modifier::BuffTrigger::Hit
+                    crate::modifier::BuffTrigger::All(crate::modifier::AllCycle {
+                        reach: None,
+                        ..
+                    }) | crate::modifier::BuffTrigger::Hit
                         | crate::modifier::BuffTrigger::Damaged
                 )
             });
@@ -1136,7 +1138,7 @@ mod tests {
         assert!(reach.domains.ground && !reach.domains.air);
         assert!(reach.target_radius);
         let targets = reach.targets;
-        assert!(targets.itself && targets.own_others && targets.friends && !targets.opponents);
+        assert!(targets.itself && targets.own_others && !targets.opponents);
         let beam = table
             .sources(&[DEGENERATION_BEAM], "wraith")
             .unwrap()

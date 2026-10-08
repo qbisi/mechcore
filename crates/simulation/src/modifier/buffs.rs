@@ -11,7 +11,7 @@
 use serde::Deserialize;
 
 use super::sources::{
-    BuffReach, BuffSource, BuffTargets, BuffTrigger, DeadSummon, StackCondition, Stacking,
+    AllCycle, BuffReach, BuffSource, BuffTargets, BuffTrigger, DeadSummon, StackCondition, Stacking,
 };
 use crate::rules::AttackTargets;
 
@@ -27,6 +27,10 @@ const MECH_UNIT: i32 = 1;
 const OTHER_SELF_UNITS: i32 = 2;
 const FRIEND_UNITS: i32 = 3;
 const OPPONENT_UNITS: i32 = 4;
+
+/// `BuffTargetUpdateModel.All`: the controller counts its delay and interval
+/// itself.
+const ALL: i32 = 0;
 
 /// `BuffTargetUpdateModel.Each`: a `RangeUnitCycle` keeps the buff on every
 /// unit in reach.
@@ -107,9 +111,10 @@ pub(crate) struct BuffBlock {
 
 /// The buff a source adds, when and to whom, or why this build will not apply
 /// it. `BuffCycleController.OnEnterFight` runs a controller whose listener is
-/// `FightStart`. Under `BuffTargetUpdateModel.All` its first
-/// `Update` triggers once onto the unit itself, since a source with no delay
-/// and no interval does not cycle. Under `Each` it hands its `Update` to a
+/// `FightStart`. Under `BuffTargetUpdateModel.All` its `UpdateModel1`
+/// triggers once its delay is over, and again every interval when it has
+/// one; it gives the buff to the unit itself when its targets are `MechUnit`
+/// alone, and otherwise to the units in reach. Under `Each` it hands its `Update` to a
 /// `RangeUnitCycle`, which keeps the buff on every unit in reach; the
 /// controller's constructor never gives the cycle the source's delay or
 /// interval, so neither is read. `RegisterMechEvent` hands a controller whose
@@ -139,14 +144,31 @@ pub(crate) fn buff_source(
         return Err(format!("{who} names no buff"));
     };
     let trigger = match trigger {
-        Some(FIGHT_START) => match reach(who, targets, cycle)? {
-            Some(reach) => BuffTrigger::Around(reach),
-            None => BuffTrigger::Itself,
-        },
+        Some(FIGHT_START) if cycle.update_model == EACH => {
+            BuffTrigger::Around(reach(who, targets, cycle)?)
+        }
+        // `UpdateModel1`: the unit itself when its targets are `MechUnit`
+        // alone, and otherwise what `CalculateRangeActors` finds.
+        Some(FIGHT_START) if cycle.update_model == ALL => BuffTrigger::All(AllCycle {
+            delay_q32: cycle.delay,
+            interval_q32: cycle.interval,
+            reach: if targets == [MECH_UNIT] {
+                None
+            } else {
+                Some(reach(who, targets, cycle)?)
+            },
+        }),
         Some(HIT) if cycle.update_model != EACH && cycle.interval == 0 && cycle.delay == 0 => {
             BuffTrigger::Hit
         }
         Some(GET_DAMAGE) if targets == [MECH_UNIT] => BuffTrigger::Damaged,
+        Some(FIGHT_START) => {
+            return Err(format!(
+                "{who} adds its buff under BuffTargetUpdateModel {}, and only All and Each are \
+                 read",
+                cycle.update_model
+            ));
+        }
         _ => {
             return Err(format!(
                 "{who} adds its buff on BuffTechListener {trigger:?} to {targets:?}, and only \
@@ -271,24 +293,9 @@ fn summons(who: &str, buff: &BuffBlock) -> std::result::Result<Option<DeadSummon
     Ok(Some(summon))
 }
 
-/// Whom a source's controller gives its buff: under `All`, the unit itself
-/// once, and under `Each`, the units in reach that its target types name.
-fn reach(
-    who: &str,
-    targets: &[i32],
-    cycle: &CycleBlock,
-) -> std::result::Result<Option<BuffReach>, String> {
-    if cycle.update_model != EACH {
-        if targets != [MECH_UNIT] || cycle.interval != 0 || cycle.delay != 0 {
-            return Err(format!(
-                "{who} adds its buff under BuffTargetUpdateModel {} to TargetTypes {targets:?} \
-                 after {} and every {} (Q32.32 seconds), and only once onto the unit itself \
-                 is read",
-                cycle.update_model, cycle.delay, cycle.interval
-            ));
-        }
-        return Ok(None);
-    }
+/// The units in reach a source's controller gives its buff, of the target
+/// types it names.
+fn reach(who: &str, targets: &[i32], cycle: &CycleBlock) -> std::result::Result<BuffReach, String> {
     if cycle.self_radius {
         return Err(format!(
             "{who} measures its reach from its unit's edge (isDistanceCalculateSelfRadius), \
@@ -306,7 +313,8 @@ fn reach(
         match target {
             MECH_UNIT => named.itself = true,
             OTHER_SELF_UNITS => named.own_others = true,
-            FRIEND_UNITS => named.friends = true,
+            // `AvailableCheck` passes a unit of its group of another team.
+            FRIEND_UNITS => {}
             OPPONENT_UNITS => named.opponents = true,
             other => {
                 return Err(format!(
@@ -330,12 +338,12 @@ fn reach(
         },
         other => return Err(format!("{who} reaches AttackTargetType {other}")),
     };
-    Ok(Some(BuffReach {
+    Ok(BuffReach {
         range_q32: cycle.range,
         domains,
         target_radius: cycle.target_radius,
         targets: named,
-    }))
+    })
 }
 
 #[cfg(test)]

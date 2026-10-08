@@ -97,6 +97,20 @@ buff source. Combat Evolvement is one, on the Rhino. Photon Coating is
 another: 30 seconds in which its unit takes 30% less damage and no debuff
 reaches it. The effect a source names is only what the client shows.
 
+**Under the update model `All`, a buff source triggers after its delay and,
+with an interval, again every interval.** Its controller counts its updates
+from the fight's first tick: when the count reaches the delay in whole ticks
+it triggers, and with an interval it triggers again each time the count,
+less what it last spent, reaches the interval in whole ticks. A source whose
+targets are its unit alone gives the buff to its unit; any other gives it,
+once a trigger, to every live unit in reach of a target type it names, as a
+range cycle finds them. Like a range cycle, it stands still while its unit is
+dead or its technologies are disabled. Photon Emission covers its side's
+other units within 100 m with 20 seconds of invincibility and 30% less
+damage taken, 0.6 seconds into the fight, once: the Overlord's of either
+domain, the Farseer's only on the ground. Photon Loop covers the Mountain for
+25 seconds every 30.
+
 **A buff source that keeps its buff on the units around its unit adds it
 again on every tick.** Under the update model `Each`, the source's controller
 leaves its delay on its first update, selects nothing on the next seven, and
@@ -104,7 +118,8 @@ from its eighth, the fight's ninth tick, takes on every update the units in
 reach: every live unit of either side, not underground, of a domain the
 source's fly type takes, within the source's range of its unit (to the unit's
 edge where the source says so), and of a target type it names: its unit, its
-side's others, its side, or the enemy. Each of them takes the buff again, the
+side's others, or the enemy; the type of its group's other teams names none,
+a side being one team. Each of them takes the buff again, the
 ones it held before first and new ones after. The source's interval and delay
 never reach the cycle, so the buff is added on every tick, and its duration is
 how long it outlasts its unit leaving reach. The cycle stops while its unit is
@@ -198,9 +213,8 @@ Rhino with Combat Evolvement has 2.5% more life a stack, and a hit Rhino's
 life passes through its maximum without the buff on each step. When the buff
 ends, the fight's end among, the rate goes and the life is refreshed again.
 
-Any other trigger, a source that steals life beside a hit buff, one
-that adds its buff once to other units
-or cycles under the update model `All`, one that reaches crystals, measures
+Any other trigger or update model, a source that steals life beside a hit
+buff, one that reaches crystals, measures
 from its unit's edge or keeps to a distance type, a buff that stacks on
 another condition or lowers what it stacks, and a buff field beyond these is
 refused by name.
@@ -369,6 +383,14 @@ whose effect grows with rank, rather than read index zero:
   never reaches the Rhino or War Factory it covers:
   `tests/technology_buff/fights/photon-coating.yaml`,
   `tests/technology_buff/fights/photon-coating-war-factory.yaml`.
+- Photon Emission adds its buff at tick 12 to the Overlord's side's other
+  units within 100 m, the Wasps and a Rhino but neither a Marksman 155 m off
+  nor the Overlord, and to the Farseer's only on the ground; a Vulcan's
+  Ignite reaches none of them. Photon Loop adds its buff to the Mountain on
+  the first tick and at tick 600, 100 ticks after it ran out:
+  `tests/technology_buff/fights/photon-emission.yaml`,
+  `tests/technology_buff/fights/photon-emission-farseer.yaml`,
+  `tests/technology_buff/fights/photon-loop.yaml`.
 - Counter-Fire's buff is on a Fire Badger from the tick a Marksman's hit
   takes life from it, its range 145 of 75; without it the simulator parts
   from the recording on that tick, on that range:
@@ -513,6 +535,27 @@ whose effect grows with rank, rather than read index zero:
   `ISkillOwner.IsTechnologyDisabled` is false, to
   `MotionController.totalMoveDistanceWithoutDisableTech`, and sets
   `MotionController.prevPosition` to `FightTransform._position2D`.
+- A source's controller under the update model `All`:
+  `BuffCycleController.Update` hands it to `BuffCycleController.UpdateModel1`,
+  which counts `BuffCycleController.timeSum` up a tick. In
+  `BuffCycleState.Delaying`, set by `BuffCycleController.TriggerCycleStart`,
+  it returns until the count reaches `BuffCycleController.delayTimeConfig`,
+  then takes it off and moves to `BuffCycleState.Cycleing` when
+  `BuffCycleController.get_IsCycle`, an interval `FPoint`-unequal to zero, and
+  otherwise stops; cycling, it returns until the count reaches
+  `BuffCycleController.intervalTimeConfig` and takes it off. Each trigger
+  gives the buff, through
+  `BuffCycleController.TriggerBuffOrBuffRangeItemFromSelector` and
+  `BuffSystem.AddBuffByCheck`, to the owner when
+  `IEffectBuffDataSource.GetEffectTargetTypes` holds one type and it is
+  `MechUnit`, and otherwise to each unit
+  `RangeTargetCalculator.CalculateRangeActors` finds within
+  `IEffectBuffDataSource.GetMax` that `BuffCycleController.AvailableCheck`
+  passes. The constructor sets both configs to `FPoint.op_Division` of the
+  time by the tick, its whole part. `AvailableCheck` passes for
+  `FriendUnits` a unit of the owner's group whose
+  `FightActor.currentTeamController` is not the owner's, and for
+  `OtherSelfUnits` one other than the owner of the owner's team.
 - A source's controller runs a range cycle under the update model `Each`:
   `BuffCycleController.useUpdateFinder` is set by its constructor, which hands
   `BuffCycleController.rangeUnitCycle` the owner, the fight and the source but
@@ -581,11 +624,6 @@ whose effect grows with rank, rather than read index zero:
 - **That one a buff summoned summons nothing as it dies.** Read from the
   build, and no recording holds a summoned unit dying under the buff.
 
-- **Which units `FriendUnits` names in a fight of two teams a side.**
-  `BuffCycleController.AvailableCheck` compares the units' groups and then
-  their teams, and with one team a side the simulator reads it as the side;
-  Mobile Power Station names it beside `OtherSelfUnits` and `MechUnit`, whose
-  union is the side either way.
 - **A hurt unit's life as a disable moves its maximum.** The share rule is
   the one a buff's maximum life measured; no disable has been recorded on a
   hurt unit whose technology moves its maximum.

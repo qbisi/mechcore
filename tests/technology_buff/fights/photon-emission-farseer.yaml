@@ -1,0 +1,32 @@
+# Photon Emission on a Farseer: ground units only, and a buff that stands
+# still while the fight drains.
+#
+# The Farseer's source reaches only ground units, so at t12 only the Rhino
+# takes buff 40000: not the Wasps, the Farseer itself, or the Marksman out of
+# reach. Red's last unit dies at t409, and its towers fall at t410 with a
+# Farseer projectile still in flight. Until it lands at t437 nothing updates
+# the buff: its elapsed stands at 398 of 400, and it is cleared only as the
+# fight is left.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 437
+hash: {profile: mcfr-content-0.7.0, result: daf6c38b499261497da5ff586ce701d22e0b8a0b0e879cc26f54536f8196703c}
+blue:
+  techs:
+    farseer: [photon_emission]
+  units:
+  - {name: farseer, index: 0, position: {x: 5, y: -145}, exp: 0/633/1800}
+  - {name: rhino, index: 1, position: {x: 55, y: -145}, exp: 0/633/1150}
+  - {name: wasp, index: 2, position: {x: -45, y: -150}, exp: 0/233/900}
+  - {name: marksman, index: 3, position: {x: 160, y: -150}, exp: 0/100/650}
+red:
+  core_damage: 754
+  techs:
+    vulcan: [ignite]
+  units:
+  - {name: vulcan, index: 0, position: {x: 0, y: -80}}
+  - {name: vulcan, index: 1, position: {x: 100, y: -80}}
