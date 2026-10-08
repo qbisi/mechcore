@@ -91,6 +91,9 @@ its attack target is in reach, measured where the fallen block stood, as for a
 standing one. A unit still in reach goes on attacking through its swing; one
 its neighbours have pushed out of reach enters `MotionMoveState` on the next
 update and walks on towards its lock, its weapons still naming the block.
+A burst still releasing at the block goes on at it, and the unit with it, still
+attacking and turning to its lock: only a dead lock stops the motion of a
+unit whose burst lost its target.
 
 Only a unit whose skill is attacking has an attack to finish. A unit closing on
 a block by its motion, its skill still idle, goes straight on to what is
@@ -234,6 +237,9 @@ The map's own buildings are the exception and are named: each side gets one
 - A unit pushed out of reach of a block an ally fells during its swing walks
   on towards its lock the next update, and those still in reach go on
   attacking: `tests/corpus/fights/134259672-r1.yaml`, ticks 344 and 345.
+- Two Stormcallers whose burst goes on at a block that fell at tick 695 read
+  attacking through it, their turrets turning to their lock:
+  `tests/corpus/fights/134369439-r8.yaml`.
 - A unit with four weapon slots takes the block in its way with every slot,
   splashes the next block, and drops its slots with the lock when a block falls:
   `tests/construction/fights/`.

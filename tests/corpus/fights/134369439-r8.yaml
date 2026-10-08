@@ -1,0 +1,104 @@
+# Replay 2328_20261007--134369439, round 8, map 1021. Blue's Stormcaller 194
+# lands a shell at tick 275 38 metres short of red's Stormcaller 383, which
+# stands inside red's shield: the splash strikes nothing, and the shield,
+# 8.4 metres off, is left alone. At tick 695 block 14 of red's wall
+# falls under blue's Stormcallers 203 and 206, whose bursts go on at it: they
+# read attacking through the burst, turning to their lock, Fang 427.
+
+kind: fight
+map_id: 1001
+seed: 892887593
+round: 8
+source: game
+ticks: 1077
+hash: {profile: mcfr-content-0.22.0, result: b985a7c88c80907196b946134ffcddb97cfca7a72964253a02145fe97c46470f}
+blue:
+  core_damage: 1674
+  officers: [secondary_equipment_expert, mass_produced_laser_sight]
+  techs:
+    mustang: [missile_interceptor, range_enhancement]
+    steel_ball: [kinetic_charge]
+    stormcaller: [heavy_missile]
+    fire_badger: [range_enhancement, counter_fire]
+    void_eye: [range_enhancement, suppression_shots]
+  blueprints: [attack_enhancement, defense_enhancement]
+  energy_tower_skills: [enhanced_range]
+  legacy_index: 26
+  units:
+  - {name: fang, index: 0, position: {x: 0, y: -95}, exp: 400/405/600, rotated: true}
+  - {name: fang, index: 1, position: {x: -90, y: -95}, exp: 195/195/600, rotated: true}
+  - {name: fang, index: 2, position: {x: 90, y: -95}, exp: 600/600/600, rotated: true}
+  - {name: fire_badger, index: 3, position: {x: -45, y: -110}, level: 2, exp: 2097/2271/3154, equipment: [secondary_heavy_armor]}
+  - {name: fire_badger, index: 4, position: {x: 45, y: -110}, level: 2, exp: 961/1046/3154, equipment: [secondary_fire_control_system]}
+  - {name: void_eye, index: 5, position: {x: 40, y: -140}, level: 5, exp: 0/2825/3387, equipment: [secondary_laser_sight]}
+  - {name: void_eye, index: 6, position: {x: -50, y: -140}, level: 3, exp: 1923/2153/2315, equipment: [secondary_laser_sight]}
+  - {name: steel_ball, index: 7, position: {x: -245, y: -300}, level: 2, exp: 620/778/2253, equipment: [secondary_heavy_armor]}
+  - {name: crawler, index: 8, position: {x: -290, y: -265}, exp: 411/450/450, rotated: true}
+  - {name: crawler, index: 9, position: {x: 140, y: -255}, exp: 450/450/450, rotated: true}
+  - {name: void_eye, index: 10, position: {x: -140, y: -140}, level: 2, exp: 1361/1465/1465, equipment: [secondary_laser_sight]}
+  - {name: fang, index: 11, position: {x: 140, y: -205}, exp: 600/600/600, rotated: true}
+  - {name: fang, index: 12, position: {x: -140, y: -205}, exp: 567/600/600, rotated: true}
+  - {name: fire_badger, index: 13, position: {x: -135, y: -110}, exp: 1067/1250/1400, equipment: [small_amplifying_core]}
+  - {name: fang, index: 14, position: {x: -180, y: -95}, exp: 178/178/600, rotated: true}
+  - {name: stormcaller, index: 15, position: {x: -95, y: -140}, level: 2, exp: 0/1208/2479}
+  - {name: stormcaller, index: 16, position: {x: -5, y: -140}, level: 2, exp: 1938/2304/2479, equipment: [secondary_fire_control_system]}
+  - {name: steel_ball, index: 17, position: {x: 245, y: -300}, exp: 324/709/1000, equipment: [secondary_heavy_armor]}
+  - {name: crawler, index: 18, position: {x: 290, y: -265}, exp: 398/450/450, rotated: true}
+  - {name: void_eye, index: 19, position: {x: 130, y: -140}, level: 2, exp: 1383/1465/1465, equipment: [secondary_laser_sight]}
+  - {name: mustang, index: 20, position: {x: -105, y: -210}, exp: 339/506/1200}
+  - {name: mustang, index: 21, position: {x: 105, y: -210}, exp: 362/611/1200}
+  - {name: crawler, index: 22, position: {x: -15, y: -20}, exp: 158/186/450}
+  - {name: fire_badger, index: 23, position: {x: 135, y: -110}, exp: 156/606/1400, equipment: [small_amplifying_core]}
+  - {name: mustang, index: 24, position: {x: -55, y: -210}, exp: 273/336/1200}
+  - {name: mustang, index: 25, position: {x: 55, y: -210}, exp: 232/441/1200}
+  - {name: stormcaller, index: 26, position: {x: 175, y: -140}, exp: 0/1100/1100}
+  - {name: mustang, index: 27, position: {x: 175, y: -210}, exp: 0/531/1200}
+  - {name: mustang, index: 28, position: {x: -175, y: -210}, exp: 0/152/1200}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+red:
+  officers: [giant_specialist, advanced_targeting_system]
+  techs:
+    marksman: [range_enhancement]
+    arclight: [range_enhancement, charged_shot]
+    sabertooth: [missile_interceptor, range_enhancement]
+  blueprints: [attack_enhancement, defense_enhancement]
+  energy_tower_skills: [enhanced_range]
+  legacy_index: 28
+  units:
+  - {name: arclight, index: 0, position: {x: 240, y: -130}, level: 3, exp: 1294/2479/2671}
+  - {name: arclight, index: 1, position: {x: 100, y: -110}, level: 3, exp: 6/589/2671}
+  - {name: arclight, index: 2, position: {x: -30, y: -130}, level: 2, exp: 727/1454/1690}
+  - {name: sabertooth, index: 3, position: {x: 35, y: -125}, exp: 959/1160/1300}
+  - {name: sabertooth, index: 4, position: {x: 175, y: -125}, level: 2, exp: 1401/1869/2929}
+  - {name: marksman, index: 5, position: {x: 100, y: -130}, level: 3, exp: 2053/2315/2315}
+  - {name: marksman, index: 6, position: {x: -160, y: -130}, level: 2, exp: 586/1181/1465}
+  - {name: steel_ball, index: 7, position: {x: -255, y: -300}, level: 2, exp: 0/113/2253}
+  - {name: crawler, index: 8, position: {x: -290, y: -285}, level: 2, exp: 0/103/1014, rotated: true}
+  - {name: arclight, index: 9, position: {x: -80, y: -130}, level: 3, exp: 699/1611/2671}
+  - {name: marksman, index: 10, position: {x: 260, y: -110}, level: 3, exp: 0/732/2315}
+  - {name: crawler, index: 11, position: {x: 140, y: -225}, exp: 230/236/450, rotated: true}
+  - {name: crawler, index: 12, position: {x: -140, y: -225}, exp: 247/253/450, rotated: true}
+  - {name: arclight, index: 13, position: {x: -160, y: -110}, level: 2, exp: 1031/1690/1690}
+  - {name: crawler, index: 14, position: {x: 290, y: -195}, level: 2, exp: 0/133/1014, rotated: true}
+  - {name: arclight, index: 15, position: {x: 60, y: -130}, level: 2, exp: 38/897/1690}
+  - {name: crawler, index: 16, position: {x: 290, y: -285}, level: 2, exp: 0/779/1014, rotated: true}
+  - {name: stormcaller, index: 17, position: {x: 80, y: -125}, level: 2, exp: 425/1997/2479, rotated: true}
+  - {name: stormcaller, index: 18, position: {x: -100, y: -125}, exp: 525/807/1100, rotated: true}
+  - {name: sabertooth, index: 19, position: {x: -55, y: -125}, exp: 1026/1208/1300}
+  - {name: arclight, index: 20, position: {x: -120, y: -110}, level: 2, exp: 0/1137/1690}
+  - {name: crawler, index: 21, position: {x: 15, y: -80}, exp: 94/132/450}
+  - {name: arclight, index: 22, position: {x: 150, y: -120}, level: 2, exp: 0/1407/1690}
+  - {name: fang, index: 23, position: {x: 190, y: -65}, exp: 119/125/600, rotated: true}
+  - {name: marksman, index: 24, position: {x: 170, y: -150}, level: 2, exp: 0/257/1465}
+  - {name: sabertooth, index: 25, position: {x: 125, y: -115}, exp: 115/1169/1300}
+  - {name: stormcaller, index: 26, position: {x: -195, y: -130}, exp: 84/257/1100}
+  - {name: arclight, index: 27, position: {x: -250, y: -100}, level: 2, exp: 786/1019/1690}
+  - {name: fang, index: 28, position: {x: -145, y: -190}, exp: 0/71/600}
+  - {name: fang, index: 29, position: {x: 145, y: -190}, exp: 0/6/600}
+  - {name: fang, index: 30, position: {x: -210, y: -75}, exp: 0/9/600, rotated: true}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: shield, index: 0, position: {x: 112, y: -136}, retained: false}
+  - {name: missile, index: 1, position: {x: 182, y: -10}, retained: false}
