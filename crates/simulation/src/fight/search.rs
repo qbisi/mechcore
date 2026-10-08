@@ -985,9 +985,7 @@ impl Simulation {
     /// row's, or, while it is active, the permanent preemptive skill.
     fn searches_for_owner(&self, skill_ref: SkillRef, slot: Option<usize>) -> bool {
         match skill_ref.slot {
-            SkillSlot::Main => {
-                slot.is_none_or(|slot| self.skill(skill_ref).joined_range(slot).is_none())
-            }
+            SkillSlot::Main => slot.is_none_or(|slot| self.skill(skill_ref).joined(slot).is_none()),
             SkillSlot::Extra(index) => {
                 let skills = self.skills(skill_ref.owner);
                 skills.preemptive_active && skills.extras[index].rules.preemptive.is_some()

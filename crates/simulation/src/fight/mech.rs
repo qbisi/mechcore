@@ -743,7 +743,7 @@ fn extra_skills(placement: &Placement) -> Vec<ExtraSkill> {
 /// main skill's `SkillGroup` where it has one, in ascending skill ID, so a
 /// Wraith with Matrix Bombardment fires eight guns as one group, slots 4 to 7
 /// the row's. The layout lets a row join only where its numbers are the main
-/// skill's but for its range and its weapons.
+/// skill's but for its range, its attack angle and its weapons.
 fn joined_main_group(mut rules: UnitConfig, placement: &Placement) -> UnitConfig {
     let mut joined = placement
         .extra_weapons
@@ -764,7 +764,8 @@ fn joined_main_group(mut rules: UnitConfig, placement: &Placement) -> UnitConfig
 /// The unit's main skill, pointing as the unit faces, its group's slots each
 /// reaching its parent's range and its own beyond it
 /// (`FightSkill.GetAttackRange`): ten metres for a slot of the main row, the
-/// row's own range for a slot of a row that joined it.
+/// row's own range for a slot of a row that joined it, which holds its row's
+/// attack angle too (`FightSkill.Init`).
 fn main_skill(rules: &UnitConfig, placement: &Placement) -> Skill {
     let count = usize::try_from(rules.attack.weapons.count())
         .expect("u32 weapon count fits the supported host");
@@ -787,10 +788,14 @@ fn main_skill(rules: &UnitConfig, placement: &Placement) -> Skill {
                 .map(|weapon| weapon.rules.attack.weapons.indices.len())
                 .sum(),
         );
-        group.joined_ranges = (1..own)
+        group.joined = (1..own)
             .map(|_| None)
             .chain(joined.iter().flat_map(|weapon| {
-                vec![Some(weapon.rules.attack.range()); weapon.rules.attack.weapons.indices.len()]
+                let slot = JoinedSlot {
+                    range: weapon.rules.attack.range(),
+                    half_angle_mdeg: weapon.rules.attack.attack_half_angle_mdeg(),
+                };
+                vec![Some(slot); weapon.rules.attack.weapons.indices.len()]
             }))
             .collect();
     }

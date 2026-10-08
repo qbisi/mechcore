@@ -283,7 +283,7 @@ impl Simulation {
         // (`FightSkillBase.IsMainSearcher` asks `isMainSkill`): its lock
         // does not reach the owner.
         let main_searcher =
-            skill_ref.slot == SkillSlot::Main && self.skill(skill_ref).joined_range(slot).is_none();
+            skill_ref.slot == SkillSlot::Main && self.skill(skill_ref).joined(slot).is_none();
         let skill = self.skill_mut(skill_ref);
         let after = skill.sibling(slot).lock_target;
         if after != before && main_searcher {
@@ -323,7 +323,7 @@ impl Simulation {
         self.idle_group_slot(skill_ref, slot);
         // `StopAttack` hands a main searcher's owner the dropped lock, which
         // a joined row's slot is not.
-        if skill_ref.slot == SkillSlot::Main && self.skill(skill_ref).joined_range(slot).is_none() {
+        if skill_ref.slot == SkillSlot::Main && self.skill(skill_ref).joined(slot).is_none() {
             self.skill_mut(skill_ref).set_mech_lock(None);
         }
         if cooling_steps > 0 {

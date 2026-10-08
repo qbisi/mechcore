@@ -1260,12 +1260,14 @@ fn worn(
 }
 
 /// Whether a grouped row's skills are the main skill's slots in all but
-/// their range and their weapons: the main skill's base damage at a rate of
-/// one, nothing left behind or written, and no weapon turning within an arc.
+/// their range, their attack angle and their weapons: the main skill's base
+/// damage at a rate of one, nothing left behind or written, and no weapon
+/// turning within an arc.
 fn joins_as_main_slots(weapon: &ExtraWeaponConfig, rules: &UnitConfig) -> bool {
     let mut attack = weapon.attack.clone();
     attack.base_damage = rules.attack.base_damage;
     attack.range = rules.attack.range;
+    attack.attack_half_angle = rules.attack.attack_half_angle;
     attack
         .weapons
         .indices
@@ -1428,15 +1430,15 @@ fn extra_weapons(
         // A grouped row on a unit whose main skill holds a group joins that
         // group (`FightSkillFactory.PrepareGroupedSkill`): its skills are the
         // group's next slots, which run on the main skill's numbers here, so
-        // a row joins only where its numbers are those but for its range and
-        // its weapons.
+        // a row joins only where its numbers are those but for its range, its
+        // attack angle and its weapons.
         let joins_main_group = weapon.attack.weapons.mode == crate::rules::WeaponMode::Group
             && rules.attack.weapons.mode == crate::rules::WeaponMode::Group;
         if joins_main_group && !joins_as_main_slots(weapon, rules) {
             refused.push(format!(
                 "side {side_name} unit type {type_name:?} technology {}: its skills join the \
-                 main skill's group with numbers of their own beyond their range and weapons, \
-                 which is not measured",
+                 main skill's group with numbers of their own beyond their range, attack \
+                 angle and weapons, which is not measured",
                 weapon.technology
             ));
             return None;

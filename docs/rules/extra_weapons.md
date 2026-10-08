@@ -12,8 +12,8 @@ Vulcan's, Whirlwind, the Rhino's, Energy Diffraction, the Melting Point's,
 Spider Mine, the Tarantula's, Matrix Bombardment, the Wraith's, and
 Anti-Air Barrage, the Fortress's, Air Defense Mark, the Typhoon's,
 Disintegration, the Abyss's, Naval Gun, the Overlord's, Gun-launched
-Missile, the Mountain's, Electromagnetic Barrage, the Melting Point's, and
-Dual Wield, the Centurion's, and refuses every other member by name: the members' skills differ
+Missile, the Mountain's, Electromagnetic Barrage, the Melting Point's,
+Dual Wield, the Centurion's, and Fork, the Raiden's, and refuses every other member by name: the members' skills differ
 in kind, a projectile, an explosion, a laser, a summon, a sweep around the
 unit, and many leave a terrain or write a buff, so each joins once a recording
 of it agrees.
@@ -238,6 +238,8 @@ skill's `SkillGroup` where the main skill holds one, and makes a group of
 their own only where it does not, as for Energy Diffraction. Matrix
 Bombardment's four guns join the Wraith's four: one group of eight, the core
 the main skill's first, the row's skills slots 4 to 7 after the main row's.
+Fork's two bolts join the Raiden's three, slots 3 and 4, so a blow strikes
+five targets.
 
 - **They are the group's slots.** They search around what the others hold
   and start as the group attacks, as the main row's slots do, and they deal
@@ -245,6 +247,11 @@ the main skill's first, the row's skills slots 4 to 7 after the main row's.
 - **Each reaches its own range beyond its parent's.** A slot of the row
   reaches the main skill's 60 metres and the row's own 5 beyond them, 65,
   where a slot of the main row reaches 10 beyond (`FightSkill.GetAttackRange`).
+  Fork's row reaches 10 beyond, as the main row's slots do, past the main
+  skill's 100 metres, the technology's −10 on the Raiden's 110.
+- **Each takes its row's attack angle.** `FightSkill.Init` gives an extra
+  skill its row's attack angle, and the whole circle where the row sets none:
+  Fork's bolts fire at what the Raiden's 60 degrees either side leave out.
 - **Each is its row's skill, not the main skill's.** It draws its own first
   interval, as each skill of a grouped row does. It is no main searcher
   (`FightSkillBase.IsMainSearcher` asks `isMainSkill`): a lock it takes or
@@ -253,8 +260,8 @@ the main skill's first, the row's skills slots 4 to 7 after the main row's.
   on the tick after its release.
 
 The simulator runs the row's slots on the main skill's numbers, so a row
-joins only where its own are the same but for its range and its weapons, and
-it refuses any other by name.
+joins only where its own are the same but for its range, its attack angle
+and its weapons, and it refuses any other by name.
 
 ## A fire where it lands
 
@@ -762,6 +769,13 @@ not melee, so the simulator refuses it.
   seven Crawlers out, and the Wraith's lock is the last the main row's slots
   took: `tests/extra_weapon/fights/matrix-bombardment-crawlers.yaml`. Over
   two formations: `tests/extra_weapon/fights/matrix-bombardment-formations.yaml`.
+- Fork's two bolts join the Raiden's group as slots 3 and 4 and strike with
+  the main row's from the first blow, five Crawlers a blow; with the Raiden's
+  60 degrees in place of the whole circle on the row's slots the Raidens'
+  locks part from tick 186: `tests/extra_weapon/fights/fork-crawlers.yaml`,
+  beside its control `tests/raiden/fights/m3-crawler-4242.yaml`. The core
+  reaches 100 metres and every other slot 110, and no two bolts share a
+  target: `tests/extra_weapon/fights/fork-mixed.yaml`.
 
 - Disintegration's wave strikes the ground about the Abyss 30 metres further
   every half second after its blow, each unit once, the Rhinos and Crawlers
