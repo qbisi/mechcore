@@ -93,9 +93,10 @@ every other technology by name and kind, since applying a subclass's numbers
 alone would fight it as something it is not.
 
 A plain, a lifesteal or a repair row may still set a field beyond what this
-table carries, and names it in `special`: Siege Mode's `isInverseIsLockTarget`, and Machine
-Learning's `expChangeRate`, which speeds up the experience its unit gains. The
-simulator refuses those too.
+table carries, and names it in `special`: Siege Mode's `isInverseIsLockTarget`.
+The simulator refuses those too. Machine Learning's `exp_rate` is no
+correction but a rate on what its unit gains, which
+[unit_experience.md](unit_experience.md#a-technologys-rate) carries.
 
 ## Buff technologies
 

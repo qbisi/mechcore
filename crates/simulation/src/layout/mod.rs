@@ -56,6 +56,9 @@ pub(crate) struct Placement {
     pub(crate) exp: i64,
     /// The rate its side's officers put on what its formation gains.
     pub(crate) experience_rate: ExperienceRate,
+    /// The rate its technologies put on what it gains: the unit's own
+    /// `MechDataChangeFloatRate.ExpChangeRate`.
+    pub(crate) unit_experience_rate: ExperienceRate,
     /// What the side's loadout wrote onto this formation, in the channel each
     /// correction belongs to. The entries are verified to resolve while the
     /// layout is compiled, which is the only place that can name the side and
@@ -529,7 +532,8 @@ fn compile_death_summons(
             rotated: false,
             level: 1,
             exp: 0,
-            experience_rate: worn.experience_rate,
+            experience_rate: worn.experience_rates.0,
+            unit_experience_rate: worn.experience_rates.1,
             corrections: worn.corrections,
             lifesteal: worn.lifesteal,
             auto_recovery: worn.auto_recovery,
@@ -827,7 +831,8 @@ fn compile_formation(
         rotated: formation.rotated,
         level,
         exp: i64::from(formation.exp.unwrap_or(0)),
-        experience_rate: worn.experience_rate,
+        experience_rate: worn.experience_rates.0,
+        unit_experience_rate: worn.experience_rates.1,
         corrections: worn.corrections,
         lifesteal: worn.lifesteal,
         auto_recovery: worn.auto_recovery,
@@ -1002,7 +1007,8 @@ fn one_interception(
 /// What this side's loadout and a formation's equipment hand one unit.
 struct Worn {
     corrections: Vec<(Channel, Entry)>,
-    experience_rate: ExperienceRate,
+    /// The card's rate and the unit's own.
+    experience_rates: (ExperienceRate, ExperienceRate),
     lifesteal: Option<LifeSteal>,
     auto_recovery: Option<AutoRecovery>,
     energy_shield: Option<EnergyShield>,
@@ -1094,6 +1100,12 @@ fn loadout(
             .experience_rate(&side.techs.officers, rules)
             .map_err(on_side),
     )?;
+    let unit_experience_rate = refused.hold(
+        loadouts
+            .technologies
+            .experience_rate(&side.techs.units, type_name, level)
+            .map_err(on_side),
+    )?;
     let mut worn = worn(
         side_name,
         type_name,
@@ -1118,7 +1130,7 @@ fn loadout(
     // A correction the build has no field for is refused here, where the
     // side and the officer can be named.
     refused.hold(stats.refuse_fieldless_corrections().map_err(refusal))?;
-    worn.experience_rate = experience_rate;
+    worn.experience_rates = (experience_rate, unit_experience_rate);
     Some(worn)
 }
 
@@ -1271,7 +1283,7 @@ fn worn(
     let in_force = |error: String| refusal(Error::new(error));
     Some(Worn {
         corrections,
-        experience_rate: ExperienceRate::default(),
+        experience_rates: Default::default(),
         lifesteal: refused.hold(current_source(&lifesteal).map_err(in_force))?,
         auto_recovery: refused.hold(current_source(&auto_recovery).map_err(in_force))?,
         energy_shield: refused.hold(current_source(&energy_shield).map_err(in_force))?,

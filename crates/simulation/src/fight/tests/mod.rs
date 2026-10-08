@@ -47,6 +47,7 @@ pub(super) fn placement(
         level: 1,
         exp: 0,
         experience_rate: crate::data::ExperienceRate::default(),
+        unit_experience_rate: crate::data::ExperienceRate::default(),
         corrections: Vec::new(),
         lifesteal: None,
         auto_recovery: None,
