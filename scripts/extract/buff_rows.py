@@ -48,6 +48,7 @@ BUFF_READ = {
     "isClearSelfBuffWhenDisableTech": "clear_when_technologies_disabled",
     "summonUnitID": "summon_unit", "isSummonUnitLevelInherit": "summon_level_inherit",
     "lifeChangeRate": "life_change_rate", "disableRecover": "disable_recover",
+    "buffEffectAdditiveResetCondition": "additive_reset_condition",
 }
 # The ones that are Q32.32 raw values, read beside them as a decimal.
 BUFF_RATES = {"amplifyDamageRate", "damageChangeRate", "speedChangeRate", "maxLifeChangeRate",

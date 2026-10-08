@@ -1,0 +1,24 @@
+# Chamber Compression: a Hound's stack of damage resets as its shot lands.
+#
+# Buff 8028 adds a stack every 0.1 s, 6.5% more damage each, with no bound.
+# Each time the Hound's main skill hits, the stack goes back to none (the
+# reset condition `Hitted`), and it builds again from the next step. Without
+# that reset the simulator parts from this recording at t189. Red wins at
+# t323.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 323
+hash: {profile: mcfr-content-0.7.0, result: 7e3dae9b35beb8cfad30680889abb4ee056eb8aafde76eceb184e0a3ecc54eb1}
+blue:
+  core_damage: 200
+  techs:
+    hound: [chamber_compression]
+  units:
+  - {name: hound, index: 0, position: {x: 0, y: -150}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/200/1150}

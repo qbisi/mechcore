@@ -888,7 +888,15 @@ impl Simulation {
             (Some(owner), Some(slot)) if owner.kind == ObjectKind::Unit => {
                 self.steal_life(owner.id, damage, events)?;
                 let center = (hit.center_q32.0, hit.center_y_q32, hit.center_q32.1);
-                self.add_hit_buffs(owner.id, slot, (targets, center), events)
+                self.add_hit_buffs(owner.id, slot, (targets, center), events)?;
+                // `PerformMainSkillHitted`, when the hit is the main skill's.
+                let skill = self.skill_at_slot(FightActorRef::Unit(owner.id), usize::from(slot));
+                if skill.slot == SkillSlot::Main
+                    && let Some(actor) = self.actors.get_mut(&owner.id)
+                {
+                    actor.reset_stacks_on_main_hit()?;
+                }
+                Ok(())
             }
             _ => Ok(()),
         }

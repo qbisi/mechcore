@@ -31,6 +31,8 @@ same buff sources on an item.
 - `acid-attack.yaml` leaves a Scorpion's acid where its hits on Rhinos land.
 - `electromagnetic-armor.yaml` puts a Void Eye's buff on the Rhino whose
   blows land on it.
+- `chamber-compression.yaml` resets a Hound's stack of damage as each of its
+  shots lands.
 - `counter-fire.yaml` adds Counter-Fire's range to a Fire Badger from the
   tick a Marksman's hit takes life from it.
 - `replicate.yaml` and `replicate-swarm.yaml` make Crawlers of a Marksman

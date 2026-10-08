@@ -188,6 +188,8 @@ struct StackStep {
 pub(in crate::fight) struct StackRule {
     pub(in crate::fight) max: u32,
     pub(in crate::fight) condition: StackCondition,
+    /// Whether its unit's main skill's hit sets its stack back to none.
+    pub(in crate::fight) resets_on_main_hit: bool,
 }
 
 /// A buff source's chance that is never drawn: `BuffSystem.DoAddBuff` adds
@@ -477,6 +479,30 @@ impl super::Actor {
                 buffs.write(*entry);
             }
         }
+    }
+
+    /// `FightMech.PerformMainSkillHitted` after a hit of the unit's main
+    /// skill: each stacking buff whose `BuffAdditiveStackResetHittedController`
+    /// registered with it runs `IBEC_AdditiveEffectBuff.ResetAdditiveStackNormal`,
+    /// its stack and the stack it is written at back to none and its rates
+    /// written at none (`Buff.RefreshEffect`). Its step runs on.
+    pub(in crate::fight) fn reset_stacks_on_main_hit(&mut self) -> Result<()> {
+        let mut reset = false;
+        for index in 0..self.buffs.len() {
+            let Some(stack) = self.buffs[index].stack.as_mut() else {
+                continue;
+            };
+            if !stack.rule.resets_on_main_hit {
+                continue;
+            }
+            stack.count = 0;
+            self.write_stacks(index, 0);
+            reset = true;
+        }
+        if reset {
+            self.stats.refresh(&self.rules)?;
+        }
+        Ok(())
     }
 
     /// `BuffManager.ClearSelfResourceBuffByDisableTech`, which

@@ -187,6 +187,9 @@ pub(crate) struct Stacking {
     /// `maxAdditiveStack`: the most it stacks, none for no bound.
     pub(crate) max: u32,
     pub(crate) condition: StackCondition,
+    /// `buffEffectAdditiveResetCondition` `Hitted`: its stack goes back to
+    /// none each time its unit's main skill hits.
+    pub(crate) resets_on_main_hit: bool,
 }
 
 /// `BuffEffectAdditiveCondition`: what a step's stack counts.
