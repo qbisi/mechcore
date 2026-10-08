@@ -1,0 +1,105 @@
+# Replay 2328_20261007--134370978, round 8, map 1011. On tick 31 a buff cuts
+# blue's Sabertooth 306's range by 30%, and its Secondary Armament reads the
+# main gun's 77 metres and 88 raw, and its own 2. On tick 145 Raiden 386's
+# core and its second gun have both killed their Crawlers, and no slot holds
+# a lock: the second gun searches as a skill of its own, from its own weapon
+# and in its own reach, and takes Crawler 134, which the core's search leaves
+# out.
+
+kind: fight
+map_id: 1031
+seed: 2064454657
+round: 8
+source: game
+ticks: 807
+hash: {profile: mcfr-content-0.7.0, result: 475161deb3340dbfcc2f39f36ca9dae6a56881af1fd502bcc9df9d1551923f23}
+blue:
+  officers: [efficient_tech_research, elite_specialist]
+  techs:
+    melting_point: [armor_enhancement, range_enhancement]
+    scorpion: [range_enhancement]
+    hound: [range_enhancement]
+    void_eye: [range_enhancement, suppression_shots]
+  blueprints: [attack_enhancement, defense_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [2, 0]
+  legacy_index: 27
+  units:
+  - {name: fang, index: 0, position: {x: 135, y: -190}, exp: 600/600/600}
+  - {name: fang, index: 1, position: {x: -135, y: -190}, exp: 590/600/600}
+  - {name: fang, index: 2, position: {x: 100, y: -95}, exp: 407/415/600, rotated: true}
+  - {name: hound, index: 5, position: {x: 50, y: -140}, level: 3, exp: 554/790/2671}
+  - {name: hound, index: 6, position: {x: 150, y: -140}, level: 3, exp: 0/264/2671}
+  - {name: hound, index: 7, position: {x: 230, y: -130}, level: 3, exp: 0/406/2671}
+  - {name: hound, index: 8, position: {x: -30, y: -140}, level: 2, exp: 232/525/1690}
+  - {name: hound, index: 9, position: {x: 100, y: -150}, level: 3, exp: 0/106/2671, rotated: true}
+  - {name: void_eye, index: 10, position: {x: 30, y: -170}, level: 3, exp: 755/2315/2315}
+  - {name: void_eye, index: 11, position: {x: 230, y: -160}, level: 3, exp: 1511/1748/2315, rotated: true}
+  - {name: void_eye, index: 12, position: {x: 170, y: -170}, level: 4, exp: 358/1709/2919}
+  - {name: melting_point, index: 13, position: {x: 70, y: -170}, exp: 1400/1400/1400}
+  - {name: crawler, index: 14, position: {x: 170, y: -205}, level: 2, exp: 315/595/1014, rotated: true}
+  - {name: crawler, index: 15, position: {x: 30, y: -205}, level: 2, exp: 195/257/1014, rotated: true}
+  - {name: melting_point, index: 16, position: {x: 190, y: -140}, level: 2, exp: 2623/3154/3154}
+  - {name: crawler, index: 17, position: {x: -40, y: -175}, level: 2, exp: 27/47/1014, rotated: true}
+  - {name: crawler, index: 18, position: {x: 235, y: -190}, level: 2, exp: 340/803/1014}
+  - {name: void_eye, index: 19, position: {x: 10, y: -140}, level: 2, exp: 599/1465/1465, rotated: true}
+  - {name: void_eye, index: 20, position: {x: 80, y: -130}, level: 3, exp: 428/1388/2315, rotated: true}
+  - {name: void_eye, index: 21, position: {x: 270, y: -130}, level: 3, exp: 0/560/2315, rotated: true}
+  - {name: scorpion, index: 22, position: {x: -35, y: -105}, exp: 6/1500/1500}
+  - {name: scorpion, index: 23, position: {x: 285, y: -85}, exp: 261/1500/1500}
+  - {name: void_eye, index: 24, position: {x: 230, y: -80}, level: 2, exp: 140/666/1465}
+  - {name: void_eye, index: 25, position: {x: 150, y: -90}, level: 2, exp: 70/400/1465}
+  - {name: void_eye, index: 26, position: {x: 30, y: -90}, level: 2, exp: 126/512/1465}
+  - {name: crawler, index: 27, position: {x: 175, y: -50}, level: 2, exp: 0/2/1014}
+  - {name: crawler, index: 28, position: {x: -5, y: -60}, level: 2, exp: 0/2/1014}
+  - {name: crawler, index: 29, position: {x: 275, y: -40}, level: 2, exp: 0/10/1014}
+  contraptions:
+  - {name: interceptor, index: 2, position: {x: 45, y: -115}}
+  - {name: interceptor, index: 3, position: {x: 185, y: -105}}
+  - {name: missile, index: 4, position: {x: 251, y: -249}, retained: false}
+  - {name: shield, index: 5, position: {x: 229, y: -116}, retained: false}
+  - {name: shield, index: 6, position: {x: 213, y: -222}}
+  - {name: missile, index: 7, position: {x: -168, y: -113}}
+red:
+  core_damage: 1340
+  officers: [efficient_light_manufacturing, marksman_specialist, improved_sabertooth]
+  techs:
+    arclight: [range_enhancement]
+    fire_badger: [range_enhancement]
+    sabertooth: [secondary_armament]
+    raiden: [range_enhancement]
+  blueprints: [defense_enhancement, attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  legacy_index: 26
+  units:
+  - {name: crawler, index: 0, position: {x: 140, y: -135}, exp: 450/450/450, rotated: true}
+  - {name: crawler, index: 1, position: {x: -140, y: -135}, exp: 228/252/450, rotated: true}
+  - {name: crawler, index: 2, position: {x: 0, y: -225}, exp: 450/450/450, rotated: true}
+  - {name: fire_badger, index: 3, position: {x: 135, y: -100}, level: 2, exp: 1466/1780/3154}
+  - {name: fire_badger, index: 4, position: {x: -135, y: -100}, level: 2, exp: 0/1408/3154, equipment: [laser_sights]}
+  - {name: marksman, index: 5, position: {x: -120, y: -150}, level: 3, exp: 483/958/2315}
+  - {name: marksman, index: 6, position: {x: 120, y: -150}, level: 2, exp: 1036/1168/1465}
+  - {name: marksman, index: 7, position: {x: 0, y: -140}, level: 4, exp: 2014/2202/2919}
+  - {name: sabertooth, index: 8, position: {x: -55, y: -95}, level: 2, exp: 2125/2279/2929, equipment: [photon_coating]}
+  - {name: crawler, index: 9, position: {x: -250, y: -285}, exp: 450/450/450, rotated: true}
+  - {name: wasp, index: 12, position: {x: -215, y: -270}, level: 2, exp: 1292/1909/2028}
+  - {name: wasp, index: 13, position: {x: 235, y: -260}, exp: 900/900/900}
+  - {name: crawler, index: 14, position: {x: -290, y: -165}, exp: 341/450/450, rotated: true}
+  - {name: crawler, index: 15, position: {x: 0, y: -285}, exp: 450/450/450, rotated: true}
+  - {name: stormcaller, index: 17, position: {x: -195, y: -130}, level: 3, exp: 0/392/3918, equipment: [enhancement_module]}
+  - {name: stormcaller, index: 18, position: {x: -65, y: -120}, level: 2, exp: 1246/1270/2479}
+  - {name: arclight, index: 19, position: {x: -250, y: -130}, exp: 592/750/750}
+  - {name: arclight, index: 20, position: {x: -120, y: -120}, exp: 750/750/750}
+  - {name: arclight, index: 21, position: {x: 0, y: -120}, exp: 750/750/750}
+  - {name: raiden, index: 22, position: {x: -90, y: -160}, level: 2, exp: 3381/5408/5408}
+  - {name: fire_badger, index: 23, position: {x: -350, y: 285}, exp: 217/613/1400}
+  - {name: crawler, index: 24, position: {x: -310, y: 255}, exp: 45/45/450}
+  - {name: raiden, index: 25, position: {x: -170, y: -160}, level: 2, exp: 0/1816/5408}
+  - {name: raiden, index: 26, position: {x: -220, y: -160}, exp: 0/1226/2400}
+  - {name: raiden, index: 27, position: {x: -50, y: -160}, exp: 0/2400/2400}
+  - {name: arclight, index: 28, position: {x: 70, y: -110}, exp: 0/310/750}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  contraptions:
+  - {name: missile, index: 3, position: {x: -292, y: -195}, retained: false}
+  - {name: missile, index: 6, position: {x: -94, y: -17}, retained: false}

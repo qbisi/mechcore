@@ -294,7 +294,11 @@ and `Actor::attack_target`.
 For a non-fusillade main skill group, each `FightSkill` keeps its own lock.
 `SkillSearchTargetController.PerformGroupedSkillSearch` walks the group's other
 skills and collects their non-null **lock targets**, not what their weapons
-fire at. With no sibling holdings it uses the ordinary search. Otherwise it
+fire at. With no sibling holdings it uses the ordinary search, the slot's own:
+its search controller's `PerformNormalSkillSearch`, scoring from the slot's
+weapon and in the slot's reach, so a Raiden's second gun with no sibling
+holding anything takes a Crawler in its own reach that the core's search
+leaves out. Otherwise it
 scores alive opponents outside that list with the slot's selector, retaining
 the first strict score minimum. It does not allocate a sorted table of targets
 to all slots at once.
@@ -1105,6 +1109,9 @@ not the game's native attack-type enum.
   `tests/projectile/fights/phantom-ray-rhino-walks-off.yaml`.
 - A cooling that goes on through a won fight, and an attack that goes idle,
   in the Phantom Ray's standard fights: `tests/phantom_ray/fights/`.
+- A grouped slot whose siblings hold nothing searches from its own weapon and
+  in its own reach: `tests/corpus/fights/134370978-r8.yaml`, tick 145, Raiden
+  386's second gun.
 - A cooling that does not run through a won fight, a Raiden's grouped slot's
   among them: `tests/corpus/fights/201477923-r5.yaml`, ticks 1618 to 1625,
   Phantom Rays 56 and 58 and Raiden 19's second gun.
