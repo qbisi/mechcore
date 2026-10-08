@@ -179,6 +179,15 @@ life and adds nothing, and nothing is added while the unit's technologies are
 disabled. The source's cycle is not read. Counter-Fire is one: a Fire Badger
 hit reaches 70 m further for 20 seconds. A source that reaches the unit's attacker instead is refused.
 
+**A buff source triggered by its unit's being hit adds its buff to the unit
+that hit it.** Each hit a live unit lands on it, once the hit has taken what
+it took (from its shield or its life), adds the buff to that unit, as written
+by the unit hit and under its side, unless the unit hit's technologies are
+disabled. A buff that disables technology waits on the attacker and is added
+as the attacker's buffs have updated, on its own update; any other is added
+at once. Electromagnetic Armor is one: a Void Eye hit switches off its
+attacker's technologies for 3 seconds and takes 40% off its speed.
+
 **A buff that summons makes its unit summon as it dies.** A buff with a
 summon reaches even a unit the hit that adds it killed, and a unit that dies
 running it summons, as the tick's dead effects come after every unit and
@@ -404,6 +413,9 @@ whose effect grows with rank, rather than read index zero:
 - Each of a Scorpion's hits with Acid Attack adds its buff to the Rhino it
   struck and leaves an acid at t131 and t219, which keeps the buff on a Rhino
   standing in it every 19 ticks: `tests/technology_buff/fights/acid-attack.yaml`.
+- Electromagnetic Armor's buff is on a Rhino from the tick its blow lands
+  on a Void Eye, at t244 and again at t264:
+  `tests/technology_buff/fights/electromagnetic-armor.yaml`.
 - Counter-Fire's buff is on a Fire Badger from the tick a Marksman's hit
   takes life from it, its range 145 of 75; without it the simulator parts
   from the recording on that tick, on that range:
@@ -508,6 +520,18 @@ whose effect grows with rank, rather than read index zero:
   none, and when it is not `FightActor.IsFly` and the source answers a range
   item, calls `RangeItemSystem.AddItem` at the hit's point with the team of
   the source's unit.
+- A source whose listener is `BeHit`: `BuffCycleController.AddListener`
+  adds `BuffCycleController.OnBeHit` to the unit's `FightMech.OnMechBeHit`,
+  which `FightMech.OnHitted` raises after the hit's shield energy or
+  `FightActor.ReduceLife`. `OnBeHit` returns while
+  `SuperDeploymentSystem.IsTravelling` holds for its unit, and for
+  `OpponentUnits` takes the hit's owner when it is a live `FightMech`. A buff
+  whose `IBuffData.IsDisableTechnology` holds goes to the attacker's
+  `BuffManager.AddBeHitDelayBuffInfo`, and any other to
+  `BuffSystem.AddBuffByCheck`. `BuffManager.Update` ends with
+  `BuffManager.InvokeDelayAddBuff`, which adds each queued buff through
+  `BuffSystem.DoAddBuff` while its unit lives or
+  `BuffSystem.IsAvaliableWhenActorDead` holds, and clears the queue.
 - A buff that summons: `Buff.Init` gives a buff whose `IBuffData.IsSummoning`
   an `IBEC_DeadSummon`, and `BuffSystem.IsAvaliableWhenActorDead` lets
   `BuffSystem.AddBuff` add it to a dead target, as it does one whose

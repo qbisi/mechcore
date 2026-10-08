@@ -268,6 +268,10 @@ struct Actor {
     shield: Option<PersonalShield>,
     /// Its `BuffCycleController`s, one for each of its buff sources.
     buff_cycles: Vec<buff_cycle::BuffCycle>,
+    /// `BuffManager.beHitDelayBuffInfos`: the buffs that disable technology
+    /// a unit it hit queued on it, each with that unit, which
+    /// `InvokeDelayAddBuff` adds as its `BuffManager.Update` ends.
+    delayed_buffs: Vec<(u64, crate::modifier::BuffSource)>,
     /// `FightMech.mechCreateType` is `ParasiticalSummon`: a buff summoned it
     /// as a unit died, and it summons nothing as it dies.
     parasitic: bool,

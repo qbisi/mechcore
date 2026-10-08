@@ -469,6 +469,7 @@ impl TechnologyEffects {
                         reach: None,
                         ..
                     }) | crate::modifier::BuffTrigger::Hit
+                        | crate::modifier::BuffTrigger::BeHit
                         | crate::modifier::BuffTrigger::Damaged
                 )
             });

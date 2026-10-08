@@ -63,7 +63,7 @@ impl BuffCycle {
         sources
             .iter()
             .map(|source| match source.trigger {
-                BuffTrigger::Hit | BuffTrigger::Damaged => Self::Done,
+                BuffTrigger::Hit | BuffTrigger::BeHit | BuffTrigger::Damaged => Self::Done,
                 BuffTrigger::All(_) => Self::Counting {
                     cycling: false,
                     time_sum: 0,
@@ -325,6 +325,87 @@ impl Simulation {
 }
 
 impl Simulation {
+    /// `BuffCycleController.OnBeHit` of each source of unit `id` whose
+    /// listener is `BeHit`, as `FightMech.OnHitted` raises `OnMechBeHit`
+    /// after a hit of `attacker`'s took what it took: a source that
+    /// `CanDisable` does nothing while the unit's technologies are disabled,
+    /// and one aimed at `OpponentUnits` reaches the attacker when it is a
+    /// live unit. A buff that disables technology waits on the attacker's
+    /// `BuffManager.AddBeHitDelayBuffInfo` until its next update; any other
+    /// `BuffSystem.AddBuffByCheck` adds at once, as written by the unit hit.
+    pub(in crate::fight) fn on_mech_be_hit(
+        &mut self,
+        id: u64,
+        attacker: ObjectRef,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        let Some(owner) = self.actors.get(&id) else {
+            return Ok(());
+        };
+        let sources = owner
+            .placement
+            .buff_sources
+            .iter()
+            .filter(|source| source.trigger == BuffTrigger::BeHit)
+            .filter(|source| !(source.can_disable && owner.technology_disabled()))
+            .copied()
+            .collect::<Vec<_>>();
+        if sources.is_empty()
+            || attacker.kind != ObjectKind::Unit
+            || !self.actors.get(&attacker.id).is_some_and(Actor::alive)
+        {
+            return Ok(());
+        }
+        let (source, team) = (owner.object_ref(), owner.placement.team);
+        for buff in sources {
+            if buff.disables_technology {
+                self.actors
+                    .get_mut(&attacker.id)
+                    .expect("actor identity is stable")
+                    .delayed_buffs
+                    .push((id, buff));
+                continue;
+            }
+            let row = buff_row(&buff)?;
+            if self.buff_reaches(attacker.id, &row)? {
+                self.write_buff(attacker.id, Some(source), team, &row, events)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// `BuffManager.InvokeDelayAddBuff` as unit `id`'s `BuffManager.Update`
+    /// ends: each buff queued on it, in the order it was queued, through
+    /// `BuffSystem.DoAddBuff`, as written by the unit that queued it and
+    /// under that unit's side, while it lives or when the buff reaches the
+    /// dead; then the queue is emptied.
+    pub(in crate::fight) fn invoke_delayed_buffs(
+        &mut self,
+        id: u64,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        let delayed = std::mem::take(
+            &mut self
+                .actors
+                .get_mut(&id)
+                .expect("actor identity is stable")
+                .delayed_buffs,
+        );
+        for (writer, buff) in delayed {
+            let row = buff_row(&buff)?;
+            let reaches_the_dead = row.summons.is_some() || row.disables_technology;
+            if !(self.actors[&id].alive() || reaches_the_dead) {
+                continue;
+            }
+            let writer = &self.actors[&writer];
+            let (source, team) = (writer.object_ref(), writer.placement.team);
+            if self.buff_reaches(id, &row)? {
+                self.write_buff(id, Some(source), team, &row, events)?;
+            }
+        }
+        Ok(())
+    }
+
     /// `BuffCycleController.OnGetDamage` of each source of unit `id` whose
     /// listener is `GetDamage`, after `FightActor.ReduceLife` took life from
     /// it and invoked its `OnLifeChange`: a source that `CanDisable` does

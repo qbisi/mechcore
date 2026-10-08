@@ -5,7 +5,8 @@
 //! the buff (`GetBuffTechListener`), whom it reaches (`GetEffectTargetTypes`),
 //! how likely (`GetProbablity`), how its `BuffCycleController` finds and
 //! times its targets, and the `buffDatas` row it adds (`GetBuffData`). The
-//! triggers read are the fight's start, a hit and the unit's losing life, each
+//! triggers read are the fight's start, a hit, the unit's being hit and its
+//! losing life, each
 //! of which hands its unit a [`BuffSource`].
 
 use serde::Deserialize;
@@ -19,6 +20,9 @@ use crate::{layout::TerrainSpec, rules::AttackTargets};
 const HIT: i32 = 0;
 const FIGHT_START: i32 = 1;
 const GET_DAMAGE: i32 = 3;
+
+/// `BuffTechListener.BeHit`.
+const BE_HIT: i32 = 2;
 
 /// `RangeItemType.Acid`.
 const ACID: i32 = 3;
@@ -182,6 +186,7 @@ pub(crate) fn buff_source(
             BuffTrigger::Hit
         }
         Some(GET_DAMAGE) if targets == [MECH_UNIT] => BuffTrigger::Damaged,
+        Some(BE_HIT) if targets == [OPPONENT_UNITS] => BuffTrigger::BeHit,
         Some(FIGHT_START) => {
             return Err(format!(
                 "{who} adds its buff under BuffTargetUpdateModel {}, and only All and Each are \
@@ -192,7 +197,8 @@ pub(crate) fn buff_source(
         _ => {
             return Err(format!(
                 "{who} adds its buff on BuffTechListener {trigger:?} to {targets:?}, and only \
-                 the fight's start, a hit and the unit's own losing life are read"
+                 the fight's start, a hit, the unit's being hit and its own losing life are \
+                 read"
             ));
         }
     };

@@ -1,0 +1,26 @@
+# Electromagnetic Armor: a Void Eye hit puts its attacker's technologies off.
+#
+# The source's listener is `BeHit`, aimed at OpponentUnits: each hit of a
+# live unit on a Void Eye adds buff 10302 to the unit that dealt it (3 s with
+# its technologies switched off and 40% less speed). The buff disables
+# technology, so it waits on the attacker's buff queue and is added as the
+# attacker's buff update ends; the Rhino's blows at t244 and t264, struck in
+# its own update, take it on those ticks. Blue wins at t273.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 273
+hash: {profile: mcfr-content-0.7.0, result: 3d45bd96d9cea97bbea632f97489373ccea59517a72b6ed8212d4bb193f7b325}
+blue:
+  techs:
+    void_eye: [electromagnetic_armor]
+  units:
+  - {name: void_eye, index: 0, position: {x: 0, y: -150}, exp: 0/100/650}
+  - {name: void_eye, index: 1, position: {x: 60, y: -150}, exp: 0/300/650}
+red:
+  core_damage: 132
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/132/1150}

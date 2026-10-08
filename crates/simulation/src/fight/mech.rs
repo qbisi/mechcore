@@ -87,6 +87,7 @@ impl Actor {
             command: None,
             buffs: Vec::new(),
             buff_cycles,
+            delayed_buffs: Vec::new(),
             parasitic: false,
             moved_q32: 0,
             move_mark_q32: (0, 0),

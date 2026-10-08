@@ -1458,7 +1458,8 @@ impl Simulation {
         if self.ending.stop_step.is_some() {
             return Ok(());
         }
-        self.update_buffs(actor_id, events)
+        self.update_buffs(actor_id, events)?;
+        self.invoke_delayed_buffs(actor_id, events)
     }
 
     fn step_actor_skill_and_motion(
