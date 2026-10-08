@@ -311,7 +311,7 @@ impl Simulation {
         slot: usize,
         target: FightActorRef,
     ) -> Result<()> {
-        if self.skill(skill_ref).joined_range(slot).is_none() {
+        if self.skill(skill_ref).joined(slot).is_none() {
             return Ok(());
         }
         let climb_target = self.climb_target(target)?;
@@ -339,7 +339,7 @@ impl Simulation {
         // skill, and climbs as an extra skill's projectile does.
         if source.climb <= 0
             && skill_ref.slot == SkillSlot::Main
-            && self.skill(skill_ref).joined_range(slot).is_none()
+            && self.skill(skill_ref).joined(slot).is_none()
         {
             return Ok(None);
         }

@@ -254,11 +254,21 @@ pub(in crate::fight) struct Group {
     /// then whichever searched last while the one holding it held no lock.
     pub(in crate::fight) motion_slot: usize,
     /// Which siblings are a joined row's, slot 1 first, with the row's own
-    /// range in space units; `None` for a slot of the main row. A joined
-    /// row's slot is its row's `FightSkill`, not the main skill's: it reaches
-    /// its own range beyond its parent's rather than ten metres, and its
-    /// projectile climbs first, as every extra skill's does.
-    pub(in crate::fight) joined_ranges: Vec<Option<i64>>,
+    /// numbers; `None` for a slot of the main row. A joined row's slot is its
+    /// row's `FightSkill`, not the main skill's: it reaches its own range
+    /// beyond its parent's rather than ten metres, its attack angle is its
+    /// row's, and its projectile climbs first, as every extra skill's does.
+    pub(in crate::fight) joined: Vec<Option<JoinedSlot>>,
+}
+
+/// What a joined row's slot holds of its own row (`FightSkill.Init`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::fight) struct JoinedSlot {
+    /// The row's own range, in space units, beyond its parent's.
+    pub(in crate::fight) range: i64,
+    /// The row's attack angle, or the whole circle where the row sets none,
+    /// in millidegrees either side.
+    pub(in crate::fight) half_angle_mdeg: i64,
 }
 
 /// `FightSkill.GetAttackRange` of a main row's grouped slot: ten metres
@@ -599,7 +609,7 @@ impl Skill {
             behaviour,
             mech_search_time: None,
             motion_slot: 0,
-            joined_ranges: Vec::new(),
+            joined: Vec::new(),
         });
         Self {
             weapon_rotations_q32,
@@ -972,13 +982,13 @@ impl Skill {
             .is_some_and(|group| group.behaviour == GroupBehaviour::Fusillade)
     }
 
-    /// A joined row's own range for a slot of it, `None` for a slot of the
+    /// A joined row's own numbers for a slot of it, `None` for a slot of the
     /// main row or a skill no row joined.
-    pub(in crate::fight) fn joined_range(&self, slot: usize) -> Option<i64> {
+    pub(in crate::fight) fn joined(&self, slot: usize) -> Option<JoinedSlot> {
         slot.checked_sub(1).and_then(|sibling| {
             self.group
                 .as_ref()
-                .and_then(|group| group.joined_ranges.get(sibling).copied().flatten())
+                .and_then(|group| group.joined.get(sibling).copied().flatten())
         })
     }
 

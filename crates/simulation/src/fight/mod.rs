@@ -97,8 +97,8 @@ use skill::ATTACK_COUNT_RESET;
 #[cfg(test)]
 use skill::Performer;
 use skill::{
-    ExtraSkill, FightSkillPhase, GroupBehaviour, Launch, Skill, SkillKind, SkillManager, SkillRef,
-    SkillSlot, SkillUpdate,
+    ExtraSkill, FightSkillPhase, GroupBehaviour, JoinedSlot, Launch, Skill, SkillKind,
+    SkillManager, SkillRef, SkillSlot, SkillUpdate,
 };
 use tower::{RunningBuff, TowerLoss};
 

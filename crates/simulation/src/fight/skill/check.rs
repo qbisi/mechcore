@@ -221,8 +221,8 @@ impl Simulation {
         range.saturating_add(match (slot, skill_ref.slot) {
             (Some(slot), SkillSlot::Main) if slot > 0 && !self.skill(skill_ref).standalone() => {
                 self.skill(skill_ref)
-                    .joined_range(slot)
-                    .unwrap_or(super::MAIN_SLOT_RANGE_ADDEND)
+                    .joined(slot)
+                    .map_or(super::MAIN_SLOT_RANGE_ADDEND, |joined| joined.range)
             }
             _ => 0,
         })
@@ -310,6 +310,13 @@ impl Simulation {
         let skill = self.skill(skill_ref);
         let attack = self.skill_rules(skill_ref);
         let slot = slot.unwrap_or(0);
+        // A joined row's slot measures the angle its own row gives it
+        // (`FightSkill.Init`).
+        let half_angle = skill
+            .joined(slot)
+            .map_or(attack.attack_half_angle_mdeg(), |joined| {
+                joined.half_angle_mdeg
+            });
         // A standalone weapon's skill measures its angle from its own weapon.
         let rotation = if skill.standalone() {
             skill.weapon_rotations_q32[slot]
@@ -325,7 +332,7 @@ impl Simulation {
                             view.x_q32.saturating_sub(actor.x_q32),
                             view.z_q32.saturating_sub(actor.z_q32),
                         ),
-                    ) <= mdeg_to_degrees_q32(attack.attack_half_angle_mdeg())
+                    ) <= mdeg_to_degrees_q32(half_angle)
             })
     }
 
