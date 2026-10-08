@@ -1,4 +1,4 @@
-# MCFR, format 0.21.0
+# MCFR, format 0.22.0
 
 [简体中文](mcfr.zh.md)
 
@@ -9,7 +9,7 @@ schema of each, the identity and ordering rules that make two recordings of one
 fight the same recording, and what a reader must validate before trusting one.
 
 ```text
-format = "0.21.0"
+format = "0.22.0"
 ```
 
 The native field mapping is bound to the game version the repository pins in
@@ -122,11 +122,11 @@ Parquet key-value metadata keys and values are both UTF-8 strings.
 
 | Key | Data | Meaning |
 | --- | --- | --- |
-| `format` | exactly `0.21.0` | the logical and physical contract version |
+| `format` | exactly `0.22.0` | the logical and physical contract version |
 | `producer` | `game` or `simulator` | what wrote the recording: the game, through the adapter, or the simulator |
 | `game_build` | non-empty UTF-8 | capture provenance; the adapter reads `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | the context `D` that holds steady for one round |
-| `hash_profile` | exactly `mcfr-content-0.7.0` | the hash definition, named for the domain strings it uses |
+| `hash_profile` | exactly `mcfr-content-0.22.0` | the hash definition, named for the domain strings it uses |
 | `result_hash` | 64 lowercase hex digits | ordered digest of every `tick_hash`; what regression compares |
 | `tick_count` | canonical decimal `u32` | logical ticks recorded, counting from `S(1)` |
 | `terminal_tick` | canonical decimal `u32` | the confirmed final logical boundary, equal to `tick_count` on a continuous timeline |
@@ -902,7 +902,7 @@ Identity is what makes two recordings of one fight the same recording, so
 every namespace numbers its objects by a rule that depends on the scene rather
 than on the pointer that happened to be observed first.
 
-Format `0.21.0` uses `team_zx_sequential_v1`.
+Format `0.22.0` uses `team_zx_sequential_v1`.
 
 **Units.** Initial units sort strictly ascending by `(team_id, position.z,
 position.x)` and take `unit_id = 1..N` in that order. Initial units on one team
@@ -972,24 +972,31 @@ The fixed prefix is `mechcore.mcfr.canonical\0`. Integers are little-endian
 two's complement raw bits at the stated width. Every public digest is 64
 lowercase hex digits, and the Parquet tick column holds the raw 32 bytes.
 
-State and events are first encoded as canonical JSON: UTF-8, object keys sorted
-recursively, compact encoding, and the array order the schema defines. The hash
-covers every `S(t)` and `E(t)` field. It carries neither the layout, nor the
+State and events are first encoded as canonical JSON: UTF-8, compact
+encoding, every object's keys in the order its type declares them, and the
+array order the schema defines. Every type of `S(t)` and `E(t)` declares its
+fields in byte order, so an object's keys are sorted, but for an event's
+`payload`, whose `kind` comes first and its other keys after it in byte order.
+The JSON is what `serde_json` writes for the value as it is, so no object is
+sorted at encoding time, and a field added out of order would move the hash;
+the crate's tests hold every declaration to byte order. The hash covers every
+`S(t)` and `E(t)` field. It carries neither the layout, nor the
 DurableContext, nor any other file metadata.
 
 ```text
-tick_hash(t) = H_content-tick-0.7.0(LE_u32(t), JSON(S(t)), JSON(E(t)))
-result_hash  = H_content-result-0.7.0(
+tick_hash(t) = H_content-tick-0.22.0(LE_u32(t), JSON(S(t)), JSON(E(t)))
+result_hash  = H_content-result-0.22.0(
     LE_u32(tick_count),
     tick_hash(1)..tick_hash(n)
 )
 ```
 
-The definition is older than the format: its domain strings and formula have
-not changed since format 0.7.0, and `hash_profile`, `mcfr-content-0.7.0`, names
-it by that version. A format change that leaves `S(t)` and `E(t)` encoding the
-same leaves every hash where it was. A change to the definition itself is a new
-profile and new domain strings, never an edit in place.
+The definition changed last with format 0.22.0, when every object stopped
+being sorted at encoding time and an event payload's `kind` came first, and
+`hash_profile`, `mcfr-content-0.22.0`, names it by that version. A format
+change that leaves `S(t)` and `E(t)` encoding the same leaves every hash where
+it was. A change to the definition itself is a new profile and new domain
+strings, never an edit in place.
 
 `mechcore diff` and `mechcore verify` decide `equal` and the
 first divergence from this hash. `diff` also says where two recordings

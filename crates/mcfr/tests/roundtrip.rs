@@ -49,7 +49,7 @@ fn writes_and_reads_every_table() {
     );
 
     let reader = McfrReader::open(&path).unwrap();
-    assert_eq!(MCFR_FORMAT, "0.21.0");
+    assert_eq!(MCFR_FORMAT, "0.22.0");
     assert_eq!(reader.producer(), Producer::Game);
     assert_eq!(reader.tick_count(), 1);
     assert_eq!(reader.terminal_tick(), 1);
@@ -262,14 +262,14 @@ fn game_build_metadata_does_not_change_result_hashes() {
     assert_eq!(left, right);
 }
 
-/// The hash of this fixture has not moved since the definition was written:
-/// a change here changes every pinned hash in the repository.
+/// The hash of this fixture moves only with the definition, which is the
+/// profile: a change here changes every pinned hash in the repository.
 #[test]
 fn the_result_hash_is_golden() {
     let hashes = hash_tick(&context(), state(75), &damage_events());
     assert_eq!(
         hashes.result_hash,
-        "c5a984a976d64bd987db5ba5a7665552c362eb961af25f2457db4c2028b75e04"
+        "4da99700fe70ff398600d78c544b76b6b6ae1dce5045451633c06c2dd7371bbf"
     );
 }
 

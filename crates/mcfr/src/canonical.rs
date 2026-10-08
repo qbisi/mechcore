@@ -4,12 +4,22 @@ use crate::{Error, Result};
 
 pub(crate) const HASH_BYTES: usize = 32;
 
-/// The canonical bytes of `value`: its JSON with every object's keys in byte
-/// order. `serde_json` keeps a `Value`'s object as a `BTreeMap` unless its
-/// `preserve_order` feature is on, so the keys come out sorted as they are
-/// serialized; the test below holds that.
+/// The canonical bytes of `value`: its compact JSON, every object's keys in
+/// the order its type declares them. Every hashed type declares its fields in
+/// byte order, so an object's keys come out sorted, but for an event payload,
+/// whose `kind` tag comes first; the tests below hold both.
 pub(crate) fn encode<T: Serialize>(value: &T) -> Result<Vec<u8>> {
-    Ok(serde_json::to_vec(&serde_json::to_value(value)?)?)
+    let mut out = Vec::new();
+    encode_into(&mut out, value)?;
+    Ok(out)
+}
+
+/// [`encode`] into `out`, cleared first, so a caller encoding every tick
+/// keeps one buffer.
+pub(crate) fn encode_into<T: Serialize>(out: &mut Vec<u8>, value: &T) -> Result<()> {
+    out.clear();
+    serde_json::to_writer(out, value)?;
+    Ok(())
 }
 
 pub(crate) fn decode<T: DeserializeOwned + Serialize>(bytes: &[u8], label: &str) -> Result<T> {
@@ -47,10 +57,10 @@ fn feed(hasher: &mut blake3::Hasher, bytes: &[u8]) {
 }
 
 /// One tick's hash: its number, then the canonical bytes of its state and of
-/// its events. The domain string names the definition, which has not changed
-/// since format 0.7.0, so a hash computed then is the hash computed now.
+/// its events. The domain string names the definition, which changed last in
+/// format 0.22.0, when an event payload's `kind` came first.
 pub(crate) fn tick_hash(tick: u32, state: &[u8], events: &[u8]) -> [u8; HASH_BYTES] {
-    let mut hasher = CanonicalHasher::new("content-tick-0.7.0");
+    let mut hasher = CanonicalHasher::new("content-tick-0.22.0");
     hasher.update(&tick.to_le_bytes());
     hasher.update(state);
     hasher.update(events);
@@ -59,7 +69,7 @@ pub(crate) fn tick_hash(tick: u32, state: &[u8], events: &[u8]) -> [u8; HASH_BYT
 
 /// The whole fight's hash: the tick count, then every tick's hash in order.
 pub(crate) fn result_hash(tick_hashes: &[[u8; HASH_BYTES]]) -> [u8; HASH_BYTES] {
-    let mut hasher = CanonicalHasher::new("content-result-0.7.0");
+    let mut hasher = CanonicalHasher::new("content-result-0.22.0");
     let tick_count = u32::try_from(tick_hashes.len()).expect("tick hash count exceeds u32");
     hasher.update(&tick_count.to_le_bytes());
     for tick_hash in tick_hashes {
@@ -101,26 +111,78 @@ fn nibble(value: u8, label: &str) -> Result<u8> {
 
 #[cfg(test)]
 mod tests {
-    /// A struct's fields come out in byte order, whatever order it declares
-    /// them in, which is what makes [`super::encode`] canonical without
+    use crate::{EventPayload, ObjectKind, ObjectRef};
+
+    /// The fields of every struct `source` declares, and of every variant of
+    /// its `EventPayload`, by the type that declares them.
+    fn declared(source: &str) -> Vec<(String, Vec<String>)> {
+        let mut types = Vec::new();
+        let mut current: Option<(String, String, Vec<String>)> = None;
+        let mut in_payload = false;
+        for line in source.lines() {
+            if line.starts_with("pub enum EventPayload") {
+                in_payload = true;
+            } else if in_payload && line == "}" {
+                in_payload = false;
+            }
+            if let Some((indent, name, fields)) = &mut current {
+                if line == format!("{indent}}}") || line == format!("{indent}}},") {
+                    types.push((std::mem::take(name), std::mem::take(fields)));
+                    current = None;
+                    continue;
+                }
+                let field = line.trim_start();
+                if field.starts_with("//") || field.starts_with("#[") || field.is_empty() {
+                    continue;
+                }
+                let field = field.strip_prefix("pub ").unwrap_or(field);
+                if let Some((name, _)) = field.split_once(": ") {
+                    fields.push(name.to_owned());
+                }
+                continue;
+            }
+            let indent = &line[..line.len() - line.trim_start().len()];
+            let Some(head) = line.trim_start().strip_suffix(" {") else {
+                continue;
+            };
+            let name = if let Some(name) = head.strip_prefix("pub struct ") {
+                name
+            } else if in_payload && indent == "    " && !head.contains(' ') {
+                head
+            } else {
+                continue;
+            };
+            current = Some((indent.to_owned(), name.to_owned(), Vec::new()));
+        }
+        types
+    }
+
+    /// Every hashed type declares its fields in byte order, which is what
+    /// makes [`super::encode`] write every object's keys sorted without
     /// sorting anything itself.
     #[test]
-    fn a_struct_encodes_its_keys_in_byte_order() {
-        #[derive(serde::Serialize)]
-        struct Declared {
-            zeta: u8,
-            alpha: u8,
-            #[serde(rename = "Beta")]
-            beta: u8,
+    fn the_model_declares_every_field_in_byte_order() {
+        let types = declared(include_str!("model.rs"));
+        assert!(types.iter().any(|(name, _)| name == "LiveUnitState"));
+        assert!(types.iter().any(|(name, _)| name == "UnitCreated"));
+        for (name, fields) in types {
+            let mut sorted = fields.clone();
+            sorted.sort();
+            assert_eq!(fields, sorted, "{name} declares its fields out of order");
         }
-        let declared = Declared {
-            zeta: 1,
-            alpha: 2,
-            beta: 3,
+    }
+
+    /// An event payload's `kind` is its tag, which comes before its fields.
+    #[test]
+    fn an_event_payload_writes_its_kind_first() {
+        let payload = EventPayload::ProjectileRemoved {
+            absorbed_by: Some(ObjectRef::new(ObjectKind::Shield, 3)),
+            intercepted: false,
+            position: crate::QVec3 { x: 1, y: 2, z: 3 },
         };
         assert_eq!(
-            super::encode(&declared).unwrap(),
-            br#"{"Beta":3,"alpha":2,"zeta":1}"#
+            String::from_utf8(super::encode(&payload).unwrap()).unwrap(),
+            r#"{"kind":"projectile_removed","absorbed_by":{"id":3,"kind":"shield"},"intercepted":false,"position":{"x":1,"y":2,"z":3}}"#
         );
     }
 }

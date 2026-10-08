@@ -69,9 +69,9 @@ const MAX_LAYOUT_BYTES: u64 = 1024 * 1024;
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct StoredDurableContext {
+    combat_round: u32,
     logic_step: crate::Rational,
     time_units_per_second: u32,
-    combat_round: u32,
 }
 
 impl StoredDurableContext {
