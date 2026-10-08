@@ -859,7 +859,12 @@ impl Api {
     /// line for every cause.
     fn describe_exception(self, exception: *mut Object) -> String {
         static FORMAT: OnceLock<Option<FormatStackTrace>> = OnceLock::new();
-        let kind = self.object_class_name(exception);
+        let mut kind = self.object_class_name(exception);
+        for (field, label) in [("_message", ""), ("_paramName", " parameter ")] {
+            if let Some(text) = self.exception_text(exception, field) {
+                kind = format!("{kind}:{label}{text}");
+            }
+        }
         let Some(format) = *FORMAT.get_or_init(|| {
             // SAFETY: dlsym takes a NUL-terminated name, and the export, when
             // present, has the IL2CPP C API signature.
@@ -890,6 +895,18 @@ impl Api {
         } else {
             format!("{kind} {trace}")
         }
+    }
+
+    /// A string field `System.Exception` or its subclass declares, such as
+    /// `_message`, when it holds one.
+    fn exception_text(self, exception: *mut Object, name: &str) -> Option<String> {
+        let class = self.object_class(exception)?;
+        let field = self.field(class, name).ok()?;
+        let text: *mut StringObject = self.field_value(exception, field).ok()?;
+        if text.is_null() {
+            return None;
+        }
+        self.string_to_rust(text).ok()
     }
 
     pub fn invoke_raw(

@@ -557,6 +557,9 @@ struct Deployment {
     /// The unit allocator the round opens with, which names what the
     /// officers deliver.
     next_unit: i32,
+    /// Whether the units that join take the allocator's next indices, from
+    /// `legacy_index` on, so that the allocator hands them out.
+    allocated: bool,
 }
 
 /// The units of a side that its officers delivered as the round opened, as
@@ -693,6 +696,27 @@ fn deployment(
             ));
         }
     }
+    // A unit added at the index its action states leaves the allocator where
+    // it was, and as the round ends the game enters the next round's
+    // deployment, where an officer due then delivers its squad at the
+    // allocator. So units that join at the allocator's next indices are
+    // handed them by it, as buying them was; ones that skip an index, which
+    // a unit sold in the round took, state theirs, which an officer due next
+    // round would then collide with.
+    let allocated = joined
+        .iter()
+        .zip(legacy..)
+        .all(|(at, next)| index(&side.units[*at]) == next);
+    if !allocated {
+        for officer in delivering(economy, side, round + 1) {
+            reasons.push(format!(
+                "officer {officer}, who delivers a squad as round {} opens: the units that join \
+                 skip an index, so they state theirs, which leaves the allocator at \
+                 legacy_index, where one of them already stands",
+                round + 1
+            ));
+        }
+    }
     if !reasons.is_empty() {
         return Err(reasons);
     }
@@ -701,7 +725,22 @@ fn deployment(
         delivered,
         joined,
         next_unit: legacy - squad_count,
+        allocated,
     })
+}
+
+/// The side's officers whose schedule delivers a squad as `round` opens.
+fn delivering(economy: &crate::economy::Economy, side: &SidePlan, round: i32) -> Vec<i32> {
+    side.techs
+        .officers
+        .iter()
+        .copied()
+        .filter(|officer| {
+            economy
+                .officer(*officer)
+                .is_some_and(|row| row.opening_unit.is_some() && row.active_round.contains(&round))
+        })
+        .collect()
 }
 
 /// Which of the side's units each delivered squad becomes. The allocator
@@ -767,7 +806,11 @@ fn write_actions(xml: &mut String, side: &SidePlan, deployment: &Deployment, sig
                  <IsRotate>false</IsRotate><SellSupply>-1</SellSupply>\
                  <RegionID>{main_region}</RegionID></Command>",
                 unit_type(unit),
-                index(unit),
+                if deployment.allocated {
+                    -1
+                } else {
+                    index(unit)
+                },
             ),
         ));
         prepare(&mut actions, unit, level);
@@ -1013,9 +1056,10 @@ mod tests {
     fn red_is_written_in_the_board_frame() {
         let replay = layout_replay(&plan(&rhino_mirror()), crate::game_build()).unwrap();
         let xml = embedded_xml(&replay);
-        // Each Rhino joins during the round and is moved into place.
+        // Each Rhino joins during the round, at the index the allocator hands
+        // it, and is moved into place.
         assert_eq!(
-            xml.matches("<UID>5</UID><Level>Level1</Level><UIDX>0</UIDX>")
+            xml.matches("<UID>5</UID><Level>Level1</Level><UIDX>-1</UIDX>")
                 .count(),
             2
         );
@@ -1108,17 +1152,50 @@ mod tests {
         });
         let replay = layout_replay(&plan(&layout), crate::game_build()).unwrap();
         let xml = embedded_xml(&replay);
-        // The legacy unit opens the round, and the allocator after it.
+        // The legacy unit opens the round, and the allocator after it hands
+        // each joining unit its index, in index order.
         assert!(xml.contains("<unitIndex>1</unitIndex>"));
-        let added: Vec<usize> = (1..=3)
+        assert_eq!(xml.matches("<UIDX>-1</UIDX><IsFixedPosition>").count(), 3);
+        let moved: Vec<usize> = (1..=3)
             .map(|index| {
-                xml.find(&format!("<UIDX>{index}</UIDX><IsFixedPosition>"))
-                    .expect("each joining unit is added")
+                xml.find(&format!("</unitID><unitIndex>{index}</unitIndex>"))
+                    .expect("each joining unit is moved")
             })
             .collect();
-        assert!(added.windows(2).all(|pair| pair[0] < pair[1]));
+        assert!(moved.windows(2).all(|pair| pair[0] < pair[1]));
         assert_eq!(xml.matches("xsi:type=\"MAD_AddUnit\"").count(), 3);
         assert!(!xml.contains("PAD_BuyUnit"));
+    }
+
+    /// Units that skip an index state theirs, which leaves the allocator
+    /// behind them, so an officer that delivers as the next round opens would
+    /// take an index one of them stands at.
+    #[test]
+    fn units_that_skip_an_index_state_theirs() {
+        let unit = |index: i32, x: i32| json!({"name": "marksman", "index": index, "position": {"x": x, "y": -60}});
+        let layout = |officers: serde_json::Value| {
+            json!({
+                "kind": "layout", "seed": 4242, "round": 1,
+                "blue": {"officers": officers, "units": [unit(0, 0), unit(2, 100)]},
+                "red": {"units": [{"name": "arclight", "index": 0, "position": {"x": 0, "y": -50}}]},
+            })
+        };
+        let replay = layout_replay(&plan(&layout(json!([]))), crate::game_build()).unwrap();
+        let xml = embedded_xml(&replay);
+        for index in [0, 2] {
+            assert!(xml.contains(&format!("<UIDX>{index}</UIDX><IsFixedPosition>")));
+        }
+        // Red's one unit takes the allocator's first index.
+        assert!(xml.contains("<UIDX>-1</UIDX><IsFixedPosition>"));
+        let error = layout_replay(
+            &plan(&layout(json!(["marksman_specialist"]))),
+            crate::game_build(),
+        )
+        .unwrap_err();
+        assert!(
+            error.contains("delivers a squad as round 2 opens"),
+            "{error}"
+        );
     }
 
     #[test]
