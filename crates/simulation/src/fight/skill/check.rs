@@ -256,11 +256,12 @@ impl Simulation {
         let source = &self.actors[&actor_id];
         let min_range = self.skill_rules(skill_ref).min_range();
         // A slot firing at a shield reaches it once the shield's surface on
-        // its way to the lock is in its range, as the core does.
-        if let Some(shield) = self
-            .skill(skill_ref)
-            .sibling(slot.unwrap_or(0))
-            .shield_target()
+        // its way to the lock is in its range, as the core does; any other
+        // target is measured to itself: a Wraith's gun whose lock stood in a
+        // shield reaches the Crawler beside it its search offers.
+        let sibling = self.skill(skill_ref).sibling(slot.unwrap_or(0));
+        if let Some(shield) = sibling.shield_target()
+            && Some(target) == sibling.lock_target
         {
             return self.fight_actor(target).is_some_and(|view| view.alive)
                 && self
