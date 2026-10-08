@@ -22,22 +22,34 @@ impl Simulation {
     /// being the attack target the next time it is asked. Nothing changes in a
     /// fight that places no enemy construction.
     pub(in crate::fight) fn search_attack_target(&mut self, skill_ref: SkillRef) {
-        // Whatever the lock is, a unit or a building: `SearchAttackTarget`
-        // asks `CheckWallConstruction` before it looks at the lock at all.
-        let found = self.skill(skill_ref).lock_target.and_then(|target| {
-            self.wall_in_the_way(skill_ref, None, target)
-                .map(|building| (building, target))
+        // `SearchTargetShield` first: a lock its side's shield covers makes
+        // the shield what the skill fires at.
+        let lock = self.skill(skill_ref).lock_target;
+        let range = self
+            .skill_attacker(skill_ref)
+            .map_or(0, |attacker| attacker.attack_range);
+        let shield =
+            lock.and_then(|target| self.search_target_shield_in(skill_ref.owner, target, range));
+        // Then `CheckWallConstruction`, whatever the lock is, a unit or a
+        // building: toward the lock, or, when the skill fires at a shield,
+        // toward the shield's centre, passing over a block inside it. A Fire
+        // Badger whose lock stands in a shield beyond a wall off the line to
+        // the shield keeps firing at the shield.
+        let found = lock.and_then(|target| {
+            match shield {
+                Some(shield_id) => {
+                    let (x_q32, z_q32) = self.shield_centre(shield_id)?;
+                    self.wall_in_the_way_at(skill_ref, None, (x_q32, z_q32))
+                        .filter(|&wall| {
+                            !self.shield_holds(shield_id, FightActorRef::Building(wall))
+                        })
+                }
+                None => self.wall_in_the_way(skill_ref, None, target),
+            }
+            .map(|building| (building, target))
         });
-        // `SearchTargetShield`: with no construction in the way, a lock its
-        // side's shield covers makes the shield what the skill fires at.
         let shield = if found.is_none() {
-            let range = self
-                .skill_attacker(skill_ref)
-                .map_or(0, |attacker| attacker.attack_range);
-            self.skill(skill_ref).lock_target.and_then(|target| {
-                self.search_target_shield_in(skill_ref.owner, target, range)
-                    .map(|shield| (shield, target))
-            })
+            shield.zip(lock)
         } else {
             None
         };
@@ -690,11 +702,21 @@ impl Simulation {
         slot: Option<usize>,
         target: FightActorRef,
     ) -> Option<u64> {
+        let aimed = self.fight_actor(target)?;
+        self.wall_in_the_way_at(skill_ref, slot, (aimed.x_q32, aimed.z_q32))
+    }
+
+    /// [`Self::wall_in_the_way`] of the line to a point.
+    pub(in crate::fight) fn wall_in_the_way_at(
+        &self,
+        skill_ref: SkillRef,
+        slot: Option<usize>,
+        (aimed_x_q32, aimed_z_q32): (i64, i64),
+    ) -> Option<u64> {
         // The skill's own reach: a Centurion's Homing Missile meets a block
         // its main gun is too short for.
         let actor = self.skill_attacker(skill_ref)?;
         let range = self.slot_attack_range(skill_ref, slot);
-        let aimed = self.fight_actor(target)?;
         // A wall is considered when it is within reach edge to edge: the
         // attacker's range plus its own radius and the block's. A constant
         // allowance fits a Crawler and not a Wraith, which attacks a block 73.8
@@ -719,7 +741,7 @@ impl Simulation {
             }
             if distance_to_segment_q32(
                 (actor.x_q32, actor.z_q32),
-                (aimed.x_q32, aimed.z_q32),
+                (aimed_x_q32, aimed_z_q32),
                 (building.position.x, building.position.z),
             ) > width
             {
