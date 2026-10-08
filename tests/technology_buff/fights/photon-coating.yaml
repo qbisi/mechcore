@@ -1,0 +1,26 @@
+# Photon Coating: a Rhino invincible to Ignite for the fight's first 30 s.
+#
+# Photon Coating adds buff 4000 to its Rhino on the fight's first tick: 30
+# seconds of invincibility and 30% less damage taken. A Vulcan with Ignite hits
+# the Rhino throughout and never adds Ignite, a debuff, which in
+# `ignite.yaml` it adds 102 times. The Vulcan dies at t342. The technology's
+# `effectName` is only the client's effect, and the fight does not read it.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 342
+hash: {profile: mcfr-content-0.7.0, result: 667ada285412b7db6d25bd9797a5954e5d58cb6503aadc0c2e06eb3cd48caa4b}
+blue:
+  core_damage: 200
+  techs:
+    vulcan: [ignite]
+  units:
+  - {name: vulcan, index: 0, position: {x: 0, y: -100}}
+red:
+  techs:
+    rhino: [photon_coating]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/800/1150}

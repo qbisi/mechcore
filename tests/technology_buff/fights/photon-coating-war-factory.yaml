@@ -1,0 +1,23 @@
+# Photon Coating on a War Factory, against a Vulcan with Ignite.
+#
+# The same buff 4000 holds from the first tick, the War Factory takes no
+# Ignite, and the Vulcan dies at t173.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 181
+hash: {profile: mcfr-content-0.7.0, result: 60e588245db4c5b687a4fb8dc726e957b660b8b93f91a9738da65d20c6886f2f}
+blue:
+  core_damage: 500
+  techs:
+    vulcan: [ignite]
+  units:
+  - {name: vulcan, index: 0, position: {x: 0, y: -100}}
+red:
+  techs:
+    war_factory: [photon_coating]
+  units:
+  - {name: war_factory, index: 0, position: {x: 5, y: -95}, exp: 0/800/3200}
