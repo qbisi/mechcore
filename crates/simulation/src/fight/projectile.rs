@@ -261,7 +261,42 @@ impl Simulation {
     /// `CheckIsHitEnergyShield` as a projectile arrives: the shield that
     /// holds it, if any, takes it where a step back along its way meets the
     /// shield's surface.
+    ///
+    /// `FightProjectile.Update` asks only for a projectile that goes on to
+    /// strike: one whose target is still valid (`IsValidTarget`), or one
+    /// with a splash not in simulated motion. A shot without a splash whose
+    /// target died as it flew is released with no shield asked: a Vulcan's
+    /// at a unit that fell inside a shield is not taken by it.
     fn absorb_on_arrival(&self, projectile: &mut Projectile, distance_q32: i64) {
+        let target = match projectile.target_kind {
+            ObjectKind::Building => FightActorRef::Building(projectile.target),
+            _ => FightActorRef::Unit(projectile.target),
+        };
+        if !self
+            .fight_actor(target)
+            .is_some_and(|view| view.alive && view.visible)
+        {
+            let (splash_radius, simulated) = match &projectile.shooter {
+                Shooter::Actor(owner) => self
+                    .skill_attacker(self.skill_at_slot(*owner, usize::from(projectile.skill_slot)))
+                    .map_or((0, false), |attacker| {
+                        (
+                            attacker.splash_radius,
+                            matches!(
+                                attacker.attack.path,
+                                crate::rules::AttackPath::Projectile {
+                                    simulated_motion: true,
+                                    ..
+                                }
+                            ),
+                        )
+                    }),
+                Shooter::Missile(shot) => (shot.splash_radius, false),
+            };
+            if splash_radius <= 0 || simulated {
+                return;
+            }
+        }
         let Some(shield) = self.absorbing_shield(projectile) else {
             return;
         };
@@ -515,7 +550,13 @@ impl Simulation {
             ObjectKind::Building => FightActorRef::Building(projectile.target),
             _ => FightActorRef::Unit(projectile.target),
         };
-        let lands_on_nothing = simulated
+        // So does one without a splash, whatever its motion
+        // (`FightProjectile.Update` releases it once `IsValidTarget` fails and
+        // `GetSplashRange` is not above zero): a Fang's shot at a Crawler that
+        // died inside a shield is not taken by the shield.
+        // A shield it flew into takes it all the same.
+        let lands_on_nothing = (simulated || splash_radius == 0)
+            && projectile.absorbed_by.is_none()
             && !self
                 .fight_actor(target)
                 .is_some_and(|view| view.alive && view.visible);
