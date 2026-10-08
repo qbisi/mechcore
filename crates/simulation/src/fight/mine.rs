@@ -175,6 +175,7 @@ impl Simulation {
                 mine.z_q32,
             ),
             absorbed_by: None,
+            move_direction: (0, 0, 0),
             move_range_q32: mine
                 .trigger_range_q32
                 .saturating_add(space_to_q32(view.radius)),

@@ -970,6 +970,7 @@ impl Simulation {
             climb_to_q32: None,
             spawn_shields: Vec::new(),
             absorbed_by: None,
+            move_direction: (0, 0, 0),
             move_range_q32: data_source_range_q32.saturating_add(space_to_q32(target_radius)),
         };
         let mut projectile = projectile;

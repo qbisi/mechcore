@@ -44,6 +44,9 @@ pub(in crate::fight) struct Projectile {
     pub(in crate::fight) spawn_shields: Vec<u64>,
     /// The shield that took it, once one has.
     pub(in crate::fight) absorbed_by: Option<u64>,
+    /// `FightProjectile.moveDirection`: how far and which way its last move
+    /// that went anywhere took it; zero before it has moved.
+    pub(in crate::fight) move_direction: (i64, i64, i64),
     /// `FightProjectile.moveRange`: its data source's attack range and its
     /// target's radius, set as it is made (`FightProjectile.Init`). The data
     /// source is the releasing skill, or a missile's row, whose range is its
@@ -118,6 +121,7 @@ fn projectile_step_q32(projectile: &Projectile) -> i64 {
 
 impl Simulation {
     #[allow(clippy::similar_names)] // Paired fixed-point x/z components are intentionally parallel.
+    #[allow(clippy::too_many_lines)]
     pub(in crate::fight) fn step_projectiles(&mut self, events: &mut Vec<Event>) -> Result<()> {
         let mut retained = Vec::with_capacity(self.projectiles.len());
         // The build's ProjectileSystem keeps registration order in its List,
@@ -135,9 +139,11 @@ impl Simulation {
                 let move_q32 = projectile_step_q32(&projectile);
                 if distance_q32 > 0 {
                     let reciprocal = q32_div(Q32_ONE, distance_q32);
-                    projectile.y_q32 = projectile
-                        .y_q32
-                        .saturating_add(q32_mul(q32_mul(dy_q32, reciprocal), move_q32));
+                    let climbed = q32_mul(q32_mul(dy_q32, reciprocal), move_q32);
+                    projectile.y_q32 = projectile.y_q32.saturating_add(climbed);
+                    if climbed != 0 {
+                        projectile.move_direction = (0, climbed, 0);
+                    }
                 }
                 projectile.y = q32_to_space_rounded(projectile.y_q32);
                 if projectile.y_q32 >= height_q32 {
@@ -183,6 +189,13 @@ impl Simulation {
             let distance_q32 = native_q32_magnitude_3d(dx_q32, dy_q32, dz_q32);
             if distance_q32 < space_to_q32(projectile.cached_target_radius) {
                 self.leave_interceptors(&projectile);
+                // `CheckIsHitEnergyShield` on arrival: an enemy shield that
+                // holds it now and did not as it was made takes it even
+                // though it did not move, at the point a step back along its
+                // way meets the shield's surface. A Shield Airdrop landing
+                // over a missile's landing point on that tick takes the
+                // missile.
+                self.absorb_on_arrival(&mut projectile, distance_q32);
                 self.impact(&projectile, events)?;
             } else {
                 let (last_x_q32, last_y_q32, last_z_q32) =
@@ -200,6 +213,16 @@ impl Simulation {
                     projectile.z_q32 = projectile
                         .z_q32
                         .saturating_add(q32_mul(q32_mul(dz_q32, reciprocal), move_q32));
+                }
+                // `FightProjectile.Move` keeps the way it went as its
+                // `moveDirection`, when it went anywhere.
+                let moved = (
+                    projectile.x_q32.wrapping_sub(last_x_q32),
+                    projectile.y_q32.wrapping_sub(last_y_q32),
+                    projectile.z_q32.wrapping_sub(last_z_q32),
+                );
+                if moved != (0, 0, 0) {
+                    projectile.move_direction = moved;
                 }
                 projectile.x = q32_to_space_rounded(projectile.x_q32);
                 projectile.y = q32_to_space_rounded(projectile.y_q32);
@@ -233,6 +256,56 @@ impl Simulation {
         retained.reverse();
         self.projectiles = retained;
         Ok(())
+    }
+
+    /// `CheckIsHitEnergyShield` as a projectile arrives: the shield that
+    /// holds it, if any, takes it where a step back along its way meets the
+    /// shield's surface.
+    fn absorb_on_arrival(&self, projectile: &mut Projectile, distance_q32: i64) {
+        let Some(shield) = self.absorbing_shield(projectile) else {
+            return;
+        };
+        let inside = (projectile.x_q32, projectile.y_q32, projectile.z_q32);
+        let outside = self.arrival_outside_point(projectile, distance_q32);
+        let (x_q32, y_q32, z_q32) = self.shield_entry_point(shield, inside, outside);
+        projectile.x_q32 = x_q32;
+        projectile.y_q32 = y_q32;
+        projectile.z_q32 = z_q32;
+        projectile.x = q32_to_space_rounded(x_q32);
+        projectile.y = q32_to_space_rounded(y_q32);
+        projectile.z = q32_to_space_rounded(z_q32);
+        projectile.absorbed_by = Some(shield);
+    }
+
+    /// `CheckIsHitEnergyShield`'s `lastPosition` for a projectile that has
+    /// not moved this update: a step back along its `moveDirection`, the
+    /// step its `maxMoveDistancePerCount` or the distance left to its target
+    /// when that is less and not zero; where its owner stands, at its own
+    /// height, when it has no direction, and where it is for a missile's,
+    /// which no one owns.
+    fn arrival_outside_point(&self, projectile: &Projectile, distance_q32: i64) -> (i64, i64, i64) {
+        let (x, y, z) = (projectile.x_q32, projectile.y_q32, projectile.z_q32);
+        if projectile.move_direction == (0, 0, 0) {
+            return match projectile.shooter {
+                Shooter::Actor(owner) => self
+                    .fight_actor(owner)
+                    .map_or((x, y, z), |view| (view.x_q32, y, view.z_q32)),
+                Shooter::Missile(_) => (x, y, z),
+            };
+        }
+        let step_q32 = projectile_step_q32(projectile);
+        let step_q32 = if distance_q32 == 0 {
+            step_q32
+        } else {
+            step_q32.min(distance_q32)
+        };
+        let (dx, dy, dz) = projectile.move_direction;
+        let back = super::shield::scale(super::shield::normalized((-dx, -dy, -dz)), step_q32);
+        (
+            x.saturating_add(back.0),
+            y.saturating_add(back.1),
+            z.saturating_add(back.2),
+        )
     }
 
     /// `FightProjectile.Update`'s `IsInRange3D`: a projectile that locks its
