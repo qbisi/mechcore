@@ -114,7 +114,12 @@ into takes it at the surface, and its splash, landing outside a shield, strikes
 the shield it reaches and spares what the shield covers (below, under A
 shield). A shield that holds the point it leaves from, 60 metres up, takes it
 not: only an enemy Shield Airdrop can, landed or standing within 36 metres of
-the missile, since a 70-metre sphere holds that height no farther out.
+the missile, since a 70-metre sphere holds that height no farther out. A
+projectile that has reached where it lands is asked once more before it
+strikes (`CheckIsHitEnergyShield` on arrival): a Shield Airdrop landing over a
+missile's landing point on that tick takes it, at the point a step back along
+its last move (`moveDirection`) meets the shield's surface, though it did not
+move.
 
 **What its hit does.** It deals the row's `damage`, raised by its side's
 officers (below), to what it lands on and
