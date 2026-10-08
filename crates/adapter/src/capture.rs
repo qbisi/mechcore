@@ -6755,22 +6755,7 @@ fn read_skills(api: Api, metadata: &Metadata, unit: *mut Object) -> Result<Skill
             continue;
         }
         let (machine, phase, _) = named(slot, "state", read_skill_fsm_state(api, skill, fields))?;
-        let state = match machine.as_deref() {
-            Some("SkillIdleState") => SkillMachineState::Idle,
-            Some("SkillPrepareState") => SkillMachineState::Prepare,
-            Some("SkillAttackState") => SkillMachineState::Attack,
-            Some("SkillCoolingState") => SkillMachineState::Cooling,
-            Some("SkillReloadingState") => SkillMachineState::Reloading,
-            Some("SkillLockState") => SkillMachineState::Lock,
-            other => return Err(format!("skill slot {slot} is in state {other:?}")),
-        };
-        let attack_phase = match phase {
-            None => None,
-            Some("before") => Some(AttackPhase::Before),
-            Some("attacking") => Some(AttackPhase::Attacking),
-            Some("after") => Some(AttackPhase::After),
-            Some(other) => return Err(format!("skill slot {slot} is in attack phase {other}")),
-        };
+        let (state, attack_phase) = named(slot, "state", machine_state(machine.as_deref(), phase))?;
         let lock = api
             .field_value::<*mut Object>(skill, lock_field as *mut FieldInfo)
             .map_err(|error| error.to_string())? as usize;
@@ -6816,6 +6801,30 @@ fn read_skills(api: Api, metadata: &Metadata, unit: *mut Object) -> Result<Skill
         });
     }
     Ok((objects, skills, targets))
+}
+
+/// The recorded state of a skill from its state class and phase controller.
+fn machine_state(
+    machine: Option<&str>,
+    phase: Option<&str>,
+) -> Result<(SkillMachineState, Option<AttackPhase>), String> {
+    let state = match machine {
+        Some("SkillIdleState") => SkillMachineState::Idle,
+        Some("SkillPrepareState") => SkillMachineState::Prepare,
+        Some("SkillAttackState") => SkillMachineState::Attack,
+        Some("SkillCoolingState") => SkillMachineState::Cooling,
+        Some("SkillReloadingState") => SkillMachineState::Reloading,
+        Some("SkillLockState") => SkillMachineState::Lock,
+        other => return Err(format!("is in state {other:?}")),
+    };
+    let attack_phase = match phase {
+        None => None,
+        Some("before") => Some(AttackPhase::Before),
+        Some("attacking") => Some(AttackPhase::Attacking),
+        Some("after") => Some(AttackPhase::After),
+        Some(other) => return Err(format!("is in attack phase {other}")),
+    };
+    Ok((state, attack_phase))
 }
 
 /// A skill's weapons, ascending by index: each one's pose, null for one
