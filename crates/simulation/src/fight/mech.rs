@@ -173,6 +173,23 @@ impl Actor {
         }
     }
 
+    /// `MotionAttackState.AttackRotate` while an extra skill holds the
+    /// motion, turning to what the skill fires at
+    /// (`CalculateTargetDirection`): a unit with a body its weapons
+    /// (`FightMech.RotateBodyTo`), the body still turning to where the unit
+    /// moves as the main skill's attack turns it (a Centurion walking on as
+    /// its missile skill holds the motion), one without its root
+    /// (`ISkillOwner.RotateTo`).
+    pub(in crate::fight) fn extra_attack_rotate(&mut self, bearing_q32: i64) {
+        if self.rules.has_body {
+            self.rotate_weapons_towards(bearing_q32);
+            self.turn_to_move_direction();
+        } else {
+            self.rotate_body_towards(bearing_q32);
+            self.aim_rotation = self.body_rotation;
+        }
+    }
+
     /// `MotionController.Move`: the target point and the speed
     /// `CalculateMoveSpeed` takes from the facing the body has, handed to the
     /// agent. `Move` does this only on the update before the RVO solve, when

@@ -714,9 +714,7 @@ impl Simulation {
             prepare_finished,
             ..
         } = update;
-        if let SkillSlot::Extra(index) = self.actors[&actor_id].motion.attacker
-            && self.actors[&actor_id].command.is_none()
-        {
+        if let SkillSlot::Extra(index) = self.actors[&actor_id].motion.attacker {
             self.follow_extra_attacker(actor_id, index);
             return Ok(());
         }
@@ -1010,7 +1008,10 @@ impl Simulation {
     /// `AutoMoveBehaviour` asks the extra skill: whether it is idle
     /// (`IsIdle`), whether its lock lives (`IsActive`), and whether what it
     /// fires at is in its own range (`IsAttackTargetInAttackRange`). A state
-    /// entered is not updated on the update it is entered.
+    /// entered is not updated on the update it is entered. Under a command
+    /// the command is the move behaviour, never idle and always active, and
+    /// the extra skill is still asked for its range
+    /// ([`Self::follow_extra_attacker_under_command`]).
     fn follow_extra_attacker(&mut self, actor_id: u64, index: usize) {
         let skill_ref = SkillRef {
             owner: FightActorRef::Unit(actor_id),
@@ -1030,6 +1031,14 @@ impl Simulation {
         let aimed = skill
             .attack_target()
             .and_then(|target| self.fight_actor(target));
+        if self.actors[&actor_id].command.is_some() {
+            let target = skill.attack_target();
+            let in_range =
+                target.is_some_and(|target| self.attack_target_in_range(skill_ref, target));
+            let aimed = aimed.map(|aimed| (aimed.x_q32, aimed.z_q32));
+            self.follow_extra_attacker_under_command(actor_id, in_range, aimed);
+            return;
+        }
         let Some(lock) = lock else {
             // `IsActive` fails: the attack and the move states go idle, and
             // the idle state stays.
@@ -1079,16 +1088,7 @@ impl Simulation {
                         )
                     },
                 );
-                if actor.rules.has_body {
-                    actor.rotate_weapons_towards(bearing_q32);
-                    // The body still turns to where the unit moves, as the
-                    // main skill's attack turns it: a Centurion walking on
-                    // as its missile skill holds the motion.
-                    actor.turn_to_move_direction();
-                } else {
-                    actor.rotate_body_towards(bearing_q32);
-                    actor.aim_rotation = actor.body_rotation;
-                }
+                actor.extra_attack_rotate(bearing_q32);
             }
             MotionState::Idle if idle && in_touch => {}
             // `MotionAttackState.Enter` calls `RVOControllerFixed.StopMove`:
@@ -1118,6 +1118,59 @@ impl Simulation {
                 );
                 actor.turn_to_move_direction();
                 self.move_body_to(actor_id, (x_q32, z_q32), false, solve_due);
+            }
+            MotionState::Stopped | MotionState::Transitioning => {}
+        }
+    }
+
+    /// [`Self::follow_extra_attacker`] under a command: `MoveAttackCommand`
+    /// answers `IsIdle` false and `IsActive` true, so only the extra skill's
+    /// `IsAttackTargetInAttackRange` decides. In range, the move state
+    /// changes to the attack state, which stops (`StopMove`) or walks on
+    /// (`AttackMove`) and turns to what the skill fires at; out of range,
+    /// the motion follows the command. A Rhino on a Mobile Beacon whose
+    /// spin starts stops to spin, its main skill locked.
+    fn follow_extra_attacker_under_command(
+        &mut self,
+        actor_id: u64,
+        in_range: bool,
+        aimed: Option<(i64, i64)>,
+    ) {
+        let state = self.actors[&actor_id].motion.state;
+        let (true, Some((aimed_x_q32, aimed_z_q32))) = (in_range, aimed) else {
+            self.follow_command(actor_id);
+            return;
+        };
+        match state {
+            MotionState::Attacking => {
+                let walks_on = self.command_attack_moves(actor_id);
+                let actor = self
+                    .actors
+                    .get_mut(&actor_id)
+                    .expect("actor identity is stable");
+                if !walks_on {
+                    actor.motion.next_target_x_q32 = actor.x_q32;
+                    actor.motion.next_target_z_q32 = actor.z_q32;
+                    actor.motion.next_speed_q32 = 0;
+                    actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
+                }
+                let bearing_q32 = direction_degrees_q32_raw(
+                    aimed_x_q32.saturating_sub(actor.x_q32),
+                    aimed_z_q32.saturating_sub(actor.z_q32),
+                );
+                actor.extra_attack_rotate(bearing_q32);
+                self.attack_move(actor_id, true);
+            }
+            MotionState::Idle | MotionState::Moving => {
+                let actor = self
+                    .actors
+                    .get_mut(&actor_id)
+                    .expect("actor identity is stable");
+                actor.motion.state = MotionState::Attacking;
+                actor.motion.next_target_x_q32 = actor.x_q32;
+                actor.motion.next_target_z_q32 = actor.z_q32;
+                actor.motion.next_speed_q32 = 0;
+                actor.motion.next_max_speed_q32 = actor.rvo_max_speed_q32;
             }
             MotionState::Stopped | MotionState::Transitioning => {}
         }
