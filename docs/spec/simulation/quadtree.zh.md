@@ -89,8 +89,12 @@ center.y = min.y + (max.y - min.y) * 0.5
 
 ## 5. 插入与分裂
 
-agent 严格按输入数组顺序插入。当前 kernel 先加入存活的塔，再按 `config/maps.yaml`
-的顺序加入地图的中立水晶，然后是存活的工事，最后是 `BTreeMap` 中按 Unit ID 排列的存活单位。
+agent 严格按输入数组顺序插入，即 `Simulator.agents` 的顺序。kernel 先逐方加入存活的塔，
+再加入该方存活的工事，然后按 `config/maps.yaml` 的顺序加入地图的中立水晶，再按 Unit ID
+加入开战时就在的存活单位，最后按加入顺序加入此后才加入的单位（`RvoState.added_units`）：
+`DoAddAgents` 在召唤物生成时、在行军单位落地时把它的 agent 追加到末尾，`List.Remove`
+不改变其余 agent 的顺序。行军落地的单位排在对方每个单位之后，尽管它的 ID 更小；否则回放
+201475290 第 3 回合的树会按另一种顺序分裂。
 
 在叶节点中：
 
