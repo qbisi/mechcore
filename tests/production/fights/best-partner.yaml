@@ -14,7 +14,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 418
-hash: {profile: mcfr-content-0.7.0, result: 22cabb3ff48f4cb714de35ce30399e66360c5f992b4c87d57c17897f1b7d8904}
+hash: {profile: mcfr-content-0.7.0, result: fbb1269638c37285ed0658ceec09639ce4c06cb3bca72266f1a74fbc471149fa}
 blue:
   techs:
     vulcan: [best_partner]
