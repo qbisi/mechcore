@@ -14,6 +14,7 @@ hash: {profile: mcfr-content-0.22.0, result: b9e85bfa0546df2f3fceaaeae91d7943b30
 blue:
   core_damage: 586
   officers: [sabertooth_specialist]
+  legacy_index: 5
   units:
   - {name: fang, index: 0, position: {x: 160, y: -175}, exp: 0/176/600, rotated: true}
   - {name: fang, index: 1, position: {x: -140, y: -225}, rotated: true}
@@ -26,6 +27,7 @@ blue:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 red:
   officers: [training_specialist]
+  legacy_index: 5
   units:
   - {name: void_eye, index: 0, position: {x: 110, y: -170}, exp: 0/455/650}
   - {name: void_eye, index: 1, position: {x: -110, y: -170}, exp: 0/207/650}

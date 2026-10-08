@@ -13,6 +13,7 @@ ticks: 1165
 hash: {profile: mcfr-content-0.22.0, result: 020deea4e9006de240d801effc7ae22bd9039d5952e1adf3f21e9f77b70a3c1f}
 blue:
   officers: [quick_supply_specialist]
+  legacy_index: 5
   units:
   - {name: arclight, index: 0, position: {x: 50, y: -70}}
   - {name: arclight, index: 1, position: {x: 140, y: -70}, exp: 0/560/750}
@@ -27,6 +28,7 @@ blue:
 red:
   core_damage: 408
   officers: [fortified_specialist]
+  legacy_index: 5
   units:
   - {name: crawler, index: 0, position: {x: 290, y: -265}, exp: 0/238/450, rotated: true}
   - {name: crawler, index: 1, position: {x: -290, y: -255}, exp: 0/9/450, rotated: true}

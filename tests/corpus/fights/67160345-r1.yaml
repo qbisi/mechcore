@@ -15,6 +15,7 @@ ticks: 1052
 hash: {profile: mcfr-content-0.22.0, result: 4bf6bee588341e76c3f5def00b19701ad22422303b90a0dcaee899ddb104b2a3}
 blue:
   officers: [cost_control_specialist]
+  legacy_index: 5
   units:
   - {name: vortex, index: 0, position: {x: 140, y: -150}, exp: 0/168/750}
   - {name: vortex, index: 1, position: {x: 0, y: -150}, exp: 0/625/750}
@@ -28,6 +29,7 @@ blue:
 red:
   core_damage: 444
   officers: [marksman_specialist]
+  legacy_index: 5
   units:
   - {name: hound, index: 0, position: {x: 70, y: -60}, exp: 0/2/750}
   - {name: hound, index: 1, position: {x: 150, y: -70}, exp: 0/372/750}

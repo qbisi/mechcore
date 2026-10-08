@@ -14,6 +14,7 @@ ticks: 1195
 hash: {profile: mcfr-content-0.22.0, result: 25c0d1552be44242ba14c0ec2a8a7a154b4231f42bc34df096161af7ab300ff1}
 blue:
   officers: [secondary_equipment_expert]
+  legacy_index: 5
   units:
   - {name: marksman, index: 0, position: {x: -220, y: -130}, exp: 0/650/650}
   - {name: marksman, index: 1, position: {x: -140, y: -100}, exp: 0/82/650}
@@ -28,6 +29,7 @@ blue:
 red:
   core_damage: 300
   officers: [typhoon_specialist]
+  legacy_index: 5
   units:
   - {name: marksman, index: 0, position: {x: -140, y: -150}, exp: 0/258/650}
   - {name: marksman, index: 1, position: {x: 140, y: -150}, exp: 0/13/650}

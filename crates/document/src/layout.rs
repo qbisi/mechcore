@@ -115,9 +115,9 @@ pub struct Side {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tower_strengthen_levels: Vec<i32>,
     /// The units of a lower index are legacy: the side carried them into
-    /// the round, the squads its officers delivered as the round opened among
-    /// them. Every other unit joined it during the round, and the first round
-    /// has no legacy unit. `0`, every unit joined during the round, is the
+    /// the round, the squads its officers delivered as the round opened and
+    /// the first round's advance team among them. Every other unit joined it
+    /// during the round. `0`, every unit joined during the round, is the
     /// default.
     #[serde(default, skip_serializing_if = "is_zero")]
     #[schemars(range(min = 0))]

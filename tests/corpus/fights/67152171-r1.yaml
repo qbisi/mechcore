@@ -12,6 +12,7 @@ ticks: 1467
 hash: {profile: mcfr-content-0.22.0, result: c66428e01a7c2768c056e6c09c02c958d5d5013d7dc65d3c9d7b3fddf275b586}
 blue:
   officers: [missile_specialist]
+  legacy_index: 5
   units:
   - {name: void_eye, index: 0, position: {x: 70, y: -180}, exp: 0/270/650}
   - {name: void_eye, index: 1, position: {x: 110, y: -180}, exp: 0/228/650}
@@ -25,6 +26,7 @@ blue:
 red:
   core_damage: 437
   officers: [secondary_equipment_expert]
+  legacy_index: 5
   units:
   - {name: crawler, index: 0, position: {x: -140, y: -265}, exp: 0/39/450, rotated: true}
   - {name: crawler, index: 1, position: {x: 140, y: -265}, exp: 0/58/450, rotated: true}

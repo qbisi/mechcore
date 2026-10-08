@@ -540,9 +540,9 @@ into the round, the squads its officers delivered as the round opened among
 them. Every other unit joined the side during the round, bought, taken as a
 reinforcement or added. The unit allocator names units in the order they are
 created, so one number divides the two: the allocator as the round opened, the
-officers' deliveries made. The first round carries nothing, so its
-`legacy_index` is `0`, although each side opens it with the squads it is
-dealt.
+officers' deliveries made. The first round opens with the advance team each
+side chose before it, five units in a standard 1v1, which its snapshot holds
+and the allocator has named, so they are legacy too.
 
 A fight sees the difference once, as it starts: a construction that fires turns
 to the best scored of the other side's targets, legacy units among them but

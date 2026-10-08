@@ -4398,11 +4398,9 @@ fn read_native_layout_inner(
         )
         .map_err(|error| format!("team {team}: {error}"))?;
         // The units the allocator had named as a replayed round opened are
-        // legacy, but in the first round, which carries none. What the
+        // legacy, the first round's advance team among them. What the
         // Training Ground places joins during the round.
-        side.legacy_index = opening_next_units
-            .filter(|_| round > 1)
-            .map_or(0, |next_units| next_units[team]);
+        side.legacy_index = opening_next_units.map_or(0, |next_units| next_units[team]);
         sides[team] = Some(side);
     }
     let layout = Layout {

@@ -56,8 +56,8 @@ that neither stand on the battlefield nor were released this round.
 One thing a fight observes is read from the position the round opened with
 rather than the one projected: which units are legacy. A layout's
 `legacy_index` is the side's unit allocator as its round opened, the squads
-its officers delivered counted, and `0` in the first round, which carries
-nothing. A position the round's decisions reached has moved the allocator
+its officers delivered counted, and in the first round the advance team the
+side chose before it. A position the round's decisions reached has moved the allocator
 past what they created, so it cannot say.
 
 Six side fields project unchanged: `officers`, `techs`, `units`,
