@@ -48,6 +48,7 @@ EnabledSkill.attack_time: integer(int32)
 EnabledSkill.current_attack_interval: integer(int32)
 EnabledSkill.lock_target: ObjectRef | null
 EnabledSkill.perform_count: integer(int32)
+EnabledSkill.splash_range: integer(int64)
 EnabledSkill.state: SkillMachineState
 EnabledSkill.weapons: [WeaponState]
 Event.payload: EventPayload

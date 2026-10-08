@@ -15,7 +15,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 172
-hash: {profile: mcfr-content-0.7.0, result: 9eef62f3d2b738f553aca555b5d551aa2ad1133158a74997a906fa2bf9bc7859}
+hash: {profile: mcfr-content-0.7.0, result: fa90b6045bc2563d6581b8d5595550b24806d609fead3b2776b8d5c6c4418e85}
 blue:
   officers: [smart_marksman]
   units:

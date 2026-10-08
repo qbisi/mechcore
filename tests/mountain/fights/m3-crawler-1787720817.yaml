@@ -6,7 +6,7 @@ seed: 1787720817
 round: 1
 source: game
 ticks: 181
-hash: {profile: mcfr-content-0.7.0, result: 87422312689d556077a8f56356768e3d47a4db8c89d5d831e86e21d80f5b0856}
+hash: {profile: mcfr-content-0.7.0, result: f3cb3ca0186742eabc0d9f0306e6a705912f2edc1048059fc93559e95d87d0aa}
 blue:
   units:
   - {name: mountain, index: 0, position: {x: 5, y: -105}, exp: 0/192/3200}

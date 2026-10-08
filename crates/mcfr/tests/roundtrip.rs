@@ -49,7 +49,7 @@ fn writes_and_reads_every_table() {
     );
 
     let reader = McfrReader::open(&path).unwrap();
-    assert_eq!(MCFR_FORMAT, "0.20.0");
+    assert_eq!(MCFR_FORMAT, "0.21.0");
     assert_eq!(reader.producer(), Producer::Game);
     assert_eq!(reader.tick_count(), 1);
     assert_eq!(reader.terminal_tick(), 1);
@@ -269,7 +269,7 @@ fn the_result_hash_is_golden() {
     let hashes = hash_tick(&context(), state(75), &damage_events());
     assert_eq!(
         hashes.result_hash,
-        "605c1ab2c1f566482014f39b9a360dd616f1aa2cbc3c79de11823ec7af9e2eb3"
+        "c5a984a976d64bd987db5ba5a7665552c362eb961af25f2457db4c2028b75e04"
     );
 }
 
@@ -1131,6 +1131,7 @@ fn unit(id: u64, team: u32, x: i64, life: i32, with_secondary: bool) -> LiveUnit
                     attack_count: 0,
                     perform_count: 0,
                     attack_range: 140 << 32,
+                    splash_range: 0,
                     attack_damage: 2329,
                     weapons: vec![WeaponState {
                         weapon_index: 0,

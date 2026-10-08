@@ -11,7 +11,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 426
-hash: {profile: mcfr-content-0.7.0, result: c52faaca57be2b3f1f231c36c9eca59a15775694e22fa3b931474641956435d3}
+hash: {profile: mcfr-content-0.7.0, result: 2e07e54453b35aadb7c3c8c578a0cbe154ed599538029bdb59ded4ffadb8df1a}
 blue:
   techs:
     melting_point: [energy_diffraction]

@@ -7,7 +7,7 @@ seed: 1787720817
 round: 1
 source: game
 ticks: 475
-hash: {profile: mcfr-content-0.7.0, result: ea3891fc19ec95b3638d18f8099e2e0453b521b7232103e0b0898d2257558736}
+hash: {profile: mcfr-content-0.7.0, result: 5ffc74d95a6e16f97a08000cc5c7f931136f789a2b8b9b4ab165605d2fc71e58}
 blue:
   units:
   - {name: sabertooth, index: 0, position: {x: -5, y: -125}, exp: 0/282/1300}

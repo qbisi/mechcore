@@ -12,7 +12,7 @@ seed: 865572396
 round: 5
 source: game
 ticks: 1010
-hash: {profile: mcfr-content-0.7.0, result: d49d0d0978d43d1b886baf43b1495c238ed53ea05ce32765efa2f499baa73956}
+hash: {profile: mcfr-content-0.7.0, result: aa10fc7bb4e310f3e25d8708cee7898d0587a833f84d284ad10d154203a6981d}
 blue:
   core_damage: 868
   officers: [elite_specialist, fortified_mustang]

@@ -14,7 +14,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 348
-hash: {profile: mcfr-content-0.7.0, result: 84232ee7f4e94486f7dd33f955276e5c7eca6af20e6be78641b7edf2eca98917}
+hash: {profile: mcfr-content-0.7.0, result: 17fd5fdb8a2297e100e4f780774044d020c8b502506fab5fe350bc55712d5128}
 blue:
   techs:
     overlord: [photon_emission]

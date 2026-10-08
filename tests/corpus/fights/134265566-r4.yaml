@@ -10,7 +10,7 @@ seed: 505043195
 round: 4
 source: game
 ticks: 1421
-hash: {profile: mcfr-content-0.7.0, result: 3380e2dc16b254b71444bfe43034c446fc18bd695d9a654ed507a9c8af3afaff}
+hash: {profile: mcfr-content-0.7.0, result: f60d148d954a864d9ff65ad47ff360fca8e261ddc4490b112e947c7320f1c308}
 blue:
   officers: [mass_production_fire_control_system, giant_specialist]
   techs:

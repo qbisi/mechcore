@@ -11,7 +11,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 747
-hash: {profile: mcfr-content-0.7.0, result: 320f1aa497ff48b1ea95b471ed112ef2a8ca33b52d79c032be6401d397c5f08b}
+hash: {profile: mcfr-content-0.7.0, result: 8822953e569a20845ca19da60318e2dd32b95258009829d2c1ae0eab1b19fc60}
 blue:
   units:
   - {name: fortress, index: 0, position: {x: -60, y: -160}, exp: 0/1600/1600}

@@ -17,7 +17,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 238
-hash: {profile: mcfr-content-0.7.0, result: ef9e1a541a437777e53797203084f899f23ca14ada051956dc95d4a569947a2c}
+hash: {profile: mcfr-content-0.7.0, result: be62edc23ce1d81a5b5b56a2519a213190e93bd517702e43b0c5b661b031a23e}
 blue:
   techs:
     wraith: [floating_artillery_array]

@@ -10,7 +10,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 247
-hash: {profile: mcfr-content-0.7.0, result: 4662a0e8506469d365082811fc215c9c4d9bba89cc8e9b3f1a6a0c87248ab8be}
+hash: {profile: mcfr-content-0.7.0, result: e1fda6ca89f8e32b56aff5ed3ab4a505c0e9509efd61599ccbb79b7d08b0855e}
 blue:
   techs:
     war_factory: [missile_interceptor]

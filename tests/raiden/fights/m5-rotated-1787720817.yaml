@@ -7,7 +7,7 @@ seed: 1787720817
 round: 1
 source: game
 ticks: 96
-hash: {profile: mcfr-content-0.7.0, result: 0c3f514ad9fefe0ff65ed491c6c4483030475adea5bae170846cea120c810bb2}
+hash: {profile: mcfr-content-0.7.0, result: a8901740f3e2093c275b47412ac1f45d326c9cc64d1abc40f77d9bb1d0e38beb}
 blue:
   units:
   - {name: raiden, index: 0, position: {x: -60, y: -60}, exp: 0/200/2400, rotated: true}

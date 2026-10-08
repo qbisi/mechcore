@@ -13,7 +13,7 @@ seed: 1171883115
 round: 1
 source: game
 ticks: 1475
-hash: {profile: mcfr-content-0.7.0, result: f304b70e042667592f5efa0c47f7abf47755d0579bef24631eca25cbdbc5f3e3}
+hash: {profile: mcfr-content-0.7.0, result: 084aee9ef2a74e69a2e739b12b01a55a8dc08e4343bf37525c7584695947a28a}
 blue:
   officers: [supply_specialist]
   units:

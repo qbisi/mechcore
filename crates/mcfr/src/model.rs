@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result, canonical};
 
-pub const MCFR_FORMAT: &str = "0.20.0";
+pub const MCFR_FORMAT: &str = "0.21.0";
 /// Names the hash definition, which is older than the format: the domain
 /// strings and canonical inputs have not moved since format 0.7.0.
 pub const HASH_PROFILE: &str = "mcfr-content-0.7.0";
@@ -769,6 +769,9 @@ pub struct EnabledSkill {
     pub perform_count: i32,
     /// `FightSkill.GetAttackRange()`, Q32.32 raw.
     pub attack_range: i64,
+    /// `FightSkill.GetSplashRange()`, Q32.32 raw: 0 for a skill that does not
+    /// splash.
+    pub splash_range: i64,
     /// `FightSkill.GetNormalDamage(0)`.
     pub attack_damage: i32,
     /// The skill's weapons, strictly ascending by index.

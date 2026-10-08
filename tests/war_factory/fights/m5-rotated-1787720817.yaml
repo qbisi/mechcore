@@ -6,7 +6,7 @@ seed: 1787720817
 round: 1
 source: game
 ticks: 92
-hash: {profile: mcfr-content-0.7.0, result: b95e2eba95bd96cb329fa96f11cb8bcd6832f51495e9491d636297ca58c2c5ba}
+hash: {profile: mcfr-content-0.7.0, result: 1af0f94168be07d79f510816db77d9a1e770da9428da63723d1a283978468677}
 blue:
   units:
   - {name: war_factory, index: 0, position: {x: -65, y: -65}, exp: 0/400/3200, rotated: true}
