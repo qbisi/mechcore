@@ -1,4 +1,4 @@
-# MCFR, format 0.20.0
+# MCFR, format 0.21.0
 
 [简体中文](mcfr.zh.md)
 
@@ -9,7 +9,7 @@ schema of each, the identity and ordering rules that make two recordings of one
 fight the same recording, and what a reader must validate before trusting one.
 
 ```text
-format = "0.20.0"
+format = "0.21.0"
 ```
 
 The native field mapping is bound to the game version the repository pins in
@@ -122,7 +122,7 @@ Parquet key-value metadata keys and values are both UTF-8 strings.
 
 | Key | Data | Meaning |
 | --- | --- | --- |
-| `format` | exactly `0.20.0` | the logical and physical contract version |
+| `format` | exactly `0.21.0` | the logical and physical contract version |
 | `producer` | `game` or `simulator` | what wrote the recording: the game, through the adapter, or the simulator |
 | `game_build` | non-empty UTF-8 | capture provenance; the adapter reads `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | the context `D` that holds steady for one round |
@@ -253,6 +253,7 @@ enabled    : nullable struct   null while FightSkill.IsEnable() is false or the 
   attack_count            : INT32 required       FightSkill.GetAttackCount()
   perform_count           : INT32 required       SkillAttackController.performCount
   attack_range            : INT64 required       FightSkill.GetAttackRange(), Q32.32 raw
+  splash_range            : INT64 required       FightSkill.GetSplashRange(), Q32.32 raw
   attack_damage           : INT32 required       FightSkill.GetNormalDamage(0)
   weapons                 : required list
     weapon_index : INT32 required    WeaponData.get_Index()
@@ -329,8 +330,11 @@ the skill entered its attack state, and 0 outside it: whether a blow that
 loses its target gives its interval back turns on it
 ([combat.md](../../rules/combat.md)).
 
-`attack_range` and `attack_damage` are what the skill's own properties answer
-after every correction on it. A slot of a grouped main skill other than its first reaches 10 m
+`attack_range`, `splash_range` and `attack_damage` are what the skill's own
+properties answer after every correction on it. Every skill has a splash
+range: its row's `splashRange` plus what corrections add to its
+`SplashRangeValue` (`FightSkill.GetSplashRange`), 0 for one that does not
+splash. A slot of a grouped main skill other than its first reaches 10 m
 beyond the main skill (a Wraith's slots read 60 and 70), and an extra skill
 parented by the main skill reaches its own range beyond the main skill's. The
 damage is the normal damage at attack count zero: a beam's first step, whatever
@@ -898,7 +902,7 @@ Identity is what makes two recordings of one fight the same recording, so
 every namespace numbers its objects by a rule that depends on the scene rather
 than on the pointer that happened to be observed first.
 
-Format `0.20.0` uses `team_zx_sequential_v1`.
+Format `0.21.0` uses `team_zx_sequential_v1`.
 
 **Units.** Initial units sort strictly ascending by `(team_id, position.z,
 position.x)` and take `unit_id = 1..N` in that order. Initial units on one team

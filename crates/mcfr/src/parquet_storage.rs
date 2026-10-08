@@ -1203,6 +1203,7 @@ fn enabled_skill_values(enabled: &[Option<&EnabledSkill>]) -> Result<StructArray
                     .map(|skill| skill.map_or(0, |skill| skill.perform_count)),
             ),
             i64_values(field(|skill| skill.attack_range)),
+            i64_values(field(|skill| skill.splash_range)),
             i32_values(
                 enabled
                     .iter()
@@ -1488,6 +1489,7 @@ fn enabled_skill_fields() -> Fields {
         Field::new("attack_count", DataType::Int32, false),
         Field::new("perform_count", DataType::Int32, false),
         Field::new("attack_range", DataType::Int64, false),
+        Field::new("splash_range", DataType::Int64, false),
         Field::new("attack_damage", DataType::Int32, false),
         list_field("weapons", weapon_fields()),
     ]
@@ -2564,6 +2566,7 @@ fn read_skill_list(array: &ListArray, index: usize) -> Result<Vec<SkillState>> {
     let counts = struct_child::<Int32Array>(enabled, "attack_count")?;
     let performed = struct_child::<Int32Array>(enabled, "perform_count")?;
     let ranges = struct_child::<Int64Array>(enabled, "attack_range")?;
+    let splashes = struct_child::<Int64Array>(enabled, "splash_range")?;
     let damages = struct_child::<Int32Array>(enabled, "attack_damage")?;
     let weapons = struct_child::<ListArray>(enabled, "weapons")?;
     (0..items.len())
@@ -2597,6 +2600,7 @@ fn read_skill_list(array: &ListArray, index: usize) -> Result<Vec<SkillState>> {
                     attack_count: counts.value(item),
                     perform_count: performed.value(item),
                     attack_range: ranges.value(item),
+                    splash_range: splashes.value(item),
                     attack_damage: damages.value(item),
                     weapons: read_weapon_list(weapons, item)?,
                 })

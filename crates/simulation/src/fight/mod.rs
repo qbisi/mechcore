@@ -675,6 +675,11 @@ impl Simulation {
                     perform_count: i32::try_from(skill.performed_count(self.step_now))
                         .unwrap_or(i32::MAX),
                     attack_range: self.slot_attack_range_q32(skill_ref, offset),
+                    splash_range: math::space_to_q32(
+                        self.skill_attacker(skill_ref)
+                            .expect("skill owner identity is stable")
+                            .splash_radius,
+                    ),
                     attack_damage: self.slot_normal_damage(actor, skill_ref),
                     weapons: weapons
                         .iter()

@@ -1,11 +1,11 @@
-# MCFR 格式规范（format 0.20.0）
+# MCFR 格式规范（format 0.21.0）
 
 [English](mcfr.md)
 
 本文描述仓库当前实现的 MCFR 逻辑模型、物理容器、Adapter 原生采集来源和 Reader/Writer 校验契约。统一格式标识为：
 
 ```text
-format = "0.20.0"
+format = "0.21.0"
 ```
 
 当前 Adapter 原生字段映射绑定仓库在 `GAME_VERSION` 钉住的游戏版本。其他版本可以生成同格式录像，前提是 Producer 已验证所用原生接口与本文语义一致。
@@ -101,7 +101,7 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 
 | key | 数据规范 | 含义 |
 | --- | --- | --- |
-| `format` | 精确值 `0.20.0` | MCFR 逻辑与物理契约版本 |
+| `format` | 精确值 `0.21.0` | MCFR 逻辑与物理契约版本 |
 | `producer` | `game` 或 `simulator` | 录像由谁写出：经 Adapter 的游戏，或模拟器 |
 | `game_build` | 非空 UTF-8 | 采集构建 provenance；Adapter 来自 `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | 单回合保持稳定的上下文 `D` |
@@ -135,7 +135,7 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 | 字段 | Parquet 类型 | 含义 | Adapter 原生来源 |
 | --- | --- | --- | --- |
 | `tick` | `UINT32 required` | 状态所属逻辑时刻 | Adapter 逻辑帧计数 |
-| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.20.0 身份规则，见附录 B |
+| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.21.0 身份规则，见附录 B |
 | `team_id` | `UINT32 required` | 当前所属队伍 | `FightTeam` controller index |
 | `original_team_id` | `UINT32 required` | 首次出现时的队伍 | 首次采样的 `team_id` |
 | `formation_id` | `UINT64 required` | 编队身份 | `FightMech.GetMechTeam()` 指针映射 |
@@ -216,6 +216,7 @@ enabled    : nullable struct   FightSkill.IsEnable() 为 false 或单位旅行�
   attack_count            : INT32 required       FightSkill.GetAttackCount()
   perform_count           : INT32 required       SkillAttackController.performCount
   attack_range            : INT64 required       FightSkill.GetAttackRange()，Q32.32 原始值
+  splash_range            : INT64 required       FightSkill.GetSplashRange()，Q32.32 原始值
   attack_damage           : INT32 required       FightSkill.GetNormalDamage(0)
   weapons                 : required list
     weapon_index : INT32 required    WeaponData.get_Index()
@@ -233,7 +234,7 @@ enabled    : nullable struct   FightSkill.IsEnable() 为 false 或单位旅行�
 
 `attack_time` 数自上次出手开始以来的逻辑 tick，到达 `current_attack_interval` 时技能出手。**这个间隔不是描述里的那个：** 每个周期都会从队伍随机流里抽一次错开，三只长弓在第 1 tick 读作 55、65、56（描述是 62），[`combat.md`](../../rules/combat.md) 量了这次抽取。间隔记的是 build 自己的整数，不是 property 的 `FPoint` 秒。`attack_count` 是进入攻击状态以来开始的出手数减一，攻击状态之外为 `-1`。`perform_count` 是进入攻击状态以来连同后摇整个跑完的出手数，攻击状态之外为 0：丢失目标的出手是否交还间隔取决于它（[`combat.md`](../../rules/combat.md)）。
 
-`attack_range` 与 `attack_damage` 是技能自身 property 在所有修正之后的答案：一份录像在一个 tick 里就能回答一条修正合成的结果。
+`attack_range`、`splash_range` 与 `attack_damage` 是技能自身 property 在所有修正之后的答案。每个技能都有溅射距离：它的行的 `splashRange` 加上修正写到 `SplashRangeValue` 的值（`FightSkill.GetSplashRange`），不溅射的技能为 0。一份录像在一个 tick 里就能回答一条修正合成的结果。
 
 `weapons` 按 `weapon_index` 严格升序。武器缺少 FightTransform 时，position 与 rotation 同时为 null。
 
@@ -622,9 +623,9 @@ ObjectRef = { kind: ObjectKind, id: u64 }
 
 # 附录 B — 身份与排序约定
 
-## B.1 format 0.20.0 身份规则
+## B.1 format 0.21.0 身份规则
 
-format `0.20.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
+format `0.21.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
 
 战斗期间首次出现的 Unit 按首次观察顺序取得当前 Unit namespace 的下一个连续编号。Unit namespace 从 1 开始单调递增；历史引用持续使用对象首次取得的编号。
 

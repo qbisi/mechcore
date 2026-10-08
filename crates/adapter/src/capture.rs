@@ -6765,6 +6765,12 @@ fn read_skills(api: Api, metadata: &Metadata, unit: *mut Object) -> Result<Skill
                     invoke_value::<FixedPoint>(api, skill, "GetAttackRange"),
                 )?
                 .raw,
+                splash_range: named(
+                    slot,
+                    "GetSplashRange",
+                    invoke_value::<FixedPoint>(api, skill, "GetSplashRange"),
+                )?
+                .raw,
                 attack_damage: named(
                     slot,
                     "GetNormalDamage",
