@@ -446,6 +446,20 @@ impl Simulation {
         };
         let cooling_steps =
             native_time_units_to_steps(self.skill_rules(skill_ref).cooling_time_units());
+        // `OnChangeTeam` returns after `StopAttack` for a permanent
+        // preemptive skill not yet active, and for the main skill while one
+        // is active: the main skill that one has locked stays locked. A main
+        // skill a running preemptive skill has locked leaves its lock state.
+        let permanent_holds = match skill_ref.slot {
+            SkillSlot::Main => self.actors[&actor_id].skills.preemptive_active,
+            SkillSlot::Extra(index) => {
+                !self.actors[&actor_id].skills.preemptive_active
+                    && self.actors[&actor_id].skills.extras[index]
+                        .rules
+                        .preemptive
+                        .is_some()
+            }
+        };
         let core = self.skill_mut(skill_ref);
         if offset > 0 && skill_ref.slot == SkillSlot::Main && core.joined(offset).is_none() {
             core.set_mech_lock(None);
@@ -454,10 +468,7 @@ impl Simulation {
         let fired_at = skill.attack_target();
         skill.drop_lock();
         skill.performer.stop();
-        // A main skill that a permanent preemptive skill has locked stays
-        // locked: `OnChangeTeam` returns after `StopAttack` while
-        // `SkillManager.IsPermanentPreemptiveSkillActive`.
-        if skill.state == SkillState::Locked {
+        if permanent_holds {
             self.sync_beam(actor_id);
             return;
         }
@@ -575,12 +586,32 @@ impl Simulation {
         // which has no cooling, idle and searched again. Which build method
         // ends it is not established.
         let mut locked = vec![(SkillRef::main(unit), 0)];
+        locked.extend((0..self.actors[&unit_id].skills.extras.len()).map(|index| {
+            (
+                SkillRef {
+                    owner: unit,
+                    slot: SkillSlot::Extra(index),
+                },
+                0,
+            )
+        }));
         locked.extend(self.skills_locked_on(unit, None));
+        let running_preemptive = self.actors[&unit_id].skills.running_preemptive;
         // The change runs before any unit updates, so a skill it sends into
         // its cooling is updated in it on this tick, as if it had entered it
         // on the last.
         for (skill_ref, offset) in locked {
             self.lock_changed_team(skill_ref, offset, step.saturating_sub(1));
+        }
+        // A running preemptive skill sent to its idle state hands the main
+        // skill its place back (`PreemptiveSkillEnterIdleBehaviour`).
+        if let Some(index) = running_preemptive
+            && matches!(
+                self.actors[&unit_id].skills.extras[index].skill.state,
+                SkillState::Idle { .. }
+            )
+        {
+            self.preemptive_enters_idle(unit_id);
         }
         Ok(true)
     }

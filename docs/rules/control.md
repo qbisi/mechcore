@@ -96,10 +96,15 @@ The turn (`TeamTranslationSystem.ChangeTeam`):
   goes on cooling. Any other enters its cooling, naming what it fired at, or
   without one enters `SkillIdleState` with its targets cleared, unless it is
   a main skill whose unit's permanent preemptive skill is active, which stays
-  locked. The motion is left alone. The turned unit's own skill ends the same
-  way: the beam's change runs before any unit updates, so a skill sent
-  cooling is updated in it on the same tick, and a Fire Badger turned while it
-  charges keeps its main skill locked and its charge's buff.
+  locked, and a permanent preemptive skill not yet active, which stays as it
+  is. The motion is left alone. The turned unit's own skills, its main skill
+  and each extra skill, end the same way: the beam's change runs before any
+  unit updates, so a skill sent cooling is updated in it on the same tick, and
+  a Fire Badger turned while it charges keeps its main skill locked and its
+  charge's buff. A main skill a running preemptive skill has locked is no
+  exception: a Rhino turned while it spins leaves its spin and its main skill
+  idle on the tick it turns, the spin handing the main skill its place back
+  (`PreemptiveSkillEnterIdleBehaviour`), and both search again.
 
 A side whose every unit a beam has turned has none left, and loses as a
 wiped-out side does: its towers are torn down.
@@ -290,11 +295,11 @@ the shield does not count against the turn.
 
 ### Not established
 
-- **The turned unit's own skill.** Nothing the build runs on a turn reaches
+- **The turned unit's own skills.** Nothing the build runs on a turn reaches
   the turned unit's skills: only the skills locked on it are subscribed. Its
-  own reads as if `FightSkill.OnChangeTeam` had run on it, cooling where it
-  cools and idle and searching where it does not; which method does it is not
-  read.
+  own, the main skill and each extra skill, read as if `FightSkill.OnChangeTeam`
+  had run on each, cooling where it cools and idle and searching where it does
+  not; which method does it is not read.
 - **The weapons at the fight's end.** That the end clears what an idle skill
   names is recorded where a turned unit's death ends the fight; which method
   clears it is not read.
