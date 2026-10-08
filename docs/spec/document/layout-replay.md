@@ -110,12 +110,20 @@ joins during the round. A `MAD_AddUnit` adds it, carried by a
 `PAD_TestCommand`, because a replay plays a match action as the test command
 that carries it, as the Training Ground performs one. The action names the
 side's seat, 0 for blue and 1 for red, the unit's type, its layout level and
-its index, which it assigns directly, and asks for no fixed position in the
-side's main deployment area: region 1 of blue's territory and 4 of red's.
-The game places it there, and the move takes it to its layout position. A move
-onto a flank from another region is what makes a unit travel, so a travelling
-unit is one that joins. A legacy unit does not move, since a unit the round
-opens with does not from round 2 on, and a settled flank unit is one.
+its index, and asks for no fixed position in the side's main deployment area:
+region 1 of blue's territory and 4 of red's. The game places it there, and the
+move takes it to its layout position. A move onto a flank from another region
+is what makes a unit travel, so a travelling unit is one that joins. A legacy
+unit does not move, since a unit the round opens with does not from round 2
+on, and a settled flank unit is one.
+
+When the side's joining units are the allocator's next indices, from
+`legacy_index` on, the action's index is `-1` and the allocator hands each its
+own, as buying it did; otherwise each states its own, which leaves the
+allocator at `legacy_index`. As the round ends the game enters the next
+round's deployment, and an officer due then delivers its squad at the
+allocator, so an allocator left behind would hand that squad an index a
+joining unit already holds.
 
 A squad an officer's schedule hands out as the round opens arrives on top of
 the snapshot, so the snapshot does not hold it again. It becomes the layout's
@@ -137,6 +145,8 @@ and the refusal names each part:
 - a squad an officer delivers as the round opens with no unit of the side to
   become;
 - squads that are not the last legacy units;
+- an officer that delivers a squad as the next round opens, beside joining
+  units that skip an index, since they leave the allocator behind them;
 - a unit that joins during the round with experience, since a round's
   decisions hand out none;
 - a travelling legacy unit, since a replay moves none;
