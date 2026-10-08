@@ -137,6 +137,19 @@ pub(crate) enum Index {
     /// projectiles leave with, which `FightProjectileSkill.GetMaxLife`
     /// multiplies the row's by. Q32.32.
     ProjectileLife,
+    /// `SkillDataChangeInt.ProjectileCountValue`: what
+    /// `ProjectileCountProperty.Refresh` adds to the row's projectile count.
+    /// Whole projectiles.
+    ProjectileCount,
+    /// `SkillDataChangeFloat.ProjectileDurationValue`: what
+    /// `ProjectileDurationProperty.Refresh` adds to the row's time between
+    /// two projectiles of a burst. Q32.32 seconds, as the interval is.
+    ProjectileDuration,
+    /// `SkillDataChangeFloat.ProjectileRandomRange`: what
+    /// `ProjectileRandomRangeProperty.Refresh` adds to the row's radius its
+    /// projectiles land within about their target. Q32.32 metres in the
+    /// build, millimetres here as the radius is.
+    ProjectileRandomRange,
 }
 
 impl Index {
@@ -188,6 +201,9 @@ impl Index {
             Self::AttackValueFor(UnitDomain::Ground) => "ground attack",
             Self::ProjectileSpeed => "projectile speed",
             Self::ProjectileLife => "projectile life",
+            Self::ProjectileCount => "projectile count",
+            Self::ProjectileDuration => "projectile duration",
+            Self::ProjectileRandomRange => "projectile random range",
         }
     }
 }
@@ -302,6 +318,15 @@ impl Overlay {
         }
     }
 
+    /// What this `DataSet` adds to its projectiles' burst.
+    pub(crate) fn projectile_burst_add(&self) -> ProjectileBurstAdd {
+        ProjectileBurstAdd {
+            count: self.value(Index::ProjectileCount),
+            duration_q32: self.value(Index::ProjectileDuration),
+            random_range: self.value(Index::ProjectileRandomRange),
+        }
+    }
+
     /// Takes away everything one module wrote.
     pub(crate) fn withdraw(&mut self, source: &str) {
         self.entries.retain(|entry| entry.source != source);
@@ -355,6 +380,40 @@ impl Overlay {
             }
         }
         touched.then_some(aggregate)
+    }
+}
+
+/// What a skill's `DataSet` adds to its projectiles' burst: its
+/// `ProjectileCountValue`, `ProjectileDurationValue` and
+/// `ProjectileRandomRange`.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct ProjectileBurstAdd {
+    /// Whole projectiles.
+    count: i64,
+    /// Q32.32 seconds.
+    duration_q32: i64,
+    /// Millimetres.
+    random_range: i64,
+}
+
+impl ProjectileBurstAdd {
+    /// `ProjectileCountProperty.Refresh`: the row's count with the value
+    /// added.
+    pub(crate) fn count(self, base: u32) -> usize {
+        usize::try_from(i64::from(base).saturating_add(self.count).max(0))
+            .expect("a projectile count fits the supported host")
+    }
+
+    /// `ProjectileDurationProperty.Refresh`: the row's time between two
+    /// projectiles with the value added, Q32.32 seconds.
+    pub(crate) fn duration_q32(self, base_q32: i64) -> i64 {
+        base_q32.saturating_add(self.duration_q32)
+    }
+
+    /// `ProjectileRandomRangeProperty.Refresh`: the row's radius with the
+    /// value added, millimetres.
+    pub(crate) fn random_range(self, base: i64) -> i64 {
+        base.saturating_add(self.random_range)
     }
 }
 
@@ -423,7 +482,7 @@ const SKILL_RATES: [Index; 4] = [
 ];
 
 /// The skill numbers its `DataSet` keeps as values alone.
-const SKILL_VALUES: [Index; 9] = [
+const SKILL_VALUES: [Index; 12] = [
     Index::RangeAgainst(UnitDomain::Air),
     Index::RangeAgainst(UnitDomain::Ground),
     Index::ScoreOffsetFor(UnitDomain::Air),
@@ -433,6 +492,9 @@ const SKILL_VALUES: [Index; 9] = [
     Index::AttackValueFor(UnitDomain::Air),
     Index::AttackValueFor(UnitDomain::Ground),
     Index::ProjectileSpeed,
+    Index::ProjectileCount,
+    Index::ProjectileDuration,
+    Index::ProjectileRandomRange,
 ];
 
 /// What a skill overlay may carry that its `DataSet` has no field for.
@@ -1213,6 +1275,13 @@ impl Stats {
     /// What the main skill's projectiles' speed gains, millimetres a second.
     pub(crate) fn projectile_speed_add(&self) -> i64 {
         self.skill_value(Index::ProjectileSpeed)
+    }
+
+    /// What the main skill's `DataSet` adds to its projectiles: how many a
+    /// burst fires, the Q32.32 seconds between two, and the millimetres
+    /// each may land from its target.
+    pub(crate) fn projectile_burst_add(&self) -> ProjectileBurstAdd {
+        self.overlays.skill.projectile_burst_add()
     }
 
     /// What the main skill's `DataSet` holds for its projectiles' life.

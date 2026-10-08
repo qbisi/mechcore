@@ -88,7 +88,9 @@ the skill each adds, and Energy Diffraction's `all_weapon_reduce_damage_rate`
 on the damage of its unit's skills
 ([extra_weapons.md](extra_weapons.md)), a splash technology's with its
 `splash_range` added to its unit's skills' splash as a splash value is
-([splash](#splash-technologies)), a missile interception technology's
+([splash](#splash-technologies)), a multi-attack technology's with the
+projectiles it adds its unit's bursts ([below](#multi-attack-technologies)),
+a missile interception technology's
 with the interceptors it makes its unit
 ([below](#missile-interception)), a production technology's with the line it
 runs ([below](#production-lines)), and refuses
@@ -275,6 +277,28 @@ its numbers are, to the skill's `SplashRangeValue`, as a splash item does.
 The skill's splash is its row's plus that range: a Stormcaller's 5.5 metres
 reads 10.5 with its 5, a Wasp's none reads 7, and a War Factory's four
 skills and a Wraith's four slots each read theirs.
+
+## Multi-attack technologies
+
+A row of `multiAttackTechnologies` is a `MultiAttackTech`, Doubleshot, Burst
+Mode and Saturation Bombardment. `MultiAttackTech.AddData` writes its row's
+numbers, then adds, at the unit's level as its numbers are, its
+`projectile_count_value` to the skill's `ProjectileCountValue`, its
+`projectile_duration_value` to its `ProjectileDurationValue` and its
+`projectile_random_range_value` to its `ProjectileRandomRange`, through
+`SkillDataModifier.AddData` as a splash value goes. A burst fires the row's
+count with the value added, the row's time between two projectiles with the
+value added, and lands each within the row's radius with the value added
+about its target: a Marksman's Doubleshot fires two projectiles an attack
+0.2 seconds apart, and a Farseer's Burst Mode twelve 0.1 seconds apart,
+each within 18 metres.
+
+`ProjectileMultiAttackPerformer.OnStartFirstPerform` spaces a burst by
+`PROJECTILE_INTERVAL`, 0.2 seconds, when the time between two is zero or
+less, which a Sabertooth's row's is.
+
+Saturation Bombardment also sets `isInverseIsLockTarget`, which its row
+names in `special`, and the simulator refuses it.
 
 ## Missile Interception
 
@@ -523,6 +547,10 @@ derive (a minimum range):
   `tests/production/fights/fang-production.yaml`,
   `tests/production/fights/crawler-production.yaml`,
   `tests/production/fights/mothership.yaml`.
+- A multi-attack technology adds to its unit's bursts: Doubleshot fires two
+  projectiles an attack, and Burst Mode twelve from a Farseer and ten from a
+  Phantom Ray, 0.1 seconds apart:
+  `tests/multi_attack/fights/`.
 - A projectile life rate multiplies the life a skill's projectiles leave with:
   Heavy Missile's rockets leave with 126000, and fought without the rate the
   simulator parts from the game at t20:
@@ -667,6 +695,14 @@ derive (a minimum range):
   for 6 and 8 and its `ProductMoveTime` for 7, and `APPEAR_DURATION`
   otherwise; its level is the owner's for `DynamicMechLevel.Parent`:
   `SupportUnitCreator.CreateMech`, `SupportUnitCreator.APPEAR_DURATION`.
+- A multi-attack technology adds its count, its duration and its random range
+  to the skill's `SkillDataChangeInt.ProjectileCountValue` and
+  `SkillDataChangeFloat.ProjectileDurationValue` and `ProjectileRandomRange`,
+  which the skill's properties add to its row's: `MultiAttackTech.AddData`,
+  `ProjectileCountProperty.Refresh`, `ProjectileDurationProperty.Refresh`,
+  `ProjectileRandomRangeProperty.Refresh`.
+- A burst's projectiles are `PROJECTILE_INTERVAL` apart when its duration is
+  zero or less: `ProjectileMultiAttackPerformer.OnStartFirstPerform`.
 - A skill's projectiles leave with the row's life at the unit's level, times
   one plus the skill's `SkillDataChangeFloatRate.ProjectileLifeRate`
   enhancements and then their remainder, cut to a whole number and at least 1:

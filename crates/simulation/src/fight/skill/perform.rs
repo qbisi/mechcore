@@ -221,10 +221,10 @@ impl Simulation {
             .ok_or_else(|| Error::new("projectile target is absent"))?;
         let target_x_q32 = target_view.x_q32;
         let target_z_q32 = target_view.z_q32;
-        let attack = self
+        let attacker = self
             .skill_attacker(skill_ref)
-            .ok_or_else(|| Error::new("projectile owner is absent"))?
-            .attack;
+            .ok_or_else(|| Error::new("projectile owner is absent"))?;
+        let attack = attacker.attack;
         if let AttackPath::Projectile {
             evenly_allocate_targets: true,
             extra_search_range,
@@ -240,8 +240,9 @@ impl Simulation {
                 events,
             );
         }
-        let count = usize::try_from(attack.projectile_count())
-            .expect("u32 projectile count fits the supported host");
+        let count = attacker.projectile_count();
+        let interval = attacker.projectile_interval_steps();
+        let radius = attacker.projectile_target_offset_radius();
         // A standalone skill fires its own weapons, `weaponCountPerSkill` of
         // its row's; any other all of them.
         let weapon_count = usize::try_from(if attack.weapons.mode == WeaponMode::Standalone {
@@ -250,8 +251,6 @@ impl Simulation {
             attack.weapons.count()
         })
         .expect("u32 weapon count fits the supported host");
-        let interval = native_time_units_to_steps(attack.projectile_release_interval_time_units());
-        let radius = attack.projectile_target_offset_radius();
         let climb_target = self.climb_target(target)?;
         // An extra skill fires from the first of its row's weapons it was
         // made for.
@@ -335,11 +334,9 @@ impl Simulation {
         let self_radius_q32 = space_to_q32(source.radius);
         let range_q32 = space_to_q32(source.attack_range).saturating_add(extra_range_q32);
         let targets_accepted = source.targets;
-        let attack = source.attack;
-        let count = usize::try_from(attack.projectile_count())
-            .expect("u32 projectile count fits the supported host");
-        let interval = native_time_units_to_steps(attack.projectile_release_interval_time_units());
-        let radius_centimeters = i32::try_from(attack.projectile_target_offset_radius() / 10)
+        let count = source.projectile_count();
+        let interval = source.projectile_interval_steps();
+        let radius_centimeters = i32::try_from(source.projectile_target_offset_radius() / 10)
             .map_err(|_| Error::new("projectile target offset radius exceeds native range"))?;
         let mut targets = self.range_targets(
             team,
@@ -704,7 +701,7 @@ impl Simulation {
         let attacker = self
             .attacker(owner)
             .ok_or_else(|| Error::new("projectile owner is absent"))?;
-        let radius = attacker.attack.projectile_target_offset_radius();
+        let radius = attacker.projectile_target_offset_radius();
         let source_y = attacker.y;
         let (target_x_q32, target_y_q32, target_z_q32) =
             self.attack_position(owner, slot, target, 0, true)?;

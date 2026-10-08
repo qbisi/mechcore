@@ -71,6 +71,9 @@ SUBCLASS_LISTS = (
     ("air_damage_change_rate", "airDamageChangeRate", "damageIntensifyTechnologies"),
     ("ground_damage_change_rate", "groundDamageChangeRate", "damageIntensifyTechnologies"),
     ("splash_range", "range", "splashTechnologies"),
+    ("projectile_count_value", "countIncrease", "multiAttackTechnologies"),
+    ("projectile_duration_value", "durationChangeValue", "multiAttackTechnologies"),
+    ("projectile_random_range_value", "randomRangeChangeValue", "multiAttackTechnologies"),
 )
 # The same for a field that is one value rather than a rank list.
 SUBCLASS_SCALARS = (
@@ -107,7 +110,7 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "airAttackTechnologyDatas", "damageIntensifyTechnologies",
                "secondaryDamageIntensifyTechDatas", "buffTechnologies",
                "interceptMissileTechnologyDatas", "splashTechnologies",
-               "mobilityIntensifyTechnologies")
+               "mobilityIntensifyTechnologies", "multiAttackTechnologies")
 # The list whose `BuffTech` adds a buff, and the fields its rows carry for
 # `buff_lines` rather than as corrections.
 BUFF = "buffTechnologies"
@@ -195,7 +198,7 @@ DESCRIPTIVE = {
 }
 RATES = {"life_rate", "damage_rate", "attack_range_rate", "attack_interval_rate", "projectile_life_rate", "exp_rate",
          "lifesteal_multiplier", "recovery_life_rate", "air_damage_change_rate", "ground_damage_change_rate"}
-INTEGERS = {"speed_value", "min_attack_range_value", "reduce_damage_value"}
+INTEGERS = {"speed_value", "min_attack_range_value", "reduce_damage_value", "projectile_count_value"}
 
 
 def raw(value):
@@ -417,6 +420,11 @@ def main() -> int:
         "# makes units as its unit's move ability reaches a time (a",
         "# MoveAbilityTimeType: 2 as it begins to surface) carries that time and",
         "# the line it makes them by (`move_summon`), as a production row does.",
+        "# A multi-attack technology carries how many more projectiles each of",
+        "# its unit's attacks fires (`projectile_count_value`), and the FPoint",
+        "# seconds it adds between two of them and metres it adds to how far",
+        "# each lands from its target (`projectile_duration_value`,",
+        "# `projectile_random_range_value`).",
         "",
         "technologies:",
     ]
@@ -443,7 +451,7 @@ def main() -> int:
         held += [
             (field, row[field])
             for field, _, owner in SUBCLASS_LISTS
-            if row["kind"] == owner
+            if row["kind"] == owner and row[field]
         ]
         for field, source, owner in SUBCLASS_SCALARS:
             if row["kind"] == owner:

@@ -56,6 +56,14 @@ pub(crate) struct Fields {
     /// `SkillDataModifier.AddData` writes into the skill's
     /// `SkillDataChangeFloatRate.ProjectileLifeRate`.
     pub(crate) projectile_life_rate: Option<i64>,
+    /// A multi-attack technology's `countIncrease`, which
+    /// `SkillDataModifier.AddData` writes into the skill's
+    /// `SkillDataChangeInt.ProjectileCountValue`.
+    pub(crate) projectile_count_value: Option<i64>,
+    /// Its `durationChangeValue`, into `SkillDataChangeFloat.ProjectileDurationValue`.
+    pub(crate) projectile_duration_value: Option<i64>,
+    /// Its `randomRangeChangeValue`, into `SkillDataChangeFloat.ProjectileRandomRange`.
+    pub(crate) projectile_random_range_value: Option<i64>,
 }
 
 /// What the fields write, in the channels the recording keeps them in.
@@ -157,7 +165,38 @@ pub(crate) fn corrections(fields: Fields) -> Vec<(Channel, Index, Correction)> {
             Correction::Value(raw.saturating_mul(METERS)),
         ));
     }
+    written.extend(burst_corrections(fields));
     written
+}
+
+/// What a multi-attack technology writes onto its unit's bursts: a count in
+/// `DataSet.intDatas` as the plain integers above, seconds that stay the
+/// `FPoint` they are as the interval's do, and metres in millimetres as a
+/// range's.
+fn burst_corrections(fields: Fields) -> impl Iterator<Item = (Channel, Index, Correction)> {
+    [
+        (fields.projectile_count_value, Index::ProjectileCount, 1),
+        (
+            fields.projectile_duration_value,
+            Index::ProjectileDuration,
+            1,
+        ),
+        (
+            fields.projectile_random_range_value,
+            Index::ProjectileRandomRange,
+            METERS,
+        ),
+    ]
+    .into_iter()
+    .filter_map(|(raw, index, quantum)| {
+        let raw = raw.filter(|raw| *raw != 0)?;
+        let value = if quantum == 1 {
+            raw
+        } else {
+            fixed_to(raw, quantum)
+        };
+        Some((Channel::Skill, index, Correction::Value(value)))
+    })
 }
 
 /// Why a field this build will not apply is refused.
