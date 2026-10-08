@@ -4,10 +4,19 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result, canonical};
 
-pub const MCFR_FORMAT: &str = "0.22.0";
-/// Names the hash definition, which changed last with format 0.22.0: the
-/// domain strings and canonical inputs have not moved since.
-pub const HASH_PROFILE: &str = "mcfr-content-0.22.0";
+/// The format, which also names the hash definition: every format is its own
+/// profile and domain strings, so a recording's hash is never read across
+/// two formats.
+macro_rules! format_version {
+    () => {
+        "0.22.0"
+    };
+}
+pub(crate) use format_version;
+
+pub const MCFR_FORMAT: &str = format_version!();
+/// Names the hash definition by the format it belongs to.
+pub const HASH_PROFILE: &str = concat!("mcfr-content-", format_version!());
 
 /// What wrote a recording: the game, through the Adapter, or the simulator.
 ///

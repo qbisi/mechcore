@@ -105,7 +105,7 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 | `producer` | `game` 或 `simulator` | 录像由谁写出：经 Adapter 的游戏，或模拟器 |
 | `game_build` | 非空 UTF-8 | 采集构建 provenance；Adapter 来自 `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | 单回合保持稳定的上下文 `D` |
-| `hash_profile` | 精确值 `mcfr-content-0.22.0` | 哈希定义，以其 domain 字符串的版本命名 |
+| `hash_profile` | 精确值 `mcfr-content-0.22.0` | 哈希定义，以它所属的格式版本命名 |
 | `result_hash` | 64 位小写十六进制 | 全部 `tick_hash` 的有序摘要；回归判断依据 |
 | `tick_count` | `u32` 规范十进制 | 从 `S(1)` 开始记录的逻辑 tick 数 |
 | `terminal_tick` | `u32` 规范十进制 | 已确认的最终逻辑边界；当前连续时间线中等于 `tick_count` |
@@ -676,7 +676,7 @@ result_hash  = H_content-result-0.22.0(
 )
 ```
 
-这个定义最近一次变动是在 format 0.22.0：编码时不再对 object 排序，事件 payload 的 `kind` 移到最前；`hash_profile` 的值 `mcfr-content-0.22.0` 就以这个版本命名。格式变了而 `S(t)`、`E(t)` 的编码不变，所有哈希就都不动；定义本身要变，就是新的 profile 和新的 domain 字符串，不能就地修改。
+这个定义以格式版本命名：`hash_profile` 为 `mcfr-content-<format>`，domain 字符串也带格式版本，所以每个格式都是它自己的定义。格式一变，所有哈希都会变，即使 `S(t)`、`E(t)` 的编码没变；所有 pin 随之重录，哈希从不跨两个格式比较。
 
 `mechcore diff` 与 `mechcore verify` 以这个哈希决定 `equal` 和首个分歧。`diff` 还会逐字段说明两份录像在哪里不同，这是哈希做不到的：字段组的定义见 [cli.md](../mechcore/cli.md#diff)。
 

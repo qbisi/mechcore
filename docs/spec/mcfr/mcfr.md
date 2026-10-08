@@ -126,7 +126,7 @@ Parquet key-value metadata keys and values are both UTF-8 strings.
 | `producer` | `game` or `simulator` | what wrote the recording: the game, through the adapter, or the simulator |
 | `game_build` | non-empty UTF-8 | capture provenance; the adapter reads `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | the context `D` that holds steady for one round |
-| `hash_profile` | exactly `mcfr-content-0.22.0` | the hash definition, named for the domain strings it uses |
+| `hash_profile` | exactly `mcfr-content-0.22.0` | the hash definition, named by the format it belongs to |
 | `result_hash` | 64 lowercase hex digits | ordered digest of every `tick_hash`; what regression compares |
 | `tick_count` | canonical decimal `u32` | logical ticks recorded, counting from `S(1)` |
 | `terminal_tick` | canonical decimal `u32` | the confirmed final logical boundary, equal to `tick_count` on a continuous timeline |
@@ -991,12 +991,11 @@ result_hash  = H_content-result-0.22.0(
 )
 ```
 
-The definition changed last with format 0.22.0, when every object stopped
-being sorted at encoding time and an event payload's `kind` came first, and
-`hash_profile`, `mcfr-content-0.22.0`, names it by that version. A format
-change that leaves `S(t)` and `E(t)` encoding the same leaves every hash where
-it was. A change to the definition itself is a new profile and new domain
-strings, never an edit in place.
+The definition is named by the format: `hash_profile` is
+`mcfr-content-<format>` and the domain strings carry the format, so every
+format is its own definition. A format change moves every hash, even one that
+leaves `S(t)` and `E(t)` encoding the same, and every pin is recorded again
+with it; a hash is never compared across two formats.
 
 `mechcore diff` and `mechcore verify` decide `equal` and the
 first divergence from this hash. `diff` also says where two recordings

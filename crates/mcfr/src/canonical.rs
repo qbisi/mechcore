@@ -57,10 +57,10 @@ fn feed(hasher: &mut blake3::Hasher, bytes: &[u8]) {
 }
 
 /// One tick's hash: its number, then the canonical bytes of its state and of
-/// its events. The domain string names the definition, which changed last in
-/// format 0.22.0, when an event payload's `kind` came first.
+/// its events. The domain string names the definition by the format.
 pub(crate) fn tick_hash(tick: u32, state: &[u8], events: &[u8]) -> [u8; HASH_BYTES] {
-    let mut hasher = CanonicalHasher::new("content-tick-0.22.0");
+    let mut hasher =
+        CanonicalHasher::new(concat!("content-tick-", crate::model::format_version!()));
     hasher.update(&tick.to_le_bytes());
     hasher.update(state);
     hasher.update(events);
@@ -69,7 +69,8 @@ pub(crate) fn tick_hash(tick: u32, state: &[u8], events: &[u8]) -> [u8; HASH_BYT
 
 /// The whole fight's hash: the tick count, then every tick's hash in order.
 pub(crate) fn result_hash(tick_hashes: &[[u8; HASH_BYTES]]) -> [u8; HASH_BYTES] {
-    let mut hasher = CanonicalHasher::new("content-result-0.22.0");
+    let mut hasher =
+        CanonicalHasher::new(concat!("content-result-", crate::model::format_version!()));
     let tick_count = u32::try_from(tick_hashes.len()).expect("tick hash count exceeds u32");
     hasher.update(&tick_count.to_le_bytes());
     for tick_hash in tick_hashes {
