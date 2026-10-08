@@ -12,7 +12,7 @@ seed: 1171883115
 round: 2
 source: game
 ticks: 767
-hash: {profile: mcfr-content-0.7.0, result: fd05cc6f4b70f00b6f578909c877dc4f7be8da214cebc34f628f190c83430f2c}
+hash: {profile: mcfr-content-0.22.0, result: c3aa3b4f2d1220f71e6bb6d6f75b11d2c2ae9e17b8325af72c93add0a2712722}
 blue:
   officers: [supply_specialist]
   blueprints: [defense_enhancement]

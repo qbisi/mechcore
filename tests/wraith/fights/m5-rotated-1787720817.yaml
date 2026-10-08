@@ -7,7 +7,7 @@ seed: 1787720817
 round: 1
 source: game
 ticks: 247
-hash: {profile: mcfr-content-0.7.0, result: 0a68c4d3a1698cbea7549d37a381558a5dcb4d48bce1a863c52dab70c754cf32}
+hash: {profile: mcfr-content-0.22.0, result: c5eecc48cbe391962f52564d3f8fc43abdc8d37f6ffb872691cc65c884955118}
 blue:
   units:
   - {name: wraith, index: 0, position: {x: -55, y: -55}, exp: 0/200/2250, rotated: true}

@@ -69,9 +69,9 @@ const MAX_LAYOUT_BYTES: u64 = 1024 * 1024;
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct StoredDurableContext {
+    combat_round: u32,
     logic_step: crate::Rational,
     time_units_per_second: u32,
-    combat_round: u32,
 }
 
 impl StoredDurableContext {
@@ -1801,6 +1801,21 @@ pub(crate) struct StorageReader {
     formations: Vec<Vec<FormationState>>,
     events: Vec<Vec<Event>>,
     instrument: BTreeMap<String, MemberSlice>,
+}
+
+/// A published container's hashes, read from its `ticks.parquet` alone with
+/// the result hash held to its tick hash column, and its members' sizes.
+pub(crate) fn published(path: &Path) -> Result<(Hashes, BTreeMap<String, u64>)> {
+    let members = open_members(path)?;
+    let member_sizes = members
+        .iter()
+        .map(|(name, member)| (name.clone(), member.len()))
+        .collect();
+    let ticks = members
+        .get("ticks.parquet")
+        .ok_or_else(|| Error::invalid("missing ticks.parquet"))?;
+    let (metadata, _) = read_ticks(ticks.clone())?;
+    Ok((metadata.hashes, member_sizes))
 }
 
 impl StorageReader {

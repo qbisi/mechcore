@@ -624,7 +624,7 @@ mod tests {
         let fight = file(
             "fight.yaml",
             "kind: fight\nseed: 4242\nround: 1\nsource: game\nticks: 1\n\
-             hash: {profile: mcfr-content-0.7.0, result: 0000000000000000000000000000000000000000000000000000000000000000}\n\
+             hash: {profile: mcfr-content-0.22.0, result: 0000000000000000000000000000000000000000000000000000000000000000}\n\
              blue:\n  units: [{name: marksman, index: 0, position: {x: 0, y: -50}, exp: 0/10/650}]\n\
              red:\n  core_damage: 3\n  units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n",
         );

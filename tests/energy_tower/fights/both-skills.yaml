@@ -10,7 +10,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 1293
-hash: {profile: mcfr-content-0.7.0, result: 009e5c0d870dc8133c58eab5ff1d061941db3cc7868c8beb043cb7d2e84836d2}
+hash: {profile: mcfr-content-0.22.0, result: 052cc46cae06dec8221b09c60bbbb0bb5647c7a7b179385a214d3f96f5d5c691}
 blue:
   core_damage: 200
   energy_tower_skills: [enhanced_range, high_mobility]

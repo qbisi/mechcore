@@ -1,11 +1,11 @@
-# MCFR 格式规范（format 0.21.0）
+# MCFR 格式规范（format 0.22.0）
 
 [English](mcfr.md)
 
 本文描述仓库当前实现的 MCFR 逻辑模型、物理容器、Adapter 原生采集来源和 Reader/Writer 校验契约。统一格式标识为：
 
 ```text
-format = "0.21.0"
+format = "0.22.0"
 ```
 
 当前 Adapter 原生字段映射绑定仓库在 `GAME_VERSION` 钉住的游戏版本。其他版本可以生成同格式录像，前提是 Producer 已验证所用原生接口与本文语义一致。
@@ -101,11 +101,11 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 
 | key | 数据规范 | 含义 |
 | --- | --- | --- |
-| `format` | 精确值 `0.21.0` | MCFR 逻辑与物理契约版本 |
+| `format` | 精确值 `0.22.0` | MCFR 逻辑与物理契约版本 |
 | `producer` | `game` 或 `simulator` | 录像由谁写出：经 Adapter 的游戏，或模拟器 |
 | `game_build` | 非空 UTF-8 | 采集构建 provenance；Adapter 来自 `UnityEngine.Application.get_version()` |
 | `durable_context` | canonical JSON | 单回合保持稳定的上下文 `D` |
-| `hash_profile` | 精确值 `mcfr-content-0.7.0` | 哈希定义，以其 domain 字符串的版本命名 |
+| `hash_profile` | 精确值 `mcfr-content-0.22.0` | 哈希定义，以它所属的格式版本命名 |
 | `result_hash` | 64 位小写十六进制 | 全部 `tick_hash` 的有序摘要；回归判断依据 |
 | `tick_count` | `u32` 规范十进制 | 从 `S(1)` 开始记录的逻辑 tick 数 |
 | `terminal_tick` | `u32` 规范十进制 | 已确认的最终逻辑边界；当前连续时间线中等于 `tick_count` |
@@ -135,7 +135,7 @@ Parquet key-value metadata 的 key 和 value 均为 UTF-8 字符串。
 | 字段 | Parquet 类型 | 含义 | Adapter 原生来源 |
 | --- | --- | --- | --- |
 | `tick` | `UINT32 required` | 状态所属逻辑时刻 | Adapter 逻辑帧计数 |
-| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.21.0 身份规则，见附录 B |
+| `unit_id` | `UINT64 required` | Unit namespace 内稳定 ID | format 0.22.0 身份规则，见附录 B |
 | `team_id` | `UINT32 required` | 当前所属队伍 | `FightTeam` controller index |
 | `original_team_id` | `UINT32 required` | 首次出现时的队伍 | 首次采样的 `team_id` |
 | `formation_id` | `UINT64 required` | 编队身份 | `FightMech.GetMechTeam()` 指针映射 |
@@ -623,9 +623,9 @@ ObjectRef = { kind: ObjectKind, id: u64 }
 
 # 附录 B — 身份与排序约定
 
-## B.1 format 0.21.0 身份规则
+## B.1 format 0.22.0 身份规则
 
-format `0.21.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
+format `0.22.0` 采用 `team_zx_sequential_v1`。初始 Unit 按 `(team_id, position.z, position.x)` 严格升序排列，再依次分配 `unit_id = 1..N`。同一队伍的初始单位具有唯一 `(z, x)`，因此 Adapter 与 Simulator 可从相同场景构造相同编号。
 
 战斗期间首次出现的 Unit 按首次观察顺序取得当前 Unit namespace 的下一个连续编号。Unit namespace 从 1 开始单调递增；历史引用持续使用对象首次取得的编号。
 
@@ -666,17 +666,17 @@ LE_u64(byte_length) || bytes
 
 ## C.2 定义
 
-完整状态和事件先编码为 canonical JSON：UTF-8、递归字典序排列 object key、紧凑编码和 schema 定义的数组顺序。哈希覆盖全部 `S(t)`/`E(t)` 字段；它不包含布局、DurableContext 或其他文件元数据。
+完整状态和事件先编码为 canonical JSON：UTF-8、紧凑编码、每个 object 的 key 按其类型声明字段的顺序、数组按 schema 定义的顺序。`S(t)`/`E(t)` 的每个类型都按字节序声明字段，所以 object 的 key 是有序的；唯一的例外是事件的 `payload`，它的 `kind` 在最前，其余 key 在后并按字节序。JSON 就是 `serde_json` 按值原样写出的内容，编码时不对任何 object 排序，因此乱序新增的字段会改变哈希；crate 的测试保证每个声明都按字节序。哈希覆盖全部 `S(t)`/`E(t)` 字段；它不包含布局、DurableContext 或其他文件元数据。
 
 ```text
-tick_hash(t) = H_content-tick-0.7.0(LE_u32(t), JSON(S(t)), JSON(E(t)))
-result_hash  = H_content-result-0.7.0(
+tick_hash(t) = H_content-tick-0.22.0(LE_u32(t), JSON(S(t)), JSON(E(t)))
+result_hash  = H_content-result-0.22.0(
     LE_u32(tick_count),
     tick_hash(1)..tick_hash(n)
 )
 ```
 
-这个定义比格式老：它的 domain 字符串和公式自 format 0.7.0 起没有变过，`hash_profile` 的值 `mcfr-content-0.7.0` 就以这个版本命名。格式变了而 `S(t)`、`E(t)` 的编码不变，所有哈希就都不动；定义本身要变，就是新的 profile 和新的 domain 字符串，不能就地修改。
+这个定义以格式版本命名：`hash_profile` 为 `mcfr-content-<format>`，domain 字符串也带格式版本，所以每个格式都是它自己的定义。格式一变，所有哈希都会变，即使 `S(t)`、`E(t)` 的编码没变；所有 pin 随之重录，哈希从不跨两个格式比较。
 
 `mechcore diff` 与 `mechcore verify` 以这个哈希决定 `equal` 和首个分歧。`diff` 还会逐字段说明两份录像在哪里不同，这是哈希做不到的：字段组的定义见 [cli.md](../mechcore/cli.md#diff)。
 

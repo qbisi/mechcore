@@ -7,7 +7,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 160
-hash: {profile: mcfr-content-0.7.0, result: e39ff154693b520308bc1ebbe04a8cad1440ebb1608cf3df7879679f7ea9d629}
+hash: {profile: mcfr-content-0.22.0, result: 6704cefd448ece10b3c6edf855799cb0d33b474fe8bc9a4f111a965605b3fae4}
 blue:
   units:
   - {name: centurion, index: 0, position: {x: 5, y: -45}, exp: 0/600/2250}

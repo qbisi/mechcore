@@ -11,7 +11,7 @@ seed: 4242
 round: 3
 source: game
 ticks: 555
-hash: {profile: mcfr-content-0.7.0, result: 2dfebb74ad98b30076cd34e2efb8e52896f6084739775e321a29284bed17f76f}
+hash: {profile: mcfr-content-0.22.0, result: 2eb7c3808c8018ef2f66b8b437cb3f545324dd92783823c89e190cdd44aa05f0}
 blue:
   officers: [sabertooth_specialist]
   legacy_index: 2

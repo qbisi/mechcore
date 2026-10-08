@@ -7,7 +7,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 252
-hash: {profile: mcfr-content-0.7.0, result: 7d7516c7a28e3c2b78e5c7eb87239dd3143becd25cbed3b49e9e619adeed2c2a}
+hash: {profile: mcfr-content-0.22.0, result: 1d450add78541cd6373d4f73783615e18a842d83fa080dce9f3f62134e2e4dde}
 blue:
   units:
   - {name: typhoon, index: 0, position: {x: 0, y: -120}, exp: 0/24/1950}

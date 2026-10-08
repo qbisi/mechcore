@@ -13,7 +13,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 273
-hash: {profile: mcfr-content-0.7.0, result: f806092fb1f92423bedebbaf32b4adf66b633370c649b5a8e9a7005cf74d23fd}
+hash: {profile: mcfr-content-0.22.0, result: 8fa2170c61320ad2bcce14cc3af89744910fd16a6992432edcfe00cd16f4ba53}
 blue:
   techs:
     void_eye: [electromagnetic_armor]

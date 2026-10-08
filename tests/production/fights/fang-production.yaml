@@ -15,7 +15,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 405
-hash: {profile: mcfr-content-0.7.0, result: 016c9f039c56255478ce412ab2090c774922887779874c39204b3770a73e4776}
+hash: {profile: mcfr-content-0.22.0, result: e77701131515f7aa27e0c4e7a50316db402c843e6f9216ad4c5b7337e6ed317f}
 blue:
   techs:
     fortress: [fang_production]

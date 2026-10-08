@@ -24,6 +24,9 @@ pub struct McfrWriter {
     /// Every tick appended, for a writer that keeps the timeline in memory.
     memory: Option<Vec<(WorldSnapshot, TransitionEvents)>>,
     tick_hashes: Vec<[u8; canonical::HASH_BYTES]>,
+    /// The canonical bytes of the tick last hashed, kept to reuse.
+    state_bytes: Vec<u8>,
+    event_bytes: Vec<u8>,
     poisoned: bool,
 }
 
@@ -69,6 +72,8 @@ impl McfrWriter {
             identity_initialized: false,
             memory: None,
             tick_hashes: Vec::new(),
+            state_bytes: Vec::new(),
+            event_bytes: Vec::new(),
             poisoned: false,
         })
     }
@@ -91,6 +96,8 @@ impl McfrWriter {
             identity_initialized: false,
             memory: None,
             tick_hashes: Vec::new(),
+            state_bytes: Vec::new(),
+            event_bytes: Vec::new(),
             poisoned: false,
         })
     }
@@ -120,6 +127,8 @@ impl McfrWriter {
             identity_initialized: false,
             memory: Some(Vec::new()),
             tick_hashes: Vec::new(),
+            state_bytes: Vec::new(),
+            event_bytes: Vec::new(),
             poisoned: false,
         })
     }
@@ -145,9 +154,9 @@ impl McfrWriter {
             IdentityAllocator::from_initial(&state)?;
             self.identity_initialized = true;
         }
-        let state_bytes = canonical::encode(&state)?;
-        let event_bytes = canonical::encode(events)?;
-        let tick_hash = canonical::tick_hash(tick, &state_bytes, &event_bytes);
+        canonical::encode_into(&mut self.state_bytes, &state)?;
+        canonical::encode_into(&mut self.event_bytes, events)?;
+        let tick_hash = canonical::tick_hash(tick, &self.state_bytes, &self.event_bytes);
         self.poisoned = true;
         if let Some(storage) = &mut self.storage {
             storage.append_tick(tick, &state, events, tick_hash)?;

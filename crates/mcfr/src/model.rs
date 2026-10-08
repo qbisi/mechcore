@@ -4,10 +4,19 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result, canonical};
 
-pub const MCFR_FORMAT: &str = "0.21.0";
-/// Names the hash definition, which is older than the format: the domain
-/// strings and canonical inputs have not moved since format 0.7.0.
-pub const HASH_PROFILE: &str = "mcfr-content-0.7.0";
+/// The format, which also names the hash definition: every format is its own
+/// profile and domain strings, so a recording's hash is never read across
+/// two formats.
+macro_rules! format_version {
+    () => {
+        "0.22.0"
+    };
+}
+pub(crate) use format_version;
+
+pub const MCFR_FORMAT: &str = format_version!();
+/// Names the hash definition by the format it belongs to.
+pub const HASH_PROFILE: &str = concat!("mcfr-content-", format_version!());
 
 /// What wrote a recording: the game, through the Adapter, or the simulator.
 ///
@@ -72,9 +81,9 @@ impl Hashes {
 #[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct TickSlice {
-    pub tick: u32,
-    pub state: WorldSnapshot,
     pub events: TransitionEvents,
+    pub state: WorldSnapshot,
+    pub tick: u32,
     pub tick_hash: String,
 }
 
@@ -89,10 +98,10 @@ pub struct TickHashes {
 #[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct DurableContext {
-    pub logic_step: Rational,
-    pub time_units_per_second: u32,
     pub combat_round: u32,
+    pub logic_step: Rational,
     pub match_seed: i32,
+    pub time_units_per_second: u32,
 }
 
 impl DurableContext {
@@ -117,8 +126,8 @@ impl DurableContext {
 #[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Rational {
-    pub numerator: u32,
     pub denominator: u32,
+    pub numerator: u32,
 }
 
 impl Rational {
@@ -137,21 +146,21 @@ impl Rational {
 #[serde(deny_unknown_fields)]
 pub struct WorldSnapshot {
     #[serde(default)]
+    pub buildings: Vec<BuildingState>,
+    /// Every formation's experience, which kills add to inside the tick.
+    #[serde(default)]
+    pub formations: Vec<FormationState>,
+    #[serde(default)]
     pub live_units: Vec<LiveUnitState>,
     #[serde(default)]
     pub projectiles: Vec<ProjectileState>,
     #[serde(default)]
-    pub buildings: Vec<BuildingState>,
-    #[serde(default)]
     pub shields: Vec<ShieldState>,
-    #[serde(default)]
-    pub terrains: Vec<TerrainState>,
     /// The build's own damage and kill counters for the fight so far.
     #[serde(default)]
     pub statistics: Vec<DamageStatistics>,
-    /// Every formation's experience, which kills add to inside the tick.
     #[serde(default)]
-    pub formations: Vec<FormationState>,
+    pub terrains: Vec<TerrainState>,
 }
 
 /// A formation's experience, `MechTeam`'s own: what `ExpSystem` hands it for
@@ -160,13 +169,13 @@ pub struct WorldSnapshot {
 #[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct FormationState {
-    pub formation_id: u64,
-    pub team_id: u32,
     /// `MechTeam.expFloat`, `FPoint` raw. A formation that has never gained
     /// any holds -1.0, the build's reset value.
     pub experience: i64,
+    pub formation_id: u64,
     /// `MechTeam.maxExpFloat`, `FPoint` raw: the full bar, where gains stop.
     pub max_experience: i64,
+    pub team_id: u32,
 }
 
 /// Whose counters a row of the build's damage statistics is.
@@ -191,21 +200,21 @@ pub enum RecorderKind {
 #[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct DamageStatistics {
-    pub team_id: u32,
-    pub recorder: RecorderKind,
-    /// The formation's `formation_id`; for a construction group, the lowest
-    /// `building_id` among its constructions; for a unit, its `unit_id`.
-    pub recorder_id: u64,
     /// `DamageMax`: the sum of each hit's damage after every mitigation, before
     /// it is held to what the target had left.
     pub damage: i32,
     /// `DamageReal`: the life, or personal shield energy, the hits took.
     pub damage_real: i32,
-    /// `KillCount`: hits after which their target was no longer alive.
-    pub kills: i32,
     /// `DamageTaken`: what the recorder's own members were hit for, raised
     /// by what increases damage taken and before anything reduces it.
     pub damage_taken: i32,
+    /// `KillCount`: hits after which their target was no longer alive.
+    pub kills: i32,
+    pub recorder: RecorderKind,
+    /// The formation's `formation_id`; for a construction group, the lowest
+    /// `building_id` among its constructions; for a unit, its `unit_id`.
+    pub recorder_id: u64,
+    pub team_id: u32,
 }
 
 impl DamageStatistics {
@@ -504,18 +513,32 @@ impl ObjectKind {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+/// Its fields are declared in key order, as every hashed object's are, and it
+/// orders by kind and then id.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct ObjectRef {
-    pub kind: ObjectKind,
     pub id: u64,
+    pub kind: ObjectKind,
+}
+
+impl Ord for ObjectRef {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        (self.kind, self.id).cmp(&(other.kind, other.id))
+    }
+}
+
+impl PartialOrd for ObjectRef {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl ObjectRef {
     #[must_use]
     pub const fn new(kind: ObjectKind, id: u64) -> Self {
-        Self { kind, id }
+        Self { id, kind }
     }
 }
 
@@ -525,8 +548,8 @@ impl ObjectRef {
 /// namespace. Every namespace starts at one and advances without gaps.
 #[derive(Debug, Clone)]
 pub struct IdentityAllocator {
-    next_object_ids: [u64; ObjectKind::COUNT],
     next_formation_id: u64,
+    next_object_ids: [u64; ObjectKind::COUNT],
 }
 
 impl Default for IdentityAllocator {
@@ -677,41 +700,41 @@ pub enum Visibility {
 #[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct LiveUnitState {
-    pub unit_id: u64,
-    pub team_id: u32,
-    pub original_team_id: u32,
-    pub formation_id: u64,
-    pub unit_type_id: u32,
-    pub domain: Domain,
-    pub position: QVec3,
+    pub active: bool,
     pub body_rotation: i64,
+    /// Every buff in the unit's `BuffManager.buffs`, in the build's order.
+    #[serde(default)]
+    pub buffs: Vec<BuffState>,
+    pub collision_radius: i64,
+    /// The unit's entry in `TeamTranslationSystem.translatingDatas` while a
+    /// control beam is turning it, and null while none is.
+    #[serde(default)]
+    pub control: Option<ControlState>,
+    pub domain: Domain,
+    pub formation_id: u64,
+    pub life: GaugeI32,
+    pub mech_lock_target: Option<ObjectRef>,
+    pub motion_state: MotionState,
+    /// `FightMech.GetMoveSpeed()`, Q32.32 raw: the speed the fight moves the
+    /// unit at, after every correction on it.
+    pub move_speed: i64,
+    pub original_team_id: u32,
+    pub personal_shield: PersonalShieldState,
+    pub position: QVec3,
+    /// Every skill `FightMech.GetSkills()` holds, strictly ascending by slot.
+    #[serde(default)]
+    pub skills: Vec<SkillState>,
+    pub targetable: bool,
+    pub team_id: u32,
     /// The rotation of the unit's turret, `FightMech.mechBody`'s
     /// `FightTransform`: what a unit with a body turns toward its attack
     /// target and measures its attack angle from, while `body_rotation`
     /// keeps the chassis. Null for a unit without a body.
     pub turret_rotation: Option<i64>,
+    pub unit_id: u64,
+    pub unit_type_id: u32,
     pub velocity: QPlanar,
-    pub motion_state: MotionState,
-    pub mech_lock_target: Option<ObjectRef>,
-    pub collision_radius: i64,
-    pub life: GaugeI32,
-    pub active: bool,
-    pub targetable: bool,
     pub visibility: Visibility,
-    /// Every buff in the unit's `BuffManager.buffs`, in the build's order.
-    #[serde(default)]
-    pub buffs: Vec<BuffState>,
-    pub personal_shield: PersonalShieldState,
-    /// `FightMech.GetMoveSpeed()`, Q32.32 raw: the speed the fight moves the
-    /// unit at, after every correction on it.
-    pub move_speed: i64,
-    /// Every skill `FightMech.GetSkills()` holds, strictly ascending by slot.
-    #[serde(default)]
-    pub skills: Vec<SkillState>,
-    /// The unit's entry in `TeamTranslationSystem.translatingDatas` while a
-    /// control beam is turning it, and null while none is.
-    #[serde(default)]
-    pub control: Option<ControlState>,
 }
 
 /// A unit a control beam is turning: a `TranslationData`.
@@ -735,12 +758,12 @@ pub struct ControlState {
 #[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct SkillState {
-    /// The skill's index in `GetSkills()`.
-    pub skill_slot: u16,
     /// What the skill holds while `FightSkill.IsEnable()`, and null while a
     /// buff has switched it off: a switched-off skill keeps its slot and
     /// nothing else of it is read.
     pub enabled: Option<EnabledSkill>,
+    /// The skill's index in `GetSkills()`.
+    pub skill_slot: u16,
 }
 
 /// What an enabled skill holds at the sampling boundary.
@@ -748,32 +771,32 @@ pub struct SkillState {
 #[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct EnabledSkill {
-    /// `FightSkill.lockTarget`.
-    pub lock_target: Option<ObjectRef>,
-    /// `FightSkill.GetAttackTarget()`: what the skill's weapons fire at.
-    pub attack_target: Option<ObjectRef>,
-    /// The `SkillStateController` state.
-    pub state: SkillMachineState,
+    /// `FightSkill.GetAttackCount()`: the blows started since the skill
+    /// entered its attack state, less one.
+    pub attack_count: i32,
+    /// `FightSkill.GetNormalDamage(0)`.
+    pub attack_damage: i32,
     /// The `SkillAttackController` phase, null while no blow is under way.
     pub attack_phase: Option<AttackPhase>,
+    /// `FightSkill.GetAttackRange()`, Q32.32 raw.
+    pub attack_range: i64,
+    /// `FightSkill.GetAttackTarget()`: what the skill's weapons fire at.
+    pub attack_target: Option<ObjectRef>,
     /// `FightSkill.attackTime`, logic ticks.
     pub attack_time: i32,
     /// `FightSkill.GetCurrentAttackInterval()`: the interval this cycle was
     /// scheduled with, stagger included, in logic ticks.
     pub current_attack_interval: i32,
-    /// `FightSkill.GetAttackCount()`: the blows started since the skill
-    /// entered its attack state, less one.
-    pub attack_count: i32,
+    /// `FightSkill.lockTarget`.
+    pub lock_target: Option<ObjectRef>,
     /// `SkillAttackController.performCount`: the blows whose cycle has run
     /// out, backswing and all, since the skill entered its attack state.
     pub perform_count: i32,
-    /// `FightSkill.GetAttackRange()`, Q32.32 raw.
-    pub attack_range: i64,
     /// `FightSkill.GetSplashRange()`, Q32.32 raw: 0 for a skill that does not
     /// splash.
     pub splash_range: i64,
-    /// `FightSkill.GetNormalDamage(0)`.
-    pub attack_damage: i32,
+    /// The `SkillStateController` state.
+    pub state: SkillMachineState,
     /// The skill's weapons, strictly ascending by index.
     #[serde(default)]
     pub weapons: Vec<WeaponState>,
@@ -816,11 +839,11 @@ pub enum AttackPhase {
 #[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct WeaponState {
-    /// `WeaponData.get_Index()`.
-    pub weapon_index: i32,
     /// The weapon's `FightTransform`, null for a weapon without one.
     #[serde(default)]
     pub pose: Option<QPose>,
+    /// `WeaponData.get_Index()`.
+    pub weapon_index: i32,
 }
 
 /// Compares initial units in format 0.3.0 identity order.
@@ -916,8 +939,8 @@ pub enum BuffDataKind {
 #[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct BuffDataRef {
-    pub kind: BuffDataKind,
     pub id: u32,
+    pub kind: BuffDataKind,
 }
 
 /// One `Buff` a unit holds: what it carries from tick to tick.
@@ -926,44 +949,44 @@ pub struct BuffDataRef {
 #[serde(deny_unknown_fields)]
 pub struct BuffState {
     pub data: BuffDataRef,
+    /// `Buff.maxDurationtime`: ticks it runs for in all, lengthened by each
+    /// reset.
+    pub duration: i32,
+    /// `Buff.durationTime`: ticks run since it was written or last reset.
+    pub elapsed: i32,
     /// `Buff.source`: the unit or building it counts as from, null for one
     /// no object wrote.
     #[serde(default)]
     pub source: Option<ObjectRef>,
     /// `Buff.sourceTeamController`: the side it is from.
     pub source_team: u32,
-    /// `Buff.durationTime`: ticks run since it was written or last reset.
-    pub elapsed: i32,
-    /// `Buff.maxDurationtime`: ticks it runs for in all, lengthened by each
-    /// reset.
-    pub duration: i32,
-    /// `Buff.stepTime`: its periodic clock.
-    pub step: i32,
     /// `IBEC_AdditiveEffectBuff.additiveStack`, 0 for a buff that does not
     /// stack.
     pub stacks: i32,
+    /// `Buff.stepTime`: its periodic clock.
+    pub step: i32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct ProjectileState {
-    pub projectile_id: u64,
-    pub team_id: u32,
-    #[serde(default)]
-    pub owner: Option<ObjectRef>,
-    pub position: QVec3,
-    #[serde(default)]
-    pub target: Option<ObjectRef>,
     pub cached_target_position: QVec3,
     pub cached_target_radius: i64,
+    pub life: GaugeI32,
     /// `FightProjectile.moveRange`, Q32.32 raw: the reach it was given as it
     /// was made, which a projectile locking its target must stay within of
     /// its owner to land.
     pub move_range: i64,
-    pub life: GaugeI32,
+    #[serde(default)]
+    pub owner: Option<ObjectRef>,
+    pub position: QVec3,
+    pub projectile_id: u64,
     #[serde(default)]
     pub spawn_containing_shields: Vec<ObjectRef>,
+    #[serde(default)]
+    pub target: Option<ObjectRef>,
+    pub team_id: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -978,16 +1001,16 @@ pub struct GaugeI32 {
 #[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct BuildingState {
-    pub building_id: u64,
-    pub team_id: u32,
-    pub building_type_id: u32,
-    pub position: QVec3,
-    pub bounds_width: i64,
-    pub bounds_height: i64,
-    pub life: GaugeI32,
     pub available: bool,
-    pub targetable: bool,
+    pub bounds_height: i64,
+    pub bounds_width: i64,
+    pub building_id: u64,
+    pub building_type_id: u32,
     pub collision_enabled: bool,
+    pub life: GaugeI32,
+    pub position: QVec3,
+    pub targetable: bool,
+    pub team_id: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -1056,18 +1079,18 @@ pub enum BuffRemovedReason {
 #[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct ShieldState {
-    pub shield_id: u64,
-    pub team_id: u32,
-    pub source_kind: ShieldSourceKind,
+    pub active: bool,
+    #[serde(default)]
+    pub active_order: Option<u32>,
+    pub energy: GaugeI32,
     #[serde(default)]
     pub owner: Option<ObjectRef>,
     pub position: QVec3,
     pub radius: i64,
-    pub energy: GaugeI32,
     pub round_policy: ShieldRoundPolicy,
-    pub active: bool,
-    #[serde(default)]
-    pub active_order: Option<u32>,
+    pub shield_id: u64,
+    pub source_kind: ShieldSourceKind,
+    pub team_id: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -1088,9 +1111,9 @@ pub enum TerrainType {
 pub struct TerrainGridState {
     pub origin_x: i64,
     pub origin_y: i64,
+    pub rows: Vec<u32>,
     pub size_x: u32,
     pub size_y: u32,
-    pub rows: Vec<u32>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -1105,37 +1128,37 @@ pub struct TerrainLogicLifetime {
 #[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct TerrainApplicationState {
-    pub unit_id: u64,
     #[serde(default)]
     pub periodic_clock: Option<TerrainEffectClock>,
+    pub unit_id: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct TerrainEffectClock {
-    pub elapsed: i32,
     pub duration: i32,
+    pub elapsed: i32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct TerrainState {
-    pub terrain_id: u64,
     #[serde(default)]
-    pub team_id: Option<u32>,
-    pub terrain_type: TerrainType,
-    pub position: QVec3,
-    pub radius: i64,
+    pub applications: Vec<TerrainApplicationState>,
     #[serde(default)]
     pub grid: Option<TerrainGridState>,
     #[serde(default)]
+    pub logic_lifetime: Option<TerrainLogicLifetime>,
+    pub position: QVec3,
+    pub radius: i64,
+    #[serde(default)]
     pub remaining_rounds: Option<u32>,
     #[serde(default)]
-    pub logic_lifetime: Option<TerrainLogicLifetime>,
-    #[serde(default)]
-    pub applications: Vec<TerrainApplicationState>,
+    pub team_id: Option<u32>,
+    pub terrain_id: u64,
+    pub terrain_type: TerrainType,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -1150,15 +1173,15 @@ pub struct TransitionEvents {
 #[cfg_attr(test, derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Event {
-    #[serde(default)]
-    pub subject: Option<ObjectRef>,
+    pub payload: EventPayload,
     #[serde(default)]
     pub source: Option<ObjectRef>,
     #[serde(default)]
     pub source_team_id: Option<u32>,
     #[serde(default)]
+    pub subject: Option<ObjectRef>,
+    #[serde(default)]
     pub target: Option<ObjectRef>,
-    pub payload: EventPayload,
 }
 
 impl Event {
@@ -1198,10 +1221,10 @@ pub enum EventPayload {
         weapon_index: Option<i32>,
     },
     ProjectileRemoved {
-        position: QVec3,
-        intercepted: bool,
         #[serde(default)]
         absorbed_by: Option<ObjectRef>,
+        intercepted: bool,
+        position: QVec3,
     },
     Damage {
         amount: i32,
@@ -1212,10 +1235,10 @@ pub enum EventPayload {
         skill_slot: Option<u16>,
     },
     UnitCreated {
-        team_id: u32,
         formation_id: u64,
-        unit_type_id: u32,
         position: QVec3,
+        team_id: u32,
+        unit_type_id: u32,
     },
     UnitDied {
         position: QVec3,
@@ -1224,23 +1247,23 @@ pub enum EventPayload {
         position: QVec3,
     },
     UnitTeamChanged {
-        previous_team_id: u32,
         new_team_id: u32,
+        previous_team_id: u32,
     },
     ShieldCreated {
-        team_id: u32,
-        source_kind: ShieldSourceKind,
         position: QVec3,
+        source_kind: ShieldSourceKind,
+        team_id: u32,
     },
     ShieldDestroyed {
         position: QVec3,
         reason: ShieldDestroyedReason,
     },
     TerrainCreated {
-        team_id: Option<u32>,
-        terrain_type: TerrainType,
         position: QVec3,
         radius: i64,
+        team_id: Option<u32>,
+        terrain_type: TerrainType,
     },
     TerrainRemoved {
         position: QVec3,

@@ -12,7 +12,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 195
-hash: {profile: mcfr-content-0.7.0, result: b38415759a74b9ea98edf5ee04f4a016ab55c13bc9e143e76cd0536eb87f6434}
+hash: {profile: mcfr-content-0.22.0, result: bfc02b2b2e0c137b5f894cfed065ccd77c81052819884ca846eda3a20638732a}
 blue:
   units:
   - {name: stormcaller, index: 0, position: {x: 5, y: -40}, exp: 0/300/1100}

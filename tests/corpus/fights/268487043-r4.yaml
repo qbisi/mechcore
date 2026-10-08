@@ -10,7 +10,7 @@ seed: 1041759675
 round: 4
 source: game
 ticks: 1166
-hash: {profile: mcfr-content-0.7.0, result: aa9887d0110c1adc94e4cbd84cdf305d122148505f2defcd3fb1a49eb5cff64a}
+hash: {profile: mcfr-content-0.22.0, result: 7a237b6971ae5e23995fe751efc3afc3b571ba0fa48f5cc33824b9748c6a95fa}
 blue:
   core_damage: 450
   officers: [sabertooth_specialist]

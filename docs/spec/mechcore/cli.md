@@ -287,10 +287,11 @@ duration and its rate against the fight's own time, and splits the duration
 into phases that add up to it: `prepare`, building the scene; `step`, the
 rules advancing each tick; `snapshot`, reading each tick's state out; `record`,
 hashing each tick and storing it when a recording is kept; and `finish`,
-closing the recording and reopening a written one to check it. Beside them it
-states the fight's size as `unit_ticks`, the live units summed over every
-tick, with `peak_live_units`, and the step's cost per tick and per unit-tick,
-with the tick whose step took longest and how many units it had.
+closing the recording and reading a written one's tick hashes back to check
+its result hash. Beside them it states the fight's size as `unit_ticks`, the
+live units summed over every tick, with `peak_live_units`, and the step's cost
+per tick and per unit-tick, with the tick whose step took longest and how many
+units it had.
 
 **`--profile <svg>` samples where the time goes.** The phases say how a
 conversion's duration splits; `--profile` says which functions inside them it

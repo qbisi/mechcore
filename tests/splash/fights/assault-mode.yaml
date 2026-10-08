@@ -9,7 +9,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 361
-hash: {profile: mcfr-content-0.7.0, result: 9319a56e4edc6786abd3c18cfb05910a96f3bd43fff3f040f53a1431548f5251}
+hash: {profile: mcfr-content-0.22.0, result: b642bf408b0e84a6a1fdd3d6ad2eb13463cbc02e2cc262324a3ce600bac3c0de}
 blue:
   techs:
     marksman: [assault_mode]

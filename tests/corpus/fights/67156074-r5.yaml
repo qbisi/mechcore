@@ -9,7 +9,7 @@ seed: 718623077
 round: 5
 source: game
 ticks: 873
-hash: {profile: mcfr-content-0.7.0, result: 32a6d79279d461c83c2f6c64fdf2841936f491aa685a1b8fbad5bc6ad8a824a2}
+hash: {profile: mcfr-content-0.22.0, result: 6f30970210977d06e124b40e07dbb43aa42f319b116ad13ae395fabc880833f1}
 blue:
   core_damage: 1406
   officers: [training_specialist, mass_production_fire_control_system]

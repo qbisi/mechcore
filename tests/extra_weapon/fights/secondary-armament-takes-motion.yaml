@@ -13,7 +13,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 188
-hash: {profile: mcfr-content-0.7.0, result: 6a34499b7de806663eafeb723e29d41059d31c706ccd9b140b79b4a0ce5bcdea}
+hash: {profile: mcfr-content-0.22.0, result: 2db527fd4eac313b83a69f3a734b05ba41e3a38269d1a9fc0c417fe4b473292a}
 blue:
   techs:
     sabertooth: [secondary_armament]

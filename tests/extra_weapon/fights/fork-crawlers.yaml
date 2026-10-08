@@ -13,7 +13,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 262
-hash: {profile: mcfr-content-0.7.0, result: 906083cf560a45343cf01a732634c66aec29df22612b67d9e59ef20526f6bc02}
+hash: {profile: mcfr-content-0.22.0, result: fa360bfe585e6ad69de13a61a1d3ab3989f477d6cecc9ed921eedbc0af49da6b}
 blue:
   techs:
     raiden: [fork]

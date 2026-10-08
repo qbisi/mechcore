@@ -12,7 +12,7 @@ seed: 712905480
 round: 6
 source: game
 ticks: 1136
-hash: {profile: mcfr-content-0.7.0, result: a339dbdd30aa47e595d005015a3b07fef1a7a854bbdc651738433438a40ad278}
+hash: {profile: mcfr-content-0.22.0, result: f22299a4a9c50888a149ffc715ae5853f61b0e57941ef59f4c4e7e29a282aaa5}
 blue:
   officers: [training_specialist, advanced_defensive_tactics]
   techs:

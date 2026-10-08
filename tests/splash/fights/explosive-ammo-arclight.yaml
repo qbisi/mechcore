@@ -8,7 +8,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 153
-hash: {profile: mcfr-content-0.7.0, result: 5a4138ead80bb95607f2aa59f919e73c27631f2cb0b2019b2e9f63b755d5fe64}
+hash: {profile: mcfr-content-0.22.0, result: 34cbeb461df13410459811783d46bbe32e72e3f78225bb27f2465064adcb28ef}
 blue:
   units:
   - {name: arclight, index: 0, position: {x: 0, y: -100}, exp: 0/192/750, equipment: [explosive_ammo]}

@@ -11,7 +11,7 @@ seed: 967292045
 round: 3
 source: game
 ticks: 1653
-hash: {profile: mcfr-content-0.7.0, result: 955e72790817fd801dcae0578334ce72922523f211cdd7571c0034f3cd519d79}
+hash: {profile: mcfr-content-0.22.0, result: 8f44c36fa54c6827f6d02210fa6c1a8b47bc4c18d2158e1f6969d5009dd8ae26}
 blue:
   officers: [secondary_equipment_expert]
   techs:
