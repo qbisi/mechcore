@@ -335,10 +335,22 @@ whole metres with its draws added, turned by the War Factory's facing from
 where the War Factory then stands, facing as it faces
 (`FightMech.UpdatePositionAndRotation`).
 
-A row whose makes appear any other way, take a level of their own, are
-corrected by the row, are capped in all, come in its `intensifyMode` or
-without their side's technologies is refused by name: Electromagnetic Twin
-corrects its make.
+Electromagnetic Twin makes a Vortex Mirage at the unit's first level, 25
+metres behind it, by a transition, once. Its `position_space` 0
+(`SupportUnitPositionSpace.None`) turns the offset by the unit's root, as 1
+does: `SpecialSupportUnitData.GetRotation` turns by the body for 2 alone. The
+row corrects its make (`SupportUnitCreator.CreateMech`): its
+`unit_life_rate` joins the make's `MechDataChangeFloatRate.LifeRate`, and its
+`unit_damage_rate` its main skill's `SkillDataChangeFloatRate.DamageRate`,
+both written by the line, so no technology switch takes them away. The
+Mirage's life rate of -1 leaves it 1 point of life, the least
+`FightMech.CalculateMaxLife` gives any unit, and its damage rate of -0.7
+leaves it 30% of a Vortex's damage.
+
+A row whose makes appear any other way, take a level of their own, have their
+attack range corrected by the row, are capped in all, come in its
+`intensifyMode` or without their side's technologies is refused by name; no
+row of this version does.
 
 ## What this table does not carry
 

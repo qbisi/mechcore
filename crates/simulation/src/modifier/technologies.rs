@@ -158,6 +158,10 @@ const PRIORITY: i32 = 0;
 /// The module that tags every entry a technology writes.
 pub(crate) const SOURCE: &str = "Modifier";
 
+/// What a production line writes onto its makes is its
+/// `SupportUnitData.modifyData`'s, which no technology switch takes away.
+const MAKE_SOURCE: &str = "SupportUnitData";
+
 /// What an armour technology writes is its effect provider's,
 /// `ArmorStrengthenEffectProvider`, which `FightEffectSystem.ActiveEffect`
 /// enables: a unit that travels in holds it once it arrives.
@@ -497,7 +501,10 @@ const PRODUCED: [i32; 2] = [6, 8];
 /// row's `productTime`, and made by `SummonSystem.CreateMechDelaySetPos`.
 const COMES_OUT: i32 = 7;
 
-/// `SupportUnitPositionSpace.Parent` and `ParentBody`.
+/// `SupportUnitPositionSpace.None`, `Parent` and `ParentBody`.
+/// `SpecialSupportUnitData.GetRotation` turns an offset by the unit's body for
+/// `ParentBody` and by its root otherwise.
+const NO_SPACE: i32 = 0;
 const PARENT_SPACE: i32 = 1;
 const PARENT_BODY_SPACE: i32 = 2;
 
@@ -521,7 +528,7 @@ impl SupportBlock {
 
     /// The line it runs, or why this build will not run it: one whose makes
     /// appear any way but at once or in their time at their offsets, at a
-    /// level of their own, corrected by the row, capped in
+    /// level of their own, whose attack range the row corrects, capped in
     /// all, made in its intensify mode or without its side's technologies.
     fn line(&self, who: &str) -> std::result::Result<ProductionLine, String> {
         let unread = [
@@ -540,15 +547,13 @@ impl SupportBlock {
                 "a unitLevel of its own",
             ),
             (
-                ![PARENT_SPACE, PARENT_BODY_SPACE].contains(&self.position_space),
-                "a positionSpace other than its unit's",
+                ![NO_SPACE, PARENT_SPACE, PARENT_BODY_SPACE].contains(&self.position_space),
+                "a positionSpace other than 0, 1 or 2",
             ),
             (self.max_create_count != 0, "a maxCreateCount"),
             (
-                self.unit_life_rate != 0
-                    || self.unit_damage_rate != 0
-                    || self.unit_attack_range_value != 0,
-                "a correction of its makes",
+                self.unit_attack_range_value != 0,
+                "a correction of its makes' attack range",
             ),
             (self.intensify_mode, "its intensifyMode"),
             (
@@ -580,6 +585,23 @@ impl SupportBlock {
             } else {
                 super::sources::Arrival::InPlace
             },
+            make_corrections: effects::corrections(Fields {
+                life_rate: Some(self.unit_life_rate),
+                damage_rate: Some(self.unit_damage_rate),
+                ..Fields::default()
+            })
+            .into_iter()
+            .map(|(channel, index, correction)| {
+                (
+                    channel,
+                    Entry {
+                        index,
+                        source: MAKE_SOURCE,
+                        correction,
+                    },
+                )
+            })
+            .collect(),
             gated: false,
         })
     }

@@ -1,0 +1,26 @@
+# Electromagnetic Twin on blue's Vortex: a technology's production line that
+# makes a Vortex Mirage 25 metres behind its Vortex as the fight starts, by a
+# transition (`appearType` 5), in `SupportUnitPositionSpace.None`, which turns
+# its offset by the Vortex's root as `Parent` does
+# (`SpecialSupportUnitData.GetRotation`). The row corrects its make
+# (`SupportUnitCreator.CreateMech`): a life rate of -1, which leaves the
+# Mirage the 1 point of life `FightMech.CalculateMaxLife` keeps at the least,
+# and a damage rate of -0.7 on its main skill. The Mirage outlives its Vortex.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 258
+hash: {profile: mcfr-content-0.7.0, result: 67333ad422975899eb5b26fda88377f61eb5a5d4e44ede25fcb7183a08480a96}
+blue:
+  core_damage: 300
+  techs:
+    vortex: [electromagnetic_twin]
+  units:
+  - {name: vortex, index: 0, position: {x: 0, y: -120}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/400/1150}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}}

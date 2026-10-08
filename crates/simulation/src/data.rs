@@ -860,7 +860,8 @@ impl Stats {
             0,
             ONE,
         )?;
-        self.max_life = resolve(Index::MaxLife, self.base(rules.max_life)?)?;
+        // `FightMech.CalculateMaxLife` keeps it at 1 at the least.
+        self.max_life = resolve(Index::MaxLife, self.base(rules.max_life)?)?.max(1);
         let base_damage = self.base(rules.attack.base_damage)?;
         self.attack_damage =
             self.overlays

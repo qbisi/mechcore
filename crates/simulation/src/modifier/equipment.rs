@@ -599,6 +599,7 @@ fn production_of(row: &Row, who: &str) -> std::result::Result<Option<ProductionL
         parent_level: false,
         body_frame: false,
         arrival: super::sources::Arrival::InPlace,
+        make_corrections: Vec::new(),
         gated: false,
     }))
 }

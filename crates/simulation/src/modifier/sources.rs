@@ -276,6 +276,12 @@ pub(crate) struct ProductionLine {
     pub(crate) body_frame: bool,
     /// Where each make appears.
     pub(crate) arrival: Arrival,
+    /// What the row writes onto each make, `SupportUnitData.modifyData`'s:
+    /// `SupportUnitCreator.CreateMech` adds its `GetUnitLifeChangeRate` to
+    /// the make's `MechDataChangeFloatRate.LifeRate` and its
+    /// `GetUnitDamageChangeRate` to its main skill's
+    /// `SkillDataChangeFloatRate.DamageRate`.
+    pub(crate) make_corrections: Vec<(crate::data::Channel, crate::data::Entry)>,
     /// Whether a support skill of its wearer's lets each batch out
     /// (`SupportSkillStartAttackChecker`), locking the line while it may not
     /// start.
