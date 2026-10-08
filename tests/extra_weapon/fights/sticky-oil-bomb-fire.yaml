@@ -11,7 +11,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 435
-hash: {profile: mcfr-content-0.7.0, result: fd41b775937124d1aeb58bad85a1e548b75d1e4846e73d8e6cca80c2d4c761a6}
+hash: {profile: mcfr-content-0.7.0, result: 9792d828ae482d84ef39571cf9ede4117e5cbc4a603aa6c6f627dae6bff4d5a1}
 blue:
   techs:
     phantom_ray: [sticky_oil_bomb]

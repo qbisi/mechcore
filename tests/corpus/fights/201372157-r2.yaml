@@ -10,7 +10,7 @@ seed: 473683013
 round: 2
 source: game
 ticks: 780
-hash: {profile: mcfr-content-0.7.0, result: 4ea5c1cc88a762a550c28f832fbf8c2f6ff5b8132d4f05d03283c1e1ad164ea1}
+hash: {profile: mcfr-content-0.7.0, result: ebefcda29f892250bd446422a1a2a4f1a8ba621714a30a25c75a1f282207465f}
 blue:
   core_damage: 680
   officers: [rhino_specialist, improved_phoenix]

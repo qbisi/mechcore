@@ -11,7 +11,7 @@ seed: 1951618914
 round: 4
 source: game
 ticks: 1177
-hash: {profile: mcfr-content-0.7.0, result: dfab8a4c80d82b7e366430fcfb5b69168726703de63d24b7221b7a6fe646ffa6}
+hash: {profile: mcfr-content-0.7.0, result: 76fb7bd67bcfa1e01d0f244c57a50335955deb011d827340bd260a7a27489072}
 blue:
   officers: [super_supply_enhancement, missile_specialist]
   legacy_index: 13

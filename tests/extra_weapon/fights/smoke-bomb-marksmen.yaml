@@ -15,7 +15,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 377
-hash: {profile: mcfr-content-0.7.0, result: 6f926bdc71a0a8894912b45dfda7f6500a9b352821655cec332e5f2db6d1d93a}
+hash: {profile: mcfr-content-0.7.0, result: c98e3650f7c10ad0c2ca1b4303c485bd234334a68210be078f9f3389706ce980}
 blue:
   techs:
     mountain: [smoke_bomb]

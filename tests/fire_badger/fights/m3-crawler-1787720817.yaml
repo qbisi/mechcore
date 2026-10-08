@@ -6,7 +6,7 @@ seed: 1787720817
 round: 1
 source: game
 ticks: 169
-hash: {profile: mcfr-content-0.7.0, result: 1ff835a4818033f9a20f9c346f5e3c06505e5542e384d8f313a9582d6700b832}
+hash: {profile: mcfr-content-0.7.0, result: 5e89d40249f4a6f59816b1f088b16fbcefc663a309c65c0cbdcc210521db1173}
 blue:
   units:
   - {name: fire_badger, index: 0, position: {x: -5, y: -100}, exp: 0/192/1400}

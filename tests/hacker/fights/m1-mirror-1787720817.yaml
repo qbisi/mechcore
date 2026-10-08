@@ -6,7 +6,7 @@ seed: 1787720817
 round: 1
 source: game
 ticks: 167
-hash: {profile: mcfr-content-0.7.0, result: fc98ce0066a846275a62638d5d5b5f387b4626b0276e6c1b2b9483c24bd89dfb}
+hash: {profile: mcfr-content-0.7.0, result: e912486ad7f85efd7480981d2dd875a1278d6b8391b97537508ce76dad907ae1}
 blue:
   units:
   - {name: hacker, index: 0, position: {x: -5, y: -105}, exp: 0/400/560}

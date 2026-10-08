@@ -13,7 +13,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 137
-hash: {profile: mcfr-content-0.7.0, result: 95aae21c3297cc511b79a1602ccdb21d185370314a346db5ea68c103ffc5f9b0}
+hash: {profile: mcfr-content-0.7.0, result: 108fa20cb5818fe31fe854c2e64cb6225ff891fa1e6aaca4f95c0fa48066a66d}
 blue:
   techs:
     rhino: [mechanical_rage]

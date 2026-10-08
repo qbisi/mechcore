@@ -6,7 +6,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 389
-hash: {profile: mcfr-content-0.7.0, result: a3aaec01980907ce0db8686af13788776dcc0d7e8b9413c0f07da8d8bd499aee}
+hash: {profile: mcfr-content-0.7.0, result: ff718efaa6619e647e0cf574391a8dcb56bce7083ad1cb48e93daef6a5c7e1dd}
 blue:
   units:
   - {name: arclight, index: 0, position: {x: 0, y: -100}, exp: 0/200/750}

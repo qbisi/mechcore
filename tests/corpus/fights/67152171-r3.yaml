@@ -10,7 +10,7 @@ seed: 584983421
 round: 3
 source: game
 ticks: 1561
-hash: {profile: mcfr-content-0.7.0, result: baf0b69fae16570c7c7c095a8eeb85844b81a3e3a1b2485858a93ee8886d2b44}
+hash: {profile: mcfr-content-0.7.0, result: 22084f28aee4c93fe62ef7ad50ec8df58908584edbbe4739e1ed89d9354b5e62}
 blue:
   officers: [missile_specialist]
   techs:

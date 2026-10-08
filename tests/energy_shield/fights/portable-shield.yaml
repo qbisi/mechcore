@@ -11,7 +11,7 @@ seed: 1787720817
 round: 1
 source: game
 ticks: 139
-hash: {profile: mcfr-content-0.7.0, result: 06b656e7d99af025b25f978fd1c28917eeb764169ccdc46919526864b77f5e46}
+hash: {profile: mcfr-content-0.7.0, result: 8958f3afad6d445ee2650b958abe8f81e948fde70987e47089742375e7f2a089}
 blue:
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 0/200/650, equipment: [portable_shield]}

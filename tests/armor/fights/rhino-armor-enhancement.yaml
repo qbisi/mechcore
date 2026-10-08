@@ -11,7 +11,7 @@ seed: 4242
 round: 1
 source: game
 ticks: 311
-hash: {profile: mcfr-content-0.7.0, result: 998f059555b80fb43b2e9753e0f3aab8eb0eb5de589e44a81244b4cea636e0ac}
+hash: {profile: mcfr-content-0.7.0, result: f487efbe0555392a023765e8b7a0a2bdd0f864f1b55bb1e31aeedff9b3740baa}
 blue:
   techs:
     rhino: [armor_enhancement]

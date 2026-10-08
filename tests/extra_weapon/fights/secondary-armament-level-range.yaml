@@ -14,7 +14,7 @@ seed: 4242
 round: 2
 source: game
 ticks: 96
-hash: {profile: mcfr-content-0.7.0, result: 40d6c0ca5aa3eec5a70b4367169565f5c21080750440b07fc690fdc617f0de10}
+hash: {profile: mcfr-content-0.7.0, result: 679ea24557e1521728bc957ed696a1e60eef17d3d70b6fde5ee9fa3140cbc459}
 blue:
   officers: [advanced_targeting_system]
   techs:
