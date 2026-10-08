@@ -6720,6 +6720,10 @@ fn read_skills(api: Api, metadata: &Metadata, unit: *mut Object) -> Result<Skill
     let lock_field = metadata
         .fight_skill_lock_target
         .ok_or("FightSkill.lockTarget is unresolved")?;
+    // A travelling unit does not update (`FightCoreSystem.TeamUpdate`), so its
+    // skills do nothing until it arrives: none is read, the extra weapons a
+    // deployment action switched off or left on alike.
+    let travelling = invoke_value::<bool>(api, unit, "get_IsSuperDeployment")?;
     let all_skills = invoke_object(api, unit, "GetSkills")?;
     let count = list_count(api, all_skills, i32::from(u16::MAX))?;
     let capacity = usize::try_from(count).map_err(|_| "skill count is negative".to_owned())?;
@@ -6737,11 +6741,13 @@ fn read_skills(api: Api, metadata: &Metadata, unit: *mut Object) -> Result<Skill
         }
         let skill_slot = u16::try_from(slot).map_err(|_| "skill slot overflow".to_owned())?;
         objects.push(skill);
-        if !named(
-            slot,
-            "IsEnable",
-            invoke_value::<bool>(api, skill, "IsEnable"),
-        )? {
+        if travelling
+            || !named(
+                slot,
+                "IsEnable",
+                invoke_value::<bool>(api, skill, "IsEnable"),
+            )?
+        {
             skills.push(SkillState {
                 skill_slot,
                 enabled: None,

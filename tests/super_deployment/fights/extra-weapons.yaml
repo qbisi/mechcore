@@ -1,7 +1,6 @@
 # Sabertooths with Secondary Armament travelling on both flanks of both sides,
-# beside one each in the main region: every travelling one holds its two
-# secondary guns switched off until all arrive on tick 161, and the two that
-# do not travel hold them on from the first tick.
+# beside one each in the main region: the travelling ones read no skill until
+# all arrive on tick 161, and their secondary guns fight from then.
 
 kind: fight
 map_id: 1021
@@ -9,7 +8,7 @@ seed: 4242
 round: 2
 source: game
 ticks: 1128
-hash: {profile: mcfr-content-0.7.0, result: aa27b935785c24f99234159d47fe96297cfc74fd41673a27e4542c12320128a0}
+hash: {profile: mcfr-content-0.7.0, result: 942b763fd1bb9177e75d04e66220805da8295f4173bef026678157479fd9488b}
 blue:
   core_damage: 200
   techs:

@@ -286,7 +286,7 @@ no Shield ID and never appears in `shields.parquet`.
 
 ```text
 skill_slot : UINT16 required   the skill's index in FightMech.GetSkills()
-enabled    : nullable struct   null while FightSkill.IsEnable() is false
+enabled    : nullable struct   null while FightSkill.IsEnable() is false or the unit travels
   lock_target             : ObjectRef nullable   FightSkill.lockTarget
   attack_target           : ObjectRef nullable   FightSkill.GetAttackTarget()
   state                   : UINT8 required       SkillStateController state
@@ -321,6 +321,15 @@ their `attack_time` on every tick until 219, and switched on again they read the
 count they reached, neither reset nor stopped. The barrage, mid-attack when it
 was switched off, is back in its idle state with its `attack_count` cleared one
 tick later, and that is what tick 219 shows.
+
+**A travelling unit's skills are not read.** While `FightMech.IsSuperDeployment`
+holds, every skill's `enabled` is null, the skill enabled or not: a travelling
+unit does not update (`FightCoreSystem.TeamUpdate`), so nothing its skills hold
+changes what it does, and all of it shows from the tick it arrives. Whether its
+extra weapons are on through the travel depends on the order a match placed it
+and researched them, which no layout states
+([`super_deployment.md`](../../rules/super_deployment.md)), and two recordings
+of one fight differing in it alone would otherwise hash apart.
 
 `state` is the class of the state `SkillStateController` holds:
 

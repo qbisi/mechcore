@@ -206,7 +206,7 @@ Adapter 通过 `GetEnergyShieldController()` 读取 `IsActive()`、`IsEnable()`�
 
 ```text
 skill_slot : UINT16 required   技能在 FightMech.GetSkills() 中的下标
-enabled    : nullable struct   FightSkill.IsEnable() 为 false 时为 null
+enabled    : nullable struct   FightSkill.IsEnable() 为 false 或单位旅行中时为 null
   lock_target             : ObjectRef nullable   FightSkill.lockTarget
   attack_target           : ObjectRef nullable   FightSkill.GetAttackTarget()
   state                   : UINT8 required       SkillStateController 状态
@@ -225,6 +225,8 @@ enabled    : nullable struct   FightSkill.IsEnable() 为 false 时为 null
 列表包含 `GetSkills()` 返回的每个 `FightSkill`，按 `skill_slot` 严格升序。分组单位的技能就是其分组的各槽：恶灵四个，带浮游炮阵时八个。额外武器的技能排在主技能之后，分组行的每个槽各占一个：带电磁弹幕与能量散射的熔点，0 号槽是主光束，1 号是弹幕，2 到 5 号是四道散射光束。
 
 **被关闭的技能只保留槽位。** 禁用科技的 buff 会关掉其科技加上的额外武器技能（`ExtraSkillProvider.DisableSkill`、`FightSkill.Disable`），在此期间该技能的 `enabled` 为 null，其间它持有的一切都不进哈希。build 在技能关闭期间照常推进它的计时，重新开启后从计时所在处接着走，所以关闭期间漂移的计时会在它回来的那个 tick 暴露出来。
+
+**旅行中单位的技能不读取。** `FightMech.IsSuperDeployment` 成立期间，每个技能的 `enabled` 都为 null，无论技能开着与否：旅行中的单位不更新（`FightCoreSystem.TeamUpdate`），它的技能持有的一切都不改变它做什么，全部从抵达那个 tick 起显现。额外武器在旅行期间开着与否取决于对局放置单位与研究科技的先后，任何 layout 都不陈述它（[`super_deployment.md`](../../rules/super_deployment.md)），否则同一场仗只因此不同的两份录像就会哈希不同。
 
 `state` 是 `SkillStateController` 当前状态的类：`0=idle`（`SkillIdleState`）、`1=prepare`、`2=attack`、`3=cooling`、`4=reloading`、`5=lock`（`SkillLockState`）。`attack_phase` 是 `SkillAttackController` 当前的阶段控制器：`0=before` 等待攻击点，`1=attacking` 正在释放，`2=after` 后摇；没有出手进行中时为 null，攻击状态的大部分时间都是如此：两次出手之间，以及在一次更新里开始又结束的出手。
 

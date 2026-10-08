@@ -613,12 +613,10 @@ impl Simulation {
                     owner,
                     slot: held_by,
                 };
-                // A unit travelling in has its technology effects switched off
-                // (`BattleSystem.OnEnterSuperDeployment`) until it arrives
-                // (`SuperDeploymentController.ExitTravel`): the skills its
-                // extra weapons add are off.
-                let travelling_extra = actor.travelling && matches!(held_by, SkillSlot::Extra(_));
-                let enabled = (!holder.disabled && !travelling_extra).then(|| EnabledSkill {
+                // A travelling unit's skills are not read until it arrives: it
+                // does not update, and they do nothing, its extra weapons
+                // whether a deployment action switched them off or not.
+                let enabled = (!holder.disabled && !actor.travelling).then(|| EnabledSkill {
                     lock_target: skill.lock_target.map(FightActorRef::object_ref),
                     attack_target: actor
                         .slot_attack_target(slot)
