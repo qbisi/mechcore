@@ -18,8 +18,11 @@ SOURCE_CYCLE = {
     "isDistanceCalculateSelfRadius": "self_radius",
 }
 SOURCE_CYCLE_RATES = {"max", "intervalTime", "delayTime"}
+# The fields of a source only the client reads: the effect it shows
+# (`ResourceManager.CreateBuffTechEffect` through `GetEffectName`) and whether
+# that follows its unit. Neither is written.
+SOURCE_CLIENT = ("effectName", "isEffectFollow")
 # The rest of a source's fields, any of which set is named in `buff_special`.
-# The effect's name and whether it follows are what the client shows.
 SOURCE_OTHER = (
     "energyShieldDamageMultiplier", "min", "triggerRangeItemBuffId", "triggerRangeItemType",
     "triggerLifeTime", "triggerRangeItemRange", "triggerRoundDuration",

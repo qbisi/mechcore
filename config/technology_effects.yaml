@@ -1619,7 +1619,6 @@ technologies:
     name: 光子涂层
     unit: rhino
     kind: buffTechnologies
-    special: [effectName]
     buff_trigger: 1
     buff_targets: [1]
     probability: 4294967296  # +1
@@ -1654,7 +1653,6 @@ technologies:
     name: 光子投射
     unit: overlord
     kind: buffTechnologies
-    special: [effectName]
     buff_trigger: 1
     buff_targets: [3, 2]
     probability: 4294967296  # +1
@@ -1692,7 +1690,6 @@ technologies:
     name: 光子涂层
     unit: war_factory
     kind: buffTechnologies
-    special: [effectName]
     buff_trigger: 1
     buff_targets: [1]
     probability: 4294967296  # +1
@@ -1727,7 +1724,6 @@ technologies:
     name: 光子投射
     unit: farseer
     kind: buffTechnologies
-    special: [effectName]
     buff_trigger: 1
     buff_targets: [3, 2]
     probability: 4294967296  # +1
@@ -2192,7 +2188,6 @@ technologies:
     name: 光子循环
     unit: mountain
     kind: buffTechnologies
-    special: [effectName]
     buff_trigger: 1
     buff_targets: [1]
     probability: 4294967296  # +1

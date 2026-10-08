@@ -93,7 +93,9 @@ simulator refuses those too.
 **A buff technology whose trigger is the fight's start adds its buff to its
 unit on the fight's first tick, once,** as a buff item does
 ([equipment_effects.md](equipment_effects.md#buff-items)): both are the same
-buff source. Combat Evolvement is one, on the Rhino.
+buff source. Combat Evolvement is one, on the Rhino. Photon Coating is
+another: 30 seconds in which its unit takes 30% less damage and no debuff
+reaches it. The effect a source names is only what the client shows.
 
 **A buff source that keeps its buff on the units around its unit adds it
 again on every tick.** Under the update model `Each`, the source's controller
@@ -363,6 +365,10 @@ whose effect grows with rank, rather than read index zero:
   `tests/technology_buff/fights/ignite-wasp.yaml`,
   `tests/technology_buff/fights/ignite-fang.yaml`,
   `tests/technology_buff/fights/ignite-fire-badger.yaml`.
+- Photon Coating holds its buff from the first tick, and a Vulcan's Ignite
+  never reaches the Rhino or War Factory it covers:
+  `tests/technology_buff/fights/photon-coating.yaml`,
+  `tests/technology_buff/fights/photon-coating-war-factory.yaml`.
 - Counter-Fire's buff is on a Fire Badger from the tick a Marksman's hit
   takes life from it, its range 145 of 75; without it the simulator parts
   from the recording on that tick, on that range:
@@ -453,6 +459,10 @@ whose effect grows with rank, rather than read index zero:
   `CommanderSkillBase.GetProbablity`, `LandMineContraption.GetProbablity`,
   `TowerStrengthenData.GetProbablity` and `FightTrapSkill.GetProbablity`
   answer 1000.
+- A buff source's effect name is the client's: `BuffTech.GetEffectName`
+  answers `BuffTechnologyData.get_EffectName`, and the call index names no
+  caller of a `GetEffectName` in the fight's assembly; the client's
+  `ResourceManager.CreateBuffTechEffect` reads `BuffTechEffect.GetEffectName`.
 - A buff that summons: `Buff.Init` gives a buff whose `IBuffData.IsSummoning`
   an `IBEC_DeadSummon`, and `BuffSystem.IsAvaliableWhenActorDead` lets
   `BuffSystem.AddBuff` add it to a dead target, as it does one whose

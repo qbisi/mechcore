@@ -21,6 +21,8 @@ same buff sources on an item.
   Maintenance off while it burns. `ignite-wasp.yaml`, `ignite-fang.yaml` and
   `ignite-fire-badger.yaml` add the same buff by chance, each hit drawing
   from the struck Rhino's side's stream.
+- `photon-coating.yaml` and `photon-coating-war-factory.yaml` keep a Vulcan's
+  Ignite off a coated Rhino and War Factory.
 - `counter-fire.yaml` adds Counter-Fire's range to a Fire Badger from the
   tick a Marksman's hit takes life from it.
 - `replicate.yaml` and `replicate-swarm.yaml` make Crawlers of a Marksman
