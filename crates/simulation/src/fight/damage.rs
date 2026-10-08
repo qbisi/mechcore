@@ -485,6 +485,26 @@ impl Simulation {
         target: FightActorRef,
         source: Option<ObjectRef>,
         source_team: u32,
+        hit: (i64, bool),
+        provider: Provider,
+        events: &mut Vec<Event>,
+    ) -> Result<Stroke> {
+        let stroke = self.strike_target(target, source, source_team, hit, provider, events)?;
+        // `FightMech.OnHitted` raises `OnMechBeHit` once the hit took what it
+        // took, the hit's owner its `damageSourceOwner`.
+        if let (FightActorRef::Unit(id), Some(attacker)) = (target, source)
+            && stroke.reached_alive
+        {
+            self.on_mech_be_hit(id, attacker, events)?;
+        }
+        Ok(stroke)
+    }
+
+    fn strike_target(
+        &mut self,
+        target: FightActorRef,
+        source: Option<ObjectRef>,
+        source_team: u32,
         (amount, amplified): (i64, bool),
         provider: Provider,
         events: &mut Vec<Event>,

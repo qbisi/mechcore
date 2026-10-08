@@ -129,6 +129,10 @@ pub(crate) enum BuffTrigger {
     /// `Hit`: what each hit of its unit's skills strikes, the controller
     /// being one of the skills' hit effects.
     Hit,
+    /// `BeHit` onto `OpponentUnits`: the unit that hit it, each time a hit
+    /// of a live unit's reaches it, the controller listening to its
+    /// `OnMechBeHit`.
+    BeHit,
     /// `GetDamage` onto `MechUnit`: the unit itself, each time it loses life,
     /// the controller listening to its `OnLifeChange`.
     Damaged,
