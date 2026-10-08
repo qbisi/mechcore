@@ -16,6 +16,14 @@ pub struct McfrReader {
     storage: StorageReader,
 }
 
+/// What [`McfrReader::published`] reads of a container.
+#[derive(Debug, Clone)]
+pub struct Published {
+    pub hashes: Hashes,
+    pub file_size_bytes: u64,
+    pub member_sizes_bytes: BTreeMap<String, u64>,
+}
+
 impl McfrReader {
     /// Opens an MCFR and validates its ZIP64/Parquet structure and metadata.
     /// The result hash is checked against the stored tick hashes; the tick
@@ -48,6 +56,25 @@ impl McfrReader {
         };
         IdentityAllocator::from_initial(&reader.state(1)?)?;
         Ok(reader)
+    }
+
+    /// A published container's hashes and sizes, read from its
+    /// `ticks.parquet` without its timeline: the result hash is held to the
+    /// tick hash column, and neither is held to the states and events.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for I/O failures, an unsupported format, or a
+    /// `ticks.parquet` whose metadata or tick hash column is malformed.
+    pub fn published(path: impl AsRef<Path>) -> Result<Published> {
+        let path = path.as_ref();
+        let file_size_bytes = fs::metadata(path)?.len();
+        let (hashes, member_sizes_bytes) = crate::parquet_storage::published(path)?;
+        Ok(Published {
+            hashes,
+            file_size_bytes,
+            member_sizes_bytes,
+        })
     }
 
     /// What wrote the recording: the game or the simulator.

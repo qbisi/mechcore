@@ -172,13 +172,13 @@ pub(crate) fn run(
         Record::Hash | Record::Memory => None,
     };
     let (file_size_bytes, member_sizes_bytes) = if let Some(path) = output {
-        let published = mechcore_mcfr::McfrReader::open(path)?;
-        if published.hashes() != &hashes {
+        let published = mechcore_mcfr::McfrReader::published(path)?;
+        if published.hashes != hashes {
             return Err(Error::new("published MCFR hashes changed after reopening"));
         }
         (
-            Some(published.file_size_bytes()),
-            Some(published.member_sizes_bytes().clone()),
+            Some(published.file_size_bytes),
+            Some(published.member_sizes_bytes),
         )
     } else {
         (None, None)

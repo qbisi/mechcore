@@ -29,6 +29,6 @@ pub use instrument::{
 };
 pub use model::*;
 pub use numbering::UnitNumbering;
-pub use reader::McfrReader;
+pub use reader::{McfrReader, Published};
 pub use recording::{MemoryRecording, Recording};
 pub use writer::McfrWriter;
