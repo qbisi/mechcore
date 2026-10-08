@@ -104,5 +104,6 @@ extra_weapons:
         per_skill: 1
       melee: true
       crosses_shields: false
+      extra_shield_range: 5
       path:
         type: suicide

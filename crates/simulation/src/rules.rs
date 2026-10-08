@@ -476,6 +476,12 @@ pub(crate) struct AttackConfig {
     /// `SkillData.canCrossAdvancedShield` of the main skill: its hits pass
     /// every battlefield shield, as a Crawler's and a Rhino's do.
     pub(crate) crosses_shields: bool,
+    /// `SkillData.extraShieldAttackRange`, metres: how much further than its
+    /// range a skill that does not cross shields reaches one
+    /// (`FightSkill.IsInAttackRange` with `useExtraRange`), both as it asks
+    /// whether a shield stands in its way and as it fires at it.
+    #[serde(default)]
+    pub(crate) extra_shield_range: f64,
     /// `SkillData.useDefaultRotationSearchTarget` of the main skill: its
     /// searches are scored from each weapon's default rotation.
     #[serde(default)]
@@ -1363,6 +1369,15 @@ impl AttackConfig {
 
     pub(crate) fn range(&self) -> i64 {
         quantize_i64(self.range, SPACE_UNITS_PER_METER)
+    }
+
+    /// What a shield adds to the skill's range, in space units: its
+    /// `extraShieldAttackRange`, unless its hits cross shields.
+    pub(crate) fn extra_shield_range(&self) -> i64 {
+        if self.crosses_shields {
+            return 0;
+        }
+        quantize_i64(self.extra_shield_range, SPACE_UNITS_PER_METER)
     }
 
     pub(crate) fn attack_half_angle_mdeg(&self) -> i64 {

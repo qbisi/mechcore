@@ -27,7 +27,7 @@ impl Simulation {
         let lock = self.skill(skill_ref).lock_target;
         let range = self
             .skill_attacker(skill_ref)
-            .map_or(0, |attacker| attacker.attack_range);
+            .map_or(0, |attacker| attacker.shield_range());
         let shield =
             lock.and_then(|target| self.search_target_shield_in(skill_ref.owner, target, range));
         // Then `CheckWallConstruction`, whatever the lock is, a unit or a
@@ -272,7 +272,12 @@ impl Simulation {
                                 .saturating_sub(space_to_q32(source.rules.collision_radius()))
                                 .max(0);
                         distance >= space_to_q32(min_range)
-                            && distance <= space_to_q32(self.slot_attack_range(skill_ref, slot))
+                            && distance
+                                <= space_to_q32(
+                                    self.slot_attack_range(skill_ref, slot).saturating_add(
+                                        self.skill_rules(skill_ref).extra_shield_range(),
+                                    ),
+                                )
                     });
         }
         let Some(target) = self.fight_actor(target) else {
