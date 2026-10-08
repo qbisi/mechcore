@@ -244,13 +244,24 @@ impl Simulation {
         let interval = attacker.projectile_interval_steps();
         let radius = attacker.projectile_target_offset_radius();
         // A standalone skill fires its own weapons, `weaponCountPerSkill` of
-        // its row's; any other all of them.
+        // its row's; any other all of them. Its projectiles take turns
+        // between two only through a `MultiAttackTargetPositionController`,
+        // which the performer makes for a burst that lands about its target
+        // (`randomTargetRange` above zero) and which splits its offsets
+        // between two weapons alone (`GetAndDeletePositionOffsets`); any
+        // other burst fires from the first: a Sabertooth's Doubleshot, both
+        // from weapon 0.
         let weapon_count = usize::try_from(if attack.weapons.mode == WeaponMode::Standalone {
             attack.weapons.per_skill
         } else {
             attack.weapons.count()
         })
         .expect("u32 weapon count fits the supported host");
+        let turns = if radius > 0 && weapon_count == 2 {
+            2
+        } else {
+            1
+        };
         let climb_target = self.climb_target(target)?;
         // An extra skill fires from the first of its row's weapons it was
         // made for.
@@ -292,7 +303,7 @@ impl Simulation {
                     offset_z_q32: z,
                     climb_target,
                     aims_at_release: radius == 0,
-                    weapon_index: first_weapon + index % weapon_count,
+                    weapon_index: first_weapon + index % turns,
                     skill_slot,
                 });
         let first = releases

@@ -295,7 +295,11 @@ each within 18 metres.
 
 `ProjectileMultiAttackPerformer.OnStartFirstPerform` spaces a burst by
 `PROJECTILE_INTERVAL`, 0.2 seconds, when the time between two is zero or
-less, which a Sabertooth's row's is.
+less, which a Sabertooth's row's is. Its projectiles take turns between two
+weapons only when the performer makes a
+`MultiAttackTargetPositionController`, for a burst that lands about its
+target, and the skill has two: a Sabertooth's and a Fortress's Doubleshot
+fire both from weapon 0.
 
 Saturation Bombardment also sets `isInverseIsLockTarget`, which its row
 names in `special`, and the simulator refuses it.
@@ -548,8 +552,9 @@ derive (a minimum range):
   `tests/production/fights/crawler-production.yaml`,
   `tests/production/fights/mothership.yaml`.
 - A multi-attack technology adds to its unit's bursts: Doubleshot fires two
-  projectiles an attack, and Burst Mode twelve from a Farseer and ten from a
-  Phantom Ray, 0.1 seconds apart:
+  projectiles an attack, a Sabertooth's 0.2 seconds apart where its row's
+  interval is zero and both from weapon 0, and Burst Mode twelve from a
+  Farseer and ten from a Phantom Ray, 0.1 seconds apart:
   `tests/multi_attack/fights/`.
 - A projectile life rate multiplies the life a skill's projectiles leave with:
   Heavy Missile's rockets leave with 126000, and fought without the rate the
@@ -702,7 +707,10 @@ derive (a minimum range):
   `ProjectileCountProperty.Refresh`, `ProjectileDurationProperty.Refresh`,
   `ProjectileRandomRangeProperty.Refresh`.
 - A burst's projectiles are `PROJECTILE_INTERVAL` apart when its duration is
-  zero or less: `ProjectileMultiAttackPerformer.OnStartFirstPerform`.
+  zero or less, and the performer makes a position controller only for a
+  random range above zero, which takes turns between the weapons only for a
+  skill of two: `ProjectileMultiAttackPerformer.OnStartFirstPerform`,
+  `ProjectileMultiAttackPerformer.MultiAttackTargetPositionController.GetAndDeletePositionOffsets`.
 - A skill's projectiles leave with the row's life at the unit's level, times
   one plus the skill's `SkillDataChangeFloatRate.ProjectileLifeRate`
   enhancements and then their remainder, cut to a whole number and at least 1:
