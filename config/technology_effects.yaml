@@ -314,26 +314,134 @@ technologies:
     name: 尖牙制造
     unit: fortress
     kind: supportUnitTechnologies
+    production:
+      support_unit_id: 9
+      unit_level: 0
+      max_batch: 3
+      max_alive: 100
+      create_count_per_time: 8
+      start_time: 4294967296  # 1
+      appear_type: 1
+      product_time: 0  # 0
+      max_create_count: 0
+      create_duration: 154618822656  # 36
+      position_space: 1
+      unit_life_rate: 0  # 0
+      unit_damage_rate: 0  # 0
+      unit_attack_range_value: 0
+      intensify_mode: false
+      inherit_technology: true
+      positions: []
   - id: 1202
     name: 射击小队
     unit: marksman
     kind: supportUnitTechnologies
+    production:
+      support_unit_id: 9
+      unit_level: 3
+      max_batch: 0
+      max_alive: 100
+      create_count_per_time: 4
+      start_time: 4294967296  # 1
+      appear_type: 5
+      product_time: 0  # 0
+      max_create_count: 0
+      create_duration: 4294967296000000  # 1e+06
+      position_space: 1
+      unit_life_rate: 0  # 0
+      unit_damage_rate: 0  # 0
+      unit_attack_range_value: 0
+      intensify_mode: false
+      inherit_technology: true
+      positions: [{x: 85899345920, z: 85899345920}, {x: 42949672960, z: 85899345920}, {x: 0, z: 85899345920}, {x: -42949672960, z: 85899345920}, {x: -85899345920, z: 85899345920}]
   - id: 1203
     name: 最佳搭档
     unit: vulcan
     kind: supportUnitTechnologies
+    production:
+      support_unit_id: 2
+      unit_level: 3
+      max_batch: 1
+      max_alive: 100
+      create_count_per_time: 1
+      start_time: 4294967296  # 1
+      appear_type: 5
+      product_time: 0  # 0
+      max_create_count: 0
+      create_duration: 4294967296000000  # 1e+06
+      position_space: 1
+      unit_life_rate: 0  # 0
+      unit_damage_rate: 0  # 0
+      unit_attack_range_value: 0
+      intensify_mode: false
+      inherit_technology: true
+      positions: [{x: 107374182400, z: -128849018880}]
   - id: 1204
     name: 爬虫制造
     unit: melting_point
     kind: supportUnitTechnologies
+    production:
+      support_unit_id: 10
+      unit_level: 0
+      max_batch: 3
+      max_alive: 100
+      create_count_per_time: 8
+      start_time: 4294967296  # 1
+      appear_type: 1
+      product_time: 0  # 0
+      max_create_count: 0
+      create_duration: 154618822656  # 36
+      position_space: 1
+      unit_life_rate: 0  # 0
+      unit_damage_rate: 0  # 0
+      unit_attack_range_value: 0
+      intensify_mode: false
+      inherit_technology: true
+      positions: []
   - id: 1211
     name: 母舰
     unit: overlord
     kind: supportUnitTechnologies
+    production:
+      support_unit_id: 6
+      unit_level: 0
+      max_batch: 3
+      max_alive: 100
+      create_count_per_time: 5
+      start_time: 4294967296  # 1
+      appear_type: 1
+      product_time: 0  # 0
+      max_create_count: 0
+      create_duration: 137438953472  # 32
+      position_space: 1
+      unit_life_rate: 0  # 0
+      unit_damage_rate: 0  # 0
+      unit_attack_range_value: 0
+      intensify_mode: false
+      inherit_technology: true
+      positions: []
   - id: 1232
     name: 召唤猎犬
     unit: centurion
     kind: supportUnitTechnologies
+    production:
+      support_unit_id: 28
+      unit_level: 3
+      max_batch: 1
+      max_alive: 100
+      create_count_per_time: 2
+      start_time: 4294967296  # 1
+      appear_type: 5
+      product_time: 0  # 0
+      max_create_count: 0
+      create_duration: 4294967296000000  # 1e+06
+      position_space: 1
+      unit_life_rate: 0  # 0
+      unit_damage_rate: 0  # 0
+      unit_attack_range_value: 0
+      intensify_mode: false
+      inherit_technology: true
+      positions: [{x: 85899345920, z: 107374182400}, {x: -85899345920, z: 107374182400}]
   - id: 1308
     name: 机械分裂
     unit: steel_ball
@@ -1454,18 +1562,90 @@ technologies:
     name: 凤凰制造
     unit: war_factory
     kind: supportUnitTechnologies
+    production:
+      support_unit_id: 16
+      unit_level: 3
+      max_batch: 6
+      max_alive: 100
+      create_count_per_time: 1
+      start_time: 4294967296  # 1
+      appear_type: 6
+      product_time: 4294967296  # 1
+      max_create_count: 0
+      create_duration: 73873437491  # 17.2
+      position_space: 1
+      unit_life_rate: 0  # 0
+      unit_damage_rate: 0  # 0
+      unit_attack_range_value: 0
+      intensify_mode: false
+      inherit_technology: true
+      positions: [{x: 0, z: 0}]
   - id: 12029
     name: 暗黑伙伴
     unit: abyss
     kind: supportUnitTechnologies
+    production:
+      support_unit_id: 18
+      unit_level: 3
+      max_batch: 1
+      max_alive: 100
+      create_count_per_time: 1
+      start_time: 0  # 0
+      appear_type: 0
+      product_time: 1288490188  # 0.3
+      max_create_count: 0
+      create_duration: 4294967296000000  # 1e+06
+      position_space: 1
+      unit_life_rate: 0  # 0
+      unit_damage_rate: 0  # 0
+      unit_attack_range_value: 0
+      intensify_mode: false
+      inherit_technology: true
+      positions: [{x: 0, z: 171798691840}]
   - id: 12117
     name: 钢球制造
     unit: war_factory
     kind: supportUnitTechnologies
+    production:
+      support_unit_id: 8
+      unit_level: 3
+      max_batch: 10
+      max_alive: 100
+      create_count_per_time: 1
+      start_time: 8589934592  # 2
+      appear_type: 7
+      product_time: 4294967296  # 1
+      max_create_count: 0
+      create_duration: 41661182771  # 9.7
+      position_space: 1
+      unit_life_rate: 0  # 0
+      unit_damage_rate: 0  # 0
+      unit_attack_range_value: 0
+      intensify_mode: false
+      inherit_technology: true
+      positions: [{x: 0, z: 171798691840}]
   - id: 12217
     name: 铁锤制造
     unit: war_factory
     kind: supportUnitTechnologies
+    production:
+      support_unit_id: 13
+      unit_level: 3
+      max_batch: 14
+      max_alive: 100
+      create_count_per_time: 1
+      start_time: 8589934592  # 2
+      appear_type: 7
+      product_time: 4294967296  # 1
+      max_create_count: 0
+      create_duration: 28346784153  # 6.6
+      position_space: 1
+      unit_life_rate: 0  # 0
+      unit_damage_rate: 0  # 0
+      unit_attack_range_value: 0
+      intensify_mode: false
+      inherit_technology: true
+      positions: [{x: 0, z: 171798691840}]
   - id: 13023
     name: 机械分裂
     unit: sandworm
@@ -1515,6 +1695,24 @@ technologies:
     name: 电磁双生
     unit: vortex
     kind: supportUnitTechnologies
+    production:
+      support_unit_id: 31
+      unit_level: 0
+      max_batch: 1
+      max_alive: 100
+      create_count_per_time: 1
+      start_time: 4294967296  # 1
+      appear_type: 5
+      product_time: 0  # 0
+      max_create_count: 0
+      create_duration: 0  # 0
+      position_space: 0
+      unit_life_rate: -4294967296  # -1
+      unit_damage_rate: -3006477107  # -0.7
+      unit_attack_range_value: 0
+      intensify_mode: false
+      inherit_technology: true
+      positions: [{x: 0, z: -107374182400}]
   - id: 180110
     name: 复制
     unit: crawler

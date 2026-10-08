@@ -390,6 +390,15 @@ impl Simulation {
             }
             None => (creator.x_q32, creator.z_q32, None),
         };
+        // A line of one position that may keep two alive scatters each make
+        // by up to a metre, a draw a hundredth of a metre each way, x first
+        // (`SummonSystem.CreateMech` with `positionDatas`).
+        if creator.owner.is_some() && creator.offsets.len() == 1 && creator.max_alive >= 2 {
+            for axis in [&mut x_q32, &mut z_q32] {
+                let draw = self.side_random(team)?.next_in_range(100);
+                *axis = axis.saturating_add(hundredths(draw));
+            }
+        }
         if creator.summon.random_range_q32 > 0 {
             let span = i32::try_from((creator.summon.random_range_q32 >> 32) * 100)
                 .map_err(|_| Error::new("a summon's scatter exceeds i32"))?;

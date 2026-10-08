@@ -19,7 +19,9 @@
 //! `DamageIntensifyTech` its damage against them, and an
 //! `AirAttackTech` its skills turned onto or off aircraft, and a
 //! `SecondaryDamageIntensifyTech` a second damage around its hits, and a
-//! `BuffTech` the buff it adds its unit as the fight starts; any other is
+//! `BuffTech` the buff it adds its unit as the fight starts, and a
+//! `SupportUnitTech` the production line a production item's
+//! `SupportUnitEquipment` would; any other is
 //! refused by name rather than applied for its numbers alone.
 //!
 //! A technology belongs to one unit type, which is how a side's flat list of
@@ -46,7 +48,7 @@ use crate::{
 use super::{
     buffs::{self, BuffBlock, CycleBlock},
     effects::{self, Fields, VALUE_ELSEWHERE},
-    sources::{AutoRecovery, BuffSource, EnergyShield, LifeSteal, SweepIntensify},
+    sources::{AutoRecovery, BuffSource, EnergyShield, LifeSteal, ProductionLine, SweepIntensify},
 };
 
 const DEFAULT_TECHNOLOGY_EFFECTS: &str = include_str!("../../../../config/technology_effects.yaml");
@@ -75,8 +77,11 @@ const SEARCH_TARGET_SPECIFIC: &str = "searchTargetSpecificDatas";
 /// The list whose `InterceptMissileTech` is an `IInterceptData`.
 const INTERCEPT: &str = "interceptMissileTechnologyDatas";
 
+/// The list whose `SupportUnitTech` runs a production line.
+const SUPPORT: &str = "supportUnitTechnologies";
+
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 12] = [
+const IMPLEMENTED: [&str; 13] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -89,6 +94,7 @@ const IMPLEMENTED: [&str; 12] = [
     SECONDARY_DAMAGE,
     BUFF,
     INTERCEPT,
+    SUPPORT,
 ];
 
 /// The list whose `DamageIntensifyTech` writes its damage against one domain.
@@ -190,6 +196,9 @@ struct Technology {
     buff_source: Option<BuffSource>,
     /// What its unit intercepts with, if its class is an `IInterceptData`.
     interception: Option<UnitInterception>,
+    /// The production line it hands its unit, if its class is an
+    /// `ISupportEffectDataSource`.
+    production: Option<ProductionLine>,
     /// Whether what switching it off does is read and fought: its numbers
     /// taken away, as [`DISABLED_AS_NUMBERS`] lists, an extra weapon's skills
     /// disabled, or the buff a fight-start buff technology adds its own unit
@@ -412,6 +421,114 @@ struct Row {
     /// `InterceptMissileTechnologyData`'s fields, on a row of its list.
     #[serde(default)]
     intercept: Option<InterceptBlock>,
+    /// `SupportUnitTechnologyData`'s fields, on a row of its list.
+    #[serde(default)]
+    production: Option<SupportBlock>,
+}
+
+/// What a production row answers `ISupportDataSource` with.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SupportBlock {
+    support_unit_id: u32,
+    /// `DynamicMechLevel`.
+    unit_level: i32,
+    max_batch: u32,
+    max_alive: u32,
+    create_count_per_time: u32,
+    /// What it delays is not read: a production item's line makes its first
+    /// batch on the fight's first tick whatever its `startTime`.
+    #[allow(dead_code, reason = "the first batch comes on the first tick")]
+    start_time: i64,
+    /// `SupportUnitAppearType`.
+    appear_type: i32,
+    /// What a transition does not read: it takes `APPEAR_DURATION`.
+    #[allow(dead_code, reason = "only a transition's line is run")]
+    product_time: i64,
+    max_create_count: u32,
+    create_duration: i64,
+    /// `SupportUnitPositionSpace`.
+    position_space: i32,
+    unit_life_rate: i64,
+    unit_damage_rate: i64,
+    unit_attack_range_value: i32,
+    intensify_mode: bool,
+    inherit_technology: bool,
+    positions: Vec<SupportOffset>,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SupportOffset {
+    x: i64,
+    z: i64,
+}
+
+/// `DynamicMechLevel.Level1` and `Parent`.
+const LEVEL_ONE: i32 = 0;
+const PARENT_LEVEL: i32 = 3;
+
+/// `SupportUnitAppearType.Transition`.
+const TRANSITION: i32 = 5;
+
+/// `SupportUnitPositionSpace.Parent` and `ParentBody`.
+const PARENT_SPACE: i32 = 1;
+const PARENT_BODY_SPACE: i32 = 2;
+
+impl SupportBlock {
+    /// The line it runs, or why this build will not run it: one whose makes
+    /// appear any way but by a transition at their offsets, at a level of
+    /// their own, corrected by the row, capped in all, made in its intensify
+    /// mode or without its side's technologies.
+    fn line(&self, who: &str) -> std::result::Result<ProductionLine, String> {
+        let unread = [
+            (self.appear_type != TRANSITION, "an appearType other than 5"),
+            (
+                ![LEVEL_ONE, PARENT_LEVEL].contains(&self.unit_level),
+                "a unitLevel of its own",
+            ),
+            (
+                ![PARENT_SPACE, PARENT_BODY_SPACE].contains(&self.position_space),
+                "a positionSpace other than its unit's",
+            ),
+            (self.max_create_count != 0, "a maxCreateCount"),
+            (
+                self.unit_life_rate != 0
+                    || self.unit_damage_rate != 0
+                    || self.unit_attack_range_value != 0,
+                "a correction of its makes",
+            ),
+            (self.intensify_mode, "its intensifyMode"),
+            (
+                !self.inherit_technology,
+                "makes without its side's technologies",
+            ),
+            (self.positions.is_empty(), "no positions"),
+        ];
+        if let Some((_, what)) = unread.iter().find(|(set, _)| *set) {
+            return Err(format!(
+                "{who} runs a production line with {what}, which is not read"
+            ));
+        }
+        Ok(ProductionLine {
+            unit_type_id: self.support_unit_id,
+            max_batch: self.max_batch,
+            max_alive: self.max_alive,
+            per_time: self.create_count_per_time,
+            interval_q32: self.create_duration,
+            offsets: self
+                .positions
+                .iter()
+                .map(|offset| (offset.x, offset.z))
+                .collect(),
+            // `SupportUnitCreator.CreateMech`: a transition takes
+            // `APPEAR_DURATION`, a second.
+            appear_q32: 1 << 32,
+            parent_level: self.unit_level == PARENT_LEVEL,
+            body_frame: self.position_space == PARENT_BODY_SPACE,
+            gated: false,
+        })
+    }
 }
 
 /// What an interception row answers `IInterceptData` with, named as
@@ -539,9 +656,9 @@ impl TechnologyEffects {
                 Some(Ok(buff)) => (Some(buff), corrections_of(&row)),
                 None => (None, corrections_of(&row)),
             };
-            let (interception, effect) = match interception_of(&row, &who) {
-                Ok(interception) => (interception, effect),
-                Err(why) => (None, Err(why)),
+            let ((interception, production), effect) = match subclass_of(&row, &who) {
+                Ok(subclass) => (subclass, effect),
+                Err(why) => ((None, None), Err(why)),
             };
             let self_buff = buff_source.as_ref().is_some_and(adds_its_unit_a_buff);
             let technology = Technology {
@@ -559,6 +676,7 @@ impl TechnologyEffects {
                 }),
                 buff_source,
                 interception,
+                production,
                 secondary_damage: (row.kind == SECONDARY_DAMAGE).then_some(SecondaryDamage {
                     damage: row.secondary_damage,
                     splash_radius: effects::fixed_to(row.secondary_splash_range, effects::METERS),
@@ -679,6 +797,22 @@ impl TechnologyEffects {
         })
     }
 
+    /// The production lines this side's technologies hand one unit type,
+    /// as `SupportUnitEffectProvider` hands a production item's.
+    ///
+    /// # Errors
+    ///
+    /// Returns the error [`Self::corrections`] does.
+    pub(crate) fn production(&self, held: &[i32], unit_type: &str) -> Result<Vec<ProductionLine>> {
+        self.effects(held, unit_type)?;
+        Ok(held
+            .iter()
+            .filter_map(|id| self.technologies.get(id))
+            .filter(|technology| technology.unit == unit_type)
+            .filter_map(|technology| technology.production.clone())
+            .collect())
+    }
+
     /// This side's technologies on one unit type whose switching off by a
     /// disabling buff is not measured, by id.
     pub(crate) fn disabled_unmeasured(&self, held: &[i32], unit_type: &str) -> Vec<i32> {
@@ -765,15 +899,30 @@ impl TechnologyEffects {
     }
 }
 
-/// What an interception row makes its unit, or why this build will not.
-fn interception_of(row: &Row, who: &str) -> std::result::Result<Option<UnitInterception>, String> {
-    if row.kind != INTERCEPT {
-        return Ok(None);
-    }
-    row.intercept
-        .ok_or_else(|| format!("{who} carries no interception"))?
-        .interception(who)
-        .map(Some)
+/// What an interception row makes its unit, and the line a production row
+/// hands it, or why this build will not.
+fn subclass_of(
+    row: &Row,
+    who: &str,
+) -> std::result::Result<(Option<UnitInterception>, Option<ProductionLine>), String> {
+    let interception = if row.kind == INTERCEPT {
+        let block = row
+            .intercept
+            .ok_or_else(|| format!("{who} carries no interception"))?;
+        Some(block.interception(who)?)
+    } else {
+        None
+    };
+    let production = if row.kind == SUPPORT {
+        let block = row
+            .production
+            .as_ref()
+            .ok_or_else(|| format!("{who} carries no production line"))?;
+        Some(block.line(who)?)
+    } else {
+        None
+    };
+    Ok((interception, production))
 }
 
 /// Whether a buff technology's buff goes on its own unit: one of a range
@@ -1044,19 +1193,36 @@ mod tests {
         );
     }
 
-    /// A technology of a subclass is refused by name and kind, numbers and
-    /// all: Grenade Launcher's splash, and Fang Production's summons.
+    /// A technology of a list whose mechanism is not here is refused by name
+    /// and kind, numbers and all.
     #[test]
     fn a_technology_that_does_more_than_numbers_is_refused() {
+        let table = TechnologyEffects::parse(
+            "schema: mechcore.technology_effects\n\
+             technologies:\n\
+             - {id: 9, name: probe, unit: wasp, kind: unreadTechnologies, damage_rate: [1]}\n",
+        )
+        .unwrap();
+        let refused = table.corrections(&[9], "wasp", 1).unwrap_err().to_string();
+        assert!(refused.contains("technology 9 (probe)"), "{refused}");
+        assert!(refused.contains("unreadTechnologies"), "{refused}");
+    }
+
+    /// Best Partner hands the Vulcan a line of one Marksman at its level, and
+    /// Fang Production's, which appears with an effect, is refused by name.
+    #[test]
+    fn a_production_technology_hands_its_unit_a_line() {
         let table = TechnologyEffects::load().unwrap();
-        for (id, unit, kind) in [
-            (1201, "fortress", "supportUnitTechnologies"),
-            (812, "stormcaller", "fireIntensifyTechnologies"),
-        ] {
-            let refused = table.corrections(&[id], unit, 1).unwrap_err().to_string();
-            assert!(refused.contains(&id.to_string()), "{refused}");
-            assert!(refused.contains(kind), "{refused}");
-        }
+        let lines = table.production(&[1203], "vulcan").unwrap();
+        assert_eq!(lines.len(), 1);
+        assert_eq!(lines[0].unit_type_id, 2);
+        assert!(lines[0].parent_level);
+        assert_eq!(lines[0].offsets, vec![(25 << 32, -30 << 32)]);
+        let refused = table
+            .production(&[1201], "fortress")
+            .unwrap_err()
+            .to_string();
+        assert!(refused.contains("appearType"), "{refused}");
     }
 
     /// Machine Learning writes no correction, and doubles what its unit gains

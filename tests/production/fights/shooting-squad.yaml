@@ -1,0 +1,22 @@
+# Shooting Squad on blue's Marksman: a technology's production line that
+# makes four Fangs at the Marksman's level at the first four of its five
+# positions, at t1, and no more: its next batch is 10^6 seconds away. A
+# line of several positions draws no scatter.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 272
+hash: {profile: mcfr-content-0.7.0, result: e74375fd455402cfd82a1f8659c17559e78a3a01caae26c4be741135666c2163}
+blue:
+  core_damage: 300
+  techs:
+    marksman: [shooting_squad]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/239/1150}
+  - {name: marksman, index: 1, position: {x: 60, y: -100}, exp: 0/9/650}

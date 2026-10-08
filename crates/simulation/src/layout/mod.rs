@@ -782,7 +782,7 @@ fn compile_formation(
     );
     let production = production_of(
         side_name,
-        &formation.equipment,
+        (&formation.equipment, level),
         rules,
         units,
         side,
@@ -870,7 +870,7 @@ fn formation_rotation(position: mechcore_document::Position, team: u32, world_x:
 #[allow(clippy::option_option, reason = "a refusal is kept apart from no line")]
 fn production_of(
     side_name: &str,
-    equipment: &[i32],
+    (equipment, level): (&[i32], i64),
     rules: &UnitConfig,
     units: &UnitConfigs,
     side: &SidePlan,
@@ -888,7 +888,16 @@ fn production_of(
             )?,
         );
     }
-    // A researched technology's support skill runs its line beside them.
+    // A researched technology's line runs beside them, as its
+    // `SupportUnitTech` or its support skill hands it.
+    lines.extend(
+        refused.hold(
+            loadouts
+                .technologies
+                .production(&side.techs.units, &rules.type_name)
+                .map_err(|error| Error::new(format!("side {side_name}: {error}"))),
+        )?,
+    );
     lines.extend(
         rules
             .extra_weapons
@@ -917,10 +926,11 @@ fn production_of(
         return None;
     };
     let made = made.clone();
+    // A make takes its owner's level, or the first.
     let worn = loadout(
         side_name,
         &made.type_name,
-        1,
+        if line.parent_level { level } else { 1 },
         &[],
         &made,
         side,
@@ -1739,20 +1749,6 @@ red:
         );
     }
 
-    /// A side that carries a technology this build cannot apply is refused,
-    /// and the refusal names the side, the technology and what is missing.
-    #[test]
-    fn a_technology_this_build_cannot_apply_refuses_the_side_that_holds_it() {
-        let value = LAYOUT.replace(
-            "blue:\n  units:",
-            "blue:\n  techs:\n    marksman: [shooting_squad]\n  units:",
-        );
-        let refused = compile_default(&value).unwrap_err().to_string();
-        assert!(refused.contains("side blue"), "{refused}");
-        assert!(refused.contains("1202"), "{refused}");
-        assert!(refused.contains("supportUnitTechnologies"), "{refused}");
-    }
-
     /// An officer that only touches a ledger reaches the fight as nothing,
     /// rather than as a refusal.
     #[test]
@@ -1835,28 +1831,6 @@ red:
         assert_eq!(
             format!("{:?}", beside.constructions),
             format!("{:?}", alone.constructions)
-        );
-    }
-
-    /// A layout refused for several things is refused for all of them at
-    /// once, each named once however many formations it reaches.
-    #[test]
-    fn a_refusal_names_everything_the_layout_is_refused_for() {
-        let value = LAYOUT
-            .replace(
-                "blue:\n  units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]",
-                "blue:\n  techs:\n    marksman: [doubleshot, shooting_squad]\n  units:\n  - {name: marksman, index: 0, position: {x: 0, y: -50}}\n  - {name: marksman, index: 1, position: {x: 20, y: -50}}",
-            );
-        let refused = compile_default(&value).unwrap_err().to_string();
-        let clauses: Vec<&str> = refused.split("; ").collect();
-        assert_eq!(clauses.len(), 2, "{refused}");
-        assert!(
-            clauses.iter().any(|clause| clause.contains("702")),
-            "{refused}"
-        );
-        assert!(
-            clauses.iter().any(|clause| clause.contains("1202")),
-            "{refused}"
         );
     }
 

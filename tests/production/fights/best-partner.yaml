@@ -1,0 +1,26 @@
+# Best Partner on blue's Vulcan: a technology's production line
+# (`SupportUnitTech`), which `SupportUnitEffectProvider` runs as it runs a
+# production item's. It makes one Marksman at the Vulcan's level
+# (`DynamicMechLevel.Parent`), 25 metres right and 30 behind it, once.
+#
+# The line has one position and may keep 100 alive, so the make is first
+# scattered by a draw of up to a metre each way, x then z, from blue's
+# stream: it stands at (25.56, -180.15) where the offset alone puts it at
+# (25.01, -180.08). It appears at t1 and joins a second on.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 418
+hash: {profile: mcfr-content-0.7.0, result: 22cabb3ff48f4cb714de35ce30399e66360c5f992b4c87d57c17897f1b7d8904}
+blue:
+  techs:
+    vulcan: [best_partner]
+  units:
+  - {name: vulcan, index: 0, position: {x: 0, y: -150}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150}
+  - {name: marksman, index: 1, position: {x: 60, y: -100}, exp: 0/650/650}

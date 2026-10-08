@@ -509,10 +509,9 @@ fn verify_fights_a_fight_document_again_and_names_what_differs() {
     assert_eq!(report["differences"].as_array().unwrap().len(), 1);
 }
 
-/// A game's fight is compared on its result and its trajectory alike; and a
-/// fight the simulator does not fight is answered with why.
+/// A game's fight is compared on its result and its trajectory alike.
 #[test]
-fn verify_compares_a_game_fight_and_answers_a_refusal() {
+fn verify_compares_a_game_fight() {
     let directory = tempfile::tempdir().unwrap();
     let replay = simulated_fight(directory.path()).replace("source: simulator", "source: game");
     let verify = |name: &str, text: &str| verify_text(directory.path(), name, text);
@@ -536,22 +535,6 @@ fn verify_compares_a_game_fight_and_answers_a_refusal() {
             .ends_with("/core_damage"),
         "{report}"
     );
-
-    let (code, report) = verify(
-        "refused.yaml",
-        &replay.replace(
-            "blue:\n",
-            "blue:\n  techs:\n    marksman: [shooting_squad]\n",
-        ),
-    );
-    assert_eq!(code, Some(1), "{report}");
-    assert_eq!(report["kind"], "fight");
-    let error = report["error"].as_str().unwrap();
-    assert!(
-        error.starts_with("the simulator does not fight it"),
-        "{error}"
-    );
-    assert!(error.contains("1202"), "{error}");
 }
 
 /// What was written onto a fight's units, which is not what the fight decided.
