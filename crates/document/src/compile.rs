@@ -198,7 +198,7 @@ fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, Str
     officers.sort_unstable();
     let slots = crate::economy::Economy::embedded()?.equipment_slots(&officers);
     let units = compile_units(side_name, units, round, slots)?;
-    validate_legacy_index(side_name, legacy_index, round, &units)?;
+    validate_legacy_index(side_name, legacy_index, &units)?;
     let constructions = compile_constructions(side_name, constructions)?;
     let contraptions = compile_contraptions(side_name, contraptions)?;
     let mut standing_shields = Vec::new();
@@ -244,23 +244,15 @@ fn compile_side(side_name: &str, side: Side, round: i32) -> Result<SidePlan, Str
     })
 }
 
-/// The first round carries nothing into it, and a unit reaches a flank during
-/// the round only by travelling there, so one that stands on a flank without
-/// travelling is legacy.
+/// A unit reaches a flank during the round only by travelling there, so one
+/// that stands on a flank without travelling is legacy.
 fn validate_legacy_index(
     side_name: &str,
     legacy_index: i32,
-    round: i32,
     units: &[Placement],
 ) -> Result<(), String> {
     if legacy_index < 0 {
         return Err(format!("{side_name} legacy_index must not be negative"));
-    }
-    if round <= 1 && legacy_index != 0 {
-        return Err(format!(
-            "{side_name} legacy_index {legacy_index} in round {round}: the first round has no \
-             legacy unit"
-        ));
     }
     if let Some(unit) = units.iter().find(|unit| {
         !unit.travelling

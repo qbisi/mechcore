@@ -12,6 +12,7 @@ ticks: 1019
 hash: {profile: mcfr-content-0.22.0, result: 4dcacd9e7bf4147f2e2751b4674f8e8d1e04d73f5230b4e23415c60337fae6b2}
 blue:
   officers: [giant_specialist]
+  legacy_index: 5
   units:
   - {name: void_eye, index: 0, position: {x: -190, y: -150}, exp: 0/266/650}
   - {name: void_eye, index: 1, position: {x: -20, y: -150}, exp: 0/70/650}
@@ -25,6 +26,7 @@ blue:
 red:
   core_damage: 538
   officers: [cost_control_specialist]
+  legacy_index: 5
   units:
   - {name: crawler, index: 0, position: {x: 135, y: -190}, exp: 0/19/450}
   - {name: crawler, index: 1, position: {x: -140, y: -135}, exp: 0/265/450, rotated: true}

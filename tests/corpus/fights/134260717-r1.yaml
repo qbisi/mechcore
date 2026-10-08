@@ -13,6 +13,7 @@ hash: {profile: mcfr-content-0.22.0, result: 20e6606f2b9ccaff3d3d6535028949cbfc1
 blue:
   core_damage: 1000
   officers: [aerial_specialist]
+  legacy_index: 5
   units:
   - {name: fang, index: 0, position: {x: 200, y: -235}, rotated: true}
   - {name: fang, index: 1, position: {x: 0, y: -205}, rotated: true}
@@ -25,6 +26,7 @@ blue:
   - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
 red:
   officers: [cost_control_specialist]
+  legacy_index: 5
   units:
   - {name: marksman, index: 0, position: {x: 160, y: -170}, exp: 0/80/650}
   - {name: marksman, index: 1, position: {x: 140, y: -150}, exp: 0/212/650}

@@ -12,6 +12,7 @@ ticks: 1559
 hash: {profile: mcfr-content-0.22.0, result: 79b9970ad5a251232717ef1b7b4c135ecc0dbe8cdf79908ff9e20651702d89a0}
 blue:
   officers: [supply_specialist]
+  legacy_index: 5
   units:
   - {name: fang, index: 0, position: {x: 180, y: -115}, exp: 0/90/600, rotated: true}
   - {name: fang, index: 1, position: {x: -120, y: -185}, exp: 0/112/600, rotated: true}
@@ -25,6 +26,7 @@ blue:
 red:
   core_damage: 518
   officers: [giant_specialist]
+  legacy_index: 5
   units:
   - {name: crawler, index: 0, position: {x: -290, y: -285}, exp: 0/18/450, rotated: true}
   - {name: crawler, index: 1, position: {x: 0, y: -285}, exp: 0/40/450, rotated: true}

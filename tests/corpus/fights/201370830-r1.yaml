@@ -12,6 +12,7 @@ hash: {profile: mcfr-content-0.22.0, result: 9dfe4f9b7cdc9d8ae9fe45f6933314d6ab7
 blue:
   core_damage: 300
   officers: [elite_specialist]
+  legacy_index: 5
   units:
   - {name: arclight, index: 0, position: {x: -90, y: -60}, exp: 0/104/750}
   - {name: arclight, index: 1, position: {x: -190, y: -60}, exp: 0/145/750}
@@ -24,6 +25,7 @@ blue:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
 red:
   officers: [fortified_specialist]
+  legacy_index: 5
   units:
   - {name: void_eye, index: 0, position: {x: 80, y: -70}, exp: 0/157/650}
   - {name: void_eye, index: 1, position: {x: 180, y: -70}, exp: 0/148/650}

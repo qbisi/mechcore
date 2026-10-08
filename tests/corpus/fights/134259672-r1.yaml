@@ -16,6 +16,7 @@ hash: {profile: mcfr-content-0.22.0, result: 74b1f39bd213619d39d0b810f22ede26201
 blue:
   core_damage: 472
   officers: [typhoon_specialist]
+  legacy_index: 5
   units:
   - {name: void_eye, index: 0, position: {x: 70, y: -70}, exp: 0/30/650}
   - {name: void_eye, index: 1, position: {x: 150, y: -70}, exp: 0/92/650}
@@ -28,6 +29,7 @@ blue:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
   officers: [training_specialist]
+  legacy_index: 5
   units:
   - {name: arclight, index: 0, position: {x: 0, y: -150}, level: 2, exp: 0/818/1690}
   - {name: arclight, index: 1, position: {x: 140, y: -150}, exp: 0/9/750}

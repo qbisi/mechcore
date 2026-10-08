@@ -40,25 +40,21 @@ pub fn project(
         seed: Some(seed),
         round,
         blue: Side {
-            legacy_index: legacy_index(&opening.blue, round),
+            legacy_index: legacy_index(&opening.blue),
             ..project_side(&state.blue, "blue")?
         },
         red: Side {
-            legacy_index: legacy_index(&opening.red, round),
+            legacy_index: legacy_index(&opening.red),
             ..project_side(&state.red, "red")?
         },
     })
 }
 
 /// The units a side carried into the round: those the allocator had named
-/// as it opened, the squads its officers delivered among them. The first
-/// round carries none, though it opens with the squads each side is dealt.
-fn legacy_index(opening: &SideState, round: i32) -> i32 {
-    if round > 1 {
-        opening.next_index.unit
-    } else {
-        0
-    }
+/// as it opened, the squads its officers delivered among them, and in the
+/// first round the advance team it chose before it.
+fn legacy_index(opening: &SideState) -> i32 {
+    opening.next_index.unit
 }
 
 /// Projects every round of a match both ways and compiles each layout.

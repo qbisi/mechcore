@@ -18,6 +18,7 @@ hash: {profile: mcfr-content-0.22.0, result: 2e017a17712fb2d604959c4090b8b0dd18d
 blue:
   core_damage: 284
   officers: [quick_supply_specialist]
+  legacy_index: 5
   units:
   - {name: fang, index: 0, position: {x: -140, y: -135}, exp: 0/95/600, rotated: true}
   - {name: fang, index: 1, position: {x: 50, y: -135}, exp: 0/82/600, rotated: true}
@@ -31,6 +32,7 @@ blue:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
 red:
   officers: [speed_specialist]
+  legacy_index: 5
   units:
   - {name: arclight, index: 0, position: {x: 210, y: -150}, exp: 0/372/750}
   - {name: arclight, index: 1, position: {x: 140, y: -150}, exp: 0/353/750}
