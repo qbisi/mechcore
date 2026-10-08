@@ -105,6 +105,9 @@ pub(crate) struct Placement {
     pub(crate) extra_weapons: Vec<ExtraWeapon>,
     /// What a buff that disables technology switches off on it.
     pub(crate) technology_disable: TechnologyDisable,
+    /// The unit type its technology summons where it dies, and how many
+    /// (`DeadSummonTech`).
+    pub(crate) dead_summon: Option<(u32, u32)>,
 }
 
 /// An extra weapon a unit's technology adds, and the fire its hit leaves.
@@ -448,10 +451,27 @@ pub(crate) fn compile_with_seed(
     ))
 }
 
-/// The units a side's buffs make a unit summon as it dies
-/// (`IBEC_DeadSummon`), by side and type id: each type a buff of one of the
-/// side's placements summons, and each a buff of one of these summons in
-/// turn. `SummonSystem.DoCreateMech` makes it at `CardLevel.Level1` with no
+/// The unit types a placement summons as it dies: its buffs' and its
+/// technology's.
+fn death_summoned(placement: &Placement, units: &UnitConfigs) -> Vec<u32> {
+    let own = units
+        .get(&placement.type_name)
+        .map(|rules| rules.unit_type_id);
+    placement
+        .buff_sources
+        .iter()
+        .filter_map(|source| match source.summons? {
+            DeadSummon::SourceType => own,
+            DeadSummon::Unit(id) => u32::try_from(id).ok(),
+        })
+        .chain(placement.dead_summon.map(|(type_id, _)| type_id))
+        .collect()
+}
+
+/// The units a side's buffs and technologies make a unit summon as it dies
+/// (`IBEC_DeadSummon`, `DeadSummonTech`), by side and type id: each type one
+/// of the side's placements summons, and each one of these summons summons
+/// in turn. `SummonSystem.DoCreateMech` makes it at `CardLevel.Level1` with no
 /// equipment, and `FightController.CreateMech` gives it its side's
 /// technologies when its parent `IsChildInheritTechnologyEffect`, which
 /// `MechData` answers for every unit but types 4001 and 5203.
@@ -462,23 +482,10 @@ fn compile_death_summons(
     loadouts: &Loadouts,
     refused: &mut Refusals,
 ) -> BTreeMap<(u32, u32), DeathSummon> {
-    let summoned = |placement: &Placement| -> Vec<u32> {
-        let own = units
-            .get(&placement.type_name)
-            .map(|rules| rules.unit_type_id);
-        placement
-            .buff_sources
-            .iter()
-            .filter_map(|source| match source.summons? {
-                DeadSummon::SourceType => own,
-                DeadSummon::Unit(id) => u32::try_from(id).ok(),
-            })
-            .collect()
-    };
     let mut pending = placements
         .iter()
         .filter(|placement| placement.team == team)
-        .flat_map(summoned)
+        .flat_map(|placement| death_summoned(placement, units))
         .collect::<Vec<_>>();
     let mut templates = BTreeMap::new();
     while let Some(type_id) = pending.pop() {
@@ -487,14 +494,14 @@ fn compile_death_summons(
         }
         let Some(rules) = units.by_type_id(type_id) else {
             refused.push(format!(
-                "side {name} summons unit {type_id} as a buffed unit dies, which has no unit \
+                "side {name} summons unit {type_id} as a unit dies, which has no unit \
                  configuration"
             ));
             continue;
         };
         if matches!(rules.unit_type_id, 4001 | 5203) {
             refused.push(format!(
-                "side {name} summons a {} as a buffed unit dies, whose parent lends it no \
+                "side {name} summons a {} as a unit dies, whose parent lends it no \
                  technologies, which is not read",
                 rules.type_name
             ));
@@ -512,10 +519,10 @@ fn compile_death_summons(
         ) else {
             continue;
         };
-        if worn.interception.is_some() {
+        if let Some(why) = unread_on_a_death_summon(&worn) {
             refused.push(format!(
-                "side {name} summons a {} as a buffed unit dies, which its technologies make \
-                 an interceptor, and when a summon's interceptors start is not measured",
+                "side {name} summons a {} as a unit dies, which its technologies {why}, which \
+                 is not measured",
                 rules.type_name
             ));
             continue;
@@ -551,8 +558,9 @@ fn compile_death_summons(
             travelling: false,
             extra_weapons: worn.extra_weapons,
             technology_disable: worn.technology_disable,
+            dead_summon: None,
         };
-        pending.extend(summoned(&template));
+        pending.extend(death_summoned(&template, units));
         templates.insert(
             (team, type_id),
             DeathSummon {
@@ -850,6 +858,7 @@ fn compile_formation(
         travelling: formation.travelling,
         extra_weapons: worn.extra_weapons,
         technology_disable: worn.technology_disable,
+        dead_summon: worn.dead_summon,
     })
 }
 
@@ -943,11 +952,12 @@ fn production_of(
         || worn.distance_intensify
         || worn.secondary_damage.is_some()
         || worn.interception.is_some()
+        || worn.dead_summon.is_some()
     {
         refused.push(format!(
             "side {side_name} makes a {} that its technologies give lifesteal, repair, a \
-             shield, a search by distance, a second damage or interceptors, and what a made \
-             unit's effect providers carry is not measured",
+             shield, a search by distance, a second damage, interceptors or a summon as it \
+             dies, and what a made unit's effect providers carry is not measured",
             made.type_name
         ));
         return None;
@@ -1003,6 +1013,32 @@ pub(crate) struct TechnologyDisable {
 
 /// The interceptors a unit's technologies make it, from the one that makes
 /// any: a second is refused, which is not measured.
+/// What a unit summoned as another dies carries that is not measured on one.
+fn unread_on_a_death_summon(worn: &Worn) -> Option<&'static str> {
+    if worn.interception.is_some() {
+        Some("make an interceptor, and when a summon's interceptors start")
+    } else if worn.dead_summon.is_some() {
+        Some("make summon as it dies in turn")
+    } else {
+        None
+    }
+}
+
+fn one_carried_shield(
+    carried: &[CarriedShield],
+    side_name: &str,
+    type_name: &str,
+) -> Result<Option<CarriedShield>> {
+    match carried {
+        [] => Ok(None),
+        [one] => Ok(Some(*one)),
+        _ => Err(Error::new(format!(
+            "side {side_name} unit type {type_name:?} carries two barriers, which is not \
+             measured"
+        ))),
+    }
+}
+
 fn one_interception(
     held: &[UnitInterception],
     side_name: &str,
@@ -1037,6 +1073,7 @@ struct Worn {
     ignores_control_beam: bool,
     extra_weapons: Vec<ExtraWeapon>,
     technology_disable: TechnologyDisable,
+    dead_summon: Option<(u32, u32)>,
 }
 
 /// What this side's loadout and a formation's equipment write onto it.
@@ -1309,23 +1346,16 @@ fn worn(
             side_name,
             type_name,
         ))?,
-        carried_shield: match carried_shields.as_slice() {
-            [] => None,
-            [one] => Some(*one),
-            _ => {
-                refused.push(format!(
-                    "side {side_name} unit type {type_name:?} carries two barriers, which is \
-                     not measured"
-                ));
-                return None;
-            }
-        },
+        carried_shield: refused.hold(one_carried_shield(&carried_shields, side_name, type_name))?,
         buff_sources,
         ignored_buffs,
         important,
         ignores_control_beam,
         extra_weapons,
         technology_disable: TechnologyDisable::default(),
+        dead_summon: sources
+            .dead_summon
+            .map(|summon| (summon.unit_type_id, summon.count(level))),
     })
 }
 

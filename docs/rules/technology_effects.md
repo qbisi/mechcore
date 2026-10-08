@@ -352,6 +352,24 @@ attack range corrected by the row, are capped in all, come in its
 `intensifyMode` or without their side's technologies is refused by name; no
 row of this version does.
 
+## Summons where a unit dies
+
+A row of `deadSummonTechnologies` is a `DeadSummonTech`, an `IDeadSummon`.
+As its unit dies, `DeadSummonController.PerformDeadEffect` has
+`SummonSystem.CreateMech` make, for the unit's side, the row's `unit_count`
+entry for the unit's level of its `unit_id`. Each is a unit at the first level
+for `unit_level` 0, where the unit stood and facing as it faced. Each is moved
+within the whole metres of the unit's radius by two draws of its side's
+stream, x then z, as a buff's dead summon is, and joins at once. Unlike a
+buff's, it is made whatever the unit's domain and whether or not a buff
+summoned the unit, and the recording writes its `unit_created` before its
+unit's `unit_died` rather than after. Mechanical Division leaves five Crawlers
+where a Steel Ball dies:
+`tests/dead_summon/fights/mechanical-division.yaml`.
+
+The Sandworm's Mechanical Division, at its unit's level (`unit_level` 3) and of
+unit 1001, which has no unit configuration, is refused by name.
+
 ## What this table does not carry
 
 A technology that is not plain does something that is not a correction on its

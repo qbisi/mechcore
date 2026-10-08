@@ -1312,15 +1312,16 @@ impl Simulation {
     fn around_an_end(&mut self, end: &Event) -> (Vec<Event>, Vec<Event>) {
         match (end.subject, &end.payload) {
             // What a buff made a dying unit summon is made as it dies, before
-            // its buffs are cleared.
+            // its buffs are cleared; what its technology made it summon is
+            // recorded before it dies.
             (Some(subject), EventPayload::UnitDied { .. }) if subject.kind == ObjectKind::Unit => {
-                let mut follows = self
+                let (precedes, mut follows) = self
                     .support
                     .summoned_events
                     .remove(&subject.id)
                     .unwrap_or_default();
                 follows.extend(self.buffs_cleared_by_death(subject.id));
-                (Vec::new(), follows)
+                (precedes, follows)
             }
             (Some(subject), EventPayload::BuildingDestroyed { .. })
                 if subject.kind == ObjectKind::Building =>

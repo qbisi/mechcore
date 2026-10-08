@@ -49,13 +49,14 @@ pub(in crate::fight) struct SupportUnitSystem {
     pub(in crate::fight) appearing: Vec<Appearing>,
     /// What each side's buffs make a dying unit summon, by side and type id.
     pub(in crate::fight) death_summons: BTreeMap<(u32, u32), crate::layout::DeathSummon>,
-    /// The units that died this tick running a buff that summons, in the
-    /// order they died: `DeadEffectSystem.deadActors`, whose `OnDead` waits
-    /// for that module's update.
+    /// The units that died this tick, in the order they died:
+    /// `DeadEffectSystem.deadActors`, whose `OnDead` waits for that module's
+    /// update.
     pub(in crate::fight) dying: Vec<u64>,
-    /// The `unit_created` of what each unit that died this tick summoned, to
-    /// follow its `unit_died`.
-    pub(in crate::fight) summoned_events: BTreeMap<u64, Vec<Event>>,
+    /// The `unit_created` of what each unit that died this tick summoned: a
+    /// technology's, to precede its `unit_died`, and its buffs', to follow
+    /// it.
+    pub(in crate::fight) summoned_events: BTreeMap<u64, (Vec<Event>, Vec<Event>)>,
 }
 
 impl SupportUnitSystem {
@@ -450,6 +451,7 @@ impl Simulation {
             travelling: false,
             extra_weapons: Vec::new(),
             technology_disable: creator.summon.technology_disable.clone(),
+            dead_summon: None,
         };
         let mut actor = Actor::at_generated_position(placement, rules, x_q32, z_q32);
         if let Some(facing) = facing {
@@ -818,28 +820,41 @@ impl Simulation {
     /// (`DEAD_FACTOR`), the whole part, where the dead unit stood, scattered
     /// within its radius, each joining its side at once. A Marksman killed
     /// under Replicate leaves 7 Crawlers, four to the 1.5 being 7.99999998.
+    ///
+    /// A unit whose technology summons where it dies (`DeadSummonTech`)
+    /// summons too, parasitic or not, as `DeadSummonController.
+    /// PerformDeadEffect` does: Mechanical Division leaves five Crawlers
+    /// where its Steel Ball died.
     pub(in crate::fight) fn summon_from_the_dead(&mut self) -> Result<()> {
         let mut made = Vec::new();
         let mut created = Vec::new();
         for dead_id in std::mem::take(&mut self.support.dying) {
             let dead = &self.actors[&dead_id];
-            if dead.parasitic {
+            let technology = dead.placement.dead_summon;
+            let summons = if dead.parasitic {
+                Vec::new()
+            } else {
+                dead.buffs
+                    .iter()
+                    .filter_map(super::tower::RunningBuff::dead_summon)
+                    .collect::<Vec<_>>()
+            };
+            if technology.is_none() && summons.is_empty() {
                 continue;
             }
-            let summons = dead
-                .buffs
-                .iter()
-                .filter_map(super::tower::RunningBuff::dead_summon)
-                .collect::<Vec<_>>();
-            let mut events = Vec::new();
-            for (summon, source) in summons {
-                made.extend(self.summon_where_dead(dead_id, summon, source, &mut events)?);
+            let (mut before, mut after) = (Vec::new(), Vec::new());
+            if let Some((type_id, count)) = technology {
+                made.extend(self.summon_by_technology(dead_id, type_id, count, &mut before)?);
             }
-            created.push((dead_id, events));
+            for (summon, source) in summons {
+                made.extend(self.summon_where_dead(dead_id, summon, source, &mut after)?);
+            }
+            created.push((dead_id, (before, after)));
         }
         let renamed = self.number_as_recorded(&made);
-        for (_, events) in &mut created {
-            rename_created(&renamed, events);
+        for (_, (before, after)) in &mut created {
+            rename_created(&renamed, before);
+            rename_created(&renamed, after);
         }
         // `FightTeam.ActiveMech` put each in its side's trees as it was made.
         for unit_id in &made {
@@ -890,6 +905,53 @@ impl Simulation {
         let radius_q32 = space_to_q32(dead.rules.collision_radius());
         let ratio = q32_div(radius_q32, space_to_q32(made.rules.collision_radius()));
         let count = (fpcs_pow_fastest(ratio, DEAD_FACTOR) >> 32).max(1);
+        self.summon_around(dead_id, (team, &made), count, None, events)
+    }
+
+    /// One `DeadSummonController.PerformDeadEffect`: `SummonSystem.CreateMech`
+    /// of the dead unit's side, `count` of the technology's unit type at the
+    /// first level, facing as the dead unit faced, scattered within its
+    /// radius.
+    fn summon_by_technology(
+        &mut self,
+        dead_id: u64,
+        type_id: u32,
+        count: u32,
+        events: &mut Vec<Event>,
+    ) -> Result<Vec<u64>> {
+        let dead = &self.actors[&dead_id];
+        let team = dead.placement.team;
+        let facing = dead.body_rotation_q32;
+        let Some(made) = self.support.death_summons.get(&(team, type_id)).cloned() else {
+            return Err(Error::new(format!(
+                "unit {dead_id} dies with a technology that has team {team} summon unit \
+                 {type_id}, which that side's layout did not prepare"
+            )));
+        };
+        self.summon_around(
+            dead_id,
+            (team, &made),
+            i64::from(count),
+            Some(facing),
+            events,
+        )
+    }
+
+    /// `SummonSystem.CreateMech` of `count` summons about where a unit died,
+    /// each moved within the whole metres of its radius by two draws of its
+    /// side's stream, x then z, and joining its side at once. One a buff
+    /// summons is parasitic (`MechCreateType.ParasiticalSummon`) and faces its
+    /// side's way; one a technology summons faces as the dead unit faced.
+    fn summon_around(
+        &mut self,
+        dead_id: u64,
+        (team, made): (u32, &crate::layout::DeathSummon),
+        count: i64,
+        facing: Option<i64>,
+        events: &mut Vec<Event>,
+    ) -> Result<Vec<u64>> {
+        let dead = &self.actors[&dead_id];
+        let radius_q32 = space_to_q32(dead.rules.collision_radius());
         let (centre_x_q32, centre_z_q32) = (dead.x_q32, dead.z_q32);
         let span = i32::try_from((radius_q32 >> 32) * 100)
             .map_err(|_| Error::new("a dead unit's radius exceeds i32"))?;
@@ -900,7 +962,11 @@ impl Simulation {
                 let draw = self.side_random(team)?.next_in_range(span);
                 *axis = axis.saturating_add(hundredths(draw));
             }
-            let actor = self.make_parasite(&made, position, events);
+            let mut actor = self.make_parasite(made, position, events);
+            if let Some(facing) = facing {
+                actor.parasitic = false;
+                actor.face(facing);
+            }
             let unit_id = actor.placement.unit_id;
             joined.push(unit_id);
             self.join(actor)?;
