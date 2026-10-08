@@ -653,6 +653,25 @@ impl Simulation {
         skill_ref: SkillRef,
         target: FightActorRef,
     ) -> bool {
+        let Some(view) = self.fight_actor(target) else {
+            return false;
+        };
+        let at_shield = self.skill(skill_ref).shield_target().is_some()
+            && Some(target) == self.skill(skill_ref).lock_target;
+        view.alive
+            && (at_shield || view.targetable)
+            && self.attack_target_in_range(skill_ref, target)
+    }
+
+    /// `SkillAttackRangeChecker.IsAttackTargetInAttackRange` itself, which
+    /// asks the target's visibility and distance and not whether it lives:
+    /// a command's motion, never idle and always active, keeps attacking a
+    /// target dead in range.
+    pub(in crate::fight) fn attack_target_in_range(
+        &self,
+        skill_ref: SkillRef,
+        target: FightActorRef,
+    ) -> bool {
         let (Some(attacker), Some(view)) =
             (self.skill_attacker(skill_ref), self.fight_actor(target))
         else {
@@ -660,18 +679,15 @@ impl Simulation {
         };
         // A skill firing at a shield reaches it once the point of the
         // shield's surface on its way to the lock is in range, from the
-        // owner's edge: `SkillAttackRangeChecker.IsAttackTargetInAttackRange`.
+        // owner's edge.
         if let Some(shield) = self.skill(skill_ref).shield_target()
             && Some(target) == self.skill(skill_ref).lock_target
         {
-            return view.alive
-                && self
-                    .shield_attack_point(shield, skill_ref, target)
-                    .is_some_and(|(x_q32, z_q32)| attacker.reaches(x_q32, z_q32, 0));
+            return self
+                .shield_attack_point(shield, skill_ref, target)
+                .is_some_and(|(x_q32, z_q32)| attacker.reaches(x_q32, z_q32, 0));
         }
-        view.alive
-            && view.targetable
-            && self.reaches_hidden(skill_ref.owner, view.visible)
+        self.reaches_hidden(skill_ref.owner, view.visible)
             && attacker.reaches(view.x_q32, view.z_q32, view.radius)
     }
 
