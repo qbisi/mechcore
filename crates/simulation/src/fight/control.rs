@@ -40,9 +40,18 @@ pub(in crate::fight) struct Translation {
     pub(in crate::fight) target: u64,
     /// `TranslationData.progress`: the power its beams have added.
     pub(in crate::fight) progress: i32,
-    /// The owners of the skills whose beams hold it, in the order they
-    /// started.
-    pub(in crate::fight) sources: Vec<u64>,
+    /// The skills whose beams hold it, in the order they started.
+    pub(in crate::fight) sources: Vec<BeamSource>,
+}
+
+/// One skill of `TranslationData`'s list: a unit's skill, and the place in
+/// its group of the one whose beam holds the entry. A unit whose several
+/// beams hold one unit is listed once for each.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::fight) struct BeamSource {
+    pub(in crate::fight) owner: u64,
+    pub(in crate::fight) slot: SkillSlot,
+    pub(in crate::fight) offset: usize,
 }
 
 /// What a control beam's `NormalAttackPerformer` holds while its skill
@@ -64,32 +73,67 @@ impl Simulation {
     }
 
     /// `NormalAttackPerformer.Enter`, `Exit` and the change of attack target
-    /// between them, for a skill that fires a control beam: the effect it
-    /// holds follows the attack state and its target.
+    /// between them, for every skill of a unit that fires a control beam, in
+    /// the order its skills update: the effect each holds follows its attack
+    /// state and its target.
     pub(in crate::fight) fn sync_beam(&mut self, actor_id: u64) {
-        let actor = &self.actors[&actor_id];
-        if actor.skills.main.kind != SkillKind::ControlBeam {
-            return;
+        for source in self.beam_skills(actor_id) {
+            self.sync_skill_beam(source);
         }
+    }
+
+    /// A unit's skills that fire a control beam, each skill of a group its
+    /// own, in the order `SkillManager.Update` runs them: by skill ID, the
+    /// skills of a group after their core.
+    fn beam_skills(&self, actor_id: u64) -> Vec<BeamSource> {
+        let actor = &self.actors[&actor_id];
+        let (before, after) = self.extra_skills_around_main(actor_id);
+        before
+            .into_iter()
+            .map(|index| (SkillSlot::Extra(index), &actor.skills.extras[index].skill))
+            .chain(std::iter::once((SkillSlot::Main, &actor.skills.main)))
+            .chain(
+                after
+                    .into_iter()
+                    .map(|index| (SkillSlot::Extra(index), &actor.skills.extras[index].skill)),
+            )
+            .filter(|(_, skill)| skill.kind == SkillKind::ControlBeam)
+            .flat_map(|(slot, skill)| {
+                (0..skill.group_size().max(1)).map(move |offset| BeamSource {
+                    owner: actor_id,
+                    slot,
+                    offset,
+                })
+            })
+            .collect()
+    }
+
+    fn sync_skill_beam(&mut self, source: BeamSource) {
+        let skill_ref = SkillRef {
+            owner: FightActorRef::Unit(source.owner),
+            slot: source.slot,
+        };
+        let alive = self.actors[&source.owner].alive();
+        let skill = self.skill(skill_ref).group_skill(source.offset);
         // `FightControllBeamSkill.GetAttackEffect`: the control effect for a
         // unit that may be turned, the skill's damage effect for anything
         // else, a shield the skill fires at in place of its lock among it.
-        let wanted = (actor.alive() && matches!(actor.skills.main.state, SkillState::Attack(_)))
-            .then(|| actor.skills.main.attack_target())
+        let wanted = (alive && matches!(skill.state, SkillState::Attack(_)))
+            .then(|| skill.attack_target())
             .flatten()
             .map(|target| {
                 let control = match target {
                     FightActorRef::Unit(id) => {
-                        !self.ignores_control(id) && actor.skills.main.shield_target().is_none()
+                        !self.ignores_control(id) && skill.shield_target().is_none()
                     }
                     FightActorRef::Building(_) => false,
                 };
                 Beam { target, control }
             });
-        if actor.beam == wanted {
+        if skill.beam == wanted {
             return;
         }
-        self.stop_beam(actor_id);
+        self.stop_beam(source);
         let Some(Beam { target, control }) = wanted else {
             return;
         };
@@ -100,26 +144,28 @@ impl Simulation {
                 .iter_mut()
                 .find(|entry| entry.target == id)
             {
-                Some(entry) => entry.sources.push(actor_id),
+                Some(entry) => entry.sources.push(source),
                 None => self.translations.push(Translation {
                     target: id,
                     progress: 0,
-                    sources: vec![actor_id],
+                    sources: vec![source],
                 }),
             }
         }
-        self.actors
-            .get_mut(&actor_id)
-            .expect("actor identity is stable")
+        self.skill_mut(skill_ref)
+            .group_skill_mut(source.offset)
             .beam = Some(Beam { target, control });
     }
 
     /// `ControllEffect.Stop` and `TeamTranslationSystem.Remove`.
-    fn stop_beam(&mut self, actor_id: u64) {
+    fn stop_beam(&mut self, source: BeamSource) {
+        let skill_ref = SkillRef {
+            owner: FightActorRef::Unit(source.owner),
+            slot: source.slot,
+        };
         let Some(beam) = self
-            .actors
-            .get_mut(&actor_id)
-            .expect("actor identity is stable")
+            .skill_mut(skill_ref)
+            .group_skill_mut(source.offset)
             .beam
             .take()
         else {
@@ -131,7 +177,7 @@ impl Simulation {
                 .iter_mut()
                 .find(|entry| entry.target == id)
             {
-                entry.sources.retain(|&source| source != actor_id);
+                entry.sources.retain(|&held| held != source);
             }
             self.translations.retain(|entry| !entry.sources.is_empty());
         }
@@ -139,15 +185,20 @@ impl Simulation {
 
     /// `ControlBeamDamageCalculator.GetAttackDamage`: the skill's damage,
     /// and for the hits up to `warmup_attack_count`, counted from zero, that
-    /// damage times the warm-up multiplier, at least one.
-    fn beam_damage(&self, actor_id: u64, attack_count: i32) -> i64 {
-        let actor = &self.actors[&actor_id];
-        let damage = self.main_attack_damage(actor_id);
+    /// damage times the warm-up multiplier, at least one. The damage is the
+    /// skill's own, which a technology's `DamageReduceRateBase` has lowered
+    /// already: Multi Control's beams turn by 102 a hit of a Hacker's 600,
+    /// and by 1 a warm-up hit.
+    fn beam_damage(&self, skill_ref: SkillRef, attack_count: i32) -> i64 {
+        let attacker = self
+            .skill_attacker(skill_ref)
+            .expect("skill owner identity is stable");
+        let damage = attacker.attack_damage;
         let AttackPath::ControlBeam {
             warmup_attack_count,
             warmup_damage_multiplier,
             ..
-        } = actor.rules.attack.path
+        } = attacker.attack.path
         else {
             unreachable!("a control beam's damage needs a control beam's path")
         };
@@ -163,44 +214,55 @@ impl Simulation {
         warm.max(1)
     }
 
-    /// What a recording reads as the beam's damage: its damage calculator
+    /// What a recording reads as a beam's damage: its damage calculator
     /// with the default attack count, zero, which is the first warmup hit
     /// whatever the beam is on. The Hacker reads 1 against a unit it may
     /// turn, a unit wearing the Anti-Interference Module and a shield alike.
-    pub(in crate::fight) fn beam_snapshot_damage(&self, actor: &Actor) -> Option<i32> {
-        if actor.skills.main.kind != SkillKind::ControlBeam {
+    pub(in crate::fight) fn beam_snapshot_damage(&self, skill_ref: SkillRef) -> Option<i32> {
+        if self.skill(skill_ref).kind != SkillKind::ControlBeam {
             return None;
         }
-        let damage = self.beam_damage(actor.placement.unit_id, 0);
+        let damage = self.beam_damage(skill_ref, 0);
         Some(i32::try_from(damage).unwrap_or(i32::MAX))
     }
 
-    /// `NormalAttackPerformer.TryPerformEffect` for a control beam:
-    /// `ControllEffect.Perform` adds the hit's power to the lock's entry,
-    /// and `DamageEffect.Perform` strikes with the damage the beam's damage
+    /// `NormalAttackPerformer.TryPerformEffect` for a control beam, the
+    /// skill at `offset` of its group: `ControllEffect.Perform` adds the
+    /// hit's power to the entry of that skill's lock, and
+    /// `DamageEffect.Perform` strikes with the damage the beam's damage
     /// effect deals.
     pub(in crate::fight) fn control_effect(
         &mut self,
-        actor_id: u64,
+        skill_ref: SkillRef,
+        offset: usize,
         target: FightActorRef,
         events: &mut Vec<Event>,
     ) -> Result<()> {
+        let actor_id = skill_ref
+            .owner
+            .unit_id()
+            .ok_or_else(|| Error::new("a construction's control beam is not supported"))?;
         self.sync_beam(actor_id);
-        let actor = &self.actors[&actor_id];
-        let attack_count = actor.skills.main.attack_count;
-        let damage = self.beam_damage(actor_id, attack_count);
-        let control = actor.beam.is_some_and(|beam| beam.control);
-        if !control {
+        let skill = self.skill(skill_ref).group_skill(offset);
+        let (attack_count, lock, beam) = (skill.attack_count, skill.lock_target, skill.beam);
+        let damage = self.beam_damage(skill_ref, attack_count);
+        if !beam.is_some_and(|beam| beam.control) {
             // A hit that deals nothing strikes nothing: the warmup hits on a
             // unit wearing the Anti-Interference Module write no damage.
             let amount = damage_effect(damage);
             if amount < 1 {
                 return Ok(());
             }
+            if skill_ref.slot != SkillSlot::Main {
+                return Err(Error::new(format!(
+                    "unit {actor_id}'s extra control beam strikes what it may not turn, \
+                     which is not measured"
+                )));
+            }
             return self.direct_effect_dealing(actor_id, target, amount, events);
         }
         // `ControllEffect.Perform` turns the skill's lock.
-        let Some(FightActorRef::Unit(lock)) = actor.skills.main.lock_target else {
+        let Some(FightActorRef::Unit(lock)) = lock else {
             return Ok(());
         };
         let power = i32::try_from(damage).unwrap_or(i32::MAX);
@@ -258,7 +320,7 @@ impl Simulation {
             let turner = entry
                 .sources
                 .first()
-                .and_then(|owner| self.actors.get(owner))
+                .and_then(|source| self.actors.get(&source.owner))
                 .map(|owner| {
                     let kept = match &owner.rules.attack.path {
                         AttackPath::ControlBeam { keeps_buffs, .. } => keeps_buffs.clone(),
@@ -273,16 +335,31 @@ impl Simulation {
                 turned.push(target);
             }
         }
-        // A turned unit's `MechTeam` is made when it is first asked for
-        // (`FightMech.GetMechTeam`), which the recorder does unit by unit:
-        // the units turned on one tick take their formations in identity
-        // order, whichever was turned first.
+        self.turned_unnamed.append(&mut turned);
+        Ok(())
+    }
+
+    /// The formation a turned unit is recorded under: `FightMech.GetMechTeam`
+    /// answers none for it, so the recorder numbers one for the unit itself
+    /// as it first records it, walking the units by side, then by where they
+    /// stand, `z` before `x`. The units turned on one tick take their
+    /// formations in that order as the tick ends, wherever they stood as they
+    /// turned: six Crawlers Multi Control turned at once number by how far
+    /// up the field each stands.
+    pub(in crate::fight) fn name_turned_formations(&mut self) {
+        let mut turned = std::mem::take(&mut self.turned_unnamed);
+        if turned.is_empty() {
+            return;
+        }
         let mut formations = turned
             .iter()
             .map(|id| self.actors[id].placement.formation_id)
             .collect::<Vec<_>>();
         formations.sort_unstable();
-        turned.sort_unstable();
+        turned.sort_by_key(|id| {
+            let actor = &self.actors[id];
+            (actor.placement.team, actor.z_q32, actor.x_q32, *id)
+        });
         for (id, formation_id) in turned.into_iter().zip(formations) {
             self.actors
                 .get_mut(&id)
@@ -290,7 +367,6 @@ impl Simulation {
                 .placement
                 .formation_id = formation_id;
         }
-        Ok(())
     }
 
     /// A stroke that killed a turned unit: `DeadEffectSystem` queues it, and
@@ -345,8 +421,8 @@ impl Simulation {
         self.returned_dead.insert(unit_id);
         self.joins_side_last(unit_id);
         let step = self.step_now;
-        for skill_ref in self.skills_locked_on(unit, Some(unit_id)) {
-            self.lock_changed_team(skill_ref, step);
+        for (skill_ref, offset) in self.skills_locked_on(unit, Some(unit_id)) {
+            self.lock_changed_team(skill_ref, offset, step);
         }
     }
 
@@ -359,13 +435,22 @@ impl Simulation {
     /// clears them, as the Hacker's do; a Crawler that was striking a turned
     /// Crawler names nothing from the tick it falls. The motion is left to
     /// its own update.
-    fn lock_changed_team(&mut self, skill_ref: SkillRef, cooling_from: u64) {
+    ///
+    /// Each skill of a group hears it as its own `FightSkill`, `offset` its
+    /// place in the group; one of the main skill's group that searches for
+    /// the unit (`FightSkillBase.IsMainSearcher`) hands the unit the dropped
+    /// lock too, as `StopAttack` does.
+    fn lock_changed_team(&mut self, skill_ref: SkillRef, offset: usize, cooling_from: u64) {
         let FightActorRef::Unit(actor_id) = skill_ref.owner else {
             unreachable!("only a unit's skill locks a unit that changes side")
         };
         let cooling_steps =
             native_time_units_to_steps(self.skill_rules(skill_ref).cooling_time_units());
-        let skill = self.skill_mut(skill_ref);
+        let core = self.skill_mut(skill_ref);
+        if offset > 0 && skill_ref.slot == SkillSlot::Main && core.joined(offset).is_none() {
+            core.set_mech_lock(None);
+        }
+        let skill = core.group_skill_mut(offset);
         let fired_at = skill.attack_target();
         skill.drop_lock();
         skill.performer.stop();
@@ -373,9 +458,7 @@ impl Simulation {
         // locked: `OnChangeTeam` returns after `StopAttack` while
         // `SkillManager.IsPermanentPreemptiveSkillActive`.
         if skill.state == SkillState::Locked {
-            if skill_ref.slot == SkillSlot::Main {
-                self.sync_beam(actor_id);
-            }
+            self.sync_beam(actor_id);
             return;
         }
         match skill.state {
@@ -395,17 +478,15 @@ impl Simulation {
                 skill.search_target_time = 0;
             }
         }
-        if skill_ref.slot == SkillSlot::Main {
-            self.sync_beam(actor_id);
-        }
+        self.sync_beam(actor_id);
     }
 
     /// Every unit's skill locked on a unit, the main skill's and each extra
-    /// skill's, each a `FightSkill` that hears its lock change side
-    /// (`FightSkill.OnChangeTeam`): a Tarantula's Spider Mine skill drops a
-    /// turned Crawler that dies and goes back to its side. `except` leaves
-    /// one unit's out.
-    fn skills_locked_on(&self, unit: FightActorRef, except: Option<u64>) -> Vec<SkillRef> {
+    /// skill's, each skill of a group its own, each a `FightSkill` that
+    /// hears its lock change side (`FightSkill.OnChangeTeam`): a Tarantula's
+    /// Spider Mine skill drops a turned Crawler that dies and goes back to
+    /// its side. `except` leaves one unit's out.
+    fn skills_locked_on(&self, unit: FightActorRef, except: Option<u64>) -> Vec<(SkillRef, usize)> {
         self.actors
             .iter()
             .filter(|(id, _)| Some(**id) != except)
@@ -420,8 +501,11 @@ impl Simulation {
                             .enumerate()
                             .map(|(index, extra)| (SkillSlot::Extra(index), &extra.skill)),
                     )
-                    .filter(|(_, skill)| skill.lock_target == Some(unit))
-                    .map(move |(slot, _)| SkillRef { owner, slot })
+                    .flat_map(|(slot, skill)| {
+                        (0..skill.group_size().max(1))
+                            .filter(|&offset| skill.group_skill(offset).lock_target == Some(unit))
+                            .map(move |offset| (SkillRef { owner, slot }, offset))
+                    })
                     .collect::<Vec<_>>()
             })
             .collect()
@@ -490,13 +574,13 @@ impl Simulation {
         // Hacker reads cooling at it on the tick it turns, and a Crawler,
         // which has no cooling, idle and searched again. Which build method
         // ends it is not established.
-        let mut locked = vec![SkillRef::main(unit)];
+        let mut locked = vec![(SkillRef::main(unit), 0)];
         locked.extend(self.skills_locked_on(unit, None));
         // The change runs before any unit updates, so a skill it sends into
         // its cooling is updated in it on this tick, as if it had entered it
         // on the last.
-        for skill_ref in locked {
-            self.lock_changed_team(skill_ref, step.saturating_sub(1));
+        for (skill_ref, offset) in locked {
+            self.lock_changed_team(skill_ref, offset, step.saturating_sub(1));
         }
         Ok(true)
     }

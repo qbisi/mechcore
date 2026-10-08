@@ -1,0 +1,29 @@
+# Multi Control against three Rhinos.
+#
+# A Hacker with Multi Control: its main beam reaches 85 metres, the
+# technology's -25, and the row's four beams 95, ten beyond it. The four are
+# a group of their own whose skills each have the main skill for parent
+# (`FightSkillFactory.PrepareGroupedSkill`); they may share a target, so four
+# hold one Rhino and one another. Every beam, the main one's among them,
+# turns by 102 a hit, 0.17 of the Hacker's 600 (`DamageReduceRateBase`), and
+# by 1 a warm-up hit. Each beam winds up its own blow, 0.2 seconds, as the
+# main beam does. The Rhinos kill the Hacker before any turns.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 330
+hash: {profile: mcfr-content-0.7.0, result: 8a9f8a15f1153e3a160ffbd677674ffbccb4591364b973cc0e4738c16b25e9b0}
+blue:
+  core_damage: 600
+  techs:
+    hacker: [multi_control]
+  units:
+  - {name: hacker, index: 0, position: {x: 5, y: -205}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: -35, y: -155}, exp: 0/100/1150}
+  - {name: rhino, index: 1, position: {x: 5, y: -155}, exp: 0/300/1150}
+  - {name: rhino, index: 2, position: {x: 45, y: -155}}
