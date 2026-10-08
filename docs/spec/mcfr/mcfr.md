@@ -1177,8 +1177,8 @@ than an omission.
   are carried state, meet every condition, and wait for their admission:
   - `TranslationData.progress` and `sources`, a unit's control progress and
     the beams that hold it (`control_progress`);
-  - `SkillAttackController.performCount`, the blows a skill's attack state has
-    left to run (`skill_attackable_checker`);
+  - `SkillAttackController.performCount`, the blows whose cycle has run out
+    since the skill entered its attack state (`skill_attackable_checker`);
   - `FightProjectile.moveRange`, the reach a projectile was given as it was
     made (`projectile_reach`).
 
