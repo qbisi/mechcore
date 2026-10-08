@@ -771,21 +771,35 @@ impl Simulation {
 
     /// The candidates a skill's search scores: what the other sides' target
     /// trees answer for a square around the searcher as wide as twice its
-    /// reach, and never narrower than 800 metres, whether the search was
-    /// prepared at the tick's start or performed when it runs.
+    /// reach, and never narrower than 800 metres. A search
+    /// `FightCoreSystem.PreCalculate` prepared asks the trees as they stood
+    /// when it was prepared, about where the searcher stood then. A unit
+    /// that updates before the searcher may have moved to another node by
+    /// its turn: the tree prepared for a Crawler of replay 67260372's round
+    /// 4 answers a Centurion 417 metres off for its square, and the tree by
+    /// the Crawler's turn on tick 42 does not. One performed when it runs
+    /// asks them as they stand then, about where the searcher stands.
     pub(in crate::fight) fn search_candidates(
         &self,
         owner: FightActorRef,
+        prepared: bool,
     ) -> Option<BTreeSet<FightActorRef>> {
         let source = self.attacker(owner)?;
         let radius_q32 = space_to_q32(source.attack_range.max(SEARCH_MIN_RADIUS));
+        let (trees, x_q32, z_q32) = if prepared {
+            (
+                &self.prepared_target_quadtrees,
+                source.query_x_q32,
+                source.query_z_q32,
+            )
+        } else {
+            (&self.target_quadtrees, source.x_q32, source.z_q32)
+        };
         Some(
-            self.target_quadtrees
+            trees
                 .iter()
                 .filter(|(team, _)| **team != source.team)
-                .flat_map(|(_, tree)| {
-                    tree.query_square(source.x_q32, source.z_q32, radius_q32.saturating_mul(2))
-                })
+                .flat_map(|(_, tree)| tree.query_square(x_q32, z_q32, radius_q32.saturating_mul(2)))
                 .collect(),
         )
     }
@@ -827,7 +841,7 @@ impl Simulation {
         if !source.searches {
             return None;
         }
-        let nearby = self.search_candidates(owner);
+        let nearby = self.search_candidates(owner, !use_live_candidate_positions);
         let tower_attackable = self.tower_attackable(source.skill);
         let mut scoring = Scoring::default();
 

@@ -410,6 +410,9 @@ struct Simulation {
     travels: BTreeMap<u32, super_deployment::Travel>,
     buildings: Vec<BuildingState>,
     target_quadtrees: BTreeMap<u32, TargetActorQuadtree>,
+    /// The target trees as `FightCoreSystem.PreCalculate` found them, as the
+    /// tick's search order was taken: what a prepared search asks.
+    prepared_target_quadtrees: BTreeMap<u32, TargetActorQuadtree>,
     /// Each side's units alone, `FightTeam.mechQuadtree`, which the
     /// experience a kill shares out is looked for in.
     mech_quadtrees: BTreeMap<u32, TargetActorQuadtree>,
@@ -539,6 +542,7 @@ impl Simulation {
             },
             ending: Ending::default(),
             buildings,
+            prepared_target_quadtrees: target_quadtrees.clone(),
             target_quadtrees,
             mech_quadtrees,
             rvo: RvoState::new(construction_colliders, passable_constructions, map_crystals),
@@ -918,6 +922,8 @@ impl Simulation {
         // Native search jobs retain the actor-quadtree candidate order
         // prepared at the start of this FightCore update.
         let target_search_order = self.target_search_order();
+        self.prepared_target_quadtrees
+            .clone_from(&self.target_quadtrees);
         // `BuffSystem` updates before `CommanderSkillSystem`.
         self.step_buff_cycles(&target_search_order, &mut events)?;
         // `CommanderSkillSystem` and then `MineSystem` update before
