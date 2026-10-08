@@ -203,9 +203,7 @@ impl Simulation {
             .get_mut(&actor_id)
             .expect("actor identity is stable");
         actor.skills.running_preemptive = None;
-        let main = &mut actor.skills.main;
-        main.enter(SkillState::Idle { ready_step: None });
-        main.search_target_time = SEARCH_TARGET_RESET_TICKS;
+        super::preemptive::unlock(&mut actor.skills.main);
     }
 
     /// An around skill's blow: `DamageEffect` from its unit's own position,

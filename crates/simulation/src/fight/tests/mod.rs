@@ -54,6 +54,7 @@ pub(super) fn placement(
         sweep: None,
         distance_intensify: false,
         secondary_damage: None,
+        interception: None,
         carried_shield: None,
         production: None,
         buff_sources: Vec::new(),

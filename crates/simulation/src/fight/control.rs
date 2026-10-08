@@ -579,6 +579,7 @@ impl Simulation {
         if actor.summoned {
             self.summon_changes_side(unit_id, old_team, team);
         }
+        self.interceptors_change_side(unit_id);
         self.joins_side_last(unit_id);
         // Its own attack ends as a skill's whose lock changed side: what it
         // was striking stands on its side now. A Hacker turned on its

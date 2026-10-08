@@ -7,6 +7,7 @@ mod preemptive;
 mod side_arm;
 
 pub(in crate::fight) use perform::Launch;
+pub(in crate::fight) use preemptive::{lock, unlock};
 
 use super::*;
 
@@ -1623,6 +1624,11 @@ impl Simulation {
         } else if let SkillSlot::Extra(_) = self.actors[&actor_id].motion.attacker {
             // `MotionController.Update` asks an extra skill that took the
             // motion, whatever the main skill did.
+            self.update_motion(actor_id, step, events, SkillUpdate::default())?;
+        } else if self.actors[&actor_id].skills.main.state == SkillState::Locked {
+            // `MotionController.Update` asks a main skill its
+            // `SkillLockState` holds, which has let its lock go: a Mustang
+            // whose interceptor prepares stands idle from the next update.
             self.update_motion(actor_id, step, events, SkillUpdate::default())?;
         } else if self.actors[&actor_id].skills.main.standalone()
             && (self.ending.stop_step.is_none()

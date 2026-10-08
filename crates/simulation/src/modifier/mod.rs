@@ -29,4 +29,5 @@ pub(crate) use sources::{
 };
 pub(crate) use technologies::{
     ARMOR_SOURCE, MainSkill, SOURCE as TECHNOLOGY_SOURCE, SecondaryDamage, TechnologyEffects,
+    UnitInterception,
 };

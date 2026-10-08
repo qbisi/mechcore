@@ -103,12 +103,33 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "energyShieldTechnologies", "sweepSkillIntensifyTechDatas",
                "armorStrengthenTechnologyDatas", "searchTargetSpecificDatas",
                "airAttackTechnologyDatas", "damageIntensifyTechnologies",
-               "secondaryDamageIntensifyTechDatas", "buffTechnologies")
+               "secondaryDamageIntensifyTechDatas", "buffTechnologies",
+               "interceptMissileTechnologyDatas")
 # The list whose `BuffTech` adds a buff, and the fields its rows carry for
 # `buff_lines` rather than as corrections.
 BUFF = "buffTechnologies"
 BUFF_SOURCE = {"buffID", "buffTechTrigger", "effectTargetTypes", "probability", "energyShieldDamage",
                "triggerRangeItemBuffId", *SOURCE_CYCLE, *SOURCE_OTHER, *SOURCE_CLIENT, *SOURCE_RANGE_ITEM}
+# The list whose `InterceptMissileTech` makes its unit an interceptor, and
+# what its rows answer `IInterceptData` with, by the field
+# `config/contraptions.yaml`'s interceptor gives each and the build's: whole
+# points, a count, a flag, or an FPoint raw integer.
+INTERCEPT = "interceptMissileTechnologyDatas"
+INTERCEPT_FIELDS = (
+    ("attack", "attackNum"),
+    ("range_max", "radiusRangeMax"),
+    ("range_min", "radiusRangeMin"),
+    ("prepare_time", "prepareTime"),
+    ("interval", "interval"),
+    ("cooling_time", "coolingTime"),
+    ("rise_interval", "riseInterval"),
+    ("decline", "decline"),
+    ("lower_limit", "lowerLimit"),
+    ("rise", "rise"),
+    ("judgment_probability", "judgmentProbability"),
+    ("weapon_count", "weaponCount"),
+    ("preemptive", "isPreemptive"),
+)
 # The list of `TechnologyGroupData` a plain technology comes from. A row of any
 # other list is a subclass (`BuffTechnologyData`, `SplashTechnologyData` and
 # the rest) that does something beyond its unit's numbers.
@@ -154,7 +175,8 @@ def special(row: dict) -> list[str]:
     number this table carries nor descriptive: what it does beyond numbers."""
     numeric = ({source for _, source in LISTS} | {source for _, source, _ in SUBCLASS_LISTS}
                | {source for _, source, _ in SUBCLASS_SCALARS + SET_SCALARS})
-    source = BUFF_SOURCE if row["kind"] == BUFF else set()
+    source = (BUFF_SOURCE if row["kind"] == BUFF
+              else {field for _, field in INTERCEPT_FIELDS} if row["kind"] == INTERCEPT else set())
     return sorted(
         field
         for field, value in row["row"].items()
@@ -330,7 +352,11 @@ def main() -> int:
         "# A buff technology carries what triggers its buff (`buff_trigger`, a",
         "# BuffTechListener: 1 is the fight's start), whom it reaches",
         "# (`buff_targets`, TargetTypes: 1 is the unit itself), how likely, and",
-        "# the buffDatas row it adds, as a buff item does.",
+        "# the buffDatas row it adds, as a buff item does. A missile",
+        "# interception technology carries what its unit intercepts with",
+        "# (`intercept`), named as `config/contraptions.yaml`'s interceptor, with",
+        "# how many interceptors it is and whether each locks its unit's main",
+        "# skill while it intercepts (`weapon_count`, `preemptive`).",
         "",
         "technologies:",
     ]
@@ -368,6 +394,17 @@ def main() -> int:
                 lines.append(f"    {field}: {row[field]}  # {reading(field, row[field])}")
         if row["kind"] == BUFF:
             lines += buff_lines(row["row"], buffs)
+        if row["kind"] == INTERCEPT:
+            lines.append("    intercept:")
+            for field, source in INTERCEPT_FIELDS:
+                value = row["row"][source]
+                if isinstance(value, bool):
+                    lines.append(f"      {field}: {str(value).lower()}")
+                elif isinstance(value, dict):
+                    point = value["m_rawValue"]
+                    lines.append(f"      {field}: {point}  # {point / ONE:.6g}")
+                else:
+                    lines.append(f"      {field}: {value}")
         for field, values in held:
             raw = ", ".join(str(value) for value in values)
             if field in INTEGERS:

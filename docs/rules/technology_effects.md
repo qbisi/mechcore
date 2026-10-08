@@ -86,7 +86,9 @@ Anti-Air Missile, Incendiary Bomb, Scorching Charge, Homing Missile, Sticky
 Oil Bomb, Whirlwind and Energy Diffraction with
 the skill each adds, and Energy Diffraction's `all_weapon_reduce_damage_rate`
 on the damage of its unit's skills
-([extra_weapons.md](extra_weapons.md)), and refuses
+([extra_weapons.md](extra_weapons.md)), a missile interception technology's
+with the interceptors it makes its unit
+([below](#missile-interception)), and refuses
 every other technology by name and kind, since applying a subclass's numbers
 alone would fight it as something it is not.
 
@@ -254,6 +256,31 @@ buff, one that reaches crystals, measures
 from its unit's edge, a buff that stacks on
 another condition or lowers what it stacks, and a buff field beyond these is
 refused by name.
+
+## Missile Interception
+
+Missile Interception makes its unit an interceptor: Mustang, Sabertooth,
+Farseer and War Factory each research one. Its row's `intercept` holds what
+an interceptor building's row holds, and the unit's interceptors take enemy
+projectiles out of the air as a building's do
+([contraptions.md](contraptions.md#an-interceptor)), with three differences.
+
+- **They stand where the unit stands.** The reach is measured from the unit
+  as it moves, and they intercept for the side the unit stands on.
+- **A unit has `weapon_count` of them**, each locking and attacking on its
+  own: the War Factory's four take two rockets on one tick.
+- **A preemptive one locks its unit's main skill.** The Mustang's interceptor
+  locks the main skill as it locks a projectile (`SkillLockState`), so the
+  skill lets its target go and the unit stands idle from its next update. It
+  lets the skill idle again as it goes idle itself, after its attack and
+  reset, and the skill searches anew. The other three units' interceptors
+  leave the main skill be.
+
+The unit's interceptors are added to its side's as its effects activate when
+the fight starts. A unit that travels in has them added as it arrives, and one turned to the other side has them moved to the end of that
+side's. A dead unit's interceptors are taken from its side's: they update no
+more and no projectile joins them, while a lock one held still counts against
+what the others lock.
 
 ## What this table does not carry
 
@@ -486,6 +513,13 @@ derive (a minimum range, a projectile's life):
   life, and stacks on from the stack it kept:
   `tests/technology_disable/fights/impact-combat-evolvement.yaml`,
   `tests/technology_disable/fights/impact-combat-evolvement-expires.yaml`.
+- A unit's interceptors take rockets out of the air from where it stands, a
+  War Factory's four each on its own, and a Mustang's lock its main skill,
+  which stands its unit idle on the next update:
+  `tests/interceptor/fights/mustang-interception.yaml`,
+  `tests/interceptor/fights/sabertooth-interception.yaml`,
+  `tests/interceptor/fights/farseer-interception.yaml`,
+  `tests/interceptor/fights/war_factory-interception.yaml`.
 - A permanent preemptive explosion does not activate, and its unit's death
   neither explodes nor burns, while the technologies are off; switched on,
   both come back:
@@ -708,6 +742,32 @@ derive (a minimum range, a projectile's life):
   `FightSkill.Disable`, `FightSkill.Enable`, `SkillIdleState.Update`,
   `SkillAttackState.CheckAttackable`.
 
+- A unit's interceptors: `InterceptMissileTech` answers `IInterceptData`
+  from its row, and `InterceptMissileEffectProvider.DoActive` adds the unit's
+  group to its side's (`TeamInterceptSourceManager.GetInterceptSource`),
+  `InterceptCtrGroup_Mech`'s constructor making `GetWeaponCount` of
+  `InterceptEffect_FightMech_Preemptive` or `_NoPreemptive` as `IsPreemptive`
+  says, each initialised and added (`InterceptCtr_Group.Init`,
+  `InterceptCtrGroup_Mech.DoAdd`, `InterceptEffectBase.DoAdd`).
+- They stand where their unit's transform stands, on its side:
+  `InterceptEffect_FightMech_Preemptive.GetPos`,
+  `InterceptEffect_FightMech_NoPreemptive.GetPos`,
+  `InterceptEffect_FightMech_NoPreemptive.GetTeamController`, and a
+  projectile joins a unit's group only while the unit stands on that side:
+  `TeamInterceptSourceManager.GetCurrentTeamInterceptSources`.
+- A preemptive one locks its unit's main skill as it prepares and idles it
+  as it goes idle: `InterceptEffectBase.EnterPrepare`,
+  `InterceptEffectBase.EnterIdle`,
+  `InterceptEffect_FightMech_Preemptive.ChangeMechToLockState`,
+  `InterceptEffect_FightMech_Preemptive.ChangeMechToUnlockState`,
+  `FightSkill.ChangeToLockState`, `FightSkill.ChangeToIdleState`,
+  `SkillLockState.Enter`, `SkillLockState.Exit`.
+- A dead unit's group leaves its side's, and nothing else is done to its
+  interceptors: `InterceptMissileEffectProvider.DoDeactive`,
+  `TeamInterceptSourceManager.DoRemove`, `InterceptCtr_Group.DoRemove`,
+  `InterceptEffectBase.DoRemove`. A turned unit's moves to the other side's:
+  `InterceptSystem.OnChangeTeam`.
+
 ### Not established
 
 - **Which way a buff's summon faces.** `CreateSummonMechInfo`'s constructor
@@ -728,6 +788,15 @@ derive (a minimum range, a projectile's life):
   `AdvancedEnergyShieldSystem.DeactiveEnergyShield`), a buff source that
   cycles over the units around its unit, a cleared buff that does not
   stack, a sweep's change, an air attack's switch. Refused.
+- **A unit's interceptors switched off.** `InterceptMissileEffectProvider.DisableEffect`
+  disables each and lets it idle (`InterceptEffectBase.DoDisable`); no
+  recording holds it, and a disable reaching an interceptor unit is refused.
+- **When a summon's interceptors start.** A summon or a made unit whose
+  technologies make it an interceptor is refused.
+- **A unit's interceptors beside a building's, and on a turned or travelling
+  unit.** Here a side's buildings update before its units, which is not read;
+  the order the side's records keep units in is read from the build and
+  recorded only with one unit's group, or one squad's.
 - **How the life share rounds.** The quotient rounded and the product
   truncated is what the recordings fit; the arithmetic of `FPoint` division
   and multiplication was not read.

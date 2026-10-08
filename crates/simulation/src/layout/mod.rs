@@ -14,7 +14,7 @@ use crate::{
     modifier::{
         AutoRecovery, BuffSource, CarriedShield, DeadSummon, EnergyShield, EnergyTowerSkillEffects,
         EquipmentEffects, LifeSteal, MainSkill, OfficerEffects, ProductionLine, SecondaryDamage,
-        SweepIntensify, TECHNOLOGY_SOURCE, TechnologyEffects, current_source,
+        SweepIntensify, TECHNOLOGY_SOURCE, TechnologyEffects, UnitInterception, current_source,
     },
     rules::{ExtraWeaponConfig, UnitConfig, UnitConfigs, UnitDomain},
 };
@@ -28,7 +28,7 @@ use constructions::Constructions;
 use contraptions::Contraptions;
 pub(crate) use contraptions::ShieldKind;
 pub(crate) use contraptions::{
-    Interception, InterceptorBuilding, MissileMine, MissileShot, ShieldPlacement,
+    InterceptNumbers, Interception, InterceptorBuilding, MissileMine, MissileShot, ShieldPlacement,
 };
 
 #[derive(Debug, Clone)]
@@ -78,6 +78,8 @@ pub(crate) struct Placement {
     /// The second damage its technologies make its main skill deal around
     /// each hit (`SecondaryDamageIntensifyTech`).
     pub(crate) secondary_damage: Option<SecondaryDamage>,
+    /// The interceptors its technologies make it (`InterceptMissileTech`).
+    pub(crate) interception: Option<UnitInterception>,
     /// The battlefield shield its equipment makes it carry.
     pub(crate) carried_shield: Option<CarriedShield>,
     /// The production line its equipment makes it run.
@@ -507,6 +509,14 @@ fn compile_death_summons(
         ) else {
             continue;
         };
+        if worn.interception.is_some() {
+            refused.push(format!(
+                "side {name} summons a {} as a buffed unit dies, which its technologies make \
+                 an interceptor, and when a summon's interceptors start is not measured",
+                rules.type_name
+            ));
+            continue;
+        }
         let template = Placement {
             team,
             unit_id: 0,
@@ -527,6 +537,7 @@ fn compile_death_summons(
             sweep: worn.sweep,
             distance_intensify: worn.distance_intensify,
             secondary_damage: worn.secondary_damage,
+            interception: worn.interception,
             carried_shield: worn.carried_shield,
             production: None,
             buff_sources: worn.buff_sources,
@@ -824,6 +835,7 @@ fn compile_formation(
         sweep: worn.sweep,
         distance_intensify: worn.distance_intensify,
         secondary_damage: worn.secondary_damage,
+        interception: worn.interception,
         carried_shield: worn.carried_shield,
         production,
         buff_sources: worn.buff_sources,
@@ -915,11 +927,12 @@ fn production_of(
         || worn.energy_shield.is_some()
         || worn.distance_intensify
         || worn.secondary_damage.is_some()
+        || worn.interception.is_some()
     {
         refused.push(format!(
             "side {side_name} makes a {} that its technologies give lifesteal, repair, a \
-             shield, a search by distance or a second damage, and what a made unit's effect \
-             providers carry is not measured",
+             shield, a search by distance, a second damage or interceptors, and what a made \
+             unit's effect providers carry is not measured",
             made.type_name
         ));
         return None;
@@ -969,6 +982,23 @@ pub(crate) struct TechnologyDisable {
     pub(crate) unmeasured: Vec<String>,
 }
 
+/// The interceptors a unit's technologies make it, from the one that makes
+/// any: a second is refused, which is not measured.
+fn one_interception(
+    held: &[UnitInterception],
+    side_name: &str,
+    type_name: &str,
+) -> Result<Option<UnitInterception>> {
+    match held {
+        [] => Ok(None),
+        [one] => Ok(Some(*one)),
+        _ => Err(Error::new(format!(
+            "side {side_name} unit type {type_name:?} holds two interception technologies, \
+             which is not measured"
+        ))),
+    }
+}
+
 /// What this side's loadout and a formation's equipment hand one unit.
 struct Worn {
     corrections: Vec<(Channel, Entry)>,
@@ -979,6 +1009,7 @@ struct Worn {
     sweep: Option<SweepIntensify>,
     distance_intensify: bool,
     secondary_damage: Option<SecondaryDamage>,
+    interception: Option<UnitInterception>,
     carried_shield: Option<CarriedShield>,
     buff_sources: Vec<BuffSource>,
     ignored_buffs: Vec<u32>,
@@ -1247,6 +1278,11 @@ fn worn(
         sweep: main_skill.sweep,
         distance_intensify: main_skill.distance_intensify,
         secondary_damage: main_skill.secondary_damage,
+        interception: refused.hold(one_interception(
+            &sources.interception,
+            side_name,
+            type_name,
+        ))?,
         carried_shield: match carried_shields.as_slice() {
             [] => None,
             [one] => Some(*one),

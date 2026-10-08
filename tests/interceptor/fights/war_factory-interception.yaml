@@ -1,0 +1,23 @@
+# Missile Interception on the War Factory: four interceptors that stand where
+# it stands, each locking and attacking on its own.
+#
+# Two of them take a rocket each at t25, and they take 52 in all, the last at
+# t193; the War Factory's main skill never locks.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 247
+hash: {profile: mcfr-content-0.7.0, result: 4662a0e8506469d365082811fc215c9c4d9bba89cc8e9b3f1a6a0c87248ab8be}
+blue:
+  techs:
+    war_factory: [missile_interceptor]
+  units:
+  - {name: war_factory, index: 0, position: {x: 5, y: -125}, exp: 0/800/3200}
+red:
+  core_damage: 500
+  units:
+  - {name: stormcaller, index: 0, position: {x: 5, y: -40}}
+  - {name: stormcaller, index: 1, position: {x: -55, y: -40}}

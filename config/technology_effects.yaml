@@ -46,7 +46,11 @@ schema: mechcore.technology_effects
 # A buff technology carries what triggers its buff (`buff_trigger`, a
 # BuffTechListener: 1 is the fight's start), whom it reaches
 # (`buff_targets`, TargetTypes: 1 is the unit itself), how likely, and
-# the buffDatas row it adds, as a buff item does.
+# the buffDatas row it adds, as a buff item does. A missile
+# interception technology carries what its unit intercepts with
+# (`intercept`), named as `config/contraptions.yaml`'s interceptor, with
+# how many interceptors it is and whether each locks its unit's main
+# skill while it intercepts (`weapon_count`, `preemptive`).
 
 technologies:
   - id: 206
@@ -865,18 +869,74 @@ technologies:
     name: 导弹拦截
     unit: mustang
     kind: interceptMissileTechnologyDatas
+    intercept:
+      attack: 21067
+      range_max: 644245094400  # 150
+      range_min: 107374182400  # 25
+      prepare_time: 858993459  # 0.2
+      interval: 1717986918  # 0.4
+      cooling_time: 0  # 0
+      rise_interval: 429496729  # 0.1
+      decline: 343597383  # 0.08
+      lower_limit: 1717986918  # 0.4
+      rise: 4294967  # 0.001
+      judgment_probability: 4294967296  # 1
+      weapon_count: 1
+      preemptive: true
   - id: 3317
     name: 导弹拦截
     unit: war_factory
     kind: interceptMissileTechnologyDatas
+    intercept:
+      attack: 55000
+      range_max: 644245094400  # 150
+      range_min: 107374182400  # 25
+      prepare_time: 429496729  # 0.1
+      interval: 429496729  # 0.1
+      cooling_time: 0  # 0
+      rise_interval: 429496729  # 0.1
+      decline: 214748364  # 0.05
+      lower_limit: 1288490188  # 0.3
+      rise: 4294967  # 0.001
+      judgment_probability: 4294967296  # 1
+      weapon_count: 4
+      preemptive: false
   - id: 3321
     name: 导弹拦截
     unit: sabertooth
     kind: interceptMissileTechnologyDatas
+    intercept:
+      attack: 55000
+      range_max: 644245094400  # 150
+      range_min: 107374182400  # 25
+      prepare_time: 429496729  # 0.1
+      interval: 429496729  # 0.1
+      cooling_time: 0  # 0
+      rise_interval: 429496729  # 0.1
+      decline: 214748364  # 0.05
+      lower_limit: 1288490188  # 0.3
+      rise: 4294967  # 0.001
+      judgment_probability: 4294967296  # 1
+      weapon_count: 1
+      preemptive: false
   - id: 3326
     name: 导弹拦截
     unit: farseer
     kind: interceptMissileTechnologyDatas
+    intercept:
+      attack: 84700
+      range_max: 644245094400  # 150
+      range_min: 107374182400  # 25
+      prepare_time: 429496729  # 0.1
+      interval: 429496729  # 0.1
+      cooling_time: 0  # 0
+      rise_interval: 429496729  # 0.1
+      decline: 214748364  # 0.05
+      lower_limit: 1288490188  # 0.3
+      rise: 4294967  # 0.001
+      judgment_probability: 4294967296  # 1
+      weapon_count: 1
+      preemptive: false
   - id: 3510
     name: 松散队列
     unit: crawler

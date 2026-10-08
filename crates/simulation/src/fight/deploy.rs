@@ -636,7 +636,10 @@ pub(in crate::fight) fn initialize_buildings(
     let interceptors = raw[placed_interceptors..]
         .iter()
         .zip(interceptors)
-        .map(|(building, placed)| Interceptor::new(normalized_ids[&building_key(building)], placed))
+        .zip(1..)
+        .map(|((building, placed), key)| {
+            Interceptor::building(key, normalized_ids[&building_key(building)], placed)
+        })
         .collect();
     Ok(InitialBuildings {
         interceptors,

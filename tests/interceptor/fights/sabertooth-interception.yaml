@@ -1,0 +1,24 @@
+# Missile Interception on the Sabertooth: one interceptor that stands where the
+# Sabertooth stands and leaves its main skill be.
+#
+# It takes the first rocket at t22 and one every 3 ticks while rockets are in
+# reach, 11 in all, the last at t178, and the Sabertooth's main skill never
+# locks.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 205
+hash: {profile: mcfr-content-0.7.0, result: 8028f881c35d677c1badb4c9f33fd9d3d8a8290e6ed6258048630ada9ca6cf3b}
+blue:
+  core_damage: 300
+  techs:
+    sabertooth: [missile_interceptor]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 5, y: -105}, exp: 0/200/1300}
+red:
+  units:
+  - {name: stormcaller, index: 0, position: {x: 5, y: -40}, exp: 0/300/1100}
+  - {name: stormcaller, index: 1, position: {x: -55, y: -40}, exp: 0/100/1100}
