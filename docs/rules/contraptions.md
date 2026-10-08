@@ -61,7 +61,9 @@ it locks the nearest projectile in its reach whose life the attack already
 locked on it does not cover, the first of equals, and prepares: it draws
 whether the attack will hit from its side's stream, `Next(1000)` against the
 row's probability in thousandths, even when that is a certainty. After
-`prepareTime` it attacks: a hit takes its attack off the projectile's life,
+`prepareTime` it attacks: a hit takes its attack off the projectile's life
+(which a technology's projectile life rate may raise,
+[technology_effects.md](technology_effects.md)),
 and a projectile with no life left is removed at once as intercepted. It then
 resets for `interval` less `prepareTime`, which for the row is no time at all,
 and is idle again; one lock and one attack take three ticks. A projectile that

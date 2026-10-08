@@ -649,7 +649,6 @@ fn corrections_of(
             "projectile_speed_value",
             PROJECTILE,
         ),
-        (row.projectile_life_rate, "projectile_life_rate", PROJECTILE),
         (row.exp_rate, "exp_rate", VALUE_ELSEWHERE),
         (row.grade_upper_limit, "grade_upper_limit", VALUE_ELSEWHERE),
     ];
@@ -671,6 +670,7 @@ fn corrections_of(
         speed_value: row.speed_value,
         damage_reduce_rate_base: None,
         projectile_speed_value: None,
+        projectile_life_rate: row.projectile_life_rate,
     });
     // `SplashEquipment.AddData`'s second write, `AddSkillData` of its range,
     // which lands where a splash value does.
