@@ -133,7 +133,10 @@ make.
 **Where a make stands.** The makes of a batch take the row's `positions` in
 turn, each an offset `x` to the right and `z` ahead of the wearer, turned by
 the wearer's facing about the vertical as `FQuaternion.AngleAxis` turns it,
-and face as the wearer faces. Each is then a summon at level 1, carrying what
+and face as the wearer faces. A line of one position that may keep two or
+more alive first scatters each make by a draw of up to a metre each way from
+its side's stream, a hundredth of a metre a step, x then z; Best Partner's
+does ([technology_effects.md](technology_effects.md#production-lines)). Each is then a summon at level 1, carrying what
 its side's officers and technologies write onto its type, and appears for a
 second as [battle_skill.md](battle_skill.md#a-summon) states. The rows are
 [`config/equipment_effects.yaml`](../../config/equipment_effects.yaml)'s
@@ -222,6 +225,9 @@ carries:
   `SkillDataModifier.AddData`.
 - An item's target type is answered as an officer's is:
   `UnitUtility.IsEffectTarget`.
+- A line of one position whose `mechMaxCount` is at least 2 adds
+  `NextInRange(100)` hundredths of a metre to x and then to z before its
+  offset: `SummonSystem.CreateMech`, `GRRandom.NextInRange`.
 - An item wears out only by a positive `roundDuration`, counted down as a
   deployment opens: `Equipment.SetOwner`, `Equipment.ReduceDurability`,
   `UnitManager.OnEnterDeployment`, `EquipmentData.roundDuration`.

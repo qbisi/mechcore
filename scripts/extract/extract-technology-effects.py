@@ -131,6 +131,29 @@ INTERCEPT_FIELDS = (
     ("weapon_count", "weaponCount"),
     ("preemptive", "isPreemptive"),
 )
+# The list whose `SupportUnitTech` runs a production line, as a production
+# line item's `SupportUnitEquipment` does, and what its rows answer
+# `ISupportDataSource` with, by the field this table gives each and the
+# build's: a count, an enum, a flag, or an FPoint raw integer.
+SUPPORT = "supportUnitTechnologies"
+SUPPORT_FIELDS = (
+    ("support_unit_id", "unitID"),
+    ("unit_level", "unitLevel"),
+    ("max_batch", "maxBatch"),
+    ("max_alive", "maxCount"),
+    ("create_count_per_time", "createCountPerTime"),
+    ("start_time", "startTime"),
+    ("appear_type", "appearType"),
+    ("product_time", "productTime"),
+    ("max_create_count", "maxCreateCount"),
+    ("create_duration", "createDuration"),
+    ("position_space", "positionSpace"),
+    ("unit_life_rate", "unitLifeChangerate"),
+    ("unit_damage_rate", "unitDamageChangeRate"),
+    ("unit_attack_range_value", "unitAttackRangeChangeValue"),
+    ("intensify_mode", "intensifyMode"),
+    ("inherit_technology", "inheritTechnologyEffect"),
+)
 # The list of `TechnologyGroupData` a plain technology comes from. A row of any
 # other list is a subclass (`BuffTechnologyData`, `SplashTechnologyData` and
 # the rest) that does something beyond its unit's numbers.
@@ -407,6 +430,21 @@ def main() -> int:
                     lines.append(f"      {field}: {point}  # {point / ONE:.6g}")
                 else:
                     lines.append(f"      {field}: {value}")
+        if row["kind"] == SUPPORT:
+            lines.append("    production:")
+            for field, source in SUPPORT_FIELDS:
+                value = row["row"][source]
+                if isinstance(value, bool):
+                    lines.append(f"      {field}: {str(value).lower()}")
+                elif isinstance(value, dict):
+                    point = value["m_rawValue"]
+                    lines.append(f"      {field}: {point}  # {point / ONE:.6g}")
+                else:
+                    lines.append(f"      {field}: {value}")
+            offsets = ", ".join(
+                f"{{x: {p['x']['m_rawValue']}, z: {p['y']['m_rawValue']}}}" for p in row["row"]["positions"]
+            )
+            lines.append(f"      positions: [{offsets}]")
         for field, values in held:
             raw = ", ".join(str(value) for value in values)
             if field in INTEGERS:

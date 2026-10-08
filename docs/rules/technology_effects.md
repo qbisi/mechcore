@@ -88,7 +88,8 @@ the skill each adds, and Energy Diffraction's `all_weapon_reduce_damage_rate`
 on the damage of its unit's skills
 ([extra_weapons.md](extra_weapons.md)), a missile interception technology's
 with the interceptors it makes its unit
-([below](#missile-interception)), and refuses
+([below](#missile-interception)), a production technology's with the line it
+runs ([below](#production-lines)), and refuses
 every other technology by name and kind, since applying a subclass's numbers
 alone would fight it as something it is not.
 
@@ -283,6 +284,26 @@ side's. A dead unit's interceptors are taken from its side's: they update no
 more and no projectile joins them, while a lock one held still counts against
 what the others lock.
 
+## Production lines
+
+A row of `supportUnitTechnologies` is a `SupportUnitTech`, which answers
+`ISupportEffectDataSource` as a production item's `SupportUnitEquipment` does:
+`SupportUnitEffectProvider` hands its unit's side a creator as the fight
+starts, and the line runs as
+[equipment_effects.md](equipment_effects.md#production-lines) states. Its row's
+`production` holds what the line makes and where. Best Partner, Shooting Squad
+and Summon Hounds make their units at the unit's own level
+(`unit_level` 3, `DynamicMechLevel.Parent`), each appearing by a transition
+(`appear_type` 5) for `APPEAR_DURATION`'s second, once: their next batch is
+10^6 seconds away.
+
+A row whose makes appear any other way, stand anywhere but at offsets from
+their unit, take a level of their own, are corrected by the row, are capped
+in all, come in its `intensifyMode` or without their side's technologies is
+refused by name: Fang Production, Crawler Production and Mothership appear
+with an effect and no offsets, the War Factory's lines rise out of it, and
+Electromagnetic Twin corrects its make.
+
 ## What this table does not carry
 
 A technology that is not plain does something that is not a correction on its
@@ -426,6 +447,11 @@ derive (a minimum range):
   gives a level-3 Marksman 155 metres of range and a level-1 one 145, and
   reading the first entry on both parts from the game at t1:
   `tests/modifier/fights/technology-elite-marksman.yaml`.
+- A production technology runs its line as a production item does, its makes
+  at its unit's level, and a line of one position scatters its make:
+  `tests/production/fights/best-partner.yaml`,
+  `tests/production/fights/shooting-squad.yaml`,
+  `tests/production/fights/summon-hounds.yaml`.
 - A projectile life rate multiplies the life a skill's projectiles leave with:
   Heavy Missile's rockets leave with 126000, and fought without the rate the
   simulator parts from the game at t20:
@@ -549,6 +575,12 @@ derive (a minimum range):
   and the first when it is given no unit: `TechnologyData.GetDamageChangeRate`.
 - A unit's level changes only between rounds, through `MechTeam.ChangeLevel`,
   which `UnitSystem.ChangeLevel` calls: `UnitSystem.ChangeLevel`.
+- A production technology is the source a production item is: `SupportUnitTech`
+  and `SupportUnitEquipment` both answer `ISupportEffectDataSource`. A make's
+  appearance takes no time for `appearType` 0 and 1, the row's `productTime`
+  for 6 and 8 and its `ProductMoveTime` for 7, and `APPEAR_DURATION`
+  otherwise; its level is the owner's for `DynamicMechLevel.Parent`:
+  `SupportUnitCreator.CreateMech`, `SupportUnitCreator.APPEAR_DURATION`.
 - A skill's projectiles leave with the row's life at the unit's level, times
   one plus the skill's `SkillDataChangeFloatRate.ProjectileLifeRate`
   enhancements and then their remainder, cut to a whole number and at least 1:

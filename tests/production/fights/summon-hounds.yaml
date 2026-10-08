@@ -1,0 +1,21 @@
+# Summon Hounds on blue's Centurion: a technology's production line that
+# makes two Hounds at the Centurion's level, 20 metres right and left of it
+# and 25 ahead, turned by its facing, at t1 and once.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 362
+hash: {profile: mcfr-content-0.7.0, result: 727b9143dd213dff6eeaf9ec422e8fea37be370ed755f0c771a213b605478bc6}
+blue:
+  core_damage: 100
+  techs:
+    centurion: [summon_hounds]
+  units:
+  - {name: centurion, index: 0, position: {x: 5, y: -145}, exp: 0/400/2250}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/50/1150}
+  - {name: marksman, index: 1, position: {x: 60, y: -100}, exp: 0/630/650}
