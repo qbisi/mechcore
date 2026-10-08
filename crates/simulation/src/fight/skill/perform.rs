@@ -266,15 +266,15 @@ impl Simulation {
             .skill_attacker(skill_ref)
             .ok_or_else(|| Error::new("projectile owner is absent"))?
             .y;
-        let target_y = match target {
-            FightActorRef::Unit(id) => unit_height(self.actors[&id].rules.domain),
-            FightActorRef::Building(_) => 0,
-        };
+        // `OnStartFirstPerform` prepares the burst's points about where the
+        // skill aims at its target (`CalculateAttackPosition`).
+        let (aimed_x_q32, aimed_y_q32, aimed_z_q32) =
+            self.attack_position(skill_ref.owner, skill_slot, target, 0, true)?;
         let offsets = self.projectile_target_offsets(
             skill_ref,
-            target_x_q32,
-            target_z_q32,
-            (space_to_q32(source_y), space_to_q32(target_y)),
+            aimed_x_q32,
+            aimed_z_q32,
+            (space_to_q32(source_y), aimed_y_q32),
             count,
             radius,
         )?;
@@ -286,8 +286,9 @@ impl Simulation {
                     step: step.saturating_add(interval.saturating_mul(index as u64)),
                     target_kind: target.kind(),
                     target: target.id(),
-                    target_x_q32: target_x_q32.saturating_add(x),
-                    target_z_q32: target_z_q32.saturating_add(z),
+                    target_x_q32: aimed_x_q32.saturating_add(x),
+                    target_y_q32: aimed_y_q32,
+                    target_z_q32: aimed_z_q32.saturating_add(z),
                     offset_x_q32: x,
                     offset_z_q32: z,
                     climb_target,
@@ -412,6 +413,7 @@ impl Simulation {
             target_kind: target.kind(),
             target: target.id(),
             target_x_q32: target_q32.0,
+            target_y_q32: 0,
             target_z_q32: target_q32.1,
             offset_x_q32: 0,
             offset_z_q32: 0,
@@ -502,6 +504,27 @@ impl Simulation {
         let actor = &self.actors[&current];
         let (x_q32, z_q32) = (actor.x_q32, actor.z_q32);
         let height = unit_height(actor.rules.domain);
+        // `GetTargetPosition`: where the skill aims at the unit
+        // (`CalculateAttackPosition`, reaching its extra search range too, on
+        // the ground), its offset added.
+        let extra_search_range_q32 = match self
+            .skill_attacker(skill_ref)
+            .ok_or_else(|| Error::new("projectile owner is absent"))?
+            .attack
+            .path
+        {
+            AttackPath::Projectile {
+                extra_search_range, ..
+            } => crate::rules::metres_q32(extra_search_range),
+            _ => 0,
+        };
+        let (aimed_x_q32, aimed_y_q32, aimed_z_q32) = self.attack_position(
+            skill_ref.owner,
+            pending.skill_slot,
+            FightActorRef::Unit(current),
+            extra_search_range_q32,
+            false,
+        )?;
         let Performer::Projectile {
             evenly: Some(evenly),
             ..
@@ -526,8 +549,9 @@ impl Simulation {
         Ok(PendingProjectileRelease {
             target_kind: ObjectKind::Unit,
             target: current,
-            target_x_q32: x_q32.saturating_add(offset_x_q32),
-            target_z_q32: z_q32.saturating_add(offset_z_q32),
+            target_x_q32: aimed_x_q32.saturating_add(offset_x_q32),
+            target_y_q32: aimed_y_q32,
+            target_z_q32: aimed_z_q32.saturating_add(offset_z_q32),
             offset_x_q32,
             offset_z_q32,
             climb_target: (x_q32, z_q32, height),
@@ -677,26 +701,20 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let owner = FightActorRef::Unit(actor_id);
-        let view = self
-            .fight_actor(target)
-            .ok_or_else(|| Error::new("projectile target is absent"))?;
-        let (target_x_q32, target_z_q32) = (view.x_q32, view.z_q32);
         let attacker = self
             .attacker(owner)
             .ok_or_else(|| Error::new("projectile owner is absent"))?;
         let radius = attacker.attack.projectile_target_offset_radius();
         let source_y = attacker.y;
-        let target_y = match target {
-            FightActorRef::Unit(id) => unit_height(self.actors[&id].rules.domain),
-            FightActorRef::Building(_) => 0,
-        };
+        let (target_x_q32, target_y_q32, target_z_q32) =
+            self.attack_position(owner, slot, target, 0, true)?;
         let climb_target = self.climb_target(target)?;
         let (x, z) = self
             .projectile_target_offsets(
                 SkillRef::main(owner),
                 target_x_q32,
                 target_z_q32,
-                (space_to_q32(source_y), space_to_q32(target_y)),
+                (space_to_q32(source_y), target_y_q32),
                 1,
                 radius,
             )?
@@ -710,6 +728,7 @@ impl Simulation {
                 target_kind: target.kind(),
                 target: target.id(),
                 target_x_q32: target_x_q32.saturating_add(x),
+                target_y_q32,
                 target_z_q32: target_z_q32.saturating_add(z),
                 offset_x_q32: x,
                 offset_z_q32: z,
@@ -722,6 +741,104 @@ impl Simulation {
         )
     }
 
+    /// `ProjectileAttackPerformer.CalculateAttackPosition`: where a
+    /// projectile skill aims at a target. The way from the owner to the
+    /// target is held to the skill's reach (`FVector3.ClampMagnitude`): its
+    /// range, both radii and `extra_range`, and where only one of the two
+    /// flies, the hypotenuse of that and the air height. With `using_3d` the
+    /// way runs between their positions in space; without it from the
+    /// target's ground point, to the owner's ground point when neither flies
+    /// and to its point in space otherwise. A skill that attacks only the
+    /// air aims at the air height. A target within reach is aimed at where
+    /// it stands; an Overlord firing at the shield of a Fortress beyond its
+    /// reach aims at the point of its reach on the way. `skill_slot` is the
+    /// build's index of the skill that fires, whose own range is its reach.
+    pub(in crate::fight) fn attack_position(
+        &self,
+        owner: FightActorRef,
+        skill_slot: usize,
+        target: FightActorRef,
+        extra_range_q32: i64,
+        using_3d: bool,
+    ) -> Result<(i64, i64, i64)> {
+        let (skill_ref, range_q32) = match owner {
+            FightActorRef::Unit(id) => {
+                let (held_by, offset) = self.actors[&id].skills.at_slot(skill_slot);
+                let skill_ref = SkillRef {
+                    owner,
+                    slot: held_by,
+                };
+                (skill_ref, self.slot_attack_range_q32(skill_ref, offset))
+            }
+            FightActorRef::Building(_) => {
+                let skill_ref = SkillRef::main(owner);
+                let attacker = self
+                    .skill_attacker(skill_ref)
+                    .ok_or_else(|| Error::new("projectile owner is absent"))?;
+                (skill_ref, space_to_q32(attacker.attack_range))
+            }
+        };
+        let attacker = self
+            .skill_attacker(skill_ref)
+            .ok_or_else(|| Error::new("projectile owner is absent"))?;
+        let view = self
+            .fight_actor(target)
+            .ok_or_else(|| Error::new("projectile target is absent"))?;
+        let owner_domain = match owner {
+            FightActorRef::Unit(id) => self.actors[&id].rules.domain,
+            FightActorRef::Building(_) => UnitDomain::Ground,
+        };
+        let owner_flies = owner_domain == UnitDomain::Air;
+        let target_flies = view.domain == UnitDomain::Air;
+        let mut reach_q32 = range_q32
+            .saturating_add(space_to_q32(attacker.radius))
+            .saturating_add(space_to_q32(view.radius))
+            .saturating_add(extra_range_q32);
+        if owner_flies != target_flies {
+            let square = 2 << 32;
+            reach_q32 = fpcs_sqrt_fastest(
+                fpcs_pow_fastest(reach_q32, square)
+                    .saturating_add(fpcs_pow_fastest(space_to_q32(AIR_UNIT_HEIGHT), square)),
+            );
+        }
+        let from = (
+            attacker.x_q32,
+            if using_3d || owner_flies || target_flies {
+                space_to_q32(unit_height(owner_domain))
+            } else {
+                0
+            },
+            attacker.z_q32,
+        );
+        let to = (
+            view.x_q32,
+            if using_3d {
+                space_to_q32(unit_height(view.domain))
+            } else {
+                0
+            },
+            view.z_q32,
+        );
+        let way = clamp_magnitude_3d(
+            (
+                to.0.saturating_sub(from.0),
+                to.1.saturating_sub(from.1),
+                to.2.saturating_sub(from.2),
+            ),
+            reach_q32,
+        );
+        let y_q32 = if attacker.targets.air && !attacker.targets.ground {
+            space_to_q32(AIR_UNIT_HEIGHT)
+        } else {
+            from.1.saturating_add(way.1)
+        };
+        Ok((
+            from.0.saturating_add(way.0),
+            y_q32,
+            from.2.saturating_add(way.2),
+        ))
+    }
+
     pub(in crate::fight) fn release_projectile(
         &mut self,
         skill_ref: SkillRef,
@@ -730,14 +847,17 @@ impl Simulation {
         weapon_index: usize,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let target = &self.actors[&target_id];
-        let target_x_q32 = target.x_q32;
-        let target_z_q32 = target.z_q32;
+        let aimed = self.attack_position(
+            skill_ref.owner,
+            skill_slot,
+            FightActorRef::Unit(target_id),
+            0,
+            true,
+        )?;
         self.release_projectile_at(
             skill_ref,
             target_id,
-            target_x_q32,
-            target_z_q32,
+            aimed,
             skill_slot,
             weapon_index,
             events,
@@ -759,21 +879,28 @@ impl Simulation {
                 // up again from its first update: a Farseer's second shot,
                 // which climbs first, still names the point the burst aimed
                 // at when it levels off.
-                let (target_x_q32, target_z_q32) = match self
-                    .actors
-                    .get(&pending.target)
-                    .filter(|_| pending.aims_at_release)
+                let aimed = if pending.aims_at_release && self.actors.contains_key(&pending.target)
                 {
-                    Some(target) => (target.x_q32, target.z_q32),
-                    None => (pending.target_x_q32, pending.target_z_q32),
+                    self.attack_position(
+                        skill_ref.owner,
+                        pending.skill_slot,
+                        FightActorRef::Unit(pending.target),
+                        0,
+                        true,
+                    )?
+                } else {
+                    (
+                        pending.target_x_q32,
+                        pending.target_y_q32,
+                        pending.target_z_q32,
+                    )
                 };
                 let climb_q32 =
                     self.projectile_climb_q32(skill_ref, pending.skill_slot, pending.climb_target)?;
                 self.release_projectile_at(
                     skill_ref,
                     pending.target,
-                    target_x_q32,
-                    target_z_q32,
+                    aimed,
                     pending.skill_slot,
                     pending.weapon_index,
                     events,
@@ -796,7 +923,6 @@ impl Simulation {
                     .iter()
                     .find(|building| building.building_id == pending.target)
                     .ok_or_else(|| Error::new("projectile building target is absent"))?;
-                let (target_x_q32, target_z_q32) = (pending.target_x_q32, pending.target_z_q32);
                 let radius = building_radius(building);
                 let climb_q32 =
                     self.projectile_climb_q32(skill_ref, pending.skill_slot, pending.climb_target)?;
@@ -804,11 +930,11 @@ impl Simulation {
                     skill_ref,
                     ObjectKind::Building,
                     pending.target,
-                    q32_to_space_rounded(target_x_q32),
-                    0,
-                    q32_to_space_rounded(target_z_q32),
-                    target_x_q32,
-                    target_z_q32,
+                    (
+                        pending.target_x_q32,
+                        pending.target_y_q32,
+                        pending.target_z_q32,
+                    ),
                     radius,
                     pending.skill_slot,
                     pending.weapon_index,
@@ -820,6 +946,10 @@ impl Simulation {
                     .projectiles
                     .last_mut()
                     .expect("a projectile was just released");
+                if projectile.lock_target {
+                    projectile.offset_x_q32 = pending.offset_x_q32;
+                    projectile.offset_z_q32 = pending.offset_z_q32;
+                }
                 projectile.climb_to_q32 =
                     climb_q32.map(|climb_q32| projectile.y_q32.saturating_add(climb_q32));
                 Ok(())
@@ -838,26 +968,17 @@ impl Simulation {
         &mut self,
         skill_ref: SkillRef,
         target_id: u64,
-        target_x_q32: i64,
-        target_z_q32: i64,
+        aimed: (i64, i64, i64),
         skill_slot: usize,
         weapon_index: usize,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let target = &self.actors[&target_id];
-        let target_y = unit_height(target.rules.domain);
-        let target_radius = target.rules.collision_radius();
-        let target_x = q32_to_space_rounded(target_x_q32);
-        let target_z = q32_to_space_rounded(target_z_q32);
+        let target_radius = self.actors[&target_id].rules.collision_radius();
         self.release_projectile_to(
             skill_ref,
             ObjectKind::Unit,
             target_id,
-            target_x,
-            target_y,
-            target_z,
-            target_x_q32,
-            target_z_q32,
+            aimed,
             target_radius,
             skill_slot,
             weapon_index,
@@ -871,11 +992,7 @@ impl Simulation {
         skill_ref: SkillRef,
         target_kind: ObjectKind,
         target_id: u64,
-        target_x: i64,
-        target_y: i64,
-        target_z: i64,
-        target_x_q32: i64,
-        target_z_q32: i64,
+        aimed: (i64, i64, i64),
         target_radius: i64,
         skill_slot: usize,
         weapon_index: usize,
@@ -891,8 +1008,7 @@ impl Simulation {
             source,
             target_kind,
             target_id,
-            (target_x, target_y, target_z),
-            (target_x_q32, target_z_q32),
+            aimed,
             target_radius,
             skill_slot,
             weapon,
@@ -912,8 +1028,7 @@ impl Simulation {
         source: Launch,
         target_kind: ObjectKind,
         target_id: u64,
-        (target_x, target_y, target_z): (i64, i64, i64),
-        (target_x_q32, target_z_q32): (i64, i64),
+        (target_x_q32, target_y_q32, target_z_q32): (i64, i64, i64),
         target_radius: i64,
         skill_slot: usize,
         weapon: i32,
@@ -951,11 +1066,11 @@ impl Simulation {
             x_q32: source.x_q32,
             y_q32: space_to_q32(source.y),
             z_q32: source.z_q32,
-            cached_target_x: target_x,
-            cached_target_y: target_y,
-            cached_target_z: target_z,
+            cached_target_x: q32_to_space_rounded(target_x_q32),
+            cached_target_y: q32_to_space_rounded(target_y_q32),
+            cached_target_z: q32_to_space_rounded(target_z_q32),
             cached_target_x_q32: target_x_q32,
-            cached_target_y_q32: space_to_q32(target_y),
+            cached_target_y_q32: target_y_q32,
             cached_target_z_q32: target_z_q32,
             cached_target_radius: target_radius,
             speed: source.speed,
@@ -1103,4 +1218,22 @@ fn split_between_two_weapons(
         weapon_index = usize::from(weapon_index == 0);
     }
     Ok(offsets)
+}
+
+/// `FVector3.ClampMagnitude`: a vector longer than the length, its square
+/// magnitude over the length's square (`FPoint.op_GreaterThan`), shortened
+/// to it along its direction.
+fn clamp_magnitude_3d((x, y, z): (i64, i64, i64), length: i64) -> (i64, i64, i64) {
+    let squared = q32_mul(x, x)
+        .saturating_add(q32_mul(y, y))
+        .saturating_add(q32_mul(z, z));
+    if fpoint_less_or_equal(squared, q32_mul(length, length)) {
+        return (x, y, z);
+    }
+    let inverse = q32_div(Q32_ONE, fpcs_sqrt_fastest(squared));
+    (
+        q32_mul(q32_mul(x, inverse), length),
+        q32_mul(q32_mul(y, inverse), length),
+        q32_mul(q32_mul(z, inverse), length),
+    )
 }

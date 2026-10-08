@@ -155,22 +155,51 @@ impl Simulation {
                 retained.push(projectile);
                 continue;
             }
-            if projectile.target_kind == ObjectKind::Unit
-                && projectile.lock_target
-                && let Some(target) = self
-                    .actors
-                    .get(&projectile.target)
-                    .filter(|actor| actor.alive())
-            {
-                projectile.cached_target_x_q32 =
-                    target.x_q32.saturating_add(projectile.offset_x_q32);
-                projectile.cached_target_z_q32 =
-                    target.z_q32.saturating_add(projectile.offset_z_q32);
+            // `FightProjectile.Update`: a projectile that locks its target
+            // takes the target's position up again, its offset added, while
+            // the target lives, a construction as a unit: the point it left
+            // for, held within its owner's reach, lasts only until then.
+            let followed = if projectile.lock_target {
+                match projectile.target_kind {
+                    ObjectKind::Unit => self
+                        .actors
+                        .get(&projectile.target)
+                        .filter(|actor| actor.alive())
+                        .map(|target| {
+                            (
+                                target.x_q32,
+                                unit_height(target.rules.domain),
+                                target.z_q32,
+                                target.rules.collision_radius(),
+                            )
+                        }),
+                    ObjectKind::Building => self
+                        .buildings
+                        .iter()
+                        .find(|building| {
+                            building.building_id == projectile.target && building_alive(building)
+                        })
+                        .map(|building| {
+                            (
+                                building.position.x,
+                                0,
+                                building.position.z,
+                                building_radius(building),
+                            )
+                        }),
+                    _ => None,
+                }
+            } else {
+                None
+            };
+            if let Some((x_q32, y, z_q32, radius)) = followed {
+                projectile.cached_target_x_q32 = x_q32.saturating_add(projectile.offset_x_q32);
+                projectile.cached_target_z_q32 = z_q32.saturating_add(projectile.offset_z_q32);
                 projectile.cached_target_x = q32_to_space_rounded(projectile.cached_target_x_q32);
-                projectile.cached_target_y = unit_height(target.rules.domain);
+                projectile.cached_target_y = y;
                 projectile.cached_target_z = q32_to_space_rounded(projectile.cached_target_z_q32);
                 projectile.cached_target_y_q32 = space_to_q32(projectile.cached_target_y);
-                projectile.cached_target_radius = target.rules.collision_radius();
+                projectile.cached_target_radius = radius;
             }
             if !self.within_owner_reach(&projectile) {
                 self.leave_interceptors(&projectile);
