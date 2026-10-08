@@ -382,6 +382,9 @@ pub(in crate::fight) struct ExtraSkill {
     /// The first of the row's weapons this skill fires: the first of its own
     /// for a standalone row, the first of every other.
     pub(in crate::fight) weapon: usize,
+    /// `FightRocketPunchSkill.curAttackCount`: the punches it has thrown
+    /// this fight (`OnAttack`), which `ExitFight` sets back to none.
+    pub(in crate::fight) punches: u32,
 }
 
 impl SkillManager {

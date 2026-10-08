@@ -14,7 +14,7 @@ Anti-Air Barrage, the Fortress's, Air Defense Mark, the Typhoon's,
 Disintegration, the Abyss's, Naval Gun, the Overlord's, Gun-launched
 Missile, the Mountain's, Electromagnetic Barrage, the Melting Point's,
 Dual Wield, the Centurion's, Fork, the Raiden's, Smoke Bomb, the Mountain's,
-and Swarm Missiles, the Abyss's, and refuses every other member by name: the members' skills differ
+Swarm Missiles, the Abyss's, and Rocket Punch, the Fortress's, and refuses every other member by name: the members' skills differ
 in kind, a projectile, an explosion, a laser, a summon, a sweep around the
 unit, and many leave a terrain or write a buff, so each joins once a recording
 of it agrees.
@@ -419,6 +419,26 @@ Whirlwind starts with two enemies within 25 metres and strikes out to 35 for
 1.4 times its Rhino's damage, a 3560 blow becoming 4983. A Rhino against one
 enemy never starts it.
 
+## A punch when its unit is hurt
+
+Rocket Punch adds a rocket punch skill (`FightRocketPunchSkill`), a
+projectile skill that is preemptive and not permanent: leaving its idle state
+it takes the main skill's place, and returning hands it back, as an around
+skill does. It starts only where `RocketPunchAttackChecker.Check` lets it:
+
+- **The preemptive checker's.** No preemptive skill runs, the main skill
+  rests, and the skill's own target is in its attack area.
+- **A punch is left.** It has thrown fewer than `triggerCount`, two
+  (`curAttackCount`, which `OnAttack` counts as the blow starts and
+  `ExitFight` sets back to none).
+- **Its unit is hurt enough for the punch it is at.** The unit's life over its
+  maximum, as `FPoint`s, is at or below `lifePercentCondition0`, 0.85, for the
+  first punch, and `lifePercentCondition1`, 0.55, for the second.
+
+The fist is one projectile from the first of its two launchers, dealing the
+row's damage for the unit's level, 12000 at level one, out to its 25 metre
+splash.
+
 ## A permanent preemptive explosion
 
 Scorching Charge adds an explosion skill (`FightExplosionSkill`) that is
@@ -801,6 +821,10 @@ not melee, so the simulator refuses it.
   ([combat.md](combat.md#ordinary-projectiles)): two units 23 each,
   `tests/extra_weapon/fights/swarm-missiles-mixed.yaml`; a Crawler swarm over
   three volleys, `tests/extra_weapon/fights/swarm-missiles-crawlers.yaml`.
+- Rocket Punch throws at 83.8% of the Fortress's life and again at 51.4%,
+  each fist striking what its splash reaches for 12000; with the first
+  condition for both punches the second is thrown from tick 377:
+  `tests/extra_weapon/fights/rocket-punch-rhinos.yaml`.
 - Fork's two bolts join the Raiden's group as slots 3 and 4 and strike with
   the main row's from the first blow, five Crawlers a blow; with the Raiden's
   60 degrees in place of the whole circle on the row's slots the Raidens'

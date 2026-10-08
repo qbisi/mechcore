@@ -193,6 +193,11 @@ pub(crate) struct ExtraWeaponConfig {
     /// in the main skill's place.
     #[serde(default)]
     pub(crate) preemptive: Option<PermanentPreemptive>,
+    /// A rocket punch (`FightRocketPunchSkill`): a preemptive skill that
+    /// starts only while its unit's life is low enough for the punch it is
+    /// at.
+    #[serde(default)]
+    pub(crate) rocket_punch: Option<RocketPunch>,
     /// An explosion skill: the effect its unit's death has.
     #[serde(default)]
     pub(crate) explosion: Option<ExplosionConfig>,
@@ -288,6 +293,16 @@ pub(crate) struct ExtraWeaponFire {
 #[serde(deny_unknown_fields)]
 pub(crate) struct ExtraWeaponOil {
     pub(crate) fire_life_time: Vec<f64>,
+}
+
+/// `RocketPunchSkillData`'s `lifePercentCondition0` and `1`, the shares of
+/// its maximum the unit's life must be at or below for the first punch and
+/// the second, and `triggerCount`, the punches a fight allows.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct RocketPunch {
+    pub(crate) life_conditions: Vec<f64>,
+    pub(crate) trigger_count: u32,
 }
 
 /// What `ExtraWeaponTech` answers `IFogProvider` with for a fog:

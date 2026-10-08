@@ -60,6 +60,8 @@ impl Simulation {
         // `SkillAttackController.PerformAttack` counts the blow as it starts.
         skill.attack_count += 1;
         skill.total_attack_count += 1;
+        self.count_punch(skill_ref);
+        let skill = self.skill_mut(skill_ref);
         // The backswing is cut short by the next blow: a blow fitted into its
         // interval by `SkillAttackController.PerformAttack` gives its
         // backswing what is left of the interval, and a Wasp's 1.5-second
@@ -139,6 +141,24 @@ impl Simulation {
         }
         self.finish_attacking(skill_ref);
         Ok(false)
+    }
+
+    /// `FightRocketPunchSkill.OnAttack`: a rocket punch counts its punch as
+    /// the blow starts.
+    fn count_punch(&mut self, skill_ref: SkillRef) {
+        if let (SkillSlot::Extra(index), FightActorRef::Unit(actor_id)) =
+            (skill_ref.slot, skill_ref.owner)
+        {
+            let extra = &mut self
+                .actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable")
+                .skills
+                .extras[index];
+            if extra.rules.rocket_punch.is_some() {
+                extra.punches += 1;
+            }
+        }
     }
 
     /// `SkillAttackController.ChangeToIdle` after an attacking phase with no
