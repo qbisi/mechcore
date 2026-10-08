@@ -1,0 +1,20 @@
+# Crawler Production on blue's Melting Point: as `fang-production.yaml`, with
+# eight Crawlers a batch within the Melting Point's radius.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 471
+hash: {profile: mcfr-content-0.7.0, result: cf9af594604cdb76d0c2a8c67fdbe20bae830c78f2e2e817134655e527f21e9d}
+blue:
+  techs:
+    melting_point: [crawler_production]
+  units:
+  - {name: melting_point, index: 0, position: {x: 0, y: -150}, exp: 0/600/1400}
+red:
+  core_damage: 350
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/34/1150}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/30/650}

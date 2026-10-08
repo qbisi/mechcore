@@ -136,7 +136,19 @@ the wearer's facing about the vertical as `FQuaternion.AngleAxis` turns it,
 and face as the wearer faces. A line of one position that may keep two or
 more alive first scatters each make by a draw of up to a metre each way from
 its side's stream, a hundredth of a metre a step, x then z; Best Partner's
-does ([technology_effects.md](technology_effects.md#production-lines)). Each is then a summon at level 1, carrying what
+does ([technology_effects.md](technology_effects.md#production-lines)). A line
+of no positions makes where its wearer stands, each make scattered within the
+wearer's radius, the whole metres of it, by two draws a hundredth of a metre a
+step, x then z (`SpecialSupportUnitData.GetRandomRange`).
+
+**A make that takes no time to appear joins at once.** One of `appearType` 0
+or 1 joins its side as it is made (`SummonSystem.AddMech`) rather than a
+second on, drawing its skills' first intervals from its side's stream before
+the next make's scatter; it is made after every unit has updated, so its
+clock holds at its interval until its first update. Made on the fight's first
+tick, it is in the recording's first snapshot, an initial unit numbered by
+side, `z` and `x` among the layout's
+([mcfr.md](../spec/mcfr/mcfr.md#normal-form)). Each is then a summon at level 1, carrying what
 its side's officers and technologies write onto its type, and appears for a
 second as [battle_skill.md](battle_skill.md#a-summon) states. The rows are
 [`config/equipment_effects.yaml`](../../config/equipment_effects.yaml)'s
@@ -225,6 +237,10 @@ carries:
   `SkillDataModifier.AddData`.
 - An item's target type is answered as an officer's is:
   `UnitUtility.IsEffectTarget`.
+- A line of no positions makes at its parent's transform, scattered within
+  its radius: `SpecialSupportUnitData.GetPosition`,
+  `SpecialSupportUnitData.GetRandomRange`, `IBuffTarget.GetRadius`. A make of
+  no delay joins at once: `SummonSystem.DoCreateMech`, `SummonSystem.AddMech`.
 - A line of one position whose `mechMaxCount` is at least 2 adds
   `NextInRange(100)` hundredths of a metre to x and then to z before its
   offset: `SummonSystem.CreateMech`, `GRRandom.NextInRange`.

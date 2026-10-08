@@ -314,12 +314,14 @@ and Summon Hounds make their units at the unit's own level
 (`appear_type` 5) for `APPEAR_DURATION`'s second, once: their next batch is
 10^6 seconds away.
 
-A row whose makes appear any other way, stand anywhere but at offsets from
-their unit, take a level of their own, are corrected by the row, are capped
-in all, come in its `intensifyMode` or without their side's technologies is
-refused by name: Fang Production, Crawler Production and Mothership appear
-with an effect and no offsets, the War Factory's lines rise out of it, and
-Electromagnetic Twin corrects its make.
+Fang Production, Crawler Production and Mothership make theirs at the
+unit's first level about where it stands, appearing with an effect
+(`appear_type` 1) at once, each batch every 32 to 36 seconds.
+
+A row whose makes appear any other way, take a level of their own, are
+corrected by the row, are capped in all, come in its `intensifyMode` or
+without their side's technologies is refused by name: the War Factory's lines
+rise out of it, and Electromagnetic Twin corrects its make.
 
 ## What this table does not carry
 
@@ -468,7 +470,11 @@ derive (a minimum range):
   at its unit's level, and a line of one position scatters its make:
   `tests/production/fights/best-partner.yaml`,
   `tests/production/fights/shooting-squad.yaml`,
-  `tests/production/fights/summon-hounds.yaml`.
+  `tests/production/fights/summon-hounds.yaml`; one of no positions makes
+  about its unit, its makes joining at once:
+  `tests/production/fights/fang-production.yaml`,
+  `tests/production/fights/crawler-production.yaml`,
+  `tests/production/fights/mothership.yaml`.
 - A projectile life rate multiplies the life a skill's projectiles leave with:
   Heavy Missile's rockets leave with 126000, and fought without the rate the
   simulator parts from the game at t20:

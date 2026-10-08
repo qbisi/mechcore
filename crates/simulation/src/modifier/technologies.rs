@@ -458,8 +458,8 @@ struct SupportBlock {
     start_time: i64,
     /// `SupportUnitAppearType`.
     appear_type: i32,
-    /// What a transition does not read: it takes `APPEAR_DURATION`.
-    #[allow(dead_code, reason = "only a transition's line is run")]
+    /// What a transition and an appearance at once do not read.
+    #[allow(dead_code, reason = "only lines that do not read it are run")]
     product_time: i64,
     max_create_count: u32,
     create_duration: i64,
@@ -484,7 +484,8 @@ struct SupportOffset {
 const LEVEL_ONE: i32 = 0;
 const PARENT_LEVEL: i32 = 3;
 
-/// `SupportUnitAppearType.Transition`.
+/// `SupportUnitAppearType.ImmediateWithEffect` and `Transition`.
+const IMMEDIATE_WITH_EFFECT: i32 = 1;
 const TRANSITION: i32 = 5;
 
 /// `SupportUnitPositionSpace.Parent` and `ParentBody`.
@@ -493,12 +494,23 @@ const PARENT_BODY_SPACE: i32 = 2;
 
 impl SupportBlock {
     /// The line it runs, or why this build will not run it: one whose makes
-    /// appear any way but by a transition at their offsets, at a level of
-    /// their own, corrected by the row, capped in all, made in its intensify
-    /// mode or without its side's technologies.
+    /// appear any way but by a transition at their offsets or at once about
+    /// their unit, at a level of their own, corrected by the row, capped in
+    /// all, made in its intensify mode or without its side's technologies.
     fn line(&self, who: &str) -> std::result::Result<ProductionLine, String> {
         let unread = [
-            (self.appear_type != TRANSITION, "an appearType other than 5"),
+            (
+                ![IMMEDIATE_WITH_EFFECT, TRANSITION].contains(&self.appear_type),
+                "an appearType other than 1 or 5",
+            ),
+            (
+                self.appear_type == TRANSITION && self.positions.is_empty(),
+                "a transition and no positions",
+            ),
+            (
+                self.appear_type == IMMEDIATE_WITH_EFFECT && !self.positions.is_empty(),
+                "an appearance at once at positions",
+            ),
             (
                 ![LEVEL_ONE, PARENT_LEVEL].contains(&self.unit_level),
                 "a unitLevel of its own",
@@ -519,7 +531,6 @@ impl SupportBlock {
                 !self.inherit_technology,
                 "makes without its side's technologies",
             ),
-            (self.positions.is_empty(), "no positions"),
         ];
         if let Some((_, what)) = unread.iter().find(|(set, _)| *set) {
             return Err(format!(
@@ -538,8 +549,12 @@ impl SupportBlock {
                 .map(|offset| (offset.x, offset.z))
                 .collect(),
             // `SupportUnitCreator.CreateMech`: a transition takes
-            // `APPEAR_DURATION`, a second.
-            appear_q32: 1 << 32,
+            // `APPEAR_DURATION`, a second, and `ImmediateWithEffect` none.
+            appear_q32: if self.appear_type == TRANSITION {
+                1 << 32
+            } else {
+                0
+            },
             parent_level: self.unit_level == PARENT_LEVEL,
             body_frame: self.position_space == PARENT_BODY_SPACE,
             gated: false,
@@ -1255,7 +1270,8 @@ mod tests {
     }
 
     /// Best Partner hands the Vulcan a line of one Marksman at its level, and
-    /// Fang Production's, which appears with an effect, is refused by name.
+    /// Phoenix Production's, whose makes rise out of the War Factory, is
+    /// refused by name.
     #[test]
     fn a_production_technology_hands_its_unit_a_line() {
         let table = TechnologyEffects::load().unwrap();
@@ -1265,7 +1281,7 @@ mod tests {
         assert!(lines[0].parent_level);
         assert_eq!(lines[0].offsets, vec![(25 << 32, -30 << 32)]);
         let refused = table
-            .production(&[1201], "fortress")
+            .production(&[12017], "war_factory")
             .unwrap_err()
             .to_string();
         assert!(refused.contains("appearType"), "{refused}");
