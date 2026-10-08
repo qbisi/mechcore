@@ -13,5 +13,8 @@ The Barrier fights put a shield on a unit, which carries it: `barrier-wasps.yaml
 and `barrier-crawlers.yaml`.
 
 A missile's projectile meets a shield in
-[`../missile/fights/into-shield.yaml`](../missile/fights/into-shield.yaml) and
-[`../missile/fights/splash-beside-shield.yaml`](../missile/fights/splash-beside-shield.yaml).
+[`../missile/fights/into-shield.yaml`](../missile/fights/into-shield.yaml),
+[`../missile/fights/splash-beside-shield.yaml`](../missile/fights/splash-beside-shield.yaml),
+[`../missile/fights/into-airdrop.yaml`](../missile/fights/into-airdrop.yaml),
+[`../missile/fights/fired-inside-airdrop.yaml`](../missile/fights/fired-inside-airdrop.yaml) and
+[`../missile/fights/fired-inside-standing-airdrop.yaml`](../missile/fights/fired-inside-standing-airdrop.yaml).

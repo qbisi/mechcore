@@ -1,0 +1,25 @@
+# A missile's projectile flying into an enemy Shield Airdrop after it leaves.
+#
+# Red drops a Shield Airdrop 50 metres in front of blue's missile, which
+# fires on tick 117 from outside it, 78 metres from its centre. The
+# projectile is taken where it crosses the shield's surface on tick 119,
+# the shield losing 5000.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 369
+hash: {profile: mcfr-content-0.7.0, result: e0a87fff7cb1105c4dd4c877fd3f04c5fdbae532c9eddac6d8240a4c5c6ee455}
+blue:
+  core_damage: 200
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 1, y: -11}, retained: false}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -205}, exp: 0/200/1150}
+  battle_skills:
+  - {name: shield_airdrop, positions: [{x: -1, y: -39}]}

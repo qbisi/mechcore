@@ -1,0 +1,26 @@
+# A missile fired from inside a Shield Airdrop an earlier round left standing.
+#
+# Red's Shield Airdrop stands over blue's missile from the first tick of
+# round 2, and the missile fires on tick 1 from inside it without being
+# taken. It lands on tick 22 on the Rhino, which has walked inside its own
+# shield: a splash landing inside a shield reaches the units inside, so the
+# Rhino takes 5000 and the shield nothing.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: game
+ticks: 415
+hash: {profile: mcfr-content-0.7.0, result: 01fdaf3ec2c1c3ba32e100fb37d160246bba5973803dab5b59cd190dcf082a1a}
+blue:
+  core_damage: 200
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 1, y: -11}, retained: false}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/200/1150}
+  battle_skills:
+  - {name: shield_airdrop, standing: {position: {x: -1, y: 11}}}
