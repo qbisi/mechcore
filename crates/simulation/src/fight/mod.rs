@@ -703,11 +703,24 @@ impl Simulation {
                     - self.slot_attack_range(skill_ref, Some(0));
                 main.saturating_add(math::space_to_q32(addend))
             }
-            SkillSlot::Extra(_) => math::space_to_q32(
-                self.skill_attacker(skill_ref)
-                    .expect("skill owner identity is stable")
-                    .attack_range,
-            ),
+            // A skill that reaches past the main skill's range reads the
+            // main skill's `GetAttackRange` in Q32.32 and adds its own: a
+            // Secondary Armament under a buff that cuts the Sabertooth's
+            // range by 30% reads the main gun's 77 metres and 88 raw, and 2
+            // more.
+            SkillSlot::Extra(index) => {
+                let extra = &self.actors[&id].skills.extras[index];
+                if extra.rules.use_main_skill_range || extra.skill.is_grouped() {
+                    self.main_attack_range_q32(id)
+                        .saturating_add(math::space_to_q32(extra.rules.attack.range()))
+                } else {
+                    math::space_to_q32(
+                        self.skill_attacker(skill_ref)
+                            .expect("skill owner identity is stable")
+                            .attack_range,
+                    )
+                }
+            }
         }
     }
 
