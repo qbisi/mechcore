@@ -1,0 +1,21 @@
+# High-Speed Engine on blue's Wasp, against a Rhino and a Marksman: the
+# technology's 5 lands in the unit's move speed, which reads 21 where it
+# reads 16, as a plain technology's speed value does.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 1111
+hash: {profile: mcfr-content-0.7.0, result: a9aeb3512b62ac06fc290465203b8527dbf6de1921d7a837ccfc415a95cc2624}
+blue:
+  core_damage: 300
+  techs:
+    wasp: [jump_drive]
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -100}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/485/1150}
+  - {name: marksman, index: 1, position: {x: 60, y: -150}, exp: 0/323/650}

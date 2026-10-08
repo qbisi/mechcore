@@ -81,7 +81,7 @@ const INTERCEPT: &str = "interceptMissileTechnologyDatas";
 const SUPPORT: &str = "supportUnitTechnologies";
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 14] = [
+const IMPLEMENTED: [&str; 15] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -96,11 +96,17 @@ const IMPLEMENTED: [&str; 14] = [
     INTERCEPT,
     SUPPORT,
     SPLASH,
+    MOBILITY,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
 /// `SplashRangeValue` beside its numbers.
 const SPLASH: &str = "splashTechnologies";
+
+/// The list whose `MobilityIntensifyTech` overrides nothing of `Technology`:
+/// in a fight it is a plain technology, and what it frees, its formation
+/// during deployment, a fight does not read.
+const MOBILITY: &str = "mobilityIntensifyTechnologies";
 
 /// The list whose `DamageIntensifyTech` writes its damage against one domain.
 const DAMAGE_INTENSIFY: &str = "damageIntensifyTechnologies";
@@ -228,8 +234,9 @@ struct Technology {
 /// An extra weapon's provider takes its numbers and disables its skills,
 /// which the layout refuses for the shapes it does not fight switched off.
 /// Every other list's provider does more, which is not measured.
-const DISABLED_AS_NUMBERS: [&str; 6] = [
+const DISABLED_AS_NUMBERS: [&str; 7] = [
     PLAIN,
+    MOBILITY,
     ARMOR,
     DAMAGE_INTENSIFY,
     LIFESTEAL,

@@ -95,6 +95,12 @@ runs ([below](#production-lines)), and refuses
 every other technology by name and kind, since applying a subclass's numbers
 alone would fight it as something it is not.
 
+High-Speed Engine (`mobilityIntensifyTechnologies`) is plain in a fight:
+`MobilityIntensifyTech` overrides nothing of `Technology`, so its 5 lands in
+its unit's move speed as a plain technology's speed value does, and is
+switched off with it. What else it does, freeing its formation during
+deployment, happens before the fight.
+
 A plain, a lifesteal or a repair row may still set a field beyond what this
 table carries, and names it in `special`: Siege Mode's `isInverseIsLockTarget`.
 The simulator refuses those too. Machine Learning's `exp_rate` is no
@@ -571,6 +577,11 @@ derive (a minimum range):
   `tests/splash/fights/high-explosive-ammo-wraith.yaml`,
   `tests/splash/fights/high-explosive-ammo-tarantula.yaml`,
   `tests/splash/fights/high-explosive-ammo-phantom_ray.yaml`.
+- High-Speed Engine's 5 lands in its unit's move speed, a Wasp's and a
+  Phoenix's 16 reading 21 and an Overlord's 10 reading 15:
+  `tests/modifier/fights/technology-jump-drive-wasp.yaml`,
+  `tests/modifier/fights/technology-jump-drive-overlord.yaml`,
+  `tests/modifier/fights/technology-jump-drive-phoenix.yaml`.
 - A unit's interceptors take rockets out of the air from where it stands, a
   War Factory's four each on its own, and a Mustang's lock its main skill,
   which stands its unit idle on the next update:
@@ -815,6 +826,9 @@ derive (a minimum range):
   its range to the skill's splash: `SplashTech.AddData`,
   `SplashTechnologyData.GetRange`, `Technology.AddData`,
   `SkillDataModifier.AddData`, `FightSkill.GetSplashRange`.
+- High-Speed Engine is a plain technology in a fight: `TechnologyFactory.Create`
+  makes a `MobilityIntensifyTech`, which declares only its constructor
+  (`MobilityIntensifyTech.MobilityIntensifyTech`) over `Technology.AddData`.
 - A unit's interceptors: `InterceptMissileTech` answers `IInterceptData`
   from its row, and `InterceptMissileEffectProvider.DoActive` adds the unit's
   group to its side's (`TeamInterceptSourceManager.GetInterceptSource`),

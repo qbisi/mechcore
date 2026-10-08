@@ -1,0 +1,21 @@
+# High-Speed Engine on blue's Overlord, against a Rhino and a Marksman: the
+# technology's 5 lands in the unit's move speed, which reads 15 where it
+# reads 10, as a plain technology's speed value does.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 361
+hash: {profile: mcfr-content-0.7.0, result: b55610df9e8c865223f58b90929af012a435b37fada01bc6c8f804daafdb3797}
+blue:
+  techs:
+    overlord: [jump_drive]
+  units:
+  - {name: overlord, index: 0, position: {x: -5, y: -105}, exp: 0/600/1750}
+red:
+  core_damage: 400
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}
+  - {name: marksman, index: 1, position: {x: 60, y: -150}}
