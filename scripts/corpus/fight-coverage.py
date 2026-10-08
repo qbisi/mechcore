@@ -89,8 +89,6 @@ def system_of(what: str, owner: str) -> str:
         return f"{match.group(1)} field {match.group(2)}"
     if match := UNIT.search(owner):
         return f"unit {match.group(1)}"
-    if "grows with the unit's rank" in owner:
-        return "technology by rank"
     return owner.split(",")[0]
 
 
