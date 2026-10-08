@@ -628,7 +628,7 @@ impl Simulation {
         }
         let mut targets = self.damage_targets(&hit)?;
         let mut shield = None;
-        if hit.splash_radius > 0 && !hit.crosses_shields {
+        if hit.splash_radius > 0 {
             for standing in self.shields_in_the_way(&hit, &mut targets) {
                 if self.hit_shield(standing, &hit, events)? > 0 {
                     shield = Some(standing);
@@ -908,6 +908,7 @@ impl Simulation {
     /// units and towers it covers out of the hit; the one covering what the
     /// hit was aimed at is its main shield. The main shield, and every other
     /// the splash reaches in the plane, take the hit, before any unit does.
+    /// A hit that crosses shields takes nothing out and has no main shield.
     pub(in crate::fight) fn shields_in_the_way(
         &self,
         hit: &DamageHit,
@@ -928,10 +929,16 @@ impl Simulation {
                     .is_some_and(|actor| actor.team == shield.team)
                     && self.shield_holds(shield.id, *target)
             };
-            if main.is_none() && hit.aimed.is_some_and(|aimed| covered(&aimed)) {
-                main = Some(shield.id);
+            // A hit that crosses shields (`CanCrossAdvancedEnergyShield`)
+            // leaves what they cover in it, and still strikes every shield its
+            // splash reaches: a Rhino's Whirlwind beside an enemy shield
+            // strikes the shield and the units in it alike.
+            if !hit.crosses_shields {
+                if main.is_none() && hit.aimed.is_some_and(|aimed| covered(&aimed)) {
+                    main = Some(shield.id);
+                }
+                targets.retain(|target| !covered(target));
             }
-            targets.retain(|target| !covered(target));
             listed.push(shield);
         }
         listed
