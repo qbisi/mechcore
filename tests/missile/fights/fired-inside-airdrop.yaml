@@ -1,0 +1,27 @@
+# A missile fired from inside an enemy Shield Airdrop.
+#
+# Red drops a Shield Airdrop on blue's missile; it stands on tick 23, its
+# 70-metre sphere holding the point 60 metres above the missile. Red's Rhino
+# walks in and the missile fires on tick 117 from inside the shield, which
+# held its projectile as it was made and so does not take it. It lands on
+# tick 151 on the Rhino, 96 metres from the shield's centre: the Rhino takes
+# 5000 and the splash reaches the shield, which takes 5000 too.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 523
+hash: {profile: mcfr-content-0.7.0, result: b0d5503e832c33f3b794502c66dd12b91cc7c691ceabd91ed74dd7230f4b1875}
+blue:
+  core_damage: 200
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 1, y: -11}, retained: false}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -205}, exp: 0/200/1150}
+  battle_skills:
+  - {name: shield_airdrop, positions: [{x: -1, y: 11}]}

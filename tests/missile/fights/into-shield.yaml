@@ -1,0 +1,25 @@
+# A missile's projectile flying into a shield.
+#
+# Blue's missile fires on tick 1 at red's Rhino, which stands under red's
+# shield. The projectile is taken where it crosses the shield's surface on
+# tick 13: the shield loses the missile's 5000, the Rhino takes nothing and
+# no slow, and the removal names the shield.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 213
+hash: {profile: mcfr-content-0.7.0, result: 03b84cb876336d5f8d176e3c417e17e0f90d2b4f62e1104ada24102496bd147c}
+blue:
+  core_damage: 200
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 1, y: -11}, retained: false}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/200/1150}
+  contraptions:
+  - {name: shield, index: 1, position: {x: 1, y: -81}}

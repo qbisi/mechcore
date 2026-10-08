@@ -108,6 +108,13 @@ interceptor may take it out of the air. Its reach (`FightProjectile.Init`'s
 projectile's is its skill's range and its target's; no owner holds it to it.
 Its release and its removal name no
 source; its damage and the deaths it causes are credited to the projectile.
+It meets shields as a unit's shot that crosses none does: `FightLandMine`
+answers `CanCrossAdvancedEnergyShield` no, so the first enemy shield it flies
+into takes it at the surface, and its splash, landing outside a shield, strikes
+the shield it reaches and spares what the shield covers (below, under A
+shield). A shield that holds the point it leaves from, 60 metres up, takes it
+not: only an enemy Shield Airdrop can, landed or standing within 36 metres of
+the missile, since a 70-metre sphere holds that height no farther out.
 
 **What its hit does.** It deals the row's `damage`, raised by its side's
 officers (below), to what it lands on and
@@ -229,6 +236,17 @@ kind ends its own way:
   `tests/interceptor/fights/missiles.yaml`.
 - Two missiles of one side firing on one tick fire the last released first:
   `tests/missile/fights/two-at-once.yaml`.
+- A missile's projectile that flies into the shield over its target is taken
+  at the surface, the shield losing the 5000 and the Rhino under it nothing:
+  `tests/missile/fights/into-shield.yaml`. One that lands on a Rhino beside a
+  shield strikes the Rhino and the shield its splash reaches, and spares the
+  Marksman the shield covers: `tests/missile/fights/splash-beside-shield.yaml`.
+- A missile fired from inside an enemy Shield Airdrop, landed or left standing
+  by an earlier round, is not taken by it:
+  `tests/missile/fights/fired-inside-airdrop.yaml`,
+  `tests/missile/fights/fired-inside-standing-airdrop.yaml`. One fired from
+  outside a Shield Airdrop is taken where it flies into it:
+  `tests/missile/fights/into-airdrop.yaml`.
 - A fallen interceptor intercepts nothing more, falls among the tick's deaths,
   and does not stand into the next round:
   `tests/interceptor/fights/interceptor-falls.yaml`.

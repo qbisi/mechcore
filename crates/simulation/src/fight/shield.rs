@@ -373,14 +373,12 @@ impl Simulation {
 
     /// The shield a projectile flies into: none for a shot that crosses
     /// shields, and otherwise the first enemy shield that holds it now and
-    /// did not as it was made.
+    /// did not as it was made. A missile's shot crosses none.
     pub(in crate::fight) fn absorbing_shield(&self, projectile: &Projectile) -> Option<u64> {
-        let Shooter::Actor(owner) = projectile.shooter else {
-            return None;
-        };
-        if self
-            .attacker(owner)
-            .is_some_and(|attacker| attacker.attack.crosses_shields)
+        if let Shooter::Actor(owner) = projectile.shooter
+            && self
+                .attacker(owner)
+                .is_some_and(|attacker| attacker.attack.crosses_shields)
         {
             return None;
         }

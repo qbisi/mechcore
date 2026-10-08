@@ -1,0 +1,26 @@
+# A missile's splash beside a shield.
+#
+# Blue's missile fires on tick 1 at red's Rhino, which no shield covers, and
+# lands on tick 22. Its 40-metre splash reaches red's shield, centred on the
+# Marksman 102 metres off: the Rhino takes the 5000 and the slow, the shield
+# takes 5000 too, and the Marksman under it nothing.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 380
+hash: {profile: mcfr-content-0.7.0, result: bb043bafad6821c3036ff11d771f33ff4e0a0aed8779f421e2a1d85018e97458}
+blue:
+  core_damage: 300
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 1, y: -11}, retained: false}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/50/1150}
+  - {name: marksman, index: 1, position: {x: 100, y: -80}, exp: 0/350/650}
+  contraptions:
+  - {name: shield, index: 2, position: {x: 101, y: -81}}
