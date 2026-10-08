@@ -339,8 +339,10 @@ impl SkillManager {
             .chain(self.extras.iter_mut().map(|extra| &mut extra.skill));
         for skill in skills {
             skill.attack_time_anchor += 1;
+            skill.hold_cooling();
             for sibling in skill.siblings_mut() {
                 sibling.attack_time_anchor += 1;
+                sibling.hold_cooling();
             }
         }
     }
@@ -355,9 +357,11 @@ impl SkillManager {
         for skill in skills {
             skill.next_attack_step = skill.next_attack_step.saturating_add(1);
             skill.attack_time_anchor += 1;
+            skill.hold_cooling();
             for sibling in skill.siblings_mut() {
                 sibling.next_attack_step = sibling.next_attack_step.saturating_add(1);
                 sibling.attack_time_anchor += 1;
+                sibling.hold_cooling();
             }
         }
     }
@@ -872,6 +876,15 @@ impl Skill {
         });
     }
 
+    /// A tick its state does not update: a cooling under way ends a tick
+    /// later. A Fang cooling as the fight is decided is still cooling when
+    /// the fight is left.
+    fn hold_cooling(&mut self) {
+        if let SkillState::Cooling { started, .. } = &mut self.state {
+            *started = started.saturating_add(1);
+        }
+    }
+
     /// When the cooling began, and what the weapons name through it.
     pub(in crate::fight) const fn cooling(&self) -> Option<(u64, Option<FightActorRef>)> {
         match self.state {
@@ -953,8 +966,22 @@ impl Skill {
     /// scheduled, as leaving the fight leaves them; each keeps its interval
     /// and its clock.
     pub(in crate::fight) fn clear_slots(&mut self) {
+        self.clear_slots_cooling_before(None);
+    }
+
+    /// [`Self::clear_slots`] as a won fight runs on: a slot already cooling
+    /// before `step` goes on cooling at what it named, its lock let go, as
+    /// any skill does then: a Raiden's second gun cooling as the fight is
+    /// decided still names the Fang it fired at.
+    pub(in crate::fight) fn clear_slots_cooling_before(&mut self, step: Option<u64>) {
         let kind = self.kind;
         for sibling in self.siblings_mut() {
+            if step.is_some_and(|step| sibling.cooling().is_some_and(|(started, _)| started < step))
+            {
+                sibling.drop_lock();
+                sibling.attack_target_left = None;
+                continue;
+            }
             *sibling = Self {
                 current_attack_interval: sibling.current_attack_interval,
                 attack_time_anchor: sibling.attack_time_anchor,
