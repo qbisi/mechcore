@@ -178,6 +178,9 @@ pub(crate) struct ExtraWeaponConfig {
     /// The oil its hit leaves, for a row whose `rangeItemType` is an oil.
     #[serde(default)]
     pub(crate) oil: Option<ExtraWeaponOil>,
+    /// The fog its hit leaves, for a row whose `rangeItemType` is a fog.
+    #[serde(default)]
+    pub(crate) fog: Option<ExtraWeaponFog>,
     /// The `buffDatas` row its `buffID` names: the buff its hit writes on
     /// what it struck, and its oil on what stands in it.
     #[serde(default)]
@@ -285,6 +288,23 @@ pub(crate) struct ExtraWeaponFire {
 #[serde(deny_unknown_fields)]
 pub(crate) struct ExtraWeaponOil {
     pub(crate) fire_life_time: Vec<f64>,
+}
+
+/// What `ExtraWeaponTech` answers `IFogProvider` with for a fog:
+/// `fogAttackRangeChangeRate`, the rate on attack range it writes on every
+/// ranged skill of a unit standing in it. It stands as wide as its skill
+/// splashes, for no set time, and one round.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ExtraWeaponFog {
+    pub(crate) attack_range_rate: f64,
+}
+
+impl ExtraWeaponFog {
+    /// The rate as the row holds it, `FPoint` raw.
+    pub(crate) fn attack_range_rate_q32(&self) -> i64 {
+        readable_q32(self.attack_range_rate)
+    }
 }
 
 /// The four numbers `UndergroundMoveAbility`'s constructor reads from the
@@ -1526,6 +1546,13 @@ fn quantize_i64(value: f64, scale: f64) -> i64 {
 /// value a table writes, which `config/` states in whole or few decimals.
 pub(crate) fn metres_q32(value: f64) -> i64 {
     quantize_i64(value, 4_294_967_296.0)
+}
+
+/// The `FPoint` raw a decimal `scripts/extract` wrote as the shortest whose
+/// Q32.32 truncation is that raw.
+#[allow(clippy::cast_possible_truncation)]
+pub(crate) fn readable_q32(value: f64) -> i64 {
+    (value * Q32_UNITS_PER_ONE).trunc() as i64
 }
 
 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
