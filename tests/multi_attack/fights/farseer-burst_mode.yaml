@@ -1,0 +1,22 @@
+# Burst Mode on a Farseer: ten more projectiles an attack, twelve in all,
+# 0.1 seconds apart as its row's 0.2 less the technology's 0.1 puts them
+# (ticks 44 to 66, and 164 to 180 before the Rhino dies), each within its
+# row's 5 metres and the technology's 13 of its target, and two more to its
+# attack interval rate.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 191
+hash: {profile: mcfr-content-0.22.0, result: 8fc4cb78c23dbd961c963de17c0a42ff39e4befb8c73fcc6ea9bb729144891cc}
+blue:
+  techs:
+    farseer: [burst_mode]
+  units:
+  - {name: farseer, index: 0, position: {x: -5, y: -105}, exp: 0/400/1800}
+red:
+  core_damage: 250
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}

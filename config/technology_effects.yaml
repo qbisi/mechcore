@@ -60,6 +60,11 @@ schema: mechcore.technology_effects
 # makes units as its unit's move ability reaches a time (a
 # MoveAbilityTimeType: 2 as it begins to surface) carries that time and
 # the line it makes them by (`move_summon`), as a production row does.
+# A multi-attack technology carries how many more projectiles each of
+# its unit's attacks fires (`projectile_count_value`), and the FPoint
+# seconds it adds between two of them and metres it adds to how far
+# each lands from its target (`projectile_duration_value`,
+# `projectile_random_range_value`).
 
 technologies:
   - id: 206
@@ -177,31 +182,41 @@ technologies:
     unit: fortress
     kind: multiAttackTechnologies
     attack_interval_rate: [515396075]  # +0.12
+    projectile_count_value: [1]
   - id: 702
     name: 双发
     unit: marksman
     kind: multiAttackTechnologies
     attack_interval_rate: [644245094]  # +0.15
+    projectile_count_value: [1]
   - id: 719
     name: 双发
     unit: scorpion
     kind: multiAttackTechnologies
     attack_interval_rate: [515396075]  # +0.12
+    projectile_count_value: [1]
   - id: 721
     name: 双发
     unit: sabertooth
     kind: multiAttackTechnologies
     attack_interval_rate: [515396075]  # +0.12
+    projectile_count_value: [1]
   - id: 725
     name: 全弹发射
     unit: phantom_ray
     kind: multiAttackTechnologies
     attack_interval_rate: [6442450944]  # +1.5
+    projectile_count_value: [8]
+    projectile_duration_value: [-858993459]  # -0.2
+    projectile_random_range_value: [55834574848]  # +13
   - id: 726
     name: 全弹发射
     unit: farseer
     kind: multiAttackTechnologies
     attack_interval_rate: [8589934592]  # +2
+    projectile_count_value: [10]
+    projectile_duration_value: [-429496729]  # -0.1
+    projectile_random_range_value: [55834574848]  # +13
   - id: 812
     name: 燃烧弹
     unit: stormcaller
@@ -1684,9 +1699,13 @@ technologies:
     name: 饱和打击
     unit: mountain
     kind: multiAttackTechnologies
+    special: [isInverseIsLockTarget]
     attack_interval_rate: [5153960755]  # +1.2
     splash_range_value: [12884901888]  # +3
     projectile_speed_value: [-429496729600]  # -100
+    projectile_count_value: [3]
+    projectile_duration_value: [2147483648]  # +0.5
+    projectile_random_range_value: [124554051584]  # +29
   - id: 110181
     name: 浮游炮阵
     unit: wraith

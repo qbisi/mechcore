@@ -1,0 +1,21 @@
+# Doubleshot on a Sabertooth, whose row's interval between two projectiles
+# is zero: `OnStartFirstPerform` takes `PROJECTILE_INTERVAL`'s 0.2 seconds
+# for one of zero or less, so the two leave at ticks 81 and 85. Its main
+# skill has two weapons, and with no random range both leave weapon 0.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 158
+hash: {profile: mcfr-content-0.22.0, result: 1185adc3244fa0979d1e1738db347b672132d8055c52ea89eb9d51bdb6ba50d0}
+blue:
+  techs:
+    sabertooth: [doubleshot]
+  units:
+  - {name: sabertooth, index: 0, position: {x: -5, y: -105}, exp: 0/400/1300}
+red:
+  core_damage: 200
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}

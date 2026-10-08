@@ -1,0 +1,20 @@
+# Burst Mode on a Phantom Ray: eight more projectiles an attack, ten in all,
+# 0.1 seconds apart as its row's 0.3 less the technology's 0.2 puts them,
+# each within its row's 2 metres and the technology's 13 of its target.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 152
+hash: {profile: mcfr-content-0.22.0, result: 27cf5658e30a99de850f8b3543f67f12a9ea0f8f63aa2e6f7fc013a298cf0dd8}
+blue:
+  techs:
+    phantom_ray: [burst_mode]
+  units:
+  - {name: phantom_ray, index: 0, position: {x: 5, y: -130}, exp: 0/400/1000}
+red:
+  core_damage: 201
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}

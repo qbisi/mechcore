@@ -673,6 +673,9 @@ fn corrections_of(
         damage_reduce_rate_base: None,
         projectile_speed_value: None,
         projectile_life_rate: row.projectile_life_rate,
+        projectile_count_value: None,
+        projectile_duration_value: None,
+        projectile_random_range_value: None,
     });
     // `SplashEquipment.AddData`'s second write, `AddSkillData` of its range,
     // which lands where a splash value does.

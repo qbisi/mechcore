@@ -17,7 +17,11 @@
 //! needs an owner's kind is a question these interfaces do not ask.
 
 use super::*;
-use crate::data::{Index, Overlay, ProjectileLifeRate, switched_targets};
+use crate::data::{Index, Overlay, ProjectileBurstAdd, ProjectileLifeRate, switched_targets};
+
+/// `ProjectileMultiAttackPerformer.PROJECTILE_INTERVAL`: the time between two
+/// projectiles of a burst whose own is zero or less, 0.2 seconds in Q32.32.
+const PROJECTILE_INTERVAL_Q32: i64 = 0x3333_3333;
 
 /// What an owner's attack angle is measured against.
 #[derive(Debug, Clone, Copy)]
@@ -78,6 +82,9 @@ pub(in crate::fight) struct Attacker<'a> {
     pub(in crate::fight) projectile_speed_add: i64,
     /// Its `ProjectileLifeRate`.
     pub(in crate::fight) projectile_life_rate: ProjectileLifeRate,
+    /// What its `DataSet` adds to its projectiles' count, the time between
+    /// two and how far each may land from its target.
+    pub(in crate::fight) projectile_burst_add: ProjectileBurstAdd,
     /// `IAttacker.GetAttackRange`, with whatever corrects it.
     pub(in crate::fight) attack_range: i64,
     /// What one blow deals, with whatever corrects it.
@@ -189,6 +196,36 @@ impl Attacker<'_> {
             x_q32.saturating_sub(self.x_q32),
             z_q32.saturating_sub(self.z_q32),
         )
+    }
+
+    /// `FightProjectileSkill.GetProjectileCount`: how many projectiles a
+    /// burst fires.
+    pub(in crate::fight) fn projectile_count(&self) -> usize {
+        self.projectile_burst_add
+            .count(self.attack.projectile_count())
+    }
+
+    /// `ProjectileMultiAttackPerformer.OnStartFirstPerform`'s
+    /// `performIntervalTime`: the skill's `GetProjectileDuration`, or
+    /// `PROJECTILE_INTERVAL` when that is zero or less, in whole updates.
+    pub(in crate::fight) fn projectile_interval_steps(&self) -> u64 {
+        let duration = self
+            .projectile_burst_add
+            .duration_q32(time_units_to_seconds_q32(
+                self.attack.projectile_release_interval_time_units(),
+            ));
+        seconds_q32_to_steps(if duration <= 0 {
+            PROJECTILE_INTERVAL_Q32
+        } else {
+            duration
+        })
+    }
+
+    /// `FightSkill.GetRandomTargetRange`: the radius its projectiles land
+    /// within about their target, millimetres.
+    pub(in crate::fight) fn projectile_target_offset_radius(&self) -> i64 {
+        self.projectile_burst_add
+            .random_range(self.attack.projectile_target_offset_radius())
     }
 
     /// Where its shot leaves from and what it carries.
@@ -329,6 +366,7 @@ impl Simulation {
                     targets: actor.stats.targets(actor.rules.attack.targets),
                     projectile_speed_add: actor.stats.projectile_speed_add(),
                     projectile_life_rate: actor.stats.projectile_life_rate(),
+                    projectile_burst_add: actor.stats.projectile_burst_add(),
                     attack_range: self.main_attack_range(id),
                     attack_damage: self.main_attack_damage(id),
                     splash_radius: actor.stats.splash_radius(),
@@ -390,6 +428,7 @@ impl Simulation {
                     targets: construction.attack.targets,
                     projectile_speed_add: 0,
                     projectile_life_rate: ProjectileLifeRate::default(),
+                    projectile_burst_add: ProjectileBurstAdd::default(),
                     attack_range: construction.attack.range(),
                     attack_damage: construction.attack_damage,
                     splash_radius: construction.attack.splash_radius(),
@@ -421,6 +460,10 @@ impl Simulation {
     /// against. No correction reaches an extra skill here but a damage one on
     /// a skill with a damage rate: the layout refuses a unit any other would
     /// reach.
+    #[allow(
+        clippy::too_many_lines,
+        reason = "one answer per field of the owner's, each with why it differs"
+    )]
     pub(in crate::fight) fn skill_attacker(&self, skill_ref: SkillRef) -> Option<Attacker<'_>> {
         let SkillSlot::Extra(index) = skill_ref.slot else {
             return self.attacker(skill_ref.owner);
@@ -440,11 +483,13 @@ impl Simulation {
             attacker.targets,
             attacker.projectile_speed_add,
             attacker.projectile_life_rate,
+            attacker.projectile_burst_add,
         ) = if rules.damage_rate > 0.0 {
             (
                 actor.stats.targets(rules.attack.targets),
                 actor.stats.projectile_speed_add(),
                 actor.stats.projectile_life_rate(),
+                actor.stats.projectile_burst_add(),
             )
         } else {
             let own = Overlay::of(&extra.skill_corrections);
@@ -452,6 +497,7 @@ impl Simulation {
                 switched_targets(rules.attack.targets, &own),
                 own.value(Index::ProjectileSpeed),
                 own.projectile_life_rate(),
+                own.projectile_burst_add(),
             )
         };
         // Only the main skill's search is turned to `DistanceIntensify`.

@@ -1,0 +1,19 @@
+# Doubleshot on a Scorpion: two projectiles an attack, 0.2 seconds apart
+# (ticks 88 and 92).
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 99
+hash: {profile: mcfr-content-0.22.0, result: cbc3a5556a9292e6540ede7db1e20f392e993f6fe88cfbd2a6c8737045a57fd2}
+blue:
+  techs:
+    scorpion: [doubleshot]
+  units:
+  - {name: scorpion, index: 0, position: {x: -5, y: -105}, exp: 0/400/1500}
+red:
+  core_damage: 250
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}

@@ -1,0 +1,21 @@
+# Doubleshot on a Fortress: two projectiles an attack, 0.2 seconds apart
+# (ticks 76 and 80, 115 and 119). Its main skill has two weapons and lands
+# on its target with no random range, so the performer makes no
+# `MultiAttackTargetPositionController` and both leave weapon 0.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 124
+hash: {profile: mcfr-content-0.22.0, result: 99836c5bc1c7323c426bf72d1b6bf9aa0a150a75369ef8876c53b7d4aeaf5c70}
+blue:
+  techs:
+    fortress: [doubleshot]
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/400/1600}
+red:
+  core_damage: 350
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}}

@@ -21,7 +21,8 @@
 //! `SecondaryDamageIntensifyTech` a second damage around its hits, and a
 //! `BuffTech` the buff it adds its unit as the fight starts, and a
 //! `SupportUnitTech` the production line a production item's
-//! `SupportUnitEquipment` would; any other is
+//! `SupportUnitEquipment` would, and a `MultiAttackTech` the projectiles it
+//! adds its unit's bursts; any other is
 //! refused by name rather than applied for its numbers alone.
 //!
 //! A technology belongs to one unit type, which is how a side's flat list of
@@ -87,8 +88,13 @@ const DEAD_SUMMON: &str = "deadSummonTechnologies";
 /// ability reaches a time.
 const MOVE_SUMMON: &str = "moveAbilitySummonTechDatas";
 
+/// The list whose `MultiAttackTech` adds to its unit's skill's projectile
+/// count, the time between two of them and how far each may land from its
+/// target, beside its numbers.
+const MULTI_ATTACK: &str = "multiAttackTechnologies";
+
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 17] = [
+const IMPLEMENTED: [&str; 18] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -106,6 +112,7 @@ const IMPLEMENTED: [&str; 17] = [
     MOBILITY,
     DEAD_SUMMON,
     MOVE_SUMMON,
+    MULTI_ATTACK,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -615,6 +622,15 @@ struct Row {
     /// unit's level.
     #[serde(default)]
     splash_range: Vec<i64>,
+    /// `MultiAttackTechnologyData`'s `countIncrease`, `durationChangeValue`
+    /// and `randomRangeChangeValue`, on a row of its list: whole projectiles,
+    /// `FPoint` seconds and `FPoint` metres by the unit's level.
+    #[serde(default)]
+    projectile_count_value: Vec<i64>,
+    #[serde(default)]
+    projectile_duration_value: Vec<i64>,
+    #[serde(default)]
+    projectile_random_range_value: Vec<i64>,
     /// `InterceptMissileTechnologyData`'s fields, on a row of its list.
     #[serde(default)]
     intercept: Option<InterceptBlock>,
@@ -1308,6 +1324,9 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<Written>, String> {
         &row.projectile_life_rate,
         &row.air_damage_change_rate,
         &row.ground_damage_change_rate,
+        &row.projectile_count_value,
+        &row.projectile_duration_value,
+        &row.projectile_random_range_value,
     ]
     .iter()
     .map(|values| values.len())
@@ -1349,6 +1368,11 @@ fn at_level(row: &Row, level: usize) -> Written {
         damage_reduce_rate_base: Some(row.all_weapon_reduce_damage_rate),
         projectile_speed_value: at_level(&row.projectile_speed_value),
         projectile_life_rate: at_level(&row.projectile_life_rate),
+        // `MultiAttackTech.AddData` writes them through
+        // `DataModifyTech.AddSkillData` and `SkillDataModifier.AddData`.
+        projectile_count_value: at_level(&row.projectile_count_value),
+        projectile_duration_value: at_level(&row.projectile_duration_value),
+        projectile_random_range_value: at_level(&row.projectile_random_range_value),
     }));
     written
 }
@@ -1515,6 +1539,38 @@ mod tests {
                 .any(|(_, entry)| entry.index == Index::AttackDamage),
             "{written:?}"
         );
+    }
+
+    /// A multi-attack technology writes its count, duration and random
+    /// range into the skill's `DataSet` beside its numbers.
+    #[test]
+    fn a_multi_attack_technology_adds_to_the_burst() {
+        let table = TechnologyEffects::parse(
+            "schema: mechcore.technology_effects\n\
+             technologies:\n\
+             - {id: 9, name: probe, unit: farseer, kind: multiAttackTechnologies, \
+             attack_interval_rate: [4294967296], projectile_count_value: [10], \
+             projectile_duration_value: [-429496729], \
+             projectile_random_range_value: [55834574848]}\n",
+        )
+        .unwrap();
+        let written = table.corrections(&[9], "farseer", 1).unwrap();
+        let value = |index| {
+            written
+                .iter()
+                .find(|(channel, entry)| *channel == Channel::Skill && entry.index == index)
+                .map(|(_, entry)| entry.correction)
+        };
+        assert_eq!(value(Index::ProjectileCount), Some(Correction::Value(10)));
+        assert_eq!(
+            value(Index::ProjectileDuration),
+            Some(Correction::Value(-429_496_729))
+        );
+        assert_eq!(
+            value(Index::ProjectileRandomRange),
+            Some(Correction::Value(13_000))
+        );
+        assert!(value(Index::AttackInterval).is_some(), "{written:?}");
     }
 
     /// A technology of a list whose mechanism is not here is refused by name
