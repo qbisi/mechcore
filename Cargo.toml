@@ -22,6 +22,13 @@ lto = "thin"
 panic = "abort"
 strip = "symbols"
 
+# The release build with its symbols kept, so `convert --profile` names the
+# functions it samples: `cargo build --profile profiling`.
+[profile.profiling]
+inherits = "release"
+debug = "line-tables-only"
+strip = "none"
+
 # The Adapter is a build-time artifact but runs inside the game. Cargo's
 # default build-dependency opt-level=0 is inappropriate for native capture.
 [profile.release.build-override]

@@ -292,6 +292,16 @@ states the fight's size as `unit_ticks`, the live units summed over every
 tick, with `peak_live_units`, and the step's cost per tick and per unit-tick,
 with the tick whose step took longest and how many units it had.
 
+**`--profile <svg>` samples where the time goes.** The phases say how a
+conversion's duration splits; `--profile` says which functions inside them it
+is spent in. The call stacks of the conversion this binary makes are sampled a
+thousand times a second while it runs and drawn as a flame graph to `<svg>`,
+which the report then names as `flamegraph`. An existing `<svg>` is refused
+without `--force`, and the game's conversion, with `--backend game`, is not
+sampled. A release build strips its symbols, so its graph names addresses;
+`cargo build --profile profiling` is the release build with them kept, and
+the binary to profile with.
+
 **`fight` to `mcfr`, a computation.** Fights a fight document's projection
 with the seed the document states, which is why it takes no `--seed`: the
 fight whose result the document is.
