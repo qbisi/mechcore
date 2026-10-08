@@ -935,7 +935,7 @@ impl Simulation {
     /// `PerformRangeEffect` then strikes. Every shield of the sides the hit
     /// strikes that does not hold the point it lands at takes its side's
     /// units and towers it covers out of the hit; the one covering what the
-    /// hit was aimed at is its main shield. The main shield, and every other
+    /// hit was aimed at, when the hit strikes it, is its main shield. The main shield, and every other
     /// the splash reaches in the plane, take the hit, before any unit does.
     /// A hit that crosses shields takes nothing out and has no main shield.
     pub(in crate::fight) fn shields_in_the_way(
@@ -963,7 +963,14 @@ impl Simulation {
             // splash reaches: a Rhino's Whirlwind beside an enemy shield
             // strikes the shield and the units in it alike.
             if !hit.crosses_shields {
-                if main.is_none() && hit.aimed.is_some_and(|aimed| covered(&aimed)) {
+                // Only what the hit strikes can name its main shield: a
+                // Stormcaller's shell landing 38 metres short of the unit it
+                // was fired at, inside a shield, leaves that shield alone.
+                if main.is_none()
+                    && hit
+                        .aimed
+                        .is_some_and(|aimed| targets.contains(&aimed) && covered(&aimed))
+                {
                     main = Some(shield.id);
                 }
                 targets.retain(|target| !covered(target));

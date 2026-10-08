@@ -163,7 +163,11 @@ is one as a unit is:
 - **A splash** that lands outside a shield leaves the units it covers alone,
   and the shield takes the hit if the splash reaches it in the plane; one that
   lands inside a shield reaches the units inside. A splash that lands on a
-  unit no shield covers, beside a shield it reaches, strikes both.
+  unit no shield covers, beside a shield it reaches, strikes both. The shield
+  covering the unit a shot was aimed at takes it only when the shot strikes
+  that unit: a Stormcaller's shell landing 38 metres short of its target,
+  whose shield stands 8.4 metres off beyond its 5.5 metres of splash, strikes
+  nothing.
 - A skill whose hits cross shields (`canCrossAdvancedShield`: a Crawler's, a
   Rhino's) passes every shield, reaching the units it covers, and its splash
   still strikes every shield it reaches from outside, as any splash does: a
@@ -314,6 +318,9 @@ kind ends its own way:
   the shield's surface 4.35 metres from its edge, within its 1 metre and the
   5 its skill adds for a shield, on the tick the 1 alone would leave one
   later: `tests/corpus/fights/134369950-r7.yaml`.
+- A Stormcaller's shell that lands outside a shield short of the unit it
+  covers leaves the shield alone: `tests/corpus/fights/134369439-r8.yaml`,
+  tick 275.
 
 ### Replayed
 
@@ -401,6 +408,10 @@ kind ends its own way:
 - A splash that crosses shields still lists every shield that does not hold
   where it lands, and asks `CanCrossAdvancedEnergyShield` only to keep what
   they cover in it: `DamagePerformer.ProcessAdvancedEnergyShieldEffect`.
+- The main shield is found among the units the hit strikes: it is the shield
+  that covers the main target as that target is taken out of the hit's list,
+  so a main target the splash does not reach names none:
+  `DamagePerformer.ProcessAdvancedEnergyShieldEffect`.
 - A hit takes the energy it can, and one that empties a shield destroys it:
   `DamagePerformer.PerformHitAdvancedEndergyShieldEffect`,
   `FightEnergyShield.ReduceEnergy`, `AdvancedEnergyShieldSystem.Destroy`.
