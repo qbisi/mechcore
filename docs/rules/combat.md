@@ -525,6 +525,26 @@ ordered by the angle it sees, and the angle and the side are measured from the
 weapon's height to the target's: an Overlord shooting down at a Crawler, and
 two Overlords shooting at each other at the same height, order them so.
 
+**A burst that allocates evenly shares its projectiles among units.** A skill
+whose row sets `isEvenlyAllocated` aims its burst with
+`EvenlyAllocatedAttackTargetPositionController`. On its first projectile
+(`Prepare`) it takes the other sides' units within the skill's range and its
+`extraSearchRange` of the unit, each measured less both radii, in the order
+their trees answer a square twice that wide (`RangeTargetCalculator.CalculateRangeTargets`,
+units only, fully visible), or the attack target alone when none is. It
+shuffles them by the side's stream, each place swapped with one drawn from the
+whole list (`IListExtensions.ShuffleSync`); each unit takes the burst's count
+over theirs, and the rest go one each to units drawn one by one from those not
+drawn yet (`GetRandomTargetsByRemain`, `RandomElementSync`). It draws the
+offsets then, round by round over the units and then for the units drawn, each
+`RandomInsideSphere` about where the attack target stands. Each projectile as
+it leaves takes the first unit of the list that lives, dropping the dead, and
+puts it last (`UpdateCurrentTarget`), leaves the next of the two weapons in
+turn (`GetWeaponIndex`), aims at where its unit stands then
+(`GetTargetPosition`), and takes that unit's next offset, none once they have
+run out (`GetAndDeletePositionOffsets`). Its climb is measured to where its
+unit stands. Swarm Missiles' 46 share two units 23 each.
+
 **A projectile may climb before it flies.** A skill with a pre-flight height
 sends its projectiles straight up at their speed, neither following the target
 nor landing, until they stand at or above the height, the last step taken whole:

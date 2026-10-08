@@ -1,0 +1,28 @@
+# Swarm Missiles against two Rhinos and a Marksman.
+#
+# The Abyss's 46 missiles are shared out evenly
+# (`EvenlyAllocatedAttackTargetPositionController`) among the enemy units
+# within the skill's 180 metres and its 20 more of extra search range, each
+# measured less both radii: the Marksman and one Rhino, 23 each, the
+# missiles leaving for one and then the other from t110. Each missile aims
+# at where its unit stands as it leaves, plus an offset drawn for that unit
+# as the burst began.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 323
+hash: {profile: mcfr-content-0.7.0, result: 1987e364b21f982eda556adfaad9363f0efc0abb07e8eb0a758d80fec196f181}
+blue:
+  techs:
+    abyss: [swarm_missiles]
+  units:
+  - {name: abyss, index: 0, position: {x: 5, y: -205}, exp: 0/1000/4800}
+red:
+  core_damage: 500
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -155}}
+  - {name: rhino, index: 1, position: {x: 45, y: -155}}
+  - {name: marksman, index: 2, position: {x: -40, y: -100}}

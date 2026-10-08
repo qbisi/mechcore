@@ -13,7 +13,8 @@ Spider Mine, the Tarantula's, Matrix Bombardment, the Wraith's, and
 Anti-Air Barrage, the Fortress's, Air Defense Mark, the Typhoon's,
 Disintegration, the Abyss's, Naval Gun, the Overlord's, Gun-launched
 Missile, the Mountain's, Electromagnetic Barrage, the Melting Point's,
-Dual Wield, the Centurion's, Fork, the Raiden's, and Smoke Bomb, the Mountain's, and refuses every other member by name: the members' skills differ
+Dual Wield, the Centurion's, Fork, the Raiden's, Smoke Bomb, the Mountain's,
+and Swarm Missiles, the Abyss's, and refuses every other member by name: the members' skills differ
 in kind, a projectile, an explosion, a laser, a summon, a sweep around the
 unit, and many leave a terrain or write a buff, so each joins once a recording
 of it agrees.
@@ -795,6 +796,11 @@ not melee, so the simulator refuses it.
   seven Crawlers out, and the Wraith's lock is the last the main row's slots
   took: `tests/extra_weapon/fights/matrix-bombardment-crawlers.yaml`. Over
   two formations: `tests/extra_weapon/fights/matrix-bombardment-formations.yaml`.
+- Swarm Missiles' 46 missiles are shared out evenly among the units within
+  the skill's reach and its extra search range
+  ([combat.md](combat.md#ordinary-projectiles)): two units 23 each,
+  `tests/extra_weapon/fights/swarm-missiles-mixed.yaml`; a Crawler swarm over
+  three volleys, `tests/extra_weapon/fights/swarm-missiles-crawlers.yaml`.
 - Fork's two bolts join the Raiden's group as slots 3 and 4 and strike with
   the main row's from the first blow, five Crawlers a blow; with the Raiden's
   60 degrees in place of the whole circle on the row's slots the Raidens'
