@@ -87,6 +87,7 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
         .map_or(Ok(Backend::Simulator), |name| Backend::parse(&name))?;
     let instrument = crate::game::instrument(&mut arguments)?;
     let level = crate::acquire::level(&mut arguments)?;
+    let profile = arguments.value("--profile")?.map(PathBuf::from);
     let to = arguments
         .value("--to")?
         .ok_or_else(|| Failure::usage("expected --to <kind>: the kind to convert to"))?;
@@ -109,12 +110,25 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
         instrument,
     };
     if backend == Backend::Game {
+        if profile.is_some() {
+            return Err(Failure::usage(
+                "--profile samples this binary's own conversion; the game's is not sampled",
+            ));
+        }
         if request.to == Kind::Fight {
             return fought_in_game(&request, level, format);
         }
         return crate::game::record_attached(recorded(&request)?, force, level);
     }
-    let answer = convert(&request)?;
+    let mut answer = crate::profile::sampled(profile.as_deref(), force, || convert(&request))?;
+    if let (Some(profile), Answer::Report { value, .. }) = (&profile, &mut answer)
+        && let Some(fields) = value.as_object_mut()
+    {
+        fields.insert(
+            "flamegraph".to_owned(),
+            Value::String(profile.display().to_string()),
+        );
+    }
     match answer {
         Answer::Document(text) => print!("{text}"),
         Answer::Report {

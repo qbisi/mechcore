@@ -13,6 +13,7 @@ mod man;
 mod r#match;
 mod outcome;
 mod play;
+mod profile;
 mod scene;
 mod schema;
 mod script;
@@ -30,7 +31,7 @@ use cli::{Args, Failure, Outcome, Verdict};
 fn usage(program: &str) {
     eprintln!("usage: {program} verify <file>... | paths on stdin");
     eprintln!(
-        "       {program} convert <file> --to <kind> [<out>] [--seed <i32>] [--round <n>] [--force]"
+        "       {program} convert <file> --to <kind> [<out>] [--seed <i32>] [--round <n>] [--profile <svg>] [--force]"
     );
     eprintln!("       {program} diff <left> <right> [--fields <group>,...] [--tick <n>]");
     eprintln!("       {program} show <recording.mcfr> --view outcome|stats|buildings [--tick <n>]");

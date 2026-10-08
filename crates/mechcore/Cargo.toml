@@ -21,6 +21,7 @@ mechcore-mcfr = { path = "../mcfr" }
 mechcore-player = { path = "../player" }
 mechcore-protocol = { path = "../protocol" }
 mechcore-simulation = { path = "../simulation" }
+pprof = { version = "0.15", default-features = false, features = ["flamegraph"] }
 schemars = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
