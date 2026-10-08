@@ -588,29 +588,16 @@ impl Simulation {
     /// lock is absent or dead, and `SkillPrepareState` never does. So a
     /// Stormcaller whose live lock walks inside its minimum range searches
     /// past it: the lock was alive when the tick began. A prepared answer
-    /// that has itself died since is searched past with live positions.
+    /// that has itself died since sends the search to every enemy
+    /// ([`Simulation::select_normal_target_with_order`]).
     pub(in crate::fight) fn select_lock_replacement(
         &self,
         skill_ref: SkillRef,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
     ) -> Result<Option<FightActorRef>> {
-        let skill = self.skill(skill_ref);
-        let prepared = self.search_prepared(skill_ref)
-            && skill.phase() == FightSkillPhase::Attack
-            && skill
-                .lock_target
-                .and_then(|lock| self.fight_actor(lock))
-                .is_none_or(|lock| !lock.query_alive);
-        let selected =
-            self.select_normal_target_with_order(skill_ref, target_search_order, !prepared)?;
-        if prepared
-            && selected
-                .and_then(|candidate| self.fight_actor(candidate))
-                .is_some_and(|target| target.query_alive && !target.alive)
-        {
-            return self.select_normal_target_with_order(skill_ref, target_search_order, true);
-        }
-        Ok(selected)
+        let prepared = self.skill(skill_ref).phase() == FightSkillPhase::Attack
+            && self.prepared_at_tick_start(skill_ref);
+        self.select_normal_target_with_order(skill_ref, target_search_order, !prepared)
     }
 
     /// `SearchLockTarget` followed by `SearchAttackTarget`, as the checker
