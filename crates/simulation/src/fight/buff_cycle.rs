@@ -214,12 +214,16 @@ impl Simulation {
         .filter(|&target| {
             let same_side = self.actors[&target].placement.team == team;
             let targets = reach.targets;
-            // `AvailableCheck`: `MechUnit` the unit itself,
-            // `OtherSelfUnits` its team's others, and `OpponentUnits` the
-            // other side's.
-            (targets.itself && target == id)
-                || (targets.own_others && same_side && target != id)
-                || (targets.opponents && !same_side)
+            // `AvailableCheck`: a source of a distance type passes only a
+            // unit whose main skill's `IsMeleeAttack` answers for it, and
+            // then `MechUnit` the unit itself, `OtherSelfUnits` its team's
+            // others, and `OpponentUnits` the other side's.
+            reach
+                .melee
+                .is_none_or(|melee| self.actors[&target].rules.attack.melee == melee)
+                && ((targets.itself && target == id)
+                    || (targets.own_others && same_side && target != id)
+                    || (targets.opponents && !same_side))
         })
         .collect()
     }

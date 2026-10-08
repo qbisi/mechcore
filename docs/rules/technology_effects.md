@@ -119,7 +119,9 @@ reach: every live unit of either side, not underground, of a domain the
 source's fly type takes, within the source's range of its unit (to the unit's
 edge where the source says so), and of a target type it names: its unit, its
 side's others, or the enemy; the type of its group's other teams names none,
-a side being one team. Each of them takes the buff again, the
+a side being one team. A source of the melee distance type passes only a
+unit whose main skill is melee, and one of the remote distance type only a
+unit whose main skill is not. Each of them takes the buff again, the
 ones it held before first and new ones after. The source's interval and delay
 never reach the cycle, so the buff is added on every tick, and its duration is
 how long it outlasts its unit leaving reach. The cycle stops while its unit is
@@ -242,7 +244,7 @@ ends, the fight's end among, the rate goes and the life is refreshed again.
 
 Any other trigger or update model, a source that steals life beside a hit
 buff, one that reaches crystals, measures
-from its unit's edge or keeps to a distance type, a buff that stacks on
+from its unit's edge, a buff that stacks on
 another condition or lowers what it stacks, and a buff field beyond these is
 refused by name.
 
@@ -427,6 +429,9 @@ whose effect grows with rank, rather than read index zero:
 - Chamber Compression's stack goes back to none as each of a Hound's shots
   lands; without the reset the simulator parts from the recording at t189:
   `tests/technology_buff/fights/chamber-compression.yaml`.
+- Scanning Radar keeps its range on the Farseer and a Marksman 55 m off, and
+  never on a Rhino beside it, whose attack is melee:
+  `tests/technology_buff/fights/scanning-radar.yaml`.
 - Counter-Fire's buff is on a Fire Badger from the tick a Marksman's hit
   takes life from it, its range 145 of 75; without it the simulator parts
   from the recording on that tick, on that range:
@@ -625,6 +630,10 @@ whose effect grows with rank, rather than read index zero:
   `FriendUnits` a unit of the owner's group whose
   `FightActor.currentTeamController` is not the owner's, and for
   `OtherSelfUnits` one other than the owner of the owner's team.
+- A source's distance type: `BuffCycleController.AvailableCheck` returns
+  false for a `FightMech` whose `FightMech.GetMainSkill` answers
+  `FightSkillBase.IsMeleeAttack` when the type is `remote`, and for one whose
+  does not when it is `Melee`, before it reads the target types.
 - A source's controller runs a range cycle under the update model `Each`:
   `BuffCycleController.useUpdateFinder` is set by its constructor, which hands
   `BuffCycleController.rangeUnitCycle` the owner, the fight and the source but

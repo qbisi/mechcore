@@ -1,0 +1,29 @@
+# Scanning Radar: a Farseer adds range to its side's ranged units around it.
+#
+# The source runs a range cycle that keeps buff 5026 (10 m more attack range)
+# on its side's units within 100 m, the Farseer included. Its distance type
+# is remote, so it passes only a unit whose main skill is not melee. From
+# t9, the buff goes 320 times each on the Farseer and the Marksman 55 m away,
+# and never on the Rhino beside it, whose attack is melee, or on the Marksman
+# 195 m away. Red wins at t751.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 751
+hash: {profile: mcfr-content-0.7.0, result: 0bb899dfbde8f1ce0132c32cbdeced9e4c2e9602e0204356c507c09b6ccc6ea2}
+blue:
+  core_damage: 450
+  techs:
+    farseer: [scanning_radar]
+  units:
+  - {name: farseer, index: 0, position: {x: 5, y: -145}}
+  - {name: marksman, index: 1, position: {x: 60, y: -150}}
+  - {name: rhino, index: 2, position: {x: -45, y: -145}}
+  - {name: marksman, index: 3, position: {x: 200, y: -150}, exp: 0/200/650}
+red:
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/1100/1600}
+  - {name: marksman, index: 1, position: {x: 100, y: -150}, exp: 0/300/650}

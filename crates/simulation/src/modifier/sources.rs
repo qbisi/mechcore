@@ -163,6 +163,10 @@ pub(crate) struct BuffReach {
     pub(crate) target_radius: bool,
     /// `GetEffectTargetTypes`: which units of those it passes.
     pub(crate) targets: BuffTargets,
+    /// `GetTargetDamageDistanceType`: whether it passes only the units whose
+    /// main skill is melee (`Some(true)`), only those whose is not
+    /// (`Some(false)`), or either.
+    pub(crate) melee: Option<bool>,
 }
 
 /// The `TargetType`s a source names among the units that reach any:

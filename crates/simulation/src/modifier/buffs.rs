@@ -20,6 +20,11 @@ use crate::{layout::TerrainSpec, rules::AttackTargets};
 const NO_RESET: i32 = 0;
 const RESET_ON_HIT: i32 = 1;
 
+/// `DamageDistanceType.None`, `Melee` and `remote`.
+const NO_DISTANCE_TYPE: i32 = 0;
+const MELEE: i32 = 1;
+const REMOTE: i32 = 2;
+
 /// `BuffTechListener.Hit`, `FightStart` and `GetDamage`.
 const HIT: i32 = 0;
 const FIGHT_START: i32 = 1;
@@ -417,12 +422,16 @@ fn reach(who: &str, targets: &[i32], cycle: &CycleBlock) -> std::result::Result<
              whose radius is not measured"
         ));
     }
-    if cycle.distance_type != 0 {
-        return Err(format!(
-            "{who} reaches only units of DamageDistanceType {}, which no mechanism here reads",
-            cycle.distance_type
-        ));
-    }
+    let melee = match cycle.distance_type {
+        NO_DISTANCE_TYPE => None,
+        MELEE => Some(true),
+        REMOTE => Some(false),
+        other => {
+            return Err(format!(
+                "{who} reaches only units of DamageDistanceType {other}"
+            ));
+        }
+    };
     let mut named = BuffTargets::default();
     for &target in targets {
         match target {
@@ -458,6 +467,7 @@ fn reach(who: &str, targets: &[i32], cycle: &CycleBlock) -> std::result::Result<
         domains,
         target_radius: cycle.target_radius,
         targets: named,
+        melee,
     })
 }
 
