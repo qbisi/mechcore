@@ -94,3 +94,43 @@ extra_weapons:
         simulated_motion: false
         interceptible: true
         max_life: 58000
+  - technology: 110201
+    skill: 1004
+    use_main_skill_range: false
+    damage_by_level: [12000, 24000, 36000, 48000, 60000, 72000, 84000, 96000, 108000]
+    rocket_punch: {life_conditions: [0.85, 0.55], trigger_count: 2}
+    attack:
+      base_damage: 12000
+      min_range: 0
+      range: 180
+      attack_half_angle: 10
+      targets: {ground: true, air: false}
+      lock_target: true
+      quick_switch_target: true
+      timing:
+        interval: 0.35
+        interval_offset: 0
+        initial_cooldown: 0
+        prepare: 0
+        attack_point: 0.12
+        backswing: 0.2
+        cooling: 0
+      splash_radius: 25
+      weapons:
+        mode: normal
+        indices: [1, 4]
+        per_skill: 2
+      melee: false
+      crosses_shields: false
+      path:
+        type: projectile
+        count: 1
+        release_interval: 0.2
+        speed: 200
+        target_offset_radius: 0
+        evenly_allocate_targets: false
+        extra_search_range: 0
+        pre_flight_height: 0
+        simulated_motion: false
+        interceptible: true
+        max_life: 220800

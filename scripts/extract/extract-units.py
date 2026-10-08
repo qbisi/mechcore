@@ -265,6 +265,34 @@ def support_lines(mech, technology, skill, row):
     ] + attack
 
 
+def rocket_punch_lines(mech, technology, skill, row):
+    """A technology's rocket punch (`FightRocketPunchSkill`): a preemptive
+    projectile skill that starts only while its unit's life, over its
+    maximum, is at or below the condition for the punch it is at, the first
+    or the second (`RocketPunchAttackChecker`), at most `triggerCount` times
+    a fight. A row the simulator's shape cannot state is left out, and the
+    simulator refuses the technology by name."""
+    if (not skill["isPreemptive"] or skill["isPreemptivePermanent"] or raw(skill["damageRate"])
+            or row.get("buffID") or row.get("rangeItemType", -1) != -1 or skill["triggerCount"] != 2
+            or raw(skill["initialCoolDownTime"]) or skill["isLoadingType"] or skill["useSelfSplash"]):
+        return []
+    try:
+        attack = attack_lines(mech["id"], "projectileSkillDatas", skill,
+                              f"base_damage: {(skill['damage'] or [0])[0]}",
+                              skill["canAttackAngle"], "      ", angle_absent=360 * ONE)
+    except SystemExit:
+        return []
+    conditions = ", ".join(readable(skill[f"lifePercentCondition{index}"]) for index in range(2))
+    return [
+        f"  - technology: {technology}",
+        f"    skill: {skill['id']}",
+        f"    use_main_skill_range: {boolean(row.get('useMainSkillRange', False))}",
+        f"    damage_by_level: [{', '.join(str(value) for value in skill['damage'])}]",
+        f"    rocket_punch: {{life_conditions: [{conditions}], trigger_count: {skill['triggerCount']}}}",
+        "    attack:",
+    ] + attack
+
+
 def extra_weapon_lines(mech, technology, kind, skill, row):
     """An extra weapon technology's skill, when the simulator's shape can state it.
 
@@ -289,6 +317,8 @@ def extra_weapon_lines(mech, technology, kind, skill, row):
         return explosion_lines(mech, technology, skill, row)
     if kind == "supportSkillDatas":
         return support_lines(mech, technology, skill, row)
+    if kind == "rocketPunchSkillDatas":
+        return rocket_punch_lines(mech, technology, skill, row)
     # `rangeItemType` -1 leaves nothing, 0 a fire, 1 an oil, 2 a fog;
     # `energyShieldDamage` below zero leaves a shield's damage as it is.
     item = row.get("rangeItemType", -1)

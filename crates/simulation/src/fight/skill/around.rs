@@ -21,14 +21,15 @@ impl Simulation {
     pub(in crate::fight) fn may_start_attack(&mut self, skill_ref: SkillRef) -> bool {
         match (self.skill(skill_ref).kind, skill_ref.owner) {
             (SkillKind::Around, _) => self.around_may_start(skill_ref),
+            _ if self.rocket_punch(skill_ref).is_some() => self.rocket_punch_may_start(skill_ref),
             (SkillKind::Support, FightActorRef::Unit(actor_id)) => self.support_gate(actor_id),
             (SkillKind::Support, FightActorRef::Building(_)) => false,
             _ => true,
         }
     }
 
-    /// `FightSkill.IsPreemptive`: an around or a support skill, or a
-    /// permanent preemptive one.
+    /// `FightSkill.IsPreemptive`: an around, a support or a rocket punch
+    /// skill, or a permanent preemptive one.
     pub(in crate::fight) fn skill_is_preemptive(&self, skill_ref: SkillRef) -> bool {
         let SkillSlot::Extra(index) = skill_ref.slot else {
             return false;
@@ -36,6 +37,83 @@ impl Simulation {
         let extra = &self.skills(skill_ref.owner).extras[index];
         matches!(extra.skill.kind, SkillKind::Around | SkillKind::Support)
             || extra.rules.preemptive.is_some()
+            || extra.rules.rocket_punch.is_some()
+    }
+
+    /// Whether a preemptive skill that is not permanent takes the main
+    /// skill's place as it leaves its idle state, and hands it back as it
+    /// returns (`PreemptiveSkillExitIdleBehaviour`,
+    /// `PreemptiveSkillEnterIdleBehaviour`).
+    pub(in crate::fight) fn takes_main_place(&self, skill_ref: SkillRef) -> bool {
+        matches!(
+            self.skill(skill_ref).kind,
+            SkillKind::Around | SkillKind::Support
+        ) || self.rocket_punch(skill_ref).is_some()
+    }
+
+    /// A skill's rocket punch, if it is one.
+    fn rocket_punch(&self, skill_ref: SkillRef) -> Option<&crate::rules::RocketPunch> {
+        let SkillSlot::Extra(index) = skill_ref.slot else {
+            return None;
+        };
+        self.skills(skill_ref.owner).extras[index]
+            .rules
+            .rocket_punch
+            .as_ref()
+    }
+
+    /// `PreemptiveSkillStartAttackChecker.Check`: no preemptive skill
+    /// running, since only a permanent one may start while one is set, the
+    /// main skill at rest, and the skill's own target in its attack area.
+    fn preemptive_may_start(&self, skill_ref: SkillRef) -> bool {
+        let FightActorRef::Unit(actor_id) = skill_ref.owner else {
+            return false;
+        };
+        let actor = &self.actors[&actor_id];
+        if actor.skills.running_preemptive.is_some() || actor.skills.preemptive_active {
+            return false;
+        }
+        self.main_skill_at_rest(actor_id)
+            && self
+                .skill(skill_ref)
+                .attack_target()
+                .is_some_and(|target| self.target_in_attack_range(skill_ref, target))
+    }
+
+    /// `RocketPunchAttackChecker.Check`: the preemptive checker's, a punch
+    /// left of `triggerCount`, and the unit's life over its maximum, as
+    /// `FPoint`s, at or below the condition for the punch it is at, the
+    /// first condition for the first and the second for the second.
+    fn rocket_punch_may_start(&self, skill_ref: SkillRef) -> bool {
+        let (FightActorRef::Unit(actor_id), SkillSlot::Extra(index)) =
+            (skill_ref.owner, skill_ref.slot)
+        else {
+            return false;
+        };
+        if !self.preemptive_may_start(skill_ref) {
+            return false;
+        }
+        let actor = &self.actors[&actor_id];
+        let extra = &actor.skills.extras[index];
+        let Some(punch) = &extra.rules.rocket_punch else {
+            return false;
+        };
+        if extra.punches >= punch.trigger_count {
+            return false;
+        }
+        let max_life = actor.stats.max_life();
+        if max_life <= 0 {
+            return false;
+        }
+        let Ok(share_q32) = i64::try_from((i128::from(actor.life) << 32) / i128::from(max_life))
+        else {
+            return false;
+        };
+        let condition_q32 = usize::try_from(extra.punches)
+            .ok()
+            .and_then(|punch_index| punch.life_conditions.get(punch_index))
+            .map_or(0, |&condition| crate::rules::readable_q32(condition));
+        fpoint_less_or_equal(share_q32, condition_q32)
     }
 
     /// `AroundSkillStartAttackChecker.Check`.
@@ -43,22 +121,10 @@ impl Simulation {
         let FightActorRef::Unit(actor_id) = skill_ref.owner else {
             return false;
         };
+        if !self.preemptive_may_start(skill_ref) {
+            return false;
+        }
         let actor = &self.actors[&actor_id];
-        // `PreemptiveSkillStartAttackChecker.Check`: with a preemptive skill
-        // set, only a permanent one may start, which an around skill is not.
-        if actor.skills.running_preemptive.is_some() || actor.skills.preemptive_active {
-            return false;
-        }
-        if !self.main_skill_at_rest(actor_id) {
-            return false;
-        }
-        let skill = self.skill(skill_ref);
-        if !skill
-            .attack_target()
-            .is_some_and(|target| self.target_in_attack_range(skill_ref, target))
-        {
-            return false;
-        }
         let Some(attacker) = self.skill_attacker(skill_ref) else {
             return false;
         };

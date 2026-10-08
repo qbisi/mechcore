@@ -1,0 +1,28 @@
+# Rocket Punch against three Rhinos.
+#
+# The Fortress's Rocket Punch is a preemptive projectile skill
+# (`FightRocketPunchSkill`) that starts only while the Fortress's life over
+# its maximum is at or below the condition for the punch it is at
+# (`RocketPunchAttackChecker`): 0.85 for the first and 0.55 for the second,
+# twice a fight. It throws at 83.8% (t357), its fist striking two Rhinos for
+# 12000 each in its 25 metre splash, and again at 51.4% (t411). With the
+# first condition for both punches the second is thrown from t377.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 417
+hash: {profile: mcfr-content-0.7.0, result: aec075ce13feb55d4d522727268eae609503d89b424550a853ff6bb74c22961e}
+blue:
+  techs:
+    fortress: [rocket_punch]
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -200}, exp: 0/1200/1600}
+red:
+  core_damage: 350
+  units:
+  - {name: rhino, index: 0, position: {x: -35, y: -155}}
+  - {name: rhino, index: 1, position: {x: 5, y: -155}}
+  - {name: rhino, index: 2, position: {x: 45, y: -155}}

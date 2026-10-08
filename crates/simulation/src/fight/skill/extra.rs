@@ -91,10 +91,7 @@ impl Simulation {
         }
         // A preemptive skill's state behaviours: leaving its idle state it
         // takes the main skill's place, and entering it hands it back.
-        if matches!(
-            self.skill(skill_ref).kind,
-            SkillKind::Around | SkillKind::Support
-        ) {
+        if self.takes_main_place(skill_ref) {
             let is_idle = matches!(self.skill(skill_ref).state, SkillState::Idle { .. });
             if was_idle && !is_idle {
                 self.preemptive_leaves_idle(skill_ref, target_search_order)?;

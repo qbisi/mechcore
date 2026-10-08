@@ -731,6 +731,7 @@ fn extra_skills(placement: &Placement) -> Vec<ExtraSkill> {
                     dead_fire: weapon.dead_fire,
                     skill_corrections: weapon.skill_corrections.clone(),
                     weapon: index * per_skill,
+                    punches: 0,
                 }
             })
         })
