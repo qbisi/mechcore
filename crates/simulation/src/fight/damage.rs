@@ -1279,7 +1279,14 @@ impl Simulation {
         // before the damage, and a block it fells falls after it: the Steel
         // Balls of `wall-laser.yaml` read `damage` and then
         // `building_destroyed`. A beam that took no life records no damage,
-        // as no other hit does.
+        // as no other hit does. A blow that deals nothing strikes nothing:
+        // `DamagePerformer.PerformHitTargetEffect` returns before
+        // `FightCalculator` when it deals under 1, so `ExpSystem.
+        // OnActorHitted` never lists the beam's owner among the target's
+        // attackers.
+        if damage < 1 {
+            return Ok(());
+        }
         let stroke = self.strike(
             target,
             Some(attacker_ref),
