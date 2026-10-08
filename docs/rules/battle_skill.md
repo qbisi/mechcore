@@ -194,7 +194,8 @@ beside it rather than merging.
 
 A fight's buffs are cleared as the fight is left, on its last tick: after the
 towers it tore down when a side's last unit fell, and after everything else
-that tick did when a projectile landing after the last death decided it.
+that tick did when a projectile landing after the last death decided it, or
+landed after the towers fell. Until then, nothing updates them.
 
 ## Photon Emission
 

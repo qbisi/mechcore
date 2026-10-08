@@ -1215,10 +1215,16 @@ impl Simulation {
                 )
             });
         events.extend(rest);
+        // The fight is left once nothing is in flight: on the towers' tick
+        // when it drained already, and otherwise on the tick the last
+        // projectile lands, the buffs standing still until then.
+        let leaves_now = self.ready_to_finish();
         if publish_late_building_events {
             events.extend(torn_down);
-            self.clear_buffs_as_the_fight_ends(&mut events)?;
-            self.clear_terrains_as_the_fight_ends()?;
+            if leaves_now {
+                self.clear_buffs_as_the_fight_ends(&mut events)?;
+                self.clear_terrains_as_the_fight_ends()?;
+            }
         }
         // `BuffManager.Clear` takes a dying unit's buffs as it dies, whatever
         // killed it.
@@ -1242,7 +1248,7 @@ impl Simulation {
         // A fight a projectile's drain finished leaves on this tick, with no
         // tower torn down to publish first: its buffs are cleared after
         // everything else the tick did.
-        if !publish_late_building_events && self.ready_to_finish() {
+        if !(publish_late_building_events && leaves_now) && self.ready_to_finish() {
             self.clear_buffs_as_the_fight_ends(&mut events)?;
             self.clear_terrains_as_the_fight_ends()?;
         }
