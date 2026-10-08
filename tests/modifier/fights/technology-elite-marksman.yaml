@@ -1,0 +1,28 @@
+# A technology whose effect grows with level. Blue's Marksmen research Elite
+# Marksman, whose `attack_range_value` and `damage_rate` hold nine entries,
+# +5 metres and +0.17 a level. One Marksman is at level 3 and one at level 1.
+#
+# `TechnologyData.GetLevelValue` reads entry `GetLevel()` of the list, the
+# `CardLevel` counting from zero, so each reads the entry for its own level:
+# at t1 the recording holds 155 metres of range on the level-3 Marksman,
+# 140 + 15, and 145 on the level-1 one, 140 + 5. Reading the first entry on
+# both parts from the game at t1, on range and damage. Red wins at t475.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 475
+hash: {profile: mcfr-content-0.7.0, result: d30049fcef38388e75ddc2b68cb28f3d34ecc238c0cbf05f70329287e0ff22a6}
+blue:
+  core_damage: 350
+  techs:
+    marksman: [elite_marksman]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, level: 3, exp: 0/300/2315}
+  - {name: marksman, index: 1, position: {x: 100, y: -150}, exp: 0/100/650}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -45}}
+  - {name: fortress, index: 1, position: {x: 100, y: -100}, exp: 0/1200/1600}

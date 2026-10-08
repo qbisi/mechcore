@@ -26,13 +26,11 @@
 //! technologies reaches the units it corrects: a technology the side holds
 //! writes onto the units its table row names and onto nothing else.
 //!
-//! **An effect is a list indexed by the unit's rank, and this reads rank one.**
-//! A technology whose list holds more than one entry is refused rather than
-//! read at index zero, because which index a fight reads for a given rank is
-//! `docs/rules/technology_effects.md`'s unresolved question and a layout's
-//! units above rank one are refused by the module registry anyway.
-//! An armour technology's reduction is not one of these effects: the build
-//! reads it at the unit's level itself.
+//! **An effect is a list indexed by the unit's level.** `TechnologyData`'s
+//! getters read entry `GetLevel()` of a list, `CardLevel` counting from zero,
+//! and its last entry for a level beyond it (`GetLevelValue`), as an armour
+//! technology's reduction is read. A lifesteal or repair source still reads
+//! its first entry, and a row whose list for one grows is refused.
 
 use std::collections::BTreeMap;
 
@@ -149,12 +147,16 @@ pub(crate) struct TechnologyEffects {
     technologies: BTreeMap<i32, Technology>,
 }
 
+/// What a technology writes at one level.
+type Written = Vec<(Channel, Index, Correction)>;
+
 #[derive(Debug, Clone)]
 struct Technology {
     /// The unit type whose numbers it corrects.
     unit: String,
-    /// What it writes, or why this build will not apply it.
-    effect: std::result::Result<Vec<(Channel, Index, Correction)>, String>,
+    /// What it writes at each entry of its lists, the first level's first,
+    /// or why this build will not apply it.
+    effect: std::result::Result<Vec<Written>, String>,
     /// What it answers `ILifeSteal` with, if its class is one.
     lifesteal: Option<LifeSteal>,
     /// What it answers `IAutoRecovery` with, if its class is one.
@@ -265,7 +267,7 @@ pub(crate) struct MainSkill {
 }
 
 /// One row of the table. Every effect is a list because a technology's effect
-/// can grow with the unit's rank.
+/// can grow with the unit's level.
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 #[allow(
@@ -321,7 +323,7 @@ struct Row {
     #[serde(default)]
     reduce_damage_value: Vec<i64>,
     /// `SearchTargetSpecificData`'s fields, on a row of its list: whole
-    /// metres, and a rate by the unit's rank, which a
+    /// metres, and a rate by the unit's level, which a
     /// `DamageIntensifyTechnologyData` row carries too.
     #[serde(default)]
     air_target_score_offset: i64,
@@ -413,7 +415,7 @@ impl TechnologyEffects {
         for row in table.technologies {
             let id = row.id;
             // `LifestealTech.GetLifestealMuliplier` reads its row's list at
-            // the unit's rank, which `corrections_of` refuses past one entry;
+            // the unit's level, which `corrections_of` refuses past one entry;
             // no lifesteal row sets `ignoreElectricEffect`, so each answers
             // `CanDisable` true.
             let lifesteal = (row.kind == LIFESTEAL).then(|| LifeSteal {
@@ -421,7 +423,7 @@ impl TechnologyEffects {
                 priority: PRIORITY,
                 can_disable: true,
             });
-            // `AutoRecoveryTech` reads its two lists at the unit's rank, as
+            // `AutoRecoveryTech` reads its two lists at the unit's level, as
             // `LifestealTech` does.
             let auto_recovery = (row.kind == AUTO_RECOVERY).then(|| AutoRecovery {
                 start_time_q32: row.start_time,
@@ -518,22 +520,13 @@ impl TechnologyEffects {
         &self,
         held: &[i32],
         unit_type: &str,
+        level: i64,
     ) -> Result<Vec<(Channel, Entry)>> {
         let mut written = Vec::new();
-        for id in held {
-            let Some(technology) = self.technologies.get(id) else {
-                return Err(Error::new(format!(
-                    "technology {id} is not in the technology effect table"
-                )));
-            };
-            if technology.unit != unit_type {
-                continue;
-            }
-            let corrections = technology
-                .effect
-                .as_ref()
-                .map_err(|why| Error::new(why.clone()))?;
-            for (channel, index, correction) in corrections {
+        for by_level in self.effects(held, unit_type)? {
+            let last = by_level.len().saturating_sub(1);
+            let index = usize::try_from(level - 1).unwrap_or_default().min(last);
+            for (channel, index, correction) in &by_level[index] {
                 written.push((
                     *channel,
                     Entry {
@@ -547,6 +540,28 @@ impl TechnologyEffects {
         Ok(written)
     }
 
+    /// What each technology this side holds for one unit type writes at each
+    /// level, or the refusal of the first this build cannot apply.
+    fn effects(&self, held: &[i32], unit_type: &str) -> Result<Vec<&Vec<Written>>> {
+        let mut effects = Vec::new();
+        for id in held {
+            let Some(technology) = self.technologies.get(id) else {
+                return Err(Error::new(format!(
+                    "technology {id} is not in the technology effect table"
+                )));
+            };
+            if technology.unit == unit_type {
+                effects.push(
+                    technology
+                        .effect
+                        .as_ref()
+                        .map_err(|why| Error::new(why.clone()))?,
+                );
+            }
+        }
+        Ok(effects)
+    }
+
     /// The sources this side's technologies hand one unit type's effect
     /// providers, each that is one: what they answer `ILifeSteal`,
     /// `IAutoRecovery` and `IEnergyShieldSource` with, and the buffs they add
@@ -556,7 +571,7 @@ impl TechnologyEffects {
     ///
     /// Returns the error [`Self::corrections`] does.
     pub(crate) fn sources(&self, held: &[i32], unit_type: &str) -> Result<UnitSources> {
-        self.corrections(held, unit_type)?;
+        self.effects(held, unit_type)?;
         let own = held
             .iter()
             .filter_map(|id| self.technologies.get(id))
@@ -578,7 +593,7 @@ impl TechnologyEffects {
     ///
     /// Returns the error [`Self::corrections`] does.
     pub(crate) fn main_skill(&self, held: &[i32], unit_type: &str) -> Result<MainSkill> {
-        self.corrections(held, unit_type)?;
+        self.effects(held, unit_type)?;
         let own = || {
             held.iter()
                 .filter_map(|id| self.technologies.get(id))
@@ -621,7 +636,7 @@ impl TechnologyEffects {
         unit_type: &str,
         level: i64,
     ) -> Result<Vec<(Channel, Entry)>> {
-        self.corrections(held, unit_type)?;
+        self.effects(held, unit_type)?;
         Ok(held
             .iter()
             .filter_map(|id| self.technologies.get(id))
@@ -646,8 +661,8 @@ impl TechnologyEffects {
     }
 }
 
-/// What a row writes at rank one, or why this build will not apply it.
-fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correction)>, String> {
+/// What a row writes at each level, or why this build will not apply it.
+fn corrections_of(row: &Row) -> std::result::Result<Vec<Written>, String> {
     let fought_extra_weapon = row.kind == EXTRA_WEAPON && FOUGHT_EXTRA_WEAPONS.contains(&row.id);
     if !IMPLEMENTED.contains(&row.kind.as_str()) && !fought_extra_weapon {
         return Err(format!(
@@ -678,30 +693,18 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
             row.id, row.name, row.auto_recovery_state_type
         ));
     }
-    let every = [
-        ("life_rate", &row.life_rate),
-        ("damage_rate", &row.damage_rate),
-        ("speed_value", &row.speed_value),
-        ("min_attack_range_value", &row.min_attack_range_value),
-        ("attack_range_value", &row.attack_range_value),
-        ("attack_range_rate", &row.attack_range_rate),
-        ("attack_interval_value", &row.attack_interval_value),
-        ("attack_interval_rate", &row.attack_interval_rate),
-        ("splash_range_value", &row.splash_range_value),
-        ("projectile_speed_value", &row.projectile_speed_value),
-        ("projectile_life_rate", &row.projectile_life_rate),
+    // `LifestealTech` and `AutoRecoveryTech` hand their mechanism their first
+    // entry here.
+    let read_first = [
         ("lifesteal_multiplier", &row.lifesteal_multiplier),
         ("recovery_duration", &row.recovery_duration),
         ("recovery_life_rate", &row.recovery_life_rate),
-        ("air_damage_change_rate", &row.air_damage_change_rate),
-        ("ground_damage_change_rate", &row.ground_damage_change_rate),
     ];
-    for (field, values) in every {
+    for (field, values) in read_first {
         if values.len() > 1 {
             return Err(format!(
-                "technology {} ({}) grows with the unit's rank, and which entry of \
-                 {field} a fight reads for a given rank is not established: see the \
-                 unresolved questions in docs/rules/technology_effects.md",
+                "technology {} ({}) grows {field} with the unit's level, and its \
+                 mechanism here reads the first entry",
                 row.id, row.name
             ));
         }
@@ -728,23 +731,52 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
         }
     }
 
-    let at_rank_one = |values: &Vec<i64>| values.first().copied().filter(|value| *value != 0);
-    let mut written = against_domains(row, at_rank_one);
+    let levels = [
+        &row.life_rate,
+        &row.damage_rate,
+        &row.speed_value,
+        &row.attack_range_value,
+        &row.attack_range_rate,
+        &row.attack_interval_value,
+        &row.attack_interval_rate,
+        &row.splash_range_value,
+        &row.projectile_speed_value,
+        &row.air_damage_change_rate,
+        &row.ground_damage_change_rate,
+    ]
+    .iter()
+    .map(|values| values.len())
+    .max()
+    .unwrap_or_default()
+    .max(1);
+    Ok((0..levels).map(|level| at_level(row, level)).collect())
+}
+
+/// What a row writes at one level, counted from zero: each list's entry at
+/// it, its last past it (`TechnologyData.GetLevelValue`).
+fn at_level(row: &Row, level: usize) -> Written {
+    let at_level = |values: &Vec<i64>| {
+        values
+            .get(level.min(values.len().saturating_sub(1)))
+            .copied()
+            .filter(|value| *value != 0)
+    };
+    let mut written = against_domains(row, at_level);
     written.extend(effects::corrections(Fields {
-        life_rate: at_rank_one(&row.life_rate),
-        damage_rate: at_rank_one(&row.damage_rate),
+        life_rate: at_level(&row.life_rate),
+        damage_rate: at_level(&row.damage_rate),
         // The table has no such column.
         damage_rate_by_kill_count: None,
-        attack_range_rate: at_rank_one(&row.attack_range_rate),
-        attack_interval_rate: at_rank_one(&row.attack_interval_rate),
-        attack_range_value: at_rank_one(&row.attack_range_value),
-        attack_interval_value: at_rank_one(&row.attack_interval_value),
-        splash_range_value: at_rank_one(&row.splash_range_value),
-        speed_value: at_rank_one(&row.speed_value),
+        attack_range_rate: at_level(&row.attack_range_rate),
+        attack_interval_rate: at_level(&row.attack_interval_rate),
+        attack_range_value: at_level(&row.attack_range_value),
+        attack_interval_value: at_level(&row.attack_interval_value),
+        splash_range_value: at_level(&row.splash_range_value),
+        speed_value: at_level(&row.speed_value),
         damage_reduce_rate_base: Some(row.all_weapon_reduce_damage_rate),
-        projectile_speed_value: at_rank_one(&row.projectile_speed_value),
+        projectile_speed_value: at_level(&row.projectile_speed_value),
     }));
-    Ok(written)
+    written
 }
 
 /// What a technology writes onto its unit's skill against one domain: for
@@ -755,10 +787,7 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<(Channel, Index, Correct
 /// the rate its damage on that domain gains, which
 /// `SearchTargetSpecificTech.AddData` and `DamageIntensifyTech.AddData` write
 /// alike: Ground Specialization's 2 triples a Wasp's damage on the ground.
-fn against_domains(
-    row: &Row,
-    at_rank_one: impl Fn(&Vec<i64>) -> Option<i64>,
-) -> Vec<(Channel, Index, Correction)> {
+fn against_domains(row: &Row, at_level: impl Fn(&Vec<i64>) -> Option<i64>) -> Written {
     let mut written = Vec::new();
     for (domain, offset, damage_rate) in [
         (
@@ -777,7 +806,7 @@ fn against_domains(
             written.push((Channel::Skill, Index::ScoreOffsetFor(domain), metres));
             written.push((Channel::Skill, Index::RangeAgainst(domain), metres));
         }
-        if let Some(rate) = at_rank_one(damage_rate) {
+        if let Some(rate) = at_level(damage_rate) {
             written.push((
                 Channel::Skill,
                 Index::DamageRateAgainst(domain),
@@ -795,7 +824,7 @@ mod tests {
 
     /// Range Enhancement for the Marksman: `+40` metres and nothing else.
     const RANGE_ENHANCEMENT: i32 = 10202;
-    /// Elite Marksman for the Fortress, whose effect grows with rank.
+    /// Elite Marksman for the Fortress, whose effect grows with level.
     const ELITE_MARKSMAN: i32 = 10801;
     /// Assault Mode for the Marksman, a plain technology that corrects a
     /// splash radius.
@@ -843,7 +872,9 @@ mod tests {
     #[test]
     fn a_technology_writes_onto_the_unit_whose_table_row_names_it() {
         let table = TechnologyEffects::load().unwrap();
-        let written = table.corrections(&[RANGE_ENHANCEMENT], "marksman").unwrap();
+        let written = table
+            .corrections(&[RANGE_ENHANCEMENT], "marksman", 1)
+            .unwrap();
         assert_eq!(written.len(), 1);
         assert_eq!(written[0].0, Channel::Skill);
         assert_eq!(written[0].1.index, Index::AttackRange);
@@ -851,24 +882,29 @@ mod tests {
 
         assert!(
             table
-                .corrections(&[RANGE_ENHANCEMENT], "arclight")
+                .corrections(&[RANGE_ENHANCEMENT], "arclight", 1)
                 .unwrap()
                 .is_empty(),
             "another unit's Range Enhancement is another row"
         );
     }
 
-    /// A technology whose effect grows is refused rather than read at rank
-    /// one, because which entry a rank reads is not established.
+    /// A technology whose effect grows writes its entry for the unit's level,
+    /// and its last past the list: Elite Marksman's range is 5 metres a level.
     #[test]
-    fn a_technology_that_grows_with_rank_is_refused() {
+    fn a_technology_that_grows_writes_the_entry_for_the_level() {
         let table = TechnologyEffects::load().unwrap();
-        let refused = table
-            .corrections(&[ELITE_MARKSMAN], "fortress")
-            .unwrap_err()
-            .to_string();
-        assert!(refused.contains("10801"), "{refused}");
-        assert!(refused.contains("rank"), "{refused}");
+        let range = |level| {
+            table
+                .corrections(&[ELITE_MARKSMAN], "fortress", level)
+                .unwrap()
+                .into_iter()
+                .find(|(_, entry)| entry.index == Index::AttackRange)
+                .map(|(_, entry)| entry.correction)
+        };
+        assert_eq!(range(1), Some(Correction::Value(5_000)));
+        assert_eq!(range(3), Some(Correction::Value(15_000)));
+        assert_eq!(range(12), Some(Correction::Value(45_000)));
     }
 
     /// Assault Mode's splash value lands in the skill's channel, as the
@@ -876,7 +912,7 @@ mod tests {
     #[test]
     fn a_technology_correcting_a_splash_writes_the_skill() {
         let table = TechnologyEffects::load().unwrap();
-        let written = table.corrections(&[ASSAULT_MODE], "marksman").unwrap();
+        let written = table.corrections(&[ASSAULT_MODE], "marksman", 1).unwrap();
         assert!(
             written
                 .iter()
@@ -899,12 +935,12 @@ mod tests {
             ),
             (1201, "fortress", "supportUnitTechnologies"),
         ] {
-            let refused = table.corrections(&[id], unit).unwrap_err().to_string();
+            let refused = table.corrections(&[id], unit, 1).unwrap_err().to_string();
             assert!(refused.contains(&id.to_string()), "{refused}");
             assert!(refused.contains(kind), "{refused}");
         }
         let refused = table
-            .corrections(&[MACHINE_LEARNING], "vortex")
+            .corrections(&[MACHINE_LEARNING], "vortex", 1)
             .unwrap_err()
             .to_string();
         assert!(refused.contains("expChangeRate"), "{refused}");
@@ -915,7 +951,7 @@ mod tests {
     #[test]
     fn an_armour_technology_reduces_by_the_units_level() {
         let table = TechnologyEffects::load().unwrap();
-        let written = table.corrections(&[ARMOR_ENHANCEMENT], "rhino").unwrap();
+        let written = table.corrections(&[ARMOR_ENHANCEMENT], "rhino", 1).unwrap();
         assert_eq!(written.len(), 1);
         assert_eq!(written[0].1.index, Index::MaxLife);
         for (level, reduction) in [(1, 60), (3, 180), (12, 540)] {
@@ -941,7 +977,7 @@ mod tests {
         use crate::rules::UnitDomain::Air;
         let table = TechnologyEffects::load().unwrap();
         let written = table
-            .corrections(&[AERIAL_SPECIALIZATION], "marksman")
+            .corrections(&[AERIAL_SPECIALIZATION], "marksman", 1)
             .unwrap()
             .into_iter()
             .map(|(channel, entry)| (channel, entry.index, entry.correction))
@@ -991,7 +1027,7 @@ mod tests {
             Some(super::AirAttack { extra_skills: true })
         );
         let indices = table
-            .corrections(&[GRENADE_LAUNCHER], "fang")
+            .corrections(&[GRENADE_LAUNCHER], "fang", 1)
             .unwrap()
             .into_iter()
             .map(|(_, entry)| entry.index)
@@ -1022,7 +1058,7 @@ mod tests {
         use crate::rules::UnitDomain::Ground;
         let table = TechnologyEffects::load().unwrap();
         let written = table
-            .corrections(&[GROUND_SPECIALIZATION], "wasp")
+            .corrections(&[GROUND_SPECIALIZATION], "wasp", 1)
             .unwrap()
             .into_iter()
             .map(|(channel, entry)| (channel, entry.index, entry.correction))
@@ -1053,11 +1089,11 @@ mod tests {
                 buffed: true,
             })
         );
-        let written = table.corrections(&[SHOCKWAVE], "arclight").unwrap();
+        let written = table.corrections(&[SHOCKWAVE], "arclight", 1).unwrap();
         assert_eq!(written.len(), 1);
         assert_eq!(written[0].1.correction, Correction::Value(-5_000));
         let refused = table
-            .corrections(&[ELECTROMAGNETIC_CLOUD], "vortex")
+            .corrections(&[ELECTROMAGNETIC_CLOUD], "vortex", 1)
             .unwrap_err()
             .to_string();
         assert!(refused.contains("4531"), "{refused}");

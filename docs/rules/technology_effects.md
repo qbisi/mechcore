@@ -35,6 +35,13 @@ entry.
 **A growing list is its first entry times the rank**, with each rank rounded on
 its own; the extraction refuses a table where that does not hold.
 
+**A fight reads the entry for the unit's level**, and the last entry for a
+level beyond the list. A rank is the unit's level: `TechnologyData`'s getters
+take the unit and read entry `GetLevel()`, a `CardLevel` that counts from zero,
+so a level-3 Marksman's Elite Marksman writes +15 metres and +0.51 of damage.
+A unit's level does not change within a fight (`UnitSystem.ChangeLevel` runs
+between rounds), so the entry is read once.
+
 ## How a number is read
 
 | Kind | Encoding | Example |
@@ -372,8 +379,7 @@ measured the order in the composition rule, which
 [officer_effects.md](officer_effects.md#how-a-correction-composes) carries.
 
 The simulator refuses a side holding a technology whose correction it does not
-derive (a minimum range, a projectile's life) or
-whose effect grows with rank, rather than read index zero:
+derive (a minimum range, a projectile's life):
 `crates/simulation/src/modifier/technologies.rs` names each refusal.
 
 ## Evidence
@@ -382,6 +388,10 @@ whose effect grows with rank, rather than read index zero:
 
 - A technology's range and an officer's range land in one `attack_range_value`,
   and the fight uses their sum: `tests/modifier/fights/`.
+- A growing technology writes the entry for its unit's level: Elite Marksman
+  gives a level-3 Marksman 155 metres of range and a level-1 one 145, and
+  reading the first entry on both parts from the game at t1:
+  `tests/modifier/fights/technology-elite-marksman.yaml`.
 - An interval value lands as the table's `FPoint`, and the Rhino's blows follow
   the interval it composes: `tests/modifier/fights/technology-interval-value.yaml`.
 
@@ -490,6 +500,10 @@ whose effect grows with rank, rather than read index zero:
 - An effect is a list indexed by rank, and a growing list is its first entry
   times the rank; `scripts/extract/extract-technology-effects.py` refuses a table where
   that does not hold, and wrote this version's: `TechnologyData.damageChangeRate`.
+- A getter reads entry `ISkillOwner.GetLevel()` of its list, the last past it,
+  and the first when it is given no unit: `TechnologyData.GetDamageChangeRate`.
+- A unit's level changes only between rounds, through `MechTeam.ChangeLevel`,
+  which `UnitSystem.ChangeLevel` calls: `UnitSystem.ChangeLevel`.
 - The numbers a technology states appear in its own description, which the
   extraction checks: `TechnologyData.lifeChangeRate`.
 
@@ -724,9 +738,5 @@ whose effect grows with rank, rather than read index zero:
 - **What the other technologies do**, in the terms a simulator needs. Each
   one owes the mechanism it belongs to: a summon, a skill's own numbers, a
   debuff on the target.
-- **Which rank index a fight reads.** The list is indexed by rank and this
-  document does not state what a unit's rank is at the moment a technology is
-  applied, nor whether raising a rank mid-fight re-reads it. Rank one is the
-  only case any recording has covered.
 - **`min_attack_range_value` and `projectile_life_rate`**, which no
   mechanism in `crates/simulation` reads.

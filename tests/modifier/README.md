@@ -10,7 +10,9 @@ fields six formations to ask which a Ranged row reaches. The three
 Crawlers, with no officer and with an experience rate on each in turn, and read
 each formation's experience. The three `officer-kills-*` fights put Berserk Rhino on
 Rhinos that kill Crawlers, Fangs and Sledgehammers, and read the damage each
-kill adds. The disabled
+kill adds. `technology-elite-marksman` puts a technology whose effect grows
+with level on a level-3 and a level-1 Marksman, and reads the entry each takes.
+The disabled
 technology and the four Sledgehammer intervals, which the simulator does not
 fight, are layouts in [`../../layouts/`](../../layouts/README.md).
 

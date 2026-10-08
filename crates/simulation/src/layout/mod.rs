@@ -1021,7 +1021,7 @@ fn loadout(
             let held = std::slice::from_ref(id);
             let technologies = &loadouts.technologies;
             technologies
-                .corrections(held, type_name)
+                .corrections(held, type_name, level)
                 .and_then(|mut written| {
                     written.extend(technologies.armor(held, type_name, level)?);
                     Ok(written)
@@ -1066,6 +1066,7 @@ fn loadout(
     let mut worn = worn(
         side_name,
         type_name,
+        level,
         equipment,
         rules,
         side,
@@ -1107,7 +1108,7 @@ fn technology_disable(
     Some(TechnologyDisable {
         corrections: refused.hold(
             technologies
-                .corrections(held, type_name)
+                .corrections(held, type_name, level)
                 .and_then(|mut written| {
                     written.extend(technologies.armor(held, type_name, level)?);
                     Ok(written)
@@ -1157,6 +1158,7 @@ fn technology_disable(
 fn worn(
     side_name: &str,
     type_name: &str,
+    level: i64,
     equipment: &[i32],
     rules: &UnitConfig,
     side: &SidePlan,
@@ -1222,7 +1224,13 @@ fn worn(
             .extend(refused.hold(loadouts.equipment.auto_recovery(id, rules).map_err(on_side))?);
     }
     let mut extra_weapons = extra_weapons(
-        side_name, type_name, equipment, rules, side, loadouts, refused,
+        side_name,
+        (type_name, level),
+        equipment,
+        rules,
+        side,
+        loadouts,
+        refused,
     )?;
     let mut corrections = corrections;
     for weapon in &extra_weapons {
@@ -1384,7 +1392,7 @@ fn extra_weapon_corrections(weapon: &ExtraWeaponConfig) -> Vec<(Channel, Entry)>
 /// skill is not measured, so a unit it reaches is refused.
 fn extra_weapons(
     side_name: &str,
-    type_name: &str,
+    (type_name, level): (&str, i64),
     equipment: &[i32],
     rules: &UnitConfig,
     side: &SidePlan,
@@ -1429,7 +1437,7 @@ fn extra_weapons(
             ),
         };
         let (skill_corrections, reaching) =
-            reaching_extra_skill(weapon, type_name, equipment, rules, side, loadouts);
+            reaching_extra_skill(weapon, (type_name, level), equipment, rules, side, loadouts);
         if !reaching.is_empty() {
             refused.push(format!(
                 "side {side_name} unit type {type_name:?} carries an extra weapon that {} \
@@ -1512,7 +1520,7 @@ fn switch_air_attack(
 /// range without a damage rate composes it, and one with a rate is refused.
 fn reaching_extra_skill(
     weapon: &ExtraWeaponConfig,
-    type_name: &str,
+    (type_name, level): (&str, i64),
     equipment: &[i32],
     rules: &UnitConfig,
     side: &SidePlan,
@@ -1558,7 +1566,7 @@ fn reaching_extra_skill(
                 format!("technology {id}"),
                 loadouts
                     .technologies
-                    .corrections(std::slice::from_ref(&id), type_name),
+                    .corrections(std::slice::from_ref(&id), type_name, level),
             ));
         }
     }
