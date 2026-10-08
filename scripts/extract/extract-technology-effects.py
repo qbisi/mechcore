@@ -156,6 +156,15 @@ SUPPORT_FIELDS = (
     ("intensify_mode", "intensifyMode"),
     ("inherit_technology", "inheritTechnologyEffect"),
 )
+# The list whose `DeadSummonTech` summons units where its unit dies, and what
+# its rows answer `IDeadSummon` with: the unit type, how many by the unit's
+# level, and the `DynamicMechLevel` they take.
+DEAD_SUMMON = "deadSummonTechnologies"
+DEAD_SUMMON_FIELDS = (
+    ("unit_id", "unitID"),
+    ("unit_count", "unitCount"),
+    ("unit_level", "unitLevel"),
+)
 # The list of `TechnologyGroupData` a plain technology comes from. A row of any
 # other list is a subclass (`BuffTechnologyData`, `SplashTechnologyData` and
 # the rest) that does something beyond its unit's numbers.
@@ -385,7 +394,10 @@ def main() -> int:
         "# interception technology carries what its unit intercepts with",
         "# (`intercept`), named as `config/contraptions.yaml`'s interceptor, with",
         "# how many interceptors it is and whether each locks its unit's main",
-        "# skill while it intercepts (`weapon_count`, `preemptive`).",
+        "# skill while it intercepts (`weapon_count`, `preemptive`). A",
+        "# technology that summons where its unit dies carries the unit type,",
+        "# how many by its unit's level, and the DynamicMechLevel they take",
+        "# (`dead_summon`: 0 the first level, 3 its unit's).",
         "",
         "technologies:",
     ]
@@ -434,6 +446,11 @@ def main() -> int:
                     lines.append(f"      {field}: {point}  # {point / ONE:.6g}")
                 else:
                     lines.append(f"      {field}: {value}")
+        if row["kind"] == DEAD_SUMMON:
+            fields = ", ".join(
+                f"{field}: {row['row'][source]}".replace("'", "") for field, source in DEAD_SUMMON_FIELDS
+            )
+            lines.append(f"    dead_summon: {{{fields}}}")
         if row["kind"] == SUPPORT:
             lines.append("    production:")
             for field, source in SUPPORT_FIELDS:

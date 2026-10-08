@@ -80,8 +80,11 @@ const INTERCEPT: &str = "interceptMissileTechnologyDatas";
 /// The list whose `SupportUnitTech` runs a production line.
 const SUPPORT: &str = "supportUnitTechnologies";
 
+/// The list whose `DeadSummonTech` summons where its unit dies.
+const DEAD_SUMMON: &str = "deadSummonTechnologies";
+
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 15] = [
+const IMPLEMENTED: [&str; 16] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -97,6 +100,7 @@ const IMPLEMENTED: [&str; 15] = [
     SUPPORT,
     SPLASH,
     MOBILITY,
+    DEAD_SUMMON,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -214,6 +218,9 @@ struct Technology {
     /// The production line it hands its unit, if its class is an
     /// `ISupportEffectDataSource`.
     production: Option<ProductionLine>,
+    /// What its unit summons where it dies, if its class is an
+    /// `IDeadSummon`.
+    dead_summon: Option<UnitDeadSummon>,
     /// Whether what switching it off does is read and fought: its numbers
     /// taken away, as [`DISABLED_AS_NUMBERS`] lists, an extra weapon's skills
     /// disabled, or the buff a fight-start buff technology adds its own unit
@@ -296,6 +303,65 @@ pub(crate) struct UnitSources {
     pub(crate) energy_shield: Vec<EnergyShield>,
     pub(crate) buff_sources: Vec<BuffSource>,
     pub(crate) interception: Vec<UnitInterception>,
+    pub(crate) dead_summon: Option<UnitDeadSummon>,
+}
+
+/// What a `DeadSummonTech` answers `IDeadSummon` with: the unit type its unit
+/// summons where it dies, at the first level, and how many by its unit's
+/// level.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct UnitDeadSummon {
+    pub(crate) unit_type_id: u32,
+    counts: Vec<u32>,
+}
+
+impl UnitDeadSummon {
+    /// `DeadSummonTechnologyData.GetUnitCount`: the entry of its unit's
+    /// level, the last past it.
+    pub(crate) fn count(&self, level: i64) -> u32 {
+        let index = usize::try_from(level - 1).unwrap_or(0);
+        self.counts
+            .get(index)
+            .or(self.counts.last())
+            .copied()
+            .unwrap_or(0)
+    }
+}
+
+/// What a dead summon row answers `IDeadSummon` with.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct DeadSummonBlock {
+    #[serde(rename = "unit_id")]
+    type_id: u32,
+    #[serde(rename = "unit_count")]
+    counts: Vec<u32>,
+    /// `DynamicMechLevel`.
+    #[serde(rename = "unit_level")]
+    level: i32,
+}
+
+/// What a dead summon row makes its unit summon, or why this build will not.
+fn dead_summon_of(row: &Row, who: &str) -> std::result::Result<Option<UnitDeadSummon>, String> {
+    if row.kind != DEAD_SUMMON {
+        return Ok(None);
+    }
+    let block = row
+        .dead_summon
+        .as_ref()
+        .ok_or_else(|| format!("{who} carries no dead summon"))?;
+    // `DeadSummonController.PerformDeadEffect` takes its unit's level for
+    // `DynamicMechLevel.Parent`.
+    if block.level != LEVEL_ONE {
+        return Err(format!(
+            "{who} summons where its unit dies at a unitLevel of {}, which is not read",
+            block.level
+        ));
+    }
+    Ok(Some(UnitDeadSummon {
+        unit_type_id: block.type_id,
+        counts: block.counts.clone(),
+    }))
 }
 
 /// What a side's technologies change about one unit type's main skill
@@ -444,6 +510,9 @@ struct Row {
     /// `SupportUnitTechnologyData`'s fields, on a row of its list.
     #[serde(default)]
     production: Option<SupportBlock>,
+    /// `DeadSummonTechnologyData`'s fields, on a row of its list.
+    #[serde(default)]
+    dead_summon: Option<DeadSummonBlock>,
 }
 
 /// What a production row answers `ISupportDataSource` with.
@@ -736,6 +805,10 @@ impl TechnologyEffects {
                 Ok(subclass) => (subclass, effect),
                 Err(why) => ((None, None), Err(why)),
             };
+            let (dead_summon, effect) = match dead_summon_of(&row, &who) {
+                Ok(dead_summon) => (dead_summon, effect),
+                Err(why) => (None, Err(why)),
+            };
             let self_buff = buff_source.as_ref().is_some_and(adds_its_unit_a_buff);
             let technology = Technology {
                 unit: row.unit.clone(),
@@ -753,6 +826,7 @@ impl TechnologyEffects {
                 buff_source,
                 interception,
                 production,
+                dead_summon,
                 secondary_damage: (row.kind == SECONDARY_DAMAGE).then_some(SecondaryDamage {
                     damage: row.secondary_damage,
                     splash_radius: effects::fixed_to(row.secondary_splash_range, effects::METERS),
@@ -848,6 +922,15 @@ impl TechnologyEffects {
             sources.energy_shield.extend(technology.energy_shield);
             sources.buff_sources.extend(technology.buff_source);
             sources.interception.extend(technology.interception);
+            if let Some(dead_summon) = &technology.dead_summon {
+                if sources.dead_summon.is_some() {
+                    return Err(Error::new(format!(
+                        "unit type {unit_type:?} summons where it dies by two technologies, \
+                         which is not measured"
+                    )));
+                }
+                sources.dead_summon = Some(dead_summon.clone());
+            }
         }
         Ok(sources)
     }

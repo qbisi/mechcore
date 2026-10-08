@@ -1,0 +1,25 @@
+# Mechanical Division on blue's Steel Balls: a technology that summons where
+# its unit dies (`DeadSummonTech`, `DeadSummonController.PerformDeadEffect`).
+# Each Steel Ball that dies leaves five Crawlers at the first level where it
+# stood, each moved within the whole metres of its radius by two draws of
+# blue's stream, x then z, facing as it faced and joining at once. Two die,
+# at ticks 150 and 281. The game records each Crawler's `unit_created` before
+# its Steel Ball's `unit_died`, where a buff's summons follow it.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 364
+hash: {profile: mcfr-content-0.7.0, result: 96cb1a4419d69eb93fee758af5e015af4a264c9d6f086d8a4a7db8ad6d47e763}
+blue:
+  techs:
+    steel_ball: [mechanical_division]
+  units:
+  - {name: steel_ball, index: 0, position: {x: 5, y: -140}, exp: 0/600/1000}
+red:
+  core_damage: 104
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/140/1150}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/108/650}

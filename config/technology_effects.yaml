@@ -53,7 +53,10 @@ schema: mechcore.technology_effects
 # interception technology carries what its unit intercepts with
 # (`intercept`), named as `config/contraptions.yaml`'s interceptor, with
 # how many interceptors it is and whether each locks its unit's main
-# skill while it intercepts (`weapon_count`, `preemptive`).
+# skill while it intercepts (`weapon_count`, `preemptive`). A
+# technology that summons where its unit dies carries the unit type,
+# how many by its unit's level, and the DynamicMechLevel they take
+# (`dead_summon`: 0 the first level, 3 its unit's).
 
 technologies:
   - id: 206
@@ -456,6 +459,7 @@ technologies:
     name: 机械分裂
     unit: steel_ball
     kind: deadSummonTechnologies
+    dead_summon: {unit_id: 10, unit_count: [5], unit_level: 0}
   - id: 1606
     name: 高速引擎
     unit: wasp
@@ -1660,6 +1664,7 @@ technologies:
     name: 机械分裂
     unit: sandworm
     kind: deadSummonTechnologies
+    dead_summon: {unit_id: 1001, unit_count: [4], unit_level: 3}
   - id: 72002
     name: 饱和打击
     unit: mountain
