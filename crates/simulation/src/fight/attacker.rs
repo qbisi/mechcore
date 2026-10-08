@@ -147,6 +147,24 @@ impl Attacker<'_> {
     /// Whether a target of this radius at this point is within reach, edge to
     /// edge: `IAttacker.IsActorInAttackRange`.
     pub(in crate::fight) fn reaches(&self, x_q32: i64, z_q32: i64, radius: i64) -> bool {
+        self.reaches_within(x_q32, z_q32, radius, self.attack_range)
+    }
+
+    /// Whether a point of a shield's surface is within reach: the range with
+    /// the skill's `extraShieldAttackRange` added (`FightSkill.IsInAttackRange`
+    /// with `useExtraRange`, as `SkillAttackRangeChecker` asks it of a shield).
+    pub(in crate::fight) fn reaches_shield(&self, x_q32: i64, z_q32: i64) -> bool {
+        self.reaches_within(x_q32, z_q32, 0, self.shield_range())
+    }
+
+    /// The range a shield is reached within: `IAttacker.GetAttackRange` and
+    /// the skill's `extraShieldAttackRange`.
+    pub(in crate::fight) fn shield_range(&self) -> i64 {
+        self.attack_range
+            .saturating_add(self.attack.extra_shield_range())
+    }
+
+    fn reaches_within(&self, x_q32: i64, z_q32: i64, radius: i64, range: i64) -> bool {
         let edge_distance_q32 = native_q32_magnitude(
             x_q32.saturating_sub(self.x_q32),
             z_q32.saturating_sub(self.z_q32),
@@ -155,7 +173,7 @@ impl Attacker<'_> {
         .saturating_sub(space_to_q32(radius))
         .max(0);
         edge_distance_q32 >= space_to_q32(self.attack.min_range())
-            && edge_distance_q32 <= space_to_q32(self.attack_range)
+            && edge_distance_q32 <= space_to_q32(range)
     }
 
     /// Whether a bearing is within the attack angle of what the angle is
@@ -697,7 +715,7 @@ impl Simulation {
         {
             return self
                 .shield_attack_point(shield, skill_ref, target)
-                .is_some_and(|(x_q32, z_q32)| attacker.reaches(x_q32, z_q32, 0));
+                .is_some_and(|(x_q32, z_q32)| attacker.reaches_shield(x_q32, z_q32));
         }
         self.reaches_hidden(skill_ref.owner, view.visible)
             && attacker.reaches(view.x_q32, view.z_q32, view.radius)

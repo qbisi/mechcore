@@ -70,7 +70,8 @@ impl Simulation {
                         self.search_target_shield_in(
                             owner,
                             lock,
-                            self.slot_attack_range(skill_ref, Some(index + 1)),
+                            self.slot_attack_range(skill_ref, Some(index + 1))
+                                .saturating_add(self.skill_rules(skill_ref).extra_shield_range()),
                         )
                         .map(|shield| (shield, lock))
                     })

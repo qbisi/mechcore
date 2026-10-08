@@ -171,8 +171,14 @@ is one as a unit is:
   units in it alike. A unit whose attack does not, aiming at a
   covered unit or tower, fires at the shield: it stops once the point of the
   shield's surface on its way to its target is within its range, and its
-  weapons name no target while it does, cooling included. It keeps the shield
-  it last found until its skill searches again, one broken since included,
+  weapons name no target while it does, cooling included. A shield is within
+  reach a little further than a unit is: the skill's range has its
+  `extraShieldAttackRange` added, both as it asks whether a shield covers its
+  lock and as it measures the shield. Scorching Charge's charge is the one
+  skill with any, 5 metres: a Fire Badger charging a unit in a shield takes
+  the shield for its target once its surface is 6 metres from its edge, not
+  1. It keeps the shield it last found until its skill searches again, one
+  broken since included,
   and goes on attacking it, measured to where its surface stood: a Wasp, which
   checks once a blow, stands attacking a shield that broke after its last
   check, its lock out of its reach, until its next. Each weapon of a grouped
@@ -304,6 +310,10 @@ kind ends its own way:
   is deactivated when emptied and stays where its owner fell:
   `tests/shield/fights/barrier-wasps.yaml`; blows from inside it reach its
   owner: `tests/shield/fights/barrier-crawlers.yaml`.
+- A Fire Badger's charge takes a Melting Point's Barrier for its target with
+  the shield's surface 4.35 metres from its edge, within its 1 metre and the
+  5 its skill adds for a shield, on the tick the 1 alone would leave one
+  later: `tests/corpus/fights/134369950-r7.yaml`.
 
 ### Replayed
 
@@ -374,6 +384,13 @@ kind ends its own way:
   `FightSkill.GetTargetEnergyShield`, `FightSkill.IsActorProtectedByEnergyShield`,
   `SkillSearchTargetController.SearchTargetShield`,
   `SkillAttackRangeChecker.IsAttackTargetInAttackRange`.
+- Both ask the range with `useExtraRange`, which adds
+  `SkillData.extraShieldAttackRange` for a skill that does not cross shields;
+  a unit's range is asked without it:
+  `FightSkill.IsInAttackRange(FPoint, bool, out bool)`,
+  `FightSkill.IsInAttackRange(FVector3, bool, out bool)`,
+  `SkillAttackRangeChecker.IsActorInAttackRange`. Of the build's skill rows,
+  two explosion rows set it, 20002 (Scorching Charge) and 5020002, to 5.
 - Whether a shield covers something is asked of any `FightActor`, a tower
   included: `FightCalculator.IsActorInEnergyShield(FightActor, FightEnergyShield)`,
   called by `FightSkill.GetTargetEnergyShield(FightActor)`,

@@ -412,7 +412,9 @@ impl Simulation {
 
     /// `FightSkill.GetTargetEnergyShield`: the shield of the target's side
     /// that covers it and whose surface, seen from the owner, is within the
-    /// skill's reach; a nearer one that covers it too takes its place.
+    /// skill's reach, `range` with its `extraShieldAttackRange` added
+    /// (`IsInAttackRange` with `useExtraRange`); a nearer one that covers it
+    /// too takes its place.
     pub(in crate::fight) fn target_energy_shield(
         &self,
         owner: FightActorRef,
@@ -468,7 +470,7 @@ impl Simulation {
         owner: FightActorRef,
         target: FightActorRef,
     ) -> Option<u64> {
-        let range = self.attacker(owner)?.attack_range;
+        let range = self.attacker(owner)?.shield_range();
         self.search_target_shield_in(owner, target, range)
     }
 

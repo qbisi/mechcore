@@ -563,6 +563,10 @@ def attack_lines(unit, kind, skill, damage_line, attack_angle, indent, angle_abs
         f"  melee: {boolean(skill['isMeleeAttack'])}",
         f"  crosses_shields: {boolean(skill['canCrossAdvancedShield'])}",
     ]
+    # `SkillData.extraShieldAttackRange`: how much further than its range a
+    # skill reaches a shield, a Scorching Charge's 5 metres.
+    if raw(skill["extraShieldAttackRange"]):
+        lines.append(f"  extra_shield_range: {grid(skill['extraShieldAttackRange'], 1000)}")
     if skill["useDefaultRotationSearchTarget"]:
         lines.append("  default_rotation_search: true")
     if skill.get("useSelfSplash"):
