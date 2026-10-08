@@ -1,0 +1,51 @@
+schema: mechcore.unit
+type_name: larva
+unit_type_id: 1001
+main_skill: 1001001
+
+formation:
+  members: 2
+  slot_size: 20
+  footprint: {width: 40, depth: 20}
+
+domain: ground
+size: medium
+max_life: 5746
+collision_radius: 5
+move_speed: 16
+rotate_speed: 90
+has_body: true
+independent_aim: false
+rvo: {outer_radius: 6, inner_radius: 3, size: m, collider_priority: 5, priority: 0.009}
+
+underground:
+  enter: 1
+  exit: 1.5
+  exit_keep: 1
+  attack_range: 15
+
+attack:
+  base_damage: 1027
+  min_range: 0
+  range: 30
+  attack_half_angle: 30
+  targets: {ground: true, air: false}
+  lock_target: true
+  quick_switch_target: true
+  timing:
+    interval: 2
+    interval_offset: 0
+    initial_cooldown: 0
+    prepare: 0
+    attack_point: 1
+    backswing: 1
+    cooling: 0
+  splash_radius: 6
+  weapons:
+    mode: normal
+    indices: [0]
+    per_skill: 1
+  melee: true
+  crosses_shields: true
+  path:
+    type: direct

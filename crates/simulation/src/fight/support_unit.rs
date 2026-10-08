@@ -176,6 +176,20 @@ struct ComingOut {
 }
 
 impl Creator {
+    /// The creator `MoveAbilitySummonSystem` hands a unit's side each time
+    /// the unit begins to surface (`TeamSupportUnitManager.
+    /// AddTemporaryCreator`): its line's, which `SupportUnitCreator.
+    /// IsFinished` ends after its first update, as its source's
+    /// `GetLifeTime` is -1.
+    pub(in crate::fight) fn surfacing(
+        owner: &Actor,
+        production: &crate::layout::Production,
+    ) -> Self {
+        let mut creator = Self::production(owner, production);
+        creator.summon.updates = 1;
+        creator
+    }
+
     pub(in crate::fight) fn new(team: u32, x: i64, z: i64, summon: Summon) -> Self {
         Self {
             team,
@@ -452,6 +466,7 @@ impl Simulation {
             extra_weapons: Vec::new(),
             technology_disable: creator.summon.technology_disable.clone(),
             dead_summon: None,
+            surfacing: None,
         };
         let mut actor = Actor::at_generated_position(placement, rules, x_q32, z_q32);
         if let Some(facing) = facing {

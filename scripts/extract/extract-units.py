@@ -53,6 +53,10 @@ FREE_MOVE_MASK = 0x40000000040010
 # for a row targeting small, medium or huge units.
 UNIT_SIZES = {0: "small", 1: "medium", 2: "huge"}
 
+# The lists of `TechnologyGroupData` whose rows make a unit of `unitID`.
+SUMMONING_TECHNOLOGIES = ("supportUnitTechnologies", "deadSummonTechnologies", "moveAbilitySummonTechDatas")
+
+
 def free_move(unit):
     return unit <= 54 and bool(FREE_MOVE_MASK >> unit & 1)
 
@@ -130,8 +134,9 @@ def refuse(unit, reason):
 
 def render(mech, card, kind, skill, rvo, type_name, extra_weapons, summoned):
     unit = mech["id"]
-    # A special or test unit is written only where a technology's support
-    # skill makes it: the Spider Mine a Tarantula's Spider Mine makes.
+    # A special or test unit is written only where a technology makes it: the
+    # Spider Mine a Tarantula's Spider Mine makes, the Larva a Sandworm's
+    # Replicate makes.
     if (card["specialUnit"] > 0 or card["isTestUnit"]) and not summoned:
         refuse(unit, "is a special or test unit")
     if raw(skill["damageRate"]) != ONE or skill["damage"]:
@@ -642,11 +647,21 @@ def main():
     for entry in yaml.safe_load(UNIT_TECHS.read_text())["units"]:
         researched[entry["unit_id"]] = [tech["id"] for tech in entry["technologies"]]
     rvos = build_data.shared("RVOControllerFixed")
-    # The units a researched technology's support skill makes.
+    # The units a researched technology's support skill makes, and those a
+    # researched technology makes itself: its production line's
+    # (`supportUnitTechnologies`), where its unit dies (`deadSummonTechnologies`)
+    # or as its unit moves (`moveAbilitySummonTechDatas`).
     summoned = {
         skills[row["skillID"]][1]["unitID"]
         for technologies in researched.values() for technology in technologies
         if (row := extra_rows.get(technology)) and skills[row["skillID"]][0] == "supportSkillDatas"
+    }
+    groups = build_data.level0("TechnologyGroupData")
+    every_researched = {technology for technologies in researched.values() for technology in technologies}
+    summoned |= {
+        row["unitID"]
+        for kind in SUMMONING_TECHNOLOGIES for row in groups.get(kind, [])
+        if row["id"] in every_researched
     }
 
     files = {}

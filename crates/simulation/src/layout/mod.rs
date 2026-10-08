@@ -108,6 +108,9 @@ pub(crate) struct Placement {
     /// The unit type its technology summons where it dies, and how many
     /// (`DeadSummonTech`).
     pub(crate) dead_summon: Option<(u32, u32)>,
+    /// The line its technology runs once each time it begins to surface,
+    /// and what it makes (`MoveAbilitySummonTech`).
+    pub(crate) surfacing: Option<Production>,
 }
 
 /// An extra weapon a unit's technology adds, and the fire its hit leaves.
@@ -559,6 +562,7 @@ fn compile_death_summons(
             extra_weapons: worn.extra_weapons,
             technology_disable: worn.technology_disable,
             dead_summon: None,
+            surfacing: None,
         };
         pending.extend(death_summoned(&template, units));
         templates.insert(
@@ -797,6 +801,7 @@ fn compile_formation(
         loadouts,
         refused,
     );
+    let surfacing = surfacing_of(side_name, (rules, level), units, side, loadouts, refused);
     let formation_index = refused.hold(formation.index.map_or_else(
         || {
             i32::try_from(index)
@@ -804,8 +809,8 @@ fn compile_formation(
         },
         Ok,
     ));
-    let (Some(()), Some(()), Some(worn), Some(production), Some(formation_index)) =
-        (fired, fits, worn, production, formation_index)
+    let (Some(()), Some(()), Some(worn), Some(production), Some(surfacing), Some(formation_index)) =
+        (fired, fits, worn, production, surfacing, formation_index)
     else {
         return None;
     };
@@ -819,14 +824,7 @@ fn compile_formation(
         ));
         return None;
     }
-    let local_x = i64::from(formation.position.x);
-    let local_z = i64::from(formation.position.y);
-    let (world_x, world_z) = if team == 0 {
-        (local_x, local_z)
-    } else {
-        (-local_x, -local_z)
-    };
-    let rotation = formation_rotation(formation.position, team, world_x);
+    let (world_x, world_z, rotation) = world_placement(formation.position, team);
     Some(Placement {
         team,
         unit_id: 0,
@@ -859,7 +857,25 @@ fn compile_formation(
         extra_weapons: worn.extra_weapons,
         technology_disable: worn.technology_disable,
         dead_summon: worn.dead_summon,
+        surfacing,
     })
+}
+
+/// Where a formation stands in the world, red's half turned about the
+/// centre, and which way it faces.
+fn world_placement(position: mechcore_document::Position, team: u32) -> (i64, i64, i64) {
+    let local_x = i64::from(position.x);
+    let local_z = i64::from(position.y);
+    let (world_x, world_z) = if team == 0 {
+        (local_x, local_z)
+    } else {
+        (-local_x, -local_z)
+    };
+    (
+        world_x,
+        world_z,
+        formation_rotation(position, team, world_x),
+    )
 }
 
 /// A formation faces the enemy from its side's half, and the middle from a
@@ -927,6 +943,20 @@ fn production_of(
             return None;
         }
     };
+    made_by(side_name, line, level, units, side, loadouts, refused).map(Some)
+}
+
+/// What a line its unit runs makes, as its side's loadout writes it: a unit
+/// at its owner's level, or the first.
+fn made_by(
+    side_name: &str,
+    line: ProductionLine,
+    level: i64,
+    units: &UnitConfigs,
+    side: &SidePlan,
+    loadouts: &Loadouts,
+    refused: &mut Refusals,
+) -> Option<Production> {
     let Some(made) = units.by_type_id(line.unit_type_id) else {
         refused.push(format!(
             "side {side_name}: a production line makes unit {}, which has no unit configuration",
@@ -964,12 +994,44 @@ fn production_of(
     }
     let mut corrections = worn.corrections;
     corrections.extend(line.make_corrections.iter().copied());
-    Some(Some(Production {
+    Some(Production {
         line,
         rules: made,
         corrections,
         technology_disable: worn.technology_disable,
-    }))
+    })
+}
+
+/// The line a unit's technology runs once each time it begins to surface
+/// (`MoveAbilitySummonTech`), and what it makes. A technology this build
+/// cannot apply is refused by the unit's loadout.
+#[allow(clippy::option_option, reason = "a refusal is kept apart from no line")]
+fn surfacing_of(
+    side_name: &str,
+    (rules, level): (&UnitConfig, i64),
+    units: &UnitConfigs,
+    side: &SidePlan,
+    loadouts: &Loadouts,
+    refused: &mut Refusals,
+) -> Option<Option<Production>> {
+    let Ok(sources) = loadouts
+        .technologies
+        .sources(&side.techs.units, &rules.type_name)
+    else {
+        return Some(None);
+    };
+    let Some(line) = sources.surfacing_line else {
+        return Some(None);
+    };
+    if rules.underground.is_none() {
+        refused.push(format!(
+            "side {side_name} unit type {:?} makes units as it surfaces and never burrows, \
+             which is not read",
+            rules.type_name
+        ));
+        return None;
+    }
+    made_by(side_name, line, level, units, side, loadouts, refused).map(Some)
 }
 
 /// A technology's support skill as the production line it runs.

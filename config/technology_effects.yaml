@@ -56,7 +56,10 @@ schema: mechcore.technology_effects
 # skill while it intercepts (`weapon_count`, `preemptive`). A
 # technology that summons where its unit dies carries the unit type,
 # how many by its unit's level, and the DynamicMechLevel they take
-# (`dead_summon`: 0 the first level, 3 its unit's).
+# (`dead_summon`: 0 the first level, 3 its unit's). A technology that
+# makes units as its unit's move ability reaches a time (a
+# MoveAbilityTimeType: 2 as it begins to surface) carries that time and
+# the line it makes them by (`move_summon`), as a production row does.
 
 technologies:
   - id: 206
@@ -1069,6 +1072,18 @@ technologies:
     name: 复制
     unit: sandworm
     kind: moveAbilitySummonTechDatas
+    move_summon:
+      summon_time: 2
+      support_unit_id: 1001
+      unit_level: 3
+      max_batch: 1
+      max_alive: 99
+      create_count_per_time: 1
+      start_time: 0
+      appear_type: 4
+      product_time: 4294967296  # 1
+      create_duration: 0  # 0
+      positions: [{x: 0, z: 150323855360}]
   - id: 3723
     name: 沙暴
     unit: sandworm

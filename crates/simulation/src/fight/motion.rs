@@ -103,6 +103,34 @@ pub(in crate::fight) struct Motion {
     pub(in crate::fight) path_finding: Option<path_finding::PathFinding>,
 }
 
+/// What a motion asks of its agent: where to, how fast, and how fast at
+/// most, Q32.32.
+#[derive(Debug, Clone, Copy)]
+pub(in crate::fight) struct AgentRequest {
+    target_x: i64,
+    target_z: i64,
+    speed: i64,
+    max_speed: i64,
+}
+
+impl Motion {
+    pub(in crate::fight) fn agent_request(&self) -> AgentRequest {
+        AgentRequest {
+            target_x: self.next_target_x_q32,
+            target_z: self.next_target_z_q32,
+            speed: self.next_speed_q32,
+            max_speed: self.next_max_speed_q32,
+        }
+    }
+
+    pub(in crate::fight) fn set_agent_request(&mut self, request: AgentRequest) {
+        self.next_target_x_q32 = request.target_x;
+        self.next_target_z_q32 = request.target_z;
+        self.next_speed_q32 = request.speed;
+        self.next_max_speed_q32 = request.max_speed;
+    }
+}
+
 pub(in crate::fight) fn rvo_profile(rules: &UnitConfig) -> RvoProfile {
     let profile = rules.rvo;
     RvoProfile {
@@ -586,15 +614,25 @@ impl Simulation {
         update: SkillUpdate,
     ) -> Result<()> {
         let before = self.actors[&actor_id].motion.state;
+        let request = self.actors[&actor_id].motion.agent_request();
         self.update_motion_states(actor_id, step, events, update)?;
         // A change of state goes through the transition with a move ability
         // (`ChangeToMoveState`, `ChangeToAttackState`,
         // `MotionMoveState.ChangeToIdle`). What the skill did on the way
         // stands: `SkillIdleState.TryStartAttack` starts the attack of a
         // unit coming into range whatever its motion does, and only the
-        // surfacing's `SkillManager.Deactive` stops it again.
+        // surfacing's `SkillManager.Deactive` stops it again. The state it
+        // leads to is entered only as the transition ends, so what its
+        // `Enter` asks of the agent (`RVOControllerFixed.StopMove`) waits
+        // till then: a Larva that has just joined, never handed a speed,
+        // goes into the solve that its transition spans with none.
         let after = self.actors[&actor_id].motion.state;
         if before != after && self.transits(actor_id, before, after) {
+            self.actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable")
+                .motion
+                .set_agent_request(request);
             self.begin_transition(actor_id, before, after);
         }
         Ok(())
@@ -1192,7 +1230,15 @@ impl Simulation {
     ) -> Result<SkillUpdate> {
         let actor = &self.actors[&actor_id];
         let skill = &actor.skills.main;
-        if actor.motion.state != MotionState::Attacking
+        // `SkillAttackState.TryPerformAttack` asks nothing of the motion: a
+        // unit whose move ability holds it in its `TransitionState` on the
+        // way to attacking, its skills active, fires all the same. A Larva
+        // that has just surfaced into the fight fires on the tick its
+        // transition ends.
+        let attacking = actor.motion.state == MotionState::Attacking
+            || (actor.motion.state == MotionState::Transitioning
+                && actor.motion.transition_to == Some(MotionState::Attacking));
+        if !attacking
             || actor.motion.attacker != SkillSlot::Main
             || skill.phase() != FightSkillPhase::Attack
             || skill.is_grouped()

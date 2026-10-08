@@ -66,6 +66,7 @@ pub(super) fn placement(
         extra_weapons: Vec::new(),
         technology_disable: crate::layout::TechnologyDisable::default(),
         dead_summon: None,
+        surfacing: None,
     }
 }
 

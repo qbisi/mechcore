@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result};
 
-const DEFAULT_UNITS: [&str; 34] = [
+const DEFAULT_UNITS: [&str; 35] = [
     include_str!("../../../config/units/marksman.yaml"),
     include_str!("../../../config/units/rhino.yaml"),
     include_str!("../../../config/units/wasp.yaml"),
@@ -39,6 +39,7 @@ const DEFAULT_UNITS: [&str; 34] = [
     include_str!("../../../config/units/war_factory.yaml"),
     include_str!("../../../config/units/abyss.yaml"),
     include_str!("../../../config/units/spider_mine.yaml"),
+    include_str!("../../../config/units/larva.yaml"),
 ];
 const DEFAULT_TOWERS: &str = include_str!("../../../config/towers.yaml");
 const DEFAULT_MAPS: &str = include_str!("../../../config/maps.yaml");
@@ -1595,7 +1596,7 @@ mod tests {
     fn si_values_quantize_to_the_internal_integer_grid() {
         let config = SimulationConfig::load().unwrap();
         assert_eq!(config.game_build, mechcore_document::game_build());
-        assert_eq!(config.units.units.len(), 34);
+        assert_eq!(config.units.units.len(), 35);
         let arclight = config.units.get("arclight").unwrap();
         assert_eq!(arclight.collision_radius(), 9_000);
         assert_eq!(arclight.move_speed(), 7_000);
