@@ -14,6 +14,7 @@ mod event_table;
 mod hashed_content;
 mod instrument;
 mod model;
+mod numbering;
 mod parquet_storage;
 mod reader;
 mod recording;
@@ -27,6 +28,7 @@ pub use instrument::{
     valid_channel_name,
 };
 pub use model::*;
+pub use numbering::UnitNumbering;
 pub use reader::McfrReader;
 pub use recording::{MemoryRecording, Recording};
 pub use writer::McfrWriter;

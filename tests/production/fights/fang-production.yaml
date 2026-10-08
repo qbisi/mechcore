@@ -1,0 +1,28 @@
+# Fang Production on blue's Fortress: a technology's production line of no
+# positions, whose makes appear with an effect (`appearType` 1). Each batch
+# makes eight Fangs where the Fortress stands, each scattered within its
+# 13-metre radius by two draws of blue's stream, x then z.
+#
+# A make that takes no time to appear joins at once (`SummonSystem.AddMech`),
+# so each Fang draws its first interval before the next one's scatter, and its
+# clock holds until its first update. Present in the first snapshot, the
+# eight are initial units to the recording, numbered by side, z and x among
+# the Fortress and red's units.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 405
+hash: {profile: mcfr-content-0.7.0, result: 016c9f039c56255478ce412ab2090c774922887779874c39204b3770a73e4776}
+blue:
+  techs:
+    fortress: [fang_production]
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -150}, exp: 0/600/1600}
+red:
+  core_damage: 355
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/36/650}

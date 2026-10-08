@@ -1,0 +1,20 @@
+# Mothership on blue's Overlord: as `fang-production.yaml`, with five Wasps a
+# batch within the Overlord's radius.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 402
+hash: {profile: mcfr-content-0.7.0, result: f13cda86670fa1f2f4151f6f3c79dfd11e9b8785390b04092eaabdb22325ddc2}
+blue:
+  techs:
+    overlord: [mothership]
+  units:
+  - {name: overlord, index: 0, position: {x: 5, y: -145}, exp: 0/600/1750}
+red:
+  core_damage: 400
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/25/1150}
+  - {name: marksman, index: 1, position: {x: 60, y: -100}, exp: 0/144/650}

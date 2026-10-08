@@ -197,7 +197,14 @@ impl Creator {
             per_time: line.per_time,
             interval_ticks: u32::try_from(seconds_q32_to_steps(line.interval_q32))
                 .unwrap_or(u32::MAX),
-            random_range_q32: 0,
+            // A line of no positions makes about its owner, scattered within
+            // the owner's radius (`SpecialSupportUnitData.GetRandomRange`,
+            // `IBuffTarget.GetRadius`).
+            random_range_q32: if line.offsets.is_empty() {
+                space_to_q32(owner.rules.collision_radius())
+            } else {
+                0
+            },
             drop_damage: false,
             updates: u64::MAX,
             corrections: production.corrections.clone(),
@@ -390,23 +397,7 @@ impl Simulation {
             }
             None => (creator.x_q32, creator.z_q32, None),
         };
-        // A line of one position that may keep two alive scatters each make
-        // by up to a metre, a draw a hundredth of a metre each way, x first
-        // (`SummonSystem.CreateMech` with `positionDatas`).
-        if creator.owner.is_some() && creator.offsets.len() == 1 && creator.max_alive >= 2 {
-            for axis in [&mut x_q32, &mut z_q32] {
-                let draw = self.side_random(team)?.next_in_range(100);
-                *axis = axis.saturating_add(hundredths(draw));
-            }
-        }
-        if creator.summon.random_range_q32 > 0 {
-            let span = i32::try_from((creator.summon.random_range_q32 >> 32) * 100)
-                .map_err(|_| Error::new("a summon's scatter exceeds i32"))?;
-            for axis in [&mut x_q32, &mut z_q32] {
-                let draw = self.side_random(team)?.next_in_range(span);
-                *axis = axis.saturating_add(hundredths(draw));
-            }
-        }
+        self.scatter(creator, &mut x_q32, &mut z_q32)?;
         let rules = creator.summon.rules.clone();
         // `CreateSummonMechInfo.level`: the owner's, for a make of
         // `DynamicMechLevel.Parent`.
@@ -482,12 +473,52 @@ impl Simulation {
             },
         ));
         self.rvo.added_units.push(unit_id);
-        self.support.appearing.push(Appearing {
-            actor,
-            joins_on: tick + creator.appear_ticks,
-            drop_damage: creator.summon.drop_damage,
-        });
+        // `SummonSystem.DoCreateMech`: a summon that takes no time to appear
+        // joins at once (`AddMech`) rather than by `CreateMechDelay`, its
+        // skills' first intervals drawn before the next make's scatter.
+        if creator.appear_ticks == 0 {
+            self.let_in(actor, creator.summon.drop_damage, events)?;
+            // It joins after this tick's updates, as a dying unit's summon
+            // does: its clock reads its interval until its first.
+            self.actors
+                .get_mut(&unit_id)
+                .expect("the summon has just joined")
+                .skills
+                .hold_attack_clocks();
+        } else {
+            self.support.appearing.push(Appearing {
+                actor,
+                joins_on: tick + creator.appear_ticks,
+                drop_damage: creator.summon.drop_damage,
+            });
+        }
         Ok(unit_id)
+    }
+
+    /// Where a summon stands once scattered: a line of one position that may
+    /// keep two alive by up to a metre (`SummonSystem.CreateMech` with
+    /// `positionDatas`), and a creator with a random range within its whole
+    /// metres, each two draws of its side's stream, x first.
+    fn scatter(&mut self, creator: &Creator, x_q32: &mut i64, z_q32: &mut i64) -> Result<()> {
+        let team = creator.team;
+        // A line of one position that may keep two alive scatters each make
+        // by up to a metre, a draw a hundredth of a metre each way, x first
+        // (`SummonSystem.CreateMech` with `positionDatas`).
+        if creator.owner.is_some() && creator.offsets.len() == 1 && creator.max_alive >= 2 {
+            for axis in [&mut *x_q32, &mut *z_q32] {
+                let draw = self.side_random(team)?.next_in_range(100);
+                *axis = axis.saturating_add(hundredths(draw));
+            }
+        }
+        if creator.summon.random_range_q32 > 0 {
+            let span = i32::try_from((creator.summon.random_range_q32 >> 32) * 100)
+                .map_err(|_| Error::new("a summon's scatter exceeds i32"))?;
+            for axis in [&mut *x_q32, &mut *z_q32] {
+                let draw = self.side_random(team)?.next_in_range(span);
+                *axis = axis.saturating_add(hundredths(draw));
+            }
+        }
+        Ok(())
     }
 
     /// Where a production line's make stands, and which way it faces:
@@ -507,10 +538,10 @@ impl Simulation {
                  `OnDead` takes the line away, which is not measured"
             )));
         };
+        // A line of no positions makes where its owner stands
+        // (`SpecialSupportUnitData.GetPosition`).
         let index = usize::try_from(member).unwrap_or(usize::MAX) % creator.offsets.len().max(1);
-        let Some(&(right, forward)) = creator.offsets.get(index) else {
-            return Err(Error::new("a production line holds no offset"));
-        };
+        let (right, forward) = creator.offsets.get(index).copied().unwrap_or((0, 0));
         let facing = if creator.body_frame {
             owner_actor
                 .turret_rotation()

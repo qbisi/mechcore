@@ -348,6 +348,7 @@ pub(in crate::fight) fn execute(
     simulation.initialize_presearch_targets()?;
     costs.prepare = prepare_started.elapsed();
     let mut steps = 0;
+    let mut numbering = mechcore_mcfr::UnitNumbering::default();
     let mut first_divergence = None;
     let mut divergent_tick = None;
     let max_steps = FIGHT_TIME_SECONDS
@@ -358,14 +359,13 @@ pub(in crate::fight) fn execute(
             break "forced_time_limit";
         }
         let step_started = Instant::now();
-        let events = simulation.step(steps)?;
+        let mut events = simulation.step(steps)?;
         steps += 1;
         let tick = u32::try_from(steps).map_err(|_| Error::new("tick index exceeds u32"))?;
         simulation.close_tick(steps >= max_steps)?;
         let stepped = step_started.elapsed();
         let snapshot_started = Instant::now();
-        let mut state = simulation.snapshot();
-        state.canonicalize();
+        let state = simulation.recorded(tick, &mut numbering, &mut events.events);
         costs.snapshot += snapshot_started.elapsed();
         costs.stepped(tick, stepped, state.live_units.len());
         let record_started = Instant::now();
@@ -423,6 +423,27 @@ pub(in crate::fight) fn execute(
         divergent_tick,
         costs,
     })
+}
+
+impl Simulation {
+    /// The tick's snapshot as a recording numbers it: a unit made on the
+    /// first tick that joins at once is an initial unit to the recording,
+    /// which numbers it among the layout's, and every tick after keeps that
+    /// numbering.
+    fn recorded(
+        &self,
+        tick: u32,
+        numbering: &mut mechcore_mcfr::UnitNumbering,
+        events: &mut [Event],
+    ) -> WorldSnapshot {
+        let mut state = self.snapshot();
+        state.canonicalize();
+        if tick == 1 {
+            *numbering = mechcore_mcfr::UnitNumbering::of_first_snapshot(&state);
+        }
+        numbering.apply(&mut state, events);
+        state
+    }
 }
 
 /// The writer a fight records into: a recording at a path or in memory,
