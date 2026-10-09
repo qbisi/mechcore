@@ -174,6 +174,15 @@ too. A row of another time or move type is refused:
 `tests/move_ability/fights/sandstorm.yaml` and
 `tests/move_ability/fights/sandstorm-steel_ball.yaml`.
 
+Switched off with its unit's technologies,
+`MoveAbilityRangeItemProvider.DisableEffect` takes the action off the move
+ability (`MoveAbilityRangeItemSystem.RemoveMech`) and stops hearing the
+unit's ability change (`MotionController.UnRegisterMoveAbilityChange`), so a
+surfacing that ends while they are off leaves no sand fog; `EnableEffect`
+puts the action back (`AddMech`) but not the listener, which only a unit that
+changes its move ability would notice. Read from the build; no recording
+holds it.
+
 ## A hidden unit as a target
 
 A unit that is not visible is no valid target (`FightActor.IsValidTarget`,
@@ -270,7 +279,9 @@ stands where it was on that tick while every other unit moves.
 - A sand fog as it surfaces: `MoveAbilityRangeItemProvider.DoActive`,
   `MoveAbilityRangeItemSystem.AddMech`, `MoveAbilityRangeItemSystem.EnableEffect`,
   `MoveAbilityRangeItemTech.GetItemType`, `MoveAbilityRangeItemTech.GetLifeTime`,
-  `MoveAbilityRangeItemTech.GetRoundDuration`, `RangeItemSystem.AddItem`.
+  `MoveAbilityRangeItemTech.GetRoundDuration`, `RangeItemSystem.AddItem`,
+  `MoveAbilityRangeItemProvider.DisableEffect`, `EnableEffect`,
+  `MoveAbilityRangeItemSystem.RemoveMech`.
 - A stronger surfacing: `MoveAbilityAttackIntensifyProvider.DoActive`,
   `MoveAbilityAttackIntensifyProvider.IsAvailableMoveAbility`,
   `MoveAbilityAttackIntensifyProvider.EnterCondition`,
