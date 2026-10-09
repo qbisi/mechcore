@@ -26,6 +26,7 @@ fetch:
     python3 scripts/corpus/export-replay-corpus.py
     python3 scripts/corpus/verify-matches.py
     python3 scripts/corpus/verify-matches.py --json > coverage.json
+    python3 scripts/corpus/verify-matches.py --json-out coverage.json
 """
 
 from __future__ import annotations
@@ -60,6 +61,11 @@ def parse_arguments(root: Path) -> argparse.Namespace:
         "--json",
         action="store_true",
         help="print the summary as one JSON object instead of tables",
+    )
+    parser.add_argument(
+        "--json-out",
+        type=Path,
+        help="also write the summary as JSON to this file, beside the tables",
     )
     parser.add_argument(
         "--limit",
@@ -273,6 +279,8 @@ def main() -> int:
         return 2
 
     summary = summarize(matches, verify(executable, matches))
+    if args.json_out:
+        args.json_out.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n")
     if args.json:
         print(json.dumps(summary, ensure_ascii=False, indent=2))
     else:

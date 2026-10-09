@@ -9,7 +9,8 @@ name: corpus
 # the corpus cannot keep a pull request from merging. On a pull request it
 # keeps one comment up to date with the numbers beside those of the master
 # commit the pull request is based on; on master it keeps the reports those
-# comments are compared with. A run that cannot measure still fails, and the
+# comments are compared with, and opens one issue for the rounds a commit
+# newly fights wrong. A run that cannot measure still fails, and the
 # failure is for whoever reads the run.
 on:
   push:
@@ -30,6 +31,7 @@ jobs:
       contents: read
       actions: read
       pull-requests: write
+      issues: write
     steps:
       - uses: actions/checkout@v4
 
@@ -48,8 +50,13 @@ jobs:
       - name: Release build, without the Adapter
         run: cargo build --release -p mechcore --no-default-features
 
+      # The corpus commit is kept with the reports, so a round new to a run
+      # can be told apart from a replay added since the run before.
       - name: Fetch the corpus at its master
-        run: python3 scripts/corpus/replay.py sync
+        run: |
+          python3 scripts/corpus/replay.py sync
+          mkdir -p distance
+          git -C work/replay rev-parse --short HEAD > distance/corpus-commit
 
       # A replay of this version the converter refuses, or one that does not
       # come back the same, fails the run here.
@@ -72,7 +79,8 @@ jobs:
       - name: Rounds fought as the match says
         run: |
           status=0
-          python3 scripts/corpus/verify-matches.py > distance/verify-matches.txt || status=$?
+          python3 scripts/corpus/verify-matches.py --json-out distance/verify-matches.json \
+            > distance/verify-matches.txt || status=$?
           cat distance/verify-matches.txt
           [ "$status" -le 1 ]
 
@@ -129,4 +137,22 @@ jobs:
             gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@comment.md >/dev/null
           else
             gh pr comment "$NUMBER" --body-file comment.md
+          fi
+
+      # On master, the rounds this commit fights wrong that its parent did
+      # not, as one issue. Every one is a divergence to find; which mechanism
+      # it parts on needs the game, which this run does not have.
+      - name: Open an issue for the rounds newly fought wrong
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          before=
+          [ -f before/commit ] && before=--before=before
+          python3 scripts/corpus/divergence-issue.py distance $before \
+            --commit "$GITHUB_SHA" --run "$RUN" --out issue
+          if [ -f issue/issue.md ]; then
+            gh issue create --title "$(cat issue/issue-title.txt)" \
+              --body-file issue/issue.md --label divergence
           fi
