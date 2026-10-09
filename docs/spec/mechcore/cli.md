@@ -541,23 +541,16 @@ enum column its tags.
 set and no others. Its `reason`, where it carries one, is the tag's name as
 the kind's own enum names it.
 
-**The layout.** The embedded layout is laid out by its own shape, each row
-naming its `side` and the `team_id` the recording records that side under:
-`layout`, one row of `game_build`, `map_id`, `seed` and `round`;
-`layout_sides`, each side's `legacy_index`; `layout_units`, one row per
-formation placement keyed by `side` and `placement`, the placement's `index`,
-with its `name`, `x` and `y` as the document writes them, `level`, `exp__current`
-and `exp__maximum`, `rotated` and `travelling` where the document states them;
-`layout_units__equipment`, what each formation wears in order;
-`layout_constructions` and `layout_contraptions`, keyed the same way; and
-`layout_choices`, every list of names or numbers a side states — its officers,
-blueprints, energy tower skills, tower strengthen levels and, under `unit`, its
-technologies by unit type — as `list`, `unit`, `ordinal` and `value`.
-`layout_units.formation_id` is the recorded formation the placement is, matched
-as [`show --view outcome`](#show) matches them: by where the formation's
-members stand at the first tick. A placement no formation is matched to has
-none, and where the matching refuses every one is null and `meta` holds the
-refusal as `layout_formations_refused`.
+**Formations by placement.** The embedded layout is read as it is written,
+from `meta`'s `layout.yaml`; two tables hold what naming a formation takes.
+`layout` is one row of `game_build`, `map_id`, `seed` and `round`, and
+`layout_units` one row per formation placement, keyed by `side` and
+`placement`, the placement's `index`, with the `team_id` the recording records
+the side under, its `name`, and `formation_id`, the recorded formation the
+placement is, matched as [`show --view outcome`](#show) matches them: by where
+the formation's members stand at the first tick. A placement no formation is
+matched to has none, and where the matching refuses every one is null and
+`meta` holds the refusal as `layout_formations_refused`.
 
 Beside SQLite's own functions, `q32(x)` reads a fixed-point value as a real
 number, and `sqrt(x)` and `hypot(x, y)` are the square root and the length of a
