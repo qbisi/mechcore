@@ -1,7 +1,5 @@
 # mcscript
 
-[TOC]
-
 ## Scope
 
 A `.mcscript` describes one bounded run: an optional game acquisition, named

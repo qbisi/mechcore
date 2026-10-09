@@ -1,7 +1,5 @@
 # Match turn file
 
-[TOC]
-
 ## Scope
 
 This contract defines the file a match in progress keeps beside its document:

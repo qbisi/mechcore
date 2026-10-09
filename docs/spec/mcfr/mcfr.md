@@ -1,7 +1,5 @@
 # MCFR, format 0.23.0
 
-[简体中文](mcfr.zh.md)
-
 ## Scope
 
 This contract defines the MCFR logical model: the container's members, the

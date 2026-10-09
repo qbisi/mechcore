@@ -23,18 +23,8 @@ for a spec.
 
 ## Language
 
-Every primary document is written in English. A translation is optional, lives
-beside its primary as `<name>.zh.md`, and is linked from the first line of both
-files:
-
-```markdown
-[简体中文](officers.zh.md)
-[English](officers.md)
-```
-
-A translation is a second copy of one document, not a second document. It is
-classed with the primary rather than on its own, it carries no content the
-primary lacks, and when the two disagree the primary wins.
+Every document is written in English, and none is translated: a second copy
+is a second thing to keep in step, and it falls behind.
 
 English prose may quote a name in another language where the name is the
 identifier: an index that lists the game's official Simplified Chinese names in
@@ -272,7 +262,3 @@ names what it does not cover rather than implying coverage.
 The checker holds the list, not this page, and it fails when a new spec is
 neither classified nor conforming. So the claim in the paragraph above cannot
 quietly stop being true.
-
-Every document here now has an English primary, and nine carry a `.zh.md`
-translation beside it. A new one starts in English; a translation is optional
-and follows.

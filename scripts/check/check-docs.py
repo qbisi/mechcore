@@ -160,8 +160,7 @@ def check_repeated_paragraphs(paths, fail):
 
 def check_spec_classification(paths, fail):
     classified = DOCUMENT_FORMAT | INTERFACE_CONTRACT | ALGORITHM_CONTRACT
-    present = {str(p) for p in paths
-               if str(p).startswith("docs/spec/") and not str(p).endswith(".zh.md")}
+    present = {str(p) for p in paths if str(p).startswith("docs/spec/")}
     for path in sorted(present - classified):
         fail(f"{path}: not classified in scripts/check/check-docs.py; "
              f"add it to a kind and to docs/README.md")
