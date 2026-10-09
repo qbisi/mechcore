@@ -1,0 +1,28 @@
+# The fallen side's towers stand in the RVO solve of the tick they are torn
+# down. A blue Rhino kills red's Fortress, its last unit, on tick 380, a solve
+# tick, with blue's Wasps' shots still in the air until tick 385. Blue's two
+# Typhoons are still walking; idle from tick 381, they go on at the speed the
+# tick 380 solve handed them, published on tick 384. That solve had red's two
+# towers in it: without them the Typhoons' published velocities differ on
+# tick 384 and their positions on tick 385.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 385
+hash: {profile: mcfr-content-0.23.0, result: a2ad0907544e7458f758f069cfea604bcd49720813f3bd1f274f4fcd91497034}
+blue:
+  units:
+  - {name: typhoon, index: 0, position: {x: 0, y: -150}, level: 4, exp: 0/318/8756}
+  - {name: rhino, index: 1, position: {x: -35, y: -125}, level: 4, exp: 0/227/5164}
+  - {name: rhino, index: 2, position: {x: 45, y: -125}, level: 4, exp: 0/613/5164}
+  - {name: wasp, index: 3, position: {x: 5, y: -180}, exp: 0/216/900}
+red:
+  core_damage: 854
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -180}}
+  - {name: crawler, index: 1, position: {x: 5, y: -40}}
+  - {name: crawler, index: 2, position: {x: -45, y: -40}}
+  - {name: crawler, index: 3, position: {x: 55, y: -40}}

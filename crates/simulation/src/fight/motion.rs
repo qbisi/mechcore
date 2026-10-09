@@ -564,7 +564,17 @@ impl Simulation {
                 .construction_colliders
                 .get(&building.building_id)
                 .copied();
-            if !building_alive(building) || !(rvo_collides(building) || construction.is_some()) {
+            // A building `TryDstroyTower` tore down this tick keeps its agent
+            // through the solve: `FightingState.Update` runs the RVO after
+            // it, and the `OnDead` that deactivates the agent
+            // (`FightCrystal.Deactive`) waits for the next tick's
+            // `DeadEffectSystem`.
+            let standing = building_alive(building)
+                || self
+                    .ending
+                    .torn_down_buildings
+                    .contains(&building.building_id);
+            if !standing || !(rvo_collides(building) || construction.is_some()) {
                 return None;
             }
             let (layer, collides_with) = construction.map_or(

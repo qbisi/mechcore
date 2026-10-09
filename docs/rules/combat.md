@@ -982,6 +982,17 @@ on the next, which is the fight's last. `DeadEffectSystem` writes them there,
 after the projectiles that tick resolved and before what those killed: a
 Wasp's shot at a tower torn down is removed before the tower falls.
 
+**A tower torn down still stands in the RVO solve of the tick that tore it
+down.** `FightingState.Update` runs the RVO after `TryDstroyTower`, and the
+teardown only takes the tower's life (`DestroySelf`): the `OnDead` that
+deactivates its agent runs in the next tick's `DeadEffectSystem`. When that
+tick solves and the fight runs on, shots still in the air, the solve is built
+with the fallen side's towers in it, and what it hands the units still walking
+is published four ticks later. A unit that died that tick is gone from the
+solve: its `OnDead` ran in that tick's `DeadEffectSystem`. A construction
+the teardown takes goes the same way, through its own `DestroySelf`; that is
+read, and no recording shows it.
+
 **A tick that leaves neither side a unit takes both sides' towers down, when
 no projectile is in flight.** A Missile Strike landing among both sides'
 Crawlers, before any unit updates, leaves both teams' counts at zero, and all
@@ -1088,6 +1099,12 @@ not the game's native attack-type enum.
   nothing, splash included, and on the fight's last tick a Wasp's shot at a
   tower torn down is removed before the towers fall:
   `tests/corpus/fights/67158166-r2.yaml`, ticks 290 and 765.
+- The fallen side's towers stand in the solve of the tick they are torn down:
+  red's Fortress dies to a Rhino on a solve tick with Wasp shots still in the
+  air, and the two Typhoons walking on are published, four ticks later, the
+  speed a solve with red's towers in it gives:
+  `tests/endgame/fights/towers-torn-down-stand-in-the-solve.yaml`, ticks 380
+  and 384.
 
 - A Vortex left with only aircraft to fire at locks one, walks on it, idles
   in touch, searches every eleven ticks and sets off again when its lock
@@ -1450,6 +1467,14 @@ not the game's native attack-type enum.
   `FightingState.Update`, `DeadEffectSystem.Update`. `DeadEffectSystem`
   updates after `FightCoreSystem` and `ProjectileSystem`:
   `FightController.AddModules`.
+- A tower torn down keeps its agent until its `OnDead`: the RVO runs after
+  the teardown, `FightingState.Update`, `RVOSimulatorFixed.DoFixedUpdate`;
+  the teardown takes life only, `FightCoreSystem.TryDstroyTower`,
+  `FightActor.DestroySelf`, `FightConstruction.DestroySelf`,
+  `FightActor.ReduceLife`, `DeadEffectSystem.OnActorDead`; the agent goes at
+  `OnDead`, `FightCrystal.OnDead`, `FightTeamController.OnTowerDestoryed`,
+  `FightCrystal.Deactive`, `RVOControllerFixed.Deactive`, and a unit's at
+  its own, `FightMech.OnDead`, `MotionController.ExitFight`.
 - A tower is an ordinary search candidate: `FightTeam.AddTower`,
   `FightTeam.AddActor`, `MechSearchTargetController.SearchLockTarget`.
 - Once at most one side has a live unit the fight is off, and only a skill
