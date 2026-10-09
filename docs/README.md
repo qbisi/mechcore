@@ -17,9 +17,9 @@ A spec defines a shape something must conform to. `spec/` is filed by the crate
 that owns each contract, so a document and the code that must satisfy it are
 found the same way.
 
-The language rule below governs both. After it, one section states the
-convention for a rules document and the rest of the file states the convention
-for a spec.
+The language rule below governs both. After it, the sections up to "A spec's
+shared spine" state what a rules document may claim and on what evidence, and
+the rest of the file states the convention for a spec.
 
 ## Language
 
@@ -65,6 +65,36 @@ None of them belongs in a tracked document; the commit that settled a rule is
 where its history goes. [rules/combat.md](rules/combat.md) is the worked
 example: every entry is a scoped claim, with the boundary it does not cover
 stated next to it.
+
+## Two gates
+
+Reproducing a replay is not proving a mechanism. Byte-identical trajectories
+over several independent replays support the main path they traverse,
+strongly. They say nothing about branches nothing took, and on their own they
+cannot fix a single number. So a mechanism and a number are held to different
+standards before either is written as a rule.
+
+**A mechanism** closes on the build's decompiled code: a branch, a state
+transition, a formula, a call chain. One that branches too widely to close
+exhaustively may be concluded on risk, but only with all four of: a structure
+that is self-consistent, several mutually independent native trajectories that
+match tick for tick inside a declared scope, no known counterexample and no
+unexplained first divergence inside that scope, and the unverified assumptions
+written down.
+
+**A number** is any constant that reaches the code: a radius, a threshold, an
+interval, a priority, a time horizon. Every one traces to exactly one of the
+build's decompiled code, its extracted resources or serialized config, or a
+native field observed at run time through the Adapter. A number without one
+is a hypothesis: it does not enter the real code path and is not written as a
+fact about the game. Four things look like evidence for a number and are not:
+a trajectory that fits, an outcome that matches, an older project's config,
+and whatever value makes the implementation convenient. The number gate never
+relaxes because the mechanism around it was concluded on risk.
+
+A question reopens on an event, not on a feeling: a counterexample, a new
+build, or a task that widens the declared scope. Re-researching a closed
+question because it feels incomplete is the most expensive habit available.
 
 ## Evidence a rule may cite
 

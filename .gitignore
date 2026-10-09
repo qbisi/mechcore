@@ -2,8 +2,5 @@
 # the pages `mechcore play` writes beside a layout
 /layouts/*.html
 __pycache__
-/work/*
-!/work/research/
-/work/research/*
-!/work/research/README.md
+/work/
 .DS_Store

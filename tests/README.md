@@ -125,6 +125,35 @@ round pinned in [`corpus/`](corpus/README.md) is held by CI. Layouts built by
 hand that no script uses, and the one the crates' tests read as a plain
 layout, are in [`../layouts/`](../layouts/README.md).
 
+## A match needs a witness
+
+A recording that matches is evidence for a mechanism only if it would have
+caught the mechanism wrong. So a mechanism is not done when its probes match;
+it is done when its probes are shown to see it. Each check runs on the
+simulator alone, without the game.
+
+- **Off.** Switched off in the simulator, the mechanism moves the probe's hash.
+  If the hash holds, the probe did not exercise it or the recording cannot see
+  it. Find a probe that does, or, when none can, propose the admission that
+  lets the hash see it.
+- **Late.** Shifted by one tick, or with one of its numbers nudged, the
+  mechanism's first divergence lands near the tick it first acts. One that
+  lands far later, or only in what the round settles, means the hash lacks the
+  state that carried the error: propose its admission
+  ([mcfr.md](../docs/spec/mcfr/mcfr.md#admission-to-the-hash)). An
+  instrument channel may locate it meanwhile, but does not pass this check.
+- **Cause.** A damage, buff or unit the mechanism makes carries the cause the
+  build has. An event whose cause is null where the build's call has one is a
+  gap in the format.
+- **Entry.** Every hooked build entry the mechanism passes writes its event.
+  One the build passes and the recording lacks is a capture bug, fixed rather
+  than worked around.
+
+The pull request that lands a mechanism names its witness: the recorded fields
+or events that see it, and for each mutation the tick of its first divergence
+beside the tick the mechanism first acts. A format change the witness needs
+blocks the mechanism: it goes on the stack above it, and the mechanism waits.
+
 ## Standard unit layouts
 
 [`plan/units.md`](../plan/units.md) defines when a unit is supported without
