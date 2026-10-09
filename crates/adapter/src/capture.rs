@@ -3398,9 +3398,9 @@ fn record_unit_created(team_controller: *mut Object, mech: *mut Object, mech_tea
 }
 
 /// `FightActor.AddLife(value, isShowLifeBar)`, which units, towers and
-/// crystals heal through. Every heal shows the life bar; the two refills that
-/// do not, a unit rising from its death and one landing from a super
-/// deployment, are not heals and are not recorded.
+/// crystals heal through. Every heal shows the life bar; the two that do not,
+/// the refill of a unit rising from its death and the heal a super deployment
+/// gives each second a unit travels, are not heals and are not recorded.
 unsafe extern "C" fn fight_actor_add_life_hook(
     actor: *mut Object,
     value: i32,

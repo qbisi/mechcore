@@ -45,7 +45,10 @@ RVO.y = world.z + 400 m
 ```
 
 The translation changes no distance. It keeps native RVO coordinates positive.
-World height `world.y` takes no part in avoidance.
+World height `world.y` takes no part in avoidance here. The build's does in two
+places this module does not model: it makes no VO for a neighbour whose
+vertical range does not overlap the agent's, and it skips the solve for an
+agent under manual control ([Unresolved](#unresolved)).
 
 Position, radius, velocity, time and weight are all signed Q32.32 raw integers.
 A metre value from a unit configuration quantises to 1 mm first, then enters
@@ -317,7 +320,8 @@ native `CalculateVelocity`.
 
 Changing this module must preserve all of these:
 
-- the coordinate translation, and that world height takes no part;
+- the coordinate translation, and that world height takes no part, until the
+  build's two height and manual-control branches are modelled;
 - every Q32.32 rule above, including the 43-raw tolerance, `Min/Max` returning
   its second argument, the shared reciprocal in vector division, and the
   `Fastest` approximations;
@@ -382,6 +386,13 @@ nothing else, while the kernel fills it with a team ID. Either the field is an
 opaque partition that a caller may key however it likes, in which case the
 kernel's choice is incidental, or it is the team, in which case the module
 should say so and a caller should stop being free to change it.
+
+**Height and manual control.** The build makes no VO for a neighbour whose
+vertical range does not overlap the agent's, and skips the solve of an agent
+under manual control. Neither is modelled: no pinned fight or corpus round is
+known to reach them. The game's `rvo_neighbour` channel names the first
+(`other_elevation`) and `rvo_solve` the second (`manual`), so a recording shows
+whether a fight does.
 
 **Should a building be an agent or a boundary?** A colliding building is
 currently a locked agent with a synthesised priority, size and radius, which
