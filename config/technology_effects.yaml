@@ -1416,6 +1416,13 @@ technologies:
     name: 残骸引爆
     unit: typhoon
     kind: killExplosionTechDatas
+    kill_explosion_range: 51539607552
+    kill_explosion_chains: false
+    kill_explosion_hits_allies: true
+    kill_explosion_buffed: true
+    main_skill_effect: true
+    extra_skill_effect: false
+    kill_explosion_damage: [115]
   - id: 5532
     name: 近战模式
     unit: centurion

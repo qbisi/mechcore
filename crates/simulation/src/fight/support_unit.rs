@@ -246,6 +246,7 @@ impl Creator {
             clear_range_item: production.clear_range_item.clone(),
             rvo_radius_change: production.rvo_radius_change,
             repair: production.repair.clone(),
+            kill_explosion: production.kill_explosion.clone(),
         };
         Self {
             team: owner.placement.team,
@@ -1158,6 +1159,7 @@ fn summon_placement(
         rvo_radius_change: creator.summon.rvo_radius_change,
         clear_range_item: creator.summon.clear_range_item.clone(),
         repair: creator.summon.repair.clone(),
+        kill_explosion: creator.summon.kill_explosion.clone(),
         burrow: creator.summon.burrow.clone(),
         dead_acid: creator.summon.dead_acid,
         sweep: None,

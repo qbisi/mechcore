@@ -197,6 +197,30 @@ pub(crate) struct Repair {
     pub(crate) air: bool,
 }
 
+/// What an `IKillExplosionDataSource` answers: `KillExplosionEffectProvider`
+/// sets off each unit a hit of its unit's skill kills.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "the data source's answers are independent flags"
+)]
+pub(crate) struct KillExplosion {
+    /// `GetExplosionDamage`: whole damage by the unit's level, the last entry
+    /// past its list.
+    pub(crate) damage: Vec<i64>,
+    /// `GetExplosionRange`, in space units.
+    pub(crate) range: i64,
+    /// `CanExplosionTriggerExplosion`: a unit an explosion kills explodes in
+    /// turn.
+    pub(crate) chains: bool,
+    /// `CanHitAlly`: it strikes both sides rather than the unit's enemies.
+    pub(crate) hits_allies: bool,
+    /// `CanBeAffectedByBuff`: the unit's tower buffs scale its damage.
+    pub(crate) buffed: bool,
+    /// `CanDisable`, as [`LifeSteal::can_disable`].
+    pub(crate) can_disable: bool,
+}
+
 /// What an `IClearRangeItem` answers: `TeamClearRangeItemManager` clears the
 /// terrain of these kinds about its unit.
 #[derive(Debug, Clone, PartialEq, Eq)]

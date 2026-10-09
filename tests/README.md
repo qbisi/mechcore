@@ -38,6 +38,7 @@ out to show:
 | [`reactive_armor/`](reactive_armor/README.md) | what a reactive armor technology takes off the hits on its unit, and for how many |
 | [`multi_attack/`](multi_attack/README.md) | how many projectiles a multi-attack technology adds its unit's bursts, how far apart in time and space, and from which weapon |
 | [`maintenance_array/`](maintenance_array/README.md) | whom a repair technology's unit repairs about it, how often and from when |
+| [`wreckage_detonation/`](wreckage_detonation/README.md) | which units a kill-explosion technology's unit's hits set off and whom each explosion strikes |
 | [`map/`](map/README.md) | what a map's neutral crystals do to a fight |
 | [`move_ability/`](move_ability/README.md) | what a technology adds to its unit's move ability, and what it makes as the unit surfaces |
 | [`modifier/`](modifier/README.md) | how officers and technologies correct a unit's numbers |

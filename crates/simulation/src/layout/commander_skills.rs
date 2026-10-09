@@ -466,6 +466,9 @@ pub(crate) struct Summon {
     /// What its side's technology hands it to repair the units about it,
     /// which `FightEffectSystem` activates as it joins.
     pub(crate) repair: Option<crate::modifier::Repair>,
+    /// What its side's technology hands its skills to set off what they
+    /// kill.
+    pub(crate) kill_explosion: Option<crate::modifier::KillExplosion>,
 }
 
 /// The buff a released skill writes: the Electromagnetic Impact's slow,
@@ -1302,6 +1305,7 @@ fn summon(named: &str, row: &SupportSkillRow, units: &UnitConfigs) -> Result<Sum
         clear_range_item: None,
         rvo_radius_change: None,
         repair: None,
+        kill_explosion: None,
     })
 }
 

@@ -1,0 +1,25 @@
+# Wreckage Detonation on blue's level-6 Typhoons against red's Crawlers, and
+# red's Electromagnetic Impact landing on the Typhoons on tick 57 and lasting
+# past the fight's end on tick 136. The Crawlers their rockets kill on ticks
+# 50 and 51 explode; from tick 57 on, those they kill do not, a Crawler 4.73
+# metres from one killed on tick 65 keeping its life.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 136
+hash: {profile: mcfr-content-0.23.0, result: c57523d58569aac2d891bc06710a3162e5d1837707dc509073d4cdf2fce9eef9}
+blue:
+  techs:
+    typhoon: [wreckage_detonation]
+  units:
+  - {name: typhoon, index: 0, position: {x: 0, y: -100}, level: 6, exp: 0/384/11308}
+red:
+  core_damage: 250
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -60}}
+  - {name: crawler, index: 1, position: {x: -55, y: -60}}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: 0, y: 100}]}

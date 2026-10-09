@@ -1,0 +1,28 @@
+# Wreckage Detonation on blue's level-1 Typhoons against red's Crawlers,
+# blue's own Crawlers among them. Each unit a rocket kills explodes for 115
+# over 12 metres of where it fell, red's units and blue's alike. On tick 57
+# the four a rocket kills explode, and the Crawlers those explosions kill do
+# not. On tick 77 a rocket strikes two Crawlers that live and then kills two,
+# which do not explode: the first living one ends the walk. On tick 78 a
+# rocket's first kill explodes and kills the next Crawler it struck, which
+# explodes in its turn.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 278
+hash: {profile: mcfr-content-0.23.0, result: 95ab8b7c68e09f5bf77f16c39ac383915edb2510a0b1ff6fa07e76607a570176}
+blue:
+  techs:
+    typhoon: [wreckage_detonation]
+  units:
+  - {name: typhoon, index: 0, position: {x: 0, y: -100}, exp: 0/726/1950}
+  - {name: crawler, index: 1, position: {x: 5, y: -60}, exp: 0/96/450}
+red:
+  core_damage: 250
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -60}, exp: 0/2/450}
+  - {name: crawler, index: 1, position: {x: -55, y: -60}, exp: 0/23/450}
+  - {name: mustang, index: 2, position: {x: 5, y: -100}, exp: 0/135/1200}

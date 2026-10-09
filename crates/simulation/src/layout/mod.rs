@@ -13,10 +13,11 @@ use crate::{
     data::{Channel, Correction, Entry, ExperienceRate, Index, Stats},
     modifier::{
         AutoRecovery, BuffSource, Burrow, CarriedShield, ClearRangeItem, DeadLine, DeadSummon,
-        EffectProvider, EnergyShield, EnergyTowerSkillEffects, EquipmentEffects, LifeSteal,
-        MainSkill, MechGroup, MoveAbilityAttack, OfficerEffects, ProductionLine, ReactiveArmor,
-        Rebirth, Repair, RvoRadiusChange, SecondaryDamage, SiegeMode, Stealth, SweepIntensify,
-        TECHNOLOGY_SOURCE, TechnologyEffects, UnitInterception, WreckageRecovery, current_source,
+        EffectProvider, EnergyShield, EnergyTowerSkillEffects, EquipmentEffects, KillExplosion,
+        LifeSteal, MainSkill, MechGroup, MoveAbilityAttack, OfficerEffects, ProductionLine,
+        ReactiveArmor, Rebirth, Repair, RvoRadiusChange, SecondaryDamage, SiegeMode, Stealth,
+        SweepIntensify, TECHNOLOGY_SOURCE, TechnologyEffects, UnitInterception, WreckageRecovery,
+        current_source,
     },
     rules::{ExtraWeaponConfig, UnitConfig, UnitConfigs, UnitDomain},
 };
@@ -97,6 +98,9 @@ pub(crate) struct Placement {
     /// The `IRecoveryTechEffectDataSource` its `RecoveryEffectProvider` hands
     /// `RecoveryEffectSystem`, if its technologies hand it one.
     pub(crate) repair: Option<Repair>,
+    /// The `IKillExplosionDataSource` its `KillExplosionEffectProvider` hands
+    /// its skills as a hit effect, if its technologies hand it one.
+    pub(crate) kill_explosion: Option<KillExplosion>,
     /// The `IBurrow` its `BurrowEffectProvider` hands its side's
     /// `TeamBurrowManager`, if its technologies hand it one.
     pub(crate) burrow: Option<Burrow>,
@@ -195,6 +199,7 @@ pub(crate) struct Production {
     pub(crate) clear_range_item: Option<ClearRangeItem>,
     pub(crate) rvo_radius_change: Option<RvoRadiusChange>,
     pub(crate) repair: Option<Repair>,
+    pub(crate) kill_explosion: Option<KillExplosion>,
 }
 
 #[derive(Debug, Clone)]
@@ -567,6 +572,7 @@ fn death_summon_template(team: u32, rules: &UnitConfig, level: i64, worn: Worn) 
         rvo_radius_change: worn.rvo_radius_change,
         clear_range_item: worn.clear_range_item.clone(),
         repair: worn.repair.clone(),
+        kill_explosion: worn.kill_explosion.clone(),
         burrow: worn.burrow.clone(),
         dead_acid: worn.dead_acid,
         sweep: worn.sweep,
@@ -822,6 +828,7 @@ fn compile_battle_skills(
             summon.clear_range_item = worn.clear_range_item;
             summon.rvo_radius_change = worn.rvo_radius_change;
             summon.repair = worn.repair;
+            summon.kill_explosion = worn.kill_explosion;
         }
         battle_skills.push(release);
     }
@@ -945,6 +952,7 @@ fn compile_formation(
         rvo_radius_change: worn.rvo_radius_change,
         clear_range_item: worn.clear_range_item.clone(),
         repair: worn.repair.clone(),
+        kill_explosion: worn.kill_explosion.clone(),
         burrow: worn.burrow.clone(),
         dead_acid: worn.dead_acid,
         sweep: worn.sweep,
@@ -1124,6 +1132,7 @@ fn made_by(
         clear_range_item: worn.clear_range_item,
         rvo_radius_change: worn.rvo_radius_change,
         repair: worn.repair,
+        kill_explosion: worn.kill_explosion,
     })
 }
 
@@ -1289,6 +1298,7 @@ struct Worn {
     rvo_radius_change: Option<RvoRadiusChange>,
     clear_range_item: Option<ClearRangeItem>,
     repair: Option<Repair>,
+    kill_explosion: Option<KillExplosion>,
     burrow: Option<Burrow>,
     dead_acid: Option<TerrainSpec>,
     sweep: Option<SweepIntensify>,
@@ -1612,6 +1622,7 @@ fn worn(
         rvo_radius_change: sources.rvo_radius_change,
         clear_range_item: sources.clear_range_item,
         repair: sources.repair,
+        kill_explosion: sources.kill_explosion,
         burrow: sources.burrow,
         dead_acid: sources.dead_acid,
         sweep: main_skill.sweep,

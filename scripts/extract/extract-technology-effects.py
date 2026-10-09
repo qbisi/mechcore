@@ -74,6 +74,7 @@ SUBCLASS_LISTS = (
     ("fire_range", "range", "fireIntensifyTechnologies"),
     ("fire_life_time", "lifeTime", "fireIntensifyTechnologies"),
     ("repair_life", "life", "recoveryTechDatas"),
+    ("kill_explosion_damage", "explosionDamage", "killExplosionTechDatas"),
     ("projectile_count_value", "countIncrease", "multiAttackTechnologies"),
     ("projectile_duration_value", "durationChangeValue", "multiAttackTechnologies"),
     ("projectile_random_range_value", "randomRangeChangeValue", "multiAttackTechnologies"),
@@ -132,6 +133,12 @@ SUBCLASS_SCALARS = (
     ("repair_enemy", "canRecoverEnemy", "recoveryTechDatas"),
     ("repair_only_mech", "isOnlyRecoverMech", "recoveryTechDatas"),
     ("repair_air", "canRecoverAir", "recoveryTechDatas"),
+    ("kill_explosion_range", "explosionRange", "killExplosionTechDatas"),
+    ("kill_explosion_chains", "canExplosionTriggerExplosion", "killExplosionTechDatas"),
+    ("kill_explosion_hits_allies", "canHitAlly", "killExplosionTechDatas"),
+    ("kill_explosion_buffed", "canBeAffectedByBuff", "killExplosionTechDatas"),
+    ("main_skill_effect", "mainSkillEffect", "killExplosionTechDatas"),
+    ("extra_skill_effect", "extraSkillEffect", "killExplosionTechDatas"),
     ("burrow_enters_underground", "isEnterUnderGround", "burrowTechnologies"),
 )
 # A field of one list's rows that is one rate, written only where it is set:
@@ -164,7 +171,7 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "reactiveArmorTechDatas", "fireIntensifyTechnologies", "siegeModeTechDatas",
                "wreckageRecoveryTechnologies", "rebirthEffectTechologyDatas",
                "rVORadiusChangeTechnologyTechDatas", "clearRangeItemTechDatas",
-               "recoveryTechDatas",
+               "recoveryTechDatas", "killExplosionTechDatas",
                "burrowTechnologies", "deadAcidRangeItemTechnologyDatas")
 # The list whose `DeadAcidRangeItemTech` leaves an acid where its unit dies,
 # and the fields its rows carry for it: whole metres of range
@@ -322,7 +329,8 @@ DESCRIPTIVE = {
 RATES = {"life_rate", "damage_rate", "attack_range_rate", "attack_interval_rate", "projectile_life_rate", "exp_rate",
          "lifesteal_multiplier", "recovery_life_rate", "air_damage_change_rate", "ground_damage_change_rate"}
 INTEGERS = {"speed_value", "min_attack_range_value", "reduce_damage_value", "projectile_count_value",
-            "dead_line_value", "barrier_energy", "barrier_radius", "repair_life"}
+            "dead_line_value", "barrier_energy", "barrier_radius", "repair_life",
+            "kill_explosion_damage"}
 
 
 def raw(value):

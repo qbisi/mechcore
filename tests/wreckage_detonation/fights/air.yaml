@@ -1,0 +1,25 @@
+# Wreckage Detonation on blue's level-1 Typhoons against red's Wasps, blue's
+# Crawlers running beneath them. A Wasp a rocket kills explodes for 115
+# among the aerial units alone: on tick 98 one dies 12.05 metres from a blue
+# Crawler, inside the explosion's 12 and the Crawler's 2, which takes
+# nothing.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 215
+hash: {profile: mcfr-content-0.23.0, result: bc36f5b1b85c66ecb40d38695e0830ed55eef45bbabb4320b143ec83cc8fa83a}
+blue:
+  techs:
+    typhoon: [wreckage_detonation]
+  units:
+  - {name: typhoon, index: 0, position: {x: 0, y: -100}, exp: 0/648/1950}
+  - {name: crawler, index: 1, position: {x: 5, y: -60}, exp: 0/138/450}
+  - {name: crawler, index: 2, position: {x: -55, y: -60}, exp: 0/28/450}
+red:
+  core_damage: 366
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -60}, exp: 0/72/900}
+  - {name: wasp, index: 1, position: {x: -55, y: -60}, exp: 0/80/900}

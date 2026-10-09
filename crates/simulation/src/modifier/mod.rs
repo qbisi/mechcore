@@ -26,9 +26,9 @@ pub(crate) use officers::{ContraptionRates, OfficerEffects};
 pub(crate) use providers::EffectProvider;
 pub(crate) use sources::{
     AllCycle, Arrival, AutoRecovery, BuffReach, BuffSource, BuffTrigger, Burrow, CarriedShield,
-    ClearRangeItem, DeadSummon, EnergyShield, LifeSteal, MoveAbilityAttack, MoveAbilityRangeItem,
-    ProductionLine, ReactiveArmor, Rebirth, RebirthFollow, RecoveryState, Repair, RvoRadiusChange,
-    SiegeMode, StackCondition, Stealth, SweepIntensify, WreckageRecovery,
+    ClearRangeItem, DeadSummon, EnergyShield, KillExplosion, LifeSteal, MoveAbilityAttack,
+    MoveAbilityRangeItem, ProductionLine, ReactiveArmor, Rebirth, RebirthFollow, RecoveryState,
+    Repair, RvoRadiusChange, SiegeMode, StackCondition, Stealth, SweepIntensify, WreckageRecovery,
     current as current_source,
 };
 pub(crate) use technologies::{
