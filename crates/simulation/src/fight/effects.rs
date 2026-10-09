@@ -35,6 +35,7 @@ impl Simulation {
                 EffectProvider::FlyTech => self.enter_fly_fight(),
                 EffectProvider::IgnoreBuff => self.enter_ignore_buff_fight(),
                 EffectProvider::SkillSearchTarget => self.enter_life_priority_fight(),
+                EffectProvider::MoveAbilityDynamic => self.enter_cloak_fight(),
                 // `SiegeModeEffectSystem.OnEnterFight` digs its units in
                 // after each skill drew its first interval
                 // (`Simulation::enter_siege_fight`).
@@ -82,6 +83,7 @@ impl Simulation {
                 EffectProvider::FlyTech => self.add_fly_unit(unit),
                 EffectProvider::IgnoreBuff => self.add_ignore_buff_unit(unit),
                 EffectProvider::SkillSearchTarget => self.switch_life_priority(unit, true),
+                EffectProvider::MoveAbilityDynamic => self.activate_cloak(unit),
                 EffectProvider::Buff => self.activate_buff_cycles(unit),
                 // The rest are read from the unit where the fight acts, which
                 // passes over a unit still travelling or rising.
@@ -125,6 +127,7 @@ impl Simulation {
                 EffectProvider::FlyTech => self.remove_fly_unit(unit),
                 EffectProvider::IgnoreBuff => self.switch_ignore_buff(unit, false),
                 EffectProvider::SkillSearchTarget => self.switch_life_priority(unit, false),
+                EffectProvider::MoveAbilityDynamic => self.deactivate_cloak(unit),
                 EffectProvider::Buff => self.deactivate_buff_cycles(unit),
                 // Every dead unit's interceptors are deactivated together,
                 // after the summons the deaths make
@@ -302,6 +305,7 @@ impl Simulation {
             EffectProvider::FlyTech => self.switch_fly(actor_id, on),
             EffectProvider::IgnoreBuff => self.switch_ignore_buff(actor_id, on),
             EffectProvider::SkillSearchTarget => self.switch_life_priority(actor_id, on),
+            EffectProvider::MoveAbilityDynamic => self.switch_cloak(actor_id, on),
             EffectProvider::AutoRecovery => self.switch_auto_recovery(actor_id, on),
             EffectProvider::EnergyShield => self.switch_energy_shield(actor_id, on),
             EffectProvider::SweepSkillIntensify => self.switch_sweep(actor_id, on),

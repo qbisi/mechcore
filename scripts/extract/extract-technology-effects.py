@@ -155,6 +155,8 @@ SUBCLASS_SCALARS = (
     ("main_skill_effect", "mainSkillEffect", "additionalDamageTechDatas"),
     ("extra_skill_effect", "extraSkillEffect", "additionalDamageTechDatas"),
     ("main_skill_effect", "mainSkillEffect", "controllBeamLifeRecoveryTechnologies"),
+    ("cloak_delay", "delay", "moveAbilityDynamicTechDatas"),
+    ("cloak_exit_delay", "delayExit", "moveAbilityDynamicTechDatas"),
     ("chain_select_range", "selectRange", "iterationHitDamageTechDatas"),
     ("chain_preferred_range", "preferredRange", "iterationHitDamageTechDatas"),
     ("chain_delay", "iterationDelay", "iterationHitDamageTechDatas"),
@@ -200,7 +202,8 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "burrowTechnologies", "deadAcidRangeItemTechnologyDatas", "flyTechDatas",
                "ignoreBuffEffectTechnologyDatas", "searchTargetModifyTechnologies",
                "deadExplosiveTechnologyDatas", "additionalDamageTechDatas",
-               "controllBeamLifeRecoveryTechnologies", "iterationHitDamageTechDatas")
+               "controllBeamLifeRecoveryTechnologies", "iterationHitDamageTechDatas",
+               "moveAbilityDynamicTechDatas")
 # The list whose `DeadAcidRangeItemTech` leaves an acid where its unit dies,
 # and the fields its rows carry for it: whole metres of range
 # (`GetRangeItemRange`), the rounds it stands (`GetRoundDuration`), and the
@@ -691,6 +694,9 @@ def main() -> int:
         "# (`chain_delay`), how many jumps (`chain_count`), and the FPoint rate",
         "# of the skill's damage each jump deals, raised to the jump's number",
         "# (`chain_damage_rate`).",
+        "# A cloak technology carries the FPoint seconds its unit waits before",
+        "# it cloaks (`cloak_delay`) and stays seen once it shows itself",
+        "# (`cloak_exit_delay`).",
         "# A search technology carries the `SkillSearchTargetType` its unit's",
         "# skills search by (`search_target_type`), on its main skill and its",
         "# extra skills as `main_skill_effect` and `extra_skill_effect` say.",

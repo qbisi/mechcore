@@ -163,6 +163,15 @@ pub(crate) struct Burrow {
     pub(crate) relieve_distance: Vec<i64>,
 }
 
+/// What a `MoveAbilityDynamicTech` answers `IMoveAbilityDynamicSource`
+/// with: how long its unit waits before it cloaks (`GetDelayEnter`) and stays
+/// seen once it shows itself (`GetDelayExit`), `FPoint` seconds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct CloakSource {
+    pub(crate) enter_q32: i64,
+    pub(crate) exit_q32: i64,
+}
+
 /// What an `IterationHitTech` answers `IIterationHit` with: how far a hit of
 /// its unit's main skill jumps on, how long it waits, how often and for how
 /// much.

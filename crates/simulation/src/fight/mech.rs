@@ -99,6 +99,7 @@ impl Actor {
             ignores_speed_rate: false,
             life_priority: false,
             chain_records: super::chain::ChainRecords::default(),
+            cloak: None,
             reactive_armor: super::reactive_armor::ReactiveArmorState::of(&placement),
             placement,
             rules,

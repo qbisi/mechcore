@@ -43,6 +43,7 @@ mod buff_cycle;
 mod burrow;
 mod chain;
 mod clear_range_item;
+mod cloak;
 mod commander_skill;
 mod construction;
 mod control;
@@ -336,6 +337,8 @@ struct Actor {
     life_priority: bool,
     /// `FightMechIgnoreTargetManager`: what its skills' chains pass over.
     chain_records: chain::ChainRecords,
+    /// Its `CloakController`, once its technology made one.
+    cloak: Option<cloak::Cloak>,
     /// `BuffManager.beHitDelayBuffInfos`: the buffs that disable technology
     /// a unit it hit queued on it, each with that unit, which
     /// `InvokeDelayAddBuff` adds as its `BuffManager.Update` ends.
@@ -1092,6 +1095,8 @@ impl Simulation {
         let target_search_order = self.target_search_order();
         self.prepared_target_quadtrees
             .clone_from(&self.target_quadtrees);
+        // `CloakSystem` is the first module to update.
+        self.step_cloaks();
         // `BuffSystem` updates before `CommanderSkillSystem`.
         self.step_buff_cycles(&target_search_order, &mut events)?;
         // `CommanderSkillSystem` and then `MineSystem` update before
