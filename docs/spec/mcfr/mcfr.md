@@ -763,7 +763,7 @@ producer can actually observe is narrower, and the adapter covers:
 | `unit_died` | the `FightMech.OnDead` trace |
 | `building_destroyed` | the `FightCrystal.OnDead` trace |
 | `team_scored` | `FightResultController.CalculateScore(team, isAlive)`, which `BattleSystem.OnFightOver` calls inside the fight's last logic update, for each side once for its units standing and once for its fallen. The standing call is recorded, with the side's `FightTeam.GetTeamIndex()` |
-| `healing` | `FightActor.AddLife(value, isShowLifeBar)`, which units, towers and crystals heal through, and `FightConstruction.AddLife`. The amount is the life read after the call less the life read before it, since the gauge clamps at full life and the call returns nothing. Every heal shows the life bar; the two refills that do not, a unit rising from its death and one landing from a super deployment, are not recorded. No `source`: the call does not carry one |
+| `healing` | `FightActor.AddLife(value, isShowLifeBar)`, which units, towers and crystals heal through, and `FightConstruction.AddLife`. The amount is the life read after the call less the life read before it, since the gauge clamps at full life and the call returns nothing. Every heal shows the life bar; the two that do not, the refill of a unit rising from its death and the heal a super deployment gives each second a unit travels ([super_deployment.md](../../rules/super_deployment.md)), are not recorded. No `source`: the call does not carry one |
 | `shield_created` | first entry into the full `GetEnergyShields(fightGroup)` collection between adjacent sampling boundaries. Shields that join between the same two boundaries are written in identity order, which is the order the snapshot reads them in, team by team and each team's collection in its own order, not in the order of their native addresses |
 | `shield_destroyed` | disappearance from that collection. The reason is read as `GroupAdvancedEnergyShieldManager.Destroy(FightEnergyShield)`, the one method that takes a shield out of it, begins: spent energy is `energy_depleted`, since only damage empties a shield before destroying it; a shield with an owner is `owner_destroyed`; any other is `scripted`. A shield leaving as the round ends goes after the last recorded tick, so `round_end` is not written. Shields that leave between the same two boundaries are written in identity order |
 | `terrain_created` | first entry into the owning `RangeItemController.GetItems()` collection between adjacent boundaries |
@@ -773,10 +773,9 @@ producer can actually observe is narrower, and the adapter covers:
 form and reader and writer support, for a producer able to observe the
 evolution directly.
 
-`unit_created` and `healing` are recorded without a fixture that exercises
-them: no pinned fight creates a unit inside the tick or heals one, and which
-summons and heals reach the two entry points is checked as each mechanism is
-researched.
+Summons pin `unit_created`, and lifesteal, repair, wreckage recovery and the
+maintenance array pin `healing`. Which other summons and heals reach the two
+entry points is checked as each mechanism is researched.
 
 A buff enters and leaves through three `BuffManager` methods, and the adapter
 hooks each. `buff_applied` comes from `AddBuff(Buff)`, the private method a new
@@ -790,9 +789,10 @@ to its pool. Its reason is the method it runs under: `RemoveBuff(IBuffData)`,
 with, put on before its first tick, have no event.
 
 What a buff does is on the unit state track, in the unit's `buffs`. The
-pinned fights exercise the buff a tower's loss writes, and nothing else; which
-other buffs reach these methods, and whether each removal reason is the one
-the build means, is checked as each mechanism is researched.
+pinned fights exercise the buffs a tower's loss, Electromagnetic Impact and
+burrowing write, and buff removal by expiry and by clearing; which other buffs
+reach these methods, and whether each other removal reason is the one the
+build means, is checked as each mechanism is researched.
 
 ## Instrument channels
 
