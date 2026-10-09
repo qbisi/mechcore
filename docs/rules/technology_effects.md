@@ -735,6 +735,49 @@ left with no cell goes. Which unit clears first changes nothing that is
 left. A circle that becomes a grid while a battlefield shield stands, which
 `GenerateGrid` cuts in a way not read, is refused.
 
+## Burrowing technologies
+
+A row of `burrowTechnologies` is a `BurrowTech`, an `IBurrow`: Subterranean
+Blitz, the Crawler's. Beside its numbers, 3 more speed, its row carries the
+rate on the damage its unit takes while burrowed, -0.4, and the metres
+within which an enemy brings it up, 50, each by the unit's level
+(`TechnologyData.GetLevelValue`). It does not take its unit underground
+(`IsEnterUnderGround` is false on every row): a row that did is refused.
+`BurrowEffectProvider.DoActive` hands the unit to its side's
+`TeamBurrowManager` (`BurrowSystem.AddMech`, `Active`), its status
+`Normal`, and `OnFightStart` sorts each side's units by where they stand
+(`FightUtility.SkillOwnerComparer`), which held them in unit order in every
+recording.
+
+**A unit burrows while no enemy is near.** `BurrowSystem` updates after
+`WreckageRecoverySystem`. Each held unit comes up when its main skill's
+search measured no enemy nearest, when that enemy stands within the
+distance, or when its attack target, else its lock, does
+(`TeamBurrowManager.Update`, `GetDistanceToTarget`,
+`GetDistanceToAttackTarget`, `FPoint.op_LessThan`); any other burrows. Both
+distances are `FVector3.Distance` less the two radii, not held at zero. The
+nearest enemy is `SkillSearchTargetController.nearestActor`, which each of
+the controller's selectors writes as it searches, `TrySelect`, `Select` and
+`PerformSearch` alike (`ScoreRatingTargetSelector.Selector.Calculate`): the
+first candidate strictly nearer than any before it, edge to edge, under the
+skill's minimum range or not, and none when it had no candidate. It is kept
+until the next search, a dead enemy's place still measured. A unit with a
+nearest enemy beyond the distance and neither attack target nor lock reads
+a null transform; it is left as it stands and the manager goes on: the four
+Crawlers whose attack a Marksman's death ended stay up.
+
+**Burrowing is the technology as its own buff.** `TryBurrowDown` marks the
+unit `Underground` and adds `BurrowTech`, which is its own `IBuffData`, with
+no source (`BuffSystem.DoAddBuff`): it never fails (`GetProbablity` is
+1000), lasts `FightUtility.MaxTime`, 2^30 ticks in `Buff.Init`, and writes
+its rate as `AmplifyDamageRate` (`IBuffDataFloatRate.GetData`), on every
+hit the unit takes. Its data is the technology, whose id the buff
+and its events name. `TryBurrowUp` marks it `Normal` and removes the buff
+(`BuffSystem.RemoveBuff`), `removed`. What the manager writes follows the
+tick's deaths. A unit that dies burrowed has its buff cleared after its
+death, and `DoDeactive`'s `TryBurrowUp` finds nothing to remove; nor does
+`OnFightEnd`'s after the fight's clearing.
+
 ## Missile Interception
 
 Missile Interception makes its unit an interceptor: Mustang, Sabertooth,
@@ -999,6 +1042,10 @@ whose own `DisableEffect` it does not mirror.
   (`TeamClearRangeItemManager.DisableMech`) makes it inactive; switched on,
   `EnableEffect` (`EnableMech`) makes it active for the manager's next
   clearing. Hounds under an Electromagnetic Impact leave every fire whole.
+- **A burrowing technology switched off is refused.**
+  `BurrowEffectProvider.DisableEffect` brings its unit up
+  (`TryBurrowUp`), and nothing keeps the manager from burrowing it again on
+  its next update; no recording holds it.
 - **A buff its unit added itself is cleared, if its row says so**
   (`isClearSelfBuffWhenDisableTech`): `FightMech.DisableTechnology` raises
   `BuffManager.ClearSelfResourceBuffByDisableTech` after the effects are off.
@@ -1144,6 +1191,13 @@ derive (a minimum range):
   and an acid left with no cell goes:
   `tests/fire_extinguisher/fights/acid-smoke.yaml`. Disabled, it clears
   nothing: `tests/fire_extinguisher/fights/fire-impact.yaml`.
+- Subterranean Blitz burrows its Crawlers from the first tick and brings
+  each up as its enemy comes within 50: `tests/burrow/fights/crawler-rhino.yaml`.
+  Burrowed, they take a Marksman's shot less 0.4; one that dies burrowed,
+  and one burrowed as the fight ends, has its buff cleared and nothing
+  removed; after the Marksman's death, those whose search found a tower
+  burrow and those left with no target stay up:
+  `tests/burrow/fights/crawler-marksman.yaml`.
 - A dead-line technology destroys a unit its unit's shots strike at or
   under the line at its level, before the shot's damage: Culling Rounds
   culls Crawlers at 250 under a level-one Mustang's 320, and Marksmen at 712
@@ -1471,6 +1525,21 @@ derive (a minimum range):
   `RangeItemController.RemoveGrids`, `RangeItemController.Remove`,
   `RangeItem.GetCircleRange`, `RangeItemEffectLayerGrid.ConvertToGrid`,
   `RangeItemEffectLayerGrid.GenerateGrid`, `GridBlockInt.TryDisableGrid`.
+- A burrowing technology burrows its unit while the nearest enemy its main
+  skill's search measured, and its attack target or lock, stand beyond its
+  distance, writing itself as the unit's buff, and brings it up otherwise:
+  `BurrowEffectProvider.DoActive`, `BurrowEffectProvider.DisableEffect`,
+  `BurrowEffectProvider.DoDeactive`, `BurrowSystem.Active`,
+  `TeamBurrowManager.Update`, `TeamBurrowManager.GetDistanceToTarget`,
+  `TeamBurrowManager.GetDistanceToAttackTarget`,
+  `TeamBurrowManager.TryBurrowDown`, `TeamBurrowManager.TryBurrowUp`,
+  `TeamBurrowManager.OnFightStart`, `TeamBurrowManager.ActiveEffect`,
+  `BurrowTech.GetProbablity`, `BurrowTech.GetBuffDivide`,
+  `BurrowData.GetAmplifyDamageRate`, `FightMech.GetNearestActor`,
+  `FightSkill.GetNearestActor`, `SkillSearchTargetController.PerformSearch`,
+  `SkillSearchTargetController.PerformNormalSkillSearch`,
+  `ScoreRatingTargetSelector.Selector.Select`,
+  `ScoreRatingTargetSelector.Selector.Calculate`.
 - A dead-line technology hands its unit's main skill a pre-hit effect that
   destroys a live unit at or under the line at the owner's level as a
   suicide, before the hit's shield and damage, and charges it the line:
@@ -1740,6 +1809,11 @@ derive (a minimum range):
   summoned unit.** No recording holds one; the order of `DeadEffectSystem`'s
   controllers, `DeadEffectProvider.DisableEffect` and a rebirth to another
   side (`RebirthTask.rebirthToTeam`) are refused by name.
+- **A unit burrowed with no target to measure.** The manager reads a null
+  transform for it; that the exception leaves it as it stands and the
+  manager goes on is read from the recording, which holds only units left up
+  that way. A burrowing unit travelling in, summoned, made or
+  death-summoned, and one with a grouped main skill, are refused.
 - **A loose formation switched on again, and one travelling in.** Read from
   the build; no recording holds an Electromagnetic Impact running out on
   Crawlers that hold it, nor one landing. A summoned, made or

@@ -573,6 +573,12 @@ pub(in crate::fight) struct Skill {
     pub(in crate::fight) target_shield: Option<(u64, FightActorRef)>,
     pub(in crate::fight) search_target_time: i32,
     pub(in crate::fight) searched_this_tick: bool,
+    /// `SkillSearchTargetController.nearestActor`: what each selector the
+    /// controller asks writes back, `TrySelect`, `Select` and `PerformSearch`
+    /// alike, the candidate it measured nearest (`Selector.Calculate`), none
+    /// when it had none. The selectors take the fight by reference, as the
+    /// build's write their out parameter.
+    pub(in crate::fight) nearest_actor: std::cell::Cell<Option<FightActorRef>>,
     /// Whether `FightCoreSystem.PreCalculate` put this skill among the
     /// attackers it prepared at the tick's start. `TrySelect` answers only for
     /// one of them; any other search is `PerformSearch`. See
@@ -686,6 +692,7 @@ impl Skill {
             // replaces this constructor value with the presearch batch ordinal.
             search_target_time: SEARCH_TARGET_RESET_TICKS,
             searched_this_tick: false,
+            nearest_actor: std::cell::Cell::new(None),
             search_prepared: false,
             started_from_idle: None,
             state: SkillState::Idle { ready_step: None },

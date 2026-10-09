@@ -478,6 +478,7 @@ impl Simulation {
     ) -> Result<()> {
         let row = super::tower::BuffRow {
             clears_when_technologies_disabled: false,
+            technology: false,
             buff_id: buff.id,
             max_life_rate: 0,
             stacking: None,

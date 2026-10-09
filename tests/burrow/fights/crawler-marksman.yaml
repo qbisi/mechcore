@@ -1,0 +1,26 @@
+# Subterranean Blitz on blue's Crawlers, which walk on a Marksman that
+# shoots them from beyond 50. Each shot kills a burrowed Crawler, its -0.4
+# on the shot: without the rate the simulator's states agree and its hash
+# parts from the game's on tick 30, the first. One that dies burrowed has
+# its buff cleared after its death and nothing removed. On tick 183 the
+# Marksman dies: the four Crawlers whose search then found a tower nearest
+# burrow after its death, and the four whose attack the death ended, with
+# neither attack target nor lock, stay up. The fight ends on tick 184 with
+# the buffs cleared, none removed.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 184
+hash: {profile: mcfr-content-0.23.0, result: da2f2d97932d10a890cb3fb18a387b4337d2e905532a9e337fd60378d78cffb4}
+blue:
+  techs:
+    crawler: [subterranean_blitz]
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/200/450}
+red:
+  core_damage: 84
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -60}, exp: 0/24/650}

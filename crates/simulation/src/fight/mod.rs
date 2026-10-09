@@ -39,6 +39,7 @@ use crate::{
 mod attack_count;
 mod attacker;
 mod buff_cycle;
+mod burrow;
 mod clear_range_item;
 mod commander_skill;
 mod construction;
@@ -502,6 +503,8 @@ struct Simulation {
     siege: siege::SiegeModeSystem,
     /// `WreckageRecoverySystem`'s holders.
     wreckage: wreckage::WreckageSystem,
+    /// `BurrowSystem`: the units a technology burrows.
+    burrow: burrow::BurrowSystem,
     rebirth: rebirth::RebirthSystem,
     /// `MechGrounpSystem`'s groups.
     mech_groups: mech_group::MechGroupSystem,
@@ -629,6 +632,7 @@ impl Simulation {
             stealth: stealth::StealthSystem::default(),
             siege: siege::SiegeModeSystem::default(),
             wreckage: wreckage::WreckageSystem::default(),
+            burrow: burrow::BurrowSystem::default(),
             rebirth: rebirth::RebirthSystem::default(),
             mech_groups: mech_group::MechGroupSystem::default(),
         };
@@ -638,6 +642,7 @@ impl Simulation {
         simulation.enter_reactive_armor_fight();
         simulation.start_groups();
         simulation.enter_wreckage_fight();
+        simulation.enter_burrow_fight();
         simulation.restore_standing_oil(&layout.standing_oil)?;
         // `CommanderSkillManager.OnFightStart`: a path is given out before
         // the first tick, and lands nothing.
@@ -1153,6 +1158,8 @@ impl Simulation {
             self.remove_siege_unit(unit_id)?;
             // And its `WreckageRecoveryEffectProvider.DoDeactive`.
             self.remove_wreckage_unit(unit_id);
+            // And its `BurrowEffectProvider.DoDeactive`.
+            self.remove_burrow_unit(unit_id);
             // `SkillManager.OnOwnerDead` stops its skills, a control beam's
             // `ControllEffect` among them: the Rhino a Hacker was turning
             // holds no entry from the tick the Hacker dies.
@@ -1174,7 +1181,9 @@ impl Simulation {
         // `WreckageRecoverySystem` updates after `DeadEffectSystem` and
         // `FightEffectSystem`.
         self.step_wreckage();
-        // `ClearRangeItemSystem` updates after `WreckageRecoverySystem`.
+        // `BurrowSystem` updates after it.
+        self.step_burrows()?;
+        // `ClearRangeItemSystem` updates after `BurrowSystem`.
         self.step_clear_range_items()?;
         // `SiegeModeEffectSystem` updates after `FightConstructionSystem`,
         // and `StealthTechSystem` after it, one of the last modules.
@@ -1362,6 +1371,7 @@ impl Simulation {
             events.push(fallen);
             events.extend(follows);
         }
+        events.extend(self.take_burrow_events());
         self.buffs.dropped.clear();
         // A fight a projectile's drain finished leaves on this tick, with no
         // tower torn down to publish first: its buffs are cleared after

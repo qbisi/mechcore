@@ -12,7 +12,7 @@ use crate::{
     Error, Result,
     data::{Channel, Correction, Entry, ExperienceRate, Index, Stats},
     modifier::{
-        AutoRecovery, BuffSource, CarriedShield, ClearRangeItem, DeadLine, DeadSummon,
+        AutoRecovery, BuffSource, Burrow, CarriedShield, ClearRangeItem, DeadLine, DeadSummon,
         EffectProvider, EnergyShield, EnergyTowerSkillEffects, EquipmentEffects, LifeSteal,
         MainSkill, MechGroup, MoveAbilityAttack, OfficerEffects, ProductionLine, ReactiveArmor,
         Rebirth, RvoRadiusChange, SecondaryDamage, SiegeMode, Stealth, SweepIntensify,
@@ -94,6 +94,9 @@ pub(crate) struct Placement {
     /// The `IClearRangeItem` its `ClearRangeItemEffectProvider` hands its
     /// side's `TeamClearRangeItemManager`, if its technologies hand it one.
     pub(crate) clear_range_item: Option<ClearRangeItem>,
+    /// The `IBurrow` its `BurrowEffectProvider` hands its side's
+    /// `TeamBurrowManager`, if its technologies hand it one.
+    pub(crate) burrow: Option<Burrow>,
     /// What its technologies hand its sweep (`SweepSkillIntensifyTech`).
     pub(crate) sweep: Option<SweepIntensify>,
     /// Whether its technologies turn its main skill's search to
@@ -526,6 +529,58 @@ fn death_summoned(placement: &Placement, units: &UnitConfigs) -> Vec<(u32, i64)>
         .collect()
 }
 
+/// The placement every unit of one type and level summoned as a unit dies
+/// takes, before where it stands: what its side's loadout hands it.
+fn death_summon_template(team: u32, rules: &UnitConfig, level: i64, worn: Worn) -> Placement {
+    Placement {
+        team,
+        unit_id: 0,
+        formation_id: 0,
+        formation_index: -1,
+        type_name: rules.type_name.clone(),
+        world_x: 0,
+        world_z: 0,
+        rotation: if team == 0 { 0 } else { 180_000 },
+        rotated: false,
+        level,
+        exp: 0,
+        experience_rate: worn.experience_rates.0,
+        unit_experience_rate: worn.experience_rates.1,
+        corrections: worn.corrections,
+        lifesteal: worn.lifesteal,
+        auto_recovery: worn.auto_recovery,
+        energy_shield: worn.energy_shield,
+        stealth: worn.stealth,
+        siege_mode: worn.siege_mode.clone(),
+        wreckage: worn.wreckage.clone(),
+        rebirth: worn.rebirth.clone(),
+        rvo_radius_change: worn.rvo_radius_change,
+        clear_range_item: worn.clear_range_item.clone(),
+        burrow: worn.burrow.clone(),
+        sweep: worn.sweep,
+        distance_intensify: worn.distance_intensify,
+        secondary_damage: worn.secondary_damage,
+        dead_line: worn.dead_line,
+        mech_group: worn.mech_group,
+        move_ability_attack: worn.move_ability_attack,
+        reactive_armor: worn.reactive_armor,
+        move_ability_range_item: worn.move_ability_range_item,
+        main_fire: worn.main_fire,
+        interception: worn.interception,
+        carried_shield: worn.carried_shield,
+        production: None,
+        buff_sources: worn.buff_sources,
+        ignored_buffs: worn.ignored_buffs,
+        important: worn.important,
+        ignores_control_beam: worn.ignores_control_beam,
+        travelling: false,
+        extra_weapons: worn.extra_weapons,
+        technology_disable: worn.technology_disable,
+        dead_summon: None,
+        surfacing: None,
+    }
+}
+
 /// The units a side's buffs and technologies make a unit summon as it dies
 /// (`IBEC_DeadSummon`, `DeadSummonTech`), by side and type id: each type one
 /// of the side's placements summons, and each one of these summons summons
@@ -586,52 +641,7 @@ fn compile_death_summons(
             ));
             continue;
         }
-        let template = Placement {
-            team,
-            unit_id: 0,
-            formation_id: 0,
-            formation_index: -1,
-            type_name: rules.type_name.clone(),
-            world_x: 0,
-            world_z: 0,
-            rotation: if team == 0 { 0 } else { 180_000 },
-            rotated: false,
-            level,
-            exp: 0,
-            experience_rate: worn.experience_rates.0,
-            unit_experience_rate: worn.experience_rates.1,
-            corrections: worn.corrections,
-            lifesteal: worn.lifesteal,
-            auto_recovery: worn.auto_recovery,
-            energy_shield: worn.energy_shield,
-            stealth: worn.stealth,
-            siege_mode: worn.siege_mode.clone(),
-            wreckage: worn.wreckage.clone(),
-            rebirth: worn.rebirth.clone(),
-            rvo_radius_change: worn.rvo_radius_change,
-            clear_range_item: worn.clear_range_item.clone(),
-            sweep: worn.sweep,
-            distance_intensify: worn.distance_intensify,
-            secondary_damage: worn.secondary_damage,
-            dead_line: worn.dead_line,
-            mech_group: worn.mech_group,
-            move_ability_attack: worn.move_ability_attack,
-            reactive_armor: worn.reactive_armor,
-            move_ability_range_item: worn.move_ability_range_item,
-            main_fire: worn.main_fire,
-            interception: worn.interception,
-            carried_shield: worn.carried_shield,
-            production: None,
-            buff_sources: worn.buff_sources,
-            ignored_buffs: worn.ignored_buffs,
-            important: worn.important,
-            ignores_control_beam: worn.ignores_control_beam,
-            travelling: false,
-            extra_weapons: worn.extra_weapons,
-            technology_disable: worn.technology_disable,
-            dead_summon: None,
-            surfacing: None,
-        };
+        let template = death_summon_template(team, rules, level, worn);
         pending.extend(death_summoned(&template, units));
         templates.insert(
             (team, type_id, level),
@@ -784,11 +794,12 @@ fn compile_battle_skills(
                 || worn.rebirth.is_some()
                 || worn.rvo_radius_change.is_some()
                 || worn.clear_range_item.is_some()
+                || worn.burrow.is_some()
             {
                 refused.push(format!(
                     "side {name} summons a {} that its technologies give lifesteal, repair, \
                      a shield, stealth, a group, a trench, a fire, life from wreckage, a \
-                     rebirth, a loose formation or a fire extinguisher, and what a \
+                     rebirth, a loose formation, a fire extinguisher or a burrow, and what a \
                      summon's effect providers carry is not measured",
                     summon.rules.type_name
                 ));
@@ -927,6 +938,7 @@ fn compile_formation(
         rebirth: worn.rebirth.clone(),
         rvo_radius_change: worn.rvo_radius_change,
         clear_range_item: worn.clear_range_item.clone(),
+        burrow: worn.burrow.clone(),
         sweep: worn.sweep,
         distance_intensify: worn.distance_intensify,
         secondary_damage: worn.secondary_damage,
@@ -1084,11 +1096,12 @@ fn made_by(
         || worn.rebirth.is_some()
         || worn.rvo_radius_change.is_some()
         || worn.clear_range_item.is_some()
+        || worn.burrow.is_some()
     {
         refused.push(format!(
             "side {side_name} makes a {} that its technologies give lifesteal, repair, a \
              shield, a search by distance, a second damage, a dead line, a stronger \
-             surfacing, a sand fog, interceptors, a summon as it dies, a trench, a fire, life from wreckage, a rebirth, a loose formation or a fire extinguisher, and what a made unit's effect providers carry is not measured",
+             surfacing, a sand fog, interceptors, a summon as it dies, a trench, a fire, life from wreckage, a rebirth, a loose formation, a fire extinguisher or a burrow, and what a made unit's effect providers carry is not measured",
             made.type_name
         ));
         return None;
@@ -1207,6 +1220,17 @@ fn refuse_travelling_buffs(
         ));
         return None;
     }
+    // `TeamBurrowManager.Update` asks a unit still travelling, which no
+    // search has reached, and when one that arrives first burrows is not
+    // read.
+    if formation.travelling && worn.burrow.is_some() {
+        refused.push(format!(
+            "side {side_name} unit type {:?} travels in with a burrow, and when a \
+             travelling unit first burrows is not measured",
+            formation.type_name
+        ));
+        return None;
+    }
     Some(())
 }
 
@@ -1216,6 +1240,8 @@ fn unread_on_a_death_summon(worn: &Worn) -> Option<&'static str> {
         Some("make an interceptor, and when a summon's interceptors start")
     } else if worn.dead_summon.is_some() {
         Some("make summon as it dies in turn")
+    } else if worn.burrow.is_some() {
+        Some("burrow, and whether its manager holds it as it appears")
     } else if worn.rvo_radius_change.is_some() {
         Some("loosen its formation, and whether its agent joins its team as it appears")
     } else if worn.clear_range_item.is_some() {
@@ -1269,6 +1295,7 @@ struct Worn {
     rebirth: Option<Rebirth>,
     rvo_radius_change: Option<RvoRadiusChange>,
     clear_range_item: Option<ClearRangeItem>,
+    burrow: Option<Burrow>,
     sweep: Option<SweepIntensify>,
     distance_intensify: bool,
     secondary_damage: Option<SecondaryDamage>,
@@ -1589,6 +1616,7 @@ fn worn(
         rebirth: sources.rebirth,
         rvo_radius_change: sources.rvo_radius_change,
         clear_range_item: sources.clear_range_item,
+        burrow: sources.burrow,
         sweep: main_skill.sweep,
         distance_intensify: main_skill.distance_intensify,
         secondary_damage: main_skill.secondary_damage,

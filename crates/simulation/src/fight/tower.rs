@@ -48,8 +48,11 @@ pub(in crate::fight) const SOURCE: &str = "BuffSystem";
 )]
 pub(in crate::fight) struct RunningBuff {
     /// The `buffDatas` row it was added with, which a later one it merges
-    /// into does not change.
+    /// into does not change, or the technology that is its own data.
     buff_id: u32,
+    /// Whether `buff_id` names a technology that serves as its own buff data
+    /// (`BurrowTech`) rather than a `buffDatas` row.
+    technology: bool,
     divide: i32,
     additive: bool,
     elapsed: u32,
@@ -103,7 +106,11 @@ impl RunningBuff {
         let ticks = |value: u32| i32::try_from(value).unwrap_or(i32::MAX);
         mechcore_mcfr::BuffState {
             data: mechcore_mcfr::BuffDataRef {
-                kind: mechcore_mcfr::BuffDataKind::Buff,
+                kind: if self.technology {
+                    mechcore_mcfr::BuffDataKind::Technology
+                } else {
+                    mechcore_mcfr::BuffDataKind::Buff
+                },
                 id: self.buff_id,
             },
             source: self.source_actor,
@@ -205,6 +212,8 @@ pub(in crate::fight) const CERTAIN: i32 = 1_000;
 )]
 pub(in crate::fight) struct BuffRow {
     pub(in crate::fight) buff_id: u32,
+    /// Whether `buff_id` names a technology that is its own buff data.
+    pub(in crate::fight) technology: bool,
     /// `IsClearSelfBuffWhenDisableTech`.
     pub(in crate::fight) clears_when_technologies_disabled: bool,
     pub(in crate::fight) divide: i32,
@@ -343,7 +352,7 @@ impl super::Actor {
         let buffs = &self.stats.overlays;
         self.buffs
             .iter()
-            .filter(|running| running.buff_id != row.buff_id)
+            .filter(|running| !same_buff(running, row))
             .find(|running| {
                 row.entries.iter().any(|entry| {
                     entry.index != Index::MoveSpeed
@@ -603,6 +612,7 @@ impl Simulation {
         }
         let row = BuffRow {
             buff_id: loss.buff_id,
+            technology: false,
             clears_when_technologies_disabled: self
                 .towers
                 .config
@@ -694,7 +704,7 @@ impl Simulation {
     /// `Next(1000)` is not below the chance.
     pub(in crate::fight) fn buff_reaches(&mut self, actor_id: u64, row: &BuffRow) -> Result<bool> {
         let actor = &self.actors[&actor_id];
-        if actor.placement.ignored_buffs.contains(&row.buff_id)
+        if (!row.technology && actor.placement.ignored_buffs.contains(&row.buff_id))
             || (row.debuff && actor.invincible())
             || row.probability <= 0
         {
@@ -909,7 +919,7 @@ impl Simulation {
         let subject = ObjectRef::new(ObjectKind::Unit, actor_id);
         let mut removed = false;
         for index in (0..actor.buffs.len()).rev() {
-            if kept.contains(&actor.buffs[index].buff_id) {
+            if !actor.buffs[index].technology && kept.contains(&actor.buffs[index].buff_id) {
                 continue;
             }
             let buff = actor.buffs.remove(index);
@@ -929,6 +939,35 @@ impl Simulation {
             self.switch_technologies(actor_id, true)?;
         }
         Ok(())
+    }
+
+    /// `BuffSystem.RemoveBuff` of the buff a technology is its own data of
+    /// (`BurrowTech`): taken off the unit with what it wrote, `removed`.
+    pub(in crate::fight) fn remove_technology_buff(
+        &mut self,
+        actor_id: u64,
+        technology: u32,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        let Some(index) = actor
+            .buffs
+            .iter()
+            .position(|running| running.technology && running.buff_id == technology)
+        else {
+            return Ok(());
+        };
+        let buff = actor.buffs.remove(index);
+        events.push(buff_removed(
+            ObjectRef::new(ObjectKind::Unit, actor_id),
+            buff.buff_id,
+            BuffRemovedReason::Removed,
+        ));
+        actor.withdraw_buff(&buff);
+        actor.refresh_life_data()
     }
 
     /// The buffs a unit that died this tick had, `cleared`, to follow its
@@ -1285,6 +1324,7 @@ fn add_buff(
     }
     let running = RunningBuff {
         buff_id: row.buff_id,
+        technology: row.technology,
         divide: row.divide,
         additive: row.additive,
         elapsed: 0,
@@ -1316,7 +1356,8 @@ fn add_buff(
 
 /// `Buff.IsSameBuff`: the same row, or one of the same nonzero divide.
 fn same_buff(running: &RunningBuff, row: &BuffRow) -> bool {
-    running.buff_id == row.buff_id || (row.divide != 0 && running.divide == row.divide)
+    (running.technology == row.technology && running.buff_id == row.buff_id)
+        || (row.divide != 0 && running.divide == row.divide)
 }
 
 /// Every running buff one tick older, and those whose time is up removed

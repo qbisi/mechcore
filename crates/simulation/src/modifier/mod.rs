@@ -25,7 +25,7 @@ pub(crate) use equipment::EquipmentEffects;
 pub(crate) use officers::{ContraptionRates, OfficerEffects};
 pub(crate) use providers::EffectProvider;
 pub(crate) use sources::{
-    AllCycle, Arrival, AutoRecovery, BuffReach, BuffSource, BuffTrigger, CarriedShield,
+    AllCycle, Arrival, AutoRecovery, BuffReach, BuffSource, BuffTrigger, Burrow, CarriedShield,
     ClearRangeItem, DeadSummon, EnergyShield, LifeSteal, MoveAbilityAttack, MoveAbilityRangeItem,
     ProductionLine, ReactiveArmor, Rebirth, RebirthFollow, RecoveryState, RvoRadiusChange,
     SiegeMode, StackCondition, Stealth, SweepIntensify, WreckageRecovery,

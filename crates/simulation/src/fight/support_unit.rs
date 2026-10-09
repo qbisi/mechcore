@@ -436,52 +436,13 @@ impl Simulation {
         self.ids.next_unit += 1;
         let formation_id = self.ids.next_formation;
         self.ids.next_formation += 1;
-        let placement = Placement {
+        let placement = summon_placement(
+            creator,
             team,
-            unit_id,
-            formation_id,
-            formation_index: -1,
-            type_name: rules.type_name.clone(),
-            world_x: q32_to_space_rounded(x_q32),
-            world_z: q32_to_space_rounded(z_q32),
-            rotation: if team == 0 { 0 } else { 180_000 },
-            rotated: false,
+            (unit_id, formation_id),
             level,
-            exp: 0,
-            experience_rate: crate::data::ExperienceRate::default(),
-            unit_experience_rate: crate::data::ExperienceRate::default(),
-            corrections: creator.summon.corrections.clone(),
-            lifesteal: None,
-            auto_recovery: None,
-            energy_shield: None,
-            stealth: None,
-            siege_mode: None,
-            wreckage: None,
-            rebirth: None,
-            rvo_radius_change: None,
-            clear_range_item: None,
-            sweep: None,
-            distance_intensify: false,
-            secondary_damage: None,
-            dead_line: None,
-            mech_group: None,
-            move_ability_attack: None,
-            reactive_armor: creator.summon.reactive_armor,
-            move_ability_range_item: None,
-            main_fire: None,
-            interception: None,
-            carried_shield: None,
-            production: None,
-            buff_sources: Vec::new(),
-            ignored_buffs: Vec::new(),
-            important: false,
-            ignores_control_beam: false,
-            travelling: false,
-            extra_weapons: Vec::new(),
-            technology_disable: creator.summon.technology_disable.clone(),
-            dead_summon: None,
-            surfacing: None,
-        };
+            (x_q32, z_q32),
+        );
         let mut actor = Actor::at_generated_position(placement, rules, x_q32, z_q32);
         if let Some(facing) = facing {
             actor.face(facing);
@@ -1149,4 +1110,64 @@ fn hundredths(draw: i32) -> i64 {
     let scaled = i64::from(draw) << 32;
     let half = if scaled < 0 { -50 } else { 50 };
     (scaled + half) / 100
+}
+
+/// The placement of a unit a production line makes: its side, its ids, its
+/// level and where it stands, and of what its loadout hands a unit, the
+/// corrections, the reactive armor and the switched technologies its line
+/// passes on.
+fn summon_placement(
+    creator: &Creator,
+    team: u32,
+    (unit_id, formation_id): (u64, u64),
+    level: i64,
+    (x_q32, z_q32): (i64, i64),
+) -> Placement {
+    Placement {
+        team,
+        unit_id,
+        formation_id,
+        formation_index: -1,
+        type_name: creator.summon.rules.type_name.clone(),
+        world_x: q32_to_space_rounded(x_q32),
+        world_z: q32_to_space_rounded(z_q32),
+        rotation: if team == 0 { 0 } else { 180_000 },
+        rotated: false,
+        level,
+        exp: 0,
+        experience_rate: crate::data::ExperienceRate::default(),
+        unit_experience_rate: crate::data::ExperienceRate::default(),
+        corrections: creator.summon.corrections.clone(),
+        lifesteal: None,
+        auto_recovery: None,
+        energy_shield: None,
+        stealth: None,
+        siege_mode: None,
+        wreckage: None,
+        rebirth: None,
+        rvo_radius_change: None,
+        clear_range_item: None,
+        burrow: None,
+        sweep: None,
+        distance_intensify: false,
+        secondary_damage: None,
+        dead_line: None,
+        mech_group: None,
+        move_ability_attack: None,
+        reactive_armor: creator.summon.reactive_armor,
+        move_ability_range_item: None,
+        main_fire: None,
+        interception: None,
+        carried_shield: None,
+        production: None,
+        buff_sources: Vec::new(),
+        ignored_buffs: Vec::new(),
+        important: false,
+        ignores_control_beam: false,
+        travelling: false,
+        extra_weapons: Vec::new(),
+        technology_disable: creator.summon.technology_disable.clone(),
+        dead_summon: None,
+        surfacing: None,
+    }
 }
