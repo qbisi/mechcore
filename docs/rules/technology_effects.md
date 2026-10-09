@@ -1196,8 +1196,11 @@ whose own `DisableEffect` it does not mirror.
   to the one kept and writes the rates and life rate at it. A Rhino with
   Combat Evolvement at two stacks loses its 9% damage as the Electromagnetic
   Impact lands and its 5% life at its next second; the buff run out, its next
-  second writes three stacks. A cleared buff that does not stack is removed,
-  which is not measured.
+  second writes three stacks. A cleared buff that does not stack
+  (`IsAdditiveEffect` false) is removed (`BuffManager.RemoveBuff`), as a buff
+  that runs out is: what it wrote taken away, the life refreshed
+  (`Buff.Exit`), and a `buff_removed` recorded; read from the build, no
+  recording holds one.
 
   Every buff controller of the unit stops too, whichever source it is of,
   once one of its technologies that switches is a buff source
@@ -2086,8 +2089,7 @@ derive (a minimum range):
   line (`SupportUnitCreator`), an explosion or preemptive skill other than a
   permanent preemptive explosion, an active permanent preemptive skill
   (`PreemptiveSkillController.Update` gives it up), a group, a unit's own shield
-  (`EnergyShieldProvider.DisableEffect`), a cleared buff that does not
-  stack, a sweep's change, an air attack's switch. Refused.
+  (`EnergyShieldProvider.DisableEffect`), a sweep's change, an air attack's switch. Refused.
 - **A unit's interceptors switched off.** `InterceptMissileEffectProvider.DisableEffect`
   disables each and lets it idle (`InterceptEffectBase.DoDisable`); no
   recording holds it, and a disable reaching an interceptor unit is refused.
