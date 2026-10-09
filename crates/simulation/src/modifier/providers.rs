@@ -77,12 +77,14 @@ pub(crate) enum EffectProvider {
     Repair,
     /// `BurrowEffectProvider`, for an `IBurrow`.
     Burrow,
+    /// `FlyTechEffectProvider`, for an `IFlyTechDataSource`.
+    FlyTech,
 }
 
 impl EffectProvider {
     /// Every provider, in the order the fight hands a unit to each as
     /// `FightEffectSystem` activates, deactivates or switches its effects.
-    pub(crate) const ALL: [Self; 29] = [
+    pub(crate) const ALL: [Self; 30] = [
         Self::InterceptMissile,
         Self::StealthTech,
         Self::MechGroup,
@@ -112,5 +114,6 @@ impl EffectProvider {
         Self::RvoRadiusChange,
         Self::ClearRangeItem,
         Self::KillExplosion,
+        Self::FlyTech,
     ];
 }

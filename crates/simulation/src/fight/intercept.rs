@@ -299,7 +299,7 @@ impl Simulation {
                 let actor = &self.actors[&actor_id];
                 (
                     actor.x_q32,
-                    space_to_q32(unit_height(actor.rules.domain)),
+                    space_to_q32(unit_height(actor.domain)),
                     actor.z_q32,
                 )
             }

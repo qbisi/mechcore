@@ -1515,6 +1515,19 @@ fn worn(
         .map_err(on_side),
     )?;
     switch_air_attack(&main_skill, rules, &mut corrections, &mut extra_weapons);
+    if let Some(fly) = sources.single.fly {
+        // `FightEffectMananger.RefreshOtherEffect` adds and removes an
+        // officer's effect named by whether its unit flies as the unit's
+        // domain turns, which is not read.
+        if loadouts.officers.any_by_domain(&side.techs.officers) {
+            refused.push(format!(
+                "side {side_name} unit type {type_name:?} turns its domain while an officer \
+                 names units by whether they fly, which is not read"
+            ));
+            return None;
+        }
+        invert_air_attack(fly, rules, &mut corrections, &mut extra_weapons);
+    }
     let in_force = |error: String| refusal(Error::new(error));
     Some(UnitEffects {
         corrections,
@@ -1859,6 +1872,41 @@ fn switch_air_attack(
             .iter_mut()
             .filter(|weapon| weapon.rules.damage_rate <= 0.0)
         {
+            weapon.skill_corrections.push(entry);
+        }
+    }
+}
+
+/// What a `FlyTech` writes onto its unit's skills
+/// (`SkillDataModifier.AddData`, `FlyTechData.GetIsInverseAirAttack`): its
+/// `canAttackAir` is set where its type is on the ground
+/// (`FlyTechData.PreProcess`), and when that differs from whether the main
+/// skill attacks aircraft, each skill it reaches has its `AirAttackValue`
+/// turned the other way by its own row, -1 for one that attacks aircraft and
+/// +1 for one that does not: a Void Eye in the air attacks aircraft too, and
+/// a Wraith on the ground and its extra skills no longer do.
+fn invert_air_attack(
+    fly: crate::modifier::FlyTech,
+    rules: &UnitConfig,
+    corrections: &mut Vec<(Channel, Entry)>,
+    extra_weapons: &mut [ExtraWeapon],
+) {
+    let can_attack_air = rules.domain != UnitDomain::Air;
+    if can_attack_air == rules.attack.targets.air {
+        return;
+    }
+    let turned = |air: bool| Entry {
+        index: Index::AttackValueFor(UnitDomain::Air),
+        source: TECHNOLOGY_SOURCE,
+        correction: Correction::Value(if air { -1 } else { 1 }),
+    };
+    corrections.push((Channel::Skill, turned(rules.attack.targets.air)));
+    if fly.extra_skills {
+        for weapon in extra_weapons
+            .iter_mut()
+            .filter(|weapon| weapon.rules.damage_rate <= 0.0)
+        {
+            let entry = turned(weapon.rules.attack.targets.air);
             weapon.skill_corrections.push(entry);
         }
     }

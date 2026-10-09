@@ -681,12 +681,10 @@ impl Simulation {
             };
             agents.push(RvoAgentInput {
                 key: RvoAgentKey::Unit(actor_id),
-                main_layer: agent_override
-                    .main_layer
-                    .unwrap_or(match actor.rules.domain {
-                        UnitDomain::Ground => 1,
-                        UnitDomain::Air => 2,
-                    }),
+                main_layer: agent_override.main_layer.unwrap_or(match actor.domain {
+                    UnitDomain::Ground => 1,
+                    UnitDomain::Air => 2,
+                }),
                 layer,
                 collides_with,
                 group: i32::try_from(actor.placement.team).unwrap_or(i32::MAX),

@@ -1010,6 +1010,56 @@ where a Steel Ball dies:
 four Larvas at its own level:
 `tests/dead_summon/fights/sandworm-mechanical-division.yaml`.
 
+## Flying and landing technologies
+
+A row of `flyTechDatas` is a `FlyTech`, an `IFlyTechDataSource`: Aerial
+Mode, the Void Eye's, which takes a ground unit into the air, and Land
+Cruiser, the Wraith's, which brings an air unit to the ground. Beside its
+numbers (the Void Eye's 3 more speed and 15 metres less range, the Wraith's
+50 metres more range and 0.6 second more interval), its row carries only
+`landingDuration`, 1 second on both. `FlyTechData.PreProcess` works out the
+rest from the unit whose card holds the technology: the unit takes the
+other domain than its type's (`GetUnitStateType`), and `canAttackAir` is set
+for a ground type and cleared for a flying one, whatever the row says.
+
+**Its unit stands in the other domain.** `FlyTechEffectProvider.DoActive`
+sets the unit's `FightMech.isFly` to the opposite of its type's
+(`DoEnableOutOfFight`, `FightMech.SetTechFly`) as its effects are activated:
+as the fight starts, or as it lands, joins or rises again; a unit still
+travelling keeps its type's domain until it lands. `SetTechFly` moves the
+unit's agent to the layer of its new domain at its height
+(`RVOControllerFixed.RefreshMainLayer`), and the unit stands at the height of
+its new domain from its next placing (`FightMech.SetPosition`). Everything
+that asks whether a unit flies asks `FightMech.IsFly`: its own search and
+the searches that find it, its attack range and damage against it, what a
+splash, a projectile or a terrain reaches of it, its agent, and the domain
+the recording holds of it each tick. As it dies, `DoDeactive` gives it its
+type's domain back.
+
+**Its skills turn onto or off aircraft.** `SkillDataModifier.AddData` asks
+`FlyTechData.GetIsInverseAirAttack`, whether `canAttackAir` differs from
+whether the unit's main skill attacks aircraft, and where it does turns
+`SkillDataChangeInt.AirAttackValue` of each skill the row reaches by that
+skill's own row, -1 for one that attacks aircraft and +1 for one that does
+not. The Void Eye in the air attacks aircraft as well as the ground; the
+Wraith on the ground and the extra skills its row reaches attack the ground
+alone. The turn is among its numbers, not switched off with its
+technologies.
+
+**Switched off, it takes its type's domain back a second later.**
+`DisableEffect`, on a unit in the technology's domain, starts a
+`GRTimerManager` timer of the row's `landingDuration`, its last one stopped
+(`DoDisableInFight`, `TryStopByObject`), whose callback lands or flies the
+unit to its type's domain (`LandingCallBack`, `FlyUpCallBack`). `EnableEffect`,
+on a unit in its type's domain, gives it the technology's at once and stops
+the timer (`DoEnableInFight`); switched on before the second is out, the unit
+never left the technology's domain.
+
+A unit whose side's officers name units by whether they fly is refused:
+`FightEffectMananger.RefreshOtherEffect` adds or removes such an officer's
+effect as the unit's domain turns, which is not read. Read from the build;
+no recording holds either technology.
+
 ## What this table does not carry
 
 A technology that is not plain does something that is not a correction on its

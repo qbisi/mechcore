@@ -783,7 +783,7 @@ impl Simulation {
                 let actor = &self.actors[&unit_id];
                 if !actor.alive()
                     || actor.visibility == Visibility::Hide
-                    || actor.rules.domain == UnitDomain::Air
+                    || actor.domain == UnitDomain::Air
                 {
                     continue;
                 }

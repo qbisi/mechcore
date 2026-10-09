@@ -51,6 +51,7 @@ mod diffusion;
 mod effects;
 mod experience;
 mod explosion;
+mod fly;
 mod grid;
 mod important_unit;
 mod intercept;
@@ -313,6 +314,13 @@ struct Actor {
     /// Whether `MoveAbilitySummonSystem` holds its surfacing line's action on
     /// its move ability: taken off while its technology is switched off.
     surfacing_line_held: bool,
+    /// `FightMech.isFly`: whether it flies now, its type's domain unless a
+    /// technology turned it (`FightMech.SetTechFly`). Everything in the
+    /// fight that asks whether it flies reads this.
+    pub(in crate::fight) domain: UnitDomain,
+    /// The step its technology's `GRTimerManager` timer gives it its type's
+    /// domain back, after its technologies were switched off.
+    fly_reverts_at: Option<u64>,
     /// `BuffManager.beHitDelayBuffInfos`: the buffs that disable technology
     /// a unit it hit queued on it, each with that unit, which
     /// `InvokeDelayAddBuff` adds as its `BuffManager.Update` ends.
@@ -1054,8 +1062,10 @@ impl Simulation {
         // any summon now joining was due: a splash strikes where its
         // enemies stood as the tick opened.
         self.update_diffusions(&mut events)?;
-        // And those of the units that left their trench.
+        // And those of the units that left their trench, and of those whose
+        // technology that turned their domain was switched off.
         self.idle_after_trenches(step);
+        self.revert_fly_units(step);
         // Native search jobs retain the actor-quadtree candidate order
         // prepared at the start of this FightCore update.
         let target_search_order = self.target_search_order();
@@ -1510,7 +1520,7 @@ impl Simulation {
                     query_targetable: actor.target_query_alive,
                     visible: actor.visibility == Visibility::Normal,
                     visibility: actor.visibility,
-                    domain: actor.rules.domain,
+                    domain: actor.domain,
                 })
             }
             FightActorRef::Building(id) => {

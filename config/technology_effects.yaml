@@ -1323,12 +1323,18 @@ technologies:
     name: 地面巡航
     unit: wraith
     kind: flyTechDatas
+    fly_landing_duration: 4294967296
+    main_skill_effect: true
+    extra_skill_effect: true
     attack_range_value: [214748364800]  # +50
     attack_interval_value: [2576980377]  # +0.6
   - id: 4430
     name: 飞行模式
     unit: void_eye
     kind: flyTechDatas
+    fly_landing_duration: 4294967296
+    main_skill_effect: true
+    extra_skill_effect: false
     speed_value: [3]
     attack_range_value: [-64424509440]  # -15
   - id: 4515

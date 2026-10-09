@@ -70,7 +70,7 @@ impl Simulation {
         let turned = unit.placement.team != unit.original_team;
         let position = QVec3 {
             x: unit.x_q32,
-            y: space_to_q32(unit_height(unit.rules.domain)),
+            y: space_to_q32(unit_height(unit.domain)),
             z: unit.z_q32,
         };
         self.dead_explosions.push((actor_id, true));
@@ -147,7 +147,7 @@ impl Simulation {
         // `DeadExplosiveDamageProvider.GetTeamController`: the side the unit
         // was deployed on, a beam having turned it or not.
         let team = actor.original_team;
-        let center_y_q32 = space_to_q32(unit_height(actor.rules.domain));
+        let center_y_q32 = space_to_q32(unit_height(actor.domain));
         let (x_q32, z_q32) = (actor.x_q32, actor.z_q32);
         // `explosiveDamageCondition` 2: the life the unit had before it took
         // its own, which a unit any other blow killed never had; 0: the

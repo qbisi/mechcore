@@ -168,7 +168,7 @@ impl Simulation {
                         .map(|target| {
                             (
                                 target.x_q32,
-                                unit_height(target.rules.domain),
+                                unit_height(target.domain),
                                 target.z_q32,
                                 target.rules.collision_radius(),
                             )
@@ -392,7 +392,7 @@ impl Simulation {
             return true;
         };
         let owner_height = match owner {
-            FightActorRef::Unit(id) => unit_height(self.actors[id].rules.domain),
+            FightActorRef::Unit(id) => unit_height(self.actors[id].domain),
             FightActorRef::Building(_) => 0,
         };
         let target_height = q32_to_space_rounded(projectile.cached_target_y_q32);

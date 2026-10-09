@@ -93,6 +93,8 @@ impl Actor {
             sweep_intensified: true,
             sand_fog_held: true,
             surfacing_line_held: true,
+            domain: rules.domain,
+            fly_reverts_at: None,
             reactive_armor: super::reactive_armor::ReactiveArmorState::of(&placement),
             placement,
             rules,
@@ -578,7 +580,7 @@ impl Actor {
     pub(in crate::fight) fn recorded_position(&self) -> QVec3 {
         QVec3 {
             x: self.x_q32,
-            y: space_to_q32(unit_height(self.rules.domain)),
+            y: space_to_q32(unit_height(self.domain)),
             z: self.z_q32,
         }
     }
@@ -593,7 +595,7 @@ impl Actor {
             original_team_id: self.original_team,
             formation_id: self.placement.formation_id,
             unit_type_id: self.rules.unit_type_id,
-            domain: match self.rules.domain {
+            domain: match self.domain {
                 UnitDomain::Ground => Domain::Ground,
                 UnitDomain::Air => Domain::Air,
             },

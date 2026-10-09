@@ -140,6 +140,9 @@ SUBCLASS_SCALARS = (
     ("main_skill_effect", "mainSkillEffect", "killExplosionTechDatas"),
     ("extra_skill_effect", "extraSkillEffect", "killExplosionTechDatas"),
     ("burrow_enters_underground", "isEnterUnderGround", "burrowTechnologies"),
+    ("fly_landing_duration", "landingDuration", "flyTechDatas"),
+    ("main_skill_effect", "mainSkillEffect", "flyTechDatas"),
+    ("extra_skill_effect", "extraSkillEffect", "flyTechDatas"),
 )
 # A field of one list's rows that is one rate, written only where it is set:
 # an extra weapon's `allWeaponReduceDamageRate`, which
@@ -172,7 +175,7 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "wreckageRecoveryTechnologies", "rebirthEffectTechologyDatas",
                "rVORadiusChangeTechnologyTechDatas", "clearRangeItemTechDatas",
                "recoveryTechDatas", "killExplosionTechDatas",
-               "burrowTechnologies", "deadAcidRangeItemTechnologyDatas")
+               "burrowTechnologies", "deadAcidRangeItemTechnologyDatas", "flyTechDatas")
 # The list whose `DeadAcidRangeItemTech` leaves an acid where its unit dies,
 # and the fields its rows carry for it: whole metres of range
 # (`GetRangeItemRange`), the rounds it stands (`GetRoundDuration`), and the

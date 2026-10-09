@@ -832,7 +832,7 @@ impl Simulation {
                 if actor.placement.team != source.team
                     && legacy
                     && actor.alive()
-                    && source.targets.accepts(actor.rules.domain)
+                    && source.targets.accepts(actor.domain)
                 {
                     // A squad an officer delivered as the round opened still
                     // stands at the origin for this: the selector scores it
