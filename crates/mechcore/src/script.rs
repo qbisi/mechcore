@@ -715,10 +715,29 @@ async fn perform(
                 "query",
                 &["input", "sql", "query", "schema", "param"],
             )?;
-            let input = scope.path(
-                fields.get("input").ok_or("query needs input")?,
-                "query input",
-            )?;
+            // One path; two, which are `left` and `right`; or a mapping of
+            // names to paths, as the command's operands are.
+            let input = fields.get("input").ok_or("query needs input")?;
+            let operands = match input {
+                Value::Object(named) => named
+                    .iter()
+                    .map(|(name, path)| {
+                        scope
+                            .path(path, "query input")
+                            .map(|path| format!("{name}={}", path.display()))
+                    })
+                    .collect::<Result<Vec<_>, _>>()?,
+                Value::Array(paths) => paths
+                    .iter()
+                    .map(|path| {
+                        scope
+                            .path(path, "query input")
+                            .map(|path| path.display().to_string())
+                    })
+                    .collect::<Result<Vec<_>, _>>()?,
+                path => vec![scope.path(path, "query input")?.display().to_string()],
+            };
+            let input = crate::query::Inputs::of(&operands).map_err(reason)?;
             let text = |key: &str| {
                 fields
                     .get(key)

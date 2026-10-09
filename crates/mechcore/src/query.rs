@@ -11,7 +11,7 @@
 use std::{
     collections::{BTreeMap, BTreeSet},
     fmt::Write,
-    path::Path,
+    path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
 
@@ -36,6 +36,7 @@ use flatten::{Column, Table};
 /// The named queries the binary carries, by name.
 const QUERIES: &[(&str, &str)] = &[
     ("death-timeline", include_str!("query/death-timeline.sql")),
+    ("divergence", include_str!("query/divergence.sql")),
     ("events-window", include_str!("query/events-window.sql")),
     (
         "kills-by-formation",
@@ -43,9 +44,10 @@ const QUERIES: &[(&str, &str)] = &[
     ),
     ("travel-distance", include_str!("query/travel-distance.sql")),
     ("unit-at", include_str!("query/unit-at.sql")),
+    ("units-diff", include_str!("query/units-diff.sql")),
 ];
 
-/// Reads `query <file> (--sql <sql> | --query <name> | --schema)` off a
+/// Reads `query <file>... (--sql <sql> | --query <name> | --schema)` off a
 /// command line.
 ///
 /// # Errors
@@ -68,15 +70,72 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
                 .ok_or_else(|| Failure::usage(format!("--param {parameter:?} is not name=value")))
         })
         .collect::<Result<BTreeMap<_, _>, _>>()?;
-    let input = arguments.path("a recording to query")?;
-    arguments.finish()?;
+    let operands = arguments.operands()?;
+    let inputs = Inputs::of(&operands)?;
     let asked = Asked::of(sql, named, schema)?;
     if format == Format::Text {
-        print!("{}", answer_text(&input, asked, &parameters)?);
+        print!("{}", answer_text(&inputs, asked, &parameters)?);
         return Ok(Verdict::Yes);
     }
-    crate::cli::emit(&answer(&input, asked, &parameters)?, format)?;
+    crate::cli::emit(&answer(&inputs, asked, &parameters)?, format)?;
     Ok(Verdict::Yes)
+}
+
+/// The recordings a query reads: one, whose tables go unprefixed, or
+/// several, each under its own name.
+pub(crate) enum Inputs {
+    One(PathBuf),
+    Named(Vec<(String, PathBuf)>),
+}
+
+impl Inputs {
+    /// Reads the operands: one path; two paths, which are `left` and
+    /// `right`; or `name=path` each, under any number of names.
+    pub(crate) fn of(operands: &[String]) -> Result<Self, Failure> {
+        let named = operands
+            .iter()
+            .map(|operand| {
+                operand
+                    .split_once('=')
+                    .filter(|(name, _)| schema_name(name))
+                    .map(|(name, path)| (name.to_owned(), PathBuf::from(path)))
+            })
+            .collect::<Vec<_>>();
+        match (operands, named.iter().all(Option::is_some)) {
+            ([], _) => Err(Failure::usage("expected a recording to query")),
+            (_, true) => Self::named(named.into_iter().flatten().collect()),
+            ([one], false) if named[0].is_none() => Ok(Self::One(PathBuf::from(one))),
+            ([left, right], false) if named.iter().all(Option::is_none) => Self::named(vec![
+                ("left".to_owned(), PathBuf::from(left)),
+                ("right".to_owned(), PathBuf::from(right)),
+            ]),
+            _ => Err(Failure::usage(
+                "expected one recording, two (left and right), or name=path for each",
+            )),
+        }
+    }
+
+    fn named(named: Vec<(String, PathBuf)>) -> Result<Self, Failure> {
+        let mut seen = BTreeSet::new();
+        for (name, _) in &named {
+            if !seen.insert(name.as_str()) {
+                return Err(Failure::usage(format!(
+                    "recording name {name} is given twice"
+                )));
+            }
+        }
+        Ok(Self::Named(named))
+    }
+}
+
+/// Whether a word names an attached recording: lowercase, digits and `_`,
+/// starting with a letter, and not one of SQLite's own schemas.
+fn schema_name(name: &str) -> bool {
+    name.starts_with(|first: char| first.is_ascii_lowercase())
+        && name
+            .chars()
+            .all(|next| next.is_ascii_lowercase() || next.is_ascii_digit() || next == '_')
+        && !matches!(name, "main" | "temp")
 }
 
 /// What a query asks of a recording.
@@ -116,17 +175,17 @@ impl Asked {
     }
 }
 
-/// The answer to one question of one recording, as its result object.
+/// The answer to one question of the recordings, as its result object.
 ///
 /// # Errors
 ///
 /// As [`run`], for everything but the command line.
 pub(crate) fn answer(
-    input: &Path,
+    inputs: &Inputs,
     asked: Asked,
     parameters: &BTreeMap<String, String>,
 ) -> Result<Value, Failure> {
-    let database = open(input, &asked, parameters)?;
+    let database = open(inputs, &asked, parameters)?;
     match asked {
         Asked::Schema => serde_json::to_value(database.schema()?)
             .map_err(|error| Failure::failed(format!("cannot write the result: {error}"))),
@@ -135,11 +194,11 @@ pub(crate) fn answer(
 }
 
 fn answer_text(
-    input: &Path,
+    inputs: &Inputs,
     asked: Asked,
     parameters: &BTreeMap<String, String>,
 ) -> Result<String, Failure> {
-    let database = open(input, &asked, parameters)?;
+    let database = open(inputs, &asked, parameters)?;
     match asked {
         Asked::Schema => Ok(schema_text(&database.schema()?)),
         Asked::Sql(sql) => Ok(database.query(&sql, parameters)?.text()),
@@ -147,114 +206,95 @@ fn answer_text(
 }
 
 fn open(
-    input: &Path,
+    inputs: &Inputs,
     asked: &Asked,
     parameters: &BTreeMap<String, String>,
 ) -> Result<Database, Failure> {
     if matches!(asked, Asked::Schema) && !parameters.is_empty() {
         return Err(Failure::usage("--param belongs to --sql and --query"));
     }
-    Database::open(input)
+    Database::open(inputs)
 }
 
-/// A recording laid out as SQLite tables, each filled once a query reads it.
+/// The recordings a query reads, and the connection it runs on.
+///
+/// One recording's tables live in the connection the query runs on. Several
+/// each live in a shared in-memory database of their own, which the query's
+/// connection attaches under the recording's name, so a recording's tables are
+/// made and filled the same way however many are read.
 struct Database {
+    /// The connection several recordings are attached to; one recording's
+    /// query runs on its own connection.
+    attached: Option<Connection>,
+    recordings: Vec<Attached>,
+    /// The tables the statement being prepared reads, by schema.
+    read: Arc<Mutex<BTreeSet<(String, String)>>>,
+}
+
+/// One recording laid out as SQLite tables, each filled once a query reads it.
+struct Attached {
+    /// The schema the query reads it under: `main` alone, its name attached.
+    schema: String,
     connection: Connection,
     recording: McfrTables,
     /// Each member's own table, holding its lists' tables, by member.
     members: BTreeMap<String, Table>,
     filled: BTreeSet<String>,
-    read: Arc<Mutex<BTreeSet<String>>>,
 }
 
 impl Database {
-    fn open(input: &Path) -> Result<Self, Failure> {
-        let (kind, _) = Kind::read(input)?;
-        kind.require("query")?;
-        let recording = McfrTables::open(input)
-            .map_err(|error| Failure::failed(format!("{}: {error}", input.display())))?;
-        let connection = Connection::open_in_memory().map_err(sqlite)?;
-        connection
-            .create_scalar_function(
-                "q32",
-                1,
-                FunctionFlags::SQLITE_UTF8 | FunctionFlags::SQLITE_DETERMINISTIC,
-                |context| {
-                    let raw = context.get::<Option<i64>>(0)?;
-                    #[allow(clippy::cast_precision_loss)]
-                    Ok(raw.map(|raw| raw as f64 / 4_294_967_296.0))
-                },
-            )
-            .map_err(sqlite)?;
-        let numeric = FunctionFlags::SQLITE_UTF8 | FunctionFlags::SQLITE_DETERMINISTIC;
-        connection
-            .create_scalar_function("sqrt", 1, numeric, |context| {
-                Ok(context.get::<Option<f64>>(0)?.map(f64::sqrt))
-            })
-            .map_err(sqlite)?;
-        connection
-            .create_scalar_function("hypot", 2, numeric, |context| {
-                let x = context.get::<Option<f64>>(0)?;
-                let y = context.get::<Option<f64>>(1)?;
-                Ok(x.zip(y).map(|(x, y)| x.hypot(y)))
-            })
-            .map_err(sqlite)?;
-        let mut members = BTreeMap::new();
-        for member in recording.tables() {
-            let schema = recording
-                .schema(&member)
-                .map_err(|error| Failure::failed(format!("{member}: {error}")))?;
-            let table = flatten::tables(&member, &schema)
-                .map_err(|error| Failure::failed(format!("{member}: {error}")))?;
-            for table in table.all() {
-                connection.execute_batch(&table.create()).map_err(sqlite)?;
+    fn open(inputs: &Inputs) -> Result<Self, Failure> {
+        let (attached, recordings) = match inputs {
+            Inputs::One(input) => {
+                let connection = Connection::open_in_memory().map_err(sqlite)?;
+                (None, vec![Attached::open(input, "main", connection)?])
             }
-            members.insert(member, table);
-        }
-        connection
-            .execute_batch(
-                "CREATE TABLE meta (key TEXT NOT NULL, value TEXT NOT NULL);
-                 CREATE VIEW fight AS SELECT
-                   (SELECT value FROM meta WHERE key = 'producer') AS producer,
-                   (SELECT value FROM meta WHERE key = 'game_build') AS game_build,
-                   (SELECT value FROM meta WHERE key = 'format') AS format,
-                   (SELECT value FROM meta WHERE key = 'result_hash') AS result_hash,
-                   CAST((SELECT value FROM meta WHERE key = 'tick_count') AS INTEGER) AS tick_count,
-                   CAST((SELECT value FROM meta WHERE key = 'terminal_tick') AS INTEGER) AS terminal_tick,
-                   json_extract((SELECT value FROM meta WHERE key = 'durable_context'), '$.combat_round') AS combat_round;",
-            )
-            .map_err(sqlite)?;
-        connection.execute_batch(layout::CREATE).map_err(sqlite)?;
-        {
-            let mut insert = connection
-                .prepare("INSERT INTO meta (key, value) VALUES (?1, ?2)")
-                .map_err(sqlite)?;
-            for (key, value) in recording.metadata() {
-                insert.execute((key, value)).map_err(sqlite)?;
+            Inputs::Named(named) => {
+                let query = Connection::open_in_memory().map_err(sqlite)?;
+                let mut recordings = Vec::new();
+                for (name, input) in named {
+                    let uri = format!(
+                        "file:mechcore-query-{}-{name}?mode=memory&cache=shared",
+                        std::process::id()
+                    );
+                    let connection = Connection::open(&uri).map_err(sqlite)?;
+                    recordings.push(Attached::open(input, name, connection)?);
+                    query
+                        .execute(&format!("ATTACH DATABASE ?1 AS \"{name}\""), [&uri])
+                        .map_err(sqlite)?;
+                }
+                (Some(query), recordings)
             }
-            insert
-                .execute(("layout.yaml", recording.layout_yaml()))
-                .map_err(sqlite)?;
-        }
-        let read = Arc::new(Mutex::new(BTreeSet::new()));
-        let seen = Arc::clone(&read);
+        };
+        let database = Self {
+            attached,
+            recordings,
+            read: Arc::new(Mutex::new(BTreeSet::new())),
+        };
+        let connection = database.connection();
+        functions(connection)?;
+        let seen = Arc::clone(&database.read);
         connection
             .authorizer(Some(move |context: AuthContext<'_>| {
                 if let AuthAction::Read { table_name, .. } = context.action {
                     seen.lock()
                         .expect("the authorizer runs on this thread")
-                        .insert(table_name.to_owned());
+                        .insert((
+                            context.database_name.unwrap_or("main").to_owned(),
+                            table_name.to_owned(),
+                        ));
                 }
                 Authorization::Allow
             }))
             .map_err(sqlite)?;
-        Ok(Self {
-            connection,
-            recording,
-            members,
-            filled: BTreeSet::new(),
-            read,
-        })
+        Ok(database)
+    }
+
+    /// The connection a query runs on.
+    fn connection(&self) -> &Connection {
+        self.attached
+            .as_ref()
+            .unwrap_or(&self.recordings[0].connection)
     }
 
     /// Runs one statement, first filling every table it reads.
@@ -266,10 +306,17 @@ impl Database {
         self.read.lock().expect("one thread").clear();
         // Preparing names every table the statement reads, through the views
         // it reads too, to the authorizer.
-        drop(self.connection.prepare(sql).map_err(sqlite)?);
+        drop(self.connection().prepare(sql).map_err(sqlite)?);
         let read = std::mem::take(&mut *self.read.lock().expect("one thread"));
-        self.fill(&read)?;
-        let mut statement = self.connection.prepare(sql).map_err(sqlite)?;
+        for recording in &mut self.recordings {
+            let tables = read
+                .iter()
+                .filter(|(schema, _)| *schema == recording.schema)
+                .map(|(_, table)| table.clone())
+                .collect();
+            recording.fill(&tables)?;
+        }
+        let mut statement = self.connection().prepare(sql).map_err(sqlite)?;
         let mut unused = parameters.keys().collect::<BTreeSet<_>>();
         for index in 1..=statement.parameter_count() {
             let name = statement
@@ -305,6 +352,111 @@ impl Database {
             );
         }
         Ok(Answer { columns, rows })
+    }
+
+    fn schema(&self) -> Result<Schema, Failure> {
+        let mut tables = Vec::new();
+        for recording in &self.recordings {
+            tables.extend(recording.schema(self.attached.is_some())?);
+        }
+        Ok(Schema {
+            schema: "mechcore.query.schema.v1",
+            tables,
+            queries: QUERIES
+                .iter()
+                .map(|(name, sql)| SchemaQuery {
+                    name,
+                    description: sql
+                        .lines()
+                        .map_while(|line| line.strip_prefix("--"))
+                        .map(str::trim)
+                        .collect::<Vec<_>>()
+                        .join(" "),
+                    parameters: parameter_names(sql),
+                })
+                .collect(),
+        })
+    }
+}
+
+/// The functions a query may call beside SQLite's own.
+fn functions(connection: &Connection) -> Result<(), Failure> {
+    let numeric = FunctionFlags::SQLITE_UTF8 | FunctionFlags::SQLITE_DETERMINISTIC;
+    connection
+        .create_scalar_function("q32", 1, numeric, |context| {
+            let raw = context.get::<Option<i64>>(0)?;
+            #[allow(clippy::cast_precision_loss)]
+            Ok(raw.map(|raw| raw as f64 / 4_294_967_296.0))
+        })
+        .map_err(sqlite)?;
+    connection
+        .create_scalar_function("sqrt", 1, numeric, |context| {
+            Ok(context.get::<Option<f64>>(0)?.map(f64::sqrt))
+        })
+        .map_err(sqlite)?;
+    connection
+        .create_scalar_function("hypot", 2, numeric, |context| {
+            let x = context.get::<Option<f64>>(0)?;
+            let y = context.get::<Option<f64>>(1)?;
+            Ok(x.zip(y).map(|(x, y)| x.hypot(y)))
+        })
+        .map_err(sqlite)?;
+    Ok(())
+}
+
+impl Attached {
+    fn open(input: &Path, schema: &str, connection: Connection) -> Result<Self, Failure> {
+        let (kind, _) = Kind::read(input)?;
+        kind.require("query")?;
+        let recording = McfrTables::open(input)
+            .map_err(|error| Failure::failed(format!("{}: {error}", input.display())))?;
+        let mut members = BTreeMap::new();
+        for member in recording.tables() {
+            let table_schema = recording
+                .schema(&member)
+                .map_err(|error| Failure::failed(format!("{member}: {error}")))?;
+            let table = flatten::tables(&member, &table_schema)
+                .map_err(|error| Failure::failed(format!("{member}: {error}")))?;
+            for table in table.all() {
+                connection.execute_batch(&table.create()).map_err(sqlite)?;
+            }
+            members.insert(member, table);
+        }
+        connection
+            .execute_batch(
+                "CREATE TABLE meta (key TEXT NOT NULL, value TEXT NOT NULL);
+                 CREATE VIEW fight AS SELECT
+                   (SELECT value FROM meta WHERE key = 'producer') AS producer,
+                   (SELECT value FROM meta WHERE key = 'game_build') AS game_build,
+                   (SELECT value FROM meta WHERE key = 'format') AS format,
+                   (SELECT value FROM meta WHERE key = 'result_hash') AS result_hash,
+                   CAST((SELECT value FROM meta WHERE key = 'tick_count') AS INTEGER) AS tick_count,
+                   CAST((SELECT value FROM meta WHERE key = 'terminal_tick') AS INTEGER) AS terminal_tick,
+                   json_extract((SELECT value FROM meta WHERE key = 'durable_context'), '$.combat_round') AS combat_round;",
+            )
+            .map_err(sqlite)?;
+        connection.execute_batch(layout::CREATE).map_err(sqlite)?;
+        {
+            let mut insert = connection
+                .prepare("INSERT INTO meta (key, value) VALUES (?1, ?2)")
+                .map_err(sqlite)?;
+            for (key, value) in recording.metadata() {
+                insert.execute((key, value)).map_err(sqlite)?;
+            }
+            insert
+                .execute(("layout.yaml", recording.layout_yaml()))
+                .map_err(sqlite)?;
+            insert
+                .execute(("path", input.display().to_string()))
+                .map_err(sqlite)?;
+        }
+        Ok(Self {
+            schema: schema.to_owned(),
+            connection,
+            recording,
+            members,
+            filled: BTreeSet::new(),
+        })
     }
 
     /// Fills the tables of `read` not filled yet, decoding each member once.
@@ -346,7 +498,9 @@ impl Database {
         Ok(())
     }
 
-    fn schema(&self) -> Result<Schema, Failure> {
+    /// Its tables, each named under its schema when several are attached.
+    fn schema(&self, attached: bool) -> Result<Vec<SchemaTable>, Failure> {
+        let database = attached.then(|| self.schema.clone());
         let mut tables: Vec<SchemaTable> = self
             .members
             .iter()
@@ -355,7 +509,9 @@ impl Database {
                     Ok(TableOrigin::Instrument) => "instrument",
                     _ => "hashed",
                 };
+                let database = database.clone();
                 table.all().into_iter().map(move |table| SchemaTable {
+                    database: database.clone(),
                     name: table.name.clone(),
                     member: format!("{member}.parquet"),
                     origin,
@@ -387,6 +543,7 @@ impl Database {
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(sqlite)?;
             tables.push(SchemaTable {
+                database: database.clone(),
                 name: (*table).to_owned(),
                 member: "layout.yaml".to_owned(),
                 origin: "layout",
@@ -397,23 +554,7 @@ impl Database {
                 columns,
             });
         }
-        Ok(Schema {
-            schema: "mechcore.query.schema.v1",
-            tables,
-            queries: QUERIES
-                .iter()
-                .map(|(name, sql)| SchemaQuery {
-                    name,
-                    description: sql
-                        .lines()
-                        .map_while(|line| line.strip_prefix("--"))
-                        .map(str::trim)
-                        .collect::<Vec<_>>()
-                        .join(" "),
-                    parameters: parameter_names(sql),
-                })
-                .collect(),
-        })
+        Ok(tables)
     }
 }
 
@@ -553,6 +694,8 @@ struct Schema {
 
 #[derive(Serialize)]
 struct SchemaTable {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    database: Option<String>,
     name: String,
     member: String,
     origin: &'static str,
@@ -595,7 +738,12 @@ fn schema_text(schema: &Schema) -> String {
     for table in &schema.tables {
         let _ = writeln!(
             text,
-            "{} ({}, {}) key {}",
+            "{}{} ({}, {}) key {}",
+            table
+                .database
+                .as_ref()
+                .map(|database| format!("{database}."))
+                .unwrap_or_default(),
             table.name,
             table.member,
             table.origin,

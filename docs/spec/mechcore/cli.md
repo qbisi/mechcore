@@ -473,9 +473,9 @@ in play: what one side is shown of it.
 
 ## `query`
 
-`query <file> --sql <sql>` answers one SQL statement over a recording's
-tables, as SQLite runs it in a database of the binary's own, so a question a
-recording can answer needs no program beside the binary. `--query <name>`
+`query <file>... --sql <sql>` answers one SQL statement over the tables of one
+recording or several, as SQLite runs it in a database of the binary's own, so
+a question a recording can answer needs no program beside the binary. `--query <name>`
 runs a statement the binary carries instead, and `--schema` answers what can be
 asked: every table with its key and columns, and every named statement with
 what it answers and the parameters it takes. Exactly one of the three is
@@ -483,6 +483,14 @@ given. A statement's `:name` parameters are bound by `--param name=value`, once
 each, as an integer or a number where the value reads as one and as text
 otherwise; a parameter the statement does not take, or one it takes and is
 not given, is a usage failure.
+
+**Several recordings.** One recording's tables go unprefixed. Two paths are
+`left` and `right`, as `diff` takes them, and `name=path` names each of any
+number, a name of lowercase letters, digits and `_` other than `main` and
+`temp`; a statement then reads each recording's tables under its name, as
+`left.units` and `right.units`, the same tables one recording has. A name given
+twice is a usage failure. `meta` holds each recording's `path` beside its file
+metadata, and `fight.producer` says which made it, whatever its name.
 
 The answer carries `columns`, the statement's column names, and `rows`, each
 an array of values in the order the statement answered them. `--format text`
@@ -522,8 +530,9 @@ row's place in the member. `meta` holds `ticks.parquet`'s file metadata as
 `key` and `value`, with the embedded layout under `layout.yaml`, and `fight`
 is one row of it: `producer`, which says whether the game or the simulator
 made the recording, `game_build`, `format`, `result_hash`, `tick_count`,
-`terminal_tick` and `combat_round`. `--schema` says of each table whether the
-content hash reads it, and gives each column its place in the member and each
+`terminal_tick` and `combat_round`. `--schema` names each table's recording under
+`database` when several are read, says of each table whether the content hash
+reads it, and gives each column its place in the member and each
 enum column its tags.
 
 **The layout.** The embedded layout is laid out by its own shape, each row
