@@ -43,6 +43,8 @@ use crate::{
     instrument::{self, ChannelSchema, InstrumentRow},
 };
 
+pub(crate) mod tables;
+
 /// The members every recording holds.
 const REQUIRED_MEMBERS: [&str; 2] = ["layout.yaml", "ticks.parquet"];
 

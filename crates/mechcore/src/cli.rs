@@ -247,6 +247,20 @@ impl Args {
         Ok(Some(value))
     }
 
+    /// Every value of an option that may be given more than once, such as
+    /// `--param a=1 --param b=2`, in the order given.
+    pub(crate) fn values(&mut self, name: &str) -> Result<Vec<String>, Failure> {
+        let mut values = Vec::new();
+        while let Some(at) = self.items.iter().position(|item| item == name) {
+            self.items.remove(at);
+            if self.items.len() <= at {
+                return Err(Failure::usage(format!("option {name} requires a value")));
+            }
+            values.push(self.items.remove(at));
+        }
+        Ok(values)
+    }
+
     /// An option whose value may be left out, such as `--wait [<seconds>]`.
     ///
     /// Answers nothing when the option is absent, `Some(None)` when it stands

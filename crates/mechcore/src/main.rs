@@ -14,6 +14,7 @@ mod r#match;
 mod outcome;
 mod play;
 mod profile;
+mod query;
 mod scene;
 mod schema;
 mod script;
@@ -84,6 +85,7 @@ pub(crate) fn dispatch(command: &str, arguments: Args) -> Option<Outcome> {
         "convert" => convert::run(arguments),
         "diff" => diff::run(arguments),
         "show" => show::run(arguments),
+        "query" => query::run(arguments),
         "play" => play::run(arguments),
         "format" => format::run(arguments),
         "schema" => schema::run(arguments),

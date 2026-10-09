@@ -88,15 +88,15 @@ answers with the manual the binary carries.
 A YAML document that names no kind, or one this binary does not read, is
 refused rather than guessed at.
 
-| Kind | `verify` | `convert --to` | `diff` | `show --view` | `play` | `format` |
-| --- | --- | --- | --- | --- | --- | --- |
-| `layout` | yes | `grbr` (rewrite), `mcfr` (computation), `fight` (computation) | yes | — | yes (computation) | yes |
-| `fight` | yes | `mcfr` (computation) | yes | — | yes (computation) | yes |
-| `match` | yes | `grbr` (rewrite), `layout` (rewrite) | — | — | — | — |
-| `state` | — | — | — | — | — | — |
-| `action` | — | — | — | — | — | — |
-| `mcfr` | yes | `fight` (rewrite) | yes | `outcome`, `stats`, `buildings` | yes | — |
-| `grbr` | — | `match` (rewrite), `mcfr` and `fight` (computation, the game alone) | — | — | — | — |
+| Kind | `verify` | `convert --to` | `diff` | `show --view` | `query` | `play` | `format` |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `layout` | yes | `grbr` (rewrite), `mcfr` (computation), `fight` (computation) | yes | — | — | yes (computation) | yes |
+| `fight` | yes | `mcfr` (computation) | yes | — | — | yes (computation) | yes |
+| `match` | yes | `grbr` (rewrite), `layout` (rewrite) | — | — | — | — | — |
+| `state` | — | — | — | — | — | — | — |
+| `action` | — | — | — | — | — | — | — |
+| `mcfr` | yes | `fight` (rewrite) | yes | `outcome`, `stats`, `buildings` | yes | yes | — |
+| `grbr` | — | `match` (rewrite), `mcfr` and `fight` (computation, the game alone) | — | — | — | — | — |
 
 A state and an action are read inside a match, which is what verifies them.
 `schema` names a
@@ -470,6 +470,65 @@ Positions, bounds and every other length are the recording's own fixed point,
 
 `match show` shares the verb because it is the same question asked of a match
 in play: what one side is shown of it.
+
+## `query`
+
+`query <file> --sql <sql>` answers one SQL statement over a recording's
+tables, as SQLite runs it in a database of the binary's own, so a question a
+recording can answer needs no program beside the binary. `--query <name>`
+runs a statement the binary carries instead, and `--schema` answers what can be
+asked: every table with its key and columns, and every named statement with
+what it answers and the parameters it takes. Exactly one of the three is
+given. A statement's `:name` parameters are bound by `--param name=value`, once
+each, as an integer or a number where the value reads as one and as text
+otherwise; a parameter the statement does not take, or one it takes and is
+not given, is a usage failure.
+
+The answer carries `columns`, the statement's column names, and `rows`, each
+an array of values in the order the statement answered them. `--format text`
+prints them as aligned columns under a header.
+
+**Tables.** Each member of the recording is a table under its own name,
+`instrument/<channel>` as `instrument_<channel>`; a per-tick table the
+recording leaves out is a table with no rows. A member's columns are laid out
+by one rule read off its schema:
+
+- a scalar field is a column under its own name;
+- a struct's fields are columns of the row that holds it, named
+  `<struct>__<field>`, so a position is `position__x`, `position__y` and
+  `position__z` and an event's source `source__kind` and `source__id`; `__`
+  separates a path's steps in a column's name and a table's, and no field the
+  format names holds it, so no laid-out name is another's. A struct that may
+  be null adds `has_<struct>`, 1 where it is present, so a null struct is told
+  from one whose fields are null;
+- a list is a table of its own, `<table>__<list>`, one row per element: the
+  key of the row that holds it, `ordinal`, the element's place in the list
+  from 0, then the element's columns, or `value` for an element that is a
+  scalar. A deeper list's table names its parent's `ordinal` after the parent's
+  list, so `units__skills__enabled__weapons` is keyed by `tick`, `unit_id`,
+  `skills_ordinal` and `ordinal`;
+- an enum is its tag's name as [mcfr.md](../mcfr/mcfr.md#common-types-and-enum-tags)
+  names it, `ObjectRef`'s `kind` included, and `events.reason`, whose enum
+  depends on the event's type, its integer tag;
+- a fixed-point value, a `tick_hash` and every other value is the stored one,
+  an unsigned 64-bit integer keeping its bits in SQLite's signed one, and a
+  binary value is lowercase hex. `q32(x)` reads a fixed-point value as a real
+  number.
+
+A member's own table is keyed by `tick` and the identity the format orders its
+rows by: `unit_id`, `projectile_id`, `building_id`, `shield_id`,
+`terrain_id`, `formation_id`, the recorder for `statistics` and `ordinal` for
+`events`. An instrument channel has no identity and is keyed by `row`, its
+row's place in the member. `meta` holds `ticks.parquet`'s file metadata as
+`key` and `value`, with the embedded layout under `layout.yaml`, and `fight`
+is one row of it: `producer`, which says whether the game or the simulator
+made the recording, `game_build`, `format`, `result_hash`, `tick_count`,
+`terminal_tick` and `combat_round`. `--schema` says of each table whether the
+content hash reads it, and gives each column its place in the member and each
+enum column its tags.
+
+A table is decoded only once a statement reads it, so a statement pays for the
+members it names and no others.
 
 ## `play`
 
