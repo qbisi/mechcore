@@ -135,6 +135,14 @@ decompile Class.Method` writes a method's C from a Ghidra project of the
 installed game, its interface calls named by slot; `ghidra.py prepare` makes
 the project once per build, on the machine with the game.
 
+To ask what a recording holds (events in a window, a unit's state at a tick,
+kills by formation, how far units moved, where two recordings part), use
+`mechcore query <recording> --sql …` or `--sql-file`, not a program that reads
+its Parquet members. `--schema` lists the tables, their keys and the named
+queries the binary carries, which are worked examples; `mechcore man query`
+holds the contract. `diff` stays the tool for whether and where two
+recordings first differ.
+
 # Commits
 
 Follow [Conventional Commits](https://www.conventionalcommits.org/), in

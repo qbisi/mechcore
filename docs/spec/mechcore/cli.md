@@ -1022,6 +1022,9 @@ verbs a file of that kind takes and the kinds `convert` reaches from it, as
 describes the kind. A kind no document describes, `grbr`, answers its verbs
 alone. `mechcore man` lists the kinds after the topics.
 
+A verb no document is named after is named by itself too, `mechcore man query`,
+and answers its own section of this contract, from its heading to the next.
+
 `--format json` answers `{topic, title, game_build, text}` rather than the text
 alone, for a caller that stores what it reads, with `verbs` beside them for a
 kind. `--lang <code>` answers a
