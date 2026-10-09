@@ -507,6 +507,16 @@ pub(in crate::fight) fn direction_mdeg_q32_raw(dx: i64, dz: i64) -> i64 {
     degrees_q32_to_mdeg(direction_degrees_q32_raw(dx, dz))
 }
 
+/// `FightUtility.CalculateAngle` of two transforms: how far the direction
+/// from one to the other is off `rotation`, and 0 when the two stand on the
+/// same point, before any direction is converted.
+pub(in crate::fight) fn calculate_angle_q32(rotation: i64, dx: i64, dz: i64) -> i64 {
+    if dx == 0 && dz == 0 {
+        return 0;
+    }
+    rotation_distance_q32(rotation, direction_degrees_q32_raw(dx, dz))
+}
+
 /// The rotation `FightTransform.RotateTo` turns towards along a direction:
 /// none along a zero one, which it returns on without turning. A unit whose
 /// target stands on its own position keeps its facing.

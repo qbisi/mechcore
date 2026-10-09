@@ -346,12 +346,10 @@ impl Simulation {
         self.slot_target_in_attack_range(skill_ref, Some(slot), target)
             && self.fight_actor(target).is_some_and(|view| {
                 view.alive
-                    && rotation_distance_q32(
+                    && calculate_angle_q32(
                         rotation,
-                        direction_degrees_q32_raw(
-                            view.x_q32.saturating_sub(actor.x_q32),
-                            view.z_q32.saturating_sub(actor.z_q32),
-                        ),
+                        view.x_q32.saturating_sub(actor.x_q32),
+                        view.z_q32.saturating_sub(actor.z_q32),
                     ) <= mdeg_to_degrees_q32(half_angle)
             })
     }

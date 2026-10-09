@@ -903,17 +903,32 @@ fn rhino_attack_angle_requires_every_weapon_and_accepts_the_boundary() {
         rules,
         0,
     );
-    let target = 0;
+    // Straight ahead, which `ConvertToAngle` faces at +0.245°.
+    let (dx, dz) = (0, 10_i64 << 32);
     actor.skills.main.weapon_rotations_q32 = vec![0, 41_i64 << 32];
     assert!(
-        !Facing::Weapons(&actor.skills.main.weapon_rotations_q32)
-            .faces(target, actor.rules.attack.attack_half_angle_mdeg())
+        !Facing::Weapons(&actor.skills.main.weapon_rotations_q32).faces_offset(
+            dx,
+            dz,
+            actor.rules.attack.attack_half_angle_mdeg()
+        )
     );
     actor.skills.main.weapon_rotations_q32[1] = 40_i64 << 32;
     assert!(
-        Facing::Weapons(&actor.skills.main.weapon_rotations_q32)
-            .faces(target, actor.rules.attack.attack_half_angle_mdeg())
+        Facing::Weapons(&actor.skills.main.weapon_rotations_q32).faces_offset(
+            dx,
+            dz,
+            actor.rules.attack.attack_half_angle_mdeg()
+        )
     );
+}
+
+#[test]
+fn a_target_on_the_owners_own_position_is_in_every_attack_angle() {
+    // `FightUtility.CalculateAngle` reads two equal positions as angle 0.
+    assert!(Facing::Root(180_i64 << 32).faces_offset(0, 0, 20_000));
+    assert!(Facing::Weapons(&[90_i64 << 32, 270_i64 << 32]).faces_offset(0, 0, 20_000));
+    assert!(!Facing::Weapons(&[]).faces_offset(0, 0, 20_000));
 }
 
 #[test]

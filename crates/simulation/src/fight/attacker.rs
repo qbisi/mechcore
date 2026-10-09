@@ -37,27 +37,19 @@ pub(in crate::fight) enum Facing<'a> {
 }
 
 impl Facing<'_> {
-    /// Whether a bearing is within half an attack angle of the root, or of
-    /// every weapon; an owner with no weapon faces nothing.
-    pub(in crate::fight) fn faces(self, bearing_q32: i64, half_angle_mdeg: i64) -> bool {
+    /// Whether a point `dx`, `dz` off the owner is within half an attack
+    /// angle of the root, or of every weapon, by `FightUtility.CalculateAngle`;
+    /// an owner with no weapon faces nothing.
+    pub(in crate::fight) fn faces_offset(self, dx: i64, dz: i64, half_angle_mdeg: i64) -> bool {
         let half_angle_q32 = mdeg_to_degrees_q32(half_angle_mdeg);
         match self {
-            Self::Root(rotation) => rotation_distance_q32(rotation, bearing_q32) <= half_angle_q32,
+            Self::Root(rotation) => calculate_angle_q32(rotation, dx, dz) <= half_angle_q32,
             Self::Weapons(rotations) => {
                 !rotations.is_empty()
-                    && rotations.iter().all(|rotation| {
-                        rotation_distance_q32(*rotation, bearing_q32) <= half_angle_q32
-                    })
+                    && rotations
+                        .iter()
+                        .all(|&rotation| calculate_angle_q32(rotation, dx, dz) <= half_angle_q32)
             }
-        }
-    }
-
-    /// Whether every angle is within it: an owner with a weapon to measure
-    /// from.
-    fn faces_everything(self) -> bool {
-        match self {
-            Self::Root(_) => true,
-            Self::Weapons(rotations) => !rotations.is_empty(),
         }
     }
 }
@@ -200,21 +192,15 @@ impl Attacker<'_> {
             && edge_distance_q32 <= space_to_q32(range)
     }
 
-    /// Whether a bearing is within the attack angle of what the angle is
-    /// measured against: `SkillAttackAngleChecker.IsAttackTargetInAttackAngle`.
-    pub(in crate::fight) fn faces(&self, bearing_q32: i64) -> bool {
-        self.facing
-            .faces(bearing_q32, self.attack.attack_half_angle_mdeg())
-    }
-
     /// Whether a point is within the attack angle: `FightUtility.CalculateAngle`
     /// of two transforms reads a target standing on the owner's own position
     /// as angle 0, straight ahead of every weapon.
     pub(in crate::fight) fn faces_point(&self, x_q32: i64, z_q32: i64) -> bool {
-        if (x_q32, z_q32) == (self.x_q32, self.z_q32) {
-            return self.facing.faces_everything();
-        }
-        self.faces(self.bearing_q32(x_q32, z_q32))
+        self.facing.faces_offset(
+            x_q32.saturating_sub(self.x_q32),
+            z_q32.saturating_sub(self.z_q32),
+            self.attack.attack_half_angle_mdeg(),
+        )
     }
 
     /// The bearing from the owner to a point.
