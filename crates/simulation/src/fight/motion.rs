@@ -218,6 +218,11 @@ pub(in crate::fight) fn normalized_velocity_q32_raw(dx: i64, dz: i64, speed: i64
     )
 }
 
+/// `MotionController.MIN_MOVE_DISTANCE`, 0.2 metres: the shortest step
+/// `MotionMoveState.MoveUpdate` hands the agent, towards where the unit goes,
+/// when what its move behaviour leaves to go is no longer.
+pub(in crate::fight) const MIN_MOVE_DISTANCE_Q32: i64 = 0x3333_3333;
+
 #[allow(clippy::too_many_arguments)]
 pub(in crate::fight) fn native_auto_move_target_point(
     source_x_q32: i64,
@@ -228,7 +233,6 @@ pub(in crate::fight) fn native_auto_move_target_point(
     target_radius: i64,
     attack_range: i64,
 ) -> (i64, i64) {
-    const MIN_AUTO_MOVE_DISTANCE_Q32: i64 = 0x028f_5c28;
     let delta_x = target_x_q32.saturating_sub(source_x_q32);
     let delta_z = target_z_q32.saturating_sub(source_z_q32);
     let center_distance = native_q32_magnitude(delta_x, delta_z);
@@ -236,7 +240,7 @@ pub(in crate::fight) fn native_auto_move_target_point(
         .saturating_sub(space_to_q32(target_radius))
         .saturating_add(space_to_q32(attack_range))
         .saturating_add(space_to_q32(source_radius));
-    let requested_distance = if target_distance > MIN_AUTO_MOVE_DISTANCE_Q32 {
+    let requested_distance = if target_distance > MIN_MOVE_DISTANCE_Q32 {
         // Whether the unit is farther than it needs to be is asked of the
         // squared distance, which is exact, against the squared stopping
         // distance, which comes from the fast square root. The two disagree
@@ -252,7 +256,7 @@ pub(in crate::fight) fn native_auto_move_target_point(
             return (target_x_q32, target_z_q32);
         }
     } else {
-        MIN_AUTO_MOVE_DISTANCE_Q32
+        MIN_MOVE_DISTANCE_Q32
     };
     let (target_delta_x, target_delta_z) =
         normalized_velocity_q32_raw(delta_x, delta_z, requested_distance);

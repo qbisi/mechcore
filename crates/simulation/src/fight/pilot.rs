@@ -14,7 +14,7 @@
 use super::{
     FightActorRef, Q32_ONE, Simulation,
     math::{direction_degrees_q32_raw, native_q32_magnitude, space_to_q32},
-    motion::{clamp_magnitude_q32_raw, normalized_velocity_q32_raw},
+    motion::{MIN_MOVE_DISTANCE_Q32, clamp_magnitude_q32_raw, normalized_velocity_q32_raw},
     rvo::{fpoint_less_or_equal, fpoint_less_than, q32_div},
 };
 use crate::layout::{SkillEffect, SkillRelease};
@@ -24,8 +24,6 @@ use crate::layout::{SkillEffect, SkillRelease};
 const REACH_Q32: i64 = 20 * Q32_ONE;
 /// `FVector3.get_normalized`'s epsilon.
 const NORMALIZE_EPSILON: i64 = 0xA7C5;
-/// `MotionController.MIN_MOVE_DISTANCE`.
-const MIN_MOVE_DISTANCE_Q32: i64 = 0x028f_5c28;
 /// The farthest `IsEnableAttackMove` looks for an enemy near the path.
 const ATTACK_MOVE_REACH: i64 = 140_000;
 

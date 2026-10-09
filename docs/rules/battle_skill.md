@@ -360,7 +360,10 @@ which scores from that facing. It then takes the place of the unit's
 - Its point, `MoveAttackCommand.RefreshCurrentTargetInfo`, is the segment's
   start moved by the offset, carried along the segment for its length and 20 m
   more. `MotionController.Move` steps towards it, stopping 20 m short, at the
-  unit's own speed.
+  unit's own speed. A unit already within those 20 m steps 0.2 m towards it
+  (`MotionController.MIN_MOVE_DISTANCE`). A Rhino on a beacon whose last two
+  positions are one point is past that segment's point as it takes it, and
+  turns back towards it.
 - It is active with or without a lock. A unit whose target is out of range, or
   that has none, or whose target died out of range, walks towards the point
   rather than the lock. Where the default behaviour would go idle, the motion
