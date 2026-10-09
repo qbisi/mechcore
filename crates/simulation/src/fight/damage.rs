@@ -873,7 +873,8 @@ impl Simulation {
                 }
             }
         }
-        let effects = self.dispatch_hit_damage(hit, &struck.targets, struck.lost, events)?;
+        let effects =
+            self.dispatch_hit_damage(hit, (&struck.targets, struck.lost, false), events)?;
         struck.absorb_ends(effects);
         // A hit that deals fire sets alight the oil its splash reaches.
         if hit.fire {
@@ -986,12 +987,6 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let owner = hit.source.expect("a second damage has its unit").id;
-        if self.actors[&owner].placement.effects.lifesteal.is_some() {
-            return Err(Error::new(
-                "a second damage is dealt by a unit with lifesteal, and whether its hit \
-                 hands life back is not measured",
-            ));
-        }
         let amount = if secondary.buffed {
             self.actors[&owner].stats.overlays.scaled_by_buffs_of(
                 super::tower::SOURCE,
@@ -1019,7 +1014,8 @@ impl Simulation {
         for shield in shields {
             self.hit_shield(shield, &around, events)?;
         }
-        for target in targets {
+        let mut lost = 0;
+        for &target in &targets {
             let amount = match target {
                 _ if !secondary.buffed => amount,
                 FightActorRef::Unit(id) => self.actors[&id].stats.damage_taken(amount)?,
@@ -1039,6 +1035,7 @@ impl Simulation {
             for (reached, stroke) in strokes {
                 self.count_hit(hit.source, hit.source_team, reached, &stroke)?;
                 self.turned_unit_fell(reached, &stroke);
+                lost += stroke.actual;
                 if stroke.actual > 0 {
                     events.push(event(
                         hit.projectile,
@@ -1065,6 +1062,10 @@ impl Simulation {
                 }
             }
         }
+        // `ApplySecondaryDamageToActors`: what it struck and the life it took
+        // go to the skill's hit effects (`DispatchSecondaryDamageEvent`).
+        let effects = self.dispatch_hit_damage(&around, (&targets, lost, true), events)?;
+        struck.absorb_ends(effects);
         Ok(())
     }
 
@@ -1078,11 +1079,20 @@ impl Simulation {
     /// falls the hit effects dealt.
     /// A hit no unit's skill dealt — a turret's, a mine's, a battle skill's —
     /// reaches no unit's skill.
+    ///
+    /// A second damage's hit is handed to them as well, `isSecondary` set,
+    /// through `FightSkill.DispatchSecondaryDamageEvent`, with what it
+    /// struck and the life it took: a lifesteal, a wreckage recovery and a
+    /// kill explosion take it as any hit, a buff source writes on it only
+    /// when it is a second damage's own (`BuffCycleController.PerformHitEffect`
+    /// asks `ISecondaryDamageIntensifyEffectDataSource`), and none that the
+    /// technology table admits is, and the main skill's fire leaves none
+    /// (`FireIntensifyEffectProvider` returns). Nor does it raise
+    /// `PerformMainSkillHitted`, which only a projectile's own dispatch does.
     pub(in crate::fight) fn dispatch_hit_damage(
         &mut self,
         hit: &DamageHit,
-        targets: &[FightActorRef],
-        damage: i64,
+        (targets, damage, secondary): (&[FightActorRef], i64, bool),
         events: &mut Vec<Event>,
     ) -> Result<Struck> {
         match (hit.source, hit.skill_slot) {
@@ -1090,8 +1100,13 @@ impl Simulation {
                 self.steal_life(owner.id, damage, events)?;
                 self.record_wreckage_hit(owner.id, slot, targets);
                 let center = (hit.center_q32.0, hit.center_y_q32, hit.center_q32.1);
-                self.add_hit_buffs(owner.id, slot, (targets, center), events)?;
+                if !secondary {
+                    self.add_hit_buffs(owner.id, slot, (targets, center), events)?;
+                }
                 let ends = self.explode_kills(owner.id, slot, targets, events)?;
+                if secondary {
+                    return Ok(ends);
+                }
                 // `PerformMainSkillHitted`, when the hit is the main skill's.
                 let skill = self.skill_at_slot(FightActorRef::Unit(owner.id), usize::from(slot));
                 if skill.slot == SkillSlot::Main {

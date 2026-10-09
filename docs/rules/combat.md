@@ -1649,8 +1649,21 @@ not the game's native attack-type enum.
 - **Why a dead unit's shell deals no second damage.** The corpus round
   268447927 round 7 shows it at tick 197, and the simulator follows it; no
   read call names the check, and no pinned fight records it.
-- **A second damage with lifesteal, or a row that disables technologies or
-  writes a buff** (Electromagnetic Cloud). The simulator refuses each.
+- **A second damage's hit effects.** `DamagePerformer.ApplySecondaryDamageToActors`
+  hands what it struck and the life it took, summed over
+  `PerformSecondaryHitTargetEffect`, to `FightSkill.DispatchSecondaryDamageEvent`,
+  which calls the skill's `DispatchHitDamageEvent` with `isSecondary` set. A
+  lifesteal (`LifeStealEffectProvider`), a wreckage recovery and a kill
+  explosion do not ask it and take the hit as any other. A buff source
+  writes on it only when it is a second damage's own
+  (`BuffCycleController.PerformHitEffect` and
+  `ISecondaryDamageIntensifyEffectDataSource`), and the main skill's fire
+  leaves none (`FireIntensifyEffectProvider`). No `PerformMainSkillHitted`
+  follows, which a projectile's own dispatch raises. An Arclight with
+  Shockwave and an Absorption Module takes back a share of each, a second
+  heal after its shell's. Read from the build; no pinned fight records it.
+- **A row that disables technologies or writes a buff** (Electromagnetic
+  Cloud). The simulator refuses it.
 - **Repair with its technologies disabled**, which stops the clocks
   (`AutoRecoveryEffectProvider.DisableEffect`) and which no recorded fight
   does, an item's repair beside a technology's among them; and which of an
