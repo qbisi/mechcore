@@ -8,7 +8,7 @@ use.
 
 | File | What it names | Written |
 | --- | --- | --- |
-| [`game.md`](game.md) | the game's own concepts: rounds, supply, formations, the shop | by hand |
+| [`game.md`](game.md) | the game's own concepts, where the build keeps each, the words easily confused, and the spellings not to use | by hand |
 | [`mechcore.md`](mechcore.md) | this repository's own concepts: fights, recordings, pins | by hand |
 | [`units.md`](units.md) | units | generated |
 | [`technologies.md`](technologies.md) | each unit's technologies | generated |
@@ -25,8 +25,10 @@ names, from [`config/localization.yaml`](../../config/localization.yaml), and
 `scripts/check/check-docs.py` fails when one is stale. A name the game gives
 is never translated by hand.
 
-A hand-written entry gives the English term, the Chinese one, and what it
-means in a sentence. Its Chinese is the game's own wording where the game
+A hand-written entry gives the English term, the Chinese one, where the
+build keeps it, and what it means in a sentence. A meaning is a definition:
+how a thing behaves and what its numbers are belong to `rules/` and
+`config/`, which carry their evidence. Its Chinese is the game's own wording where the game
 shows one, marked `game`; otherwise it is this repository's choice, marked
 `ours`, and one Chinese term stands for one English term. A new concept that
 a discussion keeps needing a word for is added here rather than coined in
