@@ -523,7 +523,7 @@ impl Simulation {
 
     /// Where a point of the fight stands, `FPoint` raw metres: a unit's
     /// centre at its height, a building's on the ground.
-    fn position_3d(&self, object: FightActorRef) -> Option<(i64, i64, i64)> {
+    pub(in crate::fight) fn position_3d(&self, object: FightActorRef) -> Option<(i64, i64, i64)> {
         let view = self.fight_actor(object)?;
         Some((view.x_q32, self.target_height_q32(object), view.z_q32))
     }

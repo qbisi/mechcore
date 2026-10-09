@@ -1328,8 +1328,11 @@ impl Simulation {
             skill.attack.self_splash,
             skill.attack.diffusion,
         );
+        let shield = self.blow_shield(actor_id, target);
         let attacker = &self.actors[&actor_id];
-        let (center_q32, center_y_q32) = if self_splash && splash_radius > 0 {
+        let (center_q32, center_y_q32) = if let Some(shield) = shield {
+            self.shield_hit_center(skill_ref.owner, target, shield)
+        } else if self_splash && splash_radius > 0 {
             (
                 (attacker.x_q32, attacker.z_q32),
                 space_to_q32(unit_height(attacker.domain)),
@@ -1349,12 +1352,6 @@ impl Simulation {
             };
             (center_q32, self.target_height_q32(target))
         };
-        let shield = self.blow_shield(actor_id, target);
-        if shield.is_some() && splash_radius > 0 {
-            return Err(Error::new(
-                "a splashing blow at a unit its side's shield covers is not measured",
-            ));
-        }
         // A blow is `SkillDamageProvider`'s, of the skill that struck.
         let hit = DamageHit {
             center_q32,
@@ -1399,16 +1396,14 @@ impl Simulation {
             .skill_attacker(skill_ref)
             .ok_or_else(|| Error::new("beam owner is absent"))?
             .splash_radius;
-        if splash_radius > 0 {
-            return Err(Error::new(
-                "a splashing beam at a unit its side's shield covers is not measured",
-            ));
-        }
+        let (center_q32, center_y_q32) = self.shield_hit_center(skill_ref.owner, target, shield);
         let attacker = &self.actors[&actor_id];
         let hit = DamageHit {
+            center_q32,
+            center_y_q32,
             shield: Some(shield),
             crosses_shields: false,
-            splash_radius: 0,
+            splash_radius,
             // `CalculateHitEnergyShieldDamage`: an extra skill's own damage
             // to shields, where its technology sets one.
             shield_damage: self.skill_shield_damage(skill_ref),
@@ -1419,8 +1414,31 @@ impl Simulation {
                 damage,
             )
         };
-        self.perform_damage(hit, events)?;
+        let struck = self.perform_damage(hit, events)?;
+        self.record_ends(struck.ends, events);
         Ok(())
+    }
+
+    /// `SkillDamageProvider.CalculateDamagePosition` of a skill's hit for a
+    /// shield, which it asks before anything else, a self splash included:
+    /// where the way from its target out to its owner leaves the shield
+    /// (`FightUtility.GetAttackPositionOnEnergyShieldOuter`). A splash
+    /// strikes from there, the shield its main one: the units the shield
+    /// covers are kept out, and what stands outside it within the splash is
+    /// struck. A hit without a splash is the shield's alone, wherever it is.
+    fn shield_hit_center(
+        &self,
+        owner: FightActorRef,
+        target: FightActorRef,
+        shield: u64,
+    ) -> ((i64, i64), i64) {
+        let inside = self.position_3d(target);
+        let outside = self.position_3d(owner);
+        let (x_q32, y_q32, z_q32) = match (inside, outside) {
+            (Some(inside), Some(outside)) => self.shield_entry_point(shield, inside, outside),
+            _ => (0, 0, 0),
+        };
+        ((x_q32, z_q32), y_q32)
     }
 
     /// `DamageEffect.Perform`'s shield: the one of the target's side that

@@ -496,8 +496,16 @@ kind ends its own way:
 - **A missile, or a battle skill, in a fight with a shield.** A missile's
   projectile and a falling sub-effect each have shield branches no fight
   pins; the simulator refuses both.
-- **A splashing blow or beam at a covered unit.** Its damage point on the
-  shield's surface is read but no fight pins it; the simulator refuses it.
+- **A splashing blow or beam at a covered unit.** Its damage point is
+  `SkillDamageProvider.CalculateDamagePosition`'s, which asks the shield
+  before the self splash: where the way from the target out to the skill's
+  owner leaves the shield, half a metre beyond its surface
+  (`FightUtility.GetAttackPositionOnEnergyShieldOuter`). The splash strikes
+  from there with the shield its main one, as a projectile's that a shield
+  took: the shield and those its splash reaches take the hit, the units they
+  cover are kept out, and what stands outside within the splash is struck. A
+  Melting Point's beam and an Abyss's self-splashing extra blow fire so. It
+  is read from the build, and no fight pins it.
 - **A projectile fired from inside an enemy shield,** or across two shields.
   The exemption for the shields that held it as it was made is read, and no
   fight pins it.
