@@ -53,6 +53,7 @@ mod intercept;
 mod kills;
 mod math;
 mod mech;
+mod mech_group;
 mod mine;
 mod motion;
 mod path_finding;
@@ -477,6 +478,8 @@ struct Simulation {
     terrain: terrain::TerrainSystem,
     /// `StealthTechSystem`'s units.
     stealth: stealth::StealthSystem,
+    /// `MechGrounpSystem`'s groups.
+    mech_groups: mech_group::MechGroupSystem,
     /// The RVO simulator's state and the obstacles besides the units.
     rvo: RvoState,
     /// The buffs on constructions and the buff events a tick holds back.
@@ -598,10 +601,12 @@ impl Simulation {
             kills: kills::KillCounts::default(),
             terrain: terrain::TerrainSystem::default(),
             stealth: stealth::StealthSystem::default(),
+            mech_groups: mech_group::MechGroupSystem::default(),
         };
         simulation.number_joiners();
         simulation.activate_interceptions();
         simulation.enter_stealth_fight();
+        simulation.start_groups();
         simulation.restore_standing_oil(&layout.standing_oil)?;
         // `CommanderSkillManager.OnFightStart`: a path is given out before
         // the first tick, and lands nothing.
@@ -990,6 +995,8 @@ impl Simulation {
         self.update_translations(step, &mut events)?;
         self.step_battle_skills(step, &target_search_order, &mut events)?;
         self.step_mines(&target_search_order, &mut events)?;
+        // `MechGrounpSystem` updates before `RangeItemSystem`.
+        self.step_groups();
         // `RangeItemSystem` updates after `MineSystem` and before
         // `FightCoreSystem`.
         self.step_terrains(&mut events)?;
@@ -1087,6 +1094,9 @@ impl Simulation {
                 .get_mut(&unit_id)
                 .expect("actor identity is stable")
                 .exit_fight_on_death();
+            // `FightEffectSystem.DeactiveEffect` of the dead unit: its
+            // group's `MechGrounpEffectProvider.DoDeactive`.
+            self.remove_group_unit(unit_id);
             // `SkillManager.OnOwnerDead` stops its skills, a control beam's
             // `ControllEffect` among them: the Rhino a Hacker was turning
             // holds no entry from the tick the Hacker dies.

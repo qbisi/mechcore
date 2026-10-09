@@ -57,6 +57,8 @@ pub(crate) enum EffectProvider {
     MoveAbilityAttackIntensify,
     /// `MoveAbilityRangeItemProvider`, for an `IMoveAbilityRangeItem`.
     MoveAbilityRangeItem,
+    /// `MechGrounpEffectProvider`, for an `IMechGroupSource`.
+    MechGroup,
 }
 
 impl EffectProvider {
@@ -81,6 +83,7 @@ impl EffectProvider {
             Self::DeadLine => "DeadLineEffectProvider",
             Self::MoveAbilityAttackIntensify => "MoveAbilityAttackIntensifyProvider",
             Self::MoveAbilityRangeItem => "MoveAbilityRangeItemProvider",
+            Self::MechGroup => "MechGrounpEffectProvider",
         }
     }
 
@@ -129,7 +132,8 @@ impl EffectProvider {
             | Self::DeadEffect
             | Self::MoveAbilitySummon
             | Self::MoveAbilityAttackIntensify
-            | Self::MoveAbilityRangeItem => false,
+            | Self::MoveAbilityRangeItem
+            | Self::MechGroup => false,
         }
     }
 }

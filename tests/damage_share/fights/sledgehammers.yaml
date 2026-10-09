@@ -1,0 +1,28 @@
+# Damage Sharing on three Sledgehammer squads side by side, shot by three
+# Marksmen.
+#
+# Their fifteen tanks, each 7651 with the technology's 120% more life, stand
+# within 25 metres of one another and form one group. Each Marksman's 2329
+# is shared: every tank takes 155, its whole part, in the group's order, the
+# tanks chained by nearest ends squad by squad (t91 on).
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 239
+hash: {profile: mcfr-content-0.22.0, result: d6b1a39b5b8e2687901b9182beb6bf188d53f1e350570369bf6748665a8c9c6b}
+blue:
+  techs:
+    sledgehammer: [damage_sharing]
+  units:
+  - {name: sledgehammer, index: 0, position: {x: -45, y: -100}, exp: 0/150/1300}
+  - {name: sledgehammer, index: 1, position: {x: 5, y: -100}, exp: 0/300/1300}
+  - {name: sledgehammer, index: 2, position: {x: 55, y: -100}, exp: 0/150/1300}
+red:
+  core_damage: 600
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -100}}
+  - {name: marksman, index: 1, position: {x: 0, y: -100}}
+  - {name: marksman, index: 2, position: {x: 20, y: -100}}

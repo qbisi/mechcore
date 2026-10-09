@@ -1,0 +1,25 @@
+# Damage Sharing on two Sledgehammer squads 140 metres apart, struck by a
+# Marksman and a Rhino.
+#
+# Each squad is a group of its own, its five tanks too far from the other
+# five: a Marksman's 2329 lands as 465 and a Rhino's 3560 as 712 on the five
+# tanks of the squad it strikes alone.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 480
+hash: {profile: mcfr-content-0.22.0, result: 873305ebaaca7c5079b63aa0a85e7160c59a9692053a5b7c7c39a9c6881cdd7f}
+blue:
+  techs:
+    sledgehammer: [damage_sharing]
+  units:
+  - {name: sledgehammer, index: 0, position: {x: -75, y: -100}, exp: 0/300/1300}
+  - {name: sledgehammer, index: 1, position: {x: 65, y: -100}, exp: 0/300/1300}
+red:
+  core_damage: 400
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -100}}
+  - {name: rhino, index: 1, position: {x: 5, y: -55}}

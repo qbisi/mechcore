@@ -117,9 +117,11 @@ const ON_EXIT_MOVE_END: i32 = 3;
 
 /// `MechMoveType.Underground`.
 const UNDERGROUND_MOVE: i32 = 1;
+/// The list whose `DamageShareTech` is an `IMechGroupSource`.
+const DAMAGE_SHARE: &str = "damageShareTechnologies";
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 22] = [
+const IMPLEMENTED: [&str; 23] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -142,6 +144,7 @@ const IMPLEMENTED: [&str; 22] = [
     DEAD_LINE,
     MOVE_ABILITY_ATTACK,
     MOVE_ABILITY_RANGE_ITEM,
+    DAMAGE_SHARE,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -241,6 +244,9 @@ struct Technology {
     /// What it answers `IDeadLineDataSource` with, if its class is one: the
     /// life by its unit's level, and whether a shield keeps it off.
     dead_line: Option<(Vec<i64>, bool)>,
+    /// What it answers `IMechGroupSource.GetShareDistance` with, if its class
+    /// is one: `FPoint` metres by its unit's level.
+    share_distance: Option<Vec<i64>>,
     /// What it answers `IMoveAbilityAttackIntensify` with, if its class is
     /// one.
     move_ability_attack: Option<MoveAbilityAttack>,
@@ -671,6 +677,10 @@ struct Row {
     dead_line_value: Vec<i64>,
     #[serde(default)]
     dead_line_ignores_shield: bool,
+    /// `DamageShareTechnologyData.distance`, on a row of its list: `FPoint`
+    /// metres by the unit's level.
+    #[serde(default)]
+    share_distance: Vec<i64>,
     /// `MoveAbilityAttackIntensifyTechData`'s fields and the
     /// `exitTimeChangeRate` its tech answers, on a row of its list.
     #[serde(default)]
@@ -1050,6 +1060,7 @@ impl TechnologyEffects {
                 stealth: row.stealth.map(StealthBlock::source),
                 dead_line: (row.kind == DEAD_LINE)
                     .then(|| (row.dead_line_value.clone(), row.dead_line_ignores_shield)),
+                share_distance: (row.kind == DAMAGE_SHARE).then(|| row.share_distance.clone()),
                 move_ability_attack: (row.kind == MOVE_ABILITY_ATTACK).then_some(
                     MoveAbilityAttack {
                         exit_time_rate_q32: row.exit_time_rate,
@@ -1300,6 +1311,34 @@ impl TechnologyEffects {
             }))
     }
 
+    /// What the first of this side's technologies on one unit type that is
+    /// an `IMechGroupSource` answers `GetShareDistance` with at the unit's
+    /// level: `TechnologyData.GetLevelValue` reads entry `GetLevel()`,
+    /// counting from zero, and its last past it. Grouping by any other
+    /// purpose than sharing damage names more fields than this table
+    /// carries, and its row is refused by them.
+    ///
+    /// # Errors
+    ///
+    /// Returns the error [`Self::corrections`] does.
+    pub(crate) fn share_distance(
+        &self,
+        held: &[i32],
+        unit_type: &str,
+        level: i64,
+    ) -> Result<Option<i64>> {
+        self.effects(held, unit_type)?;
+        Ok(held
+            .iter()
+            .filter_map(|id| self.technologies.get(id))
+            .filter(|technology| technology.unit == unit_type)
+            .find_map(|technology| technology.share_distance.as_ref())
+            .and_then(|values| {
+                let index = usize::try_from(level - 1).unwrap_or_default();
+                values.get(index).or_else(|| values.last()).copied()
+            }))
+    }
+
     /// The providers beside the numbers' this side's technologies on one
     /// unit type reach, each once, with the technologies that reach it.
     pub(crate) fn providers(
@@ -1457,6 +1496,7 @@ fn provider_of(kind: &str, self_buff: bool) -> Option<EffectProvider> {
         DEAD_LINE => EffectProvider::DeadLine,
         MOVE_ABILITY_ATTACK => EffectProvider::MoveAbilityAttackIntensify,
         MOVE_ABILITY_RANGE_ITEM => EffectProvider::MoveAbilityRangeItem,
+        DAMAGE_SHARE => EffectProvider::MechGroup,
         _ => return None,
     })
 }

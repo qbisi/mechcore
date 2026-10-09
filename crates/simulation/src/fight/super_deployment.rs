@@ -194,6 +194,7 @@ impl Simulation {
             self.rvo.added_units.push(unit_id);
             self.activate_interception(unit_id);
             self.add_stealth_unit(unit_id);
+            self.add_group_unit(unit_id);
         }
     }
 }

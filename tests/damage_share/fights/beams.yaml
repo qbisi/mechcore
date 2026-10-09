@@ -1,0 +1,25 @@
+# Damage Sharing on two Sledgehammer squads that two Steel Balls' beams
+# strike.
+#
+# The ten tanks form one group. Each beam's damage, raised and reduced as a
+# hit on the tank it strikes, is shared ten ways, the remainder lost: a tick
+# of a beam lands as 1, 5, 7 or 44 on every tank (t132 on).
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 219
+hash: {profile: mcfr-content-0.22.0, result: 67aa0abdd9ea4b4312ef720ab60b5fe6135a3452d02582203b70b16730a37d72}
+blue:
+  core_damage: 350
+  techs:
+    sledgehammer: [damage_sharing]
+  units:
+  - {name: sledgehammer, index: 0, position: {x: -45, y: -100}, exp: 0/25/1300}
+  - {name: sledgehammer, index: 1, position: {x: 5, y: -100}, exp: 0/75/1300}
+red:
+  units:
+  - {name: steel_ball, index: 0, position: {x: -45, y: -60}, exp: 0/200/1000}
+  - {name: steel_ball, index: 1, position: {x: 55, y: -60}, exp: 0/600/1000}
