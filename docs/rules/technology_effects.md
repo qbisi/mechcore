@@ -2087,7 +2087,7 @@ derive (a minimum range):
   hurt unit whose technology moves its maximum.
 - **What switching off does beyond numbers**: an extra weapon's production
   line (`SupportUnitCreator`), an explosion or preemptive skill other than a
-  permanent preemptive explosion, an active permanent preemptive skill
+  permanent preemptive explosion or an around skill, an active permanent preemptive skill
   (`PreemptiveSkillController.Update` gives it up), a group, a unit's own shield
   (`EnergyShieldProvider.DisableEffect`), a sweep's change, an air attack's switch. Refused.
 - **A unit's interceptors switched off.** `InterceptMissileEffectProvider.DisableEffect`

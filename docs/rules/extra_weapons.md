@@ -453,6 +453,13 @@ Whirlwind starts with two enemies within 25 metres and strikes out to 35 for
 1.4 times its Rhino's damage, a 3560 blow becoming 4983. A Rhino against one
 enemy never starts it.
 
+Switched off with its Rhino's technologies (`ExtraSkillProvider.DisableSkill`,
+`FightSkill.Disable`, which clears `isEnable` and does nothing more for a
+skill that is not a side arm), it starts nothing from its idle state, and one
+under way fails its attack check between blows, returns to its idle state
+and hands the main skill back, as any extra skill switched off does. Read from
+the build; no recording holds it.
+
 ## A punch when its unit is hurt
 
 Rocket Punch adds a rocket punch skill (`FightRocketPunchSkill`), a

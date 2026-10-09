@@ -1345,7 +1345,10 @@ fn technology_disable(
                 format!("technology {}'s {}", ids.join(", "), provider.name())
             })
             // An extra skill switched off neither searches nor starts from
-            // idle and ends its attack between blows. A permanent preemptive
+            // idle and ends its attack between blows (`FightSkill.Disable`
+            // clears `isEnable` and does more only for a side arm): an
+            // around skill, Whirlwind Slash's, then returns to its idle
+            // state and hands the main skill back. A permanent preemptive
             // explosion, Scorching Charge's, does not activate and its death
             // does not explode while its unit's technologies are off; a
             // production line's, any other explosion's or preemptive skill's
@@ -1363,6 +1366,7 @@ fn technology_disable(
                             crate::rules::AttackPath::Direct
                                 | crate::rules::AttackPath::Projectile { .. }
                                 | crate::rules::AttackPath::Laser { .. }
+                                | crate::rules::AttackPath::Around { .. }
                         );
                         rules.production.is_some()
                             || rules.attack.weapons.makes_group()
