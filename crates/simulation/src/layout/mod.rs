@@ -885,8 +885,12 @@ fn production_of(
             .extra_weapons
             .iter()
             .filter(|weapon| side.techs.units.contains(&weapon.technology))
-            .filter_map(|weapon| weapon.production.as_ref())
-            .map(technology_line),
+            .filter_map(|weapon| {
+                weapon
+                    .production
+                    .as_ref()
+                    .map(|production| technology_line(weapon.technology, production))
+            }),
     );
     // A unit that joins the fight runs no line of its own type
     // (`SupportUnitProvider.AvaliableCheck` for `FightMech.mechCreateType`).
@@ -1037,7 +1041,10 @@ fn surfacing_of(
 }
 
 /// A technology's support skill as the production line it runs.
-fn technology_line(production: &crate::rules::TechnologyProduction) -> ProductionLine {
+fn technology_line(
+    technology: i32,
+    production: &crate::rules::TechnologyProduction,
+) -> ProductionLine {
     let metres = crate::rules::metres_q32;
     ProductionLine {
         unit_type_id: production.unit_type_id,
@@ -1056,7 +1063,7 @@ fn technology_line(production: &crate::rules::TechnologyProduction) -> Productio
         arrival: crate::modifier::Arrival::InPlace,
         make_corrections: Vec::new(),
         gated: true,
-        technology: None,
+        technology: Some(technology),
     }
 }
 
@@ -1383,8 +1390,9 @@ fn technology_disable(
             // does not explode while its unit's technologies are off. Each
             // skill of a grouped row, and of one that joined the main skill's
             // group, is disabled on its own and fails as a lone skill does. A
-            // production line's and any other explosion's or preemptive
-            // skill's paths are not measured switched off.
+            // support skill takes its line's creator with it. Any other
+            // explosion's or preemptive skill's paths are not measured
+            // switched off.
             .filter(|weapon| held.contains(&weapon.rules.technology))
             .filter(|weapon| {
                 let rules = &weapon.rules;
@@ -1395,10 +1403,10 @@ fn technology_disable(
                         | crate::rules::AttackPath::Projectile { .. }
                         | crate::rules::AttackPath::Laser { .. }
                         | crate::rules::AttackPath::Around { .. }
+                        | crate::rules::AttackPath::Support
                 );
-                rules.production.is_some()
-                    || !preemptive_explosion
-                        && (rules.explosion.is_some() || rules.preemptive.is_some() || !read_path)
+                !preemptive_explosion
+                    && (rules.explosion.is_some() || rules.preemptive.is_some() || !read_path)
             })
             .map(|weapon| format!("technology {}", weapon.rules.technology))
             .collect(),

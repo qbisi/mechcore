@@ -988,9 +988,12 @@ clears the unit's `SupportUnitCreator.isEnable` for the row): its update
 still counts its life and its interval, but makes nothing, and its support
 skill finds no batch due (`PreCalculate`). Switched on again
 (`SupportUnitSystem.Enable`), a line whose interval ran out meanwhile makes
-its batch on its next update. A unit's line from its equipment or its extra
-weapon is not this provider's and runs on. Read from the build; no recording
-holds it.
+its batch on its next update. A unit's line from its equipment is not this
+provider's and runs on. An extra weapon's line, a Tarantula's Spider Mine, is
+its support skill's: disabling the skill (`FightSupportSkill.Disable`, through
+`ExtraSkillProvider.DisableSkill`) clears its creator's `isEnable` as well,
+and enabling it sets it again, so the line counts on and makes nothing
+meanwhile, as above. Read from the build; no recording holds it.
 
 ## Summons where a unit dies
 
@@ -1300,10 +1303,10 @@ ability (`MoveAbilitySummonSystem`), so a surfacing that begins while the
 technologies are off makes nothing, and `EnableEffect` puts both back. Read
 from the build; no recording holds it.
 
-Every provider's `DisableEffect` is mirrored. What an extra weapon's
-production line, or other explosion or preemptive skill, does switched off
-is not measured: a buff that disables technology reaching a unit whose
-technologies hold one is refused by the technology's id.
+Every provider's `DisableEffect` is mirrored. What an extra weapon's other
+explosion or preemptive skill does switched off is not measured: a buff that
+disables technology reaching a unit whose technologies hold one is refused by
+the technology's id.
 
 ## What the recordings show
 
