@@ -1385,23 +1385,39 @@ impl Simulation {
     /// A beam that a shield takes in place of its target.
     pub(in crate::fight) fn beam_at_shield(
         &mut self,
-        actor_id: u64,
+        (skill_ref, skill_slot): (SkillRef, u16),
         target: FightActorRef,
         shield: u64,
         damage: i64,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        let attacker = &self.actors[&actor_id];
-        if attacker.stats.splash_radius() > 0 {
+        let actor_id = skill_ref
+            .owner
+            .unit_id()
+            .ok_or_else(|| Error::new("a construction's beam is not supported"))?;
+        let splash_radius = self
+            .skill_attacker(skill_ref)
+            .ok_or_else(|| Error::new("beam owner is absent"))?
+            .splash_radius;
+        if splash_radius > 0 {
             return Err(Error::new(
                 "a splashing beam at a unit its side's shield covers is not measured",
             ));
         }
+        let attacker = &self.actors[&actor_id];
         let hit = DamageHit {
             shield: Some(shield),
             crosses_shields: false,
             splash_radius: 0,
-            ..DamageHit::of_skill(attacker, 0, (target, self.domain_of(target)), damage)
+            // `CalculateHitEnergyShieldDamage`: an extra skill's own damage
+            // to shields, where its technology sets one.
+            shield_damage: self.skill_shield_damage(skill_ref),
+            ..DamageHit::of_skill(
+                attacker,
+                skill_slot,
+                (target, self.domain_of(target)),
+                damage,
+            )
         };
         self.perform_damage(hit, events)?;
         Ok(())
@@ -1416,6 +1432,22 @@ impl Simulation {
         target: FightActorRef,
     ) -> Option<u64> {
         self.search_target_shield(FightActorRef::Unit(actor_id), target)
+    }
+
+    /// The same for the skill `skill_ref` holds, which asks with its own
+    /// attack (`FightSkill.IsActorProtectedByEnergyShield`): an extra skill
+    /// crosses shields, and reaches one, as its own row says.
+    pub(in crate::fight) fn skill_blow_shield(
+        &self,
+        skill_ref: SkillRef,
+        target: FightActorRef,
+    ) -> Option<u64> {
+        let attacker = self.skill_attacker(skill_ref)?;
+        if attacker.attack.crosses_shields {
+            return None;
+        }
+        let shield = self.target_energy_shield(skill_ref.owner, target, attacker.shield_range())?;
+        (!self.shield_holds(shield, skill_ref.owner)).then_some(shield)
     }
 
     /// How high a target stands, `FPoint` raw metres.
@@ -1531,13 +1563,8 @@ impl Simulation {
             .splash_radius;
         // A beam at a unit its side's shield covers strikes the shield, as a
         // blow does: `DamageEffect.Perform`.
-        if let Some(shield) = self.blow_shield(actor_id, target) {
-            if skill_ref.slot != SkillSlot::Main {
-                return Err(Error::new(
-                    "an extra skill's beam at a unit its side's shield covers is not measured",
-                ));
-            }
-            return self.beam_at_shield(actor_id, target, shield, damage, events);
+        if let Some(shield) = self.skill_blow_shield(skill_ref, target) {
+            return self.beam_at_shield((skill_ref, skill_slot), target, shield, damage, events);
         }
         if splash_radius > 0 {
             let attacker = &self.actors[&actor_id];
