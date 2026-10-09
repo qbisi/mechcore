@@ -56,9 +56,9 @@ use super::{
     sources::{
         AdditionalDamage, AutoRecovery, BuffSource, Burrow, CarriedShield, Chain, ClearRangeItem,
         CloakSource, ControlRecovery, DeadExplosion, EnergyShield, FlyTech, KillExplosion,
-        LifeSteal, MoveAbilityAttack, MoveAbilityRangeItem, ProductionLine, ReactiveArmor, Rebirth,
-        RebirthFollow, RecoveryState, Repair, RvoRadiusChange, SiegeMode, SpawnShield, Stealth,
-        SweepIntensify, WreckageRecovery,
+        LifeSteal, MeleeMode, MoveAbilityAttack, MoveAbilityRangeItem, ProductionLine,
+        ReactiveArmor, Rebirth, RebirthFollow, RecoveryState, Repair, RvoRadiusChange, SiegeMode,
+        SpawnShield, Stealth, SweepIntensify, WreckageRecovery,
     },
 };
 
@@ -175,9 +175,11 @@ const CLOAK: &str = "moveAbilityDynamicTechDatas";
 /// The list whose `SpawnAdvancedShieldTech` is an
 /// `ISpawnAdvancedShieldDataSource`.
 const SPAWN_SHIELD: &str = "spawnAdvancedShieldTechDatas";
+/// The list whose `MeleeModeTech` is an `IMeleeModeEffectDataSource`.
+const MELEE: &str = "meleeModeTechData";
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 44] = [
+const IMPLEMENTED: [&str; 45] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -222,6 +224,7 @@ const IMPLEMENTED: [&str; 44] = [
     CHAIN,
     CLOAK,
     SPAWN_SHIELD,
+    MELEE,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -379,6 +382,8 @@ struct Technology {
     /// What it answers `ISpawnAdvancedShieldDataSource` with, if its class
     /// is one.
     spawn_shield: Option<SpawnShield>,
+    /// What it answers `IMeleeModeEffectDataSource` with, if its class is one.
+    melee: Option<MeleeMode>,
     /// What it writes as `CBLifeRecoveryRate`, if its class is a
     /// `ControllBeamLifeRecoveryTech`.
     control_recovery: Option<ControlRecovery>,
@@ -583,6 +588,9 @@ pub(crate) struct SingleSources {
     /// The first that spawns shields as its unit's main skill hits: the
     /// provider enables one source (`SingleEffectProvider`).
     pub(crate) spawn_shield: Option<SpawnShield>,
+    /// The first that hands its unit a melee mode: the provider enables one
+    /// source (`SingleEffectProvider`).
+    pub(crate) melee: Option<MeleeMode>,
 }
 
 /// What a move ability summon row answers `IMoveAbilitySummon` and
@@ -996,6 +1004,23 @@ struct Row {
     /// a row of its list.
     /// `MoveAbilityDynamicTechData.delay` and `delayExit`, `FPoint` seconds,
     /// on a row of its list.
+    /// `MeleeModeTechData`'s fields, on a row of its list.
+    #[serde(default)]
+    melee_ammo: u32,
+    #[serde(default)]
+    melee_extra_ammo: u32,
+    #[serde(default)]
+    melee_skill: i32,
+    #[serde(default)]
+    melee_life_rate: i64,
+    #[serde(default)]
+    melee_damage_rate: i64,
+    #[serde(default)]
+    melee_speed_value: i64,
+    #[serde(default)]
+    melee_recovers_life: bool,
+    #[serde(default)]
+    melee_recovery_ignores_disable: bool,
     /// `SpawnAdvancedShieldTechData`'s fields, on a row of its list.
     #[serde(default)]
     spawn_shield_radius: Vec<i64>,
@@ -1732,6 +1757,16 @@ impl TechnologyEffects {
                 }),
                 ignores_speed_rate: row.kind == IGNORE_BUFF_EFFECT && row.ignores_buff_effect,
                 life_priority: row.kind == SEARCH_TARGET_MODIFY,
+                melee: (row.kind == MELEE).then_some(MeleeMode {
+                    ammo: row.melee_ammo,
+                    extra_ammo: row.melee_extra_ammo,
+                    skill: row.melee_skill,
+                    life_rate_q32: row.melee_life_rate,
+                    damage_rate_q32: row.melee_damage_rate,
+                    speed_value: row.melee_speed_value,
+                    recovers_life: row.melee_recovers_life,
+                    recovery_ignores_disable: row.melee_recovery_ignores_disable,
+                }),
                 spawn_shield: (row.kind == SPAWN_SHIELD).then(|| SpawnShield {
                     radius: row.spawn_shield_radius.clone(),
                     energy: row.spawn_shield_energy.clone(),
@@ -1940,6 +1975,7 @@ impl TechnologyEffects {
             );
             sources.single.chain = sources.single.chain.or(technology.chain);
             sources.single.cloak = sources.single.cloak.or(technology.cloak);
+            sources.single.melee = sources.single.melee.or(technology.melee);
             first(
                 &mut sources.single.spawn_shield,
                 technology.spawn_shield.as_ref(),
@@ -2425,6 +2461,7 @@ fn provider_of(kind: &str) -> Option<EffectProvider> {
         CHAIN => EffectProvider::IterationHit,
         CLOAK => EffectProvider::MoveAbilityDynamic,
         SPAWN_SHIELD => EffectProvider::SpawnAdvancedShield,
+        MELEE => EffectProvider::MeleeMode,
         BURROW => EffectProvider::Burrow,
         _ => return None,
     })

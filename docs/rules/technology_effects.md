@@ -1289,6 +1289,33 @@ recording says so of it from the start. The counts outlast the unit's
 technologies switched off (`Disable` takes the hit effect away and keeps
 them), and the shields stand whatever befalls the unit.
 
+## Melee-mode technologies
+
+A row of `meleeModeTechData` is a `MeleeModeTech`, an
+`IMeleeModeEffectDataSource`: Melee Mode, the Centurion's. Its
+`MeleeModeEffectSystem.AddOwner` adds the unit its melee skill, 32002, as a
+permanent preemptive skill locked from the start, and makes its main skill
+spend rounds (`IsLoadingTypeValue`, `LoadingCapacityValue`): `ammoCount`, 20,
+which no reload refills, and `extraAmmoCount` more beside an extra skill the
+melee skill names incompatible, Dual Wield's side arm, which then shares
+them. That sharing is refused, not measured. Its source answers
+`CanDisable` false (`ignoreElectricEffect`): nothing switches it off.
+
+**The last round brings the melee skill.** Each projectile of the main skill
+takes a round (`ReduceLoadingRemainCount`). Once none is left, the melee
+skill's condition holds (`AmmoEmptyController`) after the unit's skills have
+updated: the main skill locks for good and its weapon stays where the unit
+points, the incompatible extra skills lock, the unit takes its whole life
+back whatever holds its recovery off (`OnMeleeSkillActive`,
+`FightMech.ForceRecoveryLife`), and the melee skill waits out its
+transition, the condition's 1.5 seconds, locked, the motion stopped
+(`StartActiveTransition`). Then it idles and takes the motion
+(`FinishActiveTransition`), and the melee mode writes its numbers
+(`OnMeleeModeTransitionComplete`): 3 on the unit's life, which keeps its
+share, 18 on its speed, and 3 on its main skill's damage, which reaches the
+melee skill, whose rate is 1. As the fight ends they leave it again
+(`RemoveMeleeModeDataModifier`).
+
 ## What this table does not carry
 
 A technology that is not plain does something that is not a correction on its
@@ -1712,6 +1739,9 @@ derive (a minimum range):
 - Accumulator Shield spawns a 40-metre shield of 2000 where a Vortex
   stands on its fifth hit, which the Crawlers empty:
   `tests/shield/accumulator-shield.yaml`.
+- Melee Mode takes a Centurion's melee skill up after its twentieth round,
+  stopped for 1.5 seconds, then at 28 speed and four times its life, which
+  the fight's end takes away: `tests/extra_weapon/melee-mode.yaml`.
 - Subterranean Blitz burrows its Crawlers from the first tick and brings
   each up as its enemy comes within 50: `tests/burrow/crawler-rhino.yaml`.
   Burrowed, they take a Marksman's shot less 0.4; one that dies burrowed,
@@ -1904,6 +1934,12 @@ derive (a minimum range):
 
 ### Read
 
+- Melee-mode technologies: `MeleeModeEffectSystem.AddOwner`, `AddMeleeSkill`,
+  `UpdateMainSkillAmmoCapacity`, `HasIncompatibleSkill`, `OnMeleeSkillActive`,
+  `OnMeleeModeTransitionComplete`, `RemoveMeleeModeDataModifier`,
+  `AmmoSkillPool`, `FightSkill.IsAmmoConsumer`, `ReduceLoadingRemainCount`,
+  `AmmoEmptyController.CheckCanActive`, `SkillManager.ActivePermanentPreemptiveSkill`,
+  `PreemptiveSkillController.StartActiveTransition`, `FinishActiveTransition`.
 - Shield-spawning technologies: `SpawnAdvancedShieldController.PerformHitEffect`,
   `Enable`, `Disable`, `GetAdvancedEnergyShieldValue`,
   `SpawnAdvancedShieldEffectProvider`, `AdvancedEnergyShieldSystem.Create`,
@@ -2439,6 +2475,8 @@ derive (a minimum range):
 
 ### Not established
 
+- **A Centurion with Melee Mode that deals melee blows**: the recorded
+  fight ends before its melee skill strikes.
 - **A second spawned shield, and one standing as the fight ends**: read,
   not recorded.
 - **A Phantom Ray switched off while cloaked**, and one whose technologies

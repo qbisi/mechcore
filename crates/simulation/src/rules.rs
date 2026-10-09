@@ -205,14 +205,29 @@ pub(crate) struct ExtraWeaponConfig {
     pub(crate) attack: AttackConfig,
 }
 
-/// `SkillData.isPreemptivePermanent`, of `permanentPreemptiveActiveConditionType`
-/// life: the skill activates once its unit's life is no more than
-/// `life_below` of its maximum, and writes its buff on the unit.
+/// `SkillData.isPreemptivePermanent`: the skill activates once its condition
+/// holds. Of `permanentPreemptiveActiveConditionType` life, once its unit's
+/// life is no more than `life_below` of its maximum, writing its buff on the
+/// unit; of `AmmoEmpty`, once its unit's ammunition runs out.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct PermanentPreemptive {
-    pub(crate) life_below: f64,
-    pub(crate) buff: BuffConfig,
+    #[serde(default)]
+    pub(crate) life_below: Option<f64>,
+    #[serde(default)]
+    pub(crate) buff: Option<BuffConfig>,
+    #[serde(default)]
+    pub(crate) ammo_empty: Option<AmmoEmpty>,
+}
+
+/// A permanent preemptive skill of `AmmoEmpty`: the seconds it waits to take
+/// over once active (`permanentPreemptiveActiveConditionParamFloat`), and the
+/// extra skills it locks then (`permanentPreemptiveIncompatibleSkillID`).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct AmmoEmpty {
+    pub(crate) transition: f64,
+    pub(crate) incompatible: Vec<i32>,
 }
 
 /// A `buffDatas` row a technology's skill writes: a permanent preemptive

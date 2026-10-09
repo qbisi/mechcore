@@ -163,6 +163,31 @@ pub(crate) struct Burrow {
     pub(crate) relieve_distance: Vec<i64>,
 }
 
+/// What a `MeleeModeTech` answers `IMeleeModeEffectDataSource` with: the
+/// rounds its unit's main skill holds, its melee skill, what it writes once
+/// that skill takes over, and how its unit's life is restored as it activates.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "the row's flags are independent fields"
+)]
+pub(crate) struct MeleeMode {
+    /// `GetAmmoCount` and `GetExtraAmmoCount`.
+    pub(crate) ammo: u32,
+    pub(crate) extra_ammo: u32,
+    /// `GetMeleeSkillID`.
+    pub(crate) skill: i32,
+    /// `GetMeleeModeLifeChangeRate` and `GetMeleeModeDamageChangeRate`,
+    /// `FPoint` raw rates, and `GetMeleeModeMoveSpeedChangeValue`, whole
+    /// metres a second.
+    pub(crate) life_rate_q32: i64,
+    pub(crate) damage_rate_q32: i64,
+    pub(crate) speed_value: i64,
+    /// `IsRecoverLifeToMax` and `IsRecoverLifeIgnoreDisableRecover`.
+    pub(crate) recovers_life: bool,
+    pub(crate) recovery_ignores_disable: bool,
+}
+
 /// What a `SpawnAdvancedShieldTech` answers `ISpawnAdvancedShieldDataSource`
 /// with: the shield it spawns, by its unit's level, and the hits of the main
 /// skill it takes.

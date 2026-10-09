@@ -135,3 +135,37 @@ extra_weapons:
         simulated_motion: false
         interceptible: true
         max_life: 46400
+  - technology: 5532
+    skill: 32002
+    use_main_skill_range: false
+    damage_by_level: []
+    damage_rate: 1
+    preemptive:
+      ammo_empty:
+        transition: 1.5
+        incompatible: [32003]
+    attack:
+      base_damage: 0
+      min_range: 0
+      range: 20
+      attack_half_angle: 360
+      targets: {ground: true, air: false}
+      lock_target: true
+      quick_switch_target: false
+      timing:
+        interval: 1.6
+        interval_offset: 0
+        initial_cooldown: 0
+        prepare: 0.1
+        attack_point: 0.8
+        backswing: 0.2
+        cooling: 0
+      splash_radius: 9
+      weapons:
+        mode: normal
+        indices: [0]
+        per_skill: 1
+      melee: true
+      crosses_shields: true
+      path:
+        type: direct

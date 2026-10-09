@@ -318,6 +318,8 @@ def extra_weapon_lines(mech, technology, kind, skill, row):
     another terrain or writes a buff the simulator does not read is left out,
     and the simulator refuses the technology by name.
     """
+    if "meleeSkillID" in row:
+        return melee_lines(mech, technology, kind, skill)
     if kind == "explosionSkillDatas":
         return explosion_lines(mech, technology, skill, row)
     if kind == "supportSkillDatas":
@@ -431,6 +433,44 @@ def buff_lines(buff, indent):
         value = raw(buff[field])
         lines.append(f"{indent}{name}: {boolean(value) if isinstance(value, bool) else value}")
     return lines
+
+
+def melee_lines(mech, technology, kind, skill):
+    """The melee skill a melee-mode technology adds as its unit's permanent
+    preemptive skill (`MeleeModeEffectSystem.AddMeleeSkill`), when the
+    simulator's shape can state it.
+
+    The skill stays locked until its unit's ammunition runs out
+    (`PermanentPreemptiveActiveConditionType` 2, `AmmoEmpty`), then takes the
+    main skill's place after a transition of its condition's seconds, locking
+    the extra skills its row names incompatible; what the technology writes
+    then, `config/technology_effects.yaml` carries.
+    """
+    if (kind != "skillDatas" or not skill["isPreemptive"] or not skill["isPreemptivePermanent"]
+            or skill["permanentPreemptiveActiveConditionType"] != 2
+            or skill["permanentPreemptiveActiveBuffID"]
+            or skill["permanentPreemptiveExtraWeaponActiveBuffID"]
+            or skill["damage"] or raw(skill["initialCoolDownTime"])
+            or any(skill[field] for field in ("isLoadingType", "isDiffusion", "useSelfSplash"))):
+        return []
+    try:
+        attack = attack_lines(mech["id"], kind, skill, "base_damage: 0",
+                              skill["canAttackAngle"], "      ", angle_absent=360 * ONE)
+    except SystemExit:
+        return []
+    incompatible = ", ".join(str(id) for id in skill["permanentPreemptiveIncompatibleSkillID"])
+    return [
+        f"  - technology: {technology}",
+        f"    skill: {skill['id']}",
+        "    use_main_skill_range: false",
+        "    damage_by_level: []",
+        f"    damage_rate: {readable(skill['damageRate'])}",
+        "    preemptive:",
+        "      ammo_empty:",
+        f"        transition: {readable(skill['permanentPreemptiveActiveConditionParamFloat'])}",
+        f"        incompatible: [{incompatible}]",
+        "    attack:",
+    ] + attack
 
 
 def explosion_lines(mech, technology, skill, row):
@@ -647,6 +687,8 @@ def main():
     names = build_data.names("MechData")
     extra_rows = {row["id"]: row for row in build_data.level0("TechnologyGroupData")["extraWeaponTechnologies"]
                   if not row.get("isTestData") and build_data.in_standard(row)}
+    melee_rows = {row["id"]: row for row in build_data.level0("TechnologyGroupData")["meleeModeTechData"]
+                  if not row.get("isTestData") and build_data.in_standard(row)}
     researched = {}
     for entry in yaml.safe_load(UNIT_TECHS.read_text())["units"]:
         researched[entry["unit_id"]] = [tech["id"] for tech in entry["technologies"]]
@@ -681,6 +723,11 @@ def main():
         extra_weapons = {
             technology: (*skills[extra_rows[technology]["skillID"]], extra_rows[technology])
             for technology in researched.get(unit, []) if technology in extra_rows
+        }
+        # A melee-mode technology's melee skill, after the extra weapons.
+        extra_weapons |= {
+            technology: (*skills[melee_rows[technology]["meleeSkillID"]], melee_rows[technology])
+            for technology in researched.get(unit, []) if technology in melee_rows
         }
         text = render(mechs[unit], cards[unit], kind, skill, rvos[mechs[unit]["prefabName"]], type_name,
                       extra_weapons, unit in summoned)

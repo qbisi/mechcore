@@ -1239,6 +1239,10 @@ impl Simulation {
     /// the extra skill is still asked for its range
     /// ([`Self::follow_extra_attacker_under_command`]).
     fn follow_extra_attacker(&mut self, actor_id: u64, index: usize) {
+        // `MotionStopState`, a melee skill's transition: the unit holds.
+        if self.actors[&actor_id].motion.state == MotionState::Stopped {
+            return;
+        }
         let skill_ref = SkillRef {
             owner: FightActorRef::Unit(actor_id),
             slot: SkillSlot::Extra(index),

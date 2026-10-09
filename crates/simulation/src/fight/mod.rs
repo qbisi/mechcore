@@ -343,6 +343,14 @@ struct Actor {
     /// `SpawnAdvancedShieldController.attackCount` and `spawnShieldCount`.
     shield_hits: u32,
     spawned_shields: u32,
+    /// `AmmoSkillPool.remainAmmo` of a melee mode's unit: the rounds its
+    /// main skill has left.
+    ammo: Option<u32>,
+    /// The step a melee skill's transition ends, its `GRTimer` due.
+    melee_transition_at: Option<u64>,
+    /// Whether its melee mode has written its numbers
+    /// (`MeleeModeOwnerInfo.HasMeleeModeDataModifier`).
+    melee_written: bool,
     /// `BuffManager.beHitDelayBuffInfos`: the buffs that disable technology
     /// a unit it hit queued on it, each with that unit, which
     /// `InvokeDelayAddBuff` adds as its `BuffManager.Update` ends.
@@ -1098,6 +1106,7 @@ impl Simulation {
         // technology that turned their domain was switched off.
         self.idle_after_trenches(step);
         self.revert_fly_units(step);
+        self.finish_melee_transitions(step)?;
         // Native search jobs retain the actor-quadtree candidate order
         // prepared at the start of this FightCore update.
         let target_search_order = self.target_search_order();
@@ -1644,6 +1653,12 @@ impl Simulation {
         self.name_turned_formations();
         self.settle_intervals_if_finishing();
         if self.ready_to_finish() || out_of_time {
+            // `SkillManager.ExitFight` deactivates a permanent preemptive
+            // skill, and a melee mode takes its numbers away
+            // (`RemoveMeleeModeDataModifier`).
+            for actor in self.actors.values_mut() {
+                actor.exit_melee_mode()?;
+            }
             self.prune_experience();
             self.clear_kills()?;
             self.score_the_fight(events)?;
