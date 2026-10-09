@@ -516,7 +516,7 @@ fn vec3(array: &StructArray, index: usize) -> Result<Option<QVec3>> {
     }))
 }
 
-const KINDS: [EventKind; 16] = [
+pub(crate) const KINDS: [EventKind; 16] = [
     EventKind::ProjectileReleased,
     EventKind::ProjectileRemoved,
     EventKind::Damage,
@@ -550,7 +550,7 @@ fn decode_kind_tag(tag: u8) -> Result<EventKind> {
         .ok_or_else(|| Error::invalid(format!("invalid event type tag {tag}")))
 }
 
-fn kind_name(kind: EventKind) -> &'static str {
+pub(crate) fn kind_name(kind: EventKind) -> &'static str {
     match kind {
         EventKind::ProjectileReleased => "projectile_released",
         EventKind::ProjectileRemoved => "projectile_removed",

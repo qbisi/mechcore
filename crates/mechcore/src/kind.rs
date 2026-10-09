@@ -147,7 +147,7 @@ impl Kind {
             Self::Layout | Self::Fight => &["verify", "convert", "diff", "play", "format"],
             Self::Match => &["verify", "convert"],
             Self::State | Self::Action => &[],
-            Self::Mcfr => &["verify", "convert", "diff", "show", "play"],
+            Self::Mcfr => &["verify", "convert", "diff", "show", "query", "play"],
             Self::Grbr => &["convert"],
         }
     }
@@ -218,7 +218,9 @@ mod tests {
     use super::{Conversion, Kind};
 
     /// The file verbs the command line holds.
-    const VERBS: &[&str] = &["verify", "convert", "diff", "show", "play", "format"];
+    const VERBS: &[&str] = &[
+        "verify", "convert", "diff", "show", "query", "play", "format",
+    ];
 
     #[test]
     fn a_kind_is_read_from_the_content() {

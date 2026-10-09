@@ -35,7 +35,7 @@ const NATIVE: &[&str] = &[
 ];
 
 /// Operations that run without a game.
-const GAMELESS: &[&str] = &["let", "verify", "convert", "diff", "show", "play"];
+const GAMELESS: &[&str] = &["let", "verify", "convert", "diff", "show", "query", "play"];
 
 /// Step keys that are structure rather than an operation name.
 const RESERVED: &[&str] = &["expect", "steps", "where"];
@@ -708,6 +708,55 @@ async fn perform(
             // for, and `unresolved` says what the reading does not cover.
             let (_, shown) = crate::show::show(&input, view, tick).map_err(reason)?;
             Ok(shown)
+        }
+        "query" => {
+            let fields = closed(
+                arguments,
+                "query",
+                &["input", "sql", "query", "schema", "param"],
+            )?;
+            let input = scope.path(
+                fields.get("input").ok_or("query needs input")?,
+                "query input",
+            )?;
+            let text = |key: &str| {
+                fields
+                    .get(key)
+                    .map(|value| {
+                        value
+                            .as_str()
+                            .map(str::to_owned)
+                            .ok_or(format!("query {key} is a string"))
+                    })
+                    .transpose()
+            };
+            let schema = fields
+                .get("schema")
+                .map(|value| value.as_bool().ok_or("query schema is a boolean"))
+                .transpose()?
+                .unwrap_or(false);
+            let parameters = fields
+                .get("param")
+                .map(|value| {
+                    value
+                        .as_object()
+                        .ok_or("query param maps names to values")?
+                        .iter()
+                        .map(|(name, value)| {
+                            let value = match value {
+                                Value::String(text) => text.clone(),
+                                Value::Number(number) => number.to_string(),
+                                _ => return Err("a query param is a string or a number"),
+                            };
+                            Ok((name.clone(), value))
+                        })
+                        .collect::<Result<_, _>>()
+                })
+                .transpose()?
+                .unwrap_or_default();
+            let asked =
+                crate::query::Asked::of(text("sql")?, text("query")?, schema).map_err(reason)?;
+            crate::query::answer(&input, asked, &parameters).map_err(reason)
         }
         "play" => {
             let fields = closed(arguments, "play", &["input", "page", "seed"])?;
