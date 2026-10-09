@@ -697,7 +697,8 @@ impl Simulation {
     /// `docs/rules/constructions.md` states the rule and the readings behind
     /// it: of the enemy's constructions, the ones within reach edge to edge and
     /// within the width of the line of fire, the **nearest to the attacker** —
-    /// not the nearest construction and not the one nearest the line.
+    /// not the nearest construction and not the one nearest the line, and
+    /// none nearer centre to centre than the skill's minimum range.
     /// `WallConstructionTargetChecker.CheckWallConstruction` then asks the
     /// skill's `IsTowerAttackable` of the block it found, and an extra skill
     /// that deals nothing, a Sticky Oil Bomb's, fires past it.
@@ -732,6 +733,7 @@ impl Simulation {
         // metres off with a reach of 60.
         let reach = space_to_q32(range.saturating_add(actor.radius));
         let width = space_to_q32(WALL_IN_THE_WAY_WIDTH);
+        let min_range = space_to_q32(actor.min_range);
         let mut nearest: Option<(i64, u64)> = None;
         for building in &self.buildings {
             // `PrepareWalls` takes a construction that answers
@@ -752,6 +754,13 @@ impl Simulation {
                 building.position.z.saturating_sub(actor.z_q32),
             );
             if distance > reach.saturating_add(building.bounds_width / 2) {
+                continue;
+            }
+            // `GetNearestWall` passes over a block whose centre stands nearer
+            // than the skill's minimum range (vtable 1088), when it has one:
+            // a Stormcaller closing on a wall takes the next block along it
+            // once the one ahead is inside 70 metres.
+            if min_range > 0 && distance < min_range {
                 continue;
             }
             if distance_to_segment_q32(
