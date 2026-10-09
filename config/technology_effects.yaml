@@ -45,7 +45,8 @@ schema: mechcore.technology_effects
 # damage around it carries that damage, the FPoint metres it reaches,
 # whether it reaches what the first hit struck, whether the attacker's
 # and the target's buffs scale it, whether it disables the struck
-# units' technologies, and the buff it writes on them (`secondary_*`).
+# units' technologies, and the id of the buff it writes on them
+# (`secondary_*`), whose `buffDatas` row it carries as `buff`.
 # A buff technology carries what triggers its buff (`buff_trigger`, a
 # BuffTechListener: 1 is the fight's start), whom it reaches
 # (`buff_targets`, TargetTypes: 1 is the unit itself), how likely, and
@@ -1396,6 +1397,31 @@ technologies:
     secondary_buffed: true
     secondary_disables_technology: true
     secondary_buff_id: 1031
+    buff:
+      id: 1031
+      duration: 8589934592  # +2
+      divide: 0
+      additive: false
+      debuff: true
+      invincible: false
+      disable_technology: true
+      amplify_damage_rate: 0
+      damage_rate: 0
+      speed_rate: -1717986918  # -0.4
+      attack_range_value: 0
+      attack_range_rate: 0
+      max_life_rate: 0
+      step_time: 0
+      additive_effect: false
+      additive_condition: 0
+      additive_condition_param: 0
+      max_additive_stack: 0
+      clear_when_technologies_disabled: true
+      summon_unit: 0
+      summon_level_inherit: false
+      life_change_rate: 0
+      disable_recover: false
+      additive_reset_condition: 0
   - id: 4607
     name: Culling Rounds
     unit: mustang

@@ -91,7 +91,7 @@ pub(crate) struct CycleBlock {
     reason = "the buff row's flags are independent fields"
 )]
 pub(crate) struct BuffBlock {
-    id: u32,
+    pub(crate) id: u32,
     /// The English name the game gives it; none for a buff the game never shows.
     #[serde(default)]
     name: String,
@@ -266,7 +266,31 @@ pub(crate) fn buff_source(
         trigger,
         can_disable,
         clears_when_technologies_disabled: buff.clear_when_technologies_disabled,
+        on_second_damage: false,
     })
+}
+
+/// What a `SecondaryDamageIntensifyTech` answers `IEffectBuffDataSource`
+/// with: its `hitEMPBuffID`'s row (`GetBuffData`), on a hit
+/// (`GetBuffTechListener`, `Hit`), on the opponent's units
+/// (`GetEffectTargetTypes`), certain (`GetProbablity`, 1000), with no
+/// delay, interval or reach and no terrain. A hit of its unit's main skill
+/// writes it, and so does the second damage's.
+pub(crate) fn second_damage_buff_source(
+    who: &str,
+    buff: &BuffBlock,
+    can_disable: bool,
+) -> std::result::Result<BuffSource, String> {
+    let mut source = buff_source(
+        who,
+        (Some(HIT), &[OPPONENT_UNITS], Some(1 << 32)),
+        &CycleBlock::default(),
+        can_disable,
+        &[],
+        (Some(buff), None),
+    )?;
+    source.on_second_damage = true;
+    Ok(source)
 }
 
 /// How a buff stacks, when it is additive in effect

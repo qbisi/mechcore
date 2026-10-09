@@ -1097,8 +1097,8 @@ impl Simulation {
     /// struck and the life it took: a lifesteal, a wreckage recovery and a
     /// kill explosion take it as any hit, a buff source writes on it only
     /// when it is a second damage's own (`BuffCycleController.PerformHitEffect`
-    /// asks `ISecondaryDamageIntensifyEffectDataSource`), and none that the
-    /// technology table admits is, and the main skill's fire leaves none
+    /// asks `ISecondaryDamageIntensifyEffectDataSource`), Electromagnetic
+    /// Cloud's, and the main skill's fire leaves none
     /// (`FireIntensifyEffectProvider` returns). Nor does it raise
     /// `PerformMainSkillHitted`, which only a projectile's own dispatch does.
     pub(in crate::fight) fn dispatch_hit_damage(
@@ -1115,8 +1115,13 @@ impl Simulation {
                 let skill = self.skill_at_slot(FightActorRef::Unit(owner.id), usize::from(slot));
                 let main = skill.slot == SkillSlot::Main;
                 let mut ends = Struck::default();
+                // A second damage's own buff source writes on its hit too
+                // (`BuffCycleController.PerformHitEffect`).
+                if secondary {
+                    self.add_hit_buffs(owner.id, slot, (targets, center), true, events)?;
+                }
                 if !secondary {
-                    self.add_hit_buffs(owner.id, slot, (targets, center), events)?;
+                    self.add_hit_buffs(owner.id, slot, (targets, center), false, events)?;
                     let point = self.hit_point(skill, targets, center);
                     self.start_chain(owner.id, slot, targets, (point.0, point.2));
                     ends.absorb_ends(self.take_life_share(owner.id, slot, targets, events)?);

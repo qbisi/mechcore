@@ -575,7 +575,8 @@ def main() -> int:
         "# damage around it carries that damage, the FPoint metres it reaches,",
         "# whether it reaches what the first hit struck, whether the attacker's",
         "# and the target's buffs scale it, whether it disables the struck",
-        "# units' technologies, and the buff it writes on them (`secondary_*`).",
+        "# units' technologies, and the id of the buff it writes on them",
+        "# (`secondary_*`), whose `buffDatas` row it carries as `buff`.",
         "# A buff technology carries what triggers its buff (`buff_trigger`, a",
         "# BuffTechListener: 1 is the fight's start), whom it reaches",
         "# (`buff_targets`, TargetTypes: 1 is the unit itself), how likely, and",
@@ -733,6 +734,8 @@ def main() -> int:
                 lines.append(f"    {field}: {row[field]}  # {reading(field, row[field])}")
         if row["kind"] == BUFF:
             lines += buff_lines(row["row"], buffs)
+        if row["kind"] == "secondaryDamageIntensifyTechDatas" and row["row"].get("hitEMPBuffID"):
+            lines += buff_row_lines(buffs[row["row"]["hitEMPBuffID"]], "    ")
         if row["kind"] == DEAD_ACID:
             source = row["row"]
             lines.append("    dead_acid:")

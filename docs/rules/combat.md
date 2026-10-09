@@ -930,6 +930,11 @@ at, take the second damage before any unit does
 which asks `CalculateHitEnergyShieldDamage` as any hit on a shield does).
 Read from the build; the corpus rounds that hold it are not pinned.
 
+A second damage that names a buff writes it on what the hit struck and on
+what the second damage reaches, a damage of nothing included:
+[technology_effects.md](technology_effects.md#a-second-damage-that-writes-a-buff)
+says how.
+
 ## A melee skill's range
 
 **A melee skill reaches its row's range, whatever corrects it.** Its range

@@ -1213,6 +1213,29 @@ skill of the unit is, every record goes (`ClearTargetRecord`). A jump at a
 unit a battlefield shield covers that does not cover the Raiden is refused,
 which is not measured.
 
+## A second damage that writes a buff
+
+Electromagnetic Cloud, the Vortex's, is a `SecondaryDamageIntensifyTech`
+whose second damage deals nothing within 10 metres of where the hit landed
+and names a buff, `hitEMPBuffID` 1031, an electromagnetic buff that disables
+technology. Its `SecondaryDamageIntensifyEffectProvider.DoActive`, as the
+row names a buff and `canDisableTech` is set, hands the main skill a
+`BuffCycleController` of the technology (`TeamBuffCycleManager.
+CreateBuffController`, `AddHitEffectProvider`): a buff source on a hit
+(`GetBuffTechListener`), on the opponent's units, certain, with no delay,
+interval or reach.
+
+**Its buff lands on what the hit struck and on what the second damage
+reaches.** `BuffCycleController.PerformHitEffect` writes on a first hit, and
+on a second damage's hit only for a source that is itself an
+`ISecondaryDamageIntensifyEffectDataSource`, which this one is. Each time,
+`BuffSystem.AddBuff` adds the buff to every unit in the hit's list, in its
+order, under the Vortex's side. The second damage of nothing still lists
+every enemy unit in its range, less what the hit struck, and hands them to
+the skill's hit effects (`ApplySecondaryDamageToActors`,
+`DispatchSecondaryDamageEvent`). A source that `CanDisable` writes nothing
+while the Vortex's technologies are off, and no second damage is dealt then.
+
 ## What this table does not carry
 
 A technology that is not plain does something that is not a correction on its
@@ -1626,6 +1649,9 @@ derive (a minimum range):
   `tests/additional_damage/ionization.yaml`.
 - Chain jumps each of a Raiden's weapons' hits on to another Mustang 0.2
   seconds later, killing it: `tests/chain/raiden-mustangs.yaml`.
+- Electromagnetic Cloud writes buff 1031 on the Rhino a Vortex strikes and
+  the two Crawlers within 10 metres of it, switching Power Armor off:
+  `tests/secondary_damage/electromagnetic-cloud.yaml`.
 - Subterranean Blitz burrows its Crawlers from the first tick and brings
   each up as its enemy comes within 50: `tests/burrow/crawler-rhino.yaml`.
   Burrowed, they take a Marksman's shot less 0.4; one that dies burrowed,
@@ -1818,6 +1844,13 @@ derive (a minimum range):
 
 ### Read
 
+- A second damage that writes a buff: `SecondaryDamageIntensifyTech.GetBuffData`,
+  `GetBuffTechListener`, `GetEffectTargetTypes`, `GetProbablity`,
+  `SecondaryDamageIntensifyTechData.PreProcess`,
+  `SecondaryDamageIntensifyEffectProvider.DoActive`,
+  `BuffCycleController.PerformHitEffect`,
+  `TriggerBuffOrBuffRangeItemFromHit`, `BuffSystem.AddBuff`,
+  `DamagePerformer.ApplySecondaryDamageToActors`.
 - Chain technologies: `IterationHitEffectProvider.PerformHitEffect`,
   `HitEffectControl.Init`, `Perform`, `OnTimerOver`, `GetTarget`,
   `OnIterationSuccessOnce`, `OnIterationEnd`, `GetDamage`,
