@@ -1130,6 +1130,9 @@ impl Simulation {
                     }
                 }
                 ends.absorb_ends(self.explode_kills(owner.id, slot, targets, events)?);
+                if !secondary {
+                    self.count_shield_hit(owner.id, slot);
+                }
                 // `PerformMainSkillHitted`, which only a projectile raises.
                 if main
                     && !secondary

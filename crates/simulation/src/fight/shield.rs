@@ -320,7 +320,13 @@ impl Simulation {
                         current: i32::try_from(shield.energy).expect("shield energy fits i32"),
                         maximum: i32::try_from(shield.max_energy).expect("shield energy fits i32"),
                     },
-                    round_policy: ShieldRoundPolicy::ResetToMax,
+                    // `FightEnergyShield.IsShortLifeTime`: a spawned shield's
+                    // round ends with it; any other is full again the next.
+                    round_policy: if shield.source_kind == ShieldSourceKind::SpawnedTemporary {
+                        ShieldRoundPolicy::DestroyAtRoundEnd
+                    } else {
+                        ShieldRoundPolicy::ResetToMax
+                    },
                     active: shield.active,
                     active_order: shield.active.then_some(*active_order),
                 };
@@ -332,14 +338,33 @@ impl Simulation {
             .collect()
     }
 
-    /// `AdvancedEnergyShieldSystem.Create` for a Shield Airdrop that lands:
-    /// a shield of the side where it landed, active and full, after every
-    /// shield its side already holds, taking the next identity.
-    pub(in crate::fight) fn create_shield(
+    /// A Shield Airdrop that lands, where it lands, in space units.
+    pub(in crate::fight) fn drop_shield(
         &mut self,
         team: u32,
         x: i64,
         z: i64,
+        radius_q32: i64,
+        energy: i64,
+    ) {
+        self.create_shield(
+            (team, ShieldSourceKind::CommanderSkill),
+            space_to_q32(x),
+            space_to_q32(z),
+            radius_q32,
+            energy,
+        );
+    }
+
+    /// `AdvancedEnergyShieldSystem.Create` for a Shield Airdrop that lands,
+    /// or a shield a unit's technology spawns: a shield of no owner of the
+    /// side, active and full, after every shield its side already holds,
+    /// taking the next identity.
+    pub(in crate::fight) fn create_shield(
+        &mut self,
+        (team, source_kind): (u32, ShieldSourceKind),
+        x_q32: i64,
+        z_q32: i64,
         radius_q32: i64,
         energy: i64,
     ) {
@@ -348,12 +373,12 @@ impl Simulation {
         let shield = EnergyShield {
             id,
             team,
-            x_q32: space_to_q32(x),
-            z_q32: space_to_q32(z),
+            x_q32,
+            z_q32,
             radius_q32,
             energy,
             max_energy: energy,
-            source_kind: ShieldSourceKind::CommanderSkill,
+            source_kind,
             owner: None,
             active: true,
             enabled: true,
@@ -366,7 +391,7 @@ impl Simulation {
             None,
             EventPayload::ShieldCreated {
                 team_id: team,
-                source_kind: ShieldSourceKind::CommanderSkill,
+                source_kind,
                 position: QVec3 {
                     x: shield.x_q32,
                     y: 0,

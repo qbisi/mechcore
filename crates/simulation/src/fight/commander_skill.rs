@@ -225,7 +225,7 @@ impl Simulation {
                 | SkillEffect::Terrain { .. }
                 | SkillEffect::Path { .. } => {}
                 SkillEffect::Shield { radius_q32, energy } => {
-                    self.create_shield(release.team, release.x, release.z, *radius_q32, *energy);
+                    self.drop_shield(release.team, release.x, release.z, *radius_q32, *energy);
                 }
                 // `SupportUnitEffectController.PerformEffect`: a creator for
                 // the side's `TeamSupportUnitManager`, which updates later in

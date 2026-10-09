@@ -87,6 +87,8 @@ SUBCLASS_LISTS = (
     ("dead_explosion_multiplier", "damageMultiplier", "deadExplosiveTechnologyDatas"),
     ("dead_explosion_range", "range", "deadExplosiveTechnologyDatas"),
     ("control_recovery_rate", "recoveryRate", "controllBeamLifeRecoveryTechnologies"),
+    ("spawn_shield_radius", "shieldRadius", "spawnAdvancedShieldTechDatas"),
+    ("spawn_shield_energy", "shieldValue", "spawnAdvancedShieldTechDatas"),
 )
 # The same for a field that is one value rather than a rank list.
 SUBCLASS_SCALARS = (
@@ -155,6 +157,11 @@ SUBCLASS_SCALARS = (
     ("main_skill_effect", "mainSkillEffect", "additionalDamageTechDatas"),
     ("extra_skill_effect", "extraSkillEffect", "additionalDamageTechDatas"),
     ("main_skill_effect", "mainSkillEffect", "controllBeamLifeRecoveryTechnologies"),
+    ("spawn_shield_attacks", "attackCount", "spawnAdvancedShieldTechDatas"),
+    ("spawn_shield_attacks_increment", "attackCountIncrement", "spawnAdvancedShieldTechDatas"),
+    ("spawn_shield_max", "maxTriggerTimes", "spawnAdvancedShieldTechDatas"),
+    ("main_skill_effect", "mainSkillEffect", "spawnAdvancedShieldTechDatas"),
+    ("extra_skill_effect", "extraSkillEffect", "spawnAdvancedShieldTechDatas"),
     ("cloak_delay", "delay", "moveAbilityDynamicTechDatas"),
     ("cloak_exit_delay", "delayExit", "moveAbilityDynamicTechDatas"),
     ("chain_select_range", "selectRange", "iterationHitDamageTechDatas"),
@@ -203,7 +210,7 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "ignoreBuffEffectTechnologyDatas", "searchTargetModifyTechnologies",
                "deadExplosiveTechnologyDatas", "additionalDamageTechDatas",
                "controllBeamLifeRecoveryTechnologies", "iterationHitDamageTechDatas",
-               "moveAbilityDynamicTechDatas")
+               "moveAbilityDynamicTechDatas", "spawnAdvancedShieldTechDatas")
 # The list whose `DeadAcidRangeItemTech` leaves an acid where its unit dies,
 # and the fields its rows carry for it: whole metres of range
 # (`GetRangeItemRange`), the rounds it stands (`GetRoundDuration`), and the
@@ -361,7 +368,7 @@ RATES = {"life_rate", "damage_rate", "attack_range_rate", "attack_interval_rate"
          "lifesteal_multiplier", "recovery_life_rate", "air_damage_change_rate", "ground_damage_change_rate"}
 INTEGERS = {"speed_value", "min_attack_range_value", "reduce_damage_value", "projectile_count_value",
             "dead_line_value", "barrier_energy", "barrier_radius", "repair_life",
-            "kill_explosion_damage"}
+            "kill_explosion_damage", "spawn_shield_energy"}
 
 
 def raw(value):
@@ -694,6 +701,12 @@ def main() -> int:
         "# (`chain_delay`), how many jumps (`chain_count`), and the FPoint rate",
         "# of the skill's damage each jump deals, raised to the jump's number",
         "# (`chain_damage_rate`).",
+        "# A shield-spawning technology carries the FPoint metres of radius",
+        "# and the energy, by its unit's level, of the shield it spawns",
+        "# (`spawn_shield_radius`, `spawn_shield_energy`), the hits of its",
+        "# unit's main skill to the first (`spawn_shield_attacks`), the hits",
+        "# more each later one takes (`spawn_shield_attacks_increment`), and",
+        "# how many it spawns at most (`spawn_shield_max`).",
         "# A cloak technology carries the FPoint seconds its unit waits before",
         "# it cloaks (`cloak_delay`) and stays seen once it shows itself",
         "# (`cloak_exit_delay`).",

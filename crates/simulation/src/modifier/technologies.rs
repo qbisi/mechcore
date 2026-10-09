@@ -57,8 +57,8 @@ use super::{
         AdditionalDamage, AutoRecovery, BuffSource, Burrow, CarriedShield, Chain, ClearRangeItem,
         CloakSource, ControlRecovery, DeadExplosion, EnergyShield, FlyTech, KillExplosion,
         LifeSteal, MoveAbilityAttack, MoveAbilityRangeItem, ProductionLine, ReactiveArmor, Rebirth,
-        RebirthFollow, RecoveryState, Repair, RvoRadiusChange, SiegeMode, Stealth, SweepIntensify,
-        WreckageRecovery,
+        RebirthFollow, RecoveryState, Repair, RvoRadiusChange, SiegeMode, SpawnShield, Stealth,
+        SweepIntensify, WreckageRecovery,
     },
 };
 
@@ -172,9 +172,12 @@ const CONTROL_RECOVERY: &str = "controllBeamLifeRecoveryTechnologies";
 const CHAIN: &str = "iterationHitDamageTechDatas";
 /// The list whose `MoveAbilityDynamicTech` is an `IMoveAbilityDynamicSource`.
 const CLOAK: &str = "moveAbilityDynamicTechDatas";
+/// The list whose `SpawnAdvancedShieldTech` is an
+/// `ISpawnAdvancedShieldDataSource`.
+const SPAWN_SHIELD: &str = "spawnAdvancedShieldTechDatas";
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 43] = [
+const IMPLEMENTED: [&str; 44] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -218,6 +221,7 @@ const IMPLEMENTED: [&str; 43] = [
     CONTROL_RECOVERY,
     CHAIN,
     CLOAK,
+    SPAWN_SHIELD,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -294,6 +298,13 @@ pub(crate) struct TechnologyEffects {
     technologies: BTreeMap<i32, Technology>,
 }
 
+/// A single source's first: `slot` keeps what it holds, or takes `offered`.
+fn first<T: Clone>(slot: &mut Option<T>, offered: Option<&T>) {
+    if slot.is_none() {
+        *slot = offered.cloned();
+    }
+}
+
 /// What a technology writes at one level.
 type Written = Vec<(Channel, Index, Correction)>;
 
@@ -365,6 +376,9 @@ struct Technology {
     chain: Option<Chain>,
     /// What it answers `IMoveAbilityDynamicSource` with, if its class is one.
     cloak: Option<CloakSource>,
+    /// What it answers `ISpawnAdvancedShieldDataSource` with, if its class
+    /// is one.
+    spawn_shield: Option<SpawnShield>,
     /// What it writes as `CBLifeRecoveryRate`, if its class is a
     /// `ControllBeamLifeRecoveryTech`.
     control_recovery: Option<ControlRecovery>,
@@ -566,6 +580,9 @@ pub(crate) struct SingleSources {
     /// The first that cloaks its unit: the provider enables one source
     /// (`SingleEffectProvider`).
     pub(crate) cloak: Option<CloakSource>,
+    /// The first that spawns shields as its unit's main skill hits: the
+    /// provider enables one source (`SingleEffectProvider`).
+    pub(crate) spawn_shield: Option<SpawnShield>,
 }
 
 /// What a move ability summon row answers `IMoveAbilitySummon` and
@@ -979,6 +996,17 @@ struct Row {
     /// a row of its list.
     /// `MoveAbilityDynamicTechData.delay` and `delayExit`, `FPoint` seconds,
     /// on a row of its list.
+    /// `SpawnAdvancedShieldTechData`'s fields, on a row of its list.
+    #[serde(default)]
+    spawn_shield_radius: Vec<i64>,
+    #[serde(default)]
+    spawn_shield_energy: Vec<i64>,
+    #[serde(default)]
+    spawn_shield_attacks: u32,
+    #[serde(default)]
+    spawn_shield_attacks_increment: u32,
+    #[serde(default)]
+    spawn_shield_max: u32,
     #[serde(default)]
     cloak_delay: i64,
     #[serde(default)]
@@ -1704,6 +1732,14 @@ impl TechnologyEffects {
                 }),
                 ignores_speed_rate: row.kind == IGNORE_BUFF_EFFECT && row.ignores_buff_effect,
                 life_priority: row.kind == SEARCH_TARGET_MODIFY,
+                spawn_shield: (row.kind == SPAWN_SHIELD).then(|| SpawnShield {
+                    radius: row.spawn_shield_radius.clone(),
+                    energy: row.spawn_shield_energy.clone(),
+                    attacks: row.spawn_shield_attacks,
+                    increment: row.spawn_shield_attacks_increment,
+                    max: row.spawn_shield_max,
+                    can_disable: !row.ignore_electric_effect,
+                }),
                 cloak: (row.kind == CLOAK).then_some(CloakSource {
                     enter_q32: row.cloak_delay,
                     exit_q32: row.cloak_exit_delay,
@@ -1898,24 +1934,24 @@ impl TechnologyEffects {
             sources.single.fly = sources.single.fly.or(technology.fly);
             sources.ignores_speed_rate |= technology.ignores_speed_rate;
             sources.single.life_priority |= technology.life_priority;
-            if sources.single.control_recovery.is_none() {
-                sources
-                    .single
-                    .control_recovery
-                    .clone_from(&technology.control_recovery);
-            }
+            first(
+                &mut sources.single.control_recovery,
+                technology.control_recovery.as_ref(),
+            );
             sources.single.chain = sources.single.chain.or(technology.chain);
             sources.single.cloak = sources.single.cloak.or(technology.cloak);
+            first(
+                &mut sources.single.spawn_shield,
+                technology.spawn_shield.as_ref(),
+            );
             sources.single.additional_damage = sources
                 .single
                 .additional_damage
                 .or(technology.additional_damage);
-            if sources.single.dead_explosion.is_none() {
-                sources
-                    .single
-                    .dead_explosion
-                    .clone_from(&technology.dead_explosion);
-            }
+            first(
+                &mut sources.single.dead_explosion,
+                technology.dead_explosion.as_ref(),
+            );
             if sources.single.kill_explosion.is_none() {
                 sources
                     .single
@@ -2388,6 +2424,7 @@ fn provider_of(kind: &str) -> Option<EffectProvider> {
         ADDITIONAL_DAMAGE => EffectProvider::AdditionalDamage,
         CHAIN => EffectProvider::IterationHit,
         CLOAK => EffectProvider::MoveAbilityDynamic,
+        SPAWN_SHIELD => EffectProvider::SpawnAdvancedShield,
         BURROW => EffectProvider::Burrow,
         _ => return None,
     })
@@ -2411,6 +2448,11 @@ fn provider_source_read(row: &Row) -> std::result::Result<(), String> {
         Err(format!(
             "technology {} ({}) jumps from its extra skills' hits or prefers no range, which is \
              not measured",
+            row.id, row.name
+        ))
+    } else if row.kind == SPAWN_SHIELD && row.extra_skill_effect {
+        Err(format!(
+            "technology {} ({}) spawns shields from its extra skills' hits, which is not measured",
             row.id, row.name
         ))
     } else if row.kind == SEARCH_TARGET_MODIFY

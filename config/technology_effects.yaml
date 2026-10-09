@@ -161,6 +161,12 @@ schema: mechcore.technology_effects
 # (`chain_delay`), how many jumps (`chain_count`), and the FPoint rate
 # of the skill's damage each jump deals, raised to the jump's number
 # (`chain_damage_rate`).
+# A shield-spawning technology carries the FPoint metres of radius
+# and the energy, by its unit's level, of the shield it spawns
+# (`spawn_shield_radius`, `spawn_shield_energy`), the hits of its
+# unit's main skill to the first (`spawn_shield_attacks`), the hits
+# more each later one takes (`spawn_shield_attacks_increment`), and
+# how many it spawns at most (`spawn_shield_max`).
 # A cloak technology carries the FPoint seconds its unit waits before
 # it cloaks (`cloak_delay`) and stays seen once it shows itself
 # (`cloak_exit_delay`).
@@ -2802,6 +2808,13 @@ technologies:
     name: Accumulator Shield
     unit: vortex
     kind: spawnAdvancedShieldTechDatas
+    spawn_shield_attacks: 5
+    spawn_shield_attacks_increment: 5
+    spawn_shield_max: 100
+    main_skill_effect: true
+    extra_skill_effect: false
+    spawn_shield_radius: [171798691840]  # +40
+    spawn_shield_energy: [2000, 4000, 6000, 8000, 10000, 12000, 14000, 16000, 18000]
   - id: 503101
     name: Emergency Armor
     unit: vortex

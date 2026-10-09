@@ -62,7 +62,8 @@ impl Simulation {
                 | EffectProvider::ClearRangeItem
                 | EffectProvider::KillExplosion
                 | EffectProvider::AdditionalDamage
-                | EffectProvider::IterationHit => {}
+                | EffectProvider::IterationHit
+                | EffectProvider::SpawnAdvancedShield => {}
             }
         }
     }
@@ -108,7 +109,8 @@ impl Simulation {
                 | EffectProvider::ClearRangeItem
                 | EffectProvider::KillExplosion
                 | EffectProvider::AdditionalDamage
-                | EffectProvider::IterationHit => {}
+                | EffectProvider::IterationHit
+                | EffectProvider::SpawnAdvancedShield => {}
             }
         }
         Ok(())
@@ -157,7 +159,8 @@ impl Simulation {
                 | EffectProvider::ClearRangeItem
                 | EffectProvider::KillExplosion
                 | EffectProvider::AdditionalDamage
-                | EffectProvider::IterationHit => {}
+                | EffectProvider::IterationHit
+                | EffectProvider::SpawnAdvancedShield => {}
             }
         }
         Ok(())
@@ -356,7 +359,11 @@ impl Simulation {
             | EffectProvider::AdditionalDamage
             // `IterationHitEffectProvider.DoDisableEffect` takes its hit
             // effect off the skills; a jump already waiting goes on.
-            | EffectProvider::IterationHit => {}
+            | EffectProvider::IterationHit
+            // `SpawnAdvancedShieldController.Disable` takes its hit effect off
+            // the main skill, its counts kept, and the shields it spawned
+            // stand.
+            | EffectProvider::SpawnAdvancedShield => {}
         }
         Ok(())
     }
