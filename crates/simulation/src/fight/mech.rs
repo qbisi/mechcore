@@ -100,6 +100,8 @@ impl Actor {
             life_priority: false,
             chain_records: super::chain::ChainRecords::default(),
             cloak: None,
+            shield_hits: 0,
+            spawned_shields: 0,
             reactive_armor: super::reactive_armor::ReactiveArmorState::of(&placement),
             placement,
             rules,

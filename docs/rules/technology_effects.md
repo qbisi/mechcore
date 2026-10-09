@@ -1267,6 +1267,28 @@ cloaked unit showing and a counting one from none, and the controller does
 nothing more until they come back, in `None`; its death shows it at once
 (`Disable`, `Enable`, `Deactive`).
 
+## Shield-spawning technologies
+
+A row of `spawnAdvancedShieldTechDatas` is a `SpawnAdvancedShieldTech`, an
+`ISpawnAdvancedShieldDataSource`: Accumulator Shield, the Vortex's. Its
+provider, a `SingleEffectProvider`, makes the unit a
+`SpawnAdvancedShieldController`, a hit effect of the main skill alone
+(`SkillManager.AddHitEffect`).
+
+**Its unit's hits spawn shields where it stands.** Each first hit of the
+main skill, not a second damage's, counts once, whatever it struck, while
+the unit has spawned fewer than `maxTriggerTimes` (100) and its source is
+not switched off. Once the count reaches `attackCount` (5) plus
+`attackCountIncrement` (5) for each shield already spawned, it starts over
+and `AdvancedEnergyShieldSystem.Create` stands a shield where the unit
+stands: of its side, with no owner, active and full, of `shieldRadius` (40
+metres) and `shieldValue` energy (2000 a level). Shields come at the 5th,
+15th, 30th hit and so on, and each stands until a hit empties it; it is
+short-lived (`IsShortLifeTime`), so the round's end destroys it and the
+recording says so of it from the start. The counts outlast the unit's
+technologies switched off (`Disable` takes the hit effect away and keeps
+them), and the shields stand whatever befalls the unit.
+
 ## What this table does not carry
 
 A technology that is not plain does something that is not a correction on its
@@ -1687,6 +1709,9 @@ derive (a minimum range):
   20 updates after an enemy comes within its reach:
   `tests/stealth/stealth-cloak.yaml`,
   `tests/stealth/stealth-cloak-electromagnetic-shot.yaml`.
+- Accumulator Shield spawns a 40-metre shield of 2000 where a Vortex
+  stands on its fifth hit, which the Crawlers empty:
+  `tests/shield/accumulator-shield.yaml`.
 - Subterranean Blitz burrows its Crawlers from the first tick and brings
   each up as its enemy comes within 50: `tests/burrow/crawler-rhino.yaml`.
   Burrowed, they take a Marksman's shot less 0.4; one that dies burrowed,
@@ -1879,6 +1904,11 @@ derive (a minimum range):
 
 ### Read
 
+- Shield-spawning technologies: `SpawnAdvancedShieldController.PerformHitEffect`,
+  `Enable`, `Disable`, `GetAdvancedEnergyShieldValue`,
+  `SpawnAdvancedShieldEffectProvider`, `AdvancedEnergyShieldSystem.Create`,
+  `GroupAdvancedEnergyShieldManager.Create`, `OnFightEnd`,
+  `FightEnergyShield.IsShortLifeTime`, `IsResetNextRound`.
 - Cloak technologies: `MoveAbilityDynamicTech.GetDelayEnter`, `GetDelayExit`,
   `MoveAbilityDynamicProvider.DoActive`, `DoDeactive`, `DisableEffect`,
   `EnableEffect`, `CloakSystem`, `TeamCloakManager.OnEnterFight`,
@@ -2409,6 +2439,8 @@ derive (a minimum range):
 
 ### Not established
 
+- **A second spawned shield, and one standing as the fight ends**: read,
+  not recorded.
 - **A Phantom Ray switched off while cloaked**, and one whose technologies
   come back while it shows: read from the build, not recorded.
 - **A chain whose jump makes the fight's last kill.** A Raiden whose jump

@@ -163,6 +163,23 @@ pub(crate) struct Burrow {
     pub(crate) relieve_distance: Vec<i64>,
 }
 
+/// What a `SpawnAdvancedShieldTech` answers `ISpawnAdvancedShieldDataSource`
+/// with: the shield it spawns, by its unit's level, and the hits of the main
+/// skill it takes.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct SpawnShield {
+    /// `GetShieldRadius`, `FPoint` metres, and `GetShieldValue`, whole
+    /// energy.
+    pub(crate) radius: Vec<i64>,
+    pub(crate) energy: Vec<i64>,
+    /// `GetAttackCount`, `GetAttackCountIncrement` and `GetMaxTriggerTimes`.
+    pub(crate) attacks: u32,
+    pub(crate) increment: u32,
+    pub(crate) max: u32,
+    /// `CanDisable`, as [`LifeSteal::can_disable`].
+    pub(crate) can_disable: bool,
+}
+
 /// What a `MoveAbilityDynamicTech` answers `IMoveAbilityDynamicSource`
 /// with: how long its unit waits before it cloaks (`GetDelayEnter`) and stays
 /// seen once it shows itself (`GetDelayExit`), `FPoint` seconds.

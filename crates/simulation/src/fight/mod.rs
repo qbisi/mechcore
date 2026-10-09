@@ -81,6 +81,7 @@ mod search;
 mod shield;
 mod siege;
 mod skill;
+mod spawn_shield;
 mod statistics;
 mod stealth;
 mod super_deployment;
@@ -339,6 +340,9 @@ struct Actor {
     chain_records: chain::ChainRecords,
     /// Its `CloakController`, once its technology made one.
     cloak: Option<cloak::Cloak>,
+    /// `SpawnAdvancedShieldController.attackCount` and `spawnShieldCount`.
+    shield_hits: u32,
+    spawned_shields: u32,
     /// `BuffManager.beHitDelayBuffInfos`: the buffs that disable technology
     /// a unit it hit queued on it, each with that unit, which
     /// `InvokeDelayAddBuff` adds as its `BuffManager.Update` ends.
