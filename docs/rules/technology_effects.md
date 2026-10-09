@@ -577,6 +577,12 @@ whose own `DisableEffect` it does not mirror.
   neither exploding nor burning; switched on again, they charge below half
   and explode as before. An active one is invincible, so no debuff reaches
   it.
+- **A dead-line technology culls nothing.** `DeadLineEffectProvider` takes
+  its pre-hit effect off its unit's skills, and `PerformPreHitEffect` does
+  nothing while the technologies are off. A level-three Mustang squad under
+  an Electromagnetic Impact shoots Marksmen down through its line of 720
+  with whole shots of 108, its 35% cut gone with the numbers; a Mustang
+  killed meanwhile has them back, and its shot still in the air culls.
 - **A stealth technology's unit counts as triggered.**
   `StealthTechSystem.DisableStealthTech` adds it to the triggered units and
   shows it (`EndStealth`): a Vortex in stealth is shown as the
@@ -606,7 +612,7 @@ What any other provider does switched off, the `AutoRecoveryEffectProvider`,
 `EnergyShieldProvider`, `SweepSkillIntensifyEffectProvider`,
 `AirAttackEffectProvider`, `InterceptMissileEffectProvider`,
 `SupportUnitProvider`, `DeadEffectProvider`, `MoveAbilitySummonProvider`,
-`DeadLineEffectProvider` and a cycling buff source's `BuffEffectProvider`, and
+and a cycling buff source's `BuffEffectProvider`, and
 an extra weapon's production line, other explosion or preemptive skill, or
 group, is not measured: a buff that disables technology reaching a unit whose
 technologies reach one is refused by the provider's name.
@@ -669,7 +675,10 @@ derive (a minimum range):
   culls Crawlers at 250 under a level-one Mustang's 320, and Marksmen at 712
   under a level-three one's 720:
   `tests/dead_line/fights/culling-rounds-crawlers.yaml`,
-  `tests/dead_line/fights/culling-rounds-level-three.yaml`.
+  `tests/dead_line/fights/culling-rounds-level-three.yaml`. Disabled, it
+  culls nothing and its cut leaves with its numbers, and a shot its unit
+  left in the air as it died culls again:
+  `tests/dead_line/fights/culling-rounds-disabled.yaml`.
 - A stealth technology puts its unit in stealth as a hit leaves it at no
   more than half its life, and shows it 81 ticks on: no search finds it, a
   shot already on its way lands on it and takes nothing, and the units that

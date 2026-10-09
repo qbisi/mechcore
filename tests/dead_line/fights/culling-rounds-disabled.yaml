@@ -1,0 +1,28 @@
+# Culling Rounds on a level-three Mustang squad that an Electromagnetic
+# Impact disables (t57), shooting two Marksmen.
+#
+# Disabled, each shot lands whole, 108 without the technology's 35% cut, and
+# culls nothing: a Marksman falls through 650 to 110 under the line of 720
+# (t153 to t158) and dies of a shot (t164). A Mustang the other Marksman
+# kills (t174) has its technologies back as its buffs go, and the shot it
+# left in the air culls that Marksman at 650 (t176).
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 178
+hash: {profile: mcfr-content-0.22.0, result: b9b4d58739f31fdb898b8eca6df637d77d4b6e901564acd4e6ceedc01524608c}
+blue:
+  techs:
+    mustang: [culling_rounds]
+  units:
+  - {name: mustang, index: 0, position: {x: 5, y: -100}, level: 3, exp: 0/300/4274}
+red:
+  core_damage: 119
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -100}, exp: 0/340/650}
+  - {name: marksman, index: 1, position: {x: 20, y: -100}, exp: 0/510/650}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: 15, y: 62}]}
