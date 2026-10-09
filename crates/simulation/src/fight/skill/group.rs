@@ -659,32 +659,35 @@ impl Simulation {
                     return Ok(());
                 };
                 self.refresh_group_skill_attack_interval(skill_ref, skill_index, step)?;
-                // A striking slot strikes it, as it strikes a unit.
+                // A striking slot strikes it, as it strikes a unit, and
+                // counts the blow as one at a unit does: a Raiden's slot
+                // that fells a block reads `performCount` 1 that tick.
                 if self.skill(skill_ref).kind == SkillKind::Strike {
-                    return self.direct_effect(actor_id, target, skill_index, events);
+                    self.direct_effect(actor_id, target, skill_index, events)?;
+                } else {
+                    let aimed = self.attack_position(
+                        skill_ref.owner,
+                        skill_index,
+                        FightActorRef::Building(building_id),
+                        0,
+                        true,
+                    )?;
+                    self.release_projectile_to(
+                        skill_ref,
+                        ObjectKind::Building,
+                        building_id,
+                        aimed,
+                        radius,
+                        skill_index,
+                        skill_index,
+                        events,
+                    )?;
+                    self.climb_joined_slot_projectile(
+                        skill_ref,
+                        skill_index,
+                        FightActorRef::Building(building_id),
+                    )?;
                 }
-                let aimed = self.attack_position(
-                    skill_ref.owner,
-                    skill_index,
-                    FightActorRef::Building(building_id),
-                    0,
-                    true,
-                )?;
-                self.release_projectile_to(
-                    skill_ref,
-                    ObjectKind::Building,
-                    building_id,
-                    aimed,
-                    radius,
-                    skill_index,
-                    skill_index,
-                    events,
-                )?;
-                self.climb_joined_slot_projectile(
-                    skill_ref,
-                    skill_index,
-                    FightActorRef::Building(building_id),
-                )?;
             }
             FightActorRef::Unit(_) => return Ok(()),
         }
