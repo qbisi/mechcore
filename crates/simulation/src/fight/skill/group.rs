@@ -312,10 +312,7 @@ impl Simulation {
             .skill_attacker(main)
             .expect("skill owner identity is stable")
             .team;
-        let has_alive_enemy = self
-            .actors
-            .values()
-            .any(|actor| actor.placement.team != team && actor.alive());
+        let has_alive_enemy = self.enemy_left(team);
         if !has_alive_enemy {
             self.skill_mut(main).sibling_mut(slot).performer.stop();
             return Ok(true);

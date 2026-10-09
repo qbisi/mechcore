@@ -2144,6 +2144,17 @@ impl Simulation {
         });
     }
 
+    /// Whether a side has an enemy left as this tick's updates see it: one
+    /// alive, or one killed on this tick, which its side keeps until
+    /// `DeadEffectSystem` takes it as the tick ends. The Melting Point's beam
+    /// kills the last enemy, and its barrage still releases its shell at it
+    /// on the same tick.
+    pub(in crate::fight) fn enemy_left(&self, team: u32) -> bool {
+        self.actors.values().any(|actor| {
+            actor.placement.team != team && (actor.alive() || actor.target_query_alive)
+        })
+    }
+
     /// A burst whose target died while it was still firing: with no enemy
     /// left it stops, and otherwise the rest of it is fired where it was aimed
     /// while the unit stands.
@@ -2163,10 +2174,7 @@ impl Simulation {
                 .skill_attacker(skill_ref)
                 .expect("skill owner identity is stable")
                 .team;
-            let has_alive_enemy = self
-                .actors
-                .values()
-                .any(|actor| actor.placement.team != owner_team && actor.alive());
+            let has_alive_enemy = self.enemy_left(owner_team);
             // The skill still names its dead target. With no command the
             // motion's lock is dead and it stops idle; a command keeps the
             // motion active on it (`attack_under_command`), so a unit under

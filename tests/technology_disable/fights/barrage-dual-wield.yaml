@@ -1,0 +1,32 @@
+# Electromagnetic Barrage on a Centurion with Dual Wield and Homing Missile
+# behind a Rhino the Melting Point's beam takes.
+#
+# The barrage's buff reaches the Centurion at t57. Its technologies are off
+# but Dual Wield, whose row sets `ignoreElectricEffect`
+# (`Technology.CanDisable` false): its second gun goes on firing and its
+# range stays 25 metres short (85), while the missile skill is off once the
+# burst under way has run out. At t318 the beam
+# kills the Centurion, red's last unit, and the barrage still releases a
+# shell at it on that tick: a unit killed on the tick is an enemy left until
+# the tick ends.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 339
+hash: {profile: mcfr-content-0.22.0, result: d1fc6f904ce43ab69d3380647fa00e797b4b029c48fb9712f5d08151c6c230e3}
+blue:
+  techs:
+    melting_point: [electromagnetic_barrage]
+  units:
+  - {name: melting_point, index: 0, position: {x: 0, y: -150}, level: 6, exp: 0/8118/8118}
+  - {name: rhino, index: 1, position: {x: 65, y: -145}, level: 9, exp: 0/5100/7736}
+red:
+  core_damage: 350
+  techs:
+    centurion: [dual_wield, homing_missile]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -35}, level: 9}
+  - {name: centurion, index: 1, position: {x: 5, y: -75}, level: 9, exp: 0/6800/15137}

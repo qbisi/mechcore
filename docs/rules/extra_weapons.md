@@ -412,7 +412,11 @@ the unit carries none.
   burst whose target died is fired where it was aimed, and the skill names
   the dead target until then rather than finishing its attack: the Melting
   Point's beam kills the Crawler the barrage aims at, and the barrage fires
-  its last two shells at it and names it until they are out.
+  its last two shells at it and names it until they are out. Only with no
+  enemy left does the burst stop, and a unit killed on this tick is still
+  one until the tick ends (`DeadEffectSystem`): the beam kills red's last
+  unit, a Centurion, and the barrage still releases a shell at it on that
+  tick.
 
 ## A preemptive strike about its unit
 
