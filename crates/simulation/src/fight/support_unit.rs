@@ -241,6 +241,7 @@ impl Creator {
             corrections: production.corrections.clone(),
             technology_disable: production.technology_disable.clone(),
             reactive_armor: production.reactive_armor,
+            burrow: production.burrow.clone(),
         };
         Self {
             team: owner.placement.team,
@@ -728,6 +729,7 @@ impl Simulation {
         self.unit_update_order.push(unit_id);
         // `FightEffectSystem` activates its effects as it joins.
         self.activate_reactive_armor(unit_id);
+        self.add_burrow_unit(unit_id);
         self.draw_owner_first_intervals(FightActorRef::Unit(unit_id))
     }
 
@@ -776,6 +778,7 @@ impl Simulation {
                 *id = unit_id;
             }
         }
+        self.renumber_burrow_units(&renamed);
         renamed
     }
 }
@@ -1147,7 +1150,7 @@ fn summon_placement(
         rebirth: None,
         rvo_radius_change: None,
         clear_range_item: None,
-        burrow: None,
+        burrow: creator.summon.burrow.clone(),
         sweep: None,
         distance_intensify: false,
         secondary_damage: None,

@@ -532,6 +532,7 @@ impl Simulation {
         self.add_siege_unit(unit)?;
         self.activate_reactive_armor(unit);
         self.add_wreckage_unit(unit);
+        self.add_burrow_unit(unit);
         Ok(())
     }
 

@@ -781,7 +781,7 @@ impl Simulation {
         // The first buff that disables technology switches the unit's
         // technologies off as it enters (`CBEC_DisableTechnology.Enter`).
         if !was_disabled && self.actors[&actor_id].technology_disabled() {
-            self.switch_technologies(actor_id, false)?;
+            self.switch_technologies(actor_id, false, events)?;
             self.actors
                 .get_mut(&actor_id)
                 .expect("actor identity is stable")
@@ -936,7 +936,7 @@ impl Simulation {
         }
         actor.refresh_life_data()?;
         if was_disabled && !actor.technology_disabled() {
-            self.switch_technologies(actor_id, true)?;
+            self.switch_technologies(actor_id, true, events)?;
         }
         Ok(())
     }
@@ -1009,7 +1009,14 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let mut disabled = Vec::new();
-        for (&actor_id, actor) in &mut self.actors {
+        // Each side's units in the order they joined it (`activeActors`): the
+        // Crawlers a Steel Ball's death summoned, in the order they joined,
+        // whatever their identities.
+        for actor_id in self.units_in_update_order() {
+            let actor = self
+                .actors
+                .get_mut(&actor_id)
+                .expect("actor identity is stable");
             if !actor.alive() || actor.buffs.is_empty() {
                 continue;
             }
@@ -1035,7 +1042,7 @@ impl Simulation {
         // again: a Rhino's Mechanical Rage reads in its corrections on the
         // fight's last tick.
         for actor_id in disabled {
-            self.switch_technologies(actor_id, true)?;
+            self.switch_technologies(actor_id, true, events)?;
         }
         for (building_id, buffed) in std::mem::take(&mut self.buffs.building_buffs) {
             let subject = ObjectRef::new(ObjectKind::Building, building_id);
@@ -1081,7 +1088,7 @@ impl Simulation {
         }
         actor.refresh_life_data()?;
         if was_disabled {
-            self.switch_technologies(actor_id, true)?;
+            self.switch_technologies(actor_id, true, &mut Vec::new())?;
         }
         Ok(())
     }
@@ -1162,7 +1169,7 @@ impl Simulation {
             // The last buff that disables technology switches them on again
             // as it leaves (`CBEC_DisableTechnology.Exit`).
             if was_disabled && !actor.technology_disabled() {
-                self.switch_technologies(actor_id, true)?;
+                self.switch_technologies(actor_id, true, events)?;
             }
         }
         Ok(())
@@ -1172,7 +1179,13 @@ impl Simulation {
     /// what its technologies wrote onto its numbers, which every provider
     /// takes away and writes again alike. The layout refuses a provider whose
     /// own the fight does not mirror ([`EffectProvider::disable_read`]).
-    fn switch_provider(&mut self, actor_id: u64, provider: EffectProvider, on: bool) {
+    fn switch_provider(
+        &mut self,
+        actor_id: u64,
+        provider: EffectProvider,
+        on: bool,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
         match provider {
             // `ExtraSkillProvider.DisableSkill` and `EnableSkill`: every
             // extra skill of a technology that switches is disabled and
@@ -1199,6 +1212,7 @@ impl Simulation {
                 .expect("actor identity is stable")
                 .switch_reactive_armor(on),
             EffectProvider::SiegeMode if !on => self.end_siege_mode(actor_id),
+            EffectProvider::Burrow => return self.switch_burrow(actor_id, on, events),
             // The rest take away what the fight asks of the unit where it
             // acts, its technologies disabled: a lifesteal's and a second
             // damage's hit effect, a search's ranges, offsets and selector,
@@ -1207,6 +1221,7 @@ impl Simulation {
             // enters.
             _ => {}
         }
+        Ok(())
     }
 
     /// `FightEffectSystem.DisableEffect` and `EnableEffect` of a unit's
@@ -1217,7 +1232,12 @@ impl Simulation {
     /// (`FightSkill.RefreshAttackInterval`): a Rhino with Mechanical Rage
     /// waits 18 ticks between blows where it waited 12, and a Marksman with
     /// Assault Mode's drawn 69 becomes its plain 62.
-    pub(in crate::fight) fn switch_technologies(&mut self, actor_id: u64, on: bool) -> Result<()> {
+    pub(in crate::fight) fn switch_technologies(
+        &mut self,
+        actor_id: u64,
+        on: bool,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
         let actor = self
             .actors
             .get_mut(&actor_id)
@@ -1235,7 +1255,7 @@ impl Simulation {
         // `FightEffectMananger.DisableEffect` and `EnableEffect`: every
         // provider beside the numbers' its technologies reach.
         for provider in actor.placement.technology_disable.providers.clone() {
-            self.switch_provider(actor_id, provider, on);
+            self.switch_provider(actor_id, provider, on, events)?;
         }
         let actor = self
             .actors

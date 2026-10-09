@@ -1,0 +1,22 @@
+# Subterranean Blitz on the Crawlers blue's Melting Point makes (Crawler
+# Production). The manager holds each made Crawler as it joins, renumbered
+# as the recording numbers it, and the first batch burrows on tick 2.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 444
+hash: {profile: mcfr-content-0.23.0, result: b281a088809aeb01a571faaae30b9688750677b866a845b3cbdc913937309506}
+blue:
+  techs:
+    melting_point: [crawler_production]
+    crawler: [subterranean_blitz]
+  units:
+  - {name: melting_point, index: 0, position: {x: 0, y: -150}, exp: 0/600/1400}
+red:
+  core_damage: 350
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/42/1150}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/22/650}

@@ -453,6 +453,9 @@ pub(crate) struct Summon {
     /// The rate its side's technology puts on the damage it takes for its
     /// first hits, which `FightEffectSystem` activates as it joins.
     pub(crate) reactive_armor: Option<crate::modifier::ReactiveArmor>,
+    /// Its side's technology that burrows it, which `FightEffectSystem`
+    /// hands its side's `TeamBurrowManager` as it joins.
+    pub(crate) burrow: Option<crate::modifier::Burrow>,
 }
 
 /// The buff a released skill writes: the Electromagnetic Impact's slow,
@@ -1284,6 +1287,7 @@ fn summon(named: &str, row: &SupportSkillRow, units: &UnitConfigs) -> Result<Sum
         corrections: Vec::new(),
         technology_disable: crate::layout::TechnologyDisable::default(),
         reactive_armor: None,
+        burrow: None,
     })
 }
 

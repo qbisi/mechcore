@@ -163,6 +163,9 @@ impl EffectProvider {
     /// - A fire-extinguisher technology's unit clears nothing
     ///   (`TeamClearRangeItemManager.DisableMech`), and clears again from the
     ///   manager's next clearing (`EnableMech`).
+    /// - A burrowing technology's unit comes up, its buff removed, and its
+    ///   manager passes over it (`BurrowSystem.Deactive`) until it is
+    ///   switched on (`Active`).
     ///
     /// Every other provider does more, which is not measured.
     pub(crate) const fn disable_read(self) -> bool {
@@ -182,7 +185,8 @@ impl EffectProvider {
             | Self::FireIntensify
             | Self::WreckageRecovery
             | Self::RvoRadiusChange
-            | Self::ClearRangeItem => true,
+            | Self::ClearRangeItem
+            | Self::Burrow => true,
             Self::AutoRecovery
             | Self::EnergyShield
             | Self::SweepSkillIntensify
@@ -193,8 +197,7 @@ impl EffectProvider {
             | Self::DeadEffect
             | Self::MoveAbilitySummon
             | Self::MoveAbilityAttackIntensify
-            | Self::MoveAbilityRangeItem
-            | Self::Burrow => false,
+            | Self::MoveAbilityRangeItem => false,
         }
     }
 }
