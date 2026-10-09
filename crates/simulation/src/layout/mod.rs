@@ -1118,6 +1118,13 @@ pub(crate) struct TechnologyDisable {
     /// The providers beside the numbers' its technologies reach, each of
     /// which `FightEffectMananger.DisableEffect` switches.
     pub(crate) providers: Vec<EffectProvider>,
+    /// Whether it holds a technology at all. Each one's provider removes its
+    /// data from the main skill and writes it again
+    /// (`SkillDataModifier.RemoveData`, `AddData`), which ends by refreshing
+    /// the skill's data (`FightSkill.RefreshDatas`) whether the technology
+    /// wrote numbers or none: every unit technology of this build reaches
+    /// the main skill (`mainSkillEffect`).
+    pub(crate) holds: bool,
     /// What it carries whose switching off is not measured, by name: a
     /// provider whose `DisableEffect` the fight does not mirror, or an extra
     /// skill of a shape it does not fight disabled.
@@ -1366,6 +1373,7 @@ fn technology_disable(
             )
             .collect(),
         providers: providers.into_keys().collect(),
+        holds: technologies.holds(held, type_name),
     })
 }
 
@@ -1412,7 +1420,15 @@ fn worn(
             .main_skill(&side.techs.units, type_name)
             .map_err(on_side),
     )?;
-    let mut carried_shields = Vec::new();
+    // Its technologies' barrier, then its items'.
+    let mut carried_shields = Vec::from_iter(
+        refused.hold(
+            loadouts
+                .technologies
+                .carried_shield(&side.techs.units, type_name, level)
+                .map_err(on_side),
+        )?,
+    );
     // The buffs its technologies add as the fight starts, then its items'.
     let mut buff_sources = sources.buff_sources;
     let mut ignored_buffs = Vec::new();

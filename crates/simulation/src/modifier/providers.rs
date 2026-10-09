@@ -59,6 +59,8 @@ pub(crate) enum EffectProvider {
     MoveAbilityRangeItem,
     /// `MechGrounpEffectProvider`, for an `IMechGroupSource`.
     MechGroup,
+    /// `AdvancedEnergyShieldProvider`, for an `IAdvancedEnergyShieldSource`.
+    AdvancedEnergyShield,
 }
 
 impl EffectProvider {
@@ -84,6 +86,7 @@ impl EffectProvider {
             Self::MoveAbilityAttackIntensify => "MoveAbilityAttackIntensifyProvider",
             Self::MoveAbilityRangeItem => "MoveAbilityRangeItemProvider",
             Self::MechGroup => "MechGrounpEffectProvider",
+            Self::AdvancedEnergyShield => "AdvancedEnergyShieldProvider",
         }
     }
 
@@ -113,6 +116,9 @@ impl EffectProvider {
     /// - A grouping technology's unit leaves its side's groups
     ///   (`MechGrounpEffectProvider.DisableEffect`,
     ///   `TeamMechGroupManager.RemoveMech`) and is handed back (`AddMech`).
+    /// - A barrier technology's shield is disabled and deactivated, its
+    ///   energy recorded, and given back that energy and activated again
+    ///   (`AdvancedEnergyShieldProvider.DisableEffect`, `EnableEffect`).
     ///
     /// Every other provider does more, which is not measured.
     pub(crate) const fn disable_read(self) -> bool {
@@ -125,7 +131,8 @@ impl EffectProvider {
             | Self::ExtraSkill
             | Self::StealthTech
             | Self::DeadLine
-            | Self::MechGroup => true,
+            | Self::MechGroup
+            | Self::AdvancedEnergyShield => true,
             Self::AutoRecovery
             | Self::EnergyShield
             | Self::SweepSkillIntensify

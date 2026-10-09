@@ -93,6 +93,9 @@ schema: mechcore.technology_effects
 # more than `group_max_count` members when that is above zero, on its
 # main skill and its extra skills as `main_skill_effect` and
 # `extra_skill_effect` say.
+# A barrier technology carries the energy and the whole metres of
+# radius of the battlefield shield its unit carries (`barrier_energy`,
+# `barrier_radius`), by its unit's level.
 
 technologies:
   - id: 206
@@ -357,10 +360,14 @@ technologies:
     name: 保护屏障
     unit: fortress
     kind: advancedEnergyShieldTechnologies
+    barrier_energy: [40000, 80000, 120000, 160000, 200000, 240000, 280000, 320000, 360000]
+    barrier_radius: [60]
   - id: 1014
     name: 保护屏障
     unit: hacker
     kind: advancedEnergyShieldTechnologies
+    barrier_energy: [16000, 32000, 48000, 64000, 80000, 96000, 112000, 128000, 144000]
+    barrier_radius: [50]
   - id: 1103
     name: 燃烧弹
     unit: vulcan

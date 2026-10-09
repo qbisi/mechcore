@@ -197,12 +197,20 @@ A Shield Airdrop's shield is the same object, made where the skill lands;
 
 **A shield a unit carries is the same object again, with its unit as its
 owner.** A Barrier on a huge ground unit makes one of the item's radius and
-energy, among its side's shields at the fight's start, where the unit stands.
+energy, and Barrier the technology, the Fortress's or the Hacker's, one of
+the radius and energy its lists give its unit's level
+(`AdvancedEnergyShieldTech.GetRadius`, `GetShieldValue`, through
+`TechnologyData.GetLevelValue`): 60 metres and 40000 a level for the
+Fortress, 50 and 16000 for the Hacker. Either is among its side's shields at
+the fight's start, where the unit stands.
 It stands where its owner stands, moved as the owner moves, and once the owner
 dies it stays where it last stood, still naming it. A hit that empties a shield
 with an owner deactivates it rather than destroying it: it stays on the board,
 recorded inactive with no energy, shields nothing, and no `shield_destroyed`
-is written. The Barrier's shield neither recovers nor refills.
+is written. The Barrier's shield neither recovers nor refills. A buff that
+disables technology deactivates the technology's and gives it back with the
+energy it had, after its side's other shields
+([technology_effects.md](technology_effects.md#switched-off)).
 
 A shield takes a hit's damage up to the energy it has left, and a hit that
 empties it destroys it for the rest of the fight: the excess goes nowhere. The
@@ -314,6 +322,15 @@ kind ends its own way:
   is deactivated when emptied and stays where its owner fell:
   `tests/shield/fights/barrier-wasps.yaml`; blows from inside it reach its
   owner: `tests/shield/fights/barrier-crawlers.yaml`.
+- Barrier the technology makes the shield of its unit's level: a level-2
+  Fortress's of 60 metres and 80000, a level-2 Hacker's of 50 and 32000:
+  `tests/shield/fights/barrier-technology-fortress.yaml`,
+  `tests/shield/fights/barrier-technology-hacker.yaml`.
+- Electromagnetic Armor's buff deactivates a Fortress's Barrier at 60614 and
+  gives it back at 60614 as it runs out, and one given back joins its side's
+  active shields after the other Barrier:
+  `tests/shield/fights/barrier-technology-void_eye.yaml`,
+  `tests/shield/fights/barrier-technology-order.yaml`.
 - A Fire Badger's charge takes a Melting Point's Barrier for its target with
   the shield's surface 4.35 metres from its edge, within its 1 metre and the
   5 its skill adds for a shield, on the tick the 1 alone would leave one
@@ -450,6 +467,14 @@ kind ends its own way:
   `DamagePerformer.PerformHitAdvancedEndergyShieldEffect` calls
   `AdvancedEnergyShieldSystem.DeactiveEnergyShield` for an emptied shield
   with an owner and `AdvancedEnergyShieldSystem.Destroy` for one without.
+- Barrier the technology: `AdvancedEnergyShieldTech.GetRadius` and
+  `GetShieldValue` read `AdvancedEnergyShieldTechData.radius` and
+  `shieldValues` by `TechnologyData.GetLevelValue`. Switched off and on:
+  `AdvancedEnergyShieldProvider.DisableEffect`, `EnableEffect`,
+  `EnergyShieldBehaviour.IsAvaliable`,
+  `AdvancedEnergyShieldController.Disable`, `Enable`,
+  `AdvancedEnergyShieldSystem.DeactiveEnergyShield`, `ActiveEnergyShield`,
+  `FightEnergyShield.Deactive`, `FightEnergyShield.Active`.
 
 ### Not established
 

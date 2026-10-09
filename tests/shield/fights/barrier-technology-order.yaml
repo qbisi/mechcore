@@ -1,0 +1,27 @@
+# Two Barriers on blue, the Fortress's first in its side's active order and
+# the Hacker's second. The Void Eye's Electromagnetic Armor switches off the
+# Fortress's technologies on tick 164, and its shield leaves the order. As
+# the last Void Eye falls on tick 240 it is active again with the 69704 it
+# had, after the Hacker's shield: activated, a shield joins its side's
+# active shields at the end (`AdvancedEnergyShieldSystem.ActiveEnergyShield`).
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 240
+hash: {profile: mcfr-content-0.22.0, result: 2d7aba6b287148d9d013f59c3b7f31bddfa96b503fd36eec12eff7cc5c9ae14c}
+blue:
+  techs:
+    fortress: [barrier]
+    hacker: [barrier]
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, level: 2, exp: 0/198/3605}
+  - {name: hacker, index: 1, position: {x: 155, y: -145}, level: 2}
+red:
+  core_damage: 550
+  techs:
+    void_eye: [electromagnetic_armor]
+  units:
+  - {name: void_eye, index: 0, position: {x: 0, y: -60}}

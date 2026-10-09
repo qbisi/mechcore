@@ -95,6 +95,8 @@ a stealth technology's with the stealth it puts its unit in once it is hurt
 under which its unit's hits destroy what they strike
 ([below](#dead-line-technologies)), a damage-share technology's with the
 group its units share every hit in ([below](#damage-share-technologies)), a
+barrier technology's with the battlefield shield its unit carries
+([contraptions.md](contraptions.md#a-shield)), a
 missile interception technology's
 with the interceptors it makes its unit
 ([below](#missile-interception)), a production technology's with the line it
@@ -610,10 +612,27 @@ whose own `DisableEffect` it does not mirror.
 - **Its current interval is made again without its stagger** as its numbers
   change (`FightSkill.RefreshAttackInterval`), both ways: a Rhino with
   Mechanical Rage waits 18 ticks between blows for 12 while it is off, and a
-  Marksman's drawn 69 becomes its plain 62. A unit whose technologies wrote
-  nothing keeps the interval it drew.
+  Marksman's drawn 69 becomes its plain 62. Each technology's provider
+  takes its data off the main skill and writes it back
+  (`SkillDataModifier.RemoveData`, `AddData`), which ends by refreshing the
+  skill's data (`FightSkill.RefreshDatas`) whether it wrote numbers or none,
+  every unit technology of this build reaching the main skill
+  (`mainSkillEffect`): a Fortress whose only technology is Barrier has its
+  drawn 35 made its plain 36. A unit with no technology keeps the interval it
+  drew.
 - **A lifesteal's and a second damage's** providers take their hit effect
   away, which the fight asks of the unit at each hit.
+- **A Barrier's shield leaves its side's shields and comes back as it was.**
+  `AdvancedEnergyShieldProvider.DisableEffect` acts only on a shield that is
+  available (`EnergyShieldBehaviour.IsAvaliable`: active, enabled and holding
+  energy): its controller records its energy and is disabled
+  (`AdvancedEnergyShieldController.Disable`), and the shield is deactivated
+  (`AdvancedEnergyShieldSystem.DeactiveEnergyShield`), holding nothing and
+  shielding nothing. `EnableEffect` acts only on a disabled controller: the
+  shield gets its recorded energy back (`Enable`) and, its owner alive, is
+  activated without being refilled (`ActiveEnergyShield` with no reset),
+  joining its side's active shields after every other. A Fortress's shield
+  at 60614 goes on tick 164 and is back at 60614 on tick 301.
 - **A search technology's reach and preference leave its unit.** Its
   provider takes away the metres it added to the main skill's range against
   a domain and to what its search counts off a candidate of that domain, and
@@ -833,6 +852,11 @@ derive (a minimum range):
 - Electromagnetic Armor's buff is on a Rhino from the tick its blow lands
   on a Void Eye, at t244 and again at t264:
   `tests/technology_buff/fights/electromagnetic-armor.yaml`.
+- Electromagnetic Armor's buff on a Fortress whose only technology is
+  Barrier deactivates its shield at 60614 and gives it back at 60614, and
+  makes its drawn interval of 35 its plain 36; without the refresh the
+  simulator parts from the recording at t164:
+  `tests/shield/fights/barrier-technology-void_eye.yaml`.
 - Chamber Compression's stack goes back to none as each of a Hound's shots
   lands; without the reset the simulator parts from the recording at t189:
   `tests/technology_buff/fights/chamber-compression.yaml`.
@@ -1189,6 +1213,7 @@ derive (a minimum range):
   `DeadEffectSystem.OnActorDead`, `DeadEffectController.IsAvaliable`,
   `ExplosionSkillData.IsTechnologyEffect`,
   `FightMech.RefreshLifeData`, `FightSkill.RefreshAttackInterval`,
+  `SkillDataModifier.RemoveData`, `FightSkill.RefreshDatas`,
   `ExtraSkillProvider.DisableSkill`, `ExtraSkillProvider.EnableSkill`,
   `FightSkill.Disable`, `FightSkill.Enable`, `SkillIdleState.Update`,
   `SkillAttackState.CheckAttackable`.
@@ -1241,9 +1266,8 @@ derive (a minimum range):
   line (`SupportUnitCreator`), an explosion or preemptive skill other than a
   permanent preemptive explosion, an active permanent preemptive skill
   (`PreemptiveSkillController.Update` gives it up), a group, a repair
-  (`AutoRecoverySystem.DisableMech`), a unit's own shield and a Barrier's
-  (`EnergyShieldProvider.DisableEffect`,
-  `AdvancedEnergyShieldSystem.DeactiveEnergyShield`), a buff source that
+  (`AutoRecoverySystem.DisableMech`), a unit's own shield
+  (`EnergyShieldProvider.DisableEffect`), a buff source that
   cycles over the units around its unit, a cleared buff that does not
   stack, a sweep's change, an air attack's switch. Refused.
 - **A unit's interceptors switched off.** `InterceptMissileEffectProvider.DisableEffect`

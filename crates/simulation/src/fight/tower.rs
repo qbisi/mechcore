@@ -1148,6 +1148,7 @@ impl Simulation {
             }
             EffectProvider::StealthTech => self.switch_stealth(actor_id, on),
             EffectProvider::MechGroup => self.switch_group_unit(actor_id, on),
+            EffectProvider::AdvancedEnergyShield => self.switch_carried_shield(actor_id, on),
             // The rest take away what the fight asks of the unit where it
             // acts, its technologies disabled: a lifesteal's and a second
             // damage's hit effect, a search's ranges, offsets and selector,
@@ -1191,10 +1192,11 @@ impl Simulation {
             .get_mut(&actor_id)
             .expect("actor identity is stable");
         let corrections = actor.placement.technology_disable.corrections.clone();
-        // A unit whose technologies wrote nothing has nothing to refresh:
-        // the Wasps an Electromagnetic Impact reaches keep the intervals they
-        // drew.
-        if corrections.is_empty() {
+        // A unit with no technology has nothing to refresh: the Wasps an
+        // Electromagnetic Impact reaches keep the intervals they drew. One
+        // whose technologies wrote nothing still refreshes: a Fortress with
+        // Barrier's drawn 35 becomes its plain 36.
+        if !actor.placement.technology_disable.holds {
             return Ok(());
         }
         for (channel, entry) in corrections {

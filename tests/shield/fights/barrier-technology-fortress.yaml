@@ -1,0 +1,26 @@
+# Barrier, the technology, on blue's level-2 Fortress: a shield of 60
+# metres and 80000 energy, the level's entry of the technology's lists
+# (`TechnologyData.GetLevelValue`), that it carries as an item's Barrier
+# would. The Wasps' shots from outside it take its energy until tick 315
+# empties it, and an emptied shield with an owner is deactivated.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 820
+hash: {profile: mcfr-content-0.22.0, result: 8c63c79403d76f73cd8dbe6606a20f11bfabe3961b938db5b70f90b744c2c914}
+blue:
+  core_damage: 1020
+  techs:
+    fortress: [barrier]
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, level: 2, exp: 0/200/3605}
+red:
+  units:
+  - {name: wasp, index: 0, position: {x: 5, y: -100}, exp: 0/240/900}
+  - {name: wasp, index: 1, position: {x: 5, y: -140}, exp: 0/900/900}
+  - {name: wasp, index: 2, position: {x: 5, y: -180}, exp: 0/240/900}
+  - {name: wasp, index: 3, position: {x: -55, y: -100}, exp: 0/240/900}
+  - {name: wasp, index: 4, position: {x: 65, y: -100}, exp: 0/240/900}
