@@ -19,8 +19,10 @@ is authoritative: an object is in play exactly while it is a member.
 `acid`, `recovery_zone` and `fog_sand`. Four are the deployable battle skills, the incendiary bomb being
 `fire`, the sticky oil bomb `oil`, the smoke bomb `fog` and the acid bomb
 `acid`. A `fog_sand` is the sand fog Sandstorm's Sandworm leaves as it
-surfaces ([underground.md](underground.md#a-sand-fog-as-it-surfaces)). What
-`recovery_zone` does is not established.
+surfaces ([underground.md](underground.md#a-sand-fog-as-it-surfaces)). No
+source makes a `recovery_zone` in this build: its one producer, the
+`CS_Recovery` battle skill, has no row, `CommanderSkillGroupData`'s
+`recoveryCommanderSkills` being empty, and no technology clears one.
 
 ## How a terrain is created
 
@@ -459,6 +461,8 @@ already exists.
 - There are six terrain types: `RangeItemType.Fire`, `RangeItemType.Oil`,
   `RangeItemType.Fog`, `RangeItemType.Acid`, `RangeItemType.RecoveryZone`,
   `RangeItemType.FogSand`.
+- A recovery zone's one producer is a battle skill this build has no row of:
+  `CS_Recovery`, `CommanderSkillGroupData.recoveryCommanderSkills`.
 - A battle skill's ground impact adds its terrain directly:
   `RangeItemEffectController.PerformEffect`, `RangeItemSystem.AddItem`.
 - The affected set is refreshed each update from target validity and a
@@ -497,7 +501,6 @@ already exists.
   of one type can differ, so no value derives from a type.
 - **A whole grid.** A terrain turned from another kind or standing inside the
   shield that reaches it is read as a whole grid, not recorded.
-- **`recovery_zone` behaviour.**
 - **`FogSandController.SelectBestTarget`**, as a fog's.
 - **A type conversion within one identity**: whether a native producer for one
   exists.

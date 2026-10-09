@@ -1129,9 +1129,8 @@ struct RebirthBlock {
     follow_rotate_rate: i64,
 }
 
-/// The terrain a fire-extinguisher row clears, or why this build will not:
-/// `RangeItemType`'s numbers, a recovery zone not among the simulator's
-/// terrains.
+/// The terrain a fire-extinguisher row clears, by `RangeItemType`'s
+/// numbers, or why this build will not.
 fn clear_range_item_of(
     row: &Row,
     who: &str,
@@ -2688,17 +2687,14 @@ mod tests {
         assert!(table.corrections(&[10], "typhoon", 1).is_err());
     }
 
-    /// A fire-extinguisher technology hands its unit the terrain it clears,
-    /// and a recovery zone among its kinds is refused.
+    /// A fire-extinguisher technology hands its unit the terrain it clears.
     #[test]
     fn a_fire_extinguisher_technology_hands_its_unit_what_it_clears() {
         let table = TechnologyEffects::parse(
             "schema: mechcore.technology_effects\n\
              technologies:\n\
              - {id: 9, name: probe, unit: hound, kind: clearRangeItemTechDatas, \
-             clear_radius: 40, clear_range_item_types: [0, 3, 2]}\n\
-             - {id: 10, name: zone, unit: hound, kind: clearRangeItemTechDatas, \
-             clear_radius: 40, clear_range_item_types: [4]}\n",
+             clear_radius: 40, clear_range_item_types: [0, 3, 2]}\n",
         )
         .unwrap();
         assert_eq!(
@@ -2719,7 +2715,6 @@ mod tests {
                 .collect::<Vec<_>>(),
             [super::EffectProvider::ClearRangeItem]
         );
-        assert!(table.corrections(&[10], "hound", 1).is_err());
     }
 
     /// A dead-line technology answers the line at its unit's level, the
