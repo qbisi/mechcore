@@ -1,5 +1,6 @@
 use super::skill::Flow;
 use super::*;
+use crate::modifier::RvoRadiusChange;
 
 #[derive(Debug, Clone, Copy)]
 pub(in crate::fight) struct RvoProfile {
@@ -101,6 +102,50 @@ pub(in crate::fight) struct Motion {
     /// `MotionController.pathFindingController`, a
     /// `SimplePathFindingController` for a unit that has one.
     pub(in crate::fight) path_finding: Option<path_finding::PathFinding>,
+    /// What its `RVORadiusChangeProvider` handed it, if its technologies
+    /// loosen its formation.
+    pub(in crate::fight) rvo_radius_change: Option<RvoRadiusChangeState>,
+}
+
+/// `MotionController`'s RVO radius change: the `IRVORadiusChangeSource`
+/// (`rvoRadiusChangeSource`), whether the motion switches its agent's radius
+/// (`isEnableRVORadiusChange`), what it last found of its lock
+/// (`isNearTarget`), and the radius its agent keeps from its team
+/// (`RVOAgentFixed.team.radius`).
+#[derive(Debug, Clone, Copy)]
+pub(in crate::fight) struct RvoRadiusChangeState {
+    source: RvoRadiusChange,
+    enabled: bool,
+    near: Nearness,
+    team_radius_q32: i64,
+}
+
+/// `MotionController.isNearTarget`: 0 until it is asked, then 1 or -1.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Nearness {
+    Unasked,
+    Near,
+    Far,
+}
+
+impl RvoRadiusChangeState {
+    /// `RVORadiusChangeProvider.DoActive` (`ActiveRVOChangeRadius`): the
+    /// source's move radius, switching. `RVOControllerFixed.Active` puts the
+    /// agent in the team of its unit type with that radius as it enters the
+    /// fight, its radius above zero.
+    pub(in crate::fight) fn of(source: Option<RvoRadiusChange>) -> Option<Self> {
+        source.map(|source| Self {
+            source,
+            enabled: true,
+            near: Nearness::Unasked,
+            team_radius_q32: source.move_radius_q32,
+        })
+    }
+
+    /// `RVOAgentFixed.team.radius`.
+    pub(in crate::fight) const fn team_radius_q32(&self) -> i64 {
+        self.team_radius_q32
+    }
 }
 
 /// What a motion asks of its agent: where to, how fast, and how fast at
@@ -111,6 +156,76 @@ pub(in crate::fight) struct AgentRequest {
     target_z: i64,
     speed: i64,
     max_speed: i64,
+}
+
+impl Simulation {
+    /// `MotionController.TryUpdateRVOChange`: a motion that switches asks
+    /// whether its unit's lock is within the source's threshold
+    /// (`FightActor.Distance2D`, `FPoint.op_LessThanOrEqual`), and on a
+    /// change hands its agent its own inner radius near and the source's
+    /// move radius far.
+    pub(in crate::fight) fn try_update_rvo_change(&mut self, actor_id: u64) {
+        let actor = &self.actors[&actor_id];
+        let Some(change) = actor
+            .motion
+            .rvo_radius_change
+            .filter(|change| change.enabled)
+        else {
+            return;
+        };
+        let near = actor
+            .mech_lock()
+            .and_then(|lock| self.fight_actor(lock))
+            .is_some_and(|view| {
+                fpoint_less_or_equal(
+                    path_finding::distance_2d(
+                        (actor.x_q32, actor.z_q32),
+                        space_to_q32(actor.rules.collision_radius()),
+                        &view,
+                    ),
+                    change.source.near_target_threshold_q32,
+                )
+            });
+        let nearness = if near { Nearness::Near } else { Nearness::Far };
+        if change.near == nearness {
+            return;
+        }
+        let inner_radius_q32 = rvo_profile(&actor.rules).inner_radius_q32;
+        let change = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable")
+            .motion
+            .rvo_radius_change
+            .as_mut()
+            .expect("the change was read above");
+        change.team_radius_q32 = if near {
+            inner_radius_q32
+        } else {
+            change.source.move_radius_q32
+        };
+        change.near = nearness;
+    }
+
+    /// `RVORadiusChangeProvider.DisableEffect` and `EnableEffect`: off, the
+    /// agent keeps its own inner radius from its team and the motion stops
+    /// switching (`MotionController.DisableRVOChangeRadius`); on, it switches
+    /// again from its next update (`EnableRVOChangeRadius`).
+    pub(in crate::fight) fn switch_rvo_radius_change(&mut self, actor_id: u64, on: bool) {
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
+        let inner_radius_q32 = rvo_profile(&actor.rules).inner_radius_q32;
+        let Some(change) = actor.motion.rvo_radius_change.as_mut() else {
+            return;
+        };
+        if !on {
+            change.team_radius_q32 = inner_radius_q32;
+        }
+        change.enabled = on;
+        change.near = Nearness::Unasked;
+    }
 }
 
 impl Motion {
@@ -404,6 +519,8 @@ impl Simulation {
             collides_with,
             passable_by_own_group: passable,
             group,
+            team: 0,
+            team_radius: 0,
             locked: true,
             tree_position: if first_tree {
                 FixedVec2::ZERO
@@ -544,6 +661,13 @@ impl Simulation {
                 layer,
                 collides_with,
                 group: i32::try_from(actor.placement.team).unwrap_or(i32::MAX),
+                team: actor.motion.rvo_radius_change.map_or(0, |_| {
+                    i32::try_from(actor.rules.unit_type_id).unwrap_or(i32::MAX)
+                }),
+                team_radius: actor
+                    .motion
+                    .rvo_radius_change
+                    .map_or(0, |change| change.team_radius_q32()),
                 passable_by_own_group: false,
                 locked: appearing || agent_override.locked.is_some(),
                 tree_position: if first_tree || actor.motion.rvo_new_agent {

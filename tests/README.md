@@ -27,6 +27,7 @@ out to show:
 | [`interceptor/`](interceptor/README.md) | how an interceptor takes projectiles out of the air, and what befalls it |
 | [`level/`](level/README.md) | how a unit level scales base life and damage before overlays |
 | [`lifesteal/`](lifesteal/README.md) | how a hit hands life back to the unit whose skill dealt it, and which lifesteal source does |
+| [`loose_formation/`](loose_formation/README.md) | how far apart a loose-formation technology keeps its unit's agents, and when they close up |
 | [`missile/`](missile/README.md) | when a missile fires, at what, and what its hit writes |
 | [`fire_intensify/`](fire_intensify/README.md) | where a fire technology's unit leaves fires as its main skill hits |
 | [`rebirth/`](rebirth/README.md) | when a rebirth technology brings its unit back after it dies, where, and what its side and the score make of it meanwhile |

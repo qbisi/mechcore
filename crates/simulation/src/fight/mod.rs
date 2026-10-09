@@ -1077,6 +1077,9 @@ impl Simulation {
                     &target_search_order,
                     &mut events,
                 )?;
+                // `MotionController.Update` asks its radius change after its
+                // state machine and before it moves the body.
+                self.try_update_rvo_change(actor_id);
                 self.step_actor_rvo_position(actor_id);
                 self.follow_owner(actor_id);
                 self.perform_command(actor_id);

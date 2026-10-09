@@ -244,7 +244,7 @@ impl Simulation {
 }
 
 /// `FightActor.Distance2D`: edge to edge, never below zero.
-fn distance_2d(from: (i64, i64), radius: i64, to: &FightActorView) -> i64 {
+pub(in crate::fight) fn distance_2d(from: (i64, i64), radius: i64, to: &FightActorView) -> i64 {
     native_q32_magnitude(
         to.x_q32.saturating_sub(from.0),
         to.z_q32.saturating_sub(from.1),
