@@ -194,10 +194,10 @@ alignment. The report is `mechcore.layout-diff-result.v2`.
 `map_id` is an optional positive integer identifying the native `MatchSetting`
 map (not the game mode). Native replay export records `BattleInfo.MapID`;
 `apply_layout` selects that map before creating the Training Ground. Omission
-uses map 1021 (训练基地), the Mechcore Training Ground baseline. Unknown IDs are
-rejected by the native adapter.
-Examples: `1001` is 铁道小镇 (`MainSceneDesert`), and `1021` is
-训练基地 (`MainSceneMilitaryBase`). Map-owned neutral crystals are retained:
+uses map 1021 (Training Base), the Mechcore Training Ground baseline. Unknown
+IDs are rejected by the native adapter.
+Examples: `1001` is Railway Town (`MainSceneDesert`), and `1021` is
+Training Base (`MainSceneMilitaryBase`). Map-owned neutral crystals are retained:
 the selected map, not a global deletion rule, determines the RVO environment.
 This field does not imply simulator support for map-specific obstacles.
 For standalone sessions use `start_test: {seed: 42, map_id: 1021}` in scripts,

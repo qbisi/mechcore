@@ -76,7 +76,7 @@ Vulcan's first entry.
 
 ## Intensive Training fills the bar
 
-Commander skill `1100001`, 强化训练 (Intensive Training), sets the unit it
+Commander skill `1100001`, Intensive Training, sets the unit it
 targets to a full bar: `current` becomes the `maximum` of its level, whatever it
 held before. It changes the level of nothing, costs nothing to
 release, and does its work during deployment, so it is not a release the fight

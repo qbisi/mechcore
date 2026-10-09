@@ -9,13 +9,13 @@ names the `MapData` object of `sharedassets0` that places its buildings.
 
 | MapID | Map | Scene variant | Map data |
 | ---: | --- | --- | --- |
-| 1001 | 铁道小镇 | day | `map_1V1Desert_default` |
-| 1011 | 森林巨眼 | ordinary mode | `map_1V1Grass` |
-| 1021 | 训练基地 | ordinary mode | `map_1V1MilitaryBase` |
-| 1031 | 铁道小镇 | dusk | `map_1V1Desert_default` |
-| 1032 | 铁道小镇 | deep night | `map_1V1Desert_default` |
+| 1001 | Railway Town | day | `map_1V1Desert_default` |
+| 1011 | Forest Eye | ordinary mode | `map_1V1Grass` |
+| 1021 | Training Base | ordinary mode | `map_1V1MilitaryBase` |
+| 1031 | Railway Town - Dusk | dusk | `map_1V1Desert_default` |
+| 1032 | Railway Town - Night | deep night | `map_1V1Desert_default` |
 
-The build also has 1012, 森林巨眼 in competition mode, and 1022, 训练基地 in
+The build also has 1012, Forest Eye in competition mode, and 1022, Training Base in
 tutorial mode. Both reuse the map resources above and carry special match rules,
 which puts them outside what an ordinary single-round layout supports, and the
 simulator refuses them by name.

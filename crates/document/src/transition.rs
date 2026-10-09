@@ -63,16 +63,16 @@ impl std::fmt::Display for Unsettled {
     }
 }
 
-/// Commander skills that fill a formation's experience bar: 强化训练,
+/// Commander skills that fill a formation's experience bar:
 /// Intensive Training.
 ///
 /// A deployment skill: it does its work on the position before the fight, so
 /// its slot is marked used rather than released.
 pub(crate) const TRAINING_SKILLS: [i32; 1] = [1_100_001];
 
-/// Energy tower skill `3` 批量征召, which adds a purchase to this round.
+/// Energy tower skill `3`, Mass Recruitment, which adds a purchase to this round.
 pub(crate) const MASS_RECRUIT_SKILL: i32 = 3;
-/// Reinforcement card `10004` 额外部署位, which adds one too. It is an officer
+/// Reinforcement card `10004`, Additional Deployment Slot, which adds one too. It is an officer
 /// the side keeps, so every later round opens with the extra purchase as well.
 pub(crate) const EXTRA_DEPLOYMENT_CARD: i32 = 10_004;
 /// How many purchases each of those two adds.
@@ -1791,7 +1791,7 @@ red:
 
     /// An officer delivers in its own round, not when it arrives.
     ///
-    /// 导弹专家 `10011` puts `300016` on the panel as round 3 opens.
+    /// Missile Specialist `10011` puts `300016` on the panel as round 3 opens.
     #[test]
     fn an_officer_delivers_on_its_own_schedule() {
         let economy = Economy::embedded().unwrap();

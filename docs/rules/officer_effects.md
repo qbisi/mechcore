@@ -139,14 +139,14 @@ one, the unit list that goes with it:
 | 1 | the air units | those units |
 | 4 | none | ranged units |
 
-Type 10 is the common case and needs no reading: 改进型铁锤 lists Sledgehammer
+Type 10 is the common case and needs no reading: Improved Sledgehammer lists Sledgehammer
 and corrects Sledgehammer. Type 0 carries no list and reaches everything, which
-is what 先进进攻战术's `+0.3` damage is: the officer a side may hold twice, and
+is what Advanced Offensive Tactics' `+0.3` damage is: the officer a side may hold twice, and
 `docs/spec/document/layout.md` keeps `officers` a multiset for exactly that.
 Type 11 rows correct `energy_shield_rate`, `land_mine_rate` or
 `super_deployment_time_rate`, none of which is a unit's number at all.
 
-Type 4 is 先进瞄准系统, with `+10` of range and no unit list. The category is
+Type 4 is Advanced Targeting System, with `+10` of range and no unit list. The category is
 `UnitEffectTargetType.Ranged`, and `UnitUtility.IsEffectTarget`, which
 officers, equipment, energy-tower skills and unit reinforcements all ask,
 answers it from the unit's main `SkillData.isMeleeAttack`: a unit whose main
@@ -161,9 +161,9 @@ index's text says what each one is:
 
 | Field | What it corrects |
 | --- | --- |
-| `energy_shield_rate` | the Energy Shield device's shield; 先进护盾装置's `+0.4`, which [contraptions.md](contraptions.md#what-an-officer-adds) states |
-| `land_mine_rate` | the Sentry Missile device's damage; 先进飞弹装置's `+2`, likewise |
-| `super_deployment_time_rate` | the teleport time a rear deployment takes; 快速传送's `-0.5` |
+| `energy_shield_rate` | the Energy Shield device's shield; Advanced Shield Device's `+0.4`, which [contraptions.md](contraptions.md#what-an-officer-adds) states |
+| `land_mine_rate` | the Sentry Missile device's damage; Advanced Missile Device's `+2`, likewise |
+| `super_deployment_time_rate` | the teleport time a rear deployment takes; Quick Teleport's `-0.5` |
 
 `exp_rate` is a fourth that corrects no unit's number: a rate on the experience
 a unit gains, `+1` or `+0.75`, which the text reads as "increases EXP Growth

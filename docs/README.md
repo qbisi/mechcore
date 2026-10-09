@@ -258,7 +258,7 @@ the repository root, and make it pass before a document change lands:
 python3 scripts/check/check-docs.py
 ```
 
-It checks five things.
+Among what it checks:
 
 - **Every relative link resolves**, the `#anchor` half included. A renamed
   section silently breaks every link into it, which is the failure most likely
@@ -273,6 +273,9 @@ It checks five things.
   gone wrong or a scripted replacement that matched more than it meant to, and
   the link check cannot see either: one such replacement once grew a 101-line
   readme to 55,000 lines. Table rows, short lines and fenced code may repeat.
+- **No tracked file writes Chinese** outside `terminology/` and the plan, but
+  for the localization and the scripts that read it. A Chinese identifier,
+  such as a replay named by its players, is quoted in backticks.
 
 The checker also holds the list of specs that predate this convention, and that
 list is the only record of which ones are left. It fails in both directions: a

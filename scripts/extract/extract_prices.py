@@ -436,9 +436,9 @@ def write_officers(structure):
         if row.get("randomEquipment"):
             lines.append("    random_equipment: true")
         # An officer that hands something out names the round it does so, and
-        # the round is absolute rather than counted from its arrival. Longbow
-        # Specialist reads "在第2回合免费获得1个3级长弓" and carries
-        # `activeRound: 2`, while Rhino Specialist waits until 4. Only an
+        # the round is absolute rather than counted from its arrival. Marksman
+        # Specialist reads "Get 1 Rank 3 Marksman squad(s) for free on round
+        # 2" and carries `activeRound: 2`, while Rhino Specialist waits until 4. Only an
         # officer with something to hand out states one.
         if (granted or opening) and row.get("activeRound"):
             lines.append(f"    active_round: {row['activeRound']}")
