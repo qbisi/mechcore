@@ -1000,7 +1000,7 @@ impl Simulation {
                     candidate_z_q32,
                     target.radius,
                     source.score_offsets.for_candidate(target.domain, visible),
-                    source.attack.min_range(),
+                    source.min_range,
                     source.attack_range,
                     source.rotation_window_q32,
                 ) {
@@ -1155,7 +1155,7 @@ impl Simulation {
                         // `aliveTargetSelector` is the one the controller was
                         // made with, which no change of search type touches.
                         ScoreOffsets::default().for_candidate(target.domain, target.visible),
-                        source.attack.min_range(),
+                        source.min_range,
                         attack_range,
                         rotation_window_q32,
                     ) else {

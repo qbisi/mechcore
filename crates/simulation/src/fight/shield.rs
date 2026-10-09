@@ -449,9 +449,7 @@ impl Simulation {
                         .saturating_sub(shield.radius_q32)
                         .saturating_sub(space_to_q32(target_actor.radius))
                         .max(0);
-                    if gap >= space_to_q32(attacker.attack.min_range())
-                        && gap <= space_to_q32(range)
-                    {
+                    if gap >= space_to_q32(attacker.min_range) && gap <= space_to_q32(range) {
                         best = Some((shield.id, distance));
                     }
                 }

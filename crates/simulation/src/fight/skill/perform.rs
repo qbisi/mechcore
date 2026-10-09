@@ -712,6 +712,16 @@ impl Simulation {
         let attacker = self
             .attacker(owner)
             .ok_or_else(|| Error::new("projectile owner is absent"))?;
+        // A grouped slot keeps no burst of its own here: Saturation
+        // Bombardment's four projectiles from each of a Mountain's weapons
+        // are refused rather than fired as one.
+        let count = attacker.projectile_count();
+        if count > 1 {
+            return Err(Error::new(format!(
+                "unit {actor_id}'s standalone weapon {slot} fires a burst of {count} \
+                 projectiles, and a grouped slot's burst is not implemented"
+            )));
+        }
         let radius = attacker.projectile_target_offset_radius();
         let source_y = attacker.y;
         let (target_x_q32, target_y_q32, target_z_q32) =

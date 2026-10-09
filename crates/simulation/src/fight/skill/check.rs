@@ -308,7 +308,7 @@ impl Simulation {
                 .saturating_sub(space_to_q32(source.radius))
                 .saturating_sub(space_to_q32(target.radius))
                 .max(0);
-        distance < space_to_q32(source.attack.min_range())
+        distance < space_to_q32(source.min_range)
     }
 
     pub(in crate::fight) fn slot_target_in_attack_area(

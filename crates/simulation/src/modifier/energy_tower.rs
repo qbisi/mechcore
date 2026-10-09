@@ -149,7 +149,7 @@ impl Skill {
         };
         Self {
             targets,
-            effect: effects::corrections(Fields {
+            effect: effects::corrections(&Fields {
                 attack_range_value: row.attack_range_value,
                 speed_value: row.speed_value,
                 ..Fields::default()

@@ -102,6 +102,13 @@ SUBCLASS_SCALARS = (
 SET_SCALARS = (
     ("all_weapon_reduce_damage_rate", "allWeaponReduceDamageRate", "extraWeaponTechnologies"),
 )
+# A flag every row carries, written only where it is set: whether the row
+# turns its unit's skills' locking of their target over, which
+# `SkillDataModifier.AddData` writes into each skill's
+# `SkillDataChangeInt.IsLockTarget`.
+FLAGS = (
+    ("inverse_lock_target", "isInverseIsLockTarget"),
+)
 # The lists whose rows say in `special` what they set beyond the fields
 # this table carries: the plain one, and each subclass's the simulator reads.
 IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnologies",
@@ -220,6 +227,8 @@ def rows_by_id() -> dict[int, dict]:
                 for field, source, owner in SUBCLASS_SCALARS + SET_SCALARS:
                     if kind == owner:
                         effect[field] = raw(row[source])
+                for field, source in FLAGS:
+                    effect[field] = bool(row.get(source))
                 rows[row["id"]] = effect
     return rows
 
@@ -228,7 +237,8 @@ def special(row: dict) -> list[str]:
     """The fields of a plain technology's row that are set and are neither a
     number this table carries nor descriptive: what it does beyond numbers."""
     numeric = ({source for _, source in LISTS} | {source for _, source, _ in SUBCLASS_LISTS}
-               | {source for _, source, _ in SUBCLASS_SCALARS + SET_SCALARS})
+               | {source for _, source, _ in SUBCLASS_SCALARS + SET_SCALARS}
+               | {source for _, source in FLAGS})
     source = (BUFF_SOURCE if row["kind"] == BUFF
               else {field for _, field in INTERCEPT_FIELDS} if row["kind"] == INTERCEPT else set())
     return sorted(
@@ -420,6 +430,8 @@ def main() -> int:
         "# makes units as its unit's move ability reaches a time (a",
         "# MoveAbilityTimeType: 2 as it begins to surface) carries that time and",
         "# the line it makes them by (`move_summon`), as a production row does.",
+        "# A technology that turns its unit's skills' locking of their target",
+        "# over says so (`inverse_lock_target`).",
         "# A multi-attack technology carries how many more projectiles each of",
         "# its unit's attacks fires (`projectile_count_value`), and the FPoint",
         "# seconds it adds between two of them and metres it adds to how far",
@@ -457,6 +469,9 @@ def main() -> int:
             if row["kind"] == owner:
                 value = row[field]
                 lines.append(f"    {field}: {str(value).lower() if isinstance(value, bool) else value}")
+        for field, _ in FLAGS:
+            if row[field]:
+                lines.append(f"    {field}: true")
         for field, source, owner in SET_SCALARS:
             if row["kind"] == owner and row[field]:
                 lines.append(f"    {field}: {row[field]}  # {reading(field, row[field])}")

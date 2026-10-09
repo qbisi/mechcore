@@ -15,6 +15,8 @@ kill adds. `technology-elite-marksman` puts a technology whose effect grows
 with level on a level-3 and a level-1 Marksman, and reads the entry each takes.
 The three `technology-jump-drive-*` fights put High-Speed Engine on a Wasp, an
 Overlord and a Phoenix, and read the speed it adds.
+`technology-siege-mode` puts Siege Mode on a Scorpion facing a Rhino, and
+reads its shells, which lock nothing, and the minimum range it adds.
 The disabled
 technology and the four Sledgehammer intervals, which the simulator does not
 fight, are layouts in [`../../layouts/`](../../layouts/README.md).

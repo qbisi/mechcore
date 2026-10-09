@@ -17,7 +17,9 @@
 //! needs an owner's kind is a question these interfaces do not ask.
 
 use super::*;
-use crate::data::{Index, Overlay, ProjectileBurstAdd, ProjectileLifeRate, switched_targets};
+use crate::data::{
+    Index, Overlay, ProjectileBurstAdd, ProjectileLifeRate, lock_target, switched_targets,
+};
 
 /// `ProjectileMultiAttackPerformer.PROJECTILE_INTERVAL`: the time between two
 /// projectiles of a burst whose own is zero or less, 0.2 seconds in Q32.32.
@@ -85,6 +87,12 @@ pub(in crate::fight) struct Attacker<'a> {
     /// What its `DataSet` adds to its projectiles' count, the time between
     /// two and how far each may land from its target.
     pub(in crate::fight) projectile_burst_add: ProjectileBurstAdd,
+    /// `FightSkill.IsLockTarget`: the row's flag, turned over by what its
+    /// `DataSet` holds.
+    pub(in crate::fight) lock_target: bool,
+    /// `IAttacker.GetMinAttackRange`: the row's minimum range with its
+    /// `DataSet`'s `MinAttackRangeValue` added, millimetres.
+    pub(in crate::fight) min_range: i64,
     /// `IAttacker.GetAttackRange`, with whatever corrects it.
     pub(in crate::fight) attack_range: i64,
     /// What one blow deals, with whatever corrects it.
@@ -179,7 +187,7 @@ impl Attacker<'_> {
         .saturating_sub(space_to_q32(self.radius))
         .saturating_sub(space_to_q32(radius))
         .max(0);
-        edge_distance_q32 >= space_to_q32(self.attack.min_range())
+        edge_distance_q32 >= space_to_q32(self.min_range)
             && edge_distance_q32 <= space_to_q32(range)
     }
 
@@ -246,7 +254,7 @@ impl Attacker<'_> {
                 .projectile_life_rate
                 .life(self.attack.projectile_life()),
             interceptible: self.attack.projectile_interceptible(),
-            lock_target: self.attack.lock_target,
+            lock_target: self.lock_target,
             climb: self.attack.projectile_pre_flight_height(),
             range: self.attack_range,
         }
@@ -313,6 +321,17 @@ impl Simulation {
             .attack_range_against(self.main_lock_domain(actor))
     }
 
+    /// `FightSkill.GetMinAttackRange` of a unit's main skill: its row's
+    /// minimum range with its `MinAttackRangeValue` added, millimetres.
+    pub(in crate::fight) fn main_min_range(&self, actor_id: u64) -> i64 {
+        let actor = &self.actors[&actor_id];
+        actor
+            .rules
+            .attack
+            .min_range()
+            .saturating_add(actor.stats.min_range_add())
+    }
+
     /// [`Self::main_attack_range`] in Q32.32 metres.
     pub(in crate::fight) fn main_attack_range_q32(&self, actor_id: u64) -> i64 {
         let actor = &self.actors[&actor_id];
@@ -341,6 +360,10 @@ impl Simulation {
         target.map_or(UnitDomain::Ground, |target| self.domain_of(target))
     }
 
+    #[allow(
+        clippy::too_many_lines,
+        reason = "one answer per field, for a unit and for a construction"
+    )]
     pub(in crate::fight) fn attacker(&self, owner: FightActorRef) -> Option<Attacker<'_>> {
         match owner {
             FightActorRef::Unit(id) => {
@@ -367,6 +390,11 @@ impl Simulation {
                     projectile_speed_add: actor.stats.projectile_speed_add(),
                     projectile_life_rate: actor.stats.projectile_life_rate(),
                     projectile_burst_add: actor.stats.projectile_burst_add(),
+                    lock_target: actor.stats.lock_target(
+                        actor.rules.attack.lock_target,
+                        actor.rules.attack.lock_target,
+                    ),
+                    min_range: self.main_min_range(id),
                     attack_range: self.main_attack_range(id),
                     attack_damage: self.main_attack_damage(id),
                     splash_radius: actor.stats.splash_radius(),
@@ -429,6 +457,8 @@ impl Simulation {
                     projectile_speed_add: 0,
                     projectile_life_rate: ProjectileLifeRate::default(),
                     projectile_burst_add: ProjectileBurstAdd::default(),
+                    lock_target: construction.attack.lock_target,
+                    min_range: construction.attack.min_range(),
                     attack_range: construction.attack.range(),
                     attack_damage: construction.attack_damage,
                     splash_radius: construction.attack.splash_radius(),
@@ -484,12 +514,21 @@ impl Simulation {
             attacker.projectile_speed_add,
             attacker.projectile_life_rate,
             attacker.projectile_burst_add,
+            attacker.lock_target,
+            attacker.min_range,
         ) = if rules.damage_rate > 0.0 {
             (
                 actor.stats.targets(rules.attack.targets),
                 actor.stats.projectile_speed_add(),
                 actor.stats.projectile_life_rate(),
                 actor.stats.projectile_burst_add(),
+                actor
+                    .stats
+                    .lock_target(actor.rules.attack.lock_target, rules.attack.lock_target),
+                rules
+                    .attack
+                    .min_range()
+                    .saturating_add(actor.stats.min_range_add()),
             )
         } else {
             let own = Overlay::of(&extra.skill_corrections);
@@ -498,6 +537,15 @@ impl Simulation {
                 own.value(Index::ProjectileSpeed),
                 own.projectile_life_rate(),
                 own.projectile_burst_add(),
+                lock_target(
+                    &own,
+                    actor.rules.attack.lock_target,
+                    rules.attack.lock_target,
+                ),
+                rules
+                    .attack
+                    .min_range()
+                    .saturating_add(own.value(Index::MinAttackRange)),
             )
         };
         // Only the main skill's search is turned to `DistanceIntensify`.

@@ -799,7 +799,7 @@ impl Simulation {
                     z_q32,
                     radius,
                     0,
-                    source.attack.min_range(),
+                    source.min_range,
                     source.attack_range,
                     source.rotation_window_q32,
                 ) else {

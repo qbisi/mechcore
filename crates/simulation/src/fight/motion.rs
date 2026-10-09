@@ -734,7 +734,7 @@ impl Simulation {
             self.target_in_attack_range(SkillRef::main(FightActorRef::Unit(actor_id)), target)
         } else {
             sees_target
-                && edge_distance_q32 >= space_to_q32(actor.rules.attack.min_range())
+                && edge_distance_q32 >= space_to_q32(self.main_min_range(actor_id))
                 && edge_distance_q32 <= space_to_q32(self.main_attack_range(actor_id))
         }
     }
@@ -1357,7 +1357,7 @@ impl Simulation {
         .saturating_sub(space_to_q32(actor.rules.collision_radius()))
         .saturating_sub(space_to_q32(view.radius))
         .max(0);
-        let in_reach = edge_distance_q32 >= space_to_q32(actor.rules.attack.min_range())
+        let in_reach = edge_distance_q32 >= space_to_q32(self.main_min_range(actor_id))
             && edge_distance_q32 <= space_to_q32(self.main_attack_range(actor_id));
         in_reach.then(|| {
             direction_degrees_q32_raw(
