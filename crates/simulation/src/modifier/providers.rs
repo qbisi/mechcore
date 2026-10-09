@@ -92,12 +92,14 @@ pub(crate) enum EffectProvider {
     /// `SpawnAdvancedShieldEffectProvider`, for an
     /// `ISpawnAdvancedShieldDataSource`.
     SpawnAdvancedShield,
+    /// `MeleeModeEffectProvider`, for an `IMeleeModeEffectDataSource`.
+    MeleeMode,
 }
 
 impl EffectProvider {
     /// Every provider, in the order the fight hands a unit to each as
     /// `FightEffectSystem` activates, deactivates or switches its effects.
-    pub(crate) const ALL: [Self; 36] = [
+    pub(crate) const ALL: [Self; 37] = [
         Self::InterceptMissile,
         Self::StealthTech,
         Self::MechGroup,
@@ -134,5 +136,6 @@ impl EffectProvider {
         Self::IterationHit,
         Self::MoveAbilityDynamic,
         Self::SpawnAdvancedShield,
+        Self::MeleeMode,
     ];
 }

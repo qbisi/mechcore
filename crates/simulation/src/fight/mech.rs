@@ -102,6 +102,12 @@ impl Actor {
             cloak: None,
             shield_hits: 0,
             spawned_shields: 0,
+            // `MeleeModeEffectSystem.UpdateMainSkillAmmoCapacity` and
+            // `AmmoSkillPool.OnEnterFight`: the main skill holds the
+            // technology's rounds, and none more.
+            ammo: placement.effects.single.melee.map(|melee| melee.ammo),
+            melee_transition_at: None,
+            melee_written: false,
             reactive_armor: super::reactive_armor::ReactiveArmorState::of(&placement),
             placement,
             rules,
@@ -485,6 +491,11 @@ impl Actor {
                 target_q32
             };
             *turret = rotate_towards_q32(*turret, aim, turn_q32);
+            return;
+        }
+        // A main skill a permanent preemptive skill has locked turns its
+        // weapons no more (`SkillLockState`).
+        if self.skills.preemptive_active {
             return;
         }
         self.skills.main.turn_weapons_towards(target_q32, turn_q32);

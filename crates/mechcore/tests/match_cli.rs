@@ -74,6 +74,14 @@ fn open_the_match(path: &str) {
     }
 }
 
+/// Declines the round's reinforcement offer, the last the side is offered.
+fn decline(path: &str, side: &str) {
+    let view = run(&["match", "show", path, "--side", side]).ok();
+    let last = view["reinforce_offers"].as_array().unwrap().len() - 1;
+    let decision = format!("{{type: choose_reinforce_item, index: {last}, name: decline_offer}}");
+    run(&["match", "act", path, "--side", side, &decision]).ok();
+}
+
 fn verify(path: &str) -> Value {
     run(&["verify", path]).ok()
 }
@@ -305,23 +313,39 @@ fn a_committed_round_is_written_and_the_fight_this_build_cannot_run_is_named() {
     assert_eq!(fought["phase"], "deploy");
     assert_eq!(fought["round"], 2);
 
-    // A technology that does more than correct its unit's numbers is
-    // refused, as the Centurion's Melee Mode is. The fight is run from the
-    // position the round ends in, so what stops it is what the simulator says
-    // about that position.
+    // The second round is fought once each side has answered its
+    // reinforcement offer, here by declining it.
+    for side in ["red", "blue"] {
+        decline(&path, side);
+        run(&["match", "commit", &path, "--side", side]).ok();
+    }
+    let third = run(&["match", "show", &path, "--side", "red"]).ok();
+    assert_eq!(third["phase"], "deploy", "{third}");
+    assert_eq!(third["round"], 3);
+
+    // A layout the simulator cannot fight is refused, as a Centurion's Melee
+    // Mode beside Dual Wield, whose side arm shares its rounds, is. The fight
+    // is run from the position the round ends in, so what stops it is what
+    // the simulator says about that position.
     for decision in [
         "{type: unlock_unit, name: centurion}",
         "{type: buy_unit, name: centurion, position: {x: 45, y: -275}}",
         "{type: upgrade_technology, unit: centurion, tech: melee_mode}",
+        "{type: upgrade_technology, unit: centurion, tech: dual_wield}",
     ] {
         run(&["match", "act", &path, "--side", "red", decision]).ok();
+    }
+    for side in ["red", "blue"] {
+        decline(&path, side);
     }
     run(&["match", "commit", &path, "--side", "red"]).ok();
     let stopped = run(&["match", "commit", &path, "--side", "blue"]).ok();
     assert_eq!(stopped["phase"], "fight");
     let unresolved = stopped["unresolved"].as_str().unwrap();
     assert!(
-        unresolved.starts_with("round 2 is not fought: side red: technology 5532"),
+        unresolved.starts_with(
+            "round 3 is not fought: side red unit type \"centurion\" technology 110321"
+        ),
         "{unresolved}"
     );
 
@@ -329,7 +353,7 @@ fn a_committed_round_is_written_and_the_fight_this_build_cannot_run_is_named() {
     // stand with it, so the next caller finds the same fight waiting.
     let view = run(&["match", "show", &path, "--side", "blue"]).ok();
     assert_eq!(view["phase"], "fight");
-    assert_eq!(view["round"], 2);
+    assert_eq!(view["round"], 3);
     assert_eq!(verify(&path)["valid"], true);
 }
 

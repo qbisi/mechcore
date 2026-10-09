@@ -63,7 +63,8 @@ impl Simulation {
                 | EffectProvider::KillExplosion
                 | EffectProvider::AdditionalDamage
                 | EffectProvider::IterationHit
-                | EffectProvider::SpawnAdvancedShield => {}
+                | EffectProvider::SpawnAdvancedShield
+                | EffectProvider::MeleeMode => {}
             }
         }
     }
@@ -110,7 +111,8 @@ impl Simulation {
                 | EffectProvider::KillExplosion
                 | EffectProvider::AdditionalDamage
                 | EffectProvider::IterationHit
-                | EffectProvider::SpawnAdvancedShield => {}
+                | EffectProvider::SpawnAdvancedShield
+                | EffectProvider::MeleeMode => {}
             }
         }
         Ok(())
@@ -160,7 +162,8 @@ impl Simulation {
                 | EffectProvider::KillExplosion
                 | EffectProvider::AdditionalDamage
                 | EffectProvider::IterationHit
-                | EffectProvider::SpawnAdvancedShield => {}
+                | EffectProvider::SpawnAdvancedShield
+                | EffectProvider::MeleeMode => {}
             }
         }
         Ok(())
@@ -363,7 +366,10 @@ impl Simulation {
             // `SpawnAdvancedShieldController.Disable` takes its hit effect off
             // the main skill, its counts kept, and the shields it spawned
             // stand.
-            | EffectProvider::SpawnAdvancedShield => {}
+            | EffectProvider::SpawnAdvancedShield
+            // A melee mode's source answers `CanDisable` false
+            // (`ignoreElectricEffect`): nothing switches it.
+            | EffectProvider::MeleeMode => {}
         }
         Ok(())
     }

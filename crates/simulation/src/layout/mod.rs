@@ -1863,6 +1863,26 @@ fn extra_weapons(
             skill_corrections,
         });
     }
+    // `MeleeModeEffectSystem.UpdateMainSkillAmmoCapacity`: an extra skill
+    // the melee skill locks shares the main skill's rounds
+    // (`AmmoSkillPool`), which is not measured.
+    if let Some(shared) = weapons.iter().find(|weapon| {
+        weapons.iter().any(|melee| {
+            melee
+                .rules
+                .preemptive
+                .as_ref()
+                .and_then(|preemptive| preemptive.ammo_empty.as_ref())
+                .is_some_and(|ammo| ammo.incompatible.contains(&weapon.rules.skill))
+        })
+    }) {
+        refused.push(format!(
+            "side {side_name} unit type {type_name:?} technology {}: its skill shares its \
+             unit's rounds with the main skill under a melee mode, which is not measured",
+            shared.rules.technology
+        ));
+        return None;
+    }
     Some(weapons)
 }
 

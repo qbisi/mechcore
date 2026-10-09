@@ -167,6 +167,14 @@ schema: mechcore.technology_effects
 # unit's main skill to the first (`spawn_shield_attacks`), the hits
 # more each later one takes (`spawn_shield_attacks_increment`), and
 # how many it spawns at most (`spawn_shield_max`).
+# A melee-mode technology carries the rounds its unit's main skill
+# holds (`melee_ammo`), those more beside an incompatible extra skill
+# (`melee_extra_ammo`), its melee skill (`melee_skill`), the FPoint
+# rates on life and damage and the whole speed it writes once the
+# melee skill takes over (`melee_life_rate`, `melee_damage_rate`,
+# `melee_speed_value`), and whether its unit takes its whole life as
+# the skill activates, a disabled recovery or not
+# (`melee_recovers_life`, `melee_recovery_ignores_disable`).
 # A cloak technology carries the FPoint seconds its unit waits before
 # it cloaks (`cloak_delay`) and stays seen once it shows itself
 # (`cloak_exit_delay`).
@@ -1508,6 +1516,14 @@ technologies:
     name: Melee Mode
     unit: centurion
     kind: meleeModeTechData
+    melee_ammo: 20
+    melee_extra_ammo: 20
+    melee_skill: 32002
+    melee_life_rate: 12884901888
+    melee_damage_rate: 12884901888
+    melee_speed_value: 18
+    melee_recovers_life: true
+    melee_recovery_ignores_disable: true
     ignore_electric_effect: true
   - id: 10019
     name: Siege Mode

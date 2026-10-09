@@ -106,6 +106,32 @@ impl Simulation {
         }
     }
 
+    /// `FightMech.ForceRecoveryLife`: [`Self::add_life`] whatever holds the
+    /// unit's recovery off.
+    pub(in crate::fight) fn force_add_life(
+        &mut self,
+        id: u64,
+        value: i64,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        let actor = self.actors.get_mut(&id).expect("actor identity is stable");
+        let before = actor.life;
+        actor.life = (actor.life + value).min(actor.stats.max_life());
+        if actor.life > before {
+            events.push(event(
+                None,
+                None,
+                None,
+                Some(actor.object_ref()),
+                EventPayload::Healing {
+                    amount: i32::try_from(actor.life - before)
+                        .map_err(|_| Error::new("healing exceeds i32"))?,
+                },
+            ));
+        }
+        Ok(())
+    }
+
     /// `FightMech.RecoveryLife` and `FightMech.StealLife`: `FightActor.
     /// AddLife`, capped at the unit's maximum, recorded as a `healing` event
     /// on the unit for the life it gained. Both give nothing while a buff

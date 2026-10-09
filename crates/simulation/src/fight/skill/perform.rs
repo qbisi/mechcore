@@ -1140,6 +1140,15 @@ impl Simulation {
             },
         ));
         self.projectiles.push(projectile);
+        // `ProjectileSingleAttackPerformer.TryPerformEffect`: a projectile of
+        // a skill whose rounds a pool holds takes one (`ReduceLoadingRemainCount`).
+        if let FightActorRef::Unit(id) = source.owner
+            && let Some(actor) = self.actors.get_mut(&id)
+            && usize::from(skill_slot) < actor.skills.main_slots()
+            && let Some(rounds) = actor.ammo.as_mut()
+        {
+            *rounds = rounds.saturating_sub(1);
+        }
         Ok(())
     }
 }
