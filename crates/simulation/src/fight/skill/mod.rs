@@ -298,6 +298,9 @@ pub(in crate::fight) struct JoinedSlot {
     /// The row's attack angle, or the whole circle where the row sets none,
     /// in millidegrees either side.
     pub(in crate::fight) half_angle_mdeg: i64,
+    /// The technology whose row it is, which switches it with the row's
+    /// other skills (`ExtraSkillProvider.DisableSkill`).
+    pub(in crate::fight) technology: i32,
 }
 
 /// `FightSkill.GetAttackRange` of a main row's grouped slot: ten metres
