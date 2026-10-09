@@ -56,7 +56,9 @@ impl Simulation {
         self.skill_mut(skill_ref).in_the_way = found;
         self.skill_mut(skill_ref).target_shield = shield;
         self.skill_mut(skill_ref).kept_attack_target = None;
-        if !self.skill(skill_ref).siblings().is_empty() {
+        // The siblings are asked for their blocks only once the core has
+        // found one; a core with a clear line leaves each naming its own.
+        if found.is_some() && !self.skill(skill_ref).siblings().is_empty() {
             self.refresh_group_walls(skill_ref, None);
         }
     }
