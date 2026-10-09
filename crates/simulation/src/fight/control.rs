@@ -397,13 +397,28 @@ impl Simulation {
         if actor.placement.team == actor.original_team || actor.summoned {
             return;
         }
-        let (team, x_q32, z_q32, radius) = (
-            actor.original_team,
+        let (team, formation_id) = (actor.original_team, actor.original_formation);
+        self.actor_change_team(unit_id, team);
+        self.actors
+            .get_mut(&unit_id)
+            .expect("actor identity is stable")
+            .placement
+            .formation_id = formation_id;
+        self.returned_dead.insert(unit_id);
+    }
+
+    /// `FightActor.ChangeTeam`: the unit leaves its side's lists and trees
+    /// for the other's (`FightTeamController.RemoveActor`, `AddActor`),
+    /// after every unit of it, and every skill still locked on it stops its
+    /// attack (`OnChangeTeam`, `FightSkill.OnChangeTeam`).
+    pub(in crate::fight) fn actor_change_team(&mut self, unit_id: u64, team: u32) {
+        let actor = &self.actors[&unit_id];
+        let (old_team, x_q32, z_q32, radius) = (
+            actor.placement.team,
             actor.x_q32,
             actor.z_q32,
             actor.rules.collision_radius(),
         );
-        let old_team = actor.placement.team;
         let unit = FightActorRef::Unit(unit_id);
         for trees in [&mut self.target_quadtrees, &mut self.mech_quadtrees] {
             if let Some(tree) = trees.get_mut(&old_team) {
@@ -413,13 +428,11 @@ impl Simulation {
                 tree.insert(unit, x_q32, z_q32, radius);
             }
         }
-        let actor = self
-            .actors
+        self.actors
             .get_mut(&unit_id)
-            .expect("actor identity is stable");
-        actor.placement.team = team;
-        actor.placement.formation_id = actor.original_formation;
-        self.returned_dead.insert(unit_id);
+            .expect("actor identity is stable")
+            .placement
+            .team = team;
         self.joins_side_last(unit_id);
         let step = self.step_now;
         for (skill_ref, offset) in self.skills_locked_on(unit, Some(unit_id)) {

@@ -103,6 +103,9 @@ struct Task {
     /// `RebirthSurvival.worldPos`: where the unit will stand.
     position: [i64; 3],
     pilot: Option<Pilot>,
+    /// `rebirthToTeam`: the side that had turned the unit as it died, which
+    /// it rises on, and whose units it follows.
+    rebirth_to: Option<u32>,
 }
 
 /// A `FollowPoint`.
@@ -188,9 +191,15 @@ impl Simulation {
         if !self.technology_dead_effect_held(unit) {
             return Ok(());
         }
-        if actor.placement.team != actor.original_team {
+        // `StartTask` keeps the side that turned it, which its death hands
+        // back to the side it was deployed on after this
+        // (`TeamTranslationSystem.OnMechDead`). A summon dies on that side
+        // and rises through `SummonSystem.RebirthMech`, which is not read.
+        let rebirth_to =
+            (actor.placement.team != actor.original_team).then_some(actor.placement.team);
+        if rebirth_to.is_some() && actor.summoned {
             return Err(Error::new(
-                "a unit another side turned dies and is brought back, which is not measured",
+                "a summon another side turned dies and is brought back, which is not read",
             ));
         }
         let left = self.rebirth.left.entry(unit).or_insert(source.count);
@@ -224,6 +233,7 @@ impl Simulation {
                 r_sum_q32: FIRST_R_SUM_Q32,
                 offset: [0; 3],
             }),
+            rebirth_to,
         };
         if follows {
             if let Some(ally) = self.nearest_ally(&task) {
@@ -247,7 +257,12 @@ impl Simulation {
         let Some(pilot) = &task.pilot else {
             return true;
         };
-        let team = self.actors[&task.unit].placement.team;
+        // `GetTeamAliveMechs` reads the side it rises on, while the ally it
+        // follows is kept only on the side the unit stands on now: a turned
+        // unit's, gone back as it died, never holds it, and the nearest is
+        // looked for again on each update.
+        let own_team = self.actors[&task.unit].placement.team;
+        let team = task.rebirth_to.unwrap_or(own_team);
         let type_id = self.actors[&task.unit].rules.unit_type_id;
         let any_ally = self.actors.values().any(|actor| {
             actor.alive() && actor.placement.team == team && actor.rules.unit_type_id == type_id
@@ -257,7 +272,7 @@ impl Simulation {
         if any_ally {
             if target.is_some_and(|target| {
                 let ally = &self.actors[&target];
-                ally.alive() && ally.placement.team == team
+                ally.alive() && ally.placement.team == own_team
             }) {
                 return true;
             }
@@ -285,7 +300,7 @@ impl Simulation {
     /// (`List.Sort`, whose comparison never answers equal).
     fn nearest_ally(&self, task: &Task) -> Option<u64> {
         let dead = &self.actors[&task.unit];
-        let team = dead.placement.team;
+        let team = task.rebirth_to.unwrap_or(dead.placement.team);
         let type_id = dead.rules.unit_type_id;
         let origin = task
             .pilot
@@ -490,6 +505,22 @@ impl Simulation {
     /// `RebirthTask.RebirthMech`: the unit stands where its task says, facing
     /// as the ally it rises behind, if it follows one.
     fn rebirth_mech(&mut self, task: &Task, follow: Option<u64>) -> Result<()> {
+        // `FightActor.ChangeTeam` to the side that had turned it, and
+        // `TeamTranslationSystem.AddTranslatedMech`: it rises turned again,
+        // under a formation its recorder numbers as the tick ends, and its
+        // next death hands it back.
+        if let Some(team) = task.rebirth_to {
+            self.actor_change_team(task.unit, team);
+            self.returned_dead.remove(&task.unit);
+            let formation_id = self.ids.next_formation;
+            self.ids.next_formation += 1;
+            self.actors
+                .get_mut(&task.unit)
+                .expect("actor identity is stable")
+                .placement
+                .formation_id = formation_id;
+            self.turned_unnamed.push(task.unit);
+        }
         let facing = follow.map(|ally| self.actors[&ally].body_rotation_q32);
         let actor = self
             .actors
@@ -511,8 +542,21 @@ impl Simulation {
             .skills
             .ready_attack_clocks(self.step_now);
         // `FightTeam.DeactiveMech` and `ActiveMech`: it updates after every
-        // unit of its side, as one joining it does.
+        // unit of its side, as one joining it does, and stands in its trees
+        // where it rises; a unit `ChangeTeam` put in them as it stood dead
+        // leaves them first.
         self.joins_side_last(task.unit);
+        if task.rebirth_to.is_some() {
+            let (team, unit) = (
+                self.actors[&task.unit].placement.team,
+                FightActorRef::Unit(task.unit),
+            );
+            for trees in [&mut self.target_quadtrees, &mut self.mech_quadtrees] {
+                if let Some(tree) = trees.get_mut(&team) {
+                    tree.remove(unit);
+                }
+            }
+        }
         self.plant(task.unit);
         self.active_effect(task.unit)?;
         Ok(())
