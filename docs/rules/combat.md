@@ -1723,9 +1723,16 @@ not the game's native attack-type enum.
   explosion, and with its unit's technologies disabled
   (`ArmorStrengthenEffectProvider.DisableEffect`), which no recorded fight
   does; an item's armour (`ArmorStrengthenEquipment`) is refused.
-- **A personal shield's** refresh when its unit's maximum life changes
-  (`EnergyShieldController.Refresh`), which no simulated buff does, and its
-  disabling with its unit's technologies, which no recorded fight does.
+- **A personal shield's** refresh when its unit's maximum life changes.
+  `FightMech.RefreshLifeData` runs `EnergyShieldController.Refresh` when
+  asked (`needRefreshShield`), which `RefreshData`, `AddData`, `RemoveData`,
+  `ChangeLevel` and `RefreshLifeByKillCount` do and a stacking buff's own
+  step (`IBEC_ChangeMaxLife.DoAdditiveEffect`) does not. An active shield
+  with a maximum takes its new one from `RefreshMaxEnergy`, full where it was
+  full and otherwise its share of the old, an `FPoint` quotient times the
+  new. A Rhino with Combat Evolvement and a Portable Shield grows its shield
+  with its life. Read from the build; no recording holds it, nor the shield's
+  disabling with its unit's technologies.
 - **Attack timing**: repeat attacks, grouped and loading paths, phase
   adjustments other than the backswing; losing the target during windup, a
   third-party kill and quick target switching during a backswing; third-party

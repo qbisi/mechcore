@@ -564,7 +564,46 @@ impl super::Actor {
         if after == before {
             return Ok(());
         }
-        self.share_life(before, after)
+        self.share_life(before, after)?;
+        self.refresh_shield();
+        Ok(())
+    }
+
+    /// `EnergyShieldController.Refresh`, which `RefreshLifeData` runs when
+    /// asked to (`needRefreshShield`, which every caller but a stacking
+    /// buff's step passes, `IBEC_ChangeMaxLife.DoAdditiveEffect`): an active
+    /// shield with a maximum takes its new one from the unit's maximum life
+    /// times its life rate (`RefreshMaxEnergy`), full where it was full, and
+    /// otherwise its share of the old, an `FPoint` quotient, rounded, times
+    /// the new, truncated. The shield is active once its provider activated
+    /// it and until its unit dies (`EnergyShieldBehaviour.Active`,
+    /// `Deactive`), whether enabled or not.
+    fn refresh_shield(&mut self) {
+        let active = self.alive() && !self.travelling;
+        let max_life = self.stats.max_life();
+        let Some(rate_q32) = self
+            .placement
+            .effects
+            .energy_shield
+            .map(|source| source.life_rate_q32)
+        else {
+            return;
+        };
+        let Some(shield) = self.shield.as_mut().filter(|_| active) else {
+            return;
+        };
+        if shield.maximum < 1 {
+            return;
+        }
+        let maximum = super::q32_mul(max_life << 32, rate_q32) >> 32;
+        shield.energy = if shield.energy == shield.maximum {
+            maximum
+        } else {
+            let old = i128::from(shield.maximum);
+            let share = ((i128::from(shield.energy) << 32) + old / 2) / old;
+            i64::try_from((share * i128::from(maximum)) >> 32).expect("a share of the maximum fits")
+        };
+        shield.maximum = maximum;
     }
 
     /// The life `FightMech.RefreshLifeData` leaves as the maximum moves from
@@ -572,12 +611,6 @@ impl super::Actor {
     /// life, and its share of it for any other, which a maximum that did not
     /// move can take one off.
     fn share_life(&mut self, before: i64, after: i64) -> Result<()> {
-        if self.shield.is_some() {
-            return Err(Error::new(
-                "a buff moves the maximum life of a unit with its own shield, and what its \
-                 shield does then is not measured",
-            ));
-        }
         self.life = if self.life >= before {
             after
         } else {
