@@ -357,13 +357,6 @@ pub(crate) fn compile_with_seed(
                 &mut refused,
             ));
         }
-        death_summons.extend(compile_death_summons(
-            (name, team, side),
-            &placements,
-            units,
-            &loadouts,
-            &mut refused,
-        ));
         constructions.extend(compile_constructions(
             name,
             team,
@@ -382,7 +375,7 @@ pub(crate) fn compile_with_seed(
         let standing = compile_standing(name, team, side, skill_effects, &mut refused);
         shields.extend(standing.0);
         standing_oil.extend(standing.1);
-        battle_skills.extend(compile_battle_skills(
+        let side_skills = compile_battle_skills(
             name,
             team,
             side,
@@ -390,7 +383,15 @@ pub(crate) fn compile_with_seed(
             units,
             &loadouts,
             &mut refused,
+        );
+        death_summons.extend(compile_death_summons(
+            (name, team, side),
+            (&placements, &side_skills),
+            units,
+            &loadouts,
+            &mut refused,
         ));
+        battle_skills.extend(side_skills);
         if let Some(levels) = refused.hold(tower_strengthen_levels(side)) {
             tower_levels.insert(team, levels);
         }
@@ -429,14 +430,19 @@ pub(crate) fn compile_with_seed(
     ))
 }
 
-/// The unit types a placement summons as it dies: its buffs' and its
-/// technology's.
-fn death_summoned(placement: &Placement, units: &UnitConfigs) -> Vec<(u32, i64)> {
-    let own = units
-        .get(&placement.type_name)
-        .map(|rules| rules.unit_type_id);
-    placement
-        .effects
+/// The unit types a unit summons as it dies, its buffs' and its
+/// technology's, and those every unit its lines make summons in turn.
+fn death_summoned(
+    (effects, productions): (&UnitEffects, &[Production]),
+    own: Option<u32>,
+) -> Vec<(u32, i64)> {
+    let made = productions.iter().flat_map(|production| {
+        death_summoned(
+            (&production.effects, &production.productions),
+            Some(production.rules.unit_type_id),
+        )
+    });
+    effects
         .buff_sources
         .iter()
         .filter_map(|source| match source.summons? {
@@ -445,11 +451,11 @@ fn death_summoned(placement: &Placement, units: &UnitConfigs) -> Vec<(u32, i64)>
         })
         .map(|type_id| (type_id, 1))
         .chain(
-            placement
-                .effects
+            effects
                 .dead_summon
                 .map(|summon| (summon.unit_type_id, summon.level)),
         )
+        .chain(made)
         .collect()
 }
 
@@ -479,23 +485,40 @@ fn death_summon_template(team: u32, rules: &UnitConfig, level: i64, worn: Worn) 
 
 /// The units a side's buffs and technologies make a unit summon as it dies
 /// (`IBEC_DeadSummon`, `DeadSummonTech`), by side and type id: each type one
-/// of the side's placements summons, and each one of these summons summons
-/// in turn. `SummonSystem.DoCreateMech` makes it at `CardLevel.Level1` with no
+/// of the side's placements, a unit its lines make or one its battle skills
+/// summon does, and each one of these summons summons in turn. `SummonSystem.DoCreateMech` makes it at `CardLevel.Level1` with no
 /// equipment, and `FightController.CreateMech` gives it its side's
 /// technologies when its parent `IsChildInheritTechnologyEffect`, which
 /// `MechData` answers for every unit but types 4001 and 5203.
 #[allow(clippy::too_many_lines)]
 fn compile_death_summons(
     (name, team, side): (&str, u32, &SidePlan),
-    placements: &[Placement],
+    (placements, battle_skills): (&[Placement], &[SkillRelease]),
     units: &UnitConfigs,
     loadouts: &Loadouts,
     refused: &mut Refusals,
 ) -> BTreeMap<(u32, u32, i64), DeathSummon> {
+    let own = |type_name: &str| units.get(type_name).map(|rules| rules.unit_type_id);
     let mut pending = placements
         .iter()
         .filter(|placement| placement.team == team)
-        .flat_map(|placement| death_summoned(placement, units))
+        .flat_map(|placement| {
+            death_summoned(
+                (&placement.effects, &placement.productions),
+                own(&placement.type_name),
+            )
+        })
+        .chain(
+            battle_skills
+                .iter()
+                .flat_map(|release| match &release.effect {
+                    SkillEffect::Summon(summon) => death_summoned(
+                        (&summon.effects, &summon.productions),
+                        Some(summon.rules.unit_type_id),
+                    ),
+                    _ => Vec::new(),
+                }),
+        )
         .collect::<Vec<_>>();
     let mut templates = BTreeMap::new();
     while let Some((type_id, level)) = pending.pop() {
@@ -529,7 +552,7 @@ fn compile_death_summons(
         ) else {
             continue;
         };
-        if let Some(why) = unread_on_a_joining_unit(&worn.effects, rules, side, loadouts) {
+        if let Some(why) = unread_on_a_joining_unit(rules, side, loadouts) {
             refused.push(format!(
                 "side {name} summons a {} as a unit dies that {why}, which is not measured",
                 rules.type_name
@@ -543,7 +566,10 @@ fn compile_death_summons(
         };
         let mut template = death_summon_template(team, rules, level, worn);
         template.productions = productions;
-        pending.extend(death_summoned(&template, units));
+        pending.extend(death_summoned(
+            (&template.effects, &template.productions),
+            Some(rules.unit_type_id),
+        ));
         templates.insert(
             (team, type_id, level),
             DeathSummon {
@@ -684,9 +710,7 @@ fn compile_battle_skills(
             ) else {
                 continue;
             };
-            if let Some(why) =
-                unread_on_a_joining_unit(&worn.effects, &summon.rules, side, loadouts)
-            {
+            if let Some(why) = unread_on_a_joining_unit(&summon.rules, side, loadouts) {
                 refused.push(format!(
                     "side {name} summons a {} that {why}, which is not measured",
                     summon.rules.type_name
@@ -981,7 +1005,7 @@ fn made_by(
         loadouts,
         refused,
     )?;
-    if let Some(why) = unread_on_a_joining_unit(&worn.effects, &made, side, loadouts) {
+    if let Some(why) = unread_on_a_joining_unit(&made, side, loadouts) {
         refused.push(format!(
             "side {side_name} makes a {} that {why}, which is not measured",
             made.type_name
@@ -1101,19 +1125,16 @@ pub(crate) struct TechnologyDisable {
 /// one: made by a line, summoned by a battle skill or summoned as another
 /// dies, it is handed its side's loadout for its type whole
 /// (`TeamFightEffectManager.CreateMechUnitEffectMananger`) and its effects
-/// are activated as it joins (`Simulation::active_effect`), and it runs the
-/// lines it is handed of other types ([`joining_productions`]), but no
-/// template is compiled for what it summons as it dies in turn, and its
+/// are activated as it joins (`Simulation::active_effect`), it runs the
+/// lines it is handed of other types ([`joining_productions`]), and what it
+/// summons as it dies has its template ([`compile_death_summons`]), but its
 /// placement carries no line it runs as it surfaces.
 fn unread_on_a_joining_unit(
-    effects: &UnitEffects,
     rules: &UnitConfig,
     side: &SidePlan,
     loadouts: &Loadouts,
 ) -> Option<&'static str> {
-    if effects.dead_summon.is_some() {
-        Some("its technologies make summon in turn as it dies")
-    } else if loadouts
+    if loadouts
         .technologies
         .sources(&side.techs.units, &rules.type_name)
         .is_ok_and(|sources| sources.surfacing_line.is_some())

@@ -2192,8 +2192,12 @@ derive (a minimum range):
   over for a unit created in the fight (`SupportUnitProvider.AvaliableCheck`,
   `FightMech.mechCreateType`): a Vortex Mirage makes no Mirage
   (`tests/production/fights/electromagnetic-twin.yaml`), and a Vulcan's
-  Marksman with Shooting Squad makes its Fangs. One whose technologies make
-  it summon in turn as it dies, or give it a line as it surfaces, is refused.
+  Marksman with Shooting Squad makes its Fangs. What it summons as it dies
+  is summoned as a placed unit's is (`DeadSummonTech`, `IBEC_DeadSummon`),
+  the summon handed its side's loadout for its type: a War Factory's Steel
+  Balls with Mechanical Division leave their Crawlers. Read from the build;
+  no recording holds it. One whose technologies give it a line as it
+  surfaces is refused.
 - **A unit's interceptors beside a building's, and on a turned or travelling
   unit.** Here a side's buildings update before its units, which is not read;
   the order the side's records keep units in is read from the build and
