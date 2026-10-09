@@ -921,6 +921,13 @@ side's. A dead unit's interceptors are taken from its side's: they update no
 more and no projectile joins them, while a lock one held still counts against
 what the others lock.
 
+A buff that disables the unit's technologies disables each of its
+interceptors (`InterceptMissileEffectProvider.DisableEffect`,
+`InterceptEffectBase.DoDisable`): it lets its target go and returns to idle,
+a preemptive one handing its unit's main skill back, and does not update
+until the technologies come back, when each is enabled and returns to idle
+again (`DoEnable`). Read from the build; no recording holds it.
+
 ## Production lines
 
 A row of `supportUnitTechnologies` is a `SupportUnitTech`, which answers
@@ -1221,8 +1228,7 @@ off: `AirAttackEffectProvider.DisableEffect` and `EnableEffect` are
 as it activated (`SwitchMechAirAttackEnabled`), not among the numbers its
 technologies write. Read from the build; no recording holds it.
 
-What any other provider does switched off, the
-`InterceptMissileEffectProvider`, `SupportUnitProvider`,
+What any other provider does switched off, the `SupportUnitProvider`,
 `MoveAbilitySummonProvider`, `MoveAbilityAttackIntensifyProvider` and
 `MoveAbilityRangeItemProvider`, and an extra weapon's production line, other
 explosion or preemptive skill, or group, is not measured: a buff that
@@ -2097,8 +2103,9 @@ derive (a minimum range):
   permanent preemptive explosion or an around skill, an active permanent preemptive skill
   (`PreemptiveSkillController.Update` gives it up), a group. Refused.
 - **A unit's interceptors switched off.** `InterceptMissileEffectProvider.DisableEffect`
-  disables each and lets it idle (`InterceptEffectBase.DoDisable`); no
-  recording holds it, and a disable reaching an interceptor unit is refused.
+  disables each and lets it idle (`InterceptEffectBase.DoDisable`), and
+  `EnableEffect` enables each and lets it idle (`DoEnable`); read from the
+  build, no recording holds it.
 - **What a joining unit's effects do.** A unit made by a line, summoned by
   a battle skill or summoned as another dies is handed its side's loadout
   for its type whole (`TeamFightEffectManager.CreateMechUnitEffectMananger`),

@@ -180,6 +180,7 @@ impl Simulation {
             EffectProvider::AutoRecovery => self.switch_auto_recovery(actor_id, on),
             EffectProvider::EnergyShield => self.switch_energy_shield(actor_id, on),
             EffectProvider::SweepSkillIntensify => self.switch_sweep(actor_id, on),
+            EffectProvider::InterceptMissile => self.switch_unit_interception(actor_id, on),
             EffectProvider::Buff => self.switch_buff_cycles(actor_id, on),
             EffectProvider::ReactiveArmor => self
                 .actors
@@ -202,7 +203,6 @@ impl Simulation {
             // `NormalEffectProvider`'s, which do nothing: the skills it turned
             // onto or off aircraft stay so.
             EffectProvider::AirAttack
-            | EffectProvider::InterceptMissile
             | EffectProvider::WreckageRecovery
             | EffectProvider::LifeSteal
             | EffectProvider::ArmorStrengthen
