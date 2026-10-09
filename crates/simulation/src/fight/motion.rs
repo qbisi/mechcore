@@ -118,6 +118,15 @@ pub(in crate::fight) struct RvoRadiusChangeState {
     enabled: bool,
     near: Nearness,
     team_radius_q32: i64,
+    /// Whether `RVOControllerFixed.Active` found the move radius above zero
+    /// as it activated the agent, and put it in its unit type's team
+    /// (`EnableTeamRadius`): a unit whose effects are active before its agent
+    /// is, in the fight as it starts (`MotionController.EnterFight`) or made
+    /// or summoned (`SummonSystem.DoCreateMech` runs `FightEffectSystem.
+    /// AddEffect` before `ActiveMoveFunction`), and not one landing from a
+    /// flank (`SuperDeploymentController.FinishTranvel` runs
+    /// `ActiveMoveFunction` before `ExitTravel`'s `ActiveEffect`).
+    in_team: bool,
 }
 
 /// `MotionController.isNearTarget`: 0 until it is asked, then 1 or -1.
@@ -131,15 +140,25 @@ enum Nearness {
 impl RvoRadiusChangeState {
     /// `RVORadiusChangeProvider.DoActive` (`ActiveRVOChangeRadius`): the
     /// source's move radius, switching. `RVOControllerFixed.Active` puts the
-    /// agent in the team of its unit type with that radius as it enters the
-    /// fight, its radius above zero.
-    pub(in crate::fight) fn of(source: Option<RvoRadiusChange>) -> Option<Self> {
+    /// agent in the team of its unit type with that radius unless the unit
+    /// travels in.
+    pub(in crate::fight) fn of(source: Option<RvoRadiusChange>, travelling: bool) -> Option<Self> {
         source.map(|source| Self {
             source,
             enabled: true,
             near: Nearness::Unasked,
             team_radius_q32: source.move_radius_q32,
+            in_team: !travelling,
         })
+    }
+
+    /// The team its agent is in: its unit type's, if it was put in one.
+    pub(in crate::fight) const fn team(&self, unit_type_id: u32) -> i32 {
+        if self.in_team {
+            unit_type_id.cast_signed()
+        } else {
+            0
+        }
     }
 
     /// `RVOAgentFixed.team.radius`.
@@ -661,9 +680,10 @@ impl Simulation {
                 layer,
                 collides_with,
                 group: i32::try_from(actor.placement.team).unwrap_or(i32::MAX),
-                team: actor.motion.rvo_radius_change.map_or(0, |_| {
-                    i32::try_from(actor.rules.unit_type_id).unwrap_or(i32::MAX)
-                }),
+                team: actor
+                    .motion
+                    .rvo_radius_change
+                    .map_or(0, |change| change.team(actor.rules.unit_type_id)),
                 team_radius: actor
                     .motion
                     .rvo_radius_change

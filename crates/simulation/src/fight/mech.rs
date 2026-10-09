@@ -56,7 +56,8 @@ impl Actor {
         let original_team = placement.team;
         let original_formation = placement.formation_id;
         let path_finding = path_finding::PathFinding::of(&rules);
-        let rvo_radius_change = RvoRadiusChangeState::of(placement.rvo_radius_change);
+        let rvo_radius_change =
+            RvoRadiusChangeState::of(placement.rvo_radius_change, placement.travelling);
         let mut actor = Self {
             x,
             z,

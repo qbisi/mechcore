@@ -243,6 +243,7 @@ impl Creator {
             reactive_armor: production.reactive_armor,
             burrow: production.burrow.clone(),
             clear_range_item: production.clear_range_item.clone(),
+            rvo_radius_change: production.rvo_radius_change,
         };
         Self {
             team: owner.placement.team,
@@ -1149,7 +1150,7 @@ fn summon_placement(
         siege_mode: None,
         wreckage: None,
         rebirth: None,
-        rvo_radius_change: None,
+        rvo_radius_change: creator.summon.rvo_radius_change,
         clear_range_item: creator.summon.clear_range_item.clone(),
         burrow: creator.summon.burrow.clone(),
         sweep: None,
