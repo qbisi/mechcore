@@ -113,9 +113,12 @@ side's seat, 0 for blue and 1 for red, the unit's type, its layout level and
 its index, and asks for no fixed position in the side's main deployment area:
 region 1 of blue's territory and 4 of red's. The game places it there, and the
 move takes it to its layout position. A move onto a flank from another region
-is what makes a unit travel, so a travelling unit is one that joins. A legacy
-unit does not move, since a unit the round opens with does not from round 2
-on, and a settled flank unit is one.
+is what makes a unit travel. A legacy unit does not move, since a unit the
+round opens with does not from round 2 on, and a settled flank unit is one,
+but for a travelling one, which something frees to move: a Deployment Module
+it wears or its type's Jump Drive. The snapshot holds it at the same place on
+the other flank, and the round's move onto its own flank makes it travel, as
+the match's move across did; the fight does not read where it came from.
 
 When the side's joining units are the allocator's next indices, from
 `legacy_index` on, the action's index is `-1` and the allocator hands each its
@@ -149,7 +152,7 @@ and the refusal names each part:
   units that skip an index, since they leave the allocator behind them;
 - a unit that joins during the round with experience, since a round's
   decisions hand out none;
-- a travelling legacy unit, since a replay moves none;
+- a travelling legacy unit that nothing frees to move;
 - a technology no unit owns.
 
 ## Normal form

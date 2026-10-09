@@ -21,6 +21,7 @@
 use crate::catalog::NativeFormation;
 use crate::compile::{Placement, Plan, SidePlan};
 use crate::layout::{OilArea, Position, SHIELD_AIRDROP_SKILL, STICKY_OIL_BOMB_SKILL};
+use crate::mobility::{DEPLOYMENT_MODULE, JUMP_DRIVES};
 use std::fmt::Write as _;
 
 /// The map a layout that names none is fought on, the Training Ground's.
@@ -196,10 +197,19 @@ fn write_player(
 /// One side's `PlayerSnapshotData` after its random state, reactor, supply
 /// and last result, in the order `XmlSerializer` writes its members.
 fn write_side(xml: &mut String, side: &SidePlan, deployment: &Deployment, sign: i32, round: i32) {
-    let settled: Vec<&Placement> = deployment
+    // A legacy unit the round sends travelling opens it on the other flank.
+    let settled: Vec<(&Placement, Position)> = deployment
         .settled
         .iter()
-        .map(|at| &side.units[*at])
+        .map(|at| {
+            let unit = &side.units[*at];
+            let position = if deployment.redeployed.contains(at) {
+                redeployed_from(unit.position)
+            } else {
+                unit.position
+            };
+            (unit, position)
+        })
         .collect();
     write_units(xml, &settled, sign);
     let _ = write!(xml, "<unitIndex>{}</unitIndex>", deployment.next_unit);
@@ -322,17 +332,16 @@ fn index(placement: &Placement) -> i32 {
         .expect("a compiled placement carries its layout index")
 }
 
-fn write_units(xml: &mut String, units: &[&Placement], sign: i32) {
+fn write_units(xml: &mut String, units: &[(&Placement, Position)], sign: i32) {
     if units.is_empty() {
         xml.push_str("<units />");
         return;
     }
     xml.push_str("<units>");
-    for unit in units {
+    for (unit, position) in units {
         let NativeFormation::Unit(type_id) = unit.native else {
             unreachable!("a compiled unit is a native unit")
         };
-        let position = unit.position;
         // The record counts paid upgrades from zero, where a layout counts
         // levels from one, and holds the experience within the level.
         let _ = write!(
@@ -552,6 +561,9 @@ struct Deployment {
     /// Each delivered squad's unit and the level it arrives at, in the order
     /// the officers deliver.
     delivered: Vec<(usize, i32)>,
+    /// The legacy units the round sends travelling, as positions in the
+    /// side's `units`: each opens it on the other flank and moves back.
+    redeployed: Vec<usize>,
     /// The units that join during the round, in index order.
     joined: Vec<usize>,
     /// The unit allocator the round opens with, which names what the
@@ -672,12 +684,24 @@ fn deployment(
     let settled: Vec<usize> = (0..side.units.len())
         .filter(|at| index(&side.units[*at]) < legacy && !is_delivered(*at))
         .collect();
+    // A legacy unit travels only when its round moves it onto a flank from
+    // another region, which only something that frees it to move allows.
+    let mut redeployed = Vec::new();
     for at in &settled {
         let unit = &side.units[*at];
-        if unit.travelling {
+        if !unit.travelling {
+            continue;
+        }
+        let freed = unit.equipment.contains(&DEPLOYMENT_MODULE)
+            || JUMP_DRIVES
+                .iter()
+                .any(|(tech, name)| *name == unit.type_name && side.techs.units.contains(tech));
+        if freed {
+            redeployed.push(*at);
+        } else {
             reasons.push(format!(
-                "unit {} at ({}, {}) travelling: it is legacy, and a replay moves no unit its \
-                 round opens with",
+                "unit {} at ({}, {}) travelling: it is legacy, and nothing frees it to move \
+                 onto a flank, neither a Deployment Module nor its Jump Drive",
                 unit.type_name, unit.position.x, unit.position.y
             ));
         }
@@ -723,6 +747,7 @@ fn deployment(
     Ok(Deployment {
         settled,
         delivered,
+        redeployed,
         joined,
         next_unit: legacy - squad_count,
         allocated,
@@ -788,6 +813,10 @@ fn write_actions(xml: &mut String, side: &SidePlan, deployment: &Deployment, sig
         // Where the board landed the squad is the game's; the move only
         // needs where it goes.
         move_unit(&mut actions, unit, Position { x: 0, y: 0 }, sign);
+    }
+    for at in &deployment.redeployed {
+        let unit = &side.units[*at];
+        move_unit(&mut actions, unit, redeployed_from(unit.position), sign);
     }
     // The replay seats blue first, and each side's main deployment area is
     // its territory's region 1 for blue and 4 for red.
@@ -873,6 +902,16 @@ fn prepare(actions: &mut Vec<(&str, String)>, unit: &Placement, from_level: i32)
                 index(unit)
             ),
         ));
+    }
+}
+
+/// Where a legacy unit the round sends travelling opens it: the same place
+/// on the other flank, from which the move onto its own makes it travel, as a
+/// Deployment Module's move across did in the match.
+fn redeployed_from(position: Position) -> Position {
+    Position {
+        x: -position.x,
+        y: position.y,
     }
 }
 
@@ -1196,6 +1235,34 @@ mod tests {
             error.contains("delivers a squad as round 2 opens"),
             "{error}"
         );
+    }
+
+    /// A legacy unit that travels opens the round on the other flank and
+    /// moves back, which only a Deployment Module or its Jump Drive allows.
+    #[test]
+    fn a_legacy_unit_that_travels_opens_on_the_other_flank() {
+        let layout = |equipment: serde_json::Value| {
+            json!({
+                "kind": "layout", "seed": 4242, "round": 3,
+                "blue": {"legacy_index": 1, "units": [
+                    {"name": "wasp", "index": 0, "travelling": true, "equipment": equipment, "position": {"x": 330, "y": 285}},
+                ]},
+                "red": {"legacy_index": 1, "units": [{"name": "arclight", "index": 0, "position": {"x": 0, "y": -50}}]},
+            })
+        };
+        let replay = layout_replay(
+            &plan(&layout(json!(["deployment_module"]))),
+            crate::game_build(),
+        )
+        .unwrap();
+        let xml = embedded_xml(&replay);
+        assert!(xml.contains("<Position><x>-330</x><y>285</y></Position>"));
+        assert!(xml.contains(
+            "<position><x>330</x><y>285</y></position><isRotate>false</isRotate>\
+             <positionRecord><x>-330</x><y>285</y></positionRecord>"
+        ));
+        let error = layout_replay(&plan(&layout(json!([]))), crate::game_build()).unwrap_err();
+        assert!(error.contains("nothing frees it to move"), "{error}");
     }
 
     #[test]
