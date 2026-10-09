@@ -178,7 +178,13 @@ units.
 alone, and every other slot goes on naming the block it last took, even one
 that has since fallen. A slot whose block falls ends its attack on its own
 check, its lock dropped though the unit it was found for lives, as a lone
-skill's does.
+skill's does. The core's own search hands its siblings blocks only when it
+finds one itself: `FightSkill.SearchAttackTarget` asks
+`CheckWallConstructionForGroupedSkill` of each sibling after the core's
+`CheckWallConstruction` has found a wall, and with none it sets the core's
+attack target and returns. So a core whose line is clear leaves a sibling
+still naming a block that has fallen, and that sibling ends its attack on its
+own check.
 
 **A shot at a block splashes the next one.** A splash that reaches a
 neighbouring block's edge damages it too: a shot at a building takes every
@@ -287,6 +293,10 @@ The map's own buildings are the exception and are named: each side gets one
   `WallConstructionTargetChecker.CheckWallConstruction`,
   `WallConstructionTargetChecker.GetNearestWall`,
   `FightEnergyShield.GetFightTransform`, `FightCalculator.IsActorInEnergyShield`.
+- A core's search hands its siblings blocks only when it finds one itself:
+  `FightSkill.SearchAttackTarget`,
+  `WallConstructionTargetChecker.CheckWallConstruction`,
+  `WallConstructionTargetChecker.CheckWallConstructionForGroupedSkill`.
 - A grouped slot asks for its own wall with its own range, and its own attack
   state ends an attack on a fallen block before the checker:
   `FightSkill.GetAttackRange`,
