@@ -235,8 +235,8 @@ pub struct Officer {
     ///
     /// Each is an absolute round rather than one counted from the officer's
     /// arrival, and it is the round the officer's own description names:
-    /// Longbow Specialist reads "在第2回合免费获得1个3级长弓" and states 2, while
-    /// Rhino Specialist states 4. `OfficerData.activeRound` is a list from
+    /// Marksman Specialist reads "Get 1 Rank 3 Marksman squad(s) for free on
+    /// round 2" and states 2, while Rhino Specialist states 4. `OfficerData.activeRound` is a list from
     /// build 2.0 on, and an officer hands out in every round it lists. Only an
     /// officer with something to hand out states any.
     #[serde(default)]

@@ -2,9 +2,10 @@
 """Check what a machine can check about the documents.
 
 Relative links resolve, section anchors exist, readmes are spelled README.md,
-every spec follows the convention in docs/README.md, and the name tables of
-docs/rules/ are the ones config/localization.yaml gives, and config/README.md
-names the script that writes every file under config/. Nothing here judges
+every spec follows the convention in docs/README.md, the name tables of
+docs/rules/ and docs/terminology/ are the ones config/localization.yaml
+gives, and config/README.md names the script that writes every file under
+config/, and Chinese is written only where docs/terminology/README.md says. Nothing here judges
 whether a sentence is true; that still needs a reader.
 
 Run from the repository root: python3 scripts/check/check-docs.py
@@ -293,8 +294,34 @@ def check_version_pins(fail):
                 fail(f"{name}:{number}: names a game version ({match.group(0)}); GAME_VERSION is the only place")
 
 
+# Chinese is written in docs/terminology/ alone; the plan is kept in Chinese,
+# and the localization and the scripts that read and write it carry the
+# game's own. Elsewhere a Chinese name is quoted only as an identifier, in
+# backticks: a replay named by its players.
+CHINESE = re.compile("[\u3400-\u4dbf\u4e00-\u9fff]")
+CHINESE_HOMES = ("plan/", "docs/terminology/")
+CHINESE_FILES = {"config/localization.yaml", "scripts/build_data.py", "scripts/extract/name-tables.py"}
+
+
+def check_chinese(fail):
+    listed = subprocess.run(["git", "ls-files", "-z"], cwd=REPO, check=True,
+                            capture_output=True).stdout.decode().split("\0")
+    for name in filter(None, listed):
+        if name.startswith(CHINESE_HOMES) or name in CHINESE_FILES:
+            continue
+        try:
+            text = (REPO / name).read_text()
+        except (UnicodeDecodeError, FileNotFoundError, IsADirectoryError):
+            continue
+        for number, line in enumerate(text.splitlines(), 1):
+            if CHINESE.search(re.sub(r"`[^`]*`", "", line)):
+                fail(f"{name}:{number}: writes Chinese; name it in English, "
+                     "and put its Chinese in docs/terminology/")
+                break
+
+
 def check_name_tables(fail):
-    """The name tables of docs/rules/ are what config/localization.yaml gives."""
+    """The name tables of docs/rules/ and docs/terminology/ are what config/localization.yaml gives."""
     import importlib.util
 
     spec = importlib.util.spec_from_file_location("name_tables", REPO / "scripts" / "extract" / "name-tables.py")
@@ -336,6 +363,7 @@ def main():
     check_config_generators(problems.append)
     check_rules_evidence(problems.append)
     check_version_pins(problems.append)
+    check_chinese(problems.append)
     check_rules_evidence_sections(problems.append)
 
     for problem in problems:

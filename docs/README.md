@@ -1,7 +1,9 @@
 # Document conventions
 
-Two kinds of document live here, and which kind a document is decides what it
-may contain and who has to change when reality disagrees with it.
+Two kinds of document live here, beside the
+[terminology](terminology/README.md) that names what they talk about, and
+which kind a document is decides what it may contain and who has to change
+when reality disagrees with it.
 
 | Directory | Answerable to | When it disagrees with reality |
 | --- | --- | --- |
@@ -24,11 +26,13 @@ the rest of the file states the convention for a spec.
 ## Language
 
 Every document is written in English, and none is translated: a second copy
-is a second thing to keep in step, and it falls behind.
+is a second thing to keep in step, and it falls behind. Chinese is written in
+[`terminology/`](terminology/README.md) alone, which maps each English term to
+the one Chinese word a discussion uses for it.
 
-English prose may quote a name in another language where the name is the
-identifier: an index that lists the game's official Simplified Chinese names in
-a table is an English document.
+A document names a unit, a technology or anything else the game names by its
+official English name, as `terminology/` lists it, and never by its Chinese
+one.
 
 ## A rule is something a reader can rely on
 
@@ -254,7 +258,7 @@ the repository root, and make it pass before a document change lands:
 python3 scripts/check/check-docs.py
 ```
 
-It checks five things.
+Among what it checks:
 
 - **Every relative link resolves**, the `#anchor` half included. A renamed
   section silently breaks every link into it, which is the failure most likely
@@ -269,6 +273,9 @@ It checks five things.
   gone wrong or a scripted replacement that matched more than it meant to, and
   the link check cannot see either: one such replacement once grew a 101-line
   readme to 55,000 lines. Table rows, short lines and fenced code may repeat.
+- **No tracked file writes Chinese** outside `terminology/` and the plan, but
+  for the localization and the scripts that read it. A Chinese identifier,
+  such as a replay named by its players, is quoted in backticks.
 
 The checker also holds the list of specs that predate this convention, and that
 list is the only record of which ones are left. It fails in both directions: a

@@ -14,12 +14,13 @@
   const TPS = data.ticks_per_second;
   const LAST = data.ticks;
   const TEAMS = Sprites.TEAMS;
+  // The game's English names, as docs/terminology/ lists them.
   const NAMES = {
-    marksman: ['Marksman', '长弓'], arclight: ['Arclight', '弧光'], rhino: ['Rhino', '犀牛'],
-    crawler: ['Crawler', '爬虫'], sledgehammer: ['Sledgehammer', '铁锤'], wasp: ['Wasp', '兵蜂'],
-    energy_tower: ['Energy Tower', '能量塔'], research_center: ['Research Center', '研究中心'],
-    anti_armor_turret: ['Anti-Armor Turret', '反装甲炮'], rapid_fire_turret: ['Rapid-Fire Turret', '速射炮'],
-    defensive_wall: ['Defensive Wall', '防御墙'], magnetic_barrier: ['Magnetic Barrier', '磁力路障'],
+    marksman: 'Marksman', arclight: 'Arclight', rhino: 'Rhino', crawler: 'Crawler',
+    sledgehammer: 'Sledgehammer', wasp: 'Wasp', energy_tower: 'Energy Tower',
+    research_center: 'Research Center', anti_armor_turret: 'Anti-Armor Cannon',
+    rapid_fire_turret: 'Rapid-Fire Cannon', defensive_wall: 'Defensive Wall',
+    magnetic_barrier: 'Magnetic Barricade',
   };
   const MOTION = ['idle', 'moving', 'attacking', 'stopped', 'transitioning'];
   // A melee strike's swing: how long before the blow it starts, and how long
@@ -1230,7 +1231,7 @@
     for (const [kind, members] of kinds) {
       const row = document.createElement('div');
       row.className = 'kind';
-      const label = NAMES[kind] ? `${NAMES[kind][0]} ${NAMES[kind][1]}` : kind;
+      const label = NAMES[kind] || kind;
       row.title = label;
       row.append(Sprites.icon(kind, team, 22, false));
       const n = document.createElement('span');
@@ -1325,7 +1326,7 @@
       ctx.beginPath();
       ctx.arc(sx(s.x), sy(s.z), Math.max(8, o.radius * 1.4 * view.s), 0, Math.PI * 2);
       ctx.stroke();
-      const name = NAMES[o.kind] ? `${NAMES[o.kind][0]} <span class="dim">${NAMES[o.kind][1]}</span>` : o.kind;
+      const name = NAMES[o.kind] || o.kind;
       const aim = s.aim > 0 ? `unit ${s.aim}` : s.aim < 0 ? `building ${-s.aim}` : 'nothing';
       lines = [
         `<b>${name}</b> <span class="dim">#${o.id} · ${TEAMS[o.team].name}</span>`,
@@ -1336,7 +1337,7 @@
     } else {
       const s = slot(o, tau);
       if (!s) { tooltip.hidden = true; return; }
-      const name = NAMES[o.kind] ? `${NAMES[o.kind][0]} <span class="dim">${NAMES[o.kind][1]}</span>` : o.kind;
+      const name = NAMES[o.kind] || o.kind;
       lines = [
         `<b>${name}</b> <span class="dim">#${o.id} · ${TEAMS[o.team].name}</span>`,
         `life ${Math.round(o.L[s[0]])} / ${o.maxLife}`,

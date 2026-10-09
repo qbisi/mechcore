@@ -221,7 +221,7 @@ The price rises with how many technologies that unit already holds: each one
 already active adds a fixed step to the next one's own price. The count is per
 unit and not per side.
 
-A Jump Drive, 高速引擎, frees every unit of its type to move in this round
+A Jump Drive frees every unit of its type to move in this round
 and every later one, and sets their `movable`: `1606` for Wasp, `1611` for
 Overlord and `1616` for Phoenix.
 

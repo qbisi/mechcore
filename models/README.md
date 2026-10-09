@@ -24,14 +24,14 @@ the game is in them.
 
 | Sprite | Name | |
 | --- | --- | --- |
-| `marksman` | Marksman · 长弓 | ![](marksman.svg) |
-| `arclight` | Arclight · 弧光 | ![](arclight.svg) |
-| `rhino` | Rhino · 犀牛 | ![](rhino.svg) |
-| `crawler` | Crawler · 爬虫 | ![](crawler.svg) |
-| `sledgehammer` | Sledgehammer · 铁锤 | ![](sledgehammer.svg) |
-| `wasp` | Wasp · 兵蜂 | ![](wasp.svg) |
-| `energy_tower` | Energy Tower · 能量塔 | ![](energy_tower.svg) |
-| `research_center` | Research Center · 研究中心 | ![](research_center.svg) |
-| `anti_armor_turret` | Anti-Armor Turret · 反装甲炮 | ![](anti_armor_turret.svg) |
-| `rapid_fire_turret` | Rapid-Fire Turret · 速射炮 | ![](rapid_fire_turret.svg) |
-| `defensive_wall` | Defensive Wall · 防御墙, one block | ![](defensive_wall.svg) |
+| `marksman` | Marksman | ![](marksman.svg) |
+| `arclight` | Arclight | ![](arclight.svg) |
+| `rhino` | Rhino | ![](rhino.svg) |
+| `crawler` | Crawler | ![](crawler.svg) |
+| `sledgehammer` | Sledgehammer | ![](sledgehammer.svg) |
+| `wasp` | Wasp | ![](wasp.svg) |
+| `energy_tower` | Energy Tower | ![](energy_tower.svg) |
+| `research_center` | Research Center | ![](research_center.svg) |
+| `anti_armor_turret` | Anti-Armor Cannon | ![](anti_armor_turret.svg) |
+| `rapid_fire_turret` | Rapid-Fire Cannon | ![](rapid_fire_turret.svg) |
+| `defensive_wall` | Defensive Wall, one block | ![](defensive_wall.svg) |

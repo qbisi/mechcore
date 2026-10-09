@@ -208,7 +208,7 @@ than the field, because the field is understood and this one member of it is
 not:
 
 ```text
-side blue: officer 20006 (先进瞄准系统) writes attack_range_value, and how a
+side blue: officer 20006 (Advanced Targeting System) writes attack_range_value, and how a
 value composes with a description is not measured
 ```
 

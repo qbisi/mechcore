@@ -19,9 +19,9 @@ Three things free a unit that has stayed from an earlier round:
 
 | What | ID | Frees |
 | --- | --- | --- |
-| Deployment Module, 部署模块 | equipment `13040001` | the unit that wears it, in every round |
-| Jump Drive, 高速引擎 | technology `1606` Wasp, `1611` Overlord, `1616` Phoenix | every unit of that type, in every round |
-| Redeploy, 再部署 | commander skill `1000001` | the unit it targets, for the rest of the round |
+| Deployment Module | equipment `13040001` | the unit that wears it, in every round |
+| Jump Drive | technology `1606` Wasp, `1611` Overlord, `1616` Phoenix | every unit of that type, in every round |
+| Redeploy | commander skill `1000001` | the unit it targets, for the rest of the round |
 
 Redeploy is a deployment skill: it changes the position before the fight, so a
 round marks its slot `used` rather than released.

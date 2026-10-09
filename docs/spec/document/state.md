@@ -421,8 +421,8 @@ that grants a skill reaches a fight only as that skill's release.
 
 #### The energy tower keeps all five
 
-Every energy tower skill is a 本回合 effect, so this field is the set activated
-in the round the state describes. Like everything else here it is defined after
+Every energy tower skill lasts this round only, so this field is the set
+activated in the round the state describes. Like everything else here it is defined after
 each action, which means it is empty at a round's start and fills as the round's
 actions are applied.
 
