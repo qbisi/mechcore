@@ -1,0 +1,26 @@
+# Burrow Maintenance on blue's Sandworm: its repair, of
+# `AutoRecoveryStateType.Underground`, runs only from the end of a burrow
+# (`OnEnterMoveEnd`) to the start of the surfacing (`OnExitMoveBegin`).
+# The Rhino hurts it from tick 147 while it is up, and it repairs nothing
+# there; it finishes burrowing on tick 263, and its start clock, which
+# stood still while it was up, reaches its second on tick 283, from which it
+# repairs 2% of its maximum life every second tick until it is whole on
+# tick 315.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 415
+hash: {profile: mcfr-content-0.22.0, result: 3f7217f0f24659ed7e0a29597ff5913b120b8d69be638ca3ea0708593c2833f2}
+blue:
+  techs:
+    sandworm: [burrow_maintenance]
+  units:
+  - {name: sandworm, index: 0, position: {x: 0, y: -140}, exp: 0/600/2000}
+red:
+  core_damage: 350
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}}

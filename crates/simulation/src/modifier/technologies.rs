@@ -53,7 +53,8 @@ use super::{
     effects::{self, Fields},
     providers::EffectProvider,
     sources::{
-        AutoRecovery, BuffSource, EnergyShield, LifeSteal, ProductionLine, Stealth, SweepIntensify,
+        AutoRecovery, BuffSource, EnergyShield, LifeSteal, ProductionLine, RecoveryState, Stealth,
+        SweepIntensify,
     },
 };
 
@@ -176,9 +177,9 @@ pub(crate) const FOUGHT_EXTRA_WEAPONS: [i32; 24] = [
 /// shield holds the unit's whole maximum life.
 const SHIELD_LIFE_RATE: i64 = 1 << 32;
 
-/// `AutoRecoveryStateType.Normal`: a repair that runs whenever its unit is
-/// hurt, not only underground or cloaked.
+/// `AutoRecoveryStateType.Normal` and `Underground`; `Cloak`, 2, is refused.
 const NORMAL: i64 = 0;
+const UNDERGROUND: i64 = 1;
 
 /// `Technology`'s `IEffectProviderDataSource.GetPriority`, which an
 /// equipment's 1 overrides.
@@ -943,6 +944,11 @@ impl TechnologyEffects {
                 start_time_q32: row.start_time,
                 duration_q32: row.recovery_duration.first().copied().unwrap_or(0),
                 life_rate_q32: row.recovery_life_rate.first().copied().unwrap_or(0),
+                state: if row.auto_recovery_state_type == UNDERGROUND {
+                    RecoveryState::Underground
+                } else {
+                    RecoveryState::Normal
+                },
                 priority: PRIORITY,
                 can_disable: true,
             });
@@ -1378,10 +1384,10 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<Written>, String> {
             row.id, row.name
         ));
     }
-    if row.kind == AUTO_RECOVERY && row.auto_recovery_state_type != NORMAL {
+    if row.kind == AUTO_RECOVERY && ![NORMAL, UNDERGROUND].contains(&row.auto_recovery_state_type) {
         return Err(format!(
-            "technology {} ({}) repairs only in autoRecoveryStateType {}, underground or \
-             cloaked, which no mechanism here reads",
+            "technology {} ({}) repairs only in autoRecoveryStateType {}, cloaked, which no \
+             mechanism here reads",
             row.id, row.name, row.auto_recovery_state_type
         ));
     }

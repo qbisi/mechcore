@@ -10,11 +10,15 @@
 //! to zero and `RecoveryMech` repairs the unit by the whole part of its
 //! maximum life times the source's rate. The start clock begins at −1 second
 //! (`AutoRecoveryController.Reset`) and is never set back during a fight.
+//! A source of `AutoRecoveryStateType.Underground` runs only while its unit
+//! is below: its controller's condition is set as the burrow ends and
+//! cleared as the surfacing begins, and its clocks stand still without it.
 //! `FPoint`'s comparisons count 43 raw as equal, so twenty ticks reach a
 //! second and two reach 0.1 second, though each falls a few raw short.
 //! `docs/rules/combat.md` states the rule.
 
 use super::*;
+use crate::modifier::{AutoRecovery, RecoveryState};
 
 /// `TeamAutoRecoveryManager.AutoRecoveryController`'s two clocks, Q32.32
 /// seconds.
@@ -22,15 +26,19 @@ use super::*;
 pub(in crate::fight) struct RecoveryClock {
     start_q32: i64,
     recovery_q32: i64,
+    /// `isCondition`: whether the unit is in the source's state.
+    pub(in crate::fight) condition: bool,
 }
 
 impl RecoveryClock {
     /// `AutoRecoveryController.Reset`: the start clock at −1 second, the
-    /// repair clock at zero.
-    pub(in crate::fight) const fn reset() -> Self {
+    /// repair clock at zero, and in condition only for a source of
+    /// `AutoRecoveryStateType.Normal`.
+    pub(in crate::fight) fn reset(source: &AutoRecovery) -> Self {
         Self {
             start_q32: -Q32_ONE,
             recovery_q32: 0,
+            condition: source.state == RecoveryState::Normal,
         }
     }
 }
@@ -62,7 +70,7 @@ impl Simulation {
             if !actor.alive() || actor.life >= max_life {
                 continue;
             }
-            let Some(clock) = actor.recovery.as_mut() else {
+            let Some(clock) = actor.recovery.as_mut().filter(|clock| clock.condition) else {
                 continue;
             };
             clock.start_q32 = clock.start_q32.saturating_add(NATIVE_LOGIC_DELTA_Q32);

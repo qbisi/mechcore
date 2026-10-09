@@ -26,8 +26,8 @@ pub(crate) use officers::{ContraptionRates, OfficerEffects};
 pub(crate) use providers::EffectProvider;
 pub(crate) use sources::{
     AllCycle, Arrival, AutoRecovery, BuffReach, BuffSource, BuffTrigger, CarriedShield, DeadSummon,
-    EnergyShield, LifeSteal, ProductionLine, StackCondition, Stealth, SweepIntensify,
-    current as current_source,
+    EnergyShield, LifeSteal, ProductionLine, RecoveryState, StackCondition, Stealth,
+    SweepIntensify, current as current_source,
 };
 pub(crate) use technologies::{
     ARMOR_SOURCE, DeadLine, MainSkill, SOURCE as TECHNOLOGY_SOURCE, SecondaryDamage,
