@@ -95,6 +95,7 @@ impl Actor {
             surfacing_line_held: true,
             domain: rules.domain,
             fly_reverts_at: None,
+            ignores_speed_rate: false,
             reactive_armor: super::reactive_armor::ReactiveArmorState::of(&placement),
             placement,
             rules,

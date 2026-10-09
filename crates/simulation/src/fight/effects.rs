@@ -33,6 +33,7 @@ impl Simulation {
                 EffectProvider::Burrow => self.enter_burrow_fight(),
                 EffectProvider::Repair => self.enter_repair_fight(),
                 EffectProvider::FlyTech => self.enter_fly_fight(),
+                EffectProvider::IgnoreBuff => self.enter_ignore_buff_fight(),
                 // `SiegeModeEffectSystem.OnEnterFight` digs its units in
                 // after each skill drew its first interval
                 // (`Simulation::enter_siege_fight`).
@@ -76,6 +77,7 @@ impl Simulation {
                 EffectProvider::Burrow => self.add_burrow_unit(unit),
                 EffectProvider::Repair => self.add_repair_unit(unit),
                 EffectProvider::FlyTech => self.add_fly_unit(unit),
+                EffectProvider::IgnoreBuff => self.add_ignore_buff_unit(unit),
                 EffectProvider::Buff => self.activate_buff_cycles(unit),
                 // The rest are read from the unit where the fight acts, which
                 // passes over a unit still travelling or rising.
@@ -115,6 +117,7 @@ impl Simulation {
                 EffectProvider::Burrow => self.remove_burrow_unit(unit),
                 EffectProvider::Repair => self.remove_repair_unit(unit),
                 EffectProvider::FlyTech => self.remove_fly_unit(unit),
+                EffectProvider::IgnoreBuff => self.switch_ignore_buff(unit, false),
                 EffectProvider::Buff => self.deactivate_buff_cycles(unit),
                 // Every dead unit's interceptors are deactivated together,
                 // after the summons the deaths make
@@ -288,6 +291,7 @@ impl Simulation {
             EffectProvider::RvoRadiusChange => self.switch_rvo_radius_change(actor_id, on),
             EffectProvider::Repair => self.switch_repair(actor_id, on),
             EffectProvider::FlyTech => self.switch_fly(actor_id, on),
+            EffectProvider::IgnoreBuff => self.switch_ignore_buff(actor_id, on),
             EffectProvider::AutoRecovery => self.switch_auto_recovery(actor_id, on),
             EffectProvider::EnergyShield => self.switch_energy_shield(actor_id, on),
             EffectProvider::SweepSkillIntensify => self.switch_sweep(actor_id, on),

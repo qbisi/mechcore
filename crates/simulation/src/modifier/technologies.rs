@@ -149,9 +149,14 @@ const REPAIR: &str = "recoveryTechDatas";
 const KILL_EXPLOSION: &str = "killExplosionTechDatas";
 /// The list whose `FlyTech` is an `IFlyTechDataSource`.
 const FLY: &str = "flyTechDatas";
+/// The list whose `IgnoreBuffEffectTech` is an `IIgnoreBuffDataSouce`.
+const IGNORE_BUFF_EFFECT: &str = "ignoreBuffEffectTechnologyDatas";
+/// `BuffEffectType.SpeedChangeRate`, the kind of buff effect whose
+/// `BuffDataFloatRate.MoveSpeedChangeRate` a buff then leaves unwritten.
+const SPEED_CHANGE_RATE: i32 = 0;
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 36] = [
+const IMPLEMENTED: [&str; 37] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -188,6 +193,7 @@ const IMPLEMENTED: [&str; 36] = [
     DEAD_ACID,
     KILL_EXPLOSION,
     FLY,
+    IGNORE_BUFF_EFFECT,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -317,6 +323,9 @@ struct Technology {
     kill_explosion: Option<KillExplosion>,
     /// What it answers `IFlyTechDataSource` with, if its class is one.
     fly: Option<FlyTech>,
+    /// Whether it makes its unit ignore buffs' speed rates, as an
+    /// `IIgnoreBuffDataSouce` whose `IsIgnoreBuffEffect` holds.
+    ignores_speed_rate: bool,
     /// What it answers `IBurrow` with, if its class is one.
     burrow: Option<Burrow>,
     /// The acid it leaves where its unit dies, if its class is an
@@ -453,6 +462,9 @@ pub(crate) struct UnitSources {
     /// The line it runs once each time it begins to surface
     /// (`MoveAbilitySummonTech`).
     pub(crate) surfacing_line: Option<ProductionLine>,
+    /// Whether one makes it ignore buffs' speed rates
+    /// (`IgnoreBuffEffectTech`).
+    pub(crate) ignores_speed_rate: bool,
 }
 
 /// The sources of the interfaces a unit holds one source of, the first its
@@ -873,6 +885,12 @@ struct Row {
     /// `FlyTechData.landingDuration`, Q32.32 seconds, on a row of its list.
     #[serde(default)]
     fly_landing_duration: i64,
+    /// `IgnoreBuffEffectTechnologyData.useIgnoredBuffEffectType` and
+    /// `buffEffectType`, on a row of its list.
+    #[serde(default)]
+    ignores_buff_effect: bool,
+    #[serde(default)]
+    ignored_buff_effect: i32,
     /// `BurrowData.amplifyDamageRate`, `relieveDistance` and
     /// `isEnterUnderGround`, on a row of its list.
     #[serde(default)]
@@ -1566,6 +1584,7 @@ impl TechnologyEffects {
                     landing_q32: row.fly_landing_duration,
                     extra_skills: row.extra_skill_effect,
                 }),
+                ignores_speed_rate: row.kind == IGNORE_BUFF_EFFECT && row.ignores_buff_effect,
                 dead_line: (row.kind == DEAD_LINE)
                     .then(|| (row.dead_line_value.clone(), row.dead_line_ignores_shield)),
                 mech_group,
@@ -1726,6 +1745,7 @@ impl TechnologyEffects {
                 sources.single.repair.clone_from(&technology.repair);
             }
             sources.single.fly = sources.single.fly.or(technology.fly);
+            sources.ignores_speed_rate |= technology.ignores_speed_rate;
             if sources.single.kill_explosion.is_none() {
                 sources
                     .single
@@ -2193,9 +2213,27 @@ fn provider_of(kind: &str) -> Option<EffectProvider> {
         REPAIR => EffectProvider::Repair,
         KILL_EXPLOSION => EffectProvider::KillExplosion,
         FLY => EffectProvider::FlyTech,
+        IGNORE_BUFF_EFFECT => EffectProvider::IgnoreBuff,
         BURROW => EffectProvider::Burrow,
         _ => return None,
     })
+}
+
+/// Whether this build reads the buff effect an ignore technology's row makes
+/// its unit ignore: `SpeedChangeRate` alone.
+fn ignored_effect_read(row: &Row) -> std::result::Result<(), String> {
+    if row.kind == IGNORE_BUFF_EFFECT
+        && row.ignores_buff_effect
+        && row.ignored_buff_effect != SPEED_CHANGE_RATE
+    {
+        Err(format!(
+            "technology {} ({}) makes its unit ignore BuffEffectType {}, and only \
+             SpeedChangeRate is read",
+            row.id, row.name, row.ignored_buff_effect
+        ))
+    } else {
+        Ok(())
+    }
 }
 
 fn corrections_of(row: &Row) -> std::result::Result<Vec<Written>, String> {
@@ -2224,6 +2262,7 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<Written>, String> {
             row.id, row.name, row.range_item_time, row.range_item_move_type
         ));
     }
+    ignored_effect_read(row)?;
     if row.burrow_enters_underground {
         return Err(format!(
             "technology {} ({}) takes its unit underground as it burrows, which is not \

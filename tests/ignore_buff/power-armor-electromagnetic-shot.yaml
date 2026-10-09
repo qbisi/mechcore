@@ -1,0 +1,25 @@
+# Power Armor switched off: an Electromagnetic Shot slows a Rhino from its
+# first hit.
+#
+# The shot's buff 1002 disables the Rhino's technologies as it is added, before
+# its speed rate is written, so at t85 the Rhino falls from 16 to 9.6 and Power
+# Armor's quarter of life leaves it.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 328
+hash: {profile: mcfr-content-0.23.0, result: 966d464ca9ff5b1277e70d956803a32b0db634a6114bc0c675d856f5de737d44}
+blue:
+  core_damage: 200
+  techs:
+    marksman: [electromagnetic_shot]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -170}}
+red:
+  techs:
+    rhino: [power_armor]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/200/1150}

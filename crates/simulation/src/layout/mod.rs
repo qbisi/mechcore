@@ -1229,6 +1229,9 @@ pub(crate) struct UnitEffects {
     /// Whether its equipment keeps every control beam from turning it,
     /// `TeamTranslationSystem.IsIgnoredMech`.
     pub(crate) ignores_control_beam: bool,
+    /// Whether its technologies make it ignore buffs' speed rates
+    /// (`IgnoreBuffEffectTech`).
+    pub(crate) ignores_speed_rate: bool,
     /// The extra weapons its technologies add beside its main skill.
     pub(crate) extra_weapons: Vec<ExtraWeapon>,
     /// What a buff that disables technology switches off on it.
@@ -1597,6 +1600,7 @@ fn worn(
         ignored_buffs,
         important,
         ignores_control_beam,
+        ignores_speed_rate: sources.ignores_speed_rate,
         extra_weapons,
         technology_disable: TechnologyDisable::default(),
         dead_summon: sources.dead_summon.map(|summon| summon.at(level)),

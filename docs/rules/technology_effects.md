@@ -1067,6 +1067,36 @@ A unit whose side's officers name units by whether they fly is refused:
 effect as the unit's domain turns, which is not read. Read from the build;
 no recording holds either technology.
 
+## Ignoring a buff effect
+
+A row of `ignoreBuffEffectTechnologyDatas` is an `IgnoreBuffEffectTech`, an
+`IIgnoreBuffDataSouce`: Power Armor, the Rhino's, whose numbers give it 25%
+more life. Its row names one kind of buff effect, a `BuffEffectType`, which
+its unit then ignores (`useIgnoredBuffEffectType`, `buffEffectType`):
+`SpeedChangeRate`, the rate a buff writes on its speed. It ignores no buff
+group, keeps no control beam off and lasts as long as the fight
+(`duration` none).
+
+**No buff slows its unit, and none speeds it.** As the unit's effects are
+activated, `IgnoreBuffEffectSystem.ApplyIgnoreBuff` raises its
+`BuffManager.stateDatas` of that kind (`AddIgnoredBuffEffectData`); a unit
+activated before the fight begins is held and raised as it begins
+(`Active`, `OnEnterFight`). While it is above zero, a buff writes nothing at
+that index of `BuffDataFloatRate`, `MoveSpeedChangeRate`, as it enters
+(`Buff.AddEffect`), as it is added again (`Buff.Reset`) or as its stack moves
+(`Buff.RefreshEffect`): the buff runs and is recorded, its other numbers
+written, and the unit keeps its speed. The rate a buff wrote stays until the
+buff ends, and one it left unwritten is written when the buff is added again
+once the unit no longer ignores it. A buff that stacks a speed rate on such a
+unit is refused, which is not measured.
+
+**Switched off, it ignores nothing.** `Disable` lowers the count again, and
+`Enable` raises it (`RemoveIgnoreBuff`, `ApplyIgnoreBuff`). A buff that
+disables technology switches the unit's technologies off before it writes
+its own numbers (`BuffManager.AddBuff` raises the `DisableTechnology` count
+and adds its `CBEC_DisableTechnology` before `Buff.AddEffect`), so an
+Electromagnetic Shot slows a Rhino with Power Armor from its first hit.
+
 ## What this table does not carry
 
 A technology that is not plain does something that is not a correction on its
@@ -1457,6 +1487,12 @@ derive (a minimum range):
   strikes aerial units alone: `tests/wreckage_detonation/air.yaml`.
   Disabled, it sets nothing off:
   `tests/wreckage_detonation/impact.yaml`.
+- Power Armor keeps a Rhino at its speed under Degeneration Beam's debuff,
+  which slows the Wasp beside it, through the whole fight:
+  `tests/ignore_buff/power-armor-degeneration-beam.yaml`, the Rhino
+  slowed in `tests/technology_buff/degeneration-beam.yaml`. An
+  Electromagnetic Shot slows it from its first hit, which switches Power
+  Armor off: `tests/ignore_buff/power-armor-electromagnetic-shot.yaml`.
 - Subterranean Blitz burrows its Crawlers from the first tick and brings
   each up as its enemy comes within 50: `tests/burrow/crawler-rhino.yaml`.
   Burrowed, they take a Marksman's shot less 0.4; one that dies burrowed,
@@ -1649,6 +1685,14 @@ derive (a minimum range):
 
 ### Read
 
+- Ignoring a buff effect: `IgnoreBuffEffectTechnologyData`,
+  `IgnoreBuffEffectTech.IsIgnoreBuffEffect`, `GetIgnoredBuffEffectType`,
+  `IgnoreBuffEffectProvider.Active`, `Deactive`, `DisableEffect`,
+  `EnableEffect`, `IgnoreBuffEffectSystem.Active`, `OnEnterFight`,
+  `ApplyIgnoreBuff`, `RemoveIgnoreBuff`, `Disable`, `Enable`,
+  `BuffManager.AddIgnoredBuffEffectData`, `BuffManager.AddBuff`,
+  `Buff.AddEffect`, `Buff.Reset`, `Buff.RefreshEffect`, `BuffEffectType`,
+  `BuffDataFloatRate`.
 - Fire technologies: `FireIntensifyTechnologyData.GetRange`, `GetLIfeTime`,
   `FireIntensifyEffectProvider.AddEffect`, `RemoveEffect`,
   `RegisterMechEventInternal`, its `IHitEffectPerformer.PerformHitEffect`,
