@@ -654,10 +654,13 @@ impl Simulation {
         owner: u64,
         member: u32,
     ) -> Result<(i64, i64, i64)> {
-        let Some(owner_actor) = self.actors.get(&owner).filter(|actor| actor.alive()) else {
+        // Nothing asks whether the owner lives (`SupportUnitCreator.Update`,
+        // `SummonSystem.CreateMech`, `SpecialSupportUnitData.GetPosition`): a
+        // line due on the tick its owner dies, before `OnDead` takes it away,
+        // makes its batch where the dead owner stands, as it faces.
+        let Some(owner_actor) = self.actors.get(&owner) else {
             return Err(Error::new(format!(
-                "unit {owner}'s production line makes a unit on the tick it died, before its \
-                 `OnDead` takes the line away, which is not measured"
+                "unit {owner}'s production line has no owner in the fight"
             )));
         };
         // A line of no positions makes where its owner stands
