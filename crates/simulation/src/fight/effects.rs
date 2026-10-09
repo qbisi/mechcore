@@ -198,12 +198,15 @@ impl Simulation {
             // an armour's reduction among its numbers, and a buff its unit
             // added itself, which `BuffManager` clears as the disabling buff
             // enters. What the layout refuses switched does not reach here.
-            EffectProvider::InterceptMissile
+            // `AirAttackEffectProvider.DisableEffect` and `EnableEffect` are
+            // `NormalEffectProvider`'s, which do nothing: the skills it turned
+            // onto or off aircraft stay so.
+            EffectProvider::AirAttack
+            | EffectProvider::InterceptMissile
             | EffectProvider::WreckageRecovery
             | EffectProvider::LifeSteal
             | EffectProvider::ArmorStrengthen
             | EffectProvider::SearchTargetSpecific
-            | EffectProvider::AirAttack
             | EffectProvider::SecondaryDamageIntensify
             | EffectProvider::SupportUnit
             | EffectProvider::DeadEffect

@@ -1215,7 +1215,13 @@ whose own `DisableEffect` it does not mirror.
   nothing while the technologies are off for a source that `CanDisable`.
   Read from the build; no recording holds a cycling buff switched off.
 
-What any other provider does switched off, the `AirAttackEffectProvider`,
+An air attack technology's switch stays while its unit's technologies are
+off: `AirAttackEffectProvider.DisableEffect` and `EnableEffect` are
+`NormalEffectProvider`'s, which do nothing, and its provider turned the skills
+as it activated (`SwitchMechAirAttackEnabled`), not among the numbers its
+technologies write. Read from the build; no recording holds it.
+
+What any other provider does switched off, the
 `InterceptMissileEffectProvider`, `SupportUnitProvider`,
 `MoveAbilitySummonProvider`, `MoveAbilityAttackIntensifyProvider` and
 `MoveAbilityRangeItemProvider`, and an extra weapon's production line, other
@@ -2089,7 +2095,7 @@ derive (a minimum range):
 - **What switching off does beyond numbers**: an extra weapon's production
   line (`SupportUnitCreator`), an explosion or preemptive skill other than a
   permanent preemptive explosion or an around skill, an active permanent preemptive skill
-  (`PreemptiveSkillController.Update` gives it up), a group, an air attack's switch. Refused.
+  (`PreemptiveSkillController.Update` gives it up), a group. Refused.
 - **A unit's interceptors switched off.** `InterceptMissileEffectProvider.DisableEffect`
   disables each and lets it idle (`InterceptEffectBase.DoDisable`); no
   recording holds it, and a disable reaching an interceptor unit is refused.
