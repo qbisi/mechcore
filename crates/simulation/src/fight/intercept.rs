@@ -571,21 +571,6 @@ impl Simulation {
         });
     }
 
-    /// The interceptor building of this side that still stands.
-    pub(in crate::fight) fn standing_interceptor(&self, team: u32) -> Option<u64> {
-        self.interceptors
-            .iter()
-            .filter(|interceptor| !interceptor.removed)
-            .find_map(|interceptor| match interceptor.owner {
-                InterceptorOwner::Building {
-                    building_id,
-                    team: own,
-                    ..
-                } if own == team => Some(building_id),
-                _ => None,
-            })
-    }
-
     /// The interceptor a projectile's list names by its key.
     fn interceptor_index(&self, key: u64) -> Option<usize> {
         self.interceptors

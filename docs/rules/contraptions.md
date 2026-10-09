@@ -496,8 +496,13 @@ kind ends its own way:
   without any interceptor; no fight pins it.
 - **Two interceptors of one side.** Which of them updates first is taken as the
   order the layout releases them in, and no recording has two.
-- **A tower's loss while an interceptor stands.** Whether the buff reaches it
-  is not read, and the simulator refuses the fight when it happens.
+- **A tower's loss while an interceptor stands.** `BuildingSystem.OnTowerDestroyed`
+  hands the buff to its side's `FightTeam.activeActors` through
+  `BuffSystem.AddBuff`, and `DoAddBuff` writes on an object that is no buff
+  target (`IsBuffTarget`, `FightActor`'s false) only when it is a
+  `FightConstruction` the buff reaches or a `FightTower`. An interceptor is
+  a plain `FightCrystal`, so the buff never reaches it, read from the build;
+  no recording holds a tower falling beside one.
 - **A row whose hit can miss.** The one interceptor's probability is a
   certainty, and a row that is not is refused by name.
 - **A missile, or a battle skill, in a fight with a shield.** A missile's
