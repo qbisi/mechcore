@@ -163,6 +163,19 @@ pub(crate) struct Burrow {
     pub(crate) relieve_distance: Vec<i64>,
 }
 
+/// What an `AdditionalDamageTech` answers `IAdditionalDamage` with: the rate
+/// of its target's life each hit takes besides (`GetReduceLifeRate`), and
+/// the skills it reaches beside the main one.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct AdditionalDamage {
+    /// `FPoint` raw rate.
+    pub(crate) rate_q32: i64,
+    /// `IsExtraSkillEffect`: the extra skills' hits take it too.
+    pub(crate) extra_skills: bool,
+    /// `CanDisable`, as [`LifeSteal::can_disable`].
+    pub(crate) can_disable: bool,
+}
+
 /// What a `DeadExplosiveTech` answers `IDeadExplosive` with: what its
 /// unit's death strikes with (`GetExplosiveDamageCondition`), the multiplier
 /// on it (`GetDamageMultiplier`) and how far beyond the unit's radius it

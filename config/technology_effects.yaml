@@ -146,6 +146,10 @@ schema: mechcore.technology_effects
 # unit's radius, by its unit's level (`dead_explosion_multiplier`,
 # `dead_explosion_range`), and whether it strikes its own side
 # (`dead_explosion_hits_allies`).
+# An additional-damage technology carries the FPoint rate of its
+# target's life each hit of its unit's skills takes besides
+# (`additional_damage_rate`), on its main skill and its extra skills
+# as `main_skill_effect` and `extra_skill_effect` say.
 # A search technology carries the `SkillSearchTargetType` its unit's
 # skills search by (`search_target_type`), on its main skill and its
 # extra skills as `main_skill_effect` and `extra_skill_effect` say.
@@ -1312,6 +1316,9 @@ technologies:
     name: Ionization
     unit: raiden
     kind: additionalDamageTechDatas
+    additional_damage_rate: 2147483648
+    main_skill_effect: true
+    extra_skill_effect: true
     damage_rate: [-3006477107]  # -0.7
   - id: 4228
     name: Fire Extinguisher

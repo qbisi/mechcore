@@ -282,6 +282,22 @@ impl Actor {
             .collect()
     }
 
+    /// The skills of `FightMech.GetSkills()` a technology's hit effect
+    /// reaches (`SkillDataModifier.AvaliableCheck`): the main skill's slots,
+    /// and with `extra` every extra skill's (`IsExtraSkillEffect`).
+    pub(in crate::fight) fn technology_skill_slots(&self, extra: bool) -> Vec<usize> {
+        (0..self.skills.main_slots())
+            .chain(
+                self.skills
+                    .extras
+                    .iter()
+                    .enumerate()
+                    .filter(|_| extra)
+                    .flat_map(|(index, skill)| self.extra_slots(index, skill)),
+            )
+            .collect()
+    }
+
     /// The slots of `FightMech.GetSkills()` an extra skill holds: its own,
     /// and its group's skills' after it.
     fn extra_slots(&self, index: usize, extra: &ExtraSkill) -> std::ops::Range<usize> {

@@ -83,12 +83,14 @@ pub(crate) enum EffectProvider {
     IgnoreBuff,
     /// `SkillSearchTargetProvider`, for an `ISkillSearchTargetProviderDataSource`.
     SkillSearchTarget,
+    /// `AdditionalDamageProvider`, for an `IAdditionalDamage`.
+    AdditionalDamage,
 }
 
 impl EffectProvider {
     /// Every provider, in the order the fight hands a unit to each as
     /// `FightEffectSystem` activates, deactivates or switches its effects.
-    pub(crate) const ALL: [Self; 32] = [
+    pub(crate) const ALL: [Self; 33] = [
         Self::InterceptMissile,
         Self::StealthTech,
         Self::MechGroup,
@@ -121,5 +123,6 @@ impl EffectProvider {
         Self::FlyTech,
         Self::IgnoreBuff,
         Self::SkillSearchTarget,
+        Self::AdditionalDamage,
     ];
 }

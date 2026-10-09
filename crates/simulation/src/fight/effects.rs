@@ -59,7 +59,8 @@ impl Simulation {
                 | EffectProvider::FireIntensify
                 | EffectProvider::RvoRadiusChange
                 | EffectProvider::ClearRangeItem
-                | EffectProvider::KillExplosion => {}
+                | EffectProvider::KillExplosion
+                | EffectProvider::AdditionalDamage => {}
             }
         }
     }
@@ -102,7 +103,8 @@ impl Simulation {
                 | EffectProvider::FireIntensify
                 | EffectProvider::RvoRadiusChange
                 | EffectProvider::ClearRangeItem
-                | EffectProvider::KillExplosion => {}
+                | EffectProvider::KillExplosion
+                | EffectProvider::AdditionalDamage => {}
             }
         }
         Ok(())
@@ -148,7 +150,8 @@ impl Simulation {
                 | EffectProvider::FireIntensify
                 | EffectProvider::RvoRadiusChange
                 | EffectProvider::ClearRangeItem
-                | EffectProvider::KillExplosion => {}
+                | EffectProvider::KillExplosion
+                | EffectProvider::AdditionalDamage => {}
             }
         }
         Ok(())
@@ -339,7 +342,11 @@ impl Simulation {
             | EffectProvider::DeadLine
             | EffectProvider::FireIntensify
             | EffectProvider::ClearRangeItem
-            | EffectProvider::KillExplosion => {}
+            | EffectProvider::KillExplosion
+            // `AdditionalDamageProvider.DoDisableEffect` takes its hit effect
+            // off the skills (`SkillManager.RemoveHitEffect`), and a hit while
+            // the technologies are off takes nothing besides.
+            | EffectProvider::AdditionalDamage => {}
         }
         Ok(())
     }
