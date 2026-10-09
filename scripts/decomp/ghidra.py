@@ -2,7 +2,7 @@
 """Decompile the installed game's methods to C with Ghidra.
 
     scripts/decomp/ghidra.py prepare [--game APP] [--force]
-    scripts/decomp/ghidra.py decompile [--game APP] [--out DIR] METHOD...
+    scripts/decomp/ghidra.py decompile [--game APP] [--out DIR] [--force] METHOD...
 
 `decompile.py`'s ISIL is the build instruction by instruction; this is the
 decompiler's C for the methods asked for, with names. `prepare` makes the
@@ -22,11 +22,17 @@ parser, into the program, and types every method with its C signature and
 every metadata label with its class: the decompiler reads a field by name,
 `this->fields.moveRange`, where it would read an offset.
 
-`decompile` writes each METHOD's C to `work/decomp/<build>/ghidra/c/`, or
-`--out`. A METHOD is `Class.Method` or `Namespace.Class$$Method`; every
-overload is written. An interface call in the C reads a slot of an interface's
-vtable, which `dump.cs` names: each one found is annotated with the method in
-that slot.
+`decompile` writes each METHOD's C to `work/decomp/<build>/ghidra/c/`, and
+copies it to `--out` when one is given. A METHOD is `Class.Method` or
+`Namespace.Class$$Method`; every overload is written. A name `script.json`
+does not have is reported and the rest are still written. That directory is
+a cache: a method already in it is not decompiled again unless `--force`.
+Ghidra runs on a clone of the project (`cp -c`, which APFS makes without
+copying), so sessions decompiling at once never wait on its lock; where
+the clone cannot be made it runs on the project itself. An interface call in
+the C reads a slot of an interface's vtable, which `dump.cs` names: each one
+found, through the runtime's lookup or the inline search of the class's
+interface offsets, is annotated with the method in that slot.
 
 Everything this writes goes under the main checkout's `work/`, from a
 worktree as well, beside the build `decompile.py` made. It needs `dotnet`
@@ -45,6 +51,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import urllib.request
 import zipfile
 
@@ -540,10 +547,10 @@ def prepare(app, build_dir, work, force):
 
 
 def method_names(build_dir, wanted):
-    """Each METHOD as the full names script.json gives it."""
+    """Each METHOD as the full names script.json gives it, and those it lacks."""
     script = json.loads((build_dir / "il2cppdumper" / "script.json").read_text())
     names = {method["Name"] for method in script["ScriptMethod"]}
-    resolved = []
+    resolved, unknown = [], []
     for name in wanted:
         if "$$" in name:
             matches = [name] if name in names else []
@@ -555,28 +562,91 @@ def method_names(build_dir, wanted):
                 if full == suffix or full.endswith("." + suffix)
             )
         if not matches:
-            fail(f"no method named {name}")
-        resolved.extend(match.replace(" ", "_") for match in matches)
-    return resolved
+            say(f"no method named {name}")
+            unknown.append(name)
+        resolved.extend(
+            match.replace(" ", "_") for match in matches
+            if match.replace(" ", "_") not in resolved
+        )
+    return resolved, unknown
 
 
-def decompile(build_dir, wanted, out):
+def outputs(directory, name):
+    """The files `DecompileMethods.java` writes for a name: `name.c`, or
+    `name.<n>.c` for each of its overloads."""
+    exact = re.compile(re.escape(name) + r"(?:\.\d+)?\.c")
+    return sorted(path for path in directory.glob(f"{glob_escape(name)}*.c") if exact.fullmatch(path.name))
+
+
+class ProjectClone:
+    """A clone of the Ghidra project for one run, or the project itself.
+
+    `cp -c` asks APFS to clone, which shares every block until one is
+    written, so it is made at once and takes no space; Ghidra's lock is the
+    clone's alone. Where it cannot be made, the run takes the project's own
+    lock, and waits on it as before.
+    """
+
+    def __init__(self, ghidra):
+        self.ghidra = ghidra
+        self.temporary = None
+
+    def __enter__(self):
+        project = self.ghidra / "project"
+        self.temporary = pathlib.Path(tempfile.mkdtemp(prefix="clone-", dir=self.ghidra))
+        clone = self.temporary / "project"
+        made = subprocess.run(
+            ["cp", "-c", "-R", str(project), str(clone)], capture_output=True,
+        ).returncode == 0
+        if not made:
+            shutil.rmtree(self.temporary, ignore_errors=True)
+            self.temporary = None
+            say("cannot clone the project; running on it")
+            return project
+        return clone
+
+    def __exit__(self, *_):
+        if self.temporary is not None:
+            shutil.rmtree(self.temporary, ignore_errors=True)
+
+
+def decompile(build_dir, wanted, out, force):
     require("ghidra-analyzeHeadless", "nix profile add nixpkgs#ghidra")
     ghidra = build_dir / "ghidra"
     if not (ghidra / "project" / f"{PROJECT}.gpr").exists():
         fail("no Ghidra project for this build; run `ghidra.py prepare` first")
-    names = method_names(build_dir, wanted)
-    out.mkdir(parents=True, exist_ok=True)
-    headless(
-        ghidra / "project", "-process", SLICE, "-noanalysis", "-readOnly",
-        "-postScript", "DecompileMethods.java", str(out), *names,
-        log=ghidra / "decompile.log",
-    )
+    names, unknown = method_names(build_dir, wanted)
+    cache = ghidra / "c"
+    cache.mkdir(parents=True, exist_ok=True)
+    missing = [name for name in names if force or not outputs(cache, name)]
+    if missing:
+        logs = ghidra / "logs"
+        logs.mkdir(exist_ok=True)
+        with ProjectClone(ghidra) as project:
+            headless(
+                project, "-process", SLICE, "-noanalysis", "-readOnly",
+                "-postScript", "DecompileMethods.java", str(cache), *missing,
+                log=logs / f"decompile-{os.getpid()}.log",
+            )
     slots = InterfaceSlots(build_dir / "il2cppdumper" / "dump.cs")
+    failed = []
     for name in names:
-        for path in sorted(out.glob(f"{glob_escape(name)}*.c")):
-            path.write_text(slots.annotate(path.read_text()))
-            say(f"wrote {path}")
+        written = outputs(cache, name)
+        if not written:
+            failed.append(name)
+            say(f"{name}: the decompiler wrote nothing")
+            continue
+        for path in written:
+            text = slots.annotate(path.read_text())
+            path.write_text(text)
+            target = path
+            if out is not None and out.resolve() != cache.resolve():
+                out.mkdir(parents=True, exist_ok=True)
+                target = out / path.name
+                target.write_text(text)
+            say(f"{'wrote' if name in missing else 'cached'} {target}")
+    if unknown or failed:
+        fail(f"not written: {', '.join(unknown + failed)}")
 
 
 def glob_escape(name):
@@ -616,8 +686,18 @@ class InterfaceSlots:
                     pending = None
 
     # The runtime's interface lookup, the slow path of every interface call:
-    # `(object, interface TypeInfo, slot)`, answering the vtable entry.
-    LOOKUP = re.compile(r"(func_0x[0-9a-f]+\(\s*\w+\s*,\s*_?([\w$]+)_TypeInfo\s*,\s*(0x[0-9a-f]+|\d+)\s*\))")
+    # `(object, interface TypeInfo, slot)`, answering the vtable entry. A
+    # lookup already annotated is left as it is.
+    LOOKUP = re.compile(
+        r"(func_0x[0-9a-f]+\(\s*\w+\s*,\s*_?([\w$]+)_TypeInfo\s*,\s*(0x[0-9a-f]+|\d+)\s*\))(?!\s*/\*)"
+    )
+    # The fast path the compiler inlines: a search of the class's interface
+    # offsets for the interface's TypeInfo, then the vtable entry that many
+    # slots past the offset found.
+    INLINE_TYPE = re.compile(r"interfaceType\s*==\s*\(Il2CppClass \*\)_?([\w$]+)_TypeInfo")
+    INLINE_SLOT = re.compile(r"\.offset(?:\s*\+\s*(0x[0-9a-f]+|\d+))?\b")
+    # How many lines after the TypeInfo's test the slot is read.
+    INLINE_REACH = 4
 
     def annotate(self, text):
         """Each interface lookup, with the method its slot holds."""
@@ -630,7 +710,20 @@ class InterfaceSlots:
             method = named.get((found.group(2), slot))
             return found.group(1) if method is None else f"{found.group(1)} /* {method} */"
 
-        return self.LOOKUP.sub(note, text)
+        lines = self.LOOKUP.sub(note, text).split("\n")
+        for index, line in enumerate(lines):
+            tested = self.INLINE_TYPE.search(line)
+            if tested is None:
+                continue
+            for after in range(index + 1, min(index + 1 + self.INLINE_REACH, len(lines))):
+                read = self.INLINE_SLOT.search(lines[after])
+                if read is None:
+                    continue
+                method = named.get((tested.group(1), int(read.group(1) or "0", 0)))
+                if method is not None and "/*" not in lines[after]:
+                    lines[after] += f" /* {method} */"
+                break
+        return "\n".join(lines)
 
 
 def main():
@@ -640,7 +733,8 @@ def main():
     prepare_step = steps.add_parser("prepare", help="make the Ghidra project for the build")
     prepare_step.add_argument("--force", action="store_true", help="redo every part of it")
     decompile_step = steps.add_parser("decompile", help="write named methods' C")
-    decompile_step.add_argument("--out", type=pathlib.Path)
+    decompile_step.add_argument("--out", type=pathlib.Path, help="copy each method's C here too")
+    decompile_step.add_argument("--force", action="store_true", help="decompile methods the cache holds again")
     decompile_step.add_argument("methods", nargs="+", metavar="METHOD")
     args = parser.parse_args()
     work = work_root()
@@ -648,7 +742,7 @@ def main():
     if args.step == "prepare":
         prepare(args.game, build_dir, work, args.force)
     else:
-        decompile(build_dir, args.methods, args.out or build_dir / "ghidra" / "c")
+        decompile(build_dir, args.methods, args.out, args.force)
     return 0
 
 
