@@ -71,7 +71,13 @@ answers for the node's rect. A unit found in several items enters the first.
 Until a controller's twentieth item splits its root, that is every item in the
 order it was added against every unit of the side; after, the items go node by
 node. A removed item leaves the tree as it leaves the controller
-(`RangeItem.Remove` raises `OnDestroyed`). A Fire Badger with Napalm keeps 150
+(`RangeItem.Remove` raises `OnDestroyed`). A fire reaching oils asks the
+oils' tree too (`RangeItemController.GetItems`, from `CheckInteractableItems`
+and `TriggerInteractableItem`): `FightQuadtree.Query` answers the root's oils
+always, then every oil of each node the fire's circle overlaps
+(`FightRange.Overlaps`: the point of the node's rect nearest the circle's
+centre lies strictly within its radius), a node's before its children's, and
+the oils it answers that the circle reaches burn in that order. A Fire Badger with Napalm keeps 150
 fires burning among its own units and the Rhino charging them, and the game
 and the simulator burn each of them alike.
 
@@ -214,10 +220,8 @@ controller in the system's order and item by item. A terrain made and gone
 in one tick, an oil that lands in a fire, is never named. A terrain it only
 finds gone, an oil that burns, goes `unknown`.
 
-The simulator refuses a fire reaching oils once the oils' tree has split,
-whose `CheckInteractableItems` asks that tree in an order not read, and a
-circle of 80 metres or more meeting a grid, which the build compares as a
-`GridBlockLong`.
+The simulator refuses a circle of 80 metres or more meeting a grid, which
+the build compares as a `GridBlockLong`.
 
 ## Circles and grids
 
@@ -334,6 +338,10 @@ already exists.
   does, and 32 of a Stormcaller's Incendiary Bomb a Rhino:
   `tests/terrain/fights/napalm-quadtree.yaml`,
   `tests/fire_intensify/fights/stormcaller-friendly.yaml`.
+- A fire among 28 standing oils, their tree split, burns them in the order
+  the tree answers its circle, root first and quadrant by quadrant; in the
+  order they were added, the simulator parts from the game at t67:
+  `tests/terrain/fights/standing-oils-quadtree.yaml`.
 - A Fire Badger's shot burns the oil its splash reaches, and the first fire
   the line beyond it: `tests/corpus/fights/201340110-r5.yaml`, tick 140.
 - A Smoke Bomb's fogs land along its line every four ticks, take ground units
@@ -463,6 +471,10 @@ already exists.
   `FightQuadtree.GetInteractableNodes`, `FightQuadtreeNode`1.GetElementCount`,
   `FightQuadtree`1.IsInteractableRange`, `FightQuadtreeNode`1.IsInteractableRange`,
   `RectRange.Overlaps`.
+- The oils a fire reaches: `RangeItemSystem.CheckInteractableItems`,
+  `RangeItemSystem.TriggerInteractableItem`, `RangeItemController.GetItems`,
+  `FightQuadtree`1.Query`, `FightQuadtreeNode`1.Query`,
+  `FightRange.Overlaps`, `RangeItem.GetCircleRange`.
 - A grid subtracts the live battlefield shields:
   `RangeItemEffectLayerGrid.GenerateGrid`,
   `AdvancedEnergyShieldSystem.GetActiveEnergyShields`,
