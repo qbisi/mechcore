@@ -490,8 +490,8 @@ impl super::Actor {
         }
     }
 
-    /// `FightMech.PerformMainSkillHitted` after a hit of the unit's main
-    /// skill: each stacking buff whose `BuffAdditiveStackResetHittedController`
+    /// `FightMech.PerformMainSkillHitted` after a projectile of the unit's
+    /// main skill hits: each stacking buff whose `BuffAdditiveStackResetHittedController`
     /// registered with it runs `IBEC_AdditiveEffectBuff.ResetAdditiveStackNormal`,
     /// its stack and the stack it is written at back to none and its rates
     /// written at none (`Buff.RefreshEffect`). Its step runs on.
