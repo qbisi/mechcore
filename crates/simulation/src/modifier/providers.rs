@@ -74,6 +74,8 @@ pub(crate) enum EffectProvider {
     RvoRadiusChange,
     /// `ClearRangeItemEffectProvider`, for an `IClearRangeItem`.
     ClearRangeItem,
+    /// `BurrowEffectProvider`, for an `IBurrow`.
+    Burrow,
 }
 
 impl EffectProvider {
@@ -106,6 +108,7 @@ impl EffectProvider {
             Self::WreckageRecovery => "WreckageRecoveryEffectProvider",
             Self::RvoRadiusChange => "RVORadiusChangeProvider",
             Self::ClearRangeItem => "ClearRangeItemEffectProvider",
+            Self::Burrow => "BurrowEffectProvider",
         }
     }
 
@@ -190,7 +193,8 @@ impl EffectProvider {
             | Self::DeadEffect
             | Self::MoveAbilitySummon
             | Self::MoveAbilityAttackIntensify
-            | Self::MoveAbilityRangeItem => false,
+            | Self::MoveAbilityRangeItem
+            | Self::Burrow => false,
         }
     }
 }

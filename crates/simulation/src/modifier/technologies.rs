@@ -54,7 +54,7 @@ use super::{
     effects::{self, Fields},
     providers::EffectProvider,
     sources::{
-        AutoRecovery, BuffSource, CarriedShield, ClearRangeItem, EnergyShield, LifeSteal,
+        AutoRecovery, BuffSource, Burrow, CarriedShield, ClearRangeItem, EnergyShield, LifeSteal,
         MoveAbilityAttack, MoveAbilityRangeItem, ProductionLine, ReactiveArmor, Rebirth,
         RebirthFollow, RecoveryState, RvoRadiusChange, SiegeMode, Stealth, SweepIntensify,
         WreckageRecovery,
@@ -135,13 +135,15 @@ const SIEGE: &str = "siegeModeTechDatas";
 const WRECKAGE: &str = "wreckageRecoveryTechnologies";
 /// The list whose `RebirthTech` is an `IDeadEffect` and an `IRebirthData`.
 const REBIRTH: &str = "rebirthEffectTechologyDatas";
+/// The list whose `BurrowTech` is an `IBurrow`.
+const BURROW: &str = "burrowTechnologies";
 /// The list whose `RVORadiusChangeTechnology` is an `IRVORadiusChangeSource`.
 const RVO_RADIUS_CHANGE: &str = "rVORadiusChangeTechnologyTechDatas";
 /// The list whose `ClearRangeItemTech` is an `IClearRangeItem`.
 const CLEAR_RANGE_ITEM: &str = "clearRangeItemTechDatas";
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 31] = [
+const IMPLEMENTED: [&str; 32] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -173,6 +175,7 @@ const IMPLEMENTED: [&str; 31] = [
     REBIRTH,
     RVO_RADIUS_CHANGE,
     CLEAR_RANGE_ITEM,
+    BURROW,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -295,6 +298,8 @@ struct Technology {
     rvo_radius_change: Option<RvoRadiusChange>,
     /// What it answers `IClearRangeItem` with, if its class is one.
     clear_range_item: Option<ClearRangeItem>,
+    /// What it answers `IBurrow` with, if its class is one.
+    burrow: Option<Burrow>,
     /// What it answers `IMoveAbilityAttackIntensify` with, if its class is
     /// one.
     move_ability_attack: Option<MoveAbilityAttack>,
@@ -435,6 +440,9 @@ pub(crate) struct UnitSources {
     /// The first that clears terrain about its unit: the provider enables
     /// one source (`SingleEffectProvider`).
     pub(crate) clear_range_item: Option<ClearRangeItem>,
+    /// The first that burrows its unit: the provider enables one source
+    /// (`SingleEffectProvider`).
+    pub(crate) burrow: Option<Burrow>,
     pub(crate) buff_sources: Vec<BuffSource>,
     pub(crate) interception: Vec<UnitInterception>,
     pub(crate) dead_summon: Option<UnitDeadSummon>,
@@ -785,6 +793,14 @@ struct Row {
     clear_radius: i32,
     #[serde(default)]
     clear_range_item_types: Vec<i32>,
+    /// `BurrowData.amplifyDamageRate`, `relieveDistance` and
+    /// `isEnterUnderGround`, on a row of its list.
+    #[serde(default)]
+    burrow_amplify_damage_rate: Vec<i64>,
+    #[serde(default)]
+    burrow_relieve_distance: Vec<i64>,
+    #[serde(default)]
+    burrow_enters_underground: bool,
     /// `DeadLineTechData`'s `deadLineValue`, whole life by the unit's level,
     /// and `ignoreEnergyShield`, on a row of its list.
     #[serde(default)]
@@ -1374,6 +1390,11 @@ impl TechnologyEffects {
                     can_disable: true,
                 }),
                 rebirth,
+                burrow: (row.kind == BURROW).then(|| Burrow {
+                    technology: u32::try_from(row.id).unwrap_or(u32::MAX),
+                    amplify_damage_rate: row.burrow_amplify_damage_rate.clone(),
+                    relieve_distance: row.burrow_relieve_distance.clone(),
+                }),
                 rvo_radius_change: (row.kind == RVO_RADIUS_CHANGE).then_some(RvoRadiusChange {
                     move_radius_q32: row.rvo_move_radius,
                     near_target_threshold_q32: row.rvo_near_target_threshold,
@@ -1530,6 +1551,9 @@ impl TechnologyEffects {
                 sources
                     .clear_range_item
                     .clone_from(&technology.clear_range_item);
+            }
+            if sources.burrow.is_none() {
+                sources.burrow.clone_from(&technology.burrow);
             }
             sources.buff_sources.extend(technology.buff_source);
             sources.interception.extend(technology.interception);
@@ -1989,6 +2013,7 @@ fn provider_of(kind: &str, self_buff: bool) -> Option<EffectProvider> {
         WRECKAGE => EffectProvider::WreckageRecovery,
         RVO_RADIUS_CHANGE => EffectProvider::RvoRadiusChange,
         CLEAR_RANGE_ITEM => EffectProvider::ClearRangeItem,
+        BURROW => EffectProvider::Burrow,
         _ => return None,
     })
 }
@@ -2017,6 +2042,13 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<Written>, String> {
             "technology {} ({}) leaves its terrain at MoveAbilityTimeType {} of MechMoveType \
              {}, and only as an underground unit ends a surfacing is read",
             row.id, row.name, row.range_item_time, row.range_item_move_type
+        ));
+    }
+    if row.burrow_enters_underground {
+        return Err(format!(
+            "technology {} ({}) takes its unit underground as it burrows, which is not \
+             measured",
+            row.id, row.name
         ));
     }
     if row.strike_attack_point != 0 {
@@ -2504,6 +2536,39 @@ mod tests {
                 .unwrap()
                 .rebirth
                 .is_some_and(|rebirth| rebirth.follow.is_some())
+        );
+    }
+
+    /// A burrowing technology writes its numbers and hands its unit a
+    /// burrow; one that takes its unit underground is refused by name.
+    #[test]
+    fn a_burrowing_technology_hands_its_unit_a_burrow() {
+        let table = TechnologyEffects::parse(
+            "schema: mechcore.technology_effects\n\
+             technologies:\n\
+             - {id: 9, name: probe, unit: crawler, kind: burrowTechnologies, \
+             burrow_enters_underground: false, burrow_amplify_damage_rate: [-1717986918], \
+             burrow_relieve_distance: [214748364800], speed_value: [3]}\n\
+             - {id: 10, name: below, unit: crawler, kind: burrowTechnologies, \
+             burrow_enters_underground: true, burrow_amplify_damage_rate: [-1717986918], \
+             burrow_relieve_distance: [214748364800]}\n",
+        )
+        .unwrap();
+        assert_eq!(table.corrections(&[9], "crawler", 1).unwrap().len(), 1);
+        assert_eq!(
+            table.sources(&[9], "crawler").unwrap().burrow,
+            Some(super::Burrow {
+                technology: 9,
+                amplify_damage_rate: vec![-1_717_986_918],
+                relieve_distance: vec![50 << 32],
+            })
+        );
+        assert!(
+            table
+                .corrections(&[10], "crawler", 1)
+                .unwrap_err()
+                .to_string()
+                .contains("underground")
         );
     }
 

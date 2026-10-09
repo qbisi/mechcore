@@ -58,6 +58,7 @@ pub(super) fn placement(
         rebirth: None,
         rvo_radius_change: None,
         clear_range_item: None,
+        burrow: None,
         sweep: None,
         distance_intensify: false,
         secondary_damage: None,

@@ -451,6 +451,7 @@ fn buff_row(buff: &BuffSource) -> Result<BuffRow> {
         .map_err(|_| Error::new("a buff's step outlasts a fight"))?;
     Ok(BuffRow {
         buff_id: buff.buff_id,
+        technology: false,
         clears_when_technologies_disabled: buff.clears_when_technologies_disabled,
         max_life_rate: buff.max_life_rate,
         summons: buff.summons,

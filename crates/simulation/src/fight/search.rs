@@ -516,6 +516,25 @@ pub(in crate::fight) fn initialize_target_quadtrees(
 /// keeps it.
 pub(in crate::fight) const INVISIBLE_DISTANCE_SCORE_OFFSET: i64 = 40_000;
 
+/// What a selector's `IDistanceCalculator` measures from a source to a
+/// candidate: centre to centre, less both radii, never below zero.
+pub(in crate::fight) fn target_edge_distance_q32(
+    source_x_q32: i64,
+    source_z_q32: i64,
+    source_radius: i64,
+    target_x_q32: i64,
+    target_z_q32: i64,
+    target_radius: i64,
+) -> i64 {
+    native_q32_magnitude(
+        target_x_q32.saturating_sub(source_x_q32),
+        target_z_q32.saturating_sub(source_z_q32),
+    )
+    .saturating_sub(space_to_q32(source_radius))
+    .saturating_sub(space_to_q32(target_radius))
+    .max(0)
+}
+
 #[allow(clippy::too_many_arguments)]
 pub(in crate::fight) fn full_rotation_target_score_q32(
     source_x_q32: i64,
@@ -530,13 +549,14 @@ pub(in crate::fight) fn full_rotation_target_score_q32(
     max_range: i64,
     rotation_window_q32: Option<(i64, i64)>,
 ) -> Option<i64> {
-    let distance_q32 = native_q32_magnitude(
-        target_x_q32.saturating_sub(source_x_q32),
-        target_z_q32.saturating_sub(source_z_q32),
-    )
-    .saturating_sub(space_to_q32(source_radius))
-    .saturating_sub(space_to_q32(target_radius))
-    .max(0);
+    let distance_q32 = target_edge_distance_q32(
+        source_x_q32,
+        source_z_q32,
+        source_radius,
+        target_x_q32,
+        target_z_q32,
+        target_radius,
+    );
     let bearing_q32 = direction_degrees_q32_raw(
         target_x_q32.saturating_sub(source_x_q32),
         target_z_q32.saturating_sub(source_z_q32),
@@ -996,6 +1016,9 @@ impl Simulation {
         });
         let tower_attackable = self.tower_attackable(source.skill);
         let mut scoring = Scoring::default();
+        // `Selector.Calculate`: the first candidate strictly nearer than any
+        // before it, under the skill's minimum range or not.
+        let mut nearest: Option<(FightActorRef, i64)> = None;
 
         for (&team, candidates) in target_search_order {
             // The prepared trees hold each unit on the side it stood on as the
@@ -1055,6 +1078,17 @@ impl Simulation {
                 } else {
                     target.query_visible
                 };
+                let distance_q32 = target_edge_distance_q32(
+                    source.query_x_q32,
+                    source.query_z_q32,
+                    source.radius,
+                    candidate_x_q32,
+                    candidate_z_q32,
+                    target.radius,
+                );
+                if nearest.is_none_or(|(_, least)| distance_q32 < least) {
+                    nearest = Some((candidate, distance_q32));
+                }
                 if let Some(score) = full_rotation_target_score_q32(
                     source.query_x_q32,
                     source.query_z_q32,
@@ -1073,6 +1107,9 @@ impl Simulation {
             }
         }
 
+        self.skill(source.skill)
+            .nearest_actor
+            .set(nearest.map(|(candidate, _)| candidate));
         scoring.chosen(|next| self.target_in_attack_range(source.skill, next))
     }
 

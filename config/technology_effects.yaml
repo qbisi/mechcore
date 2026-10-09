@@ -109,6 +109,11 @@ schema: mechcore.technology_effects
 # unit's radius within which its unit clears terrain (`clear_radius`),
 # and the `RangeItemType`s it clears, in its row's order
 # (`clear_range_item_types`).
+# A burrowing technology carries the FPoint rate on the damage its unit
+# takes while no enemy is near (`burrow_amplify_damage_rate`), the FPoint
+# metres within which an enemy brings it up (`burrow_relieve_distance`),
+# by its unit's level, and whether it goes underground
+# (`burrow_enters_underground`).
 # A fire technology carries the FPoint metres and seconds of the fire
 # each hit of its unit's main skill leaves (`fire_range`,
 # `fire_life_time`), by its unit's level.
@@ -922,7 +927,10 @@ technologies:
     name: 潜地行动
     unit: crawler
     kind: burrowTechnologies
+    burrow_enters_underground: false
     speed_value: [3]
+    burrow_amplify_damage_rate: [-1717986918]  # -0.4
+    burrow_relieve_distance: [214748364800]  # +50
   - id: 2710
     name: 酸性爆炸
     unit: crawler

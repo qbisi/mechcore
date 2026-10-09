@@ -80,6 +80,8 @@ SUBCLASS_LISTS = (
     ("share_distance", "distance", "damageShareTechnologies"),
     ("barrier_energy", "shieldValues", "advancedEnergyShieldTechnologies"),
     ("barrier_radius", "radius", "advancedEnergyShieldTechnologies"),
+    ("burrow_amplify_damage_rate", "amplifyDamageRate", "burrowTechnologies"),
+    ("burrow_relieve_distance", "relieveDistance", "burrowTechnologies"),
 )
 # The same for a field that is one value rather than a rank list.
 SUBCLASS_SCALARS = (
@@ -123,6 +125,7 @@ SUBCLASS_SCALARS = (
     ("rvo_near_target_threshold", "nearTargetThreshold", "rVORadiusChangeTechnologyTechDatas"),
     ("clear_radius", "radius", "clearRangeItemTechDatas"),
     ("clear_range_item_types", "rangeItemTypes", "clearRangeItemTechDatas"),
+    ("burrow_enters_underground", "isEnterUnderGround", "burrowTechnologies"),
 )
 # A field of one list's rows that is one rate, written only where it is set:
 # an extra weapon's `allWeaponReduceDamageRate`, which
@@ -153,7 +156,8 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "damageShareTechnologies", "advancedEnergyShieldTechnologies",
                "reactiveArmorTechDatas", "fireIntensifyTechnologies", "siegeModeTechDatas",
                "wreckageRecoveryTechnologies", "rebirthEffectTechologyDatas",
-               "rVORadiusChangeTechnologyTechDatas", "clearRangeItemTechDatas")
+               "rVORadiusChangeTechnologyTechDatas", "clearRangeItemTechDatas",
+               "burrowTechnologies")
 # The list whose `BuffTech` adds a buff, and the fields its rows carry for
 # `buff_lines` rather than as corrections.
 BUFF = "buffTechnologies"
@@ -584,6 +588,11 @@ def main() -> int:
         "# unit's radius within which its unit clears terrain (`clear_radius`),",
         "# and the `RangeItemType`s it clears, in its row's order",
         "# (`clear_range_item_types`).",
+        "# A burrowing technology carries the FPoint rate on the damage its unit",
+        "# takes while no enemy is near (`burrow_amplify_damage_rate`), the FPoint",
+        "# metres within which an enemy brings it up (`burrow_relieve_distance`),",
+        "# by its unit's level, and whether it goes underground",
+        "# (`burrow_enters_underground`).",
         "# A fire technology carries the FPoint metres and seconds of the fire",
         "# each hit of its unit's main skill leaves (`fire_range`,",
         "# `fire_life_time`), by its unit's level.",

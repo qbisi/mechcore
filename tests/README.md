@@ -12,6 +12,7 @@ out to show:
 | [`anti_air/`](anti_air/README.md) | what a technology changes about its unit's skill against aircraft: whether it attacks them, reach, damage and search |
 | [`armor/`](armor/README.md) | what an armour technology takes off each hit on its unit |
 | [`battle_skill/`](battle_skill/README.md) | when a released battle skill lands, what it reaches, and what it writes or summons |
+| [`burrow/`](burrow/README.md) | when a burrowing technology burrows its unit and brings it up, and what its burrow takes off the hits on it |
 | [`construction/`](construction/README.md) | what a construction becomes in a fight, and what attacks it |
 | [`control/`](control/README.md) | what a control beam turns, what it strikes instead, and what an item or a shield changes about it |
 | [`damage_share/`](damage_share/README.md) | which units a damage-share technology links into a group, and how a hit on one is shared or the group raises their damage |
