@@ -1,0 +1,113 @@
+# Replay 2328_20261007--201475625, round 9. Blue's Arclights, Sledgehammers,
+# Stormcallers, Fangs, Void Eyes, Crawlers and Phoenixes behind a Defensive
+# Wall, against red's Crawlers with Subterranean Blitz, Hounds, Phoenixes
+# with Quantum Reassembly, Fangs, Stormcallers and a Sabertooth. Each red
+# Phoenix that rises again is a new avoidance agent: the solve after it rises
+# reads it at zero in the tree, and blue's Stormcallers lose their neighbours
+# for that solve (t848, t852), and its first solve takes no speed (t928).
+
+kind: fight
+map_id: 1021
+seed: 1448139111
+round: 9
+source: game
+ticks: 1402
+hash: {profile: mcfr-content-0.23.0, result: 19c23851a5a39798ebd02dd951eaa1f18d7902d6ea91a0bc702deb244a662824}
+blue:
+  core_damage: 275
+  officers: [fire_badger_specialist]
+  techs:
+    stormcaller: [incendiary_bomb]
+    sledgehammer: [armor_enhancement]
+    arclight: [shockwave, range_enhancement, charged_shot]
+    phoenix: [range_enhancement]
+    void_eye: [suppression_shots]
+  blueprints: [defense_enhancement, attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  tower_strengthen_levels: [1, 1]
+  legacy_index: 31
+  units:
+  - {name: arclight, index: 0, position: {x: 120, y: -170}, level: 2, exp: 1257/1548/1690}
+  - {name: arclight, index: 1, position: {x: -120, y: -170}, level: 2, exp: 1678/1690/1690}
+  - {name: arclight, index: 2, position: {x: -60, y: -170}, level: 3, exp: 2140/2671/2671}
+  - {name: sledgehammer, index: 3, position: {x: -90, y: -135}, level: 2, exp: 274/495/2929, rotated: true, equipment: [photon_coating]}
+  - {name: sledgehammer, index: 4, position: {x: -30, y: -135}, level: 2, exp: 534/774/2929, rotated: true, equipment: [heavy_armor]}
+  - {name: crawler, index: 5, position: {x: -90, y: -205}, level: 2, exp: 45/174/1014, rotated: true}
+  - {name: crawler, index: 6, position: {x: -30, y: -205}, level: 2, exp: 0/131/1014, rotated: true}
+  - {name: arclight, index: 7, position: {x: -250, y: -180}, level: 2, exp: 1315/1690/1690}
+  - {name: arclight, index: 8, position: {x: 250, y: -180}, level: 2, exp: 914/1223/1690}
+  - {name: void_eye, index: 10, position: {x: -130, y: -150}, exp: 563/650/650}
+  - {name: void_eye, index: 11, position: {x: 10, y: -150}, level: 2, exp: 1157/1465/1465}
+  - {name: void_eye, index: 12, position: {x: 130, y: -150}, level: 2, exp: 0/66/1465}
+  - {name: arclight, index: 13, position: {x: 60, y: -170}, level: 3, exp: 474/855/2671}
+  - {name: phoenix, index: 14, position: {x: -200, y: -250}, level: 3, exp: 2591/4630/4630}
+  - {name: fang, index: 15, position: {x: -290, y: -155}, exp: 366/426/600, rotated: true}
+  - {name: fang, index: 16, position: {x: 290, y: -155}, level: 2, exp: 0/59/1352, rotated: true}
+  - {name: phoenix, index: 17, position: {x: 200, y: -250}, level: 3, exp: 0/840/4630}
+  - {name: stormcaller, index: 18, position: {x: -205, y: -150}, exp: 844/911/1100}
+  - {name: stormcaller, index: 19, position: {x: 205, y: -150}, level: 2, exp: 265/383/2479}
+  - {name: fang, index: 20, position: {x: 140, y: -115}, exp: 140/161/600, rotated: true}
+  - {name: arclight, index: 21, position: {x: 160, y: -150}, level: 2, exp: 338/791/1690}
+  - {name: arclight, index: 22, position: {x: -160, y: -150}, level: 2, exp: 769/1690/1690}
+  - {name: fang, index: 23, position: {x: 10, y: -85}, exp: 106/107/600, rotated: true}
+  - {name: fang, index: 24, position: {x: -130, y: -95}, exp: 90/119/600, rotated: true}
+  - {name: phoenix, index: 25, position: {x: 10, y: -240}, level: 3, exp: 0/4060/4630}
+  - {name: sledgehammer, index: 26, position: {x: 90, y: -135}, exp: 274/383/1300, rotated: true}
+  - {name: sledgehammer, index: 27, position: {x: 250, y: -145}, exp: 345/428/1300, rotated: true}
+  - {name: stormcaller, index: 28, position: {x: 15, y: -130}, exp: 189/363/1100}
+  - {name: arclight, index: 29, position: {x: -20, y: -170}, exp: 304/750/750}
+  - {name: arclight, index: 30, position: {x: 20, y: -170}, exp: 302/548/750}
+  - {name: crawler, index: 31, position: {x: 45, y: -300}, exp: 0/61/450}
+  - {name: crawler, index: 32, position: {x: -85, y: -300}, exp: 0/49/450}
+  - {name: sledgehammer, index: 33, position: {x: -250, y: -145}, exp: 0/136/1300, rotated: true}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: shield, index: 1, position: {x: 114, y: -158}, retained: false}
+  - {name: shield, index: 2, position: {x: -114, y: -146}, retained: false}
+red:
+  officers: [aerial_specialist]
+  techs:
+    crawler: [subterranean_blitz]
+    phoenix: [quantum_reassembly, range_enhancement, launcher_overload]
+    hound: [fire_extinguisher, range_enhancement]
+  blueprints: [attack_enhancement_ii, defense_enhancement_ii]
+  energy_tower_skills: [enhanced_range]
+  legacy_index: 31
+  units:
+  - {name: hound, index: 0, position: {x: 120, y: -190}, level: 2, exp: 1015/1495/1690}
+  - {name: hound, index: 1, position: {x: -120, y: -190}, level: 2, exp: 1123/1422/1690}
+  - {name: hound, index: 2, position: {x: 0, y: -190}, level: 2, exp: 862/1378/1690}
+  - {name: sabertooth, index: 3, position: {x: 115, y: -165}, level: 2, exp: 1132/1542/2929}
+  - {name: crawler, index: 5, position: {x: 120, y: -225}, level: 2, exp: 0/143/1014, rotated: true}
+  - {name: crawler, index: 6, position: {x: -120, y: -225}, exp: 439/450/450, rotated: true}
+  - {name: phoenix, index: 7, position: {x: 230, y: -240}, level: 3, exp: 2499/4545/4630}
+  - {name: hound, index: 8, position: {x: 250, y: -190}, level: 2, exp: 78/465/1690}
+  - {name: hound, index: 11, position: {x: -240, y: -190}, level: 2, exp: 170/980/1690}
+  - {name: crawler, index: 12, position: {x: -240, y: -225}, exp: 178/232/450, rotated: true}
+  - {name: crawler, index: 13, position: {x: -5, y: -160}, exp: 94/145/450}
+  - {name: crawler, index: 14, position: {x: 120, y: -285}, exp: 423/450/450, rotated: true}
+  - {name: crawler, index: 15, position: {x: -120, y: -285}, exp: 281/395/450, rotated: true}
+  - {name: crawler, index: 16, position: {x: 0, y: -225}, exp: 309/412/450, rotated: true}
+  - {name: stormcaller, index: 17, position: {x: -155, y: -150}, level: 2, exp: 0/1188/2479}
+  - {name: stormcaller, index: 18, position: {x: 155, y: -150}, level: 2, exp: 677/1420/2479}
+  - {name: crawler, index: 19, position: {x: 260, y: -225}, exp: 174/225/450, rotated: true}
+  - {name: crawler, index: 20, position: {x: -240, y: -285}, exp: 144/199/450, rotated: true}
+  - {name: crawler, index: 21, position: {x: 260, y: -285}, exp: 293/373/450, rotated: true}
+  - {name: crawler, index: 22, position: {x: 325, y: 160}, exp: 418/450/450, rotated: true}
+  - {name: crawler, index: 23, position: {x: -325, y: 170}, exp: 201/246/450, rotated: true}
+  - {name: crawler, index: 24, position: {x: 0, y: -285}, exp: 232/392/450, rotated: true}
+  - {name: phoenix, index: 25, position: {x: -60, y: -260}, level: 3, exp: 0/2007/4630, equipment: [laser_sights]}
+  - {name: phoenix, index: 26, position: {x: 80, y: -250}, level: 2, exp: 2004/2929/2929}
+  - {name: phoenix, index: 27, position: {x: -190, y: -260}, level: 2, exp: 1659/2929/2929}
+  - {name: hound, index: 28, position: {x: -180, y: -180}, exp: 179/599/750}
+  - {name: hound, index: 29, position: {x: 180, y: -180}, exp: 182/560/750}
+  - {name: crawler, index: 30, position: {x: 80, y: -75}, exp: 1/24/450, rotated: true}
+  - {name: fang, index: 31, position: {x: 200, y: -145}, exp: 0/51/600, rotated: true}
+  - {name: fang, index: 32, position: {x: -200, y: -135}, exp: 0/57/600, rotated: true}
+  - {name: phoenix, index: 33, position: {x: -280, y: -260}, level: 2, exp: 0/2929/2929}
+  contraptions:
+  - {name: missile, index: 11, position: {x: 291, y: -10}, retained: false}
+  - {name: missile, index: 12, position: {x: 135, y: -16}, retained: false}
+  - {name: missile, index: 13, position: {x: 3, y: -16}, retained: false}
+  - {name: missile, index: 14, position: {x: -290, y: -13}, retained: false}

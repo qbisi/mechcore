@@ -648,7 +648,11 @@ fell, or where its pilot flies, facing as the Phoenix it rises behind
 (`FightTeam.ActiveMech`), so that it updates after every other unit of its
 side, its technologies' effects active again
 (`FightEffectSystem.ActiveEffect`), and every skill's interval drawn again
-and its attack time at it, so its first blow is due (`FightMech.EnterFight`). It is counted
+and its attack time at it, so its first blow is due (`FightMech.EnterFight`).
+Its avoidance agent is made again (`MotionController.EnterFight`,
+`RVOControllerFixed.Active`), as a landing unit's is: the first tree built
+after reads it at zero, and its first solve takes no speed unless entering a
+state hands it one ([rvo.md](../spec/simulation/rvo.md#the-first-tree)). It is counted
 reborn (`FightMech.AddRebirthCount`), which cuts its score
 ([`reactor_damage.md`](reactor_damage.md)). A unit that dies again with no
 rebirth left is gone. A fight that ends while a unit rises drops its task
@@ -1475,6 +1479,10 @@ derive (a minimum range):
   `tests/rebirth/field-reassembly-stands.yaml`. A fight that ends
   while one waits drops it, and it scores nothing,
   `tests/rebirth/field-reassembly-rising-at-the-end.yaml`.
+- A Phoenix that rises again is a new avoidance agent: the solve after it
+  rises reads it at zero in the tree, so Stormcallers across the field lose
+  their neighbours for that solve, and it takes no speed on its first:
+  `tests/corpus/201475625-r9.yaml`, ticks 848, 852 and 928.
 - Quantum Reassembly's pilot flies at speed to the nearest point behind its
   partner, turns to the far pair as the partner falls, waits 15 ticks and
   lands on a point drawn from blue's stream, follows by its lerp and its
@@ -1846,7 +1854,8 @@ derive (a minimum range):
   `FightMech.ForceRecoveryLife`, `FightMech.AddRebirthCount`,
   `FightMech.EnterFight`, `FightTeam.ActiveMech`,
   `FightEffectSystem.ActiveEffect`, `FightCoreSystem.TryDstroyTower`,
-  `FightCoreSystem.IsStepFinish`.
+  `FightCoreSystem.IsStepFinish`, `MotionController.EnterFight`,
+  `RVOControllerFixed.Active`.
 - A rebirth that follows an ally sends a pilot after the nearest unit of its
   type, to points behind it in rows, flying at speed or after a transfer and
   then by a lerp with a swinging offset drawn from its side's stream:

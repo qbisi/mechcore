@@ -533,6 +533,12 @@ impl Simulation {
         actor.life = actor.stats.max_life();
         actor.rebirthing = false;
         actor.rebirth_count += 1;
+        // `MotionController.EnterFight` makes its agent again
+        // (`RVOControllerFixed.Active`): the first tree built after reads it
+        // at zero, and it reaches its first solve with no speed to take, as a
+        // summon's does, unless entering a state hands it one.
+        actor.motion.rvo_new_agent = true;
+        actor.motion.next_max_speed_q32 = 0;
         // `FightMech.EnterFight`: each skill draws its interval again, and
         // its clock stands at it.
         self.draw_owner_first_intervals(FightActorRef::Unit(task.unit))?;
