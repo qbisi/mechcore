@@ -142,3 +142,109 @@ fn literal(value: &Value) -> String {
         .as_str()
         .map_or_else(|| value.to_string(), str::to_owned)
 }
+
+/// Every column of a per-tick table is a field the hash reads, so a table the
+/// hash reads is read whole: a column the writer adds outside the model fails
+/// here. The columns that place a row rather than describe it stand outside
+/// the model and are named: every table's `tick`, and the events table's
+/// `ordinal` and `type`, which are the event's place and its payload's
+/// variant. `ticks` holds the hashes themselves. A struct the table stores
+/// flattened into its owner's columns is named in `FLATTENED`.
+#[test]
+fn every_column_of_a_hashed_table_is_a_hashed_field() {
+    use arrow_schema::{DataType, Fields};
+
+    use crate::McfrTables;
+
+    /// A model field the table stores as its fields' own columns in the
+    /// owner's row: a weapon's nullable `pose` is its `position` and
+    /// `rotation`, both null together.
+    const FLATTENED: &[(&str, &str, &str)] = &[("WeaponState", "pose", "QPose")];
+
+    fn walk(owner: &str, fields: &Fields, listing: &[String], at: &str, missing: &mut Vec<String>) {
+        for field in fields {
+            let path = format!("{at}.{}", field.name());
+            let owner = FLATTENED
+                .iter()
+                .find(|(flattened_owner, flattened, inner)| {
+                    *flattened_owner == owner
+                        && listing
+                            .iter()
+                            .any(|line| line.starts_with(&format!("{owner}.{flattened}: ")))
+                        && listing
+                            .iter()
+                            .any(|line| line.starts_with(&format!("{inner}.{}: ", field.name())))
+                })
+                .map_or(owner, |(_, _, inner)| inner);
+            let prefix = format!("{owner}.{}: ", field.name());
+            let Some(line) = listing.iter().find(|line| line.starts_with(&prefix)) else {
+                missing.push(path);
+                continue;
+            };
+            let mut data_type = field.data_type();
+            while let DataType::List(item) = data_type {
+                data_type = item.data_type();
+            }
+            if let DataType::Struct(children) = data_type {
+                let named = line[prefix.len()..]
+                    .trim_start_matches('[')
+                    .split([']', ' '])
+                    .next()
+                    .unwrap_or_default();
+                walk(named, children, listing, &path, missing);
+            }
+        }
+    }
+
+    let listing = listing();
+    let mut missing = Vec::new();
+    for (table, owner) in [
+        ("units", "LiveUnitState"),
+        ("rebirths", "RebirthState"),
+        ("projectiles", "ProjectileState"),
+        ("buildings", "BuildingState"),
+        ("shields", "ShieldState"),
+        ("terrains", "TerrainState"),
+        ("statistics", "DamageStatistics"),
+        ("formations", "FormationState"),
+    ] {
+        let schema = McfrTables::schema_of(table).expect("a per-tick table");
+        let fields = schema
+            .fields()
+            .iter()
+            .filter(|field| field.name() != "tick")
+            .cloned()
+            .collect::<Fields>();
+        walk(owner, &fields, &listing, table, &mut missing);
+    }
+    // An event's references are `Event`'s, its subject stored as `object`, and
+    // every payload column is a field of some variant's payload.
+    let events = McfrTables::schema_of("events").expect("the events table");
+    for field in events.fields() {
+        let name = field.name().as_str();
+        let owner = match name {
+            "tick" | "ordinal" | "type" => continue,
+            "object" => "Event.subject",
+            "source" | "target" | "source_team_id" => "Event",
+            _ => "EventPayload",
+        };
+        let read = match owner {
+            "Event.subject" => listing
+                .iter()
+                .any(|line| line.starts_with("Event.subject: ")),
+            "Event" => listing
+                .iter()
+                .any(|line| line.starts_with(&format!("Event.{name}: "))),
+            _ => listing.iter().any(|line| {
+                line.starts_with("EventPayload::") && line.contains(&format!(".{name}: "))
+            }),
+        };
+        if !read {
+            missing.push(format!("events.{name}"));
+        }
+    }
+    assert!(
+        missing.is_empty(),
+        "columns of a hashed table the hash does not read: {missing:?}"
+    );
+}

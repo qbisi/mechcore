@@ -1167,6 +1167,15 @@ than an omission.
   buffs answer. Each skill's `attack_range` and `attack_damage` and the unit's
   `move_speed` hold the values a fight reads.
 
+- **Analyses of the fight.** A recording holds what the build holds, and
+  nothing computed from it: a formation's kills over the fight, the distance
+  a unit travelled, a timeline of deaths are answers to questions about the
+  tables, which [`mechcore query`](../mechcore/cli.md#query) asks of them, and
+  a member holding them would be a second answer that goes stale when the
+  question changes. A counter the build keeps itself, such as `statistics`, is
+  what the build holds and is recorded. Every column of the per-tick tables is
+  a field the hash reads; only the instrument channels stand outside it.
+
 - **What instrument channels read.** A channel's rows are not in the hash.
   They fail the first condition: `target_search`, `target_candidate`,
   `skill_attackable_checker`, `exp_range`, `projectile_reach` and the `rvo_*`
@@ -1187,12 +1196,6 @@ once a fight shows it changing.
 
 **A building's buffs.** A tower or a construction has a `BuffManager` too,
 and `towerBuffDatas` holds a tower's own; buildings record none of it.
-
-**Should a derived value be stored at all?** `remaining_rounds` holds
-`GetDuration() - get_Round()` rather than the two operands. It is the only
-derived field in the format, it is sparse, and a reader cannot recover the
-inputs from it. Storing both operands instead would be uniform with the rest of
-the format at the cost of a column.
 
 **Should the format define events no producer emits?** `unit_team_changed`
 and `terrain_converted` have schema, canonical form, and reader and writer
