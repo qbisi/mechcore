@@ -1,0 +1,24 @@
+# Field Reassembly on blue's two Typhoons, beside two Rhinos, against a
+# Fortress. Both Typhoons die (ticks 47 and 121), rise where they fell (146
+# and 221) and stand at the end: each scores its row's 125 times
+# `rebirth_unit_score_rate`, 31, and blue's score is a Rhino's 200 and those
+# two, 262.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 287
+hash: {profile: mcfr-content-0.23.0, result: bd0dc74366c1af7c3b0811f6ee4d5b34ed52ade7b5d3355534778bc667b09c78}
+blue:
+  techs:
+    typhoon: [field_reassembly]
+  units:
+  - {name: typhoon, index: 0, position: {x: 0, y: -40}, exp: 0/200/1950}
+  - {name: rhino, index: 1, position: {x: -55, y: -95}}
+  - {name: rhino, index: 2, position: {x: 65, y: -95}, exp: 0/600/1150}
+red:
+  core_damage: 262
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -40}, exp: 0/1000/1600}

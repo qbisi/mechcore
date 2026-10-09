@@ -1,0 +1,28 @@
+# Field Reassembly on blue's two Typhoons, beside six level-4 Rhinos, against
+# a Fortress. One Typhoon dies on tick 46 and rises on 145. The other dies on
+# tick 119 and is still waiting where it fell when the Fortress dies on tick
+# 188: the fight ends on tick 190 with its task dropped, and it scores
+# nothing. The one that rose scores 31 of blue's 1231.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 190
+hash: {profile: mcfr-content-0.23.0, result: 21335f46e76fc721231d044302145b01282bd7f3b2590fb201ab2c759b7c303e}
+blue:
+  techs:
+    typhoon: [field_reassembly]
+  units:
+  - {name: typhoon, index: 0, position: {x: 0, y: -40}, exp: 0/57/1950}
+  - {name: rhino, index: 1, position: {x: -55, y: -95}, level: 4, exp: 0/57/5164}
+  - {name: rhino, index: 2, position: {x: 65, y: -95}, level: 4, exp: 0/457/5164}
+  - {name: rhino, index: 3, position: {x: -15, y: -95}, level: 4, exp: 0/57/5164}
+  - {name: rhino, index: 4, position: {x: 25, y: -95}, level: 4, exp: 0/57/5164}
+  - {name: rhino, index: 5, position: {x: -95, y: -95}, level: 4, exp: 0/57/5164}
+  - {name: rhino, index: 6, position: {x: 105, y: -95}, level: 4, exp: 0/57/5164}
+red:
+  core_damage: 1231
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -40}, exp: 0/600/1600}

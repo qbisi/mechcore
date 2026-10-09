@@ -1,0 +1,28 @@
+# Field Reassembly on blue's two Typhoons, against a Fortress with Anti-Air
+# Barrage. The Typhoon that dies on tick 47 waits where it fell, its row in
+# `rebirths` from that tick, and stands again on tick 146 with its whole life,
+# its main skill's attack time at its interval. The other dies on tick 121,
+# with neither standing: blue stands all the same, and the Fortress reads on
+# at its cycle rather than its composed interval. It rises on tick 221, a
+# tick later than its 100 updates would put it, since the first task ended
+# under the index of the update it would have had on tick 146. Each dies a
+# second time and is not brought back, and red wins.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 287
+hash: {profile: mcfr-content-0.23.0, result: b3e8208a309373534427d2a6657dbe27125ee040c55196f095b7a1ecec69ac3b}
+blue:
+  core_damage: 350
+  techs:
+    typhoon: [field_reassembly]
+  units:
+  - {name: typhoon, index: 0, position: {x: 0, y: -40}}
+red:
+  techs:
+    fortress: [anti_air_barrage]
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -40}, exp: 0/1200/1600}

@@ -94,6 +94,7 @@ impl Actor {
             parasitic: false,
             created: false,
             rebirth_count: 0,
+            rebirthing: false,
             moved_q32: 0,
             move_mark_q32: (0, 0),
             shield,

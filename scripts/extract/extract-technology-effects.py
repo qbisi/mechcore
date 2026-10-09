@@ -148,7 +148,7 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "moveAbilityRangeItemTechDatas",
                "damageShareTechnologies", "advancedEnergyShieldTechnologies",
                "reactiveArmorTechDatas", "fireIntensifyTechnologies", "siegeModeTechDatas",
-               "wreckageRecoveryTechnologies")
+               "wreckageRecoveryTechnologies", "rebirthEffectTechologyDatas")
 # The list whose `BuffTech` adds a buff, and the fields its rows carry for
 # `buff_lines` rather than as corrections.
 BUFF = "buffTechnologies"
@@ -261,6 +261,29 @@ SIEGE_CLIENT = {"siegeModeMoveSpeedChangeRate"}
 # the dying unit's level.
 WRECKAGE = "wreckageRecoveryTechnologies"
 WRECKAGE_FIELDS = {"time", "distance"}
+# The list whose `RebirthTech` brings its unit back after it dies, and what its
+# rows answer `IRebirthData` with: the whole seconds the unit waits, the times
+# a fight brings it back, the seconds it spends rising, the unit it rises as,
+# and, for a pilot that follows an ally, how that pilot flies.
+REBIRTH = "rebirthEffectTechologyDatas"
+REBIRTH_FIELDS = (
+    ("cost_time", "rebirthCostTime"),
+    ("count", "rebirthCount"),
+    ("rebirthing_time", "rebirthingTime"),
+    ("unit_id", "mechId"),
+    ("unit_count", "mechNum"),
+    ("follow_others", "isFollowOthers"),
+    ("interval_x", "intervalX"),
+    ("interval_z", "intervalZ"),
+    ("interval_from_mech_center_z", "intervalFromMechCenterZ"),
+    ("random_offset_range", "randomOffsetRange"),
+    ("follow_start_offset_range", "followStartPosOffsetRange"),
+    ("transfer_distance_min", "transferDistanceMin"),
+    ("speed_in_transfer", "speedInTransfer2"),
+    ("per_r", "perR"),
+    ("follow_rate", "followRate"),
+    ("follow_rotate_rate", "followRotateRate"),
+)
 # The list of `TechnologyGroupData` a plain technology comes from. A row of any
 # other list is a subclass (`BuffTechnologyData`, `SplashTechnologyData` and
 # the rest) that does something beyond its unit's numbers.
@@ -316,6 +339,7 @@ def special(row: dict) -> list[str]:
               else MECH_GROUP_CLIENT if row["kind"] == MECH_GROUP
               else {field for _, field in SIEGE_FIELDS} | SIEGE_CLIENT if row["kind"] == SIEGE
               else WRECKAGE_FIELDS if row["kind"] == WRECKAGE
+              else {field for _, field in REBIRTH_FIELDS} if row["kind"] == REBIRTH
               else set())
     return sorted(
         field
@@ -558,6 +582,10 @@ def main() -> int:
         "# its unit on an enemy counts, and the whole metres, by the dying",
         "# unit's level, within which the unit takes life as that enemy dies",
         "# (`wreckage`).",
+        "# A rebirth technology carries what brings its unit back after it dies",
+        "# (`rebirth`): the whole seconds it waits, the times a fight brings it",
+        "# back, the seconds it spends rising, the unit it rises as, and, for a",
+        "# pilot that follows an ally, the FPoint offsets and rates it flies by.",
         "",
         "technologies:",
     ]
@@ -618,6 +646,20 @@ def main() -> int:
             point = row["row"]["time"]["m_rawValue"]
             distance = ", ".join(str(value) for value in row["row"]["distance"])
             lines.append(f"    wreckage: {{time: {point}, distance: [{distance}]}}  # {point / ONE:.6g} s")
+        if row["kind"] == REBIRTH:
+            lines.append("    rebirth:")
+            for field, source in REBIRTH_FIELDS:
+                value = row["row"][source]
+                if isinstance(value, bool):
+                    lines.append(f"      {field}: {str(value).lower()}")
+                elif isinstance(value, dict) and "m_rawValue" in value:
+                    point = value["m_rawValue"]
+                    lines.append(f"      {field}: {point}  # {point / ONE:.6g}")
+                elif isinstance(value, dict):
+                    points = [value[axis]["m_rawValue"] for axis in "xyz"]
+                    lines.append(f"      {field}: [{', '.join(map(str, points))}]")
+                else:
+                    lines.append(f"      {field}: {value}")
         if row["kind"] == SIEGE:
             lines.append("    siege_mode:")
             for field, source in SIEGE_FIELDS:
