@@ -51,7 +51,6 @@ jobs:
 
       # The cheapest check in the file, and the one whose answer is never worth
       # arguing about, so it runs before the ones that take minutes.
-      # `.githooks/pre-commit` gives the same answer before the push.
       - name: Formatting
         run: cargo fmt --all -- --check
 
