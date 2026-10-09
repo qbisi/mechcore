@@ -1176,7 +1176,10 @@ whose own `DisableEffect` it does not mirror.
   of a row's skills that joined the main skill's group, which
   `FightSkillFactory.PrepareGroupedSkill` only adds to that group: an idle
   one starts no attack, one attacking fails its check, and the main row's
-  skills go on. Read from the build; no recording holds it.
+  skills go on. A control beam's skill has no `Disable` of its own: leaving
+  its attack stops its `ControllEffect`, which takes the skill off its
+  target's entry, as any end of its attack does. Read from the build; no
+  recording holds it.
 - **A permanent preemptive explosion neither activates nor explodes.** Its
   condition holds nothing while the unit's technologies are disabled, its
   skill being a technology's
