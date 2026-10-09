@@ -74,6 +74,7 @@ impl Actor {
             target_query_source_rotation_q32: mdeg_to_degrees_q32(placement.rotation),
             target_query_alive: true,
             target_query_visibility: Visibility::Normal,
+            target_query_ranges: (0, 0),
             body_rotation: placement.rotation,
             body_rotation_q32: mdeg_to_degrees_q32(placement.rotation),
             aim_rotation: placement.rotation,
@@ -621,7 +622,9 @@ impl Actor {
             buffs: self.buffs.iter().map(RunningBuff::state).collect(),
             personal_shield: PersonalShieldState {
                 active: self.shield.is_some(),
-                enabled: true,
+                // `EnergyShieldBehaviour.IsEnable`, cleared while the unit's
+                // technologies are off; a unit with no shield reads enabled.
+                enabled: self.shield.is_none_or(|shield| shield.enabled),
                 energy: GaugeI32 {
                     current: self.shield.map_or(0, |shield| {
                         i32::try_from(shield.energy).expect("shield energy fits i32")

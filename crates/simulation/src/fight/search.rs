@@ -715,12 +715,28 @@ impl Scoring {
 }
 
 impl Simulation {
+    /// `MainSkillSearchTargetController.PrepareSearch` reads its skill's
+    /// ranges as it prepares, after the last tick's modules: a technology an
+    /// Electromagnetic Impact switches off on this tick reaches the next
+    /// tick's searches, not this one's.
+    pub(in crate::fight) fn snapshot_search_ranges(&mut self) {
+        let ranges = self
+            .actors
+            .keys()
+            .map(|&id| (self.main_attack_range(id), self.main_min_range(id)))
+            .collect::<Vec<_>>();
+        for (actor, ranges) in self.actors.values_mut().zip(ranges) {
+            actor.target_query_ranges = ranges;
+        }
+    }
+
     pub(in crate::fight) fn refresh_target_query_snapshot(&mut self) {
         // The build prepares selector inputs before FightCore updates actors
         // sequentially. Red actors must therefore score the tick-start pose,
         // not positions already advanced by blue actors in the same tick.
         // FightSkill::GetMainTransform returns its first valid owned weapon transform;
         // bodyless weapons without one fall back to the mech's root transform.
+        self.snapshot_search_ranges();
         for actor in self.actors.values_mut() {
             actor.target_query_x_q32 = actor.x_q32;
             actor.target_query_z_q32 = actor.z_q32;
@@ -962,7 +978,19 @@ impl Simulation {
             return None;
         }
         if prepared {
-            match self.select_in_square(source, target_search_order, false, Some(0)) {
+            // The prepared job scores with the ranges it was prepared with.
+            let prepared_source = match source.owner {
+                FightActorRef::Unit(id) => {
+                    let (attack_range, min_range) = self.actors[&id].target_query_ranges;
+                    super::attacker::Attacker {
+                        min_range,
+                        attack_range,
+                        ..*source
+                    }
+                }
+                FightActorRef::Building(_) => *source,
+            };
+            match self.select_in_square(&prepared_source, target_search_order, false, Some(0)) {
                 Some(chosen)
                     if self
                         .fight_actor(chosen)
