@@ -1,0 +1,24 @@
+# Subterranean Blitz on the Crawlers blue's Steel Ball summons as it dies
+# (Mechanical Division). The manager holds each as it joins, after the
+# rest: three burrow on tick 363, in the order they joined (14, 12, 15),
+# and on tick 364, as the fight ends, their buffs are cleared in that order,
+# not by unit id.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 364
+hash: {profile: mcfr-content-0.23.0, result: e66531ed52df282141aa43ad5b990a36486aa23e64f87348a4e993990f408a46}
+blue:
+  techs:
+    steel_ball: [mechanical_division]
+    crawler: [subterranean_blitz]
+  units:
+  - {name: steel_ball, index: 0, position: {x: 5, y: -140}, exp: 0/600/1000}
+red:
+  core_damage: 104
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}, exp: 0/140/1150}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}, exp: 0/108/650}

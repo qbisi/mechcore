@@ -10,7 +10,13 @@
 //! (`TeamBurrowManager.Update`). Burrowing writes `BurrowTech` on the unit as
 //! its own buff, its rate on the damage the unit takes, from no source
 //! (`TryBurrowDown`, `BuffSystem.DoAddBuff`); coming up removes it
-//! (`TryBurrowUp`, `BuffSystem.RemoveBuff`). A source that takes its unit
+//! (`TryBurrowUp`, `BuffSystem.RemoveBuff`). A unit is held from its
+//! deployment (`AddEffect`, `AddMech`), `Deactive`, and is `Normal` once
+//! `FightEffectSystem.ActiveEffect` activates its effects (`DoActive`,
+//! `BurrowSystem.Active`): as the fight starts, or as it lands, joins or
+//! rises again. Its technologies switched off, or its death, bring it up and
+//! leave it `Deactive`, in its place (`DisableEffect`, `DoDeactive`,
+//! `BurrowSystem.Deactive`), until they come back (`EnableEffect`). A source that takes its unit
 //! underground (`IsEnterUnderGround`) is refused by the technology table.
 //! `docs/rules/technology_effects.md` states the rule.
 
@@ -28,6 +34,8 @@ pub(in crate::fight) struct BurrowSystem {
     /// The units whose `BurrowInfo.burrowStatus` is `Underground`; every
     /// other held unit's is `Normal`.
     burrowed: BTreeSet<u64>,
+    /// The units whose status is `Deactive`: their technologies are off.
+    deactive: BTreeSet<u64>,
     /// The buffs it wrote and removed this tick.
     events: Vec<Event>,
 }
@@ -36,7 +44,8 @@ impl Simulation {
     /// `TeamBurrowManager.AddMech` and `ActiveEffect` for every unit the
     /// fight starts with whose technologies hand it a source, each side's in
     /// `OnFightStart`'s order: by the second coordinate where each stands,
-    /// then the first. The layout refuses a unit travelling in with one.
+    /// then the first. A unit travelling in is held in its place,
+    /// `Deactive` until it lands ([`Self::add_burrow_unit`]).
     pub(in crate::fight) fn enter_burrow_fight(&mut self) {
         let mut held = self
             .actors
@@ -45,7 +54,65 @@ impl Simulation {
             .map(|(&id, actor)| ((actor.placement.team, actor.z_q32, actor.x_q32), id))
             .collect::<Vec<_>>();
         held.sort_unstable();
-        self.burrow.order = held.into_iter().map(|(_, id)| id).collect();
+        self.burrow.order = held.iter().map(|(_, id)| *id).collect();
+        self.burrow.deactive = held
+            .into_iter()
+            .map(|(_, id)| id)
+            .filter(|id| self.actors[id].travelling)
+            .collect();
+    }
+
+    /// `BurrowEffectProvider.DoActive` of a unit landing, joining or rising
+    /// again: `Normal` in its place, and one made or summoned since the
+    /// fight began held after the rest (`AddMech`).
+    pub(in crate::fight) fn add_burrow_unit(&mut self, unit: u64) {
+        if self.actors[&unit].placement.burrow.is_none() {
+            return;
+        }
+        if !self.burrow.order.contains(&unit) {
+            self.burrow.order.push(unit);
+        }
+        self.burrow.deactive.remove(&unit);
+    }
+
+    /// `BurrowEffectProvider.DisableEffect` and `EnableEffect`: off, the unit
+    /// comes up (`TryBurrowUp`, its buff removed) and its status is
+    /// `Deactive`, which the manager's update passes over
+    /// (`BurrowSystem.Deactive`); on, it is `Normal` again
+    /// (`BurrowSystem.Active`).
+    pub(in crate::fight) fn switch_burrow(
+        &mut self,
+        unit: u64,
+        on: bool,
+        events: &mut Vec<Event>,
+    ) -> Result<()> {
+        if !self.burrow.order.contains(&unit) {
+            return Ok(());
+        }
+        if on {
+            self.burrow.deactive.remove(&unit);
+            return Ok(());
+        }
+        self.burrow_up(unit, events)?;
+        self.burrow.deactive.insert(unit);
+        Ok(())
+    }
+
+    /// The units a production line made this tick renumbered as a recording
+    /// numbers them.
+    pub(in crate::fight) fn renumber_burrow_units(&mut self, renamed: &BTreeMap<u64, (u64, u64)>) {
+        let rename = |id: &mut u64| {
+            if let Some(&(new, _)) = renamed.get(id) {
+                *id = new;
+            }
+        };
+        self.burrow.order.iter_mut().for_each(rename);
+        for set in [&mut self.burrow.burrowed, &mut self.burrow.deactive] {
+            *set = set
+                .iter()
+                .map(|&id| renamed.get(&id).map_or(id, |&(new, _)| new))
+                .collect();
+        }
     }
 
     /// `TeamBurrowManager.Update`: each held unit comes up when its main
@@ -56,6 +123,9 @@ impl Simulation {
     pub(in crate::fight) fn step_burrows(&mut self) -> Result<()> {
         let mut events = std::mem::take(&mut self.burrow.events);
         for unit in self.burrow.order.clone() {
+            if self.burrow.deactive.contains(&unit) {
+                continue;
+            }
             let actor = &self.actors[&unit];
             let source = actor
                 .placement
@@ -63,10 +133,10 @@ impl Simulation {
                 .clone()
                 .expect("a held unit has a source");
             let skill = &actor.skills.main;
-            if skill.group.is_some() {
+            if skill.is_grouped() {
                 return Err(Error::new(format!(
-                    "unit {unit} burrows with a grouped main skill, whose search's nearest \
-                     enemy is not measured"
+                    "unit {unit} burrows with a grouped main skill or a batch of standalone \
+                     weapons, whose nearest enemy is not measured"
                 )));
             }
             let relieve_q32 = level_value(&source.relieve_distance, actor.placement.level);
@@ -76,17 +146,17 @@ impl Simulation {
                 })
             };
             let nearest = skill.nearest_actor.get();
-            let up = match nearest {
-                None => true,
-                Some(_) if near(nearest) => true,
-                // `GetDistanceToAttackTarget` measures to the attack target,
-                // else the unit's lock, and reads a null one's transform: the
-                // exception leaves the unit as it stands, and the manager goes
-                // on to the next.
-                Some(_) => match skill.attack_target().or_else(|| actor.mech_lock()) {
-                    None => continue,
-                    target => near(target),
-                },
+            let up = if nearest.is_none() {
+                true
+            } else {
+                // The update measures only for a main skill holding an attack
+                // target (`FightSkill.attackTarget`): a unit no update since
+                // it landed has searched one for, and one whose attack ended,
+                // are left as they stand.
+                let Some(target) = actor.slot_attack_target(0) else {
+                    continue;
+                };
+                near(nearest) || near(Some(target))
             };
             if up {
                 self.burrow_up(unit, &mut events)?;
@@ -98,13 +168,15 @@ impl Simulation {
         Ok(())
     }
 
-    /// `TeamBurrowManager.RemoveMech`, as a unit dies
-    /// (`BurrowEffectProvider.DoDeactive`): a burrowed one comes up
-    /// (`TryBurrowUp`), and its buff, which `BuffManager.Clear` cleared as
-    /// it died, is not there to remove.
+    /// `BurrowEffectProvider.DoDeactive`, as a unit dies
+    /// (`BurrowSystem.Deactive`): it comes up (`TryBurrowUp`), its buff,
+    /// which `BuffManager.Clear` cleared as it died, not there to remove, and
+    /// is `Deactive` in its place until it rises again.
     pub(in crate::fight) fn remove_burrow_unit(&mut self, unit: u64) {
-        self.burrow.burrowed.remove(&unit);
-        self.burrow.order.retain(|held| *held != unit);
+        if self.burrow.order.contains(&unit) {
+            self.burrow.burrowed.remove(&unit);
+            self.burrow.deactive.insert(unit);
+        }
     }
 
     /// What the manager wrote this tick, which follows the tick's deaths:

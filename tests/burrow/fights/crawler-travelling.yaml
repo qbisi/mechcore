@@ -1,0 +1,23 @@
+# Subterranean Blitz on blue's Crawlers travelling in from the left flank in
+# round 2. While they travel no update measures them, and on tick 161, as
+# they land, none yet holds an attack target its update searched: they
+# burrow from tick 162.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: game
+ticks: 763
+hash: {profile: mcfr-content-0.23.0, result: 4c2a5698166ea303196475c9b8569a82d7b1b78954128adac45ff21c5c8400fd}
+blue:
+  techs:
+    crawler: [subterranean_blitz]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: crawler, index: 1, position: {x: -330, y: 45}, exp: 0/400/450, travelling: true}
+red:
+  core_damage: 84
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}, exp: 0/200/650}
+  - {name: marksman, index: 1, position: {x: -60, y: -150}, exp: 0/24/650}

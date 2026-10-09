@@ -185,6 +185,7 @@ pub(crate) struct Production {
     pub(crate) corrections: Vec<(Channel, Entry)>,
     pub(crate) technology_disable: TechnologyDisable,
     pub(crate) reactive_armor: Option<ReactiveArmor>,
+    pub(crate) burrow: Option<Burrow>,
 }
 
 #[derive(Debug, Clone)]
@@ -794,12 +795,11 @@ fn compile_battle_skills(
                 || worn.rebirth.is_some()
                 || worn.rvo_radius_change.is_some()
                 || worn.clear_range_item.is_some()
-                || worn.burrow.is_some()
             {
                 refused.push(format!(
                     "side {name} summons a {} that its technologies give lifesteal, repair, \
                      a shield, stealth, a group, a trench, a fire, life from wreckage, a \
-                     rebirth, a loose formation, a fire extinguisher or a burrow, and what a \
+                     rebirth, a loose formation or a fire extinguisher, and what a \
                      summon's effect providers carry is not measured",
                     summon.rules.type_name
                 ));
@@ -808,6 +808,7 @@ fn compile_battle_skills(
             summon.corrections = worn.corrections;
             summon.technology_disable = worn.technology_disable;
             summon.reactive_armor = worn.reactive_armor;
+            summon.burrow = worn.burrow;
         }
         battle_skills.push(release);
     }
@@ -1096,12 +1097,11 @@ fn made_by(
         || worn.rebirth.is_some()
         || worn.rvo_radius_change.is_some()
         || worn.clear_range_item.is_some()
-        || worn.burrow.is_some()
     {
         refused.push(format!(
             "side {side_name} makes a {} that its technologies give lifesteal, repair, a \
              shield, a search by distance, a second damage, a dead line, a stronger \
-             surfacing, a sand fog, interceptors, a summon as it dies, a trench, a fire, life from wreckage, a rebirth, a loose formation, a fire extinguisher or a burrow, and what a made unit's effect providers carry is not measured",
+             surfacing, a sand fog, interceptors, a summon as it dies, a trench, a fire, life from wreckage, a rebirth, a loose formation or a fire extinguisher, and what a made unit's effect providers carry is not measured",
             made.type_name
         ));
         return None;
@@ -1114,6 +1114,7 @@ fn made_by(
         corrections,
         technology_disable: worn.technology_disable,
         reactive_armor: worn.reactive_armor,
+        burrow: worn.burrow,
     })
 }
 
@@ -1220,17 +1221,6 @@ fn refuse_travelling_buffs(
         ));
         return None;
     }
-    // `TeamBurrowManager.Update` asks a unit still travelling, which no
-    // search has reached, and when one that arrives first burrows is not
-    // read.
-    if formation.travelling && worn.burrow.is_some() {
-        refused.push(format!(
-            "side {side_name} unit type {:?} travels in with a burrow, and when a \
-             travelling unit first burrows is not measured",
-            formation.type_name
-        ));
-        return None;
-    }
     Some(())
 }
 
@@ -1240,8 +1230,6 @@ fn unread_on_a_death_summon(worn: &Worn) -> Option<&'static str> {
         Some("make an interceptor, and when a summon's interceptors start")
     } else if worn.dead_summon.is_some() {
         Some("make summon as it dies in turn")
-    } else if worn.burrow.is_some() {
-        Some("burrow, and whether its manager holds it as it appears")
     } else if worn.rvo_radius_change.is_some() {
         Some("loosen its formation, and whether its agent joins its team as it appears")
     } else if worn.clear_range_item.is_some() {
