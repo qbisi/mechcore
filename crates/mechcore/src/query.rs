@@ -29,6 +29,7 @@ use crate::cli::{Args, Failure, Format, Outcome, Verdict};
 use crate::kind::Kind;
 
 mod flatten;
+mod layout;
 
 use flatten::{Column, Table};
 
@@ -40,6 +41,8 @@ const QUERIES: &[(&str, &str)] = &[
         "kills-by-formation",
         include_str!("query/kills-by-formation.sql"),
     ),
+    ("travel-distance", include_str!("query/travel-distance.sql")),
+    ("unit-at", include_str!("query/unit-at.sql")),
 ];
 
 /// Reads `query <file> (--sql <sql> | --query <name> | --schema)` off a
@@ -125,7 +128,7 @@ pub(crate) fn answer(
 ) -> Result<Value, Failure> {
     let database = open(input, &asked, parameters)?;
     match asked {
-        Asked::Schema => serde_json::to_value(database.schema())
+        Asked::Schema => serde_json::to_value(database.schema()?)
             .map_err(|error| Failure::failed(format!("cannot write the result: {error}"))),
         Asked::Sql(sql) => Ok(database.query(&sql, parameters)?.json()),
     }
@@ -138,7 +141,7 @@ fn answer_text(
 ) -> Result<String, Failure> {
     let database = open(input, &asked, parameters)?;
     match asked {
-        Asked::Schema => Ok(schema_text(&database.schema())),
+        Asked::Schema => Ok(schema_text(&database.schema()?)),
         Asked::Sql(sql) => Ok(database.query(&sql, parameters)?.text()),
     }
 }
@@ -183,6 +186,19 @@ impl Database {
                 },
             )
             .map_err(sqlite)?;
+        let numeric = FunctionFlags::SQLITE_UTF8 | FunctionFlags::SQLITE_DETERMINISTIC;
+        connection
+            .create_scalar_function("sqrt", 1, numeric, |context| {
+                Ok(context.get::<Option<f64>>(0)?.map(f64::sqrt))
+            })
+            .map_err(sqlite)?;
+        connection
+            .create_scalar_function("hypot", 2, numeric, |context| {
+                let x = context.get::<Option<f64>>(0)?;
+                let y = context.get::<Option<f64>>(1)?;
+                Ok(x.zip(y).map(|(x, y)| x.hypot(y)))
+            })
+            .map_err(sqlite)?;
         let mut members = BTreeMap::new();
         for member in recording.tables() {
             let schema = recording
@@ -208,6 +224,7 @@ impl Database {
                    json_extract((SELECT value FROM meta WHERE key = 'durable_context'), '$.combat_round') AS combat_round;",
             )
             .map_err(sqlite)?;
+        connection.execute_batch(layout::CREATE).map_err(sqlite)?;
         {
             let mut insert = connection
                 .prepare("INSERT INTO meta (key, value) VALUES (?1, ?2)")
@@ -315,11 +332,22 @@ impl Database {
             transaction.commit().map_err(sqlite)?;
             self.filled.extend(wanted);
         }
+        if layout::TABLES
+            .iter()
+            .any(|table| read.contains(*table) && !self.filled.contains(*table))
+        {
+            let transaction = self.connection.transaction().map_err(sqlite)?;
+            layout::fill(&transaction, &self.recording)
+                .map_err(|error| Failure::failed(format!("layout.yaml: {error}")))?;
+            transaction.commit().map_err(sqlite)?;
+            self.filled
+                .extend(layout::TABLES.iter().map(|table| (*table).to_owned()));
+        }
         Ok(())
     }
 
-    fn schema(&self) -> Schema {
-        let tables = self
+    fn schema(&self) -> Result<Schema, Failure> {
+        let mut tables: Vec<SchemaTable> = self
             .members
             .iter()
             .flat_map(|(member, table)| {
@@ -336,7 +364,40 @@ impl Database {
                 })
             })
             .collect();
-        Schema {
+        for table in layout::TABLES {
+            let mut statement = self
+                .connection
+                .prepare(&format!("PRAGMA table_info(\"{table}\")"))
+                .map_err(sqlite)?;
+            let columns = statement
+                .query_map([], |row| {
+                    Ok(SchemaColumn {
+                        name: row.get(1)?,
+                        sql_type: match row.get::<_, String>(2)?.as_str() {
+                            "INTEGER" => "INTEGER",
+                            "TEXT" => "TEXT",
+                            _ => "ANY",
+                        },
+                        nullable: row.get::<_, i64>(3)? == 0,
+                        path: "layout.yaml".to_owned(),
+                        tags: None,
+                    })
+                })
+                .map_err(sqlite)?
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(sqlite)?;
+            tables.push(SchemaTable {
+                name: (*table).to_owned(),
+                member: "layout.yaml".to_owned(),
+                origin: "layout",
+                key: layout::key(table)
+                    .iter()
+                    .map(|name| (*name).to_owned())
+                    .collect(),
+                columns,
+            });
+        }
+        Ok(Schema {
             schema: "mechcore.query.schema.v1",
             tables,
             queries: QUERIES
@@ -352,7 +413,7 @@ impl Database {
                     parameters: parameter_names(sql),
                 })
                 .collect(),
-        }
+        })
     }
 }
 

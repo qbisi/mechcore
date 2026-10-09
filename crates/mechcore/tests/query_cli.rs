@@ -140,6 +140,82 @@ fn the_schema_names_every_table_and_query() {
         weapons["key"],
         serde_json::json!(["tick", "unit_id", "skills_ordinal", "ordinal"])
     );
-    assert!(tables.iter().all(|table| table["origin"] == "hashed"));
-    assert_eq!(schema["queries"].as_array().unwrap().len(), 3);
+    assert!(
+        tables
+            .iter()
+            .all(|table| table["origin"] == "hashed" || table["origin"] == "layout")
+    );
+    assert!(tables.iter().any(|table| table["name"] == "layout_units"));
+    assert_eq!(schema["queries"].as_array().unwrap().len(), 5);
+}
+
+#[test]
+fn every_placed_formation_is_named_by_its_placement() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = recording(directory.path());
+    let (code, answer) = query(
+        &path,
+        &[
+            "--sql",
+            "SELECT l.side, l.placement, l.name, count(DISTINCT u.unit_id) \
+             FROM layout_units l JOIN units u ON u.formation_id = l.formation_id AND u.tick = 1 \
+             GROUP BY l.side, l.placement ORDER BY l.side, l.placement",
+        ],
+    );
+    assert_eq!(code, 0, "{answer}");
+    let rows = answer["rows"].as_array().unwrap();
+    assert_eq!(
+        rows.len() as u64,
+        single(&path, "SELECT count(*) FROM layout_units")
+            .as_u64()
+            .unwrap()
+    );
+    assert!(rows.iter().all(|row| row[3].as_u64().unwrap() > 0));
+    assert_eq!(
+        single(
+            &path,
+            "SELECT count(*) FROM layout_units WHERE formation_id IS NULL"
+        ),
+        0
+    );
+}
+
+#[test]
+fn travel_and_a_unit_at_a_tick_are_answered() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = recording(directory.path());
+    let (code, travel) = query(&path, &["--query", "travel-distance"]);
+    assert_eq!(code, 0, "{travel}");
+    assert_eq!(
+        travel["rows"].as_array().unwrap().len() as u64,
+        single(&path, "SELECT count(DISTINCT unit_id) FROM units")
+            .as_u64()
+            .unwrap()
+    );
+    let unit = single(&path, "SELECT min(unit_id) FROM units WHERE tick = 1");
+    let (code, at) = query(
+        &path,
+        &[
+            "--query",
+            "unit-at",
+            "--param",
+            &format!("unit={unit}"),
+            "--param",
+            "tick=1",
+        ],
+    );
+    assert_eq!(code, 0, "{at}");
+    let rows = at["rows"].as_array().unwrap();
+    assert_eq!(rows.len(), 1);
+    let skills: serde_json::Value = serde_json::from_str(
+        rows[0]
+            .as_array()
+            .unwrap()
+            .last()
+            .unwrap()
+            .as_str()
+            .unwrap(),
+    )
+    .unwrap();
+    assert!(!skills.as_array().unwrap().is_empty());
 }
