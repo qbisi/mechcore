@@ -75,9 +75,32 @@ impl BuffCycle {
 }
 
 impl Simulation {
-    /// `TeamBuffCycleManager.Update`: every controller of a live unit whose
-    /// technologies are not disabled, blue's units first, each unit's in the
-    /// order its sources came, every buff recorded as written by that unit.
+    /// `BuffEffectProvider.DoDisableCycle` and `DoEnableCycle`, which its
+    /// `DisableEffect` and `EnableEffect` run for every source it holds:
+    /// each controller of the unit stops, its listener taken off
+    /// (`RemoveListener`), and starts again with its listener and its
+    /// `timeSum` at zero; a `RangeUnitCycle` keeps where it stood.
+    pub(in crate::fight) fn switch_buff_cycles(&mut self, unit: u64, on: bool) {
+        let actor = self
+            .actors
+            .get_mut(&unit)
+            .expect("actor identity is stable");
+        if actor.buff_cycles_available == on {
+            return;
+        }
+        actor.buff_cycles_available = on;
+        if on {
+            for cycle in &mut actor.buff_cycles {
+                if let BuffCycle::Counting { time_sum, .. } = cycle {
+                    *time_sum = 0;
+                }
+            }
+        }
+    }
+
+    /// `TeamBuffCycleManager.Update`: every available controller of a live
+    /// unit, blue's units first, each unit's in the order its sources came,
+    /// every buff recorded as written by that unit.
     pub(in crate::fight) fn step_buff_cycles(
         &mut self,
         target_search_order: &BTreeMap<u32, Vec<FightActorRef>>,
@@ -87,7 +110,7 @@ impl Simulation {
             .actors
             .iter()
             .filter(|(_, actor)| {
-                !actor.buff_cycles.is_empty() && actor.alive() && !actor.technology_disabled()
+                !actor.buff_cycles.is_empty() && actor.alive() && actor.buff_cycles_available
             })
             .map(|(&id, actor)| (actor.placement.team, id))
             .collect::<Vec<_>>();
@@ -353,7 +376,9 @@ impl Simulation {
             .buff_sources
             .iter()
             .filter(|source| source.trigger == BuffTrigger::BeHit)
-            .filter(|source| !(source.can_disable && owner.technology_disabled()))
+            // `RemoveListener` took it off while its controllers are not
+            // available.
+            .filter(|_| owner.buff_cycles_available)
             .copied()
             .collect::<Vec<_>>();
         if sources.is_empty()
@@ -432,7 +457,9 @@ impl Simulation {
             .buff_sources
             .iter()
             .filter(|source| source.trigger == BuffTrigger::Damaged)
-            .filter(|source| !(source.can_disable && owner.technology_disabled()))
+            // `RemoveListener` took it off while its controllers are not
+            // available.
+            .filter(|_| owner.buff_cycles_available)
             .copied()
             .collect::<Vec<_>>();
         let (source, team) = (owner.object_ref(), owner.placement.team);
