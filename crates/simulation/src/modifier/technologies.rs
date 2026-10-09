@@ -574,6 +574,7 @@ fn surfacing_line_of(row: &Row, who: &str) -> std::result::Result<Option<Product
         arrival: super::sources::Arrival::InPlace,
         make_corrections: Vec::new(),
         gated: false,
+        technology: None,
     }))
 }
 
@@ -1113,6 +1114,7 @@ impl SupportBlock {
             })
             .collect(),
             gated: false,
+            technology: None,
         })
     }
 }
@@ -2093,7 +2095,10 @@ fn subclass_of(
             .production
             .as_ref()
             .ok_or_else(|| format!("{who} carries no production line"))?;
-        Some(block.line(who)?)
+        Some(ProductionLine {
+            technology: Some(row.id),
+            ..block.line(who)?
+        })
     } else {
         None
     };

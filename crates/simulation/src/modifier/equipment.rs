@@ -604,6 +604,7 @@ fn production_of(row: &Row, who: &str) -> std::result::Result<Option<ProductionL
         arrival: super::sources::Arrival::InPlace,
         make_corrections: Vec::new(),
         gated: false,
+        technology: None,
     }))
 }
 

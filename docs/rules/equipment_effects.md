@@ -168,9 +168,20 @@ second as [battle_skill.md](battle_skill.md#a-summon) states. The rows are
 `production`.
 
 A row with a `unit_level`, a `max_create_count`, a `unit_life_rate`, no
-`positions` or an `appear_type` other than 5 is refused by name, and so are
-two lines on one unit, a make whose side's technologies give it life steal,
-repair or a shield, and a make due after its wearer has fallen.
+`positions` or an `appear_type` other than 5 is refused by name, and so is a
+make due after its wearer has fallen.
+
+**A unit runs every line it is handed, each its own creator.** Its
+equipment's, its technologies' and its extra weapons' lines each reach it as
+a source, and `SupportUnitProvider.AddEffect` has `SupportUnitSystem.
+AddSkillOwner` make a `SupportUnitCreator` of each, in the order the provider
+holds them: `EffectProvider.Sort` orders them by priority, every one the
+same, and `List.Sort` keeps so few in the order they came. Each runs as a
+line alone does, and a buff that disables technology switches only those its
+technologies hand it (`SupportUnitSystem.Disable` finds a creator by its
+owner and its source). A War Factory with Phoenix, Steel Ball and
+Sledgehammer Production runs all three. Read from the build; no recording
+holds two lines on one unit.
 
 ## An important unit
 

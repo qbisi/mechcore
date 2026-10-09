@@ -504,6 +504,10 @@ pub(crate) struct ProductionLine {
     /// (`SupportSkillStartAttackChecker`), locking the line while it may not
     /// start.
     pub(crate) gated: bool,
+    /// The support technology that hands it (`ISupportEffectDataSource`),
+    /// whose `SupportUnitProvider` switches it with its unit's technologies;
+    /// none for an equipment's, an extra weapon's or a surfacing line.
+    pub(crate) technology: Option<i32>,
 }
 
 /// Where a production line's make appears.
