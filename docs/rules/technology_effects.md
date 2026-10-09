@@ -401,11 +401,11 @@ culled at 250 is charged 320. The hit names no damage provider, so its
 
 A row of `damageShareTechnologies` is a `DamageShareTech`: Damage Sharing,
 the Sledgehammer's and the Steel Ball's, whose numbers give their units 120%
-more life, and Grid Integration, the Vortex's, which groups its units for
-another purpose (`mechGroupPurpose` 1, a damage rate by the group's count)
-and is refused by the fields it names in `special`. Its `share_distance` is
-what it answers `IMechGroupSource.GetShareDistance` with, 25 metres, by its
-unit's level. `MechGrounpEffectProvider.DoActive` writes it on the unit as
+more life and whose groups share damage (`group_purpose` 0, `DamageShare`),
+and Grid Integration, the Vortex's, whose groups raise their members' damage
+(`group_purpose` 1, `DamageChange`). Its `share_distance` is what it answers
+`IMechGroupSource.GetShareDistance` with, 25 metres and Grid Integration's
+35, by its unit's level. `MechGrounpEffectProvider.DoActive` writes it on the unit as
 its `MechDataChangeFloat.MechGroupDistance` and hands the unit to its side's
 `TeamMechGroupManager` (`AddMech`); a unit travelling in is handed over as it
 arrives, and a unit that dies leaves as `DeadEffectSystem` deactivates its
@@ -425,17 +425,35 @@ before `RangeItemSystem` (`Update` falls through to `DoRefresh`), each unit
 in turn splits its group into the parts still linked, a part of one unit
 leaving and the group keeping the first part (`TrySplitGroup`), joins the
 groups it reaches and takes in the units it reaches that have none
-(`UpdateGroupInfo`). The group writes nothing on its members.
+(`UpdateGroupInfo`). What a group does is its source's purpose
+(`IMechGroupSource.GetGroupPurpose`).
 
-**A hit on a member is shared.** `FightCalculator.PerformHitTargetEffect`
+**A hit on a member of a group that shares damage is shared.** The group
+writes nothing on its members. `FightCalculator.PerformHitTargetEffect`
 takes a first hit's damage through the target's rates, reduction and
-stealth, and then, the target grouped, hands it to `CalculateGroupDamage`:
+stealth, and then, the target in such a group, hands it to
+`CalculateGroupDamage`:
 the whole part of the damage over the group's count, dead members counted,
 is dealt to each member alive in the group's order as a hit of its own,
 which no rate, reduction or further share touches, and which each member's
 own shield takes first. The remainder, and a dead member's part, are lost.
 Fifteen Sledgehammers share a Marksman's 2329 as 155 each; each member takes
 its part as taken damage, and the target nothing more.
+
+**A group that changes damage raises its members' main skills.** It shares
+no hit. Each time its members change (`MechGroupInternal.Init`, `Add`,
+`Remove`, `LinkGroup`, `SetGroupElement`, `Refresh`), `RefreshMechData`
+writes on every member's main skill a rate on its damage
+(`SkillDataChangeFloatRate.DamageRate`): the source's rate
+(`group_damage_rate`, `GetFloatRateValue`, Grid Integration's 35%) times the
+group's count less one, the count, dead members in it, no more than the
+source's most (`group_max_count`, `GetMaxCount`, four) when that is above
+zero, by `FPoint` product. A unit that leaves its group, or joins another,
+takes its group's rate away first (`FightMech.SetGroup`,
+`RemoveMechData`); a group left with fewer than two members takes it from
+every one. Five Vortexes in one group each deal 3218, 1570 with 105% more;
+two pairs each deal 2119, and a Vortex alone 1570. A row that names its
+extra skills (`extra_skill_effect`) is refused.
 
 ## Missile Interception
 
@@ -730,6 +748,10 @@ derive (a minimum range):
   `tests/damage_share/fights/apart.yaml`. A tank a Hacker turns leaves its
   group and links with the next one turned on its new side:
   `tests/damage_share/fights/hackers.yaml`.
+- Grid Integration's group of five Vortexes raises each one's damage by
+  105%, the count held to four; as they fall and part, two pairs take 35%
+  and a Vortex alone nothing:
+  `tests/damage_share/fights/vortexes.yaml`.
 - A dead-line technology destroys a unit its unit's shots strike at or
   under the line at its level, before the shot's damage: Culling Rounds
   culls Crawlers at 250 under a level-one Mustang's 320, and Marksmen at 712
@@ -923,6 +945,11 @@ derive (a minimum range):
   `MechGroupInternal.Refresh`, `TeamMechGroupManager.LinkMeches`,
   `MechGrounpSystem.ChangeMechGroup`,
   `FightCalculator.CalculateGroupDamage`,
+  `FightCalculator.PerformHitTargetEffect`.
+- A group whose purpose is `DamageChange` writes on each member's main
+  skill its rate times its count less one, the count held to its most, and
+  shares no hit: `MechGroupInternal.RefreshMechData`,
+  `MechGroupInternal.RemoveMechData`, `FightMech.SetGroup`,
   `FightCalculator.PerformHitTargetEffect`.
 - A dead-line technology hands its unit's main skill a pre-hit effect that
   destroys a live unit at or under the line at the owner's level as a

@@ -1,0 +1,32 @@
+# Grid Integration on five Vortexes side by side, charged by five Rhinos.
+#
+# The Vortexes stand within 35 metres of one another and form one group,
+# whose count the technology takes no further than four: each main skill
+# deals 3218, 1570 with 105% more. As they fall and move apart the four left
+# form two pairs, each 2119 with 35% more (t235), and the last two stand
+# apart, ungrouped, at 1570 (t240).
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 314
+hash: {profile: mcfr-content-0.22.0, result: 2ddc5351224421c3aa2be9a65a5eb62c868dafc8156d7077a04ecbc34a2f59e6}
+blue:
+  core_damage: 600
+  techs:
+    vortex: [grid_integration]
+  units:
+  - {name: vortex, index: 0, position: {x: -60, y: -100}, exp: 0/266/750}
+  - {name: vortex, index: 1, position: {x: -30, y: -100}, exp: 0/66/750}
+  - {name: vortex, index: 2, position: {x: 0, y: -100}, exp: 0/133/750}
+  - {name: vortex, index: 3, position: {x: 30, y: -100}, exp: 0/66/750}
+  - {name: vortex, index: 4, position: {x: 60, y: -100}, exp: 0/266/750}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: -85, y: -105}, exp: 0/333/1150}
+  - {name: rhino, index: 1, position: {x: -45, y: -105}}
+  - {name: rhino, index: 2, position: {x: 5, y: -105}, exp: 0/433/1150}
+  - {name: rhino, index: 3, position: {x: 45, y: -105}}
+  - {name: rhino, index: 4, position: {x: 85, y: -105}, exp: 0/233/1150}
