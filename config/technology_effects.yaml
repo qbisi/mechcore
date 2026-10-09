@@ -60,6 +60,8 @@ schema: mechcore.technology_effects
 # makes units as its unit's move ability reaches a time (a
 # MoveAbilityTimeType: 2 as it begins to surface) carries that time and
 # the line it makes them by (`move_summon`), as a production row does.
+# A technology that turns its unit's skills' locking of their target
+# over says so (`inverse_lock_target`).
 # A multi-attack technology carries how many more projectiles each of
 # its unit's attacks fires (`projectile_count_value`), and the FPoint
 # seconds it adds between two of them and metres it adds to how far
@@ -1208,7 +1210,7 @@ technologies:
     name: 攻城模式
     unit: scorpion
     kind: technologyDatas
-    special: [isInverseIsLockTarget]
+    inverse_lock_target: true
     damage_rate: [-1717986918]  # -0.4
     min_attack_range_value: [75]
     attack_range_value: [429496729600]  # +100
@@ -1699,7 +1701,7 @@ technologies:
     name: 饱和打击
     unit: mountain
     kind: multiAttackTechnologies
-    special: [isInverseIsLockTarget]
+    inverse_lock_target: true
     attack_interval_rate: [5153960755]  # +1.2
     splash_range_value: [12884901888]  # +3
     projectile_speed_value: [-429496729600]  # -100

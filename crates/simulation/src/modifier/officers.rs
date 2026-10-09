@@ -286,7 +286,7 @@ impl Officer {
 /// What a row writes: the fields an officer shares with every other source
 /// of corrections, [`super::effects`]'s.
 fn corrections_of(row: &Row) -> Vec<(Channel, Index, Correction)> {
-    effects::corrections(Fields {
+    effects::corrections(&Fields {
         life_rate: row.life_rate,
         damage_rate: row.damage_rate,
         damage_rate_by_kill_count: row.damage_rate_by_kill_count,
@@ -302,6 +302,8 @@ fn corrections_of(row: &Row) -> Vec<(Channel, Index, Correction)> {
         projectile_count_value: None,
         projectile_duration_value: None,
         projectile_random_range_value: None,
+        inverse_lock_target: false,
+        min_attack_range_value: None,
     })
 }
 

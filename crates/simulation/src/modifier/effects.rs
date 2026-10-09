@@ -64,6 +64,13 @@ pub(crate) struct Fields {
     pub(crate) projectile_duration_value: Option<i64>,
     /// Its `randomRangeChangeValue`, into `SkillDataChangeFloat.ProjectileRandomRange`.
     pub(crate) projectile_random_range_value: Option<i64>,
+    /// Its `isInverseIsLockTarget`, which `SkillDataModifier.AddData` turns
+    /// into the skill's `SkillDataChangeInt.IsLockTarget`.
+    pub(crate) inverse_lock_target: bool,
+    /// A technology's `minAttackRangeChangeValue`, whole metres, which
+    /// `SkillDataModifier.AddData` writes into the skill's
+    /// `SkillDataChangeFloat.MinAttackRangeValue`.
+    pub(crate) min_attack_range_value: Option<i64>,
 }
 
 /// What the fields write, in the channels the recording keeps them in.
@@ -71,7 +78,7 @@ pub(crate) struct Fields {
 /// A rate is routed by its sign, as `MultiplicativeDataFloat.Refresh` routes
 /// it: a positive rate enhances and a negative one impairs, and the two are
 /// not each other's negation once there are two of them.
-pub(crate) fn corrections(fields: Fields) -> Vec<(Channel, Index, Correction)> {
+pub(crate) fn corrections(fields: &Fields) -> Vec<(Channel, Index, Correction)> {
     let mut written = Vec::new();
     let mut rate = |value: Option<i64>, channel, index| match value.filter(|value| *value != 0) {
         None => {}
@@ -147,6 +154,15 @@ pub(crate) fn corrections(fields: Fields) -> Vec<(Channel, Index, Correction)> {
             Correction::Value(fixed_to(raw, METERS)),
         ));
     }
+    // `TechnologyData.GetMinAttackRangeChangeValue` hands its whole metres
+    // over as an `FPoint`.
+    if let Some(raw) = fields.min_attack_range_value.filter(|raw| *raw != 0) {
+        written.push((
+            Channel::Skill,
+            Index::MinAttackRange,
+            Correction::Value(raw.saturating_mul(METERS)),
+        ));
+    }
     if let Some(raw) = fields.attack_interval_value.filter(|raw| *raw != 0) {
         written.push((
             Channel::Skill,
@@ -166,6 +182,17 @@ pub(crate) fn corrections(fields: Fields) -> Vec<(Channel, Index, Correction)> {
         ));
     }
     written.extend(burst_corrections(fields));
+    // `SkillDataModifier.AddData` writes -1 into the `IsLockTarget` of a
+    // unit whose main skill's row locks its target and 1 into any other's,
+    // which only the skill's row answers: one inversion is kept here, and
+    // `Stats::lock_target` gives it its sign.
+    if fields.inverse_lock_target {
+        written.push((
+            Channel::Skill,
+            Index::InverseLockTarget,
+            Correction::Value(1),
+        ));
+    }
     written
 }
 
@@ -173,7 +200,7 @@ pub(crate) fn corrections(fields: Fields) -> Vec<(Channel, Index, Correction)> {
 /// `DataSet.intDatas` as the plain integers above, seconds that stay the
 /// `FPoint` they are as the interval's do, and metres in millimetres as a
 /// range's.
-fn burst_corrections(fields: Fields) -> impl Iterator<Item = (Channel, Index, Correction)> {
+fn burst_corrections(fields: &Fields) -> impl Iterator<Item = (Channel, Index, Correction)> {
     [
         (fields.projectile_count_value, Index::ProjectileCount, 1),
         (

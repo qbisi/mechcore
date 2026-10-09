@@ -150,6 +150,15 @@ pub(crate) enum Index {
     /// projectiles land within about their target. Q32.32 metres in the
     /// build, millimetres here as the radius is.
     ProjectileRandomRange,
+    /// `SkillDataChangeInt.IsLockTarget`, as how many sources turn the
+    /// skill's locking of its target over (`isInverseIsLockTarget`). Each
+    /// writes -1 where the unit's main skill's row locks and 1 where it does
+    /// not; [`Stats::lock_target`] gives the count that sign.
+    InverseLockTarget,
+    /// `SkillDataChangeFloat.MinAttackRangeValue`: what
+    /// `FightSkill.GetMinAttackRange` adds to the row's minimum range.
+    /// Q32.32 metres in the build, millimetres here as the range is.
+    MinAttackRange,
 }
 
 impl Index {
@@ -204,6 +213,8 @@ impl Index {
             Self::ProjectileCount => "projectile count",
             Self::ProjectileDuration => "projectile duration",
             Self::ProjectileRandomRange => "projectile random range",
+            Self::InverseLockTarget => "lock target inversions",
+            Self::MinAttackRange => "minimum attack range",
         }
     }
 }
@@ -383,6 +394,15 @@ impl Overlay {
     }
 }
 
+/// `FightSkill.IsLockTarget` over one `DataSet`: the row's flag plus the
+/// `IsLockTarget` its sources wrote, -1 each where the unit's main skill's
+/// row locks and 1 each where it does not, equal to one.
+pub(crate) fn lock_target(skill: &Overlay, main_row: bool, row: bool) -> bool {
+    let inversions = skill.value(Index::InverseLockTarget);
+    let written = if main_row { -inversions } else { inversions };
+    i64::from(row).saturating_add(written) == 1
+}
+
 /// What a skill's `DataSet` adds to its projectiles' burst: its
 /// `ProjectileCountValue`, `ProjectileDurationValue` and
 /// `ProjectileRandomRange`.
@@ -482,7 +502,7 @@ const SKILL_RATES: [Index; 4] = [
 ];
 
 /// The skill numbers its `DataSet` keeps as values alone.
-const SKILL_VALUES: [Index; 12] = [
+const SKILL_VALUES: [Index; 14] = [
     Index::RangeAgainst(UnitDomain::Air),
     Index::RangeAgainst(UnitDomain::Ground),
     Index::ScoreOffsetFor(UnitDomain::Air),
@@ -495,6 +515,8 @@ const SKILL_VALUES: [Index; 12] = [
     Index::ProjectileCount,
     Index::ProjectileDuration,
     Index::ProjectileRandomRange,
+    Index::InverseLockTarget,
+    Index::MinAttackRange,
 ];
 
 /// What a skill overlay may carry that its `DataSet` has no field for.
@@ -1282,6 +1304,19 @@ impl Stats {
     /// each may land from its target.
     pub(crate) fn projectile_burst_add(&self) -> ProjectileBurstAdd {
         self.overlays.skill.projectile_burst_add()
+    }
+
+    /// What the main skill's `DataSet` adds to its minimum range,
+    /// millimetres.
+    pub(crate) fn min_range_add(&self) -> i64 {
+        self.skill_value(Index::MinAttackRange)
+    }
+
+    /// `FightSkill.IsLockTarget` of a skill whose row says `row` and whose
+    /// `DataSet` is the main skill's, the unit's main skill's row saying
+    /// `main_row`: the row's flag plus its `IsLockTarget`, equal to one.
+    pub(crate) fn lock_target(&self, main_row: bool, row: bool) -> bool {
+        lock_target(&self.overlays.skill, main_row, row)
     }
 
     /// What the main skill's `DataSet` holds for its projectiles' life.

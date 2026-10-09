@@ -48,7 +48,7 @@ use crate::{
 
 use super::{
     buffs::{self, BuffBlock, CycleBlock},
-    effects::{self, Fields, VALUE_ELSEWHERE},
+    effects::{self, Fields},
     sources::{AutoRecovery, BuffSource, EnergyShield, LifeSteal, ProductionLine, SweepIntensify},
 };
 
@@ -622,6 +622,10 @@ struct Row {
     /// unit's level.
     #[serde(default)]
     splash_range: Vec<i64>,
+    /// `TechnologyData.isInverseIsLockTarget`: whether it turns its unit's
+    /// skills' locking of their target over.
+    #[serde(default)]
+    inverse_lock_target: bool,
     /// `MultiAttackTechnologyData`'s `countIncrease`, `durationChangeValue`
     /// and `randomRangeChangeValue`, on a row of its list: whole projectiles,
     /// `FPoint` seconds and `FPoint` metres by the unit's level.
@@ -793,7 +797,7 @@ impl SupportBlock {
             } else {
                 super::sources::Arrival::InPlace
             },
-            make_corrections: effects::corrections(Fields {
+            make_corrections: effects::corrections(&Fields {
                 life_rate: Some(self.unit_life_rate),
                 damage_rate: Some(self.unit_damage_rate),
                 ..Fields::default()
@@ -1296,24 +1300,11 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<Written>, String> {
         }
     }
 
-    let unsupported = [(
-        &row.min_attack_range_value,
-        "min_attack_range_value",
-        VALUE_ELSEWHERE,
-    )];
-    for (values, field, why) in unsupported {
-        if values.iter().any(|value| *value != 0) {
-            return Err(format!(
-                "technology {} ({}) writes {field}, and {why}",
-                row.id, row.name
-            ));
-        }
-    }
-
     let levels = [
         &row.life_rate,
         &row.damage_rate,
         &row.speed_value,
+        &row.min_attack_range_value,
         &row.attack_range_value,
         &row.attack_range_rate,
         &row.attack_interval_value,
@@ -1346,7 +1337,7 @@ fn at_level(row: &Row, level: usize) -> Written {
             .filter(|value| *value != 0)
     };
     let mut written = against_domains(row, at_level);
-    written.extend(effects::corrections(Fields {
+    written.extend(effects::corrections(&Fields {
         life_rate: at_level(&row.life_rate),
         damage_rate: at_level(&row.damage_rate),
         // The table has no such column.
@@ -1373,6 +1364,8 @@ fn at_level(row: &Row, level: usize) -> Written {
         projectile_count_value: at_level(&row.projectile_count_value),
         projectile_duration_value: at_level(&row.projectile_duration_value),
         projectile_random_range_value: at_level(&row.projectile_random_range_value),
+        inverse_lock_target: row.inverse_lock_target,
+        min_attack_range_value: at_level(&row.min_attack_range_value),
     }));
     written
 }
@@ -1571,6 +1564,31 @@ mod tests {
             Some(Correction::Value(13_000))
         );
         assert!(value(Index::AttackInterval).is_some(), "{written:?}");
+    }
+
+    /// A technology that turns its unit's locking over keeps one inversion,
+    /// and its minimum range lands in the skill's `DataSet` in millimetres;
+    /// the inversion turns a locking skill off and a free one on.
+    #[test]
+    fn an_inverting_technology_turns_the_lock_over() {
+        let table = TechnologyEffects::parse(
+            "schema: mechcore.technology_effects\n\
+             technologies:\n\
+             - {id: 9, name: probe, unit: scorpion, kind: technologyDatas, \
+             inverse_lock_target: true, min_attack_range_value: [75]}\n",
+        )
+        .unwrap();
+        let written = table.corrections(&[9], "scorpion", 1).unwrap();
+        let mut skill = crate::data::Overlay::default();
+        for (channel, entry) in &written {
+            assert_eq!(*channel, Channel::Skill, "{written:?}");
+            skill.write(*entry);
+        }
+        assert_eq!(skill.value(Index::MinAttackRange), 75_000);
+        assert!(!crate::data::lock_target(&skill, true, true));
+        assert!(crate::data::lock_target(&skill, false, false));
+        // A skill that locks under a main skill that does not is written 1.
+        assert!(!crate::data::lock_target(&skill, false, true));
     }
 
     /// A technology of a list whose mechanism is not here is refused by name

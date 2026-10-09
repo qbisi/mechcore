@@ -70,7 +70,7 @@ fight but correct its unit's numbers. A row of any other list is a subclass,
 `BuffTechnologyData`, `SplashTechnologyData`, `ExtraWeaponTechnologyData` and
 the rest, and does something more, although many carry numbers as well: Double
 Shot's second shot, High-Explosive Ammo's splash, Energy Absorption's life
-steal, Field Maintenance's repair. 64 of the 241 technologies are plain. The
+steal, Field Maintenance's repair. 66 of the 241 technologies are plain. The
 simulator applies a plain technology's numbers, a lifesteal technology's
 with the life steal [combat.md](combat.md#lifesteal) states, and a repair
 technology's with [its repair](combat.md#repair), a sweep technology's with
@@ -104,8 +104,21 @@ switched off with it. What else it does, freeing its formation during
 deployment, happens before the fight.
 
 A plain, a lifesteal or a repair row may still set a field beyond what this
-table carries, and names it in `special`: Siege Mode's `isInverseIsLockTarget`.
-The simulator refuses those too. Machine Learning's `exp_rate` is no
+table carries, and names it in `special`; the simulator refuses those too.
+
+## Turning the lock over
+
+A row that sets `isInverseIsLockTarget`, Siege Mode's and Saturation
+Bombardment's, carries `inverse_lock_target`. `SkillDataModifier.AddData`
+writes it into each skill it reaches as `SkillDataChangeInt.IsLockTarget`:
+-1 where the unit's main skill's row locks its target and 1 where it does
+not. `FightSkill.IsLockTarget` is the row's flag plus that, equal to one, so
+one such technology turns a locking skill free and a free one locking. A
+skill that locks nothing fires shells that fly to where it aimed rather than
+after its target: a Scorpion's under Siege Mode. A row's
+`min_attack_range_value`, whole metres, lands in the skill's
+`MinAttackRangeValue`, which `FightSkill.GetMinAttackRange` adds to its row's:
+Siege Mode's 75 keeps a Scorpion from firing at a Rhino within 75 metres. Machine Learning's `exp_rate` is no
 correction but a rate on what its unit gains, which
 [unit_experience.md](unit_experience.md#a-technologys-rate) carries.
 
@@ -301,8 +314,10 @@ weapons only when the performer makes a
 target, and the skill has two: a Sabertooth's and a Fortress's Doubleshot
 fire both from weapon 0.
 
-Saturation Bombardment also sets `isInverseIsLockTarget`, which its row
-names in `special`, and the simulator refuses it.
+Saturation Bombardment also [turns its unit's lock over](#turning-the-lock-over),
+and fires its four projectiles from each of a Mountain's standalone weapons,
+whose grouped slots keep no burst here: the simulator refuses a slot's burst
+of more than one where it fires.
 
 ## Missile Interception
 
@@ -551,6 +566,11 @@ derive (a minimum range):
   `tests/production/fights/fang-production.yaml`,
   `tests/production/fights/crawler-production.yaml`,
   `tests/production/fights/mothership.yaml`.
+- One inversion turns a locking skill free, and a minimum range value keeps
+  its unit from firing within it: Siege Mode's Scorpion fires two shells that
+  lock nothing at a charging Rhino, and none once it is within 75 metres;
+  fought with the lock kept, the simulator parts from the game on the first
+  shell's aim: `tests/modifier/fights/technology-siege-mode.yaml`.
 - A multi-attack technology adds to its unit's bursts: Doubleshot fires two
   projectiles an attack, a Sabertooth's 0.2 seconds apart where its row's
   interval is zero and both from weapon 0, and Burst Mode twelve from a
@@ -700,6 +720,13 @@ derive (a minimum range):
   for 6 and 8 and its `ProductMoveTime` for 7, and `APPEAR_DURATION`
   otherwise; its level is the owner's for `DynamicMechLevel.Parent`:
   `SupportUnitCreator.CreateMech`, `SupportUnitCreator.APPEAR_DURATION`.
+- A technology that sets `isInverseIsLockTarget` writes -1 into a skill's
+  `SkillDataChangeInt.IsLockTarget` where the unit's main skill's row locks
+  and 1 otherwise, and a skill locks while its row's flag plus that is one:
+  `SkillDataModifier.AddData`, `FightSkill.IsLockTarget`. Its minimum range
+  value is whole metres, which the skill's `MinAttackRangeValue` adds to the
+  row's: `TechnologyData.GetMinAttackRangeChangeValue`,
+  `FightSkill.GetMinAttackRange`.
 - A multi-attack technology adds its count, its duration and its random range
   to the skill's `SkillDataChangeInt.ProjectileCountValue` and
   `SkillDataChangeFloat.ProjectileDurationValue` and `ProjectileRandomRange`,

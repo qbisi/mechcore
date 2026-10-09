@@ -292,7 +292,7 @@ impl Simulation {
                 source
                     .score_offsets
                     .for_candidate(target.domain, target.visible),
-                source.attack.min_range(),
+                source.min_range,
                 source.attack_range,
                 source.rotation_window_q32,
             ) {

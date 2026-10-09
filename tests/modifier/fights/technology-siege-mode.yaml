@@ -1,0 +1,25 @@
+# Siege Mode on a Scorpion: a plain technology that turns its unit's
+# skills' locking of their target over (`isInverseIsLockTarget`) and adds 75
+# whole metres to its minimum range beside its numbers (100 metres of range,
+# 1.5 seconds of interval, -0.4 damage, -200 projectile speed). Its shells,
+# which its row locks, lock nothing: each flies to where the Rhino stood as
+# it left, at ticks 12 and 135, 6390 each. Fought with the lock kept, the
+# simulator parts from the game on the first shell's aim. Once the Rhino is
+# within 75 metres the Scorpion fires no more.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 302
+hash: {profile: mcfr-content-0.22.0, result: ac84757bb49f07ecfab133307fe7cf8491ea15f6a7c723cc2141b9871b96ab43}
+blue:
+  core_damage: 200
+  techs:
+    scorpion: [siege_mode]
+  units:
+  - {name: scorpion, index: 0, position: {x: -5, y: -105}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/600/1150}

@@ -659,7 +659,7 @@ fn corrections_of(
             return Err(format!("{who} writes {field}, and {why}"));
         }
     }
-    let mut corrections = effects::corrections(Fields {
+    let mut corrections = effects::corrections(&Fields {
         life_rate: row.life_rate,
         damage_rate: row.damage_rate,
         // The table has no such column.
@@ -676,11 +676,13 @@ fn corrections_of(
         projectile_count_value: None,
         projectile_duration_value: None,
         projectile_random_range_value: None,
+        inverse_lock_target: false,
+        min_attack_range_value: None,
     });
     // `SplashEquipment.AddData`'s second write, `AddSkillData` of its range,
     // which lands where a splash value does.
     if row.kind == SPLASH {
-        corrections.extend(effects::corrections(Fields {
+        corrections.extend(effects::corrections(&Fields {
             splash_range_value: row.splash_range,
             ..Fields::default()
         }));
