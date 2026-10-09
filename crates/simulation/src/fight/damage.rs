@@ -621,7 +621,7 @@ impl Simulation {
         let previous_life = unit.life;
         if let Some(shield) = unit.shield.as_mut()
             && amount >= 1
-            && shield.energy > 0
+            && shield.available()
         {
             let absorbed = shield.energy.min(amount);
             shield.energy -= absorbed;
@@ -823,7 +823,7 @@ impl Simulation {
                         if self.actors[&id]
                             .shield
                             .as_ref()
-                            .is_some_and(|shield| shield.energy > 0) =>
+                            .is_some_and(PersonalShield::available) =>
                     {
                         damage
                     }
@@ -919,6 +919,9 @@ impl Simulation {
             return Ok(None);
         }
         let unit = &self.actors[&unit_id];
+        // `PerformPreHitEffect` asks the shield's `isActive` and its energy,
+        // not whether it is enabled: one switched off with energy left
+        // still keeps the line off.
         let shielded = unit.shield.as_ref().is_some_and(|shield| shield.energy > 0);
         if (shielded && !line.ignores_shield) || !unit.alive() || unit.life > line.life {
             return Ok(None);

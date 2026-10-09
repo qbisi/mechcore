@@ -52,6 +52,8 @@ impl Actor {
             PersonalShield {
                 energy: maximum,
                 maximum,
+                enabled: true,
+                record_rate_q32: 0,
             }
         });
         let underground = underground::Underground::of_unit(&rules, &placement);

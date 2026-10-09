@@ -1215,12 +1215,14 @@ whose own `DisableEffect` it does not mirror.
   nothing while the technologies are off for a source that `CanDisable`.
   Read from the build; no recording holds a cycling buff switched off.
 
-What any other provider does switched off, the `EnergyShieldProvider`, `SweepSkillIntensifyEffectProvider`,
-`AirAttackEffectProvider`, `InterceptMissileEffectProvider`,
-`SupportUnitProvider`, `DeadEffectProvider` and `MoveAbilitySummonProvider`, and
-an extra weapon's production line, other explosion or preemptive skill, or
-group, is not measured: a buff that disables technology reaching a unit whose
-technologies reach one is refused by the provider's name.
+What any other provider does switched off, the
+`SweepSkillIntensifyEffectProvider`, `AirAttackEffectProvider`,
+`InterceptMissileEffectProvider`, `SupportUnitProvider`,
+`MoveAbilitySummonProvider`, `MoveAbilityAttackIntensifyProvider` and
+`MoveAbilityRangeItemProvider`, and an extra weapon's production line, other
+explosion or preemptive skill, or group, is not measured: a buff that
+disables technology reaching a unit whose technologies reach one is refused
+by the provider's name.
 
 ## What the recordings show
 
@@ -2088,8 +2090,7 @@ derive (a minimum range):
 - **What switching off does beyond numbers**: an extra weapon's production
   line (`SupportUnitCreator`), an explosion or preemptive skill other than a
   permanent preemptive explosion or an around skill, an active permanent preemptive skill
-  (`PreemptiveSkillController.Update` gives it up), a group, a unit's own shield
-  (`EnergyShieldProvider.DisableEffect`), a sweep's change, an air attack's switch. Refused.
+  (`PreemptiveSkillController.Update` gives it up), a group, a sweep's change, an air attack's switch. Refused.
 - **A unit's interceptors switched off.** `InterceptMissileEffectProvider.DisableEffect`
   disables each and lets it idle (`InterceptEffectBase.DoDisable`); no
   recording holds it, and a disable reaching an interceptor unit is refused.
