@@ -12,7 +12,6 @@ use serde::Deserialize;
 use super::contraptions::{ShieldKind, ShieldPlacement};
 use crate::{
     Error, Result,
-    data::{Channel, Entry},
     rules::{BuffConfig, UnitConfig, UnitConfigs},
 };
 
@@ -442,33 +441,11 @@ pub(crate) struct Summon {
     pub(crate) drop_damage: bool,
     /// How many updates the creator lives, the last of them included.
     pub(crate) updates: u64,
-    /// What its side's officers, technologies and Energy Tower skills write
-    /// onto it: `FightEffectSystem.AddEffect` looks up what the side
-    /// registered for its mech, as for a unit of its type deployed without
-    /// equipment. The layout fills it in, where the side is known.
-    pub(crate) corrections: Vec<(Channel, Entry)>,
-    /// What a buff that disables technology takes from it, as from a unit
-    /// of its type deployed without equipment.
-    pub(crate) technology_disable: crate::layout::TechnologyDisable,
-    /// The rate its side's technology puts on the damage it takes for its
-    /// first hits, which `FightEffectSystem` activates as it joins.
-    pub(crate) reactive_armor: Option<crate::modifier::ReactiveArmor>,
-    /// Its side's technology that burrows it, which `FightEffectSystem`
-    /// hands its side's `TeamBurrowManager` as it joins.
-    pub(crate) burrow: Option<crate::modifier::Burrow>,
-    /// The acid its side's technology leaves where it dies.
-    pub(crate) dead_acid: Option<TerrainSpec>,
-    /// What its side's technology hands it to clear terrain about it,
-    /// which `FightEffectSystem` adds as it joins.
-    pub(crate) clear_range_item: Option<crate::modifier::ClearRangeItem>,
-    /// Its side's technology that loosens its formation.
-    pub(crate) rvo_radius_change: Option<crate::modifier::RvoRadiusChange>,
-    /// What its side's technology hands it to repair the units about it,
-    /// which `FightEffectSystem` activates as it joins.
-    pub(crate) repair: Option<crate::modifier::Repair>,
-    /// What its side's technology hands its skills to set off what they
-    /// kill.
-    pub(crate) kill_explosion: Option<crate::modifier::KillExplosion>,
+    /// What its side's loadout hands it: `FightEffectSystem.AddEffect`
+    /// looks up what the side registered for its mech, as for a unit of its
+    /// type deployed without equipment. The layout fills it in, where the
+    /// side is known.
+    pub(crate) effects: crate::layout::UnitEffects,
 }
 
 /// The buff a released skill writes: the Electromagnetic Impact's slow,
@@ -1297,15 +1274,7 @@ fn summon(named: &str, row: &SupportSkillRow, units: &UnitConfigs) -> Result<Sum
             (i128::from(life) + i128::from(LOGIC_DELTA_RAW) - 1) / i128::from(LOGIC_DELTA_RAW),
         )
         .map_err(|_| Error::new(format!("{named} creates for no time")))?,
-        corrections: Vec::new(),
-        technology_disable: crate::layout::TechnologyDisable::default(),
-        reactive_armor: None,
-        burrow: None,
-        dead_acid: None,
-        clear_range_item: None,
-        rvo_radius_change: None,
-        repair: None,
-        kill_explosion: None,
+        effects: crate::layout::UnitEffects::default(),
     })
 }
 

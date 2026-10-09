@@ -53,7 +53,14 @@ impl Simulation {
             .actors
             .iter()
             .filter(|(_, actor)| !actor.travelling)
-            .filter_map(|(&id, actor)| actor.placement.stealth.map(|source| (id, source)))
+            .filter_map(|(&id, actor)| {
+                actor
+                    .placement
+                    .effects
+                    .single
+                    .stealth
+                    .map(|source| (id, source))
+            })
             .collect::<Vec<_>>();
         let system = &mut self.stealth;
         for (id, source) in held {
@@ -70,7 +77,7 @@ impl Simulation {
     /// yet is pending, and goes into stealth at once if its life is already
     /// low enough.
     pub(in crate::fight) fn add_stealth_unit(&mut self, unit: u64) {
-        let Some(source) = self.actors[&unit].placement.stealth else {
+        let Some(source) = self.actors[&unit].placement.effects.single.stealth else {
             return;
         };
         let system = &mut self.stealth;

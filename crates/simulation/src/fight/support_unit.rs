@@ -238,15 +238,7 @@ impl Creator {
             },
             drop_damage: false,
             updates: u64::MAX,
-            corrections: production.corrections.clone(),
-            technology_disable: production.technology_disable.clone(),
-            reactive_armor: production.reactive_armor,
-            burrow: production.burrow.clone(),
-            dead_acid: production.dead_acid,
-            clear_range_item: production.clear_range_item.clone(),
-            rvo_radius_change: production.rvo_radius_change,
-            repair: production.repair.clone(),
-            kill_explosion: production.kill_explosion.clone(),
+            effects: production.effects.clone(),
         };
         Self {
             team: owner.placement.team,
@@ -645,15 +637,20 @@ impl Simulation {
     /// and keeps them.
     pub(in crate::fight) fn clear_dead_summons(&mut self) -> Result<()> {
         for actor in self.actors.values_mut() {
-            if !actor.summoned || actor.alive() || actor.placement.corrections.is_empty() {
+            if !actor.summoned || actor.alive() || actor.placement.effects.corrections.is_empty() {
                 continue;
             }
-            for (channel, entry) in std::mem::take(&mut actor.placement.corrections) {
+            for (channel, entry) in std::mem::take(&mut actor.placement.effects.corrections) {
                 actor.stats.overlays.channel(channel).withdraw(entry.source);
             }
             // Its technologies' providers are gone with the rest: a disable
             // that leaves it later writes nothing back.
-            actor.placement.technology_disable.corrections.clear();
+            actor
+                .placement
+                .effects
+                .technology_disable
+                .corrections
+                .clear();
             actor.stats.refresh(&actor.rules)?;
         }
         Ok(())
@@ -833,6 +830,7 @@ impl Simulation {
             let dead = &self.actors[&dead_id];
             let technology = dead
                 .placement
+                .effects
                 .dead_summon
                 .filter(|_| self.technology_dead_effect_held(dead_id));
             let summons = if dead.parasitic {
@@ -1124,9 +1122,7 @@ fn hundredths(draw: i32) -> i64 {
 }
 
 /// The placement of a unit a production line makes: its side, its ids, its
-/// level and where it stands, and of what its loadout hands a unit, the
-/// corrections, the reactive armor and the switched technologies its line
-/// passes on.
+/// level and where it stands, and what its line passes on of its loadout.
 fn summon_placement(
     creator: &Creator,
     team: u32,
@@ -1148,40 +1144,9 @@ fn summon_placement(
         exp: 0,
         experience_rate: crate::data::ExperienceRate::default(),
         unit_experience_rate: crate::data::ExperienceRate::default(),
-        corrections: creator.summon.corrections.clone(),
-        lifesteal: None,
-        auto_recovery: None,
-        energy_shield: None,
-        stealth: None,
-        siege_mode: None,
-        wreckage: None,
-        rebirth: None,
-        rvo_radius_change: creator.summon.rvo_radius_change,
-        clear_range_item: creator.summon.clear_range_item.clone(),
-        repair: creator.summon.repair.clone(),
-        kill_explosion: creator.summon.kill_explosion.clone(),
-        burrow: creator.summon.burrow.clone(),
-        dead_acid: creator.summon.dead_acid,
-        sweep: None,
-        distance_intensify: false,
-        secondary_damage: None,
-        dead_line: None,
-        mech_group: None,
-        move_ability_attack: None,
-        reactive_armor: creator.summon.reactive_armor,
-        move_ability_range_item: None,
-        main_fire: None,
-        interception: None,
-        carried_shield: None,
+        effects: creator.summon.effects.clone(),
         production: None,
-        buff_sources: Vec::new(),
-        ignored_buffs: Vec::new(),
-        important: false,
-        ignores_control_beam: false,
         travelling: false,
-        extra_weapons: Vec::new(),
-        technology_disable: creator.summon.technology_disable.clone(),
-        dead_summon: None,
         surfacing: None,
     }
 }

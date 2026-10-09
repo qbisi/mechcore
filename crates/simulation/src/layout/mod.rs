@@ -12,11 +12,10 @@ use crate::{
     Error, Result,
     data::{Channel, Correction, Entry, ExperienceRate, Index, Stats},
     modifier::{
-        AutoRecovery, BuffSource, Burrow, CarriedShield, ClearRangeItem, DeadLine, DeadSummon,
-        EffectProvider, EnergyShield, EnergyTowerSkillEffects, EquipmentEffects, KillExplosion,
-        LifeSteal, MainSkill, MechGroup, MoveAbilityAttack, OfficerEffects, ProductionLine,
-        ReactiveArmor, Rebirth, Repair, RvoRadiusChange, SecondaryDamage, SiegeMode, Stealth,
-        SweepIntensify, TECHNOLOGY_SOURCE, TechnologyEffects, UnitInterception, WreckageRecovery,
+        AutoRecovery, BuffSource, CarriedShield, DeadLine, DeadSummon, EffectProvider,
+        EnergyShield, EnergyTowerSkillEffects, EquipmentEffects, LifeSteal, MainSkill, MechGroup,
+        MoveAbilityAttack, OfficerEffects, ProductionLine, ReactiveArmor, SecondaryDamage,
+        SingleSources, SweepIntensify, TECHNOLOGY_SOURCE, TechnologyEffects, UnitInterception,
         current_source,
     },
     rules::{ExtraWeaponConfig, UnitConfig, UnitConfigs, UnitDomain},
@@ -35,10 +34,6 @@ pub(crate) use contraptions::{
 };
 
 #[derive(Debug, Clone)]
-#[allow(
-    clippy::struct_excessive_bools,
-    reason = "each flag is an independent fact the unit's equipment or deployment gives it"
-)]
 pub(crate) struct Placement {
     pub(crate) team: u32,
     pub(crate) unit_id: u64,
@@ -62,103 +57,16 @@ pub(crate) struct Placement {
     /// The rate its technologies put on what it gains: the unit's own
     /// `MechDataChangeFloatRate.ExpChangeRate`.
     pub(crate) unit_experience_rate: ExperienceRate,
-    /// What the side's loadout wrote onto this formation, in the channel each
-    /// correction belongs to. The entries are verified to resolve while the
-    /// layout is compiled, which is the only place that can name the side and
-    /// the officer in a refusal.
-    pub(crate) corrections: Vec<(Channel, Entry)>,
-    /// The `ILifeSteal` its `LifeStealEffectProvider` enables, if its
-    /// technologies or equipment hand it one.
-    pub(crate) lifesteal: Option<LifeSteal>,
-    /// The `IAutoRecovery` its `AutoRecoveryEffectProvider` enables, if its
-    /// technologies or equipment hand it one.
-    pub(crate) auto_recovery: Option<AutoRecovery>,
-    /// The `IEnergyShieldSource` its `EnergyShieldProvider` enables, if its
-    /// technologies or equipment hand it one.
-    pub(crate) energy_shield: Option<EnergyShield>,
-    /// The `IStealthTechDataSource` its `StealthTechEffectProvider` hands
-    /// `StealthTechSystem`, if its technologies hand it one.
-    pub(crate) stealth: Option<Stealth>,
-    /// The `ISiegeModeEffectDataSource` its `SiegeModeEffectProvider` hands
-    /// `SiegeModeEffectSystem`, if its technologies hand it one.
-    pub(crate) siege_mode: Option<SiegeMode>,
-    /// The `IWreckageRecovery` its `WreckageRecoveryEffectProvider` hands
-    /// its side's `TeamWreckageRecoveryManager`, if its technologies hand it
-    /// one.
-    pub(crate) wreckage: Option<WreckageRecovery>,
-    /// The `IRebirthData` its `DeadEffectProvider` hands
-    /// `DeadRebirthController`, if its technologies hand it one.
-    pub(crate) rebirth: Option<Rebirth>,
-    /// The `IRVORadiusChangeSource` its `RVORadiusChangeProvider` hands its
-    /// motion, if its technologies hand it one.
-    pub(crate) rvo_radius_change: Option<RvoRadiusChange>,
-    /// The `IClearRangeItem` its `ClearRangeItemEffectProvider` hands its
-    /// side's `TeamClearRangeItemManager`, if its technologies hand it one.
-    pub(crate) clear_range_item: Option<ClearRangeItem>,
-    /// The `IRecoveryTechEffectDataSource` its `RecoveryEffectProvider` hands
-    /// `RecoveryEffectSystem`, if its technologies hand it one.
-    pub(crate) repair: Option<Repair>,
-    /// The `IKillExplosionDataSource` its `KillExplosionEffectProvider` hands
-    /// its skills as a hit effect, if its technologies hand it one.
-    pub(crate) kill_explosion: Option<KillExplosion>,
-    /// The `IBurrow` its `BurrowEffectProvider` hands its side's
-    /// `TeamBurrowManager`, if its technologies hand it one.
-    pub(crate) burrow: Option<Burrow>,
-    /// The acid its technology leaves where it dies (`DeadAcidRangeItemTech`).
-    pub(crate) dead_acid: Option<TerrainSpec>,
-    /// What its technologies hand its sweep (`SweepSkillIntensifyTech`).
-    pub(crate) sweep: Option<SweepIntensify>,
-    /// Whether its technologies turn its main skill's search to
-    /// `DistanceIntensify` (`SearchTargetSpecificTech`).
-    pub(crate) distance_intensify: bool,
-    /// The second damage its technologies make its main skill deal around
-    /// each hit (`SecondaryDamageIntensifyTech`).
-    pub(crate) secondary_damage: Option<SecondaryDamage>,
-    /// The life at or under which its main skill destroys what it hits
-    /// (`DeadLineTech`).
-    pub(crate) dead_line: Option<DeadLine>,
-    /// How it links with the other units its technology reaches into a
-    /// group, and what the group does (`DamageShareTech`).
-    pub(crate) mech_group: Option<MechGroup>,
-    /// What its technologies do to its surfacing and the attacks after it
-    /// (`MoveAbilityAttackIntensifyTech`).
-    pub(crate) move_ability_attack: Option<MoveAbilityAttack>,
-    /// The rate its technology puts on the damage it takes for its first
-    /// hits (`ReactiveArmorTech`).
-    pub(crate) reactive_armor: Option<ReactiveArmor>,
-    /// The sand fog its technologies leave as it ends a surfacing
-    /// (`MoveAbilityRangeItemTech`).
-    pub(crate) move_ability_range_item: Option<TerrainSpec>,
-    /// The fire each hit of its main skill leaves, when a technology is an
-    /// `IFireIntensify` (`FireIntensifyEffectProvider`): the unit's fire,
-    /// `GroundFireController.GetFireMech`.
-    pub(crate) main_fire: Option<TerrainSpec>,
-    /// The interceptors its technologies make it (`InterceptMissileTech`).
-    pub(crate) interception: Option<UnitInterception>,
-    /// The battlefield shield its equipment makes it carry.
-    pub(crate) carried_shield: Option<CarriedShield>,
+    /// What its side's loadout and its equipment hand it: the copy of its
+    /// side's `FightEffectMananger` for its type that it is created with
+    /// (`TeamFightEffectManager.CreateMechUnitEffectMananger`), with its
+    /// equipment's sources added.
+    pub(crate) effects: UnitEffects,
     /// The production line its equipment makes it run.
     pub(crate) production: Option<Production>,
-    /// The buffs its equipment adds to it as the fight starts.
-    pub(crate) buff_sources: Vec<BuffSource>,
-    /// The `buffDatas` rows its equipment makes it ignore,
-    /// `BuffManager.ignoredBuffs`.
-    pub(crate) ignored_buffs: Vec<u32>,
-    /// Whether its equipment makes it an important unit
-    /// (`FightMech.IsImportant`): its side does not outlive it.
-    pub(crate) important: bool,
-    /// Whether its equipment keeps every control beam from turning it,
-    /// `TeamTranslationSystem.IsIgnoredMech`.
-    pub(crate) ignores_control_beam: bool,
     /// Whether it opens the fight travelling: a unit deployed into an ambush
     /// zone, which `SuperDeploymentSystem` holds until its side arrives.
     pub(crate) travelling: bool,
-    /// The extra weapons its technologies add beside its main skill.
-    pub(crate) extra_weapons: Vec<ExtraWeapon>,
-    /// What a buff that disables technology switches off on it.
-    pub(crate) technology_disable: TechnologyDisable,
-    /// What its technology summons where it dies (`DeadSummonTech`).
-    pub(crate) dead_summon: Option<DeadSummonOnDeath>,
     /// The line its technology runs once each time it begins to surface,
     /// and what it makes (`MoveAbilitySummonTech`).
     pub(crate) surfacing: Option<Production>,
@@ -191,15 +99,9 @@ pub(crate) struct ExtraWeapon {
 pub(crate) struct Production {
     pub(crate) line: ProductionLine,
     pub(crate) rules: UnitConfig,
-    pub(crate) corrections: Vec<(Channel, Entry)>,
-    pub(crate) technology_disable: TechnologyDisable,
-    pub(crate) reactive_armor: Option<ReactiveArmor>,
-    pub(crate) burrow: Option<Burrow>,
-    pub(crate) dead_acid: Option<TerrainSpec>,
-    pub(crate) clear_range_item: Option<ClearRangeItem>,
-    pub(crate) rvo_radius_change: Option<RvoRadiusChange>,
-    pub(crate) repair: Option<Repair>,
-    pub(crate) kill_explosion: Option<KillExplosion>,
+    /// What its side's loadout hands what it makes, the line's own
+    /// corrections among them.
+    pub(crate) effects: UnitEffects,
 }
 
 #[derive(Debug, Clone)]
@@ -529,6 +431,7 @@ fn death_summoned(placement: &Placement, units: &UnitConfigs) -> Vec<(u32, i64)>
         .get(&placement.type_name)
         .map(|rules| rules.unit_type_id);
     placement
+        .effects
         .buff_sources
         .iter()
         .filter_map(|source| match source.summons? {
@@ -538,6 +441,7 @@ fn death_summoned(placement: &Placement, units: &UnitConfigs) -> Vec<(u32, i64)>
         .map(|type_id| (type_id, 1))
         .chain(
             placement
+                .effects
                 .dead_summon
                 .map(|summon| (summon.unit_type_id, summon.level)),
         )
@@ -561,40 +465,9 @@ fn death_summon_template(team: u32, rules: &UnitConfig, level: i64, worn: Worn) 
         exp: 0,
         experience_rate: worn.experience_rates.0,
         unit_experience_rate: worn.experience_rates.1,
-        corrections: worn.corrections,
-        lifesteal: worn.lifesteal,
-        auto_recovery: worn.auto_recovery,
-        energy_shield: worn.energy_shield,
-        stealth: worn.stealth,
-        siege_mode: worn.siege_mode.clone(),
-        wreckage: worn.wreckage.clone(),
-        rebirth: worn.rebirth.clone(),
-        rvo_radius_change: worn.rvo_radius_change,
-        clear_range_item: worn.clear_range_item.clone(),
-        repair: worn.repair.clone(),
-        kill_explosion: worn.kill_explosion.clone(),
-        burrow: worn.burrow.clone(),
-        dead_acid: worn.dead_acid,
-        sweep: worn.sweep,
-        distance_intensify: worn.distance_intensify,
-        secondary_damage: worn.secondary_damage,
-        dead_line: worn.dead_line,
-        mech_group: worn.mech_group,
-        move_ability_attack: worn.move_ability_attack,
-        reactive_armor: worn.reactive_armor,
-        move_ability_range_item: worn.move_ability_range_item,
-        main_fire: worn.main_fire,
-        interception: worn.interception,
-        carried_shield: worn.carried_shield,
+        effects: worn.effects,
         production: None,
-        buff_sources: worn.buff_sources,
-        ignored_buffs: worn.ignored_buffs,
-        important: worn.important,
-        ignores_control_beam: worn.ignores_control_beam,
         travelling: false,
-        extra_weapons: worn.extra_weapons,
-        technology_disable: worn.technology_disable,
-        dead_summon: None,
         surfacing: None,
     }
 }
@@ -651,7 +524,7 @@ fn compile_death_summons(
         ) else {
             continue;
         };
-        if let Some(why) = unread_on_a_death_summon(&worn) {
+        if let Some(why) = unread_on_a_death_summon(&worn.effects) {
             refused.push(format!(
                 "side {name} summons a {} as a unit dies, which its technologies {why}, which \
                  is not measured",
@@ -801,15 +674,15 @@ fn compile_battle_skills(
             ) else {
                 continue;
             };
-            if worn.lifesteal.is_some()
-                || worn.auto_recovery.is_some()
-                || worn.energy_shield.is_some()
-                || worn.stealth.is_some()
-                || worn.mech_group.is_some()
-                || worn.siege_mode.is_some()
-                || worn.main_fire.is_some()
-                || worn.wreckage.is_some()
-                || worn.rebirth.is_some()
+            if worn.effects.lifesteal.is_some()
+                || worn.effects.auto_recovery.is_some()
+                || worn.effects.energy_shield.is_some()
+                || worn.effects.single.stealth.is_some()
+                || worn.effects.mech_group.is_some()
+                || worn.effects.single.siege_mode.is_some()
+                || worn.effects.main_fire.is_some()
+                || worn.effects.single.wreckage.is_some()
+                || worn.effects.single.rebirth.is_some()
             {
                 refused.push(format!(
                     "side {name} summons a {} that its technologies give lifesteal, repair, \
@@ -820,15 +693,7 @@ fn compile_battle_skills(
                 ));
                 continue;
             }
-            summon.corrections = worn.corrections;
-            summon.technology_disable = worn.technology_disable;
-            summon.reactive_armor = worn.reactive_armor;
-            summon.burrow = worn.burrow;
-            summon.dead_acid = worn.dead_acid;
-            summon.clear_range_item = worn.clear_range_item;
-            summon.rvo_radius_change = worn.rvo_radius_change;
-            summon.repair = worn.repair;
-            summon.kill_explosion = worn.kill_explosion;
+            summon.effects = worn.effects.passed_on();
         }
         battle_skills.push(release);
     }
@@ -941,40 +806,9 @@ fn compile_formation(
         exp: i64::from(formation.exp.unwrap_or(0)),
         experience_rate: worn.experience_rates.0,
         unit_experience_rate: worn.experience_rates.1,
-        corrections: worn.corrections,
-        lifesteal: worn.lifesteal,
-        auto_recovery: worn.auto_recovery,
-        energy_shield: worn.energy_shield,
-        stealth: worn.stealth,
-        siege_mode: worn.siege_mode.clone(),
-        wreckage: worn.wreckage.clone(),
-        rebirth: worn.rebirth.clone(),
-        rvo_radius_change: worn.rvo_radius_change,
-        clear_range_item: worn.clear_range_item.clone(),
-        repair: worn.repair.clone(),
-        kill_explosion: worn.kill_explosion.clone(),
-        burrow: worn.burrow.clone(),
-        dead_acid: worn.dead_acid,
-        sweep: worn.sweep,
-        distance_intensify: worn.distance_intensify,
-        secondary_damage: worn.secondary_damage,
-        dead_line: worn.dead_line,
-        mech_group: worn.mech_group,
-        move_ability_attack: worn.move_ability_attack,
-        reactive_armor: worn.reactive_armor,
-        move_ability_range_item: worn.move_ability_range_item,
-        main_fire: worn.main_fire,
-        interception: worn.interception,
-        carried_shield: worn.carried_shield,
+        effects: worn.effects,
         production,
-        buff_sources: worn.buff_sources,
-        ignored_buffs: worn.ignored_buffs,
-        important: worn.important,
-        ignores_control_beam: worn.ignores_control_beam,
         travelling: formation.travelling,
-        extra_weapons: worn.extra_weapons,
-        technology_disable: worn.technology_disable,
-        dead_summon: worn.dead_summon,
         surfacing,
     })
 }
@@ -1094,22 +928,22 @@ fn made_by(
         loadouts,
         refused,
     )?;
-    if worn.lifesteal.is_some()
-        || worn.auto_recovery.is_some()
-        || worn.energy_shield.is_some()
-        || worn.stealth.is_some()
-        || worn.distance_intensify
-        || worn.secondary_damage.is_some()
-        || worn.dead_line.is_some()
-        || worn.mech_group.is_some()
-        || worn.move_ability_attack.is_some()
-        || worn.move_ability_range_item.is_some()
-        || worn.interception.is_some()
-        || worn.dead_summon.is_some()
-        || worn.siege_mode.is_some()
-        || worn.main_fire.is_some()
-        || worn.wreckage.is_some()
-        || worn.rebirth.is_some()
+    if worn.effects.lifesteal.is_some()
+        || worn.effects.auto_recovery.is_some()
+        || worn.effects.energy_shield.is_some()
+        || worn.effects.single.stealth.is_some()
+        || worn.effects.distance_intensify
+        || worn.effects.secondary_damage.is_some()
+        || worn.effects.dead_line.is_some()
+        || worn.effects.mech_group.is_some()
+        || worn.effects.move_ability_attack.is_some()
+        || worn.effects.move_ability_range_item.is_some()
+        || worn.effects.interception.is_some()
+        || worn.effects.dead_summon.is_some()
+        || worn.effects.single.siege_mode.is_some()
+        || worn.effects.main_fire.is_some()
+        || worn.effects.single.wreckage.is_some()
+        || worn.effects.single.rebirth.is_some()
     {
         refused.push(format!(
             "side {side_name} makes a {} that its technologies give lifesteal, repair, a \
@@ -1119,20 +953,14 @@ fn made_by(
         ));
         return None;
     }
-    let mut corrections = worn.corrections;
-    corrections.extend(line.make_corrections.iter().copied());
+    let mut effects = worn.effects.passed_on();
+    effects
+        .corrections
+        .extend(line.make_corrections.iter().copied());
     Some(Production {
         line,
         rules: made,
-        corrections,
-        technology_disable: worn.technology_disable,
-        reactive_armor: worn.reactive_armor,
-        burrow: worn.burrow,
-        dead_acid: worn.dead_acid,
-        clear_range_item: worn.clear_range_item,
-        rvo_radius_change: worn.rvo_radius_change,
-        repair: worn.repair,
-        kill_explosion: worn.kill_explosion,
+        effects,
     })
 }
 
@@ -1231,7 +1059,7 @@ fn refuse_travelling_buffs(
     worn: &Worn,
     refused: &mut Refusals,
 ) -> Option<()> {
-    if formation.travelling && !worn.buff_sources.is_empty() {
+    if formation.travelling && !worn.effects.buff_sources.is_empty() {
         refused.push(format!(
             "side {side_name} unit type {:?} travels in with a buff its equipment adds as \
              the fight starts, and when a travelling unit's starts is not measured",
@@ -1243,10 +1071,10 @@ fn refuse_travelling_buffs(
 }
 
 /// What a unit summoned as another dies carries that is not measured on one.
-fn unread_on_a_death_summon(worn: &Worn) -> Option<&'static str> {
-    if worn.interception.is_some() {
+fn unread_on_a_death_summon(effects: &UnitEffects) -> Option<&'static str> {
+    if effects.interception.is_some() {
         Some("make an interceptor, and when a summon's interceptors start")
-    } else if worn.dead_summon.is_some() {
+    } else if effects.dead_summon.is_some() {
         Some("make summon as it dies in turn")
     } else {
         None
@@ -1283,42 +1111,107 @@ fn one_interception(
     }
 }
 
-/// What this side's loadout and a formation's equipment hand one unit.
+/// What a side's loadout and a unit's equipment hand one unit beyond where
+/// it stands and who it is: what its technologies, officers, equipment and
+/// Energy Tower skills write onto its numbers, and the sources each of its
+/// effect providers holds.
+#[derive(Debug, Clone, Default)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "each flag is an independent fact the unit's loadout gives it"
+)]
+pub(crate) struct UnitEffects {
+    /// What the side's loadout wrote onto this formation, in the channel each
+    /// correction belongs to. The entries are verified to resolve while the
+    /// layout is compiled, which is the only place that can name the side and
+    /// the officer in a refusal.
+    pub(crate) corrections: Vec<(Channel, Entry)>,
+    /// The `ILifeSteal` its `LifeStealEffectProvider` enables, if its
+    /// technologies or equipment hand it one.
+    pub(crate) lifesteal: Option<LifeSteal>,
+    /// The `IAutoRecovery` its `AutoRecoveryEffectProvider` enables, if its
+    /// technologies or equipment hand it one.
+    pub(crate) auto_recovery: Option<AutoRecovery>,
+    /// The `IEnergyShieldSource` its `EnergyShieldProvider` enables, if its
+    /// technologies or equipment hand it one.
+    pub(crate) energy_shield: Option<EnergyShield>,
+    /// The sources of which it holds one, the first its technologies hand
+    /// it.
+    pub(crate) single: SingleSources,
+    /// What its technologies hand its sweep (`SweepSkillIntensifyTech`).
+    pub(crate) sweep: Option<SweepIntensify>,
+    /// Whether its technologies turn its main skill's search to
+    /// `DistanceIntensify` (`SearchTargetSpecificTech`).
+    pub(crate) distance_intensify: bool,
+    /// The second damage its technologies make its main skill deal around
+    /// each hit (`SecondaryDamageIntensifyTech`).
+    pub(crate) secondary_damage: Option<SecondaryDamage>,
+    /// The life at or under which its main skill destroys what it hits
+    /// (`DeadLineTech`).
+    pub(crate) dead_line: Option<DeadLine>,
+    /// How it links with the other units its technology reaches into a
+    /// group, and what the group does (`DamageShareTech`).
+    pub(crate) mech_group: Option<MechGroup>,
+    /// What its technologies do to its surfacing and the attacks after it
+    /// (`MoveAbilityAttackIntensifyTech`).
+    pub(crate) move_ability_attack: Option<MoveAbilityAttack>,
+    /// The rate its technology puts on the damage it takes for its first
+    /// hits (`ReactiveArmorTech`).
+    pub(crate) reactive_armor: Option<ReactiveArmor>,
+    /// The sand fog its technologies leave as it ends a surfacing
+    /// (`MoveAbilityRangeItemTech`).
+    pub(crate) move_ability_range_item: Option<TerrainSpec>,
+    /// The fire each hit of its main skill leaves, when a technology is an
+    /// `IFireIntensify` (`FireIntensifyEffectProvider`): the unit's fire,
+    /// `GroundFireController.GetFireMech`.
+    pub(crate) main_fire: Option<TerrainSpec>,
+    /// The interceptors its technologies make it (`InterceptMissileTech`).
+    pub(crate) interception: Option<UnitInterception>,
+    /// The battlefield shield its equipment makes it carry.
+    pub(crate) carried_shield: Option<CarriedShield>,
+    /// The buffs its equipment adds to it as the fight starts.
+    pub(crate) buff_sources: Vec<BuffSource>,
+    /// The `buffDatas` rows its equipment makes it ignore,
+    /// `BuffManager.ignoredBuffs`.
+    pub(crate) ignored_buffs: Vec<u32>,
+    /// Whether its equipment makes it an important unit
+    /// (`FightMech.IsImportant`): its side does not outlive it.
+    pub(crate) important: bool,
+    /// Whether its equipment keeps every control beam from turning it,
+    /// `TeamTranslationSystem.IsIgnoredMech`.
+    pub(crate) ignores_control_beam: bool,
+    /// The extra weapons its technologies add beside its main skill.
+    pub(crate) extra_weapons: Vec<ExtraWeapon>,
+    /// What a buff that disables technology switches off on it.
+    pub(crate) technology_disable: TechnologyDisable,
+    /// What its technology summons where it dies (`DeadSummonTech`).
+    pub(crate) dead_summon: Option<DeadSummonOnDeath>,
+}
+
+impl UnitEffects {
+    /// What a production line or a battle skill hands what it makes of
+    /// these: what they write onto its numbers, what a buff that disables
+    /// technology switches off, its reactive armor and its single sources.
+    /// What it holds beyond them the layout refuses before, where a made or
+    /// summoned unit's is not measured, or does not read.
+    fn passed_on(self) -> Self {
+        Self {
+            corrections: self.corrections,
+            technology_disable: self.technology_disable,
+            reactive_armor: self.reactive_armor,
+            single: self.single,
+            ..Self::default()
+        }
+    }
+}
+
+/// What a side's loadout and a formation's equipment hand one unit: its
+/// effects, and the rates its officers and its technologies put on what it
+/// gains.
 struct Worn {
-    corrections: Vec<(Channel, Entry)>,
+    effects: UnitEffects,
     /// The card's rate and the unit's own.
     experience_rates: (ExperienceRate, ExperienceRate),
-    lifesteal: Option<LifeSteal>,
-    auto_recovery: Option<AutoRecovery>,
-    energy_shield: Option<EnergyShield>,
-    stealth: Option<Stealth>,
-    siege_mode: Option<SiegeMode>,
-    wreckage: Option<WreckageRecovery>,
-    rebirth: Option<Rebirth>,
-    rvo_radius_change: Option<RvoRadiusChange>,
-    clear_range_item: Option<ClearRangeItem>,
-    repair: Option<Repair>,
-    kill_explosion: Option<KillExplosion>,
-    burrow: Option<Burrow>,
-    dead_acid: Option<TerrainSpec>,
-    sweep: Option<SweepIntensify>,
-    distance_intensify: bool,
-    secondary_damage: Option<SecondaryDamage>,
-    dead_line: Option<DeadLine>,
-    mech_group: Option<MechGroup>,
-    move_ability_attack: Option<MoveAbilityAttack>,
-    reactive_armor: Option<ReactiveArmor>,
-    move_ability_range_item: Option<TerrainSpec>,
-    main_fire: Option<TerrainSpec>,
-    interception: Option<UnitInterception>,
-    carried_shield: Option<CarriedShield>,
-    buff_sources: Vec<BuffSource>,
-    ignored_buffs: Vec<u32>,
-    important: bool,
-    ignores_control_beam: bool,
-    extra_weapons: Vec<ExtraWeapon>,
-    technology_disable: TechnologyDisable,
-    dead_summon: Option<DeadSummonOnDeath>,
 }
 
 /// What this side's loadout and a formation's equipment write onto it.
@@ -1402,7 +1295,7 @@ fn loadout(
             .experience_rate(&side.techs.units, type_name, level)
             .map_err(on_side),
     )?;
-    let mut worn = worn(
+    let mut effects = worn(
         side_name,
         type_name,
         level,
@@ -1413,21 +1306,24 @@ fn loadout(
         corrections,
         refused,
     )?;
-    worn.technology_disable = technology_disable(
+    effects.technology_disable = technology_disable(
         type_name,
         level,
         side,
         loadouts,
-        &worn.extra_weapons,
+        &effects.extra_weapons,
         &on_side,
         refused,
     )?;
-    let stats = refused.hold(Stats::corrected(rules, level, &worn.corrections).map_err(refusal))?;
+    let stats =
+        refused.hold(Stats::corrected(rules, level, &effects.corrections).map_err(refusal))?;
     // A correction the build has no field for is refused here, where the
     // side and the officer can be named.
     refused.hold(stats.refuse_fieldless_corrections().map_err(refusal))?;
-    worn.experience_rates = (experience_rate, unit_experience_rate);
-    Some(worn)
+    Some(Worn {
+        effects,
+        experience_rates: (experience_rate, unit_experience_rate),
+    })
 }
 
 /// What a buff that disables technology takes from one unit: what its
@@ -1517,7 +1413,7 @@ fn worn(
     loadouts: &Loadouts,
     corrections: Vec<(Channel, Entry)>,
     refused: &mut Refusals,
-) -> Option<Worn> {
+) -> Option<UnitEffects> {
     let on_side = |error: Error| Error::new(format!("side {side_name}: {error}"));
     let refusal = |error: Error| {
         Error::new(format!(
@@ -1609,22 +1505,12 @@ fn worn(
     )?;
     switch_air_attack(&main_skill, rules, &mut corrections, &mut extra_weapons);
     let in_force = |error: String| refusal(Error::new(error));
-    Some(Worn {
+    Some(UnitEffects {
         corrections,
-        experience_rates: Default::default(),
         lifesteal: refused.hold(current_source(&lifesteal).map_err(in_force))?,
         auto_recovery: refused.hold(current_source(&auto_recovery).map_err(in_force))?,
         energy_shield: refused.hold(current_source(&energy_shield).map_err(in_force))?,
-        stealth: sources.stealth,
-        siege_mode: sources.siege_mode,
-        wreckage: sources.wreckage,
-        rebirth: sources.rebirth,
-        rvo_radius_change: sources.rvo_radius_change,
-        clear_range_item: sources.clear_range_item,
-        repair: sources.repair,
-        kill_explosion: sources.kill_explosion,
-        burrow: sources.burrow,
-        dead_acid: sources.dead_acid,
+        single: sources.single,
         sweep: main_skill.sweep,
         distance_intensify: main_skill.distance_intensify,
         secondary_damage: main_skill.secondary_damage,
@@ -2143,10 +2029,10 @@ red:
         let layout = compile_default(&value).unwrap();
         let blue = &layout.placements[0];
         assert_eq!(blue.type_name, "marksman");
-        assert_eq!(blue.corrections.len(), 1, "one officer, one rate");
-        assert_eq!(blue.corrections[0].0, Channel::Skill);
+        assert_eq!(blue.effects.corrections.len(), 1, "one officer, one rate");
+        assert_eq!(blue.effects.corrections[0].0, Channel::Skill);
         assert!(
-            layout.placements[1].corrections.is_empty(),
+            layout.placements[1].effects.corrections.is_empty(),
             "the other side holds no officer"
         );
     }
@@ -2160,7 +2046,7 @@ red:
             "blue:\n  officers: [supply_specialist]\n  units:",
         );
         let layout = compile_default(&value).unwrap();
-        assert!(layout.placements[0].corrections.is_empty());
+        assert!(layout.placements[0].effects.corrections.is_empty());
     }
 
     /// A technology reaches the fight as corrections on the units its table
@@ -2174,9 +2060,9 @@ red:
         let layout = compile_default(&value).unwrap();
         let blue = &layout.placements[0];
         assert_eq!(blue.type_name, "marksman");
-        assert_eq!(blue.corrections.len(), 1, "forty metres of range");
-        assert_eq!(blue.corrections[0].0, Channel::Skill);
-        assert!(layout.placements[1].corrections.is_empty());
+        assert_eq!(blue.effects.corrections.len(), 1, "forty metres of range");
+        assert_eq!(blue.effects.corrections[0].0, Channel::Skill);
+        assert!(layout.placements[1].effects.corrections.is_empty());
     }
 
     /// A Defensive Wall reaches the fight as the five buildings it is, and

@@ -110,7 +110,7 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<()> {
         let actor = &self.actors[&id];
-        let source = actor.placement.buff_sources[index];
+        let source = actor.placement.effects.buff_sources[index];
         let owner = actor.object_ref();
         let cycle = actor.buff_cycles[index].clone();
         let (next, reached) = match (source.trigger, cycle) {
@@ -283,6 +283,7 @@ impl Simulation {
         };
         let sources = owner
             .placement
+            .effects
             .buff_sources
             .iter()
             .filter(|source| source.trigger == BuffTrigger::Hit)
@@ -292,7 +293,7 @@ impl Simulation {
         if sources.is_empty() || !owner.corrected_skill_slots().contains(&usize::from(slot)) {
             return Ok(());
         }
-        if owner.placement.lifesteal.is_some() {
+        if owner.placement.effects.lifesteal.is_some() {
             return Err(Error::new(format!(
                 "unit {owner_id} steals life and adds a buff on a hit, and in which order its \
                  skill's hit effects run is not read"
@@ -348,6 +349,7 @@ impl Simulation {
         };
         let sources = owner
             .placement
+            .effects
             .buff_sources
             .iter()
             .filter(|source| source.trigger == BuffTrigger::BeHit)
@@ -426,6 +428,7 @@ impl Simulation {
         let owner = &self.actors[&id];
         let sources = owner
             .placement
+            .effects
             .buff_sources
             .iter()
             .filter(|source| source.trigger == BuffTrigger::Damaged)

@@ -44,7 +44,7 @@ impl Simulation {
         let Some(actor) = self.actors.get(&owner) else {
             return Ok(ends);
         };
-        let Some(source) = actor.placement.kill_explosion.clone() else {
+        let Some(source) = actor.placement.effects.single.kill_explosion.clone() else {
             return Ok(ends);
         };
         if (source.can_disable && actor.technology_disabled())

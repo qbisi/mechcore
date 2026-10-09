@@ -29,7 +29,7 @@ impl Simulation {
     pub(in crate::fight) fn step_dead_acids(&mut self) -> Result<()> {
         for unit in self.dead_exits.clone() {
             let actor = &self.actors[&unit];
-            let Some(spec) = actor.placement.dead_acid else {
+            let Some(spec) = actor.placement.effects.single.dead_acid else {
                 continue;
             };
             if !self.technology_dead_effect_held(unit) {

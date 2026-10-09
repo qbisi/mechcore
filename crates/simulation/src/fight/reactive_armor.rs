@@ -40,7 +40,7 @@ pub(in crate::fight) struct ReactiveArmorState {
 impl ReactiveArmorState {
     /// The entry a unit's technology will give it, not listed yet.
     pub(in crate::fight) fn of(placement: &crate::layout::Placement) -> Option<Self> {
-        placement.reactive_armor.map(|source| Self {
+        placement.effects.reactive_armor.map(|source| Self {
             source,
             listed: false,
             remaining: source.count,

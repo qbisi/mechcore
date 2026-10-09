@@ -377,6 +377,7 @@ fn carried_shields(actors: &BTreeMap<u64, Actor>) -> Vec<shield::CarriedShieldPl
         .filter_map(|(&id, actor)| {
             actor
                 .placement
+                .effects
                 .carried_shield
                 .map(|carried| shield::CarriedShieldPlacement {
                     team: actor.placement.team,

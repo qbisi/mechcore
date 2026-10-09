@@ -704,7 +704,7 @@ impl Simulation {
     /// `Next(1000)` is not below the chance.
     pub(in crate::fight) fn buff_reaches(&mut self, actor_id: u64, row: &BuffRow) -> Result<bool> {
         let actor = &self.actors[&actor_id];
-        if (!row.technology && actor.placement.ignored_buffs.contains(&row.buff_id))
+        if (!row.technology && actor.placement.effects.ignored_buffs.contains(&row.buff_id))
             || (row.debuff && actor.invincible())
             || row.probability <= 0
         {
@@ -749,6 +749,7 @@ impl Simulation {
                 });
         let unmeasured = &self.actors[&actor_id]
             .placement
+            .effects
             .technology_disable
             .unmeasured;
         if row.disables_technology && !unmeasured.is_empty() {
@@ -1195,7 +1196,7 @@ impl Simulation {
                     .actors
                     .get_mut(&actor_id)
                     .expect("actor identity is stable");
-                let switched = &actor.placement.technology_disable.technologies;
+                let switched = &actor.placement.effects.technology_disable.technologies;
                 for extra in &mut actor.skills.extras {
                     if switched.contains(&extra.rules.technology) {
                         extra.skill.disabled = !on;
@@ -1255,19 +1256,30 @@ impl Simulation {
         }
         // `FightEffectMananger.DisableEffect` and `EnableEffect`: every
         // provider beside the numbers' its technologies reach.
-        for provider in actor.placement.technology_disable.providers.clone() {
+        for provider in actor.placement.effects.technology_disable.providers.clone() {
             self.switch_provider(actor_id, provider, on, events)?;
         }
         let actor = self
             .actors
             .get_mut(&actor_id)
             .expect("actor identity is stable");
-        let corrections = actor.placement.technology_disable.corrections.clone();
+        let corrections = actor
+            .placement
+            .effects
+            .technology_disable
+            .corrections
+            .clone();
         // A unit with no technology has nothing to refresh: the Wasps an
         // Electromagnetic Impact reaches keep the intervals they drew. One
         // whose technologies wrote nothing still refreshes: a Fortress with
         // Barrier's drawn 35 becomes its plain 36.
-        if actor.placement.technology_disable.technologies.is_empty() {
+        if actor
+            .placement
+            .effects
+            .technology_disable
+            .technologies
+            .is_empty()
+        {
             return Ok(());
         }
         for (channel, entry) in corrections {

@@ -154,7 +154,7 @@ impl Simulation {
     /// writing its `MechGroupDistance`, and the side's manager refreshes.
     pub(in crate::fight) fn add_group_unit(&mut self, unit: u64) {
         let actor = &self.actors[&unit];
-        let Some(source) = actor.placement.mech_group else {
+        let Some(source) = actor.placement.effects.mech_group else {
             return;
         };
         let (team, kind) = (actor.placement.team, actor.rules.unit_type_id);
@@ -247,7 +247,7 @@ impl Simulation {
         let held = self
             .actors
             .iter()
-            .filter(|(_, actor)| !actor.travelling && actor.placement.mech_group.is_some())
+            .filter(|(_, actor)| !actor.travelling && actor.placement.effects.mech_group.is_some())
             .map(|(&id, _)| id)
             .collect::<Vec<_>>();
         for unit in held {

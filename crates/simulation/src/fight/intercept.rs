@@ -173,7 +173,7 @@ impl Simulation {
             interception,
             weapons,
             preemptive,
-        }) = self.actors[&actor_id].placement.interception
+        }) = self.actors[&actor_id].placement.effects.interception
         else {
             return;
         };
@@ -197,7 +197,9 @@ impl Simulation {
         let units = self
             .actors
             .iter()
-            .filter(|(_, actor)| !actor.travelling && actor.placement.interception.is_some())
+            .filter(|(_, actor)| {
+                !actor.travelling && actor.placement.effects.interception.is_some()
+            })
             .map(|(&id, _)| id)
             .collect::<Vec<_>>();
         for actor_id in units {

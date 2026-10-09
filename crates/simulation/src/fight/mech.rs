@@ -33,8 +33,9 @@ impl Actor {
         // The layout resolved these when it compiled the placement, which is
         // where a refusal can name the side and the officer; reaching here
         // means they resolve.
-        let stats = crate::data::Stats::corrected(&rules, placement.level, &placement.corrections)
-            .expect("the layout verified this loadout resolves");
+        let stats =
+            crate::data::Stats::corrected(&rules, placement.level, &placement.effects.corrections)
+                .expect("the layout verified this loadout resolves");
         let max_life = stats.max_life();
         let x = q32_to_space_rounded(x_q32);
         let z = q32_to_space_rounded(z_q32);
@@ -42,10 +43,11 @@ impl Actor {
         // `AutoRecoveryEffectProvider.DoActive` hands a unit with a repair
         // source in force a controller, which its constructor resets.
         let recovery = placement
+            .effects
             .auto_recovery
             .as_ref()
             .map(super::recovery::RecoveryClock::reset);
-        let shield = placement.energy_shield.map(|source| {
+        let shield = placement.effects.energy_shield.map(|source| {
             let maximum = q32_mul(max_life << 32, source.life_rate_q32) >> 32;
             PersonalShield {
                 energy: maximum,
@@ -56,8 +58,10 @@ impl Actor {
         let original_team = placement.team;
         let original_formation = placement.formation_id;
         let path_finding = path_finding::PathFinding::of(&rules);
-        let rvo_radius_change =
-            RvoRadiusChangeState::of(placement.rvo_radius_change, placement.travelling);
+        let rvo_radius_change = RvoRadiusChangeState::of(
+            placement.effects.single.rvo_radius_change,
+            placement.travelling,
+        );
         let mut actor = Self {
             x,
             z,
@@ -79,7 +83,7 @@ impl Actor {
                 .then(|| mdeg_to_degrees_q32(placement.rotation)),
             turret_aim_q32: None,
             // Read before the placement moves in.
-            buff_cycles: super::buff_cycle::BuffCycle::of(&placement.buff_sources),
+            buff_cycles: super::buff_cycle::BuffCycle::of(&placement.effects.buff_sources),
             reactive_armor: super::reactive_armor::ReactiveArmorState::of(&placement),
             placement,
             rules,
@@ -706,6 +710,7 @@ impl Actor {
 /// each starts pointing as the unit faces, as the main skill's weapons do.
 fn extra_skills(placement: &Placement) -> Vec<ExtraSkill> {
     let mut weapons: Vec<&crate::layout::ExtraWeapon> = placement
+        .effects
         .extra_weapons
         .iter()
         .filter(|weapon| !weapon.joins_main_group)
@@ -774,6 +779,7 @@ fn extra_skills(placement: &Placement) -> Vec<ExtraSkill> {
 /// skill's but for its range, its attack angle and its weapons.
 fn joined_main_group(mut rules: UnitConfig, placement: &Placement) -> UnitConfig {
     let mut joined = placement
+        .effects
         .extra_weapons
         .iter()
         .filter(|weapon| weapon.joins_main_group)
@@ -805,6 +811,7 @@ fn main_skill(rules: &UnitConfig, placement: &Placement) -> Skill {
     );
     if let Some(group) = skill.group.as_mut() {
         let mut joined = placement
+            .effects
             .extra_weapons
             .iter()
             .filter(|weapon| weapon.joins_main_group)

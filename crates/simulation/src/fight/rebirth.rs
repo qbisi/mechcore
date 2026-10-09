@@ -182,7 +182,7 @@ impl Simulation {
     /// `CostRebirthCount`, then `GetRebirthTask` and `StartTask`.
     fn start_rebirth(&mut self, unit: u64) -> Result<()> {
         let actor = &self.actors[&unit];
-        let Some(source) = actor.placement.rebirth.clone() else {
+        let Some(source) = actor.placement.effects.single.rebirth.clone() else {
             return Ok(());
         };
         if !self.technology_dead_effect_held(unit) {

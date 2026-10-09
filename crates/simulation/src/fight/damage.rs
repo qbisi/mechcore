@@ -912,7 +912,7 @@ impl Simulation {
         else {
             return Ok(None);
         };
-        let Some(line) = owner.placement.dead_line else {
+        let Some(line) = owner.placement.effects.dead_line else {
             return Ok(None);
         };
         if usize::from(slot) >= owner.skills.main_slots() || owner.technology_disabled() {
@@ -959,7 +959,7 @@ impl Simulation {
             .filter(|source| source.kind == ObjectKind::Unit)?;
         let owner = self.actors.get(&source.id)?;
         (hit.skill_slot == Some(0) && owner.alive() && !owner.technology_disabled())
-            .then_some(owner.placement.secondary_damage)
+            .then_some(owner.placement.effects.secondary_damage)
             .flatten()
     }
 
@@ -989,7 +989,7 @@ impl Simulation {
             ));
         }
         let owner = hit.source.expect("a second damage has its unit").id;
-        if self.actors[&owner].placement.lifesteal.is_some() {
+        if self.actors[&owner].placement.effects.lifesteal.is_some() {
             return Err(Error::new(
                 "a second damage is dealt by a unit with lifesteal, and whether its hit \
                  hands life back is not measured",
@@ -1128,7 +1128,7 @@ impl Simulation {
         let Some(actor) = self.actors.get(&owner) else {
             return Ok(());
         };
-        let Some(fire) = actor.placement.main_fire else {
+        let Some(fire) = actor.placement.effects.main_fire else {
             return Ok(());
         };
         if actor.technology_disabled() {
@@ -1160,7 +1160,7 @@ impl Simulation {
         let Some(owner) = self.actors.get_mut(&owner_id) else {
             return Ok(());
         };
-        let Some(lifesteal) = owner.placement.lifesteal else {
+        let Some(lifesteal) = owner.placement.effects.lifesteal else {
             return Ok(());
         };
         if lifesteal.can_disable && owner.technology_disabled() {

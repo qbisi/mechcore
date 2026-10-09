@@ -422,7 +422,7 @@ impl Simulation {
                     // `SearchTargetSpecificProvider.DoEnable` turns the main
                     // skill's selector to `DistanceIntensify` after it has
                     // written the values the selector reads.
-                    score_offsets: if actor.placement.distance_intensify {
+                    score_offsets: if actor.placement.effects.distance_intensify {
                         ScoreOffsets {
                             air: actor.stats.score_offset_for(UnitDomain::Air),
                             ground: actor.stats.score_offset_for(UnitDomain::Ground),

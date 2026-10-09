@@ -440,6 +440,22 @@ pub(crate) struct UnitSources {
     pub(crate) lifesteal: Vec<LifeSteal>,
     pub(crate) auto_recovery: Vec<AutoRecovery>,
     pub(crate) energy_shield: Vec<EnergyShield>,
+    /// The sources of which the unit holds one, the first.
+    pub(crate) single: SingleSources,
+    pub(crate) buff_sources: Vec<BuffSource>,
+    pub(crate) interception: Vec<UnitInterception>,
+    pub(crate) dead_summon: Option<UnitDeadSummon>,
+    /// The line it runs once each time it begins to surface
+    /// (`MoveAbilitySummonTech`).
+    pub(crate) surfacing_line: Option<ProductionLine>,
+}
+
+/// The sources of the interfaces a unit holds one source of, the first its
+/// side's technologies hand it: the one a `SingleEffectProvider` enables, or
+/// the one a system or controller holds. A unit made, summoned or summoned
+/// as another dies carries them whole.
+#[derive(Debug, Clone, Default)]
+pub(crate) struct SingleSources {
     /// The first that puts its unit in stealth: `StealthTechSystem.AddMech`
     /// passes over a unit it already holds.
     pub(crate) stealth: Option<Stealth>,
@@ -469,12 +485,6 @@ pub(crate) struct UnitSources {
     /// The acid the first that leaves one where its unit dies leaves
     /// (`DeadAcidRangeItemController`).
     pub(crate) dead_acid: Option<TerrainSpec>,
-    pub(crate) buff_sources: Vec<BuffSource>,
-    pub(crate) interception: Vec<UnitInterception>,
-    pub(crate) dead_summon: Option<UnitDeadSummon>,
-    /// The line it runs once each time it begins to surface
-    /// (`MoveAbilitySummonTech`).
-    pub(crate) surfacing_line: Option<ProductionLine>,
 }
 
 /// What a move ability summon row answers `IMoveAbilitySummon` and
@@ -1671,43 +1681,48 @@ impl TechnologyEffects {
             sources.lifesteal.extend(technology.lifesteal);
             sources.auto_recovery.extend(technology.auto_recovery);
             sources.energy_shield.extend(technology.energy_shield);
-            sources.stealth = sources.stealth.or(technology.stealth);
-            if sources.siege_mode.is_none() {
-                sources.siege_mode.clone_from(&technology.siege_mode);
+            sources.single.stealth = sources.single.stealth.or(technology.stealth);
+            if sources.single.siege_mode.is_none() {
+                sources.single.siege_mode.clone_from(&technology.siege_mode);
             }
-            if sources.wreckage.is_none() {
-                sources.wreckage.clone_from(&technology.wreckage);
+            if sources.single.wreckage.is_none() {
+                sources.single.wreckage.clone_from(&technology.wreckage);
             }
             if let Some(rebirth) = &technology.rebirth {
-                if sources.rebirth.is_some() {
+                if sources.single.rebirth.is_some() {
                     return Err(Error::new(format!(
                         "unit type {unit_type:?} is brought back by two technologies, \
                          which is not measured"
                     )));
                 }
-                sources.rebirth = Some(rebirth.clone());
+                sources.single.rebirth = Some(rebirth.clone());
             }
-            sources.rvo_radius_change = sources.rvo_radius_change.or(technology.rvo_radius_change);
-            if sources.clear_range_item.is_none() {
+            sources.single.rvo_radius_change = sources
+                .single
+                .rvo_radius_change
+                .or(technology.rvo_radius_change);
+            if sources.single.clear_range_item.is_none() {
                 sources
+                    .single
                     .clear_range_item
                     .clone_from(&technology.clear_range_item);
             }
-            if sources.repair.is_none() {
-                sources.repair.clone_from(&technology.repair);
+            if sources.single.repair.is_none() {
+                sources.single.repair.clone_from(&technology.repair);
             }
-            if sources.kill_explosion.is_none() {
+            if sources.single.kill_explosion.is_none() {
                 sources
+                    .single
                     .kill_explosion
                     .clone_from(&technology.kill_explosion);
             }
-            if sources.burrow.is_none() {
-                sources.burrow.clone_from(&technology.burrow);
+            if sources.single.burrow.is_none() {
+                sources.single.burrow.clone_from(&technology.burrow);
             }
-            if sources.dead_acid.is_none()
+            if sources.single.dead_acid.is_none()
                 && let Some(acid) = &technology.dead_acid
             {
-                sources.dead_acid = Some(acid.clone().map_err(Error::new)?);
+                sources.single.dead_acid = Some(acid.clone().map_err(Error::new)?);
             }
             sources.buff_sources.extend(technology.buff_source);
             sources.interception.extend(technology.interception);
@@ -2550,7 +2565,7 @@ mod tests {
         assert!(table.corrections(&[9], "vortex", 1).unwrap().is_empty());
         let sources = table.sources(&[9], "vortex").unwrap();
         assert_eq!(
-            sources.stealth,
+            sources.single.stealth,
             Some(super::Stealth {
                 trigger_life_rate_q32: 1 << 31,
                 duration_q32: 4 << 32,
@@ -2586,6 +2601,7 @@ mod tests {
         let trench = table
             .sources(&[9], "sabertooth")
             .unwrap()
+            .single
             .siege_mode
             .unwrap();
         assert_eq!(
@@ -2640,7 +2656,7 @@ mod tests {
         .unwrap();
         assert_eq!(table.corrections(&[9], "rhino", 1).unwrap().len(), 1);
         assert_eq!(
-            table.sources(&[9], "rhino").unwrap().wreckage,
+            table.sources(&[9], "rhino").unwrap().single.wreckage,
             Some(super::WreckageRecovery {
                 time_q32: 2 << 32,
                 distance: vec![15],
@@ -2671,7 +2687,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(
-            table.sources(&[9], "typhoon").unwrap().rebirth,
+            table.sources(&[9], "typhoon").unwrap().single.rebirth,
             Some(super::Rebirth {
                 cost_seconds: 5,
                 count: 1,
@@ -2690,6 +2706,7 @@ mod tests {
             table
                 .sources(&[10], "phoenix")
                 .unwrap()
+                .single
                 .rebirth
                 .is_some_and(|rebirth| rebirth.follow.is_some())
         );
@@ -2712,7 +2729,12 @@ mod tests {
              life_change_rate: -64424509, disable_recover: false, additive_reset_condition: 0}}}\n",
         )
         .unwrap();
-        let acid = table.sources(&[9], "crawler").unwrap().dead_acid.unwrap();
+        let acid = table
+            .sources(&[9], "crawler")
+            .unwrap()
+            .single
+            .dead_acid
+            .unwrap();
         assert_eq!(acid.kind, crate::layout::TerrainKind::Acid);
         assert_eq!(acid.radius_q32, 9 << 32);
         assert_eq!(acid.rounds, 1);
@@ -2742,7 +2764,7 @@ mod tests {
         .unwrap();
         assert_eq!(table.corrections(&[9], "crawler", 1).unwrap().len(), 1);
         assert_eq!(
-            table.sources(&[9], "crawler").unwrap().burrow,
+            table.sources(&[9], "crawler").unwrap().single.burrow,
             Some(super::Burrow {
                 technology: 9,
                 amplify_damage_rate: vec![-1_717_986_918],
@@ -2772,7 +2794,11 @@ mod tests {
         .unwrap();
         assert_eq!(table.corrections(&[9], "crawler", 1).unwrap().len(), 1);
         assert_eq!(
-            table.sources(&[9], "crawler").unwrap().rvo_radius_change,
+            table
+                .sources(&[9], "crawler")
+                .unwrap()
+                .single
+                .rvo_radius_change,
             Some(super::RvoRadiusChange {
                 move_radius_q32: 14_602_888_806,
                 near_target_threshold_q32: 25 << 32,
@@ -2804,7 +2830,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(
-            table.sources(&[9], "typhoon").unwrap().repair,
+            table.sources(&[9], "typhoon").unwrap().single.repair,
             Some(super::Repair {
                 life: vec![500, 1000],
                 max_life_rate_q32: 0,
@@ -2846,7 +2872,11 @@ mod tests {
         )
         .unwrap();
         assert_eq!(
-            table.sources(&[9], "typhoon").unwrap().kill_explosion,
+            table
+                .sources(&[9], "typhoon")
+                .unwrap()
+                .single
+                .kill_explosion,
             Some(super::KillExplosion {
                 damage: vec![115],
                 range: 12_000,
@@ -2878,7 +2908,11 @@ mod tests {
         )
         .unwrap();
         assert_eq!(
-            table.sources(&[9], "hound").unwrap().clear_range_item,
+            table
+                .sources(&[9], "hound")
+                .unwrap()
+                .single
+                .clear_range_item,
             Some(super::ClearRangeItem {
                 radius: 40,
                 kinds: vec![

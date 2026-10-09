@@ -77,7 +77,9 @@ impl Simulation {
         let owners = self
             .actors
             .iter()
-            .filter(|(_, actor)| actor.placement.repair.is_some() && !actor.travelling)
+            .filter(|(_, actor)| {
+                actor.placement.effects.single.repair.is_some() && !actor.travelling
+            })
             .map(|(&id, _)| id)
             .collect::<Vec<_>>();
         for owner in owners {
@@ -88,7 +90,7 @@ impl Simulation {
     /// `RecoveryEffectProvider.DoActive` during the fight: the unit's clock
     /// at zero and enabled.
     pub(in crate::fight) fn add_repair_unit(&mut self, unit: u64) {
-        if self.actors[&unit].placement.repair.is_some() {
+        if self.actors[&unit].placement.effects.single.repair.is_some() {
             self.repair.add(unit, true);
         }
     }
@@ -121,6 +123,8 @@ impl Simulation {
             let owner = info.owner;
             let source = self.actors[&owner]
                 .placement
+                .effects
+                .single
                 .repair
                 .clone()
                 .expect("a repairing unit has a source");
