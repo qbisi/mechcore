@@ -1106,7 +1106,7 @@ impl Simulation {
     /// it is active while the lock lives, and with nothing to fire at the
     /// motion asks only whether the lock is in touch
     /// (`IsLockTargetInTouchRange`): the whole metres of `Distance2D`, edge to
-    /// edge, no more than twice the unit's radius. A moving unit walks on the
+    /// edge, within [`Actor::touch_range_q32`]. A moving unit walks on the
     /// lock until it is in touch and idles there; an idle one sets off again
     /// once it is not.
     fn walk_on_idle_lock(&mut self, actor_id: u64, update: SkillUpdate) -> Flow {
@@ -1138,7 +1138,7 @@ impl Simulation {
         .saturating_sub(space_to_q32(view.radius))
         .max(0);
         let whole_metres_q32 = edge_distance_q32 & !(Q32_ONE - 1);
-        if whole_metres_q32 <= radius_q32.saturating_mul(2) {
+        if whole_metres_q32 <= actor.touch_range_q32(actor.motion.state) {
             self.enter_motion_idle(actor_id);
             return Flow::Done;
         }
@@ -1282,8 +1282,7 @@ impl Simulation {
             .saturating_sub(space_to_q32(lock.radius))
             .max(0);
         // `IsLockTargetInTouchRange`, as [`Self::walk_on_idle_lock`] asks it.
-        let in_touch = edge_distance_q32 & !(Q32_ONE - 1)
-            <= space_to_q32(actor.rules.collision_radius()).saturating_mul(2);
+        let in_touch = edge_distance_q32 & !(Q32_ONE - 1) <= actor.touch_range_q32(state);
         let solve_due = self.rvo_solve_due();
         let attack_range = self
             .skill_attacker(skill_ref)

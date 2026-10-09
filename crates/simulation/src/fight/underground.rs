@@ -127,6 +127,21 @@ pub(in crate::fight) struct AgentOverride {
 }
 
 impl Actor {
+    /// How far a lock may stand, edge to edge in whole metres, and be in
+    /// touch (`AutoMoveBehaviour.IsLockTargetInTouchRange`): twice the unit's
+    /// radius, and ten times it for a unit with a move ability standing idle
+    /// (`MotionController.moveAbility` set, the state a `MotionIdleState`).
+    /// An idle Sandworm whose only enemies are aircraft stays where it is
+    /// with one 49 metres off, where a walking one closes to 26.
+    pub(in crate::fight) fn touch_range_q32(&self, state: MotionState) -> i64 {
+        let radii = if self.underground.is_some() && state == MotionState::Idle {
+            10
+        } else {
+            2
+        };
+        space_to_q32(self.rules.collision_radius()).saturating_mul(radii)
+    }
+
     /// The agent overrides the move ability or a stopped motion holds, if
     /// any.
     pub(in crate::fight) fn agent_override(&self) -> AgentOverride {
