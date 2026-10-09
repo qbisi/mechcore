@@ -2161,10 +2161,16 @@ derive (a minimum range):
   Typhoons that hold it, an Electromagnetic Impact running out on them, a
   row that chains, nor a rocket landing after its Typhoon died, which still
   sets off what it kills, the hit effect staying on the skill, which only
-  disabling takes off (`KillExplosionEffectProvider.DoDisableEffect`). Its
-  order beside a
-  lifesteal's, a wreckage record's and a buff source's hit effects, which no
-  unit holds with it, is not read.
+  disabling takes off (`KillExplosionEffectProvider.DoDisableEffect`).
+
+- **The order of a skill's hit effects.** `SkillHitEffectController` runs
+  them in the order they were added, and `FightEffectMananger.RegisterMechEvent`
+  walks the unit's providers in their order, each registering its own
+  (`EffectProvider.RegisterEffectEvent`): a wreckage record's, a lifesteal's,
+  a buff source's, a main fire's, then a kill explosion's. A Void Eye with
+  Suppression Shots and Energy Absorption takes its life back before its
+  buff is written on what it struck. Read from the build; no recording holds
+  a unit with two of them.
 
 - **A wreckage record running out, and the share among holders.** Read
   from the build; no recording holds a recorded unit dying after its time,

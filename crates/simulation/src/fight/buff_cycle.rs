@@ -377,12 +377,6 @@ impl Simulation {
         if sources.is_empty() || !owner.corrected_skill_slots().contains(&usize::from(slot)) {
             return Ok(());
         }
-        if owner.placement.effects.lifesteal.is_some() {
-            return Err(Error::new(format!(
-                "unit {owner_id} steals life and adds a buff on a hit, and in which order its \
-                 skill's hit effects run is not read"
-            )));
-        }
         let (source, team) = (owner.object_ref(), owner.placement.team);
         for buff in sources {
             let row = buff_row(&buff)?;
