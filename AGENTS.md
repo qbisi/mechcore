@@ -45,9 +45,8 @@ Research runs one question at a time, on a branch of this repository. These
 rules hold whoever does it:
 
 - **One game, one recorder.** A recording claims the game when it starts:
-  `convert --backend game`, `verify --backend game`, `game record`,
-  `scripts/record-fights.py`, and a run script that declares `game:`
-  (`mechcore run <script> --check` says whether one does). Start it directly,
+  `game launch`, `convert --backend game`, `verify --backend game`,
+  `game record` and `scripts/record-fights.py`. Start it directly,
   without asking another session first: the claim is the lock, and
   `docs/spec/mechcore/session.md` says how levels decide it. A claim answered
   `adapter_busy` is retried later, never forced by raising its level. CI

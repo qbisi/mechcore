@@ -313,11 +313,6 @@ impl Args {
         self.items.is_empty()
     }
 
-    /// The line as it stands, for a command that parses its own arguments.
-    pub(crate) fn into_strings(self) -> impl Iterator<Item = String> {
-        self.items.into_iter()
-    }
-
     /// Refuses whatever is left, so a mistyped option is never ignored.
     pub(crate) fn finish(self) -> Result<(), Failure> {
         match self.items.first() {

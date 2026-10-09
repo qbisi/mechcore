@@ -97,9 +97,8 @@ jobs:
 
       # Every fight document under `tests/*/fights/` is fought again by the
       # simulator and compared with what the game recorded, while recording
-      # them stays a thing only a machine with the game can do. A tracked run
-      # script is a runnable claim, so every one of them has to parse.
-      - name: Every pinned fight verifies, and every script parses
+      # them stays a thing only a machine with the game can do.
+      - name: Every pinned fight verifies
         run: scripts/check/check-scripts.sh
 
       - uses: actions/cache/save@v4

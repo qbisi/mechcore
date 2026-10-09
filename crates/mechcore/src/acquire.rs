@@ -140,8 +140,8 @@ pub(crate) struct GameProcess {
 /// The level an acquisition claims at, taken from the command line.
 ///
 /// Every acquisition carries one, and it is declared where the acquisition is
-/// made: on `game launch` and `game attach` in a session, on the operation
-/// itself in a one-shot command, and in a run document's header.
+/// made: on `game launch` and `game attach` in a session, and on the
+/// operation itself in a one-shot command.
 ///
 /// # Errors
 ///

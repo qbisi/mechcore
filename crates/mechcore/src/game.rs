@@ -3,13 +3,14 @@
 //! Its verbs are the adapter's operations, under the names
 //! `docs/spec/adapter/adapter.md` gives them, and one argument reader serves
 //! both the shell and a one-shot command. How a process acquires the game is
-//! `docs/spec/mechcore/session.md`; nothing here acquires one by itself.
+//! `docs/spec/mechcore/session.md`: `launch` starts one and leaves it for the
+//! commands after it, and every other verb joins one somebody started.
 
 use std::{path::PathBuf, sync::Arc};
 
 use serde_json::Value;
 
-use crate::acquire::Mode;
+use crate::acquire::{Launch, Mode, Ownership};
 use crate::cli::{Args, Failure, Outcome, Verdict};
 use crate::session::Session;
 
@@ -28,9 +29,8 @@ pub(crate) const OPERATIONS: &[&str] = &[
 /// One operation, acquired for the length of the command.
 ///
 /// A command is one operation and then an exit, so it joins a game somebody
-/// else is keeping alive; there is nothing else it could do, which is why it
-/// says so by running rather than by declaring it. Launching belongs to a
-/// session that outlives one operation, which is the shell and a run document.
+/// else is keeping alive, except `launch`, which starts one and leaves it to
+/// linger for the next command.
 ///
 /// # Errors
 ///
@@ -44,13 +44,21 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
 
 /// One operation, once the verb is known.
 fn one(verb: &str, mut arguments: Args) -> Outcome {
-    if matches!(verb, "launch" | "attach" | "detach") {
+    if matches!(verb, "attach" | "detach") {
         return Err(Failure::usage(format!(
             "{verb} holds a game for longer than one command; acquire in \
-             `mechcore shell` or a run document, and name the operation here"
+             `mechcore shell`, or start one with `game launch`, and name the operation here"
         )));
     }
     let level = crate::acquire::level(&mut arguments)?;
+    if verb == "launch" {
+        let how = Launch {
+            headless: arguments.flag("--headless")?,
+            offline: arguments.flag("--offline")?,
+        };
+        arguments.finish()?;
+        return launch(how, level);
+    }
     if verb == "record" {
         // What is recorded is decided, and refused, before any game is
         // reached.
@@ -61,8 +69,8 @@ fn one(verb: &str, mut arguments: Args) -> Outcome {
     }
     if arguments.flag("--launch")? {
         return Err(Failure::usage(
-            "a command joins a game somebody started; launch one in `mechcore shell` \
-             or a run document, and it lingers for 30 s after each client leaves",
+            "a command joins a game somebody started; start one with `game launch`, \
+             and it lingers for 30 s after each client leaves",
         ));
     }
     tokio::runtime::Builder::new_multi_thread()
@@ -70,6 +78,34 @@ fn one(verb: &str, mut arguments: Args) -> Outcome {
         .build()
         .map_err(|error| Failure::failed(format!("cannot create async runtime: {error}")))?
         .block_on(attached(verb, arguments, level))
+}
+
+/// Starts a game and leaves it at the main menu for the commands after this
+/// one, which it outlives by [`crate::acquire::LINGER`] each. A game already
+/// running is joined instead, as the session matrix says, and lingers as it
+/// would.
+///
+/// # Errors
+///
+/// Returns `unavailable` when the game cannot be started or reached.
+fn launch(how: Launch, level: u8) -> Outcome {
+    let (ownership, endpoint) = with_session(Mode::Launch(how), level, async |session| {
+        session.endpoint().display().to_string()
+    })?;
+    let log = match &ownership {
+        Ownership::Launched { log } => Value::String(log.display().to_string()),
+        Ownership::Attached => Value::Null,
+    };
+    println!(
+        "{}",
+        serde_json::json!({
+            "launched": ownership.is_launched(),
+            "endpoint": endpoint,
+            "log": log,
+            "linger_seconds": crate::acquire::LINGER.as_secs(),
+        })
+    );
+    Ok(Verdict::Yes)
 }
 
 /// Records `record` in a game somebody started, as a command joins one: the
@@ -95,6 +131,15 @@ pub(crate) fn with_game<T>(
     level: u8,
     work: impl AsyncFnOnce(&Arc<Session>) -> T,
 ) -> Result<T, Failure> {
+    with_session(Mode::Attach, level, work).map(|(_, answer)| answer)
+}
+
+/// Runs `work` against a game acquired as `mode` says, and leaves it.
+fn with_session<T>(
+    mode: Mode,
+    level: u8,
+    work: impl AsyncFnOnce(&Arc<Session>) -> T,
+) -> Result<(Ownership, T), Failure> {
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
@@ -102,11 +147,11 @@ pub(crate) fn with_game<T>(
         .block_on(async move {
             let session = Session::new();
             let monitor = tokio::spawn(Session::monitor_status(session.clone()));
-            let answered = match session.acquire(Mode::Attach, level).await {
-                Ok(_) => {
+            let answered = match session.acquire(mode, level).await {
+                Ok(ownership) => {
                     let answer = work(&session).await;
                     session.release().await;
-                    Ok(answer)
+                    Ok((ownership, answer))
                 }
                 Err(failure) => Err(Failure::unavailable(failure)),
             };
@@ -465,20 +510,6 @@ impl Record {
                 .map_err(refusal),
         }
     }
-
-    /// Every file this recording would write, which a run asks about before
-    /// replacing.
-    pub(crate) fn destinations(&self) -> Vec<&std::path::Path> {
-        match self {
-            Self::Scene { output, video, .. } => {
-                let mut paths = vec![output.as_path()];
-                paths.extend(video.as_deref());
-                paths
-            }
-            Self::Layout { output, .. } | Self::Replay { output, .. } => vec![output.as_path()],
-            Self::Watch { .. } => Vec::new(),
-        }
-    }
 }
 
 fn parse_layout(path: &std::path::Path, bytes: &[u8]) -> Result<Value, Failure> {
@@ -574,14 +605,15 @@ mod tests {
         assert_eq!(seed(&mut args(&["--seed", "-17"])).unwrap(), Some(-17));
     }
 
-    /// Acquisition holds a game for longer than one command, so a command
-    /// refuses to launch one and says where launching belongs. Neither call
-    /// reaches a game: a test that attached would take a running game from
-    /// whatever holds it.
+    /// Launching is its own verb: an operation joins a game and never starts
+    /// one, and attaching or detaching outlives no command. None of these
+    /// calls reaches a game: a test that attached would take a running game
+    /// from whatever holds it.
     #[test]
-    fn a_command_attaches_and_never_launches() {
-        assert!(super::run(args(&["launch"])).is_err());
+    fn only_launch_starts_a_game() {
         assert!(super::run(args(&["status", "--launch"])).is_err());
+        assert!(super::run(args(&["attach"])).is_err());
+        assert!(super::run(args(&["launch", "--windowed"])).is_err());
     }
 
     /// What `game record` records is its input's to say, and an option that

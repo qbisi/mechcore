@@ -1,7 +1,7 @@
 //! Interactive REPL frontend.
 //!
 //! A line is a command with the program name dropped, so what works here works
-//! on a command line and in a run document. Leaving the shell leaves the game:
+//! on a command line. Leaving the shell leaves the game:
 //! one it launched quits itself once nobody has claimed it for the linger.
 //!
 //! Acquiring the game is an operation rather than an option: a shell opens

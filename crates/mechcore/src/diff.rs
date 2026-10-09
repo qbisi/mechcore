@@ -248,8 +248,7 @@ pub(crate) struct FieldDifference {
 
 /// Compare two recordings, returning the verdict and the structured report.
 ///
-/// Shared with `mechcore run`, whose `diff` step asserts on the same fields
-/// `diff` prints. The verdict comes from the stored tick
+/// The verdict comes from the stored tick
 /// hashes; `fields` then says, group by group, where
 /// the two recordings differ, and `at` explains one tick of it: the first
 /// divergence of the selected groups, or the tick asked for.

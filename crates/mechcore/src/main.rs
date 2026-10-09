@@ -17,7 +17,6 @@ mod profile;
 mod query;
 mod scene;
 mod schema;
-mod script;
 mod session;
 mod shell;
 mod show;
@@ -45,16 +44,15 @@ fn usage(program: &str) {
     eprintln!("       {program} match show <match.yaml> --side blue|red [--wait [<seconds>]]");
     eprintln!("       {program} match act <match.yaml> --side blue|red <decision> [--dry-run]");
     eprintln!("       {program} match commit <match.yaml> --side blue|red");
+    eprintln!("       {program} game launch [--headless] [--offline] [--level <0-4>]");
     eprintln!("       {program} game <operation> [--level <0-4>]");
     eprintln!("       {program} man [<topic>|<kind>] [--lang <code>]");
-    eprintln!("       {program} run <script.mcscript> [--check] [--force]");
     eprintln!("       {program} shell");
     eprintln!();
     eprintln!("A file's kind is read from what it holds; `man <kind>` lists the verbs it takes.");
     eprintln!("Every command takes --format json|yaml|text and answers on standard output.");
     eprintln!("The contract is docs/spec/mechcore/cli.md, which `mechcore man cli` reads back;");
-    eprintln!("run --check validates a script without touching the game;");
-    eprintln!("--force replaces every file a step would write instead of asking.");
+    eprintln!("--force replaces a file a command would write instead of refusing.");
 }
 
 fn main() -> ExitCode {
@@ -92,17 +90,9 @@ pub(crate) fn dispatch(command: &str, arguments: Args) -> Option<Outcome> {
         "match" => r#match::run(arguments),
         "game" => game::run(arguments),
         "man" => man::run(arguments),
-        "run" => run_script(arguments),
         "shell" => run_shell(arguments),
         _ => return None,
     })
-}
-
-/// Executes a run document, which owns its own acquisition and reporting.
-fn run_script(arguments: Args) -> Outcome {
-    script::run(arguments.into_strings())
-        .map_err(Failure::failed)
-        .map(Verdict::from)
 }
 
 /// Opens the prompt, which starts without a game.

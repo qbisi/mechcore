@@ -15,8 +15,19 @@ unit type:
 
 These are the numbers `crates/player/web/player.js` animates a unit's attack
 with (its `SWING` and `ACTIONS`) when a recording holds no poses of its own.
-`scripts/player/record-poses.mcscript` records the demo scene with the
-channel; the recording itself stays out of the repository. The recording is
+One shell session records the demo scene with the channel, at the game's own
+speed, because a view animates once per rendered frame and at the recording
+default of fifty times poses would be read many ticks apart. The scene lasts
+only as long as the session that staged it, so the three lines go to one
+shell:
+
+    printf '%s\n' 'game launch --headless' \
+        'game apply_layout crates/player/scenes/six-units.yaml --seed 7' \
+        'game record /tmp/mechcore/player/six-units.mcfr --no-speed-up --instrument unit_pose' |
+        mechcore shell
+
+`scripts/player/model-views.py --recording` assembles the models from the same
+recording, which itself stays out of the repository. The recording is
 read through `mechcore query`.
 """
 

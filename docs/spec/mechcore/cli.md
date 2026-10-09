@@ -12,8 +12,7 @@ What an operation means is not here. A decision's effect on a position is the
 [action](../document/action.md) and [state](../document/state.md) specs, a
 layout's shape is [layout.md](../document/layout.md), the wire protocol behind
 the `game` namespace is [adapter.md](../adapter/adapter.md), how a process
-acquires the game is [session.md](session.md), and the shape of a run document
-is [mcscript.md](mcscript.md). What the game itself decides is
+acquires the game is [session.md](session.md). What the game itself decides is
 [`docs/rules/`](../../rules), beside the tables in
 [`config/`](../../../config) that the binary carries and computes with. Those
 documents and these contracts are what `man` answers with, so a reader needs
@@ -67,9 +66,9 @@ carries, or with `--backend game` by the game.
 **`man <kind>` lists the verbs a kind takes**, from the same table the verbs
 are refused by, ahead of the document that describes the kind.
 
-Three commands stand outside both, because their object is neither a file nor
-a state: `shell` opens a prompt, `run` executes a run document, and `man`
-answers with the manual the binary carries.
+Two commands stand outside both, because their object is neither a file nor
+a state: `shell` opens a prompt, and `man` answers with the manual the binary
+carries.
 
 ## Kinds and verbs
 
@@ -587,8 +586,7 @@ Once the page is written the command asks the system to open it in its
 default browser (`open` on macOS, `xdg-open` elsewhere, `start` on Windows),
 and answers `opened` for whether the system took the request. A page the
 system cannot open is still written: the command does not fail for it, and
-says so on standard error. `--no-open` only writes the page, and so does a
-run script's `play` step, which never opens one.
+says so on standard error. `--no-open` only writes the page.
 
 A recording is played as it holds the fight, and one made with the
 `unit_pose` instrument channel ([mcfr.md](../mcfr/mcfr.md#instrument-channels))
@@ -936,14 +934,15 @@ against. Its `layout_input` is the projection.
 Three more belong to the session rather than the game:
 [session.md](session.md) defines `launch`, `attach` and `detach`, their
 `--level` and what each refuses. **Acquiring the game is an operation, not an
-option.** A caller that holds a session takes the game by naming one of those
-three, and a caller that holds none — a command, which is one operation and
-then an exit — joins a game somebody else started, including one a run or a
-shell launched and left to linger. Launching is declared by the two frontends
-that hold a session, and nowhere else. So a command takes `--level
-<0-4>`, which orders it against other clients, and nothing else; one that
-reaches no game refuses with `unavailable` rather than starting one, and
-`--launch` names where launching belongs.
+option.** A shell takes the game by naming one of those three. A command is
+one operation and then an exit, so `game launch [--headless] [--offline]`
+starts a game, answers once it stands at the main menu, and leaves it to
+linger for the commands after it; every other command joins a game somebody
+started, including one a launch or a shell left to linger. So a command takes
+`--level <0-4>`, which orders it against other clients, and nothing else; one
+that reaches no game refuses with `unavailable` rather than starting one, and
+`--launch` names `game launch`. `attach` and `detach` hold a game for longer
+than one command, so only a shell takes them.
 
 That is why `launch`, `attach` and `detach` are verbs of this namespace and not
 of a session's own: the object is the game either way, and what differs is
@@ -955,7 +954,7 @@ reaches the game reaches it here, rather than around it.
 ## `shell`
 
 `shell` opens a prompt whose every line is a command with the program name
-dropped, so a line in the shell and a command in a script are the same text.
+dropped, so a line in the shell and a command are the same text.
 Options: `--json`, and a match document to open with the `--side` to play it
 as. The game is not among them: a prompt is a session, and a session acquires
 by saying so, with `game launch --level 3` or `game attach`. A shell opens
@@ -982,14 +981,6 @@ Those requests name neither the document nor the side, exactly as an arena's do
 not, so a program written against one runs under the other unchanged. The shell
 holds a session between lines, so a game acquired by one line is still
 acquired for the next.
-
-## `run`
-
-`run <script.mcscript>` executes a run document, whose steps name the
-operations of this contract. `--check` validates a script without performing
-its steps, and `--force` answers yes to every prompt a step would raise.
-[mcscript.md](mcscript.md) defines the document; this contract defines the
-operations its steps name.
 
 ## `man`
 
