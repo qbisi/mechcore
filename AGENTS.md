@@ -68,6 +68,12 @@ push. Branch commits land on master as they are, so tidy them before opening
 the pull request, and catch a branch up with master by rebase, not by merging
 master into it.
 
+While a `refactor` pull request is open, other work waits for it: commit on
+the branch locally, and push and open the pull request only after the
+refactor has merged or closed, rebased onto the master that follows. A
+refactor moves code that every open branch touches, and rebasing onto it
+once is cheaper than every branch racing it.
+
 # Research
 
 Research runs one question at a time, on a branch of this repository. These
