@@ -253,13 +253,10 @@ impl Simulation {
             if amount < 1 {
                 return Ok(());
             }
-            if skill_ref.slot != SkillSlot::Main {
-                return Err(Error::new(format!(
-                    "unit {actor_id}'s extra control beam strikes what it may not turn, \
-                     which is not measured"
-                )));
-            }
-            return self.direct_effect_dealing(actor_id, target, amount, events);
+            // `FightControllBeamSkill.GetAttackEffect` answers its
+            // `DamageEffect` for any skill of the class, an extra row's
+            // among them, which strikes as its own `SkillDamageProvider`.
+            return self.direct_effect_dealing((skill_ref, offset), target, amount, events);
         }
         // `ControllEffect.Perform` turns the skill's lock.
         let Some(FightActorRef::Unit(lock)) = lock else {
