@@ -163,6 +163,24 @@ pub(crate) struct Burrow {
     pub(crate) relieve_distance: Vec<i64>,
 }
 
+/// What an `IterationHitTech` answers `IIterationHit` with: how far a hit of
+/// its unit's main skill jumps on, how long it waits, how often and for how
+/// much.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct Chain {
+    /// `GetSelectRange` and `GetPreferredRange`, `FPoint` metres.
+    pub(crate) select_range_q32: i64,
+    pub(crate) preferred_range_q32: i64,
+    /// `GetIterationDelay`, `FPoint` seconds.
+    pub(crate) delay_q32: i64,
+    /// `GetIterationCount`.
+    pub(crate) count: u32,
+    /// `GetDamageModify`, an `FPoint` raw rate.
+    pub(crate) damage_rate_q32: i64,
+    /// `CanDisable`, as [`LifeSteal::can_disable`].
+    pub(crate) can_disable: bool,
+}
+
 /// What an `AdditionalDamageTech` answers `IAdditionalDamage` with: the rate
 /// of its target's life each hit takes besides (`GetReduceLifeRate`), and
 /// the skills it reaches beside the main one.

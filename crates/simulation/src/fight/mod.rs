@@ -41,6 +41,7 @@ mod attack_count;
 mod attacker;
 mod buff_cycle;
 mod burrow;
+mod chain;
 mod clear_range_item;
 mod commander_skill;
 mod construction;
@@ -333,6 +334,8 @@ struct Actor {
     /// Whether its main skill's selector is a `LifePriorityTargetSelector`
     /// its technology turned it to (`SkillSearchTargetProvider`).
     life_priority: bool,
+    /// `FightMechIgnoreTargetManager`: what its skills' chains pass over.
+    chain_records: chain::ChainRecords,
     /// `BuffManager.beHitDelayBuffInfos`: the buffs that disable technology
     /// a unit it hit queued on it, each with that unit, which
     /// `InvokeDelayAddBuff` adds as its `BuffManager.Update` ends.
@@ -483,6 +486,9 @@ struct Simulation {
     /// The splashes under way that diffuse, in the order they started: the
     /// `GRTimerManager` timers of their performers.
     diffusions: Vec<diffusion::Diffusion>,
+    /// The chains under way, in the order they started: the
+    /// `GRTimerManager` timers of their `HitEffectControl`s.
+    chains: Vec<chain::ChainJump>,
     turned_fallen: Vec<u64>,
     /// The units a beam turned on this tick, whose formations of their own
     /// the recorder numbers as it records the tick.
@@ -639,6 +645,7 @@ impl Simulation {
             turned_unnamed: Vec::new(),
             returned_dead: BTreeSet::new(),
             diffusions: Vec::new(),
+            chains: Vec::new(),
             dead_explosions: Vec::new(),
             dead_exits: Vec::new(),
             step_now: 0,
@@ -1075,6 +1082,7 @@ impl Simulation {
         // any summon now joining was due: a splash strikes where its
         // enemies stood as the tick opened.
         self.update_diffusions(&mut events)?;
+        self.update_chains(&mut events)?;
         // And those of the units that left their trench, and of those whose
         // technology that turned their domain was switched off.
         self.idle_after_trenches(step);

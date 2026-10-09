@@ -1117,6 +1117,8 @@ impl Simulation {
                 let mut ends = Struck::default();
                 if !secondary {
                     self.add_hit_buffs(owner.id, slot, (targets, center), events)?;
+                    let point = self.hit_point(skill, targets, center);
+                    self.start_chain(owner.id, slot, targets, (point.0, point.2));
                     ends.absorb_ends(self.take_life_share(owner.id, slot, targets, events)?);
                     if main {
                         self.leave_main_fire(skill, targets, center)?;
@@ -1171,7 +1173,25 @@ impl Simulation {
             return Ok(());
         }
         let team = actor.placement.team;
-        let point = match targets.first() {
+        let point = self.hit_point(skill, targets, center);
+        self.add_terrain(team, &format!("unit {owner}"), fire, point)
+    }
+
+    /// Where a skill's hit landed, as `SkillDamageProvider.
+    /// CalculateDamagePosition` hands it to the skill's hit effects: the hit's
+    /// point when it struck nothing, or when its lock stands on the side of
+    /// the first unit it struck. Otherwise the point on the shield the skill
+    /// fires at (`FightUtility.GetAttackPositionOnEnergyShield`, toward its
+    /// lock, or toward the hit's point when it holds none), or, with no
+    /// shield, the lock's own position for a skill that locks its target
+    /// (`IsLockTarget`), and the hit's point for any other.
+    pub(in crate::fight) fn hit_point(
+        &self,
+        skill: SkillRef,
+        targets: &[FightActorRef],
+        center: (i64, i64, i64),
+    ) -> (i64, i64, i64) {
+        match targets.first() {
             None => center,
             Some(&first) => {
                 let side = |target| self.fight_actor(target).map(|view| view.team);
@@ -1198,8 +1218,7 @@ impl Simulation {
                     }
                 }
             }
-        };
-        self.add_terrain(team, &format!("unit {owner}"), fire, point)
+        }
     }
 
     /// `LifeStealEffectProvider.PerformHitEffect`: the skill's owner, alive

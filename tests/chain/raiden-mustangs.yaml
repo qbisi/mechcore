@@ -1,0 +1,26 @@
+# Chain: each hit of a Raiden's three weapons jumps on 0.2 seconds later to
+# another enemy within reach of where it landed, for a quarter of the damage.
+#
+# At t89 the three weapons kill three Mustangs; at t93 each weapon's jump kills
+# another (11, 8 and 13), drawn among those no hit of the Raiden struck, and so
+# on at t181 and t185. A jump records a damage under the weapon's slot, and
+# the jump's own hit starts no chain of its own.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 1470
+hash: {profile: mcfr-content-0.23.0, result: 283a770f37871eebc8a0e04f309e9efa7e994e7c470d8e719e8d0645258ab8d1}
+blue:
+  techs:
+    raiden: [chain]
+  units:
+  - {name: raiden, index: 0, position: {x: 0, y: -170}, exp: 0/1424/2400}
+red:
+  core_damage: 350
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -50}, exp: 0/400/1600}
+  - {name: fang, index: 1, position: {x: 45, y: -60}}
+  - {name: mustang, index: 2, position: {x: -45, y: -40}}

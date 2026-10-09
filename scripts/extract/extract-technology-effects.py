@@ -155,6 +155,13 @@ SUBCLASS_SCALARS = (
     ("main_skill_effect", "mainSkillEffect", "additionalDamageTechDatas"),
     ("extra_skill_effect", "extraSkillEffect", "additionalDamageTechDatas"),
     ("main_skill_effect", "mainSkillEffect", "controllBeamLifeRecoveryTechnologies"),
+    ("chain_select_range", "selectRange", "iterationHitDamageTechDatas"),
+    ("chain_preferred_range", "preferredRange", "iterationHitDamageTechDatas"),
+    ("chain_delay", "iterationDelay", "iterationHitDamageTechDatas"),
+    ("chain_count", "iterationCount", "iterationHitDamageTechDatas"),
+    ("chain_damage_rate", "damageModify", "iterationHitDamageTechDatas"),
+    ("main_skill_effect", "mainSkillEffect", "iterationHitDamageTechDatas"),
+    ("extra_skill_effect", "extraSkillEffect", "iterationHitDamageTechDatas"),
     ("extra_skill_effect", "extraSkillEffect", "controllBeamLifeRecoveryTechnologies"),
     ("main_skill_effect", "mainSkillEffect", "searchTargetModifyTechnologies"),
     ("extra_skill_effect", "extraSkillEffect", "searchTargetModifyTechnologies"),
@@ -193,7 +200,7 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "burrowTechnologies", "deadAcidRangeItemTechnologyDatas", "flyTechDatas",
                "ignoreBuffEffectTechnologyDatas", "searchTargetModifyTechnologies",
                "deadExplosiveTechnologyDatas", "additionalDamageTechDatas",
-               "controllBeamLifeRecoveryTechnologies")
+               "controllBeamLifeRecoveryTechnologies", "iterationHitDamageTechDatas")
 # The list whose `DeadAcidRangeItemTech` leaves an acid where its unit dies,
 # and the fields its rows carry for it: whole metres of range
 # (`GetRangeItemRange`), the rounds it stands (`GetRoundDuration`), and the
@@ -677,6 +684,12 @@ def main() -> int:
         "# maximum life a unit its control beams turn is brought up to, by its",
         "# unit's level (`control_recovery_rate`), on its main skill and its",
         "# extra skills as `main_skill_effect` and `extra_skill_effect` say.",
+        "# A chain technology carries how its unit's hits jump on: the FPoint",
+        "# metres it looks within and prefers (`chain_select_range`,",
+        "# `chain_preferred_range`), the FPoint seconds before each jump",
+        "# (`chain_delay`), how many jumps (`chain_count`), and the FPoint rate",
+        "# of the skill's damage each jump deals, raised to the jump's number",
+        "# (`chain_damage_rate`).",
         "# A search technology carries the `SkillSearchTargetType` its unit's",
         "# skills search by (`search_target_type`), on its main skill and its",
         "# extra skills as `main_skill_effect` and `extra_skill_effect` say.",

@@ -54,7 +54,7 @@ use super::{
     effects::{self, Fields},
     providers::EffectProvider,
     sources::{
-        AdditionalDamage, AutoRecovery, BuffSource, Burrow, CarriedShield, ClearRangeItem,
+        AdditionalDamage, AutoRecovery, BuffSource, Burrow, CarriedShield, Chain, ClearRangeItem,
         ControlRecovery, DeadExplosion, EnergyShield, FlyTech, KillExplosion, LifeSteal,
         MoveAbilityAttack, MoveAbilityRangeItem, ProductionLine, ReactiveArmor, Rebirth,
         RebirthFollow, RecoveryState, Repair, RvoRadiusChange, SiegeMode, Stealth, SweepIntensify,
@@ -168,9 +168,11 @@ const ADDITIONAL_DAMAGE: &str = "additionalDamageTechDatas";
 /// `CBLifeRecoveryRate` on its unit's skills, a `DataModifyTech` of no
 /// provider beside the numbers'.
 const CONTROL_RECOVERY: &str = "controllBeamLifeRecoveryTechnologies";
+/// The list whose `IterationHitTech` is an `IIterationHit`.
+const CHAIN: &str = "iterationHitDamageTechDatas";
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 41] = [
+const IMPLEMENTED: [&str; 42] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -212,6 +214,7 @@ const IMPLEMENTED: [&str; 41] = [
     DEAD_EXPLOSIVE,
     ADDITIONAL_DAMAGE,
     CONTROL_RECOVERY,
+    CHAIN,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -355,6 +358,8 @@ struct Technology {
     dead_explosion: Option<DeadExplosion>,
     /// What it answers `IAdditionalDamage` with, if its class is one.
     additional_damage: Option<AdditionalDamage>,
+    /// What it answers `IIterationHit` with, if its class is one.
+    chain: Option<Chain>,
     /// What it writes as `CBLifeRecoveryRate`, if its class is a
     /// `ControllBeamLifeRecoveryTech`.
     control_recovery: Option<ControlRecovery>,
@@ -550,6 +555,9 @@ pub(crate) struct SingleSources {
     pub(crate) additional_damage: Option<AdditionalDamage>,
     /// What the first that writes `CBLifeRecoveryRate` writes.
     pub(crate) control_recovery: Option<ControlRecovery>,
+    /// The first that makes its unit's hits jump on: the provider enables
+    /// one source (`SingleEffectProvider`).
+    pub(crate) chain: Option<Chain>,
 }
 
 /// What a move ability summon row answers `IMoveAbilitySummon` and
@@ -959,6 +967,18 @@ struct Row {
     /// rates by the unit's level, on a row of its list.
     #[serde(default)]
     control_recovery_rate: Vec<i64>,
+    /// `IterationHitDamageTechData`'s fields, `FPoint` raw but the count, on
+    /// a row of its list.
+    #[serde(default)]
+    chain_select_range: i64,
+    #[serde(default)]
+    chain_preferred_range: i64,
+    #[serde(default)]
+    chain_delay: i64,
+    #[serde(default)]
+    chain_count: u32,
+    #[serde(default)]
+    chain_damage_rate: i64,
     /// `BurrowData.amplifyDamageRate`, `relieveDistance` and
     /// `isEnterUnderGround`, on a row of its list.
     #[serde(default)]
@@ -1654,6 +1674,14 @@ impl TechnologyEffects {
                 }),
                 ignores_speed_rate: row.kind == IGNORE_BUFF_EFFECT && row.ignores_buff_effect,
                 life_priority: row.kind == SEARCH_TARGET_MODIFY,
+                chain: (row.kind == CHAIN).then_some(Chain {
+                    select_range_q32: row.chain_select_range,
+                    preferred_range_q32: row.chain_preferred_range,
+                    delay_q32: row.chain_delay,
+                    count: row.chain_count,
+                    damage_rate_q32: row.chain_damage_rate,
+                    can_disable: !row.ignore_electric_effect,
+                }),
                 control_recovery: (row.kind == CONTROL_RECOVERY).then(|| ControlRecovery {
                     rate: row.control_recovery_rate.clone(),
                     extra_skills: row.extra_skill_effect,
@@ -1842,6 +1870,7 @@ impl TechnologyEffects {
                     .control_recovery
                     .clone_from(&technology.control_recovery);
             }
+            sources.single.chain = sources.single.chain.or(technology.chain);
             sources.single.additional_damage = sources
                 .single
                 .additional_damage
@@ -2322,6 +2351,7 @@ fn provider_of(kind: &str) -> Option<EffectProvider> {
         IGNORE_BUFF_EFFECT => EffectProvider::IgnoreBuff,
         SEARCH_TARGET_MODIFY => EffectProvider::SkillSearchTarget,
         ADDITIONAL_DAMAGE => EffectProvider::AdditionalDamage,
+        CHAIN => EffectProvider::IterationHit,
         BURROW => EffectProvider::Burrow,
         _ => return None,
     })
@@ -2340,6 +2370,12 @@ fn provider_source_read(row: &Row) -> std::result::Result<(), String> {
             "technology {} ({}) makes its unit ignore BuffEffectType {}, and only \
              SpeedChangeRate is read",
             row.id, row.name, row.ignored_buff_effect
+        ))
+    } else if row.kind == CHAIN && (row.extra_skill_effect || row.chain_preferred_range <= 0) {
+        Err(format!(
+            "technology {} ({}) jumps from its extra skills' hits or prefers no range, which is \
+             not measured",
+            row.id, row.name
         ))
     } else if row.kind == SEARCH_TARGET_MODIFY
         && (row.search_target_type != CURRENT_LIFE_HIGHEST_FIRST || row.extra_skill_effect)

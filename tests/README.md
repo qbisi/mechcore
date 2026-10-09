@@ -14,6 +14,7 @@ directory alone keeps a readme, for the rules of pinning a round:
 | [`armor/`](armor/) | what an armour technology takes off each hit on its unit | [`combat.md`](../docs/rules/combat.md#armour) |
 | [`battle_skill/`](battle_skill/) | when a released battle skill lands, what it reaches, and what it writes or summons | [`battle_skill.md`](../docs/rules/battle_skill.md) |
 | [`burrow/`](burrow/) | when a burrowing technology burrows its unit and brings it up, and what its burrow takes off the hits on it | [`technology_effects.md`](../docs/rules/technology_effects.md#burrowing-technologies) |
+| [`chain/`](chain/) | where a chain technology's hits jump on to, when and for how much | [`technology_effects.md`](../docs/rules/technology_effects.md#chain-technologies) |
 | [`construction/`](construction/) | what a construction becomes in a fight, and what attacks it | [`constructions.md`](../docs/rules/constructions.md) |
 | [`control/`](control/) | what a control beam turns, what it strikes instead, and what an item or a shield changes about it | [`control.md`](../docs/rules/control.md) |
 | [`damage_share/`](damage_share/) | which units a damage-share technology links into a group, and how a hit on one is shared or the group raises their damage | [`technology_effects.md`](../docs/rules/technology_effects.md#damage-share-technologies) |
