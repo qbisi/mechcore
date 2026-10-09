@@ -21,6 +21,7 @@ out to show:
 | [`dead_summon/`](dead_summon/README.md) | what a technology makes its unit summon where it dies |
 | [`energy_tower/`](energy_tower/README.md) | what the Energy Tower's fight skills write onto a side, and what they leave alone |
 | [`energy_shield/`](energy_shield/README.md) | what a unit's own shield holds and takes off a hit, from an item or a technology |
+| [`endgame/`](endgame/README.md) | what the tick a side loses its last unit, and the ticks the fight runs on after it, do to the units still standing |
 | [`extra_weapon/`](extra_weapon/README.md) | what an extra weapon technology adds beside a unit's main skill, and how that skill differs |
 | [`equipment/`](equipment/README.md) | where equipment corrections land and how they compose with officers |
 | [`equipment_buff/`](equipment_buff/README.md) | what a buff item adds to the unit wearing it, and which buffs it keeps off |
