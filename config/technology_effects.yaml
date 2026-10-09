@@ -61,7 +61,9 @@ schema: mechcore.technology_effects
 # MoveAbilityTimeType: 2 as it begins to surface) carries that time and
 # the line it makes them by (`move_summon`), as a production row does.
 # A technology that turns its unit's skills' locking of their target
-# over says so (`inverse_lock_target`).
+# over says so (`inverse_lock_target`). A technology a buff that
+# disables technology leaves on says so (`ignore_electric_effect`,
+# which `Technology.CanDisable` answers the other way).
 # A multi-attack technology carries how many more projectiles each of
 # its unit's attacks fires (`projectile_count_value`), and the FPoint
 # seconds it adds between two of them and metres it adds to how far
@@ -1316,6 +1318,7 @@ technologies:
     name: 近战模式
     unit: centurion
     kind: meleeModeTechData
+    ignore_electric_effect: true
   - id: 10019
     name: 攻城模式
     unit: scorpion
@@ -1847,6 +1850,7 @@ technologies:
     name: 双持
     unit: centurion
     kind: extraWeaponTechnologies
+    ignore_electric_effect: true
     attack_range_value: [-107374182400]  # -25
   - id: 110322
     name: 追踪导弹

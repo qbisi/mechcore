@@ -1142,13 +1142,15 @@ pub(crate) struct TechnologyDisable {
     /// The providers beside the numbers' its technologies reach, each of
     /// which `FightEffectMananger.DisableEffect` switches.
     pub(crate) providers: Vec<EffectProvider>,
-    /// Whether it holds a technology at all. Each one's provider removes its
-    /// data from the main skill and writes it again
+    /// The technologies it holds that switch, in the side's order: those
+    /// whose `Technology.CanDisable` answers true, its row's
+    /// `ignoreElectricEffect` unset; the rest it keeps whole. Each one's
+    /// provider removes its data from the main skill and writes it again
     /// (`SkillDataModifier.RemoveData`, `AddData`), which ends by refreshing
     /// the skill's data (`FightSkill.RefreshDatas`) whether the technology
     /// wrote numbers or none: every unit technology of this build reaches
     /// the main skill (`mainSkillEffect`).
-    pub(crate) holds: bool,
+    pub(crate) technologies: Vec<i32>,
     /// What it carries whose switching off is not measured, by name: a
     /// provider whose `DisableEffect` the fight does not mirror, or an extra
     /// skill of a shape it does not fight disabled.
@@ -1371,7 +1373,9 @@ fn technology_disable(
     refused: &mut Refusals,
 ) -> Option<TechnologyDisable> {
     let technologies = &loadouts.technologies;
-    let held = &side.techs.units;
+    // Only a technology that `CanDisable` switches: a Centurion's Dual
+    // Wield keeps its gun and its range.
+    let held = &technologies.switched(&side.techs.units, type_name);
     let providers = technologies.providers(held, type_name);
     Some(TechnologyDisable {
         corrections: refused.hold(
@@ -1399,6 +1403,7 @@ fn technology_disable(
             .chain(
                 extra_weapons
                     .iter()
+                    .filter(|weapon| held.contains(&weapon.rules.technology))
                     .filter(|weapon| {
                         let rules = &weapon.rules;
                         let preemptive_explosion =
@@ -1421,7 +1426,7 @@ fn technology_disable(
             )
             .collect(),
         providers: providers.into_keys().collect(),
-        holds: technologies.holds(held, type_name),
+        technologies: held.clone(),
     })
 }
 

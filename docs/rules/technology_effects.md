@@ -735,7 +735,12 @@ of its sources that `CanDisable` (`FightEffectMananger.DisableEffect`), and
 only a technology does: `Technology.CanDisable` answers `ignoreElectricEffect`
 false, which every row but a few buff, Dual Wield and melee-mode rows does;
 an officer, an equipment, an Energy Tower skill and a battle skill answer
-false. So the officers' and the items' corrections stay.
+false. So the officers' and the items' corrections stay, and so does a
+technology that sets `ignoreElectricEffect`, its numbers, its providers and
+its extra skills: `ExtraSkillProvider.DisableSkill` disables only the skills
+of the source it is handed (`FightSkill.IsBelongExtraSkill`). A Centurion
+with Dual Wield and Homing Missile struck by Electromagnetic Barrage keeps
+its second gun firing and its range 25 metres short, and loses the missiles.
 
 Every technology is an `IDataModifier`, whose numbers its provider takes
 away and writes again, and a class that answers an interface beside it is

@@ -315,6 +315,8 @@ struct Technology {
     surfacing_line: Option<ProductionLine>,
     /// The provider beside the numbers' its class reaches, if any.
     provider: Option<EffectProvider>,
+    /// `Technology.CanDisable`: its row's `ignoreElectricEffect` unset.
+    can_disable: bool,
 }
 
 /// What `DeadLineEffectProvider` hands its unit's main skill as a pre-hit
@@ -719,6 +721,10 @@ struct Row {
     /// skills' locking of their target over.
     #[serde(default)]
     inverse_lock_target: bool,
+    /// `TechnologyData.ignoreElectricEffect`: whether a buff that disables
+    /// technology leaves it on (`Technology.CanDisable` answers false).
+    #[serde(default)]
+    ignore_electric_effect: bool,
     /// `MultiAttackTechnologyData`'s `countIncrease`, `durationChangeValue`
     /// and `randomRangeChangeValue`, on a row of its list: whole projectiles,
     /// `FPoint` seconds and `FPoint` metres by the unit's level.
@@ -995,13 +1001,11 @@ struct StealthBlock {
 }
 
 impl StealthBlock {
-    /// No stealth row sets `ignoreElectricEffect`, so each answers
-    /// `CanDisable` true.
-    const fn source(self) -> Stealth {
+    const fn source(self, can_disable: bool) -> Stealth {
         Stealth {
             trigger_life_rate_q32: self.trigger_life_rate,
             duration_q32: self.duration,
-            can_disable: true,
+            can_disable,
         }
     }
 }
@@ -1138,14 +1142,13 @@ impl TechnologyEffects {
         let mut technologies = BTreeMap::new();
         for row in table.technologies {
             let id = row.id;
+            let can_disable = !row.ignore_electric_effect;
             // `LifestealTech.GetLifestealMuliplier` reads its row's list at
-            // the unit's level, which `corrections_of` refuses past one entry;
-            // no lifesteal row sets `ignoreElectricEffect`, so each answers
-            // `CanDisable` true.
+            // the unit's level, which `corrections_of` refuses past one entry.
             let lifesteal = (row.kind == LIFESTEAL).then(|| LifeSteal {
                 multiplier_q32: row.lifesteal_multiplier.first().copied().unwrap_or(0),
                 priority: PRIORITY,
-                can_disable: true,
+                can_disable,
             });
             // `AutoRecoveryTech` reads its two lists at the unit's level, as
             // `LifestealTech` does.
@@ -1159,12 +1162,12 @@ impl TechnologyEffects {
                     RecoveryState::Normal
                 },
                 priority: PRIORITY,
-                can_disable: true,
+                can_disable,
             });
             let energy_shield = (row.kind == ENERGY_SHIELD).then_some(EnergyShield {
                 life_rate_q32: SHIELD_LIFE_RATE,
                 priority: PRIORITY,
-                can_disable: true,
+                can_disable,
             });
             // `SweepSkillIntensifyEffectProvider` hands the sweep its row's
             // changes; the row names the unit's main skill.
@@ -1183,7 +1186,7 @@ impl TechnologyEffects {
                     &who,
                     (row.buff_trigger, &row.buff_targets, row.probability),
                     &row.buff_cycle,
-                    true,
+                    can_disable,
                     &row.buff_special,
                     (row.buff.as_ref(), row.buff_range_item.as_ref()),
                 )
@@ -1215,7 +1218,7 @@ impl TechnologyEffects {
                 lifesteal,
                 auto_recovery,
                 energy_shield,
-                stealth: row.stealth.map(StealthBlock::source),
+                stealth: row.stealth.map(|block| block.source(can_disable)),
                 siege_mode: row.siege_mode.map(SiegeModeBlock::source),
                 wreckage: row.wreckage.clone().map(|block| WreckageRecovery {
                     time_q32: block.time,
@@ -1267,6 +1270,7 @@ impl TechnologyEffects {
                     buffed: row.secondary_buffed,
                 }),
                 provider: provider_of(&row.kind, self_buff),
+                can_disable,
             };
             if technologies.insert(id, technology).is_some() {
                 return Err(Error::new(format!(
@@ -1602,11 +1606,18 @@ impl TechnologyEffects {
             }))
     }
 
-    /// Whether this side holds a technology on one unit type.
-    pub(crate) fn holds(&self, held: &[i32], unit_type: &str) -> bool {
+    /// The technologies this side holds for one unit type that a buff that
+    /// disables technology switches (`Technology.CanDisable`), in the order
+    /// the side holds them.
+    pub(crate) fn switched(&self, held: &[i32], unit_type: &str) -> Vec<i32> {
         held.iter()
-            .filter_map(|id| self.technologies.get(id))
-            .any(|technology| technology.unit == unit_type)
+            .copied()
+            .filter(|id| {
+                self.technologies.get(id).is_some_and(|technology| {
+                    technology.unit == unit_type && technology.can_disable
+                })
+            })
+            .collect()
     }
 
     /// The providers beside the numbers' this side's technologies on one

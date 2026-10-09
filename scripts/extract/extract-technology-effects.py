@@ -133,6 +133,7 @@ SET_SCALARS = (
 # `SkillDataChangeInt.IsLockTarget`.
 FLAGS = (
     ("inverse_lock_target", "isInverseIsLockTarget"),
+    ("ignore_electric_effect", "ignoreElectricEffect"),
 )
 # The lists whose rows say in `special` what they set beyond the fields
 # this table carries: the plain one, and each subclass's the simulator reads.
@@ -506,7 +507,9 @@ def main() -> int:
         "# MoveAbilityTimeType: 2 as it begins to surface) carries that time and",
         "# the line it makes them by (`move_summon`), as a production row does.",
         "# A technology that turns its unit's skills' locking of their target",
-        "# over says so (`inverse_lock_target`).",
+        "# over says so (`inverse_lock_target`). A technology a buff that",
+        "# disables technology leaves on says so (`ignore_electric_effect`,",
+        "# which `Technology.CanDisable` answers the other way).",
         "# A multi-attack technology carries how many more projectiles each of",
         "# its unit's attacks fires (`projectile_count_value`), and the FPoint",
         "# seconds it adds between two of them and metres it adds to how far",
