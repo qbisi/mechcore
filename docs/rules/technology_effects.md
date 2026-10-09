@@ -409,7 +409,10 @@ unit's level. `MechGrounpEffectProvider.DoActive` writes it on the unit as
 its `MechDataChangeFloat.MechGroupDistance` and hands the unit to its side's
 `TeamMechGroupManager` (`AddMech`); a unit travelling in is handed over as it
 arrives, and a unit that dies leaves as `DeadEffectSystem` deactivates its
-effects (`DoDeactive`, `RemoveMech`).
+effects (`DoDeactive`, `RemoveMech`). A unit a Hacker turns leaves its old
+side's manager for its new side's (`MechGrounpSystem.ChangeMechGroup`),
+grouping there with the units of its type it reaches; one that dies turned
+leaves before it goes back, and joins nothing.
 
 **Units of one type within the distance form a group.** Two units link when
 the edges of their bodies (`FightActor.Distance2D`) are within the distance
@@ -724,7 +727,9 @@ derive (a minimum range):
   `tests/damage_share/fights/sledgehammers.yaml`,
   `tests/damage_share/fights/beams.yaml`,
   `tests/damage_share/fights/steel-balls.yaml`,
-  `tests/damage_share/fights/apart.yaml`.
+  `tests/damage_share/fights/apart.yaml`. A tank a Hacker turns leaves its
+  group and links with the next one turned on its new side:
+  `tests/damage_share/fights/hackers.yaml`.
 - A dead-line technology destroys a unit its unit's shots strike at or
   under the line at its level, before the shot's damage: Culling Rounds
   culls Crawlers at 250 under a level-one Mustang's 320, and Marksmen at 712
@@ -916,6 +921,7 @@ derive (a minimum range):
   `MechGrounpEffectProvider.DoActive`, `TeamMechGroupManager.UpdateGroupInfo`,
   `TeamMechGroupManager.TrySplitGroup`, `TeamMechGroupManager.RebuildGroup`,
   `MechGroupInternal.Refresh`, `TeamMechGroupManager.LinkMeches`,
+  `MechGrounpSystem.ChangeMechGroup`,
   `FightCalculator.CalculateGroupDamage`,
   `FightCalculator.PerformHitTargetEffect`.
 - A dead-line technology hands its unit's main skill a pre-hit effect that
