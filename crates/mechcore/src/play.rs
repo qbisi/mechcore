@@ -7,7 +7,7 @@
 //! what keeps one. The page is `mechcore_player`'s.
 //!
 //! From the command line the page is opened in the system's browser once it is
-//! written, unless `--no-open` says not to; a run script's step only writes it.
+//! written, unless `--no-open` says not to.
 
 use std::{
     path::Path,

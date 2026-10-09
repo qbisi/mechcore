@@ -35,7 +35,7 @@ Build the CLI and its Adapter together from the repository root:
 cargo build -p mechcore --release
 ```
 
-`cargo run --release -- run <script.mcscript>` also checks and builds the
+`cargo run --release -- game launch` also checks and builds the
 Adapter before running the CLI. Cargo tracks the Adapter's source and transitive
 dependencies; the CLI build script atomically copies the resulting dylib beside
 the executable. No runtime Cargo invocation or absolute build path is needed.
@@ -43,14 +43,14 @@ The workspace defaults to the CLI; use `--workspace` for workspace-wide checks.
 
 Packaging the Adapter is the CLI's default `adapter` feature, and the only part
 of the workspace that needs macOS. Everything that needs no game — the
-simulator, the readers, a gameless `.mcscript` — builds anywhere without it:
+simulator, the readers, every command but `game` — builds anywhere without it:
 
 ```sh
 cargo build -p mechcore --release --no-default-features
 cargo test --workspace --exclude mechcore-adapter --no-default-features
 ```
 
-Such a binary refuses `game: launch` with `launch_failed`, naming the missing
+Such a binary refuses `game launch` with `launch_failed`, naming the missing
 feature.
 Release build dependencies explicitly use optimization level 3 and one codegen
 unit because Cargo otherwise builds build-time artifacts without optimization.
@@ -66,8 +66,8 @@ target/release/libmechcore_adapter.dylib
 Debug builds, custom target directories and explicit target triples use their
 corresponding output directory. Distribute both files together. A running game
 keeps the Adapter it loaded, including when using `attach`. A game `mechcore`
-launched lingers after its last client, and the next `game: launch` (or
-`game launch` in a shell) retires it and starts a new one when the Adapter it
+launched lingers after its last client, and the next `game launch`, as a
+command or in a shell, retires it and starts a new one when the Adapter it
 loaded is not the one beside `mechcore`, so a rebuilt Adapter is loaded without
 quitting anything by hand. A game started any other way is joined with the
 Adapter it has; `quit_game` is a plain operation any client can call for that
@@ -771,8 +771,22 @@ for the game's own autosave to produce a stable new native GRBR, requests
 and returns only after the native match quit reaches `main_menu`. The recording
 itself is the game's, and is published as written.
 
-[`mcscript.md`](../mechcore/mcscript.md#unattended-standard-1v1-corpus-recording)
-states the scene admission rules, which a script cannot widen.
+The admissible scene is fixed, and no caller widens it:
+
+- the server's matchmaking watch list (`ERoomListFilter.MatchFirst`), without
+  competition `matchInfo`;
+- exactly two players, subtype `Mod1V1`, no custom rule deltas, normal game
+  mode, `VS_1_1` map mode, and round one;
+- fewer than the native 300-watcher limit.
+
+There is no `force` field: a basename collision in `output_dir` aborts rather
+than replacing corpus data. The native replay is never deleted, and neither is
+a copy that reached the corpus directory: a published copy survives even when
+only the match-exit check fails, and the failed result is what keeps it out of
+an accepted manifest until someone looks at it. A collector claims the lowest
+level, so anything else takes the machine from it;
+`scripts/corpus/collect-replays.py` runs one `game record --watch` at level 0
+per match and stops at the first that does not succeed.
 
 Requalifying this path after a game update means running a batch and accepting
 it only when one result has `operation.recorded` and

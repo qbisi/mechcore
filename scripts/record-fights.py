@@ -12,8 +12,8 @@ verify --backend game``.
         --out /tmp/mechcore/wraith/slots tests/wraith/fights/*.yaml
 
 A command joins a game somebody started, so the first fight that finds none
-starts one: a run that declares ``game: launch`` and asks for its status,
-after which the game lingers for its next client. Recordings already on disk
+starts one with ``mechcore game launch --headless``, after which the game
+lingers for its next client. Recordings already on disk
 are kept, so an interrupted run resumes where it stopped; ``--force`` records
 them again.
 """
@@ -25,7 +25,6 @@ import json
 from pathlib import Path
 import subprocess
 import sys
-import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -48,10 +47,7 @@ def run(command: list[str]) -> subprocess.CompletedProcess[str]:
 
 def launch(mechcore: Path) -> None:
     """Starts a headless game that lingers for the next command."""
-    with tempfile.NamedTemporaryFile("w", suffix=".mcscript", delete=False) as script:
-        script.write("game: launch\nheadless: true\n\nsteps:\n  - game.status: {}\n")
-    launched = run([str(mechcore), "run", script.name])
-    Path(script.name).unlink()
+    launched = run([str(mechcore), "game", "launch", "--headless"])
     if launched.returncode != 0:
         sys.exit(f"cannot launch the game: {launched.stdout[-400:]}{launched.stderr[-400:]}")
 

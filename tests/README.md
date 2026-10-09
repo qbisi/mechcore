@@ -96,8 +96,7 @@ through the simulator and holds it to what the document states. Where the game
 runs, `mechcore verify --backend game` records the fights again and holds each
 recording to its fixture, and `--update` writes back each one the game now
 records differently, which is how every pin moves to a new MCFR format at
-once. A run script that is still tracked needs the game, and CI only parses
-it. Recordings never enter the repository, and are not published anywhere
+once. Recordings never enter the repository, and are not published anywhere
 else: what the repository keeps is what reproduces them, the fights and the
 scripts, which any machine with the game records again. The Research section
 of [`AGENTS.md`](../AGENTS.md) says who records them and where a pinned hash

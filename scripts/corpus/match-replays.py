@@ -10,10 +10,11 @@ match ``scripts/corpus/export-replay-corpus.py`` writes under
 round by round headlessly (``game record --round``), and each pair of
 recordings is compared tick for tick, physics and content.
 
-A match is recorded in one game session; a round the game refuses is reported
-and the match's remaining rounds carry on in a new session. A recording on
-disk is kept, so an interrupted run resumes where it stopped. The game runs
-headless, and each session's game log is kept beside the recordings as
+Each round is recorded by one command against a game that lingers between
+them, started headless when none answers; a round the game refuses is
+reported and the match's remaining rounds carry on. A recording on
+disk is kept, so an interrupted run resumes where it stopped. What the game
+logged while recording a match is kept beside the recordings as
 ``game-<n>.log``, since the game names every decision it refused there.
 
 Run from anywhere inside the checkout, with the game installed:
@@ -330,38 +331,48 @@ def reason(output: str) -> str:
 
 
 def record(mechcore: Path, steps: list[dict], folder: Path, to: str = "mcfr") -> dict[int, str]:
-    """Records the steps in one game session, resuming after a refused one:
-    each replay's round converted `to` a recording, or to the fight document
-    the recording states. Answers the refusal of each step that failed, by
-    position."""
+    """Records each step's replay round in the game, one command each,
+    converted `to` a recording or to the fight document the recording states;
+    a refused step does not stop the ones after it. Answers the refusal of
+    each step that failed, by position."""
     failed: dict[int, str] = {}
-    pending = [index for index, step in enumerate(steps) if not Path(step["output"]).exists()]
-    while pending:
-        # A JSON string is a YAML scalar only while it escapes nothing outside
-        # the Basic Multilingual Plane, which a player's name can hold.
-        script = "game: launch\nheadless: true\n\nsteps:\n" + "".join(
-            "  - convert:\n"
-            f"      to: {to}\n"
-            "      backend: game\n"
-            f"      input: {json.dumps(steps[index]['grbr'], ensure_ascii=False)}\n"
-            f"      round: {steps[index]['round']}\n"
-            f"      output: {json.dumps(steps[index]['output'], ensure_ascii=False)}\n"
-            for index in pending
-        )
-        path = folder / "session.mcscript"
-        path.write_text(script, encoding="utf-8")
-        start = GAME_LOG.stat().st_size if game_running() and GAME_LOG.exists() else 0
-        result = run([str(mechcore), "run", str(path)])
-        keep_game_log(folder, start)
-        remaining = [index for index in pending if not Path(steps[index]["output"]).exists()]
-        if result.returncode == 0 or not remaining:
-            for index in remaining:
-                failed[index] = "the session ended before recording it"
-            break
-        # The first step without a recording is the one the session stopped on.
-        failed[remaining[0]] = reason(result.stdout + result.stderr)
-        pending = remaining[1:]
+    start = GAME_LOG.stat().st_size if game_running() and GAME_LOG.exists() else 0
+    for index, step in enumerate(steps):
+        if Path(step["output"]).exists():
+            continue
+        command = [
+            str(mechcore), "convert", step["grbr"], "--to", to, "--backend", "game",
+            "--round", str(step["round"]), step["output"],
+        ]
+        result = run(command)
+        if result.returncode != 0 and unavailable(result.stdout + result.stderr):
+            launch(mechcore)
+            start = 0
+            result = run(command)
+        if not Path(step["output"]).exists():
+            failed[index] = reason(result.stdout + result.stderr)
+    keep_game_log(folder, start)
     return failed
+
+
+def unavailable(output: str) -> bool:
+    """Whether a command found no game to join."""
+    for line in output.splitlines():
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(record, dict) and record.get("kind") == "unavailable":
+            return True
+    return False
+
+
+def launch(mechcore: Path) -> None:
+    """Starts a headless game that lingers for the next command, and truncates
+    its log."""
+    launched = run([str(mechcore), "game", "launch", "--headless"])
+    if launched.returncode != 0:
+        sys.exit(f"cannot launch the game: {reason(launched.stdout + launched.stderr)}")
 
 
 GAME_LOG = Path(f"/tmp/mechcore-game-{os.getuid()}.log")
@@ -370,24 +381,24 @@ Unity's log there too, and a launch truncates it."""
 
 
 def game_running() -> bool:
-    """Whether a game is running, which the next session will reuse rather
+    """Whether a game is running, which the next command will join rather
     than launch."""
     return run(["pgrep", "-f", "Mechabellum.app/Contents/MacOS/Mechabellum"]).returncode == 0
 
 
 def keep_game_log(folder: Path, start: int) -> None:
-    """Keeps what the game logged during the session just run beside its
-    recordings: the game names each decision it refused there. A session that
-    reused the game left running by the previous one continues its log from
-    ``start``; one that launched a new game began it again."""
+    """Keeps what the game logged while a match was recorded beside its
+    recordings: the game names each decision it refused there. A game left
+    running by an earlier match continues its log from ``start``; one launched
+    since began it again."""
     if not GAME_LOG.exists():
         return
     with GAME_LOG.open("rb") as log:
         size = log.seek(0, 2)
         log.seek(start if start <= size else 0)
-        session = log.read()
-    sessions = len(list(folder.glob("game-*.log")))
-    (folder / f"game-{sessions}.log").write_bytes(session)
+        logged = log.read()
+    kept = len(list(folder.glob("game-*.log")))
+    (folder / f"game-{kept}.log").write_bytes(logged)
 
 
 def compare(mechcore: Path, left: str, right: str) -> dict:

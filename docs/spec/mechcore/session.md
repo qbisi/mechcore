@@ -4,16 +4,15 @@
 
 This contract defines how a `mechcore` process acquires the running game, how
 it classifies what it finds, and what each classification permits. It is the
-shared contract behind `mechcore shell` and `mechcore run`, and neither invents
-its own launch path.
+shared contract behind `mechcore shell` and `mechcore game launch`, and neither
+invents its own launch path.
 
 Acquisition is always **explicitly declared**. There is no implicit fallback
 from attach to launch, and no operation silently starts a game.
 
 What happens after acquisition is not here. The socket, its operations and
-their refusals are [adapter.md](../adapter/adapter.md); the run document a
-session executes is [mcscript.md](mcscript.md). This document ends where a
-client is greeted.
+their refusals are [adapter.md](../adapter/adapter.md). This document ends
+where a client is greeted.
 
 ## Who owns the socket file
 
@@ -100,7 +99,7 @@ the game", and what decides is the level, not the verb.
 
 In state **D** a launch looks at the game it found. A game `mechcore` launched
 and nobody holds is [lingering](#leaving-the-game), and a launch reuses it when
-it can do the work, which is the point of lingering: a batch of scripts pays
+it can do the work, which is the point of lingering: a batch of commands pays
 for one game start. It cannot when it loaded an Adapter other than the one
 beside this `mechcore`, as it does after a rebuild, when it runs headless and
 the launch wants a window, or when it is offline and the launch is not, or the
@@ -114,8 +113,8 @@ when the newly launched game binds.
 
 States **E1** and **E2** are the same endpoint seen by two different clients.
 Every acquisition carries a level in `0..=4`, declared where the acquisition is
-made — a script's `level:` key, `game launch --level` in a prompt, `--level` on
-a command — and defaulting to `1`. A claim strictly above the
+made — `game launch --level` in a prompt or as a command, `--level` on any
+other command — and defaulting to `1`. A claim strictly above the
 holder's takes the game; an equal or lower one is refused with the holder's
 level named.
 
@@ -168,39 +167,6 @@ where a launched game's output goes.
 
 ## Declaration
 
-### mechcore run
-
-The optional top-level `game:` key declares acquisition. It accepts exactly
-`launch` or `attach`. Omitting it means the script is **gameless** and touches
-no game. The optional `level:` key declares what the run outranks, `0..=4`,
-defaulting to `1`, and is rejected without a `game:`. The optional
-`headless: true` starts the game without a window (see [Headless](#headless)),
-and the optional `offline: true` without a network ([Offline](#offline)); each
-is rejected unless the script declares `game: launch`.
-
-```yaml
-game: launch
-level: 0
-steps:
-  - convert: {input: $grbr, to: mcfr, backend: game, round: 2, output: $out/replay.mcfr}
-```
-
-A gameless script is the normal case for comparison work:
-
-```yaml
-steps:
-  - compare: {left: $simulated, right: $native}
-    expect: {equal: true}
-```
-
-See [mcscript.md](mcscript.md) for the full document shape and the operations
-each mode admits.
-
-**Static rule.** A script that omits `game:` and uses any native operation is
-rejected before execution, without probing or launching anything. `mechcore run
---check` performs this validation, so whether a script needs the game is
-answerable without holding it.
-
 ### mechcore shell
 
 ```sh
@@ -224,18 +190,19 @@ any exit does ([Leaving the game](#leaving-the-game)).
 
 ### mechcore game
 
-A command is one operation and then an exit, so it joins a game whoever is
-keeping it alive and leaves it to them:
+A command is one operation and then an exit. `game launch` starts a game,
+answers once it stands at the main menu, and leaves it to linger; every other
+command joins a game whoever is keeping it alive and leaves it to them:
 
 ```sh
+mechcore game launch --headless
 mechcore game status
 mechcore game apply_layout layout.yaml --level 3
 ```
 
-There is nothing else a command could do, so it does not declare it. A
-session that outlives one operation, which is the shell and a run document, is
-where launching belongs. `--launch` is refused with that, and `launch`,
-`attach` and `detach` are refused as verbs for the same reason.
+A launch that finds a game it can reuse joins it, as in a shell. `--launch` on
+any other command is refused and names `game launch`; `attach` and `detach`
+hold a game for longer than one command, so only a shell takes them.
 
 `--level` is the one acquisition option a command takes, because a command
 claims like any other client.
@@ -390,7 +357,7 @@ confusing failure at the cost of a fourth detection signal.
 
 **Whose number is the hand-over deadline?** State **E1** waits two minutes for
 a hand-over and then reports `adapter_busy`. The limit is not declarable, and a
-script cannot say that it is willing to wait longer for a capture it knows is
+caller cannot say that it is willing to wait longer for a capture it knows is
 long. Whether that belongs in the declaration, in the adapter, or nowhere is
 open.
 

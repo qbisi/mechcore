@@ -32,15 +32,6 @@ pub(crate) const ADAPTER_REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
 pub(crate) const TRANSITION_TIMEOUT: Duration = Duration::from_secs(60);
 /// A cold start must reach the main menu within this budget.
 const READY_TIMEOUT: Duration = Duration::from_secs(180);
-/// How long a refreshed lobby page takes to arrive, at most, and how often
-/// an unanswered refresh is sent again.
-const SCENE_PAGE_TIMEOUT: Duration = Duration::from_secs(30);
-const SCENE_PAGE_RETRY: Duration = Duration::from_secs(5);
-/// How long the server takes to answer a spectator's join. It answered within
-/// 8.4 s every time it answered at all, and some listed scenes, taken to have
-/// ended, were not answered in 90 s.
-const JOIN_TIMEOUT: Duration = Duration::from_secs(30);
-
 /// Structured error body carried by a failed operation result.
 pub(crate) fn error_body(error: impl Into<String>) -> Value {
     json!({"error": error.into()})
@@ -97,11 +88,6 @@ impl Session {
             }
             sleep(STATUS_INTERVAL).await;
         }
-    }
-
-    /// Whether this session lost the game to a higher claim.
-    pub(crate) fn was_evicted(&self) -> bool {
-        self.evicted.load(Ordering::SeqCst)
     }
 
     pub(crate) fn current_status(&self) -> Value {
@@ -680,71 +666,6 @@ impl Session {
         self.leave_active_match().await
     }
 
-    /// The lobby's page of match-made scenes, each with its round as the
-    /// lobby lists it and whether it is a standard 1v1. A refresh empties the
-    /// page until the server answers, so with `refresh` this waits for the new
-    /// page, up to [`SCENE_PAGE_TIMEOUT`], and returns it empty if none came.
-    pub(crate) async fn watch_scenes(&self, refresh: bool) -> Result<Value, String> {
-        let _operation = self.operation.lock().await;
-        self.require_status("main_menu").await?;
-        let mut page = self
-            .adapter_request(Operation::WatchScenes, json!({"refresh": refresh}))
-            .await?;
-        // A request sent before login has finished is never answered, so an
-        // empty page is asked for again every few seconds.
-        let deadline = Instant::now() + SCENE_PAGE_TIMEOUT;
-        let mut asked = Instant::now();
-        while refresh && empty_page(&page) && Instant::now() < deadline {
-            tokio::time::sleep(Duration::from_millis(500)).await;
-            let again = asked.elapsed() >= SCENE_PAGE_RETRY;
-            if again {
-                asked = Instant::now();
-            }
-            page = self
-                .adapter_request(Operation::WatchScenes, json!({"refresh": again}))
-                .await?;
-        }
-        Ok(page)
-    }
-
-    /// Enter a scene as a spectator and wait for the server's answer, whose
-    /// stage `status` reports as `live`. A scene the server does not answer
-    /// for within [`JOIN_TIMEOUT`], as one that has ended, is left again and
-    /// reported `joined: false`.
-    pub(crate) async fn watch_scene(&self, scene_id: i32) -> Result<Value, String> {
-        let _operation = self.operation.lock().await;
-        self.require_status("main_menu").await?;
-        let result = self
-            .adapter_request(Operation::WatchScene, json!({"scene_id": scene_id}))
-            .await?;
-        if let Ok(status) = self
-            .wait_status("the server's stage of the scene", JOIN_TIMEOUT, |value| {
-                is_status(value, "spectating")
-                    && value.get("live").is_some_and(|live| !live.is_null())
-            })
-            .await
-        {
-            return Ok(json!({"joined": true, "operation": result, "status": status}));
-        }
-        let left = if is_status(&self.current_status(), "main_menu") {
-            Value::Null
-        } else {
-            self.leave_active_match().await?
-        };
-        Ok(json!({"joined": false, "operation": result, "left": left}))
-    }
-
-    /// Save the match being watched as it stands, and copy the game's file to
-    /// `output` when one is given.
-    pub(crate) async fn save_replay(&self, output: Option<PathBuf>) -> Result<Value, String> {
-        let _operation = self.operation.lock().await;
-        self.require_status("spectating").await?;
-        let result = self
-            .adapter_request(Operation::SaveReplay, json!({"output": output}))
-            .await?;
-        Ok(json!({"operation": result, "status": self.current_status()}))
-    }
-
     pub(crate) async fn leave_active_match(&self) -> Result<Value, String> {
         let result = self
             .adapter_request(Operation::QuitMatch, json!({}))
@@ -1053,12 +974,6 @@ pub(crate) fn default_adapter_socket() -> PathBuf {
     // SAFETY: geteuid has no preconditions.
     let uid = unsafe { libc::geteuid() };
     PathBuf::from(format!("/tmp/mechcore-adapter-{uid}.sock"))
-}
-
-fn empty_page(page: &Value) -> bool {
-    page.get("scenes")
-        .and_then(Value::as_array)
-        .is_none_or(Vec::is_empty)
 }
 
 pub(crate) fn is_status(value: &Value, expected: &str) -> bool {

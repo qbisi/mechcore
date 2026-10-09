@@ -25,7 +25,6 @@ import json
 from pathlib import Path
 import subprocess
 import sys
-import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -44,10 +43,10 @@ def parse_arguments() -> argparse.Namespace:
 
 def launch(mechcore: Path) -> None:
     """Starts a headless game at level 0 that lingers for the next capture."""
-    with tempfile.NamedTemporaryFile("w", suffix=".mcscript", delete=False) as script:
-        script.write("game: launch\nheadless: true\nlevel: 0\n\nsteps:\n  - game.status: {}\n")
-    launched = subprocess.run([str(mechcore), "run", script.name], capture_output=True, text=True)
-    Path(script.name).unlink()
+    launched = subprocess.run(
+        [str(mechcore), "game", "launch", "--headless", "--level", "0"],
+        capture_output=True, text=True, cwd=ROOT,
+    )
     if launched.returncode != 0:
         sys.exit(f"cannot launch the game: {launched.stdout[-400:]}{launched.stderr[-400:]}")
 

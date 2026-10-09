@@ -6,8 +6,8 @@ license.workspace = true
 rust-version.workspace = true
 
 # The Adapter is the macOS `cdylib` the game loads, and `mechcore` packages it
-# beside its own executable so `game: launch` can inject it. Everything else —
-# the simulator, the readers, `mcscript` without a game — needs none of it, so
+# beside its own executable so `game launch` can inject it. Everything else —
+# the simulator, the readers, the commands that need no game — needs none of it, so
 # a build without this feature is how the CLI builds on any other platform.
 [features]
 default = ["adapter"]

@@ -10,7 +10,6 @@ term here is ours.
 | layout | 布局 | the board a fight starts from: each side's units, skills and placements |
 | fight document | 战斗文档 | a layout with the result a fight reached, as a pinned fixture holds it |
 | match document | 对局文档 | a whole match: its header, and a state and an action per round |
-| script | 脚本 | an `.mcscript` that drives `mechcore run` |
 
 ## Recording
 
