@@ -188,7 +188,8 @@ impl Asked {
             (None, None, true) => Ok(Self::Schema),
             _ => Err(Failure::usage(
                 "expected exactly one of --sql <sql>, --sql-file <path>, --query <name> and \
-                 --schema",
+                 --schema; --schema lists the tables and the named queries, and \
+                 `mechcore man query` the contract",
             )),
         }
     }
@@ -491,6 +492,7 @@ impl Database {
                         .collect::<Vec<_>>()
                         .join(" "),
                     parameters: parameter_names(sql),
+                    sql,
                 })
                 .collect(),
         })
@@ -1057,6 +1059,8 @@ struct SchemaQuery {
     name: &'static str,
     description: String,
     parameters: Vec<String>,
+    /// The statement itself, a worked example to start a question from.
+    sql: &'static str,
 }
 
 fn schema_text(schema: &Schema) -> String {
@@ -1097,6 +1101,9 @@ fn schema_text(schema: &Schema) -> String {
             let _ = write!(text, " --param {parameter}=<value>");
         }
         let _ = writeln!(text, "\n    {}", query.description);
+        for line in query.sql.lines().filter(|line| !line.starts_with("--")) {
+            let _ = writeln!(text, "      {line}");
+        }
     }
     text
 }

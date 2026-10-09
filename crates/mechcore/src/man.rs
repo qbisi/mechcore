@@ -242,8 +242,11 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
         Some(code) => format!("{topic}.{code}"),
     };
     let kind = Kind::parse(&topic).map(Verbs::of);
+    let section = verb_section(&wanted);
     let page = match (find(&wanted), &kind) {
         (Some((name, text)), _) => (name, title(text), text),
+        // A verb's own section of the command line's contract.
+        (None, _) if section.is_some() => section.expect("checked"),
         // A kind no document describes still takes verbs.
         (None, Some(verbs)) if language.is_none() => (verbs.kind, "", ""),
         (None, _) => return Err(missing(&wanted, language.as_deref())),
@@ -355,6 +358,22 @@ fn list(arguments: Args, format: Format) -> Outcome {
     Ok(Verdict::Yes)
 }
 
+/// A verb's section of `spec/mechcore/cli`, its heading `` ## `<verb>` `` to
+/// the next section, as `(topic, title, text)`: what `man query` reads.
+fn verb_section(verb: &str) -> Option<(&'static str, &'static str, &'static str)> {
+    let (_, text) = TOPICS
+        .iter()
+        .find(|(topic, _)| *topic == "spec/mechcore/cli")?;
+    let heading = format!("## `{verb}`\n");
+    let start = text.find(&heading)?;
+    let body = &text[start..];
+    let end = body[heading.len()..]
+        .find("\n## ")
+        .map_or(body.len(), |at| heading.len() + at + 1);
+    let section = &body[..end];
+    Some(("spec/mechcore/cli", &section[3..heading.len() - 1], section))
+}
+
 /// The topic itself, or the one topic whose last part is this name.
 fn find(wanted: &str) -> Option<(&'static str, &'static str)> {
     if let Some(page) = TOPICS.iter().find(|(topic, _)| *topic == wanted) {
@@ -411,6 +430,19 @@ struct Topic {
 
 #[cfg(test)]
 mod tests {
+
+    /// A verb no document is named after reads its section of the command
+    /// line's contract, and only that section.
+    #[test]
+    fn a_verb_reads_its_own_section() {
+        let (topic, title, text) = super::verb_section("query").expect("query has a section");
+        assert_eq!(topic, "spec/mechcore/cli");
+        assert_eq!(title, "`query`");
+        assert!(text.starts_with("## `query`\n"));
+        assert!(!text[3..].contains("\n## "));
+        assert!(super::verb_section("no-such-verb").is_none());
+    }
+
     use super::{TOPICS, Verbs, find, title};
     use crate::kind::Kind;
 
