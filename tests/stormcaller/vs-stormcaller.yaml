@@ -1,0 +1,19 @@
+# A Stormcaller and a Crawler formation a side, mirrored: a winner's unit that
+# updates after the last death takes a tower and lets it go the tick after
+# (combat.md). Map 1021, seed 1787887280.
+kind: fight
+map_id: 1021
+seed: 1787887280
+round: 1
+source: game
+ticks: 763
+hash: {profile: mcfr-content-0.23.0, result: 2d21e10316e312e4b4cf5f12b2c6e1b4689d8262725d5a54b6ee9760d0cbc3aa}
+blue:
+  core_damage: 4
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -80}, exp: 0/138/450}
+  - {name: stormcaller, index: 1, position: {x: 5, y: -120}, exp: 0/346/1100}
+red:
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -80}, exp: 0/387/450}
+  - {name: stormcaller, index: 1, position: {x: 5, y: -120}, exp: 0/105/1100}

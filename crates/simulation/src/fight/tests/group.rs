@@ -59,8 +59,7 @@ fn grouped_slots_follow_the_native_exclusion_and_fallback() {
             10_u64,
         ),
         (
-            include_bytes!("../../../../../tests/regression/wraith-group-attack-01.yaml")
-                .as_slice(),
+            include_bytes!("../../../../../tests/wraith/group-attack.yaml").as_slice(),
             206_u64,
         ),
     ] {
@@ -410,7 +409,7 @@ mod oracle {
     }
 
     #[test]
-    #[ignore = "requires the recordings tests/wraith/README.md records where the game runs"]
+    #[ignore = "requires the checker recordings tests/README.md describes, made where the game runs"]
     fn grouped_checker_matches_every_captured_call() {
         let config = SimulationConfig::load().unwrap();
         for (name, expected_count) in [("wraith-group-attack-01", 4188), ("two-targets", 344)] {

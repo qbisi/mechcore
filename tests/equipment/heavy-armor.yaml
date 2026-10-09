@@ -1,6 +1,6 @@
 # Where does an equipment's life rate land?
 #
-# The pinned `../regression/marksman-vs-arclight.yaml` fight with
+# The pinned `../marksman/vs-arclight.yaml` fight with
 # Heavy Armor on blue's Marksman: the table says +0.75 of life rate and
 # nothing else. An officer's life rate lands in the unit's overlay as
 # `life_rate`; whether an equipment's does, and whether the Marksman then

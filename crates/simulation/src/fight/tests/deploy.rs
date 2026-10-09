@@ -427,7 +427,7 @@ fn deployment_raw_and_per_tick_target_direction_round_tick_twenty_two_down() {
 fn first_rvo_solve_avoids_same_formation_at_tick_eight() {
     let config = SimulationConfig::load().unwrap();
     let layout = pinned_layout(
-        include_bytes!("../../../../../tests/regression/steel-balls-vs-steel-balls-01.yaml"),
+        include_bytes!("../../../../../tests/steel_ball/vs-steel-balls.yaml"),
         &config.units,
     );
     let mut simulation = Simulation::new(

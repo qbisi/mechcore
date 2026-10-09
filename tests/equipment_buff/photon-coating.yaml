@@ -1,5 +1,5 @@
 # Photon Coating on blue's Marksman, against the Arclight of
-# `../regression/marksman-vs-arclight.yaml`. On tick 1 the
+# `../marksman/vs-arclight.yaml`. On tick 1 the
 # Marksman adds buff 4000 to itself, recorded as written by itself, for 600
 # ticks: invincible, and the damage it takes cut by 0.3. It holds out to tick
 # 127 where it fell on tick 91, and the buff is cleared as the fight ends.

@@ -1,0 +1,17 @@
+# A Fang formation against another: approach, targeting, blows and death in a
+# mirror, one of the unit pairings combat.md's ordinary-fight claims rest on.
+# Map 1021, seed 1787819220.
+kind: fight
+map_id: 1021
+seed: 1787819220
+round: 1
+source: game
+ticks: 329
+hash: {profile: mcfr-content-0.23.0, result: 7b7004b0e4d2c56f5a363f09b4265b9e856f8f19ba01f64925b648f8d8ff6a21}
+blue:
+  core_damage: 30
+  units:
+  - {name: fang, index: 0, position: {x: 5, y: -100}, exp: 0/156/600}
+red:
+  units:
+  - {name: fang, index: 0, position: {x: 5, y: -100}, exp: 0/204/600}
