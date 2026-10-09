@@ -54,8 +54,6 @@ pub(crate) struct AutoRecovery {
     pub(crate) state: RecoveryState,
     /// `GetPriority`: 1 for an equipment, 0 for a technology.
     pub(crate) priority: i32,
-    /// `CanDisable`, as [`LifeSteal::can_disable`].
-    pub(crate) can_disable: bool,
 }
 
 /// What an `IMoveAbilityAttackIntensify` answers, which

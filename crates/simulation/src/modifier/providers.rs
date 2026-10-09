@@ -213,6 +213,9 @@ impl EffectProvider {
     ///   `SkillManager.RemoveHitEffect`) and handed back (`EnableEffect`);
     ///   a hit while the technologies are off sets nothing off
     ///   (`PerformHitEffect` returns on `isTechnologyDisabled`).
+    /// - A repair technology's controller is disabled, its clocks standing
+    ///   still, and enabled again (`AutoRecoveryEffectProvider.DisableEffect`,
+    ///   `EnableEffect`, `AutoRecoverySystem.DisableMech`, `EnableMech`).
     /// - A burrowing technology's unit comes up, its buff removed, and its
     ///   manager passes over it (`BurrowSystem.Deactive`) until it is
     ///   switched on (`Active`).
@@ -239,9 +242,9 @@ impl EffectProvider {
             | Self::Repair
             | Self::KillExplosion
             | Self::Burrow
-            | Self::DeadEffect => true,
-            Self::AutoRecovery
-            | Self::EnergyShield
+            | Self::DeadEffect
+            | Self::AutoRecovery => true,
+            Self::EnergyShield
             | Self::SweepSkillIntensify
             | Self::AirAttack
             | Self::Buff { cycles: true }

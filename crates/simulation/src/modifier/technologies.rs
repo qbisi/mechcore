@@ -1437,7 +1437,6 @@ impl TechnologyEffects {
                     RecoveryState::Normal
                 },
                 priority: PRIORITY,
-                can_disable,
             });
             let energy_shield = (row.kind == ENERGY_SHIELD).then_some(EnergyShield {
                 life_rate_q32: SHIELD_LIFE_RATE,
