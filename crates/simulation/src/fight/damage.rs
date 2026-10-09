@@ -985,12 +985,6 @@ impl Simulation {
         struck: &mut Struck,
         events: &mut Vec<Event>,
     ) -> Result<()> {
-        if !self.shield.standing.is_empty() {
-            return Err(Error::new(
-                "a second damage lands in a fight with a battlefield shield, which is not \
-                 measured",
-            ));
-        }
         let owner = hit.source.expect("a second damage has its unit").id;
         if self.actors[&owner].placement.effects.lifesteal.is_some() {
             return Err(Error::new(
@@ -1013,11 +1007,18 @@ impl Simulation {
             hits_aimed: false,
             ..*hit
         };
-        let targets = self
-            .damage_targets(&around)?
-            .into_iter()
-            .filter(|target| secondary.hits_main_target || !struck.targets.contains(target))
-            .collect::<Vec<_>>();
+        // `PerformSecondaryRangeEffect`: `PrepareRangeTargets` takes what
+        // the battlefield shields cover out, as a splash's targets, then
+        // what the hit struck goes unless the row strikes it again
+        // (`CanMainTargetBeHit`), and the shields its splash reaches take
+        // the damage before any unit does (`PerformSecondarySplashShieldDamage`,
+        // `PerformHitAdvancedEndergyShieldEffect`).
+        let mut targets = self.damage_targets(&around)?;
+        let shields = self.shields_in_the_way(&around, &mut targets);
+        targets.retain(|target| secondary.hits_main_target || !struck.targets.contains(target));
+        for shield in shields {
+            self.hit_shield(shield, &around, events)?;
+        }
         for target in targets {
             let amount = match target {
                 _ if !secondary.buffed => amount,
