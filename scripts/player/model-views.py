@@ -15,7 +15,7 @@ colours each triangle from its material's albedo texture.
 It writes `<sprite>-top.png` and `<sprite>-side.png` for each, and
 `models.png` with all of them, into `work/player/models/`.
 
-    uv run --with UnityPy --with pillow --with pyarrow \
+    uv run --with UnityPy --with pillow \
         python3 scripts/player/model-views.py --recording <recording.mcfr> [sprite...]
 
 assembles each unit's model in the poses a recording shows instead: a
@@ -26,7 +26,8 @@ rendered at its median normalized time, `<sprite>-<state>-top.png` and
 hash, so two clips of one name in one controller cannot be confused. Nothing it writes
 is tracked: the views are the game's art, and the repository keeps the script
 that makes them again. `--data` names the game's `Data` directory when it is
-not the default Steam install.
+not the default Steam install, and `--mechcore` the binary the recording is
+read through, `mechcore query`.
 """
 
 import argparse
@@ -409,26 +410,36 @@ def unit_names():
     return names
 
 
-def recorded_states(path):
+def recorded_states(path, mechcore):
     """{sprite: {(layer name, state hash): [normalized time within a cycle]}}
     for every base-layer pose a recording holds."""
-    import io
-    import zipfile
+    import json
+    import subprocess
 
-    import pyarrow.parquet as pq
+    def read(sql):
+        answer = subprocess.run(
+            [str(mechcore), "query", str(path), "--sql", sql],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        result = json.loads(answer.stdout)
+        return [dict(zip(result["columns"], row)) for row in result["rows"]]
 
-    archive = zipfile.ZipFile(path)
-    if "instrument/unit_pose.parquet" not in archive.namelist():
+    if not read("SELECT name FROM sqlite_master WHERE name = 'instrument_unit_pose'"):
         sys.exit(f"{path} holds no unit_pose channel")
-    read = lambda member: pq.read_table(io.BytesIO(archive.read(member))).to_pylist()
     names = unit_names()
-    kind = {row["unit_id"]: names.get(row["unit_type_id"]) for row in read("units.parquet")}
+    kind = {
+        row["unit_id"]: names.get(row["unit_type_id"])
+        for row in read("SELECT DISTINCT unit_id, unit_type_id FROM units")
+    }
     played = {}
-    for pose in read("instrument/unit_pose.parquet"):
-        if pose["layer"] != 0:
-            continue
+    for pose in read(
+        "SELECT unit__id, layer_name, state, normalized_time FROM instrument_unit_pose "
+        "WHERE layer = 0 ORDER BY row"
+    ):
         time = pose["normalized_time"]
-        played.setdefault(kind[pose["unit"]["id"]], {}).setdefault(
+        played.setdefault(kind[pose["unit__id"]], {}).setdefault(
             (pose["layer_name"], pose["state"]), []
         ).append(time - int(time))
     return played
@@ -486,13 +497,19 @@ def main():
     parser.add_argument("--data", type=Path, default=DATA, help="the game's Data directory")
     parser.add_argument("--out", type=Path, default=OUT)
     parser.add_argument("--recording", type=Path, help="a recording with the unit_pose channel")
+    parser.add_argument(
+        "--mechcore",
+        type=Path,
+        default=Path(__file__).resolve().parents[2] / "target/release/mechcore",
+        help="the binary the recording is read through",
+    )
     arguments = parser.parse_args()
     wanted = arguments.sprites or list(MODELS)
     unknown = [name for name in wanted if name not in MODELS]
     if unknown:
         sys.exit(f"no model for {', '.join(unknown)}; known: {', '.join(MODELS)}")
     arguments.out.mkdir(parents=True, exist_ok=True)
-    played = recorded_states(arguments.recording) if arguments.recording else None
+    played = recorded_states(arguments.recording, arguments.mechcore) if arguments.recording else None
     environments, views = {}, []
     for sprite in wanted:
         asset, prefab, state_name, time = MODELS[sprite]

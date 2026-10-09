@@ -1,6 +1,6 @@
 """Read a recording's unit poses for how each unit type acts.
 
-    uv run --with pyarrow python3 scripts/player/pose-timing.py <recording.mcfr>
+    python3 scripts/player/pose-timing.py <recording.mcfr> [--mechcore <binary>]
 
 A recording made with the `unit_pose` instrument channel holds, for every
 unit and tick, the clip its model's base layer plays and how far through it.
@@ -16,23 +16,31 @@ unit type:
 These are the numbers `crates/player/web/player.js` animates a unit's attack
 with (its `SWING` and `ACTIONS`) when a recording holds no poses of its own.
 `scripts/player/record-poses.mcscript` records the demo scene with the
-channel; the recording itself stays out of the repository.
+channel; the recording itself stays out of the repository. The recording is
+read through `mechcore query`.
 """
 
+import argparse
 import collections
-import io
+import json
 import statistics
+import subprocess
 import sys
-import zipfile
 from pathlib import Path
 
-import pyarrow.parquet as pq
-
 ROOT = Path(__file__).resolve().parents[2]
-MOTION = ["idle", "moving", "attacking", "stopped", "transitioning"]
-# `events.parquet`'s `type` tags, mcfr.md's event table counted from 0.
-RELEASED, DAMAGE = 0, 2
-UNIT = 0
+
+
+def query(mechcore, recording, sql):
+    """The rows `mechcore query` answers, each a dict by column."""
+    answer = subprocess.run(
+        [str(mechcore), "query", str(recording), "--sql", sql],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    result = json.loads(answer.stdout)
+    return [dict(zip(result["columns"], row)) for row in result["rows"]]
 
 
 def unit_names():
@@ -47,48 +55,52 @@ def unit_names():
 
 
 def main():
-    if len(sys.argv) != 2:
-        sys.exit(__doc__)
-    archive = zipfile.ZipFile(sys.argv[1])
-    if "instrument/unit_pose.parquet" not in archive.namelist():
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("recording", type=Path)
+    parser.add_argument("--mechcore", type=Path, default=ROOT / "target/release/mechcore")
+    arguments = parser.parse_args()
+    read = lambda sql: query(arguments.mechcore, arguments.recording, sql)
+    if not read("SELECT name FROM sqlite_master WHERE name = 'instrument_unit_pose'"):
         sys.exit("the recording holds no unit_pose channel")
 
-    def table(member):
-        return pq.read_table(io.BytesIO(archive.read(member))).to_pylist()
-
     names = unit_names()
-    units = table("units.parquet")
+    units = read("SELECT tick, unit_id, unit_type_id, motion_state FROM units")
     kind = {row["unit_id"]: names.get(row["unit_type_id"], str(row["unit_type_id"])) for row in units}
     motion = {(row["tick"], row["unit_id"]): row["motion_state"] for row in units}
-    base = {}
-    for pose in table("instrument/unit_pose.parquet"):
-        if pose["layer"] == 0:
-            base[(pose["tick"], pose["unit"]["id"])] = pose
+    # A pose's clip is the one it weighs most, the first of equals.
+    base = {
+        (pose["tick"], pose["unit__id"]): pose
+        for pose in read(
+            "SELECT p.tick, p.unit__id, p.normalized_time, p.state_length, p.state_speed, "
+            "(SELECT c.name FROM instrument_unit_pose__clips c WHERE c.row = p.row "
+            "ORDER BY c.weight DESC, c.ordinal LIMIT 1) AS clip "
+            "FROM instrument_unit_pose p WHERE p.layer = 0"
+        )
+    }
 
     def clip_of(pose):
-        clips = sorted(pose["clips"], key=lambda clip: -clip["weight"])
-        return clips[0]["name"] if clips else "-"
+        return pose["clip"] or "-"
 
     played = collections.defaultdict(collections.Counter)
     lengths = {}
     for (tick, unit), pose in base.items():
         clip = clip_of(pose)
-        state = motion.get((tick, unit))
-        played[kind[unit]][(MOTION[state] if isinstance(state, int) else state, clip)] += 1
+        played[kind[unit]][(motion.get((tick, unit)), clip)] += 1
         lengths[(kind[unit], clip)] = (pose["state_length"], pose["state_speed"])
 
+    # A shot leaves with `projectile_released`; a blow lands as a `damage`
+    # its source deals with no projectile.
     landed = collections.defaultdict(list)
-    for event in table("events.parquet"):
-        source = event.get("source")
-        if not source or source["kind"] not in (UNIT, "unit"):
-            continue
-        melee = event["type"] == DAMAGE and event.get("object") is None
-        if event["type"] != RELEASED and not melee:
-            continue
-        pose = base.get((event["tick"], source["id"]))
+    for event in read(
+        "SELECT tick, type, source__id, has_object FROM events "
+        "WHERE source__kind = 'unit' AND (type = 'projectile_released' "
+        "OR (type = 'damage' AND has_object = 0))"
+    ):
+        melee = event["type"] == "damage"
+        pose = base.get((event["tick"], event["source__id"]))
         if pose:
             time = pose["normalized_time"]
-            landed[(kind[source["id"]], "blow" if melee else "shot", clip_of(pose))].append(
+            landed[(kind[event["source__id"]], "blow" if melee else "shot", clip_of(pose))].append(
                 time - int(time)
             )
 
