@@ -450,6 +450,9 @@ pub(crate) struct Summon {
     /// What a buff that disables technology takes from it, as from a unit
     /// of its type deployed without equipment.
     pub(crate) technology_disable: crate::layout::TechnologyDisable,
+    /// The rate its side's technology puts on the damage it takes for its
+    /// first hits, which `FightEffectSystem` activates as it joins.
+    pub(crate) reactive_armor: Option<crate::modifier::ReactiveArmor>,
 }
 
 /// The buff a released skill writes: the Electromagnetic Impact's slow,
@@ -1280,6 +1283,7 @@ fn summon(named: &str, row: &SupportSkillRow, units: &UnitConfigs) -> Result<Sum
         .map_err(|_| Error::new(format!("{named} creates for no time")))?,
         corrections: Vec::new(),
         technology_disable: crate::layout::TechnologyDisable::default(),
+        reactive_armor: None,
     })
 }
 
