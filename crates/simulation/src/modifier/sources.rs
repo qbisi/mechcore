@@ -460,13 +460,16 @@ pub(crate) struct EnergyShield {
 }
 
 /// What an `IAdvancedEnergyShieldSource` answers: the battlefield shield its
-/// unit carries.
+/// unit carries. `AdvancedEnergyShieldProvider` is a `SingleEffectProvider`,
+/// so a unit carrying a technology's and an item's carries the item's.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct CarriedShield {
     /// `GetRadius`, whole metres.
     pub(crate) radius: i64,
     /// `GetShieldValue`: its energy, full.
     pub(crate) energy: i64,
+    /// `GetPriority`: 1 for an equipment, 0 for a technology.
+    pub(crate) priority: i32,
 }
 
 /// What an `IReactiveArmorTechDataSource` answers: the rate on the damage
@@ -554,6 +557,14 @@ impl Source for LifeSteal {
 
 impl Source for EnergyShield {
     const INTERFACE: &'static str = "IEnergyShieldSource";
+
+    fn priority(&self) -> i32 {
+        self.priority
+    }
+}
+
+impl Source for CarriedShield {
+    const INTERFACE: &'static str = "IAdvancedEnergyShieldSource";
 
     fn priority(&self) -> i32 {
         self.priority

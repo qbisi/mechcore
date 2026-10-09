@@ -480,6 +480,13 @@ kind ends its own way:
   `AdvancedEnergyShieldController.Disable`, `Enable`,
   `AdvancedEnergyShieldSystem.DeactiveEnergyShield`, `ActiveEnergyShield`,
   `FightEnergyShield.Deactive`, `FightEnergyShield.Active`.
+- A technology's barrier beside an item's: the provider's `Current` is the
+  source of the highest `GetPriority`, an item's 1 over a technology's 0, so
+  a Fortress with Barrier the technology and Barrier the item carries the
+  item's 65-metre shield of 60000. The technology still switches it off and
+  on: `EffectProvider.EnableCheck` asks `ActiveCheck` and `CanDisable`, not
+  which source is current, and `AdvancedEnergyShieldProvider.DisableEffect`
+  acts on the unit's controller. No recording holds it.
 
 ### Not established
 

@@ -540,6 +540,7 @@ impl Equipment {
             carried_shield: (row.kind == BARRIER).then(|| CarriedShield {
                 radius: row.barrier_radius.unwrap_or(0),
                 energy: row.barrier_energy.unwrap_or(0),
+                priority: PRIORITY,
             }),
             important: row.important_unit,
             ignores_control_beam: row.kind == IGNORE_BUFF,
