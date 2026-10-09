@@ -628,10 +628,14 @@ reloads and nothing else reads.
 - **It searches only when its lock no longer suits**
   (`NeedRefreshSideArmTarget`), in its idle state in place of the search
   timer and in its attack state on every update before its check: when the
-  main skill holds no live lock and it holds one, when its lock is dead or
-  out of its attack area, and when its lock is not the main skill's and
-  stands further from it than its search range. A side arm on the main
-  skill's lock keeps it while it is in its area.
+  main skill holds no live lock and it holds one, and when its lock is dead
+  or out of its attack area. A lock of its own standing further from the
+  main skill's than its search range is kept while it is in its area: a
+  Centurion's side arm goes on firing at a Fang 45 metres from the main gun's
+  Rhino, and another's keeps its lock 49 metres from the main gun's, the game
+  asking its selector nothing meanwhile. The build compares that distance
+  with a range it reads through a helper (`0x264EE0`, called nowhere else in
+  the fight assembly) whose answer the decompilation does not resolve.
 - **The main skill takes the side arm's lock.** A main skill with a side arm
   whose own lock is gone takes the side arm's live lock in place of a search
   (`FightSkill.SearchLockTarget`, `TrySetSideArmTargetAsMainTarget` inlined
@@ -923,7 +927,10 @@ not melee, so the simulator refuses it.
   cooling takes the side arm's lock in place of a search:
   `tests/extra_weapon/dual-wield-near.yaml`. Among Marksmen and Wasps
   it fires at a Wasp beside the main gun's:
-  `tests/extra_weapon/dual-wield-mixed.yaml`.
+  `tests/extra_weapon/dual-wield-mixed.yaml`. It keeps a lock of its
+  own in its area however far the main gun's walks from it, until the lock
+  dies: `tests/corpus/134362016-r5.yaml`, ticks 108 to 117 and 240 to
+  257.
 
 ### Replayed
 

@@ -1,0 +1,80 @@
+# Replay 2328_20261007--134362016, round 5. Blue's Centurions, two of them
+# with Dual Wield, Sledgehammers, Mustangs and Crawlers behind a Defensive Wall
+# and an Anti-Armor Turret, against red's Fangs, Rhinos, Phoenix and
+# Stormcallers. Red's Stormcallers locked on blue's turret walk up to the wall
+# and take the next block along it once the one ahead comes inside their 70
+# metre minimum range (t26), then fire at the turret (t29). A Centurion's side
+# arm keeps the Fang it fires at while the main gun's Rhino walks 45 metres
+# from it (t108 to t116), and another's keeps its lock 49 metres from the main
+# gun's (t255).
+
+kind: fight
+map_id: 1032
+seed: 321076513
+round: 5
+source: game
+ticks: 553
+hash: {profile: mcfr-content-0.23.0, result: 1eac9f2770fa9ac37a911fc2c46ece88bf96cf853dc3e1fa9d6a4429b7df7bd2}
+blue:
+  core_damage: 1932
+  officers: [secondary_equipment_expert, improved_wasp]
+  techs:
+    mustang: [high_explosive_ammo]
+    farseer: [electromagnetic_explosion]
+    centurion: [dual_wield]
+  legacy_index: 14
+  units:
+  - {name: crawler, index: 0, position: {x: 70, y: -285}, exp: 331/333/450, rotated: true}
+  - {name: crawler, index: 1, position: {x: -290, y: -205}, exp: 450/450/450, rotated: true}
+  - {name: crawler, index: 2, position: {x: -60, y: -285}, exp: 450/450/450, rotated: true}
+  - {name: mustang, index: 3, position: {x: 140, y: -285}, exp: 1200/1200/1200, rotated: true}
+  - {name: mustang, index: 4, position: {x: -130, y: -285}, exp: 386/388/1200, rotated: true}
+  - {name: sledgehammer, index: 5, position: {x: -55, y: -170}, exp: 1300/1300/1300}
+  - {name: sledgehammer, index: 6, position: {x: 65, y: -170}, exp: 961/977/1300}
+  - {name: marksman, index: 7, position: {x: 50, y: -190}, level: 2, exp: 66/130/1465}
+  - {name: centurion, index: 8, position: {x: -175, y: -225}, exp: 748/750/2250, equipment: [secondary_heavy_armor]}
+  - {name: centurion, index: 9, position: {x: -215, y: -145}, exp: 415/485/2250, rotated: true, equipment: [secondary_fire_control_system]}
+  - {name: centurion, index: 10, position: {x: 75, y: -195}, exp: 1024/1142/2250, equipment: [secondary_fire_control_system]}
+  - {name: centurion, index: 11, position: {x: 235, y: -195}, exp: 27/197/2250}
+  - {name: centurion, index: 12, position: {x: -65, y: -195}, exp: 120/371/2250, equipment: [secondary_laser_sight]}
+  - {name: crawler, index: 13, position: {x: -210, y: -285}, exp: 12/38/450, rotated: true}
+  - {name: farseer, index: 14, position: {x: -175, y: -195}, level: 2, exp: 0/92/4056}
+  - {name: farseer, index: 15, position: {x: 205, y: -195}, exp: 0/110/1800}
+  - {name: sabertooth, index: 16, position: {x: -245, y: -145}, exp: 0/58/1300}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
+red:
+  officers: [marksman_specialist]
+  techs:
+    rhino: [whirlwind, armor_enhancement]
+    fang: [mechanical_rage, ignite]
+  blueprints: [attack_enhancement, defense_enhancement]
+  legacy_index: 18
+  units:
+  - {name: fang, index: 0, position: {x: -75, y: -60}, exp: 441/600/600}
+  - {name: fang, index: 1, position: {x: 5, y: -60}, exp: 266/600/600}
+  - {name: fang, index: 2, position: {x: -155, y: -60}, exp: 236/600/600}
+  - {name: fang, index: 5, position: {x: -235, y: -60}, level: 2, exp: 0/452/1352}
+  - {name: fang, index: 6, position: {x: 85, y: -60}, exp: 172/172/600}
+  - {name: rhino, index: 8, position: {x: 345, y: 235}, level: 2, exp: 0/1105/2591}
+  - {name: rhino, index: 9, position: {x: 345, y: 135}, level: 2, exp: 0/1653/2591}
+  - {name: phoenix, index: 10, position: {x: -180, y: -40}, exp: 940/1300/1300}
+  - {name: fang, index: 12, position: {x: 310, y: 135}, exp: 215/507/600}
+  - {name: fang, index: 13, position: {x: 310, y: 235}, exp: 334/600/600}
+  - {name: rhino, index: 14, position: {x: -285, y: -25}, level: 2, exp: 0/1017/2591}
+  - {name: rhino, index: 15, position: {x: 285, y: -25}, exp: 625/916/1150}
+  - {name: fang, index: 16, position: {x: 310, y: 35}, level: 2, exp: 0/486/1352}
+  - {name: fang, index: 17, position: {x: -310, y: 35}, exp: 334/334/600}
+  - {name: stormcaller, index: 19, position: {x: 135, y: -20}, exp: 0/800/1100}
+  - {name: fang, index: 20, position: {x: -245, y: -20}, exp: 0/597/600}
+  - {name: fang, index: 21, position: {x: 245, y: -20}, exp: 0/424/600}
+  - {name: fang, index: 22, position: {x: 140, y: -205}, exp: 0/15/600, rotated: true}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
+  contraptions:
+  - {name: missile, index: 0, position: {x: 175, y: -188}}
+  - {name: missile, index: 1, position: {x: -179, y: -184}}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: 144, y: 248}]}
