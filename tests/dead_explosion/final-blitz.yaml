@@ -1,0 +1,26 @@
+# Final Blitz: a Rhino's death strikes everything within 48 metres of its
+# edge with its maximum life, its own side too.
+#
+# The Rhino (unit 25, 19297 life) dies at t225 and on the same tick strikes
+# its own 23 Crawlers, the Marksman, 12 Fangs and 4 Sledgehammers, each for
+# the life it had left, and all 40 die.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 228
+hash: {profile: mcfr-content-0.23.0, result: f6050705badcbff621b57291abe990310c0a390d613cf4c1182d2b234aa192cb}
+blue:
+  core_damage: 36
+  techs:
+    rhino: [final_blitz]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -125}, exp: 0/217/1150}
+  - {name: crawler, index: 1, position: {x: 45, y: -150}, exp: 0/177/450}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -60}, exp: 0/305/650}
+  - {name: fang, index: 1, position: {x: 45, y: -60}, exp: 0/73/600}
+  - {name: sledgehammer, index: 2, position: {x: -45, y: -60}, exp: 0/121/1300}

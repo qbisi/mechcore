@@ -84,6 +84,8 @@ SUBCLASS_LISTS = (
     ("barrier_radius", "radius", "advancedEnergyShieldTechnologies"),
     ("burrow_amplify_damage_rate", "amplifyDamageRate", "burrowTechnologies"),
     ("burrow_relieve_distance", "relieveDistance", "burrowTechnologies"),
+    ("dead_explosion_multiplier", "damageMultiplier", "deadExplosiveTechnologyDatas"),
+    ("dead_explosion_range", "range", "deadExplosiveTechnologyDatas"),
 )
 # The same for a field that is one value rather than a rank list.
 SUBCLASS_SCALARS = (
@@ -146,6 +148,8 @@ SUBCLASS_SCALARS = (
     ("ignores_buff_effect", "useIgnoredBuffEffectType", "ignoreBuffEffectTechnologyDatas"),
     ("ignored_buff_effect", "buffEffectType", "ignoreBuffEffectTechnologyDatas"),
     ("search_target_type", "searchTargetType", "searchTargetModifyTechnologies"),
+    ("dead_explosion_hits_allies", "enableFriendlyFire", "deadExplosiveTechnologyDatas"),
+    ("dead_explosion_damage", "explosiveDamageCondition", "deadExplosiveTechnologyDatas"),
     ("main_skill_effect", "mainSkillEffect", "searchTargetModifyTechnologies"),
     ("extra_skill_effect", "extraSkillEffect", "searchTargetModifyTechnologies"),
 )
@@ -181,7 +185,8 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "rVORadiusChangeTechnologyTechDatas", "clearRangeItemTechDatas",
                "recoveryTechDatas", "killExplosionTechDatas",
                "burrowTechnologies", "deadAcidRangeItemTechnologyDatas", "flyTechDatas",
-               "ignoreBuffEffectTechnologyDatas", "searchTargetModifyTechnologies")
+               "ignoreBuffEffectTechnologyDatas", "searchTargetModifyTechnologies",
+               "deadExplosiveTechnologyDatas")
 # The list whose `DeadAcidRangeItemTech` leaves an acid where its unit dies,
 # and the fields its rows carry for it: whole metres of range
 # (`GetRangeItemRange`), the rounds it stands (`GetRoundDuration`), and the
@@ -651,6 +656,12 @@ def main() -> int:
         "# An ignore technology carries whether its unit ignores one kind of",
         "# buff effect (`ignores_buff_effect`) and that kind, a `BuffEffectType`",
         "# (`ignored_buff_effect`).",
+        "# A dead-explosion technology carries what its unit's death strikes",
+        "# with (`dead_explosion_damage`, an `ExplosiveDamageCondition`), the",
+        "# FPoint multiplier on it and FPoint metres it reaches beyond its",
+        "# unit's radius, by its unit's level (`dead_explosion_multiplier`,",
+        "# `dead_explosion_range`), and whether it strikes its own side",
+        "# (`dead_explosion_hits_allies`).",
         "# A search technology carries the `SkillSearchTargetType` its unit's",
         "# skills search by (`search_target_type`), on its main skill and its",
         "# extra skills as `main_skill_effect` and `extra_skill_effect` say.",

@@ -17,6 +17,7 @@ directory alone keeps a readme, for the rules of pinning a round:
 | [`control/`](control/) | what a control beam turns, what it strikes instead, and what an item or a shield changes about it | [`control.md`](../docs/rules/control.md) |
 | [`damage_share/`](damage_share/) | which units a damage-share technology links into a group, and how a hit on one is shared or the group raises their damage | [`technology_effects.md`](../docs/rules/technology_effects.md#damage-share-technologies) |
 | [`dead_acid/`](dead_acid/) | what a technology leaves where its unit dies, and when it leaves nothing | [`technology_effects.md`](../docs/rules/technology_effects.md#acid-technologies) |
+| [`dead_explosion/`](dead_explosion/) | what a technology makes its unit's death strike, and when it strikes nothing | [`technology_effects.md`](../docs/rules/technology_effects.md#dead-explosion-technologies) |
 | [`dead_line/`](dead_line/) | the life under which a technology makes its unit's hits destroy what they strike | [`technology_effects.md`](../docs/rules/technology_effects.md#dead-line-technologies) |
 | [`dead_summon/`](dead_summon/) | what a technology makes its unit summon where it dies | [`technology_effects.md`](../docs/rules/technology_effects.md#summons-where-a-unit-dies) |
 | [`energy_tower/`](energy_tower/) | what the Energy Tower's fight skills write onto a side, and what they leave alone | [`energy_tower_skills.md`](../docs/rules/energy_tower_skills.md) |

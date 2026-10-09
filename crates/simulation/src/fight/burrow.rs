@@ -279,7 +279,7 @@ impl Simulation {
 
 /// `TechnologyData.GetLevelValue`: the entry at the unit's level, counting
 /// from one, its last past it, and none of an empty list.
-fn level_value(values: &[i64], level: i64) -> i64 {
+pub(in crate::fight) fn level_value(values: &[i64], level: i64) -> i64 {
     let index = usize::try_from(level - 1).unwrap_or_default();
     values
         .get(index)

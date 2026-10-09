@@ -54,10 +54,10 @@ use super::{
     effects::{self, Fields},
     providers::EffectProvider,
     sources::{
-        AutoRecovery, BuffSource, Burrow, CarriedShield, ClearRangeItem, EnergyShield, FlyTech,
-        KillExplosion, LifeSteal, MoveAbilityAttack, MoveAbilityRangeItem, ProductionLine,
-        ReactiveArmor, Rebirth, RebirthFollow, RecoveryState, Repair, RvoRadiusChange, SiegeMode,
-        Stealth, SweepIntensify, WreckageRecovery,
+        AutoRecovery, BuffSource, Burrow, CarriedShield, ClearRangeItem, DeadExplosion,
+        EnergyShield, FlyTech, KillExplosion, LifeSteal, MoveAbilityAttack, MoveAbilityRangeItem,
+        ProductionLine, ReactiveArmor, Rebirth, RebirthFollow, RecoveryState, Repair,
+        RvoRadiusChange, SiegeMode, Stealth, SweepIntensify, WreckageRecovery,
     },
 };
 
@@ -159,9 +159,11 @@ const SPEED_CHANGE_RATE: i32 = 0;
 const SEARCH_TARGET_MODIFY: &str = "searchTargetModifyTechnologies";
 /// `SkillSearchTargetType.CurrentLifeHighestFirst`.
 const CURRENT_LIFE_HIGHEST_FIRST: i32 = 1;
+/// The list whose `DeadExplosiveTech` is an `IDeadExplosive`.
+const DEAD_EXPLOSIVE: &str = "deadExplosiveTechnologyDatas";
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 38] = [
+const IMPLEMENTED: [&str; 39] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -200,6 +202,7 @@ const IMPLEMENTED: [&str; 38] = [
     FLY,
     IGNORE_BUFF_EFFECT,
     SEARCH_TARGET_MODIFY,
+    DEAD_EXPLOSIVE,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -339,6 +342,8 @@ struct Technology {
     /// Whether it turns its unit's main skill's search to
     /// `CurrentLifeHighestFirst`: an `ISkillSearchTargetProviderDataSource`.
     life_priority: bool,
+    /// What it answers `IDeadExplosive` with, if its class is one.
+    dead_explosion: Option<DeadExplosion>,
     /// What it answers `IBurrow` with, if its class is one.
     burrow: Option<Burrow>,
     /// The acid it leaves where its unit dies, if its class is an
@@ -522,6 +527,9 @@ pub(crate) struct SingleSources {
     /// `CurrentLifeHighestFirst` (`SkillSearchTargetProvider`, a
     /// `SingleEffectProvider`).
     pub(crate) life_priority: bool,
+    /// What the first that sets off its unit's death answers
+    /// `IDeadExplosive` with (`DeadExplosiveController`).
+    pub(crate) dead_explosion: Option<DeadExplosion>,
 }
 
 /// What a move ability summon row answers `IMoveAbilitySummon` and
@@ -912,6 +920,17 @@ struct Row {
     /// list.
     #[serde(default)]
     search_target_type: i32,
+    /// `DeadExplosiveTechnologyData`'s `explosiveDamageCondition`,
+    /// `damageMultiplier`, `range` and `enableFriendlyFire`, on a row of its
+    /// list.
+    #[serde(default)]
+    dead_explosion_damage: i32,
+    #[serde(default)]
+    dead_explosion_multiplier: Vec<i64>,
+    #[serde(default)]
+    dead_explosion_range: Vec<i64>,
+    #[serde(default)]
+    dead_explosion_hits_allies: bool,
     /// `BurrowData.amplifyDamageRate`, `relieveDistance` and
     /// `isEnterUnderGround`, on a row of its list.
     #[serde(default)]
@@ -1607,6 +1626,16 @@ impl TechnologyEffects {
                 }),
                 ignores_speed_rate: row.kind == IGNORE_BUFF_EFFECT && row.ignores_buff_effect,
                 life_priority: row.kind == SEARCH_TARGET_MODIFY,
+                dead_explosion: (row.kind == DEAD_EXPLOSIVE).then(|| DeadExplosion {
+                    damage: match row.dead_explosion_damage {
+                        0 => crate::rules::ExplosionDamage::Attack,
+                        1 => crate::rules::ExplosionDamage::MaxLife,
+                        _ => crate::rules::ExplosionDamage::CurrentLife,
+                    },
+                    multiplier: row.dead_explosion_multiplier.clone(),
+                    range: row.dead_explosion_range.clone(),
+                    hits_allies: row.dead_explosion_hits_allies,
+                }),
                 dead_line: (row.kind == DEAD_LINE)
                     .then(|| (row.dead_line_value.clone(), row.dead_line_ignores_shield)),
                 mech_group,
@@ -1769,6 +1798,12 @@ impl TechnologyEffects {
             sources.single.fly = sources.single.fly.or(technology.fly);
             sources.ignores_speed_rate |= technology.ignores_speed_rate;
             sources.single.life_priority |= technology.life_priority;
+            if sources.single.dead_explosion.is_none() {
+                sources
+                    .single
+                    .dead_explosion
+                    .clone_from(&technology.dead_explosion);
+            }
             if sources.single.kill_explosion.is_none() {
                 sources
                     .single
@@ -2218,7 +2253,7 @@ fn provider_of(kind: &str) -> Option<EffectProvider> {
         BUFF => EffectProvider::Buff,
         INTERCEPT => EffectProvider::InterceptMissile,
         SUPPORT => EffectProvider::SupportUnit,
-        DEAD_SUMMON | REBIRTH | DEAD_ACID => EffectProvider::DeadEffect,
+        DEAD_SUMMON | REBIRTH | DEAD_ACID | DEAD_EXPLOSIVE => EffectProvider::DeadEffect,
         MOVE_SUMMON => EffectProvider::MoveAbilitySummon,
         EXTRA_WEAPON => EffectProvider::ExtraSkill,
         STEALTH => EffectProvider::StealthTech,
