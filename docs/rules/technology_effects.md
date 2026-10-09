@@ -2137,8 +2137,17 @@ derive (a minimum range):
 - **A tie between points.** The sort that orders points at one distance
   follows `List.Sort` as read; no recording tells it from a stable one.
 - **A rebirth beside another dead effect, switched off, or of a turned or
-  summoned unit.** No recording holds one; a rebirth to another side
-  (`RebirthTask.rebirthToTeam`) is refused by name. A dead summon or a
+  summoned unit.** No recording holds one. A unit another side turned keeps
+  that side as it dies (`RebirthTask.StartTask` sets `rebirthToTeam` when
+  `currentTeamController` is not `originTeamController`, before
+  `TeamTranslationSystem.OnMechDead` hands it back), follows that side's units
+  of its type (`GetTeamAliveMechs`) while keeping an ally only on the side it
+  stands on (`UpdateReadyRebirth`), and rises on it, turned again
+  (`RebirthMech`: `FightActor.ChangeTeam`,
+  `TeamTranslationSystem.AddTranslatedMech`) under a formation of its own:
+  Typhoons with Field Reassembly a Hacker turned rise as the Hacker's. A
+  turned summon's rebirth (`SummonSystem.RebirthMech`) is refused by name.
+  A dead summon or a
   rebirth switched off is read from the build, the acid's alone recorded.
   A unit an explosion kills dies after the acid controller has run and
   leaves no acid, read from the build.
