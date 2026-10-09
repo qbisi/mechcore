@@ -251,6 +251,7 @@ impl Creator {
             drop_damage: false,
             updates: u64::MAX,
             effects: production.effects.clone(),
+            productions: production.productions.clone(),
         };
         Self {
             team: owner.placement.team,
@@ -769,6 +770,16 @@ impl Simulation {
     fn join(&mut self, mut actor: Actor) -> Result<()> {
         actor.created = true;
         let unit_id = actor.placement.unit_id;
+        // `SupportUnitProvider.AddEffect` as its effects are added: a
+        // creator of each line it runs of its own, after its side's others
+        // (`SupportUnitSystem.AddSkillOwner`).
+        let lines = actor
+            .placement
+            .productions
+            .iter()
+            .map(|production| Creator::production(&actor, production))
+            .collect::<Vec<_>>();
+        self.support.lines.extend(lines);
         self.actors.insert(unit_id, actor);
         self.unit_update_order.push(unit_id);
         // `FightEffectSystem` activates its effects as it joins.
@@ -1186,7 +1197,7 @@ fn summon_placement(
         experience_rate: crate::data::ExperienceRate::default(),
         unit_experience_rate: crate::data::ExperienceRate::default(),
         effects: creator.summon.effects.clone(),
-        productions: Vec::new(),
+        productions: creator.summon.productions.clone(),
         travelling: false,
         surfacing: None,
     }

@@ -446,6 +446,8 @@ pub(crate) struct Summon {
     /// type deployed without equipment. The layout fills it in, where the
     /// side is known.
     pub(crate) effects: crate::layout::UnitEffects,
+    /// The lines it runs of its own, as it joins.
+    pub(crate) productions: Vec<crate::layout::Production>,
 }
 
 /// The buff a released skill writes: the Electromagnetic Impact's slow,
@@ -1275,6 +1277,7 @@ fn summon(named: &str, row: &SupportSkillRow, units: &UnitConfigs) -> Result<Sum
         )
         .map_err(|_| Error::new(format!("{named} creates for no time")))?,
         effects: crate::layout::UnitEffects::default(),
+        productions: Vec::new(),
     })
 }
 
