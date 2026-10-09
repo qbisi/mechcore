@@ -362,6 +362,25 @@ impl<E: Copy + Ord> FightQuadtree<E> {
         found
     }
 
+    /// `FightQuadtree.Query` for a circle (`RangeItemController.GetItems`):
+    /// the root's elements always, then every element of each node the
+    /// circle overlaps, a node's before its children's, the children in
+    /// order. A circle overlaps a rect (`FightRange.Overlaps`) when the point
+    /// of the rect nearest its centre, each coordinate clamped, lies strictly
+    /// within its radius, the squares `FPoint` products.
+    pub(in crate::fight) fn query_circle(&self, x_q32: i64, z_q32: i64, radius_q32: i64) -> Vec<E> {
+        let overlaps = |rect: TargetActorRect| {
+            let dx = x_q32.min(rect.max_x).max(rect.min_x) - x_q32;
+            let dz = z_q32.min(rect.max_z).max(rect.min_z) - z_q32;
+            q32_mul(dz, dz).saturating_add(q32_mul(dx, dx)) < q32_mul(radius_q32, radius_q32)
+        };
+        let mut found = Vec::new();
+        if !self.root.query(&overlaps, &mut found) {
+            found.extend(self.root.elements.iter().copied());
+        }
+        found
+    }
+
     /// `FightQuadtree.IsInteractableRange`: whether a node holding elements
     /// overlaps the rect, strictly on both axes (`RectRange.Overlaps`).
     pub(in crate::fight) fn is_interactable(&self, range: TargetActorRect) -> bool {

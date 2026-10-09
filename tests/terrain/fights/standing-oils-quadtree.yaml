@@ -1,0 +1,33 @@
+# Blue's 28 standing oils of four Sticky Oil Bomb lines in round two, two
+# lines either side of x = 0, and red's Incendiary Bomb down x = 0. The oil
+# controller's quadtree split at its twentieth oil. On tick 67 the second
+# fire lands among the oils nearest the middle, and `CheckInteractableItems`
+# takes the oils it reaches as the oils' quadtree answers its circle
+# (`RangeItemController.GetItems`): the root's, then each quadrant's in
+# order. All 28 burn that tick, chain by chain, and the fires they leave
+# take their identities in that order. Taking the oils in the order they
+# were added, the simulator parts from the game at t67.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: game
+ticks: 183
+hash: {profile: mcfr-content-0.22.0, result: a2a0abc79657756be94491e2429ac32e9960136078365f9bf1517f8ba016be2e}
+blue:
+  core_damage: 140
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -150}, exp: 0/156/650}
+  - {name: marksman, index: 1, position: {x: 20, y: -150}, exp: 0/156/650}
+  battle_skills:
+  - {name: sticky_oil_bomb, standing: {control_points: [{x: -130, y: -90}, {x: -10, y: -90}]}}
+  - {name: sticky_oil_bomb, standing: {control_points: [{x: -130, y: -40}, {x: -10, y: -40}]}}
+  - {name: sticky_oil_bomb, standing: {control_points: [{x: 10, y: -90}, {x: 130, y: -90}]}}
+  - {name: sticky_oil_bomb, standing: {control_points: [{x: 10, y: -40}, {x: 130, y: -40}]}}
+red:
+  units:
+  - {name: sledgehammer, index: 0, position: {x: 5, y: -60}, exp: 0/200/1300}
+  - {name: crawler, index: 1, position: {x: 5, y: -110}, exp: 0/200/450}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: 0, y: 160}, {x: 0, y: 40}]}

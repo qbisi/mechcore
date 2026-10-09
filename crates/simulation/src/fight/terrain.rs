@@ -296,8 +296,8 @@ impl Simulation {
         Ok(key)
     }
 
-    /// `CheckInteractableItems` for a new fire: every oil it reaches, in its
-    /// controller's order, goes, and each turns to a fire of its own
+    /// `CheckInteractableItems` for a new fire: every oil it reaches, in the
+    /// order the oils' quadtree answers it, goes, and each turns to a fire of its own
     /// provider where it stood, under the new fire's side.
     fn ignite_oils(&mut self, fire: u64) -> Result<()> {
         let (x_q32, z_q32, radius_q32, team) = {
@@ -335,15 +335,14 @@ impl Simulation {
         let Some(index) = self.controller_of(TerrainKind::Oil) else {
             return Ok(());
         };
-        // `CheckInteractableItems` asks the oils' quadtree, whose order once
-        // a node has split is not read.
-        if self.terrain.controllers[index].tree.root.children.is_some() {
-            return Err(Error::new(
-                "a fire reaching oils after their controller's quadtree split is not read",
-            ));
-        }
+        // `RangeItemController.GetItems`: the oils' quadtree answers the
+        // circle node by node, and each answered oil the circle reaches is
+        // taken.
         let mut reached = Vec::new();
-        for &key in &self.terrain.controllers[index].items {
+        let answered = self.terrain.controllers[index]
+            .tree
+            .query_circle(x_q32, z_q32, radius_q32);
+        for key in answered {
             if self.terrain_reaches(key, (x_q32, z_q32, radius_q32))? {
                 reached.push(key);
             }
