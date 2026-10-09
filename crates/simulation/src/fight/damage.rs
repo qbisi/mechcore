@@ -1075,8 +1075,11 @@ impl Simulation {
     /// all to the skill's hit effects, `FightSkill.DispatchHitDamageEvent`:
     /// `LifeStealEffectProvider`'s, `TeamWreckageRecoveryManager`'s, a
     /// buff source's `BuffCycleController` and `KillExplosionEffectProvider`'s,
-    /// in that order, which no recording holds two of. Answers the deaths and
-    /// falls the hit effects dealt.
+    /// in that order, which no recording holds two of. A projectile's
+    /// dispatch alone then raises `ISkillOwner.PerformMainSkillHitted` on its
+    /// owner when its skill is the main one (`IProjectileDataSource.IsMainSkill`);
+    /// `SkillDamageProvider`'s, a direct blow's or a laser's, does not. Answers
+    /// the deaths and falls the hit effects dealt.
     /// A hit no unit's skill dealt — a turret's, a mine's, a battle skill's —
     /// reaches no unit's skill.
     ///
@@ -1107,11 +1110,13 @@ impl Simulation {
                 if secondary {
                     return Ok(ends);
                 }
-                // `PerformMainSkillHitted`, when the hit is the main skill's.
                 let skill = self.skill_at_slot(FightActorRef::Unit(owner.id), usize::from(slot));
                 if skill.slot == SkillSlot::Main {
                     self.leave_main_fire(skill, targets, center)?;
-                    if let Some(actor) = self.actors.get_mut(&owner.id) {
+                    // `PerformMainSkillHitted`, which only a projectile raises.
+                    if hit.provider == Provider::Projectile
+                        && let Some(actor) = self.actors.get_mut(&owner.id)
+                    {
                         actor.reset_stacks_on_main_hit()?;
                     }
                 }

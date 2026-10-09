@@ -1948,8 +1948,13 @@ derive (a minimum range):
   `BuffAdditiveStackResetHittedController.Register` passes it to
   `FightMech.RegisterMainSkillHittedAttack`, the unit's
   `FightMech.OnMainSkillPerformHitted`, which `FightMech.PerformMainSkillHitted`
-  raises. A projectile's dispatch of its hit calls it on its owner after the
-  skill's hit effects. `ResetAdditiveStackNormal` sets
+  raises. A projectile's dispatch of its hit
+  (`FightProjectile.DispatchHitDamageEvent`) calls it on its owner after the
+  skill's hit effects when `IProjectileDataSource.IsMainSkill`, and it is the
+  only caller: `SkillDamageProvider.DispatchHitDamageEvent`, a direct blow's or
+  a laser's, hands its hit to `FightSkill.DispatchHitDamageEvent` alone, so a
+  main skill that does not fire projectiles never resets the stack.
+  `ResetAdditiveStackNormal` sets
   `IBEC_AdditiveEffectBuff.additiveStack` and
   `IBEC_AdditiveEffectBuff.additiveStackRecord` to zero and calls
   `Buff.RefreshEffect`.
