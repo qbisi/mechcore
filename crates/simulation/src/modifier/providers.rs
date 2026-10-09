@@ -68,6 +68,8 @@ pub(crate) enum EffectProvider {
     SiegeMode,
     /// `FireIntensifyEffectProvider`, for an `IFireIntensify`.
     FireIntensify,
+    /// `WreckageRecoveryEffectProvider`, for an `IWreckageRecovery`.
+    WreckageRecovery,
 }
 
 impl EffectProvider {
@@ -97,6 +99,7 @@ impl EffectProvider {
             Self::ReactiveArmor => "ReactiveArmorTechEffectProvider",
             Self::SiegeMode => "SiegeModeEffectProvider",
             Self::FireIntensify => "FireIntensifyEffectProvider",
+            Self::WreckageRecovery => "WreckageRecoveryEffectProvider",
         }
     }
 
@@ -140,6 +143,10 @@ impl EffectProvider {
     /// - A fire technology's hit leaves no fire while the technologies are
     ///   off (`FireIntensifyEffectProvider.PerformHitEffect` returns on
     ///   `isTechnologyDisabled` for a source that `CanDisable`).
+    /// - A wreckage-recovery technology's hit effect is taken off its unit's
+    ///   skills (`WreckageRecoveryEffectProvider.DisableEffect`,
+    ///   `SkillManager.RemoveHitEffect`) and handed back (`EnableEffect`);
+    ///   what its unit struck before still heals it as it dies.
     ///
     /// Every other provider does more, which is not measured.
     pub(crate) const fn disable_read(self) -> bool {
@@ -156,7 +163,8 @@ impl EffectProvider {
             | Self::AdvancedEnergyShield
             | Self::ReactiveArmor
             | Self::SiegeMode
-            | Self::FireIntensify => true,
+            | Self::FireIntensify
+            | Self::WreckageRecovery => true,
             Self::AutoRecovery
             | Self::EnergyShield
             | Self::SweepSkillIntensify

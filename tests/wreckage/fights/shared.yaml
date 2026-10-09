@@ -1,0 +1,25 @@
+# Wreckage Recycling on two Abysses against two squads of Mustangs and an
+# Arclight far off.
+#
+# Each Abyss heals for the Mustangs its own shells struck as they fall,
+# each by 343 or what it lacks, and nothing while at its whole life.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 528
+hash: {profile: mcfr-content-0.22.0, result: 0c2183534c627d5a253696a624cd57d6308008361640884ae04837b87524a40a}
+blue:
+  techs:
+    abyss: [wreckage_recycling]
+  units:
+  - {name: abyss, index: 0, position: {x: -45, y: -55}, exp: 0/782/4800}
+  - {name: abyss, index: 1, position: {x: 45, y: -55}, exp: 0/633/4800}
+red:
+  core_damage: 1000
+  units:
+  - {name: mustang, index: 0, position: {x: -45, y: -20}}
+  - {name: mustang, index: 1, position: {x: 45, y: -20}}
+  - {name: arclight, index: 2, position: {x: 280, y: -300}}

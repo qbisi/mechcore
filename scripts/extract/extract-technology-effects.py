@@ -146,7 +146,8 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "deadLineTechDatas", "moveAbilityAttackIntensifyTechDatas",
                "moveAbilityRangeItemTechDatas",
                "damageShareTechnologies", "advancedEnergyShieldTechnologies",
-               "reactiveArmorTechDatas", "fireIntensifyTechnologies", "siegeModeTechDatas")
+               "reactiveArmorTechDatas", "fireIntensifyTechnologies", "siegeModeTechDatas",
+               "wreckageRecoveryTechnologies")
 # The list whose `BuffTech` adds a buff, and the fields its rows carry for
 # `buff_lines` rather than as corrections.
 BUFF = "buffTechnologies"
@@ -253,6 +254,12 @@ SIEGE_FIELDS = (
     ("animation_delay", "animationDelay"),
 )
 SIEGE_CLIENT = {"siegeModeMoveSpeedChangeRate"}
+# The list whose `WreckageRecoveryTech` heals its unit as an enemy it struck
+# dies, and what its rows answer `IWreckageRecovery` with: the FPoint seconds
+# a strike counts, and the whole metres within which the unit must stand, by
+# the dying unit's level.
+WRECKAGE = "wreckageRecoveryTechnologies"
+WRECKAGE_FIELDS = {"time", "distance"}
 # The list of `TechnologyGroupData` a plain technology comes from. A row of any
 # other list is a subclass (`BuffTechnologyData`, `SplashTechnologyData` and
 # the rest) that does something beyond its unit's numbers.
@@ -307,6 +314,7 @@ def special(row: dict) -> list[str]:
               else {field for _, field in STEALTH_FIELDS} if row["kind"] == STEALTH
               else MECH_GROUP_CLIENT if row["kind"] == MECH_GROUP
               else {field for _, field in SIEGE_FIELDS} | SIEGE_CLIENT if row["kind"] == SIEGE
+              else WRECKAGE_FIELDS if row["kind"] == WRECKAGE
               else set())
     return sorted(
         field
@@ -539,6 +547,14 @@ def main() -> int:
         "# A fire technology carries the FPoint metres and seconds of the fire",
         "# each hit of its unit's main skill leaves (`fire_range`,",
         "# `fire_life_time`), by its unit's level.",
+        "# A siege-mode technology carries what its unit takes while it is dug",
+        "# in (`siege_mode`): the FPoint rates and values on its main skill and",
+        "# the rate on its life, the seconds with no enemy in range after which",
+        "# it leaves, and the seconds before it moves again.",
+        "# A wreckage-recovery technology carries the FPoint seconds a strike of",
+        "# its unit on an enemy counts, and the whole metres, by the dying",
+        "# unit's level, within which the unit takes life as that enemy dies",
+        "# (`wreckage`).",
         "",
         "technologies:",
     ]
@@ -595,6 +611,10 @@ def main() -> int:
             for field, source in STEALTH_FIELDS:
                 point = row["row"][source]["m_rawValue"]
                 lines.append(f"      {field}: {point}  # {point / ONE:.6g}")
+        if row["kind"] == WRECKAGE:
+            point = row["row"]["time"]["m_rawValue"]
+            distance = ", ".join(str(value) for value in row["row"]["distance"])
+            lines.append(f"    wreckage: {{time: {point}, distance: [{distance}]}}  # {point / ONE:.6g} s")
         if row["kind"] == SIEGE:
             lines.append("    siege_mode:")
             for field, source in SIEGE_FIELDS:

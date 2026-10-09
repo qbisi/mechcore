@@ -24,7 +24,8 @@
 //! `SupportUnitEquipment` would, and a `MultiAttackTech` the projectiles it
 //! adds its unit's bursts, and a `StealthTech` its stealth once it is hurt,
 //! and a `DeadLineTech` the life under which its main skill destroys what it
-//! hits, and a `SiegeModeTech` its unit dug in as the fight starts; any other
+//! hits, and a `SiegeModeTech` its unit dug in as the fight starts, and a
+//! `WreckageRecoveryTech` life as an enemy it struck dies; any other
 //! is refused by name rather than applied for its numbers alone.
 //!
 //! A technology belongs to one unit type, which is how a side's flat list of
@@ -55,7 +56,7 @@ use super::{
     sources::{
         AutoRecovery, BuffSource, CarriedShield, EnergyShield, LifeSteal, MoveAbilityAttack,
         MoveAbilityRangeItem, ProductionLine, ReactiveArmor, RecoveryState, SiegeMode, Stealth,
-        SweepIntensify,
+        SweepIntensify, WreckageRecovery,
     },
 };
 
@@ -129,9 +130,11 @@ const REACTIVE_ARMOR: &str = "reactiveArmorTechDatas";
 const FIRE_INTENSIFY: &str = "fireIntensifyTechnologies";
 /// The list whose `SiegeModeTech` is an `ISiegeModeEffectDataSource`.
 const SIEGE: &str = "siegeModeTechDatas";
+/// The list whose `WreckageRecoveryTech` is an `IWreckageRecovery`.
+const WRECKAGE: &str = "wreckageRecoveryTechnologies";
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 27] = [
+const IMPLEMENTED: [&str; 28] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -159,6 +162,7 @@ const IMPLEMENTED: [&str; 27] = [
     REACTIVE_ARMOR,
     SIEGE,
     FIRE_INTENSIFY,
+    WRECKAGE,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -273,6 +277,8 @@ struct Technology {
     /// What it answers `ISiegeModeEffectDataSource` with, if its class is
     /// one.
     siege_mode: Option<SiegeMode>,
+    /// What it answers `IWreckageRecovery` with, if its class is one.
+    wreckage: Option<WreckageRecovery>,
     /// What it answers `IMoveAbilityAttackIntensify` with, if its class is
     /// one.
     move_ability_attack: Option<MoveAbilityAttack>,
@@ -400,6 +406,9 @@ pub(crate) struct UnitSources {
     /// The first that digs its unit in: `SiegeModeEffectSystem.
     /// AddSiegeModeOwner` passes over a unit it already holds.
     pub(crate) siege_mode: Option<SiegeMode>,
+    /// The first that heals its unit as an enemy it struck dies: the
+    /// provider enables one source (`SingleEffectProvider`).
+    pub(crate) wreckage: Option<WreckageRecovery>,
     pub(crate) buff_sources: Vec<BuffSource>,
     pub(crate) interception: Vec<UnitInterception>,
     pub(crate) dead_summon: Option<UnitDeadSummon>,
@@ -728,6 +737,9 @@ struct Row {
     /// `SiegeModeTechData`'s fields, on a row of its list.
     #[serde(default)]
     siege_mode: Option<SiegeModeBlock>,
+    /// `WreckageRecoveryTechnologyData`'s fields, on a row of its list.
+    #[serde(default)]
+    wreckage: Option<WreckageBlock>,
     /// `DeadLineTechData`'s `deadLineValue`, whole life by the unit's level,
     /// and `ignoreEnergyShield`, on a row of its list.
     #[serde(default)]
@@ -994,6 +1006,16 @@ impl StealthBlock {
     }
 }
 
+/// What a wreckage-recovery row answers `IWreckageRecovery` with: `FPoint`
+/// seconds, and whole metres by the dying unit's level. No row sets
+/// `ignoreElectricEffect`, so each answers `CanDisable` true.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct WreckageBlock {
+    time: i64,
+    distance: Vec<i64>,
+}
+
 /// What a siege-mode row answers `ISiegeModeEffectDataSource` with: `FPoint`
 /// raw integers.
 #[derive(Debug, Clone, Copy, Deserialize)]
@@ -1195,6 +1217,11 @@ impl TechnologyEffects {
                 energy_shield,
                 stealth: row.stealth.map(StealthBlock::source),
                 siege_mode: row.siege_mode.map(SiegeModeBlock::source),
+                wreckage: row.wreckage.clone().map(|block| WreckageRecovery {
+                    time_q32: block.time,
+                    distance: block.distance,
+                    can_disable: true,
+                }),
                 dead_line: (row.kind == DEAD_LINE)
                     .then(|| (row.dead_line_value.clone(), row.dead_line_ignores_shield)),
                 mech_group,
@@ -1327,6 +1354,9 @@ impl TechnologyEffects {
             sources.stealth = sources.stealth.or(technology.stealth);
             if sources.siege_mode.is_none() {
                 sources.siege_mode.clone_from(&technology.siege_mode);
+            }
+            if sources.wreckage.is_none() {
+                sources.wreckage.clone_from(&technology.wreckage);
             }
             sources.buff_sources.extend(technology.buff_source);
             sources.interception.extend(technology.interception);
@@ -1776,6 +1806,7 @@ fn provider_of(kind: &str, self_buff: bool) -> Option<EffectProvider> {
         REACTIVE_ARMOR => EffectProvider::ReactiveArmor,
         FIRE_INTENSIFY => EffectProvider::FireIntensify,
         SIEGE => EffectProvider::SiegeMode,
+        WRECKAGE => EffectProvider::WreckageRecovery,
         _ => return None,
     })
 }
@@ -2223,6 +2254,35 @@ mod tests {
                 .into_keys()
                 .collect::<Vec<_>>(),
             [super::EffectProvider::SiegeMode]
+        );
+    }
+
+    /// A wreckage-recovery technology writes its numbers and hands its unit
+    /// the time a strike counts and the distance by level.
+    #[test]
+    fn a_wreckage_recovery_technology_hands_its_unit_a_source() {
+        let table = TechnologyEffects::parse(
+            "schema: mechcore.technology_effects\n\
+             technologies:\n\
+             - {id: 9, name: probe, unit: rhino, kind: wreckageRecoveryTechnologies, \
+             wreckage: {time: 8589934592, distance: [15]}, damage_rate: [2576980377]}\n",
+        )
+        .unwrap();
+        assert_eq!(table.corrections(&[9], "rhino", 1).unwrap().len(), 1);
+        assert_eq!(
+            table.sources(&[9], "rhino").unwrap().wreckage,
+            Some(super::WreckageRecovery {
+                time_q32: 2 << 32,
+                distance: vec![15],
+                can_disable: true,
+            })
+        );
+        assert_eq!(
+            table
+                .providers(&[9], "rhino")
+                .into_keys()
+                .collect::<Vec<_>>(),
+            [super::EffectProvider::WreckageRecovery]
         );
     }
 

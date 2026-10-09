@@ -1,0 +1,26 @@
+# Wreckage Recycling on a Rhino against three Marksmen and an Arclight far
+# off.
+#
+# Each Marksman its blow fells heals the hurt Rhino by its 1622 maximum life
+# (t58, t121, t210), and the Arclight by its 4813 (t517), each healing
+# recorded after the death.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 518
+hash: {profile: mcfr-content-0.22.0, result: 16656167806ea966789f8f449f7a0af3c458639750d59ce8a7964228e66d3a9b}
+blue:
+  techs:
+    rhino: [wreckage_recycling]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -35}, exp: 0/1000/1150}
+red:
+  core_damage: 200
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -20}}
+  - {name: marksman, index: 1, position: {x: -40, y: -40}}
+  - {name: marksman, index: 2, position: {x: 40, y: -60}}
+  - {name: arclight, index: 3, position: {x: 280, y: -300}}

@@ -1,0 +1,27 @@
+# Wreckage Recycling on a Rhino that red's Electromagnetic Impact disables
+# (t57, 25 seconds) as it reaches three Marksmen.
+#
+# The Marksmen it fells while disabled (t58, t145, t273) heal nothing: its
+# blows record no one. The Arclight it fells after (t649) heals it by 4813.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 650
+hash: {profile: mcfr-content-0.22.0, result: c0802fffe6ced1fd4995a0cbe32b3518da3fd374d1246942478d7403327beadf}
+blue:
+  techs:
+    rhino: [wreckage_recycling]
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -35}, exp: 0/1000/1150}
+red:
+  core_damage: 200
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -20}}
+  - {name: marksman, index: 1, position: {x: -40, y: -40}}
+  - {name: marksman, index: 2, position: {x: 40, y: -60}}
+  - {name: arclight, index: 3, position: {x: 280, y: -300}}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: -5, y: 30}]}

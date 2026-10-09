@@ -571,6 +571,41 @@ point on the shield the skill fires at or the lock's own position instead,
 and the simulator refuses it. The fire burns as any fire does
 ([terrain.md](terrain.md)).
 
+## Wreckage-recovery technologies
+
+A row of `wreckageRecoveryTechnologies` is a `WreckageRecoveryTech`,
+Wreckage Recycling, the Rhino's and the Abyss's: beside its numbers, 60% and
+35% more damage, its `wreckage` carries what it answers `IWreckageRecovery`
+with, the seconds a strike counts, 2, and the whole metres, by the dying
+unit's level, within which its unit takes life, 15 and 250.
+`WreckageRecoveryEffectProvider.DoActive` hands the unit to its side's
+`TeamWreckageRecoveryManager` (`Add`), which hands the skills a technology's
+numbers reach a hit effect (`SkillManager.AddHitEffect`), as a buff source's
+hit effect is handed; a unit travelling in is handed over as it arrives, and
+one that dies is let go (`DoDeactive`).
+
+**A hit records what it struck.** Each unit a hit of one of those skills
+strikes is recorded against the holder, its count back at none if it
+already is (`PerformHitEffect`); a building is not, and nothing is while the
+holder's technologies are disabled. `WreckageRecoverySystem` updates after
+`DeadEffectSystem` and counts every record's updates, last first, dropping
+it once they reach the time over a tick, by `FPoint` quotient's whole part:
+40.
+
+**A recorded unit's death heals.** As it dies (`FightMech.OnDead` raising
+`OnMechDead`), each holder in order, the fight's own by where they stand,
+the second coordinate and then the first (`OnFightStart`,
+`FightUtility.SkillOwnerComparer`), and then those arriving, that is alive and short
+of its maximum life drops its last record of it; one that had one and stands
+within the distance of it (`FightActor.Distance2D`, edge to edge,
+`FPoint.op_LessThanOrEqual`) is among those healed
+(`PerformTargetDeadEffect`). Each takes the whole part of the dead unit's
+maximum life over their count, at least 1 (`PerformRecoveryEffect`,
+`FightMech.RecoveryLife`), held to what it lacks, recorded after the death.
+A Rhino that fells a Marksman takes its 1622; two Rhinos that fell a Vulcan
+take half its 30279 each, held to what each lacks. A holder disabled still
+heals for what it struck before.
+
 ## Missile Interception
 
 Missile Interception makes its unit an interceptor: Mustang, Sabertooth,
@@ -811,6 +846,13 @@ whose own `DisableEffect` it does not mirror.
   (`EnableEffect` is `SingleEffectProvider`'s alone). A Sabertooth under an
   Electromagnetic Impact goes from 21213 to 14142 at whole life on t57, and
   idles 0.3 seconds later.
+- **A wreckage-recovery technology records no one.**
+  `WreckageRecoveryEffectProvider.DisableEffect` takes its hit effect off its
+  unit's skills (`SkillManager.RemoveHitEffect`), and `PerformHitEffect`
+  records nothing while the technologies are off; what it struck before
+  still heals it as it dies, and switched on, `EnableEffect` hands the effect
+  back. A Rhino that fells Marksmen under an Electromagnetic Impact heals
+  nothing for them.
 - **A buff its unit added itself is cleared, if its row says so**
   (`isClearSelfBuffWhenDisableTech`): `FightMech.DisableTechnology` raises
   `BuffManager.ClearSelfResourceBuffByDisableTech` after the effects are off.
@@ -922,6 +964,13 @@ derive (a minimum range):
   `tests/siege_mode/fights/turned.yaml`,
   `tests/siege_mode/fights/travel.yaml`,
   `tests/siege_mode/fights/dies.yaml`.
+- Wreckage Recycling heals its unit by the maximum life of each enemy it
+  struck as that enemy dies, held to what it lacks, and nothing at its whole
+  life: `tests/wreckage/fights/rhino.yaml`,
+  `tests/wreckage/fights/abyss.yaml`, `tests/wreckage/fights/shared.yaml`.
+  Two Rhinos that fell a Vulcan both heal:
+  `tests/wreckage/fights/split.yaml`. Disabled, it heals for no one it
+  strikes: `tests/wreckage/fights/disabled.yaml`.
 - A dead-line technology destroys a unit its unit's shots strike at or
   under the line at its level, before the shot's damage: Culling Rounds
   culls Crawlers at 250 under a level-one Mustang's 320, and Marksmen at 712
@@ -1175,6 +1224,21 @@ derive (a minimum range):
   `SkillAttackController.AttackingController.Update`,
   `MotionStopState.Enter`, `MotionStopState.Update`,
   `RVOControllerFixed.Lock`.
+- A wreckage-recovery technology records each unit its skills' hits strike,
+  drops a record after its time, and heals the holders alive, hurt and
+  within its distance by the dead unit's maximum life over their count as a
+  recorded unit dies; disabled, its hit effect is off:
+  `TeamWreckageRecoveryManager.Add`,
+  `TeamWreckageRecoveryManager.Update`,
+  `TeamWreckageRecoveryManager.PerformTargetDeadEffect`,
+  `TeamWreckageRecoveryManager.PerformRecoveryEffect`,
+  `TeamWreckageRecoveryManager.RegisterTargetDeadEvent`,
+  `TeamWreckageRecoveryManager.OnFightStart`,
+  `WreckageRecoveryEffectProvider.DoActive`,
+  `WreckageRecoveryEffectProvider.DisableEffect`,
+  `WreckageRecoveryEffectProvider.EnableEffect`,
+  `WreckageRecoveryTechnologyData.GetDistance`, `SkillManager.AddHitEffect`,
+  `FightMech.OnDead`.
 - A dead-line technology hands its unit's main skill a pre-hit effect that
   destroys a live unit at or under the line at the owner's level as a
   suicide, before the hit's shield and damage, and charges it the line:
@@ -1437,6 +1501,10 @@ derive (a minimum range):
   `InterceptSystem.OnChangeTeam`.
 
 ### Not established
+
+- **A wreckage record running out, and the share among holders.** Read
+  from the build; no recording holds a recorded unit dying after its time,
+  nor a share smaller than what each holder lacks.
 
 - **Which way a buff's summon faces.** `CreateSummonMechInfo`'s constructor
   reads its rotation from a static the build was not read for; a summon

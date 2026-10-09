@@ -102,6 +102,14 @@ schema: mechcore.technology_effects
 # A fire technology carries the FPoint metres and seconds of the fire
 # each hit of its unit's main skill leaves (`fire_range`,
 # `fire_life_time`), by its unit's level.
+# A siege-mode technology carries what its unit takes while it is dug
+# in (`siege_mode`): the FPoint rates and values on its main skill and
+# the rate on its life, the seconds with no enemy in range after which
+# it leaves, and the seconds before it moves again.
+# A wreckage-recovery technology carries the FPoint seconds a strike of
+# its unit on an enemy counts, and the whole metres, by the dying
+# unit's level, within which the unit takes life as that enemy dies
+# (`wreckage`).
 
 technologies:
   - id: 206
@@ -879,11 +887,13 @@ technologies:
     name: 残骸利用
     unit: rhino
     kind: wreckageRecoveryTechnologies
+    wreckage: {time: 8589934592, distance: [15]}  # 2 s
     damage_rate: [2576980377]  # +0.6
   - id: 2329
     name: 残骸利用
     unit: abyss
     kind: wreckageRecoveryTechnologies
+    wreckage: {time: 8589934592, distance: [250]}  # 2 s
     damage_rate: [1503238553]  # +0.35
   - id: 2408
     name: 重装锁定

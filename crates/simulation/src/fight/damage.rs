@@ -1057,7 +1057,8 @@ impl Simulation {
     /// struck directly (`SkillDamageProvider`) or through its projectile
     /// (`FightProjectile`), hands what the hit struck and the life it took in
     /// all to the skill's hit effects, `FightSkill.DispatchHitDamageEvent`:
-    /// `LifeStealEffectProvider`'s and a buff source's `BuffCycleController`.
+    /// `LifeStealEffectProvider`'s, `TeamWreckageRecoveryManager`'s and a
+    /// buff source's `BuffCycleController`.
     /// A hit no unit's skill dealt — a turret's, a mine's, a battle skill's —
     /// reaches no unit's skill.
     pub(in crate::fight) fn dispatch_hit_damage(
@@ -1070,6 +1071,7 @@ impl Simulation {
         match (hit.source, hit.skill_slot) {
             (Some(owner), Some(slot)) if owner.kind == ObjectKind::Unit => {
                 self.steal_life(owner.id, damage, events)?;
+                self.record_wreckage_hit(owner.id, slot, targets);
                 let center = (hit.center_q32.0, hit.center_y_q32, hit.center_q32.1);
                 self.add_hit_buffs(owner.id, slot, (targets, center), events)?;
                 // `PerformMainSkillHitted`, when the hit is the main skill's.

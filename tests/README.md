@@ -51,6 +51,7 @@ out to show:
 | [`tower/`](tower/README.md) | what losing a tower writes on its side, and what strengthening one adds |
 | [`turret/`](turret/README.md) | when a turret fires, at what, and how often |
 | [`raiden/`](raiden/README.md) | how a Raiden's three weapons choose targets and fire together, beside its standard fights |
+| [`wreckage/`](wreckage/README.md) | how a wreckage-recovery technology heals its unit as an enemy it struck dies |
 | [`wraith/`](wraith/README.md) | how a Wraith's four slots choose their targets, beside its standard fights |
 | [`regression/`](regression/README.md) | fights that exercise the kernel rather than one rule |
 | [`corpus/`](corpus/README.md) | rounds of the replay corpus the simulator plays back, each named for its replay and round |

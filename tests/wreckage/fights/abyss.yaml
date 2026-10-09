@@ -1,0 +1,27 @@
+# Wreckage Recycling on an Abyss against a squad of Mustangs, two Marksmen
+# and an Arclight far off.
+#
+# Each Mustang its shells fell heals it by its 343, or by what it lacks of
+# its maximum, 233 (t13) and 288 (t17), and a Mustang that falls while it is
+# at its whole life heals nothing (t17, the second). The Marksmen heal it by
+# 1622 (t124, t181), the Arclight by 4813 (t897).
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 897
+hash: {profile: mcfr-content-0.22.0, result: 010d8fc1f166730ecf124edb927e9f7591d2ca70f2aefeb40b1333179a828290}
+blue:
+  techs:
+    abyss: [wreckage_recycling]
+  units:
+  - {name: abyss, index: 0, position: {x: 5, y: -55}, exp: 0/1408/4800}
+red:
+  core_damage: 500
+  units:
+  - {name: mustang, index: 0, position: {x: 5, y: -20}}
+  - {name: marksman, index: 1, position: {x: -60, y: -40}}
+  - {name: marksman, index: 2, position: {x: 60, y: -40}}
+  - {name: arclight, index: 3, position: {x: 280, y: -300}}

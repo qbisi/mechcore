@@ -1,0 +1,24 @@
+# Wreckage Recycling on two Rhinos at one Vulcan, whose flames hurt both.
+#
+# Both struck it within two seconds of its death and stand within 15 metres
+# of it (t110): each takes half its 30279, held to what it lacks, 4050 and
+# 2175.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 742
+hash: {profile: mcfr-content-0.22.0, result: 66f2f21c98c467ef48bd4142ce933480606eb4ba4a0b2393827dfcafeccbe501}
+blue:
+  techs:
+    rhino: [wreckage_recycling]
+  units:
+  - {name: rhino, index: 0, position: {x: -15, y: -35}, exp: 0/550/1150}
+  - {name: rhino, index: 1, position: {x: 25, y: -35}, exp: 0/850/1150}
+red:
+  core_damage: 400
+  units:
+  - {name: vulcan, index: 0, position: {x: 0, y: -30}}
+  - {name: arclight, index: 1, position: {x: 280, y: -300}}

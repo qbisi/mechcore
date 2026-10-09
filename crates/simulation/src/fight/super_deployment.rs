@@ -198,6 +198,7 @@ impl Simulation {
             self.add_group_unit(unit_id);
             self.add_siege_unit(unit_id)?;
             self.activate_reactive_armor(unit_id);
+            self.add_wreckage_unit(unit_id);
         }
         Ok(())
     }

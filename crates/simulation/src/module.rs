@@ -362,7 +362,7 @@ pub(crate) static MODULES: &[Module] = &[
         native: "WreckageRecoverySystem",
         claims: &[],
         understood: &[],
-        implemented: false,
+        implemented: true,
     },
 ];
 
