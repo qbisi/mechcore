@@ -3,13 +3,17 @@ use std::{path::Path, path::PathBuf, process::Command};
 use mechcore_mcfr::McfrReader;
 
 fn recording(directory: &Path) -> PathBuf {
-    let output = directory.join("fight.mcfr");
+    recording_with_seed(directory, 7)
+}
+
+fn recording_with_seed(directory: &Path, seed: u32) -> PathBuf {
+    let output = directory.join(format!("fight-{seed}.mcfr"));
     let layout =
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../layouts/marksman-vs-arclight.yaml");
     let command = Command::new(env!("CARGO_BIN_EXE_mechcore"))
         .args(["convert", "--to", "mcfr"])
         .arg(layout)
-        .args(["--seed", "7"])
+        .args(["--seed", &seed.to_string()])
         .arg(&output)
         .output()
         .unwrap();
@@ -22,9 +26,13 @@ fn recording(directory: &Path) -> PathBuf {
 }
 
 fn query(recording: &Path, arguments: &[&str]) -> (i32, serde_json::Value) {
+    queries(&[recording.as_os_str()], arguments)
+}
+
+fn queries(recordings: &[&std::ffi::OsStr], arguments: &[&str]) -> (i32, serde_json::Value) {
     let command = Command::new(env!("CARGO_BIN_EXE_mechcore"))
         .arg("query")
-        .arg(recording)
+        .args(recordings)
         .args(arguments)
         .output()
         .unwrap();
@@ -146,7 +154,7 @@ fn the_schema_names_every_table_and_query() {
             .all(|table| table["origin"] == "hashed" || table["origin"] == "layout")
     );
     assert!(tables.iter().any(|table| table["name"] == "layout_units"));
-    assert_eq!(schema["queries"].as_array().unwrap().len(), 5);
+    assert_eq!(schema["queries"].as_array().unwrap().len(), 7);
 }
 
 #[test]
@@ -218,4 +226,78 @@ fn travel_and_a_unit_at_a_tick_are_answered() {
     )
     .unwrap();
     assert!(!skills.as_array().unwrap().is_empty());
+}
+
+#[test]
+fn two_recordings_are_left_and_right() {
+    let directory = tempfile::tempdir().unwrap();
+    let seven = recording_with_seed(directory.path(), 7);
+    let eight = recording_with_seed(directory.path(), 8);
+    let (code, same) = queries(
+        &[seven.as_os_str(), seven.as_os_str()],
+        &["--query", "divergence"],
+    );
+    assert_eq!(code, 0, "{same}");
+    assert!(same["rows"].as_array().unwrap().is_empty());
+    let (code, differ) = queries(
+        &[seven.as_os_str(), eight.as_os_str()],
+        &["--query", "divergence"],
+    );
+    assert_eq!(code, 0, "{differ}");
+    let rows = differ["rows"].as_array().unwrap();
+    let first = rows
+        .iter()
+        .find(|row| row[0] == "ticks")
+        .expect("seeds 7 and 8 fight differently");
+    assert_eq!(
+        first[1],
+        single_of(
+            &[seven.as_os_str(), eight.as_os_str()],
+            "SELECT min(l.tick) FROM left.ticks l JOIN right.ticks r USING (tick) \
+             WHERE l.tick_hash <> r.tick_hash"
+        )
+    );
+    let (code, units) = queries(
+        &[seven.as_os_str(), eight.as_os_str()],
+        &[
+            "--query",
+            "units-diff",
+            "--param",
+            &format!("tick={}", first[1]),
+        ],
+    );
+    assert_eq!(code, 0, "{units}");
+}
+
+#[test]
+fn recordings_take_the_names_they_are_given() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = recording(directory.path());
+    let a = format!("a={}", path.display());
+    let b = format!("b={}", path.display());
+    let c = format!("c={}", path.display());
+    assert_eq!(
+        single_of(
+            &[a.as_ref(), b.as_ref(), c.as_ref()],
+            "SELECT (SELECT count(*) FROM a.units) = (SELECT count(*) FROM c.units)"
+        ),
+        1
+    );
+    let (code, schema) = queries(&[a.as_ref(), b.as_ref()], &["--schema"]);
+    assert_eq!(code, 0, "{schema}");
+    assert!(
+        schema["tables"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|table| table["database"] == "b" && table["name"] == "units")
+    );
+    let (code, _) = queries(&[a.as_ref(), a.as_ref()], &["--schema"]);
+    assert_eq!(code, 2);
+}
+
+fn single_of(recordings: &[&std::ffi::OsStr], sql: &str) -> serde_json::Value {
+    let (code, answer) = queries(recordings, &["--sql", sql]);
+    assert_eq!(code, 0, "{answer}");
+    answer["rows"][0][0].clone()
 }
