@@ -48,18 +48,47 @@ impl Simulation {
             }
             .map(|building| (building, target))
         });
-        let shield = if found.is_none() {
-            shield.zip(lock)
-        } else {
-            None
-        };
+        let search_shield = shield.zip(lock);
+        let shield = if found.is_none() { search_shield } else { None };
         self.skill_mut(skill_ref).in_the_way = found;
         self.skill_mut(skill_ref).target_shield = shield;
         self.skill_mut(skill_ref).kept_attack_target = None;
         // The siblings are asked for their blocks only once the core has
         // found one; a core with a clear line leaves each naming its own.
-        if found.is_some() && !self.skill(skill_ref).siblings().is_empty() {
-            self.refresh_group_walls(skill_ref, None);
+        if let Some((wall, _)) = found
+            && !self.skill(skill_ref).siblings().is_empty()
+        {
+            if self.skill(skill_ref).fusillade() {
+                self.hand_fusillade_wall(skill_ref, wall, search_shield);
+            } else {
+                self.refresh_group_walls(skill_ref, None);
+            }
+        }
+    }
+
+    /// `SearchAttackTarget` of a fusillade group's core that found a block:
+    /// each other skill of the group is handed
+    /// `CheckWallConstructionForGroupedSkill` of a list holding the core's
+    /// block alone, as both the walls in range and the walls taken. A group
+    /// whose skills may share a target (`CanAttackSameTarget`) takes the
+    /// core's block, and one whose skills may not takes none: its lock and
+    /// attack target are cleared (`ChangeLockTarget`, `ChangeAttackTarget`
+    /// with the core's searched shield). A Raiden's slots, whose core fires
+    /// at a Defensive Wall's block, strike no block.
+    fn hand_fusillade_wall(
+        &mut self,
+        skill_ref: SkillRef,
+        wall: u64,
+        search_shield: Option<(u64, FightActorRef)>,
+    ) {
+        let shares = self
+            .skill_attacker(skill_ref)
+            .is_some_and(|attacker| attacker.attack.weapons.allow_same_target.unwrap_or(false));
+        for sibling in self.skill_mut(skill_ref).siblings_mut() {
+            sibling.lock_target = shares.then_some(FightActorRef::Building(wall));
+            sibling.in_the_way = None;
+            sibling.target_shield = search_shield;
+            sibling.attack_target_left = None;
         }
     }
 

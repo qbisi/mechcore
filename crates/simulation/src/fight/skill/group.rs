@@ -658,17 +658,11 @@ impl Simulation {
                 else {
                     return Ok(());
                 };
-                // A striking sibling at a construction: the Raiden's slots
-                // recorded against a Defensive Wall strike no block where
-                // this path would, so which construction a striking slot
-                // takes is not established.
-                if self.skill(skill_ref).kind == SkillKind::Strike {
-                    return Err(Error::new(format!(
-                        "unit {actor_id}'s grouped slot {skill_index} strikes construction \
-                         {building_id}, and a striking slot at a construction is not measured"
-                    )));
-                }
                 self.refresh_group_skill_attack_interval(skill_ref, skill_index, step)?;
+                // A striking slot strikes it, as it strikes a unit.
+                if self.skill(skill_ref).kind == SkillKind::Strike {
+                    return self.direct_effect(actor_id, target, skill_index, events);
+                }
                 let aimed = self.attack_position(
                     skill_ref.owner,
                     skill_index,
