@@ -568,9 +568,13 @@ the unit's side through `RangeItemSystem.AddItem`, at the point the hit
 landed: every shell of a Stormcaller's volley leaves one, the shells that
 strike nothing too. It leaves none for a second damage's hit, and none
 while the unit's technologies are off. Where the skill's lock stands on
-another side than the first unit the hit struck, the provider takes the
-point on the shield the skill fires at or the lock's own position instead,
-and the simulator refuses it. The fire burns as any fire does
+another side than the first unit the hit struck, or it holds none, the
+provider takes another point: on the shield the skill fires at
+(`GetTargetEnergyShield`, `FightUtility.GetAttackPositionOnEnergyShield`
+toward the lock, or toward the hit's point with no lock), and with no shield
+the lock's own position (`FightTransform.position3D`) for a skill that locks
+its target (`IsLockTarget`) and the hit's point for any other. Read from the
+build; no recording holds it. The fire burns as any fire does
 ([terrain.md](terrain.md)).
 
 ## Wreckage-recovery technologies
