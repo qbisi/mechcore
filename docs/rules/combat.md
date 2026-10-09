@@ -446,7 +446,9 @@ scores from its root's facing, not from where its first weapon points.
 
 **A search reads the tick's start only when its skill asked for that.** At a
 tick's start `FightCoreSystem.PreCalculate` lets each skill state prepare a
-search, scored on where everything stands at that moment, and
+search, scored on where everything stands at that moment and with the skill's
+range and minimum range as they stand then (`PrepareSearch` reads
+`GetAttackRange`), and
 `ScoreRatingTargetSelector.TrySelect` answers a prepared skill from those
 scores. A prepared answer that has died since, a tower that fell that tick
 among them, or no prepared answer at all, sends the search to `Select` over
@@ -469,7 +471,11 @@ search as the tick opens, its search timer run out or its lock absent or dead,
 and a preparing or cooling one never: an idle Crawler whose lock dies during a
 tick its timer was not due searches with `PerformSearch`; the prepared scores are cleared every tick. So a
 Stormcaller whose live lock walks inside its minimum range during a tick
-searches past it and takes the next target that very tick. `PreCalculate`
+searches past it and takes the next target that very tick. The ranges are
+the ones it was prepared with: a Fang whose Range Enhancement an
+Electromagnetic Impact switches off scores the search prepared before the
+skill landed with its 130 metres, not the 90 it is left with, and takes the
+Crawler within the 130 over one beyond it. `PreCalculate`
 prepares only the mechs of the fight as it runs, alive and not travelling, and
 `FightingState.Update` runs it after the modules, before the next update's
 timers join the summons that are due: a summon that joins is no attacker
@@ -800,8 +806,9 @@ energy over its maximum, an `FPoint` quotient, rounded. A hit asks
 before the shield takes it, so a disabled shield takes nothing; a dead line
 asks only that it is active with energy left, so a disabled shield still keeps
 the line off. `EnableEffect` enables it (`EnergyShieldController.Enable`) with
-the recorded share of its maximum, the product truncated. Read from the
-build; no recording holds it.
+the recorded share of its maximum, the product truncated. A recording reads
+the shield disabled (`IsEnable`) from the tick an Electromagnetic Impact
+switches a Fang's Portable Shield off.
 
 ## Armour
 
@@ -1092,6 +1099,10 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- A Fang's prepared search scores with the range Range Enhancement gave it
+  as the search was prepared, on the tick an Electromagnetic Impact switches
+  the technology off, and its Portable Shield reads disabled from that tick:
+  `tests/corpus/201477923-r6.yaml`, tick 57.
 - A Hound that a charging Fire Badger stands on keeps its lock and its facing
   and fires on: `tests/corpus/134367609-r4.yaml`, tick 300.
 - A Sledgehammer whose lock walks out of its reach sets off with its turret

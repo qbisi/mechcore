@@ -265,6 +265,9 @@ struct Actor {
     target_query_source_rotation_q32: i64,
     target_query_alive: bool,
     target_query_visibility: Visibility,
+    /// The main skill's range and minimum range as the tick's searches were
+    /// prepared, millimetres.
+    target_query_ranges: (i64, i64),
     body_rotation: i64,
     body_rotation_q32: i64,
     aim_rotation: i64,
@@ -696,6 +699,7 @@ impl Simulation {
         // skill drew its first interval as it was deployed, from the
         // interval the trench has not shortened yet.
         simulation.enter_siege_fight()?;
+        simulation.snapshot_search_ranges();
         Ok(simulation)
     }
 
