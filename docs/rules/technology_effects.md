@@ -780,6 +780,44 @@ its own maximum life, the whole part
 (`FightActor.RecoveryLife`). The unit repairs itself. Its repairs follow the
 tick's deaths. A row that repairs targets beside units is refused.
 
+## Kill-explosion technologies
+
+A row of `killExplosionTechDatas` is a `KillExplosionTech`, Wreckage
+Detonation, the Typhoon's: it answers `IKillExplosionDataSource` with 115
+damage at every level (`GetExplosionDamage`, the last entry past the list), a
+range of 12 metres (`GetExplosionRange`), striking allies too (`CanHitAlly`),
+raised by buffs (`CanBeAffectedByBuff`), and no explosion set off by an
+explosion (`CanExplosionTriggerExplosion`). Its row is the main skill's and
+no extra skill's (`mainSkillEffect`, `extraSkillEffect`).
+
+**A hit's kills explode, up to the first unit that lives.**
+`KillExplosionEffectProvider.EnableEffect` hands the skills that take the
+main skill's corrections a hit effect (`SkillManager.AddHitEffect`,
+`SkillDataModifier.AvaliableCheck`). After a hit of one of them
+(`PerformHitEffect`), it walks the units the hit struck in the order it
+struck them, passing over what is not a unit (`FightMech`). Each that is
+dead, its death dealt by the skill's unit (`FightActor.deadSourceSkillOwner`,
+which `ReduceLife` sets as the life runs out), explodes; the first that is
+alive, or dead by another's hand, ends the walk, and those after it do not
+explode however they died. A rocket that strikes two Crawlers that live and
+then kills two sets nothing off. An explosion can kill a unit later in the
+walk, which then explodes in its turn.
+
+**An explosion strikes its domain about where the unit fell.** Each is
+`DamagePerformer.Perform` of a `KillExplosionDamageProvider` aimed at the
+dead unit. It is owned by the skill's unit and of that unit's side as it now
+stands (`GetTeamController`). It deals the damage at that unit's level,
+raised by its tower buffs (`GetDamage`), to everything of either side
+(`GetEffectTargetType`) and of the dead unit's domain (`GetTargetType`,
+`IsFly`) within the range of where it fell, each one's own radius counted
+(`CalculateDamagePosition`, `GetSplashRange`). Its damage names the unit and
+no skill, and its deaths follow the hit's. A Wasp's explosion leaves a
+Crawler beneath it whole. Where a row chains, the units an explosion struck
+are walked as the hit's are, each dead of that explosion
+(`FightActor.deadSourceDamageProvider`,
+`KillExplosionEffectProvider.KillExplosionDamageProvider.DispatchHitDamageEvent`); none does. A row of
+extra skills, or of a range of a fraction of a space unit, is refused.
+
 ## Burrowing technologies
 
 A row of `burrowTechnologies` is a `BurrowTech`, an `IBurrow`: Subterranean
@@ -1133,6 +1171,12 @@ whose own `DisableEffect` it does not mirror.
   its technologies off leaves no acid, summons nothing and does not rise
   (`DeadEffectController.IsAvaliable`). Crawlers under an Electromagnetic
   Impact die leaving no acid.
+- **A kill-explosion technology sets nothing off.**
+  `KillExplosionEffectProvider.DisableEffect` takes its hit effect off its
+  unit's skills (`SkillManager.RemoveHitEffect`), and `PerformHitEffect`
+  returns while the technologies are off; switched on, `EnableEffect` hands
+  the effect back. Typhoons under an Electromagnetic Impact kill Crawlers
+  that leave the one beside them whole.
 - **A burrowing technology's unit comes up and stays up.**
   `BurrowEffectProvider.DisableEffect` brings it up (`TryBurrowUp`, its buff
   `removed` before the disabling buff is applied) and leaves it `Deactive`,
@@ -1302,6 +1346,12 @@ derive (a minimum range):
   travelling in from its arrival:
   `tests/maintenance_array/fights/travelling.yaml`. Disabled, they repair
   nothing: `tests/maintenance_array/fights/impact.yaml`.
+- Wreckage Detonation explodes each unit a Typhoon's rocket kills, up to
+  the first it struck that lives, striking both sides about it:
+  `tests/wreckage_detonation/fights/crawlers.yaml`. A Wasp's explosion
+  strikes aerial units alone: `tests/wreckage_detonation/fights/air.yaml`.
+  Disabled, it sets nothing off:
+  `tests/wreckage_detonation/fights/impact.yaml`.
 - Subterranean Blitz burrows its Crawlers from the first tick and brings
   each up as its enemy comes within 50: `tests/burrow/fights/crawler-rhino.yaml`.
   Burrowed, they take a Marksman's shot less 0.4; one that dies burrowed,
@@ -1668,6 +1718,22 @@ derive (a minimum range):
   `RecoveryEffectSystem.OnEnterFight`, `RecoveryEffectSystem.Update`,
   `RecoveryEffectSystem.DoRecover`, `RecoveryEffectSystem.RecoveryDataInfo.Update`,
   `RangeTargetCalculator.CalculateRangeActors`.
+- A kill-explosion technology's hit walks the units it struck up to the
+  first alive or killed by another, and each before explodes over its domain
+  about where it fell, at the level's damage raised by tower buffs; disabled,
+  it sets nothing off: `KillExplosionTech.GetExplosionDamage`,
+  `KillExplosionEffectProvider.DoEnableEffect`,
+  `KillExplosionEffectProvider.DoDisableEffect`,
+  `KillExplosionEffectProvider.PerformHitEffect`,
+  `KillExplosionEffectProvider.KillExplosionDamageProvider.GetDamage`,
+  `KillExplosionEffectProvider.KillExplosionDamageProvider.GetTeamController`,
+  `KillExplosionEffectProvider.KillExplosionDamageProvider.GetEffectTargetType`,
+  `KillExplosionEffectProvider.KillExplosionDamageProvider.GetTargetType`,
+  `KillExplosionEffectProvider.KillExplosionDamageProvider.GetSplashRange`,
+  `KillExplosionEffectProvider.KillExplosionDamageProvider.CalculateDamagePosition`,
+  `KillExplosionEffectProvider.KillExplosionDamageProvider.DispatchHitDamageEvent`,
+  `SkillManager.AddHitEffect`, `FightActor.ReduceLife`,
+  `FightActor.IsAlive`.
 - A burrowing technology burrows its unit while the nearest enemy its main
   skill's search measured, and its attack target or lock, stand beyond its
   distance, writing itself as the unit's buff, and brings it up otherwise:
@@ -1983,6 +2049,15 @@ derive (a minimum range):
   Impact running out on Typhoons that hold it, nor two repairing Typhoons
   whose dictionary order a repair's events show, beyond a pair added
   together.
+- **A kill explosion raised by buffs, switched on again, chaining, or after
+  its unit's death.** Read from the build; no recording holds a tower buff on
+  Typhoons that hold it, an Electromagnetic Impact running out on them, a
+  row that chains, nor a rocket landing after its Typhoon died, which still
+  sets off what it kills, the hit effect staying on the skill, which only
+  disabling takes off (`KillExplosionEffectProvider.DoDisableEffect`). Its
+  order beside a
+  lifesteal's, a wreckage record's and a buff source's hit effects, which no
+  unit holds with it, is not read.
 
 - **A wreckage record running out, and the share among holders.** Read
   from the build; no recording holds a recorded unit dying after its time,

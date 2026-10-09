@@ -307,6 +307,16 @@ pub(in crate::fight) struct Struck {
     pub(in crate::fight) shield: Option<u64>,
 }
 
+impl Struck {
+    /// Takes on another hit's deaths and falls after its own: those a hit
+    /// effect's hits dealt.
+    pub(in crate::fight) fn absorb_ends(&mut self, other: Self) {
+        self.deaths.extend(other.deaths);
+        self.fallen.extend(other.fallen);
+        self.ends.extend(other.ends);
+    }
+}
+
 impl Reach {
     pub(in crate::fight) const fn touches(self, domain: UnitDomain) -> bool {
         match (self, domain) {
@@ -863,7 +873,8 @@ impl Simulation {
                 }
             }
         }
-        self.dispatch_hit_damage(hit, &struck.targets, struck.lost, events)?;
+        let effects = self.dispatch_hit_damage(hit, &struck.targets, struck.lost, events)?;
+        struck.absorb_ends(effects);
         // A hit that deals fire sets alight the oil its splash reaches.
         if hit.fire {
             let (x_q32, z_q32) = hit.center_q32;
@@ -1057,8 +1068,10 @@ impl Simulation {
     /// struck directly (`SkillDamageProvider`) or through its projectile
     /// (`FightProjectile`), hands what the hit struck and the life it took in
     /// all to the skill's hit effects, `FightSkill.DispatchHitDamageEvent`:
-    /// `LifeStealEffectProvider`'s, `TeamWreckageRecoveryManager`'s and a
-    /// buff source's `BuffCycleController`.
+    /// `LifeStealEffectProvider`'s, `TeamWreckageRecoveryManager`'s, a
+    /// buff source's `BuffCycleController` and `KillExplosionEffectProvider`'s,
+    /// in that order, which no recording holds two of. Answers the deaths and
+    /// falls the hit effects dealt.
     /// A hit no unit's skill dealt — a turret's, a mine's, a battle skill's —
     /// reaches no unit's skill.
     pub(in crate::fight) fn dispatch_hit_damage(
@@ -1067,13 +1080,14 @@ impl Simulation {
         targets: &[FightActorRef],
         damage: i64,
         events: &mut Vec<Event>,
-    ) -> Result<()> {
+    ) -> Result<Struck> {
         match (hit.source, hit.skill_slot) {
             (Some(owner), Some(slot)) if owner.kind == ObjectKind::Unit => {
                 self.steal_life(owner.id, damage, events)?;
                 self.record_wreckage_hit(owner.id, slot, targets);
                 let center = (hit.center_q32.0, hit.center_y_q32, hit.center_q32.1);
                 self.add_hit_buffs(owner.id, slot, (targets, center), events)?;
+                let ends = self.explode_kills(owner.id, slot, targets, events)?;
                 // `PerformMainSkillHitted`, when the hit is the main skill's.
                 let skill = self.skill_at_slot(FightActorRef::Unit(owner.id), usize::from(slot));
                 if skill.slot == SkillSlot::Main {
@@ -1082,9 +1096,9 @@ impl Simulation {
                         actor.reset_stacks_on_main_hit()?;
                     }
                 }
-                Ok(())
+                Ok(ends)
             }
-            _ => Ok(()),
+            _ => Ok(Struck::default()),
         }
     }
 

@@ -54,10 +54,10 @@ use super::{
     effects::{self, Fields},
     providers::EffectProvider,
     sources::{
-        AutoRecovery, BuffSource, Burrow, CarriedShield, ClearRangeItem, EnergyShield, LifeSteal,
-        MoveAbilityAttack, MoveAbilityRangeItem, ProductionLine, ReactiveArmor, Rebirth,
-        RebirthFollow, RecoveryState, Repair, RvoRadiusChange, SiegeMode, Stealth, SweepIntensify,
-        WreckageRecovery,
+        AutoRecovery, BuffSource, Burrow, CarriedShield, ClearRangeItem, EnergyShield,
+        KillExplosion, LifeSteal, MoveAbilityAttack, MoveAbilityRangeItem, ProductionLine,
+        ReactiveArmor, Rebirth, RebirthFollow, RecoveryState, Repair, RvoRadiusChange, SiegeMode,
+        Stealth, SweepIntensify, WreckageRecovery,
     },
 };
 
@@ -145,9 +145,11 @@ const RVO_RADIUS_CHANGE: &str = "rVORadiusChangeTechnologyTechDatas";
 const CLEAR_RANGE_ITEM: &str = "clearRangeItemTechDatas";
 /// The list whose `RecoveryTech` is an `IRecoveryTechEffectDataSource`.
 const REPAIR: &str = "recoveryTechDatas";
+/// The list whose `KillExplosionTech` is an `IKillExplosionDataSource`.
+const KILL_EXPLOSION: &str = "killExplosionTechDatas";
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 34] = [
+const IMPLEMENTED: [&str; 35] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -182,6 +184,7 @@ const IMPLEMENTED: [&str; 34] = [
     BURROW,
     REPAIR,
     DEAD_ACID,
+    KILL_EXPLOSION,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -307,6 +310,8 @@ struct Technology {
     /// What it answers `IRecoveryTechEffectDataSource` with, if its class
     /// is one.
     repair: Option<Repair>,
+    /// What it answers `IKillExplosionDataSource` with, if its class is one.
+    kill_explosion: Option<KillExplosion>,
     /// What it answers `IBurrow` with, if its class is one.
     burrow: Option<Burrow>,
     /// The acid it leaves where its unit dies, if its class is an
@@ -455,6 +460,9 @@ pub(crate) struct UnitSources {
     /// The first that repairs the units about its unit: the provider enables
     /// one source (`SingleEffectProvider`).
     pub(crate) repair: Option<Repair>,
+    /// The first that sets off what its unit's skill kills: the provider
+    /// enables one source (`SingleEffectProvider`).
+    pub(crate) kill_explosion: Option<KillExplosion>,
     /// The first that burrows its unit: the provider enables one source
     /// (`SingleEffectProvider`).
     pub(crate) burrow: Option<Burrow>,
@@ -714,7 +722,8 @@ struct Row {
     air_damage_change_rate: Vec<i64>,
     #[serde(default)]
     ground_damage_change_rate: Vec<i64>,
-    /// `TechnologyData.extraSkillEffect`, on an air-attack or grouping row.
+    /// `TechnologyData.extraSkillEffect`, on an air-attack, grouping or
+    /// kill-explosion row.
     #[serde(default)]
     extra_skill_effect: bool,
     /// `SecondaryDamageIntensifyTechData`'s fields, on a row of its list:
@@ -828,6 +837,20 @@ struct Row {
     repair_only_mech: bool,
     #[serde(default)]
     repair_air: bool,
+    /// `KillExplosionTechData`'s `explosionDamage`, whole damage by level,
+    /// `explosionRange`, `FPoint`, and `canExplosionTriggerExplosion`,
+    /// `canHitAlly` and `canBeAffectedByBuff`, on a row of its list;
+    /// `main_skill_effect` and `extra_skill_effect` are read beside them.
+    #[serde(default)]
+    kill_explosion_damage: Vec<i64>,
+    #[serde(default)]
+    kill_explosion_range: i64,
+    #[serde(default)]
+    kill_explosion_chains: bool,
+    #[serde(default)]
+    kill_explosion_hits_allies: bool,
+    #[serde(default)]
+    kill_explosion_buffed: bool,
     /// `BurrowData.amplifyDamageRate`, `relieveDistance` and
     /// `isEnterUnderGround`, on a row of its list.
     #[serde(default)]
@@ -1183,6 +1206,43 @@ fn clear_range_item_of(
     }))
 }
 
+/// What a kill-explosion row sets off, or why this build will not.
+///
+/// `SkillManager.AddHitEffect` hands the effect to the skills
+/// `SkillDataModifier.AvaliableCheck` admits, which for a row of the main
+/// skill and no extra skill are those that take the main skill's
+/// corrections; another pair is not read. `DamagePerformer` strikes a
+/// splash of whole space units.
+fn kill_explosion_of(
+    row: &Row,
+    who: &str,
+    can_disable: bool,
+) -> std::result::Result<Option<KillExplosion>, String> {
+    if row.kind != KILL_EXPLOSION {
+        return Ok(None);
+    }
+    if !row.main_skill_effect || row.extra_skill_effect {
+        return Err(format!(
+            "{who} sets off what skills beside the main skill's kill, which is not read"
+        ));
+    }
+    let scaled = i128::from(row.kill_explosion_range)
+        * i128::from(crate::rules::SPACE_UNITS_PER_METER_SCALE);
+    if scaled & 0xffff_ffff != 0 {
+        return Err(format!(
+            "{who} explodes over a range of a fraction of a space unit, which is not read"
+        ));
+    }
+    Ok(Some(KillExplosion {
+        damage: row.kill_explosion_damage.clone(),
+        range: i64::try_from(scaled >> 32).map_err(|_| format!("{who} explodes too far"))?,
+        chains: row.kill_explosion_chains,
+        hits_allies: row.kill_explosion_hits_allies,
+        buffed: row.kill_explosion_buffed,
+        can_disable,
+    }))
+}
+
 /// What a rebirth row brings its unit back as, or why this build will not.
 fn rebirth_of(row: &Row, who: &str) -> std::result::Result<Option<Rebirth>, String> {
     if row.kind != REBIRTH {
@@ -1429,6 +1489,10 @@ impl TechnologyEffects {
             } else {
                 effect
             };
+            let (kill_explosion, effect) = match kill_explosion_of(&row, &who, can_disable) {
+                Ok(explosion) => (explosion, effect),
+                Err(why) => (None, Err(why)),
+            };
             let (clear_range_item, effect) = match clear_range_item_of(&row, &who) {
                 Ok(clear) => (clear, effect),
                 Err(why) => (None, Err(why)),
@@ -1476,6 +1540,7 @@ impl TechnologyEffects {
                     enemies: row.repair_enemy,
                     air: row.repair_air,
                 }),
+                kill_explosion,
                 dead_line: (row.kind == DEAD_LINE)
                     .then(|| (row.dead_line_value.clone(), row.dead_line_ignores_shield)),
                 mech_group,
@@ -1630,6 +1695,11 @@ impl TechnologyEffects {
             }
             if sources.repair.is_none() {
                 sources.repair.clone_from(&technology.repair);
+            }
+            if sources.kill_explosion.is_none() {
+                sources
+                    .kill_explosion
+                    .clone_from(&technology.kill_explosion);
             }
             if sources.burrow.is_none() {
                 sources.burrow.clone_from(&technology.burrow);
@@ -2098,6 +2168,7 @@ fn provider_of(kind: &str, self_buff: bool) -> Option<EffectProvider> {
         RVO_RADIUS_CHANGE => EffectProvider::RvoRadiusChange,
         CLEAR_RANGE_ITEM => EffectProvider::ClearRangeItem,
         REPAIR => EffectProvider::Repair,
+        KILL_EXPLOSION => EffectProvider::KillExplosion,
         BURROW => EffectProvider::Burrow,
         _ => return None,
     })
@@ -2751,6 +2822,49 @@ mod tests {
             [super::EffectProvider::Repair]
         );
         assert!(table.corrections(&[10], "typhoon", 1).is_err());
+    }
+
+    /// A kill-explosion technology hands its unit what it sets off, and
+    /// refuses an explosion of its extra skills or of a fraction of a space
+    /// unit.
+    #[test]
+    fn a_kill_explosion_technology_hands_its_unit_an_explosion() {
+        let table = TechnologyEffects::parse(
+            "schema: mechcore.technology_effects\n\
+             technologies:\n\
+             - {id: 9, name: probe, unit: typhoon, kind: killExplosionTechDatas, \
+             kill_explosion_range: 51539607552, kill_explosion_chains: false, \
+             kill_explosion_hits_allies: true, kill_explosion_buffed: true, \
+             main_skill_effect: true, extra_skill_effect: false, \
+             kill_explosion_damage: [115]}\n\
+             - {id: 10, name: extras, unit: typhoon, kind: killExplosionTechDatas, \
+             kill_explosion_range: 51539607552, main_skill_effect: true, \
+             extra_skill_effect: true, kill_explosion_damage: [115]}\n\
+             - {id: 11, name: fraction, unit: typhoon, kind: killExplosionTechDatas, \
+             kill_explosion_range: 1, main_skill_effect: true, \
+             kill_explosion_damage: [115]}\n",
+        )
+        .unwrap();
+        assert_eq!(
+            table.sources(&[9], "typhoon").unwrap().kill_explosion,
+            Some(super::KillExplosion {
+                damage: vec![115],
+                range: 12_000,
+                chains: false,
+                hits_allies: true,
+                buffed: true,
+                can_disable: true,
+            })
+        );
+        assert_eq!(
+            table
+                .providers(&[9], "typhoon")
+                .into_keys()
+                .collect::<Vec<_>>(),
+            [super::EffectProvider::KillExplosion]
+        );
+        assert!(table.corrections(&[10], "typhoon", 1).is_err());
+        assert!(table.corrections(&[11], "typhoon", 1).is_err());
     }
 
     /// A fire-extinguisher technology hands its unit the terrain it clears.

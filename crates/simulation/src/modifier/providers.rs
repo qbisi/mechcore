@@ -74,6 +74,8 @@ pub(crate) enum EffectProvider {
     RvoRadiusChange,
     /// `ClearRangeItemEffectProvider`, for an `IClearRangeItem`.
     ClearRangeItem,
+    /// `KillExplosionEffectProvider`, for an `IKillExplosionDataSource`.
+    KillExplosion,
     /// `RecoveryEffectProvider`, for an `IRecoveryTechEffectDataSource`.
     Repair,
     /// `BurrowEffectProvider`, for an `IBurrow`.
@@ -111,6 +113,7 @@ impl EffectProvider {
             Self::RvoRadiusChange => "RVORadiusChangeProvider",
             Self::ClearRangeItem => "ClearRangeItemEffectProvider",
             Self::Repair => "RecoveryEffectProvider",
+            Self::KillExplosion => "KillExplosionEffectProvider",
             Self::Burrow => "BurrowEffectProvider",
         }
     }
@@ -170,6 +173,11 @@ impl EffectProvider {
     ///   and handed back (`DeadEffectProvider.DisableEffect`,
     ///   `EnableEffect`): a unit that dies with its technologies off leaves
     ///   no acid, summons nothing and does not rise.
+    /// - A kill-explosion technology's hit effect is taken off its unit's
+    ///   skills (`KillExplosionEffectProvider.DisableEffect`,
+    ///   `SkillManager.RemoveHitEffect`) and handed back (`EnableEffect`);
+    ///   a hit while the technologies are off sets nothing off
+    ///   (`PerformHitEffect` returns on `isTechnologyDisabled`).
     /// - A burrowing technology's unit comes up, its buff removed, and its
     ///   manager passes over it (`BurrowSystem.Deactive`) until it is
     ///   switched on (`Active`).
@@ -194,6 +202,7 @@ impl EffectProvider {
             | Self::RvoRadiusChange
             | Self::ClearRangeItem
             | Self::Repair
+            | Self::KillExplosion
             | Self::Burrow
             | Self::DeadEffect => true,
             Self::AutoRecovery

@@ -59,6 +59,7 @@ pub(super) fn placement(
         rvo_radius_change: None,
         clear_range_item: None,
         repair: None,
+        kill_explosion: None,
         burrow: None,
         dead_acid: None,
         sweep: None,

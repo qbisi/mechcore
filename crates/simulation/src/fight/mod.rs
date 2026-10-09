@@ -53,6 +53,7 @@ mod explosion;
 mod grid;
 mod important_unit;
 mod intercept;
+mod kill_explosion;
 mod kills;
 mod math;
 mod mech;
