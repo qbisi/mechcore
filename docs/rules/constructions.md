@@ -186,6 +186,17 @@ attack target and returns. So a core whose line is clear leaves a sibling
 still naming a block that has fallen, and that sibling ends its attack on its
 own check.
 
+**A fusillade's siblings take no block of their own.** When the core of a
+fusillade group finds a block, `SearchAttackTarget` hands each other skill
+`CheckWallConstructionForGroupedSkill` of one list, holding the core's block
+alone, as both the walls in range and the walls taken. A group whose skills
+may share a target (`CanAttackSameTarget`) takes the core's block; one whose
+skills may not takes none, and its lock and attack target are cleared
+(`ChangeLockTarget`, `ChangeAttackTarget`). The Raiden's slots, which may
+not share a target, strike no block while the core strikes one
+(`layouts/raiden-wall-slots.yaml`). A striking slot that does fire at a
+building strikes it as it strikes a unit.
+
 **A shot at a block splashes the next one.** A splash that reaches a
 neighbouring block's edge damages it too: a shot at a building takes every
 other enemy building whose edge its splash reaches.

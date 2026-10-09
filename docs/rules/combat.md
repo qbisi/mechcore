@@ -1693,10 +1693,10 @@ not the game's native attack-type enum.
 - **Grouped slots**: which skill `TrySearchGroupSkillLockTarget` removes
   from the sharers besides itself, read as the core from the list it takes
   it from; the order the build's dictionary walks the locks in, taken as the
-  order they are first named; a fusillade of weapons that do not strike, which the simulator refuses; which construction a
-  striking slot takes, which the simulator refuses, since a Raiden recorded
-  against a Defensive Wall (`layouts/raiden-wall-slots.yaml`) struck a block
-  with its core alone where the simulator's siblings would each have; redistribution of
+  order they are first named; a fusillade of weapons that do not strike, which the simulator refuses;
+  a fusillade sibling cleared of its lock while its core's lock stands in a
+  shield beyond the block, whose shield target the simulator keeps under the
+  core's lock; redistribution of
   wall blockers; and whether an idle slot that
   finds a unit beyond its reach keeps it as its lock, which no recorded
   sibling has done.
