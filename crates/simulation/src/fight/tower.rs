@@ -638,13 +638,9 @@ impl Simulation {
         let Some(loss) = self.towers.losses.get(&building_id).copied() else {
             return Ok(());
         };
-        if let Some(interceptor) = self.standing_interceptor(loss.team) {
-            return Err(Error::new(format!(
-                "team {} loses a tower while its interceptor {interceptor} stands, and what a \
-                 tower's loss writes on an interceptor is not measured",
-                loss.team
-            )));
-        }
+        // An interceptor is a plain `FightCrystal`, no buff target
+        // (`FightActor.IsBuffTarget`) and neither a `FightConstruction` nor a
+        // `FightTower`, so `BuffSystem.DoAddBuff` writes nothing on it.
         let row = BuffRow {
             buff_id: loss.buff_id,
             technology: false,
