@@ -62,8 +62,11 @@ pub(crate) struct Placement {
     /// (`TeamFightEffectManager.CreateMechUnitEffectMananger`), with its
     /// equipment's sources added.
     pub(crate) effects: UnitEffects,
-    /// The production line its equipment makes it run.
-    pub(crate) production: Option<Production>,
+    /// The production lines its equipment, its technologies and its extra
+    /// weapons make it run, in the order they reach it: one
+    /// `SupportUnitCreator` each, whose sources `EffectProvider.Sort` keeps
+    /// in the order they came, every one of the same priority.
+    pub(crate) productions: Vec<Production>,
     /// Whether it opens the fight travelling: a unit deployed into an ambush
     /// zone, which `SuperDeploymentSystem` holds until its side arrives.
     pub(crate) travelling: bool,
@@ -466,7 +469,7 @@ fn death_summon_template(team: u32, rules: &UnitConfig, level: i64, worn: Worn) 
         experience_rate: worn.experience_rates.0,
         unit_experience_rate: worn.experience_rates.1,
         effects: worn.effects,
-        production: None,
+        productions: Vec::new(),
         travelling: false,
         surfacing: None,
     }
@@ -757,7 +760,7 @@ fn compile_formation(
         loadouts,
         refused,
     );
-    let production = production_of(
+    let productions = production_of(
         side_name,
         (&formation.equipment, level),
         rules,
@@ -774,8 +777,8 @@ fn compile_formation(
         },
         Ok,
     ));
-    let (Some(()), Some(()), Some(worn), Some(production), Some(surfacing), Some(formation_index)) =
-        (fired, fits, worn, production, surfacing, formation_index)
+    let (Some(()), Some(()), Some(worn), Some(productions), Some(surfacing), Some(formation_index)) =
+        (fired, fits, worn, productions, surfacing, formation_index)
     else {
         return None;
     };
@@ -795,7 +798,7 @@ fn compile_formation(
         experience_rate: worn.experience_rates.0,
         unit_experience_rate: worn.experience_rates.1,
         effects: worn.effects,
-        production,
+        productions,
         travelling: formation.travelling,
         surfacing,
     })
@@ -841,7 +844,7 @@ fn production_of(
     side: &SidePlan,
     loadouts: &Loadouts,
     refused: &mut Refusals,
-) -> Option<Option<Production>> {
+) -> Option<Vec<Production>> {
     let mut lines = Vec::new();
     for &id in equipment {
         lines.extend(
@@ -871,19 +874,10 @@ fn production_of(
             .filter_map(|weapon| weapon.production.as_ref())
             .map(technology_line),
     );
-    let line = match lines.as_slice() {
-        [] => return Some(None),
-        [line] => line.clone(),
-        _ => {
-            refused.push(format!(
-                "side {side_name} unit type {:?} runs two production lines, which is not \
-                 measured",
-                rules.type_name
-            ));
-            return None;
-        }
-    };
-    made_by(side_name, line, level, units, side, loadouts, refused).map(Some)
+    lines
+        .into_iter()
+        .map(|line| made_by(side_name, line, level, units, side, loadouts, refused))
+        .collect()
 }
 
 /// What a line its unit runs makes, as its side's loadout writes it: a unit
@@ -986,6 +980,7 @@ fn technology_line(production: &crate::rules::TechnologyProduction) -> Productio
         arrival: crate::modifier::Arrival::InPlace,
         make_corrections: Vec::new(),
         gated: true,
+        technology: None,
     }
 }
 

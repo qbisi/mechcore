@@ -124,6 +124,9 @@ pub(in crate::fight) struct Creator {
     /// `isEnable`, cleared while the technology that hands its owner the line
     /// is switched off: it counts on but makes nothing.
     enabled: bool,
+    /// The support technology that hands its owner the line, which
+    /// switches it.
+    technology: Option<i32>,
 }
 
 /// What a support skill makes of its production line.
@@ -219,6 +222,7 @@ impl Creator {
             created: 0,
             updates: 0,
             enabled: true,
+            technology: None,
         }
     }
 
@@ -268,6 +272,7 @@ impl Creator {
             created: 0,
             updates: 0,
             enabled: true,
+            technology: line.technology,
         }
     }
 }
@@ -371,14 +376,26 @@ impl Simulation {
 
     /// `SupportUnitProvider.DisableEffect` and `EnableEffect`
     /// (`SupportUnitSystem.Disable`, `Enable`, `TeamSupportUnitManager`):
-    /// the owner's line that the technology hands it disabled or enabled.
+    /// each of the owner's lines that a switched technology hands it
+    /// (`TeamSupportUnitManager.Disable` finds it by its owner and its
+    /// source) disabled or enabled.
     /// Disabled, `SupportUnitCreator.Update` counts its life and its interval
     /// on but makes nothing, and `PreCalculate` finds no batch due; enabled,
     /// a line whose interval ran out meanwhile makes its batch on its next
     /// update.
     pub(in crate::fight) fn switch_production(&mut self, owner: u64, on: bool) {
+        let switched = self.actors[&owner]
+            .placement
+            .effects
+            .technology_disable
+            .technologies
+            .clone();
         for creator in &mut self.support.lines {
-            if creator.owner == Some(owner) {
+            if creator.owner == Some(owner)
+                && creator
+                    .technology
+                    .is_some_and(|technology| switched.contains(&technology))
+            {
                 creator.enabled = on;
             }
         }
@@ -1169,7 +1186,7 @@ fn summon_placement(
         experience_rate: crate::data::ExperienceRate::default(),
         unit_experience_rate: crate::data::ExperienceRate::default(),
         effects: creator.summon.effects.clone(),
-        production: None,
+        productions: Vec::new(),
         travelling: false,
         surfacing: None,
     }

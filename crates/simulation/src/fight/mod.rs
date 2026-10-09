@@ -381,15 +381,16 @@ impl PersonalShield {
 }
 
 /// The production lines the units run, one creator each, made as the fight
-/// starts in the order the units were placed.
+/// starts in the order the units were placed, each unit's in the order its
+/// lines reach it.
 fn production_creators(actors: &BTreeMap<u64, Actor>) -> Vec<support_unit::Creator> {
     actors
         .values()
-        .filter_map(|actor| {
+        .flat_map(|actor| {
             actor
                 .placement
-                .production
-                .as_ref()
+                .productions
+                .iter()
                 .map(|production| support_unit::Creator::production(actor, production))
         })
         .collect()

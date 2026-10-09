@@ -49,7 +49,7 @@ pub(super) fn placement(
         experience_rate: crate::data::ExperienceRate::default(),
         unit_experience_rate: crate::data::ExperienceRate::default(),
         effects: crate::layout::UnitEffects::default(),
-        production: None,
+        productions: Vec::new(),
         travelling: false,
         surfacing: None,
     }
