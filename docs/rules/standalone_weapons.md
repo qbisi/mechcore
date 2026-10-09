@@ -118,7 +118,10 @@ makes the unit itself its motion's attacker:
   waits for the motion to attack.
 - **A won fight goes on after it.** When the other side has no unit left, the
   skills drop their locks but not the unit's, and its motion walks on to the
-  tower its search took until the fight's last tick, which clears it.
+  tower its search took until the fight's last tick, which clears it. A skill
+  leaving the fight on the updates between (`FightSkill.ExitFight`) leaves
+  the motion alone too, so the turret turns to that tower from the first
+  update after the last enemy dies.
 
 ### A unit that does not search for itself
 
@@ -189,6 +192,11 @@ The Mountain's motion follows one of its weapons, the one whose skill is
 - With the Rhino dead, its motion walks on to the tower its search took, and
   the fight's last tick clears the lock:
   `tests/war_factory/fights/m2-rhino-4242.yaml`, ticks 104 and 105.
+- A won fight that runs on while a shot is still in flight: its turret turns
+  to that tower at its rotate speed from the update after the Rhino dies, while
+  its skills leave the fight:
+  `tests/production/fights/sledgehammer-production-level-4.yaml`, ticks 288
+  to 290.
 - The War Factory fights each of the six standard layouts on both seeds:
   `tests/war_factory/fights/`.
 
@@ -218,7 +226,8 @@ The Mountain's motion follows one of its weapons, the one whose skill is
 - The motion's attacker: `FightMech.SetMotionAttackerAfterSkill`,
   `MotionMoveState.Update`, `MotionAttackState.Update`,
   `MotionController.ChangeToAutoMove`, `AutoMoveBehaviour.IsActive`,
-  `AutoMoveBehaviour.IsIdle`, `FightSkill.ChangeLockTarget`.
+  `AutoMoveBehaviour.IsIdle`, `FightSkill.ChangeLockTarget`,
+  `FightSkill.ExitFight`.
 
 ### Not established
 

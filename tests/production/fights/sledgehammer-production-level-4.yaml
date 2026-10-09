@@ -1,0 +1,25 @@
+# Sledgehammer Production on a level-4 War Factory: as
+# `phoenix-production-level-4.yaml`, each Sledgehammer made at the War
+# Factory's own level, four times a first-level one's life. Red's last unit
+# dies at tick 287 with a Rhino's shot still in flight, so the won fight runs
+# on to 290: the War Factory walks on to the tower its own search took and
+# turns its turret to it, 1.5 degrees an update, from tick 288, while its
+# skills leave the fight.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 290
+hash: {profile: mcfr-content-0.22.0, result: f9ad13e70ac3f1227a8b3e9390cb8c5cd61a0c8ef02f0eee9066f10cbb9e3bd8}
+blue:
+  techs:
+    war_factory: [sledgehammer_production]
+  units:
+  - {name: war_factory, index: 0, position: {x: 5, y: -145}, level: 4, exp: 0/400/14369}
+red:
+  core_damage: 530
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -55}}
+  - {name: marksman, index: 1, position: {x: 0, y: -150}}

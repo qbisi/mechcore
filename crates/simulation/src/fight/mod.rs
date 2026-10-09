@@ -1181,9 +1181,7 @@ impl Simulation {
                     if let Some(group) = &mut actor.skills.main.group {
                         group.mech_lock = None;
                     }
-                } else if !actor.skills.main.mech_searches() && !holding_fire {
-                    // A unit that searches for itself keeps its own lock,
-                    // which no skill drops, and its motion goes on after it.
+                } else if !holding_fire {
                     actor.lose_target_motion(entered_idle);
                 }
                 actor
