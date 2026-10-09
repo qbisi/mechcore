@@ -164,6 +164,7 @@ pub(crate) struct Production {
     pub(crate) rules: UnitConfig,
     pub(crate) corrections: Vec<(Channel, Entry)>,
     pub(crate) technology_disable: TechnologyDisable,
+    pub(crate) reactive_armor: Option<ReactiveArmor>,
 }
 
 #[derive(Debug, Clone)]
@@ -754,12 +755,11 @@ fn compile_battle_skills(
                 || worn.energy_shield.is_some()
                 || worn.stealth.is_some()
                 || worn.mech_group.is_some()
-                || worn.reactive_armor.is_some()
                 || worn.siege_mode.is_some()
             {
                 refused.push(format!(
                     "side {name} summons a {} that its technologies give lifesteal, repair, \
-                     a shield, stealth, a group, a reactive armor or a trench, and what a \
+                     a shield, stealth, a group or a trench, and what a \
                      summon's effect providers carry is not measured",
                     summon.rules.type_name
                 ));
@@ -767,6 +767,7 @@ fn compile_battle_skills(
             }
             summon.corrections = worn.corrections;
             summon.technology_disable = worn.technology_disable;
+            summon.reactive_armor = worn.reactive_armor;
         }
         battle_skills.push(release);
     }
@@ -863,7 +864,7 @@ fn compile_formation(
     else {
         return None;
     };
-    refuse_unread_on_travel(side_name, formation, &worn, refused)?;
+    refuse_travelling_buffs(side_name, formation, &worn, refused)?;
     let (world_x, world_z, rotation) = world_placement(formation.position, team);
     Some(Placement {
         team,
@@ -1032,7 +1033,6 @@ fn made_by(
         || worn.dead_line.is_some()
         || worn.mech_group.is_some()
         || worn.move_ability_attack.is_some()
-        || worn.reactive_armor.is_some()
         || worn.move_ability_range_item.is_some()
         || worn.interception.is_some()
         || worn.dead_summon.is_some()
@@ -1041,7 +1041,7 @@ fn made_by(
         refused.push(format!(
             "side {side_name} makes a {} that its technologies give lifesteal, repair, a \
              shield, a search by distance, a second damage, a dead line, a stronger \
-             surfacing, a sand fog, a reactive armor, interceptors, a summon as it dies or a trench, and what a made unit's effect providers carry is not measured",
+             surfacing, a sand fog, interceptors, a summon as it dies or a trench, and what a made unit's effect providers carry is not measured",
             made.type_name
         ));
         return None;
@@ -1053,6 +1053,7 @@ fn made_by(
         rules: made,
         corrections,
         technology_disable: worn.technology_disable,
+        reactive_armor: worn.reactive_armor,
     })
 }
 
@@ -1140,32 +1141,24 @@ pub(crate) struct TechnologyDisable {
 
 /// The interceptors a unit's technologies make it, from the one that makes
 /// any: a second is refused, which is not measured.
-/// A unit travelling in that carries what is not measured on one is
-/// refused: an `OnEnterFight` that skips a unit still travelling, whose
-/// arrival is not read.
-fn refuse_unread_on_travel(
+/// `BuffCycleController.OnEnterFight` starts no controller on a unit still
+/// travelling, and when one that arrives starts it is not read: a unit
+/// travelling in with a buff its equipment adds is refused.
+fn refuse_travelling_buffs(
     side_name: &str,
     formation: &mechcore_document::Placement,
     worn: &Worn,
     refused: &mut Refusals,
 ) -> Option<()> {
-    let what = if !formation.travelling {
-        return Some(());
-    } else if worn.reactive_armor.is_some() {
-        // `ReactiveArmorSystem.OnEnterFight` writes no rate on it.
-        "a reactive armor"
-    } else if !worn.buff_sources.is_empty() {
-        // `BuffCycleController.OnEnterFight` starts no controller on it.
-        "a buff its equipment adds as the fight starts"
-    } else {
-        return Some(());
-    };
-    refused.push(format!(
-        "side {side_name} unit type {:?} travels in with {what}, and what a travelling \
-         unit's does is not measured",
-        formation.type_name
-    ));
-    None
+    if formation.travelling && !worn.buff_sources.is_empty() {
+        refused.push(format!(
+            "side {side_name} unit type {:?} travels in with a buff its equipment adds as \
+             the fight starts, and when a travelling unit's starts is not measured",
+            formation.type_name
+        ));
+        return None;
+    }
+    Some(())
 }
 
 /// What a unit summoned as another dies carries that is not measured on one.

@@ -7,3 +7,6 @@ states how a formation's grid is laid out and turned, and
 unit arrives. `flank-facing.yaml` is settled, its flank units legacy; every other fight here travels
 in round 2, and `arrives.yaml` is the control the rest each change one thing
 from, but `extra-weapons.yaml`, which travels on all four flanks at once.
+
+A travelling unit's reactive armor, written only as it arrives, is in
+[`../reactive_armor/fights/typhoon-travelling.yaml`](../reactive_armor/fights/typhoon-travelling.yaml).

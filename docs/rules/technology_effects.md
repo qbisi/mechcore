@@ -466,11 +466,17 @@ the Typhoon's and the Centurion's. It answers `IReactiveArmorTechDataSource`
 with its `reactive_armor_rate`, -0.8, and its `reactive_armor_count`, 5; its
 `GetDamageReduceValue` reads a `damageReduceValues` list no row sets.
 `ReactiveArmorTechEffectProvider.DoActive` lists the unit in its side's
-`ReactiveArmorSystem` with its count (`AddReactiveArmorOwner`), and the
-system's `OnEnterFight` writes the rate on every unit listed as its
+`ReactiveArmorSystem` with its count, and leaves a unit listed already as
+it is. Before the fight that is all, and the system's `OnEnterFight` writes
+the rate on every unit listed as its
 `MechDataChangeFloatRate.AmplifyDamageRate` (`AddEffect`), its count whole.
-A unit travelling in is listed only as it arrives, after that, and is
-refused.
+During the fight (`FightController.IsFighting`), `DoActive` writes it at
+once on a unit not in force: a unit travelling in, whose effects
+`FightEffectSystem.ActiveEffect` activates as it arrives, has the rate from
+then, and a hit before that takes its whole damage and counts nothing. A
+summon or a make has it as it joins, with its whole count; no line, skill or
+buff of this build makes a Typhoon or a Centurion, so that is read and not
+recorded.
 
 **The rate is on the damage the unit takes.** `PerformHitTargetEffect`
 multiplies a hit on a unit by one plus its buffs' and its own
@@ -1047,6 +1053,9 @@ derive (a minimum range):
   `tests/reactive_armor/fights/typhoon-wasps.yaml`,
   `tests/reactive_armor/fights/centurion-wasps.yaml`,
   `tests/reactive_armor/fights/typhoon-void_eye.yaml`.
+- A Typhoon travelling in takes its whole damage and counts nothing until it
+  arrives on tick 161, and has the rate for five hits from then:
+  `tests/reactive_armor/fights/typhoon-travelling.yaml`.
 
 ### Read
 
@@ -1055,6 +1064,8 @@ derive (a minimum range):
   `ReactiveArmorTechEffectProvider.DoActive`, `DisableEffect`, `EnableEffect`,
   `ReactiveArmorSystem.AddReactiveArmorOwner`, `OnEnterFight`, `AddEffect`,
   `RemoveEffect`, `OnReactiveArmorOwnerDamaged`, `DisableReactiveArmor`,
+  `FightController.IsFighting` (which `DoActive` asks before writing the
+  rate at once),
   `EnableReactiveArmor`, `ReactiveArmorSystem.Init` (listening to
   `FightController.OnActorHittedEvent`), `FightController.OnActorHitted`,
   `FightCalculator.PerformHitTargetEffect`, `FightMech.GetDataFloatAddRate`,

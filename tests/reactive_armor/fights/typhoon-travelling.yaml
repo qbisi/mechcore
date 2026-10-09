@@ -1,0 +1,26 @@
+# Reactive Armor on blue's level-4 Typhoon travelling in from the left flank
+# in round 2, under a squad of Wasps. `OnEnterFight` writes no rate on a unit
+# still travelling: none of its effects are active yet, and `DoActive` has
+# not listed it. The Wasps' 72 hits up to tick 160 take 202 each and count
+# nothing. It arrives on tick 161, and `FightEffectSystem.ActiveEffect`
+# reaches `DoActive` with the fight going on, which writes the rate at once
+# with the whole count: the hits from tick 167 to 177 take 40, and the
+# sixth after its arrival, on tick 189, 202.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: game
+ticks: 220
+hash: {profile: mcfr-content-0.22.0, result: a43fad2c353c8c3afa03606a1b39b9db052227ca6753ad9087492d04f95077a6}
+blue:
+  techs:
+    typhoon: [reactive_armor]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: typhoon, index: 1, position: {x: -310, y: 40}, level: 4, exp: 0/408/8756, travelling: true}
+red:
+  core_damage: 350
+  units:
+  - {name: wasp, index: 0, position: {x: 275, y: -60}}

@@ -240,6 +240,7 @@ impl Creator {
             updates: u64::MAX,
             corrections: production.corrections.clone(),
             technology_disable: production.technology_disable.clone(),
+            reactive_armor: production.reactive_armor,
         };
         Self {
             team: owner.placement.team,
@@ -460,7 +461,7 @@ impl Simulation {
             dead_line: None,
             mech_group: None,
             move_ability_attack: None,
-            reactive_armor: None,
+            reactive_armor: creator.summon.reactive_armor,
             move_ability_range_item: None,
             interception: None,
             carried_shield: None,
@@ -757,6 +758,8 @@ impl Simulation {
         let unit_id = actor.placement.unit_id;
         self.actors.insert(unit_id, actor);
         self.unit_update_order.push(unit_id);
+        // `FightEffectSystem` activates its effects as it joins.
+        self.activate_reactive_armor(unit_id);
         self.draw_owner_first_intervals(FightActorRef::Unit(unit_id))
     }
 
