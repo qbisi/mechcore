@@ -119,6 +119,8 @@ SUBCLASS_SCALARS = (
     ("extra_skill_effect", "extraSkillEffect", "damageShareTechnologies"),
     ("reactive_armor_rate", "damageReduceRate", "reactiveArmorTechDatas"),
     ("reactive_armor_count", "damageReduceCount", "reactiveArmorTechDatas"),
+    ("rvo_move_radius", "moveRadius", "rVORadiusChangeTechnologyTechDatas"),
+    ("rvo_near_target_threshold", "nearTargetThreshold", "rVORadiusChangeTechnologyTechDatas"),
 )
 # A field of one list's rows that is one rate, written only where it is set:
 # an extra weapon's `allWeaponReduceDamageRate`, which
@@ -148,7 +150,8 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "moveAbilityRangeItemTechDatas",
                "damageShareTechnologies", "advancedEnergyShieldTechnologies",
                "reactiveArmorTechDatas", "fireIntensifyTechnologies", "siegeModeTechDatas",
-               "wreckageRecoveryTechnologies", "rebirthEffectTechologyDatas")
+               "wreckageRecoveryTechnologies", "rebirthEffectTechologyDatas",
+               "rVORadiusChangeTechnologyTechDatas")
 # The list whose `BuffTech` adds a buff, and the fields its rows carry for
 # `buff_lines` rather than as corrections.
 BUFF = "buffTechnologies"
@@ -571,6 +574,10 @@ def main() -> int:
         "# A reactive armor technology carries the FPoint rate on the damage its",
         "# unit takes (`reactive_armor_rate`) and how many hits dealing it damage",
         "# the rate lasts (`reactive_armor_count`).",
+        "# A loose-formation technology carries the FPoint radius its unit's",
+        "# agents keep from each other while it moves (`rvo_move_radius`), and",
+        "# the FPoint metres within which of its lock it keeps its own radius",
+        "# again (`rvo_near_target_threshold`).",
         "# A fire technology carries the FPoint metres and seconds of the fire",
         "# each hit of its unit's main skill leaves (`fire_range`,",
         "# `fire_life_time`), by its unit's level.",

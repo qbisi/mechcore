@@ -151,6 +151,18 @@ pub(crate) struct RebirthFollow {
     pub(crate) follow_rate_q32: i64,
 }
 
+/// What an `IRVORadiusChangeSource` answers: the radius its unit's agent
+/// keeps from the agents of its own type and side that keep one too while
+/// its lock is far, and how near its lock must be for it to keep its own
+/// inner radius instead (`MotionController.TryUpdateRVOChange`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct RvoRadiusChange {
+    /// `GetMoveRadius`, Q32.32 metres.
+    pub(crate) move_radius_q32: i64,
+    /// `GetNearTargetThreshold`, Q32.32 metres of `FightActor.Distance2D`.
+    pub(crate) near_target_threshold_q32: i64,
+}
+
 /// What an `ISiegeModeEffectDataSource` answers: `SiegeModeEffectSystem`
 /// digs its unit in as the fight starts, and lets it out once no enemy has
 /// stood in its main skill's range for a while.

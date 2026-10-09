@@ -56,6 +56,7 @@ impl Actor {
         let original_team = placement.team;
         let original_formation = placement.formation_id;
         let path_finding = path_finding::PathFinding::of(&rules);
+        let rvo_radius_change = RvoRadiusChangeState::of(placement.rvo_radius_change);
         let mut actor = Self {
             x,
             z,
@@ -127,6 +128,7 @@ impl Actor {
                 attack_hold_fire: false,
                 attacker: SkillSlot::Main,
                 path_finding,
+                rvo_radius_change,
             },
             skills: SkillManager::new(main_skill),
         };

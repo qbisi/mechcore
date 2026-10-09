@@ -457,6 +457,7 @@ impl Simulation {
             siege_mode: None,
             wreckage: None,
             rebirth: None,
+            rvo_radius_change: None,
             sweep: None,
             distance_intensify: false,
             secondary_damage: None,

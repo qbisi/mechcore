@@ -95,6 +95,7 @@ Simulator 用 `rvo_first_tree_pending` 显式复现这一点：
 | `layer` | 由 collider priority 生成的单 bit |
 | `collides_with` | 查询方接受的 candidate layer mask |
 | `group` | 避让分组；当前 kernel 使用队伍 ID 填充 |
+| `team` / `team_radius` | agent 的 team（0 表示没有）及它与同 group、同 team 的 agent 保持的半径；kernel 为科技使编队松散的单位填充，team 用单位类型 |
 | `locked` | 不可移动 agent 为真；邻居承担全部避让责任；它自己原地求得零速度，也没有期望速度 |
 | `tree_position` | 本轮建树使用的旧内部位置 |
 | `position` | BufferSwitch 后查询和 VO 使用的当前位置 |
@@ -180,7 +181,7 @@ offset        = Lerp(self.current_velocity, other_optimal, s)
 ```
 
 半径选择是非对称的：查询方 size 小于邻居时使用双方 inner radius，否则使用双方 outer
-radius。时间窗固定为 12 秒，即 `inverse_horizon = 1/12`。
+radius。同一 team（team 大于 0）的两个 agent 则不论 size，使用双方的 team radius。时间窗固定为 12 秒，即 `inverse_horizon = 1/12`。
 
 ### 6.3 VO 几何
 

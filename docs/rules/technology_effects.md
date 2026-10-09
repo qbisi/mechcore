@@ -676,6 +676,35 @@ turns by 0.04 radians, and each time it comes round, the first time at once,
 its offset is drawn again, 5 metres times its cosine times -1 or 0 on each
 axis (`MakeRandomOffest`).
 
+## Loose-formation technologies
+
+A row of `rVORadiusChangeTechnologyTechDatas` is an
+`RVORadiusChangeTechnology`, Loose Formation, the Crawler's: beside its
+numbers, 40% less life, it answers `IRVORadiusChangeSource` with a move
+radius of 3.4 (`GetMoveRadius`) and a threshold of 25 metres
+(`GetNearTargetThreshold`). `RVORadiusChangeProvider.DoActive`
+(`MotionController.ActiveRVOChangeRadius`) hands the source to its unit's
+motion and the move radius to its RVO controller, and the motion switches.
+
+**Its agents keep a team radius from each other.** As the unit enters the
+fight, `RVOControllerFixed.Active` puts its agent in the team of its unit
+type (`FightMech.GetMechID`, `RVOAgentFixed.EnableTeamRadius`), its radius
+being above zero, with that radius (`SetTeamRadius`). An agent finds a
+neighbour of its own group and its own team, the team above zero, with the
+two team radii added, whatever their sizes, in place of the inner or outer
+radii (`RVOAgentFixed.GenerateNeighbourAgentVOs`). So the Crawlers of one
+side that hold it keep the move radius, 3.4 each, from each other, and their
+own radii from every other agent.
+
+**Near its lock it closes up.** Each update, after its state machine and
+before it moves the body, a motion that switches asks whether its unit's
+lock (`FightMech.lockTarget`) stands within the threshold, edge to edge
+(`MotionController.TryUpdateRVOChange`, `IsTargetInRVONearRange`,
+`FightActor.Distance2D`, `FPoint.op_LessThanOrEqual`); with no lock it is
+not. On a change it hands its agent its own inner radius near, 1.5 for a
+Crawler, and the move radius far. `MotionController.EnterFight` asks once
+as the unit enters the fight.
+
 ## Missile Interception
 
 Missile Interception makes its unit an interceptor: Mustang, Sabertooth,
@@ -928,6 +957,13 @@ whose own `DisableEffect` it does not mirror.
   still heals it as it dies, and switched on, `EnableEffect` hands the effect
   back. A Rhino that fells Marksmen under an Electromagnetic Impact heals
   nothing for them.
+- **A loose-formation technology's agents close up.**
+  `RVORadiusChangeProvider.DisableEffect`
+  (`MotionController.DisableRVOChangeRadius`) hands the agent its own inner
+  radius as its team radius and stops the motion switching; switched on,
+  `EnableEffect` (`EnableRVOChangeRadius`) lets it switch from its next
+  update. Crawlers under an Electromagnetic Impact keep 1.5 from each other
+  for the rest of the fight.
 - **A buff its unit added itself is cleared, if its row says so**
   (`isClearSelfBuffWhenDisableTech`): `FightMech.DisableTechnology` raises
   `BuffManager.ClearSelfResourceBuffByDisableTech` after the effects are off.
@@ -1061,6 +1097,9 @@ derive (a minimum range):
   swing's offset, and rises 240 ticks after it fell facing as the Phoenix it
   follows, its interval drawn again; pilots with no Phoenix left fail:
   `tests/rebirth/fights/quantum-reassembly.yaml`.
+- Loose Formation keeps its Crawlers 3.4 apart each as they walk, and 1.5
+  once their lock is within 25: `tests/loose_formation/fights/crawler-rhino.yaml`.
+  Disabled, they keep 1.5: `tests/loose_formation/fights/crawler-impact.yaml`.
 - A dead-line technology destroys a unit its unit's shots strike at or
   under the line at its level, before the shot's damage: Culling Rounds
   culls Crawlers at 250 under a level-one Mustang's 320, and Marksmen at 712
@@ -1355,6 +1394,22 @@ derive (a minimum range):
   `RebirthSurvival.MakeRandomOffest`, `RebirthSurvival.DoTransfer`,
   `RebirthSurvival.mRandom`, `GRRandom.NextInternal`, `FVector3.MoveTowards`,
   `FVector3.Lerp`.
+- A loose-formation technology puts its unit's agent in its unit type's
+  team with its move radius, which two agents of one group and team add in
+  place of their own radii, and hands the agent its own inner radius while
+  its lock is within the threshold; disabled, the inner radius, and no
+  switching: `RVORadiusChangeProvider.DoActive`,
+  `RVORadiusChangeProvider.DisableEffect`,
+  `RVORadiusChangeProvider.EnableEffect`,
+  `MotionController.ActiveRVOChangeRadius`,
+  `MotionController.DisableRVOChangeRadius`,
+  `MotionController.EnableRVOChangeRadius`,
+  `MotionController.TryUpdateRVOChange`,
+  `MotionController.IsTargetInRVONearRange`, `MotionController.Update`,
+  `MotionController.EnterFight`, `RVOControllerFixed.Active`,
+  `RVOAgentFixed.EnableTeamRadius`, `RVOAgentFixed.SetTeamRadius`,
+  `RVOAgentFixed.GenerateNeighbourAgentVOs`, `FightMech.GetMechID`,
+  `FightMech.GetLockTarget`.
 - A dead-line technology hands its unit's main skill a pre-hit effect that
   destroys a live unit at or under the line at the owner's level as a
   suicide, before the hit's shield and damage, and charges it the line:
@@ -1625,6 +1680,10 @@ derive (a minimum range):
   summoned unit.** No recording holds one; the order of `DeadEffectSystem`'s
   controllers, `DeadEffectProvider.DisableEffect` and a rebirth to another
   side (`RebirthTask.rebirthToTeam`) are refused by name.
+- **A loose formation switched on again, and one travelling in.** Read from
+  the build; no recording holds an Electromagnetic Impact running out on
+  Crawlers that hold it, nor one landing. A summoned, made or
+  death-summoned unit that holds it is refused.
 
 - **A wreckage record running out, and the share among holders.** Read
   from the build; no recording holds a recorded unit dying after its time,

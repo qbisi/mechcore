@@ -56,7 +56,7 @@ use super::{
     sources::{
         AutoRecovery, BuffSource, CarriedShield, EnergyShield, LifeSteal, MoveAbilityAttack,
         MoveAbilityRangeItem, ProductionLine, ReactiveArmor, Rebirth, RebirthFollow, RecoveryState,
-        SiegeMode, Stealth, SweepIntensify, WreckageRecovery,
+        RvoRadiusChange, SiegeMode, Stealth, SweepIntensify, WreckageRecovery,
     },
 };
 
@@ -134,9 +134,11 @@ const SIEGE: &str = "siegeModeTechDatas";
 const WRECKAGE: &str = "wreckageRecoveryTechnologies";
 /// The list whose `RebirthTech` is an `IDeadEffect` and an `IRebirthData`.
 const REBIRTH: &str = "rebirthEffectTechologyDatas";
+/// The list whose `RVORadiusChangeTechnology` is an `IRVORadiusChangeSource`.
+const RVO_RADIUS_CHANGE: &str = "rVORadiusChangeTechnologyTechDatas";
 
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 29] = [
+const IMPLEMENTED: [&str; 30] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -166,6 +168,7 @@ const IMPLEMENTED: [&str; 29] = [
     FIRE_INTENSIFY,
     WRECKAGE,
     REBIRTH,
+    RVO_RADIUS_CHANGE,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -284,6 +287,8 @@ struct Technology {
     wreckage: Option<WreckageRecovery>,
     /// What it answers `IRebirthData` with, if its class is one.
     rebirth: Option<Rebirth>,
+    /// What it answers `IRVORadiusChangeSource` with, if its class is one.
+    rvo_radius_change: Option<RvoRadiusChange>,
     /// What it answers `IMoveAbilityAttackIntensify` with, if its class is
     /// one.
     move_ability_attack: Option<MoveAbilityAttack>,
@@ -418,6 +423,9 @@ pub(crate) struct UnitSources {
     pub(crate) wreckage: Option<WreckageRecovery>,
     /// What brings its unit back after it dies.
     pub(crate) rebirth: Option<Rebirth>,
+    /// The first that widens its unit's agent: the provider enables one
+    /// source (`SingleEffectProvider`).
+    pub(crate) rvo_radius_change: Option<RvoRadiusChange>,
     pub(crate) buff_sources: Vec<BuffSource>,
     pub(crate) interception: Vec<UnitInterception>,
     pub(crate) dead_summon: Option<UnitDeadSummon>,
@@ -756,6 +764,12 @@ struct Row {
     /// `RebirthTechnologyData`'s fields, on a row of its list.
     #[serde(default)]
     rebirth: Option<RebirthBlock>,
+    /// `RVORadiusChangeTechnologyTechData.moveRadius` and
+    /// `nearTargetThreshold`, `FPoint` metres, on a row of its list.
+    #[serde(default)]
+    rvo_move_radius: i64,
+    #[serde(default)]
+    rvo_near_target_threshold: i64,
     /// `DeadLineTechData`'s `deadLineValue`, whole life by the unit's level,
     /// and `ignoreEnergyShield`, on a row of its list.
     #[serde(default)]
@@ -1310,6 +1324,10 @@ impl TechnologyEffects {
                     can_disable: true,
                 }),
                 rebirth,
+                rvo_radius_change: (row.kind == RVO_RADIUS_CHANGE).then_some(RvoRadiusChange {
+                    move_radius_q32: row.rvo_move_radius,
+                    near_target_threshold_q32: row.rvo_near_target_threshold,
+                }),
                 dead_line: (row.kind == DEAD_LINE)
                     .then(|| (row.dead_line_value.clone(), row.dead_line_ignores_shield)),
                 mech_group,
@@ -1456,6 +1474,7 @@ impl TechnologyEffects {
                 }
                 sources.rebirth = Some(rebirth.clone());
             }
+            sources.rvo_radius_change = sources.rvo_radius_change.or(technology.rvo_radius_change);
             sources.buff_sources.extend(technology.buff_source);
             sources.interception.extend(technology.interception);
             if let Some(dead_summon) = &technology.dead_summon {
@@ -1912,6 +1931,7 @@ fn provider_of(kind: &str, self_buff: bool) -> Option<EffectProvider> {
         FIRE_INTENSIFY => EffectProvider::FireIntensify,
         SIEGE => EffectProvider::SiegeMode,
         WRECKAGE => EffectProvider::WreckageRecovery,
+        RVO_RADIUS_CHANGE => EffectProvider::RvoRadiusChange,
         _ => return None,
     })
 }
@@ -2427,6 +2447,35 @@ mod tests {
                 .unwrap()
                 .rebirth
                 .is_some_and(|rebirth| rebirth.follow.is_some())
+        );
+    }
+
+    /// A loose-formation technology writes its numbers and hands its unit's
+    /// motion a radius change.
+    #[test]
+    fn a_loose_formation_technology_hands_its_unit_a_radius_change() {
+        let table = TechnologyEffects::parse(
+            "schema: mechcore.technology_effects\n\
+             technologies:\n\
+             - {id: 9, name: probe, unit: crawler, kind: rVORadiusChangeTechnologyTechDatas, \
+             rvo_move_radius: 14602888806, rvo_near_target_threshold: 107374182400, \
+             life_rate: [-1717986918]}\n",
+        )
+        .unwrap();
+        assert_eq!(table.corrections(&[9], "crawler", 1).unwrap().len(), 1);
+        assert_eq!(
+            table.sources(&[9], "crawler").unwrap().rvo_radius_change,
+            Some(super::RvoRadiusChange {
+                move_radius_q32: 14_602_888_806,
+                near_target_threshold_q32: 25 << 32,
+            })
+        );
+        assert_eq!(
+            table
+                .providers(&[9], "crawler")
+                .into_keys()
+                .collect::<Vec<_>>(),
+            [super::EffectProvider::RvoRadiusChange]
         );
     }
 

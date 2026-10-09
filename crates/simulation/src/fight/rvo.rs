@@ -166,6 +166,11 @@ pub(crate) struct AgentInput {
     /// collider-priority layer and all higher-priority layers.
     pub(crate) collides_with: u32,
     pub(crate) group: i32,
+    /// `RVOAgentFixed.team`'s ID, which `EnableTeamRadius` sets to its unit's
+    /// type (`FightMech.GetMechID`) and which is zero otherwise, and the
+    /// radius it keeps from an agent of its group and team.
+    pub(crate) team: i32,
+    pub(crate) team_radius: i64,
     /// Whether an agent of the same group passes through this one rather than
     /// avoiding it. A construction sinks for its own side: it is still among
     /// that side's neighbours, and yields them no velocity obstacle.
@@ -782,7 +787,11 @@ fn neighbour_obstacle(
         avoidance_strength.saturating_mul(2).saturating_sub(Q32_ONE),
     );
     let center_velocity = lerp(agent.current_velocity, other_optimal, avoidance_strength);
-    let radius = if agent.size < other.size {
+    // `RVOAgentFixed.GenerateNeighbourAgentVOs`: two agents of one team keep
+    // their team radii from each other, whatever their sizes.
+    let radius = if agent.team >= 1 && agent.team == other.team {
+        agent.team_radius.saturating_add(other.team_radius)
+    } else if agent.size < other.size {
         agent.radius_inner.saturating_add(other.radius_inner)
     } else {
         agent.radius_outer.saturating_add(other.radius_outer)
@@ -1128,6 +1137,8 @@ mod tests {
             layer,
             collides_with,
             group,
+            team: 0,
+            team_radius: 0,
             passable_by_own_group: false,
             locked,
             tree_position: position,
@@ -1245,6 +1256,8 @@ mod tests {
             layer: 1_024,
             collides_with: 2_147_482_624,
             group: 1,
+            team: 0,
+            team_radius: 0,
             passable_by_own_group: false,
             locked: false,
             tree_position: FixedVec2 {
@@ -1281,6 +1294,8 @@ mod tests {
             layer: 16_384,
             collides_with: 2_147_467_264,
             group: 1,
+            team: 0,
+            team_radius: 0,
             passable_by_own_group: false,
             locked: false,
             tree_position: FixedVec2 {
@@ -1338,6 +1353,8 @@ mod tests {
             layer: 1_024,
             collides_with: 2_147_482_624,
             group: 1,
+            team: 0,
+            team_radius: 0,
             passable_by_own_group: false,
             locked: false,
             tree_position: FixedVec2 {
@@ -1374,6 +1391,8 @@ mod tests {
             layer: 16_384,
             collides_with: 2_147_467_264,
             group: 1,
+            team: 0,
+            team_radius: 0,
             passable_by_own_group: false,
             locked: false,
             tree_position: FixedVec2 {

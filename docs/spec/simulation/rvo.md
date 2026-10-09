@@ -138,6 +138,7 @@ query semantics.
 | `layer` | a single bit derived from collider priority |
 | `collides_with` | the candidate layer mask the querying agent accepts |
 | `group` | the avoidance group; the kernel fills it with the team ID |
+| `team` / `team_radius` | the agent's team, zero for none, and the radius it keeps from an agent of its group and team; the kernel fills them for a unit whose technology loosens its formation, the team with its unit type |
 | `locked` | true for an immovable agent, whose neighbours carry all the avoidance; it solves to no speed where it stands, and has no desired velocity |
 | `tree_position` | the older internal position this round's tree is built from |
 | `position` | the current position used by the query and by every VO |
@@ -240,8 +241,9 @@ offset        = Lerp(self.current_velocity, other_optimal, s)
 ```
 
 The radius choice is asymmetric: when the querying agent's size is smaller than
-the neighbour's, both inner radii are used, and otherwise both outer radii. The
-time window is fixed at 12 seconds, so `inverse_horizon = 1/12`.
+the neighbour's, both inner radii are used, and otherwise both outer radii. Two
+agents of the same team, the team above zero, use both team radii instead,
+whatever their sizes. The time window is fixed at 12 seconds, so `inverse_horizon = 1/12`.
 
 ### VO geometry
 

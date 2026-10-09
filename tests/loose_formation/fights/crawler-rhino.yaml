@@ -1,0 +1,22 @@
+# Loose Formation on blue's Crawlers, which walk on a Rhino. Each Crawler's
+# agent keeps 3.4 from the others of its side and type while the Rhino is
+# more than 25 off, edge to edge, and its own inner radius of 1.5 once it is
+# within. With their own radii throughout the simulator parts from the game
+# on tick 12; with 3.4 throughout, on tick 108.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 206
+hash: {profile: mcfr-content-0.23.0, result: 75bdb30296d90bdcea79cc3c0811c74509263f634b505d9dfacd8889c37b303d}
+blue:
+  core_damage: 200
+  techs:
+    crawler: [loose_formation]
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/192/1150}

@@ -101,6 +101,10 @@ schema: mechcore.technology_effects
 # A reactive armor technology carries the FPoint rate on the damage its
 # unit takes (`reactive_armor_rate`) and how many hits dealing it damage
 # the rate lasts (`reactive_armor_count`).
+# A loose-formation technology carries the FPoint radius its unit's
+# agents keep from each other while it moves (`rvo_move_radius`), and
+# the FPoint metres within which of its lock it keeps its own radius
+# again (`rvo_near_target_threshold`).
 # A fire technology carries the FPoint metres and seconds of the fire
 # each hit of its unit's main skill leaves (`fire_range`,
 # `fire_life_time`), by its unit's level.
@@ -1195,6 +1199,8 @@ technologies:
     name: 松散队列
     unit: crawler
     kind: rVORadiusChangeTechnologyTechDatas
+    rvo_move_radius: 14602888806
+    rvo_near_target_threshold: 107374182400
     life_rate: [-1717986918]  # -0.4
   - id: 3623
     name: 复制

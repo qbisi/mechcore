@@ -70,6 +70,8 @@ pub(crate) enum EffectProvider {
     FireIntensify,
     /// `WreckageRecoveryEffectProvider`, for an `IWreckageRecovery`.
     WreckageRecovery,
+    /// `RVORadiusChangeProvider`, for an `IRVORadiusChangeSource`.
+    RvoRadiusChange,
 }
 
 impl EffectProvider {
@@ -100,6 +102,7 @@ impl EffectProvider {
             Self::SiegeMode => "SiegeModeEffectProvider",
             Self::FireIntensify => "FireIntensifyEffectProvider",
             Self::WreckageRecovery => "WreckageRecoveryEffectProvider",
+            Self::RvoRadiusChange => "RVORadiusChangeProvider",
         }
     }
 
@@ -147,6 +150,10 @@ impl EffectProvider {
     ///   skills (`WreckageRecoveryEffectProvider.DisableEffect`,
     ///   `SkillManager.RemoveHitEffect`) and handed back (`EnableEffect`);
     ///   what its unit struck before still heals it as it dies.
+    /// - A loose-formation technology's agent keeps its own inner radius
+    ///   from the others of its team and stops switching
+    ///   (`MotionController.DisableRVOChangeRadius`), and switches again from
+    ///   its next update (`EnableRVOChangeRadius`).
     ///
     /// Every other provider does more, which is not measured.
     pub(crate) const fn disable_read(self) -> bool {
@@ -164,7 +171,8 @@ impl EffectProvider {
             | Self::ReactiveArmor
             | Self::SiegeMode
             | Self::FireIntensify
-            | Self::WreckageRecovery => true,
+            | Self::WreckageRecovery
+            | Self::RvoRadiusChange => true,
             Self::AutoRecovery
             | Self::EnergyShield
             | Self::SweepSkillIntensify

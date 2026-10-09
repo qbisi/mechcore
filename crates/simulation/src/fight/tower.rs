@@ -1153,6 +1153,7 @@ impl Simulation {
             EffectProvider::StealthTech => self.switch_stealth(actor_id, on),
             EffectProvider::MechGroup => self.switch_group_unit(actor_id, on),
             EffectProvider::AdvancedEnergyShield => self.switch_carried_shield(actor_id, on),
+            EffectProvider::RvoRadiusChange => self.switch_rvo_radius_change(actor_id, on),
             EffectProvider::ReactiveArmor => self
                 .actors
                 .get_mut(&actor_id)

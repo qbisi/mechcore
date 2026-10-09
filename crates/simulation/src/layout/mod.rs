@@ -14,9 +14,9 @@ use crate::{
     modifier::{
         AutoRecovery, BuffSource, CarriedShield, DeadLine, DeadSummon, EffectProvider,
         EnergyShield, EnergyTowerSkillEffects, EquipmentEffects, LifeSteal, MainSkill, MechGroup,
-        MoveAbilityAttack, OfficerEffects, ProductionLine, ReactiveArmor, Rebirth, SecondaryDamage,
-        SiegeMode, Stealth, SweepIntensify, TECHNOLOGY_SOURCE, TechnologyEffects, UnitInterception,
-        WreckageRecovery, current_source,
+        MoveAbilityAttack, OfficerEffects, ProductionLine, ReactiveArmor, Rebirth, RvoRadiusChange,
+        SecondaryDamage, SiegeMode, Stealth, SweepIntensify, TECHNOLOGY_SOURCE, TechnologyEffects,
+        UnitInterception, WreckageRecovery, current_source,
     },
     rules::{ExtraWeaponConfig, UnitConfig, UnitConfigs, UnitDomain},
 };
@@ -88,6 +88,9 @@ pub(crate) struct Placement {
     /// The `IRebirthData` its `DeadEffectProvider` hands
     /// `DeadRebirthController`, if its technologies hand it one.
     pub(crate) rebirth: Option<Rebirth>,
+    /// The `IRVORadiusChangeSource` its `RVORadiusChangeProvider` hands its
+    /// motion, if its technologies hand it one.
+    pub(crate) rvo_radius_change: Option<RvoRadiusChange>,
     /// What its technologies hand its sweep (`SweepSkillIntensifyTech`).
     pub(crate) sweep: Option<SweepIntensify>,
     /// Whether its technologies turn its main skill's search to
@@ -601,6 +604,7 @@ fn compile_death_summons(
             siege_mode: worn.siege_mode.clone(),
             wreckage: worn.wreckage.clone(),
             rebirth: worn.rebirth.clone(),
+            rvo_radius_change: worn.rvo_radius_change,
             sweep: worn.sweep,
             distance_intensify: worn.distance_intensify,
             secondary_damage: worn.secondary_damage,
@@ -773,11 +777,12 @@ fn compile_battle_skills(
                 || worn.main_fire.is_some()
                 || worn.wreckage.is_some()
                 || worn.rebirth.is_some()
+                || worn.rvo_radius_change.is_some()
             {
                 refused.push(format!(
                     "side {name} summons a {} that its technologies give lifesteal, repair, \
-                     a shield, stealth, a group, a trench, a fire, life from wreckage or a \
-                     rebirth, and what a \
+                     a shield, stealth, a group, a trench, a fire, life from wreckage, a \
+                     rebirth or a loose formation, and what a \
                      summon's effect providers carry is not measured",
                     summon.rules.type_name
                 ));
@@ -906,6 +911,7 @@ fn compile_formation(
         siege_mode: worn.siege_mode.clone(),
         wreckage: worn.wreckage.clone(),
         rebirth: worn.rebirth.clone(),
+        rvo_radius_change: worn.rvo_radius_change,
         sweep: worn.sweep,
         distance_intensify: worn.distance_intensify,
         secondary_damage: worn.secondary_damage,
@@ -1061,11 +1067,12 @@ fn made_by(
         || worn.main_fire.is_some()
         || worn.wreckage.is_some()
         || worn.rebirth.is_some()
+        || worn.rvo_radius_change.is_some()
     {
         refused.push(format!(
             "side {side_name} makes a {} that its technologies give lifesteal, repair, a \
              shield, a search by distance, a second damage, a dead line, a stronger \
-             surfacing, a sand fog, interceptors, a summon as it dies, a trench, a fire, life from wreckage or a rebirth, and what a made unit's effect providers carry is not measured",
+             surfacing, a sand fog, interceptors, a summon as it dies, a trench, a fire, life from wreckage, a rebirth or a loose formation, and what a made unit's effect providers carry is not measured",
             made.type_name
         ));
         return None;
@@ -1193,6 +1200,8 @@ fn unread_on_a_death_summon(worn: &Worn) -> Option<&'static str> {
         Some("make an interceptor, and when a summon's interceptors start")
     } else if worn.dead_summon.is_some() {
         Some("make summon as it dies in turn")
+    } else if worn.rvo_radius_change.is_some() {
+        Some("loosen its formation, and whether its agent joins its team as it appears")
     } else {
         None
     }
@@ -1240,6 +1249,7 @@ struct Worn {
     siege_mode: Option<SiegeMode>,
     wreckage: Option<WreckageRecovery>,
     rebirth: Option<Rebirth>,
+    rvo_radius_change: Option<RvoRadiusChange>,
     sweep: Option<SweepIntensify>,
     distance_intensify: bool,
     secondary_damage: Option<SecondaryDamage>,
@@ -1558,6 +1568,7 @@ fn worn(
         siege_mode: sources.siege_mode,
         wreckage: sources.wreckage,
         rebirth: sources.rebirth,
+        rvo_radius_change: sources.rvo_radius_change,
         sweep: main_skill.sweep,
         distance_intensify: main_skill.distance_intensify,
         secondary_damage: main_skill.secondary_damage,
