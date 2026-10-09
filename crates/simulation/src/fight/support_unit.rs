@@ -1142,14 +1142,30 @@ impl Simulation {
             .actors
             .get_mut(&unit_id)
             .expect("the summon was just let in");
+        // `FightActor.ReduceLife` of a direct hit with no attacker, under the
+        // summon's side (`isDirectHit`, `sourceTeam`): no shield, rate or
+        // `OnHitted` comes between.
         let lost = total.min(actor.life);
         actor.life -= lost;
-        if actor.life == 0 {
-            return Err(Error::new(format!(
-                "summoned unit {unit_id} dies of its own air drop, and whom that death counts \
-                 for is not measured"
-            )));
+        if lost > 0 {
+            actor.last_damage_source = Some((None, team));
         }
+        let death = (actor.life == 0).then(|| QVec3 {
+            x: actor.x_q32,
+            y: space_to_q32(unit_height(actor.domain)),
+            z: actor.z_q32,
+        });
+        if lost > 0 {
+            self.on_life_change(unit_id, events)?;
+        }
+        // A summon its own drop kills dies as any unit does
+        // (`DeadEffectSystem.OnActorDead`), credited to no one: it has had
+        // no attacker.
+        let unit = FightActorRef::Unit(unit_id);
+        if death.is_some() {
+            self.on_actor_dead(unit_id);
+        }
+        self.count_kill(None, unit, death.is_some())?;
         self.count_self_hit(unit_id, total)?;
         events.push(event(
             None,
@@ -1161,6 +1177,9 @@ impl Simulation {
                 skill_slot: None,
             },
         ));
+        if let Some(position) = death {
+            self.record_ends(vec![(unit, position)], events);
+        }
         Ok(())
     }
 }
