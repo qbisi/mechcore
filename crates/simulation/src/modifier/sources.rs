@@ -118,13 +118,37 @@ pub(crate) struct WreckageRecovery {
 }
 
 /// What an `IRebirthData` answers: `DeadRebirthController` brings its unit
-/// back where it fell, a while after it dies.
+/// back a while after it dies, where it fell or behind an ally its pilot
+/// follows.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Rebirth {
     /// `GetRebirthCostTime`, whole seconds: how long the unit waits.
     pub(crate) cost_seconds: i64,
     /// `GetRebirthCount`: the times a fight brings it back.
     pub(crate) count: i64,
+    /// `GetRebirthingTime`, Q32.32 seconds: the last of the wait, in which
+    /// the unit rises and a pilot no longer follows.
+    pub(crate) rebirthing_q32: i64,
+    /// What its pilot flies by, when it follows an ally (`IsFollowOthers`).
+    pub(crate) follow: Option<RebirthFollow>,
+}
+
+/// How a pilot follows an ally: `IRebirthData`'s `FPoint` raw numbers.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(
+    clippy::struct_field_names,
+    reason = "each is a raw `FPoint`, as every such field here is named"
+)]
+pub(crate) struct RebirthFollow {
+    pub(crate) interval_x_q32: i64,
+    pub(crate) interval_z_q32: i64,
+    pub(crate) interval_from_center_z_q32: i64,
+    pub(crate) random_offset_q32: [i64; 3],
+    pub(crate) start_offset_q32: [i64; 3],
+    pub(crate) transfer_distance_q32: i64,
+    pub(crate) transfer_speed_q32: i64,
+    pub(crate) per_r_q32: i64,
+    pub(crate) follow_rate_q32: i64,
 }
 
 /// What an `ISiegeModeEffectDataSource` answers: `SiegeModeEffectSystem`

@@ -1,0 +1,31 @@
+# Quantum Reassembly on blue's two pairs of Phoenixes, one pair near a
+# Fortress with Anti-Air Barrage and one far. The near pair falls (ticks 23
+# and 37): the first pilot flies at 2 metres a tick toward the nearest point
+# behind its partner, its swing's offset drawn none, and as the partner falls
+# both pilots turn to the far pair, wait 15 ticks and land behind it on
+# points drawn from blue's stream, then follow by a 0.04 lerp, the offset
+# drawn again as the swing comes round. Each rises 240 ticks after it fell
+# (262, 277) where its pilot is, facing as the Phoenix it follows, its
+# interval drawn again. A far Phoenix that falls on 244 and the last on 419
+# send pilots that fail as no Phoenix is left (434, 435), and the fight ends
+# on 445 with neither back.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 445
+hash: {profile: mcfr-content-0.23.0, result: 7c2c9ac395139b7fcb55d4e816cfc7fa6af6172391a1f708359a8b89b9ff9981}
+blue:
+  core_damage: 350
+  techs:
+    phoenix: [quantum_reassembly]
+  units:
+  - {name: phoenix, index: 0, position: {x: -60, y: -40}}
+  - {name: phoenix, index: 1, position: {x: 120, y: -260}}
+red:
+  techs:
+    fortress: [anti_air_barrage]
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -40}, exp: 0/1200/1600}

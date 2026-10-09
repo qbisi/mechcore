@@ -635,16 +635,46 @@ still in the fight.
 update it started on first (`RebirthTask.Update`); the tasks are taken by
 index and one that ends is taken out under it, so the task after it is not
 counted on that update. Once it has counted the seconds over a tick, 100 for
-Field Reassembly, the unit stands where it fell, facing as it fell
+Field Reassembly and 240 for Quantum Reassembly, the unit stands where it
+fell, or where its pilot flies, facing as the Phoenix it rises behind
 (`RebirthTask.RebirthMech`): its whole life back, with no heal
 (`FightMech.ForceRecoveryLife`), among its side's active units again
 (`FightTeam.ActiveMech`), its technologies' effects active again
-(`FightEffectSystem.ActiveEffect`), and every skill's attack time at its
-interval, so its first blow is due (`FightMech.EnterFight`). It is counted
+(`FightEffectSystem.ActiveEffect`), and every skill's interval drawn again
+and its attack time at it, so its first blow is due (`FightMech.EnterFight`). It is counted
 reborn (`FightMech.AddRebirthCount`), which cuts its score
 ([`reactor_damage.md`](reactor_damage.md)). A unit that dies again with no
 rebirth left is gone. A fight that ends while a unit rises drops its task
 (`DeadRebirthController.OnFightExit`), and the unit scores nothing.
+
+**A pilot follows the nearest of its kind.** Quantum Reassembly's unit is not
+marked rising: its pilot (`RebirthSurvival`, starting where it fell) follows
+the Phoenix of its side nearest the one it followed, or where it fell
+(`RebirthTask.TryGetNearestTeamMech`). Each update a pilot whose Phoenix has
+died turns to the nearest other, and one with none left fails, its unit gone
+(`UpdateReadyRebirth`); a side whose last units are pilots has lost. The last
+2.5 seconds it rises (`UpdateMoveState`) and no longer moves.
+
+**Points behind the Phoenix.** After the tasks, each Phoenix followed moves
+its pilots (`FollowPointManager.Update`), in the order each was first
+followed. It has fifty points, rows of five 17 metres apart, the first row 10
+metres behind it and each next 10 metres further, sorted by their distance
+from it, the nearest first (`CreateNearestPoints`, `List.Sort`, which is not
+stable); each stands behind the Phoenix as it faces (`FollowPoint.UpdatePoint`),
+and its pilots, in the order they began following, take them in turn
+(`Follow`).
+
+**How a pilot flies** (`RebirthSurvival.DoMoveSurvival`). The update a pilot
+turns to a Phoenix, its landing is drawn from its own side's stream, the
+point moved by 5 metres times -1 or 0 on each axis (`GRRandom.Next(-1, 1)`,
+whose upper bound it never draws): one 50 metres or more from its point
+waits 0.75 seconds where it is and then stands there (`DoTransfer`), and
+one nearer flies at 40 metres a second until within half a metre of its
+point and its swing's offset, then follows by 0.04 of the way each update
+(`FVector3.MoveTowards`, `FVector3.Lerp`). Each update it moves, its swing
+turns by 0.04 radians, and each time it comes round, the first time at once,
+its offset is drawn again, 5 metres times its cosine times -1 or 0 on each
+axis (`MakeRandomOffest`).
 
 ## Missile Interception
 
@@ -1025,6 +1055,12 @@ derive (a minimum range):
   `tests/rebirth/fights/field-reassembly-stands.yaml`. A fight that ends
   while one waits drops it, and it scores nothing,
   `tests/rebirth/fights/field-reassembly-rising-at-the-end.yaml`.
+- Quantum Reassembly's pilot flies at speed to the nearest point behind its
+  partner, turns to the far pair as the partner falls, waits 15 ticks and
+  lands on a point drawn from blue's stream, follows by its lerp and its
+  swing's offset, and rises 240 ticks after it fell facing as the Phoenix it
+  follows, its interval drawn again; pilots with no Phoenix left fail:
+  `tests/rebirth/fights/quantum-reassembly.yaml`.
 - A dead-line technology destroys a unit its unit's shots strike at or
   under the line at its level, before the shot's damage: Culling Rounds
   culls Crawlers at 250 under a level-one Mustang's 320, and Marksmen at 712
@@ -1308,6 +1344,17 @@ derive (a minimum range):
   `FightMech.EnterFight`, `FightTeam.ActiveMech`,
   `FightEffectSystem.ActiveEffect`, `FightCoreSystem.TryDstroyTower`,
   `FightCoreSystem.IsStepFinish`.
+- A rebirth that follows an ally sends a pilot after the nearest unit of its
+  type, to points behind it in rows, flying at speed or after a transfer and
+  then by a lerp with a swinging offset drawn from its side's stream:
+  `RebirthTask.TryGetNearestTeamMech`, `RebirthTask.UpdateReadyRebirth`,
+  `RebirthTask.UpdateMoveState`, `RebirthTask.SetFollowTarget`,
+  `FollowPointManager.Update`, `FollowPointManager.CreateNearestPoints`,
+  `FollowPointManager.CreateFollowPoint`, `FollowPointManager.Follow`,
+  `FollowPoint.UpdatePoint`, `RebirthSurvival.DoMoveSurvival`,
+  `RebirthSurvival.MakeRandomOffest`, `RebirthSurvival.DoTransfer`,
+  `RebirthSurvival.mRandom`, `GRRandom.NextInternal`, `FVector3.MoveTowards`,
+  `FVector3.Lerp`.
 - A dead-line technology hands its unit's main skill a pre-hit effect that
   destroys a live unit at or under the line at the owner's level as a
   suicide, before the hit's shield and damage, and charges it the line:
@@ -1571,9 +1618,9 @@ derive (a minimum range):
 
 ### Not established
 
-- **A pilot that follows an ally.** Quantum Reassembly's unit waits behind
-  the nearest Phoenix of its side and rises there (`RebirthTask.TryGetNearestTeamMech`,
-  `RebirthSurvival`); the simulator refuses it.
+- **A second row of pilots, and a tie between points.** No recording holds
+  more than two pilots behind one Phoenix; the sort that orders points at
+  one distance follows `List.Sort` as read.
 - **A rebirth beside another dead effect, switched off, or of a turned or
   summoned unit.** No recording holds one; the order of `DeadEffectSystem`'s
   controllers, `DeadEffectProvider.DisableEffect` and a rebirth to another
