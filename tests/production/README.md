@@ -8,6 +8,6 @@ fights; the three lines each make their own unit, at their own offsets and
 interval. `best-partner`, `shooting-squad`, `summon-hounds`,
 `fang-production`, `crawler-production`, `mothership`, `dark-companion`,
 `phoenix-production`, `phoenix-production-level-4`, `steel-ball-production`,
-`sledgehammer-production` and `electromagnetic-twin` put a technology's line on
-its own unit instead
+`sledgehammer-production`, `sledgehammer-production-level-4` and
+`electromagnetic-twin` put a technology's line on its own unit instead
 ([technology_effects.md](../../docs/rules/technology_effects.md#production-lines)).

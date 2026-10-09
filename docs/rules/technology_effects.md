@@ -440,7 +440,9 @@ The War Factory's three lines make theirs at its level, each taking the row's
 `productTime`, a second, to appear (`SupportUnitData.GetProductMoveTime`).
 Phoenix Production's (`appear_type` 6) appears as a transition does, at the
 War Factory itself, a Phoenix every 17.2 seconds; a level-4 War Factory's
-Phoenix is level 4 (`tests/production/fights/phoenix-production-level-4.yaml`). Steel Ball Production's and
+Phoenix is level 4 (`tests/production/fights/phoenix-production-level-4.yaml`),
+and so is its Sledgehammer
+(`tests/production/fights/sledgehammer-production-level-4.yaml`). Steel Ball Production's and
 Sledgehammer Production's (`appear_type` 7) come out of it, every 9.7 and 6.6
 seconds (`SummonSystem.CreateMechDelaySetPos`). Each is made where the War
 Factory stands, with no agent, and draws two hundredths of a metre of its

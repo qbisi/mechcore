@@ -306,8 +306,15 @@ impl Actor {
 
     /// The motion when the skill lets its target go. `AutoMoveBehaviour` is
     /// no longer active and the motion stops idle; a command stays active,
-    /// and `MotionAttackState` changes to `MotionMoveState` instead.
+    /// and `MotionAttackState` changes to `MotionMoveState` instead. A unit
+    /// that searches for itself is its motion's attacker
+    /// (`FightMech.SetMotionAttackerAfterSkill`), and its motion goes on
+    /// after its own lock, which no skill drops: a War Factory whose skill
+    /// exits the fight walks on to the tower it took, turning to it.
     pub(in crate::fight) fn lose_target_motion(&mut self, publish_point: bool) {
+        if self.skills.main.mech_searches() {
+            return;
+        }
         if self.command.is_some() {
             if self.motion.state == MotionState::Attacking {
                 self.motion.state = MotionState::Moving;
