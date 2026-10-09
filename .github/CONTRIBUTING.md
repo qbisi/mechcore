@@ -10,8 +10,8 @@ is that it leaves.
 
 An observation has to pass all four:
 
-- **It was found, not sought.** Went looking? That is research, in
-  `work/research/`.
+- **It was found, not sought.** Went looking? That is research, and it
+  lands as a pull request.
 - **It is a discrepancy, not a preference.** It names the document, assertion
   or commit it disagrees with, or says the belief was never written down. An
   issue whose expectation is unstated cannot be closed.
@@ -32,7 +32,7 @@ where its content went:
 1. **to the plan**, as a node under `plan/`, when someone decides to act;
 2. **to a spec's `Unresolved`**, when it is a design choice nobody made;
 3. **to `docs/rules/`**, when the game works that way and the belief was ours;
-4. **to `work/research/`**, when it is worth pursuing as a question;
+4. **to research**, when it is worth pursuing as a question;
 5. **into an assertion**, when a fix lands and a test holds it, closed by the
    pull request's `Closes #n`;
 6. **closed as not planned**, when the observation was wrong or what it

@@ -99,8 +99,10 @@ rules hold whoever does it:
   variant of a shared type is handled by shared code or refused by name, not
   handled only on the new kind's path. A divergence the build does not have is
   a step back even when every recording agrees.
-- **What counts as evidence** is `work/research/README.md`'s to say, and a
-  rule lands in `docs/rules/` as `docs/README.md` says.
+- **What counts as evidence** for a mechanism or a number is
+  `docs/README.md`'s to say, what shows a recording sees a mechanism is
+  `tests/README.md`'s, and a rule lands in `docs/rules/` as `docs/README.md`
+  says.
 
 The evidence lives outside this repository's history. The decompilation is in
 the private `mechcore-decomp`, put under `work/decomp/<build>/` by

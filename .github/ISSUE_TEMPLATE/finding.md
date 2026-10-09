@@ -10,7 +10,7 @@ assignees: ""
 Four admission tests, all of which have to pass. .github/CONTRIBUTING.md states
 them, and how an issue leaves.
 
-  It was found, not sought.       Went looking? That is work/research/.
+  It was found, not sought.       Went looking? That is research.
   It is a discrepancy.            Names what it disagrees with.
   Fixing it now would derail you. A two-line fix is a fix, not an issue.
   Re-finding it would cost work.  A number a command prints needs no issue.
