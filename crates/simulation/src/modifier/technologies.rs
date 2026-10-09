@@ -1981,6 +1981,7 @@ impl TechnologyEffects {
             .map(|(energy, radius)| CarriedShield {
                 radius: at_level(radius).unwrap_or_default(),
                 energy: at_level(energy).unwrap_or_default(),
+                priority: PRIORITY,
             }))
     }
 

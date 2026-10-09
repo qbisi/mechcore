@@ -1145,21 +1145,6 @@ fn unread_on_a_joining_unit(
     }
 }
 
-fn one_carried_shield(
-    carried: &[CarriedShield],
-    side_name: &str,
-    type_name: &str,
-) -> Result<Option<CarriedShield>> {
-    match carried {
-        [] => Ok(None),
-        [one] => Ok(Some(*one)),
-        _ => Err(Error::new(format!(
-            "side {side_name} unit type {type_name:?} carries two barriers, which is not \
-             measured"
-        ))),
-    }
-}
-
 fn one_interception(
     held: &[UnitInterception],
     side_name: &str,
@@ -1607,7 +1592,7 @@ fn worn(
             side_name,
             type_name,
         ))?,
-        carried_shield: refused.hold(one_carried_shield(&carried_shields, side_name, type_name))?,
+        carried_shield: refused.hold(current_source(&carried_shields).map_err(in_force))?,
         buff_sources,
         ignored_buffs,
         important,
