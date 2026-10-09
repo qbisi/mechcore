@@ -204,6 +204,15 @@ burns, so the first one's fire takes the rest of its line first: a Fire
 Badger's shot that lands among the first three oils of a line burns the
 first, then the line beyond the third, then the second and the third.
 
+**A battlefield shield keeps the oil within it from a fire hit.** Of the oils
+the circle reaches, `TriggerInteractableItem` passes over each that lies
+wholly within an active shield of either side with energy left
+(`AdvancedEnergyShieldSystem.GetActiveEnergyShields`,
+`FightCalculator.IsInEnergyShield`: the oil's distance from the shield's
+centre less than the shield's radius less the oil's, by `FPoint.op_LessThan`);
+it stays an oil, and only the rest burn. Read from the build; the corpus
+rounds that hold it are not pinned.
+
 **Standing oil.** An oil an earlier round left is restored before the fight
 from its release's panel skill, which keeps it in its `rangeItems`: the line
 between its two control points is expanded as the release expanded it
@@ -489,9 +498,8 @@ already exists.
 
 ### Not established
 
-- **A fire hit beside a battlefield shield.** `TriggerInteractableItem` asks
-  each side's active shields of the oils it takes in a way not read, and the
-  simulator refuses such a hit.
+- **A fire hit beside a battlefield shield**, read from the build and not
+  recorded.
 
 - **A buff that heals**, a positive `lifeChangeRate`: the controller's other
   branch, which the simulator refuses.
