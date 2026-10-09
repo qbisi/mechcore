@@ -18,7 +18,9 @@ is authoritative: an object is in play exactly while it is a member.
 `RangeItemType` has six values, which a recording spells `fire`, `oil`, `fog`,
 `acid`, `recovery_zone` and `fog_sand`. Four are the deployable battle skills, the incendiary bomb being
 `fire`, the sticky oil bomb `oil`, the smoke bomb `fog` and the acid bomb
-`acid`. What `recovery_zone` and `fog_sand` do is not established.
+`acid`. A `fog_sand` is the sand fog Sandstorm's Sandworm leaves as it
+surfaces ([underground.md](underground.md#a-sand-fog-as-it-surfaces)). What
+`recovery_zone` does is not established.
 
 ## How a terrain is created
 
@@ -94,6 +96,20 @@ controller is the modifier, so a unit carries one fog's rate however many it
 stands in. A unit with a melee attack enters and is left alone. The range is
 then the description's times the rate in `FPoint`: a Sledgehammer's 95 metres
 are 61.75.
+
+**A sand fog** writes its row's `FogAttackRangeChangeRate` on the skill
+range of a unit that enters it whose attack is not a melee one, as a fog
+does, and its `reduceDamageFromRemote` in every unit that enters it as the
+unit's `MechDataChangeFloatRate.ReduceDamageFromRemote`; it takes both back
+as the unit leaves, its controller the modifier of both. A hit whose
+`IDamageProvider.GetAttackDistanceType` is `remote` is then multiplied by
+what the unit's rates leave of one, in `FPoint`, its whole part kept, after
+the rate on damage taken and before the unit's damage reduction. A
+projectile's hit is remote, and so is a skill's own hit unless the skill
+is melee (`SkillDamageProvider`'s `2 - IsMelee`); every other hit, a
+fire's, an explosion's, a summon's drop, a battle skill's, is not.
+Sandstorm's fog takes 30% off: a Marksman's 2329 at a Sandworm standing in
+it is 1630, and a Steel Ball's rising beams lose as much, rounded down.
 
 **A fire** deals `Config.groundFireDamage`, 54, to a unit as it enters and
 again every `fireAttackInterval`, four ticks, while it stays: a hit with no
@@ -402,6 +418,13 @@ already exists.
 
 - A terrain is in play exactly while its controller's set holds it:
   `RangeItemController.GetItems`.
+- A sand fog's rates and the remote hits they reach:
+  `FogSandController.PerformItemEffect`, `FogSandController.OnActorExit`,
+  `FogSandController.GetAttackTarget`, `FightCalculator.PerformHitTargetEffect`,
+  `HitDamageInfo.damageDistance`, `IDamageProvider.GetAttackDistanceType`
+  (`FightProjectile`, `SkillDamageProvider`, `NormalDamageProvider`,
+  `SupportUnitDamageProvider`, `DeadExplosiveDamageProvider`,
+  `CommanderSkillDamageProvider`, `HitEffectControl`).
 - There are six terrain types: `RangeItemType.Fire`, `RangeItemType.Oil`,
   `RangeItemType.Fog`, `RangeItemType.Acid`, `RangeItemType.RecoveryZone`,
   `RangeItemType.FogSand`.
@@ -432,6 +455,7 @@ already exists.
   of one type can differ, so no value derives from a type.
 - **A whole grid.** A terrain turned from another kind or standing inside the
   shield that reaches it is read as a whole grid, not recorded.
-- **`recovery_zone` and `fog_sand` behaviour.**
+- **`recovery_zone` behaviour.**
+- **`FogSandController.SelectBestTarget`**, as a fog's.
 - **A type conversion within one identity**: whether a native producer for one
   exists.

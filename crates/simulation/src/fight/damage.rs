@@ -95,7 +95,9 @@ impl DamageHit {
             team: attacker.placement.team,
             effect: EffectTarget::Opponent,
             amount,
-            provider: Provider::Other,
+            provider: Provider::Skill {
+                melee: attacker.skill_melee(skill_slot),
+            },
             projectile: None,
             skill_slot: Some(skill_slot),
             aimed: Some(aimed),
@@ -129,7 +131,7 @@ impl DamageHit {
             team: projectile.team,
             effect: EffectTarget::Opponent,
             amount,
-            provider: Provider::Other,
+            provider: Provider::Projectile,
             projectile: Some(projectile.object_ref()),
             skill_slot: None,
             aimed: Some(aimed),
@@ -215,8 +217,21 @@ impl DamageHit {
 pub(in crate::fight) enum Provider {
     /// `SupportUnitDamageProvider`: a summon's drop.
     SupportUnit,
+    /// `FightProjectile`.
+    Projectile,
+    /// `SkillDamageProvider`, of a skill whose attack is melee or not.
+    Skill { melee: bool },
     /// Any other.
     Other,
+}
+
+impl Provider {
+    /// `IDamageProvider.GetAttackDistanceType` is `remote`: a projectile's
+    /// answers it, a skill's does unless the skill is melee
+    /// (`2 - IsMelee`), and every other answers `None`.
+    const fn remote(self) -> bool {
+        matches!(self, Self::Projectile | Self::Skill { melee: false })
+    }
 }
 
 /// Whose objects a hit strikes: `DamagePerformer.PrepareRangeTargets` takes
@@ -527,6 +542,12 @@ impl Simulation {
                     )
                 } else {
                     (amount, amount)
+                };
+                // A remote hit then takes the unit's rate on remote hits.
+                let amount = if provider.remote() {
+                    unit.stats.remote_damage_taken(amount)
+                } else {
+                    amount
                 };
                 // Then the unit's damage reduction comes off it, though
                 // never to below 1, and off a summon's drop only so far; a
@@ -1428,7 +1449,9 @@ impl Simulation {
             Some(attacker_ref),
             attacker_team,
             (damage, true),
-            Provider::Other,
+            Provider::Skill {
+                melee: self.actors[&actor_id].skill_melee(skill_slot),
+            },
             events,
         )?;
         self.count_hit(Some(attacker_ref), attacker_team, target, &stroke)?;

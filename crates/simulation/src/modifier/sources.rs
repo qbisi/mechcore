@@ -75,6 +75,21 @@ pub(crate) struct MoveAbilityAttack {
     pub(crate) splash_range_q32: i64,
 }
 
+/// What an `IMoveAbilityRangeItem` answers, which `MoveAbilityRangeItemSystem`
+/// leaves as a sand fog (`RangeItemType.FogSand`) where its unit ends a
+/// surfacing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct MoveAbilityRangeItem {
+    /// `GetRangeItemRange`, Q32.32 metres.
+    pub(crate) range: i64,
+    /// `GetLifeTime`, Q32.32 seconds.
+    pub(crate) life_time: i64,
+    /// `IFogSandProvider.GetAttackRangeChangeRate`, Q32.32.
+    pub(crate) attack_range_rate: i64,
+    /// `IFogSandProvider.GetReduceDamageFromRemote`, Q32.32.
+    pub(crate) remote_damage_rate: i64,
+}
+
 /// What an `IStealthTechDataSource` answers: `StealthTechSystem` puts its
 /// unit in stealth once its life first falls to a share of its maximum, for a
 /// while.

@@ -53,8 +53,8 @@ use super::{
     effects::{self, Fields},
     providers::EffectProvider,
     sources::{
-        AutoRecovery, BuffSource, EnergyShield, LifeSteal, MoveAbilityAttack, ProductionLine,
-        RecoveryState, Stealth, SweepIntensify,
+        AutoRecovery, BuffSource, EnergyShield, LifeSteal, MoveAbilityAttack, MoveAbilityRangeItem,
+        ProductionLine, RecoveryState, Stealth, SweepIntensify,
     },
 };
 
@@ -109,8 +109,17 @@ const DEAD_LINE: &str = "deadLineTechDatas";
 /// `IMoveAbilityAttackIntensify`.
 const MOVE_ABILITY_ATTACK: &str = "moveAbilityAttackIntensifyTechDatas";
 
+/// The list whose `MoveAbilityRangeItemTech` is an `IMoveAbilityRangeItem`.
+const MOVE_ABILITY_RANGE_ITEM: &str = "moveAbilityRangeItemTechDatas";
+
+/// `MoveAbilityTimeType.OnExitMoveEnd`: as its unit ends a surfacing.
+const ON_EXIT_MOVE_END: i32 = 3;
+
+/// `MechMoveType.Underground`.
+const UNDERGROUND_MOVE: i32 = 1;
+
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 21] = [
+const IMPLEMENTED: [&str; 22] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -132,6 +141,7 @@ const IMPLEMENTED: [&str; 21] = [
     STEALTH,
     DEAD_LINE,
     MOVE_ABILITY_ATTACK,
+    MOVE_ABILITY_RANGE_ITEM,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -234,6 +244,8 @@ struct Technology {
     /// What it answers `IMoveAbilityAttackIntensify` with, if its class is
     /// one.
     move_ability_attack: Option<MoveAbilityAttack>,
+    /// What it answers `IMoveAbilityRangeItem` with, if its class is one.
+    move_ability_range_item: Option<MoveAbilityRangeItem>,
     /// What it hands its unit's sweep, if its class is a sweep's.
     sweep: Option<SweepIntensify>,
     /// What it answers `IArmorStrengthen.GetReduceDamageValue` with, by its
@@ -671,6 +683,19 @@ struct Row {
     strike_splash_range: i64,
     #[serde(default)]
     strike_attack_point: i64,
+    /// `MoveAbilityRangeItemTechData`'s fields, on a row of its list.
+    #[serde(default)]
+    range_item_time: i32,
+    #[serde(default)]
+    range_item_move_type: i32,
+    #[serde(default)]
+    range_item_range: i64,
+    #[serde(default)]
+    range_item_life_time: i64,
+    #[serde(default)]
+    fog_attack_range_rate: i64,
+    #[serde(default)]
+    reduce_damage_from_remote: i64,
     /// `SupportUnitTechnologyData`'s fields, on a row of its list.
     #[serde(default)]
     production: Option<SupportBlock>,
@@ -1033,6 +1058,14 @@ impl TechnologyEffects {
                         splash_range_q32: row.strike_splash_range,
                     },
                 ),
+                move_ability_range_item: (row.kind == MOVE_ABILITY_RANGE_ITEM).then_some(
+                    MoveAbilityRangeItem {
+                        range: row.range_item_range,
+                        life_time: row.range_item_life_time,
+                        attack_range_rate: row.fog_attack_range_rate,
+                        remote_damage_rate: row.reduce_damage_from_remote,
+                    },
+                ),
                 sweep,
                 reduce_damage,
                 distance_intensify: row.kind == SEARCH_TARGET_SPECIFIC,
@@ -1195,6 +1228,25 @@ impl TechnologyEffects {
             .filter(|technology| technology.unit == unit_type)
             .filter_map(|technology| technology.production.clone())
             .collect())
+    }
+
+    /// What the first of this side's technologies on one unit type that is
+    /// an `IMoveAbilityRangeItem` answers.
+    ///
+    /// # Errors
+    ///
+    /// Returns the error [`Self::corrections`] does.
+    pub(crate) fn move_ability_range_item(
+        &self,
+        held: &[i32],
+        unit_type: &str,
+    ) -> Result<Option<MoveAbilityRangeItem>> {
+        self.effects(held, unit_type)?;
+        Ok(held
+            .iter()
+            .filter_map(|id| self.technologies.get(id))
+            .filter(|technology| technology.unit == unit_type)
+            .find_map(|technology| technology.move_ability_range_item))
     }
 
     /// What the first of this side's technologies on one unit type that is
@@ -1404,6 +1456,7 @@ fn provider_of(kind: &str, self_buff: bool) -> Option<EffectProvider> {
         STEALTH => EffectProvider::StealthTech,
         DEAD_LINE => EffectProvider::DeadLine,
         MOVE_ABILITY_ATTACK => EffectProvider::MoveAbilityAttackIntensify,
+        MOVE_ABILITY_RANGE_ITEM => EffectProvider::MoveAbilityRangeItem,
         _ => return None,
     })
 }
@@ -1423,6 +1476,15 @@ fn corrections_of(row: &Row) -> std::result::Result<Vec<Written>, String> {
             row.id,
             row.name,
             row.special.join(", ")
+        ));
+    }
+    if row.kind == MOVE_ABILITY_RANGE_ITEM
+        && (row.range_item_time != ON_EXIT_MOVE_END || row.range_item_move_type != UNDERGROUND_MOVE)
+    {
+        return Err(format!(
+            "technology {} ({}) leaves its terrain at MoveAbilityTimeType {} of MechMoveType \
+             {}, and only as an underground unit ends a surfacing is read",
+            row.id, row.name, row.range_item_time, row.range_item_move_type
         ));
     }
     if row.strike_attack_point != 0 {

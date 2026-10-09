@@ -101,6 +101,12 @@ SUBCLASS_SCALARS = (
     ("strike_damage_rate", "damageChangeRateInCondition", "moveAbilityAttackIntensifyTechDatas"),
     ("strike_splash_range", "splashRangeChange", "moveAbilityAttackIntensifyTechDatas"),
     ("strike_attack_point", "attackPointChange", "moveAbilityAttackIntensifyTechDatas"),
+    ("range_item_time", "moveAbilityTimeType", "moveAbilityRangeItemTechDatas"),
+    ("range_item_move_type", "moveAbilityType", "moveAbilityRangeItemTechDatas"),
+    ("range_item_range", "rangeItemRange", "moveAbilityRangeItemTechDatas"),
+    ("range_item_life_time", "lifeTime", "moveAbilityRangeItemTechDatas"),
+    ("fog_attack_range_rate", "FogAttackRangeChangeRate", "moveAbilityRangeItemTechDatas"),
+    ("reduce_damage_from_remote", "reduceDamageFromRemote", "moveAbilityRangeItemTechDatas"),
 )
 # A field of one list's rows that is one rate, written only where it is set:
 # an extra weapon's `allWeaponReduceDamageRate`, which
@@ -125,7 +131,8 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "secondaryDamageIntensifyTechDatas", "buffTechnologies",
                "interceptMissileTechnologyDatas", "splashTechnologies",
                "mobilityIntensifyTechnologies", "multiAttackTechnologies", "stealthTechData",
-               "deadLineTechDatas", "moveAbilityAttackIntensifyTechDatas")
+               "deadLineTechDatas", "moveAbilityAttackIntensifyTechDatas",
+               "moveAbilityRangeItemTechDatas")
 # The list whose `BuffTech` adds a buff, and the fields its rows carry for
 # `buff_lines` rather than as corrections.
 BUFF = "buffTechnologies"
@@ -467,6 +474,13 @@ def main() -> int:
         "# (`strike_trigger_count`), the rate on their damage, and the FPoint",
         "# metres of splash and the attack point they add",
         "# (`strike_damage_rate`, `strike_splash_range`, `strike_attack_point`).",
+        "# A move-ability terrain technology carries the time its unit's move",
+        "# ability leaves it (`range_item_time`, a MoveAbilityTimeType: 3 as it",
+        "# ends a surfacing), the MechMoveType it needs (`range_item_move_type`:",
+        "# 1 underground), and the terrain's FPoint metres and seconds",
+        "# (`range_item_range`, `range_item_life_time`) and its rates on the",
+        "# attack range of what stands in it and on the remote hits it takes",
+        "# (`fog_attack_range_rate`, `reduce_damage_from_remote`).",
         "",
         "technologies:",
     ]

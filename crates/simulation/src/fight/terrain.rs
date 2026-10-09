@@ -32,6 +32,9 @@ use mechcore_mcfr::{
 /// `IDataModifier`, so a unit carries one fog's rate however many it stands in.
 const FOG_SOURCE: &str = "FogController";
 
+/// What tags the entries a sand fog writes, as [`FOG_SOURCE`] a fog's.
+const FOG_SAND_SOURCE: &str = "FogSandController";
+
 /// A `RangeItemController`'s quadtree holds 20 items to a node before it
 /// splits; a split changes the order units are found in, which is not
 /// read, so a controller is refused that many.
@@ -119,6 +122,7 @@ const fn controller_rank(kind: TerrainKind) -> u8 {
         TerrainKind::Fire => 0,
         TerrainKind::Oil => 1,
         TerrainKind::Fog => 2,
+        TerrainKind::FogSand => 3,
         TerrainKind::Acid => 4,
     }
 }
@@ -128,6 +132,7 @@ const fn terrain_type(kind: TerrainKind) -> TerrainType {
         TerrainKind::Fire => TerrainType::Fire,
         TerrainKind::Oil => TerrainType::Oil,
         TerrainKind::Fog => TerrainType::Fog,
+        TerrainKind::FogSand => TerrainType::FogSand,
         TerrainKind::Acid => TerrainType::Acid,
     }
 }
@@ -427,7 +432,7 @@ impl Simulation {
                 items: Vec::new(),
                 affected: Vec::new(),
                 period: match spec.effect {
-                    TerrainEffect::Fog { .. } => None,
+                    TerrainEffect::Fog { .. } | TerrainEffect::FogSand { .. } => None,
                     TerrainEffect::Fire { period_ticks, .. }
                     | TerrainEffect::Buff { period_ticks, .. } => Some(period_ticks),
                 },
@@ -699,22 +704,30 @@ impl Simulation {
                 if actor.rules.attack.melee {
                     return Ok(());
                 }
-                let skill = actor.stats.overlays.channel(Channel::Skill);
-                skill.withdraw(FOG_SOURCE);
-                skill.write(Entry {
-                    index: Index::AttackRange,
-                    source: FOG_SOURCE,
-                    correction: if attack_range_rate < 0 {
-                        Correction::Rate {
-                            add: 0,
-                            reduce: -attack_range_rate,
-                        }
-                    } else {
-                        Correction::Rate {
-                            add: attack_range_rate,
-                            reduce: 0,
-                        }
-                    },
+                write_range_rate(actor, FOG_SOURCE, attack_range_rate);
+                actor.stats.refresh(&actor.rules)
+            }
+            // `FogSandController.PerformItemEffect`: a fog's rate on every
+            // skill that is not a melee attack, and the rate on remote hits
+            // in the unit's `MechDataChangeFloatRate.ReduceDamageFromRemote`,
+            // whatever its attack, the controller the modifier of both.
+            TerrainEffect::FogSand {
+                attack_range_rate,
+                remote_damage_rate,
+            } => {
+                let actor = self
+                    .actors
+                    .get_mut(&unit)
+                    .expect("actor identity is stable");
+                if !actor.rules.attack.melee {
+                    write_range_rate(actor, FOG_SAND_SOURCE, attack_range_rate);
+                }
+                let own = actor.stats.overlays.channel(Channel::Unit);
+                own.withdraw(FOG_SAND_SOURCE);
+                own.write(Entry {
+                    index: Index::RemoteDamage,
+                    source: FOG_SAND_SOURCE,
+                    correction: rate(remote_damage_rate),
                 });
                 actor.stats.refresh(&actor.rules)
             }
@@ -726,18 +739,22 @@ impl Simulation {
     fn exit_terrain(&mut self, index: usize, unit: u64) -> Result<()> {
         let controller = &mut self.terrain.controllers[index];
         controller.affected.retain(|affected| affected.unit != unit);
-        if controller.kind == TerrainKind::Fog {
-            let actor = self
-                .actors
-                .get_mut(&unit)
-                .expect("actor identity is stable");
-            actor
-                .stats
-                .overlays
-                .channel(Channel::Skill)
-                .withdraw(FOG_SOURCE);
-            actor.stats.refresh(&actor.rules)?;
-        }
+        let source = match controller.kind {
+            TerrainKind::Fog => FOG_SOURCE,
+            TerrainKind::FogSand => FOG_SAND_SOURCE,
+            TerrainKind::Fire | TerrainKind::Oil | TerrainKind::Acid => return Ok(()),
+        };
+        let actor = self
+            .actors
+            .get_mut(&unit)
+            .expect("actor identity is stable");
+        actor
+            .stats
+            .overlays
+            .channel(Channel::Skill)
+            .withdraw(source);
+        actor.stats.overlays.channel(Channel::Unit).withdraw(source);
+        actor.stats.refresh(&actor.rules)?;
         Ok(())
     }
 
@@ -824,6 +841,33 @@ impl Simulation {
 
 /// `CircleRange.Overlaps`: the centres no further apart than the radii
 /// together, by `FPoint`'s tolerant comparison.
+/// A rate as an entry carries it: an enhancement above zero, an impairment
+/// below.
+const fn rate(raw: i64) -> Correction {
+    if raw < 0 {
+        Correction::Rate {
+            add: 0,
+            reduce: -raw,
+        }
+    } else {
+        Correction::Rate {
+            add: raw,
+            reduce: 0,
+        }
+    }
+}
+
+/// A fog's rate on a unit's skill range, in place of any it wrote before.
+fn write_range_rate(actor: &mut Actor, source: &'static str, attack_range_rate: i64) {
+    let skill = actor.stats.overlays.channel(Channel::Skill);
+    skill.withdraw(source);
+    skill.write(Entry {
+        index: Index::AttackRange,
+        source,
+        correction: rate(attack_range_rate),
+    });
+}
+
 fn circles_overlap((x, z, radius): Circle, (other_x, other_z, other_radius): Circle) -> bool {
     fpoint_less_or_equal(
         native_q32_magnitude(other_x.saturating_sub(x), other_z.saturating_sub(z)),

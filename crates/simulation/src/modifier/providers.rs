@@ -55,6 +55,8 @@ pub(crate) enum EffectProvider {
     /// `MoveAbilityAttackIntensifyProvider`, for an
     /// `IMoveAbilityAttackIntensify`.
     MoveAbilityAttackIntensify,
+    /// `MoveAbilityRangeItemProvider`, for an `IMoveAbilityRangeItem`.
+    MoveAbilityRangeItem,
 }
 
 impl EffectProvider {
@@ -78,6 +80,7 @@ impl EffectProvider {
             Self::StealthTech => "StealthTechEffectProvider",
             Self::DeadLine => "DeadLineEffectProvider",
             Self::MoveAbilityAttackIntensify => "MoveAbilityAttackIntensifyProvider",
+            Self::MoveAbilityRangeItem => "MoveAbilityRangeItemProvider",
         }
     }
 
@@ -125,7 +128,8 @@ impl EffectProvider {
             | Self::SupportUnit
             | Self::DeadEffect
             | Self::MoveAbilitySummon
-            | Self::MoveAbilityAttackIntensify => false,
+            | Self::MoveAbilityAttackIntensify
+            | Self::MoveAbilityRangeItem => false,
         }
     }
 }
