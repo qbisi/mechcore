@@ -1,7 +1,7 @@
 # A wall that nothing in the fight reaches.
 #
 # One Marksman against one Arclight, the fight
-# `../regression/marksman-vs-arclight.yaml` pins, moved to the
+# `../marksman/vs-arclight.yaml` pins, moved to the
 # right-hand side of the board so that blue's Defensive Wall can stand in its
 # own slot on the left. Both units are at world x = 140 and the nearest block
 # of the wall is at `(-116, -55)`, 256 metres away against reaches of 140 and

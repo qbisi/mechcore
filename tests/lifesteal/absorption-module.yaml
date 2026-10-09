@@ -1,5 +1,5 @@
 # Absorption Module on blue's Marksman, against the Arclight of
-# `../regression/marksman-vs-arclight.yaml`, which the Arclight
+# `../marksman/vs-arclight.yaml`, which the Arclight
 # wins. The item writes +0.3 of life, and each hit hands the Marksman back
 # 0.9 of the life it took, as far as its maximum: two shots of 2329 give back
 # 365 and 1095, what the Marksman was short of, and a shot of 155 gives back

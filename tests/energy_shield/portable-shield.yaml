@@ -1,5 +1,5 @@
 # Portable Shield on blue's Marksman, against the Arclight of
-# `../regression/marksman-vs-arclight.yaml`, which the Arclight
+# `../marksman/vs-arclight.yaml`, which the Arclight
 # wins. The Marksman opens with a shield of 1622, its whole maximum life. Each
 # hit takes energy and no life while energy is left: four hits of 365 leave
 # 162, and the fifth takes those 162 and no more, recorded as a hit of 162,

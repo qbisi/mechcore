@@ -11,7 +11,7 @@ One a script reads lives with it, in its topic directory under
 are in the corpus [`../scripts/corpus/README.md`](../scripts/corpus/README.md) points at.
 
 `marksman-vs-arclight.yaml` is the layout of the pinned fight
-[`../tests/regression/marksman-vs-arclight.yaml`](../tests/regression/marksman-vs-arclight.yaml),
+[`../tests/marksman/vs-arclight.yaml`](../tests/marksman/vs-arclight.yaml),
 one Marksman against one Arclight. The crates' tests read it as a plain
 layout: a small fight that ends, for what `simulate_layout` and the command
 line do with any layout, under seeds of their own. They also fight
@@ -55,7 +55,7 @@ then refused by the game, as
 [constructions.md](../docs/rules/constructions.md#where-the-objects-stand)
 records.
 
-[`../construction/`](../tests/construction/README.md) is the directory that
+[`../construction/`](../tests/construction/) is the directory that
 measures what a construction becomes; this one is where a construction appears
 inside a fixture built for something else.
 
@@ -95,9 +95,9 @@ Some layouts were read by a topic's measurement and are not fights the
 simulator reproduces, so they are layouts rather than fight documents. The
 topic's readme says what each reading was:
 `construction-shape.yaml` and `wall-line-width.yaml` in
-[`../tests/construction/`](../tests/construction/README.md), and
+[`../tests/construction/`](../tests/construction/), and
 `technology-disabled.yaml` and the four `technology-interval*.yaml` in
-[`../tests/modifier/`](../tests/modifier/README.md).
+[`../tests/modifier/`](../tests/modifier/).
 
 `orbital-first.yaml` and `lightning-first.yaml` hold the same pair of battle
 skill releases at the same two positions over a twelve-Crawler block and

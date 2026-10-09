@@ -2,84 +2,87 @@
 
 A fixture has one home, chosen by where it came from. A fight built by hand
 lives with the research question it asked: each question is one directory
-directly under `tests/`, named for what it studies, holding its fights and,
-where a fight's own comment cannot say it, a readme. A fight taken from a round
-of the replay corpus lives in [`corpus/`](corpus/README.md), whatever it turns
-out to show:
+directly under `tests/`, named for what it studies, holding its fights and
+nothing else. A fight taken from a round of the replay corpus lives in
+[`corpus/`](corpus/README.md), whatever it turns out to show, and that
+directory alone keeps a readme, for the rules of pinning a round:
 
-| Directory | What it holds |
-| --- | --- |
-| [`anti_air/`](anti_air/README.md) | what a technology changes about its unit's skill against aircraft: whether it attacks them, reach, damage and search |
-| [`armor/`](armor/README.md) | what an armour technology takes off each hit on its unit |
-| [`battle_skill/`](battle_skill/README.md) | when a released battle skill lands, what it reaches, and what it writes or summons |
-| [`burrow/`](burrow/README.md) | when a burrowing technology burrows its unit and brings it up, and what its burrow takes off the hits on it |
-| [`construction/`](construction/README.md) | what a construction becomes in a fight, and what attacks it |
-| [`control/`](control/README.md) | what a control beam turns, what it strikes instead, and what an item or a shield changes about it |
-| [`damage_share/`](damage_share/README.md) | which units a damage-share technology links into a group, and how a hit on one is shared or the group raises their damage |
-| [`dead_acid/`](dead_acid/README.md) | what a technology leaves where its unit dies, and when it leaves nothing |
-| [`dead_line/`](dead_line/README.md) | the life under which a technology makes its unit's hits destroy what they strike |
-| [`dead_summon/`](dead_summon/README.md) | what a technology makes its unit summon where it dies |
-| [`energy_tower/`](energy_tower/README.md) | what the Energy Tower's fight skills write onto a side, and what they leave alone |
-| [`energy_shield/`](energy_shield/README.md) | what a unit's own shield holds and takes off a hit, from an item or a technology |
-| [`endgame/`](endgame/README.md) | what the tick a side loses its last unit, and the ticks the fight runs on after it, do to the units still standing |
-| [`extra_weapon/`](extra_weapon/README.md) | what an extra weapon technology adds beside a unit's main skill, and how that skill differs |
-| [`equipment/`](equipment/README.md) | where equipment corrections land and how they compose with officers |
-| [`equipment_buff/`](equipment_buff/README.md) | what a buff item adds to the unit wearing it, and which buffs it keeps off |
-| [`ground_attack/`](ground_attack/README.md) | what a technology changes about its unit's skill against ground units: reach, damage and search |
-| [`important_unit/`](important_unit/README.md) | what a side does when its last important unit dies |
-| [`interceptor/`](interceptor/README.md) | how an interceptor takes projectiles out of the air, and what befalls it |
-| [`level/`](level/README.md) | how a unit level scales base life and damage before overlays |
-| [`lifesteal/`](lifesteal/README.md) | how a hit hands life back to the unit whose skill dealt it, and which lifesteal source does |
-| [`loose_formation/`](loose_formation/README.md) | how far apart a loose-formation technology keeps its unit's agents, and when they close up |
-| [`missile/`](missile/README.md) | when a missile fires, at what, and what its hit writes |
-| [`fire_extinguisher/`](fire_extinguisher/README.md) | which terrain a fire extinguisher clears about its unit, and when |
-| [`fire_intensify/`](fire_intensify/README.md) | where a fire technology's unit leaves fires as its main skill hits |
-| [`rebirth/`](rebirth/README.md) | when a rebirth technology brings its unit back after it dies, where, and what its side and the score make of it meanwhile |
-| [`reactive_armor/`](reactive_armor/README.md) | what a reactive armor technology takes off the hits on its unit, and for how many |
-| [`multi_attack/`](multi_attack/README.md) | how many projectiles a multi-attack technology adds its unit's bursts, how far apart in time and space, and from which weapon |
-| [`maintenance_array/`](maintenance_array/README.md) | whom a repair technology's unit repairs about it, how often and from when |
-| [`wreckage_detonation/`](wreckage_detonation/README.md) | which units a kill-explosion technology's unit's hits set off and whom each explosion strikes |
-| [`map/`](map/README.md) | what a map's neutral crystals do to a fight |
-| [`move_ability/`](move_ability/README.md) | what a technology adds to its unit's move ability, and what it makes as the unit surfaces |
-| [`modifier/`](modifier/README.md) | how officers and technologies correct a unit's numbers |
-| [`splash/`](splash/README.md) | how a correction widens a skill's splash, and a skill with none given one |
-| [`super_deployment/`](super_deployment/README.md) | what a formation deployed on a flank does in a fight, travelling in or settled |
-| [`sweep/`](sweep/README.md) | what a sweep strikes beyond the standard fights: shields, buildings, aircraft beside ground units, its technology |
-| [`stealth/`](stealth/README.md) | when a stealth technology hides its unit, what strikes and finds it meanwhile, and what disabling it does |
-| [`shield/`](shield/README.md) | what a battlefield shield does to the hits meant for what it covers, and when it breaks |
-| [`siege_mode/`](siege_mode/README.md) | when a siege-mode technology digs its unit in, what the trench gives it, and what takes it away |
-| [`search/`](search/README.md) | which positions a skill's target search scores |
-| [`secondary_damage/`](secondary_damage/README.md) | what a technology's second damage deals around each of its unit's hits |
-| [`production/`](production/README.md) | what a production line makes, where its makes stand, and how often they come |
-| [`repair/`](repair/README.md) | how a unit repairs itself while hurt: when it starts, how often and by how much |
-| [`projectile/`](projectile/README.md) | how a projectile leaves its weapon, climbs and flies, and a burst still releasing |
-| [`technology_buff/`](technology_buff/README.md) | what a buff technology adds, to its unit or the units around it, and how its buff runs |
-| [`technology_disable/`](technology_disable/README.md) | what a buff that disables technology switches off on a unit, and what it gives back |
-| [`terrain/`](terrain/README.md) | what a battle skill's terrain does to the units standing in it, and when it goes |
-| [`tower/`](tower/README.md) | what losing a tower writes on its side, and what strengthening one adds |
-| [`turret/`](turret/README.md) | when a turret fires, at what, and how often |
-| [`raiden/`](raiden/README.md) | how a Raiden's three weapons choose targets and fire together, beside its standard fights |
-| [`wreckage/`](wreckage/README.md) | how a wreckage-recovery technology heals its unit as an enemy it struck dies |
-| [`wraith/`](wraith/README.md) | how a Wraith's four slots choose their targets, beside its standard fights |
-| [`regression/`](regression/README.md) | fights that exercise the kernel rather than one rule |
-| [`corpus/`](corpus/README.md) | rounds of the replay corpus the simulator plays back, each named for its replay and round |
-| every other unit, `arclight/` to `wasp/` | that unit's [standard fights](#standard-unit-layouts) |
+| Directory | What it holds | Rule |
+| --- | --- | --- |
+| [`anti_air/`](anti_air/) | what a technology changes about its unit's skill against aircraft: whether it attacks them, reach, damage and search | [`combat.md`](../docs/rules/combat.md#aerial-and-ground-targets) |
+| [`armor/`](armor/) | what an armour technology takes off each hit on its unit | [`combat.md`](../docs/rules/combat.md#armour) |
+| [`battle_skill/`](battle_skill/) | when a released battle skill lands, what it reaches, and what it writes or summons | [`battle_skill.md`](../docs/rules/battle_skill.md) |
+| [`burrow/`](burrow/) | when a burrowing technology burrows its unit and brings it up, and what its burrow takes off the hits on it | [`technology_effects.md`](../docs/rules/technology_effects.md#burrowing-technologies) |
+| [`construction/`](construction/) | what a construction becomes in a fight, and what attacks it | [`constructions.md`](../docs/rules/constructions.md) |
+| [`control/`](control/) | what a control beam turns, what it strikes instead, and what an item or a shield changes about it | [`control.md`](../docs/rules/control.md) |
+| [`damage_share/`](damage_share/) | which units a damage-share technology links into a group, and how a hit on one is shared or the group raises their damage | [`technology_effects.md`](../docs/rules/technology_effects.md#damage-share-technologies) |
+| [`dead_acid/`](dead_acid/) | what a technology leaves where its unit dies, and when it leaves nothing | [`technology_effects.md`](../docs/rules/technology_effects.md#acid-technologies) |
+| [`dead_line/`](dead_line/) | the life under which a technology makes its unit's hits destroy what they strike | [`technology_effects.md`](../docs/rules/technology_effects.md#dead-line-technologies) |
+| [`dead_summon/`](dead_summon/) | what a technology makes its unit summon where it dies | [`technology_effects.md`](../docs/rules/technology_effects.md#summons-where-a-unit-dies) |
+| [`energy_tower/`](energy_tower/) | what the Energy Tower's fight skills write onto a side, and what they leave alone | [`energy_tower_skills.md`](../docs/rules/energy_tower_skills.md) |
+| [`energy_shield/`](energy_shield/) | what a unit's own shield holds and takes off a hit, from an item or a technology | [`combat.md`](../docs/rules/combat.md#personal-shield) |
+| [`endgame/`](endgame/) | what the tick a side loses its last unit, and the ticks the fight runs on after it, do to the units still standing | [`combat.md`](../docs/rules/combat.md#endgame-ordering-of-a-1v1-direct-kill) |
+| [`extra_weapon/`](extra_weapon/) | what an extra weapon technology adds beside a unit's main skill, and how that skill differs | [`extra_weapons.md`](../docs/rules/extra_weapons.md) |
+| [`equipment/`](equipment/) | where equipment corrections land and how they compose with officers | [`equipment_effects.md`](../docs/rules/equipment_effects.md) |
+| [`equipment_buff/`](equipment_buff/) | what a buff item adds to the unit wearing it, and which buffs it keeps off | [`equipment_effects.md`](../docs/rules/equipment_effects.md#buff-items) |
+| [`ground_attack/`](ground_attack/) | what a technology changes about its unit's skill against ground units: reach, damage and search | [`combat.md`](../docs/rules/combat.md#aerial-and-ground-targets) |
+| [`important_unit/`](important_unit/) | what a side does when its last important unit dies | [`equipment_effects.md`](../docs/rules/equipment_effects.md#an-important-unit) |
+| [`interceptor/`](interceptor/) | how an interceptor takes projectiles out of the air, and what befalls it | [`contraptions.md`](../docs/rules/contraptions.md) |
+| [`level/`](level/) | how a unit level scales base life and damage before overlays | [`unit_levels.md`](../docs/rules/unit_levels.md) |
+| [`lifesteal/`](lifesteal/) | how a hit hands life back to the unit whose skill dealt it, and which lifesteal source does | [`combat.md`](../docs/rules/combat.md#lifesteal) |
+| [`loose_formation/`](loose_formation/) | how far apart a loose-formation technology keeps its unit's agents, and when they close up | [`technology_effects.md`](../docs/rules/technology_effects.md#loose-formation-technologies) |
+| [`missile/`](missile/) | when a missile fires, at what, and what its hit writes | [`contraptions.md`](../docs/rules/contraptions.md) |
+| [`fire_extinguisher/`](fire_extinguisher/) | which terrain a fire extinguisher clears about its unit, and when | [`technology_effects.md`](../docs/rules/technology_effects.md#fire-extinguisher-technologies) |
+| [`fire_intensify/`](fire_intensify/) | where a fire technology's unit leaves fires as its main skill hits | [`technology_effects.md`](../docs/rules/technology_effects.md#fire-technologies) |
+| [`rebirth/`](rebirth/) | when a rebirth technology brings its unit back after it dies, where, and what its side and the score make of it meanwhile | [`technology_effects.md`](../docs/rules/technology_effects.md#rebirth-technologies) |
+| [`reactive_armor/`](reactive_armor/) | what a reactive armor technology takes off the hits on its unit, and for how many | [`technology_effects.md`](../docs/rules/technology_effects.md#reactive-armor-technologies) |
+| [`multi_attack/`](multi_attack/) | how many projectiles a multi-attack technology adds its unit's bursts, how far apart in time and space, and from which weapon | [`technology_effects.md`](../docs/rules/technology_effects.md#multi-attack-technologies) |
+| [`maintenance_array/`](maintenance_array/) | whom a repair technology's unit repairs about it, how often and from when | [`technology_effects.md`](../docs/rules/technology_effects.md#repair-technologies) |
+| [`wreckage_detonation/`](wreckage_detonation/) | which units a kill-explosion technology's unit's hits set off and whom each explosion strikes | [`technology_effects.md`](../docs/rules/technology_effects.md#kill-explosion-technologies) |
+| [`map/`](map/) | what a map's neutral crystals do to a fight | [`map.md`](../docs/rules/map.md) |
+| [`move_ability/`](move_ability/) | what a technology adds to its unit's move ability, and what it makes as the unit surfaces | [`underground.md`](../docs/rules/underground.md) |
+| [`modifier/`](modifier/) | how officers and technologies correct a unit's numbers | [`officer_effects.md`](../docs/rules/officer_effects.md) |
+| [`splash/`](splash/) | how a correction widens a skill's splash, and a skill with none given one | [`combat.md`](../docs/rules/combat.md#damage-and-death) |
+| [`super_deployment/`](super_deployment/) | what a formation deployed on a flank does in a fight, travelling in or settled | [`unit-rules.md`](../docs/spec/simulation/unit-rules.md) |
+| [`sweep/`](sweep/) | what a sweep strikes beyond the standard fights: shields, buildings, aircraft beside ground units, its technology | [`sweep.md`](../docs/rules/sweep.md) |
+| [`stealth/`](stealth/) | when a stealth technology hides its unit, what strikes and finds it meanwhile, and what disabling it does | [`technology_effects.md`](../docs/rules/technology_effects.md#stealth-technologies) |
+| [`shield/`](shield/) | what a battlefield shield does to the hits meant for what it covers, and when it breaks | [`contraptions.md`](../docs/rules/contraptions.md) |
+| [`siege_mode/`](siege_mode/) | when a siege-mode technology digs its unit in, what the trench gives it, and what takes it away | [`technology_effects.md`](../docs/rules/technology_effects.md#siege-mode-technologies) |
+| [`search/`](search/) | which positions a skill's target search scores | [`combat.md`](../docs/rules/combat.md) |
+| [`secondary_damage/`](secondary_damage/) | what a technology's second damage deals around each of its unit's hits | [`combat.md`](../docs/rules/combat.md#a-second-damage-around-a-hit) |
+| [`production/`](production/) | what a production line makes, where its makes stand, and how often they come | [`equipment_effects.md`](../docs/rules/equipment_effects.md#production-lines) |
+| [`repair/`](repair/) | how a unit repairs itself while hurt: when it starts, how often and by how much | [`combat.md`](../docs/rules/combat.md#repair) |
+| [`projectile/`](projectile/) | how a projectile leaves its weapon, climbs and flies, and a burst still releasing | [`combat.md`](../docs/rules/combat.md) |
+| [`technology_buff/`](technology_buff/) | what a buff technology adds, to its unit or the units around it, and how its buff runs | [`technology_effects.md`](../docs/rules/technology_effects.md#buff-technologies) |
+| [`technology_disable/`](technology_disable/) | what a buff that disables technology switches off on a unit, and what it gives back | [`technology_effects.md`](../docs/rules/technology_effects.md) |
+| [`terrain/`](terrain/) | what a battle skill's terrain does to the units standing in it, and when it goes | [`terrain.md`](../docs/rules/terrain.md) |
+| [`tower/`](tower/) | what losing a tower writes on its side, and what strengthening one adds | [`towers.md`](../docs/rules/towers.md) |
+| [`turret/`](turret/) | when a turret fires, at what, and how often | [`turrets.md`](../docs/rules/turrets.md) |
+| [`raiden/`](raiden/) | how a Raiden's three weapons choose targets and fire together, beside its standard fights | [`combat.md`](../docs/rules/combat.md#a-fusillade-fires-with-its-core) |
+| [`wreckage/`](wreckage/) | how a wreckage-recovery technology heals its unit as an enemy it struck dies | [`technology_effects.md`](../docs/rules/technology_effects.md#wreckage-recovery-technologies) |
+| [`wraith/`](wraith/) | how a Wraith's four slots choose their targets, beside its standard fights | [`combat.md`](../docs/rules/combat.md#a-grouped-slot-searches-around-its-siblings-locks) |
+| [`corpus/`](corpus/README.md) | rounds of the replay corpus the simulator plays back, each named for its replay and round |  |
+| every other unit, `arclight/` to `wasp/` | that unit's [standard fights](#standard-unit-layouts) | [`combat.md`](../docs/rules/combat.md) |
 
 **A fixture that bears on several topics is cited, not copied.** It stays in
 its home, and every other topic reaches it by its path: a rule's `### Recorded`
 evidence in [`docs/rules/`](../docs/rules/) names the fights it rests on, which
-`scripts/check/check-docs.py` holds to exist, and a topic's readme names a
-fight elsewhere that it reads, as `equipment/` and `level/` name the
-regression fight they take as their control. No fixture is copied into a
+`scripts/check/check-docs.py` holds to exist, and a fight's comment names a
+fight elsewhere that it takes as its control, as `equipment/` and `level/`
+take `marksman/vs-arclight.yaml`. No fixture is copied into a
 second directory or linked there: CI finds fights by directory, and a second
 path would be a second fixture to keep in step. Two fights that differ in
 anything, a `map_id` included, are two fixtures.
 
-A fight's comment says what it measures and what the game answered, and a
-topic's readme says only what no one fight can: the question, the rule it
-settled, and the commands that record it with instrument channels or read
-those recordings. A rule lands in [`docs/rules/`](../docs/rules/), never in a
-readme here.
+A fight's comment says what it measures, its control and what the game
+answered; the topic's question is its row above, and the rule it settled is
+the rules document beside it. A rule lands in [`docs/rules/`](../docs/rules/),
+never here.
+
+A unit's directory holds its [standard fights](#standard-unit-layouts) and,
+beside them, the older pairings `vs-*.yaml`: one formation against another,
+from before the standard layouts, which the RVO module and the skill state
+were first held to.
 
 **A pinned fight is a [fight document](../docs/spec/document/fight.md)** in its
 topic's directory: the layout, the seed, and what the game's
@@ -153,9 +156,61 @@ or events that see it, and for each mutation the tick of its first divergence
 beside the tick the mechanism first acts. A format change the witness needs
 blocks the mechanism: it lands first, and the mechanism waits.
 
+## Reading a recording
+
+`mechcore query <recording> --schema` lists what a recording holds. A few
+things it holds are easy to misread:
+
+- A battle skill's effect names no source: its `buff_applied` events, and an
+  air drop's `damage` and the deaths it causes, carry only the team that
+  released it. A summon is a unit from its `unit_created` on, though it first
+  stands in a snapshot a second later, as it joins the fight.
+- A control beam's hit that turns writes no `damage`; the turning shows in the
+  unit's `control`, the progress its beams have added and whose they are.
+- A missile's projectile is the one whose `projectile_released` names no
+  source.
+- A reborn unit stands again under the same unit id, with no event: while it
+  waits it is a row in `rebirths`, and after, its `rebirth_count` reads 1.
+- A building row names its `BuildingType`, not the construction that placed
+  it; `show --view buildings` matches the rows back to the layout's
+  placements.
+- An explosion a kill sets off is `damage` that names the unit and no skill.
+
+## Recording with instrument channels
+
+What a recording does not hash, an instrument channel records beside it
+([mcfr.md](../docs/spec/mcfr/mcfr.md#instrument-channels)). Any pinned fight is
+recorded again with channels by `scripts/record-fights.py`, and a layout by
+`convert`:
+
+```sh
+scripts/record-fights.py --instrument <channels> --out /tmp/mechcore/<topic> tests/<topic>/*.yaml
+mechcore convert <layout> --to mcfr --backend game <out.mcfr> --seed <seed> --instrument <channels>
+```
+
+| Channel | What it shows | Read in |
+| --- | --- | --- |
+| `target_refs` | each skill's state and attack phase, tick by tick | `construction/`, `control/`, `sweep/`, `turret/`, the unit pairings |
+| `target_search`, `target_candidate` | what a search scored, and its best candidates | `anti_air/`, `ground_attack/`, `extra_weapon/` |
+| `skill_attackable_checker` | every `Check` call, with the slot that made it and its lock before and after | `raiden/`, `wraith/`, `shield/barrier-fortress-vs-wasps.yaml` |
+| `unit_pose` | each unit's animated pose | the player's demo scene (`scripts/player/pose-timing.py`) |
+
+An ignored test replays the checker channel of `wraith/group-attack.yaml` and
+`wraith/two-targets.yaml`: before each grouped call it restores the targets
+the slot held and compares the call's answer, lock and attack target.
+
+```sh
+cargo test -p mechcore-simulation grouped_checker_matches_every_captured_call -- --ignored --nocapture
+```
+
 ## How a mechanism is researched
 
-[`modifier/`](modifier/README.md)'s composition fights are the worked example.
+[`modifier/`](modifier/)'s composition fights are the worked example: they
+were designed so that the outcome separates the candidates, which is why one
+reads a tick count and another the life left. A recording carries each unit's
+speed and each skill's range, damage and interval as the build computed them,
+so a new correction needs no such design: put it on a unit, record one tick,
+and read the numbers with `show --view stats`.
 
 1. **Reduce the question to one number.** A question that does not reduce to
    one makes no experiment.

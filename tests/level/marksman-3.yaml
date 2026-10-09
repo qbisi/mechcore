@@ -1,6 +1,6 @@
 # What does a unit's level do to its numbers?
 #
-# The pinned `../regression/marksman-vs-arclight.yaml` fight with
+# The pinned `../marksman/vs-arclight.yaml` fight with
 # blue's Marksman at level 3 and nothing else changed. A tripled shot, 6987
 # against the Arclight's 4813 of life, ends the fight on the first hit. Level
 # 3 is what separates a rating that is the level from one that doubles each

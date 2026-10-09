@@ -985,7 +985,7 @@ fn rhino_backswing_remains_active_through_its_ninth_wait_update() {
 fn a_marksman_holds_through_its_cooling_after_a_kill_it_cannot_follow() {
     let config = SimulationConfig::load().unwrap();
     let layout = pinned_layout(
-        include_bytes!("../../../../../tests/regression/crawlers-vs-marksman.yaml"),
+        include_bytes!("../../../../../tests/crawler/vs-marksman.yaml"),
         &config.units,
     );
     let mut simulation =

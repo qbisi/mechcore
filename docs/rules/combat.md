@@ -335,7 +335,7 @@ not the ordinary search's sibling-exclusion loop. It passes over the slot
 itself and the owner's main skill's first skill, the core of a main skill's
 group; an extra skill's group, which does not hold that skill, passes over
 none of its own ([extra_weapons.md](extra_weapons.md#a-group-of-beams)). The fixtures
-that separated the rest are [the Wraith fixtures](../../tests/wraith/README.md).
+that separated the rest are [the Wraith fixtures](../../tests/wraith/).
 
 ## A fusillade fires with its core
 
@@ -429,7 +429,7 @@ The hold does not reach a skill already in its attack state:
 target in angle, and nothing of the motion. A Wasp whose motion moved during
 its backswing, and came back into its attack out of angle, fires on the first
 tick its target is in its angle
-(`tests/regression/barrier-fortress-vs-wasps.yaml`).
+(`tests/shield/barrier-fortress-vs-wasps.yaml`).
 
 ## Normal target scoring and pre-fight acquisition
 
@@ -1167,13 +1167,14 @@ not the game's native attack-type enum.
   preparing, and a free-moving Wraith at full speed off its facing, in the Wraith's M3 with
   seed 1787720817: `tests/wraith/`.
 - Where a charging Crawler is sent, and a Marksman's quick switch that cannot
-  follow a kill: `tests/regression/`.
+  follow a kill: `tests/crawler/vs-marksman.yaml`, `tests/marksman/vs-arclight.yaml`.
 - The body travelling toward the lock, attacking without moving, and the
   weapons on a construction while the body keeps the lock:
   `tests/construction/`.
 - Target scoring, ordinary projectiles, damage clamping, the first-attack
   delay, the backswing, dead-target retention and the endgame ordering, in the
-  ordinary fights: `tests/regression/`.
+  unit pairings, each unit's `vs-*.yaml`: `tests/rhino/vs-arclight.yaml`,
+  `tests/crawler/vs-crawlers-60.yaml` and `tests/fang/vs-fangs.yaml` among them.
 - A unit's personal shield enabled with no shield of its own, in every unit's
   standard fights, `tests/rhino/` among them.
 - A following projectile's offset, the order a single weapon lands its
@@ -1216,7 +1217,7 @@ not the game's native attack-type enum.
   `tests/corpus/134270595-r4.yaml`.
 - A winner's unit that updates after the last death taking a tower, and
   letting it go the tick after, in the Stormcaller mirrors:
-  `tests/regression/`; a burst the fight's end stops, in the
+  `tests/stormcaller/vs-stormcaller.yaml`; a burst the fight's end stops, in the
   Phantom Ray's M2 fight: `tests/phantom_ray/`.
 - The Raiden's fusillade, its siblings' towers, a core taking a sibling's unit,
   siblings cooling and searching on their timers, and its weapons' poses, in

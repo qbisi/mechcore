@@ -56,7 +56,7 @@ read as a decimal, and is a comment because the decimal is the lossy one:
 truncated toward zero once, at the end. The shape is the build's own, and
 [`architecture.md`](../spec/simulation/architecture.md) reads it out of
 `DataSet`'s aggregation classes. The fixtures in
-[`tests/modifier/`](../../tests/modifier/README.md) each put one clause on one
+[`tests/modifier/`](../../tests/modifier/) each put one clause on one
 unit, and their README gives what the game answered.
 
 **Enhancements sum.** Two enhancements on one number sum before they multiply

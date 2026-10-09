@@ -1,0 +1,17 @@
+# A Steel Ball formation against another. The simulation's deployment tests
+# embed it for the first RVO solve avoiding its own formation at tick eight.
+# Map 1021, seed 1787831322.
+kind: fight
+map_id: 1021
+seed: 1787831322
+round: 1
+source: game
+ticks: 300
+hash: {profile: mcfr-content-0.23.0, result: 5dfe93aac56f93858d6e83c89570b47c5290add407ccaa83a0f6745e286f876e}
+blue:
+  core_damage: 50
+  units:
+  - {name: steel_ball, index: 0, position: {x: 5, y: -100}, exp: 0/300/1000}
+red:
+  units:
+  - {name: steel_ball, index: 0, position: {x: 5, y: -100}, exp: 0/400/1000}

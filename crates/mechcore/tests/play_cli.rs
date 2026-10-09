@@ -69,7 +69,7 @@ fn a_layout_is_fought_in_memory_and_played() {
 #[test]
 fn a_fight_and_its_recording_play_the_same_fight() {
     let directory = tempfile::tempdir().unwrap();
-    let fight = repository().join("tests/regression/marksman-vs-arclight.yaml");
+    let fight = repository().join("tests/marksman/vs-arclight.yaml");
     let from_fight = directory.path().join("fight.html");
     let report = played(&[
         "play".as_ref(),

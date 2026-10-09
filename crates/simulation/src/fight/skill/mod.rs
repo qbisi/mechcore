@@ -202,7 +202,7 @@ pub(in crate::fight) struct EvenlyAllocated {
 /// The skill's state, as `SkillStateController` holds it.
 ///
 /// Every combination of phase, wind-up, backswing and cooling the kernel
-/// used to carry apart is one of these, which the regression fights were
+/// used to carry apart is one of these, which the unit pairings were
 /// counted against before they were folded: a wind-up and a backswing never
 /// run together, and neither does anything else with a cooling.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

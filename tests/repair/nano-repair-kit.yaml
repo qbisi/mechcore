@@ -1,5 +1,5 @@
 # Nano Repair Kit on blue's Marksman, against the Arclight of
-# `../regression/marksman-vs-arclight.yaml`. First hurt on tick 9,
+# `../marksman/vs-arclight.yaml`. First hurt on tick 9,
 # the Marksman repairs from tick 29, twenty ticks on, and every second tick
 # after while it is hurt, each time by 7, the whole part of 0.0045 of its
 # 1622. It holds out to tick 112 where it fell on tick 91, and still loses.

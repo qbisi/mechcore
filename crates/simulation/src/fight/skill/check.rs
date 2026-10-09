@@ -418,8 +418,8 @@ impl Simulation {
     /// It asks while no attack phase runs between two blows, through the wait
     /// before a blow, and on the update the blow lands, before it is
     /// performed; not through a burst after its first shot, nor during the
-    /// backswing. Every `Check` call the game made across the 82 fights of
-    /// `tests/regression/` falls on one of these updates.
+    /// backswing. Every `Check` call the game made across the unit pairings
+    /// (each unit's `vs-*.yaml`) falls on one of these updates.
     pub(in crate::fight) fn between_blows(&self, skill_ref: SkillRef, step: u64) -> bool {
         let skill = self.skill(skill_ref);
         let waiting = skill.pending().is_none()

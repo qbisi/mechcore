@@ -7,9 +7,9 @@ fn repository() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
 
-/// A native regression fight: `tests/regression/<name>.yaml`.
-fn native_regression(name: &str) -> mechcore_document::Fight {
-    let path = repository().join(format!("tests/regression/{name}.yaml"));
+/// A pinned fight: `tests/<name>.yaml`, its topic included in the name.
+fn pinned(name: &str) -> mechcore_document::Fight {
+    let path = repository().join(format!("tests/{name}.yaml"));
     mechcore_document::fight::parse_yaml(&fs::read(&path).unwrap())
         .unwrap_or_else(|error| panic!("{}: {error}", path.display()))
 }
@@ -56,7 +56,7 @@ fn marksman_vs_arclight_runs_to_a_readable_terminal_result() {
     assert!(event_kinds.contains(&EventKind::ProjectileRemoved));
 }
 
-/// Fights a native regression fight's layout with its seed through the
+/// Fights a pinned fight's layout with its seed through the
 /// simulator, and opens what it wrote.
 ///
 /// CI verifies every fight document there;
@@ -64,7 +64,7 @@ fn marksman_vs_arclight_runs_to_a_readable_terminal_result() {
 /// motion state — so that a failure says which one moved. The ticks and the
 /// hash are checked too, so a field read here is read on the game's fight.
 fn recorded(name: &str) -> (tempfile::TempDir, McfrReader) {
-    let fight = native_regression(name);
+    let fight = pinned(name);
     let layout =
         mechcore_document::canonical_yaml(mechcore_document::fight::project(&fight)).unwrap();
     let directory = tempfile::tempdir().unwrap();
@@ -78,7 +78,7 @@ fn recorded(name: &str) -> (tempfile::TempDir, McfrReader) {
 
 #[test]
 fn marksman_vs_arclight_ends_with_no_lock() {
-    let (_directory, reader) = recorded("marksman-vs-arclight");
+    let (_directory, reader) = recorded("marksman/vs-arclight");
     let terminal = reader.state(reader.terminal_tick()).unwrap();
     assert!(
         terminal
@@ -90,7 +90,7 @@ fn marksman_vs_arclight_ends_with_no_lock() {
 
 #[test]
 fn rhino_vs_arclight_ends_with_no_lock() {
-    let (_directory, reader) = recorded("rhino-vs-arclight");
+    let (_directory, reader) = recorded("rhino/vs-arclight");
     let terminal = reader.state(reader.terminal_tick()).unwrap();
     assert!(
         terminal
@@ -102,7 +102,7 @@ fn rhino_vs_arclight_ends_with_no_lock() {
 
 #[test]
 fn rhino_retarget_waits_idle_then_moves_and_attacks() {
-    let (_directory, reader) = recorded("rhino-retarget");
+    let (_directory, reader) = recorded("rhino/retarget");
     let rhino_motion = |tick| {
         reader
             .state(tick)
