@@ -310,6 +310,9 @@ struct Actor {
     /// Whether `MoveAbilityRangeItemSystem` holds its sand fog's action on
     /// its move ability: taken off while its technology is switched off.
     sand_fog_held: bool,
+    /// Whether `MoveAbilitySummonSystem` holds its surfacing line's action on
+    /// its move ability: taken off while its technology is switched off.
+    surfacing_line_held: bool,
     /// `BuffManager.beHitDelayBuffInfos`: the buffs that disable technology
     /// a unit it hit queued on it, each with that unit, which
     /// `InvokeDelayAddBuff` adds as its `BuffManager.Update` ends.

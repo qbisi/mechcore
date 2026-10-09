@@ -1238,11 +1238,16 @@ off: `AirAttackEffectProvider.DisableEffect` and `EnableEffect` are
 as it activated (`SwitchMechAirAttackEnabled`), not among the numbers its
 technologies write. Read from the build; no recording holds it.
 
-What any other provider does switched off, the `MoveAbilitySummonProvider`,
-and an extra weapon's production line, other
-explosion or preemptive skill, or group, is not measured: a buff that
-disables technology reaching a unit whose technologies reach one is refused
-by the provider's name.
+A surfacing line stops too: `MoveAbilitySummonProvider.DisableEffect` stops
+hearing the unit's ability change and takes the line's action off its move
+ability (`MoveAbilitySummonSystem`), so a surfacing that begins while the
+technologies are off makes nothing, and `EnableEffect` puts both back. Read
+from the build; no recording holds it.
+
+Every provider's `DisableEffect` is mirrored. What an extra weapon's
+production line, other explosion or preemptive skill, or group does switched
+off is not measured: a buff that disables technology reaching a unit whose
+technologies hold one is refused by the technology's id.
 
 ## What the recordings show
 

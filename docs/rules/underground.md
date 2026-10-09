@@ -115,6 +115,13 @@ ends it after its first update, which makes its first batch. Replicate makes
 one Larva at the Sandworm's level, 35 metres ahead of it, each time the
 Sandworm begins to surface: `tests/move_ability/fights/replicate.yaml`.
 
+Switched off with its unit's technologies,
+`MoveAbilitySummonProvider.DisableEffect` stops hearing the unit's ability
+change (`MotionController.UnRegisterMoveAbilityChange`) and takes the
+line's action off the ability (`MoveAbilitySummonSystem`), so a surfacing
+that begins while they are off makes no creator; `EnableEffect` registers
+both again. Read from the build; no recording holds it.
+
 ## A stronger surfacing
 
 A row of `moveAbilityAttackIntensifyTechDatas` is a

@@ -147,8 +147,93 @@ impl Simulation {
 
     /// One provider's `DisableEffect` or `EnableEffect` on a unit, beside
     /// what its technologies wrote onto its numbers, which every provider
-    /// takes away and writes again alike. The layout refuses a provider whose
-    /// own the fight does not mirror ([`EffectProvider::disable_read`]).
+    /// takes away and writes again alike.
+    ///
+    /// - An armour's provider takes its reduction away, which is the unit's
+    ///   numbers.
+    /// - A lifesteal's and a second damage's providers take their hit effect
+    ///   away, which the fight asks of the unit at each hit.
+    /// - A search technology's `SearchTargetSpecificProvider.DoDisable` takes
+    ///   its ranges and score offsets away and turns its unit's selector back
+    ///   to `Normal`, which is the selector it turned to with no offsets, and
+    ///   `DoEnable` writes them and turns it to `DistanceIntensify` again,
+    ///   which reads them as they now stand.
+    /// - An extra weapon's provider disables its skills
+    ///   (`ExtraSkillProvider.DisableSkill`), which the layout refuses for the
+    ///   shapes it does not fight switched off.
+    /// - A buff added once onto its own unit is cleared
+    ///   (`BuffManager.ClearSelfResourceBuffByDisableTech`), and every buff
+    ///   controller of the unit stops, its listener taken off, and starts
+    ///   again at no time (`BuffEffectProvider.DoDisableCycle`,
+    ///   `DoEnableCycle`).
+    /// - A stealth technology's unit is shown and counts as triggered
+    ///   (`StealthTechSystem.DisableStealthTech`).
+    /// - A dead-line technology's pre-hit effect is taken off its unit's
+    ///   skills (`DeadLineEffectProvider.DisableEffect`), and does nothing
+    ///   while the technologies are off (`PerformPreHitEffect`).
+    /// - A grouping technology's unit leaves its side's groups
+    ///   (`MechGrounpEffectProvider.DisableEffect`,
+    ///   `TeamMechGroupManager.RemoveMech`) and is handed back (`AddMech`).
+    /// - A barrier technology's shield is disabled and deactivated, its
+    ///   energy recorded, and given back that energy and activated again
+    ///   (`AdvancedEnergyShieldProvider.DisableEffect`, `EnableEffect`).
+    /// - A reactive armor's rate leaves its unit, its count kept, and comes
+    ///   back while the count lasts (`ReactiveArmorSystem.DisableReactiveArmor`,
+    ///   `EnableReactiveArmor`).
+    /// - A siege-mode technology's unit leaves its trench on the system's
+    ///   next update, as if no enemy had stood in range for its whole
+    ///   duration (`SiegeModeEffectProvider.DisableEffect`,
+    ///   `SiegeModeEffectSystem.EndSiegeMode`), and does not dig in again
+    ///   (`EnableEffect` is `SingleEffectProvider`'s alone).
+    /// - A fire technology's hit leaves no fire while the technologies are
+    ///   off (`FireIntensifyEffectProvider.PerformHitEffect` returns on
+    ///   `isTechnologyDisabled` for a source that `CanDisable`).
+    /// - A wreckage-recovery technology's hit effect is taken off its unit's
+    ///   skills (`WreckageRecoveryEffectProvider.DisableEffect`,
+    ///   `SkillManager.RemoveHitEffect`) and handed back (`EnableEffect`);
+    ///   what its unit struck before still heals it as it dies.
+    /// - A loose-formation technology's agent keeps its own inner radius
+    ///   from the others of its team and stops switching
+    ///   (`MotionController.DisableRVOChangeRadius`), and switches again from
+    ///   its next update (`EnableRVOChangeRadius`).
+    /// - A fire-extinguisher technology's unit clears nothing
+    ///   (`TeamClearRangeItemManager.DisableMech`), and clears again from the
+    ///   manager's next clearing (`EnableMech`).
+    /// - A dead effect is taken off the unit's `DeadEffectSystem` controller
+    ///   and handed back (`DeadEffectProvider.DisableEffect`,
+    ///   `EnableEffect`): a unit that dies with its technologies off leaves
+    ///   no acid, summons nothing and does not rise.
+    /// - A kill-explosion technology's hit effect is taken off its unit's
+    ///   skills (`KillExplosionEffectProvider.DisableEffect`,
+    ///   `SkillManager.RemoveHitEffect`) and handed back (`EnableEffect`);
+    ///   a hit while the technologies are off sets nothing off
+    ///   (`PerformHitEffect` returns on `isTechnologyDisabled`).
+    /// - A repair technology's controller is disabled, its clocks standing
+    ///   still, and enabled again (`AutoRecoveryEffectProvider.DisableEffect`,
+    ///   `EnableEffect`, `AutoRecoverySystem.DisableMech`, `EnableMech`).
+    /// - A unit's own shield is disabled, its energy's share of its maximum
+    ///   recorded, and enabled again at that share
+    ///   (`EnergyShieldController.Disable`, `Enable`).
+    /// - A sweep technology's changes leave its unit's sweep skill, which is
+    ///   reset to its own, and are applied again
+    ///   (`SweepSkillIntensifyEffectProvider.TryApply`).
+    /// - An air attack technology's switch stays: its provider's
+    ///   `DisableEffect` and `EnableEffect` do nothing.
+    /// - An interception technology's interceptors are disabled and enabled,
+    ///   each letting its target go and returning to idle
+    ///   (`InterceptEffectBase.DoDisable`, `DoEnable`).
+    /// - A stronger surfacing's linker takes its effect away and holds none
+    ///   while off, its count going on
+    ///   (`FightSkill.SetAttackCountEffectLinkerEnable`).
+    /// - A sand fog's action leaves its unit's move ability and is put back
+    ///   (`MoveAbilityRangeItemSystem.RemoveMech`, `AddMech`).
+    /// - A support technology's production line counts on and makes nothing
+    ///   (`SupportUnitSystem.Disable`, `Enable`).
+    /// - A surfacing line's action leaves its unit's move ability and is
+    ///   put back (`MoveAbilitySummonSystem`).
+    /// - A burrowing technology's unit comes up, its buff removed, and its
+    ///   manager passes over it (`BurrowSystem.Deactive`) until it is
+    ///   switched on (`Active`).
     pub(in crate::fight) fn switch_provider(
         &mut self,
         actor_id: u64,
@@ -183,6 +268,7 @@ impl Simulation {
             EffectProvider::InterceptMissile => self.switch_unit_interception(actor_id, on),
             EffectProvider::MoveAbilityRangeItem => self.switch_sand_fog(actor_id, on),
             EffectProvider::SupportUnit => self.switch_production(actor_id, on),
+            EffectProvider::MoveAbilitySummon => self.switch_surfacing_line(actor_id, on),
             EffectProvider::MoveAbilityAttackIntensify => self
                 .actors
                 .get_mut(&actor_id)
@@ -216,7 +302,6 @@ impl Simulation {
             | EffectProvider::SearchTargetSpecific
             | EffectProvider::SecondaryDamageIntensify
             | EffectProvider::DeadEffect
-            | EffectProvider::MoveAbilitySummon
             | EffectProvider::DeadLine
             | EffectProvider::FireIntensify
             | EffectProvider::ClearRangeItem
