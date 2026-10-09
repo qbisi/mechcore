@@ -507,6 +507,13 @@ pub(in crate::fight) fn direction_mdeg_q32_raw(dx: i64, dz: i64) -> i64 {
     degrees_q32_to_mdeg(direction_degrees_q32_raw(dx, dz))
 }
 
+/// The rotation `FightTransform.RotateTo` turns towards along a direction:
+/// none along a zero one, which it returns on without turning. A unit whose
+/// target stands on its own position keeps its facing.
+pub(in crate::fight) fn turn_direction_q32(dx: i64, dz: i64) -> Option<i64> {
+    (dx != 0 || dz != 0).then(|| direction_degrees_q32_raw(dx, dz))
+}
+
 /// `FightUtility.ConvertToAngle`: the angle from forward, mirrored to the left
 /// half only when it and `-dx` both exceed zero by more than the 43 raw units
 /// `FPoint`'s comparisons count as equal. A target 6 raw units left of dead

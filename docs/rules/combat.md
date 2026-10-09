@@ -176,6 +176,15 @@ is not below zero. `AcosFastest(1)` is not zero, so a target straight ahead is
 faced at +0.245°, and so is one a few raw units to the left, where a
 formation's jittered slots can put it, rather than at −0.245°.
 
+**A target standing on the unit's own position is straight ahead and turns
+nothing.** `SkillAttackAngleChecker` measures a target's angle with
+`FightUtility.CalculateAngle` of two transforms, which reads two equal
+positions as angle 0 before it converts any direction, so such a target is in
+every attack angle. `MotionAttackState.AttackRotate` turns towards
+`CalculateTargetDirection`, and `FightTransform.RotateTo` returns on a zero
+direction, so the unit keeps its facing and its lock and fires on. It happens
+when a charging unit passes through the one aiming at it.
+
 ## A unit beside a flanked tower faces the flank
 
 **A unit enters the fight facing its formation's way, unless it stands beside
@@ -1043,6 +1052,8 @@ not the game's native attack-type enum.
 
 ### Recorded
 
+- A Hound that a charging Fire Badger stands on keeps its lock and its facing
+  and fires on: `tests/corpus/fights/134367609-r4.yaml`, tick 300.
 - A Sledgehammer whose lock walks out of its reach sets off with its turret
   still, and a Sandworm below when the fight is decided takes the defeated
   side's tower and walks on to it until the fight ends:
@@ -1262,6 +1273,11 @@ not the game's native attack-type enum.
 
 ### Read
 
+- A target on the unit's own position is at angle 0 and is not turned to:
+  `SkillAttackAngleChecker.IsAttackTargetInAttackAngle`,
+  `SkillAttackAngleChecker.IsWeaponInAttackAngle`,
+  `FightUtility.CalculateAngle`, `MotionAttackState.AttackRotate`,
+  `FightTransform.RotateTo`.
 - The presearch takes each side's mechs in their team's order, which
   `PrepareActors` sorts by `FightUtility.ActorComparer`, and staggers their
   first searches in ten batches:
