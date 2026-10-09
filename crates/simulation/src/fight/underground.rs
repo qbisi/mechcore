@@ -284,7 +284,12 @@ impl Simulation {
             actor.set_underground_recovery(false);
             // `OnExitMoveBegin`: `MoveAbilitySummonSystem` hands the side a
             // creator of the unit's surfacing line.
-            if let Some(production) = &actor.placement.surfacing {
+            if let Some(production) = actor
+                .placement
+                .surfacing
+                .as_ref()
+                .filter(|_| actor.surfacing_line_held)
+            {
                 let creator = super::support_unit::Creator::surfacing(actor, production);
                 self.support.creators.push(creator);
             }
@@ -362,6 +367,18 @@ impl Simulation {
             .get_mut(&actor_id)
             .expect("actor identity is stable")
             .sand_fog_held = on;
+    }
+
+    /// `MoveAbilitySummonProvider.DisableEffect` and `EnableEffect`: off, it
+    /// stops hearing the unit's ability change and
+    /// `MoveAbilitySummonSystem` takes the line's action off the move
+    /// ability; on, both are put back, so a surfacing that begins while the
+    /// technologies are off makes no creator.
+    pub(in crate::fight) fn switch_surfacing_line(&mut self, actor_id: u64, on: bool) {
+        self.actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable")
+            .surfacing_line_held = on;
     }
 }
 

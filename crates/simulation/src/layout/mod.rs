@@ -1013,9 +1013,8 @@ pub(crate) struct TechnologyDisable {
     /// wrote numbers or none: every unit technology of this build reaches
     /// the main skill (`mainSkillEffect`).
     pub(crate) technologies: Vec<i32>,
-    /// What it carries whose switching off is not measured, by name: a
-    /// provider whose `DisableEffect` the fight does not mirror, or an extra
-    /// skill of a shape it does not fight disabled.
+    /// What it carries whose switching off is not measured, by name: an
+    /// extra skill of a shape the fight does not fight disabled.
     pub(crate) unmeasured: Vec<String>,
 }
 
@@ -1337,13 +1336,8 @@ fn technology_disable(
                 })
                 .map_err(on_side),
         )?,
-        unmeasured: providers
+        unmeasured: extra_weapons
             .iter()
-            .filter(|(provider, _)| !provider.disable_read())
-            .map(|(provider, ids)| {
-                let ids = ids.iter().map(ToString::to_string).collect::<Vec<_>>();
-                format!("technology {}'s {}", ids.join(", "), provider.name())
-            })
             // An extra skill switched off neither searches nor starts from
             // idle and ends its attack between blows (`FightSkill.Disable`
             // clears `isEnable` and does more only for a side arm): an
@@ -1353,31 +1347,24 @@ fn technology_disable(
             // does not explode while its unit's technologies are off; a
             // production line's, any other explosion's or preemptive skill's
             // and a group's own paths are not measured switched off.
-            .chain(
-                extra_weapons
-                    .iter()
-                    .filter(|weapon| held.contains(&weapon.rules.technology))
-                    .filter(|weapon| {
-                        let rules = &weapon.rules;
-                        let preemptive_explosion =
-                            rules.explosion.is_some() && rules.preemptive.is_some();
-                        let read_path = matches!(
-                            rules.attack.path,
-                            crate::rules::AttackPath::Direct
-                                | crate::rules::AttackPath::Projectile { .. }
-                                | crate::rules::AttackPath::Laser { .. }
-                                | crate::rules::AttackPath::Around { .. }
-                        );
-                        rules.production.is_some()
-                            || rules.attack.weapons.makes_group()
-                            || weapon.joins_main_group
-                            || !preemptive_explosion
-                                && (rules.explosion.is_some()
-                                    || rules.preemptive.is_some()
-                                    || !read_path)
-                    })
-                    .map(|weapon| format!("technology {}", weapon.rules.technology)),
-            )
+            .filter(|weapon| held.contains(&weapon.rules.technology))
+            .filter(|weapon| {
+                let rules = &weapon.rules;
+                let preemptive_explosion = rules.explosion.is_some() && rules.preemptive.is_some();
+                let read_path = matches!(
+                    rules.attack.path,
+                    crate::rules::AttackPath::Direct
+                        | crate::rules::AttackPath::Projectile { .. }
+                        | crate::rules::AttackPath::Laser { .. }
+                        | crate::rules::AttackPath::Around { .. }
+                );
+                rules.production.is_some()
+                    || rules.attack.weapons.makes_group()
+                    || weapon.joins_main_group
+                    || !preemptive_explosion
+                        && (rules.explosion.is_some() || rules.preemptive.is_some() || !read_path)
+            })
+            .map(|weapon| format!("technology {}", weapon.rules.technology))
             .collect(),
         providers: providers.into_keys().collect(),
         technologies: held.clone(),

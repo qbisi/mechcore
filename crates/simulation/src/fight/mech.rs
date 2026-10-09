@@ -89,6 +89,7 @@ impl Actor {
             buff_cycles_available: true,
             sweep_intensified: true,
             sand_fog_held: true,
+            surfacing_line_held: true,
             reactive_armor: super::reactive_armor::ReactiveArmorState::of(&placement),
             placement,
             rules,
