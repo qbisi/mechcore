@@ -159,7 +159,12 @@ is one as a unit is:
   is taken by the shield covering the unit; neither happens when the one who
   fired it stands inside that shield.
 - **A blow or a beam** at a covered unit lands on the shield, unless the
-  attacker stands inside it.
+  attacker stands inside it. Each skill asks with its own attack
+  (`FightSkill.IsActorProtectedByEnergyShield`): an extra skill's beam, a
+  Melting Point's or an Overlord's, lands on the shield unless its own row
+  crosses shields, and deals the shield its technology's shield damage where
+  the row sets one (`CalculateHitEnergyShieldDamage`). Read from the build;
+  no recording holds an extra skill's beam at a shield.
 - **A splash** that lands outside a shield leaves the units it covers alone,
   and the shield takes the hit if the splash reaches it in the plane; one that
   lands inside a shield reaches the units inside. A splash that lands on a
