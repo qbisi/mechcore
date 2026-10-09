@@ -42,9 +42,15 @@ const FPOINT_EQUALITY_RAW: i64 = 43;
 /// A `BuffCycleController` as it runs.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::fight) enum BuffCycle {
-    /// Under `Each`, started by `TriggerCycleStart`
-    /// (`BuffCycleState.Delaying`), before its first update.
-    Starting,
+    /// Its listener the fight's start, not started: its unit was travelling
+    /// as the fight began (`OnEnterFight` passes over it), until its effects
+    /// are activated (`BuffCycleController.Active`).
+    Waiting,
+    /// Under `Each`, started by `TriggerCycleStart` or `Active`
+    /// (`BuffCycleState.Delaying`), before its next update: its
+    /// `RangeUnitCycle`'s `currentFrame` and `fightMeches`, which starting
+    /// again does not set back.
+    Starting { frame: u32, members: Vec<u64> },
     /// Under `All`, counting: `timeSum`, and whether it is past its delay
     /// (`BuffCycleState.Cycleing`).
     Counting { cycling: bool, time_sum: u32 },
@@ -57,18 +63,23 @@ pub(in crate::fight) enum BuffCycle {
 }
 
 impl BuffCycle {
-    /// A unit's controllers as the fight starts: `OnEnterFight` starts each
-    /// whose listener is the fight's start, and no other.
-    pub(in crate::fight) fn of(sources: &[BuffSource]) -> Vec<Self> {
+    /// A unit's controllers as it is placed: `OnEnterFight` starts each
+    /// whose listener is the fight's start on a unit not travelling, and no
+    /// other; a unit made or summoned later starts them as it joins.
+    pub(in crate::fight) fn of(sources: &[BuffSource], travelling: bool) -> Vec<Self> {
         sources
             .iter()
             .map(|source| match source.trigger {
                 BuffTrigger::Hit | BuffTrigger::BeHit | BuffTrigger::Damaged => Self::Done,
+                BuffTrigger::All(_) | BuffTrigger::Around(_) if travelling => Self::Waiting,
                 BuffTrigger::All(_) => Self::Counting {
                     cycling: false,
                     time_sum: 0,
                 },
-                BuffTrigger::Around(_) => Self::Starting,
+                BuffTrigger::Around(_) => Self::Starting {
+                    frame: 0,
+                    members: Vec::new(),
+                },
             })
             .collect()
     }
@@ -96,6 +107,57 @@ impl Simulation {
                 }
             }
         }
+    }
+
+    /// `BuffEffectProvider.Active` of a unit landing, joining or rising
+    /// again: each controller's `BuffCycleController.Active`. One not
+    /// available is made so, its listener back and its `timeSum` at zero;
+    /// then, the fight under way, each whose listener is the fight's start
+    /// runs again from its delay (`running`, `BuffCycleState.Delaying`), a
+    /// range cycle's `RangeUnitCycle` back in its delay where it stood.
+    pub(in crate::fight) fn activate_buff_cycles(&mut self, unit: u64) {
+        let actor = self
+            .actors
+            .get_mut(&unit)
+            .expect("actor identity is stable");
+        let reset = !actor.buff_cycles_available;
+        actor.buff_cycles_available = true;
+        let sources = &actor.placement.effects.buff_sources;
+        for (source, cycle) in sources.iter().zip(actor.buff_cycles.iter_mut()) {
+            let restarted = match (source.trigger, std::mem::replace(cycle, BuffCycle::Done)) {
+                (BuffTrigger::All(_), BuffCycle::Waiting | BuffCycle::Done) => {
+                    BuffCycle::Counting {
+                        cycling: false,
+                        time_sum: 0,
+                    }
+                }
+                (BuffTrigger::All(_), BuffCycle::Counting { time_sum, .. }) => {
+                    BuffCycle::Counting {
+                        cycling: false,
+                        time_sum: if reset { 0 } else { time_sum },
+                    }
+                }
+                (BuffTrigger::Around(_), BuffCycle::Waiting) => BuffCycle::Starting {
+                    frame: 0,
+                    members: Vec::new(),
+                },
+                (
+                    BuffTrigger::Around(_),
+                    BuffCycle::Running { frame, members } | BuffCycle::Starting { frame, members },
+                ) => BuffCycle::Starting { frame, members },
+                (_, kept) => kept,
+            };
+            *cycle = restarted;
+        }
+    }
+
+    /// `BuffEffectProvider.Deactive` of a unit that died: each controller
+    /// not available, its listener taken off (`BuffCycleController.Deactive`).
+    pub(in crate::fight) fn deactivate_buff_cycles(&mut self, unit: u64) {
+        self.actors
+            .get_mut(&unit)
+            .expect("actor identity is stable")
+            .buff_cycles_available = false;
     }
 
     /// `TeamBuffCycleManager.Update`: every available controller of a live
@@ -137,7 +199,7 @@ impl Simulation {
         let owner = actor.object_ref();
         let cycle = actor.buff_cycles[index].clone();
         let (next, reached) = match (source.trigger, cycle) {
-            (_, BuffCycle::Done) => return Ok(()),
+            (_, BuffCycle::Done | BuffCycle::Waiting) => return Ok(()),
             (BuffTrigger::All(all), BuffCycle::Counting { cycling, time_sum }) => {
                 match count_all(&all, cycling, time_sum) {
                     (next, false) => (next, Vec::new()),
@@ -152,13 +214,9 @@ impl Simulation {
             }
             // `RangeUnitCycle.Update` in `Delay`: a delay never set is over
             // on the first update, which selects nothing.
-            (BuffTrigger::Around(_), BuffCycle::Starting) => (
-                BuffCycle::Running {
-                    frame: 0,
-                    members: Vec::new(),
-                },
-                Vec::new(),
-            ),
+            (BuffTrigger::Around(_), BuffCycle::Starting { frame, members }) => {
+                (BuffCycle::Running { frame, members }, Vec::new())
+            }
             (BuffTrigger::Around(reach), BuffCycle::Running { frame, members }) => {
                 let frame = frame.saturating_add(1);
                 if frame < SELECT_RANGE_INTERVAL {
@@ -174,7 +232,10 @@ impl Simulation {
                     )
                 }
             }
-            (_, BuffCycle::Running { .. } | BuffCycle::Starting | BuffCycle::Counting { .. }) => {
+            (
+                _,
+                BuffCycle::Running { .. } | BuffCycle::Starting { .. } | BuffCycle::Counting { .. },
+            ) => {
                 unreachable!("a cycle runs as its source's update model does")
             }
         };

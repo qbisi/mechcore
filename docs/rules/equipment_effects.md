@@ -103,10 +103,23 @@ and stack a step at a time, the item may keep it on the units around its
 unit, and a hit may add it, Charged Ammo's a buff that disables technology,
 as a buff technology's does
 ([technology_effects.md](technology_effects.md#buff-technologies)); an item's
-is not switched off with its unit's technologies. A buff
+is not switched off with its unit's technologies, unless one of them is a
+buff source, whose switching stops every controller of the unit
+([technology_effects.md](technology_effects.md#switched-off)). A buff
 item with any other trigger, target or chance, or whose buff sets a field
-beyond these, is refused by name, and so is a travelling formation wearing
-one.
+beyond these, is refused by name.
+
+**A formation travelling in starts its fight-start buffs as it lands.**
+`BuffCycleController.OnEnterFight` sets each controller's time to zero but
+starts none on a unit still travelling (`SuperDeploymentSystem.IsTravelling`).
+As the unit lands, `FightEffectSystem.ActiveEffect` has
+`BuffCycleController.Active` start each whose listener is the fight's start
+from its delay (`running`, `BuffCycleState.Delaying`), as a unit made or
+summoned in the fight starts them as it joins. A unit that dies has its
+controllers taken off (`BuffCycleController.Deactive`), and one that rises
+again has them back, their time at zero, and started from their delay again,
+a once-only buff added again; a range cycle keeps the frame its
+`RangeUnitCycle` stood at. Read from the build; no recording holds it.
 
 **An anti-interference item makes its unit ignore its buff group, from the
 fight's start.** Anti-Interference Module's group holds the rows of every
@@ -249,7 +262,8 @@ carries:
   `UnitManager.OnEnterDeployment`, `EquipmentData.roundDuration`.
 - A buff item's fight-start trigger: `BuffEffectProvider.RegisterEffectEvent`,
   `BuffCycleController.OnEnterFight`, which starts no controller on a
-  travelling unit, `BuffCycleController.Update`, which triggers once with no
+  travelling unit, `BuffCycleController.Active` and `Deactive`,
+  `BuffCycleController.Update`, which triggers once with no
   delay and no interval, and `BuffSystem.AddBuffByCheck`;
   `FightController.AddModules` adds `BuffSystem` before
   `CommanderSkillSystem`.

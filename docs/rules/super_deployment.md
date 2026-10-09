@@ -151,5 +151,7 @@ recording therefore reads no skill of a travelling unit
 - **The order of two sides' travelling units in the list**, beyond the
   identity order the recordings agree with.
 - **A travelling unit whose buffs, summons or generic effect providers
-  activate on arrival**, which travel's `ActiveCheck` does gate. Every such
-  source is refused before a fight reaches it.
+  activate on arrival**, which travel's `ActiveCheck` does gate. Each is read
+  from the build, a buff's from `BuffCycleController.Active`
+  ([equipment_effects.md](equipment_effects.md#buff-items)); no recording
+  holds one.

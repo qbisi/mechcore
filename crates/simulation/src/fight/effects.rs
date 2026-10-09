@@ -74,6 +74,7 @@ impl Simulation {
                 EffectProvider::WreckageRecovery => self.add_wreckage_unit(unit),
                 EffectProvider::Burrow => self.add_burrow_unit(unit),
                 EffectProvider::Repair => self.add_repair_unit(unit),
+                EffectProvider::Buff => self.activate_buff_cycles(unit),
                 // The rest are read from the unit where the fight acts, which
                 // passes over a unit still travelling or rising.
                 EffectProvider::LifeSteal
@@ -84,7 +85,6 @@ impl Simulation {
                 | EffectProvider::SearchTargetSpecific
                 | EffectProvider::AirAttack
                 | EffectProvider::SecondaryDamageIntensify
-                | EffectProvider::Buff
                 | EffectProvider::SupportUnit
                 | EffectProvider::DeadEffect
                 | EffectProvider::MoveAbilitySummon
@@ -112,6 +112,7 @@ impl Simulation {
                 EffectProvider::WreckageRecovery => self.remove_wreckage_unit(unit),
                 EffectProvider::Burrow => self.remove_burrow_unit(unit),
                 EffectProvider::Repair => self.remove_repair_unit(unit),
+                EffectProvider::Buff => self.deactivate_buff_cycles(unit),
                 // Every dead unit's interceptors are deactivated together,
                 // after the summons the deaths make
                 // (`Simulation::deactivate_dead_interceptions`).
@@ -127,7 +128,6 @@ impl Simulation {
                 | EffectProvider::SearchTargetSpecific
                 | EffectProvider::AirAttack
                 | EffectProvider::SecondaryDamageIntensify
-                | EffectProvider::Buff
                 | EffectProvider::SupportUnit
                 | EffectProvider::DeadEffect
                 | EffectProvider::MoveAbilitySummon
