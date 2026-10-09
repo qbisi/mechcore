@@ -304,6 +304,9 @@ struct Actor {
     /// Their `isAvailable`, which `BuffEffectProvider.DoDisableCycle` and
     /// `DoEnableCycle` switch for all of them at once.
     buff_cycles_available: bool,
+    /// Whether its sweep skill holds what its technology changes: cleared
+    /// while that technology is switched off.
+    sweep_intensified: bool,
     /// `BuffManager.beHitDelayBuffInfos`: the buffs that disable technology
     /// a unit it hit queued on it, each with that unit, which
     /// `InvokeDelayAddBuff` adds as its `BuffManager.Update` ends.
