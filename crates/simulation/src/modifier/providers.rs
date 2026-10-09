@@ -217,6 +217,9 @@ impl EffectProvider {
     /// - A unit's own shield is disabled, its energy's share of its maximum
     ///   recorded, and enabled again at that share
     ///   (`EnergyShieldController.Disable`, `Enable`).
+    /// - A sweep technology's changes leave its unit's sweep skill, which is
+    ///   reset to its own, and are applied again
+    ///   (`SweepSkillIntensifyEffectProvider.TryApply`).
     /// - A burrowing technology's unit comes up, its buff removed, and its
     ///   manager passes over it (`BurrowSystem.Deactive`) until it is
     ///   switched on (`Active`).
@@ -245,9 +248,9 @@ impl EffectProvider {
             | Self::Burrow
             | Self::DeadEffect
             | Self::AutoRecovery
-            | Self::EnergyShield => true,
-            Self::SweepSkillIntensify
-            | Self::AirAttack
+            | Self::EnergyShield
+            | Self::SweepSkillIntensify => true,
+            Self::AirAttack
             | Self::InterceptMissile
             | Self::SupportUnit
             | Self::MoveAbilitySummon

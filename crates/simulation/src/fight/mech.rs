@@ -87,6 +87,7 @@ impl Actor {
             // Read before the placement moves in.
             buff_cycles: super::buff_cycle::BuffCycle::of(&placement.effects.buff_sources),
             buff_cycles_available: true,
+            sweep_intensified: true,
             reactive_armor: super::reactive_armor::ReactiveArmorState::of(&placement),
             placement,
             rules,

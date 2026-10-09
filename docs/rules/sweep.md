@@ -100,6 +100,14 @@ line, from the unit's side out past the target, the same way every attack,
 and raises the damage by half: a strip along the line runs on over what
 stands behind the target.
 
+Switched off with its unit's technologies, the provider resets the skill to
+its own length, width, perpendicular and reverse and its row's direction
+change (`SweepSkillIntensifyEffectProvider.TryApply` with `apply` false,
+`FightSweepSkill.ResetLength`, `ResetWidth`, `ResetPerpendicular`,
+`ResetReverse`), and switched on applies the changes again. The skill holds
+them, so a sweep under way reads them from its next update. Read from the
+build; no recording holds it.
+
 ## The weapon
 
 The Abyss's weapon rests straight ahead with an arc no wider than its rest

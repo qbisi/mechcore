@@ -42,6 +42,17 @@ pub(in crate::fight) struct Sweep {
     updated_step: Option<u64>,
 }
 
+impl Actor {
+    /// What its technology changes of its sweep skill, while the skill holds
+    /// it.
+    pub(in crate::fight) fn sweep_intensify(&self) -> Option<SweepIntensify> {
+        self.placement
+            .effects
+            .sweep
+            .filter(|_| self.sweep_intensified)
+    }
+}
+
 /// The sweep path's numbers, read off the unit's attack.
 struct SweepShape {
     perpendicular: bool,
@@ -278,6 +289,20 @@ impl Simulation {
         stretches
     }
 
+    /// `SweepSkillIntensifyEffectProvider.DisableEffect` and `EnableEffect`
+    /// (`TryApply`): off, the unit's sweep skill is reset to its own length,
+    /// width, perpendicular and reverse and its row's direction change
+    /// (`FightSweepSkill.ResetLength`, `ResetWidth`, `ResetPerpendicular`,
+    /// `ResetReverse`); on, the technology's changes are applied again
+    /// (`AppliedChange`). The skill holds them, so a sweep under way reads
+    /// them from its next update.
+    pub(in crate::fight) fn switch_sweep(&mut self, actor_id: u64, on: bool) {
+        self.actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable")
+            .sweep_intensified = on;
+    }
+
     /// `SweepAttackPerformer.TryPerformEffect`, once an update while the
     /// sweep lasts: the strip laid out on the first, then a stretch struck
     /// every `damage_frame` updates once the delay is out. Answers whether
@@ -288,7 +313,7 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<bool> {
         let actor = &self.actors[&actor_id];
-        let Some(shape) = shape_of(&actor.rules.attack, actor.placement.effects.sweep) else {
+        let Some(shape) = shape_of(&actor.rules.attack, actor.sweep_intensify()) else {
             return Ok(true);
         };
         let Performer::Sweep(sweep) = &self.actors[&actor_id].skills.main.performer else {
