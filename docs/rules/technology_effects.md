@@ -369,7 +369,9 @@ every triggered unit (`OnExitFight`).
   it out of range as it does a unit underground, and an attacker that moves
   underground, which reaches a hidden one, does not reach one in stealth
   (`SkillAttackRangeChecker.IsActorInAttackRange`). The Marksmen shooting a
-  Vortex hold no lock from the tick after it goes into stealth.
+  Vortex hold no lock from the tick after it goes into stealth, and so does
+  each grouped slot of a Wraith firing at one: every skill of a group asks
+  the same range check of its own target.
 - `AttackTargetFilter.Check`, which every selector's search asks of each
   candidate, passes over a unit in stealth, where it takes one underground:
   those Marksmen then lock red's towers.
@@ -1121,6 +1123,8 @@ derive (a minimum range):
   it does not go into stealth:
   `tests/stealth/fights/disabled-before.yaml`; disabled in stealth, it is
   shown at once: `tests/stealth/fights/disabled-during.yaml`.
+- A Wraith's grouped slot firing at a Vortex that goes into stealth ends its
+  attack the tick after: `tests/corpus/fights/67257112-r11.yaml`, tick 433.
 - A multi-attack technology adds to its unit's bursts: Doubleshot fires two
   projectiles an attack, a Sabertooth's 0.2 seconds apart where its row's
   interval is zero and both from weapon 0, and Burst Mode twelve from a

@@ -290,8 +290,11 @@ impl Simulation {
                 .saturating_sub(space_to_q32(source.rules.collision_radius()))
                 .saturating_sub(space_to_q32(target.radius))
                 .max(0);
+        // `IsActorInAttackRange` asks every skill of the group, as the core,
+        // whether it sees the target.
         target.alive
             && target.targetable
+            && self.reaches_hidden(skill_ref.owner, target.visibility)
             && distance >= space_to_q32(min_range)
             && distance <= space_to_q32(self.slot_attack_range(skill_ref, slot))
     }
