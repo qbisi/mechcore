@@ -288,7 +288,7 @@ impl Simulation {
         events: &mut Vec<Event>,
     ) -> Result<bool> {
         let actor = &self.actors[&actor_id];
-        let Some(shape) = shape_of(&actor.rules.attack, actor.placement.sweep) else {
+        let Some(shape) = shape_of(&actor.rules.attack, actor.placement.effects.sweep) else {
             return Ok(true);
         };
         let Performer::Sweep(sweep) = &self.actors[&actor_id].skills.main.performer else {

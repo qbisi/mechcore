@@ -47,7 +47,7 @@ impl AttackCountLinker {
         rules: &crate::rules::UnitConfig,
         placement: &crate::layout::Placement,
     ) -> Option<Self> {
-        let source = placement.move_ability_attack?;
+        let source = placement.effects.move_ability_attack?;
         rules.underground.as_ref()?;
         Some(Self {
             source,

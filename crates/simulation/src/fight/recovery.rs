@@ -60,7 +60,7 @@ impl Simulation {
         repaired.sort_unstable();
         for (_, id) in repaired {
             let actor = self.actors.get_mut(&id).expect("actor identity is stable");
-            let Some(source) = actor.placement.auto_recovery else {
+            let Some(source) = actor.placement.effects.auto_recovery else {
                 continue;
             };
             if source.can_disable && actor.technology_disabled() {

@@ -84,7 +84,7 @@ impl Underground {
     /// underground, none otherwise.
     pub(in crate::fight) fn of_unit(rules: &UnitConfig, placement: &Placement) -> Option<Self> {
         let config = rules.underground.as_ref()?;
-        Some(Self::of(config, placement.move_ability_attack))
+        Some(Self::of(config, placement.effects.move_ability_attack))
     }
 
     fn of(
@@ -161,6 +161,7 @@ impl Actor {
     fn set_underground_recovery(&mut self, below: bool) {
         let underground = self
             .placement
+            .effects
             .auto_recovery
             .is_some_and(|source| source.state == RecoveryState::Underground);
         if let Some(clock) = self.recovery.as_mut().filter(|_| underground) {
@@ -336,7 +337,7 @@ impl Simulation {
             .as_ref()
             .is_some_and(|underground| underground.state == AbilityState::Exit);
         actor.end_transition_state();
-        if let (true, Some(spec)) = (surfaced, actor.placement.move_ability_range_item) {
+        if let (true, Some(spec)) = (surfaced, actor.placement.effects.move_ability_range_item) {
             let position = (actor.x_q32, 0, actor.z_q32);
             let team = actor.placement.team;
             self.add_terrain(team, &format!("unit {actor_id}"), spec, position)?;

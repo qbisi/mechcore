@@ -56,7 +56,7 @@ impl Simulation {
             .iter()
             .filter(|(_, actor)| !actor.travelling)
             .filter_map(|(&id, actor)| {
-                let source = actor.placement.wreckage.clone()?;
+                let source = actor.placement.effects.single.wreckage.clone()?;
                 Some(((actor.z_q32, actor.x_q32), id, source))
             })
             .collect::<Vec<_>>();
@@ -68,7 +68,7 @@ impl Simulation {
 
     /// `TeamWreckageRecoveryManager.Add` during the fight.
     pub(in crate::fight) fn add_wreckage_unit(&mut self, unit: u64) {
-        if let Some(source) = self.actors[&unit].placement.wreckage.clone() {
+        if let Some(source) = self.actors[&unit].placement.effects.single.wreckage.clone() {
             self.hold_wreckage(unit, source);
         }
     }

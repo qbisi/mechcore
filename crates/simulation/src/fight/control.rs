@@ -69,7 +69,7 @@ impl Simulation {
     fn ignores_control(&self, unit_id: u64) -> bool {
         self.actors
             .get(&unit_id)
-            .is_some_and(|actor| actor.placement.ignores_control_beam)
+            .is_some_and(|actor| actor.placement.effects.ignores_control_beam)
     }
 
     /// `NormalAttackPerformer.Enter`, `Exit` and the change of attack target

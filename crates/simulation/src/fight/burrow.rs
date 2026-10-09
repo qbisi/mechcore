@@ -50,7 +50,7 @@ impl Simulation {
         let mut held = self
             .actors
             .iter()
-            .filter(|(_, actor)| actor.placement.burrow.is_some())
+            .filter(|(_, actor)| actor.placement.effects.single.burrow.is_some())
             .map(|(&id, actor)| ((actor.placement.team, actor.z_q32, actor.x_q32), id))
             .collect::<Vec<_>>();
         held.sort_unstable();
@@ -66,7 +66,7 @@ impl Simulation {
     /// again: `Normal` in its place, and one made or summoned since the
     /// fight began held after the rest (`AddMech`).
     pub(in crate::fight) fn add_burrow_unit(&mut self, unit: u64) {
-        if self.actors[&unit].placement.burrow.is_none() {
+        if self.actors[&unit].placement.effects.single.burrow.is_none() {
             return;
         }
         if !self.burrow.order.contains(&unit) {
@@ -129,6 +129,8 @@ impl Simulation {
             let actor = &self.actors[&unit];
             let source = actor
                 .placement
+                .effects
+                .single
                 .burrow
                 .clone()
                 .expect("a held unit has a source");
@@ -268,6 +270,8 @@ impl Simulation {
         }
         let technology = self.actors[&unit]
             .placement
+            .effects
+            .single
             .burrow
             .as_ref()
             .expect("a held unit has a source")

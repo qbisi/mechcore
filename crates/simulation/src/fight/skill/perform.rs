@@ -100,7 +100,7 @@ impl Simulation {
                     .or(actor.skills.main.lock_target);
                 let sweep = super::super::sweep::Sweep::starting(
                     &actor.rules.attack,
-                    actor.placement.sweep,
+                    actor.placement.effects.sweep,
                     aimed,
                     actor.skills.main.total_attack_count,
                 );

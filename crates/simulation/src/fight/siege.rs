@@ -58,6 +58,8 @@ impl Simulation {
             .filter_map(|(&id, actor)| {
                 actor
                     .placement
+                    .effects
+                    .single
                     .siege_mode
                     .clone()
                     .map(|source| (id, source))
@@ -79,7 +81,13 @@ impl Simulation {
     /// `SiegeModeEffectSystem.AddSiegeModeOwner` during the fight: a unit it
     /// does not hold yet is dug in at once.
     pub(in crate::fight) fn add_siege_unit(&mut self, unit: u64) -> Result<()> {
-        let Some(source) = self.actors[&unit].placement.siege_mode.clone() else {
+        let Some(source) = self.actors[&unit]
+            .placement
+            .effects
+            .single
+            .siege_mode
+            .clone()
+        else {
             return Ok(());
         };
         if self.siege.owners.contains_key(&unit) {

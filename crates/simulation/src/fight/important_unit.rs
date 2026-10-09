@@ -27,12 +27,12 @@ impl Simulation {
             .filter_map(|event| event.subject)
             .filter(|subject| subject.kind == ObjectKind::Unit)
             .map(|subject| subject.id)
-            .filter(|id| self.actors[id].placement.important)
+            .filter(|id| self.actors[id].placement.effects.important)
             .collect::<Vec<_>>();
         for dead_id in fallen {
             let team = self.actors[&dead_id].placement.team;
             if self.actors.values().any(|actor| {
-                actor.placement.team == team && actor.placement.important && actor.alive()
+                actor.placement.team == team && actor.placement.effects.important && actor.alive()
             }) {
                 continue;
             }

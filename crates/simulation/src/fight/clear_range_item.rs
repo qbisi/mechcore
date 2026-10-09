@@ -32,7 +32,7 @@ impl Simulation {
             .actors
             .iter()
             .filter(|(_, actor)| {
-                actor.placement.clear_range_item.is_some()
+                actor.placement.effects.single.clear_range_item.is_some()
                     && !actor.travelling
                     && actor.alive()
                     && !actor.technology_disabled()
@@ -43,6 +43,8 @@ impl Simulation {
             let actor = &self.actors[&id];
             let source = actor
                 .placement
+                .effects
+                .single
                 .clear_range_item
                 .clone()
                 .expect("a clearing unit has a source");
