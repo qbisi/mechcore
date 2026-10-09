@@ -1928,8 +1928,7 @@ derive (a minimum range):
   burnt from oil.** Read from the build; no recording holds an
   Electromagnetic Impact running out on Hounds that hold it, a battle skill
   or a dying unit that summons a Hound (none does), nor a Hound clearing a
-  fire burnt from an oil beside a shield. A recovery zone among its kinds is
-  refused.
+  fire burnt from an oil beside a shield.
 - **A repair switched on again, and two clocks reaching the interval
   together.** Read from the build; no recording holds an Electromagnetic
   Impact running out on Typhoons that hold it, nor two repairing Typhoons
