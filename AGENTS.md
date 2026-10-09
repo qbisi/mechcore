@@ -16,35 +16,6 @@ makes the nearest readme untrue updates the readme in the same pull request.
 Issues are GitHub issues, not files. [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md)
 says what qualifies as one; read it before opening one.
 
-# Plan
-
-The plan is a task graph, kept in Chinese. Its structure is in
-`plan/README.md`: the goal, the metric of how far off it is, the lanes (one per
-sub-goal), their order, the edges between them, and what a lane file holds.
-Each lane's stack and parking lot are in `plan/<lane>.md`.
-
-- **Three kinds of edge.** blocks: B cannot finish before A, and only this
-  kind forms a stack. conflicts: both change the same module or both need
-  the game, so they do not run at once, in either order. enables: A makes B
-  cheaper, and only affects order.
-- **Depth-first along blocks within a lane.** A discovery is pushed on the
-  stack only when it blocks the current node; when it is done, return to the
-  parent explicitly or write why the parent is void. One that does not block
-  goes to the parking lot with a decidable `reopen_when`. A bottleneck with no
-  blocks or conflicts edge to the lane is another lane.
-- **Lanes are reordered only after a merge**, by which lane the metric is
-  stuck on and by what the enables edges point at. A lane is not switched
-  mid-node; a stopped lane stops on a merged node with its stack intact.
-- **State is derived, not written.** A node in progress is its open pull
-  request, a finished one is its merge commit, numbers live in pull request
-  bodies and `tests/<topic>/README.md`, and a block is `Blocked by #n`.
-  Neither `plan/README.md` nor a lane file says how far along anything is.
-- **One writer for structure.** Edges and lane order are changed by the main
-  session after a merge. A parallel session that finds a cross-lane relation
-  writes it in its own pull request body. A lane file is changed only by that
-  lane's pull requests. Two pull requests that conflict on the plan reveal a
-  missing conflicts edge: serialize them, do not auto-resolve.
-
 # Building and CI
 
 The Adapter is `mechcore`'s default feature `adapter` and the only macOS code.

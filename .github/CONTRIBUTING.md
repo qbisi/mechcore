@@ -33,19 +33,18 @@ dies and a reader on the web has no checkout.
 
 ## Exits
 
-An issue leaves in one of six ways, and the closing comment says which and
+An issue leaves in one of five ways, and the closing comment says which and
 where its content went:
 
-1. **to the plan**, as a node under `plan/`, when someone decides to act;
-2. **to a spec's `Unresolved`**, when it is a design choice nobody made;
-3. **to `docs/rules/`**, when the game works that way and the belief was ours;
-4. **to research**, when it is worth pursuing as a question;
-5. **into an assertion**, when a fix lands and a test holds it, closed by the
+1. **to a spec's `Unresolved`**, when it is a design choice nobody made;
+2. **to `docs/rules/`**, when the game works that way and the belief was ours;
+3. **to research**, when it is worth pursuing as a question;
+4. **into an assertion**, when a fix lands and a test holds it, closed by the
    pull request's `Closes #n`;
-6. **closed as not planned**, when the observation was wrong or what it
+5. **closed as not planned**, when the observation was wrong or what it
    disagreed with is gone.
 
-The first five close as completed; nothing else closes an issue, and none ages
+The first four close as completed; nothing else closes an issue, and none ages
 out. Copy the evidence to where it lands rather than linking back. A rules
 document or spec never cites an issue: an issue is not understood yet, and one
 that matters enough to cite has already earned its exit.

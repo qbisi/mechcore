@@ -152,14 +152,34 @@ simulator alone, without the game.
 The pull request that lands a mechanism names its witness: the recorded fields
 or events that see it, and for each mutation the tick of its first divergence
 beside the tick the mechanism first acts. A format change the witness needs
-blocks the mechanism: it goes on the stack above it, and the mechanism waits.
+blocks the mechanism: it lands first, and the mechanism waits.
+
+## How a mechanism is researched
+
+[`modifier/`](modifier/README.md)'s composition fights are the worked example.
+
+1. **Reduce the question to one number.** A question that does not reduce to
+   one makes no experiment.
+2. **Read what can be read first, and write down what it cannot answer.**
+3. **Design fights that tell the hypotheses apart, with a control.** The
+   control is recorded twice and the two must agree tick for tick; when they
+   do not, stop.
+4. **Write each hypothesis's expected value into the script before
+   recording.**
+5. **A measurement has two halves, and only both agreeing make a rule:** what
+   the game stores, and what the game computes.
+6. **A rule lands as a table and code, and a refusal comes before a guess.**
+   The numbers go into `config/`, their source into `docs/rules/`, and the
+   cases not reached are refused by name.
 
 ## Standard unit layouts
 
-[`plan/units.md`](../plan/units.md) defines when a unit is supported without
-technology: six standard layouts, each recorded by the game with two seeds,
-4242 and 1787720817, and played back by the simulator tick for tick, in every
-field. Every recording the simulator reproduces is pinned in the unit's own
+A unit is supported without technology, at level 1 in round 1 with no officer
+or equipment, when three things hold. The six standard layouts below are each
+recorded by the game with two seeds, 4242 and 1787720817, and played back by
+the simulator tick for tick, in every field. Every skill the build gives the
+unit without technology is reproduced by one of them or refused by name. And
+the units its layouts face are supported first. Every recording the simulator reproduces is pinned in the unit's own
 directory as `fights/<layout>-<seed>.yaml`, with the layout's own comment at
 its top. Each is fought without a scene, as a
 [layout replay](../docs/spec/document/layout-replay.md), and hashes the same

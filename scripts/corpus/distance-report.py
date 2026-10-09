@@ -3,7 +3,7 @@
 
 Reads the reports `fight-coverage.py` and `verify-matches.py` print, saved as
 `fight-coverage.txt` and `verify-matches.txt` in one directory, and writes a
-table of the numbers `plan/README.md` steers by: the rounds the simulator
+table of how far the simulator is from the corpus: the rounds the simulator
 accepts, the rounds fought as the match says, where the matches stop, the
 refusals that hold the most rounds, and the unit technologies the game has
 that the simulator fights, the rest by unit with their ids, and again by a

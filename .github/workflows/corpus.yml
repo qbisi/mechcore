@@ -1,8 +1,7 @@
 name: corpus
 
-# How far the simulator is from the corpus: the numbers `plan/README.md` steers
-# by, measured on every pull request and every mainline commit instead of
-# recomputed by hand. It needs no game and no decompilation: the replays are
+# How far the simulator is from the corpus, measured on every pull request and
+# every mainline commit instead of recomputed by hand. It needs no game and no decompilation: the replays are
 # public, and conversion and simulation are the release binary's.
 #
 # It gates nothing. The gate waits on ci and docs alone, so a replay added to

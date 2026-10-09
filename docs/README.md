@@ -170,7 +170,7 @@ cannot be told apart from a question nobody asked.
 
 Unresolved is for decisions, never for work. "Whether a match document records how the
 match ended" is a decision. "The deployment executor does not exist" is work,
-and work belongs in the plan (`plan/`).
+and work belongs in the pull request that does it.
 
 A third case is neither. Something observed disagrees with this spec, and nobody
 has yet decided whether the spec is wrong or the reading was. That is an issue,
@@ -187,8 +187,8 @@ Four things are banned from every spec:
   wrong.
 
 None of that is worthless. The evidence belongs in `rules/`, in the form the
-section above allows; the rest in the plan or in the commit that made the
-change.
+section above allows; the rest in the pull request or the commit that made
+the change.
 
 ## Three kinds of spec
 
@@ -233,7 +233,8 @@ the most work.
 
 A boundary is a property of the contract. It stays true until the contract
 changes, and it belongs in Scope. Progress is a property of the code. It is
-stale the day it is written, and it belongs in the plan.
+stale the day it is written, and it belongs nowhere tracked: the code and the
+simulator's refusals say it.
 
 The test is to rewrite the sentence in the present tense with no *current*,
 *yet*, *still*, or *not implemented*. If it survives, it is a boundary. If it
@@ -241,9 +242,9 @@ collapses into nothing, it was progress.
 
 | Written as | Reads as | Belongs in |
 | --- | --- | --- |
-| "the simulator does not yet load map objects" | nothing survives | the plan |
+| "the simulator does not yet load map objects" | nothing survives | the simulator's refusal |
 | "a layout carries no map objects" | a rule a reader can act on | Scope |
-| "the adapter cannot capture a full state today" | nothing survives | the plan |
+| "the adapter cannot capture a full state today" | nothing survives | nowhere tracked |
 | "a capture covers the layout projection" | the contract's edge | Scope |
 
 The same test catches a section title. `Current adapter compiler` and
@@ -273,8 +274,8 @@ Among what it checks:
   gone wrong or a scripted replacement that matched more than it meant to, and
   the link check cannot see either: one such replacement once grew a 101-line
   readme to 55,000 lines. Table rows, short lines and fenced code may repeat.
-- **No tracked file writes Chinese** outside `terminology/` and the plan, but
-  for the localization and the scripts that read it. A Chinese identifier,
+- **No tracked file writes Chinese** outside `terminology/`, but for the
+  localization and the scripts that read it. A Chinese identifier,
   such as a replay named by its players, is quoted in backticks.
 
 The checker also holds the list of specs that predate this convention, and that
