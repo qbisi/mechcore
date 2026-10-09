@@ -108,6 +108,11 @@ SUBCLASS_SCALARS = (
     ("range_item_life_time", "lifeTime", "moveAbilityRangeItemTechDatas"),
     ("fog_attack_range_rate", "FogAttackRangeChangeRate", "moveAbilityRangeItemTechDatas"),
     ("reduce_damage_from_remote", "reduceDamageFromRemote", "moveAbilityRangeItemTechDatas"),
+    ("group_purpose", "mechGroupPurpose", "damageShareTechnologies"),
+    ("group_damage_rate", "floatRateValue", "damageShareTechnologies"),
+    ("group_max_count", "maxCount", "damageShareTechnologies"),
+    ("main_skill_effect", "mainSkillEffect", "damageShareTechnologies"),
+    ("extra_skill_effect", "extraSkillEffect", "damageShareTechnologies"),
 )
 # A field of one list's rows that is one rate, written only where it is set:
 # an extra weapon's `allWeaponReduceDamageRate`, which
@@ -217,6 +222,10 @@ STEALTH_FIELDS = (
     ("trigger_life_rate", "triggerConditionValue"),
     ("duration", "duration"),
 )
+# The list whose `DamageShareTech` is an `IMechGroupSource`, and the field its
+# rows carry that only the client reads: the link's effect between members.
+MECH_GROUP = "damageShareTechnologies"
+MECH_GROUP_CLIENT = {"effectName"}
 # The list of `TechnologyGroupData` a plain technology comes from. A row of any
 # other list is a subclass (`BuffTechnologyData`, `SplashTechnologyData` and
 # the rest) that does something beyond its unit's numbers.
@@ -268,7 +277,8 @@ def special(row: dict) -> list[str]:
                | {source for _, source in FLAGS})
     source = (BUFF_SOURCE if row["kind"] == BUFF
               else {field for _, field in INTERCEPT_FIELDS} if row["kind"] == INTERCEPT
-              else {field for _, field in STEALTH_FIELDS} if row["kind"] == STEALTH else set())
+              else {field for _, field in STEALTH_FIELDS} if row["kind"] == STEALTH
+              else MECH_GROUP_CLIENT if row["kind"] == MECH_GROUP else set())
     return sorted(
         field
         for field, value in row["row"].items()
@@ -483,9 +493,14 @@ def main() -> int:
         "# (`range_item_range`, `range_item_life_time`) and its rates on the",
         "# attack range of what stands in it and on the remote hits it takes",
         "# (`fog_attack_range_rate`, `reduce_damage_from_remote`).",
-        "# A damage-share technology carries the FPoint metres within which its",
-        "# units link into a group that shares the damage any of them takes",
-        "# (`share_distance`), by its unit's level.",
+        "# A grouping technology carries the FPoint metres within which its",
+        "# units link into a group (`share_distance`), by its unit's level, and",
+        "# what the group is for (`group_purpose`, a MechGroupPurpose): 0 shares",
+        "# the damage any of them takes; 1 raises each member's skill damage by",
+        "# the rate (`group_damage_rate`) for every other member, counting no",
+        "# more than `group_max_count` members when that is above zero, on its",
+        "# main skill and its extra skills as `main_skill_effect` and",
+        "# `extra_skill_effect` say.",
         "",
         "technologies:",
     ]

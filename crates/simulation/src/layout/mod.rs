@@ -13,7 +13,7 @@ use crate::{
     data::{Channel, Correction, Entry, ExperienceRate, Index, Stats},
     modifier::{
         AutoRecovery, BuffSource, CarriedShield, DeadLine, DeadSummon, EffectProvider,
-        EnergyShield, EnergyTowerSkillEffects, EquipmentEffects, LifeSteal, MainSkill,
+        EnergyShield, EnergyTowerSkillEffects, EquipmentEffects, LifeSteal, MainSkill, MechGroup,
         MoveAbilityAttack, OfficerEffects, ProductionLine, SecondaryDamage, Stealth,
         SweepIntensify, TECHNOLOGY_SOURCE, TechnologyEffects, UnitInterception, current_source,
     },
@@ -88,10 +88,9 @@ pub(crate) struct Placement {
     /// The life at or under which its main skill destroys what it hits
     /// (`DeadLineTech`).
     pub(crate) dead_line: Option<DeadLine>,
-    /// The `FPoint` metres within which it links with the other units its
-    /// technology reaches into a group that shares damage
-    /// (`DamageShareTech`, `MechDataChangeFloat.MechGroupDistance`).
-    pub(crate) share_distance: Option<i64>,
+    /// How it links with the other units its technology reaches into a
+    /// group, and what the group does (`DamageShareTech`).
+    pub(crate) mech_group: Option<MechGroup>,
     /// What its technologies do to its surfacing and the attacks after it
     /// (`MoveAbilityAttackIntensifyTech`).
     pub(crate) move_ability_attack: Option<MoveAbilityAttack>,
@@ -584,7 +583,7 @@ fn compile_death_summons(
             distance_intensify: worn.distance_intensify,
             secondary_damage: worn.secondary_damage,
             dead_line: worn.dead_line,
-            share_distance: worn.share_distance,
+            mech_group: worn.mech_group,
             move_ability_attack: worn.move_ability_attack,
             move_ability_range_item: worn.move_ability_range_item,
             interception: worn.interception,
@@ -745,7 +744,7 @@ fn compile_battle_skills(
                 || worn.auto_recovery.is_some()
                 || worn.energy_shield.is_some()
                 || worn.stealth.is_some()
-                || worn.share_distance.is_some()
+                || worn.mech_group.is_some()
             {
                 refused.push(format!(
                     "side {name} summons a {} that its technologies give lifesteal, repair, \
@@ -886,7 +885,7 @@ fn compile_formation(
         distance_intensify: worn.distance_intensify,
         secondary_damage: worn.secondary_damage,
         dead_line: worn.dead_line,
-        share_distance: worn.share_distance,
+        mech_group: worn.mech_group,
         move_ability_attack: worn.move_ability_attack,
         move_ability_range_item: worn.move_ability_range_item,
         interception: worn.interception,
@@ -1026,7 +1025,7 @@ fn made_by(
         || worn.distance_intensify
         || worn.secondary_damage.is_some()
         || worn.dead_line.is_some()
-        || worn.share_distance.is_some()
+        || worn.mech_group.is_some()
         || worn.move_ability_attack.is_some()
         || worn.move_ability_range_item.is_some()
         || worn.interception.is_some()
@@ -1181,7 +1180,7 @@ struct Worn {
     distance_intensify: bool,
     secondary_damage: Option<SecondaryDamage>,
     dead_line: Option<DeadLine>,
-    share_distance: Option<i64>,
+    mech_group: Option<MechGroup>,
     move_ability_attack: Option<MoveAbilityAttack>,
     move_ability_range_item: Option<TerrainSpec>,
     interception: Option<UnitInterception>,
@@ -1476,10 +1475,10 @@ fn worn(
                 .dead_line(&side.techs.units, type_name, level)
                 .map_err(on_side),
         )?,
-        share_distance: refused.hold(
+        mech_group: refused.hold(
             loadouts
                 .technologies
-                .share_distance(&side.techs.units, type_name, level)
+                .mech_group(&side.techs.units, type_name, level)
                 .map_err(on_side),
         )?,
         move_ability_attack: refused.hold(

@@ -1,5 +1,5 @@
-//! `MechGrounpSystem`: the units a damage-share technology links into groups
-//! that share every hit any of them takes.
+//! `MechGrounpSystem`: the units a grouping technology links into groups,
+//! which share every hit any of them takes or raise each member's damage.
 //!
 //! Each side's `TeamMechGroupManager` holds the units its technology reaches,
 //! by unit type (`groupedMeches`), and the groups they form. As the fight
@@ -11,15 +11,26 @@
 //! are linked when the edges of their bodies are within the share distance,
 //! by `FPoint.op_LessThanOrEqual`.
 //!
-//! A hit on a grouped unit is shared (`FightCalculator.CalculateGroupDamage`):
-//! its damage, after the target's rate on damage taken, reduction and
-//! stealth, divided by the group's count, dead members counted, is dealt to
-//! each member alive in the group's order, a hit of its own that no rate,
-//! reduction or further share touches ([`Simulation::strike`]). The group
-//! writes nothing on its members. `docs/rules/technology_effects.md` states
-//! the rule.
+//! What a group does is its source's purpose. One that shares damage
+//! (`DamageShare`) writes nothing on its members: a hit on one of them is
+//! shared (`FightCalculator.CalculateGroupDamage`), its damage, after the
+//! target's rate on damage taken, reduction and stealth, divided by the
+//! group's count, dead members counted, dealt to each member alive in the
+//! group's order, a hit of its own that no rate, reduction or further share
+//! touches ([`Simulation::strike`]). One that changes damage (`DamageChange`)
+//! shares nothing: each time its members change it writes on every member's
+//! main skill a rate on its damage, the source's rate times the count less
+//! one, the count no more than the source's most (`RefreshMechData`), and a
+//! unit that leaves takes it away (`FightMech.SetGroup`, `RemoveMechData`).
+//! `docs/rules/technology_effects.md` states the rule.
 
 use super::*;
+use crate::data::{Channel, Entry, Index};
+use crate::modifier::{GroupPurpose, MechGroup};
+
+/// What a group writes its members' main skills under, which is how a
+/// member takes it away again.
+const SOURCE: &str = "MechGroupInternal";
 
 /// `FPoint.C1em5`, the tolerance of `FPoint.Approximately`.
 const APPROXIMATELY: i64 = 0xA7C5;
@@ -32,8 +43,8 @@ pub(in crate::fight) struct MechGroupSystem {
     share_distance_q32: i64,
     /// Each side's manager, by its team.
     teams: BTreeMap<u32, TeamGroups>,
-    /// Each held unit's `MechGroupDistance`.
-    distances: BTreeMap<u64, i64>,
+    /// Each held unit's source, whose distance is its `MechGroupDistance`.
+    sources: BTreeMap<u64, MechGroup>,
     /// Each group's members, in its order, by an identity of the
     /// simulator's own.
     groups: BTreeMap<u64, Vec<u64>>,
@@ -143,11 +154,11 @@ impl Simulation {
     /// writing its `MechGroupDistance`, and the side's manager refreshes.
     pub(in crate::fight) fn add_group_unit(&mut self, unit: u64) {
         let actor = &self.actors[&unit];
-        let Some(distance) = actor.placement.share_distance else {
+        let Some(source) = actor.placement.mech_group else {
             return;
         };
         let (team, kind) = (actor.placement.team, actor.rules.unit_type_id);
-        self.mech_groups.distances.insert(unit, distance);
+        self.mech_groups.sources.insert(unit, source);
         self.mech_groups
             .teams
             .entry(team)
@@ -164,7 +175,7 @@ impl Simulation {
     /// (`TeamMechGroupManager.RemoveMech`), the side's manager refreshing.
     /// It no longer hears its side change (`MechGrounpSystem.RemoveMech`).
     pub(in crate::fight) fn remove_group_unit(&mut self, unit: u64) {
-        if self.mech_groups.distances.remove(&unit).is_none() {
+        if self.mech_groups.sources.remove(&unit).is_none() {
             return;
         }
         self.leave_side_groups(self.actors[&unit].placement.team, unit);
@@ -174,7 +185,7 @@ impl Simulation {
     /// leaves its old side's manager and joins its new side's, its
     /// `MechGroupDistance` kept, each manager refreshing.
     pub(in crate::fight) fn change_group_side(&mut self, unit: u64, old_team: u32) {
-        if !self.mech_groups.distances.contains_key(&unit) {
+        if !self.mech_groups.sources.contains_key(&unit) {
             return;
         }
         self.leave_side_groups(old_team, unit);
@@ -218,7 +229,7 @@ impl Simulation {
         let held = self
             .actors
             .iter()
-            .filter(|(_, actor)| !actor.travelling && actor.placement.share_distance.is_some())
+            .filter(|(_, actor)| !actor.travelling && actor.placement.mech_group.is_some())
             .map(|(&id, _)| id)
             .collect::<Vec<_>>();
         for unit in held {
@@ -323,13 +334,22 @@ impl Simulation {
         }
     }
 
+    /// The unit's `MechGroupDistance`: its source's, while held, and zero
+    /// otherwise.
+    fn held_distance(&self, unit: u64) -> i64 {
+        self.mech_groups
+            .sources
+            .get(&unit)
+            .map_or(0, |source| source.distance_q32)
+    }
+
     /// `TeamMechGroupManager.PrepareAvaliableMechs`: the units of a type with
     /// a share distance, up to the first dead one, each writing the static
     /// distance as it is taken.
     fn available_group_units(&mut self, team: u32, kind: u32) -> Vec<u64> {
         let mut available = Vec::new();
         for unit in self.mech_groups.teams[&team].grouped[&kind].clone() {
-            let distance = self.mech_groups.distances.get(&unit).copied().unwrap_or(0);
+            let distance = self.held_distance(unit);
             if approximately(distance, 0) {
                 continue;
             }
@@ -345,14 +365,7 @@ impl Simulation {
     /// `TeamMechGroupManager.UpdateGroupInfo`.
     fn update_group_info(&mut self, team: u32, kind: u32, source: u64) {
         // `IsIgnoredMech`.
-        if approximately(
-            self.mech_groups
-                .distances
-                .get(&source)
-                .copied()
-                .unwrap_or(0),
-            0,
-        ) {
+        if approximately(self.held_distance(source), 0) {
             return;
         }
         let available = self.available_group_units(team, kind);
@@ -505,10 +518,11 @@ impl Simulation {
 
     /// `MechGroupInternal.Init` and `SetGroupElement`.
     fn group_set(&mut self, group: u64, members: Vec<u64>) {
-        for &unit in &members {
-            self.mech_groups.member_of.insert(unit, group);
+        self.mech_groups.groups.insert(group, members.clone());
+        for unit in members {
+            self.set_group(unit, Some(group));
         }
-        self.mech_groups.groups.insert(group, members);
+        self.refresh_group_data(group);
     }
 
     /// `MechGroupInternal.Add`: at the end nearer the unit.
@@ -527,14 +541,15 @@ impl Simulation {
         } else {
             members.push(unit);
         }
-        self.mech_groups.member_of.insert(unit, group);
+        self.set_group(unit, Some(group));
+        self.refresh_group_data(group);
     }
 
     /// `MechGroupInternal.Remove`: the members before and after it chained
     /// again by their nearest ends, and the group emptied once fewer than two
     /// are left.
     fn group_remove(&mut self, group: u64, unit: u64) {
-        self.mech_groups.member_of.remove(&unit);
+        self.set_group(unit, None);
         let mut members = std::mem::take(
             self.mech_groups
                 .groups
@@ -546,12 +561,17 @@ impl Simulation {
             members.truncate(index);
             self.link_units(&mut members, tail);
         }
-        if members.len() < 2 {
-            for member in members.drain(..) {
-                self.mech_groups.member_of.remove(&member);
-            }
-        }
+        // `ClearMeshes`.
+        let cleared = if members.len() < 2 {
+            std::mem::take(&mut members)
+        } else {
+            Vec::new()
+        };
         self.mech_groups.groups.insert(group, members);
+        for member in cleared {
+            self.set_group(member, None);
+        }
+        self.refresh_group_data(group);
     }
 
     /// `MechGroupInternal.LinkGroup`: another group's members chained onto
@@ -564,7 +584,7 @@ impl Simulation {
                 .expect("a group held"),
         );
         for &unit in &taken {
-            self.mech_groups.member_of.insert(unit, group);
+            self.set_group(unit, Some(group));
         }
         let mut members = std::mem::take(
             self.mech_groups
@@ -574,6 +594,7 @@ impl Simulation {
         );
         self.link_units(&mut members, taken);
         self.mech_groups.groups.insert(group, members);
+        self.refresh_group_data(group);
     }
 
     /// `MechGroupInternal.Refresh`: the members by `ActorComparer`, squad by
@@ -599,16 +620,92 @@ impl Simulation {
             self.link_units(&mut members, squad);
         }
         self.mech_groups.groups.insert(group, members);
+        self.refresh_group_data(group);
+    }
+
+    /// The source a group was made with (`MechGroupInternal.dataSource`):
+    /// its type's, which each member holds.
+    fn group_source(&self, group: u64) -> Option<MechGroup> {
+        self.mech_groups.groups[&group]
+            .iter()
+            .find_map(|unit| self.mech_groups.sources.get(unit).copied())
+    }
+
+    /// `FightMech.SetGroup`: the unit's old group takes what it wrote away
+    /// (`MechGroupInternal.RemoveMechData`) before the unit joins the new
+    /// one, or none.
+    fn set_group(&mut self, unit: u64, group: Option<u64>) {
+        if self.mech_groups.member_of.contains_key(&unit) {
+            self.remove_group_data(unit);
+        }
+        match group {
+            Some(group) => self.mech_groups.member_of.insert(unit, group),
+            None => self.mech_groups.member_of.remove(&unit),
+        };
+    }
+
+    /// `MechGroupInternal.RefreshMechData`: a group that changes damage
+    /// writes on each member's main skill its rate times the count less
+    /// one, the count no more than the source's most when that is above
+    /// zero (`FPoint` product).
+    fn refresh_group_data(&mut self, group: u64) {
+        let Some(source) = self.group_source(group) else {
+            return;
+        };
+        if source.purpose != GroupPurpose::DamageChange {
+            return;
+        }
+        let members = self.mech_groups.groups[&group].clone();
+        let mut count = i64::try_from(members.len()).expect("a group is small");
+        if source.max_count > 0 {
+            count = count.min(i64::from(source.max_count));
+        }
+        let rate = math::q32_mul(source.damage_rate_q32, (count - 1) << 32);
+        for unit in members {
+            let actor = self
+                .actors
+                .get_mut(&unit)
+                .expect("actor identity is stable");
+            let skill = actor.stats.overlays.channel(Channel::Skill);
+            skill.withdraw(SOURCE);
+            skill.write(Entry {
+                index: Index::AttackDamage,
+                source: SOURCE,
+                correction: super::tower::rate(rate),
+            });
+            actor
+                .stats
+                .refresh(&actor.rules)
+                .expect("a rate on damage resolves");
+        }
+    }
+
+    /// `MechGroupInternal.RemoveMechData`: what the unit's group wrote on its
+    /// main skill, if the group changes damage.
+    fn remove_group_data(&mut self, unit: u64) {
+        let actor = self
+            .actors
+            .get_mut(&unit)
+            .expect("actor identity is stable");
+        let skill = actor.stats.overlays.channel(Channel::Skill);
+        if skill.take(SOURCE).is_empty() {
+            return;
+        }
+        actor
+            .stats
+            .refresh(&actor.rules)
+            .expect("the numbers resolved before the rate was written");
     }
 
     /// The members a hit on a unit is shared among, in the group's order,
     /// dead ones too: `FightCalculator.CalculateGroupDamage`'s, when the unit
-    /// is grouped.
+    /// is grouped by a source whose purpose is `DamageShare`
+    /// (`PerformHitTargetEffect`).
     pub(in crate::fight) fn sharing_group(&self, unit: u64) -> Option<Vec<u64>> {
-        self.mech_groups
-            .member_of
-            .get(&unit)
-            .map(|group| self.mech_groups.groups[group].clone())
-            .filter(|members| !members.is_empty())
+        let group = *self.mech_groups.member_of.get(&unit)?;
+        if self.group_source(group)?.purpose != GroupPurpose::DamageShare {
+            return None;
+        }
+        Some(self.mech_groups.groups[&group].clone()).filter(|members| !members.is_empty())
     }
 }

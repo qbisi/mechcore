@@ -244,9 +244,9 @@ struct Technology {
     /// What it answers `IDeadLineDataSource` with, if its class is one: the
     /// life by its unit's level, and whether a shield keeps it off.
     dead_line: Option<(Vec<i64>, bool)>,
-    /// What it answers `IMechGroupSource.GetShareDistance` with, if its class
-    /// is one: `FPoint` metres by its unit's level.
-    share_distance: Option<Vec<i64>>,
+    /// What it answers `IMechGroupSource` with, if its class is one: the
+    /// share distance, `FPoint` metres by its unit's level, and the rest.
+    mech_group: Option<(Vec<i64>, MechGroup)>,
     /// What it answers `IMoveAbilityAttackIntensify` with, if its class is
     /// one.
     move_ability_attack: Option<MoveAbilityAttack>,
@@ -295,6 +295,31 @@ pub(crate) struct DeadLine {
     pub(crate) life: i64,
     /// `IsIgnoreEnergyShield`.
     pub(crate) ignores_shield: bool,
+}
+
+/// What a grouping technology answers `IMechGroupSource` with at its unit's
+/// level, which `MechGrounpEffectProvider` hands its side's manager.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct MechGroup {
+    /// `GetShareDistance`: `FPoint` metres, edge to edge.
+    pub(crate) distance_q32: i64,
+    /// `GetGroupPurpose`.
+    pub(crate) purpose: GroupPurpose,
+    /// `GetFloatRateValue`: what each member's main skill's damage rate
+    /// rises by for every other member, `FPoint`.
+    pub(crate) damage_rate_q32: i64,
+    /// `GetMaxCount`: the most members that count, or every one at zero.
+    pub(crate) max_count: i32,
+}
+
+/// `MechGroupPurpose`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum GroupPurpose {
+    /// `DamageShare`: a hit on a member is shared among the group.
+    DamageShare,
+    /// `DamageChange`: each member's skill damage rises with the group's
+    /// count.
+    DamageChange,
 }
 
 /// What `SecondaryDamageIntensifyEffectProvider` hands its unit's main skill
@@ -599,7 +624,7 @@ struct Row {
     air_damage_change_rate: Vec<i64>,
     #[serde(default)]
     ground_damage_change_rate: Vec<i64>,
-    /// `TechnologyData.extraSkillEffect`, on an air-attack row.
+    /// `TechnologyData.extraSkillEffect`, on an air-attack or grouping row.
     #[serde(default)]
     extra_skill_effect: bool,
     /// `SecondaryDamageIntensifyTechData`'s fields, on a row of its list:
@@ -681,6 +706,17 @@ struct Row {
     /// metres by the unit's level.
     #[serde(default)]
     share_distance: Vec<i64>,
+    /// `DamageShareTechnologyData`'s `mechGroupPurpose`, `floatRateValue`
+    /// and `maxCount`, and `TechnologyData.mainSkillEffect`, on a row of
+    /// its list; `extra_skill_effect` is read beside them.
+    #[serde(default)]
+    group_purpose: i32,
+    #[serde(default)]
+    group_damage_rate: i64,
+    #[serde(default)]
+    group_max_count: i32,
+    #[serde(default)]
+    main_skill_effect: bool,
     /// `MoveAbilityAttackIntensifyTechData`'s fields and the
     /// `exitTimeChangeRate` its tech answers, on a row of its list.
     #[serde(default)]
@@ -1049,6 +1085,10 @@ impl TechnologyEffects {
                 Ok(summons) => (summons, effect),
                 Err(why) => ((None, None), Err(why)),
             };
+            let (mech_group, effect) = match mech_group_of(&row, &who) {
+                Ok(group) => (group, effect),
+                Err(why) => (None, Err(why)),
+            };
             let self_buff = buff_source.as_ref().is_some_and(adds_its_unit_a_buff);
             let technology = Technology {
                 unit: row.unit.clone(),
@@ -1060,7 +1100,7 @@ impl TechnologyEffects {
                 stealth: row.stealth.map(StealthBlock::source),
                 dead_line: (row.kind == DEAD_LINE)
                     .then(|| (row.dead_line_value.clone(), row.dead_line_ignores_shield)),
-                share_distance: (row.kind == DAMAGE_SHARE).then(|| row.share_distance.clone()),
+                mech_group,
                 move_ability_attack: (row.kind == MOVE_ABILITY_ATTACK).then_some(
                     MoveAbilityAttack {
                         exit_time_rate_q32: row.exit_time_rate,
@@ -1312,30 +1352,34 @@ impl TechnologyEffects {
     }
 
     /// What the first of this side's technologies on one unit type that is
-    /// an `IMechGroupSource` answers `GetShareDistance` with at the unit's
-    /// level: `TechnologyData.GetLevelValue` reads entry `GetLevel()`,
-    /// counting from zero, and its last past it. Grouping by any other
-    /// purpose than sharing damage names more fields than this table
-    /// carries, and its row is refused by them.
+    /// an `IMechGroupSource` answers it with at the unit's level: its share
+    /// distance is `TechnologyData.GetLevelValue`'s, entry `GetLevel()`,
+    /// counting from zero, and its last past it.
     ///
     /// # Errors
     ///
     /// Returns the error [`Self::corrections`] does.
-    pub(crate) fn share_distance(
+    pub(crate) fn mech_group(
         &self,
         held: &[i32],
         unit_type: &str,
         level: i64,
-    ) -> Result<Option<i64>> {
+    ) -> Result<Option<MechGroup>> {
         self.effects(held, unit_type)?;
         Ok(held
             .iter()
             .filter_map(|id| self.technologies.get(id))
             .filter(|technology| technology.unit == unit_type)
-            .find_map(|technology| technology.share_distance.as_ref())
-            .and_then(|values| {
+            .find_map(|technology| technology.mech_group.as_ref())
+            .and_then(|(values, group)| {
                 let index = usize::try_from(level - 1).unwrap_or_default();
-                values.get(index).or_else(|| values.last()).copied()
+                values
+                    .get(index)
+                    .or_else(|| values.last())
+                    .map(|&distance_q32| MechGroup {
+                        distance_q32,
+                        ..*group
+                    })
             }))
     }
 
@@ -1457,6 +1501,41 @@ fn subclass_of(
         None
     };
     Ok((interception, production))
+}
+
+/// What a grouping row answers `IMechGroupSource` with. A group that raises
+/// its members' damage names their main skill alone
+/// (`MechGroupInternal.RefreshMechData` writes each skill the row's
+/// `ISkillDataChangeDataSource` names); one on their extra skills is
+/// refused.
+fn mech_group_of(
+    row: &Row,
+    who: &str,
+) -> std::result::Result<Option<(Vec<i64>, MechGroup)>, String> {
+    if row.kind != DAMAGE_SHARE {
+        return Ok(None);
+    }
+    let purpose = match row.group_purpose {
+        0 => GroupPurpose::DamageShare,
+        1 if row.extra_skill_effect => {
+            return Err(format!("{who} raises its units' extra skills' damage"));
+        }
+        1 => GroupPurpose::DamageChange,
+        other => return Err(format!("{who} groups its units for purpose {other}")),
+    };
+    Ok(Some((
+        row.share_distance.clone(),
+        MechGroup {
+            distance_q32: 0,
+            purpose,
+            damage_rate_q32: if row.main_skill_effect {
+                row.group_damage_rate
+            } else {
+                0
+            },
+            max_count: row.group_max_count,
+        },
+    )))
 }
 
 /// Whether a buff technology's buff goes on its own unit: one of a range

@@ -85,9 +85,14 @@ schema: mechcore.technology_effects
 # (`range_item_range`, `range_item_life_time`) and its rates on the
 # attack range of what stands in it and on the remote hits it takes
 # (`fog_attack_range_rate`, `reduce_damage_from_remote`).
-# A damage-share technology carries the FPoint metres within which its
-# units link into a group that shares the damage any of them takes
-# (`share_distance`), by its unit's level.
+# A grouping technology carries the FPoint metres within which its
+# units link into a group (`share_distance`), by its unit's level, and
+# what the group is for (`group_purpose`, a MechGroupPurpose): 0 shares
+# the damage any of them takes; 1 raises each member's skill damage by
+# the rate (`group_damage_rate`) for every other member, counting no
+# more than `group_max_count` members when that is above zero, on its
+# main skill and its extra skills as `main_skill_effect` and
+# `extra_skill_effect` say.
 
 technologies:
   - id: 206
@@ -190,19 +195,33 @@ technologies:
     name: 伤害分摊
     unit: steel_ball
     kind: damageShareTechnologies
+    group_purpose: 0
+    group_damage_rate: 0
+    group_max_count: 0
+    main_skill_effect: true
+    extra_skill_effect: false
     life_rate: [5153960755]  # +1.2
     share_distance: [107374182400]  # +25
   - id: 613
     name: 伤害分摊
     unit: sledgehammer
     kind: damageShareTechnologies
+    group_purpose: 0
+    group_damage_rate: 0
+    group_max_count: 0
+    main_skill_effect: true
+    extra_skill_effect: false
     life_rate: [5153960755]  # +1.2
     share_distance: [107374182400]  # +25
   - id: 631
     name: 并网
     unit: vortex
     kind: damageShareTechnologies
-    special: [effectName, floatRateValue, maxCount, mechGroupPurpose]
+    group_purpose: 1
+    group_damage_rate: 1503238553
+    group_max_count: 4
+    main_skill_effect: true
+    extra_skill_effect: false
     share_distance: [150323855360]  # +35
   - id: 701
     name: 双发
