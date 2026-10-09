@@ -456,6 +456,8 @@ pub(crate) struct Summon {
     /// Its side's technology that burrows it, which `FightEffectSystem`
     /// hands its side's `TeamBurrowManager` as it joins.
     pub(crate) burrow: Option<crate::modifier::Burrow>,
+    /// The acid its side's technology leaves where it dies.
+    pub(crate) dead_acid: Option<TerrainSpec>,
     /// What its side's technology hands it to clear terrain about it,
     /// which `FightEffectSystem` adds as it joins.
     pub(crate) clear_range_item: Option<crate::modifier::ClearRangeItem>,
@@ -1296,6 +1298,7 @@ fn summon(named: &str, row: &SupportSkillRow, units: &UnitConfigs) -> Result<Sum
         technology_disable: crate::layout::TechnologyDisable::default(),
         reactive_armor: None,
         burrow: None,
+        dead_acid: None,
         clear_range_item: None,
         rvo_radius_change: None,
         repair: None,

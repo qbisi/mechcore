@@ -60,6 +60,7 @@ pub(super) fn placement(
         clear_range_item: None,
         repair: None,
         burrow: None,
+        dead_acid: None,
         sweep: None,
         distance_intensify: false,
         secondary_damage: None,

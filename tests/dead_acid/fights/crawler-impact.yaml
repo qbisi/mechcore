@@ -1,0 +1,22 @@
+# Acidic Explosion on blue's Crawlers under red's Electromagnetic Impact,
+# which switches all 24 Crawlers' technologies off on tick 57: none of them
+# leaves an acid as it dies (DeadEffectProvider.DisableEffect).
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 300
+hash: {profile: mcfr-content-0.23.0, result: d05997e508fee048de15d5f90651bba39cbbfaa4da8830759af6897d4b345bbf}
+blue:
+  core_damage: 200
+  techs:
+    crawler: [acidic_explosion]
+  units:
+  - {name: crawler, index: 0, position: {x: 5, y: -100}}
+red:
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -65}, exp: 0/192/1150}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: -5, y: 95}]}

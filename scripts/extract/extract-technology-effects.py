@@ -34,7 +34,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 import build_data  # noqa: E402
-from buff_rows import SOURCE_CLIENT, SOURCE_CYCLE, SOURCE_OTHER, SOURCE_RANGE_ITEM, buff_lines  # noqa: E402
+from buff_rows import SOURCE_CLIENT, SOURCE_CYCLE, SOURCE_OTHER, SOURCE_RANGE_ITEM, buff_lines, buff_row_lines  # noqa: E402
 
 REPOSITORY = pathlib.Path(__file__).resolve().parents[2]
 OUTPUT = REPOSITORY / "config/technology_effects.yaml"
@@ -165,7 +165,13 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "wreckageRecoveryTechnologies", "rebirthEffectTechologyDatas",
                "rVORadiusChangeTechnologyTechDatas", "clearRangeItemTechDatas",
                "recoveryTechDatas",
-               "burrowTechnologies")
+               "burrowTechnologies", "deadAcidRangeItemTechnologyDatas")
+# The list whose `DeadAcidRangeItemTech` leaves an acid where its unit dies,
+# and the fields its rows carry for it: whole metres of range
+# (`GetRangeItemRange`), the rounds it stands (`GetRoundDuration`), and the
+# buffDatas row it writes, under `dead_acid`.
+DEAD_ACID = "deadAcidRangeItemTechnologyDatas"
+DEAD_ACID_FIELDS = {"subEffectRange", "roundDuration", "buffID"}
 # The list whose `BuffTech` adds a buff, and the fields its rows carry for
 # `buff_lines` rather than as corrections.
 BUFF = "buffTechnologies"
@@ -357,6 +363,7 @@ def special(row: dict) -> list[str]:
               else {field for _, field in SIEGE_FIELDS} | SIEGE_CLIENT if row["kind"] == SIEGE
               else WRECKAGE_FIELDS if row["kind"] == WRECKAGE
               else {field for _, field in REBIRTH_FIELDS} if row["kind"] == REBIRTH
+              else DEAD_ACID_FIELDS if row["kind"] == DEAD_ACID
               else set())
     return sorted(
         field
@@ -607,6 +614,8 @@ def main() -> int:
         "# metres within which an enemy brings it up (`burrow_relieve_distance`),",
         "# by its unit's level, and whether it goes underground",
         "# (`burrow_enters_underground`).",
+        "# An acid technology carries the acid its unit leaves where it dies",
+        "# (`dead_acid`): its whole metres of range, its rounds and its buff.",
         "# A fire technology carries the FPoint metres and seconds of the fire",
         "# each hit of its unit's main skill leaves (`fire_range`,",
         "# `fire_life_time`), by its unit's level.",
@@ -662,6 +671,12 @@ def main() -> int:
                 lines.append(f"    {field}: {row[field]}  # {reading(field, row[field])}")
         if row["kind"] == BUFF:
             lines += buff_lines(row["row"], buffs)
+        if row["kind"] == DEAD_ACID:
+            source = row["row"]
+            lines.append("    dead_acid:")
+            lines.append(f"      range: {source['subEffectRange']}")
+            lines.append(f"      rounds: {source['roundDuration']}")
+            lines += buff_row_lines(buffs[source["buffID"]], "      ")
         if row["kind"] == INTERCEPT:
             lines.append("    intercept:")
             for field, source in INTERCEPT_FIELDS:

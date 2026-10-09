@@ -45,6 +45,7 @@ mod commander_skill;
 mod construction;
 mod control;
 mod damage;
+mod dead_acid;
 mod deploy;
 mod diffusion;
 mod experience;
@@ -1142,6 +1143,9 @@ impl Simulation {
         // it.
         // Its dead effects first, the explosions among them, and then each
         // dead actor's `OnDead`.
+        // The acid controller before the explosive one
+        // (`DeadEffectSystem.Init`).
+        self.step_dead_acids()?;
         self.step_dead_explosions(&mut events)?;
         // The rebirth controller after it, and every controller's
         // `PerformDeadEffect` and `Update` before any `OnDead`.
