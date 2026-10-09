@@ -248,13 +248,10 @@ impl Simulation {
             stacking: None,
             summons: None,
         };
+        // Its rate joins the unit's buffs' (`BuffManager.buffDatas`), which
+        // `GetAmplifyDamageAddRate` and `GetAmplifyDamageReduceRate` read
+        // composed, as any other buff's does.
         let team = actor.placement.team;
-        if let Some(beside) = actor.buff_not_beside(&row) {
-            return Err(Error::new(format!(
-                "unit {unit} burrows beside buff {beside}, and how their rates compose is \
-                 not measured"
-            )));
-        }
         if !self.buff_reaches(unit, &row)? {
             return Ok(());
         }

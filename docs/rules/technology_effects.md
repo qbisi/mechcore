@@ -863,7 +863,11 @@ unit `Underground` and adds `BurrowTech`, which is its own `IBuffData`, with
 no source (`BuffSystem.DoAddBuff`): it never fails (`GetProbablity` is
 1000), lasts `FightUtility.MaxTime`, 2^30 ticks in `Buff.Init`, and writes
 its rate as `AmplifyDamageRate` (`IBuffDataFloatRate.GetData`), on every
-hit the unit takes. Its data is the technology, whose id the buff
+hit the unit takes. The rate joins its unit's other buffs' in
+`BuffManager.buffDatas`, which `GetAmplifyDamageAddRate` and
+`GetAmplifyDamageReduceRate` read composed, as any two buffs' are: a
+burrowed Crawler in an acid takes both. Read from the build; no recording
+holds the two together. Its data is the technology, whose id the buff
 and its events name. `TryBurrowUp` marks it `Normal` and removes the buff
 (`BuffSystem.RemoveBuff`), `removed`. What the manager writes follows the
 tick's deaths. A unit that dies burrowed has its buff cleared after its
