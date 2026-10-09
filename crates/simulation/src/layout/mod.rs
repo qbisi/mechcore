@@ -14,7 +14,8 @@ use crate::{
     modifier::{
         AutoRecovery, BuffSource, CarriedShield, DeadSummon, EnergyShield, EnergyTowerSkillEffects,
         EquipmentEffects, LifeSteal, MainSkill, OfficerEffects, ProductionLine, SecondaryDamage,
-        SweepIntensify, TECHNOLOGY_SOURCE, TechnologyEffects, UnitInterception, current_source,
+        Stealth, SweepIntensify, TECHNOLOGY_SOURCE, TechnologyEffects, UnitInterception,
+        current_source,
     },
     rules::{ExtraWeaponConfig, UnitConfig, UnitConfigs, UnitDomain},
 };
@@ -73,6 +74,9 @@ pub(crate) struct Placement {
     /// The `IEnergyShieldSource` its `EnergyShieldProvider` enables, if its
     /// technologies or equipment hand it one.
     pub(crate) energy_shield: Option<EnergyShield>,
+    /// The `IStealthTechDataSource` its `StealthTechEffectProvider` hands
+    /// `StealthTechSystem`, if its technologies hand it one.
+    pub(crate) stealth: Option<Stealth>,
     /// What its technologies hand its sweep (`SweepSkillIntensifyTech`).
     pub(crate) sweep: Option<SweepIntensify>,
     /// Whether its technologies turn its main skill's search to
@@ -562,6 +566,7 @@ fn compile_death_summons(
             lifesteal: worn.lifesteal,
             auto_recovery: worn.auto_recovery,
             energy_shield: worn.energy_shield,
+            stealth: worn.stealth,
             sweep: worn.sweep,
             distance_intensify: worn.distance_intensify,
             secondary_damage: worn.secondary_damage,
@@ -722,10 +727,11 @@ fn compile_battle_skills(
             if worn.lifesteal.is_some()
                 || worn.auto_recovery.is_some()
                 || worn.energy_shield.is_some()
+                || worn.stealth.is_some()
             {
                 refused.push(format!(
-                    "side {name} summons a {} that its technologies give lifesteal, repair \
-                     or a shield, and what a summon's effect providers carry is not measured",
+                    "side {name} summons a {} that its technologies give lifesteal, repair, \
+                     a shield or stealth, and what a summon's effect providers carry is not measured",
                     summon.rules.type_name
                 ));
                 continue;
@@ -857,6 +863,7 @@ fn compile_formation(
         lifesteal: worn.lifesteal,
         auto_recovery: worn.auto_recovery,
         energy_shield: worn.energy_shield,
+        stealth: worn.stealth,
         sweep: worn.sweep,
         distance_intensify: worn.distance_intensify,
         secondary_damage: worn.secondary_damage,
@@ -993,6 +1000,7 @@ fn made_by(
     if worn.lifesteal.is_some()
         || worn.auto_recovery.is_some()
         || worn.energy_shield.is_some()
+        || worn.stealth.is_some()
         || worn.distance_intensify
         || worn.secondary_damage.is_some()
         || worn.interception.is_some()
@@ -1138,6 +1146,7 @@ struct Worn {
     lifesteal: Option<LifeSteal>,
     auto_recovery: Option<AutoRecovery>,
     energy_shield: Option<EnergyShield>,
+    stealth: Option<Stealth>,
     sweep: Option<SweepIntensify>,
     distance_intensify: bool,
     secondary_damage: Option<SecondaryDamage>,
@@ -1414,6 +1423,7 @@ fn worn(
         lifesteal: refused.hold(current_source(&lifesteal).map_err(in_force))?,
         auto_recovery: refused.hold(current_source(&auto_recovery).map_err(in_force))?,
         energy_shield: refused.hold(current_source(&energy_shield).map_err(in_force))?,
+        stealth: sources.stealth,
         sweep: main_skill.sweep,
         distance_intensify: main_skill.distance_intensify,
         secondary_damage: main_skill.secondary_damage,

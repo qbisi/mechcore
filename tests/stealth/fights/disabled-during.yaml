@@ -1,0 +1,29 @@
+# Emergency Armor on a Vortex that an Electromagnetic Impact strikes while
+# it is in stealth.
+#
+# Two shots leave the Vortex at 3880 (t18), and it goes into stealth. The
+# impact disables its technologies at t57, well inside the 4 seconds, and
+# it is shown at once.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 92
+hash: {profile: mcfr-content-0.22.0, result: 8f6e2eb0fb8e636b50583ba50b039e7cc6f2d79c45b0060d792aec34694e0688}
+blue:
+  core_damage: 400
+  techs:
+    vortex: [emergency_armor]
+  units:
+  - {name: vortex, index: 0, position: {x: 0, y: -30}, exp: 0/200/750}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -60}, exp: 0/125/650}
+  - {name: marksman, index: 1, position: {x: 0, y: -60}}
+  - {name: marksman, index: 2, position: {x: 20, y: -60}, exp: 0/25/650}
+  - {name: marksman, index: 3, position: {x: -20, y: -80}, exp: 0/25/650}
+  - {name: marksman, index: 4, position: {x: 20, y: -80}, exp: 0/25/650}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: 0, y: 10}]}

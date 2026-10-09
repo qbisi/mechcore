@@ -125,7 +125,7 @@ locked on a Sandworm as it burrows go on walking towards it.
 - **Range.** `SkillAttackRangeChecker.IsActorInAttackRange` and
   `IsAttackTargetInAttackRange` answer that a hidden target is out of range,
   except to an attacker whose own `moveType` is `Underground`, which reaches
-  one hidden the way it is. So no unit attacks a burrowed Sandworm, and two
+  one hidden the way it is, though not one in stealth. So no unit attacks a burrowed Sandworm, and two
   Sandworms surface on each other.
 - **Shots.** A projectile that reaches a target that is not
   `IsValidTarget(Stealth)` does not strike it, as for a dead target: a Wasp's

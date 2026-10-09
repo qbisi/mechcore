@@ -22,7 +22,8 @@
 //! `BuffTech` the buff it adds its unit as the fight starts, and a
 //! `SupportUnitTech` the production line a production item's
 //! `SupportUnitEquipment` would, and a `MultiAttackTech` the projectiles it
-//! adds its unit's bursts; any other is
+//! adds its unit's bursts, and a `StealthTech` its stealth once it is hurt;
+//! any other is
 //! refused by name rather than applied for its numbers alone.
 //!
 //! A technology belongs to one unit type, which is how a side's flat list of
@@ -49,7 +50,9 @@ use crate::{
 use super::{
     buffs::{self, BuffBlock, CycleBlock},
     effects::{self, Fields},
-    sources::{AutoRecovery, BuffSource, EnergyShield, LifeSteal, ProductionLine, SweepIntensify},
+    sources::{
+        AutoRecovery, BuffSource, EnergyShield, LifeSteal, ProductionLine, Stealth, SweepIntensify,
+    },
 };
 
 const DEFAULT_TECHNOLOGY_EFFECTS: &str = include_str!("../../../../config/technology_effects.yaml");
@@ -93,8 +96,11 @@ const MOVE_SUMMON: &str = "moveAbilitySummonTechDatas";
 /// target, beside its numbers.
 const MULTI_ATTACK: &str = "multiAttackTechnologies";
 
+/// The list whose `StealthTech` is an `IStealthTechDataSource`.
+const STEALTH: &str = "stealthTechData";
+
 /// The lists whose rows this build applies, each with its mechanism.
-const IMPLEMENTED: [&str; 18] = [
+const IMPLEMENTED: [&str; 19] = [
     PLAIN,
     LIFESTEAL,
     AUTO_RECOVERY,
@@ -113,6 +119,7 @@ const IMPLEMENTED: [&str; 18] = [
     DEAD_SUMMON,
     MOVE_SUMMON,
     MULTI_ATTACK,
+    STEALTH,
 ];
 
 /// The list whose `SplashTech` adds its row's `range` to its unit's skill's
@@ -207,6 +214,8 @@ struct Technology {
     auto_recovery: Option<AutoRecovery>,
     /// What it answers `IEnergyShieldSource` with, if its class is one.
     energy_shield: Option<EnergyShield>,
+    /// What it answers `IStealthTechDataSource` with, if its class is one.
+    stealth: Option<Stealth>,
     /// What it hands its unit's sweep, if its class is a sweep's.
     sweep: Option<SweepIntensify>,
     /// What it answers `IArmorStrengthen.GetReduceDamageValue` with, by its
@@ -239,7 +248,9 @@ struct Technology {
     /// Whether what switching it off does is read and fought: its numbers
     /// taken away, as [`DISABLED_AS_NUMBERS`] lists, an extra weapon's skills
     /// disabled, or the buff a fight-start buff technology adds its own unit
-    /// cleared (`BuffManager.ClearSelfResourceBuffByDisableTech`). A source
+    /// cleared (`BuffManager.ClearSelfResourceBuffByDisableTech`), or a
+    /// stealth technology's unit taken out of stealth for good
+    /// (`StealthTechSystem.DisableStealthTech`). A source
     /// that keeps its buff on the units around its unit stops its cycle
     /// (`BuffEffectProvider.DoDisableCycle`), and how it starts again is not
     /// measured.
@@ -316,6 +327,9 @@ pub(crate) struct UnitSources {
     pub(crate) lifesteal: Vec<LifeSteal>,
     pub(crate) auto_recovery: Vec<AutoRecovery>,
     pub(crate) energy_shield: Vec<EnergyShield>,
+    /// The first that puts its unit in stealth: `StealthTechSystem.AddMech`
+    /// passes over a unit it already holds.
+    pub(crate) stealth: Option<Stealth>,
     pub(crate) buff_sources: Vec<BuffSource>,
     pub(crate) interception: Vec<UnitInterception>,
     pub(crate) dead_summon: Option<UnitDeadSummon>,
@@ -638,6 +652,9 @@ struct Row {
     /// `InterceptMissileTechnologyData`'s fields, on a row of its list.
     #[serde(default)]
     intercept: Option<InterceptBlock>,
+    /// `StealthTechData`'s fields, on a row of its list.
+    #[serde(default)]
+    stealth: Option<StealthBlock>,
     /// `SupportUnitTechnologyData`'s fields, on a row of its list.
     #[serde(default)]
     production: Option<SupportBlock>,
@@ -819,6 +836,27 @@ impl SupportBlock {
     }
 }
 
+/// What a stealth row answers `IStealthTechDataSource` with: `FPoint` raw
+/// integers.
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct StealthBlock {
+    trigger_life_rate: i64,
+    duration: i64,
+}
+
+impl StealthBlock {
+    /// No stealth row sets `ignoreElectricEffect`, so each answers
+    /// `CanDisable` true.
+    const fn source(self) -> Stealth {
+        Stealth {
+            trigger_life_rate_q32: self.trigger_life_rate,
+            duration_q32: self.duration,
+            can_disable: true,
+        }
+    }
+}
+
 /// What an interception row answers `IInterceptData` with, named as
 /// `config/contraptions.yaml`'s interceptor names them.
 #[derive(Debug, Clone, Copy, Deserialize)]
@@ -881,6 +919,7 @@ impl TechnologyEffects {
         Self::parse(DEFAULT_TECHNOLOGY_EFFECTS)
     }
 
+    #[allow(clippy::too_many_lines)]
     fn parse(text: &str) -> Result<Self> {
         let table: Table = serde_yaml::from_str(text).map_err(|error| {
             Error::new(format!("cannot read the technology effect table: {error}"))
@@ -962,6 +1001,7 @@ impl TechnologyEffects {
                 lifesteal,
                 auto_recovery,
                 energy_shield,
+                stealth: row.stealth.map(StealthBlock::source),
                 sweep,
                 reduce_damage,
                 distance_intensify: row.kind == SEARCH_TARGET_SPECIFIC,
@@ -981,6 +1021,7 @@ impl TechnologyEffects {
                 }),
                 switch_off_read: DISABLED_AS_NUMBERS.contains(&row.kind.as_str())
                     || row.kind == EXTRA_WEAPON
+                    || row.kind == STEALTH
                     || self_buff,
             };
             if technologies.insert(id, technology).is_some() {
@@ -1066,6 +1107,7 @@ impl TechnologyEffects {
             sources.lifesteal.extend(technology.lifesteal);
             sources.auto_recovery.extend(technology.auto_recovery);
             sources.energy_shield.extend(technology.energy_shield);
+            sources.stealth = sources.stealth.or(technology.stealth);
             sources.buff_sources.extend(technology.buff_source);
             sources.interception.extend(technology.interception);
             if let Some(dead_summon) = &technology.dead_summon {
@@ -1589,6 +1631,30 @@ mod tests {
         assert!(crate::data::lock_target(&skill, false, false));
         // A skill that locks under a main skill that does not is written 1.
         assert!(!crate::data::lock_target(&skill, false, true));
+    }
+
+    /// A stealth technology hands its unit the share of its life and the
+    /// duration `StealthTechSystem` reads, and nothing else.
+    #[test]
+    fn a_stealth_technology_hands_its_unit_a_source() {
+        let table = TechnologyEffects::parse(
+            "schema: mechcore.technology_effects\n\
+             technologies:\n\
+             - {id: 9, name: probe, unit: vortex, kind: stealthTechData, \
+             stealth: {trigger_life_rate: 2147483648, duration: 17179869184}}\n",
+        )
+        .unwrap();
+        assert!(table.corrections(&[9], "vortex", 1).unwrap().is_empty());
+        let sources = table.sources(&[9], "vortex").unwrap();
+        assert_eq!(
+            sources.stealth,
+            Some(super::Stealth {
+                trigger_life_rate_q32: 1 << 31,
+                duration_q32: 4 << 32,
+                can_disable: true,
+            })
+        );
+        assert!(table.disabled_unmeasured(&[9], "vortex").is_empty());
     }
 
     /// A technology of a list whose mechanism is not here is refused by name

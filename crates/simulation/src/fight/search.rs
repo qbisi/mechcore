@@ -659,7 +659,7 @@ impl Simulation {
                     actor.body_rotation_q32
                 };
             actor.target_query_alive = actor.alive();
-            actor.target_query_visible = actor.visibility == Visibility::Normal;
+            actor.target_query_visibility = actor.visibility;
             actor.skills.main.searched_this_tick = false;
             // `MainSkillSearchTargetController.PrepareSearch` prepares no
             // skill a `SkillGroup` holds: a Wraith's or a Raiden's search is
@@ -971,9 +971,11 @@ impl Simulation {
                 };
                 // The prepared job scores each unit as the tick opened, on
                 // the side it stood on then, a unit a beam has turned since
-                // among them.
+                // among them. `AttackTargetFilter` passes over a unit in
+                // stealth, though not one underground.
                 if !candidate_alive
                     || !candidate_targetable
+                    || !target.searchable(!use_live_candidate_positions)
                     || matches!(candidate, FightActorRef::Building(id)
                         if self.unsearchable_buildings.contains(&id))
                     || (!tower_attackable && self.is_tower(candidate))
@@ -1280,6 +1282,7 @@ impl Simulation {
                         || (!skill.standalone() && target.team != team)
                         || !target.alive
                         || !target.targetable
+                        || !target.searchable(skill.standalone())
                         || matches!(candidate, FightActorRef::Building(id)
                             if self.unsearchable_buildings.contains(&id))
                         || !targets.accepts(target.domain)

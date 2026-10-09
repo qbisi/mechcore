@@ -1,0 +1,28 @@
+# Emergency Armor on a Vortex that an Electromagnetic Impact strikes before
+# it is hurt.
+#
+# The impact disables the Vortex's technologies (t57). Three shots take it
+# from 8538 to 1551 (t83 to t85), and it does not go into stealth, though
+# the second leaves it under half its life: a disabled source counts as
+# triggered.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 143
+hash: {profile: mcfr-content-0.22.0, result: 46bdbc4422004cb7a18afd8161e8a5f2caa20ae0ee25d30a3651284bcc81e49f}
+blue:
+  core_damage: 300
+  techs:
+    vortex: [emergency_armor]
+  units:
+  - {name: vortex, index: 0, position: {x: 0, y: -100}}
+red:
+  units:
+  - {name: marksman, index: 0, position: {x: -20, y: -100}, exp: 0/33/650}
+  - {name: marksman, index: 1, position: {x: 0, y: -100}, exp: 0/133/650}
+  - {name: marksman, index: 2, position: {x: 20, y: -100}, exp: 0/33/650}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: 0, y: 80}]}

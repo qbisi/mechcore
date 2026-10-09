@@ -117,7 +117,7 @@ IMPLEMENTED = ("technologyDatas", "lifestealTechnologies", "autoRecoveryTechnolo
                "airAttackTechnologyDatas", "damageIntensifyTechnologies",
                "secondaryDamageIntensifyTechDatas", "buffTechnologies",
                "interceptMissileTechnologyDatas", "splashTechnologies",
-               "mobilityIntensifyTechnologies", "multiAttackTechnologies")
+               "mobilityIntensifyTechnologies", "multiAttackTechnologies", "stealthTechData")
 # The list whose `BuffTech` adds a buff, and the fields its rows carry for
 # `buff_lines` rather than as corrections.
 BUFF = "buffTechnologies"
@@ -191,6 +191,15 @@ MOVE_SUMMON_FIELDS = (
     ("product_time", "productTime"),
     ("create_duration", "createDuration"),
 )
+# The list whose `StealthTech` puts its unit in stealth once its life first
+# falls to a share of its maximum, and what its rows answer
+# `IStealthTechDataSource` with: that share and the seconds it lasts, each an
+# FPoint raw integer.
+STEALTH = "stealthTechData"
+STEALTH_FIELDS = (
+    ("trigger_life_rate", "triggerConditionValue"),
+    ("duration", "duration"),
+)
 # The list of `TechnologyGroupData` a plain technology comes from. A row of any
 # other list is a subclass (`BuffTechnologyData`, `SplashTechnologyData` and
 # the rest) that does something beyond its unit's numbers.
@@ -240,7 +249,8 @@ def special(row: dict) -> list[str]:
                | {source for _, source, _ in SUBCLASS_SCALARS + SET_SCALARS}
                | {source for _, source in FLAGS})
     source = (BUFF_SOURCE if row["kind"] == BUFF
-              else {field for _, field in INTERCEPT_FIELDS} if row["kind"] == INTERCEPT else set())
+              else {field for _, field in INTERCEPT_FIELDS} if row["kind"] == INTERCEPT
+              else {field for _, field in STEALTH_FIELDS} if row["kind"] == STEALTH else set())
     return sorted(
         field
         for field, value in row["row"].items()
@@ -436,7 +446,9 @@ def main() -> int:
         "# its unit's attacks fires (`projectile_count_value`), and the FPoint",
         "# seconds it adds between two of them and metres it adds to how far",
         "# each lands from its target (`projectile_duration_value`,",
-        "# `projectile_random_range_value`).",
+        "# `projectile_random_range_value`). A stealth technology carries the",
+        "# share of its unit's maximum life its life first falling to puts it in",
+        "# stealth, and the seconds that lasts (`stealth`).",
         "",
         "technologies:",
     ]
@@ -488,6 +500,11 @@ def main() -> int:
                     lines.append(f"      {field}: {point}  # {point / ONE:.6g}")
                 else:
                     lines.append(f"      {field}: {value}")
+        if row["kind"] == STEALTH:
+            lines.append("    stealth:")
+            for field, source in STEALTH_FIELDS:
+                point = row["row"][source]["m_rawValue"]
+                lines.append(f"      {field}: {point}  # {point / ONE:.6g}")
         if row["kind"] == DEAD_SUMMON:
             fields = ", ".join(
                 f"{field}: {row['row'][source]}".replace("'", "") for field, source in DEAD_SUMMON_FIELDS

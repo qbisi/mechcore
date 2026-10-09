@@ -275,7 +275,7 @@ impl Simulation {
                 candidate != anchor
                     && self
                         .fight_actor(candidate)
-                        .is_some_and(|view| view.team != source.team)
+                        .is_some_and(|view| view.team != source.team && view.searchable(false))
                     && in_area(candidate)
             });
         let mut scoring = Scoring::default();

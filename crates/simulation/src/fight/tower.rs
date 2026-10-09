@@ -1157,6 +1157,14 @@ impl Simulation {
         for extra in &mut actor.skills.extras {
             extra.skill.disabled = !on;
         }
+        // `StealthTechEffectProvider.DisableEffect` and `EnableEffect`.
+        if self.holds_stealth(actor_id) {
+            self.switch_stealth(actor_id, on);
+        }
+        let actor = self
+            .actors
+            .get_mut(&actor_id)
+            .expect("actor identity is stable");
         let corrections = actor.placement.technology_disable.corrections.clone();
         // A unit whose technologies wrote nothing has nothing to refresh:
         // the Wasps an Electromagnetic Impact reaches keep the intervals they

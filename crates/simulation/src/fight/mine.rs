@@ -215,7 +215,7 @@ impl Simulation {
             && projectile.absorbed_by.is_none()
             && !self
                 .fight_actor(aimed)
-                .is_some_and(|view| view.alive && view.visible)
+                .is_some_and(|view| view.alive && view.visibility != Visibility::Hide)
         {
             return Ok(super::damage::Struck::default());
         }

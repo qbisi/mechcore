@@ -303,7 +303,7 @@ impl Simulation {
         };
         if !self
             .fight_actor(target)
-            .is_some_and(|view| view.alive && view.visible)
+            .is_some_and(|view| view.alive && view.visibility != Visibility::Hide)
         {
             let (splash_radius, simulated) = match &projectile.shooter {
                 Shooter::Actor(owner) => self
@@ -588,7 +588,7 @@ impl Simulation {
             && projectile.absorbed_by.is_none()
             && !self
                 .fight_actor(target)
-                .is_some_and(|view| view.alive && view.visible);
+                .is_some_and(|view| view.alive && view.visibility != Visibility::Hide);
         let center = (hit.center_q32.0, hit.center_y_q32, hit.center_q32.1);
         let struck = if lands_on_nothing {
             super::damage::Struck::default()

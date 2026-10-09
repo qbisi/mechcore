@@ -326,7 +326,7 @@ pub(crate) static MODULES: &[Module] = &[
         native: "StealthTechSystem",
         claims: &[],
         understood: &[],
-        implemented: false,
+        implemented: true,
     },
     Module {
         native: "SummonSystem",

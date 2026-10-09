@@ -90,7 +90,8 @@ on the damage of its unit's skills
 `splash_range` added to its unit's skills' splash as a splash value is
 ([splash](#splash-technologies)), a multi-attack technology's with the
 projectiles it adds its unit's bursts ([below](#multi-attack-technologies)),
-a missile interception technology's
+a stealth technology's with the stealth it puts its unit in once it is hurt
+([below](#stealth-technologies)), a missile interception technology's
 with the interceptors it makes its unit
 ([below](#missile-interception)), a production technology's with the line it
 runs ([below](#production-lines)), and refuses
@@ -319,6 +320,52 @@ and fires its four projectiles from each of a Mountain's standalone weapons,
 whose grouped slots keep no burst here: the simulator refuses a slot's burst
 of more than one where it fires.
 
+## Stealth technologies
+
+A row of `stealthTechData` is a `StealthTech`, the Vortex's Emergency Armor:
+its `stealth` carries the share of its unit's maximum life and the seconds
+it answers `IStealthTechDataSource` with, a half and 4.
+`StealthTechEffectProvider.DoActive` hands the unit to `StealthTechSystem`
+(`AddMech`), which listens to the unit's `OnLifeChange`; a unit travelling in
+is handed over as it arrives, and then goes into stealth at once if its life
+is already low enough.
+
+**It goes into stealth once.** As the fight starts every unit the system
+holds is pending (`OnEnterFight`). When a hit takes life from a pending unit
+that is alive (`FightActor.ReduceLife` invoking `OnLifeChange`), and its life
+over its maximum is no more than the share by `FPoint.op_LessThanOrEqual`
+(`CheckActiveStealth`), its visibility becomes `Stealth` unless it is hidden
+further, and it is triggered (`ActiveStealth`): no longer pending, and never
+again in this fight. A repair or a lifesteal invokes no `OnLifeChange`.
+
+**It is shown once its time is past the duration.** `StealthTechSystem`
+updates after `DeadEffectSystem` and `FightConstructionSystem`, among the
+last modules, and counts each triggered unit's time a tick at a time from
+the tick it went into stealth; the update that finds it past the duration
+(`FPoint.op_GreaterThan`) sets its visibility back to `Normal` (`EndStealth`),
+as does every update after. A tick's 0.05 seconds fall a few raw short, so a
+Vortex is shown 81 ticks after it went into stealth. Leaving the fight shows
+every triggered unit (`OnExitFight`).
+
+**In stealth it takes no damage and no search finds it.**
+
+- `FightCalculator.PerformHitTargetEffect` sets a hit on a unit in stealth to
+  nothing after its damage reduction, so no shield takes it, though the hit
+  counts as taken; `FightActor.ReduceLife` takes nothing from it but a
+  suicide.
+- It is not visible (`FightActor.IsVisible`), so a skill's range check finds
+  it out of range as it does a unit underground, and an attacker that moves
+  underground, which reaches a hidden one, does not reach one in stealth
+  (`SkillAttackRangeChecker.IsActorInAttackRange`). The Marksmen shooting a
+  Vortex hold no lock from the tick after it goes into stealth.
+- `AttackTargetFilter.Check`, which every selector's search asks of each
+  candidate, passes over a unit in stealth, where it takes one underground:
+  those Marksmen then lock red's towers.
+- What asks `IsValidTarget(Stealth)` still strikes it: a projectile already
+  on its way lands on it (`FightProjectile.Update`), a splash takes it
+  (`RangeTargetCalculator.CalculateRangeActors`), and so does a sweep
+  (`DamageEffect.PerformInRange`).
+
 ## Missile Interception
 
 Missile Interception makes its unit an interceptor: Mustang, Sabertooth,
@@ -494,6 +541,13 @@ false. So the officers' and the items' corrections stay.
   neither exploding nor burning; switched on again, they charge below half
   and explode as before. An active one is invincible, so no debuff reaches
   it.
+- **A stealth technology's unit counts as triggered.**
+  `StealthTechSystem.DisableStealthTech` adds it to the triggered units and
+  shows it (`EndStealth`): a Vortex in stealth is shown as the
+  Electromagnetic Impact lands, and one disabled before it was hurt does not
+  go into stealth as its life falls. Switched on, `EnableStealthTech` takes a
+  unit still pending out of the triggered ones again, and it goes into
+  stealth at once if its life is low enough; this is read and not recorded.
 - **A buff its unit added itself is cleared, if its row says so**
   (`isClearSelfBuffWhenDisableTech`): `FightMech.DisableTechnology` raises
   `BuffManager.ClearSelfResourceBuffByDisableTech` after the effects are off.
@@ -571,6 +625,14 @@ derive (a minimum range):
   lock nothing at a charging Rhino, and none once it is within 75 metres;
   fought with the lock kept, the simulator parts from the game on the first
   shell's aim: `tests/modifier/fights/technology-siege-mode.yaml`.
+- A stealth technology puts its unit in stealth as a hit leaves it at no
+  more than half its life, and shows it 81 ticks on: no search finds it, a
+  shot already on its way lands on it and takes nothing, and the units that
+  shot it lock the towers:
+  `tests/stealth/fights/emergency-armor.yaml`. Disabled before it is hurt,
+  it does not go into stealth:
+  `tests/stealth/fights/disabled-before.yaml`; disabled in stealth, it is
+  shown at once: `tests/stealth/fights/disabled-during.yaml`.
 - A multi-attack technology adds to its unit's bursts: Doubleshot fires two
   projectiles an attack, a Sabertooth's 0.2 seconds apart where its row's
   interval is zero and both from weapon 0, and Burst Mode twelve from a
@@ -738,6 +800,18 @@ derive (a minimum range):
   random range above zero, which takes turns between the weapons only for a
   skill of two: `ProjectileMultiAttackPerformer.OnStartFirstPerform`,
   `ProjectileMultiAttackPerformer.MultiAttackTargetPositionController.GetAndDeletePositionOffsets`.
+- A stealth technology's unit goes into stealth as a hit leaves its life over
+  its maximum no more than its share, once, and is shown once its time is
+  past the duration; a disabling buff shows it and counts it as triggered:
+  `StealthTechSystem.OnLifeChange`, `StealthTechSystem.CheckActiveStealth`,
+  `StealthTechSystem.ActiveStealth`, `StealthTechSystem.Update`,
+  `StealthTechSystem.EndStealth`, `StealthTechSystem.DisableStealthTech`,
+  `StealthTechSystem.EnableStealthTech`.
+- A unit in stealth loses nothing to a hit, no selector's search takes it, and
+  an attacker that moves underground does not reach it, though what asks
+  `IsValidTarget(Stealth)` strikes it: `FightCalculator.PerformHitTargetEffect`,
+  `FightActor.ReduceLife`, `AttackTargetFilter.Check`,
+  `SkillAttackRangeChecker.IsActorInAttackRange`.
 - A skill's projectiles leave with the row's life at the unit's level, times
   one plus the skill's `SkillDataChangeFloatRate.ProjectileLifeRate`
   enhancements and then their remainder, cut to a whole number and at least 1:

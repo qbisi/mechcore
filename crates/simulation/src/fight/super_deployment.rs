@@ -193,6 +193,7 @@ impl Simulation {
             actor.motion.rvo_tree_z_q32 = actor.z_q32;
             self.rvo.added_units.push(unit_id);
             self.activate_interception(unit_id);
+            self.add_stealth_unit(unit_id);
         }
     }
 }

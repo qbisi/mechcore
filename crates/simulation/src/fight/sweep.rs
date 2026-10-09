@@ -409,7 +409,10 @@ impl Simulation {
             .filter(|candidate| {
                 !excluded.contains(candidate)
                     && self.fight_actor(*candidate).is_some_and(|view| {
-                        view.alive && view.visible && view.team != team && view.domain == domain
+                        view.alive
+                            && view.visibility != Visibility::Hide
+                            && view.team != team
+                            && view.domain == domain
                     })
                     && circle(self, *candidate).is_some_and(|(center, radius)| {
                         overlaps(area, shape.width_q32, center, radius)
