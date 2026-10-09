@@ -1,0 +1,121 @@
+# Replay 2328_20261007--201477097, round 9, map 1011. A blue Phoenix's shot
+# disables the technologies of red's Fortress 635, whose one technology,
+# Anti-Air Barrage, writes no number: its main skill's interval is made
+# again without its stagger all the same (`Technology.RemoveData`,
+# `FightSkill.RefreshDatas`), 36 ticks for the 33 it drew, from tick 174.
+
+kind: fight
+map_id: 1011
+seed: 314316270
+round: 9
+source: game
+ticks: 769
+hash: {profile: mcfr-content-0.22.0, result: 941ea7104f205295db1906e96a527ce405f300cb3c669fe7d289c5f2fe84b5c1}
+blue:
+  officers: [super_supply_enhancement, additional_deployment_slot, advanced_power_system, rhino_specialist]
+  techs:
+    rhino: [whirlwind]
+    mustang: [culling_rounds, range_enhancement]
+    phoenix: [electromagnetic_shot, range_enhancement]
+    wraith: [degeneration_beam]
+    hound: [range_enhancement, chamber_compression]
+  blueprints: [defense_enhancement, attack_enhancement_ii]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  tower_strengthen_levels: [0, 1]
+  legacy_index: 33
+  units:
+  - {name: hound, index: 0, position: {x: 130, y: -190}, level: 3, exp: 1665/2572/2671}
+  - {name: hound, index: 1, position: {x: -130, y: -190}, level: 3, exp: 1753/2671/2671}
+  - {name: hound, index: 2, position: {x: 0, y: -190}, level: 3, exp: 784/2487/2671}
+  - {name: sledgehammer, index: 4, position: {x: 90, y: -115}, level: 2, exp: 622/972/2929, rotated: true}
+  - {name: crawler, index: 5, position: {x: 130, y: -225}, exp: 416/450/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: -130, y: -225}, exp: 450/450/450, rotated: true}
+  - {name: phoenix, index: 7, position: {x: -200, y: -80}, level: 4, exp: 0/3463/5837}
+  - {name: crawler, index: 8, position: {x: 0, y: -285}, exp: 418/450/450, rotated: true}
+  - {name: crawler, index: 9, position: {x: -245, y: -20}, exp: 78/234/450}
+  - {name: hound, index: 10, position: {x: -200, y: -60}, level: 3, exp: 0/336/2671}
+  - {name: crawler, index: 11, position: {x: -200, y: -115}, exp: 239/297/450, rotated: true}
+  - {name: mustang, index: 12, position: {x: -215, y: -150}, level: 3, exp: 0/637/4274}
+  - {name: fang, index: 13, position: {x: 170, y: -225}, exp: 600/600/600, rotated: true}
+  - {name: crawler, index: 15, position: {x: -290, y: -155}, exp: 450/450/450, rotated: true}
+  - {name: crawler, index: 16, position: {x: 290, y: -285}, exp: 227/270/450, rotated: true}
+  - {name: crawler, index: 17, position: {x: -140, y: -35}, exp: 29/119/450, rotated: true}
+  - {name: hound, index: 18, position: {x: -260, y: -60}, level: 2, exp: 0/149/1690}
+  - {name: crawler, index: 19, position: {x: -290, y: -75}, exp: 174/250/450, rotated: true}
+  - {name: hound, index: 20, position: {x: 260, y: -190}, level: 2, exp: 56/121/1690}
+  - {name: phoenix, index: 21, position: {x: 100, y: -240}, level: 2, exp: 0/2068/2929}
+  - {name: rhino, index: 22, position: {x: -285, y: -245}, exp: 1148/1150/1150}
+  - {name: hound, index: 23, position: {x: -140, y: -70}, exp: 725/750/750}
+  - {name: phoenix, index: 25, position: {x: -110, y: -170}, level: 2, exp: 0/2127/2929}
+  - {name: phoenix, index: 26, position: {x: 210, y: -240}, level: 2, exp: 0/1093/2929}
+  - {name: mustang, index: 27, position: {x: 205, y: -220}, level: 2, exp: 0/2438/2704}
+  - {name: mustang, index: 28, position: {x: 95, y: -220}, exp: 1069/1200/1200}
+  - {name: phoenix, index: 29, position: {x: -260, y: -80}, level: 2, exp: 0/2388/2929}
+  - {name: hound, index: 30, position: {x: -90, y: -70}, exp: 187/400/750}
+  - {name: crawler, index: 31, position: {x: -130, y: -105}, exp: 27/87/450, rotated: true}
+  - {name: phoenix, index: 32, position: {x: -40, y: -70}, exp: 0/55/1300}
+  - {name: wraith, index: 33, position: {x: -225, y: -105}, level: 3, exp: 0/264/8014}
+  - {name: crawler, index: 34, position: {x: -40, y: -35}, rotated: true}
+  - {name: mustang, index: 35, position: {x: -85, y: -100}, exp: 0/613/1200}
+  - {name: mustang, index: 36, position: {x: -165, y: -100}, exp: 0/779/1200}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
+  contraptions:
+  - {name: missile, index: 4, position: {x: 19, y: -22}, retained: false}
+  - {name: missile, index: 5, position: {x: 269, y: -11}, retained: false}
+  - {name: missile, index: 6, position: {x: 144, y: -159}}
+  - {name: shield, index: 7, position: {x: -186, y: -92}, retained: false}
+  - {name: missile, index: 8, position: {x: -211, y: -17}, retained: false}
+red:
+  core_damage: 1471
+  officers: [super_supply_enhancement, additional_deployment_slot, fire_badger_specialist]
+  techs:
+    fortress: [anti_air_barrage]
+    mustang: [culling_rounds, range_enhancement]
+    arclight: [range_enhancement, charged_shot]
+    phoenix: [range_enhancement]
+    sabertooth: [field_maintenance]
+  blueprints: [defense_enhancement]
+  energy_tower_skills: [enhanced_range, high_mobility]
+  legacy_index: 36
+  units:
+  - {name: arclight, index: 0, position: {x: -140, y: -80}, level: 3, exp: 1339/1779/2671}
+  - {name: arclight, index: 1, position: {x: -230, y: -80}, level: 3, exp: 2415/2671/2671}
+  - {name: arclight, index: 2, position: {x: -50, y: -80}, level: 3, exp: 2541/2671/2671}
+  - {name: crawler, index: 5, position: {x: -50, y: -115}, exp: 355/359/450, rotated: true}
+  - {name: crawler, index: 6, position: {x: -230, y: -115}, exp: 450/450/450, rotated: true}
+  - {name: phoenix, index: 7, position: {x: -230, y: -170}, level: 2, exp: 2228/2401/2929}
+  - {name: arclight, index: 8, position: {x: 50, y: -120}, level: 3, exp: 0/316/2671}
+  - {name: arclight, index: 9, position: {x: 160, y: -150}, level: 2, exp: 827/1690/1690}
+  - {name: fang, index: 10, position: {x: 160, y: -185}, exp: 222/440/600, rotated: true}
+  - {name: fang, index: 12, position: {x: 110, y: -95}, exp: 371/379/600, rotated: true}
+  - {name: fang, index: 13, position: {x: -140, y: -205}, exp: 600/600/600, rotated: true}
+  - {name: arclight, index: 14, position: {x: 250, y: -150}, level: 3, exp: 621/1819/2671}
+  - {name: crawler, index: 15, position: {x: 250, y: -115}, exp: 281/327/450, rotated: true}
+  - {name: crawler, index: 16, position: {x: 50, y: -155}, exp: 98/110/450, rotated: true}
+  - {name: arclight, index: 17, position: {x: 110, y: -130}, level: 3, exp: 0/938/2671}
+  - {name: sledgehammer, index: 19, position: {x: 350, y: 285}, exp: 177/181/1300}
+  - {name: crawler, index: 20, position: {x: 310, y: 245}, exp: 18/22/450}
+  - {name: phoenix, index: 21, position: {x: 250, y: -190}, level: 2, exp: 828/2929/2929}
+  - {name: arclight, index: 22, position: {x: 210, y: -150}, level: 2, exp: 1360/1690/1690}
+  - {name: arclight, index: 23, position: {x: -270, y: -150}, exp: 389/643/750}
+  - {name: crawler, index: 24, position: {x: -140, y: -115}, exp: 184/200/450, rotated: true}
+  - {name: mustang, index: 25, position: {x: 195, y: -280}, level: 2, exp: 115/825/2704}
+  - {name: mustang, index: 26, position: {x: -225, y: -270}, level: 2, exp: 336/592/2704}
+  - {name: mustang, index: 28, position: {x: -275, y: -90}, level: 2, exp: 0/292/2704}
+  - {name: phoenix, index: 29, position: {x: -60, y: -180}, level: 2, exp: 864/1957/2929}
+  - {name: crawler, index: 30, position: {x: -140, y: -35}, exp: 113/120/450, rotated: true}
+  - {name: mustang, index: 31, position: {x: -5, y: -160}, exp: 801/1200/1200}
+  - {name: crawler, index: 32, position: {x: 200, y: -35}, exp: 262/284/450, rotated: true}
+  - {name: mustang, index: 33, position: {x: 180, y: -135}, exp: 364/1200/1200, rotated: true}
+  - {name: phoenix, index: 34, position: {x: 130, y: -190}, exp: 267/553/1300}
+  - {name: phoenix, index: 35, position: {x: 20, y: -180}, exp: 870/1300/1300}
+  - {name: fortress, index: 36, position: {x: -20, y: -130}, exp: 0/275/1600}
+  - {name: fortress, index: 37, position: {x: 110, y: -160}, exp: 0/272/1600}
+  - {name: fortress, index: 38, position: {x: 280, y: -150}, exp: 0/54/1600}
+  - {name: fortress, index: 39, position: {x: 210, y: -180}, exp: 0/240/1600}
+  contraptions:
+  - {name: missile, index: 6, position: {x: 295, y: -243}}
+  - {name: missile, index: 10, position: {x: -3, y: -14}, retained: false}
+  battle_skills:
+  - {name: mobile_beacon, positions: [{x: -284, y: -101}, {x: -161, y: -123}, {x: -68, y: -122}]}
