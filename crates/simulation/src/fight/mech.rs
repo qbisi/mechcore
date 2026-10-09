@@ -312,8 +312,9 @@ impl Actor {
     /// (`FightMech.SetMotionAttackerAfterSkill`), and its motion goes on
     /// after its own lock, which no skill drops: a War Factory whose skill
     /// exits the fight walks on to the tower it took, turning to it.
+    /// `MotionStopState` asks nothing of the skill and stays.
     pub(in crate::fight) fn lose_target_motion(&mut self, publish_point: bool) {
-        if self.skills.main.mech_searches() {
+        if self.skills.main.mech_searches() || self.motion.state == MotionState::Stopped {
             return;
         }
         if self.command.is_some() {

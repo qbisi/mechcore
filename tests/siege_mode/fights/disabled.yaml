@@ -1,0 +1,26 @@
+# Field Entrenchment on a Sabertooth that red's Electromagnetic Impact
+# disables (t57) while a Rhino charges it.
+#
+# The trench goes on the tick the Impact lands, 21213 back to 14142 at whole
+# life and the range to 95, as if no enemy had stood in range for 7 seconds;
+# 0.3 seconds later (t63) the motion leaves its stop for the attack on the
+# Rhino in reach.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 108
+hash: {profile: mcfr-content-0.22.0, result: 1550392b555d0b25d9b131737c7783578432cc46ad86ea8e086cfb69cb80ed9d}
+blue:
+  techs:
+    sabertooth: [field_entrenchment]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 5, y: -35}, exp: 0/400/1300}
+red:
+  core_damage: 200
+  units:
+  - {name: rhino, index: 0, position: {x: 5, y: -25}}
+  battle_skills:
+  - {name: electromagnetic_impact, positions: [{x: -5, y: 35}]}

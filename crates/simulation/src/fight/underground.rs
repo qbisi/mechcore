@@ -127,19 +127,30 @@ pub(in crate::fight) struct AgentOverride {
 }
 
 impl Actor {
-    /// The agent overrides the move ability holds, if any.
+    /// The agent overrides the move ability or a stopped motion holds, if
+    /// any.
     pub(in crate::fight) fn agent_override(&self) -> AgentOverride {
+        // `MotionStopState.Enter` locks the agent where it keeps its own
+        // collider priority, at full priority
+        // (`RVOControllerFixed.Lock(true, false)`), and `Exit` lets it go.
+        let stopped = (self.motion.state == MotionState::Stopped).then(|| {
+            (
+                super::motion::rvo_profile(&self.rules).collider_priority,
+                Q32_ONE,
+            )
+        });
         let Some(underground) = &self.underground else {
             return AgentOverride {
                 main_layer: None,
-                locked: None,
+                locked: stopped,
             };
         };
         AgentOverride {
             main_layer: underground.below.then_some(0),
             locked: underground
                 .agent_locked
-                .then_some((LOCKED_COLLIDER_PRIORITY, Q32_ONE)),
+                .then_some((LOCKED_COLLIDER_PRIORITY, Q32_ONE))
+                .or(stopped),
         }
     }
 
@@ -159,9 +170,11 @@ impl Actor {
 
     /// Whether the unit's agent is locked: it stands where it is.
     pub(in crate::fight) fn agent_locked(&self) -> bool {
-        self.underground
-            .as_ref()
-            .is_some_and(|underground| underground.agent_locked)
+        self.motion.state == MotionState::Stopped
+            || self
+                .underground
+                .as_ref()
+                .is_some_and(|underground| underground.agent_locked)
     }
 
     /// `SkillManager.Deactive`: every skill stops its attack and is left idle

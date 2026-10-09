@@ -38,6 +38,7 @@ out to show:
 | [`sweep/`](sweep/README.md) | what a sweep strikes beyond the standard fights: shields, buildings, aircraft beside ground units, its technology |
 | [`stealth/`](stealth/README.md) | when a stealth technology hides its unit, what strikes and finds it meanwhile, and what disabling it does |
 | [`shield/`](shield/README.md) | what a battlefield shield does to the hits meant for what it covers, and when it breaks |
+| [`siege_mode/`](siege_mode/README.md) | when a siege-mode technology digs its unit in, what the trench gives it, and what takes it away |
 | [`search/`](search/README.md) | which positions a skill's target search scores |
 | [`secondary_damage/`](secondary_damage/README.md) | what a technology's second damage deals around each of its unit's hits |
 | [`production/`](production/README.md) | what a production line makes, where its makes stand, and how often they come |

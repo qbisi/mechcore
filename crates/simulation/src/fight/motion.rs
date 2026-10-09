@@ -756,12 +756,21 @@ impl Simulation {
             self.follow_extra_attacker(actor_id, index);
             return Ok(());
         }
-        if let Flow::Done = self.hold_dead_target_moving(actor_id, backswing_just_finished) {
+        // `MotionStopState.Update` never moves the unit nor leaves the
+        // state: it turns to a target in range (`AttackUpdate`), whose
+        // skill starts and fires in its own update all the same.
+        let stopped = self.actors[&actor_id].motion.state == MotionState::Stopped;
+        if !stopped
+            && let Flow::Done = self.hold_dead_target_moving(actor_id, backswing_just_finished)
+        {
             return Ok(());
         }
         // A batch of standalone weapons answers its first weapon that holds
         // a lock (`FightSkillBatch.GetLockTarget`).
         let target = self.motion_target(actor_id);
+        if stopped && target.is_none() {
+            return Ok(());
+        }
         if target.is_none() && self.actors[&actor_id].command.is_some() {
             // A command is active without a target: every motion state
             // goes to or stays in `MotionMoveState`, which walks the path.
@@ -840,6 +849,9 @@ impl Simulation {
                 update.blow_released,
             )?;
             self.attack_move(actor_id, was_attacking);
+            return Ok(());
+        }
+        if stopped {
             return Ok(());
         }
         if let Flow::Done = self.mech_leaves_attack(actor_id) {
@@ -1733,6 +1745,7 @@ impl Simulation {
 
     #[allow(
         clippy::too_many_arguments,
+        clippy::too_many_lines,
         reason = "the motion's reading of its target, handed on from update_motion"
     )]
     fn attack_in_range(
@@ -1761,8 +1774,13 @@ impl Simulation {
             .get_mut(&actor_id)
             .expect("actor identity is stable");
         let (entered_attack, release_now, clear_hold_after_motion) = {
-            let entered_attack = actor.motion.state != MotionState::Attacking;
-            actor.motion.state = MotionState::Attacking;
+            // A unit dug in stays in `MotionStopState`, which its skill
+            // attacks from as the attack state would.
+            let stopped = actor.motion.state == MotionState::Stopped;
+            let entered_attack = !stopped && actor.motion.state != MotionState::Attacking;
+            if !stopped {
+                actor.motion.state = MotionState::Attacking;
+            }
             // RVOControllerFixed.StopMove refreshes the target point on
             // every MotionAttackState update that does not walk on. It
             // submits zero desired speed while retaining the unit's
@@ -1797,6 +1815,7 @@ impl Simulation {
                 actor.motion.attack_hold_fire = !actor.rules.has_body && !in_attack_angle;
             }
             let invalid_attack_angle_barrier = !actor.rules.has_body
+                && !stopped
                 && !entered_attack
                 && !actor.motion.attack_hold_fire
                 && !in_attack_angle
@@ -1852,7 +1871,10 @@ impl Simulation {
             let _attack_point_rejected =
                 self.release(SkillRef::main(FightActorRef::Unit(actor_id)), events)?;
         }
-        if self.actors[&actor_id].motion.state != MotionState::Attacking {
+        if !matches!(
+            self.actors[&actor_id].motion.state,
+            MotionState::Attacking | MotionState::Stopped
+        ) {
             // FightSkill runs before MotionController. A laser own-kill
             // exits MotionAttackState during the skill update, so the
             // killed target is retained for the snapshot but cannot drive

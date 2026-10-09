@@ -64,6 +64,8 @@ pub(crate) enum EffectProvider {
     /// `ReactiveArmorTechEffectProvider`, for an
     /// `IReactiveArmorTechDataSource`.
     ReactiveArmor,
+    /// `SiegeModeEffectProvider`, for an `ISiegeModeEffectDataSource`.
+    SiegeMode,
 }
 
 impl EffectProvider {
@@ -91,6 +93,7 @@ impl EffectProvider {
             Self::MechGroup => "MechGrounpEffectProvider",
             Self::AdvancedEnergyShield => "AdvancedEnergyShieldProvider",
             Self::ReactiveArmor => "ReactiveArmorTechEffectProvider",
+            Self::SiegeMode => "SiegeModeEffectProvider",
         }
     }
 
@@ -126,6 +129,11 @@ impl EffectProvider {
     /// - A reactive armor's rate leaves its unit, its count kept, and comes
     ///   back while the count lasts (`ReactiveArmorSystem.DisableReactiveArmor`,
     ///   `EnableReactiveArmor`).
+    /// - A siege-mode technology's unit leaves its trench on the system's
+    ///   next update, as if no enemy had stood in range for its whole
+    ///   duration (`SiegeModeEffectProvider.DisableEffect`,
+    ///   `SiegeModeEffectSystem.EndSiegeMode`), and does not dig in again
+    ///   (`EnableEffect` is `SingleEffectProvider`'s alone).
     ///
     /// Every other provider does more, which is not measured.
     pub(crate) const fn disable_read(self) -> bool {
@@ -140,7 +148,8 @@ impl EffectProvider {
             | Self::DeadLine
             | Self::MechGroup
             | Self::AdvancedEnergyShield
-            | Self::ReactiveArmor => true,
+            | Self::ReactiveArmor
+            | Self::SiegeMode => true,
             Self::AutoRecovery
             | Self::EnergyShield
             | Self::SweepSkillIntensify

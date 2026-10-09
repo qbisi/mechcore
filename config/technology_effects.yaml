@@ -1249,10 +1249,32 @@ technologies:
     name: 野战工事
     unit: sabertooth
     kind: siegeModeTechDatas
+    siege_mode:
+      life_rate: 2147483648  # 0.5
+      attack_interval_rate: -858993459  # -0.2
+      attack_interval_value: 0  # 0
+      damage_rate: 0  # 0
+      attack_range_value: 85899345920  # 20
+      attack_range_rate: 0  # 0
+      splash_range_value: 0  # 0
+      projectile_speed_value: 0  # 0
+      duration: 30064771072  # 7
+      animation_delay: 1288490188  # 0.3
   - id: 4722
     name: 野战工事
     unit: typhoon
     kind: siegeModeTechDatas
+    siege_mode:
+      life_rate: 3006477107  # 0.7
+      attack_interval_rate: 0  # 0
+      attack_interval_value: 0  # 0
+      damage_rate: 0  # 0
+      attack_range_value: 85899345920  # 20
+      attack_range_rate: 0  # 0
+      splash_range_value: 0  # 0
+      projectile_speed_value: 0  # 0
+      duration: 30064771072  # 7
+      animation_delay: 1288490188  # 0.3
   - id: 5122
     name: 反应装甲
     unit: typhoon

@@ -127,7 +127,7 @@ impl Simulation {
     /// a unit still travelling. It counts the travel and the recovery time,
     /// heals every travelling unit once a second, and brings them all in once
     /// the travel time is up.
-    pub(in crate::fight) fn step_super_deployment(&mut self) {
+    pub(in crate::fight) fn step_super_deployment(&mut self) -> Result<()> {
         let teams = self.travels.keys().copied().collect::<Vec<_>>();
         for team in teams {
             // `OnMechDead` takes a unit that died out of the list.
@@ -162,15 +162,16 @@ impl Simulation {
             }
             let travel = &self.travels[&team];
             if fpoint_greater_or_equal(travel.travelled_q32, travel.duration_q32) {
-                self.finish_travel(team);
+                self.finish_travel(team)?;
             }
         }
+        Ok(())
     }
 
     /// `FinishTranvel`: each unit's movement activated where it stands, and
     /// the unit taken out of travel (`ExitTravel`), its effects enabled
     /// (`FightEffectSystem.ActiveEffect`), in the list's order.
-    fn finish_travel(&mut self, team: u32) {
+    fn finish_travel(&mut self, team: u32) -> Result<()> {
         let travel = self
             .travels
             .get_mut(&team)
@@ -195,6 +196,8 @@ impl Simulation {
             self.activate_interception(unit_id);
             self.add_stealth_unit(unit_id);
             self.add_group_unit(unit_id);
+            self.add_siege_unit(unit_id)?;
         }
+        Ok(())
     }
 }

@@ -66,6 +66,7 @@ mod run;
 mod rvo;
 mod search;
 mod shield;
+mod siege;
 mod skill;
 mod statistics;
 mod stealth;
@@ -481,6 +482,8 @@ struct Simulation {
     terrain: terrain::TerrainSystem,
     /// `StealthTechSystem`'s units.
     stealth: stealth::StealthSystem,
+    /// `SiegeModeEffectSystem`'s units.
+    siege: siege::SiegeModeSystem,
     /// `MechGrounpSystem`'s groups.
     mech_groups: mech_group::MechGroupSystem,
     /// The RVO simulator's state and the obstacles besides the units.
@@ -604,6 +607,7 @@ impl Simulation {
             kills: kills::KillCounts::default(),
             terrain: terrain::TerrainSystem::default(),
             stealth: stealth::StealthSystem::default(),
+            siege: siege::SiegeModeSystem::default(),
             mech_groups: mech_group::MechGroupSystem::default(),
         };
         simulation.number_joiners();
@@ -622,6 +626,10 @@ impl Simulation {
         simulation.place_sub_effects()?;
         simulation.deploy_attack_intervals()?;
         simulation.face_constructions_at_fight_start(&layout.legacy_units, &layout.delivered);
+        // `SiegeModeEffectSystem.OnEnterFight` digs its units in after each
+        // skill drew its first interval as it was deployed, from the
+        // interval the trench has not shortened yet.
+        simulation.enter_siege_fight()?;
         Ok(simulation)
     }
 
@@ -984,6 +992,8 @@ impl Simulation {
         // any summon now joining was due: a splash strikes where its
         // enemies stood as the tick opened.
         self.update_diffusions(&mut events)?;
+        // And those of the units that left their trench.
+        self.idle_after_trenches(step);
         // Native search jobs retain the actor-quadtree candidate order
         // prepared at the start of this FightCore update.
         let target_search_order = self.target_search_order();
@@ -1079,7 +1089,7 @@ impl Simulation {
         self.step_projectiles(&mut events)?;
         self.step_interceptors(&mut events)?;
         // `SuperDeploymentSystem` updates after `InterceptSystem`.
-        self.step_super_deployment();
+        self.step_super_deployment()?;
         // `AutoRecoverySystem` updates after `SuperDeploymentSystem`.
         self.step_auto_recovery(&mut events)?;
         // `SupportUnitSystem` updates after `InterceptSystem`: a creator's
@@ -1101,6 +1111,8 @@ impl Simulation {
             // `FightEffectSystem.DeactiveEffect` of the dead unit: its
             // group's `MechGrounpEffectProvider.DoDeactive`.
             self.remove_group_unit(unit_id);
+            // Its `SiegeModeEffectProvider.DoDeactive`.
+            self.remove_siege_unit(unit_id)?;
             // `SkillManager.OnOwnerDead` stops its skills, a control beam's
             // `ControllEffect` among them: the Rhino a Hacker was turning
             // holds no entry from the tick the Hacker dies.
@@ -1119,8 +1131,9 @@ impl Simulation {
         // Its `TryProcessDeadImportantUnit` too: a side whose last important
         // unit died this tick loses every unit it has left.
         self.lose_important_units(&events)?;
-        // `StealthTechSystem` updates after `DeadEffectSystem` and
-        // `FightConstructionSystem`, one of the last modules.
+        // `SiegeModeEffectSystem` updates after `FightConstructionSystem`,
+        // and `StealthTechSystem` after it, one of the last modules.
+        self.step_siege()?;
         self.step_stealth();
         // A side whose last unit died this tick loses its towers even when
         // a shot landing on the same tick is what leaves the fight finished:
@@ -1278,6 +1291,7 @@ impl Simulation {
                 self.clear_buffs_as_the_fight_ends(&mut events)?;
                 self.clear_terrains_as_the_fight_ends()?;
                 self.end_stealth_as_the_fight_ends();
+                self.end_siege_as_the_fight_ends()?;
             }
         }
         // `BuffManager.Clear` takes a dying unit's buffs as it dies, whatever
@@ -1306,6 +1320,7 @@ impl Simulation {
             self.clear_buffs_as_the_fight_ends(&mut events)?;
             self.clear_terrains_as_the_fight_ends()?;
             self.end_stealth_as_the_fight_ends();
+            self.end_siege_as_the_fight_ends()?;
         }
         if !self.buffs.tower_events.is_empty() {
             return Err(Error::new(

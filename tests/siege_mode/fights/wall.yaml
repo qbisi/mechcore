@@ -1,0 +1,27 @@
+# Field Entrenchment on a Sabertooth with red's Defensive Wall in range and
+# red's only unit, an Arclight, far off.
+#
+# The search for enemies in range counts no construction, so only the
+# Sabertooth's blows set its time back: its shots at two blocks of the wall
+# (t2, t56) keep it dug in until 141 updates after the second (t197). The
+# simulator with no blow setting the time back takes the trench away at
+# t142, 141 updates after the start.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 1
+source: game
+ticks: 1167
+hash: {profile: mcfr-content-0.22.0, result: 97ee9c00d2a65ba88957574b02fdc1ffacad5c25281faa66a8c2eee6acc5eb10}
+blue:
+  techs:
+    sabertooth: [field_entrenchment]
+  units:
+  - {name: sabertooth, index: 0, position: {x: 135, y: -25}, exp: 0/636/1300}
+red:
+  core_damage: 200
+  units:
+  - {name: arclight, index: 0, position: {x: 280, y: -300}}
+  constructions:
+  - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
