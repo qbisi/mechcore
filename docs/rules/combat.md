@@ -908,6 +908,16 @@ its damage taken takes 112.
 **A second damage needs its unit alive.** A shell an Arclight fired before it
 fell lands and deals its own damage, and no second damage.
 
+**Battlefield shields stand in a second damage's way as in a splash's.**
+`PerformSecondaryRangeEffect` prepares its targets as a splash does
+(`PrepareRangeTargets`): what an enemy shield covers that does not hold the
+point the hit landed at is taken out, unless the hit crosses shields, and
+the shields its range reaches, and the one covering what the hit was aimed
+at, take the second damage before any unit does
+(`PerformSecondarySplashShieldDamage`, `PerformHitAdvancedEndergyShieldEffect`,
+which asks `CalculateHitEnergyShieldDamage` as any hit on a shield does).
+Read from the build; the corpus rounds that hold it are not pinned.
+
 ## A melee skill's range
 
 **A melee skill reaches its row's range, whatever corrects it.** Its range
@@ -1639,9 +1649,8 @@ not the game's native attack-type enum.
 - **Why a dead unit's shell deals no second damage.** The corpus round
   268447927 round 7 shows it at tick 197, and the simulator follows it; no
   read call names the check, and no pinned fight records it.
-- **A second damage with battlefield shields, lifesteal, or a row that
-  disables technologies or writes a buff** (Electromagnetic Cloud). The
-  simulator refuses each.
+- **A second damage with lifesteal, or a row that disables technologies or
+  writes a buff** (Electromagnetic Cloud). The simulator refuses each.
 - **Repair with its technologies disabled**, which stops the clocks
   (`AutoRecoveryEffectProvider.DisableEffect`) and which no recorded fight
   does, an item's repair beside a technology's among them; and which of an
