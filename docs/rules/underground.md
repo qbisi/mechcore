@@ -76,6 +76,11 @@ well within its skill's range. Nothing corrects the skill's range. No attack
 starts on the tick it sets off surfacing, so a Sandworm that travelled below
 with its target already in range strikes as soon as it has surfaced.
 
+The lock is the skill's (`IAttacker.GetLockTarget`), not what it fires at. A
+Sandworm whose skill fires at a block standing in the way of its lock stays
+below as it passes the block, and surfaces once the lock is within the exit
+range.
+
 **A skill starts whatever the motion does.** `SkillIdleState.TryStartAttack`
 starts the attack of a skill whose target is in range from the skill's own
 update. A unit coming into range from idle starts its attack as its motion
