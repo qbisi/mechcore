@@ -111,11 +111,11 @@ mechcore convert <layout> --to mcfr --backend game /tmp/mechcore/<topic>/<name>.
 mechcore convert /tmp/mechcore/<topic>/<name>.mcfr --to fight tests/<topic>/fights/<name>.yaml
 ```
 
-Then delete its `game_build` line: a document that states none is read
+`convert` leaves out `game_build`: a document that states none is read
 against the build [`GAME_VERSION`](../GAME_VERSION) names, which is the only
-place a version is written. Otherwise the file stays as `convert` wrote it,
-and a comment added above it does not change what it states. CI finds it by
-its directory; nothing else lists it.
+place a version is written. The file stays as `convert` wrote it, and a
+comment added above it does not change what it states. CI finds it by its
+directory; nothing else lists it.
 
 Two kinds of fixture live outside `tests/`. The native replays themselves, and
 the match documents converted from them, are the corpus

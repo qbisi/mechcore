@@ -347,16 +347,7 @@ async fn fight_in_game(
         return Ok(game_report(path, "fight", error, &differences, false));
     }
     let text = String::from_utf8_lossy(bytes);
-    let states_build = text.lines().any(|line| line.starts_with("game_build:"));
-    let yaml = mechcore_document::fight::canonical_yaml(recorded.clone())?;
-    let body: String = if states_build || recorded.game_build != document.game_build {
-        yaml
-    } else {
-        yaml.lines()
-            .filter(|line| !line.starts_with("game_build:"))
-            .flat_map(|line| [line, "\n"])
-            .collect()
-    };
+    let body = mechcore_document::fight::canonical_yaml(recorded.clone())?;
     let header: String = text
         .lines()
         .take_while(|line| line.starts_with('#') || line.trim().is_empty())

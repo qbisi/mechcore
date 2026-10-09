@@ -203,10 +203,7 @@ red:
         .unwrap();
     assert!(output.status.success());
     let canonical = String::from_utf8(output.stdout).unwrap();
-    assert!(canonical.starts_with(&format!(
-        "kind: layout\ngame_build: {}\nround: 1\n",
-        mechcore_document::game_build()
-    )));
+    assert!(canonical.starts_with("kind: layout\nround: 1\n"));
     assert!(!canonical.contains("seed:"));
     assert!(!canonical.contains("level:"));
     assert!(!canonical.contains("rotated:"));

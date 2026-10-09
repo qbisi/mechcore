@@ -31,7 +31,10 @@ pub struct Fight {
     pub kind: FightKind,
     /// The build whose tables this document is written against, which a
     /// document stating nothing inherits from the binary that reads it.
-    #[serde(default = "crate::economy::this_build")]
+    #[serde(
+        default = "crate::economy::this_build",
+        skip_serializing_if = "crate::economy::is_this_build"
+    )]
     pub game_build: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(range(min = 1))]
@@ -752,18 +755,6 @@ red:
   - {name: sticky_oil_bomb, positions: [{x: -30, y: 150}, {x: 60, y: 150}]}
 ";
 
-    /// The example with its build stated, which the writer always writes.
-    fn with_build(text: &str, kind: &str) -> String {
-        text.replacen(
-            &format!("kind: {kind}\n"),
-            &format!(
-                "kind: {kind}\ngame_build: {}\n",
-                crate::economy::game_build()
-            ),
-            1,
-        )
-    }
-
     fn example() -> Fight {
         parse_yaml(EXAMPLE.as_bytes()).unwrap()
     }
@@ -793,7 +784,7 @@ red:
         };
         assert!(oil.retained);
         assert_eq!(oil.grid_rows.keys().copied().collect::<Vec<_>>(), [2, 3, 4]);
-        assert_eq!(canonical_yaml(fight).unwrap(), with_build(EXAMPLE, "fight"));
+        assert_eq!(canonical_yaml(fight).unwrap(), EXAMPLE);
     }
 
     #[test]
@@ -826,8 +817,7 @@ red:
         let written = canonical_yaml(fight.clone()).unwrap();
         assert_eq!(
             written,
-            with_build(
-                "\
+            "\
 kind: fight
 seed: 4242
 round: 3
@@ -849,8 +839,6 @@ red:
   units:
   - {name: arclight, index: 0, position: {x: 0, y: -100}}
 ",
-                "fight"
-            )
         );
         let again = parse_yaml(written.as_bytes()).unwrap();
         assert_eq!(again, fight.clone().normalized());
@@ -863,7 +851,7 @@ red:
         assert_eq!(project(&example()), layout);
         assert_eq!(
             crate::layout::canonical_yaml(project(&example())).unwrap(),
-            with_build(EXAMPLE_LAYOUT, "layout")
+            EXAMPLE_LAYOUT
         );
     }
 

@@ -107,9 +107,9 @@ The header holds what every round of the match shares.
 | `map_id` | `BattleInfo.MapID` |
 
 `seed` and `map_id` keep the meaning and the optionality a layout gives them.
-`game_build` is the one a [layout](layout.md#document-shape) states: every
-writer writes it, a reader refuses another build, and a match that states none
-is the reader's own.
+`game_build` is the one a [layout](layout.md#document-shape) states: a
+writer leaves out the build it carries, a reader refuses another build, and a
+match that states none is the reader's own.
 
 The rest of the match header is a property of the standard 1v1 rule set rather
 than of a match: the phase durations, the round cap, the advance team,

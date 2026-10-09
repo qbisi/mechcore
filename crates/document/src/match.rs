@@ -754,8 +754,13 @@ enum Segment<'a> {
     Action(ActionSegment<'a>),
 }
 
+fn is_this_build_ref(stated: &&str) -> bool {
+    crate::economy::is_this_build(stated)
+}
+
 #[derive(Serialize)]
 struct Header<'a> {
+    #[serde(skip_serializing_if = "is_this_build_ref")]
     game_build: &'a str,
     map_id: i32,
     seed: i32,

@@ -63,7 +63,10 @@ pub struct Layout {
     pub kind: DocumentKind,
     /// The build whose tables this document is written against, which a
     /// document stating nothing inherits from the binary that reads it.
-    #[serde(default = "crate::economy::this_build")]
+    #[serde(
+        default = "crate::economy::this_build",
+        skip_serializing_if = "crate::economy::is_this_build"
+    )]
     pub game_build: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(range(min = 1))]
