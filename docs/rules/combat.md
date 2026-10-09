@@ -180,7 +180,7 @@ formation's jittered slots can put it, rather than at −0.245°.
 nothing.** `SkillAttackAngleChecker` measures a target's angle with
 `FightUtility.CalculateAngle` of two transforms, which reads two equal
 positions as angle 0 before it converts any direction, so such a target is in
-every attack angle. `MotionAttackState.AttackRotate` turns towards
+every attack angle, a grouped slot's as well as the core's. `MotionAttackState.AttackRotate` turns towards
 `CalculateTargetDirection`, and `FightTransform.RotateTo` returns on a zero
 direction, so the unit keeps its facing and its lock and fires on. It happens
 when a charging unit passes through the one aiming at it.
