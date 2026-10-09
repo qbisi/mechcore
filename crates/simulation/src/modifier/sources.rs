@@ -27,8 +27,20 @@ pub(crate) struct LifeSteal {
     pub(crate) can_disable: bool,
 }
 
-/// What an `IAutoRecovery` whose `GetAutoRecoveryStateType` is `Normal`
-/// answers: it repairs whenever its unit is hurt.
+/// `AutoRecoveryStateType`: when an `IAutoRecovery` repairs. `Cloak`, which
+/// no unit's move ability makes, is refused where a row is read.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum RecoveryState {
+    /// `Normal`: whenever its unit is hurt.
+    Normal,
+    /// `Underground`: only while its unit is below, from the end of its
+    /// burrow (`OnEnterMoveEnd`) to the start of its surfacing
+    /// (`OnExitMoveBegin`).
+    Underground,
+}
+
+/// What an `IAutoRecovery` answers: it repairs while its unit is hurt and in
+/// its state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct AutoRecovery {
     /// `GetStartTime`, Q32.32 seconds.
@@ -38,6 +50,8 @@ pub(crate) struct AutoRecovery {
     /// `GetRecoveryLIfeRate`, Q32.32: the share of the unit's maximum life
     /// one repair restores.
     pub(crate) life_rate_q32: i64,
+    /// `GetAutoRecoveryStateType`.
+    pub(crate) state: RecoveryState,
     /// `GetPriority`: 1 for an equipment, 0 for a technology.
     pub(crate) priority: i32,
     /// `CanDisable`, as [`LifeSteal::can_disable`].

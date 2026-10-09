@@ -743,9 +743,21 @@ Nano Repair Kit and Field Maintenance are repair sources, one per unit as
 lifesteal's are, the item's priority above the technology's. Their numbers
 are [`config/equipment_effects.yaml`](../../config/equipment_effects.yaml)'s
 and [`config/technology_effects.yaml`](../../config/technology_effects.yaml)'s
-`start_time`, `recovery_duration` and `recovery_life_rate`. A technology
-whose `auto_recovery_state_type` is not 0 repairs only underground or
-cloaked, which the simulator refuses.
+`start_time`, `recovery_duration` and `recovery_life_rate`.
+
+**A repair of state 1 runs only while its unit is below.** A technology whose
+`auto_recovery_state_type` is 1, `Underground`, has its controller out of
+condition from the start
+(`TeamAutoRecoveryManager+AutoRecoveryController.Reset`), and
+`TeamAutoRecoveryManager.AddMech` registers it with its unit's
+`UndergroundMoveAbility`: the end of a burrow (`OnEnterMoveEnd`) puts it in
+condition, and the start of a surfacing (`OnExitMoveBegin`) takes it out.
+`TeamAutoRecoveryManager.Update` passes over a controller out of condition,
+so both its clocks stand still while the unit is up, and resume where they
+stood. Burrow Maintenance's Sandworm, hurt while it is up, repairs nothing
+until it has burrowed, and twenty ticks after it has, its start clock
+reaches its second: `tests/move_ability/fights/burrow_maintenance.yaml`. A
+state of 2, `Cloak`, is refused.
 
 ## Personal shield
 
@@ -1203,6 +1215,10 @@ not the game's native attack-type enum.
   the whole part of its maximum life times the rate, from an item and from a
   technology: `tests/repair/fights/nano-repair-kit.yaml` and
   `tests/repair/fights/field-maintenance.yaml`.
+- A repair of state 1 runs only below, its clocks standing still while its
+  unit is up: Burrow Maintenance's Sandworm, hurt from tick 147, repairs
+  first on tick 283, twenty ticks after its burrow ended,
+  `tests/move_ability/fights/burrow_maintenance.yaml`.
 
 - A shield of the whole maximum life takes hits before life, its last hit
   only what it held: `tests/energy_shield/fights/portable-shield.yaml` and
@@ -1461,6 +1477,13 @@ not the game's native attack-type enum.
   `IAutoRecovery.GetRecoveryLIfeRate` and calls `FightMech.RecoveryLife`.
   `FightController.AddModules` adds `AutoRecoverySystem` after
   `SuperDeploymentSystem`.
+- A repair's state: `TeamAutoRecoveryManager+AutoRecoveryController.Reset`
+  sets `isCondition` for `AutoRecoveryStateType.Normal` alone; `TeamAutoRecoveryManager.AddMech`
+  registers `MechEnterMoveEnd` and `MechExitMoveBegin` on the
+  `UndergroundMoveAbility`'s `OnEnterMoveEnd` and `OnExitMoveBegin`, which
+  set and clear it; `TeamAutoRecoveryManager.Update` passes over a
+  controller out of condition; `MoveAbility`'s `OnTransitionEnd` invokes
+  `OnEnterMoveEnd` whether the unit is alive or not.
 
 - A personal shield: `EnergyShieldProvider.AddEffect` sets the controller's
   `lifeRate` from `IEnergyShieldSource.GetLifeRate`, which

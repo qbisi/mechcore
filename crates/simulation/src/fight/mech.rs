@@ -42,7 +42,8 @@ impl Actor {
         // source in force a controller, which its constructor resets.
         let recovery = placement
             .auto_recovery
-            .map(|_| super::recovery::RecoveryClock::reset());
+            .as_ref()
+            .map(super::recovery::RecoveryClock::reset);
         let buff_cycles = super::buff_cycle::BuffCycle::of(&placement.buff_sources);
         let shield = placement.energy_shield.map(|source| {
             let maximum = q32_mul(max_life << 32, source.life_rate_q32) >> 32;

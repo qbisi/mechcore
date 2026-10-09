@@ -34,7 +34,10 @@ use crate::{
 use super::{
     buffs,
     effects::{self, Fields, PROJECTILE, VALUE_ELSEWHERE},
-    sources::{AutoRecovery, BuffSource, CarriedShield, EnergyShield, LifeSteal, ProductionLine},
+    sources::{
+        AutoRecovery, BuffSource, CarriedShield, EnergyShield, LifeSteal, ProductionLine,
+        RecoveryState,
+    },
     targets::Targets,
 };
 
@@ -505,6 +508,7 @@ impl Equipment {
             start_time_q32: row.start_time.unwrap_or(0),
             duration_q32: row.recovery_duration.unwrap_or(0),
             life_rate_q32: row.recovery_life_rate.unwrap_or(0),
+            state: RecoveryState::Normal,
             priority: PRIORITY,
             can_disable: false,
         });

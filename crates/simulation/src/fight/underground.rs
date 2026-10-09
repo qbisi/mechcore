@@ -19,6 +19,7 @@
 
 use super::skill::Flow;
 use super::*;
+use crate::modifier::RecoveryState;
 
 /// `MoveAbility.MoveState`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -113,6 +114,20 @@ impl Actor {
             locked: underground
                 .agent_locked
                 .then_some((LOCKED_COLLIDER_PRIORITY, Q32_ONE)),
+        }
+    }
+
+    /// `TeamAutoRecoveryManager.MechEnterMoveEnd` and `MechExitMoveBegin`,
+    /// which `AddMech` registers with the move ability of a unit whose
+    /// repair is `AutoRecoveryStateType.Underground`: its controller's
+    /// `isCondition` set or cleared.
+    fn set_underground_recovery(&mut self, below: bool) {
+        let underground = self
+            .placement
+            .auto_recovery
+            .is_some_and(|source| source.state == RecoveryState::Underground);
+        if let Some(clock) = self.recovery.as_mut().filter(|_| underground) {
+            clock.condition = below;
         }
     }
 
@@ -224,6 +239,7 @@ impl Simulation {
             underground.agent_locked = true;
             underground.showing_q32 = Some(underground.exit_keep_q32);
             actor.deactivate_skills();
+            actor.set_underground_recovery(false);
             // `OnExitMoveBegin`: `MoveAbilitySummonSystem` hands the side a
             // creator of the unit's surfacing line.
             if let Some(production) = &actor.placement.surfacing {
@@ -300,6 +316,8 @@ impl Actor {
                     underground.below = true;
                     self.visibility = Visibility::Hide;
                 }
+                // `OnEnterMoveEnd`, invoked alive or not.
+                self.set_underground_recovery(true);
             }
             AbilityState::None | AbilityState::Moving => {}
         }
