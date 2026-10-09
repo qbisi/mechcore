@@ -1,0 +1,24 @@
+# Fire Extinguisher on blue's Hounds travelling in from the left flank in
+# round 2, beside red's Incendiary Bomb. The fires land within reach from
+# tick 63, and the Hounds clear nothing while they travel; they arrive on
+# tick 162 and clear from that tick.
+
+kind: fight
+map_id: 1021
+seed: 4242
+round: 2
+source: game
+ticks: 1189
+hash: {profile: mcfr-content-0.23.0, result: aec6b01e5cfd0da8fbdd43ac8611dce949b55cf5dcee2a698d90fd19229842e7}
+blue:
+  core_damage: 350
+  techs:
+    hound: [fire_extinguisher]
+  units:
+  - {name: marksman, index: 0, position: {x: 0, y: -150}}
+  - {name: hound, index: 1, position: {x: -310, y: 40}, exp: 0/200/750, travelling: true}
+red:
+  units:
+  - {name: fortress, index: 0, position: {x: 0, y: -150}, exp: 0/600/1600}
+  battle_skills:
+  - {name: incendiary_bomb, positions: [{x: 230, y: -40}, {x: 250, y: -40}]}

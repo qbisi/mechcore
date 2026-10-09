@@ -715,7 +715,9 @@ Extinguisher, the Hound's: it answers `IClearRangeItem` with a radius of 40
 whole metres (`GetRadius`) and the kinds fire, acid and fog, in that order
 (`GetRangeItemTypes`). `ClearRangeItemEffectProvider.AddEffect` puts its
 unit in its side's `TeamClearRangeItemManager`, active; `DoDeactive`, as
-the unit dies, makes it inactive.
+the unit dies, makes it inactive. A unit made or summoned with it, a Hound
+a Centurion makes with Summon Hounds among them, joins the manager as it
+joins the fight; a unit travelling in clears nothing until it arrives.
 
 **Every second update it clears about each active unit.** Each side's
 manager counts its updates (`m_deltaTime`) and, on reaching
@@ -730,10 +732,12 @@ terrain whose own circle the circle reaches (`RangeItem.GetCircleRange`,
 `CircleRange.Overlaps`) loses its cells under the circle's
 (`RangeItemController.RemoveGrids`, `GridBlockInt.TryDisableGrid`), a
 terrain of either side alike. A circle becomes a grid of its whole circle
-first (`RangeItemEffectLayerGrid.ConvertToGrid`, `GenerateGrid`), and a grid
-left with no cell goes. Which unit clears first changes nothing that is
-left. A circle that becomes a grid while a battlefield shield stands, which
-`GenerateGrid` cuts in a way not read, is refused.
+first (`RangeItemEffectLayerGrid.ConvertToGrid`), and every active shield of
+every group, a carried barrier among them, takes its cells from it as from a
+new terrain's, unless it was turned from another kind, a fire burnt from oil
+(`GenerateGrid`, `AdvancedEnergyShieldSystem.GetActiveEnergyShields`,
+`m_isConvertFromOtherType`). A grid left with no cell goes. Which unit
+clears first changes nothing that is left.
 
 ## Burrowing technologies
 
@@ -1202,7 +1206,12 @@ derive (a minimum range):
   `tests/fire_extinguisher/fights/fire.yaml`. It clears acid and fog alike,
   and an acid left with no cell goes:
   `tests/fire_extinguisher/fights/acid-smoke.yaml`. Disabled, it clears
-  nothing: `tests/fire_extinguisher/fights/fire-impact.yaml`.
+  nothing: `tests/fire_extinguisher/fights/fire-impact.yaml`. The Hounds a
+  Centurion makes clear as deployed ones do:
+  `tests/fire_extinguisher/fights/made.yaml`. Travelling in, they clear from
+  their arrival: `tests/fire_extinguisher/fights/travelling.yaml`. A fire a
+  barrier reaches after it lands loses the barrier's cells as it is first
+  cleared: `tests/fire_extinguisher/fights/shield-cut.yaml`.
 - Subterranean Blitz burrows its Crawlers from the first tick and brings
   each up as its enemy comes within 50: `tests/burrow/fights/crawler-rhino.yaml`.
   Burrowed, they take a Marksman's shot less 0.4; one that dies burrowed,
@@ -1542,7 +1551,9 @@ derive (a minimum range):
   `FightController.AddModules`, `RangeItemController.Query`,
   `RangeItemController.RemoveGrids`, `RangeItemController.Remove`,
   `RangeItem.GetCircleRange`, `RangeItemEffectLayerGrid.ConvertToGrid`,
-  `RangeItemEffectLayerGrid.GenerateGrid`, `GridBlockInt.TryDisableGrid`.
+  `RangeItemEffectLayerGrid.GenerateGrid`,
+  `AdvancedEnergyShieldSystem.GetActiveEnergyShields`,
+  `GridBlockInt.TryDisableGrid`.
 - A burrowing technology burrows its unit while the nearest enemy its main
   skill's search measured, and its attack target or lock, stand beyond its
   distance, writing itself as the unit's buff, and brings it up otherwise:
@@ -1838,11 +1849,12 @@ derive (a minimum range):
   the build; no recording holds an Electromagnetic Impact running out on
   Crawlers that hold it, nor one landing. A summoned, made or
   death-summoned unit that holds it is refused.
-- **A fire extinguisher switched on again.** Read from the build; no
-  recording holds an Electromagnetic Impact running out on Hounds that hold
-  it. A circle turning into a grid beside a battlefield shield, a recovery
-  zone, and a summoned, made, death-summoned or travelling unit that holds it
-  are refused.
+- **A fire extinguisher switched on again, on a summon, or clearing a fire
+  burnt from oil.** Read from the build; no recording holds an
+  Electromagnetic Impact running out on Hounds that hold it, a battle skill
+  or a dying unit that summons a Hound (none does), nor a Hound clearing a
+  fire burnt from an oil beside a shield. A recovery zone among its kinds is
+  refused.
 
 - **A wreckage record running out, and the share among holders.** Read
   from the build; no recording holds a recorded unit dying after its time,

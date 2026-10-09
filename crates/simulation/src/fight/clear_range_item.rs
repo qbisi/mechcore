@@ -1,7 +1,8 @@
 //! `ClearRangeItemSystem`: the terrain a unit's technology clears about it.
 //!
 //! A unit with an `IClearRangeItem` in force (a Hound's Fire Extinguisher)
-//! is in its side's `TeamClearRangeItemManager`, active while it lives
+//! is in its side's `TeamClearRangeItemManager` from when it joins the
+//! fight, a unit travelling in from its arrival, and active while it lives
 //! (`ClearRangeItemEffectProvider.DoDeactive` as it dies) and its
 //! technologies are not disabled (`DisableEffect`). Each manager counts its
 //! updates and clears on every second (`m_updateInterval`), after
@@ -32,6 +33,7 @@ impl Simulation {
             .iter()
             .filter(|(_, actor)| {
                 actor.placement.clear_range_item.is_some()
+                    && !actor.travelling
                     && actor.alive()
                     && !actor.technology_disabled()
             })

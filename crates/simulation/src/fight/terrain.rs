@@ -81,6 +81,9 @@ struct Terrain {
     round: i32,
     /// Its cells, when it is laid out as a grid (`IsGridMode`).
     grid: Option<GridBlock>,
+    /// `m_isConvertFromOtherType`: turned from another kind, a fire burnt
+    /// from oil.
+    converted: bool,
 }
 
 /// How `RangeItemEffectLayerGrid.OnAddRangeItem` lays a new terrain out.
@@ -283,6 +286,7 @@ impl Simulation {
                 elapsed: 0,
                 round: 0,
                 grid,
+                converted: matches!(layout, Layout::Cut { converted: true }),
             },
         );
         let controller = &mut self.terrain.controllers[index];
@@ -493,28 +497,34 @@ impl Simulation {
         Ok(())
     }
 
-    /// `RangeItemController.RemoveGrids`. A circle becomes a grid of every
-    /// cell of its circle first (`RangeItemEffectLayerGrid.ConvertToGrid`);
-    /// a standing shield would cut it in a way not read, and is refused.
-    /// The cells under the circle go (`GridBlockInt.TryDisableGrid`), and a
-    /// grid that loses its last goes.
+    /// `RangeItemController.RemoveGrids`. A circle becomes a grid of its
+    /// circle first (`RangeItemEffectLayerGrid.ConvertToGrid`), which every
+    /// active shield of every group cuts unless it was turned from another
+    /// kind (`GenerateGrid`, `AdvancedEnergyShieldSystem.
+    /// GetActiveEnergyShields`). The cells under the circle go
+    /// (`GridBlockInt.TryDisableGrid`), and a grid that loses its last goes.
     fn remove_grids(&mut self, index: usize, key: u64, circle: Circle) -> Result<()> {
         if self.terrain.terrains[&key].grid.is_none() {
-            if self.shield.standing.iter().any(|shield| shield.active) {
-                return Err(Error::new(
-                    "a terrain cleared into a grid beside a battlefield shield is not supported",
-                ));
-            }
+            let shields = self
+                .shield
+                .standing
+                .iter()
+                .filter(|shield| shield.active)
+                .map(|shield| (shield.x_q32, shield.z_q32, shield.radius_q32))
+                .collect::<Vec<_>>();
             let terrain = self
                 .terrain
                 .terrains
                 .get_mut(&key)
                 .expect("an item's terrain exists");
-            terrain.grid = Some(GridBlock::of_circle((
-                terrain.x_q32,
-                terrain.z_q32,
-                terrain.spec.radius_q32,
-            ))?);
+            let mut grid =
+                GridBlock::of_circle((terrain.x_q32, terrain.z_q32, terrain.spec.radius_q32))?;
+            if !terrain.converted {
+                for shield in shields {
+                    grid.disable(shield)?;
+                }
+            }
+            terrain.grid = Some(grid);
         }
         let grid = self
             .terrain
